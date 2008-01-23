@@ -203,7 +203,11 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info);
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
 MPP_RET mpp_buffer_put(MppBuffer buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
+MPP_RET mpp_buffer_read(MppBuffer buffer, void *data, size_t size);
+MPP_RET mpp_buffer_write(MppBuffer buffer, void *data, size_t size);
 MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info);
+void   *mpp_buffer_get_ptr(MppBuffer buffer);
+int     mpp_buffer_get_fd(MppBuffer buffer);
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
