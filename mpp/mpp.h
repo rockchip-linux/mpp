@@ -21,6 +21,7 @@
 #include "mpp_list.h"
 #include "mpp_thread.h"
 #include "mpp_hal.h"
+#include "mpp_buf_slot.h"
 
 extern RK_U32 mpp_debug;
 
@@ -80,6 +81,9 @@ public:
     MppCodingType   mCoding;
 
     RK_U32          mStatus;
+
+    // decoder context
+    MppBufSlots     mBufSlots;
 
     MppHalDecTask   **mTask;
     RK_U32          mTaskNum;

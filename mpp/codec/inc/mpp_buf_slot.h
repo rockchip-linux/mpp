@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_H__
-#define __MPP_DEC_H__
+#ifndef __MPP_BUF_SLOT_H__
+#define __MPP_BUF_SLOT_H__
 
 #include "rk_type.h"
 #include "mpp_buffer.h"
@@ -103,9 +103,27 @@ extern "C" {
 
 /*
  * called by mpp context
+ *
+ * init / deinit - normal initialize and de-initialize function
+ * setup         - called by parser when slot information changed
+ * is_changed    - called by mpp to detect whether info change flow is needed
+ * ready         - called by mpp when info changed is done
+ *
+ * typical info change flow:
+ *
+ * mpp_buf_slot_setup           called in parser with changed equal to 1
+ * mpp_buf_slot_is_changed      called in mpp and found info change
+ *
+ * do info change outside
+ *
+ * mpp_buf_slot_ready           called in mpp when info change is done
+ *
  */
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots);
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots);
+MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 changed);
+RK_U32  mpp_buf_slot_is_changed(MppBufSlots slots);
+MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
 
 /*
  * called by parser
@@ -152,4 +170,4 @@ MppBuffer mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index);
 }
 #endif
 
-#endif /*__MPP_DEC_H__*/
+#endif /*__MPP_BUF_SLOT_H__*/

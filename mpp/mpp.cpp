@@ -51,6 +51,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mType(type),
       mCoding(coding),
       mStatus(0),
+      mBufSlots(NULL),
       mTask(NULL),
       mTaskNum(2)
 {
