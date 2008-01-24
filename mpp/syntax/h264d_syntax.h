@@ -35,237 +35,237 @@
 typedef struct _DXVA_PicEntry_H264 {
     union {
         struct {
-            UCHAR  Index7Bits : 7;
-            UCHAR  AssociatedFlag : 1;
+            RK_U8  Index7Bits : 7;
+            RK_U8  AssociatedFlag : 1;
         };
-        UCHAR  bPicEntry;
+        RK_U8  bPicEntry;
     };
 } DXVA_PicEntry_H264, *LPDXVA_PicEntry_H264;  /* 1 byte */
 
 /* H.264/AVC picture parameters structure */
 typedef struct _DXVA_PicParams_H264 {
-    USHORT  wFrameWidthInMbsMinus1;
-    USHORT  wFrameHeightInMbsMinus1;
+    RK_U16  wFrameWidthInMbsMinus1;
+    RK_U16  wFrameHeightInMbsMinus1;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */
-    UCHAR   num_ref_frames;
+    RK_U8   num_ref_frames;
 
     union {
         struct {
-            USHORT  field_pic_flag : 1;
-            USHORT  MbaffFrameFlag : 1;
-            USHORT  residual_colour_transform_flag : 1;
-            USHORT  sp_for_switch_flag : 1;
-            USHORT  chroma_format_idc : 2;
-            USHORT  RefPicFlag : 1;
-            USHORT  constrained_intra_pred_flag : 1;
+            RK_U16  field_pic_flag : 1;
+            RK_U16  MbaffFrameFlag : 1;
+            RK_U16  residual_colour_transform_flag : 1;
+            RK_U16  sp_for_switch_flag : 1;
+            RK_U16  chroma_format_idc : 2;
+            RK_U16  RefPicFlag : 1;
+            RK_U16  constrained_intra_pred_flag : 1;
 
-            USHORT  weighted_pred_flag : 1;
-            USHORT  weighted_bipred_idc : 2;
-            USHORT  MbsConsecutiveFlag : 1;
-            USHORT  frame_mbs_only_flag : 1;
-            USHORT  transform_8x8_mode_flag : 1;
-            USHORT  MinLumaBipredSize8x8Flag : 1;
-            USHORT  IntraPicFlag : 1;
+            RK_U16  weighted_pred_flag : 1;
+            RK_U16  weighted_bipred_idc : 2;
+            RK_U16  MbsConsecutiveFlag : 1;
+            RK_U16  frame_mbs_only_flag : 1;
+            RK_U16  transform_8x8_mode_flag : 1;
+            RK_U16  MinLumaBipredSize8x8Flag : 1;
+            RK_U16  IntraPicFlag : 1;
         };
-        USHORT  wBitFields;
+        RK_U16  wBitFields;
     };
-    UCHAR  bit_depth_luma_minus8;
-    UCHAR  bit_depth_chroma_minus8;
+    RK_U8  bit_depth_luma_minus8;
+    RK_U8  bit_depth_chroma_minus8;
 
-    USHORT Reserved16Bits;
-    UINT   StatusReportFeedbackNumber;
+    RK_U16 Reserved16Bits;
+    RK_U32   StatusReportFeedbackNumber;
 
     DXVA_PicEntry_H264  RefFrameList[16]; /* flag LT */
-    INT    CurrFieldOrderCnt[2];
-    INT    FieldOrderCntList[16][2];
+    RK_S32    CurrFieldOrderCnt[2];
+    RK_S32    FieldOrderCntList[16][2];
 
-    CHAR   pic_init_qs_minus26;
-    CHAR   chroma_qp_index_offset;   /* also used for QScb */
-    CHAR   second_chroma_qp_index_offset; /* also for QScr */
-    UCHAR  ContinuationFlag;
+    RK_S8   pic_init_qs_minus26;
+    RK_S8   chroma_qp_index_offset;   /* also used for QScb */
+    RK_S8   second_chroma_qp_index_offset; /* also for QScr */
+    RK_U8  ContinuationFlag;
 
     /* remainder for parsing */
-    CHAR   pic_init_qp_minus26;
-    UCHAR  num_ref_idx_l0_active_minus1;
-    UCHAR  num_ref_idx_l1_active_minus1;
-    UCHAR  Reserved8BitsA;
+    RK_S8   pic_init_qp_minus26;
+    RK_U8  num_ref_idx_l0_active_minus1;
+    RK_U8  num_ref_idx_l1_active_minus1;
+    RK_U8  Reserved8BitsA;
 
-    USHORT FrameNumList[16];
-    UINT   UsedForReferenceFlags;
-    USHORT NonExistingFrameFlags;
-    USHORT frame_num;
+    RK_U16 FrameNumList[16];
+    RK_U32   UsedForReferenceFlags;
+    RK_U16 NonExistingFrameFlags;
+    RK_U16 frame_num;
 
-    UCHAR  log2_max_frame_num_minus4;
-    UCHAR  pic_order_cnt_type;
-    UCHAR  log2_max_pic_order_cnt_lsb_minus4;
-    UCHAR  delta_pic_order_always_zero_flag;
+    RK_U8  log2_max_frame_num_minus4;
+    RK_U8  pic_order_cnt_type;
+    RK_U8  log2_max_pic_order_cnt_lsb_minus4;
+    RK_U8  delta_pic_order_always_zero_flag;
 
-    UCHAR  direct_8x8_inference_flag;
-    UCHAR  entropy_coding_mode_flag;
-    UCHAR  pic_order_present_flag;
-    UCHAR  num_slice_groups_minus1;
+    RK_U8  direct_8x8_inference_flag;
+    RK_U8  entropy_coding_mode_flag;
+    RK_U8  pic_order_present_flag;
+    RK_U8  num_slice_groups_minus1;
 
-    UCHAR  slice_group_map_type;
-    UCHAR  deblocking_filter_control_present_flag;
-    UCHAR  redundant_pic_cnt_present_flag;
-    UCHAR  Reserved8BitsB;
+    RK_U8  slice_group_map_type;
+    RK_U8  deblocking_filter_control_present_flag;
+    RK_U8  redundant_pic_cnt_present_flag;
+    RK_U8  Reserved8BitsB;
 
-    USHORT slice_group_change_rate_minus1;
+    RK_U16 slice_group_change_rate_minus1;
 
-    UCHAR  SliceGroupMap[810]; /* 4b/sgmu, Size BT.601 */
+    RK_U8  SliceGroupMap[810]; /* 4b/sgmu, Size BT.601 */
 
 } DXVA_PicParams_H264, *LPDXVA_PicParams_H264;
 
 /* H.264/AVC quantization weighting matrix data structure */
 typedef struct _DXVA_Qmatrix_H264 {
-    UCHAR  bScalingLists4x4[6][16];
-    UCHAR  bScalingLists8x8[2][64];
+    RK_U8  bScalingLists4x4[6][16];
+    RK_U8  bScalingLists8x8[2][64];
 
 } DXVA_Qmatrix_H264, *LPDXVA_Qmatrix_H264;
 
 /* H.264/AVC slice control data structure - short form */
 typedef struct _DXVA_Slice_H264_Short {
-    UINT   BSNALunitDataLocation; /* type 1..5 */
-    UINT   SliceBytesInBuffer; /* for off-host parse */
-    USHORT wBadSliceChopping;  /* for off-host parse */
+    RK_U32   BSNALunitDataLocation; /* type 1..5 */
+    RK_U32   SliceBytesInBuffer; /* for off-host parse */
+    RK_U16 wBadSliceChopping;  /* for off-host parse */
 } DXVA_Slice_H264_Short, *LPDXVA_Slice_H264_Short;
 
 /* H.264/AVC picture entry data structure - long form */
 typedef struct _DXVA_Slice_H264_Long {
-    UINT   BSNALunitDataLocation; /* type 1..5 */
-    UINT   SliceBytesInBuffer; /* for off-host parse */
-    USHORT wBadSliceChopping;  /* for off-host parse */
+    RK_U32   BSNALunitDataLocation; /* type 1..5 */
+    RK_U32   SliceBytesInBuffer; /* for off-host parse */
+    RK_U16 wBadSliceChopping;  /* for off-host parse */
 
-    USHORT first_mb_in_slice;
-    USHORT NumMbsForSlice;
+    RK_U16 first_mb_in_slice;
+    RK_U16 NumMbsForSlice;
 
-    USHORT BitOffsetToSliceData; /* after CABAC alignment */
+    RK_U16 BitOffsetToSliceData; /* after CABAC alignment */
 
-    UCHAR  slice_type;
-    UCHAR  luma_log2_weight_denom;
-    UCHAR  chroma_log2_weight_denom;
-    UCHAR  num_ref_idx_l0_active_minus1;
-    UCHAR  num_ref_idx_l1_active_minus1;
-    CHAR   slice_alpha_c0_offset_div2;
-    CHAR   slice_beta_offset_div2;
-    UCHAR  Reserved8Bits;
+    RK_U8  slice_type;
+    RK_U8  luma_log2_weight_denom;
+    RK_U8  chroma_log2_weight_denom;
+    RK_U8  num_ref_idx_l0_active_minus1;
+    RK_U8  num_ref_idx_l1_active_minus1;
+    RK_S8   slice_alpha_c0_offset_div2;
+    RK_S8   slice_beta_offset_div2;
+    RK_U8  Reserved8Bits;
     DXVA_PicEntry_H264 RefPicList[3][32]; /* L0 & L1 */
-    SHORT  Weights[2][32][3][2]; /* L0 & L1; Y, Cb, Cr */
-    CHAR   slice_qs_delta;
+    RK_S16  Weights[2][32][3][2]; /* L0 & L1; Y, Cb, Cr */
+    RK_S8   slice_qs_delta;
     /* rest off-host parse */
-    CHAR   slice_qp_delta;
-    UCHAR  redundant_pic_cnt;
-    UCHAR  direct_spatial_mv_pred_flag;
-    UCHAR  cabac_init_idc;
-    UCHAR  disable_deblocking_filter_idc;
-    USHORT slice_id;
+    RK_S8   slice_qp_delta;
+    RK_U8  redundant_pic_cnt;
+    RK_U8  direct_spatial_mv_pred_flag;
+    RK_U8  cabac_init_idc;
+    RK_U8  disable_deblocking_filter_idc;
+    RK_U16 slice_id;
 } DXVA_Slice_H264_Long, *LPDXVA_Slice_H264_Long;
 
 /* H.264/AVC macro block control command data structure */
 typedef struct _DXVA_MBctrl_H264 {
     union {
         struct {
-            UINT  bSliceID : 8;   /* 1 byte */
-            UINT  MbType5Bits : 5;
-            UINT  IntraMbFlag : 1;
-            UINT  mb_field_decoding_flag : 1;
-            UINT  transform_size_8x8_flag : 1;   /* 2 bytes */
-            UINT  HostResidDiff : 1;
-            UINT  DcBlockCodedCrFlag : 1;
-            UINT  DcBlockCodedCbFlag : 1;
-            UINT  DcBlockCodedYFlag : 1;
-            UINT  FilterInternalEdgesFlag : 1;
-            UINT  FilterLeftMbEdgeFlag : 1;
-            UINT  FilterTopMbEdgeFlag : 1;
-            UINT  ReservedBit : 1;
-            UINT  bMvQuantity : 8;   /* 4 bytes */
+            RK_U32  bSliceID : 8;   /* 1 byte */
+            RK_U32  MbType5Bits : 5;
+            RK_U32  IntraMbFlag : 1;
+            RK_U32  mb_field_decoding_flag : 1;
+            RK_U32  transform_size_8x8_flag : 1;   /* 2 bytes */
+            RK_U32  HostResidDiff : 1;
+            RK_U32  DcBlockCodedCrFlag : 1;
+            RK_U32  DcBlockCodedCbFlag : 1;
+            RK_U32  DcBlockCodedYFlag : 1;
+            RK_U32  FilterInternalEdgesFlag : 1;
+            RK_U32  FilterLeftMbEdgeFlag : 1;
+            RK_U32  FilterTopMbEdgeFlag : 1;
+            RK_U32  ReservedBit : 1;
+            RK_U32  bMvQuantity : 8;   /* 4 bytes */
         };
-        UINT  dwMBtype;                    /* 4 bytes so far */
+        RK_U32  dwMBtype;                    /* 4 bytes so far */
     };
-    USHORT  CurrMbAddr;                  /* 6 bytes so far */
-    USHORT  wPatternCode[3];/* YCbCr, 16 4x4 blks, 1b each */
+    RK_U16  CurrMbAddr;                  /* 6 bytes so far */
+    RK_U16  wPatternCode[3];/* YCbCr, 16 4x4 blks, 1b each */
     /* 12 bytes so far */
-    UCHAR   bQpPrime[3];    /* Y, Cb, Cr, need just 7b QpY */
-    UCHAR   bMBresidDataQuantity;
-    ULONG   dwMBdataLocation;  /* offset into resid buffer */
+    RK_U8   bQpPrime[3];    /* Y, Cb, Cr, need just 7b QpY */
+    RK_U8   bMBresidDataQuantity;
+    RK_U32   dwMBdataLocation;  /* offset into resid buffer */
     /* 20 bytes so far */
     union {
         struct {
             /* start here for Intra MB's  (9 useful bytes in branch) */
-            USHORT LumaIntraPredModes[4];/* 16 blocks, 4b each */
+            RK_U16 LumaIntraPredModes[4];/* 16 blocks, 4b each */
             /* 28 bytes so far */
             union {
                 struct {
-                    UCHAR  intra_chroma_pred_mode : 2;
-                    UCHAR  IntraPredAvailFlags : 5;
-                    UCHAR  ReservedIntraBit : 1;
+                    RK_U8  intra_chroma_pred_mode : 2;
+                    RK_U8  IntraPredAvailFlags : 5;
+                    RK_U8  ReservedIntraBit : 1;
                 };
-                UCHAR  bMbIntraStruct;        /* 29 bytes so far */
+                RK_U8  bMbIntraStruct;        /* 29 bytes so far */
             };
-            UCHAR ReservedIntra24Bits[3];   /* 32 bytes total  */
+            RK_U8 ReservedIntra24Bits[3];   /* 32 bytes total  */
         };
         struct {
             /* start here for non-Intra MB's (12 bytes in branch)    */
-            UCHAR  bSubMbShapes;          /* 4 subMbs, 2b each */
-            UCHAR  bSubMbPredModes;       /* 4 subMBs, 2b each */
+            RK_U8  bSubMbShapes;          /* 4 subMbs, 2b each */
+            RK_U8  bSubMbPredModes;       /* 4 subMBs, 2b each */
             /* 22 bytes so far */
-            USHORT wMvBuffOffset;     /* offset into MV buffer */
-            UCHAR  bRefPicSelect[2][4];     /* 32 bytes total */
+            RK_U16 wMvBuffOffset;     /* offset into MV buffer */
+            RK_U8  bRefPicSelect[2][4];     /* 32 bytes total */
         };
     };
 } DXVA_MBctrl_H264, *LPDXVA_MBctrl_H264;
 
 /* H.264/AVC IndexA and IndexB data structure */
 typedef struct _DXVA_DeblockIndexAB_H264 {
-    UCHAR  bIndexAinternal; /* 6b - could get from MB CC */
-    UCHAR  bIndexBinternal; /* 6b - could get from MB CC */
+    RK_U8  bIndexAinternal; /* 6b - could get from MB CC */
+    RK_U8  bIndexBinternal; /* 6b - could get from MB CC */
 
-    UCHAR  bIndexAleft0;
-    UCHAR  bIndexBleft0;
+    RK_U8  bIndexAleft0;
+    RK_U8  bIndexBleft0;
 
-    UCHAR  bIndexAleft1;
-    UCHAR  bIndexBleft1;
+    RK_U8  bIndexAleft1;
+    RK_U8  bIndexBleft1;
 
-    UCHAR  bIndexAtop0;
-    UCHAR  bIndexBtop0;
+    RK_U8  bIndexAtop0;
+    RK_U8  bIndexBtop0;
 
-    UCHAR  bIndexAtop1;
-    UCHAR  bIndexBtop1;
+    RK_U8  bIndexAtop1;
+    RK_U8  bIndexBtop1;
 } DXVA_DeblockIndexAB_H264, *LPDXVA_DeblockIndexAB_H264;
 /* 10 bytes in struct */
 
 /* H.264/AVC deblocking filter control data structure */
 typedef struct _DXVA_Deblock_H264 {
-    USHORT  CurrMbAddr; /* dup info */   /* 2 bytes so far */
+    RK_U16  CurrMbAddr; /* dup info */   /* 2 bytes so far */
     union {
         struct {
-            UCHAR  ReservedBit : 1;
-            UCHAR  FieldModeCurrentMbFlag : 1; /* dup info */
-            UCHAR  FieldModeLeftMbFlag : 1;
-            UCHAR  FieldModeAboveMbFlag : 1;
-            UCHAR  FilterInternal8x8EdgesFlag : 1;
-            UCHAR  FilterInternal4x4EdgesFlag : 1;
-            UCHAR  FilterLeftMbEdgeFlag : 1;
-            UCHAR  FilterTopMbEdgeFlag : 1;
+            RK_U8  ReservedBit : 1;
+            RK_U8  FieldModeCurrentMbFlag : 1; /* dup info */
+            RK_U8  FieldModeLeftMbFlag : 1;
+            RK_U8  FieldModeAboveMbFlag : 1;
+            RK_U8  FilterInternal8x8EdgesFlag : 1;
+            RK_U8  FilterInternal4x4EdgesFlag : 1;
+            RK_U8  FilterLeftMbEdgeFlag : 1;
+            RK_U8  FilterTopMbEdgeFlag : 1;
         };
-        UCHAR  FirstByte;
+        RK_U8  FirstByte;
     };
-    UCHAR  Reserved8Bits;      /* 4 bytes so far */
+    RK_U8  Reserved8Bits;      /* 4 bytes so far */
 
-    UCHAR  bbSinternalLeftVert; /* 2 bits per bS */
-    UCHAR  bbSinternalMidVert;
+    RK_U8  bbSinternalLeftVert; /* 2 bits per bS */
+    RK_U8  bbSinternalMidVert;
 
-    UCHAR  bbSinternalRightVert;
-    UCHAR  bbSinternalTopHorz;  /* 8 bytes so far */
+    RK_U8  bbSinternalRightVert;
+    RK_U8  bbSinternalTopHorz;  /* 8 bytes so far */
 
-    UCHAR  bbSinternalMidHorz;
-    UCHAR  bbSinternalBotHorz;       /* 10 bytes so far */
+    RK_U8  bbSinternalMidHorz;
+    RK_U8  bbSinternalBotHorz;       /* 10 bytes so far */
 
-    USHORT wbSLeft0; /* 4 bits per bS (1 wasted) */
-    USHORT wbSLeft1; /* 4 bits per bS (1 wasted) */
+    RK_U16 wbSLeft0; /* 4 bits per bS (1 wasted) */
+    RK_U16 wbSLeft1; /* 4 bits per bS (1 wasted) */
 
-    USHORT wbSTop0;  /* 4 bits per bS (1 wasted) */
-    USHORT wbSTop1;  /* 4b (2 wasted)  18 bytes so far*/
+    RK_U16 wbSTop0;  /* 4 bits per bS (1 wasted) */
+    RK_U16 wbSTop1;  /* 4b (2 wasted)  18 bytes so far*/
 
     DXVA_DeblockIndexAB_H264  IndexAB[3]; /* Y, Cb, Cr */
 
@@ -274,140 +274,140 @@ typedef struct _DXVA_Deblock_H264 {
 /* H.264/AVC film grain characteristics data structure */
 typedef struct _DXVA_FilmGrainCharacteristics {
 
-    USHORT  wFrameWidthInMbsMinus1;
-    USHORT  wFrameHeightInMbsMinus1;
+    RK_U16  wFrameWidthInMbsMinus1;
+    RK_U16  wFrameHeightInMbsMinus1;
 
     DXVA_PicEntry_H264  InPic; /* flag is bot field flag */
     DXVA_PicEntry_H264  OutPic; /* flag is field pic flag */
 
-    USHORT PicOrderCnt_offset;
-    INT    CurrPicOrderCnt;
-    UINT   StatusReportFeedbackNumber;
+    RK_U16 PicOrderCnt_offset;
+    RK_S32    CurrPicOrderCnt;
+    RK_U32   StatusReportFeedbackNumber;
 
-    UCHAR model_id;
-    UCHAR separate_colour_description_present_flag;
-    UCHAR film_grain_bit_depth_luma_minus8;
-    UCHAR film_grain_bit_depth_chroma_minus8;
+    RK_U8 model_id;
+    RK_U8 separate_colour_description_present_flag;
+    RK_U8 film_grain_bit_depth_luma_minus8;
+    RK_U8 film_grain_bit_depth_chroma_minus8;
 
-    UCHAR film_grain_full_range_flag;
-    UCHAR film_grain_colour_primaries;
-    UCHAR film_grain_transfer_characteristics;
-    UCHAR film_grain_matrix_coefficients;
+    RK_U8 film_grain_full_range_flag;
+    RK_U8 film_grain_colour_primaries;
+    RK_U8 film_grain_transfer_characteristics;
+    RK_U8 film_grain_matrix_coefficients;
 
-    UCHAR blending_mode_id;
-    UCHAR log2_scale_factor;
+    RK_U8 blending_mode_id;
+    RK_U8 log2_scale_factor;
 
-    UCHAR comp_model_present_flag[4];
-    UCHAR num_intensity_intervals_minus1[4];
-    UCHAR num_model_values_minus1[4];
+    RK_U8 comp_model_present_flag[4];
+    RK_U8 num_intensity_intervals_minus1[4];
+    RK_U8 num_model_values_minus1[4];
 
-    UCHAR intensity_interval_lower_bound[3][16];
-    UCHAR intensity_interval_upper_bound[3][16];
-    SHORT comp_model_value[3][16][8];
+    RK_U8 intensity_interval_lower_bound[3][16];
+    RK_U8 intensity_interval_upper_bound[3][16];
+    RK_S16 comp_model_value[3][16][8];
 } DXVA_FilmGrainChar_H264, *LPDXVA_FilmGrainChar_H264;
 
 /* H.264/AVC status reporting data structure */
 typedef struct _DXVA_Status_H264 {
-    UINT   StatusReportFeedbackNumber;
+    RK_U32   StatusReportFeedbackNumber;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */
-    UCHAR  field_pic_flag;
-    UCHAR  bDXVA_Func;
-    UCHAR  bBufType;
-    UCHAR  bStatus;
-    UCHAR  bReserved8Bits;
-    USHORT wNumMbsAffected;
+    RK_U8  field_pic_flag;
+    RK_U8  bDXVA_Func;
+    RK_U8  bBufType;
+    RK_U8  bStatus;
+    RK_U8  bReserved8Bits;
+    RK_U16 wNumMbsAffected;
 } DXVA_Status_H264, *LPDXVA_Status_H264;
 
 /* H.264 MVC picture parameters structure */
 typedef struct _DXVA_PicParams_H264_MVC {
-    USHORT  wFrameWidthInMbsMinus1;
-    USHORT  wFrameHeightInMbsMinus1;
+    RK_U16  wFrameWidthInMbsMinus1;
+    RK_U16  wFrameHeightInMbsMinus1;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */
-    UCHAR   num_ref_frames;
+    RK_U8   num_ref_frames;
 
     union {
         struct {
-            USHORT  field_pic_flag : 1;
-            USHORT  MbaffFrameFlag : 1;
-            USHORT  residual_colour_transform_flag : 1;
-            USHORT  sp_for_switch_flag : 1;
-            USHORT  chroma_format_idc : 2;
-            USHORT  RefPicFlag : 1;
-            USHORT  constrained_intra_pred_flag : 1;
+            RK_U16  field_pic_flag : 1;
+            RK_U16  MbaffFrameFlag : 1;
+            RK_U16  residual_colour_transform_flag : 1;
+            RK_U16  sp_for_switch_flag : 1;
+            RK_U16  chroma_format_idc : 2;
+            RK_U16  RefPicFlag : 1;
+            RK_U16  constrained_intra_pred_flag : 1;
 
-            USHORT  weighted_pred_flag : 1;
-            USHORT  weighted_bipred_idc : 2;
-            USHORT  MbsConsecutiveFlag : 1;
-            USHORT  frame_mbs_only_flag : 1;
-            USHORT  transform_8x8_mode_flag : 1;
-            USHORT  MinLumaBipredSize8x8Flag : 1;
-            USHORT  IntraPicFlag : 1;
+            RK_U16  weighted_pred_flag : 1;
+            RK_U16  weighted_bipred_idc : 2;
+            RK_U16  MbsConsecutiveFlag : 1;
+            RK_U16  frame_mbs_only_flag : 1;
+            RK_U16  transform_8x8_mode_flag : 1;
+            RK_U16  MinLumaBipredSize8x8Flag : 1;
+            RK_U16  IntraPicFlag : 1;
         };
-        USHORT  wBitFields;
+        RK_U16  wBitFields;
     };
-    UCHAR  bit_depth_luma_minus8;
-    UCHAR  bit_depth_chroma_minus8;
+    RK_U8  bit_depth_luma_minus8;
+    RK_U8  bit_depth_chroma_minus8;
 
-    USHORT Reserved16Bits;
-    UINT   StatusReportFeedbackNumber;
+    RK_U16 Reserved16Bits;
+    RK_U32   StatusReportFeedbackNumber;
 
     DXVA_PicEntry_H264  RefFrameList[16]; /* flag LT */
-    INT    CurrFieldOrderCnt[2];
-    INT    FieldOrderCntList[16][2];
+    RK_S32    CurrFieldOrderCnt[2];
+    RK_S32    FieldOrderCntList[16][2];
 
-    CHAR   pic_init_qs_minus26;
-    CHAR   chroma_qp_index_offset;   /* also used for QScb */
-    CHAR   second_chroma_qp_index_offset; /* also for QScr */
-    UCHAR  ContinuationFlag;
+    RK_S8   pic_init_qs_minus26;
+    RK_S8   chroma_qp_index_offset;   /* also used for QScb */
+    RK_S8   second_chroma_qp_index_offset; /* also for QScr */
+    RK_U8  ContinuationFlag;
 
     /* remainder for parsing */
-    CHAR   pic_init_qp_minus26;
-    UCHAR  num_ref_idx_l0_active_minus1;
-    UCHAR  num_ref_idx_l1_active_minus1;
-    UCHAR  Reserved8BitsA;
+    RK_S8   pic_init_qp_minus26;
+    RK_U8  num_ref_idx_l0_active_minus1;
+    RK_U8  num_ref_idx_l1_active_minus1;
+    RK_U8  Reserved8BitsA;
 
-    USHORT FrameNumList[16];
-    UINT   UsedForReferenceFlags;
-    USHORT NonExistingFrameFlags;
-    USHORT frame_num;
+    RK_U16 FrameNumList[16];
+    RK_U32   UsedForReferenceFlags;
+    RK_U16 NonExistingFrameFlags;
+    RK_U16 frame_num;
 
-    UCHAR  log2_max_frame_num_minus4;
-    UCHAR  pic_order_cnt_type;
-    UCHAR  log2_max_pic_order_cnt_lsb_minus4;
-    UCHAR  delta_pic_order_always_zero_flag;
+    RK_U8  log2_max_frame_num_minus4;
+    RK_U8  pic_order_cnt_type;
+    RK_U8  log2_max_pic_order_cnt_lsb_minus4;
+    RK_U8  delta_pic_order_always_zero_flag;
 
-    UCHAR  direct_8x8_inference_flag;
-    UCHAR  entropy_coding_mode_flag;
-    UCHAR  pic_order_present_flag;
-    UCHAR  num_slice_groups_minus1;
+    RK_U8  direct_8x8_inference_flag;
+    RK_U8  entropy_coding_mode_flag;
+    RK_U8  pic_order_present_flag;
+    RK_U8  num_slice_groups_minus1;
 
-    UCHAR  slice_group_map_type;
-    UCHAR  deblocking_filter_control_present_flag;
-    UCHAR  redundant_pic_cnt_present_flag;
-    UCHAR  Reserved8BitsB;
+    RK_U8  slice_group_map_type;
+    RK_U8  deblocking_filter_control_present_flag;
+    RK_U8  redundant_pic_cnt_present_flag;
+    RK_U8  Reserved8BitsB;
     /* SliceGroupMap is not needed for MVC, as MVC is for high profile only */
-    USHORT slice_group_change_rate_minus1;
+    RK_U16 slice_group_change_rate_minus1;
     /* Following are H.264 MVC Specific parameters */
-    UCHAR   num_views_minus1;
-    USHORT  view_id[16];
-    UCHAR   num_anchor_refs_l0[16];
-    USHORT  anchor_ref_l0[16][16];
-    UCHAR   num_anchor_refs_l1[16];
-    USHORT  anchor_ref_l1[16][16];
-    UCHAR   num_non_anchor_refs_l0[16];
-    USHORT  non_anchor_ref_l0[16][16];
-    UCHAR   num_non_anchor_refs_l1[16];
-    USHORT  non_anchor_ref_l1[16][16];
+    RK_U8   num_views_minus1;
+    RK_U16  view_id[16];
+    RK_U8   num_anchor_refs_l0[16];
+    RK_U16  anchor_ref_l0[16][16];
+    RK_U8   num_anchor_refs_l1[16];
+    RK_U16  anchor_ref_l1[16][16];
+    RK_U8   num_non_anchor_refs_l0[16];
+    RK_U16  non_anchor_ref_l0[16][16];
+    RK_U8   num_non_anchor_refs_l1[16];
+    RK_U16  non_anchor_ref_l1[16][16];
 
-    USHORT curr_view_id;
-    UCHAR  anchor_pic_flag;
-    UCHAR  inter_view_flag;
-    USHORT ViewIDList[16];
+    RK_U16 curr_view_id;
+    RK_U8  anchor_pic_flag;
+    RK_U8  inter_view_flag;
+    RK_U16 ViewIDList[16];
     //!< add in Rock-Chip RKVDEC IP
-    USHORT RefPicColmvUsedFlags;
-    USHORT RefPicFiledFlags;
-    UCHAR  RefPicLayerIdList[16];
-    UCHAR  scaleing_list_enable_flag;
+    RK_U16 RefPicColmvUsedFlags;
+    RK_U16 RefPicFiledFlags;
+    RK_U8  RefPicLayerIdList[16];
+    RK_U8  scaleing_list_enable_flag;
     ////!< for fpga test
     //USHORT seq_parameter_set_id;
     //USHORT pps_seq_parameter_set_id;
@@ -420,7 +420,7 @@ typedef struct _DXVA_PicParams_H264_MVC {
 
 typedef struct h264d_syntax_t
 {
-    UINT                    num;
+    RK_U32                    num;
     DXVA2_DecodeBufferDesc *buf;
 } H264D_Syntax_t;
 

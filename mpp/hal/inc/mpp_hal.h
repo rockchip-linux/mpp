@@ -18,6 +18,8 @@
 #define __HAL_TASK__
 
 #include "rk_type.h"
+#include "h264d_syntax.h"
+#include "mpp_dec.h"
 
 #define MAX_REF_SIZE    17
 
@@ -59,22 +61,60 @@ typedef struct {
     RK_U32          count;
 
     // current tesk output buffer
-    MppBuffer       dst;
+    RK_S32          index_dst;
     // current task reference buffers
     MppBuffer       refer[MAX_REF_SIZE];
 
-    void            *pointers[1];
+    MppBufSlots     slots;
+    H264D_Syntax_t  mSyn;
 } MppHalDecTask;
+
+typedef void*   MppHalCtx;
+
+typedef struct MppHalCfg_t {
+    RK_U32      size;
+} MppHalCfg;
+
+
+typedef struct {
+    RK_U32 ctx_size;
+
+    MPP_RET (*init)(void **ctx, MppHalCfg *cfg);
+    MPP_RET (*deinit)(void *ctx);
+
+    // to parser / mpp
+    MPP_RET (*reg_gen)(void *ctx, MppSyntax *syn);
+
+    // hw
+    MPP_RET (*start)(void *ctx, MppHalDecTask task);
+    MPP_RET (*wait)(void *ctx, MppHalDecTask task);
+
+    MPP_RET (*reset)(void *ctx);
+    MPP_RET (*flush)(void *ctx);
+    MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
+} MppHalApi;
+
+typedef struct {
+    MppCodingType   mCoding;
+
+    void            *mHalCtx;
+
+    MppSyntax       *mSyn[2];
+    MppHalApi       *api;
+} MppHal;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void HalTaskSetDstBuffer();
-void HalTaskSetDpb();
-void HalTaskSetDXVA();
-
 void *mpp_hal_thread(void *data);
+
+MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg cfg);
+MPP_RET mpp_hal_deinit(MppHal ctx);
+
+MPP_RET mpp_hal_reg_gen(MppHal ctx, MppHalDecTask task);
+MPP_RET mpp_hal_hw_start(MppHal ctx, MppHalDecTask task);
+MPP_RET mpp_hal_hw_wait(MppHal ctx, MppHalDecTask task);
 
 #ifdef __cplusplus
 }

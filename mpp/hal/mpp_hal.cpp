@@ -47,19 +47,22 @@ void *mpp_hal_thread(void *data)
             mpp->mTasks->del_at_head(&task, sizeof(task));
             mpp->mTaskGetCount++;
 
+            // hal->mpp_hal_reg_gen(current);
+
             /*
              * wait previous register set done
              */
-            // hal->get_regs;
+            // hal->mpp_hal_hw_wait(previous);
 
             /*
              * send current register set to hardware
              */
-            // hal->put_regs;
+            // hal->mpp_hal_hw_start(current);
 
             /*
              * mark previous buffer is complete
              */
+            // change dpb slot status
             // signal()
             // mark frame in output queue
             // wait up output thread to get a output frame

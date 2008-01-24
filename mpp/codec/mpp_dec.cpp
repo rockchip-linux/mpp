@@ -16,15 +16,21 @@
 
 #define  MODULE_TAG "mpp_dec"
 
+#include "mpp_mem.h"
 #include "mpp_log.h"
 
 #include "mpp.h"
 #include "mpp_dec.h"
-//#include "mpp_frame_impl.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
+#include "h264d_syntax.h"
+#include "h265d_api.h"
+
+
 #define MPP_TEST_FRAME_SIZE     SZ_1M
+
+//static MppDecApi *parsers[];
 
 void *mpp_dec_thread(void *data)
 {
@@ -99,5 +105,72 @@ void *mpp_dec_thread(void *data)
     }
 
     return NULL;
+}
+
+
+MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
+{
+    MppDecCtx *p = mpp_malloc(MppDecCtx, 1);
+    if (NULL == p) {
+        mpp_err("%s failed to malloc context\n", __FUNCTION__);
+        return MPP_ERR_NULL_PTR;
+    }
+    p->coding  = coding;
+    *ctx = p;
+    return MPP_OK;
+}
+
+MPP_RET mpp_dec_deinit(MppDecCtx *ctx)
+{
+    if (NULL == ctx) {
+        mpp_err("%s found NULL input\n", __FUNCTION__);
+        return MPP_ERR_NULL_PTR;
+    }
+    mpp_free(ctx);
+    return MPP_OK;
+}
+
+MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax **syn)
+{
+    if (NULL == ctx || NULL == pkt || NULL == syn) {
+        mpp_err("%s found NULL input ctx %p pkt %p syn %p\n",
+                __FUNCTION__, ctx, pkt, syn);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    return ctx->parser->parse(ctx, pkt, &ctx->syntax[0]);
+}
+
+MPP_RET mpp_dec_reset(MppDecCtx *ctx)
+{
+    if (NULL == ctx) {
+        mpp_err("%s found NULL input ctx %p\n",
+                __FUNCTION__, ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    return ctx->parser->reset(ctx);
+}
+
+MPP_RET mpp_dec_flush(MppDecCtx *ctx)
+{
+    if (NULL == ctx) {
+        mpp_err("%s found NULL input ctx %p\n",
+                __FUNCTION__, ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    return ctx->parser->flush(ctx);
+}
+
+MPP_RET mpp_dec_control(MppDecCtx *ctx, RK_S32 cmd, void *param)
+{
+    if (NULL == ctx) {
+        mpp_err("%s found NULL input ctx %p\n",
+                __FUNCTION__, ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    return ctx->parser->control(ctx, cmd, param);
 }
 

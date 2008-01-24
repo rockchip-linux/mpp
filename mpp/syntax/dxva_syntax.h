@@ -18,22 +18,7 @@
 #ifndef __DXVA_SYNTAX_H__
 #define __DXVA_SYNTAX_H__
 
-
-typedef unsigned long       DWORD;
-typedef unsigned char       BYTE;
-typedef unsigned short      WORD;
-typedef unsigned long       ULONG;
-typedef unsigned short      USHORT;
-typedef unsigned char       UCHAR;
-typedef unsigned int        UINT;
-
-typedef signed   int        BOOL;
-typedef signed   int        INT;
-typedef signed   char       CHAR;
-typedef signed   short      SHORT;
-typedef signed   long       LONG;
-typedef void               *PVOID;
-
+#include "rk_type.h"
 
 enum __MIDL___MIDL_itf_dxva2api_0000_0000_0012
 {
@@ -53,7 +38,7 @@ typedef struct _DXVA2_ConfigPictureDecode
     //GUID guidConfigBitstreamEncryption;
     //GUID guidConfigMBcontrolEncryption;
     //GUID guidConfigResidDiffEncryption;
-    UINT ConfigBitstreamRaw;
+    RK_U32 ConfigBitstreamRaw;
     //UINT ConfigMBcontrolRasterOrder;
     //UINT ConfigResidDiffHost;
     //UINT ConfigSpatialResid8;
@@ -71,17 +56,17 @@ typedef struct _DXVA2_ConfigPictureDecode
 
 typedef struct _DXVA2_DecodeBufferDesc
 {
-    DWORD CompressedBufferType;
-    UINT BufferIndex;
-    UINT DataOffset;
-    UINT DataSize;
-    UINT FirstMBaddress;
-    UINT NumMBsInBuffer;
-    UINT Width;
-    UINT Height;
-    UINT Stride;
-    UINT ReservedBits;
-    PVOID pvPVPState;
+    RK_U32 CompressedBufferType;
+    RK_U32 BufferIndex;
+    RK_U32 DataOffset;
+    RK_U32 DataSize;
+    RK_U32 FirstMBaddress;
+    RK_U32 NumMBsInBuffer;
+    RK_U32 Width;
+    RK_U32 Height;
+    RK_U32 Stride;
+    RK_U32 ReservedBits;
+    void   *pvPVPState;
 }   DXVA2_DecodeBufferDesc;
 
 #endif /*__DXVA_SYNTAX_H__*/
