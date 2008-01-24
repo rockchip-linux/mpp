@@ -88,7 +88,7 @@ MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
     return mpp_buffer_ref_inc((MppBufferImpl*)buffer);
 }
 
-MPP_RET mpp_buffer_read(MppBuffer buffer, void *data, size_t size)
+MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size)
 {
     if (NULL == buffer || NULL == data) {
         mpp_err("%s invalid input: buffer %p data %p\n", __FUNCTION__, buffer, data);
@@ -101,11 +101,11 @@ MPP_RET mpp_buffer_read(MppBuffer buffer, void *data, size_t size)
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     void *src = p->info.ptr;
     mpp_assert(src != NULL);
-    memcpy(data, src, size);
+    memcpy(data, (char*)src + offset, size);
     return MPP_OK;
 }
 
-MPP_RET mpp_buffer_write(MppBuffer buffer, void *data, size_t size)
+MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t size)
 {
     if (NULL == buffer || NULL == data) {
         mpp_err("%s invalid input: buffer %p data %p\n", __FUNCTION__, buffer, data);
@@ -118,7 +118,7 @@ MPP_RET mpp_buffer_write(MppBuffer buffer, void *data, size_t size)
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     void *dst = p->info.ptr;
     mpp_assert(dst != NULL);
-    memcpy(dst, data, size);
+    memcpy((char*)dst + offset, data, size);
     return MPP_OK;
 }
 
