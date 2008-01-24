@@ -24,24 +24,14 @@
 #define MPP_SYNTAX_MAX_NUMBER       8
 
 /*
- * modified by mpp / hal
- *
- * index    : the index of current MppSyntax in structure array
- *            initialize at first and do not change it
- * status   : use for sync between hal and parser
- *
- *
  * modified by parser
  *
  * number   : the number of the data pointer array element
  * data     : the address of the pointer array, parser will add its data here
  */
 typedef struct {
-    RK_U32          index;
-    RK_U32          status;
-
     RK_U32          number;
-    void            **data;
+    void            *data;
 } MppSyntax;
 
 /*
@@ -89,11 +79,11 @@ typedef struct {
 } MppDecParser;
 
 struct MppDecCtx_t {
-    MppCodingType   coding;
-    void            *ctx;
-    MppSyntax       syntax[2];
-    MppBufSlots     slots;
-    MppDecParser    *parser;
+    MppCodingType       coding;
+    void                *ctx;
+    MppSyntax           syntax[2];
+    MppBufSlots         slots;
+    const MppDecParser  *parser;
 };
 
 
@@ -112,7 +102,7 @@ void *mpp_dec_thread(void *data);
 MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding);
 MPP_RET mpp_dec_deinit(MppDecCtx *ctx);
 
-MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax **syntax);
+MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax *syntax);
 MPP_RET mpp_dec_reset(MppDecCtx *ctx);
 MPP_RET mpp_dec_flush(MppDecCtx *ctx);
 MPP_RET mpp_dec_control(MppDecCtx *ctx, RK_S32 cmd, void *para);

@@ -9,6 +9,9 @@ add_library(mpp_codec STATIC
     mpp_dec.cpp
     )
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
+
 add_subdirectory(dec)
 
 add_subdirectory(enc)
+
+target_link_libraries(mpp_codec codec_h264d)

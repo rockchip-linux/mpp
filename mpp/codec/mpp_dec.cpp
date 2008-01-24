@@ -18,19 +18,24 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 #include "mpp.h"
 #include "mpp_dec.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-#include "h264d_syntax.h"
+#include "h264d_api.h"
 #include "h265d_api.h"
 
+/*
+ * all decoder static register here
+ */
+static const MppDecParser *parsers[] = {
+    &api_h264d_parser,
+};
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
-
-//static MppDecApi *parsers[];
 
 void *mpp_dec_thread(void *data)
 {
@@ -107,7 +112,6 @@ void *mpp_dec_thread(void *data)
     return NULL;
 }
 
-
 MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
 {
     MppDecCtx *p = mpp_malloc(MppDecCtx, 1);
@@ -115,9 +119,19 @@ MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
         mpp_err("%s failed to malloc context\n", __FUNCTION__);
         return MPP_ERR_NULL_PTR;
     }
-    p->coding  = coding;
-    *ctx = p;
-    return MPP_OK;
+    RK_U32 i;
+    for (i = 0; i < MPP_ARRAY_ELEMS(parsers); i++) {
+        if (coding == parsers[i]->coding) {
+            p->coding   = coding;
+            p->parser   = parsers[i];
+            *ctx = p;
+            return MPP_OK;
+        }
+    }
+    mpp_err("%s could not found coding type %d\n", __FUNCTION__, coding);
+    *ctx = NULL;
+    mpp_free(p);
+    return MPP_NOK;
 }
 
 MPP_RET mpp_dec_deinit(MppDecCtx *ctx)

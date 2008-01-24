@@ -19,21 +19,18 @@
 
 #include "mpp_dec.h"
 
-extern const MppDecParser api_h264d_parser;
-
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
+extern const MppDecParser api_h264d_parser;
 
-	MPP_RET  h264d_init   (void **decoder, MppParserInitCfg *cfg);
-	MPP_RET  h264d_deinit (void *decoder);
-	MPP_RET  h264d_reset  (void *decoder);
-	MPP_RET  h264d_flush  (void *decoder);
-	MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param);
-	MPP_RET  h264d_parser (void *decoder, MppPacket pkt, MppSyntax *syn);
-
-
+MPP_RET  h264d_init   (void **decoder, MppParserInitCfg *cfg);
+MPP_RET  h264d_deinit (void *decoder);
+MPP_RET  h264d_reset  (void *decoder);
+MPP_RET  h264d_flush  (void *decoder);
+MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param);
+MPP_RET  h264d_parser (void *decoder, MppPacket pkt, MppSyntax *syn);
 
 #ifdef	__cplusplus
 }
