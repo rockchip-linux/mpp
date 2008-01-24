@@ -20,8 +20,7 @@
 
 #include "rk_type.h"
 
-enum __MIDL___MIDL_itf_dxva2api_0000_0000_0012
-{
+enum __MIDL___MIDL_itf_dxva2api_0000_0000_0012 {
     DXVA2_PictureParametersBufferType         = 0,
     DXVA2_MacroBlockControlBufferType         = 1,
     DXVA2_ResidualDifferenceBufferType        = 2,
@@ -33,8 +32,7 @@ enum __MIDL___MIDL_itf_dxva2api_0000_0000_0012
     DXVA2_FilmGrainBuffer                     = 8
 };
 
-typedef struct _DXVA2_ConfigPictureDecode
-{
+typedef struct _DXVA2_ConfigPictureDecode {
     //GUID guidConfigBitstreamEncryption;
     //GUID guidConfigMBcontrolEncryption;
     //GUID guidConfigResidDiffEncryption;
@@ -52,10 +50,9 @@ typedef struct _DXVA2_ConfigPictureDecode
     //UINT Config4GroupedCoefs;
     //USHORT ConfigMinRenderTargetBuffCount;
     //USHORT ConfigDecoderSpecific;
-}DXVA2_ConfigPictureDecode;
+} DXVA2_ConfigPictureDecode;
 
-typedef struct _DXVA2_DecodeBufferDesc
-{
+typedef struct _DXVA2_DecodeBufferDesc {
     RK_U32 CompressedBufferType;
     RK_U32 BufferIndex;
     RK_U32 DataOffset;

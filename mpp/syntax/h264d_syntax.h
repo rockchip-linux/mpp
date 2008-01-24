@@ -418,8 +418,7 @@ typedef struct _DXVA_PicParams_H264_MVC {
 
 } DXVA_PicParams_H264_MVC, *LPDXVA_PicParams_H264_MVC;
 
-typedef struct h264d_syntax_t
-{
+typedef struct h264d_syntax_t {
     RK_U32                  num;
     DXVA2_DecodeBufferDesc *buf;
 } H264D_Syntax_t;

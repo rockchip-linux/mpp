@@ -34,7 +34,8 @@ extern RK_U32 mpp_debug;
 #define mpp_dbg(flag, fmt, ...) _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
 
 
-class Mpp {
+class Mpp
+{
 public:
     Mpp(MppCtxType type, MppCodingType coding);
     ~Mpp();

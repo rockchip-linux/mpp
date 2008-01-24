@@ -232,7 +232,7 @@ PARSE_OPINIONS_OUT:
 
 static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
 {
-	RK_S32 ret = 0;
+    RK_S32 ret = 0;
 
     if ((NULL == buf) || (NULL == file) || (0 == aBytes)) {
         return -1;
@@ -261,14 +261,14 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     EncInputStream_t *enc_in = NULL;
     EncParameter_t *enc_param = NULL;
     RK_S64 fakeTimeUs = 0;
-	RK_U32 w_align = 0;
-	RK_U32 h_align = 0;
+    RK_U32 w_align = 0;
+    RK_U32 h_align = 0;
 
     int Format = VPU_H264ENC_YUV420_SEMIPLANAR;
 
-	if (cmd == NULL) {
-		return -1;
-	}
+    if (cmd == NULL) {
+        return -1;
+    }
 
     if ((cmd->have_input == 0) || (cmd->width <= 0) || (cmd->height <= 0)
         || (cmd->coding <= OMX_RK_VIDEO_CodingAutoDetect)) {
@@ -475,7 +475,7 @@ ENCODE_OUT:
 
 static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
 {
-	FILE* pInFile = NULL;
+    FILE* pInFile = NULL;
     FILE* pOutFile = NULL;
     struct VpuCodecContext* ctx = NULL;
     RK_S32 fileSize = 0, pkt_size = 0;
@@ -489,13 +489,13 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     RK_S64 fakeTimeUs = 0;
     RK_U8* pExtra = NULL;
     RK_U32 extraSize = 0;
-	RK_U32 wAlign16  = 0;
-	RK_U32 hAlign16  = 0;
-	RK_U32 frameSize = 0;
+    RK_U32 wAlign16  = 0;
+    RK_U32 hAlign16  = 0;
+    RK_U32 frameSize = 0;
 
-	if (cmd == NULL) {
-		return -1;
-	}
+    if (cmd == NULL) {
+        return -1;
+    }
 
     if ((cmd->have_input == 0) || (cmd->width <= 0) || (cmd->height <= 0)
         || (cmd->coding <= OMX_RK_VIDEO_CodingAutoDetect)) {
@@ -710,12 +710,12 @@ DECODE_OUT:
 
 int main(int argc, char **argv)
 {
-	RK_S32 ret = 0;
+    RK_S32 ret = 0;
     VpuApiDemoCmdContext_t demoCmdCtx;
-	VpuApiDemoCmdContext_t *cmd = NULL;
+    VpuApiDemoCmdContext_t *cmd = NULL;
     VPU_API_DEMO_DEBUG_DISABLE = 0;
 
-	mpp_log("/*******  vpu api demo in *******/\n");
+    mpp_log("/*******  vpu api demo in *******/\n");
     if (argc == 1) {
         show_usage();
         mpp_log("vpu api demo complete directly\n");
