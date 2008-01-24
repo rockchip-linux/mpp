@@ -15,14 +15,6 @@
 * limitations under the License.
 */
 
-/*
-* @file        rkv_h264d_syntax.h
-* @brief
-* @author      leo.ding(leo.ding@rock-chips.com)
-* @version     1.0.0
-* @history
-*   2015.07.17 : Create
-*/
 
 #ifndef __H264D_SYNTAX_H__
 #define __H264D_SYNTAX_H__
