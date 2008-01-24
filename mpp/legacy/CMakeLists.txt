@@ -8,5 +8,5 @@ add_library(mpp_legacy STATIC
     vpu_api.cpp
     vpu_api_legacy.cpp
     )
-
+set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy") 
 target_link_libraries(mpp_legacy osal)

@@ -41,6 +41,11 @@ include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 
 # ----------------------------------------------------------------------------
+# set property to classify library kinds
+# ----------------------------------------------------------------------------
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+# ----------------------------------------------------------------------------
 # enable test in this project
 # ----------------------------------------------------------------------------
 enable_testing()

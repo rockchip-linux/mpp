@@ -55,7 +55,7 @@ int main()
 
     mpp_env_set_u32("mpi_debug", 0x1);
 
-    buf = malloc(size);
+    buf = (char *)malloc(size);
     if (NULL == buf) {
         mpp_err("mpi_test malloc failed\n");
         goto MPP_TEST_FAILED;

@@ -33,4 +33,5 @@ else()
     target_link_libraries(osal pthread)
 endif()
 
+set_target_properties(osal PROPERTIES FOLDER "osal")
 add_subdirectory(test)

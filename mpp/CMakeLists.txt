@@ -30,7 +30,7 @@ add_library(mpp STATIC
     mpi_impl.cpp
     mpi.cpp
     )
-
+set_target_properties(mpp PROPERTIES FOLDER "mpp") 
 add_subdirectory(legacy)
 
 add_subdirectory(test)
