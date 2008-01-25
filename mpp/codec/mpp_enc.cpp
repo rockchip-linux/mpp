@@ -25,7 +25,9 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-void *mpp_enc_thread(void *data)
+#define MPP_TEST_FRAME_SIZE     SZ_1M
+
+void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *thd_enc  = mpp->mTheadCodec;
@@ -45,6 +47,64 @@ void *mpp_enc_thread(void *data)
         }
     }
     mpp_free(buf);
+    return NULL;
+}
+
+void *mpp_enc_hal_thread(void *data)
+{
+    Mpp *mpp = (Mpp*)data;
+    MppThread *hal      = mpp->mThreadHal;
+    mpp_list *frames    = mpp->mFrames;
+    mpp_list *tasks     = mpp->mTasks;
+
+    while (MPP_THREAD_RUNNING == hal->get_status()) {
+        /*
+         * hal thread wait for dxva interface intput firt
+         */
+        hal->lock();
+        if (0 == tasks->list_size())
+            hal->wait();
+        hal->unlock();
+
+        // get_config
+        // register genertation
+        if (tasks->list_size()) {
+            MppHalDecTask *task;
+            mpp->mTasks->del_at_head(&task, sizeof(task));
+            mpp->mTaskGetCount++;
+
+            // hal->mpp_hal_reg_gen(current);
+
+            /*
+             * wait previous register set done
+             */
+            // hal->mpp_hal_hw_wait(previous);
+
+            /*
+             * send current register set to hardware
+             */
+            // hal->mpp_hal_hw_start(current);
+
+            /*
+             * mark previous buffer is complete
+             */
+            // change dpb slot status
+            // signal()
+            // mark frame in output queue
+            // wait up output thread to get a output frame
+
+            // for test
+            MppBuffer buffer;
+            mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+
+            MppFrame frame;
+            mpp_frame_init(&frame);
+            mpp_frame_set_buffer(frame, buffer);
+            frames->add_at_tail(&frame, sizeof(frame));
+            mpp->mFramePutCount++;
+        }
+    }
+
     return NULL;
 }
 

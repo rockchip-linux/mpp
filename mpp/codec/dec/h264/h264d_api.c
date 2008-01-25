@@ -14,42 +14,32 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+#define MODULE_TAG "h264d_api"
 
 
 #include "h264d_api.h"
 
 
-#define H264D_TAG "h264d_api"
-
-
-
-
-
-MPP_RET  h264d_init   (void **decoder, MppParserInitCfg *init)
+MPP_RET  h264d_init(void **decoder, MppParserInitCfg *init)
 {
-
-
-
-
-
     return MPP_OK;
 }
 
-MPP_RET  h264d_deinit (void *decoder)
+MPP_RET  h264d_deinit(void *decoder)
 {
 
 
     return MPP_OK;
 }
 
-MPP_RET  h264d_reset  (void *decoder)
+MPP_RET  h264d_reset(void *decoder)
 {
 
     return MPP_OK;
 }
 
 
-MPP_RET  h264d_flush  (void *decoder)
+MPP_RET  h264d_flush(void *decoder)
 {
 
 
@@ -65,7 +55,7 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 }
 
 
-MPP_RET  h264d_parser (void *decoder, MppPacket pkt, MppSyntax *syn)
+MPP_RET  h264d_parser(void *decoder, MppPacket pkt, MppSyntax *syn)
 {
     return MPP_OK;
 }

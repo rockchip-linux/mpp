@@ -24,6 +24,7 @@
 #include "mpp_dec.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
+#include "mpp_buf_slot.h"
 
 #include "h264d_api.h"
 #include "h265d_api.h"
@@ -37,150 +38,238 @@ static const MppDecParser *parsers[] = {
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 
-void *mpp_dec_thread(void *data)
+void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *dec  = mpp->mTheadCodec;
-    MppThread *hal  = mpp->mThreadHal;
+    MppThread *parser   = mpp->mTheadCodec;
+    MppThread *hal      = mpp->mThreadHal;
+    MppDec *dec_ctx  = mpp->mDec;
     mpp_list *packets   = mpp->mPackets;
+    MppHal    *hal_ctx  = dec_ctx->hal_ctx;
     MppPacketImpl packet;
+    RK_U32 packet_ready = 0;
+    RK_U32 syntax_ready = 0;
+    RK_U32 slot_ready   = 0;
 
-    while (MPP_THREAD_RUNNING == dec->get_status()) {
-        RK_U32 packet_ready = 0;
+    while (MPP_THREAD_RUNNING == parser->get_status()) {
         /*
          * wait for stream input
          */
-        dec->lock();
-        if (0 == packets->list_size())
-            dec->wait();
-        dec->unlock();
+        parser->lock();
+        if (!packet_ready && (0 == packets->list_size()))
+            parser->wait();
+        parser->unlock();
 
-        if (packets->list_size()) {
-            mpp->mPacketLock.lock();
-            /*
-             * packet will be destroyed outside, here just copy the content
-             */
-            packets->del_at_head(&packet, sizeof(packet));
-            mpp->mPacketGetCount++;
-            packet_ready = 1;
-            mpp->mPacketLock.unlock();
+        if (!packet_ready) {
+            if (packets->list_size()) {
+                mpp->mPacketLock.lock();
+                /*
+                 * packet will be destroyed outside, here just copy the content
+                 */
+                packets->del_at_head(&packet, sizeof(packet));
+                mpp->mPacketGetCount++;
+                mpp->mPacketLock.unlock();
+                packet_ready = 1;
+            }
         }
 
-        if (packet_ready) {
+        if (!packet_ready)
+            continue;
+
+        /*
+         * 1. send packet data to parser
+         *
+         *    parser functioin input / output
+         *    input:    packet data
+         *              dxva output slot
+         *    output:   dxva output slot
+         *              buffer usage informatioin
+         */
+
+        mpp_dec_parse(dec_ctx, (MppPacket)&packet, &hal_ctx->mSyn[0]);
+
+        /*
+         * 2. do buffer operation according to usage information
+         *
+         *    possible case:
+         *    a. normal case
+         *       - wait and alloc a normal frame buffer
+         *    b. field mode case
+         *       - two field may reuse a same buffer, no need to alloc
+         *    c. info change case
+         *       - need buffer in different side, need to send a info change
+         *         frame to hal loop.
+         */
+
+        //MppBuffer buffer;
+        //mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+
+
+        /*
+         * 3. send dxva output information and buffer information to hal thread
+         *    combinate video codec dxva output and buffer information
+         */
+
+        // hal->wait_prev_done;
+        // hal->send_config;
+        mpp->mTasks->add_at_tail(&mpp->mTask[0], sizeof(mpp->mTask[0]));
+        mpp->mTaskPutCount++;
+        hal->signal();
+        packet_ready = 0;
+    }
+
+    return NULL;
+}
+
+#define MPP_TEST_FRAME_SIZE     SZ_1M
+
+void *mpp_dec_hal_thread(void *data)
+{
+    Mpp *mpp = (Mpp*)data;
+    MppThread *hal      = mpp->mThreadHal;
+    mpp_list *frames    = mpp->mFrames;
+    mpp_list *tasks     = mpp->mTasks;
+
+    while (MPP_THREAD_RUNNING == hal->get_status()) {
+        /*
+         * hal thread wait for dxva interface intput firt
+         */
+        hal->lock();
+        if (0 == tasks->list_size())
+            hal->wait();
+        hal->unlock();
+
+        // get_config
+        // register genertation
+        if (tasks->list_size()) {
+            MppHalDecTask *task;
+            mpp->mTasks->del_at_head(&task, sizeof(task));
+            mpp->mTaskGetCount++;
+
+            // hal->mpp_hal_reg_gen(current);
+
             /*
-             * 1. send packet data to parser
-             *
-             *    parser functioin input / output
-             *    input:    packet data
-             *              dxva output slot
-             *    output:   dxva output slot
-             *              buffer usage informatioin
+             * wait previous register set done
              */
-
-            // decoder->parser->parse;
+            // hal->mpp_hal_hw_wait(previous);
 
             /*
-             * 2. do buffer operation according to usage information
-             *
-             *    possible case:
-             *    a. normal case
-             *       - wait and alloc a normal frame buffer
-             *    b. field mode case
-             *       - two field may reuse a same buffer, no need to alloc
-             *    c. info change case
-             *       - need buffer in different side, need to send a info change
-             *         frame to hal loop.
+             * send current register set to hardware
              */
-
-            //MppBuffer buffer;
-            //mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
-
+            // hal->mpp_hal_hw_start(current);
 
             /*
-             * 3. send dxva output information and buffer information to hal thread
-             *    combinate video codec dxva output and buffer information
+             * mark previous buffer is complete
              */
+            // change dpb slot status
+            // signal()
+            // mark frame in output queue
+            // wait up output thread to get a output frame
 
-            // hal->wait_prev_done;
-            // hal->send_config;
-            mpp->mTasks->add_at_tail(&mpp->mTask[0], sizeof(mpp->mTask[0]));
-            mpp->mTaskPutCount++;
-            hal->signal();
+            // for test
+            MppBuffer buffer;
+            mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+
+            MppFrame frame;
+            mpp_frame_init(&frame);
+            mpp_frame_set_buffer(frame, buffer);
+            frames->add_at_tail(&frame, sizeof(frame));
+            mpp->mFramePutCount++;
         }
     }
 
     return NULL;
 }
 
-MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
+MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
 {
-    MppDecCtx *p = mpp_malloc(MppDecCtx, 1);
+    MppDec *p = mpp_malloc(MppDec, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
     }
+
+    mpp_buf_slot_init(&p->slots);
+    if (NULL == p->slots) {
+        mpp_err_f("could not init buffer slot\n");
+        *dec = NULL;
+        mpp_free(p);
+        return MPP_ERR_UNKNOW;
+    }
+
     RK_U32 i;
     for (i = 0; i < MPP_ARRAY_ELEMS(parsers); i++) {
         if (coding == parsers[i]->coding) {
-            p->coding   = coding;
-            p->parser   = parsers[i];
-            *ctx = p;
+            p->coding       = coding;
+            p->parser_api   = parsers[i];
+            p->parser_ctx   = mpp_malloc_size(void, parsers[i]->ctx_size);
+            if (NULL == p->parser_ctx) {
+                mpp_err_f("failed to alloc decoder context\n");
+                break;
+            }
+            *dec = p;
             return MPP_OK;
         }
     }
     mpp_err_f("could not found coding type %d\n", coding);
-    *ctx = NULL;
+    *dec = NULL;
     mpp_free(p);
     return MPP_NOK;
 }
 
-MPP_RET mpp_dec_deinit(MppDecCtx *ctx)
+MPP_RET mpp_dec_deinit(MppDec *dec)
 {
-    if (NULL == ctx) {
+    if (NULL == dec) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    mpp_free(ctx);
+
+    if (dec->parser_ctx)
+        mpp_free(dec->parser_ctx);
+
+    mpp_buf_slot_deinit(dec->slots);
+
+    mpp_free(dec);
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax **syn)
+MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syn)
 {
-    if (NULL == ctx || NULL == pkt || NULL == syn) {
-        mpp_err_f("found NULL input ctx %p pkt %p syn %p\n", ctx, pkt, syn);
+    if (NULL == dec || NULL == pkt || NULL == syn) {
+        mpp_err_f("found NULL input dec %p pkt %p syn %p\n", dec, pkt, syn);
         return MPP_ERR_NULL_PTR;
     }
 
-    return ctx->parser->parse(ctx, pkt, &ctx->syntax[0]);
+    return dec->parser_api->parse(dec->parser_ctx, pkt, syn);
 }
 
-MPP_RET mpp_dec_reset(MppDecCtx *ctx)
+MPP_RET mpp_dec_reset(MppDec *dec)
 {
-    if (NULL == ctx) {
-        mpp_err_f("found NULL input ctx %p\n", ctx);
+    if (NULL == dec) {
+        mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
 
-    return ctx->parser->reset(ctx);
+    return dec->parser_api->reset(dec->parser_ctx);
 }
 
-MPP_RET mpp_dec_flush(MppDecCtx *ctx)
+MPP_RET mpp_dec_flush(MppDec *dec)
 {
-    if (NULL == ctx) {
-        mpp_err_f("found NULL input ctx %p\n", ctx);
+    if (NULL == dec) {
+        mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
 
-    return ctx->parser->flush(ctx);
+    return dec->parser_api->flush(dec->parser_ctx);
 }
 
-MPP_RET mpp_dec_control(MppDecCtx *ctx, RK_S32 cmd, void *param)
+MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *param)
 {
-    if (NULL == ctx) {
-        mpp_err_f("found NULL input ctx %p\n", ctx);
+    if (NULL == dec) {
+        mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
 
-    return ctx->parser->control(ctx, cmd, param);
+    return dec->parser_api->control(dec->parser_ctx, cmd, param);
 }
 

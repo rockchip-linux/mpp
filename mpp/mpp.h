@@ -18,10 +18,7 @@
 #define __MPP_H__
 
 #include "rk_mpi.h"
-#include "mpp_list.h"
-#include "mpp_thread.h"
-#include "mpp_hal.h"
-#include "mpp_buf_slot.h"
+#include "mpp_dec.h"
 
 #define MPP_DBG_FUNCTION                (0x00000001)
 #define MPP_DBG_PACKET                  (0x00000002)
@@ -77,13 +74,8 @@ public:
 
     RK_U32          mStatus;
 
-    union {
-        MppDecCtx   *mDec;
-    };
-    MppHal          *mHal;
-
-    // decoder context
-    MppBufSlots     mBufSlots;
+    MppDec       *mDec;
+    MppDec       *mEnc;
 
     MppHalDecTask   **mTask;
     RK_U32          mTaskNum;

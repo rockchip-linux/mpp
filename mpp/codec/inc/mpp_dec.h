@@ -20,19 +20,7 @@
 #include "rk_mpi.h"
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
-
-#define MPP_SYNTAX_MAX_NUMBER       8
-
-/*
- * modified by parser
- *
- * number   : the number of the data pointer array element
- * data     : the address of the pointer array, parser will add its data here
- */
-typedef struct {
-    RK_U32          number;
-    void            *data;
-} MppSyntax;
+#include "mpp_hal.h"
 
 /*
  * slots    - all decoder need a slots interface to sync its internal dpb management
@@ -44,7 +32,7 @@ typedef struct {
     MppBufSlots     slots;
 } MppParserInitCfg;
 
-typedef struct MppDecCtx_t MppDecCtx;
+typedef struct MppDec_t MppDec;
 
 /*
  * MppDecParser is the data structure provided from different decoders
@@ -78,12 +66,15 @@ typedef struct {
     MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
 } MppDecParser;
 
-struct MppDecCtx_t {
+struct MppDec_t {
     MppCodingType       coding;
-    void                *ctx;
-    MppSyntax           syntax[2];
+
+    const MppDecParser  *parser_api;
+    void                *parser_ctx;
+
+    MppHal              *hal_ctx;
+
     MppBufSlots         slots;
-    const MppDecParser  *parser;
 };
 
 
@@ -94,18 +85,19 @@ extern "C" {
 /*
  * main thread for all decoder. This thread will connect parser / hal / mpp
  */
-void *mpp_dec_thread(void *data);
+void *mpp_dec_parser_thread(void *data);
+void *mpp_dec_hal_thread(void *data);
 
 /*
  *
  */
-MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding);
-MPP_RET mpp_dec_deinit(MppDecCtx *ctx);
+MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding);
+MPP_RET mpp_dec_deinit(MppDec *dec);
 
-MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax *syntax);
-MPP_RET mpp_dec_reset(MppDecCtx *ctx);
-MPP_RET mpp_dec_flush(MppDecCtx *ctx);
-MPP_RET mpp_dec_control(MppDecCtx *ctx, RK_S32 cmd, void *para);
+MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syntax);
+MPP_RET mpp_dec_reset(MppDec *dec);
+MPP_RET mpp_dec_flush(MppDec *dec);
+MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *para);
 
 #ifdef __cplusplus
 }

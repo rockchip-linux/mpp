@@ -26,7 +26,8 @@ extern "C" {
 /*
  * main thread for all encoder. This thread will connect encoder / hal / mpp
  */
-void *mpp_enc_thread(void *data);
+void *mpp_enc_control_thread(void *data);
+void *mpp_enc_hal_thread(void *data);
 
 #ifdef __cplusplus
 }

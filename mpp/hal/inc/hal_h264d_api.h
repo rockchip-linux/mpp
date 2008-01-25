@@ -16,8 +16,8 @@
 */
 
 
-#ifndef _HAL_H264D_API_H_
-#define _HAL_H264D_API_H_
+#ifndef __HAL_H264D_API_H__
+#define __HAL_H264D_API_H__
 
 #include "mpp_hal.h"
 
@@ -326,11 +326,11 @@ typedef struct h264_regs_t {
 //
 //}HAL_H264dOutCtx_t;
 
-extern const MppHalApi api_h264d_hal;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern const MppHalApi api_h264d_hal;
 
 MPP_RET hal_h264d_init    (void **hal, MppHalCfg *cfg);
 MPP_RET hal_h264d_deinit  (void *hal);
@@ -341,14 +341,8 @@ MPP_RET hal_h264d_reset   (void *hal);
 MPP_RET hal_h264d_flush   (void *hal);
 MPP_RET hal_h264d_control (void *hal, RK_S32 cmd_type, void *param);
 
-
-
 #ifdef __cplusplus
 }
 #endif
 
-
-
-
-
-#endif /* _HAL_H264D_API_H_ */
+#endif /*__HAL_H264D_API_H__*/

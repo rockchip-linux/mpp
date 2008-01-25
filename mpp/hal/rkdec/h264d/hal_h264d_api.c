@@ -14,17 +14,17 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
+#define MODULE_TAG "hal_h264d"
 
 #include "hal_h264d_api.h"
 
 
-MPP_RET hal_h264d_init    (void **hal, MppHalCfg *cfg)
+MPP_RET hal_h264d_init(void **hal, MppHalCfg *cfg)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_deinit  (void *hal)
+MPP_RET hal_h264d_deinit(void *hal)
 {
     return MPP_OK;
 }
@@ -33,27 +33,27 @@ MPP_RET hal_h264d_gen_regs(void *hal, MppSyntax *syn)
 {
     return MPP_OK;
 }
-MPP_RET hal_h264d_start   (void *hal, MppHalDecTask task)
+MPP_RET hal_h264d_start(void *hal, MppHalDecTask task)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_wait    (void *hal, MppHalDecTask task)
+MPP_RET hal_h264d_wait(void *hal, MppHalDecTask task)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_reset   (void *hal)
+MPP_RET hal_h264d_reset(void *hal)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_flush   (void *hal)
+MPP_RET hal_h264d_flush(void *hal)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_control (void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 {
     return MPP_OK;
 }
@@ -61,7 +61,6 @@ MPP_RET hal_h264d_control (void *hal, RK_S32 cmd_type, void *param)
 
 
 const MppHalApi api_h264d_hal = {
-
     0,
     hal_h264d_init,
     hal_h264d_deinit,

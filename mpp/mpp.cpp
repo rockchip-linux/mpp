@@ -47,13 +47,11 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mPacketGroup(NULL),
       mFrameGroup(NULL),
       mDec(NULL),
-      mHal(NULL),
       mTheadCodec(NULL),
       mThreadHal(NULL),
       mType(type),
       mCoding(coding),
       mStatus(0),
-      mBufSlots(NULL),
       mTask(NULL),
       mTaskNum(2)
 {
@@ -64,13 +62,8 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_dec_init(&mDec, coding);
-        MppHalCfg cfg = {
-            type,
-            coding,
-        };
-        mpp_hal_init(&mHal, &cfg);
-        mTheadCodec = new MppThread(mpp_dec_thread, this);
-        mThreadHal  = new MppThread(mpp_hal_thread, this);
+        mTheadCodec = new MppThread(mpp_dec_parser_thread, this);
+        mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
@@ -84,13 +77,8 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_dec_init(&mDec, coding);
-        MppHalCfg cfg = {
-            type,
-            coding,
-        };
-        mpp_hal_init(&mHal, &cfg);
-        mTheadCodec = new MppThread(mpp_enc_thread, this);
-        mThreadHal  = new MppThread(mpp_hal_thread, this);
+        mTheadCodec = new MppThread(mpp_enc_control_thread, this);
+        mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
@@ -103,7 +91,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
     }
 
     if (mFrames && mPackets && mTask &&
-        mDec && mHal &&
+        (mDec || mEnc) &&
         mTheadCodec && mThreadHal &&
         mPacketGroup && mFrameGroup) {
         mTheadCodec->start();
@@ -140,10 +128,6 @@ void Mpp::clear()
         else
             mpp_dec_deinit(mDec);
         mDec = NULL;
-    }
-    if (mHal) {
-        mpp_hal_deinit(mHal);
-        mHal = NULL;
     }
     if (mPackets) {
         delete mPackets;

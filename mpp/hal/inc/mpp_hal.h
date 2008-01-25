@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_TASK__
-#define __HAL_TASK__
+#ifndef __MPP_HAL__
+#define __MPP_HAL__
 
-#include "rk_type.h"
-#include "h264d_syntax.h"
-#include "mpp_dec.h"
+#include "rk_mpi.h"
+#include "mpp_syntax.h"
 
 #define MAX_REF_SIZE    17
 
@@ -64,9 +63,6 @@ typedef struct {
     RK_S32          index_dst;
     // current task reference buffers
     MppBuffer       refer[MAX_REF_SIZE];
-
-    MppBufSlots     slots;
-    H264D_Syntax_t  mSyn;
 } MppHalDecTask;
 
 typedef void*   MppHalCtx;
@@ -83,10 +79,10 @@ typedef struct {
     MPP_RET (*init)(void **ctx, MppHalCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
-    // to parser / mpp
+    // parser syntax process function
     MPP_RET (*reg_gen)(void *ctx, MppSyntax *syn);
 
-    // hw
+    // hw operation function
     MPP_RET (*start)(void *ctx, MppHalDecTask task);
     MPP_RET (*wait)(void *ctx, MppHalDecTask task);
 
@@ -100,15 +96,13 @@ typedef struct {
 
     void            *mHalCtx;
 
-    MppSyntax       *mSyn[2];
+    MppSyntax       mSyn[2];
     MppHalApi       *api;
 } MppHal;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void *mpp_hal_thread(void *data);
 
 MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg);
 MPP_RET mpp_hal_deinit(MppHal *ctx);
@@ -121,5 +115,5 @@ MPP_RET mpp_hal_hw_wait(MppHal *ctx, MppHalDecTask *task);
 }
 #endif
 
-#endif /*__HAL_TASK__*/
+#endif /*__MPP_HAL__*/
 
