@@ -61,14 +61,16 @@ void MppThread::start()
 
 void MppThread::stop()
 {
-    mStatus = MPP_THREAD_STOPPING;
-    signal();
+    if (MPP_THREAD_UNINITED != mStatus) {
+        mStatus = MPP_THREAD_STOPPING;
+        signal();
 
-    void *dummy;
-    pthread_join(mThread, &dummy);
-    thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p destroy success\n",
-               mFunction, mContext);
+        void *dummy;
+        pthread_join(mThread, &dummy);
+        thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p destroy success\n",
+                   mFunction, mContext);
 
-    mStatus = MPP_THREAD_UNINITED;
+        mStatus = MPP_THREAD_UNINITED;
+    }
 }
 
