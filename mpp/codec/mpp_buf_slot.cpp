@@ -66,7 +66,7 @@ static void check_entry_unused(MppBufSlotEntry *entry)
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
     MppBufSlotsImpl *impl = mpp_malloc(MppBufSlotsImpl, 1);
@@ -87,7 +87,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -102,7 +102,7 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 changed)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -137,7 +137,7 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
 RK_U32 mpp_buf_slot_is_changed(MppBufSlots slots)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return 0;
     }
 
@@ -149,7 +149,7 @@ RK_U32 mpp_buf_slot_is_changed(MppBufSlots slots)
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -174,7 +174,7 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -199,7 +199,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
 MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -214,7 +214,7 @@ MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -230,7 +230,7 @@ MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -245,7 +245,7 @@ MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -262,7 +262,7 @@ MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -277,7 +277,7 @@ MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -294,7 +294,7 @@ MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index)
 MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer)
 {
     if (NULL == slots || NULL == buffer) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -310,7 +310,7 @@ MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffe
 MppBuffer mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return NULL;
     }
 

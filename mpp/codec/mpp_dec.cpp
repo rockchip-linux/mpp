@@ -116,7 +116,7 @@ MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
 {
     MppDecCtx *p = mpp_malloc(MppDecCtx, 1);
     if (NULL == p) {
-        mpp_err("%s failed to malloc context\n", __FUNCTION__);
+        mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
     }
     RK_U32 i;
@@ -128,7 +128,7 @@ MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
             return MPP_OK;
         }
     }
-    mpp_err("%s could not found coding type %d\n", __FUNCTION__, coding);
+    mpp_err_f("could not found coding type %d\n", coding);
     *ctx = NULL;
     mpp_free(p);
     return MPP_NOK;
@@ -137,7 +137,7 @@ MPP_RET mpp_dec_init(MppDecCtx **ctx, MppCodingType coding)
 MPP_RET mpp_dec_deinit(MppDecCtx *ctx)
 {
     if (NULL == ctx) {
-        mpp_err("%s found NULL input\n", __FUNCTION__);
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
     mpp_free(ctx);
@@ -147,8 +147,7 @@ MPP_RET mpp_dec_deinit(MppDecCtx *ctx)
 MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax **syn)
 {
     if (NULL == ctx || NULL == pkt || NULL == syn) {
-        mpp_err("%s found NULL input ctx %p pkt %p syn %p\n",
-                __FUNCTION__, ctx, pkt, syn);
+        mpp_err_f("found NULL input ctx %p pkt %p syn %p\n", ctx, pkt, syn);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -158,8 +157,7 @@ MPP_RET mpp_dec_parse(MppDecCtx *ctx, MppPacket pkt, MppSyntax **syn)
 MPP_RET mpp_dec_reset(MppDecCtx *ctx)
 {
     if (NULL == ctx) {
-        mpp_err("%s found NULL input ctx %p\n",
-                __FUNCTION__, ctx);
+        mpp_err_f("found NULL input ctx %p\n", ctx);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -169,8 +167,7 @@ MPP_RET mpp_dec_reset(MppDecCtx *ctx)
 MPP_RET mpp_dec_flush(MppDecCtx *ctx)
 {
     if (NULL == ctx) {
-        mpp_err("%s found NULL input ctx %p\n",
-                __FUNCTION__, ctx);
+        mpp_err_f("found NULL input ctx %p\n", ctx);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -180,8 +177,7 @@ MPP_RET mpp_dec_flush(MppDecCtx *ctx)
 MPP_RET mpp_dec_control(MppDecCtx *ctx, RK_S32 cmd, void *param)
 {
     if (NULL == ctx) {
-        mpp_err("%s found NULL input ctx %p\n",
-                __FUNCTION__, ctx);
+        mpp_err_f("found NULL input ctx %p\n", ctx);
         return MPP_ERR_NULL_PTR;
     }
 
