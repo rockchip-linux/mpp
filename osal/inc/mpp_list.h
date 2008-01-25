@@ -114,7 +114,7 @@ struct list_head {
          &pos->member != (head);                    \
          pos = n, n = list_entry(n->member.next, type, member))
 
-static inline void __list_add(struct list_head * _new,
+static __inline void __list_add(struct list_head * _new,
                               struct list_head * prev,
                               struct list_head * next)
 {
@@ -124,35 +124,35 @@ static inline void __list_add(struct list_head * _new,
     prev->next = _new;
 }
 
-static inline void list_add(struct list_head *_new, struct list_head *head)
+static __inline void list_add(struct list_head *_new, struct list_head *head)
 {
     __list_add(_new, head, head->next);
 }
 
-static inline void list_add_tail(struct list_head *_new, struct list_head *head)
+static __inline void list_add_tail(struct list_head *_new, struct list_head *head)
 {
     __list_add(_new, head->prev, head);
 }
 
-static inline void __list_del(struct list_head * prev, struct list_head * next)
+static __inline void __list_del(struct list_head * prev, struct list_head * next)
 {
     next->prev = prev;
     prev->next = next;
 }
 
-static inline void list_del_init(struct list_head *entry)
+static __inline void list_del_init(struct list_head *entry)
 {
     __list_del(entry->prev, entry->next);
 
     INIT_LIST_HEAD(entry);
 }
 
-static inline int list_is_last(const struct list_head *list, const struct list_head *head)
+static __inline int list_is_last(const struct list_head *list, const struct list_head *head)
 {
     return list->next == head;
 }
 
-static inline int list_empty(struct list_head *head)
+static __inline int list_empty(struct list_head *head)
 {
     return head->next == head;
 }
