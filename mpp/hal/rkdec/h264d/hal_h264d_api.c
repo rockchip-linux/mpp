@@ -21,54 +21,54 @@
 
 MPP_RET hal_h264d_init    (void **hal, MppHalCfg *cfg)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_deinit  (void *hal)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_gen_regs(void *hal, MppSyntax *syn)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 MPP_RET hal_h264d_start   (void *hal, MppHalDecTask task)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_wait    (void *hal, MppHalDecTask task)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_reset   (void *hal)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_flush   (void *hal)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET hal_h264d_control (void *hal, RK_S32 cmd_type, void *param)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
 
 const MppHalApi api_h264d_hal = {
 
-	0,
-	hal_h264d_init,
-	hal_h264d_deinit, 
-	hal_h264d_gen_regs,
-	hal_h264d_start,
-	hal_h264d_wait,  
-	hal_h264d_reset,
-	hal_h264d_flush,  
-	hal_h264d_control,
+    0,
+    hal_h264d_init,
+    hal_h264d_deinit,
+    hal_h264d_gen_regs,
+    hal_h264d_start,
+    hal_h264d_wait,
+    hal_h264d_reset,
+    hal_h264d_flush,
+    hal_h264d_control,
 };

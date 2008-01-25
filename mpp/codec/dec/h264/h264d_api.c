@@ -32,20 +32,20 @@ MPP_RET  h264d_init   (void **decoder, MppParserInitCfg *init)
 
 
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET  h264d_deinit (void *decoder)
 {
 
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 MPP_RET  h264d_reset  (void *decoder)
 {
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
@@ -53,7 +53,7 @@ MPP_RET  h264d_flush  (void *decoder)
 {
 
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
@@ -61,24 +61,24 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
 
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
 MPP_RET  h264d_parser (void *decoder, MppPacket pkt, MppSyntax *syn)
 {
-	return MPP_OK;
+    return MPP_OK;
 }
 
 const MppDecParser api_h264d_parser = {
-	"h264d",
-	MPP_VIDEO_CodingAVC,
-	0,
-	0,
-	h264d_init,
-	h264d_deinit,
-	h264d_parser,
-	h264d_reset,
-	h264d_flush,
-	h264d_control,
+    "h264d",
+    MPP_VIDEO_CodingAVC,
+    0,
+    0,
+    h264d_init,
+    h264d_deinit,
+    h264d_parser,
+    h264d_reset,
+    h264d_flush,
+    h264d_control,
 };

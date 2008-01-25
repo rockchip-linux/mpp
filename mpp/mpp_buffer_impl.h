@@ -24,11 +24,12 @@
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
 
 #define mpp_buf_dbg(flag, fmt, ...)     _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_buf_dbg_f(flag, fmt, ...)   _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
 
-#define MPP_BUF_FUNCTION_ENTER()        mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s enter\n", __FUNCTION__)
-#define MPP_BUF_FUNCTION_LEAVE()        mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s leave\n", __FUNCTION__)
-#define MPP_BUF_FUNCTION_LEAVE_OK()     mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s success\n", __FUNCTION__)
-#define MPP_BUF_FUNCTION_LEAVE_FAIL()   mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s failed\n", __FUNCTION__)
+#define MPP_BUF_FUNCTION_ENTER()        mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "enter\n")
+#define MPP_BUF_FUNCTION_LEAVE()        mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "leave\n")
+#define MPP_BUF_FUNCTION_LEAVE_OK()     mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "success\n")
+#define MPP_BUF_FUNCTION_LEAVE_FAIL()   mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "failed\n")
 
 typedef struct MppBufferImpl_t          MppBufferImpl;
 typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;

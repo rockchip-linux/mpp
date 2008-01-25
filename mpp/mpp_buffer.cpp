@@ -166,7 +166,7 @@ MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
         mode >= MPP_BUFFER_MODE_BUTT ||
         type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("input invalid group %p mode %d type %d\n",
-                group, mode, type);
+                  group, mode, type);
         return MPP_ERR_UNKNOW;
     }
 
@@ -187,7 +187,7 @@ MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 
 {
     if (NULL == group || 0 == size || count <= 0) {
         mpp_err_f("input invalid group %p size %d count %d\n",
-                group, size, count);
+                  group, size, count);
         return MPP_NOK;
     }
 
