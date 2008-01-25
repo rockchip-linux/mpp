@@ -16,6 +16,7 @@
 
 #define  MODULE_TAG "mpp_hal"
 
+#include "mpp_mem.h"
 #include "mpp_log.h"
 
 #include "mpp.h"
@@ -81,4 +82,39 @@ void *mpp_hal_thread(void *data)
 
     return NULL;
 }
+
+MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg)
+{
+    *ctx = mpp_malloc(MppHal, 1);
+    (void)cfg;
+    return MPP_OK;
+}
+
+MPP_RET mpp_hal_deinit(MppHal *ctx)
+{
+    mpp_free(ctx);
+    return MPP_OK;
+}
+
+MPP_RET mpp_hal_reg_gen(MppHal *ctx, MppHalDecTask *task)
+{
+    (void)ctx;
+    (void)task;
+    return MPP_OK;
+}
+
+MPP_RET mpp_hal_hw_start(MppHal *ctx, MppHalDecTask *task)
+{
+    (void)ctx;
+    (void)task;
+    return MPP_OK;
+}
+
+MPP_RET mpp_hal_hw_wait(MppHal *ctx, MppHalDecTask *task)
+{
+    (void)ctx;
+    (void)task;
+    return MPP_OK;
+}
+
 

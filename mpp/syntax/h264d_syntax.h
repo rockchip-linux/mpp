@@ -415,5 +415,5 @@ typedef struct h264d_syntax_t {
     DXVA2_DecodeBufferDesc *buf;
 } H264D_Syntax_t;
 
-#endif /* end of __H264D_SYNTAX_H__ */
+#endif /*__H264D_SYNTAX_H__*/
 

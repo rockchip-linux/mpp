@@ -77,7 +77,9 @@ public:
 
     RK_U32          mStatus;
 
-    void            *mCodec;
+    union {
+        MppDecCtx   *mDec;
+    };
     MppHal          *mHal;
 
     // decoder context

@@ -72,7 +72,8 @@ typedef struct {
 typedef void*   MppHalCtx;
 
 typedef struct MppHalCfg_t {
-    RK_U32      size;
+    MppCtxType      type;
+    MppCodingType   coding;
 } MppHalCfg;
 
 
@@ -109,12 +110,12 @@ extern "C" {
 
 void *mpp_hal_thread(void *data);
 
-MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg cfg);
-MPP_RET mpp_hal_deinit(MppHal ctx);
+MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg);
+MPP_RET mpp_hal_deinit(MppHal *ctx);
 
-MPP_RET mpp_hal_reg_gen(MppHal ctx, MppHalDecTask task);
-MPP_RET mpp_hal_hw_start(MppHal ctx, MppHalDecTask task);
-MPP_RET mpp_hal_hw_wait(MppHal ctx, MppHalDecTask task);
+MPP_RET mpp_hal_reg_gen(MppHal *ctx, MppHalDecTask *task);
+MPP_RET mpp_hal_hw_start(MppHal *ctx, MppHalDecTask *task);
+MPP_RET mpp_hal_hw_wait(MppHal *ctx, MppHalDecTask *task);
 
 #ifdef __cplusplus
 }
