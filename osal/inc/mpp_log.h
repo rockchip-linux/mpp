@@ -27,11 +27,19 @@
  * mpp_dbg is for all optional message. it can be controlled by debug and flag.
  */
 
-#define mpp_log(fmt, ...) _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__)
-#define mpp_err(fmt, ...) _mpp_err(MODULE_TAG, fmt, ## __VA_ARGS__)
+#define mpp_log(fmt, ...)   _mpp_log(MODULE_TAG, fmt, NULL, ## __VA_ARGS__)
+#define mpp_err(fmt, ...)   _mpp_err(MODULE_TAG, fmt, NULL, ## __VA_ARGS__)
 
 #define _mpp_dbg(debug, flag, fmt, ...) \
-             __mpp_dbg(debug, flag, MODULE_TAG, fmt, ## __VA_ARGS__)
+             __mpp_dbg(debug, flag, MODULE_TAG, fmt, NULL, ## __VA_ARGS__)
+
+/*
+ * _f function will add function name to the log
+ */
+#define mpp_log_f(fmt, ...)  _mpp_log(MODULE_TAG, fmt, __FUNCTION__, ## __VA_ARGS__)
+#define mpp_err_f(fmt, ...)  _mpp_err(MODULE_TAG, fmt, __FUNCTION__, ## __VA_ARGS__)
+#define _mpp_dbg_f(debug, flag, fmt, ...) \
+             __mpp_dbg(debug, flag, MODULE_TAG, fmt, __FUNCTION__, ## __VA_ARGS__)
 
 /*
  * mpp_dbg usage:
@@ -83,9 +91,9 @@ extern "C" {
 void mpp_log_set_flag(RK_U32 flag);
 RK_U32 mpp_log_get_flag();
 
-void _mpp_log(const char *tag, const char *fmt, ...);
-void _mpp_err(const char *tag, const char *fmt, ...);
-void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
+void _mpp_log(const char *tag, const char *fmt, const char *func, ...);
+void _mpp_err(const char *tag, const char *fmt, const char *func, ...);
+void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, const char *func, ...);
 
 #ifdef __cplusplus
 }

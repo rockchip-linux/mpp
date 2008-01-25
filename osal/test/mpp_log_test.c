@@ -26,6 +26,8 @@ int main()
 
     mpp_err("mpp log test start\n");
 
+    mpp_err_f("log_f test\n");
+
     mpp_log("mpp log flag_set: %08x\n", mpp_log_get_flag());
 
     mpp_log("set flag_set to %08x\n", flag_set);

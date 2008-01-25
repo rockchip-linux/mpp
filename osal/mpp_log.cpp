@@ -41,52 +41,65 @@ static RK_U32 mpp_log_flag = 0;
 static const char *msg_log_warning = "log message is long\n";
 static const char *msg_log_nothing = "\n";
 
-void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt, va_list args)
+void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt, const char *fname, va_list args)
 {
+    char msg[MPP_LOG_MAX_LEN + 1];
+    char *tmp = msg;
     const char *buf = fmt;
-    size_t len = strnlen(fmt, MPP_LOG_MAX_LEN);
+    size_t len_fmt  = strnlen(fmt, MPP_LOG_MAX_LEN);
+    size_t len_name = (fname) ? (strnlen(fname, MPP_LOG_MAX_LEN)) : (0);
+    size_t buf_left = MPP_LOG_MAX_LEN;
+    size_t len_all  = len_fmt + len_name;
 
     if (NULL == tag)
         tag = MODULE_TAG;
 
-    if (len == 0) {
+    if (len_name) {
+        buf = msg;
+        buf_left -= snprintf(msg, buf_left, "%s ", fname);
+        tmp += len_name + 1;
+    }
+
+    if (len_all == 0) {
         buf = msg_log_nothing;
-    } else if (len == MPP_LOG_MAX_LEN) {
-        buf = msg_log_warning;
-    } else if (fmt[len - 1] != '\n') {
-        char msg[MPP_LOG_MAX_LEN + 1];
-        snprintf(msg, sizeof(msg), "%s", fmt);
-        msg[len]    = '\n';
-        msg[len + 1]  = '\0';
+    } else if (len_all >= MPP_LOG_MAX_LEN) {
+        buf_left -= snprintf(tmp, buf_left, "%s", msg_log_warning);
+        buf = msg;
+    } else {
+        snprintf(tmp, buf_left, "%s", fmt);
+        if (fmt[len_fmt - 1] != '\n') {
+            tmp[len_fmt]    = '\n';
+            tmp[len_fmt + 1]  = '\0';
+        }
         buf = msg;
     }
 
     func(tag, buf, args);
 }
 
-void _mpp_log(const char *tag, const char *fmt, ...)
+void _mpp_log(const char *tag, const char *fmt, const char *func, ...)
 {
     va_list args;
     va_start(args, fmt);
-    __mpp_log(os_log, tag, fmt, args);
+    __mpp_log(os_log, tag, fmt, func, args);
     va_end(args);
 }
 
-void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...)
+void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, const char *func, ...)
 {
     if (debug & flag) {
         va_list args;
         va_start(args, fmt);
-        __mpp_log(os_log, tag, fmt, args);
+        __mpp_log(os_log, tag, fmt, func, args);
         va_end(args);
     }
 }
 
-void _mpp_err(const char *tag, const char *fmt, ...)
+void _mpp_err(const char *tag, const char *fmt, const char *func, ...)
 {
     va_list args;
     va_start(args, fmt);
-    __mpp_log(os_err, tag, fmt, args);
+    __mpp_log(os_err, tag, fmt, func, args);
     va_end(args);
 }
 
