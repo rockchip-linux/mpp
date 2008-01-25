@@ -46,12 +46,13 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mInternalGroup(NULL),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
-      mDec(NULL),
       mTheadCodec(NULL),
       mThreadHal(NULL),
       mType(type),
       mCoding(coding),
       mStatus(0),
+      mDec(NULL),
+      mEnc(NULL),
       mTask(NULL),
       mTaskNum(2)
 {

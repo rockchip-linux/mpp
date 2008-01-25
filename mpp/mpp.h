@@ -74,8 +74,8 @@ public:
 
     RK_U32          mStatus;
 
-    MppDec       *mDec;
-    MppDec       *mEnc;
+    MppDec          *mDec;
+    MppDec          *mEnc;
 
     MppHalDecTask   **mTask;
     RK_U32          mTaskNum;

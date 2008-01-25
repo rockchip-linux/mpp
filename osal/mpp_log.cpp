@@ -77,29 +77,29 @@ void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt, const ch
     func(tag, buf, args);
 }
 
-void _mpp_log(const char *tag, const char *fmt, const char *func, ...)
+void _mpp_log(const char *tag, const char *fmt, const char *fname, ...)
 {
     va_list args;
-    va_start(args, fmt);
-    __mpp_log(os_log, tag, fmt, func, args);
+    va_start(args, fname);
+    __mpp_log(os_log, tag, fmt, fname, args);
     va_end(args);
 }
 
-void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, const char *func, ...)
+void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, const char *fname, ...)
 {
     if (debug & flag) {
         va_list args;
-        va_start(args, fmt);
-        __mpp_log(os_log, tag, fmt, func, args);
+        va_start(args, fname);
+        __mpp_log(os_log, tag, fmt, fname, args);
         va_end(args);
     }
 }
 
-void _mpp_err(const char *tag, const char *fmt, const char *func, ...)
+void _mpp_err(const char *tag, const char *fmt, const char *fname, ...)
 {
     va_list args;
-    va_start(args, fmt);
-    __mpp_log(os_err, tag, fmt, func, args);
+    va_start(args, fname);
+    __mpp_log(os_err, tag, fmt, fname, args);
     va_end(args);
 }
 
