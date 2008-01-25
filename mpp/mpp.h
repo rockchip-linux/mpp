@@ -25,6 +25,36 @@
 #define MPP_DBG_FRAME                   (0x00000004)
 #define MPP_DBG_BUFFER                  (0x00000008)
 
+/*
+ * mpp hierarchy
+ *
+ * mpp layer create mpp_dec or mpp_dec instance
+ * mpp_dec create its parser and hal module
+ * mpp_enc create its control and hal module
+ *
+ *                                  +-------+
+ *                                  |       |
+ *                    +-------------+  mpp  +-------------+
+ *                    |             |       |             |
+ *                    |             +-------+             |
+ *                    |                                   |
+ *                    |                                   |
+ *                    |                                   |
+ *              +-----+-----+                       +-----+-----+
+ *              |           |                       |           |
+ *          +---+  mpp_dec  +--+                 +--+  mpp_enc  +---+
+ *          |   |           |  |                 |  |           |   |
+ *          |   +-----------+  |                 |  +-----------+   |
+ *          |                  |                 |                  |
+ *          |                  |                 |                  |
+ *          |                  |                 |                  |
+ *  +-------v------+     +-----v-----+     +-----v-----+     +------v-------+
+ *  |              |     |           |     |           |     |              |
+ *  |  dec_parser  |     |  dec_hal  |     |  enc_hal  |     |  enc_control |
+ *  |              |     |           |     |           |     |              |
+ *  +--------------+     +-----------+     +-----------+     +--------------+
+ */
+
 class Mpp
 {
 public:
