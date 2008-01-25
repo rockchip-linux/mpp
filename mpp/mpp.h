@@ -23,16 +23,10 @@
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
 
-extern RK_U32 mpp_debug;
-
 #define MPP_DBG_FUNCTION                (0x00000001)
 #define MPP_DBG_PACKET                  (0x00000002)
 #define MPP_DBG_FRAME                   (0x00000004)
 #define MPP_DBG_BUFFER                  (0x00000008)
-
-
-#define mpp_dbg(flag, fmt, ...) _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
-
 
 class Mpp
 {
@@ -82,6 +76,9 @@ public:
     MppCodingType   mCoding;
 
     RK_U32          mStatus;
+
+    void            *mCodec;
+    MppHal          *mHal;
 
     // decoder context
     MppBufSlots     mBufSlots;

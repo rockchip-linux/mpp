@@ -33,6 +33,9 @@
 #define _mpp_dbg(debug, flag, fmt, ...) \
              __mpp_dbg(debug, flag, MODULE_TAG, fmt, NULL, ## __VA_ARGS__)
 
+extern RK_U32 mpp_debug;
+#define mpp_dbg(flag, fmt, ...) _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
+
 /*
  * _f function will add function name to the log
  */
