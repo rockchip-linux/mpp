@@ -38,7 +38,7 @@ typedef struct {
     MPP_RET (*init)(void *ctx, MppHalCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
-    // parser syntax process function
+    // task preprocess function
     MPP_RET (*reg_gen)(void *ctx, HalTask *syn);
 
     // hw operation function

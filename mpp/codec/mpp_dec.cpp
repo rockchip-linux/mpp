@@ -51,8 +51,8 @@ void *mpp_dec_parser_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     mpp_list  *packets  = mpp->mPackets;
     MppPacketImpl packet;
-    HalTask local_task;
-    HalTaskHnd syntax       = NULL;
+    HalTask task_local;
+    HalTaskHnd task_hnd         = NULL;
     RK_U32 packet_ready     = 0;
     RK_U32 packet_parsed    = 0;
     RK_U32 syntax_ready     = 0;
@@ -93,14 +93,14 @@ void *mpp_dec_parser_thread(void *data)
          *              buffer usage informatioin
          */
         if (!packet_parsed) {
-            mpp_dec_parse(dec, (MppPacket)&packet, &local_task);
+            mpp_dec_parse(dec, (MppPacket)&packet, &task_local);
             packet_parsed = 1;
         }
 
         if (!syntax_ready) {
-            hal_task_get_hnd(dec->tasks, 0, &syntax);
-            if (syntax) {
-                hal_task_set_info(syntax, &local_task);
+            hal_task_get_hnd(dec->tasks, 0, &task_hnd);
+            if (task_hnd) {
+                hal_task_set_info(task_hnd, &task_local);
                 syntax_ready = 1;
             }
         }
@@ -133,7 +133,7 @@ void *mpp_dec_parser_thread(void *data)
         // hal->wait_prev_done;
         // hal->send_config;
 
-        hal_task_set_used(syntax, 1);
+        hal_task_set_used(task_hnd, 1);
         mpp->mTaskPutCount++;
 
         hal->signal();
@@ -152,31 +152,31 @@ void *mpp_dec_hal_thread(void *data)
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     mpp_list *frames    = mpp->mFrames;
-    HalTaskHnd  syntax  = NULL;
-    HalTask local_task;
+    HalTaskHnd task_hnd = NULL;
+    HalTask task_local;
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (0 == hal_task_get_hnd(dec->tasks, 1, &syntax))
+        if (0 == hal_task_get_hnd(dec->tasks, 1, &task_hnd))
             hal->wait();
         hal->unlock();
 
         // get_config
         // register genertation
-        if (NULL == syntax)
-            hal_task_get_hnd(dec->tasks, 1, &syntax);
+        if (NULL == task_hnd)
+            hal_task_get_hnd(dec->tasks, 1, &task_hnd);
 
-        if (NULL == syntax)
+        if (NULL == task_hnd)
             continue;
 
         mpp->mTaskGetCount++;
 
-        hal_task_get_info(dec->tasks, &local_task);
+        hal_task_get_info(dec->tasks, &task_local);
         // hal->mpp_hal_reg_gen(current);
-        hal_task_set_used(syntax, 0);
+        hal_task_set_used(task_hnd, 0);
 
         /*
          * wait previous register set done
