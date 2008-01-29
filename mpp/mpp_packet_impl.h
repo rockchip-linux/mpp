@@ -32,7 +32,7 @@
  * pts      : packet pts
  * dts      : packet dts
  */
-typedef struct {
+typedef struct MppPacketImpl_t {
     void   *data;
     void   *pos;
     size_t  size;

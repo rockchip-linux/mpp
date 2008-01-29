@@ -28,7 +28,7 @@
  * number   : the number of the data pointer array element
  * data     : the address of the pointer array, parser will add its data here
  */
-typedef struct {
+typedef struct MppSyntax_t {
     RK_U32              number;
     void                *data;
 } MppSyntax;
@@ -64,7 +64,7 @@ typedef struct {
  *              |                      |      |
  *              +----------------------+ +----v----+
  */
-typedef struct {
+typedef struct HalDecTask_t {
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
@@ -74,7 +74,7 @@ typedef struct {
     RK_S32          refer[MAX_DEC_REF_NUM];
 } HalDecTask;
 
-typedef struct {
+typedef struct HalEncTask_t {
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
@@ -89,7 +89,7 @@ typedef struct {
     RK_S32          recon;
 } HalEncTask;
 
-typedef union {
+typedef union HalTask_u {
     HalDecTask      dec;
     HalEncTask      enc;
 } HalTask;

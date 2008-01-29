@@ -20,7 +20,7 @@
 #include "mpp_thread.h"
 #include "os_allocator.h"
 
-typedef struct {
+typedef struct MppAllocatorImpl_t {
     pthread_mutex_t lock;
     MppBufferType   type;
     size_t          alignment;

@@ -33,7 +33,7 @@ static const MppHalApi *hw_apis[] = {
     &api_h264d_hal,
 };
 
-typedef struct {
+typedef struct MppHalImpl_t {
     MppCtxType      type;
     MppCodingType   coding;
 
@@ -107,25 +107,69 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_reg_gen(MppHal ctx, HalDecTask *task)
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTask *task)
 {
-    (void)ctx;
-    (void)task;
-    return MPP_OK;
+    if (NULL == ctx || NULL == task) {
+        mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->reg_gen(p->ctx, task);
 }
 
-MPP_RET mpp_hal_hw_start(MppHal ctx, HalDecTask *task)
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalTask *task)
 {
-    (void)ctx;
-    (void)task;
-    return MPP_OK;
+    if (NULL == ctx || NULL == task) {
+        mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->start(p->ctx, task);
 }
 
-MPP_RET mpp_hal_hw_wait(MppHal ctx, HalDecTask *task)
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTask *task)
 {
-    (void)ctx;
-    (void)task;
-    return MPP_OK;
+    if (NULL == ctx || NULL == task) {
+        mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->wait(p->ctx, task);
 }
 
+MPP_RET mpp_hal_reset(MppHal ctx)
+{
+    if (NULL == ctx) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->reset(p->ctx);
+}
+
+MPP_RET mpp_hal_flush(MppHal ctx)
+{
+    if (NULL == ctx) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->flush(p->ctx);
+}
+
+MPP_RET mpp_hal_control(MppHal ctx, RK_S32 cmd, void *param)
+{
+    if (NULL == ctx) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    return p->api->control(p->ctx, cmd, param);
+}
 

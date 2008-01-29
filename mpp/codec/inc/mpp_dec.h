@@ -28,7 +28,7 @@
  *
  * the reset wait for extension
  */
-typedef struct {
+typedef struct MppParserInitCfg_t {
     MppBufSlots     slots;
 } MppParserInitCfg;
 
@@ -50,7 +50,7 @@ typedef struct MppDec_t MppDec;
  * flush    - decoder output all frames
  * control  - decoder configure function
  */
-typedef struct {
+typedef struct MppDecParser_t {
     char            *name;
     MppCodingType   coding;
     RK_U32          ctx_size;

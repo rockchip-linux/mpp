@@ -22,7 +22,7 @@
 
 typedef void *MppAllocator;
 
-typedef struct {
+typedef struct MppAllocatorApi_t {
     RK_U32  size;
     RK_U32  version;
 

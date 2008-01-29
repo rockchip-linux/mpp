@@ -32,7 +32,7 @@ typedef struct MppHalCfg_t {
     RK_U32          task_count;
 } MppHalCfg;
 
-typedef struct {
+typedef struct MppHalApi_t {
     char            *name;
     MppCodingType   coding;
     RK_U32          ctx_size;
@@ -62,9 +62,13 @@ extern "C" {
 MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg);
 MPP_RET mpp_hal_deinit(MppHal ctx);
 
-MPP_RET mpp_hal_reg_gen(MppHal ctx, HalDecTask *task);
-MPP_RET mpp_hal_hw_start(MppHal ctx, HalDecTask *task);
-MPP_RET mpp_hal_hw_wait(MppHal ctx, HalDecTask *task);
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTask *task);
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalTask *task);
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTask *task);
+
+MPP_RET mpp_hal_reset(MppHal ctx);
+MPP_RET mpp_hal_flush(MppHal ctx);
+MPP_RET mpp_hal_control(MppHal ctx, RK_S32 cmd, void *param);
 
 #ifdef __cplusplus
 }

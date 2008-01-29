@@ -16,15 +16,15 @@
 
 #define  MODULE_TAG "mpp_dec"
 
+#include <string.h>
+
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
 
 #include "mpp.h"
 #include "mpp_dec.h"
-#include "mpp_packet.h"
 #include "mpp_packet_impl.h"
-#include "mpp_buf_slot.h"
 
 #include "h264d_api.h"
 #include "h265d_api.h"
@@ -51,12 +51,14 @@ void *mpp_dec_parser_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     mpp_list  *packets  = mpp->mPackets;
     MppPacketImpl packet;
-    HalTask task_local;
     HalTaskHnd task_hnd         = NULL;
     RK_U32 packet_ready     = 0;
     RK_U32 packet_parsed    = 0;
     RK_U32 syntax_ready     = 0;
     RK_U32 slot_ready       = 0;
+
+    HalTask task_local;
+    memset(&task_local, 0, sizeof(task_local));
 
     while (MPP_THREAD_RUNNING == parser->get_status()) {
         /*
@@ -121,8 +123,9 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
 
-        //MppBuffer buffer;
-        //mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+        // RK_S32 output = task_local.dec.output;
+        // MppBuffer buffer;
+        // mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
 
 
         /*
@@ -153,7 +156,9 @@ void *mpp_dec_hal_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     mpp_list *frames    = mpp->mFrames;
     HalTaskHnd task_hnd = NULL;
+
     HalTask task_local;
+    memset(&task_local, 0, sizeof(task_local));
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*

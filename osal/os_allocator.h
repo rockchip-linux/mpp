@@ -19,7 +19,7 @@
 
 #include "mpp_allocator.h"
 
-typedef struct {
+typedef struct os_allocator_t {
     MPP_RET (*open)(void **ctx, size_t alignment);
     MPP_RET (*alloc)(void *ctx, MppBufferInfo *info);
     MPP_RET (*free)(void *ctx, MppBufferInfo *info);

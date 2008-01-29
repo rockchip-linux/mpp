@@ -93,7 +93,7 @@ typedef void* MppParam;
  * send a stream header to mpi ctx using parameter data / size
  * and decoder will try to decode the
  */
-typedef struct {
+typedef struct MppEncConfig_t {
     /*
      * input source data format
      */
@@ -136,7 +136,7 @@ typedef struct {
     RK_S32  trans8x8_en;
 } MppEncConfig;
 
-typedef struct {
+typedef struct MppApi_t {
     RK_U32  size;
     RK_U32  version;
 

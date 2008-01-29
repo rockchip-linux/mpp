@@ -30,12 +30,12 @@
 #define MPP_SLOT_USED_AS_DECODING       (0x00000004)
 #define MPP_SLOT_USED_AS_DISPLAY        (0x00000008)
 
-typedef struct {
+typedef struct MppBufSlotEntry_t {
     MppBuffer   buffer;
     RK_U32      status;
 } MppBufSlotEntry;
 
-typedef struct {
+typedef struct MppBufSlotsImpl_t {
     Mutex           *lock;
     RK_U32          count;
     RK_U32          size;

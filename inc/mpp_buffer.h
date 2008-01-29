@@ -170,7 +170,7 @@ typedef enum {
  *
  * TODO: to be implemented.
  */
-typedef struct {
+typedef struct MppBufferInfo_t {
     MppBufferType   type;
     size_t          size;
     void            *ptr;
