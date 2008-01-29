@@ -32,14 +32,14 @@ MPP_PACKET_ACCESSORS(RK_U32, flag)
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet || NULL == data || 0 == size) {
-        mpp_err("mpp_packet_init invalid input packet %p data %p size %d\n",
+        mpp_err_f("invalid input packet %p data %p size %d\n",
                 packet, data, size);
         return MPP_ERR_NULL_PTR;
     }
 
     MppPacketImpl *p = mpp_calloc(MppPacketImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_packet_init malloc failed\n");
+        mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -54,7 +54,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 MPP_RET mpp_packet_deinit(MppPacket *packet)
 {
     if (NULL == packet || NULL == packet) {
-        mpp_err("mpp_packet_deinit found NULL input\n");
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -66,7 +66,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 MPP_RET mpp_packet_set_eos(MppPacket packet)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_eos found NULL input\n");
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -78,7 +78,7 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
 MPP_RET mpp_packet_set_extra_data(MppPacket packet)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_extra_data found NULL input\n");
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
