@@ -33,7 +33,10 @@ typedef struct MppHalCfg_t {
 } MppHalCfg;
 
 typedef struct {
-    RK_U32 ctx_size;
+    char            *name;
+    MppCodingType   coding;
+    RK_U32          ctx_size;
+    RK_U32          flag;
 
     MPP_RET (*init)(void *ctx, MppHalCfg *cfg);
     MPP_RET (*deinit)(void *ctx);

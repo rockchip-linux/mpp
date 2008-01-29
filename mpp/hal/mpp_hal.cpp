@@ -18,20 +18,32 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 #include "mpp.h"
 #include "mpp_hal.h"
 #include "mpp_frame_impl.h"
 
-typedef struct {
-    MppCodingType   mCoding;
+#include "hal_h264d_api.h"
 
-    void            *mHalCtx;
-    MppHalApi       *api;
+/*
+ * all hardware api static register here
+ */
+static const MppHalApi *hw_apis[] = {
+    &api_h264d_hal,
+};
+
+typedef struct {
+    MppCtxType      type;
+    MppCodingType   coding;
+
+    void            *ctx;
+    const MppHalApi *api;
 
     HalTaskGroup    tasks;
     RK_U32          task_count;
 } MppHalImpl;
+
 
 MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
 {
@@ -47,18 +59,36 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    cfg->task_count = 2;
-    MPP_RET ret = hal_task_group_init(&cfg->tasks, cfg->type, cfg->task_count);
-    if (ret) {
-        mpp_err_f("hal_task_group_init failed ret %d\n", ret);
-        mpp_free(p);
-        return MPP_ERR_MALLOC;
+    RK_U32 i;
+    for (i = 0; i < MPP_ARRAY_ELEMS(hw_apis); i++) {
+        if (cfg->coding == hw_apis[i]->coding) {
+            // TODO: task count should be considered according to hardware feature
+            cfg->task_count = 2;
+            p->type         = cfg->type;
+            p->coding       = cfg->coding;
+            p->api          = hw_apis[i];
+            p->task_count   = cfg->task_count;
+            p->ctx          = mpp_malloc_size(void, p->api->ctx_size);
+            p->api->init(p->ctx, cfg);
+
+            MPP_RET ret = hal_task_group_init(&p->tasks, p->type, p->task_count);
+            if (ret) {
+                mpp_err_f("hal_task_group_init failed ret %d\n", ret);
+                break;
+            }
+
+            cfg->tasks = p->tasks;
+            *ctx = p;
+            return MPP_OK;
+        }
     }
 
-    p->tasks        = cfg->tasks;
-    p->task_count   = cfg->task_count;
-    *ctx = p;
-    return MPP_OK;
+    mpp_err_f("could not found coding type %d\n", cfg->coding);
+    if (p->ctx)
+        mpp_free(p->ctx);
+    mpp_free(p);
+
+    return MPP_NOK;
 }
 
 MPP_RET mpp_hal_deinit(MppHal ctx)
@@ -69,7 +99,10 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    hal_task_group_deinit(p->tasks);
+    if (p->ctx)
+        mpp_free(p->ctx);
+    if (p->tasks)
+        hal_task_group_deinit(p->tasks);
     mpp_free(p);
     return MPP_OK;
 }

@@ -72,7 +72,6 @@ struct MppDec_t {
     const MppDecParser  *parser_api;
     void                *parser_ctx;
 
-    const MppHalApi     *hal_api;
     MppHal              hal_ctx;
 
     // common resource

@@ -332,7 +332,7 @@ extern "C" {
 
 extern const MppHalApi api_h264d_hal;
 
-MPP_RET hal_h264d_init    (void **hal, MppHalCfg *cfg);
+MPP_RET hal_h264d_init    (void *hal, MppHalCfg *cfg);
 MPP_RET hal_h264d_deinit  (void *hal);
 MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task);
 MPP_RET hal_h264d_start   (void *hal, HalTask *task);

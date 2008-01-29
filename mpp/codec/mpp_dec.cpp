@@ -160,7 +160,7 @@ void *mpp_dec_hal_thread(void *data)
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (0 == hal_task_get_hnd(dec->tasks, 1, &task_hnd))
+        if (hal_task_get_hnd(dec->tasks, 1, &task_hnd))
             hal->wait();
         hal->unlock();
 

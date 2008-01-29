@@ -65,7 +65,7 @@ MPP_RET h264d_parser(void *decoder, MppPacket pkt, HalDecTask *task)
 }
 
 const MppDecParser api_h264d_parser = {
-    "h264d",
+    "h264d_parser",
     MPP_VIDEO_CodingAVC,
     0,
     0,
