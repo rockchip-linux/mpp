@@ -41,10 +41,8 @@ void*   mpp_packet_get_data(const MppPacket packet);
 void    mpp_packet_set_size(MppPacket packet, size_t size);
 size_t  mpp_packet_get_size(const MppPacket packet);
 
-void    mpp_packet_set_offset(MppPacket packet, size_t offset);
-size_t  mpp_packet_get_offset(const MppPacket packet);
-void    mpp_packet_set_length(MppPacket packet, size_t length);
-size_t  mpp_packet_get_length(const MppPacket packet);
+void    mpp_packet_set_pos(MppPacket packet, void *pos);
+void*   mpp_packet_get_pos(const MppPacket packet);
 
 void    mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
 RK_S64  mpp_packet_get_pts(const MppPacket packet);
