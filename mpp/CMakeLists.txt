@@ -35,4 +35,4 @@ add_subdirectory(legacy)
 
 add_subdirectory(test)
 
-target_link_libraries(mpp mpp_hal mpp_codec mpp_legacy osal)
+target_link_libraries(mpp mpp_codec mpp_hal mpp_legacy osal)
