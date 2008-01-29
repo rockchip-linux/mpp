@@ -28,51 +28,40 @@ typedef struct MppHalCfg_t {
     MppCodingType   coding;
 
     // output
-    HalTaskGroup  syntaxes;
-    RK_U32          syntax_count;
+    HalTaskGroup    tasks;
+    RK_U32          task_count;
 } MppHalCfg;
-
 
 typedef struct {
     RK_U32 ctx_size;
 
-    MPP_RET (*init)(void **ctx, MppHalCfg *cfg);
+    MPP_RET (*init)(void *ctx, MppHalCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
     // parser syntax process function
-    MPP_RET (*reg_gen)(void *ctx, MppSyntax *syn);
+    MPP_RET (*reg_gen)(void *ctx, HalTask *syn);
 
     // hw operation function
-    MPP_RET (*start)(void *ctx, MppHalDecTask task);
-    MPP_RET (*wait)(void *ctx, MppHalDecTask task);
+    MPP_RET (*start)(void *ctx, HalTask *task);
+    MPP_RET (*wait)(void *ctx, HalTask *task);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
     MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
 } MppHalApi;
 
-typedef struct {
-    MppCodingType   mCoding;
-
-    void            *mHalCtx;
-
-    MppSyntax       mSyn[2];
-    MppHalApi       *api;
-
-    HalTaskGroup  syntaxes;
-    RK_U32          syntax_count;
-} MppHal;
+typedef void* MppHal;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg);
-MPP_RET mpp_hal_deinit(MppHal *ctx);
+MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg);
+MPP_RET mpp_hal_deinit(MppHal ctx);
 
-MPP_RET mpp_hal_reg_gen(MppHal *ctx, MppHalDecTask *task);
-MPP_RET mpp_hal_hw_start(MppHal *ctx, MppHalDecTask *task);
-MPP_RET mpp_hal_hw_wait(MppHal *ctx, MppHalDecTask *task);
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalDecTask *task);
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalDecTask *task);
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalDecTask *task);
 
 #ifdef __cplusplus
 }

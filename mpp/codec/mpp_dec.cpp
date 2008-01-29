@@ -38,9 +38,9 @@ static const MppDecParser *parsers[] = {
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 
-static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syn)
+static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, HalTask *task)
 {
-    return dec->parser_api->parse(dec->parser_ctx, pkt, syn);
+    return dec->parser_api->parse(dec->parser_ctx, pkt, &task->dec);
 }
 
 void *mpp_dec_parser_thread(void *data)
@@ -50,10 +50,9 @@ void *mpp_dec_parser_thread(void *data)
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     mpp_list  *packets  = mpp->mPackets;
-    MppHal    *hal_ctx  = dec->hal_ctx;
     MppPacketImpl packet;
-    MppSyntax     local_syntax;
-    HalTaskHnd  syntax      = NULL;
+    HalTask local_task;
+    HalTaskHnd syntax       = NULL;
     RK_U32 packet_ready     = 0;
     RK_U32 packet_parsed    = 0;
     RK_U32 syntax_ready     = 0;
@@ -94,14 +93,14 @@ void *mpp_dec_parser_thread(void *data)
          *              buffer usage informatioin
          */
         if (!packet_parsed) {
-            mpp_dec_parse(dec, (MppPacket)&packet, &local_syntax);
+            mpp_dec_parse(dec, (MppPacket)&packet, &local_task);
             packet_parsed = 1;
         }
 
         if (!syntax_ready) {
-            hal_task_get_hnd(dec->syntaxes, 0, &syntax);
+            hal_task_get_hnd(dec->tasks, 0, &syntax);
             if (syntax) {
-                hal_task_set_info(syntax, &local_syntax);
+                hal_task_set_info(syntax, &local_task);
                 syntax_ready = 1;
             }
         }
@@ -152,31 +151,30 @@ void *mpp_dec_hal_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
-    MppHal    *hal_ctx  = dec->hal_ctx;
     mpp_list *frames    = mpp->mFrames;
-    HalTaskHnd  syntax = NULL;
-    MppSyntax     local_syntax;
+    HalTaskHnd  syntax  = NULL;
+    HalTask local_task;
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (0 == hal_task_get_hnd(dec->syntaxes, 1, &syntax))
+        if (0 == hal_task_get_hnd(dec->tasks, 1, &syntax))
             hal->wait();
         hal->unlock();
 
         // get_config
         // register genertation
         if (NULL == syntax)
-            hal_task_get_hnd(dec->syntaxes, 1, &syntax);
+            hal_task_get_hnd(dec->tasks, 1, &syntax);
 
         if (NULL == syntax)
             continue;
 
         mpp->mTaskGetCount++;
 
-        hal_task_get_info(dec->syntaxes, &local_syntax);
+        hal_task_get_info(dec->tasks, &local_task);
         // hal->mpp_hal_reg_gen(current);
         hal_task_set_used(syntax, 0);
 
@@ -240,9 +238,14 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             }
 
             // init hal first to get the syntax group
-            MppHalCfg hal_cfg;
+            MppHalCfg hal_cfg = {
+                MPP_CTX_DEC,
+                MPP_VIDEO_CodingAVC,
+                NULL,
+                0,
+            };
             mpp_hal_init(&p->hal_ctx, &hal_cfg);
-            p->syntaxes = hal_cfg.syntaxes;
+            p->tasks = hal_cfg.tasks;
 
             // use syntax and dpb slot to init parser
             MppParserInitCfg parser_cfg = {

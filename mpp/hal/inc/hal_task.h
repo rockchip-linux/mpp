@@ -18,8 +18,7 @@
 #ifndef __HAL_TASK__
 #define __HAL_TASK__
 
-#include "mpp_err.h"
-#include "mpp_list.h"
+#include "rk_mpi.h"
 
 #define MAX_DEC_REF_NUM     17
 
@@ -73,7 +72,7 @@ typedef struct {
     RK_S32          output;
     // current task reference slot index, -1 for unused
     RK_S32          refer[MAX_DEC_REF_NUM];
-} MppHalDecTask;
+} HalDecTask;
 
 typedef struct {
     // current tesk protocol syntax information
@@ -88,7 +87,12 @@ typedef struct {
     RK_S32          refer;
     // current task recon index
     RK_S32          recon;
-} MppHalEncTask;
+} HalEncTask;
+
+typedef union {
+    HalDecTask      dec;
+    HalEncTask      enc;
+} HalTask;
 
 typedef void* HalTaskHnd;
 typedef void* HalTaskGroup;
@@ -100,7 +104,7 @@ extern "C" {
 /*
  * group init / deinit will be called by hal
  */
-MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count);
+MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*
@@ -125,8 +129,8 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
 MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd);
 MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used);
 
-MPP_RET hal_task_get_info(HalTaskHnd hnd, MppSyntax *syntax);
-MPP_RET hal_task_set_info(HalTaskHnd hnd, MppSyntax *syntax);
+MPP_RET hal_task_get_info(HalTaskHnd hnd, HalTask *task);
+MPP_RET hal_task_set_info(HalTaskHnd hnd, HalTask *task);
 
 #ifdef __cplusplus
 }

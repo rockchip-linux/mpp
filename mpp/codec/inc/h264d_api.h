@@ -30,7 +30,7 @@ MPP_RET  h264d_deinit (void *decoder);
 MPP_RET  h264d_reset  (void *decoder);
 MPP_RET  h264d_flush  (void *decoder);
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param);
-MPP_RET  h264d_parser (void *decoder, MppPacket pkt, MppSyntax *syn);
+MPP_RET  h264d_parser (void *decoder, MppPacket pkt, HalDecTask *task);
 
 #ifdef  __cplusplus
 }

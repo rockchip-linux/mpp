@@ -22,41 +22,45 @@
 
 MPP_RET  h264d_init(void *decoder, MppParserInitCfg *init)
 {
+    (void)decoder;
+    (void)init;
     return MPP_OK;
 }
 
 MPP_RET  h264d_deinit(void *decoder)
 {
-
-
+    (void)decoder;
     return MPP_OK;
 }
 
 MPP_RET  h264d_reset(void *decoder)
 {
-
+    (void)decoder;
     return MPP_OK;
 }
 
 
 MPP_RET  h264d_flush(void *decoder)
 {
-
-
+    (void)decoder;
     return MPP_OK;
 }
 
 
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
-
-
+    (void)decoder;
+    (void)cmd_type;
+    (void)param;
     return MPP_OK;
 }
 
 
-MPP_RET  h264d_parser(void *decoder, MppPacket pkt, MppSyntax *syn)
+MPP_RET h264d_parser(void *decoder, MppPacket pkt, HalDecTask *task)
 {
+    (void)decoder;
+    (void)pkt;
+    (void)task;
     return MPP_OK;
 }
 

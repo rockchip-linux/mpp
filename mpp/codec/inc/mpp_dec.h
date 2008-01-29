@@ -59,7 +59,7 @@ typedef struct {
     MPP_RET (*init)(void *ctx, MppParserInitCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
-    MPP_RET (*parse)(void *ctx, MppPacket pkt, MppSyntax *syn);
+    MPP_RET (*parse)(void *ctx, MppPacket pkt, HalDecTask *task);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
@@ -72,11 +72,12 @@ struct MppDec_t {
     const MppDecParser  *parser_api;
     void                *parser_ctx;
 
-    MppHal              *hal_ctx;
+    const MppHalApi     *hal_api;
+    MppHal              hal_ctx;
 
     // common resource
     MppBufSlots         slots;
-    HalTaskGroup        syntaxes;
+    HalTaskGroup        tasks;
 };
 
 

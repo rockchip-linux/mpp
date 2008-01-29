@@ -19,31 +19,37 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
-#include "mpp_thread.h"
+#include "mpp_list.h"
 
 #include "hal_task.h"
 
-typedef struct MppSyntaxImpl_t      MppSyntaxImpl;
-typedef struct MppSyntaxGroupImpl_t MppSyntaxGroupImpl;
+typedef struct HalTaskImpl_t        HalTaskImpl;
+typedef struct HalTaskGroupImpl_t   HalTaskGroupImpl;
 
-struct MppSyntaxImpl_t {
+struct HalTaskImpl_t {
     struct list_head    list;
-    MppSyntaxGroupImpl  *group;
+    HalTaskGroupImpl    *group;
     RK_U32              used;
-    MppSyntax           syntax;
+    HalTask             task;
 };
 
-struct MppSyntaxGroupImpl_t {
+struct HalTaskGroupImpl_t {
     struct list_head    list_unused;
     struct list_head    list_used;
     Mutex               *lock;
-    MppSyntaxImpl       *node;
+    MppCtxType          type;
+    HalTaskImpl         *node;
 };
 
-MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count)
+static size_t get_task_size(HalTaskGroupImpl *group)
 {
-    MppSyntaxGroupImpl *p = mpp_malloc_size(MppSyntaxGroupImpl,
-                            sizeof(MppSyntaxGroupImpl) + count * sizeof(MppSyntaxImpl));
+    return (group->type == MPP_CTX_DEC) ? (sizeof(HalDecTask)) : (sizeof(HalEncTask));
+}
+
+MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
+{
+    HalTaskGroupImpl *p = mpp_malloc_size(HalTaskGroupImpl,
+                            sizeof(HalTaskGroupImpl) + count * sizeof(HalTaskImpl));
     if (NULL == p) {
         *group = NULL;
         mpp_err_f("malloc group failed\n");
@@ -53,7 +59,8 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count)
     INIT_LIST_HEAD(&p->list_unused);
     INIT_LIST_HEAD(&p->list_used);
     p->lock = new Mutex();
-    p->node = (MppSyntaxImpl*)(p+1);
+    p->node = (HalTaskImpl*)(p+1);
+    p->type = type;
     Mutex::Autolock auto_lock(p->lock);
     RK_U32 i;
     for (i = 0; i < count; i++) {
@@ -66,7 +73,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count)
 
 MPP_RET hal_task_group_deinit(HalTaskGroup group)
 {
-    MppSyntaxGroupImpl *p = (MppSyntaxGroupImpl *)group;
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
     if (p->lock) {
         delete p->lock;
         p->lock = NULL;
@@ -77,7 +84,7 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group)
 
 MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd)
 {
-    MppSyntaxGroupImpl *p = (MppSyntaxGroupImpl *)group;
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
     Mutex::Autolock auto_lock(p->lock);
     struct list_head *head = (used) ? (&p->list_used) : (&p->list_unused);
 
@@ -86,14 +93,14 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd)
         return MPP_NOK;
     }
 
-    *hnd = list_entry(head->next, MppSyntaxImpl, list);
+    *hnd = list_entry(head->next, HalTaskImpl, list);
     return MPP_OK;
 }
 
 MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used)
 {
-    MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
-    MppSyntaxGroupImpl *group = impl->group;
+    HalTaskImpl *impl = (HalTaskImpl *)hnd;
+    HalTaskGroupImpl *group = impl->group;
     Mutex::Autolock auto_lock(group->lock);
     struct list_head *head = (used) ? (&group->list_used) : (&group->list_unused);
     list_del_init(&impl->list);
@@ -101,17 +108,17 @@ MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used)
     return MPP_OK;
 }
 
-MPP_RET hal_task_get_info(HalTaskHnd hnd, MppSyntax *syntax)
+MPP_RET hal_task_get_info(HalTaskHnd hnd, HalTask *task)
 {
-    MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
-    memcpy(syntax, &impl->syntax, sizeof(impl->syntax));
+    HalTaskImpl *impl = (HalTaskImpl *)hnd;
+    memcpy(task, &impl->task, get_task_size(impl->group));
     return MPP_OK;
 }
 
-MPP_RET hal_task_set_info(HalTaskHnd hnd, MppSyntax *syntax)
+MPP_RET hal_task_set_info(HalTaskHnd hnd, HalTask *task)
 {
-    MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
-    memcpy(&impl->syntax, syntax, sizeof(impl->syntax));
+    HalTaskImpl *impl = (HalTaskImpl *)hnd;
+    memcpy(&impl->task, task, get_task_size(impl->group));
     return MPP_OK;
 }
 

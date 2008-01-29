@@ -17,7 +17,7 @@
 #ifndef __MPP_H__
 #define __MPP_H__
 
-#include "rk_mpi.h"
+#include "mpp_list.h"
 #include "mpp_dec.h"
 
 #define MPP_DBG_FUNCTION                (0x00000001)
@@ -107,7 +107,7 @@ public:
     MppDec          *mDec;
     MppDec          *mEnc;
 
-    MppHalDecTask   **mTask;
+    HalDecTask      **mTask;
     RK_U32          mTaskNum;
 
 private:

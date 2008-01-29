@@ -69,7 +69,7 @@ void *mpp_enc_hal_thread(void *data)
         // get_config
         // register genertation
         if (tasks->list_size()) {
-            MppHalDecTask *task;
+            HalDecTask *task;
             mpp->mTasks->del_at_head(&task, sizeof(task));
             mpp->mTaskGetCount++;
 

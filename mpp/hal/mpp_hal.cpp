@@ -23,46 +23,72 @@
 #include "mpp_hal.h"
 #include "mpp_frame_impl.h"
 
+typedef struct {
+    MppCodingType   mCoding;
 
-MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg)
+    void            *mHalCtx;
+    MppHalApi       *api;
+
+    HalTaskGroup    tasks;
+    RK_U32          task_count;
+} MppHalImpl;
+
+MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
 {
     if (NULL == ctx || NULL == cfg) {
         mpp_err_f("found NULL input ctx %p cfg %p\n", ctx, cfg);
         return MPP_ERR_NULL_PTR;
     }
+    *ctx = NULL;
 
-    MppHal *p = mpp_calloc(MppHal, 1);
+    MppHalImpl *p = mpp_calloc(MppHalImpl, 1);
+    if (NULL == p) {
+        mpp_err_f("malloc failed\n");
+        return MPP_ERR_MALLOC;
+    }
 
-    cfg->syntax_count = 2;
-    hal_task_group_init(&cfg->syntaxes, cfg->syntax_count);
-    p->syntaxes     = cfg->syntaxes;
-    p->syntax_count = cfg->syntax_count;
+    cfg->task_count = 2;
+    MPP_RET ret = hal_task_group_init(&cfg->tasks, cfg->type, cfg->task_count);
+    if (ret) {
+        mpp_err_f("hal_task_group_init failed ret %d\n", ret);
+        mpp_free(p);
+        return MPP_ERR_MALLOC;
+    }
+
+    p->tasks        = cfg->tasks;
+    p->task_count   = cfg->task_count;
     *ctx = p;
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_deinit(MppHal *ctx)
+MPP_RET mpp_hal_deinit(MppHal ctx)
 {
-    hal_task_group_deinit(ctx->syntaxes);
-    mpp_free(ctx);
+    if (NULL == ctx) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHalImpl *p = (MppHalImpl*)ctx;
+    hal_task_group_deinit(p->tasks);
+    mpp_free(p);
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_reg_gen(MppHal *ctx, MppHalDecTask *task)
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalDecTask *task)
 {
     (void)ctx;
     (void)task;
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_hw_start(MppHal *ctx, MppHalDecTask *task)
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalDecTask *task)
 {
     (void)ctx;
     (void)task;
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_hw_wait(MppHal *ctx, MppHalDecTask *task)
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalDecTask *task)
 {
     (void)ctx;
     (void)task;

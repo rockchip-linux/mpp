@@ -29,16 +29,16 @@ MPP_RET hal_h264d_deinit(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_gen_regs(void *hal, MppSyntax *syn)
+MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
 {
     return MPP_OK;
 }
-MPP_RET hal_h264d_start(void *hal, MppHalDecTask task)
+MPP_RET hal_h264d_start(void *hal, HalTask *task)
 {
     return MPP_OK;
 }
 
-MPP_RET hal_h264d_wait(void *hal, MppHalDecTask task)
+MPP_RET hal_h264d_wait(void *hal, HalTask *task)
 {
     return MPP_OK;
 }
