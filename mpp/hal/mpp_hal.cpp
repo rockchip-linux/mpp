@@ -26,13 +26,24 @@
 
 MPP_RET mpp_hal_init(MppHal **ctx, MppHalCfg *cfg)
 {
-    *ctx = mpp_malloc(MppHal, 1);
-    (void)cfg;
+    if (NULL == ctx || NULL == cfg) {
+        mpp_err_f("found NULL input ctx %p cfg %p\n", ctx, cfg);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppHal *p = mpp_calloc(MppHal, 1);
+
+    cfg->syntax_count = 2;
+    mpp_syntax_group_init(&cfg->syntaxes, cfg->syntax_count);
+    p->syntaxes     = cfg->syntaxes;
+    p->syntax_count = cfg->syntax_count;
+    *ctx = p;
     return MPP_OK;
 }
 
 MPP_RET mpp_hal_deinit(MppHal *ctx)
 {
+    mpp_syntax_group_deinit(ctx->syntaxes);
     mpp_free(ctx);
     return MPP_OK;
 }

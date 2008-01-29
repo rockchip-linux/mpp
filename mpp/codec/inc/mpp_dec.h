@@ -21,6 +21,7 @@
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "mpp_hal.h"
+#include "mpp_syntax.h"
 
 /*
  * slots    - all decoder need a slots interface to sync its internal dpb management
@@ -56,7 +57,7 @@ typedef struct {
     RK_U32          ctx_size;
     RK_U32          flag;
 
-    MPP_RET (*init)(void **ctx, MppParserInitCfg *cfg);
+    MPP_RET (*init)(void *ctx, MppParserInitCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
     MPP_RET (*parse)(void *ctx, MppPacket pkt, MppSyntax *syn);
@@ -74,7 +75,9 @@ struct MppDec_t {
 
     MppHal              *hal_ctx;
 
+    // common resource
     MppBufSlots         slots;
+    MppSyntaxGroup      syntaxes;
 };
 
 
@@ -94,7 +97,6 @@ void *mpp_dec_hal_thread(void *data);
 MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding);
 MPP_RET mpp_dec_deinit(MppDec *dec);
 
-MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syntax);
 MPP_RET mpp_dec_reset(MppDec *dec);
 MPP_RET mpp_dec_flush(MppDec *dec);
 MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *para);

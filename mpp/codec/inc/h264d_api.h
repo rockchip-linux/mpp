@@ -25,7 +25,7 @@ extern "C" {
 
 extern const MppDecParser api_h264d_parser;
 
-MPP_RET  h264d_init   (void **decoder, MppParserInitCfg *cfg);
+MPP_RET  h264d_init   (void *decoder, MppParserInitCfg *cfg);
 MPP_RET  h264d_deinit (void *decoder);
 MPP_RET  h264d_reset  (void *decoder);
 MPP_RET  h264d_flush  (void *decoder);

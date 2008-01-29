@@ -20,7 +20,7 @@
 #include "h264d_api.h"
 
 
-MPP_RET  h264d_init(void **decoder, MppParserInitCfg *init)
+MPP_RET  h264d_init(void *decoder, MppParserInitCfg *init)
 {
     return MPP_OK;
 }

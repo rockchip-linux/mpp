@@ -38,18 +38,26 @@ static const MppDecParser *parsers[] = {
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 
+static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syn)
+{
+    return dec->parser_api->parse(dec->parser_ctx, pkt, syn);
+}
+
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *parser   = mpp->mTheadCodec;
     MppThread *hal      = mpp->mThreadHal;
-    MppDec *dec_ctx  = mpp->mDec;
-    mpp_list *packets   = mpp->mPackets;
-    MppHal    *hal_ctx  = dec_ctx->hal_ctx;
+    MppDec    *dec      = mpp->mDec;
+    mpp_list  *packets  = mpp->mPackets;
+    MppHal    *hal_ctx  = dec->hal_ctx;
     MppPacketImpl packet;
-    RK_U32 packet_ready = 0;
-    RK_U32 syntax_ready = 0;
-    RK_U32 slot_ready   = 0;
+    MppSyntax     local_syntax;
+    MppSyntaxHnd  syntax    = NULL;
+    RK_U32 packet_ready     = 0;
+    RK_U32 packet_parsed    = 0;
+    RK_U32 syntax_ready     = 0;
+    RK_U32 slot_ready       = 0;
 
     while (MPP_THREAD_RUNNING == parser->get_status()) {
         /*
@@ -85,8 +93,21 @@ void *mpp_dec_parser_thread(void *data)
          *    output:   dxva output slot
          *              buffer usage informatioin
          */
+        if (!packet_parsed) {
+            mpp_dec_parse(dec, (MppPacket)&packet, &local_syntax);
+            packet_parsed = 1;
+        }
 
-        mpp_dec_parse(dec_ctx, (MppPacket)&packet, &hal_ctx->mSyn[0]);
+        if (!syntax_ready) {
+            mpp_syntax_get_hnd(dec->syntaxes, 0, &syntax);
+            if (syntax) {
+                mpp_syntax_set_info(syntax, &local_syntax);
+                syntax_ready = 1;
+            }
+        }
+
+        if (!syntax_ready)
+            continue;
 
         /*
          * 2. do buffer operation according to usage information
@@ -112,70 +133,80 @@ void *mpp_dec_parser_thread(void *data)
 
         // hal->wait_prev_done;
         // hal->send_config;
-        mpp->mTasks->add_at_tail(&mpp->mTask[0], sizeof(mpp->mTask[0]));
+
+        mpp_syntax_set_used(syntax, 1);
         mpp->mTaskPutCount++;
+
         hal->signal();
-        packet_ready = 0;
+        packet_ready    = 0;
+        syntax_ready    = 0;
+        packet_parsed   = 0;
+        slot_ready      = 0;
     }
 
     return NULL;
 }
 
-#define MPP_TEST_FRAME_SIZE     SZ_1M
-
 void *mpp_dec_hal_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
+    MppDec    *dec      = mpp->mDec;
+    MppHal    *hal_ctx  = dec->hal_ctx;
     mpp_list *frames    = mpp->mFrames;
-    mpp_list *tasks     = mpp->mTasks;
+    MppSyntaxHnd  syntax = NULL;
+    MppSyntax     local_syntax;
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (0 == tasks->list_size())
+        if (0 == mpp_syntax_get_hnd(dec->syntaxes, 1, &syntax))
             hal->wait();
         hal->unlock();
 
         // get_config
         // register genertation
-        if (tasks->list_size()) {
-            MppHalDecTask *task;
-            mpp->mTasks->del_at_head(&task, sizeof(task));
-            mpp->mTaskGetCount++;
+        if (NULL == syntax)
+            mpp_syntax_get_hnd(dec->syntaxes, 1, &syntax);
 
-            // hal->mpp_hal_reg_gen(current);
+        if (NULL == syntax)
+            continue;
 
-            /*
-             * wait previous register set done
-             */
-            // hal->mpp_hal_hw_wait(previous);
+        mpp->mTaskGetCount++;
 
-            /*
-             * send current register set to hardware
-             */
-            // hal->mpp_hal_hw_start(current);
+        mpp_syntax_get_info(dec->syntaxes, &local_syntax);
+        // hal->mpp_hal_reg_gen(current);
+        mpp_syntax_set_used(syntax, 0);
 
-            /*
-             * mark previous buffer is complete
-             */
-            // change dpb slot status
-            // signal()
-            // mark frame in output queue
-            // wait up output thread to get a output frame
+        /*
+         * wait previous register set done
+         */
+        // hal->mpp_hal_hw_wait(previous);
 
-            // for test
-            MppBuffer buffer;
-            mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+        /*
+         * send current register set to hardware
+         */
+        // hal->mpp_hal_hw_start(current);
 
-            MppFrame frame;
-            mpp_frame_init(&frame);
-            mpp_frame_set_buffer(frame, buffer);
-            frames->add_at_tail(&frame, sizeof(frame));
-            mpp->mFramePutCount++;
-        }
+        /*
+         * mark previous buffer is complete
+         */
+        // change dpb slot status
+        // signal()
+        // mark frame in output queue
+        // wait up output thread to get a output frame
+
+        // for test
+        MppBuffer buffer;
+        mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+
+        MppFrame frame;
+        mpp_frame_init(&frame);
+        mpp_frame_set_buffer(frame, buffer);
+        frames->add_at_tail(&frame, sizeof(frame));
+        mpp->mFramePutCount++;
     }
 
     return NULL;
@@ -183,7 +214,7 @@ void *mpp_dec_hal_thread(void *data)
 
 MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
 {
-    MppDec *p = mpp_malloc(MppDec, 1);
+    MppDec *p = mpp_calloc(MppDec, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
@@ -207,11 +238,26 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
                 mpp_err_f("failed to alloc decoder context\n");
                 break;
             }
+
+            // init hal first to get the syntax group
+            MppHalCfg hal_cfg;
+            mpp_hal_init(&p->hal_ctx, &hal_cfg);
+            p->syntaxes = hal_cfg.syntaxes;
+
+            // use syntax and dpb slot to init parser
+            MppParserInitCfg parser_cfg = {
+                p->slots,
+            };
+            p->parser_api->init(p->parser_ctx, &parser_cfg);
+
             *dec = p;
             return MPP_OK;
         }
     }
+
     mpp_err_f("could not found coding type %d\n", coding);
+
+    // TODO: need to add error handle here
     *dec = NULL;
     mpp_free(p);
     return MPP_NOK;
@@ -227,20 +273,14 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
     if (dec->parser_ctx)
         mpp_free(dec->parser_ctx);
 
-    mpp_buf_slot_deinit(dec->slots);
+    if (dec->hal_ctx)
+        mpp_hal_deinit(dec->hal_ctx);
+
+    if (dec->slots)
+        mpp_buf_slot_deinit(dec->slots);
 
     mpp_free(dec);
     return MPP_OK;
-}
-
-MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, MppSyntax *syn)
-{
-    if (NULL == dec || NULL == pkt || NULL == syn) {
-        mpp_err_f("found NULL input dec %p pkt %p syn %p\n", dec, pkt, syn);
-        return MPP_ERR_NULL_PTR;
-    }
-
-    return dec->parser_api->parse(dec->parser_ctx, pkt, syn);
 }
 
 MPP_RET mpp_dec_reset(MppDec *dec)

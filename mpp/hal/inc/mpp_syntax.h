@@ -34,22 +34,43 @@ typedef struct {
     void                *data;
 } MppSyntax;
 
-typedef struct {
-    struct list_head    list;
-    MppSyntax           syntax;
-} MppSyntaxNode;
-
+typedef void* MppSyntaxHnd;
 typedef void* MppSyntaxGroup;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*
+ * group init / deinit will be called by hal
+ */
 MPP_RET mpp_syntax_group_init(MppSyntaxGroup *group, RK_U32 count);
 MPP_RET mpp_syntax_group_deinit(MppSyntaxGroup group);
 
-MPP_RET mpp_syntax_get_node(MppSyntaxGroup group, MppSyntaxNode **node);
-MPP_RET mpp_syntax_put_node(MppSyntaxGroup group, MppSyntaxNode *node);
+/*
+ * normal working flow:
+ *
+ * dec:
+ *
+ * get_hnd(group, 0, &hnd)      - dec get a unused handle first
+ * parser->parse                - parser write a local info in dec
+ * set_info(hnd, info)          - dec write the local info to handle
+ * set_used(hnd, 1)             - decoder set handle to used
+ *
+ * hal:
+ * get_hnd(group, 1, &hnd)
+ * read_info(hnd, info)
+ * set_used(hnd, 0)
+ *
+ * these calls do not own syntax handle but just get its reference
+ * so there is not need to free or destory the handle
+ *
+ */
+MPP_RET mpp_syntax_get_hnd(MppSyntaxGroup group, RK_U32 used, MppSyntaxHnd *hnd);
+MPP_RET mpp_syntax_set_used(MppSyntaxHnd hnd, RK_U32 used);
+
+MPP_RET mpp_syntax_get_info(MppSyntaxHnd hnd, MppSyntax *syntax);
+MPP_RET mpp_syntax_set_info(MppSyntaxHnd hnd, MppSyntax *syntax);
 
 #ifdef __cplusplus
 }

@@ -68,8 +68,13 @@ typedef struct {
 typedef void*   MppHalCtx;
 
 typedef struct MppHalCfg_t {
+    // input
     MppCtxType      type;
     MppCodingType   coding;
+
+    // output
+    MppSyntaxGroup  syntaxes;
+    RK_U32          syntax_count;
 } MppHalCfg;
 
 
@@ -98,6 +103,9 @@ typedef struct {
 
     MppSyntax       mSyn[2];
     MppHalApi       *api;
+
+    MppSyntaxGroup  syntaxes;
+    RK_U32          syntax_count;
 } MppHal;
 
 #ifdef __cplusplus
