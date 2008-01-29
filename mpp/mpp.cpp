@@ -52,9 +52,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mCoding(coding),
       mStatus(0),
       mDec(NULL),
-      mEnc(NULL),
-      mTask(NULL),
-      mTaskNum(2)
+      mEnc(NULL)
 {
     switch (mType) {
     case MPP_CTX_DEC : {
@@ -66,7 +64,6 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTheadCodec = new MppThread(mpp_dec_parser_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
-        mTask       = mpp_malloc(HalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
@@ -81,7 +78,6 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTheadCodec = new MppThread(mpp_enc_control_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
-        mTask       = mpp_malloc(HalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
@@ -91,7 +87,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
     } break;
     }
 
-    if (mFrames && mPackets && mTask &&
+    if (mFrames && mPackets &&
         (mDec || mEnc) &&
         mTheadCodec && mThreadHal &&
         mPacketGroup && mFrameGroup) {
@@ -154,7 +150,6 @@ void Mpp::clear()
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
-    mpp_free(mTask);
 }
 
 MPP_RET Mpp::put_packet(MppPacket packet)

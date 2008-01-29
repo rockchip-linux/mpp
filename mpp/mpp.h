@@ -107,9 +107,6 @@ public:
     MppDec          *mDec;
     MppDec          *mEnc;
 
-    HalDecTask      **mTask;
-    RK_U32          mTaskNum;
-
 private:
     void clear();
 
