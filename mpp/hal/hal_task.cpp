@@ -21,7 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_thread.h"
 
-#include "mpp_syntax.h"
+#include "hal_task.h"
 
 typedef struct MppSyntaxImpl_t      MppSyntaxImpl;
 typedef struct MppSyntaxGroupImpl_t MppSyntaxGroupImpl;

@@ -18,7 +18,7 @@
 #define __MPP_HAL__
 
 #include "rk_mpi.h"
-#include "mpp_syntax.h"
+#include "hal_task.h"
 
 #define MAX_REF_SIZE    17
 

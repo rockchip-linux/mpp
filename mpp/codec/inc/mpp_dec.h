@@ -21,7 +21,6 @@
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "mpp_hal.h"
-#include "mpp_syntax.h"
 
 /*
  * slots    - all decoder need a slots interface to sync its internal dpb management

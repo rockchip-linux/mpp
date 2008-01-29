@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __MPP_SYNTAX_H__
-#define __MPP_SYNTAX_H__
+#ifndef __HAL_TASK__
+#define __HAL_TASK__
 
 #include "mpp_err.h"
 #include "mpp_list.h"
@@ -76,5 +76,5 @@ MPP_RET mpp_syntax_set_info(MppSyntaxHnd hnd, MppSyntax *syntax);
 }
 #endif
 
-#endif /*__MPP_SYNTAX_H__*/
+#endif /*__HAL_TASK__*/
 
