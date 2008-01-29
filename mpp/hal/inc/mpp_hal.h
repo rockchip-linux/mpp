@@ -20,51 +20,6 @@
 #include "rk_mpi.h"
 #include "hal_task.h"
 
-#define MAX_REF_SIZE    17
-
-/*
- *  HalTask memory layout:
- *
- *  +----^----+ +----------------------+ +----^----+
- *       |      |     context type     |      |
- *       |      +----------------------+      |
- *       +      |      coding type     |      |
- *     header   +----------------------+      |
- *       +      |         size         |      |
- *       |      +----------------------+      |
- *       |      |     pointer count    |      |
- *  +----v----+ +----------------------+      |
- *              |                      |      |
- *              |       pointers       |      |
- *              |                      |      +
- *              +----------------------+    size
- *              |                      |      +
- *              |        data_0        |      |
- *              |                      |      |
- *              +----------------------+      |
- *              |                      |      |
- *              |        data_1        |      |
- *              |                      |      |
- *              +----------------------+      |
- *              |                      |      |
- *              |                      |      |
- *              |        data_2        |      |
- *              |                      |      |
- *              |                      |      |
- *              +----------------------+ +----v----+
- */
-typedef struct {
-    MppCtxType      type;
-    MppCodingType   coding;
-    RK_U32          size;
-    RK_U32          count;
-
-    // current tesk output buffer
-    RK_S32          index_dst;
-    // current task reference buffers
-    MppBuffer       refer[MAX_REF_SIZE];
-} MppHalDecTask;
-
 typedef void*   MppHalCtx;
 
 typedef struct MppHalCfg_t {
@@ -73,7 +28,7 @@ typedef struct MppHalCfg_t {
     MppCodingType   coding;
 
     // output
-    MppSyntaxGroup  syntaxes;
+    HalTaskGroup  syntaxes;
     RK_U32          syntax_count;
 } MppHalCfg;
 
@@ -104,7 +59,7 @@ typedef struct {
     MppSyntax       mSyn[2];
     MppHalApi       *api;
 
-    MppSyntaxGroup  syntaxes;
+    HalTaskGroup  syntaxes;
     RK_U32          syntax_count;
 } MppHal;
 

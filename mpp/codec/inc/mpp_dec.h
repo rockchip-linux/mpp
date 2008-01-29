@@ -76,7 +76,7 @@ struct MppDec_t {
 
     // common resource
     MppBufSlots         slots;
-    MppSyntaxGroup      syntaxes;
+    HalTaskGroup        syntaxes;
 };
 
 

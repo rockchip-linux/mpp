@@ -40,7 +40,7 @@ struct MppSyntaxGroupImpl_t {
     MppSyntaxImpl       *node;
 };
 
-MPP_RET mpp_syntax_group_init(MppSyntaxGroup *group, RK_U32 count)
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count)
 {
     MppSyntaxGroupImpl *p = mpp_malloc_size(MppSyntaxGroupImpl,
                             sizeof(MppSyntaxGroupImpl) + count * sizeof(MppSyntaxImpl));
@@ -64,7 +64,7 @@ MPP_RET mpp_syntax_group_init(MppSyntaxGroup *group, RK_U32 count)
     return MPP_OK;
 }
 
-MPP_RET mpp_syntax_group_deinit(MppSyntaxGroup group)
+MPP_RET hal_task_group_deinit(HalTaskGroup group)
 {
     MppSyntaxGroupImpl *p = (MppSyntaxGroupImpl *)group;
     if (p->lock) {
@@ -75,7 +75,7 @@ MPP_RET mpp_syntax_group_deinit(MppSyntaxGroup group)
     return MPP_OK;
 }
 
-MPP_RET mpp_syntax_get_hnd(MppSyntaxGroup group, RK_U32 used, MppSyntaxHnd *hnd)
+MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd)
 {
     MppSyntaxGroupImpl *p = (MppSyntaxGroupImpl *)group;
     Mutex::Autolock auto_lock(p->lock);
@@ -90,7 +90,7 @@ MPP_RET mpp_syntax_get_hnd(MppSyntaxGroup group, RK_U32 used, MppSyntaxHnd *hnd)
     return MPP_OK;
 }
 
-MPP_RET mpp_syntax_set_used(MppSyntaxHnd hnd, RK_U32 used)
+MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used)
 {
     MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
     MppSyntaxGroupImpl *group = impl->group;
@@ -101,14 +101,14 @@ MPP_RET mpp_syntax_set_used(MppSyntaxHnd hnd, RK_U32 used)
     return MPP_OK;
 }
 
-MPP_RET mpp_syntax_get_info(MppSyntaxHnd hnd, MppSyntax *syntax)
+MPP_RET hal_task_get_info(HalTaskHnd hnd, MppSyntax *syntax)
 {
     MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
     memcpy(syntax, &impl->syntax, sizeof(impl->syntax));
     return MPP_OK;
 }
 
-MPP_RET mpp_syntax_set_info(MppSyntaxHnd hnd, MppSyntax *syntax)
+MPP_RET hal_task_set_info(HalTaskHnd hnd, MppSyntax *syntax)
 {
     MppSyntaxImpl *impl = (MppSyntaxImpl *)hnd;
     memcpy(&impl->syntax, syntax, sizeof(impl->syntax));

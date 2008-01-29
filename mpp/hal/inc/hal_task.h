@@ -21,7 +21,7 @@
 #include "mpp_err.h"
 #include "mpp_list.h"
 
-#define MPP_SYNTAX_MAX_NUMBER       8
+#define MAX_DEC_REF_NUM     17
 
 /*
  * modified by parser
@@ -34,8 +34,64 @@ typedef struct {
     void                *data;
 } MppSyntax;
 
-typedef void* MppSyntaxHnd;
-typedef void* MppSyntaxGroup;
+/*
+ *  HalTask memory layout:
+ *
+ *  +----^----+ +----------------------+ +----^----+
+ *       |      |     context type     |      |
+ *       |      +----------------------+      |
+ *       +      |      coding type     |      |
+ *     header   +----------------------+      |
+ *       +      |         size         |      |
+ *       |      +----------------------+      |
+ *       |      |     pointer count    |      |
+ *  +----v----+ +----------------------+      |
+ *              |                      |      |
+ *              |       pointers       |      |
+ *              |                      |      +
+ *              +----------------------+    size
+ *              |                      |      +
+ *              |        data_0        |      |
+ *              |                      |      |
+ *              +----------------------+      |
+ *              |                      |      |
+ *              |        data_1        |      |
+ *              |                      |      |
+ *              +----------------------+      |
+ *              |                      |      |
+ *              |                      |      |
+ *              |        data_2        |      |
+ *              |                      |      |
+ *              |                      |      |
+ *              +----------------------+ +----v----+
+ */
+typedef struct {
+    // current tesk protocol syntax information
+    MppSyntax       syntax;
+
+    // current tesk output slot index
+    RK_S32          output;
+    // current task reference slot index, -1 for unused
+    RK_S32          refer[MAX_DEC_REF_NUM];
+} MppHalDecTask;
+
+typedef struct {
+    // current tesk protocol syntax information
+    MppSyntax       syntax;
+
+    // current tesk output stream buffer index
+    RK_S32          output;
+
+    // current tesk input slot buffer index
+    RK_S32          input;
+    // current task reference index, -1 for unused
+    RK_S32          refer;
+    // current task recon index
+    RK_S32          recon;
+} MppHalEncTask;
+
+typedef void* HalTaskHnd;
+typedef void* HalTaskGroup;
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,8 +100,8 @@ extern "C" {
 /*
  * group init / deinit will be called by hal
  */
-MPP_RET mpp_syntax_group_init(MppSyntaxGroup *group, RK_U32 count);
-MPP_RET mpp_syntax_group_deinit(MppSyntaxGroup group);
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_U32 count);
+MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*
  * normal working flow:
@@ -66,11 +122,11 @@ MPP_RET mpp_syntax_group_deinit(MppSyntaxGroup group);
  * so there is not need to free or destory the handle
  *
  */
-MPP_RET mpp_syntax_get_hnd(MppSyntaxGroup group, RK_U32 used, MppSyntaxHnd *hnd);
-MPP_RET mpp_syntax_set_used(MppSyntaxHnd hnd, RK_U32 used);
+MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd);
+MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used);
 
-MPP_RET mpp_syntax_get_info(MppSyntaxHnd hnd, MppSyntax *syntax);
-MPP_RET mpp_syntax_set_info(MppSyntaxHnd hnd, MppSyntax *syntax);
+MPP_RET hal_task_get_info(HalTaskHnd hnd, MppSyntax *syntax);
+MPP_RET hal_task_set_info(HalTaskHnd hnd, MppSyntax *syntax);
 
 #ifdef __cplusplus
 }

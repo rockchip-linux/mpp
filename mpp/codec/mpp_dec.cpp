@@ -53,7 +53,7 @@ void *mpp_dec_parser_thread(void *data)
     MppHal    *hal_ctx  = dec->hal_ctx;
     MppPacketImpl packet;
     MppSyntax     local_syntax;
-    MppSyntaxHnd  syntax    = NULL;
+    HalTaskHnd  syntax      = NULL;
     RK_U32 packet_ready     = 0;
     RK_U32 packet_parsed    = 0;
     RK_U32 syntax_ready     = 0;
@@ -99,9 +99,9 @@ void *mpp_dec_parser_thread(void *data)
         }
 
         if (!syntax_ready) {
-            mpp_syntax_get_hnd(dec->syntaxes, 0, &syntax);
+            hal_task_get_hnd(dec->syntaxes, 0, &syntax);
             if (syntax) {
-                mpp_syntax_set_info(syntax, &local_syntax);
+                hal_task_set_info(syntax, &local_syntax);
                 syntax_ready = 1;
             }
         }
@@ -134,7 +134,7 @@ void *mpp_dec_parser_thread(void *data)
         // hal->wait_prev_done;
         // hal->send_config;
 
-        mpp_syntax_set_used(syntax, 1);
+        hal_task_set_used(syntax, 1);
         mpp->mTaskPutCount++;
 
         hal->signal();
@@ -154,7 +154,7 @@ void *mpp_dec_hal_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     MppHal    *hal_ctx  = dec->hal_ctx;
     mpp_list *frames    = mpp->mFrames;
-    MppSyntaxHnd  syntax = NULL;
+    HalTaskHnd  syntax = NULL;
     MppSyntax     local_syntax;
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
@@ -162,23 +162,23 @@ void *mpp_dec_hal_thread(void *data)
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (0 == mpp_syntax_get_hnd(dec->syntaxes, 1, &syntax))
+        if (0 == hal_task_get_hnd(dec->syntaxes, 1, &syntax))
             hal->wait();
         hal->unlock();
 
         // get_config
         // register genertation
         if (NULL == syntax)
-            mpp_syntax_get_hnd(dec->syntaxes, 1, &syntax);
+            hal_task_get_hnd(dec->syntaxes, 1, &syntax);
 
         if (NULL == syntax)
             continue;
 
         mpp->mTaskGetCount++;
 
-        mpp_syntax_get_info(dec->syntaxes, &local_syntax);
+        hal_task_get_info(dec->syntaxes, &local_syntax);
         // hal->mpp_hal_reg_gen(current);
-        mpp_syntax_set_used(syntax, 0);
+        hal_task_set_used(syntax, 0);
 
         /*
          * wait previous register set done
