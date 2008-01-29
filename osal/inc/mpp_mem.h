@@ -36,7 +36,13 @@
 #define mpp_realloc(ptr, type, count) \
     (type*)mpp_osal_realloc(MODULE_TAG, ptr, sizeof(type) * (count))
 
-#define mpp_free(ptr) mpp_osal_free(ptr)
+#define mpp_free(ptr) \
+    do { \
+        if (ptr) { \
+            mpp_osal_free(ptr); \
+            ptr = NULL; \
+        } \
+    } while (0)
 
 #ifdef __cplusplus
 extern "C" {

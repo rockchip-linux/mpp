@@ -58,7 +58,6 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     }
 
     mpp_free(*packet);
-    *packet = NULL;
     return MPP_OK;
 }
 

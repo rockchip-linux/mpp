@@ -83,8 +83,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
     }
 
     mpp_err_f("could not found coding type %d\n", cfg->coding);
-    if (p->ctx)
-        mpp_free(p->ctx);
+    mpp_free(p->ctx);
     mpp_free(p);
 
     return MPP_NOK;
@@ -98,8 +97,7 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    if (p->ctx)
-        mpp_free(p->ctx);
+    mpp_free(p->ctx);
     if (p->tasks)
         hal_task_group_deinit(p->tasks);
     mpp_free(p);

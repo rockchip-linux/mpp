@@ -154,8 +154,7 @@ void Mpp::clear()
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
-    if (mTask)
-        mpp_free(mTask);
+    mpp_free(mTask);
 }
 
 MPP_RET Mpp::put_packet(MppPacket packet)

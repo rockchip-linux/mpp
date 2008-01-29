@@ -224,8 +224,7 @@ MPP_RET mpp_deinit(MppCtx ctx)
     if (p->ctx)
         delete p->ctx;
 
-    if (p)
-        mpp_free(p);
+    mpp_free(p);
 
     MPI_FUNCTION_LEAVE();
     return MPP_OK;

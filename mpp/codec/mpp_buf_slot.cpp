@@ -93,8 +93,7 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     delete impl->lock;
-    if (impl->slots)
-        mpp_free(impl->slots);
+    mpp_free(impl->slots);
     mpp_free(slots);
     return MPP_OK;
 }

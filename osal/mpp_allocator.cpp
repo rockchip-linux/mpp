@@ -121,8 +121,7 @@ MPP_RET mpp_alloctor_put(MppAllocator *allocator)
     if (p->os_api.close)
         p->os_api.close(p->ctx);
     pthread_mutex_destroy(&p->lock);
-    if (p)
-        mpp_free(p);
+    mpp_free(p);
 
     return MPP_OK;
 }

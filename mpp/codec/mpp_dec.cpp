@@ -252,7 +252,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             // then init hal with task count from parser
             MppHalCfg hal_cfg = {
                 MPP_CTX_DEC,
-                MPP_VIDEO_CodingAVC,
+                coding,
                 NULL,
                 parser_cfg.task_count,
             };
@@ -279,8 +279,7 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    if (dec->parser_ctx)
-        mpp_free(dec->parser_ctx);
+    mpp_free(dec->parser_ctx);
 
     if (dec->hal_ctx)
         mpp_hal_deinit(dec->hal_ctx);
