@@ -62,8 +62,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
     RK_U32 i;
     for (i = 0; i < MPP_ARRAY_ELEMS(hw_apis); i++) {
         if (cfg->coding == hw_apis[i]->coding) {
-            // TODO: task count should be considered according to hardware feature
-            cfg->task_count = 2;
+            mpp_assert(cfg->task_count > 0);
             p->type         = cfg->type;
             p->coding       = cfg->coding;
             p->api          = hw_apis[i];

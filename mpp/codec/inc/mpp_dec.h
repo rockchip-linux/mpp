@@ -29,7 +29,11 @@
  * the reset wait for extension
  */
 typedef struct MppParserInitCfg_t {
+    // input
     MppBufSlots     slots;
+
+    // output
+    RK_U32          task_count;
 } MppParserInitCfg;
 
 typedef struct MppDec_t MppDec;

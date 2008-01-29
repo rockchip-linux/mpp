@@ -242,21 +242,22 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
                 break;
             }
 
-            // init hal first to get the syntax group
+            // init parser first to get task count
+            MppParserInitCfg parser_cfg = {
+                p->slots,
+                2,
+            };
+            p->parser_api->init(p->parser_ctx, &parser_cfg);
+
+            // then init hal with task count from parser
             MppHalCfg hal_cfg = {
                 MPP_CTX_DEC,
                 MPP_VIDEO_CodingAVC,
                 NULL,
-                0,
+                parser_cfg.task_count,
             };
             mpp_hal_init(&p->hal_ctx, &hal_cfg);
             p->tasks = hal_cfg.tasks;
-
-            // use syntax and dpb slot to init parser
-            MppParserInitCfg parser_cfg = {
-                p->slots,
-            };
-            p->parser_api->init(p->parser_ctx, &parser_cfg);
 
             *dec = p;
             return MPP_OK;
