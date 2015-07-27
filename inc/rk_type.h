@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +21,8 @@
  * Date         : 2010-11-23 21:48:40
  */
  
-#ifndef _RK_TYPE_H_
-#define _RK_TYPE_H_
+#ifndef __RK_TYPE_H__
+#define __RK_TYPE_H__
 
 #if defined(_WIN32) && !defined(__MINGW32CE__)
 
@@ -56,4 +55,4 @@ typedef void                    VOID;
 
 #endif
 
-#endif /*_RK_TYPE_H_*/
+#endif /*__RK_TYPE_H__*/
