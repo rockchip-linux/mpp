@@ -20,7 +20,7 @@ add_library(osal STATIC
 if(MSVC)
     set(WIN32_PTHREAD_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/inc")
     include_directories(${WIN32_PTHREAD_INCLUDE_DIRS})
-    add_library(pthread STATIC IMPORTED)
+    add_library(pthread SHARED IMPORTED)
     message(STATUS "platform X86 ${X86} X64 ${X64}")
     set(WIN32_PTHREAD_LIB_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/lib")
     set(WIN32_PTHREAD_DLL_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/dll")
@@ -36,6 +36,9 @@ if(MSVC)
     include_directories("${WIN32_PTHREAD_DLL_DIRS}/${WIN32_ARCH}")
     set_target_properties(pthread PROPERTIES
                           IMPORTED_LOCATION
+                          "${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}/pthreadVC2.dll")
+    set_target_properties(pthread PROPERTIES
+                          IMPORTED_IMPLIB
                           "${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}/pthreadVC2.lib")
 endif()
 target_link_libraries(osal pthread)

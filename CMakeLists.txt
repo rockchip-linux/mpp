@@ -139,6 +139,73 @@ if(GCC)
 endif(GCC)
 
 # ----------------------------------------------------------------------------
+# Create svn version information
+# ----------------------------------------------------------------------------
+set(HAVE_SVN 0)
+if(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
+    find_package(Subversion)
+    if(Subversion_FOUND)
+        set(HAVE_SVN 1)
+    else()
+        if(WIN32)
+            # The official subversion client is not available, so fall back to
+            # tortoise if it is installed.
+            find_program(TORTOISE_WCREV_EXECUTABLE
+                NAMES SubWCRev.exe
+                PATHS "[HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseSVN;Directory]/bin"
+            )
+
+            if (NOT TORTOISE_WCREV_EXECUTABLE)
+                message(STATUS "TortoiseSVN was not found.")
+            else(NOT TORTOISE_WCREV_EXECUTABLE)
+                message(STATUS "TortoiseSVN was Found.")
+                set(HAVE_SVN 1)
+
+                macro(Subversion_WC_INFO dir prefix)
+                    # the subversion commands should be executed with the C locale, otherwise
+                    # the message (which are parsed) may be translated, Alex
+                    set(_Subversion_SAVED_LC_ALL "$ENV{LC_ALL}")
+                    set(ENV{LC_ALL} C)
+
+                    execute_process(COMMAND ${TORTOISE_WCREV_EXECUTABLE} ${dir}
+                    OUTPUT_VARIABLE ${prefix}_WC_INFO
+                    ERROR_VARIABLE Subversion_svn_info_error
+                    RESULT_VARIABLE Subversion_svn_info_result
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_STRIP_TRAILING_WHITESPACE)
+
+                    if(NOT ${Subversion_svn_info_result} EQUAL 0)
+                        message(SEND_ERROR "Command \"${TORTOISE_WCREV_EXECUTABLE} ${dir}\" failed with output:\n${Subversion_svn_info_error}")
+                    else()
+                        string(REGEX REPLACE "^(.*\n)?Last committed at revision ([0-9]*)\n.*"
+                        "\\2" ${prefix}_WC_REVISION "${${prefix}_WC_INFO}")
+                    endif()
+
+                    # restore the previous LC_ALL
+                    set(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
+                endmacro()
+            endif (NOT TORTOISE_WCREV_EXECUTABLE)
+        endif(WIN32)
+    endif(Subversion_FOUND)
+
+endif(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
+
+if(${HAVE_SVN})
+    Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
+
+    message(STATUS "Current svn revision is ${Project_WC_REVISION}")
+    set(VERSION_REVISION ${Project_WC_REVISION})
+else()
+    set(VERSION_REVISION -1)
+endif()
+
+configure_file(
+    "${PROJECT_SOURCE_DIR}/build/cmake/version.h.in"
+    "${PROJECT_SOURCE_DIR}/inc/version.h"
+)
+
+
+# ----------------------------------------------------------------------------
 # Build options
 # ----------------------------------------------------------------------------
 set(HDR_INSTALL_DIR "./out/inc" CACHE STRING "Install location of headers")
