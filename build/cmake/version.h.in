@@ -17,8 +17,7 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
-#define	SVN_VERSION			"@VERSION_REVISION@"
-#define	SVN_LAST_LOG		"@VERSION_LAST_LOG@"
+#define	SVN_VERSION             "@VERSION_REVISION@"
 
 #endif /*__VERSION_H__*/
 
