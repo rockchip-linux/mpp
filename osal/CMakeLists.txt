@@ -24,10 +24,12 @@ if(MSVC)
     message(STATUS "platform X86 ${X86} X64 ${X64}")
     if(X64)
     set_target_properties(pthread PROPERTIES
-                          IMPORTED_LOCATION "window/pthread/lib/x64/pthreadVC2.lib")
+                          IMPORTED_LOCATION
+                          "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/lib/x64/pthreadVC2.lib")
 	else()
     set_target_properties(pthread PROPERTIES
-                          IMPORTED_LOCATION "window/pthread/lib/x86/pthreadVC2.lib")
+                          IMPORTED_LOCATION
+                          "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/lib/x86/pthreadVC2.lib")
     endif()
 endif()
 target_link_libraries(osal pthread)

@@ -20,18 +20,25 @@
  * Author       : herman.chen@rock-chips.com
  * Date         : 9:47 2015/7/27
  */
- 
+
 #ifndef __RK_THREAD_H__
 #define __RK_THREAD_H__
 
 #if defined(_WIN32) && !defined(__MINGW32CE__)
+
 /*
  * NOTE: POSIX Threads for Win32
- * Downloaded from http://www.sourceware.org/pthreads-win32/ 
+ * Downloaded from http://www.sourceware.org/pthreads-win32/
  */
-#include "window\pthread\inc\pthread.h"
+#include <windows.h>
+#include "pthread.h"
+#define sleep                   Sleep
+
 #else
+
+#include <unistd.h>
 #include <pthread.h>
+
 #endif
 
 #endif /*__RK_THREAD_H__*/

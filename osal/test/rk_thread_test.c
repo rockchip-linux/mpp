@@ -15,20 +15,9 @@
  * limitations under the License.
  */
 
-#include <unistd.h>
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <sys/poll.h>
-#include <signal.h>
 
 #include "rk_type.h"
 #include "rk_log.h"
@@ -37,34 +26,30 @@
 #define MAX_THREAD_NUM      10
 void *thread_test(void *pdata)
 {
-    (void)pdata;
-    for (;;) {
-        int fd = open("/dev/vpu_service", O_RDWR);
-        if (fd < 0) {
-            rk_log("failed to open /dev/vpu_service ret %d\n", fd);
-            return NULL;
-        }
-        close(fd);
-    }
+    int idx = *((int*)pdata);
+    rk_log("thread %d is running\n", idx);
+    sleep(1);
+    rk_log("thread %d done\n", idx);
     return NULL;
 }
 
 int main()
 {
     int i;
+    int pdata[MAX_THREAD_NUM];
+    pthread_t threads[MAX_THREAD_NUM];
 
     rk_log("vpu test start\n");
-    pthread_t threads[MAX_THREAD_NUM];
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     for (i = 0; i < MAX_THREAD_NUM; i++) {
-        pthread_create(&threads[i], &attr, thread_test, NULL);
+        pdata[i] = i;
+        pthread_create(&threads[i], &attr, thread_test, &pdata[i]);
     }
     pthread_attr_destroy(&attr);
-    for (i = 0; i < 2; i++)
-        sleep(1);
+    sleep(2);
 
     void *dummy;
 

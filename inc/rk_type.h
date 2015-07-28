@@ -20,7 +20,7 @@
  * Author       : Jian Huan
  * Date         : 2010-11-23 21:48:40
  */
- 
+
 #ifndef __RK_TYPE_H__
 #define __RK_TYPE_H__
 
@@ -36,8 +36,6 @@ typedef signed short            RK_S16;
 typedef signed int              RK_S32;
 typedef signed __int64          RK_S64;
 
-typedef void                    VOID;
-
 #else
 
 typedef unsigned char           RK_U8;
@@ -50,8 +48,6 @@ typedef signed char             RK_S8;
 typedef signed short            RK_S16;
 typedef signed int              RK_S32;
 typedef signed long long int    RK_S64;
-
-typedef void                    VOID;
 
 #endif
 
