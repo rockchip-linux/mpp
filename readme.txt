@@ -20,6 +20,14 @@ NOTE:
 ----                     top
    |
    |----- build          CMake out-of-source build directory
+   |  |
+   |  |----- cmake       cmake script directory
+   |  |
+   |  |----- android     android build directory
+   |  |
+   |  |----- linux       linux build directory
+   |  |
+   |  |----- vc12-x86_64 visual studio 2013 on x86_64 build directory
    |
    |----- inc            header file for external usage, including platform header and mpi header
    |
@@ -76,6 +84,8 @@ NOTE:
    |  |----- linux       mainline linux kernel
    |  |
    |  |----- window      microsoft's window
+   |  |
+   |  |----- test        OASL unit test
    |
    |----- codec          all video codec parser, convert stream to protocol structure
       |
