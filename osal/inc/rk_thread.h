@@ -33,6 +33,7 @@
 #include <windows.h>
 #include "pthread.h"
 #define sleep                   Sleep
+#pragma comment(lib, "pthreadVC2.lib")
 
 #else
 

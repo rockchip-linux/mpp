@@ -14,6 +14,9 @@ c. header file should not contain any relative path or absolute path, all includ
 a. for cross platform compiling use cmake as the compiling management system.
 b. use cmake out-of-source build, final binary and library will be install to out/ directory.
 
+NOTE:
+1. when run on window pthreadVC2.dll needed to be copied to the system directory.
+
 ----                     top
    |
    |----- build          CMake out-of-source build directory
