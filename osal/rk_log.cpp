@@ -17,40 +17,30 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "rk_log.h"
-
-#ifdef ANDROID
-#include <utils/Log.h>
-#endif
-
+#include "os_log.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 static RK_U32 mpp_log_flag = 0;
+static void (*rk_log_callback)(const char*, const char*, va_list) = os_log;
+static void (*rk_err_callback)(const char*, const char*, va_list) = os_err;
 
-void rk_log(const char *fmt, ...)
+void _rk_log(const char *tag, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-#ifdef ANDROID
-    ALOGI(fmt, args);
-#else
-    vfprintf(stdout, fmt, args);
-#endif
+    rk_log_callback(tag, fmt, args);
     va_end(args);
     return ;
 }
 
-void rk_err(const char *fmt, ...)
+void _rk_err(const char *tag, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-#ifdef ANDROID
-    ALOGE(fmt, args);
-#else
-    vfprintf(stderr, fmt, args);
-#endif
+    rk_err_callback(tag, fmt, args);
     va_end(args);
     return ;
 }

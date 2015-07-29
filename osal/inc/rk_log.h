@@ -19,31 +19,37 @@
 
 #include "rk_type.h"
 
+/*
+ * C log functions
+ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * STATIC_LOG_LEVE is for
- */
-#define STATIC_LOG_LEVE             (0xffffffff)
-
-#ifdef  STATIC_LOG_LEVE
-#define rk_debug                    STATIC_LOG_LEVE
-#else
-extern  RK_U32 rk_debug;
+#ifndef LOG_TAG
+#define LOG_TAG                     "rk_log"
 #endif
 
 void rk_set_log_flag(RK_U32 flag);
 RK_U32 rk_get_log_flag();
 
+#define rk_log(fmt, ...) _rk_log(LOG_TAG, fmt, ## __VA_ARGS__)
+#define rk_err(fmt, ...) _rk_err(LOG_TAG, fmt, ## __VA_ARGS__)
+
+#define rk_dbg(debug, flag, fmt, ...)   \
+    do {                                            \
+        if (debug & flag) {                         \
+            _rk_log(LOG_TAG, fmt, ## __VA_ARGS__);  \
+        }                                           \
+    } while(0)
+
 /*
  * Send the specified message to the log
- * rk_log : general log function
- * rk_err : log function for error information
+ * _rk_log : general log function, send log to stdout
+ * _rk_err : log function for error information, send log to stderr
  */
-void rk_log(const char *fmt, ...);
-void rk_err(const char *fmt, ...);
+void _rk_log(const char *tag, const char *fmt, ...);
+void _rk_err(const char *tag, const char *fmt, ...);
 
 /*
  * debug flag usage:
@@ -55,14 +61,19 @@ void rk_err(const char *fmt, ...);
  * 24~31 bit: information print format
  */
 /*
- *  0~ 3 bit:
+ * dynamic debug function
+ * rk_dbg_add_flag  : add a new debug flag associated with module name
+ * rk_dbg_set_flag  : set a existing debug flag associated with module name
+ * rk_dbg_show_flag : show all existing debug flags
  */
-#define rk_dbg(flag, debug, fmt, ...) \
-    do { \
-        if (debug & flag) { \
-            rk_log(fmt, ## __VA_ARGS__); \
-        } \
-    } while(0)
+
+//void rk_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
+
+/*
+ * submodules suggest to use macro as below:
+ * #define h264d_dbg(flag, const char *fmt, ...) \
+ *     rk_dbg(h264d_debug, flag, fmt, ## __VA_ARGS__)
+ */
 
 #ifdef __cplusplus
 }

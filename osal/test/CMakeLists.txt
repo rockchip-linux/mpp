@@ -13,6 +13,6 @@ endif()
 option(OSAL_THREAD_TEST "Build osal rk_thread unit test" ON)
 if(OSAL_THREAD_TEST)
 	add_executable(rk_thread_test rk_thread_test.c)
-	target_link_libraries(rk_thread_test pthread osal)
+	target_link_libraries(rk_thread_test osal)
 endif()
 
