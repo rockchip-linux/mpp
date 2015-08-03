@@ -4,15 +4,15 @@
 # ----------------------------------------------------------------------------
 # log system unit test
 option(OSAL_LOG_TEST "Build osal rk_log unit test" ON)
-if(OSAL_THREAD_TEST)
-	add_executable(rk_log_test rk_log_test.c)
-	target_link_libraries(rk_log_test osal)
+if(OSAL_LOG_TEST)
+    add_executable(rk_log_test rk_log_test.c)
+    target_link_libraries(rk_log_test osal)
 endif()
 
 # thread implement unit test
 option(OSAL_THREAD_TEST "Build osal rk_thread unit test" ON)
 if(OSAL_THREAD_TEST)
-	add_executable(rk_thread_test rk_thread_test.c)
-	target_link_libraries(rk_thread_test osal)
+    add_executable(rk_thread_test rk_thread_test.c)
+    target_link_libraries(rk_thread_test osal)
 endif()
 
