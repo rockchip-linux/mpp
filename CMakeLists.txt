@@ -18,6 +18,20 @@ if(NOT CMAKE_VERSION VERSION_LESS "2.8.12.20131121")
     cmake_policy(SET CMP0042 OLD) # do not require MACOSX_RPATH
 endif()
 
+# Search packages for host system instead of packages for target system
+# in case of cross compilation these macro should be defined by toolchain file
+if(NOT COMMAND find_host_package)
+    macro(find_host_package)
+        find_package(${ARGN})
+    endmacro()
+endif()
+if(NOT COMMAND find_host_program)
+    macro(find_host_program)
+    	find_program(${ARGN})
+    endmacro()
+endif()
+
+
 project (rk_mpp)
 
 cmake_minimum_required (VERSION 2.8.8) # OBJECT libraries require 2.8.8
@@ -53,9 +67,13 @@ if("${SYSPROC}" STREQUAL "" OR X86MATCH GREATER "-1")
         message(STATUS "Define X86_64 to 1")
     endif()
 elseif(${SYSPROC} STREQUAL "armv6l")
-    message(STATUS "Detected ARM system processor")
+    message(STATUS "Detected ARMv6 system processor")
     set(ARM 1)
     add_definitions(-DARCH_ARM=1 -DDHAVE_ARMV6=1)
+elseif(${SYSPROC} STREQUAL "armv7-a")
+    message(STATUS "Detected ARMv7 system processor")
+    set(ARM 1)
+    add_definitions(-DARCH_ARM=1 -DDHAVE_ARMV7=1)
 else()
     message(STATUS "CMAKE_SYSTEM_PROCESSOR value `${CMAKE_SYSTEM_PROCESSOR}` is unknown")
     message(STATUS "Please add this value near ${CMAKE_CURRENT_LIST_FILE}:${CMAKE_CURRENT_LIST_LINE}")
@@ -143,7 +161,7 @@ endif(GCC)
 # ----------------------------------------------------------------------------
 set(HAVE_SVN 0)
 if(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
-    find_package(Subversion)
+    find_host_package(Subversion)
     if(Subversion_FOUND)
         set(HAVE_SVN 1)
     else()
@@ -228,7 +246,7 @@ endif(WARNINGS_AS_ERRORS)
 # Visual leak detector
 # ----------------------------------------------------------------------------
 if (WIN32)
-    find_package(VLD QUIET)
+    find_host_package(VLD QUIET)
     if(VLD_FOUND)
         add_definitions(-DHAVE_VLD)
         include_directories(${VLD_INCLUDE_DIRS})
