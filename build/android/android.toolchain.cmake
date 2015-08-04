@@ -1304,8 +1304,6 @@ endif()
 # ----------------------------------------------------------------------------
 set( ANDROID_CRT_BEGIN "${ANDROID_SYSROOT}/usr/lib/crtbegin_dynamic.o")
 set( ANDROID_CRT_END   "${ANDROID_SYSROOT}/usr/lib/crtend_android.o")
-message(STATUS "ANDROID_CRT_BEGIN: ${ANDROID_CRT_BEGIN}")
-message(STATUS "ANDROID_CRT_END  : ${ANDROID_CRT_END}")
 set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
 set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
 
@@ -1313,7 +1311,6 @@ set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT
 # add libgcc.a to executable link list
 # ----------------------------------------------------------------------------
 set( ANDROID_LIB_GCC "${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_MACHINE_NAME}/${ANDROID_COMPILER_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/libgcc.a")
-message(STATUS "ANDROID_LIB_GCC : ${ANDROID_LIB_GCC}")
 set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
 set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
 
