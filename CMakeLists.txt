@@ -44,11 +44,11 @@ include(CheckCXXCompilerFlag)
 # add debug define in project
 # ----------------------------------------------------------------------------
 if(NOT $(CMAKE_BUILD_TYPE) MATCHES “Release”)
-	option(RK_DEBUG "Enable run-time debug mode(debugging)" ON)
-	if(RK_DEBUG)
-		add_definitions(-DRK_DEBUG)
-		message(STATUS "rk_mpp debug mode is enabled")
-	endif()
+    option(RK_DEBUG "Enable run-time debug mode(debugging)" ON)
+    if(RK_DEBUG)
+        add_definitions(-DRK_DEBUG)
+        message(STATUS "rk_mpp debug mode is enabled")
+    endif()
 endif()
 
 # ----------------------------------------------------------------------------
@@ -271,7 +271,7 @@ endif()
 # look for stdint.h
 # ----------------------------------------------------------------------------
 if(MSVC)
-	check_include_files(stdint.h HAVE_STDINT_H)
+    check_include_files(stdint.h HAVE_STDINT_H)
     if(NOT HAVE_STDINT_H)
         include_directories(osal/window)
     endif(NOT HAVE_STDINT_H)

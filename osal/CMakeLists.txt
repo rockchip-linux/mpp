@@ -12,15 +12,15 @@ endif()
 set(OSAL_HDR
     inc/rk_list.h
     inc/rk_thread.h
-	inc/rk_log.h
-	os_log.h
+    inc/rk_log.h
+    os_log.h
     )
 
 set(OSAL_SRC
     rk_list.cpp
-	rk_log.cpp
-	${OS_DIR}/os_log.c
-	)
+    rk_log.cpp
+    ${OS_DIR}/os_log.c
+    )
 
 add_library(osal STATIC
     ${OSAL_SRC} ${OSAL_HDR}
@@ -41,7 +41,7 @@ if(MSVC)
     set_target_properties(pthread PROPERTIES
                           IMPORTED_LOCATION
                           "${CMAKE_CURRENT_SOURCE_DIR}/window/pthread/lib/x64/pthreadVC2.lib")
-	else()
+else()
     set(WIN32_ARCH "x86")
     endif()
     include_directories("${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}")
@@ -53,7 +53,14 @@ if(MSVC)
                           IMPORTED_IMPLIB
                           "${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}/pthreadVC2.lib")
 endif()
-target_link_libraries(osal pthread)
+
+if(ANDROID)
+    # in Android pthread is in libc, also need liblog
+    target_link_libraries(osal log m c )
+else()
+    target_link_libraries(osal pthread)
+endif()
+
 install(TARGETS osal
     LIBRARY DESTINATION ${LIB_INSTALL_DIR}
     ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
