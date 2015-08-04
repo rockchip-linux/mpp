@@ -1376,12 +1376,22 @@ if( ANDROID_RELRO )
  set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,-z,relro -Wl,-z,now" )
 endif()
 
+# ----------------------------------------------------------------------------
+# add linker definition for Android SDK build
+# ----------------------------------------------------------------------------
+set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,-dynamic-linker,/system/bin/linker " )
+
 if( ANDROID_COMPILER_IS_CLANG )
  set( ANDROID_CXX_FLAGS "-target ${ANDROID_LLVM_TRIPLE} -Qunused-arguments ${ANDROID_CXX_FLAGS}" )
  if( BUILD_WITH_ANDROID_NDK )
   set( ANDROID_CXX_FLAGS "-gcc-toolchain ${ANDROID_TOOLCHAIN_ROOT} ${ANDROID_CXX_FLAGS}" )
  endif()
 endif()
+
+# ----------------------------------------------------------------------------
+# add nostdlib for Android SDK build
+# ----------------------------------------------------------------------------
+set( ANDROID_CXX_FLAGS "${ANDROID_CXX_FLAGS} -nostdlib" )
 
 # cache flags
 set( CMAKE_CXX_FLAGS           ""                        CACHE STRING "c++ flags" )
@@ -1449,8 +1459,17 @@ endif()
 
 # global includes and link directories
 include_directories( SYSTEM "${ANDROID_SYSROOT}/usr/include" ${ANDROID_STL_INCLUDE_DIRS} )
-get_filename_component(__android_install_path "${CMAKE_INSTALL_PREFIX}/libs/${ANDROID_NDK_ABI_NAME}" ABSOLUTE) # avoid CMP0015 policy warning
-link_directories( "${__android_install_path}" )
+
+# ----------------------------------------------------------------------------
+# comment unused directory detection
+# ----------------------------------------------------------------------------
+#get_filename_component(__android_install_path "${CMAKE_INSTALL_PREFIX}/libs/${ANDROID_NDK_ABI_NAME}" ABSOLUTE) # avoid CMP0015 policy warning
+#link_directories( "${__android_install_path}" )
+
+# ----------------------------------------------------------------------------
+# add sysroot library
+# ----------------------------------------------------------------------------
+link_directories( "${ANDROID_SYSROOT}/usr/lib" )
 
 # detect if need link crtbegin_so.o explicitly
 if( NOT DEFINED ANDROID_EXPLICIT_CRT_LINK )
