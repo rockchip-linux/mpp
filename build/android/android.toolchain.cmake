@@ -1299,6 +1299,24 @@ if( EXISTS "${__libstl}" OR EXISTS "${__libsupcxx}" )
  endif()
 endif()
 
+# ----------------------------------------------------------------------------
+# add crt object to executable link list for Android SDK build
+# ----------------------------------------------------------------------------
+set( ANDROID_CRT_BEGIN "${ANDROID_SYSROOT}/usr/lib/crtbegin_dynamic.o")
+set( ANDROID_CRT_END   "${ANDROID_SYSROOT}/usr/lib/crtend_android.o")
+message(STATUS "ANDROID_CRT_BEGIN: ${ANDROID_CRT_BEGIN}")
+message(STATUS "ANDROID_CRT_END  : ${ANDROID_CRT_END}")
+set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
+set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
+
+# ----------------------------------------------------------------------------
+# add libgcc.a to executable link list
+# ----------------------------------------------------------------------------
+set( ANDROID_LIB_GCC "${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_MACHINE_NAME}/${ANDROID_COMPILER_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/libgcc.a")
+message(STATUS "ANDROID_LIB_GCC : ${ANDROID_LIB_GCC}")
+set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
+set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
+
 # variables controlling optional build flags
 if( ANDROID_NDK_RELEASE_NUM LESS 7000 ) # before r7
  # libGLESv2.so in NDK's prior to r7 refers to missing external symbols.
@@ -1463,8 +1481,10 @@ include_directories( SYSTEM "${ANDROID_SYSROOT}/usr/include" ${ANDROID_STL_INCLU
 # ----------------------------------------------------------------------------
 # comment unused directory detection
 # ----------------------------------------------------------------------------
-#get_filename_component(__android_install_path "${CMAKE_INSTALL_PREFIX}/libs/${ANDROID_NDK_ABI_NAME}" ABSOLUTE) # avoid CMP0015 policy warning
-#link_directories( "${__android_install_path}" )
+if( DEFINED CMAKE_INSTALL_PREFIX )
+ get_filename_component(__android_install_path "${CMAKE_INSTALL_PREFIX}/libs/${ANDROID_NDK_ABI_NAME}" ABSOLUTE) # avoid CMP0015 policy warning
+ link_directories( "${__android_install_path}" )
+endif()
 
 # ----------------------------------------------------------------------------
 # add sysroot library
