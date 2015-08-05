@@ -9,21 +9,14 @@ else()
 message(SEND_ERROR "Can not found platform definistion ${CMAKE_SYSTEM}")
 endif()
 
-set(OSAL_HDR
-    inc/rk_list.h
-    inc/rk_thread.h
-    inc/rk_log.h
-    os_log.h
-    )
-
-set(OSAL_SRC
-    rk_list.cpp
-    rk_log.cpp
-    ${OS_DIR}/os_log.c
-    )
+include_directories(.)
 
 add_library(osal STATIC
-    ${OSAL_SRC} ${OSAL_HDR}
+    rk_malloc.cpp
+    rk_list.cpp
+    rk_log.cpp
+    ${OS_DIR}/os_malloc.c
+    ${OS_DIR}/os_log.c
     )
 
 # ----------------------------------------------------------------------------

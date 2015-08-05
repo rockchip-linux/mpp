@@ -9,6 +9,13 @@ if(OSAL_LOG_TEST)
     target_link_libraries(rk_log_test osal)
 endif()
 
+# malloc system unit test
+option(OSAL_MALLOC_TEST "Build osal rk_malloc unit test" ON)
+if(OSAL_MALLOC_TEST)
+    add_executable(rk_malloc_test rk_malloc_test.c)
+    target_link_libraries(rk_malloc_test osal)
+endif()
+
 # thread implement unit test
 option(OSAL_THREAD_TEST "Build osal rk_thread unit test" ON)
 if(OSAL_THREAD_TEST)

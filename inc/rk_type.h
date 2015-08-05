@@ -51,4 +51,12 @@ typedef signed long long int    RK_S64;
 
 #endif
 
+#ifndef NULL
+#ifdef __cplusplus
+#define NULL                    0
+#else
+#define NULL                    ((void *)0)
+#endif
+#endif
+
 #endif /*__RK_TYPE_H__*/
