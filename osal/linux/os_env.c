@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include "os_env.h"
 
-#define ENV_BUF_SIZE_WIN    1024
+#define ENV_BUF_SIZE_LINUX  1024
 
 RK_S32 os_get_env_u32(const char *name, RK_U32 *val)
 {
@@ -35,7 +35,7 @@ RK_S32 os_get_env_str(const char *name, char **val)
 
 RK_S32 os_set_env_u32(const char *name, RK_U32 val)
 {
-    char buf[ENV_BUF_SIZE_WIN];
+    char buf[ENV_BUF_SIZE_LINUX];
     snprintf(buf, sizeof(buf), "%u", val);
     return setenv(name, buf, 1);
 }
