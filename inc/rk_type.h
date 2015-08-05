@@ -24,6 +24,8 @@
 #ifndef __RK_TYPE_H__
 #define __RK_TYPE_H__
 
+#include <stddef.h>
+
 #if defined(_WIN32) && !defined(__MINGW32CE__)
 
 typedef unsigned char           RK_U8;
@@ -49,14 +51,6 @@ typedef signed short            RK_S16;
 typedef signed int              RK_S32;
 typedef signed long long int    RK_S64;
 
-#endif
-
-#ifndef NULL
-#ifdef __cplusplus
-#define NULL                    0
-#else
-#define NULL                    ((void *)0)
-#endif
 #endif
 
 #endif /*__RK_TYPE_H__*/
