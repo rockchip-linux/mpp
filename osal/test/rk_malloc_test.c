@@ -20,12 +20,7 @@
 
 int main()
 {
-    void *tmp = NULL;
-
-    rk_log("try memalign of 512\n");
-    rk_mpp_set_mem_align(512);
-
-    tmp = rk_malloc(int, 100);
+    void *tmp = rk_malloc(int, 100);
     if (tmp) {
         rk_log("malloc success\n");
         rk_free(tmp);

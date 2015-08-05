@@ -22,31 +22,39 @@
 
 #include "os_malloc.h"
 
-// default memory align size is set to 64
-static size_t rk_mpp_mem_align  = 64;
-static RK_S32 mem_protect_flag  = -1;
+// export configure for script detection
+#define CONFIG_OSAL_MEM_LIST        "osal_mem_list"
+#define CONFIG_OSAL_MEM_STUFF       "osal_mem_stuff"
 
-static inline RK_S32 mpp_get_mem_proctect_flag()
+
+// default memory align size is set to 32
+#define RK_OSAL_MEM_ALIGN       32
+
+// osal_mem_flag bit mask
+#define OSAL_MEM_LIST_EN        (0x00000001)
+#define OSAL_MEM_STUFF_EN       (0x00000002)
+
+static RK_S32 osal_mem_flag = -1;
+
+static void get_osal_mem_flag()
 {
-    if (mem_protect_flag < 0) {
-        rk_get_env_u32("mpp_protect", (RK_U32 *)&mem_protect_flag, 0);
+    if (osal_mem_flag < 0) {
+        RK_U32 val;
+        rk_get_env_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
+        if (val) {
+            osal_mem_flag |= OSAL_MEM_LIST_EN;
+        }
+        rk_get_env_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
+        if (val) {
+            osal_mem_flag |= OSAL_MEM_STUFF_EN;
+        }
     }
-    return mem_protect_flag;
-}
-
-void rk_mpp_set_mem_align(size_t size)
-{
-    /* determine align size is power of 2 */
-    if (size && !(size & (size - 1)))
-        rk_mpp_mem_align = size;
-    else
-        rk_log("set memalign to %d failed\n", size);
 }
 
 void *rk_mpp_malloc(size_t size)
 {
     void *ptr;
-    if (0 == os_malloc(&ptr, rk_mpp_mem_align, size))
+    if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size))
         return ptr;
     else
         return NULL;
