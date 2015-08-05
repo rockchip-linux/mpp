@@ -18,8 +18,9 @@
 #define __RK_MALLOC_H__
 
 #include <stdlib.h>
+#include "rk_type.h"
 
-#define rk_malloc(type, count)      (type*)rk_mpp_malloc(sizeof(type) * (count))
+#define rk_malloc(type, count)      (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
 #define rk_free(ptr)                rk_mpp_free(ptr)
 
 #ifdef __cplusplus
@@ -27,7 +28,7 @@ extern "C" {
 #endif
 
 void rk_mpp_show_mem_status();
-void *rk_mpp_malloc(size_t size);
+void *rk_mpp_malloc(char *tag, size_t size);
 void rk_mpp_free(void *ptr);
 
 #ifdef __cplusplus

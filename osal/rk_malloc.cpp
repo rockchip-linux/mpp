@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "rk_malloc"
+#define MODULE_TAG "rk_malloc"
 #include "rk_type.h"
 #include "rk_log.h"
 #include "rk_env.h"
 #include "rk_malloc.h"
+#include "rk_list.h"
 
 #include "os_malloc.h"
 
@@ -35,6 +36,13 @@
 #define OSAL_MEM_STUFF_EN       (0x00000002)
 
 static RK_S32 osal_mem_flag = -1;
+static struct list_head mem_list;
+
+struct mem_node {
+    struct list_head list;
+    void *ptr;
+    size_t size;
+};
 
 static void get_osal_mem_flag()
 {
@@ -48,12 +56,14 @@ static void get_osal_mem_flag()
         if (val) {
             osal_mem_flag |= OSAL_MEM_STUFF_EN;
         }
+        INIT_LIST_HEAD(&mem_list);
     }
 }
 
-void *rk_mpp_malloc(size_t size)
+void *rk_mpp_malloc(char *tag, size_t size)
 {
     void *ptr;
+    get_osal_mem_flag();
     if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size))
         return ptr;
     else
@@ -62,6 +72,7 @@ void *rk_mpp_malloc(size_t size)
 
 void rk_mpp_free(void *ptr)
 {
+    get_osal_mem_flag();
     os_free(ptr);
 }
 

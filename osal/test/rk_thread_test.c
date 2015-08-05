@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG     "rk_thread_test"
+#define MODULE_TAG "rk_thread_test"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

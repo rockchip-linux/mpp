@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG     "rk_malloc_test"
+#define MODULE_TAG "rk_malloc_test"
 #include "rk_log.h"
 #include "rk_malloc.h"
 

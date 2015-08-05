@@ -26,20 +26,16 @@
 extern "C" {
 #endif
 
-#ifndef LOG_TAG
-#define LOG_TAG                     "rk_log"
-#endif
-
 void rk_set_log_flag(RK_U32 flag);
 RK_U32 rk_get_log_flag();
 
-#define rk_log(fmt, ...) _rk_log(LOG_TAG, fmt, ## __VA_ARGS__)
-#define rk_err(fmt, ...) _rk_err(LOG_TAG, fmt, ## __VA_ARGS__)
+#define rk_log(fmt, ...) _rk_log(MODULE_TAG, fmt, ## __VA_ARGS__)
+#define rk_err(fmt, ...) _rk_err(MODULE_TAG, fmt, ## __VA_ARGS__)
 
 #define rk_dbg(debug, flag, fmt, ...)   \
     do {                                            \
         if (debug & flag) {                         \
-            _rk_log(LOG_TAG, fmt, ## __VA_ARGS__);  \
+            _rk_log(MODULE_TAG, fmt, ## __VA_ARGS__);  \
         }                                           \
     } while(0)
 

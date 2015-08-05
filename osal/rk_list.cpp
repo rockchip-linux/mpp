@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "rk_list"
+#define MODULE_TAG "rk_list"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>

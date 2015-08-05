@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG     "rk_env_test"
+#define MODULE_TAG "rk_env_test"
 #include "rk_env.h"
 #include "rk_log.h"
 
