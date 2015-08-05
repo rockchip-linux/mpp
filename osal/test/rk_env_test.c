@@ -36,8 +36,8 @@ int main()
     env_string_str = NULL;
     rk_log("clear local value to zero\n");
 
-    rk_get_env_u32(env_debug, &env_debug_u32);
-    rk_get_env_str(env_string, &env_string_str);
+    rk_get_env_u32(env_debug, &env_debug_u32, 0);
+    rk_get_env_str(env_string, &env_string_str, NULL);
 
     rk_log("get env: %s is %u\n", env_debug, env_debug_u32);
     rk_log("get env: %s is %s\n", env_string, env_string_str);

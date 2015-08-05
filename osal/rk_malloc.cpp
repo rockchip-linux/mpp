@@ -17,18 +17,28 @@
 #define LOG_TAG "rk_malloc"
 #include "rk_type.h"
 #include "rk_log.h"
+#include "rk_env.h"
 #include "rk_malloc.h"
 
 #include "os_malloc.h"
 
 // default memory align size is set to 64
-static size_t rk_mpp_memalign = 64;
+static size_t rk_mpp_mem_align  = 64;
+static RK_S32 mem_protect_flag  = -1;
 
-void rk_mpp_set_memalign(size_t size)
+static inline RK_S32 mpp_get_mem_proctect_flag()
+{
+    if (mem_protect_flag < 0) {
+        rk_get_env_u32("mpp_protect", (RK_U32 *)&mem_protect_flag, 0);
+    }
+    return mem_protect_flag;
+}
+
+void rk_mpp_set_mem_align(size_t size)
 {
     /* determine align size is power of 2 */
     if (size && !(size & (size - 1)))
-        rk_mpp_memalign = size;
+        rk_mpp_mem_align = size;
     else
         rk_log("set memalign to %d failed\n", size);
 }
@@ -36,7 +46,7 @@ void rk_mpp_set_memalign(size_t size)
 void *rk_mpp_malloc(size_t size)
 {
     void *ptr;
-    if (0 == os_malloc(&ptr, rk_mpp_memalign, size))
+    if (0 == os_malloc(&ptr, rk_mpp_mem_align, size))
         return ptr;
     else
         return NULL;

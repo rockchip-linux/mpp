@@ -26,7 +26,8 @@
 extern "C" {
 #endif
 
-void rk_mpp_set_memalign(size_t size);
+void rk_mpp_set_mem_align(size_t size);
+void rk_mpp_show_mem_status();
 void *rk_mpp_malloc(size_t size);
 void rk_mpp_free(void *ptr);
 

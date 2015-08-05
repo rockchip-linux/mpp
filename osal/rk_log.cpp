@@ -56,7 +56,6 @@ RK_U32 rk_get_log_flag()
     return mpp_log_flag;
 }
 
-
 #ifdef __cplusplus
 }
 #endif

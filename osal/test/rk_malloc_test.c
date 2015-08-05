@@ -23,7 +23,7 @@ int main()
     void *tmp = NULL;
 
     rk_log("try memalign of 512\n");
-    rk_mpp_set_memalign(512);
+    rk_mpp_set_mem_align(512);
 
     tmp = rk_malloc(int, 100);
     if (tmp) {

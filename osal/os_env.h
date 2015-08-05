@@ -23,11 +23,11 @@
 extern "C" {
 #endif
 
-RK_S32 os_get_env_u32(const char *name, RK_U32 *val);
-RK_S32 os_get_env_str(const char *name, char **val);
+RK_S32 os_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value);
+RK_S32 os_get_env_str(const char *name, char **value, char *default_value);
 
-RK_S32 os_set_env_u32(const char *name, RK_U32 val);
-RK_S32 os_set_env_str(const char *name, char *val);
+RK_S32 os_set_env_u32(const char *name, RK_U32 value);
+RK_S32 os_set_env_str(const char *name, char *value);
 
 #ifdef __cplusplus
 }

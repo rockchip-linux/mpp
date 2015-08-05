@@ -20,30 +20,44 @@
 
 #define ENV_BUF_SIZE_WIN    1024
 
-RK_S32 os_get_env_u32(const char *name, RK_U32 *val)
+RK_S32 os_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
 {
     char *ptr = getenv(name);
-    *val = (RK_U32)atoi(ptr);
+    if (NULL == ptr) {
+        *value = default_value;
+    } else {
+        char *endptr;
+        int base = (ptr[0] == '0' && ptr[1] == 'x')?(16):(10);
+        errno = 0;
+        *value = strtoul(ptr, &endptr, base);
+        if (errno || (ptr == endptr)) {
+            errno = 0;
+            *value = default_value;
+        }
+    }
     return 0;
 }
 
-RK_S32 os_get_env_str(const char *name, char **val)
+RK_S32 os_get_env_str(const char *name, char **value, char *default_value)
 {
-    *val = getenv(name);
-    return (*val)?(0):(-1);
+    *value = getenv(name);
+    if (NULL == *value) {
+        *value = default_value;
+    }
+    return 0;
 }
 
-RK_S32 os_set_env_u32(const char *name, RK_U32 val)
+RK_S32 os_set_env_u32(const char *name, RK_U32 value)
 {
     char buf[ENV_BUF_SIZE_WIN];
-    _snprintf(buf, sizeof(buf), "%s=%lu", name, val);
+    _snprintf(buf, sizeof(buf), "%s=%lu", name, value);
     return _putenv(buf);
 }
 
-RK_S32 os_set_env_str(const char *name, char *val)
+RK_S32 os_set_env_str(const char *name, char *value)
 {
     char buf[ENV_BUF_SIZE_WIN];
-    _snprintf(buf, sizeof(buf), "%s=%s", name, val);
+    _snprintf(buf, sizeof(buf), "%s=%s", name, value);
     return _putenv(buf);
 }
 
