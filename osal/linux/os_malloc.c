@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef __RK_MALLOC_H__
-#define __RK_MALLOC_H__
-
 #include <stdlib.h>
+#include "os_malloc.h"
 
-#define rk_malloc(type, count)      (type*)rk_mpp_malloc(sizeof(type) * (count))
-#define rk_free(ptr)                rk_mpp_free(ptr)
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void rk_mpp_set_memalign(size_t size);
-void *rk_mpp_malloc(size_t size);
-void rk_mpp_free(void *ptr);
-
-#ifdef __cplusplus
+int os_malloc(void **memptr, size_t alignment, size_t size)
+{
+    return posix_memalign(memptr, alignment, size);
 }
-#endif
 
-#endif /*__RK_MPP_MALLOC_H__*/
+void os_free(void *ptr)
+{
+    free(ptr);
+}
 
