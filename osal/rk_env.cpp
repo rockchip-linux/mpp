@@ -14,36 +14,27 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "rk_malloc"
-#include "rk_type.h"
-#include "rk_log.h"
-#include "rk_malloc.h"
+#include "rk_env.h"
+#include "os_env.h"
 
-#include "os_malloc.h"
-
-// default memory align size is set to 64
-static size_t rk_mpp_memalign = 64;
-
-void rk_mpp_set_memalign(size_t size)
+RK_S32 rk_get_env_u32(const char *name, RK_U32 *val)
 {
-    /* determine align size is power of 2 */
-    if (size && !(size & (size - 1)))
-        rk_mpp_memalign = size;
-    else
-        rk_log("set memalign to %d failed\n", size);
+    return os_get_env_u32(name, val);
 }
 
-void *rk_mpp_malloc(size_t size)
+RK_S32 rk_get_env_str(const char *name, char **val)
 {
-    void *ptr;
-    if (0 == os_malloc(&ptr, rk_mpp_memalign, size))
-        return ptr;
-    else
-        return NULL;
+    return os_get_env_str(name, val);
 }
 
-void rk_mpp_free(void *ptr)
+RK_S32 rk_set_env_u32(const char *name, RK_U32 val)
 {
-    os_free(ptr);
+    return os_set_env_u32(name, val);
 }
+
+RK_S32 rk_set_env_str(const char *name, char *val)
+{
+    return os_set_env_str(name, val);
+}
+
 

@@ -9,6 +9,13 @@ if(OSAL_LOG_TEST)
     target_link_libraries(rk_log_test osal)
 endif()
 
+# env system unit test
+option(OSAL_ENV_TEST "Build osal rk_env unit test" ON)
+if(OSAL_ENV_TEST)
+    add_executable(rk_env_test rk_env_test.c)
+    target_link_libraries(rk_env_test osal)
+endif()
+
 # malloc system unit test
 option(OSAL_MALLOC_TEST "Build osal rk_malloc unit test" ON)
 if(OSAL_MALLOC_TEST)

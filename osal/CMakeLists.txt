@@ -14,8 +14,10 @@ include_directories(.)
 add_library(osal STATIC
     rk_malloc.cpp
     rk_list.cpp
+    rk_env.cpp
     rk_log.cpp
     ${OS_DIR}/os_malloc.c
+    ${OS_DIR}/os_env.c
     ${OS_DIR}/os_log.c
     )
 
