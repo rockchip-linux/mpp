@@ -18,14 +18,13 @@
 #define __RK_LIST_H__
 
 #include "rk_type.h"
+#include "rk_thread.h"
 
 /*
  * two list structures are defined, one for C++, the other for C
  */
 
 #ifdef __cplusplus
-
-#include "rk_thread.h"
 
 // desctructor of list node
 typedef void *(*node_destructor)(void *);
