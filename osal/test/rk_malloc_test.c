@@ -16,10 +16,12 @@
 
 #define MODULE_TAG "rk_malloc_test"
 #include "rk_log.h"
+#include "rk_env.h"
 #include "rk_malloc.h"
 
 int main()
 {
+    rk_set_env_u32("osal_mem_list", 1);
     void *tmp = rk_malloc(int, 100);
     if (tmp) {
         rk_log("malloc success\n");

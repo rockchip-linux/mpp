@@ -42,12 +42,16 @@ struct mem_node {
     struct list_head list;
     void *ptr;
     size_t size;
+
+    /* memory node extra information */
+    char tag[32];
 };
 
 static void get_osal_mem_flag()
 {
     if (osal_mem_flag < 0) {
         RK_U32 val;
+        osal_mem_flag = 0;
         rk_get_env_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_LIST_EN;
@@ -64,15 +68,48 @@ void *rk_mpp_malloc(char *tag, size_t size)
 {
     void *ptr;
     get_osal_mem_flag();
-    if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size))
+
+    if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
+        if (osal_mem_flag & OSAL_MEM_LIST_EN) {
+            struct mem_node *node = new struct mem_node;
+            INIT_LIST_HEAD(&node->list);
+            list_add_tail(&node->list, &mem_list);
+            node->ptr   = ptr;
+            node->size  = size;
+            strncpy(node->tag, tag, sizeof(node->tag));
+        }
+
         return ptr;
-    else
+    } else
         return NULL;
 }
 
 void rk_mpp_free(void *ptr)
 {
+    if (NULL == ptr)
+        return;
+
     get_osal_mem_flag();
+
+    if (osal_mem_flag & OSAL_MEM_LIST_EN) {
+        struct mem_node *pos, *n;
+        list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
+            if (ptr == pos->ptr) {
+                list_del_init(&pos->list);
+                free(pos);
+                break;
+            }
+        }
+    }
+
     os_free(ptr);
+}
+
+/*
+ * dump memory status
+ * this function need MODULE_TAG statistic information
+ */
+void rk_mpp_show_mem_status()
+{
 }
 
