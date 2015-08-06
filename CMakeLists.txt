@@ -283,6 +283,22 @@ endif(MSVC)
 option(ENABLE_STATIC "Build shared library" ON)
 option(ENABLE_SHARED "Build shared library" OFF)
 
+# ----------------------------------------------------------------------------
+# scan all LOG_TAG for log information and generate module header file
+# ----------------------------------------------------------------------------
+set( module_list "" )
+file ( GLOB_RECURSE ALL_SRC . *.c;*.cpp )
+foreach( files ${ALL_SRC} )
+    file( STRINGS ${files} module_tag_line REGEX "MODULE_TAG( )+\".+\"" )
+    if(module_tag_line)
+        string( REGEX REPLACE "^(.)* MODULE_TAG( )+\"(.*)\"" \\3 module_tag ${module_tag_line} )
+        list( APPEND module_list ${module_tag} )
+    endif()
+endforeach()
+list( SORT module_list )
+list( LENGTH module_list module_size )
+#message(STATUS "module_list: ${module_list}")
+#message(STATUS "module_size: ${module_size}")
 
 # ----------------------------------------------------------------------------
 #  Start module definition
