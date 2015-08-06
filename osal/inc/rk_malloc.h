@@ -20,8 +20,13 @@
 #include <stdlib.h>
 #include "rk_type.h"
 
-#define rk_malloc(type, count)      (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
-#define rk_free(ptr)                rk_mpp_free(ptr)
+#define rk_malloc_tagged(type, count, tag)  \
+    (type*)rk_mpp_malloc(tag, sizeof(type) * (count))
+
+#define rk_malloc(type, count)  \
+    (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
+
+#define rk_free(ptr) rk_mpp_free(ptr)
 
 #ifdef __cplusplus
 extern "C" {
