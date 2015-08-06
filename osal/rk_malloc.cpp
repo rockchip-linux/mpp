@@ -71,7 +71,7 @@ void *rk_mpp_malloc(char *tag, size_t size)
 
     if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
         if (osal_mem_flag & OSAL_MEM_LIST_EN) {
-            struct mem_node *node = new struct mem_node;
+            struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
             INIT_LIST_HEAD(&node->list);
             list_add_tail(&node->list, &mem_list);
             node->ptr   = ptr;
