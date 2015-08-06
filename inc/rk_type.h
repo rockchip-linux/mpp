@@ -54,7 +54,7 @@ typedef signed long long int    RK_S64;
 #endif
 
 #ifndef MODULE_TAG
-#define MODULE_TAG              "rk_mpp"
+#define MODULE_TAG              NULL
 #endif
 
 #endif /*__RK_TYPE_H__*/
