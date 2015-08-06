@@ -22,6 +22,7 @@
 #include "rk_list.h"
 
 #include "os_malloc.h"
+#include <string.h>
 
 // export configure for script detection
 #define CONFIG_OSAL_MEM_LIST        "osal_mem_list"
