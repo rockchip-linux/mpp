@@ -224,8 +224,8 @@ else()
 endif()
 
 configure_file(
-    "${PROJECT_SOURCE_DIR}/build/cmake/version.h.in"
-    "${PROJECT_SOURCE_DIR}/inc/version.h"
+    "${PROJECT_SOURCE_DIR}/build/cmake/svn_info.in"
+    "${PROJECT_SOURCE_DIR}/mpp/svn_info.h"
 )
 
 
