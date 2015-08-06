@@ -97,15 +97,21 @@ struct list_head
 #define list_entry(ptr, type, member) \
     ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
-#define list_for_each_entry(pos, head, member)              \
-    for (pos = list_entry((head)->next, typeof(*pos), member);  \
-         &pos->member != (head);    \
-         pos = list_entry(pos->member.next, typeof(*pos), member))
-#define list_for_each_entry_safe(pos, n, head, member)          \
-    for (pos = list_entry((head)->next, typeof(*pos), member),  \
-        n = list_entry(pos->member.next, typeof(*pos), member); \
+/*
+ * due to typeof gcc extension list_for_each_entry and list_for_each_entry_safe
+ * can not be used on windows platform
+ * So we add a extra type parameter to the macro
+ */
+#define list_for_each_entry(pos, head, type, member) \
+    for (pos = list_entry((head)->next, type, member); \
+         &pos->member != (head); \
+         pos = list_entry(pos->member.next, type, member))
+
+#define list_for_each_entry_safe(pos, n, head, type, member) \
+    for (pos = list_entry((head)->next, type, member),  \
+        n = list_entry(pos->member.next, type, member); \
          &pos->member != (head);                    \
-         pos = n, n = list_entry(n->member.next, typeof(*n), member))
+         pos = n, n = list_entry(n->member.next, type, member))
 
 static inline void __list_add(struct list_head * _new,
                                   struct list_head * prev,
