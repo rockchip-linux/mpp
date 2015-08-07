@@ -27,7 +27,7 @@
 
 mpp_info *mpp_info::singleton = NULL;
 
-/* 
+/*
  * To avoid string | grep author getting multiple results
  * use commit to replace author
  */
@@ -95,15 +95,13 @@ void mpp_info::show_mpp_info()
     rk_log("%s\n", mpp_version_one_line);
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
 RK_CHIP_TYPE get_chip_type()
 {
     return chip_version();
 }
-#ifdef __cplusplus
-}
-#endif
 
+int get_mpp_revision()
+{
+    return atoi(SVN_VERSION);
+}
 

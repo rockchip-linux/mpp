@@ -51,6 +51,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 RK_CHIP_TYPE get_chip_type();
+int get_mpp_revision();
 
 #ifdef __cplusplus
 }
