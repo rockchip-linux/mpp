@@ -43,9 +43,10 @@ int main()
     int i;
     int pdata[MAX_THREAD_NUM];
     pthread_t threads[MAX_THREAD_NUM];
+    pthread_attr_t attr;
+    void *dummy;
 
     mpp_log("vpu test start\n");
-    pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
@@ -54,9 +55,8 @@ int main()
         pthread_create(&threads[i], &attr, thread_test, &pdata[i]);
     }
     pthread_attr_destroy(&attr);
-    sleep(2);
 
-    void *dummy;
+    sleep(2);
 
     for (i = 0; i < MAX_THREAD_NUM; i++) {
         pthread_join(threads[i], &dummy);

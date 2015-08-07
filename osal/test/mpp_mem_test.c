@@ -24,8 +24,10 @@
 
 int main()
 {
+    void *tmp = NULL;
+
     mpp_set_env_u32("osal_mem_list", 1);
-    void *tmp = mpp_malloc(int, 100);
+    tmp = mpp_malloc(int, 100);
     if (tmp) {
         mpp_log("malloc success\n");
         mpp_free(tmp);
