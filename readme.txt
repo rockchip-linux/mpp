@@ -13,6 +13,11 @@ c. header file should not contain any relative path or absolute path, all includ
 2. compiling system rule
 a. for cross platform compiling use cmake as the compiling management system.
 b. use cmake out-of-source build, final binary and library will be install to out/ directory.
+3. header file include order
+a. MODULE_TAG
+b. system header
+c. osal header
+d. module header
 
 NOTE:
 1. when run on window pthreadVC2.dll needed to be copied to the system directory.
