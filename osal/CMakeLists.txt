@@ -56,8 +56,4 @@ else()
     target_link_libraries(osal pthread)
 endif()
 
-install(TARGETS osal
-    LIBRARY DESTINATION ${LIB_INSTALL_DIR}
-    ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
-
 add_subdirectory(test)
