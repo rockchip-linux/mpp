@@ -9,7 +9,7 @@ cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
       -DANDROID_ABI="armeabi-v7a with NEON"                                 \
       -DANDROID_TOOLCHAIN_NAME="arm-linux-androideabi-4.8"                  \
       -DANDROID_NATIVE_API_LEVEL=android-21                                 \
-      -DANDROID_STL=none                                                    \
+      -DANDROID_STL=system                                                  \
       ../../
 
 # ----------------------------------------------------------------------------

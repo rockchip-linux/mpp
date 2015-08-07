@@ -51,7 +51,7 @@ endif()
 
 if(ANDROID)
     # in Android pthread is in libc, also need liblog
-    target_link_libraries(osal log m c )
+    target_link_libraries(osal log stdc++ m c )
 else()
     target_link_libraries(osal pthread)
 endif()
