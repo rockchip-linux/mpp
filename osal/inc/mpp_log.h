@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_LOG_H__
-#define __RK_LOG_H__
+#ifndef __MPP_LOG_H__
+#define __MPP_LOG_H__
 
 #include "rk_type.h"
 
@@ -76,4 +76,4 @@ void _rk_err(const char *tag, const char *fmt, ...);
 #endif
 
 
-#endif /*__RK_LOG_H__*/
+#endif /*__MPP_LOG_H__*/

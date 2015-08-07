@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-/*
- * File         : rk_thread.h
- * Description  : thread library for different OS
- * Author       : herman.chen@rock-chips.com
- * Date         : 9:47 2015/7/27
- */
+#ifndef __MPP_MALLOC_H__
+#define __MPP_MALLOC_H__
 
-#ifndef __RK_THREAD_H__
-#define __RK_THREAD_H__
+#include <stdlib.h>
 
-#if defined(_WIN32) && !defined(__MINGW32CE__)
+#include "rk_type.h"
 
-/*
- * NOTE: POSIX Threads for Win32
- * Downloaded from http://www.sourceware.org/pthreads-win32/
- */
-#include <windows.h>
-#include "pthread.h"
-#define sleep                   Sleep
-#pragma comment(lib, "pthreadVC2.lib")
+#define rk_malloc_tagged(type, count, tag)  \
+    (type*)rk_mpp_malloc(tag, sizeof(type) * (count))
 
-#else
+#define rk_malloc(type, count)  \
+    (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
 
-#include <unistd.h>
-#include <pthread.h>
+#define rk_free(ptr) rk_mpp_free(ptr)
 
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif /*__RK_THREAD_H__*/
+void rk_mpp_show_mem_status();
+void *rk_mpp_malloc(char *tag, size_t size);
+void rk_mpp_free(void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*__MPP_MALLOC_H__*/
+

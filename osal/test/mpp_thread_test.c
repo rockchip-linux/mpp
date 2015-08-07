@@ -16,13 +16,15 @@
  */
 
 #define MODULE_TAG "rk_thread_test"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "rk_type.h"
-#include "rk_log.h"
-#include "rk_thread.h"
+
+#include "mpp_log.h"
+#include "mpp_thread.h"
 
 // TODO: add thread mutex and condition test case
 

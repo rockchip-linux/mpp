@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef __RK_LIST_H__
-#define __RK_LIST_H__
+#ifndef __MPP_LIST_H__
+#define __MPP_LIST_H__
 
 #include "rk_type.h"
-#include "rk_thread.h"
+
+#include "mpp_thread.h"
 
 /*
  * two list structures are defined, one for C++, the other for C
@@ -161,4 +162,4 @@ static inline int list_empty(struct list_head *head)
 #endif
 
 
-#endif /*__RK_LIST_H__*/
+#endif /*__MPP_LIST_H__*/

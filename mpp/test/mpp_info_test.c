@@ -16,7 +16,7 @@
 
 #define MODULE_TAG "mpp_info_test"
 
-#include "rk_log.h"
+#include "mpp_log.h"
 #include "mpp_info.h"
 
 int main()

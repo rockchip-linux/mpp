@@ -15,15 +15,18 @@
  */
 
 #define MODULE_TAG "rk_malloc"
+
+#include <string.h>
+
 #include "rk_type.h"
-#include "rk_log.h"
-#include "rk_env.h"
-#include "rk_malloc.h"
-#include "rk_list.h"
 #include "mpp_err.h"
 
+#include "mpp_log.h"
+#include "mpp_env.h"
+#include "mpp_malloc.h"
+#include "mpp_list.h"
+
 #include "os_malloc.h"
-#include <string.h>
 
 // export configure for script detection
 #define CONFIG_OSAL_MEM_LIST        "osal_mem_list"

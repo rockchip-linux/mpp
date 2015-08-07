@@ -15,9 +15,10 @@
  */
 
 #define MODULE_TAG "rk_malloc_test"
-#include "rk_log.h"
-#include "rk_env.h"
-#include "rk_malloc.h"
+
+#include "mpp_log.h"
+#include "mpp_env.h"
+#include "mpp_malloc.h"
 
 // TODO: need to add pressure test case and parameter scan case
 

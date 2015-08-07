@@ -15,8 +15,8 @@
  */
 
 #define MODULE_TAG "rk_env_test"
-#include "rk_env.h"
-#include "rk_log.h"
+#include "mpp_env.h"
+#include "mpp_log.h"
 
 const char env_debug[] = "test_env_debug";
 const char env_string[] = "test_env_string";

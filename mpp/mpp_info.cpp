@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rk_log.h"
-#include "rk_env.h"
+#include "mpp_log.h"
+#include "mpp_env.h"
 #include "mpp_info.h"
 
 #include "svn_info.h"

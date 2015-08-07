@@ -14,24 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef __RK_ENV_H__
-#define __RK_ENV_H__
+/*
+ * File         : rk_thread.h
+ * Description  : thread library for different OS
+ * Author       : herman.chen@rock-chips.com
+ * Date         : 9:47 2015/7/27
+ */
 
-#include "rk_type.h"
+#ifndef __MPP_THREAD_H__
+#define __MPP_THREAD_H__
 
-#ifdef __cplusplus
-extern "C" {
+#if defined(_WIN32) && !defined(__MINGW32CE__)
+
+/*
+ * NOTE: POSIX Threads for Win32
+ * Downloaded from http://www.sourceware.org/pthreads-win32/
+ */
+#include <windows.h>
+#include "pthread.h"
+#define sleep                   Sleep
+#pragma comment(lib, "pthreadVC2.lib")
+
+#else
+
+#include <unistd.h>
+#include <pthread.h>
+
 #endif
 
-RK_S32 rk_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value);
-RK_S32 rk_get_env_str(const char *name, char **value, char *default_value);
-
-RK_S32 rk_set_env_u32(const char *name, RK_U32 value);
-RK_S32 rk_set_env_str(const char *name, char *value);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /*__RK_ENV_H__*/
-
+#endif /*__MPP_THREAD_H__*/

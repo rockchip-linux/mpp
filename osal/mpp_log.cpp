@@ -15,9 +15,12 @@
  */
 
 #define MODULE_TAG "rk_log"
+
 #include <stdio.h>
 #include <stdarg.h>
-#include "rk_log.h"
+
+#include "mpp_log.h"
+
 #include "os_log.h"
 
 #ifdef __cplusplus

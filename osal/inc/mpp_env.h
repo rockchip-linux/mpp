@@ -14,31 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef __RK_MALLOC_H__
-#define __RK_MALLOC_H__
+#ifndef __MPP_ENV_H__
+#define __MPP_ENV_H__
 
-#include <stdlib.h>
 #include "rk_type.h"
-
-#define rk_malloc_tagged(type, count, tag)  \
-    (type*)rk_mpp_malloc(tag, sizeof(type) * (count))
-
-#define rk_malloc(type, count)  \
-    (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
-
-#define rk_free(ptr) rk_mpp_free(ptr)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void rk_mpp_show_mem_status();
-void *rk_mpp_malloc(char *tag, size_t size);
-void rk_mpp_free(void *ptr);
+RK_S32 rk_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value);
+RK_S32 rk_get_env_str(const char *name, char **value, char *default_value);
+
+RK_S32 rk_set_env_u32(const char *name, RK_U32 value);
+RK_S32 rk_set_env_str(const char *name, char *value);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__RK_MPP_MALLOC_H__*/
+#endif /*__MPP_ENV_H__*/
 

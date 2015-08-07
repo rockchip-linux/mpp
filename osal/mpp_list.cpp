@@ -20,8 +20,8 @@
 #include <stdarg.h>
 #include <errno.h>
 
-#include "rk_log.h"
-#include "rk_list.h"
+#include "mpp_log.h"
+#include "mpp_list.h"
 
 
 #define LIST_DEBUG(fmt, ...) rk_log(fmt, ## __VA_ARGS__)

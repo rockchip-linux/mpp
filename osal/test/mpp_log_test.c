@@ -15,8 +15,8 @@
  */
 
 #define MODULE_TAG "rk_log_test"
-#include "rk_log.h"
 
+#include "mpp_log.h"
 
 int main()
 {
