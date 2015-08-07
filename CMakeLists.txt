@@ -320,5 +320,10 @@ include_directories(osal/inc)
 # OSAL is needed on all platform, do not need option
 add_subdirectory(osal)
 
-
-
+# ----------------------------------------------------------------------------
+#  osal library
+# ----------------------------------------------------------------------------
+# Operation System Abstract Layer (OSAL) include
+include_directories(mpp/inc)
+# OSAL is needed on all platform, do not need option
+add_subdirectory(mpp)
