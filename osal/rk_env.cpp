@@ -17,6 +17,8 @@
 #include "rk_env.h"
 #include "os_env.h"
 
+// TODO: add previous value compare to save call times
+
 RK_S32 rk_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
 {
     return os_get_env_u32(name, value, default_value);

@@ -19,6 +19,8 @@
 #include "rk_env.h"
 #include "rk_malloc.h"
 
+// TODO: need to add pressure test case and parameter scan case
+
 int main()
 {
     rk_set_env_u32("osal_mem_list", 1);

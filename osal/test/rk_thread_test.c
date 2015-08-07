@@ -24,6 +24,8 @@
 #include "rk_log.h"
 #include "rk_thread.h"
 
+// TODO: add thread mutex and condition test case
+
 #define MAX_THREAD_NUM      10
 void *thread_test(void *pdata)
 {

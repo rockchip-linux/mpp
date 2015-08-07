@@ -70,7 +70,7 @@ void *rk_mpp_malloc(char *tag, size_t size)
     void *ptr;
     get_osal_mem_flag();
 
-    if (0 == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
+    if (RK_OK == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
         if (osal_mem_flag & OSAL_MEM_LIST_EN) {
             struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
             INIT_LIST_HEAD(&node->list);
@@ -112,5 +112,6 @@ void rk_mpp_free(void *ptr)
  */
 void rk_mpp_show_mem_status()
 {
+    // TODO: add memory dump implement
 }
 

@@ -28,6 +28,8 @@ static RK_U32 mpp_log_flag = 0;
 static void (*rk_log_callback)(const char*, const char*, va_list) = os_log;
 static void (*rk_err_callback)(const char*, const char*, va_list) = os_err;
 
+// TODO: add log timing information and switch flag
+
 void _rk_log(const char *tag, const char *fmt, ...)
 {
     va_list args;
