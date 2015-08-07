@@ -25,7 +25,6 @@
 #define __RK_TYPE_H__
 
 #include <stddef.h>
-#include "rk_err.h"
 
 #if defined(_WIN32) && !defined(__MINGW32CE__)
 

@@ -19,14 +19,14 @@ macro(add_mpp_osal_test module)
 endmacro()
 
 # log system unit test
-add_mpp_osal_test(rk_log)
+add_mpp_osal_test(mpp_log)
 
 # env system unit test
-add_mpp_osal_test(rk_env)
+add_mpp_osal_test(mpp_env)
 
 # malloc system unit test
-add_mpp_osal_test(rk_malloc)
+add_mpp_osal_test(mpp_malloc)
 
 # thread implement unit test
-add_mpp_osal_test(rk_thread)
+add_mpp_osal_test(mpp_thread)
 

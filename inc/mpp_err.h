@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef __RK_ERR_H__
-#define __RK_ERR_H__
+#ifndef __MPP_ERR_H__
+#define __MPP_ERR_H__
 
 #define RK_OK                   0
+#define RK_SUCCESS              0
 
 typedef enum {
-    RK_SUCCESS                  = RK_OK,
+    MPP_SUCCESS                 = RK_SUCCESS,
+    MPP_OK                      = RK_OK,
 } RK_RET;
 
-#endif /*__RK_ERR_H__*/
+#endif /*__MPP_ERR_H__*/

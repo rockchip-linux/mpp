@@ -20,6 +20,7 @@
 #include "rk_env.h"
 #include "rk_malloc.h"
 #include "rk_list.h"
+#include "mpp_err.h"
 
 #include "os_malloc.h"
 #include <string.h>
@@ -70,7 +71,7 @@ void *rk_mpp_malloc(char *tag, size_t size)
     void *ptr;
     get_osal_mem_flag();
 
-    if (RK_OK == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
+    if (MPP_OK == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
         if (osal_mem_flag & OSAL_MEM_LIST_EN) {
             struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
             INIT_LIST_HEAD(&node->list);
