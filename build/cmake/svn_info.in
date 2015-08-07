@@ -18,6 +18,9 @@
 #define __VERSION_H__
 
 #define	SVN_VERSION             "@VERSION_REVISION@"
+#define	SVN_AUTHOR              "@VERSION_LAST_AUTHOR@"
+#define	SVN_DATE                "@VERSION_LAST_DATA@"
+#define	SVN_ONE_LINE            "r@VERSION_REVISION@ author: @VERSION_LAST_AUTHOR@ @VERSION_LAST_DATA@"
 
 #endif /*__VERSION_H__*/
 

@@ -204,6 +204,8 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
                         string(REGEX REPLACE "^(.*\n)?Last committed at revision ([0-9]*)\n.*"
                         "\\2" ${prefix}_WC_REVISION "${${prefix}_WC_INFO}")
                     endif()
+                    set(Project_WC_LAST_CHANGED_AUTHOR "unknown")
+                    set(Project_WC_LAST_CHANGED_DATE   "unknown")
 
                     # restore the previous LC_ALL
                     set(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
@@ -218,7 +220,9 @@ if(${HAVE_SVN})
     Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
 
     message(STATUS "Current svn revision is ${Project_WC_REVISION}")
-    set(VERSION_REVISION ${Project_WC_REVISION})
+    set(VERSION_REVISION        ${Project_WC_REVISION})
+    set(VERSION_LAST_AUTHOR     ${Project_WC_LAST_CHANGED_AUTHOR})
+    set(VERSION_LAST_DATA       ${Project_WC_LAST_CHANGED_DATE})
 else()
     set(VERSION_REVISION -1)
 endif()
@@ -232,9 +236,11 @@ configure_file(
 # ----------------------------------------------------------------------------
 # Build options
 # ----------------------------------------------------------------------------
-set(HDR_INSTALL_DIR "./out/inc" CACHE STRING "Install location of headers")
-set(LIB_INSTALL_DIR "./out/lib" CACHE STRING "Install location of libraries")
-set(BIN_INSTALL_DIR "./out/bin" CACHE STRING "Install location of executables")
+set(CMAKE_INSTALL_PREFIX "")
+set(LIB_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/lib" CACHE STRING "Install location of libraries")
+set(BIN_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/bin" CACHE STRING "Install location of executables")
+set(TEST_INSTALL_DIR "${CMAKE_BINARY_DIR}/test" CACHE STRING "Install location of unit test")
+
 
 # ----------------------------------------------------------------------------
 # Set Warning as Error

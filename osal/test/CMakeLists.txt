@@ -2,31 +2,31 @@
 # ----------------------------------------------------------------------------
 # OSAL built-in unit test case
 # ----------------------------------------------------------------------------
+# macro for adding osal sub-module unit test
+macro(add_mpp_osal_test module)
+    set(test_name ${module}_test)
+    string(TOUPPER ${test_name} test_tag)
+    #message(STATUS "moduule   : ${module}")
+    #message(STATUS "test_name : ${test_name}")
+    #message(STATUS "test_tag  : ${test_tag}")
+
+    option(${test_tag} "Build osal ${module} unit test" ON)
+    if(${test_tag})
+        add_executable(${test_name} ${test_name}.c)
+        target_link_libraries(${test_name} osal)
+        install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
+    endif()
+endmacro()
+
 # log system unit test
-option(OSAL_LOG_TEST "Build osal rk_log unit test" ON)
-if(OSAL_LOG_TEST)
-    add_executable(rk_log_test rk_log_test.c)
-    target_link_libraries(rk_log_test osal)
-endif()
+add_mpp_osal_test(rk_log)
 
 # env system unit test
-option(OSAL_ENV_TEST "Build osal rk_env unit test" ON)
-if(OSAL_ENV_TEST)
-    add_executable(rk_env_test rk_env_test.c)
-    target_link_libraries(rk_env_test osal)
-endif()
+add_mpp_osal_test(rk_env)
 
 # malloc system unit test
-option(OSAL_MALLOC_TEST "Build osal rk_malloc unit test" ON)
-if(OSAL_MALLOC_TEST)
-    add_executable(rk_malloc_test rk_malloc_test.c)
-    target_link_libraries(rk_malloc_test osal)
-endif()
+add_mpp_osal_test(rk_malloc)
 
 # thread implement unit test
-option(OSAL_THREAD_TEST "Build osal rk_thread unit test" ON)
-if(OSAL_THREAD_TEST)
-    add_executable(rk_thread_test rk_thread_test.c)
-    target_link_libraries(rk_thread_test osal)
-endif()
+add_mpp_osal_test(rk_thread)
 
