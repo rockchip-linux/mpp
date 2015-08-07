@@ -27,8 +27,12 @@
 
 mpp_info *mpp_info::singleton = NULL;
 
+/* 
+ * To avoid string | grep author getting multiple results
+ * use commit to replace author
+ */
 static char mpp_version_revision[]  = SVN_VERSION;
-static char mpp_version_author[]    = SVN_AUTHOR;
+static char mpp_version_commit[]    = SVN_AUTHOR;
 static char mpp_version_date[]      = SVN_DATE;
 static char mpp_version_one_line[]  = SVN_ONE_LINE;
 
@@ -79,18 +83,16 @@ mpp_info::mpp_info()
     chip_type  = chip_version();
 
     mpp_info_revision   = mpp_version_revision;
-    mpp_info_author     = mpp_version_author;
+    mpp_info_commit     = mpp_version_commit;
     mpp_info_date       = mpp_version_date;
     mpp_revision        = atoi(SVN_VERSION);
 
-    rk_log("%s\n", mpp_version_one_line);
+    show_mpp_info();
 }
 
 void mpp_info::show_mpp_info()
 {
-    rk_log("mpp revision : %s", mpp_info_revision);
-    rk_log("mpp author   : %s", mpp_info_author);
-    rk_log("mpp date     : %s", mpp_info_date);
+    rk_log("%s\n", mpp_version_one_line);
 }
 
 #ifdef __cplusplus

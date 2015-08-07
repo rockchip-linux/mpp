@@ -42,7 +42,7 @@ private:
     mpp_info();
     int      mpp_revision;
     char    *mpp_info_revision;
-    char    *mpp_info_author;
+    char    *mpp_info_commit;
     char    *mpp_info_date;
     RK_CHIP_TYPE chip_type;
 };
