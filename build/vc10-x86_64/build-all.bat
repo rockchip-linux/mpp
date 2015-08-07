@@ -1,5 +1,5 @@
 @echo off
-if "%VS120COMNTOOLS%" == "" (
+if "%VS100COMNTOOLS%" == "" (
   msg "%username%" "Visual Studio 12 not detected"
   exit 1
 )
