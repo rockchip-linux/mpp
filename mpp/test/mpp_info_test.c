@@ -21,7 +21,7 @@
 
 int main()
 {
-    rk_log("mpp revision is %d\n", get_mpp_revision());
+    mpp_log("mpp revision is %d\n", get_mpp_revision());
 
     return 0;
 }

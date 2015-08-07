@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_malloc"
+#define MODULE_TAG "mpp_malloc"
 
 #include <string.h>
 
@@ -57,11 +57,11 @@ static void get_osal_mem_flag()
     if (osal_mem_flag < 0) {
         RK_U32 val;
         osal_mem_flag = 0;
-        rk_get_env_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
+        mpp_get_env_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_LIST_EN;
         }
-        rk_get_env_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
+        mpp_get_env_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_STUFF_EN;
         }
@@ -69,7 +69,7 @@ static void get_osal_mem_flag()
     }
 }
 
-void *rk_mpp_malloc(char *tag, size_t size)
+void *mpp_osal_malloc(char *tag, size_t size)
 {
     void *ptr;
     get_osal_mem_flag();
@@ -89,7 +89,7 @@ void *rk_mpp_malloc(char *tag, size_t size)
         return NULL;
 }
 
-void rk_mpp_free(void *ptr)
+void mpp_osal_free(void *ptr)
 {
     if (NULL == ptr)
         return;
@@ -114,7 +114,7 @@ void rk_mpp_free(void *ptr)
  * dump memory status
  * this function need MODULE_TAG statistic information
  */
-void rk_mpp_show_mem_status()
+void mpp_show_mem_status()
 {
     // TODO: add memory dump implement
 }

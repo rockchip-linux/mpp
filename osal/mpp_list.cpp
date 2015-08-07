@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_list"
+#define MODULE_TAG "mpp_list"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -24,33 +25,33 @@
 #include "mpp_list.h"
 
 
-#define LIST_DEBUG(fmt, ...) rk_log(fmt, ## __VA_ARGS__)
-#define LIST_ERROR(fmt, ...) rk_err(fmt, ## __VA_ARGS__)
+#define LIST_DEBUG(fmt, ...) mpp_log(fmt, ## __VA_ARGS__)
+#define LIST_ERROR(fmt, ...) mpp_err(fmt, ## __VA_ARGS__)
 
-RK_U32 rk_list::keys = 0;
+RK_U32 mpp_list::keys = 0;
 
-typedef struct rk_list_node {
-    rk_list_node*   prev;
-    rk_list_node*   next;
+typedef struct mpp_list_node {
+    mpp_list_node*  prev;
+    mpp_list_node*  next;
     RK_U32          key;
     RK_S32          size;
-} rk_list_node;
+} mpp_list_node;
 
-static inline void list_node_init(rk_list_node *node)
+static inline void list_node_init(mpp_list_node *node)
 {
     node->prev = node->next = node;
 }
 
-static inline void list_node_init_with_key_and_size(rk_list_node *node, RK_U32 key, RK_S32 size)
+static inline void list_node_init_with_key_and_size(mpp_list_node *node, RK_U32 key, RK_S32 size)
 {
     list_node_init(node);
     node->key   = key;
     node->size  = size;
 }
 
-static rk_list_node* create_list(void *data, RK_S32 size, RK_U32 key)
+static mpp_list_node* create_list(void *data, RK_S32 size, RK_U32 key)
 {
-    rk_list_node *node = (rk_list_node*)malloc(sizeof(rk_list_node)+size);
+    mpp_list_node *node = (mpp_list_node*)malloc(sizeof(mpp_list_node)+size);
     if (node) {
         void *dst = (void*)(node + 1);
         list_node_init_with_key_and_size(node, key, size);
@@ -61,7 +62,7 @@ static rk_list_node* create_list(void *data, RK_S32 size, RK_U32 key)
     return node;
 }
 
-static inline void _rk_list_add(rk_list_node * _new, rk_list_node * prev, rk_list_node * next)
+static inline void _mpp_list_add(mpp_list_node * _new, mpp_list_node * prev, mpp_list_node * next)
 {
     next->prev = _new;
     _new->next = next;
@@ -69,24 +70,24 @@ static inline void _rk_list_add(rk_list_node * _new, rk_list_node * prev, rk_lis
     prev->next = _new;
 }
 
-static inline void rk_list_add(rk_list_node *_new, rk_list_node *head)
+static inline void mpp_list_add(mpp_list_node *_new, mpp_list_node *head)
 {
-    _rk_list_add(_new, head, head->next);
+    _mpp_list_add(_new, head, head->next);
 }
 
-static inline void rk_list_add_tail(rk_list_node *_new, rk_list_node *head)
+static inline void mpp_list_add_tail(mpp_list_node *_new, mpp_list_node *head)
 {
-    _rk_list_add(_new, head->prev, head);
+    _mpp_list_add(_new, head->prev, head);
 }
 
-RK_S32 rk_list::add_at_head(void *data, RK_S32 size)
+RK_S32 mpp_list::add_at_head(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
     pthread_mutex_lock(&mutex);
     if (head) {
-        rk_list_node *node = create_list(data, size, 0);
+        mpp_list_node *node = create_list(data, size, 0);
         if (node) {
-            rk_list_add(node, head);
+            mpp_list_add(node, head);
             count++;
             ret = 0;
         } else {
@@ -97,14 +98,14 @@ RK_S32 rk_list::add_at_head(void *data, RK_S32 size)
     return ret;
 }
 
-RK_S32 rk_list::add_at_tail(void *data, RK_S32 size)
+RK_S32 mpp_list::add_at_tail(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
     pthread_mutex_lock(&mutex);
     if (head) {
-        rk_list_node *node = create_list(data, size, 0);
+        mpp_list_node *node = create_list(data, size, 0);
         if (node) {
-            rk_list_add_tail(node, head);
+            mpp_list_add_tail(node, head);
             count++;
             ret = 0;
         } else {
@@ -115,7 +116,7 @@ RK_S32 rk_list::add_at_tail(void *data, RK_S32 size)
     return ret;
 }
 
-static void release_list(rk_list_node*node, void *data, RK_S32 size)
+static void release_list(mpp_list_node*node, void *data, RK_S32 size)
 {
     void *src = (void*)(node + 1);
     if (node->size == size) {
@@ -128,30 +129,30 @@ static void release_list(rk_list_node*node, void *data, RK_S32 size)
     free(node);
 }
 
-static inline void _rk_list_del(rk_list_node *prev, rk_list_node *next)
+static inline void _mpp_list_del(mpp_list_node *prev, mpp_list_node *next)
 {
     next->prev = prev;
     prev->next = next;
 }
 
-static inline void rk_list_del_init(rk_list_node *node)
+static inline void mpp_list_del_init(mpp_list_node *node)
 {
-    _rk_list_del(node->prev, node->next);
+    _mpp_list_del(node->prev, node->next);
     list_node_init(node);
 }
 
-static inline int list_is_last(const rk_list_node *list, const rk_list_node *head)
+static inline int list_is_last(const mpp_list_node *list, const mpp_list_node *head)
 {
     return list->next == head;
 }
 
-static inline void _list_del_node_no_lock(rk_list_node *node, void *data, RK_S32 size)
+static inline void _list_del_node_no_lock(mpp_list_node *node, void *data, RK_S32 size)
 {
-    rk_list_del_init(node);
+    mpp_list_del_init(node);
     release_list(node, data, size);
 }
 
-RK_S32 rk_list::del_at_head(void *data, RK_S32 size)
+RK_S32 mpp_list::del_at_head(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
     pthread_mutex_lock(&mutex);
@@ -164,7 +165,7 @@ RK_S32 rk_list::del_at_head(void *data, RK_S32 size)
     return ret;
 }
 
-RK_S32 rk_list::del_at_tail(void *data, RK_S32 size)
+RK_S32 mpp_list::del_at_tail(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
     pthread_mutex_lock(&mutex);
@@ -178,7 +179,7 @@ RK_S32 rk_list::del_at_tail(void *data, RK_S32 size)
     return ret;
 }
 
-RK_S32 rk_list::list_is_empty()
+RK_S32 mpp_list::list_is_empty()
 {
     pthread_mutex_lock(&mutex);
     RK_S32 ret = (count == 0);
@@ -186,7 +187,7 @@ RK_S32 rk_list::list_is_empty()
     return ret;
 }
 
-RK_S32 rk_list::list_size()
+RK_S32 mpp_list::list_size()
 {
     pthread_mutex_lock(&mutex);
     RK_S32 ret = count;
@@ -194,16 +195,16 @@ RK_S32 rk_list::list_size()
     return ret;
 }
 
-RK_S32 rk_list::add_by_key(void *data, RK_S32 size, RK_U32 *key)
+RK_S32 mpp_list::add_by_key(void *data, RK_S32 size, RK_U32 *key)
 {
     RK_S32 ret = 0;
     pthread_mutex_lock(&mutex);
     if (head) {
         RK_U32 list_key = get_key();
         *key = list_key;
-        rk_list_node *node = create_list(data, size, list_key);
+        mpp_list_node *node = create_list(data, size, list_key);
         if (node) {
-            rk_list_add_tail(node, head);
+            mpp_list_add_tail(node, head);
             count++;
             ret = 0;
         } else {
@@ -214,12 +215,12 @@ RK_S32 rk_list::add_by_key(void *data, RK_S32 size, RK_U32 *key)
     return ret;
 }
 
-RK_S32 rk_list::del_by_key(void *data, RK_S32 size, RK_U32 key)
+RK_S32 mpp_list::del_by_key(void *data, RK_S32 size, RK_U32 key)
 {
     RK_S32 ret = 0;
     pthread_mutex_lock(&mutex);
     if (head && count) {
-        struct rk_list_node *tmp = head->next;
+        struct mpp_list_node *tmp = head->next;
         ret = -EINVAL;
         while (tmp->next != head) {
             if (tmp->key == key) {
@@ -234,7 +235,7 @@ RK_S32 rk_list::del_by_key(void *data, RK_S32 size, RK_U32 key)
 }
 
 
-RK_S32 rk_list::show_by_key(void *data, RK_U32 key)
+RK_S32 mpp_list::show_by_key(void *data, RK_U32 key)
 {
     RK_S32 ret = -EINVAL;
     (void)data;
@@ -242,13 +243,13 @@ RK_S32 rk_list::show_by_key(void *data, RK_U32 key)
     return ret;
 }
 
-RK_S32 rk_list::flush()
+RK_S32 mpp_list::flush()
 {
     pthread_mutex_lock(&mutex);
     if (head) {
         while (count) {
-            rk_list_node* node = head->next;
-            rk_list_del_init(node);
+            mpp_list_node* node = head->next;
+            mpp_list_del_init(node);
             if (destroy) {
                 destroy((void*)(node + 1));
             }
@@ -260,12 +261,12 @@ RK_S32 rk_list::flush()
     return 0;
 }
 
-RK_U32 rk_list::get_key()
+RK_U32 mpp_list::get_key()
 {
     return keys++;
 }
 
-rk_list::rk_list(node_destructor func)
+mpp_list::mpp_list(node_destructor func)
     : destroy(NULL),
       head(NULL),
       count(0)
@@ -276,7 +277,7 @@ rk_list::rk_list(node_destructor func)
     pthread_mutex_init(&mutex, &attr);
     pthread_mutexattr_destroy(&attr);
     destroy = func;
-    head = (rk_list_node*)malloc(sizeof(rk_list_node));
+    head = (mpp_list_node*)malloc(sizeof(mpp_list_node));
     if (NULL == head) {
         LIST_ERROR("failed to allocate list header");
     } else {
@@ -284,7 +285,7 @@ rk_list::rk_list(node_destructor func)
     }
 }
 
-rk_list::~rk_list()
+mpp_list::~mpp_list()
 {
     flush();
     if (head) free(head);
@@ -306,19 +307,19 @@ rk_list::~rk_list()
 
 volatile int err = 0;
 
-static int rk_list_fifo_test(rk_list *list_0)
+static int mpp_list_fifo_test(mpp_list *list_0)
 {
     int count;
     VPUMemLinear_t m;
     for (count = 0; count < COUNT_ADD; count++) {
         err |= VPUMallocLinear(&m, 100);
         if (err) {
-            printf("VPUMallocLinear in rk_list_fifo_test\n");
+            printf("VPUMallocLinear in mpp_list_fifo_test\n");
             break;
         }
         err |= list_0->add_at_head(&m, sizeof(m));
         if (err) {
-            printf("add_at_head in rk_list_fifo_test\n");
+            printf("add_at_head in mpp_list_fifo_test\n");
             break;
         }
     }
@@ -327,12 +328,12 @@ static int rk_list_fifo_test(rk_list *list_0)
         for (count = 0; count < COUNT_DEL; count++) {
             err |= list_0->del_at_tail(&m, sizeof(m));
             if (err) {
-                printf("del_at_tail in rk_list_fifo_test\n");
+                printf("del_at_tail in mpp_list_fifo_test\n");
                 break;
             }
             err |= VPUFreeLinear(&m);
             if (err) {
-                printf("VPUFreeLinear in rk_list_fifo_test\n");
+                printf("VPUFreeLinear in mpp_list_fifo_test\n");
                 break;
             }
         }
@@ -340,7 +341,7 @@ static int rk_list_fifo_test(rk_list *list_0)
     return err;
 }
 
-static int rk_list_filo_test(rk_list *list_0)
+static int mpp_list_filo_test(mpp_list *list_0)
 {
     int count;
     VPUMemLinear_t m;
@@ -348,23 +349,23 @@ static int rk_list_filo_test(rk_list *list_0)
         if (count & 1) {
             err |= list_0->del_at_head(&m, sizeof(m));
             if (err) {
-                printf("del_at_head in rk_list_filo_test\n");
+                printf("del_at_head in mpp_list_filo_test\n");
                 break;
             }
             err |= VPUFreeLinear(&m);
             if (err) {
-                printf("VPUFreeLinear in rk_list_fifo_test\n");
+                printf("VPUFreeLinear in mpp_list_fifo_test\n");
                 break;
             }
         } else {
             err |= VPUMallocLinear(&m, 100);
             if (err) {
-                printf("VPUMallocLinear in rk_list_filo_test\n");
+                printf("VPUMallocLinear in mpp_list_filo_test\n");
                 break;
             }
             err |= list_0->add_at_head(&m, sizeof(m));
             if (err) {
-                printf("add_at_head in rk_list_fifo_test\n");
+                printf("add_at_head in mpp_list_fifo_test\n");
                 break;
             }
         }
@@ -374,14 +375,14 @@ static int rk_list_filo_test(rk_list *list_0)
 }
 
 
-void *rk_list_test_loop_0(void *pdata)
+void *mpp_list_test_loop_0(void *pdata)
 {
     int i;
-    rk_list *list_0 = (rk_list *)pdata;
+    mpp_list *list_0 = (mpp_list *)pdata;
 
-    printf("rk_list test 0 loop start\n");
+    printf("mpp_list test 0 loop start\n");
     for (i = 0; i < LOOP_RK_LIST; i++) {
-        err |= rk_list_filo_test(list_0);
+        err |= mpp_list_filo_test(list_0);
         if (err) break;
     }
 
@@ -393,27 +394,27 @@ void *rk_list_test_loop_0(void *pdata)
     return NULL;
 }
 
-int rk_list_test_0()
+int mpp_list_test_0()
 {
     int i, err = 0;
-    printf("rk_list test 0 FIFO start\n");
+    printf("mpp_list test 0 FIFO start\n");
 
-    rk_list *list_0 = new rk_list((node_destructor)VPUFreeLinear);
+    mpp_list *list_0 = new mpp_list((node_destructor)VPUFreeLinear);
 
     pthread_t mThread;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-    pthread_create(&mThread, &attr, rk_list_test_loop_0, (void*)list_0);
+    pthread_create(&mThread, &attr, mpp_list_test_loop_0, (void*)list_0);
     pthread_attr_destroy(&attr);
 
     for (i = 0; i < LOOP_RK_LIST; i++) {
-        err |= rk_list_fifo_test(list_0);
+        err |= mpp_list_fifo_test(list_0);
         if (err) break;
     }
     if (err) {
-        printf("main  : found rk_list operation err %d\n", err);
+        printf("main  : found mpp_list operation err %d\n", err);
     } else {
         printf("main  : test done and found no err\n");
     }
@@ -421,7 +422,7 @@ int rk_list_test_0()
     void *dummy;
     pthread_join(mThread, &dummy);
 
-    printf("rk_list test 0 end size %d\n", list_0->list_size());
+    printf("mpp_list test 0 end size %d\n", list_0->list_size());
     delete list_0;
     return err;
 }
@@ -430,7 +431,7 @@ int rk_list_test_0()
 
 typedef int (*RK_LIST_TEST_FUNC)(void);
 RK_LIST_TEST_FUNC test_func[TOTAL_RK_LIST_TEST_COUNT] = {
-    rk_list_test_0,
+    mpp_list_test_0,
 };
 
 int main(int argc, char *argv[])

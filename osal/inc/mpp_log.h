@@ -26,26 +26,26 @@
 extern "C" {
 #endif
 
-void rk_set_log_flag(RK_U32 flag);
-RK_U32 rk_get_log_flag();
+void mpp_set_log_flag(RK_U32 flag);
+RK_U32 mpp_get_log_flag();
 
-#define rk_log(fmt, ...) _rk_log(MODULE_TAG, fmt, ## __VA_ARGS__)
-#define rk_err(fmt, ...) _rk_err(MODULE_TAG, fmt, ## __VA_ARGS__)
+#define mpp_log(fmt, ...) _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__)
+#define mpp_err(fmt, ...) _mpp_err(MODULE_TAG, fmt, ## __VA_ARGS__)
 
-#define rk_dbg(debug, flag, fmt, ...)   \
+#define mpp_dbg(debug, flag, fmt, ...)   \
     do {                                            \
         if (debug & flag) {                         \
-            _rk_log(MODULE_TAG, fmt, ## __VA_ARGS__);  \
+            _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__);  \
         }                                           \
     } while(0)
 
 /*
  * Send the specified message to the log
- * _rk_log : general log function, send log to stdout
- * _rk_err : log function for error information, send log to stderr
+ * _mpp_log : general log function, send log to stdout
+ * _mpp_err : log function for error information, send log to stderr
  */
-void _rk_log(const char *tag, const char *fmt, ...);
-void _rk_err(const char *tag, const char *fmt, ...);
+void _mpp_log(const char *tag, const char *fmt, ...);
+void _mpp_err(const char *tag, const char *fmt, ...);
 
 /*
  * debug flag usage:
@@ -58,17 +58,17 @@ void _rk_err(const char *tag, const char *fmt, ...);
  */
 /*
  * dynamic debug function
- * rk_dbg_add_flag  : add a new debug flag associated with module name
- * rk_dbg_set_flag  : set a existing debug flag associated with module name
- * rk_dbg_show_flag : show all existing debug flags
+ * mpp_dbg_add_flag  : add a new debug flag associated with module name
+ * mpp_dbg_set_flag  : set a existing debug flag associated with module name
+ * mpp_dbg_show_flag : show all existing debug flags
  */
 
-//void rk_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
+//void mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
 
 /*
  * submodules suggest to use macro as below:
  * #define h264d_dbg(flag, const char *fmt, ...) \
- *     rk_dbg(h264d_debug, flag, fmt, ## __VA_ARGS__)
+ *     mpp_dbg(h264d_debug, flag, fmt, ## __VA_ARGS__)
  */
 
 #ifdef __cplusplus

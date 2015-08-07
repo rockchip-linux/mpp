@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_env_test"
+#define MODULE_TAG "mpp_env_test"
 #include "mpp_env.h"
 #include "mpp_log.h"
 
@@ -27,20 +27,20 @@ int main()
     RK_U32 env_debug_u32 = 0x100;
     char *env_string_str = env_test_string;
 
-    rk_set_env_u32(env_debug, env_debug_u32);
-    rk_set_env_str(env_string, env_string_str);
-    rk_log("set env: %s to %u\n", env_debug, env_debug_u32);
-    rk_log("set env: %s to %s\n", env_string, env_string_str);
+    mpp_set_env_u32(env_debug, env_debug_u32);
+    mpp_set_env_str(env_string, env_string_str);
+    mpp_log("set env: %s to %u\n", env_debug, env_debug_u32);
+    mpp_log("set env: %s to %s\n", env_string, env_string_str);
 
     env_debug_u32 = 0;
     env_string_str = NULL;
-    rk_log("clear local value to zero\n");
+    mpp_log("clear local value to zero\n");
 
-    rk_get_env_u32(env_debug, &env_debug_u32, 0);
-    rk_get_env_str(env_string, &env_string_str, NULL);
+    mpp_get_env_u32(env_debug, &env_debug_u32, 0);
+    mpp_get_env_str(env_string, &env_string_str, NULL);
 
-    rk_log("get env: %s is %u\n", env_debug, env_debug_u32);
-    rk_log("get env: %s is %s\n", env_string, env_string_str);
+    mpp_log("get env: %s is %u\n", env_debug, env_debug_u32);
+    mpp_log("get env: %s is %s\n", env_string, env_string_str);
 
     return 0;
 }

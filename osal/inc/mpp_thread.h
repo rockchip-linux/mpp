@@ -15,7 +15,7 @@
  */
 
 /*
- * File         : rk_thread.h
+ * File         : mpp_thread.h
  * Description  : thread library for different OS
  * Author       : herman.chen@rock-chips.com
  * Date         : 9:47 2015/7/27

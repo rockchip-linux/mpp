@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_thread_test"
+#define MODULE_TAG "mpp_thread_test"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,9 +32,9 @@
 void *thread_test(void *pdata)
 {
     int idx = *((int*)pdata);
-    rk_log("thread %d is running\n", idx);
+    mpp_log("thread %d is running\n", idx);
     sleep(1);
-    rk_log("thread %d done\n", idx);
+    mpp_log("thread %d done\n", idx);
     return NULL;
 }
 
@@ -44,7 +44,7 @@ int main()
     int pdata[MAX_THREAD_NUM];
     pthread_t threads[MAX_THREAD_NUM];
 
-    rk_log("vpu test start\n");
+    mpp_log("vpu test start\n");
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -62,7 +62,7 @@ int main()
         pthread_join(threads[i], &dummy);
     }
 
-    rk_log("vpu test end\n");
+    mpp_log("vpu test end\n");
     return 0;
 }
 

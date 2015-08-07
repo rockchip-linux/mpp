@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_log"
+#define MODULE_TAG "mpp_log"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -28,40 +28,40 @@ extern "C" {
 #endif
 
 static RK_U32 mpp_log_flag = 0;
-static void (*rk_log_callback)(const char*, const char*, va_list) = os_log;
-static void (*rk_err_callback)(const char*, const char*, va_list) = os_err;
+static void (*mpp_log_callback)(const char*, const char*, va_list) = os_log;
+static void (*mpp_err_callback)(const char*, const char*, va_list) = os_err;
 
 // TODO: add log timing information and switch flag
 
-void _rk_log(const char *tag, const char *fmt, ...)
+void _mpp_log(const char *tag, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     if (NULL == tag)
         tag = MODULE_TAG;
-    rk_log_callback(tag, fmt, args);
+    mpp_log_callback(tag, fmt, args);
     va_end(args);
     return ;
 }
 
-void _rk_err(const char *tag, const char *fmt, ...)
+void _mpp_err(const char *tag, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     if (NULL == tag)
         tag = MODULE_TAG;
-    rk_err_callback(tag, fmt, args);
+    mpp_err_callback(tag, fmt, args);
     va_end(args);
     return ;
 }
 
-void rk_set_log_flag(RK_U32 flag)
+void mpp_set_log_flag(RK_U32 flag)
 {
     mpp_log_flag = flag;
     return ;
 }
 
-RK_U32 rk_get_log_flag()
+RK_U32 mpp_get_log_flag()
 {
     return mpp_log_flag;
 }

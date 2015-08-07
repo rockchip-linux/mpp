@@ -19,22 +19,22 @@
 
 // TODO: add previous value compare to save call times
 
-RK_S32 rk_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
+RK_S32 mpp_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
 {
     return os_get_env_u32(name, value, default_value);
 }
 
-RK_S32 rk_get_env_str(const char *name, char **value, char *default_value)
+RK_S32 mpp_get_env_str(const char *name, char **value, char *default_value)
 {
     return os_get_env_str(name, value, default_value);
 }
 
-RK_S32 rk_set_env_u32(const char *name, RK_U32 value)
+RK_S32 mpp_set_env_u32(const char *name, RK_U32 value)
 {
     return os_set_env_u32(name, value);
 }
 
-RK_S32 rk_set_env_str(const char *name, char *value)
+RK_S32 mpp_set_env_str(const char *name, char *value)
 {
     return os_set_env_str(name, value);
 }

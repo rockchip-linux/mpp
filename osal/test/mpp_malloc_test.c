@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_malloc_test"
+#define MODULE_TAG "mpp_malloc_test"
 
 #include "mpp_log.h"
 #include "mpp_env.h"
@@ -24,13 +24,13 @@
 
 int main()
 {
-    rk_set_env_u32("osal_mem_list", 1);
-    void *tmp = rk_malloc(int, 100);
+    mpp_set_env_u32("osal_mem_list", 1);
+    void *tmp = mpp_malloc(int, 100);
     if (tmp) {
-        rk_log("malloc success\n");
-        rk_free(tmp);
+        mpp_log("malloc success\n");
+        mpp_free(tmp);
     } else {
-        rk_log("malloc failed\n");
+        mpp_log("malloc failed\n");
     }
 
     return 0;

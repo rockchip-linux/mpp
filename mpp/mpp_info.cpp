@@ -48,32 +48,32 @@ static RK_CHIP_TYPE chip_version(void)
 {
     RK_CHIP_TYPE type = NONE;
     char *value = NULL;
-    RK_S32 ret = rk_get_env_str("ro.product.board", &value, NULL);
+    RK_S32 ret = mpp_get_env_str("ro.product.board", &value, NULL);
 
     if (0 == ret) {
         if (strstr(value, "rk29")) {
-            rk_log("rk29 board found in board property");
+            mpp_log("rk29 board found in board property");
             type = RK29;
         } else if (strstr(value, "rk30")) {
-            rk_log("rk30 board found in board property");
+            mpp_log("rk30 board found in board property");
             type = RK30;
         }
     }
     if (NONE == type) {
-        ret = rk_get_env_str("ro.board.platform", &value, NULL);
+        ret = mpp_get_env_str("ro.board.platform", &value, NULL);
         if (0 == ret) {
             if (strstr(value, "rk29")) {
-                rk_log("rk29 board found in platform property");
+                mpp_log("rk29 board found in platform property");
                 type = RK29;
             } else if (strstr(value, "rk30")) {
-                rk_log("rk30 board found in platform property");
+                mpp_log("rk30 board found in platform property");
                 type = RK30;
             }
         }
     }
 
     if (NONE == type) {
-        rk_log("can not found matched chip type");
+        mpp_log("can not found matched chip type");
     }
     return type;
 }
@@ -92,7 +92,7 @@ mpp_info::mpp_info()
 
 void mpp_info::show_mpp_info()
 {
-    rk_log("%s\n", mpp_version_one_line);
+    mpp_log("%s\n", mpp_version_one_line);
 }
 
 RK_CHIP_TYPE get_chip_type()

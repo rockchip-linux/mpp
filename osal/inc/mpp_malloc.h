@@ -21,21 +21,21 @@
 
 #include "rk_type.h"
 
-#define rk_malloc_tagged(type, count, tag)  \
-    (type*)rk_mpp_malloc(tag, sizeof(type) * (count))
+#define mpp_malloc_tagged(type, count, tag)  \
+    (type*)mpp_osal_malloc(tag, sizeof(type) * (count))
 
-#define rk_malloc(type, count)  \
-    (type*)rk_mpp_malloc(MODULE_TAG, sizeof(type) * (count))
+#define mpp_malloc(type, count)  \
+    (type*)mpp_osal_malloc(MODULE_TAG, sizeof(type) * (count))
 
-#define rk_free(ptr) rk_mpp_free(ptr)
+#define mpp_free(ptr) mpp_osal_free(ptr)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void rk_mpp_show_mem_status();
-void *rk_mpp_malloc(char *tag, size_t size);
-void rk_mpp_free(void *ptr);
+void mpp_show_mem_status();
+void *mpp_osal_malloc(char *tag, size_t size);
+void mpp_osal_free(void *ptr);
 
 #ifdef __cplusplus
 }

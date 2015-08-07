@@ -30,11 +30,11 @@
 // desctructor of list node
 typedef void *(*node_destructor)(void *);
 
-struct rk_list_node;
-class rk_list {
+struct mpp_list_node;
+class mpp_list {
 public:
-    rk_list(node_destructor func);
-    ~rk_list();
+    mpp_list(node_destructor func);
+    ~mpp_list();
 
     // for FIFO or FILO implement
     // adding functions support simple structure like C struct or C++ class pointer,
@@ -61,14 +61,14 @@ public:
 private:
     pthread_mutex_t         mutex;
     node_destructor         destroy;
-    struct rk_list_node    *head;
+    struct mpp_list_node    *head;
     RK_S32                  count;
     static RK_U32           keys;
     static RK_U32           get_key();
 
-    rk_list();
-    rk_list(const rk_list &);
-    rk_list &operator=(const rk_list &);
+    mpp_list();
+    mpp_list(const mpp_list &);
+    mpp_list &operator=(const mpp_list &);
 };
 #endif
 

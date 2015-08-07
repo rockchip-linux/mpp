@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "rk_log_test"
+#define MODULE_TAG "mpp_log_test"
 
 #include "mpp_log.h"
 
@@ -22,17 +22,17 @@ int main()
 {
     RK_U32 flag = 0xffff;
 
-    rk_err("mpp error log test start\n");
+    mpp_err("mpp error log test start\n");
 
-    rk_log("mpp log flag: %08x\n", rk_get_log_flag());
+    mpp_log("mpp log flag: %08x\n", mpp_get_log_flag());
 
-    rk_log("set flag to %08x\n", flag);
+    mpp_log("set flag to %08x\n", flag);
 
-    rk_set_log_flag(flag);
+    mpp_set_log_flag(flag);
 
-    rk_log("mpp log flag: %08x\n", rk_get_log_flag());
+    mpp_log("mpp log flag: %08x\n", mpp_get_log_flag());
 
-    rk_err("mpp error log test done\n");
+    mpp_err("mpp error log test done\n");
 
     return 0;
 }
