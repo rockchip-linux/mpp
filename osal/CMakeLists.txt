@@ -13,6 +13,7 @@ include_directories(.)
 
 add_library(osal STATIC
     mpp_malloc.cpp
+	mpp_time.cpp
     mpp_list.cpp
     mpp_env.cpp
     mpp_log.cpp

@@ -14,32 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_MALLOC_H__
-#define __MPP_MALLOC_H__
+#include "mpp_time.h"
 
-#include <stdlib.h>
+#if _WIN32
+#include <sys/types.h>
+#include <sys/timeb.h>
 
-#include "rk_type.h"
-
-#define mpp_malloc_tagged(type, count, tag)  \
-    (type*)mpp_osal_malloc(tag, sizeof(type) * (count))
-
-#define mpp_malloc(type, count)  \
-    (type*)mpp_osal_malloc(MODULE_TAG, sizeof(type) * (count))
-
-#define mpp_free(ptr) mpp_osal_free(ptr)
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void mpp_show_mem_status();
-void *mpp_osal_malloc(char *tag, size_t size);
-void mpp_osal_free(void *ptr);
-
-#ifdef __cplusplus
+RK_S64 mpp_time()
+{
+    struct timeb tb;
+    ftime(&tb);
+    return ((RK_S64)tb.time * 1000 + (RK_S64)tb.millitm) * 1000;
 }
+
+#else
+#include <sys/time.h>
+
+RK_S64 mpp_time()
+{
+    struct timeval tv_date;
+    gettimeofday(&tv_date, NULL);
+    return (RK_S64)tv_date.tv_sec * 1000000 + (RK_S64)tv_date.tv_usec;
+}
+
 #endif
-
-#endif /*__MPP_MALLOC_H__*/
-

@@ -23,7 +23,7 @@
 
 #include "mpp_log.h"
 #include "mpp_env.h"
-#include "mpp_malloc.h"
+#include "mpp_mem.h"
 #include "mpp_list.h"
 
 #include "os_malloc.h"

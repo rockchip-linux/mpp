@@ -25,7 +25,7 @@ add_mpp_osal_test(mpp_log)
 add_mpp_osal_test(mpp_env)
 
 # malloc system unit test
-add_mpp_osal_test(mpp_malloc)
+add_mpp_osal_test(mpp_mem)
 
 # thread implement unit test
 add_mpp_osal_test(mpp_thread)

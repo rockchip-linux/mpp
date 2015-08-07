@@ -18,7 +18,7 @@
 
 #include "mpp_log.h"
 #include "mpp_env.h"
-#include "mpp_malloc.h"
+#include "mpp_mem.h"
 
 // TODO: need to add pressure test case and parameter scan case
 
