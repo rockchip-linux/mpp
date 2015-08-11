@@ -284,6 +284,31 @@ if(MSVC)
 endif(MSVC)
 
 # ----------------------------------------------------------------------------
+# On window import win32 pthread library
+# ----------------------------------------------------------------------------
+if(MSVC)
+    set(WIN32_PTHREAD_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/osal/window/pthread/inc")
+    include_directories(${WIN32_PTHREAD_INCLUDE_DIRS})
+    add_library(pthread SHARED IMPORTED)
+    message(STATUS "platform X86 ${X86} X64 ${X64}")
+    set(WIN32_PTHREAD_LIB_DIRS "${CMAKE_SOURCE_DIR}/osal/window/pthread/lib")
+    set(WIN32_PTHREAD_DLL_DIRS "${CMAKE_SOURCE_DIR}/osal/window/pthread/dll")
+    if(X64)
+		set(WIN32_ARCH "x64")
+	else()
+		set(WIN32_ARCH "x86")
+    endif()
+    include_directories("${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}")
+    include_directories("${WIN32_PTHREAD_DLL_DIRS}/${WIN32_ARCH}")
+    set_target_properties(pthread PROPERTIES
+                          IMPORTED_LOCATION
+                          "${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}/pthreadVC2.dll")
+    set_target_properties(pthread PROPERTIES
+                          IMPORTED_IMPLIB
+                          "${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}/pthreadVC2.lib")
+endif()
+
+# ----------------------------------------------------------------------------
 # Share library option
 # ----------------------------------------------------------------------------
 option(ENABLE_STATIC "Build shared library" ON)
@@ -321,9 +346,8 @@ include_directories(osal/inc)
 add_subdirectory(osal)
 
 # ----------------------------------------------------------------------------
-#  osal library
+#  Media Process Platform library
 # ----------------------------------------------------------------------------
-# Operation System Abstract Layer (OSAL) include
+# Media Process Platform include
 include_directories(mpp/inc)
-# OSAL is needed on all platform, do not need option
 add_subdirectory(mpp)
