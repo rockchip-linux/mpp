@@ -35,6 +35,9 @@ VpuApi::~VpuApi()
 RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)extraData;
+    (void)extra_size;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -42,6 +45,10 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 RK_S32 VpuApi::send_stream(RK_U8* buf, RK_U32 size, RK_S64 timestamp, RK_S32 usePts)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)buf;
+    (void)size;
+    (void)timestamp;
+    (void)usePts;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -49,6 +56,7 @@ RK_S32 VpuApi::send_stream(RK_U8* buf, RK_U32 size, RK_S64 timestamp, RK_S32 use
 RK_S32 VpuApi::get_frame(DecoderOut_t *aDecOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)aDecOut;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -56,6 +64,7 @@ RK_S32 VpuApi::get_frame(DecoderOut_t *aDecOut)
 RK_S32 VpuApi::flush(VpuCodecContext *ctx)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -63,6 +72,9 @@ RK_S32 VpuApi::flush(VpuCodecContext *ctx)
 RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)pkt;
+    (void)aDecOut;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -70,6 +82,8 @@ RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aD
 RK_S32 VpuApi::decode_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)pkt;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -77,6 +91,8 @@ RK_S32 VpuApi::decode_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt)
 RK_S32 VpuApi:: decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)aDecOut;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -84,6 +100,9 @@ RK_S32 VpuApi:: decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
 RK_S32 VpuApi::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)aEncInStrm;
+    (void)aEncOut;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -91,6 +110,8 @@ RK_S32 VpuApi::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, Encode
 RK_S32 VpuApi::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)aEncInStrm;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -98,6 +119,8 @@ RK_S32 VpuApi::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInS
 RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx,EncoderOut_t *aEncOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)aEncOut;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -105,6 +128,8 @@ RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx,EncoderOut_t *aEncOut)
 RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)cmd;
+    (void)data;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
@@ -112,6 +137,9 @@ RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
 RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log("%s in\n", __FUNCTION__);
+    (void)ctx;
+    (void)cmd;
+    (void)param;
     mpp_log("%s ok\n", __FUNCTION__);
     return 0;
 }
