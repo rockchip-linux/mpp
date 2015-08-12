@@ -19,6 +19,17 @@
 
 #include "rk_type.h"
 
+// TODO: add usleep function on windows
+
+#if defined(_WIN32) && !defined(__MINGW32CE__)
+#include <windows.h>
+#define msleep                  Sleep
+#define sleep(x)                Sleep((x)*1000)
+#else
+#include <unistd.h>
+#define msleep(x)               usleep((x)*1000)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

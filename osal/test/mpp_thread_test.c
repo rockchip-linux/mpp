@@ -25,6 +25,7 @@
 
 #include "mpp_log.h"
 #include "mpp_thread.h"
+#include "mpp_time.h"
 
 // TODO: add thread mutex and condition test case
 

@@ -30,9 +30,7 @@
  * NOTE: POSIX Threads for Win32
  * Downloaded from http://www.sourceware.org/pthreads-win32/
  */
-#include <windows.h>
 #include "pthread.h"
-#define sleep                   Sleep
 #pragma comment(lib, "pthreadVC2.lib")
 
 #else

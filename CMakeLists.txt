@@ -351,3 +351,8 @@ add_subdirectory(osal)
 # Media Process Platform include
 include_directories(mpp/inc)
 add_subdirectory(mpp)
+
+# ----------------------------------------------------------------------------
+#  test / demo
+# ----------------------------------------------------------------------------
+add_subdirectory(test)
