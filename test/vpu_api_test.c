@@ -478,14 +478,13 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     FILE* pOutFile = NULL;
     struct VpuCodecContext* ctx = NULL;
     RK_S32 fileSize =0, pkt_size =0;
-    RK_S32 ret = 0, frame_count = 0;
+    RK_S32 ret = 0;
+    RK_U32 frame_count = 0;
     DecoderOut_t    decOut;
     VideoPacket_t demoPkt;
     VideoPacket_t* pkt =NULL;
     DecoderOut_t *pOut = NULL;
-#if HAVE_VPU_FRME
     VPU_FRAME *frame = NULL;
-#endif
     RK_S64 fakeTimeUs =0;
     RK_U8* pExtra = NULL;
     RK_U32 extraSize = 0;
@@ -536,13 +535,11 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(&decOut, 0, sizeof(DecoderOut_t));
     pOut = &decOut;
 
-#if HAVE_VPU_FRAME
     pOut->data = (RK_U8*)(malloc)(sizeof(VPU_FRAME));
     if (pOut->data ==NULL) {
         DECODE_ERR_RET(ERROR_MEMORY);
     }
     memset(pOut->data, 0, sizeof(VPU_FRAME));
-#endif
 
     ret = vpu_open_context(&ctx);
     if (ret || (ctx ==NULL)) {
@@ -641,7 +638,6 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
              ** in structure named VPU_FRAME, if you want to use virtual address, make
              ** sure you have done VPUMemLink before.
             */
-#if HAVE_VPU_FRAME
             if ((pOut->size) && (pOut->data)) {
                 VPU_FRAME *frame = (VPU_FRAME *)(pOut->data);
                 VPUMemLink(&frame->vpumem);
@@ -664,9 +660,6 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
                 VPUFreeLinear(&frame->vpumem);
                 pOut->size = 0;
             }
-#else
-            (void)frame_count;
-#endif
         }
 
         msleep(3);
