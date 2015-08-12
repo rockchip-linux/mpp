@@ -257,4 +257,32 @@ RK_S32 vpu_close_context(struct VpuCodecContext **ctx);
 }
 #endif
 
+/*
+ * vpu_mem api
+ */
+
+typedef struct VPUMem {
+    RK_U32  phy_addr;
+    RK_U32 *vir_addr;
+    RK_U32  size;
+    RK_U32 *offset;
+} VPUMemLinear_t;
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size);
+RK_S32 VPUFreeLinear(VPUMemLinear_t *p);
+RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src);
+RK_S32 VPUMemLink(VPUMemLinear_t *p);
+RK_S32 VPUMemFlush(VPUMemLinear_t *p);
+RK_S32 VPUMemClean(VPUMemLinear_t *p);
+RK_S32 VPUMemInvalidate(VPUMemLinear_t *p);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /*__VPU_API_LEGACY_H__*/
