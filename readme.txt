@@ -22,27 +22,27 @@ d. module header
 NOTE:
 1. when run on window pthreadVC2.dll needed to be copied to the system directory.
 
-----                     top
-   |
-   |----- build          CMake out-of-source build directory
-   |  |
-   |  |----- cmake       cmake script directory
-   |  |
-   |  |----- android     android build directory
-   |  |
-   |  |----- linux       linux build directory
-   |  |
-   |  |----- vc12-x86_64 visual studio 2013 on x86_64 build directory
-   |
-   |----- inc            header file for external usage, including platform header and mpi header
-   |
-   |----- mpi            Media Process Interface: the api function implement in public (vpu_api layer)
-   |
-   |----- mpp            Media Process Platform : mpi function private implement and mpp infrastructure (vpu_api private layer)
-   |  |
-   |  |----- codec       all video codec parser, convert stream to protocol structure
-   |  |  |
-   |  |  |----- inc      header files provided by codec module for external usage
+----                             top
+   |                             
+   |----- build                  CMake out-of-source build directory
+   |  |                          
+   |  |----- cmake               cmake script directory
+   |  |                          
+   |  |----- android             android build directory
+   |  |                          
+   |  |----- linux               linux build directory
+   |  |                          
+   |  |----- vc12-x86_64         visual studio 2013 on x86_64 build directory
+   |                             
+   |----- inc                    header file for external usage, including platform header and mpi header
+   |                             
+   |----- mpi                    Media Process Interface: the api function implement in public (vpu_api layer)
+   |                             
+   |----- mpp                    Media Process Platform : mpi function private implement and mpp infrastructure (vpu_api private layer)
+   |  |                          
+   |  |----- codec               all video codec parser, convert stream to protocol structure
+   |  |  |                       
+   |  |  |----- inc              header files provided by codec module for external usage
    |  |  |
    |  |  |----- dec
    |  |  |  |
@@ -62,57 +62,57 @@ NOTE:
    |  |     |
    |  |     |----- jpeg
    |  |
-   |  |----- hal         Hardware Abstract Layer (HAL): modules used in mpi
-   |  |  |
-   |  |  |----- inc      header files provided by hal for external usage
-   |  |  |
-   |  |  |----- iep      iep user library
-   |  |  |
-   |  |  |----- pp       post-processor user library
-   |  |  |
-   |  |  |----- rga      rga user library
-   |  |  |
-   |  |  |----- deinter  deinterlace function module including pp/iep/rga
-   |  |  |
-   |  |  |----- rkdec    rockchip hardware decoder register generation library
-   |  |  |  |
-   |  |  |  |----- h264d generate register file from H.264 structure created by codec parser
-   |  |  |  |
-   |  |  |  |----- h265d generate register file from H.265 structure created by codec parser
-   |  |  |  |
-   |  |  |  |----- vp9d  generate register file from vp9 structure created by codec parser
-   |  |  |
-   |  |  |----- vpu      vpu register generation library
-   |  |     |
-   |  |     |----- h264d generate register file from H.264 structure created by codec parser
-   |  |     |
-   |  |     |----- h265d generate register file from H.265 structure created by codec parser
-   |  |
-   |  |----- legacy      legacy vpu_api interface
-   |  |
-   |  |----- syntax      syntax interface for different video codec protocol
-   |
-   |----- test           mpi/mpp unit test files and mpi demo files
-   |
-   |----- out            final release binary output directory
-   |  |
-   |  |----- bin         executable binary file output directory
-   |  |
-   |  |----- inc         header file output directory
-   |  |
-   |  |----- lib         library file output directory
-   |
-   |----- osal           Operation System Abstract Layer: abstract layer for different operation system
-      |
-      |----- mem     	 mpi memory subsystem for hardware
-      |
-      |----- android     google's android
-      |
-      |----- linux       mainline linux kernel
-      |
-      |----- window      microsoft's window
-      |
-      |----- test        OASL unit test
+   |  |----- hal                 Hardware Abstract Layer (HAL): modules used in mpi
+   |  |  |                       
+   |  |  |----- inc              header files provided by hal for external usage
+   |  |  |                       
+   |  |  |----- iep              iep user library
+   |  |  |                       
+   |  |  |----- pp               post-processor user library
+   |  |  |                       
+   |  |  |----- rga              rga user library
+   |  |  |                       
+   |  |  |----- deinter          deinterlace function module including pp/iep/rga
+   |  |  |                       
+   |  |  |----- rkdec            rockchip hardware decoder register generation library
+   |  |  |  |                    
+   |  |  |  |----- h264d         generate register file from H.264 structure created by codec parser
+   |  |  |  |                    
+   |  |  |  |----- h265d         generate register file from H.265 structure created by codec parser
+   |  |  |  |                    
+   |  |  |  |----- vp9d          generate register file from vp9 structure created by codec parser
+   |  |  |                       
+   |  |  |----- vpu              vpu register generation library
+   |  |     |                    
+   |  |     |----- h264d         generate register file from H.264 structure created by codec parser
+   |  |     |                    
+   |  |     |----- h265d         generate register file from H.265 structure created by codec parser
+   |  |                          
+   |  |----- legacy              legacy vpu_api interface
+   |  |                          
+   |  |----- syntax              syntax interface for different video codec protocol
+   |                             
+   |----- test                   mpi/mpp unit test files and mpi demo files
+   |                             
+   |----- out                    final release binary output directory
+   |  |                          
+   |  |----- bin                 executable binary file output directory
+   |  |                          
+   |  |----- inc                 header file output directory
+   |  |                          
+   |  |----- lib                 library file output directory
+   |                             
+   |----- osal                   Operation System Abstract Layer: abstract layer for different operation system
+      |                          
+      |----- mem     	         mpi memory subsystem for hardware
+      |                          
+      |----- android             google's android
+      |                          
+      |----- linux               mainline linux kernel
+      |                          
+      |----- window              microsoft's window
+      |                          
+      |----- test                OASL unit test
     
 
 Here is the mpp implement overall framework:
