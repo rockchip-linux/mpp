@@ -29,7 +29,7 @@ static RK_U32 VPU_API_DEMO_DEBUG_DISABLE = 0;
 
 #define BSWAP32(x) \
     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
-      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+     (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
 #define DEMO_ERR_RET(err) do { ret = err; goto DEMO_OUT; } while (0)
 #define DECODE_ERR_RET(err) do { ret = err; goto DECODE_OUT; } while (0)
@@ -51,9 +51,9 @@ typedef enum VPU_API_DEMO_RET {
 } VPU_API_DEMO_RET;
 
 typedef struct VpuApiCmd {
-    RK_U8* name;
-    RK_U8* argname;
-    RK_U8* help;
+    char* name;
+    char* argname;
+    char* help;
 } VpuApiCmd_t;
 
 typedef struct VpuApiDemoCmdContext {
@@ -76,15 +76,15 @@ typedef struct VpuApiEncInput {
 } VpuApiEncInput;
 
 static VpuApiCmd_t vpuApiCmd[] = {
-    {(RK_U8*)"i",       (RK_U8*)"input_file",  (RK_U8*)"input bitstream file"},
-    {(RK_U8*)"o",       (RK_U8*)"output_file", (RK_U8*)"output bitstream file, "},
-    {(RK_U8*)"w",       (RK_U8*)"width",       (RK_U8*)"the width of input bitstream"},
-    {(RK_U8*)"h",       (RK_U8*)"height",      (RK_U8*)"the height of input bitstream"},
-    {(RK_U8*)"t",       (RK_U8*)"codec_type",  (RK_U8*)"the codec type, dec: deoder, enc: encoder, default: decoder"},
-    {(RK_U8*)"coding",  (RK_U8*)"coding_type", (RK_U8*)"encoding type of the bitstream"},
-    {(RK_U8*)"vframes", (RK_U8*)"number",      (RK_U8*)"set the number of video frames to record"},
-    {(RK_U8*)"ss",      (RK_U8*)"time_off",    (RK_U8*)"set the start time offset, use Ms as the unit."},
-    {(RK_U8*)"d",       (RK_U8*)"disable",     (RK_U8*)"disable the debug output info."},
+    {"i",       "input_file",  "input bitstream file"},
+    {"o",       "output_file", "output bitstream file, "},
+    {"w",       "width",       "the width of input bitstream"},
+    {"h",       "height",      "the height of input bitstream"},
+    {"t",       "codec_type",  "the codec type, dec: deoder, enc: encoder, default: decoder"},
+    {"coding",  "coding_type", "encoding type of the bitstream"},
+    {"vframes", "number",      "set the number of video frames to record"},
+    {"ss",      "time_off",    "set the start time offset, use Ms as the unit."},
+    {"d",       "disable",     "disable the debug output info."},
 };
 
 static void show_usage()
@@ -236,11 +236,11 @@ static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
     }
 
     RK_S32 ret = (RK_S32)fread(buf, 1, aBytes, file);
-	if(ret != aBytes)
-	{
-		mpp_log("read %d bytes from file fail\n", aBytes);
+    if(ret != aBytes)
+    {
+        mpp_log("read %d bytes from file fail\n", aBytes);
         return -1;
-	}
+    }
 
     return 0;
 }
