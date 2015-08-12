@@ -25,4 +25,6 @@ add_library(mpp STATIC
 
 target_link_libraries(mpp osal)
 
+add_subdirectory(legacy)
+
 add_subdirectory(test)
