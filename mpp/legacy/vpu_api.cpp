@@ -244,37 +244,46 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
 
 RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size)
 {
+    (void)p;
+    (void)size;
     return 0;
 }
 
 RK_S32 VPUFreeLinear(VPUMemLinear_t *p)
 {
+    (void)p;
     return 0;
 }
 
 RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src)
 {
+    (void)dst;
+    (void)src;
     return 0;
 }
 
 RK_S32 VPUMemLink(VPUMemLinear_t *p)
 {
+    (void)p;
     return 0;
 }
 
 RK_S32 VPUMemFlush(VPUMemLinear_t *p)
 {
+    (void)p;
     return 0;
 }
 
 RK_S32 VPUMemClean(VPUMemLinear_t *p)
 {
+    (void)p;
     return 0;
 }
 
 
 RK_S32 VPUMemInvalidate(VPUMemLinear_t *p)
 {
+    (void)p;
     return 0;
 }
 
@@ -285,14 +294,19 @@ vpu_display_mem_pool* open_vpu_memory_pool()
 
 void close_vpu_memory_pool(vpu_display_mem_pool *p)
 {
+    (void)p;
 }
 
 int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
 {
+    (void)ipool;
+    (void)num;
+    (void)size;
     return 0;
 }
 
 void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
 {
+    (void)ipool;
 }
 
