@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "mpp_log.h"
+#include "mpp_mem.h"
 
 #include "os_log.h"
 
@@ -42,7 +43,7 @@ void _mpp_log(const char *tag, const char *fmt, ...)
 {
     va_list args;
     const char *buf = fmt;
-    RK_S32 len = strnlen(fmt, MPP_LOG_MAX_LEN);
+    size_t len = strnlen(fmt, MPP_LOG_MAX_LEN);
 
     if (NULL == tag)
         tag = MODULE_TAG;
@@ -68,7 +69,7 @@ void _mpp_err(const char *tag, const char *fmt, ...)
 {
     va_list args;
     const char *buf = fmt;
-    RK_S32 len = strnlen(fmt, MPP_LOG_MAX_LEN);
+    size_t len = strnlen(fmt, MPP_LOG_MAX_LEN);
 
     if (NULL == tag)
         tag = MODULE_TAG;
