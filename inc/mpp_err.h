@@ -23,6 +23,17 @@
 typedef enum {
     MPP_SUCCESS                 = RK_SUCCESS,
     MPP_OK                      = RK_OK,
-} RK_RET;
+
+    MPP_ERR_UNKNOW              = -1,
+    MPP_ERR_BASE                = -1000,
+
+    MPP_ERR_LIST_STREAM         = MPP_ERR_BASE - 1,
+    MPP_ERR_INIT                = MPP_ERR_BASE - 2,
+    MPP_ERR_VPU_CODEC_INIT      = MPP_ERR_BASE - 3,
+    MPP_ERR_STREAM              = MPP_ERR_BASE - 4,
+    MPP_ERR_FATAL_THREAD        = MPP_ERR_BASE - 5,
+    MPP_EOS_STREAM_REACHED      = MPP_ERR_BASE - 11,
+
+} MPP_RET;
 
 #endif /*__MPP_ERR_H__*/
