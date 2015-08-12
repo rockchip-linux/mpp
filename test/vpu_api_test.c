@@ -61,8 +61,8 @@ typedef struct VpuApiDemoCmdContext {
     RK_U32  height;
     CODEC_TYPE  codec_type;
     OMX_RK_VIDEO_CODINGTYPE coding;
-    RK_U8   input_file[200];
-    RK_U8   output_file[200];
+    char    input_file[200];
+    char    output_file[200];
     RK_U8   have_input;
     RK_U8   have_output;
     RK_U8   disable_debug;
@@ -76,15 +76,15 @@ typedef struct VpuApiEncInput {
 } VpuApiEncInput;
 
 static VpuApiCmd_t vpuApiCmd[] = {
-    {"i",               "input_file",           "input bitstream file"},
-    {"o",               "output_file",          "output bitstream file, "},
-    {"w",               "width",                "the width of input bitstream"},
-    {"h",               "height",               "the height of input bitstream"},
-    {"t",               "codec_type",           "the codec type, dec: deoder, enc: encoder, default: decoder"},
-    {"coding",          "coding_type",          "encoding type of the bitstream"},
-    {"vframes",         "number",               "set the number of video frames to record"},
-    {"ss",              "time_off",             "set the start time offset, use Ms as the unit."},
-    {"d",               "disable",              "disable the debug output info."},
+    {(RK_U8*)"i",       (RK_U8*)"input_file",  (RK_U8*)"input bitstream file"},
+    {(RK_U8*)"o",       (RK_U8*)"output_file", (RK_U8*)"output bitstream file, "},
+    {(RK_U8*)"w",       (RK_U8*)"width",       (RK_U8*)"the width of input bitstream"},
+    {(RK_U8*)"h",       (RK_U8*)"height",      (RK_U8*)"the height of input bitstream"},
+    {(RK_U8*)"t",       (RK_U8*)"codec_type",  (RK_U8*)"the codec type, dec: deoder, enc: encoder, default: decoder"},
+    {(RK_U8*)"coding",  (RK_U8*)"coding_type", (RK_U8*)"encoding type of the bitstream"},
+    {(RK_U8*)"vframes", (RK_U8*)"number",      (RK_U8*)"set the number of video frames to record"},
+    {(RK_U8*)"ss",      (RK_U8*)"time_off",    (RK_U8*)"set the start time offset, use Ms as the unit."},
+    {(RK_U8*)"d",       (RK_U8*)"disable",     (RK_U8*)"disable the debug output info."},
 };
 
 static void show_usage()
@@ -111,7 +111,7 @@ static RK_S32 show_help()
 
 static RK_S32 parse_options(int argc, char **argv, VpuApiDemoCmdContext_t* cmdCxt)
 {
-    RK_S8 *opt;
+    char *opt;
     RK_S32 optindex, handleoptions = 1, ret =0;
 
     if ((argc <2) || (cmdCxt == NULL)) {
@@ -255,7 +255,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     FILE* pOutFile = NULL;
     struct VpuCodecContext *ctx = NULL;
     RK_S32 nal = 0x00000001;
-    RK_S32 fileSize, frame_count, ret, size;
+    RK_S32 fileSize, ret, size;
     EncoderOut_t    enc_out_yuv;
     EncoderOut_t *enc_out = NULL;
     VpuApiEncInput enc_in_strm;
