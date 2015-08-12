@@ -18,10 +18,13 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "mpp_log.h"
 
 #include "os_log.h"
+
+#define MPP_LOG_MAX_LEN     256
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,27 +35,59 @@ static void (*mpp_log_callback)(const char*, const char*, va_list) = os_log;
 static void (*mpp_err_callback)(const char*, const char*, va_list) = os_err;
 
 // TODO: add log timing information and switch flag
+static const char *msg_log_warning = "log message is long\n";
+static const char *msg_log_nothing = "\n";
 
 void _mpp_log(const char *tag, const char *fmt, ...)
 {
     va_list args;
-    va_start(args, fmt);
+    const char *buf = fmt;
+    RK_S32 len = strnlen(fmt, MPP_LOG_MAX_LEN);
+
     if (NULL == tag)
         tag = MODULE_TAG;
-    mpp_log_callback(tag, fmt, args);
+
+    if (len == 0) {
+        buf = msg_log_nothing;
+    } else if (len == MPP_LOG_MAX_LEN) {
+        buf = msg_log_warning;
+    } else if (fmt[len-1] != '\n') {
+        char msg[MPP_LOG_MAX_LEN];
+        snprintf(msg, sizeof(msg), "%s", fmt);
+        msg[len]    = '\n';
+        msg[len+1]  = '\0';
+        buf = msg;
+    }
+
+    va_start(args, fmt);
+    mpp_log_callback(tag, buf, args);
     va_end(args);
-    return ;
 }
 
 void _mpp_err(const char *tag, const char *fmt, ...)
 {
     va_list args;
-    va_start(args, fmt);
+    const char *buf = fmt;
+    RK_S32 len = strnlen(fmt, MPP_LOG_MAX_LEN);
+
     if (NULL == tag)
         tag = MODULE_TAG;
-    mpp_err_callback(tag, fmt, args);
+
+    if (len == 0) {
+        buf = msg_log_nothing;
+    } else if (len == MPP_LOG_MAX_LEN) {
+        buf = msg_log_warning;
+    } else if (fmt[len-1] != '\n') {
+        char msg[MPP_LOG_MAX_LEN];
+        snprintf(msg, sizeof(msg), "%s", fmt);
+        msg[len]    = '\n';
+        msg[len+1]  = '\0';
+        buf = msg;
+    }
+
+    va_start(args, fmt);
+    mpp_err_callback(tag, buf, args);
     va_end(args);
-    return ;
 }
 
 void mpp_set_log_flag(RK_U32 flag)
