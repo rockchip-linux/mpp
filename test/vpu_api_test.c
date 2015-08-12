@@ -639,7 +639,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
              ** sure you have done VPUMemLink before.
             */
             if ((pOut->size) && (pOut->data)) {
-                VPU_FRAME *frame = (VPU_FRAME *)(pOut->data);
+                frame = (VPU_FRAME *)(pOut->data);
                 VPUMemLink(&frame->vpumem);
                 RK_U32 wAlign16 = ((frame->DisplayWidth+ 15) & (~15));
                 RK_U32 hAlign16 = ((frame->DisplayHeight + 15) & (~15));
