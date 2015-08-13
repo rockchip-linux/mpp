@@ -31,4 +31,4 @@
 # other setting
 #--quiet
 --suffix=none
---lineend=windows
+#--lineend=windows
