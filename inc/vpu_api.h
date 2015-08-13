@@ -22,21 +22,19 @@
 
 #define VPU_API_NOPTS_VALUE          (0x8000000000000000LL)
 
-typedef enum VPU_API_CMD
-{
-   VPU_API_ENC_SETCFG,
-   VPU_API_ENC_GETCFG,
-   VPU_API_ENC_SETFORMAT,
-   VPU_API_ENC_SETIDRFRAME,
-   VPU_API_ENABLE_DEINTERLACE,
-   VPU_API_SET_VPUMEM_CONTEXT,
-   VPU_API_USE_PRESENT_TIME_ORDER,
-   VPU_API_SET_DEFAULT_WIDTH_HEIGH,
-   VPU_API_SET_INFO_CHANGE,
+typedef enum VPU_API_CMD {
+    VPU_API_ENC_SETCFG,
+    VPU_API_ENC_GETCFG,
+    VPU_API_ENC_SETFORMAT,
+    VPU_API_ENC_SETIDRFRAME,
+    VPU_API_ENABLE_DEINTERLACE,
+    VPU_API_SET_VPUMEM_CONTEXT,
+    VPU_API_USE_PRESENT_TIME_ORDER,
+    VPU_API_SET_DEFAULT_WIDTH_HEIGH,
+    VPU_API_SET_INFO_CHANGE,
 } VPU_API_CMD;
 
-typedef struct
-{
+typedef struct {
     RK_U32   TimeLow;
     RK_U32   TimeHigh;
 } TIME_STAMP;
@@ -48,8 +46,7 @@ typedef struct VPUMem {
     RK_U32 *offset;
 } VPUMemLinear_t;
 
-typedef struct tVPU_FRAME
-{
+typedef struct tVPU_FRAME {
     RK_U32              FrameBusAddr[2];    // 0: Y address; 1: UV address;
     RK_U32              FrameWidth;         // buffer horizontal stride
     RK_U32              FrameHeight;        // buffer vertical   stride
@@ -63,7 +60,7 @@ typedef struct tVPU_FRAME
     RK_U32              DecodeFrmNum;
     TIME_STAMP          ShowTime;
     RK_U32              ErrorInfo;          // error information
-    RK_U32	            employ_cnt;
+    RK_U32              employ_cnt;
     VPUMemLinear_t      vpumem;
     struct tVPU_FRAME  *next_frame;
     RK_U32              Res[4];
@@ -110,8 +107,7 @@ typedef struct EncoderOut {
 
 } EncoderOut_t;
 
-typedef enum
-{
+typedef enum {
     VPU_H264ENC_YUV420_PLANAR = 0,              /* YYYY... UUUU... VVVV */
     VPU_H264ENC_YUV420_SEMIPLANAR = 1,          /* YYYY... UVUVUV...    */
     VPU_H264ENC_YUV422_INTERLEAVED_YUYV = 2,    /* YUYVYUYV...          */
@@ -167,36 +163,35 @@ typedef enum CODEC_TYPE {
     CODEC_BUTT,
 } CODEC_TYPE;
 
-typedef enum VPU_API_ERR{
+typedef enum VPU_API_ERR {
     VPU_API_OK                      = 0,
     VPU_API_ERR_UNKNOW              = -1,
     VPU_API_ERR_BASE                = -1000,
-    VPU_API_ERR_LIST_STREAM         = VPU_API_ERR_BASE -1,
-    VPU_API_ERR_INIT                = VPU_API_ERR_BASE -2,
-    VPU_API_ERR_VPU_CODEC_INIT      = VPU_API_ERR_BASE -3,
-    VPU_API_ERR_STREAM              = VPU_API_ERR_BASE -4,
-    VPU_API_ERR_FATAL_THREAD        = VPU_API_ERR_BASE -5,
-    VPU_API_EOS_STREAM_REACHED      = VPU_API_ERR_BASE -11,
+    VPU_API_ERR_LIST_STREAM         = VPU_API_ERR_BASE - 1,
+    VPU_API_ERR_INIT                = VPU_API_ERR_BASE - 2,
+    VPU_API_ERR_VPU_CODEC_INIT      = VPU_API_ERR_BASE - 3,
+    VPU_API_ERR_STREAM              = VPU_API_ERR_BASE - 4,
+    VPU_API_ERR_FATAL_THREAD        = VPU_API_ERR_BASE - 5,
+    VPU_API_EOS_STREAM_REACHED      = VPU_API_ERR_BASE - 11,
 
     VPU_API_ERR_BUTT,
 } VPU_API_ERR;
 
-typedef struct EncParameter
-{
-   RK_S32 width;
-   RK_S32 height;
-   RK_S32 rc_mode;
-   RK_S32 bitRate;
-   RK_S32 framerate;
-   RK_S32 qp;
-   RK_S32 enableCabac;
-   RK_S32 cabacInitIdc;
-   RK_S32 format;
-   RK_S32 intraPicRate;
-   RK_S32 framerateout;
-   RK_S32 profileIdc;
-   RK_S32 levelIdc;
-   RK_S32 reserved[3];
+typedef struct EncParameter {
+    RK_S32 width;
+    RK_S32 height;
+    RK_S32 rc_mode;
+    RK_S32 bitRate;
+    RK_S32 framerate;
+    RK_S32 qp;
+    RK_S32 enableCabac;
+    RK_S32 cabacInitIdc;
+    RK_S32 format;
+    RK_S32 intraPicRate;
+    RK_S32 framerateout;
+    RK_S32 profileIdc;
+    RK_S32 levelIdc;
+    RK_S32 reserved[3];
 } EncParameter_t;
 
 
@@ -276,7 +271,7 @@ typedef struct VpuCodecContext {
 
     RK_S32 (*encoder_sendframe)(struct VpuCodecContext *ctx, EncInputStream_t *aEncInStrm);
     RK_S32 (*encoder_getstream)(struct VpuCodecContext *ctx, EncoderOut_t *aEncOut);
-}VpuCodecContext_t;
+} VpuCodecContext_t;
 
 /* allocated vpu codec context */
 #ifdef __cplusplus
@@ -298,8 +293,8 @@ RK_S32 vpu_close_context(struct VpuCodecContext **ctx);
 typedef struct vpu_display_mem_pool vpu_display_mem_pool;
 
 struct vpu_display_mem_pool {
- 	int     (*commit_hdl)(vpu_display_mem_pool *p, int hdl, int size);
- 	void*   (*get_free)(vpu_display_mem_pool *p);
+    int     (*commit_hdl)(vpu_display_mem_pool *p, int hdl, int size);
+    void*   (*get_free)(vpu_display_mem_pool *p);
     int     (*inc_used)(vpu_display_mem_pool *p, int hdl);
     int     (*put_used)(vpu_display_mem_pool *p, int hdl);
     int     (*reset)(vpu_display_mem_pool *p);

@@ -20,7 +20,7 @@
 int os_malloc(void **memptr, size_t alignment, size_t size)
 {
     *memptr = _aligned_malloc(size, alignment);
-    return (*memptr)?(0):(-1);
+    return (*memptr) ? (0) : (-1);
 }
 
 void os_free(void *ptr)

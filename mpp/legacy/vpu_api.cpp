@@ -86,7 +86,7 @@ static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->decode_getoutframe(ctx,aDecOut);
+    return api->decode_getoutframe(ctx, aDecOut);
 }
 
 static RK_S32 vpu_api_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)
@@ -118,7 +118,7 @@ static RK_S32 vpu_api_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->encoder_getstream(ctx,aEncOut);
+    return api->encoder_getstream(ctx, aEncOut);
 }
 
 
@@ -155,7 +155,7 @@ static RK_S32 vpu_api_flush(VpuCodecContext *ctx)
     return api->flush(ctx);
 }
 
-static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType,void *param)
+static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *param)
 {
     if (ctx == NULL) {
         mpp_log("vpu_api_decode fail, input invalid");
@@ -206,7 +206,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         return 0;
     }
 
-    if (!s->vpuApiObj){
+    if (!s->vpuApiObj) {
         mpp_err("Input context has not been properly allocated and is not NULL either");
         return -1;
     }
@@ -228,7 +228,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
             mpp_free(s->extradata);
             s->extradata = NULL;
         }
-        if(s->private_data){
+        if (s->private_data) {
             mpp_free(s->private_data);
             s->private_data = NULL;
         }

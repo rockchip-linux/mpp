@@ -28,7 +28,7 @@ RK_S32 os_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
         *value = default_value;
     } else {
         char *endptr;
-        int base = (ptr[0] == '0' && ptr[1] == 'x')?(16):(10);
+        int base = (ptr[0] == '0' && ptr[1] == 'x') ? (16) : (10);
         errno = 0;
         *value = strtoul(ptr, &endptr, base);
         if (errno || (ptr == endptr)) {

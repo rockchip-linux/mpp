@@ -52,11 +52,11 @@ void _mpp_log(const char *tag, const char *fmt, ...)
         buf = msg_log_nothing;
     } else if (len == MPP_LOG_MAX_LEN) {
         buf = msg_log_warning;
-    } else if (fmt[len-1] != '\n') {
+    } else if (fmt[len - 1] != '\n') {
         char msg[MPP_LOG_MAX_LEN];
         snprintf(msg, sizeof(msg), "%s", fmt);
         msg[len]    = '\n';
-        msg[len+1]  = '\0';
+        msg[len + 1]  = '\0';
         buf = msg;
     }
 
@@ -78,11 +78,11 @@ void _mpp_err(const char *tag, const char *fmt, ...)
         buf = msg_log_nothing;
     } else if (len == MPP_LOG_MAX_LEN) {
         buf = msg_log_warning;
-    } else if (fmt[len-1] != '\n') {
+    } else if (fmt[len - 1] != '\n') {
         char msg[MPP_LOG_MAX_LEN];
         snprintf(msg, sizeof(msg), "%s", fmt);
         msg[len]    = '\n';
-        msg[len+1]  = '\0';
+        msg[len + 1]  = '\0';
         buf = msg;
     }
 

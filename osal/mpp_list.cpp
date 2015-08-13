@@ -51,7 +51,7 @@ static inline void list_node_init_with_key_and_size(mpp_list_node *node, RK_U32 
 
 static mpp_list_node* create_list(void *data, RK_S32 size, RK_U32 key)
 {
-    mpp_list_node *node = (mpp_list_node*)malloc(sizeof(mpp_list_node)+size);
+    mpp_list_node *node = (mpp_list_node*)malloc(sizeof(mpp_list_node) + size);
     if (node) {
         void *dst = (void*)(node + 1);
         list_node_init_with_key_and_size(node, key, size);

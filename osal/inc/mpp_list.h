@@ -31,7 +31,8 @@
 typedef void *(*node_destructor)(void *);
 
 struct mpp_list_node;
-class mpp_list {
+class mpp_list
+{
 public:
     mpp_list(node_destructor func);
     ~mpp_list();
@@ -77,8 +78,7 @@ private:
 extern "C" {
 #endif
 
-struct list_head
-{
+struct list_head {
     struct list_head *next, *prev;
 };
 
@@ -93,7 +93,7 @@ struct list_head
 
 #define list_for_each_safe(pos, n, head) \
     for (pos = (head)->next, n = pos->next; pos != (head); \
-            pos = n, n = pos->next)
+         pos = n, n = pos->next)
 
 #define list_entry(ptr, type, member) \
     ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
@@ -110,13 +110,13 @@ struct list_head
 
 #define list_for_each_entry_safe(pos, n, head, type, member) \
     for (pos = list_entry((head)->next, type, member),  \
-        n = list_entry(pos->member.next, type, member); \
+         n = list_entry(pos->member.next, type, member); \
          &pos->member != (head);                    \
          pos = n, n = list_entry(n->member.next, type, member))
 
 static inline void __list_add(struct list_head * _new,
-                                  struct list_head * prev,
-                                  struct list_head * next)
+                              struct list_head * prev,
+                              struct list_head * next)
 {
     next->prev = _new;
     _new->next = next;

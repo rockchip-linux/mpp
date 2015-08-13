@@ -116,7 +116,7 @@ RK_S32 VpuApi::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInS
     return 0;
 }
 
-RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx,EncoderOut_t *aEncOut)
+RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
 {
     mpp_log("%s in\n", __FUNCTION__);
     (void)ctx;
