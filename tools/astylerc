@@ -1,0 +1,34 @@
+# directory setting
+--recursive
+--exclude=../build
+--exclude=../osal/window/pthread
+
+# bracket style setting
+--style=linux
+#--style=kr
+
+# indent setting
+--indent=spaces=4
+--indent-labels
+#--indent-switches
+--indent-preprocessor
+--min-conditional-indent=0
+--max-instatement-indent=80
+
+# padding setting
+#--break-blocks
+--pad-oper
+--pad-first-paren-out
+--pad-header
+--unpad-paren
+#--align-pointer=name
+
+# formatting setting
+--keep-one-line-blocks
+--keep-one-line-statements
+--convert-tabs
+
+# other setting
+#--quiet
+--suffix=none
+--lineend=windows
