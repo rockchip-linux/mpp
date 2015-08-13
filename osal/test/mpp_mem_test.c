@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "mpp_malloc_test"
+#define MODULE_TAG "mpp_mem_test"
 
 #include "mpp_log.h"
 #include "mpp_env.h"
@@ -29,11 +29,20 @@ int main()
     mpp_set_env_u32("osal_mem_list", 1);
     tmp = mpp_malloc(int, 100);
     if (tmp) {
-        mpp_log("malloc success\n");
-        mpp_free(tmp);
+        mpp_log("malloc  success ptr 0x%p\n", tmp);
     } else {
-        mpp_log("malloc failed\n");
+        mpp_log("malloc  failed\n");
     }
+    if (tmp) {
+        tmp = mpp_realloc(tmp, int, 200);
+        if (tmp) {
+            mpp_log("realloc success ptr 0x%p\n", tmp);
+        } else {
+            mpp_log("realloc failed\n");
+        }
+    }
+    mpp_free(tmp);
+    mpp_log("mpp_mem_test done\n");
 
     return 0;
 }

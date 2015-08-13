@@ -27,6 +27,9 @@
 #define mpp_malloc(type, count)  \
     (type*)mpp_osal_malloc(MODULE_TAG, sizeof(type) * (count))
 
+#define mpp_realloc(ptr, type, count) \
+    (type*)mpp_osal_realloc(MODULE_TAG, ptr, sizeof(type) * (count))
+
 #define mpp_free(ptr) mpp_osal_free(ptr)
 
 #ifdef __cplusplus
@@ -35,6 +38,7 @@ extern "C" {
 
 void mpp_show_mem_status();
 void *mpp_osal_malloc(char *tag, size_t size);
+void *mpp_osal_realloc(char *tag, void *ptr, size_t size);
 void mpp_osal_free(void *ptr);
 
 #ifdef __cplusplus

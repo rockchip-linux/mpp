@@ -89,6 +89,44 @@ void *mpp_osal_malloc(char *tag, size_t size)
         return NULL;
 }
 
+void *mpp_osal_realloc(char *tag, void *ptr, size_t size)
+{
+    void *ret;
+
+    if (NULL == ptr)
+        return mpp_osal_malloc(tag, size);
+
+    if (0 == size)
+        return NULL;
+
+    get_osal_mem_flag();
+
+    if (osal_mem_flag & OSAL_MEM_LIST_EN) {
+        struct mem_node *pos, *n;
+        ret = NULL;
+        list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
+            if (ptr == pos->ptr) {
+                if (MPP_OK == os_realloc(ptr, &pos->ptr, RK_OSAL_MEM_ALIGN, size)) {
+                    pos->size   = size;
+                    strncpy(pos->tag, tag, sizeof(pos->tag));
+                    ret = pos->ptr;
+                } else {
+                    list_del_init(&pos->list);
+                    free(pos);
+                }
+                break;
+            }
+        }
+    } else {
+        ret = realloc(ptr, size);
+    }
+
+    if (NULL == ret)
+        mpp_err("mpp_realloc ptr 0x%p to size %d failed\n", ptr, size);
+
+    return ret;
+}
+
 void mpp_osal_free(void *ptr)
 {
     if (NULL == ptr)

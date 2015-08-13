@@ -23,6 +23,12 @@ int os_malloc(void **memptr, size_t alignment, size_t size)
     return (*memptr) ? (0) : (-1);
 }
 
+int os_realloc(void *src, void **dst, size_t alignment, size_t size)
+{
+    *dst = _aligned_realloc(src, size, alignment);
+    return (*dst) ? (0) : (-1);
+}
+
 void os_free(void *ptr)
 {
     _aligned_free(ptr);

@@ -53,7 +53,7 @@ void _mpp_log(const char *tag, const char *fmt, ...)
     } else if (len == MPP_LOG_MAX_LEN) {
         buf = msg_log_warning;
     } else if (fmt[len - 1] != '\n') {
-        char msg[MPP_LOG_MAX_LEN];
+        char msg[MPP_LOG_MAX_LEN+1];
         snprintf(msg, sizeof(msg), "%s", fmt);
         msg[len]    = '\n';
         msg[len + 1]  = '\0';
@@ -79,7 +79,7 @@ void _mpp_err(const char *tag, const char *fmt, ...)
     } else if (len == MPP_LOG_MAX_LEN) {
         buf = msg_log_warning;
     } else if (fmt[len - 1] != '\n') {
-        char msg[MPP_LOG_MAX_LEN];
+        char msg[MPP_LOG_MAX_LEN+1];
         snprintf(msg, sizeof(msg), "%s", fmt);
         msg[len]    = '\n';
         msg[len + 1]  = '\0';
