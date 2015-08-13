@@ -27,11 +27,11 @@ int main()
     void *tmp = NULL;
 
     mpp_set_env_u32("osal_mem_list", 1);
-    tmp = mpp_malloc(int, 100);
+    tmp = mpp_calloc(int, 100);
     if (tmp) {
-        mpp_log("malloc  success ptr 0x%p\n", tmp);
+        mpp_log("calloc  success ptr 0x%p\n", tmp);
     } else {
-        mpp_log("malloc  failed\n");
+        mpp_log("calloc  failed\n");
     }
     if (tmp) {
         tmp = mpp_realloc(tmp, int, 200);

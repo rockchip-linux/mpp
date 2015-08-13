@@ -89,6 +89,14 @@ void *mpp_osal_malloc(char *tag, size_t size)
         return NULL;
 }
 
+void *mpp_osal_calloc(char *tag, size_t size)
+{
+    void *ptr = mpp_osal_malloc(tag, size);
+    if (ptr)
+        memset(ptr, 0, size);
+    return ptr;
+}
+
 void *mpp_osal_realloc(char *tag, void *ptr, size_t size)
 {
     void *ret;
