@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_COMMON_H__
-#define __MPP_COMMON_H__
+#ifndef __MPP_TIME_H__
+#define __MPP_TIME_H__
 
 #include "rk_type.h"
 
@@ -40,5 +40,5 @@ RK_S64 mpp_time();
 }
 #endif
 
-#endif /*__MPP_COMMON_H__*/
+#endif /*__MPP_TIME_H__*/
 
