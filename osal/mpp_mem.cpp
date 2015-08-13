@@ -26,7 +26,7 @@
 #include "mpp_mem.h"
 #include "mpp_list.h"
 
-#include "os_malloc.h"
+#include "os_mem.h"
 
 // export configure for script detection
 #define CONFIG_OSAL_MEM_LIST        "osal_mem_list"

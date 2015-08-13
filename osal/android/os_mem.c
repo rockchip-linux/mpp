@@ -15,7 +15,7 @@
  */
 
 #include <stdlib.h>
-#include "os_malloc.h"
+#include "os_mem.h"
 
 int os_malloc(void **memptr, size_t alignment, size_t size)
 {
