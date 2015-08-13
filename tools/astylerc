@@ -18,9 +18,9 @@
 # padding setting
 #--break-blocks
 --pad-oper
---pad-first-paren-out
+#--pad-first-paren-out
 --pad-header
---unpad-paren
+#--unpad-paren
 #--align-pointer=name
 
 # formatting setting
