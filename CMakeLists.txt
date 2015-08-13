@@ -43,7 +43,7 @@ include(CheckCXXCompilerFlag)
 # ----------------------------------------------------------------------------
 # add debug define in project
 # ----------------------------------------------------------------------------
-if(NOT $(CMAKE_BUILD_TYPE) MATCHES “Release”)
+if(NOT $(CMAKE_BUILD_TYPE) MATCHES "Release")
     option(RK_DEBUG "Enable run-time debug mode(debugging)" ON)
     if(RK_DEBUG)
         add_definitions(-DRK_DEBUG)
