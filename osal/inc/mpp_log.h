@@ -40,6 +40,28 @@ RK_U32 mpp_get_log_flag();
     } while(0)
 
 /*
+ * mpp_dbg usage:
+ *
+ * in h264d module define module debug flag variable like: h265d_debug
+ * then define h265d_dbg macro as follow :
+ *
+ * extern RK_U32 h265d_debug;
+ *
+ * #define H265D_DBG_FUNCTION          (0x00000001)
+ * #define H265D_DBG_VPS               (0x00000002)
+ * #define H265D_DBG_SPS               (0x00000004)
+ * #define H265D_DBG_PPS               (0x00000008)
+ * #define H265D_DBG_SLICE_HDR         (0x00000010)
+ *
+ * #define h265d_dbg(flag, fmt, ...) mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
+ *
+ * finally use environment control the debug flag
+ *
+ * mpp_get_env_u32("h264d_debug", &h265d_debug, 0)
+ *
+ */
+
+/*
  * Send the specified message to the log
  * _mpp_log : general log function, send log to stdout
  * _mpp_err : log function for error information, send log to stderr
