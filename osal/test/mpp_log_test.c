@@ -20,22 +20,31 @@
 
 int main()
 {
+    RK_U32 flag_dbg = 0x02;
     RK_U32 flag_set = 0xffff;
     RK_U32 flag_get = 0;
 
     mpp_err("mpp log test start\n");
 
-    mpp_log("mpp log flag_set: %08x\n", mpp_get_log_level());
+    mpp_log("mpp log flag_set: %08x\n", mpp_log_get_flag());
 
     mpp_log("set flag_set to %08x\n", flag_set);
 
-    mpp_set_log_level(flag_set);
+    mpp_log_set_flag(flag_set);
 
-    flag_get = mpp_get_log_level();
+    flag_get = mpp_log_get_flag();
 
     mpp_log("mpp log flag_get: %08x\n", flag_get);
 
     mpp_assert(flag_set == flag_get);
+
+    mpp_log("try mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
+    mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
+
+    flag_dbg = 0;
+
+    mpp_log("try mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
+    mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
 
     mpp_err("mpp log log test done\n");
 

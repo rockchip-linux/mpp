@@ -21,24 +21,17 @@
 #include <stdlib.h>
 
 /*
- * C log functions
+ * mpp runtime log system usage:
+ * mpp_err is for error status message, it will print for sure.
+ * mpp_log is for important message like open/close/reset/flush, it will print too.
+ * mpp_dbg is for all optional message. it can be controlled by debug and flag.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void mpp_set_log_level(RK_U32 level);
-RK_U32 mpp_get_log_level();
 
 #define mpp_log(fmt, ...) _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__)
 #define mpp_err(fmt, ...) _mpp_err(MODULE_TAG, fmt, ## __VA_ARGS__)
 
-#define mpp_dbg(debug, flag, fmt, ...)                                  \
-    do {                                                                \
-        if (debug & flag) {                                             \
-            _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__);                  \
-        }                                                               \
-    } while(0)
+#define mpp_dbg(debug, flag, fmt, ...) \
+             _mpp_dbg(debug, flag, MODULE_TAG, fmt, ## __VA_ARGS__)
 
 /*
  * mpp_dbg usage:
@@ -61,6 +54,15 @@ RK_U32 mpp_get_log_level();
  * mpp_get_env_u32("h264d_debug", &h265d_debug, 0)
  *
  */
+/*
+ * sub-module debug flag usage example:
+ * +------+-------------------+
+ * | 8bit |      24bit        |
+ * +------+-------------------+
+ *  0~15 bit: software debug print
+ * 16~23 bit: hardware debug print
+ * 24~31 bit: information print format
+ */
 
 #define MPP_STRINGS(x)      MPP_TO_STRING(x)
 #define MPP_TO_STRING(x)    #x
@@ -74,37 +76,16 @@ RK_U32 mpp_get_log_level();
 } while (0)
 
 
-/*
- * Send the specified message to the log
- * _mpp_log : general log function, send log to stdout
- * _mpp_err : log function for error information, send log to stderr
- */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void mpp_log_set_flag(RK_U32 flag);
+RK_U32 mpp_log_get_flag();
+
 void _mpp_log(const char *tag, const char *fmt, ...);
 void _mpp_err(const char *tag, const char *fmt, ...);
-
-/*
- * debug flag usage:
- * +------+-------------------+
- * | 8bit |      24bit        |
- * +------+-------------------+
- *  0~15 bit: software debug print
- * 16~23 bit: hardware debug print
- * 24~31 bit: information print format
- */
-/*
- * dynamic debug function
- * mpp_dbg_add_flag  : add a new debug flag associated with module name
- * mpp_dbg_set_flag  : set a existing debug flag associated with module name
- * mpp_dbg_show_flag : show all existing debug flags
- */
-
-//void mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
-
-/*
- * submodules suggest to use macro as below:
- * #define h264d_dbg(flag, const char *fmt, ...) \
- *     mpp_dbg(h264d_debug, flag, fmt, ## __VA_ARGS__)
- */
+void _mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
 
 #ifdef __cplusplus
 }
