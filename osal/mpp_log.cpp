@@ -53,7 +53,7 @@ void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt, va_list 
     } else if (len == MPP_LOG_MAX_LEN) {
         buf = msg_log_warning;
     } else if (fmt[len - 1] != '\n') {
-        char msg[MPP_LOG_MAX_LEN+1];
+        char msg[MPP_LOG_MAX_LEN + 1];
         snprintf(msg, sizeof(msg), "%s", fmt);
         msg[len]    = '\n';
         msg[len + 1]  = '\0';
