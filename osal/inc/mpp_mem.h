@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_MALLOC_H__
-#define __MPP_MALLOC_H__
+#ifndef __MPP_MEM_H__
+#define __MPP_MEM_H__
 
 #include <stdlib.h>
 
@@ -54,5 +54,5 @@ void mpp_osal_free(void *ptr);
 #define snprintf            _snprintf
 #endif
 
-#endif /*__MPP_MALLOC_H__*/
+#endif /*__MPP_MEM_H__*/
 
