@@ -22,6 +22,28 @@
 
 #define VPU_API_NOPTS_VALUE          (0x8000000000000000LL)
 
+/*
+ * bit definition of ColorType in structure VPU_FRAME
+ */
+#define VPU_OUTPUT_FORMAT_TYPE_MASK                 (0x0000ffff)
+#define VPU_OUTPUT_FORMAT_ARGB8888                  (0x00000000)
+#define VPU_OUTPUT_FORMAT_ABGR8888                  (0x00000001)
+#define VPU_OUTPUT_FORMAT_RGB888                    (0x00000002)
+#define VPU_OUTPUT_FORMAT_RGB565                    (0x00000003)
+#define VPU_OUTPUT_FORMAT_RGB555                    (0x00000004)
+#define VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR         (0x00000005)
+#define VPU_OUTPUT_FORMAT_YUV420_PLANAR             (0x00000006)
+#define VPU_OUTPUT_FORMAT_YUV422                    (0x00000007)
+#define VPU_OUTPUT_FORMAT_YUV444                    (0x00000008)
+#define VPU_OUTPUT_FORMAT_YCH420                    (0x00000009)
+#define VPU_OUTPUT_FORMAT_BIT_MASK                  (0x000f0000)
+#define VPU_OUTPUT_FORMAT_BIT_8                     (0x00000000)
+#define VPU_OUTPUT_FORMAT_BIT_10                    (0x00010000)
+#define VPU_OUTPUT_FORMAT_BIT_12                    (0x00020000)
+#define VPU_OUTPUT_FORMAT_BIT_14                    (0x00030000)
+#define VPU_OUTPUT_FORMAT_BIT_16                    (0x00040000)
+
+
 typedef enum VPU_API_CMD {
     VPU_API_ENC_SETCFG,
     VPU_API_ENC_GETCFG,
