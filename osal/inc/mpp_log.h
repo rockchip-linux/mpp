@@ -18,6 +18,7 @@
 #define __MPP_LOG_H__
 
 #include "rk_type.h"
+#include <stdlib.h>
 
 /*
  * C log functions
@@ -26,17 +27,17 @@
 extern "C" {
 #endif
 
-void mpp_set_log_flag(RK_U32 flag);
-RK_U32 mpp_get_log_flag();
+void mpp_set_log_level(RK_U32 level);
+RK_U32 mpp_get_log_level();
 
 #define mpp_log(fmt, ...) _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__)
 #define mpp_err(fmt, ...) _mpp_err(MODULE_TAG, fmt, ## __VA_ARGS__)
 
-#define mpp_dbg(debug, flag, fmt, ...)   \
-    do {                                            \
-        if (debug & flag) {                         \
-            _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__);  \
-        }                                           \
+#define mpp_dbg(debug, flag, fmt, ...)                                  \
+    do {                                                                \
+        if (debug & flag) {                                             \
+            _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__);                  \
+        }                                                               \
     } while(0)
 
 /*
@@ -60,6 +61,18 @@ RK_U32 mpp_get_log_flag();
  * mpp_get_env_u32("h264d_debug", &h265d_debug, 0)
  *
  */
+
+#define MPP_STRINGS(x)      MPP_TO_STRING(x)
+#define MPP_TO_STRING(x)    #x
+
+#define mpp_assert(cond) do {                                           \
+    if (!(cond)) {                                                      \
+        mpp_err("Assertion %s failed at %s:%d\n",                       \
+               MPP_STRINGS(cond), __FILE__, __LINE__);                  \
+        abort();                                                        \
+    }                                                                   \
+} while (0)
+
 
 /*
  * Send the specified message to the log

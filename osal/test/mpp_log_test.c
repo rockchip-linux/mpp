@@ -20,19 +20,24 @@
 
 int main()
 {
-    RK_U32 flag = 0xffff;
+    RK_U32 flag_set = 0xffff;
+    RK_U32 flag_get = 0;
 
-    mpp_err("mpp error log test start\n");
+    mpp_err("mpp log test start\n");
 
-    mpp_log("mpp log flag: %08x\n", mpp_get_log_flag());
+    mpp_log("mpp log flag_set: %08x\n", mpp_get_log_level());
 
-    mpp_log("set flag to %08x\n", flag);
+    mpp_log("set flag_set to %08x\n", flag_set);
 
-    mpp_set_log_flag(flag);
+    mpp_set_log_level(flag_set);
 
-    mpp_log("mpp log flag: %08x\n", mpp_get_log_flag());
+    flag_get = mpp_get_log_level();
 
-    mpp_err("mpp error log test done\n");
+    mpp_log("mpp log flag_get: %08x\n", flag_get);
+
+    mpp_assert(flag_set == flag_get);
+
+    mpp_err("mpp log log test done\n");
 
     return 0;
 }

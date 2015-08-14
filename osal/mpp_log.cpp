@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-static RK_U32 mpp_log_flag = 0;
+static RK_U32 mpp_log_level = 0;
 static void (*mpp_log_callback)(const char*, const char*, va_list) = os_log;
 static void (*mpp_err_callback)(const char*, const char*, va_list) = os_err;
 
@@ -91,15 +91,15 @@ void _mpp_err(const char *tag, const char *fmt, ...)
     va_end(args);
 }
 
-void mpp_set_log_flag(RK_U32 flag)
+void mpp_set_log_level(RK_U32 level)
 {
-    mpp_log_flag = flag;
+    mpp_log_level = level;
     return ;
 }
 
-RK_U32 mpp_get_log_flag()
+RK_U32 mpp_get_log_level()
 {
-    return mpp_log_flag;
+    return mpp_log_level;
 }
 
 #ifdef __cplusplus
