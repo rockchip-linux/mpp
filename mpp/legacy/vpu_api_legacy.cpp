@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "vpu_api"
+#define MODULE_TAG "vpu_api_legacy"
 
 #include "mpp_log.h"
 

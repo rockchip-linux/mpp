@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define  LOG_TAG "vpu_api_legacy"
+#define MODULE_TAG "vpu_api"
 
 #include <string.h>
 
