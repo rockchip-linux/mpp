@@ -30,12 +30,14 @@
  * NOTE: POSIX Threads for Win32
  * Downloaded from http://www.sourceware.org/pthreads-win32/
  */
+#include "semaphore.h"
 #include "pthread.h"
 #pragma comment(lib, "pthreadVC2.lib")
 
 #else
 
 #include <unistd.h>
+#include <semaphore.h>
 #include <pthread.h>
 
 #endif
