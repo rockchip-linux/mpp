@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_MPI_BUFFER_H__
-#define __RK_MPI_BUFFER_H__
+#ifndef __MPP_BUFFER_H__
+#define __MPP_BUFFER_H__
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -63,4 +63,4 @@ MPP_RET mpp_buffer_pool_deinit(MppBufferPool *pool);
 }
 #endif
 
-#endif /*__RK_MPI_BUFFER_H__*/
+#endif /*__MPP_BUFFER_H__*/
