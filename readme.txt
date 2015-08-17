@@ -137,6 +137,42 @@ Here is the mpp implement overall framework:
 	|  recoder  | |  reg_gen  |    |        |
 	|           | |           |    |        |
 	+-----------+ +-----------+    +--------+
+	
+	
+Here is the Media Process Interface hierarchical structure
+MpiPacket and MpiFrame is the stream I/O data structure.
+And MpiBuffer encapsulates different buffer implement like Linux's dma-buf and Android's ion.
+This part is learned from ffmpeg.
+
+				+-------------------+            
+				|                   |            
+				|        MPI        |            
+				|                   |            
+				+---------+---------+            
+						  |                      
+						  |                      
+						  v                      
+				+---------+---------+            
+				|                   |            
+			+---+        ctx        +---+        
+			|   |                   |   |        
+			|   +-------------------+   |        
+			|                           |        
+			v                           v        
+	+-------+-------+           +-------+-------+
+	|               |           |               |
+	|     packet    |           |     frame     |
+	|               |           |               |
+	+---------------+           +-------+-------+
+										|        
+										|        
+										v        
+								+-------+-------+
+								|               |
+								|     buffer    |
+								|               |
+								+---------------+
+
 
 
 Take H.264 deocder for example. Video stream will first queued by MPI/MPP layer, MPP will send the stream to codec layer,
