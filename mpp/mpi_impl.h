@@ -45,6 +45,7 @@ extern "C" {
 #endif
 
 extern RK_U32 mpi_debug;
+void get_mpi_debug();
 
 #ifdef __cplusplus
 }

@@ -18,7 +18,13 @@
 
 #include "rk_mpi.h"
 #include "mpp_log.h"
+#include "mpp_env.h"
 #include "mpi_impl.h"
 
 RK_U32 mpi_debug = 0;
+
+void get_mpi_debug()
+{
+    mpp_env_get_u32("mpi_debug", &mpi_debug, 0);
+}
 

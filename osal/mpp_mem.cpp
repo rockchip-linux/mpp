@@ -57,11 +57,11 @@ static void get_osal_mem_flag()
     if (osal_mem_flag < 0) {
         RK_U32 val;
         osal_mem_flag = 0;
-        mpp_get_env_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
+        mpp_env_get_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_LIST_EN;
         }
-        mpp_get_env_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
+        mpp_env_get_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_STUFF_EN;
         }

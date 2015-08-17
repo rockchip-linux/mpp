@@ -24,6 +24,97 @@
 #include "mpp_mem.h"
 #include "mpi_impl.h"
 
+static MPP_RET mpi_init(MppCtx ctx, MppPacket packet)
+{
+    (void)ctx;
+    (void)packet;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
+{
+    (void)ctx;
+    (void)packet;
+    (void)frame;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
+{
+    (void)ctx;
+    (void)packet;
+    (void)frame;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
+{
+    (void)ctx;
+    (void)packet;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
+{
+    (void)ctx;
+    (void)frame;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
+{
+    (void)ctx;
+    (void)frame;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
+{
+    (void)ctx;
+    (void)packet;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_flush(MppCtx ctx)
+{
+    (void)ctx;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_control(MppCtx ctx, MPI_CMD cmd, MppParam param)
+{
+    (void)ctx;
+    (void)cmd;
+    (void)param;
+    MPI_FUNCTION_ENTER();
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
 
 MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
 {
@@ -52,9 +143,23 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
 
     memset(p,   0, sizeof(*p));
     memset(api, 0, sizeof(*api));
-    p->api      = api;
-    p->check    = p;
+    api->size               = sizeof(*api);
+    api->version            = 1;
+    api->init               = mpi_init;
+    api->decode             = mpi_decode;
+    api->encode             = mpi_encode;
+    api->decode_put_packet  = mpi_decode_put_packet;
+    api->decode_get_frame   = mpi_decode_get_frame;
+    api->encode_put_frame   = mpi_encode_put_frame;
+    api->encode_get_packet  = mpi_encode_get_packet;
+    api->flush              = mpi_flush;
+    api->control            = mpi_control;
+    p->api                  = api;
+    p->check                = p;
     *ctx = p;
+    *mpi = api;
+
+    get_mpi_debug();
 
     MPI_FUNCTION_LEAVE_OK();
     return MPP_OK;
@@ -80,7 +185,8 @@ MPP_RET mpp_deinit(MppCtx* ctx)
     if (p->api)
         mpp_free(p->api);
     if (p)
-        mpp_free(p->api);
+        mpp_free(p);
+    p = NULL;
 
     MPI_FUNCTION_LEAVE();
     return MPP_OK;

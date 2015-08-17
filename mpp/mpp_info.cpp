@@ -48,7 +48,7 @@ static RK_CHIP_TYPE chip_version(void)
 {
     RK_CHIP_TYPE type = NONE;
     char *value = NULL;
-    RK_S32 ret = mpp_get_env_str("ro.product.board", &value, NULL);
+    RK_S32 ret = mpp_env_get_str("ro.product.board", &value, NULL);
 
     if (0 == ret) {
         if (strstr(value, "rk29")) {
@@ -60,7 +60,7 @@ static RK_CHIP_TYPE chip_version(void)
         }
     }
     if (NONE == type) {
-        ret = mpp_get_env_str("ro.board.platform", &value, NULL);
+        ret = mpp_env_get_str("ro.board.platform", &value, NULL);
         if (0 == ret) {
             if (strstr(value, "rk29")) {
                 mpp_log("rk29 board found in platform property");

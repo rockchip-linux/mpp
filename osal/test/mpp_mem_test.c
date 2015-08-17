@@ -26,7 +26,7 @@ int main()
 {
     void *tmp = NULL;
 
-    mpp_set_env_u32("osal_mem_list", 1);
+    mpp_env_set_u32("osal_mem_list", 1);
     tmp = mpp_calloc(int, 100);
     if (tmp) {
         mpp_log("calloc  success ptr 0x%p\n", tmp);

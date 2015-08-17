@@ -27,8 +27,8 @@ int main()
     RK_U32 env_debug_u32 = 0x100;
     char *env_string_str = env_test_string;
 
-    mpp_set_env_u32(env_debug, env_debug_u32);
-    mpp_set_env_str(env_string, env_string_str);
+    mpp_env_set_u32(env_debug, env_debug_u32);
+    mpp_env_set_str(env_string, env_string_str);
     mpp_log("set env: %s to %u\n", env_debug, env_debug_u32);
     mpp_log("set env: %s to %s\n", env_string, env_string_str);
 
@@ -36,8 +36,8 @@ int main()
     env_string_str = NULL;
     mpp_log("clear local value to zero\n");
 
-    mpp_get_env_u32(env_debug, &env_debug_u32, 0);
-    mpp_get_env_str(env_string, &env_string_str, NULL);
+    mpp_env_get_u32(env_debug, &env_debug_u32, 0);
+    mpp_env_get_str(env_string, &env_string_str, NULL);
 
     mpp_log("get env: %s is %u\n", env_debug, env_debug_u32);
     mpp_log("get env: %s is %s\n", env_string, env_string_str);

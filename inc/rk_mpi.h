@@ -52,8 +52,8 @@ typedef void* MppCtx;
 typedef void* MppParam;
 
 typedef struct {
-    RK_U32  mpi_size;
-    RK_U32  mpi_version;
+    RK_U32  size;
+    RK_U32  version;
 
     MPP_RET (*init)(MppCtx ctx, MppPacket packet);
     // sync interface

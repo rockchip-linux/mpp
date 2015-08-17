@@ -18,7 +18,8 @@ macro(add_mpp_test module)
     endif()
 endmacro()
 
-# info system unit test
+# legacy vpu_api unit test
 add_mpp_test(vpu_api)
 
-
+# mpi unit test
+add_mpp_test(mpi)
