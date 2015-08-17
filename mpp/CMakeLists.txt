@@ -21,6 +21,8 @@ add_subdirectory(hal)
 # ----------------------------------------------------------------------------
 add_library(mpp STATIC
     mpp_info.cpp
+	mpi_impl.cpp
+	mpi.cpp
     )
 
 add_subdirectory(legacy)
