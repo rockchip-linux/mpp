@@ -14,29 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_PACKET_H__
-#define __MPP_PACKET_H__
+#ifndef __MPP_IMPL_H__
+#define __MPP_IMPL_H__
 
 #include "rk_type.h"
-#include "mpp_err.h"
 
-typedef void* MppPacket;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define MPP_PACKET_FLAG_EOS         (0x00000001)
 
 /*
- * MppPacket interface
+ * mpp_packet_imp structure
+ *
+ * data     : pointer
+ * size     : total buffer size
+ * offset   : valid data start offset
+ * length   : valid data length
+ * pts      : packet pts
+ * dts      : packet dts
  */
-MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
-MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
-MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts);
-MPP_RET mpp_packet_set_eos(MppPacket packet);
-MPP_RET mpp_packet_deinit(MppPacket *packet);
+typedef struct {
+    void   *data;
+    size_t  size;
+    size_t  offset;
+    size_t  length;
 
-#ifdef __cplusplus
-}
-#endif
+    RK_S64  pts;
+    RK_S64  dts;
 
-#endif /*__MPP_PACKET_H__*/
+    RK_U32  flag;
+} mpp_packet_impl;
+
+#endif /*__MPP_IMPL_H__*/

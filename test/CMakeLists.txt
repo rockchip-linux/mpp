@@ -21,5 +21,8 @@ endmacro()
 # legacy vpu_api unit test
 add_mpp_test(vpu_api)
 
+# mpp_packet unit test
+add_mpp_test(mpp_packet)
+
 # mpi unit test
 add_mpp_test(mpi)

@@ -186,7 +186,7 @@ MPP_RET mpp_deinit(MppCtx* ctx)
         mpp_free(p->api);
     if (p)
         mpp_free(p);
-    p = NULL;
+    *ctx = NULL;
 
     MPI_FUNCTION_LEAVE();
     return MPP_OK;
