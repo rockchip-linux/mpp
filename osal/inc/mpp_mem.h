@@ -40,9 +40,9 @@ extern "C" {
 #endif
 
 void mpp_show_mem_status();
-void *mpp_osal_malloc(char *tag, size_t size);
-void *mpp_osal_calloc(char *tag, size_t size);
-void *mpp_osal_realloc(char *tag, void *ptr, size_t size);
+void *mpp_osal_malloc(const char *tag, size_t size);
+void *mpp_osal_calloc(const char *tag, size_t size);
+void *mpp_osal_realloc(const char *tag, void *ptr, size_t size);
 void mpp_osal_free(void *ptr);
 
 #ifdef __cplusplus
