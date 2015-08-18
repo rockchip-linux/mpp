@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "mpp_malloc"
+#define MODULE_TAG "mpp_mem"
 
 #include <string.h>
 
