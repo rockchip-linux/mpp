@@ -21,6 +21,7 @@ add_subdirectory(hal)
 # ----------------------------------------------------------------------------
 add_library(mpp STATIC
     mpp_info.cpp
+	mpp_buffer.cpp
 	mpp_packet.cpp
 	mpi_impl.cpp
 	mpi.cpp

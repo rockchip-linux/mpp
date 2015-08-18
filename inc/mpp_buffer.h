@@ -31,10 +31,12 @@ typedef void* MppBufferGroup;
  *
  *              typical call flow:
  *
- *              mpp_buffer_get()        return a
- *              mpp_buffer_inc_ref(a)
- *              mpp_buffer_put(a)
- *              mpp_buffer_put(a)
+ *              mpp_buffer_group_get()  return A
+ *              mpp_buffer_get(A)       return a    ref +1 -> used
+ *              mpp_buffer_inc_ref(a)               ref +1
+ *              mpp_buffer_put(a)                   ref -1
+ *              mpp_buffer_put(a)                   ref -1 -> unused
+ *              mpp_buffer_group_put(A)
  *
  * commit mode: all buffer are commited out of mpp
  *              under this mode, buffer pool is controlled by external api
@@ -42,21 +44,20 @@ typedef void* MppBufferGroup;
  *              typical call flow:
  *
  *              ==== external allocator ====
- *              mpp_buffer_commit(a)
- *              mpp_buffer_commit(b)
+ *              mpp_buffer_group_get()  return A
+ *              mpp_buffer_commit(A, x)
+ *              mpp_buffer_commit(A, y)
  *
  *              ======= internal user ======
- *              mpp_buffer_get()        return a
- *              mpp_buffer_get()        return b
+ *              mpp_buffer_get(A)       return a
+ *              mpp_buffer_get(A)       return b
  *              mpp_buffer_put(a)
  *              mpp_buffer_put(b)
  *
  *              ==== external allocator ====
- *              mpp_buffer_commit(a)
- *              mpp_buffer_commit(b)
+ *              mpp_buffer_group_put(A)
  *
- *              NOTE: commit/remove interface required group handle to record
- *                    buffer group information
+ *              NOTE: commit interface required group handle to record group information
  */
 typedef enum {
     MPP_BUFFER_MODE_NATIVE,
@@ -75,12 +76,22 @@ typedef enum {
     MPP_BUFFER_TYPE_BUTT,
 } MppBufferType;
 
-#define mpp_buffer_commit(...)  _mpp_buffer_commit(MODULE_TAG, ## __VA_ARGS__)
-#define mpp_buffer_remove(...)  _mpp_buffer_remove(MODULE_TAG, ## __VA_ARGS__)
+typedef struct {
+    MppBufferType   type;
+    size_t          size;
+    union {
+        void        *ptr;
+        RK_S32      fd;
+    } data;
+} MppBufferCommit;
 
-#define mpp_buffer_get(...)     _mpp_buffer_get(MODULE_TAG, ## __VA_ARGS__)
-#define mpp_buffer_put(...)     _mpp_buffer_put(MODULE_TAG, ## __VA_ARGS__)
-#define mpp_buffer_inc_ref(...) _mpp_buffer_inc_ref(MODULE_TAG, ## __VA_ARGS__)
+#define mpp_buffer_commit(...)      _mpp_buffer_commit(MODULE_TAG, ## __VA_ARGS__)
+#define mpp_buffer_get(...)         _mpp_buffer_get(MODULE_TAG, ## __VA_ARGS__)
+#define mpp_buffer_put(...)         _mpp_buffer_put(MODULE_TAG, ## __VA_ARGS__)
+#define mpp_buffer_inc_ref(...)     _mpp_buffer_inc_ref(MODULE_TAG, ## __VA_ARGS__)
+
+#define mpp_buffer_group_get(...)   _mpp_buffer_group_get(MODULE_TAG, ## __VA_ARGS__)
+#define mpp_buffer_group_put(...)   _mpp_buffer_group_put(MODULE_TAG, ## __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,13 +99,16 @@ extern "C" {
 
 /*
  * MppBuffer interface
+ * these interface will change value of group and buffer so before calling functions
+ * parameter need to be checked.
  */
-MPP_RET _mpp_buffer_commit(const char *tag, MppBufferGroup *group, MppBuffer *buffer, MppBufferType type, size_t size);
-MPP_RET _mpp_buffer_remove(const char *tag, MppBufferGroup *group, MppBuffer *buffer);
-
-MPP_RET _mpp_buffer_get(const char *tag, MppBuffer *buffer, size_t size);
+MPP_RET _mpp_buffer_commit(const char *tag, MppBufferGroup group, MppBufferCommit *buffer);
+MPP_RET _mpp_buffer_get(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
 MPP_RET _mpp_buffer_put(const char *tag, MppBuffer *buffer);
 MPP_RET _mpp_buffer_inc_ref(const char *tag, MppBuffer buffer);
+
+MPP_RET _mpp_buffer_group_get(const char *tag, MppBufferGroup *group, MppBufferType type);
+MPP_RET _mpp_buffer_group_put(const char *tag, MppBufferGroup *group);
 
 #ifdef __cplusplus
 }
