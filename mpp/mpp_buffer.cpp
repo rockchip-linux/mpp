@@ -32,12 +32,12 @@ MPP_RET _mpp_buffer_get(const char *tag, MppBufferGroup group, MppBuffer *buffer
     return MPP_OK;
 }
 
-MPP_RET _mpp_buffer_put(MppBuffer *buffer)
+MPP_RET mpp_buffer_put(MppBuffer *buffer)
 {
     return MPP_OK;
 }
 
-MPP_RET _mpp_buffer_inc_ref(MppBuffer buffer)
+MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
 {
     return MPP_OK;
 }
@@ -55,7 +55,7 @@ MPP_RET _mpp_buffer_group_get(const char *tag, MppBufferGroup *group, MppBufferT
     return mpp_buffer_group_create(&p, tag, type);
 }
 
-MPP_RET _mpp_buffer_group_put(MppBufferGroup *group)
+MPP_RET mpp_buffer_group_put(MppBufferGroup *group)
 {
     return MPP_OK;
 }

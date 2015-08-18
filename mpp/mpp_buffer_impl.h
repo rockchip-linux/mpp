@@ -20,7 +20,6 @@
 #include "mpp_list.h"
 #include "mpp_common.h"
 #include "mpp_buffer.h"
-#include "mpp_thread.h"
 
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
 

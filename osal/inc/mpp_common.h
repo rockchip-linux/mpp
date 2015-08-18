@@ -35,8 +35,8 @@
 #define MPP_VSWAP(a, b)         { a ^= b; b ^= a; a ^= b; }
 
 
-#if defined(_WIN32) && !defined(__MINGW32CE__)
 #include <stdio.h>
+#if defined(_WIN32) && !defined(__MINGW32CE__)
 #define snprintf    _snprintf
 #define fseeko      _fseeki64
 #elif defined(__MINGW32CE__)

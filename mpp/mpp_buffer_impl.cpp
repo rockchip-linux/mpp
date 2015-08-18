@@ -20,8 +20,6 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_common.h"
-#include "mpp_buffer.h"
 #include "mpp_buffer_impl.h"
 
 #define MPP_BUFFER_SERVICE_LOCK()       pthread_mutex_lock(&services.lock)

@@ -87,11 +87,7 @@ typedef struct {
 
 #define mpp_buffer_commit(...)      _mpp_buffer_commit(MODULE_TAG, ## __VA_ARGS__)
 #define mpp_buffer_get(...)         _mpp_buffer_get(MODULE_TAG, ## __VA_ARGS__)
-#define mpp_buffer_put(...)         _mpp_buffer_put(## __VA_ARGS__)
-#define mpp_buffer_inc_ref(...)     _mpp_buffer_inc_ref(## __VA_ARGS__)
-
 #define mpp_buffer_group_get(...)   _mpp_buffer_group_get(MODULE_TAG, ## __VA_ARGS__)
-#define mpp_buffer_group_put(...)   _mpp_buffer_group_put(## __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,11 +100,11 @@ extern "C" {
  */
 MPP_RET _mpp_buffer_commit(const char *tag, MppBufferGroup group, MppBufferCommit *buffer);
 MPP_RET _mpp_buffer_get(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
-MPP_RET _mpp_buffer_put(MppBuffer *buffer);
-MPP_RET _mpp_buffer_inc_ref(MppBuffer buffer);
+MPP_RET mpp_buffer_put(MppBuffer *buffer);
+MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
 
 MPP_RET _mpp_buffer_group_get(const char *tag, MppBufferGroup *group, MppBufferType type);
-MPP_RET _mpp_buffer_group_put(MppBufferGroup *group);
+MPP_RET mpp_buffer_group_put(MppBufferGroup *group);
 
 #ifdef __cplusplus
 }
