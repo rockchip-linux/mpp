@@ -49,10 +49,5 @@ void mpp_osal_free(void *ptr);
 }
 #endif
 
-// buffer manipulation function
-#if defined(_WIN32)
-#define snprintf            _snprintf
-#endif
-
 #endif /*__MPP_MEM_H__*/
 

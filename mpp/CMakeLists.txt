@@ -21,10 +21,11 @@ add_subdirectory(hal)
 # ----------------------------------------------------------------------------
 add_library(mpp STATIC
     mpp_info.cpp
-	mpp_buffer.cpp
-	mpp_packet.cpp
-	mpi_impl.cpp
-	mpi.cpp
+    mpp_buffer_impl.cpp
+    mpp_buffer.cpp
+    mpp_packet.cpp
+    mpi_impl.cpp
+    mpi.cpp
     )
 
 add_subdirectory(legacy)

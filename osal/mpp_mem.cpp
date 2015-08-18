@@ -25,6 +25,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_list.h"
+#include "mpp_common.h"
 
 #include "os_mem.h"
 
@@ -49,7 +50,7 @@ struct mem_node {
     size_t size;
 
     /* memory node extra information */
-    char tag[32];
+    char tag[MPP_TAG_SIZE];
 };
 
 static void get_osal_mem_flag()

@@ -19,6 +19,8 @@
 
 #include "rk_type.h"
 
+#define MPP_TAG_SIZE            32
+
 #define MPP_MAX(a, b)           ((a) > (b) ? (a) : (b))
 #define MPP_MAX3(a, b, c)       MPP_MAX(MPP_MAX(a,b),c)
 #define MPP_MAX4(a, b, c, d)    MPP_MAX((a), MPP_MAX3((b), (c), (d)))
@@ -34,11 +36,12 @@
 
 
 #if defined(_WIN32) && !defined(__MINGW32CE__)
-#define fseeko _fseeki64
+#include <stdio.h>
+#define snprintf    _snprintf
+#define fseeko      _fseeki64
 #elif defined(__MINGW32CE__)
-#define fseeko  fseeko64
+#define fseeko      fseeko64
 #endif
-
 
 #ifdef __cplusplus
 extern "C" {

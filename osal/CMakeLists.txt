@@ -12,8 +12,8 @@ endif()
 include_directories(.)
 
 add_library(osal STATIC
-	mpp_common.cpp
-	mpp_time.cpp
+    mpp_common.cpp
+    mpp_time.cpp
     mpp_list.cpp
     mpp_mem.cpp
     mpp_env.cpp

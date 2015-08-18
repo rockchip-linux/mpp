@@ -20,8 +20,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_list.h"
-#include "mpp_buffer.h"
+#include "mpp_buffer_impl.h"
 
 MPP_RET _mpp_buffer_commit(const char *tag, MppBufferGroup group, MppBufferCommit *buffer)
 {
@@ -33,12 +32,12 @@ MPP_RET _mpp_buffer_get(const char *tag, MppBufferGroup group, MppBuffer *buffer
     return MPP_OK;
 }
 
-MPP_RET _mpp_buffer_put(const char *tag, MppBuffer *buffer)
+MPP_RET _mpp_buffer_put(MppBuffer *buffer)
 {
     return MPP_OK;
 }
 
-MPP_RET _mpp_buffer_inc_ref(const char *tag, MppBuffer buffer)
+MPP_RET _mpp_buffer_inc_ref(MppBuffer buffer)
 {
     return MPP_OK;
 }
@@ -46,10 +45,17 @@ MPP_RET _mpp_buffer_inc_ref(const char *tag, MppBuffer buffer)
 
 MPP_RET _mpp_buffer_group_get(const char *tag, MppBufferGroup *group, MppBufferType type)
 {
-    return MPP_OK;
+    if (NULL == group || type >= MPP_BUFFER_TYPE_BUTT) {
+        mpp_err("mpp_buffer_group_get input invalid group %p type %d\n",
+                group, type);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppBufferGroupImpl *p;
+    return mpp_buffer_group_create(&p, tag, type);
 }
 
-MPP_RET _mpp_buffer_group_put(const char *tag, MppBufferGroup *group)
+MPP_RET _mpp_buffer_group_put(MppBufferGroup *group)
 {
     return MPP_OK;
 }
