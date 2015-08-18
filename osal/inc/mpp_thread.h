@@ -40,6 +40,10 @@
 #include <semaphore.h>
 #include <pthread.h>
 
+#if defined(ANDROID)
+#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP PTHREAD_RECURSIVE_MUTEX_INITIALIZER
+#endif
+
 #endif
 
 #endif /*__MPP_THREAD_H__*/

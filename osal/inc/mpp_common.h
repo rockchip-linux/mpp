@@ -43,10 +43,6 @@
 #define fseeko      fseeko64
 #endif
 
-#if defined(ANDROID)
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP PTHREAD_RECURSIVE_MUTEX_INITIALIZER
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
