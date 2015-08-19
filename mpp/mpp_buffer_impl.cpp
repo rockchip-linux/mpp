@@ -20,7 +20,6 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_allocator.h"
 #include "mpp_buffer_impl.h"
 
 #define MPP_BUFFER_SERVICE_LOCK()       pthread_mutex_lock(&services.lock)
@@ -243,6 +242,8 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
             break;
     } while (p->group_id != services.group_count);
 
+    mpp_alloctor_get(&p->allocator, &p->api);
+
     MPP_BUFFER_SERVICE_UNLOCK();
     *group = p;
 
@@ -273,6 +274,8 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
             list_add_tail(&pos->list_status, &services.list_orphan);
         }
     }
+
+    mpp_alloctor_put(&p->allocator);
 
     list_del_init(&p->list_group);
     services.group_count--;

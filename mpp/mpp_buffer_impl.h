@@ -19,7 +19,7 @@
 
 #include "mpp_list.h"
 #include "mpp_common.h"
-#include "mpp_buffer.h"
+#include "mpp_allocator.h"
 
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
 
@@ -52,6 +52,9 @@ struct MppBufferGroupImpl_t {
     MppBufferType       type;
     size_t              limit;
     size_t              usage;
+
+    MppAllocator        allocator;
+    MppAllocatorApi     *api;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;

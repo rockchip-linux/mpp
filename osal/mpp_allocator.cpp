@@ -115,6 +115,9 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api)
     pthread_mutex_init(&palloc->lock, &attr);
     pthread_mutexattr_destroy(&attr);
 
+    *allocator  = palloc;
+    *api        = papi;
+
     return MPP_OK;
 }
 
