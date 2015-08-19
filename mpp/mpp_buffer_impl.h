@@ -67,12 +67,35 @@ extern "C" {
 
 extern RK_U32 mpp_buffer_debug;
 
-MPP_RET mpp_buffer_init(MppBufferImpl **buffer, const char *tag, RK_U32 group_id, size_t size, MppBufferData *data);
-MPP_RET mpp_buffer_deinit(MppBufferImpl *buffer);
+/*
+ *  mpp_buffer_create       : create a unused buffer with parameter tag/size/data
+ *                            buffer will be register to unused list
+ *
+ *  mpp_buffer_destroy      : destroy a buffer, it must be on unused status
+ *
+ *  mpp_buffer_get_unused   : get unused buffer with size. it will first search
+ *                            the unused list. if failed it will create on from
+ *                            group allocator.
+ *
+ *  mpp_buffer_ref_inc      : increase buffer's reference counter. if it is unused
+ *                            then it will be moved to used list.
+ *
+ *  mpp_buffer_ref_dec      : decrease buffer's reference counter. if the reference
+ *                            reduce to zero buffer will be moved to unused list.
+ *
+ * normal call flow will be like this:
+ *
+ * mpp_buffer_create        - create a unused buffer
+ * mpp_buffer_get_unused    - get the unused buffer
+ * mpp_buffer_ref_inc/dec   - use the buffer
+ * mpp_buffer_destory       - destroy the buffer
+ */
+MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBufferData *data);
+MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
-// TODO: get unused is a block or wait function
 
+// TODO: get unused is a block or wait function
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferType type);

@@ -103,12 +103,11 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
     return ret;
 }
 
-MPP_RET mpp_buffer_init(MppBufferImpl **buffer, const char *tag, RK_U32 group_id, size_t size, MppBufferData *data)
+MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBufferData *data)
 {
     MppBufferImpl *p = mpp_malloc(MppBufferImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_buffer_init failed to allocate context\n");
-        *buffer = NULL;
+        mpp_err("mpp_buffer_create failed to allocate context\n");
         return MPP_ERR_MALLOC;
     }
 
@@ -139,11 +138,10 @@ MPP_RET mpp_buffer_init(MppBufferImpl **buffer, const char *tag, RK_U32 group_id
 
     MPP_BUFFER_SERVICE_UNLOCK();
 
-    *buffer = p;
     return (p) ? (MPP_OK) : (MPP_NOK);
 }
 
-MPP_RET mpp_buffer_deinit(MppBufferImpl *buffer)
+MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 {
     MPP_BUFFER_SERVICE_LOCK();
 

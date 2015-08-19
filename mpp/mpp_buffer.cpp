@@ -37,9 +37,7 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferCommit *info)
         return MPP_ERR_UNKNOW;
     }
 
-    MppBufferImpl *buffer;
-
-    return mpp_buffer_init(&buffer, NULL, p->group_id, info->size, &info->data);
+    return mpp_buffer_create(NULL, p->group_id, info->size, &info->data);
 }
 
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size)
@@ -55,7 +53,8 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
     MppBufferImpl *buf = mpp_buffer_get_unused(tmp, size);
     if (NULL == buf) {
         // if failed try init a new buffer
-        mpp_buffer_init(&buf, tag, tmp->group_id, size, NULL);
+        mpp_buffer_create(tag, tmp->group_id, size, NULL);
+        mpp_buffer_get_unused(tmp, size);
     }
     *buffer = buf;
     return (buf) ? (MPP_OK) : (MPP_NOK);
