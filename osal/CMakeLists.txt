@@ -12,12 +12,14 @@ endif()
 include_directories(.)
 
 add_library(osal STATIC
+    mpp_allocator.cpp
     mpp_common.cpp
     mpp_time.cpp
     mpp_list.cpp
     mpp_mem.cpp
     mpp_env.cpp
     mpp_log.cpp
+    ${OS_DIR}/os_allocator.c
     ${OS_DIR}/os_mem.c
     ${OS_DIR}/os_env.c
     ${OS_DIR}/os_log.c

@@ -20,6 +20,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_allocator.h"
 #include "mpp_buffer_impl.h"
 
 #define MPP_BUFFER_SERVICE_LOCK()       pthread_mutex_lock(&services.lock)
@@ -36,8 +37,7 @@ typedef struct {
     struct list_head    list_orphan;
 } MppBufferService;
 
-static MppBufferService services =
-{
+static MppBufferService services = {
     PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
     0,
     0,

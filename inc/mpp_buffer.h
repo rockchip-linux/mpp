@@ -25,6 +25,7 @@
  * buffer group may need to set a default group size limit
  */
 #define SZ_1K           (1024)
+#define SZ_4K           (SZ_1K*4)
 #define SZ_1M           (SZ_1K*SZ_1K)
 #define SZ_2M           (SZ_1M*2)
 #define SZ_4M           (SZ_1M*4)
