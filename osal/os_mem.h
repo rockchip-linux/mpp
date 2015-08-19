@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __OS_MALLOC_H__
-#define __OS_MALLOC_H__
+#ifndef __OS_MEM_H__
+#define __OS_MEM_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +29,6 @@ void os_free(void *ptr);
 }
 #endif
 
-#endif /*__OS_MALLOC_H__*/
+#endif /*__OS_MEM_H__*/
 
 
