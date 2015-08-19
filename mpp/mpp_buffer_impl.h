@@ -30,25 +30,19 @@
 #define MPP_BUF_FUNCTION_LEAVE_OK()     mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s success\n", __FUNCTION__)
 #define MPP_BUF_FUNCTION_LEAVE_FAIL()   mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s failed\n", __FUNCTION__)
 
-typedef union  MppBufferData_t          MppBufferData;
 typedef struct MppBufferImpl_t          MppBufferImpl;
 typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
 
-union  MppBufferData_t {
-    void    *ptr;
-    RK_S32  fd;
-};
-
+// use index instead of pointer to avoid invalid pointer
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
-    // use index instead of pointer to avoid invalid pointer
     RK_U32              group_id;
-    MppBufferType       type;
-
     size_t              size;
     MppBufferData       data;
-    RK_S32              ref_count;
 
+    // used flag is for used/unused list detection
+    RK_U32              used;
+    RK_S32              ref_count;
     struct list_head    list_status;
 };
 
@@ -56,6 +50,8 @@ struct MppBufferGroupImpl_t {
     char                tag[MPP_TAG_SIZE];
     RK_U32              group_id;
     MppBufferType       type;
+    size_t              limit;
+    size_t              usage;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
@@ -71,8 +67,17 @@ extern "C" {
 
 extern RK_U32 mpp_buffer_debug;
 
-MPP_RET mpp_buffer_group_create(MppBufferGroupImpl **group, const char *tag, MppBufferType type);
-MPP_RET mpp_buffer_group_destroy(MppBufferGroupImpl *p);
+MPP_RET mpp_buffer_init(MppBufferImpl **buffer, const char *tag, RK_U32 group_id, size_t size, MppBufferData *data);
+MPP_RET mpp_buffer_deinit(MppBufferImpl *buffer);
+MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
+MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
+// TODO: get unused is a block or wait function
+
+MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
+
+MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferType type);
+MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
+MPP_RET mpp_buffer_group_limit_reset(MppBufferGroupImpl *p, size_t limit);
 
 #ifdef __cplusplus
 }

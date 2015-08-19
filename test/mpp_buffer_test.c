@@ -88,7 +88,7 @@ int main()
     }
 
     if (group)
-        mpp_buffer_group_put(group);
+        mpp_buffer_group_put(&group);
 
     mpp_log("mpp_buffer_test success\n");
     return ret;

@@ -24,9 +24,10 @@ typedef enum {
     MPP_SUCCESS                 = RK_SUCCESS,
     MPP_OK                      = RK_OK,
 
-    MPP_ERR_UNKNOW              = -1,
-    MPP_ERR_NULL_PTR            = -2,
-    MPP_ERR_MALLOC              = -3,
+    MPP_NOK                     = -1,
+    MPP_ERR_UNKNOW              = -2,
+    MPP_ERR_NULL_PTR            = -3,
+    MPP_ERR_MALLOC              = -4,
 
     MPP_ERR_BASE                = -1000,
 
