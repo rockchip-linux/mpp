@@ -23,10 +23,10 @@
 extern "C" {
 #endif
 
-int os_allocator_open(void **ctx, size_t alignment);
-int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size);
-void os_allocator_free(void *ctx, MppBufferData *data);
-void os_allocator_close(void *ctx);
+MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type);
+MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size);
+MPP_RET os_allocator_free(void *ctx, MppBufferData *data);
+MPP_RET os_allocator_close(void *ctx);
 
 #ifdef __cplusplus
 }

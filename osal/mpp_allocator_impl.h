@@ -18,9 +18,11 @@
 #define __MPP_ALLOCATOR_IMPL_H__
 
 #include "mpp_thread.h"
+#include "mpp_buffer.h"
 
 typedef struct {
     pthread_mutex_t lock;
+    MppBufferType   type;
     size_t          alignment;
     void            *allocator;
     void            *api;

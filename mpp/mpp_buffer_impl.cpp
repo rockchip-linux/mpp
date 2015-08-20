@@ -284,7 +284,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
             break;
     } while (p->group_id != service.group_count);
 
-    mpp_alloctor_get(&p->allocator, &p->alloc_api);
+    mpp_alloctor_get(&p->allocator, &p->alloc_api, type);
 
     MPP_BUFFER_SERVICE_UNLOCK();
     *group = p;

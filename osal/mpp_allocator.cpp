@@ -36,10 +36,10 @@ MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferData *data, size_t 
 
     MppAllocatorImpl *palloc = (MppAllocatorImpl *)allocator;
     MPP_ALLOCATOR_LOCK(palloc);
-    int ret = os_allocator_alloc(palloc->allocator, data, size);
+    MPP_RET ret = os_allocator_alloc(palloc->allocator, data, size);
     MPP_ALLOCATOR_UNLOCK(palloc);
 
-    return (0 == ret) ? (MPP_OK) : (MPP_NOK);
+    return ret;
 }
 
 MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData *data)
@@ -58,11 +58,11 @@ MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData *data)
     return MPP_OK;
 }
 
-MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api)
+MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
 {
-    if (NULL == allocator || NULL == api) {
-        mpp_err("mpp_alloctor_get invalid input: buffer %p api %p\n",
-                allocator, api);
+    if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
+        mpp_err("mpp_alloctor_get invalid input: buffer %p api %p type %d\n",
+                allocator, api, type);
         return MPP_ERR_UNKNOW;
     }
 
@@ -80,13 +80,13 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api)
     }
 
     palloc->alignment   = SZ_4K;
-    os_allocator_open(&palloc->allocator, palloc->alignment);
+    os_allocator_open(&palloc->allocator, palloc->alignment, type);
 
     papi->size      = sizeof(papi->size);
     papi->version   = 1;
     papi->alloc     = mpp_allocator_alloc;
     papi->free      = mpp_allocator_free;
-    palloc->api         = papi;
+    palloc->api     = papi;
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);

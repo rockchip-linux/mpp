@@ -154,7 +154,7 @@ int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
 
     p = (allocator_ion *)ctx;
 
-    return os_malloc(&data->ptr, p->alignment, size);
+    return (MPP_RET)os_malloc(&data->ptr, p->alignment, size);
 }
 
 void os_allocator_free(void *ctx, MppBufferData *data)

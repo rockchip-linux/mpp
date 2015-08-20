@@ -34,7 +34,7 @@ typedef struct {
 extern "C" {
 #endif
 
-MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api);
+MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type);
 MPP_RET mpp_alloctor_put(MppAllocator *allocator);
 
 #ifdef __cplusplus
