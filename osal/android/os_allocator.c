@@ -25,9 +25,10 @@
 #include "mpp_log.h"
 
 typedef struct {
-    RK_S32 ion_device;
-    RK_U32 alignment;
-} allocator_ion;
+    MppBufferType   type;
+    RK_S32          ion_device;
+    RK_U32          alignment;
+} allocator_impl;
 
 static int ion_open()
 {
@@ -87,7 +88,6 @@ static int ion_free(int fd, ion_user_handle_t handle)
 
 static int ion_share(int fd, ion_user_handle_t handle, int *share_fd)
 {
-    int map_fd;
     int ret;
     struct ion_fd_data data = {
         .handle = handle,
@@ -121,64 +121,125 @@ static int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask
     return ret;
 }
 
-int os_allocator_open(void **ctx, size_t alignment)
+MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
 {
-    allocator_ion *p = NULL;
+    allocator_impl *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_open Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_malloc(allocator_ion, 1);
+    p = mpp_malloc(allocator_impl, 1);
     if (NULL == p) {
         *ctx = NULL;
         mpp_err("os_allocator_open Android failed to allocate context\n");
         return MPP_ERR_MALLOC;
     }
 
-    p->ion_device   = ion_open();
-    p->alignment    = alignment;
+    switch (type) {
+    case MPP_BUFFER_TYPE_NORMAL :
+    case MPP_BUFFER_TYPE_ION : {
+        p = mpp_malloc(allocator_impl, 1);
+        if (NULL == p) {
+            *ctx = NULL;
+            mpp_err("os_allocator_open Android failed to allocate context\n");
+            return MPP_ERR_MALLOC;
+        }
+
+        p->alignment = alignment;
+        p->type      = type;
+        if (MPP_BUFFER_TYPE_ION == type)
+            p->ion_device   = ion_open();
+    } break;
+    default : {
+        mpp_err("os_allocator_open Window do not accept type %d\n");
+    } break;
+    }
+
     *ctx = p;
     return 0;
 }
 
-int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
+MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
 {
-    allocator_ion *p = NULL;
+    MPP_RET ret = MPP_OK;
+    allocator_impl *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_ion *)ctx;
+    p = (allocator_impl *)ctx;
 
-    return (MPP_RET)os_malloc(&data->ptr, p->alignment, size);
+    switch (p->type) {
+    case MPP_BUFFER_TYPE_NORMAL : {
+        ret = os_malloc(&data->ptr, p->alignment, size);
+    } break;
+    case MPP_BUFFER_TYPE_ION : {
+        ret = ion_alloc_fd(p->ion_device, size, p->alignment, ION_HEAP_TYPE_CARVEOUT, 0, &data->fd);
+    } break;
+    default : {
+        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
+        ret = MPP_ERR_UNKNOW;
+    } break;
+    }
+    return ret;
 }
 
-void os_allocator_free(void *ctx, MppBufferData *data)
+MPP_RET os_allocator_free(void *ctx, MppBufferData *data)
 {
-    allocator_ion *p = NULL;
+    MPP_RET ret = MPP_OK;
+    allocator_impl *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
-        return ;
+        return MPP_ERR_NULL_PTR;
     }
 
-    os_free(data->ptr);
+    p = (allocator_impl *)ctx;
+
+    switch (p->type) {
+    case MPP_BUFFER_TYPE_NORMAL : {
+        os_free(data->ptr);
+    } break;
+    case MPP_BUFFER_TYPE_ION : {
+        close(data->fd);
+    } break;
+    default : {
+        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
+        ret = MPP_ERR_UNKNOW;
+    } break;
+    }
+
+    return ret;
 }
 
-void os_allocator_close(void *ctx)
+MPP_RET os_allocator_close(void *ctx)
 {
-    allocator_ion *p = NULL;
+    MPP_RET ret = MPP_OK;
+    allocator_impl *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
-        return ;
+        return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_ion *)ctx;
-    ion_close(p->ion_device);
+    p = (allocator_impl *)ctx;
+
+    switch (p->type) {
+    case MPP_BUFFER_TYPE_NORMAL : {
+    } break;
+    case MPP_BUFFER_TYPE_ION : {
+        ion_close(p->ion_device);
+    } break;
+    default : {
+        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
+        ret = MPP_ERR_UNKNOW;
+    } break;
+    }
+
+    return ret;
 }
 

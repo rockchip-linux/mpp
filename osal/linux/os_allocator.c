@@ -50,6 +50,7 @@ MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
         }
 
         p->alignment = alignment;
+        p->type      = type;
     } break;
     default : {
         mpp_err("os_allocator_open Window do not accept type %d\n");

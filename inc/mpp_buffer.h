@@ -143,7 +143,7 @@ typedef enum {
 typedef union  MppBufferData_t          MppBufferData;
 union  MppBufferData_t {
     void    *ptr;
-    RK_S32  fd;
+    int     fd;
 };
 
 typedef struct {
