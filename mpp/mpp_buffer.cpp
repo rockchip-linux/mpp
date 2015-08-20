@@ -85,7 +85,7 @@ MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
                                        MppBufferGroup *group, MppBufferType type)
 {
     if (NULL == group ||
-        type >= MPP_BUFFER_MODE_BUTT ||
+        mode >= MPP_BUFFER_MODE_BUTT ||
         type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err("mpp_buffer_group_get input invalid group %p mode %d type %d\n",
                 group, mode, type);
