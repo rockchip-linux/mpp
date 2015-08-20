@@ -18,6 +18,13 @@
 #include "os_mem.h"
 #include "os_allocator.h"
 
+int os_allocator_open(void **ctx)
+{
+    if (ctx)
+        *ctx = NULL;
+    return 0;
+}
+
 int os_allocator_alloc(void *ctx, MppBufferData *data, size_t alignment, size_t size)
 {
     (void) ctx;
@@ -28,5 +35,10 @@ void os_allocator_free(void *ctx, MppBufferData *data)
 {
     (void) ctx;
     os_free(data->ptr);
+}
+
+void os_allocator_close(void *ctx)
+{
+    (void) ctx;
 }
 
