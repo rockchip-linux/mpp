@@ -21,23 +21,26 @@
 #include "mpp_log.h"
 #include "mpp_buffer.h"
 
-#define MPP_BUFFER_TEST_SIZE    1024
-#define MPP_BUFFER_TEST_COUNT   10
+#define MPP_BUFFER_TEST_SIZE            (SZ_1K*4)
+#define MPP_BUFFER_TEST_COMMIT_COUNT    10
+#define MPP_BUFFER_TEST_NORMAL_COUNT    10
 
 int main()
 {
     MPP_RET ret = MPP_OK;
     MppBufferCommit commit;
     MppBufferGroup group = NULL;
-    MppBuffer buffer[MPP_BUFFER_TEST_COUNT];
-    void *ptr[MPP_BUFFER_TEST_COUNT];
+    MppBuffer commit_buffer[MPP_BUFFER_TEST_COMMIT_COUNT];
+    void *commit_ptr[MPP_BUFFER_TEST_COMMIT_COUNT];
+    MppBuffer normal_buffer[MPP_BUFFER_TEST_NORMAL_COUNT];
     size_t size = MPP_BUFFER_TEST_SIZE;
     RK_S32 i;
 
     mpp_log("mpp_buffer_test start\n");
 
-    memset(ptr,    0, sizeof(ptr));
-    memset(buffer, 0, sizeof(buffer));
+    memset(commit_ptr,    0, sizeof(commit_ptr));
+    memset(commit_buffer, 0, sizeof(commit_buffer));
+    memset(normal_buffer, 0, sizeof(normal_buffer));
 
     ret = mpp_buffer_group_get(&group, MPP_BUFFER_TYPE_NORMAL);
     if (MPP_OK != ret) {
@@ -45,17 +48,19 @@ int main()
         goto MPP_BUFFER_failed;
     }
 
+    mpp_log("mpp_buffer_test commit mode start\n");
+
     commit.type = MPP_BUFFER_TYPE_NORMAL;
     commit.size = size;
 
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        ptr[i] = malloc(size);
-        if (NULL == ptr[i]) {
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        commit_ptr[i] = malloc(size);
+        if (NULL == commit_ptr[i]) {
             mpp_err("mpp_buffer_test malloc failed\n");
             goto MPP_BUFFER_failed;
         }
 
-        commit.data.ptr = ptr[i];
+        commit.data.ptr = commit_ptr[i];
 
         ret = mpp_buffer_commit(group, &commit);
         if (MPP_OK != ret) {
@@ -64,28 +69,50 @@ int main()
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        ret = mpp_buffer_get(group, &buffer[i], size);
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        ret = mpp_buffer_get(group, &commit_buffer[i], size);
         if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_get failed\n");
+            mpp_err("mpp_buffer_test mpp_buffer_get commit mode failed\n");
             goto MPP_BUFFER_failed;
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        ret = mpp_buffer_put(&buffer[i]);
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        ret = mpp_buffer_put(&commit_buffer[i]);
         if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_put failed\n");
+            mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
             goto MPP_BUFFER_failed;
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        if (ptr[i]) {
-            free(ptr[i]);
-            ptr[i] = NULL;
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        if (commit_ptr[i]) {
+            free(commit_ptr[i]);
+            commit_ptr[i] = NULL;
         }
     }
+
+    mpp_log("mpp_buffer_test commit mode success\n");
+
+    mpp_log("mpp_buffer_test normal mode start\n");
+
+    for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
+        ret = mpp_buffer_get(group, &normal_buffer[i], (i+1)*SZ_1K);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_buffer_test mpp_buffer_get mode normal failed\n");
+            goto MPP_BUFFER_failed;
+        }
+    }
+
+    for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
+        ret = mpp_buffer_put(&normal_buffer[i]);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_buffer_test mpp_buffer_get mode normal failed\n");
+            goto MPP_BUFFER_failed;
+        }
+    }
+
+    mpp_log("mpp_buffer_test normal mode success\n");
 
     if (group)
         mpp_buffer_group_put(&group);
@@ -94,14 +121,14 @@ int main()
     return ret;
 
 MPP_BUFFER_failed:
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        mpp_buffer_put(&buffer[i]);
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        mpp_buffer_put(&commit_buffer[i]);
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COUNT; i++) {
-        if (ptr[i]) {
-            free(ptr[i]);
-            ptr[i] = NULL;
+    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+        if (commit_ptr[i]) {
+            free(commit_ptr[i]);
+            commit_ptr[i] = NULL;
         }
     }
 

@@ -23,8 +23,8 @@
 extern "C" {
 #endif
 
-int os_allocator_open(void **ctx);
-int os_allocator_alloc(void *ctx, MppBufferData *data, size_t alignment, size_t size);
+int os_allocator_open(void **ctx, size_t alignment);
+int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size);
 void os_allocator_free(void *ctx, MppBufferData *data);
 void os_allocator_close(void *ctx);
 

@@ -54,7 +54,7 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
     if (NULL == buf) {
         // if failed try init a new buffer
         mpp_buffer_create(tag, tmp->group_id, size, NULL);
-        mpp_buffer_get_unused(tmp, size);
+        buf = mpp_buffer_get_unused(tmp, size);
     }
     *buffer = buf;
     return (buf) ? (MPP_OK) : (MPP_NOK);

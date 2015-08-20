@@ -15,13 +15,34 @@
  */
 
 #include <stdlib.h>
+#include <ion/ion.h>
+
 #include "os_mem.h"
 #include "os_allocator.h"
 
-int os_allocator_open(void **ctx)
+#include "mpp_mem.h"
+#include "mpp_log.h"
+
+typedef struct {
+    RK_S32 ion_client;
+    RK_U32 align;
+} allocator_ion;
+
+int os_allocator_open(void **ctx, size_t alignment)
 {
-    if (ctx)
+    if (NULL == ctx) {
+        mpp_err("os_allocator_open Android do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    allocator_ion *p = mpp_malloc(allocator_ion, 1);
+    if (NULL == p) {
         *ctx = NULL;
+        mpp_err("os_allocator_open Android failed to allocate context\n");
+        return MPP_ERR_MALLOC;
+    }
+    p->ion_client =
+    *ctx = p;
     return 0;
 }
 

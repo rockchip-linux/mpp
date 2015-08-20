@@ -139,25 +139,28 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBuff
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (group) {
         if (NULL == data) {
-            group->alloc_api->alloc(group->allocator, &data, size);
+            MppBufferData tmp;
+            MPP_RET ret = group->alloc_api->alloc(group->allocator, &tmp, size);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", size);
+                mpp_free(p);
+                MPP_BUFFER_SERVICE_UNLOCK();
+                return MPP_ERR_MALLOC;
+            }
+
+            p->data = tmp;
             p->mode = MPP_BUFFER_MODE_NATIVE;
         } else {
+            p->data = *data;
             p->mode = MPP_BUFFER_MODE_COMMIT;
         }
-        if (NULL == data) {
-            mpp_err("mpp_buffer_create failed to create buffer with size %d\n", size);
-            mpp_free(p);
-            MPP_BUFFER_SERVICE_UNLOCK();
-            return MPP_ERR_MALLOC;
-        }
 
-        if (NULL == tag) {
+        if (NULL == tag)
             tag = group->tag;
-        }
+
         strncpy(p->tag, tag, sizeof(p->tag));
         p->group_id = group_id;
         p->size = size;
-        p->data = *data;
         p->used = 0;
         p->ref_count = 0;
         INIT_LIST_HEAD(&p->list_status);

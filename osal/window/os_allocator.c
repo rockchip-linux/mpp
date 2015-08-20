@@ -17,17 +17,45 @@
 #include "os_mem.h"
 #include "os_allocator.h"
 
-int os_allocator_open(void **ctx)
+#include "mpp_mem.h"
+#include "mpp_log.h"
+
+typedef struct {
+    size_t alignment;
+} allocator_impl;
+
+int os_allocator_open(void **ctx, size_t alignment)
 {
-    if (ctx)
+    allocator_impl *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_open Window do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = mpp_malloc(allocator_impl, 1);
+    if (NULL == p) {
         *ctx = NULL;
-    return 0;
+        mpp_err("os_allocator_open Window failed to allocate context\n");
+        return MPP_ERR_MALLOC;
+    }
+
+    p->alignment = alignment;
+    *ctx = p;
+    return MPP_OK;
 }
 
-int os_allocator_alloc(void *ctx, MppBufferData *data, size_t alignment, size_t size)
+int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
 {
-    (void) ctx;
-    return os_malloc(&data->ptr, alignment, size);
+    allocator_impl *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_alloc Window found NULL context input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (allocator_impl *)ctx;
+    return os_malloc(&data->ptr, p->alignment, size);
 }
 
 void os_allocator_free(void *ctx, MppBufferData *data)
@@ -38,6 +66,9 @@ void os_allocator_free(void *ctx, MppBufferData *data)
 
 void os_allocator_close(void *ctx)
 {
-    (void) ctx;
+    if (ctx)
+        mpp_free(ctx);
+    else
+        mpp_err("os_allocator_close Window found NULL context input\n");
 }
 
