@@ -108,7 +108,7 @@ int main()
     }
 
     for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
-        ret = mpp_buffer_get(group, &normal_buffer[i], (i+1)*SZ_1K);
+        ret = mpp_buffer_get(group, &normal_buffer[i], (i + 1) * SZ_1K);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_get mode normal failed\n");
             goto MPP_BUFFER_failed;

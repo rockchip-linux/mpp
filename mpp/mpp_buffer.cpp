@@ -82,7 +82,7 @@ MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
 
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
-                                       MppBufferGroup *group, MppBufferType type)
+                             MppBufferGroup *group, MppBufferType type)
 {
     if (NULL == group ||
         mode >= MPP_BUFFER_MODE_BUTT ||

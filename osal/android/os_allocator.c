@@ -50,14 +50,14 @@ static int ion_ioctl(int fd, int req, void *arg)
     int ret = ioctl(fd, req, arg);
     if (ret < 0) {
         mpp_err("ion_ioctl %x failed with code %d: %s\n", req,
-              ret, strerror(errno));
+                ret, strerror(errno));
         return -errno;
     }
     return ret;
 }
 
 static int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
-              unsigned int flags, ion_user_handle_t *handle)
+                     unsigned int flags, ion_user_handle_t *handle)
 {
     int ret;
     struct ion_allocation_data data = {
@@ -108,7 +108,8 @@ static int ion_share(int fd, ion_user_handle_t handle, int *share_fd)
 }
 
 static int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask,
-                 unsigned int flags, int *handle_fd) {
+                        unsigned int flags, int *handle_fd)
+{
     ion_user_handle_t handle;
     int ret;
 
