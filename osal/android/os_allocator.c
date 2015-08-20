@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include <ion/ion.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/ion.h>
 
 #include "os_mem.h"
 #include "os_allocator.h"
@@ -24,42 +25,84 @@
 #include "mpp_log.h"
 
 typedef struct {
-    RK_S32 ion_client;
-    RK_U32 align;
+    RK_S32 ion_device;
+    RK_U32 alignment;
 } allocator_ion;
+
+static int ion_open()
+{
+    int fd = open("/dev/ion", O_RDWR);
+    if (fd < 0)
+        mpp_err("open /dev/ion failed!\n");
+    return fd;
+}
+
+static int ion_close(int fd)
+{
+    int ret = close(fd);
+    if (ret < 0)
+        return -errno;
+    return ret;
+}
 
 int os_allocator_open(void **ctx, size_t alignment)
 {
+    allocator_ion *p = NULL;
+
     if (NULL == ctx) {
         mpp_err("os_allocator_open Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    allocator_ion *p = mpp_malloc(allocator_ion, 1);
+    p = mpp_malloc(allocator_ion, 1);
     if (NULL == p) {
         *ctx = NULL;
         mpp_err("os_allocator_open Android failed to allocate context\n");
         return MPP_ERR_MALLOC;
     }
-    p->ion_client =
+
+    p->ion_device   = ion_open();
+    p->alignment    = alignment;
     *ctx = p;
     return 0;
 }
 
-int os_allocator_alloc(void *ctx, MppBufferData *data, size_t alignment, size_t size)
+int os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
 {
-    (void) ctx;
-    return os_malloc(&data->ptr, alignment, size);
+    allocator_ion *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (allocator_ion *)ctx;
+
+    return os_malloc(&data->ptr, p->alignment, size);
 }
 
 void os_allocator_free(void *ctx, MppBufferData *data)
 {
-    (void) ctx;
+    allocator_ion *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        return ;
+    }
+
     os_free(data->ptr);
 }
 
 void os_allocator_close(void *ctx)
 {
-    (void) ctx;
+    allocator_ion *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        return ;
+    }
+
+    p = (allocator_ion *)ctx;
+    ion_close(p->ion_device);
 }
 
