@@ -34,6 +34,7 @@ int main()
     void *commit_ptr[MPP_BUFFER_TEST_COMMIT_COUNT];
     MppBuffer normal_buffer[MPP_BUFFER_TEST_NORMAL_COUNT];
     size_t size = MPP_BUFFER_TEST_SIZE;
+    RK_S32 count = MPP_BUFFER_TEST_COMMIT_COUNT;
     RK_S32 i;
 
     mpp_log("mpp_buffer_test start\n");
@@ -42,18 +43,20 @@ int main()
     memset(commit_buffer, 0, sizeof(commit_buffer));
     memset(normal_buffer, 0, sizeof(normal_buffer));
 
-    ret = mpp_buffer_group_get(&group, MPP_BUFFER_TYPE_NORMAL);
+    ret = mpp_buffer_group_limited_get(&group, MPP_BUFFER_TYPE_NORMAL);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
         goto MPP_BUFFER_failed;
     }
+
+    mpp_buffer_group_limit_config(group, size, count);
 
     mpp_log("mpp_buffer_test commit mode start\n");
 
     commit.type = MPP_BUFFER_TYPE_NORMAL;
     commit.size = size;
 
-    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+    for (i = 0; i < count; i++) {
         commit_ptr[i] = malloc(size);
         if (NULL == commit_ptr[i]) {
             mpp_err("mpp_buffer_test malloc failed\n");
@@ -69,7 +72,7 @@ int main()
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+    for (i = 0; i < count; i++) {
         ret = mpp_buffer_get(group, &commit_buffer[i], size);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_get commit mode failed\n");
@@ -77,7 +80,7 @@ int main()
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+    for (i = 0; i < count; i++) {
         ret = mpp_buffer_put(&commit_buffer[i]);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
@@ -85,16 +88,24 @@ int main()
         }
     }
 
-    for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
+    for (i = 0; i < count; i++) {
         if (commit_ptr[i]) {
             free(commit_ptr[i]);
             commit_ptr[i] = NULL;
         }
     }
 
+    mpp_buffer_group_put(&group);
+
     mpp_log("mpp_buffer_test commit mode success\n");
 
     mpp_log("mpp_buffer_test normal mode start\n");
+
+    ret = mpp_buffer_group_normal_get(&group, MPP_BUFFER_TYPE_NORMAL);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
+        goto MPP_BUFFER_failed;
+    }
 
     for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
         ret = mpp_buffer_get(group, &normal_buffer[i], (i+1)*SZ_1K);

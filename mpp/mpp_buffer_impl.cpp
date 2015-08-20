@@ -75,16 +75,17 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     list_del_init(&buffer->list_status);
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
     if (group) {
-        if (MPP_BUFFER_MODE_NATIVE == buffer->mode) {
+        if (MPP_BUFFER_MODE_NORMAL == buffer->mode) {
             group->alloc_api->free(group->allocator, &buffer->data);
         }
         group->usage -= buffer->size;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
         mpp_assert(group);
-        mpp_assert(buffer->mode == MPP_BUFFER_MODE_NATIVE);
+        mpp_assert(buffer->mode == MPP_BUFFER_MODE_NORMAL);
         group->alloc_api->free(group->allocator, &buffer->data);
         group->usage -= buffer->size;
+        group->count--;
         if (0 == group->usage)
             deinit_group_no_lock(group);
     }
@@ -149,10 +150,10 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBuff
             }
 
             p->data = tmp;
-            p->mode = MPP_BUFFER_MODE_NATIVE;
+            p->mode = MPP_BUFFER_MODE_NORMAL;
         } else {
             p->data = *data;
-            p->mode = MPP_BUFFER_MODE_COMMIT;
+            p->mode = MPP_BUFFER_MODE_LIMIT;
         }
 
         if (NULL == tag)
@@ -161,11 +162,13 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBuff
         strncpy(p->tag, tag, sizeof(p->tag));
         p->group_id = group_id;
         p->size = size;
+        p->type = group->type;
         p->used = 0;
         p->ref_count = 0;
         INIT_LIST_HEAD(&p->list_status);
         list_add_tail(&p->list_status, &group->list_unused);
         group->usage += size;
+        group->count++;
     } else {
         mpp_free(p);
         p = NULL;
@@ -248,7 +251,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     return buffer;
 }
 
-MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferType type)
+MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferMode mode, MppBufferType type)
 {
     MppBufferGroupImpl *p = mpp_malloc(MppBufferGroupImpl, 1);
     if (NULL == p) {
@@ -266,9 +269,11 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
     list_add_tail(&p->list_group, &service.list_group);
 
     snprintf(p->tag, sizeof(p->tag), "%s_%d", tag, service.group_id);
+    p->mode     = mode;
     p->type     = type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
     p->usage    = 0;
+    p->count    = 0;
     p->group_id = service.group_id;
 
     // avoid group_id reuse
@@ -314,24 +319,12 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         // if any buffer with mode MPP_BUFFER_MODE_COMMIT found it should be error
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-            mpp_assert(pos->mode != MPP_BUFFER_MODE_COMMIT);
+            mpp_assert(pos->mode != MPP_BUFFER_MODE_LIMIT);
         }
     }
 
     MPP_BUFFER_SERVICE_UNLOCK();
 
     return MPP_OK;
-}
-
-MPP_RET mpp_buffer_group_limit_reset(MppBufferGroupImpl *p, size_t limit)
-{
-    mpp_log("mpp_buffer_group %p limit reset from %u to %u\n", p->limit, limit);
-
-    MPP_BUFFER_SERVICE_LOCK();
-    p->limit = limit;
-    MPP_RET ret = check_buffer_group_limit(p);
-    MPP_BUFFER_SERVICE_UNLOCK();
-
-    return ret;
 }
 

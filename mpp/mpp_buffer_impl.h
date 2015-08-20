@@ -37,9 +37,11 @@ typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     RK_U32              group_id;
-    size_t              size;
-    MppBufferData       data;
+    MppBufferType       type;
     MppBufferMode       mode;
+
+    MppBufferData       data;
+    size_t              size;
 
     // used flag is for used/unused list detection
     RK_U32              used;
@@ -50,9 +52,15 @@ struct MppBufferImpl_t {
 struct MppBufferGroupImpl_t {
     char                tag[MPP_TAG_SIZE];
     RK_U32              group_id;
+    MppBufferMode       mode;
     MppBufferType       type;
+    // used in limit mode only
+    size_t              limit_size;
+    RK_S32              limit_count;
+    // status record
     size_t              limit;
     size_t              usage;
+    RK_S32              count;
 
     MppAllocator        allocator;
     MppAllocatorApi     *alloc_api;
@@ -100,9 +108,8 @@ MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
-MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferType type);
+MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferMode mode, MppBufferType type);
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
-MPP_RET mpp_buffer_group_limit_reset(MppBufferGroupImpl *p, size_t limit);
 
 #ifdef __cplusplus
 }

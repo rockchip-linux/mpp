@@ -45,6 +45,81 @@ static int ion_close(int fd)
     return ret;
 }
 
+static int ion_ioctl(int fd, int req, void *arg)
+{
+    int ret = ioctl(fd, req, arg);
+    if (ret < 0) {
+        mpp_err("ion_ioctl %x failed with code %d: %s\n", req,
+              ret, strerror(errno));
+        return -errno;
+    }
+    return ret;
+}
+
+static int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
+              unsigned int flags, ion_user_handle_t *handle)
+{
+    int ret;
+    struct ion_allocation_data data = {
+        .len = len,
+        .align = align,
+        .heap_id_mask = heap_mask,
+        .flags = flags,
+    };
+
+    if (handle == NULL)
+        return -EINVAL;
+
+    ret = ion_ioctl(fd, ION_IOC_ALLOC, &data);
+    if (ret < 0)
+        return ret;
+    *handle = data.handle;
+    return ret;
+}
+
+static int ion_free(int fd, ion_user_handle_t handle)
+{
+    struct ion_handle_data data = {
+        .handle = handle,
+    };
+    return ion_ioctl(fd, ION_IOC_FREE, &data);
+}
+
+static int ion_share(int fd, ion_user_handle_t handle, int *share_fd)
+{
+    int map_fd;
+    int ret;
+    struct ion_fd_data data = {
+        .handle = handle,
+    };
+
+    if (share_fd == NULL)
+        return -EINVAL;
+
+    ret = ion_ioctl(fd, ION_IOC_SHARE, &data);
+    if (ret < 0)
+        return ret;
+    *share_fd = data.fd;
+    if (*share_fd < 0) {
+        mpp_err("share ioctl returned negative fd\n");
+        return -EINVAL;
+    }
+    return ret;
+}
+
+static int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask,
+                 unsigned int flags, int *handle_fd) {
+    ion_user_handle_t handle;
+    int ret;
+
+    ret = ion_alloc(fd, len, align, heap_mask, flags, &handle);
+    if (ret < 0)
+        return ret;
+    ret = ion_share(fd, handle, handle_fd);
+    ion_free(fd, handle);
+    return ret;
+}
+
 int os_allocator_open(void **ctx, size_t alignment)
 {
     allocator_ion *p = NULL;

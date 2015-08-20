@@ -81,15 +81,18 @@ MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
 }
 
 
-MPP_RET mpp_buffer_group_get_with_tag(const char *tag, MppBufferGroup *group, MppBufferType type)
+MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
+                                       MppBufferGroup *group, MppBufferType type)
 {
-    if (NULL == group || type >= MPP_BUFFER_TYPE_BUTT) {
-        mpp_err("mpp_buffer_group_get input invalid group %p type %d\n",
-                group, type);
+    if (NULL == group ||
+        type >= MPP_BUFFER_MODE_BUTT ||
+        type >= MPP_BUFFER_TYPE_BUTT) {
+        mpp_err("mpp_buffer_group_get input invalid group %p mode %d type %d\n",
+                group, mode, type);
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_group_init((MppBufferGroupImpl**)group, tag, type);
+    return mpp_buffer_group_init((MppBufferGroupImpl**)group, tag, mode, type);
 }
 
 MPP_RET mpp_buffer_group_put(MppBufferGroup *group)
@@ -105,9 +108,18 @@ MPP_RET mpp_buffer_group_put(MppBufferGroup *group)
     return mpp_buffer_group_deinit(p);
 }
 
-MPP_RET mpp_buffer_group_set_limit(MppBufferGroup group, size_t limit)
+MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 count)
 {
+    if (NULL == group || 0 == size || count <= 0) {
+        mpp_err("mpp_buffer_group_limit_config input invalid group %p size %d count %d\n",
+                group, size, count);
+        return MPP_NOK;
+    }
+
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    return mpp_buffer_group_limit_reset(p, limit);
+    mpp_assert(p->mode == MPP_BUFFER_MODE_LIMIT);
+    p->limit_size     = size;
+    p->limit_count    = count;
+    return MPP_OK;
 }
 
