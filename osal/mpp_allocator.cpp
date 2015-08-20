@@ -57,7 +57,7 @@ MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferData **data, size_t
     return (0 == ret) ? (MPP_OK) : (MPP_NOK);
 }
 
-MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData **data)
+MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData *data)
 {
     if (NULL == allocator || NULL == data) {
         mpp_err("mpp_allocator_alloc invalid input: allocator %p data %p\n",
@@ -67,14 +67,10 @@ MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData **data)
 
     MppAllocatorImpl *palloc = (MppAllocatorImpl *)allocator;
     MPP_ALLOCATOR_LOCK(palloc);
-
-    MppBufferData    *pdata  = *data;
-    *data = NULL;
-    os_allocator_free(palloc->allocator, pdata);
-
+    os_allocator_free(palloc->allocator, data);
     MPP_ALLOCATOR_UNLOCK(palloc);
 
-    mpp_free(pdata);
+    mpp_free(data);
 
     return MPP_OK;
 }

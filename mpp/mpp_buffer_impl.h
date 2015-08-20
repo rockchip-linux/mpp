@@ -39,6 +39,7 @@ struct MppBufferImpl_t {
     RK_U32              group_id;
     size_t              size;
     MppBufferData       data;
+    MppBufferMode       mode;
 
     // used flag is for used/unused list detection
     RK_U32              used;
@@ -54,7 +55,7 @@ struct MppBufferGroupImpl_t {
     size_t              usage;
 
     MppAllocator        allocator;
-    MppAllocatorApi     *api;
+    MppAllocatorApi     *alloc_api;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
@@ -97,8 +98,6 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBuff
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
-
-// TODO: get unused is a block or wait function
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferType type);
