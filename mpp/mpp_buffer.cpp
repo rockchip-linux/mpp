@@ -74,6 +74,9 @@ MPP_RET mpp_buffer_put(MppBuffer *buffer)
         return MPP_ERR_UNKNOW;
     }
 
+    if (NULL == (*buffer))
+        return MPP_ERR_NULL_PTR;
+
     return mpp_buffer_ref_dec((MppBufferImpl*)*buffer);
 }
 

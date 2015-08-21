@@ -90,22 +90,14 @@ static os_allocator allocator_normal = {
     os_allocator_normal_close,
 };
 
+static RK_U32 ion_debug = 0;
 
-static int ion_open()
-{
-    int fd = open("/dev/ion", O_RDWR);
-    if (fd < 0)
-        mpp_err("open /dev/ion failed!\n");
-    return fd;
-}
+#define ION_FUNCTION                (0x00000001)
+#define ION_DEVICE                  (0x00000002)
+#define ION_CLINET                  (0x00000004)
+#define ION_IOCTL                   (0x00000008)
 
-static int ion_close(int fd)
-{
-    int ret = close(fd);
-    if (ret < 0)
-        return -errno;
-    return ret;
-}
+#define ion_dbg(flag, fmt, ...) mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
 
 static int ion_ioctl(int fd, int req, void *arg)
 {
@@ -148,7 +140,7 @@ static int ion_free(int fd, ion_user_handle_t handle)
 }
 
 static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
-            int flags, off_t offset, unsigned char **ptr, int *map_fd)
+                   int flags, off_t offset, unsigned char **ptr, int *map_fd)
 {
     int ret;
     struct ion_fd_data data = {
@@ -183,25 +175,36 @@ typedef struct {
 
 MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
 {
-    MPP_RET ret = MPP_OK;
-    allocator_ctx_ion *p = NULL;
+    RK_S32 fd;
+    allocator_ctx_ion *p;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_open Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_malloc(allocator_ctx_ion, 1);
-    if (NULL == p) {
-        mpp_err("os_allocator_open Android failed to allocate context\n");
-        ret = MPP_ERR_MALLOC;
-    } else {
-        p->alignment    = alignment;
-        p->ion_device   = ion_open();
+    *ctx = NULL;
+
+    fd = open("/dev/ion", O_RDWR);
+    if (fd < 0) {
+        mpp_err("open /dev/ion failed!\n");
+        return MPP_ERR_UNKNOW;
     }
 
-    *ctx = p;
-    return ret;
+    ion_dbg(ION_DEVICE, "open ion dev fd %d\n", fd);
+
+    p = mpp_malloc(allocator_ctx_ion, 1);
+    if (NULL == p) {
+        close(fd);
+        mpp_err("os_allocator_open Android failed to allocate context\n");
+        return MPP_ERR_MALLOC;
+    } else {
+        p->alignment    = alignment;
+        p->ion_device   = fd;
+        *ctx = p;
+    }
+
+    return MPP_OK;
 }
 
 MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
@@ -215,12 +218,20 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
     }
 
     p = (allocator_ctx_ion *)ctx;
-    ion_alloc(p->ion_device, info->size, p->alignment,
-              ION_HEAP_TYPE_CARVEOUT, 0,
-              (ion_user_handle_t *)info->hnd);
-    ion_map(p->ion_device, (ion_user_handle_t)info->hnd, info->size,
-            PROT_READ | PROT_WRITE, MAP_SHARED, (off_t)0,
-            (unsigned char**)&info->ptr, &info->fd);
+    ret = ion_alloc(p->ion_device, info->size, p->alignment,
+                    ION_HEAP_TYPE_CARVEOUT, 0,
+                    (ion_user_handle_t *)&info->hnd);
+    if (ret) {
+        mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
+        return ret;
+    }
+    ret = ion_map(p->ion_device, (ion_user_handle_t)info->hnd, info->size,
+                  PROT_READ | PROT_WRITE, MAP_SHARED, (off_t)0,
+                  (unsigned char**)&info->ptr, &info->fd);
+    if (ret) {
+        mpp_err("os_allocator_ion_alloc ion_map failed ret %d\n", ret);
+        return ret;
+    }
     return ret;
 }
 
@@ -241,7 +252,8 @@ MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
 
 MPP_RET os_allocator_ion_close(void *ctx)
 {
-    allocator_ctx_ion *p = NULL;
+    int ret;
+    allocator_ctx_ion *p;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
@@ -249,7 +261,10 @@ MPP_RET os_allocator_ion_close(void *ctx)
     }
 
     p = (allocator_ctx_ion *)ctx;
-    return (MPP_RET)ion_close(p->ion_device);
+    ret = close(p->ion_device);
+    if (ret < 0)
+        return (MPP_RET)-errno;
+    return MPP_OK;
 }
 
 static os_allocator allocator_ion = {

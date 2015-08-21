@@ -101,7 +101,7 @@ int main()
 
     mpp_log("mpp_buffer_test normal mode start\n");
 
-    ret = mpp_buffer_group_normal_get(&group, MPP_BUFFER_TYPE_NORMAL);
+    ret = mpp_buffer_group_normal_get(&group, MPP_BUFFER_TYPE_ION);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
         goto MPP_BUFFER_failed;
@@ -141,6 +141,9 @@ MPP_BUFFER_failed:
             free(commit_ptr[i]);
             commit_ptr[i] = NULL;
         }
+    }
+    for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
+        mpp_buffer_put(&normal_buffer[i]);
     }
 
     if (group)
