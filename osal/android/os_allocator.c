@@ -28,7 +28,7 @@
 #include "mpp_log.h"
 
 typedef struct {
-    RK_U32          alignment;
+    RK_U32  alignment;
 } allocator_ctx_normal;
 
 MPP_RET os_allocator_normal_open(void **ctx, size_t alignment)
@@ -169,8 +169,9 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
 }
 
 typedef struct {
-    RK_U32          alignment;
-    RK_S32          ion_device;
+    RK_U32  alignment;
+    RK_S32  ion_device;
+    RK_U32  heap_id;
 } allocator_ctx_ion;
 
 MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
@@ -201,6 +202,7 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
     } else {
         p->alignment    = alignment;
         p->ion_device   = fd;
+        p->heap_id      = ION_HEAP_TYPE_SYSTEM_CONTIG;  /* ION_HEAP_TYPE_CARVEOUT */
         *ctx = p;
     }
 
@@ -219,7 +221,7 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 
     p = (allocator_ctx_ion *)ctx;
     ret = ion_alloc(p->ion_device, info->size, p->alignment,
-                    ION_HEAP_TYPE_CARVEOUT, 0,
+                    p->heap_id, 0,
                     (ion_user_handle_t *)&info->hnd);
     if (ret) {
         mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
