@@ -189,12 +189,12 @@ extern "C" {
  */
 MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info);
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
-MPP_RET mpp_buffer_put(MppBuffer *buffer);
+MPP_RET mpp_buffer_put(MppBuffer buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
 MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info);
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
-MPP_RET mpp_buffer_group_put(MppBufferGroup *group);
+MPP_RET mpp_buffer_group_put(MppBufferGroup group);
 MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 count);
 
 #ifdef __cplusplus

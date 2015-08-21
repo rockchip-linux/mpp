@@ -81,10 +81,13 @@ int main()
     }
 
     for (i = 0; i < count; i++) {
-        ret = mpp_buffer_put(&commit_buffer[i]);
-        if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
-            goto MPP_BUFFER_failed;
+        if (commit_buffer[i]) {
+            ret = mpp_buffer_put(commit_buffer[i]);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
+                goto MPP_BUFFER_failed;
+            }
+            commit_buffer[i] = NULL;
         }
     }
 
@@ -95,7 +98,7 @@ int main()
         }
     }
 
-    mpp_buffer_group_put(&group);
+    mpp_buffer_group_put(group);
 
     mpp_log("mpp_buffer_test commit mode success\n");
 
@@ -116,24 +119,30 @@ int main()
     }
 
     for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
-        ret = mpp_buffer_put(&normal_buffer[i]);
-        if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_get mode normal failed\n");
-            goto MPP_BUFFER_failed;
+        if (normal_buffer[i]) {
+            ret = mpp_buffer_put(normal_buffer[i]);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_get mode normal failed\n");
+                goto MPP_BUFFER_failed;
+            }
+            normal_buffer[i] = NULL;
         }
     }
 
     mpp_log("mpp_buffer_test normal mode success\n");
 
-    if (group)
-        mpp_buffer_group_put(&group);
+    if (group) {
+        mpp_buffer_group_put(group);
+        group = NULL;
+    }
 
     mpp_log("mpp_buffer_test success\n");
     return ret;
 
 MPP_BUFFER_failed:
     for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
-        mpp_buffer_put(&commit_buffer[i]);
+        if (commit_buffer[i])
+            mpp_buffer_put(commit_buffer[i]);
     }
 
     for (i = 0; i < MPP_BUFFER_TEST_COMMIT_COUNT; i++) {
@@ -143,11 +152,14 @@ MPP_BUFFER_failed:
         }
     }
     for (i = 0; i < MPP_BUFFER_TEST_NORMAL_COUNT; i++) {
-        mpp_buffer_put(&normal_buffer[i]);
+        if (normal_buffer[i])
+            mpp_buffer_put(normal_buffer[i]);
     }
 
-    if (group)
+    if (group) {
         mpp_buffer_group_put(group);
+        group = NULL;
+    }
 
     mpp_log("mpp_buffer_test failed\n");
     return ret;

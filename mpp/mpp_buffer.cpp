@@ -67,23 +67,20 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
     return (buf) ? (MPP_OK) : (MPP_NOK);
 }
 
-MPP_RET mpp_buffer_put(MppBuffer *buffer)
+MPP_RET mpp_buffer_put(MppBuffer buffer)
 {
     if (NULL == buffer) {
         mpp_err("mpp_buffer_put invalid input: buffer %p\n", buffer);
         return MPP_ERR_UNKNOW;
     }
 
-    if (NULL == (*buffer))
-        return MPP_ERR_NULL_PTR;
-
-    return mpp_buffer_ref_dec((MppBufferImpl*)*buffer);
+    return mpp_buffer_ref_dec((MppBufferImpl*)buffer);
 }
 
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
 {
     if (NULL == buffer) {
-        mpp_err("mpp_buffer_put invalid input: buffer %p\n", buffer);
+        mpp_err("mpp_buffer_inc_ref invalid input: buffer %p\n", buffer);
         return MPP_ERR_UNKNOW;
     }
 
@@ -93,7 +90,7 @@ MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
 MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info)
 {
     if (NULL == buffer || NULL == info) {
-        mpp_err("mpp_buffer_put invalid input: buffer %p info %p\n", buffer, info);
+        mpp_err("mpp_buffer_info_get invalid input: buffer %p info %p\n", buffer, info);
         return MPP_ERR_UNKNOW;
     }
 
@@ -115,17 +112,14 @@ MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
     return mpp_buffer_group_init((MppBufferGroupImpl**)group, tag, mode, type);
 }
 
-MPP_RET mpp_buffer_group_put(MppBufferGroup *group)
+MPP_RET mpp_buffer_group_put(MppBufferGroup group)
 {
     if (NULL == group) {
         mpp_err("mpp_buffer_group_put input invalid group %p\n", group);
         return MPP_NOK;
     }
 
-    MppBufferGroupImpl *p = (MppBufferGroupImpl *)*group;
-    *group = NULL;
-
-    return mpp_buffer_group_deinit(p);
+    return mpp_buffer_group_deinit((MppBufferGroupImpl *)group);
 }
 
 MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 count)
