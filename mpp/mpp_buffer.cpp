@@ -86,6 +86,16 @@ MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
     return mpp_buffer_ref_inc((MppBufferImpl*)buffer);
 }
 
+MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info)
+{
+    if (NULL == buffer || NULL == info) {
+        mpp_err("mpp_buffer_put invalid input: buffer %p info %p\n", buffer, info);
+        return MPP_ERR_UNKNOW;
+    }
+
+    *info = ((MppBufferImpl*)buffer)->info;
+    return MPP_OK;
+}
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
                              MppBufferGroup *group, MppBufferType type)

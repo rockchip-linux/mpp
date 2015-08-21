@@ -36,7 +36,7 @@
 /*
  * MppBuffer module has several functions:
  *
- * 1. buffer get / put / reference management / and external commit.
+ * 1. buffer get / put / reference management / external commit / get info.
  *    this part is the basic user interface for MppBuffer.
  *
  *    function:
@@ -45,6 +45,7 @@
  *    mpp_buffer_put
  *    mpp_buffer_inc_ref
  *    mpp_buffer_commit
+ *    mpp_buffer_info_get
  *
  * 2. user buffer working flow control abstraction.
  *    buffer should attach to certain group, and buffer mode control the buffer usage flow.
