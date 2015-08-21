@@ -161,7 +161,7 @@ MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
     return 0;
 }
 
-MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
+MPP_RET os_allocator_alloc(void *ctx, MppBufferInfo *data, size_t size)
 {
     MPP_RET ret = MPP_OK;
     allocator_impl *p = NULL;
@@ -188,7 +188,7 @@ MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
     return ret;
 }
 
-MPP_RET os_allocator_free(void *ctx, MppBufferData *data)
+MPP_RET os_allocator_free(void *ctx, MppBufferInfo *data)
 {
     MPP_RET ret = MPP_OK;
     allocator_impl *p = NULL;

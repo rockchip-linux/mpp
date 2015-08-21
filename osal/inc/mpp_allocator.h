@@ -26,8 +26,8 @@ typedef struct {
     RK_U32  size;
     RK_U32  version;
 
-    MPP_RET (*alloc)(MppAllocator allocator, MppBufferData *data, size_t size);
-    MPP_RET (*free)(MppAllocator allocator, MppBufferData *data);
+    MPP_RET (*alloc)(MppAllocator allocator, MppBufferInfo *data);
+    MPP_RET (*free)(MppAllocator allocator, MppBufferInfo *data);
 } MppAllocatorApi;
 
 #ifdef __cplusplus

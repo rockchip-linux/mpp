@@ -22,7 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_buffer_impl.h"
 
-MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferCommit *info)
+MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info)
 {
     if (NULL == group || NULL == info) {
         mpp_err("mpp_buffer_commit input null pointer group %p info %p\n",
@@ -37,7 +37,7 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferCommit *info)
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_create(NULL, p->group_id, info->size, &info->data);
+    return mpp_buffer_create(NULL, p->group_id, info);
 }
 
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size)
@@ -52,8 +52,14 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
     // try unused buffer first
     MppBufferImpl *buf = mpp_buffer_get_unused(tmp, size);
     if (NULL == buf) {
+        MppBufferInfo info = {
+            tmp->type,
+            size,
+            NULL,
+            -1,
+        };
         // if failed try init a new buffer
-        mpp_buffer_create(tag, tmp->group_id, size, NULL);
+        mpp_buffer_create(tag, tmp->group_id, &info);
         buf = mpp_buffer_get_unused(tmp, size);
     }
     *buffer = buf;

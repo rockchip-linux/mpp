@@ -31,8 +31,9 @@ typedef struct {
     MppBufferType   type;
 } allocator_impl;
 
-MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
+MPP_RET os_allocator_normal_open(void **ctx, size_t alignment)
 {
+    MPP_RET ret = MPP_OK;
     allocator_impl *p = NULL;
 
     if (NULL == ctx) {
@@ -40,30 +41,19 @@ MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
         return MPP_ERR_NULL_PTR;
     }
 
-    switch (type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
-        p = mpp_malloc(allocator_impl, 1);
-        if (NULL == p) {
-            *ctx = NULL;
-            mpp_err("os_allocator_open Linux failed to allocate context\n");
-            return MPP_ERR_MALLOC;
-        }
-
+    p = mpp_malloc(allocator_impl, 1);
+    if (NULL == p) {
+        mpp_err("os_allocator_open Linux failed to allocate context\n");
+        ret = MPP_ERR_MALLOC;
+    } else
         p->alignment = alignment;
-        p->type      = type;
-    } break;
-    default : {
-        mpp_err("os_allocator_open Window do not accept type %d\n");
-    } break;
-    }
 
     *ctx = p;
-    return MPP_OK;
+    return ret;
 }
 
-MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
+MPP_RET os_allocator_normal_alloc(void *ctx, MppBufferInfo *info)
 {
-    MPP_RET ret = MPP_OK;
     allocator_impl *p = NULL;
 
     if (NULL == ctx) {
@@ -72,31 +62,17 @@ MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
     }
 
     p = (allocator_impl *)ctx;
-    switch (p->type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
-        ret = os_malloc(&data->ptr, p->alignment, size);
-    } break;
-    case MPP_BUFFER_TYPE_V4L2 : {
-        // TODO: support v4l2 vb2 buffer queue
-        mpp_err("os_allocator_alloc Linux MPP_BUFFER_TYPE_V4L2 will support later\n");
-        ret = MPP_ERR_UNKNOW;
-    } break;
-    default : {
-        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
-        ret = MPP_ERR_UNKNOW;
-    } break;
-    }
-    return ret;
+    return os_malloc(&info->ptr, p->alignment, info->size);
 }
 
-MPP_RET os_allocator_free(void *ctx, MppBufferData *data)
+MPP_RET os_allocator_normal_free(void *ctx, MppBufferInfo *info)
 {
     (void) ctx;
-    os_free(data->ptr);
+    os_free(info->ptr);
     return MPP_OK;
 }
 
-MPP_RET os_allocator_close(void *ctx)
+MPP_RET os_allocator_normal_close(void *ctx)
 {
     if (ctx) {
         mpp_free(ctx);
@@ -104,5 +80,38 @@ MPP_RET os_allocator_close(void *ctx)
     }
     mpp_err("os_allocator_close Linux found NULL context input\n");
     return MPP_NOK;
+}
+
+static os_allocator allocator_normal = {
+    os_allocator_normal_open,
+    os_allocator_normal_alloc,
+    os_allocator_normal_free,
+    os_allocator_normal_close,
+};
+
+static os_allocator allocator_v4l2 = {
+    os_allocator_normal_open,
+    os_allocator_normal_alloc,
+    os_allocator_normal_free,
+    os_allocator_normal_close,
+};
+
+MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
+{
+    MPP_RET ret = MPP_OK;
+    switch (type) {
+    case MPP_BUFFER_TYPE_NORMAL :
+    case MPP_BUFFER_TYPE_ION : {
+        *api = allocator_normal;
+    } break;
+    case MPP_BUFFER_TYPE_V4L2 : {
+        mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
+        *api = allocator_v4l2;
+    } break;
+    default : {
+        ret = MPP_NOK;
+    } break;
+    }
+    return ret;
 }
 

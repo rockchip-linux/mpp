@@ -26,36 +26,40 @@
 #define MPP_ALLOCATOR_LOCK(p)   pthread_mutex_lock(&(p)->lock);
 #define MPP_ALLOCATOR_UNLOCK(p) pthread_mutex_unlock(&(p)->lock);
 
-MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferData *data, size_t size)
+MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
 {
-    if (NULL == allocator || NULL == data || 0 == size) {
-        mpp_err("mpp_allocator_alloc invalid input: allocator %p data %p size %d\n",
-                allocator, data, size);
+    if (NULL == allocator || NULL == info) {
+        mpp_err("mpp_allocator_alloc invalid input: allocator %p info %p\n",
+                allocator, info);
         return MPP_ERR_UNKNOW;
     }
 
-    MppAllocatorImpl *palloc = (MppAllocatorImpl *)allocator;
-    MPP_ALLOCATOR_LOCK(palloc);
-    MPP_RET ret = os_allocator_alloc(palloc->allocator, data, size);
-    MPP_ALLOCATOR_UNLOCK(palloc);
+    MPP_RET ret = MPP_OK;
+    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
+    MPP_ALLOCATOR_LOCK(p);
+    if (p->os_api.alloc)
+        ret = p->os_api.alloc(p->ctx, info);
+    MPP_ALLOCATOR_UNLOCK(p);
 
     return ret;
 }
 
-MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData *data)
+MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferInfo *info)
 {
-    if (NULL == allocator || NULL == data) {
-        mpp_err("mpp_allocator_alloc invalid input: allocator %p data %p\n",
-                allocator, data);
+    if (NULL == allocator || NULL == info) {
+        mpp_err("mpp_allocator_alloc invalid input: allocator %p info %p\n",
+                allocator, info);
         return MPP_ERR_UNKNOW;
     }
 
-    MppAllocatorImpl *palloc = (MppAllocatorImpl *)allocator;
-    MPP_ALLOCATOR_LOCK(palloc);
-    os_allocator_free(palloc->allocator, data);
-    MPP_ALLOCATOR_UNLOCK(palloc);
+    MPP_RET ret = MPP_OK;
+    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
+    MPP_ALLOCATOR_LOCK(p);
+    if (p->os_api.free)
+        ret = p->os_api.free(p->ctx, info);
+    MPP_ALLOCATOR_UNLOCK(p);
 
-    return MPP_OK;
+    return ret;
 }
 
 static MppAllocatorApi mpp_allocator_api = {
@@ -73,26 +77,36 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
         return MPP_ERR_UNKNOW;
     }
 
-    MppAllocatorImpl *palloc = mpp_malloc(MppAllocatorImpl, 1);
-    if (NULL == palloc) {
+    MppAllocatorImpl *p = mpp_malloc(MppAllocatorImpl, 1);
+    if (NULL == p) {
         mpp_err("mpp_alloctor_get failed to malloc allocator context\n");
         return MPP_ERR_NULL_PTR;
+    } else
+        p->type = type;
+
+
+    MPP_RET ret = os_allocator_get(&p->os_api, type);
+    if (MPP_OK == ret) {
+        p->alignment = SZ_4K;
+        ret = p->os_api.open(&p->ctx, p->alignment);
+    }
+    if (MPP_OK == ret) {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&p->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+
+        *allocator  = p;
+        *api        = &mpp_allocator_api;
+    } else {
+        mpp_err("mpp_alloctor_get type %d failed\n", type);
+        mpp_free(p);
+        *allocator  = NULL;
+        *api        = NULL;
     }
 
-    palloc->alignment   = SZ_4K;
-    os_allocator_open(&palloc->allocator, palloc->alignment, type);
-    palloc->api = &mpp_allocator_api;
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&palloc->lock, &attr);
-    pthread_mutexattr_destroy(&attr);
-
-    *allocator  = palloc;
-    *api        = &mpp_allocator_api;
-
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET mpp_alloctor_put(MppAllocator *allocator)
@@ -104,8 +118,8 @@ MPP_RET mpp_alloctor_put(MppAllocator *allocator)
 
     MppAllocatorImpl *p = (MppAllocatorImpl *)*allocator;
     *allocator = NULL;
-    os_allocator_close(p->allocator);
-
+    if (p->os_api.close)
+        p->os_api.close(p->ctx);
     if (p)
         mpp_free(p);
 

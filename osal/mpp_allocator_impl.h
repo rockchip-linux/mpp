@@ -18,14 +18,14 @@
 #define __MPP_ALLOCATOR_IMPL_H__
 
 #include "mpp_thread.h"
-#include "mpp_buffer.h"
+#include "os_allocator.h"
 
 typedef struct {
     pthread_mutex_t lock;
     MppBufferType   type;
     size_t          alignment;
-    void            *allocator;
-    void            *api;
+    os_allocator    os_api;
+    void            *ctx;
 } MppAllocatorImpl;
 
 #endif /*__MPP_ALLOCATOR_IMPL_H__*/

@@ -28,7 +28,7 @@
 int main()
 {
     MPP_RET ret = MPP_OK;
-    MppBufferCommit commit;
+    MppBufferInfo commit;
     MppBufferGroup group = NULL;
     MppBuffer commit_buffer[MPP_BUFFER_TEST_COMMIT_COUNT];
     void *commit_ptr[MPP_BUFFER_TEST_COMMIT_COUNT];
@@ -63,7 +63,7 @@ int main()
             goto MPP_BUFFER_failed;
         }
 
-        commit.data.ptr = commit_ptr[i];
+        commit.ptr = commit_ptr[i];
 
         ret = mpp_buffer_commit(group, &commit);
         if (MPP_OK != ret) {

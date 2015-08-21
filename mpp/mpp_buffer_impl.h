@@ -37,11 +37,9 @@ typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     RK_U32              group_id;
-    MppBufferType       type;
     MppBufferMode       mode;
 
-    MppBufferData       data;
-    size_t              size;
+    MppBufferInfo       info;
 
     // used flag is for used/unused list detection
     RK_U32              used;
@@ -102,7 +100,7 @@ extern RK_U32 mpp_buffer_debug;
  * mpp_buffer_ref_inc/dec   - use the buffer
  * mpp_buffer_destory       - destroy the buffer
  */
-MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBufferData *data);
+MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info);
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);

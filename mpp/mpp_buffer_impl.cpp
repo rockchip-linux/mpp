@@ -75,16 +75,20 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     list_del_init(&buffer->list_status);
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
     if (group) {
-        if (MPP_BUFFER_MODE_NORMAL == buffer->mode) {
-            group->alloc_api->free(group->allocator, &buffer->data);
+        switch (group->mode) {
+        case MPP_BUFFER_MODE_NORMAL : {
+            group->alloc_api->free(group->allocator, &buffer->info);
+        } break;
+        default : {
+        } break;
         }
-        group->usage -= buffer->size;
+        group->usage -= buffer->info.size;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
         mpp_assert(group);
         mpp_assert(buffer->mode == MPP_BUFFER_MODE_NORMAL);
-        group->alloc_api->free(group->allocator, &buffer->data);
-        group->usage -= buffer->size;
+        group->alloc_api->free(group->allocator, &buffer->info);
+        group->usage -= buffer->info.size;
         group->count--;
         if (0 == group->usage)
             deinit_group_no_lock(group);
@@ -127,7 +131,7 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
     return ret;
 }
 
-MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBufferData *data)
+MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
 {
     MppBufferImpl *p = mpp_malloc(MppBufferImpl, 1);
     if (NULL == p) {
@@ -139,37 +143,32 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, size_t size, MppBuff
 
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (group) {
-        if (NULL == data) {
-            MppBufferData tmp;
-            MPP_RET ret = group->alloc_api->alloc(group->allocator, &tmp, size);
+        if (NULL == info->ptr && info->fd == -1) {
+            MPP_RET ret = group->alloc_api->alloc(group->allocator, info);
             if (MPP_OK != ret) {
-                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", size);
+                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", info->size);
                 mpp_free(p);
                 MPP_BUFFER_SERVICE_UNLOCK();
                 return MPP_ERR_MALLOC;
             }
-
-            p->data = tmp;
-            p->mode = MPP_BUFFER_MODE_NORMAL;
-        } else {
-            p->data = *data;
-            p->mode = MPP_BUFFER_MODE_LIMIT;
         }
+
+        p->info = *info;
+        p->mode = group->mode;
 
         if (NULL == tag)
             tag = group->tag;
 
         strncpy(p->tag, tag, sizeof(p->tag));
         p->group_id = group_id;
-        p->size = size;
-        p->type = group->type;
         p->used = 0;
         p->ref_count = 0;
         INIT_LIST_HEAD(&p->list_status);
         list_add_tail(&p->list_status, &group->list_unused);
-        group->usage += size;
+        group->usage += info->size;
         group->count++;
     } else {
+        mpp_err("mpp_buffer_create can not create buffer without group\n");
         mpp_free(p);
         p = NULL;
     }
@@ -238,7 +237,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
-            if (pos->size == size) {
+            if (pos->info.size == size) {
                 buffer = pos;
                 inc_buffer_ref_no_lock(buffer);
                 break;

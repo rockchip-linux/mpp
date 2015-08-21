@@ -140,17 +140,29 @@ typedef enum {
     MPP_BUFFER_TYPE_BUTT,
 } MppBufferType;
 
-typedef union  MppBufferData_t          MppBufferData;
-union  MppBufferData_t {
-    void    *ptr;
-    int     fd;
-};
-
+/*
+ * MppBufferInfo variable's meaning is different in different MppBufferType
+ *
+ * MPP_BUFFER_TYPE_NORMAL
+ *
+ * ptr  - virtual address of normal malloced buffer
+ * fd   - unused and set to -1
+ *
+ * MPP_BUFFER_TYPE_ION
+ *
+ * ptr  - ion handle in user space
+ * fd   - ion buffer file handle for map / unmap
+ *
+ * MPP_BUFFER_TYPE_V4L2
+ *
+ * TODO: to be implemented.
+ */
 typedef struct {
     MppBufferType   type;
     size_t          size;
-    MppBufferData   data;
-} MppBufferCommit;
+    void            *ptr;
+    int             fd;
+} MppBufferInfo;
 
 #define BUFFER_GROUP_SIZE_DEFAULT           (SZ_1M*80)
 
@@ -172,10 +184,11 @@ extern "C" {
  * these interface will change value of group and buffer so before calling functions
  * parameter need to be checked.
  */
-MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferCommit *info);
+MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info);
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
 MPP_RET mpp_buffer_put(MppBuffer *buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
+MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info);
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
 MPP_RET mpp_buffer_group_put(MppBufferGroup *group);

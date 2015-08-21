@@ -28,8 +28,9 @@ typedef struct {
     size_t alignment;
 } allocator_impl;
 
-MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
+MPP_RET os_allocator_open(void **ctx, size_t alignment)
 {
+    MPP_RET ret = MPP_OK;
     allocator_impl *p = NULL;
 
     if (NULL == ctx) {
@@ -37,27 +38,18 @@ MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
         return MPP_ERR_NULL_PTR;
     }
 
-    switch (type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
-        p = mpp_malloc(allocator_impl, 1);
-        if (NULL == p) {
-            *ctx = NULL;
-            mpp_err("os_allocator_open Window failed to allocate context\n");
-            return MPP_ERR_MALLOC;
-        }
-
+    p = mpp_malloc(allocator_impl, 1);
+    if (NULL == p) {
+        mpp_err("os_allocator_open Window failed to allocate context\n");
+        ret = MPP_ERR_MALLOC;
+    } else
         p->alignment = alignment;
-    } break;
-    default : {
-        mpp_err("os_allocator_open Window do not accept type %d\n");
-    } break;
-    }
 
     *ctx = p;
-    return MPP_OK;
+    return ret;
 }
 
-MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
+MPP_RET os_allocator_alloc(void *ctx, MppBufferInfo *info)
 {
     allocator_impl *p = NULL;
 
@@ -67,10 +59,10 @@ MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size)
     }
 
     p = (allocator_impl *)ctx;
-    return (MPP_RET)os_malloc(&data->ptr, p->alignment, size);
+    return (MPP_RET)os_malloc(&info->ptr, p->alignment, info->size);
 }
 
-MPP_RET os_allocator_free(void *ctx, MppBufferData *data)
+MPP_RET os_allocator_free(void *ctx, MppBufferInfo *data)
 {
     (void) ctx;
     os_free(data->ptr);
@@ -85,5 +77,28 @@ MPP_RET os_allocator_close(void *ctx)
     }
     mpp_err("os_allocator_close Window found NULL context input\n");
     return MPP_NOK;
+}
+
+static os_allocator allocator_window = {
+    os_allocator_open,
+    os_allocator_alloc,
+    os_allocator_free,
+    os_allocator_close,
+};
+
+MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
+{
+    MPP_RET ret = MPP_OK;
+    switch (type) {
+    case MPP_BUFFER_TYPE_NORMAL :
+    case MPP_BUFFER_TYPE_ION :
+    case MPP_BUFFER_TYPE_V4L2 : {
+        *api = allocator_window;
+    } break;
+    default : {
+        ret = MPP_NOK;
+    } break;
+    }
+    return ret;
 }
 

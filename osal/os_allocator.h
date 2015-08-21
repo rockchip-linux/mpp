@@ -19,14 +19,18 @@
 
 #include "mpp_allocator.h"
 
+typedef struct {
+    MPP_RET (*open)(void **ctx, size_t alignment);
+    MPP_RET (*alloc)(void *ctx, MppBufferInfo *info);
+    MPP_RET (*free)(void *ctx, MppBufferInfo *info);
+    MPP_RET (*close)(void *ctx);
+} os_allocator;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type);
-MPP_RET os_allocator_alloc(void *ctx, MppBufferData *data, size_t size);
-MPP_RET os_allocator_free(void *ctx, MppBufferData *data);
-MPP_RET os_allocator_close(void *ctx);
+MPP_RET os_allocator_get(os_allocator *api, MppBufferType type);
 
 #ifdef __cplusplus
 }
