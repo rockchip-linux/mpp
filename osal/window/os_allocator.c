@@ -26,19 +26,19 @@
 
 typedef struct {
     size_t alignment;
-} allocator_impl;
+} allocator_ctx;
 
 MPP_RET os_allocator_open(void **ctx, size_t alignment)
 {
     MPP_RET ret = MPP_OK;
-    allocator_impl *p = NULL;
+    allocator_ctx *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_open Window do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_malloc(allocator_impl, 1);
+    p = mpp_malloc(allocator_ctx, 1);
     if (NULL == p) {
         mpp_err("os_allocator_open Window failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
@@ -51,21 +51,22 @@ MPP_RET os_allocator_open(void **ctx, size_t alignment)
 
 MPP_RET os_allocator_alloc(void *ctx, MppBufferInfo *info)
 {
-    allocator_impl *p = NULL;
+    allocator_ctx *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_alloc Window found NULL context input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_impl *)ctx;
+    p = (allocator_ctx *)ctx;
     return (MPP_RET)os_malloc(&info->ptr, p->alignment, info->size);
 }
 
-MPP_RET os_allocator_free(void *ctx, MppBufferInfo *data)
+MPP_RET os_allocator_free(void *ctx, MppBufferInfo *info)
 {
     (void) ctx;
-    os_free(data->ptr);
+    if (info->ptr)
+        os_free(info->ptr);
     return MPP_OK;
 }
 

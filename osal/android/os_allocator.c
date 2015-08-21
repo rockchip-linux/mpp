@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
+
 #include <linux/ion.h>
 
 #include "os_mem.h"
@@ -25,10 +28,68 @@
 #include "mpp_log.h"
 
 typedef struct {
-    MppBufferType   type;
-    RK_S32          ion_device;
     RK_U32          alignment;
-} allocator_impl;
+} allocator_ctx_normal;
+
+MPP_RET os_allocator_normal_open(void **ctx, size_t alignment)
+{
+    MPP_RET ret = MPP_OK;
+    allocator_ctx_normal *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_open Android do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = mpp_malloc(allocator_ctx_normal, 1);
+    if (NULL == p) {
+        mpp_err("os_allocator_open Android failed to allocate context\n");
+        ret = MPP_ERR_MALLOC;
+    } else
+        p->alignment = alignment;
+
+    *ctx = p;
+    return ret;
+}
+
+MPP_RET os_allocator_normal_alloc(void *ctx, MppBufferInfo *info)
+{
+    allocator_ctx_normal *p = NULL;
+
+    if (NULL == ctx) {
+        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (allocator_ctx_normal *)ctx;
+    return os_malloc(&info->ptr, p->alignment, info->size);
+}
+
+MPP_RET os_allocator_normal_free(void *ctx, MppBufferInfo *info)
+{
+    (void) ctx;
+    if (info->ptr)
+        os_free(info->ptr);
+    return MPP_OK;
+}
+
+MPP_RET os_allocator_normal_close(void *ctx)
+{
+    if (ctx) {
+        mpp_free(ctx);
+        return MPP_OK;
+    }
+    mpp_err("os_allocator_close Linux found NULL context input\n");
+    return MPP_NOK;
+}
+
+static os_allocator allocator_normal = {
+    os_allocator_normal_open,
+    os_allocator_normal_alloc,
+    os_allocator_normal_free,
+    os_allocator_normal_close,
+};
+
 
 static int ion_open()
 {
@@ -86,160 +147,133 @@ static int ion_free(int fd, ion_user_handle_t handle)
     return ion_ioctl(fd, ION_IOC_FREE, &data);
 }
 
-static int ion_share(int fd, ion_user_handle_t handle, int *share_fd)
+static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
+            int flags, off_t offset, unsigned char **ptr, int *map_fd)
 {
     int ret;
     struct ion_fd_data data = {
         .handle = handle,
     };
 
-    if (share_fd == NULL)
+    if (map_fd == NULL)
+        return -EINVAL;
+    if (ptr == NULL)
         return -EINVAL;
 
-    ret = ion_ioctl(fd, ION_IOC_SHARE, &data);
+    ret = ion_ioctl(fd, ION_IOC_MAP, &data);
     if (ret < 0)
         return ret;
-    *share_fd = data.fd;
-    if (*share_fd < 0) {
-        mpp_err("share ioctl returned negative fd\n");
+    *map_fd = data.fd;
+    if (*map_fd < 0) {
+        mpp_err("map ioctl returned negative fd\n");
         return -EINVAL;
+    }
+    *ptr = mmap(NULL, length, prot, flags, *map_fd, offset);
+    if (*ptr == MAP_FAILED) {
+        mpp_err("mmap failed: %s\n", strerror(errno));
+        return -errno;
     }
     return ret;
 }
 
-static int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask,
-                        unsigned int flags, int *handle_fd)
-{
-    ion_user_handle_t handle;
-    int ret;
+typedef struct {
+    RK_U32          alignment;
+    RK_S32          ion_device;
+} allocator_ctx_ion;
 
-    ret = ion_alloc(fd, len, align, heap_mask, flags, &handle);
-    if (ret < 0)
-        return ret;
-    ret = ion_share(fd, handle, handle_fd);
-    ion_free(fd, handle);
-    return ret;
-}
-
-MPP_RET os_allocator_open(void **ctx, size_t alignment, MppBufferType type)
+MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
 {
-    allocator_impl *p = NULL;
+    MPP_RET ret = MPP_OK;
+    allocator_ctx_ion *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_open Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_malloc(allocator_impl, 1);
+    p = mpp_malloc(allocator_ctx_ion, 1);
     if (NULL == p) {
-        *ctx = NULL;
         mpp_err("os_allocator_open Android failed to allocate context\n");
-        return MPP_ERR_MALLOC;
-    }
-
-    switch (type) {
-    case MPP_BUFFER_TYPE_NORMAL :
-    case MPP_BUFFER_TYPE_ION : {
-        p = mpp_malloc(allocator_impl, 1);
-        if (NULL == p) {
-            *ctx = NULL;
-            mpp_err("os_allocator_open Android failed to allocate context\n");
-            return MPP_ERR_MALLOC;
-        }
-
-        p->alignment = alignment;
-        p->type      = type;
-        if (MPP_BUFFER_TYPE_ION == type)
-            p->ion_device   = ion_open();
-    } break;
-    default : {
-        mpp_err("os_allocator_open Window do not accept type %d\n");
-    } break;
+        ret = MPP_ERR_MALLOC;
+    } else {
+        p->alignment    = alignment;
+        p->ion_device   = ion_open();
     }
 
     *ctx = p;
-    return 0;
-}
-
-MPP_RET os_allocator_alloc(void *ctx, MppBufferInfo *data, size_t size)
-{
-    MPP_RET ret = MPP_OK;
-    allocator_impl *p = NULL;
-
-    if (NULL == ctx) {
-        mpp_err("os_allocator_close Android do not accept NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    p = (allocator_impl *)ctx;
-
-    switch (p->type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
-        ret = os_malloc(&data->ptr, p->alignment, size);
-    } break;
-    case MPP_BUFFER_TYPE_ION : {
-        ret = ion_alloc_fd(p->ion_device, size, p->alignment, ION_HEAP_TYPE_CARVEOUT, 0, &data->fd);
-    } break;
-    default : {
-        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
-        ret = MPP_ERR_UNKNOW;
-    } break;
-    }
     return ret;
 }
 
-MPP_RET os_allocator_free(void *ctx, MppBufferInfo *data)
+MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 {
     MPP_RET ret = MPP_OK;
-    allocator_impl *p = NULL;
+    allocator_ctx_ion *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_impl *)ctx;
-
-    switch (p->type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
-        os_free(data->ptr);
-    } break;
-    case MPP_BUFFER_TYPE_ION : {
-        close(data->fd);
-    } break;
-    default : {
-        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
-        ret = MPP_ERR_UNKNOW;
-    } break;
-    }
-
+    p = (allocator_ctx_ion *)ctx;
+    ion_alloc(p->ion_device, info->size, p->alignment,
+              ION_HEAP_TYPE_CARVEOUT, 0,
+              (ion_user_handle_t *)info->hnd);
+    ion_map(p->ion_device, (ion_user_handle_t)info->hnd, info->size,
+            PROT_READ | PROT_WRITE, MAP_SHARED, (off_t)0,
+            (unsigned char**)&info->ptr, &info->fd);
     return ret;
 }
 
-MPP_RET os_allocator_close(void *ctx)
+MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
 {
-    MPP_RET ret = MPP_OK;
-    allocator_impl *p = NULL;
+    allocator_ctx_ion *p = NULL;
+    if (NULL == ctx) {
+        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (allocator_ctx_ion *)ctx;
+    munmap(data->ptr, data->size);
+    close(data->fd);
+    ion_free(p->ion_device, (ion_user_handle_t)data->hnd);
+    return MPP_OK;
+}
+
+MPP_RET os_allocator_ion_close(void *ctx)
+{
+    allocator_ctx_ion *p = NULL;
 
     if (NULL == ctx) {
         mpp_err("os_allocator_close Android do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_impl *)ctx;
+    p = (allocator_ctx_ion *)ctx;
+    return (MPP_RET)ion_close(p->ion_device);
+}
 
-    switch (p->type) {
-    case MPP_BUFFER_TYPE_NORMAL : {
+static os_allocator allocator_ion = {
+    os_allocator_ion_open,
+    os_allocator_ion_alloc,
+    os_allocator_ion_free,
+    os_allocator_ion_close,
+};
+
+MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
+{
+    MPP_RET ret = MPP_OK;
+    switch (type) {
+    case MPP_BUFFER_TYPE_NORMAL :
+    case MPP_BUFFER_TYPE_V4L2 : {
+        *api = allocator_normal;
     } break;
     case MPP_BUFFER_TYPE_ION : {
-        ion_close(p->ion_device);
+        *api = allocator_ion;
     } break;
     default : {
-        mpp_err("os_allocator_alloc Linux do not accept type %d\n", p->type);
-        ret = MPP_ERR_UNKNOW;
+        ret = MPP_NOK;
     } break;
     }
-
     return ret;
 }
 

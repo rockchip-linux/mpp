@@ -151,7 +151,8 @@ typedef enum {
  *
  * MPP_BUFFER_TYPE_ION
  *
- * ptr  - ion handle in user space
+ * ptr  - virtual address of ion buffer in user space
+ * hnd  - ion handle in user space
  * fd   - ion buffer file handle for map / unmap
  *
  * MPP_BUFFER_TYPE_V4L2
@@ -162,6 +163,7 @@ typedef struct {
     MppBufferType   type;
     size_t          size;
     void            *ptr;
+    void            *hnd;
     int             fd;
 } MppBufferInfo;
 

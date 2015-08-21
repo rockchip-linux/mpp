@@ -56,6 +56,7 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
             tmp->type,
             size,
             NULL,
+            NULL,
             -1,
         };
         // if failed try init a new buffer
