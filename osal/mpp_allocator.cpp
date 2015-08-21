@@ -58,6 +58,13 @@ MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferData *data)
     return MPP_OK;
 }
 
+static MppAllocatorApi mpp_allocator_api = {
+    sizeof(mpp_allocator_api),
+    1,
+    mpp_allocator_alloc,
+    mpp_allocator_free,
+};
+
 MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
 {
     if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
@@ -72,21 +79,9 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
         return MPP_ERR_NULL_PTR;
     }
 
-    MppAllocatorApi *papi = mpp_malloc(MppAllocatorApi, 1);
-    if (NULL == papi) {
-        mpp_err("mpp_alloctor_get failed to malloc api context\n");
-        mpp_free(palloc);
-        return MPP_ERR_NULL_PTR;
-    }
-
     palloc->alignment   = SZ_4K;
     os_allocator_open(&palloc->allocator, palloc->alignment, type);
-
-    papi->size      = sizeof(papi->size);
-    papi->version   = 1;
-    papi->alloc     = mpp_allocator_alloc;
-    papi->free      = mpp_allocator_free;
-    palloc->api     = papi;
+    palloc->api = &mpp_allocator_api;
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -95,7 +90,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
     pthread_mutexattr_destroy(&attr);
 
     *allocator  = palloc;
-    *api        = papi;
+    *api        = &mpp_allocator_api;
 
     return MPP_OK;
 }
@@ -111,8 +106,6 @@ MPP_RET mpp_alloctor_put(MppAllocator *allocator)
     *allocator = NULL;
     os_allocator_close(p->allocator);
 
-    mpp_assert(p->api);
-    mpp_free(p->api);
     if (p)
         mpp_free(p);
 

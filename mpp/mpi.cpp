@@ -116,10 +116,24 @@ static MPP_RET mpi_control(MppCtx ctx, MPI_CMD cmd, MppParam param)
     return MPP_OK;
 }
 
+static MppApi mpp_api = {
+    sizeof(mpp_api),
+    1,
+    mpi_init,
+    mpi_decode,
+    mpi_encode,
+    mpi_decode_put_packet,
+    mpi_decode_get_frame,
+    mpi_encode_put_frame,
+    mpi_encode_get_packet,
+    mpi_flush,
+    mpi_control,
+    {0},
+};
+
 MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
 {
     MpiImpl *p;
-    MppApi  *api;
     MPI_FUNCTION_ENTER();
 
     if (NULL == ctx || NULL == mpi) {
@@ -134,30 +148,11 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
         return MPP_ERR_MALLOC;
     }
 
-    api = mpp_malloc(MppApi, 1);
-    if (NULL == api) {
-        mpp_err("mpp_init failed to allocate mpi\n");
-        mpp_free(p);
-        return MPP_ERR_MALLOC;
-    }
-
-    memset(p,   0, sizeof(*p));
-    memset(api, 0, sizeof(*api));
-    api->size               = sizeof(*api);
-    api->version            = 1;
-    api->init               = mpi_init;
-    api->decode             = mpi_decode;
-    api->encode             = mpi_encode;
-    api->decode_put_packet  = mpi_decode_put_packet;
-    api->decode_get_frame   = mpi_decode_get_frame;
-    api->encode_put_frame   = mpi_encode_put_frame;
-    api->encode_get_packet  = mpi_encode_get_packet;
-    api->flush              = mpi_flush;
-    api->control            = mpi_control;
-    p->api                  = api;
-    p->check                = p;
+    memset(p, 0, sizeof(*p));
+    p->api   = &mpp_api;
+    p->check = p;
     *ctx = p;
-    *mpi = api;
+    *mpi = p->api;
 
     get_mpi_debug();
 
@@ -182,8 +177,6 @@ MPP_RET mpp_deinit(MppCtx* ctx)
         return MPP_ERR_UNKNOW;
     }
 
-    if (p->api)
-        mpp_free(p->api);
     if (p)
         mpp_free(p);
     *ctx = NULL;
