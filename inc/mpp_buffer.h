@@ -165,6 +165,7 @@ typedef struct {
     void            *ptr;
     void            *hnd;
     int             fd;
+    void            *extension;
 } MppBufferInfo;
 
 #define BUFFER_GROUP_SIZE_DEFAULT           (SZ_1M*80)
