@@ -64,3 +64,14 @@ MPP_RET mpp_frame_deinit(MppFrame frame)
     return MPP_OK;
 }
 
+MppFrame mpp_frame_get_next(MppFrame frame)
+{
+    if (NULL == frame) {
+        mpp_err("mpp_frame_get_next invalid NULL pointer input\n");
+        return NULL;
+    }
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    return (MppFrame)p->next;
+}
+

@@ -19,7 +19,9 @@
 
 #include "mpp_frame.h"
 
-typedef struct {
+typedef struct MppFrameImpl_t MppFrameImpl;
+
+struct MppFrameImpl_t {
     /*
      * dimension parameter for display
      */
@@ -65,7 +67,12 @@ typedef struct {
      * buffer information
      */
     MppBuffer       buffer;
-} MppFrameImpl;
+
+    /*
+     * pointer for multiple frame output at one time
+     */
+    MppFrameImpl    *next;
+};
 
 
 /*

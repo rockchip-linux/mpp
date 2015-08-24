@@ -93,10 +93,15 @@ int main()
         }
 
         if (dec_out) {
-            // TODO: diaplay function called here
+            // interface may output multiple frame at one time
+            do {
+                MppFrame next = mpp_frame_get_next(dec_out);
 
-            mpp_frame_deinit(dec_out);
-            dec_out = NULL;
+                // TODO: diaplay function called here
+
+                mpp_frame_deinit(dec_out);
+                dec_out = next;
+            } while (dec_out);
         }
 
         mpp_packet_deinit(dec_in);
@@ -125,8 +130,15 @@ int main()
         }
 
         if (dec_out) {
-            mpp_frame_deinit(dec_out);
-            dec_out = NULL;
+            // interface may output multiple frame at one time
+            do {
+                MppFrame next = mpp_frame_get_next(dec_out);
+
+                // TODO: diaplay function called here
+
+                mpp_frame_deinit(dec_out);
+                dec_out = next;
+            } while (dec_out);
         }
     }
 
