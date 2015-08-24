@@ -24,6 +24,46 @@
 #include "mpp_buffer.h"
 #include "mpp_frame.h"
 
+/**
+ * Enumeration used to define the possible video compression codings.
+ * NOTE:  This essentially refers to file extensions. If the coding is
+ *        being used to specify the ENCODE type, then additional work
+ *        must be done to configure the exact flavor of the compression
+ *        to be used.  For decode cases where the user application can
+ *        not differentiate between MPEG-4 and H.264 bit streams, it is
+ *        up to the codec to handle this.
+ */
+//sync with the omx_video.h
+typedef enum MPI_VIDEO_CODINGTYPE {
+    MPI_VIDEO_CodingUnused,             /**< Value when coding is N/A */
+    MPI_VIDEO_CodingAutoDetect,         /**< Autodetection of coding type */
+    MPI_VIDEO_CodingMPEG2,              /**< AKA: H.262 */
+    MPI_VIDEO_CodingH263,               /**< H.263 */
+    MPI_VIDEO_CodingMPEG4,              /**< MPEG-4 */
+    MPI_VIDEO_CodingWMV,                /**< Windows Media Video (WMV1,WMV2,WMV3)*/
+    MPI_VIDEO_CodingRV,                 /**< all versions of Real Video */
+    MPI_VIDEO_CodingAVC,                /**< H.264/AVC */
+    MPI_VIDEO_CodingMJPEG,              /**< Motion JPEG */
+    MPI_VIDEO_CodingVP8,                /**< VP8 */
+    MPI_VIDEO_CodingVP9,                /**< VP9 */
+    MPI_VIDEO_CodingVC1 = 0x01000000,   /**< Windows Media Video (WMV1,WMV2,WMV3)*/
+    MPI_VIDEO_CodingFLV1,               /**< Sorenson H.263 */
+    MPI_VIDEO_CodingDIVX3,              /**< DIVX3 */
+    MPI_VIDEO_CodingVP6,
+    MPI_VIDEO_CodingHEVC,               /**< H.265/HEVC */
+    MPI_VIDEO_CodingKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
+    MPI_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
+    MPI_VIDEO_CodingMax = 0x7FFFFFFF
+} MPI_VIDEO_CODINGTYPE;
+
+typedef enum MPI_CODEC_TYPE {
+    MPI_CODEC_NONE,
+    MPI_CODEC_DECODER,
+    MPI_CODEC_ENCODER,
+    MPI_CODEC_BUTT,
+} MPI_CODEC_TYPE;
+
+
 typedef enum {
     MPI_MPP_CMD_BASE                    = 0,
     MPI_MPP_ENABLE_DEINTERLACE,
