@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
+#if defined(_WIN32)
+#include "vld.h"
+#endif
+
 #define MODULE_TAG "mpi_test"
 
 #include <string.h>
-
 #include "rk_mpi.h"
-
 #include "mpp_log.h"
 #include "mpp_env.h"
+
+
+#define MPI_DEC_LOOP_COUNT          4
+#define MPI_ENC_LOOP_COUNT          4
+
+#define MPI_STREAM_SIZE             (SZ_512K)
 
 int main()
 {
@@ -38,9 +46,19 @@ int main()
     MPI_CMD cmd         = MPI_MPP_CMD_BASE;
     MppParam param      = NULL;
 
+    RK_S32 i;
+    char *buf = NULL;
+    RK_S32 size = MPI_STREAM_SIZE;
+
     mpp_log("mpi_test start\n");
 
     mpp_env_set_u32("mpi_debug", 0x1);
+
+    buf = malloc(size);
+    if (NULL == buf) {
+        mpp_err("mpi_test malloc failed\n");
+        goto MPP_TEST_FAILED;
+    }
 
     mpp_log("mpi_test decoder test start\n");
 
@@ -63,9 +81,55 @@ int main()
         goto MPP_TEST_FAILED;
     }
 
-    mpi->decode(ctx, dec_in, &dec_out);
-    mpi->decode_put_packet(ctx, dec_in);
-    mpi->decode_get_frame(ctx, &dec_out);
+    // interface with both input and output
+    for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
+        mpp_packet_init(&dec_in, buf, size);
+
+        // TODO: read stream data to buf
+
+        ret = mpi->decode(ctx, dec_in, &dec_out);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        if (dec_out) {
+            // TODO: diaplay function called here
+
+            mpp_frame_deinit(dec_out);
+            dec_out = NULL;
+        }
+
+        mpp_packet_deinit(dec_in);
+        dec_in = NULL;
+    }
+
+    // interface with input and output separated
+    for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
+        mpp_packet_init(&dec_in, buf, size);
+
+        // TODO: read stream data to buf
+
+        ret = mpi->decode_put_packet(ctx, dec_in);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        mpp_packet_deinit(dec_in);
+        dec_in = NULL;
+    }
+
+    for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
+        ret = mpi->decode_get_frame(ctx, &dec_out);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        if (dec_out) {
+            mpp_frame_deinit(dec_out);
+            dec_out = NULL;
+        }
+    }
+
 
     ret = mpi->flush(ctx);
     if (MPP_OK != ret) {
@@ -73,7 +137,7 @@ int main()
         goto MPP_TEST_FAILED;
     }
 
-    mpp_deinit(&ctx);
+    mpp_deinit(ctx);
 
 
     mpp_log("mpi_test encoder test start\n");
@@ -107,15 +171,28 @@ int main()
         goto MPP_TEST_FAILED;
     }
 
-    mpp_deinit(&ctx);
+    if (dec_in) {
+        mpp_packet_deinit(dec_in);
+        dec_in = NULL;
+    }
+
+    mpp_deinit(ctx);
+    free(buf);
 
     mpp_log("mpi_test success\n");
 
     return 0;
 
 MPP_TEST_FAILED:
+    if (dec_in) {
+        mpp_packet_deinit(dec_in);
+        dec_in = NULL;
+    }
+
     if (ctx)
         mpp_deinit(ctx);
+    if (buf)
+        free(buf);
 
     mpp_log("mpi_test failed\n");
 

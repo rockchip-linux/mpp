@@ -79,16 +79,14 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_deinit(MppPacket *packet)
+MPP_RET mpp_packet_deinit(MppPacket packet)
 {
     if (NULL == packet) {
         mpp_err("mpp_packet_deinit invalid input packet %p\n", packet);
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_packet_impl *p = (mpp_packet_impl *)*packet;
-    mpp_free(p);
-    *packet = NULL;
+    mpp_free((mpp_packet_impl *)packet);
     return MPP_OK;
 }
 

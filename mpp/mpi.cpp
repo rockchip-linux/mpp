@@ -160,7 +160,7 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
     return MPP_OK;
 }
 
-MPP_RET mpp_deinit(MppCtx* ctx)
+MPP_RET mpp_deinit(MppCtx ctx)
 {
     MpiImpl *p;
     MPI_FUNCTION_ENTER();
@@ -170,7 +170,7 @@ MPP_RET mpp_deinit(MppCtx* ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (MpiImpl*)*ctx;
+    p = (MpiImpl*)ctx;
 
     if (p->check != p) {
         mpp_err("mpp_deinit input invalid MppCtx\n");
@@ -179,7 +179,6 @@ MPP_RET mpp_deinit(MppCtx* ctx)
 
     if (p)
         mpp_free(p);
-    *ctx = NULL;
 
     MPI_FUNCTION_LEAVE();
     return MPP_OK;

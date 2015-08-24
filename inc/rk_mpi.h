@@ -82,7 +82,7 @@ extern "C" {
  * mpp interface
  */
 MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi);
-MPP_RET mpp_deinit(MppCtx* ctx);
+MPP_RET mpp_deinit(MppCtx ctx);
 
 #ifdef __cplusplus
 }
