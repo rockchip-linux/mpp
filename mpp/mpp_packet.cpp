@@ -46,7 +46,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_pts invalid input %p\n", packet);
+        mpp_err("mpp_packet_set_pts found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -58,7 +58,7 @@ MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts)
 MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_pts invalid input %p\n", packet);
+        mpp_err("mpp_packet_set_dts found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -70,7 +70,7 @@ MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts)
 MPP_RET mpp_packet_set_eos(MppPacket packet)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_pts invalid input %p\n", packet);
+        mpp_err("mpp_packet_set_eos found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -79,10 +79,22 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
     return MPP_OK;
 }
 
+MPP_RET mpp_packet_set_extra_data(MppPacket packet)
+{
+    if (NULL == packet) {
+        mpp_err("mpp_packet_set_extra_data found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    mpp_packet_impl *p = (mpp_packet_impl *)packet;
+    p->flag |= MPP_PACKET_FLAG_EXTRA_DATA;
+    return MPP_OK;
+}
+
 MPP_RET mpp_packet_deinit(MppPacket packet)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_deinit invalid input packet %p\n", packet);
+        mpp_err("mpp_packet_deinit found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 

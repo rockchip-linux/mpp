@@ -30,10 +30,12 @@ extern "C" {
  * MppPacket interface
  */
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
+MPP_RET mpp_packet_deinit(MppPacket packet);
+
 MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
 MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts);
 MPP_RET mpp_packet_set_eos(MppPacket packet);
-MPP_RET mpp_packet_deinit(MppPacket packet);
+MPP_RET mpp_packet_set_extra_data(MppPacket packet);
 
 #ifdef __cplusplus
 }
