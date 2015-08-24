@@ -32,7 +32,7 @@ MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorPrimaries, color_primaries)
 MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorTransferCharacteristic, color_trc)
 MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorSpace, colorspace)
 MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameChromaLocation, chroma_location)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppBufferInfo, buffer)
+MPP_FRAME_ACCESSORS(MppFrameImpl, MppBuffer, buffer)
 
 MPP_RET mpp_frame_init(MppFrame *frame)
 {

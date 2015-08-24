@@ -136,7 +136,7 @@ extern "C" {
 /*
  * MppFrame interface
  */
-MPP_RET mpp_frame_init(MppFrame *frame, RK_U8 *data, RK_U32 size);
+MPP_RET mpp_frame_init(MppFrame *frame);
 MPP_RET mpp_frame_deinit(MppFrame frame);
 
 /*
@@ -156,8 +156,12 @@ RK_S64  mpp_frame_get_pts(const MppFrame frame);
 void    mpp_frame_set_pts(MppFrame frame, RK_S64 pts);
 RK_S64  mpp_frame_get_dts(const MppFrame frame);
 void    mpp_frame_set_dts(MppFrame frame, RK_S64 dts);
-MppBufferInfo mpp_frame_get_info(const MppFrame frame);
-void    mpp_frame_set_info(const MppFrame frame, MppBufferInfo info);
+
+/*
+ * buffer parameter
+ */
+MppBuffer mpp_frame_get_buffer(const MppFrame frame);
+void    mpp_frame_set_buffer(const MppFrame frame, MppBuffer buffer);
 
 /*
  * color related parameter

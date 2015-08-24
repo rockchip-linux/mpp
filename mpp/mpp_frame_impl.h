@@ -64,7 +64,7 @@ typedef struct {
     /*
      * buffer information
      */
-    MppBufferInfo   buffer;
+    MppBuffer       buffer;
 } MppFrameImpl;
 
 
