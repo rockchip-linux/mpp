@@ -15,6 +15,7 @@ macro(add_mpp_test module)
         add_executable(${test_name} ${test_name}.c)
         target_link_libraries(${test_name} mpp)
         install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
+        add_test(NAME ${test_name} COMMAND ${test_name})
     endif()
 endmacro()
 
