@@ -17,8 +17,7 @@
 #ifndef __MPP_IMPL_H__
 #define __MPP_IMPL_H__
 
-#include "rk_type.h"
-#include "rk_mpi.h"
+#include "mpp.h"
 #include "vpu_api.h"
 
 #define MPI_DBG_FUNCTION            (0x00000001)
@@ -36,11 +35,11 @@ typedef struct MpiImpl_t MpiImpl;
 
 struct MpiImpl_t {
     MpiImpl         *check;
-    MppCtxType    type;
+    MppCtxType      type;
     MppCodingType   coding;
 
     MppApi          *api;
-    void            *ctx;
+    Mpp             *ctx;
 };
 
 #ifdef __cplusplus

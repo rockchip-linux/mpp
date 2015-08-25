@@ -17,11 +17,7 @@
 #ifndef __RK_MPI_H__
 #define __RK_MPI_H__
 
-#include "rk_type.h"
-
-#include "mpp_err.h"
 #include "mpp_packet.h"
-#include "mpp_buffer.h"
 #include "mpp_frame.h"
 
 typedef enum {

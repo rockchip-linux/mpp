@@ -28,12 +28,33 @@ extern "C" {
 
 /*
  * MppPacket interface
+ *
+ * mpp_packet_init = mpp_packet_new + mpp_packet_set_data + mpp_packet_set_size
  */
+MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
 MPP_RET mpp_packet_deinit(MppPacket packet);
 
-MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
-MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts);
+
+void    mpp_packet_set_data(MppPacket packet, void *data);
+void*   mpp_packet_get_data(const MppPacket packet);
+void    mpp_packet_set_size(MppPacket packet, size_t size);
+size_t  mpp_packet_get_size(const MppPacket packet);
+
+void    mpp_packet_set_offset(MppPacket packet, size_t offset);
+size_t  mpp_packet_get_offset(const MppPacket packet);
+void    mpp_packet_set_length(MppPacket packet, size_t length);
+size_t  mpp_packet_get_length(const MppPacket packet);
+
+void    mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
+RK_S64  mpp_packet_get_pts(const MppPacket packet);
+void    mpp_packet_set_dts(MppPacket packet, RK_S64 dts);
+RK_S64  mpp_packet_get_dts(const MppPacket packet);
+
+void    mpp_packet_set_flag(MppPacket packet, RK_U32 flag);
+RK_U32  mpp_packet_get_flag(const MppPacket packet);
+
+
 MPP_RET mpp_packet_set_eos(MppPacket packet);
 MPP_RET mpp_packet_set_extra_data(MppPacket packet);
 

@@ -172,9 +172,55 @@ int main()
         goto MPP_TEST_FAILED;
     }
 
-    mpi->encode(ctx, enc_in, &enc_out);
-    mpi->encode_put_frame(ctx, enc_in);
-    mpi->encode_get_packet(ctx, &dec_out);
+
+
+    // interface with both input and output
+    for (i = 0; i < MPI_ENC_LOOP_COUNT; i++) {
+        mpp_frame_init(&enc_in);
+
+        mpi->encode(ctx, enc_in, &enc_out);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        if (enc_out) {
+            mpp_packet_deinit(enc_out);
+            enc_out = NULL;
+        }
+
+        mpp_frame_deinit(enc_in);
+        enc_in = NULL;
+    }
+
+    // interface with input and output separated
+    for (i = 0; i < MPI_ENC_LOOP_COUNT; i++) {
+        mpp_frame_init(&enc_in);
+
+        // TODO: read stream data to buf
+
+        mpi->encode_put_frame(ctx, enc_in);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        mpp_frame_deinit(enc_in);
+        enc_in = NULL;
+    }
+
+    for (i = 0; i < MPI_ENC_LOOP_COUNT; i++) {
+        mpi->encode_get_packet(ctx, &enc_out);
+        if (MPP_OK != ret) {
+            goto MPP_TEST_FAILED;
+        }
+
+        if (enc_out) {
+            if (enc_out) {
+                mpp_packet_deinit(enc_out);
+                enc_out = NULL;
+            }
+        }
+    }
+
 
     ret = mpi->flush(ctx);
     if (MPP_OK != ret) {
@@ -185,6 +231,11 @@ int main()
     if (dec_in) {
         mpp_packet_deinit(dec_in);
         dec_in = NULL;
+    }
+
+    if (enc_in) {
+        mpp_frame_deinit(enc_in);
+        enc_in = NULL;
     }
 
     mpp_deinit(ctx);
@@ -198,6 +249,11 @@ MPP_TEST_FAILED:
     if (dec_in) {
         mpp_packet_deinit(dec_in);
         dec_in = NULL;
+    }
+
+    if (enc_in) {
+        mpp_frame_deinit(enc_in);
+        enc_in = NULL;
     }
 
     if (ctx)

@@ -23,6 +23,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpi_impl.h"
+#include "mpp.h"
 
 static MPP_RET mpi_config(MppCtx ctx, MppEncConfig cfg)
 {
@@ -58,42 +59,70 @@ static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
 
 static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
 {
-    (void)ctx;
-    (void)packet;
     MPI_FUNCTION_ENTER();
+    MpiImpl *p = (MpiImpl *)ctx;
+
+    if (NULL == p || p->check != p || NULL == p->ctx || NULL == packet) {
+        mpp_err("mpi_decode_put_packet found invalid context input ctx %p packet %p\n",
+                ctx, packet);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MPP_RET ret = p->ctx->put_packet(packet);
 
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
 {
-    (void)ctx;
-    (void)frame;
     MPI_FUNCTION_ENTER();
+    MpiImpl *p = (MpiImpl *)ctx;
+
+    if (NULL == p || p->check != p || NULL == p->ctx || NULL == frame) {
+        mpp_err("mpi_decode_get_frame found invalid context input ctx %p frame %p\n",
+                ctx, frame);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MPP_RET ret = p->ctx->get_frame(frame);
 
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
 {
-    (void)ctx;
-    (void)frame;
     MPI_FUNCTION_ENTER();
+    MpiImpl *p = (MpiImpl *)ctx;
+
+    if (NULL == p || p->check != p || NULL == p->ctx || NULL == frame) {
+        mpp_err("mpi_encode_put_frame found invalid context input ctx %p frame %p\n",
+                ctx, frame);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MPP_RET ret = p->ctx->put_frame(frame);
 
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
 {
-    (void)ctx;
-    (void)packet;
     MPI_FUNCTION_ENTER();
+    MpiImpl *p = (MpiImpl *)ctx;
+
+    if (NULL == p || p->check != p || NULL == p->ctx || NULL == packet) {
+        mpp_err("mpi_encode_get_packet found invalid context input ctx %p packet %p\n",
+                ctx, packet);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MPP_RET ret = p->ctx->get_packet(packet);
 
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET mpi_flush(MppCtx ctx)
@@ -144,6 +173,9 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType codin
         return MPP_ERR_NULL_PTR;
     }
 
+    *ctx = NULL;
+    *mpi = NULL;
+
     p = mpp_malloc(MpiImpl, 1);
     if (NULL == p) {
         mpp_err("mpp_init failed to allocate context\n");
@@ -151,6 +183,14 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType codin
     }
 
     memset(p, 0, sizeof(*p));
+
+    p->ctx = new Mpp(type);
+    if (NULL == p->ctx) {
+        mpp_free(p);
+        mpp_err("mpp_init failed to new Mpp\n");
+        return MPP_ERR_MALLOC;
+    }
+
     p->api      = &mpp_api;
     p->check    = p;
     p->type     = type;
@@ -180,6 +220,9 @@ MPP_RET mpp_deinit(MppCtx ctx)
         mpp_err("mpp_deinit input invalid MppCtx\n");
         return MPP_ERR_UNKNOW;
     }
+
+    if (p->ctx)
+        delete p->ctx;
 
     if (p)
         mpp_free(p);

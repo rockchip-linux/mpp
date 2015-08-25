@@ -21,6 +21,14 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
+MPP_PACKET_ACCESSORS(MppPacketImpl, void*,  data)
+MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, size)
+MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, offset)
+MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, length)
+MPP_PACKET_ACCESSORS(MppPacketImpl, RK_S64, pts)
+MPP_PACKET_ACCESSORS(MppPacketImpl, RK_S64, dts)
+MPP_PACKET_ACCESSORS(MppPacketImpl, RK_U32, flag)
+
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet || NULL == data || 0 == size) {
@@ -29,7 +37,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_packet_impl *p = mpp_calloc(mpp_packet_impl, 1);
+    MppPacketImpl *p = mpp_calloc(MppPacketImpl, 1);
     if (NULL == p) {
         mpp_err("mpp_packet_init malloc failed\n");
         return MPP_ERR_NULL_PTR;
@@ -43,27 +51,14 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_set_pts(MppPacket packet, RK_S64 pts)
+MPP_RET mpp_packet_deinit(MppPacket packet)
 {
     if (NULL == packet) {
-        mpp_err("mpp_packet_set_pts found NULL input\n");
+        mpp_err("mpp_packet_deinit found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_packet_impl *p = (mpp_packet_impl *)packet;
-    p->pts = pts;
-    return MPP_OK;
-}
-
-MPP_RET mpp_packet_set_dts(MppPacket packet, RK_S64 dts)
-{
-    if (NULL == packet) {
-        mpp_err("mpp_packet_set_dts found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    mpp_packet_impl *p = (mpp_packet_impl *)packet;
-    p->dts = dts;
+    mpp_free((MppPacketImpl *)packet);
     return MPP_OK;
 }
 
@@ -74,7 +69,7 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_packet_impl *p = (mpp_packet_impl *)packet;
+    MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag |= MPP_PACKET_FLAG_EOS;
     return MPP_OK;
 }
@@ -86,19 +81,8 @@ MPP_RET mpp_packet_set_extra_data(MppPacket packet)
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_packet_impl *p = (mpp_packet_impl *)packet;
+    MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag |= MPP_PACKET_FLAG_EXTRA_DATA;
-    return MPP_OK;
-}
-
-MPP_RET mpp_packet_deinit(MppPacket packet)
-{
-    if (NULL == packet) {
-        mpp_err("mpp_packet_deinit found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    mpp_free((mpp_packet_impl *)packet);
     return MPP_OK;
 }
 
