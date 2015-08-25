@@ -137,7 +137,7 @@ extern "C" {
  * MppFrame interface
  */
 MPP_RET mpp_frame_init(MppFrame *frame);
-MPP_RET mpp_frame_deinit(MppFrame frame);
+MPP_RET mpp_frame_deinit(MppFrame *frame);
 MppFrame mpp_frame_get_next(MppFrame frame);
 
 /*

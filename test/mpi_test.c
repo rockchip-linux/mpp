@@ -96,13 +96,12 @@ int main()
 
                 // TODO: diaplay function called here
 
-                mpp_frame_deinit(dec_out);
+                mpp_frame_deinit(&dec_out);
                 dec_out = next;
             } while (dec_out);
         }
 
-        mpp_packet_deinit(dec_in);
-        dec_in = NULL;
+        mpp_packet_deinit(&dec_in);
     }
 
     // interface with input and output separated
@@ -116,8 +115,7 @@ int main()
             goto MPP_TEST_FAILED;
         }
 
-        mpp_packet_deinit(dec_in);
-        dec_in = NULL;
+        mpp_packet_deinit(&dec_in);
     }
 
     for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
@@ -133,7 +131,7 @@ int main()
 
                 // TODO: diaplay function called here
 
-                mpp_frame_deinit(dec_out);
+                mpp_frame_deinit(&dec_out);
                 dec_out = next;
             } while (dec_out);
         }
@@ -183,13 +181,10 @@ int main()
             goto MPP_TEST_FAILED;
         }
 
-        if (enc_out) {
-            mpp_packet_deinit(enc_out);
-            enc_out = NULL;
-        }
+        if (enc_out)
+            mpp_packet_deinit(&enc_out);
 
-        mpp_frame_deinit(enc_in);
-        enc_in = NULL;
+        mpp_frame_deinit(&enc_in);
     }
 
     // interface with input and output separated
@@ -203,8 +198,7 @@ int main()
             goto MPP_TEST_FAILED;
         }
 
-        mpp_frame_deinit(enc_in);
-        enc_in = NULL;
+        mpp_frame_deinit(&enc_in);
     }
 
     for (i = 0; i < MPI_ENC_LOOP_COUNT; i++) {
@@ -214,10 +208,7 @@ int main()
         }
 
         if (enc_out) {
-            if (enc_out) {
-                mpp_packet_deinit(enc_out);
-                enc_out = NULL;
-            }
+            mpp_packet_deinit(&enc_out);
         }
     }
 
@@ -228,15 +219,11 @@ int main()
         goto MPP_TEST_FAILED;
     }
 
-    if (dec_in) {
-        mpp_packet_deinit(dec_in);
-        dec_in = NULL;
-    }
+    if (dec_in)
+        mpp_packet_deinit(&dec_in);
 
-    if (enc_in) {
-        mpp_frame_deinit(enc_in);
-        enc_in = NULL;
-    }
+    if (enc_in)
+        mpp_frame_deinit(&enc_in);
 
     mpp_deinit(ctx);
     free(buf);
@@ -246,15 +233,11 @@ int main()
     return 0;
 
 MPP_TEST_FAILED:
-    if (dec_in) {
-        mpp_packet_deinit(dec_in);
-        dec_in = NULL;
-    }
+    if (dec_in)
+        mpp_packet_deinit(&dec_in);
 
-    if (enc_in) {
-        mpp_frame_deinit(enc_in);
-        enc_in = NULL;
-    }
+    if (enc_in)
+        mpp_frame_deinit(&enc_in);
 
     if (ctx)
         mpp_deinit(ctx);

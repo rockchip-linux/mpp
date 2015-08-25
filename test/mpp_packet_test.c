@@ -48,7 +48,7 @@ int main()
         mpp_err("mpp_packet_test mpp_packet_set_eos failed\n");
         goto MPP_PACKET_failed;
     }
-    mpp_packet_deinit(packet);
+    mpp_packet_deinit(&packet);
 
     free(data);
     mpp_log("mpp_packet_test success\n");
@@ -56,7 +56,7 @@ int main()
 
 MPP_PACKET_failed:
     if (packet)
-        mpp_packet_deinit(packet);
+        mpp_packet_deinit(&packet);
 
     if (data)
         free(data);

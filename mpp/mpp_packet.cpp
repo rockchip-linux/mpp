@@ -51,14 +51,15 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_deinit(MppPacket packet)
+MPP_RET mpp_packet_deinit(MppPacket *packet)
 {
-    if (NULL == packet) {
+    if (NULL == packet || NULL == packet) {
         mpp_err("mpp_packet_deinit found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_free((MppPacketImpl *)packet);
+    mpp_free(*packet);
+    *packet = NULL;
     return MPP_OK;
 }
 

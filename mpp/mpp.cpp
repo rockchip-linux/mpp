@@ -137,11 +137,10 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
-    MPP_RET ret = MPP_NOK;
     if (frames->list_size()) {
-        ret = (MPP_RET)frames->del_at_tail(frame, sizeof(frame));
+        frames->del_at_tail(frame, sizeof(frame));
     }
-    return ret;
+    return MPP_OK;
 }
 
 MPP_RET Mpp::put_frame(MppFrame frame)
@@ -152,10 +151,9 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
-    MPP_RET ret = MPP_NOK;
     if (packets->list_size()) {
-        ret = (MPP_RET)packets->del_at_tail(packet, sizeof(packet));
+        packets->del_at_tail(packet, sizeof(packet));
     }
-    return ret;
+    return MPP_OK;
 }
 

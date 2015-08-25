@@ -33,7 +33,7 @@ extern "C" {
  */
 MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
-MPP_RET mpp_packet_deinit(MppPacket packet);
+MPP_RET mpp_packet_deinit(MppPacket *packet);
 
 
 void    mpp_packet_set_data(MppPacket packet, void *data);

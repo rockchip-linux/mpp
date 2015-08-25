@@ -52,15 +52,15 @@ MPP_RET mpp_frame_init(MppFrame *frame)
     return MPP_OK;
 }
 
-MPP_RET mpp_frame_deinit(MppFrame frame)
+MPP_RET mpp_frame_deinit(MppFrame *frame)
 {
-    if (NULL == frame) {
+    if (NULL == frame || NULL == *frame) {
         mpp_err("mpp_frame_deinit invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_free(frame);
-
+    mpp_free(*frame);
+    *frame = NULL;
     return MPP_OK;
 }
 
