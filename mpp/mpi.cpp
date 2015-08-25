@@ -24,10 +24,10 @@
 #include "mpp_mem.h"
 #include "mpi_impl.h"
 
-static MPP_RET mpi_init(MppCtx ctx, MppPacket packet)
+static MPP_RET mpi_config(MppCtx ctx, MppEncConfig cfg)
 {
     (void)ctx;
-    (void)packet;
+    (void)cfg;
     MPI_FUNCTION_ENTER();
 
     MPI_FUNCTION_LEAVE();
@@ -105,7 +105,7 @@ static MPP_RET mpi_flush(MppCtx ctx)
     return MPP_OK;
 }
 
-static MPP_RET mpi_control(MppCtx ctx, MPI_CMD cmd, MppParam param)
+static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
 {
     (void)ctx;
     (void)cmd;
@@ -119,7 +119,7 @@ static MPP_RET mpi_control(MppCtx ctx, MPI_CMD cmd, MppParam param)
 static MppApi mpp_api = {
     sizeof(mpp_api),
     1,
-    mpi_init,
+    mpi_config,
     mpi_decode,
     mpi_encode,
     mpi_decode_put_packet,
@@ -131,14 +131,16 @@ static MppApi mpp_api = {
     {0},
 };
 
-MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
+MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType coding)
 {
     MpiImpl *p;
     MPI_FUNCTION_ENTER();
 
-    if (NULL == ctx || NULL == mpi) {
-        mpp_err("mpp_init input ctx %p mpi %p found null pointer\n",
-                ctx, mpi);
+    if (NULL == ctx || NULL == mpi ||
+        type >= MPP_CTX_BUTT ||
+        coding >= MPP_VIDEO_CodingMax) {
+        mpp_err("mpp_init invalid input ctx %p mpi %p type %d coding %d\n",
+                ctx, mpi, type, coding);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -149,8 +151,10 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi)
     }
 
     memset(p, 0, sizeof(*p));
-    p->api   = &mpp_api;
-    p->check = p;
+    p->api      = &mpp_api;
+    p->check    = p;
+    p->type     = type;
+    p->coding   = coding;
     *ctx = p;
     *mpi = p->api;
 

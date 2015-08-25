@@ -24,6 +24,12 @@
 #include "mpp_buffer.h"
 #include "mpp_frame.h"
 
+typedef enum {
+    MPP_CTX_DEC,
+    MPP_CTX_ENC,
+    MPP_CTX_BUTT,
+} MppCtxType;
+
 /**
  * Enumeration used to define the possible video compression codings.
  * NOTE:  This essentially refers to file extensions. If the coding is
@@ -34,68 +40,112 @@
  *        up to the codec to handle this.
  */
 //sync with the omx_video.h
-typedef enum MPI_VIDEO_CODINGTYPE {
-    MPI_VIDEO_CodingUnused,             /**< Value when coding is N/A */
-    MPI_VIDEO_CodingAutoDetect,         /**< Autodetection of coding type */
-    MPI_VIDEO_CodingMPEG2,              /**< AKA: H.262 */
-    MPI_VIDEO_CodingH263,               /**< H.263 */
-    MPI_VIDEO_CodingMPEG4,              /**< MPEG-4 */
-    MPI_VIDEO_CodingWMV,                /**< Windows Media Video (WMV1,WMV2,WMV3)*/
-    MPI_VIDEO_CodingRV,                 /**< all versions of Real Video */
-    MPI_VIDEO_CodingAVC,                /**< H.264/AVC */
-    MPI_VIDEO_CodingMJPEG,              /**< Motion JPEG */
-    MPI_VIDEO_CodingVP8,                /**< VP8 */
-    MPI_VIDEO_CodingVP9,                /**< VP9 */
-    MPI_VIDEO_CodingVC1 = 0x01000000,   /**< Windows Media Video (WMV1,WMV2,WMV3)*/
-    MPI_VIDEO_CodingFLV1,               /**< Sorenson H.263 */
-    MPI_VIDEO_CodingDIVX3,              /**< DIVX3 */
-    MPI_VIDEO_CodingVP6,
-    MPI_VIDEO_CodingHEVC,               /**< H.265/HEVC */
-    MPI_VIDEO_CodingKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
-    MPI_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
-    MPI_VIDEO_CodingMax = 0x7FFFFFFF
-} MPI_VIDEO_CODINGTYPE;
-
-typedef enum MPI_CODEC_TYPE {
-    MPI_CODEC_NONE,
-    MPI_CODEC_DECODER,
-    MPI_CODEC_ENCODER,
-    MPI_CODEC_BUTT,
-} MPI_CODEC_TYPE;
+typedef enum {
+    MPP_VIDEO_CodingUnused,             /**< Value when coding is N/A */
+    MPP_VIDEO_CodingAutoDetect,         /**< Autodetection of coding type */
+    MPP_VIDEO_CodingMPEG2,              /**< AKA: H.262 */
+    MPP_VIDEO_CodingH263,               /**< H.263 */
+    MPP_VIDEO_CodingMPEG4,              /**< MPEG-4 */
+    MPP_VIDEO_CodingWMV,                /**< Windows Media Video (WMV1,WMV2,WMV3)*/
+    MPP_VIDEO_CodingRV,                 /**< all versions of Real Video */
+    MPP_VIDEO_CodingAVC,                /**< H.264/AVC */
+    MPP_VIDEO_CodingMJPEG,              /**< Motion JPEG */
+    MPP_VIDEO_CodingVP8,                /**< VP8 */
+    MPP_VIDEO_CodingVP9,                /**< VP9 */
+    MPP_VIDEO_CodingVC1 = 0x01000000,   /**< Windows Media Video (WMV1,WMV2,WMV3)*/
+    MPP_VIDEO_CodingFLV1,               /**< Sorenson H.263 */
+    MPP_VIDEO_CodingDIVX3,              /**< DIVX3 */
+    MPP_VIDEO_CodingVP6,
+    MPP_VIDEO_CodingHEVC,               /**< H.265/HEVC */
+    MPP_VIDEO_CodingKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
+    MPP_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
+    MPP_VIDEO_CodingMax = 0x7FFFFFFF
+} MppCodingType;
 
 
 typedef enum {
-    MPI_MPP_CMD_BASE                    = 0,
-    MPI_MPP_ENABLE_DEINTERLACE,
+    MPP_CMD_BASE                        = 0,
+    MPP_ENABLE_DEINTERLACE,
 
-    MPI_HAL_CMD_BASE                    = 0x10000,
+    MPP_HAL_CMD_BASE                    = 0x10000,
 
-    MPI_OSAL_CMD_BASE                   = 0x20000,
-    MPI_OSAL_SET_VPUMEM_CONTEXT,
+    MPP_OSAL_CMD_BASE                   = 0x20000,
+    MPP_OSAL_SET_VPUMEM_CONTEXT,
 
-    MPI_CODEC_CMD_BASE                  = 0x30000,
-    MPI_CODEC_INFO_CHANGE,
-    MPI_CODEC_SET_DEFAULT_WIDTH_HEIGH,
+    MPP_CODEC_CMD_BASE                  = 0x30000,
+    MPP_CODEC_INFO_CHANGE,
+    MPP_CODEC_SET_DEFAULT_WIDTH_HEIGH,
 
-    MPI_DEC_CMD_BASE                    = 0x40000,
-    MPI_DEC_USE_PRESENT_TIME_ORDER,
+    MPP_DEC_CMD_BASE                    = 0x40000,
+    MPP_DEC_USE_PRESENT_TIME_ORDER,
+    MPP_DEC_SET_VC1_EXTRA_DATA,
+    MPP_DEC_SET_VP6_ID,
 
-    MPI_ENC_CMD_BASE                    = 0x50000,
-    MPI_ENC_SETCFG,
-    MPI_ENC_GETCFG,
-    MPI_ENC_SETFORMAT,
-    MPI_ENC_SETIDRFRAME,
-} MPI_CMD;
+    MPP_ENC_CMD_BASE                    = 0x50000,
+    MPP_ENC_SETCFG,
+    MPP_ENC_GETCFG,
+    MPP_ENC_SETFORMAT,
+    MPP_ENC_SETIDRFRAME,
+} MpiCmd;
 
 
 typedef void* MppCtx;
 typedef void* MppParam;
 
+/*
+ * in decoder mode application need to specify the coding type first
+ * send a stream header to mpi ctx using parameter data / size
+ * and decoder will try to decode the
+ */
+typedef struct {
+    /*
+     * input source data format
+     */
+    RK_S32  width;
+    RK_S32  height;
+    RK_S32  format;
+
+    /*
+     * rate control parameter
+     *
+     * rc_mode  - rate control mode
+     *            0 - fix qp mode
+     *            1 - constant bit rate mode (CBR)
+     *            2 - variable bit rate mode (VBR)
+     * bps      - target bit rate, unit: bit per second
+     * fps_in   - input  frame rate, unit: frame per second
+     * fps_out  - output frame rate, unit: frame per second
+     * qp       - constant qp for fix qp mode
+     *            initial qp for CBR / VBR
+     * gop      - gap between Intra frame
+     *            0 for only 1 I frame the rest are all P frames
+     *            1 for all I frame
+     *            2 for I P I P I P
+     *            3 for I P P I P P
+     *            etc...
+     */
+    RK_S32  rc_mode;
+    RK_S32  bps;
+    RK_S32  fps_in;
+    RK_S32  fps_out;
+    RK_S32  qp;
+    RK_S32  gop;
+
+    /*
+     * stream feature parameter
+     */
+    RK_S32  profile;
+    RK_S32  level;
+    RK_S32  cabac_en;
+    RK_S32  trans8x8_en;
+} MppEncConfig;
+
 typedef struct {
     RK_U32  size;
     RK_U32  version;
 
-    MPP_RET (*init)(MppCtx ctx, MppPacket packet);
+    MPP_RET (*config)(MppCtx ctx, MppEncConfig cfg);
+
     // sync interface
     MPP_RET (*decode)(MppCtx ctx, MppPacket packet, MppFrame *frame);
     MPP_RET (*encode)(MppCtx ctx, MppFrame frame, MppPacket *packet);
@@ -108,7 +158,7 @@ typedef struct {
     MPP_RET (*encode_get_packet)(MppCtx ctx, MppPacket *packet);
 
     MPP_RET (*flush)(MppCtx ctx);
-    MPP_RET (*control)(MppCtx ctx, MPI_CMD cmd, MppParam param);
+    MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
 
     RK_U32 reserv[16];
 } MppApi;
@@ -121,7 +171,7 @@ extern "C" {
 /*
  * mpp interface
  */
-MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi);
+MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType coding);
 MPP_RET mpp_deinit(MppCtx ctx);
 
 #ifdef __cplusplus

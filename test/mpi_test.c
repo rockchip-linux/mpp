@@ -36,6 +36,7 @@ int main()
     MPP_RET ret;
     MppCtx ctx  = NULL;
     MppApi *mpi = NULL;
+    MppEncConfig cfg;
 
     MppPacket dec_in    = NULL;
     MppFrame  dec_out   = NULL;
@@ -43,7 +44,7 @@ int main()
     MppFrame  enc_in    = NULL;
     MppPacket enc_out   = NULL;
 
-    MPI_CMD cmd         = MPI_MPP_CMD_BASE;
+    MpiCmd cmd          = MPP_CMD_BASE;
     MppParam param      = NULL;
 
     RK_S32 i;
@@ -63,17 +64,13 @@ int main()
     mpp_log("mpi_test decoder test start\n");
 
     // decoder demo
-    ret = mpp_init(&ctx, &mpi);
+    ret = mpp_init(&ctx, &mpi, MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
     if (MPP_OK != ret) {
         mpp_err("mpp_init failed\n");
         goto MPP_TEST_FAILED;
     }
 
-    ret = mpi->init(ctx, dec_in);
-    if (MPP_OK != ret) {
-        mpp_err("mpi->init failed\n");
-        goto MPP_TEST_FAILED;
-    }
+    // NOTE: decoder do not need control function
 
     ret = mpi->control(ctx, cmd, param);
     if (MPP_OK != ret) {
@@ -155,15 +152,17 @@ int main()
     mpp_log("mpi_test encoder test start\n");
 
     // encoder demo
-    ret = mpp_init(&ctx, &mpi);
+    ret = mpp_init(&ctx, &mpi, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
     if (MPP_OK != ret) {
         mpp_err("mpp_init failed\n");
         goto MPP_TEST_FAILED;
     }
 
-    ret = mpi->init(ctx, dec_in);
+    memset(&cfg, 0, sizeof(cfg));
+
+    ret = mpi->config(ctx, cfg);
     if (MPP_OK != ret) {
-        mpp_err("mpi->init failed\n");
+        mpp_err("mpi->config failed\n");
         goto MPP_TEST_FAILED;
     }
 

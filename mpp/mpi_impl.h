@@ -35,9 +35,12 @@
 typedef struct MpiImpl_t MpiImpl;
 
 struct MpiImpl_t {
-    MpiImpl     *check;
-    MppApi      *api;
-    void        *ctx;
+    MpiImpl         *check;
+    MppCtxType    type;
+    MppCodingType   coding;
+
+    MppApi          *api;
+    void            *ctx;
 };
 
 #ifdef __cplusplus
