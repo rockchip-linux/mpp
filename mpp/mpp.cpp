@@ -83,20 +83,18 @@ Mpp::Mpp(MppCtxType type)
 {
     switch (type) {
     case MPP_CTX_DEC : {
-        thread_start(thread_dec);
         packets = new mpp_list((node_destructor)NULL);
         frames  = new mpp_list((node_destructor)mpp_frame_deinit);
+        thread_start(thread_dec);
     } break;
     case MPP_CTX_ENC : {
-        thread_start(thread_enc);
         frames  = new mpp_list((node_destructor)NULL);
         packets = new mpp_list((node_destructor)mpp_packet_deinit);
+        thread_start(thread_enc);
     } break;
     default : {
         mpp_err("Mpp error type %d\n", type);
     } break;
-    }
-    if (thread_running) {
     }
 }
 
