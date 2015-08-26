@@ -47,8 +47,8 @@ typedef struct {
 /*
  * object access function macro
  */
-#define MPP_PACKET_ACCESSORS(impl, type, field) \
-    type mpp_packet_get_##field(const MppPacket *s) { return ((impl*)s)->field; } \
-    void mpp_packet_set_##field(MppPacket *s, type v) { ((impl*)s)->field = v; }
+#define MPP_PACKET_ACCESSORS(type, field) \
+    type mpp_packet_get_##field(const MppPacket s) { return ((MppPacketImpl*)s)->field; } \
+    void mpp_packet_set_##field(MppPacket s, type v) { ((MppPacketImpl*)s)->field = v; }
 
 #endif /*__MPP_IMPL_H__*/

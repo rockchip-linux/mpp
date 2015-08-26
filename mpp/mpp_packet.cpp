@@ -21,13 +21,13 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-MPP_PACKET_ACCESSORS(MppPacketImpl, void*,  data)
-MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, size)
-MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, offset)
-MPP_PACKET_ACCESSORS(MppPacketImpl, size_t, length)
-MPP_PACKET_ACCESSORS(MppPacketImpl, RK_S64, pts)
-MPP_PACKET_ACCESSORS(MppPacketImpl, RK_S64, dts)
-MPP_PACKET_ACCESSORS(MppPacketImpl, RK_U32, flag)
+MPP_PACKET_ACCESSORS(void*,  data)
+MPP_PACKET_ACCESSORS(size_t, size)
+MPP_PACKET_ACCESSORS(size_t, offset)
+MPP_PACKET_ACCESSORS(size_t, length)
+MPP_PACKET_ACCESSORS(RK_S64, pts)
+MPP_PACKET_ACCESSORS(RK_S64, dts)
+MPP_PACKET_ACCESSORS(RK_U32, flag)
 
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {

@@ -78,9 +78,9 @@ struct MppFrameImpl_t {
 /*
  * object access function macro
  */
-#define MPP_FRAME_ACCESSORS(impl, type, field) \
-    type mpp_frame_get_##field(const MppFrame *s) { return ((impl*)s)->field; } \
-    void mpp_frame_set_##field(MppFrame *s, type v) { ((impl*)s)->field = v; }
+#define MPP_FRAME_ACCESSORS(type, field) \
+    type mpp_frame_get_##field(const MppFrame s) { return ((MppFrameImpl*)s)->field; } \
+    void mpp_frame_set_##field(MppFrame s, type v) { ((MppFrameImpl*)s)->field = v; }
 
 
 

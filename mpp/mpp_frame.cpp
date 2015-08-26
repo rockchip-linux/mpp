@@ -20,19 +20,19 @@
 #include "mpp_mem.h"
 #include "mpp_frame_impl.h"
 
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_U32, width)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_U32, height)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_U32, hor_stride)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_U32, ver_stride)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_U32, mode)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_S64, pts)
-MPP_FRAME_ACCESSORS(MppFrameImpl, RK_S64, dts)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorRange, color_range)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorPrimaries, color_primaries)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorTransferCharacteristic, color_trc)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameColorSpace, colorspace)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppFrameChromaLocation, chroma_location)
-MPP_FRAME_ACCESSORS(MppFrameImpl, MppBuffer, buffer)
+MPP_FRAME_ACCESSORS(RK_U32, width)
+MPP_FRAME_ACCESSORS(RK_U32, height)
+MPP_FRAME_ACCESSORS(RK_U32, hor_stride)
+MPP_FRAME_ACCESSORS(RK_U32, ver_stride)
+MPP_FRAME_ACCESSORS(RK_U32, mode)
+MPP_FRAME_ACCESSORS(RK_S64, pts)
+MPP_FRAME_ACCESSORS(RK_S64, dts)
+MPP_FRAME_ACCESSORS(MppFrameColorRange, color_range)
+MPP_FRAME_ACCESSORS(MppFrameColorPrimaries, color_primaries)
+MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
+MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
+MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
+MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 
 MPP_RET mpp_frame_init(MppFrame *frame)
 {

@@ -162,7 +162,7 @@ void    mpp_frame_set_dts(MppFrame frame, RK_S64 dts);
  * buffer parameter
  */
 MppBuffer mpp_frame_get_buffer(const MppFrame frame);
-void    mpp_frame_set_buffer(const MppFrame frame, MppBuffer buffer);
+void    mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer);
 
 /*
  * color related parameter

@@ -2,6 +2,7 @@
 include_directories(.)
 include_directories(codec/inc)
 include_directories(hal/inc)
+include_directories(syntax)
 
 
 # ----------------------------------------------------------------------------
