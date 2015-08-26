@@ -56,25 +56,107 @@ typedef enum {
 } MppThreadStatus;
 
 #ifdef __cplusplus
+
+class Mutex;
+class Condition;
+
+/*
+ * for shorter type name and function name
+ */
+class Mutex {
+public:
+    Mutex();
+    ~Mutex();
+
+    void lock();
+    void unlock();
+
+    class Autolock {
+    public:
+        inline Autolock(Mutex& mutex) : mLock(mutex)  { mLock.lock(); }
+        inline Autolock(Mutex* mutex) : mLock(*mutex) { mLock.lock(); }
+        inline ~Autolock() { mLock.unlock(); }
+    private:
+        Mutex& mLock;
+    };
+
+private:
+    friend class Condition;
+
+    pthread_mutex_t mMutex;
+
+    Mutex(const Mutex &);
+    Mutex &operator = (const Mutex&);
+};
+
+inline Mutex::Mutex() {
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mMutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+}
+inline Mutex::~Mutex() {
+    pthread_mutex_destroy(&mMutex);
+}
+inline void Mutex::lock() {
+    pthread_mutex_lock(&mMutex);
+}
+inline void Mutex::unlock() {
+    pthread_mutex_unlock(&mMutex);
+}
+
+typedef Mutex::Autolock AutoMutex;
+
+
+/*
+ * for shorter type name and function name
+ */
+class Condition {
+public:
+    Condition();
+    Condition(int type);
+    ~Condition();
+    void wait(Mutex& mutex);
+    void signal();
+
+private:
+    pthread_cond_t mCond;
+};
+
+inline Condition::Condition() {
+    pthread_cond_init(&mCond, NULL);
+}
+inline Condition::~Condition() {
+    pthread_cond_destroy(&mCond);
+}
+inline void Condition::wait(Mutex& mutex) {
+    pthread_cond_wait(&mCond, &mutex.mMutex);
+}
+inline void Condition::signal() {
+    pthread_cond_signal(&mCond);
+}
+
+
 class MppThread {
 public:
     MppThread(MppThreadFunc func, void *ctx);
-    ~MppThread();
+    ~MppThread() {};
 
     MppThreadStatus get_status();
     void set_status(MppThreadStatus status);
 
     void start();
     void stop();
-    void lock();
-    void unlock();
-    void wait();
-    void signal();
+    void lock()     { mLock.lock(); }
+    void unlock()   { mLock.unlock(); }
+    void wait()     { mCondition.wait(mLock); }
+    void signal()   { mCondition.signal(); }
 
 private:
+    Mutex           mLock;
+    Condition       mCondition;
     pthread_t       mThread;
-    pthread_mutex_t mLock;
-    pthread_cond_t  mCondition;
 
     MppThreadStatus mStatus;
     MppThreadFunc   mFunction;
@@ -84,6 +166,7 @@ private:
     MppThread(const MppThread &);
     MppThread &operator=(const MppThread &);
 };
+
 #endif
 
 #endif /*__MPP_THREAD_H__*/

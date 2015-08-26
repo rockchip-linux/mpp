@@ -20,22 +20,12 @@
 #include "rk_mpi.h"
 #include "mpp_list.h"
 #include "mpp_thread.h"
+#include "mpp_hal.h"
 
 class Mpp {
 public:
-    Mpp(MppCtxType type);
+    Mpp(MppCtxType type, MppCodingType coding);
     ~Mpp();
-
-    mpp_list        *packets;
-    mpp_list        *frames;
-
-    MppThread       *thd_codec;
-    MppThread       *thd_hal;
-
-	RK_S32          thread_codec_running;
-	RK_S32          thread_codec_reset;
-
-    RK_U32          status;
 
     MPP_RET put_packet(MppPacket packet);
     MPP_RET get_frame(MppFrame *frame);
@@ -43,7 +33,39 @@ public:
     MPP_RET put_frame(MppFrame frame);
     MPP_RET get_packet(MppPacket *packet);
 
+
+    Mutex           mPacketLock;
+    Mutex           mFrameLock;
+    Mutex           mTaskLock;
+
+    mpp_list        *mPackets;
+    mpp_list        *mFrames;
+    mpp_list        *mTasks;
+
+    RK_U32          mPacketPutCount;
+    RK_U32          mPacketGetCount;
+    RK_U32          mFramePutCount;
+    RK_U32          mFrameGetCount;
+    RK_U32          mTaskPutCount;
+    RK_U32          mTaskGetCount;
+
+    MppBufferGroup  mPacketGroup;
+    MppBufferGroup  mFrameGroup;
+
+    MppThread       *mTheadCodec;
+    MppThread       *mThreadHal;
+
+    MppCtxType      mType;
+    MppCodingType   mCoding;
+
+    RK_U32          mStatus;
+
+    MppHalDecTask   **mTask;
+    RK_U32          mTaskNum;
+
 private:
+    void clear();
+
     Mpp();
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);

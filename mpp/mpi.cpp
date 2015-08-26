@@ -184,7 +184,7 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType codin
 
     memset(p, 0, sizeof(*p));
 
-    p->ctx = new Mpp(type);
+    p->ctx = new Mpp(type, coding);
     if (NULL == p->ctx) {
         mpp_free(p);
         mpp_err("mpp_init failed to new Mpp\n");

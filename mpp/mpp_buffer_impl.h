@@ -43,6 +43,7 @@ struct MppBufferImpl_t {
 
     // used flag is for used/unused list detection
     RK_U32              used;
+    RK_U32              internal;
     RK_S32              ref_count;
     struct list_head    list_status;
 };

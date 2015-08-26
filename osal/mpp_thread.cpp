@@ -30,19 +30,6 @@ MppThread::MppThread(MppThreadFunc func, void *ctx)
       mFunction(func),
       mContext(ctx)
 {
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&mLock, &attr);
-    pthread_mutexattr_destroy(&attr);
-
-    pthread_cond_init(&mCondition, NULL);
-}
-
-MppThread::~MppThread()
-{
-    pthread_cond_destroy(&mCondition);
-    pthread_mutex_destroy(&mLock);
 }
 
 MppThreadStatus MppThread::get_status()
@@ -75,31 +62,13 @@ void MppThread::start()
 void MppThread::stop()
 {
     mStatus = MPP_THREAD_STOPPING;
+    signal();
+
     void *dummy;
     pthread_join(mThread, &dummy);
     thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p destroy success\n",
                mFunction, mContext);
 
     mStatus = MPP_THREAD_UNINITED;
-}
-
-void MppThread::lock()
-{
-    pthread_mutex_lock(&mLock);
-}
-
-void MppThread::unlock()
-{
-    pthread_mutex_unlock(&mLock);
-}
-
-void MppThread::wait()
-{
-    pthread_cond_wait(&mCondition, &mLock);
-}
-
-void MppThread::signal()
-{
-    pthread_cond_signal(&mCondition);
 }
 

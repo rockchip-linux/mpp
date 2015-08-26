@@ -118,7 +118,7 @@ int main()
         mpp_packet_deinit(&dec_in);
     }
 
-    for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
+    for (i = 0; i < MPI_DEC_LOOP_COUNT; ) {
         ret = mpi->decode_get_frame(ctx, &dec_out);
         if (MPP_OK != ret) {
             goto MPP_TEST_FAILED;
@@ -134,6 +134,7 @@ int main()
                 mpp_frame_deinit(&dec_out);
                 dec_out = next;
             } while (dec_out);
+            i++;
         }
     }
 
