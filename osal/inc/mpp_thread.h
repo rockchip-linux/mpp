@@ -46,4 +46,39 @@
 
 #endif
 
+typedef void *(*MppThreadFunc)(void *);
+
+typedef enum {
+    MPP_THREAD_UNINITED,
+    MPP_THREAD_RUNNING,
+    MPP_THREAD_WAITING,
+    MPP_THREAD_STOPPING,
+} MppThreadStatus;
+
+#ifdef __cplusplus
+class MppThread {
+public:
+    MppThread(MppThreadFunc func, void *ctx);
+    ~MppThread();
+
+    void lock();
+    void unlock();
+    void wait();
+    void signal();
+
+private:
+    pthread_t       thread;
+    pthread_mutex_t thread_lock;
+    pthread_cond_t  condition;
+
+    MppThreadStatus status;
+    MppThreadFunc   function;
+    void            *context;
+
+    MppThread();
+    MppThread(const MppThread &);
+    MppThread &operator=(const MppThread &);
+};
+#endif
+
 #endif /*__MPP_THREAD_H__*/

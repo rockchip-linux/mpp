@@ -21,8 +21,6 @@
 #include "mpp_list.h"
 #include "mpp_thread.h"
 
-typedef void *(*MppThread)(void *);
-
 class Mpp {
 public:
     Mpp(MppCtxType type);
@@ -31,9 +29,10 @@ public:
     mpp_list        *packets;
     mpp_list        *frames;
 
-    pthread_t       thread;
-	RK_S32          thread_running;
-	RK_S32          thread_reset;
+    pthread_t       thread_codec;
+    pthread_t       thread_hal;
+	RK_S32          thread_codec_running;
+	RK_S32          thread_codec_reset;
 
     RK_U32          status;
 
@@ -44,7 +43,7 @@ public:
     MPP_RET get_packet(MppPacket *packet);
 
 private:
-    void thread_start(MppThread func);
+    void thread_start(MppThreadFunc func);
     void thread_stop();
 
     Mpp();

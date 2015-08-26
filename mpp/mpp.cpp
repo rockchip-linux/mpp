@@ -26,6 +26,41 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
+#if 0
+static void *thread_hal(void *data)
+{
+    Mpp *mpp = (Mpp*)data;
+    mpp_list *frames  = mpp->frames;
+    MppPacketImpl packet;
+    MppFrame frame;
+
+    while () {
+        /*
+         * hal thread wait for dxva interface intput firt
+         */
+        // get_config
+        // register genertation
+
+        /*
+         * wait previous register set done
+         */
+        // hal->get_regs;
+
+        /*
+         * send current register set to hardware
+         */
+        // hal->put_regs;
+
+        /*
+         * mark previous buffer is complete
+         */
+        // signal()
+        // mark frame in output queue
+        // wait up output thread to get a output frame
+    }
+}
+#endif
+
 static void *thread_dec(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -34,7 +69,7 @@ static void *thread_dec(void *data)
     MppPacketImpl packet;
     MppFrame frame;
 
-    while (mpp->thread_running) {
+    while (mpp->thread_codec_running) {
         if (packets->list_size()) {
             /*
              * packet will be destroyed outside, here just copy the content
@@ -42,8 +77,42 @@ static void *thread_dec(void *data)
             packets->del_at_head(&packet, sizeof(packet));
 
             /*
-             * generate a new frame, copy the pointer to list
+             * 1. send packet data to parser
+             *
+             *    parser functioin input / output
+             *    input:    packet data
+             *              dxva output slot
+             *    output:   dxva output slot
+             *              buffer usage informatioin
              */
+
+            // decoder->parser->parse;
+
+            /*
+             * 2. do buffer operation according to usage information
+             *
+             *    possible case:
+             *    a. normal case
+             *       - wait and alloc a normal frame buffer
+             *    b. field mode case
+             *       - two field may reuse a same buffer, no need to alloc
+             *    c. info change case
+             *       - need buffer in different side, need to send a info change
+             *         frame to hal loop.
+             */
+
+            // mpp->get_buffer
+
+            /*
+             * 3. send dxva output information and buffer information to hal thread
+             *    combinate video codec dxva output and buffer information
+             */
+
+            // hal->wait_prev_done;
+            // hal->send_config;
+
+
+            // for test
             mpp_frame_init(&frame);
             frames->add_at_tail(&frame, sizeof(frame));
         }
@@ -62,7 +131,7 @@ static void *thread_enc(void *data)
     size_t size = SZ_1M;
     char *buf = mpp_malloc(char, size);
 
-    while (mpp->thread_running) {
+    while (mpp->thread_codec_running) {
         if (frames->list_size()) {
             frames->del_at_head(&frame, sizeof(frame));
 
@@ -77,8 +146,8 @@ static void *thread_enc(void *data)
 Mpp::Mpp(MppCtxType type)
     : packets(NULL),
       frames(NULL),
-      thread_running(0),
-      thread_reset(0),
+      thread_codec_running(0),
+      thread_codec_reset(0),
       status(0)
 {
     switch (type) {
@@ -100,7 +169,7 @@ Mpp::Mpp(MppCtxType type)
 
 Mpp::~Mpp ()
 {
-    if (thread_running)
+    if (thread_codec_running)
         thread_stop();
     if (packets)
         delete packets;
@@ -108,25 +177,25 @@ Mpp::~Mpp ()
         delete frames;
 }
 
-void Mpp::thread_start(MppThread func)
+void Mpp::thread_start(MppThreadFunc func)
 {
-    if (!thread_running) {
+    if (!thread_codec_running) {
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
     	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        if (pthread_create(&thread, &attr, func, (void*)this))
+        if (pthread_create(&thread_codec, &attr, func, (void*)this))
             status = MPP_ERR_FATAL_THREAD;
         else
-            thread_running = 1;
+            thread_codec_running = 1;
     	pthread_attr_destroy(&attr);
     }
 }
 
 void Mpp::thread_stop()
 {
-    thread_running = 0;
+    thread_codec_running = 0;
     void *dummy;
-    pthread_join(thread, &dummy);
+    pthread_join(thread_codec, &dummy);
 }
 
 MPP_RET Mpp::put_packet(MppPacket packet)
