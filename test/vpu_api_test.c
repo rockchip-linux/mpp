@@ -232,11 +232,13 @@ PARSE_OPINIONS_OUT:
 
 static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
 {
+	RK_S32 ret = 0;
+
     if ((NULL == buf) || (NULL == file) || (0 == aBytes)) {
         return -1;
     }
 
-    RK_S32 ret = (RK_S32)fread(buf, 1, aBytes, file);
+    ret = (RK_S32)fread(buf, 1, aBytes, file);
     if (ret != aBytes) {
         mpp_log("read %d bytes from file fail\n", aBytes);
         return -1;
@@ -247,10 +249,6 @@ static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
 
 static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 {
-    if (cmd == NULL) {
-        return -1;
-    }
-
     FILE* pInFile = NULL;
     FILE* pOutFile = NULL;
     struct VpuCodecContext *ctx = NULL;
@@ -263,7 +261,14 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     EncInputStream_t *enc_in = NULL;
     EncParameter_t *enc_param = NULL;
     RK_S64 fakeTimeUs = 0;
+	RK_U32 w_align = 0;
+	RK_U32 h_align = 0;
+
     int Format = VPU_H264ENC_YUV420_SEMIPLANAR;
+
+	if (cmd == NULL) {
+		return -1;
+	}
 
     if ((cmd->have_input == 0) || (cmd->width <= 0) || (cmd->height <= 0)
         || (cmd->coding <= OMX_RK_VIDEO_CodingAutoDetect)) {
@@ -367,8 +372,8 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
      ** vpu api encode process.
     */
     mpp_log("init vpu api context ok, input yuv stream file size: %d\n", fileSize);
-    RK_U32 w_align = ((ctx->width + 15) & (~15));
-    RK_U32 h_align = ((ctx->height + 15) & (~15));
+    w_align = ((ctx->width + 15) & (~15));
+    h_align = ((ctx->height + 15) & (~15));
     size = w_align * h_align * 3 / 2;
     nal = BSWAP32(nal);
 
@@ -470,11 +475,7 @@ ENCODE_OUT:
 
 static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
 {
-    if (cmd == NULL) {
-        return -1;
-    }
-
-    FILE* pInFile = NULL;
+	FILE* pInFile = NULL;
     FILE* pOutFile = NULL;
     struct VpuCodecContext* ctx = NULL;
     RK_S32 fileSize = 0, pkt_size = 0;
@@ -488,6 +489,13 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     RK_S64 fakeTimeUs = 0;
     RK_U8* pExtra = NULL;
     RK_U32 extraSize = 0;
+	RK_U32 wAlign16  = 0;
+	RK_U32 hAlign16  = 0;
+	RK_U32 frameSize = 0;
+
+	if (cmd == NULL) {
+		return -1;
+	}
 
     if ((cmd->have_input == 0) || (cmd->width <= 0) || (cmd->height <= 0)
         || (cmd->coding <= OMX_RK_VIDEO_CodingAutoDetect)) {
@@ -641,9 +649,9 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
             if ((pOut->size) && (pOut->data)) {
                 frame = (VPU_FRAME *)(pOut->data);
                 VPUMemLink(&frame->vpumem);
-                RK_U32 wAlign16 = ((frame->DisplayWidth + 15) & (~15));
-                RK_U32 hAlign16 = ((frame->DisplayHeight + 15) & (~15));
-                RK_U32 frameSize = wAlign16 * hAlign16 * 3 / 2;
+                wAlign16 = ((frame->DisplayWidth + 15) & (~15));
+                hAlign16 = ((frame->DisplayHeight + 15) & (~15));
+                frameSize = wAlign16 * hAlign16 * 3 / 2;
 
                 if (pOutFile && (frame_count++ < cmd->record_frames)) {
                     mpp_log("write %d frame(yuv420sp) data, %d bytes to file\n",
@@ -702,19 +710,19 @@ DECODE_OUT:
 
 int main(int argc, char **argv)
 {
-    mpp_log("/*******  vpu api demo in *******/\n");
-
+	RK_S32 ret = 0;
     VpuApiDemoCmdContext_t demoCmdCtx;
-    RK_S32 ret = 0;
+	VpuApiDemoCmdContext_t *cmd = NULL;
     VPU_API_DEMO_DEBUG_DISABLE = 0;
 
+	mpp_log("/*******  vpu api demo in *******/\n");
     if (argc == 1) {
         show_usage();
         mpp_log("vpu api demo complete directly\n");
         return 0;
     }
 
-    VpuApiDemoCmdContext_t* cmd = &demoCmdCtx;
+    cmd = &demoCmdCtx;
     memset (cmd, 0, sizeof(VpuApiDemoCmdContext_t));
     cmd->codec_type = CODEC_DECODER;
     if ((ret = parse_options(argc, argv, cmd)) != 0) {
