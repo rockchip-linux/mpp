@@ -83,6 +83,7 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
         } break;
         }
         group->usage -= buffer->info.size;
+        group->count--;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
         mpp_assert(group);
@@ -274,14 +275,17 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
     p->usage    = 0;
     p->count    = 0;
     p->group_id = service.group_id;
+    p->limit_size   = 0;
+    p->limit_count  = 0;
 
     // avoid group_id reuse
     do {
-        service.group_count++;
-        if (NULL == SEARCH_GROUP_NORMAL(service.group_count) &&
-            NULL == SEARCH_GROUP_ORPHAN(service.group_count))
+        service.group_id++;
+        if (NULL == SEARCH_GROUP_NORMAL(service.group_id) &&
+            NULL == SEARCH_GROUP_ORPHAN(service.group_id))
             break;
-    } while (p->group_id != service.group_count);
+    } while (p->group_id != service.group_id);
+    service.group_count++;
 
     mpp_alloctor_get(&p->allocator, &p->alloc_api, type);
 
