@@ -97,10 +97,11 @@ static void show_usage()
 
 static RK_S32 show_help()
 {
-    mpp_log("usage: vpu_apiDemo [options] input_file, \n\n");
-
     RK_S32 i = 0;
     RK_S32 n = sizeof(vpuApiCmd) / sizeof(VpuApiCmd_t);
+
+    mpp_log("usage: vpu_apiDemo [options] input_file, \n\n");
+
     for (i = 0; i < n; i++) {
         mpp_log("-%s  %s\t\t%s\n",
                 vpuApiCmd[i].name, vpuApiCmd[i].argname, vpuApiCmd[i].help);
