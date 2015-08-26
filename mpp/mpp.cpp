@@ -28,9 +28,13 @@
 
 static void *thread_hal(void *data)
 {
-    //Mpp *mpp = (Mpp*)data;
+    Mpp *mpp = (Mpp*)data;
+    MppThread *thd_dec  = mpp->thd_codec;
+    MppThread *thd_hal  = mpp->thd_hal;
+    mpp_list *packets   = mpp->packets;
+    mpp_list *frames    = mpp->frames;
 
-    while (0) {
+    while (MPP_THREAD_RUNNING == thd_hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
          */
@@ -53,6 +57,8 @@ static void *thread_hal(void *data)
         // signal()
         // mark frame in output queue
         // wait up output thread to get a output frame
+
+        msleep(10);
     }
 
     return NULL;
@@ -61,12 +67,14 @@ static void *thread_hal(void *data)
 static void *thread_dec(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    mpp_list *packets = mpp->packets;
-    mpp_list *frames  = mpp->frames;
+    MppThread *thd_dec  = mpp->thd_codec;
+    MppThread *thd_hal  = mpp->thd_hal;
+    mpp_list *packets   = mpp->packets;
+    mpp_list *frames    = mpp->frames;
     MppPacketImpl packet;
     MppFrame frame;
 
-    while (mpp->thread_codec_running) {
+    while (MPP_THREAD_RUNNING == thd_dec->get_status()) {
         if (packets->list_size()) {
             /*
              * packet will be destroyed outside, here just copy the content

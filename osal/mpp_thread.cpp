@@ -61,11 +61,13 @@ void MppThread::start()
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     if (MPP_THREAD_UNINITED == mStatus) {
-        if (0 == pthread_create(&mThread, &attr, mFunction, mContext)) {
-            mStatus = MPP_THREAD_RUNNING;
+        // NOTE: set status here first to avoid unexpected loop quit racing condition
+        mStatus = MPP_THREAD_RUNNING;
+        if (0 == pthread_create(&mThread, &attr, mFunction, mContext))
             thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p create success\n",
                        mFunction, mContext);
-        }
+        else
+            mStatus = MPP_THREAD_UNINITED;
     }
     pthread_attr_destroy(&attr);
 }
