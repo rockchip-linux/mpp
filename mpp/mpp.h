@@ -29,8 +29,9 @@ public:
     mpp_list        *packets;
     mpp_list        *frames;
 
-    pthread_t       thread_codec;
-    pthread_t       thread_hal;
+    MppThread       *thd_codec;
+    MppThread       *thd_hal;
+
 	RK_S32          thread_codec_running;
 	RK_S32          thread_codec_reset;
 
@@ -43,9 +44,6 @@ public:
     MPP_RET get_packet(MppPacket *packet);
 
 private:
-    void thread_start(MppThreadFunc func);
-    void thread_stop();
-
     Mpp();
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);

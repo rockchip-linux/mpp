@@ -61,19 +61,24 @@ public:
     MppThread(MppThreadFunc func, void *ctx);
     ~MppThread();
 
+    MppThreadStatus get_status();
+    void set_status(MppThreadStatus status);
+
+    void start();
+    void stop();
     void lock();
     void unlock();
     void wait();
     void signal();
 
 private:
-    pthread_t       thread;
-    pthread_mutex_t thread_lock;
-    pthread_cond_t  condition;
+    pthread_t       mThread;
+    pthread_mutex_t mLock;
+    pthread_cond_t  mCondition;
 
-    MppThreadStatus status;
-    MppThreadFunc   function;
-    void            *context;
+    MppThreadStatus mStatus;
+    MppThreadFunc   mFunction;
+    void            *mContext;
 
     MppThread();
     MppThread(const MppThread &);

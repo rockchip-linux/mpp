@@ -26,15 +26,11 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-#if 0
 static void *thread_hal(void *data)
 {
-    Mpp *mpp = (Mpp*)data;
-    mpp_list *frames  = mpp->frames;
-    MppPacketImpl packet;
-    MppFrame frame;
+    //Mpp *mpp = (Mpp*)data;
 
-    while () {
+    while (0) {
         /*
          * hal thread wait for dxva interface intput firt
          */
@@ -58,8 +54,9 @@ static void *thread_hal(void *data)
         // mark frame in output queue
         // wait up output thread to get a output frame
     }
+
+    return NULL;
 }
-#endif
 
 static void *thread_dec(void *data)
 {
@@ -146,6 +143,8 @@ static void *thread_enc(void *data)
 Mpp::Mpp(MppCtxType type)
     : packets(NULL),
       frames(NULL),
+      thd_codec(NULL),
+      thd_hal(NULL),
       thread_codec_running(0),
       thread_codec_reset(0),
       status(0)
@@ -154,48 +153,63 @@ Mpp::Mpp(MppCtxType type)
     case MPP_CTX_DEC : {
         packets = new mpp_list((node_destructor)NULL);
         frames  = new mpp_list((node_destructor)mpp_frame_deinit);
-        thread_start(thread_dec);
+        thd_codec = new MppThread(thread_dec, this);
+        thd_hal   = new MppThread(thread_hal, this);
     } break;
     case MPP_CTX_ENC : {
         frames  = new mpp_list((node_destructor)NULL);
         packets = new mpp_list((node_destructor)mpp_packet_deinit);
-        thread_start(thread_enc);
+        thd_codec = new MppThread(thread_enc, this);
+        thd_hal   = new MppThread(thread_hal, this);
     } break;
     default : {
         mpp_err("Mpp error type %d\n", type);
     } break;
     }
+
+    if (packets && frames && thd_codec && thd_hal) {
+        thd_codec->start();
+        thd_hal->start();
+    } else {
+        if (thd_codec)
+            thd_codec->stop();
+        if (thd_hal)
+            thd_hal->stop();
+
+        if (thd_codec) {
+            delete thd_codec;
+            thd_codec = NULL;
+        }
+        if (thd_hal) {
+            delete thd_hal;
+            thd_hal = NULL;
+        }
+        if (packets) {
+            delete packets;
+            packets = NULL;
+        }
+        if (frames) {
+            delete frames;
+            frames = NULL;
+        }
+    }
 }
 
 Mpp::~Mpp ()
 {
-    if (thread_codec_running)
-        thread_stop();
+    if (thd_codec)
+        thd_codec->stop();
+    if (thd_hal)
+        thd_hal->stop();
+
+    if (thd_codec)
+        delete thd_codec;
+    if (thd_hal)
+        delete thd_hal;
     if (packets)
         delete packets;
     if (frames)
         delete frames;
-}
-
-void Mpp::thread_start(MppThreadFunc func)
-{
-    if (!thread_codec_running) {
-    	pthread_attr_t attr;
-    	pthread_attr_init(&attr);
-    	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        if (pthread_create(&thread_codec, &attr, func, (void*)this))
-            status = MPP_ERR_FATAL_THREAD;
-        else
-            thread_codec_running = 1;
-    	pthread_attr_destroy(&attr);
-    }
-}
-
-void Mpp::thread_stop()
-{
-    thread_codec_running = 0;
-    void *dummy;
-    pthread_join(thread_codec, &dummy);
 }
 
 MPP_RET Mpp::put_packet(MppPacket packet)
