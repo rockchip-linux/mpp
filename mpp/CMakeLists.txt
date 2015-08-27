@@ -26,6 +26,7 @@ add_library(mpp STATIC
     mpp_buffer.cpp
     mpp_packet.cpp
     mpp_frame.cpp
+    mpp_dec.cpp
     mpp.cpp
     mpi_impl.cpp
     mpi.cpp
