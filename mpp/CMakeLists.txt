@@ -26,7 +26,6 @@ add_library(mpp STATIC
     mpp_buffer.cpp
     mpp_packet.cpp
     mpp_frame.cpp
-    mpp_dec.cpp
     mpp.cpp
     mpi_impl.cpp
     mpi.cpp
@@ -36,4 +35,4 @@ add_subdirectory(legacy)
 
 add_subdirectory(test)
 
-target_link_libraries(mpp mpp_legacy osal)
+target_link_libraries(mpp mpp_hal mpp_codec mpp_legacy osal)

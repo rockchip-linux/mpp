@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_H__
-#define __MPP_DEC_H__
+#ifndef __MPP_ENC_H__
+#define __MPP_ENC_H__
 
 #include "rk_type.h"
 
@@ -24,12 +24,12 @@ extern "C" {
 #endif
 
 /*
- * main thread for all decoder. This thread will connet parser / hal / mpp
+ * main thread for all encoder. This thread will connect encoder / hal / mpp
  */
-void *mpp_dec_thread(void *data);
+void *mpp_enc_thread(void *data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__MPP_DEC_H__*/
+#endif /*__MPP_ENC_H__*/

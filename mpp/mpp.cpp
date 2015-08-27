@@ -22,91 +22,13 @@
 
 #include "mpp.h"
 #include "mpp_dec.h"
+#include "mpp_enc.h"
+#include "mpp_hal.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
-
-void *thread_hal(void *data)
-{
-    Mpp *mpp = (Mpp*)data;
-    MppThread *codec    = mpp->mTheadCodec;
-    MppThread *hal      = mpp->mThreadHal;
-    mpp_list *frames    = mpp->mFrames;
-    mpp_list *tasks     = mpp->mTasks;
-
-    while (MPP_THREAD_RUNNING == hal->get_status()) {
-        /*
-         * hal thread wait for dxva interface intput firt
-         */
-        hal->lock();
-        if (0 == tasks->list_size())
-            hal->wait();
-        hal->unlock();
-
-        // get_config
-        // register genertation
-        if (tasks->list_size()) {
-            MppHalDecTask *task;
-            mpp->mTasks->del_at_head(&task, sizeof(task));
-            mpp->mTaskGetCount++;
-
-            /*
-             * wait previous register set done
-             */
-            // hal->get_regs;
-
-            /*
-             * send current register set to hardware
-             */
-            // hal->put_regs;
-
-            /*
-             * mark previous buffer is complete
-             */
-            // signal()
-            // mark frame in output queue
-            // wait up output thread to get a output frame
-
-            // for test
-            MppBuffer buffer;
-            mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
-
-            MppFrame frame;
-            mpp_frame_init(&frame);
-            mpp_frame_set_buffer(frame, buffer);
-            frames->add_at_tail(&frame, sizeof(frame));
-            mpp->mFramePutCount++;
-        }
-    }
-
-    return NULL;
-}
-
-static void *thread_enc(void *data)
-{
-    Mpp *mpp = (Mpp*)data;
-    MppThread *thd_enc  = mpp->mTheadCodec;
-    MppThread *thd_hal  = mpp->mThreadHal;
-    mpp_list *packets = mpp->mPackets;
-    mpp_list *frames  = mpp->mFrames;
-    MppFrameImpl frame;
-    MppPacket packet;
-    size_t size = SZ_1M;
-    char *buf = mpp_malloc(char, size);
-
-    while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
-        if (frames->list_size()) {
-            frames->del_at_head(&frame, sizeof(frame));
-
-            mpp_packet_init(&packet, buf, size);
-            packets->add_at_tail(&packet, sizeof(packet));
-        }
-    }
-    mpp_free(buf);
-    return NULL;
-}
 
 Mpp::Mpp(MppCtxType type, MppCodingType coding)
     : mPackets(NULL),
@@ -134,7 +56,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
         mTheadCodec = new MppThread(mpp_dec_thread, this);
-        mThreadHal  = new MppThread(thread_hal, this);
+        mThreadHal  = new MppThread(mpp_hal_thread, this);
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
@@ -144,8 +66,8 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)NULL);
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
-        mTheadCodec = new MppThread(thread_enc, this);
-        mThreadHal  = new MppThread(thread_hal, this);
+        mTheadCodec = new MppThread(mpp_enc_thread, this);
+        mThreadHal  = new MppThread(mpp_hal_thread, this);
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);

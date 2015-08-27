@@ -17,11 +17,10 @@
 #define  MODULE_TAG "mpp_dec"
 
 #include "mpp_log.h"
-#include "mpp_time.h"
 
 #include "mpp.h"
 #include "mpp_dec.h"
-#include "mpp_frame_impl.h"
+//#include "mpp_frame_impl.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
@@ -33,7 +32,6 @@ void *mpp_dec_thread(void *data)
     MppThread *dec  = mpp->mTheadCodec;
     MppThread *hal  = mpp->mThreadHal;
     mpp_list *packets   = mpp->mPackets;
-    mpp_list *frames    = mpp->mFrames;
     MppPacketImpl packet;
 
     while (MPP_THREAD_RUNNING == dec->get_status()) {

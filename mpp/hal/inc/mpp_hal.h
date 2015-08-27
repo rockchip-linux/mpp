@@ -66,9 +66,19 @@ typedef struct {
     void            *pointers[1];
 } MppHalDecTask;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void HalTaskSetDstBuffer();
 void HalTaskSetDpb();
 void HalTaskSetDXVA();
+
+void *mpp_hal_thread(void *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__HAL_TASK__*/
 
