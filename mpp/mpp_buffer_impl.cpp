@@ -25,7 +25,8 @@
 #define SEARCH_GROUP_NORMAL(id)         search_group_by_id_no_lock(&service.mListGroup,  id)
 #define SEARCH_GROUP_ORPHAN(id)         search_group_by_id_no_lock(&service.mListOrphan, id)
 
-class MppBufferService {
+class MppBufferService
+{
 public:
     MppBufferService();
     ~MppBufferService();

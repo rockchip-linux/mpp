@@ -63,7 +63,8 @@ class Condition;
 /*
  * for shorter type name and function name
  */
-class Mutex {
+class Mutex
+{
 public:
     Mutex();
     ~Mutex();
@@ -71,7 +72,8 @@ public:
     void lock();
     void unlock();
 
-    class Autolock {
+    class Autolock
+    {
     public:
         inline Autolock(Mutex& mutex) : mLock(mutex)  { mLock.lock(); }
         inline Autolock(Mutex* mutex) : mLock(*mutex) { mLock.lock(); }
@@ -89,20 +91,24 @@ private:
     Mutex &operator = (const Mutex&);
 };
 
-inline Mutex::Mutex() {
+inline Mutex::Mutex()
+{
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mMutex, &attr);
     pthread_mutexattr_destroy(&attr);
 }
-inline Mutex::~Mutex() {
+inline Mutex::~Mutex()
+{
     pthread_mutex_destroy(&mMutex);
 }
-inline void Mutex::lock() {
+inline void Mutex::lock()
+{
     pthread_mutex_lock(&mMutex);
 }
-inline void Mutex::unlock() {
+inline void Mutex::unlock()
+{
     pthread_mutex_unlock(&mMutex);
 }
 
@@ -112,7 +118,8 @@ typedef Mutex::Autolock AutoMutex;
 /*
  * for shorter type name and function name
  */
-class Condition {
+class Condition
+{
 public:
     Condition();
     Condition(int type);
@@ -124,21 +131,26 @@ private:
     pthread_cond_t mCond;
 };
 
-inline Condition::Condition() {
+inline Condition::Condition()
+{
     pthread_cond_init(&mCond, NULL);
 }
-inline Condition::~Condition() {
+inline Condition::~Condition()
+{
     pthread_cond_destroy(&mCond);
 }
-inline void Condition::wait(Mutex& mutex) {
+inline void Condition::wait(Mutex& mutex)
+{
     pthread_cond_wait(&mCond, &mutex.mMutex);
 }
-inline void Condition::signal() {
+inline void Condition::signal()
+{
     pthread_cond_signal(&mCond);
 }
 
 
-class MppThread {
+class MppThread
+{
 public:
     MppThread(MppThreadFunc func, void *ctx);
     ~MppThread() {};
