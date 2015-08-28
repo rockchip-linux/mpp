@@ -24,7 +24,7 @@
 
 
 
-#define mpi_dbg(flag, fmt, ...)     mpp_dbg(mpi_debug, flag, fmt, ## __VA_ARGS__)
+#define mpi_dbg(flag, fmt, ...)     _mpp_dbg(mpi_debug, flag, fmt, ## __VA_ARGS__)
 
 #define MPI_FUNCTION_ENTER()        mpi_dbg(MPI_DBG_FUNCTION, "%s enter\n", __FUNCTION__)
 #define MPI_FUNCTION_LEAVE()        mpi_dbg(MPI_DBG_FUNCTION, "%s leave\n", __FUNCTION__)

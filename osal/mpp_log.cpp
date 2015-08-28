@@ -72,7 +72,7 @@ void _mpp_log(const char *tag, const char *fmt, ...)
     va_end(args);
 }
 
-void _mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...)
+void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...)
 {
     if (debug & flag) {
         va_list args;

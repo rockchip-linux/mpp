@@ -18,6 +18,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_env.h"
 #include "mpp_time.h"
 
 #include "mpp.h"
@@ -30,6 +31,8 @@
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 
+RK_U32 mpp_debug = 0;
+
 Mpp::Mpp(MppCtxType type, MppCodingType coding)
     : mPackets(NULL),
       mFrames(NULL),
@@ -40,6 +43,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mFrameGetCount(0),
       mTaskPutCount(0),
       mTaskGetCount(0),
+      mInternalGroup(NULL),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
       mTheadCodec(NULL),
@@ -58,6 +62,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTheadCodec = new MppThread(mpp_dec_thread, this);
         mThreadHal  = new MppThread(mpp_hal_thread, this);
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
+        mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mFrameGroup, 4, MPP_TEST_FRAME_SIZE);
@@ -69,6 +74,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTheadCodec = new MppThread(mpp_enc_thread, this);
         mThreadHal  = new MppThread(mpp_hal_thread, this);
         mTask       = mpp_malloc(MppHalDecTask*, mTaskNum);
+        mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
     } break;
@@ -84,6 +90,8 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mThreadHal->start();
     } else
         clear();
+
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 }
 
 Mpp::~Mpp ()
@@ -117,6 +125,10 @@ void Mpp::clear()
     if (mTasks) {
         delete mTasks;
         mTasks = NULL;
+    }
+    if (mInternalGroup) {
+        mpp_buffer_group_put(mInternalGroup);
+        mInternalGroup = NULL;
     }
     if (mPacketGroup) {
         mpp_buffer_group_put(mPacketGroup);

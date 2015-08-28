@@ -23,7 +23,7 @@
 
 static RK_U32 thread_debug = 0;
 
-#define thread_dbg(flag, fmt, ...)  mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
+#define thread_dbg(flag, fmt, ...)  _mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
 
 MppThread::MppThread(MppThreadFunc func, void *ctx)
     : mStatus(MPP_THREAD_UNINITED),

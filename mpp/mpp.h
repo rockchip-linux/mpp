@@ -22,6 +22,17 @@
 #include "mpp_thread.h"
 #include "mpp_hal.h"
 
+extern RK_U32 mpp_debug;
+
+#define MPP_DBG_FUNCTION                (0x00000001)
+#define MPP_DBG_PACKET                  (0x00000002)
+#define MPP_DBG_FRAME                   (0x00000004)
+#define MPP_DBG_BUFFER                  (0x00000008)
+
+
+#define mpp_dbg(flag, fmt, ...) _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
+
+
 class Mpp {
 public:
     Mpp(MppCtxType type, MppCodingType coding);
@@ -49,6 +60,16 @@ public:
     RK_U32          mTaskPutCount;
     RK_U32          mTaskGetCount;
 
+    /*
+     * internal buffer group
+     *      - for all kind of table like cabac / scaling list
+     *        fixed to ion buffer group
+     * packet buffer group
+     *      - packets in I/O, can be ion buffer or normal buffer
+     * frame buffer group
+     *      - frames in I/O, normally should be a ion buffer group
+     */
+    MppBufferGroup  mInternalGroup;
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
 

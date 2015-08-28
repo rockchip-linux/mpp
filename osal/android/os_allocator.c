@@ -97,7 +97,7 @@ static RK_U32 ion_debug = 0;
 #define ION_CLINET                  (0x00000004)
 #define ION_IOCTL                   (0x00000008)
 
-#define ion_dbg(flag, fmt, ...) mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg(flag, fmt, ...) _mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
 
 static int ion_ioctl(int fd, int req, void *arg)
 {

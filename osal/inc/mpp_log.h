@@ -30,8 +30,8 @@
 #define mpp_log(fmt, ...) _mpp_log(MODULE_TAG, fmt, ## __VA_ARGS__)
 #define mpp_err(fmt, ...) _mpp_err(MODULE_TAG, fmt, ## __VA_ARGS__)
 
-#define mpp_dbg(debug, flag, fmt, ...) \
-             _mpp_dbg(debug, flag, MODULE_TAG, fmt, ## __VA_ARGS__)
+#define _mpp_dbg(debug, flag, fmt, ...) \
+             __mpp_dbg(debug, flag, MODULE_TAG, fmt, ## __VA_ARGS__)
 
 /*
  * mpp_dbg usage:
@@ -85,7 +85,7 @@ RK_U32 mpp_log_get_flag();
 
 void _mpp_log(const char *tag, const char *fmt, ...);
 void _mpp_err(const char *tag, const char *fmt, ...);
-void _mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
+void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

@@ -38,13 +38,13 @@ int main()
 
     mpp_assert(flag_set == flag_get);
 
-    mpp_log("try mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
-    mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
+    mpp_log("try _mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
+    _mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
 
     flag_dbg = 0;
 
-    mpp_log("try mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
-    mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
+    mpp_log("try _mpp_dbg test 0 debug %x, flag %x", flag_get, flag_dbg);
+    _mpp_dbg(flag_get, flag_dbg, "mpp_dbg printing debug %x, flag %x", flag_get, flag_dbg);
 
     mpp_err("mpp log log test done\n");
 

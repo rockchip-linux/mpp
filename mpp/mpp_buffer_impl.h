@@ -23,7 +23,7 @@
 
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
 
-#define mpp_buf_dbg(flag, fmt, ...)     mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_buf_dbg(flag, fmt, ...)     _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
 
 #define MPP_BUF_FUNCTION_ENTER()        mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s enter\n", __FUNCTION__)
 #define MPP_BUF_FUNCTION_LEAVE()        mpp_buf_dbg(MPP_BUF_DBG_FUNCTION, "%s leave\n", __FUNCTION__)
