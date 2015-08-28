@@ -78,6 +78,21 @@
  *      |                            |  output frame information  |
  *      +                            +                            +
  *
+ * typical buffer status transfer
+ *
+ * ->   unused                  initial
+ * ->   set_decoding            by parser
+ * ->   set_buffer              by mpp - do alloc buffer here / info change here
+ * ->   clr_decoding            by hal()
+ *
+ * next four step can be different order
+ * ->   set_ref                 by parser
+ * ->   set_display             by parser - slot ready to display, can be output
+ * ->   clr_display             by mpp - output buffer struct
+ * ->   clr_ref                 by parser
+ *
+ * ->   set_unused              automatic clear and dec buffer ref
+ *
  */
 
 typedef void* MppBufSlots;
@@ -101,36 +116,34 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots);
  * mpp_buf_slot_set_ref
  *      - mark a slot to be used as reference
  *
- * mpp_buf_slot_set_unref
+ * mpp_buf_slot_clr_ref
  *      - mark a slot to be unused as reference
  *
- * mpp_buf_slot_set_output
+ * mpp_buf_slot_set_decoding
  *      - mark a slot to be output destination buffer
  *
  * mpp_buf_slot_set_display
  *      - mark a slot to be can be display
  *
+ * called by mpp
+ *
+ * mpp_buf_slot_clr_display
+ *      - mark a slot has been send out to display
+ *
+ * called by hal
+ *
+ * mpp_buf_slot_clr_decoding
+ *      - mark a slot's buffer is already decoded by hardware
+ *        NOTE: this call will clear used as output flag
  */
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
 MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_set_unref(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_set_output(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index);
 
-/*
- * called by hal
- *
- * mpp_buf_slot_set_hw_ready
- *      - mark a slot's buffer is already decoded by hardware
- *        NOTE: this call will clear used as output flag
- *
- * called by mpp context display loop
- *
- * mpp_buf_slot_set_unused
- *      - mark a slot's buffer is unused when this buffer is outputed from mpp
- */
-MPP_RET mpp_buf_slot_set_hw_ready(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_set_unused(MppBufSlots slots, RK_U32 index);
 
 MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
 MppBuffer mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index);

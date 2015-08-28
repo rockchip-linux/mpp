@@ -27,9 +27,8 @@
 #define MPP_SLOT_UNUSED                 (0x00000000)
 #define MPP_SLOT_USED                   (0x00000001)
 #define MPP_SLOT_USED_AS_REF            (0x00000002)
-#define MPP_SLOT_USED_AS_OUTPUT         (0x00000004)
+#define MPP_SLOT_USED_AS_DECODING       (0x00000004)
 #define MPP_SLOT_USED_AS_DISPLAY        (0x00000008)
-#define MPP_SLOT_HW_READY               (0x00000010)
 
 typedef struct {
     MppBuffer   buffer;
@@ -43,6 +42,17 @@ typedef struct {
     RK_U32          display_count;
     MppBufSlotEntry *slots;
 } MppBufSlotsImpl;
+
+/*
+ * only called on unref / displayed / decoded
+ */
+static void check_entry_unused(MppBufSlotEntry *entry)
+{
+    if (entry->status == MPP_SLOT_USED) {
+        entry->status = MPP_SLOT_UNUSED;
+        mpp_buffer_put(entry->buffer);
+    }
+}
 
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots, RK_U32 count)
 {
@@ -121,7 +131,7 @@ MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index)
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_set_unref(MppBufSlots slots, RK_U32 index)
+MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
         mpp_err("%s found NULL input\n\n", __FUNCTION__);
@@ -133,10 +143,11 @@ MPP_RET mpp_buf_slot_set_unref(MppBufSlots slots, RK_U32 index)
     mpp_assert(index < impl->count);
     Mutex::Autolock auto_lock(impl->lock);
     slot[index].status &= ~MPP_SLOT_USED_AS_REF;
+    check_entry_unused(&slot[index]);
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_set_output(MppBufSlots slots, RK_U32 index)
+MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
         mpp_err("%s found NULL input\n\n", __FUNCTION__);
@@ -147,7 +158,24 @@ MPP_RET mpp_buf_slot_set_output(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     Mutex::Autolock auto_lock(impl->lock);
-    slot[index].status |= MPP_SLOT_USED_AS_OUTPUT;
+    slot[index].status |= MPP_SLOT_USED_AS_DECODING;
+    return MPP_OK;
+}
+
+MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index)
+{
+    if (NULL == slots) {
+        mpp_err("%s found NULL input\n\n", __FUNCTION__);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot = impl->slots;
+    mpp_assert(index < impl->count);
+    Mutex::Autolock auto_lock(impl->lock);
+    slot[index].status &= ~MPP_SLOT_USED_AS_DECODING;
+    impl->decode_count++;
+    check_entry_unused(&slot[index]);
     return MPP_OK;
 }
 
@@ -166,7 +194,7 @@ MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_set_hw_ready(MppBufSlots slots, RK_U32 index)
+MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
         mpp_err("%s found NULL input\n\n", __FUNCTION__);
@@ -177,25 +205,9 @@ MPP_RET mpp_buf_slot_set_hw_ready(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     Mutex::Autolock auto_lock(impl->lock);
-    slot[index].status |= MPP_SLOT_HW_READY;
-    slot[index].status &= ~MPP_SLOT_USED_AS_OUTPUT;
-    impl->decode_count++;
-    return MPP_OK;
-}
-
-MPP_RET mpp_buf_slot_set_unused(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err("%s found NULL input\n\n", __FUNCTION__);
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    MppBufSlotEntry *slot = impl->slots;
-    mpp_assert(index < impl->count);
-    Mutex::Autolock auto_lock(impl->lock);
-    slot[index].status = MPP_SLOT_UNUSED;
+    slot[index].status &= ~MPP_SLOT_USED_AS_DISPLAY;
     impl->display_count++;
+    check_entry_unused(&slot[index]);
     return MPP_OK;
 }
 
@@ -211,6 +223,7 @@ MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffe
     mpp_assert(index < impl->count);
     Mutex::Autolock auto_lock(impl->lock);
     slot[index].buffer = buffer;
+    mpp_buffer_inc_ref(buffer);
     return MPP_OK;
 }
 
