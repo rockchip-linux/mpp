@@ -127,7 +127,7 @@ void *mpp_osal_realloc(const char *tag, void *ptr, size_t size)
             }
         }
     } else {
-        ret = realloc(ptr, size);
+        os_realloc(ptr, &ret, RK_OSAL_MEM_ALIGN, size);
     }
 
     if (NULL == ret)
