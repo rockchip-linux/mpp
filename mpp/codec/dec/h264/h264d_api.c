@@ -56,7 +56,7 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 }
 
 
-MPP_RET h264d_parser(void *decoder, MppPacket pkt, HalDecTask *task)
+MPP_RET h264d_parse(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     (void)decoder;
     (void)pkt;
@@ -64,14 +64,14 @@ MPP_RET h264d_parser(void *decoder, MppPacket pkt, HalDecTask *task)
     return MPP_OK;
 }
 
-const MppDecParser api_h264d_parser = {
+const MppDecParser h264d_parser = {
     "h264d_parser",
     MPP_VIDEO_CodingAVC,
     0,
     0,
     h264d_init,
     h264d_deinit,
-    h264d_parser,
+    h264d_parse,
     h264d_reset,
     h264d_flush,
     h264d_control,

@@ -64,7 +64,7 @@ int main()
     mpp_log("mpi_test decoder test start\n");
 
     // decoder demo
-    ret = mpp_init(&ctx, &mpi, MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
+    ret = mpp_init(&ctx, &mpi, MPP_CTX_DEC, MPP_VIDEO_CodingUnused);
     if (MPP_OK != ret) {
         mpp_err("mpp_init failed\n");
         goto MPP_TEST_FAILED;
@@ -151,7 +151,7 @@ int main()
     mpp_log("mpi_test encoder test start\n");
 
     // encoder demo
-    ret = mpp_init(&ctx, &mpi, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
+    ret = mpp_init(&ctx, &mpi, MPP_CTX_ENC, MPP_VIDEO_CodingUnused);
     if (MPP_OK != ret) {
         mpp_err("mpp_init failed\n");
         goto MPP_TEST_FAILED;
