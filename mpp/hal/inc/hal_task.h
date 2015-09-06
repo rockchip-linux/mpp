@@ -65,6 +65,9 @@ typedef struct MppSyntax_t {
  *              +----------------------+ +----v----+
  */
 typedef struct HalDecTask_t {
+    // set by parser to signal that it is valid
+    RK_U32          valid;
+
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
@@ -75,6 +78,8 @@ typedef struct HalDecTask_t {
 } HalDecTask;
 
 typedef struct HalEncTask_t {
+    RK_U32          valid;
+
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
