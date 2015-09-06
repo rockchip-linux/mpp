@@ -30,6 +30,7 @@ struct HalTaskImpl_t {
     struct list_head    list;
     HalTaskGroupImpl    *group;
     RK_U32              used;
+    RK_U32              index;
     HalTask             task;
 };
 
@@ -38,8 +39,8 @@ struct HalTaskGroupImpl_t {
     struct list_head    list_used;
     RK_U32              count_unused;
     RK_U32              count_used;
-    Mutex               *lock;
     MppCtxType          type;
+    Mutex               *lock;
     HalTaskImpl         *node;
 };
 
@@ -63,7 +64,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
         mpp_err_f("malloc group failed\n");
         return MPP_NOK;
     }
-    memset(p, 0, sizeof(*p));
+    memset(p, 0, sizeof(*p) + count * sizeof(HalTaskImpl));
     INIT_LIST_HEAD(&p->list_unused);
     INIT_LIST_HEAD(&p->list_used);
     p->lock = new Mutex();
@@ -73,6 +74,8 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
     RK_U32 i;
     for (i = 0; i < count; i++) {
         p->node[i].group = p;
+        p->node[i].used = 0;
+        p->node[i].index = i;
         list_add_tail(&p->node[i].list, &p->list_unused);
     }
     p->count_unused = count;

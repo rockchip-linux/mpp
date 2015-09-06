@@ -73,7 +73,7 @@ MPP_RET hal_dummy_enc_control(void *hal, RK_S32 cmd_type, void *param)
 }
 
 const MppHalApi hal_api_dummy_enc = {
-    "dummy_enc_rkdec",
+    "dummy_hw_enc",
     MPP_CTX_ENC,
     MPP_VIDEO_CodingUnused,
     0,

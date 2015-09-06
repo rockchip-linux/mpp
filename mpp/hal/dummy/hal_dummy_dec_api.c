@@ -73,7 +73,7 @@ MPP_RET hal_dummy_dec_control(void *hal, RK_S32 cmd_type, void *param)
 }
 
 const MppHalApi hal_api_dummy_dec = {
-    "dummy_dec",
+    "dummy_hw_dec",
     MPP_CTX_DEC,
     MPP_VIDEO_CodingUnused,
     0,

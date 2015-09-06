@@ -50,14 +50,14 @@ static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, HalDecTask *task)
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *parser   = mpp->mTheadCodec;
+    MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     MppBufSlots slots   = dec->slots;
     MppPacketImpl packet;
     HalTaskHnd task_hnd     = NULL;
 
     /*
-     * parser thread need to wait at three cases:
+     * parser thread need to wait at cases below:
      * 1. no task slot for output
      * 2. no packet for parsing
      * 3. info change on progress
@@ -197,10 +197,18 @@ void *mpp_dec_hal_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
+    MppBufSlots slots   = dec->slots;
     mpp_list *frames    = mpp->mFrames;
     HalTaskHnd task_hnd = NULL;
 
-    HalTask task_local;
+    /*
+     * hal thread need to wait at cases below:
+     * 1. no task slot for work
+     */
+    RK_U32 wait_on_task = 0;
+
+    HalTask     task_local;
+    HalDecTask  *task_dec = &task_local.dec;
     memset(&task_local, 0, sizeof(task_local));
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
@@ -208,33 +216,64 @@ void *mpp_dec_hal_thread(void *data)
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (hal_task_get_hnd(dec->tasks, 1, &task_hnd))
+        if (wait_on_task)
             hal->wait();
         hal->unlock();
 
-        // get_config
-        // register genertation
+        // get hw task first
         if (NULL == task_hnd)
             hal_task_get_hnd(dec->tasks, 1, &task_hnd);
 
-        if (NULL == task_hnd)
+        wait_on_task = (NULL == task_hnd);
+        if (wait_on_task)
             continue;
 
         mpp->mTaskGetCount++;
 
-        hal_task_get_info(dec->tasks, &task_local);
-        // hal->mpp_hal_reg_gen(current);
-        hal_task_set_used(task_hnd, 0);
+        hal_task_get_info(task_hnd, &task_local);
+
+        // register genertation
+        mpp_hal_reg_gen(dec->hal_ctx, &task_local);
 
         /*
          * wait previous register set done
          */
-        // hal->mpp_hal_hw_wait(previous);
+        //mpp_hal_hw_wait(dec->hal_ctx, &task_local);
 
         /*
          * send current register set to hardware
          */
-        // hal->mpp_hal_hw_start(current);
+        //mpp_hal_hw_start(dec->hal_ctx, &task_local);
+
+        mpp_hal_hw_start(dec->hal_ctx, &task_local);
+        mpp_hal_hw_wait(dec->hal_ctx, &task_local);
+
+        /*
+         * when hardware decoding is done:
+         * 1. clear decoding flag
+         * 2. create a new frame structure
+         * 3. get pts and set to frame
+         * 4. get buffer and set to frame
+         * 5. add frame to output list
+         * 6. clear display flag
+         */
+        RK_S32 output = task_dec->output;
+
+        mpp_buf_slot_clr_decoding(slots, output);
+
+        MppFrame frame;
+        mpp_frame_init(&frame);
+
+        RK_S64 pts = mpp_buf_slot_get_pts(slots, output);
+        mpp_frame_set_pts(frame, pts);
+
+        MppBuffer buffer = mpp_buf_slot_get_buffer(slots, output);
+        mpp_frame_set_buffer(frame, buffer);
+
+        frames->add_at_tail(&frame, sizeof(frame));
+        mpp->mFramePutCount++;
+
+        mpp_buf_slot_clr_display(slots, output);
 
         /*
          * mark previous buffer is complete
@@ -243,16 +282,8 @@ void *mpp_dec_hal_thread(void *data)
         // signal()
         // mark frame in output queue
         // wait up output thread to get a output frame
-
-        // for test
-        MppBuffer buffer;
-        mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
-
-        MppFrame frame;
-        mpp_frame_init(&frame);
-        mpp_frame_set_buffer(frame, buffer);
-        frames->add_at_tail(&frame, sizeof(frame));
-        mpp->mFramePutCount++;
+        hal_task_set_used(task_hnd, 0);
+        mpp->mThreadCodec->signal();
     }
 
     return NULL;

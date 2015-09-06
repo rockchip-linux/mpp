@@ -103,7 +103,10 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
     /*
      * set slots information
      * 1. output index MUST be set
-     * 2. if one frame can be display, it SHOULD be set display
+     * 2. get unused index for output if needed
+     * 3. set output index as decoding
+     * 4. set pts to output index
+     * 5. if one frame can be display, it SHOULD be set display
      */
     if (!p->slots_inited) {
         mpp_buf_slot_setup(p->slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE, 0);
@@ -111,7 +114,10 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
     }
 
     RK_S32 output = -1;
+    RK_S64 pts = mpp_packet_get_pts(pkt);
     mpp_buf_slot_get_unused(p->slots, &output);
+    mpp_buf_slot_set_decoding(p->slots, output);
+    mpp_buf_slot_set_pts(p->slots, output, pts);
     mpp_buf_slot_set_display(p->slots, output);
 
     /*

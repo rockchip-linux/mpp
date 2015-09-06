@@ -46,7 +46,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mInternalGroup(NULL),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
-      mTheadCodec(NULL),
+      mThreadCodec(NULL),
       mThreadHal(NULL),
       mType(type),
       mCoding(coding),
@@ -61,7 +61,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_dec_init(&mDec, coding);
-        mTheadCodec = new MppThread(mpp_dec_parser_thread, this);
+        mThreadCodec = new MppThread(mpp_dec_parser_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
@@ -75,7 +75,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_dec_init(&mDec, coding);
-        mTheadCodec = new MppThread(mpp_enc_control_thread, this);
+        mThreadCodec = new MppThread(mpp_enc_control_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
@@ -89,9 +89,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
 
     if (mFrames && mPackets &&
         (mDec || mEnc) &&
-        mTheadCodec && mThreadHal &&
+        mThreadCodec && mThreadHal &&
         mPacketGroup && mFrameGroup) {
-        mTheadCodec->start();
+        mThreadCodec->start();
         mThreadHal->start();
     } else
         clear();
@@ -106,14 +106,14 @@ Mpp::~Mpp ()
 
 void Mpp::clear()
 {
-    if (mTheadCodec)
-        mTheadCodec->stop();
+    if (mThreadCodec)
+        mThreadCodec->stop();
     if (mThreadHal)
         mThreadHal->stop();
 
-    if (mTheadCodec) {
-        delete mTheadCodec;
-        mTheadCodec = NULL;
+    if (mThreadCodec) {
+        delete mThreadCodec;
+        mThreadCodec = NULL;
     }
     if (mThreadHal) {
         delete mThreadHal;
@@ -158,7 +158,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     if (mPackets->list_size() < 4) {
         mPackets->add_at_tail(packet, sizeof(MppPacketImpl));
         mPacketPutCount++;
-        mTheadCodec->signal();
+        mThreadCodec->signal();
         return MPP_OK;
     }
     return MPP_NOK;
@@ -180,7 +180,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     Mutex::Autolock autoLock(&mFrameLock);
     if (mFrames->list_size() < 4) {
         mFrames->add_at_tail(frame, sizeof(MppFrameImpl));
-        mTheadCodec->signal();
+        mThreadCodec->signal();
         mFramePutCount++;
         return MPP_OK;
     }

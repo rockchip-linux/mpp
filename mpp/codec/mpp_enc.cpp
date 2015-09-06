@@ -30,7 +30,7 @@
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *thd_enc  = mpp->mTheadCodec;
+    MppThread *thd_enc  = mpp->mThreadCodec;
     mpp_list *packets = mpp->mPackets;
     mpp_list *frames  = mpp->mFrames;
     MppFrameImpl frame;

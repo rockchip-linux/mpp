@@ -104,6 +104,7 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
+    p->api->deinit(p->ctx);
     mpp_free(p->ctx);
     if (p->tasks)
         hal_task_group_deinit(p->tasks);

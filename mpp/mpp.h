@@ -96,7 +96,7 @@ public:
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
 
-    MppThread       *mTheadCodec;
+    MppThread       *mThreadCodec;
     MppThread       *mThreadHal;
 
     MppCtxType      mType;
