@@ -33,6 +33,7 @@
 typedef struct MppBufSlotEntry_t {
     MppBuffer   buffer;
     RK_U32      status;
+    RK_S64      pts;
 } MppBufSlotEntry;
 
 typedef struct MppBufSlotsImpl_t {
@@ -318,5 +319,34 @@ MppBuffer mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     return slot[index].buffer;
+}
+
+MPP_RET mpp_buf_slot_set_pts(MppBufSlots slots, RK_U32 index, RK_S64 pts)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    MppBufSlotEntry *slot = impl->slots;
+    mpp_assert(index < impl->count);
+    slot[index].pts = pts;
+    return MPP_OK;
+}
+
+RK_S64 mpp_buf_slot_get_pts(const MppBufSlots slots, RK_U32 index)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return NULL;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    MppBufSlotEntry *slot = impl->slots;
+    mpp_assert(index < impl->count);
+    return slot[index].pts;
 }
 

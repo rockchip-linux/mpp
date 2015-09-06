@@ -162,9 +162,23 @@ MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index);
 
-
-MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
-MppBuffer mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index);
+/*
+ * mpp_buf_slot_set_buffer
+ *      - called by dec thread when find a output index has not buffer
+ *
+ * mpp_buf_slot_get_buffer
+ *      - called by hal module on register generation
+ *
+ * mpp_buf_slot_set_pts
+ *      - called by parser when decoding a new frame
+ *
+ * mpp_buf_slot_get_pts
+ *      - called by hal thread when output a frame
+ */
+MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
+MppBuffer   mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index);
+MPP_RET     mpp_buf_slot_set_pts(MppBufSlots slots, RK_U32 index, RK_S64 pts);
+RK_S64      mpp_buf_slot_get_pts(const MppBufSlots slots, RK_U32 index);
 
 #ifdef __cplusplus
 }
