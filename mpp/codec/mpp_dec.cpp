@@ -29,35 +29,50 @@
 #include "h264d_api.h"
 #include "h265d_api.h"
 
+// for test and demo
+#include "dummy_dec_api.h"
+
 /*
  * all decoder static register here
  */
 static const MppDecParser *parsers[] = {
     &api_h264d_parser,
+    &dummy_dec_parser,
 };
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 
-static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, HalTask *task)
+static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, HalDecTask *task)
 {
-    return dec->parser_api->parse(dec->parser_ctx, pkt, &task->dec);
+    return dec->parser_api->parse(dec->parser_ctx, pkt, task);
 }
 
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *parser   = mpp->mTheadCodec;
-    MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
-    mpp_list  *packets  = mpp->mPackets;
+    MppBufSlots slots   = dec->slots;
     MppPacketImpl packet;
-    HalTaskHnd task_hnd         = NULL;
-    RK_U32 packet_ready     = 0;
-    RK_U32 packet_parsed    = 0;
-    RK_U32 syntax_ready     = 0;
-    RK_U32 slot_ready       = 0;
+    HalTaskHnd task_hnd     = NULL;
 
-    HalTask task_local;
+    /*
+     * parser thread need to wait at three cases:
+     * 1. no task slot for output
+     * 2. no packet for parsing
+     * 3. info change on progress
+     * 3. no buffer on analyzing output task
+     */
+    RK_U32 wait_on_packet   = 0;
+    RK_U32 wait_on_task     = 0;
+    RK_U32 wait_on_change   = 0;
+    RK_U32 wait_on_buffer   = 0;
+
+    RK_U32 packet_ready     = 0;
+    RK_U32 task_ready       = 0;
+
+    HalTask     task_local;
+    HalDecTask  *task_dec = &task_local.dec;
     memset(&task_local, 0, sizeof(task_local));
 
     while (MPP_THREAD_RUNNING == parser->get_status()) {
@@ -65,53 +80,79 @@ void *mpp_dec_parser_thread(void *data)
          * wait for stream input
          */
         parser->lock();
-        if (!packet_ready && (0 == packets->list_size()))
+        if (wait_on_task || wait_on_packet || wait_on_change || wait_on_buffer)
             parser->wait();
         parser->unlock();
 
+        /*
+         * 1. get task handle from hal for parsing one frame
+         */
+        if (NULL == task_hnd) {
+            hal_task_get_hnd(dec->tasks, 0, &task_hnd);
+        }
+
+        wait_on_task = (NULL == task_hnd);
+        if (wait_on_task)
+            continue;
+
+        /*
+         * 2. get packet to parse
+         */
         if (!packet_ready) {
+            Mutex::Autolock autoLock(&mpp->mPacketLock);
+            mpp_list *packets = mpp->mPackets;
             if (packets->list_size()) {
-                mpp->mPacketLock.lock();
                 /*
                  * packet will be destroyed outside, here just copy the content
                  */
                 packets->del_at_head(&packet, sizeof(packet));
                 mpp->mPacketGetCount++;
-                mpp->mPacketLock.unlock();
                 packet_ready = 1;
+                wait_on_packet = 0;
+            } else {
+                wait_on_packet = 1;
+                continue;
             }
         }
 
-        if (!packet_ready)
-            continue;
-
         /*
-         * 1. send packet data to parser
+         * 3. send packet data to parser
          *
          *    parser functioin input / output
          *    input:    packet data
-         *              dxva output slot
-         *    output:   dxva output slot
-         *              buffer usage informatioin
+         *    output:   dec task output information (with dxva output slot)
+         *              buffer slot usage informatioin
+         *
+         *    NOTE:
+         *    1. dpb slot will be set internally in parser process.
+         *    2. parse function need to set valid flag when one frame is ready.
+         *    3. if packet size is zero then next packet is needed.
+         *
          */
-        if (!packet_parsed) {
-            mpp_dec_parse(dec, (MppPacket)&packet, &task_local);
-            packet_parsed = 1;
-        }
-
-        if (!syntax_ready) {
-            hal_task_get_hnd(dec->tasks, 0, &task_hnd);
-            if (task_hnd) {
-                hal_task_set_info(task_hnd, &task_local);
-                syntax_ready = 1;
+        if (!task_ready) {
+            mpp_dec_parse(dec, (MppPacket)&packet, task_dec);
+            if (0 == packet.size) {
+                mpp_packet_reset(&packet);
+                packet_ready = 0;
             }
         }
 
-        if (!syntax_ready)
+        task_ready = task_dec->valid;
+        if (!task_ready)
             continue;
 
         /*
-         * 2. do buffer operation according to usage information
+         * 4. parse local task and slot to check whether new buffer or info change is needed.
+         *
+         * a. first detect info change
+         * b. then detect whether output index has MppBuffer
+         */
+        wait_on_change = mpp_buf_slot_is_changed(slots);
+        if (wait_on_change)
+            continue;
+
+        /*
+         * 5. do buffer operation according to usage information
          *
          *    possible case:
          *    a. normal case
@@ -122,28 +163,30 @@ void *mpp_dec_parser_thread(void *data)
          *       - need buffer in different side, need to send a info change
          *         frame to hal loop.
          */
+        RK_S32 output = task_local.dec.output;
+        if (NULL == mpp_buf_slot_get_buffer(slots, output)) {
+            MppBuffer buffer = NULL;
+            RK_U32 size = mpp_buf_slot_get_size(slots);
+            mpp_buffer_get(mpp->mFrameGroup, &buffer, size);
+            if (buffer)
+                mpp_buf_slot_set_buffer(slots, output, buffer);
+        }
 
-        // RK_S32 output = task_local.dec.output;
-        // MppBuffer buffer;
-        // mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
-
+        wait_on_buffer = (NULL == mpp_buf_slot_get_buffer(slots, output));
+        if (wait_on_buffer)
+            continue;
 
         /*
-         * 3. send dxva output information and buffer information to hal thread
+         * 6. send dxva output information and buffer information to hal thread
          *    combinate video codec dxva output and buffer information
          */
-
-        // hal->wait_prev_done;
-        // hal->send_config;
-
+        mpp_assert(task_hnd);
+        hal_task_set_info(task_hnd, &task_local);
         hal_task_set_used(task_hnd, 1);
         mpp->mTaskPutCount++;
 
-        hal->signal();
-        packet_ready    = 0;
-        syntax_ready    = 0;
-        packet_parsed   = 0;
-        slot_ready      = 0;
+        task_ready      = 0;
+        mpp->mThreadHal->signal();
     }
 
     return NULL;
