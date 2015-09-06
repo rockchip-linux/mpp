@@ -56,7 +56,8 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
     }
 
     HalTaskGroupImpl *p = mpp_malloc_size(HalTaskGroupImpl,
-                            sizeof(HalTaskGroupImpl) + count * sizeof(HalTaskImpl));
+                                          sizeof(HalTaskGroupImpl) +
+                                          count * sizeof(HalTaskImpl));
     if (NULL == p) {
         *group = NULL;
         mpp_err_f("malloc group failed\n");
@@ -66,7 +67,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
     INIT_LIST_HEAD(&p->list_unused);
     INIT_LIST_HEAD(&p->list_used);
     p->lock = new Mutex();
-    p->node = (HalTaskImpl*)(p+1);
+    p->node = (HalTaskImpl*)(p + 1);
     p->type = type;
     Mutex::Autolock auto_lock(p->lock);
     RK_U32 i;

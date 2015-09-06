@@ -32,7 +32,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet || NULL == data || 0 == size) {
         mpp_err_f("invalid input packet %p data %p size %d\n",
-                packet, data, size);
+                  packet, data, size);
         return MPP_ERR_NULL_PTR;
     }
 

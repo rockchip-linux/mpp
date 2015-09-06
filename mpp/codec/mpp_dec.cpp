@@ -279,6 +279,8 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
+    dec->parser_api->deinit(dec->parser_ctx);
+
     mpp_free(dec->parser_ctx);
 
     if (dec->hal_ctx)
