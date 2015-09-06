@@ -70,17 +70,13 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    MppBufSlotsImpl *impl = mpp_malloc(MppBufSlotsImpl, 1);
+    MppBufSlotsImpl *impl = mpp_calloc(MppBufSlotsImpl, 1);
     if (NULL == impl) {
         *slots = NULL;
         return MPP_NOK;
     }
 
     impl->lock = new Mutex();
-    impl->count = 0;
-    impl->decode_count = 0;
-    impl->display_count = 0;
-    impl->slots = NULL;
     *slots = impl;
     return MPP_OK;
 }
@@ -113,8 +109,6 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
         impl->slots = mpp_calloc(MppBufSlotEntry, count);
         impl->count = count;
         impl->size  = size;
-        impl->slots = (MppBufSlotEntry *)(impl + 1);
-        memset(impl->slots, 0, sizeof(MppBufSlotEntry) * count);
     } else {
         // need to check info change or not
         if (!changed) {
@@ -183,7 +177,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots)
 
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
 {
-    if (NULL == slots) {
+    if (NULL == slots || NULL == index) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }

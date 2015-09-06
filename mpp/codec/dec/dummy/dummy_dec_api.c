@@ -16,58 +16,121 @@
 */
 #define MODULE_TAG "dummy_dec_api"
 
+#include <string.h>
+
+#include "mpp_log.h"
 
 #include "dummy_dec_api.h"
 
+#define DUMMY_DEC_FRAME_SIZE        SZ_1M
+#define DUMMY_DEC_FRAME_COUNT       16
 
-MPP_RET dummy_dec_init(void *decoder, MppParserInitCfg *init)
+typedef struct DummyDec_t {
+    MppBufSlots     slots;
+    RK_U32          task_count;
+
+    RK_U32          slots_inited;
+} DummyDec;
+
+MPP_RET dummy_dec_init(void *dec, MppParserInitCfg *cfg)
 {
-    (void)decoder;
-    (void)init;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput dec %p cfg %p\n", dec, cfg);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    DummyDec *p = (DummyDec *)dec;
+    p->slots        = cfg->slots;
+    p->task_count   = cfg->task_count = 2;
+    p->slots_inited = 0;
     return MPP_OK;
 }
 
-MPP_RET dummy_dec_deinit(void *decoder)
+MPP_RET dummy_dec_deinit(void *dec)
 {
-    (void)decoder;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
     return MPP_OK;
 }
 
-MPP_RET dummy_dec_reset(void *decoder)
+MPP_RET dummy_dec_reset(void *dec)
 {
-    (void)decoder;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
     return MPP_OK;
 }
 
 
-MPP_RET dummy_dec_flush(void *decoder)
+MPP_RET dummy_dec_flush(void *dec)
 {
-    (void)decoder;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
     return MPP_OK;
 }
 
 
-MPP_RET dummy_dec_control(void *decoder, RK_S32 cmd_type, void *param)
+MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
 {
-    (void)decoder;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
     (void)cmd_type;
     (void)param;
     return MPP_OK;
 }
 
 
-MPP_RET dummy_dec_parse(void *decoder, MppPacket pkt, HalDecTask *task)
+MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
 {
-    (void)decoder;
-    (void)pkt;
-    (void)task;
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    DummyDec *p = (DummyDec *)dec;
+    // do packet decoding here
+
+    // set packet size
+    mpp_packet_set_size(pkt, 0);
+
+    /*
+     * set slots information
+     * 1. output index MUST be set
+     * 2. if one frame can be display, it SHOULD be set display
+     */
+    if (!p->slots_inited) {
+        mpp_buf_slot_setup(p->slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE, 0);
+        p->slots_inited = 1;
+    }
+
+    RK_S32 output = -1;
+    mpp_buf_slot_get_unused(p->slots, &output);
+    mpp_buf_slot_set_display(p->slots, output);
+
+    /*
+     * setup output task
+     * 1. valid flag MUST be set if need hardware to run once
+     * 2. set output slot index
+     * 3. set reference slot index
+     */
+    task->valid     = 1;
+    task->output    = output;
+    memset(&task->refer, -1, sizeof(task->refer));
+
     return MPP_OK;
 }
 
 const MppDecParser dummy_dec_parser = {
     "dummy_dec_parser",
     MPP_VIDEO_CodingUnused,
-    0,
+    sizeof(DummyDec),
     0,
     dummy_dec_init,
     dummy_dec_deinit,

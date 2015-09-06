@@ -25,12 +25,12 @@ extern "C" {
 
 extern const MppDecParser dummy_dec_parser;
 
-MPP_RET dummy_dec_init   (void *decoder, MppParserInitCfg *cfg);
-MPP_RET dummy_dec_deinit (void *decoder);
-MPP_RET dummy_dec_reset  (void *decoder);
-MPP_RET dummy_dec_flush  (void *decoder);
-MPP_RET dummy_dec_control(void *decoder, RK_S32 cmd_type, void *param);
-MPP_RET dummy_dec_parse  (void *decoder, MppPacket pkt, HalDecTask *task);
+MPP_RET dummy_dec_init   (void *dec, MppParserInitCfg *cfg);
+MPP_RET dummy_dec_deinit (void *dec);
+MPP_RET dummy_dec_reset  (void *dec);
+MPP_RET dummy_dec_flush  (void *dec);
+MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param);
+MPP_RET dummy_dec_parse  (void *dec, MppPacket pkt, HalDecTask *task);
 
 #ifdef  __cplusplus
 }
