@@ -170,6 +170,16 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     return MPP_OK;
 }
 
+RK_U32  mpp_buf_slot_get_size(MppBufSlots slots)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return 0;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    return impl->size;
+}
 
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
 {
