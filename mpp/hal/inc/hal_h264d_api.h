@@ -330,7 +330,7 @@ typedef struct h264_regs_t {
 extern "C" {
 #endif
 
-extern const MppHalApi api_h264d_hal;
+extern const MppHalApi hal_api_h264d;
 
 MPP_RET hal_h264d_init    (void *hal, MppHalCfg *cfg);
 MPP_RET hal_h264d_deinit  (void *hal);

@@ -72,8 +72,9 @@ MPP_RET hal_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     return MPP_OK;
 }
 
-const MppHalApi api_h264d_hal = {
+const MppHalApi hal_api_h264d = {
     "h264d_rkdec",
+    MPP_CTX_DEC,
     MPP_VIDEO_CodingAVC,
     0,
     0,

@@ -34,6 +34,7 @@ typedef struct MppHalCfg_t {
 
 typedef struct MppHalApi_t {
     char            *name;
+    MppCtxType      type;
     MppCodingType   coding;
     RK_U32          ctx_size;
     RK_U32          flag;

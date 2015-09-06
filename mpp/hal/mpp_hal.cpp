@@ -26,11 +26,17 @@
 
 #include "hal_h264d_api.h"
 
+// for test and demo
+#include "hal_dummy_dec_api.h"
+#include "hal_dummy_enc_api.h"
+
 /*
  * all hardware api static register here
  */
 static const MppHalApi *hw_apis[] = {
-    &api_h264d_hal,
+    &hal_api_h264d,
+    &hal_api_dummy_dec,
+    &hal_api_dummy_enc,
 };
 
 typedef struct MppHalImpl_t {
@@ -61,7 +67,8 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
 
     RK_U32 i;
     for (i = 0; i < MPP_ARRAY_ELEMS(hw_apis); i++) {
-        if (cfg->coding == hw_apis[i]->coding) {
+        if (cfg->type   == hw_apis[i]->type &&
+            cfg->coding == hw_apis[i]->coding) {
             mpp_assert(cfg->task_count > 0);
             p->type         = cfg->type;
             p->coding       = cfg->coding;
