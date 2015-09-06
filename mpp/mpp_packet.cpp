@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "mpp_packet"
 
+#include <string.h>
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_packet.h"
@@ -52,12 +54,24 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 
 MPP_RET mpp_packet_deinit(MppPacket *packet)
 {
-    if (NULL == packet || NULL == packet) {
+    if (NULL == packet || NULL == *packet) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     mpp_free(*packet);
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_reset(MppPacket packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    memset(p, 0, sizeof(*p));
     return MPP_OK;
 }
 
