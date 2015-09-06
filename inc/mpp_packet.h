@@ -31,9 +31,9 @@ extern "C" {
  *
  * mpp_packet_init = mpp_packet_new + mpp_packet_set_data + mpp_packet_set_size
  */
+MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
 MPP_RET mpp_packet_deinit(MppPacket *packet);
-MPP_RET mpp_packet_reset(MppPacket packet);
 
 
 void    mpp_packet_set_data(MppPacket packet, void *data);

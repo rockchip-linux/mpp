@@ -50,4 +50,9 @@ typedef struct MppPacketImpl_t {
     type mpp_packet_get_##field(const MppPacket s) { return ((MppPacketImpl*)s)->field; } \
     void mpp_packet_set_##field(MppPacket s, type v) { ((MppPacketImpl*)s)->field = v; }
 
+/*
+ * mpp_packet_reset is only used internelly and should NOT be used outside
+ */
+MPP_RET mpp_packet_reset(MppPacketImpl *packet);
+
 #endif /*__MPP_IMPL_H__*/

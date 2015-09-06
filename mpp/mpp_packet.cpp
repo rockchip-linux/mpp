@@ -63,18 +63,6 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_reset(MppPacket packet)
-{
-    if (NULL == packet) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppPacketImpl *p = (MppPacketImpl *)packet;
-    memset(p, 0, sizeof(*p));
-    return MPP_OK;
-}
-
 MPP_RET mpp_packet_set_eos(MppPacket packet)
 {
     if (NULL == packet) {
@@ -96,6 +84,17 @@ MPP_RET mpp_packet_set_extra_data(MppPacket packet)
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag |= MPP_PACKET_FLAG_EXTRA_DATA;
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_reset(MppPacketImpl *packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    memset(packet, 0, sizeof(*packet));
     return MPP_OK;
 }
 
