@@ -20,7 +20,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_thread.h"
+#include "mpp_list.h"
 
 #include "mpp_buf_slot.h"
 
@@ -31,31 +31,47 @@
 #define MPP_SLOT_USED_AS_DISPLAY        (0x00000008)
 
 typedef struct MppBufSlotEntry_t {
-    MppBuffer   buffer;
-    RK_U32      status;
-    RK_S32      index;
-    RK_S64      pts;
+    struct list_head    list;
+    MppBuffer           buffer;
+    RK_U32              status;
+    RK_S32              index;
+    RK_S64              pts;
 } MppBufSlotEntry;
 
 typedef struct MppBufSlotsImpl_t {
-    Mutex           *lock;
-    RK_U32          count;
-    RK_U32          size;
+    Mutex               *lock;
+    RK_U32              count;
+    RK_U32              size;
 
     // status tracing
-    RK_U32          decode_count;
-    RK_U32          display_count;
+    RK_U32              decode_count;
+    RK_U32              display_count;
 
     // if slot changed, all will be hold until all slot is unused
-    RK_U32          info_changed;
-    RK_U32          new_count;
-    RK_U32          new_size;
+    RK_U32              info_changed;
+    RK_U32              new_count;
+    RK_U32              new_size;
 
     // to record current output slot index
-    RK_S32          output;
+    RK_S32              output;
 
-    MppBufSlotEntry *slots;
+    // list for display
+    struct list_head    display;
+
+    MppBufSlotEntry     *slots;
 } MppBufSlotsImpl;
+
+static void init_slot_entry(MppBufSlotEntry *slots, RK_S32 pos, RK_S32 count)
+{
+    MppBufSlotEntry *p = &slots[pos];
+    for (RK_S32 i = 0; i < count; i++) {
+        INIT_LIST_HEAD(&p->list);
+        p->buffer = NULL;
+        p->status = 0;
+        p->index = pos + i;
+        p->pts = 0;
+    }
+}
 
 /*
  * only called on unref / displayed / decoded
@@ -83,6 +99,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
     }
 
     impl->lock = new Mutex();
+    INIT_LIST_HEAD(&impl->display);
     *slots = impl;
     return MPP_OK;
 }
@@ -112,22 +129,17 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
     Mutex::Autolock auto_lock(impl->lock);
     if (NULL == impl->slots) {
         // first slot setup
-        impl->slots = mpp_calloc(MppBufSlotEntry, count);
         impl->count = count;
         impl->size  = size;
-        for (RK_U32 i = 0; i < count; i++) {
-            impl->slots[i].index = i;
-        }
+        impl->slots = mpp_calloc(MppBufSlotEntry, count);
+        init_slot_entry(impl->slots, 0, count);
     } else {
         // need to check info change or not
         if (!changed) {
             mpp_assert(size == impl->size);
             if (count > impl->count) {
                 mpp_realloc(impl->slots, MppBufSlotEntry, count);
-                memset(&impl->slots[impl->count], 0, sizeof(MppBufSlotEntry) * (count - impl->count));
-                for (RK_U32 i = 0; i < count; i++) {
-                    impl->slots[i].index = i;
-                }
+                init_slot_entry(impl->slots, impl->count, (count - impl->count));
             }
         } else {
             // info changed, even size is the same we still need to wait for new configuration
@@ -168,12 +180,7 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     impl->size          = impl->new_size;
     if (impl->count != impl->new_count) {
         mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
-        if (impl->new_count > impl->count) {
-            memset(&impl->slots[impl->count], 0, sizeof(MppBufSlotEntry) * (impl->new_count - impl->count));
-        }
-        for (RK_U32 i = 0; i < impl->new_count; i++) {
-            impl->slots[i].index = i;
-        }
+        init_slot_entry(impl->slots, 0, impl->new_count);
     }
     impl->count = impl->new_count;
     return MPP_OK;
@@ -303,6 +310,10 @@ MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     slot[index].status |= MPP_SLOT_USED_AS_DISPLAY;
+
+    // add slot to display list
+    list_del_init(&slot[index].list);
+    list_add_tail(&slot[index].list, &impl->display);
     return MPP_OK;
 }
 
@@ -319,6 +330,10 @@ MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index)
     mpp_assert(index < impl->count);
     slot[index].status &= ~MPP_SLOT_USED_AS_DISPLAY;
     impl->display_count++;
+
+    // make sure that this slot is just the next display slot
+    mpp_assert(slot == list_entry(impl->display.next, MppBufSlotEntry, list));
+    list_del_init(&slot[index].list);
     check_entry_unused(&slot[index]);
     return MPP_OK;
 }
