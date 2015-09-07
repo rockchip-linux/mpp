@@ -35,14 +35,9 @@ struct HalTaskGroupImpl_t {
     RK_U32              count_put;
     RK_U32              count_get;
     MppCtxType          type;
-    RK_U32              count;
+    RK_S32              count;
     mpp_list            *tasks;
 };
-
-static size_t get_task_size(HalTaskGroupImpl *group)
-{
-    return (group->type == MPP_CTX_DEC) ? (sizeof(HalDecTask)) : (sizeof(HalEncTask));
-}
 
 MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
 {

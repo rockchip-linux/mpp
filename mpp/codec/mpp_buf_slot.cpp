@@ -372,7 +372,7 @@ RK_S64 mpp_buf_slot_get_pts(const MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
-        return NULL;
+        return (RK_S64)-1;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
