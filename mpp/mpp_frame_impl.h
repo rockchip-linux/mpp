@@ -82,6 +82,6 @@ struct MppFrameImpl_t {
     type mpp_frame_get_##field(const MppFrame s) { return ((MppFrameImpl*)s)->field; } \
     void mpp_frame_set_##field(MppFrame s, type v) { ((MppFrameImpl*)s)->field = v; }
 
-
+MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 
 #endif /*__MPP_FRAME_IMPL_H__*/

@@ -37,13 +37,13 @@ MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 MPP_RET mpp_frame_init(MppFrame *frame)
 {
     if (NULL == frame) {
-        mpp_err("mpp_frame_init invalid NULL pointer input\n");
+        mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MppFrameImpl *p = mpp_calloc(MppFrameImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_frame_init malloc failed\n");
+        mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -55,7 +55,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
 MPP_RET mpp_frame_deinit(MppFrame *frame)
 {
     if (NULL == frame || NULL == *frame) {
-        mpp_err("mpp_frame_deinit invalid NULL pointer input\n");
+        mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -70,11 +70,23 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
 MppFrame mpp_frame_get_next(MppFrame frame)
 {
     if (NULL == frame) {
-        mpp_err("mpp_frame_get_next invalid NULL pointer input\n");
+        mpp_err_f("invalid NULL pointer input\n");
         return NULL;
     }
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
     return (MppFrame)p->next;
+}
+
+MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
+{
+    if (NULL == frame) {
+        mpp_err_f("invalid NULL pointer input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    p->next = (MppFrameImpl *)next;
+    return MPP_OK;
 }
 

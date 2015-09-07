@@ -167,11 +167,22 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
     Mutex::Autolock autoLock(mFrames->mutex());
+    MppFrame first = NULL;
     if (mFrames->list_size()) {
-        mFrames->del_at_tail(frame, sizeof(frame));
+        mFrames->del_at_tail(&first, sizeof(frame));
         mFrameGetCount++;
+
+        MppFrame prev = first;
+        MppFrame next = NULL;
+        while (mFrames->list_size()) {
+            mFrames->del_at_tail(&next, sizeof(frame));
+            mFrameGetCount++;
+            mpp_frame_set_next(prev, next);
+            prev = next;
+        }
     }
     mThreadHal->signal();
+    *frame = first;
     return MPP_OK;
 }
 

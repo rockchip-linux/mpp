@@ -133,8 +133,8 @@ int main()
 
                 mpp_frame_deinit(&dec_out);
                 dec_out = next;
+                i++;
             } while (dec_out);
-            i++;
         }
     }
 
