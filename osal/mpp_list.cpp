@@ -83,7 +83,6 @@ static inline void mpp_list_add_tail(mpp_list_node *_new, mpp_list_node *head)
 RK_S32 mpp_list::add_at_head(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
-    pthread_mutex_lock(&mutex);
     if (head) {
         mpp_list_node *node = create_list(data, size, 0);
         if (node) {
@@ -94,14 +93,12 @@ RK_S32 mpp_list::add_at_head(void *data, RK_S32 size)
             ret = -ENOMEM;
         }
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::add_at_tail(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
-    pthread_mutex_lock(&mutex);
     if (head) {
         mpp_list_node *node = create_list(data, size, 0);
         if (node) {
@@ -112,7 +109,6 @@ RK_S32 mpp_list::add_at_tail(void *data, RK_S32 size)
             ret = -ENOMEM;
         }
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
@@ -155,50 +151,40 @@ static inline void _list_del_node_no_lock(mpp_list_node *node, void *data, RK_S3
 RK_S32 mpp_list::del_at_head(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
-    pthread_mutex_lock(&mutex);
     if (head && count) {
         _list_del_node_no_lock(head->next, data, size);
         count--;
         ret = 0;
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::del_at_tail(void *data, RK_S32 size)
 {
     RK_S32 ret = -EINVAL;
-    pthread_mutex_lock(&mutex);
     if (head && count) {
         _list_del_node_no_lock(head->prev, data, size);
         count--;
-        pthread_mutex_unlock(&mutex);
         ret = 0;
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::list_is_empty()
 {
-    pthread_mutex_lock(&mutex);
     RK_S32 ret = (count == 0);
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::list_size()
 {
-    pthread_mutex_lock(&mutex);
     RK_S32 ret = count;
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::add_by_key(void *data, RK_S32 size, RK_U32 *key)
 {
     RK_S32 ret = 0;
-    pthread_mutex_lock(&mutex);
     if (head) {
         RK_U32 list_key = get_key();
         *key = list_key;
@@ -211,14 +197,12 @@ RK_S32 mpp_list::add_by_key(void *data, RK_S32 size, RK_U32 *key)
             ret = -ENOMEM;
         }
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
 RK_S32 mpp_list::del_by_key(void *data, RK_S32 size, RK_U32 key)
 {
     RK_S32 ret = 0;
-    pthread_mutex_lock(&mutex);
     if (head && count) {
         struct mpp_list_node *tmp = head->next;
         ret = -EINVAL;
@@ -230,7 +214,6 @@ RK_S32 mpp_list::del_by_key(void *data, RK_S32 size, RK_U32 key)
             }
         }
     }
-    pthread_mutex_unlock(&mutex);
     return ret;
 }
 
@@ -245,7 +228,6 @@ RK_S32 mpp_list::show_by_key(void *data, RK_U32 key)
 
 RK_S32 mpp_list::flush()
 {
-    pthread_mutex_lock(&mutex);
     if (head) {
         while (count) {
             mpp_list_node* node = head->next;
@@ -257,23 +239,27 @@ RK_S32 mpp_list::flush()
             count--;
         }
     }
-    pthread_mutex_unlock(&mutex);
     return 0;
 }
 
-RK_S32 mpp_list::lock()
+void mpp_list::lock()
 {
-    return pthread_mutex_lock(&mutex);
+    mMutex.lock();
 }
 
-RK_S32 mpp_list::unlock()
+void mpp_list::unlock()
 {
-    return pthread_mutex_unlock(&mutex);
+    mMutex.unlock();
 }
 
 RK_S32 mpp_list::trylock()
 {
-    return pthread_mutex_trylock(&mutex);
+    return mMutex.trylock();
+}
+
+Mutex *mpp_list::mutex()
+{
+    return &mMutex;
 }
 
 RK_U32 mpp_list::get_key()
@@ -286,11 +272,6 @@ mpp_list::mpp_list(node_destructor func)
       head(NULL),
       count(0)
 {
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&mutex, &attr);
-    pthread_mutexattr_destroy(&attr);
     destroy = func;
     head = (mpp_list_node*)malloc(sizeof(mpp_list_node));
     if (NULL == head) {
@@ -306,7 +287,6 @@ mpp_list::~mpp_list()
     if (head) free(head);
     head = NULL;
     destroy = NULL;
-    pthread_mutex_destroy(&mutex);
 }
 
 #if BUILD_RK_LIST_TEST

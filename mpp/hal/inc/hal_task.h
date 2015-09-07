@@ -109,6 +109,9 @@ extern "C" {
 
 /*
  * group init / deinit will be called by hal
+ *
+ * NOTE: use mpp_list to implement
+ *       the count means the max task waiting for process
  */
 MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
@@ -118,25 +121,21 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
  *
  * dec:
  *
- * get_hnd(group, 0, &hnd)      - dec get a unused handle first
- * parser->parse                - parser write a local info in dec
- * set_info(hnd, info)          - dec write the local info to handle
- * set_used(hnd, 1)             - decoder set handle to used
+ * hal_task_can_put(group)      - dec test whether can send task to hal
+ * parser->parse(task)          - parser write a local task
+ * hal_task_put(group, task)    - dec send the task to hal
  *
  * hal:
- * get_hnd(group, 1, &hnd)
- * read_info(hnd, info)
- * set_used(hnd, 0)
  *
- * these calls do not own syntax handle but just get its reference
- * so there is not need to free or destory the handle
+ * hal_task_can_get(group)      - hal test whether there is task waiting for process
+ * hal_task_get(group, task)    - hal get the task to process
  *
  */
-MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd);
-MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used);
+MPP_RET hal_task_can_put(HalTaskGroup group);
+MPP_RET hal_task_can_get(HalTaskGroup group);
 
-MPP_RET hal_task_get_info(HalTaskHnd hnd, HalTask *task);
-MPP_RET hal_task_set_info(HalTaskHnd hnd, HalTask *task);
+MPP_RET hal_task_put(HalTaskGroup group, HalTask *task);
+MPP_RET hal_task_get(HalTaskGroup group, HalTask *task);
 
 #ifdef __cplusplus
 }

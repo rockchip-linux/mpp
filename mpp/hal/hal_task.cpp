@@ -27,21 +27,16 @@ typedef struct HalTaskImpl_t        HalTaskImpl;
 typedef struct HalTaskGroupImpl_t   HalTaskGroupImpl;
 
 struct HalTaskImpl_t {
-    struct list_head    list;
-    HalTaskGroupImpl    *group;
-    RK_U32              used;
     RK_U32              index;
     HalTask             task;
 };
 
 struct HalTaskGroupImpl_t {
-    struct list_head    list_unused;
-    struct list_head    list_used;
-    RK_U32              count_unused;
-    RK_U32              count_used;
+    RK_U32              count_put;
+    RK_U32              count_get;
     MppCtxType          type;
-    Mutex               *lock;
-    HalTaskImpl         *node;
+    RK_U32              count;
+    mpp_list            *tasks;
 };
 
 static size_t get_task_size(HalTaskGroupImpl *group)
@@ -56,29 +51,21 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count)
         return MPP_ERR_UNKNOW;
     }
 
-    HalTaskGroupImpl *p = mpp_malloc_size(HalTaskGroupImpl,
-                                          sizeof(HalTaskGroupImpl) +
-                                          count * sizeof(HalTaskImpl));
+    *group = NULL;
+    HalTaskGroupImpl *p = mpp_malloc(HalTaskGroupImpl, 1);
     if (NULL == p) {
-        *group = NULL;
         mpp_err_f("malloc group failed\n");
         return MPP_NOK;
     }
-    memset(p, 0, sizeof(*p) + count * sizeof(HalTaskImpl));
-    INIT_LIST_HEAD(&p->list_unused);
-    INIT_LIST_HEAD(&p->list_used);
-    p->lock = new Mutex();
-    p->node = (HalTaskImpl*)(p + 1);
-    p->type = type;
-    Mutex::Autolock auto_lock(p->lock);
-    RK_U32 i;
-    for (i = 0; i < count; i++) {
-        p->node[i].group = p;
-        p->node[i].used = 0;
-        p->node[i].index = i;
-        list_add_tail(&p->node[i].list, &p->list_unused);
+    p->tasks = new mpp_list(NULL);
+    if (NULL == p->tasks) {
+        mpp_err_f("malloc task list failed\n");
+        mpp_free(p);
+        return MPP_NOK;
     }
-    p->count_unused = count;
+    p->type  = type;
+    p->count = count - 1;
+    p->count_put = p->count_get = 0;
     *group = p;
     return MPP_OK;
 }
@@ -91,71 +78,61 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group)
     }
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    if (p->lock) {
-        delete p->lock;
-        p->lock = NULL;
-    }
+    if (p->tasks)
+        delete p->tasks;
     mpp_free(p);
     return MPP_OK;
 }
 
-MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_U32 used, HalTaskHnd *hnd)
+MPP_RET hal_task_can_put(HalTaskGroup group)
 {
-    if (NULL == group || NULL == hnd) {
-        mpp_err_f("found NULL input group %p hnd %d\n", group, hnd);
+    if (NULL == group) {
+        mpp_err_f("found NULL input group\n");
         return MPP_ERR_NULL_PTR;
     }
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    Mutex::Autolock auto_lock(p->lock);
-    struct list_head *head = (used) ? (&p->list_used) : (&p->list_unused);
-
-    if (list_empty(head)) {
-        *hnd = NULL;
-        return MPP_NOK;
-    }
-
-    *hnd = list_entry(head->next, HalTaskImpl, list);
-    return MPP_OK;
+    mpp_list *tasks = p->tasks;
+    Mutex::Autolock auto_lock(tasks->mutex());
+    return (tasks->list_size() < p->count) ? (MPP_OK) : (MPP_NOK);
 }
 
-MPP_RET hal_task_set_used(HalTaskHnd hnd, RK_U32 used)
+MPP_RET hal_task_can_get(HalTaskGroup group)
 {
-    if (NULL == hnd) {
-        mpp_err_f("found NULL input\n");
+    if (NULL == group) {
+        mpp_err_f("found NULL input group\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    HalTaskImpl *impl = (HalTaskImpl *)hnd;
-    HalTaskGroupImpl *group = impl->group;
-    Mutex::Autolock auto_lock(group->lock);
-    struct list_head *head = (used) ? (&group->list_used) : (&group->list_unused);
-    list_del_init(&impl->list);
-    list_add_tail(&impl->list, head);
-    if (impl->used)
-        group->count_used--;
-    else
-        group->count_unused--;
-    if (used)
-        group->count_used++;
-    else
-        group->count_unused++;
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    mpp_list *tasks = p->tasks;
+    Mutex::Autolock auto_lock(tasks->mutex());
+    return (tasks->list_size()) ? (MPP_OK) : (MPP_NOK);
+}
 
-    impl->used = used;
+MPP_RET hal_task_put(HalTaskGroup group, HalTask *task)
+{
+    MPP_RET ret = hal_task_can_put(group);
+    mpp_assert(ret == MPP_OK);
+
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    mpp_list *tasks = p->tasks;
+    Mutex::Autolock auto_lock(tasks->mutex());
+    tasks->add_at_tail(task, sizeof(*task));
+    p->count_put++;
     return MPP_OK;
 }
 
-MPP_RET hal_task_get_info(HalTaskHnd hnd, HalTask *task)
+MPP_RET hal_task_get(HalTaskGroup group, HalTask *task)
 {
-    HalTaskImpl *impl = (HalTaskImpl *)hnd;
-    memcpy(task, &impl->task, get_task_size(impl->group));
-    return MPP_OK;
-}
+    MPP_RET ret = hal_task_can_get(group);
+    mpp_assert(ret == MPP_OK);
 
-MPP_RET hal_task_set_info(HalTaskHnd hnd, HalTask *task)
-{
-    HalTaskImpl *impl = (HalTaskImpl *)hnd;
-    memcpy(&impl->task, task, get_task_size(impl->group));
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    mpp_list *tasks = p->tasks;
+    Mutex::Autolock auto_lock(tasks->mutex());
+    tasks->del_at_head(task, sizeof(*task));
+    p->count_get++;
     return MPP_OK;
 }
 

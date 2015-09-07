@@ -53,8 +53,8 @@ void *mpp_dec_parser_thread(void *data)
     MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     MppBufSlots slots   = dec->slots;
+    HalTaskGroup tasks  = dec->tasks;
     MppPacketImpl packet;
-    HalTaskHnd task_hnd     = NULL;
 
     /*
      * parser thread need to wait at cases below:
@@ -87,11 +87,7 @@ void *mpp_dec_parser_thread(void *data)
         /*
          * 1. get task handle from hal for parsing one frame
          */
-        if (NULL == task_hnd) {
-            hal_task_get_hnd(dec->tasks, 0, &task_hnd);
-        }
-
-        wait_on_task = (NULL == task_hnd);
+        wait_on_task = (MPP_OK != hal_task_can_put(tasks));
         if (wait_on_task)
             continue;
 
@@ -99,8 +95,8 @@ void *mpp_dec_parser_thread(void *data)
          * 2. get packet to parse
          */
         if (!packet_ready) {
-            Mutex::Autolock autoLock(&mpp->mPacketLock);
             mpp_list *packets = mpp->mPackets;
+            Mutex::Autolock autoLock(packets->mutex());
             if (packets->list_size()) {
                 /*
                  * packet will be destroyed outside, here just copy the content
@@ -181,9 +177,7 @@ void *mpp_dec_parser_thread(void *data)
          * 6. send dxva output information and buffer information to hal thread
          *    combinate video codec dxva output and buffer information
          */
-        mpp_assert(task_hnd);
-        hal_task_set_info(task_hnd, &task_local);
-        hal_task_set_used(task_hnd, 1);
+        hal_task_put(tasks, &task_local);
         mpp->mTaskPutCount++;
 
         task_ready      = 0;
@@ -199,8 +193,8 @@ void *mpp_dec_hal_thread(void *data)
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     MppBufSlots slots   = dec->slots;
+    HalTaskGroup tasks  = dec->tasks;
     mpp_list *frames    = mpp->mFrames;
-    HalTaskHnd task_hnd = NULL;
 
     /*
      * hal thread need to wait at cases below:
@@ -222,19 +216,17 @@ void *mpp_dec_hal_thread(void *data)
         hal->unlock();
 
         // get hw task first
-        if (NULL == task_hnd)
-            hal_task_get_hnd(dec->tasks, 1, &task_hnd);
-
-        wait_on_task = (NULL == task_hnd);
+        wait_on_task = (MPP_OK != hal_task_can_get(tasks));
         if (wait_on_task)
             continue;
 
         mpp->mTaskGetCount++;
 
-        hal_task_get_info(task_hnd, &task_local);
+        hal_task_get(tasks, &task_local);
 
         // register genertation
         mpp_hal_reg_gen(dec->hal_ctx, &task_local);
+        mpp->mThreadCodec->signal();
 
         /*
          * wait previous register set done
@@ -274,7 +266,9 @@ void *mpp_dec_hal_thread(void *data)
 
         mpp_buf_slot_clr_display(slots, output);
 
+        frames->lock();
         frames->add_at_tail(&frame, sizeof(frame));
+        frames->unlock();
         mpp->mFramePutCount++;
 
         /*
@@ -284,9 +278,6 @@ void *mpp_dec_hal_thread(void *data)
         // signal()
         // mark frame in output queue
         // wait up output thread to get a output frame
-        hal_task_set_used(task_hnd, 0);
-        task_hnd = NULL;
-        mpp->mThreadCodec->signal();
     }
 
     return NULL;

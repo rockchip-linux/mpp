@@ -68,10 +68,6 @@ public:
     MPP_RET get_packet(MppPacket *packet);
 
 
-    Mutex           mPacketLock;
-    Mutex           mFrameLock;
-    Mutex           mTaskLock;
-
     mpp_list        *mPackets;
     mpp_list        *mFrames;
     mpp_list        *mTasks;

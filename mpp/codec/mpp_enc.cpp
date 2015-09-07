@@ -39,11 +39,14 @@ void *mpp_enc_control_thread(void *data)
     char *buf = mpp_malloc(char, size);
 
     while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
+        Mutex::Autolock auto_lock(frames->mutex());
         if (frames->list_size()) {
             frames->del_at_head(&frame, sizeof(frame));
 
             mpp_packet_init(&packet, buf, size);
+            packets->lock();
             packets->add_at_tail(&packet, sizeof(packet));
+            packets->unlock();
         }
     }
     mpp_free(buf);
@@ -70,8 +73,10 @@ void *mpp_enc_hal_thread(void *data)
         // register genertation
         if (tasks->list_size()) {
             HalDecTask *task;
-            mpp->mTasks->del_at_head(&task, sizeof(task));
+            tasks->lock();
+            tasks->del_at_head(&task, sizeof(task));
             mpp->mTaskGetCount++;
+            tasks->unlock();
 
             // hal->mpp_hal_reg_gen(current);
 
@@ -100,8 +105,10 @@ void *mpp_enc_hal_thread(void *data)
             MppFrame frame;
             mpp_frame_init(&frame);
             mpp_frame_set_buffer(frame, buffer);
+            frames->lock();
             frames->add_at_tail(&frame, sizeof(frame));
             mpp->mFramePutCount++;
+            frames->unlock();
         }
     }
 

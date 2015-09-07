@@ -154,7 +154,7 @@ void Mpp::clear()
 
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
-    Mutex::Autolock autoLock(&mPacketLock);
+    Mutex::Autolock autoLock(mPackets->mutex());
     if (mPackets->list_size() < 4) {
         mPackets->add_at_tail(packet, sizeof(MppPacketImpl));
         mPacketPutCount++;
@@ -166,7 +166,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
-    Mutex::Autolock autoLock(&mFrameLock);
+    Mutex::Autolock autoLock(mFrames->mutex());
     if (mFrames->list_size()) {
         mFrames->del_at_tail(frame, sizeof(frame));
         mFrameGetCount++;
@@ -177,7 +177,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
 MPP_RET Mpp::put_frame(MppFrame frame)
 {
-    Mutex::Autolock autoLock(&mFrameLock);
+    Mutex::Autolock autoLock(mFrames->mutex());
     if (mFrames->list_size() < 4) {
         mFrames->add_at_tail(frame, sizeof(MppFrameImpl));
         mThreadCodec->signal();
@@ -189,7 +189,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
-    Mutex::Autolock autoLock(&mPacketLock);
+    Mutex::Autolock autoLock(mPackets->mutex());
     if (mPackets->list_size()) {
         mPackets->del_at_tail(packet, sizeof(packet));
         mPacketGetCount++;

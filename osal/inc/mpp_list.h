@@ -59,12 +59,16 @@ public:
 
     RK_S32 flush();
 
-    RK_S32 lock();
-    RK_S32 unlock();
+    // open lock function for external combination usage
+    void   lock();
+    void   unlock();
     RK_S32 trylock();
 
+    // open lock function for external auto lock
+    Mutex *mutex();
+
 private:
-    pthread_mutex_t         mutex;
+    Mutex                   mMutex;
     node_destructor         destroy;
     struct mpp_list_node    *head;
     RK_S32                  count;
