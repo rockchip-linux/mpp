@@ -269,6 +269,7 @@ void *mpp_dec_hal_thread(void *data)
         mpp_frame_set_pts(frame, pts);
 
         MppBuffer buffer = mpp_buf_slot_get_buffer(slots, output);
+        mpp_assert(NULL != buffer);
         mpp_frame_set_buffer(frame, buffer);
 
         mpp_buf_slot_clr_display(slots, output);
@@ -284,6 +285,7 @@ void *mpp_dec_hal_thread(void *data)
         // mark frame in output queue
         // wait up output thread to get a output frame
         hal_task_set_used(task_hnd, 0);
+        task_hnd = NULL;
         mpp->mThreadCodec->signal();
     }
 

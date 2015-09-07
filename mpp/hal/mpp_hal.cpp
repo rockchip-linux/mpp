@@ -42,6 +42,7 @@ static const MppHalApi *hw_apis[] = {
 typedef struct MppHalImpl_t {
     MppCtxType      type;
     MppCodingType   coding;
+    MppBufSlots     slots;
 
     void            *ctx;
     const MppHalApi *api;
@@ -72,6 +73,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
             mpp_assert(cfg->task_count > 0);
             p->type         = cfg->type;
             p->coding       = cfg->coding;
+            p->slots        = cfg->slots;
             p->api          = hw_apis[i];
             p->task_count   = cfg->task_count;
             p->ctx          = mpp_malloc_size(void, p->api->ctx_size);
