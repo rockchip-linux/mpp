@@ -264,12 +264,11 @@ void *mpp_dec_hal_thread(void *data)
         mpp_assert(NULL != buffer);
         mpp_frame_set_buffer(frame, buffer);
 
-        mpp_buf_slot_clr_display(slots, output);
-
         frames->lock();
         frames->add_at_tail(&frame, sizeof(frame));
-        frames->unlock();
         mpp->mFramePutCount++;
+        mpp_buf_slot_clr_display(slots, output);
+        frames->unlock();
 
         /*
          * mark previous buffer is complete
