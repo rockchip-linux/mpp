@@ -114,11 +114,15 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
     }
 
     RK_U32 output;
+    MppFrame frame;
     RK_S64 pts = mpp_packet_get_pts(pkt);
+    mpp_frame_init(&frame);
+    mpp_frame_set_pts(frame, pts);
     mpp_buf_slot_get_unused(p->slots, &output);
-    mpp_buf_slot_set_decoding(p->slots, output);
-    mpp_buf_slot_set_pts(p->slots, output, pts);
+    mpp_buf_slot_set_decoding(p->slots, output, frame);
     mpp_buf_slot_set_display(p->slots, output);
+    mpp_frame_deinit(&frame);
+    mpp_assert(NULL == frame);
 
     /*
      * setup output task

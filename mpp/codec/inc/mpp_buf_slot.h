@@ -18,7 +18,7 @@
 #define __MPP_BUF_SLOT_H__
 
 #include "rk_type.h"
-#include "mpp_buffer.h"
+#include "mpp_frame.h"
 
 /*
  * mpp_dec will alloc 18 decoded picture buffer slot
@@ -140,6 +140,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *
  * mpp_buf_slot_set_decoding
  *      - mark a slot to be output destination buffer
+ *      - NOTE: the frame information MUST be set here
  *
  * mpp_buf_slot_set_display
  *      - mark a slot to be can be display
@@ -151,6 +152,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *
  * mpp_buf_slot_clr_display
  *      - mark a slot has been send out to display
+ *      - NOTE: will be called inside mpp_buf_slot_get_display
  *
  * called by hal
  *
@@ -161,11 +163,10 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
 MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index, MppFrame frame);
 MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_get_decoding(MppBufSlots slots, RK_U32 *index);
 MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index);
 
 /*
  * mpp_buf_slot_set_buffer
@@ -174,16 +175,12 @@ MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index);
  * mpp_buf_slot_get_buffer
  *      - called by hal module on register generation
  *
- * mpp_buf_slot_set_pts
- *      - called by parser when decoding a new frame
- *
- * mpp_buf_slot_get_pts
- *      - called by hal thread when output a frame
+ * mpp_buf_slot_get_display
+ *      - called by hal thread to output a display slot's frame info
  */
 MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
 MppBuffer   mpp_buf_slot_get_buffer(const MppBufSlots slots, RK_U32 index);
-MPP_RET     mpp_buf_slot_set_pts(MppBufSlots slots, RK_U32 index, RK_S64 pts);
-RK_S64      mpp_buf_slot_get_pts(const MppBufSlots slots, RK_U32 index);
+MPP_RET     mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame);
 
 #ifdef __cplusplus
 }

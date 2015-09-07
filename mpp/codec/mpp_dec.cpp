@@ -25,6 +25,7 @@
 #include "mpp.h"
 #include "mpp_dec.h"
 #include "mpp_packet_impl.h"
+#include "mpp_frame_impl.h"
 
 #include "h264d_api.h"
 #include "h265d_api.h"
@@ -244,31 +245,18 @@ void *mpp_dec_hal_thread(void *data)
         /*
          * when hardware decoding is done:
          * 1. clear decoding flag
-         * 2. create a new frame structure
-         * 3. get pts and set to frame
-         * 4. get buffer and set to frame
-         * 5. add frame to output list
-         * 6. clear display flag
+         * 2. use get_display to get a new frame with buffer
+         * 3. add frame to output list
          */
-        RK_U32 output = task_dec->output;
+        mpp_buf_slot_clr_decoding(slots, task_dec->output);
 
-        mpp_buf_slot_clr_decoding(slots, output);
-
-        MppFrame frame;
-        mpp_frame_init(&frame);
-
-        RK_S64 pts = mpp_buf_slot_get_pts(slots, output);
-        mpp_frame_set_pts(frame, pts);
-
-        MppBuffer buffer = mpp_buf_slot_get_buffer(slots, output);
-        mpp_assert(NULL != buffer);
-        mpp_frame_set_buffer(frame, buffer);
-
-        frames->lock();
-        frames->add_at_tail(&frame, sizeof(frame));
-        mpp->mFramePutCount++;
-        mpp_buf_slot_clr_display(slots, output);
-        frames->unlock();
+        MppFrame frame = NULL;
+        while (MPP_OK == mpp_buf_slot_get_display(slots, &frame)) {
+            frames->lock();
+            frames->add_at_tail(&frame, sizeof(frame));
+            mpp->mFramePutCount++;
+            frames->unlock();
+        }
 
         /*
          * mark previous buffer is complete
