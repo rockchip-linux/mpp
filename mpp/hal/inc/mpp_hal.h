@@ -19,6 +19,7 @@
 
 #include "rk_mpi.h"
 #include "hal_task.h"
+#include "mpp_buf_slot.h"
 
 typedef void*   MppHalCtx;
 
@@ -26,6 +27,7 @@ typedef struct MppHalCfg_t {
     // input
     MppCtxType      type;
     MppCodingType   coding;
+    MppBufSlots     slots;
 
     // output
     HalTaskGroup    tasks;

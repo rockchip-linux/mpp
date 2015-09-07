@@ -328,6 +328,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             MppHalCfg hal_cfg = {
                 MPP_CTX_DEC,
                 coding,
+                p->slots,
                 NULL,
                 parser_cfg.task_count,
             };
