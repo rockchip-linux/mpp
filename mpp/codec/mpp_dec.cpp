@@ -163,7 +163,8 @@ void *mpp_dec_parser_thread(void *data)
          *       - need buffer in different side, need to send a info change
          *         frame to hal loop.
          */
-        RK_S32 output = task_local.dec.output;
+        RK_U32 output;
+        mpp_buf_slot_get_decoding(slots, &output);
         if (NULL == mpp_buf_slot_get_buffer(slots, output)) {
             MppBuffer buffer = NULL;
             RK_U32 size = mpp_buf_slot_get_size(slots);
@@ -257,7 +258,7 @@ void *mpp_dec_hal_thread(void *data)
          * 5. add frame to output list
          * 6. clear display flag
          */
-        RK_S32 output = task_dec->output;
+        RK_U32 output = task_dec->output;
 
         mpp_buf_slot_clr_decoding(slots, output);
 
@@ -270,10 +271,10 @@ void *mpp_dec_hal_thread(void *data)
         MppBuffer buffer = mpp_buf_slot_get_buffer(slots, output);
         mpp_frame_set_buffer(frame, buffer);
 
+        mpp_buf_slot_clr_display(slots, output);
+
         frames->add_at_tail(&frame, sizeof(frame));
         mpp->mFramePutCount++;
-
-        mpp_buf_slot_clr_display(slots, output);
 
         /*
          * mark previous buffer is complete

@@ -146,6 +146,9 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *
  * called by mpp
  *
+ * mpp_buf_slot_get_decoding
+ *      - mpp_dec need to get the output slot index to check buffer status
+ *
  * mpp_buf_slot_clr_display
  *      - mark a slot has been send out to display
  *
@@ -160,6 +163,7 @@ MPP_RET mpp_buf_slot_set_ref(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index);
+MPP_RET mpp_buf_slot_get_decoding(MppBufSlots slots, RK_U32 *index);
 MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index);
 

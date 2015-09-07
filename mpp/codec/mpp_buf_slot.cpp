@@ -33,6 +33,7 @@
 typedef struct MppBufSlotEntry_t {
     MppBuffer   buffer;
     RK_U32      status;
+    RK_S32      index;
     RK_S64      pts;
 } MppBufSlotEntry;
 
@@ -50,6 +51,9 @@ typedef struct MppBufSlotsImpl_t {
     RK_U32          new_count;
     RK_U32          new_size;
 
+    // to record current output slot index
+    RK_S32          output;
+
     MppBufSlotEntry *slots;
 } MppBufSlotsImpl;
 
@@ -61,6 +65,7 @@ static void check_entry_unused(MppBufSlotEntry *entry)
     if (entry->status == MPP_SLOT_USED) {
         entry->status = MPP_SLOT_UNUSED;
         mpp_buffer_put(entry->buffer);
+        entry->buffer = NULL;
     }
 }
 
@@ -109,6 +114,9 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
         impl->slots = mpp_calloc(MppBufSlotEntry, count);
         impl->count = count;
         impl->size  = size;
+        for (RK_U32 i = 0; i < count; i++) {
+            impl->slots[i].index = i;
+        }
     } else {
         // need to check info change or not
         if (!changed) {
@@ -116,6 +124,9 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
             if (count > impl->count) {
                 mpp_realloc(impl->slots, MppBufSlotEntry, count);
                 memset(&impl->slots[impl->count], 0, sizeof(MppBufSlotEntry) * (count - impl->count));
+                for (RK_U32 i = 0; i < count; i++) {
+                    impl->slots[i].index = i;
+                }
             }
         } else {
             // info changed, even size is the same we still need to wait for new configuration
@@ -158,6 +169,9 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
         mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
         if (impl->new_count > impl->count) {
             memset(&impl->slots[impl->count], 0, sizeof(MppBufSlotEntry) * (impl->new_count - impl->count));
+        }
+        for (RK_U32 i = 0; i < impl->new_count; i++) {
+            impl->slots[i].index = i;
         }
     }
     impl->count = impl->new_count;
@@ -243,6 +257,7 @@ MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     slot[index].status |= MPP_SLOT_USED_AS_DECODING;
+    impl->output = index;
     return MPP_OK;
 }
 
@@ -260,6 +275,18 @@ MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index)
     slot[index].status &= ~MPP_SLOT_USED_AS_DECODING;
     impl->decode_count++;
     check_entry_unused(&slot[index]);
+    return MPP_OK;
+}
+
+MPP_RET mpp_buf_slot_get_decoding(MppBufSlots slots, RK_U32 *index)
+{
+    if (NULL == slots || NULL == index) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    *index = impl->output;
     return MPP_OK;
 }
 

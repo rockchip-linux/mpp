@@ -71,6 +71,7 @@ typedef struct HalDecTask_t {
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
+    // for test purpose
     // current tesk output slot index
     RK_S32          output;
     // current task reference slot index, -1 for unused
