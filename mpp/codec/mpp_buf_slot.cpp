@@ -269,8 +269,10 @@ MPP_RET mpp_buf_slot_set_decoding(MppBufSlots slots, RK_U32 index, MppFrame fram
     mpp_assert(index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot->status |= MPP_SLOT_USED_AS_DECODING;
-    mpp_assert(NULL == slot->frame);
-    mpp_frame_init(&slot->frame);
+
+    if (NULL == slot->frame)
+        mpp_frame_init(&slot->frame);
+
     memcpy(slot->frame, frame, sizeof(MppFrameImpl));
     impl->output = index;
     return MPP_OK;
