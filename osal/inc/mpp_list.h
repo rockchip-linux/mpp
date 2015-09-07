@@ -59,6 +59,10 @@ public:
 
     RK_S32 flush();
 
+    RK_S32 lock();
+    RK_S32 unlock();
+    RK_S32 trylock();
+
 private:
     pthread_mutex_t         mutex;
     node_destructor         destroy;

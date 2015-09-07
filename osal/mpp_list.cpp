@@ -261,6 +261,21 @@ RK_S32 mpp_list::flush()
     return 0;
 }
 
+RK_S32 mpp_list::lock()
+{
+    return pthread_mutex_lock(&mutex);
+}
+
+RK_S32 mpp_list::unlock()
+{
+    return pthread_mutex_unlock(&mutex);
+}
+
+RK_S32 mpp_list::trylock()
+{
+    return pthread_mutex_trylock(&mutex);
+}
+
 RK_U32 mpp_list::get_key()
 {
     return keys++;
