@@ -60,13 +60,14 @@ typedef struct MppBufSlotsImpl_t {
 /*
  * only called on unref / displayed / decoded
  */
-static void check_entry_unused(MppBufSlotEntry *entry)
+static MppBuffer check_entry_unused(MppBufSlotEntry *entry)
 {
     if (entry->status == MPP_SLOT_USED) {
         entry->status = MPP_SLOT_UNUSED;
         mpp_buffer_put(entry->buffer);
         entry->buffer = NULL;
     }
+    return entry->buffer;
 }
 
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
@@ -241,7 +242,8 @@ MPP_RET mpp_buf_slot_clr_ref(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = impl->slots;
     mpp_assert(index < impl->count);
     slot[index].status &= ~MPP_SLOT_USED_AS_REF;
-    check_entry_unused(&slot[index]);
+    if (NULL == check_entry_unused(&slot[index]))
+        mpp_assert(0);
     return MPP_OK;
 }
 
@@ -274,7 +276,8 @@ MPP_RET mpp_buf_slot_clr_decoding(MppBufSlots slots, RK_U32 index)
     mpp_assert(index < impl->count);
     slot[index].status &= ~MPP_SLOT_USED_AS_DECODING;
     impl->decode_count++;
-    check_entry_unused(&slot[index]);
+    if (NULL == check_entry_unused(&slot[index]))
+        mpp_assert(0);
     return MPP_OK;
 }
 
@@ -318,7 +321,8 @@ MPP_RET mpp_buf_slot_clr_display(MppBufSlots slots, RK_U32 index)
     mpp_assert(index < impl->count);
     slot[index].status &= ~MPP_SLOT_USED_AS_DISPLAY;
     impl->display_count++;
-    check_entry_unused(&slot[index]);
+    if (NULL == check_entry_unused(&slot[index]))
+        mpp_assert(1);
     return MPP_OK;
 }
 

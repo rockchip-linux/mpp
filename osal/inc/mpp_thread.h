@@ -71,6 +71,7 @@ public:
 
     void lock();
     void unlock();
+    int  trylock();
 
     class Autolock
     {
@@ -110,6 +111,10 @@ inline void Mutex::lock()
 inline void Mutex::unlock()
 {
     pthread_mutex_unlock(&mMutex);
+}
+inline int Mutex::trylock()
+{
+    return pthread_mutex_trylock(&mMutex);
 }
 
 typedef Mutex::Autolock AutoMutex;
