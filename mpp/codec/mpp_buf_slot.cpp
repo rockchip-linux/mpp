@@ -100,7 +100,6 @@ typedef struct MppBufSlotsImpl_t {
     struct list_head    display;
 
     // list for log
-    RK_U32              log_en;
     mpp_list            *logs;
 
     MppBufSlotEntry     *slots;
@@ -256,10 +255,9 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
     impl->lock = new Mutex();
     INIT_LIST_HEAD(&impl->display);
 
-    if (buf_slot_debug & BUF_SLOT_DBG_LOG_OPS) {
-        impl->log_en = 1;
+    if (buf_slot_debug & BUF_SLOT_DBG_LOG_OPS)
         impl->logs = new mpp_list(NULL);
-    }
+
     *slots = impl;
     return MPP_OK;
 }
@@ -273,9 +271,8 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
 
-    if (impl->log_en) {
+    if (impl->logs)
         delete impl->logs;
-    }
 
     delete impl->lock;
     mpp_free(impl->slots);
@@ -353,6 +350,11 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
         init_slot_entry(impl->logs, impl->slots, 0, impl->new_count);
     }
     impl->count = impl->new_count;
+    if (impl->logs) {
+        mpp_list *logs = impl->logs;
+        while (logs->list_size())
+            logs->del_at_head(NULL, sizeof(MppBufSlotLog));
+    }
     return MPP_OK;
 }
 
