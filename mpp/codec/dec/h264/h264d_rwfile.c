@@ -14,12 +14,16 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#if defined (__GNUC__)
+#include<sys/types.h>
+#include<unistd.h>
+#include<limits.h>
+#include<sys/stat.h>
+#endif
 #include "h264d_rwfile.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
@@ -712,13 +716,10 @@ MPP_RET h264d_configure(InputParams *p_in, RK_S32 ac, char *av[])
 	MPP_RET ret = MPP_OK;
 
 	display_input_cmd(ac, av);
-	if (ret = parse_command(p_in, ac, av))
-	{
-		goto __Failed;
-	}
+	FUN_CHECK (ret = parse_command(p_in, ac, av));
 
 	return MPP_OK;
-__Failed:
+__FAILED:
 	return ret;
 }
 
@@ -885,10 +886,10 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
 	FCLOSE(fp_log);
 	//remove(out_name);
 
-	return MPP_OK;
+	return ret = MPP_OK;
 __Failed:
 	FREE(tmpctx.data);
 	FCLOSE(fp_log);
 
-	return MPP_NOK;
+	return ret = MPP_NOK;
 }

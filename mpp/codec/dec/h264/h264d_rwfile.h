@@ -40,7 +40,7 @@ typedef struct inp_par_t
 	FILE   *fp_golden_data;
 	FILE   *fp_driver_data;
 	//--- use in read bit stream
-	RK_U8  raw_cfg;
+	RK_U32 raw_cfg;
 	RK_U32 iFrmdecoded;
 	RK_U8  is_fist_nalu;
 	RK_U8  is_fist_frame;
