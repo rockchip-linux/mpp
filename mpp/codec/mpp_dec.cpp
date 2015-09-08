@@ -37,7 +37,7 @@
  * all decoder static register here
  */
 static const MppDecParser *parsers[] = {
-    &h264d_parser,
+    &api_h264d_parser,
     &dummy_dec_parser,
 };
 

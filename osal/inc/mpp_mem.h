@@ -30,6 +30,9 @@
 #define mpp_malloc_size(type, size)  \
     (type*)mpp_osal_malloc(MODULE_TAG, size)
 
+#define mpp_calloc_size(type, size)  \
+	(type*)mpp_osal_calloc(MODULE_TAG, size)
+
 #define mpp_calloc(type, count)  \
     (type*)mpp_osal_calloc(MODULE_TAG, sizeof(type) * (count))
 

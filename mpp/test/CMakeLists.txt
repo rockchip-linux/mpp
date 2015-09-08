@@ -22,4 +22,6 @@ endmacro()
 # info system unit test
 add_mpp_test(mpp_info)
 
+# h264 decoder test
+add_mpp_test(h264d)
 

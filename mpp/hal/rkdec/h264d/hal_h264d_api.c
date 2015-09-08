@@ -16,13 +16,18 @@
 */
 #define MODULE_TAG "hal_h264d"
 
+#include "h264d_log.h"
 #include "hal_h264d_api.h"
 
 
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
+	printf("begin=%s \n", logenv_name.begframe); 
+
+
     (void)hal;
     (void)cfg;
+	
     return MPP_OK;
 }
 
@@ -35,7 +40,10 @@ MPP_RET hal_h264d_deinit(void *hal)
 MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
 {
     (void)hal;
-    (void)task;
+
+	((HalDecTask*)&task->dec)->valid = 0;
+
+
     return MPP_OK;
 }
 MPP_RET hal_h264d_start(void *hal, HalTask *task)
