@@ -544,6 +544,7 @@ MPP_RET mpp_buf_slot_dec_hw_ref(MppBufSlots slots, RK_U32 index)
     mpp_assert(index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_DEC_HW_REF);
+    check_entry_unused(impl->logs, slot);
     return MPP_OK;
 }
 
