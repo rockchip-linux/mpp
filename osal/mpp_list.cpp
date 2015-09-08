@@ -116,11 +116,13 @@ static void release_list(mpp_list_node*node, void *data, RK_S32 size)
 {
     void *src = (void*)(node + 1);
     if (node->size == size) {
-        memcpy(data, src, size);
+        if (data)
+            memcpy(data, src, size);
     } else {
         LIST_ERROR("node size check failed when release_list");
         size = (size < node->size) ? (size) : (node->size);
-        memcpy(data, src, size);
+        if (data)
+            memcpy(data, src, size);
     }
     free(node);
 }
