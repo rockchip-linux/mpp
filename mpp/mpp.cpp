@@ -67,7 +67,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_limit_config(mFrameGroup, 4, MPP_TEST_FRAME_SIZE);
+        mpp_buffer_group_limit_config(mFrameGroup, MPP_TEST_FRAME_SIZE, 4);
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
