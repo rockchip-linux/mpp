@@ -119,7 +119,7 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
     mpp_frame_init(&frame);
     mpp_frame_set_pts(frame, pts);
     mpp_buf_slot_get_unused(p->slots, &output);
-    mpp_buf_slot_set_decoding(p->slots, output, frame);
+    mpp_buf_slot_set_hw_dst(p->slots, output, frame);
     mpp_buf_slot_set_display(p->slots, output);
     mpp_frame_deinit(&frame);
     mpp_assert(NULL == frame);

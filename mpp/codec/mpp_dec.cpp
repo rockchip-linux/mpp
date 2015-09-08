@@ -161,7 +161,7 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
         RK_U32 output;
-        mpp_buf_slot_get_decoding(slots, &output);
+        mpp_buf_slot_get_hw_dst(slots, &output);
         if (NULL == mpp_buf_slot_get_buffer(slots, output)) {
             MppBuffer buffer = NULL;
             RK_U32 size = mpp_buf_slot_get_size(slots);
@@ -248,7 +248,12 @@ void *mpp_dec_hal_thread(void *data)
          * 2. use get_display to get a new frame with buffer
          * 3. add frame to output list
          */
-        mpp_buf_slot_clr_decoding(slots, task_dec->output);
+        mpp_buf_slot_clr_hw_dst(slots, task_dec->output);
+        for (RK_S32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+            RK_S32 index = task_dec->refer[i];
+            if (index >= 0)
+                mpp_buf_slot_dec_hw_ref(slots, index);
+        }
 
         MppFrame frame = NULL;
         while (MPP_OK == mpp_buf_slot_get_display(slots, &frame)) {
