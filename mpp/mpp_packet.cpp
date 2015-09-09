@@ -30,6 +30,21 @@ MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
 
+MPP_RET mpp_packet_new(MppPacket *packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppPacketImpl *p = mpp_calloc(MppPacketImpl, 1);
+    if (NULL == p)
+        mpp_err_f("malloc failed\n");
+
+    *packet = p;
+    return (p) ? (MPP_OK) : (MPP_NOK);
+}
+
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet || NULL == data || 0 == size) {
