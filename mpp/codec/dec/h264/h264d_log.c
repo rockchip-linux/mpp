@@ -53,23 +53,8 @@ const char *logctrl_name[LOG_MAX] = {
     "FPGA_MODE     ",
     "LOG_PRINT     ",
     "LOG_WRITE     ",
-    "READ_NALU     ",
-    "READ_SPS      ",
-    "READ_SUBSPS   ",
-    "READ_PPS      ",
-    "READ_SLICE    ",
-    "WRITE_SPSPPS  ",
-    "WRITE_RPS     ",
-    "WRITE_SCANLIST",
-    "WRITE_STEAM   ",
-    "WRITE_REG     ",
-};
-
-const char *log_array_name[LOG_MAX] = {
-    "NULL          ",
-    "FPGA_DATA     ",
-    "PAESE_RUN     ",
-    "HAL_RUN       ",
+    "RUN_PAESE     ",
+    "RUN_HAL       ",
     "READ_NALU     ",
     "READ_SPS      ",
     "READ_SUBSPS   ",
@@ -169,7 +154,7 @@ static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
 {
     char fname[128] = { 0 };
 
-    RET_CHECK(!pflag->write_en);
+    INP_CHECK(!pflag->write_en);
 
     //!< runlog file
     if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
@@ -216,7 +201,6 @@ __FAILED:
 */
 MPP_RET h264d_log_deinit(H264dLogCtx_t *logctx)
 {
-    mpp_free(logctx->buf);
     close_log_files(&logctx->env);
 
     return MPP_OK;
@@ -227,7 +211,7 @@ MPP_RET h264d_log_deinit(H264dLogCtx_t *logctx)
 *   log init
 ***********************************************************************
 */
-MPP_RET h264d_log_init(H264dLogCtx_t *logctx)
+MPP_RET h264d_log_init(H264dLogCtx_t *logctx, LogCtx_t *logbuf)
 {
     RK_U8 i = 0;
     MPP_RET ret = MPP_NOK;
@@ -250,12 +234,10 @@ MPP_RET h264d_log_init(H264dLogCtx_t *logctx)
     //!< open file
     FUN_CHECK(ret = open_log_files(&logctx->env, &logctx->log_flag));
     //!< set logctx
-    MEM_CHECK(logctx->buf = mpp_calloc(LogCtx_t, LOG_MAX));
-
     while (i < LOG_MAX) {
         if (GetBitVal(logctx->env.ctrl, i)) {
-            pcur = logctx->parr[i] = &logctx->buf[i];
-            pcur->tag = log_array_name[i];
+            pcur = logctx->parr[i] = &logbuf[i];
+            pcur->tag = logctrl_name[i];
             pcur->flag = &logctx->log_flag;
 
             switch (i) {

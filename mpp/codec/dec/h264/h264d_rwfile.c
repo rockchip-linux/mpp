@@ -27,12 +27,11 @@
 #include "h264d_rwfile.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
+#include "mpp_mem.h"
 #include "mpp_env.h"
 #include "h264d_log.h"
-#include "h264d_memory.h"
 
-
-#define     H264D_FPGA_TAG       "H264d_Fpga_Test"
+#define     MODULE_TAG           "H264d_rwfile"
 #define     MAX_ITEMS_TO_PARSE   32
 
 
@@ -84,7 +83,7 @@ typedef struct {
     RK_S32 num_remaining_bits_in_curr_byte_;
     RK_S64 prev_two_bytes_;
     RK_S64 emulation_prevention_bytes_;
-    RK_S32 UsedBits;
+    RK_S32 used_bits;
     RK_U8  *buf;
     RK_S32 buf_len;
 } GetBitCtx_t;
@@ -136,37 +135,37 @@ static RK_U8 *get_config_file_content(char *fname)
 
     if (!(fp_cfg = fopen(fname, "r"))) {
         fprintf(stderr, "Cannot open configuration file %s.", fname);
-        goto __Failed;
+        goto __FAILED;
     }
 
     if (fseek(fp_cfg, 0, SEEK_END)) {
         fprintf(stderr, "Cannot fseek in configuration file %s.", fname);
-        goto __Failed;
+        goto __FAILED;
     }
 
     filesize = ftell(fp_cfg);
 
     if (filesize > 150000) {
         fprintf(stderr, "\n Unreasonable Filesize %d reported by ftell for configuration file %s.", filesize, fname);
-        goto __Failed;
+        goto __FAILED;
     }
     if (fseek(fp_cfg, 0, SEEK_SET)) {
         fprintf(stderr, "Cannot fseek in configuration file %s.", fname);
-        goto __Failed;
+        goto __FAILED;
     }
 
-    if (!(pbuf = (RK_U8 *)malloc(filesize + 1))) {
+    if (!(pbuf = mpp_malloc_size(RK_U8, filesize + 1))) {
         fprintf(stderr, "Cannot malloc content buffer for file %s.", fname);
-        goto __Failed;
+        goto __FAILED;
     }
     filesize = (long)fread(pbuf, 1, filesize, fp_cfg);
     pbuf[filesize] = '\0';
 
-    if (fp_cfg) fclose(fp_cfg);
+    FCLOSE(fp_cfg);
 
     return pbuf;
-__Failed:
-    if (fp_cfg) fclose(fp_cfg);
+__FAILED:
+    FCLOSE(fp_cfg);
 
     return NULL;
 }
@@ -237,17 +236,17 @@ static MPP_RET parse_content(InputParams *p_in, RK_U8 *p)
             strncpy((char *)p_in->out_path_dir, (const char*)items[i + 2], strlen((const char*)items[i + 2]) + 1);
         } else if (!strncmp((const char*)items[i], "DecodedFrames", 13)) {
             if (!sscanf((const char*)items[i + 2], "%d", &p_in->iDecFrmNum)) {
-                goto __Failed;
+                goto __FAILED;
             }
         } else if (!strncmp((const char*)items[i], "BitStrmRawCfg", 13)) {
             if (!sscanf((const char*)items[i + 2], "%d", &p_in->raw_cfg)) {
-                goto __Failed;
+                goto __FAILED;
             }
         }
     }
 
     return MPP_OK;
-__Failed:
+__FAILED:
     return MPP_NOK;
 }
 
@@ -264,10 +263,10 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
             pnamecmd = strrchr(av[0], '/');
             pnamecmd = pnamecmd ? (pnamecmd + 1) : (strrchr(av[0], '\\') + 1) ;
             print_help_message(pnamecmd);
-            goto __Failed;
+            goto __FAILED;
         } else if (!strncmp(av[CLcount], "-n", 2) || !strncmp(av[1], "--num", 5)) { // decoded frames
             if (!sscanf(av[CLcount + 1], "%d", &p_in->iDecFrmNum)) {
-                goto __Failed;
+                goto __FAILED;
             }
             CLcount += 2;
         } else if (!strncmp(av[CLcount], "-i", 2) || !strncmp(av[1], "--input", 7)) {
@@ -281,7 +280,7 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
             CLcount += 2;
         } else if (!strncmp(av[1], "-r", 2) || !strncmp(av[CLcount], "--raw", 5)) {
             if (!sscanf(av[CLcount + 1], "%d", &p_in->raw_cfg)) {
-                goto __Failed;
+                goto __FAILED;
             }
             CLcount += 2;
         } else if (!strncmp(av[1], "-c", 2) || !strncmp(av[CLcount], "--cfg", 5)) { // configure file
@@ -290,21 +289,21 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
             have_cfg_flag = 1;
         } else {
             fprintf(stderr, "Error: %s cannot explain command! \n", av[CLcount]);
-            goto __Failed;
+            goto __FAILED;
         }
     }
     if (have_cfg_flag) {
         if (!(content = get_config_file_content(p_in->cfgfile_name))) {
-            goto __Failed;
+            goto __FAILED;
         }
         if (parse_content(p_in, content)) {
-            goto __Failed;
+            goto __FAILED;
         }
-        free(content);
+        mpp_free(content);
     }
 
     return MPP_OK;
-__Failed:
+__FAILED:
 
     return MPP_NOK;
 }
@@ -354,7 +353,7 @@ static MPP_RET read_bits(GetBitCtx_t *pStrmData, RK_S32 num_bits, RK_S32 *out)
 {
     RK_S32 bits_left = num_bits;
     *out = 0;
-    assert(num_bits <= 31);
+    ASSERT(num_bits <= 31);
 
     while (pStrmData->num_remaining_bits_in_curr_byte_ < bits_left) {
         // Take all that's left in current byte, shift to make space for the rest.
@@ -369,7 +368,7 @@ static MPP_RET read_bits(GetBitCtx_t *pStrmData, RK_S32 num_bits, RK_S32 *out)
     *out |= (pStrmData->curr_byte_ >> (pStrmData->num_remaining_bits_in_curr_byte_ - bits_left));
     *out &= ((1 << num_bits) - 1);
     pStrmData->num_remaining_bits_in_curr_byte_ -= bits_left;
-    pStrmData->UsedBits += num_bits;
+    pStrmData->used_bits += num_bits;
 
     return MPP_OK;
 }
@@ -415,7 +414,7 @@ static void set_streamdata(GetBitCtx_t *pStrmData, RK_U8 *data, RK_S32 size)
     // add
     pStrmData->buf = data;
     pStrmData->buf_len = size;
-    pStrmData->UsedBits = 0;
+    pStrmData->used_bits = 0;
 }
 
 
@@ -498,7 +497,7 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     memset(pStrmData, 0, sizeof(GetBitCtx_t));
     set_streamdata(pStrmData, p_in->IO.pNALU, 4);
     read_bits(pStrmData, 1, &forbidden_bit);
-    assert(forbidden_bit == 0);
+    ASSERT(forbidden_bit == 0);
     read_bits(pStrmData, 2, &nal_reference_idc);
     read_bits(pStrmData, 5, &nal_unit_type);
 
@@ -540,7 +539,6 @@ static void read_golden_data(FILE *fp, TempDataCtx_t *tmpctx, RK_U32 frame_no)
     reset_tmpdata_ctx(tmpctx);
     fread(&header,   1, sizeof(RK_U32), fp);
     fread(&datasize, 1, sizeof(RK_U32), fp);
-
     while (!feof(fp)) {
         switch (header) {
         case RKVDEC_PPS_HEADER:
@@ -553,7 +551,7 @@ static void read_golden_data(FILE *fp, TempDataCtx_t *tmpctx, RK_U32 frame_no)
             break;
         case RKVDEC_REG_HEADER:
             fseek(fp, datasize, SEEK_CUR);
-            goto __Failed;
+            goto __RETURN;
             break;
         case RKVDEC_CRC_HEADER:
             fread(tmpctx->data, sizeof(RK_U8), datasize, fp);
@@ -563,13 +561,13 @@ static void read_golden_data(FILE *fp, TempDataCtx_t *tmpctx, RK_U32 frame_no)
             break;
         default:
             printf("ERROR: frame_no=%d. \n", frame_no);
-            assert(0);
+            ASSERT(0);
             break;
         }
         fread(&header,   1, sizeof(RK_U32), fp);
         fread(&datasize, 1, sizeof(RK_U32), fp);
     }
-__Failed:
+__RETURN:
     return;
 }
 
@@ -618,16 +616,16 @@ static void write_driver_bytes(FILE *fp_out, TempDataCtx_t *in_tmpctx, FILE *fp_
             fwrite(&in_tmpctx->len, sizeof(RK_U32), 1, fp_out);
             fwrite(in_tmpctx->data, sizeof(RK_U8), in_tmpctx->len, fp_out);
             write_bytes(fp_in, &m_tmpctx, fp_out);
-            goto __Failed;
+            goto __FAILED;
         default:
             printf("ERROR: frame_no=%d. \n", frame_no);
-            assert(0);
+            ASSERT(0);
             break;
         }
         fread(&header,   1, sizeof(RK_U32), fp_in);
         fread(&datasize, 1, sizeof(RK_U32), fp_in);
     }
-__Failed:
+__FAILED:
     return;
 }
 
@@ -640,8 +638,8 @@ __Failed:
 */
 MPP_RET h264d_configure(InputParams *p_in, RK_S32 ac, char *av[])
 {
-    MPP_RET ret = MPP_OK;
-
+    MPP_RET ret = MPP_NOK;
+    VAL_CHECK(ac > 1);
     display_input_cmd(ac, av);
     FUN_CHECK (ret = parse_command(p_in, ac, av));
 
@@ -676,28 +674,22 @@ MPP_RET h264d_open_files(InputParams *p_in)
 {
     MPP_RET ret = MPP_NOK;
 
-    p_in->fp_bitstream = fopen(p_in->infile_name, "rb");
+    FLE_CHECK(p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
 
 #if defined(_MSC_VER)
-    p_in->fp_golden_data = open_file(p_in->cmp_path_dir, p_in->infile_name, "_trunk.dat",  "rb");
-    p_in->fp_driver_data = open_file(p_in->out_path_dir, p_in->infile_name, "_driver.dat", "wb");
-    if (!p_in->fp_golden_data || !p_in->fp_driver_data) {
-        goto __Failed;
-    }
+    FLE_CHECK(p_in->fp_golden_data = open_file(p_in->cmp_path_dir, p_in->infile_name, "_trunk.dat",  "rb"));
+    FLE_CHECK(p_in->fp_driver_data = open_file(p_in->out_path_dir, p_in->infile_name, "_driver.dat", "wb"));
 #elif  defined(__GNUC__)
     char golden_dir[] = "/home/dw/h264d_fpga/AVC_MVC_ALL_BITSTRAM/h264d_fpga_dat";
     char dirver_dir[] = "./h264d_dat";
     if (access(dirver_dir, 0) != 0)
         mkdir(dirver_dir, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-    p_in->fp_golden_data = open_file(golden_dir, p_in->infile_name, ".dat",  "rb");
-    p_in->fp_driver_data = open_file(dirver_dir, p_in->infile_name, "_driver.dat", "wb");
-    if (!p_in->fp_golden_data || !p_in->fp_driver_data) {
-        goto __Failed;
-    }
+    FLE_CHECK(p_in->fp_golden_data = open_file(golden_dir, p_in->infile_name, ".dat",  "rb"));
+    FLE_CHECK(p_in->fp_driver_data = open_file(dirver_dir, p_in->infile_name, "_driver.dat", "wb"));
 #endif
 
     return MPP_OK;
-__Failed:
+__FAILED:
     h264d_close_files(p_in);
 
     return ret;
@@ -713,9 +705,9 @@ __Failed:
 MPP_RET h264d_free_frame_buffer(InputParams *p_in)
 {
     if (p_in) {
-        FREE(p_in->IO.pbuf);
-        FREE(p_in->bitctx);
-        FREE(p_in->strm.pbuf);
+        mpp_free(p_in->IO.pbuf);
+        mpp_free(p_in->bitctx);
+        mpp_free(p_in->strm.pbuf);
     }
 
     return MPP_NOK;
@@ -728,18 +720,15 @@ MPP_RET h264d_free_frame_buffer(InputParams *p_in)
 */
 MPP_RET h264d_alloc_frame_buffer(InputParams *p_in)
 {
-    p_in->IO.pbuf    = (RK_U8 *)malloc(IOBUFSIZE);
-    p_in->strm.pbuf  = (RK_U8 *)malloc(STMBUFSIZE);
-    p_in->bitctx     = (void  *)malloc(sizeof(GetBitCtx_t));
+    MEM_CHECK(p_in->IO.pbuf   = mpp_malloc_size(RK_U8, IOBUFSIZE));
+    MEM_CHECK(p_in->strm.pbuf = mpp_malloc_size(RK_U8, STMBUFSIZE));
+    MEM_CHECK(p_in->bitctx    = mpp_malloc_size(void, sizeof(GetBitCtx_t)));
 
-    if (!p_in->IO.pbuf || !p_in->strm.pbuf || !p_in->bitctx) {
-        goto __Failed;
-    }
     p_in->is_fist_nalu  = 1;
     p_in->is_fist_frame = 1;
 
     return MPP_OK;
-__Failed:
+__FAILED:
     return MPP_NOK;
 }
 
@@ -789,24 +778,22 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     char *out_name = NULL;
 
     mpp_env_get_str(logenv_name.outpath, &out_name, NULL);
-    tmpctx.data = (RK_U8 *)malloc(128); //!< for read golden fpga data
-    fp_log = fopen(strcat(out_name, "/h264d_driverdata.dat"), "rb");
-    if (!tmpctx.data || !fp_log) {
-        goto __Failed;
-    }
+    FLE_CHECK(p_in->fp_driver_data && p_in->fp_driver_data);
+    FLE_CHECK(fp_log = fopen(strcat(out_name, "/h264d_driverdata.dat"), "rb"));
+    MEM_CHECK(tmpctx.data = mpp_calloc_size(RK_U8, 128)); //!< for read golden fpga data
     do {
         read_golden_data (p_in->fp_golden_data, &tmpctx, frame_no);
         write_driver_bytes(p_in->fp_driver_data, &tmpctx, fp_log, frame_no);
         frame_no++;
     } while (!feof(p_in->fp_golden_data) && !feof(fp_log) && (frame_no <= p_in->iFrmdecoded));
 
-    FREE(tmpctx.data);
+    mpp_free(tmpctx.data);
     FCLOSE(fp_log);
     //remove(out_name);
 
     return ret = MPP_OK;
-__Failed:
-    FREE(tmpctx.data);
+__FAILED:
+    mpp_free(tmpctx.data);
     FCLOSE(fp_log);
 
     return ret = MPP_NOK;

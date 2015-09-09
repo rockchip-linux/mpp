@@ -43,7 +43,7 @@ static MPP_RET manual_set_env(void)
 #if defined(_MSC_VER)
     mpp_env_set_u32("h264d_log_help",     1             );
     mpp_env_set_u32("h264d_log_show",     1             );
-    mpp_env_set_u32("h264d_log_ctrl",     0xFFFF        );
+    mpp_env_set_u32("h264d_log_ctrl",     0xFFFB        );
     mpp_env_set_u32("h264d_log_level",    5             );
     mpp_env_set_u32("h264d_log_decframe", 0             );
     mpp_env_set_u32("h264d_log_begframe", 0             );
@@ -60,7 +60,9 @@ static MPP_RET decoder_deinit(MppDec *pApi)
         mpp_buf_slot_deinit(pApi->slots);
         pApi->slots = NULL;
     }
-    pApi->parser_api->deinit(pApi->parser_ctx);
+    if (pApi->parser_api && pApi->parser_ctx) {
+        pApi->parser_api->deinit(pApi->parser_ctx);
+    }
     if (pApi->hal_ctx) {
         mpp_hal_deinit(pApi->hal_ctx);
         pApi->hal_ctx = NULL;
@@ -122,8 +124,10 @@ int main(int argc, char **argv)
     // init
     FUN_CHECK(ret = decoder_init(pApi));
     do {
-        if (!pkt->size) {
+        //if (!pkt->size)
+        {
             FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));
+            mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded++);
         }
         FUN_CHECK(ret = pApi->parser_api->parse(pApi->parser_ctx, pkt, &task->dec));
         if (((HalDecTask*)&task->dec)->valid) {
@@ -132,6 +136,9 @@ int main(int argc, char **argv)
             if (((MppPacketImpl *)pkt)->flag & MPP_PACKET_FLAG_EOS) {
                 break;
             }
+        }
+        if (pIn->is_eof) {
+            break;
         }
     } while (!pIn->iDecFrmNum || (pIn->iFrmdecoded < pIn->iDecFrmNum));
 
@@ -146,7 +153,6 @@ __FAILED:
     mpp_free(pApi);
     mpp_free(pkt);
     mpp_free(task);
-
 
     return ret;
 }

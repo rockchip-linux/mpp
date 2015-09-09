@@ -29,8 +29,11 @@
 //!< debug
 #define   __DEBUG_EN   1
 //!< return
-#define   RET_TURE     1
-#define   RET_FALSE    0
+typedef enum {
+    RET_FALSE  = 0,
+    RET_TURE   = 1,
+} RET_tpye;
+
 //!< marco
 #define   ASSERT       assert
 #define  FCLOSE(fp)    do{ if(fp) fclose(fp); fp = NULL; } while (0)
@@ -49,9 +52,9 @@ typedef enum {
     LOG_DEBUG_EN      = 0,
     LOG_FPGA             ,
     LOG_PRINT            ,
-    RUN_PARSE = LOG_PRINT,
     LOG_WRITE            ,
-    RUN_HAL   = LOG_WRITE,
+    RUN_PARSE            ,
+    RUN_HAL              ,
     LOG_READ_NALU        ,
     LOG_READ_SPS         ,
     LOG_READ_SUBSPS      ,
@@ -110,7 +113,6 @@ typedef struct log_env_ctx_t {
 typedef struct h264d_logctx_t {
     LogEnv_t  env;
     LogFlag_t log_flag;
-    LogCtx_t  *buf;
     LogCtx_t  *parr[LOG_MAX];
 } H264dLogCtx_t;
 
@@ -138,19 +140,19 @@ typedef struct h264d_logctx_t {
 #define   __FAILED     __failed
 
 
-#define  VAL_CHECK(val)         do{ if((val))  goto __FAILED; } while (0)
-#define  FUN_CHECK(val)         do{ if((val))  goto __FAILED; } while (0)
-#define  MEM_CHECK(val)         do{ if(!(val)) goto __FAILED; } while (0)
-#define  FLE_CHECK(val)         do{ if(!(val)) goto __FAILED; } while (0)
-#define  RET_CHECK(val)         do{ if((val))  goto __RETURN; } while (0)
+#define  VAL_CHECK(val)         do{ if(!(val)) goto __FAILED; } while (0)  //!< vaule check
+#define  FUN_CHECK(val)         do{ if((val))  goto __FAILED; } while (0)  //!< function return check
+#define  MEM_CHECK(val)         do{ if(!(val)) goto __FAILED; } while (0)  //!< memory check
+#define  FLE_CHECK(val)         do{ if(!(val)) goto __FAILED; } while (0)  //!< file check
+#define  INP_CHECK(val)         do{ if((val))  goto __RETURN; } while (0)  //!< input check
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 extern const LogEnvStr_t logenv_name;
 
+MPP_RET h264d_log_init  (H264dLogCtx_t *logctx, LogCtx_t *logbuf);
 MPP_RET h264d_log_deinit(H264dLogCtx_t *logctx);
-MPP_RET h264d_log_init  (H264dLogCtx_t *logctx);
 
 void writelog(LogCtx_t *ctx, char *fname, RK_U32 line, char *loglevel, const char *msg, ...);
 
