@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "mpp_frame"
 
+#include <string.h>
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_frame_impl.h"
@@ -87,6 +89,17 @@ MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
     p->next = (MppFrameImpl *)next;
+    return MPP_OK;
+}
+
+MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
+{
+    if (NULL == dst || NULL == src) {
+        mpp_err_f("invalid NULL pointer input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    memcpy(dst, src, sizeof(MppFrameImpl));
     return MPP_OK;
 }
 
