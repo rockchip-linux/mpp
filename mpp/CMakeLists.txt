@@ -1,10 +1,8 @@
 # vim: syntax=cmake
 include_directories(.)
+include_directories(common)
 include_directories(codec/inc)
 include_directories(hal/inc)
-include_directories(syntax)
-
-include_directories(codec/dec/h264)
 
 # ----------------------------------------------------------------------------
 # add codec parsers
