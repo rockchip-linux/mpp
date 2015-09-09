@@ -249,7 +249,7 @@ void *mpp_dec_hal_thread(void *data)
          * 3. add frame to output list
          */
         mpp_buf_slot_clr_hw_dst(slots, task_dec->output);
-        for (RK_S32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+        for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
             RK_S32 index = task_dec->refer[i];
             if (index >= 0)
                 mpp_buf_slot_dec_hw_ref(slots, index);

@@ -102,6 +102,7 @@ static MPP_RET get_logenv(LogEnv_t *env)
 static void print_env_help(LogEnv_t *env)
 {
     RK_U8 i = 0;
+    (void)env;
 
     fprintf(stdout, "--------------- h264d help  -------------------- \n");
 

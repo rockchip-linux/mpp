@@ -199,7 +199,6 @@ static void dump_slots(MppBufSlotsImpl *impl)
         RK_U32 decoding = (slot->status & MPP_SLOT_USED_AS_HW_DST) ? (1) : (0);
         RK_U32 display  = (slot->status & MPP_SLOT_USED_AS_DISPLAY)  ? (1) : (0);
 
-        RK_U32 pos  = 0;
         mpp_log("slot %2d used %d refer %d decoding %d display %d\n",
                 i, used, refer, decoding, display);
     }
