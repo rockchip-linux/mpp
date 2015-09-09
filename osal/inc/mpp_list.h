@@ -67,8 +67,13 @@ public:
     // open lock function for external auto lock
     Mutex *mutex();
 
+    void wait();
+    void signal();
+
 private:
     Mutex                   mMutex;
+    Condition               mCondition;
+
     node_destructor         destroy;
     struct mpp_list_node    *head;
     RK_S32                  count;

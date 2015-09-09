@@ -269,6 +269,16 @@ RK_U32 mpp_list::get_key()
     return keys++;
 }
 
+void mpp_list::wait()
+{
+    mCondition.wait(mMutex);
+}
+
+void mpp_list::signal()
+{
+    mCondition.signal();
+}
+
 mpp_list::mpp_list(node_destructor func)
     : destroy(NULL),
       head(NULL),
