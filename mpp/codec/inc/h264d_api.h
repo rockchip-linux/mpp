@@ -21,13 +21,12 @@
 
 
 
-typedef enum mpp_decmtd_type
-{
-	MPP_DEC_NULL     = 0,
-	MPP_DEC_BY_SLICE = 0x1,
-	MPP_DEC_BY_FRAME = 0x2,
-	MPP_DEC_MAX,
-}MppDecMtd_type;
+typedef enum mpp_decmtd_type {
+    MPP_DEC_NULL     = 0,
+    MPP_DEC_BY_SLICE = 0x1,
+    MPP_DEC_BY_FRAME = 0x2,
+    MPP_DEC_MAX,
+} MppDecMtd_type;
 
 
 #ifdef  __cplusplus

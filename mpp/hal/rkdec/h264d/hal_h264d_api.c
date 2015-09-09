@@ -22,12 +22,12 @@
 
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
-	printf("begin=%s \n", logenv_name.begframe); 
+    printf("begin=%s \n", logenv_name.begframe);
 
 
     (void)hal;
     (void)cfg;
-	
+
     return MPP_OK;
 }
 
@@ -41,7 +41,7 @@ MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
 {
     (void)hal;
 
-	((HalDecTask*)&task->dec)->valid = 0;
+    ((HalDecTask*)&task->dec)->valid = 0;
 
 
     return MPP_OK;

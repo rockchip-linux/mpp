@@ -33,84 +33,84 @@
 
 static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 {
-	FunctionIn(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
-	return MPP_OK;
+    FunctionOut(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
+    return MPP_OK;
 }
 static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp)
 {
-	FunctionIn(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Inp->p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
 static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
 {
-	FunctionIn(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
 {
-	FunctionIn(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
-	return MPP_OK;
+    FunctionOut(p_Cur->p_Dec->logctx->parr[RUN_PARSE]);
+    return MPP_OK;
 }
 
 
 static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
 {
-	FunctionIn(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
 {
-	FunctionIn(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Vid->p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 
 
 static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
 {
-	FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
 {
-	FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
 
 
-	
 
-	//!< set task max size
-	p_Dec->task_max_size = 2;
-	FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
 
-	return MPP_OK;
+    //!< set task max size
+    p_Dec->task_max_size = 2;
+    FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
+
+    return MPP_OK;
 }
 
 
@@ -125,41 +125,41 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
 
 MPP_RET h264d_init(void *decoder, MppParserInitCfg *init)
 {
-	MPP_RET ret = MPP_NOK;
-	H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-	RET_CHECK(!p_Dec);
-	// init logctx
-	MEM_CHECK(p_Dec->logctx = mpp_calloc(H264dLogCtx_t, 1));
-	FUN_CHECK(ret = h264d_log_init(p_Dec->logctx));
-	FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
-	MEM_CHECK(p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1));
-	MEM_CHECK(p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1));
-	MEM_CHECK(p_Dec->p_Vid = mpp_calloc(H264dVideoCtx_t, 1));
-	p_Dec->p_Inp->p_Dec = p_Dec;
-	p_Dec->p_Inp->p_Cur = p_Dec->p_Cur;
-	p_Dec->p_Inp->p_Vid = p_Dec->p_Vid;
-	FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp));
-	p_Dec->p_Cur->p_Dec = p_Dec;
-	p_Dec->p_Cur->p_Inp = p_Dec->p_Inp;
-	p_Dec->p_Cur->p_Vid = p_Dec->p_Vid;
-	FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
-	p_Dec->p_Vid->p_Dec = p_Dec;
-	p_Dec->p_Vid->p_Inp = p_Dec->p_Inp;
-	p_Dec->p_Vid->p_Cur = p_Dec->p_Cur;
-	FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
-	FUN_CHECK(ret = init_dec_ctx(p_Dec));
+    MPP_RET ret = MPP_NOK;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+    RET_CHECK(!p_Dec);
+    // init logctx
+    MEM_CHECK(p_Dec->logctx = mpp_calloc(H264dLogCtx_t, 1));
+    FUN_CHECK(ret = h264d_log_init(p_Dec->logctx));
+    FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
+    MEM_CHECK(p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1));
+    MEM_CHECK(p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1));
+    MEM_CHECK(p_Dec->p_Vid = mpp_calloc(H264dVideoCtx_t, 1));
+    p_Dec->p_Inp->p_Dec = p_Dec;
+    p_Dec->p_Inp->p_Cur = p_Dec->p_Cur;
+    p_Dec->p_Inp->p_Vid = p_Dec->p_Vid;
+    FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp));
+    p_Dec->p_Cur->p_Dec = p_Dec;
+    p_Dec->p_Cur->p_Inp = p_Dec->p_Inp;
+    p_Dec->p_Cur->p_Vid = p_Dec->p_Vid;
+    FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
+    p_Dec->p_Vid->p_Dec = p_Dec;
+    p_Dec->p_Vid->p_Inp = p_Dec->p_Inp;
+    p_Dec->p_Vid->p_Cur = p_Dec->p_Cur;
+    FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
+    FUN_CHECK(ret = init_dec_ctx(p_Dec));
 
-	//!< return max task size
-	init->task_count = p_Dec->task_max_size; // return 
+    //!< return max task size
+    init->task_count = p_Dec->task_max_size; // return
 
-	FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
+    FunctionOut(p_Dec->logctx->parr[RUN_PARSE]);
 __RETURN:
 
     return MPP_OK;
 __FAILED:
-	h264d_deinit(decoder);
+    h264d_deinit(decoder);
 
-	return MPP_NOK;
+    return MPP_NOK;
 }
 /*!
 ***********************************************************************
@@ -168,21 +168,21 @@ __FAILED:
 ***********************************************************************
 */
 MPP_RET  h264d_deinit(void *decoder)
-{	
-	H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-		
-	FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
+{
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-	RET_CHECK(!p_Dec);
-	free_input_ctx(p_Dec->p_Inp);
-	mpp_free(p_Dec->p_Inp);
-	free_cur_ctx(p_Dec->p_Cur);
-	mpp_free(p_Dec->p_Cur);
-	free_vid_ctx(p_Dec->p_Vid);
-	mpp_free(p_Dec->p_Vid);		
-	free_dec_ctx(p_Dec);		
-	h264d_log_deinit(p_Dec->logctx);
-	mpp_free(p_Dec->logctx);		
+    FunctionIn(p_Dec->logctx->parr[RUN_PARSE]);
+
+    RET_CHECK(!p_Dec);
+    free_input_ctx(p_Dec->p_Inp);
+    mpp_free(p_Dec->p_Inp);
+    free_cur_ctx(p_Dec->p_Cur);
+    mpp_free(p_Dec->p_Cur);
+    free_vid_ctx(p_Dec->p_Vid);
+    mpp_free(p_Dec->p_Vid);
+    free_dec_ctx(p_Dec);
+    h264d_log_deinit(p_Dec->logctx);
+    mpp_free(p_Dec->logctx);
 
 __RETURN:
     return MPP_OK;
@@ -195,9 +195,9 @@ __RETURN:
 */
 MPP_RET  h264d_reset(void *decoder)
 {
-    
 
-	(void)decoder;
+
+    (void)decoder;
 
     return MPP_OK;
 }
@@ -210,9 +210,9 @@ MPP_RET  h264d_reset(void *decoder)
 */
 MPP_RET  h264d_flush(void *decoder)
 {
-    
 
-	(void)decoder;
+
+    (void)decoder;
 
     return MPP_OK;
 }
@@ -228,9 +228,9 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 
 
 
-	(void)decoder;
-	(void)cmd_type;
-	(void)param;
+    (void)decoder;
+    (void)cmd_type;
+    (void)param;
 
 
     return MPP_OK;
@@ -245,16 +245,16 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 MPP_RET h264d_parse(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
 {
 
-	MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
+    MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
 
 
 
-	pkt->size = (pkt->size >= 500) ? (pkt->size - 500) : 0;
+    pkt->size = (pkt->size >= 500) ? (pkt->size - 500) : 0;
 
-	in_task->valid = pkt->size ? 0 : 1;
+    in_task->valid = pkt->size ? 0 : 1;
 
-	(void)decoder;
-	(void)in_task;
+    (void)decoder;
+    (void)in_task;
 
     return MPP_OK;
 }

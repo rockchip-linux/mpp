@@ -28,39 +28,36 @@
 
 
 // input parameters from configuration file
-typedef struct inp_par_t
-{
-	RK_U32 iDecFrmNum;                        //!< set the max decode frame numbers
-	char   infile_name[FILE_NAME_SIZE];       //!< H.264 input bitstrream
-	char   cmp_path_dir[FILE_NAME_SIZE];      //!< golen
-	char   cfgfile_name[FILE_NAME_SIZE];      //!< input configure file
-	char   out_path_dir[FILE_NAME_SIZE];      //!< output
-	//--- input file
-	FILE   *fp_bitstream;
-	FILE   *fp_golden_data;
-	FILE   *fp_driver_data;
-	//--- use in read bit stream
-	RK_U32 raw_cfg;
-	RK_U32 iFrmdecoded;
-	RK_U8  is_fist_nalu;
-	RK_U8  is_fist_frame;
-	RK_U8  is_eof;
-	RK_U8  is_new_frame;
-	struct
-	{
-		RK_U8  *pbuf;
-		RK_U32 offset;
+typedef struct inp_par_t {
+    RK_U32 iDecFrmNum;                        //!< set the max decode frame numbers
+    char   infile_name[FILE_NAME_SIZE];       //!< H.264 input bitstrream
+    char   cmp_path_dir[FILE_NAME_SIZE];      //!< golen
+    char   cfgfile_name[FILE_NAME_SIZE];      //!< input configure file
+    char   out_path_dir[FILE_NAME_SIZE];      //!< output
+    //--- input file
+    FILE   *fp_bitstream;
+    FILE   *fp_golden_data;
+    FILE   *fp_driver_data;
+    //--- use in read bit stream
+    RK_U32 raw_cfg;
+    RK_U32 iFrmdecoded;
+    RK_U8  is_fist_nalu;
+    RK_U8  is_fist_frame;
+    RK_U8  is_eof;
+    RK_U8  is_new_frame;
+    struct {
+        RK_U8  *pbuf;
+        RK_U32 offset;
 
-		RK_U8  *pNALU;
-		RK_U32 nalubytes;
-		RK_U8  pfxbytes;  // start code prefix bytes
-	}IO;
-	struct
-	{
-		RK_U8  *pbuf;
-		RK_U32  strmbytes;
-	}strm;
-	void    *bitctx;
+        RK_U8  *pNALU;
+        RK_U32 nalubytes;
+        RK_U8  pfxbytes;  // start code prefix bytes
+    } IO;
+    struct {
+        RK_U8  *pbuf;
+        RK_U32  strmbytes;
+    } strm;
+    void    *bitctx;
 } InputParams;
 
 
@@ -69,13 +66,13 @@ typedef struct inp_par_t
 extern "C" {
 #endif
 
-	MPP_RET h264d_configure  (InputParams *in, RK_S32 ac, char *av[]);
-	MPP_RET h264d_open_files (InputParams *in);
-	MPP_RET h264d_close_files(InputParams *in);
-	MPP_RET h264d_alloc_frame_buffer(InputParams *in);
-	MPP_RET h264d_read_one_frame    (InputParams *in, MppPacket pkt);
-	MPP_RET h264d_free_frame_buffer (InputParams *in);
-	MPP_RET h264d_write_fpga_data   (InputParams *in);
+MPP_RET h264d_configure  (InputParams *in, RK_S32 ac, char *av[]);
+MPP_RET h264d_open_files (InputParams *in);
+MPP_RET h264d_close_files(InputParams *in);
+MPP_RET h264d_alloc_frame_buffer(InputParams *in);
+MPP_RET h264d_read_one_frame    (InputParams *in, MppPacket pkt);
+MPP_RET h264d_free_frame_buffer (InputParams *in);
+MPP_RET h264d_write_fpga_data   (InputParams *in);
 
 #ifdef __cplusplus
 }

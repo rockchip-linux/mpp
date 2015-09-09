@@ -34,12 +34,12 @@ typedef struct DummyDec_t {
 
 MPP_RET dummy_dec_init(void *dec, MppParserInitCfg *cfg)
 {
-	DummyDec *p = (DummyDec *)dec;
+    DummyDec *p = (DummyDec *)dec;
 
     if (NULL == dec) {
         mpp_err_f("found NULL intput dec %p cfg %p\n", dec, cfg);
         return MPP_ERR_NULL_PTR;
-    }    
+    }
     p->slots        = cfg->slots;
     p->task_count   = cfg->task_count = 2;
     p->slots_inited = 0;
@@ -88,16 +88,16 @@ MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
 
 
 MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
-{	
-	 RK_U32 output;
-	 MppFrame frame;
-	 RK_S64 pts = 0;
+{
+    RK_U32 output;
+    MppFrame frame;
+    RK_S64 pts = 0;
 
-	 DummyDec *p = (DummyDec *)dec;
+    DummyDec *p = (DummyDec *)dec;
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
-    }   
+    }
     // do packet decoding here
 
     // set packet size

@@ -517,8 +517,7 @@ MPP_RET mpp_buf_slot_get_hw_dst(MppBufSlots slots, RK_U32 *index)
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_inc_hw_ref(MppBufSlots slots, RK_U32 index)\
-{
+MPP_RET mpp_buf_slot_inc_hw_ref(MppBufSlots slots, RK_U32 index)\ {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
