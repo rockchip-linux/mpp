@@ -16,6 +16,7 @@ add_subdirectory(enc)
 
 target_link_libraries(mpp_codec
                       codec_h264d
-
                       codec_dummy_enc
-                      codec_dummy_dec)
+                      codec_dummy_dec
+                      mpp)
+

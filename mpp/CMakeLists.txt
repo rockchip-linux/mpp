@@ -29,9 +29,12 @@ add_library(mpp STATIC
     mpi_impl.cpp
     mpi.cpp
     )
+
 set_target_properties(mpp PROPERTIES FOLDER "mpp") 
+
 add_subdirectory(legacy)
+
+target_link_libraries(mpp mpp_codec mpp_hal mpp_legacy osal)
 
 add_subdirectory(test)
 
-target_link_libraries(mpp mpp_codec mpp_hal mpp_legacy osal)
