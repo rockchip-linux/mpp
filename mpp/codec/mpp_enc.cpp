@@ -44,8 +44,9 @@ void *mpp_enc_control_thread(void *data)
             frames->del_at_head(&frame, sizeof(frame));
 
             mpp_packet_init(&packet, buf, size);
-            mpp->put_packet(packet);
-            mpp_packet_deinit(&packet);
+            packets->lock();
+            packets->add_at_tail(&packet, sizeof(packet));
+            packets->unlock();
         }
     }
     mpp_free(buf);

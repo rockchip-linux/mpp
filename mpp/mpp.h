@@ -67,9 +67,6 @@ public:
     MPP_RET put_frame(MppFrame frame);
     MPP_RET get_packet(MppPacket *packet);
 
-    MPP_RET reset();
-    MPP_RET flush();
-
 
     mpp_list        *mPackets;
     mpp_list        *mFrames;

@@ -55,7 +55,7 @@ void *mpp_dec_parser_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     MppBufSlots slots   = dec->slots;
     HalTaskGroup tasks  = dec->tasks;
-    MppPacket packet    = NULL;
+    MppPacketImpl packet;
 
     /*
      * parser thread need to wait at cases below:
@@ -96,7 +96,14 @@ void *mpp_dec_parser_thread(void *data)
          * 2. get packet to parse
          */
         if (!packet_ready) {
-            if (MPP_OK == mpp->get_packet(&packet)) {
+            mpp_list *packets = mpp->mPackets;
+            Mutex::Autolock autoLock(packets->mutex());
+            if (packets->list_size()) {
+                /*
+                 * packet will be destroyed outside, here just copy the content
+                 */
+                packets->del_at_head(&packet, sizeof(packet));
+                mpp->mPacketGetCount++;
                 packet_ready = 1;
                 wait_on_packet = 0;
             } else {
@@ -120,9 +127,9 @@ void *mpp_dec_parser_thread(void *data)
          *
          */
         if (!task_ready) {
-            mpp_dec_parse(dec, packet, task_dec);
-            if (0 == mpp_packet_get_size(packet)) {
-                mpp_packet_deinit(&packet);
+            mpp_dec_parse(dec, (MppPacket)&packet, task_dec);
+            if (0 == packet.size) {
+                mpp_packet_reset(&packet);
                 packet_ready = 0;
             }
         }
@@ -358,10 +365,7 @@ MPP_RET mpp_dec_flush(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    dec->parser_api->flush(dec->parser_ctx);
-    mpp_hal_flush(dec->hal_ctx);
-
-    return MPP_OK;
+    return dec->parser_api->flush(dec->parser_ctx);
 }
 
 MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *param)

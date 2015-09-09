@@ -208,16 +208,10 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
     Mutex::Autolock autoLock(mPackets->mutex());
-    if (!mPackets->list_size()) {
-        *packet = NULL;
-        return MPP_NOK;
+    if (mPackets->list_size()) {
+        mPackets->del_at_tail(packet, sizeof(packet));
+        mPacketGetCount++;
     }
-
-    MppPacket pkt;
-    mpp_packet_new(&pkt);
-    mPackets->del_at_tail(pkt, sizeof(MppPacketImpl));
-    mPacketGetCount++;
-    *packet = pkt;
     return MPP_OK;
 }
 
