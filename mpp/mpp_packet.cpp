@@ -75,6 +75,17 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
     return MPP_OK;
 }
 
+RK_U32 mpp_packet_get_eos(MppPacket packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    return (p->flag & MPP_PACKET_FLAG_EOS) ? (1) : (0);
+}
+
 MPP_RET mpp_packet_set_extra_data(MppPacket packet)
 {
     if (NULL == packet) {
