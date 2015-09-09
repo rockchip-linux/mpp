@@ -73,8 +73,8 @@ typedef struct MppBufSlotEntry_t {
 
 typedef enum MppBufSlotOps_e {
     SLOT_INIT,
-    SLOT_SET_USED,
-    SLOT_CLR_USED,
+    SLOT_SET_NOT_READY,
+    SLOT_CLR_NOT_READY,
     SLOT_SET_DPB_REF,
     SLOT_CLR_DPB_REF,
     SLOT_SET_DISPLAY,
@@ -90,21 +90,21 @@ typedef enum MppBufSlotOps_e {
 } MppBufSlotOps;
 
 static const char op_string[][16] = {
-    "init        ",
-    "set used    ",
-    "clr used    ",
-    "set dpb ref ",
-    "clr dpb ref ",
-    "set display ",
-    "clr display ",
-    "set hw dst  ",
-    "clr hw dst  ",
-    "inc hw ref  ",
-    "dec hw ref  ",
-    "set frame   ",
-    "clr frame   ",
-    "set buffer  ",
-    "clr buffer  ",
+    "init         ",
+    "set not ready",
+    "set ready    ",
+    "set dpb ref  ",
+    "clr dpb ref  ",
+    "set display  ",
+    "clr display  ",
+    "set hw dst   ",
+    "clr hw dst   ",
+    "inc hw ref   ",
+    "dec hw ref   ",
+    "set frame    ",
+    "clr frame    ",
+    "set buffer   ",
+    "clr buffer   ",
 };
 
 typedef struct MppBufSlotLog_t {
@@ -165,10 +165,10 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     case SLOT_INIT : {
         status = MPP_SLOT_UNUSED;
     } break;
-    case SLOT_SET_USED : {
+    case SLOT_SET_NOT_READY : {
         status |= MPP_SLOT_USED;
     } break;
-    case SLOT_CLR_USED : {
+    case SLOT_CLR_NOT_READY : {
         status &= ~MPP_SLOT_USED;
     } break;
     case SLOT_SET_DPB_REF : {
@@ -423,7 +423,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     for (i = 0; i < impl->count; i++, slot++) {
         if (MPP_SLOT_UNUSED == slot->status) {
             *index = i;
-            slot_ops_with_log(impl->logs, slot, SLOT_SET_USED);
+            slot_ops_with_log(impl->logs, slot, SLOT_SET_NOT_READY);
             return MPP_OK;
         }
     }
@@ -520,7 +520,7 @@ MPP_RET mpp_buf_slot_clr_hw_dst(MppBufSlots slots, RK_U32 index)
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_HW_DST);
-    slot_ops_with_log(impl->logs, slot, SLOT_CLR_USED);
+    slot_ops_with_log(impl->logs, slot, SLOT_CLR_NOT_READY);
     impl->unrefer_count++;
     check_entry_unused(impl, slot);
     return MPP_OK;

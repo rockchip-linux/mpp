@@ -144,6 +144,8 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *
  * mpp_buf_slot_set_display
  *      - mark a slot to be can be display
+ *      - NOTE: set display will generate a MppFrame for buffer slot internal usage
+ *              for example store pts / buffer address, etc.
  *
  * mpp_buf_slot_inc_hw_ref
  *      - MUST be called once when one slot is used in hardware decoding as reference frame
@@ -161,7 +163,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *
  * mpp_buf_slot_clr_hw_dst
  *      - mark a slot's buffer is already decoded by hardware
- *        NOTE: this call will clear used as output flag
+ *      - NOTE: this call will clear used as output flag
  *
  * mpp_buf_slot_dec_hw_ref
  *      - when hal finished on hardware decoding it MUST be called once for each used slot
@@ -187,6 +189,8 @@ MPP_RET mpp_buf_slot_dec_hw_ref(MppBufSlots slots, RK_U32 index);
  *
  * mpp_buf_slot_get_display
  *      - called by hal thread to output a display slot's frame info
+ *        NOTE: get display will generate a new MppFrame for external mpp_frame_deinit call
+ *              So that external mpp_frame_deinit will not release the MppFrame used in buf_slot
  */
 MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
 MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
