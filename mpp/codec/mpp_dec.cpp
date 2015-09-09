@@ -244,9 +244,10 @@ void *mpp_dec_hal_thread(void *data)
 
         /*
          * when hardware decoding is done:
-         * 1. clear decoding flag
+         * 1. clear decoding flag (mark buffer is ready)
          * 2. use get_display to get a new frame with buffer
          * 3. add frame to output list
+         * repeat 2 and 3 until not frame can be output
          */
         mpp_buf_slot_clr_hw_dst(slots, task_dec->output);
         for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
@@ -263,14 +264,6 @@ void *mpp_dec_hal_thread(void *data)
             frames->signal();
             frames->unlock();
         }
-
-        /*
-         * mark previous buffer is complete
-         */
-        // change dpb slot status
-        // signal()
-        // mark frame in output queue
-        // wait up output thread to get a output frame
     }
 
     return NULL;
