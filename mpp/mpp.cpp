@@ -168,20 +168,27 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 {
     Mutex::Autolock autoLock(mFrames->mutex());
     MppFrame first = NULL;
+
+    if (0 == mFrames->list_size()) {
+        mThreadCodec->signal();
+        mFrames->wait();
+    }
+
     if (mFrames->list_size()) {
         mFrames->del_at_tail(&first, sizeof(frame));
         mFrameGetCount++;
+        mThreadHal->signal();
 
         MppFrame prev = first;
         MppFrame next = NULL;
         while (mFrames->list_size()) {
             mFrames->del_at_tail(&next, sizeof(frame));
             mFrameGetCount++;
+            mThreadHal->signal();
             mpp_frame_set_next(prev, next);
             prev = next;
         }
     }
-    mThreadHal->signal();
     *frame = first;
     return MPP_OK;
 }

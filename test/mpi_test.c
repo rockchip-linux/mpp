@@ -82,6 +82,10 @@ int main()
     for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
         mpp_packet_init(&dec_in, buf, size);
 
+        // IMPORTANT: eos flag will flush all decoded frame
+        if (i == MPI_DEC_LOOP_COUNT - 1)
+            mpp_packet_set_eos(dec_in);
+
         // TODO: read stream data to buf
 
         ret = mpi->decode(ctx, dec_in, &dec_out);
@@ -107,6 +111,10 @@ int main()
     // interface with input and output separated
     for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
         mpp_packet_init(&dec_in, buf, size);
+
+        // IMPORTANT: eos flag will flush all decoded frame
+        if (i == MPI_DEC_LOOP_COUNT - 1)
+            mpp_packet_set_eos(dec_in);
 
         // TODO: read stream data to buf
 

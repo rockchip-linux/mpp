@@ -260,6 +260,7 @@ void *mpp_dec_hal_thread(void *data)
             frames->lock();
             frames->add_at_tail(&frame, sizeof(frame));
             mpp->mFramePutCount++;
+            frames->signal();
             frames->unlock();
         }
 
