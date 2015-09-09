@@ -111,6 +111,7 @@ int main()
     // interface with input and output separated
     for (i = 0; i < MPI_DEC_LOOP_COUNT; i++) {
         mpp_packet_init(&dec_in, buf, size);
+        mpp_packet_set_pts(dec_in, i);
 
         // IMPORTANT: eos flag will flush all decoded frame
         if (i == MPI_DEC_LOOP_COUNT - 1)

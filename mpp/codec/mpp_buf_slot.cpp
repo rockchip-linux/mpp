@@ -30,42 +30,43 @@
 
 #define BUF_SLOT_DBG_FUNCTION           (0x00000001)
 #define BUF_SLOT_DBG_SETUP              (0x00000002)
-#define BUF_SLOT_DBG_UNUSED             (0x00000010)
-#define BUF_SLOT_DBG_DECODING           (0x00000020)
-#define BUF_SLOT_DBG_REFFER             (0x00000040)
-#define BUF_SLOT_DBG_DISPLAY            (0x00000080)
+#define BUF_SLOT_DBG_OPS_RUNTIME        (0x00000010)
 #define BUF_SLOT_DBG_BUFFER             (0x00000100)
 #define BUF_SLOT_DBG_FRAME              (0x00000200)
-#define BUF_SLOT_DBG_LOG_OPS            (0x10000000)
+#define BUF_SLOT_DBG_OPS_HISTORY        (0x10000000)
 
 #define buf_slot_dbg(flag, fmt, ...)    _mpp_dbg(buf_slot_debug, flag, fmt, ## __VA_ARGS__)
 
 static RK_U32 buf_slot_debug = 0;
 
+#define slot_assert(impl, cond) do {                                    \
+    if (!(cond)) {                                                      \
+        dump_slots(impl);                                               \
+        mpp_err("Assertion %s failed at %s:%d\n",                       \
+               MPP_STRINGS(cond), __FILE__, __LINE__);                  \
+        abort();                                                        \
+    }                                                                   \
+} while (0)
+
 
 #define MPP_SLOT_UNUSED                 (0x00000000)
 #define MPP_SLOT_USED                   (0x00010000)
+#define MPP_SLOT_NOT_FILLED             (0x00010000)
 #define MPP_SLOT_USED_AS_DPB_REF        (0x00020000)
-#define MPP_SLOT_USED_AS_DISPLAY        (0x00040008)
+#define MPP_SLOT_USED_AS_DISPLAY        (0x00040000)
 #define MPP_SLOT_USED_AS_HW_DST         (0x00080000)
-#define MPP_SLOT_USED_IN_HW_MASK        (0x0000ffff)
+#define MPP_SLOT_WITH_FRAME             (0x01000000)
+#define MPP_SLOT_WITH_BUFFER            (0x02000000)
+#define MPP_SLOT_HW_REF_MASK            (0x0000ffff)
+#define MPP_SLOT_RELEASE_MASK           (0x00ffffff)
 
-#define GET_HW_REF(slot)                ((MppBufSlotEntry*)(slot)->status&MPP_SLOT_USED_IN_HW_MASK)
-#define INC_HW_REF(slot)                ((MppBufSlotEntry*)(slot)->status++)
-#define DEC_HW_REF(slot)                ((MppBufSlotEntry*)(slot)->status--)
+#define SLOT_CAN_RELEASE(slot)          ((slot->status&MPP_SLOT_RELEASE_MASK)==MPP_SLOT_UNUSED)
 
 typedef struct MppBufSlotEntry_t {
     struct list_head    list;
     RK_U32              status;
     RK_S32              index;
     MppFrame            frame;
-
-    /*
-     * used_on_decoding
-     *  -   count that indicates slot used in hardware decoding
-     *      will be increased in parser ans decreased in hal when hardware is done
-     */
-    RK_U32              used_on_decoding;
 } MppBufSlotEntry;
 
 #define SLOT_OPS_MAX_COUNT              1024
@@ -82,8 +83,29 @@ typedef enum MppBufSlotOps_e {
     SLOT_CLR_HW_DST,
     SLOT_INC_HW_REF,
     SLOT_DEC_HW_REF,
+    SLOT_SET_FRAME,
+    SLOT_CLR_FRAME,
     SLOT_SET_BUFFER,
+    SLOT_CLR_BUFFER,
 } MppBufSlotOps;
+
+static const char op_string[][16] = {
+    "init        ",
+    "set used    ",
+    "clr used    ",
+    "set dpb ref ",
+    "clr dpb ref ",
+    "set display ",
+    "clr display ",
+    "set hw dst  ",
+    "clr hw dst  ",
+    "inc hw ref  ",
+    "dec hw ref  ",
+    "set frame   ",
+    "clr frame   ",
+    "set buffer  ",
+    "clr buffer  ",
+};
 
 typedef struct MppBufSlotLog_t {
     RK_U32              index;
@@ -173,13 +195,25 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     case SLOT_DEC_HW_REF : {
         status--;
     } break;
+    case SLOT_SET_FRAME : {
+        status |= MPP_SLOT_WITH_FRAME;
+    } break;
+    case SLOT_CLR_FRAME : {
+        status &= ~MPP_SLOT_WITH_FRAME;
+    } break;
     case SLOT_SET_BUFFER : {
+        status |= MPP_SLOT_WITH_BUFFER;
+    } break;
+    case SLOT_CLR_BUFFER : {
+        status &= ~MPP_SLOT_WITH_BUFFER;
     } break;
     default : {
         mpp_err("found invalid operation code %d\n", op);
     } break;
     }
     slot->status = status;
+    buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "index %2d op: %s status in %08x out %08x",
+                 index, op_string[op], before, status);
     add_slot_log(logs, index, op, before, status);
 }
 
@@ -207,20 +241,6 @@ static void dump_slots(MppBufSlotsImpl *impl)
 
     mpp_list *logs = impl->logs;
     if (logs) {
-        static const char op_string[][16] = {
-            "init        ",
-            "set used    ",
-            "clr used    ",
-            "set dpb ref ",
-            "clr dpb ref ",
-            "set display ",
-            "clr display ",
-            "set hw dst  ",
-            "clr hw dst  ",
-            "inc hw ref  ",
-            "dec hw ref  ",
-            "set buffer  ",
-        };
         while (logs->list_size()) {
             MppBufSlotLog log;
             logs->del_at_head(&log, sizeof(log));
@@ -247,14 +267,13 @@ static void init_slot_entry(mpp_list *logs, MppBufSlotEntry *slot, RK_S32 pos, R
  * NOTE: MppFrame will be destroyed outside mpp
  *       but MppBuffer must dec_ref here
  */
-static MppFrame check_entry_unused(mpp_list *logs, MppBufSlotEntry *entry)
+static MppFrame check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
 {
-    if (entry->status == MPP_SLOT_USED) {
-        slot_ops_with_log(logs, entry, SLOT_CLR_USED);
-        mpp_assert(entry->frame);
-        MppBuffer buffer = mpp_frame_get_buffer(entry->frame);
-        mpp_buffer_put(buffer);
-        entry->frame = NULL;
+    if (SLOT_CAN_RELEASE(entry)) {
+        slot_assert(impl, entry->frame);
+        mpp_frame_deinit(&entry->frame);
+        slot_ops_with_log(impl->logs, entry, SLOT_CLR_BUFFER);
+        slot_ops_with_log(impl->logs, entry, SLOT_CLR_FRAME);
     }
     return entry->frame;
 }
@@ -276,7 +295,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
     impl->lock = new Mutex();
     INIT_LIST_HEAD(&impl->display);
 
-    if (buf_slot_debug & BUF_SLOT_DBG_LOG_OPS)
+    if (buf_slot_debug & BUF_SLOT_DBG_OPS_HISTORY)
         impl->logs = new mpp_list(NULL);
 
     *slots = impl;
@@ -322,7 +341,7 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
     } else {
         // need to check info change or not
         if (!changed) {
-            mpp_assert(size == impl->size);
+            slot_assert(impl, size == impl->size);
             if (count > impl->count) {
                 mpp_realloc(impl->slots, MppBufSlotEntry, count);
                 init_slot_entry(impl->logs, impl->slots, impl->count, (count - impl->count));
@@ -361,8 +380,8 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(impl->info_changed);
-    mpp_assert(impl->slots);
+    slot_assert(impl, impl->info_changed);
+    slot_assert(impl, impl->slots);
 
     impl->info_changed  = 0;
     impl->size          = impl->new_size;
@@ -412,7 +431,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     *index = -1;
     mpp_err_f("failed to get a unused slot\n");
     dump_slots(impl);
-    mpp_assert(0);
+    slot_assert(impl, 0);
     return MPP_NOK;
 }
 
@@ -425,7 +444,7 @@ MPP_RET mpp_buf_slot_set_dpb_ref(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     slot_ops_with_log(impl->logs, &impl->slots[index], SLOT_SET_DPB_REF);
     return MPP_OK;
 }
@@ -439,11 +458,11 @@ MPP_RET mpp_buf_slot_clr_dpb_ref(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_DPB_REF);
     impl->unrefer_count++;
-    check_entry_unused(impl->logs, slot);
+    check_entry_unused(impl, slot);
     return MPP_OK;
 }
 
@@ -456,7 +475,7 @@ MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_SET_DISPLAY);
 
@@ -475,14 +494,16 @@ MPP_RET mpp_buf_slot_set_hw_dst(MppBufSlots slots, RK_U32 index, MppFrame frame)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_SET_HW_DST);
 
+    slot_assert(impl, slot->status & MPP_SLOT_NOT_FILLED);
     if (NULL == slot->frame)
         mpp_frame_init(&slot->frame);
 
-    memcpy(slot->frame, frame, sizeof(MppFrameImpl));
+    mpp_frame_copy(slot->frame, frame);
+    slot_ops_with_log(impl->logs, slot, SLOT_SET_FRAME);
     impl->output = index;
     return MPP_OK;
 }
@@ -496,11 +517,12 @@ MPP_RET mpp_buf_slot_clr_hw_dst(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_HW_DST);
+    slot_ops_with_log(impl->logs, slot, SLOT_CLR_USED);
     impl->unrefer_count++;
-    check_entry_unused(impl->logs, slot);
+    check_entry_unused(impl, slot);
     return MPP_OK;
 }
 
@@ -525,7 +547,7 @@ MPP_RET mpp_buf_slot_inc_hw_ref(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_INC_HW_REF);
     return MPP_OK;
@@ -540,10 +562,10 @@ MPP_RET mpp_buf_slot_dec_hw_ref(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_DEC_HW_REF);
-    check_entry_unused(impl->logs, slot);
+    check_entry_unused(impl, slot);
     return MPP_OK;
 }
 
@@ -556,12 +578,12 @@ MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffe
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, SLOT_SET_BUFFER);
-    mpp_assert(slot->frame);
+    slot_assert(impl, slot->frame);
     mpp_frame_set_buffer(slot->frame, buffer);
     mpp_buffer_inc_ref(buffer);
+    slot_ops_with_log(impl->logs, slot, SLOT_SET_BUFFER);
     return MPP_OK;
 }
 
@@ -574,7 +596,7 @@ MppBuffer mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    mpp_assert(index < impl->count);
+    slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     return mpp_frame_get_buffer(slot->frame);
 }
@@ -592,15 +614,21 @@ MPP_RET mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame)
         return MPP_NOK;
 
     MppBufSlotEntry *slot = list_entry(impl->display.next, MppBufSlotEntry, list);
-    *frame = slot->frame;
-
-    RK_U32 index = slot->index;
-    mpp_assert(index < impl->count);
-    slot_ops_with_log(impl->logs, slot, SLOT_CLR_DISPLAY);
+    if (slot->status & MPP_SLOT_NOT_FILLED)
+        return MPP_NOK;
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
-    check_entry_unused(impl->logs, slot);
+
+    MppFrame display;
+    mpp_frame_init(&display);
+    mpp_frame_copy(display, slot->frame);
+    *frame = display;
+
+    RK_U32 index = slot->index;
+    slot_assert(impl, index < impl->count);
+    slot_ops_with_log(impl->logs, slot, SLOT_CLR_DISPLAY);
+    check_entry_unused(impl, slot);
     impl->display_count++;
     return MPP_OK;
 }
