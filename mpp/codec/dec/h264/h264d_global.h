@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include "rk_type.h"
 #include "rk_mpi.h"
+
+#include "h264d_log.h"
 #include "h264d_bitread.h"
 #include "h264d_syntax.h"
 
@@ -789,21 +791,20 @@ typedef struct h264_old_slice_par_t {
 #define FRAME_BUF_MAX_SIZE         64//512*1024
 #define FRAME_BUF_ADD_SIZE         32//512
 #define SYNTAX_BUF_SIZE            5
-typedef struct h264d_dxva_ctx_t
-{
-	RK_U8                            cfgBitstrmRaw;
-	struct _DXVA_PicParams_H264_MVC  pp;
-	struct _DXVA_Qmatrix_H264        qm;
-	RK_U32                           max_slice_size;
-	RK_U32                           slice_count;
-	struct _DXVA_Slice_H264_Short    *slice_short;  //!<  MAX_SLICES
-	struct _DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
-	RK_U8                            *bitstream;
-	RK_U32                           max_strm_size;
-	RK_U32                           strm_offset;
-	struct h264d_syntax_t            syn;
-	struct h264_dec_ctx_t            *p_Dec;
-}H264dDxvaCtx_t;
+typedef struct h264d_dxva_ctx_t {
+    RK_U8                            cfgBitstrmRaw;
+    struct _DXVA_PicParams_H264_MVC  pp;
+    struct _DXVA_Qmatrix_H264        qm;
+    RK_U32                           max_slice_size;
+    RK_U32                           slice_count;
+    struct _DXVA_Slice_H264_Short    *slice_short;  //!<  MAX_SLICES
+    struct _DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
+    RK_U8                            *bitstream;
+    RK_U32                           max_strm_size;
+    RK_U32                           strm_offset;
+    struct h264d_syntax_t            syn;
+    struct h264_dec_ctx_t            *p_Dec;
+} H264dDxvaCtx_t;
 
 
 //!< input parameter
@@ -911,24 +912,23 @@ typedef struct h264d_video_ctx_t {
 
 } H264dVideoCtx_t;
 
-typedef struct h264d_mem_t
-{
-	struct h264_dpb_mark_t     dpb_mark[MAX_DPB_SIZE];         //!< for write out, MAX_DPB_SIZE
-	struct h264_dpb_info_t     dpb_info[DPB_INFO_SIZE];         //!< 16
-	struct h264_refpic_info_t  refpic_info_p[REFPIC_INFO_SIZE];    //!< 32
-	struct h264_refpic_info_t  refpic_info[2][REFPIC_INFO_SIZE];   //!< [2][32]
-	struct h264d_dxva_ctx_t    dxva_ctx[MAX_TASK_SIZE];	
-}H264_DecMem_t;
+typedef struct h264d_mem_t {
+    struct h264_dpb_mark_t     dpb_mark[MAX_DPB_SIZE];         //!< for write out, MAX_DPB_SIZE
+    struct h264_dpb_info_t     dpb_info[DPB_INFO_SIZE];         //!< 16
+    struct h264_refpic_info_t  refpic_info_p[REFPIC_INFO_SIZE];    //!< 32
+    struct h264_refpic_info_t  refpic_info[2][REFPIC_INFO_SIZE];   //!< [2][32]
+    struct h264d_dxva_ctx_t    dxva_ctx[MAX_TASK_SIZE];
+} H264_DecMem_t;
 
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {
-	struct h264d_mem_t        *mem;
-	struct h264_dpb_mark_t    *dpb_mark;         //!< for write out, MAX_DPB_SIZE
-	struct h264_dpb_info_t    *dpb_info;         //!< 16
-	struct h264_refpic_info_t *refpic_info_p;    //!< 32
-	struct h264_refpic_info_t *refpic_info[2];   //!< [2][32]
-	struct h264d_dxva_ctx_t   *dxva_ctx;
-  
+    struct h264d_mem_t        *mem;
+    struct h264_dpb_mark_t    *dpb_mark;         //!< for write out, MAX_DPB_SIZE
+    struct h264_dpb_info_t    *dpb_info;         //!< 16
+    struct h264_refpic_info_t *refpic_info_p;    //!< 32
+    struct h264_refpic_info_t *refpic_info[2];   //!< [2][32]
+    struct h264d_dxva_ctx_t   *dxva_ctx;
+
     struct h264d_input_ctx_t  *p_Inp;
     struct h264d_cur_ctx_t    *p_Cur;            //!< current parameters, use in read nalu
     struct h264d_video_ctx_t  *p_Vid;            //!< parameters for video decoder

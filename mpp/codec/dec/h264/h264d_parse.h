@@ -21,56 +21,54 @@
 #include "mpp_err.h"
 
 
-typedef enum
-{
-	NALU_NULL = 0,
+typedef enum {
+    NALU_NULL = 0,
 
-	//StreamError,
-	//HaveNoStream,
-	//NaluNotSupport,
-	//ReadNaluError,
-	//NALU_ERROR,
-	//NALU_OK,
-	//StartofNalu,
-	//EndofStream,
-	//ReallocBufError,
-	//MidOfNalu,
-	//EndOfNalu,
-	//StartOfPicture,
-	//StartOfSlice,
-	//SkipNALU,
-	//NALU_SPS,
-	//NALU_SubSPS,
-	//NALU_PPS,
-	//NALU_SEI,
+    //StreamError,
+    //HaveNoStream,
+    //NaluNotSupport,
+    //ReadNaluError,
+    //NALU_ERROR,
+    //NALU_OK,
+    //StartofNalu,
+    //EndofStream,
+    //ReallocBufError,
+    //MidOfNalu,
+    //EndOfNalu,
+    //StartOfPicture,
+    //StartOfSlice,
+    //SkipNALU,
+    //NALU_SPS,
+    //NALU_SubSPS,
+    //NALU_PPS,
+    //NALU_SEI,
 
-	NALU_MAX,
-}NALU_STATUS;
+    NALU_MAX,
+} NALU_STATUS;
 
 
-typedef enum Rkv_slice_state_t
-{
-	SliceSTATE_NULL = 0,
-	SliceSTATE_IDLE,
+typedef enum Rkv_slice_state_t {
+    SliceSTATE_NULL = 0,
+    SliceSTATE_IDLE,
 
-	//SliceSTATE_GetLastSlice,
-	SliceSTATE_ResetSlice,
-	//SliceSTATE_ReadNalu,
-	//SliceSTATE_ParseNalu,
-	//SliceSTATE_DecodeOneSlice,
-	//SliceSTATE_InitPicture,
-	//SliceSTATE_GetOuterDpbMemory,
-	////SliceSTATE_InitSlice,
-	//SliceSTATE_GetSliceData,
-	//SliceSTATE_RegisterOneSlice,
-	//SliceSTATE_RegisterOneFrame,
-	//SliceSTATE_ExitPicture,
-	//SliceSTATE_ErrorMaster,
+    //SliceSTATE_GetLastSlice,
+    SliceSTATE_ResetSlice,
+    //SliceSTATE_ReadNalu,
+    //SliceSTATE_ParseNalu,
+    //SliceSTATE_DecodeOneSlice,
+    //SliceSTATE_InitPicture,
+    //SliceSTATE_GetOuterDpbMemory,
+    ////SliceSTATE_InitSlice,
+    //SliceSTATE_GetSliceData,
+    //SliceSTATE_RegisterOneSlice,
+    //SliceSTATE_RegisterOneFrame,
+    //SliceSTATE_ExitPicture,
+    //SliceSTATE_ErrorMaster,
 
-	//SliceSTATE_Return,
-	SliceSTATE_MAX,
+    //SliceSTATE_Return,
+    SliceSTATE_MAX,
 
-}RKV_SLICE_STATUS;
+} RKV_SLICE_STATUS;
 
 
 

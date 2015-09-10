@@ -16,6 +16,7 @@
 */
 #include <string.h>
 #include <stdlib.h>
+#include "mpp_err.h"
 #include "h264d_bitread.h"
 
 
@@ -70,9 +71,7 @@ MPP_RET read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
         *out |= (bitctx->curr_byte_ << (bits_left - bitctx->num_remaining_bits_in_curr_byte_));
         bits_left -= bitctx->num_remaining_bits_in_curr_byte_;
 
-        if (ret = update_currbyte(bitctx)) {
-            return MPP_NOK;
-        }
+        FUN_CHECK(ret = update_currbyte(bitctx));
     }
 
     *out |= (bitctx->curr_byte_ >> (bitctx->num_remaining_bits_in_curr_byte_ - bits_left));
@@ -81,6 +80,8 @@ MPP_RET read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
     bitctx->used_bits += num_bits;
 
     return MPP_OK;
+__FAILED:
+    return ret;
 }
 /*!
 ***********************************************************************
@@ -106,26 +107,22 @@ MPP_RET read_ue(BitReadCtx_t *bitctx, RK_U32 *val)
     RK_S32 rest;
     // Count the number of contiguous zero bits.
     do {
-        if (read_bits(bitctx, 1, &bit)) {
-            return ret = MPP_NOK;
-        }
+        FUN_CHECK(ret = read_bits(bitctx, 1, &bit));
         num_bits++;
     } while (bit == 0);
 
-    if (num_bits > 31) {
-        return ret = MPP_NOK;
-    }
+    VAL_CHECK(num_bits < 32);
     // Calculate exp-Golomb code value of size num_bits.
     *val = (1 << num_bits) - 1;
 
     if (num_bits > 0) {
-        if (read_bits(bitctx, num_bits, &rest)) {
-            return ret = MPP_NOK;
-        }
+        FUN_CHECK(ret = read_bits(bitctx, num_bits, &rest));
         *val += rest;
     }
 
-    return ret = MPP_OK;
+    return MPP_OK;
+__FAILED:
+    return ret;
 }
 /*!
 ***********************************************************************
@@ -137,9 +134,8 @@ MPP_RET read_se(BitReadCtx_t *bitctx, RK_S32 *val)
 {
     MPP_RET ret = MPP_NOK;
     RK_U32 ue;
-    if (ret = read_ue(bitctx, &ue)) {
-        return ret = MPP_NOK;
-    }
+    FUN_CHECK(ret = read_ue(bitctx, &ue));
+
     if (ue % 2 == 0) { // odd
         *val = -(RK_S32)(ue >> 1);
     } else {
@@ -147,6 +143,8 @@ MPP_RET read_se(BitReadCtx_t *bitctx, RK_S32 *val)
     }
 
     return MPP_OK;
+__FAILED:
+    return ret;
 }
 
 /*!
