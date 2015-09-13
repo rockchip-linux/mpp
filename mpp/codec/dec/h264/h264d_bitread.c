@@ -22,9 +22,9 @@
 
 static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 {
-    if (bitctx->bytes_left_ < 1)
-        return MPP_NOK;
+	MPP_RET ret = MPP_ERR_UNKNOW;
 
+	VAL_CHECK(ret, bitctx->bytes_left_ > 0);
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
     if (*bitctx->data_ == 0x03 && (bitctx->prev_two_bytes_ & 0xffff) == 0) {
@@ -34,19 +34,17 @@ static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
         ++bitctx->emulation_prevention_bytes_;
         // Need another full three bytes before we can detect the sequence again.
         bitctx->prev_two_bytes_ = 0xffff;
-
-        if (bitctx->bytes_left_ < 1)
-            return MPP_NOK;
+		VAL_CHECK(ret, bitctx->bytes_left_ > 0);
     }
-
     // Load a new byte and advance pointers.
     bitctx->curr_byte_ = *bitctx->data_++ & 0xff;
     --bitctx->bytes_left_;
     bitctx->num_remaining_bits_in_curr_byte_ = 8;
-
     bitctx->prev_two_bytes_ = (bitctx->prev_two_bytes_ << 8) | bitctx->curr_byte_;
 
-    return MPP_OK;
+    return ret = MPP_OK;
+__FAILED:
+	return ret;
 }
 
 /*!
@@ -60,12 +58,11 @@ static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 
 MPP_RET read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
 {
-    MPP_RET ret = MPP_NOK;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     RK_S32 bits_left = num_bits;
 
     *out = 0;
-    ASSERT(num_bits <= 31);
-
+	VAL_CHECK(ret, num_bits < 32);
     while (bitctx->num_remaining_bits_in_curr_byte_ < bits_left) {
         // Take all that's left in current byte, shift to make space for the rest.
         *out |= (bitctx->curr_byte_ << (bits_left - bitctx->num_remaining_bits_in_curr_byte_));
@@ -79,9 +76,9 @@ MPP_RET read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
     bitctx->num_remaining_bits_in_curr_byte_ -= bits_left;
     bitctx->used_bits += num_bits;
 
-    return MPP_OK;
+    return ret = MPP_OK;
 __FAILED:
-    return ret;
+    return ret = MPP_ERR_READ_BIT;
 }
 /*!
 ***********************************************************************
@@ -101,17 +98,17 @@ MPP_RET read_one_bit(BitReadCtx_t *bitctx, RK_S32 *out)
 */
 MPP_RET read_ue(BitReadCtx_t *bitctx, RK_U32 *val)
 {
-    MPP_RET ret = MPP_NOK;
     RK_S32 num_bits = -1;
     RK_S32 bit;
     RK_S32 rest;
+	MPP_RET ret = MPP_ERR_UNKNOW;
     // Count the number of contiguous zero bits.
     do {
         FUN_CHECK(ret = read_bits(bitctx, 1, &bit));
         num_bits++;
     } while (bit == 0);
 
-    VAL_CHECK(num_bits < 32);
+    VAL_CHECK(ret, num_bits < 32);
     // Calculate exp-Golomb code value of size num_bits.
     *val = (1 << num_bits) - 1;
 
@@ -120,9 +117,9 @@ MPP_RET read_ue(BitReadCtx_t *bitctx, RK_U32 *val)
         *val += rest;
     }
 
-    return MPP_OK;
+    return ret = MPP_OK;
 __FAILED:
-    return ret;
+    return ret = MPP_ERR_READ_BIT;
 }
 /*!
 ***********************************************************************
@@ -132,8 +129,9 @@ __FAILED:
 */
 MPP_RET read_se(BitReadCtx_t *bitctx, RK_S32 *val)
 {
-    MPP_RET ret = MPP_NOK;
-    RK_U32 ue;
+	RK_U32 ue;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
     FUN_CHECK(ret = read_ue(bitctx, &ue));
 
     if (ue % 2 == 0) { // odd
@@ -142,9 +140,9 @@ MPP_RET read_se(BitReadCtx_t *bitctx, RK_S32 *val)
         *val = (RK_S32)((ue >> 1) + 1);
     }
 
-    return MPP_OK;
+    return ret = MPP_OK;
 __FAILED:
-    return ret;
+    return ret = MPP_ERR_READ_BIT;
 }
 
 /*!

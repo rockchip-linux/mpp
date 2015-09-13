@@ -15,28 +15,25 @@
 * limitations under the License.
 */
 
-#ifndef __H264D_PARSE_H__
-#define __H264D_PARSE_H__
+#ifndef __H264D_SLICE_H__
+#define __H264D_SLICE_H__
+
 #include "rk_type.h"
 #include "mpp_err.h"
-
 #include "h264d_global.h"
 
 
-
-#ifdef  __cplusplus
+#ifdef	__cplusplus
 extern "C" {
 #endif
 
+	void     recycle_slice(H264_SLICE_t *currSlice);
+	MPP_RET  process_slice(H264_SLICE_t *currSlice);
 
-	MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
-
-
-
-
-#ifdef  __cplusplus
+#ifdef	__cplusplus
 }
 #endif
 
+//========================================
+#endif /* end of __H264D_SLICE_H__ */
 
-#endif /* __H264D_PARSE_H__ */

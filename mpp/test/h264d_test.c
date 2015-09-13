@@ -43,7 +43,7 @@ static MPP_RET manual_set_env(void)
 #if defined(_MSC_VER)
     mpp_env_set_u32("h264d_log_help",     1             );
     mpp_env_set_u32("h264d_log_show",     1             );
-    mpp_env_set_u32("h264d_log_ctrl",     0xFFFB        );
+    mpp_env_set_u32("h264d_log_ctrl",     0x007B        );
     mpp_env_set_u32("h264d_log_level",    5             );
     mpp_env_set_u32("h264d_log_decframe", 0             );
     mpp_env_set_u32("h264d_log_begframe", 0             );
@@ -74,15 +74,16 @@ static MPP_RET decoder_deinit(MppDec *pApi)
 
 static MPP_RET decoder_init(MppDec *pApi)
 {
-    MPP_RET ret = MPP_NOK;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     MppParserInitCfg  parser_cfg;
     MppHalCfg         hal_cfg;
     // set decoder
     pApi->parser_api = &api_h264d_parser;
-    MEM_CHECK(pApi->parser_ctx = mpp_calloc_size(void, pApi->parser_api->ctx_size));
+	pApi->parser_ctx = mpp_calloc_size(void, pApi->parser_api->ctx_size);
+    MEM_CHECK(ret, pApi->parser_ctx);
     // malloc slot
     FUN_CHECK(ret = mpp_buf_slot_init(&pApi->slots));
-    MEM_CHECK(pApi->slots);
+    MEM_CHECK(ret, pApi->slots);
     // init parser part
     memset(&parser_cfg, 0, sizeof(parser_cfg));
     parser_cfg.slots = pApi->slots;
@@ -106,13 +107,13 @@ __FAILED:
 
 int main(int argc, char **argv)
 {
-    MPP_RET        ret = MPP_OK;
+    MPP_RET        ret = MPP_ERR_UNKNOW;
+
     InputParams   *pIn = mpp_calloc(InputParams, 1);
     MppDec       *pApi = mpp_calloc(MppDec, 1);
     MppPacketImpl *pkt = mpp_calloc_size(MppPacketImpl, sizeof(MppPacketImpl));
     HalTask      *task = mpp_calloc_size(HalTask, sizeof(HalTask));
-
-    MEM_CHECK(pIn && pApi && pkt && task);
+    MEM_CHECK(ret, pIn && pApi && pkt && task);
     mpp_log("== test start == \n");
     // set debug mode
     FUN_CHECK(ret = manual_set_env());
@@ -124,25 +125,23 @@ int main(int argc, char **argv)
     // init
     FUN_CHECK(ret = decoder_init(pApi));
     do {
-        //if (!pkt->size)
+        if (!pkt->size)
         {
-            FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));
-            mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded++);
+            FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));            
         }
         FUN_CHECK(ret = pApi->parser_api->parse(pApi->parser_ctx, pkt, &task->dec));
         if (((HalDecTask*)&task->dec)->valid) {
-            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal_ctx, task));
-            mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded++);
-            if (((MppPacketImpl *)pkt)->flag & MPP_PACKET_FLAG_EOS) {
+            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal_ctx, task));			
+            //mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded);			
+			//!< end of stream
+            if (!pkt->size && (pkt->flag & MPP_PACKET_FLAG_EOS)) {
                 break;
             }
-        }
-        if (pIn->is_eof) {
-            break;
+			pIn->iFrmdecoded++;
         }
     } while (!pIn->iDecFrmNum || (pIn->iFrmdecoded < pIn->iDecFrmNum));
 
-    mpp_log("== all test return == \n");
+    mpp_log("+++++++ all test return +++++++ \n");
     ret = MPP_OK;
 __FAILED:
     decoder_deinit(pApi);

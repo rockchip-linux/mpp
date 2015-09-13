@@ -16,6 +16,16 @@ set(H264D_HDR
 	h264d_global.h
 	h264d_bitread.h
 	h264d_parse.h
+	h264d_slice.h
+	h264d_sps.h
+	h264d_pps.h
+	h264d_scalist.h
+	h264d_sei.h
+	h264d_dpb.h
+	h264d_init.h
+	h264d_fill.h
+	
+	
 	) 
 	
 # h264 decoder sourse
@@ -25,6 +35,16 @@ set(H264D_SRC
 	h264d_log.c
 	h264d_bitread.c
 	h264d_parse.c
+	h264d_slice.c
+	h264d_sps.c
+	h264d_pps.c
+	h264d_scalist.c
+	h264d_sei.c
+	h264d_dpb.c
+	h264d_init.c
+	h264d_fill.c
+	
+	
 	) 
 
 			

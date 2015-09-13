@@ -23,66 +23,59 @@
 #include "mpp_err.h"
 #include "h264d_log.h"
 
+#define   __BITREAD_ERR   __bitread_error
 
 #define WRITE_LOG(bitctx, name)\
     do {\
-    LogInfo(bitctx->ctx, "%s", name);\
-    } while (0)
+         LogInfo(bitctx->ctx, "%s", name);\
+       } while (0)
 
-#define SKIP_BITS(bitctx, num_bits)\
+#define SKIP_BITS(ret, bitctx, num_bits)\
     do {\
-    RK_S32 _out;\
-    MPP_RET ret = MPP_NOK;\
-    ret = read_bits(bitctx, num_bits, &_out);\
-    LogInfo(bitctx->ctx, "%48s = %10d", "skip", _out);\
-    if (ret) { ASSERT(0); goto __FAILED; }\
-    } while (0)
+         RK_S32 _out;\
+         ret = read_bits(bitctx, num_bits, &_out);\
+         LogInfo(bitctx->ctx, "%48s = %10d", "skip", _out);\
+         if (ret) {	ASSERT(0); goto __FAILED; }\
+       } while (0)
 
 
-#define READ_BITS(bitctx, num_bits, out, name)\
+#define READ_BITS(ret, bitctx, num_bits, out, name)\
     do {\
-    RK_S32 _out;\
-    MPP_RET ret = MPP_NOK;\
-    ret = read_bits(bitctx, num_bits, &_out);\
-    LogInfo(bitctx->ctx, "%48s = %10d", name, _out);\
-    if (ret) { ASSERT(0); goto __FAILED; }\
-    else     { *out = _out; }\
-    } while (0)
+         ret = read_bits(bitctx, num_bits, (RK_S32 *)out);\
+         LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
+         if (ret) {	ASSERT(0); goto __FAILED; }\
+       } while (0)
 
-
-#define READ_ONEBIT(bitctx, out, name)\
+#define READ_ONEBIT(ret, bitctx, out, name)\
     do {\
-    RK_S32 _out;\
-    MPP_RET ret = MPP_NOK;\
-    ret = read_bits(bitctx, 1, &_out);\
-    LogInfo(bitctx->ctx, "%48s = %10d", name, _out);\
-    if (ret) { ASSERT(0); goto __FAILED; }\
-    else     { *out = _out; }\
+         ret = read_bits(bitctx, 1, (RK_S32 *)out);\
+         LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
+         if (ret) {	ASSERT(0); goto __FAILED; }\
     } while (0)
 
 
-#define READ_UE(bitctx, out, name)\
+#define READ_UE(ret, bitctx, out, name)\
     do {\
-    RK_U32 _out;\
-    MPP_RET ret = MPP_NOK;\
-    ret = read_ue(bitctx, &_out);\
-    LogInfo(bitctx->ctx, "%48s = %10d", name, _out);\
-    if (ret) { ASSERT(0); goto __FAILED; }\
-    else     { *out = _out; }\
-    } while (0)
+         ret = read_ue(bitctx, (RK_U32 *)out);\
+         LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
+         if (ret) { ASSERT(0); goto __FAILED; }\
+       } while (0)
 
 
-#define READ_SE(bitctx, out, name)\
+#define READ_SE(ret, bitctx, out, name)\
     do {\
-    RK_S32 _out;\
-    MPP_RET ret = MPP_NOK;\
-    ret = read_se(bitctx, &_out);\
-    LogInfo(bitctx->ctx, "%48s = %10d", name, _out);\
-    if (ret) { ASSERT(0); goto __FAILED; }\
-    else     { *out = _out; }\
-    } while (0)
+	     ret = read_se(bitctx, (RK_S32 *)out);\
+         LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
+         if (ret) { ASSERT(0); goto __FAILED; }\
+       } while (0)
 
-
+#define CHECK_RANGE(ret, bitctx, val, _min, _max)\
+	do {\
+	     if ((val) < (_min) || (val) > (_max)) {\
+	        LogError(bitctx->ctx, "%d[%d,%d]", val, _min, _max);\
+			ret = MPP_ERR_VALUE;\
+	        ASSERT(0); goto __FAILED;\
+		} } while (0)
 
 
 typedef struct getbit_ctx_t {
@@ -113,7 +106,7 @@ typedef struct getbit_ctx_t {
 extern "C" {
 #endif
 
-MPP_RET   read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
+MPP_RET   read_bits( BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
 MPP_RET   read_one_bit(BitReadCtx_t *bitctx, RK_S32 *out);
 MPP_RET   read_ue(BitReadCtx_t *bitctx, RK_U32* val);
 MPP_RET   read_se(BitReadCtx_t *bitctx, RK_S32* val);

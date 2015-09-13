@@ -26,7 +26,8 @@
 
 #define LOG_BUF_SIZE 512
 
-#define GetBitVal(val, pos)   ( ( (val)>>(pos) ) & 0x1 & (val) )
+
+RK_U32  g_nalu_cnt = 0;
 
 const LogEnvStr_t logenv_name = {
     "h264d_log_help",
@@ -67,8 +68,14 @@ const char *logctrl_name[LOG_MAX] = {
     "WRITE_REG     ",
 };
 
+/*!
+***********************************************************************
+* \brief
+*   get log env
+***********************************************************************
+*/
 
-static MPP_RET get_logenv(LogEnv_t *env)
+MPP_RET get_logenv(LogEnv_t *env)
 {
     //!< read env
     mpp_env_get_u32(logenv_name.help,     &env->help,     0);
@@ -83,8 +90,13 @@ static MPP_RET get_logenv(LogEnv_t *env)
     return MPP_OK;
 }
 
-
-static void print_env_help(LogEnv_t *env)
+/*!
+***********************************************************************
+* \brief
+*   print env help
+***********************************************************************
+*/
+void print_env_help(LogEnv_t *env)
 {
     RK_U8 i = 0;
     (void)env;
@@ -107,8 +119,13 @@ static void print_env_help(LogEnv_t *env)
     }
     fprintf(stdout, "------------------------------------------------- \n");
 }
-
-static void show_env_flags(LogEnv_t *env)
+/*!
+***********************************************************************
+* \brief
+*   show env flags
+***********************************************************************
+*/
+void show_env_flags(LogEnv_t *env)
 {
     RK_U8 i = 0;
     fprintf(stdout, "------------- h264d debug setting   ------------- \n");
@@ -122,163 +139,30 @@ static void show_env_flags(LogEnv_t *env)
     }
     fprintf(stdout, "------------------------------------------------- \n");
 }
-
-static MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag)
+/*!
+***********************************************************************
+* \brief
+*   explain log ctrl flag
+***********************************************************************
+*/
+MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag)
 {
     pflag->print_en = GetBitVal(ctrl_val, LOG_PRINT         );
     pflag->write_en = GetBitVal(ctrl_val, LOG_WRITE         );
     pflag->debug_en = GetBitVal(ctrl_val, LOG_DEBUG_EN      )
-                      && GetBitVal(ctrl_val, LOG_READ_NALU     )
-                      && GetBitVal(ctrl_val, LOG_READ_SPS      )
-                      && GetBitVal(ctrl_val, LOG_READ_SUBSPS   )
-                      && GetBitVal(ctrl_val, LOG_READ_PPS      )
-                      && GetBitVal(ctrl_val, LOG_READ_SLICE    )
-                      && GetBitVal(ctrl_val, LOG_WRITE_SPSPPS  )
-                      && GetBitVal(ctrl_val, LOG_WRITE_RPS     )
-                      && GetBitVal(ctrl_val, LOG_WRITE_SCANLIST)
-                      && GetBitVal(ctrl_val, LOG_WRITE_STEAM   )
-                      && GetBitVal(ctrl_val, LOG_WRITE_REG     );
+                      || GetBitVal(ctrl_val, LOG_READ_NALU     )
+                      || GetBitVal(ctrl_val, LOG_READ_SPS      )
+                      || GetBitVal(ctrl_val, LOG_READ_SUBSPS   )
+                      || GetBitVal(ctrl_val, LOG_READ_PPS      )
+                      || GetBitVal(ctrl_val, LOG_READ_SLICE    )
+                      || GetBitVal(ctrl_val, LOG_WRITE_SPSPPS  )
+                      || GetBitVal(ctrl_val, LOG_WRITE_RPS     )
+                      || GetBitVal(ctrl_val, LOG_WRITE_SCANLIST)
+                      || GetBitVal(ctrl_val, LOG_WRITE_STEAM   )
+                      || GetBitVal(ctrl_val, LOG_WRITE_REG     );
 
     return MPP_OK;
 }
-
-static void close_log_files(LogEnv_t *env)
-{
-    FCLOSE(env->fp_driver);
-    FCLOSE(env->fp_syn_parse);
-    FCLOSE(env->fp_syn_hal);
-    FCLOSE(env->fp_run_parse);
-    FCLOSE(env->fp_run_hal);
-}
-static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
-{
-    char fname[128] = { 0 };
-
-    INP_CHECK(!pflag->write_en);
-
-    //!< runlog file
-    if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
-        sprintf(fname, "%s/h264d_parse_runlog.dat", env->outpath);
-        FLE_CHECK(env->fp_run_parse = fopen(fname, "wb"));
-        sprintf(fname, "%s/h264d_hal_runlog.dat", env->outpath);
-        FLE_CHECK(env->fp_run_hal = fopen(fname, "wb"));
-    }
-    //!< fpga drive file
-    if (GetBitVal(env->ctrl, LOG_FPGA)) {
-        sprintf(fname, "%s/h264d_driver_data.dat", env->outpath);
-        FLE_CHECK(env->fp_driver = fopen(fname, "wb"));
-    }
-    //!< read syntax
-    if (   GetBitVal(env->ctrl, LOG_READ_NALU  )
-           || GetBitVal(env->ctrl, LOG_READ_SPS   )
-           || GetBitVal(env->ctrl, LOG_READ_SUBSPS)
-           || GetBitVal(env->ctrl, LOG_READ_PPS   )
-           || GetBitVal(env->ctrl, LOG_READ_SLICE ) ) {
-        sprintf(fname, "%s/h264d_read_syntax.dat", env->outpath);
-        FLE_CHECK(env->fp_syn_parse = fopen(fname, "wb"));
-    }
-    //!< write syntax
-    if (   GetBitVal(env->ctrl, LOG_WRITE_SPSPPS  )
-           || GetBitVal(env->ctrl, LOG_WRITE_RPS     )
-           || GetBitVal(env->ctrl, LOG_WRITE_SCANLIST)
-           || GetBitVal(env->ctrl, LOG_WRITE_STEAM   )
-           || GetBitVal(env->ctrl, LOG_WRITE_REG     ) ) {
-        sprintf(fname, "%s/h264d_write_syntax.dat", env->outpath);
-        FLE_CHECK(env->fp_syn_hal = fopen(fname, "wb"));
-    }
-
-__RETURN:
-    return MPP_OK;
-
-__FAILED:
-    return MPP_NOK;
-}
-/*!
-***********************************************************************
-* \brief
-*   log deinit
-***********************************************************************
-*/
-MPP_RET h264d_log_deinit(H264dLogCtx_t *logctx)
-{
-    close_log_files(&logctx->env);
-
-    return MPP_OK;
-}
-/*!
-***********************************************************************
-* \brief
-*   log init
-***********************************************************************
-*/
-MPP_RET h264d_log_init(H264dLogCtx_t *logctx, LogCtx_t *logbuf)
-{
-    RK_U8 i = 0;
-    MPP_RET ret = MPP_NOK;
-    LogCtx_t *pcur = NULL;
-
-    FUN_CHECK(ret = get_logenv(&logctx->env));
-    if (logctx->env.help) {
-        print_env_help(&logctx->env);
-    }
-    if (logctx->env.show) {
-        show_env_flags(&logctx->env);
-    }
-    FUN_CHECK(ret = explain_ctrl_flag(logctx->env.ctrl, &logctx->log_flag));
-    if ( !logctx->log_flag.debug_en
-         && !logctx->log_flag.print_en && !logctx->log_flag.write_en ) {
-        logctx->log_flag.debug_en = 0;
-        goto __RETURN;
-    }
-    logctx->log_flag.level = (1 << logctx->env.level) - 1;
-    //!< open file
-    FUN_CHECK(ret = open_log_files(&logctx->env, &logctx->log_flag));
-    //!< set logctx
-    while (i < LOG_MAX) {
-        if (GetBitVal(logctx->env.ctrl, i)) {
-            pcur = logctx->parr[i] = &logbuf[i];
-            pcur->tag = logctrl_name[i];
-            pcur->flag = &logctx->log_flag;
-
-            switch (i) {
-            case LOG_FPGA:
-                pcur->fp = logctx->env.fp_driver;
-                break;
-            case RUN_PARSE:
-                pcur->fp = logctx->env.fp_run_parse;
-                break;
-            case RUN_HAL:
-                pcur->fp = logctx->env.fp_run_hal;
-                break;
-            case LOG_READ_NALU:
-            case LOG_READ_SPS:
-            case LOG_READ_SUBSPS:
-            case LOG_READ_PPS:
-            case LOG_READ_SLICE:
-                pcur->fp = logctx->env.fp_syn_parse;
-                break;
-            case LOG_WRITE_SPSPPS:
-            case LOG_WRITE_RPS:
-            case LOG_WRITE_SCANLIST:
-            case LOG_WRITE_STEAM:
-            case LOG_WRITE_REG:
-                pcur->fp = logctx->env.fp_syn_hal;
-            default:
-                break;
-            }
-        }
-        i++;
-    }
-
-__RETURN:
-    return ret = MPP_OK;
-__FAILED:
-    logctx->log_flag.debug_en = 0;
-    h264d_log_deinit(logctx);
-
-    return ret;
-}
-
 
 /*!
 ***********************************************************************
@@ -305,7 +189,8 @@ void writelog(LogCtx_t *ctx, char *filename, RK_U32 line, char *loglevel, const 
         printf("[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
     }
     if (ctx->fp && ctx->flag->write_en) {
-        fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
+		fprintf(ctx->fp, "%s \n", argbuf);	
+		//fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
         fflush(ctx->fp);
     }
     va_end(argptr);

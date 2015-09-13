@@ -15,28 +15,29 @@
 * limitations under the License.
 */
 
-#ifndef __H264D_PARSE_H__
-#define __H264D_PARSE_H__
+#ifndef _H264D_FILL_H_
+#define _H264D_FILL_H_
+
 #include "rk_type.h"
 #include "mpp_err.h"
-
+#include "dxva_syntax.h"
+#include "h264d_syntax.h"
 #include "h264d_global.h"
 
 
 
-#ifdef  __cplusplus
+#ifdef	__cplusplus
 extern "C" {
 #endif
 
-
-	MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
-
-
-
-
-#ifdef  __cplusplus
+	void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp);
+	void fill_qmatrix(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm);
+	void commit_buffer(H264dDxvaCtx_t *dxva);
+	MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx);
+#ifdef	__cplusplus
 }
 #endif
 
+//========================================
+#endif /* end of _RKV_H264_DECODER_FILL_H_ */
 
-#endif /* __H264D_PARSE_H__ */
