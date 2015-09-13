@@ -23,14 +23,14 @@
 #include "h264d_global.h"
 
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
-	MPP_RET process_pps(H264_SLICE_t *currSlice);
-	MPP_RET activate_pps(H264dVideoCtx_t *p_Vid, H264_PPS_t *pps);
+MPP_RET process_pps(H264_SLICE_t *currSlice);
+MPP_RET activate_pps(H264dVideoCtx_t *p_Vid, H264_PPS_t *pps);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 

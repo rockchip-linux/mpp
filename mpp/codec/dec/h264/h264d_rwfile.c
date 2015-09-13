@@ -496,10 +496,10 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     GetBitCtx_t *pStrmData = (GetBitCtx_t *)p_in->bitctx;
     memset(pStrmData, 0, sizeof(GetBitCtx_t));
     set_streamdata(pStrmData, p_in->IO.pNALU, 4);
-   read_bits( pStrmData, 1, &forbidden_bit);
+    read_bits( pStrmData, 1, &forbidden_bit);
     ASSERT(forbidden_bit == 0);
-   read_bits( pStrmData, 2, &nal_reference_idc);
-   read_bits( pStrmData, 5, &nal_unit_type);
+    read_bits( pStrmData, 2, &nal_reference_idc);
+    read_bits( pStrmData, 5, &nal_unit_type);
 
     nalu_header_bytes = 1;
     if ((nal_unit_type == NALU_TYPE_PREFIX) || (nal_unit_type == NALU_TYPE_SLC_EXT)) {
@@ -682,8 +682,8 @@ MPP_RET h264d_open_files(InputParams *p_in)
     char dirver_dir[] = "./h264d_dat";
     if (access(dirver_dir, 0) != 0)
         mkdir(dirver_dir, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-	FLE_CHECK(ret, p_in->fp_golden_data = open_file(golden_dir, p_in->infile_name, ".dat",  "rb"));
-	FLE_CHECK(ret, p_in->fp_driver_data = open_file(dirver_dir, p_in->infile_name, "_driver.dat", "wb"));
+    FLE_CHECK(ret, p_in->fp_golden_data = open_file(golden_dir, p_in->infile_name, ".dat",  "rb"));
+    FLE_CHECK(ret, p_in->fp_driver_data = open_file(dirver_dir, p_in->infile_name, "_driver.dat", "wb"));
 #endif
 
     return MPP_OK;
@@ -718,11 +718,11 @@ MPP_RET h264d_free_frame_buffer(InputParams *p_in)
 */
 MPP_RET h264d_alloc_frame_buffer(InputParams *p_in)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
-	p_in->IO.pbuf   = mpp_malloc_size(RK_U8, IOBUFSIZE);
-	p_in->strm.pbuf = mpp_malloc_size(RK_U8, STMBUFSIZE);
-	p_in->bitctx    = mpp_malloc_size(void, sizeof(GetBitCtx_t));
+    p_in->IO.pbuf   = mpp_malloc_size(RK_U8, IOBUFSIZE);
+    p_in->strm.pbuf = mpp_malloc_size(RK_U8, STMBUFSIZE);
+    p_in->bitctx    = mpp_malloc_size(void, sizeof(GetBitCtx_t));
     MEM_CHECK(ret, p_in->IO.pbuf && p_in->strm.pbuf && p_in->bitctx);
     p_in->is_fist_nalu  = 1;
     p_in->is_fist_frame = 1;
@@ -779,16 +779,15 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
 
     mpp_env_get_str(logenv_name.outpath, &out_name, NULL);
     FLE_CHECK(ret, p_in->fp_golden_data && p_in->fp_driver_data);
-	fp_log = fopen(strcat(out_name, "/h264d_driver_data.dat"), "rb");
+    fp_log = fopen(strcat(out_name, "/h264d_driver_data.dat"), "rb");
     FLE_CHECK(ret, fp_log);
-	tmpctx.data = mpp_calloc_size(RK_U8, 128);
+    tmpctx.data = mpp_calloc_size(RK_U8, 128);
     MEM_CHECK(ret, tmpctx.data); //!< for read golden fpga data
-    while (!feof(p_in->fp_golden_data) && !feof(fp_log))
-	{
+    while (!feof(p_in->fp_golden_data) && !feof(fp_log)) {
         read_golden_data (p_in->fp_golden_data, &tmpctx, frame_no);
         write_driver_bytes(p_in->fp_driver_data, &tmpctx, fp_log, frame_no);
         frame_no++;
-    } 
+    }
 
     mpp_free(tmpctx.data);
     FCLOSE(fp_log);

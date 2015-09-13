@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 
-	MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
+MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
 
 
 

@@ -35,7 +35,7 @@
          RK_S32 _out;\
          ret = read_bits(bitctx, num_bits, &_out);\
          LogInfo(bitctx->ctx, "%48s = %10d", "skip", _out);\
-         if (ret) {	ASSERT(0); goto __FAILED; }\
+         if (ret) { ASSERT(0); goto __FAILED; }\
        } while (0)
 
 
@@ -43,14 +43,14 @@
     do {\
          ret = read_bits(bitctx, num_bits, (RK_S32 *)out);\
          LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
-         if (ret) {	ASSERT(0); goto __FAILED; }\
+         if (ret) { ASSERT(0); goto __FAILED; }\
        } while (0)
 
 #define READ_ONEBIT(ret, bitctx, out, name)\
     do {\
          ret = read_bits(bitctx, 1, (RK_S32 *)out);\
          LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
-         if (ret) {	ASSERT(0); goto __FAILED; }\
+         if (ret) { ASSERT(0); goto __FAILED; }\
     } while (0)
 
 
@@ -64,18 +64,18 @@
 
 #define READ_SE(ret, bitctx, out, name)\
     do {\
-	     ret = read_se(bitctx, (RK_S32 *)out);\
+         ret = read_se(bitctx, (RK_S32 *)out);\
          LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
          if (ret) { ASSERT(0); goto __FAILED; }\
        } while (0)
 
 #define CHECK_RANGE(ret, bitctx, val, _min, _max)\
-	do {\
-	     if ((val) < (_min) || (val) > (_max)) {\
-	        LogError(bitctx->ctx, "%d[%d,%d]", val, _min, _max);\
-			ret = MPP_ERR_VALUE;\
-	        ASSERT(0); goto __FAILED;\
-		} } while (0)
+    do {\
+         if ((val) < (_min) || (val) > (_max)) {\
+            LogError(bitctx->ctx, "%d[%d,%d]", val, _min, _max);\
+            ret = MPP_ERR_VALUE;\
+            ASSERT(0); goto __FAILED;\
+        } } while (0)
 
 
 typedef struct getbit_ctx_t {

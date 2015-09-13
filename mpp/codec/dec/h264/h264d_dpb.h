@@ -24,28 +24,28 @@
 #include "h264d_global.h"
 
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
-	void    update_ref_list(H264_DpbBuf_t *p_Dpb);
-	void    update_ltref_list(H264_DpbBuf_t *p_Dpb);
-	void    free_storable_picture(H264_StorePic_t *p);
-	void    free_frame_store(H264_FrameStore_t *f);
+void    update_ref_list(H264_DpbBuf_t *p_Dpb);
+void    update_ltref_list(H264_DpbBuf_t *p_Dpb);
+void    free_storable_picture(H264_StorePic_t *p);
+void    free_frame_store(H264_FrameStore_t *f);
 
-	MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
-	MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs,	H264_StorePic_t *p, RK_U8 combine_flag);
+MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
+MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs,    H264_StorePic_t *p, RK_U8 combine_flag);
 
-	MPP_RET init_dpb (H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type);
-	MPP_RET flush_dpb(H264_DpbBuf_t *p_Dpb);
-	MPP_RET update_dpb(H264_DecCtx_t *p_Dec);
-	void    free_dpb (H264_DpbBuf_t *p_Dpb);
-	MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_picture);
-	MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice);
+MPP_RET init_dpb (H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type);
+MPP_RET flush_dpb(H264_DpbBuf_t *p_Dpb);
+MPP_RET update_dpb(H264_DecCtx_t *p_Dec);
+void    free_dpb (H264_DpbBuf_t *p_Dpb);
+MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_picture);
+MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice);
 
-	RK_U32  get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
-	H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure);
+RK_U32  get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
+H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 

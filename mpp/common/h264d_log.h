@@ -116,48 +116,48 @@ typedef struct log_env_ctx_t {
 } LogEnv_t;
 
 typedef struct h264d_logctx_t {
-	LogEnv_t  env;
-	LogFlag_t log_flag;
-	LogCtx_t  *parr[LOG_MAX];
+    LogEnv_t  env;
+    LogFlag_t log_flag;
+    LogCtx_t  *parr[LOG_MAX];
 } H264dLogCtx_t;
 
 //!< write log
 #define LogEnable(ctx, loglevel)  ( ctx && ctx->flag->debug_en && (ctx->flag->level & loglevel) )
 
 #define LogTrace(ctx, ...)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
+        do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
                 writelog(ctx, __FILE__, __LINE__, "TRACE", __VA_ARGS__);\
-		         } }while (0)
+                 } }while (0)
 #define LogInfo(ctx, ...)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_INFO)) {\
+        do{ if(LogEnable(ctx, LOG_LEVEL_INFO)) {\
                  writelog(ctx, __FILE__, __LINE__,  "INFO", __VA_ARGS__);\
-		         } }while (0)
+                 } }while (0)
 
 #define LogWarnning(ctx, ...)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_WARNNING)) {\
+        do{ if(LogEnable(ctx, LOG_LEVEL_WARNNING)) {\
                  writelog(ctx, __FILE__, __LINE__,  "WARNNING", __VA_ARGS__);\
-		         } }while (0)
+                 } }while (0)
 
 #define LogError(ctx, ...)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-		         writelog(ctx, __FILE__, __LINE__,  "ERROR", __VA_ARGS__);\
-				 ASSERT(0);\
-		         } }while (0)
+        do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
+                 writelog(ctx, __FILE__, __LINE__,  "ERROR", __VA_ARGS__);\
+                 ASSERT(0);\
+                 } }while (0)
 #define LogFatal(ctx, ...)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-		         writelog(ctx, __FILE__, __LINE__,  "FATAL", __VA_ARGS__);\
-				 ASSERT(0);\
-		         } }while (0)
+        do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
+                 writelog(ctx, __FILE__, __LINE__,  "FATAL", __VA_ARGS__);\
+                 ASSERT(0);\
+                 } }while (0)
 
 #define FunctionIn(ctx)\
-	    do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
-		         writelog(ctx, __FILE__, __LINE__,  "FunIn",  __FUNCTION__);\
-		         } } while (0)
+        do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
+                 writelog(ctx, __FILE__, __LINE__,  "FunIn",  __FUNCTION__);\
+                 } } while (0)
 
 #define FunctionOut(ctx)\
-	    do{if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
+        do{if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
                  writelog(ctx, __FILE__, __LINE__,  "FunOut", __FUNCTION__);\
-		         } } while (0)
+                 } } while (0)
 
 
 #define   __RETURN     __Return
@@ -165,39 +165,39 @@ typedef struct h264d_logctx_t {
 
 
 #define VAL_CHECK(ret, val)\
-	    do{ if(!(val)){\
-		        ret = MPP_ERR_VALUE;\
-				fprintf(stderr, "ERROR: value error.\n");\
-			    goto __FAILED;\
-		        } } while (0)  //!< vaule check
+        do{ if(!(val)){\
+                ret = MPP_ERR_VALUE;\
+                fprintf(stderr, "ERROR: value error.\n");\
+                goto __FAILED;\
+                } } while (0)  //!< vaule check
 
 //!< memory malloc check
 #define MEM_CHECK(ret, val)\
-	    do{ if(!(val)) {\
-		        ret = MPP_ERR_MALLOC;\
-				fprintf(stderr, "ERROR: malloc buffer.\n");\
-			    ASSERT(0); goto __FAILED;\
-		        } } while (0)  
+        do{ if(!(val)) {\
+                ret = MPP_ERR_MALLOC;\
+                fprintf(stderr, "ERROR: malloc buffer.\n");\
+                ASSERT(0); goto __FAILED;\
+                } } while (0)
 //!< file check
 #define FLE_CHECK(ret, val)\
-	    do{ if(!(val)) {\
-		        ret = MPP_ERR_OPEN_FILE;\
-				fprintf(stderr, "ERROR: open file.\n");\
-			    ASSERT(0); goto __FAILED;\
-		        } } while (0)  
+        do{ if(!(val)) {\
+                ret = MPP_ERR_OPEN_FILE;\
+                fprintf(stderr, "ERROR: open file.\n");\
+                ASSERT(0); goto __FAILED;\
+                } } while (0)
 
 //!< input check
 #define INP_CHECK(ret, ctx, val)\
-	    do{ if((val)) {\
-	           ret = MPP_ERR_INIT;\
-			   fprintf(stderr, "ERROR: input empty.\n");\
-	           goto __RETURN;\
-	           } } while (0)
- //!< function return check
+        do{ if((val)) {\
+               ret = MPP_ERR_INIT;\
+               fprintf(stderr, "ERROR: input empty.\n");\
+               goto __RETURN;\
+               } } while (0)
+//!< function return check
 #define FUN_CHECK(val)\
-	    do{ if((val) < 0) {\
-	          goto __FAILED;\
-		      } } while (0) 
+        do{ if((val) < 0) {\
+              goto __FAILED;\
+              } } while (0)
 
 #define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ## __VA_ARGS__); fflush(fp);} }
 

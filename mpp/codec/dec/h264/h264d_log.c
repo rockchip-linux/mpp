@@ -189,8 +189,8 @@ void writelog(LogCtx_t *ctx, char *filename, RK_U32 line, char *loglevel, const 
         printf("[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
     }
     if (ctx->fp && ctx->flag->write_en) {
-		fprintf(ctx->fp, "%s \n", argbuf);	
-		//fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
+        fprintf(ctx->fp, "%s \n", argbuf);
+        //fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
         fflush(ctx->fp);
     }
     va_end(argptr);

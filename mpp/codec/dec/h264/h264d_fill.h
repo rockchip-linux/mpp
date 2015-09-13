@@ -26,15 +26,15 @@
 
 
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
-	void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp);
-	void fill_qmatrix(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm);
-	void commit_buffer(H264dDxvaCtx_t *dxva);
-	MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx);
-#ifdef	__cplusplus
+void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp);
+void fill_qmatrix(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm);
+void commit_buffer(H264dDxvaCtx_t *dxva);
+MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx);
+#ifdef  __cplusplus
 }
 #endif
 

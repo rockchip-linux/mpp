@@ -805,7 +805,7 @@ typedef struct h264d_dxva_ctx_t {
     struct _DXVA_PicParams_H264_MVC  pp;
     struct _DXVA_Qmatrix_H264        qm;
     RK_U32                           max_slice_size;
-    RK_U32                           slice_count;   
+    RK_U32                           slice_count;
     struct _DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
     RK_U8                            *bitstream;
     RK_U32                           max_strm_size;
@@ -822,13 +822,13 @@ typedef struct h264d_input_ctx_t {
     struct h264d_video_ctx_t   *p_Vid;   //!< parameters for video decoder
     enum   mpp_decmtd_type      dec_mtd;
     MppParserInitCfg            init;
-	//!< input data
-	RK_U8  *in_buf;
-	size_t *in_size;
-	RK_S64 *in_timestamp;
-	//!< output data
-	RK_U8  *out_buf;
-	RK_U32 *out_length;
+    //!< input data
+    RK_U8  *in_buf;
+    size_t *in_size;
+    RK_S64 *in_timestamp;
+    //!< output data
+    RK_U8  *out_buf;
+    RK_U32 *out_length;
 
 } H264dInputCtx_t;
 
@@ -936,44 +936,44 @@ typedef struct h264d_mem_t {
 } H264_DecMem_t;
 
 //!< nalu state used in read nalu
-typedef enum nalu_state_tpye{
-	NALU_NULL = 0,
+typedef enum nalu_state_tpye {
+    NALU_NULL = 0,
 
-	//StreamError,
-	HaveNoStream,
-	NaluNotSupport,
-	//ReadNaluError,
-	//StartofNalu,
-	EndofStream,
-	//ReallocBufError,
-	MidOfNalu,
-	EndOfNalu,
-	StartOfPicture,
-	StartOfSlice,
-	SkipNALU,
-	NALU_SPS,
-	NALU_SubSPS,
-	NALU_PPS,
-	NALU_SEI,
+    //StreamError,
+    HaveNoStream,
+    NaluNotSupport,
+    //ReadNaluError,
+    //StartofNalu,
+    EndofStream,
+    //ReallocBufError,
+    MidOfNalu,
+    EndOfNalu,
+    StartOfPicture,
+    StartOfSlice,
+    SkipNALU,
+    NALU_SPS,
+    NALU_SubSPS,
+    NALU_PPS,
+    NALU_SEI,
 
-	NALU_MAX,
+    NALU_MAX,
 } NALU_STATUS;
 
 //!< slice state used in parse loop
 typedef enum slice_state_type {
-	SliceSTATE_NULL = 0,
-	SliceSTATE_IDLE,
+    SliceSTATE_NULL = 0,
+    SliceSTATE_IDLE,
 
-	SliceSTATE_ResetSlice,
-	SliceSTATE_ReadNalu,
-	SliceSTATE_ParseNalu,
-	SliceSTATE_InitPicture,
-	////SliceSTATE_InitSlice,
-	SliceSTATE_GetSliceData,
-	//SliceSTATE_RegisterOneSlice,
-	SliceSTATE_RegisterOneFrame,  
-	SliceSTATE_Error,
-	SliceSTATE_MAX,
+    SliceSTATE_ResetSlice,
+    SliceSTATE_ReadNalu,
+    SliceSTATE_ParseNalu,
+    SliceSTATE_InitPicture,
+    ////SliceSTATE_InitSlice,
+    SliceSTATE_GetSliceData,
+    //SliceSTATE_RegisterOneSlice,
+    SliceSTATE_RegisterOneFrame,
+    SliceSTATE_Error,
+    SliceSTATE_MAX,
 
 } SLICE_STATUS;
 
@@ -996,7 +996,7 @@ typedef struct h264_dec_ctx_t {
     SLICE_STATUS               next_state;       //!< RKV_SLICE_STATUS
     RK_U8                      first_frame_flag;
     RK_U8                      parser_end_flag;
-	RK_U8                      dxva_idx;
+    RK_U8                      dxva_idx;
     struct h264d_logctx_t      logctx;           //!< debug log file
     struct log_ctx_t           logctxbuf[LOG_MAX];
 } H264_DecCtx_t;

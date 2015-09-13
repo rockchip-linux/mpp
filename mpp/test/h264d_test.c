@@ -79,7 +79,7 @@ static MPP_RET decoder_init(MppDec *pApi)
     MppHalCfg         hal_cfg;
     // set decoder
     pApi->parser_api = &api_h264d_parser;
-	pApi->parser_ctx = mpp_calloc_size(void, pApi->parser_api->ctx_size);
+    pApi->parser_ctx = mpp_calloc_size(void, pApi->parser_api->ctx_size);
     MEM_CHECK(ret, pApi->parser_ctx);
     // malloc slot
     FUN_CHECK(ret = mpp_buf_slot_init(&pApi->slots));
@@ -125,19 +125,18 @@ int main(int argc, char **argv)
     // init
     FUN_CHECK(ret = decoder_init(pApi));
     do {
-        if (!pkt->size)
-        {
-            FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));            
+        if (!pkt->size) {
+            FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));
         }
         FUN_CHECK(ret = pApi->parser_api->parse(pApi->parser_ctx, pkt, &task->dec));
         if (((HalDecTask*)&task->dec)->valid) {
-            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal_ctx, task));			
-            //mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded);			
-			//!< end of stream
+            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal_ctx, task));
+            //mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded);
+            //!< end of stream
             if (!pkt->size && (pkt->flag & MPP_PACKET_FLAG_EOS)) {
                 break;
             }
-			pIn->iFrmdecoded++;
+            pIn->iFrmdecoded++;
         }
     } while (!pIn->iDecFrmNum || (pIn->iFrmdecoded < pIn->iDecFrmNum));
 

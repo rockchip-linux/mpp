@@ -22,9 +22,9 @@
 
 static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
-	VAL_CHECK(ret, bitctx->bytes_left_ > 0);
+    VAL_CHECK(ret, bitctx->bytes_left_ > 0);
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
     if (*bitctx->data_ == 0x03 && (bitctx->prev_two_bytes_ & 0xffff) == 0) {
@@ -34,7 +34,7 @@ static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
         ++bitctx->emulation_prevention_bytes_;
         // Need another full three bytes before we can detect the sequence again.
         bitctx->prev_two_bytes_ = 0xffff;
-		VAL_CHECK(ret, bitctx->bytes_left_ > 0);
+        VAL_CHECK(ret, bitctx->bytes_left_ > 0);
     }
     // Load a new byte and advance pointers.
     bitctx->curr_byte_ = *bitctx->data_++ & 0xff;
@@ -44,7 +44,7 @@ static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 
     return ret = MPP_OK;
 __FAILED:
-	return ret;
+    return ret;
 }
 
 /*!
@@ -62,7 +62,7 @@ MPP_RET read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
     RK_S32 bits_left = num_bits;
 
     *out = 0;
-	VAL_CHECK(ret, num_bits < 32);
+    VAL_CHECK(ret, num_bits < 32);
     while (bitctx->num_remaining_bits_in_curr_byte_ < bits_left) {
         // Take all that's left in current byte, shift to make space for the rest.
         *out |= (bitctx->curr_byte_ << (bits_left - bitctx->num_remaining_bits_in_curr_byte_));
@@ -101,7 +101,7 @@ MPP_RET read_ue(BitReadCtx_t *bitctx, RK_U32 *val)
     RK_S32 num_bits = -1;
     RK_S32 bit;
     RK_S32 rest;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     // Count the number of contiguous zero bits.
     do {
         FUN_CHECK(ret = read_bits(bitctx, 1, &bit));
@@ -129,7 +129,7 @@ __FAILED:
 */
 MPP_RET read_se(BitReadCtx_t *bitctx, RK_S32 *val)
 {
-	RK_U32 ue;
+    RK_U32 ue;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     FUN_CHECK(ret = read_ue(bitctx, &ue));

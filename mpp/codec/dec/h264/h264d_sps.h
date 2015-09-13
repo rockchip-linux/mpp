@@ -23,16 +23,16 @@
 #include "h264d_global.h"
 
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
-	MPP_RET process_sps   (H264_SLICE_t  *currSlice);
-	void    recycle_subsps(H264_subSPS_t *subset_sps);
-	MPP_RET process_subsps(H264_SLICE_t  *currSlice);
-	MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *subset_sps);
+MPP_RET process_sps   (H264_SLICE_t  *currSlice);
+void    recycle_subsps(H264_subSPS_t *subset_sps);
+MPP_RET process_subsps(H264_SLICE_t  *currSlice);
+MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *subset_sps);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 

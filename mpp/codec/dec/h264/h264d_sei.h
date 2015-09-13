@@ -22,13 +22,13 @@
 #include "mpp_err.h"
 #include "h264d_global.h"
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
-	MPP_RET process_sei(H264_SLICE_t *currSlice);
+MPP_RET process_sei(H264_SLICE_t *currSlice);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 

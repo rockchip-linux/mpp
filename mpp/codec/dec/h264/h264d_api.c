@@ -33,103 +33,103 @@
 
 static void close_log_files(LogEnv_t *env)
 {
-	FCLOSE(env->fp_syn_parse);
-	FCLOSE(env->fp_run_parse);
+    FCLOSE(env->fp_syn_parse);
+    FCLOSE(env->fp_run_parse);
 }
 
 static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	char fname[128] = { 0 };
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    char fname[128] = { 0 };
 
-	INP_CHECK(ret, ctx, !pflag->write_en);
-	//!< runlog file
-	if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
-		sprintf(fname, "%s/h264d_parse_runlog.dat", env->outpath);
-		FLE_CHECK(ret, env->fp_run_parse = fopen(fname, "wb"));
-	}
-	//!< read syntax
-	if (   GetBitVal(env->ctrl, LOG_READ_NALU  )
-		|| GetBitVal(env->ctrl, LOG_READ_SPS   )
-		|| GetBitVal(env->ctrl, LOG_READ_SUBSPS)
-		|| GetBitVal(env->ctrl, LOG_READ_PPS   )
-		|| GetBitVal(env->ctrl, LOG_READ_SLICE ) ) {
-			sprintf(fname, "%s/h264d_read_syntax.dat", env->outpath);
-			FLE_CHECK(ret, env->fp_syn_parse = fopen(fname, "wb"));
-	}
+    INP_CHECK(ret, ctx, !pflag->write_en);
+    //!< runlog file
+    if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
+        sprintf(fname, "%s/h264d_parse_runlog.dat", env->outpath);
+        FLE_CHECK(ret, env->fp_run_parse = fopen(fname, "wb"));
+    }
+    //!< read syntax
+    if (   GetBitVal(env->ctrl, LOG_READ_NALU  )
+           || GetBitVal(env->ctrl, LOG_READ_SPS   )
+           || GetBitVal(env->ctrl, LOG_READ_SUBSPS)
+           || GetBitVal(env->ctrl, LOG_READ_PPS   )
+           || GetBitVal(env->ctrl, LOG_READ_SLICE ) ) {
+        sprintf(fname, "%s/h264d_read_syntax.dat", env->outpath);
+        FLE_CHECK(ret, env->fp_syn_parse = fopen(fname, "wb"));
+    }
 __RETURN:
-	return MPP_OK;
+    return MPP_OK;
 
 __FAILED:
-	return ret;
+    return ret;
 }
 
 static MPP_RET logctx_deinit(H264dLogCtx_t *logctx)
 {
-	close_log_files(&logctx->env);
+    close_log_files(&logctx->env);
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 static MPP_RET logctx_init(H264dLogCtx_t *logctx, LogCtx_t *logbuf)
 {
-	RK_U8 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	LogCtx_t *pcur = NULL;
+    RK_U8 i = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    LogCtx_t *pcur = NULL;
 
-	FUN_CHECK(ret = get_logenv(&logctx->env));
-	if (logctx->env.help) {
-		print_env_help(&logctx->env);
-	}
-	if (logctx->env.show) {
-		show_env_flags(&logctx->env);
-	}
-	FUN_CHECK(ret = explain_ctrl_flag(logctx->env.ctrl, &logctx->log_flag));
-	if ( !logctx->log_flag.debug_en
-		&& !logctx->log_flag.print_en && !logctx->log_flag.write_en ) {
-			logctx->log_flag.debug_en = 0;
-			goto __RETURN;
-	}
-	logctx->log_flag.level = (1 << logctx->env.level) - 1;
-	//!< open file
-	FUN_CHECK(ret = open_log_files(&logctx->env, &logctx->log_flag));
-	//!< set logctx
-	while (i < LOG_MAX) {
-		if (GetBitVal(logctx->env.ctrl, i)) {
-			pcur = logctx->parr[i] = &logbuf[i];
-			pcur->tag = logctrl_name[i];
-			pcur->flag = &logctx->log_flag;
+    FUN_CHECK(ret = get_logenv(&logctx->env));
+    if (logctx->env.help) {
+        print_env_help(&logctx->env);
+    }
+    if (logctx->env.show) {
+        show_env_flags(&logctx->env);
+    }
+    FUN_CHECK(ret = explain_ctrl_flag(logctx->env.ctrl, &logctx->log_flag));
+    if ( !logctx->log_flag.debug_en
+         && !logctx->log_flag.print_en && !logctx->log_flag.write_en ) {
+        logctx->log_flag.debug_en = 0;
+        goto __RETURN;
+    }
+    logctx->log_flag.level = (1 << logctx->env.level) - 1;
+    //!< open file
+    FUN_CHECK(ret = open_log_files(&logctx->env, &logctx->log_flag));
+    //!< set logctx
+    while (i < LOG_MAX) {
+        if (GetBitVal(logctx->env.ctrl, i)) {
+            pcur = logctx->parr[i] = &logbuf[i];
+            pcur->tag = logctrl_name[i];
+            pcur->flag = &logctx->log_flag;
 
-			switch (i) {
-			case RUN_PARSE:
-				pcur->fp = logctx->env.fp_run_parse;
-				break;
-				break;
-			case LOG_WRITE_SPSPPS:
-			case LOG_WRITE_RPS:
-			case LOG_WRITE_SCANLIST:
-			case LOG_WRITE_STEAM:
-			case LOG_WRITE_REG:
-				pcur->fp = logctx->env.fp_syn_hal;
-			default:
-				break;
-			}
-		}
-		i++;
-	}
+            switch (i) {
+            case RUN_PARSE:
+                pcur->fp = logctx->env.fp_run_parse;
+                break;
+                break;
+            case LOG_WRITE_SPSPPS:
+            case LOG_WRITE_RPS:
+            case LOG_WRITE_SCANLIST:
+            case LOG_WRITE_STEAM:
+            case LOG_WRITE_REG:
+                pcur->fp = logctx->env.fp_syn_hal;
+            default:
+                break;
+            }
+        }
+        i++;
+    }
 
 __RETURN:
-	return ret = MPP_OK;
+    return ret = MPP_OK;
 __FAILED:
-	logctx->log_flag.debug_en = 0;
-	logctx_deinit(logctx);
+    logctx->log_flag.debug_en = 0;
+    logctx_deinit(logctx);
 
-	return ret;
+    return ret;
 }
 
 static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_Inp);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
@@ -142,7 +142,7 @@ __RETURN:
 }
 static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, MppParserInitCfg *init)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_Inp && !init);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
@@ -157,9 +157,9 @@ __RETURN:
 
 static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
 {
-	RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
-   
+    RK_U32 i = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
     INP_CHECK(ret, ctx, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Cur) {
@@ -177,19 +177,19 @@ __RETURN:
 static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
 {
     RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
-	p_Cur->strm.buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
+    p_Cur->strm.buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
     MEM_CHECK(ret, p_Cur->strm.buf);
     p_Cur->strm.max_size = NALU_BUF_MAX_SIZE;
     p_Cur->strm.prefixdata[0] = 0xff;
     p_Cur->strm.prefixdata[1] = 0xff;
     p_Cur->strm.prefixdata[2] = 0xff;
     for (i = 0; i < 2; i++) {
-		p_Cur->listP[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
-		p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
+        p_Cur->listP[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
+        p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         MEM_CHECK(ret, p_Cur->listP[i] && p_Cur->listB[i]); // +1 for reordering
     }
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
@@ -204,23 +204,21 @@ __FAILED:
 
 static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
 {
-	RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U32 i = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
-	INP_CHECK(ret, ctx, !p_Vid);
-	FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
+    INP_CHECK(ret, ctx, !p_Vid);
+    FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 
-	for (i = 0; i < MAXSPS; i++)
-	{
-		recycle_subsps(&p_Vid->subspsSet[i]);
-	}
-	for (i = 0; i < MAX_NUM_DPB_LAYERS; i++)
-	{
-		free_dpb(p_Vid->p_Dpb_layer[i]);
-		mpp_free(p_Vid->p_Dpb_layer[i]);
-	}
-	free_storable_picture(p_Vid->dec_picture);
-	//free_frame_store(&p_Vid->out_buffer);
+    for (i = 0; i < MAXSPS; i++) {
+        recycle_subsps(&p_Vid->subspsSet[i]);
+    }
+    for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
+        free_dpb(p_Vid->p_Dpb_layer[i]);
+        mpp_free(p_Vid->p_Dpb_layer[i]);
+    }
+    free_storable_picture(p_Vid->dec_picture);
+    //free_frame_store(&p_Vid->out_buffer);
 
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -229,12 +227,12 @@ __RETURN:
 static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
 {
     RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_Vid);
     FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
-		p_Vid->p_Dpb_layer[i] = mpp_calloc(H264_DpbBuf_t, 1);
+        p_Vid->p_Dpb_layer[i] = mpp_calloc(H264_DpbBuf_t, 1);
         MEM_CHECK(ret, p_Vid->p_Dpb_layer[i]);
         p_Vid->p_Dpb_layer[i]->layer_id  = i;
         p_Vid->p_Dpb_layer[i]->p_Vid     = p_Vid;
@@ -271,7 +269,7 @@ __FAILED:
 
 static MPP_RET free_dxva_ctx(H264dDxvaCtx_t *p_dxva)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, NULL == p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
@@ -287,17 +285,17 @@ __RETURN:
 
 static MPP_RET init_dxva_ctx(H264dDxvaCtx_t *p_dxva)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_dxva->max_slice_size = MAX_SLICE_SIZE;
-	p_dxva->max_strm_size  = FRAME_BUF_MAX_SIZE;	
-	p_dxva->slice_long  = mpp_calloc(DXVA_Slice_H264_Long,  p_dxva->max_slice_size);
-	MEM_CHECK(ret, p_dxva->slice_long);
-	p_dxva->bitstream   = mpp_malloc(RK_U8, p_dxva->max_strm_size);
-	p_dxva->syn.buf     = mpp_calloc(DXVA2_DecodeBufferDesc, SYNTAX_BUF_SIZE);
+    p_dxva->max_strm_size  = FRAME_BUF_MAX_SIZE;
+    p_dxva->slice_long  = mpp_calloc(DXVA_Slice_H264_Long,  p_dxva->max_slice_size);
+    MEM_CHECK(ret, p_dxva->slice_long);
+    p_dxva->bitstream   = mpp_malloc(RK_U8, p_dxva->max_strm_size);
+    p_dxva->syn.buf     = mpp_calloc(DXVA2_DecodeBufferDesc, SYNTAX_BUF_SIZE);
     MEM_CHECK(ret, p_dxva->bitstream && p_dxva->syn.buf);
     FunctionOut(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -310,7 +308,7 @@ __FAILED:
 static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
 {
     RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, NULL == p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
@@ -326,11 +324,11 @@ __RETURN:
 static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
 {
     RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, !p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	p_Dec->mem = mpp_calloc(H264_DecMem_t, 1);
+    p_Dec->mem = mpp_calloc(H264_DecMem_t, 1);
     MEM_CHECK(ret, p_Dec->mem);
     p_Dec->dpb_mark       = p_Dec->mem->dpb_mark;         //!< for write out, MAX_DPB_SIZE
     p_Dec->dpb_info       = p_Dec->mem->dpb_info;         //!< 16
@@ -338,12 +336,12 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->refpic_info[0] = p_Dec->mem->refpic_info[0];   //!< [2][32]
     p_Dec->refpic_info[1] = p_Dec->mem->refpic_info[1];   //!< [2][32]
     //!< MAX_TASK_SIZE
-    for (i = 0; i < MAX_TASK_SIZE; i++) {  
+    for (i = 0; i < MAX_TASK_SIZE; i++) {
         p_Dec->mem->dxva_ctx[i].p_Dec = p_Dec;
         FUN_CHECK(ret = init_dxva_ctx(&p_Dec->mem->dxva_ctx[i]));
     }
-	p_Dec->dxva_idx = 0;
-	p_Dec->dxva_ctx = p_Dec->mem->dxva_ctx;    
+    p_Dec->dxva_idx = 0;
+    p_Dec->dxva_ctx = p_Dec->mem->dxva_ctx;
     //!< init Dpb_memory Mark
     for (i = 0; i < MAX_DPB_SIZE; i++) {
         p_Dec->dpb_mark[i].index = i;
@@ -381,9 +379,9 @@ MPP_RET h264d_init(void *decoder, MppParserInitCfg *init)
     FUN_CHECK(ret = logctx_init(&p_Dec->logctx, p_Dec->logctxbuf));
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
-	p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1);
-	p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1);
-	p_Dec->p_Vid = mpp_calloc(H264dVideoCtx_t, 1);
+    p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1);
+    p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1);
+    p_Dec->p_Vid = mpp_calloc(H264dVideoCtx_t, 1);
     MEM_CHECK(ret, p_Dec->p_Inp && p_Dec->p_Cur && p_Dec->p_Vid);
 
     p_Dec->p_Inp->p_Dec = p_Dec;
@@ -419,7 +417,7 @@ __FAILED:
 */
 MPP_RET h264d_deinit(void *decoder)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, ctx, !decoder);
@@ -446,7 +444,7 @@ __RETURN:
 */
 MPP_RET  h264d_reset(void *decoder)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, decoder);
 
@@ -463,7 +461,7 @@ __RETURN:
 */
 MPP_RET  h264d_flush(void *decoder)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, ctx, decoder);
 
@@ -480,9 +478,9 @@ __RETURN:
 */
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
 
-	INP_CHECK(ret, ctx, decoder);
+    INP_CHECK(ret, ctx, decoder);
 
 
     (void)decoder;
@@ -491,7 +489,7 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 
 
 __RETURN:
-	return ret = MPP_OK;
+    return ret = MPP_OK;
 }
 
 /*!
@@ -502,33 +500,32 @@ __RETURN:
 */
 MPP_RET h264d_parse(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
     MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
 
     INP_CHECK(ret, ctx, !decoder && !in_pkt && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
-	p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
-	p_Dec->p_Inp->in_size = &pkt->size;
-	p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
+    p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
+    p_Dec->p_Inp->in_size = &pkt->size;
+    p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
 
-	FUN_CHECK(ret = parse_loop(p_Dec));
-	if (p_Dec->parser_end_flag)
-	{
-		in_task->valid = 1;
-		in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
-		in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
-		FUN_CHECK(ret = update_dpb(p_Dec));
-		p_Dec->dxva_idx = (p_Dec->dxva_idx + 1) % MAX_TASK_SIZE;
-		p_Dec->dxva_ctx = &p_Dec->mem->dxva_ctx[p_Dec->dxva_idx];
-	}
+    FUN_CHECK(ret = parse_loop(p_Dec));
+    if (p_Dec->parser_end_flag) {
+        in_task->valid = 1;
+        in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
+        in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
+        FUN_CHECK(ret = update_dpb(p_Dec));
+        p_Dec->dxva_idx = (p_Dec->dxva_idx + 1) % MAX_TASK_SIZE;
+        p_Dec->dxva_ctx = &p_Dec->mem->dxva_ctx[p_Dec->dxva_idx];
+    }
 
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
-	return ret;
+    return ret;
 }
 
 /*!
