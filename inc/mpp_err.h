@@ -28,6 +28,9 @@ typedef enum {
     MPP_ERR_UNKNOW              = -2,
     MPP_ERR_NULL_PTR            = -3,
     MPP_ERR_MALLOC              = -4,
+    MPP_ERR_OPEN_FILE           = -5,
+    MPP_ERR_VALUE               = -6,
+    MPP_ERR_READ_BIT            = -7,
 
     MPP_ERR_BASE                = -1000,
 
