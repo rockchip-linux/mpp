@@ -39,8 +39,16 @@
 #if defined(_WIN32) && !defined(__MINGW32CE__)
 #define snprintf    _snprintf
 #define fseeko      _fseeki64
+
+#include <direct.h>
+#define chdir       _chdir
+#define mkdir       _mkdir
 #elif defined(__MINGW32CE__)
 #define fseeko      fseeko64
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#define mkdir(x)    mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
 #ifdef __cplusplus
