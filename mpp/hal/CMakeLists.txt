@@ -6,6 +6,7 @@ add_library(mpp_hal STATIC
     hal_task.cpp
     mpp_hal.cpp
     )
+
 set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
 
 add_subdirectory(dummy)

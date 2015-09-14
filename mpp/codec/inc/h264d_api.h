@@ -17,7 +17,7 @@
 #ifndef __H264D_API_H__
 #define __H264D_API_H__
 
-#include "mpp_dec.h"
+#include "parser_api.h"
 
 
 
@@ -33,9 +33,9 @@ typedef enum mpp_decmtd_type {
 extern "C" {
 #endif
 
-extern const MppDecParser api_h264d_parser;
+extern const ParserApi api_h264d_parser;
 
-MPP_RET  h264d_init   (void *decoder, MppParserInitCfg *cfg);
+MPP_RET  h264d_init   (void *decoder, ParserCfg *cfg);
 MPP_RET  h264d_deinit (void *decoder);
 MPP_RET  h264d_reset  (void *decoder);
 MPP_RET  h264d_flush  (void *decoder);

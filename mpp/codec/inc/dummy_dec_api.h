@@ -17,15 +17,15 @@
 #ifndef __DUMMY_DEC_API_H__
 #define __DUMMY_DEC_API_H__
 
-#include "mpp_dec.h"
+#include "parser_api.h"
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-extern const MppDecParser dummy_dec_parser;
+extern const ParserApi dummy_dec_parser;
 
-MPP_RET dummy_dec_init   (void *dec, MppParserInitCfg *cfg);
+MPP_RET dummy_dec_init   (void *dec, ParserCfg *cfg);
 MPP_RET dummy_dec_deinit (void *dec);
 MPP_RET dummy_dec_reset  (void *dec);
 MPP_RET dummy_dec_flush  (void *dec);

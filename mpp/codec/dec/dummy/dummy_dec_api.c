@@ -36,7 +36,7 @@ typedef struct DummyDec_t {
     RK_S32          slot_index[DUMMY_DEC_REF_COUNT];
 } DummyDec;
 
-MPP_RET dummy_dec_init(void *dec, MppParserInitCfg *cfg)
+MPP_RET dummy_dec_init(void *dec, ParserCfg *cfg)
 {
     DummyDec *p;
     RK_S32 i;
@@ -187,7 +187,7 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
     return MPP_OK;
 }
 
-const MppDecParser dummy_dec_parser = {
+const ParserApi dummy_dec_parser = {
     "dummy_dec_parser",
     MPP_VIDEO_CodingUnused,
     sizeof(DummyDec),

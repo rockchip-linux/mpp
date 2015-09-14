@@ -21,12 +21,19 @@
 #include "hal_task.h"
 #include "mpp_buf_slot.h"
 
+typedef enum MppHalType_e {
+    HAL_MODE_LIBVPU,
+    HAL_MODE_V4L2,
+    HAL_MODE_BUTT,
+} HalWorkMode;
+
 typedef void*   MppHalCtx;
 
 typedef struct MppHalCfg_t {
     // input
     MppCtxType      type;
     MppCodingType   coding;
+    HalWorkMode     mode;
     MppBufSlots     slots;
 
     // output

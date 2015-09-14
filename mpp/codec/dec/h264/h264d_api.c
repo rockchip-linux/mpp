@@ -141,7 +141,7 @@ static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 __RETURN:
     return ret = MPP_OK;
 }
-static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, MppParserInitCfg *init)
+static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -372,7 +372,7 @@ __FAILED:
 ***********************************************************************
 */
 
-MPP_RET h264d_init(void *decoder, MppParserInitCfg *init)
+MPP_RET h264d_init(void *decoder, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
@@ -537,7 +537,7 @@ __FAILED:
 ***********************************************************************
 */
 
-const MppDecParser api_h264d_parser = {
+const ParserApi api_h264d_parser = {
     "h264d_parse",
     MPP_VIDEO_CodingAVC,
     sizeof(H264_DecCtx_t),

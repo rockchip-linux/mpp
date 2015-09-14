@@ -61,14 +61,14 @@ static MPP_RET decoder_deinit(MppDec *pApi)
         mpp_buf_slot_deinit(pApi->slots);
         pApi->slots = NULL;
     }
-    if (pApi->parser_api && pApi->parser_ctx) {
-        pApi->parser_api->deinit(pApi->parser_ctx);
+    if (pApi->parser) {
+        parser_deinit(pApi->parser);
+        pApi->parser = NULL;
     }
-    if (pApi->hal_ctx) {
-        mpp_hal_deinit(pApi->hal_ctx);
-        pApi->hal_ctx = NULL;
+    if (pApi->hal) {
+        mpp_hal_deinit(pApi->hal);
+        pApi->hal = NULL;
     }
-    mpp_free(pApi->parser_ctx);
 
     return MPP_OK;
 }
@@ -76,25 +76,26 @@ static MPP_RET decoder_deinit(MppDec *pApi)
 static MPP_RET decoder_init(MppDec *pApi)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    MppParserInitCfg  parser_cfg;
-    MppHalCfg         hal_cfg;
-    // set decoder
-    pApi->parser_api = &api_h264d_parser;
-    pApi->parser_ctx = mpp_calloc_size(void, pApi->parser_api->ctx_size);
-    MEM_CHECK(ret, pApi->parser_ctx);
+    ParserCfg       parser_cfg;
+    MppHalCfg       hal_cfg;
+    MppCodingType   coding = MPP_VIDEO_CodingAVC;
+
     // malloc slot
     FUN_CHECK(ret = mpp_buf_slot_init(&pApi->slots));
     MEM_CHECK(ret, pApi->slots);
+
     // init parser part
     memset(&parser_cfg, 0, sizeof(parser_cfg));
+    parser_cfg.coding = coding;
     parser_cfg.slots = pApi->slots;
-    FUN_CHECK(ret = pApi->parser_api->init(pApi->parser_ctx, &parser_cfg));
+    FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
+
     // init hal part
     memset(&hal_cfg, 0, sizeof(hal_cfg));
     hal_cfg.type = MPP_CTX_DEC;
-    hal_cfg.coding = pApi->parser_api->coding;
+    hal_cfg.coding = coding;
     hal_cfg.task_count = parser_cfg.task_count;
-    FUN_CHECK(ret = mpp_hal_init(&pApi->hal_ctx, &hal_cfg));
+    FUN_CHECK(ret = mpp_hal_init(&pApi->hal, &hal_cfg));
     pApi->tasks = hal_cfg.tasks;
 
     return MPP_OK;
@@ -129,9 +130,9 @@ int main(int argc, char **argv)
         if (!pkt->size) {
             FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));
         }
-        FUN_CHECK(ret = pApi->parser_api->parse(pApi->parser_ctx, pkt, &task->dec));
+        FUN_CHECK(ret = parser_parse(pApi->parser, pkt, &task->dec));
         if (((HalDecTask*)&task->dec)->valid) {
-            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal_ctx, task));
+            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal, task));
             //mpp_log("---- decoder, Frame_no = %d \n", pIn->iFrmdecoded);
             //!< end of stream
             if (!pkt->size && (pkt->flag & MPP_PACKET_FLAG_EOS)) {

@@ -22,7 +22,6 @@
 #include "rk_type.h"
 #include "rk_mpi.h"
 
-#include "mpp_dec.h"
 #include "h264d_api.h"
 #include "h264d_log.h"
 #include "h264d_bitread.h"
@@ -821,7 +820,7 @@ typedef struct h264d_input_ctx_t {
     struct h264d_cur_ctx_t     *p_Cur;   //!< current parameters, use in read nalu
     struct h264d_video_ctx_t   *p_Vid;   //!< parameters for video decoder
     enum   mpp_decmtd_type      dec_mtd;
-    MppParserInitCfg            init;
+    ParserCfg                   init;
     //!< input data
     RK_U8  *in_buf;
     size_t *in_size;

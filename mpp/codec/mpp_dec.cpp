@@ -33,21 +33,6 @@
 // for test and demo
 #include "dummy_dec_api.h"
 
-/*
- * all decoder static register here
- */
-static const MppDecParser *parsers[] = {
-    &api_h264d_parser,
-    &dummy_dec_parser,
-};
-
-#define MPP_TEST_FRAME_SIZE     SZ_1M
-
-static MPP_RET mpp_dec_parse(MppDec *dec, MppPacket pkt, HalDecTask *task)
-{
-    return dec->parser_api->parse(dec->parser_ctx, pkt, task);
-}
-
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -127,7 +112,7 @@ void *mpp_dec_parser_thread(void *data)
          *
          */
         if (!task_ready) {
-            mpp_dec_parse(dec, (MppPacket)&packet, task_dec);
+            parser_parse(dec->parser, (MppPacket)&packet, task_dec);
             if (0 == packet.size) {
                 mpp_packet_reset(&packet);
                 packet_ready = 0;
@@ -226,7 +211,7 @@ void *mpp_dec_hal_thread(void *data)
         hal_task_get(tasks, &task_local);
 
         // register genertation
-        mpp_hal_reg_gen(dec->hal_ctx, &task_local);
+        mpp_hal_reg_gen(dec->hal, &task_local);
         mpp->mThreadCodec->signal();
 
         /*
@@ -239,8 +224,8 @@ void *mpp_dec_hal_thread(void *data)
          */
         //mpp_hal_hw_start(dec->hal_ctx, &task_local);
 
-        mpp_hal_hw_start(dec->hal_ctx, &task_local);
-        mpp_hal_hw_wait(dec->hal_ctx, &task_local);
+        mpp_hal_hw_start(dec->hal, &task_local);
+        mpp_hal_hw_wait(dec->hal, &task_local);
 
         /*
          * when hardware decoding is done:
@@ -271,59 +256,63 @@ void *mpp_dec_hal_thread(void *data)
 
 MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
 {
+    MPP_RET ret;
+    MppBufSlots slots = NULL;
+    Parser parser = NULL;
+    MppHal hal = NULL;
+
     MppDec *p = mpp_calloc(MppDec, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_buf_slot_init(&p->slots);
-    if (NULL == p->slots) {
-        mpp_err_f("could not init buffer slot\n");
-        *dec = NULL;
-        mpp_free(p);
-        return MPP_ERR_UNKNOW;
-    }
-
-    RK_U32 i;
-    for (i = 0; i < MPP_ARRAY_ELEMS(parsers); i++) {
-        if (coding == parsers[i]->coding) {
-            p->coding       = coding;
-            p->parser_api   = parsers[i];
-            p->parser_ctx   = mpp_malloc_size(void, parsers[i]->ctx_size);
-            if (NULL == p->parser_ctx) {
-                mpp_err_f("failed to alloc decoder context\n");
-                break;
-            }
-
-            // init parser first to get task count
-            MppParserInitCfg parser_cfg = {
-                p->slots,
-                2,
-            };
-            p->parser_api->init(p->parser_ctx, &parser_cfg);
-
-            // then init hal with task count from parser
-            MppHalCfg hal_cfg = {
-                MPP_CTX_DEC,
-                coding,
-                p->slots,
-                NULL,
-                parser_cfg.task_count,
-            };
-            mpp_hal_init(&p->hal_ctx, &hal_cfg);
-            p->tasks = hal_cfg.tasks;
-
-            *dec = p;
-            return MPP_OK;
+    do {
+        ret = mpp_buf_slot_init(&slots);
+        if (ret) {
+            mpp_err_f("could not init buffer slot\n");
+            break;
         }
-    }
 
-    mpp_err_f("could not found coding type %d\n", coding);
+        ParserCfg parser_cfg = {
+            coding,
+            slots,
+            2,
+        };
 
-    // TODO: need to add error handle here
+        ret = parser_init(&parser, &parser_cfg);
+        if (ret) {
+            mpp_err_f("could not init parser\n");
+            break;
+        }
+
+        // then init hal with task count from parser
+        MppHalCfg hal_cfg = {
+            MPP_CTX_DEC,
+            coding,
+            HAL_MODE_LIBVPU,
+            p->slots,
+            NULL,
+            parser_cfg.task_count,
+        };
+
+        ret = mpp_hal_init(&hal, &hal_cfg);
+        if (ret) {
+            mpp_err_f("could not init hal\n");
+            break;
+        }
+
+        p->coding = coding;
+        p->parser = parser;
+        p->hal    = hal;
+        p->slots  = slots;
+        p->tasks  = hal_cfg.tasks;
+        *dec = p;
+        return MPP_OK;
+    } while (0);
+
+    mpp_dec_deinit(p);
     *dec = NULL;
-    mpp_free(p);
     return MPP_NOK;
 }
 
@@ -334,15 +323,20 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    dec->parser_api->deinit(dec->parser_ctx);
+    if (dec->parser) {
+        parser_deinit(dec->parser);
+        dec->parser = NULL;
+    }
 
-    mpp_free(dec->parser_ctx);
+    if (dec->hal) {
+        mpp_hal_deinit(dec->hal);
+        dec->hal = NULL;
+    }
 
-    if (dec->hal_ctx)
-        mpp_hal_deinit(dec->hal_ctx);
-
-    if (dec->slots)
+    if (dec->slots) {
         mpp_buf_slot_deinit(dec->slots);
+        dec->slots = NULL;
+    }
 
     mpp_free(dec);
     return MPP_OK;
@@ -355,7 +349,10 @@ MPP_RET mpp_dec_reset(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    return dec->parser_api->reset(dec->parser_ctx);
+    parser_reset(dec->parser);
+    mpp_hal_reset(dec->hal);
+
+    return MPP_OK;
 }
 
 MPP_RET mpp_dec_flush(MppDec *dec)
@@ -365,7 +362,10 @@ MPP_RET mpp_dec_flush(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    return dec->parser_api->flush(dec->parser_ctx);
+    parser_flush(dec->parser);
+    mpp_hal_flush(dec->hal);
+
+    return MPP_OK;
 }
 
 MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *param)
@@ -375,6 +375,9 @@ MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *param)
         return MPP_ERR_NULL_PTR;
     }
 
-    return dec->parser_api->control(dec->parser_ctx, cmd, param);
+    parser_control(dec->parser, cmd, param);
+    mpp_hal_control(dec->hal, cmd, param);
+
+    return MPP_OK;
 }
 

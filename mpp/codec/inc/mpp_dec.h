@@ -18,65 +18,17 @@
 #define __MPP_DEC_H__
 
 #include "rk_mpi.h"
-#include "mpp_packet.h"
-#include "mpp_buf_slot.h"
+#include "mpp_parser.h"
 #include "mpp_hal.h"
 
-/*
- * slots    - all decoder need a slots interface to sync its internal dpb management
- *            with buffer group in mpp_dec
- *
- * the reset wait for extension
- */
-typedef struct MppParserInitCfg_t {
-    // input
-    MppBufSlots     slots;
-
-    // output
-    RK_U32          task_count;
-} MppParserInitCfg;
 
 typedef struct MppDec_t MppDec;
-
-/*
- * MppDecParser is the data structure provided from different decoders
- *
- * They will be static register to mpp_dec for scaning
- * name     - decoder name
- * coding   - decoder coding type
- * ctx_size - decoder context size, mpp_dec will use this to malloc memory
- * flag     - reserve
- *
- * init     - decoder initialization function
- * deinit   - decoder de-initialization function
- * parse    - decoder main working function, mpp_dec will input packet and get output syntax
- * reset    - decoder reset function
- * flush    - decoder output all frames
- * control  - decoder configure function
- */
-typedef struct MppDecParser_t {
-    char            *name;
-    MppCodingType   coding;
-    RK_U32          ctx_size;
-    RK_U32          flag;
-
-    MPP_RET (*init)(void *ctx, MppParserInitCfg *cfg);
-    MPP_RET (*deinit)(void *ctx);
-
-    MPP_RET (*parse)(void *ctx, MppPacket pkt, HalDecTask *task);
-
-    MPP_RET (*reset)(void *ctx);
-    MPP_RET (*flush)(void *ctx);
-    MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
-} MppDecParser;
 
 struct MppDec_t {
     MppCodingType       coding;
 
-    const MppDecParser  *parser_api;
-    void                *parser_ctx;
-
-    MppHal              hal_ctx;
+    Parser              parser;
+    MppHal              hal;
 
     // common resource
     MppBufSlots         slots;

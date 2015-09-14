@@ -7,6 +7,7 @@ add_library(mpp_codec STATIC
     mpp_buf_slot.cpp
     mpp_enc.cpp
     mpp_dec.cpp
+    mpp_parser.cpp
     )
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
 
