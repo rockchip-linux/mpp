@@ -75,6 +75,12 @@ extern RK_U32 mpp_debug;
  * 24~31 bit: information print format
  */
 
+#ifdef __DEBUG
+#define mpp_abort()         abort()
+#else
+#define mpp_abort()
+#endif
+
 #define MPP_STRINGS(x)      MPP_TO_STRING(x)
 #define MPP_TO_STRING(x)    #x
 
@@ -82,7 +88,7 @@ extern RK_U32 mpp_debug;
     if (!(cond)) {                                                      \
         mpp_err("Assertion %s failed at %s:%d\n",                       \
                MPP_STRINGS(cond), __FILE__, __LINE__);                  \
-        abort();                                                        \
+        mpp_abort();                                                    \
     }                                                                   \
 } while (0)
 
@@ -101,6 +107,5 @@ void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, cons
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /*__MPP_LOG_H__*/
