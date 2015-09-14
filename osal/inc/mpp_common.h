@@ -41,11 +41,14 @@
 #define fseeko      _fseeki64
 
 #include <direct.h>
+#include <io.h>
 #define chdir       _chdir
 #define mkdir       _mkdir
+#define access      _access
 #elif defined(__MINGW32CE__)
 #define fseeko      fseeko64
 #else
+#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #define mkdir(x)    mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)

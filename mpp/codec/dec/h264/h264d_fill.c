@@ -146,7 +146,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->NonExistingFrameFlags = 0;
 
     for (i = 0, j = 0; i < FF_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (dpb_info[i].ADDR_Y) {
+        if (dpb_info[i].picbuf) {
             fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].mem_mark_idx, dpb_info[i].is_long_term);
             pp->FieldOrderCntList[i][0] = dpb_info[i].TOP_POC;
             pp->FieldOrderCntList[i][1] = dpb_info[i].BOT_POC;
@@ -305,7 +305,7 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
 
     for (i = 0; i < FF_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
         dpb_idx   = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
-        dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].ADDR_Y ? 1 : 0);
+        dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
         if (dpb_valid) {
             bottom_flag = currSlice->p_Dec->refpic_info_p[i].bottom_flag;
             fill_picture_entry(&p_long->RefPicList[0][i], dpb_idx, bottom_flag);
@@ -317,7 +317,7 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     for (list = 0; list < 2; list++) {
         for (i = 0; i < FF_ARRAY_ELEMS(p_long->RefPicList[list + 1]); i++) {
             dpb_idx   = currSlice->p_Dec->refpic_info[list][i].dpb_idx;
-            dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].ADDR_Y ? 1 : 0);
+            dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
             if (dpb_valid) {
                 bottom_flag = currSlice->p_Dec->refpic_info[list][i].bottom_flag;
                 fill_picture_entry(&p_long->RefPicList[list + 1][i], dpb_idx, bottom_flag);

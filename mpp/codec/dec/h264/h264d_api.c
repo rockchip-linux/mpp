@@ -43,8 +43,9 @@ static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
     char fname[128] = { 0 };
 
     INP_CHECK(ret, ctx, !pflag->write_en);
+    set_log_outpath(env);
     //!< runlog file
-    if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
+    if (GetBitVal(env->ctrl, LOG_DEBUG)) {
         sprintf(fname, "%s/h264d_parse_runlog.dat", env->outpath);
         FLE_CHECK(ret, env->fp_run_parse = fopen(fname, "wb"));
     }
@@ -312,11 +313,12 @@ static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
 
     INP_CHECK(ret, ctx, NULL == p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-    for (i = 0; i < MAX_TASK_SIZE; i++) {
-        free_dxva_ctx(&p_Dec->mem->dxva_ctx[i]);
+    if (p_Dec->mem) {
+        for (i = 0; i < MAX_TASK_SIZE; i++) {
+            free_dxva_ctx(&p_Dec->mem->dxva_ctx[i]);
+        }
+        mpp_free(p_Dec->mem);
     }
-    mpp_free(p_Dec->mem);
-
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;

@@ -49,6 +49,7 @@ static MPP_RET manual_set_env(void)
     mpp_env_set_u32("h264d_log_begframe", 0             );
     mpp_env_set_u32("h264d_log_endframe", 0             );
     mpp_env_set_str("h264d_log_outpath",  "F:/h264_log" );
+    mpp_env_set_str("h264d_log_cmppath",  "F:/h264_log" );
 #endif
     return MPP_OK;
 }

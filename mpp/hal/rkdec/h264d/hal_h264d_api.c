@@ -52,8 +52,9 @@ static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
     char fname[128] = { 0 };
 
     INP_CHECK(ret, ctx, !pflag->write_en);
+    set_log_outpath(env);
     //!< runlog file
-    if (GetBitVal(env->ctrl, LOG_DEBUG_EN)) {
+    if (GetBitVal(env->ctrl, LOG_DEBUG)) {
         sprintf(fname, "%s/h264d_hal_runlog.dat", env->outpath);
         FLE_CHECK(ret, env->fp_run_hal = fopen(fname, "wb"));
     }

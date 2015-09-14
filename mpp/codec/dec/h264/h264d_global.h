@@ -216,7 +216,7 @@ typedef struct h264_dpb_info_t {
     RK_U8     colmv_is_used;
     RK_U8     mem_mark_idx;
 
-    RK_U64    ADDR_Y;
+    void     *picbuf;
     RK_S32    TOP_POC;
     RK_S32    BOT_POC;
     RK_U16    frame_num_wrap;

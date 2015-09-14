@@ -17,13 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#if defined (__GNUC__)
-#include<sys/types.h>
-#include<unistd.h>
-#include<limits.h>
-#include<sys/stat.h>
-#endif
+
 #include "h264d_rwfile.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
@@ -672,19 +666,7 @@ MPP_RET h264d_open_files(InputParams *p_in)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    FLE_CHECK(ret, p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
-
-#if defined(_MSC_VER)
-    FLE_CHECK(ret, p_in->fp_golden_data = open_file(p_in->cmp_path_dir, p_in->infile_name, ".dat",  "rb"));
-    FLE_CHECK(ret, p_in->fp_driver_data = open_file(p_in->out_path_dir, p_in->infile_name, "_fpga.dat", "wb"));
-#elif  defined(__GNUC__)
-    char golden_dir[] = "/home/dw/h264d_fpga/AVC_MVC_ALL_BITSTRAM/h264d_fpga_dat";
-    char dirver_dir[] = "./h264d_dat";
-    if (access(dirver_dir, 0) != 0)
-        mkdir(dirver_dir, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-    FLE_CHECK(ret, p_in->fp_golden_data = open_file(golden_dir, p_in->infile_name, ".dat",  "rb"));
-    FLE_CHECK(ret, p_in->fp_driver_data = open_file(dirver_dir, p_in->infile_name, "_driver.dat", "wb"));
-#endif
+    FLE_CHECK(ret, p_in->fp_bitstream   = fopen(p_in->infile_name, "rb"));
 
     return MPP_OK;
 __FAILED:
@@ -775,11 +757,25 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     TempDataCtx_t tmpctx = { 0 };
     FILE *fp_log = NULL;
     RK_U32 frame_no = 0;
-    char *out_name = NULL;
+    RK_U32 ctrl_value = 0;
+    RK_U32 ctrl_debug = 0;
+    RK_U32 ctrl_fpga  = 0;
+    RK_U32 ctrl_write = 0;
+    char *outpath_dir = NULL;
+    char *cmppath_dir = NULL;
 
-    mpp_env_get_str(logenv_name.outpath, &out_name, NULL);
-    FLE_CHECK(ret, p_in->fp_golden_data && p_in->fp_driver_data);
-    fp_log = fopen(strcat(out_name, "/h264d_driver_data.dat"), "rb");
+    mpp_env_get_u32(logenv_name.ctrl, &ctrl_value, 0);
+    ctrl_debug = GetBitVal(ctrl_value, LOG_DEBUG);
+    ctrl_fpga  = GetBitVal(ctrl_value, LOG_FPGA);
+    ctrl_write = GetBitVal(ctrl_value, LOG_WRITE);
+    INP_CHECK(ret, ctx, !(ctrl_debug && ctrl_fpga && ctrl_write));
+    mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
+    mpp_env_get_str(logenv_name.cmppath,  &cmppath_dir,  NULL);
+    p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, "_driver.dat", "wb");
+    p_in->fp_golden_data = open_file(cmppath_dir, p_in->infile_name, ".dat",  "rb");
+    fp_log = fopen(strcat(outpath_dir, "/h264d_driver_data.dat"), "rb");
+    FLE_CHECK(ret, p_in->fp_golden_data);
+    FLE_CHECK(ret, p_in->fp_driver_data);
     FLE_CHECK(ret, fp_log);
     tmpctx.data = mpp_calloc_size(RK_U8, 128);
     MEM_CHECK(ret, tmpctx.data); //!< for read golden fpga data
@@ -788,15 +784,12 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
         write_driver_bytes(p_in->fp_driver_data, &tmpctx, fp_log, frame_no);
         frame_no++;
     }
-
-    mpp_free(tmpctx.data);
-    FCLOSE(fp_log);
     //remove(out_name);
-
-    return ret = MPP_OK;
+__RETURN:
+    ret = MPP_OK;
 __FAILED:
     mpp_free(tmpctx.data);
-    FCLOSE(fp_log);
+    h264d_close_files(p_in);
 
     return ret;
 }

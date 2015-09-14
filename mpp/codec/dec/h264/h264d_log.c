@@ -18,14 +18,16 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
+
 #include "h264d_log.h"
 
 #define MODULE_TAG   "h264d_log"
 
 #define LOG_BUF_SIZE 512
-
 
 RK_U32  g_nalu_cnt = 0;
 
@@ -35,6 +37,7 @@ const LogEnvStr_t logenv_name = {
     "h264d_log_ctrl",
     "h264d_log_level",
     "h264d_log_outpath",
+    "h264d_log_cmppath",
     "h264d_log_decframe",
     "h264d_log_begframe",
     "h264d_log_endframe",
@@ -149,7 +152,7 @@ MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag)
 {
     pflag->print_en = GetBitVal(ctrl_val, LOG_PRINT         );
     pflag->write_en = GetBitVal(ctrl_val, LOG_WRITE         );
-    pflag->debug_en = GetBitVal(ctrl_val, LOG_DEBUG_EN      )
+    pflag->debug_en = GetBitVal(ctrl_val, LOG_DEBUG      )
                       || GetBitVal(ctrl_val, LOG_READ_NALU     )
                       || GetBitVal(ctrl_val, LOG_READ_SPS      )
                       || GetBitVal(ctrl_val, LOG_READ_SUBSPS   )
@@ -163,7 +166,24 @@ MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag)
 
     return MPP_OK;
 }
-
+/*!
+***********************************************************************
+* \brief
+*   set log outpath
+***********************************************************************
+*/
+void set_log_outpath(LogEnv_t *env)
+{
+    if (NULL == env->outpath) {
+        mpp_env_set_str(logenv_name.outpath,  "./h264d_dat" );
+        mpp_env_get_str(logenv_name.outpath,  &env->outpath,  NULL);
+    }
+    if (access(env->outpath, 0)) {
+        if (mkdir(env->outpath)) {
+            fprintf(stderr, "ERROR: create folder,%s \n", env->outpath);
+        }
+    }
+}
 /*!
 ***********************************************************************
 * \brief

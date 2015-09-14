@@ -53,7 +53,7 @@ typedef enum {
 } LogLevel_type;
 
 typedef enum {
-    LOG_DEBUG_EN      = 0,
+    LOG_DEBUG         = 0,
     LOG_FPGA             ,
     LOG_PRINT            ,
     LOG_WRITE            ,
@@ -91,6 +91,7 @@ typedef struct log_env_str_t {
     char *ctrl;
     char *level;
     char *outpath;
+    char *cmppath;
     char *decframe;
     char *begframe;
     char *endframe;
@@ -190,7 +191,7 @@ typedef struct h264d_logctx_t {
 #define INP_CHECK(ret, ctx, val)\
         do{ if((val)) {\
                ret = MPP_ERR_INIT;\
-               fprintf(stderr, "ERROR: input empty.\n");\
+               fprintf(stderr, "WARNNING: input empty.\n");\
                goto __RETURN;\
                } } while (0)
 //!< function return check
@@ -216,6 +217,7 @@ MPP_RET get_logenv(LogEnv_t *env);
 void    print_env_help(LogEnv_t *env);
 void    show_env_flags(LogEnv_t *env);
 MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag);
+void    set_log_outpath(LogEnv_t *env);
 
 void writelog(LogCtx_t *ctx, char *fname, RK_U32 line, char *loglevel, const char *msg, ...);
 
