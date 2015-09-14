@@ -61,12 +61,12 @@ extern "C" {
 RK_S32 mpp_log2(RK_U32 v);
 RK_S32 mpp_log2_16bit(RK_U32 v);
 
-static inline RK_S32 mpp_ceil_log2(RK_S32 x)
+static __inline RK_S32 mpp_ceil_log2(RK_S32 x)
 {
     return mpp_log2((x - 1) << 1);
 }
 
-static inline RK_S32 mpp_clip(RK_S32 a, RK_S32 amin, RK_S32 amax)
+static __inline RK_S32 mpp_clip(RK_S32 a, RK_S32 amin, RK_S32 amax)
 {
     if      (a < amin) return amin;
     else if (a > amax) return amax;
