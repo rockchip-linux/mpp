@@ -59,7 +59,7 @@ MPP_RET parser_init(Parser *prs, ParserCfg *cfg)
         const ParserApi *api = parsers[i];
         if (cfg->coding == api->coding) {
             ParserImpl *p = mpp_malloc(ParserImpl, 1);
-            void *ctx = mpp_malloc_size(void, api->ctx_size);
+            void *ctx = mpp_calloc_size(void, api->ctx_size);
             if (NULL == ctx || NULL == p) {
                 mpp_err_f("failed to alloc parser context\n");
                 mpp_free(p);
