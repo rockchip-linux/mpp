@@ -76,7 +76,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
             p->slots        = cfg->slots;
             p->api          = hw_apis[i];
             p->task_count   = cfg->task_count;
-            p->ctx          = mpp_malloc_size(void, p->api->ctx_size);
+            p->ctx          = mpp_calloc_size(void, p->api->ctx_size);
             p->api->init(p->ctx, cfg);
 
             MPP_RET ret = hal_task_group_init(&p->tasks, p->type, p->task_count);
