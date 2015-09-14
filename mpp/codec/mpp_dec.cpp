@@ -27,12 +27,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
 
-#include "h264d_api.h"
-#include "h265d_api.h"
-
-// for test and demo
-#include "dummy_dec_api.h"
-
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
