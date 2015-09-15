@@ -292,7 +292,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         // otherwise move the group to list_orphan and wait for buffer release
         list_del_init(&p->list_group);
         list_add_tail(&p->list_group, &service.mListOrphan);
-        mpp_err("mpp_group %p deinit with %d buffer not released\n", p, p->usage);
+        mpp_err("mpp_group %p tag %s deinit with %d buffer not released\n", p, p->tag, p->usage);
         // if any buffer with mode MPP_BUFFER_MODE_COMMIT found it should be error
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
