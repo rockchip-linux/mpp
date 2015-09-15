@@ -211,6 +211,7 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
         mpp_err("found invalid operation code %d\n", op);
     } break;
     }
+    mpp_assert((RK_S16)(status&MPP_SLOT_HW_REF_MASK) >= 0);
     slot->status = status;
     buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "index %2d op: %s status in %08x out %08x",
                  index, op_string[op], before, status);
