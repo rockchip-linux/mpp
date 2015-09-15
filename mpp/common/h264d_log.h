@@ -22,7 +22,7 @@
 
 #include "rk_type.h"
 #include "mpp_err.h"
-
+#include "mpp_log.h"
 
 //!< undefine tag
 #ifdef MODULE_TAG
@@ -168,7 +168,7 @@ typedef struct h264d_logctx_t {
 #define VAL_CHECK(ret, val)\
         do{ if(!(val)){\
                 ret = MPP_ERR_VALUE;\
-                fprintf(stderr, "ERROR: value error.\n");\
+                mpp_log("ERROR: value error.\n");\
                 goto __FAILED;\
                 } } while (0)  //!< vaule check
 
@@ -176,14 +176,14 @@ typedef struct h264d_logctx_t {
 #define MEM_CHECK(ret, val)\
         do{ if(!(val)) {\
                 ret = MPP_ERR_MALLOC;\
-                fprintf(stderr, "ERROR: malloc buffer.\n");\
+                mpp_log("ERROR: malloc buffer.\n");\
                 ASSERT(0); goto __FAILED;\
                 } } while (0)
 //!< file check
 #define FLE_CHECK(ret, val)\
         do{ if(!(val)) {\
                 ret = MPP_ERR_OPEN_FILE;\
-                fprintf(stderr, "ERROR: open file.\n");\
+                mpp_log("ERROR: open file.\n");\
                 ASSERT(0); goto __FAILED;\
                 } } while (0)
 
@@ -191,7 +191,7 @@ typedef struct h264d_logctx_t {
 #define INP_CHECK(ret, ctx, val)\
         do{ if((val)) {\
                ret = MPP_ERR_INIT;\
-               fprintf(stderr, "WARNNING: input empty.\n");\
+               mpp_log("WARNNING: input empty.\n");\
                goto __RETURN;\
                } } while (0)
 //!< function return check

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "mpp_log.h"
 #include "mpp_mem.h"
 
 #include "h264d_log.h"
@@ -102,7 +103,6 @@ void  fifo_write_bits(FifoCtx_t *pkt, RK_U64 invalue, RK_U8 lbits, const char *n
     pkt->bvalue |= invalue << pkt->bitpos;  // high bits value
     if ((pkt->bitpos + lbits) >= 64) {
         pkt->pbuf[pkt->index] = pkt->bvalue;
-        //printf("pdata[%d]=%16x \n", pkt->index, pkt->bvalue);
         pkt->bvalue = invalue >> (64 - pkt->bitpos);  // low bits value
         pkt->index++;
         ASSERT(pkt->index <= pkt->buflen);

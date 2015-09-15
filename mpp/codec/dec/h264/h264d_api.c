@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#include <string.h>
+
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
@@ -105,13 +107,13 @@ static MPP_RET logctx_init(H264dLogCtx_t *logctx, LogCtx_t *logbuf)
             case RUN_PARSE:
                 pcur->fp = logctx->env.fp_run_parse;
                 break;
+            case LOG_READ_NALU:
+            case LOG_READ_SPS:
+            case LOG_READ_SUBSPS:
+            case LOG_READ_PPS:
+            case LOG_READ_SLICE:
+                pcur->fp = logctx->env.fp_syn_parse;
                 break;
-            case LOG_WRITE_SPSPPS:
-            case LOG_WRITE_RPS:
-            case LOG_WRITE_SCANLIST:
-            case LOG_WRITE_STEAM:
-            case LOG_WRITE_REG:
-                pcur->fp = logctx->env.fp_syn_hal;
             default:
                 break;
             }
@@ -377,6 +379,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
     INP_CHECK(ret, ctx, !p_Dec);
+    memset(p_Dec, 0, sizeof(H264_DecCtx_t));
     // init logctx
     FUN_CHECK(ret = logctx_init(&p_Dec->logctx, p_Dec->logctxbuf));
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);

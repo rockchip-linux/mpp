@@ -18,17 +18,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "h264d_rwfile.h"
+#include "mpp_log.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "h264d_log.h"
+#include "h264d_rwfile.h"
 
-#define     MODULE_TAG           "H264d_rwfile"
+
+#define     MODULE_TAG           "h264d_rwfile"
+#define     MAX_STRING_SIZE      128
+
 #define     MAX_ITEMS_TO_PARSE   32
-
-
 #define     START_PREFIX_3BYTE   3
 #define     MAX_ITEMS_TO_PARSE   32
 
@@ -93,32 +95,34 @@ static void display_input_cmd(RK_S32 argc, char *argv[])
 {
     RK_S32 nn = 0;
     char *pnamecmd = NULL;
+    char strcmd[MAX_STRING_SIZE] = {0};
 
-    fprintf(stdout, "INPUT_CMD:  ");
+    strcat(strcmd, "INPUT_CMD:  ");
     pnamecmd = strrchr(argv[0], '/');
     pnamecmd = pnamecmd ? (pnamecmd + 1) : (strrchr(argv[0], '\\') + 1) ;
-    fprintf(stdout, "%s  ", pnamecmd);
+    strcat(strcmd, pnamecmd);
     for (nn = 1; nn < argc; nn++) {
-        fprintf(stdout, "%s  ", argv[nn]);
+        strcat(strcmd, " ");
+        strcat(strcmd, argv[nn]);
     }
-    fprintf(stdout, "\n");
+    mpp_log("%s \n", strcmd);
 }
 
 static void print_help_message(char *cmd)
 {
-    fprintf(stderr,
-            "##### Options\n"
-            "   -h/--help      : prints help message.\n"
-            "   --cmppath      :[string] Set golden input  file store directory.\n"
-            "   --outpath      :[string] Set driver output file store directory.\n"
-            "   -r/--raw       :[number] Set bitstream raw cfg, 0/1: slice long 2:slice short.\n"
-            "   -c/--cfg       :[file]   Set configure file< such as, decoder.cfg>.\n"
-            "   -i/--input     :[file]   Set input bitstream file.\n"
-            "   -n/--num       :[number] Set decoded frames.\n"
-            "##### Examples of usage:\n"
-            "   %s  -h\n"
-            "   %s  -c decoder.cfg\n"
-            "   %s  -i input.bin -n 10 ", cmd, cmd, cmd);
+    mpp_log(
+        "##### Options\n"
+        "   -h/--help      : prints help message.\n"
+        "   --cmppath      :[string] Set golden input  file store directory.\n"
+        "   --outpath      :[string] Set driver output file store directory.\n"
+        "   -r/--raw       :[number] Set bitstream raw cfg, 0/1: slice long 2:slice short.\n"
+        "   -c/--cfg       :[file]   Set configure file< such as, decoder.cfg>.\n"
+        "   -i/--input     :[file]   Set input bitstream file.\n"
+        "   -n/--num       :[number] Set decoded frames.\n"
+        "##### Examples of usage:\n"
+        "   %s  -h\n"
+        "   %s  -c decoder.cfg\n"
+        "   %s  -i input.bin -n 10 ", cmd, cmd, cmd);
 }
 
 static RK_U8 *get_config_file_content(char *fname)
@@ -128,28 +132,28 @@ static RK_U8 *get_config_file_content(char *fname)
     RK_U32 filesize = 0;
 
     if (!(fp_cfg = fopen(fname, "r"))) {
-        fprintf(stderr, "Cannot open configuration file %s.", fname);
+        mpp_log("Cannot open configuration file %s.", fname);
         goto __FAILED;
     }
 
     if (fseek(fp_cfg, 0, SEEK_END)) {
-        fprintf(stderr, "Cannot fseek in configuration file %s.", fname);
+        mpp_log("Cannot fseek in configuration file %s.", fname);
         goto __FAILED;
     }
 
     filesize = ftell(fp_cfg);
 
     if (filesize > 150000) {
-        fprintf(stderr, "\n Unreasonable Filesize %d reported by ftell for configuration file %s.", filesize, fname);
+        mpp_log("\n Unreasonable Filesize %d reported by ftell for configuration file %s.", filesize, fname);
         goto __FAILED;
     }
     if (fseek(fp_cfg, 0, SEEK_SET)) {
-        fprintf(stderr, "Cannot fseek in configuration file %s.", fname);
+        mpp_log("Cannot fseek in configuration file %s.", fname);
         goto __FAILED;
     }
 
     if (!(pbuf = mpp_malloc_size(RK_U8, filesize + 1))) {
-        fprintf(stderr, "Cannot malloc content buffer for file %s.", fname);
+        mpp_log("Cannot malloc content buffer for file %s.", fname);
         goto __FAILED;
     }
     filesize = (long)fread(pbuf, 1, filesize, fp_cfg);
@@ -282,7 +286,7 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
             CLcount += 2;
             have_cfg_flag = 1;
         } else {
-            fprintf(stderr, "Error: %s cannot explain command! \n", av[CLcount]);
+            mpp_log("Error: %s cannot explain command! \n", av[CLcount]);
             goto __FAILED;
         }
     }
@@ -554,7 +558,7 @@ static void read_golden_data(FILE *fp, TempDataCtx_t *tmpctx, RK_U32 frame_no)
         case RKVDEC_ERR_HEADER:
             break;
         default:
-            printf("ERROR: frame_no=%d. \n", frame_no);
+            mpp_log("ERROR: frame_no=%d. \n", frame_no);
             ASSERT(0);
             break;
         }
@@ -612,7 +616,7 @@ static void write_driver_bytes(FILE *fp_out, TempDataCtx_t *in_tmpctx, FILE *fp_
             write_bytes(fp_in, &m_tmpctx, fp_out);
             return;
         default:
-            printf("ERROR: frame_no=%d. \n", frame_no);
+            mpp_log("ERROR: frame_no=%d. \n", frame_no);
             ASSERT(0);
             break;
         }
@@ -771,7 +775,7 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     INP_CHECK(ret, ctx, !(ctrl_debug && ctrl_fpga && ctrl_write));
     mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
     mpp_env_get_str(logenv_name.cmppath,  &cmppath_dir,  NULL);
-    p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, "_driver.dat", "wb");
+    p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, ".dat", "wb");
     p_in->fp_golden_data = open_file(cmppath_dir, p_in->infile_name, ".dat",  "rb");
     fp_log = fopen(strcat(outpath_dir, "/h264d_driver_data.dat"), "rb");
     FLE_CHECK(ret, p_in->fp_golden_data);

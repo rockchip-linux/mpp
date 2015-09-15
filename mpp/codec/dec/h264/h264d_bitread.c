@@ -19,6 +19,8 @@
 #include "mpp_err.h"
 #include "h264d_bitread.h"
 
+#define MODULE_TAG ""
+
 
 static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 {

@@ -19,13 +19,14 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
 #include "h264d_log.h"
 
-#define MODULE_TAG   "h264d_log"
+#define MODULE_TAG   ""
 
 #define LOG_BUF_SIZE 512
 
@@ -104,23 +105,22 @@ void print_env_help(LogEnv_t *env)
     RK_U8 i = 0;
     (void)env;
 
-    fprintf(stdout, "--------------- h264d help  -------------------- \n");
-
-    fprintf(stdout, "h264d_log_help     :[num] (0/1) show help content \n");
-    fprintf(stdout, "h264d_log_show     :[num] (0/1) show current log setting \n");
-    fprintf(stdout, "h264d_log_outpath  :[str]  \n");
-    fprintf(stdout, "h264d_log_decframe :[num]  \n");
-    fprintf(stdout, "h264d_log_begframe :[num]  \n");
-    fprintf(stdout, "h264d_log_endframe :[num]  \n");
-    fprintf(stdout, "h264d_log_level    :[num]  \n");
+    mpp_log("--------------- h264d help  -------------------- \n");
+    mpp_log("h264d_log_help     :[num] (0/1) show help content \n");
+    mpp_log("h264d_log_show     :[num] (0/1) show current log setting \n");
+    mpp_log("h264d_log_outpath  :[str]  \n");
+    mpp_log("h264d_log_decframe :[num]  \n");
+    mpp_log("h264d_log_begframe :[num]  \n");
+    mpp_log("h264d_log_endframe :[num]  \n");
+    mpp_log("h264d_log_level    :[num]  \n");
     for (i = 0; i < LOG_LEVEL_MAX; i++) {
-        fprintf(stdout, "                    (%2d) -- %s  \n", i, loglevel_name[i]);
+        mpp_log("                    (%2d) -- %s  \n", i, loglevel_name[i]);
     }
-    fprintf(stdout, "\nh264d_log_ctrl     :[32bit] \n");
+    mpp_log("h264d_log_ctrl     :[32bit] \n");
     for (i = 0; i < LOG_MAX; i++) {
-        fprintf(stdout, "                    (%2d)bit -- %s  \n", i, logctrl_name[i]);
+        mpp_log("                    (%2d)bit -- %s  \n", i, logctrl_name[i]);
     }
-    fprintf(stdout, "------------------------------------------------- \n");
+    mpp_log("------------------------------------------------- \n");
 }
 /*!
 ***********************************************************************
@@ -131,16 +131,16 @@ void print_env_help(LogEnv_t *env)
 void show_env_flags(LogEnv_t *env)
 {
     RK_U8 i = 0;
-    fprintf(stdout, "------------- h264d debug setting   ------------- \n");
-    fprintf(stdout, "outputpath    : %s \n", env->outpath);
-    fprintf(stdout, "DecodeFrame   : %d \n", env->decframe);
-    fprintf(stdout, "LogBeginFrame : %d \n", env->begframe);
-    fprintf(stdout, "LogEndFrame   : %d \n", env->endframe);
-    fprintf(stdout, "LogLevel      : %s \n", loglevel_name[env->level]);
+    mpp_log("------------- h264d debug setting   ------------- \n");
+    mpp_log("outputpath    : %s \n", env->outpath);
+    mpp_log("DecodeFrame   : %d \n", env->decframe);
+    mpp_log("LogBeginFrame : %d \n", env->begframe);
+    mpp_log("LogEndFrame   : %d \n", env->endframe);
+    mpp_log("LogLevel      : %s \n", loglevel_name[env->level]);
     for (i = 0; i < LOG_MAX; i++) {
-        fprintf(stdout, "%s: %d (%d)\n", logctrl_name[i], GetBitVal(env->ctrl, i), i);
+        mpp_log("%s: %d (%d)\n", logctrl_name[i], GetBitVal(env->ctrl, i), i);
     }
-    fprintf(stdout, "------------------------------------------------- \n");
+    mpp_log("------------------------------------------------- \n");
 }
 /*!
 ***********************************************************************
@@ -180,7 +180,7 @@ void set_log_outpath(LogEnv_t *env)
     }
     if (access(env->outpath, 0)) {
         if (mkdir(env->outpath)) {
-            fprintf(stderr, "ERROR: create folder,%s \n", env->outpath);
+            mpp_log("ERROR: create folder,%s \n", env->outpath);
         }
     }
 }
@@ -204,9 +204,8 @@ void writelog(LogCtx_t *ctx, char *filename, RK_U32 line, char *loglevel, const 
     pfn0 = strrchr(filename, '/');
     pfn1 = strrchr(filename, '\\');
     pfn  = pfn0 ? (pfn0 + 1) : (pfn1 ? (pfn1 + 1) : filename);
-
     if (ctx->flag->print_en) {
-        printf("[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
+        mpp_log("[TAG=%s] file: %s:%d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
     }
     if (ctx->fp && ctx->flag->write_en) {
         fprintf(ctx->fp, "%s \n", argbuf);
