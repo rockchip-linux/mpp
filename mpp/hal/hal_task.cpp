@@ -105,6 +105,23 @@ MPP_RET hal_task_can_get(HalTaskGroup group)
     return (tasks->list_size()) ? (MPP_OK) : (MPP_NOK);
 }
 
+MPP_RET hal_task_init(HalTask *task, MppCtxType type)
+{
+    if (NULL == task || type >= MPP_CTX_BUTT) {
+        mpp_err_f("found invalid input task %p type %d\n", task, type);
+        return MPP_ERR_UNKNOW;
+    }
+    if (MPP_CTX_DEC == type) {
+        task->dec.valid  = 0;
+        task->dec.output = -1;
+        memset(&task->dec.syntax, 0, sizeof(task->dec.syntax));
+        memset(task->dec.refer, -1, sizeof(task->dec.refer));
+    } else {
+        memset(&task->enc, 0, sizeof(task->enc));
+    }
+    return MPP_OK;
+}
+
 MPP_RET hal_task_put(HalTaskGroup group, HalTask *task)
 {
     MPP_RET ret = hal_task_can_put(group);

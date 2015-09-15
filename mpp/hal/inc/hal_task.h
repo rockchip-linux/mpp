@@ -134,6 +134,7 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
 MPP_RET hal_task_can_put(HalTaskGroup group);
 MPP_RET hal_task_can_get(HalTaskGroup group);
 
+MPP_RET hal_task_init(HalTask *task, MppCtxType type);
 MPP_RET hal_task_put(HalTaskGroup group, HalTask *task);
 MPP_RET hal_task_get(HalTaskGroup group, HalTask *task);
 

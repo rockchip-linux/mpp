@@ -53,7 +53,6 @@ void *mpp_dec_parser_thread(void *data)
 
     HalTask     task_local;
     HalDecTask  *task_dec = &task_local.dec;
-    memset(&task_local, 0, sizeof(task_local));
 
     while (MPP_THREAD_RUNNING == parser->get_status()) {
         /*
@@ -106,6 +105,7 @@ void *mpp_dec_parser_thread(void *data)
          *
          */
         if (!task_ready) {
+            hal_task_init(&task_local, MPP_CTX_DEC);
             parser_parse(dec->parser, (MppPacket)&packet, task_dec);
             if (0 == packet.size) {
                 mpp_packet_reset(&packet);
