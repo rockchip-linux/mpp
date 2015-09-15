@@ -9,10 +9,10 @@ set(HAL_H264D_API
     
 # hal h264 header   
 set(HAL_H264D_HDR
-	 hal_h264d_global.h
-     hal_h264d_reg.h
-	 hal_h264d_fifo.h
-	 hal_h264d_packet.h
+	hal_h264d_global.h
+    hal_h264d_reg.h
+	hal_h264d_fifo.h
+	hal_h264d_packet.h
     ) 
     
 # hal h264 decoder sourse

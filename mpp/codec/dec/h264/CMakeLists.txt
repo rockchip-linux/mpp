@@ -1,12 +1,11 @@
 # vim: syntax=cmake
-
+include_directories(.)
 
 # h264 decoder api
 set(H264D_API
   ../../inc/h264d_api.h  
   )
 set(H264D_COMMON
-  	../../../common/h264d_rwfile.h
 	../../../common/h264d_log.h
 	../../../common/h264d_syntax.h
   )
@@ -31,7 +30,6 @@ set(H264D_HDR
 # h264 decoder sourse
 set(H264D_SRC
 	h264d_api.c
-	h264d_rwfile.c
 	h264d_log.c
 	h264d_bitread.c
 	h264d_parse.c

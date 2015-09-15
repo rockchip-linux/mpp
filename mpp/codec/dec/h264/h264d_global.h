@@ -1,4 +1,4 @@
-﻿/*
+/*
 *
 * Copyright 2015 Rockchip Electronics Co. LTD
 *

@@ -23,5 +23,13 @@ endmacro()
 add_mpp_test(mpp_info)
 
 # h264 decoder test
-add_mpp_test(h264d)
+option(H264D_TEST "Build mpp h264 decoder unit test" ON)
+if(H264D_TEST)
+	set(test_name h264d_test)
+    add_executable(${test_name} ${test_name}.c h264d_rwfile.h h264d_rwfile.c)
+    target_link_libraries(${test_name} mpp)
+    set_target_properties(${test_name} PROPERTIES FOLDER "mpp/test") 
+    install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
+endif()
+
 
