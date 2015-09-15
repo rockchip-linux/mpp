@@ -1,4 +1,6 @@
 # vim: syntax=cmake
+include_directories(worker/inc)
+
 # ----------------------------------------------------------------------------
 # add mpp_hal implement
 # ----------------------------------------------------------------------------
@@ -16,5 +18,11 @@ add_subdirectory(rkdec/h264d)
 add_subdirectory(rkdec/h265d)
 
 add_subdirectory(rkdec/vp9d)
+
+# ----------------------------------------------------------------------------
+# add hardware worker implement
+# ----------------------------------------------------------------------------
+add_subdirectory(worker/libvpu)
+add_subdirectory(worker/libv4l2)
 
 target_link_libraries(mpp_hal hal_h264d hal_dummy)
