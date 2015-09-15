@@ -225,7 +225,6 @@ static void dump_slots(MppBufSlotsImpl *impl)
     mpp_log("\ndumping slots %p count %d size %d\n", impl, impl->count, impl->size);
     mpp_log("decode  count %d\n", impl->decode_count);
     mpp_log("display count %d\n", impl->display_count);
-    mpp_log("unrefer count %d\n", impl->unrefer_count);
 
     for (i = 0; i < impl->count; i++, slot++) {
         RK_U32 used     = (slot->status & MPP_SLOT_USED)             ? (1) : (0);
@@ -310,6 +309,11 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    mpp_assert(list_empty(&impl->display));
+    MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
+    RK_U32 i;
+    for (i = 0; i < impl->count; i++, slot++)
+        mpp_assert(MPP_SLOT_UNUSED == slot->status);
 
     if (impl->logs)
         delete impl->logs;
@@ -461,7 +465,6 @@ MPP_RET mpp_buf_slot_clr_dpb_ref(MppBufSlots slots, RK_U32 index)
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_DPB_REF);
-    impl->unrefer_count++;
     check_entry_unused(impl, slot);
     return MPP_OK;
 }
@@ -521,7 +524,7 @@ MPP_RET mpp_buf_slot_clr_hw_dst(MppBufSlots slots, RK_U32 index)
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_HW_DST);
     slot_ops_with_log(impl->logs, slot, SLOT_CLR_NOT_READY);
-    impl->unrefer_count++;
+    impl->decode_count++;
     check_entry_unused(impl, slot);
     return MPP_OK;
 }
