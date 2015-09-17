@@ -29,6 +29,7 @@ MPP_PACKET_ACCESSORS(void*,  pos)
 MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
+MPP_PACKET_ACCESSORS(MppBuffer, buffer)
 
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
@@ -59,7 +60,12 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_free(*packet);
+    MppPacketImpl *p = (MppPacketImpl *)(*packet);
+    if (p->buffer)
+        mpp_buffer_put(p->buffer);
+
+    mpp_free(p);
+    *packet = NULL;
     return MPP_OK;
 }
 
