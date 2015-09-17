@@ -33,8 +33,8 @@ extern "C" {
  */
 MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
+MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src);
 MPP_RET mpp_packet_deinit(MppPacket *packet);
-
 
 void    mpp_packet_set_data(MppPacket packet, void *data);
 void*   mpp_packet_get_data(const MppPacket packet);
@@ -56,6 +56,13 @@ RK_U32  mpp_packet_get_flag(const MppPacket packet);
 MPP_RET mpp_packet_set_eos(MppPacket packet);
 RK_U32  mpp_packet_get_eos(MppPacket packet);
 MPP_RET mpp_packet_set_extra_data(MppPacket packet);
+
+/*
+ * data access interface
+ */
+MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size);
+MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t size);
+
 
 #ifdef __cplusplus
 }

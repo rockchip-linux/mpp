@@ -31,6 +31,22 @@ MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
 MPP_PACKET_ACCESSORS(MppBuffer, buffer)
 
+MPP_RET mpp_packet_new(MppPacket *packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("invalid NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppPacketImpl *p = mpp_calloc(MppPacketImpl, 1);
+    *packet = p;
+    if (NULL == p) {
+        mpp_err_f("malloc failed\n");
+        return MPP_ERR_NULL_PTR;
+    }
+    return MPP_OK;
+}
+
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet || NULL == data || 0 == size) {
@@ -39,18 +55,41 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppPacketImpl *p = mpp_calloc(MppPacketImpl, 1);
-    if (NULL == p) {
-        mpp_err_f("malloc failed\n");
+    MPP_RET ret = mpp_packet_new(packet);
+    if (ret) {
+        mpp_err_f("new packet failed\n");
+        return ret;
+    }
+    MppPacketImpl *p = (MppPacketImpl *)*packet;
+    p->data = p->pos = data;
+    p->size = size;
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src)
+{
+    if (NULL == packet || NULL == src) {
+        mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p->data = data;
-    p->size = size;
+    size_t size = mpp_packet_get_size(src);
+    void *data = mpp_malloc_size(void, size);
+    if (NULL == data) {
+        mpp_err_f("malloc failed\n");
+        return MPP_ERR_MALLOC;
+    }
 
-    *packet = p;
+    MPP_RET ret = mpp_packet_init(packet, data, size);
+    if (MPP_OK == ret) {
+        memcpy(data, mpp_packet_get_data(src), size);
+        return MPP_OK;
+    }
 
-    return MPP_OK;
+    mpp_err_f("malloc failed\n");
+    mpp_free(data);
+    return ret;
 }
 
 MPP_RET mpp_packet_deinit(MppPacket *packet)
@@ -112,6 +151,38 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
     }
 
     memset(packet, 0, sizeof(*packet));
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_read(MppPacket buffer, size_t offset, void *data, size_t size)
+{
+    if (NULL == buffer || NULL == data) {
+        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+        return MPP_ERR_UNKNOW;
+    }
+
+    if (0 == size)
+        return MPP_OK;
+
+    void *src = mpp_packet_get_data(buffer);
+    mpp_assert(src != NULL);
+    memcpy(data, (char*)src + offset, size);
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_write(MppPacket buffer, size_t offset, void *data, size_t size)
+{
+    if (NULL == buffer || NULL == data) {
+        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+        return MPP_ERR_UNKNOW;
+    }
+
+    if (0 == size)
+        return MPP_OK;
+
+    void *dst = mpp_packet_get_data(buffer);
+    mpp_assert(dst != NULL);
+    memcpy((char*)dst + offset, data, size);
     return MPP_OK;
 }
 
