@@ -32,6 +32,8 @@ static void setup_mpp_frame_name(MppFrameImpl *frame)
 static void check_mpp_frame_name(MppFrameImpl *frame)
 {
     mpp_assert(frame->name == module_name);
+    if (frame->name != module_name)
+        abort();
 }
 
 MPP_RET mpp_frame_init(MppFrame *frame)
@@ -47,6 +49,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
+    setup_mpp_frame_name(p);
     *frame = p;
 
     return MPP_OK;
@@ -59,6 +62,7 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
+    check_mpp_frame_name((MppFrameImpl *)*frame);
     MppBuffer buffer = mpp_frame_get_buffer(*frame);
     if (buffer)
         mpp_buffer_put(buffer);
@@ -75,6 +79,7 @@ MppFrame mpp_frame_get_next(MppFrame frame)
     }
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
+    check_mpp_frame_name(p);
     return (MppFrame)p->next;
 }
 
@@ -86,6 +91,7 @@ MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
     }
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
+    check_mpp_frame_name(p);
     p->next = (MppFrameImpl *)next;
     return MPP_OK;
 }
@@ -97,6 +103,7 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
         return MPP_ERR_NULL_PTR;
     }
 
+    check_mpp_frame_name((MppFrameImpl *)dst);
     memcpy(dst, src, sizeof(MppFrameImpl));
     return MPP_OK;
 }
