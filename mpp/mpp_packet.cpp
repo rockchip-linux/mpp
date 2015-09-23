@@ -107,9 +107,6 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 
     MppPacketImpl *p = (MppPacketImpl *)(*packet);
     check_mpp_packet_name(p);
-    if (p->buffer)
-        mpp_buffer_put(p->buffer);
-
     mpp_free(p);
     *packet = NULL;
     return MPP_OK;
@@ -165,33 +162,33 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_read(MppPacket buffer, size_t offset, void *data, size_t size)
+MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
 {
-    if (NULL == buffer || NULL == data) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+    if (NULL == packet || NULL == data) {
+        mpp_err_f("invalid input: packet %p data %p\n", packet, data);
         return MPP_ERR_UNKNOW;
     }
 
     if (0 == size)
         return MPP_OK;
 
-    void *src = mpp_packet_get_data(buffer);
+    void *src = mpp_packet_get_data(packet);
     mpp_assert(src != NULL);
     memcpy(data, (char*)src + offset, size);
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_write(MppPacket buffer, size_t offset, void *data, size_t size)
+MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t size)
 {
-    if (NULL == buffer || NULL == data) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+    if (NULL == packet || NULL == data) {
+        mpp_err_f("invalid input: packet %p data %p\n", packet, data);
         return MPP_ERR_UNKNOW;
     }
 
     if (0 == size)
         return MPP_OK;
 
-    void *dst = mpp_packet_get_data(buffer);
+    void *dst = mpp_packet_get_data(packet);
     mpp_assert(dst != NULL);
     memcpy((char*)dst + offset, data, size);
     return MPP_OK;
@@ -218,5 +215,4 @@ MPP_PACKET_ACCESSORS(void*,  pos)
 MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
-MPP_PACKET_ACCESSORS(MppBuffer, buffer)
 
