@@ -66,8 +66,8 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
         return ret;
     }
     MppPacketImpl *p = (MppPacketImpl *)*packet;
-    p->data = p->pos = data;
-    p->size = size;
+    p->data = p->pos    = data;
+    p->size = p->length = size;
 
     return MPP_OK;
 }
@@ -110,6 +110,23 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     mpp_free(p);
     *packet = NULL;
     return MPP_OK;
+}
+
+void mpp_packet_set_pos(MppPacket packet, void *pos)
+{
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
+    p->pos    = pos;
+    p->length = p->size - ((char *)pos - (char *)p->data);
+    mpp_assert(p->data <= p->pos);
+    mpp_assert(p->size >= p->length);
+}
+
+void *mpp_packet_get_pos(const MppPacket packet)
+{
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
+    return p->pos;
 }
 
 MPP_RET mpp_packet_set_eos(MppPacket packet)
@@ -209,9 +226,9 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
         ((MppPacketImpl*)s)->field = v; \
     }
 
-MPP_PACKET_ACCESSORS(void*,  data)
+MPP_PACKET_ACCESSORS(void *, data)
 MPP_PACKET_ACCESSORS(size_t, size)
-MPP_PACKET_ACCESSORS(void*,  pos)
+MPP_PACKET_ACCESSORS(size_t, length)
 MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)

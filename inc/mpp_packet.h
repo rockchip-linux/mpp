@@ -36,13 +36,21 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
 MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src);
 MPP_RET mpp_packet_deinit(MppPacket *packet);
 
+/*
+ * data   : ( R/W ) start address of the whole packet memory
+ * size   : ( R/W ) total size of the whole packet memory
+ * pos    : ( R/W ) current access position of the whole packet memory, used for buffer read/write
+ * length : ( R   ) the rest length from current position to end of buffer, read only
+ */
 void    mpp_packet_set_data(MppPacket packet, void *data);
-void*   mpp_packet_get_data(const MppPacket packet);
 void    mpp_packet_set_size(MppPacket packet, size_t size);
-size_t  mpp_packet_get_size(const MppPacket packet);
-
 void    mpp_packet_set_pos(MppPacket packet, void *pos);
+
+void*   mpp_packet_get_data(const MppPacket packet);
 void*   mpp_packet_get_pos(const MppPacket packet);
+size_t  mpp_packet_get_size(const MppPacket packet);
+size_t  mpp_packet_get_length(const MppPacket packet);
+
 
 void    mpp_packet_set_pts(MppPacket packet, RK_S64 pts);
 RK_S64  mpp_packet_get_pts(const MppPacket packet);

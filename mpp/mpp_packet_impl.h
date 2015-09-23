@@ -39,6 +39,7 @@ typedef struct MppPacketImpl_t {
     void        *data;
     void        *pos;
     size_t      size;
+    size_t      length;
 
     RK_S64      pts;
     RK_S64      dts;
