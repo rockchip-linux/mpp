@@ -23,13 +23,17 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-MPP_PACKET_ACCESSORS(void*,  data)
-MPP_PACKET_ACCESSORS(size_t, size)
-MPP_PACKET_ACCESSORS(void*,  pos)
-MPP_PACKET_ACCESSORS(RK_S64, pts)
-MPP_PACKET_ACCESSORS(RK_S64, dts)
-MPP_PACKET_ACCESSORS(RK_U32, flag)
-MPP_PACKET_ACCESSORS(MppBuffer, buffer)
+static const char *module_name = MODULE_TAG;
+
+static void setup_mpp_packet_name(MppPacketImpl *packet)
+{
+    packet->name = module_name;
+}
+
+static void check_mpp_packet_name(MppPacketImpl *packet)
+{
+    mpp_assert(packet->name == module_name);
+}
 
 MPP_RET mpp_packet_new(MppPacket *packet)
 {
@@ -44,6 +48,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
     }
+    setup_mpp_packet_name(p);
     return MPP_OK;
 }
 
@@ -74,6 +79,7 @@ MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src)
         return MPP_ERR_NULL_PTR;
     }
 
+    check_mpp_packet_name((MppPacketImpl *)src);
     size_t size = mpp_packet_get_size(src);
     void *data = mpp_malloc_size(void, size);
     if (NULL == data) {
@@ -100,6 +106,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     }
 
     MppPacketImpl *p = (MppPacketImpl *)(*packet);
+    check_mpp_packet_name(p);
     if (p->buffer)
         mpp_buffer_put(p->buffer);
 
@@ -116,6 +123,7 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
     }
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
     p->flag |= MPP_PACKET_FLAG_EOS;
     return MPP_OK;
 }
@@ -128,6 +136,7 @@ RK_U32 mpp_packet_get_eos(MppPacket packet)
     }
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
     return (p->flag & MPP_PACKET_FLAG_EOS) ? (1) : (0);
 }
 
@@ -139,6 +148,7 @@ MPP_RET mpp_packet_set_extra_data(MppPacket packet)
     }
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
     p->flag |= MPP_PACKET_FLAG_EXTRA_DATA;
     return MPP_OK;
 }
@@ -150,6 +160,7 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
         return MPP_ERR_NULL_PTR;
     }
 
+    check_mpp_packet_name(packet);
     memset(packet, 0, sizeof(*packet));
     return MPP_OK;
 }
@@ -185,4 +196,27 @@ MPP_RET mpp_packet_write(MppPacket buffer, size_t offset, void *data, size_t siz
     memcpy((char*)dst + offset, data, size);
     return MPP_OK;
 }
+
+/*
+ * object access function macro
+ */
+#define MPP_PACKET_ACCESSORS(type, field) \
+    type mpp_packet_get_##field(const MppPacket s) \
+    { \
+        check_mpp_packet_name((MppPacketImpl*)s); \
+        return ((MppPacketImpl*)s)->field; \
+    } \
+    void mpp_packet_set_##field(MppPacket s, type v) \
+    { \
+        check_mpp_packet_name((MppPacketImpl*)s); \
+        ((MppPacketImpl*)s)->field = v; \
+    }
+
+MPP_PACKET_ACCESSORS(void*,  data)
+MPP_PACKET_ACCESSORS(size_t, size)
+MPP_PACKET_ACCESSORS(void*,  pos)
+MPP_PACKET_ACCESSORS(RK_S64, pts)
+MPP_PACKET_ACCESSORS(RK_S64, dts)
+MPP_PACKET_ACCESSORS(RK_U32, flag)
+MPP_PACKET_ACCESSORS(MppBuffer, buffer)
 

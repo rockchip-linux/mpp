@@ -22,19 +22,17 @@
 #include "mpp_mem.h"
 #include "mpp_frame_impl.h"
 
-MPP_FRAME_ACCESSORS(RK_U32, width)
-MPP_FRAME_ACCESSORS(RK_U32, height)
-MPP_FRAME_ACCESSORS(RK_U32, hor_stride)
-MPP_FRAME_ACCESSORS(RK_U32, ver_stride)
-MPP_FRAME_ACCESSORS(RK_U32, mode)
-MPP_FRAME_ACCESSORS(RK_S64, pts)
-MPP_FRAME_ACCESSORS(RK_S64, dts)
-MPP_FRAME_ACCESSORS(MppFrameColorRange, color_range)
-MPP_FRAME_ACCESSORS(MppFrameColorPrimaries, color_primaries)
-MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
-MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
-MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
-MPP_FRAME_ACCESSORS(MppBuffer, buffer)
+static const char *module_name = MODULE_TAG;
+
+static void setup_mpp_frame_name(MppFrameImpl *frame)
+{
+    frame->name = module_name;
+}
+
+static void check_mpp_frame_name(MppFrameImpl *frame)
+{
+    mpp_assert(frame->name == module_name);
+}
 
 MPP_RET mpp_frame_init(MppFrame *frame)
 {
@@ -102,4 +100,34 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
     memcpy(dst, src, sizeof(MppFrameImpl));
     return MPP_OK;
 }
+
+
+/*
+ * object access function macro
+ */
+#define MPP_FRAME_ACCESSORS(type, field) \
+    type mpp_frame_get_##field(const MppFrame s) \
+    { \
+        check_mpp_frame_name((MppFrameImpl*)s); \
+        return ((MppFrameImpl*)s)->field; \
+    } \
+    void mpp_frame_set_##field(MppFrame s, type v) \
+    { \
+        check_mpp_frame_name((MppFrameImpl*)s); \
+        ((MppFrameImpl*)s)->field = v; \
+    }
+
+MPP_FRAME_ACCESSORS(RK_U32, width)
+MPP_FRAME_ACCESSORS(RK_U32, height)
+MPP_FRAME_ACCESSORS(RK_U32, hor_stride)
+MPP_FRAME_ACCESSORS(RK_U32, ver_stride)
+MPP_FRAME_ACCESSORS(RK_U32, mode)
+MPP_FRAME_ACCESSORS(RK_S64, pts)
+MPP_FRAME_ACCESSORS(RK_S64, dts)
+MPP_FRAME_ACCESSORS(MppFrameColorRange, color_range)
+MPP_FRAME_ACCESSORS(MppFrameColorPrimaries, color_primaries)
+MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
+MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
+MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
+MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 

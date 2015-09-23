@@ -22,6 +22,8 @@
 typedef struct MppFrameImpl_t MppFrameImpl;
 
 struct MppFrameImpl_t {
+    const char  *name;
+
     /*
      * dimension parameter for display
      */
@@ -74,13 +76,6 @@ struct MppFrameImpl_t {
     MppFrameImpl    *next;
 };
 
-
-/*
- * object access function macro
- */
-#define MPP_FRAME_ACCESSORS(type, field) \
-    type mpp_frame_get_##field(const MppFrame s) { return ((MppFrameImpl*)s)->field; } \
-    void mpp_frame_set_##field(MppFrame s, type v) { ((MppFrameImpl*)s)->field = v; }
 
 MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);

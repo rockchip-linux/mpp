@@ -33,6 +33,8 @@
  * dts      : packet dts
  */
 typedef struct MppPacketImpl_t {
+    const char  *name;
+
     void        *data;
     void        *pos;
     size_t      size;
@@ -43,13 +45,6 @@ typedef struct MppPacketImpl_t {
     RK_U32      flag;
     MppBuffer   buffer;
 } MppPacketImpl;
-
-/*
- * object access function macro
- */
-#define MPP_PACKET_ACCESSORS(type, field) \
-    type mpp_packet_get_##field(const MppPacket s) { return ((MppPacketImpl*)s)->field; } \
-    void mpp_packet_set_##field(MppPacket s, type v) { ((MppPacketImpl*)s)->field = v; }
 
 /*
  * mpp_packet_reset is only used internelly and should NOT be used outside
