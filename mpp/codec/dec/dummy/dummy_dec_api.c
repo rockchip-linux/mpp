@@ -194,6 +194,7 @@ const ParserApi dummy_dec_parser = {
     0,
     dummy_dec_init,
     dummy_dec_deinit,
+    NULL,
     dummy_dec_parse,
     dummy_dec_reset,
     dummy_dec_flush,

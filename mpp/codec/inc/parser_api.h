@@ -63,6 +63,7 @@ typedef struct ParserApi_t {
     MPP_RET (*init)(void *ctx, ParserCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
+    MPP_RET (*prepare)(void *ctx, MppPacket pkt);
     MPP_RET (*parse)(void *ctx, MppPacket pkt, HalDecTask *task);
 
     MPP_RET (*reset)(void *ctx);

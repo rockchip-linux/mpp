@@ -93,10 +93,26 @@ MPP_RET parser_deinit(Parser prs)
     }
 
     ParserImpl *p = (ParserImpl *)prs;
-    p->api->deinit(p->ctx);
+    if (p->api->deinit)
+        p->api->deinit(p->ctx);
+
     mpp_free(p->ctx);
     mpp_free(p);
     return MPP_OK;
+}
+
+MPP_RET parser_prepare(Parser prs, MppPacket pkt)
+{
+    if (NULL == prs || NULL == pkt) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->prepare)
+        return MPP_OK;
+
+    return p->api->prepare(p->ctx, pkt);
 }
 
 MPP_RET parser_parse(Parser prs, MppPacket pkt, HalDecTask *task)
@@ -107,6 +123,9 @@ MPP_RET parser_parse(Parser prs, MppPacket pkt, HalDecTask *task)
     }
 
     ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->parse)
+        return MPP_OK;
+
     return p->api->parse(p->ctx, pkt, task);
 }
 
@@ -118,6 +137,9 @@ MPP_RET parser_reset(Parser prs)
     }
 
     ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->reset)
+        return MPP_OK;
+
     return p->api->reset(p->ctx);
 }
 
@@ -129,6 +151,9 @@ MPP_RET parser_flush(Parser prs)
     }
 
     ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->flush)
+        return MPP_OK;
+
     return p->api->flush(p->ctx);
 }
 
@@ -140,6 +165,9 @@ MPP_RET parser_control(Parser prs, RK_S32 cmd, void *para)
     }
 
     ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->control)
+        return MPP_OK;
+
     return p->api->control(p->ctx, cmd, para);
 }
 

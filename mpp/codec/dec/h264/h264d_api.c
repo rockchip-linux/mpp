@@ -547,6 +547,7 @@ const ParserApi api_h264d_parser = {
     0,
     h264d_init,
     h264d_deinit,
+    NULL,
     h264d_parse,
     h264d_reset,
     h264d_flush,
