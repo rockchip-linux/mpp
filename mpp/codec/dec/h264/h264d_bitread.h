@@ -17,10 +17,9 @@
 
 #ifndef __H264D_BITREAD_H__
 #define __H264D_BITREAD_H__
-#include <stdio.h>
-#include <assert.h>
-#include "rk_type.h"
-#include "mpp_err.h"
+
+#include "mpp_common.h"
+
 #include "h264d_log.h"
 
 typedef void (*LOG_FUNC)(void *ctx, ...);
@@ -40,13 +39,26 @@ typedef void (*LOG_FUNC)(void *ctx, ...);
          if (ret) { ASSERT(0); goto __FAILED; }\
        } while (0)
 
-
-#define READ_BITS(ret, bitctx, num_bits, out, name)\
+#define __READ_BITS_WITH_LOG(ret, bitctx, num_bits, out, ...) \
     do {\
-         ret = read_bits(bitctx, num_bits, (RK_S32 *)out);\
-         LogInfo(bitctx->ctx, "%48s = %10d", name, *out);\
-         if (ret) { ASSERT(0); goto __FAILED; }\
-       } while (0)
+        ret = read_bits(bitctx, num_bits, (RK_S32 *)out); \
+        LogInfo(bitctx->ctx, "%48s = %10d", ## __VA_ARGS__, *out); \
+        if (ret) { ASSERT(0); goto __FAILED; } \
+    } while (0)
+
+#define __READ_BITS_NO_LOG(ret, bitctx, num_bits, out) \
+    do {\
+        ret = read_bits(bitctx, num_bits, (RK_S32 *)out); \
+        if (ret) { ASSERT(0); goto __FAILED; } \
+    } while (0)
+
+#define READ_BITS(ret, bitctx, num_bits, out, ...) \
+    do { \
+        if (COUNT_ARG(__VA_ARGS__)) \
+            __READ_BITS_WITH_LOG(ret, bitctx, num_bits, out, __VA_ARGS__); \
+        else \
+            __READ_BITS_NO_LOG(ret, bitctx, num_bits, out); \
+    } while (0)
 
 #define READ_ONEBIT(ret, bitctx, out, name)\
     do {\
