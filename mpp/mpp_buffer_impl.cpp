@@ -115,6 +115,8 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
         if (group) {
             list_del_init(&buffer->list_status);
             list_add_tail(&buffer->list_status, &group->list_used);
+            group->count_used++;
+            group->count_unused--;
         } else {
             mpp_err("mpp_buffer_ref_inc unused buffer without group\n");
             ret = MPP_NOK;
@@ -158,6 +160,7 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
         list_add_tail(&p->list_status, &group->list_unused);
         group->usage += info->size;
         group->count++;
+        group->count_unused++;
     } else {
         mpp_err("mpp_buffer_create can not create buffer without group\n");
         mpp_free(p);
@@ -199,6 +202,8 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
         MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
         if (group) {
             list_add_tail(&buffer->list_status, &group->list_unused);
+            group->count_used--;
+            group->count_unused++;
             check_buffer_group_limit(group);
         }
     }
@@ -228,7 +233,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferMode mode, MppBufferType type)
 {
-    MppBufferGroupImpl *p = mpp_malloc(MppBufferGroupImpl, 1);
+    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
     if (NULL == p) {
         mpp_err("mpp_buffer_group_get failed to allocate context\n");
         *group = NULL;
@@ -247,11 +252,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
     p->mode     = mode;
     p->type     = type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
-    p->usage    = 0;
-    p->count    = 0;
     p->group_id = service.group_id;
-    p->limit_size   = 0;
-    p->limit_count  = 0;
 
     // avoid group_id reuse
     do {

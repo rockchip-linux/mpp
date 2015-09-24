@@ -65,6 +65,9 @@ struct MppBufferGroupImpl_t {
     MppAllocator        allocator;
     MppAllocatorApi     *alloc_api;
 
+    RK_S32              count_used;
+    RK_S32              count_unused;
+
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
 
