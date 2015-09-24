@@ -55,7 +55,7 @@ typedef void (*LOG_FUNC)(void *ctx, ...);
 #define READ_BITS(ret, bitctx, num_bits, out, ...) \
     do { \
         if (COUNT_ARG(__VA_ARGS__)) \
-            __READ_BITS_WITH_LOG(ret, bitctx, num_bits, out, __VA_ARGS__); \
+            __READ_BITS_WITH_LOG(ret, bitctx, num_bits, out, ## __VA_ARGS__); \
         else \
             __READ_BITS_NO_LOG(ret, bitctx, num_bits, out); \
     } while (0)
