@@ -16,6 +16,8 @@
 */
 
 
+#define MODULE_TAG "hal_h264d_api"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,11 +35,6 @@
 #include "hal_h264d_reg.h"
 #include "hal_h264d_packet.h"
 #include "hal_h264d_api.h"
-
-
-
-#define MODULE_TAG "hal_h264d_api"
-
 
 
 static void close_log_files(LogEnv_t *env)

@@ -14,13 +14,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#define MODULE_TAG ""
+
 #include <string.h>
 #include <stdlib.h>
 #include "mpp_err.h"
 #include "h264d_bitread.h"
-
-#define MODULE_TAG ""
-
 
 static MPP_RET update_currbyte(BitReadCtx_t *bitctx)
 {

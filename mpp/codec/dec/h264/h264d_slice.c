@@ -15,14 +15,14 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "h264d_slice"
+
 #include "mpp_mem.h"
 
 #include "h264d_log.h"
 #include "h264d_slice.h"
 #include "h264d_sps.h"
 #include "h264d_pps.h"
-
-#define   MODULE_TAG   "h264d_slice"
 
 static void free_slice_drpm_buffer(H264_SLICE_t *currSlice)  // dec_ref_pic_marking
 {

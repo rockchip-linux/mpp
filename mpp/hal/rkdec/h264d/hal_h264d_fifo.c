@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "hal_h264d_fifo"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -23,8 +25,6 @@
 
 #include "h264d_log.h"
 #include "hal_h264d_fifo.h"
-
-#define  MODULE_TAG  "hal_h264d_fifo"
 
 /*!
 ***********************************************************************

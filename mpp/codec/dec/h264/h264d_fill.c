@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "h264d_fill"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,8 +24,6 @@
 
 #include "h264d_log.h"
 #include "h264d_fill.h"
-
-#define  MODULE_TAG         "h264d_fill"
 
 #define  FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
 #define  ALIGN(x, a)       ( ((x) + (a) - 1) & (~((a) - 1)) )

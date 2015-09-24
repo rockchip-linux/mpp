@@ -14,6 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#define MODULE_TAG "h264d_parse"
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -29,8 +32,6 @@
 #include "h264d_sei.h"
 #include "h264d_init.h"
 #include "h264d_fill.h"
-
-#define   MODULE_TAG "h264d_parse"
 
 static void reset_slice(H264dVideoCtx_t *p_Vid)
 {

@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "h264d_api"
+
 #include <string.h>
 
 #include "mpp_packet.h"
@@ -29,8 +31,6 @@
 #include "h264d_slice.h"
 #include "h264d_dpb.h"
 
-
-#define MODULE_TAG "h264d_api"
 
 
 static void close_log_files(LogEnv_t *env)

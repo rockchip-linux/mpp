@@ -14,6 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
 #define MODULE_TAG "hal_dummy_enc"
 
 #include "hal_dummy_enc_api.h"

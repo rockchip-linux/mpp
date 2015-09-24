@@ -25,14 +25,14 @@
  *   2015.7.15 : Create
  */
 
+#define MODULE_TAG "H265D_PARSER"
+
 #include "mpp_bitread.h"
 #include "h265d_parser.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "h265d_syntax.h"
 
-
-#define MODULE_TAG "H265D_PARSER"
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
 
@@ -1451,7 +1451,7 @@ fail:
 
 }
 
-RK_S32 h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
 
     MPP_RET ret = MPP_OK;
@@ -1685,7 +1685,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 
     ret = hevc_init_context(h265dctx);
 
-    s->hal_pic_private = mpp_calloc(void, sizeof(h265d_dxva2_picture_context_t));
+    s->hal_pic_private = mpp_calloc_size(void, sizeof(h265d_dxva2_picture_context_t));
 
     if (ret < 0)
         return ret;
