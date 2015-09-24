@@ -1650,9 +1650,9 @@ MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_picture)
     set_curframe_poc((*dec_picture), &p_Vid->p_Dec->regs);
 #endif
     FUN_CHECK(ret = store_picture_in_dpb(p_Vid->p_Dpb_layer[(*dec_picture)->layer_id], *dec_picture));
-	FPRINT(g_debug_file1, "decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt);
+    FPRINT(g_debug_file1, "decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt);
 
-	mpp_log("decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt++);
+    mpp_log("decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt++);
 
 
 

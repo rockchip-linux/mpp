@@ -472,20 +472,18 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
 */
 void fprint_fifo_data(FILE *fp, FifoCtx_t *pkt)
 {
-	RK_U32 i = 0, pkt_size = 0;
-	RK_U8 *ptr = (RK_U8 *)pkt->pbuf;
-	if (fp) {
-		pkt_size = pkt->index * sizeof(RK_U64);
-		fprintf(fp, "------ Header=%08x, size=%d ------ \n", pkt->header, pkt_size);
-			for (i = 0; i < pkt_size;)
-			{
-				fprintf(fp, "0x%02x, ", ptr[i]);
-				i++;
-				if ((i % 16) == 0)
-				{
-					fprintf(fp, "\n");
-				}
-			}	
-			fprintf(fp, "\n\n");
-	}
+    RK_U32 i = 0, pkt_size = 0;
+    RK_U8 *ptr = (RK_U8 *)pkt->pbuf;
+    if (fp) {
+        pkt_size = pkt->index * sizeof(RK_U64);
+        fprintf(fp, "------ Header=%08x, size=%d ------ \n", pkt->header, pkt_size);
+        for (i = 0; i < pkt_size;) {
+            fprintf(fp, "0x%02x, ", ptr[i]);
+            i++;
+            if ((i % 16) == 0) {
+                fprintf(fp, "\n");
+            }
+        }
+        fprintf(fp, "\n\n");
+    }
 }

@@ -212,7 +212,7 @@ MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     explain_input_buffer(hal, &task->dec);
-    prepare_spspps_packet(hal, &p_hal->pkts->spspps);	
+    prepare_spspps_packet(hal, &p_hal->pkts->spspps);
     prepare_framerps_packet(hal, &p_hal->pkts->rps);
     prepare_scanlist_packet(hal, &p_hal->pkts->scanlist);
     prepare_stream_packet(hal, &p_hal->pkts->strm);

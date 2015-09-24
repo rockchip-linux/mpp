@@ -384,7 +384,7 @@ static void malloc_dpb_memory_index(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK
 {
     RK_U8 idx = 1;
     H264_DpbMark_t *pmem_dpb = p_Vid->p_Dec->dpb_mark;
-	//!< malloc
+    //!< malloc
     if (!combine_flag) {
         while (pmem_dpb[idx].top_used || pmem_dpb[idx].bot_used) {
             idx++;
@@ -569,7 +569,7 @@ static void update_pic_num(H264_SLICE_t *currSlice)
 static MPP_RET init_picture_decoding(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	//!< MVC idr_flag==1
+    //!< MVC idr_flag==1
     if (pSlice->layer_id && !pSlice->svc_extension_flag && !pSlice->mvcExt.non_idr_flag) {
         ASSERT(pSlice->layer_id == 1);
         FUN_CHECK(ret = idr_memory_management(p_Vid->p_Dpb_layer[pSlice->layer_id], p_Vid->dec_picture));

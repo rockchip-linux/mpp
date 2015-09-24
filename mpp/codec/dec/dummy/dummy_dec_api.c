@@ -186,11 +186,11 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     return MPP_OK;
 }
 MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
-{	
-	(void)dec;
-	(void)task;
+{
+    (void)dec;
+    (void)task;
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 const ParserApi dummy_dec_parser = {

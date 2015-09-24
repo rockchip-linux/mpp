@@ -1633,8 +1633,8 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         READ_BIT1(gb, &sps->set_mfm_enabled_flag);
 #endif
     READ_BIT1(gb, &sps->sps_strong_intra_smoothing_enable_flag);
-	sps->vui.sar.num = 0;
-	sps->vui.sar.den = 1;
+    sps->vui.sar.num = 0;
+    sps->vui.sar.den = 1;
     READ_BIT1(gb, &vui_present);
     if (vui_present)
         decode_vui(s, sps);
