@@ -104,6 +104,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     RK_U32 frame_count;
     MppBufSlots slots;
     RK_S32 i;
+    char *data;
 
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
@@ -116,8 +117,9 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     slots = p->slots;
     frame_count = p->frame_count;
 
-    // set packet size
-    mpp_packet_set_size(pkt, 0);
+    // set pos to indicate that buffer is done
+    data = mpp_packet_get_data(pkt);
+    mpp_packet_set_pos(pkt, data + mpp_packet_get_size(pkt));
 
     /*
      * set slots information
