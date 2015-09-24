@@ -30,10 +30,11 @@ extern "C" {
  * MppPacket interface
  *
  * mpp_packet_init = mpp_packet_new + mpp_packet_set_data + mpp_packet_set_size
+ * mpp_packet_copy_init = mpp_packet_init + memcpy
  */
 MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
-MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src);
+MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src);
 MPP_RET mpp_packet_deinit(MppPacket *packet);
 
 /*
