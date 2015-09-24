@@ -35,6 +35,7 @@
  */
 static const ParserApi *parsers[] = {
     &api_h264d_parser,
+    &api_h265d_parser,
     &dummy_dec_parser,
 };
 

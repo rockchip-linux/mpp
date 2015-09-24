@@ -1466,7 +1466,6 @@ MPP_RET hal_h265d_control(void *hal, RK_S32 cmd_type, void *param)
     return  ret;
 }
 
-#if 1
 const MppHalApi hal_api_h265d = {
     "h265d_rkdec",
     MPP_CTX_DEC,
@@ -1482,6 +1481,5 @@ const MppHalApi hal_api_h265d = {
     hal_h265d_flush,
     hal_h265d_control,
 };
-#endif
 
 
