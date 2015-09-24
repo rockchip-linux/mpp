@@ -362,7 +362,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_log("malloc fail for input buf");
     }
     //buf[0] = 0;
-    while (!feof(pInFile)) {        
+    while (!feof(pInFile)) {
         RK_U32 index;
         RK_U8 *tmpbuf = buf;
         RK_U8 *pos = NULL;
@@ -389,7 +389,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     wait_task = 0;
                 }
                 cutask->valid = 0;
-                h265d_parser(mpp_codex_ctx, cutask);
+                h265d_parse(mpp_codex_ctx, cutask);
             }
             if (cutask->valid) {
                 HalTask syn;

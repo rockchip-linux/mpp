@@ -1507,7 +1507,7 @@ fail:
     return ret;
 }
 
-MPP_RET h265d_parser(void *ctx, HalDecTask *task)
+MPP_RET h265d_parse(void *ctx, HalDecTask *task)
 {
     MPP_RET ret;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
@@ -1741,8 +1741,8 @@ const ParserApi api_h265d_parser = {
     0,
     h265d_init,
     h265d_deinit,
-    NULL,
-    NULL,
+    h265d_prepare,
+    h265d_parse,
     h265d_reset,
     h265d_flush,
     h265d_control,
