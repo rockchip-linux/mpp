@@ -22,7 +22,7 @@ extern const ParserApi api_h265d_parser;
 
 MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task);
 MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg);
-MPP_RET h265d_parser(void *ctx, HalDecTask *task);
+MPP_RET h265d_parse(void *ctx, HalDecTask *task);
 MPP_RET h265d_deinit(void *ctx);
 MPP_RET h265d_flush(void *ctx);
 MPP_RET h265d_reset(void *ctx);
