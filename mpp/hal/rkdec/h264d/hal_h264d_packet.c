@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "hal_h264d_packet"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -28,8 +30,6 @@
 #include "hal_h264d_api.h"
 #include "hal_h264d_packet.h"
 #include "hal_h264d_global.h"
-
-#define  MODULE_TAG  "hal_h264d_packet"
 
 //!< Header
 #define     H264dREG_HEADER    0x48474552

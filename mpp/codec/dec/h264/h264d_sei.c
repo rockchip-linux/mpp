@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 
+#define  MODULE_TAG  "h264d_sei"
 
 #include <stdio.h>
 #include <string.h>
@@ -23,8 +24,6 @@
 #include "h264d_bitread.h"
 #include "h264d_sps.h"
 #include "h264d_sei.h"
-
-#define  MODULE_TAG  "h264d_sei"
 
 static void interpret_spare_pic()
 {

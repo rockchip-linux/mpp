@@ -23,6 +23,8 @@
 #include "mpp_err.h"
 #include "h264d_log.h"
 
+typedef void (*LOG_FUNC)(void *ctx, ...);
+
 #define   __BITREAD_ERR   __bitread_error
 
 #define WRITE_LOG(bitctx, name)\
@@ -77,7 +79,6 @@
             ASSERT(0); goto __FAILED;\
         } } while (0)
 
-
 typedef struct getbit_ctx_t {
     // Pointer to the next unread (not in curr_byte_) byte in the stream.
     RK_U8 *data_;
@@ -93,12 +94,16 @@ typedef struct getbit_ctx_t {
     RK_S64 prev_two_bytes_;
     // Number of emulation preventation bytes (0x000003) we met.
     RK_S64 emulation_prevention_bytes_;
-    // file to debug
-    LogCtx_t *ctx;
     // count PPS SPS SEI read bits
     RK_S32 used_bits;
     RK_U8  *buf;
     RK_S32 buf_len;
+
+    // file to debug
+    LogCtx_t    *ctx;
+
+    void        *log_ctx;
+    LOG_FUNC    log_func;
 } BitReadCtx_t;
 
 

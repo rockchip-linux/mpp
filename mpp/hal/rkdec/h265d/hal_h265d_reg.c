@@ -25,6 +25,8 @@
  *   2015.7.15 : Create
  */
 
+#define MODULE_TAG "H265HAL"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -39,10 +41,6 @@
 #include "mpp_dec.h"
 #include "vpu.h"
 #include "mpp_buffer.h"
-
-
-#define MODULE_TAG "H265HAL"
-
 
 #ifdef dump
 FILE *fp = NULL;

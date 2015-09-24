@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "hal_h264d_reg"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,12 +27,6 @@
 
 #include "h264d_log.h"
 #include "hal_h264d_reg.h"
-
-
-
-#define MODULE_TAG "hal_h264d_reg"
-
-
 
 const RK_U8 H264_Cabac_table[] = {
     0x14, 0xf1, 0x02, 0x36, 0x03, 0x4a, 0x14, 0xf1, 0x02, 0x36, 0x03, 0x4a, 0xe4, 0x7f, 0xe9, 0x68,
