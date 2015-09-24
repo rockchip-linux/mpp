@@ -378,9 +378,9 @@ static RK_S32 _count = 0;
 
 static RK_U64 mpp_get_bits(RK_U64 src, RK_S32 size, RK_S32 offset)
 {
-	RK_S32 i;
+    RK_S32 i;
     RK_U64 temp = 0;
-	
+
     mpp_assert(size + offset <= 64);// 64 is the FIFO_BIT_WIDTH
 
     for (i = 0; i < size ; i++) {
@@ -414,9 +414,9 @@ static void mpp_put_bits(RK_U64 data, RK_S32 size, RK_U64* Dec_Fifo, RK_S32 *p_f
 
 static void mpp_align(RK_S32 align_width, RK_U64* Dec_Fifo, RK_S32 *p_fifo_index, RK_S32 *p_bit_offset, RK_S32 *p_bit_len, RK_S32 fifo_len)
 {
-	RK_S32 i;
-	RK_U64 temp = 0;
-	RK_S32 len = 0;
+    RK_S32 i;
+    RK_U64 temp = 0;
+    RK_S32 len = 0;
 
     if (*p_fifo_index >= fifo_len) return;
 
@@ -441,7 +441,7 @@ static void mpp_align(RK_S32 align_width, RK_U64* Dec_Fifo, RK_S32 *p_fifo_index
 
 static void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
 {
-	RK_S32 i;
+    RK_S32 i;
     RK_U32 g_scalingListNum_model[SCALING_LIST_SIZE_NUM] = {6, 6, 6, 2}; // from C Model
     RK_U32 nIndex = 0;
     RK_U32 sizeId, matrixId, listId;
@@ -580,8 +580,8 @@ static int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *r
     RK_U8 list_idx;
     RK_U32 i, j;
     RK_U8 bef_nb_refs = 0, aft_nb_refs = 0, lt_cur_nb_refs = 0;
-	h265d_dxva2_picture_context_t *dxva_cxt = NULL;
-	RK_S32 cand_lists[3];
+    h265d_dxva2_picture_context_t *dxva_cxt = NULL;
+    RK_S32 cand_lists[3];
 
     memset(ref, 0, sizeof(RefPicListTab_t));
     dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
@@ -614,10 +614,10 @@ static int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *r
         /* The order of the elements is
          * ST_CURR_BEF - ST_CURR_AFT - LT_CURR for the L0 and
          * ST_CURR_AFT - ST_CURR_BEF - LT_CURR for the L1 */
-        
-		cand_lists[0] = list_idx ? ST_CURR_AFT : ST_CURR_BEF;
-		cand_lists[1] = list_idx ? ST_CURR_BEF : ST_CURR_AFT;
-		cand_lists[2] = LT_CURR;
+
+        cand_lists[0] = list_idx ? ST_CURR_AFT : ST_CURR_BEF;
+        cand_lists[1] = list_idx ? ST_CURR_BEF : ST_CURR_AFT;
+        cand_lists[2] = LT_CURR;
         /* concatenate the candidate lists for the current frame */
         while ((RK_U32)rpl_tmp.nb_refs < sh->nb_refs[list_idx]) {
             for (i = 0; i < MPP_ARRAY_ELEMS(cand_lists); i++) {
@@ -670,8 +670,8 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
     RK_U8     lowdelay_flag[600];
     slice_ref_map_t rps_pic_info[600][2][15];
     RK_U32    nb_refs = 0;
-	RK_S32    bit_begin;
-	h265d_dxva2_picture_context_t *dxva_cxt = NULL;
+    RK_S32    bit_begin;
+    h265d_dxva2_picture_context_t *dxva_cxt = NULL;
 
     memset(&rps_pic_info,   0, sizeof(rps_pic_info));
     memset(&slice_nb_rps_poc, 0, sizeof(slice_nb_rps_poc));
@@ -944,7 +944,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         RK_S32  bit_offset = 0;
         RK_S32  fifo_len   = nb_slice * 4;//size of rps_packet
         RK_S32  bit_len = 0;
-		RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
+        RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
 
         for (k = 0; k < (RK_U32)nb_slice; k++) {
             for (j = 0; j < 2; j++) {
@@ -980,8 +980,8 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         if (rps_buf != NULL) {
             memcpy(rps_buf, rps_packet, nb_slice * 32);
         }
-		mpp_free(rps_packet);
-    }	
+        mpp_free(rps_packet);
+    }
 
     return 0;
 }
@@ -1023,13 +1023,13 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     RK_S32 bit_len = 0;
     RK_S32 i, j;
     RK_U32 addr;
-	RK_U64 *pps_packet = NULL;
-	RK_U32 log2_min_cb_size;
-	RK_S32 width, height;
+    RK_U64 *pps_packet = NULL;
+    RK_U32 log2_min_cb_size;
+    RK_S32 width, height;
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
 
-	_count = 0;
+    _count = 0;
     if (NULL == reg_cxt || dxva_cxt == NULL) {
 
         mpp_err("%s:%s:%d reg_cxt or dxva_cxt is NULL", __FILE__, __FUNCTION__, __LINE__);
@@ -1215,7 +1215,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     }
 
     {
-		RK_U8 *p0, *p1;
+        RK_U8 *p0, *p1;
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->scaling_list_data);
         if (dxva_cxt->pp.scaling_list_data_present_flag) {
             addr = (dxva_cxt->pp.pps_id + 16) * 1360;
@@ -1237,9 +1237,9 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         }
 #endif
         mpp_put_bits(0                              , 32 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-       
-		p0 = (RK_U8*)&pps_packet[9];
-		p1 = (RK_U8*)&addr;
+
+        p0 = (RK_U8*)&pps_packet[9];
+        p1 = (RK_U8*)&addr;
         p0[2] = p1[0];
         p0[3] = p1[1];
         p0[4] = p1[2];
@@ -1252,17 +1252,17 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     fwrite(pps_ptr, 1, 80 * 64, fp);
     fflush(fp);
 #endif
-	mpp_free(pps_packet);
+    mpp_free(pps_packet);
 
     return 0;
 }
 
 MPP_RET hal_h265d_gen_regs(void *hal,  HalTask *syn)
 {
-	RK_U32 uiMaxCUWidth, uiMaxCUHeight;
-	RK_U32 log2_min_cb_size;
-	RK_S32 width, height, numCuInWidth;
-	RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
+    RK_U32 uiMaxCUWidth, uiMaxCUHeight;
+    RK_U32 log2_min_cb_size;
+    RK_S32 width, height, numCuInWidth;
+    RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
 
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
@@ -1306,21 +1306,21 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTask *syn)
     uiMaxCUWidth = 1 << (dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size +
                          dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3);
     uiMaxCUHeight = uiMaxCUWidth;
-    
+
     log2_min_cb_size = dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3;
-    
+
     width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
-    
+
     height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
-    
+
     numCuInWidth   = width / uiMaxCUWidth  + (width % uiMaxCUWidth != 0);
-    
+
     stride_y      = ((((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 2047)
                        & (~2047)) | 2048) >> 3);
     stride_uv     = ((((numCuInWidth * uiMaxCUHeight * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 2047)
                        & (~2047)) | 2048) >> 3);
     virstrid_y    = stride_y * height;
-    
+
     virstrid_yuv  = virstrid_y + stride_uv * height / 2;
 
     hw_regs->sw_picparameter.sw_slice_num = dxva_cxt->slice_count;

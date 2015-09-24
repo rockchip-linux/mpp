@@ -506,26 +506,26 @@ __RETURN:
 */
 MPP_RET h264d_prepare(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-	MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+    MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
 
     INP_CHECK(ret, ctx, !decoder && !in_pkt && !in_task);
-	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
-	p_Dec->p_Inp->in_size = &pkt->size;
-	p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
+    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+    p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
+    p_Dec->p_Inp->in_size = &pkt->size;
+    p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
 
 
 
 
 
 
-	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
-	return ret = MPP_OK;
+    return ret = MPP_OK;
 //__FAILED:
-//	return ret;
+//  return ret;
 }
 
 

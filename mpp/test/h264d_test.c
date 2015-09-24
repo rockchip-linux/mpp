@@ -109,9 +109,9 @@ __FAILED:
 
 int main(int argc, char **argv)
 {
-	//FILE *g_debug_file = NULL;
-	//RK_S32 m_max_bytes = 0;
-	//RK_S32 m_max_slice_data = 0;
+    //FILE *g_debug_file = NULL;
+    //RK_S32 m_max_bytes = 0;
+    //RK_S32 m_max_slice_data = 0;
     MPP_RET        ret = MPP_ERR_UNKNOW;
 
     InputParams   *pIn = mpp_calloc(InputParams, 1);
@@ -132,18 +132,18 @@ int main(int argc, char **argv)
     do {
         if (!pkt->size) {
             FUN_CHECK(ret = h264d_read_one_frame(pIn, (MppPacket)pkt));
-			//if (g_debug_file1 == NULL)
-			//{
-			//	g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
-			//}
-			//FPRINT(g_debug_file1, "---- read_one_frame Frame_no = %d, size = %d \n", pIn->iFrmdecoded, pkt->size);
-			 mpp_log("---- decoder, read_one_frame Frame_no = %d \n", pIn->iFrmdecoded++);
+            //if (g_debug_file1 == NULL)
+            //{
+            //  g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
+            //}
+            //FPRINT(g_debug_file1, "---- read_one_frame Frame_no = %d, size = %d \n", pIn->iFrmdecoded, pkt->size);
+            mpp_log("---- decoder, read_one_frame Frame_no = %d \n", pIn->iFrmdecoded++);
         }
-		FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
+        FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
         FUN_CHECK(ret = parser_parse(pApi->parser, &task->dec));
-			//FPRINT(g_debug_file1, "parse, frame_no = %d, size = %d \n", pIn->iFrmdecoded, pkt->size);
+        //FPRINT(g_debug_file1, "parse, frame_no = %d, size = %d \n", pIn->iFrmdecoded, pkt->size);
         if (((HalDecTask*)&task->dec)->valid) {
-            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal, task));           
+            FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal, task));
             //!< end of stream
             if (!pkt->size && (pkt->flag & MPP_PACKET_FLAG_EOS)) {
                 break;
@@ -166,23 +166,23 @@ __FAILED:
     mpp_free(pkt);
     mpp_free(task);
 
-	//g_debug_file = fopen("rk_debugfile_view0.txt", "rb");
-	//if(g_debug_file)
-	//	fscanf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", &m_max_bytes, &m_max_slice_data);
-	//FCLOSE(g_debug_file);
-	//if (m_max_bytes < g_max_bytes)
-	//{
-	//	m_max_bytes = g_max_bytes;
-	//}
-	//if (m_max_slice_data < g_max_slice_data)
-	//{
-	//	m_max_slice_data = g_max_slice_data;
-	//}
-	//g_debug_file = fopen("rk_debugfile_view0.txt", "ab+");
-	//if(g_debug_file)
-	//	fprintf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", g_max_bytes, g_max_slice_data);
+    //g_debug_file = fopen("rk_debugfile_view0.txt", "rb");
+    //if(g_debug_file)
+    //  fscanf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", &m_max_bytes, &m_max_slice_data);
+    //FCLOSE(g_debug_file);
+    //if (m_max_bytes < g_max_bytes)
+    //{
+    //  m_max_bytes = g_max_bytes;
+    //}
+    //if (m_max_slice_data < g_max_slice_data)
+    //{
+    //  m_max_slice_data = g_max_slice_data;
+    //}
+    //g_debug_file = fopen("rk_debugfile_view0.txt", "ab+");
+    //if(g_debug_file)
+    //  fprintf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", g_max_bytes, g_max_slice_data);
 
-	//FCLOSE(g_debug_file);
+    //FCLOSE(g_debug_file);
 
     return ret;
 }

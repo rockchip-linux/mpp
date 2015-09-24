@@ -116,7 +116,7 @@ void *mpp_dec_parser_thread(void *data)
         task_ready = task_dec->valid;
         if (!task_ready)
             continue;
-		parser_parse(dec->parser, task_dec);
+        parser_parse(dec->parser, task_dec);
         /*
          * 4. parse local task and slot to check whether new buffer or info change is needed.
          *
