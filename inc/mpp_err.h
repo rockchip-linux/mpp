@@ -39,6 +39,10 @@ typedef enum {
     MPP_ERR_VPU_CODEC_INIT      = MPP_ERR_BASE - 3,
     MPP_ERR_STREAM              = MPP_ERR_BASE - 4,
     MPP_ERR_FATAL_THREAD        = MPP_ERR_BASE - 5,
+    MPP_ERR_NOMEM               = MPP_ERR_BASE - 6,
+    MPP_ERR_PROTOL              = MPP_ERR_BASE - 7,
+    MPP_FAIL_SPLIT_FRAME        = MPP_ERR_BASE - 8,
+    MPP_ERR_VPUHW               = MPP_ERR_BASE - 9,
     MPP_EOS_STREAM_REACHED      = MPP_ERR_BASE - 11,
 
 } MPP_RET;
