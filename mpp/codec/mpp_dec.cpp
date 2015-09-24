@@ -107,7 +107,7 @@ void *mpp_dec_parser_thread(void *data)
         if (!task_ready) {
             hal_task_init(&task_local, MPP_CTX_DEC);
             parser_prepare(dec->parser, (MppPacket)&packet, task_dec);
-            if (0 == packet.size) {
+            if (0 == packet.length) {
                 mpp_packet_reset(&packet);
                 packet_ready = 0;
             }
