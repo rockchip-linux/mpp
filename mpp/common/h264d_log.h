@@ -158,10 +158,6 @@ typedef struct h264d_logctx_t {
                  } } while (0)
 
 
-#define   __RETURN     __Return
-#define   __FAILED     __failed
-
-
 #define VAL_CHECK(ret, val)\
         do{ if(!(val)){\
                 ret = MPP_ERR_VALUE;\

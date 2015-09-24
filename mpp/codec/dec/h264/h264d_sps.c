@@ -14,6 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#define   MODULE_TAG  "h264d_sps"
+
 #include <string.h>
 
 #include "mpp_mem.h"
@@ -23,9 +26,6 @@
 #include "h264d_sps.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
-
-
-#define   MODULE_TAG  "h264d_sps"
 
 static void reset_cur_sps_data(H264_SPS_t *cur_sps)
 {

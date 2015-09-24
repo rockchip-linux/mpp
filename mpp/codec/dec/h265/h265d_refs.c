@@ -25,9 +25,9 @@
  *   2015.7.15 : Create
  */
 
-#include "h265d_parser.h"
-
 #define MODULE_TAG  "H265_PARSER_REF"
+
+#include "h265d_parser.h"
 
 #define HEVC_ALIGN(value, x)   ((value + (x-1)) & (~(x-1)))
 

@@ -37,22 +37,32 @@
 
 #include <stdio.h>
 #if defined(_WIN32) && !defined(__MINGW32CE__)
-#define snprintf    _snprintf
-#define fseeko      _fseeki64
+#define snprintf                _snprintf
+#define fseeko                  _fseeki64
 
 #include <direct.h>
 #include <io.h>
-#define chdir       _chdir
-#define mkdir       _mkdir
-#define access      _access
+#define chdir                   _chdir
+#define mkdir                   _mkdir
+#define access                  _access
 #elif defined(__MINGW32CE__)
-#define fseeko      fseeko64
+#define fseeko                  fseeko64
 #else
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#define mkdir(x)    mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+#define mkdir(x)                mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
+
+
+#define __RETURN                __Return
+#define __FAILED                __failed
+
+#define ARG_T(t)                t
+#define ARG_N(a,b,c,d,N,...)    N
+#define ARG_N_HELPER(...)       ARG_T(ARG_N(__VA_ARGS__))
+#define COUNT_ARG(...)          ARG_N_HELPER(__VA_ARGS__,4,3,2,1,0)
+
 
 #ifdef __cplusplus
 extern "C" {
