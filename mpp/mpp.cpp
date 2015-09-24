@@ -56,7 +56,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
 {
     switch (mType) {
     case MPP_CTX_DEC : {
-        mPackets    = new mpp_list((node_destructor)NULL);
+        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
@@ -156,7 +156,9 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 {
     Mutex::Autolock autoLock(mPackets->mutex());
     if (mPackets->list_size() < 4) {
-        mPackets->add_at_tail(packet, sizeof(MppPacketImpl));
+        MppPacket pkt;
+        mpp_packet_copy_init(&pkt, packet);
+        mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         mThreadCodec->signal();
         return MPP_OK;

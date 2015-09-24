@@ -72,7 +72,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     return MPP_OK;
 }
 
-MPP_RET mpp_packet_copy(MppPacket *packet, const MppPacket src)
+MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
 {
     if (NULL == packet || NULL == src) {
         mpp_err_f("found NULL input\n");
