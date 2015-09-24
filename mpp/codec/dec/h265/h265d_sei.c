@@ -25,9 +25,9 @@
  *   2015.7.15 : Create
  */
 
-#include "h265d_parser.h"
-
 #define MODULE_TAG "h265d_sei"
+
+#include "h265d_parser.h"
 
 
 static RK_S32 decode_nal_sei_decoded_picture_hash(HEVCContext *s)

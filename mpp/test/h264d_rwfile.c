@@ -14,6 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#define MODULE_TAG "h264d_rwfile"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +30,6 @@
 #include "h264d_rwfile.h"
 
 
-#define     MODULE_TAG           "h264d_rwfile"
 #define     MAX_STRING_SIZE      512
 
 #define     MAX_ITEMS_TO_PARSE   32

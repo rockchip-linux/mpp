@@ -14,6 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#define MODULE_TAG "h264d_pps"
+
 #include <string.h>
 
 #include "mpp_err.h"
@@ -23,8 +26,6 @@
 #include "h264d_pps.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
-
-#define  MODULE_TAG  "h264d_pps"
 
 static void reset_curpps_data(H264_PPS_t *cur_pps)
 {

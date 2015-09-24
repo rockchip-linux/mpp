@@ -23,7 +23,8 @@
 *   2015.7.15 : Create
 */
 
-#define MODULE_TAG "H265TEST"
+#define MODULE_TAG "h265_test"
+
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
 

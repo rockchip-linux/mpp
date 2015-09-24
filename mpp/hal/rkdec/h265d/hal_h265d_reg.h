@@ -36,12 +36,9 @@ extern RK_U32 h265h_debug;
 #define H265H_DBG_PPS               (0x00000004)
 #define H265H_DBG_REG               (0x00000008)
 
-#ifdef  MODULE_TAG
-#undef  MODULE_TAG
-#endif
-
 
 #define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)
+
 
 typedef struct {
     struct swreg_id {

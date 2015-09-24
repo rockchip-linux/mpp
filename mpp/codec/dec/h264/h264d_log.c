@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG ""
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -25,8 +27,6 @@
 #include "mpp_common.h"
 
 #include "h264d_log.h"
-
-#define MODULE_TAG   ""
 
 #define LOG_BUF_SIZE 512
 

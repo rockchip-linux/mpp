@@ -25,9 +25,6 @@
 #include "mpp_log.h"
 
 //!< undefine tag
-#ifdef MODULE_TAG
-#undef MODULE_TAG
-#endif
 //!< debug
 #define   __DEBUG_EN   1
 //!< return

@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "h264d_dpb"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -25,11 +27,6 @@
 
 
 #include "h264d_dpb.h"
-
-
-
-#define  MODULE_TAG  "h264d_dpb"
-
 
 
 #define INT_MIN     (-2147483647 - 1) /* minimum (signed) int value */

@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
+#define MODULE_TAG "h264d_init"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -25,9 +27,6 @@
 #include "h264d_dpb.h"
 #include "h264d_scalist.h"
 #include "h264d_fill.h"
-
-#define MODULE_TAG  "h264d_init"
-
 
 
 static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
