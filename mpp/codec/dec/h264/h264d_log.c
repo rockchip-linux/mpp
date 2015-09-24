@@ -31,7 +31,10 @@
 #define LOG_BUF_SIZE 512
 
 RK_U32  g_nalu_cnt = 0;
-
+RK_S32  g_max_bytes = 0;
+RK_U32  g_max_slice_data = 0;
+FILE   *g_debug_file0 = NULL;
+FILE   *g_debug_file1 = NULL;
 const LogEnvStr_t logenv_name = {
     "h264d_log_help",
     "h264d_log_show",

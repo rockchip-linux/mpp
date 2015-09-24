@@ -49,7 +49,9 @@ extern RK_U32 h265d_debug;
 #define H265D_DBG_REF               (0x00000080)
 
 
-
+#ifdef MODULE_TAG
+#undef MODULE_TAG
+#endif
 
 #define h265d_dbg(flag, fmt, ...) _mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
 

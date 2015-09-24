@@ -45,7 +45,8 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     currSlice->p_Cur   = p_Vid->p_Cur;
     currSlice->p_Inp   = p_Vid->p_Inp;
     currSlice->logctx  = &p_Vid->p_Dec->logctx;
-
+	currSlice->active_sps = p_Vid->active_sps;
+	currSlice->active_pps = p_Vid->active_pps;
     //--- reset listP listB
     for (i = 0; i < 2; i++) {
         currSlice->listP[i] = p_Vid->p_Cur->listP[i];
@@ -136,7 +137,7 @@ static MPP_RET read_nalu(H264_SLICE_t *currSlice)
         p_Cur->strm.endcode_found = (p_Inp->is_eos && p_Cur->nalu.sodb_len) ? 1 : p_Cur->strm.endcode_found;
         p_Dec->nalu_ret = p_Inp->is_eos ? (p_Cur->nalu.sodb_len ? EndOfNalu : EndofStream) : HaveNoStream;
     }
-
+	
     FunctionIn(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
@@ -144,7 +145,7 @@ __FAILED:
 
     return ret;
 }
-
+RK_U32 g_strm_bytes = 0;
 static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -156,15 +157,23 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 
     FunctionIn(logctx->parr[RUN_PARSE]);
     set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
+	g_strm_bytes += p_Cur->nalu.sodb_len;
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
     WRITE_LOG(p_bitctx, "================== NAL begin ===================");
     READ_BITS(ret, p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
     READ_BITS(ret, p_bitctx, 2, (RK_S32 *)&cur_nal->nal_reference_idc, "nal_ref_idc");
     READ_BITS(ret, p_bitctx, 5, (RK_S32 *)&cur_nal->nal_unit_type, "nal_unit_type");
-    //if (g_nalu_cnt == 321) {
-    //    g_nalu_cnt = g_nalu_cnt;
-    //}
+    if (g_nalu_cnt == 344) {
+        g_nalu_cnt = g_nalu_cnt;
+    }
+	//if (g_debug_file1 == NULL)
+	//{
+	//	g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
+	//}
+	//FPRINT(g_debug_file1, "g_nalu_cnt = %d, nal_unit_type = %d, nalu_size = %d\n", g_nalu_cnt++, cur_nal->nal_unit_type, cur_nal->sodb_len);
+
+
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
     if ((cur_nal->nal_unit_type == NALU_TYPE_PREFIX) || (cur_nal->nal_unit_type == NALU_TYPE_SLC_EXT)) {
@@ -197,7 +206,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     }
     set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
 
-    FunctionOut(logctx->parr[RUN_PARSE]);
+	FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:

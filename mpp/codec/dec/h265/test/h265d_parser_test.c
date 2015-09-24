@@ -95,10 +95,10 @@ static void show_usage()
 
 static RK_S32 show_help()
 {
-    mpp_log("usage: parserDemo [options] input_file, \n\n");
-
     RK_U32 i = 0;
     RK_U32 n = sizeof(parserCmd) / sizeof(ParserCmd_t);
+
+	mpp_log("usage: parserDemo [options] input_file, \n\n");
     for (i = 0; i < n; i++) {
         mpp_log("-%s  %s\t\t%s\n",
                 parserCmd[i].name, parserCmd[i].argname, parserCmd[i].help);
@@ -305,9 +305,9 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     cutask = mpp_calloc(HalDecTask, 1);
     pretask =  mpp_calloc(HalDecTask, 1);
 
-    mpp_codex_ctx = mpp_calloc(void, api_h265d_parser.ctx_size);
+    mpp_codex_ctx = mpp_calloc_size(void, api_h265d_parser.ctx_size);
     mpp_err("api_h265d_parser.ctx_size = %d", api_h265d_parser.ctx_size);
-    hal = mpp_calloc(void, hal_api_h265d.ctx_size);
+    hal = mpp_calloc_size(void, hal_api_h265d.ctx_size);
     if (cmd->have_input) {
         mpp_log("input bitstream w: %d, h: %d, path: %s\n",
                 cmd->width, cmd->height,
@@ -362,11 +362,12 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_log("malloc fail for input buf");
     }
     //buf[0] = 0;
-    while (!feof(pInFile)) {
-        nal_len = get_next_nal(pInFile, buf);
+    while (!feof(pInFile)) {        
         RK_U32 index;
         RK_U8 *tmpbuf = buf;
-        void  *pos = NULL;
+        RK_U8 *pos = NULL;
+
+		nal_len = get_next_nal(pInFile, buf);
         mpp_err("get nal len from file %d", nal_len);
         do {
             mpp_packet_init(&rkpkt, tmpbuf, nal_len);
@@ -374,10 +375,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             memset(&cutask->refer, -1, sizeof(cutask->refer));
             cutask->stmbuf = currentstrem;
             h265d_prepare(mpp_codex_ctx, rkpkt, cutask);
-            pos = mpp_packet_get_pos(rkpkt);
-            if (pos < (void*)(tmpbuf + nal_len)) {
+            pos = (RK_U8 *)mpp_packet_get_pos(rkpkt);
+            if (pos < (tmpbuf + nal_len)) {
                 tmpbuf = pos;
-                nal_len = (void*)(tmpbuf + nal_len) - pos;
+                nal_len = (RK_S32)((tmpbuf + nal_len) - pos);
                 mpp_err("nal_len = %d", nal_len);
             } else {
                 nal_len = 0;
@@ -431,9 +432,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
 #if 1//def DUMP
                     RK_U32 stride_w, stride_h;
                     void *ptr = NULL;
+					MppBuffer framebuf;
                     stride_w = mpp_frame_get_hor_stride(frame);
                     stride_h = mpp_frame_get_ver_stride(frame);
-                    MppBuffer framebuf = mpp_frame_get_buffer(frame);
+                    framebuf = mpp_frame_get_buffer(frame);
                     ptr = mpp_buffer_get_ptr(framebuf);
                     fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp);
                     fflush(fp);
@@ -493,8 +495,9 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
 
 int main(int argc, char **argv)
 {
+	RK_S32 ret = 0;
     ParserDemoCmdContext_t demoCmdCtx;
-    RK_S32 ret = 0;
+	ParserDemoCmdContext_t* cmd = NULL;
 
     if (argc == 1) {
         show_usage();
@@ -504,7 +507,7 @@ int main(int argc, char **argv)
 
     //mpp_env_set_u32("buf_slot_debug", 0x10000010, 0);
 
-    ParserDemoCmdContext_t* cmd = &demoCmdCtx;
+    cmd = &demoCmdCtx;
     memset((void*)cmd, 0, sizeof(ParserDemoCmdContext_t));
     if ((ret = parse_options(argc, argv, cmd)) != 0) {
         if (ret == PARSER_DEMO_PARSE_HELP_OK) {

@@ -28,7 +28,8 @@ extern "C" {
 MPP_RET parser_init(Parser *prs, ParserCfg *cfg);
 MPP_RET parser_deinit(Parser prs);
 
-MPP_RET parser_parse(Parser prs, MppPacket pkt, HalDecTask *task);
+MPP_RET parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task);
+MPP_RET parser_parse(Parser prs, HalDecTask *task);
 
 MPP_RET parser_reset(Parser prs);
 MPP_RET parser_flush(Parser prs);

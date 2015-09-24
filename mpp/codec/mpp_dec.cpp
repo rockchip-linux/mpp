@@ -106,7 +106,7 @@ void *mpp_dec_parser_thread(void *data)
          */
         if (!task_ready) {
             hal_task_init(&task_local, MPP_CTX_DEC);
-            parser_parse(dec->parser, (MppPacket)&packet, task_dec);
+            parser_prepare(dec->parser, (MppPacket)&packet, task_dec);
             if (0 == packet.size) {
                 mpp_packet_reset(&packet);
                 packet_ready = 0;
@@ -116,7 +116,7 @@ void *mpp_dec_parser_thread(void *data)
         task_ready = task_dec->valid;
         if (!task_ready)
             continue;
-
+		parser_parse(dec->parser, task_dec);
         /*
          * 4. parse local task and slot to check whether new buffer or info change is needed.
          *

@@ -58,7 +58,7 @@ MPP_RET parser_init(Parser *prs, ParserCfg *cfg)
     for (i = 0; i < MPP_ARRAY_ELEMS(parsers); i++) {
         const ParserApi *api = parsers[i];
         if (cfg->coding == api->coding) {
-            ParserImpl *p = mpp_malloc(ParserImpl, 1);
+            ParserImpl *p = mpp_calloc(ParserImpl, 1);
             void *ctx = mpp_calloc_size(void, api->ctx_size);
             if (NULL == ctx || NULL == p) {
                 mpp_err_f("failed to alloc parser context\n");
@@ -101,7 +101,7 @@ MPP_RET parser_deinit(Parser prs)
     return MPP_OK;
 }
 
-MPP_RET parser_prepare(Parser prs, MppPacket pkt)
+MPP_RET parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task)
 {
     if (NULL == prs || NULL == pkt) {
         mpp_err_f("found NULL input\n");
@@ -112,12 +112,12 @@ MPP_RET parser_prepare(Parser prs, MppPacket pkt)
     if (!p->api->prepare)
         return MPP_OK;
 
-    return p->api->prepare(p->ctx, pkt);
+    return p->api->prepare(p->ctx, pkt, task);
 }
 
-MPP_RET parser_parse(Parser prs, MppPacket pkt, HalDecTask *task)
+MPP_RET parser_parse(Parser prs, HalDecTask *task)
 {
-    if (NULL == prs || NULL == pkt || NULL == task) {
+    if (NULL == prs || NULL == task) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
@@ -126,7 +126,7 @@ MPP_RET parser_parse(Parser prs, MppPacket pkt, HalDecTask *task)
     if (!p->api->parse)
         return MPP_OK;
 
-    return p->api->parse(p->ctx, pkt, task);
+    return p->api->parse(p->ctx, task);
 }
 
 MPP_RET parser_reset(Parser prs)

@@ -56,16 +56,7 @@ typedef signed long long int    RK_S64;
 #ifndef MODULE_TAG
 #define MODULE_TAG              NULL
 #endif
-#ifndef NULL
-#ifdef  __cplusplus
-#define NULL    0
-#else
-#define NULL    ((void *)0)
-#endif
-#endif
 
-#ifndef INT64_C
-#define INT64_C(c) (c ## LL)
-#define UINT64_C(c) (c ## ULL)
-#endif
+
+
 #endif /*__RK_TYPE_H__*/

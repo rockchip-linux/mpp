@@ -497,24 +497,51 @@ __RETURN:
     return ret = MPP_OK;
 }
 
+
+/*!
+***********************************************************************
+* \brief
+*   prepare
+***********************************************************************
+*/
+MPP_RET h264d_prepare(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+	MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
+
+    INP_CHECK(ret, ctx, !decoder && !in_pkt && !in_task);
+	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+	p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
+	p_Dec->p_Inp->in_size = &pkt->size;
+	p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
+
+
+
+
+
+
+	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
+__RETURN:
+	return ret = MPP_OK;
+//__FAILED:
+//	return ret;
+}
+
+
 /*!
 ***********************************************************************
 * \brief
 *   parser
 ***********************************************************************
 */
-MPP_RET h264d_parse(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
+MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
 
-    INP_CHECK(ret, ctx, !decoder && !in_pkt && !in_task);
+    INP_CHECK(ret, ctx, !decoder && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-
-    p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
-    p_Dec->p_Inp->in_size = &pkt->size;
-    p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
 
     FUN_CHECK(ret = parse_loop(p_Dec));
     if (p_Dec->parser_end_flag) {
@@ -547,9 +574,10 @@ const ParserApi api_h264d_parser = {
     0,
     h264d_init,
     h264d_deinit,
-    NULL,
+    h264d_prepare,
     h264d_parse,
     h264d_reset,
     h264d_flush,
     h264d_control,
 };
+

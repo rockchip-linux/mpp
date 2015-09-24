@@ -31,16 +31,12 @@
 
 typedef struct h264d_hal_mem_t {
     H264_REGS_t              regs;    //!< for register
-    H264_MMU_t               mmu_regs;
-    H264_CACHE_t             cache_regs;
     H264_FifoPkt_t           pkts;
 } H264dHalMem_t;
 
 typedef struct h264d_hal_ctx_t {
     H264dHalMem_t            *mem;
     H264_REGS_t              *regs;
-    H264_MMU_t               *mmu_regs;
-    H264_CACHE_t             *cache_regs;
     H264_FifoPkt_t           *pkts;
     RK_U8                    spt_BitstrmRaw;
     RK_U8                    set_BitstrmRaw;
