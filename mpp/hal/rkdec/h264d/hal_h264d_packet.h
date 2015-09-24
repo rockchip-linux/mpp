@@ -30,6 +30,8 @@ void    prepare_framerps_packet(void *hal, FifoCtx_t *pkt);
 void    prepare_scanlist_packet(void *hal, FifoCtx_t *pkt);
 void    prepare_stream_packet  (void *hal, FifoCtx_t *pkt);
 void    generate_regs          (void *hal, FifoCtx_t *pkt);
+void    fprint_fifo_data       (FILE *fp,  FifoCtx_t *pkt);
+
 
 #ifdef  __cplusplus
 }

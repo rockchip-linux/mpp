@@ -203,9 +203,10 @@ typedef struct h264d_logctx_t {
 #define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ## __VA_ARGS__); fflush(fp);} }
 
 extern RK_U32  g_nalu_cnt;
-
-
-
+extern RK_S32  g_max_bytes;
+extern RK_U32  g_max_slice_data;
+extern FILE   *g_debug_file0;
+extern FILE   *g_debug_file1;
 #ifdef __cplusplus
 extern "C" {
 #endif

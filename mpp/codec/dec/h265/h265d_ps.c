@@ -24,11 +24,14 @@
  * @history
  *   2015.7.15 : Create
  */
-#define LOG_TAG "H265PARSER_PS"
+
 #include "mpp_bitread.h"
 #include "h265d_parser.h"
 #include "mpp_mem.h"
 #include "vpu_api.h"
+
+#define MODULE_TAG "H265PARSER_PS"
+
 static const RK_U8 default_scaling_list_intra[] = {
     16, 16, 16, 16, 17, 18, 21, 24,
     16, 16, 16, 16, 17, 19, 22, 25,
@@ -1630,7 +1633,8 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         READ_BIT1(gb, &sps->set_mfm_enabled_flag);
 #endif
     READ_BIT1(gb, &sps->sps_strong_intra_smoothing_enable_flag);
-    sps->vui.sar = (MppRational_t) {0, 1};
+	sps->vui.sar.num = 0;
+	sps->vui.sar.den = 1;
     READ_BIT1(gb, &vui_present);
     if (vui_present)
         decode_vui(s, sps);

@@ -96,8 +96,7 @@ MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
     return MPP_OK;
 }
 
-
-MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
+MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 {
     DummyDec *p;
     RK_U32 output;
@@ -186,6 +185,13 @@ MPP_RET dummy_dec_parse(void *dec, MppPacket pkt, HalDecTask *task)
 
     return MPP_OK;
 }
+MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
+{	
+	(void)dec;
+	(void)task;
+
+	return MPP_OK;
+}
 
 const ParserApi dummy_dec_parser = {
     "dummy_dec_parser",
@@ -194,7 +200,7 @@ const ParserApi dummy_dec_parser = {
     0,
     dummy_dec_init,
     dummy_dec_deinit,
-    NULL,
+    dummy_dec_prepare,
     dummy_dec_parse,
     dummy_dec_reset,
     dummy_dec_flush,

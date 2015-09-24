@@ -459,10 +459,33 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
 
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs,       sizeof(H264_REGS_t));
-    fifo_write_bytes(pkt, (void *)p_hal->mmu_regs,   sizeof(H264_MMU_t));
-    fifo_write_bytes(pkt, (void *)p_hal->cache_regs, sizeof(H264_CACHE_t));
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
 }
 
+/*!
+***********************************************************************
+* \brief
+*   for debug
+***********************************************************************
+*/
+void fprint_fifo_data(FILE *fp, FifoCtx_t *pkt)
+{
+	RK_U32 i = 0, pkt_size = 0;
+	RK_U8 *ptr = (RK_U8 *)pkt->pbuf;
+	if (fp) {
+		pkt_size = pkt->index * sizeof(RK_U64);
+		fprintf(fp, "------ Header=%08x, size=%d ------ \n", pkt->header, pkt_size);
+			for (i = 0; i < pkt_size;)
+			{
+				fprintf(fp, "0x%02x, ", ptr[i]);
+				i++;
+				if ((i % 16) == 0)
+				{
+					fprintf(fp, "\n");
+				}
+			}	
+			fprintf(fp, "\n\n");
+	}
+}

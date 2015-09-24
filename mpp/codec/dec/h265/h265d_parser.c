@@ -24,12 +24,15 @@
  * @history
  *   2015.7.15 : Create
  */
-#define MODULE_TAG "H265D_PARSER"
+
 #include "mpp_bitread.h"
 #include "h265d_parser.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "h265d_syntax.h"
+
+
+#define MODULE_TAG "H265D_PARSER"
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
 
@@ -623,6 +626,8 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     SliceHeader *sh   = &s->sh;
     RK_S32 i, ret;
     RK_S32 value, pps_id;
+	RK_S32 bit_begin;
+
 #ifdef JCTVC_M0458_INTERLAYER_RPS_SIG
     int NumILRRefIdx;
 #endif
@@ -740,7 +745,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
 
             READ_BIT1(gb, &sh->short_term_ref_pic_set_sps_flag);
 
-            RK_S32 bit_begin = gb->UsedBits;
+            bit_begin = gb->UsedBits;
 
             if (!sh->short_term_ref_pic_set_sps_flag) {
 

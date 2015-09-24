@@ -161,8 +161,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     p_hal->mem = mpp_calloc(H264dHalMem_t, 1);
     MEM_CHECK(ret, p_hal->mem);
     p_hal->regs       = &p_hal->mem->regs;
-    p_hal->mmu_regs   = &p_hal->mem->mmu_regs;
-    p_hal->cache_regs = &p_hal->mem->cache_regs;
     p_hal->pkts       = &p_hal->mem->pkts;
     FUN_CHECK(ret = alloc_fifo_packet(&p_hal->logctx, p_hal->pkts));
 
@@ -214,13 +212,13 @@ MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     explain_input_buffer(hal, &task->dec);
-    prepare_spspps_packet(hal, &p_hal->pkts->spspps);
+    prepare_spspps_packet(hal, &p_hal->pkts->spspps);	
     prepare_framerps_packet(hal, &p_hal->pkts->rps);
     prepare_scanlist_packet(hal, &p_hal->pkts->scanlist);
     prepare_stream_packet(hal, &p_hal->pkts->strm);
     generate_regs(p_hal, &p_hal->pkts->reg);
 
-    mpp_log("++++++++++ hal_h264_decoder, g_framecnt=%d \n", p_hal->g_framecnt++);
+    //mpp_log("++++++++++ hal_h264_decoder, g_framecnt=%d \n", p_hal->g_framecnt++);
     ((HalDecTask*)&task->dec)->valid = 0;
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
@@ -292,8 +290,6 @@ MPP_RET hal_h264d_reset(void *hal)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     memset(&p_hal->regs, 0, sizeof(H264_REGS_t));
-    memset(&p_hal->mmu_regs, 0, sizeof(H264_MMU_t));
-    memset(&p_hal->cache_regs, 0, sizeof(H264_CACHE_t));
     reset_fifo_packet(p_hal->pkts);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);

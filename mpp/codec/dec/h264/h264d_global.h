@@ -44,8 +44,8 @@
 #define DPB_INFO_SIZE             16
 #define REFPIC_INFO_SIZE          32
 #define MAX_TASK_SIZE             2
-#define NALU_BUF_MAX_SIZE         64//512*1024
-#define NALU_BUF_ADD_SIZE         32//512
+#define NALU_BUF_MAX_SIZE         10*1024*1024
+#define NALU_BUF_ADD_SIZE         1024
 
 #ifndef min
 #define min(a,b)    (((a) < (b)) ? (a) : (b))
@@ -258,9 +258,9 @@ typedef struct h264_store_pic_t {
     RK_S32    mb_aff_frame_flag;
     RK_U32    PicWidthInMbs;
     RK_U8     colmv_no_used_flag;
-    struct h264_store_pic_t *top_field;     // for mb aff, if frame for referencing the top field
-    struct h264_store_pic_t *bottom_field;  // for mb aff, if frame for referencing the bottom field
-    struct h264_store_pic_t *frame;         // for mb aff, if field for referencing the combined frame
+    struct h264_store_pic_t *top_field;     //!< for mb aff, if frame for referencing the top field
+    struct h264_store_pic_t *bottom_field;  //!< for mb aff, if frame for referencing the bottom field
+    struct h264_store_pic_t *frame;         //!< for mb aff, if field for referencing the combined frame
 
     RK_S32       slice_type;
     RK_S32       idr_flag;
@@ -767,7 +767,7 @@ typedef struct h264_slice_t {
     RK_S32   MVCExt_is_prefixNALU;
 
     struct h264_dec_ctx_t     *p_Dec;    // H264_DecCtx_t
-    struct h264d_input_ctx_t    *p_Inp;    // H264_InputParameters
+    struct h264d_input_ctx_t  *p_Inp;    // H264_InputParameters
     struct h264d_cur_ctx_t    *p_Cur;    // H264_CurParameters
     struct h264d_video_ctx_t  *p_Vid;
     struct h264d_logctx_t *logctx;   // debug log file
@@ -794,10 +794,10 @@ typedef struct h264_old_slice_par_t {
 } H264_OldSlice_t;
 
 //!< DXVA context
-#define MAX_SLICE_SIZE             1//1024
-#define ADD_SLICE_SIZE             1//32
-#define FRAME_BUF_MAX_SIZE         64//512*1024
-#define FRAME_BUF_ADD_SIZE         32//512
+#define MAX_SLICE_SIZE             1024
+#define ADD_SLICE_SIZE             32
+#define FRAME_BUF_MAX_SIZE         512*1024
+#define FRAME_BUF_ADD_SIZE         512
 #define SYNTAX_BUF_SIZE            5
 typedef struct h264d_dxva_ctx_t {
     RK_U8                            cfgBitstrmRaw;

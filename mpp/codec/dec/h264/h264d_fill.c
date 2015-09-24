@@ -85,8 +85,8 @@ static MPP_RET fill_stream_data(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
     p_long->wBadSliceChopping  = 0; //!< set to 0 in Rock-Chip RKVDEC IP
     memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], start_code, sizeof(start_code));
     dxva_ctx->strm_offset += sizeof(start_code);
-    memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], p_nal->sodb_buf, p_nal->sodb_len);
-    dxva_ctx->strm_offset += p_nal->sodb_len;
+	memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], p_nal->sodb_buf, p_nal->sodb_len);
+	dxva_ctx->strm_offset += p_nal->sodb_len;
     p_long->SliceBytesInBuffer  = dxva_ctx->strm_offset - p_long->BSNALunitDataLocation;
 
     return ret = MPP_OK;

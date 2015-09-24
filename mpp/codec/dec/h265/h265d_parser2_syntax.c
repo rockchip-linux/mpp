@@ -25,9 +25,12 @@
  *   2015.7.15 : Create
  */
 
-#define MODULE_TAG "H265SYNATX"
+
 #include "h265d_parser.h"
 #include "h265d_syntax.h"
+
+
+#define MODULE_TAG "H265SYNATX"
 
 static void fill_picture_entry(DXVA_PicEntry_HEVC *pic,
                                unsigned index, unsigned flag)

@@ -30,7 +30,8 @@ MPP_RET dummy_dec_deinit (void *dec);
 MPP_RET dummy_dec_reset  (void *dec);
 MPP_RET dummy_dec_flush  (void *dec);
 MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param);
-MPP_RET dummy_dec_parse  (void *dec, MppPacket pkt, HalDecTask *task);
+MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task);
+MPP_RET dummy_dec_parse  (void *dec, HalDecTask *task);
 
 #ifdef  __cplusplus
 }

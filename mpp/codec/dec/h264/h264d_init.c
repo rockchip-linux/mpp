@@ -384,15 +384,15 @@ static void malloc_dpb_memory_index(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK
 {
     RK_U8 idx = 1;
     H264_DpbMark_t *pmem_dpb = p_Vid->p_Dec->dpb_mark;
-
-    if (!combine_flag) { //--- malloc
+	//!< malloc
+    if (!combine_flag) {
         while (pmem_dpb[idx].top_used || pmem_dpb[idx].bot_used) {
             idx++;
         }
         ASSERT(idx <= MAX_DPB_SIZE);
         p_Vid->active_dpb_mark[layer_id] = &pmem_dpb[idx];
     }
-    //--- index add ----
+    //!< index add
     if (structure == FRAME || structure == TOP_FIELD) {
         p_Vid->active_dpb_mark[layer_id]->top_used += 1;
     }
@@ -453,7 +453,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     } else if (currSlice->structure == FRAME) {
         dec_picture->poc = currSlice->framepoc;
     } else {
-        ret = MPP_OK;
+        ret = MPP_NOK;
         goto __FAILED;
     }
     dec_picture->slice_type = p_Vid->type;
@@ -569,8 +569,8 @@ static void update_pic_num(H264_SLICE_t *currSlice)
 static MPP_RET init_picture_decoding(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
-    if (pSlice->layer_id && !pSlice->svc_extension_flag && !pSlice->mvcExt.non_idr_flag) { //!< MVC idr_flag==1
+	//!< MVC idr_flag==1
+    if (pSlice->layer_id && !pSlice->svc_extension_flag && !pSlice->mvcExt.non_idr_flag) {
         ASSERT(pSlice->layer_id == 1);
         FUN_CHECK(ret = idr_memory_management(p_Vid->p_Dpb_layer[pSlice->layer_id], p_Vid->dec_picture));
     }
@@ -720,7 +720,7 @@ static RK_U32 is_view_id_in_ref_view_list(RK_S32 view_id, RK_S32 *ref_view_id, R
 }
 
 static MPP_RET append_interview_list(H264_DpbBuf_t *p_Dpb,
-                                     PictureStructure currPicStructure, RK_S32 list_idx, H264_FrameStore_t **list,
+                                     RK_S32 currPicStructure, RK_S32 list_idx, H264_FrameStore_t **list,
                                      RK_S32 *listXsize, RK_S32 currPOC, RK_S32 curr_layer_id, RK_S32 anchor_pic_flag)
 {
     RK_S32 poc = 0;
