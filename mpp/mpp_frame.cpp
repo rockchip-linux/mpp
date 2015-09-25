@@ -68,6 +68,7 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
         mpp_buffer_put(buffer);
 
     mpp_free(*frame);
+    *frame = NULL;
     return MPP_OK;
 }
 
