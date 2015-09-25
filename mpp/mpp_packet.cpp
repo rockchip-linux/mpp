@@ -33,6 +33,8 @@ static void setup_mpp_packet_name(MppPacketImpl *packet)
 static void check_mpp_packet_name(MppPacketImpl *packet)
 {
     mpp_assert(packet->name == module_name);
+    if (packet->name != module_name)
+        mpp_err("packet %p failed on name checking\n");
 }
 
 MPP_RET mpp_packet_new(MppPacket *packet)
@@ -80,6 +82,7 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     }
 
     check_mpp_packet_name((MppPacketImpl *)src);
+    *packet = NULL;
     size_t size = mpp_packet_get_size(src);
     void *data = mpp_malloc_size(void, size);
     if (NULL == data) {
@@ -87,9 +90,15 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         return MPP_ERR_MALLOC;
     }
 
-    MPP_RET ret = mpp_packet_init(packet, data, size);
+    MppPacket pkt;
+    MPP_RET ret = mpp_packet_new(&pkt);
     if (MPP_OK == ret) {
-        memcpy(data, mpp_packet_get_data(src), size);
+        MppPacketImpl *p = (MppPacketImpl *)pkt;
+        memcpy(p, src, sizeof(*p));
+        p->data = p->pos = data;
+        p->size = p->length = size;
+        memcpy(data, ((MppPacketImpl *)src)->data, size);
+        *packet = pkt;
         return MPP_OK;
     }
 
