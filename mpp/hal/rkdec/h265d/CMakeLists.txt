@@ -18,6 +18,10 @@ add_library(hal_h265d STATIC
 	${HAL_H265D_SRC} ${HAL_H265D_HDR}
     )
 
+if(ANDROID)
+	target_link_libraries(hal_h265d vpu osal)
+else()
 target_link_libraries(hal_h265d osal)
+endif()
 
 #add_subdirectory(test)

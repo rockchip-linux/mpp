@@ -940,7 +940,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         RK_S32  nb_slice = slice_idx + 1;
         RK_S32  fifo_index = 0;
         RK_S32  bit_offset = 0;
-        RK_S32  fifo_len   = nb_slice * 4;//size of rps_packet
+        RK_S32  fifo_len   = nb_slice * 4 + 1;//size of rps_packet alloc more 1 64 bit invoid buffer no enought
         RK_S32  bit_len = 0;
         RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
 
