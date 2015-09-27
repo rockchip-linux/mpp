@@ -196,6 +196,13 @@ MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer b
 MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
 MPP_RET     mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame);
 
+
+/*
+ * NOTE:
+ * buffer slot will be used both for frame and packet
+ * when buffer slot is used for packet management only inc_hw_ref and dec_hw_ref is used
+ */
+
 #ifdef __cplusplus
 }
 #endif

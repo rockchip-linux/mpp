@@ -57,9 +57,9 @@ static MPP_RET manual_set_env(void)
 static MPP_RET decoder_deinit(MppDec *pApi)
 {
 
-    if (pApi->slots) {
-        mpp_buf_slot_deinit(pApi->slots);
-        pApi->slots = NULL;
+    if (pApi->frame_slots) {
+        mpp_buf_slot_deinit(pApi->frame_slots);
+        pApi->frame_slots = NULL;
     }
     if (pApi->parser) {
         parser_deinit(pApi->parser);
@@ -81,13 +81,13 @@ static MPP_RET decoder_init(MppDec *pApi)
     MppCodingType   coding = MPP_VIDEO_CodingAVC;
 
     // malloc slot
-    FUN_CHECK(ret = mpp_buf_slot_init(&pApi->slots));
-    MEM_CHECK(ret, pApi->slots);
+    FUN_CHECK(ret = mpp_buf_slot_init(&pApi->frame_slots));
+    MEM_CHECK(ret, pApi->frame_slots);
 
     // init parser part
     memset(&parser_cfg, 0, sizeof(parser_cfg));
     parser_cfg.coding = coding;
-    parser_cfg.slots = pApi->slots;
+    parser_cfg.frame_slots = pApi->frame_slots;
     FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
 
     // init hal part

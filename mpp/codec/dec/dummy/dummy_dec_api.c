@@ -27,7 +27,8 @@
 #define DUMMY_DEC_REF_COUNT         2
 
 typedef struct DummyDec_t {
-    MppBufSlots     slots;
+    MppBufSlots     frame_slots;
+    MppBufSlots     packet_slots;
     RK_U32          task_count;
 
     RK_U32          slots_inited;
@@ -46,7 +47,8 @@ MPP_RET dummy_dec_init(void *dec, ParserCfg *cfg)
     }
 
     p = (DummyDec *)dec;
-    p->slots        = cfg->slots;
+    p->frame_slots  = cfg->frame_slots;
+    p->packet_slots = cfg->packet_slots;
     p->task_count   = cfg->task_count = 2;
     p->slots_inited = 0;
     p->frame_count  = 0;
@@ -114,7 +116,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     p = (DummyDec *)dec;
     // do packet decoding here
 
-    slots = p->slots;
+    slots = p->frame_slots;
     frame_count = p->frame_count;
 
     // set pos to indicate that buffer is done

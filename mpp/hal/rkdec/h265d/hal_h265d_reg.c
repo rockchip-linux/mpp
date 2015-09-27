@@ -255,7 +255,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_UNKNOW;
     }
 
-    reg_cxt->slots = cfg->slots;
+    reg_cxt->slots = cfg->frame_slots;
 
     ///<- VPUClientInit
 #ifdef ANDROID

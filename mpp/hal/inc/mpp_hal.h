@@ -34,7 +34,8 @@ typedef struct MppHalCfg_t {
     MppCtxType      type;
     MppCodingType   coding;
     HalWorkMode     mode;
-    MppBufSlots     slots;
+    MppBufSlots     frame_slots;
+    MppBufSlots     packet_slots;
 
     // output
     HalTaskGroup    tasks;

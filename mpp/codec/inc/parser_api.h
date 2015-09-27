@@ -31,7 +31,8 @@
 typedef struct DecParserInitCfg_t {
     // input
     MppCodingType   coding;
-    MppBufSlots     slots;
+    MppBufSlots     frame_slots;
+    MppBufSlots     packet_slots;
 
     // output
     RK_U32          task_count;

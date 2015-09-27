@@ -354,8 +354,8 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     mpp_buffer_get(mStreamGroup, &currentstrem, 1024 * 1024);
     mpp_buffer_get(mStreamGroup, &prestrem, 2 * 1024 * 1024);
 
-    parser_cfg.slots = slots;
-    hal_cfg.slots = slots;
+    parser_cfg.frame_slots = slots;
+    hal_cfg.frame_slots = slots;
     h265d_init(mpp_codex_ctx, &parser_cfg);
     hal_h265d_init(hal, &hal_cfg);
     mpp_log("mallc out \n");
