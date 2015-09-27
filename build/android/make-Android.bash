@@ -1,6 +1,12 @@
 #!/bin/bash
 # Run this from within a bash shell
-ANDROID_NDK=~/work/android/ndk/android-ndk-r10d/
+HOST_IP=`hostname --all-ip-addresses`
+if [ ${HOST_IP} == "10.10.10.65" ] || [ ${HOST_IP} == "10.10.10.67" ]; then
+    ANDROID_NDK=/home/pub/ndk/android-ndk-r10d/
+else
+    ANDROID_NDK=~/work/android/ndk/android-ndk-r10d/
+fi
+
 PLATFORM=$ANDROID_NDK/platforms/android-17/arch-arm
 
 cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
@@ -33,8 +39,5 @@ cmake --build .
 #adb shell rk_log_test
 #adb shell rk_thread_test
 #adb logcat -d|tail -30
-
-
-
 
 
