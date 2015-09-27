@@ -31,7 +31,8 @@ struct MppDec_t {
     MppHal              hal;
 
     // common resource
-    MppBufSlots         slots;
+    MppBufSlots         frame_slots;
+    MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
 };
 

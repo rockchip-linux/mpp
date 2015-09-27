@@ -25,8 +25,6 @@
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
-#define MPP_TEST_FRAME_SIZE     SZ_1M
-
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -100,7 +98,7 @@ void *mpp_enc_hal_thread(void *data)
 
             // for test
             MppBuffer buffer;
-            mpp_buffer_get(mpp->mFrameGroup, &buffer, MPP_TEST_FRAME_SIZE);
+            mpp_buffer_get(mpp->mFrameGroup, &buffer, SZ_1M);
 
             MppFrame frame;
             mpp_frame_init(&frame);

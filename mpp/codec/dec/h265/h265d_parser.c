@@ -1692,7 +1692,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 
     s->picture_struct = 0;
 
-    s->slots = parser_cfg->slots;
+    s->slots = parser_cfg->frame_slots;
 
 
     if (h265dctx->extradata_size > 0 && h265dctx->extradata) {

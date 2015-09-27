@@ -32,9 +32,9 @@ void *mpp_dec_parser_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
-    MppBufSlots slots   = dec->slots;
     HalTaskGroup tasks  = dec->tasks;
     MppPacket packet    = NULL;
+    MppBufSlots frame_slots = dec->frame_slots;
 
     /*
      * parser thread need to wait at cases below:
@@ -117,6 +117,7 @@ void *mpp_dec_parser_thread(void *data)
         task_ready = task_dec->valid;
         if (!task_ready)
             continue;
+
         parser_parse(dec->parser, task_dec);
         /*
          * 4. parse local task and slot to check whether new buffer or info change is needed.
@@ -124,7 +125,7 @@ void *mpp_dec_parser_thread(void *data)
          * a. first detect info change
          * b. then detect whether output index has MppBuffer
          */
-        wait_on_change = mpp_buf_slot_is_changed(slots);
+        wait_on_change = mpp_buf_slot_is_changed(frame_slots);
         if (wait_on_change)
             continue;
 
@@ -141,16 +142,16 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
         RK_U32 output;
-        mpp_buf_slot_get_hw_dst(slots, &output);
-        if (NULL == mpp_buf_slot_get_buffer(slots, output)) {
+        mpp_buf_slot_get_hw_dst(frame_slots, &output);
+        if (NULL == mpp_buf_slot_get_buffer(frame_slots, output)) {
             MppBuffer buffer = NULL;
-            RK_U32 size = mpp_buf_slot_get_size(slots);
+            RK_U32 size = mpp_buf_slot_get_size(frame_slots);
             mpp_buffer_get(mpp->mFrameGroup, &buffer, size);
             if (buffer)
-                mpp_buf_slot_set_buffer(slots, output, buffer);
+                mpp_buf_slot_set_buffer(frame_slots, output, buffer);
         }
 
-        wait_on_buffer = (NULL == mpp_buf_slot_get_buffer(slots, output));
+        wait_on_buffer = (NULL == mpp_buf_slot_get_buffer(frame_slots, output));
         if (wait_on_buffer)
             continue;
 
@@ -173,9 +174,9 @@ void *mpp_dec_hal_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
-    MppBufSlots slots   = dec->slots;
     HalTaskGroup tasks  = dec->tasks;
     mpp_list *frames    = mpp->mFrames;
+    MppBufSlots frame_slots = dec->frame_slots;
 
     /*
      * hal thread need to wait at cases below:
@@ -229,15 +230,15 @@ void *mpp_dec_hal_thread(void *data)
          * 3. add frame to output list
          * repeat 2 and 3 until not frame can be output
          */
-        mpp_buf_slot_clr_hw_dst(slots, task_dec->output);
+        mpp_buf_slot_clr_hw_dst(frame_slots, task_dec->output);
         for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
             RK_S32 index = task_dec->refer[i];
             if (index >= 0)
-                mpp_buf_slot_dec_hw_ref(slots, index);
+                mpp_buf_slot_dec_hw_ref(frame_slots, index);
         }
 
         MppFrame frame = NULL;
-        while (MPP_OK == mpp_buf_slot_get_display(slots, &frame)) {
+        while (MPP_OK == mpp_buf_slot_get_display(frame_slots, &frame)) {
             frames->lock();
             frames->add_at_tail(&frame, sizeof(frame));
             mpp->mFramePutCount++;
@@ -252,7 +253,8 @@ void *mpp_dec_hal_thread(void *data)
 MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
 {
     MPP_RET ret;
-    MppBufSlots slots = NULL;
+    MppBufSlots frame_slots = NULL;
+    MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
 
@@ -263,15 +265,22 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
     }
 
     do {
-        ret = mpp_buf_slot_init(&slots);
+        ret = mpp_buf_slot_init(&frame_slots);
         if (ret) {
-            mpp_err_f("could not init buffer slot\n");
+            mpp_err_f("could not init frame buffer slot\n");
+            break;
+        }
+
+        ret = mpp_buf_slot_init(&packet_slots);
+        if (ret) {
+            mpp_err_f("could not init packet buffer slot\n");
             break;
         }
 
         ParserCfg parser_cfg = {
             coding,
-            slots,
+            frame_slots,
+            packet_slots,
             2,
         };
 
@@ -286,7 +295,8 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             MPP_CTX_DEC,
             coding,
             HAL_MODE_LIBVPU,
-            p->slots,
+            frame_slots,
+            packet_slots,
             NULL,
             parser_cfg.task_count,
         };
@@ -300,8 +310,9 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
         p->coding = coding;
         p->parser = parser;
         p->hal    = hal;
-        p->slots  = slots;
         p->tasks  = hal_cfg.tasks;
+        p->frame_slots  = frame_slots;
+        p->packet_slots = packet_slots;
         *dec = p;
         return MPP_OK;
     } while (0);
@@ -328,9 +339,14 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
         dec->hal = NULL;
     }
 
-    if (dec->slots) {
-        mpp_buf_slot_deinit(dec->slots);
-        dec->slots = NULL;
+    if (dec->frame_slots) {
+        mpp_buf_slot_deinit(dec->frame_slots);
+        dec->frame_slots = NULL;
+    }
+
+    if (dec->packet_slots) {
+        mpp_buf_slot_deinit(dec->packet_slots);
+        dec->packet_slots = NULL;
     }
 
     mpp_free(dec);

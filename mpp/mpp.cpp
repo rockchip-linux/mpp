@@ -30,6 +30,7 @@
 #include "mpp_packet_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
+#define MPP_TEST_PACKET_SIZE    SZ_512K
 
 RK_U32 mpp_debug = 0;
 
@@ -65,7 +66,10 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
+
+        mpp_buffer_group_limited_get(&mPacketGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_limit_config(mPacketGroup, MPP_TEST_PACKET_SIZE, 4);
+
         mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mFrameGroup, MPP_TEST_FRAME_SIZE, 4);
     } break;
