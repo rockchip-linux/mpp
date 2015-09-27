@@ -108,8 +108,7 @@ void *mpp_dec_parser_thread(void *data)
             hal_task_init(&task_local, MPP_CTX_DEC);
             parser_prepare(dec->parser, packet, task_dec);
             if (0 == mpp_packet_get_length(packet)) {
-                void *data = mpp_packet_get_data(packet);
-                mpp_free(data);
+                mpp_free(mpp_packet_get_data(packet));
                 mpp_packet_deinit(&packet);
                 packet_ready = 0;
             }
