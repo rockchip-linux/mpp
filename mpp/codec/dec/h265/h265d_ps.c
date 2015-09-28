@@ -1302,7 +1302,7 @@ static int scaling_list_data(HEVCContext *s, ScalingList *sl)
     RK_U32 matrix_id;
 
     for (size_id = 0; size_id < 4; size_id++)
-        for (matrix_id = 0; matrix_id < (size_id == 3 ? 2 : 6); matrix_id++) {
+    for (matrix_id = 0; matrix_id < (RK_U32)((size_id == 3) ? 2 : 6); matrix_id++) {
             READ_BIT1(gb, &scaling_list_pred_mode_flag[size_id][matrix_id]);
             if (!scaling_list_pred_mode_flag[size_id][matrix_id]) {
                 RK_U32 delta = 0;

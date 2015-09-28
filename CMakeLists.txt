@@ -346,6 +346,8 @@ list( LENGTH module_list module_size )
 # ----------------------------------------------------------------------------
 # project overall include file
 include_directories(inc)
+# small utile functions for test case
+include_directories(utils)
 
 # ----------------------------------------------------------------------------
 #  osal library
@@ -354,6 +356,11 @@ include_directories(inc)
 include_directories(osal/inc)
 # OSAL is needed on all platform, do not need option
 add_subdirectory(osal)
+
+# ----------------------------------------------------------------------------
+#  utils for test case
+# ----------------------------------------------------------------------------
+add_subdirectory(utils)
 
 # ----------------------------------------------------------------------------
 #  Media Process Platform library

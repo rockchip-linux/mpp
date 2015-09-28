@@ -1459,7 +1459,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     HEVCContext *s = h265dctx->priv_data;
     RK_U8 *buf = NULL;
     void *pos = NULL;
-    RK_S32 length = 0;
+    size_t length = 0;
     s->eos = mpp_packet_get_eos(pkt);
     buf = mpp_packet_get_pos(pkt);
     length = mpp_packet_get_size(pkt);
