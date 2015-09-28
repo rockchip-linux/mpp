@@ -252,7 +252,7 @@ RK_S32 get_next_nal(FILE* inpf, unsigned char* Buf)
 
 static RK_S32 poll_task(void *hal, MppBufSlots slots, HalDecTask *dec)
 {
-    HalTask syn;
+    HalTaskInfo syn;
     RK_U32 i;
     syn.dec = *dec;
     hal_h265d_wait(hal, &syn);
@@ -393,7 +393,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 h265d_parse(mpp_codex_ctx, cutask);
             }
             if (cutask->valid) {
-                HalTask syn;
+                HalTaskInfo syn;
                 syn.dec = *cutask;
                 mpp_buf_slot_get_hw_dst(slots, &index);
 

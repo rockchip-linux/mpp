@@ -33,20 +33,20 @@ MPP_RET hal_dummy_enc_deinit(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_dummy_enc_gen_regs(void *hal, HalTask *task)
+MPP_RET hal_dummy_enc_gen_regs(void *hal, HalTaskInfo *task)
 {
     (void)hal;
     (void)task;
     return MPP_OK;
 }
-MPP_RET hal_dummy_enc_start(void *hal, HalTask *task)
+MPP_RET hal_dummy_enc_start(void *hal, HalTaskInfo *task)
 {
     (void)hal;
     (void)task;
     return MPP_OK;
 }
 
-MPP_RET hal_dummy_enc_wait(void *hal, HalTask *task)
+MPP_RET hal_dummy_enc_wait(void *hal, HalTaskInfo *task)
 {
     (void)hal;
     (void)task;

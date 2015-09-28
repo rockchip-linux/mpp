@@ -34,7 +34,7 @@ struct mpp_list_node;
 class mpp_list
 {
 public:
-    mpp_list(node_destructor func);
+    mpp_list(node_destructor func = NULL);
     ~mpp_list();
 
     // for FIFO or FILO implement
@@ -80,7 +80,6 @@ private:
     static RK_U32           keys;
     static RK_U32           get_key();
 
-    mpp_list();
     mpp_list(const mpp_list &);
     mpp_list &operator=(const mpp_list &);
 };

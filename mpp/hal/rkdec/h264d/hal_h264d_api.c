@@ -200,7 +200,7 @@ __RETURN:
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_h264d_gen_regs(void *hal, HalTask *task)
+MPP_RET hal_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -230,7 +230,7 @@ __RETURN:
 */
 //extern "C"
 
-MPP_RET hal_h264d_start(void *hal, HalTask *task)
+MPP_RET hal_h264d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -254,7 +254,7 @@ __RETURN:
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_h264d_wait(void *hal, HalTask *task)
+MPP_RET hal_h264d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;

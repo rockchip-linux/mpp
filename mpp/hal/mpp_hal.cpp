@@ -51,7 +51,7 @@ typedef struct MppHalImpl_t {
     const MppHalApi *api;
 
     HalTaskGroup    tasks;
-    RK_U32          task_count;
+    RK_S32          task_count;
 } MppHalImpl;
 
 
@@ -118,7 +118,7 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTask *task)
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTaskInfo *task)
 {
     if (NULL == ctx || NULL == task) {
         mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
@@ -129,7 +129,7 @@ MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTask *task)
     return p->api->reg_gen(p->ctx, task);
 }
 
-MPP_RET mpp_hal_hw_start(MppHal ctx, HalTask *task)
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
 {
     if (NULL == ctx || NULL == task) {
         mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
@@ -140,7 +140,7 @@ MPP_RET mpp_hal_hw_start(MppHal ctx, HalTask *task)
     return p->api->start(p->ctx, task);
 }
 
-MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTask *task)
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
 {
     if (NULL == ctx || NULL == task) {
         mpp_err_f("found NULL input ctx %p task %p\n", ctx, task);
