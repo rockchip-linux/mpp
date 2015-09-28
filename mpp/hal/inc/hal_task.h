@@ -22,6 +22,15 @@
 
 #define MAX_DEC_REF_NUM     17
 
+typedef enum MppTaskStatus_e {
+    TASK_IDLE,
+    TASK_PREPARE,
+    TASK_WAIT_PROC,
+    TASK_PROCESSING,
+    TASK_PROC_DONE,
+    TASK_BUTT,
+} MppTaskStatus;
+
 /*
  * modified by parser
  *
@@ -100,7 +109,7 @@ typedef struct HalEncTask_t {
 typedef union HalTask_u {
     HalDecTask      dec;
     HalEncTask      enc;
-} HalTask;
+} HalTaskInfo;
 
 typedef void* HalTaskHnd;
 typedef void* HalTaskGroup;
@@ -115,7 +124,7 @@ extern "C" {
  * NOTE: use mpp_list to implement
  *       the count means the max task waiting for process
  */
-MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_U32 count);
+MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*
@@ -123,22 +132,30 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
  *
  * dec:
  *
- * hal_task_can_put(group)      - dec test whether can send task to hal
- * parser->parse(task)          - parser write a local task
- * hal_task_put(group, task)    - dec send the task to hal
+ * - codec
+ * hal_task_get_hnd(group, idle, hnd)       - dec try get idle task to work
+ * hal_task_hnd_set_status(hnd, prepare)    - dec prepare the task
+ * codec prepare task
+ * hal_task_hnd_set_status(hnd, wait_proc)  - dec send the task to hardware queue
  *
- * hal:
+ * - hal
+ * hal_task_get_hnd(group, wait_proc, hnd)  - hal get task on wait_proc status
+ * hal start task
+ * hal_task_set_hnd(hnd, processing)        - hal send task to hardware for process
+ * hal wait task done
+ * hal_task_set_hnd(hnd, proc_done)         - hal mark task is finished
  *
- * hal_task_can_get(group)      - hal test whether there is task waiting for process
- * hal_task_get(group, task)    - hal get the task to process
+ * - codec
+ * hal_task_get_hnd(group, task_done, hnd)  - codec query the previous finished task
+ * codec do error process on task
+ * hal_task_set_hnd(hnd, idle)              - codec mark task is idle
  *
  */
-MPP_RET hal_task_can_put(HalTaskGroup group);
-MPP_RET hal_task_can_get(HalTaskGroup group);
-
-MPP_RET hal_task_init(HalTask *task, MppCtxType type);
-MPP_RET hal_task_put(HalTaskGroup group, HalTask *task);
-MPP_RET hal_task_get(HalTaskGroup group, HalTask *task);
+MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *hnd);
+MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status);
+MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task);
+MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task);
+MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type);
 
 #ifdef __cplusplus
 }

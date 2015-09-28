@@ -1255,7 +1255,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     return 0;
 }
 
-MPP_RET hal_h265d_gen_regs(void *hal,  HalTask *syn)
+MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     RK_U32 uiMaxCUWidth, uiMaxCUHeight;
     RK_U32 log2_min_cb_size;
@@ -1392,7 +1392,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTask *syn)
     return ret;
 }
 
-MPP_RET hal_h265d_start(void *hal, HalTask *task)
+MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
@@ -1414,7 +1414,7 @@ MPP_RET hal_h265d_start(void *hal, HalTask *task)
 }
 
 
-MPP_RET hal_h265d_wait(void *hal, HalTask *task)
+MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     (void) task;

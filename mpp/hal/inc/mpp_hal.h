@@ -39,7 +39,7 @@ typedef struct MppHalCfg_t {
 
     // output
     HalTaskGroup    tasks;
-    RK_U32          task_count;
+    RK_S32          task_count;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {
@@ -53,11 +53,11 @@ typedef struct MppHalApi_t {
     MPP_RET (*deinit)(void *ctx);
 
     // task preprocess function
-    MPP_RET (*reg_gen)(void *ctx, HalTask *syn);
+    MPP_RET (*reg_gen)(void *ctx, HalTaskInfo *syn);
 
     // hw operation function
-    MPP_RET (*start)(void *ctx, HalTask *task);
-    MPP_RET (*wait)(void *ctx, HalTask *task);
+    MPP_RET (*start)(void *ctx, HalTaskInfo *task);
+    MPP_RET (*wait)(void *ctx, HalTaskInfo *task);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
@@ -73,9 +73,9 @@ extern "C" {
 MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg);
 MPP_RET mpp_hal_deinit(MppHal ctx);
 
-MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTask *task);
-MPP_RET mpp_hal_hw_start(MppHal ctx, HalTask *task);
-MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTask *task);
+MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTaskInfo *task);
+MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task);
+MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task);
 
 MPP_RET mpp_hal_reset(MppHal ctx);
 MPP_RET mpp_hal_flush(MppHal ctx);

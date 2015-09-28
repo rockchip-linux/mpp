@@ -32,10 +32,10 @@ extern "C" {
 extern const MppHalApi hal_api_h265d;
 
 RK_S32 hal_h265d_init(void *hal, MppHalCfg *cfg);
-RK_S32 hal_h265d_gen_regs(void *hal,  HalTask *syn);
+RK_S32 hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn);
 RK_S32 hal_h265d_deinit(void *hal);
-MPP_RET hal_h265d_start(void *hal, HalTask *task);
-MPP_RET hal_h265d_wait(void *hal, HalTask *task);
+MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task);
+MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task);
 MPP_RET hal_h265d_reset(void *hal);
 MPP_RET hal_h265d_flush(void *hal);
 MPP_RET hal_h265d_control(void *hal, RK_S32 cmd_type, void *param);

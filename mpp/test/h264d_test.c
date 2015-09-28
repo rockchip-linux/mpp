@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     InputParams   *pIn = mpp_calloc(InputParams, 1);
     MppDec       *pApi = mpp_calloc(MppDec, 1);
     MppPacketImpl *pkt = mpp_calloc_size(MppPacketImpl, sizeof(MppPacketImpl));
-    HalTask      *task = mpp_calloc_size(HalTask, sizeof(HalTask));
+    HalTaskInfo  *task = mpp_calloc_size(HalTaskInfo, sizeof(HalTaskInfo));
     MEM_CHECK(ret, pIn && pApi && pkt && task);
     mpp_log("== test start == \n");
     // set debug mode
