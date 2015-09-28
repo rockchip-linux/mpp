@@ -17,10 +17,22 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+typedef struct OptionInfo_t {
+    const char*     name;
+    const char*     argname;
+    const char*     help;
+} OptionInfo;
+
+#define show_options(opt) \
+    do { \
+        _show_options(sizeof(opt)/sizeof(OptionInfo), opt); \
+    } while (0)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+void _show_options(int count, OptionInfo *options);
 
 #ifdef __cplusplus
 }

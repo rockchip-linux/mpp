@@ -20,5 +20,14 @@
 #include <string.h>
 
 #include "mpp_log.h"
+#include "utils.h"
 
+void _show_options(int count, OptionInfo *options)
+{
+    int i;
+    for (i = 0; i < count; i++) {
+        mpp_log("-%s  %s\t\t%s\n",
+                options[i].name, options[i].argname, options[i].help);
+    }
+}
 

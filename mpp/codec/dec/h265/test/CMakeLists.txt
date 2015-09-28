@@ -14,9 +14,9 @@ if(H265D_TEST)
         set_target_properties(openhevcwrapper PROPERTIES
                                 IMPORTED_LOCATION
                         "${OPENHEVCSO}/libLibOpenHevcWrapper.so")
-        target_link_libraries(h265d_parser_test openhevcwrapper m h265d_parse osal h265d_hal mpp_codec mpp)
+        target_link_libraries(h265d_parser_test openhevcwrapper m h265d_parse osal h265d_hal mpp_codec mpp utils)
     else()
-        target_link_libraries(h265d_parser_test mpp)
+        target_link_libraries(h265d_parser_test mpp utils)
     endif()
 endif()
 
