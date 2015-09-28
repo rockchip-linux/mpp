@@ -97,8 +97,10 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mPacketGroup && mFrameGroup) {
         mThreadCodec->start();
         mThreadHal->start();
-    } else
+    } else {
+        mpp_err("error found on mpp initialization\n");
         clear();
+    }
 
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 }
