@@ -226,12 +226,9 @@ void *mpp_dec_hal_thread(void *data)
      * hal thread need to wait at cases below:
      * 1. no task slot for work
      */
-    RK_U32 wait_on_task = 0;
-
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
-    memset(&task_info, 0, sizeof(task_info));
 
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
