@@ -24,6 +24,7 @@
 #include "mpp_time.h"
 
 #include "vpu_api.h"
+#include "utils.h"
 
 static RK_U32 VPU_API_DEMO_DEBUG_DISABLE = 0;
 
@@ -50,12 +51,6 @@ typedef enum VPU_API_DEMO_RET {
     ERROR_VPU_DECODE        = VPU_DEMO_ERROR_BASE - 90,
 } VPU_API_DEMO_RET;
 
-typedef struct VpuApiCmd {
-    char* name;
-    char* argname;
-    char* help;
-} VpuApiCmd_t;
-
 typedef struct VpuApiDemoCmdContext {
     RK_U32  width;
     RK_U32  height;
@@ -75,7 +70,7 @@ typedef struct VpuApiEncInput {
     RK_U32 capability;
 } VpuApiEncInput;
 
-static VpuApiCmd_t vpuApiCmd[] = {
+static OptionInfo vpuApiCmd[] = {
     {"i",       "input_file",  "input bitstream file"},
     {"o",       "output_file", "output bitstream file, "},
     {"w",       "width",       "the width of input bitstream"},
@@ -97,16 +92,8 @@ static void show_usage()
 
 static RK_S32 show_help()
 {
-    RK_S32 i = 0;
-    RK_S32 n = sizeof(vpuApiCmd) / sizeof(VpuApiCmd_t);
-
     mpp_log("usage: vpu_apiDemo [options] input_file, \n\n");
-
-    for (i = 0; i < n; i++) {
-        mpp_log("-%s  %s\t\t%s\n",
-                vpuApiCmd[i].name, vpuApiCmd[i].argname, vpuApiCmd[i].help);
-    }
-
+    show_options(vpuApiCmd);
     return 0;
 }
 

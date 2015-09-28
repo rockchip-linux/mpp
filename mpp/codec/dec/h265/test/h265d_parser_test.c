@@ -28,6 +28,7 @@
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
 
+#include "utils.h"
 #include "mpp_log.h"
 #include <string.h>
 #include <stdlib.h>
@@ -57,11 +58,6 @@ typedef enum VPU_API_DEMO_RET {
     ERROR_VPU_DECODE        = PARSER_DEMO_ERROR_BASE - 90,
 } PARSER_API_DEMO_RET;
 
-typedef struct ParserCmd {
-    RK_U8* name;
-    RK_U8* argname;
-    RK_U8* help;
-} ParserCmd_t;
 
 typedef struct parserDemoCmdContext {
     RK_U32  width;
@@ -75,15 +71,14 @@ typedef struct parserDemoCmdContext {
     RK_S64  record_start_ms;
 } ParserDemoCmdContext_t;
 
-
-static ParserCmd_t parserCmd[] = {
-    {(RK_U8*)"i",               (RK_U8*)"input_file",           (RK_U8*)"input bitstream file"},
-    {(RK_U8*)"o",               (RK_U8*)"output_file",          (RK_U8*)"output bitstream file, "},
-    {(RK_U8*)"w",               (RK_U8*)"width",                (RK_U8*)"the width of input bitstream"},
-    {(RK_U8*)"h",               (RK_U8*)"height",               (RK_U8*)"the height of input bitstream"},
-    {(RK_U8*)"vframes",         (RK_U8*)"number",               (RK_U8*)"set the number of video frames to record"},
-    {(RK_U8*)"ss",              (RK_U8*)"time_off",             (RK_U8*)"set the start time offset, use Ms as the unit."},
-    {(RK_U8*)"d",               (RK_U8*)"disable",              (RK_U8*)"disable the debug output info."},
+static OptionInfo parserCmd[] = {
+    {"i",               "input_file",           "input bitstream file"},
+    {"o",               "output_file",          "output bitstream file, "},
+    {"w",               "width",                "the width of input bitstream"},
+    {"h",               "height",               "the height of input bitstream"},
+    {"vframes",         "number",               "set the number of video frames to record"},
+    {"ss",              "time_off",             "set the start time offset, use Ms as the unit."},
+    {"d",               "disable",              "disable the debug output info."},
 };
 
 static void show_usage()
@@ -96,15 +91,8 @@ static void show_usage()
 
 static RK_S32 show_help()
 {
-    RK_U32 i = 0;
-    RK_U32 n = sizeof(parserCmd) / sizeof(ParserCmd_t);
-
     mpp_log("usage: parserDemo [options] input_file, \n\n");
-    for (i = 0; i < n; i++) {
-        mpp_log("-%s  %s\t\t%s\n",
-                parserCmd[i].name, parserCmd[i].argname, parserCmd[i].help);
-    }
-
+    show_options(parserCmd);
     return 0;
 }
 
