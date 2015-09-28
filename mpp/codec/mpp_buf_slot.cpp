@@ -66,6 +66,8 @@ typedef struct MppBufSlotEntry_t {
     struct list_head    list;
     RK_U32              status;
     RK_S32              index;
+
+    MppBuffer           buffer;
     MppFrame            frame;
 } MppBufSlotEntry;
 
@@ -267,15 +269,17 @@ static void init_slot_entry(mpp_list *logs, MppBufSlotEntry *slot, RK_S32 pos, R
  * NOTE: MppFrame will be destroyed outside mpp
  *       but MppBuffer must dec_ref here
  */
-static MppFrame check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
+static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
 {
     if (SLOT_CAN_RELEASE(entry)) {
-        slot_assert(impl, entry->frame);
-        mpp_frame_deinit(&entry->frame);
+        if (entry->frame) {
+            mpp_frame_deinit(&entry->frame);
+            slot_ops_with_log(impl->logs, entry, SLOT_CLR_FRAME);
+        } else
+            mpp_buffer_put(entry->buffer);
+
         slot_ops_with_log(impl->logs, entry, SLOT_CLR_BUFFER);
-        slot_ops_with_log(impl->logs, entry, SLOT_CLR_FRAME);
     }
-    return entry->frame;
 }
 
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
@@ -584,8 +588,10 @@ MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffe
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_assert(impl, slot->frame);
-    mpp_frame_set_buffer(slot->frame, buffer);
+    slot->buffer = buffer;
+    if (slot->frame)
+        mpp_frame_set_buffer(slot->frame, buffer);
+
     mpp_buffer_inc_ref(buffer);
     slot_ops_with_log(impl->logs, slot, SLOT_SET_BUFFER);
     return MPP_OK;
@@ -602,7 +608,7 @@ MppBuffer mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index)
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
-    return mpp_frame_get_buffer(slot->frame);
+    return slot->buffer;
 }
 
 MPP_RET mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame)
