@@ -50,6 +50,7 @@ void *mpp_dec_parser_thread(void *data)
     RK_U32 wait_on_change   = 0;
     RK_U32 wait_on_buffer   = 0;
 
+    RK_U32 pkt_buf_ready    = 0;
     RK_U32 prev_task_done   = 1;
     RK_U32 curr_task_ready  = 0;
     RK_U32 curr_task_parsed = 0;
@@ -136,7 +137,8 @@ void *mpp_dec_parser_thread(void *data)
                 hal_task_hnd_set_status(task_prev, TASK_IDLE);
                 task_prev = NULL;
             } else {
-                wait_on_prev    = 1;
+                wait_on_prev = 1;
+                continue;
             }
         }
 
