@@ -62,14 +62,8 @@ static RK_U32 buf_slot_debug = 0;
 
 #define SLOT_CAN_RELEASE(slot)          ((slot->status&MPP_SLOT_RELEASE_MASK)==MPP_SLOT_UNUSED)
 
-typedef struct MppBufSlotEntry_t {
-    struct list_head    list;
-    RK_U32              status;
-    RK_S32              index;
-
-    MppBuffer           buffer;
-    MppFrame            frame;
-} MppBufSlotEntry;
+typedef struct MppBufSlotEntry_t MppBufSlotEntry;
+typedef struct MppBufSlotsImpl_t MppBufSlotsImpl;
 
 #define SLOT_OPS_MAX_COUNT              1024
 
@@ -116,7 +110,17 @@ typedef struct MppBufSlotLog_t {
     RK_U32              status_out;
 } MppBufSlotLog;
 
-typedef struct MppBufSlotsImpl_t {
+struct MppBufSlotEntry_t {
+    MppBufSlotsImpl     *slots;
+    struct list_head    list;
+    RK_U32              status;
+    RK_S32              index;
+
+    MppBuffer           buffer;
+    MppFrame            frame;
+};
+
+struct MppBufSlotsImpl_t {
     Mutex               *lock;
     RK_U32              count;
     RK_U32              size;
@@ -141,7 +145,7 @@ typedef struct MppBufSlotsImpl_t {
     mpp_list            *logs;
 
     MppBufSlotEntry     *slots;
-} MppBufSlotsImpl;
+};
 
 static void add_slot_log(mpp_list *logs, RK_U32 index, MppBufSlotOps op, RK_U32 before, RK_U32 after)
 {
@@ -253,9 +257,12 @@ static void dump_slots(MppBufSlotsImpl *impl)
 
 }
 
-static void init_slot_entry(mpp_list *logs, MppBufSlotEntry *slot, RK_S32 pos, RK_S32 count)
+static void init_slot_entry(MppBufSlotsImpl *impl, RK_S32 pos, RK_S32 count)
 {
+    mpp_list *logs = impl->logs;
+    MppBufSlotEntry *slot = impl->slots;
     for (RK_S32 i = 0; i < count; i++, slot++) {
+        slot->slots = impl;
         INIT_LIST_HEAD(&slot->list);
         slot->index = pos + i;
         slot->frame = NULL;
@@ -346,14 +353,14 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 
         impl->count = count;
         impl->size  = size;
         impl->slots = mpp_calloc(MppBufSlotEntry, count);
-        init_slot_entry(impl->logs, impl->slots, 0, count);
+        init_slot_entry(impl, 0, count);
     } else {
         // need to check info change or not
         if (!changed) {
             slot_assert(impl, size == impl->size);
             if (count > impl->count) {
                 mpp_realloc(impl->slots, MppBufSlotEntry, count);
-                init_slot_entry(impl->logs, impl->slots, impl->count, (count - impl->count));
+                init_slot_entry(impl, impl->count, (count - impl->count));
             }
         } else {
             // info changed, even size is the same we still need to wait for new configuration
@@ -396,7 +403,7 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     impl->size          = impl->new_size;
     if (impl->count != impl->new_count) {
         mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
-        init_slot_entry(impl->logs, impl->slots, 0, impl->new_count);
+        init_slot_entry(impl, 0, impl->new_count);
     }
     impl->count = impl->new_count;
     if (impl->logs) {
