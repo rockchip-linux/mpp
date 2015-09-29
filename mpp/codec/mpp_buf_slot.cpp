@@ -588,6 +588,11 @@ MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffe
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
+    if (slot->buffer) {
+        // NOTE: reset buffer only on stream buffer slot
+        mpp_assert(NULL == slot->frame);
+        mpp_buffer_put(slot->buffer);
+    }
     slot->buffer = buffer;
     if (slot->frame)
         mpp_frame_set_buffer(slot->frame, buffer);
