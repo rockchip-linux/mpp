@@ -35,6 +35,7 @@ void *mpp_dec_parser_thread(void *data)
     HalTaskGroup tasks  = dec->tasks;
     MppPacket packet    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
+    MppBufSlots packet_slots = dec->packet_slots;
 
     /*
      * parser thread need to wait at cases below:
@@ -114,7 +115,6 @@ void *mpp_dec_parser_thread(void *data)
          *
          */
         if (!curr_task_ready) {
-            hal_task_info_init(&task_local, MPP_CTX_DEC);
             parser_prepare(dec->parser, packet, task_dec);
             if (0 == mpp_packet_get_length(packet)) {
                 mpp_free(mpp_packet_get_data(packet));
@@ -167,7 +167,7 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
         RK_U32 output;
-        mpp_buf_slot_get_hw_dst(frame_slots, &output);
+        mpp_buf_slot_get_hw_use(frame_slots, &output);
         if (NULL == mpp_buf_slot_get_buffer(frame_slots, output)) {
             MppBuffer buffer = NULL;
             RK_U32 size = mpp_buf_slot_get_size(frame_slots);
@@ -208,6 +208,7 @@ void *mpp_dec_parser_thread(void *data)
         curr_task_ready  = 0;
         curr_task_parsed = 0;
         prev_task_done   = 0;
+        hal_task_info_init(&task_local, MPP_CTX_DEC);
     }
 
     return NULL;
@@ -259,7 +260,7 @@ void *mpp_dec_hal_thread(void *data)
                  * 3. add frame to output list
                  * repeat 2 and 3 until not frame can be output
                  */
-                mpp_buf_slot_clr_hw_dst(frame_slots, task_dec->output);
+                mpp_buf_slot_clr_hw_use(frame_slots, task_dec->output);
                 for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                     RK_S32 index = task_dec->refer[i];
                     if (index >= 0)
