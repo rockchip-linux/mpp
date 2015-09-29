@@ -277,16 +277,16 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
     for (i = 0; i < h->nb_nals; i++) {
         static const RK_U8 start_code[] = {0, 0, 1 };
         static const RK_U32 start_code_size = sizeof(start_code);
-        GetBitCxt_t gb_cxt, *gb;
+        BitReadCtx_t gb_cxt, *gb;
         RK_S32 value;
         RK_U32 nal_type;
 
-        mpp_Init_Bits(&gb_cxt, (RK_U8 *)h->nals[i].data,
+        mpp_set_bitread_ctx(&gb_cxt, (RK_U8 *)h->nals[i].data,
                       h->nals[i].size);
 
         gb = &gb_cxt;
 
-        READ_BIT1(gb, &value);
+        READ_ONEBIT(gb, &value);
 
         if ( value != 0)
             return  MPP_ERR_STREAM;
@@ -310,4 +310,6 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
     ctx_pic->bitstream_size = position;
     ctx_pic->bitstream      = (RK_U8*)ptr;
     return MPP_OK;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }

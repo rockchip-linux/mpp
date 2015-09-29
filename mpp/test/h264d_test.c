@@ -159,12 +159,12 @@ __FAILED:
 
     decoder_deinit(pApi);
     h264d_free_frame_buffer(pIn);
-    //h264d_write_fpga_data(pIn); //!< for fpga debug
+    h264d_write_fpga_data(pIn); //!< for fpga debug
     h264d_close_files(pIn);
-    mpp_free(pIn);
-    mpp_free(pApi);
-    mpp_free(pkt);
-    mpp_free(task);
+    MPP_FREE(pIn);
+    MPP_FREE(pApi);
+    MPP_FREE(pkt);
+    MPP_FREE(task);
 
     //g_debug_file = fopen("rk_debugfile_view0.txt", "rb");
     //if(g_debug_file)

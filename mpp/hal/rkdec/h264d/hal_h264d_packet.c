@@ -150,10 +150,10 @@ void reset_fifo_packet(H264_FifoPkt_t *pkt)
 void free_fifo_packet(H264_FifoPkt_t *pkt)
 {
     if (pkt) {
-        mpp_free(pkt->spspps.pbuf);
-        mpp_free(pkt->rps.pbuf);
-        mpp_free(pkt->scanlist.pbuf);
-        mpp_free(pkt->reg.pbuf);
+        MPP_FREE(pkt->spspps.pbuf);
+        MPP_FREE(pkt->rps.pbuf);
+        MPP_FREE(pkt->scanlist.pbuf);
+        MPP_FREE(pkt->reg.pbuf);
     }
 }
 /*!

@@ -157,14 +157,14 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     H264_Nalu_t     *cur_nal  = &p_Cur->nalu;
 
     FunctionIn(logctx->parr[RUN_PARSE]);
-    set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
+    mpp_set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
     g_strm_bytes += p_Cur->nalu.sodb_len;
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
-    WRITE_LOG(p_bitctx, "================== NAL begin ===================");
-    READ_BITS(ret, p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
+    LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
+    READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
-    READ_BITS(ret, p_bitctx, 2, (RK_S32 *)&cur_nal->nal_reference_idc, "nal_ref_idc");
-    READ_BITS(ret, p_bitctx, 5, (RK_S32 *)&cur_nal->nal_unit_type, "nal_unit_type");
+    READ_BITS(p_bitctx, 2, (RK_S32 *)&cur_nal->nal_reference_idc, "nal_ref_idc");
+    READ_BITS(p_bitctx, 5, (RK_S32 *)&cur_nal->nal_unit_type, "nal_unit_type");
     if (g_nalu_cnt == 344) {
         g_nalu_cnt = g_nalu_cnt;
     }
@@ -178,7 +178,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
     if ((cur_nal->nal_unit_type == NALU_TYPE_PREFIX) || (cur_nal->nal_unit_type == NALU_TYPE_SLC_EXT)) {
-        READ_ONEBIT(ret, p_bitctx, &currSlice->svc_extension_flag, "svc_extension_flag");
+        READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag, "svc_extension_flag");
         if (currSlice->svc_extension_flag) {
             //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nal_unit_type, cur_nal->sodb_len);
             currSlice->mvcExt.valid = 0;
@@ -186,13 +186,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
             goto __FAILED;
         } else { //!< MVC
             currSlice->mvcExt.valid = 1;
-            READ_ONEBIT(ret, p_bitctx,     &currSlice->mvcExt.non_idr_flag,     "nalu_type");
-            READ_BITS(ret, p_bitctx,    6, &currSlice->mvcExt.priority_id,      "priority_id");
-            READ_BITS(ret, p_bitctx,   10, &currSlice->mvcExt.view_id,          "view_id");
-            READ_BITS(ret, p_bitctx,    3, &currSlice->mvcExt.temporal_id,      "temporal_id");
-            READ_ONEBIT(ret, p_bitctx,     &currSlice->mvcExt.anchor_pic_flag,  "anchor_pic_flag");
-            READ_ONEBIT(ret, p_bitctx,     &currSlice->mvcExt.inter_view_flag,  "inter_view_flag");
-            READ_ONEBIT(ret, p_bitctx,     &currSlice->mvcExt.reserved_one_bit, "reserved_one_bit");
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.non_idr_flag,     "nalu_type");
+            READ_BITS(p_bitctx,    6, &currSlice->mvcExt.priority_id,      "priority_id");
+            READ_BITS(p_bitctx,   10, &currSlice->mvcExt.view_id,          "view_id");
+            READ_BITS(p_bitctx,    3, &currSlice->mvcExt.temporal_id,      "temporal_id");
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.anchor_pic_flag,  "anchor_pic_flag");
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.inter_view_flag,  "inter_view_flag");
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.reserved_one_bit, "reserved_one_bit");
             ASSERT(currSlice->mvcExt.reserved_one_bit == 1);
             currSlice->mvcExt.iPrefixNALU = (cur_nal->nal_unit_type == NALU_TYPE_PREFIX) ? 1 : 0;
             //!< combine NALU_TYPE_SLC_EXT into NALU_TYPE_SLICE
@@ -205,11 +205,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     } else {
         //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nal_unit_type, cur_nal->sodb_len);
     }
-    set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
+    mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
 
     FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
+__BITREAD_ERR:
+	ret = p_bitctx->ret;
 __FAILED:
     return ret;
 }

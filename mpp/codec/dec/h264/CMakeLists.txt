@@ -13,7 +13,6 @@ set(H264D_COMMON
 # h264 decoder header	
 set(H264D_HDR
 	h264d_global.h
-	h264d_bitread.h
 	h264d_parse.h
 	h264d_slice.h
 	h264d_sps.h
@@ -31,7 +30,6 @@ set(H264D_HDR
 set(H264D_SRC
 	h264d_api.c
 	h264d_log.c
-	h264d_bitread.c
 	h264d_parse.c
 	h264d_slice.c
 	h264d_sps.c

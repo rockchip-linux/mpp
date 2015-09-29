@@ -946,7 +946,7 @@ static MPP_RET adaptive_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t 
             goto __FAILED;
         }
         p->dec_ref_pic_marking_buffer = tmp_drpm->Next;
-        mpp_free(tmp_drpm);
+        MPP_FREE(tmp_drpm);
     }
     if (p_Vid->last_has_mmco_5) { //!< similar IDR frame
         p->pic_num = p->frame_num = 0;
@@ -1061,10 +1061,9 @@ static MPP_RET dpb_split_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
     }
     return ret = MPP_OK;
 __FAILED:
-    mpp_free(fs->top_field);
-    mpp_free(fs->bottom_field);
+    MPP_FREE(fs->top_field);
+    MPP_FREE(fs->bottom_field);
     ASSERT(0);
-
     return ret;
 }
 
@@ -1222,7 +1221,7 @@ void free_frame_store(H264_FrameStore_t* f)
             free_storable_picture(f->bottom_field);
             f->bottom_field = NULL;
         }
-        mpp_free(f);
+        MPP_FREE(f);
     }
 }
 
@@ -1242,15 +1241,15 @@ void free_dpb(H264_DpbBuf_t *p_Dpb)
         for (i = 0; i < p_Dpb->size; i++) {
             free_frame_store(p_Dpb->fs[i]);
         }
-        mpp_free(p_Dpb->fs);
+        MPP_FREE(p_Dpb->fs);
     }
-    mpp_free(p_Dpb->fs_ref);
-    mpp_free(p_Dpb->fs_ltref);
+    MPP_FREE(p_Dpb->fs_ref);
+    MPP_FREE(p_Dpb->fs_ltref);
     if (p_Dpb->fs_ilref) {
         for (i = 0; i < 1; i++) {
             free_frame_store(p_Dpb->fs_ilref[i]);
         }
-        mpp_free(p_Dpb->fs_ilref);
+        MPP_FREE(p_Dpb->fs_ilref);
     }
     p_Dpb->last_output_view_id = -1;
     p_Dpb->last_output_poc = INT_MIN;
@@ -1461,7 +1460,7 @@ void free_storable_picture(H264_StorePic_t *p)
             free_dpb_memory_index(p->mem_mark, p->structure, p->layer_id);
         }
 
-        mpp_free(p);
+        MPP_FREE(p);
     }
 }
 

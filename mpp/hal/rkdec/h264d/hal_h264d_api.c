@@ -186,7 +186,7 @@ MPP_RET hal_h264d_deinit(void *hal)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     free_fifo_packet(p_hal->pkts);
-    mpp_free(p_hal->mem);
+    MPP_FREE(p_hal->mem);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     logctx_deinit(&p_hal->logctx);

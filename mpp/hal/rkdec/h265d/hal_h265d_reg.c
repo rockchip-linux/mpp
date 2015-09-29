@@ -660,7 +660,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
     RK_S32 value;
     RK_U32 nal_type;
     RK_S32 slice_idx = 0;
-    GetBitCxt_t gb_cxt, *gb;
+    BitReadCtx_t gb_cxt, *gb;
     SliceHeader_t sh;
     RK_U8     rps_bit_offset[600];
     RK_U8     rps_bit_offset_st[600];
@@ -683,12 +683,12 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         memset(&sh, 0, sizeof(SliceHeader_t));
         // mpp_err("data[%d]= 0x%x,size[%d] = %d \n",
         //   k,dxva_cxt->slice_short[k].BSNALunitDataLocation, k,dxva_cxt->slice_short[k].SliceBytesInBuffer);
-        mpp_Init_Bits(&gb_cxt, (RK_U8*)(dxva_cxt->bitstream + dxva_cxt->slice_short[k].BSNALunitDataLocation),
+        mpp_set_bitread_ctx(&gb_cxt, (RK_U8*)(dxva_cxt->bitstream + dxva_cxt->slice_short[k].BSNALunitDataLocation),
                       dxva_cxt->slice_short[k].SliceBytesInBuffer);
 
         gb = &gb_cxt;
 
-        READ_BIT1(gb, &value);
+        READ_ONEBIT(gb, &value);
 
         if ( value != 0)
             return  MPP_ERR_STREAM;
@@ -699,12 +699,12 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             continue;
         }
 
-        READ_SKIPBITS(gb, 9);
+        SKIP_BITS(gb, 9);
 
-        READ_BIT1(gb, &sh.first_slice_in_pic_flag);
+        READ_ONEBIT(gb, &sh.first_slice_in_pic_flag);
 
         if (nal_type >= 16 && nal_type <= 23)
-            READ_BIT1(gb, &sh.no_output_of_prior_pics_flag);
+            READ_ONEBIT(gb, &sh.no_output_of_prior_pics_flag);
 
         READ_UE(gb, &sh.pps_id);
 
@@ -727,7 +727,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             ctb_height = (height + (1 << log2_ctb_size) - 1) >> log2_ctb_size;
 
             if (dxva_cxt->pp.dependent_slice_segments_enabled_flag)
-                READ_BIT1(gb, &sh.dependent_slice_segment_flag);
+                READ_ONEBIT(gb, &sh.dependent_slice_segment_flag);
 
             slice_address_length = mpp_ceil_log2(ctb_width * ctb_height);
 
@@ -751,7 +751,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 
         if (!sh.dependent_slice_segment_flag) {
             for (i = 0; i < dxva_cxt->pp.num_extra_slice_header_bits; i++)
-                READ_SKIPBITS(gb, 1);
+                SKIP_BITS(gb, 1);
 
             READ_UE(gb, &sh.slice_type);
             if (!(sh.slice_type == I_SLICE ||
@@ -767,7 +767,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                  }*/
 
             if (dxva_cxt->pp.output_flag_present_flag)
-                READ_BIT1(gb, &sh.pic_output_flag);
+                READ_ONEBIT(gb, &sh.pic_output_flag);
 
             if (dxva_cxt->pp.separate_colour_plane_flag)
                 READ_BITS(gb, 2, &sh.colour_plane_id );
@@ -777,12 +777,12 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 
                 READ_BITS(gb, (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4), &sh.pic_order_cnt_lsb);
 
-                READ_BIT1(gb, &short_term_ref_pic_set_sps_flag);
+                READ_ONEBIT(gb, &short_term_ref_pic_set_sps_flag);
 
-                bit_begin = gb->UsedBits;
+                bit_begin = gb->used_bits;
 
                 if (!short_term_ref_pic_set_sps_flag) {
-                    READ_SKIPBITS(gb, dxva_cxt->pp.wNumBitsForShortTermRPSInSlice);
+                    SKIP_BITS(gb, dxva_cxt->pp.wNumBitsForShortTermRPSInSlice);
                 } else {
                     RK_S32 numbits, rps_idx;
                     if (!dxva_cxt->pp.num_short_term_ref_pic_sets) {
@@ -795,14 +795,14 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                         READ_BITS(gb, numbits, &rps_idx);
                 }
 
-                rps_bit_offset_st[slice_idx] = gb->UsedBits - bit_begin;
+                rps_bit_offset_st[slice_idx] = gb->used_bits - bit_begin;
                 rps_bit_offset[slice_idx] = rps_bit_offset_st[slice_idx];
                 if (dxva_cxt->pp.long_term_ref_pics_present_flag) {
 
 //                    RK_S32 max_poc_lsb    = 1 << (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4);
                     RK_U32 nb_sps = 0, nb_sh;
 
-                    bit_begin = gb->UsedBits;
+                    bit_begin = gb->used_bits;
                     if (dxva_cxt->pp.num_long_term_ref_pics_sps > 0)
                         READ_UE(gb, &nb_sps);
 
@@ -819,22 +819,22 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                             if (dxva_cxt->pp.num_long_term_ref_pics_sps > 1)
                                 READ_BITS(gb, mpp_ceil_log2(dxva_cxt->pp.num_long_term_ref_pics_sps), &lt_idx_sps);
                         } else {
-                            READ_SKIPBITS(gb, (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4));
-                            READ_SKIPBITS(gb, 1);
+                            SKIP_BITS(gb, (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4));
+                            SKIP_BITS(gb, 1);
                         }
 
-                        READ_BIT1(gb, &delta_poc_msb_present);
+                        READ_ONEBIT(gb, &delta_poc_msb_present);
                         if (delta_poc_msb_present) {
                             RK_S32 delta = 0;
                             READ_UE(gb, &delta);
                         }
                     }
-                    rps_bit_offset[slice_idx] += (gb->UsedBits - bit_begin);
+                    rps_bit_offset[slice_idx] += (gb->used_bits - bit_begin);
 
                 }
 
                 if (dxva_cxt->pp.sps_temporal_mvp_enabled_flag)
-                    READ_BIT1(gb, &sh.slice_temporal_mvp_enabled_flag);
+                    READ_ONEBIT(gb, &sh.slice_temporal_mvp_enabled_flag);
                 else
                     sh.slice_temporal_mvp_enabled_flag = 0;
             } else {
@@ -842,8 +842,8 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             }
 
             if (dxva_cxt->pp.sample_adaptive_offset_enabled_flag) {
-                READ_BIT1(gb, &sh.slice_sample_adaptive_offset_flag[0]);
-                READ_BIT1(gb, &sh.slice_sample_adaptive_offset_flag[1]);
+                READ_ONEBIT(gb, &sh.slice_sample_adaptive_offset_flag[0]);
+                READ_ONEBIT(gb, &sh.slice_sample_adaptive_offset_flag[1]);
                 sh.slice_sample_adaptive_offset_flag[2] =
                     sh.slice_sample_adaptive_offset_flag[1];
             } else {
@@ -859,7 +859,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 if (sh.slice_type == B_SLICE)
                     sh.nb_refs[L1] =  dxva_cxt->pp.num_ref_idx_l1_default_active_minus1 + 1;
 
-                READ_BIT1(gb, &value);
+                READ_ONEBIT(gb, &value);
 
                 if (value) { // num_ref_idx_active_override_flag
                     READ_UE(gb, &sh.nb_refs[L0]);
@@ -891,14 +891,14 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 }
 
                 if (dxva_cxt->pp.lists_modification_present_flag && nb_refs > 1) {
-                    READ_BIT1(gb, &sh.rpl_modification_flag[0]);
+                    READ_ONEBIT(gb, &sh.rpl_modification_flag[0]);
                     if (sh.rpl_modification_flag[0]) {
                         for (i = 0; (RK_U32)i < sh.nb_refs[L0]; i++)
                             READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh.list_entry_lx[0][i]);
                     }
 
                     if (sh.slice_type == B_SLICE) {
-                        READ_BIT1(gb, &sh.rpl_modification_flag[1]);
+                        READ_ONEBIT(gb, &sh.rpl_modification_flag[1]);
                         if (sh.rpl_modification_flag[1] == 1)
                             for (i = 0; (RK_U32)i < sh.nb_refs[L1]; i++)
                                 READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh.list_entry_lx[1][i]);
@@ -982,6 +982,8 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
     }
 
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static void hal_h265d_output_scalinglist_packet(void *ptr, void *dxva)

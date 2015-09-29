@@ -573,7 +573,7 @@ typedef struct HEVCNAL {
 } HEVCNAL;
 
 typedef struct HEVCLocalContext {
-    GetBitCxt_t gb;
+    BitReadCtx_t gb;
 } HEVCLocalContext;
 
 

@@ -78,6 +78,28 @@ const char *logctrl_name[LOG_MAX] = {
 /*!
 ***********************************************************************
 * \brief
+*   rewrite log_info function which in mpp_bitread.c
+***********************************************************************
+*/
+static void log_info(void *ctx, ...)
+{
+	char  *fname  = NULL;
+	RK_U32 line   = 0;
+	char argbuf[LOG_BUF_SIZE] = { 0 };
+
+	if(LogEnable(ctx, LOG_LEVEL_INFO)) {
+		va_list argptr;
+		va_start(argptr, ctx);
+		fname  = va_arg(argptr, char*); 
+		line   = va_arg(argptr, RK_U32);    
+		vsnprintf(argbuf, sizeof(argbuf), va_arg(argptr, char*), argptr);
+		writelog(ctx, "syntax", fname, line, argbuf);
+		va_end(argptr);
+	} 	
+}
+/*!
+***********************************************************************
+* \brief
 *   get log env
 ***********************************************************************
 */
@@ -187,35 +209,58 @@ void set_log_outpath(LogEnv_t *env)
         }
     }
 }
+
+
 /*!
 ***********************************************************************
 * \brief
 *   write log function
 ***********************************************************************
 */
-void writelog(LogCtx_t *ctx, char *filename, RK_U32 line, char *loglevel, const char *msg, ...)
+void writelog(void *in_ctx, ...)
 {
 #if __DEBUG_EN
-
+	RK_U32 line       = 0;
+	char   *levelname = NULL;
+	char   *filename  = NULL;
+	char   argmsg[LOG_BUF_SIZE] = { 0 };
+	LogCtx_t *ctx     = (LogCtx_t *)in_ctx;
+	char *pfn = NULL, *pfn0 = NULL , *pfn1 = NULL;
     va_list argptr;
-    char argbuf[LOG_BUF_SIZE] = { 0 };
-    char *pfn = NULL, *pfn0 = NULL, *pfn1 = NULL;
+    va_start(argptr, in_ctx);
+	levelname = va_arg(argptr, char*); 
+	filename  = va_arg(argptr, char*); 
+	line      = va_arg(argptr, RK_U32); 
+	vsnprintf(argmsg, sizeof(argmsg), va_arg(argptr, char*), argptr);
 
-    va_start(argptr, msg);
-    vsnprintf(argbuf, sizeof(argbuf), msg, argptr);
-
-    pfn0 = strrchr(filename, '/');
-    pfn1 = strrchr(filename, '\\');
-    pfn  = pfn0 ? (pfn0 + 1) : (pfn1 ? (pfn1 + 1) : filename);
-    if (ctx->flag->print_en) {
-        mpp_log("[TAG=%s] file: %s:%d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
-    }
-    if (ctx->fp && ctx->flag->write_en) {
-        fprintf(ctx->fp, "%s \n", argbuf);
-        //fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
-        fflush(ctx->fp);
-    }
-    va_end(argptr);
-
+	pfn0 = strrchr(filename, '/');
+	pfn1 = strrchr(filename, '\\');
+	pfn  = pfn0 ? (pfn0 + 1) : (pfn1 ? (pfn1 + 1) : filename);
+	if (ctx->flag->print_en) {
+		mpp_log("[TAG=%s] file: %s:%d, [ %s ], %s", ctx->tag, pfn, line, levelname, argmsg);
+	}
+	if (ctx->fp && ctx->flag->write_en) {
+		fprintf(ctx->fp, "%s \n", argmsg);
+		//fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
+		fflush(ctx->fp);
+	}
+    va_end(argptr);	
 #endif
 }
+
+/*!
+***********************************************************************
+* \brief
+*   set bitread log context
+***********************************************************************
+*/
+void set_bitread_logctx(BitReadCtx_t *bitctx, LogCtx_t *p_ctx)
+{
+	bitctx->ctx  = p_ctx;
+	bitctx->wlog = log_info;
+}
+
+
+
+
+

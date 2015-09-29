@@ -489,7 +489,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    mpp_free(dec_picture);
+    MPP_FREE(dec_picture);
     ASSERT(0);
 
     return ret;
@@ -908,8 +908,8 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
         }
         qsort((void *)fs_listlt, listltidx, sizeof(H264_FrameStore_t*), compare_fs_by_lt_pic_idx_asc);
         gen_pic_list_from_frame_list(currSlice->structure, fs_listlt, listltidx, currSlice->listP[0], &currSlice->listXsizeP[0], 1);
-        mpp_free(fs_list0);
-        mpp_free(fs_listlt);
+        MPP_FREE(fs_list0);
+        MPP_FREE(fs_listlt);
     }
 
     currSlice->listXsizeP[1] = 0;
@@ -939,14 +939,14 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
     for (i = currSlice->listXsizeP[1]; i < (MAX_LIST_SIZE); i++) {
         currSlice->listP[1][i] = p_Vid->no_reference_picture;
     }
-    mpp_free(currSlice->fs_listinterview0);
+    MPP_FREE(currSlice->fs_listinterview0);
 
     return ret = MPP_OK;
 __FAILED:
     ASSERT(0);
-    mpp_free(fs_list0);
-    mpp_free(fs_listlt);
-    mpp_free(currSlice->fs_listinterview0);
+    MPP_FREE(fs_list0);
+    MPP_FREE(fs_listlt);
+    MPP_FREE(currSlice->fs_listinterview0);
 
     return ret;
 }
@@ -1060,9 +1060,9 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
         gen_pic_list_from_frame_list(currSlice->structure, fs_listlt, listltidx, currSlice->listB[0], &currSlice->listXsizeB[0], 1);
         gen_pic_list_from_frame_list(currSlice->structure, fs_listlt, listltidx, currSlice->listB[1], &currSlice->listXsizeB[1], 1);
 
-        mpp_free(fs_list0);
-        mpp_free(fs_list1);
-        mpp_free(fs_listlt);
+        MPP_FREE(fs_list0);
+        MPP_FREE(fs_list1);
+        MPP_FREE(fs_listlt);
     }
     if ((currSlice->listXsizeB[0] == currSlice->listXsizeB[1]) && (currSlice->listXsizeB[0] > 1)) {
         // check if lists are identical, if yes swap first two elements of currSlice->listX[1]
@@ -1119,17 +1119,17 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
     for (i = currSlice->listXsizeB[1]; i < (MAX_LIST_SIZE); i++) {
         currSlice->listB[1][i] = p_Vid->no_reference_picture;
     }
-    mpp_free(currSlice->fs_listinterview0);
-    mpp_free(currSlice->fs_listinterview1);
+	MPP_FREE(currSlice->fs_listinterview0);
+	MPP_FREE(currSlice->fs_listinterview1);
 
     return ret = MPP_OK;
 __FAILED:
     ASSERT(0);
-    mpp_free(fs_list0);
-    mpp_free(fs_list1);
-    mpp_free(fs_listlt);
-    mpp_free(currSlice->fs_listinterview0);
-    mpp_free(currSlice->fs_listinterview1);
+	MPP_FREE(fs_list0);
+	MPP_FREE(fs_list1);
+	MPP_FREE(fs_listlt);
+	MPP_FREE(currSlice->fs_listinterview0);
+	MPP_FREE(currSlice->fs_listinterview1);
 
     return ret;
 }

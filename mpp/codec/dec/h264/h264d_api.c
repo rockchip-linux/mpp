@@ -168,10 +168,10 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
     if (p_Cur) {
         recycle_slice(&p_Cur->slice);
         for (i = 0; i < 2; i++) {
-            mpp_free(p_Cur->listP[i]);
-            mpp_free(p_Cur->listB[i]);
+            MPP_FREE(p_Cur->listP[i]);
+            MPP_FREE(p_Cur->listB[i]);
         }
-        mpp_free(p_Cur->strm.buf);
+        MPP_FREE(p_Cur->strm.buf);
     }
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -218,7 +218,7 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     }
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         free_dpb(p_Vid->p_Dpb_layer[i]);
-        mpp_free(p_Vid->p_Dpb_layer[i]);
+        MPP_FREE(p_Vid->p_Dpb_layer[i]);
     }
     free_storable_picture(p_Vid->dec_picture);
     //free_frame_store(&p_Vid->out_buffer);
@@ -277,9 +277,9 @@ static MPP_RET free_dxva_ctx(H264dDxvaCtx_t *p_dxva)
     INP_CHECK(ret, ctx, NULL == p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 
-    mpp_free(p_dxva->slice_long);
-    mpp_free(p_dxva->bitstream);
-    mpp_free(p_dxva->syn.buf);
+    MPP_FREE(p_dxva->slice_long);
+    MPP_FREE(p_dxva->bitstream);
+    MPP_FREE(p_dxva->syn.buf);
 
     FunctionOut(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -319,7 +319,7 @@ static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
         for (i = 0; i < MAX_TASK_SIZE; i++) {
             free_dxva_ctx(&p_Dec->mem->dxva_ctx[i]);
         }
-        mpp_free(p_Dec->mem);
+        MPP_FREE(p_Dec->mem);
     }
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -429,11 +429,11 @@ MPP_RET h264d_deinit(void *decoder)
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     free_input_ctx(p_Dec->p_Inp);
-    mpp_free(p_Dec->p_Inp);
+    MPP_FREE(p_Dec->p_Inp);
     free_cur_ctx(p_Dec->p_Cur);
-    mpp_free(p_Dec->p_Cur);
+    MPP_FREE(p_Dec->p_Cur);
     free_vid_ctx(p_Dec->p_Vid);
-    mpp_free(p_Dec->p_Vid);
+    MPP_FREE(p_Dec->p_Vid);
     free_dec_ctx(p_Dec);
 
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
