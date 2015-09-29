@@ -31,7 +31,7 @@
 
 #define MPI_STREAM_SIZE             (SZ_512K)
 
-int main()
+int mpi_test()
 {
     MPP_RET ret;
     MppCtx ctx  = NULL;
@@ -257,5 +257,12 @@ MPP_TEST_FAILED:
     mpp_log("mpi_test failed\n");
 
     return -1;
+}
+
+
+int main(int argc, char **argv)
+{
+    mpi_test();
+    return 0;
 }
 

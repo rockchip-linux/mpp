@@ -96,6 +96,7 @@
  */
 
 typedef void* MppBufSlots;
+typedef void* SlotHnd;
 
 #ifdef __cplusplus
 extern "C" {
