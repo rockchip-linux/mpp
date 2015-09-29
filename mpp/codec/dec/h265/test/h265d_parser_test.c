@@ -245,7 +245,7 @@ static RK_S32 poll_task(void *hal, MppBufSlots slots, HalDecTask *dec)
     syn.dec = *dec;
     hal_h265d_wait(hal, &syn);
     mpp_err("dec->output = %d", dec->output);
-    mpp_buf_slot_clr_hw_dst(slots, dec->output);
+    mpp_buf_slot_clr_hw_use(slots, dec->output);
     for (i = 0; i < MPP_ARRAY_ELEMS(dec->refer); i++) {
         RK_S32 id;
         id = dec->refer[i];
@@ -383,7 +383,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             if (cutask->valid) {
                 HalTaskInfo syn;
                 syn.dec = *cutask;
-                mpp_buf_slot_get_hw_dst(slots, &index);
+                mpp_buf_slot_get_hw_use(slots, &index);
 
                 if (NULL == mpp_buf_slot_get_buffer(slots, index)) {
                     MppBuffer buffer = NULL;
