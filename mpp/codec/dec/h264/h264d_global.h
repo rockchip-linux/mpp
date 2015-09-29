@@ -24,7 +24,6 @@
 
 #include "h264d_api.h"
 #include "h264d_log.h"
-#include "h264d_bitread.h"
 #include "h264d_syntax.h"
 
 //!< define
@@ -167,7 +166,7 @@ typedef struct h264_nalu_t {
     RK_S32   MVCExt_is_prefixNALU;
     //------
     RK_U8    ualu_header_bytes;     //!< for rbsp start
-    RK_S32   UsedBits;
+    RK_S32   used_bits;
 
 } H264_Nalu_t;
 
@@ -848,7 +847,7 @@ typedef struct h264d_cur_ctx_t {
     struct h264_pps_t        pps;
     struct h264_sei_t        sei;
     struct h264_nalu_t       nalu;
-    struct getbit_ctx_t      bitctx; //!< for control bit_read
+    struct bitread_ctx_t     bitctx; //!< for control bit_read
     struct h264d_curstrm_t   strm;
     struct h264_slice_t      slice;
 

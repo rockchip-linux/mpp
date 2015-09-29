@@ -1,5 +1,22 @@
-#ifndef __RK_BIT_READ_H__
-#define __RK_BIT_READ_H__
+/*
+*
+* Copyright 2015 Rockchip Electronics Co. LTD
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+#ifndef __MPP_BITREAD_H__
+#define __MPP_BITREAD_H__
+
 #include <stdio.h>
 #include <assert.h>
 #include "rk_type.h"
@@ -7,75 +24,55 @@
 #include "mpp_common.h"
 #include "mpp_err.h"
 
-#define READ_BITS(pBitCtx, num_bits, out)                     \
-    do {                                                      \
-        RK_S32 _out;                                          \
-        RK_S32 _ret = 0;                                      \
-        _ret = mpp_ReadBits(pBitCtx, num_bits, &_out);        \
-        if (!_ret) { *out = _out;          }                  \
-        else     { return  MPP_ERR_STREAM; }                  \
-    } while (0)
+#define   __BITREAD_ERR   __bitread_error
+typedef   void (*LOG_FUN)(void *ctx, ...);
 
-#define READ_SKIPBITS(pBitCtx, num_bits)                      \
-    do {                                                      \
-        RK_S32 _ret = 0;                                      \
-        _ret = mpp_SkipBits(pBitCtx, num_bits);               \
-        if (_ret) {return  MPP_ERR_STREAM; }                  \
-    } while (0)
+#define  BitReadLog(bitctx, ...)\
+	do {\
+	    bitctx->wlog(bitctx->ctx, __FILE__, __LINE__, ##__VA_ARGS__);\
+	} while (0)
 
 
-#define READ_BIT1(pBitCtx, out)                               \
-    do {                                                      \
-        RK_S32 _out;                                          \
-        RK_S32 _ret = 0;                                      \
-        _ret = mpp_ReadBits(pBitCtx, 1, &_out);               \
-        if (!_ret) { *out = _out;          }                  \
-        else     { return  MPP_ERR_STREAM;}                   \
-    } while (0)
+#define READ_BITS(bitctx, num_bits, out, ...) \
+	do {\
+	bitctx->ret = mpp_read_bits(bitctx, num_bits, (RK_S32 *)out); \
+	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out); \
+	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; } \
+	} while (0)
 
 
-#define READ_UE(pBitCtx, out)                                 \
-    do {                                                      \
-        RK_U32 _out;                                          \
-        RK_S32 _ret = 0;                                      \
-        _ret = mpp_ReadUE(pBitCtx, &_out);                    \
-        if (!_ret) { *out = _out;          }                  \
-        else     { return  MPP_ERR_STREAM; }                  \
-    } while (0)
+#define SKIP_BITS(bitctx, num_bits)\
+	do {\
+	bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
+	BitReadLog(bitctx, "%48s", "skip");\
+	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+	} while (0)
+
+#define READ_ONEBIT(bitctx, out, ...)\
+	do {\
+	bitctx->ret = mpp_read_bits(bitctx, 1, (RK_S32 *)out);\
+	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
+	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+	} while (0)
 
 
-#define READ_SE(pBitCtx, out)                                \
-    do {                                                     \
-        RK_S32 _out;                                         \
-        RK_S32 _ret = 0;                                     \
-        _ret = mpp_ReadSE(pBitCtx, &_out);                   \
-        if (!_ret) { *out = _out;          }                 \
-        else     { return  MPP_ERR_STREAM; }                 \
-    } while (0)
+
+#define READ_UE(bitctx, out, ...)\
+	do {\
+	bitctx->ret = mpp_read_ue(bitctx, (RK_U32 *)out);\
+	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
+	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+	} while (0)
+
+#define READ_SE(bitctx, out, ...)\
+	do {\
+	bitctx->ret = mpp_read_se(bitctx, (RK_S32 *)out);\
+	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
+	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+	} while (0)
 
 
-#define CHECK_RANGE(pBitCtx,val, _min, _max)                 \
-    do {                                                     \
-        if ((val) < (_min) || (val) > (_max)) {              \
-            mpp_log("%d[%d,%d]", val, _min, _max);            \
-            return  MPP_ERR_STREAM;                          \
-        }                                                    \
-    } while (0)
-
-
-#define CHECK_ERROR(pBitCtx,val)                             \
-    do {                                                     \
-        if (!(val)) {                                        \
-            mpp_log("value false");                           \
-            mpp_assert(0);                                    \
-            return  MPP_ERR_STREAM;                          \
-        }                                                    \
-    } while (0)
-
-
-//=====================================================================
-
-typedef struct {
+typedef struct bitread_ctx_t{
     // Pointer to the next unread (not in curr_byte_) byte in the stream.
     RK_U8 *data_;
     // Bytes left in the stream (without the curr_byte_).
@@ -92,29 +89,31 @@ typedef struct {
     RK_S64 emulation_prevention_bytes_;
     // file to debug
     // count PPS SPS SEI read bits
-    RK_S32 UsedBits;
+    RK_S32 used_bits;
     RK_U8  *buf;
     RK_S32 buf_len;
-} GetBitCxt_t;
+	// ctx
+	MPP_RET   ret;
+	void     *ctx;
+	LOG_FUN  wlog;
+} BitReadCtx_t;
 
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-RK_S32 mpp_ReadBits(GetBitCxt_t *pBitCtx, RK_S32 num_bits, RK_S32 *out);
-RK_S32 mpp_ReadLongBits(GetBitCxt_t *pBitCtx, RK_S32 num_bits, RK_U32 *out);
-RK_S32 mpp_SkipBits(GetBitCxt_t *pBitCtx, RK_S32 num_bits);
-RK_S32 mpp_ReadUE(GetBitCxt_t *pBitCtx, RK_U32* val);
-RK_S32 mpp_ReadSE(GetBitCxt_t *pBitCtx, RK_S32* val);
-void   mpp_Init_Bits(GetBitCxt_t *pBitCtx, RK_U8 *data, RK_S32 size);
-RK_S32 mpp_has_more_rbsp_data(GetBitCxt_t * pBitCtx);
-//void   mpp_Set_Bits_LogContex(GetBitCxt_t *pBitCtx, RK_LOG_CONTEX_t *p_ctx);
-void   mpp_Reset_UseBits(GetBitCxt_t *pBitCtx);
+MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
+MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out);
+MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits);
+MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
+MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
+void    mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size);
+RK_U32  mpp_has_more_rbsp_data(BitReadCtx_t * bitctx);
 
 #ifdef  __cplusplus
 }
 #endif
 
 
-#endif /* __RK_BIT_READ_H__ */
+#endif /* __MPP_BITREAD_H__ */

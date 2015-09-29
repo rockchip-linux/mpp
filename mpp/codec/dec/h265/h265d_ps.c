@@ -137,10 +137,10 @@ int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
     RK_S32 k  = 0;
     RK_S32 i;
 
-    GetBitCxt_t *gb = &lc->gb;
+    BitReadCtx_t *gb = &lc->gb;
 
     if (rps != sps->st_rps && sps->nb_st_rps)
-        READ_BIT1(gb, &rps_predict);
+        READ_ONEBIT(gb, &rps_predict);
 
     if (rps_predict) {
         const ShortTermRPS *rps_ridx;
@@ -171,12 +171,12 @@ int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
         delta_rps      = (1 - (delta_rps_sign << 1)) * abs_delta_rps;
         for (i = 0; i <= rps_ridx->num_delta_pocs; i++) {
             RK_S32 used = 0;
-            READ_BIT1(gb, &used);
+            READ_ONEBIT(gb, &used);
 
             rps->used[k] = used;
 
             if (!used)
-                READ_BIT1(gb, &use_delta_flag);
+                READ_ONEBIT(gb, &use_delta_flag);
 
             if (used || use_delta_flag) {
                 if (i < rps_ridx->num_delta_pocs)
@@ -246,7 +246,7 @@ int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
                 delta_poc += 1;
                 prev -= delta_poc;
                 rps->delta_poc[i] = prev;
-                READ_BIT1(gb, &rps->used[i]);
+                READ_ONEBIT(gb, &rps->used[i]);
             }
             prev = 0;
             for (i = 0; (RK_U32)i < nb_positive_pics; i++) {
@@ -254,11 +254,13 @@ int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
                 delta_poc = delta_poc + 1;
                 prev += delta_poc;
                 rps->delta_poc[rps->num_negative_pics + i] = prev;
-                READ_BIT1(gb, &rps->used[rps->num_negative_pics + i]);
+                READ_ONEBIT(gb, &rps->used[rps->num_negative_pics + i]);
             }
         }
     }
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 
@@ -266,10 +268,10 @@ static RK_S32 decode_profile_tier_level(HEVCContext *s, PTLCommon *ptl)
 {
     int i;
     HEVCLocalContext *lc = s->HEVClc;
-    GetBitCxt_t *gb = &lc->gb;
+    BitReadCtx_t *gb = &lc->gb;
 
     READ_BITS(gb, 2, &ptl->profile_space);
-    READ_BIT1(gb, &ptl->tier_flag);
+    READ_ONEBIT(gb, &ptl->tier_flag);
     READ_BITS(gb, 5, &ptl->profile_idc);
 
     if (ptl->profile_idc == MPP_PROFILE_HEVC_MAIN)
@@ -282,33 +284,35 @@ static RK_S32 decode_profile_tier_level(HEVCContext *s, PTLCommon *ptl)
         mpp_log("Unknown HEVC profile: %d\n", ptl->profile_idc);
 
     for (i = 0; i < 32; i++)
-        READ_BIT1(gb, & ptl->profile_compatibility_flag[i]);
-    READ_BIT1(gb, &ptl->progressive_source_flag);
-    READ_BIT1(gb, &ptl->interlaced_source_flag);
-    READ_BIT1(gb, &ptl->non_packed_constraint_flag);
-    READ_BIT1(gb, &ptl->frame_only_constraint_flag);
+        READ_ONEBIT(gb, & ptl->profile_compatibility_flag[i]);
+    READ_ONEBIT(gb, &ptl->progressive_source_flag);
+    READ_ONEBIT(gb, &ptl->interlaced_source_flag);
+    READ_ONEBIT(gb, &ptl->non_packed_constraint_flag);
+    READ_ONEBIT(gb, &ptl->frame_only_constraint_flag);
 
-    READ_SKIPBITS(gb, 16); // XXX_reserved_zero_44bits[0..15]
-    READ_SKIPBITS(gb, 16); // XXX_reserved_zero_44bits[16..31]
-    READ_SKIPBITS(gb, 12); // XXX_reserved_zero_44bits[32..43]
+    SKIP_BITS(gb, 16); // XXX_reserved_zero_44bits[0..15]
+    SKIP_BITS(gb, 16); // XXX_reserved_zero_44bits[16..31]
+    SKIP_BITS(gb, 12); // XXX_reserved_zero_44bits[32..43]
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static RK_S32 parse_ptl(HEVCContext *s, PTL *ptl, int max_num_sub_layers)
 {
     RK_S32 i;
     HEVCLocalContext *lc = s->HEVClc;
-    GetBitCxt_t *gb = &lc->gb;
+    BitReadCtx_t *gb = &lc->gb;
     decode_profile_tier_level(s, &ptl->general_ptl);
     READ_BITS(gb, 8, &ptl->general_ptl.level_idc);
 
     for (i = 0; i < max_num_sub_layers - 1; i++) {
-        READ_BIT1(gb, &ptl->sub_layer_profile_present_flag[i]);
-        READ_BIT1(gb, &ptl->sub_layer_level_present_flag[i]);
+        READ_ONEBIT(gb, &ptl->sub_layer_profile_present_flag[i]);
+        READ_ONEBIT(gb, &ptl->sub_layer_level_present_flag[i]);
     }
     if (max_num_sub_layers - 1 > 0)
         for (i = max_num_sub_layers - 1; i < 8; i++)
-            READ_SKIPBITS(gb, 2); // reserved_zero_2bits[i]
+            SKIP_BITS(gb, 2); // reserved_zero_2bits[i]
     for (i = 0; i < max_num_sub_layers - 1; i++) {
         if (ptl->sub_layer_profile_present_flag[i])
             decode_profile_tier_level(s, &ptl->sub_layer_ptl[i]);
@@ -317,12 +321,14 @@ static RK_S32 parse_ptl(HEVCContext *s, PTL *ptl, int max_num_sub_layers)
     }
 
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_sublayer_hrd(HEVCContext *s, unsigned int nb_cpb,
                                   int subpic_params_present)
 {
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_U32 i, value;
 
     for (i = 0; i < nb_cpb; i++) {
@@ -333,42 +339,44 @@ static RK_S32 decode_sublayer_hrd(HEVCContext *s, unsigned int nb_cpb,
             READ_UE(gb, &value); // cpb_size_du_value_minus1
             READ_UE(gb, &value); // bit_rate_du_value_minus1
         }
-        READ_SKIPBITS(gb, 1); // cbr_flag
+        SKIP_BITS(gb, 1); // cbr_flag
     }
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_hrd(HEVCContext *s, int common_inf_present,
                          int max_sublayers)
 {
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     int nal_params_present = 0, vcl_params_present = 0;
     int subpic_params_present = 0;
     int i;
 
     if (common_inf_present) {
-        READ_BIT1(gb, &nal_params_present);
-        READ_BIT1(gb, &vcl_params_present);
+        READ_ONEBIT(gb, &nal_params_present);
+        READ_ONEBIT(gb, &vcl_params_present);
 
         if (nal_params_present || vcl_params_present) {
-            READ_BIT1(gb, &subpic_params_present);
+            READ_ONEBIT(gb, &subpic_params_present);
 
             if (subpic_params_present) {
-                READ_SKIPBITS(gb, 8); // tick_divisor_minus2
-                READ_SKIPBITS(gb, 5); // du_cpb_removal_delay_increment_length_minus1
-                READ_SKIPBITS(gb, 1); // sub_pic_cpb_params_in_pic_timing_sei_flag
-                READ_SKIPBITS(gb, 5); // dpb_output_delay_du_length_minus1
+                SKIP_BITS(gb, 8); // tick_divisor_minus2
+                SKIP_BITS(gb, 5); // du_cpb_removal_delay_increment_length_minus1
+                SKIP_BITS(gb, 1); // sub_pic_cpb_params_in_pic_timing_sei_flag
+                SKIP_BITS(gb, 5); // dpb_output_delay_du_length_minus1
             }
 
-            READ_SKIPBITS(gb, 4); // bit_rate_scale
-            READ_SKIPBITS(gb, 4); // cpb_size_scale
+            SKIP_BITS(gb, 4); // bit_rate_scale
+            SKIP_BITS(gb, 4); // cpb_size_scale
 
             if (subpic_params_present)
-                READ_SKIPBITS(gb, 4);  // cpb_size_du_scale
+                SKIP_BITS(gb, 4);  // cpb_size_du_scale
 
-            READ_SKIPBITS(gb, 5); // initial_cpb_removal_delay_length_minus1
-            READ_SKIPBITS(gb, 5); // au_cpb_removal_delay_length_minus1
-            READ_SKIPBITS(gb, 5); // dpb_output_delay_length_minus1
+            SKIP_BITS(gb, 5); // initial_cpb_removal_delay_length_minus1
+            SKIP_BITS(gb, 5); // au_cpb_removal_delay_length_minus1
+            SKIP_BITS(gb, 5); // dpb_output_delay_length_minus1
         }
     }
 
@@ -378,15 +386,15 @@ static RK_S32 decode_hrd(HEVCContext *s, int common_inf_present,
         RK_S32 fixed_rate = 0;
         RK_S32 value = 0;
 
-        READ_BIT1(gb, &fixed_rate);
+        READ_ONEBIT(gb, &fixed_rate);
 
         if (!fixed_rate)
-            READ_BIT1(gb, &fixed_rate);
+            READ_ONEBIT(gb, &fixed_rate);
 
         if (fixed_rate)
             READ_UE(gb, &value); // elemental_duration_in_tc_minus1
         else
-            READ_BIT1(gb, &low_delay);
+            READ_ONEBIT(gb, &low_delay);
 
         if (!low_delay) {
             READ_UE(gb, &nb_cpb);
@@ -399,6 +407,8 @@ static RK_S32 decode_hrd(HEVCContext *s, int common_inf_present,
             decode_sublayer_hrd(s, nb_cpb, subpic_params_present);
     }
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 
@@ -407,14 +417,14 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
 {
     RK_S32 i, j;
     RK_S32 value = 0;
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
 #ifdef VPS_EXTN_MASK_AND_DIM_INFO
     RK_S32 numScalabilityTypes = 0;
-    READ_BIT1(gb, &vps->avc_base_layer_flag);
-    READ_BIT1(gb, &vps->splitting_flag);
+    READ_ONEBIT(gb, &vps->avc_base_layer_flag);
+    READ_ONEBIT(gb, &vps->splitting_flag);
 
     for (i = 0; i < MAX_VPS_NUM_SCALABILITY_TYPES; i++) {
-        READ_BIT1(gb, &vps->scalability_mask[i]);
+        READ_ONEBIT(gb, &vps->scalability_mask[i]);
         numScalabilityTypes += vps->scalability_mask[i];
         if ( i != 1 && vps->scalability_mask[i] != 0) {
             mpp_err( "Multiview and reserved masks are not used in this version of software \n");
@@ -436,7 +446,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
             mpp_err( "numBits>6 \n");
     }
 
-    READ_BIT1(gb, &vps->nuh_layer_id_present_flag);
+    READ_ONEBIT(gb, &vps->nuh_layer_id_present_flag);
     vps->layer_id_in_nuh[0] = 0;
     vps->m_layerIdInVps[0] = 0;
 
@@ -459,7 +469,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
     for ( i = 1; i <= vps->vps_max_layers - 1; i++) {
         RK_S32 numDirectRefLayers = 0;
         for ( j = 0; j < i; j++) {
-            READ_BIT1(gb, &vps->direct_dependency_flag[i][j]);
+            READ_ONEBIT(gb, &vps->direct_dependency_flag[i][j]);
             if (vps->direct_dependency_flag[i][j]) {
                 vps->m_refLayerId[i][numDirectRefLayers] = j;
                 numDirectRefLayers++;
@@ -486,7 +496,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
     for (i = 1; i <= vps->vps_num_layer_sets - 1; i++)
 #endif
     {
-        READ_BIT1(gb, &vps->vps_profile_present_flag[i]);
+        READ_ONEBIT(gb, &vps->vps_profile_present_flag[i]);
         if ( !vps->vps_profile_present_flag[i] ) {
 #ifdef VPS_PROFILE_OUTPUT_LAYERS
             READ_BITS(gb, 6, &vps->profile_ref[i])
@@ -505,7 +515,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
 #endif
 
 #ifdef VPS_PROFILE_OUTPUT_LAYERS
-    READ_BIT1(gb, &vps->more_output_layer_sets_than_default_flag );
+    READ_ONEBIT(gb, &vps->more_output_layer_sets_than_default_flag );
     RK_S32 numOutputLayerSets = 0;
     if (! vps->more_output_layer_sets_than_default_flag ) {
         numOutputLayerSets = vps->vps_num_layer_sets;
@@ -514,7 +524,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
         numOutputLayerSets = vps->vps_num_layer_sets + vps->num_add_output_layer_sets;
     }
     if (numOutputLayerSets > 1) {
-        READ_BIT1(gb, &vps->default_one_target_output_layer_flag);
+        READ_ONEBIT(gb, &vps->default_one_target_output_layer_flag);
     }
     vps->m_numOutputLayerSets = numOutputLayerSets;
     for (i = 1; i < numOutputLayerSets; i++) {
@@ -527,7 +537,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
             vps->output_layer_set_idx[i] = vps->output_layer_set_idx[i] + 1;
             lsIdx = vps->output_layer_set_idx[i];
             for (j = 0; j < vps->m_numLayerInIdList[lsIdx] - 1; j++) {
-                READ_BIT1(gb, &vps->output_layer_flag[i][j]);
+                READ_ONEBIT(gb, &vps->output_layer_flag[i][j]);
             }
         } else {
             int lsIdx = i;
@@ -549,7 +559,7 @@ static RK_S32 parse_vps_extension (HEVCContext *s, HEVCVPS *vps)
     }
 #endif
 #ifdef JCTVC_M0458_INTERLAYER_RPS_SIG
-    READ_BIT1(gb, &vps->max_one_active_ref_layer_flag);
+    READ_ONEBIT(gb, &vps->max_one_active_ref_layer_flag);
 #endif
 }
 #endif
@@ -1015,7 +1025,7 @@ static RK_S32 compare_pps(HEVCPPS *openhevc_pps, HEVCPPS *pps)
 int mpp_hevc_decode_nal_vps(HEVCContext *s)
 {
     RK_S32 i, j;
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 vps_id = 0;
     HEVCVPS *vps = NULL;
     RK_U8 *vps_buf = mpp_calloc(RK_U8, sizeof(HEVCVPS));
@@ -1047,7 +1057,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
     READ_BITS(gb, 3, &vps->vps_max_sub_layers);
     vps->vps_max_sub_layers =  vps->vps_max_sub_layers + 1;
 
-    READ_BIT1(gb, & vps->vps_temporal_id_nesting_flag);
+    READ_ONEBIT(gb, & vps->vps_temporal_id_nesting_flag);
     READ_BITS(gb, 16, &value);
 
     if (value != 0xffff) { // vps_reserved_ffff_16bits
@@ -1063,7 +1073,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
 
     parse_ptl(s, &vps->ptl, vps->vps_max_sub_layers);
 
-    READ_BIT1(gb, &vps->vps_sub_layer_ordering_info_present_flag);
+    READ_ONEBIT(gb, &vps->vps_sub_layer_ordering_info_present_flag);
 
     i = vps->vps_sub_layer_ordering_info_present_flag ? 0 : vps->vps_max_sub_layers - 1;
     for (; i < vps->vps_max_sub_layers; i++) {
@@ -1090,13 +1100,13 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
     vps->vps_num_layer_sets += 1;
     for (i = 1; i < vps->vps_num_layer_sets; i++)
         for (j = 0; j <= vps->vps_max_layer_id; j++)
-            READ_SKIPBITS(gb, 1);  // layer_id_included_flag[i][j]
+            SKIP_BITS(gb, 1);  // layer_id_included_flag[i][j]
 
-    READ_BIT1(gb, &vps->vps_timing_info_present_flag);
+    READ_ONEBIT(gb, &vps->vps_timing_info_present_flag);
     if (vps->vps_timing_info_present_flag) {
-        mpp_ReadLongBits(gb, 32, &vps->vps_num_units_in_tick);
-        mpp_ReadLongBits(gb, 32, &vps->vps_time_scale);
-        READ_BIT1(gb, &vps->vps_poc_proportional_to_timing_flag);
+        mpp_read_longbits(gb, 32, &vps->vps_num_units_in_tick);
+        mpp_read_longbits(gb, 32, &vps->vps_time_scale);
+        READ_ONEBIT(gb, &vps->vps_poc_proportional_to_timing_flag);
         if (vps->vps_poc_proportional_to_timing_flag) {
             READ_UE(gb, &vps->vps_num_ticks_poc_diff_one);
             vps->vps_num_ticks_poc_diff_one +=  1;
@@ -1108,12 +1118,12 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
 
             READ_UE(gb, &hrd_layer_set_idx); // hrd_layer_set_idx
             if (i)
-                READ_BIT1(gb, &common_inf_present);
+                READ_ONEBIT(gb, &common_inf_present);
             decode_hrd(s, common_inf_present, vps->vps_max_sub_layers);
         }
     }
 
-    //  READ_BIT1(gb, &vps->vps_extension_flag);
+    //  READ_ONEBIT(gb, &vps->vps_extension_flag);
 
 #ifdef VPS_EXTENSION
     if (vps->vps_extension_flag) { // vps_extension_flag
@@ -1143,7 +1153,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
     }
 
     return 0;
-
+__BITREAD_ERR:
 err:
     mpp_free(vps_buf);
     return  MPP_ERR_STREAM;
@@ -1153,12 +1163,12 @@ err:
 static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
 {
     VUI *vui          = &sps->vui;
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 sar_present;
 
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding VUI\n");
 
-    READ_BIT1(gb, &sar_present);
+    READ_ONEBIT(gb, &sar_present);
     if (sar_present) {
         RK_U8 sar_idx = 0;
         READ_BITS(gb, 8, &sar_idx);
@@ -1171,15 +1181,15 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
             mpp_log("Unknown SAR index: %u.\n", sar_idx);
     }
 
-    READ_BIT1(gb, &vui->overscan_info_present_flag);
+    READ_ONEBIT(gb, &vui->overscan_info_present_flag);
     if (vui->overscan_info_present_flag)
-        READ_BIT1(gb, &vui->overscan_appropriate_flag);
+        READ_ONEBIT(gb, &vui->overscan_appropriate_flag);
 
-    READ_BIT1(gb, &vui->video_signal_type_present_flag);
+    READ_ONEBIT(gb, &vui->video_signal_type_present_flag);
     if (vui->video_signal_type_present_flag) {
         READ_BITS(gb, 3, & vui->video_format);
-        READ_BIT1(gb, &vui->video_full_range_flag);
-        READ_BIT1(gb, &vui->colour_description_present_flag);
+        READ_ONEBIT(gb, &vui->video_full_range_flag);
+        READ_ONEBIT(gb, &vui->colour_description_present_flag);
 
         if (vui->colour_description_present_flag) {
             READ_BITS(gb, 8, &vui->colour_primaries);
@@ -1196,17 +1206,17 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
         }
     }
 
-    READ_BIT1(gb, &vui->chroma_loc_info_present_flag );
+    READ_ONEBIT(gb, &vui->chroma_loc_info_present_flag );
     if (vui->chroma_loc_info_present_flag) {
         READ_UE(gb, &vui->chroma_sample_loc_type_top_field);
         READ_UE(gb, &vui->chroma_sample_loc_type_bottom_field);
     }
 
-    READ_BIT1(gb, &vui->neutra_chroma_indication_flag);
-    READ_BIT1(gb, &vui->field_seq_flag);
-    READ_BIT1(gb, &vui->frame_field_info_present_flag);
+    READ_ONEBIT(gb, &vui->neutra_chroma_indication_flag);
+    READ_ONEBIT(gb, &vui->field_seq_flag);
+    READ_ONEBIT(gb, &vui->frame_field_info_present_flag);
 
-    READ_BIT1(gb, &vui->default_display_window_flag);
+    READ_ONEBIT(gb, &vui->default_display_window_flag);
     if (vui->default_display_window_flag) {
         //TODO: * 2 is only valid for 420
         READ_UE(gb, &vui->def_disp_win.left_offset);
@@ -1240,24 +1250,24 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
 #endif
     }
 
-    READ_BIT1(gb, &vui->vui_timing_info_present_flag);
+    READ_ONEBIT(gb, &vui->vui_timing_info_present_flag);
 
     if (vui->vui_timing_info_present_flag) {
-        mpp_ReadLongBits(gb, 32, &vui->vui_num_units_in_tick);
-        mpp_ReadLongBits(gb, 32, &vui->vui_time_scale);
-        READ_BIT1(gb, &vui->vui_poc_proportional_to_timing_flag);
+        mpp_read_longbits(gb, 32, &vui->vui_num_units_in_tick);
+        mpp_read_longbits(gb, 32, &vui->vui_time_scale);
+        READ_ONEBIT(gb, &vui->vui_poc_proportional_to_timing_flag);
         if (vui->vui_poc_proportional_to_timing_flag)
             READ_UE(gb, &vui->vui_num_ticks_poc_diff_one_minus1);
-        READ_BIT1(gb, &vui->vui_hrd_parameters_present_flag);
+        READ_ONEBIT(gb, &vui->vui_hrd_parameters_present_flag);
         if (vui->vui_hrd_parameters_present_flag)
             decode_hrd(s, 1, sps->max_sub_layers);
     }
 
-    READ_BIT1(gb, &vui->bitstream_restriction_flag);
+    READ_ONEBIT(gb, &vui->bitstream_restriction_flag);
     if (vui->bitstream_restriction_flag) {
-        READ_BIT1(gb, &vui->tiles_fixed_structure_flag);
-        READ_BIT1(gb, &vui->motion_vectors_over_pic_boundaries_flag);
-        READ_BIT1(gb, &vui->restricted_ref_pic_lists_flag);
+        READ_ONEBIT(gb, &vui->tiles_fixed_structure_flag);
+        READ_ONEBIT(gb, &vui->motion_vectors_over_pic_boundaries_flag);
+        READ_ONEBIT(gb, &vui->restricted_ref_pic_lists_flag);
         READ_UE(gb, &vui->min_spatial_segmentation_idc);
         READ_UE(gb, &vui->max_bytes_per_pic_denom);
         READ_UE(gb, &vui->max_bits_per_min_cu_denom);
@@ -1265,6 +1275,8 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
         READ_UE(gb, &vui->log2_max_mv_length_vertical);
     }
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 /*static */void set_default_scaling_list_data(ScalingList *sl)///<- zrh remove "static"
@@ -1295,15 +1307,15 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
 
 static int scaling_list_data(HEVCContext *s, ScalingList *sl)
 {
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_U8 scaling_list_pred_mode_flag[4][6];
     RK_S32 scaling_list_dc_coef[2][6];
     RK_S32 size_id,  i, pos;
     RK_U32 matrix_id;
 
     for (size_id = 0; size_id < 4; size_id++)
-    for (matrix_id = 0; matrix_id < (RK_U32)((size_id == 3) ? 2 : 6); matrix_id++) {
-            READ_BIT1(gb, &scaling_list_pred_mode_flag[size_id][matrix_id]);
+        for (matrix_id = 0; matrix_id < (RK_U32)(size_id == 3 ? 2 : 6); matrix_id++) {
+            READ_ONEBIT(gb, &scaling_list_pred_mode_flag[size_id][matrix_id]);
             if (!scaling_list_pred_mode_flag[size_id][matrix_id]) {
                 RK_U32 delta = 0;
                 READ_UE(gb, &delta);
@@ -1351,12 +1363,14 @@ static int scaling_list_data(HEVCContext *s, ScalingList *sl)
         }
 
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 {
     // const AVPixFmtDescriptor *desc;
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 ret    = 0;
     RK_S32 sps_id = 0;
     RK_S32 log2_diff_max_min_transform_block_size;
@@ -1399,7 +1413,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         goto err;
     }
 
-    READ_SKIPBITS(gb, 1); // temporal_id_nesting_flag
+    SKIP_BITS(gb, 1); // temporal_id_nesting_flag
 
     parse_ptl(s, &sps->ptl, sps->max_sub_layers);
 
@@ -1419,7 +1433,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     }
 
     if (sps->chroma_format_idc == 3)
-        READ_BIT1(gb, &sps->separate_colour_plane_flag);
+        READ_ONEBIT(gb, &sps->separate_colour_plane_flag);
 
     READ_UE(gb, &sps->width);
     READ_UE(gb, &sps->height);
@@ -1429,7 +1443,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         goto err;
 #endif
 
-    READ_BIT1(gb, &value);
+    READ_ONEBIT(gb, &value);
 
     if (value) { // pic_conformance_flag
         //TODO: * 2 is only valid for 420
@@ -1512,7 +1526,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         goto err;
     }
 
-    READ_BIT1(gb, &sublayer_ordering_info);
+    READ_ONEBIT(gb, &sublayer_ordering_info);
 
     start = sublayer_ordering_info ? 0 : sps->max_sub_layers - 1;
     for (i = start; i < sps->max_sub_layers; i++) {
@@ -1564,12 +1578,12 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     READ_UE(gb, &sps->max_transform_hierarchy_depth_intra);
 
 
-    READ_BIT1(gb, &sps->scaling_list_enable_flag );
+    READ_ONEBIT(gb, &sps->scaling_list_enable_flag );
 
     if (sps->scaling_list_enable_flag) {
         value = 0;
         set_default_scaling_list_data(&sps->scaling_list);
-        READ_BIT1(gb, &value);
+        READ_ONEBIT(gb, &value);
         if (value) {
             ret = scaling_list_data(s, &sps->scaling_list);
             if (ret < 0)
@@ -1578,9 +1592,9 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 
         s->scaling_list_listen[sps_id] = 1;
     }
-    READ_BIT1(gb, &sps->amp_enabled_flag);
-    READ_BIT1(gb, &sps->sao_enabled);
-    READ_BIT1(gb, &sps->pcm_enabled_flag);
+    READ_ONEBIT(gb, &sps->amp_enabled_flag);
+    READ_ONEBIT(gb, &sps->sao_enabled);
+    READ_ONEBIT(gb, &sps->pcm_enabled_flag);
 
     mpp_err("sps->amp_enabled_flag = %d", sps->amp_enabled_flag);
     mpp_err("sps->sao_enabled = %d", sps->sao_enabled);
@@ -1603,7 +1617,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             ret =  MPP_ERR_STREAM;
             goto err;
         }
-        READ_BIT1(gb, &sps->pcm.loop_filter_disable_flag);
+        READ_ONEBIT(gb, &sps->pcm.loop_filter_disable_flag);
     }
 
     READ_UE(gb, &sps->nb_st_rps);
@@ -1619,23 +1633,23 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             goto err;
     }
 
-    READ_BIT1(gb, &sps->long_term_ref_pics_present_flag);
+    READ_ONEBIT(gb, &sps->long_term_ref_pics_present_flag);
     if (sps->long_term_ref_pics_present_flag) {
         READ_UE(gb, &sps->num_long_term_ref_pics_sps);
         for (i = 0; (RK_U8)i < sps->num_long_term_ref_pics_sps; i++) {
             READ_BITS(gb, sps->log2_max_poc_lsb, &sps->lt_ref_pic_poc_lsb_sps[i]);
-            READ_BIT1(gb, &sps->used_by_curr_pic_lt_sps_flag[i]);
+            READ_ONEBIT(gb, &sps->used_by_curr_pic_lt_sps_flag[i]);
         }
     }
-    READ_BIT1(gb, &sps->sps_temporal_mvp_enabled_flag);
+    READ_ONEBIT(gb, &sps->sps_temporal_mvp_enabled_flag);
 #ifdef REF_IDX_MFM
     if (s->nuh_layer_id > 0)
-        READ_BIT1(gb, &sps->set_mfm_enabled_flag);
+        READ_ONEBIT(gb, &sps->set_mfm_enabled_flag);
 #endif
-    READ_BIT1(gb, &sps->sps_strong_intra_smoothing_enable_flag);
+    READ_ONEBIT(gb, &sps->sps_strong_intra_smoothing_enable_flag);
     sps->vui.sar.num = 0;
     sps->vui.sar.den = 1;
-    READ_BIT1(gb, &vui_present);
+    READ_ONEBIT(gb, &vui_present);
     if (vui_present)
         decode_vui(s, sps);
 #ifdef SCALED_REF_LAYER_OFFSETS
@@ -1651,7 +1665,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     }
 #endif
 
-    //  READ_SKIPBITS(gb, 1); // sps_extension_flag
+    //  SKIP_BITS(gb, 1); // sps_extension_flag
 
     if (s->apply_defdispwin) {
         sps->output_window.left_offset   += sps->vui.def_disp_win.left_offset;
@@ -1778,7 +1792,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         s->sps_list_of_updated[sps_id] = 1;
 
     return 0;
-
+__BITREAD_ERR:
 err:
     mpp_free(sps_buf);
     return ret;
@@ -1806,7 +1820,7 @@ void mpp_hevc_pps_free(RK_U8 *data)
 int mpp_hevc_decode_nal_pps(HEVCContext *s)
 {
 
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     HEVCSPS      *sps = NULL;
     RK_S32 pic_area_in_ctbs, pic_area_in_min_cbs, pic_area_in_min_tbs;
     RK_S32 i, j, x, y, ctb_addr_rs, tile_id;
@@ -1854,13 +1868,13 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     sps = (HEVCSPS *)s->sps_list[pps->sps_id];
 
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding PPS 1\n");
-    READ_BIT1(gb, &pps->dependent_slice_segments_enabled_flag);
-    READ_BIT1(gb, &pps->output_flag_present_flag );
+    READ_ONEBIT(gb, &pps->dependent_slice_segments_enabled_flag);
+    READ_ONEBIT(gb, &pps->output_flag_present_flag );
     READ_BITS(gb, 3, &pps->num_extra_slice_header_bits);
 
-    READ_BIT1(gb, &pps->sign_data_hiding_flag);
+    READ_ONEBIT(gb, &pps->sign_data_hiding_flag);
 
-    READ_BIT1(gb, &pps->cabac_init_present_flag);
+    READ_ONEBIT(gb, &pps->cabac_init_present_flag);
 
     READ_UE(gb, &pps->num_ref_idx_l0_default_active);
     pps->num_ref_idx_l0_default_active +=  1;
@@ -1869,10 +1883,10 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
 
     READ_SE(gb, &pps->pic_init_qp_minus26);
 
-    READ_BIT1(gb, & pps->constrained_intra_pred_flag);
-    READ_BIT1(gb, &pps->transform_skip_enabled_flag);
+    READ_ONEBIT(gb, & pps->constrained_intra_pred_flag);
+    READ_ONEBIT(gb, &pps->transform_skip_enabled_flag);
 
-    READ_BIT1(gb, &pps->cu_qp_delta_enabled_flag);
+    READ_ONEBIT(gb, &pps->cu_qp_delta_enabled_flag);
     pps->diff_cu_qp_delta_depth   = 0;
     if (pps->cu_qp_delta_enabled_flag)
         READ_UE(gb, &pps->diff_cu_qp_delta_depth);
@@ -1891,15 +1905,15 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         ret =  MPP_ERR_STREAM;
         goto err;
     }
-    READ_BIT1(gb, & pps->pic_slice_level_chroma_qp_offsets_present_flag);
+    READ_ONEBIT(gb, & pps->pic_slice_level_chroma_qp_offsets_present_flag);
 
-    READ_BIT1(gb, &pps->weighted_pred_flag);
+    READ_ONEBIT(gb, &pps->weighted_pred_flag);
 
-    READ_BIT1(gb, &pps->weighted_bipred_flag);
+    READ_ONEBIT(gb, &pps->weighted_bipred_flag);
 
-    READ_BIT1(gb, &pps->transquant_bypass_enable_flag);
-    READ_BIT1(gb, &pps->tiles_enabled_flag);
-    READ_BIT1(gb, &pps->entropy_coding_sync_enabled_flag);
+    READ_ONEBIT(gb, &pps->transquant_bypass_enable_flag);
+    READ_ONEBIT(gb, &pps->tiles_enabled_flag);
+    READ_ONEBIT(gb, &pps->entropy_coding_sync_enabled_flag);
 
     if (pps->tiles_enabled_flag) {
         READ_UE(gb, &pps->num_tile_columns);
@@ -1928,7 +1942,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
             goto err;
         }
 
-        READ_BIT1(gb, &pps->uniform_spacing_flag );
+        READ_ONEBIT(gb, &pps->uniform_spacing_flag );
         if (!pps->uniform_spacing_flag) {
             RK_S32 sum = 0;
             for (i = 0; i < pps->num_tile_columns - 1; i++) {
@@ -1956,14 +1970,14 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
             }
             pps->row_height[pps->num_tile_rows - 1] = sps->ctb_height - sum;
         }
-        READ_BIT1(gb, &pps->loop_filter_across_tiles_enabled_flag);
+        READ_ONEBIT(gb, &pps->loop_filter_across_tiles_enabled_flag);
     }
 
-    READ_BIT1(gb, &pps->seq_loop_filter_across_slices_enabled_flag);
-    READ_BIT1(gb, &pps->deblocking_filter_control_present_flag);
+    READ_ONEBIT(gb, &pps->seq_loop_filter_across_slices_enabled_flag);
+    READ_ONEBIT(gb, &pps->deblocking_filter_control_present_flag);
     if (pps->deblocking_filter_control_present_flag) {
-        READ_BIT1(gb, &pps->deblocking_filter_override_enabled_flag);
-        READ_BIT1(gb, & pps->disable_dbf);
+        READ_ONEBIT(gb, &pps->deblocking_filter_override_enabled_flag);
+        READ_ONEBIT(gb, & pps->disable_dbf);
         if (!pps->disable_dbf) {
             READ_SE(gb, &pps->beta_offset);
             pps->beta_offset = pps->beta_offset * 2;
@@ -1984,7 +1998,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         }
     }
 
-    READ_BIT1(gb, &pps->scaling_list_data_present_flag);
+    READ_ONEBIT(gb, &pps->scaling_list_data_present_flag);
     if (pps->scaling_list_data_present_flag) {
         set_default_scaling_list_data(&pps->scaling_list);
         ret = scaling_list_data(s, &pps->scaling_list);
@@ -1995,7 +2009,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     }
 
     h265d_dbg(H265D_DBG_PPS, "num bit left %d", gb->num_remaining_bits_in_curr_byte_);
-    READ_BIT1(gb, & pps->lists_modification_present_flag);
+    READ_ONEBIT(gb, & pps->lists_modification_present_flag);
 
 
     h265d_dbg(H265D_DBG_PPS, "num bit left %d", gb->num_remaining_bits_in_curr_byte_);
@@ -2143,7 +2157,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         s->pps_list_of_updated[pps_id] = 1;
 
     return 0;
-
+__BITREAD_ERR:
 err:
     mpp_hevc_pps_free(pps_buf);
     return ret;

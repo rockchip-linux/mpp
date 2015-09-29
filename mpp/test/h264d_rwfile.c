@@ -299,7 +299,7 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
         if (parse_content(p_in, content)) {
             goto __FAILED;
         }
-        mpp_free(content);
+        MPP_FREE(content);
     }
 
     return MPP_OK;
@@ -594,7 +594,7 @@ static void write_bytes(FILE *fp_in, TempDataCtx_t *tmpctx, FILE *fp_out)
     RK_U32 data_temp = 0;
     data_temp = (tmpctx->pps_id << 16) | tmpctx->len;
 
-    fwrite(&tmpctx->header,   sizeof(RK_U32), 1, fp_out);
+    fwrite(&tmpctx->header, sizeof(RK_U32), 1, fp_out);
     fwrite(&data_temp, sizeof(RK_U32), 1, fp_out);
     while (i < tmpctx->len) {
         fread (&temp, sizeof(RK_U8), 1, fp_in);
@@ -688,7 +688,7 @@ MPP_RET h264d_open_files(InputParams *p_in)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    FLE_CHECK(ret, p_in->fp_bitstream   = fopen(p_in->infile_name, "rb"));
+    FLE_CHECK(ret, p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
 
     return MPP_OK;
 __FAILED:
@@ -707,9 +707,9 @@ __FAILED:
 MPP_RET h264d_free_frame_buffer(InputParams *p_in)
 {
     if (p_in) {
-        mpp_free(p_in->IO.pbuf);
-        mpp_free(p_in->bitctx);
-        mpp_free(p_in->strm.pbuf);
+        MPP_FREE(p_in->IO.pbuf);
+        MPP_FREE(p_in->bitctx);
+        MPP_FREE(p_in->strm.pbuf);
     }
 
     return MPP_NOK;
@@ -801,7 +801,7 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
     mpp_env_get_str(logenv_name.cmppath,  &cmppath_dir,  NULL);
     p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, ".dat", "wb");
-    p_in->fp_golden_data = open_file(cmppath_dir, p_in->infile_name, ".dat",  "rb");
+    p_in->fp_golden_data = open_file(cmppath_dir, p_in->infile_name, ".dat", "rb");
     fp_log = fopen(strcat(outpath_dir, "/h264d_driver_data.dat"), "rb");
     FLE_CHECK(ret, p_in->fp_golden_data);
     FLE_CHECK(ret, p_in->fp_driver_data);
@@ -817,7 +817,7 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
 __RETURN:
     ret = MPP_OK;
 __FAILED:
-    mpp_free(tmpctx.data);
+    MPP_FREE(tmpctx.data);
     h264d_close_files(p_in);
 
     return ret;

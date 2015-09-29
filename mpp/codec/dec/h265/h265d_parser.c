@@ -238,7 +238,7 @@ RK_S32 h265d_split_deinit(void *sc)
     return MPP_OK;
 }
 
-static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
+static RK_S32 pred_weight_table(HEVCContext *s, BitReadCtx_t *gb)
 {
     RK_U32 i = 0;
     RK_U32 j = 0;
@@ -255,7 +255,7 @@ static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
     }
 
     for (i = 0; i < s->sh.nb_refs[L0]; i++) {
-        READ_BIT1(gb, &luma_weight_l0_flag[i]);
+        READ_ONEBIT(gb, &luma_weight_l0_flag[i]);
         if (!luma_weight_l0_flag[i]) {
             s->sh.luma_weight_l0[i] = 1 << s->sh.luma_log2_weight_denom;
             s->sh.luma_offset_l0[i] = 0;
@@ -264,7 +264,7 @@ static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
 
     if (s->sps->chroma_format_idc != 0) { // FIXME: invert "if" and "for"
         for (i = 0; i < s->sh.nb_refs[L0]; i++) {
-            READ_BIT1(gb, &chroma_weight_l0_flag[i]);
+            READ_ONEBIT(gb, &chroma_weight_l0_flag[i]);
         }
     } else {
         for (i = 0; i < s->sh.nb_refs[L0]; i++)
@@ -298,7 +298,7 @@ static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
 
     if (s->sh.slice_type == B_SLICE) {
         for (i = 0; i < s->sh.nb_refs[L1]; i++) {
-            READ_BIT1(gb, &luma_weight_l1_flag[i]);
+            READ_ONEBIT(gb, &luma_weight_l1_flag[i]);
             if (!luma_weight_l1_flag[i]) {
                 s->sh.luma_weight_l1[i] = 1 << s->sh.luma_log2_weight_denom;
                 s->sh.luma_offset_l1[i] = 0;
@@ -306,7 +306,7 @@ static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
         }
         if (s->sps->chroma_format_idc != 0) {
             for (i = 0; i < s->sh.nb_refs[L1]; i++)
-                READ_BIT1(gb, &chroma_weight_l1_flag[i]);
+                READ_ONEBIT(gb, &chroma_weight_l1_flag[i]);
         } else {
             for (i = 0; i < s->sh.nb_refs[L1]; i++)
                 chroma_weight_l1_flag[i] = 0;
@@ -337,9 +337,11 @@ static RK_S32 pred_weight_table(HEVCContext *s, GetBitCxt_t *gb)
         }
     }
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, GetBitCxt_t *gb)
+static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, BitReadCtx_t *gb)
 {
     const HEVCSPS *sps = s->sps;
     RK_S32 max_poc_lsb    = 1 << sps->log2_max_poc_lsb;
@@ -347,7 +349,7 @@ static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, GetBitCxt_t *gb)
     RK_U32 nb_sps = 0, nb_sh;
     RK_S32 i;
 
-    RK_S32 bit_begin = gb->UsedBits;
+    RK_S32 bit_begin = gb->used_bits;
     s->rps_bit_offset[s->slice_idx] =
         s->rps_bit_offset_st[s->slice_idx];
 
@@ -378,10 +380,10 @@ static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, GetBitCxt_t *gb)
             rps->used[i] = sps->used_by_curr_pic_lt_sps_flag[lt_idx_sps];
         } else {
             READ_BITS(gb, sps->log2_max_poc_lsb, &rps->poc[i]);
-            READ_BIT1(gb, &rps->used[i]);
+            READ_ONEBIT(gb, &rps->used[i]);
         }
 
-        READ_BIT1(gb, &delta_poc_msb_present);
+        READ_ONEBIT(gb, &delta_poc_msb_present);
         if (delta_poc_msb_present) {
             RK_S32 delta = 0;
 
@@ -396,9 +398,11 @@ static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, GetBitCxt_t *gb)
     }
 
     s->rps_bit_offset[s->slice_idx]
-    += (gb->UsedBits - bit_begin);
+    += (gb->used_bits - bit_begin);
 
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
@@ -622,7 +626,7 @@ static RK_S32 compare_sliceheader(SliceHeader *openhevc_sh, SliceHeader *sh)
 static RK_S32 hls_slice_header(HEVCContext *s)
 {
 
-    GetBitCxt_t *gb = &s->HEVClc->gb;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
     SliceHeader *sh   = &s->sh;
     RK_S32 i, ret;
     RK_S32 value, pps_id;
@@ -634,7 +638,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
 
     // Coded parameters
 
-    READ_BIT1(gb, &sh->first_slice_in_pic_flag);
+    READ_ONEBIT(gb, &sh->first_slice_in_pic_flag);
     if ((IS_IDR(s) || IS_BLA(s)) && sh->first_slice_in_pic_flag) {
         s->seq_decode = (s->seq_decode + 1) & 0xff;
         s->max_ra     = INT_MAX;
@@ -642,7 +646,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             mpp_hevc_clear_refs(s);
     }
     if (s->nal_unit_type >= 16 && s->nal_unit_type <= 23)
-        READ_BIT1(gb, &sh->no_output_of_prior_pics_flag);
+        READ_ONEBIT(gb, &sh->no_output_of_prior_pics_flag);
 
     READ_UE(gb, &pps_id);
 
@@ -679,7 +683,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
         RK_S32 slice_address_length;
 
         if (s->pps->dependent_slice_segments_enabled_flag)
-            READ_BIT1(gb, &sh->dependent_slice_segment_flag);
+            READ_ONEBIT(gb, &sh->dependent_slice_segment_flag);
 
         slice_address_length = mpp_ceil_log2(s->sps->ctb_width *
                                              s->sps->ctb_height);
@@ -707,7 +711,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
         s->slice_initialized = 0;
 
         for (i = 0; i < s->pps->num_extra_slice_header_bits; i++)
-            READ_SKIPBITS(gb, 1);  // slice_reserved_undetermined_flag[]
+            SKIP_BITS(gb, 1);  // slice_reserved_undetermined_flag[]
 
         READ_UE(gb, &sh->slice_type);
         if (!(sh->slice_type == I_SLICE ||
@@ -723,7 +727,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
         }
 
         if (s->pps->output_flag_present_flag)
-            READ_BIT1(gb, &sh->pic_output_flag);
+            READ_ONEBIT(gb, &sh->pic_output_flag);
 
         if (s->sps->separate_colour_plane_flag)
             READ_BITS(gb, 2, &sh->colour_plane_id );
@@ -743,9 +747,9 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             }
             s->poc = poc;
 
-            READ_BIT1(gb, &sh->short_term_ref_pic_set_sps_flag);
+            READ_ONEBIT(gb, &sh->short_term_ref_pic_set_sps_flag);
 
-            bit_begin = gb->UsedBits;
+            bit_begin = gb->used_bits;
 
             if (!sh->short_term_ref_pic_set_sps_flag) {
 
@@ -770,7 +774,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
                 sh->short_term_rps = &s->sps->st_rps[rps_idx];
             }
 
-            s->rps_bit_offset_st[s->slice_idx] = gb->UsedBits - bit_begin;
+            s->rps_bit_offset_st[s->slice_idx] = gb->used_bits - bit_begin;
 
             sh->short_term_ref_pic_set_size = s->rps_bit_offset_st[s->slice_idx];
 
@@ -782,7 +786,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             }
 
             if (s->sps->sps_temporal_mvp_enabled_flag)
-                READ_BIT1(gb, &sh->slice_temporal_mvp_enabled_flag);
+                READ_ONEBIT(gb, &sh->slice_temporal_mvp_enabled_flag);
             else
                 sh->slice_temporal_mvp_enabled_flag = 0;
         } else {
@@ -802,8 +806,8 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             s->pocTid0 = s->poc;
 
         if (s->sps->sao_enabled) {
-            READ_BIT1(gb, &sh->slice_sample_adaptive_offset_flag[0]);
-            READ_BIT1(gb, &sh->slice_sample_adaptive_offset_flag[1]);
+            READ_ONEBIT(gb, &sh->slice_sample_adaptive_offset_flag[0]);
+            READ_ONEBIT(gb, &sh->slice_sample_adaptive_offset_flag[1]);
             sh->slice_sample_adaptive_offset_flag[2] =
                 sh->slice_sample_adaptive_offset_flag[1];
         } else {
@@ -820,7 +824,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             if (sh->slice_type == B_SLICE)
                 sh->nb_refs[L1] = s->pps->num_ref_idx_l1_default_active;
 
-            READ_BIT1(gb, &value);
+            READ_ONEBIT(gb, &value);
 
             if (value) { // num_ref_idx_active_override_flag
                 READ_UE(gb, &sh->nb_refs[L0]);
@@ -845,14 +849,14 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             }
 
             if (s->pps->lists_modification_present_flag && nb_refs > 1) {
-                READ_BIT1(gb, &sh->rpl_modification_flag[0]);
+                READ_ONEBIT(gb, &sh->rpl_modification_flag[0]);
                 if (sh->rpl_modification_flag[0]) {
                     for (i = 0; (RK_U32)i < sh->nb_refs[L0]; i++)
                         READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh->list_entry_lx[0][i]);
                 }
 
                 if (sh->slice_type == B_SLICE) {
-                    READ_BIT1(gb, &sh->rpl_modification_flag[1]);
+                    READ_ONEBIT(gb, &sh->rpl_modification_flag[1]);
                     if (sh->rpl_modification_flag[1] == 1)
                         for (i = 0; (RK_U32)i < sh->nb_refs[L1]; i++)
                             READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh->list_entry_lx[1][i]);
@@ -860,10 +864,10 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             }
 
             if (sh->slice_type == B_SLICE)
-                READ_BIT1(gb, &sh->mvd_l1_zero_flag);
+                READ_ONEBIT(gb, &sh->mvd_l1_zero_flag);
 
             if (s->pps->cabac_init_present_flag)
-                READ_BIT1(gb, &sh->cabac_init_flag);
+                READ_ONEBIT(gb, &sh->cabac_init_flag);
             else
                 sh->cabac_init_flag = 0;
 
@@ -871,7 +875,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             if (sh->slice_temporal_mvp_enabled_flag) {
                 sh->collocated_list = L0;
                 if (sh->slice_type == B_SLICE) {
-                    READ_BIT1(gb, &value);
+                    READ_ONEBIT(gb, &value);
                     sh->collocated_list = !value;
                 }
 
@@ -913,10 +917,10 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             int deblocking_filter_override_flag = 0;
 
             if (s->pps->deblocking_filter_override_enabled_flag)
-                READ_BIT1(gb, & deblocking_filter_override_flag);
+                READ_ONEBIT(gb, & deblocking_filter_override_flag);
 
             if (deblocking_filter_override_flag) {
-                READ_BIT1(gb, &sh->disable_deblocking_filter_flag);
+                READ_ONEBIT(gb, &sh->disable_deblocking_filter_flag);
                 if (!sh->disable_deblocking_filter_flag) {
                     READ_SE(gb, &sh->beta_offset);
                     sh->beta_offset = sh->beta_offset * 2;
@@ -938,7 +942,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             (sh->slice_sample_adaptive_offset_flag[0] ||
              sh->slice_sample_adaptive_offset_flag[1] ||
              !sh->disable_deblocking_filter_flag)) {
-            READ_BIT1(gb, &sh->slice_loop_filter_across_slices_enabled_flag);
+            READ_ONEBIT(gb, &sh->slice_loop_filter_across_slices_enabled_flag);
         } else {
             sh->slice_loop_filter_across_slices_enabled_flag = s->pps->seq_loop_filter_across_slices_enabled_flag;
         }
@@ -971,7 +975,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
         RK_U32 length = 0;
         READ_UE(gb, &length);
         for (i = 0; (RK_U32)i < length; i++)
-            READ_SKIPBITS(gb, 8);  // slice_header_extension_data_byte
+            SKIP_BITS(gb, 8);  // slice_header_extension_data_byte
     }
 #endif
     // Inferred parameters
@@ -1005,6 +1009,8 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     s->slice_initialized = 1;
 
     return 0;
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 /**
@@ -1013,10 +1019,10 @@ static RK_S32 hls_slice_header(HEVCContext *s)
  */
 static RK_S32 hls_nal_unit(HEVCContext *s)
 {
-    GetBitCxt_t*gb = &s->HEVClc->gb;
+    BitReadCtx_t*gb = &s->HEVClc->gb;
     RK_S32 value = 0;
 
-    READ_BIT1(gb, &value);
+    READ_ONEBIT(gb, &value);
     if ( value != 0)
         return  MPP_ERR_STREAM;
 
@@ -1036,6 +1042,8 @@ static RK_S32 hls_nal_unit(HEVCContext *s)
               s->nal_unit_type, s->nuh_layer_id, s->temporal_id);
 
     return (s->nuh_layer_id);
+__BITREAD_ERR:
+	return  MPP_ERR_STREAM;
 }
 
 static RK_S32 hevc_frame_start(HEVCContext *s)
@@ -1068,9 +1076,9 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 {
 
     HEVCLocalContext *lc = s->HEVClc;
-    GetBitCxt_t *gb    = &lc->gb;
+    BitReadCtx_t *gb    = &lc->gb;
     RK_S32 ret;
-    mpp_Init_Bits(gb, (RK_U8*)nal, length);
+    mpp_set_bitread_ctx(gb, (RK_U8*)nal, length);
 
     ret = hls_nal_unit(s);
     if (ret < 0) {
@@ -1428,7 +1436,7 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
             goto fail;
         }
 
-        mpp_Init_Bits(&s->HEVClc->gb, (RK_U8 *)nal->data, nal->size);
+        mpp_set_bitread_ctx(&s->HEVClc->gb, (RK_U8 *)nal->data, nal->size);
 
         hls_nal_unit(s);
 
@@ -1456,13 +1464,13 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     MPP_RET ret = MPP_OK;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = h265dctx->priv_data;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     RK_U8 *buf = NULL;
     void *pos = NULL;
     size_t length = 0;
     s->eos = mpp_packet_get_eos(pkt);
-    buf = mpp_packet_get_pos(pkt);
-    length = mpp_packet_get_size(pkt);
+    buf = (RK_U8 *)mpp_packet_get_pos(pkt);
+    length = (RK_S32)mpp_packet_get_size(pkt);
     s->pts = mpp_packet_get_pts(pkt);
 
     if (h265dctx->need_split) {

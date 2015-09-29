@@ -23,9 +23,10 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_log.h"
+#include "mpp_bitread.h"
 
-//!< undefine tag
-//!< debug
+
+
 #define   __DEBUG_EN   1
 //!< return
 typedef enum {
@@ -36,7 +37,8 @@ typedef enum {
 //!< get bit value
 #define GetBitVal(val, pos)   ( ( (val)>>(pos) ) & 0x1 & (val) )
 //!< marco
-#define   ASSERT       assert
+#define   ASSERT       mpp_assert
+
 #define  FCLOSE(fp)    do{ if(fp) fclose(fp); fp = NULL; } while (0)
 
 typedef enum {
@@ -120,51 +122,50 @@ typedef struct h264d_logctx_t {
 } H264dLogCtx_t;
 
 //!< write log
-#define LogEnable(ctx, loglevel)  ( ctx && ctx->flag->debug_en && (ctx->flag->level & loglevel) )
+#define LogEnable(ctx, loglevel)  ( ctx && ((LogCtx_t*)ctx)->flag->debug_en && (((LogCtx_t*)ctx)->flag->level & loglevel) )
 
 #define LogTrace(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
-                writelog(ctx, __FILE__, __LINE__, "TRACE", __VA_ARGS__);\
+				 writelog(ctx, "TRACE", __FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 #define LogInfo(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_INFO)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "INFO", __VA_ARGS__);\
+				 writelog(ctx, "INFO",__FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 
 #define LogWarnning(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_WARNNING)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "WARNNING", __VA_ARGS__);\
+				 writelog(ctx, "WARNNING",__FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 
 #define LogError(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "ERROR", __VA_ARGS__);\
+				 writelog(ctx, "ERROR",__FILE__, __LINE__, ##__VA_ARGS__);\
                  ASSERT(0);\
                  } }while (0)
 #define LogFatal(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "FATAL", __VA_ARGS__);\
+				 writelog(ctx, "FATAL", __FILE__, __LINE__, ##__VA_ARGS__);\
                  ASSERT(0);\
                  } }while (0)
 
 #define FunctionIn(ctx)\
         do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "FunIn",  __FUNCTION__);\
+                 writelog(ctx, "FunIn",__FILE__, __LINE__, __FUNCTION__);\
                  } } while (0)
 
 #define FunctionOut(ctx)\
         do{if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
-                 writelog(ctx, __FILE__, __LINE__,  "FunOut", __FUNCTION__);\
+                 writelog(ctx, "FunOut", __FILE__, __LINE__, __FUNCTION__);\
                  } } while (0)
 
-
+//!< vaule check
 #define VAL_CHECK(ret, val)\
         do{ if(!(val)){\
                 ret = MPP_ERR_VALUE;\
                 mpp_log("ERROR: value error.\n");\
                 goto __FAILED;\
-                } } while (0)  //!< vaule check
-
+                } } while (0)  
 //!< memory malloc check
 #define MEM_CHECK(ret, val)\
         do{ if(!(val)) {\
@@ -193,7 +194,26 @@ typedef struct h264d_logctx_t {
               goto __FAILED;\
               } } while (0)
 
-#define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ## __VA_ARGS__); fflush(fp);} }
+
+#define CHECK_RANGE(bitctx, val, _min, _max)\
+	do {\
+	if ((val) < (_min) || (val) > (_max)) {\
+	mpp_log("%d[%d,%d]", val, _min, _max);\
+	goto __BITREAD_ERR;\
+	}\
+	} while (0)
+
+
+#define CHECK_ERROR(bitctx, val)\
+	do {\
+	if (!(val)) {\
+	mpp_log("value false");\
+	ASSERT(0);\
+	goto __BITREAD_ERR;\
+	}\
+	} while (0)
+
+#define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);} }
 
 extern RK_U32  g_nalu_cnt;
 extern RK_S32  g_max_bytes;
@@ -203,17 +223,21 @@ extern FILE   *g_debug_file1;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 extern const LogEnvStr_t logenv_name;
 extern const char *logctrl_name[LOG_MAX];
 extern const char *loglevel_name[LOG_LEVEL_MAX];
 
-MPP_RET get_logenv(LogEnv_t *env);
 void    print_env_help(LogEnv_t *env);
 void    show_env_flags(LogEnv_t *env);
+
+MPP_RET get_logenv(LogEnv_t *env);
 MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag);
+
 void    set_log_outpath(LogEnv_t *env);
 
-void writelog(LogCtx_t *ctx, char *fname, RK_U32 line, char *loglevel, const char *msg, ...);
+void    set_bitread_logctx(BitReadCtx_t *bitctx, LogCtx_t *p_ctx);
+void    writelog(void *ctx, ...);
 
 #ifdef __cplusplus
 }

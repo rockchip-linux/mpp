@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "h264d_log.h"
-#include "h264d_bitread.h"
 #include "h264d_sps.h"
 #include "h264d_sei.h"
 
@@ -125,15 +124,16 @@ static void interpret_mvc_scalability_info()
 static MPP_RET interpret_recovery_point_info(RK_U8 *payload, RK_S32 size, BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    set_bitread_ctx(p_bitctx, payload, size);
+    mpp_set_bitread_ctx(p_bitctx, payload, size);
 
-    READ_UE(ret, p_bitctx, &sei_msg->recovery_point.recovery_frame_cnt, "recovery_frame_cnt");
-    READ_ONEBIT(ret, p_bitctx, &sei_msg->recovery_point.exact_match_flag, "exact_match_flag");
-    READ_ONEBIT(ret, p_bitctx, &sei_msg->recovery_point.broken_link_flag, "broken_link_flag");
-    READ_BITS(ret, p_bitctx, 2, &sei_msg->recovery_point.changing_slice_group_idc, "changing_slice_group_idc");
+    READ_UE(p_bitctx, &sei_msg->recovery_point.recovery_frame_cnt, "recovery_frame_cnt");
+    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.exact_match_flag, "exact_match_flag");
+    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.broken_link_flag, "broken_link_flag");
+    READ_BITS(p_bitctx, 2, &sei_msg->recovery_point.changing_slice_group_idc, "changing_slice_group_idc");
 
     return ret = MPP_OK;
-__FAILED:
+__BITREAD_ERR:
+	ret = p_bitctx->ret;
     return ret;
 }
 
@@ -152,27 +152,28 @@ static MPP_RET interpret_mvc_scalable_nesting_info(RK_U8 *payload, RK_S32 size, 
 
     BitReadCtx_t tmp_strmdata = { 0 };
     BitReadCtx_t *p_strm = &tmp_strmdata;
-    set_bitread_ctx(p_strm, payload, size);
+    mpp_set_bitread_ctx(p_strm, payload, size);
 
-    READ_ONEBIT(ret, p_strm, &operation_point_flag, "operation_point_flag");
+    READ_ONEBIT(p_strm, &operation_point_flag, "operation_point_flag");
     if (!operation_point_flag) {
-        READ_ONEBIT(ret, p_strm, &all_view_components_in_au_flag, "all_view_components_in_au_flag");
-        READ_UE(ret, p_strm, &num_view_components_minus1, "num_view_components_minus1");
+        READ_ONEBIT(p_strm, &all_view_components_in_au_flag, "all_view_components_in_au_flag");
+        READ_UE(p_strm, &num_view_components_minus1, "num_view_components_minus1");
         for (i = 0; i <= num_view_components_minus1; i++) {
-            READ_BITS(ret, p_strm, 10, &sei_view_id, "sei_view_id");
+            READ_BITS(p_strm, 10, &sei_view_id, "sei_view_id");
         }
     } else {
-        READ_UE(ret, p_strm, &num_view_components_op_minus1, "num_view_components_op_minus1");
+        READ_UE(p_strm, &num_view_components_op_minus1, "num_view_components_op_minus1");
         for (i = 0; i <= num_view_components_op_minus1; i++) {
-            READ_BITS(ret, p_strm, 10, &sei_op_view_id, "sei_op_view_id");
+            READ_BITS(p_strm, 10, &sei_op_view_id, "sei_op_view_id");
         }
-        READ_BITS(ret, p_strm, 3, &sei_op_temporal_id, "sei_op_temporal_id");
+        READ_BITS(p_strm, 3, &sei_op_temporal_id, "sei_op_temporal_id");
     }
 
     p_bitctx->used_bits = p_strm->used_bits;
     sei_msg->mvc_scalable_nesting_flag = 1;
     return ret = MPP_OK;
-__FAILED:
+__BITREAD_ERR:
+	ret = p_bitctx->ret;
     return ret;
 }
 
@@ -182,11 +183,12 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
     BitReadCtx_t tmp_strmdata = { 0 };
 
     p_bitctx = &tmp_strmdata;
-    set_bitread_ctx(p_bitctx, payload, size);
-    READ_UE(ret, p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
+    mpp_set_bitread_ctx(p_bitctx, payload, size);
+    READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
 
     return ret = MPP_OK;
-__FAILED:
+__BITREAD_ERR:
+	ret = p_bitctx->ret;
     return ret;
 
 }
@@ -354,18 +356,18 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 
     do {
         sei_msg->type = 0;
-        READ_BITS(ret, p_bitctx, 8, &tmp_byte, "tmp_byte");
+        READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_byte");
         while (tmp_byte == 0xFF) {
             sei_msg->type += 255;
-            READ_BITS(ret, p_bitctx, 8, &tmp_byte, "tmp_type");
+            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
         }
         sei_msg->type += tmp_byte;   // this is the last byte
 
         sei_msg->payload_size = 0;
-        READ_BITS(ret, p_bitctx, 8, &tmp_byte, "tmp_type");
+        READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
         while (tmp_byte == 0xFF) {
             sei_msg->payload_size += 255;
-            READ_BITS(ret, p_bitctx, 8, &tmp_byte, "tmp_type");
+            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
         }
         sei_msg->payload_size += tmp_byte;   // this is the last byte
 
@@ -378,7 +380,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
             sei_msg->payload_size = ((p_bitctx->used_bits + 0x07) >> 3);
         }
         for (nn = 0; nn < sei_msg->payload_size; nn++) { // read bytes
-            READ_BITS(ret, p_bitctx, 8, &tmp_byte, "tmp_byte");
+            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_byte");
         }
 
     } while ((p_bitctx->data_[0] != 0x80) && (p_bitctx->bytes_left_ > 1));    // more_rbsp_data()  msg[offset] != 0x80
@@ -386,7 +388,8 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
     FunctionOut(currSlice->logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
-
+__BITREAD_ERR:
+	ret = p_bitctx->ret;
 __FAILED:
     ASSERT(0);
     return ret;
