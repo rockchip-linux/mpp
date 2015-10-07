@@ -80,7 +80,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
         for (RK_U32 i = 0; i < TASK_BUTT; i++)
             INIT_LIST_HEAD(&p->list[i]);
 
-        for (RK_U32 i = 0; i < count; i++) {
+        for (RK_S32 i = 0; i < count; i++) {
             INIT_LIST_HEAD(&tasks[i].list);
             tasks[i].index  = i;
             tasks[i].group  = p;
