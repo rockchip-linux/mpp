@@ -197,7 +197,6 @@ MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
 MPP_RET     mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame);
 MppFrame    mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index);
 
-MPP_RET     mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index);
 MPP_RET     mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame);
 
 
@@ -234,8 +233,8 @@ typedef enum SlotQueueType_e {
     QUEUE_BUTT,
 } SlotQueueType;
 
-MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, SlotQueueType type, RK_U32 index);
-MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, SlotQueueType type, RK_U32 *index);
+MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_U32  index, SlotQueueType type);
+MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType type);
 
 typedef enum SlotPropType_e {
     SLOT_EOS,

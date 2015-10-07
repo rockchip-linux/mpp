@@ -56,6 +56,8 @@ typedef struct MppBufSlotsImpl_t MppBufSlotsImpl;
 typedef enum MppBufSlotOps_e {
     // status opertaion
     SLOT_INIT,
+    SLOT_SET_ON_USE,
+    SLOT_CLR_ON_USE,
     SLOT_SET_NOT_READY,
     SLOT_CLR_NOT_READY,
     SLOT_SET_CODEC_READY,
@@ -82,6 +84,8 @@ typedef enum MppBufSlotOps_e {
 
 static const char op_string[][16] = {
     "init           ",
+    "set on use     ",
+    "clr on use     ",
     "set not ready  ",
     "set ready      ",
     "set codec ready",
@@ -511,25 +515,6 @@ MPP_RET mpp_buf_slot_clr_dpb_ref(MppBufSlots slots, RK_U32 index)
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_set_display(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, SLOT_ENQUEUE);
-
-    // add slot to display list
-    list_del_init(&slot->list);
-    list_add_tail(&slot->list, &impl->queue[QUEUE_DISPLAY]);
-    return MPP_OK;
-}
-
 MPP_RET mpp_buf_slot_set_hw_use(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
@@ -739,9 +724,10 @@ MPP_RET mpp_buf_slot_get_idle(MppBufSlots slots, RK_U32 *index)
 }
 
 static const MppBufSlotOps set_flag_op[SLOT_USAGE_BUTT] = {
+    SLOT_SET_CODEC_READY,
+    SLOT_SET_CODEC_USE,
     SLOT_SET_HAL_INPUT,
     SLOT_SET_HAL_OUTPUT,
-    SLOT_SET_CODEC_USE,
 };
 
 MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type)
@@ -759,9 +745,10 @@ MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType typ
 }
 
 static const MppBufSlotOps clr_flag_op[SLOT_USAGE_BUTT] = {
+    SLOT_CLR_CODEC_READY,
+    SLOT_CLR_CODEC_USE,
     SLOT_CLR_HAL_INPUT,
     SLOT_CLR_HAL_OUTPUT,
-    SLOT_CLR_CODEC_USE,
 };
 
 MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type)
@@ -778,7 +765,7 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType typ
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, SlotQueueType type, RK_U32 index)
+MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_U32 index, SlotQueueType type)
 {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
@@ -797,7 +784,7 @@ MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, SlotQueueType type, RK_U32 index
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, SlotQueueType type, RK_U32 *index)
+MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType type)
 {
     if (NULL == slots || NULL == index) {
         mpp_err_f("found NULL input\n");
