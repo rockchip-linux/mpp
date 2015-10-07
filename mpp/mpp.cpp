@@ -183,14 +183,14 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     }
 
     if (mFrames->list_size()) {
-        mFrames->del_at_tail(&first, sizeof(frame));
+        mFrames->del_at_head(&first, sizeof(frame));
         mFrameGetCount++;
         mThreadHal->signal();
 
         MppFrame prev = first;
         MppFrame next = NULL;
         while (mFrames->list_size()) {
-            mFrames->del_at_tail(&next, sizeof(frame));
+            mFrames->del_at_head(&next, sizeof(frame));
             mFrameGetCount++;
             mThreadHal->signal();
             mpp_frame_set_next(prev, next);
@@ -217,7 +217,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 {
     Mutex::Autolock autoLock(mPackets->mutex());
     if (mPackets->list_size()) {
-        mPackets->del_at_tail(packet, sizeof(packet));
+        mPackets->del_at_head(packet, sizeof(packet));
         mPacketGetCount++;
     }
     return MPP_OK;
