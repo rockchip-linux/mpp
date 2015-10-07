@@ -170,8 +170,6 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  *      - when hal finished on hardware decoding it MUST be called once for each used slot
  */
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
-MPP_RET mpp_buf_slot_set_dpb_ref(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_clr_dpb_ref(MppBufSlots slots, RK_U32 index);
 
 MPP_RET mpp_buf_slot_set_hw_use(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_clr_hw_use(MppBufSlots slots, RK_U32 index);

@@ -159,7 +159,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         if (index >= 0) {
             task->refer[i] = index;
             mpp_buf_slot_inc_hw_ref(slots, index);
-            mpp_buf_slot_set_dpb_ref(slots, index);
+            mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_USE);
         }
     }
 
@@ -171,16 +171,16 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     // add new reference buffer
     if (mpp_packet_get_eos(pkt)) {
         for (i = 0; i < DUMMY_DEC_REF_COUNT; i++) {
-            mpp_buf_slot_clr_dpb_ref(slots, p->slot_index[i]);
+            mpp_buf_slot_clr_flag(slots, p->slot_index[i], SLOT_CODEC_USE);
             p->slot_index[i] = -1;
         }
     } else {
         // clear unreference buffer
         if (p->slot_index[frame_count] >= 0)
-            mpp_buf_slot_clr_dpb_ref(slots, p->slot_index[frame_count]);
+            mpp_buf_slot_clr_flag(slots, p->slot_index[frame_count], SLOT_CODEC_USE);
 
         p->slot_index[frame_count] = output;
-        mpp_buf_slot_set_dpb_ref(slots, output);
+        mpp_buf_slot_set_flag(slots, output, SLOT_CODEC_USE);
     }
 
     frame_count++;

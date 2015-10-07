@@ -485,36 +485,6 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     return MPP_NOK;
 }
 
-MPP_RET mpp_buf_slot_set_dpb_ref(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    slot_ops_with_log(impl->logs, &impl->slots[index], SLOT_SET_CODEC_USE);
-    return MPP_OK;
-}
-
-MPP_RET mpp_buf_slot_clr_dpb_ref(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, SLOT_CLR_CODEC_USE);
-    check_entry_unused(impl, slot);
-    return MPP_OK;
-}
-
 MPP_RET mpp_buf_slot_set_hw_use(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
@@ -761,7 +731,9 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType typ
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
-    slot_ops_with_log(impl->logs, &impl->slots[index], clr_flag_op[type]);
+    MppBufSlotEntry *slot = &impl->slots[index];
+    slot_ops_with_log(impl->logs, slot, clr_flag_op[type]);
+    check_entry_unused(impl, slot);
     return MPP_OK;
 }
 

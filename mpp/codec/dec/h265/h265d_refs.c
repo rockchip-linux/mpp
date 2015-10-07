@@ -46,7 +46,7 @@ void mpp_hevc_unref_frame(HEVCContext *s, HEVCFrame *frame, int flags)
         frame->collocated_ref = NULL;
         if (frame->slot_index <= 0x7f) {
             h265d_dbg(H265D_DBG_REF, "poc %d clr ref index %d", frame->poc, frame->slot_index);
-            mpp_buf_slot_clr_dpb_ref(s->slots, frame->slot_index);
+            mpp_buf_slot_clr_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
         }
         h265d_dbg(H265D_DBG_REF, "unref_frame poc %d frame->slot_index %d \n", frame->poc, frame->slot_index);
         frame->poc = INT_MAX;
@@ -155,7 +155,7 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
     h265d_dbg(H265D_DBG_REF, "alloc frame poc %d slot_index %d", poc, ref->slot_index);
     ref->flags    = HEVC_FRAME_FLAG_OUTPUT | HEVC_FRAME_FLAG_SHORT_REF;
 
-    mpp_buf_slot_set_dpb_ref(s->slots, ref->slot_index);
+    mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     mpp_buf_slot_set_hw_use(s->slots, ref->slot_index);
     mpp_buf_slot_set_frame(s->slots, ref->slot_index, ref->frame);
     s->task->output = ref->slot_index;
@@ -337,7 +337,7 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
     list->nb_refs++;
     if (ref_flag) {
         h265d_dbg(H265D_DBG_REF, "set ref poc = %d ref->slot_index %d", ref->poc, ref->slot_index);
-        mpp_buf_slot_set_dpb_ref(s->slots, ref->slot_index);
+        mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     }
     mark_ref(ref, ref_flag);
 
