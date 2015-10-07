@@ -139,7 +139,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     mpp_frame_init(&frame);
     mpp_frame_set_pts(frame, mpp_packet_get_pts(pkt));
     mpp_buf_slot_get_unused(slots, &output);
-    mpp_buf_slot_set_hw_use(slots, output);
+    mpp_buf_slot_set_flag(slots, output, SLOT_HAL_OUTPUT);
     mpp_buf_slot_set_frame(slots, output, frame);
     mpp_frame_deinit(&frame);
     mpp_assert(NULL == frame);
