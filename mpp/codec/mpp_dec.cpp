@@ -168,8 +168,7 @@ void *mpp_dec_parser_thread(void *data)
          *       - need buffer in different side, need to send a info change
          *         frame to hal loop.
          */
-        RK_U32 output;
-        mpp_buf_slot_get_hw_use(frame_slots, &output);
+        RK_S32 output = task_dec->output;
         if (NULL == mpp_buf_slot_get_buffer(frame_slots, output)) {
             MppBuffer buffer = NULL;
             RK_U32 size = mpp_buf_slot_get_size(frame_slots);
@@ -262,7 +261,7 @@ void *mpp_dec_hal_thread(void *data)
                  * 3. add frame to output list
                  * repeat 2 and 3 until not frame can be output
                  */
-                mpp_buf_slot_clr_hw_use(frame_slots, task_dec->output);
+                mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
                 for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                     RK_S32 index = task_dec->refer[i];
                     if (index >= 0)

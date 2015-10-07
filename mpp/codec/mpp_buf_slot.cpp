@@ -158,9 +158,6 @@ struct MppBufSlotsImpl_t {
     RK_U32              new_count;
     RK_U32              new_size;
 
-    // to record current output slot index
-    RK_S32              hw_use;
-
     // list for display
     struct list_head    queue[QUEUE_BUTT];
 
@@ -485,52 +482,6 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     return MPP_NOK;
 }
 
-MPP_RET mpp_buf_slot_set_hw_use(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, SLOT_SET_HAL_OUTPUT);
-    impl->hw_use = index;
-    return MPP_OK;
-}
-
-MPP_RET mpp_buf_slot_clr_hw_use(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, SLOT_CLR_HAL_OUTPUT);
-    slot_ops_with_log(impl->logs, slot, SLOT_CLR_NOT_READY);
-    impl->decode_count++;
-    check_entry_unused(impl, slot);
-    return MPP_OK;
-}
-
-MPP_RET mpp_buf_slot_get_hw_use(MppBufSlots slots, RK_U32 *index)
-{
-    if (NULL == slots || NULL == index) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    *index = impl->hw_use;
-    return MPP_OK;
-}
-
 MPP_RET mpp_buf_slot_inc_hw_ref(MppBufSlots slots, RK_U32 index)
 {
     if (NULL == slots) {
@@ -733,6 +684,10 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType typ
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl->logs, slot, clr_flag_op[type]);
+
+    if (type == SLOT_HAL_OUTPUT)
+        impl->decode_count++;
+
     check_entry_unused(impl, slot);
     return MPP_OK;
 }

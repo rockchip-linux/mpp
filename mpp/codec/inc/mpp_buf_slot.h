@@ -171,10 +171,6 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  */
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
 
-MPP_RET mpp_buf_slot_set_hw_use(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_clr_hw_use(MppBufSlots slots, RK_U32 index);
-MPP_RET mpp_buf_slot_get_hw_use(MppBufSlots slots, RK_U32 *index);
-
 MPP_RET mpp_buf_slot_inc_hw_ref(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_dec_hw_ref(MppBufSlots slots, RK_U32 index);
 

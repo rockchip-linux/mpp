@@ -156,7 +156,7 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
     ref->flags    = HEVC_FRAME_FLAG_OUTPUT | HEVC_FRAME_FLAG_SHORT_REF;
 
     mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
-    mpp_buf_slot_set_hw_use(s->slots, ref->slot_index);
+    mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_HAL_OUTPUT);
     mpp_buf_slot_set_frame(s->slots, ref->slot_index, ref->frame);
     s->task->output = ref->slot_index;
 
