@@ -51,6 +51,11 @@ struct MppFrameImpl_t {
     RK_S64  pts;
     RK_S64  dts;
 
+    /*
+     * eos - end of stream
+     */
+    RK_U32  eos;
+
     MppFrameColorRange color_range;
     MppFrameColorPrimaries color_primaries;
     MppFrameColorTransferCharacteristic color_trc;
