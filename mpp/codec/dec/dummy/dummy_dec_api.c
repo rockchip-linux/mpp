@@ -158,7 +158,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         RK_S32 index = p->slot_index[i];
         if (index >= 0) {
             task->refer[i] = index;
-            mpp_buf_slot_inc_hw_ref(slots, index);
+            mpp_buf_slot_set_flag(slots, index, SLOT_HAL_INPUT);
             mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_USE);
         }
     }

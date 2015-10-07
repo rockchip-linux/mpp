@@ -250,7 +250,7 @@ static RK_S32 poll_task(void *hal, MppBufSlots slots, HalDecTask *dec)
         RK_S32 id;
         id = dec->refer[i];
         if (id >= 0)
-            mpp_buf_slot_dec_hw_ref(slots, id);
+            mpp_buf_slot_clr_flag(slots, id, SLOT_HAL_OUTPUT);
     }
 
     return MPP_OK;

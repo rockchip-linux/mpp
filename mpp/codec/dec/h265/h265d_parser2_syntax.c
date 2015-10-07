@@ -171,7 +171,7 @@ static void fill_picture_parameters(const HEVCContext *h,
         if (frame) {
             fill_picture_entry(&pp->RefPicList[i], frame->slot_index, !!(frame->flags & HEVC_FRAME_FLAG_LONG_REF));
             pp->PicOrderCntValList[i] = frame->poc;
-            mpp_buf_slot_inc_hw_ref(h->slots, frame->slot_index);
+            mpp_buf_slot_set_flag(h->slots, frame->slot_index, SLOT_HAL_INPUT);
             h->task->refer[i] = frame->slot_index;
             //mpp_err("ref[%d] = %d",i,frame->slot_index);
         } else {
