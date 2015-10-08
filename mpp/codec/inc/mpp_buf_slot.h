@@ -183,8 +183,6 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
  *        NOTE: get display will generate a new MppFrame for external mpp_frame_deinit call
  *              So that external mpp_frame_deinit will not release the MppFrame used in buf_slot
  */
-MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
-MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
 MPP_RET mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame);
 MPP_RET mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index, MppFrame *frame);
 
@@ -193,9 +191,6 @@ MPP_RET mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index, MppFrame *frame)
  * buffer slot will be used both for frame and packet
  * when buffer slot is used for packet management only inc_hw_ref and dec_hw_ref is used
  */
-
-MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
-MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
 
 
 MPP_RET mpp_buf_slot_get_idle(MppBufSlots slots, RK_U32 *index);
