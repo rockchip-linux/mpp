@@ -413,10 +413,12 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             }
 
             do {
-                ret = mpp_buf_slot_get_display(slots, &frame);
+                RK_U32 index;
+                ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
                 if (ret == MPP_OK) {
                     mpp_log("get_display for ");
                 }
+                mpp_buf_slot_get_frame(slots, index, &frame);
                 if (frame) {
 #if 1//def DUMP
                     RK_U32 stride_w, stride_h;
@@ -432,6 +434,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     mpp_frame_deinit(&frame);
                     frame = NULL;
                 }
+                mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
             } while (ret == MPP_OK);
             mpp_packet_deinit(&rkpkt);
         } while ( nal_len );
@@ -443,13 +446,16 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     }
     h265d_flush((void*)mpp_codex_ctx);
     do {
-        ret = mpp_buf_slot_get_display(slots, &frame);
+        RK_U32 index;
+        ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
         if (ret == MPP_OK) {
             mpp_log("get_display for ");
         }
+        mpp_buf_slot_get_frame(slots, index, &frame);
         if (frame) {
             mpp_frame_deinit(&frame);
         }
+        mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
     } while (ret == MPP_OK);
 
     if (mpp_codex_ctx != NULL) {
