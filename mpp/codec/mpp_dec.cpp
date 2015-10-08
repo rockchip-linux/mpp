@@ -169,15 +169,16 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
         RK_S32 output = task_dec->output;
-        if (NULL == mpp_buf_slot_get_buffer(frame_slots, output)) {
-            MppBuffer buffer = NULL;
+        MppBuffer buffer = NULL;
+        mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &buffer);
+        if (NULL == buffer) {
             RK_U32 size = mpp_buf_slot_get_size(frame_slots);
             mpp_buffer_get(mpp->mFrameGroup, &buffer, size);
             if (buffer)
-                mpp_buf_slot_set_buffer(frame_slots, output, buffer);
+                mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, buffer);
         }
 
-        wait_on_buffer = (NULL == mpp_buf_slot_get_buffer(frame_slots, output));
+        wait_on_buffer = (NULL == buffer);
         if (wait_on_buffer)
             continue;
 
@@ -237,48 +238,45 @@ void *mpp_dec_hal_thread(void *data)
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (NULL == task)
+        if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task))
             hal->wait();
         hal->unlock();
 
-        // get hw task first
-        if (NULL == task) {
-            if (MPP_OK == hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
-                mpp->mTaskGetCount++;
+        if (task) {
+            mpp->mTaskGetCount++;
 
-                hal_task_hnd_get_info(task, &task_info);
-                mpp_hal_hw_wait(dec->hal, &task_info);
+            hal_task_hnd_get_info(task, &task_info);
+            mpp_hal_hw_wait(dec->hal, &task_info);
 
-                // TODO: may have risk here
-                hal_task_hnd_set_status(task, TASK_PROC_DONE);
-                task = NULL;
-                mpp->mThreadCodec->signal();
+            // TODO: may have risk here
+            hal_task_hnd_set_status(task, TASK_PROC_DONE);
+            task = NULL;
+            mpp->mThreadCodec->signal();
 
-                /*
-                 * when hardware decoding is done:
-                 * 1. clear decoding flag (mark buffer is ready)
-                 * 2. use get_display to get a new frame with buffer
-                 * 3. add frame to output list
-                 * repeat 2 and 3 until not frame can be output
-                 */
-                mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
-                for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
-                    RK_S32 index = task_dec->refer[i];
-                    if (index >= 0)
-                        mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
-                }
+            /*
+             * when hardware decoding is done:
+             * 1. clear decoding flag (mark buffer is ready)
+             * 2. use get_display to get a new frame with buffer
+             * 3. add frame to output list
+             * repeat 2 and 3 until not frame can be output
+             */
+            mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+            for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+                RK_S32 index = task_dec->refer[i];
+                if (index >= 0)
+                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
+            }
 
-                RK_U32 index;
-                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-                    MppFrame frame;
-                    mpp_buf_slot_get_frame(frame_slots, index, &frame);
-                    frames->lock();
-                    frames->add_at_tail(&frame, sizeof(frame));
-                    mpp->mFramePutCount++;
-                    frames->signal();
-                    frames->unlock();
-                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-                }
+            RK_U32 index;
+            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+                MppFrame frame;
+                mpp_buf_slot_get_frame(frame_slots, index, &frame);
+                frames->lock();
+                frames->add_at_tail(&frame, sizeof(frame));
+                mpp->mFramePutCount++;
+                frames->signal();
+                frames->unlock();
+                mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
         }
     }

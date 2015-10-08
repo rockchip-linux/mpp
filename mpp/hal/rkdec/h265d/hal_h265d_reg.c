@@ -1334,7 +1334,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         = virstrid_yuv >> 4;
 
 #ifdef ANDROID
-    framebuf = mpp_buf_slot_get_buffer(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits);
+    mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
     hw_regs->sw_decout_base  = mpp_buffer_get_fd(framebuf); //just index need map
 #endif
 
@@ -1369,7 +1369,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
             hw_regs->sw_refer_poc[i] = dxva_cxt->pp.PicOrderCntValList[i];
-            framebuf = mpp_buf_slot_get_buffer(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits);
+            mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits, SLOT_BUFFER, &framebuf);
             if (framebuf != NULL) {
                 hw_regs->sw_refer_base[i] = mpp_buffer_get_fd(framebuf);
             }

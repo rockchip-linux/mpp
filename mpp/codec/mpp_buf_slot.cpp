@@ -223,9 +223,14 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     case SLOT_INIT : {
         status.val = 0;
     } break;
+    case SLOT_SET_ON_USE : {
+        status.on_used = 1;
+    } break;
+    case SLOT_CLR_ON_USE : {
+        status.on_used = 0;
+    } break;
     case SLOT_SET_NOT_READY : {
         status.not_ready = 1;
-        status.on_used = 1;
     } break;
     case SLOT_CLR_NOT_READY : {
         status.not_ready = 0;
@@ -270,18 +275,21 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     } break;
     case SLOT_CLR_EOS : {
         status.eos = 0;
+        slot->eos = 0;
     } break;
     case SLOT_SET_FRAME : {
         status.has_frame = 1;
     } break;
     case SLOT_CLR_FRAME : {
         status.has_frame = 0;
+        slot->frame = NULL;
     } break;
     case SLOT_SET_BUFFER : {
         status.has_buffer = 1;
     } break;
     case SLOT_CLR_BUFFER : {
         status.has_buffer = 0;
+        slot->buffer = NULL;
     } break;
     default : {
         mpp_err("found invalid operation code %d\n", op);
@@ -358,7 +366,7 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
             mpp_buffer_put(entry->buffer);
 
         slot_ops_with_log(impl->logs, entry, SLOT_CLR_BUFFER);
-        entry->status.on_used = 0;
+        slot_ops_with_log(impl->logs, entry, SLOT_CLR_ON_USE);
     }
 }
 
@@ -374,7 +382,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         return MPP_NOK;
     }
 
-    mpp_env_get_u32("buf_slot_debug", &buf_slot_debug, 0);
+    mpp_env_get_u32("buf_slot_debug", &buf_slot_debug, BUF_SLOT_DBG_OPS_HISTORY);
 
     impl->lock = new Mutex();
     for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
@@ -516,6 +524,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     for (i = 0; i < impl->count; i++, slot++) {
         if (!slot->status.on_used) {
             *index = i;
+            slot_ops_with_log(impl->logs, slot, SLOT_SET_ON_USE);
             slot_ops_with_log(impl->logs, slot, SLOT_SET_NOT_READY);
             return MPP_OK;
         }
@@ -526,45 +535,6 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index)
     dump_slots(impl);
     slot_assert(impl, 0);
     return MPP_NOK;
-}
-
-MPP_RET mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer)
-{
-    if (NULL == slots || NULL == buffer) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    if (slot->buffer) {
-        // NOTE: reset buffer only on stream buffer slot
-        mpp_assert(NULL == slot->frame);
-        mpp_buffer_put(slot->buffer);
-    }
-    slot->buffer = buffer;
-    if (slot->frame)
-        mpp_frame_set_buffer(slot->frame, buffer);
-
-    mpp_buffer_inc_ref(buffer);
-    slot_ops_with_log(impl->logs, slot, SLOT_SET_BUFFER);
-    return MPP_OK;
-}
-
-MppBuffer mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index)
-{
-    if (NULL == slots) {
-        mpp_err_f("found NULL input\n");
-        return NULL;
-    }
-
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, index < impl->count);
-    MppBufSlotEntry *slot = &impl->slots[index];
-    return slot->buffer;
 }
 
 MPP_RET mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame)
@@ -624,6 +594,7 @@ MPP_RET mpp_buf_slot_get_idle(MppBufSlots slots, RK_U32 *index)
     for (i = 0; i < impl->count; i++, slot++) {
         if (!slot->status.on_used) {
             *index = i;
+            slot_ops_with_log(impl->logs, slot, SLOT_SET_ON_USE);
             slot_ops_with_log(impl->logs, slot, SLOT_SET_NOT_READY);
             return MPP_OK;
         }
@@ -730,13 +701,29 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_U32 index, SlotPropType type
 
     switch (type) {
     case SLOT_EOS: {
-        slot->eos = *(RK_U32*)val;
+        RK_U32 eos = *(RK_U32*)val;
+        slot->eos = eos;
     } break;
     case SLOT_FRAME: {
-        slot->frame = val;
+        MppFrame frame = val;
+        slot_assert(impl, slot->status.not_ready);
+        if (NULL == slot->frame)
+            mpp_frame_init(&slot->frame);
+
+        mpp_frame_copy(slot->frame, frame);
     } break;
     case SLOT_BUFFER: {
-        slot->frame = val;
+        MppBuffer buffer = val;
+        if (slot->buffer) {
+            // NOTE: reset buffer only on stream buffer slot
+            slot_assert(impl, NULL == slot->frame);
+            mpp_buffer_put(slot->buffer);
+        }
+        slot->buffer = buffer;
+        if (slot->frame)
+            mpp_frame_set_buffer(slot->frame, buffer);
+
+        mpp_buffer_inc_ref(buffer);
     } break;
     default : {
     } break;
@@ -756,17 +743,24 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_U32 index, SlotPropType type
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl->logs, slot, clr_val_op[type]);
 
     switch (type) {
     case SLOT_EOS: {
         *(RK_U32*)val = slot->eos;
     } break;
     case SLOT_FRAME: {
-        *(void **)val = slot->frame;
+        MppFrame *frame = (MppFrame *)val;
+        mpp_assert(slot->status.has_frame);
+        if (slot->status.has_frame) {
+            mpp_frame_init(frame);
+            if (*frame)
+                mpp_frame_copy(*frame, slot->frame);
+        } else
+            *frame = NULL;
     } break;
     case SLOT_BUFFER: {
-        *(void **)val = slot->buffer;
+        MppBuffer *buffer = (MppBuffer *)val;
+        *buffer = (slot->status.has_buffer) ? (slot->buffer) : (NULL);
     } break;
     default : {
     } break;

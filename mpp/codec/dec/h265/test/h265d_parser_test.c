@@ -385,13 +385,14 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 syn.dec = *cutask;
                 index = cutask->output;
 
-                if (NULL == mpp_buf_slot_get_buffer(slots, index)) {
-                    MppBuffer buffer = NULL;
+                MppBuffer buffer = NULL;
+                mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
+                if (NULL == buffer) {
                     RK_U32 size = mpp_buf_slot_get_size(slots);
                     mpp_err("size = %d", size);
                     mpp_buffer_get(mFrameGroup, &buffer, size);
                     if (buffer)
-                        mpp_buf_slot_set_buffer(slots, index, buffer);
+                        mpp_buf_slot_set_prop(slots, index, SLOT_BUFFER, buffer);
                 }
 
                 hal_h265d_gen_regs(hal, &syn);
