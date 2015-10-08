@@ -128,6 +128,18 @@ static const MppBufSlotOps clr_flag_op[SLOT_USAGE_BUTT] = {
     SLOT_CLR_QUEUE_USE,
 };
 
+static const MppBufSlotOps set_val_op[SLOT_PROP_BUTT] = {
+    SLOT_SET_EOS,
+    SLOT_SET_FRAME,
+    SLOT_SET_BUFFER,
+};
+
+static const MppBufSlotOps clr_val_op[SLOT_PROP_BUTT] = {
+    SLOT_CLR_EOS,
+    SLOT_CLR_FRAME,
+    SLOT_CLR_BUFFER,
+};
+
 typedef union SlotStatus_u {
     RK_U32 val;
     struct {
@@ -159,8 +171,9 @@ struct MppBufSlotEntry_t {
     SlotStatus          status;
     RK_U32              index;
 
-    MppBuffer           buffer;
+    RK_U32              eos;
     MppFrame            frame;
+    MppBuffer           buffer;
 };
 
 struct MppBufSlotsImpl_t {
@@ -171,7 +184,6 @@ struct MppBufSlotsImpl_t {
     // status tracing
     RK_U32              decode_count;
     RK_U32              display_count;
-    RK_U32              unrefer_count;
 
     // if slot changed, all will be hold until all slot is unused
     RK_U32              info_changed;
@@ -252,6 +264,12 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     case SLOT_CLR_QUEUE_USE :
     case SLOT_DEQUEUE : {
         status.queue_use--;
+    } break;
+    case SLOT_SET_EOS : {
+        status.eos = 1;
+    } break;
+    case SLOT_CLR_EOS : {
+        status.eos = 0;
     } break;
     case SLOT_SET_FRAME : {
         status.has_frame = 1;
@@ -581,6 +599,7 @@ MPP_RET mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index, MppFrame *frame)
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
 
+    mpp_assert(slot->status.has_frame);
     if (slot->status.has_frame) {
         mpp_frame_init(frame);
         if (*frame)
@@ -696,4 +715,63 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType typ
     return MPP_OK;
 }
 
+MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_U32 index, SlotPropType type, void *val)
+{
+    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+        mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    slot_assert(impl, index < impl->count);
+    MppBufSlotEntry *slot = &impl->slots[index];
+    slot_ops_with_log(impl->logs, slot, set_val_op[type]);
+
+    switch (type) {
+    case SLOT_EOS: {
+        slot->eos = *(RK_U32*)val;
+    } break;
+    case SLOT_FRAME: {
+        slot->frame = val;
+    } break;
+    case SLOT_BUFFER: {
+        slot->frame = val;
+    } break;
+    default : {
+    } break;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_U32 index, SlotPropType type, void *val)
+{
+    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+        mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    slot_assert(impl, index < impl->count);
+    MppBufSlotEntry *slot = &impl->slots[index];
+    slot_ops_with_log(impl->logs, slot, clr_val_op[type]);
+
+    switch (type) {
+    case SLOT_EOS: {
+        *(RK_U32*)val = slot->eos;
+    } break;
+    case SLOT_FRAME: {
+        *(void **)val = slot->frame;
+    } break;
+    case SLOT_BUFFER: {
+        *(void **)val = slot->buffer;
+    } break;
+    default : {
+    } break;
+    }
+
+    return MPP_OK;
+}
 
