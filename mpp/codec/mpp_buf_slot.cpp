@@ -68,6 +68,8 @@ typedef enum MppBufSlotOps_e {
     SLOT_CLR_HAL_INPUT,
     SLOT_SET_HAL_OUTPUT,
     SLOT_CLR_HAL_OUTPUT,
+    SLOT_SET_QUEUE_USE,
+    SLOT_CLR_QUEUE_USE,
 
     // queue operation
     SLOT_ENQUEUE,
@@ -96,6 +98,8 @@ static const char op_string[][16] = {
     "clr hal input  ",
     "set hal output ",
     "clr hal output ",
+    "set queue use  ",
+    "clr queue use  ",
 
     "enqueue display",
     "dequeue display",
@@ -108,6 +112,22 @@ static const char op_string[][16] = {
     "clr buffer     ",
 };
 
+static const MppBufSlotOps set_flag_op[SLOT_USAGE_BUTT] = {
+    SLOT_SET_CODEC_READY,
+    SLOT_SET_CODEC_USE,
+    SLOT_SET_HAL_INPUT,
+    SLOT_SET_HAL_OUTPUT,
+    SLOT_SET_QUEUE_USE,
+};
+
+static const MppBufSlotOps clr_flag_op[SLOT_USAGE_BUTT] = {
+    SLOT_CLR_CODEC_READY,
+    SLOT_CLR_CODEC_USE,
+    SLOT_CLR_HAL_INPUT,
+    SLOT_CLR_HAL_OUTPUT,
+    SLOT_CLR_QUEUE_USE,
+};
+
 typedef union SlotStatus_u {
     RK_U32 val;
     struct {
@@ -117,7 +137,7 @@ typedef union SlotStatus_u {
         RK_U32  codec_use   : 1;        // buffer slot is used by codec ( dpb reference )
         RK_U32  hal_output  : 1;        // buffer slot is set to hw output will ready when hw done
         RK_U32  hal_use     : 8;        // buffer slot is used by hardware
-        RK_U32  queue_use   : 4;        // buffer slot is used in different queue
+        RK_U32  queue_use   : 5;        // buffer slot is used in different queue
 
         // value flags
         RK_U32  eos         : 1;        // buffer slot is last buffer slot from codec
@@ -129,15 +149,15 @@ typedef union SlotStatus_u {
 typedef struct MppBufSlotLog_t {
     RK_U32              index;
     MppBufSlotOps       ops;
-    RK_U32              status_in;
-    RK_U32              status_out;
+    SlotStatus          status_in;
+    SlotStatus          status_out;
 } MppBufSlotLog;
 
 struct MppBufSlotEntry_t {
     MppBufSlotsImpl     *slots;
     struct list_head    list;
     SlotStatus          status;
-    RK_S32              index;
+    RK_U32              index;
 
     MppBuffer           buffer;
     MppFrame            frame;
@@ -167,7 +187,7 @@ struct MppBufSlotsImpl_t {
     MppBufSlotEntry     *slots;
 };
 
-static void add_slot_log(mpp_list *logs, RK_U32 index, MppBufSlotOps op, RK_U32 before, RK_U32 after)
+static void add_slot_log(mpp_list *logs, RK_U32 index, MppBufSlotOps op, SlotStatus before, SlotStatus after)
 {
     if (logs) {
         MppBufSlotLog log = {
@@ -198,17 +218,23 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     case SLOT_CLR_NOT_READY : {
         status.not_ready = 0;
     } break;
+    case SLOT_SET_CODEC_READY : {
+        status.not_ready = 0;
+    } break;
+    case SLOT_CLR_CODEC_READY : {
+        status.not_ready = 1;
+    } break;
     case SLOT_SET_CODEC_USE : {
         status.codec_use = 1;
     } break;
     case SLOT_CLR_CODEC_USE : {
         status.codec_use = 0;
     } break;
-    case SLOT_ENQUEUE : {
-        status.queue_use++;
+    case SLOT_SET_HAL_INPUT : {
+        status.hal_use++;
     } break;
-    case SLOT_DEQUEUE : {
-        status.queue_use--;
+    case SLOT_CLR_HAL_INPUT : {
+        status.hal_use--;
     } break;
     case SLOT_SET_HAL_OUTPUT : {
         status.hal_output = 1;
@@ -219,11 +245,13 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
         // NOTE: set output index ready here
         status.not_ready  = 0;
     } break;
-    case SLOT_SET_HAL_INPUT : {
-        status.hal_use++;
+    case SLOT_SET_QUEUE_USE :
+    case SLOT_ENQUEUE : {
+        status.queue_use++;
     } break;
-    case SLOT_CLR_HAL_INPUT : {
-        status.hal_use--;
+    case SLOT_CLR_QUEUE_USE :
+    case SLOT_DEQUEUE : {
+        status.queue_use--;
     } break;
     case SLOT_SET_FRAME : {
         status.has_frame = 1;
@@ -244,7 +272,7 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     slot->status = status;
     buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "index %2d op: %s status in %08x out %08x",
                  index, op_string[op], before.val, status.val);
-    add_slot_log(logs, index, op, before.val, status.val);
+    add_slot_log(logs, index, op, before, status);
 }
 
 static void dump_slots(MppBufSlotsImpl *impl)
@@ -270,7 +298,7 @@ static void dump_slots(MppBufSlotsImpl *impl)
             MppBufSlotLog log;
             logs->del_at_head(&log, sizeof(log));
             mpp_log("index %2d op: %s status in %08x out %08x",
-                    log.index, op_string[log.ops], log.status_in, log.status_out);
+                    log.index, op_string[log.ops], log.status_in.val, log.status_out.val);
         }
     }
 
@@ -541,49 +569,25 @@ MPP_RET mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame)
     return MPP_OK;
 }
 
-MppFrame mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index)
+MPP_RET mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index, MppFrame *frame)
 {
-    if (NULL == slots) {
+    if (NULL == slots || NULL == frame) {
         mpp_err_f("found NULL input\n");
-        return NULL;
+        return MPP_NOK;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
     slot_assert(impl, index < impl->count);
     MppBufSlotEntry *slot = &impl->slots[index];
-    return slot->frame;
-}
 
-MPP_RET mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame)
-{
-    if (NULL == slots || NULL == frame) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
+    if (slot->status.has_frame) {
+        mpp_frame_init(frame);
+        if (*frame)
+            mpp_frame_copy(*frame, slot->frame);
+    } else
+        *frame = NULL;
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
-    if (list_empty(&impl->queue[QUEUE_DISPLAY]))
-        return MPP_NOK;
-
-    MppBufSlotEntry *slot = list_entry(impl->queue[QUEUE_DISPLAY].next, MppBufSlotEntry, list);
-    if (slot->status.not_ready)
-        return MPP_NOK;
-
-    // make sure that this slot is just the next display slot
-    list_del_init(&slot->list);
-
-    MppFrame display;
-    mpp_frame_init(&display);
-    mpp_frame_copy(display, slot->frame);
-    *frame = display;
-
-    RK_U32 index = slot->index;
-    slot_assert(impl, index < impl->count);
-    slot_ops_with_log(impl->logs, slot, SLOT_DEQUEUE);
-    check_entry_unused(impl, slot);
-    impl->display_count++;
     return MPP_OK;
 }
 
@@ -613,13 +617,6 @@ MPP_RET mpp_buf_slot_get_idle(MppBufSlots slots, RK_U32 *index)
     return MPP_NOK;
 }
 
-static const MppBufSlotOps set_flag_op[SLOT_USAGE_BUTT] = {
-    SLOT_SET_CODEC_READY,
-    SLOT_SET_CODEC_USE,
-    SLOT_SET_HAL_INPUT,
-    SLOT_SET_HAL_OUTPUT,
-};
-
 MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type)
 {
     if (NULL == slots) {
@@ -633,13 +630,6 @@ MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType typ
     slot_ops_with_log(impl->logs, &impl->slots[index], set_flag_op[type]);
     return MPP_OK;
 }
-
-static const MppBufSlotOps clr_flag_op[SLOT_USAGE_BUTT] = {
-    SLOT_CLR_CODEC_READY,
-    SLOT_CLR_CODEC_USE,
-    SLOT_CLR_HAL_INPUT,
-    SLOT_CLR_HAL_OUTPUT,
-};
 
 MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type)
 {
@@ -698,13 +688,11 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType typ
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
-
-    *index = slot->index;
-
     slot_assert(impl, (RK_U32)slot->index < impl->count);
     slot_ops_with_log(impl->logs, slot, SLOT_DEQUEUE);
-    check_entry_unused(impl, slot);
     impl->display_count++;
+    *index = slot->index;
+
     return MPP_OK;
 }
 

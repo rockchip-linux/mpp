@@ -268,13 +268,16 @@ void *mpp_dec_hal_thread(void *data)
                         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
                 }
 
-                MppFrame frame = NULL;
-                while (MPP_OK == mpp_buf_slot_get_display(frame_slots, &frame)) {
+                RK_U32 index;
+                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+                    MppFrame frame;
+                    mpp_buf_slot_get_frame(frame_slots, index, &frame);
                     frames->lock();
                     frames->add_at_tail(&frame, sizeof(frame));
                     mpp->mFramePutCount++;
                     frames->signal();
                     frames->unlock();
+                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
                 }
             }
         }

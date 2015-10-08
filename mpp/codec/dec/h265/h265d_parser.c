@@ -1342,6 +1342,7 @@ static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
             frame->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
             s->output_frame_idx = min_idx;
 
+            mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_QUEUE_USE);
             mpp_buf_slot_enqueue(s->slots, frame->slot_index, QUEUE_DISPLAY);
 
             h265d_dbg(H265D_DBG_REF,

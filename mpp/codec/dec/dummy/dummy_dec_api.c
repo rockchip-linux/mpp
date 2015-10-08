@@ -166,6 +166,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     /*
      * update dpb status assuming that hw has decoded the frame
      */
+    mpp_buf_slot_set_flag(slots, output, SLOT_QUEUE_USE);
     mpp_buf_slot_enqueue(slots, output, QUEUE_DISPLAY);
 
     // add new reference buffer

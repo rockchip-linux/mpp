@@ -185,11 +185,8 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
  */
 MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
 MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
-MPP_RET     mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame);
-MppFrame    mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index);
-
-MPP_RET     mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame);
-
+MPP_RET mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame);
+MPP_RET mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index, MppFrame *frame);
 
 /*
  * NOTE:
@@ -199,8 +196,6 @@ MPP_RET     mpp_buf_slot_get_display(MppBufSlots slots, MppFrame *frame);
 
 MPP_RET     mpp_buf_slot_set_buffer(MppBufSlots slots, RK_U32 index, MppBuffer buffer);
 MppBuffer   mpp_buf_slot_get_buffer(MppBufSlots slots, RK_U32 index);
-MPP_RET     mpp_buf_slot_set_frame(MppBufSlots slots, RK_U32 index, MppFrame frame);
-MppFrame    mpp_buf_slot_get_frame(MppBufSlots slots, RK_U32 index);
 
 
 MPP_RET mpp_buf_slot_get_idle(MppBufSlots slots, RK_U32 *index);
@@ -210,12 +205,14 @@ typedef enum SlotUsageType_e {
     SLOT_CODEC_USE,         // bit flag             for buffer is used as reference by codec
     SLOT_HAL_INPUT,         // counter              for buffer is used as hardware input
     SLOT_HAL_OUTPUT,        // counter + bit flag   for buffer is used as hardware output
+    SLOT_QUEUE_USE,         // bit flag             for buffer is hold in different queues
     SLOT_USAGE_BUTT,
 } SlotUsageType;
 
 MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type);
 MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type);
 
+// TODO: can be extended here
 typedef enum SlotQueueType_e {
     QUEUE_OUTPUT,
     QUEUE_DISPLAY,
