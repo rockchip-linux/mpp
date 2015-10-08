@@ -226,8 +226,8 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType typ
 
 typedef enum SlotPropType_e {
     SLOT_EOS,
-    SLOT_BUFFER,
     SLOT_FRAME,
+    SLOT_BUFFER,
     SLOT_PROP_BUTT,
 } SlotPropType;
 
