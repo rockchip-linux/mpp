@@ -270,7 +270,7 @@ void *mpp_dec_hal_thread(void *data)
             RK_U32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
-                mpp_buf_slot_get_frame(frame_slots, index, &frame);
+                mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 frames->lock();
                 frames->add_at_tail(&frame, sizeof(frame));
                 mpp->mFramePutCount++;

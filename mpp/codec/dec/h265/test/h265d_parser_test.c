@@ -419,7 +419,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 if (ret == MPP_OK) {
                     mpp_log("get_display for ");
                 }
-                mpp_buf_slot_get_frame(slots, index, &frame);
+                mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
                 if (frame) {
 #if 1//def DUMP
                     RK_U32 stride_w, stride_h;
@@ -452,7 +452,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         if (ret == MPP_OK) {
             mpp_log("get_display for ");
         }
-        mpp_buf_slot_get_frame(slots, index, &frame);
+        mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
         if (frame) {
             mpp_frame_deinit(&frame);
         }
