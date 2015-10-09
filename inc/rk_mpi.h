@@ -66,13 +66,13 @@ typedef enum {
     MPP_HAL_CMD_BASE                    = 0x10000,
 
     MPP_OSAL_CMD_BASE                   = 0x20000,
-    MPP_OSAL_SET_VPUMEM_CONTEXT,
 
     MPP_CODEC_CMD_BASE                  = 0x30000,
     MPP_CODEC_INFO_CHANGE,
     MPP_CODEC_SET_DEFAULT_WIDTH_HEIGH,
 
     MPP_DEC_CMD_BASE                    = 0x40000,
+    MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
     MPP_DEC_USE_PRESENT_TIME_ORDER,
     MPP_DEC_SET_VC1_EXTRA_DATA,
     MPP_DEC_SET_VP6_ID,
