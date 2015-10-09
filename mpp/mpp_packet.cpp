@@ -96,7 +96,9 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         memcpy(p, src, sizeof(*p));
         p->data = p->pos = data;
         p->size = p->length = size;
-        memcpy(data, ((MppPacketImpl *)src)->data, size);
+        if (size) {
+            memcpy(data, ((MppPacketImpl *)src)->data, size);
+        }
         *packet = pkt;
         return MPP_OK;
     }
