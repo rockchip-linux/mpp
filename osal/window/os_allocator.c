@@ -84,6 +84,8 @@ static os_allocator allocator_window = {
     os_allocator_open,
     os_allocator_alloc,
     os_allocator_free,
+    NULL,
+    NULL,
     os_allocator_close,
 };
 
