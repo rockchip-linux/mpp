@@ -599,10 +599,10 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType typ
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    if (list_empty(&impl->queue[QUEUE_DISPLAY]))
+    if (list_empty(&impl->queue[type]))
         return MPP_NOK;
 
-    MppBufSlotEntry *slot = list_entry(impl->queue[QUEUE_DISPLAY].next, MppBufSlotEntry, list);
+    MppBufSlotEntry *slot = list_entry(impl->queue[type].next, MppBufSlotEntry, list);
     if (slot->status.not_ready)
         return MPP_NOK;
 
