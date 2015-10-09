@@ -323,7 +323,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         return MPP_ERR_UNKNOW;
     }
     if (mFrameGroup == NULL) {
-        ret = mpp_buffer_group_normal_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
         if (MPP_OK != ret) {
             mpp_err("h265d mpp_buffer_group_get failed\n");
             return ret;
@@ -332,7 +332,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     }
 
     if (mStreamGroup == NULL) {
-        ret = mpp_buffer_group_normal_get(&mStreamGroup, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&mStreamGroup, MPP_BUFFER_TYPE_ION);
         if (MPP_OK != ret) {
             mpp_err("h265d mpp_buffer_group_get failed\n");
             return ret;

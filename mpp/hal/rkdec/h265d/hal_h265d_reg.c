@@ -270,10 +270,10 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     if (reg_cxt->group == NULL) {
 
 #ifdef ANDROID
-        mpp_err("mpp_buffer_group_normal_get used ion in");
-        ret = mpp_buffer_group_normal_get(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
+        mpp_err("mpp_buffer_group_get_internal used ion in");
+        ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
 #else
-        ret = mpp_buffer_group_normal_get(&reg_cxt->group, MPP_BUFFER_TYPE_NORMAL);
+        ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_NORMAL);
 #endif
         if (MPP_OK != ret) {
             mpp_err("h265d mpp_buffer_group_get failed\n");
