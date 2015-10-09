@@ -28,51 +28,59 @@
 typedef   void (*LOG_FUN)(void *ctx, ...);
 
 #define  BitReadLog(bitctx, ...)\
-	do {\
-	    bitctx->wlog(bitctx->ctx, __FILE__, __LINE__, ##__VA_ARGS__);\
-	} while (0)
+    do {\
+        bitctx->wlog(bitctx->ctx, __FILE__, __LINE__, ##__VA_ARGS__);\
+    } while (0)
 
 
-#define READ_BITS(bitctx, num_bits, out, ...) \
-	do {\
-	bitctx->ret = mpp_read_bits(bitctx, num_bits, (RK_S32 *)out); \
-	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out); \
-	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; } \
-	} while (0)
+#define READ_BITS(bitctx, num_bits, out, ...)\
+    do {\
+    RK_S32 _out;\
+    bitctx->ret = mpp_read_bits(bitctx, num_bits, &_out);\
+    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
+    if (!bitctx->ret) { *out = _out; }\
+    else { mpp_assert(0); goto __BITREAD_ERR;}\
+    } while (0)
 
 
 #define SKIP_BITS(bitctx, num_bits)\
-	do {\
-	bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
-	BitReadLog(bitctx, "%48s", "skip");\
-	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
-	} while (0)
+    do {\
+    bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
+    BitReadLog(bitctx, "%48s", "skip");\
+    if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+    } while (0)
 
 #define READ_ONEBIT(bitctx, out, ...)\
-	do {\
-	bitctx->ret = mpp_read_bits(bitctx, 1, (RK_S32 *)out);\
-	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
-	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
-	} while (0)
+    do {\
+    RK_S32 _out;\
+    bitctx->ret = mpp_read_bits(bitctx, 1, &_out);\
+    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
+    if (!bitctx->ret) { *out = _out; }\
+    else { mpp_assert(0); goto __BITREAD_ERR;}\
+    } while (0)
 
 
 
 #define READ_UE(bitctx, out, ...)\
-	do {\
-	bitctx->ret = mpp_read_ue(bitctx, (RK_U32 *)out);\
-	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
-	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
-	} while (0)
+    do {\
+    RK_U32 _out;\
+    bitctx->ret = mpp_read_ue(bitctx, &_out);\
+    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
+    if (!bitctx->ret) { *out = _out; }\
+    else { mpp_assert(0); goto __BITREAD_ERR;}\
+    } while (0)
 
 #define READ_SE(bitctx, out, ...)\
-	do {\
-	bitctx->ret = mpp_read_se(bitctx, (RK_S32 *)out);\
-	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, *out);\
-	if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
-	} while (0)
+    do {\
+    RK_S32 _out;\
+    bitctx->ret = mpp_read_se(bitctx, &_out);\
+    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
+    if (!bitctx->ret) { *out = _out; }\
+    else { mpp_assert(0); goto __BITREAD_ERR;}\
+    } while (0)
 
 
-typedef struct bitread_ctx_t{
+typedef struct bitread_ctx_t {
     // Pointer to the next unread (not in curr_byte_) byte in the stream.
     RK_U8 *data_;
     // Bytes left in the stream (without the curr_byte_).
@@ -92,10 +100,10 @@ typedef struct bitread_ctx_t{
     RK_S32 used_bits;
     RK_U8  *buf;
     RK_S32 buf_len;
-	// ctx
-	MPP_RET   ret;
-	void     *ctx;
-	LOG_FUN  wlog;
+    // ctx
+    MPP_RET   ret;
+    void     *ctx;
+    LOG_FUN  wlog;
 } BitReadCtx_t;
 
 
