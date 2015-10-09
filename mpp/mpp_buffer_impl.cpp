@@ -25,6 +25,8 @@
 #define SEARCH_GROUP_NORMAL(id)         search_group_by_id_no_lock(&service.mListGroup,  id)
 #define SEARCH_GROUP_ORPHAN(id)         search_group_by_id_no_lock(&service.mListOrphan, id)
 
+typedef MPP_RET (*BufferOp)(MppAllocator allocator, MppBufferInfo *data);
+
 class MppBufferService
 {
 public:
@@ -71,17 +73,16 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     list_del_init(&buffer->list_status);
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
     if (group) {
-        if (buffer->internal)
-            group->alloc_api->free(group->allocator, &buffer->info);
-        else
-            group->alloc_api->release(group->allocator, &buffer->info);
-
+        BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
+                        (group->alloc_api->free) :
+                        (group->alloc_api->release);
+        func(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->count--;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
         mpp_assert(group);
-        mpp_assert(buffer->mode == MPP_BUFFER_MODE_NORMAL);
+        mpp_assert(buffer->mode == MPP_BUFFER_INTERNAL);
         group->alloc_api->free(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->count--;
@@ -120,7 +121,7 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
             group->count_used++;
             group->count_unused--;
         } else {
-            mpp_err("mpp_buffer_ref_inc unused buffer without group\n");
+            mpp_err_f("unused buffer without group\n");
             ret = MPP_NOK;
         }
     }
@@ -132,7 +133,7 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
 {
     MppBufferImpl *p = mpp_calloc(MppBufferImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_buffer_create failed to allocate context\n");
+        mpp_err_f("failed to allocate context\n");
         return MPP_ERR_MALLOC;
     }
 
@@ -140,21 +141,14 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
 
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (group) {
-        if (info->fd == -1) {
-            MPP_RET ret = group->alloc_api->alloc(group->allocator, info);
-            if (MPP_OK != ret) {
-                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", info->size);
-                mpp_free(p);
-                return MPP_ERR_MALLOC;
-            }
-            p->internal = 1;
-        } else {
-            MPP_RET ret = group->alloc_api->import(group->allocator, info);
-            if (MPP_OK != ret) {
-                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", info->size);
-                mpp_free(p);
-                return MPP_ERR_MALLOC;
-            }
+        BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
+                        (group->alloc_api->alloc) :
+                        (group->alloc_api->import);
+        MPP_RET ret = func(group->allocator, info);
+        if (MPP_OK != ret) {
+            mpp_err_f("failed to create buffer with size %d\n", info->size);
+            mpp_free(p);
+            return MPP_ERR_MALLOC;
         }
 
         p->info = *info;
@@ -171,7 +165,7 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
         group->count++;
         group->count_unused++;
     } else {
-        mpp_err("mpp_buffer_create can not create buffer without group\n");
+        mpp_err_f("can not create buffer without group\n");
         mpp_free(p);
         p = NULL;
     }
@@ -198,7 +192,7 @@ MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
 {
     if (buffer->ref_count <= 0) {
-        mpp_err("mpp_buffer_ref_dec found non-positive ref_count %d\n", buffer->ref_count);
+        mpp_err_f("found non-positive ref_count %d\n", buffer->ref_count);
         return MPP_NOK;
     }
 
@@ -244,7 +238,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
 {
     MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_buffer_group_get failed to allocate context\n");
+        mpp_err_f("failed to allocate context\n");
         *group = NULL;
         return MPP_ERR_MALLOC;
     }
@@ -282,7 +276,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 {
     if (NULL == p) {
-        mpp_err("mpp_buffer_group_deinit found NULL pointer\n");
+        mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -302,7 +296,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         // otherwise move the group to list_orphan and wait for buffer release
         list_del_init(&p->list_group);
         list_add_tail(&p->list_group, &service.mListOrphan);
-        mpp_err("mpp_group %p tag %s deinit with %d bytes buffer not released\n", p, p->tag, p->usage);
+        mpp_err_f("mpp_group %p tag %s deinit with %d bytes buffer not released\n", p, p->tag, p->usage);
         // if any buffer with mode MPP_BUFFER_MODE_COMMIT found it should be error
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {

@@ -134,8 +134,8 @@ typedef void* MppBufferGroup;
  *       limit  mode is recommanded to work with commit flow, working with normal mode is not.
  */
 typedef enum {
-    MPP_BUFFER_MODE_NORMAL,
-    MPP_BUFFER_MODE_LIMIT,
+    MPP_BUFFER_INTERNAL,
+    MPP_BUFFER_EXTERNAL,
     MPP_BUFFER_MODE_BUTT,
 } MppBufferMode;
 
@@ -185,10 +185,10 @@ typedef struct MppBufferInfo_t {
         mpp_buffer_get_with_tag(MODULE_TAG, ## __VA_ARGS__)
 
 #define mpp_buffer_group_normal_get(...) \
-        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_MODE_NORMAL, ## __VA_ARGS__)
+        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_INTERNAL, ## __VA_ARGS__)
 
 #define mpp_buffer_group_limited_get(...) \
-        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_MODE_LIMIT, ## __VA_ARGS__)
+        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_EXTERNAL, ## __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {

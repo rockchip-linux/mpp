@@ -31,9 +31,10 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info)
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    if (p->type != info->type || p->type >= MPP_BUFFER_TYPE_BUTT) {
-        mpp_err("mpp_buffer_commit invalid type found group %d info %d\n",
-                p->type, info->type);
+    if (p->type != info->type || p->type >= MPP_BUFFER_TYPE_BUTT ||
+        p->mode != MPP_BUFFER_EXTERNAL) {
+        mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d\n",
+                p->type, info->type, p->mode);
         return MPP_ERR_UNKNOW;
     }
 
@@ -48,12 +49,12 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
         return MPP_ERR_UNKNOW;
     }
 
-    MppBufferGroupImpl *tmp = (MppBufferGroupImpl *)group;
+    MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
     // try unused buffer first
-    MppBufferImpl *buf = mpp_buffer_get_unused(tmp, size);
-    if (NULL == buf) {
+    MppBufferImpl *buf = mpp_buffer_get_unused(p, size);
+    if (NULL == buf && MPP_BUFFER_INTERNAL == p->mode) {
         MppBufferInfo info = {
-            tmp->type,
+            p->type,
             size,
             NULL,
             NULL,
@@ -61,8 +62,8 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
             NULL,
         };
         // if failed try init a new buffer
-        mpp_buffer_create(tag, tmp->group_id, &info);
-        buf = mpp_buffer_get_unused(tmp, size);
+        mpp_buffer_create(tag, p->group_id, &info);
+        buf = mpp_buffer_get_unused(p, size);
     }
     *buffer = buf;
     return (buf) ? (MPP_OK) : (MPP_NOK);
@@ -203,7 +204,7 @@ MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    mpp_assert(p->mode == MPP_BUFFER_MODE_LIMIT);
+    mpp_assert(p->mode == MPP_BUFFER_INTERNAL);
     p->limit_size     = size;
     p->limit_count    = count;
     return MPP_OK;
