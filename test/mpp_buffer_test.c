@@ -43,7 +43,7 @@ int main()
     memset(commit_buffer, 0, sizeof(commit_buffer));
     memset(normal_buffer, 0, sizeof(normal_buffer));
 
-    ret = mpp_buffer_group_limited_get(&group, MPP_BUFFER_TYPE_NORMAL);
+    ret = mpp_buffer_group_get_external(&group, MPP_BUFFER_TYPE_NORMAL);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
         goto MPP_BUFFER_failed;
@@ -102,7 +102,7 @@ int main()
 
     mpp_log("mpp_buffer_test normal mode start\n");
 
-    ret = mpp_buffer_group_normal_get(&group, MPP_BUFFER_TYPE_ION);
+    ret = mpp_buffer_group_get_internal(&group, MPP_BUFFER_TYPE_ION);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
         goto MPP_BUFFER_failed;

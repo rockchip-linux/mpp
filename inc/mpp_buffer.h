@@ -184,10 +184,10 @@ typedef struct MppBufferInfo_t {
 #define mpp_buffer_get(...) \
         mpp_buffer_get_with_tag(MODULE_TAG, ## __VA_ARGS__)
 
-#define mpp_buffer_group_normal_get(...) \
+#define mpp_buffer_group_get_internal(...) \
         mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_INTERNAL, ## __VA_ARGS__)
 
-#define mpp_buffer_group_limited_get(...) \
+#define mpp_buffer_group_get_external(...) \
         mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_EXTERNAL, ## __VA_ARGS__)
 
 #ifdef __cplusplus
