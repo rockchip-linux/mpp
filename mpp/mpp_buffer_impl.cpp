@@ -73,6 +73,8 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     if (group) {
         if (buffer->internal)
             group->alloc_api->free(group->allocator, &buffer->info);
+        else
+            group->alloc_api->release(group->allocator, &buffer->info);
 
         group->usage -= buffer->info.size;
         group->count--;
@@ -138,7 +140,7 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
 
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (group) {
-        if (NULL == info->ptr && info->fd == -1) {
+        if (info->fd == -1) {
             MPP_RET ret = group->alloc_api->alloc(group->allocator, info);
             if (MPP_OK != ret) {
                 mpp_err("mpp_buffer_create failed to create buffer with size %d\n", info->size);
@@ -146,6 +148,13 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
                 return MPP_ERR_MALLOC;
             }
             p->internal = 1;
+        } else {
+            MPP_RET ret = group->alloc_api->import(group->allocator, info);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_create failed to create buffer with size %d\n", info->size);
+                mpp_free(p);
+                return MPP_ERR_MALLOC;
+            }
         }
 
         p->info = *info;
@@ -220,7 +229,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
-            if (pos->info.size == size) {
+            if (pos->info.size >= size) {
                 buffer = pos;
                 inc_buffer_ref_no_lock(buffer);
                 break;
@@ -297,7 +306,8 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         // if any buffer with mode MPP_BUFFER_MODE_COMMIT found it should be error
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-            mpp_assert(pos->mode != MPP_BUFFER_MODE_LIMIT);
+            // mpp_assert(pos->mode != MPP_BUFFER_MODE_LIMIT);
+            mpp_err_f("buffer %p is not free\n", pos);
         }
     }
 

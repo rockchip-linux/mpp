@@ -86,6 +86,8 @@ static os_allocator allocator_normal = {
     os_allocator_normal_open,
     os_allocator_normal_alloc,
     os_allocator_normal_free,
+    NULL,
+    NULL,
     os_allocator_normal_close,
 };
 
@@ -93,6 +95,8 @@ static os_allocator allocator_v4l2 = {
     os_allocator_normal_open,
     os_allocator_normal_alloc,
     os_allocator_normal_free,
+    NULL,
+    NULL,
     os_allocator_normal_close,
 };
 

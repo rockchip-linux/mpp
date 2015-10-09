@@ -87,6 +87,8 @@ static os_allocator allocator_normal = {
     os_allocator_normal_open,
     os_allocator_normal_alloc,
     os_allocator_normal_free,
+    NULL,
+    NULL,
     os_allocator_normal_close,
 };
 
@@ -237,6 +239,20 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
     return ret;
 }
 
+MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
+{
+    (void)ctx;
+    data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
+    return (data->ptr) ? (MPP_OK) : (MPP_NOK);
+}
+
+MPP_RET os_allocator_ion_release(void *ctx, MppBufferInfo *data)
+{
+    (void)ctx;
+    munmap(data->ptr, data->size);
+    return MPP_OK;
+}
+
 MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
 {
     allocator_ctx_ion *p = NULL;
@@ -273,6 +289,8 @@ static os_allocator allocator_ion = {
     os_allocator_ion_open,
     os_allocator_ion_alloc,
     os_allocator_ion_free,
+    os_allocator_ion_import,
+    os_allocator_ion_release,
     os_allocator_ion_close,
 };
 
