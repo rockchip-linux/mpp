@@ -133,7 +133,7 @@ static MPP_RET interpret_recovery_point_info(RK_U8 *payload, RK_S32 size, BitRea
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
     return ret;
 }
 
@@ -173,7 +173,7 @@ static MPP_RET interpret_mvc_scalable_nesting_info(RK_U8 *payload, RK_S32 size, 
     sei_msg->mvc_scalable_nesting_flag = 1;
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
     return ret;
 }
 
@@ -188,7 +188,7 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
     return ret;
 
 }
@@ -389,7 +389,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     ASSERT(0);
     return ret;

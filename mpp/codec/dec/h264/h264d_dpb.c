@@ -21,11 +21,10 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_common.h"
 
 #include "h264d_log.h"
 #include "h264d_scalist.h"
-
-
 #include "h264d_dpb.h"
 
 
@@ -114,9 +113,9 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
     if (p_Vid->active_mvc_sps_flag &&
         (p_Vid->profile_idc == MVC_HIGH || p_Vid->profile_idc == STEREO_HIGH)) {
         num_views = p_Vid->active_subsps->num_views_minus1 + 1;
-        size = min(2 * size, max(1, RoundLog2(num_views)) * 16) / num_views;
+        size = MPP_MIN(2 * size, MPP_MAX(1, RoundLog2(num_views)) * 16) / num_views;
     } else {
-        size = min(size, 16);
+        size = MPP_MIN(size, 16);
     }
 
     return size;
@@ -552,7 +551,7 @@ static void sliding_window_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic
     RK_U32 i = 0;
 
     // if this is a reference pic with sliding window, unmark first ref frame
-    if (p_Dpb->ref_frames_in_buffer == max(1, p_Dpb->num_ref_frames) - p_Dpb->ltref_frames_in_buffer) {
+    if (p_Dpb->ref_frames_in_buffer == MPP_MAX(1, p_Dpb->num_ref_frames) - p_Dpb->ltref_frames_in_buffer) {
         for (i = 0; i < p_Dpb->used_size; i++) {
             if (p_Dpb->fs[i]->is_reference && (!(p_Dpb->fs[i]->is_long_term))) {
                 unmark_for_reference(p_Dpb->fs[i]);
@@ -568,8 +567,8 @@ static void check_num_ref(H264_DpbBuf_t *p_Dpb)
 {
     LogCtx_t *runlog = p_Dpb->p_Vid->p_Dec->logctx.parr[RUN_PARSE];
 
-    if ((RK_S32)(p_Dpb->ltref_frames_in_buffer + p_Dpb->ref_frames_in_buffer) > max(1, p_Dpb->num_ref_frames)) {
-        if ((RK_S32)(p_Dpb->ltref_frames_in_buffer + p_Dpb->ref_frames_in_buffer) > max(1, p_Dpb->num_ref_frames)) {
+    if ((RK_S32)(p_Dpb->ltref_frames_in_buffer + p_Dpb->ref_frames_in_buffer) > MPP_MAX(1, p_Dpb->num_ref_frames)) {
+        if ((RK_S32)(p_Dpb->ltref_frames_in_buffer + p_Dpb->ref_frames_in_buffer) > MPP_MAX(1, p_Dpb->num_ref_frames)) {
             sliding_window_memory_management(p_Dpb, NULL);
             LogWarnning(runlog, "Max number of reference frames exceeded");
         }
@@ -753,7 +752,7 @@ static MPP_RET dpb_combine_field_yuv(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *
             ASSERT(fs->is_used == 0x03);
         }
     }
-    fs->poc = fs->frame->poc = fs->frame->frame_poc = min(fs->top_field->poc, fs->bottom_field->poc);
+    fs->poc = fs->frame->poc = fs->frame->frame_poc = MPP_MIN(fs->top_field->poc, fs->bottom_field->poc);
     fs->bottom_field->frame_poc = fs->top_field->frame_poc = fs->frame->poc;
     fs->bottom_field->top_poc = fs->frame->top_poc = fs->top_field->poc;
     fs->top_field->bottom_poc = fs->frame->bottom_poc = fs->bottom_field->poc;
@@ -781,7 +780,7 @@ static MPP_RET dpb_combine_field_yuv(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *
     fs->bottom_field->bottom_field = fs->bottom_field;
 
     fs->frame->is_mmco_5 = fs->top_field->is_mmco_5 || fs->bottom_field->is_mmco_5;
-    fs->frame->poc_mmco5 = min(fs->top_field->top_poc_mmco5, fs->bottom_field->bot_poc_mmco5);
+    fs->frame->poc_mmco5 = MPP_MIN(fs->top_field->top_poc_mmco5, fs->bottom_field->bot_poc_mmco5);
     fs->frame->top_poc_mmco5 = fs->top_field->top_poc_mmco5;
     fs->frame->bot_poc_mmco5 = fs->top_field->bot_poc_mmco5;
 
@@ -967,11 +966,11 @@ static MPP_RET adaptive_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t 
             p->is_mmco_5 = 1;
             p->top_poc_mmco5 = p->top_poc;
             p->bot_poc_mmco5 = p->bottom_poc;
-            p->poc_mmco5 = min(p->top_poc, p->bottom_poc);
+            p->poc_mmco5 = MPP_MIN(p->top_poc, p->bottom_poc);
             p->top_poc -= p->poc;
             p->bottom_poc -= p->poc;
 
-            p->poc = min(p->top_poc, p->bottom_poc);
+            p->poc = MPP_MIN(p->top_poc, p->bottom_poc);
             p->frame_poc = p->poc;
             break;
 
@@ -1646,11 +1645,9 @@ MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_picture)
     set_curframe_poc((*dec_picture), &p_Vid->p_Dec->regs);
 #endif
     FUN_CHECK(ret = store_picture_in_dpb(p_Vid->p_Dpb_layer[(*dec_picture)->layer_id], *dec_picture));
-    FPRINT(g_debug_file1, "decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt);
-
+//   FPRINT(g_debug_file0, "decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt);
+    //FPRINT(g_debug_file1, "decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt);
     mpp_log("decoder ending, g_framecnt=%d \n", p_Vid->g_framecnt++);
-
-
 
 #if 0
     update_all_logctx_framenum(&p_Vid->p_Dec->logctx, p_Vid->g_framecnt);
@@ -1876,7 +1873,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 voidx = p_Dec->dpb_info[i].voidx;
                 is_used = p_Dec->dpb_info[i].is_used;
                 if (currSlice->structure == FRAME && picbuf) {
-                    if (poc == min(TOP_POC, BOT_POC) && (layer_id == voidx))
+                    if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))
                         break;
                 } else {
                     if (is_used == 3) {
@@ -1929,7 +1926,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                     voidx = p_Dec->dpb_info[i].voidx;
                     is_used = p_Dec->dpb_info[i].is_used;
                     if (currSlice->structure == FRAME && picbuf) {
-                        if (poc == min(TOP_POC, BOT_POC) && (layer_id == voidx))
+                        if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))
                             break;
                     } else {
                         if (is_used == 3) {
@@ -1975,7 +1972,7 @@ MPP_RET update_dpb(H264_DecCtx_t *p_Dec)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    p_Dec->parser_end_flag = 0;
+    p_Dec->is_parser_end = 0;
     p_Dec->p_Vid->exit_picture_flag    = 1;
     p_Dec->p_Vid->have_outpicture_flag = 1;
     FUN_CHECK(ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_picture));

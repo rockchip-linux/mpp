@@ -213,7 +213,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
     return ret;
 }
 
@@ -537,13 +537,13 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         if (g_max_bytes < (p_bitctx->used_bits >> 3)) {
             g_max_bytes = (p_bitctx->used_bits >> 3);
         }
-        currSlice->is_new_picture_flag = 1;
+        currSlice->is_new_picture = 1;
     }
     FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     recycle_slice(currSlice);
 

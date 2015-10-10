@@ -126,26 +126,26 @@ typedef struct h264d_logctx_t {
 
 #define LogTrace(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_TRACE)) {\
-				 writelog(ctx, "TRACE", __FILE__, __LINE__, ##__VA_ARGS__);\
+                 writelog(ctx, "TRACE", __FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 #define LogInfo(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_INFO)) {\
-				 writelog(ctx, "INFO",__FILE__, __LINE__, ##__VA_ARGS__);\
+                 writelog(ctx, "INFO",__FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 
 #define LogWarnning(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_WARNNING)) {\
-				 writelog(ctx, "WARNNING",__FILE__, __LINE__, ##__VA_ARGS__);\
+                 writelog(ctx, "WARNNING",__FILE__, __LINE__, ##__VA_ARGS__);\
                  } }while (0)
 
 #define LogError(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-				 writelog(ctx, "ERROR",__FILE__, __LINE__, ##__VA_ARGS__);\
+                 writelog(ctx, "ERROR",__FILE__, __LINE__, ##__VA_ARGS__);\
                  ASSERT(0);\
                  } }while (0)
 #define LogFatal(ctx, ...)\
         do{ if(LogEnable(ctx, LOG_LEVEL_ERROR)) {\
-				 writelog(ctx, "FATAL", __FILE__, __LINE__, ##__VA_ARGS__);\
+                 writelog(ctx, "FATAL", __FILE__, __LINE__, ##__VA_ARGS__);\
                  ASSERT(0);\
                  } }while (0)
 
@@ -165,7 +165,7 @@ typedef struct h264d_logctx_t {
                 ret = MPP_ERR_VALUE;\
                 mpp_log("ERROR: value error.\n");\
                 goto __FAILED;\
-                } } while (0)  
+                } } while (0)
 //!< memory malloc check
 #define MEM_CHECK(ret, val)\
         do{ if(!(val)) {\
@@ -196,26 +196,27 @@ typedef struct h264d_logctx_t {
 
 
 #define CHECK_RANGE(bitctx, val, _min, _max)\
-	do {\
-	if ((val) < (_min) || (val) > (_max)) {\
-	mpp_log("%d[%d,%d]", val, _min, _max);\
-	goto __BITREAD_ERR;\
-	}\
-	} while (0)
+    do {\
+    if ((val) < (_min) || (val) > (_max)) {\
+    mpp_log("%d[%d,%d]", val, _min, _max);\
+    goto __BITREAD_ERR;\
+    }\
+    } while (0)
 
 
 #define CHECK_ERROR(bitctx, val)\
-	do {\
-	if (!(val)) {\
-	mpp_log("value false");\
-	ASSERT(0);\
-	goto __BITREAD_ERR;\
-	}\
-	} while (0)
+    do {\
+    if (!(val)) {\
+    mpp_log("value false");\
+    ASSERT(0);\
+    goto __BITREAD_ERR;\
+    }\
+    } while (0)
 
 #define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);} }
 
-extern RK_U32  g_nalu_cnt;
+extern RK_U32  g_nalu_cnt0;
+extern RK_U32  g_nalu_cnt1;
 extern RK_S32  g_max_bytes;
 extern RK_U32  g_max_slice_data;
 extern FILE   *g_debug_file0;
@@ -235,7 +236,6 @@ MPP_RET get_logenv(LogEnv_t *env);
 MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag);
 
 void    set_log_outpath(LogEnv_t *env);
-
 void    set_bitread_logctx(BitReadCtx_t *bitctx, LogCtx_t *p_ctx);
 void    writelog(void *ctx, ...);
 

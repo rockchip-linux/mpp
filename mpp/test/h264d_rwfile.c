@@ -743,11 +743,10 @@ __FAILED:
 *   read one frame
 ***********************************************************************
 */
-MPP_RET h264d_read_one_frame(InputParams *p_in, MppPacket pkt)
+MPP_RET h264d_read_one_frame(InputParams *p_in)
 {
     p_in->strm.strmbytes = 0;
     p_in->is_new_frame = 0;
-
     //-- copy first nalu
     if (!p_in->is_fist_frame) {
         write_nalu_prefix(p_in);
@@ -763,15 +762,6 @@ MPP_RET h264d_read_one_frame(InputParams *p_in, MppPacket pkt)
     //FPRINT(g_debug_file0, "--- new frame ---- \n");
     //}
 
-    //-- set code input context
-    ((MppPacketImpl *)pkt)->pos  = p_in->strm.pbuf;
-    ((MppPacketImpl *)pkt)->size = p_in->strm.strmbytes;
-    if (g_max_slice_data < p_in->strm.strmbytes) {
-        g_max_slice_data = p_in->strm.strmbytes;
-    }
-    if (p_in->is_eof) {
-        mpp_packet_set_eos(pkt);
-    }
     return MPP_OK;
 }
 /*!

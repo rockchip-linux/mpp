@@ -1119,17 +1119,17 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
     for (i = currSlice->listXsizeB[1]; i < (MAX_LIST_SIZE); i++) {
         currSlice->listB[1][i] = p_Vid->no_reference_picture;
     }
-	MPP_FREE(currSlice->fs_listinterview0);
-	MPP_FREE(currSlice->fs_listinterview1);
+    MPP_FREE(currSlice->fs_listinterview0);
+    MPP_FREE(currSlice->fs_listinterview1);
 
     return ret = MPP_OK;
 __FAILED:
     ASSERT(0);
-	MPP_FREE(fs_list0);
-	MPP_FREE(fs_list1);
-	MPP_FREE(fs_listlt);
-	MPP_FREE(currSlice->fs_listinterview0);
-	MPP_FREE(currSlice->fs_listinterview1);
+    MPP_FREE(fs_list0);
+    MPP_FREE(fs_list1);
+    MPP_FREE(fs_listlt);
+    MPP_FREE(currSlice->fs_listinterview0);
+    MPP_FREE(currSlice->fs_listinterview1);
 
     return ret;
 }

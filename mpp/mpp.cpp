@@ -65,12 +65,12 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
-        mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
 
-        mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mPacketGroup, MPP_TEST_PACKET_SIZE, 4);
 
-        mpp_buffer_group_normal_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mFrameGroup, MPP_TEST_FRAME_SIZE, 4);
     } break;
     case MPP_CTX_ENC : {
@@ -82,9 +82,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_enc_control_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
-        mpp_buffer_group_normal_get(&mInternalGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_normal_get(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
-        mpp_buffer_group_limited_get(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
+        mpp_buffer_group_get_external(&mFrameGroup, MPP_BUFFER_TYPE_ION);
     } break;
     default : {
         mpp_err("Mpp error type %d\n", mType);
