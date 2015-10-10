@@ -338,7 +338,7 @@ static RK_S32 pred_weight_table(HEVCContext *s, BitReadCtx_t *gb)
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, BitReadCtx_t *gb)
@@ -402,7 +402,7 @@ static RK_S32 decode_lt_rps(HEVCContext *s, LongTermRPS *rps, BitReadCtx_t *gb)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
@@ -1010,7 +1010,7 @@ static RK_S32 hls_slice_header(HEVCContext *s)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 /**
@@ -1043,7 +1043,7 @@ static RK_S32 hls_nal_unit(HEVCContext *s)
 
     return (s->nuh_layer_id);
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 hevc_frame_start(HEVCContext *s)
@@ -1468,7 +1468,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     RK_U8 *buf = NULL;
     void *pos = NULL;
-    size_t length = 0;
+    RK_S32 length = 0;
     s->eos = mpp_packet_get_eos(pkt);
     buf = (RK_U8 *)mpp_packet_get_pos(pkt);
     length = (RK_S32)mpp_packet_get_size(pkt);

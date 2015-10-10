@@ -131,7 +131,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  * called by parser
  *
  * mpp_buf_slot_get_unused
- *      - parser need a new slot ffor output, on field mode alloc one buffer for two field
+ *      - parser need a new slot for output, on field mode alloc one buffer for two field
  *
  * mpp_buf_slot_set_dpb_ref
  *      - mark a slot to be used as reference frame in dpb

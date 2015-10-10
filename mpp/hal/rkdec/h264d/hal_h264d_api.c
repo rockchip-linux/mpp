@@ -215,7 +215,7 @@ MPP_RET hal_h264d_gen_regs(void *hal, HalTaskInfo *task)
     prepare_stream_packet(hal, &p_hal->pkts->strm);
     generate_regs(p_hal, &p_hal->pkts->reg);
 
-    //mpp_log("++++++++++ hal_h264_decoder, g_framecnt=%d \n", p_hal->g_framecnt++);
+    mpp_log("++++++++++ hal_h264_decoder, g_framecnt=%d \n", p_hal->g_framecnt++);
     ((HalDecTask*)&task->dec)->valid = 0;
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 

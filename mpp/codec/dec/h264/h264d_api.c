@@ -167,11 +167,12 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Cur) {
         recycle_slice(&p_Cur->slice);
-        for (i = 0; i < 2; i++) {
+        for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
             MPP_FREE(p_Cur->listP[i]);
             MPP_FREE(p_Cur->listB[i]);
         }
-        MPP_FREE(p_Cur->strm.buf);
+        MPP_FREE(p_Cur->strm.nalu_buf);
+        MPP_FREE(p_Cur->strm.head_buf);
     }
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -181,21 +182,28 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
 {
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dCurStream_t *p_strm = NULL;
 
     INP_CHECK(ret, ctx, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
-    p_Cur->strm.buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
-    MEM_CHECK(ret, p_Cur->strm.buf);
-    p_Cur->strm.max_size = NALU_BUF_MAX_SIZE;
-    p_Cur->strm.prefixdata[0] = 0xff;
-    p_Cur->strm.prefixdata[1] = 0xff;
-    p_Cur->strm.prefixdata[2] = 0xff;
-    for (i = 0; i < 2; i++) {
+
+    p_strm = &p_Cur->strm;
+    p_strm->nalu_max_size = NALU_BUF_MAX_SIZE;
+    p_strm->nalu_buf = mpp_malloc_size(RK_U8, p_strm->nalu_max_size);
+    p_strm->head_max_size = HEAD_BUF_MAX_SIZE;
+    p_strm->head_buf = mpp_malloc_size(RK_U8, p_strm->head_max_size);
+    MEM_CHECK(ret, p_strm->nalu_buf && p_strm->head_buf);
+
+    p_strm->prefixdata[0] = 0xff;
+    p_strm->prefixdata[1] = 0xff;
+    p_strm->prefixdata[2] = 0xff;
+    for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         p_Cur->listP[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         MEM_CHECK(ret, p_Cur->listP[i] && p_Cur->listB[i]); // +1 for reordering
     }
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
+
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -354,7 +362,8 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->spt_decode_mtds = MPP_DEC_BY_FRAME | MPP_DEC_BY_SLICE;
     p_Dec->next_state = SliceSTATE_ResetSlice;
     p_Dec->nalu_ret = NALU_NULL;
-    p_Dec->first_frame_flag = 1;
+    p_Dec->is_first_frame = 1;
+    p_Dec->is_first_frame2 = 1;
 __RETURN:
     return ret = MPP_OK;
 
@@ -450,12 +459,31 @@ __RETURN:
 MPP_RET  h264d_reset(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, decoder);
+    INP_CHECK(ret, ctx, !decoder);
+    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+    //!< reset input parameter
+    p_Dec->p_Inp->in_buf        = NULL;
+    p_Dec->p_Inp->in_size       = 0;
+    p_Dec->p_Inp->is_eos        = 0;
+    p_Dec->p_Inp->in_timestamp  = 0;
+    p_Dec->p_Inp->out_buf       = NULL;
+    p_Dec->p_Inp->out_length    = 0;
+    //!< reset current stream
+    p_Dec->p_Cur->strm.prefixdata[0] = 0xff;
+    p_Dec->p_Cur->strm.prefixdata[1] = 0xff;
+    p_Dec->p_Cur->strm.prefixdata[2] = 0xff;
+    //!< reset dpb
+    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
+    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
 
-    (void)decoder;
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
+
 __RETURN:
     return ret = MPP_OK;
+__FAILED:
+    return ret = MPP_NOK;
 }
 
 /*!
@@ -467,12 +495,19 @@ __RETURN:
 MPP_RET  h264d_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, decoder);
+    INP_CHECK(ret, ctx, !decoder);
+    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
-    (void)decoder;
+    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0]));
+    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1]));
+
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
+__FAILED:
+    return ret = MPP_NOK;
 }
 
 /*!
@@ -484,14 +519,11 @@ __RETURN:
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
-    INP_CHECK(ret, ctx, decoder);
-
+    INP_CHECK(ret, ctx, !decoder);
 
     (void)decoder;
     (void)cmd_type;
     (void)param;
-
 
 __RETURN:
     return ret = MPP_OK;
@@ -504,28 +536,27 @@ __RETURN:
 *   prepare
 ***********************************************************************
 */
-MPP_RET h264d_prepare(void *decoder, MppPacket in_pkt, HalDecTask *in_task)
+MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    MppPacketImpl *pkt = (MppPacketImpl *)in_pkt;
-
-    INP_CHECK(ret, ctx, !decoder && !in_pkt && !in_task);
+    INP_CHECK(ret, ctx, !decoder && !pkt && !task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-    p_Dec->p_Inp->in_buf  = (RK_U8 *)pkt->pos;
-    p_Dec->p_Inp->in_size = &pkt->size;
-    p_Dec->p_Inp->is_eos  = pkt->flag & MPP_PACKET_FLAG_EOS;
 
-
-
-
-
+    p_Dec->p_Inp->in_buf    = (RK_U8 *)mpp_packet_get_pos(pkt);
+    p_Dec->p_Inp->in_length = mpp_packet_get_length(pkt);
+    p_Dec->p_Inp->is_eos    = mpp_packet_get_eos(pkt);
+    p_Dec->p_Inp->in_size   = &((MppPacketImpl *)pkt)->length;
+    do {
+        (ret = parse_prepare(p_Dec->p_Inp, p_Dec->p_Cur));
+        task->valid = p_Dec->p_Inp->task_valid;  // prepare valid flag
+    } while (mpp_packet_get_length(pkt) && !task->valid);
 
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
 //__FAILED:
-//  return ret;
+//    return ret;
 }
 
 
@@ -542,10 +573,10 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 
     INP_CHECK(ret, ctx, !decoder && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-
+    in_task->valid = 0; // prepare end flag
     FUN_CHECK(ret = parse_loop(p_Dec));
-    if (p_Dec->parser_end_flag) {
-        in_task->valid = 1;
+    if (p_Dec->is_parser_end) {
+        in_task->valid = 1; // register valid flag
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         FUN_CHECK(ret = update_dpb(p_Dec));

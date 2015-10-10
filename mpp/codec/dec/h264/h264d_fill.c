@@ -46,23 +46,23 @@ __FAILED:
 }
 
 
-static MPP_RET realloc_stream_buffer(H264dDxvaCtx_t *dxva_ctx, RK_U32 stream_add)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    if (stream_add > FRAME_BUF_ADD_SIZE) {
-        dxva_ctx->max_strm_size += ALIGN(stream_add, 128);
-    } else {
-        dxva_ctx->max_strm_size += FRAME_BUF_ADD_SIZE;
-    }
-    dxva_ctx->bitstream = mpp_realloc(dxva_ctx->bitstream, RK_U8, dxva_ctx->max_strm_size);
-    MEM_CHECK (ret, dxva_ctx->bitstream);
-
-    return ret = MPP_OK;
-__FAILED:
-    ASSERT(0);
-    return ret;
-}
+//static MPP_RET realloc_stream_buffer(H264dDxvaCtx_t *dxva_ctx, RK_U32 stream_add)
+//{
+//    MPP_RET ret = MPP_ERR_UNKNOW;
+//
+//    if (stream_add > FRAME_BUF_ADD_SIZE) {
+//        dxva_ctx->max_strm_size += ALIGN(stream_add, 128);
+//    } else {
+//        dxva_ctx->max_strm_size += FRAME_BUF_ADD_SIZE;
+//    }
+//    dxva_ctx->bitstream = mpp_realloc(dxva_ctx->bitstream, RK_U8, dxva_ctx->max_strm_size);
+//    MEM_CHECK (ret, dxva_ctx->bitstream);
+//
+//    return ret = MPP_OK;
+//__FAILED:
+//    ASSERT(0);
+//    return ret;
+//}
 
 static MPP_RET fill_stream_data(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
 {
@@ -74,20 +74,24 @@ static MPP_RET fill_stream_data(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
     if (dxva_ctx->slice_count >= dxva_ctx->max_slice_size) {
         FUN_CHECK(ret = realloc_slice_list(dxva_ctx));
     }
-    streamlen_add = p_nal->sodb_len + sizeof(start_code);
-    stream_offset = dxva_ctx->strm_offset + streamlen_add;
-    if (stream_offset > dxva_ctx->max_strm_size) {
-        FUN_CHECK (ret = realloc_stream_buffer(dxva_ctx, streamlen_add));
-    }
+    //streamlen_add = p_nal->sodb_len + sizeof(start_code);
+    //stream_offset = dxva_ctx->strm_offset + streamlen_add;
+    //if (stream_offset > dxva_ctx->max_strm_size) {
+    //    FUN_CHECK (ret = realloc_stream_buffer(dxva_ctx, streamlen_add));
+    //}
     p_long = &dxva_ctx->slice_long[dxva_ctx->slice_count];
     memset(p_long, 0, sizeof(DXVA_Slice_H264_Long));
     p_long->BSNALunitDataLocation  = dxva_ctx->strm_offset;
     p_long->wBadSliceChopping  = 0; //!< set to 0 in Rock-Chip RKVDEC IP
-    memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], start_code, sizeof(start_code));
-    dxva_ctx->strm_offset += sizeof(start_code);
-    memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], p_nal->sodb_buf, p_nal->sodb_len);
-    dxva_ctx->strm_offset += p_nal->sodb_len;
-    p_long->SliceBytesInBuffer  = dxva_ctx->strm_offset - p_long->BSNALunitDataLocation;
+    //memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], start_code, sizeof(start_code));
+    //dxva_ctx->strm_offset += sizeof(start_code);
+    //memcpy(&dxva_ctx->bitstream[dxva_ctx->strm_offset], p_nal->sodb_buf, p_nal->sodb_len);
+    //dxva_ctx->strm_offset += p_nal->sodb_len;
+    //p_long->SliceBytesInBuffer  = dxva_ctx->strm_offset - p_long->BSNALunitDataLocation;
+
+    (void)p_nal;
+    (void)stream_offset;
+    (void)streamlen_add;
 
     return ret = MPP_OK;
 __FAILED:

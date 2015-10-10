@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include "rk_type.h"
 #include "mpp_err.h"
-#include "mpp_packet.h"
+
 
 #ifndef __H264D_RWFILE_H__
 #define __H264D_RWFILE_H__
@@ -70,7 +70,7 @@ MPP_RET h264d_configure  (InputParams *in, RK_S32 ac, char *av[]);
 MPP_RET h264d_open_files (InputParams *in);
 MPP_RET h264d_close_files(InputParams *in);
 MPP_RET h264d_alloc_frame_buffer(InputParams *in);
-MPP_RET h264d_read_one_frame    (InputParams *in, MppPacket pkt);
+MPP_RET h264d_read_one_frame    (InputParams *in);
 MPP_RET h264d_free_frame_buffer (InputParams *in);
 MPP_RET h264d_write_fpga_data   (InputParams *in);
 

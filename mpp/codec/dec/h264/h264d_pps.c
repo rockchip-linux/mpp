@@ -58,7 +58,7 @@ static MPP_RET parse_pps_calingLists(BitReadCtx_t *p_bitctx, H264_SPS_t *sps, H2
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     ASSERT(0);
     return ret;
@@ -113,11 +113,11 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
 
     return ret = MPP_OK;
 
-__BITREAD_ERR:   
+__BITREAD_ERR:
     ret = p_bitctx->ret;
 __FAILED:
-	 ASSERT(0);
-	 return ret;
+    ASSERT(0);
+    return ret;
 }
 
 

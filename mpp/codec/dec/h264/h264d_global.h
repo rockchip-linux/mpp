@@ -42,17 +42,15 @@
 
 #define DPB_INFO_SIZE             16
 #define REFPIC_INFO_SIZE          32
+
 #define MAX_TASK_SIZE             2
-#define NALU_BUF_MAX_SIZE         10*1024*1024
-#define NALU_BUF_ADD_SIZE         1024
+#define NALU_BUF_MAX_SIZE         10
+#define NALU_BUF_ADD_SIZE         10
+#define HEAD_BUF_MAX_SIZE         10*1024*1024
+#define HEAD_BUF_ADD_SIZE         1024
+#define SODB_BUF_MAX_SIZE         10*1024*1024
+#define SODB_BUF_ADD_SIZE         1024
 
-#ifndef min
-#define min(a,b)    (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef max
-#define max(a,b)    (((a) > (b)) ? (a) : (b))
-#endif
 
 //!< AVC Profile IDC definitions
 typedef enum {
@@ -732,7 +730,7 @@ typedef struct h264_slice_t {
     RK_S32       framepoc;    //poc of this frame
     RK_U32       AbsFrameNum;
     RK_S32       PicOrderCntMsb;
-    RK_S32       is_new_picture_flag;
+    RK_S32       is_new_picture;
     struct h264_sps_t    *active_sps;
     struct h264_subsps_t *active_subsps;
     struct h264_pps_t    *active_pps;
@@ -823,21 +821,31 @@ typedef struct h264d_input_ctx_t {
     //!< input data
     RK_U8  *in_buf;
     size_t *in_size;
-    RK_S64 *in_timestamp;
+    size_t in_length;
+    RK_S64 in_timestamp;
     //!< output data
     RK_U8  *out_buf;
-    RK_U32 *out_length;
-
+    RK_U32 out_length;
+    RK_U8  task_valid;
 } H264dInputCtx_t;
 
 //!< current stream
 typedef struct h264d_curstrm_t {
-    RK_U32   offset;         //!< The offset of the input stream
-    RK_U32   max_size;       //!< Cur Unit Buffer size
-    RK_U8    *buf;           //!< store read nalu data
-    RK_U8    prefixdata[START_PREFIX_3BYTE];
-    RK_U8    startcode_found;
-    RK_U8    endcode_found;
+    RK_U32    nalu_offset;     //!< The offset of the input stream
+
+    RK_U32    nalu_max_size;   //!< Cur Unit Buffer size
+    RK_U8     *curdata;
+    RK_S32    nal_unit_type;
+    RK_U32    nalu_len;
+    RK_U8     *nalu_buf;       //!< store read nalu data
+
+    RK_U32    head_offset;
+    RK_U32    head_max_size;
+    RK_U8     *head_buf;       //!< store header data, sps/pps/slice header
+
+    RK_U8     prefixdata[START_PREFIX_3BYTE];
+    RK_U8     startcode_found;
+    RK_U8     endcode_found;
 } H264dCurStream_t;
 
 //!< current parameters
@@ -937,11 +945,11 @@ typedef struct h264d_mem_t {
 typedef enum nalu_state_tpye {
     NALU_NULL = 0,
 
-    //StreamError,
+    StreamError,
     HaveNoStream,
     NaluNotSupport,
-    //ReadNaluError,
-    //StartofNalu,
+    ReadNaluError,
+    StartofNalu,
     EndofStream,
     //ReallocBufError,
     MidOfNalu,
@@ -992,8 +1000,10 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     spt_decode_mtds;  //!< support decoder methods
     NALU_STATUS                nalu_ret;         //!< current nalu state
     SLICE_STATUS               next_state;       //!< RKV_SLICE_STATUS
-    RK_U8                      first_frame_flag;
-    RK_U8                      parser_end_flag;
+    RK_U8                      is_first_frame;
+    RK_U8                      is_first_frame2;
+    RK_U8                      is_new_frame;
+    RK_U8                      is_parser_end;
     RK_U8                      dxva_idx;
     struct h264d_logctx_t      logctx;           //!< debug log file
     struct log_ctx_t           logctxbuf[LOG_MAX];

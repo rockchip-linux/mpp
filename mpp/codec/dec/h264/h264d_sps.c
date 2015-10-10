@@ -60,7 +60,7 @@ static MPP_RET read_hrd_parameters(BitReadCtx_t *p_bitctx, H264_HRD_t *hrd)
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	return ret = p_bitctx->ret;
+    return ret = p_bitctx->ret;
 }
 
 static void init_VUI(H264_VUI_t *vui)
@@ -135,7 +135,7 @@ static MPP_RET read_VUI(BitReadCtx_t *p_bitctx, H264_VUI_t *vui)
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 __FAILED:
-	return ret;
+    return ret;
 }
 
 static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps)
@@ -244,7 +244,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps)
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     return ret;
 }
@@ -315,7 +315,7 @@ static MPP_RET sps_mvc_extension(BitReadCtx_t *p_bitctx, H264_subSPS_t *subset_s
     }
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     ASSERT(0);
     return ret;
@@ -336,7 +336,7 @@ static MPP_RET parser_subsps_ext(BitReadCtx_t *p_bitctx, H264_subSPS_t *cur_subs
 
     return ret = MPP_OK;
 __BITREAD_ERR:
-	ret = p_bitctx->ret;
+    ret = p_bitctx->ret;
 __FAILED:
     return ret;
 }

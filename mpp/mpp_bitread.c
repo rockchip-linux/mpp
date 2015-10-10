@@ -45,12 +45,12 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
     bitctx->num_remaining_bits_in_curr_byte_ = 8;
     bitctx->prev_two_bytes_ = (bitctx->prev_two_bytes_ << 8) | bitctx->curr_byte_;
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 static void log_info(void *ctx, ...)
 {
-	(void)ctx;
+    (void)ctx;
 }
 /*!
 ***********************************************************************
@@ -218,7 +218,7 @@ void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
     bitctx->buf = data;
     bitctx->buf_len = size;
     bitctx->used_bits = 0;
-	bitctx->wlog = log_info;
+    bitctx->wlog = log_info;
 }
 
 /*!

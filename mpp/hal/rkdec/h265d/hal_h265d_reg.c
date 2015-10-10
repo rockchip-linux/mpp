@@ -684,7 +684,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         // mpp_err("data[%d]= 0x%x,size[%d] = %d \n",
         //   k,dxva_cxt->slice_short[k].BSNALunitDataLocation, k,dxva_cxt->slice_short[k].SliceBytesInBuffer);
         mpp_set_bitread_ctx(&gb_cxt, (RK_U8*)(dxva_cxt->bitstream + dxva_cxt->slice_short[k].BSNALunitDataLocation),
-                      dxva_cxt->slice_short[k].SliceBytesInBuffer);
+                            dxva_cxt->slice_short[k].SliceBytesInBuffer);
 
         gb = &gb_cxt;
 
@@ -983,7 +983,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static void hal_h265d_output_scalinglist_packet(void *ptr, void *dxva)

@@ -260,7 +260,7 @@ int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 
@@ -295,7 +295,7 @@ static RK_S32 decode_profile_tier_level(HEVCContext *s, PTLCommon *ptl)
     SKIP_BITS(gb, 12); // XXX_reserved_zero_44bits[32..43]
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 parse_ptl(HEVCContext *s, PTL *ptl, int max_num_sub_layers)
@@ -322,7 +322,7 @@ static RK_S32 parse_ptl(HEVCContext *s, PTL *ptl, int max_num_sub_layers)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_sublayer_hrd(HEVCContext *s, unsigned int nb_cpb,
@@ -343,7 +343,7 @@ static RK_S32 decode_sublayer_hrd(HEVCContext *s, unsigned int nb_cpb,
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_hrd(HEVCContext *s, int common_inf_present,
@@ -408,7 +408,7 @@ static RK_S32 decode_hrd(HEVCContext *s, int common_inf_present,
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 
@@ -1276,7 +1276,7 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 /*static */void set_default_scaling_list_data(ScalingList *sl)///<- zrh remove "static"
@@ -1364,7 +1364,7 @@ static int scaling_list_data(HEVCContext *s, ScalingList *sl)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)

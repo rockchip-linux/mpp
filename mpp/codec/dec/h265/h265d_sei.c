@@ -52,7 +52,7 @@ static RK_S32 decode_nal_sei_decoded_picture_hash(HEVCContext *s)
     }
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_nal_sei_frame_packing_arrangement(HEVCContext *s)
@@ -82,7 +82,7 @@ static RK_S32 decode_nal_sei_frame_packing_arrangement(HEVCContext *s)
     SKIP_BITS(gb, 1);            // upsampled_aspect_ratio_flag
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_pic_timing(HEVCContext *s)
@@ -116,7 +116,7 @@ static RK_S32 decode_pic_timing(HEVCContext *s)
     }
     return 1;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 active_parameter_sets(HEVCContext *s)
@@ -143,7 +143,7 @@ static RK_S32 active_parameter_sets(HEVCContext *s)
 
     return 0;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 decode_nal_sei_message(HEVCContext *s)
@@ -195,7 +195,7 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
         return 1;
     }
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
 
 static RK_S32 more_rbsp_data(BitReadCtx_t *gb)

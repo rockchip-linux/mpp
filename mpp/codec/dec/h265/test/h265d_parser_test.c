@@ -382,10 +382,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             }
             if (cutask->valid) {
                 HalTaskInfo syn;
+                MppBuffer buffer = NULL;
+
                 syn.dec = *cutask;
                 index = cutask->output;
-
-                MppBuffer buffer = NULL;
                 mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
                 if (NULL == buffer) {
                     RK_U32 size = mpp_buf_slot_get_size(slots);

@@ -282,7 +282,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
         RK_U32 nal_type;
 
         mpp_set_bitread_ctx(&gb_cxt, (RK_U8 *)h->nals[i].data,
-                      h->nals[i].size);
+                            h->nals[i].size);
 
         gb = &gb_cxt;
 
@@ -311,5 +311,5 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
     ctx_pic->bitstream      = (RK_U8*)ptr;
     return MPP_OK;
 __BITREAD_ERR:
-	return  MPP_ERR_STREAM;
+    return  MPP_ERR_STREAM;
 }
