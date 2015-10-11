@@ -53,8 +53,10 @@ struct MppFrameImpl_t {
 
     /*
      * eos - end of stream
+     * info_change - set when buffer resized or frame infomation changed
      */
     RK_U32  eos;
+    RK_U32  info_change;
 
     MppFrameColorRange color_range;
     MppFrameColorPrimaries color_primaries;
