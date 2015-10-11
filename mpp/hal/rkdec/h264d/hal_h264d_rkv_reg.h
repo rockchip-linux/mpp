@@ -16,13 +16,13 @@
 */
 
 
-#ifndef __HAL_H264D_REG_H__
-#define __HAL_H264D_REG_H__
+#ifndef __HAL_H264D_RKV_REG_H__
+#define __HAL_H264D_RKV_REG_H__
 
 #include "mpp_hal.h"
 
 
-typedef struct h264_regs_t {
+typedef struct h264d_rkv_regs_t {
     struct {
         RK_U32    minor_ver : 8;
         RK_U32    level : 1;
@@ -215,7 +215,7 @@ typedef struct h264_regs_t {
         RK_U32 reserve : 2;
     } swreg77_h264_error_e;
     RK_U32 compare_len;
-} H264_REGS_t;
+} H264_RkvRegs_t;
 
 
 
@@ -225,10 +225,17 @@ extern "C" {
 
 extern const RK_U8 H264_Cabac_table[];
 
-
+MPP_RET rkv_h264d_init    (void *hal, MppHalCfg *cfg);
+MPP_RET rkv_h264d_deinit  (void *hal);
+MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task);
+MPP_RET rkv_h264d_start   (void *hal, HalTaskInfo *task);
+MPP_RET rkv_h264d_wait    (void *hal, HalTaskInfo *task);
+MPP_RET rkv_h264d_reset   (void *hal);
+MPP_RET rkv_h264d_flush   (void *hal);
+MPP_RET rkv_h264d_control (void *hal, RK_S32 cmd_type, void *param);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__HAL_H264D_REG_H__*/
+#endif /* __HAL_H264D_RKV_REG_H__ */

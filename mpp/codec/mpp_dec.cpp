@@ -329,6 +329,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             MPP_CTX_DEC,
             coding,
             HAL_MODE_LIBVPU,
+            HAL_HARD_RKVDEC,
             frame_slots,
             packet_slots,
             NULL,
