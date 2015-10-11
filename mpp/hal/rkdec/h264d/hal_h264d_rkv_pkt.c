@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_h264d_packet"
+#define MODULE_TAG "hal_h264d_rkv_pkt"
 
 #include <stdio.h>
 #include <string.h>
@@ -28,8 +28,9 @@
 #include "h264d_syntax.h"
 #include "hal_h264d_fifo.h"
 #include "hal_h264d_api.h"
-#include "hal_h264d_packet.h"
 #include "hal_h264d_global.h"
+#include "hal_h264d_rkv_pkt.h"
+#include "hal_h264d_rkv_reg.h"
 
 //!< Header
 #define     H264dREG_HEADER    0x48474552
@@ -129,7 +130,7 @@ static void write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void reset_fifo_packet(H264_FifoPkt_t *pkt)
+void reset_fifo_packet(H264dRkvPkt_t *pkt)
 {
     if (pkt) {
         fifo_packet_reset(&pkt->spspps);
@@ -147,7 +148,7 @@ void reset_fifo_packet(H264_FifoPkt_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void free_fifo_packet(H264_FifoPkt_t *pkt)
+void free_fifo_packet(H264dRkvPkt_t *pkt)
 {
     if (pkt) {
         MPP_FREE(pkt->spspps.pbuf);
@@ -163,7 +164,7 @@ void free_fifo_packet(H264_FifoPkt_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET alloc_fifo_packet(H264dLogCtx_t *logctx, H264_FifoPkt_t *pkts)
+MPP_RET alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     LogCtx_t *log_driver = NULL;
@@ -376,9 +377,9 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
     RK_U32 pic_h[3] = { 0 }, pic_w[3] = { 0 };
     RK_U32 mb_width = 0, mb_height = 0, mv_size = 0;
 
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    H264_REGS_t *p_regs = p_hal->regs;
-    memset(p_regs, 0, sizeof(H264_REGS_t));
+    H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
+    H264_RkvRegs_t *p_regs = (H264_RkvRegs_t *)p_hal->regs;
+    memset(p_regs, 0, sizeof(H264_RkvRegs_t));
 
     if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
         p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
@@ -458,7 +459,7 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
     }
 
     fifo_packet_reset(pkt);
-    fifo_write_bytes(pkt, (void *)p_hal->regs,       sizeof(H264_REGS_t));
+    fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264_RkvRegs_t));
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
