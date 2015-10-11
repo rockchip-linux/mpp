@@ -251,7 +251,10 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
         status.hal_use++;
     } break;
     case SLOT_CLR_HAL_INPUT : {
-        status.hal_use--;
+        if (status.hal_use)
+            status.hal_use--;
+        else
+            mpp_err("can not clr hal_input on slot %d\n", slot->index);
     } break;
     case SLOT_SET_HAL_OUTPUT : {
         status.hal_output = 1;
@@ -268,7 +271,10 @@ static void slot_ops_with_log(mpp_list *logs, MppBufSlotEntry *slot, MppBufSlotO
     } break;
     case SLOT_CLR_QUEUE_USE :
     case SLOT_DEQUEUE : {
-        status.queue_use--;
+        if (status.queue_use)
+            status.queue_use--;
+        else
+            mpp_err("can not clr queue_use on slot %d\n", slot->index);
     } break;
     case SLOT_SET_EOS : {
         status.eos = 1;
