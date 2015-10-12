@@ -154,9 +154,12 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     length  = mpp_packet_get_length(pkt);
     if (length > p->stream_size) {
         mpp_realloc(p->stream, RK_U8, length);
+        mpp_packet_set_data(p->task_pkt, p->stream);
+        p->stream_size = length;
     }
     if (p->stream) {
         memcpy(p->stream, data, length);
+        mpp_packet_set_length(p->task_pkt, length);
         task->input_packet = p->task_pkt;
     } else {
         mpp_err("failed to found task buffer for hardware\n");
