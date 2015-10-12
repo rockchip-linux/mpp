@@ -98,6 +98,10 @@ public:
     MppCtxType      mType;
     MppCodingType   mCoding;
 
+    RK_U32          mPacketBlock;
+    RK_U32          mFrameBlock;
+    RK_U32          mMultiFrame;
+
     RK_U32          mStatus;
 
     MppDec          *mDec;

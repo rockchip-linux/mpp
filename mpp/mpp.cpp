@@ -51,6 +51,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mThreadHal(NULL),
       mType(type),
       mCoding(coding),
+      mPacketBlock(0),
+      mFrameBlock(0),
+      mMultiFrame(0),
       mStatus(0),
       mDec(NULL),
       mEnc(NULL)
@@ -177,7 +180,8 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
     if (0 == mFrames->list_size()) {
         mThreadCodec->signal();
-        mFrames->wait();
+        if (mFrameBlock)
+            mFrames->wait();
     }
 
     if (mFrames->list_size()) {
@@ -185,14 +189,16 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         mFrameGetCount++;
         mThreadHal->signal();
 
-        MppFrame prev = first;
-        MppFrame next = NULL;
-        while (mFrames->list_size()) {
-            mFrames->del_at_head(&next, sizeof(frame));
-            mFrameGetCount++;
-            mThreadHal->signal();
-            mpp_frame_set_next(prev, next);
-            prev = next;
+        if (mMultiFrame) {
+            MppFrame prev = first;
+            MppFrame next = NULL;
+            while (mFrames->list_size()) {
+                mFrames->del_at_head(&next, sizeof(frame));
+                mFrameGetCount++;
+                mThreadHal->signal();
+                mpp_frame_set_next(prev, next);
+                prev = next;
+            }
         }
     }
     *frame = first;
