@@ -4,9 +4,9 @@ include_directories(.)
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
-add_library(mpp_legacy SHARED
+add_library(mpp_legacy SHARED STATIC
     vpu_api.cpp
     vpu_api_legacy.cpp
     )
-set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy") 
+set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy")
 target_link_libraries(mpp_legacy mpp osal)
