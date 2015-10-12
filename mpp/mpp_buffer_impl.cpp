@@ -95,18 +95,6 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     return MPP_OK;
 }
 
-static MPP_RET check_buffer_group_limit(MppBufferGroupImpl *group)
-{
-    if (group->usage > group->limit) {
-        MppBufferImpl *pos, *n;
-        list_for_each_entry_safe(pos, n, &group->list_unused, MppBufferImpl, list_status) {
-            deinit_buffer_no_lock(pos);
-        }
-    }
-
-    return (group->usage > group->limit) ? (MPP_NOK) : (MPP_OK);
-}
-
 static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
 {
     MPP_RET ret = MPP_OK;
@@ -215,7 +203,6 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
             list_add_tail(&buffer->list_status, &group->list_unused);
             group->count_used--;
             group->count_unused++;
-            check_buffer_group_limit(group);
         }
     }
 
