@@ -46,6 +46,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet);
 void    mpp_packet_set_data(MppPacket packet, void *data);
 void    mpp_packet_set_size(MppPacket packet, size_t size);
 void    mpp_packet_set_pos(MppPacket packet, void *pos);
+void    mpp_packet_set_length(MppPacket packet, size_t size);
 
 void*   mpp_packet_get_data(const MppPacket packet);
 void*   mpp_packet_get_pos(const MppPacket packet);
