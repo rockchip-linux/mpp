@@ -74,6 +74,12 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu_h264d_reset;
         p_api->flush   = vdpu_h264d_flush;
         p_api->control = vdpu_h264d_control;
+
+
+
+
+
+
     default:
         break;
     }

@@ -425,10 +425,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             }
             if (curtask->valid) {
                 HalTaskInfo syn;
+                MppBuffer buffer = NULL;
                 syn.dec = *curtask;
                 index = curtask->output;
 
-                MppBuffer buffer = NULL;
                 mpp_err("frame get unused");
                 mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
                 if (NULL == buffer) {

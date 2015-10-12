@@ -270,10 +270,12 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
     MppBuffer streambuf = NULL;
     RK_S32 i, count = 0;
     RK_U32 position = 0;
+    RK_U8 *ptr = NULL;
+    RK_U8 *current = NULL;
     // mpp_err("input_index = %d",input_index);
     mpp_buf_slot_get_prop(h->packet_slots, input_index, SLOT_BUFFER, &streambuf);
-    RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
-    RK_U8 *current = ptr;
+    ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
+    current = ptr;
     if (current == NULL) {
         return MPP_ERR_NULL_PTR;
     }

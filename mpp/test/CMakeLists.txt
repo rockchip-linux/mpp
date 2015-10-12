@@ -32,4 +32,12 @@ if(H264D_TEST)
     install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
 endif()
 
-
+# vp9 decoder test
+option(VP9D_TEST "Build mpp vp9 decoder unit test" ON)
+if(VP9D_TEST)
+	set(test_name vp9d_test)
+    add_executable(${test_name} ${test_name}.c)
+    target_link_libraries(${test_name} mpp)
+    set_target_properties(${test_name} PROPERTIES FOLDER "mpp/test") 
+    install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
+endif()
