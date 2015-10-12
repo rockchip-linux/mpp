@@ -36,6 +36,9 @@ typedef struct DummyDec_t {
     size_t          stream_size;
     MppPacket       task_pkt;
 
+    RK_S64          task_pts;
+    RK_U32          task_eos;
+
     RK_U32          slots_inited;
     RK_U32          frame_count;
     RK_S32          prev_index;
@@ -130,11 +133,6 @@ MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
 MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 {
     DummyDec *p;
-    RK_S32 output;
-    MppFrame frame;
-    RK_U32 frame_count;
-    MppBufSlots slots;
-    RK_S32 i;
     RK_U8 *data;
     size_t length;
 
@@ -144,10 +142,12 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     }
 
     p = (DummyDec *)dec;
-    // do packet decoding here
 
-    slots = p->frame_slots;
-    frame_count = p->frame_count;
+    /***********************************
+     * do packet prepare here
+     ***********************************/
+    p->task_pts = mpp_packet_get_pts(pkt);
+    p->task_eos = mpp_packet_get_eos(pkt);
 
     // set pos to indicate that buffer is done
     data    = mpp_packet_get_data(pkt);
@@ -160,13 +160,36 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     if (p->stream) {
         memcpy(p->stream, data, length);
         mpp_packet_set_length(p->task_pkt, length);
-        task->input_packet = p->task_pkt;
     } else {
         mpp_err("failed to found task buffer for hardware\n");
         return MPP_ERR_UNKNOW;
     }
     mpp_packet_set_pos(pkt, data + length);
 
+    /*
+     * this step will enable the task and goto parse stage
+     */
+    task->input_packet = p->task_pkt;
+    task->valid     = 1;
+    return MPP_OK;
+}
+MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
+{
+    DummyDec *p;
+    RK_S32 output;
+    MppFrame frame;
+    RK_U32 frame_count;
+    MppBufSlots slots;
+    RK_S32 i;
+
+    if (NULL == dec) {
+        mpp_err_f("found NULL intput\n");
+        return MPP_ERR_NULL_PTR;
+    }
+    p = (DummyDec *)dec;
+
+    slots = p->frame_slots;
+    frame_count = p->frame_count;
     /*
      * set slots information
      * 1. output index MUST be set
@@ -181,7 +204,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     }
 
     mpp_frame_init(&frame);
-    mpp_frame_set_pts(frame, mpp_packet_get_pts(pkt));
+    mpp_frame_set_pts(frame, p->task_pts);
     mpp_buf_slot_get_unused(slots, &output);
     mpp_buf_slot_set_flag(slots, output, SLOT_HAL_OUTPUT);
     mpp_buf_slot_set_prop(slots, output, SLOT_FRAME, frame);
@@ -194,7 +217,6 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
      * 2. set output slot index
      * 3. set reference slot index
      */
-    task->valid     = 1;
     task->output    = output;
 
     memset(&task->refer, -1, sizeof(task->refer));
@@ -214,7 +236,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     mpp_buf_slot_enqueue(slots, output, QUEUE_DISPLAY);
 
     // add new reference buffer
-    if (mpp_packet_get_eos(pkt)) {
+    if (p->task_eos) {
         for (i = 0; i < DUMMY_DEC_REF_COUNT; i++) {
             mpp_buf_slot_clr_flag(slots, p->slot_index[i], SLOT_CODEC_USE);
             p->slot_index[i] = -1;
@@ -232,13 +254,6 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     if (frame_count >= DUMMY_DEC_REF_COUNT)
         frame_count = 0;
     p->frame_count = frame_count;
-
-    return MPP_OK;
-}
-MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
-{
-    (void)dec;
-    (void)task;
 
     return MPP_OK;
 }
