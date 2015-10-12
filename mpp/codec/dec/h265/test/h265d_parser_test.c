@@ -458,7 +458,6 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 RK_U32 index;
                 ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
                 if (ret == MPP_OK) {
-                    mpp_log("get_display for ");
                     mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
                     if (frame) {
     #if 1//def DUMP
@@ -492,7 +491,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
 
     if (-1 != curtask->input) {
         MppBuffer buffer = NULL;
+        mpp_buf_slot_set_flag(packet_slots, curtask->input, SLOT_CODEC_READY);
+        mpp_buf_slot_set_flag(packet_slots, curtask->input, SLOT_HAL_INPUT);
         mpp_buf_slot_get_prop(packet_slots, curtask->input, SLOT_BUFFER, &buffer);
+        mpp_buf_slot_clr_flag(packet_slots, curtask->input, SLOT_HAL_INPUT);
         mpp_err("mpp_buf_slot free for last packet %p",buffer);
         mpp_buffer_put(buffer);
     }
@@ -502,13 +504,14 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         RK_U32 index;
         ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
         if (ret == MPP_OK) {
-            mpp_log("get_display for ");
-        }
-        mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
-        if (frame) {
-            mpp_frame_deinit(&frame);
-        }
-        mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
+            mpp_log("get_display for index = %d",index);
+            mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
+            if (frame) {
+                mpp_frame_deinit(&frame);
+            }
+            mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
+       }
+
     } while (ret == MPP_OK);
 
     if (mpp_codex_ctx != NULL) {

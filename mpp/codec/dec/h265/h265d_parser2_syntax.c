@@ -158,7 +158,7 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->log2_parallel_merge_level_minus2 = pps->log2_parallel_merge_level - 2;
     pp->CurrPicOrderCntVal               = h->poc;
 
-    mpp_err("fill RefPicList from the DPB");
+   // mpp_err("fill RefPicList from the DPB");
     // fill RefPicList from the DPB
     for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefPicList); i++) {
         const HEVCFrame *frame = NULL;
@@ -270,7 +270,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
     MppBuffer streambuf = NULL;
     RK_S32 i, count = 0;
     RK_U32 position = 0;
-    mpp_err("input_index = %d",input_index);
+   // mpp_err("input_index = %d",input_index);
     mpp_buf_slot_get_prop(h->packet_slots, input_index, SLOT_BUFFER, &streambuf);
     RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
     RK_U8 *current = ptr;
@@ -303,7 +303,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
         current += start_code_size;
         position += start_code_size;
         memcpy(current, h->nals[i].data, h->nals[i].size);
-        mpp_log("h->nals[%d].size = %d", i, h->nals[i].size);
+       // mpp_log("h->nals[%d].size = %d", i, h->nals[i].size);
         fill_slice_short(&ctx_pic->slice_short[count], position, h->nals[i].size);
         current += h->nals[i].size;
         position += h->nals[i].size;

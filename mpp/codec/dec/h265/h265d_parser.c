@@ -268,17 +268,17 @@ RK_S32 h265d_split_frame(void *sc,
     return next;
 }
 
-RK_S32 h265d_split_flush(void *sc)
+RK_S32 h265d_split_reset(void *sc)
 {
+    RK_U8 *buf = NULL;
+    RK_U32 size = 0;
     SplitContext_t *s = (SplitContext_t*)sc;
-    s->index = 0;
-    s->last_index = 0;
-    s->state = 0;
-    s->frame_start_found = 0;
-    s->overread = 0;
-    s->overread_index = 0;
-    s->state64 = 0;
-
+    buf = s->buffer;
+    size = s->buffer_size;
+    s->fetch_timestamp = 1;
+    memset(s,0,sizeof(SplitContext_t));
+    s->buffer = buf;
+    s->buffer_size = size;
     return MPP_OK;
 }
 
@@ -474,7 +474,7 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->h265dctx->height              = sps->output_height;
     s->h265dctx->pix_fmt             = sps->pix_fmt;
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
-    mpp_buf_slot_setup(s->slots, 22, s->h265dctx->coded_width * s->h265dctx->coded_height * 7 / 4 , 0);
+    mpp_buf_slot_setup(s->slots, 25, s->h265dctx->coded_width * s->h265dctx->coded_height * 7 / 4 , 0);
 
     if (sps->vui.video_signal_type_present_flag)
         s->h265dctx->color_range = sps->vui.video_full_range_flag ? MPPCOL_RANGE_JPEG
@@ -1339,7 +1339,7 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
     si = di = i;
     while (si + 2 < length) {
         // remove escapes (very rare 1:2^22)
-        if (src[si + 2] > 3) {
+        if (src[si + 2] >= 3) {
             dst[di++] = src[si++];
             dst[di++] = src[si++];
         } else if (src[si] == 0 && src[si + 1] == 0) {
@@ -1651,14 +1651,18 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
         }
         return ret;
     }
-    mpp_err("decode poc = %d", s->poc);
+    h265d_dbg(H265D_DBG_GLOBAL,"decode poc = %d", s->poc);
     if (s->ref) {
         h265d_parser2_syntax(h265dctx);
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
         if (s->eos) {
-            s->task->eos = 1;
+            s->task->flags |= MPP_PACKET_FLAG_EOS;
+        }
+    }else{
+        if(s->eos){
+            h265d_flush(ctx);
         }
     }
 #if 0
@@ -1835,6 +1839,7 @@ MPP_RET h265d_reset(void *ctx)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     mpp_hevc_flush_dpb(s);
+    h265d_split_reset(h265dctx->split_cxt);
     s->max_ra = INT_MAX;
     return MPP_OK;
 }

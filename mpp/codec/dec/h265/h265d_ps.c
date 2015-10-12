@@ -1527,7 +1527,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     }
 
     READ_ONEBIT(gb, &sublayer_ordering_info);
-
+    h265d_dbg(H265D_DBG_SPS,"read bit left %d",gb->num_remaining_bits_in_curr_byte_ + gb->bytes_left_*8);
     start = sublayer_ordering_info ? 0 : sps->max_sub_layers - 1;
     for (i = start; i < sps->max_sub_layers; i++) {
         READ_UE(gb, &sps->temporal_layer[i].max_dec_pic_buffering) ;
@@ -1560,20 +1560,32 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         }
     }
 
+    h265d_dbg(H265D_DBG_SPS,"2 read bit left %d",gb->num_remaining_bits_in_curr_byte_ + gb->bytes_left_*8);
     READ_UE(gb, &sps->log2_min_cb_size) ;
     sps->log2_min_cb_size += 3;
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_min_cb_size %d",sps->log2_min_cb_size);
     READ_UE(gb, &sps->log2_diff_max_min_coding_block_size);
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_diff_max_min_coding_block_size %d",sps->log2_diff_max_min_coding_block_size);
     READ_UE(gb, &sps->log2_min_tb_size);
     sps->log2_min_tb_size += 2;
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_min_tb_size %d",sps->log2_min_tb_size);
     READ_UE(gb, &log2_diff_max_min_transform_block_size);
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_diff_max_min_transform_block_size %d",log2_diff_max_min_transform_block_size);
     sps->log2_max_trafo_size                 = log2_diff_max_min_transform_block_size +
                                                sps->log2_min_tb_size;
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_max_trafo_size %d",sps->log2_max_trafo_size);
 
     if (sps->log2_min_tb_size >= sps->log2_min_cb_size) {
         mpp_err( "Invalid value for log2_min_tb_size");
         ret =  MPP_ERR_STREAM;
         goto err;
     }
+
     READ_UE(gb, &sps->max_transform_hierarchy_depth_inter);
     READ_UE(gb, &sps->max_transform_hierarchy_depth_intra);
 
@@ -1592,9 +1604,14 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 
         s->scaling_list_listen[sps_id] = 1;
     }
+
     READ_ONEBIT(gb, &sps->amp_enabled_flag);
     READ_ONEBIT(gb, &sps->sao_enabled);
     READ_ONEBIT(gb, &sps->pcm_enabled_flag);
+
+    h265d_dbg(H265D_DBG_SPS,"sps->amp_enabled_flag = %d", sps->amp_enabled_flag);
+    h265d_dbg(H265D_DBG_SPS,"sps->sao_enabled = %d", sps->sao_enabled);
+     h265d_dbg(H265D_DBG_SPS,"sps->pcm_enabled_flag = %d", sps->pcm_enabled_flag);
 
     if (sps->pcm_enabled_flag) {
         READ_BITS(gb, 4, &sps->pcm.bit_depth);
@@ -1637,12 +1654,15 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             READ_ONEBIT(gb, &sps->used_by_curr_pic_lt_sps_flag[i]);
         }
     }
+
     READ_ONEBIT(gb, &sps->sps_temporal_mvp_enabled_flag);
+
 #ifdef REF_IDX_MFM
     if (s->nuh_layer_id > 0)
         READ_ONEBIT(gb, &sps->set_mfm_enabled_flag);
 #endif
     READ_ONEBIT(gb, &sps->sps_strong_intra_smoothing_enable_flag);
+
     sps->vui.sar.num = 0;
     sps->vui.sar.den = 1;
     READ_ONEBIT(gb, &vui_present);
@@ -1703,6 +1723,10 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     s->h265dctx->height = sps->height;
     // Inferred parameters
     sps->log2_ctb_size = sps->log2_min_cb_size + sps->log2_diff_max_min_coding_block_size;
+
+    h265d_dbg(H265D_DBG_SPS,"sps->log2_min_cb_size = %d sps->log2_diff_max_min_coding_block_size = %d",sps->log2_min_cb_size,sps->log2_diff_max_min_coding_block_size);
+
+    h265d_dbg(H265D_DBG_SPS,"plus sps->log2_ctb_size %d",sps->log2_ctb_size);
     sps->log2_min_pu_size = sps->log2_min_cb_size - 1;
 
     sps->ctb_width  = (sps->width  + (1 << sps->log2_ctb_size) - 1) >> sps->log2_ctb_size;
@@ -1738,6 +1762,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
                  sps->max_transform_hierarchy_depth_intra);
         goto err;
     }
+     h265d_dbg(H265D_DBG_SPS,"sps->log2_ctb_size %d",sps->log2_ctb_size);
     if (sps->log2_max_trafo_size > (RK_U32)MPP_MIN(sps->log2_ctb_size, 5)) {
         mpp_err(
             "max transform block size out of range: %d\n",
@@ -1747,13 +1772,13 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     if (s->h265dctx->compare_info != NULL) {
     CurrentFameInf_t *info = (CurrentFameInf_t *)s->h265dctx->compare_info;
     HEVCSPS *openhevc_sps = (HEVCSPS *)&info->sps[sps_id];
-
+    mpp_log("compare sps in");
     if (compare_sps(openhevc_sps, (HEVCSPS *)sps_buf) < 0) {
         mpp_err("compare sps with openhevc error found");
         mpp_assert(0);
         return -1;
     }
-
+    mpp_log("compare sps ok");
     }
 #if 0
     if (s->h265dctx->debug & FF_DEBUG_BITSTREAM) {
