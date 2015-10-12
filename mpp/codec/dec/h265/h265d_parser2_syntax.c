@@ -272,12 +272,28 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
     RK_U32 position = 0;
     RK_U8 *ptr = NULL;
     RK_U8 *current = NULL;
+    RK_U32 size = 0, length = 0;
     // mpp_err("input_index = %d",input_index);
+    if (-1 != input_index) {
     mpp_buf_slot_get_prop(h->packet_slots, input_index, SLOT_BUFFER, &streambuf);
-    ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
-    current = ptr;
+        current = ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
     if (current == NULL) {
         return MPP_ERR_NULL_PTR;
+        }
+    } else {
+        RK_S32 buff_size = 0;
+        current = mpp_packet_get_data(h->input_packet);
+        size = mpp_packet_get_size(h->input_packet);
+        for (i = 0; i < h->nb_nals; i++) {
+            length += h->nals[i].size;
+        }
+        if (length > size) {
+            mpp_free(current);
+            buff_size = length + 10 * 1024;
+            current = mpp_malloc(RK_U8, buff_size);
+            mpp_packet_set_data(h->input_packet, (void*)current);
+            mpp_packet_set_size(h->input_packet, buff_size);
+        }
     }
     for (i = 0; i < h->nb_nals; i++) {
         static const RK_U8 start_code[] = {0, 0, 1 };
@@ -313,10 +329,15 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
     }
     ctx_pic->slice_count    = count;
     ctx_pic->bitstream_size = position;
+    if (-1 != input_index) {
     ctx_pic->bitstream      = (RK_U8*)ptr;
 
     mpp_buf_slot_set_flag(h->packet_slots, input_index, SLOT_CODEC_READY);
     mpp_buf_slot_set_flag(h->packet_slots, input_index, SLOT_HAL_INPUT);
+    } else {
+        ctx_pic->bitstream = NULL;
+        mpp_packet_set_length(h->input_packet, position);
+    }
     return MPP_OK;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;

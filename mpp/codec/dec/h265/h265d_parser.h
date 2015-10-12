@@ -691,6 +691,7 @@ typedef struct HEVCContext {
     MppBufSlots packet_slots;
     HalDecTask *task;
 
+    MppPacket input_packet;
     void *hal_pic_private;
 
     RK_S64 pts;
