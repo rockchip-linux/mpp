@@ -244,6 +244,8 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mOutputBlock = block;
         break;
     }
+    default : {
+    } break;
     }
     return MPP_OK;
 }
