@@ -110,7 +110,7 @@ int main()
 
     count = MPP_BUFFER_TEST_NORMAL_COUNT;
 
-    mpp_buffer_group_limit_config(group, size, count);
+    mpp_buffer_group_limit_config(group, 0, count);
 
     for (i = 0; i < count; i++) {
         ret = mpp_buffer_get(group, &normal_buffer[i], (i + 1) * SZ_1K);
