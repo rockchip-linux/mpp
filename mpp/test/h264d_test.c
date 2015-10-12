@@ -94,7 +94,7 @@ static MPP_RET decoder_init(MppDec *pApi)
     hal_cfg.type = MPP_CTX_DEC;
     hal_cfg.coding = pApi->coding;
     hal_cfg.work_mode = HAL_MODE_LIBVPU;
-    hal_cfg.hard_mode = HAL_HARD_RKVDEC;
+    hal_cfg.device_id = HAL_RKVDEC;
     hal_cfg.frame_slots = pApi->frame_slots;
     hal_cfg.packet_slots = pApi->packet_slots;
     hal_cfg.task_count = parser_cfg.task_count;

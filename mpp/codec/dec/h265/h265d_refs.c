@@ -88,7 +88,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         if (ret != MPP_OK) {
             goto fail;
         }
-        h265d_dbg(H265D_DBG_GLOBAL,"width = %d height = %d", s->h265dctx->width, s->h265dctx->height);
+        h265d_dbg(H265D_DBG_GLOBAL, "width = %d height = %d", s->h265dctx->width, s->h265dctx->height);
         mpp_frame_set_width(frame->frame, s->h265dctx->width);
         mpp_frame_set_height(frame->frame, s->h265dctx->height);
 

@@ -332,7 +332,7 @@ void *mpp_dec_hal_thread(void *data)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
 
-            if (task_dec->eos) {
+            if (task_dec->flags.eos) {
                 mpp_dec_flush(dec);
             }
 
@@ -380,7 +380,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             break;
         }
 
-        mpp_buf_slot_setup(packet_slots,2, SZ_512K, 0);
+        mpp_buf_slot_setup(packet_slots, 2, SZ_512K, 0);
 
         ParserCfg parser_cfg = {
             coding,
