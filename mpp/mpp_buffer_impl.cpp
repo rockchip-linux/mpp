@@ -138,8 +138,14 @@ MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
         mpp_err_f("can not create buffer without group\n");
         return MPP_NOK;
     }
+
     if (group->limit_count && group->count >= group->limit_count) {
         mpp_err_f("reach group count limit %d\n", group->limit_count);
+        return MPP_NOK;
+    }
+
+    if (group->limit_size && info->size > group->limit_size) {
+        mpp_err_f("required size %d reach group size limit %d\n", info->size, group->limit_size);
         return MPP_NOK;
     }
 
