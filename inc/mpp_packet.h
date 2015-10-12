@@ -41,7 +41,9 @@ MPP_RET mpp_packet_deinit(MppPacket *packet);
  * data   : ( R/W ) start address of the whole packet memory
  * size   : ( R/W ) total size of the whole packet memory
  * pos    : ( R/W ) current access position of the whole packet memory, used for buffer read/write
- * length : ( R   ) the rest length from current position to end of buffer, read only
+ * length : ( R/W ) the rest length from current position to end of buffer
+ *                  NOTE: normally length is updated only by set_pos,
+ *                        so set length must be used carefully for special usage
  */
 void    mpp_packet_set_data(MppPacket packet, void *data);
 void    mpp_packet_set_size(MppPacket packet, size_t size);
