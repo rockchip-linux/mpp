@@ -131,46 +131,48 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info)
 {
+    Mutex::Autolock auto_lock(&service.mLock);
+
+    MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
+    if (NULL == group) {
+        mpp_err_f("can not create buffer without group\n");
+        return MPP_NOK;
+    }
+    if (group->limit_count && group->count >= group->limit_count) {
+        mpp_err_f("reach group count limit %d\n", group->limit_count);
+        return MPP_NOK;
+    }
+
     MppBufferImpl *p = mpp_calloc(MppBufferImpl, 1);
     if (NULL == p) {
         mpp_err_f("failed to allocate context\n");
         return MPP_ERR_MALLOC;
     }
 
-    Mutex::Autolock auto_lock(&service.mLock);
-
-    MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
-    if (group) {
-        BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
-                        (group->alloc_api->alloc) :
-                        (group->alloc_api->import);
-        MPP_RET ret = func(group->allocator, info);
-        if (MPP_OK != ret) {
-            mpp_err_f("failed to create buffer with size %d\n", info->size);
-            mpp_free(p);
-            return MPP_ERR_MALLOC;
-        }
-
-        p->info = *info;
-        p->mode = group->mode;
-
-        if (NULL == tag)
-            tag = group->tag;
-
-        strncpy(p->tag, tag, sizeof(p->tag));
-        p->group_id = group_id;
-        INIT_LIST_HEAD(&p->list_status);
-        list_add_tail(&p->list_status, &group->list_unused);
-        group->usage += info->size;
-        group->count++;
-        group->count_unused++;
-    } else {
-        mpp_err_f("can not create buffer without group\n");
+    BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
+                    (group->alloc_api->alloc) :
+                    (group->alloc_api->import);
+    MPP_RET ret = func(group->allocator, info);
+    if (MPP_OK != ret) {
+        mpp_err_f("failed to create buffer with size %d\n", info->size);
         mpp_free(p);
-        p = NULL;
+        return MPP_ERR_MALLOC;
     }
 
-    return (p) ? (MPP_OK) : (MPP_NOK);
+    p->info = *info;
+    p->mode = group->mode;
+
+    if (NULL == tag)
+        tag = group->tag;
+
+    strncpy(p->tag, tag, sizeof(p->tag));
+    p->group_id = group_id;
+    INIT_LIST_HEAD(&p->list_status);
+    list_add_tail(&p->list_status, &group->list_unused);
+    group->usage += info->size;
+    group->count++;
+    group->count_unused++;
+    return MPP_OK;
 }
 
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
