@@ -267,10 +267,10 @@ void *mpp_dec_parser_thread(void *data)
         prev_task_done   = 0;
         hal_task_info_init(&task_local, MPP_CTX_DEC);
     }
-    if (NULL != task) {
+
+    if (NULL != task && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
-        mpp_buf_slot_get_prop(packet_slots, task_dec->input, SLOT_BUFFER, &buffer);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         if (buffer)
             mpp_buffer_put(buffer);
