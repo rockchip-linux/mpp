@@ -143,9 +143,11 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 
     p = (DummyDec *)dec;
 
-    /***********************************
+    /*********************************************************************
      * do packet prepare here
-     ***********************************/
+     * including connet nals into a big buffer, setup packet for task copy
+     * pts/eos record
+     *********************************************************************/
     p->task_pts = mpp_packet_get_pts(pkt);
     p->task_eos = mpp_packet_get_eos(pkt);
 
@@ -170,7 +172,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
      * this step will enable the task and goto parse stage
      */
     task->input_packet = p->task_pkt;
-    task->valid     = 1;
+    task->valid = 1;
     return MPP_OK;
 }
 MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
@@ -190,23 +192,32 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
 
     slots = p->frame_slots;
     frame_count = p->frame_count;
-    /*
-     * set slots information
-     * 1. output index MUST be set
-     * 2. get unused index for output if needed
-     * 3. set output index as decoding
-     * 4. set pts to output index
-     * 5. if one frame can be display, it SHOULD be set display
-     */
     if (!p->slots_inited) {
         mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE, 0);
         p->slots_inited = 1;
     }
 
-    mpp_frame_init(&frame);
-    mpp_frame_set_pts(frame, p->task_pts);
+    if (task->prev_status) {
+        /*
+         * if previous task has error happened mark the previous frame to be error
+         */
+        mpp_err("previous task error found\n");
+    }
+
+    /*
+     * set slots information
+     * 1. output index MUST be set
+     * 2. get unused index for output if needed
+     * 3. set output index as hal_input
+     * 4. set frame information to output index
+     * 5. if one frame can be display, it SHOULD be enqueued to display queue
+     */
     mpp_buf_slot_get_unused(slots, &output);
     mpp_buf_slot_set_flag(slots, output, SLOT_HAL_OUTPUT);
+    task->output = output;
+
+    mpp_frame_init(&frame);
+    mpp_frame_set_pts(frame, p->task_pts);
     mpp_buf_slot_set_prop(slots, output, SLOT_FRAME, frame);
     mpp_frame_deinit(&frame);
     mpp_assert(NULL == frame);
@@ -217,8 +228,6 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
      * 2. set output slot index
      * 3. set reference slot index
      */
-    task->output    = output;
-
     memset(&task->refer, -1, sizeof(task->refer));
     for (i = 0; i < DUMMY_DEC_REF_COUNT; i++) {
         RK_S32 index = p->slot_index[i];
@@ -271,3 +280,4 @@ const ParserApi dummy_dec_parser = {
     dummy_dec_flush,
     dummy_dec_control,
 };
+
