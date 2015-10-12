@@ -33,7 +33,7 @@
 #include "mpp_env.h"
 #include "h265d_syntax.h"
 #include "mpp_packet_impl.h"
-
+#include "h265d_api.h"
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
 
@@ -1610,6 +1610,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     if (MPP_OK == ret) {
         if (MPP_OK == h265d_syntax_fill_slice(s->h265dctx, task->input)) {
             task->valid = 1;
+            task->input_packet = s->input_packet;
         }
     }
     return ret;
@@ -1689,7 +1690,7 @@ MPP_RET h265d_deinit(void *ctx)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext       *s = h265dctx->priv_data;
     SplitContext_t *sc = h265dctx->split_cxt;
-
+    RK_U8 *buf = NULL;
     int i;
 
     for (i = 0; i < MAX_DPB_SIZE; i++) {
@@ -1719,6 +1720,10 @@ MPP_RET h265d_deinit(void *ctx)
 
     if (s->hal_pic_private) {
         mpp_free(s->hal_pic_private);
+    }
+    if (s->input_packet) {
+        buf = mpp_packet_get_data(s->input_packet);
+        mpp_free(buf);
     }
 
     if (s) {
@@ -1771,6 +1776,8 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     SplitContext_t *sc = (SplitContext_t*)h265dctx->split_cxt;
     RK_S32 ret;
+    RK_U8 *buf = NULL;
+    RK_S32 size = SZ_512K;
     if (s == NULL) {
         s = (HEVCContext*)mpp_calloc(HEVCContext, 1);
         if (s == NULL) {
@@ -1814,6 +1821,16 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
             return ret;
         }
     }
+
+    buf = mpp_malloc(RK_U8, size);
+
+    if (buf == NULL) {
+        return MPP_ERR_NOMEM;
+    }
+
+    if (MPP_OK != mpp_packet_init(&s->input_packet, (void*)buf, size)) {
+        return MPP_ERR_NOMEM;
+    }
 //   fp = fopen("dump1.bin", "wb+");
     return 0;
 }
@@ -1825,7 +1842,6 @@ MPP_RET h265d_flush(void *ctx)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     HEVCFrame *frame = NULL;
-    MppBuffer framebuf = NULL;
     do {
         ret = mpp_hevc_output_frame(ctx, 1);
     } while (ret);
