@@ -29,9 +29,11 @@ typedef enum MppHalType_e {
 
 
 typedef enum MppHalHardType_e {
-    HAL_HARD_RKVDEC,   //!< rock-chip h264 h265 vp9 combined decoder
-    HAL_HARD_VDPU,     //!< on2 combined decoder
-} HalHardMode;
+    HAL_VDPU,           //!< vpu combined decoder
+    HAL_VEPU,           //!< vpu combined encoder
+    HAL_RKVDEC,         //!< rock-chip h264 h265 vp9 combined decoder
+    HAL_DEVICE_BUTT,
+} HalDeviceId;
 
 
 typedef void*   MppHalCtx;
@@ -41,7 +43,7 @@ typedef struct MppHalCfg_t {
     MppCtxType      type;
     MppCodingType   coding;
     HalWorkMode     work_mode;
-    HalHardMode     hard_mode;
+    HalDeviceId     device_id;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
 
