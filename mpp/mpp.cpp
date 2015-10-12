@@ -70,7 +70,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_limit_config(mPacketGroup, 0, 4);
+        mpp_buffer_group_limit_config(mPacketGroup, 0, 2);
 
     } break;
     case MPP_CTX_ENC : {
@@ -224,6 +224,10 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         mPackets->del_at_head(packet, sizeof(packet));
         mPacketGetCount++;
     }
+    return MPP_OK;
+}
+MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
+{
     return MPP_OK;
 }
 
