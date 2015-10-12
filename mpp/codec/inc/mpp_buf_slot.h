@@ -122,7 +122,7 @@ extern "C" {
  */
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots);
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots);
-MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 changed);
+MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count, RK_U32 size, RK_U32 changed);
 RK_U32  mpp_buf_slot_is_changed(MppBufSlots slots);
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
 RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);

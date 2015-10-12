@@ -262,6 +262,9 @@ MPP_TEST_FAILED:
 
 int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     mpi_test();
     return 0;
 }

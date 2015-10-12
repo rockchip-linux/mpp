@@ -368,7 +368,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     memset(&curtask->refer, -1, sizeof(curtask->refer));
     curtask->input = -1;
     while (!feof(pInFile)) {
-        RK_U32 index;
+        RK_S32 index;
         RK_U8 *tmpbuf = buf;
         RK_U8 *pos = NULL;
 
@@ -455,7 +455,6 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             }
 
             do {
-                RK_U32 index;
                 ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
                 if (ret == MPP_OK) {
                     mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
@@ -501,7 +500,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
 
     h265d_flush((void*)mpp_codex_ctx);
     do {
-        RK_U32 index;
+        RK_S32 index;
         ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
         if (ret == MPP_OK) {
             mpp_log("get_display for index = %d", index);

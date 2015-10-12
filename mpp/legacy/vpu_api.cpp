@@ -263,7 +263,6 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
 static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S32 size)
 {
     MppBufferInfo info;
-    MPP_RET ret = MPP_OK;
 
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
     memset(&info, 0, sizeof(MppBufferInfo));
@@ -271,7 +270,7 @@ static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S
     info.fd = mem_hdl;
     info.size = size;
     p_mempool->size = size;
-    ret = mpp_buffer_commit(p_mempool->group, &info);
+    mpp_buffer_commit(p_mempool->group, &info);
     return mem_hdl;
 }
 

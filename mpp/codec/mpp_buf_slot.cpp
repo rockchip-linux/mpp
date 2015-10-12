@@ -187,7 +187,7 @@ struct MppBufSlotsImpl_t {
 
     // if slot changed, all will be hold until all slot is unused
     RK_U32              info_changed;
-    RK_U32              new_count;
+    RK_S32              new_count;
     RK_U32              new_size;
 
     // list for display
@@ -437,7 +437,7 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_U32 count, RK_U32 size, RK_U32 changed)
+MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count, RK_U32 size, RK_U32 changed)
 {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
@@ -624,7 +624,7 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
-    slot_assert(impl, (RK_U32)slot->index < impl->count);
+    slot_assert(impl, slot->index < impl->count);
     slot_ops_with_log(impl, slot, SLOT_DEQUEUE);
     impl->display_count++;
     *index = slot->index;
