@@ -649,6 +649,8 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     case SLOT_EOS: {
         RK_U32 eos = *(RK_U32*)val;
         slot->eos = eos;
+        if (slot->frame)
+            mpp_frame_set_eos(slot->frame, eos);
     } break;
     case SLOT_FRAME: {
         MppFrame frame = val;
@@ -657,6 +659,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             mpp_frame_init(&slot->frame);
 
         mpp_frame_copy(slot->frame, frame);
+        mpp_frame_set_eos(slot->frame, slot->eos);
     } break;
     case SLOT_BUFFER: {
         MppBuffer buffer = val;
