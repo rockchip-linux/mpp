@@ -166,9 +166,9 @@ void *mpp_dec_parser_thread(void *data)
 
         if (!pkt_buf_copyied) {
             MppBufferImpl *buf = (MppBufferImpl *)buffer;
-            void *src   = mpp_packet_get_data(task_dec->input_packet);
-            size_t size = mpp_packet_get_size(task_dec->input_packet);
-            memcpy(buf->info.ptr, src, size);
+            void *src = mpp_packet_get_data(task_dec->input_packet);
+            size_t length = mpp_packet_get_length(task_dec->input_packet);
+            memcpy(buf->info.ptr, src, length);
             mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
             mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
             pkt_buf_copyied = 1;
