@@ -130,7 +130,7 @@ MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
 MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 {
     DummyDec *p;
-    RK_U32 output;
+    RK_S32 output;
     MppFrame frame;
     RK_U32 frame_count;
     MppBufSlots slots;

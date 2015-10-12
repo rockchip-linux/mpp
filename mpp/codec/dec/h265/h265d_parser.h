@@ -563,7 +563,7 @@ typedef struct HEVCFrame {
      * A combination of HEVC_FRAME_FLAG_*
      */
     RK_U8 flags;
-    RK_U32 slot_index;
+    RK_S32 slot_index;
 } HEVCFrame;
 
 typedef struct HEVCNAL {
