@@ -138,19 +138,9 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
 {
     MPI_FUNCTION_ENTER();
     MpiImpl *p = (MpiImpl *)ctx;
-    switch (cmd) {
-    case MPP_DEC_SET_EXT_BUF_GROUP: {
-        mpp_log("mpi_control group %p", param);
-        p->ctx->mFrameGroup = (MppBufferGroup)param;
-        break;
-    }
-    default: {
-        break;
-    }
-    }
-
+    MPP_RET ret = p->ctx->control(cmd, param);
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MppApi mpp_api = {

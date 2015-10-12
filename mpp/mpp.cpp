@@ -51,8 +51,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mThreadHal(NULL),
       mType(type),
       mCoding(coding),
-      mPacketBlock(0),
-      mFrameBlock(0),
+      mOutputBlock(0),
       mMultiFrame(0),
       mStatus(0),
       mDec(NULL),
@@ -180,7 +179,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
     if (0 == mFrames->list_size()) {
         mThreadCodec->signal();
-        if (mFrameBlock)
+        if (mOutputBlock)
             mFrames->wait();
     }
 
@@ -220,6 +219,12 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
     Mutex::Autolock autoLock(mPackets->mutex());
+    if (0 == mPackets->list_size()) {
+        mThreadCodec->signal();
+        if (mOutputBlock)
+            mPackets->wait();
+    }
+
     if (mPackets->list_size()) {
         mPackets->del_at_head(packet, sizeof(packet));
         mPacketGetCount++;
@@ -228,6 +233,18 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 }
 MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 {
+    switch (cmd) {
+    case MPP_DEC_SET_EXT_BUF_GROUP: {
+        mpp_log("mpi_control group %p", param);
+        mFrameGroup = (MppBufferGroup)param;
+        break;
+    }
+    case MPP_SET_OUTPUT_BLOCK: {
+        RK_U32 block = *((RK_U32 *)param);
+        mOutputBlock = block;
+        break;
+    }
+    }
     return MPP_OK;
 }
 

@@ -62,6 +62,7 @@ typedef enum {
 typedef enum {
     MPP_CMD_BASE                        = 0,
     MPP_ENABLE_DEINTERLACE,
+    MPP_SET_OUTPUT_BLOCK,
 
     MPP_HAL_CMD_BASE                    = 0x10000,
 
