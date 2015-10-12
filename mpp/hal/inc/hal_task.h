@@ -73,11 +73,19 @@ typedef struct MppSyntax_t {
  *              |                      |      |
  *              +----------------------+ +----v----+
  */
+
+typedef union HalDecTaskFlag_t {
+    RK_U32          val;
+    struct {
+        RK_U32      eos         : 1;
+        RK_U32      info_change : 1;
+    };
+} HalDecTaskFlag;
+
 typedef struct HalDecTask_t {
     // set by parser to signal that it is valid
     RK_U32          valid;
-    RK_U32          eos;
-    RK_U32          info_change;
+    HalDecTaskFlag  flags;
 
     // current tesk protocol syntax information
     MppSyntax       syntax;

@@ -54,8 +54,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     p_api = &p_hal->hal_api;
     //!< choose hard mode
-    switch (cfg->hard_mode) {
-    case HAL_HARD_RKVDEC:
+    switch (cfg->device_id) {
+    case HAL_RKVDEC:
         p_api->init    = rkv_h264d_init;
         p_api->deinit  = rkv_h264d_deinit;
         p_api->reg_gen = rkv_h264d_gen_regs;
@@ -65,7 +65,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
         break;
-    case HAL_HARD_VDPU:
+    case HAL_VDPU:
         p_api->init    = vdpu_h264d_init;
         p_api->deinit  = vdpu_h264d_deinit;
         p_api->reg_gen = vdpu_h264d_gen_regs;
@@ -74,12 +74,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu_h264d_reset;
         p_api->flush   = vdpu_h264d_flush;
         p_api->control = vdpu_h264d_control;
-
-
-
-
-
-
     default:
         break;
     }

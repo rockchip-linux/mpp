@@ -199,8 +199,8 @@ void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off, RK_S32 remove)
             s->dts = s->cur_frame_dts[i];
             s->pts = s->cur_frame_pts[i];
             s->offset = s->next_frame_offset - s->cur_frame_offset[i];
-           /* if (remove)
-                s->cur_frame_offset[i] = INT64_MAX;*/
+            /* if (remove)
+                 s->cur_frame_offset[i] = INT64_MAX;*/
             if (s->cur_offset + off < s->cur_frame_end[i])
                 break;
         }
@@ -276,7 +276,7 @@ RK_S32 h265d_split_reset(void *sc)
     buf = s->buffer;
     size = s->buffer_size;
     s->fetch_timestamp = 1;
-    memset(s,0,sizeof(SplitContext_t));
+    memset(s, 0, sizeof(SplitContext_t));
     s->buffer = buf;
     s->buffer_size = size;
     return MPP_OK;
@@ -1616,7 +1616,8 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
 }
 
-MPP_RET h265d_get_stream(void *ctx, RK_U8 **buf, RK_S32 *size){
+MPP_RET h265d_get_stream(void *ctx, RK_U8 **buf, RK_S32 *size)
+{
     MPP_RET ret = MPP_OK;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = h265dctx->priv_data;
@@ -1625,7 +1626,8 @@ MPP_RET h265d_get_stream(void *ctx, RK_U8 **buf, RK_S32 *size){
     return ret;
 }
 
-MPP_RET h265d_set_compare_info(void *ctx, void *info){
+MPP_RET h265d_set_compare_info(void *ctx, void *info)
+{
     MPP_RET ret = MPP_OK;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     h265dctx->compare_info = info;
@@ -1651,17 +1653,17 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
         }
         return ret;
     }
-    h265d_dbg(H265D_DBG_GLOBAL,"decode poc = %d", s->poc);
+    h265d_dbg(H265D_DBG_GLOBAL, "decode poc = %d", s->poc);
     if (s->ref) {
         h265d_parser2_syntax(h265dctx);
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
         if (s->eos) {
-            s->task->flags |= MPP_PACKET_FLAG_EOS;
+            s->task->flags.eos = 1;
         }
-    }else{
-        if(s->eos){
+    } else {
+        if (s->eos) {
             h265d_flush(ctx);
         }
     }

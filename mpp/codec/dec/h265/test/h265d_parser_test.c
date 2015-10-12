@@ -315,7 +315,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     mpp_buf_slot_init(&slots);
 
     mpp_buf_slot_init(&packet_slots);
-    mpp_buf_slot_setup(packet_slots, 2, 1024*1024, 0);
+    mpp_buf_slot_setup(packet_slots, 2, 1024 * 1024, 0);
     if (NULL == slots) {
         mpp_err("could not init buffer slot\n");
         return MPP_ERR_UNKNOW;
@@ -376,7 +376,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_err("get nal len from file %d", nal_len);
         do {
             mpp_packet_init(&rkpkt, tmpbuf, nal_len);
-            if(-1 == curtask->input){
+            if (-1 == curtask->input) {
                 if (MPP_OK == mpp_buf_slot_get_unused(packet_slots, &index) ) {
                     MppBuffer buffer = NULL;
                     curtask->input = index;
@@ -388,10 +388,10 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                         mpp_err("mpp_buffer_get");
                         mpp_buffer_get(mStreamGroup, &buffer, size);
                         if (buffer != NULL)
-                            mpp_err("mpp_buf_slot_set_prop %p",buffer);
-                            mpp_buf_slot_set_prop(packet_slots, index, SLOT_BUFFER, buffer);
-                        }
+                            mpp_err("mpp_buf_slot_set_prop %p", buffer);
+                        mpp_buf_slot_set_prop(packet_slots, index, SLOT_BUFFER, buffer);
                     }
+                }
             }
             h265d_prepare(mpp_codex_ctx, rkpkt, curtask);
             pos = (RK_U8 *)mpp_packet_get_pos(rkpkt);
@@ -410,15 +410,15 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 curtask->valid = 0;
 #ifndef ANDROID
 #ifdef COMPARE
-                 mpp_err("hevc_decode_frame in \n");
-                 void *sliceInfo = NULL;
-                 RK_U8 *split_out_buf = NULL;
-                 RK_S32 split_size = 0;
-                 h265d_get_stream(mpp_codex_ctx,&split_out_buf,&split_size);
-                 libOpenHevcDecode(openHevcHandle, split_out_buf, split_size, 0);
-                 sliceInfo = libOpenHevcGetSliceInfo(openHevcHandle);
-                 mpp_err("open hevc out \n");
-                 h265d_set_compare_info(mpp_codex_ctx,sliceInfo);
+                mpp_err("hevc_decode_frame in \n");
+                void *sliceInfo = NULL;
+                RK_U8 *split_out_buf = NULL;
+                RK_S32 split_size = 0;
+                h265d_get_stream(mpp_codex_ctx, &split_out_buf, &split_size);
+                libOpenHevcDecode(openHevcHandle, split_out_buf, split_size, 0);
+                sliceInfo = libOpenHevcGetSliceInfo(openHevcHandle);
+                mpp_err("open hevc out \n");
+                h265d_set_compare_info(mpp_codex_ctx, sliceInfo);
 #endif
 #endif
                 h265d_parse(mpp_codex_ctx, curtask);
@@ -460,7 +460,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 if (ret == MPP_OK) {
                     mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
                     if (frame) {
-    #if 1//def DUMP
+#if 1//def DUMP
                         RK_U32 stride_w, stride_h;
                         void *ptr = NULL;
                         MppBuffer framebuf;
@@ -468,11 +468,11 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                         stride_h = mpp_frame_get_ver_stride(frame);
                         framebuf = mpp_frame_get_buffer(frame);
                         ptr = mpp_buffer_get_ptr(framebuf);
-                        if(fp){
+                        if (fp) {
                             fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp);
                             fflush(fp);
                         }
-    #endif
+#endif
                         mpp_frame_deinit(&frame);
                         frame = NULL;
                     }
@@ -495,7 +495,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_buf_slot_set_flag(packet_slots, curtask->input, SLOT_HAL_INPUT);
         mpp_buf_slot_get_prop(packet_slots, curtask->input, SLOT_BUFFER, &buffer);
         mpp_buf_slot_clr_flag(packet_slots, curtask->input, SLOT_HAL_INPUT);
-        mpp_err("mpp_buf_slot free for last packet %p",buffer);
+        mpp_err("mpp_buf_slot free for last packet %p", buffer);
         mpp_buffer_put(buffer);
     }
 
@@ -504,13 +504,13 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         RK_U32 index;
         ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DISPLAY);
         if (ret == MPP_OK) {
-            mpp_log("get_display for index = %d",index);
+            mpp_log("get_display for index = %d", index);
             mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
             if (frame) {
                 mpp_frame_deinit(&frame);
             }
             mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
-       }
+        }
 
     } while (ret == MPP_OK);
 
@@ -523,12 +523,12 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_err("hal_h265d_deinit in");
         hal_h265d_deinit(hal);
     }
-    if (slots != NULL){
+    if (slots != NULL) {
         mpp_err("frame slots deInit");
         mpp_buf_slot_deinit(slots);
     }
 
-    if (packet_slots != NULL){
+    if (packet_slots != NULL) {
         mpp_err("packet slots deInit");
         mpp_buf_slot_deinit(packet_slots);
     }
@@ -549,9 +549,9 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     }
 #endif
 #endif
-    if(fp){
-      fclose(fp);
-   }
+    if (fp) {
+        fclose(fp);
+    }
 
     mpp_free(buf);
     mpp_free(mpp_codex_ctx);
