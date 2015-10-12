@@ -32,6 +32,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "h265d_syntax.h"
+#include "mpp_packet_impl.h"
 
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
@@ -179,33 +180,91 @@ RK_S32 h265d_split_init(void **sc)
             return MPP_ERR_NOMEM;
         }
     }
+    s->fetch_timestamp = 1;
     return MPP_OK;
 }
 
+void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off, RK_S32 remove)
+{
+    RK_S32 i;
+
+    s->dts = s->pts = -1;
+    s->offset = 0;
+    for (i = 0; i < MPP_PARSER_PTS_NB; i++) {
+        if ( s->cur_offset + off >= s->cur_frame_offset[i]
+             && (s->frame_offset < s->cur_frame_offset[i] ||
+                 (!s->frame_offset && !s->next_frame_offset)) // first field/frame
+             // check disabled since MPEG-TS does not send complete PES packets
+             && /*s->next_frame_offset + off <*/  s->cur_frame_end[i]) {
+            s->dts = s->cur_frame_dts[i];
+            s->pts = s->cur_frame_pts[i];
+            s->offset = s->next_frame_offset - s->cur_frame_offset[i];
+           /* if (remove)
+                s->cur_frame_offset[i] = INT64_MAX;*/
+            if (s->cur_offset + off < s->cur_frame_end[i])
+                break;
+        }
+    }
+}
 RK_S32 h265d_split_frame(void *sc,
                          const RK_U8 **poutbuf, RK_S32 *poutbuf_size,
-                         const RK_U8 *buf, RK_S32 buf_size)
+                         const RK_U8 *buf, RK_S32 buf_size, RK_S64 pts, RK_S64 dts)
 {
-    RK_S32 next;
+    RK_S32 next, i;
 
     SplitContext_t *s = (SplitContext_t*)sc;
+
+    if (s->cur_offset + buf_size !=
+        s->cur_frame_end[s->cur_frame_start_index]) { /* skip remainder packets */
+        /* add a new packet descriptor */
+        i = (s->cur_frame_start_index + 1) & (MPP_PARSER_PTS_NB - 1);
+        s->cur_frame_start_index = i;
+        s->cur_frame_offset[i] = s->cur_offset;
+        s->cur_frame_end[i] = s->cur_offset + buf_size;
+        s->cur_frame_pts[i] = pts;
+        s->cur_frame_dts[i] = dts;
+        h265d_dbg(H265D_DBG_TIME, "s->cur_frame_start_index = %d,cur_frame_offset = %lld,s->cur_frame_end = %lld pts = %lld",
+                  s->cur_frame_start_index, s->cur_frame_offset[i], s->cur_frame_end[i], pts);
+    }
+
+    if (s->fetch_timestamp) {
+        s->fetch_timestamp = 0;
+        s->last_pts = s->pts;
+        s->last_dts = s->dts;
+        mpp_fetch_timestamp(s, 0, 0);
+    }
+
     if (s->eos) {
         *poutbuf      = s->buffer;
         *poutbuf_size = s->index;
         return 0;
     }
+
     next = hevc_find_frame_end(s, buf, buf_size);
 
     if (mpp_combine_frame(s, next, &buf, &buf_size) < 0) {
         *poutbuf      = NULL;
         *poutbuf_size = 0;
+        s->cur_offset += buf_size;
         return buf_size;
     }
 
     *poutbuf      = buf;
     *poutbuf_size = buf_size;
+
     if (next < 0)
         next = 0;
+
+    if (*poutbuf_size) {
+        /* fill the data for the current frame */
+        s->frame_offset = s->next_frame_offset;
+
+        /* offset of the next frame */
+        s->next_frame_offset = s->cur_offset + next;
+        s->fetch_timestamp = 1;
+    }
+
+    s->cur_offset += next;
     return next;
 }
 
@@ -415,6 +474,7 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->h265dctx->height              = sps->output_height;
     s->h265dctx->pix_fmt             = sps->pix_fmt;
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
+    mpp_buf_slot_setup(s->slots, 22, s->h265dctx->coded_width * s->h265dctx->coded_height * 7 / 4 , 0);
 
     if (sps->vui.video_signal_type_present_flag)
         s->h265dctx->color_range = sps->vui.video_full_range_flag ? MPPCOL_RANGE_JPEG
@@ -1279,7 +1339,7 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
     si = di = i;
     while (si + 2 < length) {
         // remove escapes (very rare 1:2^22)
-        if (src[si + 2] >= 3) {
+        if (src[si + 2] > 3) {
             dst[di++] = src[si++];
             dst[di++] = src[si++];
         } else if (src[si] == 0 && src[si + 1] == 0) {
@@ -1459,47 +1519,6 @@ fail:
     return ret;
 
 }
-
-MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
-{
-
-    MPP_RET ret = MPP_OK;
-    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
-    RK_U8 *buf = NULL;
-    void *pos = NULL;
-    RK_S32 length = 0;
-    s->eos = mpp_packet_get_eos(pkt);
-    buf = (RK_U8 *)mpp_packet_get_pos(pkt);
-    length = (RK_S32)mpp_packet_get_size(pkt);
-    s->pts = mpp_packet_get_pts(pkt);
-
-    if (h265dctx->need_split) {
-        RK_S32 consume = 0;
-        RK_U8 *split_out_buf = NULL;
-        RK_S32 split_size = 0;
-        consume = h265d_split_frame(h265dctx->split_cxt, (const RK_U8**)&split_out_buf, &split_size,
-                                    (const RK_U8*)buf, length);
-        pos = buf + consume;
-        mpp_packet_set_pos(pkt, pos);
-        if (split_size) {
-            buf = split_out_buf;
-            length = split_size;
-        } else {
-            return MPP_FAIL_SPLIT_FRAME;
-        }
-    }
-    ret = split_nal_units(s, buf, length);
-
-    if (MPP_OK == ret) {
-        if (MPP_OK == h265d_syntax_fill_slice(s->h265dctx, task->stmbuf)) {
-            task->valid = 1;
-        }
-    }
-    return ret;
-
-}
-
 static RK_S32 parser_nal_units(HEVCContext *s)
 {
     /* parse the NAL units */
@@ -1515,6 +1534,104 @@ static RK_S32 parser_nal_units(HEVCContext *s)
 fail:
     return ret;
 }
+static RK_S32 hevc_parser_extradata(HEVCContext *s)
+{
+    H265dContext_t *h265dctx = s->h265dctx;
+    RK_S32 ret = MPP_SUCCESS;
+    if (h265dctx->extradata_size > 3 &&
+        (h265dctx->extradata[0] || h265dctx->extradata[1] ||
+         h265dctx->extradata[2] > 1)) {
+        /* It seems the extradata is encoded as hvcC format.
+         * Temporarily, we support configurationVersion==0 until 14496-15 3rd
+         * is finalized. When finalized, configurationVersion will be 1 and we
+         * can recognize hvcC by checking if h265dctx->extradata[0]==1 or not. */
+        mpp_err("extradata is encoded as hvcC format");
+        s->is_nalff = 1;
+    } else {
+        s->is_nalff = 0;
+        ret = split_nal_units(s, h265dctx->extradata, h265dctx->extradata_size);
+        if (ret < 0)
+            return ret;
+        ret = parser_nal_units(s);
+        if (ret < 0)
+            return ret;
+    }
+    return ret;
+}
+
+MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+{
+
+    MPP_RET ret = MPP_OK;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = h265dctx->priv_data;
+    SplitContext_t *sc = (SplitContext_t*)h265dctx->split_cxt;
+    RK_S64 pts = -1, dts = -1;
+    RK_U8 *buf = NULL;
+    void *pos = NULL;
+    RK_S32 length = 0;
+    s->eos = sc->eos = mpp_packet_get_eos(pkt);
+    buf = mpp_packet_get_pos(pkt);
+    pts = mpp_packet_get_pts(pkt);
+    dts = mpp_packet_get_dts(pkt);
+    h265d_dbg(H265D_DBG_TIME, "prepare get pts %lld", pts);
+    length = mpp_packet_get_length(pkt);
+
+    if (mpp_packet_get_flag(pkt)& MPP_PACKET_FLAG_EXTRA_DATA) {
+        h265dctx->extradata_size = length;
+        h265dctx->extradata = buf;
+        hevc_parser_extradata(s);
+        pos = buf + length;
+        mpp_packet_set_pos(pkt, pos);
+        return MPP_OK;
+    }
+    if (h265dctx->need_split) {
+        RK_S32 consume = 0;
+        RK_U8 *split_out_buf = NULL;
+        RK_S32 split_size = 0;
+
+        consume = h265d_split_frame(h265dctx->split_cxt, (const RK_U8**)&split_out_buf, &split_size,
+                                    (const RK_U8*)buf, length, pts, dts);
+        pos = buf + consume;
+        mpp_packet_set_pos(pkt, pos);
+        if (split_size) {
+            buf = split_out_buf;
+            length = split_size;
+            s->checksum_buf = buf;  //check with openhevc
+            s->checksum_buf_size = split_size;
+            h265d_dbg(H265D_DBG_TIME, "split frame get pts %lld", sc->pts);
+            s->pts = sc->pts;
+        } else {
+            return MPP_FAIL_SPLIT_FRAME;
+        }
+    }
+    ret = split_nal_units(s, buf, length);
+
+    if (MPP_OK == ret) {
+        if (MPP_OK == h265d_syntax_fill_slice(s->h265dctx, task->input)) {
+            task->valid = 1;
+        }
+    }
+    return ret;
+
+}
+
+MPP_RET h265d_get_stream(void *ctx, RK_U8 **buf, RK_S32 *size){
+    MPP_RET ret = MPP_OK;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = h265dctx->priv_data;
+    *buf = s->checksum_buf;
+    *size = s->checksum_buf_size;
+    return ret;
+}
+
+MPP_RET h265d_set_compare_info(void *ctx, void *info){
+    MPP_RET ret = MPP_OK;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    h265dctx->compare_info = info;
+    return ret;
+}
+
 
 MPP_RET h265d_parse(void *ctx, HalDecTask *task)
 {
@@ -1540,6 +1657,9 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
+        if (s->eos) {
+            s->task->eos = 1;
+        }
     }
 #if 0
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
@@ -1637,30 +1757,6 @@ fail:
     return MPP_ERR_NOMEM;
 }
 
-static RK_S32 hevc_parser_extradata(HEVCContext *s)
-{
-    H265dContext_t *h265dctx = s->h265dctx;
-    RK_S32 ret = MPP_SUCCESS;
-    if (h265dctx->extradata_size > 3 &&
-        (h265dctx->extradata[0] || h265dctx->extradata[1] ||
-         h265dctx->extradata[2] > 1)) {
-        /* It seems the extradata is encoded as hvcC format.
-         * Temporarily, we support configurationVersion==0 until 14496-15 3rd
-         * is finalized. When finalized, configurationVersion will be 1 and we
-         * can recognize hvcC by checking if h265dctx->extradata[0]==1 or not. */
-        mpp_err("extradata is encoded as hvcC format");
-        s->is_nalff = 1;
-    } else {
-        s->is_nalff = 0;
-        ret = split_nal_units(s, h265dctx->extradata, h265dctx->extradata_size);
-        if (ret < 0)
-            return ret;
-        ret = parser_nal_units(s);
-        if (ret < 0)
-            return ret;
-    }
-    return ret;
-}
 
 MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 {
@@ -1703,6 +1799,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 
     s->slots = parser_cfg->frame_slots;
 
+    s->packet_slots = parser_cfg->packet_slots;
 
     if (h265dctx->extradata_size > 0 && h265dctx->extradata) {
         ret = hevc_parser_extradata(s);
@@ -1718,9 +1815,17 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 MPP_RET h265d_flush(void *ctx)
 {
     RK_S32 ret = 0;
+    RK_S32 eos = 1;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+    HEVCFrame *frame = NULL;
+    MppBuffer framebuf = NULL;
     do {
         ret = mpp_hevc_output_frame(ctx, 1);
     } while (ret);
+    frame = &s->DPB[s->output_frame_idx];
+
+    mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_EOS, &eos);
 
     return MPP_OK;
 }

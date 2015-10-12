@@ -311,19 +311,21 @@ RK_S32 vpu_close_context(struct VpuCodecContext **ctx);
 /*
  * vpu_mem api
  */
+#define vpu_display_mem_pool_FIELDS \
+    RK_S32 (*commit_hdl)(vpu_display_mem_pool *p, RK_S32 hdl, RK_S32 size); \
+    void* (*get_free)(vpu_display_mem_pool *p); \
+    RK_S32 (*inc_used)(vpu_display_mem_pool *p, void *hdl); \
+    RK_S32 (*put_used)(vpu_display_mem_pool *p, void *hdl); \
+    RK_S32 (*reset)(vpu_display_mem_pool *p); \
+    RK_S32 (*get_unused_num)(vpu_display_mem_pool *p); \
+    RK_S32 buff_size;\
+    float version; \
+    RK_S32 res[18];
 
 typedef struct vpu_display_mem_pool vpu_display_mem_pool;
 
 struct vpu_display_mem_pool {
-    int     (*commit_hdl)(vpu_display_mem_pool *p, int hdl, int size);
-    void*   (*get_free)(vpu_display_mem_pool *p);
-    int     (*inc_used)(vpu_display_mem_pool *p, int hdl);
-    int     (*put_used)(vpu_display_mem_pool *p, int hdl);
-    int     (*reset)(vpu_display_mem_pool *p);
-    int     (*get_unused_num)(vpu_display_mem_pool *p);
-    int     buff_size;
-    float   version;
-    int     res[18];
+    vpu_display_mem_pool_FIELDS
 };
 
 #ifdef __cplusplus
@@ -334,6 +336,7 @@ extern "C"
 /*
  * vpu memory handle interface
  */
+RK_S32 VPUMemJudgeIommu();
 RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size);
 RK_S32 VPUFreeLinear(VPUMemLinear_t *p);
 RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src);
@@ -341,6 +344,9 @@ RK_S32 VPUMemLink(VPUMemLinear_t *p);
 RK_S32 VPUMemFlush(VPUMemLinear_t *p);
 RK_S32 VPUMemClean(VPUMemLinear_t *p);
 RK_S32 VPUMemInvalidate(VPUMemLinear_t *p);
+RK_S32 VPUMemGetFD(VPUMemLinear_t *p);
+RK_S32 vpu_mem_judge_used_heaps_type();
+
 
 /*
  * vpu memory allocator and manager interface

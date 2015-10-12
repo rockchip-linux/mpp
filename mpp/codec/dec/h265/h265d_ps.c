@@ -1596,10 +1596,6 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     READ_ONEBIT(gb, &sps->sao_enabled);
     READ_ONEBIT(gb, &sps->pcm_enabled_flag);
 
-    mpp_err("sps->amp_enabled_flag = %d", sps->amp_enabled_flag);
-    mpp_err("sps->sao_enabled = %d", sps->sao_enabled);
-    mpp_err("sps->pcm_enabled_flag = %d", sps->pcm_enabled_flag);
-
     if (sps->pcm_enabled_flag) {
         READ_BITS(gb, 4, &sps->pcm.bit_depth);
         sps->pcm.bit_depth +=  1;
@@ -1706,8 +1702,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     s->h265dctx->width = sps->width;
     s->h265dctx->height = sps->height;
     // Inferred parameters
-    sps->log2_ctb_size = sps->log2_min_cb_size +
-                         sps->log2_diff_max_min_coding_block_size;
+    sps->log2_ctb_size = sps->log2_min_cb_size + sps->log2_diff_max_min_coding_block_size;
     sps->log2_min_pu_size = sps->log2_min_cb_size - 1;
 
     sps->ctb_width  = (sps->width  + (1 << sps->log2_ctb_size) - 1) >> sps->log2_ctb_size;
@@ -1749,6 +1744,17 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             sps->log2_max_trafo_size);
         goto err;
     }
+    if (s->h265dctx->compare_info != NULL) {
+    CurrentFameInf_t *info = (CurrentFameInf_t *)s->h265dctx->compare_info;
+    HEVCSPS *openhevc_sps = (HEVCSPS *)&info->sps[sps_id];
+
+    if (compare_sps(openhevc_sps, (HEVCSPS *)sps_buf) < 0) {
+        mpp_err("compare sps with openhevc error found");
+        mpp_assert(0);
+        return -1;
+    }
+
+    }
 #if 0
     if (s->h265dctx->debug & FF_DEBUG_BITSTREAM) {
         h265d_dbg(H265D_DBG_SPS,
@@ -1762,17 +1768,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     /* check if this is a repeat of an already parsed SPS, then keep the
      * original one.
      * otherwise drop all PPSes that depend on it */
-    if (s->h265dctx->compare_info != NULL) {
-        CurrentFameInf_t *info = (CurrentFameInf_t *)s->h265dctx->compare_info;
-        HEVCSPS *openhevc_sps = (HEVCSPS *)&info->sps[sps_id];
-        mpp_log("compare sps in");
-        if (compare_sps(openhevc_sps, (HEVCSPS *)sps_buf) < 0) {
-            mpp_err("compare sps with openhevc error found");
-            mpp_assert(0);
-            return -1;
-        }
-        mpp_log("compare sps ok");
-    }
+
     if (s->sps_list[sps_id] &&
         !memcmp(s->sps_list[sps_id], sps_buf, sizeof(HEVCSPS))) {
         mpp_free(sps_buf);

@@ -17,12 +17,22 @@
 #define MODULE_TAG "vpu_api"
 
 #include <string.h>
-
 #include "mpp_log.h"
 #include "mpp_mem.h"
-
+#include "mpp_buffer.h"
 #include "vpu_api_legacy.h"
 #include "vpu_api.h"
+#include "vpu.h"
+
+#ifdef ANDROID
+#include <linux/ion.h>
+#endif
+
+typedef struct vpu_display_mem_pool_impl {
+    vpu_display_mem_pool_FIELDS
+    MppBufferGroup group;
+    RK_S32 size;
+} vpu_display_mem_pool_impl;
 
 static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
@@ -32,7 +42,6 @@ static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_
         mpp_log("vpu_api_init fail, input invalid");
         return VPU_API_ERR_UNKNOW;
     }
-
     VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_init fail, vpu api invalid");
@@ -70,7 +79,7 @@ static RK_S32 vpu_api_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->decode_sendstream(ctx, pkt);
+    return api->decode_sendstream(pkt);
 }
 
 static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
@@ -86,7 +95,7 @@ static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->decode_getoutframe(ctx, aDecOut);
+    return api->decode_getoutframe(aDecOut);
 }
 
 static RK_S32 vpu_api_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)
@@ -168,6 +177,22 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
         return VPU_API_ERR_UNKNOW;
     }
 
+    mpp_log("vpu_api_control in");
+    switch (cmdType) {
+    case VPU_API_SET_VPUMEM_CONTEXT: {
+
+        mpp_log("vpu_api_control in vpu mem contxt");
+        vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)param;
+
+        param = (void*)p_mempool->group;
+        break;
+    }
+    default: {
+        break;
+    }
+    }
+
+    mpp_log("vpu_api_control to mpi");
     return api->control(ctx, cmdType, param);
 }
 
@@ -186,6 +211,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         s->enableparsing = 1;
 
         VpuApi* api = new VpuApi();
+
         if (api == NULL) {
             mpp_err("Vpu api object has not been properly allocated");
             return -1;
@@ -234,6 +260,139 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     return 0;
 }
 
+static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S32 size)
+{
+    MppBufferInfo info;
+    MPP_RET ret = MPP_OK;
+
+    vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
+    memset(&info, 0, sizeof(MppBufferInfo));
+    info.type = MPP_BUFFER_TYPE_ION;
+    info.fd = mem_hdl;
+    info.size = size;
+    p_mempool->size = size;
+    ret = mpp_buffer_commit(p_mempool->group, &info);
+    return mem_hdl;
+}
+
+static void* get_free_memory_vpumem(vpu_display_mem_pool *p)
+{
+    MPP_RET ret = MPP_OK;
+    MppBuffer buffer = NULL;
+    VPUMemLinear_t *dmabuf = mpp_calloc(VPUMemLinear_t, 1);
+    vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
+    if (dmabuf == NULL) {
+        return NULL;
+    }
+    ret = mpp_buffer_get(p_mempool->group, &buffer, p_mempool->size);
+    if (MPP_OK != ret) {
+        mpp_free(dmabuf);
+        return NULL;
+    }
+    dmabuf->phy_addr = (RK_U32)mpp_buffer_get_fd(buffer);
+    dmabuf->vir_addr = (RK_U32*)mpp_buffer_get_ptr(buffer);
+    dmabuf->size = p_mempool->size;
+    dmabuf->offset = (RK_U32*)buffer;
+    return NULL;
+
+}
+
+static RK_S32 inc_used_memory_handle_ref(vpu_display_mem_pool *p, void * hdl)
+{
+    (void)p;
+    VPUMemLinear_t *dmabuf = (VPUMemLinear_t *)hdl;
+    MppBuffer buffer = (MppBuffer)dmabuf->offset;
+    if (buffer != NULL) {
+        mpp_buffer_inc_ref(buffer);
+    }
+    return MPP_OK;
+
+}
+
+static RK_S32 put_used_memory_handle(vpu_display_mem_pool *p, void *hdl)
+{
+    (void)p;
+    VPUMemLinear_t *dmabuf = (VPUMemLinear_t *)hdl;
+    MppBuffer buf = (MppBuffer)dmabuf->offset;
+    if (buf != NULL) {
+        mpp_buffer_put(buf);
+    }
+    return MPP_OK;
+}
+
+static RK_S32 get_free_memory_num(vpu_display_mem_pool *p)
+{
+    vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
+    if (p_mempool->group != NULL) {
+        return mpp_buffer_group_unused(p_mempool->group);
+    }
+    return 0;
+}
+
+static RK_S32 reset_vpu_mem_pool(vpu_display_mem_pool *p)
+{
+    (void)p;
+    //  vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
+    return 0;
+
+}
+
+
+vpu_display_mem_pool* open_vpu_memory_pool()
+{
+    mpp_err("open_vpu_memory_pool in\n");
+    vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
+
+    if (NULL == p_mempool) {
+        return NULL;
+    }
+    mpp_buffer_group_get_external(&p_mempool->group, MPP_BUFFER_TYPE_ION);
+    if (NULL == p_mempool->group) {
+        return NULL;
+    }
+    p_mempool->commit_hdl     = commit_memory_handle;
+    p_mempool->get_free       = get_free_memory_vpumem;
+    p_mempool->put_used       = put_used_memory_handle;
+    p_mempool->inc_used       = inc_used_memory_handle_ref;
+    p_mempool->reset          = reset_vpu_mem_pool;
+    p_mempool->get_unused_num = get_free_memory_num;
+    p_mempool->version        = 1;
+    p_mempool->buff_size      = -1;
+    return (vpu_display_mem_pool*)p_mempool;
+}
+
+void close_vpu_memory_pool(vpu_display_mem_pool *p)
+{
+
+    vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
+    mpp_buffer_group_put(p_mempool->group);
+    return;
+}
+
+int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
+{
+    (void)ipool;
+    (void)num;
+    (void)size;
+    return 0;
+}
+
+void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
+{
+    (void)ipool;
+}
+
+RK_S32 VPUMemJudgeIommu()
+{
+    int ret = 0;
+#ifdef ANDROID
+    if (VPUClientGetIOMMUStatus() > 0) {
+        //mpp_err("media.used.iommu");
+        ret = 1;
+    }
+#endif
+    return ret;
+}
 
 
 RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size)
@@ -245,9 +404,10 @@ RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size)
 
 RK_S32 VPUFreeLinear(VPUMemLinear_t *p)
 {
-    (void)p;
+    put_used_memory_handle(NULL, p);
     return 0;
 }
+
 
 RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src)
 {
@@ -281,26 +441,30 @@ RK_S32 VPUMemInvalidate(VPUMemLinear_t *p)
     return 0;
 }
 
-vpu_display_mem_pool* open_vpu_memory_pool()
+RK_S32 VPUMemGetFD(VPUMemLinear_t *p)
 {
-    return NULL;
+    RK_S32 fd = 0;
+    MppBuffer buffer = (MppBuffer)p->offset;
+    fd = mpp_buffer_get_fd(buffer);
+    //mpp_err("fd = 0x%x",fd);
+    return fd;
+
 }
 
-void close_vpu_memory_pool(vpu_display_mem_pool *p)
+RK_S32 vpu_mem_judge_used_heaps_type()
 {
-    (void)p;
-}
+    // TODO, use property_get
+#if 0 //def ANDROID
+    if (!VPUClientGetIOMMUStatus() > 0) {
+        return ION_HEAP(ION_CMA_HEAP_ID);
+    } else {
+        ALOGV("USE ION_SYSTEM_HEAP");
+        return ION_HEAP(ION_VMALLOC_HEAP_ID);
+    }
+#endif
 
-int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
-{
-    (void)ipool;
-    (void)num;
-    (void)size;
     return 0;
 }
 
-void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
-{
-    (void)ipool;
-}
+
 

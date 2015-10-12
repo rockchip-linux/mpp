@@ -66,12 +66,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
-
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_limit_config(mPacketGroup, MPP_TEST_PACKET_SIZE, 4);
+        mpp_buffer_group_limit_config(mPacketGroup, 0, 4);
 
-        mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_limit_config(mFrameGroup, MPP_TEST_FRAME_SIZE, 4);
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
@@ -94,7 +91,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
     if (mFrames && mPackets &&
         (mDec || mEnc) &&
         mThreadCodec && mThreadHal &&
-        mPacketGroup && mFrameGroup) {
+        mPacketGroup) {
         mThreadCodec->start();
         mThreadHal->start();
     } else {
@@ -161,7 +158,8 @@ void Mpp::clear()
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
     Mutex::Autolock autoLock(mPackets->mutex());
-    if (mPackets->list_size() < 4) {
+    RK_U32 eos = mpp_packet_get_eos(packet);
+    if (mPackets->list_size() < 4 || eos) {
         MppPacket pkt;
         mpp_packet_copy_init(&pkt, packet);
         mPackets->add_at_tail(&pkt, sizeof(pkt));

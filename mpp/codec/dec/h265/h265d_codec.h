@@ -66,6 +66,7 @@ enum MppPictureStructure {
 };
 
 #define END_NOT_FOUND (-100)
+#define MPP_PARSER_PTS_NB 4
 
 typedef struct SplitContext {
     RK_U8 *buffer;
@@ -77,6 +78,31 @@ typedef struct SplitContext {
     RK_S32 overread;               ///< the number of bytes which where irreversibly read from the next frame
     RK_S32 overread_index;         ///< the index into ParseContext.buffer of the overread bytes
     RK_U64 state64;           ///< contains the last 8 bytes in MSB order
+    RK_S64 pts;     /* pts of the current frame */
+    RK_S64 dts;     /* dts of the current frame */
+    RK_S64 frame_offset; /* offset of the current frame */
+    RK_S64 cur_offset; /* current offset
+                           (incremented by each av_parser_parse()) */
+    RK_S64 next_frame_offset; /* offset of the next frame */
+    /* private data */
+    RK_S64 last_pts;
+    RK_S64 last_dts;
+    RK_S32 fetch_timestamp;
+
+    RK_S32 cur_frame_start_index;
+    RK_S64 cur_frame_offset[MPP_PARSER_PTS_NB];
+    RK_S64 cur_frame_pts[MPP_PARSER_PTS_NB];
+    RK_S64 cur_frame_dts[MPP_PARSER_PTS_NB];
+
+    RK_S64 offset;      ///< byte offset from starting packet start
+    RK_S64 cur_frame_end[MPP_PARSER_PTS_NB];
+    /**
+     * Set by parser to 1 for key frames and 0 for non-key frames.
+     * It is initialized to -1, so if the parser doesn't set this flag,
+     * old-style fallback using AV_PICTURE_TYPE_I picture type as key frames
+     * will be used.
+     */
+    RK_S32 key_frame;
     RK_S32 eos;
 } SplitContext_t;
 
@@ -144,7 +170,7 @@ extern "C" {
 
 RK_S32 h265d_parser2_syntax(void *ctx);
 
-RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf);
+RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index);
 
 
 #ifdef  __cplusplus

@@ -50,6 +50,7 @@ RK_U32 h265h_debug = 0;
 typedef struct h265d_reg_context {
     RK_S32 vpu_socket;
     MppBufSlots     slots;
+    MppBufSlots     packet_slots;
     MppBufferGroup group;
     MppBuffer cabac_table_data;
     MppBuffer scaling_list_data;
@@ -257,6 +258,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 
     reg_cxt->slots = cfg->frame_slots;
 
+    reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit
 #ifdef ANDROID
     if (reg_cxt->vpu_socket <= 0) {
@@ -1252,7 +1254,11 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     fwrite(pps_ptr, 1, 80 * 64, fp);
     fflush(fp);
 #endif
-    mpp_free(pps_packet);
+#ifndef ANDROID
+    if (pps_packet != NULL) {
+        mpp_free(pps_packet);
+    }
+#endif
 
     return 0;
 }
@@ -1268,6 +1274,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 ret = MPP_SUCCESS;
 #ifdef ANDROID
     MppBuffer framebuf = NULL;
+    MppBuffer streambuf = NULL;
 #endif
 
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
@@ -1289,12 +1296,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     /* output pps */
     hal_h265d_output_pps_packet(hal, syn->dec.syntax.data);
 
-#ifdef dump
-    if (fp != NULL) {
-        fwrite(dxva_cxt->bitstream, 1, dxva_cxt->bitstream_size, fp);
-        fflush(fp);
-    }
-#endif
+
 
     hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
     if (NULL == reg_cxt->hw_regs) {
@@ -1350,7 +1352,8 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->sw_cabactbl_base   =  mpp_buffer_get_fd(reg_cxt->cabac_table_data);
     hw_regs->sw_pps_base        =  mpp_buffer_get_fd(reg_cxt->pps_data);
     hw_regs->sw_rps_base        =  mpp_buffer_get_fd(reg_cxt->rps_data);
-    hw_regs->sw_strm_rlc_base   =  mpp_buffer_get_fd(syn->dec.stmbuf);
+    mpp_buf_slot_get_prop(reg_cxt->packet_slots, syn->dec.input, SLOT_BUFFER, &streambuf);
+    hw_regs->sw_strm_rlc_base   =  mpp_buffer_get_fd(streambuf);
 #endif
 
     hw_regs->sw_stream_len      = ((dxva_cxt->bitstream_size + 15) & (~15)) + 64;
@@ -1419,10 +1422,9 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    (void) task;
-    (void) hal;
-#ifdef ANDROID
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
+    MppBuffer streambuf = NULL;
+#ifdef ANDROID
     RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
     RK_S32 i;
     VPU_CMD_TYPE cmd;
@@ -1439,6 +1441,10 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         p += 4;
     }
 #endif
+    mpp_buf_slot_get_prop(reg_cxt->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
+    mpp_buf_slot_clr_flag(reg_cxt->packet_slots, task->dec.input, SLOT_HAL_INPUT);
+    mpp_buffer_put(streambuf);
+
     return ret;
 }
 
