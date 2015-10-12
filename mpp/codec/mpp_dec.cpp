@@ -286,6 +286,7 @@ void *mpp_dec_hal_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     mpp_list *frames    = mpp->mFrames;
+    MppBuffer buffer    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
 
@@ -324,7 +325,13 @@ void *mpp_dec_hal_thread(void *data)
              * 3. add frame to output list
              * repeat 2 and 3 until not frame can be output
              */
+            mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
+            if (buffer) {
+                mpp_buffer_put(buffer);
+                buffer = NULL;
+            }
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 RK_S32 index = task_dec->refer[i];
