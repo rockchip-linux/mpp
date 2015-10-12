@@ -100,7 +100,7 @@ public:
     MppCodingType   mCoding;
 
     RK_U32          mPacketBlock;
-    RK_U32          mFrameBlock;
+    RK_U32          mOutputBlock;
     RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
