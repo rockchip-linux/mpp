@@ -262,13 +262,16 @@ RK_S32 h265d_parser2_syntax(void *ctx)
     return 0;
 }
 
-RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
+RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     const HEVCContext *h = h265dctx->priv_data;
     h265d_dxva2_picture_context_t *ctx_pic = h->hal_pic_private;
+    MppBuffer streambuf = NULL;
     RK_S32 i, count = 0;
     RK_U32 position = 0;
+    mpp_err("input_index = %d",input_index);
+    mpp_buf_slot_get_prop(h->packet_slots, input_index, SLOT_BUFFER, &streambuf);
     RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(streambuf);
     RK_U8 *current = ptr;
     if (current == NULL) {
@@ -300,8 +303,8 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
         current += start_code_size;
         position += start_code_size;
         memcpy(current, h->nals[i].data, h->nals[i].size);
-        mpp_err("h->nals[%d].size = %d", i, h->nals[i].size);
-        fill_slice_short(&ctx_pic->slice_short[i], position, h->nals[i].size);
+        mpp_log("h->nals[%d].size = %d", i, h->nals[i].size);
+        fill_slice_short(&ctx_pic->slice_short[count], position, h->nals[i].size);
         current += h->nals[i].size;
         position += h->nals[i].size;
         count++;
@@ -309,6 +312,9 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, MppBuffer *streambuf)
     ctx_pic->slice_count    = count;
     ctx_pic->bitstream_size = position;
     ctx_pic->bitstream      = (RK_U8*)ptr;
+
+    mpp_buf_slot_set_flag(h->packet_slots, input_index, SLOT_CODEC_READY);
+    mpp_buf_slot_set_flag(h->packet_slots, input_index, SLOT_HAL_INPUT);
     return MPP_OK;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;

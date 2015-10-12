@@ -194,8 +194,13 @@ MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type)
         return MPP_ERR_UNKNOW;
     }
     if (MPP_CTX_DEC == type) {
-        task->dec.valid  = 0;
-        task->dec.output = -1;
+        HalDecTask *p = &task->dec;
+        p->valid  = 0;
+        p->eos = 0;
+        p->info_change = 0;
+        p->input_packet = NULL;
+        p->output = -1;
+        p->input = -1;
         memset(&task->dec.syntax, 0, sizeof(task->dec.syntax));
         memset(task->dec.refer, -1, sizeof(task->dec.refer));
     } else {

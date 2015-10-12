@@ -76,11 +76,18 @@ typedef struct MppSyntax_t {
 typedef struct HalDecTask_t {
     // set by parser to signal that it is valid
     RK_U32          valid;
+    RK_U32          eos;
+    RK_U32          info_change;
 
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
-    MppBuffer       stmbuf;
+    // packet need to be copied to hardware buffer
+    // parser will create this packet and mpp_dec will copy it to hardware bufffer
+    MppPacket       input_packet;
+
+    // current task input slot index
+    RK_S32          input;
 
     // for test purpose
     // current tesk output slot index

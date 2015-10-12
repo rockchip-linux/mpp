@@ -169,7 +169,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
  * mpp_buf_slot_dec_hw_ref
  *      - when hal finished on hardware decoding it MUST be called once for each used slot
  */
-MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_U32 *index);
+MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index);
 
 /*
  * mpp_buf_slot_set_buffer
@@ -199,8 +199,8 @@ typedef enum SlotUsageType_e {
     SLOT_USAGE_BUTT,
 } SlotUsageType;
 
-MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type);
-MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_U32 index, SlotUsageType type);
+MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_S32 index, SlotUsageType type);
+MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType type);
 
 // TODO: can be extended here
 typedef enum SlotQueueType_e {
@@ -211,8 +211,8 @@ typedef enum SlotQueueType_e {
     QUEUE_BUTT,
 } SlotQueueType;
 
-MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_U32  index, SlotQueueType type);
-MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_U32 *index, SlotQueueType type);
+MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_S32  index, SlotQueueType type);
+MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType type);
 
 typedef enum SlotPropType_e {
     SLOT_EOS,
@@ -221,8 +221,8 @@ typedef enum SlotPropType_e {
     SLOT_PROP_BUTT,
 } SlotPropType;
 
-MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_U32 index, SlotPropType type, void *val);
-MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_U32 index, SlotPropType type, void *val);
+MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val);
+MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val);
 
 #ifdef __cplusplus
 }

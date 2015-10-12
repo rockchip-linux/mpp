@@ -18,7 +18,10 @@
 #define _VPU_API_H_
 
 #include "vpu_api.h"
+#include "rk_mpi.h"
+#include <stdio.h>
 
+#define OMX_BUFFERFLAG_EOS 0x00000001
 class VpuApi
 {
 public:
@@ -29,20 +32,24 @@ public:
     RK_S32 flush(VpuCodecContext *ctx);
 
     RK_S32 decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut);
-    RK_S32 decode_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt);
-    RK_S32 decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut);
+    RK_S32 decode_sendstream(VideoPacket_t *pkt);
+    RK_S32 decode_getoutframe(DecoderOut_t *aDecOut);
     RK_S32 preProcessPacket(VpuCodecContext *ctx, VideoPacket_t *pkt);
 
     RK_S32 encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut);
     RK_S32 encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm);
     RK_S32 encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut);
 
-    RK_S32 send_stream(RK_U8* buf,  RK_U32 size, RK_S64 timestamp, RK_S32 usePts);
-    RK_S32 get_frame(DecoderOut_t *aDecOut);
-
     RK_S32 perform(RK_U32 cmd, RK_U32 *data);
     RK_S32 control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param);
 
+private:
+    MppCtx mpp_ctx;
+    MppApi *mpi;
+    RK_U32 frame_count;
+#ifdef DUMP_YUV
+    FILE *fp;
+#endif
 };
 
 #endif /*_VPU_API_H_*/

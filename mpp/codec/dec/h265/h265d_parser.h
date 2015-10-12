@@ -47,6 +47,7 @@ extern RK_U32 h265d_debug;
 #define H265D_DBG_SEI               (0x00000020)
 #define H265D_DBG_GLOBAL            (0x00000040)
 #define H265D_DBG_REF               (0x00000080)
+#define H265D_DBG_TIME              (0x00000100)
 
 
 #define h265d_dbg(flag, fmt, ...) _mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
@@ -687,12 +688,12 @@ typedef struct HEVCContext {
 
     MppBufSlots slots;
 
+    MppBufSlots packet_slots;
     HalDecTask *task;
 
     void *hal_pic_private;
 
     RK_S64 pts;
-
 
 } HEVCContext;
 

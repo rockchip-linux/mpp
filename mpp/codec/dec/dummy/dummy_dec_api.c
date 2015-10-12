@@ -19,6 +19,8 @@
 #include <string.h>
 
 #include "mpp_log.h"
+#include "mpp_mem.h"
+#include "mpp_packet.h"
 
 #include "dummy_dec_api.h"
 
@@ -30,6 +32,9 @@ typedef struct DummyDec_t {
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
     RK_U32          task_count;
+    void            *stream;
+    size_t          stream_size;
+    MppPacket       task_pkt;
 
     RK_U32          slots_inited;
     RK_U32          frame_count;
@@ -41,17 +46,34 @@ MPP_RET dummy_dec_init(void *dec, ParserCfg *cfg)
 {
     DummyDec *p;
     RK_S32 i;
+    void *stream;
+    size_t stream_size = SZ_512K;
+    MppPacket task_pkt;
+
     if (NULL == dec) {
         mpp_err_f("found NULL intput dec %p cfg %p\n", dec, cfg);
         return MPP_ERR_NULL_PTR;
+    }
+
+    stream = mpp_malloc_size(void, stream_size);
+    if (NULL == stream) {
+        mpp_err_f("failed to malloc stream buffer size %d\n", stream_size);
+        return MPP_ERR_MALLOC;
+    }
+
+    mpp_packet_init(&task_pkt, stream, stream_size);
+    if (NULL == task_pkt) {
+        mpp_err_f("failed to create mpp_packet for task\n");
+        return MPP_ERR_UNKNOW;
     }
 
     p = (DummyDec *)dec;
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
     p->task_count   = cfg->task_count = 2;
-    p->slots_inited = 0;
-    p->frame_count  = 0;
+    p->stream       = stream;
+    p->stream_size  = stream_size;
+    p->task_pkt     = task_pkt;
     for (i = 0; i < DUMMY_DEC_REF_COUNT; i++) {
         p->slot_index[i] = -1;
     }
@@ -60,10 +82,17 @@ MPP_RET dummy_dec_init(void *dec, ParserCfg *cfg)
 
 MPP_RET dummy_dec_deinit(void *dec)
 {
+    DummyDec *p;
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
+
+    p = (DummyDec *)dec;
+    if (p->task_pkt)
+        mpp_packet_deinit(&p->task_pkt);
+    if (p->stream)
+        mpp_free(p->stream);
     return MPP_OK;
 }
 
@@ -106,7 +135,8 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     RK_U32 frame_count;
     MppBufSlots slots;
     RK_S32 i;
-    char *data;
+    RK_U8 *data;
+    size_t length;
 
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
@@ -120,8 +150,19 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     frame_count = p->frame_count;
 
     // set pos to indicate that buffer is done
-    data = mpp_packet_get_data(pkt);
-    mpp_packet_set_pos(pkt, data + mpp_packet_get_size(pkt));
+    data    = mpp_packet_get_data(pkt);
+    length  = mpp_packet_get_length(pkt);
+    if (length > p->stream_size) {
+        mpp_realloc(p->stream, RK_U8, length);
+    }
+    if (p->stream) {
+        memcpy(p->stream, data, length);
+        task->input_packet = p->task_pkt;
+    } else {
+        mpp_err("failed to found task buffer for hardware\n");
+        return MPP_ERR_UNKNOW;
+    }
+    mpp_packet_set_pos(pkt, data + length);
 
     /*
      * set slots information

@@ -17,48 +17,57 @@
 #define MODULE_TAG "vpu_api_legacy"
 
 #include "mpp_log.h"
-
+#include "mpp_frame.h"
 #include "vpu_api_legacy.h"
+#include "mpp_mem.h"
+
 
 VpuApi::VpuApi()
 {
     mpp_log_f("in\n");
+    mpp_ctx = NULL;
+    mpi = NULL;
+#ifdef DUMP_YUV
+    fp = fopen("data/hevcdump.yuv", "wb");
+#endif
+    frame_count  = 0;
     mpp_log_f("ok\n");
+
 }
 
 VpuApi::~VpuApi()
 {
     mpp_log_f("in\n");
+    mpp_deinit(mpp_ctx);
     mpp_log_f("ok\n");
 }
 
 RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
     mpp_log_f("in\n");
-    (void)ctx;
-    (void)extraData;
-    (void)extra_size;
-    mpp_log_f("ok\n");
-    return 0;
-}
+    MPP_RET ret = MPP_OK;
+    MppCtxType type;
+    MppPacket pkt = NULL;
 
-RK_S32 VpuApi::send_stream(RK_U8* buf, RK_U32 size, RK_S64 timestamp, RK_S32 usePts)
-{
-    mpp_log_f("in\n");
-    (void)buf;
-    (void)size;
-    (void)timestamp;
-    (void)usePts;
-    mpp_log_f("ok\n");
-    return 0;
-}
+    if (CODEC_DECODER == ctx->codecType) {
+        type = MPP_CTX_DEC;
+    } else if (CODEC_ENCODER == ctx->codecType) {
+        type = MPP_CTX_ENC;
+    } else {
+        return MPP_ERR_VPU_CODEC_INIT;
+    }
 
-RK_S32 VpuApi::get_frame(DecoderOut_t *aDecOut)
-{
-    mpp_log_f("in\n");
-    (void)aDecOut;
+    ret = mpp_init(&mpp_ctx, &mpi, type, (MppCodingType)ctx->videoCoding);
+    mpp_err("mpp_ctx = %p", mpp_ctx);
+    if (extraData != NULL) {
+        mpp_packet_init(&pkt, extraData, extra_size);
+        mpp_packet_set_extra_data(pkt);
+        mpi->decode_put_packet(mpp_ctx, pkt);
+        mpp_packet_deinit(&pkt);
+    }
+
     mpp_log_f("ok\n");
-    return 0;
+    return ret;
 }
 
 RK_S32 VpuApi::flush(VpuCodecContext *ctx)
@@ -79,21 +88,73 @@ RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aD
     return 0;
 }
 
-RK_S32 VpuApi::decode_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt)
+RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
 {
-    mpp_log_f("in\n");
-    (void)ctx;
-    (void)pkt;
-    mpp_log_f("ok\n");
+    //mpp_log_f("in\n");
+    MppPacket mpkt = NULL;
+    mpp_packet_init(&mpkt, pkt->data, pkt->size);
+    mpp_packet_set_pts(mpkt, pkt->pts);
+    if (pkt->nFlags & OMX_BUFFERFLAG_EOS) {
+        mpp_err("decode_sendstream set eos");
+        mpp_packet_set_eos(mpkt);
+    }
+    if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
+        pkt->size = 0;
+    }
+    mpp_packet_deinit(&mpkt);
+    // mpp_log_f("ok\n");
     return 0;
 }
 
-RK_S32 VpuApi:: decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
+RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 {
-    mpp_log_f("in\n");
-    (void)ctx;
-    (void)aDecOut;
-    mpp_log_f("ok\n");
+    // mpp_log_f("in\n");
+    VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
+    MppFrame  mframe = NULL;
+    if (NULL == mpi) {
+        aDecOut->size = 0;
+        return 0;
+    }
+    if (MPP_OK == mpi->decode_get_frame(mpp_ctx, &mframe)) {
+        MppBuffer buf;
+        RK_U64 pts;
+        RK_U32 fd;
+        void* ptr;
+        aDecOut->size = sizeof(VPU_FRAME);
+        vframe->DisplayWidth = mpp_frame_get_width(mframe);
+        vframe->DisplayHeight = mpp_frame_get_height(mframe);
+        vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
+        vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
+        pts = mpp_frame_get_pts(mframe);
+        aDecOut->timeUs = pts;
+        //  mpp_err("get one frame timeUs %lld",aDecOut->timeUs);
+        vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
+        vframe->ShowTime.TimeLow = (RK_U32)pts;
+        buf = mpp_frame_get_buffer(mframe);
+        ptr = mpp_buffer_get_ptr(buf);
+        fd = mpp_buffer_get_fd(buf);
+        vframe->FrameBusAddr[0] = fd;
+        vframe->FrameBusAddr[1] = fd;
+        vframe->vpumem.vir_addr = (RK_U32*)ptr;
+        frame_count++;
+#ifdef DUMP_YUV
+        if (frame_count > 350) {
+            fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
+            fflush(fp);
+        }
+#endif
+        vframe->vpumem.phy_addr = fd;
+        vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
+        vframe->vpumem.offset = (RK_U32*)buf;
+        if (mpp_frame_get_eos(mframe)) {
+            aDecOut->nFlags = VPU_API_EOS_STREAM_REACHED;
+        }
+        mpp_free(mframe);
+    } else {
+        aDecOut->size = 0;
+    }
+
+    // mpp_log_f("ok\n");
     return 0;
 }
 
@@ -137,9 +198,18 @@ RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
 RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log_f("in\n");
+    MpiCmd mpicmd;
     (void)ctx;
-    (void)cmd;
-    (void)param;
+    switch (cmd) {
+        case VPU_API_SET_VPUMEM_CONTEXT: {
+            mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    return mpi->control(mpp_ctx, (MpiCmd)mpicmd, (MppParam)param);
     mpp_log_f("ok\n");
     return 0;
 }

@@ -35,6 +35,10 @@ RK_S32 mpp_hevc_split_frame(void *sc,
                             const RK_U8 **poutbuf, RK_S32 *poutbuf_size,
                             const RK_U8 *buf, RK_S32 buf_size);
 
+MPP_RET h265d_get_stream(void *ctx, RK_U8 **buf, RK_S32 *size); // used for compare openhevc
+MPP_RET h265d_set_compare_info(void *ctx, void *info);
+
+
 #ifdef  __cplusplus
 }
 #endif
