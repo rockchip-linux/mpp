@@ -212,6 +212,7 @@ int     mpp_buffer_get_fd(MppBuffer buffer);
 
 MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
+MPP_RET mpp_buffer_group_clear(MppBufferGroup group);
 RK_S32  mpp_buffer_group_unused(MppBufferGroup group);
 /*
  * size  : 0 - no limit, other - max buffer size

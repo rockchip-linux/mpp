@@ -303,6 +303,33 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
     return MPP_OK;
 }
 
+MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
+{
+    if (NULL == p) {
+        mpp_err_f("found NULL pointer\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    Mutex::Autolock auto_lock(&service.mLock);
+
+    if (!list_empty(&p->list_used)) {
+        MppBufferImpl *pos, *n;
+        list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
+            mpp_buffer_ref_dec(pos);
+        }
+    }
+
+    // remove unused list
+    if (!list_empty(&p->list_unused)) {
+        MppBufferImpl *pos, *n;
+        list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
+            deinit_buffer_no_lock(pos);
+        }
+    }
+
+    return MPP_OK;
+}
+
 MppBufferService::MppBufferService()
     : group_id(0),
       group_count(0)
