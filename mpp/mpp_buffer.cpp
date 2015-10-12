@@ -184,6 +184,16 @@ MPP_RET mpp_buffer_group_put(MppBufferGroup group)
     return mpp_buffer_group_deinit((MppBufferGroupImpl *)group);
 }
 
+MPP_RET mpp_buffer_group_clear(MppBufferGroup group)
+{
+    if (NULL == group) {
+        mpp_err_f("input invalid group %p\n", group);
+        return MPP_NOK;
+    }
+
+    return mpp_buffer_group_reset((MppBufferGroupImpl *)group);
+}
+
 RK_S32  mpp_buffer_group_unused(MppBufferGroup group)
 {
     if (NULL == group) {

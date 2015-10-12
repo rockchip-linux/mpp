@@ -113,6 +113,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferMode mode, MppBufferType type);
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
+MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 
 #ifdef __cplusplus
 }
