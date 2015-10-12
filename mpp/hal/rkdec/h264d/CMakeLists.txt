@@ -3,7 +3,7 @@
 # hal h264 decoder api
 set(HAL_H264D_API
     ../../inc/hal_h264d_api.h
-
+	../../inc/hal_regdrv.h
     )
 
     
