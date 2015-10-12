@@ -199,9 +199,10 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
                 prev = next;
             }
         }
+        *frame = first;
+        return MPP_OK;
     }
-    *frame = first;
-    return MPP_OK;
+    return MPP_NOK;
 }
 
 MPP_RET Mpp::put_frame(MppFrame frame)
