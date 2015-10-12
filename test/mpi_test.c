@@ -46,6 +46,7 @@ int mpi_test()
 
     MpiCmd cmd          = MPP_CMD_BASE;
     MppParam param      = NULL;
+    RK_U32 output_block = 1;
 
     RK_S32 i;
     char *buf = NULL;
@@ -71,7 +72,8 @@ int mpi_test()
     }
 
     // NOTE: decoder do not need control function
-
+    cmd = MPP_SET_OUTPUT_BLOCK;
+    param = &output_block;
     ret = mpi->control(ctx, cmd, param);
     if (MPP_OK != ret) {
         mpp_err("mpi->control failed\n");
