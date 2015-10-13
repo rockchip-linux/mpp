@@ -242,6 +242,9 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
 {
     (void)ctx;
+    // NOTE: do not use the original buffer fd,
+    //       use dup fd to avoid unexpected external fd close
+    data->fd = dup(data->fd);
     data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
     return (data->ptr) ? (MPP_OK) : (MPP_NOK);
 }
@@ -250,6 +253,7 @@ MPP_RET os_allocator_ion_release(void *ctx, MppBufferInfo *data)
 {
     (void)ctx;
     munmap(data->ptr, data->size);
+    close(data->fd);
     return MPP_OK;
 }
 
