@@ -28,6 +28,16 @@
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
 
+static void mpp_put_frame(Mpp *mpp, MppFrame frame)
+{
+    mpp_list *list = mpp->mFrames;
+    list->lock();
+    list->add_at_tail(&frame, sizeof(frame));
+    mpp->mFramePutCount++;
+    list->signal();
+    list->unlock();
+}
+
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -57,6 +67,7 @@ void *mpp_dec_parser_thread(void *data)
 
     RK_U32 pkt_buf_copyied  = 0;
     RK_U32 prev_task_done   = 1;
+    RK_U32 info_task_done   = 0;
     RK_U32 curr_task_ready  = 0;
     RK_U32 curr_task_parsed = 0;
 
@@ -192,16 +203,34 @@ void *mpp_dec_parser_thread(void *data)
             parser_parse(dec->parser, task_dec);
             curr_task_parsed = 1;
         }
+
         /*
          * 4. parse local task and slot to check whether new buffer or info change is needed.
          *
-         * a. first detect info change
+         * a. first detect info change from frame slot
          * b. then detect whether output index has MppBuffer
          */
+        if (mpp_buf_slot_is_changed(frame_slots)) {
+            if (!info_task_done) {
+                // do a chech here
+                MppFrame info_frame = NULL;
+                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
+                mpp_assert(info_frame);
+
+                task_dec->flags.info_change = 1;
+                hal_task_hnd_set_info(task, &task_local);
+                hal_task_hnd_set_status(task, TASK_PROCESSING);
+                mpp->mThreadHal->signal();
+                mpp->mTaskPutCount++;
+                task = NULL;
+                info_task_done = 1;
+            }
+        }
         wait_on_change = mpp_buf_slot_is_changed(frame_slots);
         if (wait_on_change)
             continue;
 
+        info_task_done = 1;
         /*
          * 5. chekc frame buffer group is internal or external
          */
@@ -285,7 +314,6 @@ void *mpp_dec_hal_thread(void *data)
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
-    mpp_list *frames    = mpp->mFrames;
     MppBuffer buffer    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
@@ -319,6 +347,20 @@ void *mpp_dec_hal_thread(void *data)
             mpp->mThreadCodec->signal();
 
             /*
+             * check info change flag
+             * if this is a info change frame, only output the mpp_frame for info change.
+             */
+            if (task_dec->flags.info_change) {
+                MppFrame info_frame = NULL;
+                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
+                mpp_assert(info_frame);
+                mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
+                mpp_frame_set_info_change(info_frame, 1);
+                mpp_put_frame(mpp, info_frame);
+                continue;
+            }
+
+            /*
              * when hardware decoding is done:
              * 1. clear decoding flag (mark buffer is ready)
              * 2. use get_display to get a new frame with buffer
@@ -347,11 +389,7 @@ void *mpp_dec_hal_thread(void *data)
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                frames->lock();
-                frames->add_at_tail(&frame, sizeof(frame));
-                mpp->mFramePutCount++;
-                frames->signal();
-                frames->unlock();
+                mpp_put_frame(mpp, frame);
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
         }
