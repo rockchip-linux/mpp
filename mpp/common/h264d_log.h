@@ -159,40 +159,7 @@ typedef struct h264d_logctx_t {
                  writelog(ctx, "FunOut", __FILE__, __LINE__, __FUNCTION__);\
                  } } while (0)
 
-//!< vaule check
-#define VAL_CHECK(ret, val)\
-        do{ if(!(val)){\
-                ret = MPP_ERR_VALUE;\
-                mpp_log("ERROR: value error.\n");\
-                goto __FAILED;\
-                } } while (0)
-//!< memory malloc check
-#define MEM_CHECK(ret, val)\
-        do{ if(!(val)) {\
-                ret = MPP_ERR_MALLOC;\
-                mpp_log("ERROR: malloc buffer.\n");\
-                ASSERT(0); goto __FAILED;\
-                } } while (0)
-//!< file check
-#define FLE_CHECK(ret, val)\
-        do{ if(!(val)) {\
-                ret = MPP_ERR_OPEN_FILE;\
-                mpp_log("ERROR: open file.\n");\
-                ASSERT(0); goto __FAILED;\
-                } } while (0)
 
-//!< input check
-#define INP_CHECK(ret, ctx, val)\
-        do{ if((val)) {\
-               ret = MPP_ERR_INIT;\
-               mpp_log("WARNNING: input empty.\n");\
-               goto __RETURN;\
-               } } while (0)
-//!< function return check
-#define FUN_CHECK(val)\
-        do{ if((val) < 0) {\
-              goto __FAILED;\
-              } } while (0)
 
 
 #define CHECK_RANGE(bitctx, val, _min, _max)\

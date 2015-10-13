@@ -787,7 +787,7 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     ctrl_debug = GetBitVal(ctrl_value, LOG_DEBUG);
     ctrl_fpga  = GetBitVal(ctrl_value, LOG_FPGA);
     ctrl_write = GetBitVal(ctrl_value, LOG_WRITE);
-    INP_CHECK(ret, ctx, !(ctrl_debug && ctrl_fpga && ctrl_write));
+    INP_CHECK(ret, !(ctrl_debug && ctrl_fpga && ctrl_write));
     mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
     mpp_env_get_str(logenv_name.cmppath,  &cmppath_dir,  NULL);
     p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, ".dat", "wb");

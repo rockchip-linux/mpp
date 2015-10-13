@@ -1424,9 +1424,10 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 {
-    MPP_RET ret = MPP_OK;
-    (void)task;
+    MPP_RET ret = MPP_OK;    
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
+
+	(void)task;
 #ifdef ANDROID
     RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
     RK_S32 i;

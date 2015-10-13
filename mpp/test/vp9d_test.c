@@ -30,11 +30,9 @@
 #include "mpp_packet_impl.h"
 #include "mpp_hal.h"
 
-
 #include "vp9d_api.h"
 #include "hal_vp9d_api.h"
 
-#include "h264d_log.h"
 
 
 
@@ -101,7 +99,6 @@ int main(int argc, char **argv)
     MppPacket      pkt = NULL;
     MppDec       *pApi = mpp_calloc(MppDec, 1);
     HalTaskInfo  *task = mpp_calloc_size(HalTaskInfo, sizeof(HalTaskInfo));
-    RK_U32 end_of_flag = 0;
     mpp_log("+++++++ all test begin +++++++ \n");
     //!< init decoder
     FUN_CHECK(ret = vp9_decoder_init(pApi));
@@ -121,6 +118,8 @@ int main(int argc, char **argv)
     FUN_CHECK(ret = mpp_hal_hw_start(pApi->hal, task));
     FUN_CHECK(ret = mpp_hal_hw_wait(pApi->hal, task));
 
+    (void)argv;
+    (void)argc;
 
     mpp_log("+++++++ all test end +++++++ \n");
     ret = MPP_OK;

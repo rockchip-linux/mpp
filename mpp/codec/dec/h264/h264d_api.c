@@ -44,7 +44,7 @@ static MPP_RET open_log_files(LogEnv_t *env, LogFlag_t *pflag)
     MPP_RET ret = MPP_ERR_UNKNOW;
     char fname[128] = { 0 };
 
-    INP_CHECK(ret, ctx, !pflag->write_en);
+    INP_CHECK(ret, !pflag->write_en);
     set_log_outpath(env);
     //!< runlog file
     if (GetBitVal(env->ctrl, LOG_DEBUG)) {
@@ -134,7 +134,7 @@ static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Inp);
+    INP_CHECK(ret, !p_Inp);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 
     (void)p_Inp;
@@ -147,7 +147,7 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Inp && !init);
+    INP_CHECK(ret, !p_Inp && !init);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_Inp->init = *init;
@@ -163,7 +163,7 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Cur);
+    INP_CHECK(ret, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Cur) {
         recycle_slice(&p_Cur->slice);
@@ -184,7 +184,7 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dCurStream_t *p_strm = NULL;
 
-    INP_CHECK(ret, ctx, !p_Cur);
+    INP_CHECK(ret, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_strm = &p_Cur->strm;
@@ -218,7 +218,7 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Vid);
+    INP_CHECK(ret, !p_Vid);
     FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 
     for (i = 0; i < MAXSPS; i++) {
@@ -240,7 +240,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Vid);
+    INP_CHECK(ret, !p_Vid);
     FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         p_Vid->p_Dpb_layer[i] = mpp_calloc(H264_DpbBuf_t, 1);
@@ -282,7 +282,7 @@ static MPP_RET free_dxva_ctx(H264dDxvaCtx_t *p_dxva)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, NULL == p_dxva);
+    INP_CHECK(ret, NULL == p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 
     MPP_FREE(p_dxva->slice_long);
@@ -298,7 +298,7 @@ static MPP_RET init_dxva_ctx(H264dDxvaCtx_t *p_dxva)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_dxva);
+    INP_CHECK(ret, !p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_dxva->max_slice_size = MAX_SLICE_SIZE;
@@ -321,7 +321,7 @@ static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, NULL == p_Dec);
+    INP_CHECK(ret, NULL == p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Dec->mem) {
         for (i = 0; i < MAX_TASK_SIZE; i++) {
@@ -338,7 +338,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    INP_CHECK(ret, ctx, !p_Dec);
+    INP_CHECK(ret, !p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     p_Dec->mem = mpp_calloc(H264_DecMem_t, 1);
     MEM_CHECK(ret, p_Dec->mem);
@@ -387,7 +387,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    INP_CHECK(ret, ctx, !p_Dec);
+    INP_CHECK(ret, !p_Dec);
     memset(p_Dec, 0, sizeof(H264_DecCtx_t));
     // init logctx
     FUN_CHECK(ret = logctx_init(&p_Dec->logctx, p_Dec->logctxbuf));
@@ -434,7 +434,7 @@ MPP_RET h264d_deinit(void *decoder)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, !decoder);
+    INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     free_input_ctx(p_Dec->p_Inp);
@@ -461,7 +461,7 @@ MPP_RET  h264d_reset(void *decoder)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, !decoder);
+    INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< reset input parameter
     p_Dec->p_Inp->in_buf        = NULL;
@@ -497,7 +497,7 @@ MPP_RET  h264d_flush(void *decoder)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, !decoder);
+    INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0]));
@@ -519,7 +519,7 @@ __FAILED:
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    INP_CHECK(ret, ctx, !decoder);
+    INP_CHECK(ret, !decoder);
 
     (void)decoder;
     (void)cmd_type;
@@ -540,7 +540,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    INP_CHECK(ret, ctx, !decoder && !pkt && !task);
+    INP_CHECK(ret, !decoder && !pkt && !task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     p_Dec->p_Inp->in_buf    = (RK_U8 *)mpp_packet_get_pos(pkt);
@@ -571,7 +571,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
-    INP_CHECK(ret, ctx, !decoder && !in_task);
+    INP_CHECK(ret, !decoder && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     in_task->valid = 0; // prepare end flag
     FUN_CHECK(ret = parse_loop(p_Dec));

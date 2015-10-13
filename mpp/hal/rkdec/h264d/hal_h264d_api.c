@@ -49,7 +49,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     MppHalApi *p_api = NULL;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
 
     p_api = &p_hal->hal_api;
