@@ -69,7 +69,7 @@ typedef enum {
     MPP_OSAL_CMD_BASE                   = 0x20000,
 
     MPP_CODEC_CMD_BASE                  = 0x30000,
-    MPP_CODEC_INFO_CHANGE,
+    MPP_CODEC_SET_INFO_CHANGE_READY,
     MPP_CODEC_SET_DEFAULT_WIDTH_HEIGH,
 
     MPP_DEC_CMD_BASE                    = 0x40000,

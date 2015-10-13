@@ -212,11 +212,6 @@ void *mpp_dec_parser_thread(void *data)
          */
         if (mpp_buf_slot_is_changed(frame_slots)) {
             if (!info_task_done) {
-                // do a chech here
-                MppFrame info_frame = NULL;
-                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
-                mpp_assert(info_frame);
-
                 task_dec->flags.info_change = 1;
                 hal_task_hnd_set_info(task, &task_local);
                 hal_task_hnd_set_status(task, TASK_PROCESSING);
@@ -230,7 +225,8 @@ void *mpp_dec_parser_thread(void *data)
         if (wait_on_change)
             continue;
 
-        info_task_done = 1;
+        info_task_done = 0;
+        task_dec->flags.info_change = 0;
         /*
          * 5. chekc frame buffer group is internal or external
          */
@@ -339,13 +335,6 @@ void *mpp_dec_hal_thread(void *data)
             mpp->mTaskGetCount++;
 
             hal_task_hnd_get_info(task, &task_info);
-            mpp_hal_hw_wait(dec->hal, &task_info);
-
-            // TODO: may have risk here
-            hal_task_hnd_set_status(task, TASK_PROC_DONE);
-            task = NULL;
-            mpp->mThreadCodec->signal();
-
             /*
              * check info change flag
              * if this is a info change frame, only output the mpp_frame for info change.
@@ -357,8 +346,19 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
                 mpp_frame_set_info_change(info_frame, 1);
                 mpp_put_frame(mpp, info_frame);
+                hal_task_hnd_set_status(task, TASK_IDLE);
+                task = NULL;
                 continue;
+                mpp->mThreadCodec->signal();
             }
+
+            mpp_hal_hw_wait(dec->hal, &task_info);
+
+            // TODO: may have risk here
+            hal_task_hnd_set_status(task, TASK_PROC_DONE);
+            task = NULL;
+            mpp->mThreadCodec->signal();
+
 
             /*
              * when hardware decoding is done:
