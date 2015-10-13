@@ -141,10 +141,22 @@ int mpi_test()
                 MppFrame next = mpp_frame_get_next(dec_out);
 
                 // TODO: diaplay function called here
+                /*
+                 * NOTE: check info_change is needed
+                 * step 1 : check info change flag
+                 * step 2 : if info change then request new buffer
+                 * step 3 : when new buffer is ready set control to mpp
+                 */
+                if (mpp_frame_get_info_change(dec_out)) {
+                    mpp_log("decode_get_frame get info changed found\n");
+
+                    // if work in external buffer mode re-commit buffer here
+                    mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
+                } else
+                    i++;
 
                 mpp_frame_deinit(&dec_out);
                 dec_out = next;
-                i++;
             } while (dec_out);
         }
     }

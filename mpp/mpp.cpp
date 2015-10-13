@@ -245,6 +245,12 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mOutputBlock = block;
         break;
     }
+    case MPP_CODEC_SET_INFO_CHANGE_READY: {
+        if (mType == MPP_CTX_DEC) {
+            mpp_buf_slot_ready(mDec->frame_slots);
+        }
+        break;
+    }
     default : {
     } break;
     }

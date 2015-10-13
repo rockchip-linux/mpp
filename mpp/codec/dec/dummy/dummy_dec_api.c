@@ -172,6 +172,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
      * this step will enable the task and goto parse stage
      */
     task->input_packet = p->task_pkt;
+    task->flags.eos = p->task_eos;
     task->valid = 1;
     return MPP_OK;
 }
@@ -195,6 +196,9 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     if (!p->slots_inited) {
         mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE, 0);
         p->slots_inited = 1;
+    } else if (frame_count == 2) {
+        // do info change test
+        mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE*2, 1);
     }
 
     if (task->prev_status) {
@@ -252,17 +256,15 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
         }
     } else {
         // clear unreference buffer
-        if (p->slot_index[frame_count] >= 0)
-            mpp_buf_slot_clr_flag(slots, p->slot_index[frame_count], SLOT_CODEC_USE);
+        RK_U32 replace_index = frame_count & 1;
+        if (p->slot_index[replace_index] >= 0)
+            mpp_buf_slot_clr_flag(slots, p->slot_index[replace_index], SLOT_CODEC_USE);
 
-        p->slot_index[frame_count] = output;
+        p->slot_index[replace_index] = output;
         mpp_buf_slot_set_flag(slots, output, SLOT_CODEC_USE);
     }
 
-    frame_count++;
-    if (frame_count >= DUMMY_DEC_REF_COUNT)
-        frame_count = 0;
-    p->frame_count = frame_count;
+    p->frame_count = ++frame_count;
 
     return MPP_OK;
 }
