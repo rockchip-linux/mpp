@@ -152,7 +152,10 @@ void Mpp::clear()
         mPacketGroup = NULL;
     }
     if (mFrameGroup) {
-        mpp_buffer_group_put(mFrameGroup);
+        MppBufferMode mode = mpp_buffer_group_mode(mFrameGroup);
+        if (MPP_BUFFER_INTERNAL == mode) {
+            mpp_buffer_group_put(mFrameGroup);
+        }
         mFrameGroup = NULL;
     }
 }
