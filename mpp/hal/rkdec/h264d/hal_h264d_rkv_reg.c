@@ -278,7 +278,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
 
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     p_hal->regs = (void *)mpp_calloc(H264_RkvRegs_t, 1);
@@ -307,7 +307,7 @@ MPP_RET rkv_h264d_deinit(void *hal)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     free_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
@@ -330,7 +330,7 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     H264dRkvPkt_t *pkts  = (H264dRkvPkt_t *)p_hal->pkts;
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     explain_input_buffer(hal, &task->dec);
@@ -359,7 +359,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
 
@@ -383,7 +383,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
 
@@ -407,7 +407,7 @@ MPP_RET rkv_h264d_reset(void *hal)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     memset(&p_hal->regs, 0, sizeof(H264_RkvRegs_t));
@@ -429,7 +429,7 @@ MPP_RET rkv_h264d_flush(void *hal)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
 
@@ -452,7 +452,7 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    INP_CHECK(ret, ctx, NULL == p_hal);
+    INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
 
