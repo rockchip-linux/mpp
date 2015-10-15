@@ -41,6 +41,7 @@
 #include "mpp_dec.h"
 #include "vpu.h"
 #include "mpp_buffer.h"
+#include "mpp_env.h"
 
 #ifdef dump
 FILE *fp = NULL;
@@ -313,7 +314,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
-
+    mpp_env_get_u32("h265h_debug", &h265h_debug, 0);
 
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");
@@ -1303,6 +1304,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     hw_regs = (H265d_REGS_t*)reg_cxt->hw_regs;
+    memset(hw_regs, 0, sizeof(H265d_REGS_t));
 
     uiMaxCUWidth = 1 << (dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size +
                          dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3);
@@ -1378,6 +1380,8 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
             mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits, SLOT_BUFFER, &framebuf);
             if (framebuf != NULL) {
                 hw_regs->sw_refer_base[i] = mpp_buffer_get_fd(framebuf);
+            } else {
+                hw_regs->sw_refer_base[i] = hw_regs->sw_decout_base;
             }
             hw_regs->sw_ref_valid          |=   (1 << i);
         } else {
@@ -1424,10 +1428,10 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 {
-    MPP_RET ret = MPP_OK;    
+    MPP_RET ret = MPP_OK;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
 
-	(void)task;
+    (void)task;
 #ifdef ANDROID
     RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
     RK_S32 i;

@@ -168,7 +168,7 @@ static void fill_picture_parameters(const HEVCContext *h,
             j++;
         }
 
-        if (frame) {
+        if (frame && (frame->slot_index != 0xff)) {
             fill_picture_entry(&pp->RefPicList[i], frame->slot_index, !!(frame->flags & HEVC_FRAME_FLAG_LONG_REF));
             pp->PicOrderCntValList[i] = frame->poc;
             mpp_buf_slot_set_flag(h->slots, frame->slot_index, SLOT_HAL_INPUT);
