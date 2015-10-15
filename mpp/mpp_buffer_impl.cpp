@@ -330,6 +330,30 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
     return MPP_OK;
 }
 
+void mpp_buffer_group_dump(MppBufferGroupImpl *group)
+{
+    mpp_log("\ndumping buffer group %p id %d\n", group, group->group_id);
+    mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
+    mpp_log("type %s\n", (MPP_BUFFER_TYPE_NORMAL == group->type) ? ("normal") :
+                         (MPP_BUFFER_TYPE_ION    == group->mode) ? ("ion") : ("v4l2"));
+    mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
+    mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
+
+    mpp_log("\nused buffer count %d\n", group->count_used);
+
+    MppBufferImpl *pos, *n;
+    list_for_each_entry_safe(pos, n, &group->list_unused, MppBufferImpl, list_status) {
+        mpp_log("buffer %p fd %5d size %10d ref_count %d\n",
+                pos, pos->info.fd, pos->info.size, pos->ref_count);
+    }
+
+    mpp_log("\nunused buffer count %d\n", group->count_unused);
+    list_for_each_entry_safe(pos, n, &group->list_unused, MppBufferImpl, list_status) {
+        mpp_log("buffer %p fd %5d size %10d ref_count %d\n",
+                pos, pos->info.fd, pos->info.size, pos->ref_count);
+    }
+}
+
 MppBufferService::MppBufferService()
     : group_id(0),
       group_count(0)
