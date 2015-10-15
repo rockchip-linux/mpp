@@ -90,6 +90,7 @@ void *mpp_dec_parser_thread(void *data)
                     prev_task_done  = 1;
                     hal_task_hnd_set_status(task_prev, TASK_IDLE);
                     task_prev = NULL;
+                    wait_on_prev = 0;
                 } else {
                     usleep(5000);
                     wait_on_prev = 1;
@@ -240,6 +241,7 @@ void *mpp_dec_parser_thread(void *data)
             hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
             if (task_prev) {
                 prev_task_done  = 1;
+                wait_on_prev = 0;
                 hal_task_hnd_set_status(task_prev, TASK_IDLE);
                 task_prev = NULL;
             } else {
@@ -276,6 +278,24 @@ void *mpp_dec_parser_thread(void *data)
 
         info_task_done = 0;
         task_dec->flags.info_change = 0;
+        if(task_dec->output < 0){
+            hal_task_hnd_set_status(task, TASK_IDLE);
+            mpp->mTaskPutCount++;
+            task = NULL;
+            if (pkt_buf_copyied) {
+                mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
+                if (buffer) {
+                  mpp_buffer_put(buffer);
+                  buffer = NULL;
+                }
+                mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+                pkt_buf_copyied = 0;
+            }
+            curr_task_ready  = 0;
+            curr_task_parsed = 0;
+            hal_task_info_init(&task_local, MPP_CTX_DEC);
+            continue;
+        }
         /*
          * 5. chekc frame buffer group is internal or external
          */
@@ -403,10 +423,6 @@ void *mpp_dec_hal_thread(void *data)
 
             mpp_hal_hw_wait(dec->hal, &task_info);
 
-            // TODO: may have risk here
-            hal_task_hnd_set_status(task, TASK_PROC_DONE);
-            task = NULL;
-            mpp->mThreadCodec->signal();
 
 
             /*
@@ -422,6 +438,11 @@ void *mpp_dec_hal_thread(void *data)
                 buffer = NULL;
             }
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+
+            // TODO: may have risk here
+            hal_task_hnd_set_status(task, TASK_PROC_DONE);
+            task = NULL;
+            mpp->mThreadCodec->signal();
 
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
@@ -439,7 +460,7 @@ void *mpp_dec_hal_thread(void *data)
                 MppFrame frame;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 if (!dec->reset_flag) {
-                mpp_put_frame(mpp, frame);
+                    mpp_put_frame(mpp, frame);
                 } else {
                     mpp_frame_deinit(&frame);
                 }
