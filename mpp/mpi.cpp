@@ -127,11 +127,11 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
 
 static MPP_RET mpi_flush(MppCtx ctx)
 {
-    (void)ctx;
+    MpiImpl *p = (MpiImpl *)ctx;
     MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = p->ctx->reset();
     MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)

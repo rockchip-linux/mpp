@@ -82,9 +82,58 @@ void *mpp_dec_parser_thread(void *data)
         /*
          * wait for stream input
          */
+        if (dec->reset_flag && !wait_on_frame_buffer) {
+            if (!prev_task_done) {
+                HalTaskHnd task_prev = NULL;
+                hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
+                if (task_prev) {
+                    prev_task_done  = 1;
+                    hal_task_hnd_set_status(task_prev, TASK_IDLE);
+                    task_prev = NULL;
+                } else {
+                    usleep(5000);
+                    wait_on_prev = 1;
+                    continue;
+                }
+            }
+
+            {
+                RK_S32 index;
+                parser->reset_lock();
+                curr_task_ready = 0;
+                task_dec->valid = 0;
+                parser_reset(dec->parser);
+                dec->reset_flag = 0;
+                if (packet) {
+                    mpp_free(mpp_packet_get_data(packet));
+                    mpp_packet_deinit(&packet);
+                    packet = NULL;
+                }
+                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+                    MppFrame frame;
+                    mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+                    mpp_frame_deinit(&frame);
+                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+                }
+                if (pkt_buf_copyied) {
+                    mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
+                    if (buffer) {
+                        mpp_buffer_put(buffer);
+                        buffer = NULL;
+                    }
+                    mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+                    pkt_buf_copyied = 0;
+                    task_dec->input = -1;
+                }
+
+                curr_task_parsed = 0;
+                parser->reset_unlock();
+                parser->reset_signal();
+            }
+        }
         parser->lock();
-        if (wait_on_task_hnd || wait_on_packet ||
-            wait_on_prev || wait_on_change || wait_on_frame_buffer)
+        if ((wait_on_task_hnd || wait_on_packet ||
+             wait_on_prev || wait_on_change || wait_on_frame_buffer) && !dec->reset_flag)
             parser->wait();
         parser->unlock();
 
@@ -389,7 +438,11 @@ void *mpp_dec_hal_thread(void *data)
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+                if (!dec->reset_flag) {
                 mpp_put_frame(mpp, frame);
+                } else {
+                    mpp_frame_deinit(&frame);
+                }
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
         }
@@ -510,9 +563,9 @@ MPP_RET mpp_dec_reset(MppDec *dec)
         mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
-
-    parser_reset(dec->parser);
-    mpp_hal_reset(dec->hal);
+    dec->reset_flag = 1;
+    // parser_reset(dec->parser);
+    //  mpp_hal_reset(dec->hal);
 
     return MPP_OK;
 }

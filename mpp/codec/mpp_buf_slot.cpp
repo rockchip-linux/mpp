@@ -210,8 +210,8 @@ static void dump_slots(MppBufSlotsImpl *impl)
 
     for (i = 0; i < impl->count; i++, slot++) {
         SlotStatus status = slot->status;
-        mpp_log("slot %2d used %d refer %d decoding %d display %d\n",
-                i, status.on_used, status.codec_use, status.hal_use, status.queue_use);
+        mpp_log("slot %2d used %d refer %d decoding %d display %d status %08x\n",
+                i, status.on_used, status.codec_use, status.hal_use, status.queue_use, status.val);
     }
 
     mpp_log("\nslot operation history:\n\n");
@@ -425,8 +425,11 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
     }
     MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
     RK_S32 i;
-    for (i = 0; i < impl->count; i++, slot++)
+    for (i = 0; i < impl->count; i++, slot++) {
+        if (slot->status.on_used)
+            dump_slots(impl);
         mpp_assert(!slot->status.on_used);
+    }
 
     if (impl->logs)
         delete impl->logs;

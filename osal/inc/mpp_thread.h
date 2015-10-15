@@ -170,10 +170,16 @@ public:
     void wait()     { mCondition.wait(mLock); }
     void signal()   { mCondition.signal(); }
 
+    void reset_lock()     { mResetLock.lock(); }
+    void reset_unlock()   { mResetLock.unlock(); }
+    void reset_wait()     { mResetCondition.wait(mResetLock); }
+    void reset_signal()   { mResetCondition.signal(); }
 private:
     Mutex           mLock;
     Condition       mCondition;
     pthread_t       mThread;
+    Mutex           mResetLock;
+    Condition       mResetCondition;
 
     MppThreadStatus mStatus;
     MppThreadFunc   mFunction;

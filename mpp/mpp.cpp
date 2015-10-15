@@ -260,3 +260,20 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     return MPP_OK;
 }
 
+MPP_RET Mpp::reset()
+{
+    {
+        Mutex::Autolock autoLock(mPackets->mutex());
+        mPackets->flush();
+    }
+    {
+        Mutex::Autolock autoLock(mFrames->mutex());
+        mFrames->flush();
+    }
+    mThreadCodec->reset_lock();
+    mpp_dec_reset(mDec);
+    mThreadCodec->signal();
+    mThreadCodec->reset_wait();
+    mThreadCodec->reset_unlock();
+    return MPP_OK;
+}

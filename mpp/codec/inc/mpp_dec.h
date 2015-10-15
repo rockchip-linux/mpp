@@ -34,6 +34,7 @@ struct MppDec_t {
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
+    RK_U32              reset_flag;
 };
 
 

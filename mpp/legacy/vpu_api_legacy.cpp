@@ -72,8 +72,9 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 
 RK_S32 VpuApi::flush(VpuCodecContext *ctx)
 {
-    mpp_log_f("in\n");
     (void)ctx;
+    mpp_log_f("in\n");
+    mpi->flush(mpp_ctx);
     mpp_log_f("ok\n");
     return 0;
 }

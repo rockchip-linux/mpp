@@ -184,13 +184,15 @@ RK_S32 h265d_split_init(void **sc)
     return MPP_OK;
 }
 
-void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off, RK_S32 remove)
+void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off)
 {
     RK_S32 i;
 
     s->dts = s->pts = -1;
     s->offset = 0;
     for (i = 0; i < MPP_PARSER_PTS_NB; i++) {
+        h265d_dbg(H265D_DBG_TIME, "s->cur_offset %lld s->cur_frame_offset[%d] %lld s->frame_offset %lld s->next_frame_offset %lld",
+                  s->cur_offset, i, s->cur_frame_offset[i], s->frame_offset, s->next_frame_offset);
         if ( s->cur_offset + off >= s->cur_frame_offset[i]
              && (s->frame_offset < s->cur_frame_offset[i] ||
                  (!s->frame_offset && !s->next_frame_offset)) // first field/frame
@@ -199,8 +201,6 @@ void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off, RK_S32 remove)
             s->dts = s->cur_frame_dts[i];
             s->pts = s->cur_frame_pts[i];
             s->offset = s->next_frame_offset - s->cur_frame_offset[i];
-            /* if (remove)
-                 s->cur_frame_offset[i] = INT64_MAX;*/
             if (s->cur_offset + off < s->cur_frame_end[i])
                 break;
         }
@@ -231,7 +231,7 @@ RK_S32 h265d_split_frame(void *sc,
         s->fetch_timestamp = 0;
         s->last_pts = s->pts;
         s->last_dts = s->dts;
-        mpp_fetch_timestamp(s, 0, 0);
+        mpp_fetch_timestamp(s, 0);
     }
 
     if (s->eos) {
@@ -275,8 +275,8 @@ RK_S32 h265d_split_reset(void *sc)
     SplitContext_t *s = (SplitContext_t*)sc;
     buf = s->buffer;
     size = s->buffer_size;
-    s->fetch_timestamp = 1;
     memset(s, 0, sizeof(SplitContext_t));
+    s->fetch_timestamp = 1;
     s->buffer = buf;
     s->buffer_size = size;
     return MPP_OK;
@@ -1724,6 +1724,7 @@ MPP_RET h265d_deinit(void *ctx)
     if (s->input_packet) {
         buf = mpp_packet_get_data(s->input_packet);
         mpp_free(buf);
+        mpp_packet_deinit(&s->input_packet);
     }
 
     if (s) {

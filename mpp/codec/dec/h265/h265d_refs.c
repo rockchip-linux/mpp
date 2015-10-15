@@ -310,7 +310,9 @@ static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
 #endif
     frame->poc      = poc;
 
-    mpp_err("generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
+    mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_READY);
+    mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
+    mpp_log("generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
     frame->sequence = s->seq_decode;
     frame->flags    = 0;
 
