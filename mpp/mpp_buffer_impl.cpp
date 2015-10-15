@@ -222,6 +222,9 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
                 buffer = pos;
                 inc_buffer_ref_no_lock(buffer);
                 break;
+            }else{
+                if(MPP_BUFFER_INTERNAL == p->mode)
+                    deinit_buffer_no_lock(pos);
             }
         }
     }
