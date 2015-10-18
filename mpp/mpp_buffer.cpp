@@ -43,10 +43,15 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info)
 
 MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size)
 {
-    if (NULL == group || NULL == buffer || 0 == size) {
+    if (NULL == buffer || 0 == size) {
         mpp_err("mpp_buffer_get invalid input: group %p buffer %p size %u\n",
                 group, buffer, size);
         return MPP_ERR_UNKNOW;
+    }
+
+    if (NULL == group) {
+        // deprecated, only for libvpu support
+        group = mpp_buffer_legacy_group();
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;

@@ -115,6 +115,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBu
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
+MppBufferGroupImpl *mpp_buffer_legacy_group();
 
 #ifdef __cplusplus
 }
