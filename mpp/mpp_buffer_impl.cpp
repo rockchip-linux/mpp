@@ -37,6 +37,8 @@ public:
     RK_U32              group_id;
     RK_U32              group_count;
 
+    MppBufferGroupImpl  *mLegacyGroup;
+
     struct list_head    mListGroup;
 
     // list for used buffer which do not have group
@@ -357,17 +359,29 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     }
 }
 
+MppBufferGroupImpl *mpp_buffer_legacy_group()
+{
+    return service.mLegacyGroup;
+}
+
 MppBufferService::MppBufferService()
     : group_id(0),
-      group_count(0)
+      group_count(0),
+      mLegacyGroup(NULL)
 {
     INIT_LIST_HEAD(&mListGroup);
     INIT_LIST_HEAD(&mListOrphan);
+
+    mpp_buffer_group_init(&mLegacyGroup, "legacy", MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
 }
 
 MppBufferService::~MppBufferService()
 {
-    // remove all group first
+    // first remove legacy group
+    if (mLegacyGroup)
+        mpp_buffer_group_deinit(mLegacyGroup);
+
+    // then remove the reset group
     if (!list_empty(&mListGroup)) {
         MppBufferGroupImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
