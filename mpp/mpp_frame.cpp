@@ -121,15 +121,16 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
     check_mpp_frame_name(f0);
     check_mpp_frame_name(f1);
 
-    if ((f0->width              == f0->width)  &&
-        (f0->height             == f0->height) &&
-        (f0->hor_stride         == f0->hor_stride) &&
-        (f0->ver_stride         == f0->ver_stride) &&
-        (f0->color_range        == f0->color_range) &&
-        (f0->color_primaries    == f0->color_primaries) &&
-        (f0->color_trc          == f0->color_trc) &&
-        (f0->colorspace         == f0->colorspace) &&
-        (f0->chroma_location    == f0->chroma_location)) {
+    if ((f0->width              == f1->width)  &&
+        (f0->height             == f1->height) &&
+        (f0->hor_stride         == f1->hor_stride) &&
+        (f0->ver_stride         == f1->ver_stride) &&
+        (f0->buf_size           == f1->buf_size) &&
+        (f0->color_range        == f1->color_range) &&
+        (f0->color_primaries    == f1->color_primaries) &&
+        (f0->color_trc          == f1->color_trc) &&
+        (f0->colorspace         == f1->colorspace) &&
+        (f0->chroma_location    == f1->chroma_location)) {
         return MPP_OK;
     }
     return MPP_NOK;
@@ -165,4 +166,5 @@ MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
 MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
 MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
 MPP_FRAME_ACCESSORS(MppBuffer, buffer)
+MPP_FRAME_ACCESSORS(size_t, buf_size)
 
