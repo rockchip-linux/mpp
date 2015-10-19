@@ -33,6 +33,7 @@ int main()
     MppBuffer commit_buffer[MPP_BUFFER_TEST_COMMIT_COUNT];
     void *commit_ptr[MPP_BUFFER_TEST_COMMIT_COUNT];
     MppBuffer normal_buffer[MPP_BUFFER_TEST_NORMAL_COUNT];
+    MppBuffer legacy_buffer = NULL;
     size_t size = MPP_BUFFER_TEST_SIZE;
     RK_S32 count = MPP_BUFFER_TEST_COMMIT_COUNT;
     RK_S32 i;
@@ -139,6 +140,19 @@ int main()
     }
 
     mpp_log("mpp_buffer_test success\n");
+
+    ret = mpp_buffer_get(NULL, &legacy_buffer, MPP_BUFFER_TEST_SIZE);
+    if (MPP_OK != ret) {
+        mpp_log("mpp_buffer_test mpp_buffer_get legacy buffer failed\n");
+        goto MPP_BUFFER_failed;
+    }
+
+    ret = mpp_buffer_put(legacy_buffer);
+    if (MPP_OK != ret) {
+        mpp_log("mpp_buffer_test mpp_buffer_put legacy buffer failed\n");
+        goto MPP_BUFFER_failed;
+    }
+
     return ret;
 
 MPP_BUFFER_failed:
@@ -161,6 +175,11 @@ MPP_BUFFER_failed:
     if (group) {
         mpp_buffer_group_put(group);
         group = NULL;
+    }
+
+    if (legacy_buffer) {
+        mpp_buffer_put(legacy_buffer);
+        legacy_buffer = NULL;
     }
 
     mpp_log("mpp_buffer_test failed\n");
