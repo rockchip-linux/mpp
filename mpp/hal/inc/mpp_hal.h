@@ -17,7 +17,6 @@
 #ifndef __MPP_HAL_H__
 #define __MPP_HAL_H__
 
-#include "rk_mpi.h"
 #include "hal_task.h"
 #include "mpp_buf_slot.h"
 

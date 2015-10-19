@@ -17,10 +17,8 @@
 #ifndef __MPP_DEC_H__
 #define __MPP_DEC_H__
 
-#include "rk_mpi.h"
 #include "mpp_parser.h"
 #include "mpp_hal.h"
-
 
 typedef struct MppDec_t MppDec;
 
@@ -56,7 +54,7 @@ MPP_RET mpp_dec_deinit(MppDec *dec);
 
 MPP_RET mpp_dec_reset(MppDec *dec);
 MPP_RET mpp_dec_flush(MppDec *dec);
-MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *para);
+MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param);
 
 #ifdef __cplusplus
 }

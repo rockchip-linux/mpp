@@ -98,6 +98,9 @@
 typedef void* MppBufSlots;
 typedef void* SlotHnd;
 
+#define BUFFER_INFO_CHANGE              (0x00000001)
+#define DISPLAY_INFO_CHANGE             (0x00000002)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -122,10 +125,10 @@ extern "C" {
  */
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots);
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots);
-MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count, RK_U32 size, RK_U32 changed);
+MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count);
 RK_U32  mpp_buf_slot_is_changed(MppBufSlots slots);
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
-RK_U32  mpp_buf_slot_get_size(MppBufSlots slots);
+size_t  mpp_buf_slot_get_size(MppBufSlots slots);
 
 /*
  * called by parser
@@ -223,6 +226,19 @@ typedef enum SlotPropType_e {
 
 MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val);
 MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val);
+
+typedef enum SlotsPropType_e {
+    SLOTS_EOS,
+    SLOTS_HOR_ALIGN,
+    SLOTS_VER_ALIGN,
+    SLOTS_COUNT,
+    SLOTS_SIZE,
+    SLOTS_FRAME_INFO,
+    SLOTS_PROP_BUTT,
+} SlotsPropType;
+
+MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val);
+MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val);
 
 #ifdef __cplusplus
 }

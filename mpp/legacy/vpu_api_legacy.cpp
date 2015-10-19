@@ -58,6 +58,13 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
     }
 
     ret = mpp_init(&mpp_ctx, &mpi, type, (MppCodingType)ctx->videoCoding);
+
+    VPU_GENERIC vpug;
+    vpug.CodecType  = ctx->codecType;
+    vpug.ImgWidth   = ctx->width;
+    vpug.ImgHeight  = ctx->height;
+    control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
+
     mpp_err("mpp_ctx = %p", mpp_ctx);
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
@@ -204,6 +211,14 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     switch (cmd) {
     case VPU_API_SET_VPUMEM_CONTEXT: {
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
+        break;
+    }
+    case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
+        mpicmd = MPP_CODEC_SET_FRAME_INFO;
+        break;
+    }
+    case VPU_API_SET_INFO_CHANGE: {
+        mpicmd = MPP_CODEC_SET_INFO_CHANGE_READY;
         break;
     }
     default: {

@@ -315,7 +315,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     mpp_buf_slot_init(&slots);
 
     mpp_buf_slot_init(&packet_slots);
-    mpp_buf_slot_setup(packet_slots, 2, 1024 * 1024, 0);
+    mpp_buf_slot_setup(packet_slots, 2);
     if (NULL == slots) {
         mpp_err("could not init buffer slot\n");
         return MPP_ERR_UNKNOW;
