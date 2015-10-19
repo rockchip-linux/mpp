@@ -20,13 +20,15 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 
 #include "mpp.h"
-#include "mpp_dec.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
+
+#include "vpu_api.h"
 
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 {
@@ -92,7 +94,7 @@ void *mpp_dec_parser_thread(void *data)
                     task_prev = NULL;
                     wait_on_prev = 0;
                 } else {
-                    usleep(5000);
+                    msleep(5);
                     wait_on_prev = 1;
                     continue;
                 }
@@ -320,7 +322,7 @@ void *mpp_dec_parser_thread(void *data)
         buffer = NULL;
         mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &buffer);
         if (NULL == buffer) {
-            RK_U32 size = mpp_buf_slot_get_size(frame_slots);
+            size_t size = mpp_buf_slot_get_size(frame_slots);
             mpp_buffer_get(mpp->mFrameGroup, &buffer, size);
             if (buffer)
                 mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, buffer);
@@ -499,7 +501,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             break;
         }
 
-        mpp_buf_slot_setup(packet_slots, 2, SZ_512K, 0);
+        mpp_buf_slot_setup(packet_slots, 2);
 
         ParserCfg parser_cfg = {
             coding,
@@ -604,11 +606,26 @@ MPP_RET mpp_dec_flush(MppDec *dec)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_control(MppDec *dec, RK_S32 cmd, void *param)
+MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
 {
     if (NULL == dec) {
         mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
+    }
+
+    switch (cmd) {
+    case MPP_CODEC_SET_FRAME_INFO : {
+        VPU_GENERIC *p = (VPU_GENERIC *)param;
+        MppFrame frame = NULL;
+        mpp_frame_init(&frame);
+        mpp_frame_set_width(frame, p->ImgWidth);
+        mpp_frame_set_height(frame, p->ImgHeight);
+        mpp_buf_slot_init(&dec->frame_slots);
+        //mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
+        mpp_frame_deinit(&frame);
+    } break;
+    default : {
+    } break;
     }
 
     parser_control(dec->parser, cmd, param);

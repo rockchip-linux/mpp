@@ -178,8 +178,6 @@ struct MppBufSlotEntry_t {
 
 struct MppBufSlotsImpl_t {
     Mutex               *lock;
-    RK_S32              count;
-    RK_U32              size;
 
     // status tracing
     RK_U32              decode_count;
@@ -188,7 +186,27 @@ struct MppBufSlotsImpl_t {
     // if slot changed, all will be hold until all slot is unused
     RK_U32              info_changed;
     RK_S32              new_count;
-    RK_U32              new_size;
+
+    // slot infomation for info change and eos
+    RK_U32              eos;
+
+    // buffer parameter, default alignement is 16
+    RK_U32              hor_align;
+    RK_U32              ver_align;
+    size_t              buf_size;
+    RK_S32              buf_count;
+    // buffer size equal to (h_stride * v_stride) * numerator / denominator
+    // internal parameter
+    RK_U32              numerator;
+    RK_U32              denominator;
+
+    // NOTE: use MppFrame to store the buffer/display infomation
+    //       any buffer related infomation change comparing to previous frame will
+    //       trigger a buffer info changed requirement
+    //       any display related infomation change comparing to pevious frame will
+    //       trigger a display info changed requirement
+    MppFrame            info;
+    MppFrame            info_set;
 
     // list for display
     struct list_head    queue[QUEUE_BUTT];
@@ -199,16 +217,44 @@ struct MppBufSlotsImpl_t {
     MppBufSlotEntry     *slots;
 };
 
+static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
+{
+    RK_U32 width  = mpp_frame_get_width(frame);
+    RK_U32 height = mpp_frame_get_height(frame);
+    MppFrameColorTransferCharacteristic color = mpp_frame_get_color_trc(frame);
+    RK_U32 bit_depth  = (color == MPP_FRAME_TRC_BT2020_10) ? (10) :
+                        (color == MPP_FRAME_TRC_BT2020_12) ? (12) : (8);
+    RK_U32 hor_stride = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
+    RK_U32 ver_stride = MPP_ALIGN(height, impl->ver_align);
+    RK_U32 size = hor_stride * ver_stride;
+    size *= impl->numerator;
+    size /= impl->denominator;
+
+    mpp_frame_set_width(impl->info_set, width);
+    mpp_frame_set_height(impl->info_set, height);
+    mpp_frame_set_hor_stride(impl->info_set, hor_stride);
+    mpp_frame_set_ver_stride(impl->info_set, ver_stride);
+    mpp_frame_set_buf_size(impl->info_set, size);
+
+    MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
+    MppFrameImpl *frame_impl    = (MppFrameImpl *)frame;
+    info_set_impl->color_range      = frame_impl->color_range;
+    info_set_impl->color_primaries  = frame_impl->color_primaries;
+    info_set_impl->color_trc        = frame_impl->color_trc;
+    info_set_impl->colorspace       = frame_impl->colorspace;
+    info_set_impl->chroma_location  = frame_impl->chroma_location;
+}
+
 static void dump_slots(MppBufSlotsImpl *impl)
 {
     RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
 
-    mpp_log("\ndumping slots %p count %d size %d\n", impl, impl->count, impl->size);
+    mpp_log("\ndumping slots %p buffer count %d buffer size %d\n", impl, impl->buf_count, impl->buf_size);
     mpp_log("decode  count %d\n", impl->decode_count);
     mpp_log("display count %d\n", impl->display_count);
 
-    for (i = 0; i < impl->count; i++, slot++) {
+    for (i = 0; i < impl->buf_count; i++, slot++) {
         SlotStatus status = slot->status;
         mpp_log("slot %2d used %d refer %d decoding %d display %d status %08x\n",
                 i, status.on_used, status.codec_use, status.hal_use, status.queue_use, status.val);
@@ -386,6 +432,35 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
     }
 }
 
+static void clear_slots_impl(MppBufSlotsImpl *impl)
+{
+    for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
+        mpp_assert(list_empty(&impl->queue[i]));
+    }
+    MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
+    RK_S32 i;
+    for (i = 0; i < impl->buf_count; i++, slot++) {
+        if (slot->status.on_used)
+            dump_slots(impl);
+        mpp_assert(!slot->status.on_used);
+    }
+
+    if (impl->info)
+        mpp_frame_deinit(&impl->info);
+
+    if (impl->info_set)
+        mpp_frame_deinit(&impl->info_set);
+
+    if (impl->logs)
+        delete impl->logs;
+
+    if (impl->lock)
+        delete impl->lock;
+
+    mpp_free(impl->slots);
+    mpp_free(impl);
+}
+
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 {
     if (NULL == slots) {
@@ -400,16 +475,41 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 
     mpp_env_get_u32("buf_slot_debug", &buf_slot_debug, BUF_SLOT_DBG_OPS_HISTORY);
 
-    impl->lock = new Mutex();
-    for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
-        INIT_LIST_HEAD(&impl->queue[i]);
-    }
+    do {
+        impl->lock = new Mutex();
+        if (NULL == impl->lock)
+            break;
 
-    if (buf_slot_debug & BUF_SLOT_DBG_OPS_HISTORY)
-        impl->logs = new mpp_list(NULL);
+        for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
+            INIT_LIST_HEAD(&impl->queue[i]);
+        }
 
-    *slots = impl;
-    return MPP_OK;
+        if (buf_slot_debug & BUF_SLOT_DBG_OPS_HISTORY) {
+            impl->logs = new mpp_list(NULL);
+            if (NULL == impl->logs)
+                break;
+        }
+
+        if (mpp_frame_init(&impl->info))
+            break;
+
+        if (mpp_frame_init(&impl->info_set))
+            break;
+
+        // slots information default setup
+        impl->hor_align = 16;
+        impl->ver_align = 16;
+        impl->numerator = 9;
+        impl->denominator = 5;
+
+        *slots = impl;
+        return MPP_OK;
+    } while (0);
+
+    clear_slots_impl(impl);
+
+    *slots = NULL;
+    return MPP_NOK;
 }
 
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
@@ -419,59 +519,34 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
-        mpp_assert(list_empty(&impl->queue[i]));
-    }
-    MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
-    RK_S32 i;
-    for (i = 0; i < impl->count; i++, slot++) {
-        if (slot->status.on_used)
-            dump_slots(impl);
-        mpp_assert(!slot->status.on_used);
-    }
-
-    if (impl->logs)
-        delete impl->logs;
-
-    delete impl->lock;
-    mpp_free(impl->slots);
-    mpp_free(slots);
+    clear_slots_impl((MppBufSlotsImpl *)slots);
     return MPP_OK;
 }
 
-MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count, RK_U32 size, RK_U32 changed)
+MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count)
 {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p setup: count %d size %d changed %d\n",
-                 slots, count, size, changed);
+    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p setup: count %d\n", slots, count);
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
+
     if (NULL == impl->slots) {
         // first slot setup
-        impl->count = count;
-        impl->size  = size;
+        impl->buf_count = impl->new_count = count;
         impl->slots = mpp_calloc(MppBufSlotEntry, count);
         init_slot_entry(impl, 0, count);
     } else {
-        // need to check info change or not
-        if (!changed) {
-            slot_assert(impl, size == impl->size);
-            if (count > impl->count) {
-                mpp_realloc(impl->slots, MppBufSlotEntry, count);
-                init_slot_entry(impl, impl->count, (count - impl->count));
-            }
-        } else {
-            // info changed, even size is the same we still need to wait for new configuration
-            impl->new_count     = count;
-            impl->new_size      = size;
-            impl->info_changed  = 1;
+        // record the slot count for info changed ready config
+        if (count > impl->buf_count) {
+            mpp_realloc(impl->slots, MppBufSlotEntry, count);
+            init_slot_entry(impl, impl->buf_count, (count - impl->buf_count));
         }
+        impl->new_count = count;
     }
 
     return MPP_OK;
@@ -503,22 +578,26 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     slot_assert(impl, impl->info_changed);
     slot_assert(impl, impl->slots);
 
-    impl->info_changed  = 0;
-    impl->size          = impl->new_size;
-    if (impl->count != impl->new_count) {
+    // ready mean the info_set will be copy to info as the new configuration
+    if (impl->buf_count != impl->new_count) {
         mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
         init_slot_entry(impl, 0, impl->new_count);
     }
-    impl->count = impl->new_count;
+    impl->buf_count = impl->new_count;
+
+    mpp_frame_copy(impl->info, impl->info_set);
+    impl->buf_size = mpp_frame_get_buf_size(impl->info);
+
     if (impl->logs) {
         mpp_list *logs = impl->logs;
         while (logs->list_size())
             logs->del_at_head(NULL, sizeof(MppBufSlotLog));
     }
+    impl->info_changed  = 0;
     return MPP_OK;
 }
 
-RK_U32  mpp_buf_slot_get_size(MppBufSlots slots)
+size_t mpp_buf_slot_get_size(MppBufSlots slots)
 {
     if (NULL == slots) {
         mpp_err_f("found NULL input\n");
@@ -526,7 +605,7 @@ RK_U32  mpp_buf_slot_get_size(MppBufSlots slots)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    return impl->size;
+    return impl->buf_size;
 }
 
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
@@ -540,7 +619,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
     Mutex::Autolock auto_lock(impl->lock);
     RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
-    for (i = 0; i < impl->count; i++, slot++) {
+    for (i = 0; i < impl->buf_count; i++, slot++) {
         if (!slot->status.on_used) {
             *index = i;
             slot_ops_with_log(impl, slot, SLOT_SET_ON_USE);
@@ -565,7 +644,7 @@ MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->count));
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     slot_ops_with_log(impl, &impl->slots[index], set_flag_op[type]);
     return MPP_OK;
 }
@@ -579,7 +658,7 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->count));
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, clr_flag_op[type]);
 
@@ -599,7 +678,7 @@ MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_S32 index, SlotQueueType type
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->count));
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, SLOT_ENQUEUE);
 
@@ -627,7 +706,7 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
-    slot_assert(impl, slot->index < impl->count);
+    slot_assert(impl, slot->index < impl->buf_count);
     slot_ops_with_log(impl, slot, SLOT_DEQUEUE);
     impl->display_count++;
     *index = slot->index;
@@ -644,7 +723,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->count));
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, set_val_op[type]);
 
@@ -663,6 +742,23 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
         mpp_frame_copy(slot->frame, frame);
         mpp_frame_set_eos(slot->frame, slot->eos);
+
+        /*
+         * we need to detect infomation change here
+         * there are two types of info change:
+         * 1. buffer size change
+         *    this case need to reset buffer group and commit buffer with new size
+         * 2. display info change
+         *    if only width/height is change and buffer do not need to be reset
+         *    only display info change is need
+         */
+        generate_info_set(impl, slot->frame);
+        if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
+            // info change found here
+            mpp_log("info change found\n");
+
+            impl->info_changed = 1;
+        }
     } break;
     case SLOT_BUFFER: {
         MppBuffer buffer = val;
@@ -693,7 +789,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->count));
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
 
     switch (type) {
@@ -717,6 +813,117 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     default : {
     } break;
     }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
+{
+    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+        mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    RK_U32 value = *((RK_U32*)val);
+    switch (type) {
+    case SLOTS_EOS: {
+        impl->eos = value;
+    } break;
+    case SLOTS_HOR_ALIGN: {
+        impl->hor_align = value;
+    } break;
+    case SLOTS_VER_ALIGN: {
+        impl->ver_align = value;
+    } break;
+    case SLOTS_COUNT: {
+        impl->buf_count = value;
+    } break;
+    case SLOTS_SIZE: {
+        impl->buf_size = value;
+    } break;
+    case SLOTS_FRAME_INFO: {
+        // do info change detection here
+        MppFrame frame = (MppFrame)val;
+        MppFrame info  = impl->info;
+        RK_U32 prev_changed = mpp_frame_get_info_change(info);
+        RK_U32 same_info = 0;
+        mpp_assert(NULL == mpp_frame_get_buffer(frame));
+        if (prev_changed) {
+            // NOTE: new frame info must be different
+            mpp_assert(memcmp(info, frame, sizeof(MppFrameImpl)));
+
+            mpp_frame_set_info_change(info, 0);
+            mpp_log("new buffer info is set\n");
+        }
+
+        same_info = (mpp_frame_info_cmp(info, frame)) ? (1) : (0);
+
+        if (!same_info) {
+            RK_U32 width  = mpp_frame_get_width(frame);
+            RK_U32 height = mpp_frame_get_height(frame);
+            MppFrameColorTransferCharacteristic color = mpp_frame_get_color_trc(frame);
+            RK_U32 bit_depth  = (color == MPP_FRAME_TRC_BT2020_10) ? (10) :
+                                (color == MPP_FRAME_TRC_BT2020_12) ? (12) : (8);
+            RK_U32 hor_stride = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
+            RK_U32 ver_stride = MPP_ALIGN(height, impl->ver_align);
+            RK_U32 size = hor_stride * ver_stride;
+            size *= impl->numerator;
+            size /= impl->denominator;
+            impl->buf_size = size;
+
+            mpp_frame_copy(info, frame);
+            mpp_frame_set_info_change(info, 1);
+        } else if (prev_changed) {
+            mpp_buf_slot_ready(slots);
+        }
+    } break;
+    default : {
+    } break;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
+{
+    if (NULL == slots || NULL == val || type >= SLOTS_PROP_BUTT) {
+        mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
+        return MPP_NOK;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+
+    RK_U32 value = 0;
+    switch (type) {
+    case SLOTS_EOS: {
+        value = impl->eos;
+    } break;
+    case SLOTS_HOR_ALIGN: {
+        value = impl->hor_align;
+    } break;
+    case SLOTS_VER_ALIGN: {
+        value = impl->ver_align;
+    } break;
+    case SLOTS_COUNT: {
+        value = impl->buf_count;
+    } break;
+    case SLOTS_SIZE: {
+        value = (RK_U32)impl->buf_size;
+    } break;
+    case SLOTS_FRAME_INFO: {
+        MppFrame frame = (MppFrame)val;
+        MppFrame info  = impl->info;
+        mpp_frame_copy(frame, info);
+    } break;
+    default : {
+    } break;
+    }
+
+    if (SLOTS_FRAME_INFO != type)
+        *(RK_U32 *)val = value;
 
     return MPP_OK;
 }

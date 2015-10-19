@@ -24,6 +24,12 @@
 
 #include "dummy_dec_api.h"
 
+#define DUMMY_DEC_FRAME_WIDTH       1280
+#define DUMMY_DEC_FRAME_HEIGHT      720
+
+#define DUMMY_DEC_FRAME_NEW_WIDTH   1920
+#define DUMMY_DEC_FRAME_NEW_HEIGHT  1088
+
 #define DUMMY_DEC_FRAME_SIZE        SZ_1M
 #define DUMMY_DEC_FRAME_COUNT       16
 #define DUMMY_DEC_REF_COUNT         2
@@ -193,12 +199,18 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
 
     slots = p->frame_slots;
     frame_count = p->frame_count;
+
+    mpp_frame_init(&frame);
+    mpp_frame_set_width(frame, DUMMY_DEC_FRAME_WIDTH);
+    mpp_frame_set_height(frame, DUMMY_DEC_FRAME_HEIGHT);
+
     if (!p->slots_inited) {
-        mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE, 0);
+        mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT);
         p->slots_inited = 1;
-    } else if (frame_count == 2) {
+    } else if (frame_count >= 2) {
         // do info change test
-        mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT, DUMMY_DEC_FRAME_SIZE*2, 1);
+        mpp_frame_set_width(frame, DUMMY_DEC_FRAME_NEW_WIDTH);
+        mpp_frame_set_height(frame, DUMMY_DEC_FRAME_NEW_HEIGHT);
     }
 
     if (task->prev_status) {
@@ -220,7 +232,6 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     mpp_buf_slot_set_flag(slots, output, SLOT_HAL_OUTPUT);
     task->output = output;
 
-    mpp_frame_init(&frame);
     mpp_frame_set_pts(frame, p->task_pts);
     mpp_buf_slot_set_prop(slots, output, SLOT_FRAME, frame);
     mpp_frame_deinit(&frame);
