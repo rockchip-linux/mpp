@@ -77,9 +77,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        mpp_dec_init(&mDec, coding);
+        mpp_dec_init(&mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this);
-        mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
+        mThreadHal  = new MppThread(mpp_enc_hal_thread, this);
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
@@ -124,12 +124,15 @@ void Mpp::clear()
         delete mThreadHal;
         mThreadHal = NULL;
     }
-    if (mDec) {
-        if (mType == MPP_CTX_DEC)
+    if (mDec || mEnc) {
+        if (mType == MPP_CTX_DEC) {
             mpp_dec_deinit(mDec);
-        else
-            mpp_dec_deinit(mDec);
-        mDec = NULL;
+            mDec = NULL;
+        }
+        else {
+            mpp_dec_deinit(mEnc);
+            mEnc = NULL;
+        }
     }
     if (mPackets) {
         delete mPackets;
@@ -254,6 +257,11 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         }
         break;
     }
+    case MPP_CODEC_SET_FRAME_INFO: {
+        mpp_assert(mType == MPP_CTX_DEC);
+        mpp_dec_control(mDec, cmd, param);
+        break;
+    }
     default : {
     } break;
     }
@@ -271,9 +279,15 @@ MPP_RET Mpp::reset()
         mFrames->flush();
     }
     mThreadCodec->reset_lock();
-    mpp_dec_reset(mDec);
-    mThreadCodec->signal();
-    mThreadCodec->reset_wait();
-    mThreadCodec->reset_unlock();
+
+    if (mType == MPP_CTX_DEC) {
+        mpp_dec_reset(mDec);
+        mThreadCodec->signal();
+        mThreadCodec->reset_wait();
+        mThreadCodec->reset_unlock();
+    } else {
+        mpp_dec_reset(mEnc);
+    }
+
     return MPP_OK;
 }
