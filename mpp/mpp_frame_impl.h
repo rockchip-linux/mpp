@@ -86,5 +86,6 @@ struct MppFrameImpl_t {
 
 MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
+MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
 
 #endif /*__MPP_FRAME_IMPL_H__*/
