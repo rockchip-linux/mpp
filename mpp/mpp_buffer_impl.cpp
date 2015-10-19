@@ -340,7 +340,7 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     mpp_log("\ndumping buffer group %p id %d\n", group, group->group_id);
     mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
     mpp_log("type %s\n", (MPP_BUFFER_TYPE_NORMAL == group->type) ? ("normal") :
-                         (MPP_BUFFER_TYPE_ION    == group->mode) ? ("ion") : ("v4l2"));
+                         (MPP_BUFFER_TYPE_ION    == group->type) ? ("ion") : ("v4l2"));
     mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
     mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
 
