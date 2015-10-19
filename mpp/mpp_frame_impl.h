@@ -74,8 +74,10 @@ struct MppFrameImpl_t {
 
     /*
      * buffer information
+     * NOTE: buf_size only access internally
      */
     MppBuffer       buffer;
+    size_t          buf_size;
 
     /*
      * pointer for multiple frame output at one time
@@ -83,6 +85,9 @@ struct MppFrameImpl_t {
     MppFrameImpl    *next;
 };
 
+
+size_t  mpp_frame_get_buf_size(const MppFrame frame);
+void    mpp_frame_set_buf_size(MppFrame frame, size_t buf_size);
 
 MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
