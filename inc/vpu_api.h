@@ -61,6 +61,12 @@ typedef struct {
     RK_U32   TimeHigh;
 } TIME_STAMP;
 
+typedef struct {
+    RK_U32   CodecType;
+    RK_U32   ImgWidth;
+    RK_U32   ImgHeight;
+} VPU_GENERIC;
+
 typedef struct VPUMem {
     RK_U32  phy_addr;
     RK_U32 *vir_addr;

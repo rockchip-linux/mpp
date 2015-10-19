@@ -70,7 +70,8 @@ typedef enum {
 
     MPP_CODEC_CMD_BASE                  = 0x30000,
     MPP_CODEC_SET_INFO_CHANGE_READY,
-    MPP_CODEC_SET_DEFAULT_WIDTH_HEIGH,
+    MPP_CODEC_SET_FRAME_INFO,
+    MPP_CODEC_GET_FRAME_INFO,
 
     MPP_DEC_CMD_BASE                    = 0x40000,
     MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
