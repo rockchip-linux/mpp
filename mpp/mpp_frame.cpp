@@ -109,6 +109,31 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
     return MPP_OK;
 }
 
+MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
+{
+    if (NULL == frame0 || NULL == frame0) {
+        mpp_err_f("invalid NULL pointer input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppFrameImpl *f0 = (MppFrameImpl *)frame0;
+    MppFrameImpl *f1 = (MppFrameImpl *)frame1;
+    check_mpp_frame_name(f0);
+    check_mpp_frame_name(f1);
+
+    if ((f0->width              == f0->width)  &&
+        (f0->height             == f0->height) &&
+        (f0->hor_stride         == f0->hor_stride) &&
+        (f0->ver_stride         == f0->ver_stride) &&
+        (f0->color_range        == f0->color_range) &&
+        (f0->color_primaries    == f0->color_primaries) &&
+        (f0->color_trc          == f0->color_trc) &&
+        (f0->colorspace         == f0->colorspace) &&
+        (f0->chroma_location    == f0->chroma_location)) {
+        return MPP_OK;
+    }
+    return MPP_NOK;
+}
 
 /*
  * object access function macro
