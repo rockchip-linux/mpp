@@ -238,6 +238,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     }
     return MPP_OK;
 }
+
 MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 {
     switch (cmd) {
@@ -270,24 +271,24 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 
 MPP_RET Mpp::reset()
 {
-    {
-        Mutex::Autolock autoLock(mPackets->mutex());
-        mPackets->flush();
-    }
-    {
-        Mutex::Autolock autoLock(mFrames->mutex());
-        mFrames->flush();
-    }
+    mPackets->lock();
+    mPackets->flush();
+    mPackets->unlock();
+
+    mFrames->lock();
+    mFrames->flush();
+    mFrames->unlock();
+
     mThreadCodec->reset_lock();
 
     if (mType == MPP_CTX_DEC) {
         mpp_dec_reset(mDec);
         mThreadCodec->signal();
         mThreadCodec->reset_wait();
-        mThreadCodec->reset_unlock();
     } else {
         mpp_dec_reset(mEnc);
     }
+    mThreadCodec->reset_unlock();
 
     return MPP_OK;
 }
