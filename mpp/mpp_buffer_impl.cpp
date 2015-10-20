@@ -383,11 +383,9 @@ MppBufferService::MppBufferService()
     snprintf(p->tag, sizeof(p->tag), "legacy");
     p->mode     = MPP_BUFFER_INTERNAL;
     p->type     = MPP_BUFFER_TYPE_ION;
-    p->limit    = 0;
-    p->group_id = service.group_id;
 
-    service.group_id++;
-    service.group_count++;
+    group_id++;
+    group_count++;
 
     mpp_alloctor_get(&p->allocator, &p->alloc_api, MPP_BUFFER_TYPE_ION);
 
