@@ -4,7 +4,7 @@ include_directories(.)
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
-add_library(mpp_legacy SHARED STATIC
+add_library(mpp_legacy SHARED
     vpu_api.cpp
     vpu_api_legacy.cpp
     )
