@@ -272,14 +272,19 @@ void *mpp_dec_parser_thread(void *data)
                 mpp->mTaskPutCount++;
                 task = NULL;
                 info_task_done = 1;
+                continue;
             }
         }
         wait_on_change = mpp_buf_slot_is_changed(frame_slots);
-        if (wait_on_change)
+        if (wait_on_change) {
             continue;
+        } else {
+            info_task_done = 0;
+            task_dec->flags.info_change = 0;
+            // NOTE: check the task must be ready
+            mpp_assert(task);
+        }
 
-        info_task_done = 0;
-        task_dec->flags.info_change = 0;
         if (task_dec->output < 0) {
             hal_task_hnd_set_status(task, TASK_IDLE);
             mpp->mTaskPutCount++;
