@@ -54,6 +54,8 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
         group = mpp_buffer_legacy_group();
     }
 
+    mpp_assert(group);
+
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
     // try unused buffer first
     MppBufferImpl *buf = mpp_buffer_get_unused(p, size);
