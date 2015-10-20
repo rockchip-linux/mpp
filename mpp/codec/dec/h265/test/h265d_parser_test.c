@@ -384,7 +384,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     mpp_err("mpp_buf_slot_get_prop");
                     mpp_buf_slot_get_prop(packet_slots, index, SLOT_BUFFER, &buffer);
                     if (NULL == buffer) {
-                        RK_U32 size = mpp_buf_slot_get_size(packet_slots);
+                        RK_U32 size = (RK_U32)mpp_buf_slot_get_size(packet_slots);
                         mpp_err("mpp_buffer_get");
                         mpp_buffer_get(mStreamGroup, &buffer, size);
                         if (buffer != NULL)
@@ -432,7 +432,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 mpp_err("frame get unused");
                 mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
                 if (NULL == buffer) {
-                    RK_U32 size = mpp_buf_slot_get_size(slots);
+                    RK_U32 size = (RK_U32)mpp_buf_slot_get_size(slots);
                     mpp_err("size = %d", size);
                     mpp_buffer_get(mFrameGroup, &buffer, size);
                     if (buffer)

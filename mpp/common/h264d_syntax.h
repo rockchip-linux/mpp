@@ -104,7 +104,7 @@ typedef struct _DXVA_PicParams_H264 {
 
     RK_U16  slice_group_change_rate_minus1;
 
-    RK_U8   SliceGroupMap[810]; /* 4b/sgmu, Size BT.601 */
+    //RK_U8   SliceGroupMap[810]; /* 4b/sgmu, Size BT.601 */
 
 } DXVA_PicParams_H264, *LPDXVA_PicParams_H264;
 
@@ -151,6 +151,15 @@ typedef struct _DXVA_Slice_H264_Long {
     RK_U8   cabac_init_idc;
     RK_U8   disable_deblocking_filter_idc;
     RK_U16  slice_id;
+    /* add parameter for setting hardware */
+    RK_U32  active_sps_id;
+    RK_U32  active_pps_id;
+    RK_U32  idr_pic_id;
+    RK_U32  idr_flag;
+    RK_U32  drpm_used_bitlen;
+    RK_U32  poc_used_bitlen;
+    RK_U32  nal_ref_idc;
+    RK_U32  profileIdc;
 } DXVA_Slice_H264_Long, *LPDXVA_Slice_H264_Long;
 
 /* H.264/AVC macro block control command data structure */
@@ -359,6 +368,7 @@ typedef struct _DXVA_PicParams_H264_MVC {
     RK_U8   Reserved8BitsA;
 
     RK_U16  FrameNumList[16];
+    RK_U16  LongTermPicNumList[16];
     RK_U32  UsedForReferenceFlags;
     RK_U16  NonExistingFrameFlags;
     RK_U16  frame_num;
@@ -396,10 +406,12 @@ typedef struct _DXVA_PicParams_H264_MVC {
     RK_U8   inter_view_flag;
     RK_U16  ViewIDList[16];
     //!< add in Rock-Chip RKVDEC IP
+    RK_U16  curr_layer_id;
     RK_U16  RefPicColmvUsedFlags;
     RK_U16  RefPicFiledFlags;
     RK_U8   RefPicLayerIdList[16];
     RK_U8   scaleing_list_enable_flag;
+
     ////!< for fpga test
     //USHORT seq_parameter_set_id;
     //USHORT pps_seq_parameter_set_id;

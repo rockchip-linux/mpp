@@ -21,11 +21,12 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_common.h"
 
 #include "h264d_log.h"
 #include "h264d_fill.h"
 
-#define  FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
+
 #define  ALIGN(x, a)       ( ((x) + (a) - 1) & (~((a) - 1)) )
 
 static const RK_U8 start_code[3] = { 0, 0, 1 };
@@ -149,12 +150,13 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->UsedForReferenceFlags = 0;
     pp->NonExistingFrameFlags = 0;
 
-    for (i = 0, j = 0; i < FF_ARRAY_ELEMS(pp->RefFrameList); i++) {
+    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
         if (dpb_info[i].picbuf) {
             fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].mem_mark_idx, dpb_info[i].is_long_term);
             pp->FieldOrderCntList[i][0] = dpb_info[i].TOP_POC;
             pp->FieldOrderCntList[i][1] = dpb_info[i].BOT_POC;
             pp->FrameNumList[i] = dpb_info[i].frame_num_wrap;
+            pp->LongTermPicNumList[i] = dpb_info[i].long_term_picnum;
             if (dpb_info[i].is_used & 0x01) { //!< top_field
                 pp->UsedForReferenceFlags |= 1 << (2 * i + 0);
             }
@@ -264,6 +266,8 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
         pp->ViewIDList[i] = p_Vid->p_Dec->dpb_info[i].view_id;
     }
     //!< add in Rock-chip RKVDEC IP
+    pp->curr_layer_id = dec_picture->layer_id;
+
     for (i = 0; i < 16; i++) {
         if (p_Vid->p_Dec->dpb_info[i].colmv_is_used) {
             pp->RefPicColmvUsedFlags |= 1 << i;
@@ -306,8 +310,17 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     p_long->redundant_pic_cnt = currSlice->redundant_pic_cnt;
     p_long->direct_spatial_mv_pred_flag = currSlice->direct_spatial_mv_pred_flag;
     p_long->slice_id = dxva_ctx->slice_count;
+    //!< add parameters
+    p_long->active_sps_id = currSlice->active_sps->seq_parameter_set_id;
+    p_long->active_pps_id = currSlice->active_pps->pic_parameter_set_id;
+    p_long->idr_pic_id = currSlice->idr_pic_id;
+    p_long->idr_flag = currSlice->idr_flag;
+    p_long->drpm_used_bitlen = currSlice->drpm_used_bitlen;
+    p_long->poc_used_bitlen = currSlice->poc_used_bitlen;
+    p_long->nal_ref_idc = currSlice->nal_reference_idc;
+    p_long->profileIdc = currSlice->active_sps->profile_idc;
 
-    for (i = 0; i < FF_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
         dpb_idx   = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
         dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
         if (dpb_valid) {
@@ -319,7 +332,7 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     }
 
     for (list = 0; list < 2; list++) {
-        for (i = 0; i < FF_ARRAY_ELEMS(p_long->RefPicList[list + 1]); i++) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[list + 1]); i++) {
             dpb_idx   = currSlice->p_Dec->refpic_info[list][i].dpb_idx;
             dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
             if (dpb_valid) {

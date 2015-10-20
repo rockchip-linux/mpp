@@ -215,7 +215,7 @@ typedef struct h264d_rkv_regs_t {
         RK_U32 reserve : 2;
     } swreg77_h264_error_e;
     RK_U32 compare_len;
-} H264_RkvRegs_t;
+} H264dRkvRegs_t;
 
 
 
@@ -223,7 +223,7 @@ typedef struct h264d_rkv_regs_t {
 extern "C" {
 #endif
 
-extern const RK_U8 H264_Cabac_table[];
+extern const RK_U32 H264_RKV_Cabac_table[460 * 8];
 
 MPP_RET rkv_h264d_init    (void *hal, MppHalCfg *cfg);
 MPP_RET rkv_h264d_deinit  (void *hal);

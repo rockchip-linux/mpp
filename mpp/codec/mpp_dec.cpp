@@ -280,15 +280,15 @@ void *mpp_dec_parser_thread(void *data)
 
         info_task_done = 0;
         task_dec->flags.info_change = 0;
-        if(task_dec->output < 0){
+        if (task_dec->output < 0) {
             hal_task_hnd_set_status(task, TASK_IDLE);
             mpp->mTaskPutCount++;
             task = NULL;
             if (pkt_buf_copyied) {
                 mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
                 if (buffer) {
-                  mpp_buffer_put(buffer);
-                  buffer = NULL;
+                    mpp_buffer_put(buffer);
+                    buffer = NULL;
                 }
                 mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                 pkt_buf_copyied = 0;
@@ -521,7 +521,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             MPP_CTX_DEC,
             coding,
             HAL_MODE_LIBVPU,
-            HAL_RKVDEC,
+            HAL_VDPU,
             frame_slots,
             packet_slots,
             NULL,

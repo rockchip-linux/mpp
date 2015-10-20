@@ -146,7 +146,7 @@ static MPP_RET read_one_nalu(H264dInputCtx_t *p_Inp, H264dCurStream_t *p_strm)
         p_Dec->nalu_ret = HaveNoStream;
     }
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
+    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:

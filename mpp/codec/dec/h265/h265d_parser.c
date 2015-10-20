@@ -1564,18 +1564,18 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     MPP_RET ret = MPP_OK;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = h265dctx->priv_data;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     SplitContext_t *sc = (SplitContext_t*)h265dctx->split_cxt;
     RK_S64 pts = -1, dts = -1;
     RK_U8 *buf = NULL;
     void *pos = NULL;
     RK_S32 length = 0;
     s->eos = sc->eos = mpp_packet_get_eos(pkt);
-    buf = mpp_packet_get_pos(pkt);
+    buf = (RK_U8 *)mpp_packet_get_pos(pkt);
     pts = mpp_packet_get_pts(pkt);
     dts = mpp_packet_get_dts(pkt);
     h265d_dbg(H265D_DBG_TIME, "prepare get pts %lld", pts);
-    length = mpp_packet_get_length(pkt);
+    length = (RK_S32)mpp_packet_get_length(pkt);
 
     if (mpp_packet_get_flag(pkt)& MPP_PACKET_FLAG_EXTRA_DATA) {
         h265dctx->extradata_size = length;
@@ -1605,7 +1605,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             return MPP_FAIL_SPLIT_FRAME;
         }
     }
-    ret = split_nal_units(s, buf, length);
+    ret = (MPP_RET)split_nal_units(s, buf, length);
 
     if (MPP_OK == ret) {
         if (MPP_OK == h265d_syntax_fill_slice(s->h265dctx, task->input)) {
