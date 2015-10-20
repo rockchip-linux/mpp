@@ -77,7 +77,7 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        mpp_dec_init(&mEnc, coding);
+        mpp_enc_init(&mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this);
         mThreadHal  = new MppThread(mpp_enc_hal_thread, this);
 
@@ -130,7 +130,7 @@ void Mpp::clear()
             mDec = NULL;
         }
         else {
-            mpp_dec_deinit(mEnc);
+            mpp_enc_deinit(mEnc);
             mEnc = NULL;
         }
     }
@@ -286,7 +286,7 @@ MPP_RET Mpp::reset()
         mThreadCodec->signal();
         mThreadCodec->reset_wait();
     } else {
-        mpp_dec_reset(mEnc);
+        mpp_enc_reset(mEnc);
     }
     mThreadCodec->reset_unlock();
 
