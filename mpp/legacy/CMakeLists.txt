@@ -9,4 +9,4 @@ add_library(mpp_legacy SHARED
     vpu_api_legacy.cpp
     )
 set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy")
-target_link_libraries(mpp_legacy mpp osal)
+target_link_libraries(mpp_legacy mpp_shared)

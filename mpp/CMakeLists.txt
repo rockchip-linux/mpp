@@ -19,7 +19,7 @@ add_subdirectory(hal)
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
-add_library(mpp STATIC
+set (MPP_SRC
     mpp_info.cpp
     mpp_buffer_impl.cpp
     mpp_buffer.cpp
@@ -29,12 +29,19 @@ add_library(mpp STATIC
     mpi_impl.cpp
     mpi.cpp
     )
-
+    
+add_library(mpp STATIC ${MPP_SRC})
 set_target_properties(mpp PROPERTIES FOLDER "mpp") 
+set_target_properties(mpp PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+target_link_libraries(mpp mpp_codec mpp_hal osal)
+
+add_library(mpp_shared SHARED ${MPP_SRC})
+set_target_properties(mpp_shared PROPERTIES FOLDER "mpp") 
+set_target_properties(mpp_shared PROPERTIES OUTPUT_NAME "mpp") 
+set_target_properties(mpp_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+target_link_libraries(mpp_shared mpp)
 
 add_subdirectory(legacy)
-
-target_link_libraries(mpp mpp_codec mpp_hal osal)
 
 add_subdirectory(test)
 
