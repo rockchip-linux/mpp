@@ -372,7 +372,26 @@ MppBufferService::MppBufferService()
     INIT_LIST_HEAD(&mListGroup);
     INIT_LIST_HEAD(&mListOrphan);
 
-    mpp_buffer_group_init(&mLegacyGroup, "legacy", MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
+    // NOTE: here can not call mpp_buffer_group_init for the service is not started
+    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
+    INIT_LIST_HEAD(&p->list_group);
+    INIT_LIST_HEAD(&p->list_used);
+    INIT_LIST_HEAD(&p->list_unused);
+
+    list_add_tail(&p->list_group, &mListGroup);
+
+    snprintf(p->tag, sizeof(p->tag), "legacy");
+    p->mode     = MPP_BUFFER_INTERNAL;
+    p->type     = MPP_BUFFER_TYPE_ION;
+    p->limit    = 0;
+    p->group_id = service.group_id;
+
+    service.group_id++;
+    service.group_count++;
+
+    mpp_alloctor_get(&p->allocator, &p->alloc_api, MPP_BUFFER_TYPE_ION);
+
+    mLegacyGroup = p;
 }
 
 MppBufferService::~MppBufferService()
