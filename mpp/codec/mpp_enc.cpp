@@ -44,6 +44,7 @@ void *mpp_enc_control_thread(void *data)
             mpp_packet_init(&packet, buf, size);
             packets->lock();
             packets->add_at_tail(&packet, sizeof(packet));
+            packets->signal();
             packets->unlock();
         }
     }
