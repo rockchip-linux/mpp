@@ -25,17 +25,15 @@
 
 static const char *module_name = MODULE_TAG;
 
-static void setup_mpp_packet_name(MppPacketImpl *packet)
-{
-    packet->name = module_name;
-}
+#define setup_mpp_packet_name(packet) \
+    ((MppPacketImpl*)packet)->name = module_name;
 
-static void check_mpp_packet_name(MppPacketImpl *packet)
-{
-    mpp_assert(packet->name == module_name);
-    if (packet->name != module_name)
-        mpp_err("packet %p failed on name checking\n");
-}
+#define check_mpp_packet_name(packet) \
+    do { \
+        mpp_assert(((MppPacketImpl*)packet)->name == module_name); \
+        if (((MppPacketImpl*)packet)->name != module_name) \
+            mpp_err_f("packet %p failed on name checking\n"); \
+    } while (0)
 
 MPP_RET mpp_packet_new(MppPacket *packet)
 {
@@ -186,6 +184,7 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
 
     check_mpp_packet_name(packet);
     memset(packet, 0, sizeof(*packet));
+    setup_mpp_packet_name(packet);
     return MPP_OK;
 }
 
@@ -227,12 +226,12 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
 #define MPP_PACKET_ACCESSORS(type, field) \
     type mpp_packet_get_##field(const MppPacket s) \
     { \
-        check_mpp_packet_name((MppPacketImpl*)s); \
+        check_mpp_packet_name(s); \
         return ((MppPacketImpl*)s)->field; \
     } \
     void mpp_packet_set_##field(MppPacket s, type v) \
     { \
-        check_mpp_packet_name((MppPacketImpl*)s); \
+        check_mpp_packet_name(s); \
         ((MppPacketImpl*)s)->field = v; \
     }
 
