@@ -626,7 +626,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_frame_set_width(frame, p->ImgWidth);
         mpp_frame_set_height(frame, p->ImgHeight);
         mpp_buf_slot_init(&dec->frame_slots);
-        //mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
+        mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
     } break;
     default : {
