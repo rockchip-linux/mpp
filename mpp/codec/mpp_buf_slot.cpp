@@ -845,39 +845,8 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     } break;
     case SLOTS_FRAME_INFO: {
         // do info change detection here
-        MppFrame frame = (MppFrame)val;
-        MppFrame info  = impl->info;
-        RK_U32 prev_changed = mpp_frame_get_info_change(info);
-        RK_U32 same_info = 0;
-        mpp_assert(NULL == mpp_frame_get_buffer(frame));
-        if (prev_changed) {
-            // NOTE: new frame info must be different
-            mpp_assert(memcmp(info, frame, sizeof(MppFrameImpl)));
-
-            mpp_frame_set_info_change(info, 0);
-            mpp_log("new buffer info is set\n");
-        }
-
-        same_info = (mpp_frame_info_cmp(info, frame)) ? (1) : (0);
-
-        if (!same_info) {
-            RK_U32 width  = mpp_frame_get_width(frame);
-            RK_U32 height = mpp_frame_get_height(frame);
-            MppFrameColorTransferCharacteristic color = mpp_frame_get_color_trc(frame);
-            RK_U32 bit_depth  = (color == MPP_FRAME_TRC_BT2020_10) ? (10) :
-                                (color == MPP_FRAME_TRC_BT2020_12) ? (12) : (8);
-            RK_U32 hor_stride = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
-            RK_U32 ver_stride = MPP_ALIGN(height, impl->ver_align);
-            RK_U32 size = hor_stride * ver_stride;
-            size *= impl->numerator;
-            size /= impl->denominator;
-            impl->buf_size = size;
-
-            mpp_frame_copy(info, frame);
-            mpp_frame_set_info_change(info, 1);
-        } else if (prev_changed) {
-            mpp_buf_slot_ready(slots);
-        }
+        generate_info_set(impl, (MppFrame)val);
+        mpp_buf_slot_ready(slots);
     } break;
     default : {
     } break;
