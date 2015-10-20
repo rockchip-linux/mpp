@@ -819,7 +819,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
 {
-    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+    if (NULL == slots || NULL == val || type >= SLOTS_PROP_BUTT) {
         mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
         return MPP_ERR_UNKNOW;
     }
