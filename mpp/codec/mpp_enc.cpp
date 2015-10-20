@@ -114,3 +114,35 @@ void *mpp_enc_hal_thread(void *data)
     return NULL;
 }
 
+MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
+{
+    MppEnc *p = mpp_calloc(MppEnc, 1);
+    if (NULL == p) {
+        mpp_err_f("failed to malloc context\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p->coding = coding;
+    *enc = p;
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_deinit(MppEnc *enc)
+{
+    if (NULL == enc) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    mpp_free(enc);
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_reset(MppEnc *enc)
+{
+    (void)enc;
+    return MPP_OK;
+}
+
+

@@ -17,7 +17,13 @@
 #ifndef __MPP_ENC_H__
 #define __MPP_ENC_H__
 
-#include "rk_type.h"
+#include "rk_mpi.h"
+
+typedef struct MppEnc_t MppEnc;
+
+struct MppEnc_t {
+    MppCodingType       coding;
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +34,12 @@ extern "C" {
  */
 void *mpp_enc_control_thread(void *data);
 void *mpp_enc_hal_thread(void *data);
+
+
+MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding);
+MPP_RET mpp_enc_deinit(MppEnc *enc);
+
+MPP_RET mpp_enc_reset(MppEnc *enc);
 
 #ifdef __cplusplus
 }

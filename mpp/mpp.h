@@ -19,6 +19,7 @@
 
 #include "mpp_list.h"
 #include "mpp_dec.h"
+#include "mpp_enc.h"
 
 #define MPP_DBG_FUNCTION                (0x00000001)
 #define MPP_DBG_PACKET                  (0x00000002)
@@ -107,7 +108,7 @@ public:
     RK_U32          mStatus;
 
     MppDec          *mDec;
-    MppDec          *mEnc;
+    MppEnc          *mEnc;
 
 private:
     void clear();
