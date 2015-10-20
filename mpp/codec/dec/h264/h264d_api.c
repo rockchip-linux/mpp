@@ -519,12 +519,14 @@ __FAILED:
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    INP_CHECK(ret, !decoder);
 
-    (void)decoder;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+    INP_CHECK(ret, !decoder);
+    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+
     (void)cmd_type;
     (void)param;
-
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
 }

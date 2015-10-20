@@ -48,7 +48,7 @@ enum {
 } ScalingListLength;
 
 
-static void write_sps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
+static void rkv_write_sps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 {
     fifo_write_bits(pkt,  -1,                                           4, "seq_parameter_set_id");   //!< not used in hard
     fifo_write_bits(pkt,  -1,                                           8, "profile_idc");            //!< not used in hard
@@ -99,7 +99,7 @@ static void write_sps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
     fifo_align_bits(pkt, 32);
 }
 
-static void write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
+static void rkv_write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 {
     fifo_write_bits(pkt, -1,                                                8, "pps_pic_parameter_set_id");
     fifo_write_bits(pkt, -1,                                                5, "pps_seq_parameter_set_id");
@@ -130,7 +130,7 @@ static void write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void reset_fifo_packet(H264dRkvPkt_t *pkt)
+void rkv_reset_fifo_packet(H264dRkvPkt_t *pkt)
 {
     if (pkt) {
         fifo_packet_reset(&pkt->spspps);
@@ -148,7 +148,7 @@ void reset_fifo_packet(H264dRkvPkt_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void free_fifo_packet(H264dRkvPkt_t *pkt)
+void rkv_free_fifo_packet(H264dRkvPkt_t *pkt)
 {
     if (pkt) {
         MPP_FREE(pkt->spspps.pbuf);
@@ -164,7 +164,7 @@ void free_fifo_packet(H264dRkvPkt_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
+MPP_RET rkv_alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     LogCtx_t *log_driver = NULL;
@@ -204,7 +204,7 @@ MPP_RET alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
     }
     return ret = MPP_OK;
 __FAILED:
-    free_fifo_packet(pkts);
+    rkv_free_fifo_packet(pkts);
 
     return ret;
 }
@@ -212,52 +212,19 @@ __FAILED:
 /*!
 ***********************************************************************
 * \brief
-*    expalin decoder buffer dest
-***********************************************************************
-*/
-//extern "C"
-void explain_input_buffer(void *hal, HalDecTask *task)
-{
-    RK_U32 i = 0;
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    DXVA2_DecodeBufferDesc *pdes = (DXVA2_DecodeBufferDesc *)task->syntax.data;
-    for (i = 0; i < task->syntax.number; i++) {
-        switch (pdes[i].CompressedBufferType) {
-        case DXVA2_PictureParametersBufferType:
-            p_hal->pp = (DXVA_PicParams_H264_MVC *)pdes[i].pvPVPState;
-            break;
-        case DXVA2_InverseQuantizationMatrixBufferType:
-            p_hal->qm = (DXVA_Qmatrix_H264 *)pdes[i].pvPVPState;
-            break;
-        case DXVA2_SliceControlBufferType:
-            p_hal->slice_num = pdes[i].DataSize / sizeof(DXVA_Slice_H264_Long);
-            p_hal->slice_long = (DXVA_Slice_H264_Long *)pdes[i].pvPVPState;
-            break;
-        case DXVA2_BitStreamDateBufferType:
-            p_hal->bitstream = (RK_U8 *)pdes[i].pvPVPState;
-            p_hal->strm_len = pdes[i].DataSize;
-            break;
-        default:
-            break;
-        }
-    }
-}
-/*!
-***********************************************************************
-* \brief
 *    prepare sps_sps packet
 ***********************************************************************
 */
 //extern "C"
-void prepare_spspps_packet(void *hal, FifoCtx_t *pkt)
+void rkv_prepare_spspps_packet(void *hal, FifoCtx_t *pkt)
 {
     RK_S32 i = 0;
     RK_S32 is_long_term = 0, voidx = 0;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     fifo_packet_reset(pkt);
     LogInfo(pkt->logctx, "------------------ Frame SPS_PPS begin ------------------------");
-    write_sps_to_fifo(p_hal, pkt);
-    write_pps_to_fifo(p_hal, pkt);
+    rkv_write_sps_to_fifo(p_hal, pkt);
+    rkv_write_pps_to_fifo(p_hal, pkt);
 
     for (i = 0; i < 16; i++) {
         is_long_term = (p_hal->pp->RefFrameList[i].bPicEntry != 0xff) ? p_hal->pp->RefFrameList[i].AssociatedFlag : 0;
@@ -277,7 +244,7 @@ void prepare_spspps_packet(void *hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void prepare_framerps_packet(void *hal, FifoCtx_t *pkt)
+void rkv_prepare_framerps_packet(void *hal, FifoCtx_t *pkt)
 {
     RK_S32 i = 0, j = 0;
     RK_S32 dpb_idx = 0, voidx = 0;
@@ -326,7 +293,7 @@ void prepare_framerps_packet(void *hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
+void rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
 {
     RK_S32 i = 0;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -350,7 +317,7 @@ void prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void prepare_stream_packet(void *hal, FifoCtx_t *pkt)
+void rkv_prepare_stream_packet(void *hal, FifoCtx_t *pkt)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
@@ -366,7 +333,7 @@ void prepare_stream_packet(void *hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void generate_regs(void *hal, FifoCtx_t *pkt)
+void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
 {
     RK_S32 i = 0;
     RK_U8 bit_depth[3] = { 0 };
@@ -378,8 +345,8 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
     RK_U32 mb_width = 0, mb_height = 0, mv_size = 0;
 
     H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
-    H264_RkvRegs_t *p_regs = (H264_RkvRegs_t *)p_hal->regs;
-    memset(p_regs, 0, sizeof(H264_RkvRegs_t));
+    H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
+    memset(p_regs, 0, sizeof(H264dRkvRegs_t));
 
     if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
         p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
@@ -459,7 +426,7 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
     }
 
     fifo_packet_reset(pkt);
-    fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264_RkvRegs_t));
+    fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264dRkvRegs_t));
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
@@ -471,7 +438,7 @@ void generate_regs(void *hal, FifoCtx_t *pkt)
 *   for debug
 ***********************************************************************
 */
-void fprint_fifo_data(FILE *fp, FifoCtx_t *pkt)
+void rkv_fprint_fifo_data(FILE *fp, FifoCtx_t *pkt)
 {
     RK_U32 i = 0, pkt_size = 0;
     RK_U8 *ptr = (RK_U8 *)pkt->pbuf;

@@ -273,9 +273,13 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
 {
     RK_U32 val = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U32 drpm_used_bits = 0;
     H264_DRPM_t *tmp_drpm = NULL, *tmp_drpm2 = NULL;
     H264dVideoCtx_t *p_Vid = pSlice->p_Vid;
     BitReadCtx_t *p_bitctx = &pSlice->p_Cur->bitctx;
+
+    drpm_used_bits = p_bitctx->used_bits;
+    pSlice->drpm_used_bitlen = 0;
     //!< free old buffer content
     free_slice_drpm_buffer(pSlice);
     if (pSlice->idr_flag ||
@@ -320,7 +324,7 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
             } while (val != 0);
         }
     }
-
+    pSlice->drpm_used_bitlen = p_bitctx->used_bits - drpm_used_bits;
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
@@ -423,6 +427,7 @@ void recycle_slice(H264_SLICE_t *currSlice)
 MPP_RET process_slice(H264_SLICE_t *currSlice)
 {
     RK_U32 temp = 0;
+    RK_U32 poc_used_bits = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dLogCtx_t *logctx = currSlice->logctx;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
@@ -468,6 +473,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         } else if (currSlice->svc_extension_flag == 0 && currSlice->mvcExt.non_idr_flag == 0) {
             READ_UE(p_bitctx, &currSlice->idr_pic_id, "idr_pic_id");
         }
+        poc_used_bits = p_bitctx->used_bits; //!< init poc used bits
         if (currSlice->active_sps->pic_order_cnt_type == 0) {
             READ_BITS(p_bitctx, currSlice->active_sps->log2_max_pic_order_cnt_lsb_minus4 + 4, &currSlice->pic_order_cnt_lsb, "pic_order_cnt_lsb");
             if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1
@@ -484,14 +490,14 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
                 if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1 && !currSlice->field_pic_flag) {
                     READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt[1], "delta_pic_order_cnt[1]");
                 } else {
-                    currSlice->delta_pic_order_cnt[1] = 0;  // set to zero if not in stream
+                    currSlice->delta_pic_order_cnt[1] = 0;  //!< set to zero if not in stream
                 }
             } else {
                 currSlice->delta_pic_order_cnt[0] = 0;
                 currSlice->delta_pic_order_cnt[1] = 0;
             }
         }
-
+        currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits; //!< calculate poc used bit length
         //!< redundant_pic_cnt is missing here
         ASSERT(currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag == 0); // add by dw, high 4:2:2 profile not support
         if (currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag) {
@@ -531,6 +537,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
             || (currSlice->p_Vid->active_pps->weighted_bipred_idc == 1 && (currSlice->slice_type == B_SLICE))) {
             FUN_CHECK(ret = pred_weight_table(currSlice));
         }
+        currSlice->drpm_used_bitlen = 0;
         if (currSlice->nal_reference_idc) {
             FUN_CHECK(ret = dec_ref_pic_marking(currSlice));
         }

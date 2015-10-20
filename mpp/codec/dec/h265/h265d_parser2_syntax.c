@@ -249,9 +249,9 @@ RK_S32 h265d_parser2_syntax(void *ctx)
 {
 
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    const HEVCContext *h = h265dctx->priv_data;
+    const HEVCContext *h = (const HEVCContext *)h265dctx->priv_data;
 
-    h265d_dxva2_picture_context_t *ctx_pic = h->hal_pic_private;
+    h265d_dxva2_picture_context_t *ctx_pic = (h265d_dxva2_picture_context_t *)h->hal_pic_private;
 
     /* Fill up DXVA_PicParams_HEVC */
     fill_picture_parameters(h, &ctx_pic->pp);
@@ -265,8 +265,8 @@ RK_S32 h265d_parser2_syntax(void *ctx)
 RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    const HEVCContext *h = h265dctx->priv_data;
-    h265d_dxva2_picture_context_t *ctx_pic = h->hal_pic_private;
+    const HEVCContext *h = (const HEVCContext *)h265dctx->priv_data;
+    h265d_dxva2_picture_context_t *ctx_pic = (h265d_dxva2_picture_context_t *)h->hal_pic_private;
     MppBuffer streambuf = NULL;
     RK_S32 i, count = 0;
     RK_U32 position = 0;
@@ -282,8 +282,8 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
         }
     } else {
         RK_S32 buff_size = 0;
-        current = mpp_packet_get_data(h->input_packet);
-        size = mpp_packet_get_size(h->input_packet);
+        current = (RK_U8 *)mpp_packet_get_data(h->input_packet);
+        size = (RK_U32)mpp_packet_get_size(h->input_packet);
         for (i = 0; i < h->nb_nals; i++) {
             length += h->nals[i].size;
         }

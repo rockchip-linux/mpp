@@ -27,10 +27,12 @@
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
 
-
+#ifndef INT_MIN
 #define INT_MIN     (-2147483647 - 1) /* minimum (signed) int value */
+#endif
+#ifndef INT_MAX
 #define INT_MAX       2147483647      /* maximum (signed) int value */
-
+#endif
 static RK_S32 RoundLog2(RK_S32 iValue)
 {
     RK_S32 iRet = 0;
@@ -1726,6 +1728,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
         }
         p_Dec->dpb_info[i].frame_num_wrap = p_Dpb->fs_ref[j]->frame_num_wrap;
         p_Dec->dpb_info[i].is_long_term = 0;
+        p_Dec->dpb_info[i].long_term_picnum = 0;
         p_Dec->dpb_info[i].voidx = p_Dpb->fs_ref[j]->layer_id;
         p_Dec->dpb_info[i].view_id = p_Dpb->fs_ref[j]->view_id;
         p_Dec->dpb_info[i].is_used = p_Dpb->fs_ref[j]->is_used;
@@ -1751,6 +1754,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
             p_Dec->dpb_info[i].field_flag = p_Dpb->fs_ltref[j]->frame->iCodingType == FIELD_CODING;
             p_Dec->dpb_info[i].mem_mark_idx = p_Dpb->fs_ltref[j]->frame->mem_mark->index;
             p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->frame->colmv_no_used_flag ? 0 : 1);
+            p_Dec->dpb_info[i].long_term_picnum = p_Dpb->fs_ltref[j]->frame->long_term_pic_num;
         } else if (p_Dpb->fs_ltref[j]->is_used) {
             if (p_Dpb->fs_ltref[j]->is_used & 0x1) {
                 p_Dec->dpb_info[i].picbuf = (void *)p_Dpb->fs_ltref[j]->top_field;
@@ -1759,6 +1763,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].mem_mark_idx = p_Dpb->fs_ltref[j]->top_field->mem_mark->index;
                 p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->top_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].long_term_picnum = p_Dpb->fs_ltref[j]->top_field->long_term_pic_num;
 
             } else { // if(p_Dpb->fs_ref[j]->is_used & 0x2)
                 p_Dec->dpb_info[i].picbuf = (void *)p_Dpb->fs_ltref[j]->bottom_field;
@@ -1767,10 +1772,12 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].mem_mark_idx = p_Dpb->fs_ltref[j]->bottom_field->mem_mark->index;
                 p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->bottom_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].long_term_picnum = p_Dpb->fs_ltref[j]->bottom_field->long_term_pic_num;
             }
         }
         p_Dec->dpb_info[i].frame_num_wrap = p_Dpb->fs_ltref[j]->long_term_frame_idx;//long term use long_term_frame_idx
         p_Dec->dpb_info[i].is_long_term = 1;
+
         p_Dec->dpb_info[i].voidx = p_Dpb->fs_ltref[j]->layer_id;
         p_Dec->dpb_info[i].view_id = p_Dpb->fs_ltref[j]->view_id;
         p_Dec->dpb_info[i].is_used = p_Dpb->fs_ltref[j]->is_used;
@@ -1846,6 +1853,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
         }
         p_Dec->dpb_info[i].frame_num_wrap = p_Dpb->fs_ilref[j]->frame_num_wrap;
         p_Dec->dpb_info[i].is_long_term = 0;
+        p_Dec->dpb_info[i].long_term_picnum = 0;
         p_Dec->dpb_info[i].voidx = p_Dpb->fs_ilref[j]->layer_id;
         p_Dec->dpb_info[i].view_id = p_Dpb->fs_ilref[j]->view_id;
         p_Dec->dpb_info[i].is_used = p_Dpb->fs_ilref[j]->is_used;

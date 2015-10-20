@@ -37,17 +37,16 @@ typedef struct h264d_rkv_packet_t {
 #ifdef  __cplusplus
 extern "C" {
 #endif
-void    reset_fifo_packet(H264dRkvPkt_t *pkt);
-void    free_fifo_packet (H264dRkvPkt_t *pkt);
-MPP_RET alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts);
+void    rkv_reset_fifo_packet(H264dRkvPkt_t *pkt);
+void    rkv_free_fifo_packet (H264dRkvPkt_t *pkt);
+MPP_RET rkv_alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts);
 
-void    explain_input_buffer   (void *hal, HalDecTask *task);
-void    prepare_spspps_packet  (void *hal, FifoCtx_t *pkt);
-void    prepare_framerps_packet(void *hal, FifoCtx_t *pkt);
-void    prepare_scanlist_packet(void *hal, FifoCtx_t *pkt);
-void    prepare_stream_packet  (void *hal, FifoCtx_t *pkt);
-void    generate_regs          (void *hal, FifoCtx_t *pkt);
-void    fprint_fifo_data       (FILE *fp,  FifoCtx_t *pkt);
+void    rkv_prepare_spspps_packet  (void *hal, FifoCtx_t *pkt);
+void    rkv_prepare_framerps_packet(void *hal, FifoCtx_t *pkt);
+void    rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt);
+void    rkv_prepare_stream_packet  (void *hal, FifoCtx_t *pkt);
+void    rkv_generate_regs          (void *hal, FifoCtx_t *pkt);
+void    rkv_fprint_fifo_data       (FILE *fp,  FifoCtx_t *pkt);
 
 
 #ifdef  __cplusplus

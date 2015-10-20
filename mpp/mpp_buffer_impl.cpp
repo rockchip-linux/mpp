@@ -224,8 +224,8 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
                 buffer = pos;
                 inc_buffer_ref_no_lock(buffer);
                 break;
-            }else{
-                if(MPP_BUFFER_INTERNAL == p->mode)
+            } else {
+                if (MPP_BUFFER_INTERNAL == p->mode)
                     deinit_buffer_no_lock(pos);
             }
         }
@@ -340,7 +340,7 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     mpp_log("\ndumping buffer group %p id %d\n", group, group->group_id);
     mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
     mpp_log("type %s\n", (MPP_BUFFER_TYPE_NORMAL == group->type) ? ("normal") :
-                         (MPP_BUFFER_TYPE_ION    == group->type) ? ("ion") : ("v4l2"));
+            (MPP_BUFFER_TYPE_ION    == group->type) ? ("ion") : ("v4l2"));
     mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
     mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
 

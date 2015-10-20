@@ -218,6 +218,7 @@ typedef struct h264_dpb_info_t {
     RK_U16    frame_num_wrap;
     RK_U32    field_flag;
     RK_U32    is_long_term;
+    RK_U32    long_term_picnum;
     RK_U32    voidx;
     RK_U32    view_id;
     RK_U32    is_used;
@@ -705,8 +706,9 @@ typedef struct h264_slice_t {
     RK_S32       structure;
     RK_S32       mb_aff_frame_flag;
     RK_S32       pic_order_cnt_lsb;              // for poc mode 0
-    RK_S32        delta_pic_order_cnt_bottom;
+    RK_S32       delta_pic_order_cnt_bottom;
     RK_S32       delta_pic_order_cnt[2];         // for poc mode 1
+    RK_U32       poc_used_bitlen;
     RK_U32       redundant_pic_cnt;
     RK_S32       direct_spatial_mv_pred_flag;
     RK_U32       num_ref_idx_active[2];          //!< number of available list references
@@ -717,6 +719,7 @@ typedef struct h264_slice_t {
     RK_U32       *long_term_pic_idx[2];
     RK_U32       *abs_diff_view_idx_minus1[2];
     struct h264_drpm_t   *dec_ref_pic_marking_buffer;
+    RK_U32       drpm_used_bitlen;
     RK_S32       no_output_of_prior_pics_flag;
     RK_S32       long_term_reference_flag;
     RK_S32       adaptive_ref_pic_buffering_flag;

@@ -201,7 +201,7 @@ MPP_RET explain_ctrl_flag(RK_U32 ctrl_val, LogFlag_t *pflag)
 void set_log_outpath(LogEnv_t *env)
 {
     if (NULL == env->outpath) {
-        mpp_env_set_str(logenv_name.outpath,  "./h264d_dat" );
+        mpp_env_set_str(logenv_name.outpath,  "./h264d_log" );
         mpp_env_get_str(logenv_name.outpath,  &env->outpath,  NULL);
     }
     if (access(env->outpath, 0)) {
@@ -238,11 +238,11 @@ void writelog(void *in_ctx, ...)
     pfn1 = strrchr(filename, '\\');
     pfn  = pfn0 ? (pfn0 + 1) : (pfn1 ? (pfn1 + 1) : filename);
     if (ctx->flag->print_en) {
-        mpp_log("[TAG=%s] file: %s:%d, [ %s ], %s", ctx->tag, pfn, line, levelname, argmsg);
+        mpp_log("[TAG=%s] file: %s:%d, [%s], %s", ctx->tag, pfn, line, levelname, argmsg);
     }
     if (ctx->fp && ctx->flag->write_en) {
-        fprintf(ctx->fp, "%s \n", argmsg);
-        //fprintf(ctx->fp, "[ TAG = %s ], file: %s, line: %d, [ %s ], %s \n", ctx->tag, pfn, line, loglevel, argbuf);
+        fprintf(ctx->fp, "%s\n", argmsg);
+        //fprintf(ctx->fp, "[TAG=%s], file: %s:%d, [%s], %s \n", ctx->tag, pfn, line, levelname, argmsg);
         fflush(ctx->fp);
     }
     va_end(argptr);

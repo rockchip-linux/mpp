@@ -42,7 +42,7 @@ static MPP_RET manual_set_env(void)
 #if defined(_MSC_VER)
     mpp_env_set_u32("h264d_log_help",     1             );
     mpp_env_set_u32("h264d_log_show",     1             );
-    mpp_env_set_u32("h264d_log_ctrl",     0x100B        );
+    mpp_env_set_u32("h264d_log_ctrl",     0x900B        );
     mpp_env_set_u32("h264d_log_level",    5             );
     mpp_env_set_u32("h264d_log_decframe", 0             );
     mpp_env_set_u32("h264d_log_begframe", 0             );
@@ -94,7 +94,7 @@ static MPP_RET decoder_init(MppDec *pApi)
     hal_cfg.type = MPP_CTX_DEC;
     hal_cfg.coding = pApi->coding;
     hal_cfg.work_mode = HAL_MODE_LIBVPU;
-    hal_cfg.device_id = HAL_RKVDEC;
+    hal_cfg.device_id = HAL_VDPU;
     hal_cfg.frame_slots = pApi->frame_slots;
     hal_cfg.packet_slots = pApi->packet_slots;
     hal_cfg.task_count = parser_cfg.task_count;
@@ -127,9 +127,9 @@ int main(int argc, char **argv)
     //    g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
     //}
 
-    //if (g_debug_file1 == NULL) {
-    //    g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
-    //}
+    if (g_debug_file1 == NULL) {
+        g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
+    }
 
 
     MEM_CHECK(ret, pIn && pApi && task);
