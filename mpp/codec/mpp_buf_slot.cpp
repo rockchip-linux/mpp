@@ -30,6 +30,7 @@
 
 #define BUF_SLOT_DBG_FUNCTION           (0x00000001)
 #define BUF_SLOT_DBG_SETUP              (0x00000002)
+#define BUF_SLOT_DBG_INFO_CHANGE        (0x00000004)
 #define BUF_SLOT_DBG_OPS_RUNTIME        (0x00000010)
 #define BUF_SLOT_DBG_BUFFER             (0x00000100)
 #define BUF_SLOT_DBG_FRAME              (0x00000200)
@@ -191,8 +192,8 @@ struct MppBufSlotsImpl_t {
     RK_U32              eos;
 
     // buffer parameter, default alignement is 16
-    RK_U32              hor_align;
-    RK_U32              ver_align;
+    AlignFunc           hor_align;          // default NULL
+    AlignFunc           ver_align;          // default NULL
     size_t              buf_size;
     RK_S32              buf_count;
     // buffer size equal to (h_stride * v_stride) * numerator / denominator
@@ -217,15 +218,17 @@ struct MppBufSlotsImpl_t {
     MppBufSlotEntry     *slots;
 };
 
+static RK_U32 default_align_16(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
+
 static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
 {
     RK_U32 width  = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
-    MppFrameColorTransferCharacteristic color = mpp_frame_get_color_trc(frame);
-    RK_U32 bit_depth  = (color == MPP_FRAME_TRC_BT2020_10) ? (10) :
-                        (color == MPP_FRAME_TRC_BT2020_12) ? (12) : (8);
-    RK_U32 hor_stride_calc = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
-    RK_U32 ver_stride_calc = MPP_ALIGN(height, impl->ver_align);
+    RK_U32 hor_stride_calc = impl->hor_align(width);
+    RK_U32 ver_stride_calc = impl->ver_align(height);
     RK_U32 hor_stride_in = mpp_frame_get_hor_stride(frame);
     RK_U32 ver_stride_in = mpp_frame_get_ver_stride(frame);
     RK_U32 hor_stride = (hor_stride_in) ? (hor_stride_in) : (hor_stride_calc);
@@ -501,8 +504,8 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
             break;
 
         // slots information default setup
-        impl->hor_align = 16;
-        impl->ver_align = 16;
+        impl->hor_align = default_align_16;
+        impl->ver_align = default_align_16;
         impl->numerator = 9;
         impl->denominator = 5;
 
@@ -836,10 +839,10 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
         impl->eos = value;
     } break;
     case SLOTS_HOR_ALIGN: {
-        impl->hor_align = value;
+        impl->hor_align = (AlignFunc)val;
     } break;
     case SLOTS_VER_ALIGN: {
-        impl->ver_align = value;
+        impl->ver_align = (AlignFunc)val;
     } break;
     case SLOTS_COUNT: {
         impl->buf_count = value;
@@ -869,17 +872,11 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     Mutex::Autolock auto_lock(impl->lock);
-
+    MPP_RET ret = MPP_OK;
     RK_U32 value = 0;
     switch (type) {
     case SLOTS_EOS: {
         value = impl->eos;
-    } break;
-    case SLOTS_HOR_ALIGN: {
-        value = impl->hor_align;
-    } break;
-    case SLOTS_VER_ALIGN: {
-        value = impl->ver_align;
     } break;
     case SLOTS_COUNT: {
         value = impl->buf_count;
@@ -893,12 +890,16 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
         mpp_frame_copy(frame, info);
     } break;
     default : {
+        mpp_err("can not get slots prop type %d\n", type);
+        ret = MPP_NOK;
     } break;
     }
 
-    if (SLOTS_FRAME_INFO != type)
-        *(RK_U32 *)val = value;
+    if (MPP_OK == ret) {
+        if (SLOTS_FRAME_INFO != type)
+            *(RK_U32 *)val = value;
+    }
 
-    return MPP_OK;
+    return ret;
 }
 
