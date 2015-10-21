@@ -139,21 +139,23 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
-        ptr = mpp_buffer_get_ptr(buf);
-        fd = mpp_buffer_get_fd(buf);
-        vframe->FrameBusAddr[0] = fd;
-        vframe->FrameBusAddr[1] = fd;
-        vframe->vpumem.vir_addr = (RK_U32*)ptr;
-        frame_count++;
+        if (buf) {
+            ptr = mpp_buffer_get_ptr(buf);
+            fd = mpp_buffer_get_fd(buf);
+            vframe->FrameBusAddr[0] = fd;
+            vframe->FrameBusAddr[1] = fd;
+            vframe->vpumem.vir_addr = (RK_U32*)ptr;
+            frame_count++;
 #ifdef DUMP_YUV
-        if (frame_count > 350) {
-            fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
-            fflush(fp);
-        }
+            if (frame_count > 350) {
+                fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
+                fflush(fp);
+            }
 #endif
-        vframe->vpumem.phy_addr = fd;
-        vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
-        vframe->vpumem.offset = (RK_U32*)buf;
+            vframe->vpumem.phy_addr = fd;
+            vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
+            vframe->vpumem.offset = (RK_U32*)buf;
+        }
         if (mpp_frame_get_eos(mframe)) {
             aDecOut->nFlags = VPU_API_EOS_STREAM_REACHED;
         }
