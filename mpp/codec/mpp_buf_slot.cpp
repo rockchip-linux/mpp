@@ -846,7 +846,8 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     case SLOTS_FRAME_INFO: {
         // do info change detection here
         generate_info_set(impl, (MppFrame)val);
-        mpp_buf_slot_ready(slots);
+        mpp_frame_copy(impl->info, impl->info_set);
+        impl->buf_size = mpp_frame_get_buf_size(impl->info);
     } break;
     default : {
     } break;
