@@ -192,8 +192,8 @@ struct MppBufSlotsImpl_t {
     RK_U32              eos;
 
     // buffer parameter, default alignement is 16
-    AlignFunc           hor_align;          // default NULL
-    AlignFunc           ver_align;          // default NULL
+    AlignFunc           hal_hor_align;          // default NULL
+    AlignFunc           hal_ver_align;          // default NULL
     size_t              buf_size;
     RK_S32              buf_count;
     // buffer size equal to (h_stride * v_stride) * numerator / denominator
@@ -227,20 +227,22 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
 {
     RK_U32 width  = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
-    RK_U32 hor_stride_calc = impl->hor_align(width);
-    RK_U32 ver_stride_calc = impl->ver_align(height);
-    RK_U32 hor_stride_in = mpp_frame_get_hor_stride(frame);
-    RK_U32 ver_stride_in = mpp_frame_get_ver_stride(frame);
-    RK_U32 hor_stride = (hor_stride_in) ? (hor_stride_in) : (hor_stride_calc);
-    RK_U32 ver_stride = (ver_stride_in) ? (ver_stride_in) : (ver_stride_calc);
-    RK_U32 size = hor_stride * ver_stride;
+    RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
+    RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
+    RK_U32 hal_hor_stride = (codec_hor_stride) ?
+                            (impl->hal_hor_align(codec_hor_stride)) :
+                            (impl->hal_hor_align(width));
+    RK_U32 hal_ver_stride = (codec_ver_stride) ?
+                            (impl->hal_ver_align(codec_ver_stride)) :
+                            (impl->hal_ver_align(height));
+    RK_U32 size = hal_hor_stride * hal_ver_stride;
     size *= impl->numerator;
     size /= impl->denominator;
 
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
-    mpp_frame_set_hor_stride(impl->info_set, hor_stride);
-    mpp_frame_set_ver_stride(impl->info_set, ver_stride);
+    mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
+    mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
     mpp_frame_set_buf_size(impl->info_set, size);
 
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
@@ -504,8 +506,8 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
             break;
 
         // slots information default setup
-        impl->hor_align = default_align_16;
-        impl->ver_align = default_align_16;
+        impl->hal_hor_align = default_align_16;
+        impl->hal_ver_align = default_align_16;
         impl->numerator = 9;
         impl->denominator = 5;
 
@@ -747,8 +749,13 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         if (NULL == slot->frame)
             mpp_frame_init(&slot->frame);
 
-        mpp_frame_copy(slot->frame, frame);
-        mpp_frame_set_eos(slot->frame, slot->eos);
+        MppFrameImpl *src = (MppFrameImpl *)frame;
+        MppFrameImpl *dst = (MppFrameImpl *)slot->frame;
+        mpp_frame_copy(dst, src);
+        // NOTE: stride from codec need to be change to hal stride
+        dst->hor_stride = impl->hal_hor_align(src->hor_stride);
+        dst->ver_stride = impl->hal_ver_align(src->ver_stride);
+        dst->eos = slot->eos;
 
         /*
          * we need to detect infomation change here
@@ -759,12 +766,11 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          *    if only width/height is change and buffer do not need to be reset
          *    only display info change is need
          */
-        generate_info_set(impl, slot->frame);
+        generate_info_set(impl, frame);
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
             // info change found here
-            mpp_log("info change found\n");
-
             impl->info_changed = 1;
+            mpp_log("info change found\n");
         }
     } break;
     case SLOT_BUFFER: {
@@ -839,10 +845,10 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
         impl->eos = value;
     } break;
     case SLOTS_HOR_ALIGN: {
-        impl->hor_align = (AlignFunc)val;
+        impl->hal_hor_align = (AlignFunc)val;
     } break;
     case SLOTS_VER_ALIGN: {
-        impl->ver_align = (AlignFunc)val;
+        impl->hal_ver_align = (AlignFunc)val;
     } break;
     case SLOTS_COUNT: {
         impl->buf_count = value;
