@@ -104,7 +104,7 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
         return MPP_ERR_NULL_PTR;
     }
 
-    check_mpp_frame_name((MppFrameImpl *)dst);
+    check_mpp_frame_name((MppFrameImpl *)src);
     memcpy(dst, src, sizeof(MppFrameImpl));
     return MPP_OK;
 }
