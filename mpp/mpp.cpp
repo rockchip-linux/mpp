@@ -128,8 +128,7 @@ void Mpp::clear()
         if (mType == MPP_CTX_DEC) {
             mpp_dec_deinit(mDec);
             mDec = NULL;
-        }
-        else {
+        } else {
             mpp_enc_deinit(mEnc);
             mEnc = NULL;
         }
