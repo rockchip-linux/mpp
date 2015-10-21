@@ -133,7 +133,7 @@ MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t siz
 void *mpp_buffer_get_ptr(MppBuffer buffer)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer);
+        mpp_err_f("invalid input: buffer %p\n", buffer);
         return NULL;
     }
 
@@ -146,7 +146,7 @@ void *mpp_buffer_get_ptr(MppBuffer buffer)
 int mpp_buffer_get_fd(MppBuffer buffer)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer);
+        mpp_err_f("invalid input: buffer %p\n", buffer);
         return -1;
     }
 
