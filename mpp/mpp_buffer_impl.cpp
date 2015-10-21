@@ -202,9 +202,13 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
         list_del_init(&buffer->list_status);
         MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
         if (group) {
-            list_add_tail(&buffer->list_status, &group->list_unused);
+            if (group == service.mLegacyGroup) {
+                deinit_buffer_no_lock(buffer);
+            } else {
+                list_add_tail(&buffer->list_status, &group->list_unused);
+                group->count_unused++;
+            }
             group->count_used--;
-            group->count_unused++;
         }
     }
 
