@@ -229,13 +229,15 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
 typedef enum SlotsPropType_e {
     SLOTS_EOS,
-    SLOTS_HOR_ALIGN,
-    SLOTS_VER_ALIGN,
+    SLOTS_HOR_ALIGN,            // input must be buf_align function pointer
+    SLOTS_VER_ALIGN,            // input must be buf_align function pointer
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
     SLOTS_PROP_BUTT,
 } SlotsPropType;
+
+typedef RK_U32 (*AlignFunc)(RK_U32 val);
 
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val);
