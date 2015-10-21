@@ -84,7 +84,7 @@ MPP_RET mpp_allocator_import(MppAllocator allocator, MppBufferInfo *info)
 MPP_RET mpp_allocator_release(MppAllocator allocator, MppBufferInfo *info)
 {
     if (NULL == allocator || NULL == info) {
-        mpp_err("mpp_allocator_alloc invalid input: allocator %p info %p\n",
+        mpp_err_f("invalid input: allocator %p info %p\n",
                 allocator, info);
         return MPP_ERR_UNKNOW;
     }
@@ -112,7 +112,7 @@ static MppAllocatorApi mpp_allocator_api = {
 MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
 {
     if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
-        mpp_err("mpp_alloctor_get invalid input: buffer %p api %p type %d\n",
+        mpp_err_f("invalid input: allocator %p api %p type %d\n",
                 allocator, api, type);
         return MPP_ERR_UNKNOW;
     }
@@ -152,7 +152,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
 MPP_RET mpp_alloctor_put(MppAllocator *allocator)
 {
     if (NULL == allocator) {
-        mpp_err("mpp_alloctor_put invalid input: buffer %p\n", allocator);
+        mpp_err_f("invalid input: allocator %p\n", allocator);
         return MPP_ERR_NULL_PTR;
     }
 
