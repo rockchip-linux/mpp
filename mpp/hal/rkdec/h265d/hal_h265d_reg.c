@@ -245,6 +245,15 @@ typedef struct SliceHeader {
     RK_S32 slice_ctb_addr_rs;
 } SliceHeader_t;
 
+static RK_U32 hevc_ver_align_8(RK_U32 val)
+{
+    return MPP_ALIGN(val, 8);
+}
+
+static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
 
 MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 {
@@ -258,6 +267,8 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     }
 
     reg_cxt->slots = cfg->frame_slots;
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit

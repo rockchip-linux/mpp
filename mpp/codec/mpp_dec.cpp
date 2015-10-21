@@ -499,10 +499,6 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             mpp_err_f("could not init frame buffer slot\n");
             break;
         }
-        if (coding == MPP_VIDEO_CodingHEVC) {
-            RK_U32 ver_align = 8;
-            mpp_slots_set_prop(frame_slots, SLOTS_VER_ALIGN, &ver_align);
-        }
 
         ret = mpp_buf_slot_init(&packet_slots);
         if (ret) {
