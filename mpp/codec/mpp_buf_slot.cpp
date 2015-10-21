@@ -224,8 +224,12 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
     MppFrameColorTransferCharacteristic color = mpp_frame_get_color_trc(frame);
     RK_U32 bit_depth  = (color == MPP_FRAME_TRC_BT2020_10) ? (10) :
                         (color == MPP_FRAME_TRC_BT2020_12) ? (12) : (8);
-    RK_U32 hor_stride = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
-    RK_U32 ver_stride = MPP_ALIGN(height, impl->ver_align);
+    RK_U32 hor_stride_calc = MPP_ALIGN(width * bit_depth / 8,  impl->hor_align);
+    RK_U32 ver_stride_calc = MPP_ALIGN(height, impl->ver_align);
+    RK_U32 hor_stride_in = mpp_frame_get_hor_stride(frame);
+    RK_U32 ver_stride_in = mpp_frame_get_ver_stride(frame);
+    RK_U32 hor_stride = (hor_stride_in) ? (hor_stride_in) : (hor_stride_calc);
+    RK_U32 ver_stride = (ver_stride_in) ? (ver_stride_in) : (ver_stride_calc);
     RK_U32 size = hor_stride * ver_stride;
     size *= impl->numerator;
     size /= impl->denominator;
