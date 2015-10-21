@@ -7,7 +7,13 @@ include_directories(.)
 add_library(mpp_legacy SHARED
     vpu_api.cpp
     vpu_api_legacy.cpp
+    vpu_mem_legacy.c
+    rk_list.cpp
     )
 set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy")
 #set_target_properties(mpp_legacy PROPERTIES OUTPUT_NAME "vpu") 
+if(ANDROID)
+    target_link_libraries(mpp_legacy vpu mpp_shared)
+else()
 target_link_libraries(mpp_legacy mpp_shared)
+endif()

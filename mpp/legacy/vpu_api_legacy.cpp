@@ -20,7 +20,7 @@
 #include "mpp_frame.h"
 #include "vpu_api_legacy.h"
 #include "mpp_mem.h"
-
+#include "string.h"
 
 VpuApi::VpuApi()
 {
@@ -64,8 +64,6 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
     vpug.ImgWidth   = ctx->width;
     vpug.ImgHeight  = ctx->height;
     control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
-
-    mpp_err("mpp_ctx = %p", mpp_ctx);
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
         mpp_packet_set_extra_data(pkt);
@@ -118,6 +116,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 {
     // mpp_log_f("in\n");
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
+    memset(vframe, 0, sizeof(VPU_FRAME));
     MppFrame  mframe = NULL;
     if (NULL == mpi) {
         aDecOut->size = 0;

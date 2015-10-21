@@ -605,7 +605,7 @@ typedef struct HEVCContext {
     enum NALUnitType nal_unit_type;
     RK_S32 temporal_id;  ///< temporal_id_plus1 - 1
     HEVCFrame *ref;
-    HEVCFrame DPB[32];
+    HEVCFrame DPB[MAX_DPB_SIZE];
     RK_S32 poc;
     RK_S32 pocTid0;
     RK_S32 slice_idx; ///< number of the slice being currently decoded
