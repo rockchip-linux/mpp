@@ -17,15 +17,17 @@
 #define MODULE_TAG "vpu_api"
 
 #include <string.h>
+#ifdef ANDROID
+#include <dlfcn.h>
+#endif
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_env.h"
+
 #include "vpu_api_legacy.h"
 #include "vpu_mem_legacy.h"
 #include "vpu_api.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <dlfcn.h>
-#include "mpp_env.h"
 
 static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
