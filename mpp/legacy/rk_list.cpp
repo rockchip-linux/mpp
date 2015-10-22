@@ -7,15 +7,15 @@
 #define _RK_LIST_ERROR
 
 #ifdef _RK_LIST_DEUBG
-#define LIST_DEBUG(fmt, args...) mpp_log(fmt, ## args)
+#define LIST_DEBUG(fmt, ...) mpp_log(fmt, ## __VA_ARGS__)
 #else
-#define LIST_DEBUG(fmt, args...) /* not debugging: nothing */
+#define LIST_DEBUG(fmt, ...) /* not debugging: nothing */
 #endif
 
 #ifdef _RK_LIST_ERROR
-#define LIST_ERROR(fmt, args...) mpp_err(fmt, ## args)
+#define LIST_ERROR(fmt, ...) mpp_err(fmt, ## __VA_ARGS__)
 #else
-#define LIST_ERROR(fmt, args...)
+#define LIST_ERROR(fmt, ...)
 #endif
 
 typedef struct rk_list_node {
@@ -58,12 +58,12 @@ static inline void _rk_list_add(rk_list_node * _new, rk_list_node * prev, rk_lis
     prev->next = _new;
 }
 
-static __inline__ void rk_list_add(rk_list_node *_new, rk_list_node *head)
+static inline void rk_list_add(rk_list_node *_new, rk_list_node *head)
 {
     _rk_list_add(_new, head, head->next);
 }
 
-static __inline__ void rk_list_add_tail(rk_list_node *_new, rk_list_node *head)
+static inline void rk_list_add_tail(rk_list_node *_new, rk_list_node *head)
 {
     _rk_list_add(_new, head->prev, head);
 }
@@ -123,13 +123,13 @@ static inline void _rk_list_del(rk_list_node *prev, rk_list_node *next)
     prev->next = next;
 }
 
-static __inline__ void rk_list_del_init(rk_list_node *node)
+static inline void rk_list_del_init(rk_list_node *node)
 {
     _rk_list_del(node->prev, node->next);
     list_node_init(node);
 }
 
-static __inline__ int list_is_last(const rk_list_node *list, const rk_list_node *head)
+static inline int list_is_last(const rk_list_node *list, const rk_list_node *head)
 {
     return list->next == head;
 }
