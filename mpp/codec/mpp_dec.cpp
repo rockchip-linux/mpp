@@ -119,8 +119,12 @@ static RK_U32 reset_dec_task(Mpp *mpp, HalDecTask *task_dec, PaserTaskWait *wait
     return MPP_OK;
 }
 
-static void try_proc_dec_task(HalDecTask *task, PaserTaskWait *wait, DecTaskStatus *status)
+static void try_proc_dec_task(Mpp *mpp, HalDecTask *task, PaserTaskWait *wait, DecTaskStatus *status)
 {
+    (void) mpp;
+    (void) task;
+    (void) wait;
+    (void) status;
 }
 
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
@@ -174,8 +178,8 @@ void *mpp_dec_parser_thread(void *data)
         }
 
         parser->lock();
-        if (wait.task_hnd || wait.mpp_pkt_in ||
-             wait.prev_task || wait.info_change || wait.dec_pic_buf && !dec->reset_flag)
+        if ((wait.task_hnd || wait.mpp_pkt_in || wait.prev_task || wait.info_change || wait.dec_pic_buf)
+            && !dec->reset_flag)
             parser->wait();
         parser->unlock();
 
@@ -191,6 +195,8 @@ void *mpp_dec_parser_thread(void *data)
                 continue;
             }
         }
+
+        try_proc_dec_task(mpp, task_dec, &wait, &status);
 
         /*
          * 2. get packet to parse
