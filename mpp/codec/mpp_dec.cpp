@@ -174,7 +174,8 @@ void *mpp_dec_parser_thread(void *data)
         }
 
         parser->lock();
-        if (wait.val && !dec->reset_flag)
+        if (wait.task_hnd || wait.mpp_pkt_in ||
+             wait.prev_task || wait.info_change || wait.dec_pic_buf && !dec->reset_flag)
             parser->wait();
         parser->unlock();
 
