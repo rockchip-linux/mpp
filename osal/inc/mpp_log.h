@@ -145,7 +145,6 @@ RK_U32 mpp_log_get_flag();
 
 void _mpp_log(const char *tag, const char *fmt, const char *func, ...);
 void _mpp_err(const char *tag, const char *fmt, const char *func, ...);
-void __mpp_dbg(RK_U32 debug, RK_U32 flag, const char *tag, const char *fmt, const char *func, ...);
 
 #ifdef __cplusplus
 }
