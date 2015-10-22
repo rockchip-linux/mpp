@@ -30,6 +30,99 @@
 
 #include "vpu_api.h"
 
+typedef union PaserTaskWait_u {
+    RK_U32          val;
+    struct {
+        RK_U32      task_hnd    : 1;
+        RK_U32      mpp_pkt_in  : 1;
+        RK_U32      dec_pkt_idx : 1;
+        RK_U32      dec_pkt_buf : 1;
+        RK_U32      prev_task   : 1;
+        RK_U32      info_change : 1;
+        RK_U32      dec_pic_buf : 1;
+    };
+} PaserTaskWait;
+
+typedef union DecTaskStatus_u {
+    RK_U32          val;
+    struct {
+        RK_U32      task_hnd_rdy      : 1;
+        RK_U32      mpp_pkt_in_rdy    : 1;
+        RK_U32      dec_pkt_idx_rdy   : 1;
+        RK_U32      dec_pkt_buf_rdy   : 1;
+        RK_U32      task_valid_rdy    : 1;
+        RK_U32      dec_pkt_copy_rdy  : 1;
+        RK_U32      prev_task_rdy     : 1;
+        RK_U32      info_task_gen_rdy : 1;
+        RK_U32      curr_task_rdy     : 1;
+        RK_U32      task_parsed_rdy   : 1;
+    };
+} DecTaskStatus;
+
+static RK_U32 reset_dec_task(Mpp *mpp, HalDecTask *task_dec, PaserTaskWait *wait, DecTaskStatus *status)
+{
+    MppThread *parser   = mpp->mThreadCodec;
+    MppDec    *dec      = mpp->mDec;
+    HalTaskGroup tasks  = dec->tasks;
+    MppBufSlots frame_slots  = dec->frame_slots;
+    MppBufSlots packet_slots = dec->packet_slots;
+
+    if (!status->prev_task_rdy) {
+        HalTaskHnd task_prev = NULL;
+        hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
+        if (task_prev) {
+            status->prev_task_rdy  = 1;
+            hal_task_hnd_set_status(task_prev, TASK_IDLE);
+            task_prev = NULL;
+            wait->prev_task = 0;
+        } else {
+            msleep(5);
+            wait->prev_task = 1;
+            return MPP_NOK;
+        }
+    }
+
+    {
+        RK_S32 index;
+        parser->reset_lock();
+        status->curr_task_rdy = 0;
+        task_dec->valid = 0;
+        parser_reset(dec->parser);
+        dec->reset_flag = 0;
+        if (dec->mpp_pkt_in) {
+            mpp_free(mpp_packet_get_data(dec->mpp_pkt_in));
+            mpp_packet_deinit(&dec->mpp_pkt_in);
+            dec->mpp_pkt_in = NULL;
+        }
+        while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+            MppFrame frame;
+            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+            mpp_frame_deinit(&frame);
+            mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+        }
+        if (status->dec_pkt_copy_rdy) {
+            mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &dec->dec_pkt_buf);
+            if (dec->dec_pkt_buf) {
+                mpp_buffer_put(dec->dec_pkt_buf);
+                dec->dec_pkt_buf = NULL;
+            }
+            mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+            status->dec_pkt_copy_rdy = 0;
+            task_dec->input = -1;
+        }
+
+        status->task_parsed_rdy = 0;
+        parser->reset_unlock();
+        parser->reset_signal();
+    }
+
+    return MPP_OK;
+}
+
+static void try_proc_dec_task(HalDecTask *task, PaserTaskWait *wait, DecTaskStatus *status)
+{
+}
+
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 {
     mpp_list *list = mpp->mFrames;
@@ -46,7 +139,6 @@ void *mpp_dec_parser_thread(void *data)
     MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
-    MppPacket packet    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
     RK_S32 stream_index = -1;
@@ -59,19 +151,11 @@ void *mpp_dec_parser_thread(void *data)
      * 3. info change on progress
      * 3. no buffer on analyzing output task
      */
-    RK_U32 wait_on_task_hnd = 0;
-    RK_U32 wait_on_packet   = 0;
-    RK_U32 wait_on_input_index = 0;
-    RK_U32 wait_on_input_buffer = 0;
-    RK_U32 wait_on_prev     = 0;
-    RK_U32 wait_on_change   = 0;
-    RK_U32 wait_on_frame_buffer = 0;
-
-    RK_U32 pkt_buf_copyied  = 0;
-    RK_U32 prev_task_done   = 1;
-    RK_U32 info_task_done   = 0;
-    RK_U32 curr_task_ready  = 0;
-    RK_U32 curr_task_parsed = 0;
+    PaserTaskWait wait;
+    DecTaskStatus status;
+    wait.val    = 0;
+    status.val  = 0;
+    status.prev_task_rdy  = 1;
 
     HalTaskHnd  task = NULL;
     HalTaskInfo task_local;
@@ -84,59 +168,13 @@ void *mpp_dec_parser_thread(void *data)
         /*
          * wait for stream input
          */
-        if (dec->reset_flag && !wait_on_frame_buffer) {
-            if (!prev_task_done) {
-                HalTaskHnd task_prev = NULL;
-                hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
-                if (task_prev) {
-                    prev_task_done  = 1;
-                    hal_task_hnd_set_status(task_prev, TASK_IDLE);
-                    task_prev = NULL;
-                    wait_on_prev = 0;
-                } else {
-                    msleep(5);
-                    wait_on_prev = 1;
-                    continue;
-                }
-            }
-
-            {
-                RK_S32 index;
-                parser->reset_lock();
-                curr_task_ready = 0;
-                task_dec->valid = 0;
-                parser_reset(dec->parser);
-                dec->reset_flag = 0;
-                if (packet) {
-                    mpp_free(mpp_packet_get_data(packet));
-                    mpp_packet_deinit(&packet);
-                    packet = NULL;
-                }
-                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-                    MppFrame frame;
-                    mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                    mpp_frame_deinit(&frame);
-                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-                }
-                if (pkt_buf_copyied) {
-                    mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
-                    if (buffer) {
-                        mpp_buffer_put(buffer);
-                        buffer = NULL;
-                    }
-                    mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
-                    pkt_buf_copyied = 0;
-                    task_dec->input = -1;
-                }
-
-                curr_task_parsed = 0;
-                parser->reset_unlock();
-                parser->reset_signal();
-            }
+        if (dec->reset_flag && !wait.dec_pic_buf) {
+            if (reset_dec_task(mpp, task_dec, &wait, &status))
+                continue;
         }
+
         parser->lock();
-        if ((wait_on_task_hnd || wait_on_packet ||
-             wait_on_prev || wait_on_change || wait_on_frame_buffer) && !dec->reset_flag)
+        if (wait.val && !dec->reset_flag)
             parser->wait();
         parser->unlock();
 
@@ -146,9 +184,9 @@ void *mpp_dec_parser_thread(void *data)
         if (!task) {
             hal_task_get_hnd(tasks, TASK_IDLE, &task);
             if (task) {
-                wait_on_task_hnd = 0;
+                wait.task_hnd = 0;
             } else {
-                wait_on_task_hnd = 1;
+                wait.task_hnd = 1;
                 continue;
             }
         }
@@ -156,18 +194,18 @@ void *mpp_dec_parser_thread(void *data)
         /*
          * 2. get packet to parse
          */
-        if (!packet && !curr_task_ready) {
+        if (!dec->mpp_pkt_in && !status.curr_task_rdy) {
             mpp_list *packets = mpp->mPackets;
             Mutex::Autolock autoLock(packets->mutex());
             if (packets->list_size()) {
                 /*
                  * packet will be destroyed outside, here just copy the content
                  */
-                packets->del_at_head(&packet, sizeof(packet));
+                packets->del_at_head(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in));
                 mpp->mPacketGetCount++;
-                wait_on_packet = 0;
+                wait.mpp_pkt_in = 0;
             } else {
-                wait_on_packet = 1;
+                wait.mpp_pkt_in = 1;
                 continue;
             }
         }
@@ -186,17 +224,17 @@ void *mpp_dec_parser_thread(void *data)
          *    3. if packet size is zero then next packet is needed.
          *
          */
-        if (!curr_task_ready) {
-            parser_prepare(dec->parser, packet, task_dec);
-            if (0 == mpp_packet_get_length(packet)) {
-                mpp_free(mpp_packet_get_data(packet));
-                mpp_packet_deinit(&packet);
-                packet = NULL;
+        if (!status.curr_task_rdy) {
+            parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
+            if (0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
+                mpp_free(mpp_packet_get_data(dec->mpp_pkt_in));
+                mpp_packet_deinit(&dec->mpp_pkt_in);
+                dec->mpp_pkt_in = NULL;
             }
         }
 
-        curr_task_ready = task_dec->valid;
-        if (!curr_task_ready)
+        status.curr_task_rdy = task_dec->valid;
+        if (!status.curr_task_rdy)
             continue;
 
         // NOTE: packet in task should be ready now
@@ -207,54 +245,54 @@ void *mpp_dec_parser_thread(void *data)
             mpp_buf_slot_get_unused(packet_slots, &task_dec->input);
         }
 
-        wait_on_input_index = (task_dec->input < 0);
-        if (wait_on_input_index)
+        wait.dec_pkt_idx = (task_dec->input < 0);
+        if (wait.dec_pkt_idx)
             continue;
 
         stream_index = task_dec->input;
         stream_size = mpp_packet_get_size(task_dec->input_packet);
-        mpp_buf_slot_get_prop(packet_slots, stream_index, SLOT_BUFFER, &buffer);
-        if (NULL == buffer) {
-            mpp_buffer_get(mpp->mPacketGroup, &buffer, stream_size);
-            if (buffer)
-                mpp_buf_slot_set_prop(packet_slots, stream_index, SLOT_BUFFER, buffer);
+        mpp_buf_slot_get_prop(packet_slots, stream_index, SLOT_BUFFER, &dec->dec_pkt_buf);
+        if (NULL == dec->dec_pkt_buf) {
+            mpp_buffer_get(mpp->mPacketGroup, &dec->dec_pkt_buf, stream_size);
+            if (dec->dec_pkt_buf)
+                mpp_buf_slot_set_prop(packet_slots, stream_index, SLOT_BUFFER, dec->dec_pkt_buf);
         } else {
-            MppBufferImpl *buf = (MppBufferImpl *)buffer;
+            MppBufferImpl *buf = (MppBufferImpl *)dec->dec_pkt_buf;
             mpp_assert(buf->info.size >= stream_size);
         }
 
-        wait_on_input_buffer = (NULL == buffer);
-        if (wait_on_input_buffer)
+        wait.dec_pkt_buf = (NULL == dec->dec_pkt_buf);
+        if (wait.dec_pkt_buf)
             continue;
 
-        if (!pkt_buf_copyied) {
-            MppBufferImpl *buf = (MppBufferImpl *)buffer;
+        if (!status.dec_pkt_copy_rdy) {
+            MppBufferImpl *buf = (MppBufferImpl *)dec->dec_pkt_buf;
             void *src = mpp_packet_get_data(task_dec->input_packet);
             size_t length = mpp_packet_get_length(task_dec->input_packet);
             memcpy(buf->info.ptr, src, length);
             mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
             mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
-            pkt_buf_copyied = 1;
+            status.dec_pkt_copy_rdy = 1;
         }
 
         // wait previous task done
-        if (!prev_task_done) {
+        if (!status.prev_task_rdy) {
             HalTaskHnd task_prev = NULL;
             hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
             if (task_prev) {
-                prev_task_done  = 1;
-                wait_on_prev = 0;
+                status.prev_task_rdy  = 1;
+                wait.prev_task = 0;
                 hal_task_hnd_set_status(task_prev, TASK_IDLE);
                 task_prev = NULL;
             } else {
-                wait_on_prev = 1;
+                wait.prev_task = 1;
                 continue;
             }
         }
 
-        if (!curr_task_parsed) {
+        if (!status.task_parsed_rdy) {
             parser_parse(dec->parser, task_dec);
-            curr_task_parsed = 1;
+            status.task_parsed_rdy = 1;
         }
 
         /*
@@ -264,22 +302,22 @@ void *mpp_dec_parser_thread(void *data)
          * b. then detect whether output index has MppBuffer
          */
         if (mpp_buf_slot_is_changed(frame_slots)) {
-            if (!info_task_done) {
+            if (!status.info_task_gen_rdy) {
                 task_dec->flags.info_change = 1;
                 hal_task_hnd_set_info(task, &task_local);
                 hal_task_hnd_set_status(task, TASK_PROCESSING);
                 mpp->mThreadHal->signal();
                 mpp->mTaskPutCount++;
                 task = NULL;
-                info_task_done = 1;
+                status.info_task_gen_rdy = 1;
                 continue;
             }
         }
-        wait_on_change = mpp_buf_slot_is_changed(frame_slots);
-        if (wait_on_change) {
+        wait.info_change = mpp_buf_slot_is_changed(frame_slots);
+        if (wait.info_change) {
             continue;
         } else {
-            info_task_done = 0;
+            status.info_task_gen_rdy = 0;
             task_dec->flags.info_change = 0;
             // NOTE: check the task must be ready
             mpp_assert(task);
@@ -289,17 +327,17 @@ void *mpp_dec_parser_thread(void *data)
             hal_task_hnd_set_status(task, TASK_IDLE);
             mpp->mTaskPutCount++;
             task = NULL;
-            if (pkt_buf_copyied) {
-                mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
-                if (buffer) {
-                    mpp_buffer_put(buffer);
-                    buffer = NULL;
+            if (status.dec_pkt_copy_rdy) {
+                mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &dec->dec_pkt_buf);
+                if (dec->dec_pkt_buf) {
+                    mpp_buffer_put(dec->dec_pkt_buf);
+                    dec->dec_pkt_buf = NULL;
                 }
                 mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
-                pkt_buf_copyied = 0;
+                status.dec_pkt_copy_rdy = 0;
             }
-            curr_task_ready  = 0;
-            curr_task_parsed = 0;
+            status.curr_task_rdy  = 0;
+            status.task_parsed_rdy = 0;
             hal_task_info_init(&task_local, MPP_CTX_DEC);
             continue;
         }
@@ -324,17 +362,16 @@ void *mpp_dec_parser_thread(void *data)
          *         frame to hal loop.
          */
         RK_S32 output = task_dec->output;
-        buffer = NULL;
-        mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &buffer);
-        if (NULL == buffer) {
+        mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &dec->dec_pic_buf);
+        if (NULL == dec->dec_pic_buf) {
             size_t size = mpp_buf_slot_get_size(frame_slots);
-            mpp_buffer_get(mpp->mFrameGroup, &buffer, size);
-            if (buffer)
-                mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, buffer);
+            mpp_buffer_get(mpp->mFrameGroup, &dec->dec_pic_buf, size);
+            if (dec->dec_pic_buf)
+                mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, dec->dec_pic_buf);
         }
 
-        wait_on_frame_buffer = (NULL == buffer);
-        if (wait_on_frame_buffer)
+        wait.dec_pic_buf = (NULL == dec->dec_pic_buf);
+        if (wait.dec_pic_buf)
             continue;
 
         // register genertation
@@ -362,10 +399,10 @@ void *mpp_dec_parser_thread(void *data)
 
         mpp->mTaskPutCount++;
         task = NULL;
-        pkt_buf_copyied  = 0;
-        curr_task_ready  = 0;
-        curr_task_parsed = 0;
-        prev_task_done   = 0;
+        status.dec_pkt_copy_rdy  = 0;
+        status.curr_task_rdy  = 0;
+        status.task_parsed_rdy = 0;
+        status.prev_task_rdy   = 0;
         hal_task_info_init(&task_local, MPP_CTX_DEC);
     }
 
@@ -373,8 +410,8 @@ void *mpp_dec_parser_thread(void *data)
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
-        if (buffer)
-            mpp_buffer_put(buffer);
+        if (dec->dec_pic_buf)
+            mpp_buffer_put(dec->dec_pic_buf);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
     return NULL;

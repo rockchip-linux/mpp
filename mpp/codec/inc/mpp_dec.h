@@ -32,7 +32,13 @@ struct MppDec_t {
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
+
     RK_U32              reset_flag;
+
+    // dec parser thread runtime resource context
+    MppPacket           mpp_pkt_in;
+    MppBuffer           dec_pkt_buf;
+    MppBuffer           dec_pic_buf;
 };
 
 
