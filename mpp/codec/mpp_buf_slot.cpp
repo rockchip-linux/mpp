@@ -753,6 +753,11 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         MppFrameImpl *dst = (MppFrameImpl *)slot->frame;
         mpp_frame_copy(dst, src);
         // NOTE: stride from codec need to be change to hal stride
+        //       hor_stride and ver_stride can not be zero
+        //       they are the stride required by codec
+        //       then hal will modify it according to hardware requirement
+        mpp_assert(src->hor_stride);
+        mpp_assert(src->ver_stride);
         dst->hor_stride = impl->hal_hor_align(src->hor_stride);
         dst->ver_stride = impl->hal_ver_align(src->ver_stride);
         dst->eos = slot->eos;
