@@ -153,6 +153,28 @@ inline void Condition::signal()
     pthread_cond_signal(&mCond);
 }
 
+class MppMutexCond {
+public:
+    MppMutexCond() {};
+    ~MppMutexCond() {};
+
+    void lock()     { mLock.lock(); }
+    void unlock()   { mLock.unlock(); }
+    void wait()     { mCondition.wait(mLock); }
+    void signal()   { mCondition.signal(); }
+private:
+    Mutex           mLock;
+    Condition       mCondition;
+};
+
+typedef enum MppThreadSignal_e {
+    THREAD_WORK,
+    THREAD_RESET,
+    THREAD_SIGNAL_BUTT,
+} MppThreadSignal;
+
+#define THREAD_NORMAL       0
+#define THRE       0
 
 class MppThread
 {
@@ -165,21 +187,33 @@ public:
 
     void start();
     void stop();
-    void lock()     { mLock.lock(); }
-    void unlock()   { mLock.unlock(); }
-    void wait()     { mCondition.wait(mLock); }
-    void signal()   { mCondition.signal(); }
 
-    void reset_lock()     { mResetLock.lock(); }
-    void reset_unlock()   { mResetLock.unlock(); }
-    void reset_wait()     { mResetCondition.wait(mResetLock); }
-    void reset_signal()   { mResetCondition.signal(); }
+    void lock(MppThreadSignal id = THREAD_WORK)
+    {
+        mpp_assert(id < THREAD_SIGNAL_BUTT);
+        mMutexCond[id].lock();
+    }
+
+    void unlock(MppThreadSignal id = THREAD_WORK)
+    {
+        mpp_assert(id < THREAD_SIGNAL_BUTT);
+        mMutexCond[id].unlock();
+    }
+
+    void wait(MppThreadSignal id = THREAD_WORK)
+    {
+        mpp_assert(id < THREAD_SIGNAL_BUTT);
+        mMutexCond[id].wait();
+    }
+    void signal(MppThreadSignal id = THREAD_WORK)
+    {
+        mpp_assert(id < THREAD_SIGNAL_BUTT);
+        mMutexCond[id].signal();
+    }
+
 private:
-    Mutex           mLock;
-    Condition       mCondition;
     pthread_t       mThread;
-    Mutex           mResetLock;
-    Condition       mResetCondition;
+    MppMutexCond    mMutexCond[THREAD_SIGNAL_BUTT];
 
     MppThreadStatus mStatus;
     MppThreadFunc   mFunction;
