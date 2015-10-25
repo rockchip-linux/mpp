@@ -20,6 +20,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
 #include "mpp_packet.h"
 
 #include "dummy_dec_api.h"
@@ -190,6 +191,7 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     RK_U32 frame_count;
     MppBufSlots slots;
     RK_S32 i;
+    RK_U32 width, height;
 
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
@@ -200,18 +202,24 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     slots = p->frame_slots;
     frame_count = p->frame_count;
 
+    width = DUMMY_DEC_FRAME_WIDTH;
+    height = DUMMY_DEC_FRAME_HEIGHT;
+
     mpp_frame_init(&frame);
-    mpp_frame_set_width(frame, DUMMY_DEC_FRAME_WIDTH);
-    mpp_frame_set_height(frame, DUMMY_DEC_FRAME_HEIGHT);
 
     if (!p->slots_inited) {
         mpp_buf_slot_setup(slots, DUMMY_DEC_FRAME_COUNT);
         p->slots_inited = 1;
     } else if (frame_count >= 2) {
         // do info change test
-        mpp_frame_set_width(frame, DUMMY_DEC_FRAME_NEW_WIDTH);
-        mpp_frame_set_height(frame, DUMMY_DEC_FRAME_NEW_HEIGHT);
+        width = DUMMY_DEC_FRAME_NEW_WIDTH;
+        height = DUMMY_DEC_FRAME_NEW_HEIGHT;
     }
+
+    mpp_frame_set_width(frame, width);
+    mpp_frame_set_height(frame, height);
+    mpp_frame_set_hor_stride(frame, MPP_ALIGN(width, 16));
+    mpp_frame_set_ver_stride(frame, MPP_ALIGN(height, 16));
 
     if (task->prev_status) {
         /*
