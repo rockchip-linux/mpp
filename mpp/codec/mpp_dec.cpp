@@ -84,7 +84,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, HalDecTask *task_dec, PaserTaskWait *wait
 
     {
         RK_S32 index;
-        parser->reset_lock();
+        parser->lock(THREAD_RESET);
         status->curr_task_rdy = 0;
         task_dec->valid = 0;
         parser_reset(dec->parser);
@@ -112,8 +112,8 @@ static RK_U32 reset_dec_task(Mpp *mpp, HalDecTask *task_dec, PaserTaskWait *wait
         }
 
         status->task_parsed_rdy = 0;
-        parser->reset_unlock();
-        parser->reset_signal();
+        parser->unlock(THREAD_RESET);
+        parser->signal(THREAD_RESET);
     }
 
     return MPP_OK;
@@ -164,7 +164,6 @@ void *mpp_dec_parser_thread(void *data)
     HalTaskHnd  task = NULL;
     HalTaskInfo task_local;
     HalDecTask  *task_dec = &task_local.dec;
-    MppBuffer buffer = NULL;
 
     hal_task_info_init(&task_local, MPP_CTX_DEC);
 

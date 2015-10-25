@@ -278,16 +278,16 @@ MPP_RET Mpp::reset()
     mFrames->flush();
     mFrames->unlock();
 
-    mThreadCodec->reset_lock();
+    mThreadCodec->lock(THREAD_RESET);
 
     if (mType == MPP_CTX_DEC) {
         mpp_dec_reset(mDec);
         mThreadCodec->signal();
-        mThreadCodec->reset_wait();
+        mThreadCodec->wait(THREAD_RESET);
     } else {
         mpp_enc_reset(mEnc);
     }
-    mThreadCodec->reset_unlock();
+    mThreadCodec->unlock(THREAD_RESET);
 
     return MPP_OK;
 }
