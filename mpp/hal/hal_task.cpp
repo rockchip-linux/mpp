@@ -42,6 +42,7 @@ struct HalTaskGroupImpl_t {
 
     HalTaskImpl         *tasks;
     struct list_head    list[TASK_BUTT];
+    RK_U32              task_count[TASK_BUTT];
 };
 
 MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
@@ -86,6 +87,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
             tasks[i].group  = p;
             tasks[i].status = TASK_IDLE;
             list_add_tail(&tasks[i].list, &p->list[TASK_IDLE]);
+            p->task_count[TASK_IDLE]++;
         }
         *group = p;
         return MPP_OK;
@@ -138,6 +140,19 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *h
     return MPP_OK;
 }
 
+MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *count)
+{
+    if (NULL == group || status >= TASK_BUTT || NULL == count) {
+        mpp_err_f("found invaid input group %p status %d count %p\n", group, status, count);
+        return MPP_ERR_UNKNOW;
+    }
+
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    Mutex::Autolock auto_lock(p->lock);
+    *count = p->task_count[status];
+    return MPP_OK;
+}
+
 MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status)
 {
     if (NULL == hnd || status >= TASK_BUTT) {
@@ -153,6 +168,8 @@ MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status)
     Mutex::Autolock auto_lock(group->lock);
     list_del_init(&impl->list);
     list_add_tail(&impl->list, &group->list[status]);
+    group->task_count[impl->status]--;
+    group->task_count[status]++;
     impl->status = status;
     return MPP_OK;
 }
