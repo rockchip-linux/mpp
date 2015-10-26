@@ -171,6 +171,7 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
  *
  */
 MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *hnd);
+MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *count);
 MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status);
 MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task);
 MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task);
