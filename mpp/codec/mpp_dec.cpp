@@ -182,10 +182,12 @@ void *mpp_dec_parser_thread(void *data)
             parser->wait();
         parser->unlock();
 
-        wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
+        if (mpp->mFrameGroup) {
+            wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
+            if (wait.dec_pic_buf)
+                continue;
+        }
 
-        if(wait.dec_pic_buf)
-            continue;
         /*
          * 1. get task handle from hal for parsing one frame
          */
