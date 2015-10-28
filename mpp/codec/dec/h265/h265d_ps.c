@@ -1711,16 +1711,21 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         }
 #endif
         mpp_log("Displaying the whole video surface.\n");
-        sps->pic_conf_win.left_offset   =
-            sps->pic_conf_win.right_offset  =
-                sps->pic_conf_win.top_offset    =
-                    sps->pic_conf_win.bottom_offset = 0;
+        sps->pic_conf_win.left_offset   = 0;
+        sps->pic_conf_win.right_offset  = 0;
+        sps->pic_conf_win.top_offset    = 0;
+        sps->pic_conf_win.bottom_offset = 0;
         sps->output_width               = sps->width;
         sps->output_height              = sps->height;
     }
 
-    s->h265dctx->width = sps->width;
-    s->h265dctx->height = sps->height;
+    // NOTE: only do this for the first time of parsing sps
+    //       this is for extra data sps/pps parser
+    if (s->h265dctx->width == 0 && s->h265dctx->height == 0) {
+        s->h265dctx->width = sps->output_width;
+        s->h265dctx->height = sps->output_height;
+    }
+
     // Inferred parameters
     sps->log2_ctb_size = sps->log2_min_cb_size + sps->log2_diff_max_min_coding_block_size;
 
