@@ -209,7 +209,7 @@ RK_S32  mpp_buffer_group_unused(MppBufferGroup group)
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    return p->count_unused;
+    return (p->mode == MPP_BUFFER_INTERNAL ? 1 : p->count_unused);
 }
 
 MppBufferMode mpp_buffer_group_mode(MppBufferGroup group)

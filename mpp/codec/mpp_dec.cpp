@@ -171,7 +171,7 @@ void *mpp_dec_parser_thread(void *data)
         /*
          * wait for stream input
          */
-        if (dec->reset_flag && !wait.dec_pic_buf) {
+        if (dec->reset_flag) {
             if (reset_dec_task(mpp, task_dec, &wait, &status))
                 continue;
         }
@@ -182,6 +182,10 @@ void *mpp_dec_parser_thread(void *data)
             parser->wait();
         parser->unlock();
 
+        wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
+
+        if(wait.dec_pic_buf)
+            continue;
         /*
          * 1. get task handle from hal for parsing one frame
          */
