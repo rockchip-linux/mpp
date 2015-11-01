@@ -181,14 +181,17 @@ typedef struct MppBufferInfo_t {
 
 #define BUFFER_GROUP_SIZE_DEFAULT           (SZ_1M*80)
 
+#define mpp_buffer_commit(...) \
+        mpp_buffer_commit_with_tag(MODULE_TAG, __FUNCTION__, ## __VA_ARGS__)
+
 #define mpp_buffer_get(...) \
-        mpp_buffer_get_with_tag(MODULE_TAG, ## __VA_ARGS__)
+        mpp_buffer_get_with_tag(MODULE_TAG, __FUNCTION__, ## __VA_ARGS__)
 
 #define mpp_buffer_group_get_internal(...) \
-        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_INTERNAL, ## __VA_ARGS__)
+        mpp_buffer_group_get(MODULE_TAG, __FUNCTION__, MPP_BUFFER_INTERNAL, ## __VA_ARGS__)
 
 #define mpp_buffer_group_get_external(...) \
-        mpp_buffer_group_get(MODULE_TAG, MPP_BUFFER_EXTERNAL, ## __VA_ARGS__)
+        mpp_buffer_group_get(MODULE_TAG, __FUNCTION__, MPP_BUFFER_EXTERNAL, ## __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -199,8 +202,8 @@ extern "C" {
  * these interface will change value of group and buffer so before calling functions
  * parameter need to be checked.
  */
-MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info);
-MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size);
+MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info);
+MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size);
 MPP_RET mpp_buffer_put(MppBuffer buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
 
@@ -210,7 +213,7 @@ MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t siz
 void   *mpp_buffer_get_ptr(MppBuffer buffer);
 int     mpp_buffer_get_fd(MppBuffer buffer);
 
-MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
+MPP_RET mpp_buffer_group_get(const char *tag, const char *caller, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
 MPP_RET mpp_buffer_group_clear(MppBufferGroup group);
 RK_S32  mpp_buffer_group_unused(MppBufferGroup group);

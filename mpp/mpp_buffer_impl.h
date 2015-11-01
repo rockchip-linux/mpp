@@ -37,6 +37,7 @@ typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
 // use index instead of pointer to avoid invalid pointer
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
+    const char          *caller;
     RK_U32              group_id;
     MppBufferMode       mode;
 
@@ -57,6 +58,7 @@ struct MppBufferImpl_t {
 
 struct MppBufferGroupImpl_t {
     char                tag[MPP_TAG_SIZE];
+    const char          *caller;
     RK_U32              group_id;
     MppBufferMode       mode;
     MppBufferType       type;
@@ -111,13 +113,13 @@ extern RK_U32 mpp_buffer_debug;
  * mpp_buffer_ref_inc/dec   - use the buffer
  * mpp_buffer_destory       - destroy the buffer
  */
-MPP_RET mpp_buffer_create(const char *tag, RK_U32 group_id, MppBufferInfo *info);
+MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info);
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
-MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, MppBufferMode mode, MppBufferType type);
+MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);

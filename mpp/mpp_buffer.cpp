@@ -22,7 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_buffer_impl.h"
 
-MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info)
+MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info)
 {
     if (NULL == group || NULL == info) {
         mpp_err("mpp_buffer_commit input null pointer group %p info %p\n",
@@ -38,10 +38,10 @@ MPP_RET mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info)
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_create(NULL, p->group_id, info);
+    return mpp_buffer_create(tag, caller, p->group_id, info);
 }
 
-MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer *buffer, size_t size)
+MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size)
 {
     if (NULL == buffer || 0 == size) {
         mpp_err("mpp_buffer_get invalid input: group %p buffer %p size %u\n",
@@ -69,7 +69,7 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, MppBufferGroup group, MppBuffer
             NULL,
         };
         // if failed try init a new buffer
-        mpp_buffer_create(tag, p->group_id, &info);
+        mpp_buffer_create(tag, caller, p->group_id, &info);
         buf = mpp_buffer_get_unused(p, size);
     }
     *buffer = buf;
@@ -167,7 +167,7 @@ MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
+MPP_RET mpp_buffer_group_get(const char *tag, const char *caller, MppBufferMode mode,
                              MppBufferGroup *group, MppBufferType type)
 {
     if (NULL == group ||
@@ -178,7 +178,7 @@ MPP_RET mpp_buffer_group_get(const char *tag, MppBufferMode mode,
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_group_init((MppBufferGroupImpl**)group, tag, mode, type);
+    return mpp_buffer_group_init((MppBufferGroupImpl**)group, tag, caller, mode, type);
 }
 
 MPP_RET mpp_buffer_group_put(MppBufferGroup group)
