@@ -12,16 +12,15 @@ set(HAL_H265D_SRC
     ../../../mpp_bitread.c
     )
 
-set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
-
 add_library(hal_h265d STATIC
-	${HAL_H265D_SRC} ${HAL_H265D_HDR}
+    ${HAL_H265D_SRC} ${HAL_H265D_HDR}
     )
+set_target_properties(hal_h265d PROPERTIES FOLDER "mpp/hal")
 
 if(ANDROID)
-	target_link_libraries(hal_h265d vpu osal)
+    target_link_libraries(hal_h265d vpu osal)
 else()
-target_link_libraries(hal_h265d osal)
+    target_link_libraries(hal_h265d osal)
 endif()
 
 #add_subdirectory(test)
