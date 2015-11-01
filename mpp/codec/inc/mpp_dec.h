@@ -37,8 +37,6 @@ struct MppDec_t {
 
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
-    MppBuffer           dec_pkt_buf;
-    MppBuffer           dec_pic_buf;
 };
 
 
