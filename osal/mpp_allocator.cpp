@@ -85,7 +85,7 @@ MPP_RET mpp_allocator_release(MppAllocator allocator, MppBufferInfo *info)
 {
     if (NULL == allocator || NULL == info) {
         mpp_err_f("invalid input: allocator %p info %p\n",
-                allocator, info);
+                  allocator, info);
         return MPP_ERR_UNKNOW;
     }
 
@@ -113,7 +113,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
 {
     if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("invalid input: allocator %p api %p type %d\n",
-                allocator, api, type);
+                  allocator, api, type);
         return MPP_ERR_UNKNOW;
     }
 

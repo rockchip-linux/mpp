@@ -92,7 +92,7 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
         func(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->count--;
-        if(!buffer->discard)
+        if (!buffer->discard)
             group->count_unused--;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
@@ -225,11 +225,11 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
             if (group == service.mLegacyGroup) {
                 deinit_buffer_no_lock(buffer);
             } else {
-                if(buffer->discard){
+                if (buffer->discard) {
                     deinit_buffer_no_lock(buffer);
-                }else{
-                list_add_tail(&buffer->list_status, &group->list_unused);
-                group->count_unused++;
+                } else {
+                    list_add_tail(&buffer->list_status, &group->list_unused);
+                    group->count_unused++;
                 }
             }
             group->count_used--;
@@ -354,7 +354,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
     if (!list_empty(&p->list_used)) {
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-           // mpp_buffer_ref_dec(pos);
+            // mpp_buffer_ref_dec(pos);
             pos->discard = 1;
         }
     }

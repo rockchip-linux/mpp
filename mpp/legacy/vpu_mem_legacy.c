@@ -95,8 +95,6 @@ static RK_S32 get_free_memory_num(vpu_display_mem_pool *p)
 
 static RK_S32 reset_vpu_mem_pool(vpu_display_mem_pool *p)
 {
-
-   
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
     mpp_buffer_group_clear(p_mempool->group);
     return 0;
@@ -263,7 +261,6 @@ RK_S32 VPUMemGetFD(VPUMemLinear_t *p)
     MppBuffer buffer = (MppBuffer)p->offset;
     fd = mpp_buffer_get_fd(buffer);
     return fd;
-
 }
 
 RK_S32 vpu_mem_judge_used_heaps_type()

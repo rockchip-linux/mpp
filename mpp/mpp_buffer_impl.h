@@ -46,7 +46,7 @@ struct MppBufferImpl_t {
     /* used for buf on group reset mode
        set disard value to 1 when frame refcount no zero ,
        we will delay relesase buffer after refcount to zero,
-	   not put this buf to unused list
+       not put this buf to unused list
      */
     RK_S32              discard;
     // used flag is for used/unused list detection

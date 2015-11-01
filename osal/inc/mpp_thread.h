@@ -153,7 +153,8 @@ inline void Condition::signal()
     pthread_cond_signal(&mCond);
 }
 
-class MppMutexCond {
+class MppMutexCond
+{
 public:
     MppMutexCond() {};
     ~MppMutexCond() {};
