@@ -45,6 +45,17 @@ public:
     struct list_head    mListOrphan;
 };
 
+static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
+    "internal",
+    "external",
+};
+
+static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
+    "normal",
+    "ion",
+    "v4l2",
+};
+
 static MppBufferService service;
 
 static MppBufferGroupImpl *search_group_by_id_no_lock(struct list_head *list, RK_U32 group_id)
@@ -306,13 +317,17 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         // otherwise move the group to list_orphan and wait for buffer release
         list_del_init(&p->list_group);
         list_add_tail(&p->list_group, &service.mListOrphan);
-        mpp_err_f("mpp_group %p tag %s deinit with %d bytes buffer not released\n", p, p->tag, p->usage);
+
+        mpp_err_f("mpp_group %p tag %s mode %s type %s deinit with %d bytes buffer not released\n",
+                  p, p->tag, mode2str[p->mode], type2str[p->type], p->usage);
         // if any buffer with mode MPP_BUFFER_MODE_COMMIT found it should be error
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
             // mpp_assert(pos->mode != MPP_BUFFER_MODE_LIMIT);
-            mpp_err_f("buffer %p is not free\n", pos);
+            mpp_err_f("buffer %p size %u is not free\n", pos, pos->info.size);
         }
+
+        mpp_buffer_group_dump(p);
     }
 
     return MPP_OK;
@@ -349,10 +364,8 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 void mpp_buffer_group_dump(MppBufferGroupImpl *group)
 {
     mpp_log("\ndumping buffer group %p id %d\n", group, group->group_id);
-    mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
-    mpp_log("type %s\n", (MPP_BUFFER_TYPE_NORMAL == group->type) ? ("normal") :
-            (MPP_BUFFER_TYPE_ION    == group->type) ? ("ion") : ("v4l2"));
-    mpp_log("mode %s\n", (MPP_BUFFER_INTERNAL == group->mode) ? ("internal") : ("external"));
+    mpp_log("mode %s\n", mode2str[group->mode]);
+    mpp_log("type %s\n", type2str[group->type]);
     mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
 
     mpp_log("\nused buffer count %d\n", group->count_used);
