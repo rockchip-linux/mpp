@@ -1406,7 +1406,7 @@ endif()
 # ----------------------------------------------------------------------------
 # add nostdlib for Android SDK build
 # ----------------------------------------------------------------------------
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib" )
+set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -ldl" )
 
 # cache flags
 set( CMAKE_CXX_FLAGS           ""                        CACHE STRING "c++ flags" )
