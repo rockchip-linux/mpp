@@ -20,4 +20,4 @@ set_target_properties(mpp_legacy_shared PROPERTIES OUTPUT_NAME "vpu")
 set_target_properties(mpp_legacy_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
 target_link_libraries(mpp_legacy mpp)
-target_link_libraries(mpp_legacy_shared mpp_legacy)
+target_link_libraries(mpp_legacy_shared mpp_shared)
