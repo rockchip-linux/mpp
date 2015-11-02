@@ -254,12 +254,15 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
     info_set_impl->chroma_location  = frame_impl->chroma_location;
 }
 
-static void dump_slots(MppBufSlotsImpl *impl)
+#define dump_slots(...) _dump_slots(__FUNCTION__, ## __VA_ARGS__)
+
+static void _dump_slots(const char *caller, MppBufSlotsImpl *impl)
 {
     RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
 
-    mpp_log("\ndumping slots %p buffer count %d buffer size %d\n", impl, impl->buf_count, impl->buf_size);
+    mpp_log("\ncaller %s is dumping slots\n", caller);
+    mpp_log("slots %p buffer count %d buffer size %d\n", impl, impl->buf_count, impl->buf_size);
     mpp_log("decode  count %d\n", impl->decode_count);
     mpp_log("display count %d\n", impl->display_count);
 
