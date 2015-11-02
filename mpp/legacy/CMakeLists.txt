@@ -13,11 +13,14 @@ set (MPP_LEGACY_SRC
 
 add_library(mpp_legacy STATIC ${MPP_LEGACY_SRC})
 set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy")
+target_link_libraries(mpp_legacy mpp)
 
 add_library(mpp_legacy_shared SHARED ${MPP_LEGACY_SRC})
 set_target_properties(mpp_legacy_shared PROPERTIES FOLDER "mpp/legacy")
 set_target_properties(mpp_legacy_shared PROPERTIES OUTPUT_NAME "vpu") 
 set_target_properties(mpp_legacy_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-
-target_link_libraries(mpp_legacy mpp)
-target_link_libraries(mpp_legacy_shared mpp_shared)
+if(ANDROID)
+    target_link_libraries(mpp_legacy_shared vpu mpp_shared)
+else()
+    target_link_libraries(mpp_legacy_shared mpp_shared)
+endif()
