@@ -1244,7 +1244,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 #ifdef ANDROID
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
         /* need to config addr */
-        if (1) { //VPUMemJudgeIommu()) {
+        if (VPUMemJudgeIommu()) {
             addr = fd | (addr << 10);
         } else {
             addr += fd;
@@ -1402,7 +1402,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
 
-    if (1) {
+    if (VPUMemJudgeIommu()) {
         hw_regs->sw_refer_base[0] |= ((hw_regs->sw_ref_valid & 0xf) << 10);
         hw_regs->sw_refer_base[1] |= (((hw_regs->sw_ref_valid >> 4) & 0xf) << 10);
         hw_regs->sw_refer_base[2] |= (((hw_regs->sw_ref_valid >> 8) & 0xf) << 10);
