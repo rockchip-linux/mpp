@@ -238,14 +238,16 @@ RK_S32 get_next_nal(FILE* inpf, unsigned char* Buf)
 }
 
 
-static RK_S32 poll_task(void *hal, MppBufSlots slots, HalDecTask *dec)
+static RK_S32 poll_task(void *hal, MppBufSlots slots, MppBufSlots packet_slots, HalDecTask *dec)
 {
     HalTaskInfo syn;
     RK_U32 i;
+    MppBuffer   dec_pkt_buf;
     syn.dec = *dec;
     hal_h265d_wait(hal, &syn);
     mpp_err("dec->output = %d", dec->output);
     mpp_buf_slot_clr_flag(slots, dec->output, SLOT_HAL_OUTPUT);
+
     for (i = 0; i < MPP_ARRAY_ELEMS(dec->refer); i++) {
         RK_S32 id;
         id = dec->refer[i];
@@ -253,6 +255,9 @@ static RK_S32 poll_task(void *hal, MppBufSlots slots, HalDecTask *dec)
             mpp_buf_slot_clr_flag(slots, id, SLOT_HAL_INPUT);
     }
 
+    mpp_buf_slot_get_prop(packet_slots, dec->input,  SLOT_BUFFER, &dec_pkt_buf);
+    mpp_buf_slot_clr_flag(packet_slots, dec->input, SLOT_HAL_INPUT);
+    mpp_buffer_put(dec_pkt_buf);
     return MPP_OK;
 }
 
@@ -381,11 +386,12 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     MppBuffer buffer = NULL;
                     curtask->input = index;
 
-                    mpp_err("mpp_buf_slot_get_prop");
                     mpp_buf_slot_get_prop(packet_slots, index, SLOT_BUFFER, &buffer);
                     if (NULL == buffer) {
                         RK_U32 size = (RK_U32)mpp_buf_slot_get_size(packet_slots);
-                        mpp_err("mpp_buffer_get");
+                        if(size == 0){
+                           size = 1024*1024;
+                        }
                         mpp_buffer_get(mStreamGroup, &buffer, size);
                         if (buffer != NULL)
                             mpp_err("mpp_buf_slot_set_prop %p", buffer);
@@ -404,7 +410,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             }
             if (curtask->valid) {
                 if (wait_task) {
-                    poll_task(hal, slots, pretask);
+                    poll_task(hal, slots,packet_slots,pretask);
                     wait_task = 0;
                 }
                 curtask->valid = 0;
@@ -429,11 +435,16 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 syn.dec = *curtask;
                 index = curtask->output;
 
-                mpp_err("frame get unused");
+                if(mpp_buf_slot_is_changed(slots)){
+                    mpp_buf_slot_ready(slots);
+                }
+
                 mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
                 if (NULL == buffer) {
                     RK_U32 size = (RK_U32)mpp_buf_slot_get_size(slots);
-                    mpp_err("size = %d", size);
+                    if(size == 0){
+                        size = cmd->width*cmd->height*2;
+                    }
                     mpp_buffer_get(mFrameGroup, &buffer, size);
                     if (buffer)
                         mpp_buf_slot_set_prop(slots, index, SLOT_BUFFER, buffer);
@@ -459,7 +470,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 if (ret == MPP_OK) {
                     mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
                     if (frame) {
-#if 1//def DUMP
+#ifdef DUMP
                         RK_U32 stride_w, stride_h;
                         void *ptr = NULL;
                         MppBuffer framebuf;
@@ -467,7 +478,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                         stride_h = mpp_frame_get_ver_stride(frame);
                         framebuf = mpp_frame_get_buffer(frame);
                         ptr = mpp_buffer_get_ptr(framebuf);
-                        if (fp) {
+                        if (fp & ptr != NULL) {
                             fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp);
                             fflush(fp);
                         }
@@ -484,7 +495,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     }
 
     if (wait_task) {
-        poll_task(hal, slots, pretask);
+        poll_task(hal, slots,packet_slots,pretask);
         wait_task = 0;
     }
 
