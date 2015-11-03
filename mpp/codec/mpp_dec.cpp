@@ -352,7 +352,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (!task->status.info_task_gen_rdy) {
             task_dec->flags.info_change = 1;
             hal_task_hnd_set_info(task->hnd, &task->info);
+			mpp->mThreadHal->lock();
             hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
+			mpp->mThreadHal->unlock();
             mpp->mThreadHal->signal();
             mpp->mTaskPutCount++;
             task->hnd = NULL;
@@ -445,7 +447,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *    combinate video codec dxva output and buffer information
      */
     hal_task_hnd_set_info(task->hnd, &task->info);
+	mpp->mThreadHal->lock();
     hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
+	mpp->mThreadHal->unlock();
     mpp->mThreadHal->signal();
 
     mpp->mTaskPutCount++;

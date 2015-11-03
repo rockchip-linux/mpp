@@ -1857,6 +1857,10 @@ MPP_RET h265d_reset(void *ctx)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+    RK_S32 ret = 0;
+    do {
+        ret = mpp_hevc_output_frame(ctx, 1);
+    } while (ret);
     mpp_hevc_flush_dpb(s);
     h265d_split_reset(h265dctx->split_cxt);
     s->max_ra = INT_MAX;
