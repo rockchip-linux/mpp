@@ -20,12 +20,32 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_env.h"
+
 #include "mpp_buffer_impl.h"
 
 #define SEARCH_GROUP_NORMAL(id)         search_group_by_id_no_lock(&service.mListGroup,  id)
 #define SEARCH_GROUP_ORPHAN(id)         search_group_by_id_no_lock(&service.mListOrphan, id)
 
 typedef MPP_RET (*BufferOp)(MppAllocator allocator, MppBufferInfo *data);
+
+typedef enum MppBufOps_e {
+    BUF_COMMIT,
+    BUF_CREATE,
+    BUF_REF_INC,
+    BUF_REF_DEC,
+    BUF_DESTROY,
+    BUF_OPS_BUTT,
+} MppBufOps;
+
+typedef struct MppBufLog_t {
+    struct list_head    list;
+    MppBuffer           buf;
+    MppBufOps           ops;
+    RK_U32              val_in;
+    RK_U32              val_out;
+} MppBufLog;
+
 
 class MppBufferService
 {
@@ -56,7 +76,33 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "v4l2",
 };
 
+static const char *ops2str[BUF_OPS_BUTT] = {
+    "commit",
+    "create",
+    "ref inc",
+    "ref dec",
+    "destroy",
+};
+
+RK_U32 mpp_buffer_debug = 0;
 static MppBufferService service;
+
+static void add_buf_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops, RK_U32 val_in, RK_U32 val_out)
+{
+    if (group->log_runtime_en) {
+        mpp_log("group %p buffer %p ops %s val in %d out %d\n", group, buffer, ops2str[ops], val_in, val_out);
+    }
+    if (group->log_history_en) {
+        MppBufLog *log = mpp_malloc(MppBufLog, 1);
+        if (log) {
+            INIT_LIST_HEAD(&log->list);
+            log->buf = buffer;
+            log->ops = ops;
+            log->val_in = val_in;
+            log->val_out = val_out;
+        }
+    }
+}
 
 static MppBufferGroupImpl *search_group_by_id_no_lock(struct list_head *list, RK_U32 group_id)
 {
@@ -279,6 +325,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     INIT_LIST_HEAD(&p->list_group);
     INIT_LIST_HEAD(&p->list_used);
     INIT_LIST_HEAD(&p->list_unused);
+    INIT_LIST_HEAD(&p->list_logs);
 
     list_add_tail(&p->list_group, &service.mListGroup);
 
@@ -292,6 +339,10 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     p->type     = type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
     p->group_id = service.group_id;
+
+    mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
+    p->log_runtime_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
+    p->log_history_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
 
     // avoid group_id reuse
     do {
@@ -408,6 +459,7 @@ MppBufferService::MppBufferService()
     INIT_LIST_HEAD(&p->list_group);
     INIT_LIST_HEAD(&p->list_used);
     INIT_LIST_HEAD(&p->list_unused);
+    INIT_LIST_HEAD(&p->list_logs);
 
     list_add_tail(&p->list_group, &mListGroup);
 

@@ -22,6 +22,8 @@
 #include "mpp_allocator.h"
 
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
+#define MPP_BUF_DBG_OPS_RUNTIME         (0x00000002)
+#define MPP_BUF_DBG_OPS_HISTORY         (0x10000004)
 
 #define mpp_buf_dbg(flag, fmt, ...)     _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_buf_dbg_f(flag, fmt, ...)   _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
@@ -75,6 +77,11 @@ struct MppBufferGroupImpl_t {
 
     RK_S32              count_used;
     RK_S32              count_unused;
+
+    // buffer log function
+    RK_U32              log_runtime_en;
+    RK_U32              log_history_en;
+    struct list_head    list_logs;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
