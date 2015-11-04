@@ -664,7 +664,6 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->valid = 1; // register valid flag
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
-        in_task->g_framecnt = p_Dec->p_Vid->g_framecnt;
         FUN_CHECK(ret = update_dpb(p_Dec));
         //LogTrace(p_Dec->logctx.parr[RUN_PARSE], "[Update dpb end]");
         //mpp_log_f("[PARSE_OUT] line=%d, g_framecnt=%d",__LINE__, p_Dec->p_Vid->g_framecnt++/*in_task->g_framecnt*/);
