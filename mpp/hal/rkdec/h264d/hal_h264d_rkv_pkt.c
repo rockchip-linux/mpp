@@ -337,7 +337,7 @@ void rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
+void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 {
     RK_S32 i = 0;
     MppBuffer frame_buf = NULL;
@@ -353,8 +353,11 @@ void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
     H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
-
+	
     memset(p_regs, 0, sizeof(H264dRkvRegs_t));
+
+	p_regs->swreg2_sysctrl.sw_dec_mode = 1;  //!< h264
+
     if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
         p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
     } else {
@@ -445,12 +448,8 @@ void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
 
 	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
 
-	mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input, SLOT_BUFFER, &bitstream_buf);
+	mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
-
-
-
-
 
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264dRkvRegs_t));

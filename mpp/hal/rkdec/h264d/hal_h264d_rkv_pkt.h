@@ -53,7 +53,7 @@ void    rkv_prepare_spspps_packet  (void *hal, FifoCtx_t *pkt);
 void    rkv_prepare_framerps_packet(void *hal, FifoCtx_t *pkt);
 void    rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt);
 void    rkv_prepare_stream_packet  (void *hal, FifoCtx_t *pkt);
-void    rkv_generate_regs          (void *hal, FifoCtx_t *pkt);
+void    rkv_generate_regs          (void *hal, HalTaskInfo *task, FifoCtx_t *pkt);
 void    rkv_fprint_fifo_data       (FILE *fp,  FifoCtx_t *pkt);
 
 
