@@ -341,6 +341,7 @@ void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
 {
     RK_S32 i = 0;
     MppBuffer frame_buf = NULL;
+	MppBuffer bitstream_buf = NULL;
     RK_U8 bit_depth[3] = { 0 };
     RK_U32 sw_y_hor_virstride = 0;
     RK_U32 sw_uv_hor_virstride = 0;
@@ -441,6 +442,15 @@ void rkv_generate_regs(void *hal, FifoCtx_t *pkt)
     }
     // p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
     p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
+
+	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
+
+	mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input, SLOT_BUFFER, &bitstream_buf);
+	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
+
+
+
+
 
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264dRkvRegs_t));
