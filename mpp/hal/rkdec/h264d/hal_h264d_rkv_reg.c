@@ -24,6 +24,8 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
+#include "vpu.h"
+
 
 #include "h264d_log.h"
 #include "hal_h264d_global.h"
@@ -190,11 +192,15 @@ const RK_U32 H264_RKV_Cabac_table[460 * 8] = {
 
 
 
+static RK_U32 rkv_ver_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
 
-
-
-
-
+static RK_U32 rkv_hor_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
 
 /*!
 ***********************************************************************
@@ -205,16 +211,24 @@ const RK_U32 H264_RKV_Cabac_table[460 * 8] = {
 //extern "C"
 MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 {
+    RK_U32 cabac_size = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-    p_hal->regs = (void *)mpp_calloc(H264dRkvRegs_t, 1);
-    p_hal->pkts = (void *)mpp_calloc(H264dRkvPkt_t, 1);
-    MEM_CHECK(ret, p_hal->regs && p_hal->pkts);
+
+    MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
+    //!< malloc cabac+scanlis + packets + poc_buf
+    cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE;
+    FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
+    //!< copy cabac table bytes
+    FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)H264_RKV_Cabac_table, sizeof(H264_RKV_Cabac_table)));
     FUN_CHECK(ret = rkv_alloc_fifo_packet(&p_hal->logctx, (H264dRkvPkt_t *)p_hal->pkts));
+    p_hal->regs = (void *)((H264dRkvPkt_t *)p_hal->pkts)->reg.pbuf;
+
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)cfg;
@@ -241,12 +255,16 @@ MPP_RET rkv_h264d_deinit(void *hal)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     rkv_free_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
-    MPP_FREE(p_hal->regs);
     MPP_FREE(p_hal->pkts);
+    if (p_hal->cabac_buf) {
+        FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
+    }
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
+__FAILED:
+    return ret;
 }
 /*!
 ***********************************************************************
@@ -257,6 +275,7 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
+    RK_U32 strm_offset = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     H264dRkvPkt_t *pkts  = (H264dRkvPkt_t *)p_hal->pkts;
@@ -266,10 +285,15 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     rkv_prepare_spspps_packet(hal, &pkts->spspps);
     rkv_prepare_framerps_packet(hal, &pkts->rps);
     rkv_prepare_scanlist_packet(hal, &pkts->scanlist);
-    rkv_prepare_stream_packet(hal, &pkts->strm);
     rkv_generate_regs(p_hal, &pkts->reg);
+    //!< copy datas
+    strm_offset = RKV_CABAC_TAB_SIZE;
+    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
+    strm_offset += RKV_SPSPPS_SIZE;
+    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
+    strm_offset += RKV_SCALING_LIST_SIZE;
+    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist.pbuf, RKV_SCALING_LIST_SIZE);
 
-    mpp_log("++++++++++ hal_h264_decoder, g_framecnt=%d \n", p_hal->g_framecnt++);
     ((HalDecTask*)&task->dec)->valid = 0;
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
@@ -291,9 +315,16 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-
-
-
+    //FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_QTABLE_BASE,  mpp_buffer_get_fd(p_hal->cabac_buf))); //!< cabacInit.phy_addr
+    //FUN_CHECK(ret = vdpu_h264d_print_regs(p_hal, p_drv));
+#ifdef ANDROID
+    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS)) {
+        ret =  MPP_ERR_VPUHW;
+        mpp_err_f("H264 RKV FlushRegs fail. \n");
+    } else {
+        mpp_log("H264 RKV FlushRegs success, frame_cnt = %d \n", p_hal->in_task->g_framecnt);
+    }
+#endif
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
@@ -310,14 +341,27 @@ __RETURN:
 MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dRkvRegs_t *p_regs = NULL;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-
-
-
+#ifdef ANDROID
+	RK_S32 wait_ret = -1;
+	RK_S32 ret_len = 0, cur_deat = 0;
+	VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
+    static struct timeval tv1, tv2;
+    gettimeofday(&tv1, NULL);
+    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
+    gettimeofday(&tv2, NULL);
+    cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+    p_hal->total_time += cur_deat;
+    p_hal->iDecodedNum++;
+	(void)wait_ret;
+#endif
+    p_regs = (H264dRkvRegs_t *)p_hal->regs;
+    memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;

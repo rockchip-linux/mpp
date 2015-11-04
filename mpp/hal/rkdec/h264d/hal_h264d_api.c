@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "rk_type.h"
+#include "vpu.h"
 #include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
@@ -184,6 +185,9 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
 
     p_api = &p_hal->hal_api;
+
+    p_hal->frame_slots  = cfg->frame_slots;
+    p_hal->packet_slots = cfg->packet_slots;
     //!< choose hard mode
     switch (cfg->device_id) {
     case HAL_RKVDEC:
@@ -210,6 +214,27 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     }
     //!< init logctx
     FUN_CHECK(ret = logctx_init(&p_hal->logctx, p_hal->logctxbuf));
+    //!< VPUClientInit
+#ifdef ANDROID
+    if (p_hal->vpu_socket <= 0) {
+        p_hal->vpu_socket = VPUClientInit(VPU_DEC);
+        if (p_hal->vpu_socket <= 0) {
+            mpp_err("p_hal->vpu_socket <= 0\n");
+            ret = MPP_ERR_UNKNOW;
+            goto __FAILED;
+        }
+    }
+#endif
+    //< get buffer group
+    if (p_hal->buf_group == NULL) {
+#ifdef ANDROID
+        mpp_log_f("mpp_buffer_group_get_internal used ion In");
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
+#else
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
+#endif
+    }
+
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
 
@@ -232,6 +257,15 @@ MPP_RET hal_h264d_deinit(void *hal)
 
     FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
     FUN_CHECK(ret = logctx_deinit(&p_hal->logctx));
+    //!< VPUClientInit
+#ifdef ANDROID
+    if (p_hal->vpu_socket >= 0) {
+        VPUClientRelease(p_hal->vpu_socket);
+    }
+#endif
+    if (p_hal->buf_group) {
+        FUN_CHECK(ret = mpp_buffer_group_put(p_hal->buf_group));
+    }
 
     return MPP_OK;
 __FAILED:

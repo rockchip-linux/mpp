@@ -343,13 +343,19 @@ __FAILED:
 
 static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
 {
+    RK_U32 crop_left = 0, crop_right = 0;
+    RK_U32 crop_top = 0, crop_bottom = 0;
+    static const RK_U32 SubWidthC  [4] = { 1, 2, 2, 1};
+    static const RK_U32 SubHeightC [4] = { 1, 2, 1, 1};
+
+
     p_Vid->max_frame_num = 1 << (sps->log2_max_frame_num_minus4 + 4);
     p_Vid->PicWidthInMbs = (sps->pic_width_in_mbs_minus1 + 1);
     p_Vid->FrameHeightInMbs = (2 - sps->frame_mbs_only_flag) * (sps->pic_height_in_map_units_minus1 + 1);
     p_Vid->yuv_format = sps->chroma_format_idc;
 
-    p_Vid->width = p_Vid->PicWidthInMbs * MB_BLOCK_SIZE;
-    p_Vid->height = p_Vid->FrameHeightInMbs * MB_BLOCK_SIZE;
+    p_Vid->width = p_Vid->PicWidthInMbs * 16;
+    p_Vid->height = p_Vid->FrameHeightInMbs * 16;
 
     if (p_Vid->yuv_format == YUV420) {
         p_Vid->width_cr = (p_Vid->width >> 1);
@@ -358,6 +364,17 @@ static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
         p_Vid->width_cr = (p_Vid->width >> 1);
         p_Vid->height_cr = p_Vid->height;
     }
+    //!< calculate frame_width_after_crop && frame_height_after_crop
+    if (sps->frame_cropping_flag)   {
+        crop_left   = SubWidthC [sps->chroma_format_idc] * sps->frame_crop_left_offset;
+        crop_right  = SubWidthC [sps->chroma_format_idc] * sps->frame_crop_right_offset;
+        crop_top    = SubHeightC[sps->chroma_format_idc] * ( 2 - sps->frame_mbs_only_flag ) * sps->frame_crop_top_offset;
+        crop_bottom = SubHeightC[sps->chroma_format_idc] * ( 2 - sps->frame_mbs_only_flag ) * sps->frame_crop_bottom_offset;
+    } else {
+        crop_left = crop_right = crop_top = crop_bottom = 0;
+    }
+    p_Vid->width_after_crop = p_Vid->width - crop_left - crop_right;
+    p_Vid->height_after_crop = p_Vid->height - crop_top - crop_bottom;
 }
 
 static RK_U32 video_pars_changed(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, RK_U8 layer_id)
@@ -510,8 +527,8 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    if (p_Vid->dec_picture) {
-        FUN_CHECK(ret = exit_picture(p_Vid, &p_Vid->dec_picture));
+    if (p_Vid->dec_pic) {
+        FUN_CHECK(ret = exit_picture(p_Vid, &p_Vid->dec_pic));
     }
     if (p_Vid->active_mvc_sps_flag) { // layer_id == 1
         p_Vid->active_sps = &subset_sps->sps;
@@ -519,7 +536,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         p_Vid->active_sps_id[0] = 0;
         p_Vid->active_sps_id[1] = subset_sps->sps.seq_parameter_set_id;
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 1)) {
-            FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1]));
+            FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1], 2));
             FUN_CHECK(ret = init_dpb(p_Vid, p_Vid->p_Dpb_layer[1], 2));
             update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
         }
@@ -530,7 +547,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         p_Vid->active_sps_id[1] = 0;
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 0)) {
             if (!p_Vid->no_output_of_prior_pics_flag) {
-                FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[0]));
+                FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[0], 1));
             }
             FUN_CHECK(ret = init_dpb(p_Vid, p_Vid->p_Dpb_layer[0], 1));
             update_last_video_pars(p_Vid, p_Vid->active_sps, 0);

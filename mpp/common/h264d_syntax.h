@@ -411,6 +411,7 @@ typedef struct _DXVA_PicParams_H264_MVC {
     RK_U16  RefPicFiledFlags;
     RK_U8   RefPicLayerIdList[16];
     RK_U8   scaleing_list_enable_flag;
+    RK_U16  UsedForInTerviewflags;
 
     ////!< for fpga test
     //USHORT seq_parameter_set_id;
@@ -421,6 +422,8 @@ typedef struct _DXVA_PicParams_H264_MVC {
     //UCHAR  mvc_extension_enable;
 
 } DXVA_PicParams_H264_MVC, *LPDXVA_PicParams_H264_MVC;
+
+
 
 typedef struct h264d_syntax_t {
     RK_U32                  num;

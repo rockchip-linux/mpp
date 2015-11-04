@@ -31,7 +31,8 @@ void    fifo_flush_bits   (FifoCtx_t *pkt);
 void    fifo_align_bits   (FifoCtx_t *pkt, RK_U8 align_bits);
 void    fifo_write_bytes  (FifoCtx_t *pkt, void *psrc, RK_U32 size);
 void    fifo_fwrite       (FILE *fp,       void *psrc, RK_U32 size);
-MPP_RET fifo_packet_init  (FifoCtx_t *pkt, RK_S32 header, RK_S32 size);
+void    fifo_packet_init  (FifoCtx_t *pkt, void *p_start, RK_S32 size);
+MPP_RET fifo_packet_alloc (FifoCtx_t *pkt, RK_S32 header, RK_S32 size);
 #ifdef  __cplusplus
 }
 #endif

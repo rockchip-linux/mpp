@@ -98,10 +98,10 @@ MPP_RET hal_set_regdrv(HalRegDrvCtx_t *ctx, RK_U32 syn_id, RK_U32 val)
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    mpp_assert(syn_id < ctx->syn_size);
-    reg_id = ctx->p_syn[syn_id].reg_id;
-    bitpos = ctx->p_syn[syn_id].bitpos;
-    bitlen = ctx->p_syn[syn_id].bitlen;
+    mpp_assert(syn_id < ctx->emt_size);
+    reg_id = ctx->p_emt[syn_id].reg_id;
+    bitpos = ctx->p_emt[syn_id].bitpos;
+    bitlen = ctx->p_emt[syn_id].bitlen;
 
     valtmp  = ctx->p_reg[reg_id];
     valtmp &= ~(reg_mask[bitlen] << bitpos);
@@ -127,10 +127,10 @@ MPP_RET hal_get_regdrv(HalRegDrvCtx_t *ctx, RK_U32 syn_id, RK_U32 *pval)
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    mpp_assert(syn_id < ctx->syn_size);
-    reg_id = ctx->p_syn[syn_id].reg_id;
-    bitpos = ctx->p_syn[syn_id].bitpos;
-    bitlen = ctx->p_syn[syn_id].bitlen;
+    mpp_assert(syn_id < ctx->emt_size);
+    reg_id = ctx->p_emt[syn_id].reg_id;
+    bitpos = ctx->p_emt[syn_id].bitpos;
+    bitlen = ctx->p_emt[syn_id].bitlen;
 
     valtmp  = ctx->p_reg[reg_id];
     valtmp  = valtmp >> bitpos;

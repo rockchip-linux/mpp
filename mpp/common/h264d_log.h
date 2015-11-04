@@ -33,7 +33,6 @@ typedef enum {
     RET_FALSE  = 0,
     RET_TURE   = 1,
 } RET_tpye;
-
 //!< get bit value
 #define GetBitVal(val, pos)   ( ( (val)>>(pos) ) & 0x1 & (val) )
 //!< marco
@@ -180,7 +179,47 @@ typedef struct h264d_logctx_t {
     }\
     } while (0)
 
-#define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);} }
+//!< vaule check
+#define VAL_CHECK(ret, val, ...)\
+	do{ if(!(val)){\
+	ret = MPP_ERR_VALUE;\
+	mpp_log("Function:%s:%d, ERROR: value error.\n", __FUNCTION__, __LINE__);\
+	goto __FAILED;\
+	} } while (0)
+//!< memory malloc check
+#define MEM_CHECK(ret, val, ...)\
+	do{ if(!(val)) {\
+	ret = MPP_ERR_MALLOC;\
+	mpp_log("Function:%s:%d, ERROR: malloc buffer.\n", __FUNCTION__, __LINE__);\
+	mpp_assert(0); goto __FAILED;\
+	} } while (0)
+//!< file check
+#define FLE_CHECK(ret, val, ...)\
+	do{ if(!(val)) {\
+	ret = MPP_ERR_OPEN_FILE;\
+	mpp_log("Function:%s:%d, ERROR: open file.\n", __FUNCTION__, __LINE__);\
+	ASSERT(0); goto __FAILED;\
+	} } while (0)
+
+//!< input check
+#define INP_CHECK(ret, val, ...)\
+	do{ if((val)) {\
+	ret = MPP_ERR_INIT;\
+	mpp_log("Function:%s:%d, WARNNING: input empty.\n", __FUNCTION__, __LINE__);\
+	goto __RETURN;\
+	} } while (0)
+//!< function return check
+#define FUN_CHECK(val)\
+	do{ if((val) < 0) {\
+	goto __FAILED;\
+	} } while (0)
+
+#ifdef ANDROID
+#define  FPRINT(fp, ...)  //{ { mpp_log(__VA_ARGS__); } if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);}  }
+#else
+#define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);}  }
+#endif
+
 
 extern RK_U32  g_nalu_cnt0;
 extern RK_U32  g_nalu_cnt1;

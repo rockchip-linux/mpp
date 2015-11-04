@@ -29,15 +29,16 @@
 
 // input parameters from configuration file
 typedef struct inp_par_t {
-    RK_U32 iDecFrmNum;                        //!< set the max decode frame numbers
-    char   infile_name[FILE_NAME_SIZE];       //!< H.264 input bitstrream
-    char   cmp_path_dir[FILE_NAME_SIZE];      //!< golen
-    char   cfgfile_name[FILE_NAME_SIZE];      //!< input configure file
-    char   out_path_dir[FILE_NAME_SIZE];      //!< output
+    RK_U32 iDecFrmNum;                         //!< set the max decode frame numbers
+    char   infile_name[FILE_NAME_SIZE];        //!< H.264 input bitstrream
+    char   cmp_path_dir[FILE_NAME_SIZE];       //!< golen
+    char   cfgfile_name[FILE_NAME_SIZE];       //!< input configure file
+    char   out_path_dir[FILE_NAME_SIZE];       //!< output
     //--- input file
     FILE   *fp_bitstream;
     FILE   *fp_golden_data;
     FILE   *fp_driver_data;
+    FILE   *fp_yuv_data;
     //--- use in read bit stream
     RK_U32 raw_cfg;
     RK_U32 iFrmdecoded;

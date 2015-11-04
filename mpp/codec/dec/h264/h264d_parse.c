@@ -187,7 +187,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     || (cur_nal->nal_unit_type == NALU_TYPE_PPS)
     || (cur_nal->nal_unit_type == NALU_TYPE_SUB_SPS)
     || (cur_nal->nal_unit_type == NALU_TYPE_SEI))*/{
-        FPRINT(g_debug_file0, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt0++, cur_nal->nal_unit_type, cur_nal->sodb_len);
+        //FPRINT(g_debug_file0, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt0++, cur_nal->nal_unit_type, cur_nal->sodb_len);
     }
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
@@ -246,7 +246,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         FUN_CHECK(ret = process_slice(currSlice));
         if (currSlice->is_new_picture) {
             currSlice->p_Dec->nalu_ret = StartOfPicture;
-            FPRINT(g_debug_file0, "----- start of picture ---- \n");
+            //FPRINT(g_debug_file0, "----- start of picture ---- \n");
         } else {
             currSlice->p_Dec->nalu_ret = StartOfSlice;
         }
@@ -310,7 +310,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
     }
-    FunctionIn(runlog);
+    FunctionOut(runlog);
 
     return ret = MPP_OK;
 __FAILED:
@@ -318,7 +318,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET find_next_frame(H264dCurCtx_t *p_Cur)
+static MPP_RET parse_nalu_header(H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 nalu_header_bytes  = 0;
@@ -340,7 +340,7 @@ static MPP_RET find_next_frame(H264dCurCtx_t *p_Cur)
     if (g_nalu_cnt1 == 29) {
         g_nalu_cnt1 = g_nalu_cnt1;
     }
-    FPRINT(g_debug_file1, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt1++, p_strm->nal_unit_type, p_strm->nalu_len);
+    //FPRINT(g_debug_file1, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt1++, p_strm->nal_unit_type, p_strm->nalu_len);
 
     nalu_header_bytes = 1;
     if ((p_strm->nal_unit_type == NALU_TYPE_PREFIX) || (p_strm->nal_unit_type == NALU_TYPE_SLC_EXT)) {
@@ -461,11 +461,13 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
     p_Inp->task_valid = 0;
     if (p_Cur->p_Inp->is_eos) {
-        FUN_CHECK(ret = find_next_frame(p_Cur));
-        FUN_CHECK(ret = store_cur_nalu(p_Cur));
+        if (p_Inp->p_Dec->nalu_ret == HaveNoStream) {
+            FUN_CHECK(ret = parse_nalu_header(p_Cur));
+            FUN_CHECK(ret = store_cur_nalu(p_Cur));
+        }
         FUN_CHECK(ret = add_empty_nalu(p_Cur));
         p_Inp->task_valid = 1;
-        FPRINT(g_debug_file1, "----- end of stream ---- \n");
+        LogInfo(p_Inp->p_Dec->logctx.parr[RUN_PARSE], "----- end of stream ----");
         goto __RETURN;
     } else if (p_Cur->p_Dec->is_new_frame) {
         FUN_CHECK(ret = store_cur_nalu(p_Cur));
@@ -475,14 +477,14 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     FUN_CHECK(ret = read_one_nalu(p_Inp, &p_Cur->strm));
 
     if (p_Inp->p_Dec->nalu_ret == EndOfNalu) {
-        FUN_CHECK(ret = find_next_frame(p_Cur));
+        FUN_CHECK(ret = parse_nalu_header(p_Cur));
         if (p_Cur->p_Dec->is_new_frame) {
             //!< add an empty nalu to tell frame end
             FUN_CHECK(ret = add_empty_nalu(p_Cur));
             //!< reset curstream parameters
             p_Cur->strm.head_offset = 0;
             p_Inp->task_valid = 1;
-            FPRINT(g_debug_file1, "----- start of picture ---- \n");
+            //FPRINT(g_debug_file1, "----- start of picture ---- \n");
         } else {
             FUN_CHECK(ret = store_cur_nalu(p_Cur));
         }
@@ -547,7 +549,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             p_Dec->next_state = SliceSTATE_GetSliceData;
             break;
         case SliceSTATE_GetSliceData:
-            (ret = fill_slice(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
+            (ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
             p_Dec->next_state = SliceSTATE_ResetSlice;
             break;
@@ -562,7 +564,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             goto __FAILED;
         }
     }
-    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     //__RETURN:
     return ret = MPP_OK;
 __FAILED:

@@ -199,19 +199,20 @@ static MPP_RET store_proc_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
     H264_FrameStore_t *fs = p_Dpb->fs_ilref[0];
+    H264_DecCtx_t *p_Dec = p_Dpb->p_Vid->p_Dec;
 
     VAL_CHECK(ret, NULL != p);
     if (p_Dpb->used_size_il > 0) {
         if (fs->frame) {
-            free_storable_picture(fs->frame);
+            free_storable_picture(p_Dec, fs->frame);
             fs->frame = NULL;
         }
         if (fs->top_field) {
-            free_storable_picture(fs->top_field);
+            free_storable_picture(p_Dec, fs->top_field);
             fs->top_field = NULL;
         }
         if (fs->bottom_field) {
-            free_storable_picture(fs->bottom_field);
+            free_storable_picture(p_Dec, fs->bottom_field);
             fs->bottom_field = NULL;
         }
         fs->is_used = 0;
@@ -239,17 +240,15 @@ __FAILED:
     return ret;
 }
 
-static void clone_dpb_memory_index(H264_DpbMark_t *pmem_dpb, RK_S32 structure, RK_S32 layer_id, RK_S32 framecnt)
+static void dpb_mark_add_used(H264_DpbMark_t *p_mark, RK_S32 structure)
 {
     //!<---- index add ----
     if (structure == FRAME || structure == TOP_FIELD) {
-        pmem_dpb->top_used += 1;
+        p_mark->top_used += 1;
     }
     if (structure == FRAME || structure == BOTTOM_FIELD) {
-        pmem_dpb->bot_used += 1;
+        p_mark->bot_used += 1;
     }
-    (void)layer_id;
-    (void)framecnt;
 }
 
 static H264_StorePic_t* clone_storable_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t *p_pic)
@@ -260,7 +259,7 @@ static H264_StorePic_t* clone_storable_picture(H264dVideoCtx_t *p_Vid, H264_Stor
     MEM_CHECK(ret, p_stored_pic);
     p_stored_pic->mem_malloc_type = Mem_Clone;
     p_stored_pic->mem_mark = p_pic->mem_mark;
-    clone_dpb_memory_index(p_stored_pic->mem_mark, p_stored_pic->structure, p_pic->layer_id, p_Vid->g_framecnt);
+    dpb_mark_add_used(p_stored_pic->mem_mark, p_stored_pic->structure);
     p_stored_pic->colmv_no_used_flag = 1;  // clone, colmv is not be used
 
     p_stored_pic->pic_num = p_pic->pic_num;
@@ -379,48 +378,71 @@ __FAILED:
     return ret;
 }
 
-static void malloc_dpb_memory_index(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 combine_flag, RK_S32 layer_id)
+static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 combine_flag, RK_S32 layer_id)
 {
     RK_U8 idx = 1;
-    H264_DpbMark_t *pmem_dpb = p_Vid->p_Dec->dpb_mark;
+    H264_DpbMark_t *cur_mark = NULL;
+    H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
+    H264_DpbMark_t *p_mark = p_Vid->p_Dec->dpb_mark;
+
     //!< malloc
     if (!combine_flag) {
-        while (pmem_dpb[idx].top_used || pmem_dpb[idx].bot_used) {
+        while (p_mark[idx].top_used || p_mark[idx].bot_used) {
             idx++;
         }
-        ASSERT(idx <= MAX_DPB_SIZE);
-        p_Vid->active_dpb_mark[layer_id] = &pmem_dpb[idx];
+        ASSERT(idx <= MAX_MARK_SIZE);
+        mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
+        cur_mark = &p_mark[idx];
+//      LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[MALLOC] g_frame_no=%d, mark_idx=%d, slot_idx=%d \n", p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx);
+        //    mpp_print_slot_flag_info(g_debug_file1, p_Dec->frame_slots, cur_mark->slot_idx);
+
+        mpp_frame_set_hor_stride(cur_mark->frame, p_Vid->width);  // before crop
+        mpp_frame_set_ver_stride(cur_mark->frame, p_Vid->height);
+
+        mpp_frame_set_width(cur_mark->frame, p_Vid->width_after_crop);  // after crop
+        mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
+
+        mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Inp->pts);
+
+        //mpp_log("[Decpicture] width=%d, height=%d, slot_idx=%d\n", p_Vid->width, p_Vid->height, cur_mark->slot_idx);
+        mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, cur_mark->frame);
+
+        p_Vid->active_dpb_mark[layer_id] = cur_mark;
     }
+    cur_mark = p_Vid->active_dpb_mark[layer_id];
     //!< index add
     if (structure == FRAME || structure == TOP_FIELD) {
-        p_Vid->active_dpb_mark[layer_id]->top_used += 1;
+        cur_mark->top_used += 1;
     }
     if (structure == FRAME || structure == BOTTOM_FIELD) {
-        p_Vid->active_dpb_mark[layer_id]->bot_used += 1;
+        cur_mark->bot_used += 1;
     }
+    p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
+    mpp_buf_slot_set_flag(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_HAL_OUTPUT);
 }
 
 static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 {
-    RK_S32 combine_flag = 0;
-    H264_StorePic_t *dec_picture = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_S32 combine_flag = 0;
+    H264_StorePic_t *dec_pic = NULL;
+
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     H264_SPS_t *active_sps = p_Vid->active_sps;
     H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
 
-    dec_picture = alloc_storable_picture(p_Vid, currSlice->structure);
-    MEM_CHECK(ret, dec_picture);
+    dec_pic = alloc_storable_picture(p_Vid, currSlice->structure);
+    MEM_CHECK(ret, dec_pic);
     currSlice->toppoc = p_Vid->last_toppoc[currSlice->layer_id];
     currSlice->bottompoc = p_Vid->last_bottompoc[currSlice->layer_id];
     currSlice->framepoc = p_Vid->last_framepoc[currSlice->layer_id];
     currSlice->ThisPOC = p_Vid->last_thispoc[currSlice->layer_id];
     FUN_CHECK(ret = decode_poc(p_Vid, currSlice));  //!< calculate POC
 
-    dec_picture->top_poc = currSlice->toppoc;
-    dec_picture->bottom_poc = currSlice->bottompoc;
-    dec_picture->frame_poc = currSlice->framepoc;
-    dec_picture->ThisPOC = currSlice->ThisPOC;
+    dec_pic->top_poc = currSlice->toppoc;
+    dec_pic->bottom_poc = currSlice->bottompoc;
+    dec_pic->frame_poc = currSlice->framepoc;
+    dec_pic->ThisPOC = currSlice->ThisPOC;
 
     p_Vid->last_toppoc[currSlice->layer_id] = currSlice->toppoc;
     p_Vid->last_bottompoc[currSlice->layer_id] = currSlice->bottompoc;
@@ -429,67 +451,86 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 
     if (currSlice->structure == FRAME) {
         if (currSlice->mb_aff_frame_flag) {
-            dec_picture->iCodingType = FRAME_MB_PAIR_CODING;
+            dec_pic->iCodingType = FRAME_MB_PAIR_CODING;
         } else {
-            dec_picture->iCodingType = FRAME_CODING;
+            dec_pic->iCodingType = FRAME_CODING;
         }
     } else {
-        dec_picture->iCodingType = FIELD_CODING;
+        dec_pic->iCodingType = FIELD_CODING;
     }
-    dec_picture->layer_id = currSlice->layer_id;
-    dec_picture->view_id = currSlice->view_id;
-    dec_picture->inter_view_flag = currSlice->inter_view_flag;
-    dec_picture->anchor_pic_flag = currSlice->anchor_pic_flag;
-    if (dec_picture->layer_id == 1) {
+    dec_pic->layer_id = currSlice->layer_id;
+    dec_pic->view_id = currSlice->view_id;
+    dec_pic->inter_view_flag = currSlice->inter_view_flag;
+    dec_pic->anchor_pic_flag = currSlice->anchor_pic_flag;
+    if (dec_pic->layer_id == 1) {
         if ((p_Vid->profile_idc == MVC_HIGH) || (p_Vid->profile_idc == STEREO_HIGH)) {
             FUN_CHECK(ret = init_mvc_picture(currSlice));
         }
     }
     if (currSlice->structure == TOP_FIELD) {
-        dec_picture->poc = currSlice->toppoc;
+        dec_pic->poc = currSlice->toppoc;
     } else if (currSlice->structure == BOTTOM_FIELD) {
-        dec_picture->poc = currSlice->bottompoc;
+        dec_pic->poc = currSlice->bottompoc;
     } else if (currSlice->structure == FRAME) {
-        dec_picture->poc = currSlice->framepoc;
+        dec_pic->poc = currSlice->framepoc;
     } else {
         ret = MPP_NOK;
         goto __FAILED;
     }
-    dec_picture->slice_type = p_Vid->type;
-    dec_picture->used_for_reference = (currSlice->nal_reference_idc != 0);
-    dec_picture->idr_flag = currSlice->idr_flag;
-    dec_picture->no_output_of_prior_pics_flag = currSlice->no_output_of_prior_pics_flag;
-    dec_picture->long_term_reference_flag = currSlice->long_term_reference_flag;
-    dec_picture->adaptive_ref_pic_buffering_flag = currSlice->adaptive_ref_pic_buffering_flag;
-    dec_picture->dec_ref_pic_marking_buffer = currSlice->dec_ref_pic_marking_buffer;
+    dec_pic->slice_type = p_Vid->type;
+    dec_pic->used_for_reference = (currSlice->nal_reference_idc != 0);
+    dec_pic->idr_flag = currSlice->idr_flag;
+    dec_pic->no_output_of_prior_pics_flag = currSlice->no_output_of_prior_pics_flag;
+    dec_pic->long_term_reference_flag = currSlice->long_term_reference_flag;
+    dec_pic->adaptive_ref_pic_buffering_flag = currSlice->adaptive_ref_pic_buffering_flag;
+    dec_pic->dec_ref_pic_marking_buffer = currSlice->dec_ref_pic_marking_buffer;
 
     currSlice->dec_ref_pic_marking_buffer = NULL;
-    dec_picture->mb_aff_frame_flag = currSlice->mb_aff_frame_flag;
-    dec_picture->PicWidthInMbs = p_Vid->PicWidthInMbs;
-    dec_picture->pic_num = currSlice->frame_num;
-    dec_picture->frame_num = currSlice->frame_num;
-    dec_picture->chroma_format_idc = active_sps->chroma_format_idc;
+    dec_pic->mb_aff_frame_flag = currSlice->mb_aff_frame_flag;
+    dec_pic->PicWidthInMbs = p_Vid->PicWidthInMbs;
+    dec_pic->pic_num = currSlice->frame_num;
+    dec_pic->frame_num = currSlice->frame_num;
+    dec_pic->chroma_format_idc = active_sps->chroma_format_idc;
 
-    dec_picture->frame_mbs_only_flag = active_sps->frame_mbs_only_flag;
-    dec_picture->frame_cropping_flag = active_sps->frame_cropping_flag;
-    if (dec_picture->frame_cropping_flag) {
-        dec_picture->frame_crop_left_offset = active_sps->frame_crop_left_offset;
-        dec_picture->frame_crop_right_offset = active_sps->frame_crop_right_offset;
-        dec_picture->frame_crop_top_offset = active_sps->frame_crop_top_offset;
-        dec_picture->frame_crop_bottom_offset = active_sps->frame_crop_bottom_offset;
+    dec_pic->frame_mbs_only_flag = active_sps->frame_mbs_only_flag;
+    dec_pic->frame_cropping_flag = active_sps->frame_cropping_flag;
+    if (dec_pic->frame_cropping_flag) {
+        dec_pic->frame_crop_left_offset = active_sps->frame_crop_left_offset;
+        dec_pic->frame_crop_right_offset = active_sps->frame_crop_right_offset;
+        dec_pic->frame_crop_top_offset = active_sps->frame_crop_top_offset;
+        dec_pic->frame_crop_bottom_offset = active_sps->frame_crop_bottom_offset;
+    } else {
+        dec_pic->frame_crop_left_offset = 0;
+        dec_pic->frame_crop_right_offset = 0;
+        dec_pic->frame_crop_top_offset = 0;
+        dec_pic->frame_crop_bottom_offset = 0;
     }
-    combine_flag = get_filed_dpb_combine_flag(p_Dpb, dec_picture);
-    dec_picture->mem_malloc_type = Mem_Malloc;
-    malloc_dpb_memory_index(p_Vid, dec_picture->structure, combine_flag, dec_picture->layer_id); // malloc dpb_memory
-    dec_picture->mem_mark = p_Vid->active_dpb_mark[currSlice->layer_id];
-    dec_picture->colmv_no_used_flag = 0;
+    dec_pic->width = p_Vid->width;
+    dec_pic->height = p_Vid->height;
+    dec_pic->width_after_crop = p_Vid->width_after_crop;
+    dec_pic->height_after_crop = p_Vid->height_after_crop;
 
-    p_Vid->last_pic_structure = dec_picture->structure;
-    p_Vid->dec_picture = dec_picture;
+
+    combine_flag = get_filed_dpb_combine_flag(p_Dpb, dec_pic);
+    dec_pic->mem_malloc_type = Mem_Malloc;
+    dpb_mark_malloc(p_Vid, dec_pic->structure, combine_flag, dec_pic->layer_id); // malloc dpb_memory
+    dec_pic->mem_mark = p_Vid->active_dpb_mark[currSlice->layer_id];
+    dec_pic->mem_mark->pic = dec_pic;
+    dec_pic->colmv_no_used_flag = 0;
+    p_Vid->last_pic_structure = dec_pic->structure;
+    p_Vid->dec_pic = dec_pic;
+
+    //mpp_log_f("[DEC_OUT]line=%d, func=alloc_decpic, cur_slot_idx=%d", __LINE__, dec_pic->mem_mark->slot_idx);
+    //!< set mpp_frame width && height && pts && get slot_frame
+    //cur_mark = dec_pic->mem_mark;
+    //p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
+    //mpp_frame_set_width(cur_mark->frame, p_Vid->width);
+    //mpp_frame_set_height(cur_mark->frame, p_Vid->height);
+    //mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Inp->pts);
 
     return ret = MPP_OK;
 __FAILED:
-    MPP_FREE(dec_picture);
+    MPP_FREE(dec_pic);
     ASSERT(0);
 
     return ret;
@@ -565,23 +606,7 @@ static void update_pic_num(H264_SLICE_t *currSlice)
     }
 }
 
-static MPP_RET init_picture_decoding(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    //!< MVC idr_flag==1
-    if (pSlice->layer_id && !pSlice->svc_extension_flag && !pSlice->mvcExt.non_idr_flag) {
-        ASSERT(pSlice->layer_id == 1);
-        FUN_CHECK(ret = idr_memory_management(p_Vid->p_Dpb_layer[pSlice->layer_id], p_Vid->dec_picture));
-    }
-    update_ref_list(p_Vid->p_Dpb_layer[pSlice->layer_id]);
-    update_ltref_list(p_Vid->p_Dpb_layer[pSlice->layer_id]);
-    update_pic_num(pSlice);
 
-    return ret = MPP_OK;
-__FAILED:
-    ASSERT(0);
-    return ret;
-}
 
 
 static RK_S32 compare_pic_by_pic_num_desc(const void *arg1, const void *arg2)
@@ -934,10 +959,10 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
     }
     // set the unused list entries to NULL
     for (i = currSlice->listXsizeP[0]; i < (MAX_LIST_SIZE); i++) {
-        currSlice->listP[0][i] = p_Vid->no_reference_picture;
+        currSlice->listP[0][i] = p_Vid->no_ref_pic;
     }
     for (i = currSlice->listXsizeP[1]; i < (MAX_LIST_SIZE); i++) {
-        currSlice->listP[1][i] = p_Vid->no_reference_picture;
+        currSlice->listP[1][i] = p_Vid->no_ref_pic;
     }
     MPP_FREE(currSlice->fs_listinterview0);
 
@@ -1114,10 +1139,10 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
     }
     // set the unused list entries to NULL
     for (i = currSlice->listXsizeB[0]; i < (MAX_LIST_SIZE); i++) {
-        currSlice->listB[0][i] = p_Vid->no_reference_picture;
+        currSlice->listB[0][i] = p_Vid->no_ref_pic;
     }
     for (i = currSlice->listXsizeB[1]; i < (MAX_LIST_SIZE); i++) {
-        currSlice->listB[1][i] = p_Vid->no_reference_picture;
+        currSlice->listB[1][i] = p_Vid->no_ref_pic;
     }
     MPP_FREE(currSlice->fs_listinterview0);
     MPP_FREE(currSlice->fs_listinterview1);
@@ -1145,19 +1170,29 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = currSlice->p_Vid->p_Dec;
+    H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
 
     FUN_CHECK(ret = alloc_decpic(currSlice));
     //!< idr_memory_management MVC_layer, idr_flag==1
-    FUN_CHECK(ret = init_picture_decoding(currSlice->p_Vid, currSlice));
-    //!< except (idr_flag ==1 && layer_id==0)
+    if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {
+        ASSERT(currSlice->layer_id == 1);
+        FUN_CHECK(ret = idr_memory_management(p_Vid->p_Dpb_layer[currSlice->layer_id], p_Vid->dec_pic));
+    }
+    update_ref_list(p_Vid->p_Dpb_layer[currSlice->layer_id]);
+    update_ltref_list(p_Vid->p_Dpb_layer[currSlice->layer_id]);
+    update_pic_num(currSlice);
+
+    //!< reorder
     if (!currSlice->idr_flag || currSlice->layer_id) {
         FUN_CHECK(ret = init_lists_p_slice_mvc(currSlice));
         FUN_CHECK(ret = init_lists_b_slice_mvc(currSlice));
     }
     prepare_init_dpb_info(currSlice);
-    fill_picparams(currSlice->p_Vid, &p_Dec->dxva_ctx->pp);
+    prepare_init_ref_info(currSlice);
     prepare_init_scanlist(currSlice);
-    fill_qmatrix(currSlice->p_Vid, &p_Dec->dxva_ctx->qm);
+
+    fill_picparams(currSlice->p_Vid, &p_Dec->dxva_ctx->pp);
+    fill_scanlist(currSlice->p_Vid, &p_Dec->dxva_ctx->qm);
 
     return ret = MPP_OK;
 __FAILED:
