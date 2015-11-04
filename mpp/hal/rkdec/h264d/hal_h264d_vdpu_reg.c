@@ -546,7 +546,7 @@ MPP_RET vdpu_h264d_start(void *hal, HalTaskInfo *task)
         ret =  MPP_ERR_VPUHW;
         mpp_err_f("H264 VDPU FlushRegs fail. \n");
     } else {
-        mpp_log("H264 VDPU FlushRegs success, frame_cnt = %d \n", p_hal->in_task->g_framecnt);
+        mpp_log("H264 VDPU FlushRegs success \n");
     }
 #endif
 

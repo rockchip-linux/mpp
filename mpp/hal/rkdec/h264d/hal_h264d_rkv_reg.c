@@ -322,7 +322,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
         ret =  MPP_ERR_VPUHW;
         mpp_err_f("H264 RKV FlushRegs fail. \n");
     } else {
-        mpp_log("H264 RKV FlushRegs success, frame_cnt = %d \n", p_hal->in_task->g_framecnt);
+        mpp_log("H264 RKV FlushRegs success. \n");
     }
 #endif
 

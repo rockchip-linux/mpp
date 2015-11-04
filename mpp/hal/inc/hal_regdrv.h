@@ -39,8 +39,8 @@ typedef struct hal_regctx_t {
     MppCodingType   coding;
     RK_U32          reg_size;  //!< hard regs count
     RK_U32          *p_reg;
-    RK_U32          syn_size;  //!< last reg syntax
-    HalRegDrv_t     *p_syn;
+    RK_U32          emt_size;  //!< last reg syntax
+    HalRegDrv_t     *p_emt;
     void            *log;       //!< for debug
 } HalRegDrvCtx_t;
 
