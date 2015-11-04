@@ -241,8 +241,9 @@ void writelog(void *in_ctx, ...)
         mpp_log("[TAG=%s] file: %s:%d, [%s], %s", ctx->tag, pfn, line, levelname, argmsg);
     }
     if (ctx->fp && ctx->flag->write_en) {
-        fprintf(ctx->fp, "%s\n", argmsg);
-        //fprintf(ctx->fp, "[TAG=%s], file: %s:%d, [%s], %s \n", ctx->tag, pfn, line, levelname, argmsg);
+        //fprintf(ctx->fp, "%s\n", argmsg);
+        fprintf(ctx->fp, "file: %s:%d, [%s], %s\n", pfn, line, levelname, argmsg);
+        //fprintf(ctx->fp, "[TAG=%s] file: %s:%d, [%s], %s", ctx->tag, pfn, line, levelname, argmsg);
         fflush(ctx->fp);
     }
     va_end(argptr);

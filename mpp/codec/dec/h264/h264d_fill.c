@@ -65,7 +65,7 @@ __FAILED:
 //    return ret;
 //}
 
-static MPP_RET fill_stream_data(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
+static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 stream_offset = 0;
@@ -113,7 +113,7 @@ static void fill_picture_entry(DXVA_PicEntry_H264 *pic, RK_U32 index, RK_U32 fla
 ***********************************************************************
 */
 //extern "C"
-void fill_qmatrix(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm)
+void fill_scanlist(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm)
 {
     RK_S32 i = 0, j = 0;
 
@@ -139,24 +139,23 @@ void fill_qmatrix(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm)
 void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
 {
     RK_U32 i = 0, j = 0, num_views = 0;
-    H264_StorePic_t *dec_picture = p_Vid->dec_picture;
+    H264_StorePic_t *dec_pic = p_Vid->dec_pic;
     H264_DpbInfo_t *dpb_info = p_Vid->p_Dec->dpb_info;
 
     memset(pp, 0, sizeof(DXVA_PicParams_H264_MVC));
     //!< Configure current picture
-    fill_picture_entry(&pp->CurrPic, dec_picture->mem_mark->index, dec_picture->structure == BOTTOM_FIELD);
-
+    fill_picture_entry(&pp->CurrPic, dec_pic->mem_mark->slot_idx, dec_pic->structure == BOTTOM_FIELD);
+    //mpp_log_f("[DEC_OUT]line=%d, func = fill_picparams, In_cur_slot_idx=%d, Out_cur_slot_idx=%d", __LINE__, dec_pic->mem_mark->slot_idx, pp->CurrPic.Index7Bits);
     //!< Configure the set of references
     pp->UsedForReferenceFlags = 0;
     pp->NonExistingFrameFlags = 0;
-
-    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
         if (dpb_info[i].picbuf) {
-            fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].mem_mark_idx, dpb_info[i].is_long_term);
+            fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].slot_index, dpb_info[i].is_long_term);
             pp->FieldOrderCntList[i][0] = dpb_info[i].TOP_POC;
             pp->FieldOrderCntList[i][1] = dpb_info[i].BOT_POC;
-            pp->FrameNumList[i] = dpb_info[i].frame_num_wrap;
-            pp->LongTermPicNumList[i] = dpb_info[i].long_term_picnum;
+            pp->FrameNumList[i] = dpb_info[i].is_long_term ? dpb_info[i].long_term_frame_idx : dpb_info[i].frame_num;
+            pp->LongTermPicNumList[i] = dpb_info[i].long_term_pic_num;
             if (dpb_info[i].is_used & 0x01) { //!< top_field
                 pp->UsedForReferenceFlags |= 1 << (2 * i + 0);
             }
@@ -174,12 +173,12 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->wFrameHeightInMbsMinus1 = p_Vid->active_sps->pic_height_in_map_units_minus1;
     pp->num_ref_frames = p_Vid->active_sps->max_num_ref_frames;
 
-    pp->wBitFields = ((dec_picture->iCodingType == FIELD_CODING) << 0)  //!< field_pic_flag
-                     | (dec_picture->mb_aff_frame_flag << 1) //!< MbaffFrameFlag
+    pp->wBitFields = ((dec_pic->iCodingType == FIELD_CODING) << 0)  //!< field_pic_flag
+                     | (dec_pic->mb_aff_frame_flag << 1) //!< MbaffFrameFlag
                      | (0 << 2)   //!< residual_colour_transform_flag
                      | (0 << 3)   //!< sp_for_switch_flag
                      | (p_Vid->active_sps->chroma_format_idc << 4)  //!< chroma_format_idc
-                     | (dec_picture->used_for_reference << 6) //!< RefPicFlag
+                     | (dec_pic->used_for_reference << 6) //!< RefPicFlag
                      | (p_Vid->active_pps->constrained_intra_pred_flag << 7) //!< constrained_intra_pred_flag
                      | (p_Vid->active_pps->weighted_pred_flag << 8)  //!< weighted_pred_flag
                      | (p_Vid->active_pps->weighted_bipred_idc << 9)  //!< weighted_bipred_idc
@@ -196,12 +195,12 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->StatusReportFeedbackNumber = 1 /*+ ctx->report_id++*/;
 
     pp->CurrFieldOrderCnt[0] = 0;
-    if (dec_picture->structure == TOP_FIELD || dec_picture->structure == FRAME) {
-        pp->CurrFieldOrderCnt[0] = dec_picture->top_poc;
+    if (dec_pic->structure == TOP_FIELD || dec_pic->structure == FRAME) {
+        pp->CurrFieldOrderCnt[0] = dec_pic->top_poc;
     }
     pp->CurrFieldOrderCnt[1] = 0;
-    if (dec_picture->structure == BOTTOM_FIELD || dec_picture->structure == FRAME) {
-        pp->CurrFieldOrderCnt[1] = dec_picture->bottom_poc;
+    if (dec_pic->structure == BOTTOM_FIELD || dec_pic->structure == FRAME) {
+        pp->CurrFieldOrderCnt[1] = dec_pic->bottom_poc;
     }
     pp->pic_init_qs_minus26 = p_Vid->active_pps->pic_init_qs_minus26;
     pp->chroma_qp_index_offset = p_Vid->active_pps->chroma_qp_index_offset;
@@ -212,7 +211,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->num_ref_idx_l1_active_minus1 = p_Vid->active_pps->num_ref_idx_l1_default_active_minus1;
     pp->Reserved8BitsA = 0;
 
-    pp->frame_num = dec_picture->frame_num;
+    pp->frame_num = dec_pic->frame_num;
     pp->log2_max_frame_num_minus4 = p_Vid->active_sps->log2_max_frame_num_minus4;
     pp->pic_order_cnt_type = p_Vid->active_sps->pic_order_cnt_type;
     if (pp->pic_order_cnt_type == 0) {
@@ -259,23 +258,26 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
             pp->view_id[i] = 0xffff;
         }
     }
-    pp->curr_view_id = dec_picture->view_id;
-    pp->anchor_pic_flag = dec_picture->anchor_pic_flag;
-    pp->inter_view_flag = dec_picture->inter_view_flag;
+    pp->curr_view_id = dec_pic->view_id;
+    pp->anchor_pic_flag = dec_pic->anchor_pic_flag;
+    pp->inter_view_flag = dec_pic->inter_view_flag;
     for (i = 0; i < 16; i++) {
-        pp->ViewIDList[i] = p_Vid->p_Dec->dpb_info[i].view_id;
+        pp->ViewIDList[i] = dpb_info[i].view_id;
     }
     //!< add in Rock-chip RKVDEC IP
-    pp->curr_layer_id = dec_picture->layer_id;
-
-    for (i = 0; i < 16; i++) {
-        if (p_Vid->p_Dec->dpb_info[i].colmv_is_used) {
+    pp->curr_layer_id = dec_pic->layer_id;
+    pp->UsedForInTerviewflags = 0;
+    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+        if (dpb_info[i].colmv_is_used) {
             pp->RefPicColmvUsedFlags |= 1 << i;
         }
-        if (p_Vid->p_Dec->dpb_info[i].field_flag) {
+        if (dpb_info[i].field_flag) {
             pp->RefPicFiledFlags |= 1 << i;
         }
-        pp->RefPicLayerIdList[i] = p_Vid->p_Dec->dpb_info[i].voidx;
+        if (dpb_info[i].is_ilt_flag) {
+            pp->UsedForInTerviewflags |= 1 << i;
+        }
+        pp->RefPicLayerIdList[i] = dpb_info[i].voidx;
     }
     if (p_Vid->active_pps->pic_scaling_matrix_present_flag
         || p_Vid->active_sps->seq_scaling_matrix_present_flag) {
@@ -292,14 +294,14 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
+MPP_RET fill_slice_syntax(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
 {
     RK_U32 list = 0, i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_Slice_H264_Long *p_long  = NULL;
     RK_S32 dpb_idx = 0, dpb_valid = 0, bottom_flag = 0;
 
-    FUN_CHECK(ret = fill_stream_data(dxva_ctx, &currSlice->p_Cur->nalu));
+    FUN_CHECK(ret = fill_slice_stream(dxva_ctx, &currSlice->p_Cur->nalu));
     p_long  = &dxva_ctx->slice_long[dxva_ctx->slice_count];
     //!< fill slice long contents
     p_long->first_mb_in_slice = currSlice->start_mb_nr;
@@ -320,8 +322,12 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     p_long->nal_ref_idc = currSlice->nal_reference_idc;
     p_long->profileIdc = currSlice->active_sps->profile_idc;
 
+
+
+
     for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
-        dpb_idx   = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
+        dpb_idx = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
+        //dpb_valid = currSlice->p_Dec->refpic_info_p[i].valid;
         dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
         if (dpb_valid) {
             bottom_flag = currSlice->p_Dec->refpic_info_p[i].bottom_flag;
@@ -333,10 +339,11 @@ MPP_RET fill_slice(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
 
     for (list = 0; list < 2; list++) {
         for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[list + 1]); i++) {
-            dpb_idx   = currSlice->p_Dec->refpic_info[list][i].dpb_idx;
+            dpb_idx = currSlice->p_Dec->refpic_info_b[list][i].dpb_idx;
+            //dpb_valid = currSlice->p_Dec->refpic_info_b[list][i].valid;
             dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
             if (dpb_valid) {
-                bottom_flag = currSlice->p_Dec->refpic_info[list][i].bottom_flag;
+                bottom_flag = currSlice->p_Dec->refpic_info_b[list][i].bottom_flag;
                 fill_picture_entry(&p_long->RefPicList[list + 1][i], dpb_idx, bottom_flag);
             } else {
                 p_long->RefPicList[list + 1][i].bPicEntry = 0xff;

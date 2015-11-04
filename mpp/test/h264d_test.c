@@ -28,6 +28,8 @@
 #include "mpp_mem.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
+#include "mpp_buffer.h"
+#include "mpp_buffer_impl.h"
 #include "mpp_hal.h"
 
 #include "h264d_log.h"
@@ -42,12 +44,14 @@ static MPP_RET manual_set_env(void)
 #if defined(_MSC_VER)
     mpp_env_set_u32("h264d_log_help",     1             );
     mpp_env_set_u32("h264d_log_show",     1             );
-    mpp_env_set_u32("h264d_log_ctrl",     0x900B        );
+    mpp_env_set_u32("h264d_log_ctrl",     0x803B        );
     mpp_env_set_u32("h264d_log_level",    5             );
     mpp_env_set_u32("h264d_log_decframe", 0             );
     mpp_env_set_u32("h264d_log_begframe", 0             );
     mpp_env_set_u32("h264d_log_endframe", 0             );
-    mpp_env_set_str("h264d_log_outpath",  "F:/h264_log" );
+    mpp_env_set_u32("h264d_log_yuv",      1             );
+    mpp_env_set_u32("h264d_chg_org",      0             );  //!< 0:VDPU 1: RKVDEC
+    mpp_env_set_str("h264d_log_outpath",  "F:/h264_log/allegro_dat" );
     mpp_env_set_str("h264d_log_cmppath",  "F:/h264_log_driver/trunk_dat" );
 #endif
     return MPP_OK;
@@ -55,11 +59,6 @@ static MPP_RET manual_set_env(void)
 
 static MPP_RET decoder_deinit(MppDec *pApi)
 {
-
-    if (pApi->frame_slots) {
-        mpp_buf_slot_deinit(pApi->frame_slots);
-        pApi->frame_slots = NULL;
-    }
     if (pApi->parser) {
         parser_deinit(pApi->parser);
         pApi->parser = NULL;
@@ -68,12 +67,21 @@ static MPP_RET decoder_deinit(MppDec *pApi)
         mpp_hal_deinit(pApi->hal);
         pApi->hal = NULL;
     }
+    if (pApi->frame_slots) {
+        mpp_buf_slot_deinit(pApi->frame_slots);
+        pApi->frame_slots = NULL;
+    }
+    if (pApi->packet_slots) {
+        mpp_buf_slot_deinit(pApi->packet_slots);
+        pApi->packet_slots = NULL;
+    }
 
     return MPP_OK;
 }
 
 static MPP_RET decoder_init(MppDec *pApi)
 {
+    RK_U32 hal_device_id = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     ParserCfg       parser_cfg;
     MppHalCfg       hal_cfg;
@@ -82,19 +90,27 @@ static MPP_RET decoder_init(MppDec *pApi)
     // malloc slot
     FUN_CHECK(ret = mpp_buf_slot_init(&pApi->frame_slots));
     MEM_CHECK(ret, pApi->frame_slots);
+    ret = mpp_buf_slot_init(&pApi->packet_slots);
+    MEM_CHECK(ret, pApi->packet_slots);
+    mpp_buf_slot_setup(pApi->packet_slots, 2);
     // init parser part
     memset(&parser_cfg, 0, sizeof(parser_cfg));
     parser_cfg.coding = pApi->coding;
     parser_cfg.frame_slots  = pApi->frame_slots;
     parser_cfg.packet_slots = pApi->packet_slots;
+    parser_cfg.task_count   = 2;
     FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
-
     // init hal part
     memset(&hal_cfg, 0, sizeof(hal_cfg));
     hal_cfg.type = MPP_CTX_DEC;
     hal_cfg.coding = pApi->coding;
     hal_cfg.work_mode = HAL_MODE_LIBVPU;
-    hal_cfg.device_id = HAL_VDPU;
+    mpp_env_get_u32("h264d_chg_org", &hal_device_id, 0);
+    if (hal_device_id == 1) {
+        hal_cfg.device_id = HAL_RKVDEC;
+    } else {
+        hal_cfg.device_id = HAL_VDPU;
+    }
     hal_cfg.frame_slots = pApi->frame_slots;
     hal_cfg.packet_slots = pApi->packet_slots;
     hal_cfg.task_count = parser_cfg.task_count;
@@ -112,25 +128,43 @@ __FAILED:
 
 int main(int argc, char **argv)
 {
-    //FILE *g_debug_file = NULL;
-    //RK_S32 m_max_bytes = 0;
-    //RK_S32 m_max_slice_data = 0;
+    RK_U32 i = 0;
+	RK_U32 end_of_flag = 0;
+    RK_S32 frame_slot_idx = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    MppPacket pkt = NULL;
+    MppFrame out_frame = NULL;
+    RK_U32 out_yuv_flag = 0;
+    MppBuffer dec_pkt_buf, dec_pic_buf;
+    MppBufferGroup  mFrameGroup = NULL;
+    MppBufferGroup  mStreamGroup = NULL;
 
-    MPP_RET        ret = MPP_ERR_UNKNOW;
-    MppPacket      pkt = NULL;
-    InputParams   *pIn = mpp_calloc(InputParams, 1);
-    MppDec       *pApi = mpp_calloc(MppDec, 1);
-    HalTaskInfo  *task = mpp_calloc_size(HalTaskInfo, sizeof(HalTaskInfo));
-    RK_U32 end_of_flag = 0;
+    InputParams *pIn = mpp_calloc(InputParams, 1);
+    MppDec *pApi = mpp_calloc(MppDec, 1);
+    HalTaskInfo *task = mpp_calloc_size(HalTaskInfo, sizeof(HalTaskInfo));
 
-    //if (g_debug_file0 == NULL) {
-    //    g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
-    //}
-
-    if (g_debug_file1 == NULL) {
-        g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
+    if (mFrameGroup == NULL) {
+        ret = mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        if (MPP_OK != ret) {
+            mpp_err("h264d mpp_buffer_group_get failed\n");
+            return ret;
+        }
     }
 
+    if (mStreamGroup == NULL) {
+        ret = mpp_buffer_group_get_internal(&mStreamGroup, MPP_BUFFER_TYPE_ION);
+        if (MPP_OK != ret) {
+            mpp_err("h2645d mpp_buffer_group_get failed\n");
+            return ret;
+        }
+    }
+
+    //if (g_debug_file0 == NULL) {
+    //  g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
+    //}
+    //if (g_debug_file1 == NULL) {
+    //  g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
+    //}
 
     MEM_CHECK(ret, pIn && pApi && task);
     mpp_log("== test start == \n");
@@ -144,10 +178,16 @@ int main(int argc, char **argv)
 
     //!< init decoder
     FUN_CHECK(ret = decoder_init(pApi));
+
+    //!< initial task
+    memset(task, 0, sizeof(HalTaskInfo));
+    memset(task->dec.refer, -1, sizeof(task->dec.refer));
+    task->dec.input = -1;
+
     do {
         //!< get one packet
         if (pkt == NULL) {
-            if (pIn->is_eof) {
+            if (pIn->is_eof || (pIn->iFrmdecoded >= pIn->iDecFrmNum)) {
                 mpp_packet_init(&pkt, NULL, 0);
                 mpp_packet_set_eos(pkt);
             } else {
@@ -156,14 +196,29 @@ int main(int argc, char **argv)
             }
             mpp_log("---- decoder, read_one_frame Frame_no = %d \n", pIn->iFrmdecoded++);
         }
-        //!< initial task
-        memset(task, 0, sizeof(HalTaskInfo));
-        memset(task->dec.refer, -1, sizeof(task->dec.refer));
         //!< prepare
         FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
         //!< parse
         if (task->dec.valid) {
+            MppBufferImpl *buf = NULL;
+
             task->dec.valid = 0;
+            if (task->dec.input < 0) {
+                mpp_buf_slot_get_unused(pApi->packet_slots, &task->dec.input);
+            }
+
+            mpp_buf_slot_get_prop(pApi->packet_slots, task->dec.input, SLOT_BUFFER, &dec_pkt_buf);
+            if (NULL == dec_pkt_buf) {
+                RK_U32 stream_size = mpp_packet_get_size(task->dec.input_packet);
+                mpp_buffer_get(mStreamGroup, &dec_pkt_buf, stream_size);
+                if (dec_pkt_buf)
+                    mpp_buf_slot_set_prop(pApi->packet_slots, task->dec.input, SLOT_BUFFER, dec_pkt_buf);
+            }
+            buf = (MppBufferImpl *)dec_pkt_buf;
+            memcpy(buf->info.ptr, mpp_packet_get_data(task->dec.input_packet), mpp_packet_get_length(task->dec.input_packet));
+
+            mpp_buf_slot_set_flag(pApi->packet_slots, task->dec.input, SLOT_CODEC_READY);
+            mpp_buf_slot_set_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
             FUN_CHECK(ret = parser_parse(pApi->parser, &task->dec));
         }
         //!< deinit packet
@@ -176,45 +231,99 @@ int main(int argc, char **argv)
         }
         //!< run hal module
         if (task->dec.valid) {
+            mpp_buf_slot_get_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, &dec_pic_buf);
+            if (NULL == dec_pic_buf) {
+                RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
+                mpp_err("run hal module, size = %d", size);
+                mpp_buffer_get(mFrameGroup, &dec_pic_buf, size);
+                if (dec_pic_buf)
+                    mpp_buf_slot_set_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, dec_pic_buf);
+            }
             FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal, task));
             FUN_CHECK(ret = mpp_hal_hw_start(pApi->hal, task));
             FUN_CHECK(ret = mpp_hal_hw_wait(pApi->hal, task));
+            if (dec_pkt_buf) {
+                mpp_buffer_put(dec_pkt_buf);
+            }
+            mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
+            mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
             //!< write frame out
+            mpp_env_get_u32("h264d_log_yuv", &out_yuv_flag, 0);
+            mpp_log("h264d_log_yuv=%d", out_yuv_flag);
+            while (MPP_OK == mpp_buf_slot_dequeue(pApi->frame_slots, &frame_slot_idx, QUEUE_DISPLAY)) {
+                mpp_buf_slot_get_prop(pApi->frame_slots, frame_slot_idx, SLOT_FRAME, &out_frame);
+                mpp_log("write picture out, slot_idx=%d, yuv_fp_is_null=%d", frame_slot_idx, (pIn->fp_yuv_data == NULL));
+                if (out_frame) {
+                    RK_U32 stride_w, stride_h;
+                    void *ptr = NULL;
+                    MppBuffer framebuf;
+                    stride_w = mpp_frame_get_hor_stride(out_frame);
+                    stride_h = mpp_frame_get_ver_stride(out_frame);
+                    framebuf = mpp_frame_get_buffer(out_frame);
+                    ptr = mpp_buffer_get_ptr(framebuf);
+                    if (out_yuv_flag && pIn->fp_yuv_data) {
+
+                        fwrite(ptr, 1, stride_w * stride_h * 3 / 2, pIn->fp_yuv_data);
+                        fflush(pIn->fp_yuv_data);
+                    }
+                    mpp_frame_deinit(&out_frame);
+                    out_frame = NULL;
+                }
+                mpp_buf_slot_clr_flag(pApi->frame_slots, frame_slot_idx, SLOT_QUEUE_USE);
+            }
+            //!< clear refrece flag
+            for (i = 0; i < MPP_ARRAY_ELEMS(task->dec.refer); i++) {
+                if (task->dec.refer[i] >= 0) {
+                    mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.refer[i], SLOT_HAL_INPUT);
+                }
+            }
+            //!< reset task
+            memset(task, 0, sizeof(HalTaskInfo));
+            memset(task->dec.refer, -1, sizeof(task->dec.refer));
+            task->dec.input = -1;
         }
         if (end_of_flag) {
             break;
         }
-    } while (!pIn->iDecFrmNum || (pIn->iFrmdecoded < pIn->iDecFrmNum));
+    } while (!pIn->iDecFrmNum || (pIn->iFrmdecoded < pIn->iDecFrmNum + 2));
+
+    //FPRINT(g_debug_file1, "[FLUSH] flush begin \n");
     //!< flush dpb and send to display
     FUN_CHECK(ret = mpp_dec_flush(pApi));
-    mpp_log("+++++++ all test return +++++++ \n");
+    while (MPP_OK == mpp_buf_slot_dequeue(pApi->frame_slots, &frame_slot_idx, QUEUE_DISPLAY)) {
+        mpp_log("get_display for index = %d", frame_slot_idx);
+        mpp_buf_slot_get_prop(pApi->frame_slots, frame_slot_idx, SLOT_FRAME, &out_frame);
+        if (out_frame) {
+            mpp_frame_deinit(&out_frame);
+        }
+        mpp_buf_slot_clr_flag(pApi->frame_slots, frame_slot_idx, SLOT_QUEUE_USE);
+    }
+
+    //FPRINT(g_debug_file1, "+++++++ all test return +++++++ \n");
     ret = MPP_OK;
 __FAILED:
     decoder_deinit(pApi);
     h264d_free_frame_buffer(pIn);
-    h264d_write_fpga_data(pIn); //!< for fpga debug
+    //h264d_write_fpga_data(pIn); //!< for fpga debug
     h264d_close_files(pIn);
     MPP_FREE(pIn);
     MPP_FREE(pApi);
     MPP_FREE(task);
 
-    //g_debug_file = fopen("rk_debugfile_view0.txt", "rb");
-    //if(g_debug_file)
-    //  fscanf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", &m_max_bytes, &m_max_slice_data);
-    //FCLOSE(g_debug_file);
-    //if (m_max_bytes < g_max_bytes)
-    //{
-    //  m_max_bytes = g_max_bytes;
-    //}
-    //if (m_max_slice_data < g_max_slice_data)
-    //{
-    //  m_max_slice_data = g_max_slice_data;
-    //}
-    //g_debug_file = fopen("rk_debugfile_view0.txt", "ab+");
-    //if(g_debug_file)
-    //  fprintf(g_debug_file, "(max_bytes)%d, (max_slice_data)%d \n", g_max_bytes, g_max_slice_data);
-
-    //FCLOSE(g_debug_file);
+    if (dec_pkt_buf) {
+        mpp_buffer_put(dec_pkt_buf);
+    }
+    if (dec_pic_buf) {
+        mpp_buffer_put(dec_pic_buf);
+    }
+    if (mFrameGroup != NULL) {
+        mpp_err("mFrameGroup deInit");
+        mpp_buffer_group_put(mFrameGroup);
+    }
+    if (mStreamGroup != NULL) {
+        mpp_err("mStreamGroup deInit");
+        mpp_buffer_group_put(mStreamGroup);
+    }
 
     return ret;
 }

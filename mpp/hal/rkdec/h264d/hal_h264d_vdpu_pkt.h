@@ -922,13 +922,34 @@ typedef enum hwif_vdpu_type {
 
 
 
-typedef struct h264d_vdpu_packet_t {
 
-    RK_U8 *cabac_buf;
+typedef struct h264d_vdpu_dpb_t {
+    RK_U32    valid;
+    RK_U32    have_same;
+
+    RK_S32    TOP_POC;
+    RK_S32    BOT_POC;
+    RK_U16    frame_num;
+    RK_U8     non_exist_frame;
+    RK_U8     is_ilt;    //!< in-terview frame flag
+    RK_U8     slot_index;
+    RK_U32    is_long_term;
+    RK_U8     top_used;
+    RK_U8     bot_used;
+    RK_U32    LongTermPicNum;
+
+} H264dVdpuDpb_t;
 
 
 
-} H264dVdpuPkt_t;
+typedef struct h264d_old_DXVA_t {
+    H264dVdpuDpb_t old_dpb[2][16];
+    H264dVdpuDpb_t new_dpb[16];
+    RK_U32         new_dpb_cnt;
+
+    H264dVdpuDpb_t ilt_dpb[16];
+    RK_U32         ilt_dpb_cnt;
+} H264dHalOldDXVA_t;
 
 
 
@@ -936,7 +957,7 @@ typedef struct h264d_vdpu_packet_t {
 extern "C" {
 #endif
 
-extern const RK_U32 H264_VDPU_Cabac_table[VDPU_CABAC_TAB_SIZE];
+extern const RK_U32 H264_VDPU_Cabac_table[VDPU_CABAC_TAB_SIZE / 4];
 extern const HalRegDrv_t g_vdpu_drv[VDPU_MAX_SIZE + 1];
 extern const RK_U32 g_refPicNum[16];
 extern const RK_U32 g_refPicList0[16];
@@ -945,15 +966,12 @@ extern const RK_U32 g_refPicListP[16];
 extern const RK_U32 g_refBase[16];
 
 
-
-MPP_RET vdpu_free_packet(H264dVdpuPkt_t *pkt);
-MPP_RET vdpu_alloc_packet(H264dLogCtx_t *logctx, H264dVdpuPkt_t *pkts);
 MPP_RET vdpu_set_pic_regs(void *hal, HalRegDrvCtx_t *p_drv);
 MPP_RET vdpu_set_vlc_regs(void *hal, HalRegDrvCtx_t *p_drv);
-MPP_RET vdpu_set_ref_pic_list_regs(void *hal, HalRegDrvCtx_t *p_drv);
+MPP_RET vdpu_set_ref_regs(void *hal, HalRegDrvCtx_t *p_drv);
 MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv);
-MPP_RET vdpu_flush_regs(void *hal, HalRegDrvCtx_t *p_drv);
-MPP_RET vdpu_wait_result(void *hal, HalRegDrvCtx_t *p_drv);
+
+
 #ifdef  __cplusplus
 }
 #endif

@@ -244,6 +244,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
     mpp_frame_set_buf_size(impl->info_set, size);
+    impl->buf_size = size;
 
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
     MppFrameImpl *frame_impl    = (MppFrameImpl *)frame;

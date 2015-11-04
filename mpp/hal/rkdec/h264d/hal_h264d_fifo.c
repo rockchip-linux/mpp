@@ -158,7 +158,13 @@ void fifo_write_bytes(FifoCtx_t *pkt, void *psrc, RK_U32 size)
         pkt->bvalue = pkt->bitpos ? ((pkt->pbuf[pkt->index] << hbits) >> hbits) : 0;
     }
 }
-
+/*!
+***********************************************************************
+* \brief
+*    reset fifo packet
+***********************************************************************
+*/
+//extern "C"
 void fifo_packet_reset(FifoCtx_t *pkt)
 {
     pkt->index  = 0;
@@ -166,7 +172,6 @@ void fifo_packet_reset(FifoCtx_t *pkt)
     pkt->bvalue = 0;
     pkt->size   = 0;
 }
-
 /*!
 ***********************************************************************
 * \brief
@@ -174,7 +179,25 @@ void fifo_packet_reset(FifoCtx_t *pkt)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET fifo_packet_init(FifoCtx_t *pkt, RK_S32 header, RK_S32 size)
+void fifo_packet_init(FifoCtx_t *pkt, void *p_start, RK_S32 size)
+{
+    pkt->index  = 0;
+    pkt->bitpos = 0;
+    pkt->bvalue = 0;
+    pkt->size   = size;
+    pkt->buflen = (pkt->size + 7) / 8;  // align 64bit
+    pkt->pbuf   = (RK_U64 *)p_start;
+}
+
+
+/*!
+***********************************************************************
+* \brief
+*    alloc fifo packet
+***********************************************************************
+*/
+//extern "C"
+MPP_RET fifo_packet_alloc(FifoCtx_t *pkt, RK_S32 header, RK_S32 size)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -182,8 +205,8 @@ MPP_RET fifo_packet_init(FifoCtx_t *pkt, RK_S32 header, RK_S32 size)
     pkt->index  = 0;
     pkt->bitpos = 0;
     pkt->bvalue = 0;
-    pkt->size   = 0;
-    pkt->buflen = (size + 7) / 8;  // align 64bit
+    pkt->size   = size;
+    pkt->buflen = (pkt->size + 7) / 8;  // align 64bit
     pkt->pbuf   = NULL;
     if (pkt->buflen) {
         pkt->pbuf = mpp_malloc(RK_U64, pkt->buflen);

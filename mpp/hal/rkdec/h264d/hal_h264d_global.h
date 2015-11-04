@@ -42,10 +42,18 @@ typedef struct h264d_hal_ctx_t {
     DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
     RK_U8                    *bitstream;
     RK_U32                   strm_len;
-    RK_U32                   g_framecnt;
     H264dLogCtx_t            logctx;           //!< debug log file
     LogCtx_t                 logctxbuf[LOG_MAX];
-
+    void                     *priv;       //!< resert data for extent
+    //!< add
+    HalDecTask               *in_task;
+    MppBufSlots              frame_slots;
+    MppBufSlots              packet_slots;
+    MppBufferGroup           buf_group;
+    MppBuffer                cabac_buf;
+    RK_S32                   vpu_socket;
+    RK_S64                   total_time;
+    RK_S64                   iDecodedNum;
 } H264dHalCtx_t;
 
 

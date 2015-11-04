@@ -101,9 +101,9 @@ static void display_input_cmd(RK_S32 argc, char *argv[])
 
     strcat(strcmd, "INPUT_CMD:  ");
     pnamecmd = strrchr(argv[0], '/');
-    pnamecmd = pnamecmd ? (pnamecmd + 1) : (strrchr(argv[0], '\\') + 1) ;
-    strcat(strcmd, pnamecmd);
-    for (nn = 1; nn < argc; nn++) {
+    pnamecmd = pnamecmd ? pnamecmd  : (strrchr(argv[0], '\\')) ;
+    pnamecmd = pnamecmd ? strcat(strcmd, pnamecmd + 1) : argv[0];
+    for (nn = 0; nn < argc; nn++) {
         strcat(strcmd, " ");
         strcat(strcmd, argv[nn]);
     }
@@ -112,19 +112,18 @@ static void display_input_cmd(RK_S32 argc, char *argv[])
 
 static void print_help_message(char *cmd)
 {
-    mpp_log(
-        "##### Options\n"
-        "   -h/--help      : prints help message.\n"
-        "   --cmppath      :[string] Set golden input  file store directory.\n"
-        "   --outpath      :[string] Set driver output file store directory.\n"
-        "   -r/--raw       :[number] Set bitstream raw cfg, 0/1: slice long 2:slice short.\n"
-        "   -c/--cfg       :[file]   Set configure file< such as, decoder.cfg>.\n"
-        "   -i/--input     :[file]   Set input bitstream file.\n"
-        "   -n/--num       :[number] Set decoded frames.\n"
-        "##### Examples of usage:\n"
-        "   %s  -h\n"
-        "   %s  -c decoder.cfg\n"
-        "   %s  -i input.bin -n 10 ", cmd, cmd, cmd);
+    mpp_err("##### Options");
+    mpp_err("   -h/--help      : prints help message.");
+    mpp_err("   --cmppath      :[string] Set golden input  file store directory.");
+    mpp_err("   --outpath      :[string] Set driver output file store directory.");
+    mpp_err("   -r/--raw       :[number] Set bitstream raw cfg, 0/1: slice long 2:slice short.");
+    mpp_err("   -c/--cfg       :[file]   Set configure file< such as, decoder.cfg>.");
+    mpp_err("   -i/--input     :[file]   Set input bitstream file.");
+    mpp_err("   -n/--num       :[number] Set decoded frames.");
+    mpp_err("##### Examples of usage:");
+    mpp_err("   %s  -h", cmd);
+    mpp_err("   %s  -c decoder.cfg", cmd);
+    mpp_err("   %s  -i input.bin  -n  10 ", cmd);
 }
 
 static RK_U8 *get_config_file_content(char *fname)
@@ -261,7 +260,8 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
     while (CLcount < ac) {
         if (!strncmp(av[1], "-h", 2) || !strncmp(av[1], "--help", 6)) {
             pnamecmd = strrchr(av[0], '/');
-            pnamecmd = pnamecmd ? (pnamecmd + 1) : (strrchr(av[0], '\\') + 1) ;
+            pnamecmd = pnamecmd ? pnamecmd : strrchr(av[0], '\\');
+            pnamecmd = pnamecmd ? (pnamecmd + 1) : av[0];
             print_help_message(pnamecmd);
             goto __FAILED;
         } else if (!strncmp(av[CLcount], "-n", 2) || !strncmp(av[1], "--num", 5)) { // decoded frames
@@ -310,9 +310,15 @@ __FAILED:
 
 static FILE *open_file(char *path, char *infile, char *sufix, const char *mode)
 {
+    char *pnamecmd = NULL;
     char tmp_fname[FILE_NAME_SIZE] = { 0 };
 
-    sprintf(tmp_fname, "%s/%s%s", path, (strrchr(infile, '/') + 1), sufix);
+    pnamecmd = strrchr(infile, '/');
+    pnamecmd = pnamecmd ? pnamecmd : strrchr(infile, '\\');
+    pnamecmd = pnamecmd ? (pnamecmd + 1) : infile;
+
+
+    sprintf(tmp_fname, "%s/%s%s", path, pnamecmd, sufix);
 
     return fopen(tmp_fname, mode);
 }
@@ -673,6 +679,7 @@ MPP_RET h264d_close_files(InputParams *p_in)
 {
     FCLOSE(p_in->fp_bitstream);
     FCLOSE(p_in->fp_golden_data);
+    FCLOSE(p_in->fp_yuv_data);
     FCLOSE(p_in->fp_driver_data);
 
     return MPP_OK;
@@ -687,9 +694,10 @@ MPP_RET h264d_close_files(InputParams *p_in)
 MPP_RET h264d_open_files(InputParams *p_in)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
+    char *outpath_dir = NULL;
+    mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
     FLE_CHECK(ret, p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
-
+    p_in->fp_yuv_data = open_file(outpath_dir, p_in->infile_name, ".yuv", "wb");
     return MPP_OK;
 __FAILED:
     h264d_close_files(p_in);
@@ -795,6 +803,7 @@ MPP_RET h264d_write_fpga_data(InputParams *p_in)
     fp_log = fopen(strcat(outpath_dir, "/h264d_driver_data.dat"), "rb");
     FLE_CHECK(ret, p_in->fp_golden_data);
     FLE_CHECK(ret, p_in->fp_driver_data);
+    FLE_CHECK(ret, p_in->fp_yuv_data);
     FLE_CHECK(ret, fp_log);
     tmpctx.data = mpp_calloc_size(RK_U8, 128);
     MEM_CHECK(ret, tmpctx.data); //!< for read golden fpga data
