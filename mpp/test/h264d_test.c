@@ -106,11 +106,11 @@ static MPP_RET decoder_init(MppDec *pApi)
     hal_cfg.coding = pApi->coding;
     hal_cfg.work_mode = HAL_MODE_LIBVPU;
     mpp_env_get_u32("h264d_chg_org", &hal_device_id, 0);
-    if (hal_device_id == 1) {
+    //if (hal_device_id == 1) {
         hal_cfg.device_id = HAL_RKVDEC;
-    } else {
-        hal_cfg.device_id = HAL_VDPU;
-    }
+    //} else {
+    //    hal_cfg.device_id = HAL_VDPU;
+    //}
     hal_cfg.frame_slots = pApi->frame_slots;
     hal_cfg.packet_slots = pApi->packet_slots;
     hal_cfg.task_count = parser_cfg.task_count;
