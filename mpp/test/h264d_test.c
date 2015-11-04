@@ -49,8 +49,8 @@ static MPP_RET manual_set_env(void)
     mpp_env_set_u32("h264d_log_decframe", 0             );
     mpp_env_set_u32("h264d_log_begframe", 0             );
     mpp_env_set_u32("h264d_log_endframe", 0             );
-    mpp_env_set_u32("h264d_log_yuv",      1             );
-    mpp_env_set_u32("h264d_chg_org",      0             );  //!< 0:VDPU 1: RKVDEC
+    mpp_env_set_u32("h264d_log_yuv",      0             );
+    mpp_env_set_u32("h264d_chg_org",      1             );  //!< 0:VDPU 1: RKVDEC
     mpp_env_set_str("h264d_log_outpath",  "F:/h264_log/allegro_dat" );
     mpp_env_set_str("h264d_log_cmppath",  "F:/h264_log_driver/trunk_dat" );
 #endif
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 __FAILED:
     decoder_deinit(pApi);
     h264d_free_frame_buffer(pIn);
-    //h264d_write_fpga_data(pIn); //!< for fpga debug
+    h264d_write_fpga_data(pIn);  //!< for fpga debug
     h264d_close_files(pIn);
     MPP_FREE(pIn);
     MPP_FREE(pApi);
