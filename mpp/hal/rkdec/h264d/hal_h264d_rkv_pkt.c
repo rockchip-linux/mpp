@@ -353,7 +353,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
-	
+
     memset(p_regs, 0, sizeof(H264dRkvRegs_t));
 
 	p_regs->swreg2_sysctrl.sw_dec_mode = 1;  //!< h264
@@ -430,7 +430,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
             mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
         }
         //p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
-        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf);
+        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf) >> 4;
     }
     p_regs->swreg72_refer30_poc = pp->FieldOrderCntList[i][0];
     p_regs->swreg73_refer31_poc = pp->FieldOrderCntList[i][1];
@@ -444,7 +444,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[15].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
     }
     // p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
-    p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
+    p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf) >> 4;
 
 	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
 

@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 
             mpp_buf_slot_get_prop(pApi->packet_slots, task->dec.input, SLOT_BUFFER, &dec_pkt_buf);
             if (NULL == dec_pkt_buf) {
-                RK_U32 stream_size = mpp_packet_get_size(task->dec.input_packet);
+                size_t stream_size = mpp_packet_get_size(task->dec.input_packet);
                 mpp_buffer_get(mStreamGroup, &dec_pkt_buf, stream_size);
                 if (dec_pkt_buf)
                     mpp_buf_slot_set_prop(pApi->packet_slots, task->dec.input, SLOT_BUFFER, dec_pkt_buf);
