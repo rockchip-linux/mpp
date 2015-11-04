@@ -89,19 +89,16 @@ typedef struct h264d_rkv_regs_t {
         RK_U32    sw_slice_num_lowbits : 11;
     } swreg3_picpar;
     struct {
-        RK_U32    reverse0 : 4;
-        RK_U32    sw_strm_rlc_base : 28;
+        RK_U32    sw_strm_rlc_base;
     } swreg4_strm_rlc_base;
     struct {
         RK_U32 sw_stream_len : 27;
     } swreg5_stream_rlc_len;
     struct {
-        RK_U32    reverse0 : 4;
-        RK_U32    sw_cabactbl_base : 28;
+        RK_U32    sw_cabactbl_base;
     } swreg6_cabactbl_prob_base;
     struct {
-        RK_U32    reverse0 : 4;
-        RK_U32    sw_decout_base : 28;
+        RK_U32    sw_decout_base;
     } swreg7_decout_base;
     struct {
         RK_U32    sw_y_virstride : 20;
@@ -121,16 +118,13 @@ typedef struct h264d_rkv_regs_t {
         RK_U32 sw_cur_poc : 32;
     } swreg40_cur_poc;
     struct {
-        RK_U32 reserve : 3;
-        RK_U32 sw_rlcwrite_base : 29;
+        RK_U32 sw_rlcwrite_base;
     } swreg41_rlcwrite_base;
     struct {
-        RK_U32 reserve : 4;
-        RK_U32 sw_pps_base : 28;
+        RK_U32 sw_pps_base;
     } swreg42_pps_base;
     struct swreg_sw_rps_base {
-        RK_U32 reserve : 4;
-        RK_U32 sw_rps_base : 28;
+        RK_U32 sw_rps_base;
     } swreg43_rps_base;
     struct swreg_strmd_error_e {
         RK_U32 sw_strmd_error_e : 28;

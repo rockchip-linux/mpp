@@ -280,6 +280,7 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     H264dRkvPkt_t *pkts  = (H264dRkvPkt_t *)p_hal->pkts;
 	H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
+    RK_U32 hw_base = mpp_buffer_get_fd(p_hal->cabac_buf);
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
@@ -289,14 +290,14 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     rkv_prepare_scanlist_packet(hal, &pkts->scanlist);
     rkv_generate_regs(p_hal, task, &pkts->reg);
     //!< copy datas
-    strm_offset = mpp_buffer_get_fd(p_hal->cabac_buf) + RKV_CABAC_TAB_SIZE;
+    strm_offset = RKV_CABAC_TAB_SIZE;
 
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
-	p_regs->swreg42_pps_base.sw_pps_base = strm_offset;
+	p_regs->swreg42_pps_base.sw_pps_base = hw_base + strm_offset;
 
     strm_offset += RKV_SPSPPS_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
-	p_regs->swreg43_rps_base.sw_rps_base = strm_offset;
+	p_regs->swreg43_rps_base.sw_rps_base = hw_base + strm_offset;
 
     strm_offset += RKV_SCALING_LIST_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist.pbuf, RKV_SCALING_LIST_SIZE);
@@ -331,10 +332,10 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 
 	p_regs[64] = 0;
 	p_regs[65] = 0;
-	p_regs[66] = 0;	
+	p_regs[66] = 0;
 	p_regs[67] = 0x000000ff;   // disable fpga reset
-	p_regs[44] = 0xffffffff;   // 0xffff_ffff, debug enable
-	p_regs[77] = 0xffffdfff;   // 0xffff_ffff, debug enable
+	p_regs[44] = 0;            // 0xffff_ffff, debug enable
+	p_regs[77] = 0;            // 0xffff_dfff, debug enable
 	p_regs[1]  = 0x00000021;   // run hardware
 
 #ifdef ANDROID
