@@ -43,6 +43,11 @@
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
 
+RK_U32 h265T_debug = 0;
+
+#define H265T_ANSYN         (0x00000001)
+#define H265T_DBG_LOG       (0x00000002)
+
 
 typedef enum VPU_API_DEMO_RET {
     PARSER_DEMO_OK = 0,
@@ -319,6 +324,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     buf = mpp_malloc(RK_U8, 2048000);
     mpp_buf_slot_init(&slots);
 
+    mpp_env_get_u32("h265t_debug", &h265T_debug, 0);
     mpp_buf_slot_init(&packet_slots);
     mpp_buf_slot_setup(packet_slots, 2);
     if (NULL == slots) {
@@ -389,8 +395,8 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     mpp_buf_slot_get_prop(packet_slots, index, SLOT_BUFFER, &buffer);
                     if (NULL == buffer) {
                         RK_U32 size = (RK_U32)mpp_buf_slot_get_size(packet_slots);
-                        if(size == 0){
-                           size = 1024*1024;
+                        if (size == 0) {
+                            size = 1024 * 1024;
                         }
                         mpp_buffer_get(mStreamGroup, &buffer, size);
                         if (buffer != NULL)
@@ -409,11 +415,13 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 nal_len = 0;
             }
             if (curtask->valid) {
-                if (wait_task) {
-                    poll_task(hal, slots,packet_slots,pretask);
-                    wait_task = 0;
+                if (h265T_debug & H265T_ANSYN) {
+                    if (wait_task) {
+                        poll_task(hal, slots, packet_slots, pretask);
+                        wait_task = 0;
+                    }
                 }
-                curtask->valid = 0;
+                curtask->valid = -1;
 #ifndef ANDROID
 #ifdef COMPARE
                 mpp_err("hevc_decode_frame in \n");
@@ -435,15 +443,15 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 syn.dec = *curtask;
                 index = curtask->output;
 
-                if(mpp_buf_slot_is_changed(slots)){
+                if (mpp_buf_slot_is_changed(slots)) {
                     mpp_buf_slot_ready(slots);
                 }
 
                 mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
                 if (NULL == buffer) {
                     RK_U32 size = (RK_U32)mpp_buf_slot_get_size(slots);
-                    if(size == 0){
-                        size = cmd->width*cmd->height*2;
+                    if (size == 0) {
+                        size = cmd->width * cmd->height * 2;
                     }
                     mpp_buffer_get(mFrameGroup, &buffer, size);
                     if (buffer)
@@ -453,16 +461,20 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                 hal_h265d_gen_regs(hal, &syn);
 
                 hal_h265d_start(hal, &syn);
-                {
+
+                if (h265T_debug & H265T_ANSYN) {
                     HalDecTask *task = NULL;
                     task = curtask;
                     curtask = pretask;
                     pretask = task;
-                    memset(curtask, 0, sizeof(HalDecTask));
-                    memset(&curtask->refer, -1, sizeof(curtask->refer));
-                    curtask->input = -1;
+                    wait_task = 1;
+                } else {
+                    poll_task(hal, slots, packet_slots, curtask);
                 }
-                wait_task = 1;
+                memset(curtask, 0, sizeof(HalDecTask));
+                memset(&curtask->refer, -1, sizeof(curtask->refer));
+                curtask->input = -1;
+
             }
 
             do {
@@ -494,9 +506,11 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         } while ( nal_len );
     }
 
-    if (wait_task) {
-        poll_task(hal, slots,packet_slots,pretask);
-        wait_task = 0;
+    if (h265T_debug & H265T_ANSYN) {
+        if (wait_task) {
+            poll_task(hal, slots, packet_slots, pretask);
+            wait_task = 0;
+        }
     }
 
     if (-1 != curtask->input) {
