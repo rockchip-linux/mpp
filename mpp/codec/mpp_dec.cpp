@@ -192,9 +192,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
         }
-
-        if (task->hal_frm_buf_out)
-            mpp_buffer_put(task->hal_frm_buf_out);
+       
 
         task->status.task_parsed_rdy = 0;
         parser->unlock(THREAD_RESET);
@@ -352,9 +350,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (!task->status.info_task_gen_rdy) {
             task_dec->flags.info_change = 1;
             hal_task_hnd_set_info(task->hnd, &task->info);
-			mpp->mThreadHal->lock();
+            mpp->mThreadHal->lock();
             hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
-			mpp->mThreadHal->unlock();
+            mpp->mThreadHal->unlock();
             mpp->mThreadHal->signal();
             mpp->mTaskPutCount++;
             task->hnd = NULL;
@@ -447,9 +445,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *    combinate video codec dxva output and buffer information
      */
     hal_task_hnd_set_info(task->hnd, &task->info);
-	mpp->mThreadHal->lock();
+    mpp->mThreadHal->lock();
     hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
-	mpp->mThreadHal->unlock();
+    mpp->mThreadHal->unlock();
     mpp->mThreadHal->signal();
 
     mpp->mTaskPutCount++;
@@ -514,8 +512,8 @@ void *mpp_dec_parser_thread(void *data)
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
-        if (task.hal_frm_buf_out)
-            mpp_buffer_put(task.hal_frm_buf_out);
+        if (task.hal_pkt_buf_in)
+            mpp_buffer_put(task.hal_pkt_buf_in);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
     return NULL;

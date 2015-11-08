@@ -404,48 +404,73 @@ static RK_U64 mpp_get_bits(RK_U64 src, RK_S32 size, RK_S32 offset)
     return temp;
 }
 
-static void mpp_put_bits(RK_U64 data, RK_S32 size, RK_U64* Dec_Fifo, RK_S32 *p_fifo_index, RK_S32 *p_bit_offset, RK_S32 *p_bit_len, RK_S32 fifo_len)
+typedef struct bitput_ctx_t {
+    // Pointer to the start of put address
+    RK_U64 *bit_buf;
+
+    // Pointer to current wite address offset (8 Byte as uint)
+    RK_S32 p_uint_index;
+
+    // Pointer to bit alreay write in uint
+    RK_S32 p_bit_offset;
+
+    // total bit have write
+    RK_S32 p_bit_len;
+
+    // total len of the region to write
+    RK_S32 total_len;
+} BitputCtx_t;
+
+static RK_S32 mpp_set_bitput_ctx(BitputCtx_t *bp, RK_U64 *data, RK_U32 len)
 {
-    h265h_dbg(H265H_DBG_RPS , "_count = %d value = %d", _count++, (RK_U32)data);
-    if (*p_fifo_index >= fifo_len) return;
-    if (size + *p_bit_offset >= 64) { // 64 is the FIFO_BIT_WIDTH
-        RK_S32 len = 64 - *p_bit_offset;
-        Dec_Fifo[*p_fifo_index] = (mpp_get_bits(data, len, 0) << *p_bit_offset) | mpp_get_bits(Dec_Fifo[*p_fifo_index], *p_bit_offset, 0);
-        (*p_fifo_index)++;
-        if (*p_fifo_index > fifo_len) p_fifo_index = 0;
-
-        Dec_Fifo[*p_fifo_index] = (mpp_get_bits(data, size - len, len) >> len);
-        *p_bit_offset = size + *p_bit_offset - 64; // 64 is the FIFO_BIT_WIDTH
-
-    } else {
-        Dec_Fifo[*p_fifo_index] = ((data <<  (64 - size)) >> (64 - size - *p_bit_offset)) | mpp_get_bits(Dec_Fifo[*p_fifo_index], *p_bit_offset, 0);
-        (*p_bit_offset) += size;
-    }
-    (*p_bit_len) += size;
+    memset(bp, 0, sizeof(BitputCtx_t));
+    bp->bit_buf = data;
+    bp->total_len = len;
+    return 0;
 }
 
-static void mpp_align(RK_S32 align_width, RK_U64* Dec_Fifo, RK_S32 *p_fifo_index, RK_S32 *p_bit_offset, RK_S32 *p_bit_len, RK_S32 fifo_len)
+static void mpp_put_bits(BitputCtx_t *bp, RK_U64 data, RK_S32 size)
+{
+    h265h_dbg(H265H_DBG_RPS , "_count = %d value = %d", _count++, (RK_U32)data);
+    if (bp->p_uint_index >= bp->total_len) return;
+    if (size + bp->p_bit_offset >= 64) { // 64 is the FIFO_BIT_WIDTH
+        RK_S32 len = 64 - bp->p_bit_offset;
+        bp->bit_buf[bp->p_uint_index] = (mpp_get_bits(data, len, 0) << bp->p_bit_offset) |
+                                        mpp_get_bits( bp->bit_buf[bp->p_uint_index],  bp->p_bit_offset, 0);
+        bp->p_uint_index++;
+        if (bp->p_uint_index > bp->total_len) bp->p_uint_index = 0;
+
+        bp->bit_buf[bp->p_uint_index] = (mpp_get_bits(data, size - len, len) >> len);
+        bp->p_bit_offset = size + bp->p_bit_offset - 64; // 64 is the FIFO_BIT_WIDTH
+
+    } else {
+        bp->bit_buf[bp->p_uint_index]  = ((data <<  (64 - size)) >> (64 - size -  bp->p_bit_offset)) |
+                                         mpp_get_bits( bp->bit_buf[bp->p_uint_index], bp->p_bit_offset, 0);
+        bp->p_bit_offset += size;
+    }
+    bp->p_bit_len += size;
+}
+
+static void mpp_align(BitputCtx_t *bp, RK_S32 align_width)
 {
     RK_S32 i;
     RK_U64 temp = 0;
     RK_S32 len = 0;
 
-    if (*p_fifo_index >= fifo_len) return;
+    if (bp->p_uint_index >= bp->total_len) return;
 
     for (i = 0; i < align_width; i++) {
         temp <<= 1;
         temp |= 1;
     }
-    len = (align_width - ((*p_bit_offset) % align_width )) % align_width ;
+    len = (align_width - ((bp->p_bit_offset) % align_width )) % align_width ;
 
     while (len > 0) {
         if (len >= 8) {
-            mpp_put_bits((0xffffffffffffffff << (64 - 8)) >> (64 - 8), 8,
-                         Dec_Fifo, p_fifo_index, p_bit_offset, p_bit_len, fifo_len);
+            mpp_put_bits(bp, (0xffffffffffffffff << (64 - 8)) >> (64 - 8), 8);
             len -= 8;
         } else {
-            mpp_put_bits((0xffffffffffffffff << (64 - len)) >> (64 - len), len,
-                         Dec_Fifo, p_fifo_index, p_bit_offset, p_bit_len, fifo_len);
+            mpp_put_bits(bp, (0xffffffffffffffff << (64 - len)) >> (64 - len), len);
             len -= len;
         }
     }
@@ -952,42 +977,32 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 //out put for rk format
     {
         RK_S32  nb_slice = slice_idx + 1;
-        RK_S32  fifo_index = 0;
-        RK_S32  bit_offset = 0;
         RK_S32  fifo_len   = nb_slice * 4 + 1;//size of rps_packet alloc more 1 64 bit invoid buffer no enought
-        RK_S32  bit_len = 0;
         RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
-
+        BitputCtx_t bp;
+        mpp_set_bitput_ctx(&bp, rps_packet, fifo_len);
         for (k = 0; k < (RK_U32)nb_slice; k++) {
             for (j = 0; j < 2; j++) {
                 for (i = 0; i < 15; i++) {
-                    mpp_put_bits(rps_pic_info[k][j][i].is_long_term, 1,
-                                 rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+                    mpp_put_bits(&bp, rps_pic_info[k][j][i].is_long_term, 1);
                     if (j == 1 && i == 4) {
-                        mpp_align (64,
-                                   rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+                        mpp_align (&bp, 64);
                     }
-                    mpp_put_bits(rps_pic_info[k][j][i].dbp_index,    4,
-                                 rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+                    mpp_put_bits(&bp, rps_pic_info[k][j][i].dbp_index,    4);
                 }
             }
-            mpp_put_bits(lowdelay_flag      [k], 1,
-                         rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, lowdelay_flag      [k], 1);
             h265h_dbg(H265H_DBG_RPS, "lowdelay_flag = %d \n", lowdelay_flag[k]);
-            mpp_put_bits(rps_bit_offset     [k], 10,
-                         rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, rps_bit_offset     [k], 10);
 
             h265h_dbg(H265H_DBG_RPS, "rps_bit_offset = %d \n", rps_bit_offset[k]);
-            mpp_put_bits(rps_bit_offset_st  [k], 9,
-                         rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, rps_bit_offset_st  [k], 9);
 
             h265h_dbg(H265H_DBG_RPS, "rps_bit_offset_st = %d \n", rps_bit_offset_st[k]);
-            mpp_put_bits(slice_nb_rps_poc   [k], 4,
-                         rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, slice_nb_rps_poc   [k], 4);
 
             h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", slice_nb_rps_poc[k]);
-            mpp_align   (64,
-                         rps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_align   (&bp, 64);
         }
         if (rps_buf != NULL) {
             memcpy(rps_buf, rps_packet, nb_slice * 32);
@@ -1031,10 +1046,7 @@ static void hal_h265d_output_scalinglist_packet(void *ptr, void *dxva)
 
 RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 {
-    RK_S32 fifo_index = 0;
-    RK_S32 bit_offset = 0;
     RK_S32 fifo_len = 10;
-    RK_S32 bit_len = 0;
     RK_S32 i, j;
     RK_U32 addr;
     RK_U64 *pps_packet = NULL;
@@ -1042,6 +1054,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     RK_S32 width, height;
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    BitputCtx_t bp;
 
     _count = 0;
     if (NULL == reg_cxt || dxva_cxt == NULL) {
@@ -1064,110 +1077,95 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
 
     for (i = 0; i < 10; i++) pps_packet[i] = 0;
+    mpp_set_bitput_ctx(&bp, pps_packet, fifo_len);
 
     // SPS
-    mpp_put_bits(dxva_cxt->pp.vps_id, 4, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.sps_id, 4, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.chroma_format_idc, 2, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.vps_id                            , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.sps_id                            , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.chroma_format_idc                 , 2);
 
     log2_min_cb_size = dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3;
     width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
     height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
 
-    mpp_put_bits(width                                     , 13, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(height                                    , 13, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.bit_depth_luma_minus8 + 8 , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.bit_depth_chroma_minus8 + 8 , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4, 5 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size, 2 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len); //log2_maxa_coding_block_depth
-    mpp_put_bits(dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3, 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.log2_min_transform_block_size_minus2 + 2, 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, width                                          , 13);
+    mpp_put_bits(&bp, height                                         , 13);
+    mpp_put_bits(&bp, dxva_cxt->pp.bit_depth_luma_minus8 + 8         , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.bit_depth_chroma_minus8 + 8       , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4      , 5);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size   , 2); //log2_maxa_coding_block_depth
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3 , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_min_transform_block_size_minus2 + 2   , 3);
     ///<-zrh comment ^  57 bit above
-    mpp_put_bits(dxva_cxt->pp.log2_diff_max_min_transform_block_size, 2 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.max_transform_hierarchy_depth_inter       , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.max_transform_hierarchy_depth_intra       , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.scaling_list_enabled_flag                  , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.amp_enabled_flag                          , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.sample_adaptive_offset_enabled_flag                               , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_diff_max_min_transform_block_size     , 2);
+    mpp_put_bits(&bp, dxva_cxt->pp.max_transform_hierarchy_depth_inter        , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.max_transform_hierarchy_depth_intra        , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.scaling_list_enabled_flag                  , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.amp_enabled_flag                           , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.sample_adaptive_offset_enabled_flag        , 1);
     ///<-zrh comment ^  68 bit above
-    mpp_put_bits(dxva_cxt->pp.pcm_enabled_flag                       , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag                           , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0  , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0 , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.pcm_loop_filter_disabled_flag                                               , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_diff_max_min_pcm_luma_coding_block_size                                , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
 
-    mpp_put_bits(dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0,
-                 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0,
-                 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.pcm_loop_filter_disabled_flag              , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.log2_diff_max_min_pcm_luma_coding_block_size  , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0,
-                 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.num_short_term_ref_pic_sets                                 , 7 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.long_term_ref_pics_present_flag           , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.num_long_term_ref_pics_sps                , 6 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.sps_temporal_mvp_enabled_flag             , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-
-    mpp_put_bits(dxva_cxt->pp.strong_intra_smoothing_enabled_flag    , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_short_term_ref_pic_sets             , 7);
+    mpp_put_bits(&bp, dxva_cxt->pp.long_term_ref_pics_present_flag         , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_long_term_ref_pics_sps              , 6);
+    mpp_put_bits(&bp, dxva_cxt->pp.sps_temporal_mvp_enabled_flag           , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.strong_intra_smoothing_enabled_flag     , 1);
     ///<-zrh comment ^ 100 bit above
 
-    mpp_put_bits(0                                              , 7 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_align(                                                   32, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, 0                                                    , 7 );
+    mpp_align(&bp                                                         , 32);
 
     // PPS
-    mpp_put_bits(dxva_cxt->pp.pps_id                                    , 6 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.sps_id                                    , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.dependent_slice_segments_enabled_flag     , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.output_flag_present_flag                  , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.num_extra_slice_header_bits               , 13, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.sign_data_hiding_enabled_flag                     , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.cabac_init_present_flag                   , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.num_ref_idx_l0_default_active_minus1 + 1             , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.num_ref_idx_l1_default_active_minus1 + 1             , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.init_qp_minus26                      , 7 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.constrained_intra_pred_flag               , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.transform_skip_enabled_flag               , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.cu_qp_delta_enabled_flag                  , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_id                                    , 6 );
+    mpp_put_bits(&bp, dxva_cxt->pp.sps_id                                    , 4 );
+    mpp_put_bits(&bp, dxva_cxt->pp.dependent_slice_segments_enabled_flag     , 1 );
+    mpp_put_bits(&bp, dxva_cxt->pp.output_flag_present_flag                  , 1 );
+    mpp_put_bits(&bp, dxva_cxt->pp.num_extra_slice_header_bits               , 13);
+    mpp_put_bits(&bp, dxva_cxt->pp.sign_data_hiding_enabled_flag , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.cabac_init_present_flag                   , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_ref_idx_l0_default_active_minus1 + 1  , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_ref_idx_l1_default_active_minus1 + 1  , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.init_qp_minus26                           , 7);
+    mpp_put_bits(&bp, dxva_cxt->pp.constrained_intra_pred_flag               , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.transform_skip_enabled_flag               , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.cu_qp_delta_enabled_flag                  , 1);
 
-    mpp_put_bits(log2_min_cb_size +
+    mpp_put_bits(&bp, log2_min_cb_size +
                  dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size -
-                 dxva_cxt->pp.diff_cu_qp_delta_depth                    , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+                 dxva_cxt->pp.diff_cu_qp_delta_depth                             , 3);
+
     h265h_dbg(H265H_DBG_PPS, "log2_min_cb_size %d %d %d \n", log2_min_cb_size,
               dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size, dxva_cxt->pp.diff_cu_qp_delta_depth );
-    mpp_put_bits(dxva_cxt->pp.pps_cb_qp_offset                              , 5 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_cr_qp_offset                              , 5 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_slice_chroma_qp_offsets_present_flag
-                 , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.weighted_pred_flag                        , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.weighted_bipred_flag                      , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.transquant_bypass_enabled_flag             , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.tiles_enabled_flag                        , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.entropy_coding_sync_enabled_flag          , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_loop_filter_across_slices_enabled_flag, 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.loop_filter_across_tiles_enabled_flag     , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
 
-    mpp_put_bits(dxva_cxt->pp.deblocking_filter_override_enabled_flag   , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_deblocking_filter_disabled_flag                               , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_beta_offset_div2                             , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.pps_tc_offset_div2                               , 4 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.lists_modification_present_flag           , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.log2_parallel_merge_level_minus2 + 2                 , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.slice_segment_header_extension_present_flag       , 1 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(0                                              , 3 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.num_tile_columns_minus1 + 1                          , 5 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(dxva_cxt->pp.num_tile_rows_minus1 + 1                             , 5 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
-    mpp_put_bits(3                                              , 2 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len); //mSps_Pps[i]->mMode
-    mpp_align(                                                   64, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_cb_qp_offset                            , 5);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_cr_qp_offset                            , 5);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_slice_chroma_qp_offsets_present_flag    , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.weighted_pred_flag                          , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.weighted_bipred_flag                        , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.transquant_bypass_enabled_flag              , 1 );
+    mpp_put_bits(&bp, dxva_cxt->pp.tiles_enabled_flag                          , 1 );
+    mpp_put_bits(&bp, dxva_cxt->pp.entropy_coding_sync_enabled_flag            , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_loop_filter_across_slices_enabled_flag  , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.loop_filter_across_tiles_enabled_flag       , 1);
+
+    mpp_put_bits(&bp, dxva_cxt->pp.deblocking_filter_override_enabled_flag     , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_deblocking_filter_disabled_flag         , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_beta_offset_div2                        , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_tc_offset_div2                           , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.lists_modification_present_flag             , 1);
+    mpp_put_bits(&bp, dxva_cxt->pp.log2_parallel_merge_level_minus2 + 2        , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.slice_segment_header_extension_present_flag , 1);
+    mpp_put_bits(&bp, 0                                                        , 3);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_tile_columns_minus1 + 1, 5);
+    mpp_put_bits(&bp, dxva_cxt->pp.num_tile_rows_minus1 + 1 , 5 );
+    mpp_put_bits(&bp, 3, 2); //mSps_Pps[i]->mMode
+    mpp_align(&bp, 64);
 
     {
         /// tiles info begin
@@ -1218,13 +1216,13 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         for (j = 0; j < 20; j++) {
             if (column_width[j] > 0)
                 column_width[j]--;
-            mpp_put_bits(column_width[j]                , 8 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, column_width[j], 8);
         }
 
         for (j = 0; j < 22; j++) {
             if (row_height[j] > 0)
                 row_height[j]--;
-            mpp_put_bits(row_height[j]                  , 8 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+            mpp_put_bits(&bp, row_height[j], 8);
         }
     }
 
@@ -1250,7 +1248,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
             addr += fd;
         }
 #endif
-        mpp_put_bits(0                              , 32 , pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+        mpp_put_bits(&bp, 0, 32);
 
         p0 = (RK_U8*)&pps_packet[9];
         p1 = (RK_U8*)&addr;
@@ -1259,7 +1257,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         p0[4] = p1[2];
         p0[5] = p1[3];
 
-        mpp_align(                                   64, pps_packet, &fifo_index, &bit_offset, &bit_len, fifo_len);
+        mpp_align(&bp, 64);
     }
 
 #ifdef dump
