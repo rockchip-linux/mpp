@@ -32,7 +32,8 @@
 
 typedef int32_t     status_t;
 
-namespace android {
+namespace android
+{
 
 #define PP_IN_FORMAT_YUV422INTERLAVE                0
 #define PP_IN_FORMAT_YUV420SEMI                     1

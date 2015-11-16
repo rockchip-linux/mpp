@@ -43,17 +43,17 @@ struct MppFrameImpl_t {
      * 7 - deinterlaced paired field
      */
     RK_U32  mode;
-	/*
+    /*
      * current decoded frame whether to display
      *
      * 0 - display
      * 1 - display
      */
-	RK_U32  display;
-	/*
+    RK_U32  display;
+    /*
      * send decoded frame belong which view
      */
-	RK_U32  viewid;
+    RK_U32  viewid;
 
     /*
      * pts - display time stamp
