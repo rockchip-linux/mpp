@@ -141,7 +141,7 @@
 #endif
 
 /* Check validity of values */
-/* data discard and tiled mode can not be on simultaneously */
+/* data display and tiled mode can not be on simultaneously */
 #if (DEC_X170_DATA_DISCARD_ENABLE && (DEC_X170_OUTPUT_FORMAT == DEC_X170_OUTPUT_FORMAT_TILED))
 #error "Bad value specified: DEC_X170_DATA_DISCARD_ENABLE && (DEC_X170_OUTPUT_FORMAT == DEC_X170_OUTPUT_FORMAT_TILED)"
 #endif

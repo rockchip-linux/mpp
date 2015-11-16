@@ -221,7 +221,8 @@ typedef enum SlotPropType_e {
     SLOT_EOS,
     SLOT_FRAME,
     SLOT_BUFFER,
-    SLOT_PROP_BUTT,
+	SLOT_FRAME_PTR,
+    SLOT_PROP_BUTT,	
 } SlotPropType;
 
 MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val);
