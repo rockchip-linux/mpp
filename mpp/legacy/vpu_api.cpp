@@ -198,18 +198,22 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
     RK_S32 (*rkvpu_open_cxt)(VpuCodecContext **ctx);
     rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
     if (rkapi_hdl == NULL) {
-        mpp_err_f("dlopen librk_vpuapi library fail\n");
+        mpp_log("dlopen librk_vpuapi library fail\n");
+        rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+        if(rkapi_hdl == NULL){
         return -1;
+        }
     }
     rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
-    dlclose(rkapi_hdl);
     if (rkvpu_open_cxt == NULL) {
         mpp_err("dlsym rkvpu_open_cxt fail ");
+        dlclose(rkapi_hdl);
         return -1;
     } else {
         (*rkvpu_open_cxt)(ctx);
         return MPP_OK;
     }
+    dlclose(rkapi_hdl);
 }
 
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
@@ -218,12 +222,16 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
     rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
     if (rkapi_hdl == NULL) {
-        mpp_err_f("dlopen librk_vpuapi library fail\n");
+        mpp_log("dlopen librk_vpuapi library fail\n");
+        rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+        if(rkapi_hdl == NULL){
         return -1;
+        }
     }
     rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
     if (rkvpu_close_cxt == NULL) {
         mpp_err_f("dlsym rkvpu_close_cxt fail");
+        dlclose(rkapi_hdl);
         return -1;
     } else {
         (*rkvpu_close_cxt)(ctx);
@@ -236,7 +244,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
     RK_U32 value;
-    mpp_env_get_u32("chg_org", &value, 0);
+    mpp_env_get_u32("chg_orig", &value, 0);
 #ifdef ANDROID
     if (value || !s) {
         if (s) {
@@ -252,7 +260,8 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     if (s != NULL) {
         mpp_log("s->videoCoding = %d", s->videoCoding);
         if (s->videoCoding == OMX_RK_VIDEO_CodingHEVC
-            || s->videoCoding == OMX_RK_VIDEO_CodingAVC) {
+            ||(s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
+            s->codecType == CODEC_DECODER)) {
             free(s);
             s = NULL;
             s = mpp_malloc(VpuCodecContext, 1);
@@ -307,7 +316,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     mpp_log("vpu_close_context in");
     VpuCodecContext *s = *ctx;
     RK_U32 value;
-    mpp_env_get_u32("chg_org", &value, 0);
+    mpp_env_get_u32("chg_orig", &value, 0);
 #ifdef ANDROID
     if (value || s->extra_cfg.reserved[0]) {
         close_orign_vpu(ctx);
