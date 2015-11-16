@@ -524,8 +524,8 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
 			p_Cur->last_dts = p_Cur->curr_dts;
 			p_Cur->last_pts = p_Cur->curr_pts;
 			//insert_timestamp(p_Cur, p_strm);
-			mpp_log("[init_pts]p_Cur->last_pts=%lld, p_Cur->cur_pts=%lld, inp_pts=%lld, g_framecnt=%d \n",
-				p_Cur->last_pts, p_Cur->curr_pts, p_Cur->p_Inp->in_pts, p_Cur->p_Vid->g_framecnt);
+			//mpp_log("[init_pts]p_Cur->last_pts=%lld, p_Cur->cur_pts=%lld, inp_pts=%lld, g_framecnt=%d \n",
+				//p_Cur->last_pts, p_Cur->curr_pts, p_Cur->p_Inp->in_pts, p_Cur->p_Vid->g_framecnt);
 			p_Cur->curr_dts = p_Cur->p_Inp->in_dts;
 			p_Cur->curr_pts = p_Cur->p_Inp->in_pts;
 

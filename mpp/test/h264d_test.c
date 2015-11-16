@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     if (mStreamGroup == NULL) {
         ret = mpp_buffer_group_get_internal(&mStreamGroup, MPP_BUFFER_TYPE_ION);
         if (MPP_OK != ret) {
-            mpp_err("h2645d mpp_buffer_group_get failed\n");
+            mpp_err("h264d mpp_buffer_group_get failed\n");
             return ret;
         }
     }
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
             mpp_buf_slot_get_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, &dec_pic_buf);
             if (NULL == dec_pic_buf) {
                 RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
-                mpp_err("run hal module, size = %d", size);
+               // mpp_err("run hal module, size = %d", size);
                 mpp_buffer_get(mFrameGroup, &dec_pic_buf, size);
                 if (dec_pic_buf)
                     mpp_buf_slot_set_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, dec_pic_buf);
@@ -255,10 +255,10 @@ int main(int argc, char **argv)
 
             //!< write frame out
             mpp_env_get_u32("h264d_log_yuv", &out_yuv_flag, 0);
-            mpp_log("h264d_log_yuv=%d", out_yuv_flag);
+            //mpp_log("h264d_log_yuv=%d", out_yuv_flag);
             while (MPP_OK == mpp_buf_slot_dequeue(pApi->frame_slots, &frame_slot_idx, QUEUE_DISPLAY)) {
                 mpp_buf_slot_get_prop(pApi->frame_slots, frame_slot_idx, SLOT_FRAME, &out_frame);
-                mpp_log("write picture out, slot_idx=%d, yuv_fp_is_null=%d", frame_slot_idx, (pIn->fp_yuv_data == NULL));
+                //mpp_log("write picture out, slot_idx=%d, yuv_fp_is_null=%d", frame_slot_idx, (pIn->fp_yuv_data == NULL));
                 if (out_frame) {
                     RK_U32 stride_w, stride_h;
                     void *ptr = NULL;
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
     //!< flush dpb and send to display	
 	FUN_CHECK(ret = mpp_dec_flush(pApi));	
 	while (MPP_OK == mpp_buf_slot_dequeue(pApi->frame_slots, &frame_slot_idx, QUEUE_DISPLAY)) {
-		mpp_log("get_display for index = %d", frame_slot_idx);
+		//mpp_log("get_display for index = %d", frame_slot_idx);
 		mpp_buf_slot_get_prop(pApi->frame_slots, frame_slot_idx, SLOT_FRAME, &out_frame);
 		if (out_frame) {
 			mpp_frame_deinit(&out_frame);
