@@ -32,7 +32,8 @@
 
 #ifdef ANDROID
 
-namespace android {
+namespace android
+{
 
 status_t ppOpInit(PP_OP_HANDLE *hnd, PP_OPERATION *init)
 {
@@ -70,7 +71,7 @@ status_t ppOpSync(PP_OP_HANDLE hnd)
 
 status_t ppOpRelease(PP_OP_HANDLE hnd)
 {
-   (void)hnd;
+    (void)hnd;
     return 0;
 }
 
@@ -93,22 +94,22 @@ status_t ppOpRelease(PP_OP_HANDLE hnd)
 int main()
 {
     FILE *fpr, *fpw;
-    int   wid_alig16 = ((SRC_WIDTH+15)&(~0xf));
-    int   hei_alig16 = ((SRC_HEIGHT+15)&(~0xf));
+    int   wid_alig16 = ((SRC_WIDTH + 15) & (~0xf));
+    int   hei_alig16 = ((SRC_HEIGHT + 15) & (~0xf));
     int   src_vir_width = 1920;//2048;
     int   src_vir_height = 1088;//1088;
     int   dst_vir_width = 800;//800;
     int   dst_vir_height = 1280;//1280;
     int   framecnt = 0;
-    char *tmpbuf = (char *)malloc(src_vir_width*src_vir_height/2);
+    char *tmpbuf = (char *)malloc(src_vir_width * src_vir_height / 2);
     RK_S32 ret = 0, i,  j;
 
     ALOGI("ppOp test start\n");
     VPUMemLinear_t src, dst;
     android::PP_OP_HANDLE hnd;
     int vpuFd = VPUClientInit(VPU_PP);
-    ret |= VPUMallocLinear(&src, src_vir_width*src_vir_height*2);//SRC_SIZE);
-    ret |= VPUMallocLinear(&dst, dst_vir_width*dst_vir_height*2);//DST_SIZE);
+    ret |= VPUMallocLinear(&src, src_vir_width * src_vir_height * 2); //SRC_SIZE);
+    ret |= VPUMallocLinear(&dst, dst_vir_width * dst_vir_height * 2); //DST_SIZE);
     if (ret) {
         ALOGE("failed to malloc vpu_mem");
         goto end;
@@ -119,51 +120,46 @@ int main()
     }
 
     {
-        #if 0
+#if 0
         int i,  j;
         char *tmp = (char *)src.vir_addr;
-        for(i=0; i<SRC_HEIGHT; i++)
-        {
-            memset(tmp, (i&0xff), SRC_WIDTH);
+        for (i = 0; i < SRC_HEIGHT; i++) {
+            memset(tmp, (i & 0xff), SRC_WIDTH);
             tmp += SRC_WIDTH;
         }
-        #endif
+#endif
 
-        #if 1
+#if 1
         char *tmp = (char *)src.vir_addr;
         fpr = fopen("/sdcard/testin.yuv", "rb");
-        for(i=0; i<SRC_HEIGHT; i++)
-        {
-            if(fpr)fread(tmp, 1, SRC_WIDTH, fpr);
+        for (i = 0; i < SRC_HEIGHT; i++) {
+            if (fpr)fread(tmp, 1, SRC_WIDTH, fpr);
             tmp += src_vir_width;
         }
         tmp = (char *)src.vir_addr;
-        if(fpr)fread(&tmp[src_vir_width*src_vir_height], 1, SRC_WIDTH*SRC_HEIGHT/2, fpr);
-        if(fpr)fclose(fpr);
+        if (fpr)fread(&tmp[src_vir_width * src_vir_height], 1, SRC_WIDTH * SRC_HEIGHT / 2, fpr);
+        if (fpr)fclose(fpr);
 
-        for(i=0; i<SRC_HEIGHT/2; i++)     //planar to semi planar
-        {
-            for(j=0; j<SRC_WIDTH/2; j++)     //planar to semi planar
-            {
-                tmpbuf[i*src_vir_width+j*2+0] = tmp[src_vir_width*src_vir_height + i*SRC_WIDTH/2 + j];
-                tmpbuf[i*src_vir_width+j*2+1] = tmp[src_vir_width*src_vir_height + SRC_WIDTH*SRC_HEIGHT/4 + i*SRC_WIDTH/2 + j];
+        for (i = 0; i < SRC_HEIGHT / 2; i++) { //planar to semi planar
+            for (j = 0; j < SRC_WIDTH / 2; j++) { //planar to semi planar
+                tmpbuf[i * src_vir_width + j * 2 + 0] = tmp[src_vir_width * src_vir_height + i * SRC_WIDTH / 2 + j];
+                tmpbuf[i * src_vir_width + j * 2 + 1] = tmp[src_vir_width * src_vir_height + SRC_WIDTH * SRC_HEIGHT / 4 + i * SRC_WIDTH / 2 + j];
             }
         }
-        memcpy(&tmp[src_vir_width*src_vir_height], tmpbuf, src_vir_width*src_vir_height/2);
+        memcpy(&tmp[src_vir_width * src_vir_height], tmpbuf, src_vir_width * src_vir_height / 2);
         //memset(&tmp[SRC_WIDTH*SRC_HEIGHT], 0x80, SRC_WIDTH*SRC_HEIGHT/2);
-        #endif
+#endif
         VPUMemClean(&src);
     }
 
-    while(1)
-    {
+    while (1) {
         printf("framecnt=%d\n", framecnt);
 
-        if(framecnt++ >= 1)
+        if (framecnt++ >= 1)
             break;
 
-        wid_alig16 = ((SRC_WIDTH+15)&(~0xf));
-        hei_alig16 = ((SRC_HEIGHT+15)&(~0xf));
+        wid_alig16 = ((SRC_WIDTH + 15) & (~0xf));
+        hei_alig16 = ((SRC_HEIGHT + 15) & (~0xf));
 
         android::PP_OPERATION opt;
         memset(&opt, 0, sizeof(opt));
@@ -175,13 +171,13 @@ int main()
         opt.srcVStride  = src_vir_height;
         opt.srcX   = 0;
         opt.srcY   = 0;
-        if(wid_alig16 != SRC_WIDTH)
+        if (wid_alig16 != SRC_WIDTH)
             opt.srcCrop8R = 1;
-        if(hei_alig16 != SRC_HEIGHT)
-            opt.srcCrop8D= 1;
+        if (hei_alig16 != SRC_HEIGHT)
+            opt.srcCrop8D = 1;
 
-        wid_alig16 = ((DST_WIDTH+15)&(~0xf));
-        hei_alig16 = ((DST_HEIGHT+15)&(~0xf));
+        wid_alig16 = ((DST_WIDTH + 15) & (~0xf));
+        hei_alig16 = ((DST_HEIGHT + 15) & (~0xf));
 
         opt.dstAddr     = dst.phy_addr;
         opt.dstFormat   = PP_OUT_FORMAT_YUV420INTERLAVE;
@@ -218,7 +214,7 @@ int main()
 
         VPUMemInvalidate(&dst);
         {
-            #if 0
+#if 0
             int i,  j, ret = 0;
             char *tmp = (char *)dst.vir_addr;
             /*for(i=0; i<3; i++)
@@ -229,37 +225,35 @@ int main()
             {
                 printf("las out_pos=%d, 0x%x\n", (DST_HEIGHT-1-i)*DST_WIDTH, tmp[(DST_HEIGHT-1-i)*DST_WIDTH]);
             }*/
-            for(i=0; i<DST_HEIGHT; i++)
-            {
-                for(j=0; j<DST_WIDTH; j++)
-                {
-                    if( tmp[i*DST_WIDTH + j] != (i&0xff))
+            for (i = 0; i < DST_HEIGHT; i++) {
+                for (j = 0; j < DST_WIDTH; j++) {
+                    if ( tmp[i * DST_WIDTH + j] != (i & 0xff))
                         ret = 1;
                 }
             }
-            if( ret)
-                printf("framecount=%d pp operation is failed!\n", (framecnt-1));
+            if ( ret)
+                printf("framecount=%d pp operation is failed!\n", (framecnt - 1));
             else
-                printf("framecount=%d pp operation is suceess!\n", (framecnt-1));
+                printf("framecount=%d pp operation is suceess!\n", (framecnt - 1));
 
             memset(dst.vir_addr, 0xff, DST_SIZE);
             VPUMemClean(&dst);
-            #endif
+#endif
 
-            #if 1
+#if 1
             char *tmp = (char *)dst.vir_addr;
             //memset(&tmp[DST_WIDTH*DST_HEIGHT], 0x80, DST_WIDTH*DST_HEIGHT/2);
             //VPUMemClean(&dst);
             fpw = fopen("/data/testout.yuv", "wb+");
 
-            if(fpw)fwrite((char *)(dst.vir_addr), 1, dst_vir_width*dst_vir_height*3/2, fpw);
-            if(fpw)fclose(fpw);
-            #endif
+            if (fpw)fwrite((char *)(dst.vir_addr), 1, dst_vir_width * dst_vir_height * 3 / 2, fpw);
+            if (fpw)fclose(fpw);
+#endif
         }
     }
 
 end:
-    if(tmpbuf)free(tmpbuf);
+    if (tmpbuf)free(tmpbuf);
     if (src.phy_addr) VPUFreeLinear(&src);
     if (dst.phy_addr) VPUFreeLinear(&dst);
     if (vpuFd > 0) VPUClientRelease(vpuFd);

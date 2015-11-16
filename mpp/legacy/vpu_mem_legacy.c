@@ -62,25 +62,25 @@ static void* get_free_memory_vpumem(vpu_display_mem_pool *p)
 }
 
 static RK_S32 inc_used_memory_handle_ref(vpu_display_mem_pool *p, void * hdl)
-{    
+{
     VPUMemLinear_t *dmabuf = (VPUMemLinear_t *)hdl;
     MppBuffer buffer = (MppBuffer)dmabuf->offset;
     if (buffer != NULL) {
         mpp_buffer_inc_ref(buffer);
     }
 
-	(void)p;
+    (void)p;
     return MPP_OK;
 }
 
 static RK_S32 put_used_memory_handle(vpu_display_mem_pool *p, void *hdl)
-{   
+{
     VPUMemLinear_t *dmabuf = (VPUMemLinear_t *)hdl;
     MppBuffer buf = (MppBuffer)dmabuf->offset;
     if (buf != NULL) {
         mpp_buffer_put(buf);
     }
-	(void)p;
+    (void)p;
     return MPP_OK;
 }
 
@@ -103,10 +103,10 @@ static RK_S32 reset_vpu_mem_pool(vpu_display_mem_pool *p)
 
 
 vpu_display_mem_pool* open_vpu_memory_pool()
-{   
+{
     vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
-	
-	mpp_err("open_vpu_memory_pool in\n");
+
+    mpp_err("open_vpu_memory_pool in\n");
     if (NULL == p_mempool) {
         return NULL;
     }
@@ -126,18 +126,18 @@ vpu_display_mem_pool* open_vpu_memory_pool()
 }
 
 void close_vpu_memory_pool(vpu_display_mem_pool *p)
-{    
+{
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
-    
-	mpp_err("close_vpu_memory_pool in xxxxxxxxxxxxxxx");
-	mpp_buffer_group_put(p_mempool->group);
+
+    mpp_err("close_vpu_memory_pool in xxxxxxxxxxxxxxx");
+    mpp_buffer_group_put(p_mempool->group);
     mpp_free(p_mempool);
     return;
 }
 
 int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
 {
-    
+
     vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
     if (NULL == p_mempool) {
         return -1;
@@ -156,7 +156,7 @@ int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int 
     p_mempool->buff_size      = size;
     *ipool = (vpu_display_mem_pool*)p_mempool;
 
-	(void)num;
+    (void)num;
     return 0;
 }
 

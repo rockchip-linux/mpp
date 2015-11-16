@@ -79,7 +79,9 @@ RK_S32 VpuApi::flush(VpuCodecContext *ctx)
 {
     (void)ctx;
     mpp_log_f("in\n");
-    mpi->flush(mpp_ctx);
+    if (mpi && mpi->flush) {
+        mpi->flush(mpp_ctx);
+    }
     mpp_log_f("ok\n");
     return 0;
 }
@@ -208,6 +210,9 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log_f("in\n");
     MpiCmd mpicmd;
+    if (mpi == NULL) {
+        return 0;
+    }
     (void)ctx;
     switch (cmd) {
     case VPU_API_SET_VPUMEM_CONTEXT: {

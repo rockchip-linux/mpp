@@ -193,7 +193,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
         }
-       
+
 
         task->status.task_parsed_rdy = 0;
         parser->unlock(THREAD_RESET);
@@ -605,11 +605,11 @@ void *mpp_dec_hal_thread(void *data)
             RK_S32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
-				RK_U32 display;
+                //RK_U32 display;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-				display = mpp_frame_get_display(frame);			
-                if (!dec->reset_flag && display) {
-                    mpp_put_frame(mpp, frame);					
+                //  display = mpp_frame_get_display(frame);
+                if (!dec->reset_flag) {
+                    mpp_put_frame(mpp, frame);
                 } else {
                     mpp_frame_deinit(&frame);
                 }

@@ -200,8 +200,8 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
     if (rkapi_hdl == NULL) {
         mpp_log("dlopen librk_vpuapi library fail\n");
         rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
-        if(rkapi_hdl == NULL){
-        return -1;
+        if (rkapi_hdl == NULL) {
+            return -1;
         }
     }
     rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
@@ -224,8 +224,8 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     if (rkapi_hdl == NULL) {
         mpp_log("dlopen librk_vpuapi library fail\n");
         rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
-        if(rkapi_hdl == NULL){
-        return -1;
+        if (rkapi_hdl == NULL) {
+            return -1;
         }
     }
     rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
@@ -260,8 +260,8 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     if (s != NULL) {
         mpp_log("s->videoCoding = %d", s->videoCoding);
         if (s->videoCoding == OMX_RK_VIDEO_CodingHEVC
-            ||(s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
-            s->codecType == CODEC_DECODER)) {
+            || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
+                s->codecType == CODEC_DECODER)) {
             free(s);
             s = NULL;
             s = mpp_malloc(VpuCodecContext, 1);

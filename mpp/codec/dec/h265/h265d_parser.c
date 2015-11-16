@@ -1313,7 +1313,19 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
     }
 
     if (i >= length - 1) { // no escaped 0
-        nal->data = src;
+        if (length + MPP_INPUT_BUFFER_PADDING_SIZE > nal->rbsp_buffer_size) {
+            RK_S32 min_size = length + MPP_INPUT_BUFFER_PADDING_SIZE;
+            mpp_free(nal->rbsp_buffer);
+            nal->rbsp_buffer = NULL;
+            min_size = MPP_MAX(17 * min_size / 16 + 32, min_size);
+            nal->rbsp_buffer = mpp_malloc(RK_U8, min_size);
+            if (nal->rbsp_buffer == NULL) {
+                min_size = 0;
+            }
+            nal->rbsp_buffer_size = min_size;
+        }
+        memcpy(nal->rbsp_buffer, src, length);
+        nal->data = nal->rbsp_buffer;
         nal->size = length;
         return length;
     }
@@ -1534,6 +1546,12 @@ static RK_S32 parser_nal_units(HEVCContext *s)
 fail:
     return ret;
 }
+
+RK_U16 U16_AT(const RK_U8 *ptr)
+{
+    return ptr[0] << 8 | ptr[1];
+}
+
 static RK_S32 hevc_parser_extradata(HEVCContext *s)
 {
     H265dContext_t *h265dctx = s->h265dctx;
@@ -1545,8 +1563,48 @@ static RK_S32 hevc_parser_extradata(HEVCContext *s)
          * Temporarily, we support configurationVersion==0 until 14496-15 3rd
          * is finalized. When finalized, configurationVersion will be 1 and we
          * can recognize hvcC by checking if h265dctx->extradata[0]==1 or not. */
-        mpp_err("extradata is encoded as hvcC format");
+        const RK_U8 *ptr = (const uint8_t *)h265dctx->extradata;
+        RK_U32 size = h265dctx->extradata_size;
+        RK_U32 numofArrays = 0, numofNals = 0;
+        RK_U32 j = 0, i = 0;
+        if (size < 7) {
+            return MPP_NOK;
+        }
+
+        mpp_log("extradata is encoded as hvcC format");
         s->is_nalff = 1;
+        s->nal_length_size = 1 + (ptr[14 + 7] & 3);
+        ptr += 22;
+        size -= 22;
+        numofArrays = (char)ptr[0];
+        ptr += 1;
+        size -= 1;
+        for (i = 0; i < numofArrays; i++) {
+            ptr += 1;
+            size -= 1;
+            // Num of nals
+            numofNals = U16_AT(ptr);
+            ptr += 2;
+            size -= 2;
+
+            for (j = 0; j < numofNals; j++) {
+                RK_U32 length = 0;
+                if (size < 2) {
+                    return MPP_NOK;
+                }
+
+                length = U16_AT(ptr);
+
+                ptr += 2;
+                size -= 2;
+                if (size < length) {
+                    return MPP_NOK;
+                }
+                parser_nal_unit(s, ptr, length);
+                ptr += length;
+                size -= length;
+            }
+        }
     } else {
         s->is_nalff = 0;
         ret = split_nal_units(s, h265dctx->extradata, h265dctx->extradata_size);
@@ -1585,7 +1643,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_pos(pkt, pos);
         return MPP_OK;
     }
-    if (h265dctx->need_split) {
+    if (h265dctx->need_split && !s->is_nalff) {
         RK_S32 consume = 0;
         RK_U8 *split_out_buf = NULL;
         RK_S32 split_size = 0;
@@ -1604,6 +1662,10 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         } else {
             return MPP_FAIL_SPLIT_FRAME;
         }
+    } else {
+        pos = buf + length;
+        s->pts = pts;
+        mpp_packet_set_pos(pkt, pos);
     }
     ret = (MPP_RET)split_nal_units(s, buf, length);
 
