@@ -24,6 +24,7 @@
 #include "mpp_common.h"
 
 #include "mpp.h"
+#include "mpp_frame.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
@@ -604,9 +605,11 @@ void *mpp_dec_hal_thread(void *data)
             RK_S32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
+				RK_U32 display;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                if (!dec->reset_flag) {
-                    mpp_put_frame(mpp, frame);
+				display = mpp_frame_get_display(frame);			
+                if (!dec->reset_flag && display) {
+                    mpp_put_frame(mpp, frame);					
                 } else {
                     mpp_frame_deinit(&frame);
                 }

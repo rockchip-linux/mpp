@@ -237,6 +237,7 @@ const HalRegDrv_t g_vdpu_drv[VDPU_MAX_SIZE + 1] = {
     { VDPU_DEC_OUT_DIS       , 3 ,  1, 15, "sw03_dec_out_dis      " },
     { VDPU_FILTERING_DIS     , 3 ,  1, 14, "sw03_filtering_dis    " },
     { VDPU_PIC_FIXED_QUANT   , 3 ,  1, 13, "sw03_pic_fixed_quant  " },
+	{ VDPU_MVC_E             , 3 ,  1, 13, "sw03_mvc_e            " },
     { VDPU_WRITE_MVS_E       , 3 ,  1, 12, "sw03_write_mvs_e      " },
     { VDPU_REFTOPFIRST_E     , 3 ,  1, 11, "sw03_reftopfirst_e    " },
     { VDPU_SEQ_MBAFF_E       , 3 ,  1, 10, "sw03_seq_mbaff_e      " },
@@ -952,14 +953,6 @@ const RK_U32 g_refBase[16] = {
     VDPU_REFER15_BASE
 };
 
-const enum {
-    H264ScalingList4x4Length = 16,
-    H264ScalingList8x8Length = 64,
-} ScalingListLength;
-
-
-
-
 
 #ifndef ANDROID
 RK_S32 VPUClientGetIOMMUStatus()
@@ -1073,6 +1066,13 @@ MPP_RET vdpu_set_vlc_regs(void *hal, HalRegDrvCtx_t *p_drv)
         }
         FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_REFER_LTERM_E, longTermflags << 16));
         FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_REFER_VALID_E, validFlags    << 16));
+
+
+		//FPRINT(g_debug_file0, "ref_valid_e=%08x, longterm=%08x, mvc_e=%d, cur_poc=%d \n", 
+		//	validFlags << 16, longTermflags << 16, 0, p_hal->pp->CurrFieldOrderCnt[0]);
+
+		//FPRINT(g_debug_file0, "--------- [FLUSH_CNT] flush framecnt=%d -------- \n", p_hal->iDecodedNum++);
+
     }
 
     for (i = 0; i < 16; i++) {
@@ -1104,15 +1104,46 @@ MPP_RET vdpu_set_vlc_regs(void *hal, HalRegDrvCtx_t *p_drv)
         *pocBase++ = p_hal->pp->CurrFieldOrderCnt[0];
         *pocBase++ = p_hal->pp->CurrFieldOrderCnt[1];
     }
+#if 0
 
-
-
-    //pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
-    //for (i = 0; i < VDPU_POC_BUF_SIZE / 4; i++)
-    //{
-    //  FPRINT(g_debug_file0, "i=%d, poc_value=%d, idx=%d \n", i, *pocBase++, p_hal->pp->RefFrameList[i / 2].Index7Bits);
-    //}
+	//pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+	//for (i = 0; i < VDPU_POC_BUF_SIZE / 4; i++)
+	//{
+	//	FPRINT(g_debug_file1, "i=%d, poc_value=%d, idx=%d \n", i, *pocBase++, p_hal->pp->RefFrameList[i / 2].Index7Bits);
+	//}
     //FPRINT(g_debug_file0, "------ g_framecnt=%d \n", p_hal->in_task->g_framecnt);
+
+
+	pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+	for(i = 0; i < 16; i++) {
+		RK_S32 dpb_idx = 0, longTermTmp = 0;
+		if (p_hal->pp->RefFrameList[i / 2].bPicEntry != 0xff) {
+			FPRINT(g_debug_file1, "i=%2d, picnum=%d, framenum=%2d,", i, p_hal->pp->FrameNumList[i], p_hal->pp->FrameNumList[i]);
+			longTermTmp = p_hal->pp->RefFrameList[i].AssociatedFlag;
+			dpb_idx = p_hal->pp->RefFrameList[i / 2].Index7Bits;
+			FPRINT(g_debug_file1, " dbp_idx=%d, longterm=%d, poc=%d \n", dpb_idx, longTermTmp, *pocBase);
+		}
+		pocBase +=2;
+	}
+	hal_get_regdrv((HalRegDrvCtx_t *)p_hal->regs, VDPU_REFER_VALID_E, &validFlags);
+	FPRINT(g_debug_file1, " view=%d, nonivref=%d, iv_base=%08x, ref_valid_e=%d, mvc_e=%d, cur_poc=%d \n", 0, 0, 0x0, validFlags, 0, *pocBase);
+	FPRINT(g_debug_file1, "--------- [FLUSH_CNT] flush framecnt=%d --------\n", p_hal->iDecodedNum);
+	 
+
+
+
+
+
+
+
+
+#endif
+
+
+
+
+
+
 
 
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_CABAC_E        , p_hal->pp->entropy_coding_mode_flag));
@@ -1185,15 +1216,14 @@ __FAILED:
 //extern "C"
 MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
 {
-    RK_U32 i = 0;
+    RK_U32 i = 0, j = 0;
     RK_U32 validTmp = 0;
     RK_U32 outPhyAddr = 0;
     RK_U32 dirMvOffset = 0;
     RK_U32 picSizeInMbs = 0;
-    RK_U8 *p_start = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     MppBuffer frame_buf = NULL;
-    FifoCtx_t pkt_scanlist = { 0 };
+    
 
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
@@ -1202,16 +1232,19 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
 
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     /* reference picture physis address */
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "reference mpp_buffer_get_fd begin");
-    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (pp->RefFrameList[i].bPicEntry == 0xff) {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-        } else {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
-        }
+    for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+        if (pp->RefFrameList[i].bPicEntry != 0xff) {
+			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+			j = i;
+        } else/* if(j == 0xff)*/ {
+			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+		} 
+		//else {
+		//	mpp_buf_slot_get_prop(p_hal->frame_slots, j, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+		//}
+
         FUN_CHECK(ret = hal_set_regdrv(p_drv, g_refBase[i], mpp_buffer_get_fd(frame_buf)));
     }
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "reference mpp_buffer_get_fd end");
     /* inter-view reference picture */
     if (pp->curr_layer_id && priv->ilt_dpb[0].valid /*pp->inter_view_flag*/) {
         mpp_buf_slot_get_prop(p_hal->frame_slots, priv->ilt_dpb[0].slot_index, SLOT_BUFFER, &frame_buf); //!< current out phy addr
@@ -1222,10 +1255,8 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
     }
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_MVC_E, pp->curr_layer_id));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_FILTERING_DIS, 0)); //!< filterDisable = 0;
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "current mpp_buffer_get_fd begin");
     mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
     outPhyAddr = mpp_buffer_get_fd(frame_buf);
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "current mpp_buffer_get_fd end");
     if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
         if (VPUClientGetIOMMUStatus() > 0) {
             outPhyAddr |= ((pp->wFrameWidthInMbsMinus1 + 1) * 16) << 10;
@@ -1233,7 +1264,7 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
             outPhyAddr +=  (pp->wFrameWidthInMbsMinus1 + 1) * 16;
         }
     }
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_BASE, outPhyAddr)); //!< outPhyAddr, pp->CurrPic.Index7Bits
+    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_BASE,  outPhyAddr)); //!< outPhyAddr, pp->CurrPic.Index7Bits
 
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_CH_QP_OFFSET,  pp->chroma_qp_index_offset));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_CH_QP_OFFSET2, pp->second_chroma_qp_index_offset));
@@ -1249,33 +1280,66 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
         FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DIR_MV_BASE, outPhyAddr + dirMvOffset));
     }
 
-
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_WRITE_MVS_E,     (p_long->nal_ref_idc != 0))); //!< defalut set 1
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DIR_8X8_INFER_E,  pp->direct_8x8_inference_flag));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_WEIGHT_PRED_E,    pp->weighted_pred_flag));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_WEIGHT_BIPR_IDC,  pp->weighted_bipred_idc));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_REFIDX1_ACTIVE,  (pp->num_ref_idx_l1_active_minus1 + 1)));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_FIELDPIC_FLAG_E,  !pp->frame_mbs_only_flag));
+    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_FIELDPIC_FLAG_E, !pp->frame_mbs_only_flag));
 
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PIC_INTERLACE_E,  !pp->frame_mbs_only_flag && (pp->MbaffFrameFlag || pp->field_pic_flag)));
+    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PIC_INTERLACE_E, !pp->frame_mbs_only_flag && (pp->MbaffFrameFlag || pp->field_pic_flag)));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PIC_FIELDMODE_E,  pp->field_pic_flag));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PIC_TOPFIELD_E,   !pp->CurrPic.AssociatedFlag)); //!< bottomFieldFlag
+    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PIC_TOPFIELD_E,  !pp->CurrPic.AssociatedFlag)); //!< bottomFieldFlag
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_SEQ_MBAFF_E,      pp->MbaffFrameFlag));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_8X8TRANS_FLAG_E,  pp->transform_8x8_mode_flag));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_BLACKWHITE_E,     p_long->profileIdc >= 100 && pp->chroma_format_idc == 0));
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_TYPE1_QUANT_E,    pp->scaleing_list_enable_flag));
 
     if (p_hal->pp->scaleing_list_enable_flag) {
-        p_start = (RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE;
+		RK_U32 temp = 0;
+		RK_U32 *ptr = NULL;
 
-        fifo_packet_init(&pkt_scanlist, p_start, VDPU_SCALING_LIST_SIZE);
-        for (i = 0; i < 6; ++i) { //!< 4x4, 6 lists
-            fifo_write_bytes(&pkt_scanlist, p_hal->qm->bScalingLists4x4[i], H264ScalingList4x4Length);
-        }
-        for (i = 0; i < 2; ++i) {
-            fifo_write_bytes(&pkt_scanlist, p_hal->qm->bScalingLists8x8[i], H264ScalingList8x8Length);
-        }
-    }
+        ptr = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE);
+		for(i = 0; i < 6; i++) {
+			for(j = 0; j < 4; j++) {
+				temp = (p_hal->qm->bScalingLists4x4[i][4 * j + 0] << 24) |
+					   (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
+					   (p_hal->qm->bScalingLists4x4[i][4 * j + 2] <<  8) |
+					   (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
+				*ptr++ = temp;
+			}
+		}
+		for(i = 0; i < 2; i++) {
+			for(j = 0; j < 16; j++)	{
+				temp = (p_hal->qm->bScalingLists8x8[i][4 * j + 0] << 24) |
+				       (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
+					   (p_hal->qm->bScalingLists8x8[i][4 * j + 2] <<  8) |
+					   (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
+				*ptr++ = temp;
+			}
+		}	
+	}
+
+#if 0
+	{
+		RK_U8 i = 0, j = 0;
+		RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE;
+		for(i = 0; i < 6; i++) {
+			for(j = 0; j < 16; j++) {
+				FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
+				ptr++;
+			}
+			FPRINT(g_debug_file1, "\n");
+		}
+		for(i = 6; i < 8; i++) {
+			for(j = 0; j < 64; j++) {
+				FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
+				ptr++;
+			}
+			FPRINT(g_debug_file1, "\n");
+		}
+	}
+#endif
 
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_DIS,     0)); //!< set defalut 0
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_CH_8PIX_ILEAV_E, 0));

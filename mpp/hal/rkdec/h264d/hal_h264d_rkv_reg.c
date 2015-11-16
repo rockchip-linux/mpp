@@ -220,7 +220,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
     //!< malloc cabac+scanlis + packets + poc_buf
-    cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE;
+    cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE + RKV_ERROR_INFO_SIZE;
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
     //!< copy cabac table bytes
     FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)H264_RKV_Cabac_table, sizeof(H264_RKV_Cabac_table)));
@@ -299,8 +299,12 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
 	p_regs->swreg43_rps_base.sw_rps_base = hw_base + strm_offset;
 
-    strm_offset += RKV_SCALING_LIST_SIZE;
+    strm_offset += RKV_RPS_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist.pbuf, RKV_SCALING_LIST_SIZE);
+
+	strm_offset += RKV_SCALING_LIST_SIZE;
+	strm_offset += mpp_buffer_get_fd(p_hal->cabac_buf) >> 4;
+	p_regs->swreg75_h264_errorinfo_base.sw_errorinfo_base = strm_offset;
 
 
     ((HalDecTask*)&task->dec)->valid = 0;

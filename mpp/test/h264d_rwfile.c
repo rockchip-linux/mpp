@@ -514,7 +514,7 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     //{
     //  g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
     //}
-    //FPRINT(g_debug_file0, "g_nalu_cnt = %d, nal_unit_type = %d, nalu_size = %d\n", g_nalu_cnt2++, nal_unit_type, p_in->IO.nalubytes);
+    //FPRINT(g_debug_file0, "[Read_NALU] g_nalu_cnt = %d, nal_unit_type = %d, nalu_size = %d\n", g_nalu_cnt2++, nal_unit_type, p_in->IO.nalubytes);
 
     nalu_header_bytes = 1;
     if ((nal_unit_type == NALU_TYPE_PREFIX) || (nal_unit_type == NALU_TYPE_SLC_EXT)) {

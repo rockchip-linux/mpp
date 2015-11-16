@@ -33,7 +33,7 @@
 #define RKV_SPSPPS_SIZE           (256*32 + 128)      /* bytes */
 #define RKV_RPS_SIZE              (128 + 128)         /* bytes */
 #define RKV_SCALING_LIST_SIZE     (6*16+2*64 + 128)   /* bytes */
-
+#define RKV_ERROR_INFO_SIZE       (256*144*4)         /* bytes */
 typedef struct h264d_rkv_packet_t {
     FifoCtx_t   spspps;
     FifoCtx_t   rps;

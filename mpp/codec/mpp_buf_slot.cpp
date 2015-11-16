@@ -825,6 +825,8 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME: {
         MppFrame *frame = (MppFrame *)val;
+		//*frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
+
         mpp_assert(slot->status.has_frame);
         if (slot->status.has_frame) {
             mpp_frame_init(frame);
@@ -832,6 +834,10 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
                 mpp_frame_copy(*frame, slot->frame);
         } else
             *frame = NULL;
+    } break;
+	case SLOT_FRAME_PTR: {
+        MppFrame *frame = (MppFrame *)val;
+		*frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
     } break;
     case SLOT_BUFFER: {
         MppBuffer *buffer = (MppBuffer *)val;
@@ -843,7 +849,6 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
     return MPP_OK;
 }
-
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
 {
     if (NULL == slots || NULL == val || type >= SLOTS_PROP_BUTT) {
