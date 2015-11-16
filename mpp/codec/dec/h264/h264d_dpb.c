@@ -1762,7 +1762,6 @@ static MPP_RET adjust_input(H264_SLICE_t *currSlice)
 	RK_U32 i = 0, j = 0;
 	RK_U32 find_flag = 0;
 
-	H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
 	H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 	H264_DpbInfo_t *new_dpb = p_Dec->dpb_info;
 	H264_DpbInfo_t *old_dpb = p_Dec->dpb_old[currSlice->layer_id];
@@ -2062,7 +2061,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
 
 
 
-	//adjust_input(currSlice);
+	adjust_input(currSlice);
 
 	for (i = 0; i < MAX_DPB_SIZE; i++) {
 		if (p_Dec->dpb_info[i].picbuf && (p_Dec->dpb_info[i].slot_index >= 0)) {

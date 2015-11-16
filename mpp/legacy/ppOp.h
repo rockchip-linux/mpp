@@ -27,9 +27,11 @@
 #ifndef _PPOP_H_
 #define _PPOP_H_
 
-#include <sys/types.h>
-typedef int32_t     status_t;
 #ifdef ANDROID
+#include <sys/types.h>
+
+typedef int32_t     status_t;
+
 namespace android {
 
 #define PP_IN_FORMAT_YUV422INTERLAVE                0
