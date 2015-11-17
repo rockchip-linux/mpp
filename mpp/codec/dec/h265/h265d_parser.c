@@ -1563,7 +1563,7 @@ static RK_S32 hevc_parser_extradata(HEVCContext *s)
          * Temporarily, we support configurationVersion==0 until 14496-15 3rd
          * is finalized. When finalized, configurationVersion will be 1 and we
          * can recognize hvcC by checking if h265dctx->extradata[0]==1 or not. */
-        const RK_U8 *ptr = (const uint8_t *)h265dctx->extradata;
+        const RK_U8 *ptr = (const RK_U8 *)h265dctx->extradata;
         RK_U32 size = h265dctx->extradata_size;
         RK_U32 numofArrays = 0, numofNals = 0;
         RK_U32 j = 0, i = 0;

@@ -39,12 +39,12 @@
 #define MAX_MARK_SIZE             35   //!< for malloc buffer mark, can be changed
 
 
-#define NALU_BUF_MAX_SIZE         1024
-#define NALU_BUF_ADD_SIZE         512
-#define HEAD_BUF_MAX_SIZE         10*1024
-#define HEAD_BUF_ADD_SIZE         512
-#define SODB_BUF_MAX_SIZE         10*1024
-#define SODB_BUF_ADD_SIZE         512
+#define NALU_BUF_MAX_SIZE         1024*1024	
+#define NALU_BUF_ADD_SIZE         512			
+#define HEAD_BUF_MAX_SIZE         5*1024*1024	
+#define HEAD_BUF_ADD_SIZE         1024		    
+#define SODB_BUF_MAX_SIZE         10*1024*1024
+#define SODB_BUF_ADD_SIZE         1024			
 
 
 //!< AVC Profile IDC definitions
@@ -840,6 +840,14 @@ typedef struct h264d_input_ctx_t {
     RK_U32 out_length;
     RK_U8  task_valid;
 	RK_U32 task_eos;
+
+	 //!< have extradata
+	RK_U8  is_nalff; 
+	RK_U8  profile;
+	RK_U8  level;
+	RK_U32 nal_size;
+	RK_S32 sps_num;
+	RK_S32 pps_num;
 } H264dInputCtx_t;
 
 //!< TimeStamp context
