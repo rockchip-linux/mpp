@@ -27,6 +27,7 @@
 
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
+#include "mpp_env.h"
 
 #include "utils.h"
 #include "mpp_log.h"

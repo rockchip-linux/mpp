@@ -261,7 +261,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         mpp_log("s->videoCoding = %d", s->videoCoding);
         if (s->videoCoding == OMX_RK_VIDEO_CodingHEVC
             || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
-                s->codecType == CODEC_DECODER)) {
+                s->codecType == CODEC_DECODER && (s->width > 1920 || s->height > 1080))) {
             free(s);
             s = NULL;
             s = mpp_malloc(VpuCodecContext, 1);
