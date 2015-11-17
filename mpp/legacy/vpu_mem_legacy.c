@@ -35,6 +35,7 @@ static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S
     info.fd = mem_hdl;
     info.size = size;
     p_mempool->size = size;
+    p_mempool->buff_size = size;
     mpp_buffer_commit(p_mempool->group, &info);
     return info.fd;
 }
@@ -98,7 +99,6 @@ static RK_S32 reset_vpu_mem_pool(vpu_display_mem_pool *p)
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
     mpp_buffer_group_clear(p_mempool->group);
     return 0;
-
 }
 
 
@@ -202,6 +202,7 @@ RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx)
     VPUMemLinear_t *dma_buf = NULL;
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)ctx;
     dma_buf = (VPUMemLinear_t *)p_mempool->get_free((vpu_display_mem_pool *)ctx);
+    memset(p,0,sizeof(VPUMemLinear_t));
     if (dma_buf != NULL) {
         if (dma_buf->size < size) {
             mpp_free(dma_buf);
@@ -209,8 +210,9 @@ RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx)
         }
         memcpy(p, dma_buf, sizeof(VPUMemLinear_t));
         mpp_free(dma_buf);
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 
