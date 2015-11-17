@@ -1858,7 +1858,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
 
     memset(p_Dec->dpb_info, 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
 	memset(&p_Dec->in_task->refer, -1, sizeof(p_Dec->in_task->refer));
-    if (currSlice->idr_flag && !currSlice->layer_id) { // idr_flag==1 && layer_id==0
+    if (currSlice->idr_flag && (currSlice->layer_id == 0)) { // idr_flag==1 && layer_id==0
 		memset(p_Dec->dpb_old[0], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
 		memset(p_Dec->dpb_old[1], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
         goto __RETURN;
@@ -2095,7 +2095,7 @@ MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
     memset(p_Dec->refpic_info_b[0], 0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
     memset(p_Dec->refpic_info_b[1], 0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
 
-    if (currSlice->idr_flag && !currSlice->layer_id) { // idr_flag==1 && layer_id==0
+    if (currSlice->idr_flag && (currSlice->layer_id == 0)) { // idr_flag==1 && layer_id==0
         goto __RETURN;
     }
     //!<------ set listP -------
@@ -2168,10 +2168,10 @@ MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
                           ? currSlice->listB[k][j]->bot_poc_mmco5 : currSlice->listB[k][j]->bottom_poc;
                 }
                 for (i = 0; i < 16; i++) {
-                    picbuf = p_Dec->dpb_info[i].picbuf;
+                    picbuf  = p_Dec->dpb_info[i].picbuf;
                     TOP_POC = p_Dec->dpb_info[i].TOP_POC;
                     BOT_POC = p_Dec->dpb_info[i].BOT_POC;
-                    voidx = p_Dec->dpb_info[i].voidx;
+                    voidx   = p_Dec->dpb_info[i].voidx;
                     is_used = p_Dec->dpb_info[i].is_used;
                     if (currSlice->structure == FRAME && picbuf) {
                         if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))

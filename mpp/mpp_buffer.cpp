@@ -152,7 +152,10 @@ int mpp_buffer_get_fd(MppBuffer buffer)
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     int fd = p->info.fd;
-    mpp_assert(fd >= 0);
+#ifndef _WIN32
+	mpp_assert(fd >= 0);    
+#endif
+
     return fd;
 }
 
