@@ -721,6 +721,8 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	RK_U32 extrasize = p_Inp->in_length;
 
 	FunctionIn(logctx->parr[RUN_PARSE]);	
+	//!< free nalu_buffer
+	MPP_FREE(p_strm->nalu_buf);
 	if (p_Inp->in_length < 7) {
 		goto __FAILED;
 	}
@@ -746,7 +748,7 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		pdata += p_strm->nalu_len;
 		extrasize -= p_strm->nalu_len;
 	}
-
+	p_strm->nalu_buf = NULL;
 	p_Inp->pps_num = *pdata;
 	++pdata;
 	--extrasize;
@@ -763,6 +765,7 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		extrasize -= p_strm->nalu_len;
 	}	
 	(*p_Inp->in_size) = 0;
+	p_strm->nalu_buf = NULL;
 	//mpp_log("profile=%d, level=%d, nal_size=%d, sps_num=%d, pps_num=%d \n", p_Inp->profile, 
 	//	p_Inp->level, p_Inp->nal_size, p_Inp->sps_num, p_Inp->pps_num);
 
@@ -808,6 +811,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		pdata += p_strm->nalu_len;
 		strm_offset += p_strm->nalu_len;
 	}
+	p_strm->nalu_buf = NULL;
 	//!< one frame end
 	FUN_CHECK(ret = add_empty_nalu(p_strm));
 	(*p_Inp->in_size) = 0;
