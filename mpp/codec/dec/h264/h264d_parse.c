@@ -342,7 +342,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-	currSlice->p_Dec->nalu_ret == ReadNaluError;
+	currSlice->p_Dec->nalu_ret = ReadNaluError;
     return ret;
 }
 

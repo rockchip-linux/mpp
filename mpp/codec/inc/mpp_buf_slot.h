@@ -232,6 +232,7 @@ typedef enum SlotsPropType_e {
     SLOTS_EOS,
     SLOTS_HOR_ALIGN,            // input must be buf_align function pointer
     SLOTS_VER_ALIGN,            // input must be buf_align function pointer
+	SLOTS_LEN_ALIGN,
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
