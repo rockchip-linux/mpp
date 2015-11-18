@@ -274,7 +274,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     ///<- VPUClientInit
 #ifdef ANDROID
     if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_HEVC);
+        reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;
