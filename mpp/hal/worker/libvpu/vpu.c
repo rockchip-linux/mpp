@@ -52,14 +52,19 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     VPU_SERVICE_TEST;
     int ret;
     int fd;
-    if (type != VPU_DEC_HEVC) {
-        fd = open("/dev/vpu_service", O_RDWR);
-    } else {
+
+    if (type == VPU_DEC_RKV) {
+        fd = open("/dev/rkvdec", O_RDWR);
+        type = VPU_DEC;
+    } else if (type == VPU_DEC_HEVC) {
         fd = open("/dev/hevc_service", O_RDWR);
         type = VPU_DEC;
+    } else {
+        fd = open("/dev/vpu_service", O_RDWR);
     }
+
     if (fd == -1) {
-        mpp_err_f("failed to open vpu_service\n");
+        mpp_err_f("failed to open /dev/rkvdec\n");
         return -1;
     }
     ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);

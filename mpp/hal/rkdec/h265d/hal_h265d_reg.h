@@ -127,6 +127,7 @@ typedef struct {
     RK_U32        axi_ddr_rdata;
     RK_U32        axi_ddr_wdata;
     RK_U32        fpgadebug_reset;
+    RK_U32        reserve[100];
 } H265d_REGS_t;
 
 #endif
