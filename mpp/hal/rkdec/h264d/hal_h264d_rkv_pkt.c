@@ -129,7 +129,7 @@ static void rkv_write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
     fifo_write_bits(pkt, p_hal->pp->scaleing_list_enable_flag,                  1, "scaleing_list_enable_flag");
 
     Scaleing_list_address = mpp_buffer_get_fd(p_hal->cabac_buf);
-    if (0/*VPUClientGetIOMMUStatus() > 0*/) {
+    if (VPUClientGetIOMMUStatus()) {
         Scaleing_list_address |= offset << 10;
     } else {
         Scaleing_list_address += offset;
@@ -435,7 +435,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 #if FPGA_TEST
 	p_regs->swreg7_decout_base.sw_decout_base = pp->CurrPic.Index7Bits + 1;
 #else
-    p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf) >> 4;
+    p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf);
 #endif
     //!< set reference
     for (i = 0; i < 15; i++) {
@@ -454,7 +454,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 #if FPGA_TEST
 		p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
 #else        
-        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf) >> 4;
+        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf);
 #endif
     }
     p_regs->swreg72_refer30_poc = pp->FieldOrderCntList[i][0];
@@ -471,12 +471,12 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 #if FPGA_TEST
     p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
 #else
-    p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf) >> 4;
+    p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
 #endif
-	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf) >> 4;
+	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
 
 	mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
-	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf) >> 4;
+	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
 
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264dRkvRegs_t));
