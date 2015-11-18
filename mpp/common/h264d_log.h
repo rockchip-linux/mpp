@@ -158,27 +158,6 @@ typedef struct h264d_logctx_t {
                  writelog(ctx, "FunOut", __FILE__, __LINE__, __FUNCTION__);\
                  } } while (0)
 
-
-
-
-#define CHECK_RANGE(bitctx, val, _min, _max)\
-    do {\
-    if ((val) < (_min) || (val) > (_max)) {\
-    mpp_log("%d[%d,%d]", val, _min, _max);\
-    goto __BITREAD_ERR;\
-    }\
-    } while (0)
-
-
-#define CHECK_ERROR(bitctx, val)\
-    do {\
-    if (!(val)) {\
-    mpp_log("value false");\
-    ASSERT(0);\
-    goto __BITREAD_ERR;\
-    }\
-    } while (0)
-
 //!< vaule check
 #define VAL_CHECK(ret, val, ...)\
 	do{ if(!(val)){\

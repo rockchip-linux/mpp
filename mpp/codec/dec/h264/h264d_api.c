@@ -582,6 +582,7 @@ MPP_RET  h264d_flush(void *decoder)
         free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
     }
     mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
+	//mpp_log("[FLUSH] -------- flush over.------, task_eos=%d \n", p_Dec->p_Inp->task_eos);
 	FPRINT(g_debug_file0, "[FLUSH] -------- flush over.------\n");
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -632,7 +633,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 	p_Dec->p_Inp->in_pts = mpp_packet_get_pts(pkt);
 	p_Dec->p_Inp->in_dts = mpp_packet_get_dts(pkt);	
 	get_pkt_timestamp(&p_Dec->p_Cur->strm, p_Dec->p_Inp, pkt);
-	//mpp_err("[ pkt_in timeUs ] preprare input_pts=%lld \n",p_Dec->p_Inp->in_pts);
+
 	if (mpp_packet_get_eos(pkt)) {
 		p_Dec->p_Inp->in_buf    = NULL;
 		p_Dec->p_Inp->in_length = 0;
@@ -644,7 +645,6 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 		p_Dec->p_Inp->pkt_eos   = 0;
 		p_Dec->p_Inp->in_size   = &((MppPacketImpl *)pkt)->length;
 	}	
-	//{
 	//	mpp_log("[nal_ff_data] %02x %02x %02x %02x %02x %02x %02x %02x \n", 
 	//		p_Dec->p_Inp->in_buf[0],
 	//		p_Dec->p_Inp->in_buf[1],
@@ -656,42 +656,48 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 	//		p_Dec->p_Inp->in_buf[7]);
 	//}
 
+	//mpp_log("[ pkt_in timeUs ] preprare input_pts=%lld, pkt_eos=%d, len=%d, g_framecnt=%d \n",
+	//	p_Dec->p_Inp->in_pts, p_Dec->p_Inp->pkt_eos, p_Dec->p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
+
 	//mpp_log("mpp_packet_get_flag(pkt)=%d\n", mpp_packet_get_flag(pkt));
 
 	if (mpp_packet_get_flag(pkt)& MPP_PACKET_FLAG_EXTRA_DATA) {
 		RK_U8 *pdata = p_Dec->p_Inp->in_buf;
 		p_Dec->p_Inp->is_nalff = (p_Dec->p_Inp->in_length > 3)&& (pdata[0] && pdata[1]);
-		//mpp_log("p_Dec->p_Inp->is_nalff=%d, len=%d, data=%d,%d,%d\n", p_Dec->p_Inp->is_nalff, p_Dec->p_Inp->in_length, pdata[0], pdata[1],pdata[2]);
+		
 		if (p_Dec->p_Inp->is_nalff)	{		
-			(ret = parse_prepare_extra_header(p_Dec->p_Inp, p_Dec->p_Cur));			
+			(ret = parse_prepare_extra_header(p_Dec->p_Inp, p_Dec->p_Cur));		
+			goto __RETURN; 
 		}		
 	}
+	//mpp_log("p_Dec->p_Inp->is_nalff=%d, len=%d \n", p_Dec->p_Inp->is_nalff, p_Dec->p_Inp->in_length);
 
 	//mpp_err("[timePkt_in] pts=%lld, dts=%lld", p_Dec->p_Inp->pts, p_Dec->p_Inp->dts);
 
     //LogTrace(logctx, "[Prepare_In] in_length=%d, eos=%d, g_framecnt=%d", mpp_packet_get_length(pkt), mpp_packet_get_eos(pkt), p_Dec->p_Vid->g_framecnt);
     //FPRINT(g_debug_file0, "[Prepare_In] in_length=%d, eos=%d, g_framecnt=%d \n", mpp_packet_get_length(pkt), mpp_packet_get_eos(pkt), p_Dec->p_Vid->g_framecnt);
-	
-	while(mpp_packet_get_length(pkt) && !task->valid) {
-		if (p_Dec->p_Inp->is_nalff)	{
-			(ret = parse_prepare_extra_data(p_Dec->p_Inp, p_Dec->p_Cur));
-		} else {
-			(ret = parse_prepare(p_Dec->p_Inp, p_Dec->p_Cur));
-		}
-		task->valid = p_Dec->p_Inp->task_valid;  //!< prepare valid flag		
-		//LogTrace(logctx, "[Prepare_Ing] length=%d, valid=%d,strm_off=%d, g_framecnt=%d", mpp_packet_get_length(pkt), task->valid, p_Dec->dxva_ctx->strm_offset, p_Dec->p_Vid->g_framecnt);
-		//FPRINT(g_debug_file0, "[Prepare_Ing] length=%d, valid=%d,strm_off=%d, g_framecnt=%d \n", mpp_packet_get_length(pkt), task->valid, p_Dec->dxva_ctx->strm_offset, p_Dec->p_Vid->g_framecnt);
-	}
-	
+
+	if (p_Dec->p_Inp->is_nalff)	{
+		(ret = parse_prepare_extra_data(p_Dec->p_Inp, p_Dec->p_Cur));		
+		task->valid = p_Dec->p_Inp->task_valid;  //!< prepare valid flag
+	} else	{
+		do{
+			(ret = parse_prepare(p_Dec->p_Inp, p_Dec->p_Cur));		
+			task->valid = p_Dec->p_Inp->task_valid;  //!< prepare valid flag
+			//LogTrace(logctx, "[Prepare_Ing] length=%d, valid=%d,strm_off=%d, g_framecnt=%d", mpp_packet_get_length(pkt), task->valid, p_Dec->dxva_ctx->strm_offset, p_Dec->p_Vid->g_framecnt);
+			//FPRINT(g_debug_file0, "[Prepare_Ing] length=%d, valid=%d,strm_off=%d, g_framecnt=%d \n", mpp_packet_get_length(pkt), task->valid, p_Dec->dxva_ctx->strm_offset, p_Dec->p_Vid->g_framecnt);
+
+		}while(mpp_packet_get_length(pkt) && !task->valid);
+	}		
 
     //LogTrace(logctx, "Prepare Out: len=%d, valid=%d ", mpp_packet_get_length(pkt), task->valid);
-
+	//mpp_log("Prepare Out: len=%d, valid=%d ", mpp_packet_get_length(pkt), task->valid);	
     if (task->valid) {
         mpp_packet_set_data(p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream);
         mpp_packet_set_length(p_Dec->task_pkt, p_Dec->dxva_ctx->strm_offset);
         mpp_packet_set_size(p_Dec->task_pkt, p_Dec->dxva_ctx->max_strm_size);		
         //LogTrace(logctx, "[Prepare_Out] ptr=%08x, stream_len=%d, max_size=%d", p_Dec->dxva_ctx->bitstream, p_Dec->dxva_ctx->strm_offset, p_Dec->dxva_ctx->max_strm_size);
-        //FPRINT(g_debug_file0, "[Prepare_Out] g_framecnt=%d, stream_len=%d \n", p_Dec->p_Vid->g_framecnt, p_Dec->dxva_ctx->strm_offset);
+        //mpp_log("[Prepare_Out] g_framecnt=%d, stream_len=%d \n", p_Dec->p_Vid->g_framecnt, p_Dec->dxva_ctx->strm_offset);
 		task->input_packet = p_Dec->task_pkt;
 		task->flags.eos    = p_Dec->p_Inp->pkt_eos;
     } else {

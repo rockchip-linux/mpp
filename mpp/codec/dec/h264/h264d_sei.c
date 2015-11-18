@@ -185,7 +185,8 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
     p_bitctx = &tmp_strmdata;
     mpp_set_bitread_ctx(p_bitctx, payload, size);
     READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
-
+	//mpp_log("sei_msg->seq_parameter_set_id=%d \n", sei_msg->seq_parameter_set_id);
+	CHECK_RANGE(p_bitctx, sei_msg->seq_parameter_set_id, 0, 32);
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
@@ -211,7 +212,11 @@ static MPP_RET parserSEI(BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg, RK_U8 *msg
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     //!< sei_payload( type, size );
+
+
     switch (sei_msg->type) {
+
+		
     case  SEI_BUFFERING_PERIOD:
         FUN_CHECK(ret = interpret_buffering_period_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));
         break;
