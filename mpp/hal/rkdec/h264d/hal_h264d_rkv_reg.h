@@ -107,11 +107,12 @@ typedef struct h264d_rkv_regs_t {
         RK_U32    sw_yuv_virstride : 21;
     } swreg9_yuv_virstride;
     struct {
+		RK_U32 sw_refer_base : 10;
         RK_U32 sw_ref_field : 1;
         RK_U32 sw_ref_topfield_used : 1;
         RK_U32 sw_ref_botfield_used : 1;
         RK_U32 sw_ref_colmv_use_flag : 1;
-        RK_U32 sw_refer_base : 28;
+        
     } swreg10_24_refer0_14_base[15];
     RK_U32   swreg25_39_refer0_14_poc[15];
     struct {
@@ -147,11 +148,12 @@ typedef struct h264d_rkv_regs_t {
         RK_U32 sw_saowr_yoffset : 10;
     } swreg47_sao_ctu_position;
     struct {
+		 RK_U32 sw_refer_base : 10;
         RK_U32 sw_ref_field : 1;
         RK_U32 sw_ref_topfield_used : 1;
         RK_U32 sw_ref_botfield_used : 1;
         RK_U32 sw_ref_colmv_use_flag : 1;
-        RK_U32 sw_refer_base : 28;
+       
     } swreg48_refer15_base;
     RK_U32   swreg49_63_refer15_29_poc[15];
     struct {
@@ -195,8 +197,9 @@ typedef struct h264d_rkv_regs_t {
         RK_U32 sw_h264_cur_poc1 : 32;
     } swreg74_h264_cur_poc1;
     struct {
-        RK_U32 reserve : 4;
-        RK_U32 sw_errorinfo_base : 28;
+        //RK_U32 reserve : 4;
+        //RK_U32 sw_errorinfo_base : 28;
+		RK_U32 sw_errorinfo_base : 32;
     } swreg75_h264_errorinfo_base;
     struct {
         RK_U32 sw_slicedec_num : 14;

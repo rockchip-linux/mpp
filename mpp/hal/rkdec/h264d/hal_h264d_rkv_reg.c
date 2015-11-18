@@ -293,18 +293,20 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     strm_offset = RKV_CABAC_TAB_SIZE;
 
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
-	p_regs->swreg42_pps_base.sw_pps_base = hw_base + strm_offset;
+	p_regs->swreg42_pps_base.sw_pps_base = hw_base + (strm_offset<<10);
 
     strm_offset += RKV_SPSPPS_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
-	p_regs->swreg43_rps_base.sw_rps_base = hw_base + strm_offset;
+	p_regs->swreg43_rps_base.sw_rps_base = hw_base + (strm_offset<<10);
 
     strm_offset += RKV_RPS_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist.pbuf, RKV_SCALING_LIST_SIZE);
 
 	strm_offset += RKV_SCALING_LIST_SIZE;
-	strm_offset += mpp_buffer_get_fd(p_hal->cabac_buf) >> 4;
-	p_regs->swreg75_h264_errorinfo_base.sw_errorinfo_base = strm_offset;
+
+
+	//strm_offset += mpp_buffer_get_fd(p_hal->cabac_buf) >> 4;
+	p_regs->swreg75_h264_errorinfo_base.sw_errorinfo_base = hw_base + (strm_offset<<10);
 
 
     ((HalDecTask*)&task->dec)->valid = 0;
@@ -322,6 +324,7 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 {
+	RK_U32 i = 0;
 	RK_U32 *p_regs = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -341,6 +344,12 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 	p_regs[44] = 0;            // 0xffff_ffff, debug enable
 	p_regs[77] = 0;            // 0xffff_dfff, debug enable
 	p_regs[1]  = 0x00000021;   // run hardware
+
+	mpp_log("---input register ----- \n");
+	for (i = 0; i<77;i++ )
+	{
+		mpp_log("reg[%2d]=%08x \n", i, p_regs[i]);
+	}
 
 #ifdef ANDROID
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
@@ -365,6 +374,8 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 {
+	RK_U32 i = 0;
+	RK_U32 *ptr = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dRkvRegs_t *p_regs = NULL;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -385,6 +396,13 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     p_hal->iDecodedNum++;
 	(void)wait_ret;
 #endif
+	mpp_log("---output register ----- \n");
+	ptr = (RK_U32 *)p_hal->regs;
+	for (i = 0; i<77;i++ )
+	{
+		mpp_log("reg[%2d]=%08x \n", i, ptr[i]);
+	}
+
     p_regs = (H264dRkvRegs_t *)p_hal->regs;
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
