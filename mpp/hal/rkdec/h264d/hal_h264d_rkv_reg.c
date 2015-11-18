@@ -202,6 +202,10 @@ static RK_U32 rkv_hor_align(RK_U32 val)
     return MPP_ALIGN(val, 16);
 }
 
+static RK_U32 rkv_len_align(RK_U32 val)
+{
+	return (2 * MPP_ALIGN(val, 16));
+}
 /*!
 ***********************************************************************
 * \brief
@@ -229,6 +233,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
+	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)cfg;
@@ -341,8 +346,8 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 	p_regs[65] = 0;
 	p_regs[66] = 0;
 	p_regs[67] = 0x000000ff;   // disable fpga reset
-	p_regs[44] = 0;            // 0xffff_ffff, debug enable
-	p_regs[77] = 0;            // 0xffff_dfff, debug enable
+	p_regs[44] = 0;   // 0xffff_ffff, debug enable
+	p_regs[77] = 0;   // 0xffff_dfff, debug enable
 	p_regs[1]  = 0x00000021;   // run hardware
 
 	mpp_log("---input register ----- \n");
