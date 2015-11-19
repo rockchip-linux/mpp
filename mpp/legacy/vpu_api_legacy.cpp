@@ -140,6 +140,30 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
+        switch (mpp_frame_get_fmt(mframe)) {
+        case MPP_FMT_YUV420SP: {
+            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
+            vframe->OutputWidth = 0x20;
+            break;
+        }
+        case MPP_FMT_YUV420SP_10BIT: {
+            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
+            vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
+            vframe->OutputWidth = 0x22;
+            break;
+        }
+        case MPP_FMT_YUV422SP: {
+            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
+            break;
+        }
+        case MPP_FMT_YUV422SP_10BIT: {
+            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
+            vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
+            break;
+        }
+        default:
+            break;
+        }
         if (buf) {
             ptr = mpp_buffer_get_ptr(buf);
             fd = mpp_buffer_get_fd(buf);

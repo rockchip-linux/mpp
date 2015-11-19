@@ -83,6 +83,7 @@ struct MppFrameImpl_t {
     MppFrameColorSpace colorspace;
     MppFrameChromaLocation chroma_location;
 
+    MppFrameFormat fmt;
     /*
      * buffer information
      * NOTE: buf_size only access internally

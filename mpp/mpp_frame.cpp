@@ -167,6 +167,7 @@ MPP_FRAME_ACCESSORS(MppFrameColorPrimaries, color_primaries)
 MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
 MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
 MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
+MPP_FRAME_ACCESSORS(MppFrameFormat, fmt)
 MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 MPP_FRAME_ACCESSORS(size_t, buf_size)
 

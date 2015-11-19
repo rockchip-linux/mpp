@@ -137,6 +137,7 @@ typedef struct H265dContext {
     **/
     RK_U32 pix_fmt;
 
+    RK_U32 nBitDepth;
     RK_U32 err_recognition;
 
     /**

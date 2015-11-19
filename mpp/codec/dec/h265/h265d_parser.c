@@ -473,6 +473,7 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->h265dctx->width               = sps->output_width;
     s->h265dctx->height              = sps->output_height;
     s->h265dctx->pix_fmt             = sps->pix_fmt;
+    s->h265dctx->nBitDepth           = sps->bit_depth;
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
     mpp_buf_slot_setup(s->slots, 25);
 

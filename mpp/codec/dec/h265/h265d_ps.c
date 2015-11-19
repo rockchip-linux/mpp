@@ -1492,8 +1492,8 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 
     if (sps->chroma_format_idc == 1) {
         switch (sps->bit_depth) {
-        case 8:  sps->pix_fmt = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR | VPU_OUTPUT_FORMAT_BIT_8;   break;
-        case 10: sps->pix_fmt = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR | VPU_OUTPUT_FORMAT_BIT_10; break;
+        case 8:  sps->pix_fmt = MPP_FMT_YUV420SP;   break;
+        case 10: sps->pix_fmt = MPP_FMT_YUV420SP_10BIT; break;
         default:
             mpp_err( "Unsupported bit depth: %d\n",
                      sps->bit_depth);
