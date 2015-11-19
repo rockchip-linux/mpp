@@ -221,7 +221,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
+	p_hal->iDecodedNum = 0;
     MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
     //!< malloc cabac+scanlis + packets + poc_buf
     cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE + RKV_ERROR_INFO_SIZE;
@@ -233,7 +233,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
-	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
+	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);	
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)cfg;
@@ -360,7 +360,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
         ret =  MPP_ERR_VPUHW;
         mpp_err_f("H264 RKV FlushRegs fail. \n");
     } else {
-        mpp_log("H264 RKV FlushRegs success, frame_no=%d. \n", p_hal->iDecodedNum);
+        mpp_log("H264 RKV FlushRegs success. \n");
     }
 #endif
 
@@ -394,6 +394,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     static struct timeval tv1, tv2;
     gettimeofday(&tv1, NULL);
     wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
+	//mpp_log("H264 RKV FlushRegs success, g_grame_no=%d. \n", p_hal->iDecodedNum);
     gettimeofday(&tv2, NULL);
     cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
     p_hal->total_time += cur_deat;

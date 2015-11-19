@@ -294,6 +294,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
+			//mpp_log("[RKV_DEBUG]pos->info.size=%d, size=%d \n", pos->info.size, size);
             if (pos->info.size >= size) {
                 buffer = pos;
                 inc_buffer_ref_no_lock(buffer);
