@@ -49,31 +49,31 @@ const LogEnvStr_t logenv_name = {
 };
 
 const char *loglevel_name[LOG_LEVEL_MAX] = {
-    "SILENT  ",
-    "FATAL   ",
-    "ERROR   ",
+    "SILENT",
+    "FATAL",
+    "ERROR",
     "WARNNING",
-    "INFO    ",
-    "TRACE   ",
+    "INFO",
+    "TRACE",
 };
 
 const char *logctrl_name[LOG_MAX] = {
-    "DEBUG_EN      ",
-    "FPGA_MODE     ",
-    "LOG_PRINT     ",
-    "LOG_WRITE     ",
-    "RUN_PAESE     ",
-    "RUN_HAL       ",
-    "READ_NALU     ",
-    "READ_SPS      ",
-    "READ_SUBSPS   ",
-    "READ_PPS      ",
-    "READ_SLICE    ",
-    "WRITE_SPSPPS  ",
-    "WRITE_RPS     ",
+    "DEBUG_EN",
+    "FPGA_MODE",
+    "LOG_PRINT",
+    "LOG_WRITE",
+    "RUN_PAESE",
+    "RUN_HAL",
+    "READ_NALU",
+    "READ_SPS",
+    "READ_SUBSPS",
+    "READ_PPS",
+    "READ_SLICE",
+    "WRITE_SPSPPS",
+    "WRITE_RPS",
     "WRITE_SCANLIST",
-    "WRITE_STEAM   ",
-    "WRITE_REG     ",
+    "WRITE_STEAM",
+    "WRITE_REG",
 };
 
 /*!
@@ -238,7 +238,7 @@ void writelog(void *in_ctx, ...)
     pfn1 = strrchr(filename, '\\');
     pfn  = pfn0 ? (pfn0 + 1) : (pfn1 ? (pfn1 + 1) : filename);
     if (ctx->flag->print_en) {
-        mpp_log("[TAG=%s] file: %s:%d, [%s], %s", ctx->tag, pfn, line, levelname, argmsg);
+        mpp_log("[%s] file: %s:%d, [%s], %s", ctx->tag, pfn, line, levelname, argmsg);
     }
     if (ctx->fp && ctx->flag->write_en) {
         //fprintf(ctx->fp, "%s\n", argmsg);

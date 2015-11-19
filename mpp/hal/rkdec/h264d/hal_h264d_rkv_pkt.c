@@ -128,12 +128,14 @@ static void rkv_write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
     fifo_write_bits(pkt, p_hal->pp->second_chroma_qp_index_offset,              5, "second_chroma_qp_index_offset");
     fifo_write_bits(pkt, p_hal->pp->scaleing_list_enable_flag,                  1, "scaleing_list_enable_flag");
 
-    Scaleing_list_address = mpp_buffer_get_fd(p_hal->cabac_buf);
+    Scaleing_list_address = mpp_buffer_get_fd(p_hal->cabac_buf);	
+	//mpp_log("fd=%08x, offset=%d", Scaleing_list_address, offset);
     if (VPUClientGetIOMMUStatus()) {
         Scaleing_list_address |= offset << 10;
     } else {
         Scaleing_list_address += offset;
     }
+	//mpp_log("Scaleing_list_address=%08x \n", Scaleing_list_address);
 #if FPGA_TEST
     fifo_write_bits(pkt, 0, 32, "Scaleing_list_address");
 #else
@@ -190,7 +192,7 @@ MPP_RET rkv_alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
     RK_U32 pps_size   = 256 * 32 + 16;
     RK_U32 rps_size   = 128 + 16;
     RK_U32 sclst_size = 256;
-    RK_U32 regs_size  = 512;
+    RK_U32 regs_size  = sizeof(H264dRkvRegs_t);
 
 	FunctionIn(logctx->parr[RUN_HAL]);
     //!< initial packages header and malloc buffer
@@ -377,11 +379,12 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     memset(p_regs, 0, sizeof(H264dRkvRegs_t));
 	p_regs->swreg2_sysctrl.sw_dec_mode = 1;  //!< h264
 
-    if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
-        p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
-    } else {
-        p_regs->swreg5_stream_rlc_len.sw_stream_len = mpp_packet_get_length(task->dec.input_packet);
-    }
+	if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
+		p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
+	} else {
+		p_regs->swreg5_stream_rlc_len.sw_stream_len = mpp_packet_get_length(task->dec.input_packet);
+	}
+
     //!< caculate the yuv_frame_size and mv_size
     mb_width  = pp->wFrameWidthInMbsMinus1 + 1;
     mb_height = (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
@@ -410,9 +413,9 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         p_regs->swreg3_picpar.sw_uv_hor_virstride = sw_uv_hor_virstride;
     }
     sw_y_virstride = pic_h[0] * p_regs->swreg3_picpar.sw_y_hor_virstride;
-    if (sw_y_virstride > p_regs->swreg8_y_virstride.sw_y_virstride) {
-        p_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
-    }
+	if (sw_y_virstride > p_regs->swreg8_y_virstride.sw_y_virstride) {
+		p_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
+	}
     if (pp->chroma_format_idc == 0) { // YUV400
         yuv_virstride = p_regs->swreg8_y_virstride.sw_y_virstride;
     } else {
@@ -479,10 +482,11 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
 
     fifo_packet_reset(pkt);
-    fifo_write_bytes(pkt, (void *)p_hal->regs, sizeof(H264dRkvRegs_t));
+    fifo_write_bytes(pkt, (void *)p_hal->regs, 78 * sizeof(RK_U32));
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
+
 	FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 }
 

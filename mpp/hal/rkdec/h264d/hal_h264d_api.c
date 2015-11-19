@@ -188,6 +188,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
+
     //!< choose hard mode
     switch (cfg->device_id) {
     case HAL_RKVDEC:
@@ -217,7 +218,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< VPUClientInit
 #ifdef ANDROID
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = VPUClientInit(VPU_DEC);
+        p_hal->vpu_socket = VPUClientInit(VPU_DEC_RKV);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;

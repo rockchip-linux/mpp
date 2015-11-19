@@ -29,6 +29,7 @@
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
 
+
 #include "vpu_api.h"
 
 typedef union PaserTaskWait_u {
@@ -419,6 +420,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_buffer_get(mpp->mFrameGroup, &hal_buf_out, size);
         if (hal_buf_out)
             mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, hal_buf_out);
+
     }
 
     task->hal_frm_buf_out = hal_buf_out;
@@ -438,6 +440,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * send current register set to hardware
      */
     //mpp_hal_hw_start(dec->hal_ctx, &task_local);
+
+
+
 
     mpp_hal_hw_start(dec->hal, &task->info);
 
@@ -597,8 +602,9 @@ void *mpp_dec_hal_thread(void *data)
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
-
+			//mpp_log("--- task_dec->flags.eos=%d, out_frame=%d ---\n", task_dec->flags.eos, g_hal_out_frame);
             if (task_dec->flags.eos) {
+				//mpp_log("--- mpp_dec flush ---\n");
                 mpp_dec_flush(dec);
             }
 
@@ -609,7 +615,8 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 //  display = mpp_frame_get_display(frame);
                 if (!dec->reset_flag) {
-                    mpp_put_frame(mpp, frame);
+					mpp_put_frame(mpp, frame);
+					//mpp_log("g_hal_out_frame=%d \n",g_hal_out_frame++);
                 } else {
                     mpp_frame_deinit(&frame);
                 }
@@ -668,7 +675,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             MPP_CTX_DEC,
             coding,
             HAL_MODE_LIBVPU,
-            HAL_VDPU,
+            HAL_RKVDEC,
             frame_slots,
             packet_slots,
             NULL,
