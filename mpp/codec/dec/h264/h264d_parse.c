@@ -650,7 +650,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		p_Dec->p_Inp->task_valid = 1;
 		p_Dec->p_Inp->task_eos = 1;
 		LogInfo(p_Inp->p_Dec->logctx.parr[RUN_PARSE], "----- end of stream ----");
-		mpp_log("----- eos: end of stream ----\n");
+		//mpp_log("----- eos: end of stream ----\n");
 		goto __RETURN;
 	}
 	////!< check input
@@ -813,7 +813,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	p_Inp->task_valid = 0;
 	if (p_Inp->pkt_eos) {
 		LogInfo(logctx->parr[RUN_PARSE], "----- end of stream ----");
-		mpp_log("----- eos: end of stream ----\n");
+		//mpp_log("----- eos: end of stream ----\n");
 		p_Inp->task_eos = 1;
 		p_Inp->task_valid = 0;
 		return h264d_flush((void *)p_Inp->p_Dec);

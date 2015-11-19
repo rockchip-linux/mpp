@@ -825,7 +825,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         p_mark = p->mem_mark;
         //mpp_log_f(" [Write_picture] In");
 		mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &frame);	
-		mpp_log("[dispaly] layer_id %d pts %lld, g_framecnt=%d \n", p->layer_id, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
+		//mpp_log("[dispaly] layer_id %d pts %lld, g_framecnt=%d \n", p->layer_id, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
 
 		mpp_frame_set_viewid(frame, p->layer_id);
 		//if (p->layer_id == 0) {
