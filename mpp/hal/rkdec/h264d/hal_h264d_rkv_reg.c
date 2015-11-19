@@ -329,7 +329,6 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 {
-	RK_U32 i = 0;
 	RK_U32 *p_regs = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -346,15 +345,9 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 	p_regs[65] = 0;
 	p_regs[66] = 0;
 	p_regs[67] = 0x000000ff;   // disable fpga reset
-	p_regs[44] = 0;   // 0xffff_ffff, debug enable
-	p_regs[77] = 0;   // 0xffff_dfff, debug enable
+	p_regs[44] = 0;            // 0xffff_ffff, debug enable
+	p_regs[77] = 0;            // 0xffff_dfff, debug enable
 	p_regs[1]  = 0x00000021;   // run hardware
-
-	mpp_log("---input register ----- \n");
-	for (i = 0; i<77;i++ )
-	{
-		mpp_log("reg[%2d]=%08x \n", i, p_regs[i]);
-	}
 
 #ifdef ANDROID
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
@@ -379,7 +372,6 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 {
-	RK_U32 i = 0;
 	RK_U32 *ptr = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dRkvRegs_t *p_regs = NULL;
@@ -401,14 +393,8 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     p_hal->iDecodedNum++;
 	(void)wait_ret;
 #endif
-	mpp_log("---output register ----- \n");
-	ptr = (RK_U32 *)p_hal->regs;
-	for (i = 0; i<77;i++ )
-	{
-		mpp_log("reg[%2d]=%08x \n", i, ptr[i]);
-	}
 
-    p_regs = (H264dRkvRegs_t *)p_hal->regs;
+	p_regs = (H264dRkvRegs_t *)p_hal->regs;
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
