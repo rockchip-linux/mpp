@@ -129,6 +129,17 @@ typedef enum {
     MPP_CHROMA_LOC_NB,                  ///< Not part of ABI
 } MppFrameChromaLocation;
 
+/*
+ *mpp color format define
+ */
+typedef enum {
+    MPP_FMT_YUV420SP       = 0,
+    MPP_FMT_YUV420SP_10BIT = 1,
+    MPP_FMT_YUV422SP       = 2,
+    MPP_FMT_YUV422SP_10BIT = 3,                  ///< Not part of ABI
+} MppFrameFormat;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -189,6 +200,9 @@ MppFrameColorSpace mpp_frame_get_colorspace(const MppFrame frame);
 void    mpp_frame_set_colorspace(MppFrame frame, MppFrameColorSpace colorspace);
 MppFrameChromaLocation mpp_frame_get_chroma_location(const MppFrame frame);
 void    mpp_frame_set_chroma_location(MppFrame frame, MppFrameChromaLocation chroma_location);
+void    mpp_frame_set_fmt(MppFrame frame, MppFrameFormat fmt);
+MppFrameFormat mpp_frame_get_fmt(MppFrame frame);
+
 
 /*
  * HDR parameter
