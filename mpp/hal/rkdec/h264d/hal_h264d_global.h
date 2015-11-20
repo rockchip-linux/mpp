@@ -52,8 +52,8 @@ typedef struct h264d_hal_ctx_t {
     MppBufferGroup           buf_group;
     MppBuffer                cabac_buf;
     RK_S32                   vpu_socket;
-    RK_S64                   total_time;
-    RK_S64                   iDecodedNum;
+    RK_U64                   total_time;
+    RK_U64                   iDecodedNum;
 } H264dHalCtx_t;
 
 
