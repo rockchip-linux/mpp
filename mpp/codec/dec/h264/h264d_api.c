@@ -463,7 +463,7 @@ MPP_RET h264d_deinit(void *decoder)
 
     INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-
+	h264d_flush(decoder);
     free_input_ctx(p_Dec->p_Inp);
     MPP_FREE(p_Dec->p_Inp);
     free_cur_ctx(p_Dec->p_Cur);
@@ -751,9 +751,14 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         //mpp_log_f("[PARSE_OUT] line=%d, g_framecnt=%d",__LINE__, p_Dec->p_Vid->g_framecnt++/*in_task->g_framecnt*/);
         //LogTrace(p_Dec->logctx.parr[RUN_PARSE], "[PARSE_OUT] line=%d, g_framecnt=%d", __LINE__, p_Dec->p_Vid->g_framecnt);
 		//FPRINT(g_debug_file0, "[PARSE_END] g_framecnt=%d \n", p_Dec->p_Vid->g_framecnt);
-
+		if (in_task->flags.eos)	{
+			h264d_flush(decoder);
+		}
 		p_Dec->p_Vid->g_framecnt++;
     }
+
+
+
 
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);

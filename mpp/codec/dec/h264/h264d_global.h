@@ -197,6 +197,7 @@ typedef enum {
 typedef struct h264_dpb_mark_t {
     RK_U8    top_used;
     RK_U8    bot_used;
+	RK_U8    out_flag;
     RK_U8    mark_idx;
     RK_U8    *pbuf;
     MppFrame frame;
