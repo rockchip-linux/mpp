@@ -149,7 +149,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots  = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
-    HalDecTask *task_dec = &task->info.dec;
+    HalDecTask *task_dec = &task->info.dec;	
 
     if (!task->status.prev_task_rdy) {
         HalTaskHnd task_prev = NULL;
@@ -204,6 +204,16 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
     dec_task_init(task);
 
     return MPP_OK;
+}
+
+static void mpp_put_frame(Mpp *mpp, MppFrame frame)
+{
+	mpp_list *list = mpp->mFrames;
+	list->lock();
+	list->add_at_tail(&frame, sizeof(frame));
+	mpp->mFramePutCount++;
+	list->signal();
+	list->unlock();
 }
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
@@ -337,6 +347,22 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
+	if (task_dec->flags.eos && task_dec->valid == 0) {
+		RK_S32 index;
+		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+			MppFrame frame;
+			RK_U32 display;
+			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+			display = mpp_frame_get_display(frame);
+			if (!dec->reset_flag) {
+				mpp_put_frame(mpp, frame);
+			} else {
+				mpp_frame_deinit(&frame);
+			}
+			mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+		}
+	}
+
     if (!task->status.task_parsed_rdy) {
         parser_parse(dec->parser, task_dec);
         task->status.task_parsed_rdy = 1;
@@ -467,15 +493,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     return MPP_OK;
 }
 
-static void mpp_put_frame(Mpp *mpp, MppFrame frame)
-{
-    mpp_list *list = mpp->mFrames;
-    list->lock();
-    list->add_at_tail(&frame, sizeof(frame));
-    mpp->mFramePutCount++;
-    list->signal();
-    list->unlock();
-}
+
 
 void *mpp_dec_parser_thread(void *data)
 {
@@ -496,7 +514,7 @@ void *mpp_dec_parser_thread(void *data)
 
     dec_task_init(&task);
 
-    while (MPP_THREAD_RUNNING == parser->get_status()) {
+    while (MPP_THREAD_RUNNING == parser->get_status()) {		
         /*
          * wait for stream input
          */
@@ -510,10 +528,12 @@ void *mpp_dec_parser_thread(void *data)
             parser->wait();
         parser->unlock();
 
+
         if (try_proc_dec_task(mpp, &task))
             continue;
+		
     }
-
+	
     if (NULL != task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
@@ -542,7 +562,7 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
-
+	
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
@@ -560,6 +580,7 @@ void *mpp_dec_hal_thread(void *data)
              * check info change flag
              * if this is a info change frame, only output the mpp_frame for info change.
              */
+
             if (task_dec->flags.info_change) {
                 MppFrame info_frame = NULL;
                 mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
@@ -572,11 +593,7 @@ void *mpp_dec_hal_thread(void *data)
                 continue;
                 mpp->mThreadCodec->signal();
             }
-
             mpp_hal_hw_wait(dec->hal, &task_info);
-
-
-
             /*
              * when hardware decoding is done:
              * 1. clear decoding flag (mark buffer is ready)
@@ -594,6 +611,7 @@ void *mpp_dec_hal_thread(void *data)
             // TODO: may have risk here
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
             task = NULL;
+
             mpp->mThreadCodec->signal();
 
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -622,7 +640,7 @@ void *mpp_dec_hal_thread(void *data)
                 }
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
-        }
+        }		
     }
 
     return NULL;
@@ -741,6 +759,7 @@ MPP_RET mpp_dec_reset(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
     dec->reset_flag = 1;
+	
     // parser_reset(dec->parser);
     //  mpp_hal_reset(dec->hal);
 

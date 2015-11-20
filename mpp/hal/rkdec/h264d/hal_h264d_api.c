@@ -177,9 +177,10 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
 //extern "C"
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
+	MppHalApi *p_api = NULL;
+	VPU_CLIENT_TYPE vpu_client;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    MppHalApi *p_api = NULL;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
@@ -200,6 +201,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = rkv_h264d_reset;
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
+		vpu_client = VPU_DEC_RKV;
         break;
     case HAL_VDPU:
         p_api->init    = vdpu_h264d_init;
@@ -210,6 +212,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu_h264d_reset;
         p_api->flush   = vdpu_h264d_flush;
         p_api->control = vdpu_h264d_control;
+		vpu_client = VPU_DEC;
     default:
         break;
     }
@@ -218,7 +221,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< VPUClientInit
 #ifdef ANDROID
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = VPUClientInit(VPU_DEC_RKV);
+        p_hal->vpu_socket = VPUClientInit(vpu_client);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;

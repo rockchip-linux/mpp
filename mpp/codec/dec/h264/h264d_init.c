@@ -393,7 +393,8 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 comb
         ASSERT(idx <= MAX_MARK_SIZE);
         mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
         cur_mark = &p_mark[idx];
-
+		
+		cur_mark->out_flag = 1;
 		if(p_Vid->g_framecnt == 255)
 		{
 			idx = idx;

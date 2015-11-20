@@ -821,8 +821,10 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 {
     H264_DpbMark_t *p_mark = NULL;
 	MppFrame frame;
-    if (p->mem_malloc_type == Mem_Malloc /*|| p->mem_malloc_type == Mem_Clone*/) {
-        p_mark = p->mem_mark;
+
+	p_mark = p->mem_mark;
+    if (p->mem_malloc_type == Mem_Malloc && p_mark->out_flag) {
+        
         //mpp_log_f(" [Write_picture] In");
 		mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &frame);	
 		//mpp_log("[dispaly] layer_id %d pts %lld, g_framecnt=%d \n", p->layer_id, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
@@ -836,7 +838,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 			mpp_frame_set_display(frame, 1);			
 		}
 		p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
-
+		p_mark->out_flag = 0;
 		mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
 		mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
 

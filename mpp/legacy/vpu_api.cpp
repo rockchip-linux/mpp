@@ -145,6 +145,7 @@ static RK_S32 vpu_api_encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm,
 
 static RK_S32 vpu_api_flush(VpuCodecContext *ctx)
 {
+
     if (ctx == NULL) {
         mpp_log("vpu_api_encode fail, input invalid");
         return VPU_API_ERR_UNKNOW;
@@ -325,6 +326,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     }
 #endif
     if (s) {
+		 s->flush(s);
         VpuApi* api = (VpuApi*)(s->vpuApiObj);
         if (s->vpuApiObj) {
             delete api;
