@@ -381,7 +381,7 @@ __FAILED:
 static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 combine_flag, RK_S32 layer_id)
 {
     RK_U8 idx = 1;
-    H264_DpbMark_t *cur_mark = NULL;
+	H264_DpbMark_t *cur_mark = NULL;
     H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
     H264_DpbMark_t *p_mark = p_Vid->p_Dec->dpb_mark;
 
@@ -403,12 +403,21 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 comb
         //mpp_print_slot_flag_info(g_debug_file1, p_Dec->frame_slots, cur_mark->slot_idx);
 		//mpp_log("[Malloc] lay_id=%d, g_framecnt=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", layer_id, 
 		//	p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, p_Vid->p_Inp->in_pts);
+		if((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP);
+		} else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP_10BIT);
+			mpp_log_f(" alloc_picture ----- MPP_FMT_YUV420SP_10BIT ------ \n");
+		} else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP);
+		} else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP_10BIT);
+		}
+		mpp_frame_set_hor_stride(cur_mark->frame, ((p_Vid->width * p_Vid->bit_depth_luma) >> 3));  // before crop
+		mpp_frame_set_width(cur_mark->frame, ((p_Vid->width_after_crop * p_Vid->bit_depth_luma)>>3));  // after crop
 
-        mpp_frame_set_hor_stride(cur_mark->frame, p_Vid->width);  // before crop
-        mpp_frame_set_ver_stride(cur_mark->frame, p_Vid->height);
-        mpp_frame_set_width(cur_mark->frame, p_Vid->width_after_crop);  // after crop
-        mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
-
+		mpp_frame_set_ver_stride(cur_mark->frame, p_Vid->height);
+		mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
 
 		mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
 		mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);

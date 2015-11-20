@@ -393,11 +393,14 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 	VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
     static struct timeval tv1, tv2;
     gettimeofday(&tv1, NULL);
-    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
-	//mpp_log("H264 RKV FlushRegs success, g_grame_no=%d. \n", p_hal->iDecodedNum);
+    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);	
     gettimeofday(&tv2, NULL);
     cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
     p_hal->total_time += cur_deat;
+
+	//mpp_log("H264 RKV FlushRegs success, dec_no=%lld, time=%d ms, av_time=%lld ms. \n", 
+	//	p_hal->iDecodedNum, cur_deat, p_hal->total_time/(p_hal->iDecodedNum + 1));
+	//ALOGI("dec %lld frame time %d ms,average time %lld ms",decNum,deat,total/decNum);
     p_hal->iDecodedNum++;
 	(void)wait_ret;
 #endif

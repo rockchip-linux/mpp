@@ -356,7 +356,9 @@ static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
 
     p_Vid->width = p_Vid->PicWidthInMbs * 16;
     p_Vid->height = p_Vid->FrameHeightInMbs * 16;
-
+	p_Vid->bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
+	p_Vid->bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+	
     if (p_Vid->yuv_format == YUV420) {
         p_Vid->width_cr = (p_Vid->width >> 1);
         p_Vid->height_cr = (p_Vid->height >> 1);

@@ -946,6 +946,8 @@ typedef struct h264d_video_ctx_t {
     RK_U32     PicWidthInMbs;
     RK_U32     FrameHeightInMbs;
     RK_S32     yuv_format;
+	RK_U32     bit_depth_chroma;
+	RK_U32     bit_depth_luma;
     RK_S32     width;
     RK_S32     height;
     RK_U32     width_after_crop;
