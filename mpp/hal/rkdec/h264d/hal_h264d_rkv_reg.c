@@ -280,6 +280,7 @@ __FAILED:
 //extern "C"
 MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
+	RK_U32 i = 0;
 	RK_U32 hw_base = 0;
     RK_U32 strm_offset = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -298,11 +299,12 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 	hw_base = mpp_buffer_get_fd(p_hal->cabac_buf);
     //!< copy datas
     strm_offset = RKV_CABAC_TAB_SIZE;
-
-    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
+	for (i = 0; i < 256; i++)	{
+		mpp_buffer_write(p_hal->cabac_buf, (strm_offset + 32 * i), (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
+	}
 	p_regs->swreg42_pps_base.sw_pps_base = hw_base + (strm_offset<<10);
-
     strm_offset += RKV_SPSPPS_SIZE;
+
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
 	p_regs->swreg43_rps_base.sw_rps_base = hw_base + (strm_offset<<10);
 
@@ -400,7 +402,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 
 	//mpp_log("H264 RKV FlushRegs success, dec_no=%lld, time=%d ms, av_time=%lld ms. \n", 
 	//	p_hal->iDecodedNum, cur_deat, p_hal->total_time/(p_hal->iDecodedNum + 1));
-	//ALOGI("dec %lld frame time %d ms,average time %lld ms",decNum,deat,total/decNum);
+
     p_hal->iDecodedNum++;
 	(void)wait_ret;
 #endif
