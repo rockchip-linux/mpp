@@ -209,7 +209,7 @@ MPP_RET fifo_packet_alloc(FifoCtx_t *pkt, RK_S32 header, RK_S32 size)
     pkt->buflen = (pkt->size + 7) / 8;  // align 64bit
     pkt->pbuf   = NULL;
     if (pkt->buflen) {
-        pkt->pbuf = mpp_malloc(RK_U64, pkt->buflen);
+        pkt->pbuf = mpp_calloc(RK_U64, pkt->buflen);
         MEM_CHECK(ret, pkt->pbuf);
     }
 
