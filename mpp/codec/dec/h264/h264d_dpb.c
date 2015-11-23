@@ -120,6 +120,18 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
     } else {
         size = MPP_MIN(size, 16);
     }
+	if (active_sps->vui_parameters_present_flag && active_sps->vui_seq_parameters.bitstream_restriction_flag) {
+		RK_U32 size_vui;
+		if ((RK_U32)active_sps->vui_seq_parameters.max_dec_frame_buffering > size) {
+			//mpp_log("max_dec_frame_buffering larger than MaxDpbSize");
+		}
+		size_vui = MPP_MAX (1, active_sps->vui_seq_parameters.max_dec_frame_buffering);
+
+		if(size_vui < size) {
+			//mpp_log("Warning: max_dec_frame_buffering(%d) is less than DPB size(%d) calculated from Profile/Level.\n", size_vui, size);
+		}
+		size = size_vui;
+	}
 
     return size;
 }
@@ -829,6 +841,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &frame);	
 		//mpp_log("[dispaly] layer_id %d pts %lld, g_framecnt=%d \n", p->layer_id, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
 
+
 		mpp_frame_set_viewid(frame, p->layer_id);
 		//if (p->layer_id == 0) {
 		//	mpp_frame_set_display(frame, 0);
@@ -842,12 +855,13 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
 		mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
 
-        FPRINT(g_debug_file0, "[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", 
-			p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
-        //mpp_print_slot_flag_info(g_debug_file1, p_Vid->p_Dec->frame_slots, p_mark->slot_idx);
-        //mpp_log_f(" [Write_picture] Out");
+  //      FPRINT(g_debug_file0, "[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", 
+		//	p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
 
-        LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[WRITE_PICTURE] g_frame_cnt=%d", p_Vid->g_framecnt);
+		//mpp_log("[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", 
+			p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
+
+        //LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[WRITE_PICTURE] g_frame_cnt=%d", p_Vid->g_framecnt);
     }
 
 }
@@ -1600,10 +1614,11 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     }
     p_Dpb->size = getDpbSize(p_Vid, active_sps) + (type == 2 ? 0 : 1);
     p_Dpb->num_ref_frames = active_sps->max_num_ref_frames;
-    if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
-        LogError(runlog, "DPB size at specified level is smaller than reference frames");
-        goto __FAILED;
-    }
+	if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
+		//mpp_log("DPB size at specified level is smaller than reference frames");
+		//LogError(runlog, "DPB size at specified level is smaller than reference frames");
+		//goto __FAILED;
+	}
     p_Dpb->used_size = 0;
     p_Dpb->last_picture = NULL;
     p_Dpb->ref_frames_in_buffer = 0;
