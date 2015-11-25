@@ -37,7 +37,6 @@
                     mpp_log(fmt, ## __VA_ARGS__); \
              } while (0)
 
-extern RK_U32 mpp_debug;
 #define mpp_dbg(flag, fmt, ...) _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
 
 /*
@@ -52,6 +51,11 @@ extern RK_U32 mpp_debug;
             } while (0)
 
 #define mpp_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_debug, flag, fmt, ## __VA_ARGS__)
+
+
+#define MPP_HAL_TIMING                  (0x00000001)
+
+extern RK_U32 mpp_debug;
 
 /*
  * mpp_dbg usage:
@@ -89,6 +93,7 @@ extern RK_U32 mpp_debug;
 #else
 #define mpp_abort()
 #endif
+
 
 #define MPP_STRINGS(x)      MPP_TO_STRING(x)
 #define MPP_TO_STRING(x)    #x
