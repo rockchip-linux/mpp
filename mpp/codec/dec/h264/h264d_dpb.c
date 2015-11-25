@@ -121,8 +121,8 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
         size = MPP_MIN(size, 16);
     }
 	if (active_sps->vui_parameters_present_flag && active_sps->vui_seq_parameters.bitstream_restriction_flag) {
-		RK_U32 size_vui;
-		if ((RK_U32)active_sps->vui_seq_parameters.max_dec_frame_buffering > size) {
+		RK_S32 size_vui = 0;
+		if ((RK_S32)active_sps->vui_seq_parameters.max_dec_frame_buffering > size) {
 			//mpp_log("max_dec_frame_buffering larger than MaxDpbSize");
 		}
 		size_vui = MPP_MAX (1, active_sps->vui_seq_parameters.max_dec_frame_buffering);
@@ -859,7 +859,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		//	p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
 
 		//mpp_log("[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", 
-			//p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
+		//	p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
 
         //LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[WRITE_PICTURE] g_frame_cnt=%d", p_Vid->g_framecnt);
     }

@@ -836,6 +836,7 @@ typedef struct h264d_input_ctx_t {
 
 	RK_S64 in_pts;
 	RK_S64 in_dts;
+	RK_U8  has_get_eos;
     //!< output data
     RK_U8  *out_buf;
     RK_U32 out_length;

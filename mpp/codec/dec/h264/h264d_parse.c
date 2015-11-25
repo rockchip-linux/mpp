@@ -54,17 +54,20 @@ static RK_U32 U32_AT(const RK_U8 *ptr)
 	return ptr[0] << 24 | ptr[1] << 16 | ptr[2] << 8 | ptr[3];
 }
 
-static RK_U32 parse_nal_size(RK_U8 nal_size, RK_U8 *data) 
+static RK_U64 parse_nal_size(RK_U8 nal_size, RK_U8 *data) 
 {
+	RK_U64 ret_size = 0;
 	switch (nal_size) {
 	case 1:
 		return *data;
 	case 2:
 		return U16_AT(data);
 	case 3:
-		return ((RK_U32)data[0] << 16) | U16_AT(&data[1]);
+		return ((RK_U64)data[0] << 16) | U16_AT(&data[1]);
 	case 4:
-		return U32_AT(data);
+		ret_size = U32_AT(data);
+		//mpp_log("xxxxx ret_size=%lld \n", ret_size, ret_size);
+		return ret_size;
 	}
 	return 0;
 }
@@ -102,6 +105,7 @@ static MPP_RET realloc_buffer(RK_U8 **buf, RK_U32 *max_size, RK_U32 add_size)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 	add_size = MPP_ALIGN(add_size, 16);
+	//mpp_log("xxxxxxxx max_size=%d, add_size=%d \n",(*max_size), add_size);
     (*buf) = mpp_realloc((*buf), RK_U8, ((*max_size) + add_size));
     MEM_CHECK(ret, (*buf));
     (*max_size) += add_size;
@@ -208,14 +212,14 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     //  g_debug_file1 = fopen("rk_debugfile_view1.txt", "wb");
     //}
     //FPRINT(g_debug_file1, "g_nalu_cnt = %d, nal_unit_type = %d, nalu_size = %d\n", g_nalu_cnt++, cur_nal->nal_unit_type, cur_nal->sodb_len);
-    /*  if((cur_nal->nal_unit_type == NALU_TYPE_SLICE)
-    || (cur_nal->nal_unit_type == NALU_TYPE_IDR)
-    || (cur_nal->nal_unit_type == NALU_TYPE_SPS)
-    || (cur_nal->nal_unit_type == NALU_TYPE_PPS)
-    || (cur_nal->nal_unit_type == NALU_TYPE_SUB_SPS)
-    || (cur_nal->nal_unit_type == NALU_TYPE_SEI))*/{
-        //FPRINT(g_debug_file0, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt0++, cur_nal->nal_unit_type, cur_nal->sodb_len);
-    }
+	//if((cur_nal->nal_unit_type == NALU_TYPE_SLICE)
+	//	|| (cur_nal->nal_unit_type == NALU_TYPE_IDR)
+	//	|| (cur_nal->nal_unit_type == NALU_TYPE_SPS)
+	//	|| (cur_nal->nal_unit_type == NALU_TYPE_PPS)
+	//	|| (cur_nal->nal_unit_type == NALU_TYPE_SUB_SPS)
+	//	|| (cur_nal->nal_unit_type == NALU_TYPE_SEI)){
+ //       FPRINT(g_debug_file0, "g_nalu_cnt=%d, nal_type=%d, sodb_len=%d \n", g_nalu_cnt0++, cur_nal->nal_unit_type, cur_nal->sodb_len);
+ //   }
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
     if ((cur_nal->nal_unit_type == NALU_TYPE_PREFIX) || (cur_nal->nal_unit_type == NALU_TYPE_SLC_EXT)) {
@@ -296,7 +300,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         LogTrace(runlog, "nalu_type=SUB_SPS");
         break;
     case NALU_TYPE_SEI:
-        FUN_CHECK(ret = process_sei(currSlice));
+        //FUN_CHECK(ret = process_sei(currSlice));
         LogTrace(runlog, "nalu_type=SEI");
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
@@ -446,7 +450,7 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
         || (p_strm->nal_unit_type == NALU_TYPE_PREFIX)
         || (p_strm->nal_unit_type == NALU_TYPE_SLC_EXT)) {
 		add_size = MPP_MAX(HEAD_BUF_ADD_SIZE, p_strm->nalu_len);
-        if ((p_strm->head_offset + add_size) >= p_strm->head_max_size) {            
+        if ((p_strm->head_offset + add_size) >= p_strm->head_max_size) {     
             FUN_CHECK(ret = realloc_buffer(&p_strm->head_buf, &p_strm->head_max_size, add_size));
         }
         p_des = &p_strm->head_buf[p_strm->head_offset];
@@ -465,7 +469,7 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
     if ((p_strm->nal_unit_type == NALU_TYPE_SLICE)
         || (p_strm->nal_unit_type == NALU_TYPE_IDR)) {
 		 add_size = MPP_MAX(SODB_BUF_ADD_SIZE, p_strm->nalu_len);
-        if ((dxva_ctx->strm_offset + add_size) >= dxva_ctx->max_strm_size) {           
+        if ((dxva_ctx->strm_offset + add_size) >= dxva_ctx->max_strm_size) {      
             realloc_buffer(&dxva_ctx->bitstream, &dxva_ctx->max_strm_size, add_size);
 			//mpp_log("relloc_buffer over \n");
         }
@@ -643,6 +647,9 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	FunctionIn(logctx->parr[RUN_PARSE]);
 	p_Dec->nalu_ret = NALU_NULL;
 	p_Inp->task_valid = 0;
+
+
+
 	//!< check eos
 	if (p_Inp->pkt_eos) {
 		FUN_CHECK(ret = store_cur_nalu(&p_Cur->strm, p_Dec->dxva_ctx));
@@ -694,8 +701,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		if (p_strm->endcode_found) {
 			p_strm->nalu_len -= START_PREFIX_3BYTE;
 			//!< find non-zeros byte
-			while (p_strm->nalu_buf[p_strm->nalu_len - 1] == 0x00) { 
-				p_strm->nalu_len--;
+			while (p_strm->nalu_buf[p_strm->nalu_len - 1] == 0x00) { 				p_strm->nalu_len--;
 				break;
 			}			
 			p_Dec->nalu_ret = EndOfNalu;
@@ -734,7 +740,7 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	H264dCurStream_t *p_strm = &p_Cur->strm;
 
 	RK_U8 *pdata = p_Inp->in_buf;
-	RK_U32 extrasize = p_Inp->in_length;
+	RK_U64 extrasize = p_Inp->in_length;
 
 	FunctionIn(logctx->parr[RUN_PARSE]);	
 	//!< free nalu_buffer
@@ -785,7 +791,7 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	//mpp_log("profile=%d, level=%d, nal_size=%d, sps_num=%d, pps_num=%d \n", p_Inp->profile, 
 	//	p_Inp->level, p_Inp->nal_size, p_Inp->sps_num, p_Inp->pps_num);
 
-__RETURN:
+//__RETURN:
 	FunctionOut(logctx->parr[RUN_PARSE]);
 
 	return ret = MPP_OK;
@@ -808,7 +814,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	H264dCurStream_t *p_strm = &p_Cur->strm;
 
 	RK_U8 *pdata = p_Inp->in_buf;
-	RK_U32 extrasize = p_Inp->in_length;
+	RK_U64 extrasize = p_Inp->in_length;
 
 	FunctionIn(logctx->parr[RUN_PARSE]);
 	p_Inp->task_valid = 0;
@@ -817,14 +823,18 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		//mpp_log("----- eos: end of stream ----\n");
 		p_Inp->task_eos = 1;
 		p_Inp->task_valid = 0;
+		//goto __EOS_RETRUN;
 		return h264d_flush((void *)p_Inp->p_Dec);
 	}
 	VAL_CHECK(ret, (p_Inp->nal_size > 0));
 	//mpp_log("in_length=%d, %02x, %02x, %02x, %02x, %02x, %02x \n", p_Inp->in_length,
 	//	pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5]);
 	while(strm_offset < p_Inp->in_length) {
-		VAL_CHECK(ret, (strm_offset + p_Inp->nal_size < p_Inp->in_length));
-		p_strm->nalu_len = parse_nal_size(p_Inp->nal_size, pdata);
+		RK_U64 nalu_len = 0;
+		nalu_len = parse_nal_size(p_Inp->nal_size, pdata);
+		VAL_CHECK(ret, (nalu_len > 0));
+		VAL_CHECK(ret, ((strm_offset + p_Inp->nal_size + nalu_len) <= p_Inp->in_length));
+		p_strm->nalu_len = nalu_len;
 		p_strm->nal_unit_type = NALU_TYPE_SLICE;
 		pdata += p_Inp->nal_size;
 		strm_offset += p_Inp->nal_size;
@@ -835,24 +845,27 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		pdata += p_strm->nalu_len;
 		strm_offset += p_strm->nalu_len;
 	}
-	p_strm->nalu_buf = NULL;
+
+//__EOS_RETRUN:	
 	//!< one frame end
 	FUN_CHECK(ret = add_empty_nalu(p_strm));
+	p_Inp->task_valid = 1;
+//__RETURN:
+	FunctionOut(logctx->parr[RUN_PARSE]);
+	ret = MPP_OK;	
+__FAILED:
+	p_strm->nalu_len = 0;
+	p_Cur->curr_dts  = p_Inp->in_dts;
+	p_Cur->curr_pts  = p_Inp->in_pts;
+	p_Cur->last_dts  = p_Cur->curr_dts;
+	p_Cur->last_pts  = p_Cur->curr_pts;
+
+	p_strm->nalu_buf  = NULL;
 	(*p_Inp->in_size) = 0;
 	p_strm->head_offset = 0;
 	p_strm->nalu_offset = 0;
-	p_Inp->p_Dec->nalu_ret = HaveNoStream;
-	p_Inp->task_valid = 1;
-	p_Cur->curr_dts = p_Inp->in_dts;
-	p_Cur->curr_pts = p_Inp->in_pts;
-	p_Cur->last_dts = p_Cur->curr_dts;
-	p_Cur->last_pts = p_Cur->curr_pts;
+	p_Inp->p_Dec->nalu_ret = HaveNoStream;	
 
-__RETURN:
-	FunctionOut(logctx->parr[RUN_PARSE]);
-
-	return ret = MPP_OK;
-__FAILED:
 	return ret;
 }
 

@@ -216,6 +216,8 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 	list->unlock();
 }
 
+
+
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
     MppDec *dec = mpp->mDec;
@@ -286,6 +288,23 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             dec->mpp_pkt_in = NULL;
         }
     }
+
+	if (task_dec->flags.eos && task_dec->valid == 0) {
+		RK_S32 index;
+				
+		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+			MppFrame frame;
+			RK_U32 display;
+			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+			display = mpp_frame_get_display(frame);
+			if (!dec->reset_flag) {
+				mpp_put_frame(mpp, frame);
+			} else {
+				mpp_frame_deinit(&frame);
+			}
+			mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+		}
+	}
 
     task->status.curr_task_rdy = task_dec->valid;
     if (!task->status.curr_task_rdy)
@@ -388,6 +407,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
         }
     }
+
     task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
     if (task->wait.info_change) {
         return MPP_NOK;
@@ -467,10 +487,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      */
     //mpp_hal_hw_start(dec->hal_ctx, &task_local);
 
-
-
-
     mpp_hal_hw_start(dec->hal, &task->info);
+
+
+
+	//mpp_log("[Cal_time] time=%d ms. \n", cur_deat);
 
     /*
      * 6. send dxva output information and buffer information to hal thread
@@ -521,16 +542,13 @@ void *mpp_dec_parser_thread(void *data)
         if (dec->reset_flag) {
             if (reset_dec_task(mpp, &task))
                 continue;
-        }
-
+		}
         parser->lock();
         if (check_task_wait(dec, &task))
             parser->wait();
         parser->unlock();
-
-
         if (try_proc_dec_task(mpp, &task))
-            continue;
+            continue;		
 		
     }
 	
@@ -603,7 +621,7 @@ void *mpp_dec_hal_thread(void *data)
 			gettimeofday(&tv2, NULL);
 			cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
 			total_time += cur_deat;
-			//mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
+//			mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
 			dec_no++;
 			tv1 = tv2;
 #endif
@@ -655,7 +673,7 @@ void *mpp_dec_hal_thread(void *data)
             }
         }		
     }
-
+		//mpp_log("------- hal thread end ----------- \n");
     return NULL;
 }
 

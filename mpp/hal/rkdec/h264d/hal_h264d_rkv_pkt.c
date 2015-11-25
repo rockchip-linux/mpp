@@ -359,17 +359,9 @@ void rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
 //extern "C"
 void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 {
-    RK_S32 i = 0;
+    RK_S32 i = 0;	
     MppBuffer frame_buf = NULL;
 	MppBuffer bitstream_buf = NULL;
-    RK_U8 bit_depth[3] = { 0 };
-    RK_U32 sw_y_hor_virstride = 0;
-    RK_U32 sw_uv_hor_virstride = 0;
-    RK_U32 sw_y_virstride = 0;
-    RK_U32 yuv_virstride = 0;
-    RK_U32 pic_h[3] = { 0 }, pic_w[3] = { 0 };
-    RK_U32 mb_width = 0, mb_height = 0, mv_size = 0;
-
     H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
@@ -382,50 +374,44 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 	if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
 		p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
 	} else {
-		p_regs->swreg5_stream_rlc_len.sw_stream_len = mpp_packet_get_length(task->dec.input_packet);
+		p_regs->swreg5_stream_rlc_len.sw_stream_len = (RK_U32)mpp_packet_get_length(task->dec.input_packet);
 	}
+	//!< caculate the yuv_frame_size 
+	{
+		MppFrame cur_frame = NULL;
+		RK_U32 hor_virstride = 0;
+		RK_U32 ver_virstride = 0;
+		RK_U32 y_virstride = 0;
+		RK_U32 yuv_virstride = 0;
 
-    //!< caculate the yuv_frame_size and mv_size
-    mb_width  = pp->wFrameWidthInMbsMinus1 + 1;
-    mb_height = (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
-    mv_size = mb_width * mb_height * 8; // 64bit per 4x4
-    bit_depth[0] = pp->bit_depth_luma_minus8 + 8;
-    if (pp->chroma_format_idc) { // Y420 Y422
-        bit_depth[1] = pp->bit_depth_chroma_minus8 + 8;
-    } else { //!< Y400
-        bit_depth[1] = 0;
-    }
-    pic_h[0] = mb_height * 16;
-    if (pp->chroma_format_idc == 2) { // Y422
-        pic_h[1] = mb_height * 16;
-    } else { //!< Y420
-        pic_h[1] = mb_height * 8;
-    }
-    pic_w[0] = mb_width * 16;
-    pic_w[1] = mb_width * 16;
-    sw_y_hor_virstride  = ((pic_w[0] * bit_depth[0] + 127) & (~127)) / 128;
-    sw_uv_hor_virstride = ((pic_w[1] * bit_depth[1] + 127) & (~127)) / 128;
+		mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_FRAME, &cur_frame); 
+		hor_virstride = mpp_frame_get_hor_stride(cur_frame);
+		ver_virstride = mpp_frame_get_ver_stride(cur_frame);
+		y_virstride = hor_virstride * ver_virstride;
 
-    if (sw_y_hor_virstride > p_regs->swreg3_picpar.sw_y_hor_virstride) {
-        p_regs->swreg3_picpar.sw_y_hor_virstride = sw_y_hor_virstride;
-    }
-    if (sw_uv_hor_virstride > p_regs->swreg3_picpar.sw_uv_hor_virstride) {
-        p_regs->swreg3_picpar.sw_uv_hor_virstride = sw_uv_hor_virstride;
-    }
-    sw_y_virstride = pic_h[0] * p_regs->swreg3_picpar.sw_y_hor_virstride;
-	if (sw_y_virstride > p_regs->swreg8_y_virstride.sw_y_virstride) {
-		p_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
+		if (pp->chroma_format_idc == 0) { //!< Y400
+			yuv_virstride = y_virstride;
+		} else if (pp->chroma_format_idc == 1) { //!< Y420
+			yuv_virstride += y_virstride + y_virstride / 2;
+		} else if (pp->chroma_format_idc == 2) { //!< Y422
+			yuv_virstride += 2 * y_virstride;
+		}
+		p_regs->swreg3_picpar.sw_y_hor_virstride  = hor_virstride/16;
+		p_regs->swreg3_picpar.sw_uv_hor_virstride = hor_virstride/16;
+		p_regs->swreg8_y_virstride.sw_y_virstride = y_virstride/16;
+		p_regs->swreg9_yuv_virstride.sw_yuv_virstride = yuv_virstride/16;
+		//mpp_log("$$$$$$$$ hor_stride=%d, y_stride=%d, yuv_stride=%d \n", p_regs->swreg3_picpar.sw_y_hor_virstride,
+		//	p_regs->swreg8_y_virstride.sw_y_virstride, p_regs->swreg9_yuv_virstride.sw_yuv_virstride);
 	}
-    if (pp->chroma_format_idc == 0) { // YUV400
-        yuv_virstride = p_regs->swreg8_y_virstride.sw_y_virstride;
-    } else {
-        yuv_virstride = pic_h[0] * p_regs->swreg3_picpar.sw_y_hor_virstride +
-                        pic_h[1] * p_regs->swreg3_picpar.sw_uv_hor_virstride;
-    }
-    if (yuv_virstride > p_regs->swreg9_yuv_virstride.sw_yuv_virstride) {
-        p_regs->swreg9_yuv_virstride.sw_yuv_virstride = yuv_virstride;
-    }
-    p_regs->compare_len = (p_regs->swreg9_yuv_virstride.sw_yuv_virstride + mv_size) * 2;
+	//!< caculate mv_size
+	{
+		RK_U32 mb_width = 0, mb_height = 0, mv_size = 0;		
+		mb_width  = pp->wFrameWidthInMbsMinus1 + 1;
+		mb_height = (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
+		mv_size = mb_width * mb_height * 8; // 64bit per 4x4
+		p_regs->compare_len = (p_regs->swreg9_yuv_virstride.sw_yuv_virstride + mv_size) * 2;
+	}
+   
     if (p_regs->swreg2_sysctrl.sw_h264_rps_mode) { // rps_mode == 1
         p_regs->swreg43_rps_base.sw_rps_base += 0x8;
     }
@@ -435,18 +421,20 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     p_regs->swreg40_cur_poc.sw_cur_poc = pp->CurrFieldOrderCnt[0];
     p_regs->swreg74_h264_cur_poc1.sw_h264_cur_poc1 = pp->CurrFieldOrderCnt[1];
     mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+
 #if FPGA_TEST
 	p_regs->swreg7_decout_base.sw_decout_base = pp->CurrPic.Index7Bits + 1;
 #else
     p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf);
 #endif
+
     //!< set reference
     for (i = 0; i < 15; i++) {
-        p_regs->swreg25_39_refer0_14_poc[i] = (i & 1) ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
+        p_regs->swreg25_39_refer0_14_poc[i]  = (i & 1) ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
         p_regs->swreg49_63_refer15_29_poc[i] = (i & 1) ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
         p_regs->swreg10_24_refer0_14_base[i].sw_ref_field = (pp->RefPicFiledFlags >> i) & 0x01;
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_topfield_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_botfield_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
+        p_regs->swreg10_24_refer0_14_base[i].sw_ref_topfield_used  = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
+        p_regs->swreg10_24_refer0_14_base[i].sw_ref_botfield_used  = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
         p_regs->swreg10_24_refer0_14_base[i].sw_ref_colmv_use_flag = (pp->RefPicColmvUsedFlags >> i) & 0x01;
 
         if (pp->RefFrameList[i].bPicEntry == 0xff) {
@@ -473,16 +461,27 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     }
 #if FPGA_TEST
     p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
+	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = 0;
+	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = 0;
 #else
     p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
-#endif
 	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
-
 	mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
+#endif
+	
+
+	//{
+	//	RK_U32 *ptr = (RK_U32*)p_hal->regs;
+	//	for (i = 0; i < 80; i++)
+	//	{
+	//		FPRINT(g_debug_file1, "register[%3d] = %08x\n", i, ptr[i]);
+	//	}
+	//	FPRINT(g_debug_file1, "-----frame=%d----------\n", p_hal->iDecodedNum);
+	//}	
 
     fifo_packet_reset(pkt);
-    fifo_write_bytes(pkt, (void *)p_hal->regs, 78 * sizeof(RK_U32));
+    fifo_write_bytes(pkt, (void *)p_hal->regs, 80 * sizeof(RK_U32));
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
