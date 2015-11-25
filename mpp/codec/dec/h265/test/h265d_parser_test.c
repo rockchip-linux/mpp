@@ -397,7 +397,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     if (NULL == buffer) {
                         RK_U32 size = (RK_U32)mpp_buf_slot_get_size(packet_slots);
                         if (size == 0) {
-                            size = 1024 * 1024;
+                            size = 2 * 1024 * 1024;
                         }
                         mpp_buffer_get(mStreamGroup, &buffer, size);
                         if (buffer != NULL)
