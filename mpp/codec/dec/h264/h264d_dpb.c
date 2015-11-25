@@ -859,7 +859,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		//	p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
 
 		//mpp_log("[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", 
-			p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
+			//p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
 
         //LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[WRITE_PICTURE] g_frame_cnt=%d", p_Vid->g_framecnt);
     }
