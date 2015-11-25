@@ -32,8 +32,6 @@
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
-RK_U32 mpp_debug = 0;
-
 Mpp::Mpp(MppCtxType type, MppCodingType coding)
     : mPackets(NULL),
       mFrames(NULL),

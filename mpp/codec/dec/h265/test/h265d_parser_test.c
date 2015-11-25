@@ -25,22 +25,22 @@
 
 #define MODULE_TAG "h265_test"
 
+#include <string.h>
+
+#include "mpp_env.h"
+#include "mpp_err.h"
+#include "mpp_log.h"
+#include "mpp_mem.h"
+#include "mpp_common.h"
+
+#include "mpp_dec.h"
+#include "mpp_frame.h"
+
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
-#include "mpp_env.h"
 
 #include "utils.h"
-#include "mpp_log.h"
-#include <string.h>
-#include <stdlib.h>
-#include "mpp_err.h"
-#include "mpp_mem.h"
-#include "mpp_frame.h"
 #include "openHevcWrapper.h"
-#include "mpp_buf_slot.h"
-#include "rk_type.h"
-#include "mpp_common.h"
-#include "mpp_dec.h"
 #include "h265d_api.h"
 #include "hal_h265d_api.h"
 
@@ -299,7 +299,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     }
 
     curtask = mpp_calloc(HalDecTask, 1);
-    pretask =  mpp_calloc(HalDecTask, 1);
+    pretask = mpp_calloc(HalDecTask, 1);
 
     mpp_codex_ctx = mpp_calloc_size(void, api_h265d_parser.ctx_size);
     mpp_err("api_h265d_parser.ctx_size = %d", api_h265d_parser.ctx_size);
@@ -597,6 +597,7 @@ int main(int argc, char **argv)
     }
 
     //mpp_env_set_u32("buf_slot_debug", 0x10000010, 0);
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
     cmd = &demoCmdCtx;
     memset((void*)cmd, 0, sizeof(ParserDemoCmdContext_t));

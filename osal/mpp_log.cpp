@@ -35,6 +35,7 @@ typedef void (*mpp_log_callback)(const char*, const char*, va_list);
 extern "C" {
 #endif
 
+RK_U32 mpp_debug = 0;
 static RK_U32 mpp_log_flag = 0;
 
 // TODO: add log timing information and switch flag
