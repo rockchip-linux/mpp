@@ -26,5 +26,6 @@ RK_U32 mpi_debug = 0;
 void get_mpi_debug()
 {
     mpp_env_get_u32("mpi_debug", &mpi_debug, 0);
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 }
 

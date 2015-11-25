@@ -44,7 +44,7 @@ static RK_U32 buf_slot_debug = 0;
     if (!(cond)) {                                                      \
         dump_slots(impl);                                               \
         mpp_err("Assertion %s failed at %s:%d\n",                       \
-               MPP_STRINGS(cond), __FILE__, __LINE__);                  \
+               MPP_STRINGS(cond), __FUNCTION__, __LINE__);              \
         abort();                                                        \
     }                                                                   \
 } while (0)

@@ -155,7 +155,7 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
     MPP_RET ret = p->api->wait(p->ctx, task);
 
     task->time_end = mpp_time();
-    mpp_dbg(MPP_HAL_TIMING, "hal timing: %lld\n", task->time_end - task->time_start);
+    mpp_dbg(MPP_TIMING, "hal timing: %lld\n", task->time_end - task->time_start);
 
     return ret;
 }

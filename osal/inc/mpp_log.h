@@ -53,9 +53,7 @@
 #define mpp_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_debug, flag, fmt, ## __VA_ARGS__)
 
 
-#define MPP_HAL_TIMING                  (0x00000001)
-
-extern RK_U32 mpp_debug;
+#define MPP_TIMING                      (0x00000001)
 
 /*
  * mpp_dbg usage:
@@ -101,7 +99,7 @@ extern RK_U32 mpp_debug;
 #define mpp_assert(cond) do {                                           \
     if (!(cond)) {                                                      \
         mpp_err("Assertion %s failed at %s:%d\n",                       \
-               MPP_STRINGS(cond), __FILE__, __LINE__);                  \
+               MPP_STRINGS(cond), __FUNCTION__, __LINE__);              \
         mpp_abort();                                                    \
     }                                                                   \
 } while (0)
@@ -110,6 +108,8 @@ extern RK_U32 mpp_debug;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern RK_U32 mpp_debug;
 
 void mpp_log_set_flag(RK_U32 flag);
 RK_U32 mpp_log_get_flag();
