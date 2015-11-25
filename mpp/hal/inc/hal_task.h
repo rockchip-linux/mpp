@@ -125,9 +125,14 @@ typedef struct HalEncTask_t {
     RK_S32          recon;
 } HalEncTask;
 
-typedef union HalTask_u {
-    HalDecTask      dec;
-    HalEncTask      enc;
+typedef struct HalTask_u {
+    RK_S64          time_start;
+    RK_S64          time_end;
+
+    union {
+        HalDecTask      dec;
+        HalEncTask      enc;
+    };
 } HalTaskInfo;
 
 typedef void* HalTaskHnd;

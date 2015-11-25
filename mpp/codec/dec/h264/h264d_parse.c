@@ -694,7 +694,8 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		if (p_strm->endcode_found) {
 			p_strm->nalu_len -= START_PREFIX_3BYTE;
 			//!< find non-zeros byte
-			while (p_strm->nalu_buf[p_strm->nalu_len - 1] == 0x00) { 				p_strm->nalu_len--;
+			while (p_strm->nalu_buf[p_strm->nalu_len - 1] == 0x00) { 
+				p_strm->nalu_len--;
 				break;
 			}			
 			p_Dec->nalu_ret = EndOfNalu;

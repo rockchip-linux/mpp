@@ -18,6 +18,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 
 #include "mpp.h"
@@ -137,6 +138,8 @@ MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
         return MPP_ERR_NULL_PTR;
     }
 
+    task->time_start = mpp_time();
+
     MppHalImpl *p = (MppHalImpl*)ctx;
     return p->api->start(p->ctx, task);
 }
@@ -149,7 +152,12 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    return p->api->wait(p->ctx, task);
+    MPP_RET ret = p->api->wait(p->ctx, task);
+
+    task->time_end = mpp_time();
+    mpp_dbg(MPP_HAL_TIMING, "hal timing: %lld\n", task->time_end - task->time_start);
+
+    return ret;
 }
 
 MPP_RET mpp_hal_reset(MppHal ctx)
