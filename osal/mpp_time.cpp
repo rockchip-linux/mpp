@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "mpp_log.h"
 #include "mpp_time.h"
 
 #if _WIN32
@@ -22,6 +23,9 @@
 
 RK_S64 mpp_time()
 {
+    if (!(mpp_debug & MPP_TIMING))
+        return 0;
+
     struct timeb tb;
     ftime(&tb);
     return ((RK_S64)tb.time * 1000 + (RK_S64)tb.millitm) * 1000;
@@ -32,9 +36,21 @@ RK_S64 mpp_time()
 
 RK_S64 mpp_time()
 {
+    if (!(mpp_debug & MPP_TIMING))
+        return 0;
+
     struct timeval tv_date;
     gettimeofday(&tv_date, NULL);
     return (RK_S64)tv_date.tv_sec * 1000000 + (RK_S64)tv_date.tv_usec;
 }
 
 #endif
+
+void mpp_time_diff(char *name, RK_S64 start, RK_S64 end)
+{
+    if (!(mpp_debug & MPP_TIMING))
+        return;
+
+    mpp_dbg(MPP_TIMING, "%s %.1f\n ms", name, (start - end) / (float)1000);
+}
+
