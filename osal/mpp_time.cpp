@@ -51,6 +51,6 @@ void mpp_time_diff(char *name, RK_S64 start, RK_S64 end)
     if (!(mpp_debug & MPP_TIMING))
         return;
 
-    mpp_dbg(MPP_TIMING, "%s %.1f\n ms", name, (start - end) / (float)1000);
+    mpp_dbg(MPP_TIMING, "%s timing %.1f\n ms", name, (end - start) / (float)1000);
 }
 
