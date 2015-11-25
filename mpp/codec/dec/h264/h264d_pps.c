@@ -116,7 +116,7 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 __FAILED:
-    ASSERT(0);
+
     return ret;
 }
 
