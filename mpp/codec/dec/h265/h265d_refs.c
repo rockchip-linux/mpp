@@ -109,7 +109,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
             goto fail;
 
         frame->ctb_count = s->sps->ctb_width * s->sps->ctb_height;
-        frame->rpl_tab_buf = mpp_calloc(RK_U8, frame->ctb_count * sizeof(RefPicListTab));
+        frame->rpl_tab_buf = mpp_malloc(RK_U8, frame->ctb_count * sizeof(RefPicListTab));
 
         if (!frame->rpl_tab_buf)
             goto fail;
