@@ -42,7 +42,7 @@
 #include "vpu.h"
 #include "mpp_buffer.h"
 #include "mpp_env.h"
-
+//#define dump
 #ifdef dump
 FILE *fp = NULL;
 #endif
@@ -1177,8 +1177,11 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
         if (dxva_cxt->pp.tiles_enabled_flag) {
             if (dxva_cxt->pp.uniform_spacing_flag == 0) {
-                RK_S32 ctu_width_in_pic = dxva_cxt->pp.PicWidthInMinCbsY;
-                RK_S32 ctu_height_in_pic = dxva_cxt->pp.PicHeightInMinCbsY;
+                RK_S32 maxcuwidth = dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size + log2_min_cb_size;
+                RK_S32 ctu_width_in_pic = (width +
+                                           (1 << maxcuwidth) - 1) / (1 << maxcuwidth) ;
+                RK_S32 ctu_height_in_pic = (height +
+                                            (1 << maxcuwidth) - 1) / (1 << maxcuwidth) ;
                 RK_S32 sum = 0;
                 for (i = 0; i < dxva_cxt->pp.num_tile_columns_minus1; i++) {
                     column_width[i] = dxva_cxt->pp.column_width_minus1[i] + 1;
@@ -1194,15 +1197,23 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
                 row_height[i] = ctu_height_in_pic - sum;
             } // end of (pps->uniform_spacing_flag == 0)
             else {
-                RK_S32 pic_in_cts_width = dxva_cxt->pp.PicWidthInMinCbsY;
-                RK_S32 pic_in_cts_height = dxva_cxt->pp.PicHeightInMinCbsY;
 
+                RK_S32    pic_in_cts_width = (width +
+                                              (1 << (log2_min_cb_size +
+                                                     dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size)) - 1)
+                                             / (1 << (log2_min_cb_size +
+                                                      dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size));
+                RK_S32 pic_in_cts_height = (height +
+                                            (1 << (log2_min_cb_size +
+                                                   dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size)) - 1)
+                                           / (1 << (log2_min_cb_size +
+                                                    dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size));
 
-                for (i = 0; i < dxva_cxt->pp.num_tile_columns_minus1; i++)
+                for (i = 0; i < dxva_cxt->pp.num_tile_columns_minus1 + 1; i++)
                     column_width[i] = ((i + 1) * pic_in_cts_width) / (dxva_cxt->pp.num_tile_columns_minus1 + 1) -
                                       (i * pic_in_cts_width) / (dxva_cxt->pp.num_tile_columns_minus1 + 1);
 
-                for (i = 0; i < dxva_cxt->pp.num_tile_rows_minus1; i++)
+                for (i = 0; i < dxva_cxt->pp.num_tile_rows_minus1 + 1; i++)
                     row_height[i] = ((i + 1) * pic_in_cts_height) / (dxva_cxt->pp.num_tile_rows_minus1 + 1) -
                                     (i * pic_in_cts_height) / (dxva_cxt->pp.num_tile_rows_minus1 + 1);
             }
@@ -1306,8 +1317,6 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     /* output pps */
     hal_h265d_output_pps_packet(hal, syn->dec.syntax.data);
-
-
 
     if (NULL == reg_cxt->hw_regs) {
         return MPP_ERR_NULL_PTR;
