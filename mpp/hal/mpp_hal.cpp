@@ -127,8 +127,15 @@ MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTaskInfo *task)
         return MPP_ERR_NULL_PTR;
     }
 
+    task->hal_gen[0] = mpp_time();
+
     MppHalImpl *p = (MppHalImpl*)ctx;
-    return p->api->reg_gen(p->ctx, task);
+    MPP_RET ret = p->api->reg_gen(p->ctx, task);
+
+    task->hal_gen[1] = mpp_time();
+    mpp_time_diff("reg gen", task->hal_gen[0], task->hal_gen[1]);
+
+    return ret;
 }
 
 MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
@@ -138,10 +145,15 @@ MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
         return MPP_ERR_NULL_PTR;
     }
 
-    task->time_start = mpp_time();
+    task->hal_start[0] = mpp_time();
+    mpp_time_diff("reg gen to hw start", task->hal_gen[1], task->hal_start[0]);
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    return p->api->start(p->ctx, task);
+    MPP_RET ret = p->api->start(p->ctx, task);
+
+    task->hal_start[1] = mpp_time();
+    mpp_time_diff("hw start", task->hal_start[0], task->hal_start[1]);
+    return ret;
 }
 
 MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
@@ -151,11 +163,16 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
         return MPP_ERR_NULL_PTR;
     }
 
+    task->hal_wait[0] = mpp_time();
+    mpp_time_diff("hw start to hw wait", task->hal_start[1], task->hal_wait[0]);
+
     MppHalImpl *p = (MppHalImpl*)ctx;
     MPP_RET ret = p->api->wait(p->ctx, task);
 
-    task->time_end = mpp_time();
-    mpp_dbg(MPP_TIMING, "hal timing: %lld\n", task->time_end - task->time_start);
+    task->hal_wait[1] = mpp_time();
+    mpp_time_diff("hw wait", task->hal_wait[0], task->hal_wait[1]);
+
+    mpp_dbg(MPP_TIMING, "hal wait: %.1f\n", task->hal_wait - task->hal_start);
 
     return ret;
 }

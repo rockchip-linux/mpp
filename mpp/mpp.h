@@ -98,6 +98,12 @@ public:
     MppThread       *mThreadCodec;
     MppThread       *mThreadHal;
 
+    MppDec          *mDec;
+    MppEnc          *mEnc;
+
+private:
+    void clear();
+
     MppCtxType      mType;
     MppCodingType   mCoding;
 
@@ -106,12 +112,6 @@ public:
     RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
-
-    MppDec          *mDec;
-    MppEnc          *mEnc;
-
-private:
-    void clear();
 
     Mpp();
     Mpp(const Mpp &);

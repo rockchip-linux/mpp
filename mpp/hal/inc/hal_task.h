@@ -125,13 +125,17 @@ typedef struct HalEncTask_t {
     RK_S32          recon;
 } HalEncTask;
 
+
 typedef struct HalTask_u {
-    RK_S64          time_start;
-    RK_S64          time_end;
+    RK_S64          codec_prepare[2];
+    RK_S64          codec_parse[2];
+    RK_S64          hal_gen[2];
+    RK_S64          hal_start[2];
+    RK_S64          hal_wait[2];
 
     union {
-        HalDecTask      dec;
-        HalEncTask      enc;
+        HalDecTask  dec;
+        HalEncTask  enc;
     };
 } HalTaskInfo;
 
