@@ -288,6 +288,12 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     return MPP_OK;
 }
 
+MPP_RET dummy_dec_callback(void *dec, void *err_info)
+{
+    (void)dec;
+    (void)err_info;
+    return MPP_OK;
+}
 const ParserApi dummy_dec_parser = {
     "dummy_dec_parser",
     MPP_VIDEO_CodingUnused,
@@ -300,5 +306,6 @@ const ParserApi dummy_dec_parser = {
     dummy_dec_reset,
     dummy_dec_flush,
     dummy_dec_control,
+    dummy_dec_callback,
 };
 

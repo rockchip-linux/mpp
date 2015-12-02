@@ -38,7 +38,9 @@
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
 
 RK_U32 h265d_debug;
-//FILE *fp = NULL;
+#ifdef dump
+FILE *fp = NULL;
+#endif
 //static RK_U32 start_write = 0, value = 0;
 
 /**
@@ -180,6 +182,8 @@ RK_S32 h265d_split_init(void **sc)
             return MPP_ERR_NOMEM;
         }
     }
+    s->buffer = mpp_malloc(RK_U8, MAX_FRAME_SIZE);
+    s->buffer_size = MAX_FRAME_SIZE;
     s->fetch_timestamp = 1;
     return MPP_OK;
 }
@@ -273,6 +277,9 @@ RK_S32 h265d_split_reset(void *sc)
     RK_U8 *buf = NULL;
     RK_U32 size = 0;
     SplitContext_t *s = (SplitContext_t*)sc;
+    if (sc == NULL) {
+        return MPP_OK;
+    }
     buf = s->buffer;
     size = s->buffer_size;
     memset(s, 0, sizeof(SplitContext_t));
@@ -1521,9 +1528,9 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
 
         }
 
-        if (s->nal_unit_type == NAL_EOB_NUT ||
-            s->nal_unit_type == NAL_EOS_NUT)
-            s->eos = 1;
+        /* if (s->nal_unit_type == NAL_EOB_NUT ||
+             s->nal_unit_type == NAL_EOS_NUT)
+             s->eos = 1;*/
 
         buf    += consumed;
         length -= consumed;
@@ -1631,7 +1638,10 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     RK_S32 length = 0;
 
 	//task->valid = 0;
-    s->eos = sc->eos = mpp_packet_get_eos(pkt);
+    s->eos = mpp_packet_get_eos(pkt);
+    if (sc != NULL) {
+        sc->eos = s->eos;
+    }
     buf = (RK_U8 *)mpp_packet_get_pos(pkt);
     pts = mpp_packet_get_pts(pkt);
     dts = mpp_packet_get_dts(pkt);
@@ -1680,6 +1690,11 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 			h265d_flush(ctx);
 		}
     }
+#ifdef dump
+    if (s->nb_frame < 10 && fp != NULL) {
+        fwrite(buf, 1, length, fp);
+    }
+#endif
     ret = (MPP_RET)split_nal_units(s, buf, length);
 
     if (MPP_OK == ret) {
@@ -1862,7 +1877,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
         h265dctx->priv_data = s;
     }
 
-    h265dctx->need_split = 1;
+    h265dctx->need_split = parser_cfg->need_split;
 
     if (sc == NULL && h265dctx->need_split) {
         h265d_split_init((void**)&sc);
@@ -1906,7 +1921,9 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     if (MPP_OK != mpp_packet_init(&s->input_packet, (void*)buf, size)) {
         return MPP_ERR_NOMEM;
     }
-//   fp = fopen("dump1.bin", "wb+");
+#ifdef dump
+    fp = fopen("/data/dump1.bin", "wb+");
+#endif
     return 0;
 }
 
@@ -1949,6 +1966,17 @@ MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param)
     return MPP_OK;
 }
 
+MPP_RET h265d_callback(void *ctx, void *err_info)
+{
+
+    (void) err_info;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+    s->max_ra = INT_MAX;
+    return MPP_OK;
+}
+
+
 
 const ParserApi api_h265d_parser = {
     "h265d_parse",
@@ -1962,6 +1990,7 @@ const ParserApi api_h265d_parser = {
     h265d_reset,
     h265d_flush,
     h265d_control,
+    h265d_callback,
 };
 
 

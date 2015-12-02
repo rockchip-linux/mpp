@@ -34,6 +34,7 @@ MPP_RET parser_parse(Parser prs, HalDecTask *task);
 MPP_RET parser_reset(Parser prs);
 MPP_RET parser_flush(Parser prs);
 MPP_RET parser_control(Parser prs, RK_S32 cmd, void *para);
+MPP_RET hal_callback(void* prs, void *err_info);
 
 #ifdef __cplusplus
 }

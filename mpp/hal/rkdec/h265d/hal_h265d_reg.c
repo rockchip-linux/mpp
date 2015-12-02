@@ -58,6 +58,7 @@ typedef struct h265d_reg_context {
     MppBuffer pps_data;
     MppBuffer rps_data;
     void*     hw_regs;
+    HalIOInterruptCB int_cb;
 } h265d_reg_context_t;
 
 typedef struct ScalingList {
@@ -267,6 +268,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     }
 
     reg_cxt->slots = cfg->frame_slots;
+    reg_cxt->int_cb = cfg->hal_int_cb;
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 
@@ -1455,10 +1457,15 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 #ifdef ANDROID
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
     RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
+    H265d_REGS_t *hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     RK_S32 i;
     VPU_CMD_TYPE cmd;
     RK_S32 len;
     ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)reg_cxt->hw_regs, 68, &cmd, &len);
+    if ((hw_regs->sw_interrupt.sw_dec_error_sta ||
+         hw_regs->sw_interrupt.sw_dec_empty_sta) && reg_cxt->int_cb.callBack) {
+        reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, NULL);
+    }
     for (i = 0; i < 68; i++) {
         if (i == 1) {
             h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));

@@ -225,11 +225,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     size_t stream_size = 0;
     HalDecTask  *task_dec = &task->info.dec;
 
-    if (mpp->mFrameGroup) {
-        task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
-        if (task->wait.dec_pic_buf)
-            return MPP_NOK;
-    }
 
     /*
      * 1. get task handle from hal for parsing one frame
@@ -362,6 +357,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             task->wait.prev_task = 1;
             return MPP_NOK;
         }
+    }
+    if (mpp->mFrameGroup) {
+        task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
+        if (task->wait.dec_pic_buf)
+            return MPP_NOK;
     }
 
 	if (task_dec->flags.eos && task_dec->valid == 0) {
@@ -708,6 +708,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             frame_slots,
             packet_slots,
             2,
+            0,
         };
 
         ret = parser_init(&parser, &parser_cfg);
@@ -715,7 +716,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             mpp_err_f("could not init parser\n");
             break;
         }
-
+        HalIOInterruptCB cb = {.callBack = hal_callback, .opaque = parser};
         // then init hal with task count from parser
         MppHalCfg hal_cfg = {
             MPP_CTX_DEC,
@@ -726,6 +727,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             packet_slots,
             NULL,
             parser_cfg.task_count,
+            cb,
         };
 
         ret = mpp_hal_init(&hal, &hal_cfg);

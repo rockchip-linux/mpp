@@ -34,6 +34,7 @@ MPP_RET  vp9d_flush  (void *decoder);
 MPP_RET  vp9d_control(void *decoder, RK_S32 cmd_type, void *param);
 MPP_RET  vp9d_prepare(void *decoder, MppPacket pkt, HalDecTask *task);
 MPP_RET  vp9d_parse  (void *decoder, HalDecTask *task);
+MPP_RET  vp9d_callback(void *decoder, void *err_info);
 
 #ifdef  __cplusplus
 }
