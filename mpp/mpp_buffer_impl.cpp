@@ -279,6 +279,10 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
                 }
             }
             group->count_used--;
+            if (group->listener) {
+                MppThread *thread = (MppThread *)group->listener;
+                thread->signal();
+            }
         }
     }
 
@@ -418,6 +422,18 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
             deinit_buffer_no_lock(pos);
         }
     }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
+{
+    if (NULL == p || NULL == listener) {
+        mpp_err_f("found NULL pointer\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p->listener = listener;
 
     return MPP_OK;
 }

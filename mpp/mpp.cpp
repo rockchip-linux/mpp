@@ -25,6 +25,7 @@
 #include "mpp_dec.h"
 #include "mpp_enc.h"
 #include "mpp_hal.h"
+#include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
@@ -242,6 +243,7 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     case MPP_DEC_SET_EXT_BUF_GROUP: {
         mpp_log("mpi_control group %p\n", param);
         mFrameGroup = (MppBufferGroup)param;
+        mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
 		mpp_log("signal codec thread\n");
 		mThreadCodec->signal();
         break;
