@@ -433,6 +433,7 @@ MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
         return MPP_ERR_NULL_PTR;
     }
 
+    Mutex::Autolock auto_lock(&service.mLock);
     p->listener = listener;
 
     return MPP_OK;

@@ -110,6 +110,10 @@ Mpp::~Mpp ()
 
 void Mpp::clear()
 {
+    // MUST: release listener here
+    if (mFrameGroup)
+        mpp_buffer_group_set_listener((MppBufferGroupImpl *)mFrameGroup, NULL);
+
     if (mThreadCodec)
         mThreadCodec->stop();
     if (mThreadHal)
