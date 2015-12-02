@@ -48,13 +48,14 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mFrameGroup(NULL),
       mThreadCodec(NULL),
       mThreadHal(NULL),
+      mDec(NULL),
+      mEnc(NULL),
       mType(type),
       mCoding(coding),
+      mPacketBlock(0),
       mOutputBlock(0),
       mMultiFrame(0),
-      mStatus(0),
-      mDec(NULL),
-      mEnc(NULL)
+      mStatus(0)
 {
     switch (mType) {
     case MPP_CTX_DEC : {
