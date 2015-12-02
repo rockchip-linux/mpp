@@ -78,6 +78,9 @@ struct MppBufferGroupImpl_t {
     RK_S32              count_used;
     RK_S32              count_unused;
 
+    // thread that will be signal on buffer return
+    void                *listener;
+
     // buffer log function
     RK_U32              log_runtime_en;
     RK_U32              log_history_en;
@@ -129,6 +132,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
+MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener);
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
 MppBufferGroupImpl *mpp_buffer_legacy_group();
 
