@@ -46,11 +46,13 @@ RK_S64 mpp_time()
 
 #endif
 
-void mpp_time_diff(char *name, RK_S64 start, RK_S64 end)
+void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, char *fmt)
 {
     if (!(mpp_debug & MPP_TIMING))
         return;
 
-    mpp_dbg(MPP_TIMING, "%s timing %.1f\n ms", name, (end - start) / (float)1000);
+    RK_S64 diff = end - start;
+    if (diff >= limit)
+        mpp_dbg(MPP_TIMING, "%s timing %.2f ms\n", fmt, diff / (float)1000);
 }
 
