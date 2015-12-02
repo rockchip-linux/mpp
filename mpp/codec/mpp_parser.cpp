@@ -131,6 +131,17 @@ MPP_RET parser_parse(Parser prs, HalDecTask *task)
     return p->api->parse(p->ctx, task);
 }
 
+MPP_RET hal_callback(void *prs, void *err_info)
+{
+    if (NULL == prs) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+    ParserImpl *p = (ParserImpl *)prs;
+    if (!p->api->callback)
+        return MPP_OK;
+    return p->api->callback(p->ctx, err_info);
+}
 MPP_RET parser_reset(Parser prs)
 {
     if (NULL == prs) {

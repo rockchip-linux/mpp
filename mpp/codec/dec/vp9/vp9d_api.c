@@ -141,6 +141,21 @@ MPP_RET vp9d_parse(void *decoder, HalDecTask *in_task)
 /*!
 ***********************************************************************
 * \brief
+*   callback
+***********************************************************************
+*/
+MPP_RET vp9d_callback(void *decoder, void *err_info)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    (void)decoder;
+    (void)err_info;
+    return ret = MPP_OK;
+}
+
+/*!
+***********************************************************************
+* \brief
 *   api struct interface
 ***********************************************************************
 */
@@ -157,5 +172,6 @@ const ParserApi api_vp9d_parser = {
     vp9d_reset,
     vp9d_flush,
     vp9d_control,
+    vp9d_callback,
 };
 

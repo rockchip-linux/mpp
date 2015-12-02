@@ -37,6 +37,10 @@ typedef enum MppHalHardType_e {
 
 typedef void*   MppHalCtx;
 
+typedef struct HalIOInterruptCB {
+    MPP_RET (*callBack)(void*, void*);
+    void   *opaque;
+} HalIOInterruptCB;
 typedef struct MppHalCfg_t {
     // input
     MppCtxType      type;
@@ -49,6 +53,7 @@ typedef struct MppHalCfg_t {
     // output
     HalTaskGroup    tasks;
     RK_S32          task_count;
+    HalIOInterruptCB hal_int_cb;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {

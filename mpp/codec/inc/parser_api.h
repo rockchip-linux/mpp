@@ -36,6 +36,7 @@ typedef struct DecParserInitCfg_t {
 
     // output
     RK_S32          task_count;
+    RK_S32          need_split;
 } ParserCfg;
 
 
@@ -70,6 +71,7 @@ typedef struct ParserApi_t {
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
     MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
+    MPP_RET (*callback)(void *ctx, void *err_info);
 } ParserApi;
 
 
