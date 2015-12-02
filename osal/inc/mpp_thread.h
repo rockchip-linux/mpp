@@ -130,6 +130,7 @@ public:
     Condition(int type);
     ~Condition();
     void wait(Mutex& mutex);
+    void timedwait(Mutex& mutex, RK_S64 wait);
     void signal();
 
 private:
@@ -147,6 +148,13 @@ inline Condition::~Condition()
 inline void Condition::wait(Mutex& mutex)
 {
     pthread_cond_wait(&mCond, &mutex.mMutex);
+}
+inline void Condition::timedwait(Mutex& mutex, RK_S64 wait)
+{
+    struct timespec timeout;
+    timeout.tv_sec  = (time_t)(wait >> 32);
+    timeout.tv_nsec = (long)wait;
+    pthread_cond_timedwait(&mCond, &mutex.mMutex, &timeout);
 }
 inline void Condition::signal()
 {
@@ -206,6 +214,7 @@ public:
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].wait();
     }
+
     void signal(MppThreadSignal id = THREAD_WORK)
     {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
