@@ -66,7 +66,6 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGr
             NULL,
             NULL,
             -1,
-            NULL,
         };
         // if failed try init a new buffer
         mpp_buffer_create(tag, caller, p->group_id, &info);
@@ -154,7 +153,7 @@ int mpp_buffer_get_fd(MppBuffer buffer)
     int fd = p->info.fd;
 
 #ifdef	ANDROID
-	mpp_assert(fd >= 0);    
+	mpp_assert(fd >= 0);
 #endif
 
     return fd;
