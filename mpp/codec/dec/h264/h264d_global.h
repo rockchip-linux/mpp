@@ -208,7 +208,7 @@ typedef struct h264_dpb_mark_t {
 //!< decoder picture buffer information
 typedef struct h264_dpb_info_t {
     RK_U8     colmv_is_used;
-    RK_U8     slot_index;
+    RK_S32    slot_index;
 
     RK_S32    TOP_POC;
     RK_S32    BOT_POC;

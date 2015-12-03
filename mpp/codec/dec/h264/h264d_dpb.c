@@ -1606,7 +1606,6 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     RK_S32 PicSizeInMbs = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_SPS_t *active_sps = p_Vid->active_sps;
-    LogCtx_t *runlog = p_Dpb->p_Vid->p_Dec->logctx.parr[RUN_PARSE];
 
     p_Dpb->p_Vid = p_Vid;
     if (p_Dpb->init_done) {
@@ -1773,7 +1772,7 @@ static void reset_dpb_info(H264_DpbInfo_t *p)
 }
 
 
-
+#if 0
 static MPP_RET adjust_input(H264_SLICE_t *currSlice)
 {
 	RK_U32 i = 0, j = 0;
@@ -1857,7 +1856,7 @@ static MPP_RET adjust_input(H264_SLICE_t *currSlice)
 
 	return MPP_OK;
 }
-
+#endif
 
 
 /*!
@@ -2081,7 +2080,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
 	//adjust_input(currSlice);
 
 	for (i = 0; i < MAX_DPB_SIZE; i++) {
-		if (p_Dec->dpb_info[i].picbuf && (p_Dec->dpb_info[i].slot_index >= 0)) {
+		if ((NULL != p_Dec->dpb_info[i].picbuf) && (p_Dec->dpb_info[i].slot_index >= 0)) {
 			p_Dec->in_task->refer[i] = p_Dec->dpb_info[i].slot_index;
 			mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_HAL_INPUT);
 			mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_CODEC_USE);
