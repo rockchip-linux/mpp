@@ -1967,12 +1967,13 @@ MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param)
 }
 
 MPP_RET h265d_callback(void *ctx, void *err_info)
-{
-
-    (void) err_info;
+{   
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     s->max_ra = INT_MAX;
+
+	(void) err_info;
+
     return MPP_OK;
 }
 
