@@ -681,6 +681,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
     MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
+	HalIOInterruptCB cb = {0};
 
     MppDec *p = mpp_calloc(MppDec, 1);
     if (NULL == p) {
@@ -716,7 +717,8 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             mpp_err_f("could not init parser\n");
             break;
         }
-        HalIOInterruptCB cb = {.callBack = hal_callback, .opaque = parser};
+        cb.callBack = hal_callback;
+		cb.opaque = parser;
         // then init hal with task count from parser
         MppHalCfg hal_cfg = {
             MPP_CTX_DEC,

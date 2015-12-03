@@ -190,7 +190,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         mThreadCodec->signal();
         if (mOutputBlock)
             mFrames->wait();
-        usleep(1000);
+        msleep(1);
     }
 
     if (mFrames->list_size()) {

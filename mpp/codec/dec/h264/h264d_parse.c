@@ -830,7 +830,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		nalu_len = parse_nal_size(p_Inp->nal_size, pdata);
 		VAL_CHECK(ret, (nalu_len > 0));
 		VAL_CHECK(ret, ((strm_offset + p_Inp->nal_size + nalu_len) <= p_Inp->in_length));
-		p_strm->nalu_len = nalu_len;
+		p_strm->nalu_len = (RK_U32)nalu_len;
 		p_strm->nal_unit_type = NALU_TYPE_SLICE;
 		pdata += p_Inp->nal_size;
 		strm_offset += p_Inp->nal_size;
