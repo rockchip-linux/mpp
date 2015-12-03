@@ -380,8 +380,6 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 {
-	//RK_U32 i = 0;
-	RK_U32 *ptr = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dRkvRegs_t *p_regs = NULL;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
@@ -407,6 +405,8 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 	(void)wait_ret;
 #endif
 	//mpp_log("------- register output ------ \n");
+	//RK_U32 i = 0;
+	//RK_U32 *ptr = NULL;
 	//ptr = (RK_U32 *)p_hal->regs;
 	//for(i=0; i<78; i++)
 	//{

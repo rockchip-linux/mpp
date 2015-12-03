@@ -141,7 +141,7 @@ static void find_prefix_code(RK_U8 *p_data, H264dCurStream_t *p_strm)
         }
     }
 }
-
+#if 0
 static MPP_RET read_one_nalu(H264dInputCtx_t *p_Inp, H264dCurStream_t *p_strm)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -184,7 +184,7 @@ __FAILED:
 
     return ret;
 }
-
+#endif
 
 static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 {
@@ -349,7 +349,7 @@ __FAILED:
 	currSlice->p_Dec->nalu_ret = ReadNaluError;
     return ret;
 }
-
+#if 0
 static MPP_RET analyze_cur_nalu(H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -411,7 +411,7 @@ __BITREAD_ERR:
 __FAILED:
     return ret;
 }
-
+#endif
 static MPP_RET add_empty_nalu(H264dCurStream_t *p_strm)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -486,7 +486,7 @@ __FAILED:
 	//mpp_log("store_cur_nalu function ERROR \n");
     return ret;
 }
-
+#if 0
 static void insert_timestamp(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm)
 {
 	RK_U8 i = 0;
@@ -509,7 +509,7 @@ static void insert_timestamp(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm)
 	//p_Cur->dts = p_Cur->p_Inp->in_dts;
 	//p_Cur->pts = p_Cur->p_Inp->in_pts;
 }
-
+#endif
 static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm)
 {
 	MPP_RET ret = MPP_ERR_UNKNOW;
@@ -734,12 +734,10 @@ __FAILED:
 MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
 	RK_S32 i = 0;
-	RK_U32 add_size = 0;
 	MPP_RET ret = MPP_ERR_UNKNOW;
-	H264dLogCtx_t   *logctx  = &p_Inp->p_Dec->logctx;
-	H264_DecCtx_t   *p_Dec   = p_Inp->p_Dec;
-	H264dCurStream_t *p_strm = &p_Cur->strm;
 
+	H264dLogCtx_t *logctx  = &p_Inp->p_Dec->logctx;
+	H264dCurStream_t *p_strm = &p_Cur->strm;
 	RK_U8 *pdata = p_Inp->in_buf;
 	RK_U64 extrasize = p_Inp->in_length;
 
@@ -807,15 +805,12 @@ __FAILED:
 */
 MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
-	RK_U32 i = 0;
-	RK_U32 add_size = 0;
-	RK_S32 strm_offset = 0;
+	RK_U32 strm_offset = 0;
 	MPP_RET ret = MPP_ERR_UNKNOW;
+
 	H264dLogCtx_t   *logctx  = &p_Inp->p_Dec->logctx;
 	H264dCurStream_t *p_strm = &p_Cur->strm;
-
 	RK_U8 *pdata = p_Inp->in_buf;
-	RK_U64 extrasize = p_Inp->in_length;
 
 	FunctionIn(logctx->parr[RUN_PARSE]);
 	p_Inp->task_valid = 0;

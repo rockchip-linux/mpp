@@ -75,7 +75,7 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "ion",
     "v4l2",
 };
-
+#if 0
 static const char *ops2str[BUF_OPS_BUTT] = {
     "commit",
     "create",
@@ -83,10 +83,10 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "ref dec",
     "destroy",
 };
-
+#endif
 RK_U32 mpp_buffer_debug = 0;
 static MppBufferService service;
-
+#if 0
 static void add_buf_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops, RK_U32 val_in, RK_U32 val_out)
 {
     if (group->log_runtime_en) {
@@ -103,7 +103,7 @@ static void add_buf_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBuf
         }
     }
 }
-
+#endif
 static MppBufferGroupImpl *search_group_by_id_no_lock(struct list_head *list, RK_U32 group_id)
 {
     MppBufferGroupImpl *pos, *n;

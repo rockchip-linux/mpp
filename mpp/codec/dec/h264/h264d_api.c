@@ -625,12 +625,10 @@ __RETURN:
 MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    LogCtx_t *logctx = NULL;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder && !pkt && !task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-    logctx = p_Dec->logctx.parr[RUN_PARSE];
     //LogTrace(logctx, "Prepare In:len=%d, valid=%d ", mpp_packet_get_length(pkt), task->valid);
 
 	if (p_Dec->p_Inp->has_get_eos) {

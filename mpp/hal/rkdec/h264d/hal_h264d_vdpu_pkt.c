@@ -955,7 +955,7 @@ const RK_U32 g_refBase[16] = {
 
 
 #ifndef ANDROID
-RK_S32 VPUClientGetIOMMUStatus()
+static RK_S32 VPUClientGetIOMMUStatus()
 {
     return 0;
 }

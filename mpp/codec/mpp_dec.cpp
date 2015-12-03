@@ -91,7 +91,7 @@ static void dec_task_init(DecTask *task)
 
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 }
-
+#if 0
 static void dec_task_reset(MppDec *dec, DecTask *task)
 {
     task->hnd = NULL;
@@ -121,7 +121,7 @@ static void dec_task_reset(MppDec *dec, DecTask *task)
 
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 }
-
+#endif
 /*
  * return MPP_OK for not wait
  * return MPP_NOK for wait
@@ -287,9 +287,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 				
 		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 			MppFrame frame;
-			RK_U32 display;
+			//RK_U32 display;
 			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-			display = mpp_frame_get_display(frame);
+			//display = mpp_frame_get_display(frame);
 			if (!dec->reset_flag) {
 				mpp_put_frame(mpp, frame);
 			} else {
@@ -368,9 +368,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 		RK_S32 index;
 		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 			MppFrame frame;
-			RK_U32 display;
+			//RK_U32 display;
 			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-			display = mpp_frame_get_display(frame);
+			//display = mpp_frame_get_display(frame);
 			if (!dec->reset_flag) {
 				mpp_put_frame(mpp, frame);
 			} else {

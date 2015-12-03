@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "vpu.h"
 #include "mpp_mem.h"
 #include "mpp_buffer.h"
 #include "hal_task.h"
@@ -50,6 +51,12 @@ const enum {
     H264ScalingList8x8Length = 64,
 } ScalingListLength;
 
+#ifndef ANDROID
+static RK_S32 VPUClientGetIOMMUStatus()
+{
+	return 0;
+}
+#endif
 
 static void rkv_write_sps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 {
@@ -130,7 +137,7 @@ static void rkv_write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 
     Scaleing_list_address = mpp_buffer_get_fd(p_hal->cabac_buf);	
 	//mpp_log("fd=%08x, offset=%d", Scaleing_list_address, offset);
-    if (VPUClientGetIOMMUStatus()) {
+    if (VPUClientGetIOMMUStatus() > 0) {
         Scaleing_list_address |= offset << 10;
     } else {
         Scaleing_list_address += offset;

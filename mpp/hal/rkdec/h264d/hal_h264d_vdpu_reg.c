@@ -282,7 +282,7 @@ static RK_U32 vdpu_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
 }
-
+#if 0
 static MPP_RET vdpu_adjust_input(H264dHalCtx_t *p_hal)
 {
     RK_U32 i = 0, j = 0;
@@ -436,7 +436,7 @@ static MPP_RET vdpu_adjust_input(H264dHalCtx_t *p_hal)
 
     return MPP_OK;
 }
-
+#endif
 /*!
 ***********************************************************************
 * \brief
