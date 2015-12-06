@@ -61,7 +61,7 @@ typedef enum {
     STEREO_HIGH    = 128       //!< YUV 4:2:0/8  "Stereo High"
 } ProfileIDC;
 
-//!< values for nal_unit_type
+//!< values for nalu_type
 typedef enum {
     NALU_TYPE_NULL      = 0,
     NALU_TYPE_SLICE     = 1,
@@ -142,7 +142,7 @@ typedef struct h264_nalu_t {
     RK_S32         startcodeprefix_len;   //!< 4 for parameter sets and first slice in picture, 3 for everything else (suggested)
     RK_U32         sodb_len;              //!< Length of the NAL unit (Excluding the start code, which does not belong to the NALU)
     RK_S32         forbidden_bit;         //!< should be always FALSE
-    Nalu_type       nal_unit_type;         //!< NALU_TYPE_xxxx
+    Nalu_type       nalu_type;         //!< NALU_TYPE_xxxx
     NalRefIdc_type  nal_reference_idc;     //!< NALU_PRIORITY_xxxx
     RK_U8          *sodb_buf;             //!< Data of the NAL unit (Excluding the start code, which does not belong to the NALU)
     RK_U16          lost_packets;          //!< true, if packet loss is detected, used in RTPNALU
@@ -199,9 +199,10 @@ typedef struct h264_dpb_mark_t {
     RK_U8    bot_used;
 	RK_U8    out_flag;
     RK_U8    mark_idx;
-    RK_U8    *pbuf;
     MppFrame frame;
     RK_S32   slot_idx;
+	RK_S32   poc;
+	RK_S64   pts;
     struct h264_store_pic_t *pic;
 } H264_DpbMark_t;
 
@@ -687,6 +688,7 @@ typedef struct h264_sei_t {
         //-- for adding
     } scalable_nesting;
 
+	RK_U32 user_data_DivX_flag;
     // Placeholder; in future more supported types will contribute to more
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
@@ -834,6 +836,8 @@ typedef struct h264d_input_ctx_t {
     size_t in_length;
 	RK_U32 pkt_eos;
 
+	MppPacket in_pkt;
+
 	RK_S64 in_pts;
 	RK_S64 in_dts;
 	RK_U8  has_get_eos;
@@ -868,7 +872,7 @@ typedef struct h264d_curstrm_t {
 
     RK_U8     *curdata;
 
-    RK_S32    nal_unit_type;
+    RK_S32    nalu_type;
     RK_U32    nalu_len;
     RK_U8     *nalu_buf;       //!< store read nalu data
 
@@ -909,6 +913,13 @@ typedef struct h264d_cur_ctx_t {
 	RK_S64                    curr_pts;
 	RK_S64                    curr_dts;
 } H264dCurCtx_t;
+
+typedef struct h264d_outlist_t {	
+	RK_U32 begin;
+	RK_U32 end;
+	RK_U32 max_size;
+	H264_DpbMark_t *list[MAX_MARK_SIZE];
+}H264dOutList_t;
 
 //!< parameters for video decoder
 typedef struct h264d_video_ctx_t {
@@ -980,6 +991,7 @@ typedef struct h264d_video_ctx_t {
 
     RK_U32     g_framecnt;
 	RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
+	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
@@ -1068,6 +1080,8 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     task_eos;
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
+
+	RK_U32                     error_flag;
 } H264_DecCtx_t;
 
 

@@ -287,13 +287,15 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 				
 		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 			MppFrame frame;
-			//RK_U32 display;
+			RK_U32 discard;
 			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-			//display = mpp_frame_get_display(frame);
-			if (!dec->reset_flag) {
+			discard = mpp_frame_get_discard(frame);
+			if (!dec->reset_flag && !discard) {
 				mpp_put_frame(mpp, frame);
+				//mpp_log("discard=%d \n",0);
 			} else {
 				mpp_frame_deinit(&frame);
+				//mpp_log("discard=%d \n",1);
 			}
 			mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
 		}
@@ -656,21 +658,23 @@ void *mpp_dec_hal_thread(void *data)
 
             RK_S32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+				
                 MppFrame frame;
-                //RK_U32 display;
-                mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                //  display = mpp_frame_get_display(frame);
-                if (!dec->reset_flag) {
+                RK_U32 discard;
+				mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+                discard = mpp_frame_get_discard(frame);
+                if (!dec->reset_flag && !discard) {
 					mpp_put_frame(mpp, frame);
-					//mpp_log("g_hal_out_frame=%d \n",g_hal_out_frame++);
+					//mpp_log("discard=%d \n",0);
                 } else {
                     mpp_frame_deinit(&frame);
+					//mpp_log("discard=%d \n",1);
                 }
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
-        }
+        }		
     }
-
+		//mpp_log("------- hal thread end ----------- \n");
     return NULL;
 }
 
@@ -681,7 +685,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
     MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
-	HalIOInterruptCB cb = {0};
+	HalIOInterruptCB cb = {NULL, NULL};
 
     MppDec *p = mpp_calloc(MppDec, 1);
     if (NULL == p) {

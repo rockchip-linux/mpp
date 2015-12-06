@@ -24,6 +24,19 @@
 #include "h264d_sps.h"
 #include "h264d_sei.h"
 
+
+#ifndef _WIN32
+#include <ctype.h>
+char *strupr(char *str)
+{
+	char *orign=str;
+	for (; *str != '\0'; str++) {
+		*str = toupper(*str);
+	}
+	return orign;
+}
+#endif
+
 static void interpret_spare_pic()
 {
 
@@ -48,10 +61,35 @@ static void interpret_user_data_registered_itu_t_t35_info()
 {
 
 }
-static void interpret_user_data_unregistered_info()
-{
 
+static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size, H264_SEI_t *sei_msg)
+{
+	char *pdata = NULL;
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	ASSERT(size >= 16);
+	pdata = strupr((char *)payload);
+	sei_msg->user_data_DivX_flag = strstr(pdata, "DIVX") ? 1 : 0;
+	H264D_LOG("DivX is not supported. \n");
+
+#if 0
+	RK_U32 offset = 0;
+	RK_U8 payload_byte;
+	mpp_log("User data unregistered SEI message\n");
+	mpp_log("uuid_iso_11578 = 0x");
+	for (offset = 0; offset < 16; offset++) {
+		mpp_log("%02x",payload[offset]);
+	}
+	while (offset < size) {
+		payload_byte = payload[offset];
+		offset++;
+		mpp_log("Unreg data payload_byte = %d\n", payload_byte);
+	}
+#endif
+
+	return ret = MPP_OK;
 }
+
 static void interpret_pan_scan_rect_info()
 {
 
@@ -212,11 +250,9 @@ static MPP_RET parserSEI(BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg, RK_U8 *msg
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     //!< sei_payload( type, size );
-
+	H264D_LOG("[SEI_TYPE] type=%d \n", sei_msg->type);
 
     switch (sei_msg->type) {
-
-		
     case  SEI_BUFFERING_PERIOD:
         FUN_CHECK(ret = interpret_buffering_period_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));
         break;
@@ -233,7 +269,7 @@ static MPP_RET parserSEI(BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg, RK_U8 *msg
         interpret_user_data_registered_itu_t_t35_info();
         break;
     case  SEI_USER_DATA_UNREGISTERED:
-        interpret_user_data_unregistered_info();
+        interpret_user_data_unregistered_info(msg, sei_msg->payload_size, sei_msg);
         break;
     case  SEI_RECOVERY_POINT:
         FUN_CHECK(ret = interpret_recovery_point_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));

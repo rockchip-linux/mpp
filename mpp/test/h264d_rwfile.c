@@ -49,7 +49,7 @@ static const RK_U32 IOBUFSIZE   = 16 * 1024 * 1024; //524288
 static const RK_U32 STMBUFSIZE  = 16 * 1024 * 1024; //524288
 
 
-//!< values for nal_unit_type
+//!< values for nalu_type
 typedef enum {
     NALU_TYPE_NULL = 0,
     NALU_TYPE_SLICE = 1,
@@ -495,7 +495,7 @@ static MPP_RET read_next_nalu(InputParams *p_in)
 {
     RK_S32 forbidden_bit      = -1;
     RK_S32 nal_reference_idc  = -1;
-    RK_S32 nal_unit_type      = -1;
+    RK_S32 nalu_type      = -1;
     RK_S32 nalu_header_bytes  = -1;
     RK_U32 first_mb_in_slice  = -1;
     RK_S32 svc_extension_flag = -1;
@@ -506,7 +506,7 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     read_bits( pStrmData, 1, &forbidden_bit);
     ASSERT(forbidden_bit == 0);
     read_bits( pStrmData, 2, &nal_reference_idc);
-    read_bits( pStrmData, 5, &nal_unit_type);
+    read_bits( pStrmData, 5, &nalu_type);
     if (g_nalu_cnt2 == 344) {
         g_nalu_cnt2 = g_nalu_cnt2;
     }
@@ -514,18 +514,18 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     //{
     //  g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
     //}
-    //FPRINT(g_debug_file0, "[Read_NALU] g_nalu_cnt = %d, nal_unit_type = %d, nalu_size = %d\n", g_nalu_cnt2++, nal_unit_type, p_in->IO.nalubytes);
+    //FPRINT(g_debug_file0, "[Read_NALU] g_nalu_cnt = %d, nalu_type = %d, nalu_size = %d\n", g_nalu_cnt2++, nalu_type, p_in->IO.nalubytes);
 
     nalu_header_bytes = 1;
-    if ((nal_unit_type == NALU_TYPE_PREFIX) || (nal_unit_type == NALU_TYPE_SLC_EXT)) {
+    if ((nalu_type == NALU_TYPE_PREFIX) || (nalu_type == NALU_TYPE_SLC_EXT)) {
         read_bits(pStrmData, 1, &svc_extension_flag);
-        if (!svc_extension_flag && nal_unit_type == NALU_TYPE_SLC_EXT) {//!< MVC
-            nal_unit_type = NALU_TYPE_SLICE;
+        if (!svc_extension_flag && nalu_type == NALU_TYPE_SLC_EXT) {//!< MVC
+            nalu_type = NALU_TYPE_SLICE;
         }
         nalu_header_bytes += 3;
     }
     //-- parse slice
-    if ( nal_unit_type == NALU_TYPE_SLICE || nal_unit_type == NALU_TYPE_IDR) {
+    if ( nalu_type == NALU_TYPE_SLICE || nalu_type == NALU_TYPE_IDR) {
         set_streamdata(pStrmData, (p_in->IO.pNALU + nalu_header_bytes), 4); // reset
         read_ue(pStrmData, &first_mb_in_slice);
         //FPRINT(g_debug_file0, "first_mb_in_slice = %d \n", first_mb_in_slice);

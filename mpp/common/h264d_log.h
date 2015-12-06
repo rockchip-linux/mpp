@@ -199,6 +199,8 @@ typedef struct h264d_logctx_t {
 #define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);}  }
 #endif
 
+#define  H264D_LOG(fmt, ...)  //mpp_log(fmt, ## __VA_ARGS__)
+#define  H264D_ERR(fmt, ...)  mpp_err(fmt, ## __VA_ARGS__)
 
 extern RK_U32  g_nalu_cnt0;
 extern RK_U32  g_nalu_cnt1;

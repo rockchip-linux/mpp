@@ -27,6 +27,7 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
+	
 void    update_ref_list(H264_DpbBuf_t *p_Dpb);
 void    update_ltref_list(H264_DpbBuf_t *p_Dpb);
 void    free_storable_picture(H264_DecCtx_t *p_Dec, H264_StorePic_t *p);
@@ -44,6 +45,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice);
 MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice);
 RK_U32  get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure);
+void flush_muti_view_output(MppBufSlots frame_slots, H264dOutList_t *p_list, H264dVideoCtx_t *p_Vid);
 
 #ifdef  __cplusplus
 }

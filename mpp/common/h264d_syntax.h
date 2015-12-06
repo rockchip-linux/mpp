@@ -111,7 +111,7 @@ typedef struct _DXVA_PicParams_H264 {
 /* H.264/AVC quantization weighting matrix data structure */
 typedef struct _DXVA_Qmatrix_H264 {
     RK_U8   bScalingLists4x4[6][16];
-    RK_U8   bScalingLists8x8[2][64];
+    RK_U8   bScalingLists8x8[6][64];
 
 } DXVA_Qmatrix_H264, *LPDXVA_Qmatrix_H264;
 
