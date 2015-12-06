@@ -391,7 +391,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 		RK_U32 y_virstride = 0;
 		RK_U32 yuv_virstride = 0;
 
-		mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_FRAME, &cur_frame); 
+		mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_FRAME_PTR, &cur_frame); 
 		hor_virstride = mpp_frame_get_hor_stride(cur_frame);
 		ver_virstride = mpp_frame_get_ver_stride(cur_frame);
 		y_virstride = hor_virstride * ver_virstride;
@@ -433,6 +433,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 	p_regs->swreg7_decout_base.sw_decout_base = pp->CurrPic.Index7Bits + 1;
 #else
     p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf);
+	//mpp_log_f("line=%d, decout_fd=%d over \n", __LINE__, mpp_buffer_get_fd(frame_buf));
 #endif
 
     //!< set reference
@@ -449,6 +450,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         } else {
             mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
         }
+		//mpp_log_f("line=%d, ref[%d]=%d over \n", __LINE__, i, mpp_buffer_get_fd(frame_buf));
 #if FPGA_TEST
 		p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
 #else        
@@ -466,15 +468,19 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     } else {
         mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[15].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
     }
+	
 #if FPGA_TEST
     p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = 0;
 	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = 0;
 #else
     p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
+	//mpp_log_f("line=%d, ref[%d]=%d over \n", __LINE__, 15, mpp_buffer_get_fd(frame_buf));
 	p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
+	//mpp_log_f("line=%d, cabac_table_fd=%d over \n", __LINE__, mpp_buffer_get_fd(p_hal->cabac_buf));
 	mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
+	//mpp_log_f("line=%d, rlc_base_fd=%d over \n", __LINE__,mpp_buffer_get_fd(bitstream_buf));
 #endif
 	
 

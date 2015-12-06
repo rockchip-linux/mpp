@@ -138,7 +138,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps)
+static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecCtx_t *p_Dec)
 {
     RK_S32 i = 0, temp = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -177,12 +177,15 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps)
         || cur_sps->profile_idc == 128 || cur_sps->profile_idc == 138) {
         READ_UE(p_bitctx, &cur_sps->chroma_format_idc, "chroma_format_idc");
         ASSERT(cur_sps->chroma_format_idc < 4);
-
-        if (cur_sps->chroma_format_idc == 3) {
-            READ_ONEBIT(p_bitctx, &cur_sps->separate_colour_plane_flag, "separate_colour_plane_flag");
-            LogError(p_bitctx->ctx, "Not support YUV444 format current.");
-        }
-
+		if (cur_sps->chroma_format_idc >= 3) {
+			H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
+			p_Dec->error_flag = 1;
+			goto __FAILED;
+		}
+        //if (cur_sps->chroma_format_idc == 3) {
+        //    READ_ONEBIT(p_bitctx, &cur_sps->separate_colour_plane_flag, "separate_colour_plane_flag");
+        //    LogError(p_bitctx->ctx, "Not support YUV444 format current.");
+        //}
         READ_UE(p_bitctx, &cur_sps->bit_depth_luma_minus8, "bit_depth_luma_minus8");
         ASSERT(cur_sps->bit_depth_luma_minus8 < 7);
         READ_UE(p_bitctx, &cur_sps->bit_depth_chroma_minus8, "bit_depth_chroma_minus8");
@@ -420,7 +423,7 @@ MPP_RET process_sps(H264_SLICE_t *currSlice)
     reset_cur_sps_data(cur_sps); // reset
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_SPS]);
     //!< parse sps
-    FUN_CHECK(ret = parser_sps(p_bitctx, cur_sps));
+    FUN_CHECK(ret = parser_sps(p_bitctx, cur_sps, currSlice->p_Dec));
     //!< decide "max_dec_frame_buffering" for DPB
     FUN_CHECK(ret = get_max_dec_frame_buf_size(cur_sps));
     //!< make SPS available, copy
@@ -495,7 +498,7 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
     reset_cur_subpps_data(cur_subsps); //reset
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_SUBSPS]);
     LogInfo(p_bitctx->ctx, "----------------------------- subSPS begin --------------------------------");
-    FUN_CHECK(ret = parser_sps(p_bitctx, &cur_subsps->sps));
+    FUN_CHECK(ret = parser_sps(p_bitctx, &cur_subsps->sps, currSlice->p_Dec));
     FUN_CHECK(ret = parser_subsps_ext(p_bitctx, cur_subsps));
     if (cur_subsps->sps.Valid) {
         cur_subsps->Valid = 1;
@@ -543,7 +546,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
 			update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
 			//!< init frame slots, store frame buffer size
 			p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
-			mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + p_Vid->dpb_size[1] + 3);            
+			//mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + p_Vid->dpb_size[1] + 3);   
         }
     } else { //!< layer_id == 0
         p_Vid->active_sps = sps;
@@ -558,7 +561,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
 			update_last_video_pars(p_Vid, p_Vid->active_sps, 0);
 			//!< init frame slots, store frame buffer size
 			p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
-			mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + 3);            
+			//mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + 3);            
         }
     }
     update_video_pars(p_Vid, p_Vid->active_sps);

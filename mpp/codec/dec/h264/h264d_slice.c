@@ -339,7 +339,7 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     H264_Nalu_t    *cur_nalu = &currSlice->p_Cur->nalu;
 
     //--- init slice syntax
-    currSlice->idr_flag = ((cur_nalu->nal_unit_type == NALU_TYPE_IDR)
+    currSlice->idr_flag = ((cur_nalu->nalu_type == NALU_TYPE_IDR)
                            || (currSlice->mvcExt.valid && !currSlice->mvcExt.non_idr_flag));
     currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
     if ((!currSlice->svc_extension_flag) || currSlice->mvcExt.iPrefixNALU) { // MVC or have prefixNALU

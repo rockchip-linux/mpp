@@ -46,15 +46,18 @@ struct MppFrameImpl_t {
     /*
      * current decoded frame whether to display
      *
-     * 0 - display
-     * 1 - display
+     * 0 - reserve
+     * 1 - discard
      */
-    RK_U32  display;
+    RK_U32  discard;
     /*
      * send decoded frame belong which view
      */
     RK_U32  viewid;
-
+	 /*
+     * poc - picture order count
+     */
+	RK_U32  poc;
     /*
      * pts - display time stamp
      * dts - decode time stamp
