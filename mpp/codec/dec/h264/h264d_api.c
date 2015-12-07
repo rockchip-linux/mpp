@@ -657,7 +657,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 		p_Dec->p_Inp->in_length   = mpp_packet_get_length(pkt);
 		p_Dec->p_Inp->pkt_eos     = 0;
 		p_Dec->p_Inp->in_size   = &((MppPacketImpl *)pkt)->length;
-	
+			
 		FPRINT(g_debug_file1, "[nal_ff_data] %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", 
 			p_Dec->p_Inp->in_buf[0],
 			p_Dec->p_Inp->in_buf[1],
@@ -712,6 +712,8 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 	//mpp_log("Prepare Out: len=%d, valid=%d ", mpp_packet_get_length(pkt), task->valid);	
 	task->flags.eos = p_Dec->p_Inp->pkt_eos;
     if (task->valid) {
+		memset(p_Dec->dxva_ctx->bitstream + p_Dec->dxva_ctx->strm_offset, 0, 
+			MPP_ALIGN(p_Dec->dxva_ctx->strm_offset, 16) - p_Dec->dxva_ctx->strm_offset);
         mpp_packet_set_data(p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream);		
         mpp_packet_set_length(p_Dec->task_pkt, MPP_ALIGN(p_Dec->dxva_ctx->strm_offset, 16));
         mpp_packet_set_size(p_Dec->task_pkt, p_Dec->dxva_ctx->max_strm_size);		
