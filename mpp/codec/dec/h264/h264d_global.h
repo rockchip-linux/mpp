@@ -39,7 +39,7 @@
 #define MAX_MARK_SIZE             35   //!< for malloc buffer mark, can be changed
 
 
-#define NALU_BUF_MAX_SIZE         1024*1024	
+#define NALU_BUF_MAX_SIZE         5*1024*1024	
 #define NALU_BUF_ADD_SIZE         512			
 #define HEAD_BUF_MAX_SIZE         5*1024*1024	
 #define HEAD_BUF_ADD_SIZE         1024		    
@@ -832,7 +832,6 @@ typedef struct h264d_input_ctx_t {
     ParserCfg                   init;
     //!< input data
     RK_U8  *in_buf;
-    size_t *in_size;
     size_t in_length;
 	RK_U32 pkt_eos;
 
