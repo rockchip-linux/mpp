@@ -205,6 +205,12 @@ typedef enum VPU_API_ERR {
     VPU_API_ERR_BUTT,
 } VPU_API_ERR;
 
+typedef enum VPU_FRAME_ERR {
+	VPU_FRAME_ERR_UNKNOW           = 0x0001,
+	VPU_FRAME_ERR_UNSUPPORT        = 0x0002,
+
+} VPU_FRAME_ERR;
+
 typedef struct EncParameter {
     RK_S32 width;
     RK_S32 height;

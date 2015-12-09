@@ -157,9 +157,9 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     ASSERT(cur_nal->forbidden_bit == 0);
     READ_BITS(p_bitctx, 2, (RK_S32 *)&cur_nal->nal_reference_idc, "nal_ref_idc");
     READ_BITS(p_bitctx, 5, (RK_S32 *)&cur_nal->nalu_type, "nalu_type");
-    if (g_nalu_cnt0 == 2384) {
-        g_nalu_cnt0 = g_nalu_cnt0;
-    }
+    //if (g_nalu_cnt0 == 2384) {
+    //    g_nalu_cnt0 = g_nalu_cnt0;
+    //}
 
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
@@ -189,9 +189,10 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
             //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
         }
         cur_nal->ualu_header_bytes += 3;
-    } else {
+    } 
+	//else {
         //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
-    }
+    //}
     mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
 
     p_Cur->p_Dec->nalu_ret = StartofNalu;
@@ -242,7 +243,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         LogTrace(runlog, "nalu_type=SUB_SPS");
         break;
     case NALU_TYPE_SEI:
-        //FUN_CHECK(ret = process_sei(currSlice));
+        FUN_CHECK(ret = process_sei(currSlice));
         LogTrace(runlog, "nalu_type=SEI");
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
@@ -630,7 +631,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 	if (!p_Inp->in_length) {
 		p_strm->nalu_offset = 0;
 		p_Dec->nalu_ret = HaveNoStream;
-
+		
 		p_strm->endcode_found = 1;
 		p_Dec->nalu_ret = EndOfNalu;
 		FUN_CHECK(ret = store_cur_nalu(&p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
@@ -640,6 +641,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		p_Cur->p_Inp->task_valid = 1;				
 		p_Cur->p_Dec->is_new_frame = 0;
 		reset_nalu(p_strm);
+		p_strm->startcode_found = 0;
 
 		p_Cur->last_dts = p_Cur->curr_dts;
 		p_Cur->last_pts = p_Cur->curr_pts;
@@ -867,7 +869,6 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         case SliceSTATE_ResetSlice:
             reset_slice(p_Dec->p_Vid);
             p_Dec->next_state = SliceSTATE_ReadNalu;
-			//H264D_LOG( "SliceSTATE_ResetSlice");
             break;
         case SliceSTATE_ReadNalu:
             p_head = (H264dNaluHead_t *)p_curdata;
@@ -883,7 +884,6 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
                 p_Dec->nalu_ret = EndOfNalu;
                 p_Dec->next_state = SliceSTATE_ParseNalu;
             }
-			//H264D_LOG( "SliceSTATE_ReadNalu");
             break;
         case SliceSTATE_ParseNalu:
             (ret = parser_one_nalu(&p_Dec->p_Cur->slice));
@@ -894,30 +894,30 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;
             }
-			//H264D_LOG("SliceSTATE_ParseNalu");
             break;
         case SliceSTATE_InitPicture:
             (ret = init_picture(&p_Dec->p_Cur->slice));
             p_Dec->next_state = SliceSTATE_GetSliceData;
-			//H264D_LOG("SliceSTATE_InitPicture");
             break;
         case SliceSTATE_GetSliceData:
 			(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
             p_Dec->next_state = SliceSTATE_ResetSlice;
-			//H264D_LOG("SliceSTATE_GetSliceData");
             break;
         case SliceSTATE_RegisterOneFrame:
             commit_buffer(p_Dec->dxva_ctx);
             while_loop_flag = 0;
             p_Dec->is_parser_end = 1;
             p_Dec->next_state = SliceSTATE_ReadNalu;
-			//H264D_LOG("SliceSTATE_RegisterOneFrame");
             break;
         default:
             ret = MPP_NOK;
-            goto __FAILED;
+			break;
         }
+		if (p_Dec->err_ctx.err_flag) {
+			h264d_callback((void *)p_Dec, (void*)&p_Dec->err_ctx);
+			goto __FAILED;
+		}
     }
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     //__RETURN:

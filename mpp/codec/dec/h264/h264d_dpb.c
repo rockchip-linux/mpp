@@ -1746,21 +1746,24 @@ RK_U32 get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // type=1 AVC type=2 MVC
 {
     RK_U32 i = 0;
-    RK_S32 PicSizeInMbs = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_SPS_t *active_sps = p_Vid->active_sps;
 
+	if(!active_sps){
+		ret = MPP_NOK;
+		goto __FAILED;
+	}
     p_Dpb->p_Vid = p_Vid;
     if (p_Dpb->init_done) {
         free_dpb(p_Dpb);
     }
     p_Dpb->size = getDpbSize(p_Vid, active_sps) + (type == 2 ? 0 : 1);
     p_Dpb->num_ref_frames = active_sps->max_num_ref_frames;
-	if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
+	//if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
 		//H264D_LOG("DPB size at specified level is smaller than reference frames");
 		//LogError(runlog, "DPB size at specified level is smaller than reference frames");
 		//goto __FAILED;
-	}
+	//}
     p_Dpb->used_size = 0;
     p_Dpb->last_picture = NULL;
     p_Dpb->ref_frames_in_buffer = 0;
@@ -1794,7 +1797,6 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     }
     //!< allocate a dummy storable picture
     if (!p_Vid->no_ref_pic) {
-        PicSizeInMbs = (p_Vid->active_sps->pic_height_in_map_units_minus1 + 1) * (p_Vid->active_sps->pic_width_in_mbs_minus1 + 1);
         p_Vid->no_ref_pic = alloc_storable_picture(p_Vid, FRAME);
         MEM_CHECK(ret, p_Vid->no_ref_pic);
         p_Vid->no_ref_pic->top_field = p_Vid->no_ref_pic;
@@ -1805,11 +1807,9 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     p_Dpb->last_output_view_id = -1;
     p_Vid->last_has_mmco_5 = 0;
     p_Dpb->init_done = 1;
-    (void)PicSizeInMbs;
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 /*!

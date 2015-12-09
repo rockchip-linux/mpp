@@ -282,10 +282,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-	if (task_dec->flags.eos && task_dec->valid == 0) {
+	//if (task_dec->flags.eos && task_dec->valid == 0)
+	{
 		RK_S32 index;
-				
 		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+
 			MppFrame frame;
 			RK_U32 discard;
 			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
@@ -650,31 +651,26 @@ void *mpp_dec_hal_thread(void *data)
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
-			//mpp_log("--- task_dec->flags.eos=%d, out_frame=%d ---\n", task_dec->flags.eos, g_hal_out_frame);
             if (task_dec->flags.eos) {
-				//mpp_log("--- mpp_dec flush ---\n");
                 mpp_dec_flush(dec);
             }
 
             RK_S32 index;
-            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-				
+            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {				
                 MppFrame frame;
                 RK_U32 discard;
 				mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 discard = mpp_frame_get_discard(frame);
                 if (!dec->reset_flag && !discard) {
 					mpp_put_frame(mpp, frame);
-					//mpp_log("discard=%d \n",0);
                 } else {
                     mpp_frame_deinit(&frame);
-					//mpp_log("discard=%d \n",1);
                 }
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
         }		
     }
-		//mpp_log("------- hal thread end ----------- \n");
+
     return NULL;
 }
 

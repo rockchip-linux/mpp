@@ -71,7 +71,7 @@ struct MppFrameImpl_t {
      */
     RK_U32  eos;
     RK_U32  info_change;
-
+	RK_U32  errinfo;
     MppFrameColorRange color_range;
     MppFrameColorPrimaries color_primaries;
     MppFrameColorTransferCharacteristic color_trc;

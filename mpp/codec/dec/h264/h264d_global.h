@@ -693,6 +693,8 @@ typedef struct h264_sei_t {
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
     RK_S32  seq_parameter_set_id;
+
+    struct h264_dec_ctx_t *p_Dec;
 } H264_SEI_t;
 
 //!< SLICE
@@ -819,9 +821,6 @@ typedef struct h264d_dxva_ctx_t {
     struct h264d_syntax_t            syn;
     struct h264_dec_ctx_t            *p_Dec;
 } H264dDxvaCtx_t;
-
-
-
 
 //!< input parameter
 typedef struct h264d_input_ctx_t {	
@@ -1045,6 +1044,13 @@ typedef enum slice_state_type {
 } SLICE_STATUS;
 
 
+//!< decoder video parameter
+typedef struct h264_err_ctx_t {
+	RK_U32    err_flag;
+	void      *data;
+	RK_U32    length;
+}H264dErrCtx_t;
+
 
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {
@@ -1079,8 +1085,7 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     task_eos;
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
-
-	RK_U32                     error_flag;
+	struct h264_err_ctx_t      err_ctx;   
 } H264_DecCtx_t;
 
 
