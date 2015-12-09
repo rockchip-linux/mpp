@@ -174,7 +174,8 @@ RK_S64  mpp_frame_get_pts(const MppFrame frame);
 void    mpp_frame_set_pts(MppFrame frame, RK_S64 pts);
 RK_S64  mpp_frame_get_dts(const MppFrame frame);
 void    mpp_frame_set_dts(MppFrame frame, RK_S64 dts);
-
+RK_U32  mpp_frame_get_errinfo(const MppFrame frame);
+void    mpp_frame_set_errinfo(MppFrame frame, RK_U32 errinfo);
 /*
  * flow control parmeter
  */

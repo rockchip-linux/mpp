@@ -21,6 +21,8 @@
 
 #include "mpp_mem.h"
 
+#include "vpu_api.h"
+
 #include "h264d_log.h"
 #include "h264d_sps.h"
 #include "h264d_scalist.h"
@@ -179,7 +181,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         ASSERT(cur_sps->chroma_format_idc < 4);
 		if (cur_sps->chroma_format_idc >= 3) {
 			H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
-			p_Dec->error_flag = 1;
+		    p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
 			goto __FAILED;
 		}
         //if (cur_sps->chroma_format_idc == 3) {

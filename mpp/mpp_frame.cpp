@@ -171,4 +171,4 @@ MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
 MPP_FRAME_ACCESSORS(MppFrameFormat, fmt)
 MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 MPP_FRAME_ACCESSORS(size_t, buf_size)
-
+MPP_FRAME_ACCESSORS(RK_U32, errinfo)
