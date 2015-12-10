@@ -66,7 +66,6 @@ static void interpret_user_data_registered_itu_t_t35_info()
 
 static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size, H264_SEI_t *sei_msg)
 {
-	char *pdata = NULL;
 	MPP_RET ret = MPP_ERR_UNKNOW;
 	H264D_LOG("size=%d",size);
 	ASSERT(size >= 16);

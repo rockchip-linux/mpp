@@ -51,12 +51,7 @@ const enum {
     H264ScalingList8x8Length = 64,
 } ScalingListLength;
 
-#ifndef ANDROID
-static RK_S32 VPUClientGetIOMMUStatus()
-{
-	return 0;
-}
-#endif
+
 
 static void rkv_write_sps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
 {
