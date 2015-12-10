@@ -954,12 +954,6 @@ const RK_U32 g_refBase[16] = {
 };
 
 
-#ifndef ANDROID
-static RK_S32 VPUClientGetIOMMUStatus()
-{
-    return 0;
-}
-#endif
 
 
 static RK_U32 check_dpb_buffer_is_valid(H264dHalCtx_t *p_hal, RK_U32 dpb_idx)

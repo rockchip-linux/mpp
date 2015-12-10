@@ -171,6 +171,19 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
 /*!
 ***********************************************************************
 * \brief
+*    VPUClientGetIOMMUStatus
+***********************************************************************
+*/
+//extern "C"
+#ifndef ANDROID
+RK_S32 VPUClientGetIOMMUStatus()
+{
+	return 0;
+}
+#endif
+/*!
+***********************************************************************
+* \brief
 *    init
 ***********************************************************************
 */
@@ -241,7 +254,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
-
+	(void *)vpu_client;
 __RETURN:
     return MPP_OK;
 __FAILED:
