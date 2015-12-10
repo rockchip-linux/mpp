@@ -30,6 +30,7 @@ VpuApi::VpuApi()
 #ifdef DUMP_YUV
     fp = fopen("data/hevcdump.yuv", "wb");
 #endif
+    mpp_construct(&mpp_ctx, &mpi);
     frame_count  = 0;
     mpp_log_f("ok\n");
 
@@ -57,7 +58,11 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
         return MPP_ERR_VPU_CODEC_INIT;
     }
 
-    ret = mpp_init(&mpp_ctx, &mpi, type, (MppCodingType)ctx->videoCoding);
+    if (mpp_ctx == NULL || mpi == NULL) {
+        mpp_err("found invalid context input");
+        return MPP_ERR_NULL_PTR;
+    }
+    ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
 
     VPU_GENERIC vpug;
     vpug.CodecType  = ctx->codecType;
@@ -251,6 +256,10 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     }
     case VPU_API_SET_INFO_CHANGE: {
         mpicmd = MPP_CODEC_SET_INFO_CHANGE_READY;
+        break;
+    }
+    case VPU_API_USE_FAST_MODE: {
+        mpicmd = MPP_DEC_USE_FAST_MODE;
         break;
     }
     default: {

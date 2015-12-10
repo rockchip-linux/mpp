@@ -128,8 +128,11 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
 static MPP_RET mpi_flush(MppCtx ctx)
 {
     MpiImpl *p = (MpiImpl *)ctx;
+    MPP_RET ret = MPP_OK;
     MPI_FUNCTION_ENTER();
-    MPP_RET ret = p->ctx->reset();
+    if (p->ctx->mInitDone) {
+        ret = p->ctx->reset();
+    }
     MPI_FUNCTION_LEAVE();
     return ret;
 }
@@ -158,16 +161,15 @@ static MppApi mpp_api = {
     {0},
 };
 
-MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType coding)
+MPP_RET mpp_construct(MppCtx *ctx, MppApi **mpi)
 {
+
     MpiImpl *p;
+
     MPI_FUNCTION_ENTER();
 
-    if (NULL == ctx || NULL == mpi ||
-        type >= MPP_CTX_BUTT ||
-        coding >= MPP_VIDEO_CodingMax) {
-        mpp_err("mpp_init invalid input ctx %p mpi %p type %d coding %d\n",
-                ctx, mpi, type, coding);
+    if (NULL == ctx || NULL == mpi) {
+        mpp_err("mpp_init invalid input ctx %p mpi %p\n", ctx, mpi);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -181,23 +183,39 @@ MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType codin
     }
 
     memset(p, 0, sizeof(*p));
-
-    p->ctx = new Mpp(type, coding);
+    p->ctx = new Mpp();
     if (NULL == p->ctx) {
         mpp_free(p);
-        mpp_err("mpp_init failed to new Mpp\n");
+        mpp_err("mpp_construct failed to new Mpp\n");
         return MPP_ERR_MALLOC;
     }
-
     p->api      = &mpp_api;
     p->check    = p;
-    p->type     = type;
-    p->coding   = coding;
     *ctx = p;
     *mpi = p->api;
+    MPI_FUNCTION_LEAVE_OK();
+    return MPP_OK;
+}
+
+
+MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
+{
+    MpiImpl *p = (MpiImpl*)ctx;
+    MPI_FUNCTION_ENTER();
+
+    if (NULL == ctx ||
+        type >= MPP_CTX_BUTT ||
+        coding >= MPP_VIDEO_CodingMax) {
+        mpp_err("mpp_init invalid input ctx %p type %d coding %d\n",
+                ctx, type, coding);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p->ctx->init(type, coding);
+    p->type     = type;
+    p->coding   = coding;
 
     get_mpi_debug();
-
     MPI_FUNCTION_LEAVE_OK();
     return MPP_OK;
 }

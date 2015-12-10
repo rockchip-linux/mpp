@@ -78,6 +78,7 @@ typedef enum {
     MPP_DEC_USE_PRESENT_TIME_ORDER,
     MPP_DEC_SET_VC1_EXTRA_DATA,
     MPP_DEC_SET_VP6_ID,
+    MPP_DEC_USE_FAST_MODE,
 
     MPP_ENC_CMD_BASE                    = 0x50000,
     MPP_ENC_SETCFG,
@@ -169,7 +170,8 @@ extern "C" {
 /*
  * mpp interface
  */
-MPP_RET mpp_init(MppCtx *ctx, MppApi **mpi, MppCtxType type, MppCodingType coding);
+MPP_RET mpp_construct(MppCtx *ctx, MppApi **mpi);
+MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding);
 MPP_RET mpp_deinit(MppCtx ctx);
 
 #ifdef __cplusplus

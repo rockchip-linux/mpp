@@ -33,7 +33,7 @@
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
-Mpp::Mpp(MppCtxType type, MppCodingType coding)
+Mpp::Mpp()
     : mPackets(NULL),
       mFrames(NULL),
       mTasks(NULL),
@@ -50,26 +50,45 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
       mThreadHal(NULL),
       mDec(NULL),
       mEnc(NULL),
-      mType(type),
-      mCoding(coding),
+      mFastMode(0),
+      mInitDone(0),
+      mType(MPP_CTX_BUTT),
+      mCoding(MPP_VIDEO_CodingUnused),
       mPacketBlock(0),
       mOutputBlock(0),
       mMultiFrame(0),
       mStatus(0)
 {
+}
+MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
+{
+
+    mType = type;
+    mCoding = coding;
     switch (mType) {
     case MPP_CTX_DEC : {
+        mDec = mpp_calloc(MppDec, 1);
+        if (NULL == mDec) {
+            mpp_err_f("failed to malloc context\n");
+            return MPP_ERR_NULL_PTR;
+        }
+
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        mpp_dec_init(&mDec, coding);
+        if (MPP_VIDEO_CodingHEVC == coding) {
+            mDec->fast_mode = mFastMode;
+        }
+
+        mpp_dec_init(mDec, coding);
+
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_limit_config(mPacketGroup, 0, 2);
+        mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
 
     } break;
     case MPP_CTX_ENC : {
@@ -101,7 +120,9 @@ Mpp::Mpp(MppCtxType type, MppCodingType coding)
         clear();
     }
 
+    mInitDone = 1;
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+    return MPP_OK;
 }
 
 Mpp::~Mpp ()
@@ -250,8 +271,8 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mpp_log("mpi_control group %p\n", param);
         mFrameGroup = (MppBufferGroup)param;
         mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
-		mpp_log("signal codec thread\n");
-		mThreadCodec->signal();
+        mpp_log("signal codec thread\n");
+        mThreadCodec->signal();
         break;
     }
     case MPP_SET_OUTPUT_BLOCK: {
@@ -268,6 +289,11 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     case MPP_CODEC_SET_FRAME_INFO: {
         mpp_assert(mType == MPP_CTX_DEC);
         mpp_dec_control(mDec, cmd, param);
+        break;
+    }
+    case MPP_DEC_USE_FAST_MODE: {
+        RK_U32 mode = *((RK_U32 *)param);
+        mFastMode = mode;
         break;
     }
     default : {

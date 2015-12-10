@@ -140,6 +140,20 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *h
     return MPP_OK;
 }
 
+MPP_RET hal_task_check_empty(HalTaskGroup group, MppTaskStatus status)
+{
+    if (NULL == group || status >= TASK_BUTT) {
+        mpp_err_f("found invaid input group %p status %d \n", group, status);
+        return MPP_ERR_UNKNOW;
+    }
+    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    Mutex::Autolock auto_lock(p->lock);
+    struct list_head *list = &p->list[status];
+    if (list_empty(list)) {
+        return MPP_OK;
+    }
+    return MPP_NOK;
+}
 MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *count)
 {
     if (NULL == group || status >= TASK_BUTT || NULL == count) {

@@ -59,9 +59,9 @@
 class Mpp
 {
 public:
-    Mpp(MppCtxType type, MppCodingType coding);
+    Mpp();
     ~Mpp();
-
+    MPP_RET init(MppCtxType type, MppCodingType coding);
     MPP_RET put_packet(MppPacket packet);
     MPP_RET get_frame(MppFrame *frame);
 
@@ -101,6 +101,9 @@ public:
     MppDec          *mDec;
     MppEnc          *mEnc;
 
+    RK_U32          mFastMode;
+    RK_U32          mInitDone;
+
 private:
     void clear();
 
@@ -113,7 +116,6 @@ private:
 
     RK_U32          mStatus;
 
-    Mpp();
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);
 };

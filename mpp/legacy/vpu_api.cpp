@@ -19,6 +19,7 @@
 #include <string.h>
 #ifdef ANDROID
 #include <dlfcn.h>
+#include <unistd.h>
 #endif
 
 #include "mpp_log.h"
@@ -197,10 +198,12 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
     void *rkapi_hdl = NULL;
     RK_S32 (*rkvpu_open_cxt)(VpuCodecContext **ctx);
-    rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-    if (rkapi_hdl == NULL) {
-        mpp_log("dlopen librk_vpuapi library fail\n");
+    RK_S32 value = !!access("/dev/rkvdec", F_OK);
+    if (value) {
         rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+    }
+    if (rkapi_hdl == NULL) {
+        rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
         if (rkapi_hdl == NULL) {
             return -1;
         }
@@ -220,11 +223,13 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 {
     void *rkapi_hdl = NULL;
+    RK_S32 value = !!access("/dev/rkvdec", F_OK);
     RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
-    rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-    if (rkapi_hdl == NULL) {
-        mpp_log("dlopen librk_vpuapi library fail\n");
+    if (value) {
         rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+    }
+    if (rkapi_hdl == NULL) {
+        rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
         if (rkapi_hdl == NULL) {
             return -1;
         }
@@ -247,6 +252,8 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     RK_U32 value;
     mpp_env_get_u32("chg_orig", &value, 0);
 #ifdef ANDROID
+    value = value || (!!access("/dev/rkvdec", F_OK));
+    value = (value & (s->videoCoding != OMX_RK_VIDEO_CodingHEVC));
     if (value || !s) {
         if (s) {
             free(s);

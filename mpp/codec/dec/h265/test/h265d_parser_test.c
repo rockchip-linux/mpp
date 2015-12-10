@@ -368,6 +368,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
     parser_cfg.frame_slots = slots;
     parser_cfg.packet_slots = packet_slots;
     parser_cfg.need_split = 1;
+    memset(&hal_cfg, 0, sizeof(hal_cfg));
     hal_cfg.frame_slots = slots;
     hal_cfg.packet_slots = packet_slots;
     h265d_init(mpp_codex_ctx, &parser_cfg);
