@@ -151,6 +151,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
     MppBufSlots packet_slots = dec->packet_slots;
     HalDecTask *task_dec = &task->info.dec;
 
+    if (!dec->fast_mode) {
     if (!task->status.prev_task_rdy) {
         HalTaskHnd task_prev = NULL;
         hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
@@ -162,6 +163,12 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         } else {
             msleep(5);
             task->wait.prev_task = 1;
+                return MPP_NOK;
+            }
+        }
+    } else {
+        if (hal_task_check_empty(tasks, TASK_PROCESSING)) {
+            msleep(5);
             return MPP_NOK;
         }
     }
@@ -347,6 +354,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         task->status.dec_pkt_copy_rdy = 1;
     }
 
+    if (!dec->fast_mode) {
     // wait previous task done
     if (!task->status.prev_task_rdy) {
         HalTaskHnd task_prev = NULL;
@@ -360,6 +368,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             task->wait.prev_task = 1;
             return MPP_NOK;
         }
+    }
     }
     if (mpp->mFrameGroup) {
         task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
@@ -642,7 +651,13 @@ void *mpp_dec_hal_thread(void *data)
             // TODO: may have risk here
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
             task = NULL;
-
+            if (dec->fast_mode) {
+               
+                hal_task_get_hnd(tasks, TASK_PROC_DONE, &task);
+                if (task) {
+                    hal_task_hnd_set_status(task, TASK_IDLE);
+                }
+            }
             mpp->mThreadCodec->signal();
 
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -674,16 +689,19 @@ void *mpp_dec_hal_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
+MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding)
 {
     MPP_RET ret;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
+    MppDec *p = dec;
+    RK_S32 task_count = 2;
 	HalIOInterruptCB cb = {NULL, NULL};
-
-    MppDec *p = mpp_calloc(MppDec, 1);
+    if (dec->fast_mode) {
+        task_count = 3;
+    }
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
@@ -702,13 +720,13 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             break;
         }
 
-        mpp_buf_slot_setup(packet_slots, 2);
+        mpp_buf_slot_setup(packet_slots, task_count);
 
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
             packet_slots,
-            2,
+            task_count,
             0,
         };
 
@@ -729,6 +747,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
             packet_slots,
             NULL,
             parser_cfg.task_count,
+            dec->fast_mode,
             cb,
         };
 
@@ -744,12 +763,10 @@ MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding)
         p->tasks  = hal_cfg.tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
-        *dec = p;
         return MPP_OK;
     } while (0);
 
     mpp_dec_deinit(p);
-    *dec = NULL;
     return MPP_NOK;
 }
 

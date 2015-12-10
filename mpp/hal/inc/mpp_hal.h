@@ -53,6 +53,7 @@ typedef struct MppHalCfg_t {
     // output
     HalTaskGroup    tasks;
     RK_S32          task_count;
+    RK_U32          fast_mode;
     HalIOInterruptCB hal_int_cb;
 } MppHalCfg;
 

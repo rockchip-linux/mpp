@@ -1240,6 +1240,9 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             s->poc <= s->max_ra) {
             s->is_decoded = 0;
             break;
+        } else if (s->poc < s->max_ra) { //when seek to I slice skip the stream small then I slic poc
+            s->is_decoded = 0;
+            break;
         } else {
             if (s->nal_unit_type == NAL_RASL_R && s->poc > s->max_ra)
                 s->max_ra = INT_MIN;
@@ -1482,6 +1485,9 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
         if (!s->is_nalff)
             extract_length = length;
 
+        if (!extract_length) {
+            return MPP_OK;
+        }
         if (s->nals_allocated < 1) {
             RK_S32 new_size = s->nals_allocated + 10;
             HEVCNAL *tmp = mpp_malloc(HEVCNAL, new_size);

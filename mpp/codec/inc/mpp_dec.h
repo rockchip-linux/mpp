@@ -37,6 +37,7 @@ struct MppDec_t {
 
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
+    RK_U32              fast_mode;
 };
 
 
@@ -53,7 +54,7 @@ void *mpp_dec_hal_thread(void *data);
 /*
  *
  */
-MPP_RET mpp_dec_init(MppDec **dec, MppCodingType coding);
+MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding);
 MPP_RET mpp_dec_deinit(MppDec *dec);
 
 MPP_RET mpp_dec_reset(MppDec *dec);

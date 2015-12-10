@@ -47,7 +47,15 @@
 FILE *fp = NULL;
 #endif
 
+#define MAX_GEN_REG 3
 RK_U32 h265h_debug = 0;
+typedef struct h265d_reg_buf {
+    RK_S32    use_flag;
+    MppBuffer scaling_list_data;
+    MppBuffer pps_data;
+    MppBuffer rps_data;
+    void*     hw_regs;
+} h265d_reg_buf_t;
 typedef struct h265d_reg_context {
     RK_S32 vpu_socket;
     MppBufSlots     slots;
@@ -58,6 +66,8 @@ typedef struct h265d_reg_context {
     MppBuffer pps_data;
     MppBuffer rps_data;
     void*     hw_regs;
+    h265d_reg_buf_t g_buf[MAX_GEN_REG];
+    RK_U32 fast_mode;
     HalIOInterruptCB int_cb;
 } h265d_reg_context_t;
 
@@ -255,6 +265,122 @@ static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
 {
     return MPP_ALIGN(val, 256) | 256;
 }
+MPP_RET hal_h265d_alloc_res(void *hal)
+{
+    RK_S32 i = 0;
+    RK_S32 ret = 0;
+    h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
+    if (reg_cxt->fast_mode) {
+        for (i = 0; i < MAX_GEN_REG; i++) {
+            reg_cxt->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_t));
+            ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->g_buf[i].scaling_list_data, SCALING_LIST_SIZE);
+            if (MPP_OK != ret) {
+                mpp_err("h265d scaling_list_data get buffer failed\n");
+                return ret;
+            }
+
+            ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->g_buf[i].pps_data, PPS_SIZE);
+            if (MPP_OK != ret) {
+                mpp_err("h265d pps_data get buffer failed\n");
+                return ret;
+            }
+
+            ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->g_buf[i].rps_data, RPS_SIZE);
+            if (MPP_OK != ret) {
+                mpp_err("h265d rps_data get buffer failed\n");
+                return ret;
+            }
+        }
+    } else {
+        reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_t));
+        ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->scaling_list_data, SCALING_LIST_SIZE);
+        if (MPP_OK != ret) {
+            mpp_err("h265d scaling_list_data get buffer failed\n");
+            return ret;
+        }
+
+        ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->pps_data, PPS_SIZE);
+        if (MPP_OK != ret) {
+            mpp_err("h265d pps_data get buffer failed\n");
+            return ret;
+        }
+
+        ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->rps_data, RPS_SIZE);
+        if (MPP_OK != ret) {
+            mpp_err("h265d rps_data get buffer failed\n");
+            return ret;
+        }
+
+    }
+    return MPP_OK;
+}
+
+MPP_RET hal_h265d_release_res(void *hal)
+{
+    RK_S32 ret = 0;
+    h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
+    RK_S32 i = 0;
+    if (reg_cxt->fast_mode) {
+        for (i = 0; i < MAX_GEN_REG; i++) {
+            if (reg_cxt->g_buf[i].scaling_list_data) {
+                ret = mpp_buffer_put(reg_cxt->g_buf[i].scaling_list_data);
+                if (MPP_OK != ret) {
+                    mpp_err("h265d scaling_list_data free buffer failed\n");
+                    return ret;
+                }
+            }
+            if (reg_cxt->g_buf[i].pps_data) {
+                ret = mpp_buffer_put(reg_cxt->g_buf[i].pps_data);
+                if (MPP_OK != ret) {
+                    mpp_err("h265d pps_data free buffer failed\n");
+                    return ret;
+                }
+            }
+
+            if (reg_cxt->g_buf[i].rps_data) {
+                ret = mpp_buffer_put(reg_cxt->g_buf[i].rps_data);
+                if (MPP_OK != ret) {
+                    mpp_err("h265d rps_data free buffer failed\n");
+                    return ret;
+                }
+            }
+
+            if (reg_cxt->g_buf[i].hw_regs) {
+                mpp_free(reg_cxt->g_buf[i].hw_regs);
+                reg_cxt->g_buf[i].hw_regs = NULL;
+            }
+        }
+    } else {
+        if (reg_cxt->scaling_list_data) {
+            ret = mpp_buffer_put(reg_cxt->scaling_list_data);
+            if (MPP_OK != ret) {
+                mpp_err("h265d scaling_list_data free buffer failed\n");
+                return ret;
+            }
+        }
+        if (reg_cxt->pps_data) {
+            ret = mpp_buffer_put(reg_cxt->pps_data);
+            if (MPP_OK != ret) {
+                mpp_err("h265d pps_data free buffer failed\n");
+                return ret;
+            }
+        }
+
+        if (reg_cxt->g_buf[i].rps_data) {
+            ret = mpp_buffer_put(reg_cxt->rps_data);
+            if (MPP_OK != ret) {
+                mpp_err("h265d rps_data free buffer failed\n");
+                return ret;
+            }
+        }
+
+        if (reg_cxt->hw_regs) {
+            mpp_free(reg_cxt->hw_regs);
+            reg_cxt->hw_regs = NULL;
+        }
+    }
+    return MPP_OK;
+}
 
 MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 {
@@ -269,6 +395,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 
     reg_cxt->slots = cfg->frame_slots;
     reg_cxt->int_cb = cfg->hal_int_cb;
+    reg_cxt->fast_mode = cfg->fast_mode;
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 
@@ -276,7 +403,11 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     ///<- VPUClientInit
 #ifdef ANDROID
     if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
+        RK_S32 value = !!access("/dev/rkvdec", F_OK);
+        if (value)
+            reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_HEVC);
+        else
+            reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;
@@ -296,8 +427,6 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
             return ret;
         }
     }
-    reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_t));
-
     ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->cabac_table_data, sizeof(cabac_table));
     if (MPP_OK != ret) {
         mpp_err("h265d cabac_table get buffer failed\n");
@@ -308,25 +437,12 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
         mpp_err("h265d write cabac_table data failed\n");
         return ret;
     }
+    ret = hal_h265d_alloc_res(hal);
 
-    ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->scaling_list_data, SCALING_LIST_SIZE);
     if (MPP_OK != ret) {
-        mpp_err("h265d scaling_list_data get buffer failed\n");
+        mpp_err("hal_h265d_alloc_res failed\n");
         return ret;
     }
-
-    ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->pps_data, PPS_SIZE);
-    if (MPP_OK != ret) {
-        mpp_err("h265d pps_data get buffer failed\n");
-        return ret;
-    }
-
-    ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->rps_data, RPS_SIZE);
-    if (MPP_OK != ret) {
-        mpp_err("h265d rps_data get buffer failed\n");
-        return ret;
-    }
-
     mpp_env_get_u32("h265h_debug", &h265h_debug, 0);
 
 #ifdef dump
@@ -355,24 +471,7 @@ MPP_RET hal_h265d_deinit(void *hal)
         return ret;
     }
 
-
-    ret = mpp_buffer_put(reg_cxt->scaling_list_data);
-    if (MPP_OK != ret) {
-        mpp_err("h265d scaling_list_data free buffer failed\n");
-        return ret;
-    }
-
-    ret = mpp_buffer_put(reg_cxt->pps_data);
-    if (MPP_OK != ret) {
-        mpp_err("h265d pps_data free buffer failed\n");
-        return ret;
-    }
-
-    ret = mpp_buffer_put(reg_cxt->rps_data);
-    if (MPP_OK != ret) {
-        mpp_err("h265d rps_data free buffer failed\n");
-        return ret;
-    }
+    hal_h265d_release_res(hal);
 
     if (reg_cxt->group) {
         ret = mpp_buffer_group_put(reg_cxt->group);
@@ -380,11 +479,6 @@ MPP_RET hal_h265d_deinit(void *hal)
             mpp_err("h265d group free buffer failed\n");
             return ret;
         }
-    }
-
-    if (reg_cxt->hw_regs) {
-        mpp_free(reg_cxt->hw_regs);
-        reg_cxt->hw_regs = NULL;
     }
     return MPP_OK;
 }
@@ -1292,6 +1386,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_U32 log2_min_cb_size;
     RK_S32 width, height, numCuInWidth;
     RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
+    RK_S32 i = 0;
 
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
@@ -1304,7 +1399,25 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
 
-    void *rps_ptr = mpp_buffer_get_ptr(reg_cxt->rps_data);
+    void *rps_ptr = NULL;
+    if (reg_cxt ->fast_mode) {
+        for (i = 0; i < MAX_GEN_REG; i++) {
+            if (!reg_cxt->g_buf[i].use_flag) {
+                syn->dec.reg_index = i;
+                reg_cxt->rps_data = reg_cxt->g_buf[i].rps_data;
+                reg_cxt->scaling_list_data = reg_cxt->g_buf[i].scaling_list_data;
+                reg_cxt->pps_data = reg_cxt->g_buf[i].pps_data;
+                reg_cxt->hw_regs = reg_cxt->g_buf[i].hw_regs;
+                reg_cxt->g_buf[i].use_flag = 1;
+                break;
+            }
+        }
+        if (i == MAX_GEN_REG) {
+            mpp_err("hevc rps buf all used");
+            return MPP_ERR_NOMEM;
+        }
+    }
+    rps_ptr = mpp_buffer_get_ptr(reg_cxt->rps_data);
     if (NULL == rps_ptr) {
 
         mpp_err("rps_data get ptr error");
@@ -1394,7 +1507,6 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->cabac_error_en = 0xfdfffffd;
 
 #ifdef ANDROID
-    int i = 0;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
@@ -1429,16 +1541,32 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
+    RK_U8* p = NULL;
+    H265d_REGS_t *hw_regs = NULL;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
-    RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
+    RK_S32 index =  task->dec.reg_index;
+
     RK_S32 i;
-    (void) task;
+    if (reg_cxt->fast_mode) {
+        p = (RK_U8*)reg_cxt->g_buf[index].hw_regs;
+        hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
+    } else {
+        p = (RK_U8*)reg_cxt->hw_regs;
+        hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
+    }
+
+    if(hw_regs == NULL){
+        mpp_err("hal_h265d_start hw_regs is NULL");
+        return MPP_ERR_NULL_PTR;
+    }
     for (i = 0; i < 68; i++) {
         h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
+        //mpp_log("RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
 #ifdef ANDROID
-    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)reg_cxt->hw_regs, 68); // 68 is the nb of uint32_t
+    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 68); // 68 is the nb of uint32_t
+
     if (ret != 0) {
         mpp_err("RK_HEVC_DEC: ERROR: VPUClientSendReg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -1455,15 +1583,24 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
     (void)task;
     (void) hal;
 #ifdef ANDROID
+    RK_S32 index =  task->dec.reg_index;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
-    RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
-    H265d_REGS_t *hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
+    RK_U8* p = NULL;
+    H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
     VPU_CMD_TYPE cmd;
     RK_S32 len;
-    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)reg_cxt->hw_regs, 68, &cmd, &len);
+    if (reg_cxt->fast_mode) {
+        hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
+    } else {
+        hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
+    }
+    p = (RK_U8*)hw_regs;
+    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 68, &cmd, &len);
     if ((hw_regs->sw_interrupt.sw_dec_error_sta ||
-         hw_regs->sw_interrupt.sw_dec_empty_sta) && reg_cxt->int_cb.callBack) {
+         hw_regs->sw_interrupt.sw_dec_empty_sta) &&
+        reg_cxt->int_cb.callBack &&
+        !reg_cxt->fast_mode) {
         reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, NULL);
     }
     for (i = 0; i < 68; i++) {
@@ -1475,6 +1612,9 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
             h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         }
         p += 4;
+    }
+    if (reg_cxt->fast_mode) {
+        reg_cxt->g_buf[index].use_flag = 0;
     }
 #endif
 

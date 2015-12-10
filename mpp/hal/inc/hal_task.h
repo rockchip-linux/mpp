@@ -101,6 +101,7 @@ typedef struct HalDecTask_t {
     // current task input slot index
     RK_S32          input;
 
+    RK_S32          reg_index;
     // for test purpose
     // current tesk output slot index
     RK_S32          output;
@@ -185,6 +186,7 @@ MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status);
 MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task);
 MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task);
 MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type);
+MPP_RET hal_task_check_empty(HalTaskGroup group, MppTaskStatus status);
 
 #ifdef __cplusplus
 }
