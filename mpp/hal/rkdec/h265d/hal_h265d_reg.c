@@ -366,7 +366,7 @@ MPP_RET hal_h265d_release_res(void *hal)
             }
         }
 
-        if (reg_cxt->g_buf[i].rps_data) {
+        if (reg_cxt->rps_data) {
             ret = mpp_buffer_put(reg_cxt->rps_data);
             if (MPP_OK != ret) {
                 mpp_err("h265d rps_data free buffer failed\n");
