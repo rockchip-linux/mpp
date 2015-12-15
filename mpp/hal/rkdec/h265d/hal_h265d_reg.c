@@ -1151,6 +1151,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
     BitputCtx_t bp;
+    pps_packet = mpp_calloc(RK_U64, fifo_len + 1);
 
     _count = 0;
     if (NULL == reg_cxt || dxva_cxt == NULL) {
@@ -1166,9 +1167,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         return MPP_ERR_NOMEM;
     }
     memset(pps_ptr, 0, 80 * 64);
-    pps_packet = (RK_U64 *)(pps_ptr + dxva_cxt->pp.pps_id * 80);
-#else
-    pps_packet = mpp_malloc(RK_U64, fifo_len);
+   // pps_packet = (RK_U64 *)(pps_ptr + dxva_cxt->pp.pps_id * 80);
 #endif
 
 
@@ -1367,16 +1366,18 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         mpp_align(&bp, 64);
     }
 
+#ifdef ANDROID
+    for(i = 0; i < 64; i++){
+        memcpy(pps_ptr+i*80,pps_packet,80);
+    }
 #ifdef dump
     fwrite(pps_ptr, 1, 80 * 64, fp);
     fflush(fp);
 #endif
-#ifndef ANDROID
+#endif
     if (pps_packet != NULL) {
         mpp_free(pps_packet);
     }
-#endif
-
     return 0;
 }
 
