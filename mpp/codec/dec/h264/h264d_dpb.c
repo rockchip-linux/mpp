@@ -951,9 +951,18 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		//	mpp_frame_set_discard(frame, 1);
 		//}
 
-		H264D_LOG("[dispaly] layer_id=%d, pic_num=%d, poc=%d, pts=%lld, g_framecnt=%d \n", p->layer_id, p->pic_num, p->poc, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
-
-
+		p_Vid->has_get_i_frame_flag = (p_Vid->has_get_i_frame_flag || (p->slice_type == I_SLICE)) ? 1 : 0;
+		if (!p_Vid->has_get_i_frame_flag) {
+				mpp_frame_set_discard(frame, 1);
+		}
+		if (p->poc 
+			&& (p_Vid->last_outputpoc[p->layer_id] >= 0) 
+			&& (p->poc < p_Vid->last_outputpoc[p->layer_id])) {
+				mpp_frame_set_discard(frame, 1);
+		}
+		H264D_LOG("[dispaly] layer_id=%d, pic_num=%d, poc=%d, last_poc=%d, slice_type=%d(isdir=%d),  pts=%lld, g_framecnt=%d \n", p->layer_id, 
+			p->pic_num, p->poc, p_Vid->last_outputpoc[p->layer_id], p->slice_type, p->idr_flag, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
+		p_Vid->last_outputpoc[p->layer_id] = p->poc;
 
 		mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
 

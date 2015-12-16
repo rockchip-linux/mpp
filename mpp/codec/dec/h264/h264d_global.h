@@ -944,7 +944,6 @@ typedef struct h264d_video_ctx_t {
     RK_S32    last_bottompoc[MAX_NUM_DPB_LAYERS];
     RK_S32    last_framepoc[MAX_NUM_DPB_LAYERS];
     RK_S32    last_thispoc[MAX_NUM_DPB_LAYERS];
-	RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
     //!<
     RK_S32     profile_idc;                                       // u(8)
     RK_S32     slice_type;
@@ -991,6 +990,8 @@ typedef struct h264d_video_ctx_t {
     RK_U32     g_framecnt;
 	RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
 	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
+	RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
+	RK_U32    has_get_i_frame_flag;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
