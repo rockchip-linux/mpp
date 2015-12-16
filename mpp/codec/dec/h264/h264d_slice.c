@@ -398,6 +398,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     currSlice->active_sps = p_Vid->active_sps;
     currSlice->active_pps = p_Vid->active_pps;
 
+	p_Vid->type = currSlice->slice_type;
     return MPP_OK;
 __FAILED:
     ASSERT(0);

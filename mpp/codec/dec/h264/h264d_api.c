@@ -274,6 +274,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->subspsSet[i].num_views_minus1 = -1;
         p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
     }
+	p_Vid->has_get_i_frame_flag = 0;
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -517,6 +518,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Vid->g_framecnt    = 0;
 	p_Dec->p_Vid->last_outputpoc[0] = -1;
 	p_Dec->p_Vid->last_outputpoc[1] = -1;
+	p_Dec->p_Vid->has_get_i_frame_flag = 0;
 	//!< reset current time stamp
 	p_Dec->p_Cur->last_dts  = 0;
 	p_Dec->p_Cur->last_pts  = 0; 
