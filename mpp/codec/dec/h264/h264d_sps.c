@@ -179,11 +179,11 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         || cur_sps->profile_idc == 128 || cur_sps->profile_idc == 138) {
         READ_UE(p_bitctx, &cur_sps->chroma_format_idc, "chroma_format_idc");
         ASSERT(cur_sps->chroma_format_idc < 4);
-		if (cur_sps->chroma_format_idc >= 3) {
-			H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
-		    p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
-			goto __FAILED;
-		}
+		//if (cur_sps->chroma_format_idc >= 3) {
+		//	H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
+		//    p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
+		//	goto __FAILED;
+		//}
         //if (cur_sps->chroma_format_idc == 3) {
         //    READ_ONEBIT(p_bitctx, &cur_sps->separate_colour_plane_flag, "separate_colour_plane_flag");
         //    LogError(p_bitctx->ctx, "Not support YUV444 format current.");

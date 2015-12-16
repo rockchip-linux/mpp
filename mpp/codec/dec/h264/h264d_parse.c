@@ -243,7 +243,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         LogTrace(runlog, "nalu_type=SUB_SPS");
         break;
     case NALU_TYPE_SEI:
-        FUN_CHECK(ret = process_sei(currSlice));
+        //FUN_CHECK(ret = process_sei(currSlice));
         LogTrace(runlog, "nalu_type=SEI");
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
@@ -590,9 +590,9 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
 		pkt_impl->length--;
 		if (p_strm->startcode_found) {
-			//if (p_strm->nalu_len >= p_strm->nalu_max_size) {
-			//	FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
-			//}
+			if (p_strm->nalu_len >= p_strm->nalu_max_size) {
+				FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
+			}
 			p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
 			if (p_strm->nalu_len == 1) {
 				p_strm->nalu_type = p_strm->nalu_buf[0]&0x1F;
@@ -607,6 +607,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 						p_strm->nalu_len += (RK_U32)pkt_impl->length;
 						memcpy(&p_strm->nalu_buf[0], p_strm->curdata, pkt_impl->length + 1);
 						pkt_impl->length = 0;
+						p_Cur->p_Inp->task_valid = 1;
 					break;
 				}
 			}
@@ -626,6 +627,13 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 			break;
 		}
 	}
+	if (p_Cur->p_Inp->task_valid) {
+		FUN_CHECK(ret = store_cur_nalu(&p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
+		FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
+		p_Cur->strm.head_offset = 0;
+		p_Cur->last_dts = p_Cur->p_Inp->in_dts;
+		p_Cur->last_pts = p_Cur->p_Inp->in_pts;
+	}
 	p_Inp->in_length = pkt_impl->length;
 	//!< check input
 	if (!p_Inp->in_length) {
@@ -634,19 +642,10 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 		
 		p_strm->endcode_found = 1;
 		p_Dec->nalu_ret = EndOfNalu;
-		FUN_CHECK(ret = store_cur_nalu(&p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
 
-		FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
-		p_Cur->strm.head_offset = 0;
-		p_Cur->p_Inp->task_valid = 1;				
-		p_Cur->p_Dec->is_new_frame = 0;
 		reset_nalu(p_strm);
 		p_strm->startcode_found = 0;
 
-		p_Cur->last_dts = p_Cur->curr_dts;
-		p_Cur->last_pts = p_Cur->curr_pts;
-		p_Cur->curr_dts = p_Cur->p_Inp->in_dts;
-		p_Cur->curr_pts = p_Cur->p_Inp->in_pts;
 	}
 
 __RETURN:
@@ -766,9 +765,20 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 			RK_U32 nalu_header_bytes = 0;
 
 			p_strm->nalu_len = parse_nal_size(p_Inp->nal_size, p_strm->curdata);
-			VAL_CHECK(ret, (p_strm->nalu_len > 0));
 			H264D_LOG("[extra_data] nalu_len=%d, in_length=%d \n", p_strm->nalu_len, p_Inp->in_length);
-			VAL_CHECK(ret, (RK_U32)(p_strm->nalu_len < p_Inp->in_length));
+			if (p_strm->nalu_len <= 0 ||  p_strm->nalu_len >= p_Inp->in_length) {
+				p_Cur->p_Dec->is_new_frame = 1;
+				p_Cur->p_Dec->is_first_frame = 1;
+				pkt_impl->length = 0;
+				p_Inp->in_length = 0;
+				p_strm->nalu_len = 0;
+				p_strm->nalu_offset = 0;
+				p_strm->startcode_found = 1;
+				p_strm->endcode_found = 0;
+				p_strm->nalu_buf  = NULL;
+				goto __FAILED;
+			}
+			//VAL_CHECK(ret, (RK_U32)(p_strm->nalu_len < p_Inp->in_length));
 
 			p_strm->curdata += p_Inp->nal_size;
 			p_strm->nalu_offset += p_Inp->nal_size;
@@ -869,6 +879,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         case SliceSTATE_ResetSlice:
             reset_slice(p_Dec->p_Vid);
             p_Dec->next_state = SliceSTATE_ReadNalu;
+			H264D_LOG("SliceSTATE_ResetSlice");
             break;
         case SliceSTATE_ReadNalu:
             p_head = (H264dNaluHead_t *)p_curdata;
@@ -884,6 +895,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
                 p_Dec->nalu_ret = EndOfNalu;
                 p_Dec->next_state = SliceSTATE_ParseNalu;
             }
+			H264D_LOG("SliceSTATE_ReadNalu");
             break;
         case SliceSTATE_ParseNalu:
             (ret = parser_one_nalu(&p_Dec->p_Cur->slice));
@@ -894,21 +906,25 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;
             }
+			H264D_LOG("SliceSTATE_ParseNalu");			
             break;
         case SliceSTATE_InitPicture:
             (ret = init_picture(&p_Dec->p_Cur->slice));
             p_Dec->next_state = SliceSTATE_GetSliceData;
+			H264D_LOG("SliceSTATE_InitPicture");	
             break;
         case SliceSTATE_GetSliceData:
 			(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
             p_Dec->next_state = SliceSTATE_ResetSlice;
+			H264D_LOG("SliceSTATE_GetSliceData");	
             break;
         case SliceSTATE_RegisterOneFrame:
             commit_buffer(p_Dec->dxva_ctx);
             while_loop_flag = 0;
             p_Dec->is_parser_end = 1;
             p_Dec->next_state = SliceSTATE_ReadNalu;
+			H264D_LOG("SliceSTATE_RegisterOneFrame");	
             break;
         default:
             ret = MPP_NOK;
