@@ -152,17 +152,17 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
     HalDecTask *task_dec = &task->info.dec;
 
     if (!dec->fast_mode) {
-    if (!task->status.prev_task_rdy) {
-        HalTaskHnd task_prev = NULL;
-        hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
-        if (task_prev) {
-            task->status.prev_task_rdy  = 1;
-            hal_task_hnd_set_status(task_prev, TASK_IDLE);
-            task_prev = NULL;
-            task->wait.prev_task = 0;
-        } else {
-            msleep(5);
-            task->wait.prev_task = 1;
+        if (!task->status.prev_task_rdy) {
+            HalTaskHnd task_prev = NULL;
+            hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
+            if (task_prev) {
+                task->status.prev_task_rdy  = 1;
+                hal_task_hnd_set_status(task_prev, TASK_IDLE);
+                task_prev = NULL;
+                task->wait.prev_task = 0;
+            } else {
+                msleep(5);
+                task->wait.prev_task = 1;
                 return MPP_NOK;
             }
         }
@@ -180,6 +180,11 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         task_dec->valid = 0;
         parser_reset(dec->parser);
         dec->reset_flag = 0;
+        if (task->wait.info_change) {
+            mpp_log("reset add info change status");
+            mpp_buf_slot_reset(frame_slots, task_dec->output);
+
+        }
         if (dec->mpp_pkt_in) {
             mpp_free(mpp_packet_get_data(dec->mpp_pkt_in));
             mpp_packet_deinit(&dec->mpp_pkt_in);
@@ -215,12 +220,12 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 {
-	mpp_list *list = mpp->mFrames;
-	list->lock();
-	list->add_at_tail(&frame, sizeof(frame));
-	mpp->mFramePutCount++;
-	list->signal();
-	list->unlock();
+    mpp_list *list = mpp->mFrames;
+    list->lock();
+    list->add_at_tail(&frame, sizeof(frame));
+    mpp->mFramePutCount++;
+    list->signal();
+    list->unlock();
 }
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
@@ -289,25 +294,25 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-	//if (task_dec->flags.eos && task_dec->valid == 0)
-	{
-		RK_S32 index;
-		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+    //if (task_dec->flags.eos && task_dec->valid == 0)
+    {
+        RK_S32 index;
+        while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 
-			MppFrame frame;
-			RK_U32 discard;
-			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-			discard = mpp_frame_get_discard(frame);
-			if (!dec->reset_flag && !discard) {
-				mpp_put_frame(mpp, frame);
-				//mpp_log("discard=%d \n",0);
-			} else {
-				mpp_frame_deinit(&frame);
-				//mpp_log("discard=%d \n",1);
-			}
-			mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-		}
-	}
+            MppFrame frame;
+            RK_U32 discard;
+            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+            discard = mpp_frame_get_discard(frame);
+            if (!dec->reset_flag && !discard) {
+                mpp_put_frame(mpp, frame);
+                //mpp_log("discard=%d \n",0);
+            } else {
+                mpp_frame_deinit(&frame);
+                //mpp_log("discard=%d \n",1);
+            }
+            mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+        }
+    }
 
     task->status.curr_task_rdy = task_dec->valid;
     if (!task->status.curr_task_rdy)
@@ -355,20 +360,20 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     }
 
     if (!dec->fast_mode) {
-    // wait previous task done
-    if (!task->status.prev_task_rdy) {
-        HalTaskHnd task_prev = NULL;
-        hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
-        if (task_prev) {
-            task->status.prev_task_rdy  = 1;
-            task->wait.prev_task = 0;
-            hal_task_hnd_set_status(task_prev, TASK_IDLE);
-            task_prev = NULL;
-        } else {
-            task->wait.prev_task = 1;
-            return MPP_NOK;
+        // wait previous task done
+        if (!task->status.prev_task_rdy) {
+            HalTaskHnd task_prev = NULL;
+            hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
+            if (task_prev) {
+                task->status.prev_task_rdy  = 1;
+                task->wait.prev_task = 0;
+                hal_task_hnd_set_status(task_prev, TASK_IDLE);
+                task_prev = NULL;
+            } else {
+                task->wait.prev_task = 1;
+                return MPP_NOK;
+            }
         }
-    }
     }
     if (mpp->mFrameGroup) {
         task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
@@ -376,21 +381,21 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
     }
 
-	if (task_dec->flags.eos && task_dec->valid == 0) {
-		RK_S32 index;
-		while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-			MppFrame frame;
-			//RK_U32 display;
-			mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-			//display = mpp_frame_get_display(frame);
-			if (!dec->reset_flag) {
-				mpp_put_frame(mpp, frame);
-			} else {
-				mpp_frame_deinit(&frame);
-			}
-			mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-		}
-	}
+    if (task_dec->flags.eos && task_dec->valid == 0) {
+        RK_S32 index;
+        while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+            MppFrame frame;
+            //RK_U32 display;
+            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+            //display = mpp_frame_get_display(frame);
+            if (!dec->reset_flag) {
+                mpp_put_frame(mpp, frame);
+            } else {
+                mpp_frame_deinit(&frame);
+            }
+            mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+        }
+    }
 
     if (!task->status.task_parsed_rdy) {
         parser_parse(dec->parser, task_dec);
@@ -590,10 +595,10 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
 #ifdef ANDROID
-	RK_S32 cur_deat = 0;
-	RK_U64 dec_no = 0, total_time = 0;
-	static struct timeval tv1, tv2;
-	gettimeofday(&tv1, NULL);
+    RK_S32 cur_deat = 0;
+    RK_U64 dec_no = 0, total_time = 0;
+    static struct timeval tv1, tv2;
+    gettimeofday(&tv1, NULL);
 #endif
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
@@ -622,17 +627,17 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_put_frame(mpp, info_frame);
                 hal_task_hnd_set_status(task, TASK_IDLE);
                 task = NULL;
-                continue;
                 mpp->mThreadCodec->signal();
+                continue;
             }
             mpp_hal_hw_wait(dec->hal, &task_info);
 #ifdef ANDROID
-			gettimeofday(&tv2, NULL);
-			cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
-			total_time += cur_deat;
-			//mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
-			dec_no++;
-			tv1 = tv2;
+            gettimeofday(&tv2, NULL);
+            cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+            total_time += cur_deat;
+            //mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
+            dec_no++;
+            tv1 = tv2;
 #endif
             /*
              * when hardware decoding is done:
@@ -652,7 +657,7 @@ void *mpp_dec_hal_thread(void *data)
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
             task = NULL;
             if (dec->fast_mode) {
-               
+
                 hal_task_get_hnd(tasks, TASK_PROC_DONE, &task);
                 if (task) {
                     hal_task_hnd_set_status(task, TASK_IDLE);
@@ -671,19 +676,19 @@ void *mpp_dec_hal_thread(void *data)
             }
 
             RK_S32 index;
-            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {				
+            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame;
                 RK_U32 discard;
-				mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+                mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 discard = mpp_frame_get_discard(frame);
                 if (!dec->reset_flag && !discard) {
-					mpp_put_frame(mpp, frame);
+                    mpp_put_frame(mpp, frame);
                 } else {
                     mpp_frame_deinit(&frame);
                 }
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
             }
-        }		
+        }
     }
 
     return NULL;
@@ -698,7 +703,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding)
     MppHal hal = NULL;
     MppDec *p = dec;
     RK_S32 task_count = 2;
-	HalIOInterruptCB cb = {NULL, NULL};
+    HalIOInterruptCB cb = {NULL, NULL};
     if (dec->fast_mode) {
         task_count = 3;
     }
@@ -736,7 +741,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding)
             break;
         }
         cb.callBack = hal_callback;
-		cb.opaque = parser;
+        cb.opaque = parser;
         // then init hal with task count from parser
         MppHalCfg hal_cfg = {
             MPP_CTX_DEC,

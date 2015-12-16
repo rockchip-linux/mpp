@@ -232,7 +232,7 @@ typedef enum SlotsPropType_e {
     SLOTS_EOS,
     SLOTS_HOR_ALIGN,            // input must be buf_align function pointer
     SLOTS_VER_ALIGN,            // input must be buf_align function pointer
-	SLOTS_LEN_ALIGN,
+    SLOTS_LEN_ALIGN,
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
@@ -243,6 +243,7 @@ typedef RK_U32 (*AlignFunc)(RK_U32 val);
 
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val);
+MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index); //rest slot status when info_change no ok
 
 #ifdef __cplusplus
 }
