@@ -95,6 +95,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_hor_stride(frame->frame, (s->h265dctx->coded_width * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
+        mpp_frame_set_errinfo(frame->frame,0);
 
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
 
@@ -161,7 +162,6 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
 
     mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_HAL_OUTPUT);
-    mpp_buf_slot_set_prop(s->slots, ref->slot_index, SLOT_FRAME, ref->frame);
     s->task->output = ref->slot_index;
 
     ref->sequence = s->seq_decode;
@@ -333,6 +333,7 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         return  MPP_ERR_STREAM;
 
     if (!ref) {
+        s->miss_ref_flag = 1;
         ref = generate_missing_ref(s, poc);
         if (!ref)
             return MPP_ERR_NOMEM;

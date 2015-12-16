@@ -696,6 +696,7 @@ typedef struct HEVCContext {
 
     RK_S64 pts;
 	RK_U8  has_get_eos;
+	RK_U8  miss_ref_flag;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,

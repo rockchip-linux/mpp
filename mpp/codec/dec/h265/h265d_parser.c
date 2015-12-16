@@ -716,6 +716,9 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     if (s->nal_unit_type >= 16 && s->nal_unit_type <= 23)
         READ_ONEBIT(gb, &sh->no_output_of_prior_pics_flag);
 
+   if(IS_IRAP(s) && s->miss_ref_flag){
+        s->miss_ref_flag = 0;
+   }
     READ_UE(gb, &pps_id);
 
     if (pps_id >= MAX_PPS_COUNT || !s->pps_list[pps_id]) {
@@ -1129,6 +1132,12 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
 
 
     ret = mpp_hevc_frame_rps(s);
+    if(s->miss_ref_flag){
+        mpp_frame_set_errinfo(s->frame,VPU_FRAME_ERR_UNKNOW);
+    }
+	
+    mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
+	
     if (ret < 0) {
         mpp_err("Error constructing the frame RPS.\n");
         goto fail;

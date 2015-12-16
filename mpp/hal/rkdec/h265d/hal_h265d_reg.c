@@ -1392,6 +1392,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
     MppBuffer streambuf = NULL;
+    RK_S32 valid_ref;
 
 #ifdef ANDROID
     MppBuffer framebuf = NULL;
@@ -1515,8 +1516,9 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
             mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits, SLOT_BUFFER, &framebuf);
             if (framebuf != NULL) {
                 hw_regs->sw_refer_base[i] = mpp_buffer_get_fd(framebuf);
+                valid_ref = hw_regs->sw_refer_base[i];
             } else {
-                hw_regs->sw_refer_base[i] = hw_regs->sw_decout_base;
+                hw_regs->sw_refer_base[i] = valid_ref;
             }
             hw_regs->sw_ref_valid          |=   (1 << i);
         } else {
