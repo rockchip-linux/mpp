@@ -215,9 +215,9 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
         return -1;
     } else {
         (*rkvpu_open_cxt)(ctx);
-        return MPP_OK;
     }
     dlclose(rkapi_hdl);
+    return MPP_OK;
 }
 
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
@@ -241,9 +241,9 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
         return -1;
     } else {
         (*rkvpu_close_cxt)(ctx);
-        return MPP_OK;
     }
     dlclose(rkapi_hdl);
+    return MPP_OK;
 }
 #endif
 RK_S32 vpu_open_context(VpuCodecContext **ctx)
