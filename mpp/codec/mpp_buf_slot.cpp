@@ -937,3 +937,23 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
     return ret;
 }
 
+MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index)
+{
+    if (NULL == slots || index < 0) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    Mutex::Autolock auto_lock(impl->lock);
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
+    MppBufSlotEntry *slot = &impl->slots[index];
+
+    // make sure that this slot is just the next display slot
+    list_del_init(&slot->list);
+    slot_ops_with_log(impl, slot, SLOT_CLR_QUEUE_USE);
+    slot_ops_with_log(impl, slot, SLOT_DEQUEUE);
+    slot_ops_with_log(impl, slot, SLOT_CLR_ON_USE);
+    return MPP_OK;
+}
+
