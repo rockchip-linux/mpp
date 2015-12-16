@@ -122,14 +122,14 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
     }
 	if (active_sps->vui_parameters_present_flag && active_sps->vui_seq_parameters.bitstream_restriction_flag) {
 		RK_S32 size_vui = 0;
-		if ((RK_S32)active_sps->vui_seq_parameters.max_dec_frame_buffering > size) {
+		//if ((RK_S32)active_sps->vui_seq_parameters.max_dec_frame_buffering > size) {
 			//H264D_LOG("max_dec_frame_buffering larger than MaxDpbSize");
-		}
+		//}
 		size_vui = MPP_MAX (1, active_sps->vui_seq_parameters.max_dec_frame_buffering);
 
-		if(size_vui < size) {
+		//if(size_vui < size) {
 			//H264D_LOG("Warning: max_dec_frame_buffering(%d) is less than DPB size(%d) calculated from Profile/Level.\n", size_vui, size);
-		}
+		//}
 		size = size_vui;
 	}
 

@@ -191,9 +191,9 @@ MPP_RET rkv_alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     LogCtx_t *log_driver = NULL;
-    RK_U32 pps_size   = 256 * 32 + 16;
-    RK_U32 rps_size   = 128 + 16;
-    RK_U32 sclst_size = 256;
+    RK_U32 pps_size   = RKV_SPSPPS_SIZE + 64;
+    RK_U32 rps_size   = RKV_RPS_SIZE + 64;
+    RK_U32 sclst_size = RKV_SCALING_LIST_SIZE + 64;
     RK_U32 regs_size  = sizeof(H264dRkvRegs_t);
 
 	FunctionIn(logctx->parr[RUN_HAL]);
@@ -476,6 +476,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 	mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
 	p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
 	//mpp_log_f("line=%d, rlc_base_fd=%d over \n", __LINE__,mpp_buffer_get_fd(bitstream_buf));
+	p_regs->swreg41_rlcwrite_base.sw_rlcwrite_base = p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base;
 #endif
 	
 

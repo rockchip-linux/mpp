@@ -252,6 +252,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->p_Dpb_layer[i]->init_done = 0;
 		memset(&p_Vid->outlist[i], 0, sizeof(p_Vid->outlist[i]));
 		p_Vid->outlist[i].max_size = MAX_MARK_SIZE;
+		p_Vid->last_outputpoc[i] = -1;
     }
     //!< init video pars
     for (i = 0; i < MAXSPS; i++) {
@@ -514,6 +515,8 @@ MPP_RET h264d_reset(void *decoder)
 	p_Dec->p_Inp->has_get_eos   = 0;
     //!< reset video parameter
     p_Dec->p_Vid->g_framecnt    = 0;
+	p_Dec->p_Vid->last_outputpoc[0] = -1;
+	p_Dec->p_Vid->last_outputpoc[1] = -1;
 	//!< reset current time stamp
 	p_Dec->p_Cur->last_dts  = 0;
 	p_Dec->p_Cur->last_pts  = 0; 

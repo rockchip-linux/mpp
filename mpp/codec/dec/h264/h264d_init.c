@@ -420,16 +420,17 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 comb
 		}
 
 		hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127))/8;
+		ver_stride = p_Vid->height;
 		hor_stride = MPP_ALIGN(hor_stride, 256) | 256;  
-		ver_stride = MPP_ALIGN(p_Vid->height, 16);
+		ver_stride = MPP_ALIGN(ver_stride, 16);
 
 		mpp_frame_set_hor_stride(cur_mark->frame, hor_stride);  // before crop
 		mpp_frame_set_ver_stride(cur_mark->frame, ver_stride);
 
-		mpp_frame_set_width(cur_mark->frame,  p_Vid->width);  // after crop
-		mpp_frame_set_height(cur_mark->frame, p_Vid->height);
-		//mpp_log("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
-		//	ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
+		mpp_frame_set_width(cur_mark->frame,  p_Vid->width_after_crop);  // after crop
+		mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
+		H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
+			ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
 
 		mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
 		mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);

@@ -780,9 +780,10 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          */
         generate_info_set(impl, frame);
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
-#ifdef ANDROID
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
 
+            impl->info_changed = 1;
+#ifdef ANDROID
             mpp_log("info change found\n");
             mpp_log("old width %4d height %4d stride hor %4d ver %4d\n",
                     old->width, old->height, old->hor_stride, old->ver_stride);
@@ -790,7 +791,6 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride);
 #endif
 			// info change found here
-			impl->info_changed = 1;
         }
     } break;
     case SLOT_BUFFER: {

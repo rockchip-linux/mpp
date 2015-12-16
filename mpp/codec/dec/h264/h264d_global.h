@@ -944,6 +944,7 @@ typedef struct h264d_video_ctx_t {
     RK_S32    last_bottompoc[MAX_NUM_DPB_LAYERS];
     RK_S32    last_framepoc[MAX_NUM_DPB_LAYERS];
     RK_S32    last_thispoc[MAX_NUM_DPB_LAYERS];
+	RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
     //!<
     RK_S32     profile_idc;                                       // u(8)
     RK_S32     slice_type;
