@@ -624,6 +624,7 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_assert(info_frame);
                 mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
                 mpp_frame_set_info_change(info_frame, 1);
+                mpp_frame_set_errinfo(info_frame, 0);
                 mpp_put_frame(mpp, info_frame);
                 hal_task_hnd_set_status(task, TASK_IDLE);
                 task = NULL;
