@@ -194,58 +194,56 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
 }
 
 #ifdef ANDROID
+class VpulibDlsym
+{
+public:
+    void *rkapi_hdl;
+    RK_S32 (*rkvpu_open_cxt)(VpuCodecContext **ctx);
+    RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
+    VpulibDlsym()
+        : rkapi_hdl(NULL),
+        rkvpu_open_cxt(NULL),
+        rkvpu_close_cxt(NULL)
+    {
+       RK_S32 value = !!access("/dev/rkvdec", F_OK);
+       if (value) {
+           rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+       }
+       if (rkapi_hdl == NULL) {
+           rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+       }
+       rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
+       rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
+       mpp_log("dlopen vpu lib");
+    }
+
+     ~VpulibDlsym(){
+        dlclose(rkapi_hdl);
+        mpp_log("dlclose vpu lib");
+    }
+
+};
+VpulibDlsym gVpulib;
+
 RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
-    void *rkapi_hdl = NULL;
-    RK_S32 (*rkvpu_open_cxt)(VpuCodecContext **ctx);
-    RK_S32 value = !!access("/dev/rkvdec", F_OK);
-    if (value) {
-        rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+    if(NULL != gVpulib.rkvpu_open_cxt)
+    {
+        (gVpulib.rkvpu_open_cxt)(ctx);
     }
-    if (rkapi_hdl == NULL) {
-        rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-        if (rkapi_hdl == NULL) {
-            return -1;
-        }
-    }
-    rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
-    if (rkvpu_open_cxt == NULL) {
-        mpp_err("dlsym rkvpu_open_cxt fail ");
-        dlclose(rkapi_hdl);
-        return -1;
-    } else {
-        (*rkvpu_open_cxt)(ctx);
-    }
-    dlclose(rkapi_hdl);
     return MPP_OK;
 }
 
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 {
-    void *rkapi_hdl = NULL;
-    RK_S32 value = !!access("/dev/rkvdec", F_OK);
-    RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
-    if (value) {
-        rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+    if(NULL != gVpulib.rkvpu_close_cxt)
+    {
+        (gVpulib.rkvpu_close_cxt)(ctx);
     }
-    if (rkapi_hdl == NULL) {
-        rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-        if (rkapi_hdl == NULL) {
-            return -1;
-        }
-    }
-    rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
-    if (rkvpu_close_cxt == NULL) {
-        mpp_err_f("dlsym rkvpu_close_cxt fail");
-        dlclose(rkapi_hdl);
-        return -1;
-    } else {
-        (*rkvpu_close_cxt)(ctx);
-    }
-    dlclose(rkapi_hdl);
     return MPP_OK;
 }
 #endif
+
 RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
