@@ -145,6 +145,7 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
             frame->poc == poc && !s->nuh_layer_id) {
             mpp_err( "Duplicate POC in a sequence: %d.\n",
                      poc);
+            s->miss_ref_flag = 1;
             return  MPP_ERR_STREAM;
         }
     }
