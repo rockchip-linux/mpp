@@ -1392,7 +1392,8 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
     MppBuffer streambuf = NULL;
-    RK_S32 valid_ref;
+    RK_S32 valid_ref = -1;
+    RK_S32 aglin_offset = 0;
 
 #ifdef ANDROID
     MppBuffer framebuf = NULL;
@@ -1499,6 +1500,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 #endif
 
     hw_regs->sw_stream_len      = ((dxva_cxt->bitstream_size + 15) & (~15)) + 64;
+    aglin_offset =  hw_regs->sw_stream_len - dxva_cxt->bitstream_size;
+    if(aglin_offset > 0){
+        memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size),0,aglin_offset);
+    }
     hw_regs->sw_interrupt.sw_dec_e         = 1;
     hw_regs->sw_interrupt.sw_dec_timeout_e = 1;
 
@@ -1506,9 +1511,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     ///find s->rps_model[i] position, and set register
     hw_regs->sw_ref_valid = 0;
 
-    hw_regs->cabac_error_en = 0xfdfffffd;
+    hw_regs->cabac_error_en = 0xfdffffff;
 
 #ifdef ANDROID
+    valid_ref = hw_regs->sw_decout_base;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {

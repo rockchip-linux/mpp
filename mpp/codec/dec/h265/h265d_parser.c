@@ -716,7 +716,9 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     if (s->nal_unit_type >= 16 && s->nal_unit_type <= 23)
         READ_ONEBIT(gb, &sh->no_output_of_prior_pics_flag);
 
-   if(IS_IRAP(s) && s->miss_ref_flag){
+   if(IS_IRAP(s) && s->miss_ref_flag && sh->first_slice_in_pic_flag){
+   //     mpp_err("s->nal_unit_type = %d s->poc %d",s->nal_unit_type,s->poc);
+        s->max_ra     = INT_MAX;
         s->miss_ref_flag = 0;
    }
     READ_UE(gb, &pps_id);
@@ -1132,7 +1134,7 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
 
 
     ret = mpp_hevc_frame_rps(s);
-    if(s->miss_ref_flag){
+    if(s->miss_ref_flag && !IS_IRAP(s)){
         mpp_frame_set_errinfo(s->frame,VPU_FRAME_ERR_UNKNOW);
     }
 	
@@ -1986,7 +1988,10 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     s->max_ra = INT_MAX;
-
+    s->miss_ref_flag = 1;
+    mpp_buf_slot_get_prop(s->slots, s->ref->slot_index,SLOT_FRAME,&s->ref->frame);
+    mpp_frame_set_errinfo(s->ref->frame,VPU_FRAME_ERR_UNKNOW);
+    mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
 	(void) err_info;
 
     return MPP_OK;
