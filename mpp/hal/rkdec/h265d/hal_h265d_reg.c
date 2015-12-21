@@ -1511,7 +1511,8 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     ///find s->rps_model[i] position, and set register
     hw_regs->sw_ref_valid = 0;
 
-    hw_regs->cabac_error_en = 0xfdffffff;
+    hw_regs->cabac_error_en = 0xfdfffffd;
+    hw_regs->extern_error_en = 0x30000000;
 
 #ifdef ANDROID
     valid_ref = hw_regs->sw_decout_base;
@@ -1574,7 +1575,7 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
         p += 4;
     }
 #ifdef ANDROID
-    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 68); // 68 is the nb of uint32_t
+    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78); // 68 is the nb of uint32_t
 
     if (ret != 0) {
         mpp_err("RK_HEVC_DEC: ERROR: VPUClientSendReg Failed!!!\n");
@@ -1605,7 +1606,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
     p = (RK_U8*)hw_regs;
-    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 68, &cmd, &len);
+    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78, &cmd, &len);
     if ((hw_regs->sw_interrupt.sw_dec_error_sta ||
          hw_regs->sw_interrupt.sw_dec_empty_sta) &&
         reg_cxt->int_cb.callBack &&
