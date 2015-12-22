@@ -704,7 +704,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding)
     MppHal hal = NULL;
     MppDec *p = dec;
     RK_S32 task_count = 2;
-    HalIOInterruptCB cb = {NULL, NULL};
+    IOInterruptCB cb = {NULL, NULL};
     if (dec->fast_mode) {
         task_count = 3;
     }
@@ -727,13 +727,15 @@ MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding)
         }
 
         mpp_buf_slot_setup(packet_slots, task_count);
-
+        cb.callBack = mpp_dec_notify;
+        cb.opaque = dec;
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
             packet_slots,
             task_count,
             0,
+            cb,
         };
 
         ret = parser_init(&parser, &parser_cfg);
@@ -831,6 +833,18 @@ MPP_RET mpp_dec_flush(MppDec *dec)
     parser_flush(dec->parser);
     mpp_hal_flush(dec->hal);
 
+    return MPP_OK;
+}
+
+MPP_RET mpp_dec_notify(void *ctx, void *info)
+{
+    MppDec *dec  = (MppDec *)ctx;
+    MppFrame info_frame = NULL;
+    mpp_frame_init(&info_frame);
+    mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
+    mpp_frame_set_eos(info_frame, 1);
+    mpp_put_frame((Mpp*)dec->mpp, info_frame);
+    (void)info;
     return MPP_OK;
 }
 

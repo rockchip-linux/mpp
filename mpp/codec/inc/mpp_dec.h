@@ -38,6 +38,7 @@ struct MppDec_t {
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
     RK_U32              fast_mode;
+    void                *mpp;
 };
 
 
@@ -60,6 +61,7 @@ MPP_RET mpp_dec_deinit(MppDec *dec);
 MPP_RET mpp_dec_reset(MppDec *dec);
 MPP_RET mpp_dec_flush(MppDec *dec);
 MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param);
+MPP_RET mpp_dec_notify(void *ctx, void *info);
 
 #ifdef __cplusplus
 }
