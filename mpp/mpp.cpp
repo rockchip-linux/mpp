@@ -80,7 +80,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         if (MPP_VIDEO_CodingHEVC == coding) {
             mDec->fast_mode = mFastMode;
         }
-
+        mDec->mpp = this;
         mpp_dec_init(mDec, coding);
 
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this);

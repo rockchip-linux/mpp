@@ -68,7 +68,7 @@ typedef struct h265d_reg_context {
     void*     hw_regs;
     h265d_reg_buf_t g_buf[MAX_GEN_REG];
     RK_U32 fast_mode;
-    HalIOInterruptCB int_cb;
+    IOInterruptCB int_cb;
 } h265d_reg_context_t;
 
 typedef struct ScalingList {
@@ -1392,10 +1392,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
     MppBuffer streambuf = NULL;
-    RK_S32 valid_ref = -1;
     RK_S32 aglin_offset = 0;
 
 #ifdef ANDROID
+    RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
 #endif
 

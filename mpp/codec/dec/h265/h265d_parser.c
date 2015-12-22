@@ -1920,6 +1920,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     s->slots = parser_cfg->frame_slots;
 
     s->packet_slots = parser_cfg->packet_slots;
+    s->notify_cb = parser_cfg->notify_cb;
 
     if (h265dctx->extradata_size > 0 && h265dctx->extradata) {
         ret = hevc_parser_extradata(s);
@@ -1955,8 +1956,13 @@ MPP_RET h265d_flush(void *ctx)
         ret = mpp_hevc_output_frame(ctx, 1);
     } while (ret);
     frame = &s->DPB[s->output_frame_idx];
-
-    mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_EOS, &eos);
+    if(frame->slot_index < 0xff){
+        mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_EOS, &eos);
+    }else{
+        if(s->notify_cb.callBack != NULL){
+            s->notify_cb.callBack(s->notify_cb.opaque,NULL);
+        }
+    }
 
     return MPP_OK;
 }

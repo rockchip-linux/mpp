@@ -31,6 +31,12 @@ typedef enum MppTaskStatus_e {
     TASK_BUTT,
 } MppTaskStatus;
 
+typedef struct IOInterruptCB {
+    MPP_RET (*callBack)(void*, void*);
+    void   *opaque;
+} IOInterruptCB;
+
+
 /*
  * modified by parser
  *
