@@ -154,6 +154,7 @@ int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int 
     p_mempool->get_unused_num = get_free_memory_num;
     p_mempool->version        = 0;
     p_mempool->buff_size      = size;
+    p_mempool->size           = size;
     *ipool = (vpu_display_mem_pool*)p_mempool;
 
     (void)num;
