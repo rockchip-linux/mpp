@@ -284,6 +284,7 @@ MPP_RET os_allocator_ion_close(void *ctx)
 
     p = (allocator_ctx_ion *)ctx;
     ret = close(p->ion_device);
+    mpp_free(p);
     if (ret < 0)
         return (MPP_RET) - errno;
     return MPP_OK;
