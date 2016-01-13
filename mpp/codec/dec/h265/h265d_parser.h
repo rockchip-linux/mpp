@@ -564,6 +564,7 @@ typedef struct HEVCFrame {
      */
     RK_U8 flags;
     RK_S32 slot_index;
+    RK_U8  error_flag;
 } HEVCFrame;
 
 typedef struct HEVCNAL {
