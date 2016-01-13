@@ -51,6 +51,7 @@ void mpp_hevc_unref_frame(HEVCContext *s, HEVCFrame *frame, int flags)
         h265d_dbg(H265D_DBG_REF, "unref_frame poc %d frame->slot_index %d \n", frame->poc, frame->slot_index);
         frame->poc = INT_MAX;
         frame->slot_index = 0xff;
+        frame->error_flag = 0;
     }
 }
 
@@ -145,7 +146,7 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
             frame->poc == poc && !s->nuh_layer_id) {
             mpp_err( "Duplicate POC in a sequence: %d.\n",
                      poc);
-            s->miss_ref_flag = 1;
+            //s->miss_ref_flag = 1;
             return  MPP_ERR_STREAM;
         }
     }
@@ -334,10 +335,10 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         return  MPP_ERR_STREAM;
 
     if (!ref) {
-        s->miss_ref_flag = 1;
         ref = generate_missing_ref(s, poc);
         if (!ref)
             return MPP_ERR_NOMEM;
+        ref->error_flag = 1;
     }
 
     list->list[list->nb_refs] = ref->poc;
@@ -348,7 +349,9 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     }
     mark_ref(ref, ref_flag);
-
+    if(ref->error_flag){
+        s->miss_ref_flag = 1;
+    }
     return 0;
 }
 

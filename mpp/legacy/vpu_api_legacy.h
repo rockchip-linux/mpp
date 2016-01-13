@@ -47,6 +47,7 @@ private:
     MppCtx mpp_ctx;
     MppApi *mpi;
     RK_U32 frame_count;
+    RK_U32 set_eos;
 #ifdef DUMP_YUV
     FILE *fp;
 #endif

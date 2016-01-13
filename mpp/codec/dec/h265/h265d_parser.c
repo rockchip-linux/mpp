@@ -1132,10 +1132,11 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
     if (ret < 0)
         goto fail;
 
-
+    s->miss_ref_flag = 0;
     ret = mpp_hevc_frame_rps(s);
     if(s->miss_ref_flag && !IS_IRAP(s)){
         mpp_frame_set_errinfo(s->frame,VPU_FRAME_ERR_UNKNOW);
+        s->ref->error_flag = 1;
     }
 	
     mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
@@ -1484,6 +1485,22 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
                 continue;
             }
             if (buf[0] != 0 || buf[1] != 0 || buf[2] != 1) {
+                uint32_t state = -1;
+                int has_nal = 0;
+                for (i = 0; i < length; i++) {
+                    state = (state << 8) | buf[i];
+                    if (((state >> 8) & 0xFFFFFF) == START_CODE){
+                        has_nal = 1;
+                        i = i -3;
+                        break;
+                    }
+                }
+
+                if(has_nal){
+                    length -= i;
+                    buf += i;
+                    continue;
+                }
                 mpp_err( "No start code is found.\n");
                 ret =  MPP_ERR_STREAM;
                 goto fail;
@@ -1857,6 +1874,7 @@ static RK_S32 hevc_init_context(H265dContext_t *h265dctx)
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
         s->DPB[i].slot_index = 0xff;
         s->DPB[i].poc = INT_MAX;
+        s->DPB[i].error_flag = 0;
         mpp_frame_init(&s->DPB[i].frame);
         if (!s->DPB[i].frame)
             goto fail;
@@ -1993,11 +2011,18 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
 {   
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+    RK_U32 i = 0;
     s->max_ra = INT_MAX;
-    s->miss_ref_flag = 1;
+   // s->miss_ref_flag = 1;
     mpp_buf_slot_get_prop(s->slots, s->ref->slot_index,SLOT_FRAME,&s->ref->frame);
     mpp_frame_set_errinfo(s->ref->frame,VPU_FRAME_ERR_UNKNOW);
     mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
+    for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
+        if(s->DPB[i].slot_index == s->ref->slot_index){
+            s->DPB[i].error_flag = 1;
+        }
+
+    }
 	(void) err_info;
 
     return MPP_OK;

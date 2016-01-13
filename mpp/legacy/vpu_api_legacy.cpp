@@ -32,6 +32,7 @@ VpuApi::VpuApi()
 #endif
     mpp_construct(&mpp_ctx, &mpi);
     frame_count  = 0;
+    set_eos = 0;
     mpp_log_f("ok\n");
 
 }
@@ -129,6 +130,10 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->size = 0;
         return 0;
     }
+    if(set_eos){
+        aDecOut->size = 0;
+        return VPU_API_EOS_STREAM_REACHED;
+    }
     if (MPP_OK == mpi->decode_get_frame(mpp_ctx, &mframe)) {
         MppBuffer buf;
         RK_U64 pts;
@@ -189,7 +194,10 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->vpumem.offset = (RK_U32*)buf;
         }
         if (mpp_frame_get_eos(mframe)) {
-            aDecOut->nFlags = VPU_API_EOS_STREAM_REACHED;
+            set_eos = 1;
+            if(buf == NULL){
+                aDecOut->size = 0;
+            }
         }
         mpp_free(mframe);
     } else {
