@@ -1485,9 +1485,9 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
                 continue;
             }
             if (buf[0] != 0 || buf[1] != 0 || buf[2] != 1) {
-                uint32_t state = -1;
+                RK_U32 state = (RK_U32)-1;
                 int has_nal = 0;
-                for (i = 0; i < length; i++) {
+                for (i = 0; i < (RK_S32)length; i++) {
                     state = (state << 8) | buf[i];
                     if (((state >> 8) & 0xFFFFFF) == START_CODE){
                         has_nal = 1;

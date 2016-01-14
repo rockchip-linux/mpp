@@ -257,7 +257,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      */
     if (!dec->mpp_pkt_in && !task->status.curr_task_rdy) {
         mpp_list *packets = mpp->mPackets;
-        Mutex::Autolock autoLock(packets->mutex());
+        AutoMutex autoLock(packets->mutex());
         if (packets->list_size()) {
             /*
              * packet will be destroyed outside, here just copy the content

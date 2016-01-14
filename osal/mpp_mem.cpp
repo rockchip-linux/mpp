@@ -43,6 +43,7 @@
 
 static RK_S32 osal_mem_flag = -1;
 static struct list_head mem_list;
+static pthread_mutex_t mem_list_lock;
 
 struct mem_node {
     struct list_head list;
@@ -57,6 +58,7 @@ static void get_osal_mem_flag()
 {
     if (osal_mem_flag < 0) {
         RK_U32 val;
+
         osal_mem_flag = 0;
         mpp_env_get_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
         if (val) {
@@ -66,7 +68,14 @@ static void get_osal_mem_flag()
         if (val) {
             osal_mem_flag |= OSAL_MEM_STUFF_EN;
         }
+
         INIT_LIST_HEAD(&mem_list);
+
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&mem_list_lock, &attr);
+        pthread_mutexattr_destroy(&attr);
     }
 }
 
@@ -79,10 +88,13 @@ void *mpp_osal_malloc(const char *tag, size_t size)
         if (osal_mem_flag & OSAL_MEM_LIST_EN) {
             struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
             INIT_LIST_HEAD(&node->list);
-            list_add_tail(&node->list, &mem_list);
             node->ptr   = ptr;
             node->size  = size;
             snprintf(node->tag, sizeof(node->tag), "%s", tag);
+
+            pthread_mutex_lock(&mem_list_lock);
+            list_add_tail(&node->list, &mem_list);
+            pthread_mutex_unlock(&mem_list_lock);
         }
 
         return ptr;
@@ -112,7 +124,9 @@ void *mpp_osal_realloc(const char *tag, void *ptr, size_t size)
 
     if (osal_mem_flag & OSAL_MEM_LIST_EN) {
         struct mem_node *pos, *n;
+
         ret = NULL;
+        pthread_mutex_lock(&mem_list_lock);
         list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
             if (ptr == pos->ptr) {
                 if (MPP_OK == os_realloc(ptr, &pos->ptr, RK_OSAL_MEM_ALIGN, size)) {
@@ -126,6 +140,7 @@ void *mpp_osal_realloc(const char *tag, void *ptr, size_t size)
                 break;
             }
         }
+        pthread_mutex_unlock(&mem_list_lock);
     } else {
         os_realloc(ptr, &ret, RK_OSAL_MEM_ALIGN, size);
     }
@@ -145,6 +160,8 @@ void mpp_osal_free(void *ptr)
 
     if (osal_mem_flag & OSAL_MEM_LIST_EN) {
         struct mem_node *pos, *n;
+
+        pthread_mutex_lock(&mem_list_lock);
         list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
             if (ptr == pos->ptr) {
                 list_del_init(&pos->list);
@@ -152,6 +169,7 @@ void mpp_osal_free(void *ptr)
                 break;
             }
         }
+        pthread_mutex_unlock(&mem_list_lock);
     }
 
     os_free(ptr);
@@ -163,6 +181,12 @@ void mpp_osal_free(void *ptr)
  */
 void mpp_show_mem_status()
 {
-    // TODO: add memory dump implement
+    struct mem_node *pos, *n;
+
+    pthread_mutex_lock(&mem_list_lock);
+    list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
+        mpp_log("unfree memory %p size %d tag %s", pos->ptr, pos->size, pos->tag);
+    }
+    pthread_mutex_unlock(&mem_list_lock);
 }
 

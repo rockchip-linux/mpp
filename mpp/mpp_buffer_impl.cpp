@@ -186,7 +186,7 @@ static void dump_buffer_info(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info)
 {
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (NULL == group) {
@@ -239,7 +239,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, 
 
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 {
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     deinit_buffer_no_lock(buffer);
 
@@ -248,7 +248,7 @@ MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 {
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
     return inc_buffer_ref_no_lock(buffer);
 }
 
@@ -260,7 +260,7 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
         return MPP_NOK;
     }
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     buffer->ref_count--;
     if (0 == buffer->ref_count) {
@@ -293,7 +293,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
 {
     MppBufferImpl *buffer = NULL;
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
@@ -325,7 +325,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
 
     mpp_assert(caller);
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     INIT_LIST_HEAD(&p->list_group);
     INIT_LIST_HEAD(&p->list_used);
@@ -372,7 +372,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         return MPP_ERR_NULL_PTR;
     }
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     // remove unused list
     if (!list_empty(&p->list_unused)) {
@@ -405,7 +405,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
         return MPP_ERR_NULL_PTR;
     }
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
 
     if (!list_empty(&p->list_used)) {
         MppBufferImpl *pos, *n;
@@ -433,7 +433,7 @@ MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
         return MPP_ERR_NULL_PTR;
     }
 
-    Mutex::Autolock auto_lock(&service.mLock);
+    AutoMutex auto_lock(&service.mLock);
     p->listener = listener;
 
     return MPP_OK;

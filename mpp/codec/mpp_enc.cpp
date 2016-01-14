@@ -37,7 +37,7 @@ void *mpp_enc_control_thread(void *data)
     char *buf = mpp_malloc(char, size);
 
     while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
-        Mutex::Autolock auto_lock(frames->mutex());
+        AutoMutex auto_lock(frames->mutex());
         if (frames->list_size()) {
             frames->del_at_head(&frame, sizeof(frame));
 
