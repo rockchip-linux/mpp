@@ -307,7 +307,7 @@ MPP_RET Mpp::reset()
     MppPacket mpkt = NULL;
     RK_U32 flags = 0;
     mPackets->lock();
-    if(mPackets->list_size()){
+    if (mPackets->list_size()) {
         mPackets->del_at_head(&mpkt, sizeof(mpkt));
     }
     mPackets->flush();
@@ -329,13 +329,12 @@ MPP_RET Mpp::reset()
         mpp_enc_reset(mEnc);
     }
     mThreadCodec->unlock(THREAD_RESET);
-    if(mpkt != NULL){
+    if (mpkt != NULL) {
         flags = mpp_packet_get_flag(mpkt);
-        mpp_log("flags = %d",flags);
-        if(flags&MPP_PACKET_FLAG_EXTRA_DATA){ //avoid first packet is extara data was flushed & dec can work
+        mpp_log("flags = %d", flags);
+        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) { //avoid first packet is extara data was flushed & dec can work
             put_packet(mpkt);
         }
-        mpp_free(mpp_packet_get_data(mpkt));
         mpp_packet_deinit(&mpkt);
         mpkt = NULL;
     }
