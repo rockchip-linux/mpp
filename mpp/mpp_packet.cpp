@@ -94,6 +94,7 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         memcpy(p, src, sizeof(*p));
         p->data = p->pos = data;
         p->size = p->length = size;
+        p->flag |= MPP_PACKET_FLAG_INTERNAL;
         if (size) {
             memcpy(data, ((MppPacketImpl *)src)->data, size);
         }
@@ -115,6 +116,9 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 
     MppPacketImpl *p = (MppPacketImpl *)(*packet);
     check_mpp_packet_name(p);
+    if (p->flag & MPP_PACKET_FLAG_INTERNAL) {
+        mpp_free(p->data);
+    }
     mpp_free(p);
     *packet = NULL;
     return MPP_OK;
