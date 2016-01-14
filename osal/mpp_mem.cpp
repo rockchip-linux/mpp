@@ -82,7 +82,7 @@ void *mpp_osal_malloc(const char *tag, size_t size)
             list_add_tail(&node->list, &mem_list);
             node->ptr   = ptr;
             node->size  = size;
-            strncpy(node->tag, tag, sizeof(node->tag));
+            snprintf(node->tag, sizeof(node->tag), "%s", tag);
         }
 
         return ptr;
