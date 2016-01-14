@@ -549,7 +549,7 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count)
     buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p setup: count %d\n", slots, count);
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
 
     if (NULL == impl->slots) {
         // first slot setup
@@ -576,7 +576,7 @@ RK_U32 mpp_buf_slot_is_changed(MppBufSlots slots)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     return impl->info_changed;
 }
 
@@ -590,7 +590,7 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p is ready now\n", slots);
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, impl->info_changed);
     slot_assert(impl, impl->slots);
 
@@ -632,7 +632,7 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
     for (i = 0; i < impl->buf_count; i++, slot++) {
@@ -659,7 +659,7 @@ MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     slot_ops_with_log(impl, &impl->slots[index], set_flag_op[type]);
     return MPP_OK;
@@ -673,7 +673,7 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, clr_flag_op[type]);
@@ -693,7 +693,7 @@ MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_S32 index, SlotQueueType type
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, SLOT_ENQUEUE);
@@ -712,7 +712,7 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     if (list_empty(&impl->queue[type]))
         return MPP_NOK;
 
@@ -738,7 +738,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, set_val_op[type]);
@@ -821,7 +821,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
 
@@ -863,7 +863,7 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     RK_U32 value = *((RK_U32*)val);
     switch (type) {
     case SLOTS_EOS: {
@@ -905,7 +905,7 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     MPP_RET ret = MPP_OK;
     RK_U32 value = 0;
     switch (type) {
@@ -945,7 +945,7 @@ MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index)
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    Mutex::Autolock auto_lock(impl->lock);
+    AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
 

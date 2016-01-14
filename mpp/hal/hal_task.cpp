@@ -129,7 +129,7 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *h
 
     *hnd = NULL;
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    Mutex::Autolock auto_lock(p->lock);
+    AutoMutex auto_lock(p->lock);
     struct list_head *list = &p->list[status];
     if (list_empty(list))
         return MPP_NOK;
@@ -147,7 +147,7 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, MppTaskStatus status)
         return MPP_ERR_UNKNOW;
     }
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    Mutex::Autolock auto_lock(p->lock);
+    AutoMutex auto_lock(p->lock);
     struct list_head *list = &p->list[status];
     if (list_empty(list)) {
         return MPP_OK;
@@ -162,7 +162,7 @@ MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *cou
     }
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    Mutex::Autolock auto_lock(p->lock);
+    AutoMutex auto_lock(p->lock);
     *count = p->task_count[status];
     return MPP_OK;
 }
@@ -179,7 +179,7 @@ MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status)
     mpp_assert(group);
     mpp_assert(impl->index < group->count);
 
-    Mutex::Autolock auto_lock(group->lock);
+    AutoMutex auto_lock(group->lock);
     list_del_init(&impl->list);
     list_add_tail(&impl->list, &group->list[status]);
     group->task_count[impl->status]--;
@@ -198,7 +198,7 @@ MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task)
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
     mpp_assert(impl->index < group->count);
-    Mutex::Autolock auto_lock(group->lock);
+    AutoMutex auto_lock(group->lock);
     memcpy(&impl->task, task, sizeof(impl->task));
     return MPP_OK;
 }
@@ -213,7 +213,7 @@ MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task)
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
     mpp_assert(impl->index < group->count);
-    Mutex::Autolock auto_lock(group->lock);
+    AutoMutex auto_lock(group->lock);
     memcpy(task, &impl->task, sizeof(impl->task));
     return MPP_OK;
 }
