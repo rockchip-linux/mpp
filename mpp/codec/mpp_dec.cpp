@@ -555,8 +555,10 @@ void *mpp_dec_parser_thread(void *data)
         }
 
         parser->lock();
-        if (check_task_wait(dec, &task))
-            parser->wait();
+        if(MPP_THREAD_RUNNING == parser->get_status()){
+             if (check_task_wait(dec, &task))
+                parser->wait();
+        }
         parser->unlock();
 
 
@@ -604,8 +606,10 @@ void *mpp_dec_hal_thread(void *data)
          * hal thread wait for dxva interface intput firt
          */
         hal->lock();
-        if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task))
-            hal->wait();
+        if(MPP_THREAD_RUNNING == hal->get_status()){
+            if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task))
+                hal->wait();
+        }
         hal->unlock();
 
         if (task) {

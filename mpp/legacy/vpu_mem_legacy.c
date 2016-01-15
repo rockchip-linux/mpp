@@ -189,8 +189,12 @@ RK_S32 VPUMemJudgeIommu()
 
 RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size)
 {
+    int ret = 0;
     MppBuffer buffer = NULL;
-    mpp_buffer_get(NULL, &buffer, size);
+    ret = mpp_buffer_get(NULL, &buffer, size);
+    if(ret != MPP_OK){
+        return -1;
+    }
     p->phy_addr = (RK_U32)mpp_buffer_get_fd(buffer);
     p->vir_addr = (RK_U32*)mpp_buffer_get_ptr(buffer);
     p->size = size;
