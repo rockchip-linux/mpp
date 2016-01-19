@@ -58,6 +58,8 @@ static void fill_picture_parameters(const HEVCContext *h,
     const HEVCSPS *sps = (HEVCSPS *)h->sps_list[pps->sps_id];
 
     RK_U32 i, j;
+    RK_U32 rps_used[16];
+    RK_U32 nb_rps_used;
 
     memset(pp, 0, sizeof(*pp));
 
@@ -158,13 +160,31 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->log2_parallel_merge_level_minus2 = pps->log2_parallel_merge_level - 2;
     pp->CurrPicOrderCntVal               = h->poc;
 
+    nb_rps_used = 0;
+    for (i = 0; i < NB_RPS_TYPE; i++) {
+        for (j = 0; j < h->rps[i].nb_refs; j++) {
+            if ((i == ST_FOLL) || (i == LT_FOLL)) {
+                ;
+            } else {
+                rps_used[nb_rps_used++] = h->rps[i].list[j];
+            }
+        }
+    }
     // mpp_err("fill RefPicList from the DPB");
     // fill RefPicList from the DPB
-    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefPicList); i++) {
+    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefPicList); i++)
+    {
         const HEVCFrame *frame = NULL;
         while (!frame && j < MPP_ARRAY_ELEMS(h->DPB)) {
-            if (&h->DPB[j] != current_picture && (h->DPB[j].flags & (HEVC_FRAME_FLAG_LONG_REF | HEVC_FRAME_FLAG_SHORT_REF)))
-                frame = &h->DPB[j];
+            if (&h->DPB[j] != current_picture &&
+                (h->DPB[j].flags & (HEVC_FRAME_FLAG_LONG_REF | HEVC_FRAME_FLAG_SHORT_REF))) {
+                RK_S32 k = 0;
+                for (k = 0; k < nb_rps_used; k++) {  /*skip fill RefPicList no used in rps*/
+                    if (rps_used[k] == h->DPB[j].poc) {
+                        frame = &h->DPB[j];
+                    }
+                }
+            }
             j++;
         }
 
