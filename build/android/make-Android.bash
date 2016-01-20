@@ -10,6 +10,8 @@ fi
 PLATFORM=$ANDROID_NDK/platforms/android-17/arch-arm
 
 cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
+      -DCMAKE_BUILD_TYPE=Release                                            \
+      -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
       -DANDROID_SYSROOT=${PLATFORM}                                         \
       -DANDROID_ABI="armeabi-v7a with NEON"                                 \
