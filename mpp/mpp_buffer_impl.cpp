@@ -428,7 +428,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 
 MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
 {
-    if (NULL == p || NULL == listener) {
+    if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
     }
