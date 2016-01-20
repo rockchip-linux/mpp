@@ -131,9 +131,7 @@ static MPP_RET mpi_reset(MppCtx ctx)
     MpiImpl *p = (MpiImpl *)ctx;
     MPP_RET ret = MPP_OK;
     MPI_FUNCTION_ENTER();
-    if (p->ctx->mInitDone) {
-        ret = p->ctx->reset();
-    }
+    ret = p->ctx->reset();
     MPI_FUNCTION_LEAVE();
     return ret;
 }

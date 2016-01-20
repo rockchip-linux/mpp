@@ -50,14 +50,14 @@ Mpp::Mpp()
       mThreadHal(NULL),
       mDec(NULL),
       mEnc(NULL),
-      mFastMode(0),
-      mInitDone(0),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
+      mInitDone(0),
       mPacketBlock(0),
       mOutputBlock(0),
       mMultiFrame(0),
-      mStatus(0)
+      mStatus(0),
+      mFastMode(0)
 {
 }
 
@@ -305,11 +305,21 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 
 MPP_RET Mpp::reset()
 {
-    MppPacket mpkt = NULL;
-    RK_U32 flags = 0;
+    if (!mInitDone)
+        return MPP_OK;
+
+    MppPacket pkt = NULL;
+
+    /*
+     * On mp4 case extra data of sps/pps will be put at the beginning
+     * If these packet was reset before they are send to decoder then
+     * decoder can not get these important information to continue decoding
+     * To avoid this case happen we need to save it on reset beginning
+     * then restore it on reset end.
+     */
     mPackets->lock();
     if (mPackets->list_size()) {
-        mPackets->del_at_head(&mpkt, sizeof(mpkt));
+        mPackets->del_at_head(&pkt, sizeof(pkt));
     }
     mPackets->flush();
     mPackets->unlock();
@@ -330,15 +340,17 @@ MPP_RET Mpp::reset()
         mpp_enc_reset(mEnc);
     }
     mThreadCodec->unlock(THREAD_RESET);
-    if (mpkt != NULL) {
-        flags = mpp_packet_get_flag(mpkt);
-        mpp_log("flags = %d", flags);
-        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) { //avoid first packet is extara data was flushed & dec can work
-            put_packet(mpkt);
+
+    if (pkt != NULL) {
+        RK_U32 flags = mpp_packet_get_flag(pkt);
+
+        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
+            put_packet(pkt);
         }
-        mpp_packet_deinit(&mpkt);
-        mpkt = NULL;
+        mpp_packet_deinit(&pkt);
+        pkt = NULL;
     }
 
     return MPP_OK;
 }
+

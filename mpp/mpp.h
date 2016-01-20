@@ -101,20 +101,20 @@ public:
     MppDec          *mDec;
     MppEnc          *mEnc;
 
-    RK_U32          mFastMode;
-    RK_U32          mInitDone;
-
 private:
     void clear();
 
     MppCtxType      mType;
     MppCodingType   mCoding;
 
+    RK_U32          mInitDone;
     RK_U32          mPacketBlock;
     RK_U32          mOutputBlock;
     RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
+    RK_U32          mFastMode;
+
 
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);
