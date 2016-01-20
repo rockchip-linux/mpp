@@ -380,9 +380,9 @@ __FAILED:
 
 static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 combine_flag, RK_S32 layer_id)
 {
-    RK_U8 idx = 1;	
-	H264_DpbMark_t *cur_mark = NULL;
-	RK_U32 hor_stride = 0, ver_stride = 0;
+    RK_U8 idx = 1;
+    H264_DpbMark_t *cur_mark = NULL;
+    RK_U32 hor_stride = 0, ver_stride = 0;
     H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
     H264_DpbMark_t *p_mark = p_Vid->p_Dec->dpb_mark;
 
@@ -395,50 +395,49 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 comb
         mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
         cur_mark = &p_mark[idx];
 
-		cur_mark->out_flag = 1;
-		if(p_Vid->g_framecnt == 255)
-		{
-			idx = idx;
-		}
-		//LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[MALLOC] g_frame_no=%d, mark_idx=%d, slot_idx=%d \n", p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx);
+        cur_mark->out_flag = 1;
+        if (p_Vid->g_framecnt == 255) {
+            idx = idx;
+        }
+        //LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[MALLOC] g_frame_no=%d, mark_idx=%d, slot_idx=%d \n", p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx);
         //mpp_print_slot_flag_info(g_debug_file1, p_Dec->frame_slots, cur_mark->slot_idx);
-		H264D_LOG("[extra_data][Malloc] lay_id=%d, g_framecnt=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", layer_id, 
-			p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, p_Vid->p_Inp->in_pts);
+        H264D_LOG("[extra_data][Malloc] lay_id=%d, g_framecnt=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", layer_id,
+                  p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, p_Vid->p_Inp->in_pts);
 
-		//FPRINT(g_debug_file1, "[MALLOC] g_frame_no=%d, mark_idx=%d, slot_idx=%d \n", p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx);
+        //FPRINT(g_debug_file1, "[MALLOC] g_frame_no=%d, mark_idx=%d, slot_idx=%d \n", p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx);
 
 
-		if((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP);
-		} else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP_10BIT);
-			H264D_LOG(" alloc_picture ----- MPP_FMT_YUV420SP_10BIT ------ \n");
-		} else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP);
-		} else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-			mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP_10BIT);
-		}
+        if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP);
+        } else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP_10BIT);
+            H264D_LOG(" alloc_picture ----- MPP_FMT_YUV420SP_10BIT ------ \n");
+        } else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP);
+        } else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP_10BIT);
+        }
 
-		hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127))/8;
-		ver_stride = p_Vid->height;
-		hor_stride = MPP_ALIGN(hor_stride, 256) | 256;  
-		ver_stride = MPP_ALIGN(ver_stride, 16);
+        hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
+        ver_stride = p_Vid->height;
+        hor_stride = MPP_ALIGN(hor_stride, 256) | 256;
+        ver_stride = MPP_ALIGN(ver_stride, 16);
 
-		mpp_frame_set_hor_stride(cur_mark->frame, hor_stride);  // before crop
-		mpp_frame_set_ver_stride(cur_mark->frame, ver_stride);
+        mpp_frame_set_hor_stride(cur_mark->frame, hor_stride);  // before crop
+        mpp_frame_set_ver_stride(cur_mark->frame, ver_stride);
 
-		mpp_frame_set_width(cur_mark->frame,  p_Vid->width_after_crop);  // after crop
-		mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
-		H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
-			ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
+        mpp_frame_set_width(cur_mark->frame,  p_Vid->width_after_crop);  // after crop
+        mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
+        H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
+                  ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
 
-		mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
-		mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);
-		//mpp_log("[ timeUs ] alloc_pts=%lld, input_pts=%lld \n", p_Vid->p_Cur->last_pts, p_Vid->p_Inp->in_pts);
+        mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
+        mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);
+        //mpp_log("[ timeUs ] alloc_pts=%lld, input_pts=%lld \n", p_Vid->p_Cur->last_pts, p_Vid->p_Inp->in_pts);
 
-		mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, cur_mark->frame);		
-		FPRINT(g_debug_file0, "[Malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, lay_id=%d, pts=%lld \n", 
-			p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, layer_id, p_Vid->p_Inp->in_pts);
+        mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, cur_mark->frame);
+        FPRINT(g_debug_file0, "[Malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, lay_id=%d, pts=%lld \n",
+               p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, layer_id, p_Vid->p_Inp->in_pts);
 
         p_Vid->active_dpb_mark[layer_id] = cur_mark;
     }

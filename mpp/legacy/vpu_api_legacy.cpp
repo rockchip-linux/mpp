@@ -130,7 +130,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->size = 0;
         return 0;
     }
-    if(set_eos){
+    if (set_eos) {
         aDecOut->size = 0;
         return VPU_API_EOS_STREAM_REACHED;
     }
@@ -144,8 +144,8 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
-		vframe->ErrorInfo = mpp_frame_get_errinfo(mframe);
-		//mpp_err("vframe->ErrorInfo = %08x \n", vframe->ErrorInfo);
+        vframe->ErrorInfo = mpp_frame_get_errinfo(mframe);
+        //mpp_err("vframe->ErrorInfo = %08x \n", vframe->ErrorInfo);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
         //mpp_err("get one frame timeUs %lld, errinfo=%08x",aDecOut->timeUs, vframe->ErrorInfo);
@@ -195,7 +195,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         }
         if (mpp_frame_get_eos(mframe)) {
             set_eos = 1;
-            if(buf == NULL){
+            if (buf == NULL) {
                 aDecOut->size = 0;
             }
         }

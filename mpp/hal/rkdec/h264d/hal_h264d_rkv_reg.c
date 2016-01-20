@@ -204,7 +204,7 @@ static RK_U32 rkv_hor_align(RK_U32 val)
 
 static RK_U32 rkv_len_align(RK_U32 val)
 {
-	return (2 * MPP_ALIGN(val, 16));
+    return (2 * MPP_ALIGN(val, 16));
 }
 /*!
 ***********************************************************************
@@ -221,7 +221,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-	p_hal->iDecodedNum = 0;
+    p_hal->iDecodedNum = 0;
     MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
     //!< malloc cabac+scanlis + packets + poc_buf
     cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE + RKV_ERROR_INFO_SIZE;
@@ -233,7 +233,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
-	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);	
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)cfg;
@@ -280,39 +280,39 @@ __FAILED:
 //extern "C"
 MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
-	RK_U32 i = 0;
-	RK_U32 hw_base = 0;
+    RK_U32 i = 0;
+    RK_U32 hw_base = 0;
     RK_U32 strm_offset = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     H264dRkvPkt_t *pkts  = (H264dRkvPkt_t *)p_hal->pkts;
-	H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;    
+    H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-	rkv_prepare_spspps_packet(hal, &pkts->spspps);
-	rkv_prepare_framerps_packet(hal, &pkts->rps);
-	rkv_prepare_scanlist_packet(hal, &pkts->scanlist);
+    rkv_prepare_spspps_packet(hal, &pkts->spspps);
+    rkv_prepare_framerps_packet(hal, &pkts->rps);
+    rkv_prepare_scanlist_packet(hal, &pkts->scanlist);
     rkv_generate_regs(p_hal, task, &pkts->reg);
 
-	hw_base = mpp_buffer_get_fd(p_hal->cabac_buf);
+    hw_base = mpp_buffer_get_fd(p_hal->cabac_buf);
     //!< copy datas
     strm_offset = RKV_CABAC_TAB_SIZE;
-	for (i = 0; i < 256; i++)	{
-		mpp_buffer_write(p_hal->cabac_buf, (strm_offset + 32 * i), (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
-	}
-	p_regs->swreg42_pps_base.sw_pps_base = hw_base + (strm_offset<<10);
+    for (i = 0; i < 256; i++)   {
+        mpp_buffer_write(p_hal->cabac_buf, (strm_offset + 32 * i), (void *)pkts->spspps.pbuf, RKV_SPSPPS_SIZE);
+    }
+    p_regs->swreg42_pps_base.sw_pps_base = hw_base + (strm_offset << 10);
     strm_offset += RKV_SPSPPS_SIZE;
 
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps.pbuf, RKV_RPS_SIZE);
-	p_regs->swreg43_rps_base.sw_rps_base = hw_base + (strm_offset<<10);
+    p_regs->swreg43_rps_base.sw_rps_base = hw_base + (strm_offset << 10);
 
     strm_offset += RKV_RPS_SIZE;
     mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist.pbuf, RKV_SCALING_LIST_SIZE);
 
-	strm_offset += RKV_SCALING_LIST_SIZE;
-	p_regs->swreg75_h264_errorinfo_base.sw_errorinfo_base = hw_base + (strm_offset<<10);
+    strm_offset += RKV_SCALING_LIST_SIZE;
+    p_regs->swreg75_h264_errorinfo_base.sw_errorinfo_base = hw_base + (strm_offset << 10);
 
 
     ((HalDecTask*)&task->dec)->valid = 0;
@@ -330,32 +330,32 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 {
-	//RK_U32 i = 0;
-	RK_U32 *p_regs = NULL;
+    //RK_U32 i = 0;
+    RK_U32 *p_regs = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-	p_regs = (RK_U32 *)p_hal->regs;
+    p_regs = (RK_U32 *)p_hal->regs;
 
     //FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_QTABLE_BASE,  mpp_buffer_get_fd(p_hal->cabac_buf))); //!< cabacInit.phy_addr
     //FUN_CHECK(ret = vdpu_h264d_print_regs(p_hal, p_drv));
 
-	p_regs[64] = 0;
-	p_regs[65] = 0;
-	p_regs[66] = 0;
-	p_regs[67] = 0x000000ff;   // disable fpga reset
-	p_regs[44] = 0;            // 0xffff_ffff, debug enable
-	p_regs[77] = 0;            // 0xffff_dfff, debug enable
-	p_regs[1]  = 0x00000021;   // run hardware
+    p_regs[64] = 0;
+    p_regs[65] = 0;
+    p_regs[66] = 0;
+    p_regs[67] = 0x000000ff;   // disable fpga reset
+    p_regs[44] = 0;            // 0xffff_ffff, debug enable
+    p_regs[77] = 0;            // 0xffff_dfff, debug enable
+    p_regs[1]  = 0x00000021;   // run hardware
 
-	//mpp_log("------- register input ------ \n");
-	//for(i=0; i<78; i++)
-	//{
-	//	mpp_log("reg[%d]=%08x \n", i, p_regs[i]);
-	//}
+    //mpp_log("------- register input ------ \n");
+    //for(i=0; i<78; i++)
+    //{
+    //  mpp_log("reg[%d]=%08x \n", i, p_regs[i]);
+    //}
 
 #ifdef ANDROID
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
@@ -388,31 +388,31 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
 #ifdef ANDROID
-	RK_S32 wait_ret = -1;
-	RK_S32 ret_len = 0, cur_deat = 0;
-	VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
+    RK_S32 wait_ret = -1;
+    RK_S32 ret_len = 0, cur_deat = 0;
+    VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
     static struct timeval tv1, tv2;
     gettimeofday(&tv1, NULL);
-    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);	
+    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
     gettimeofday(&tv2, NULL);
     cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
     p_hal->total_time += cur_deat;
 
-	//mpp_log("H264 RKV FlushRegs success, dec_no=%lld, time=%d ms, av_time=%lld ms. \n", 
-	//	p_hal->iDecodedNum, cur_deat, p_hal->total_time/(p_hal->iDecodedNum + 1));
+    //mpp_log("H264 RKV FlushRegs success, dec_no=%lld, time=%d ms, av_time=%lld ms. \n",
+    //  p_hal->iDecodedNum, cur_deat, p_hal->total_time/(p_hal->iDecodedNum + 1));
 
     p_hal->iDecodedNum++;
-	(void)wait_ret;
+    (void)wait_ret;
 #endif
-	//mpp_log("------- register output ------ \n");
-	//RK_U32 i = 0;
-	//RK_U32 *ptr = NULL;
-	//ptr = (RK_U32 *)p_hal->regs;
-	//for(i=0; i<78; i++)
-	//{
-	//	mpp_log("reg[%d]=%08x \n", i, ptr[i]);
-	//}
-	p_regs = (H264dRkvRegs_t *)p_hal->regs;
+    //mpp_log("------- register output ------ \n");
+    //RK_U32 i = 0;
+    //RK_U32 *ptr = NULL;
+    //ptr = (RK_U32 *)p_hal->regs;
+    //for(i=0; i<78; i++)
+    //{
+    //  mpp_log("reg[%d]=%08x \n", i, ptr[i]);
+    //}
+    p_regs = (H264dRkvRegs_t *)p_hal->regs;
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);

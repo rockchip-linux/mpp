@@ -192,7 +192,7 @@ RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size)
     int ret = 0;
     MppBuffer buffer = NULL;
     ret = mpp_buffer_get(NULL, &buffer, size);
-    if(ret != MPP_OK){
+    if (ret != MPP_OK) {
         return -1;
     }
     p->phy_addr = (RK_U32)mpp_buffer_get_fd(buffer);
@@ -206,11 +206,11 @@ RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx)
 {
     VPUMemLinear_t *dma_buf = NULL;
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)ctx;
-    if(ctx == NULL){
-        return VPUMallocLinear(p,size);
+    if (ctx == NULL) {
+        return VPUMallocLinear(p, size);
     }
     dma_buf = (VPUMemLinear_t *)p_mempool->get_free((vpu_display_mem_pool *)ctx);
-    memset(p,0,sizeof(VPUMemLinear_t));
+    memset(p, 0, sizeof(VPUMemLinear_t));
     if (dma_buf != NULL) {
         if (dma_buf->size < size) {
             mpp_free(dma_buf);

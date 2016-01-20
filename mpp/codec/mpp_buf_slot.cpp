@@ -194,7 +194,7 @@ struct MppBufSlotsImpl_t {
     // buffer parameter, default alignement is 16
     AlignFunc           hal_hor_align;          // default NULL
     AlignFunc           hal_ver_align;          // default NULL
-	AlignFunc           hal_len_align;          // default NULL
+    AlignFunc           hal_len_align;          // default NULL
     size_t              buf_size;
     RK_S32              buf_count;
     // buffer size equal to (h_stride * v_stride) * numerator / denominator
@@ -239,7 +239,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
     RK_U32 size = hal_hor_stride * hal_ver_stride;
     size *= impl->numerator;
     size /= impl->denominator;
-	size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
+    size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
 
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
@@ -514,7 +514,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         // slots information default setup
         impl->hal_hor_align = default_align_16;
         impl->hal_ver_align = default_align_16;
-		impl->hal_len_align = NULL;
+        impl->hal_len_align = NULL;
         impl->numerator = 10;
         impl->denominator = 5;
 
@@ -789,7 +789,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             mpp_log("new width %4d height %4d stride hor %4d ver %4d\n",
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride);
 #endif
-			// info change found here
+            // info change found here
         }
     } break;
     case SLOT_BUFFER: {
@@ -830,7 +830,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME: {
         MppFrame *frame = (MppFrame *)val;
-		//*frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
+        //*frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
 
         mpp_assert(slot->status.has_frame);
         if (slot->status.has_frame) {
@@ -840,9 +840,9 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         } else
             *frame = NULL;
     } break;
-	case SLOT_FRAME_PTR: {
+    case SLOT_FRAME_PTR: {
         MppFrame *frame = (MppFrame *)val;
-		*frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
+        *frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
     } break;
     case SLOT_BUFFER: {
         MppBuffer *buffer = (MppBuffer *)val;
@@ -874,9 +874,9 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     case SLOTS_VER_ALIGN: {
         impl->hal_ver_align = (AlignFunc)val;
     } break;
-	case SLOTS_LEN_ALIGN: {
-		impl->hal_len_align = (AlignFunc)val;
-	} break;
+    case SLOTS_LEN_ALIGN: {
+        impl->hal_len_align = (AlignFunc)val;
+    } break;
     case SLOTS_COUNT: {
         impl->buf_count = value;
     } break;

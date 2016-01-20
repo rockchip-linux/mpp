@@ -80,24 +80,24 @@ typedef   void (*LOG_FUN)(void *ctx, ...);
     } while (0)
 
 #define CHECK_RANGE(bitctx, val, _min, _max)\
-	do {\
-	if ((val) < (_min) || (val) > (_max)) {\
-	mpp_log("%d[%d,%d]", val, _min, _max);\
-	bitctx->ret = MPP_ERR_VALUE;\
-	goto __BITREAD_ERR;\
-	}\
-	} while (0)
+    do {\
+    if ((val) < (_min) || (val) > (_max)) {\
+    mpp_log("%d[%d,%d]", val, _min, _max);\
+    bitctx->ret = MPP_ERR_VALUE;\
+    goto __BITREAD_ERR;\
+    }\
+    } while (0)
 
 
 #define CHECK_ERROR(bitctx, val)\
-	do {\
-	if (!(val)) {\
-	mpp_log("value false");\
-	bitctx->ret = MPP_ERR_VALUE;\
-	ASSERT(0);\
-	goto __BITREAD_ERR;\
-	}\
-	} while (0)
+    do {\
+    if (!(val)) {\
+    mpp_log("value false");\
+    bitctx->ret = MPP_ERR_VALUE;\
+    ASSERT(0);\
+    goto __BITREAD_ERR;\
+    }\
+    } while (0)
 
 typedef struct bitread_ctx_t {
     // Pointer to the next unread (not in curr_byte_) byte in the stream.

@@ -202,22 +202,23 @@ public:
     RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
     VpulibDlsym()
         : rkapi_hdl(NULL),
-        rkvpu_open_cxt(NULL),
-        rkvpu_close_cxt(NULL)
+          rkvpu_open_cxt(NULL),
+          rkvpu_close_cxt(NULL)
     {
-       RK_S32 value = !!access("/dev/rkvdec", F_OK);
-       if (value) {
-           rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
-       }
-       if (rkapi_hdl == NULL) {
-           rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-       }
-       rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
-       rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
-       mpp_log("dlopen vpu lib");
+        RK_S32 value = !!access("/dev/rkvdec", F_OK);
+        if (value) {
+            rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+        }
+        if (rkapi_hdl == NULL) {
+            rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+        }
+        rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
+        rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
+        mpp_log("dlopen vpu lib");
     }
 
-     ~VpulibDlsym(){
+    ~VpulibDlsym()
+    {
         dlclose(rkapi_hdl);
         mpp_log("dlclose vpu lib");
     }
@@ -227,8 +228,7 @@ VpulibDlsym gVpulib;
 
 RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
-    if(NULL != gVpulib.rkvpu_open_cxt)
-    {
+    if (NULL != gVpulib.rkvpu_open_cxt) {
         (gVpulib.rkvpu_open_cxt)(ctx);
     }
     return MPP_OK;
@@ -236,8 +236,7 @@ RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 {
-    if(NULL != gVpulib.rkvpu_close_cxt)
-    {
+    if (NULL != gVpulib.rkvpu_close_cxt) {
         (gVpulib.rkvpu_close_cxt)(ctx);
     }
     return MPP_OK;
@@ -252,7 +251,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 #ifdef ANDROID
     value = value || (!!access("/dev/rkvdec", F_OK));
 
-    if(s != NULL)
+    if (s != NULL)
         value = (value & (s->videoCoding != OMX_RK_VIDEO_CodingHEVC));
 
     if (value || !s) {
@@ -303,7 +302,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
             return 0;
         } else {
 #ifdef ANDROID
-            if(s != NULL){
+            if (s != NULL) {
                 free(s);
                 s = NULL;
             }
@@ -336,7 +335,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     }
 #endif
     if (s) {
-		 s->flush(s);
+        s->flush(s);
         VpuApi* api = (VpuApi*)(s->vpuApiObj);
         if (s->vpuApiObj) {
             delete api;
