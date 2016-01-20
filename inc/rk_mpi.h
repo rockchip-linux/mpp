@@ -139,11 +139,29 @@ typedef struct MppEncConfig_t {
     RK_S32  trans8x8_en;
 } MppEncConfig;
 
+/*
+ * mpp main work function set
+ * size     : MppApi structure size
+ * version  : Mpp svn revision
+ *
+ * decode   : both send video stream packet to decoder and get video frame from
+ *            decoder at the same time.
+ * decode_put_packet: send video stream packet to decoder only, async interface
+ * decode_get_frame : get video frame from decoder only, async interface
+ *
+ * encode   : both send video frame to encoder and get encoded video stream from
+ *            encoder at the same time.
+ * encode_put_frame : send video frame to encoder only, async interface
+ * encode_get_packet: get encoded video packet from encoder only, async interface
+ *
+ * reset    : discard all packet and frame, reset all component,
+ *            for both decoder and encoder
+ * control  : control function for mpp property setting
+ * config   : config function for encoder, not implement yet.
+ */
 typedef struct MppApi_t {
     RK_U32  size;
     RK_U32  version;
-
-    MPP_RET (*config)(MppCtx ctx, MppEncConfig cfg);
 
     // sync interface
     MPP_RET (*decode)(MppCtx ctx, MppPacket packet, MppFrame *frame);
@@ -156,8 +174,9 @@ typedef struct MppApi_t {
     MPP_RET (*encode_put_frame)(MppCtx ctx, MppFrame frame);
     MPP_RET (*encode_get_packet)(MppCtx ctx, MppPacket *packet);
 
-    MPP_RET (*flush)(MppCtx ctx);
+    MPP_RET (*reset)(MppCtx ctx);
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
+    MPP_RET (*config)(MppCtx ctx, MppEncConfig cfg);
 
     RK_U32 reserv[16];
 } MppApi;
@@ -168,7 +187,13 @@ extern "C" {
 #endif
 
 /*
- * mpp interface
+ * mpp interface work flow
+ *
+ * 1. mpp_create : Create empty context structure and mpi function pointers.
+ * 2. mpp_init   : Call after mpp_create to setup mpp type and video format.
+ *                 This function will call internal context init function.
+ * 3. Use functions in MppApi to access mpp services.
+ * 4. mpp_destory: Destroy mpp context and free both context and mpi structure
  */
 MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi);
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding);

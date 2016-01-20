@@ -29,7 +29,7 @@
 
 #ifndef _WIN32
 #include <ctype.h>
-char *strupr(char *str)
+char *_strupr(char *str)
 {
 	char *orign=str;
 	for (; *str != '\0'; str++) {
@@ -86,7 +86,7 @@ static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size
 	}
 #endif
 
-	sei_msg->user_data_DivX_flag = strstr(strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
+	sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
 	if (sei_msg->user_data_DivX_flag) {
 		H264D_ERR("DivX is not supported. \n");
 		sei_msg->p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
@@ -217,7 +217,7 @@ static MPP_RET interpret_mvc_scalable_nesting_info(RK_U8 *payload, RK_S32 size, 
         READ_BITS(p_strm, 3, &sei_op_temporal_id, "sei_op_temporal_id");
     }
 
-    p_bitctx->used_bits = p_strm->used_bits;    
+    p_bitctx->used_bits = p_strm->used_bits;
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
@@ -404,7 +404,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         sei_msg->payload_size += tmp_byte;   // this is the last byte
 
         //--- read sei info
-        FUN_CHECK(ret = parserSEI(currSlice, p_bitctx, sei_msg, p_bitctx->data_));		
+        FUN_CHECK(ret = parserSEI(currSlice, p_bitctx, sei_msg, p_bitctx->data_));
         //--- set offset to read next sei nal
         if (SEI_MVC_SCALABLE_NESTING == sei_msg->type) {
             sei_msg->payload_size = ((p_bitctx->used_bits + 0x07) >> 3);

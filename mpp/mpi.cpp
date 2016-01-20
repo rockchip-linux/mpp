@@ -126,7 +126,7 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
     return ret;
 }
 
-static MPP_RET mpi_flush(MppCtx ctx)
+static MPP_RET mpi_reset(MppCtx ctx)
 {
     MpiImpl *p = (MpiImpl *)ctx;
     MPP_RET ret = MPP_OK;
@@ -150,15 +150,15 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
 static MppApi mpp_api = {
     sizeof(mpp_api),
     0,
-    mpi_config,
     mpi_decode,
     mpi_encode,
     mpi_decode_put_packet,
     mpi_decode_get_frame,
     mpi_encode_put_frame,
     mpi_encode_get_packet,
-    mpi_flush,
+    mpi_reset,
     mpi_control,
+    mpi_config,
     {0},
 };
 
@@ -201,7 +201,6 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
     MPI_FUNCTION_LEAVE_OK();
     return MPP_OK;
 }
-
 
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
 {

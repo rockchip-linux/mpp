@@ -166,9 +166,9 @@ int mpi_test()
     }
 
 
-    ret = mpi->flush(ctx);
+    ret = mpi->reset(ctx);
     if (MPP_OK != ret) {
-        mpp_err("mpi->flush failed\n");
+        mpp_err("mpi->reset failed\n");
         goto MPP_TEST_FAILED;
     }
 
@@ -247,9 +247,9 @@ int mpi_test()
     }
 
 
-    ret = mpi->flush(ctx);
+    ret = mpi->reset(ctx);
     if (MPP_OK != ret) {
-        mpp_err("mpi->flush failed\n");
+        mpp_err("mpi->reset failed\n");
         goto MPP_TEST_FAILED;
     }
 
