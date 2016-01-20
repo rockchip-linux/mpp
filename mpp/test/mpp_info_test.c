@@ -21,7 +21,11 @@
 
 int main()
 {
-    mpp_log("mpp revision is %d\n", get_mpp_revision());
+    mpp_log("mpp revision is %d\n", mpp_info_get_revision());
+    mpp_log("mpp info all:\n%s\n", mpp_info_get(INFO_ALL));
+    mpp_log("mpp info revision: %s\n", mpp_info_get(INFO_REVISION));
+    mpp_log("mpp info date    : %s\n", mpp_info_get(INFO_DATE));
+    mpp_log("mpp info author  : %s\n", mpp_info_get(INFO_AUTHOR));
 
     return 0;
 }

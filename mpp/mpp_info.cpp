@@ -25,8 +25,6 @@
 
 #include "svn_info.h"
 
-mpp_info *mpp_info::singleton = NULL;
-
 /*
  * To avoid string | grep author getting multiple results
  * use commit to replace author
@@ -35,14 +33,6 @@ static char mpp_version_revision[]  = SVN_VERSION;
 static char mpp_version_commit[]    = SVN_AUTHOR;
 static char mpp_version_date[]      = SVN_DATE;
 static char mpp_version_one_line[]  = SVN_ONE_LINE;
-
-mpp_info *mpp_info::getInstance()
-{
-    if (singleton == NULL) {
-        singleton = new mpp_info();
-    }
-    return singleton;
-}
 
 static RK_CHIP_TYPE chip_version(void)
 {
@@ -78,21 +68,26 @@ static RK_CHIP_TYPE chip_version(void)
     return type;
 }
 
-mpp_info::mpp_info()
+const char *mpp_info_get(MPP_INFO_TYPE type)
 {
-    chip_type  = chip_version();
-
-    mpp_info_revision   = mpp_version_revision;
-    mpp_info_commit     = mpp_version_commit;
-    mpp_info_date       = mpp_version_date;
-    mpp_revision        = atoi(SVN_VERSION);
-
-    show_mpp_info();
-}
-
-void mpp_info::show_mpp_info()
-{
-    mpp_log("%s\n", mpp_version_one_line);
+    switch (type) {
+    case INFO_ALL : {
+        return mpp_version_one_line;
+    } break;
+    case INFO_REVISION : {
+        return mpp_version_revision;
+    } break;
+    case INFO_DATE : {
+        return mpp_version_date;
+    } break;
+    case INFO_AUTHOR : {
+        return mpp_version_commit;
+    } break;
+    default : {
+        mpp_err_f("invalid info type %d\n", type);
+    } break;
+    }
+    return NULL;
 }
 
 RK_CHIP_TYPE get_chip_type()
@@ -100,7 +95,7 @@ RK_CHIP_TYPE get_chip_type()
     return chip_version();
 }
 
-int get_mpp_revision()
+int mpp_info_get_revision()
 {
     return atoi(SVN_VERSION);
 }

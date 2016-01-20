@@ -60,6 +60,7 @@ Mpp::Mpp()
       mStatus(0)
 {
 }
+
 MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 {
 
