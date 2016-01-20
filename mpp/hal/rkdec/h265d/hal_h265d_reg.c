@@ -1167,7 +1167,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         return MPP_ERR_NOMEM;
     }
     memset(pps_ptr, 0, 80 * 64);
-   // pps_packet = (RK_U64 *)(pps_ptr + dxva_cxt->pp.pps_id * 80);
+    // pps_packet = (RK_U64 *)(pps_ptr + dxva_cxt->pp.pps_id * 80);
 #endif
 
 
@@ -1367,8 +1367,8 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     }
 
 #ifdef ANDROID
-    for(i = 0; i < 64; i++){
-        memcpy(pps_ptr+i*80,pps_packet,80);
+    for (i = 0; i < 64; i++) {
+        memcpy(pps_ptr + i * 80, pps_packet, 80);
     }
 #ifdef dump
     fwrite(pps_ptr, 1, 80 * 64, fp);
@@ -1501,8 +1501,8 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hw_regs->sw_stream_len      = ((dxva_cxt->bitstream_size + 15) & (~15)) + 64;
     aglin_offset =  hw_regs->sw_stream_len - dxva_cxt->bitstream_size;
-    if(aglin_offset > 0){
-        memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size),0,aglin_offset);
+    if (aglin_offset > 0) {
+        memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0, aglin_offset);
     }
     hw_regs->sw_interrupt.sw_dec_e         = 1;
     hw_regs->sw_interrupt.sw_dec_timeout_e = 1;
@@ -1565,7 +1565,7 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
 
-    if(hw_regs == NULL){
+    if (hw_regs == NULL) {
         mpp_err("hal_h265d_start hw_regs is NULL");
         return MPP_ERR_NULL_PTR;
     }

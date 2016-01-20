@@ -37,16 +37,16 @@
 
 //!< memory malloc check
 #define MEM_CHECK(ret, val, ...)\
-	do{ if(!(val)) {\
-	ret = MPP_ERR_MALLOC;\
-	mpp_log("Function:%s:%d, ERROR: malloc buffer.\n", __FUNCTION__, __LINE__);\
-	mpp_assert(0); goto __FAILED;\
-	} } while (0)
+    do{ if(!(val)) {\
+    ret = MPP_ERR_MALLOC;\
+    mpp_log("Function:%s:%d, ERROR: malloc buffer.\n", __FUNCTION__, __LINE__);\
+    mpp_assert(0); goto __FAILED;\
+    } } while (0)
 //!< function return check
 #define FUN_CHECK(val)\
-	do{ if((val) < 0) {\
-	goto __FAILED;\
-	} } while (0)
+    do{ if((val) < 0) {\
+    goto __FAILED;\
+    } } while (0)
 
 
 static MPP_RET vp9_decoder_deinit(MppDec *pApi)

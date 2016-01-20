@@ -96,7 +96,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_hor_stride(frame->frame, (s->h265dctx->coded_width * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
-        mpp_frame_set_errinfo(frame->frame,0);
+        mpp_frame_set_errinfo(frame->frame, 0);
 
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
 
@@ -349,7 +349,7 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     }
     mark_ref(ref, ref_flag);
-    if(ref->error_flag){
+    if (ref->error_flag) {
         s->miss_ref_flag = 1;
     }
     return 0;

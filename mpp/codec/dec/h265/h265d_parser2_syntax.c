@@ -172,8 +172,7 @@ static void fill_picture_parameters(const HEVCContext *h,
     }
     // mpp_err("fill RefPicList from the DPB");
     // fill RefPicList from the DPB
-    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefPicList); i++)
-    {
+    for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->RefPicList); i++) {
         const HEVCFrame *frame = NULL;
         while (!frame && j < MPP_ARRAY_ELEMS(h->DPB)) {
             if (&h->DPB[j] != current_picture &&

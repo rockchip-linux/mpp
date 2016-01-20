@@ -65,7 +65,7 @@ static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
 
     if (NULL == p || p->check != p || NULL == p->ctx || NULL == packet) {
         mpp_err_f("found invalid context input ctx %p packet %p\n",
-                ctx, packet);
+                  ctx, packet);
         return MPP_ERR_UNKNOW;
     }
 
@@ -82,7 +82,7 @@ static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
 
     if (NULL == p || p->check != p || NULL == p->ctx || NULL == frame) {
         mpp_err_f("found invalid context input ctx %p frame %p\n",
-                ctx, frame);
+                  ctx, frame);
         return MPP_ERR_UNKNOW;
     }
 
@@ -99,7 +99,7 @@ static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
 
     if (NULL == p || p->check != p || NULL == p->ctx || NULL == frame) {
         mpp_err_f("found invalid context input ctx %p frame %p\n",
-                ctx, frame);
+                  ctx, frame);
         return MPP_ERR_UNKNOW;
     }
 
@@ -116,7 +116,7 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
 
     if (NULL == p || p->check != p || NULL == p->ctx || NULL == packet) {
         mpp_err_f("found invalid context input ctx %p packet %p\n",
-                ctx, packet);
+                  ctx, packet);
         return MPP_ERR_UNKNOW;
     }
 
@@ -209,7 +209,7 @@ MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
         type >= MPP_CTX_BUTT ||
         coding >= MPP_VIDEO_CodingMax) {
         mpp_err_f("invalid input ctx %p type %d coding %d\n",
-                ctx, type, coding);
+                  ctx, type, coding);
         return MPP_ERR_NULL_PTR;
     }
 

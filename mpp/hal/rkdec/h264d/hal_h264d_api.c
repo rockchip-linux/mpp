@@ -178,7 +178,7 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
 #ifndef ANDROID
 RK_S32 VPUClientGetIOMMUStatus()
 {
-	return 0;
+    return 0;
 }
 #endif
 /*!
@@ -190,8 +190,8 @@ RK_S32 VPUClientGetIOMMUStatus()
 //extern "C"
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
-	MppHalApi *p_api = NULL;
-	VPU_CLIENT_TYPE vpu_client;
+    MppHalApi *p_api = NULL;
+    VPU_CLIENT_TYPE vpu_client;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
@@ -214,7 +214,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = rkv_h264d_reset;
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
-		vpu_client = VPU_DEC_RKV;
+        vpu_client = VPU_DEC_RKV;
         break;
     case HAL_VDPU:
         p_api->init    = vdpu_h264d_init;
@@ -225,7 +225,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu_h264d_reset;
         p_api->flush   = vdpu_h264d_flush;
         p_api->control = vdpu_h264d_control;
-		vpu_client = VPU_DEC;
+        vpu_client = VPU_DEC;
     default:
         break;
     }
@@ -254,7 +254,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
-	(void *)vpu_client;
+    (void *)vpu_client;
 __RETURN:
     return MPP_OK;
 __FAILED:

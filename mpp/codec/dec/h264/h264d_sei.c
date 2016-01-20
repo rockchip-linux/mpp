@@ -31,11 +31,11 @@
 #include <ctype.h>
 char *_strupr(char *str)
 {
-	char *orign=str;
-	for (; *str != '\0'; str++) {
-		*str = toupper(*str);
-	}
-	return orign;
+    char *orign = str;
+    for (; *str != '\0'; str++) {
+        *str = toupper(*str);
+    }
+    return orign;
 }
 #endif
 
@@ -66,38 +66,38 @@ static void interpret_user_data_registered_itu_t_t35_info()
 
 static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size, H264_SEI_t *sei_msg)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	H264D_LOG("size=%d",size);
-	ASSERT(size >= 16);
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    H264D_LOG("size=%d", size);
+    ASSERT(size >= 16);
 #if 0
-	{
-		RK_U32 offset = 0;
-		RK_U8 payload_byte;
-		mpp_log("User data unregistered SEI message\n");
-		mpp_log("uuid_iso_11578 = 0x");
-		for (offset = 0; offset < 16; offset++) {
-			mpp_log("%02x",payload[offset]);
-		}
-		while (offset < size) {
-			payload_byte = payload[offset];
-			offset++;
-			mpp_log("Unreg data payload_byte = %02x\n", payload_byte);
-		}
-	}
+    {
+        RK_U32 offset = 0;
+        RK_U8 payload_byte;
+        mpp_log("User data unregistered SEI message\n");
+        mpp_log("uuid_iso_11578 = 0x");
+        for (offset = 0; offset < 16; offset++) {
+            mpp_log("%02x", payload[offset]);
+        }
+        while (offset < size) {
+            payload_byte = payload[offset];
+            offset++;
+            mpp_log("Unreg data payload_byte = %02x\n", payload_byte);
+        }
+    }
 #endif
 
-	sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
-	if (sei_msg->user_data_DivX_flag) {
-		H264D_ERR("DivX is not supported. \n");
-		sei_msg->p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
-		ret = MPP_NOK;
-		goto __FAILED;
-	}
+    sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
+    if (sei_msg->user_data_DivX_flag) {
+        H264D_ERR("DivX is not supported. \n");
+        sei_msg->p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
+        ret = MPP_NOK;
+        goto __FAILED;
+    }
 
 
-	return ret = MPP_OK;
+    return ret = MPP_OK;
 __FAILED:
-	return ret;
+    return ret;
 }
 
 static void interpret_pan_scan_rect_info()
@@ -232,8 +232,8 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
     p_bitctx = &tmp_strmdata;
     mpp_set_bitread_ctx(p_bitctx, payload, size);
     READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
-	//mpp_log("sei_msg->seq_parameter_set_id=%d \n", sei_msg->seq_parameter_set_id);
-	CHECK_RANGE(p_bitctx, sei_msg->seq_parameter_set_id, 0, 32);
+    //mpp_log("sei_msg->seq_parameter_set_id=%d \n", sei_msg->seq_parameter_set_id);
+    CHECK_RANGE(p_bitctx, sei_msg->seq_parameter_set_id, 0, 32);
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
@@ -258,27 +258,27 @@ static void interpret_reserved_info(RK_U8 *payload, RK_S32 size, BitReadCtx_t *p
 static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg, RK_U8 *msg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	H264dVideoCtx_t  *p_Vid = cur_slice->p_Vid;
+    H264dVideoCtx_t  *p_Vid = cur_slice->p_Vid;
 
-	H264D_LOG("[SEI_TYPE] type=%d \n", sei_msg->type);
+    H264D_LOG("[SEI_TYPE] type=%d \n", sei_msg->type);
     switch (sei_msg->type) {
     case  SEI_BUFFERING_PERIOD:
         FUN_CHECK(ret = interpret_buffering_period_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));
-		{
-			H264_SPS_t *sps = NULL;
-			H264_subSPS_t *subset_sps = NULL;
-			if (sei_msg->mvc_scalable_nesting_flag) {
-				p_Vid->active_mvc_sps_flag = 1;
-				sps = NULL;
-				subset_sps = &p_Vid->subspsSet[sei_msg->seq_parameter_set_id];
-			} else {
-				p_Vid->active_mvc_sps_flag = 0;
-				sps = &p_Vid->spsSet[sei_msg->seq_parameter_set_id];
-				subset_sps = NULL;
-			}
-			p_Vid->exit_picture_flag = 1;
-			FUN_CHECK(ret = activate_sps(p_Vid, sps, subset_sps));
-		}
+        {
+            H264_SPS_t *sps = NULL;
+            H264_subSPS_t *subset_sps = NULL;
+            if (sei_msg->mvc_scalable_nesting_flag) {
+                p_Vid->active_mvc_sps_flag = 1;
+                sps = NULL;
+                subset_sps = &p_Vid->subspsSet[sei_msg->seq_parameter_set_id];
+            } else {
+                p_Vid->active_mvc_sps_flag = 0;
+                sps = &p_Vid->spsSet[sei_msg->seq_parameter_set_id];
+                subset_sps = NULL;
+            }
+            p_Vid->exit_picture_flag = 1;
+            FUN_CHECK(ret = activate_sps(p_Vid, sps, subset_sps));
+        }
         break;
     case  SEI_PIC_TIMING:
         interpret_picture_timing_info();
@@ -353,7 +353,7 @@ static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_S
         break;
     case SEI_MVC_SCALABLE_NESTING:
         FUN_CHECK(ret = interpret_mvc_scalable_nesting_info(msg, sei_msg->payload_size, p_bitctx));
-		sei_msg->mvc_scalable_nesting_flag = 1;
+        sei_msg->mvc_scalable_nesting_flag = 1;
         break;
     case SEI_VIEW_SCALABILITY_INFO:
         interpret_mvc_scalability_info();
@@ -385,7 +385,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
     FunctionIn(currSlice->logctx->parr[RUN_PARSE]);
     memset(sei_msg, 0, sizeof(*sei_msg));
     sei_msg->mvc_scalable_nesting_flag = 0;  //init to false
-	sei_msg->p_Dec = currSlice->p_Dec;
+    sei_msg->p_Dec = currSlice->p_Dec;
     do {
         sei_msg->type = 0;
         READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_byte");

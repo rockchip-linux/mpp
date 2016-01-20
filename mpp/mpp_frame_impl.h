@@ -54,10 +54,10 @@ struct MppFrameImpl_t {
      * send decoded frame belong which view
      */
     RK_U32  viewid;
-	 /*
-     * poc - picture order count
-     */
-	RK_U32  poc;
+    /*
+    * poc - picture order count
+    */
+    RK_U32  poc;
     /*
      * pts - display time stamp
      * dts - decode time stamp
@@ -71,7 +71,7 @@ struct MppFrameImpl_t {
      */
     RK_U32  eos;
     RK_U32  info_change;
-	RK_U32  errinfo;
+    RK_U32  errinfo;
     MppFrameColorRange color_range;
     MppFrameColorPrimaries color_primaries;
     MppFrameColorTransferCharacteristic color_trc;

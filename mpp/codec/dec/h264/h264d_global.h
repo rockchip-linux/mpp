@@ -39,12 +39,12 @@
 #define MAX_MARK_SIZE             35   //!< for malloc buffer mark, can be changed
 
 
-#define NALU_BUF_MAX_SIZE         5*1024*1024	
-#define NALU_BUF_ADD_SIZE         512			
-#define HEAD_BUF_MAX_SIZE         5*1024*1024	
-#define HEAD_BUF_ADD_SIZE         1024		    
+#define NALU_BUF_MAX_SIZE         5*1024*1024
+#define NALU_BUF_ADD_SIZE         512
+#define HEAD_BUF_MAX_SIZE         5*1024*1024
+#define HEAD_BUF_ADD_SIZE         1024
 #define SODB_BUF_MAX_SIZE         10*1024*1024
-#define SODB_BUF_ADD_SIZE         1024			
+#define SODB_BUF_ADD_SIZE         1024
 
 
 //!< AVC Profile IDC definitions
@@ -197,12 +197,12 @@ typedef enum {
 typedef struct h264_dpb_mark_t {
     RK_U8    top_used;
     RK_U8    bot_used;
-	RK_U8    out_flag;
+    RK_U8    out_flag;
     RK_U8    mark_idx;
     MppFrame frame;
     RK_S32   slot_idx;
-	RK_S32   poc;
-	RK_S64   pts;
+    RK_S32   poc;
+    RK_S64   pts;
     struct h264_store_pic_t *pic;
 } H264_DpbMark_t;
 
@@ -226,7 +226,7 @@ typedef struct h264_dpb_info_t {
     RK_U32    bot_valid;
     struct h264_store_pic_t *picbuf;
 
-	RK_U32    have_same;
+    RK_U32    have_same;
 } H264_DpbInfo_t;
 
 //!< refence picture information
@@ -688,7 +688,7 @@ typedef struct h264_sei_t {
         //-- for adding
     } scalable_nesting;
 
-	RK_U32 user_data_DivX_flag;
+    RK_U32 user_data_DivX_flag;
     // Placeholder; in future more supported types will contribute to more
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
@@ -823,7 +823,7 @@ typedef struct h264d_dxva_ctx_t {
 } H264dDxvaCtx_t;
 
 //!< input parameter
-typedef struct h264d_input_ctx_t {	
+typedef struct h264d_input_ctx_t {
     struct h264_dec_ctx_t      *p_Dec;
     struct h264d_cur_ctx_t     *p_Cur;   //!< current parameters, use in read nalu
     struct h264d_video_ctx_t   *p_Vid;   //!< parameters for video decoder
@@ -832,36 +832,36 @@ typedef struct h264d_input_ctx_t {
     //!< input data
     RK_U8  *in_buf;
     size_t in_length;
-	RK_U32 pkt_eos;
+    RK_U32 pkt_eos;
 
-	MppPacket in_pkt;
+    MppPacket in_pkt;
 
-	RK_S64 in_pts;
-	RK_S64 in_dts;
-	RK_U8  has_get_eos;
+    RK_S64 in_pts;
+    RK_S64 in_dts;
+    RK_U8  has_get_eos;
     //!< output data
     RK_U8  *out_buf;
     RK_U32 out_length;
     RK_U8  task_valid;
-	RK_U32 task_eos;
+    RK_U32 task_eos;
 
-	 //!< have extradata
-	RK_U8  is_nalff; 
-	RK_U8  profile;
-	RK_U8  level;
-	RK_U32 nal_size;
-	RK_S32 sps_num;
-	RK_S32 pps_num;
+    //!< have extradata
+    RK_U8  is_nalff;
+    RK_U8  profile;
+    RK_U8  level;
+    RK_U32 nal_size;
+    RK_S32 sps_num;
+    RK_S32 pps_num;
 } H264dInputCtx_t;
 
 //!< TimeStamp context
 #define MAX_PTS_NUM   5
-typedef struct h264d_timestamp_t{
-	RK_U64 begin_off;
-	RK_U64 end_off;
-	RK_S64 pts;
-	RK_S64 dts;
-}H264dTimeStamp_t;
+typedef struct h264d_timestamp_t {
+    RK_U64 begin_off;
+    RK_U64 end_off;
+    RK_S64 pts;
+    RK_S64 dts;
+} H264dTimeStamp_t;
 
 //!< current stream
 typedef struct h264d_curstrm_t {
@@ -881,12 +881,12 @@ typedef struct h264d_curstrm_t {
     RK_U8     prefixdata[START_PREFIX_3BYTE];
     RK_U8     startcode_found;
     RK_U8     endcode_found;
-	//!< time stamp
-	//RK_S32    has_fetch_ts;	
-	RK_U8     pkt_ts_idx;
-	RK_U64    pkt_used_bytes;  //!< byte offset from starting packet start
+    //!< time stamp
+    //RK_S32    has_fetch_ts;
+    RK_U8     pkt_ts_idx;
+    RK_U64    pkt_used_bytes;  //!< byte offset from starting packet start
 
-	H264dTimeStamp_t pkt_ts[MAX_PTS_NUM];
+    H264dTimeStamp_t pkt_ts[MAX_PTS_NUM];
 } H264dCurStream_t;
 
 //!< current parameters
@@ -906,18 +906,18 @@ typedef struct h264d_cur_ctx_t {
     struct h264_dec_ctx_t    *p_Dec;
     struct h264d_video_ctx_t *p_Vid;   //!< parameters for video decoder
 
-	RK_S64                    last_pts;
-	RK_S64                    last_dts;
-	RK_S64                    curr_pts;
-	RK_S64                    curr_dts;
+    RK_S64                    last_pts;
+    RK_S64                    last_dts;
+    RK_S64                    curr_pts;
+    RK_S64                    curr_dts;
 } H264dCurCtx_t;
 
-typedef struct h264d_outlist_t {	
-	RK_U32 begin;
-	RK_U32 end;
-	RK_U32 max_size;
-	H264_DpbMark_t *list[MAX_MARK_SIZE];
-}H264dOutList_t;
+typedef struct h264d_outlist_t {
+    RK_U32 begin;
+    RK_U32 end;
+    RK_U32 max_size;
+    H264_DpbMark_t *list[MAX_MARK_SIZE];
+} H264dOutList_t;
 
 //!< parameters for video decoder
 typedef struct h264d_video_ctx_t {
@@ -956,8 +956,8 @@ typedef struct h264d_video_ctx_t {
     RK_U32     PicWidthInMbs;
     RK_U32     FrameHeightInMbs;
     RK_S32     yuv_format;
-	RK_U32     bit_depth_chroma;
-	RK_U32     bit_depth_luma;
+    RK_U32     bit_depth_chroma;
+    RK_U32     bit_depth_luma;
     RK_S32     width;
     RK_S32     height;
     RK_U32     width_after_crop;
@@ -988,17 +988,17 @@ typedef struct h264d_video_ctx_t {
     RK_S32     active_mvc_sps_flag;
 
     RK_U32     g_framecnt;
-	RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
-	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
-	RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
-	RK_U32    has_get_i_frame_flag;
+    RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
+    struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
+    RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
+    RK_U32    has_get_i_frame_flag;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
     struct h264_dpb_mark_t     dpb_mark[MAX_MARK_SIZE];         //!< for fpga register check, dpb mark
     struct h264_dpb_info_t     dpb_info[MAX_DPB_SIZE];         //!< 16
-    struct h264_dpb_info_t     dpb_old[2][MAX_DPB_SIZE]; 
-	struct h264_refpic_info_t  refpic_info_p[MAX_REF_SIZE];    //!< 32
+    struct h264_dpb_info_t     dpb_old[2][MAX_DPB_SIZE];
+    struct h264_refpic_info_t  refpic_info_p[MAX_REF_SIZE];    //!< 32
     struct h264_refpic_info_t  refpic_info_b[2][MAX_REF_SIZE];   //!< [2][32]
     struct h264d_dxva_ctx_t    dxva_ctx;
 } H264_DecMem_t;
@@ -1048,10 +1048,10 @@ typedef enum slice_state_type {
 
 //!< decoder video parameter
 typedef struct h264_err_ctx_t {
-	RK_U32    err_flag;
-	void      *data;
-	RK_U32    length;
-}H264dErrCtx_t;
+    RK_U32    err_flag;
+    void      *data;
+    RK_U32    length;
+} H264dErrCtx_t;
 
 
 //!< decoder video parameter
@@ -1059,7 +1059,7 @@ typedef struct h264_dec_ctx_t {
     struct h264d_mem_t        *mem;
     struct h264_dpb_mark_t    *dpb_mark;         //!< for write out, MAX_DPB_SIZE
     struct h264_dpb_info_t    *dpb_info;         //!< 16
-	struct h264_dpb_info_t    *dpb_old[2];       //!< 16
+    struct h264_dpb_info_t    *dpb_old[2];       //!< 16
     struct h264_refpic_info_t *refpic_info_p;    //!< 32
     struct h264_refpic_info_t *refpic_info_b[2]; //!< [2][32]
     struct h264d_dxva_ctx_t   *dxva_ctx;
@@ -1073,7 +1073,7 @@ typedef struct h264_dec_ctx_t {
     RK_U8                      is_first_frame;
     RK_U8                      is_new_frame;
     RK_U8                      is_parser_end;
-	RK_U8                      mvc_valid;
+    RK_U8                      mvc_valid;
     struct h264d_logctx_t      logctx;           //!< debug log file
     struct log_ctx_t           logctxbuf[LOG_MAX];
 
@@ -1087,7 +1087,7 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     task_eos;
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
-	struct h264_err_ctx_t      err_ctx;   
+    struct h264_err_ctx_t      err_ctx;
 } H264_DecCtx_t;
 
 

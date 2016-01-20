@@ -237,7 +237,7 @@ const HalRegDrv_t g_vdpu_drv[VDPU_MAX_SIZE + 1] = {
     { VDPU_DEC_OUT_DIS       , 3 ,  1, 15, "sw03_dec_out_dis      " },
     { VDPU_FILTERING_DIS     , 3 ,  1, 14, "sw03_filtering_dis    " },
     { VDPU_PIC_FIXED_QUANT   , 3 ,  1, 13, "sw03_pic_fixed_quant  " },
-	{ VDPU_MVC_E             , 3 ,  1, 13, "sw03_mvc_e            " },
+    { VDPU_MVC_E             , 3 ,  1, 13, "sw03_mvc_e            " },
     { VDPU_WRITE_MVS_E       , 3 ,  1, 12, "sw03_write_mvs_e      " },
     { VDPU_REFTOPFIRST_E     , 3 ,  1, 11, "sw03_reftopfirst_e    " },
     { VDPU_SEQ_MBAFF_E       , 3 ,  1, 10, "sw03_seq_mbaff_e      " },
@@ -1062,10 +1062,10 @@ MPP_RET vdpu_set_vlc_regs(void *hal, HalRegDrvCtx_t *p_drv)
         FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_REFER_VALID_E, validFlags    << 16));
 
 
-		//FPRINT(g_debug_file0, "ref_valid_e=%08x, longterm=%08x, mvc_e=%d, cur_poc=%d \n", 
-		//	validFlags << 16, longTermflags << 16, 0, p_hal->pp->CurrFieldOrderCnt[0]);
+        //FPRINT(g_debug_file0, "ref_valid_e=%08x, longterm=%08x, mvc_e=%d, cur_poc=%d \n",
+        //  validFlags << 16, longTermflags << 16, 0, p_hal->pp->CurrFieldOrderCnt[0]);
 
-		//FPRINT(g_debug_file0, "--------- [FLUSH_CNT] flush framecnt=%d -------- \n", p_hal->iDecodedNum++);
+        //FPRINT(g_debug_file0, "--------- [FLUSH_CNT] flush framecnt=%d -------- \n", p_hal->iDecodedNum++);
 
     }
 
@@ -1100,29 +1100,29 @@ MPP_RET vdpu_set_vlc_regs(void *hal, HalRegDrvCtx_t *p_drv)
     }
 #if 0
 
-	//pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
-	//for (i = 0; i < VDPU_POC_BUF_SIZE / 4; i++)
-	//{
-	//	FPRINT(g_debug_file1, "i=%d, poc_value=%d, idx=%d \n", i, *pocBase++, p_hal->pp->RefFrameList[i / 2].Index7Bits);
-	//}
+    //pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+    //for (i = 0; i < VDPU_POC_BUF_SIZE / 4; i++)
+    //{
+    //  FPRINT(g_debug_file1, "i=%d, poc_value=%d, idx=%d \n", i, *pocBase++, p_hal->pp->RefFrameList[i / 2].Index7Bits);
+    //}
     //FPRINT(g_debug_file0, "------ g_framecnt=%d \n", p_hal->in_task->g_framecnt);
 
 
-	pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
-	for(i = 0; i < 16; i++) {
-		RK_S32 dpb_idx = 0, longTermTmp = 0;
-		if (p_hal->pp->RefFrameList[i / 2].bPicEntry != 0xff) {
-			FPRINT(g_debug_file1, "i=%2d, picnum=%d, framenum=%2d,", i, p_hal->pp->FrameNumList[i], p_hal->pp->FrameNumList[i]);
-			longTermTmp = p_hal->pp->RefFrameList[i].AssociatedFlag;
-			dpb_idx = p_hal->pp->RefFrameList[i / 2].Index7Bits;
-			FPRINT(g_debug_file1, " dbp_idx=%d, longterm=%d, poc=%d \n", dpb_idx, longTermTmp, *pocBase);
-		}
-		pocBase +=2;
-	}
-	hal_get_regdrv((HalRegDrvCtx_t *)p_hal->regs, VDPU_REFER_VALID_E, &validFlags);
-	FPRINT(g_debug_file1, " view=%d, nonivref=%d, iv_base=%08x, ref_valid_e=%d, mvc_e=%d, cur_poc=%d \n", 0, 0, 0x0, validFlags, 0, *pocBase);
-	FPRINT(g_debug_file1, "--------- [FLUSH_CNT] flush framecnt=%d --------\n", p_hal->iDecodedNum);
-	 
+    pocBase = (RK_U32 *) ((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+    for (i = 0; i < 16; i++) {
+        RK_S32 dpb_idx = 0, longTermTmp = 0;
+        if (p_hal->pp->RefFrameList[i / 2].bPicEntry != 0xff) {
+            FPRINT(g_debug_file1, "i=%2d, picnum=%d, framenum=%2d,", i, p_hal->pp->FrameNumList[i], p_hal->pp->FrameNumList[i]);
+            longTermTmp = p_hal->pp->RefFrameList[i].AssociatedFlag;
+            dpb_idx = p_hal->pp->RefFrameList[i / 2].Index7Bits;
+            FPRINT(g_debug_file1, " dbp_idx=%d, longterm=%d, poc=%d \n", dpb_idx, longTermTmp, *pocBase);
+        }
+        pocBase += 2;
+    }
+    hal_get_regdrv((HalRegDrvCtx_t *)p_hal->regs, VDPU_REFER_VALID_E, &validFlags);
+    FPRINT(g_debug_file1, " view=%d, nonivref=%d, iv_base=%08x, ref_valid_e=%d, mvc_e=%d, cur_poc=%d \n", 0, 0, 0x0, validFlags, 0, *pocBase);
+    FPRINT(g_debug_file1, "--------- [FLUSH_CNT] flush framecnt=%d --------\n", p_hal->iDecodedNum);
+
 
 
 
@@ -1217,7 +1217,7 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
     RK_U32 picSizeInMbs = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     MppBuffer frame_buf = NULL;
-    
+
 
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
@@ -1228,14 +1228,14 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
     /* reference picture physis address */
     for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
         if (pp->RefFrameList[i].bPicEntry != 0xff) {
-			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
-			j = i;
-        } else/* if(j == 0xff)*/ {
-			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-		} 
-		//else {
-		//	mpp_buf_slot_get_prop(p_hal->frame_slots, j, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-		//}
+            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+            j = i;
+        } else { /* if(j == 0xff)*/
+            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+        }
+        //else {
+        //  mpp_buf_slot_get_prop(p_hal->frame_slots, j, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+        //}
 
         FUN_CHECK(ret = hal_set_regdrv(p_drv, g_refBase[i], mpp_buffer_get_fd(frame_buf)));
     }
@@ -1290,49 +1290,49 @@ MPP_RET vdpu_set_asic_regs(void *hal, HalRegDrvCtx_t *p_drv)
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_TYPE1_QUANT_E,    pp->scaleing_list_enable_flag));
 
     if (p_hal->pp->scaleing_list_enable_flag) {
-		RK_U32 temp = 0;
-		RK_U32 *ptr = NULL;
+        RK_U32 temp = 0;
+        RK_U32 *ptr = NULL;
 
         ptr = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE);
-		for(i = 0; i < 6; i++) {
-			for(j = 0; j < 4; j++) {
-				temp = (p_hal->qm->bScalingLists4x4[i][4 * j + 0] << 24) |
-					   (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
-					   (p_hal->qm->bScalingLists4x4[i][4 * j + 2] <<  8) |
-					   (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
-				*ptr++ = temp;
-			}
-		}
-		for(i = 0; i < 2; i++) {
-			for(j = 0; j < 16; j++)	{
-				temp = (p_hal->qm->bScalingLists8x8[i][4 * j + 0] << 24) |
-				       (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
-					   (p_hal->qm->bScalingLists8x8[i][4 * j + 2] <<  8) |
-					   (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
-				*ptr++ = temp;
-			}
-		}	
-	}
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 4; j++) {
+                temp = (p_hal->qm->bScalingLists4x4[i][4 * j + 0] << 24) |
+                       (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
+                       (p_hal->qm->bScalingLists4x4[i][4 * j + 2] <<  8) |
+                       (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
+                *ptr++ = temp;
+            }
+        }
+        for (i = 0; i < 2; i++) {
+            for (j = 0; j < 16; j++) {
+                temp = (p_hal->qm->bScalingLists8x8[i][4 * j + 0] << 24) |
+                       (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
+                       (p_hal->qm->bScalingLists8x8[i][4 * j + 2] <<  8) |
+                       (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
+                *ptr++ = temp;
+            }
+        }
+    }
 
 #if 0
-	{
-		RK_U8 i = 0, j = 0;
-		RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE;
-		for(i = 0; i < 6; i++) {
-			for(j = 0; j < 16; j++) {
-				FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
-				ptr++;
-			}
-			FPRINT(g_debug_file1, "\n");
-		}
-		for(i = 6; i < 8; i++) {
-			for(j = 0; j < 64; j++) {
-				FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
-				ptr++;
-			}
-			FPRINT(g_debug_file1, "\n");
-		}
-	}
+    {
+        RK_U8 i = 0, j = 0;
+        RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE;
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 16; j++) {
+                FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
+                ptr++;
+            }
+            FPRINT(g_debug_file1, "\n");
+        }
+        for (i = 6; i < 8; i++) {
+            for (j = 0; j < 64; j++) {
+                FPRINT(g_debug_file1, "[i=%2d][j=%2d]=%d, ", i, j, *ptr);
+                ptr++;
+            }
+            FPRINT(g_debug_file1, "\n");
+        }
+    }
 #endif
 
     FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_DIS,     0)); //!< set defalut 0

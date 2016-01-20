@@ -179,11 +179,11 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         || cur_sps->profile_idc == 128 || cur_sps->profile_idc == 138) {
         READ_UE(p_bitctx, &cur_sps->chroma_format_idc, "chroma_format_idc");
         ASSERT(cur_sps->chroma_format_idc < 4);
-		//if (cur_sps->chroma_format_idc >= 3) {
-		//	H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
-		//    p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
-		//	goto __FAILED;
-		//}
+        //if (cur_sps->chroma_format_idc >= 3) {
+        //  H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
+        //    p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
+        //  goto __FAILED;
+        //}
         //if (cur_sps->chroma_format_idc == 3) {
         //    READ_ONEBIT(p_bitctx, &cur_sps->separate_colour_plane_flag, "separate_colour_plane_flag");
         //    LogError(p_bitctx->ctx, "Not support YUV444 format current.");
@@ -361,9 +361,9 @@ static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
 
     p_Vid->width = p_Vid->PicWidthInMbs * 16;
     p_Vid->height = p_Vid->FrameHeightInMbs * 16;
-	p_Vid->bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
-	p_Vid->bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
-	
+    p_Vid->bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
+    p_Vid->bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+
     if (p_Vid->yuv_format == YUV420) {
         p_Vid->width_cr = (p_Vid->width >> 1);
         p_Vid->height_cr = (p_Vid->height >> 1);
@@ -545,10 +545,10 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 1)) {
             FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1], 2));
             FUN_CHECK(ret = init_dpb(p_Vid, p_Vid->p_Dpb_layer[1], 2));
-			update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
-			//!< init frame slots, store frame buffer size
-			p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
-			//mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + p_Vid->dpb_size[1] + 3);   
+            update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
+            //!< init frame slots, store frame buffer size
+            p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
+            //mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + p_Vid->dpb_size[1] + 3);
         }
     } else { //!< layer_id == 0
         p_Vid->active_sps = sps;
@@ -560,10 +560,10 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
                 FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[0], 1));
             }
             FUN_CHECK(ret = init_dpb(p_Vid, p_Vid->p_Dpb_layer[0], 1));
-			update_last_video_pars(p_Vid, p_Vid->active_sps, 0);
-			//!< init frame slots, store frame buffer size
-			p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
-			//mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + 3);            
+            update_last_video_pars(p_Vid, p_Vid->active_sps, 0);
+            //!< init frame slots, store frame buffer size
+            p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
+            //mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + 3);
         }
     }
     update_video_pars(p_Vid, p_Vid->active_sps);
