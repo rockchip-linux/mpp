@@ -190,7 +190,7 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
         return MPP_ERR_MALLOC;
     }
 
-    mpp_api.version = get_mpp_revision();
+    mpp_api.version = mpp_info_get_revision();
     p->api      = &mpp_api;
     p->check    = p;
     *ctx = p;
