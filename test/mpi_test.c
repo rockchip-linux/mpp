@@ -63,10 +63,10 @@ int mpi_test()
     mpp_log("mpi_test decoder test start\n");
 
     // decoder demo
-    ret = mpp_construct(&ctx, &mpi);
+    ret = mpp_create(&ctx, &mpi);
 
     if (MPP_OK != ret) {
-        mpp_err("mpp_construct failed\n");
+        mpp_err("mpp_create failed\n");
         goto MPP_TEST_FAILED;
     }
     ret = mpp_init(ctx, MPP_CTX_DEC, MPP_VIDEO_CodingUnused);
@@ -172,15 +172,15 @@ int mpi_test()
         goto MPP_TEST_FAILED;
     }
 
-    mpp_deinit(ctx);
+    mpp_destroy(ctx);
 
 
     mpp_log("mpi_test encoder test start\n");
 
     // encoder demo
-    ret = mpp_construct(&ctx, &mpi);
+    ret = mpp_create(&ctx, &mpi);
     if (MPP_OK != ret) {
-        mpp_err("mpp_construct failed\n");
+        mpp_err("mpp_create failed\n");
         goto MPP_TEST_FAILED;
     }
 
@@ -259,7 +259,7 @@ int mpi_test()
     if (enc_in)
         mpp_frame_deinit(&enc_in);
 
-    mpp_deinit(ctx);
+    mpp_destroy(ctx);
     free(buf);
 
     mpp_log("mpi_test success\n");
@@ -274,7 +274,7 @@ MPP_TEST_FAILED:
         mpp_frame_deinit(&enc_in);
 
     if (ctx)
-        mpp_deinit(ctx);
+        mpp_destroy(ctx);
     if (buf)
         free(buf);
 

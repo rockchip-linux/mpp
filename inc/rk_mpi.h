@@ -170,9 +170,9 @@ extern "C" {
 /*
  * mpp interface
  */
-MPP_RET mpp_construct(MppCtx *ctx, MppApi **mpi);
+MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi);
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding);
-MPP_RET mpp_deinit(MppCtx ctx);
+MPP_RET mpp_destroy(MppCtx ctx);
 
 #ifdef __cplusplus
 }
