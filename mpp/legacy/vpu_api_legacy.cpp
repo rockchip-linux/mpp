@@ -30,7 +30,7 @@ VpuApi::VpuApi()
 #ifdef DUMP_YUV
     fp = fopen("data/hevcdump.yuv", "wb");
 #endif
-    mpp_construct(&mpp_ctx, &mpi);
+    mpp_create(&mpp_ctx, &mpi);
     frame_count  = 0;
     set_eos = 0;
     mpp_log_f("ok\n");
@@ -40,7 +40,7 @@ VpuApi::VpuApi()
 VpuApi::~VpuApi()
 {
     mpp_log_f("in\n");
-    mpp_deinit(mpp_ctx);
+    mpp_destroy(mpp_ctx);
     mpp_log_f("ok\n");
 }
 
