@@ -24,6 +24,7 @@
 #include "mpp_mem.h"
 #include "mpi_impl.h"
 #include "mpp.h"
+#include "mpp_info.h"
 
 static MPP_RET mpi_config(MppCtx ctx, MppEncConfig cfg)
 {
@@ -148,7 +149,7 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
 
 static MppApi mpp_api = {
     sizeof(mpp_api),
-    1,
+    0,
     mpi_config,
     mpi_decode,
     mpi_encode,
@@ -188,10 +189,15 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
         mpp_err_f("failed to new Mpp\n");
         return MPP_ERR_MALLOC;
     }
+
+    mpp_api.version = get_mpp_revision();
     p->api      = &mpp_api;
     p->check    = p;
     *ctx = p;
     *mpi = p->api;
+
+    mpp_log("mpp version: %d\n", mpp_api.version);
+
     MPI_FUNCTION_LEAVE_OK();
     return MPP_OK;
 }
