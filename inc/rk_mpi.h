@@ -85,6 +85,8 @@ typedef enum {
     MPP_ENC_GETCFG,
     MPP_ENC_SETFORMAT,
     MPP_ENC_SETIDRFRAME,
+
+    MPI_CMD_BUTT,
 } MpiCmd;
 
 
