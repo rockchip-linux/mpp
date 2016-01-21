@@ -248,11 +248,13 @@ RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
 RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log_f("in\n");
-    MpiCmd mpicmd;
+
+    (void)ctx;
     if (mpi == NULL) {
         return 0;
     }
-    (void)ctx;
+
+    MpiCmd mpicmd = -1;
     switch (cmd) {
     case VPU_API_SET_VPUMEM_CONTEXT: {
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
@@ -274,8 +276,12 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     }
-    return mpi->control(mpp_ctx, (MpiCmd)mpicmd, (MppParam)param);
+
+    RK_S32 ret = -1;
+    if (mpicmd >= 0)
+        ret = mpi->control(mpp_ctx, (MpiCmd)mpicmd, (MppParam)param);
+
     mpp_log_f("ok\n");
-    return 0;
+    return ret;
 }
 
