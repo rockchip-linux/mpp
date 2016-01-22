@@ -170,11 +170,6 @@ static MPP_RET mpi_reset(MppCtx ctx)
     if (ret)
         return ret;
 
-    if (NULL == p || p->check != p || NULL == p->ctx) {
-        mpp_err_f("found invalid context input ctx %p\n", ctx);
-        return MPP_ERR_UNKNOW;
-    }
-
     ret = p->ctx->reset();
 
     MPI_FUNCTION_LEAVE();
@@ -189,11 +184,6 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
     MPP_RET ret = check_mpp_ctx(p);
     if (ret)
         return ret;
-
-    if (NULL == p || p->check != p || NULL == p->ctx) {
-        mpp_err_f("found invalid context input ctx %p\n", ctx);
-        return MPP_ERR_UNKNOW;
-    }
 
     ret = p->ctx->control(cmd, param);
 
