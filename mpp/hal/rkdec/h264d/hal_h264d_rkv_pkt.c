@@ -479,18 +479,16 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
     p_regs->swreg41_rlcwrite_base.sw_rlcwrite_base = p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base;
 #endif
 
-
-    //{
-    //  RK_U32 *ptr = (RK_U32*)p_hal->regs;
-    //  for (i = 0; i < 80; i++)
-    //  {
-    //      FPRINT(g_debug_file1, "register[%3d] = %08x\n", i, ptr[i]);
-    //  }
-    //  FPRINT(g_debug_file1, "-----frame=%d----------\n", p_hal->iDecodedNum);
-    //}
-
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs, 80 * sizeof(RK_U32));
+	{
+		RK_U32 *ptr = (RK_U32*)p_hal->regs;
+		LogInfo(pkt->logctx, "------------------ Frame REG begin ------------------------");
+		for (i = 0; i < 80; i++) {
+			//fifo_write_bits(pkt,  ptr[i], 32,  "reg");   //!< not used in hard		
+			LogInfo(pkt->logctx, "             reg[%3d] = %08x \n", i, ptr[i]);
+		}
+	}	
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit
