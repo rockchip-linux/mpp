@@ -54,6 +54,7 @@ typedef struct h264d_hal_ctx_t {
     RK_S32                   vpu_socket;
     RK_U64                   total_time;
     RK_U64                   iDecodedNum;
+	IOInterruptCB            init_cb;
 } H264dHalCtx_t;
 
 

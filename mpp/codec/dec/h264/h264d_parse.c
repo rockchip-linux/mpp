@@ -930,10 +930,9 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             ret = MPP_NOK;
             break;
         }
-        if (p_Dec->err_ctx.err_flag) {
-            h264d_callback((void *)p_Dec, (void*)&p_Dec->err_ctx);
-            goto __FAILED;
-        }
+        //if (p_Dec->err_ctx.err_flag) {         
+        //    goto __FAILED;
+        //}
     }
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     //__RETURN:

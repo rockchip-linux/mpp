@@ -347,8 +347,8 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[65] = 0;
     p_regs[66] = 0;
     p_regs[67] = 0x000000ff;   // disable fpga reset
-    p_regs[44] = 0;            // 0xffff_ffff, debug enable
-    p_regs[77] = 0;            // 0xffff_dfff, debug enable
+    p_regs[44] = 0xffffffff;   // 0xffff_ffff, debug enable
+    p_regs[77] = 0xffffffff;   // 0xffff_dfff, debug enable
     p_regs[1]  = 0x00000021;   // run hardware
 
     //mpp_log("------- register input ------ \n");
@@ -413,6 +413,14 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     //  mpp_log("reg[%d]=%08x \n", i, ptr[i]);
     //}
     p_regs = (H264dRkvRegs_t *)p_hal->regs;
+	H264D_LOG("[HAL_RET_ERR] error_info=%08x", *((RK_U32*)&p_regs->swreg1_int));
+
+	if (p_hal->init_cb.callBack	
+		&& (p_regs->swreg1_int.sw_dec_error_sta 
+		|| p_regs->swreg1_int.sw_dec_bus_sta)){
+			p_hal->init_cb.callBack(p_hal->init_cb.opaque, NULL);
+			H264D_LOG("xxxxxxxxxxxxxxxxxxxxxx");
+	}
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
