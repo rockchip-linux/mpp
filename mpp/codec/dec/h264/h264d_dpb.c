@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "vpu_api.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_buf_slot.h"
@@ -2391,13 +2392,15 @@ MPP_RET update_dpb(H264_DecCtx_t *p_Dec)
     MPP_RET ret = MPP_ERR_UNKNOW;
     p_Dec->p_Vid->exit_picture_flag    = 1;
     p_Dec->p_Vid->have_outpicture_flag = 1;
-    FUN_CHECK(ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_pic));
+    if(ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_pic)) {
+		p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+	}
     p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
     p_Dec->p_Vid->exit_picture_flag   = 0;
 
     return ret = MPP_OK;
-__FAILED:
-    ASSERT(0);
-    return ret;
+//__FAILED:
+//    ASSERT(0);
+//    return ret;
 }
 

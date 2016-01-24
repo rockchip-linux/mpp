@@ -229,6 +229,9 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     default:
         break;
     }
+	//!< callback function to parser module
+	p_hal->init_cb = cfg->hal_int_cb;
+
     //!< init logctx
     FUN_CHECK(ret = logctx_init(&p_hal->logctx, p_hal->logctxbuf));
     //!< VPUClientInit
