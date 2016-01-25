@@ -57,7 +57,7 @@ static void fill_picture_parameters(const HEVCContext *h,
     const HEVCPPS *pps = (HEVCPPS *)h->pps_list[h->sh.pps_id];
     const HEVCSPS *sps = (HEVCSPS *)h->sps_list[pps->sps_id];
 
-    RK_U32 i, j;
+    RK_S32 i, j;
     RK_U32 rps_used[16];
     RK_U32 nb_rps_used;
 
@@ -146,10 +146,10 @@ static void fill_picture_parameters(const HEVCContext *h,
         pp->num_tile_rows_minus1    = pps->num_tile_rows - 1;
 
         if (!pps->uniform_spacing_flag) {
-            for (i = 0; i < (RK_U32)pps->num_tile_columns; i++)
+            for (i = 0; i < pps->num_tile_columns; i++)
                 pp->column_width_minus1[i] = pps->column_width[i] - 1;
 
-            for (i = 0; i < (RK_U32)pps->num_tile_rows; i++)
+            for (i = 0; i < pps->num_tile_rows; i++)
                 pp->row_height_minus1[i] = pps->row_height[i] - 1;
         }
     }
@@ -177,7 +177,7 @@ static void fill_picture_parameters(const HEVCContext *h,
         while (!frame && j < MPP_ARRAY_ELEMS(h->DPB)) {
             if (&h->DPB[j] != current_picture &&
                 (h->DPB[j].flags & (HEVC_FRAME_FLAG_LONG_REF | HEVC_FRAME_FLAG_SHORT_REF))) {
-                RK_S32 k = 0;
+                RK_U32 k = 0;
                 for (k = 0; k < nb_rps_used; k++) {  /*skip fill RefPicList no used in rps*/
                     if (rps_used[k] == h->DPB[j].poc) {
                         frame = &h->DPB[j];
@@ -204,7 +204,7 @@ static void fill_picture_parameters(const HEVCContext *h,
         const RefPicList *rpl = &h->rps[ref_idx]; \
         for (i = 0, j = 0; i < MPP_ARRAY_ELEMS(pp->ref_list); i++) { \
             const HEVCFrame *frame = NULL; \
-            while (!frame && j < (RK_U32)rpl->nb_refs) \
+            while (!frame && j < rpl->nb_refs) \
                 frame = rpl->ref[j++]; \
             if (frame) \
                 pp->ref_list[i] = get_refpic_index(pp, frame->slot_index); \

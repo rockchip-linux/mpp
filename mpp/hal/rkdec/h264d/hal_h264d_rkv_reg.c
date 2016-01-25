@@ -32,7 +32,7 @@
 #include "hal_h264d_rkv_pkt.h"
 #include "hal_h264d_rkv_reg.h"
 
-const RK_U32 H264_RKV_Cabac_table[460 * 8] = {
+const RK_U32 H264_RKV_Cabac_table[926 * 4] = {
     0x3602f114, 0xf1144a03, 0x4a033602, 0x68e97fe4, 0x36ff35fa, 0x21173307,
     0x00150217, 0x31000901, 0x390576db, 0x41f54ef3, 0x310c3e01, 0x321149fc,
     0x2b094012, 0x431a001d, 0x68095a10, 0x68ec7fd2, 0x4ef34301, 0x3e0141f5,

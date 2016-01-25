@@ -34,7 +34,7 @@ static void free_slice_drpm_buffer(H264_SLICE_t *currSlice)  // dec_ref_pic_mark
         MPP_FREE(tmp_drpm);
     }
 }
-
+#if 0
 static RK_S32 get_voidx(H264_subSPS_t *subset_spsSet, H264_subSPS_t **subset_sps, RK_S32 iViewId)
 {
     RK_S32 i = 0, iVOIdx = -1;
@@ -68,7 +68,7 @@ static RK_S32 get_voidx(H264_subSPS_t *subset_spsSet, H264_subSPS_t **subset_sps
 
     return iVOIdx;
 }
-#if 0
+
 static RK_U32 is_new_picture(H264_SLICE_t *currSlice)
 {
     RK_U32 is_new_pic_flag = 0;
@@ -351,7 +351,9 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
         currSlice->inter_view_flag = 1;
         currSlice->anchor_pic_flag = currSlice->idr_flag;
     }
-    currSlice->layer_id = get_voidx(p_Vid->subspsSet, &p_Vid->active_subsps, currSlice->view_id);
+	//currSlice->layer_id = get_voidx(p_Vid->subspsSet, &p_Vid->active_subsps, currSlice->view_id);
+    currSlice->layer_id = currSlice->view_id;
+	H264D_LOG("currSlice->layer_id=%d", currSlice->layer_id);
     if (currSlice->layer_id >= 0) { // if not found, layer_id == -1
         currSlice->p_Dpb = p_Vid->p_Dpb_layer[currSlice->layer_id];
     }

@@ -221,7 +221,7 @@ typedef struct h264d_rkv_regs_t {
 extern "C" {
 #endif
 
-extern const RK_U32 H264_RKV_Cabac_table[460 * 8];
+extern const RK_U32 H264_RKV_Cabac_table[926 * 4];
 
 MPP_RET rkv_h264d_init    (void *hal, MppHalCfg *cfg);
 MPP_RET rkv_h264d_deinit  (void *hal);
