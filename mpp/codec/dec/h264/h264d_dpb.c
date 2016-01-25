@@ -941,7 +941,6 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         mpp_frame_set_poc(frame, p->poc);
         p_mark->poc = p->poc;
         p_mark->pts = mpp_frame_get_pts(frame);
-
         mpp_frame_set_viewid(frame, p->layer_id);
         //if (p->layer_id == 1) {
         //  mpp_frame_set_discard(frame, 1);
@@ -950,36 +949,28 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         //  mpp_frame_set_discard(frame, 1);
         //}
 
-        p_Vid->has_get_i_frame_flag = (p_Vid->has_get_i_frame_flag || (p->slice_type == I_SLICE)) ? 1 : 0;
-        if (!p_Vid->has_get_i_frame_flag) {
-            mpp_frame_set_discard(frame, 1);
+        p_Vid->iframe_cnt += (p->slice_type == I_SLICE) ? 1 : 0;
+        if (!p_Vid->iframe_cnt) {
+            mpp_frame_set_errinfo(frame, VPU_FRAME_ERR_UNKNOW);
         }
         if (p->poc
             && (p_Vid->last_outputpoc[p->layer_id] >= 0)
             && (p->poc < p_Vid->last_outputpoc[p->layer_id])) {
-            mpp_frame_set_discard(frame, 1);
+            mpp_frame_set_errinfo(frame, VPU_FRAME_ERR_UNKNOW);
         }
-        H264D_LOG("[dispaly] layer_id=%d, pic_num=%d, poc=%d, last_poc=%d, slice_type=%d(isdir=%d),  pts=%lld, g_framecnt=%d \n", p->layer_id,
-                  p->pic_num, p->poc, p_Vid->last_outputpoc[p->layer_id], p->slice_type, p->idr_flag, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
         p_Vid->last_outputpoc[p->layer_id] = p->poc;
 
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
-
-
-        if (p_Vid->p_Dec->mvc_valid) {
-            muti_view_output(p_Vid->p_Dec->frame_slots, p_mark, p_Vid);
-        } else {
-            mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
-            p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
-            p_mark->out_flag = 0;
-        }
-        //     FPRINT(g_debug_file0, "[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n",
-        //p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
-
-        //H264D_LOG("[WRITE_PICTURE] lay_id=%d, g_frame_no=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n",
-        //  p->layer_id, p_Vid->g_framecnt, p_mark->mark_idx, p_mark->slot_idx, mpp_frame_get_pts(frame));
-
-        //LogInfo(p_Vid->p_Dec->logctx.parr[RUN_PARSE], "[WRITE_PICTURE] g_frame_cnt=%d", p_Vid->g_framecnt);
+		if (p_Vid->p_Dec->mvc_valid && !p_Vid->p_Inp->mvc_disable) {
+			muti_view_output(p_Vid->p_Dec->frame_slots, p_mark, p_Vid);
+		} else 
+		{
+			mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
+			p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
+			p_mark->out_flag = 0;
+		}
+		H264D_LOG("[dispaly] layer_id=%d, pic_num=%d, poc=%d, last_poc=%d, slice_type=%d(isdir=%d),  pts=%lld, g_framecnt=%d \n", p->layer_id,
+			p->pic_num, p->poc, p_Vid->last_outputpoc[p->layer_id], p->slice_type, p->idr_flag, mpp_frame_get_pts(frame), p_Vid->g_framecnt);
     }
 
 }
@@ -2214,7 +2205,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
     //}
 
     //!< reset left parameters
-    for (; i < 16; i++) {
+    for (; i < MAX_DPB_SIZE; i++) {
         reset_dpb_info(&p_Dec->dpb_info[i]);
     }
 
@@ -2390,9 +2381,11 @@ __RETURN:
 MPP_RET update_dpb(H264_DecCtx_t *p_Dec)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+
     p_Dec->p_Vid->exit_picture_flag    = 1;
     p_Dec->p_Vid->have_outpicture_flag = 1;
-    if(ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_pic)) {
+	ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_pic);
+    if(MPP_OK != ret) {
 		p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
 	}
     p_Dec->p_Vid->iNumOfSlicesDecoded = 0;

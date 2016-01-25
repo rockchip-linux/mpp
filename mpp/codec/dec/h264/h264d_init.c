@@ -378,13 +378,14 @@ __FAILED:
     return ret;
 }
 
-static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid, RK_S32 structure, RK_U8 combine_flag, RK_S32 layer_id)
+static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic, RK_U8 combine_flag, RK_S32 layer_id)
 {
     RK_U8 idx = 1;
     H264_DpbMark_t *cur_mark = NULL;
     RK_U32 hor_stride = 0, ver_stride = 0;
     H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
     H264_DpbMark_t *p_mark = p_Vid->p_Dec->dpb_mark;
+	RK_S32 structure = dec_pic->structure;
 
     //!< malloc
     if (!combine_flag) {
@@ -547,7 +548,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 
     combine_flag = get_filed_dpb_combine_flag(p_Dpb, dec_pic);
     dec_pic->mem_malloc_type = Mem_Malloc;
-    dpb_mark_malloc(p_Vid, dec_pic->structure, combine_flag, dec_pic->layer_id); // malloc dpb_memory
+    dpb_mark_malloc(p_Vid, dec_pic, combine_flag, dec_pic->layer_id); // malloc dpb_memory
     dec_pic->mem_mark = p_Vid->active_dpb_mark[currSlice->layer_id];
     dec_pic->mem_mark->pic = dec_pic;
     dec_pic->colmv_no_used_flag = 0;

@@ -842,6 +842,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME_PTR: {
         MppFrame *frame = (MppFrame *)val;
+		mpp_assert(slot->status.has_frame);
         *frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
     } break;
     case SLOT_BUFFER: {

@@ -225,6 +225,9 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         } else {
             currSlice->p_Dec->nalu_ret = StartOfSlice;
         }
+		if (currSlice->layer_id && currSlice->p_Inp->mvc_disable) {
+			currSlice->p_Dec->nalu_ret = MvcDisAble;
+		}		
         LogTrace(runlog, "nalu_type=SLICE.");
         break;
     case NALU_TYPE_SPS:
@@ -603,7 +606,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 //}
 
                 if (p_strm->nalu_type == NALU_TYPE_SLICE
-                    || p_strm->nalu_type == NALU_TYPE_IDR) {
+					|| p_strm->nalu_type == NALU_TYPE_IDR || p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
                     p_strm->nalu_len += (RK_U32)pkt_impl->length;
                     memcpy(&p_strm->nalu_buf[0], p_strm->curdata, pkt_impl->length + 1);
                     pkt_impl->length = 0;
@@ -903,6 +906,12 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
                 p_Dec->next_state = SliceSTATE_GetSliceData;
             } else if (p_Dec->nalu_ret == StartOfPicture) {
                 p_Dec->next_state = SliceSTATE_InitPicture;
+            }  else if (p_Dec->nalu_ret == MvcDisAble) {
+				p_Dec->next_state = SliceSTATE_ResetSlice;
+				p_Dec->dxva_ctx->slice_count = 0;
+				p_Dec->dxva_ctx->strm_offset = 0;
+				H264D_LOG("xxxxxxxx MVC disable");
+				goto __RETURN;
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;
             }
@@ -935,9 +944,9 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         //}
     }
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
-    //__RETURN:
+__RETURN:
     return ret = MPP_OK;
-__FAILED:
+//__FAILED:
     return ret;
 }
 

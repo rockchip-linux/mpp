@@ -153,7 +153,7 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_Inp->init = *init;
-
+	p_Inp->mvc_disable = 1;
     FunctionOut(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -274,7 +274,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->subspsSet[i].num_views_minus1 = -1;
         p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
     }
-    p_Vid->has_get_i_frame_flag = 0;
+    p_Vid->iframe_cnt = 0;
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -538,6 +538,14 @@ MPP_RET h264d_reset(void *decoder)
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //mpp_log_f("reset In,g_framecnt=%d ", p_Dec->p_Vid->g_framecnt);
 
+	FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1));
+	FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
+	if (p_Dec->mvc_valid) 
+	{ // layer_id == 1
+		FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
+		FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
+		flush_muti_view_output(p_Dec->frame_slots, p_Dec->p_Vid->outlist, p_Dec->p_Vid);
+	}
     //!< reset input parameter
     p_Dec->p_Inp->in_buf        = NULL;
     p_Dec->p_Inp->pkt_eos       = 0;
@@ -551,7 +559,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Vid->g_framecnt    = 0;
     p_Dec->p_Vid->last_outputpoc[0] = -1;
     p_Dec->p_Vid->last_outputpoc[1] = -1;
-    p_Dec->p_Vid->has_get_i_frame_flag = 0;
+    p_Dec->p_Vid->iframe_cnt = 0;
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
     p_Dec->p_Cur->last_pts  = 0;
@@ -584,13 +592,7 @@ MPP_RET h264d_reset(void *decoder)
     memset(p_Dec->dpb_old[1], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
 
     //!< reset dpb
-    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1));
-    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
-    if (p_Dec->mvc_valid) {
         // layer_id == 1
-        FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
-        FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-    }
     for (i = 0; i < MAX_MARK_SIZE; i++) {
         p_Dec->dpb_mark[i].top_used = 0;
         p_Dec->dpb_mark[i].bot_used = 0;

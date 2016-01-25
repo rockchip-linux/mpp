@@ -839,6 +839,7 @@ typedef struct h264d_input_ctx_t {
     RK_S64 in_pts;
     RK_S64 in_dts;
     RK_U8  has_get_eos;
+	RK_U8  mvc_disable;
     //!< output data
     RK_U8  *out_buf;
     RK_U32 out_length;
@@ -986,12 +987,12 @@ typedef struct h264d_video_ctx_t {
     RK_S32     have_outpicture_flag;
     RK_S32     exit_picture_flag;
     RK_S32     active_mvc_sps_flag;
-
+	//!< for error tolerance
     RK_U32     g_framecnt;
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
     struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
     RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
-    RK_U32    has_get_i_frame_flag;
+    RK_U32    iframe_cnt;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
@@ -1013,7 +1014,7 @@ typedef enum nalu_state_tpye {
     ReadNaluError,
     StartofNalu,
     EndofStream,
-    //ReallocBufError,
+    MvcDisAble,
     MidOfNalu,
     EndOfNalu,
     StartOfPicture,
