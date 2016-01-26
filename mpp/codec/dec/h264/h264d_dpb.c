@@ -1832,19 +1832,6 @@ MPP_RET flush_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 type)
         VAL_CHECK(ret, p_Dpb->fs[i]->layer_id == p_Dpb->layer_id);
         unmark_for_reference(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
     }
-    //!< mark all inter-view reference unsed
-    //if (type == 2)
-    //{
-    //  //!< free
-    //  free_frame_store(p_Dpb->p_Vid->p_Dec, p_Dpb->fs_ilref[0]);
-    //  //!< malloc
-    //  p_Dpb->fs_ilref[0] = alloc_frame_store();
-    //  MEM_CHECK(ret, p_Dpb->fs_ilref[0]);
-    //  //!< These may need some cleanups
-    //  p_Dpb->fs_ilref[0]->view_id = -1;
-    //  p_Dpb->fs_ilref[0]->inter_view_flag[0] = p_Dpb->fs_ilref[0]->inter_view_flag[1] = 0;
-    //  p_Dpb->fs_ilref[0]->anchor_pic_flag[0] = p_Dpb->fs_ilref[0]->anchor_pic_flag[1] = 0;
-    //}
     while (!remove_unused_frame_from_dpb(p_Dpb));
     //!< output frames in POC order
     while (p_Dpb->used_size) {
@@ -2386,7 +2373,7 @@ MPP_RET update_dpb(H264_DecCtx_t *p_Dec)
     p_Dec->p_Vid->have_outpicture_flag = 1;
 	ret = exit_picture(p_Dec->p_Vid, &p_Dec->p_Vid->dec_pic);
     if(MPP_OK != ret) {
-		p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+		p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
 	}
     p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
     p_Dec->p_Vid->exit_picture_flag   = 0;

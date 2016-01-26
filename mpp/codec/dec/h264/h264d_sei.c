@@ -89,7 +89,7 @@ static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size
     sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
     if (sei_msg->user_data_DivX_flag) {
         H264D_ERR("DivX is not supported. \n");
-        sei_msg->p_Dec->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
+        sei_msg->p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
         ret = MPP_NOK;
         goto __FAILED;
     }

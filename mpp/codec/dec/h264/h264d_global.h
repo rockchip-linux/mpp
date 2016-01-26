@@ -292,6 +292,7 @@ typedef struct h264_store_pic_t {
     RK_S32       poc_mmco5;
     RK_S32       top_poc_mmco5;
     RK_S32       bot_poc_mmco5;
+	RK_S32       combine_flag;  // top && bottom field combined flag
     H264_Mem_type       mem_malloc_type;
     struct h264_dpb_mark_t     *mem_mark;
 } H264_StorePic_t;
@@ -913,13 +914,19 @@ typedef struct h264d_cur_ctx_t {
     RK_S64                    curr_dts;
 } H264dCurCtx_t;
 
+//!< decoder video parameter
+typedef struct h264_err_ctx_t {
+	RK_U32    err_flag;
+	void      *data;
+	RK_U32    length;
+} H264dErrCtx_t;
+//!< output list marking
 typedef struct h264d_outlist_t {
     RK_U32 begin;
     RK_U32 end;
     RK_U32 max_size;
     H264_DpbMark_t *list[MAX_MARK_SIZE];
 } H264dOutList_t;
-
 //!< parameters for video decoder
 typedef struct h264d_video_ctx_t {
     struct h264_sps_t            spsSet[MAXSPS];      //!< MAXSPS, all sps storage
@@ -936,7 +943,6 @@ typedef struct h264d_video_ctx_t {
     struct h264_store_pic_t      *no_ref_pic; //!< no reference picture
     struct h264_frame_store_t    out_buffer;
     struct h264_dpb_mark_t       *active_dpb_mark[MAX_NUM_DPB_LAYERS];  //!< acitve_dpb_memory
-
 
     struct h264_old_slice_par_t  old_slice;
     RK_S32    *qmatrix[12];  //!< scanlist pointer
@@ -990,9 +996,11 @@ typedef struct h264d_video_ctx_t {
 	//!< for error tolerance
     RK_U32     g_framecnt;
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
-    struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
+    
     RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
     RK_U32    iframe_cnt;
+	struct h264_err_ctx_t  err_ctx;
+	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
@@ -1046,15 +1054,6 @@ typedef enum slice_state_type {
 
 } SLICE_STATUS;
 
-
-//!< decoder video parameter
-typedef struct h264_err_ctx_t {
-    RK_U32    err_flag;
-    void      *data;
-    RK_U32    length;
-} H264dErrCtx_t;
-
-
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {
     struct h264d_mem_t        *mem;
@@ -1088,7 +1087,6 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     task_eos;
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
-    struct h264_err_ctx_t      err_ctx;
 } H264_DecCtx_t;
 
 
