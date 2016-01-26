@@ -34,7 +34,6 @@
 #include "h264d_dpb.h"
 
 
-
 static void close_log_files(LogEnv_t *env)
 {
     FCLOSE(env->fp_syn_parse);
@@ -275,6 +274,9 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
     }
     p_Vid->iframe_cnt = 0;
+	//!< memset error context
+	memset(&p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
+
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -376,8 +378,6 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     //!< malloc mpp packet
     mpp_packet_init(&p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream, p_Dec->dxva_ctx->max_strm_size);
     MEM_CHECK(ret, p_Dec->task_pkt);
-    //!< memset error context
-    memset(&p_Dec->err_ctx, 0, sizeof(H264dErrCtx_t));
     //!< set Dec support decoder method
     p_Dec->spt_decode_mtds = MPP_DEC_BY_FRAME;
     p_Dec->next_state = SliceSTATE_ResetSlice;
@@ -393,6 +393,21 @@ __FAILED:
 
     return ret;
 }
+
+static void flush_dpb_buffer_slot(H264_DecCtx_t *p_Dec)
+{
+	RK_U32 i = 0;
+	H264_DpbMark_t *p_mark = NULL;
+	//!< clear buffer slots
+	for(i = 0; i < MAX_MARK_SIZE; i++){
+		p_mark = &p_Dec->dpb_mark[i];
+		if (p_mark->out_flag) {
+			mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
+			p_mark->out_flag = 0;			
+		}
+	}
+}
+
 
 static MPP_RET set_frame_errinfo(H264_DecCtx_t *p_Dec, H264dErrCtx_t *err_ctx)
 {
@@ -421,6 +436,9 @@ static MPP_RET set_frame_errinfo(H264_DecCtx_t *p_Dec, H264dErrCtx_t *err_ctx)
 	if (m_frame) {
 		mpp_frame_set_errinfo(m_frame, err_ctx->err_flag);
 	}
+	//!< memset error context
+	memset(&p_Dec->p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
+
 __RETURN:
 	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 	return ret = MPP_OK;
@@ -546,6 +564,7 @@ MPP_RET h264d_reset(void *decoder)
 		FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
 		flush_muti_view_output(p_Dec->frame_slots, p_Dec->p_Vid->outlist, p_Dec->p_Vid);
 	}
+	flush_dpb_buffer_slot(p_Dec);
     //!< reset input parameter
     p_Dec->p_Inp->in_buf        = NULL;
     p_Dec->p_Inp->pkt_eos       = 0;
@@ -559,7 +578,9 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Vid->g_framecnt    = 0;
     p_Dec->p_Vid->last_outputpoc[0] = -1;
     p_Dec->p_Vid->last_outputpoc[1] = -1;
-    p_Dec->p_Vid->iframe_cnt = 0;
+    p_Dec->p_Vid->iframe_cnt    = 0;
+	memset(&p_Dec->p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
+
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
     p_Dec->p_Cur->last_pts  = 0;
@@ -599,8 +620,6 @@ MPP_RET h264d_reset(void *decoder)
         p_Dec->dpb_mark[i].slot_idx = -1;
         p_Dec->dpb_mark[i].pic      = NULL;
     }
-	set_frame_errinfo(p_Dec, &p_Dec->err_ctx);
-
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 
 __RETURN:
@@ -617,7 +636,7 @@ __FAILED:
 */
 MPP_RET  h264d_flush(void *decoder)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_ERR_UNKNOW;	
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
     //MppFrame m_frame;
     INP_CHECK(ret, !decoder);
@@ -634,12 +653,13 @@ MPP_RET  h264d_flush(void *decoder)
         //free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
         flush_muti_view_output(p_Dec->frame_slots, p_Dec->p_Vid->outlist, p_Dec->p_Vid);
     }
+	flush_dpb_buffer_slot(p_Dec);
     H264D_LOG("[FLUSH] -------- flush over.------, task_eos=%d, last_slot_idx=%d", p_Dec->p_Inp->task_eos, p_Dec->last_frame_slot_idx);
 
     //mpp_buf_slot_get_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_FRAME_PTR, &m_frame);
     mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
 
-	set_frame_errinfo(p_Dec, &p_Dec->err_ctx);
+	set_frame_errinfo(p_Dec, &p_Dec->p_Vid->err_ctx);
     FPRINT(g_debug_file0, "[FLUSH] -------- flush over.------\n");
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -793,18 +813,19 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 
     (ret = parse_loop(p_Dec));
 
-    if (p_Dec->is_parser_end) {
+    if (p_Dec->is_parser_end) {		
         p_Dec->is_parser_end = 0;
-        in_task->valid = 1; // register valid flag
-        in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
-        in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
+		//!< output task info
+		in_task->valid = 1; // register valid flag
+		in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
+		in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         (ret = update_dpb(p_Dec));
-
         if (in_task->flags.eos) {
             h264d_flush(decoder);
-        }
-		set_frame_errinfo(p_Dec, &p_Dec->err_ctx);
-        p_Dec->p_Vid->g_framecnt++;
+		}		
+		set_frame_errinfo(p_Dec, &p_Dec->p_Vid->err_ctx);
+
+		p_Dec->p_Vid->g_framecnt++;
     }
 
 __RETURN:
