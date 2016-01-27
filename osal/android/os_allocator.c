@@ -173,8 +173,13 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
 typedef struct {
     RK_U32  alignment;
     RK_S32  ion_device;
-    RK_U32  heap_id;
 } allocator_ctx_ion;
+
+#define VPU_IOC_MAGIC                       'l'
+#define VPU_IOC_PROBE_IOMMU_STATUS          _IOR(VPU_IOC_MAGIC, 5, unsigned long)
+const char *dev_ion = "/dev/ion";
+const char *dev_vpu = "/dev/vpu_service";
+static RK_S32 ion_heap_id = -1;
 
 MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
 {
@@ -188,9 +193,9 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
 
     *ctx = NULL;
 
-    fd = open("/dev/ion", O_RDWR);
+    fd = open(dev_ion, O_RDWR);
     if (fd < 0) {
-        mpp_err("open /dev/ion failed!\n");
+        mpp_err("open %s failed!\n", dev_ion);
         return MPP_ERR_UNKNOW;
     }
 
@@ -202,9 +207,32 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
         mpp_err("os_allocator_open Android failed to allocate context\n");
         return MPP_ERR_MALLOC;
     } else {
+        /*
+         * do heap id detection here:
+         * if there is no vpu_service use default ION_HEAP_TYPE_SYSTEM_CONTIG
+         * if there is vpu_service then check the iommu_enable status
+         */
+        if (ion_heap_id < 0) {
+            ion_heap_id = ION_HEAP_TYPE_SYSTEM;
+            int vpu_fd = open(dev_vpu, O_RDWR);
+            if (vpu_fd >= 0) {
+                int iommu_enabled = -2;
+                int ret = ioctl(vpu_fd, VPU_IOC_PROBE_IOMMU_STATUS, &iommu_enabled);
+                if (ret) {
+                    iommu_enabled = 0;
+                    mpp_err("can not get iommu status, disable iommu\n");
+                }
+                close(vpu_fd);
+                if (!iommu_enabled) {
+                    ion_heap_id = ION_HEAP_TYPE_DMA;
+                }
+            }
+
+            mpp_log("using ion heap %s\n", (ion_heap_id == ION_HEAP_TYPE_SYSTEM) ?
+                ("ION_HEAP_TYPE_SYSTEM") : ("ION_HEAP_TYPE_DMA"));
+        }
         p->alignment    = alignment;
         p->ion_device   = fd;
-        p->heap_id      = ION_HEAP_TYPE_SYSTEM_CONTIG;  /* ION_HEAP_TYPE_CARVEOUT */
         *ctx = p;
     }
 
@@ -223,7 +251,7 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 
     p = (allocator_ctx_ion *)ctx;
     ret = ion_alloc(p->ion_device, info->size, p->alignment,
-                    p->heap_id, 0,
+                    (1 << ion_heap_id), 0,
                     (ion_user_handle_t *)&info->hnd);
     if (ret) {
         mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
