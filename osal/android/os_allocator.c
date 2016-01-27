@@ -180,6 +180,7 @@ typedef struct {
 const char *dev_ion = "/dev/ion";
 const char *dev_vpu = "/dev/vpu_service";
 static RK_S32 ion_heap_id = -1;
+static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
 
 MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
 {
@@ -213,21 +214,26 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
          * if there is vpu_service then check the iommu_enable status
          */
         if (ion_heap_id < 0) {
-            ion_heap_id = ION_HEAP_TYPE_SYSTEM;
+            int iommu_enabled = -2;
             int vpu_fd = open(dev_vpu, O_RDWR);
             if (vpu_fd >= 0) {
-                int iommu_enabled = -2;
                 int ret = ioctl(vpu_fd, VPU_IOC_PROBE_IOMMU_STATUS, &iommu_enabled);
                 if (ret) {
                     iommu_enabled = 0;
                     mpp_err("can not get iommu status, disable iommu\n");
                 }
                 close(vpu_fd);
-                if (!iommu_enabled) {
-                    ion_heap_id = ION_HEAP_TYPE_DMA;
-                }
+            } else {
+                iommu_enabled = 0;
             }
 
+            if (!iommu_enabled) {
+                ion_heap_mask   = (1 << ION_HEAP_TYPE_DMA);
+                ion_heap_id     = ION_HEAP_TYPE_DMA;
+            } else {
+                ion_heap_mask   = (1 << ION_HEAP_TYPE_SYSTEM);
+                ion_heap_id     = ION_HEAP_TYPE_SYSTEM;
+            }
             mpp_log("using ion heap %s\n", (ion_heap_id == ION_HEAP_TYPE_SYSTEM) ?
                 ("ION_HEAP_TYPE_SYSTEM") : ("ION_HEAP_TYPE_DMA"));
         }
@@ -251,7 +257,7 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 
     p = (allocator_ctx_ion *)ctx;
     ret = ion_alloc(p->ion_device, info->size, p->alignment,
-                    (1 << ion_heap_id), 0,
+                    ion_heap_mask, 0,
                     (ion_user_handle_t *)&info->hnd);
     if (ret) {
         mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
