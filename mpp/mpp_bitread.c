@@ -29,7 +29,7 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
-    if (*bitctx->data_ == 0x03 && (bitctx->prev_two_bytes_ & 0xffff) == 0) {
+    if (bitctx->need_prevention_detection && *bitctx->data_ == 0x03 && (bitctx->prev_two_bytes_ & 0xffff) == 0) {
         // Detected 0x000003, skip last byte.
         ++bitctx->data_;
         --bitctx->bytes_left_;
@@ -219,8 +219,20 @@ void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
     bitctx->buf_len = size;
     bitctx->used_bits = 0;
     bitctx->wlog = log_info;
+    bitctx->need_prevention_detection = 0;
 }
 
+void mpp_set_pre_detection(BitReadCtx_t *bitctx)
+{
+    bitctx->need_prevention_detection = 1;
+}
+RK_U8 *mpp_align_get_bits(BitReadCtx_t *bitctx)
+{
+    int n = bitctx->num_remaining_bits_in_curr_byte_;
+    if (n)
+        mpp_skip_bits(bitctx, n);
+    return bitctx->data_;
+}
 /*!
 ***********************************************************************
 * \brief

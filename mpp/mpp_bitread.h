@@ -121,6 +121,7 @@ typedef struct bitread_ctx_t {
     RK_S32 buf_len;
     // ctx
     MPP_RET   ret;
+    RK_S32    need_prevention_detection;
     void     *ctx;
     LOG_FUN  wlog;
 } BitReadCtx_t;
@@ -136,7 +137,9 @@ MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits);
 MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
 MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
 void    mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size);
+void    mpp_set_pre_detection(BitReadCtx_t *bitctx);
 RK_U32  mpp_has_more_rbsp_data(BitReadCtx_t * bitctx);
+RK_U8  *mpp_align_get_bits(BitReadCtx_t *bitctx);
 
 #ifdef  __cplusplus
 }

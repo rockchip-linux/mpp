@@ -173,6 +173,7 @@ static MPP_RET interpret_recovery_point_info(RK_U8 *payload, RK_S32 size, BitRea
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     mpp_set_bitread_ctx(p_bitctx, payload, size);
+    mpp_set_pre_detection(p_bitctx);
 
     READ_UE(p_bitctx, &sei_msg->recovery_point.recovery_frame_cnt, "recovery_frame_cnt");
     READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.exact_match_flag, "exact_match_flag");
@@ -201,6 +202,7 @@ static MPP_RET interpret_mvc_scalable_nesting_info(RK_U8 *payload, RK_S32 size, 
     BitReadCtx_t tmp_strmdata = { 0 };
     BitReadCtx_t *p_strm = &tmp_strmdata;
     mpp_set_bitread_ctx(p_strm, payload, size);
+    mpp_set_pre_detection(p_bitctx);
 
     READ_ONEBIT(p_strm, &operation_point_flag, "operation_point_flag");
     if (!operation_point_flag) {
@@ -231,6 +233,7 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
 
     p_bitctx = &tmp_strmdata;
     mpp_set_bitread_ctx(p_bitctx, payload, size);
+    mpp_set_pre_detection(p_bitctx);
     READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
     //mpp_log("sei_msg->seq_parameter_set_id=%d \n", sei_msg->seq_parameter_set_id);
     CHECK_RANGE(p_bitctx, sei_msg->seq_parameter_set_id, 0, 32);
