@@ -398,8 +398,7 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         if (p_Vid->g_framecnt == 255) {
             idx = idx;
         }
-        H264D_LOG("[extra_data][Malloc] lay_id=%d, g_framecnt=%d, mark_idx=%d, slot_idx=%d, pts=%lld \n", layer_id,
-                  p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, p_Vid->p_Inp->in_pts);
+
         if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
             mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP);
         } else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
@@ -418,13 +417,18 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         mpp_frame_set_ver_stride(cur_mark->frame, ver_stride);
         mpp_frame_set_width(cur_mark->frame,  p_Vid->width_after_crop);  // after crop
         mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
-        H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
-                  ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
+        //H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
+        //          ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
         mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
         mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);
         mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, cur_mark->frame);
-        FPRINT(g_debug_file0, "[Malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, lay_id=%d, pts=%lld \n",
-               p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, layer_id, p_Vid->p_Inp->in_pts);
+		{
+			MppBuffer mbuffer = NULL;
+			mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_BUFFER, &mbuffer);
+			H264D_LOG("[Malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
+				p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, layer_id, p_Vid->p_Inp->in_pts);
+		}
+
         p_Vid->active_dpb_mark[layer_id] = cur_mark;
     }
     cur_mark = p_Vid->active_dpb_mark[layer_id];
@@ -436,6 +440,7 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
     }
     p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
     mpp_buf_slot_set_flag(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_HAL_OUTPUT);
+	p_Dec->last_frame_slot_idx = cur_mark->slot_idx;
 	dec_pic->mem_mark = p_Vid->active_dpb_mark[layer_id];
     dec_pic->mem_mark->pic = dec_pic;
 }

@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "vpu_api.h"
 #include "mpp_mem.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
@@ -155,8 +156,8 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
     READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
-    READ_BITS(p_bitctx, 2, (RK_S32 *)&cur_nal->nal_reference_idc, "nal_ref_idc");
-    READ_BITS(p_bitctx, 5, (RK_S32 *)&cur_nal->nalu_type, "nalu_type");
+    READ_BITS(p_bitctx, 2, ((RK_S32 *)&cur_nal->nal_reference_idc), "nal_ref_idc");
+    READ_BITS(p_bitctx, 5, ((RK_S32 *)&cur_nal->nalu_type), "nalu_type");
     //if (g_nalu_cnt0 == 2384) {
     //    g_nalu_cnt0 = g_nalu_cnt0;
     //}
@@ -873,10 +874,12 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     RK_U8 *p_curdata = NULL;
     RK_U8 while_loop_flag = 1;
     H264dNaluHead_t *p_head = NULL;
+
+	INP_CHECK(ret, !p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
     p_curdata = p_Dec->p_Cur->strm.head_buf;
-
+	p_Dec->p_Vid->err_ctx.err_flag = 0;
     while (while_loop_flag) {
         switch (p_Dec->next_state) {
         case SliceSTATE_ResetSlice:
@@ -907,23 +910,23 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             } else if (p_Dec->nalu_ret == StartOfPicture) {
                 p_Dec->next_state = SliceSTATE_InitPicture;
             }  else if (p_Dec->nalu_ret == MvcDisAble) {
-				p_Dec->next_state = SliceSTATE_ResetSlice;
-				p_Dec->dxva_ctx->slice_count = 0;
-				p_Dec->dxva_ctx->strm_offset = 0;
+				//p_Dec->next_state = SliceSTATE_ResetSlice;
+				//p_Dec->dxva_ctx->slice_count = 0;
+				//p_Dec->dxva_ctx->strm_offset = 0;
 				H264D_LOG("xxxxxxxx MVC disable");
-				goto __RETURN;
+				goto __FAILED;
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;
             }
             H264D_LOG("SliceSTATE_ParseNalu");
             break;
         case SliceSTATE_InitPicture:
-            (ret = init_picture(&p_Dec->p_Cur->slice));
+            FUN_CHECK(ret = init_picture(&p_Dec->p_Cur->slice));
             p_Dec->next_state = SliceSTATE_GetSliceData;
             H264D_LOG("SliceSTATE_InitPicture");
             break;
         case SliceSTATE_GetSliceData:
-            (ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
+            FUN_CHECK(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
             p_Dec->next_state = SliceSTATE_ResetSlice;
             H264D_LOG("SliceSTATE_GetSliceData");
@@ -946,7 +949,18 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
-//__FAILED:
+__FAILED:
+	p_Dec->nalu_ret = NALU_NULL;
+	//p_Dec->is_first_frame = 1;
+	//p_Dec->is_new_frame   = 0;
+	//p_Dec->is_parser_end  = 0;
+	p_Dec->next_state = SliceSTATE_ResetSlice;
+	p_Dec->dxva_ctx->slice_count = 0;
+	p_Dec->dxva_ctx->strm_offset = 0;
+	p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
+	p_Dec->p_Vid->exit_picture_flag   = 0;
+	p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+
     return ret;
 }
 
