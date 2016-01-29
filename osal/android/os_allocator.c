@@ -215,7 +215,7 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
          * if there is vpu_service then check the iommu_enable status
          */
         if (ion_heap_id < 0) {
-            int use_vmalloc_heap = 0;
+            int use_vmalloc_heap = 1;
 
             int vpu_fd = open(dev_vpu, O_RDWR);
             if (vpu_fd >= 0) {
