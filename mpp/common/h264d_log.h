@@ -33,12 +33,17 @@ typedef enum {
     RET_FALSE  = 0,
     RET_TURE   = 1,
 } RET_tpye;
+
+
+
+
+#define  H264D_LOG(fmt, ...)  //mpp_log_f(fmt, ## __VA_ARGS__)
+#define  H264D_ERR(fmt, ...)  mpp_err_f(fmt, ## __VA_ARGS__)
+#define   ASSERT       //mpp_assert
+
 //!< get bit value
 #define GetBitVal(val, pos)   ( ( (val)>>(pos) ) & 0x1 & (val) )
-//!< marco
-#define   ASSERT       mpp_assert
 
-#define  FCLOSE(fp)    do{ if(fp) fclose(fp); fp = NULL; } while (0)
 
 typedef enum {
     LOG_LEVEL_SILENT   = 0,
@@ -162,21 +167,21 @@ typedef struct h264d_logctx_t {
 #define VAL_CHECK(ret, val, ...)\
     do{ if(!(val)){\
     ret = MPP_ERR_VALUE;\
-    mpp_log("Function:%s:%d, ERROR: value error.\n", __FUNCTION__, __LINE__);\
+    H264D_LOG("Function:%s:%d, ERROR: value error.\n", __FUNCTION__, __LINE__);\
     goto __FAILED;\
     } } while (0)
 //!< memory malloc check
 #define MEM_CHECK(ret, val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_MALLOC;\
-    mpp_log("Function:%s:%d, ERROR: malloc buffer.\n", __FUNCTION__, __LINE__);\
-    mpp_assert(0); goto __FAILED;\
+    H264D_LOG("Function:%s:%d, ERROR: malloc buffer.\n", __FUNCTION__, __LINE__);\
+    ASSERT(0); goto __FAILED;\
     } } while (0)
 //!< file check
 #define FLE_CHECK(ret, val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_OPEN_FILE;\
-    mpp_log("Function:%s:%d, ERROR: open file.\n", __FUNCTION__, __LINE__);\
+    H264D_LOG("Function:%s:%d, ERROR: open file.\n", __FUNCTION__, __LINE__);\
     ASSERT(0); goto __FAILED;\
     } } while (0)
 
@@ -184,7 +189,7 @@ typedef struct h264d_logctx_t {
 #define INP_CHECK(ret, val, ...)\
     do{ if((val)) {\
     ret = MPP_ERR_INIT;\
-    mpp_log("Function:%s:%d, WARNNING: input empty.\n", __FUNCTION__, __LINE__);\
+    H264D_LOG("Function:%s:%d, WARNNING: input empty.\n", __FUNCTION__, __LINE__);\
     goto __RETURN;\
     } } while (0)
 //!< function return check
@@ -199,8 +204,7 @@ typedef struct h264d_logctx_t {
 #define  FPRINT(fp, ...)  { if (fp) { fprintf(fp, ##__VA_ARGS__); fflush(fp);}  }
 #endif
 
-#define  H264D_LOG(fmt, ...)  //mpp_log(fmt, ## __VA_ARGS__)
-#define  H264D_ERR(fmt, ...)  mpp_err(fmt, ## __VA_ARGS__)
+#define  FCLOSE(fp)    do{ if(fp) fclose(fp); fp = NULL; } while (0)
 
 extern RK_U32  g_nalu_cnt0;
 extern RK_U32  g_nalu_cnt1;
