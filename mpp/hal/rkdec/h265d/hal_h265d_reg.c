@@ -42,6 +42,7 @@
 #include "vpu.h"
 #include "mpp_buffer.h"
 #include "mpp_env.h"
+#include "mpp_bitput.h"
 //#define dump
 #ifdef dump
 FILE *fp = NULL;
@@ -481,95 +482,6 @@ MPP_RET hal_h265d_deinit(void *hal)
         }
     }
     return MPP_OK;
-}
-static RK_S32 _count = 0;
-
-static RK_U64 mpp_get_bits(RK_U64 src, RK_S32 size, RK_S32 offset)
-{
-    RK_S32 i;
-    RK_U64 temp = 0;
-
-    mpp_assert(size + offset <= 64);// 64 is the FIFO_BIT_WIDTH
-
-    for (i = 0; i < size ; i++) {
-        temp <<= 1;
-        temp |= 1;
-    }
-    temp &= (src >> offset);
-    temp <<= offset;
-    return temp;
-}
-
-typedef struct bitput_ctx_t {
-    // Pointer to the start of put address
-    RK_U64 *bit_buf;
-
-    // Pointer to current wite address offset (8 Byte as uint)
-    RK_S32 p_uint_index;
-
-    // Pointer to bit alreay write in uint
-    RK_S32 p_bit_offset;
-
-    // total bit have write
-    RK_S32 p_bit_len;
-
-    // total len of the region to write
-    RK_S32 total_len;
-} BitputCtx_t;
-
-static RK_S32 mpp_set_bitput_ctx(BitputCtx_t *bp, RK_U64 *data, RK_U32 len)
-{
-    memset(bp, 0, sizeof(BitputCtx_t));
-    bp->bit_buf = data;
-    bp->total_len = len;
-    return 0;
-}
-
-static void mpp_put_bits(BitputCtx_t *bp, RK_U64 data, RK_S32 size)
-{
-    h265h_dbg(H265H_DBG_RPS , "_count = %d value = %d", _count++, (RK_U32)data);
-    if (bp->p_uint_index >= bp->total_len) return;
-    if (size + bp->p_bit_offset >= 64) { // 64 is the FIFO_BIT_WIDTH
-        RK_S32 len = 64 - bp->p_bit_offset;
-        bp->bit_buf[bp->p_uint_index] = (mpp_get_bits(data, len, 0) << bp->p_bit_offset) |
-                                        mpp_get_bits( bp->bit_buf[bp->p_uint_index],  bp->p_bit_offset, 0);
-        bp->p_uint_index++;
-        if (bp->p_uint_index > bp->total_len) bp->p_uint_index = 0;
-
-        bp->bit_buf[bp->p_uint_index] = (mpp_get_bits(data, size - len, len) >> len);
-        bp->p_bit_offset = size + bp->p_bit_offset - 64; // 64 is the FIFO_BIT_WIDTH
-
-    } else {
-        bp->bit_buf[bp->p_uint_index]  = ((data <<  (64 - size)) >> (64 - size -  bp->p_bit_offset)) |
-                                         mpp_get_bits( bp->bit_buf[bp->p_uint_index], bp->p_bit_offset, 0);
-        bp->p_bit_offset += size;
-    }
-    bp->p_bit_len += size;
-}
-
-static void mpp_align(BitputCtx_t *bp, RK_S32 align_width)
-{
-    RK_S32 i;
-    RK_U64 temp = 0;
-    RK_S32 len = 0;
-
-    if (bp->p_uint_index >= bp->total_len) return;
-
-    for (i = 0; i < align_width; i++) {
-        temp <<= 1;
-        temp |= 1;
-    }
-    len = (align_width - ((bp->p_bit_offset) % align_width )) % align_width ;
-
-    while (len > 0) {
-        if (len >= 8) {
-            mpp_put_bits(bp, (0xffffffffffffffff << (64 - 8)) >> (64 - 8), 8);
-            len -= 8;
-        } else {
-            mpp_put_bits(bp, (0xffffffffffffffff << (64 - len)) >> (64 - len), len);
-            len -= len;
-        }
-    }
 }
 
 static void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
@@ -1083,7 +995,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 for (i = 0; i < 15; i++) {
                     mpp_put_bits(&bp, rps_pic_info[k][j][i].is_long_term, 1);
                     if (j == 1 && i == 4) {
-                        mpp_align (&bp, 64);
+                        mpp_align (&bp, 64, 0xf);
                     }
                     mpp_put_bits(&bp, rps_pic_info[k][j][i].dbp_index,    4);
                 }
@@ -1099,7 +1011,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             mpp_put_bits(&bp, slice_nb_rps_poc   [k], 4);
 
             h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", slice_nb_rps_poc[k]);
-            mpp_align   (&bp, 64);
+            mpp_align   (&bp, 64, 0xf);
         }
         if (rps_buf != NULL) {
             memcpy(rps_buf, rps_packet, nb_slice * 32);
@@ -1154,7 +1066,6 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     BitputCtx_t bp;
     pps_packet = mpp_calloc(RK_U64, fifo_len + 1);
 
-    _count = 0;
     if (NULL == reg_cxt || dxva_cxt == NULL) {
 
         mpp_err("%s:%s:%d reg_cxt or dxva_cxt is NULL", __FILE__, __FUNCTION__, __LINE__);
@@ -1215,7 +1126,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     ///<-zrh comment ^ 100 bit above
 
     mpp_put_bits(&bp, 0                                                    , 7 );
-    mpp_align(&bp                                                         , 32);
+    mpp_align(&bp                                                         , 32, 0xf);
 
     // PPS
     mpp_put_bits(&bp, dxva_cxt->pp.pps_id                                    , 6 );
@@ -1261,7 +1172,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_columns_minus1 + 1, 5);
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_rows_minus1 + 1 , 5 );
     mpp_put_bits(&bp, 3, 2); //mSps_Pps[i]->mMode
-    mpp_align(&bp, 64);
+    mpp_align(&bp, 64, 0xf);
 
     {
         /// tiles info begin
@@ -1364,7 +1275,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         p0[4] = p1[2];
         p0[5] = p1[3];
 
-        mpp_align(&bp, 64);
+        mpp_align(&bp, 64, 0xf);
     }
 
 #ifdef ANDROID

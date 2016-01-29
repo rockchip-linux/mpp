@@ -10,6 +10,7 @@ set(HAL_H265D_HDR
 set(HAL_H265D_SRC
     hal_h265d_reg.c
     ../../../mpp_bitread.c
+    ../../../mpp_bitput.c
     )
 
 add_library(hal_h265d STATIC
