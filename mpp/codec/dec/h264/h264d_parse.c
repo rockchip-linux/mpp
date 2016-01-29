@@ -151,6 +151,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 
     FunctionIn(logctx->parr[RUN_PARSE]);
     mpp_set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
+    mpp_set_pre_detection(p_bitctx);
 
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
     LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
@@ -195,7 +196,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
     //}
     mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
-
+    mpp_set_pre_detection(p_bitctx);
     p_Cur->p_Dec->nalu_ret = StartofNalu;
     FunctionOut(logctx->parr[RUN_PARSE]);
 
@@ -409,6 +410,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     FunctionIn(logctx->parr[RUN_PARSE]);
     memset(p_bitctx, 0, sizeof(BitReadCtx_t));
     mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
+    mpp_set_pre_detection(p_bitctx);
     set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
     READ_BITS(p_bitctx, 1, &forbidden_bit);
     ASSERT(forbidden_bit == 0);
@@ -435,6 +437,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     //-- parse slice
     if ( p_strm->nalu_type == NALU_TYPE_SLICE || p_strm->nalu_type == NALU_TYPE_IDR) {
         mpp_set_bitread_ctx(p_bitctx, (p_strm->nalu_buf + nalu_header_bytes), 4); // reset
+        mpp_set_pre_detection(p_bitctx);
         READ_UE(p_bitctx, &first_mb_in_slice);
         //!< get time stamp
         if (first_mb_in_slice == 0) {

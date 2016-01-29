@@ -1159,7 +1159,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     BitReadCtx_t *gb    = &lc->gb;
     RK_S32 ret;
     mpp_set_bitread_ctx(gb, (RK_U8*)nal, length);
-
+    mpp_set_pre_detection(gb);
     ret = hls_nal_unit(s);
     if (ret < 0) {
         mpp_err("Invalid NAL unit %d, skipping.\n",
@@ -1552,7 +1552,7 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
         }
 
         mpp_set_bitread_ctx(&s->HEVClc->gb, (RK_U8 *)nal->data, nal->size);
-
+        mpp_set_pre_detection(&s->HEVClc->gb);
         hls_nal_unit(s);
 
         if (s->nal_unit_type < NAL_VPS) {

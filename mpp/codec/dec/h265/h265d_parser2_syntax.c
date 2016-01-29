@@ -323,6 +323,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
 
         mpp_set_bitread_ctx(&gb_cxt, (RK_U8 *)h->nals[i].data,
                             h->nals[i].size);
+        mpp_set_pre_detection(&gb_cxt);
 
         gb = &gb_cxt;
 

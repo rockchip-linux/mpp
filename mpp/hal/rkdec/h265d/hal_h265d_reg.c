@@ -821,6 +821,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         mpp_set_bitread_ctx(&gb_cxt, (RK_U8*)(dxva_cxt->bitstream + dxva_cxt->slice_short[k].BSNALunitDataLocation),
                             dxva_cxt->slice_short[k].SliceBytesInBuffer);
 
+        mpp_set_pre_detection(&gb_cxt);
         gb = &gb_cxt;
 
         READ_ONEBIT(gb, &value);
