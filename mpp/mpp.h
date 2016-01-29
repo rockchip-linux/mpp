@@ -75,6 +75,7 @@ public:
     mpp_list        *mFrames;
     mpp_list        *mTasks;
 
+    /* counters for debug */
     RK_U32          mPacketPutCount;
     RK_U32          mPacketGetCount;
     RK_U32          mFramePutCount;
@@ -95,6 +96,15 @@ public:
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
 
+    /*
+     * There are two threads for each decoder/encoder: codec thread and hal thread
+     *
+     * codec thread generate protocol syntax structure and send to hardware
+     * hal thread wait hardware return and do corresponding process
+     *
+     * Two threads work parallelly so that all decoder/encoder will share this
+     * acceleration mechanism
+     */
     MppThread       *mThreadCodec;
     MppThread       *mThreadHal;
 
@@ -114,7 +124,6 @@ private:
 
     RK_U32          mStatus;
     RK_U32          mFastMode;
-
 
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);
