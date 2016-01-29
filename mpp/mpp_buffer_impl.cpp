@@ -255,12 +255,12 @@ MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
 {
+    AutoMutex auto_lock(&service.mLock);
+
     if (buffer->ref_count <= 0) {
         mpp_err_f("found non-positive ref_count %d\n", buffer->ref_count);
         return MPP_NOK;
     }
-
-    AutoMutex auto_lock(&service.mLock);
 
     buffer->ref_count--;
     if (0 == buffer->ref_count) {
