@@ -257,7 +257,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
-    (void *)vpu_client;
+    (void)vpu_client;
 __RETURN:
     return MPP_OK;
 __FAILED:

@@ -418,7 +418,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 	if (p_hal->init_cb.callBack	
 		&& (p_regs->swreg1_int.sw_dec_error_sta 
 		|| p_regs->swreg1_int.sw_dec_bus_sta)){
-			p_hal->init_cb.callBack(p_hal->init_cb.opaque, NULL);
+			p_hal->init_cb.callBack(p_hal->init_cb.opaque, (void *)&task->dec.output);
 			H264D_LOG("xxxxxxxxxxxxxxxxxxxxxx");
 	}
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
