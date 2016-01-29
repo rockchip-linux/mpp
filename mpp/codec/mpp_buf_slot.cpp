@@ -834,7 +834,8 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
         mpp_assert(slot->status.has_frame);
         if (slot->status.has_frame) {
-            mpp_frame_init(frame);
+            if (NULL == *frame )
+            	mpp_frame_init(frame);
             if (*frame)
                 mpp_frame_copy(*frame, slot->frame);
         } else

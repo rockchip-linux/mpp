@@ -191,7 +191,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             dec->mpp_pkt_in = NULL;
         }
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-            MppFrame frame;
+            MppFrame frame = NULL;
             mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
             mpp_frame_deinit(&frame);
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
@@ -298,7 +298,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         RK_S32 index;
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 
-            MppFrame frame;
+            MppFrame frame = NULL;
             RK_U32 discard;
             mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
             discard = mpp_frame_get_discard(frame);
@@ -383,7 +383,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (task_dec->flags.eos && task_dec->valid == 0) {
         RK_S32 index;
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-            MppFrame frame;
+            MppFrame frame = NULL;
             //RK_U32 display;
             mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
             //display = mpp_frame_get_display(frame);
@@ -681,7 +681,7 @@ void *mpp_dec_hal_thread(void *data)
 
             RK_S32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-                MppFrame frame;
+                MppFrame frame = NULL;
                 RK_U32 discard;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                 discard = mpp_frame_get_discard(frame);

@@ -187,7 +187,7 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
 {
     DummyDec *p;
     RK_S32 output;
-    MppFrame frame;
+    MppFrame frame = NULL;
     RK_U32 frame_count;
     MppBufSlots slots;
     RK_S32 i;
