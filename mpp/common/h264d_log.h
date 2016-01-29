@@ -39,7 +39,8 @@ typedef enum {
 
 #define  H264D_LOG(fmt, ...)  //mpp_log_f(fmt, ## __VA_ARGS__)
 #define  H264D_ERR(fmt, ...)  mpp_err_f(fmt, ## __VA_ARGS__)
-#define   ASSERT       //mpp_assert
+#define  ASSERT(val)         //do { mpp_assert(val); } while (0)
+
 
 //!< get bit value
 #define GetBitVal(val, pos)   ( ( (val)>>(pos) ) & 0x1 & (val) )
