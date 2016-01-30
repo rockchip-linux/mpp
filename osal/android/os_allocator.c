@@ -170,6 +170,79 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
     return ret;
 }
 
+#include <dirent.h>
+
+static const char *search_name = NULL;
+
+int _compare_name(const struct dirent *dir)
+{
+    if (search_name && strstr(dir->d_name, search_name))
+        return 1;
+    
+    return 0;
+}
+
+/*
+ * directory search function:
+ * search directory with dir_name on path.
+ * if found match dir append name on path and return
+ *
+ * return 0 for failure
+ * return positive value for length of new path
+ */
+RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
+{
+    struct dirent **dir;
+    RK_S32 path_len = strnlen(path, max_length);
+    RK_S32 new_path_len = 0;
+    RK_S32 n;
+
+    search_name = dir_name;
+    n = scandir(path, &dir, _compare_name, alphasort);
+    if (n < 0) {
+        mpp_err("scan %s for %s failed\n", path, dir_name);
+    } else {
+            while (n > 1) {
+                free(dir[--n]);
+            }
+
+            new_path_len = path_len;
+            new_path_len += snprintf(path + path_len, max_length - path_len - 1, 
+                    "/%s", dir[0]->d_name);
+
+            free(dir[0]);
+            free(dir);
+    }
+    search_name = NULL;
+    return new_path_len;
+}
+
+RK_S32 check_sysfs_iommu()
+{
+    char path[256];
+
+    snprintf(path, sizeof(path), "/proc/device-tree");
+    if (find_dir_in_path(path, "vpu_service", sizeof(path))) {
+        if (find_dir_in_path(path, "iommu_enabled", sizeof(path))) {
+            FILE *iommu_fp = fopen(path, "rb");
+
+            if (iommu_fp) {
+                RK_U32 iommu_enabled = 0;
+                fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
+                mpp_log("vpu_service iommu_enabled %d\n", (iommu_enabled > 0));
+                fclose(iommu_fp);
+                return (iommu_enabled) ? (1) : (0);
+            }
+        } else {
+            mpp_err("can not find dts for iommu_enabled\n");
+        }
+    } else {
+        mpp_err("can not find dts for vpu_service\n");
+    }
+
+    return 0;
+}
+
 typedef struct {
     RK_U32  alignment;
     RK_S32  ion_device;
@@ -215,25 +288,7 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
          * if there is vpu_service then check the iommu_enable status
          */
         if (ion_heap_id < 0) {
-            int use_vmalloc_heap = 1;
-
-            int vpu_fd = open(dev_vpu, O_RDWR);
-            if (vpu_fd >= 0) {
-                int ret = ioctl(vpu_fd, VPU_IOC_PROBE_HEAP_STATUS, &use_vmalloc_heap);
-                if (ret) {
-                    int iommu_enabled = -1;
-
-                    mpp_err("mpp can not get heap status\n");
-
-                    ret = ioctl(vpu_fd, VPU_IOC_PROBE_IOMMU_STATUS, &iommu_enabled);
-                    if (ret) {
-                        mpp_err("mpp can not get iommu status\n");
-                    } else {
-                        use_vmalloc_heap = iommu_enabled;
-                    }
-                }
-                close(vpu_fd);
-            }
+            int use_vmalloc_heap = check_sysfs_iommu();
 
             if (use_vmalloc_heap) {
                 ion_heap_mask   = (1 << ION_HEAP_TYPE_SYSTEM);
