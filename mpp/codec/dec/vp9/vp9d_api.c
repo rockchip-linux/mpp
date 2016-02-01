@@ -17,17 +17,18 @@
 
 #define MODULE_TAG "vp9d_api"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-
+//#include "common.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
-
+#include "mpp_log.h"
+#include "vp9d_codec.h"
+#include "vp9d_parser.h"
 #include "vp9d_api.h"
-
-
-
 
 /*!
 ***********************************************************************
@@ -36,40 +37,76 @@
 ***********************************************************************
 */
 
-MPP_RET vp9d_init(void *decoder, ParserCfg *init)
+MPP_RET vp9d_init(void *ctx, ParserCfg *init)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    (void)decoder;
+    MPP_RET ret = MPP_OK;
+    RK_U8 *buf = NULL;
+    RK_S32 size = SZ_512K;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
 
-    init->task_count = 2;
+    if (!vp9_ctx || !init) {
+        mpp_err("vp9d init fail");
+        return MPP_ERR_NULL_PTR;
+    }
 
-    return ret = MPP_OK;
+    if ((ret = vp9d_parser_init(vp9_ctx, init)) != MPP_OK)
+        goto _err_exit;
+
+    if ((ret = vp9d_split_init(vp9_ctx)) != MPP_OK)
+        goto _err_exit;
+
+    buf = mpp_malloc(RK_U8, size);
+    if (!buf) {
+        mpp_err("vp9 init malloc stream buffer fail");
+        ret = MPP_ERR_NOMEM;
+        goto _err_exit;
+    }
+
+    if ((ret = mpp_packet_init(&vp9_ctx->pkt, (void *)buf, size)) != MPP_OK)
+        goto _err_exit;
+
+    return ret;
+
+_err_exit:
+    vp9d_deinit(vp9_ctx);
+    return ret;
 }
+
 /*!
 ***********************************************************************
 * \brief
 *   free all buffer
 ***********************************************************************
 */
-MPP_RET vp9d_deinit(void *decoder)
+MPP_RET vp9d_deinit(void *ctx)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U8 *buf = NULL;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
 
-    (void)decoder;
-    return ret = MPP_OK;
+    if (vp9_ctx) {
+        vp9d_parser_deinit(vp9_ctx);
+        vp9d_split_deinit(vp9_ctx);
+        if (vp9_ctx->pkt) {
+            buf = mpp_packet_get_data(vp9_ctx->pkt);
+            MPP_FREE(buf);
+            mpp_packet_deinit(&vp9_ctx->pkt);
+        }
+    }
 
+    return MPP_OK;
 }
+
 /*!
 ***********************************************************************
 * \brief
 *   reset
 ***********************************************************************
 */
-MPP_RET  vp9d_reset(void *decoder)
+MPP_RET  vp9d_reset(void *ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    (void)decoder;
+    (void)ctx;
     return ret = MPP_OK;
 }
 
@@ -79,11 +116,11 @@ MPP_RET  vp9d_reset(void *decoder)
 *   flush
 ***********************************************************************
 */
-MPP_RET  vp9d_flush(void *decoder)
+MPP_RET  vp9d_flush(void *ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    (void)decoder;
+    (void)ctx;
     return ret = MPP_OK;
 }
 
@@ -93,11 +130,11 @@ MPP_RET  vp9d_flush(void *decoder)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET  vp9d_control(void *decoder, RK_S32 cmd_type, void *param)
+MPP_RET  vp9d_control(void *ctx, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    (void)decoder;
+    (void)ctx;
     (void)cmd_type;
     (void)param;
 
@@ -111,14 +148,45 @@ MPP_RET  vp9d_control(void *decoder, RK_S32 cmd_type, void *param)
 *   prepare
 ***********************************************************************
 */
-MPP_RET vp9d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
+MPP_RET vp9d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_OK;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
+    SplitContext_t *ps = (SplitContext_t *)vp9_ctx->priv_data2;
+    RK_S64 pts = -1;
+    RK_S64 dts = -1;
+    RK_U8 *buf = NULL;
+    RK_S32 length = 0;
+    RK_U8 *out_data = NULL;
+    RK_S32 out_size = -1;
+    RK_S32 consumed = 0;
+    RK_U8 *pos = NULL;
+    task->valid = -1;
 
-    (void)decoder;
-    (void)pkt;
+    pts = mpp_packet_get_pts(pkt);
+    dts = mpp_packet_get_dts(pkt);
+    vp9_ctx->eos = mpp_packet_get_eos(pkt);
+    buf = pos = mpp_packet_get_pos(pkt);
+    length = mpp_packet_get_length(pkt);
+
+    consumed = vp9d_split_frame(ps, &out_data, &out_size, buf, length);
+    pos += consumed;
+    mpp_packet_set_pos(pkt, pos);
+
+    vp9d_get_frame_stream(vp9_ctx, out_data, out_size);
+    if (out_size > 0) {
+        task->input_packet = vp9_ctx->pkt;
+        task->valid = 1;
+        mpp_packet_set_pts(vp9_ctx->pkt, pts);
+        mpp_packet_set_dts(vp9_ctx->pkt, dts);
+    } else {
+        task->valid = 0;
+        task->flags.eos = vp9_ctx->eos;
+    }
+
+    (void)pts;
+    (void)dts;
     (void)task;
-
     return ret = MPP_OK;
 }
 
@@ -129,27 +197,26 @@ MPP_RET vp9d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 *   parser
 ***********************************************************************
 */
-MPP_RET vp9d_parse(void *decoder, HalDecTask *in_task)
+MPP_RET vp9d_parse(void *ctx, HalDecTask *in_task)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
+    MPP_RET ret = MPP_OK;
+    vp9_parser_frame(vp9_ctx, in_task);
 
-    (void)decoder;
-    (void)in_task;
-    return ret = MPP_OK;
+    return ret;
 }
-
 /*!
 ***********************************************************************
 * \brief
 *   callback
 ***********************************************************************
 */
-MPP_RET vp9d_callback(void *decoder, void *err_info)
+MPP_RET vp9d_callback(void *decoder, void *info)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)decoder;
+    vp9_parser_update(vp9_ctx, info);
 
-    (void)decoder;
-    (void)err_info;
     return ret = MPP_OK;
 }
 
@@ -163,7 +230,7 @@ MPP_RET vp9d_callback(void *decoder, void *err_info)
 const ParserApi api_vp9d_parser = {
     "vp9d_parse",
     MPP_VIDEO_CodingVP9,
-    0,//sizeof(H264_DecCtx_t),
+    sizeof(Vp9CodecContext),
     0,
     vp9d_init,
     vp9d_deinit,

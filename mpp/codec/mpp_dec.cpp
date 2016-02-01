@@ -186,7 +186,6 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 
         }
         if (dec->mpp_pkt_in) {
-            mpp_free(mpp_packet_get_data(dec->mpp_pkt_in));
             mpp_packet_deinit(&dec->mpp_pkt_in);
             dec->mpp_pkt_in = NULL;
         }
