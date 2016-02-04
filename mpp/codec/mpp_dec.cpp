@@ -298,10 +298,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
 
             MppFrame frame = NULL;
-            RK_U32 discard;
             mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-            discard = mpp_frame_get_discard(frame);
-            if (!dec->reset_flag && !discard) {
+            if (!dec->reset_flag) {
                 mpp_put_frame(mpp, frame);
                 //mpp_log("discard=%d \n",0);
             } else {
@@ -682,10 +680,8 @@ void *mpp_dec_hal_thread(void *data)
             RK_S32 index;
             while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                 MppFrame frame = NULL;
-                RK_U32 discard;
                 mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                discard = mpp_frame_get_discard(frame);
-                if (!dec->reset_flag && !discard) {
+                if (!dec->reset_flag) {
                     mpp_put_frame(mpp, frame);
                 } else {
                     mpp_frame_deinit(&frame);
