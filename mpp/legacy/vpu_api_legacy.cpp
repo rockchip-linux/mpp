@@ -144,11 +144,12 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
-        vframe->ErrorInfo = mpp_frame_get_errinfo(mframe);
+        vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
         //mpp_err("vframe->ErrorInfo = %08x \n", vframe->ErrorInfo);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
-        //mpp_err("get one frame timeUs %lld, errinfo=%08x",aDecOut->timeUs, vframe->ErrorInfo);
+        //mpp_err("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d",aDecOut->timeUs, 
+		//	mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
