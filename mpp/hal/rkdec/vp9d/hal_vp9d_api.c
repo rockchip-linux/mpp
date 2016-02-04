@@ -312,7 +312,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         //coeff releated prob   64 x 128 bit
         for (i = 0; i < TX_SIZES; i++)
             for (j = 0; j < PLANE_TYPES; j++) {
-                int32_t byte_count = 0;
+                RK_S32 byte_count = 0;
                 for (k = 0; k < COEF_BANDS; k++) {
                     for (m = 0; m < COEFF_CONTEXTS; m++)
                         for (n = 0; n < UNCONSTRAINED_NODES; n++) {
@@ -330,7 +330,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
 
         //intra mode prob  80 x 128 bit
         for (i = 0; i < INTRA_MODES; i++) { //vp9_kf_y_mode_prob
-            int32_t byte_count = 0;
+            RK_S32 byte_count = 0;
             for (j = 0; j < INTRA_MODES; j++)
                 for (k = 0; k < INTRA_MODES - 1; k++) {
                     mpp_put_bits(&bp, vp9_kf_y_mode_prob[i][j][k], 8);
@@ -392,7 +392,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         //coeff releated
         for (i = 0; i < TX_SIZES; i++)
             for (j = 0; j < PLANE_TYPES; j++) {
-                int32_t byte_count = 0;
+                RK_S32 byte_count = 0;
                 for (k = 0; k < COEF_BANDS; k++) {
                     for (m = 0; m < COEFF_CONTEXTS; m++)
                         for (n = 0; n < UNCONSTRAINED_NODES; n++) {
@@ -408,7 +408,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
             }
         for (i = 0; i < TX_SIZES; i++)
             for (j = 0; j < PLANE_TYPES; j++) {
-                int32_t byte_count = 0;
+                RK_S32 byte_count = 0;
                 for (k = 0; k < COEF_BANDS; k++) {
                     for (m = 0; m < COEFF_CONTEXTS; m++) {
                         for (n = 0; n < UNCONSTRAINED_NODES; n++) {
@@ -614,7 +614,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     VP9_REGS *vp9_hw_regs = (VP9_REGS*)reg_cxt->hw_regs;
     intraFlag = (!pic_param->frame_type || pic_param->intra_only);
     hal_vp9d_output_probe(hal, task->dec.syntax.data);
-    stream_len = mpp_packet_get_length(task->dec.input_packet);
+    stream_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);
     memset(reg_cxt->hw_regs, 0, sizeof(VP9_REGS));
     vp9_hw_regs->swreg2_sysctrl.sw_dec_mode = 2; //set as vp9 dec
     vp9_hw_regs->swreg5_stream_len = ((stream_len + 15) & (~15)) + 0x80;
@@ -817,12 +817,11 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
 //extern "C"
 MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 {
-
+	RK_U32 i = 0;
     MPP_RET ret = MPP_OK;
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
-    VP9_REGS *hw_regs = ( VP9_REGS *)reg_cxt->hw_regs;;
-    RK_U8* p = (RK_U8*)reg_cxt->hw_regs;
-    RK_U32 i = 0;
+    VP9_REGS *hw_regs = ( VP9_REGS *)reg_cxt->hw_regs;
+    RK_U8 *p = (RK_U8*)reg_cxt->hw_regs;    
 
     if (hw_regs == NULL) {
         mpp_err("hal_vp9d_start hw_regs is NULL");

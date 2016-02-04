@@ -94,7 +94,7 @@ static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size
         goto __FAILED;
     }
 
-
+	(void)size;
     return ret = MPP_OK;
 __FAILED:
     return ret;
