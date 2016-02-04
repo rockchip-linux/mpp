@@ -882,7 +882,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
     p_curdata = p_Dec->p_Cur->strm.head_buf;
-	p_Dec->p_Vid->err_ctx.err_flag = 0;
+	p_Dec->errctx.err_flag = 0;
     while (while_loop_flag) {
         switch (p_Dec->next_state) {
         case SliceSTATE_ResetSlice:
@@ -962,7 +962,7 @@ __FAILED:
 	p_Dec->dxva_ctx->strm_offset = 0;
 	p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
 	p_Dec->p_Vid->exit_picture_flag   = 0;
-	p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+	p_Dec->errctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
 
     return ret;
 }

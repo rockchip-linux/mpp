@@ -2216,7 +2216,7 @@ MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
             mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_CODEC_USE);
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_FRAME_PTR, &mframe);
 			if (mpp_frame_get_errinfo(mframe)) {
-				p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+				p_Dec->errctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
 			}
         }
     }

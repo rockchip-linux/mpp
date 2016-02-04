@@ -275,7 +275,6 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
     }
     p_Vid->iframe_cnt = 0;
 	//!< memset error context
-	memset(&p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
 
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -379,7 +378,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->nalu_ret = NALU_NULL;
     p_Dec->is_first_frame = 1;
     p_Dec->last_frame_slot_idx = -1;
-
+	memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
 __RETURN:
     return ret = MPP_OK;
 
@@ -582,7 +581,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Vid->last_outputpoc[0] = -1;
     p_Dec->p_Vid->last_outputpoc[1] = -1;
     p_Dec->p_Vid->iframe_cnt    = 0;
-	memset(&p_Dec->p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
+	memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
 
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
@@ -849,10 +848,10 @@ __FAILED:
 			mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
 			dec_pic->mem_mark->out_flag = 0;
 			p_Dec->p_Vid->dec_pic = NULL;
-			p_Dec->p_Vid->err_ctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
-			mpp_frame_set_errinfo(mframe, p_Dec->p_Vid->err_ctx.err_flag);
+			p_Dec->errctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
+			mpp_frame_set_errinfo(mframe, p_Dec->errctx.err_flag);
 		}
-		p_Dec->p_Vid->err_ctx.err_flag = 0;
+		p_Dec->errctx.err_flag = 0;
 	}
 
 	return ret;
