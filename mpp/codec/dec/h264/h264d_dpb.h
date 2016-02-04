@@ -35,6 +35,7 @@ void    free_frame_store(H264_DecCtx_t *p_Dec, H264_FrameStore_t *f);
 
 MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs,    H264_StorePic_t *p, RK_U8 combine_flag);
+MPP_RET store_picture_in_dpb (H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 
 MPP_RET init_dpb    (H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type);
 MPP_RET flush_dpb   (H264_DpbBuf_t   *p_Dpb, RK_S32 type);

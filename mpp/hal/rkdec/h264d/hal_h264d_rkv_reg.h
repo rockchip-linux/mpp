@@ -211,6 +211,9 @@ typedef struct h264d_rkv_regs_t {
         RK_U32 sw_h264_error_en_highbits : 30;
         RK_U32 reserve : 2;
     } swreg77_h264_error_e;
+	RK_U32 slot_idx;
+	RK_U32 dpb_err_flag;
+	RK_U32 used_for_ref_flag;
     RK_U32 compare_len;
     RK_U32 reverse[100];
 } H264dRkvRegs_t;
