@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "mpp_mem.h"
 
@@ -27,7 +28,7 @@
 #include "h264d_dpb.h"
 #include "h264d_scalist.h"
 #include "h264d_fill.h"
-
+#include "h264d_slice.h"
 
 static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
 {
@@ -398,30 +399,35 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         if (p_Vid->g_framecnt == 255) {
             idx = idx;
         }
-
+		{
+			MppFrame mframe = NULL;
+			mpp_frame_init(&mframe);
         if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP);
+				mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
         } else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV420SP_10BIT);
+				mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP_10BIT);
             H264D_LOG(" alloc_picture ----- MPP_FMT_YUV420SP_10BIT ------ \n");
         } else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP);
+				mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP);
         } else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-            mpp_frame_set_fmt(cur_mark->frame, MPP_FMT_YUV422SP_10BIT);
+				mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
         }
         hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
         ver_stride = p_Vid->height;
         hor_stride = MPP_ALIGN(hor_stride, 256) | 256;
         ver_stride = MPP_ALIGN(ver_stride, 16);
-        mpp_frame_set_hor_stride(cur_mark->frame, hor_stride);  // before crop
-        mpp_frame_set_ver_stride(cur_mark->frame, ver_stride);
-        mpp_frame_set_width(cur_mark->frame,  p_Vid->width_after_crop);  // after crop
-        mpp_frame_set_height(cur_mark->frame, p_Vid->height_after_crop);
+			mpp_frame_set_hor_stride(mframe, hor_stride);  // before crop
+			mpp_frame_set_ver_stride(mframe, ver_stride);
+			mpp_frame_set_width(mframe,  p_Vid->width_after_crop);  // after crop
+			mpp_frame_set_height(mframe, p_Vid->height_after_crop);
         //H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
         //          ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
-        mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Cur->last_pts);
-        mpp_frame_set_dts(cur_mark->frame, p_Vid->p_Cur->last_dts);
-        mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, cur_mark->frame);
+			mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
+			mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
+			mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
+			mpp_frame_deinit(&mframe);
+			mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
+		}		
 		{
 			MppBuffer mbuffer = NULL;
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_BUFFER, &mbuffer);
