@@ -776,6 +776,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 		ret = update_dpb(p_Dec);
 		if (in_task->flags.eos) {
 			h264d_flush(decoder);
+			goto __RETURN;
 		}
 		if (ret) {
 			goto __FAILED;
@@ -783,6 +784,8 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 		in_task->valid = 1; // register valid flag
 		in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
 		in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;		
+		in_task->dpb_err_flag  = p_Dec->errctx.dpb_err_flag;
+		in_task->used_for_ref_flag = p_Dec->errctx.used_for_ref_flag;
     }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
@@ -799,10 +802,9 @@ __FAILED:
 			mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
 			dec_pic->mem_mark->out_flag = 0;
 			p_Dec->p_Vid->dec_pic = NULL;
-			p_Dec->errctx.err_flag |= VPU_FRAME_ERR_UNKNOW;
-			mpp_frame_set_errinfo(mframe, p_Dec->errctx.err_flag);
+			mpp_frame_set_discard(mframe, 1);
 		}
-		p_Dec->errctx.err_flag = 0;
+		H264D_LOG("Discard current stream packetage");
 	}
 
 	return ret;
@@ -818,16 +820,32 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
 	MPP_RET ret = MPP_ERR_UNKNOW;
 	MppFrame mframe = NULL;
-	RK_S32 out_slot_idx = 0;
+	RK_U32 *p_regs = NULL;
+	RK_U32 out_slot_idx = 0;
+	RK_U32 dpb_err_flag = 0;
+	RK_U32 used_for_ref_flag = 0;
 	H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
 	INP_CHECK(ret, !decoder);
 	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	out_slot_idx = *((RK_S32*)errinfo);
-	H264D_LOG("out_slot_idx=%d", out_slot_idx);
-	mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
-	mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
 
+	p_regs = (RK_U32*)errinfo;
+	out_slot_idx = p_regs[78];
+	dpb_err_flag = p_regs[79];
+	used_for_ref_flag = p_regs[80];
+
+	if (dpb_err_flag || (p_regs[1] & 0x00004000)) {
+	mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
+			if (used_for_ref_flag) {	
+				mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);				
+			}
+			else {
+				mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+			}		
+	}
+
+	H264D_LOG("g_frame_no=%d, out_slot_idx=%d, swreg01=%08x, swreg45=%08x, dpb_err=%d, used_for_ref_flag=%d", p_Dec->p_Vid->g_framecnt, 
+		out_slot_idx, p_regs[1], p_regs[45], dpb_err_flag, used_for_ref_flag);
 __RETURN:
 	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 	return ret = MPP_OK;

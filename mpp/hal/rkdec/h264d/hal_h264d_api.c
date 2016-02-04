@@ -191,7 +191,7 @@ RK_S32 VPUClientGetIOMMUStatus()
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
     MppHalApi *p_api = NULL;
-    VPU_CLIENT_TYPE vpu_client;
+    VPU_CLIENT_TYPE vpu_client = VPU_DEC_RKV;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 

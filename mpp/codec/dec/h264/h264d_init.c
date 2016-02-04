@@ -1185,19 +1185,264 @@ __FAILED:
     return ret;
 }
 
-/*!
-***********************************************************************
-* \brief
-*    check parser is end and then configure register
-***********************************************************************
-*/
-//extern "C"
+static RK_U32 get_short_term_pic(H264_SLICE_t *currSlice, RK_S32 picNum, H264_StorePic_t **find_pic)
+{
+	RK_U32 i = 0;
+	H264_StorePic_t *ret_pic = NULL;
+	H264_StorePic_t *near_pic = NULL;
+	H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
+
+	for (i = 0; i < p_Dpb->ref_frames_in_buffer; i++) {
+		if (currSlice->structure == FRAME) {
+			if ((p_Dpb->fs_ref[i]->is_reference == 3)
+				&& (!p_Dpb->fs_ref[i]->frame->is_long_term)) {
+						if (p_Dpb->fs_ref[i]->frame->pic_num == picNum)	{
+							ret_pic = p_Dpb->fs_ref[i]->frame;
+							break;
+						} else {
+							near_pic = p_Dpb->fs_ref[i]->frame;
+						}
+				}					
+		} else {
+			if ((p_Dpb->fs_ref[i]->is_reference & 1)
+				&& (!p_Dpb->fs_ref[i]->top_field->is_long_term)) {
+						if(p_Dpb->fs_ref[i]->top_field->pic_num == picNum){
+							ret_pic = p_Dpb->fs_ref[i]->top_field;
+							break;
+						}else {
+							near_pic = p_Dpb->fs_ref[i]->top_field;
+						}
+				}					
+			if ((p_Dpb->fs_ref[i]->is_reference & 2)
+				&& (!p_Dpb->fs_ref[i]->bottom_field->is_long_term)) {
+						if (p_Dpb->fs_ref[i]->bottom_field->pic_num == picNum) {
+							ret_pic = p_Dpb->fs_ref[i]->bottom_field;
+							break;
+						} else {
+							near_pic = p_Dpb->fs_ref[i]->bottom_field;
+						}
+				}
+		}
+	}
+	*find_pic = ret_pic ? ret_pic : near_pic;
+	return (ret_pic ? 1 : 0);
+}
+
+
+static H264_StorePic_t *get_long_term_pic(H264_SLICE_t *currSlice, RK_S32 LongtermPicNum)
+{
+	RK_U32 i = 0;
+	H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
+
+	for (i = 0; i < p_Dpb->ltref_frames_in_buffer; i++) {
+		if (currSlice->structure == FRAME) {
+			if (p_Dpb->fs_ltref[i]->is_reference == 3)
+				if ((p_Dpb->fs_ltref[i]->frame->is_long_term)
+					&& (p_Dpb->fs_ltref[i]->frame->long_term_pic_num == LongtermPicNum))
+					return p_Dpb->fs_ltref[i]->frame;
+		} else {
+			if (p_Dpb->fs_ltref[i]->is_reference & 1)
+				if ((p_Dpb->fs_ltref[i]->top_field->is_long_term)
+					&& (p_Dpb->fs_ltref[i]->top_field->long_term_pic_num == LongtermPicNum))
+					return p_Dpb->fs_ltref[i]->top_field;
+			if (p_Dpb->fs_ltref[i]->is_reference & 2)
+				if ((p_Dpb->fs_ltref[i]->bottom_field->is_long_term)
+					&& (p_Dpb->fs_ltref[i]->bottom_field->long_term_pic_num == LongtermPicNum))
+					return p_Dpb->fs_ltref[i]->bottom_field;
+		}
+	}
+	return NULL;
+}
+#if 0
+static H264_StorePic_t *fake_short_term_pic(H264_SLICE_t *currSlice, RK_S32 picNumLX, H264_StorePic_t *tmp)
+{
+	H264_StorePic_t *fake = NULL;
+	H264_StorePic_t *dec_pic = NULL;
+
+	fake = alloc_storable_picture(currSlice->p_Vid, FRAME);
+	if (fake == NULL) {
+		H264D_ERR("failed to alloc new dpb buffer");
+		goto __FAILED;
+	}
+	fake->is_long_term = 0;
+	fake->view_id = fake->view_id;
+	fake->layer_id = currSlice->layer_id;					
+	fake->frame_num = fake->pic_num = picNumLX;
+	dec_pic = currSlice->p_Vid->dec_pic;
+	fake->poc = dec_pic->poc - (dec_pic->pic_num - picNumLX) * 2;
+	fake->used_for_reference = 1;
+	fake->mem_malloc_type = Mem_Fake;
+#if 1
+	fake->mem_mark = tmp->mem_mark;
+	fake->mem_mark->top_used += 1;
+	fake->mem_mark->bot_used += 1;
+	fake->mem_mark->pic = fake;
+#else
+	fake->mem_mark = mpp_calloc(H264_DpbMark_t, 1);
+	if (fake->mem_mark == NULL) {
+		H264D_ERR("failed to alloc a fake memory");
+		goto __FAILED;
+	}
+	fake->mem_mark->top_used = 1;
+	fake->mem_mark->bot_used = 1;
+	fake->mem_mark->out_flag = 0;
+	fake->mem_mark->mark_idx = tmp->mem_mark->mark_idx;	
+	fake->mem_mark->slot_idx = tmp->mem_mark->slot_idx;
+	fake->mem_mark->mark_idx = tmp->mem_mark->mark_idx;	
+	fake->mem_mark->pts      = tmp->mem_mark->pts;
+	fake->mem_mark->mframe   = tmp->mem_mark->mframe;
+	fake->mem_mark->poc      = fake->poc;
+	fake->mem_mark->pic      = fake;
+#endif
+	mpp_log_f("p_Dpb->used_size=%d, p_Dpb->size=%d", currSlice->p_Dpb->used_size, currSlice->p_Dpb->size);
+	store_picture_in_dpb(currSlice->p_Vid->p_Dpb_layer[currSlice->layer_id], fake);
+	return fake;
+__FAILED:
+	if (fake) {
+		MPP_FREE(fake->mem_mark);
+		MPP_FREE(fake);
+	}
+	return NULL;
+}
+#endif
+static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
+{
+	RK_S32 i = 0;
+	RK_U32 dpb_error_flag = 0;
+	RK_S32 maxPicNum = 0, currPicNum = 0;
+	RK_S32 picNumLXNoWrap = 0, picNumLXPred = 0, picNumLX = 0;
+
+	RK_U32 *modification_of_pic_nums_idc = currSlice->modification_of_pic_nums_idc[cur_list];
+	RK_U32 *abs_diff_pic_num_minus1 = currSlice->abs_diff_pic_num_minus1[cur_list];
+	RK_U32 *long_term_pic_idx = currSlice->long_term_pic_idx[cur_list];
+	H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
+
+	if (currSlice->structure == FRAME) {
+		maxPicNum  = p_Vid->max_frame_num;
+		currPicNum = currSlice->frame_num;
+	} else {
+		maxPicNum  = 2 * p_Vid->max_frame_num;
+		currPicNum = 2 * currSlice->frame_num + 1;
+	}
+	picNumLXPred = currPicNum;
+	for (i = 0; modification_of_pic_nums_idc[i] != 3; i++) {
+		H264_StorePic_t *tmp = NULL;
+
+		if (modification_of_pic_nums_idc[i] > 3)
+			continue;
+		if (modification_of_pic_nums_idc[i] < 2) {
+			if (modification_of_pic_nums_idc[i] == 0) {
+				if( (picNumLXPred - (RK_S32)(abs_diff_pic_num_minus1[i] + 1)) < 0)
+					picNumLXNoWrap = picNumLXPred - (abs_diff_pic_num_minus1[i] + 1) + maxPicNum;
+				else
+					picNumLXNoWrap = picNumLXPred - (abs_diff_pic_num_minus1[i] + 1);
+			} else { // (modification_of_pic_nums_idc[i] == 1)
+				if(picNumLXPred + (abs_diff_pic_num_minus1[i] + 1) >=  (RK_U32)maxPicNum)
+					picNumLXNoWrap = picNumLXPred + (abs_diff_pic_num_minus1[i] + 1) - maxPicNum;
+				else
+					picNumLXNoWrap = picNumLXPred + (abs_diff_pic_num_minus1[i] + 1);
+			}
+			picNumLXPred = picNumLXNoWrap;
+			picNumLX = (picNumLXNoWrap > currPicNum) ? (picNumLXNoWrap - maxPicNum) : picNumLXNoWrap;
+			if (currSlice->field_pic_flag) {
+				picNumLX = (picNumLX - (picNumLX & 0x1)) >> 1;
+				picNumLX = picNumLX < 0 ? (picNumLX + (maxPicNum >> 1)) : picNumLX;
+			}
+			picNumLX = (picNumLX < 0) ? (picNumLX + maxPicNum) : picNumLX;
+#if 1
+			if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
+				MppFrame mframe = NULL;
+				mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+				if (mpp_frame_get_errinfo(mframe)) {				
+					dpb_error_flag |= 1;
+					H264D_LOG("[REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", p_Vid->p_Dec->p_Vid->g_framecnt, 
+						tmp->mem_mark->slot_idx, i, mpp_frame_get_errinfo(mframe));
+				}
+			} else { //!< missing short reference, and fake a reference
+					H264D_LOG("missing short ref, structure=%d, picNum %d", currSlice->structure, picNumLX);
+					if(NULL == tmp) {
+						ASSERT(0);					
+					} else {
+						//fake_short_term_pic(currSlice, picNumLX, tmp);
+					}
+					dpb_error_flag |= 0;
+				}	
+#endif
+		} else { //(modification_of_pic_nums_idc[i] == 2)	
+			tmp = get_long_term_pic(currSlice, long_term_pic_idx[i]);
+		}
+	}
+
+	return dpb_error_flag;
+}
+
+static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref)
+{	
+	RK_U32 i = 0;	
+	RK_U32 dpb_error_flag = 0;
+
+	for (i = 0; i < MAX_REF_SIZE; i++) {
+		if (pref[i].valid && (i < MAX_REF_SIZE)) {
+			RK_U32 slot_idx = 0;
+			MppFrame mframe = NULL;
+			slot_idx = p_Dec->dpb_info[pref->dpb_idx].slot_index;			
+			mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
+			dpb_error_flag |= mpp_frame_get_errinfo(mframe);
+			H264D_LOG("[REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", p_Dec->p_Vid->g_framecnt, 
+				p_Dec->dpb_info[i].slot_index, i, mpp_frame_get_errinfo(mframe));
+		}
+	}
+	return dpb_error_flag;
+}
+
+static void check_refer_lists(H264_SLICE_t *currSlice)
+{
+	H264_DecCtx_t *p_Dec = currSlice->p_Dec;	
+
+	p_Dec->errctx.dpb_err_flag = 0;
+	if (I_SLICE == currSlice->slice_type) {
+		p_Dec->errctx.dpb_err_flag = 0;
+		goto __RETURN;
+	}
+#if 1
+	if ((currSlice->slice_type % 5) != I_SLICE 
+		&& (currSlice->slice_type % 5) != SI_SLICE) {
+		if (currSlice->ref_pic_list_reordering_flag[LIST_0]){
+			p_Dec->errctx.dpb_err_flag |= check_ref_pic_list(currSlice, 0);
+
+		}
+		else {
+			p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0]);
+		}
+	}	
+	if (currSlice->slice_type % 5 == B_SLICE) {
+		if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
+			p_Dec->errctx.dpb_err_flag |= check_ref_pic_list(currSlice, 1);
+		} 
+		else {
+			p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1]);
+		}
+	}
+#endif
+
+__RETURN:
+	free_ref_pic_list_reordering_buffer(currSlice);
+	H264D_LOG("[REF_ERR] frame_no=%d, dpb_err_flag=%d", p_Dec->p_Vid->g_framecnt, p_Dec->errctx.dpb_err_flag);
+}
 MPP_RET init_picture(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = currSlice->p_Vid->p_Dec;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
 
+	p_Dec->errctx.i_slice_no += ((!currSlice->layer_id)	&& (I_SLICE == currSlice->slice_type)) ? 1 : 0;
+	if (!p_Dec->errctx.i_slice_no) {
+		H264D_LOG("Discard slice before I frame.");
+		p_Dec->errctx.err_flag |= 1;
+		ret = MPP_NOK;
+		goto __FAILED;
+	}
+	p_Dec->errctx.used_for_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
     FUN_CHECK(ret = alloc_decpic(currSlice));
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {
@@ -1214,6 +1459,8 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
     }
     prepare_init_dpb_info(currSlice);
     prepare_init_ref_info(currSlice);
+	check_refer_lists(currSlice);
+
     prepare_init_scanlist(currSlice);
     fill_picparams(currSlice->p_Vid, &p_Dec->dxva_ctx->pp);
     fill_scanlist(currSlice->p_Vid, &p_Dec->dxva_ctx->qm);

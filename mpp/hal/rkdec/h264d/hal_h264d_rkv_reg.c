@@ -387,6 +387,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
+	p_regs = (H264dRkvRegs_t *)p_hal->regs;
 #ifdef ANDROID
     RK_S32 wait_ret = -1;
     RK_S32 ret_len = 0, cur_deat = 0;
@@ -404,7 +405,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     p_hal->iDecodedNum++;
     (void)wait_ret;
 #endif
-    //mpp_log("------- register output ------ \n");
+	p_regs->slot_idx = task->dec.output;
     //RK_U32 i = 0;
     //RK_U32 *ptr = NULL;
     //ptr = (RK_U32 *)p_hal->regs;
@@ -412,14 +413,10 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     //{
     //  mpp_log("reg[%d]=%08x \n", i, ptr[i]);
     //}
-    p_regs = (H264dRkvRegs_t *)p_hal->regs;
-	H264D_LOG("[HAL_RET_ERR] error_info=%08x", *((RK_U32*)&p_regs->swreg1_int));
-
-	if (p_hal->init_cb.callBack	
-		&& (p_regs->swreg1_int.sw_dec_error_sta 
-		|| p_regs->swreg1_int.sw_dec_bus_sta)){
-			p_hal->init_cb.callBack(p_hal->init_cb.opaque, (void *)&task->dec.output);
-			H264D_LOG("xxxxxxxxxxxxxxxxxxxxxx");
+	p_regs->dpb_err_flag = task->dec.dpb_err_flag;
+	p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
+	if (p_hal->init_cb.callBack){
+			p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
 	}
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 

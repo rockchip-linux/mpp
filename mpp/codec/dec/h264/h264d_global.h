@@ -190,6 +190,7 @@ typedef enum {
     Mem_Malloc = 1,
     Mem_Clone = 2,
     Mem_UnPaired = 3,
+	Mem_Fake = 4,
     Mem_Max,
 } H264_Mem_type;
 
@@ -994,7 +995,7 @@ typedef struct h264d_video_ctx_t {
     
     RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
     RK_U32    iframe_cnt;
-
+	RK_S32    first_iframe_poc;
 	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
 } H264dVideoCtx_t;
 
@@ -1052,9 +1053,6 @@ typedef enum slice_state_type {
 typedef struct h264_err_ctx_t {
 	RK_U32    err_flag;
 	RK_U32    dpb_err_flag;
-	RK_U32    dpb_last_err_list0;
-	RK_U32    dpb_last_err_list1;
-	RK_U32    last_frame_dec_err;
 	RK_U32    used_for_ref_flag;
 	RK_U32    i_slice_no;
 	RK_U32    dpb_err[MAX_NUM_DPB_LAYERS];
