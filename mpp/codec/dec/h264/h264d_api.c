@@ -326,16 +326,12 @@ __FAILED:
 
 static MPP_RET free_dec_ctx(H264_DecCtx_t *p_Dec)
 {
-    RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     INP_CHECK(ret, NULL == p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Dec->mem) {
         free_dxva_ctx(&p_Dec->mem->dxva_ctx);
-        for (i = 0; i < MAX_MARK_SIZE; i++) {
-            mpp_frame_deinit(&p_Dec->dpb_mark[i].frame);
-        }
         MPP_FREE(p_Dec->mem);
     }
     //!< free mpp packet
@@ -371,8 +367,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
         p_Dec->dpb_mark[i].bot_used = 0;
         p_Dec->dpb_mark[i].mark_idx = i;
         p_Dec->dpb_mark[i].slot_idx = -1;
-        p_Dec->dpb_mark[i].pic      = NULL;
-        mpp_frame_init(&p_Dec->dpb_mark[i].frame);
+        p_Dec->dpb_mark[i].pic      = NULL;       
     }
     mpp_buf_slot_setup(p_Dec->frame_slots, MAX_MARK_SIZE);
     //!< malloc mpp packet

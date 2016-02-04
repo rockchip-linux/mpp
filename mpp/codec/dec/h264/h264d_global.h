@@ -199,7 +199,7 @@ typedef struct h264_dpb_mark_t {
     RK_U8    bot_used;
     RK_U8    out_flag;
     RK_U8    mark_idx;
-    MppFrame frame;
+    MppFrame mframe;
     RK_S32   slot_idx;
     RK_S32   poc;
     RK_S64   pts;
