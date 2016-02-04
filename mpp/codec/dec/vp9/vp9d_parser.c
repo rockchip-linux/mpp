@@ -205,8 +205,8 @@ MPP_RET vp9d_get_frame_stream(Vp9CodecContext *ctx, RK_U8 *buf, RK_S32 length)
     RK_U8 *data = NULL;
     RK_S32 size = 0;
 
-    data = mpp_packet_get_data(ctx->pkt);
-    size = mpp_packet_get_size(ctx->pkt);
+    data = (RK_U8 *)mpp_packet_get_data(ctx->pkt);
+    size = (RK_S32)mpp_packet_get_size(ctx->pkt);
 
     if (length > size) {
         mpp_free(data);
@@ -350,8 +350,9 @@ static RK_S32 vp9_frame_init(VP9Context *s)
 
 MPP_RET vp9d_parser_init(Vp9CodecContext *vp9_ctx, ParserCfg *init)
 {
+	VP9Context *s = (VP9Context *)vp9_ctx->priv_data;
     vp9_ctx->priv_data = (void *)mpp_calloc(VP9Context, 1);
-    VP9Context *s = vp9_ctx->priv_data;
+    
     if (!vp9_ctx->priv_data) {
         mpp_err("vp9 codec context malloc fail");
         return MPP_ERR_NOMEM;
@@ -635,7 +636,7 @@ static RK_S32 read_colorspace_details(Vp9CodecContext *ctx)
     return res;
 }
 
-static inline RK_S32 decode012(BitReadCtx_t *gb)
+static RK_S32 decode012(BitReadCtx_t *gb)
 {
     RK_S32 n;
     n = mpp_get_bit1(gb);
@@ -827,12 +828,12 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                 }
             }
 
-            for (i = 0; i < 3; i++) {
-
-                vp9d_dbg(VP9D_DBG_REF, "ref get width frame slot %p", s->refs[s->refidx[i]].f);
+            for (i = 0; i < 3; i++) {                
                 RK_U32 refw = mpp_frame_get_width(s->refs[s->refidx[i]].f);
                 RK_U32 refh = mpp_frame_get_height(s->refs[s->refidx[i]].f);
                 RK_S32 reffmt =  mpp_frame_get_fmt(s->refs[s->refidx[i]].f);
+
+				vp9d_dbg(VP9D_DBG_REF, "ref get width frame slot %p", s->refs[s->refidx[i]].f);
                 if (reffmt != fmt) {
                     /* mpp_err("Ref pixfmt (%s) did not match current frame (%s)",
                            av_get_pix_fmt_name(ref->format),
@@ -1289,7 +1290,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
         }
     }
 
-    return (data2 - data) + size2;
+    return (RK_S32)((data2 - data) + size2);
 }
 
 static void adapt_prob(RK_U8 *p, RK_U32 ct0, RK_U32 ct1,
@@ -1554,17 +1555,18 @@ static void adapt_probs(VP9Context *s)
 RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
 {
 
-    const RK_U8 *data;
-    RK_S32 size;
-    VP9Context *s = ctx->priv_data;
+    const RK_U8 *data = NULL;
+    RK_S32 size = 0;
+    VP9Context *s = (VP9Context *)ctx->priv_data;
     RK_S32 res, i, ref;
-    vp9d_dbg(VP9D_DBG_FUNCTION, "%s", __func__);
+
+    vp9d_dbg(VP9D_DBG_FUNCTION, "%s", __FUNCTION__);
     task->valid = -1;
 #ifdef dump
     dec_num++;
 #endif
-    data = mpp_packet_get_pos(ctx->pkt);
-    size = mpp_packet_get_length(ctx->pkt);
+    data = (const RK_U8 *)mpp_packet_get_pos(ctx->pkt);
+    size = (RK_S32)mpp_packet_get_length(ctx->pkt);
 
     s->pts = mpp_packet_get_pts(ctx->pkt);
 

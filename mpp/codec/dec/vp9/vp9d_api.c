@@ -167,7 +167,7 @@ MPP_RET vp9d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     dts = mpp_packet_get_dts(pkt);
     vp9_ctx->eos = mpp_packet_get_eos(pkt);
     buf = pos = mpp_packet_get_pos(pkt);
-    length = mpp_packet_get_length(pkt);
+    length = (RK_S32)mpp_packet_get_length(pkt);
 
     consumed = vp9d_split_frame(ps, &out_data, &out_size, buf, length);
     pos += consumed;

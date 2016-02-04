@@ -1,3 +1,4 @@
+#include <string.h>
 #include "vp9d_codec.h"
 #include "vp9d_parser.h"
 #include "vp9d_syntax.h"
