@@ -167,6 +167,7 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
     INP_CHECK(ret, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Cur) {
+		free_ref_pic_list_reordering_buffer(&p_Cur->slice);
         recycle_slice(&p_Cur->slice);
         for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
             MPP_FREE(p_Cur->listP[i]);
@@ -411,60 +412,7 @@ static void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
 	}
 }
 
-#if 0
-static MPP_RET set_frame_errinfo(H264_DecCtx_t *p_Dec, H264dErrCtx_t *err_ctx)
-{
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	MppFrame m_frame;
 
-	INP_CHECK(ret, !p_Dec && !err_ctx);
-	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);	
-	if (!err_ctx->err_flag) {
-		goto __RETURN;
-	}
-	if(p_Dec->last_frame_slot_idx < 0){
-		err_ctx->err_flag |= VPU_FRAME_ERR_UNKNOW;
-		mpp_frame_init(&m_frame);
-		mpp_slots_get_prop(p_Dec->frame_slots, SLOTS_FRAME_INFO, m_frame);
-		mpp_buf_slot_get_unused(p_Dec->frame_slots, &p_Dec->last_frame_slot_idx);
-		mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_FRAME, m_frame);
-		mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_QUEUE_USE);
-		mpp_buf_slot_enqueue(p_Dec->frame_slots,  p_Dec->last_frame_slot_idx, QUEUE_DISPLAY);
-		mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_HAL_OUTPUT);
-		mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_CODEC_USE);
-		mpp_frame_deinit(&m_frame);
-	}
-	mpp_buf_slot_get_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_FRAME_PTR, &m_frame);
-	if (m_frame) {
-		H264D_LOG("slot_idx=%d, errorifo=%d, pts=%lld", p_Dec->last_frame_slot_idx, err_ctx->err_flag, mpp_frame_get_pts(m_frame));
-		mpp_frame_set_errinfo(m_frame, err_ctx->err_flag);
-	}
-	//!< memset error context
-	memset(&p_Dec->p_Vid->err_ctx, 0, sizeof(H264dErrCtx_t));
-
-__RETURN:
-	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
-	return ret = MPP_OK;
-}
-
-static void get_pkt_timestamp(H264dCurStream_t *p_strm, H264dInputCtx_t *p_Inp, MppPacket pkt)
-{
-    H264dTimeStamp_t *p_last = NULL, *p_curr = NULL;
-
-    if (!p_Inp->in_length) {
-        p_last = &p_strm->pkt_ts[p_strm->pkt_ts_idx];
-        p_strm->pkt_ts_idx = (p_strm->pkt_ts_idx + 1) % MAX_PTS_NUM ;
-        p_curr = &p_strm->pkt_ts[p_strm->pkt_ts_idx];
-
-        p_curr->begin_off = p_last->end_off;
-        p_curr->end_off = p_curr->begin_off + mpp_packet_get_length(pkt);
-        p_curr->pts = mpp_packet_get_pts(pkt);
-        p_curr->dts = mpp_packet_get_dts(pkt);
-
-        //mpp_log("[init_pts] prepare_pts=%lld, g_framecnt=%d \n",p_curr->pts, p_Inp->p_Vid->g_framecnt);
-    }
-}
-#endif
 
 /*!
 ***********************************************************************
@@ -817,6 +765,9 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     in_task->valid = 0; // prepare end flag
     p_Dec->in_task = in_task;
 
+	p_Dec->errctx.err_flag = 0;
+	p_Dec->errctx.dpb_err_flag = 0;
+	p_Dec->errctx.used_for_ref_flag = 0;
     FUN_CHECK(ret = parse_loop(p_Dec));
 
     if (p_Dec->is_parser_end) {		

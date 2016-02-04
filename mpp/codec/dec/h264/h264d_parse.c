@@ -96,6 +96,7 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
         currSlice->listXsizeP[i] = 0;
         currSlice->listXsizeB[i] = 0;
     }
+	free_ref_pic_list_reordering_buffer(currSlice);
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 }
 
@@ -157,8 +158,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
     READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
-    READ_BITS(p_bitctx, 2, ((RK_S32 *)&cur_nal->nal_reference_idc), "nal_ref_idc");
-    READ_BITS(p_bitctx, 5, ((RK_S32 *)&cur_nal->nalu_type), "nalu_type");
+	{
+		RK_S32  *ptmp = NULL;
+		ptmp = (RK_S32 *)&cur_nal->nal_reference_idc;
+		READ_BITS(p_bitctx, 2, ptmp, "nal_ref_idc");
+		ptmp = (RK_S32 *)&cur_nal->nalu_type;
+		READ_BITS(p_bitctx, 5, ptmp, "nalu_type");
+	}
     //if (g_nalu_cnt0 == 2384) {
     //    g_nalu_cnt0 = g_nalu_cnt0;
     //}
@@ -882,7 +888,6 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
     p_curdata = p_Dec->p_Cur->strm.head_buf;
-	p_Dec->errctx.err_flag = 0;
     while (while_loop_flag) {
         switch (p_Dec->next_state) {
         case SliceSTATE_ResetSlice:
