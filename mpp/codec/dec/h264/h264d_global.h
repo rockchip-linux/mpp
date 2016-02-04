@@ -724,7 +724,7 @@ typedef struct h264_slice_t {
     RK_U32       num_ref_idx_active[2];          //!< number of available list references
     RK_S32       num_ref_idx_override_flag;
     RK_S32       ref_pic_list_reordering_flag[2];
-    RK_S32       *modification_of_pic_nums_idc[2];
+    RK_U32       *modification_of_pic_nums_idc[2];
     RK_U32       *abs_diff_pic_num_minus1[2];
     RK_U32       *long_term_pic_idx[2];
     RK_U32       *abs_diff_view_idx_minus1[2];

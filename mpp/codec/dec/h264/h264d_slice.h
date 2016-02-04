@@ -27,6 +27,8 @@
 extern "C" {
 #endif
 
+void     free_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice);
+MPP_RET  alloc_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice);
 void     recycle_slice(H264_SLICE_t *currSlice);
 MPP_RET  process_slice(H264_SLICE_t *currSlice);
 
