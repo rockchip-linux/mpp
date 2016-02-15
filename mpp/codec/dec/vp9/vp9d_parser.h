@@ -280,7 +280,7 @@ MPP_RET vp9d_parser_deinit(Vp9CodecContext *vp9_ctx);
 RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *in_task);
 
 void vp9_parser_update(Vp9CodecContext *ctx, void *count_info);
-
+MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx);
 RK_S32 vp9d_split_frame(SplitContext_t *ctx,
                         RK_U8 **out_data, RK_S32 *out_size,
                         RK_U8 *data, RK_S32 size);

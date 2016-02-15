@@ -224,7 +224,7 @@ static RK_U32 default_align_16(RK_U32 val)
     return MPP_ALIGN(val, 16);
 }
 
-static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
+static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 force_default_align)
 {
     RK_U32 width  = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
@@ -236,6 +236,10 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame)
     RK_U32 hal_ver_stride = (codec_ver_stride) ?
                             (impl->hal_ver_align(codec_ver_stride)) :
                             (impl->hal_ver_align(height));
+    if (force_default_align) {
+        hal_hor_stride = default_align_16(width);
+        hal_ver_stride =  default_align_16(height);
+    }
     RK_U32 size = hal_hor_stride * hal_ver_stride;
     size *= impl->numerator;
     size /= impl->denominator;
@@ -778,7 +782,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          *    if only width/height is change and buffer do not need to be reset
          *    only display info change is need
          */
-        generate_info_set(impl, frame);
+        generate_info_set(impl, frame, 0);
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
             impl->info_changed = 1;
 #ifdef ANDROID
@@ -886,7 +890,7 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     } break;
     case SLOTS_FRAME_INFO: {
         // do info change detection here
-        generate_info_set(impl, (MppFrame)val);
+        generate_info_set(impl, (MppFrame)val, 1);
         mpp_frame_copy(impl->info, impl->info_set);
 		{
 			MppFrameImpl *p = (MppFrameImpl *)impl->info;
