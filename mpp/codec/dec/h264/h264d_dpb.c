@@ -151,8 +151,7 @@ static RK_S32 get_pic_num_x(H264_StorePic_t *p, RK_S32 difference_of_pic_nums_mi
 
 static void unmark_for_reference(H264_DecCtx_t *p_Dec, H264_FrameStore_t* fs)
 {
-    struct h264_store_pic_t *cur_pic = NULL;
-
+	H264_StorePic_t *cur_pic = NULL;
     if (fs->is_used & 1) {
         if (fs->top_field) {
             fs->top_field->used_for_reference = 0;
@@ -174,7 +173,7 @@ static void unmark_for_reference(H264_DecCtx_t *p_Dec, H264_FrameStore_t* fs)
         cur_pic = fs->frame;
     }
     fs->is_reference = 0;
-
+	(void)cur_pic;
     (void)p_Dec;
 }
 
@@ -962,12 +961,12 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		if (!p_Vid->iframe_cnt) {
 			mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
 		} else {
-			if (1 == p_Vid->iframe_cnt) {
-				p_Vid->first_iframe_poc = p->poc;
-			}
-			if (p->poc < p_Vid->first_iframe_poc) {
-				mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-			}
+			//if (1 == p_Vid->iframe_cnt) {
+			//	p_Vid->first_iframe_poc = p->poc;
+			//}
+			//if (p->poc < p_Vid->first_iframe_poc) {
+			//	mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+			//}
 			//if (p->poc < p_Vid->last_outputpoc[p->layer_id]) {
 			//		mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
 			//}
