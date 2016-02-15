@@ -179,6 +179,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         task->status.curr_task_rdy = 0;
         task_dec->valid = 0;
         parser_reset(dec->parser);
+        mpp_hal_reset(dec->hal);
         dec->reset_flag = 0;
         if (task->wait.info_change) {
             mpp_log("reset add info change status");

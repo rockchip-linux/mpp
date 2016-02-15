@@ -350,9 +350,8 @@ static RK_S32 vp9_frame_init(VP9Context *s)
 
 MPP_RET vp9d_parser_init(Vp9CodecContext *vp9_ctx, ParserCfg *init)
 {
-	VP9Context *s = (VP9Context *)vp9_ctx->priv_data;
-    vp9_ctx->priv_data = (void *)mpp_calloc(VP9Context, 1);
-    
+    VP9Context *s = mpp_calloc(VP9Context, 1);
+    vp9_ctx->priv_data = (void*)s;
     if (!vp9_ctx->priv_data) {
         mpp_err("vp9 codec context malloc fail");
         return MPP_ERR_NOMEM;
@@ -1653,6 +1652,26 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
     }
     // vp9_parser_update(ctx,NULL);
     return 0;
+}
+
+MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx)
+{
+    RK_S32 i;
+    VP9Context *s = ctx->priv_data;
+    SplitContext_t *ps = (SplitContext_t *)ctx->priv_data2;
+    VP9ParseContext *pc = (VP9ParseContext *)ps->priv_data;
+    for (i = 0; i < 3; i++) {
+        if (s->frames[i].ref) {
+            vp9_unref_frame(s, &s->frames[i]);
+        }
+    }
+    for (i = 0; i < 8; i++) {
+        if (s->refs[i].ref) {
+            vp9_unref_frame(s, &s->refs[i]);
+        }
+    }
+    memset(pc, 0, sizeof(VP9ParseContext));
+    return MPP_OK;
 }
 static void inv_count_data(VP9Context *s)
 {

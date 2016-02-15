@@ -106,7 +106,8 @@ MPP_RET  vp9d_reset(void *ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    (void)ctx;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
+    vp9d_paser_reset(vp9_ctx);
     return ret = MPP_OK;
 }
 

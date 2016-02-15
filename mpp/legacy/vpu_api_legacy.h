@@ -20,7 +20,7 @@
 #include "vpu_api.h"
 #include "rk_mpi.h"
 #include <stdio.h>
-
+//#define DUMP_YUV
 #define OMX_BUFFERFLAG_EOS 0x00000001
 class VpuApi
 {

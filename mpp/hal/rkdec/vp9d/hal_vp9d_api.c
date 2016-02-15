@@ -81,7 +81,6 @@ typedef struct hal_vp9_context {
     MppBufferGroup group;
     MppBuffer probe_base;
     MppBuffer count_base;
-    MppBuffer inter_cmd_base;
     MppBuffer segid_cur_base;
     MppBuffer segid_last_base;
     void*     hw_regs;
@@ -91,12 +90,12 @@ typedef struct hal_vp9_context {
     vp9_dec_last_info_t ls_info;
 } hal_vp9_context_t;
 
-static RK_U32 vp9_ver_align_8(RK_U32 val)
+static RK_U32 vp9_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
 
-static RK_U32 vp9_ver_align_64(RK_U32 val)
+static RK_U32 vp9_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 128);
 }
@@ -121,8 +120,8 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->int_cb = cfg->hal_int_cb;
     reg_cxt->mv_base_addr = 0;
     reg_cxt->pre_mv_base_addr = 0;
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, vp9_ver_align_64);
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, vp9_ver_align_8);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, vp9_ver_align);
 
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit
@@ -172,11 +171,6 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
-    ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->inter_cmd_base, MAX_INTER_CMD_SIZE); //only used rlc mode,no used
-    if (MPP_OK != ret) {
-        mpp_err("vp9 inter_cmd_base base get buffer failed\n");
-        return ret;
-    }
     mpp_env_get_u32("vp9h_debug", &vp9h_debug, 0);
 
     reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
@@ -235,15 +229,6 @@ MPP_RET hal_vp9d_deinit(void *hal)
             return ret;
         }
     }
-
-    if (reg_cxt->inter_cmd_base) {
-        ret = mpp_buffer_put(reg_cxt->inter_cmd_base);
-        if (MPP_OK != ret) {
-            mpp_err("vp9 inter_cmd_base put buffer failed\n");
-            return ret;
-        }
-    }
-
     return ret = MPP_OK;
 }
 
@@ -568,8 +553,8 @@ void hal_vp9d_update_counts(void *hal, void *dxva)
 MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32   i;
-    RK_U8    bit_depth[3] = { 0 };
-    RK_U32   pic_h[3] = { 0 }, pic_w[3] = { 0 };
+    RK_U8    bit_depth = 0;
+    RK_U32   pic_h[3] = { 0 };
     RK_U32   ref_frame_width_y;
     RK_U32   ref_frame_height_y;
     RK_S32   stream_len = 0, aglin_offset = 0;
@@ -627,19 +612,13 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     //--- caculate the yuv_frame_size and mv_size
-    //bit_depth[0] = (pic_param->BitDepthMinus8Luma + 8) * 2 + 8;
-    bit_depth[0] = 8;
-    bit_depth[1] = bit_depth[0];
-    bit_depth[2] = bit_depth[0];
-    pic_h[0] = (pic_param->height + 63) / 64 * 64; //p_cm->height;
-    pic_h[1] = ((pic_param->height + 1) / 2 * 2 + 63) / 64 * 64 / 2; //(p_cm->height + 1) / 2;
+    bit_depth = pic_param->BitDepthMinus8Luma + 8;
+    pic_h[0] = vp9_ver_align(pic_param->height); //p_cm->height;
+    pic_h[1] = vp9_ver_align(pic_param->height) / 2; //(p_cm->height + 1) / 2;
     pic_h[2] = pic_h[1];
-    pic_w[0] = (pic_param->width + 63) / 64 * 64; //p_cm->width;
-    pic_w[1] = ((pic_param->width  + 1) / 2 * 2 + 63) / 64 * 64 / 2; //(p_cm->width + 1) / 2;
-    pic_w[2] = pic_w[1];
 
-    sw_y_hor_virstride = ((pic_w[0] * bit_depth[0] + 127) & (~127)) / 128;
-    sw_uv_hor_virstride = ((2 * pic_w[1] * bit_depth[1] + 127) & (~127)) / 128;
+    sw_y_hor_virstride = vp9_hor_align(pic_param->width * bit_depth) / 128;
+    sw_uv_hor_virstride = vp9_hor_align(pic_param->width * bit_depth) / 128;
     sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
 
     sw_uv_virstride = pic_h[1] * sw_uv_hor_virstride;
@@ -688,12 +667,10 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         ref_idx = pic_param->frame_refs[i].Index7Bits;
         ref_frame_width_y = pic_param->ref_frame_coded_width[ref_idx];
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
-        pic_w[0] = (ref_frame_width_y + 63) / 64 * 64;
-        pic_h[0] = (ref_frame_height_y + 63) / 64 * 64;
-        pic_h[1] = ((ref_frame_height_y + 1) / 2 * 2 + 63) / 64 * 64 / 2;
-        bit_depth[0] = 8;
-        y_hor_virstride = ((pic_w[0] * bit_depth[0] + 127) & (~127)) / 128 ;
-        uv_hor_virstride = ((pic_w[0] * bit_depth[0] + 127) & (~127)) / 128 ;
+        pic_h[0] = vp9_ver_align(ref_frame_height_y);
+        pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
+        y_hor_virstride = vp9_hor_align(ref_frame_width_y * bit_depth) / 128 ;
+        uv_hor_virstride = vp9_hor_align(ref_frame_width_y * bit_depth) / 128 ;
         y_virstride = y_hor_virstride * pic_h[0];
         uv_virstride = uv_hor_virstride * pic_h[1];
         yuv_virstride = y_virstride + uv_virstride;
@@ -738,7 +715,12 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
             /*0 map to 11*/
             /*1 map to 12*/
             /*2 map to 13*/
-            reg_ref_base[i] = mpp_buffer_get_fd(framebuf);
+            if(framebuf != NULL){
+                reg_ref_base[i] = mpp_buffer_get_fd(framebuf);
+            }else{
+                mpp_log("ref buff address is no valid used out as base slot index 0x%x",pic_param->ref_frame_map[ref_idx].Index7Bits);
+                reg_ref_base[i] = vp9_hw_regs->swreg7_decout_base; //set
+            }
 #endif
         } else {
             reg_ref_base[i] = vp9_hw_regs->swreg7_decout_base; //set
@@ -919,8 +901,11 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 //extern "C"
 MPP_RET hal_vp9d_reset(void *hal)
 {
-    (void)hal;
-
+    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
+    mpp_log("hal_vp9d_reset in");
+    memset(&reg_cxt->ls_info, 0, sizeof(reg_cxt->ls_info));
+    reg_cxt->mv_base_addr = 0;
+    reg_cxt->pre_mv_base_addr = 0;
     return MPP_OK;
 }
 /*!
