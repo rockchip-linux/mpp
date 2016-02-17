@@ -440,8 +440,8 @@ MPP_RET rkv_h264d_reset(void *hal)
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-    memset(&p_hal->regs, 0, sizeof(H264dRkvRegs_t));
-    rkv_reset_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
+	memset(p_hal->regs, 0, sizeof(H264dRkvRegs_t));
+	rkv_reset_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
