@@ -213,8 +213,8 @@ MPP_RET vp9d_get_frame_stream(Vp9CodecContext *ctx, RK_U8 *buf, RK_S32 length)
         mpp_packet_deinit(&ctx->pkt);
         buff_size = length + 10 * 1024;
         data = mpp_malloc(RK_U8, buff_size);
-        mpp_packet_set_size(ctx->pkt, buff_size);
         mpp_packet_init(&ctx->pkt, (void *)data, length);
+        mpp_packet_set_size(ctx->pkt, buff_size);
     }
 
     memcpy(data, buf, length);
