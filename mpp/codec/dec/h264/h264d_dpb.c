@@ -959,7 +959,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 
 		p_Vid->iframe_cnt += (p->slice_type == I_SLICE) ? 1 : 0;
 		if (!p_Vid->iframe_cnt) {
-			mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+			//mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
 		} else {
 			//if (1 == p_Vid->iframe_cnt) {
 			//	p_Vid->first_iframe_poc = p->poc;
