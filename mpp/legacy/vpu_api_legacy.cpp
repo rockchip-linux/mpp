@@ -21,6 +21,7 @@
 #include "vpu_api_legacy.h"
 #include "mpp_mem.h"
 #include "string.h"
+#include "mpp_common.h"
 
 VpuApi::VpuApi()
 {
@@ -69,8 +70,6 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
     vpug.CodecType  = ctx->codecType;
     vpug.ImgWidth   = ctx->width;
     vpug.ImgHeight  = ctx->height;
-    vpug.ImgHStride = (ctx->codecType == HEVC) : (ctx->width aling 256); else
-    vpug.ImgVStride = ctx->height;
     control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
@@ -248,6 +247,20 @@ RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
     return 0;
 }
 
+static RK_U32 hevc_ver_align_8(RK_U32 val)
+{
+    return MPP_ALIGN(val, 8);
+}
+
+static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
+
+static RK_U32 default_align_16(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
 RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log_f("in\n");
@@ -264,7 +277,15 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
+        VPU_GENERIC *p = (VPU_GENERIC *)param;
         mpicmd = MPP_CODEC_SET_FRAME_INFO;
+        if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
+            p->ImgHorStride = hevc_ver_align_256_odd(p->ImgWidth);
+            p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
+        } else {
+            p->ImgHorStride = default_align_16(p->ImgWidth);
+            p->ImgVerStride = default_align_16(p->ImgHeight);
+        }
         break;
     }
     case VPU_API_SET_INFO_CHANGE: {
