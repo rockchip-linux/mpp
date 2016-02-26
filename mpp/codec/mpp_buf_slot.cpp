@@ -238,7 +238,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                             (impl->hal_ver_align(height));
     if (force_default_align) {
         hal_hor_stride = default_align_16(width);
-        hal_ver_stride =  default_align_16(height);
+        hal_ver_stride = default_align_16(height);
     }
     RK_U32 size = hal_hor_stride * hal_ver_stride;
     size *= impl->numerator;
