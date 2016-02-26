@@ -69,6 +69,8 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
     vpug.CodecType  = ctx->codecType;
     vpug.ImgWidth   = ctx->width;
     vpug.ImgHeight  = ctx->height;
+    vpug.ImgHStride = (ctx->codecType == HEVC) : (ctx->width aling 256); else
+    vpug.ImgVStride = ctx->height;
     control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
@@ -148,7 +150,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         //mpp_err("vframe->ErrorInfo = %08x \n", vframe->ErrorInfo);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
-        //mpp_err("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d",aDecOut->timeUs, 
+        //mpp_err("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d",aDecOut->timeUs,
 		//	mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
