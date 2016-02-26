@@ -66,6 +66,8 @@ typedef struct {
     RK_U32   CodecType;
     RK_U32   ImgWidth;
     RK_U32   ImgHeight;
+    RK_U32   ImgHorStride;
+    RK_U32   ImgVerStride;
 } VPU_GENERIC;
 
 typedef struct VPUMem {
