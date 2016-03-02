@@ -686,7 +686,7 @@ void *mpp_dec_hal_thread(void *data)
                 hal->lock(THREAD_QUE_DISPLAY);
                 while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
                     MppFrame frame = NULL;
-                    mpp_log("put slot index to dispaly %d",index);
+                    //mpp_log("put slot index to dispaly %d",index);
                     mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
                     if (!dec->reset_flag) {
                         mpp_put_frame(mpp, frame);
