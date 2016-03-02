@@ -378,8 +378,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
     }
 
-    if (task_dec->flags.eos && task_dec->valid == 0) {
+   // if (task_dec->flags.eos && task_dec->valid == 0)
+   {
+
         RK_S32 index;
+        mpp->mThreadHal->lock(THREAD_QUE_DISPLAY);
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
             MppFrame frame = NULL;
             //RK_U32 display;
@@ -392,6 +395,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             }
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
+        mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
     }
 
     if (!task->status.task_parsed_rdy) {
@@ -677,17 +681,21 @@ void *mpp_dec_hal_thread(void *data)
             if (task_dec->flags.eos) {
                 mpp_dec_flush(dec);
             }
-
-            RK_S32 index;
-            while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-                MppFrame frame = NULL;
-                mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                if (!dec->reset_flag) {
-                    mpp_put_frame(mpp, frame);
-                } else {
-                    mpp_frame_deinit(&frame);
+            {
+                RK_S32 index;
+                hal->lock(THREAD_QUE_DISPLAY);
+                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+                    MppFrame frame = NULL;
+                    mpp_log("put slot index to dispaly %d",index);
+                    mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+                    if (!dec->reset_flag) {
+                        mpp_put_frame(mpp, frame);
+                    } else {
+                        mpp_frame_deinit(&frame);
+                    }
+                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
                 }
-                mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+                hal->unlock(THREAD_QUE_DISPLAY);
             }
         }
     }
