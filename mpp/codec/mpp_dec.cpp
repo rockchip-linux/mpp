@@ -228,6 +228,28 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
     list->unlock();
 }
 
+static void mpp_dec_push_display(Mpp *mpp)
+{
+    RK_S32 index;
+    MppDec *dec = mpp->mDec;
+    MppBufSlots frame_slots = dec->frame_slots;
+    mpp->mThreadHal->lock(THREAD_QUE_DISPLAY);
+    while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+        MppFrame frame = NULL;
+        mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
+        if (!dec->reset_flag) {
+            mpp_put_frame(mpp, frame);
+            //mpp_log("discard=%d \n",0);
+        } else {
+            mpp_frame_deinit(&frame);
+            //mpp_log("discard=%d \n",1);
+        }
+        mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+    }
+    mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
+}
+
+
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
     MppDec *dec = mpp->mDec;
@@ -293,22 +315,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-    //if (task_dec->flags.eos && task_dec->valid == 0)
+    //  if (task_dec->flags.eos && task_dec->valid == 0)
     {
-        RK_S32 index;
-        while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-
-            MppFrame frame = NULL;
-            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-            if (!dec->reset_flag) {
-                mpp_put_frame(mpp, frame);
-                //mpp_log("discard=%d \n",0);
-            } else {
-                mpp_frame_deinit(&frame);
-                //mpp_log("discard=%d \n",1);
-            }
-            mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-        }
+        /*may be found eos in prepare step &
+         no any vaild tast gen so try push all frame
+         avoid eos no notify to display
+         */
+        mpp_dec_push_display(mpp);
     }
 
     task->status.curr_task_rdy = task_dec->valid;
@@ -378,24 +391,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
     }
 
-   // if (task_dec->flags.eos && task_dec->valid == 0)
-   {
-
-        RK_S32 index;
-        mpp->mThreadHal->lock(THREAD_QUE_DISPLAY);
-        while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-            MppFrame frame = NULL;
-            //RK_U32 display;
-            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-            //display = mpp_frame_get_display(frame);
-            if (!dec->reset_flag) {
-                mpp_put_frame(mpp, frame);
-            } else {
-                mpp_frame_deinit(&frame);
-            }
-            mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-        }
-        mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
+    // if (task_dec->flags.eos && task_dec->valid == 0)
+    {
+        /*may be found eos in parser step &
+          no any vaild tast gen so try push all frame
+          avoid eos no notify to display
+          */
+        mpp_dec_push_display(mpp);
     }
 
     if (!task->status.task_parsed_rdy) {
@@ -681,22 +683,7 @@ void *mpp_dec_hal_thread(void *data)
             if (task_dec->flags.eos) {
                 mpp_dec_flush(dec);
             }
-            {
-                RK_S32 index;
-                hal->lock(THREAD_QUE_DISPLAY);
-                while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-                    MppFrame frame = NULL;
-                    //mpp_log("put slot index to dispaly %d",index);
-                    mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-                    if (!dec->reset_flag) {
-                        mpp_put_frame(mpp, frame);
-                    } else {
-                        mpp_frame_deinit(&frame);
-                    }
-                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
-                }
-                hal->unlock(THREAD_QUE_DISPLAY);
-            }
+            mpp_dec_push_display(mpp);
         }
     }
 
