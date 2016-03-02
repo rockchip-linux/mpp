@@ -179,6 +179,7 @@ private:
 typedef enum MppThreadSignal_e {
     THREAD_WORK,
     THREAD_RESET,
+    THREAD_QUE_DISPLAY,
     THREAD_SIGNAL_BUTT,
 } MppThreadSignal;
 
