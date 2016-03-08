@@ -233,6 +233,73 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     }
 }
 
+static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PPS_t *pps)
+{
+	RK_U32 ret = 0;
+
+	ret |= (sps->seq_parameter_set_id > 63);
+	ret |= (sps->separate_colour_plane_flag == 1);
+	ret |= (sps->chroma_format_idc == 3);
+	ret |= (sps->bit_depth_luma_minus8 > 2);
+	ret |= (sps->bit_depth_chroma_minus8 > 2);
+	ret |= (sps->log2_max_frame_num_minus4 > 12);
+	ret |= (sps->pic_order_cnt_type > 2);
+	ret |= (sps->log2_max_pic_order_cnt_lsb_minus4 > 12);
+	ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
+	ret |= (sps->max_num_ref_frames > 16);
+	ret |= (sps->pic_width_in_mbs_minus1 > 4095);
+	ret |= (sps->pic_height_in_map_units_minus1 > 2303);
+	ret |= (sps->pic_height_in_map_units_minus1 > 2303);
+	if (ret) {
+		H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
+		goto __FAILED;
+	}
+	if (subset_sps) //!< MVC
+	{
+		ret |= (subset_sps->num_views_minus1 != 1);
+		//        ret |= (subset_sps->num_anchor_refs_l0[0] != 1);
+		if (subset_sps->num_anchor_refs_l0[0] > 0)
+			ret |= (subset_sps->anchor_ref_l0[0][0] != subset_sps->view_id[0]);
+		//    ret |= (subset_sps->num_anchor_refs_l1[0] != 1);
+		if (subset_sps->num_anchor_refs_l1[0] > 0)
+			ret |= (subset_sps->anchor_ref_l1[0][0] != subset_sps->view_id[1]);
+
+		//    ret |= (subset_sps->num_non_anchor_refs_l0[0] != 1);
+		if (subset_sps->num_non_anchor_refs_l0[0] > 0)
+			ret |= (subset_sps->non_anchor_ref_l0[0][0] != subset_sps->view_id[0]);
+		//	ret |= (subset_sps->num_non_anchor_refs_l1[0] != 1);
+		if (subset_sps->num_non_anchor_refs_l1[0] > 0)
+			ret |= (subset_sps->non_anchor_ref_l1[0][0] != subset_sps->view_id[1]);
+
+		ret |= (subset_sps->num_level_values_signalled_minus1 != 0);
+		//ret |= (subset_sps->num_applicable_ops_minus1[0] > 1);
+		ret |= (subset_sps->applicable_op_num_target_views_minus1[0][0] > 1);
+		ret |= (subset_sps->applicable_op_num_views_minus1[0][0] > 1);
+		if (ret) {
+			H264D_ERR("subsps has error, sps_id=%d", sps->seq_parameter_set_id);
+			goto __FAILED;
+		}
+	}
+	//!< check PPS
+	ret |= (pps->pic_parameter_set_id > 255);
+	ret |= (pps->seq_parameter_set_id > 63);
+	ret |= (pps->num_slice_groups_minus1 > 0);
+	ret |= (pps->num_ref_idx_l0_default_active_minus1 > 31);
+	ret |= (pps->num_ref_idx_l1_default_active_minus1 > 31);
+	ret |= (pps->pic_init_qp_minus26 > 25 || pps->pic_init_qp_minus26 < -(26 + 6 * (RK_S32)sps->bit_depth_luma_minus8));
+	ret |= (pps->pic_init_qs_minus26 > 25 || pps->pic_init_qs_minus26 < -26);
+	ret |= (pps->chroma_qp_index_offset > 12 || pps->chroma_qp_index_offset < -12);
+	ret |= (pps->redundant_pic_cnt_present_flag == 1);
+	if (ret) {
+		H264D_ERR("pps has error, sps_id=%d, pps_id", sps->seq_parameter_set_id, pps->pic_parameter_set_id);
+		goto __FAILED;
+	}
+	return MPP_OK;
+__FAILED:
+	return MPP_NOK;
+}
+
+
 static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -241,8 +308,10 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     H264_subSPS_t *cur_subsps = NULL;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     //!< use parameter set
-    cur_pps = &p_Vid->ppsSet[currSlice->pic_parameter_set_id];
-    ASSERT(cur_pps != NULL);
+    cur_pps = &p_Vid->ppsSet[currSlice->pic_parameter_set_id];	
+	cur_pps = (cur_pps && cur_pps->Valid) ? cur_pps : NULL;
+	VAL_CHECK(ret, cur_pps != NULL);
+
     if (currSlice->mvcExt.valid) {
         cur_sps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id].sps;
         cur_subsps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
@@ -264,10 +333,21 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
         cur_sps = &p_Vid->spsSet[cur_pps->seq_parameter_set_id];
         cur_subsps = NULL;
     }
-    ASSERT(cur_sps->separate_colour_plane_flag == 0);
-	H264D_LOG("currSlice->pps_id=%d, cur_sps->sps_id=%d",  currSlice->pic_parameter_set_id, cur_sps->seq_parameter_set_id);
+
+	if (p_Vid->active_mvc_sps_flag) { // layer_id == 1
+		cur_subsps = (cur_subsps && cur_subsps->Valid) ? cur_subsps : NULL;
+		VAL_CHECK(ret, cur_subsps != NULL);
+		cur_sps = &cur_subsps->sps;		
+	} else { //!< layer_id == 0
+		cur_subsps = NULL;
+		cur_sps = (cur_sps && cur_sps->Valid) ? cur_sps : NULL;
+		VAL_CHECK(ret, cur_sps != NULL);		
+	}
+	VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
+
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
-    FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));
+    FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));	
+	
     //!< Set SPS to the subset SPS parameters
     if (currSlice->svc_extension_flag == 0) {
         p_Vid->active_subsps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
@@ -278,7 +358,6 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     p_Vid->type = currSlice->slice_type;
     return MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
