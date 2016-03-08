@@ -396,19 +396,19 @@ static void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
 
 	for(i = 0; i < MAX_MARK_SIZE; i++) {
 		p_mark = &p_Dec->dpb_mark[i];
-		if (p_mark->out_flag) {	
-			//MppFrame mframe = NULL;
-			//mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-			//if (mframe)	{
+		if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {	
+			MppFrame mframe = NULL;
+			mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+			if (mframe)	{
 				H264D_LOG("p_mark->slot_idx=%d", p_mark->slot_idx);	
 				mpp_buf_slot_set_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
 				mpp_buf_slot_enqueue(p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
 				mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
 			//	mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
 			//	p_Dec->last_frame_slot_idx = p_mark->slot_idx;
-			//}
-			p_mark->out_flag = 0;
+			}			
 		}
+		p_mark->out_flag = 0;
 	}
 }
 
@@ -612,6 +612,7 @@ MPP_RET  h264d_flush(void *decoder)
     }  
 	flush_dpb_buf_slot(p_Dec);
 	//mpp_buf_slot_get_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_FRAME_PTR, &m_frame);
+	p_Dec->p_Inp->task_eos = 1;
 	mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
 __RETURN:
 	H264D_LOG("[FLUSH] -------- flush end------, task_eos=%d, last_slot_idx=%d", p_Dec->p_Inp->task_eos, p_Dec->last_frame_slot_idx);
