@@ -296,6 +296,10 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_USE_FAST_MODE;
         break;
     }
+	case VPU_API_DEC_GET_STREAM_COUNT: {
+		mpicmd = MPP_DEC_GET_STREAM_COUNT;
+		break;
+	}
     default: {
         break;
     }
