@@ -1130,6 +1130,10 @@ static MPP_RET adaptive_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t 
             p_Vid->last_has_mmco_5 = 1;
             break;
         case 6:
+			//!< conceal max_long_term_frame_idx_plus1
+			if (!tmp_drpm->max_long_term_frame_idx_plus1) {
+				tmp_drpm->max_long_term_frame_idx_plus1 = p_Dpb->num_ref_frames;
+			}
             mm_mark_current_picture_long_term(p_Dpb, p, tmp_drpm->long_term_frame_idx);
             check_num_ref(p_Dpb);
             break;
