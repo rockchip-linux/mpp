@@ -20,8 +20,8 @@
 #include "vpu_api.h"
 #include "rk_mpi.h"
 #include <stdio.h>
-//#define DUMP_YUV
-#define OMX_BUFFERFLAG_EOS 0x00000001
+#define OMX_BUFFERFLAG_EOS    0x00000001
+
 class VpuApi
 {
 public:
@@ -48,9 +48,8 @@ private:
     MppApi *mpi;
     RK_U32 frame_count;
     RK_U32 set_eos;
-#ifdef DUMP_YUV
+	RK_U32 vpu_api_debug;
     FILE *fp;
-#endif
 };
 
 #endif /*_VPU_API_H_*/

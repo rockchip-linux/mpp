@@ -67,35 +67,19 @@ static void interpret_user_data_registered_itu_t_t35_info()
 static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size, H264_SEI_t *sei_msg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264D_LOG("size=%d", size);
+
+    H264D_DBG(H264D_DBG_SEI, "[SEI info] user data info, size=%d", size);
     ASSERT(size >= 16);
-#if 0
-    {
-        RK_U32 offset = 0;
-        RK_U8 payload_byte;
-        mpp_log("User data unregistered SEI message\n");
-        mpp_log("uuid_iso_11578 = 0x");
-        for (offset = 0; offset < 16; offset++) {
-            mpp_log("%02x", payload[offset]);
-        }
-        while (offset < size) {
-            payload_byte = payload[offset];
-            offset++;
-            mpp_log("Unreg data payload_byte = %02x\n", payload_byte);
-        }
-    }
-#endif
 
     sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
     if (sei_msg->user_data_DivX_flag) {
         H264D_ERR("DivX is not supported. \n");
-        sei_msg->p_Dec->errctx.err_flag |= VPU_FRAME_ERR_UNSUPPORT;
+        sei_msg->p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNSUPPORT;
         ret = MPP_NOK;
         goto __FAILED;
     }
 
-	(void)size;
-    return ret = MPP_OK;
+	return ret = MPP_OK;
 __FAILED:
     return ret;
 }
@@ -263,7 +247,7 @@ static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_S
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t  *p_Vid = cur_slice->p_Vid;
 
-    H264D_LOG("[SEI_TYPE] type=%d \n", sei_msg->type);
+    H264D_DBG(H264D_DBG_SEI, "[SEI info] type=%d \n", sei_msg->type);
     switch (sei_msg->type) {
     case  SEI_BUFFERING_PERIOD:
         FUN_CHECK(ret = interpret_buffering_period_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));

@@ -962,7 +962,7 @@ static RK_U32 check_dpb_buffer_is_valid(H264dHalCtx_t *p_hal, RK_U32 dpb_idx)
     (void)p_hal;
     (void)dpb_idx;
 
-    return RET_TURE;
+    return 1;
 }
 
 

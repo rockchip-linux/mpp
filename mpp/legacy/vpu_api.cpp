@@ -246,8 +246,10 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
-    RK_U32 value;
+    RK_U32 value = 0;
+	RK_U32 use_mpp_mode = 0;
     mpp_env_get_u32("chg_orig", &value, 0);
+	mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
 #ifdef ANDROID
     value = value || (!!access("/dev/rkvdec", F_OK));
 
@@ -270,7 +272,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         if (s->videoCoding == OMX_RK_VIDEO_CodingHEVC
             || s->videoCoding == OMX_RK_VIDEO_CodingVP9
             || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
-                s->codecType == CODEC_DECODER && (s->width > 1920 || s->height > 1088))) {
+                s->codecType == CODEC_DECODER && ((s->width > 1920) || (s->height > 1088) || use_mpp_mode))) {
             free(s);
             s = NULL;
             s = mpp_malloc(VpuCodecContext, 1);

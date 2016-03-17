@@ -208,7 +208,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     ASSERT(cur_sps->pic_order_cnt_type < 3);
 
     cur_sps->log2_max_pic_order_cnt_lsb_minus4 = 0;
-    cur_sps->delta_pic_order_always_zero_flag = RET_FALSE;
+    cur_sps->delta_pic_order_always_zero_flag = 0;
     if (0 == cur_sps->pic_order_cnt_type) {
         READ_UE(p_bitctx, &cur_sps->log2_max_pic_order_cnt_lsb_minus4, "log2_max_pic_order_cnt_lsb_minus4");
         ASSERT(cur_sps->log2_max_pic_order_cnt_lsb_minus4 < 13);
@@ -324,7 +324,6 @@ static MPP_RET sps_mvc_extension(BitReadCtx_t *p_bitctx, H264_subSPS_t *subset_s
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
@@ -438,7 +437,6 @@ MPP_RET process_sps(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
@@ -544,7 +542,6 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         p_Vid->active_subsps = subset_sps;
         p_Vid->active_sps_id[0] = 0;
         p_Vid->active_sps_id[1] = subset_sps->sps.seq_parameter_set_id;
-		H264D_LOG("subset_sps->sps=%p, subset_sps->sps.seq_parameter_set_id=%d", subset_sps->sps, subset_sps->sps.seq_parameter_set_id);
 		VAL_CHECK(ret, subset_sps->sps.seq_parameter_set_id >= 0);
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 1)) {
             FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1], 2));
@@ -552,13 +549,11 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
             update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
             //!< init frame slots, store frame buffer size
             p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
-            //mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + p_Vid->dpb_size[1] + 3);
         }
 		VAL_CHECK(ret, p_Vid->dpb_size[1] > 0);
     } else { //!< layer_id == 0
         p_Vid->active_sps = sps;
         p_Vid->active_subsps = NULL;		
-		H264D_LOG("sps->seq_parameter_set_id=%d", sps->seq_parameter_set_id);
 		VAL_CHECK(ret, sps->seq_parameter_set_id >= 0);
         p_Vid->active_sps_id[0] = sps->seq_parameter_set_id;
         p_Vid->active_sps_id[1] = 0;
@@ -570,11 +565,11 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
             update_last_video_pars(p_Vid, p_Vid->active_sps, 0);
             //!< init frame slots, store frame buffer size
             p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
-            //mpp_buf_slot_setup(p_Vid->p_Dec->frame_slots, p_Vid->dpb_size[0] + 3);
         }
 		VAL_CHECK(ret, p_Vid->dpb_size[0] > 0);
     }
-	H264D_LOG("p_Vid->dpb_size[0]=%d, p_Vid->dpb_size[1]=%d", p_Vid->dpb_size[0], p_Vid->dpb_size[1]);
+	H264D_DBG(H264D_DBG_DPB_INFO, "[DPB size] dpb_size[0]=%d, mvc_flag=%d, dpb_size[1]=%d", 
+		p_Vid->dpb_size[0], p_Vid->active_mvc_sps_flag, p_Vid->dpb_size[1]);
     update_video_pars(p_Vid, p_Vid->active_sps);
 __RETURN:
     return ret = MPP_OK;

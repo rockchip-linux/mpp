@@ -42,7 +42,6 @@ static MPP_RET realloc_slice_list(H264dDxvaCtx_t *dxva_ctx)
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
