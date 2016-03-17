@@ -99,6 +99,10 @@ static RK_U32 ion_debug = 0;
 #define ION_CLINET                  (0x00000004)
 #define ION_IOCTL                   (0x00000008)
 
+#define ION_DETECT_IOMMU_DISABLE    (0x0)   /* use ION_HEAP_TYPE_DMA */
+#define ION_DETECT_IOMMU_ENABLE     (0x1)   /* use ION_HEAP_TYPE_SYSTEM */
+#define ION_DETECT_NO_DTS           (0x2)   /* use ION_HEAP_TYPE_CARVEOUT */
+
 #define ion_dbg(flag, fmt, ...) _mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
 
 static int ion_ioctl(int fd, int req, void *arg)
@@ -219,6 +223,7 @@ RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
 
 RK_S32 check_sysfs_iommu()
 {
+    RK_S32 ret = ION_DETECT_IOMMU_DISABLE;
     char path[256];
 
     snprintf(path, sizeof(path), "/proc/device-tree");
@@ -231,16 +236,18 @@ RK_S32 check_sysfs_iommu()
                 fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
                 mpp_log("vpu_service iommu_enabled %d\n", (iommu_enabled > 0));
                 fclose(iommu_fp);
-                return (iommu_enabled) ? (1) : (0);
+                if (iommu_enabled)
+                    ret = ION_DETECT_IOMMU_ENABLE;
             }
         } else {
             mpp_err("can not find dts for iommu_enabled\n");
         }
     } else {
         mpp_err("can not find dts for vpu_service\n");
+        ret = ION_DETECT_NO_DTS;
     }
 
-    return 0;
+    return ret;
 }
 
 typedef struct {
@@ -288,17 +295,33 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
          * if there is vpu_service then check the iommu_enable status
          */
         if (ion_heap_id < 0) {
-            int use_vmalloc_heap = check_sysfs_iommu();
+            int detect_result = check_sysfs_iommu();
+            const char *heap_name = NULL;
 
-            if (use_vmalloc_heap) {
-                ion_heap_mask   = (1 << ION_HEAP_TYPE_SYSTEM);
-                ion_heap_id     = ION_HEAP_TYPE_SYSTEM;
-            } else {
+            switch (detect_result) {
+            case ION_DETECT_IOMMU_DISABLE : {
                 ion_heap_mask   = (1 << ION_HEAP_TYPE_DMA);
                 ion_heap_id     = ION_HEAP_TYPE_DMA;
+                heap_name = "ION_HEAP_TYPE_DMA";
+            } break;
+            case ION_DETECT_IOMMU_ENABLE : {
+                ion_heap_mask   = (1 << ION_HEAP_TYPE_SYSTEM);
+                ion_heap_id     = ION_HEAP_TYPE_SYSTEM;
+                heap_name = "ION_HEAP_TYPE_SYSTEM";
+            } break;
+            case ION_DETECT_NO_DTS : {
+                ion_heap_mask   = (1 << ION_HEAP_TYPE_CARVEOUT);
+                ion_heap_id     = ION_HEAP_TYPE_CARVEOUT;
+                heap_name = "ION_HEAP_TYPE_CARVEOUT";
+            } break;
+            default : {
+                mpp_err("invalid detect result %d\n", detect_result);
+                ion_heap_mask   = (1 << ION_HEAP_TYPE_DMA);
+                ion_heap_id     = ION_HEAP_TYPE_DMA;
+                heap_name = "ION_HEAP_TYPE_DMA";
+            } break;
             }
-            mpp_log("using ion heap %s\n", (use_vmalloc_heap) ?
-                ("ION_HEAP_TYPE_SYSTEM") : ("ION_HEAP_TYPE_DMA"));
+            mpp_log("using ion heap %s\n", heap_name);
         }
         p->alignment    = alignment;
         p->ion_device   = fd;
