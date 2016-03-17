@@ -225,9 +225,7 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
         currSlice->inter_view_flag = 1;
         currSlice->anchor_pic_flag = currSlice->idr_flag;
     }
-	//currSlice->layer_id = get_voidx(p_Vid->subspsSet, &p_Vid->active_subsps, currSlice->view_id);
     currSlice->layer_id = currSlice->view_id;
-	H264D_LOG("currSlice->layer_id=%d", currSlice->layer_id);
     if (currSlice->layer_id >= 0) { // if not found, layer_id == -1
         currSlice->p_Dpb = p_Vid->p_Dpb_layer[currSlice->layer_id];
     }
@@ -344,6 +342,9 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
 		VAL_CHECK(ret, cur_sps != NULL);		
 	}
 	VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
+
+	H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d", currSlice->layer_id, 
+		cur_sps->seq_parameter_set_id, cur_pps->pic_parameter_set_id);
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
     FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));	

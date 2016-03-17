@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "vpu_api.h"
 
 #include "h264d_log.h"
 #include "h264d_init.h"
@@ -191,7 +192,6 @@ static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
     return ret = MPP_OK;
 
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
@@ -237,7 +237,6 @@ static MPP_RET store_proc_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
@@ -312,7 +311,6 @@ static H264_StorePic_t* clone_storable_picture(H264dVideoCtx_t *p_Vid, H264_Stor
     return p_stored_pic;
 __FAILED:
     (void)ret;
-    ASSERT(0);
     return NULL;
 }
 
@@ -396,42 +394,37 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
         cur_mark = &p_mark[idx];
         cur_mark->out_flag = 1;
-        if (p_Vid->g_framecnt == 255) {
-            idx = idx;
-        }
 		{
 			MppFrame mframe = NULL;
 			mpp_frame_init(&mframe);
-        if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+			if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
 				mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
-        } else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+			}
+			else if ((YUV420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
 				mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP_10BIT);
-            H264D_LOG(" alloc_picture ----- MPP_FMT_YUV420SP_10BIT ------ \n");
-        } else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+			}
+			else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
 				mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP);
-        } else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
+			}
+			else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
 				mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
-        }
-        hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
-        ver_stride = p_Vid->height;
-        hor_stride = MPP_ALIGN(hor_stride, 256) | 256;
-        ver_stride = MPP_ALIGN(ver_stride, 16);
+			}
+			hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
+			ver_stride = p_Vid->height;
 			mpp_frame_set_hor_stride(mframe, hor_stride);  // before crop
 			mpp_frame_set_ver_stride(mframe, ver_stride);
-			mpp_frame_set_width(mframe,  p_Vid->width_after_crop);  // after crop
+			mpp_frame_set_width(mframe, p_Vid->width_after_crop);  // after crop
 			mpp_frame_set_height(mframe, p_Vid->height_after_crop);
-        //H264D_LOG("hor_stride=%d, ver_stride=%d, width=%d, height=%d, crop_width=%d, crop_height =%d \n", hor_stride,
-        //          ver_stride, p_Vid->width, p_Vid->height, p_Vid->width_after_crop, p_Vid->height_after_crop);
 			mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
 			mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
 			mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
 			mpp_frame_deinit(&mframe);
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
-		}		
+		}
 		{
 			MppBuffer mbuffer = NULL;
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_BUFFER, &mbuffer);
-			H264D_LOG("[Malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
+			H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
 				p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, layer_id, p_Vid->p_Inp->in_pts);
 		}
 
@@ -461,21 +454,21 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 
     dec_pic = alloc_storable_picture(p_Vid, currSlice->structure);
     MEM_CHECK(ret, dec_pic);
-    currSlice->toppoc = p_Vid->last_toppoc[currSlice->layer_id];
+    currSlice->toppoc    = p_Vid->last_toppoc[currSlice->layer_id];
     currSlice->bottompoc = p_Vid->last_bottompoc[currSlice->layer_id];
-    currSlice->framepoc = p_Vid->last_framepoc[currSlice->layer_id];
-    currSlice->ThisPOC = p_Vid->last_thispoc[currSlice->layer_id];
+    currSlice->framepoc  = p_Vid->last_framepoc[currSlice->layer_id];
+    currSlice->ThisPOC   = p_Vid->last_thispoc[currSlice->layer_id];
     FUN_CHECK(ret = decode_poc(p_Vid, currSlice));  //!< calculate POC
 
-    dec_pic->top_poc = currSlice->toppoc;
+    dec_pic->top_poc    = currSlice->toppoc;
     dec_pic->bottom_poc = currSlice->bottompoc;
-    dec_pic->frame_poc = currSlice->framepoc;
-    dec_pic->ThisPOC = currSlice->ThisPOC;
+    dec_pic->frame_poc  = currSlice->framepoc;
+    dec_pic->ThisPOC    = currSlice->ThisPOC;
 
-    p_Vid->last_toppoc[currSlice->layer_id] = currSlice->toppoc;
+    p_Vid->last_toppoc[currSlice->layer_id]    = currSlice->toppoc;
     p_Vid->last_bottompoc[currSlice->layer_id] = currSlice->bottompoc;
-    p_Vid->last_framepoc[currSlice->layer_id] = currSlice->framepoc;
-    p_Vid->last_thispoc[currSlice->layer_id] = currSlice->ThisPOC;
+    p_Vid->last_framepoc[currSlice->layer_id]  = currSlice->framepoc;
+    p_Vid->last_thispoc[currSlice->layer_id]   = currSlice->ThisPOC;
 
     if (currSlice->structure == FRAME) {
         if (currSlice->mb_aff_frame_flag) {
@@ -487,7 +480,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
         dec_pic->iCodingType = FIELD_CODING;
     }
     dec_pic->layer_id = currSlice->layer_id;
-    dec_pic->view_id = currSlice->view_id;
+    dec_pic->view_id  = currSlice->view_id;
     dec_pic->inter_view_flag = currSlice->inter_view_flag;
     dec_pic->anchor_pic_flag = currSlice->anchor_pic_flag;
     if (dec_pic->layer_id == 1) {
@@ -537,8 +530,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->height = p_Vid->height;
     dec_pic->width_after_crop = p_Vid->width_after_crop;
     dec_pic->height_after_crop = p_Vid->height_after_crop;
-
-
+	
     dec_pic->combine_flag = get_filed_dpb_combine_flag(p_Dpb, dec_pic);
     dec_pic->mem_malloc_type = Mem_Malloc;
     dpb_mark_malloc(p_Vid, dec_pic); // malloc dpb_memory
@@ -546,18 +538,9 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     p_Vid->last_pic_structure = dec_pic->structure;
     p_Vid->dec_pic = dec_pic;
 
-    //mpp_log_f("[DEC_OUT]line=%d, func=alloc_decpic, cur_slot_idx=%d", __LINE__, dec_pic->mem_mark->slot_idx);
-    //!< set mpp_frame width && height && pts && get slot_frame
-    //cur_mark = dec_pic->mem_mark;
-    //p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
-    //mpp_frame_set_width(cur_mark->frame, p_Vid->width);
-    //mpp_frame_set_height(cur_mark->frame, p_Vid->height);
-    //mpp_frame_set_pts(cur_mark->frame, p_Vid->p_Inp->pts);
-
-    return ret = MPP_OK;
+	return ret = MPP_OK;
 __FAILED:
     MPP_FREE(dec_pic);
-    ASSERT(0);
 
     return ret;
 }
@@ -828,7 +811,6 @@ static MPP_RET append_interview_list(H264_DpbBuf_t *p_Dpb,
     }
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     return ret;
 }
 
@@ -994,7 +976,6 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     MPP_FREE(fs_list0);
     MPP_FREE(fs_listlt);
     MPP_FREE(currSlice->fs_listinterview0);
@@ -1175,7 +1156,6 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    ASSERT(0);
     MPP_FREE(fs_list0);
     MPP_FREE(fs_list1);
     MPP_FREE(fs_listlt);
@@ -1355,16 +1335,16 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 				mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 				if (mpp_frame_get_errinfo(mframe)) {				
 					dpb_error_flag |= 1;
-					H264D_LOG("[REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", p_Vid->p_Dec->p_Vid->g_framecnt, 
-						tmp->mem_mark->slot_idx, i, mpp_frame_get_errinfo(mframe));
+					H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", 
+						p_Vid->p_Dec->p_Vid->g_framecnt, tmp->mem_mark->slot_idx, i, mpp_frame_get_errinfo(mframe));
 				}
 			} else { //!< missing short reference, and fake a reference
-					H264D_LOG("missing short ref, structure=%d, picNum %d", currSlice->structure, picNumLX);
-					if(NULL == tmp) {
-						ASSERT(0);					
-					} else {
-						//fake_short_term_pic(currSlice, picNumLX, tmp);
-					}
+					H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d",
+						currSlice->structure, picNumLX);
+					ASSERT(tmp != NULL);
+					if (tmp) {
+						//fake_short_term_pic(currSlice, picNumLX, tmp);		
+					}								
 					dpb_error_flag |= 0;
 				}	
 #endif
@@ -1388,8 +1368,8 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref)
 			slot_idx = p_Dec->dpb_info[pref->dpb_idx].slot_index;			
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
 			dpb_error_flag |= mpp_frame_get_errinfo(mframe);
-			H264D_LOG("[REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", p_Dec->p_Vid->g_framecnt, 
-				p_Dec->dpb_info[i].slot_index, i, mpp_frame_get_errinfo(mframe));
+			H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d", 
+				p_Dec->p_Vid->g_framecnt, p_Dec->dpb_info[i].slot_index, i, mpp_frame_get_errinfo(mframe));
 		}
 	}
 	return dpb_error_flag;
@@ -1427,7 +1407,6 @@ static void check_refer_lists(H264_SLICE_t *currSlice)
 
 __RETURN:
 	free_ref_pic_list_reordering_buffer(currSlice);
-	H264D_LOG("[REF_ERR] frame_no=%d, dpb_err_flag=%d", p_Dec->p_Vid->g_framecnt, p_Dec->errctx.dpb_err_flag);
 }
 MPP_RET init_picture(H264_SLICE_t *currSlice)
 {
@@ -1437,8 +1416,8 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
 
 	p_Dec->errctx.i_slice_no += ((!currSlice->layer_id)	&& (I_SLICE == currSlice->slice_type)) ? 1 : 0;
 	if (!p_Dec->errctx.i_slice_no) {
-		H264D_LOG("Discard slice before I frame.");
-		p_Dec->errctx.err_flag |= 1;
+		H264D_WARNNING("[Discard] Discard slice before I Slice.");
+		p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
 		ret = MPP_NOK;
 		goto __FAILED;
 	}

@@ -27,6 +27,7 @@
 #include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
+#include "mpp_env.h"
 
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
@@ -231,7 +232,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     }
 	//!< callback function to parser module
 	p_hal->init_cb = cfg->hal_int_cb;
-
+	mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
     //!< init logctx
     FUN_CHECK(ret = logctx_init(&p_hal->logctx, p_hal->logctxbuf));
     //!< VPUClientInit

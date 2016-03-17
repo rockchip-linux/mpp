@@ -21,7 +21,6 @@
 
 #include "mpp_hal.h"
 
-
 typedef struct h264d_rkv_regs_t {
     struct {
         RK_U32    minor_ver : 8;
@@ -217,6 +216,17 @@ typedef struct h264d_rkv_regs_t {
     RK_U32 compare_len;
     RK_U32 reverse[100];
 } H264dRkvRegs_t;
+
+
+/* Number registers for the decoder */
+#define DEC_RKV_REGISTERS          78
+
+typedef struct h264d_rkv_err_dump_t
+{
+	RK_U32 in_regs[DEC_RKV_REGISTERS];
+	RK_U32 *out_regs;
+
+}H264dRkvErrDump_t;
 
 
 

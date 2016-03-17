@@ -26,9 +26,6 @@
 #include "hal_h264d_fifo.h"
 
 
-/* Number registers for the decoder */
-#define DEC_RKV_REGISTERS          78
-
 #define RKV_CABAC_TAB_SIZE        (3680 + 128)        /* bytes */
 #define RKV_SPSPPS_SIZE           (256*32 + 128)      /* bytes */
 #define RKV_RPS_SIZE              (128 + 128)         /* bytes */

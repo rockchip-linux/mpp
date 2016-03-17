@@ -22,25 +22,35 @@
 #include "mpp_mem.h"
 #include "string.h"
 #include "mpp_common.h"
+#include "mpp_env.h"
+
+#define VPU_API_DBG_OUTPUT    0x00000001
+#define VPU_API_DBG_DUMP_YUV  0x00000002
 
 VpuApi::VpuApi()
 {
     mpp_log_f("in\n");
     mpp_ctx = NULL;
     mpi = NULL;
-#ifdef DUMP_YUV
-    fp = fopen("data/hevcdump.yuv", "wb");
-#endif
+
     mpp_create(&mpp_ctx, &mpi);
     frame_count  = 0;
     set_eos = 0;
+	vpu_api_debug = 0;
+	fp = NULL;
+	mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
+	if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
+		fp = fopen("data/hevcdump.yuv", "wb");
+	}
     mpp_log_f("ok\n");
-
 }
 
 VpuApi::~VpuApi()
 {
     mpp_log_f("in\n");
+	if (fp) {
+		fclose(fp);
+	}	
     mpp_destroy(mpp_ctx);
     mpp_log_f("ok\n");
 }
@@ -146,11 +156,12 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
-        //mpp_err("vframe->ErrorInfo = %08x \n", vframe->ErrorInfo);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
-        //mpp_err("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d",aDecOut->timeUs,
-		//	mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+		if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
+			mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d", aDecOut->timeUs,
+				mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+		}
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
@@ -185,12 +196,11 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->FrameBusAddr[1] = fd;
             vframe->vpumem.vir_addr = (RK_U32*)ptr;
             frame_count++;
-#ifdef DUMP_YUV
-            if (frame_count > 350) {
+			//!< Dump yuv
+            if (fp && (frame_count > 350)) {
                 fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
                 fflush(fp);
             }
-#endif
             vframe->vpumem.phy_addr = fd;
             vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
             vframe->vpumem.offset = (RK_U32*)buf;

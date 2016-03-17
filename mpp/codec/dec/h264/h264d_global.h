@@ -841,7 +841,7 @@ typedef struct h264d_input_ctx_t {
     RK_S64 in_pts;
     RK_S64 in_dts;
     RK_U8  has_get_eos;
-	RK_U8  mvc_disable;
+	RK_U32 mvc_disable;
     //!< output data
     RK_U8  *out_buf;
     RK_U32 out_length;
@@ -1051,7 +1051,7 @@ typedef enum slice_state_type {
 } SLICE_STATUS;
 
 typedef struct h264_err_ctx_t {
-	RK_U32    err_flag;
+	RK_U32    parse_err_flag;
 	RK_U32    dpb_err_flag;
 	RK_U32    used_for_ref_flag;
 	RK_U32    i_slice_no;
