@@ -682,7 +682,7 @@ static void gen_pic_list_from_frame_list(RK_S32 currStructure, H264_FrameStore_t
     RK_S32 top_idx = 0;
     RK_S32 bot_idx = 0;
 
-    RK_U32(*is_ref)(H264_StorePic_t *s) = (long_term) ? is_long_ref : is_short_ref;
+    RK_U32(*is_ref)(H264_StorePic_t * s) = (long_term) ? is_long_ref : is_short_ref;
 
     if (currStructure == TOP_FIELD) {
         while ((top_idx < list_idx) || (bot_idx < list_idx)) {

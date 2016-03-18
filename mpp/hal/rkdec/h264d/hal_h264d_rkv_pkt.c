@@ -46,7 +46,8 @@
 
 #define  FPGA_TEST   0
 
-const enum {
+const enum
+{
     H264ScalingList4x4Length = 16,
     H264ScalingList8x8Length = 64,
 } ScalingListLength;
