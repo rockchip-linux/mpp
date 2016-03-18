@@ -238,12 +238,12 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
     RK_S32 fifo_len = 304;
     RK_U64 *probe_packet = NULL;
     BitputCtx_t bp;
-    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t*)hal;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)dxva;
     RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
     vp9_prob partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
     vp9_prob uv_mode_prob[INTRA_MODES][INTRA_MODES - 1];
 #ifdef ANDROID
+    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t*)hal;
     void *probe_ptr = mpp_buffer_get_ptr(reg_cxt->probe_base);
     if (NULL == probe_ptr) {
 
@@ -251,6 +251,8 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         return MPP_ERR_NOMEM;
     }
     memset(probe_ptr, 0, 304 * 8);
+#else
+    (void)hal;
 #endif
 
     if (intraFlag) {
@@ -888,6 +890,8 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
         reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, (void*)&pic_param->counts);
     }
     usleep(3000);
+#else
+    (void)hal;
 #endif
     (void)task;
     return ret;

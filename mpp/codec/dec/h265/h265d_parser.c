@@ -1189,30 +1189,30 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
     s->miss_ref_flag = 0;
     ret = mpp_hevc_frame_rps(s);
     if (s->miss_ref_flag) {
-        if(!IS_IRAP(s)){
+        if (!IS_IRAP(s)) {
             mpp_frame_set_errinfo(s->frame, VPU_FRAME_ERR_UNKNOW);
             s->ref->error_flag = 1;
-        }else{
+        } else {
             /*when found current I frame have miss refer
               may be stream have error so first set current frame
               no output and flush other frame output from dpb
               then set current frame can as output
             */
             HEVCFrame *frame = NULL;
-            RK_U32 i =0;
+            RK_U32 i = 0;
             for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
                 frame = &s->DPB[i];
-                if(frame->poc == s->poc ) {
+                if (frame->poc == s->poc ) {
                     frame->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
                     break;
-                }else{
-                   frame = NULL;
+                } else {
+                    frame = NULL;
                 }
             }
             do {
-               ret = mpp_hevc_output_frame(s->h265dctx, 1);
+                ret = mpp_hevc_output_frame(s->h265dctx, 1);
             } while (ret);
-            if (frame){
+            if (frame) {
                 frame->flags |= HEVC_FRAME_FLAG_OUTPUT;
             }
         }

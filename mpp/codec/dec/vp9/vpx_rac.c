@@ -18,11 +18,12 @@
 
 #include "vpx_rac.h"
 
-#define DEF( name, bytes, read, write)                             \
- static unsigned int bytestream_get_ ## name(const uint8_t **b){\
-    (*b) += bytes;\
-    return read(*b - bytes);\
-}\
+#define DEF( name, bytes, read, write) \
+    static unsigned int bytestream_get_ ## name(const uint8_t **b) \
+    { \
+        (*b) += bytes; \
+        return read(*b - bytes); \
+    } \
 
 DEF(be24, 3, MPP_RB24, MPP_WB24)
 DEF(be16, 2, MPP_RB16, MPP_WB16)
