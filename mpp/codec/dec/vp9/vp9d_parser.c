@@ -378,7 +378,7 @@ MPP_RET vp9d_parser_deinit(Vp9CodecContext *vp9_ctx)
     VP9Context *s = vp9_ctx->priv_data;
     vp9_frame_free(s);
     mpp_free(s->intra_pred_data[0]);
-    mpp_free(&s->c_b);
+    mpp_free(s->c_b);
     s->c_b_size = 0;
     MPP_FREE(vp9_ctx->priv_data);
     return MPP_OK;
@@ -1696,7 +1696,7 @@ static void inv_count_data(VP9Context *s)
         j++;
     }
     if (!(s->keyframe || s->intraonly)) {
-        memcpy(&count_y_mode, s->counts.y_mode, sizeof(s->counts.y_mode));
+        memcpy(count_y_mode, s->counts.y_mode, sizeof(s->counts.y_mode));
         for (i = 0; i < 4; i++) {
             RK_U32 value = 0;
             for (j = 0; j < 10; j++) {
@@ -1718,7 +1718,7 @@ static void inv_count_data(VP9Context *s)
         }
 
 
-        memcpy(&count_uv, s->counts.uv_mode, sizeof(s->counts.uv_mode));
+        memcpy(count_uv, s->counts.uv_mode, sizeof(s->counts.uv_mode));
 
         /*change uv_mode to hardware need style*/
         /*

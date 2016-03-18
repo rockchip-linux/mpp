@@ -104,7 +104,7 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
     pic->log2_tile_cols = s->tiling.log2_tile_cols;
     pic->log2_tile_rows = s->tiling.log2_tile_rows;
     pic->first_partition_size = s->first_partition_size;
-    memcpy(&pic->mvscale, &s->mvscale, sizeof(s->mvscale));
+    memcpy(pic->mvscale, s->mvscale, sizeof(s->mvscale));
     memcpy(&ctx->pic_params.prob, &s->prob, sizeof(ctx->pic_params.prob));
     {
         RK_U8 *uv_ptr = NULL;

@@ -522,8 +522,8 @@ void hal_vp9d_update_counts(void *hal, void *dxva)
     memcpy(&s->counts, counts_ptr, com_len);
     ref_type = (!(s->frame_type == 0 || s->intra_only)) ? 2 : 1;
     if (ref_type == 1) {
-        memset(&s->counts.eob, 0, sizeof(s->counts.eob));
-        memset(&s->counts.coef, 0, sizeof(s->counts.coef));
+        memset(s->counts.eob, 0, sizeof(s->counts.eob));
+        memset(s->counts.coef, 0, sizeof(s->counts.coef));
     }
     for (i = 0; i < ref_type; i++) {
         for (j = 0; j < 4; j++) {
