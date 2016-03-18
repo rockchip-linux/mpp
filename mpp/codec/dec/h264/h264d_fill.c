@@ -149,7 +149,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->UsedForReferenceFlags = 0;
     pp->NonExistingFrameFlags = 0;
     for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (dpb_info[i].picbuf) {
+        if (dpb_info[i].refpic) {
             fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].slot_index, dpb_info[i].is_long_term);
             pp->FieldOrderCntList[i][0] = dpb_info[i].TOP_POC;
             pp->FieldOrderCntList[i][1] = dpb_info[i].BOT_POC;
@@ -327,7 +327,7 @@ MPP_RET fill_slice_syntax(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
         dpb_idx = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
         dpb_valid = currSlice->p_Dec->refpic_info_p[i].valid;
-        //dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
+        //dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].refpic ? 1 : 0);
         if (dpb_valid) {
             bottom_flag = currSlice->p_Dec->refpic_info_p[i].bottom_flag;
             fill_picture_entry(&p_long->RefPicList[0][i], dpb_idx, bottom_flag);
@@ -340,7 +340,7 @@ MPP_RET fill_slice_syntax(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
         for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[list + 1]); i++) {
             dpb_idx = currSlice->p_Dec->refpic_info_b[list][i].dpb_idx;
             dpb_valid = currSlice->p_Dec->refpic_info_b[list][i].valid;
-            //dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].picbuf ? 1 : 0);
+            //dpb_valid = (currSlice->p_Dec->dpb_info[dpb_idx].refpic ? 1 : 0);
             if (dpb_valid) {
                 bottom_flag = currSlice->p_Dec->refpic_info_b[list][i].bottom_flag;
                 fill_picture_entry(&p_long->RefPicList[list + 1][i], dpb_idx, bottom_flag);

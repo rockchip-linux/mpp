@@ -715,10 +715,10 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
             /*0 map to 11*/
             /*1 map to 12*/
             /*2 map to 13*/
-            if(framebuf != NULL){
+            if (framebuf != NULL) {
                 reg_ref_base[i] = mpp_buffer_get_fd(framebuf);
-            }else{
-                mpp_log("ref buff address is no valid used out as base slot index 0x%x",pic_param->ref_frame_map[ref_idx].Index7Bits);
+            } else {
+                mpp_log("ref buff address is no valid used out as base slot index 0x%x", pic_param->ref_frame_map[ref_idx].Index7Bits);
                 reg_ref_base[i] = vp9_hw_regs->swreg7_decout_base; //set
             }
 #endif
@@ -799,11 +799,11 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
 //extern "C"
 MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 {
-	RK_U32 i = 0;
+    RK_U32 i = 0;
     MPP_RET ret = MPP_OK;
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
     VP9_REGS *hw_regs = ( VP9_REGS *)reg_cxt->hw_regs;
-    RK_U8 *p = (RK_U8*)reg_cxt->hw_regs;    
+    RK_U8 *p = (RK_U8*)reg_cxt->hw_regs;
 
     if (hw_regs == NULL) {
         mpp_err("hal_vp9d_start hw_regs is NULL");

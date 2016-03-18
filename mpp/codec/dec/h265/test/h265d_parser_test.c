@@ -535,7 +535,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
             if (frame) {
                 mpp_frame_deinit(&frame);
-				frame = NULL;
+                frame = NULL;
             }
             mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
         }

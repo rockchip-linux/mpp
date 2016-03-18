@@ -2036,9 +2036,9 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     RK_U32 i = 0;
-    if(s->first_nal_type >= 16 && s->first_nal_type <= 23){
-       mpp_log("IS_IRAP frame found error");
-       s->max_ra = INT_MAX;
+    if (s->first_nal_type >= 16 && s->first_nal_type <= 23) {
+        mpp_log("IS_IRAP frame found error");
+        s->max_ra = INT_MAX;
     }
     // s->miss_ref_flag = 1;
     mpp_buf_slot_get_prop(s->slots, s->ref->slot_index, SLOT_FRAME, &s->ref->frame);

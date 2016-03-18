@@ -208,32 +208,31 @@ static RK_U32 rkv_len_align(RK_U32 val)
 }
 
 static void rkv_h264d_hal_dump(H264dHalCtx_t *p_hal, RK_U32 dump_type)
-{	
-	if (rkv_h264d_hal_debug & H264D_DBG_ERR_DUMP) {
-		RK_U32 i = 0;
-		RK_U32 *p_hal_regs = NULL;
-		H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-		switch (dump_type)
-		{
-		case H264D_DBG_GEN_REGS:
-			p_hal_regs = (RK_U32 *)p_dump->in_regs;
-			mpp_log("------- register input ------ \n");
-			for (i = 0; i < DEC_RKV_REGISTERS; i++) {
-				mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
-			}
-			break;
-		case H264D_DBG_RET_REGS:
-			p_hal_regs = (RK_U32 *)p_dump->out_regs;
-			mpp_log("------- register output ------ \n");
-			for (i = 0; i < DEC_RKV_REGISTERS; i++) {
-				mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
-			}
-			break;
+{
+    if (rkv_h264d_hal_debug & H264D_DBG_ERR_DUMP) {
+        RK_U32 i = 0;
+        RK_U32 *p_hal_regs = NULL;
+        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
+        switch (dump_type) {
+        case H264D_DBG_GEN_REGS:
+            p_hal_regs = (RK_U32 *)p_dump->in_regs;
+            mpp_log("------- register input ------ \n");
+            for (i = 0; i < DEC_RKV_REGISTERS; i++) {
+                mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
+            }
+            break;
+        case H264D_DBG_RET_REGS:
+            p_hal_regs = (RK_U32 *)p_dump->out_regs;
+            mpp_log("------- register output ------ \n");
+            for (i = 0; i < DEC_RKV_REGISTERS; i++) {
+                mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
+            }
+            break;
 
-		default:
-			break;
-		}
-	}
+        default:
+            break;
+        }
+    }
 }
 
 /*!
@@ -253,7 +252,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     p_hal->iDecodedNum = 0;
     MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
-	MEM_CHECK(ret, p_hal->dump = mpp_malloc_size(void, sizeof(H264dRkvErrDump_t)));
+    MEM_CHECK(ret, p_hal->dump = mpp_malloc_size(void, sizeof(H264dRkvErrDump_t)));
     //!< malloc cabac+scanlis + packets + poc_buf
     cabac_size = RKV_CABAC_TAB_SIZE + RKV_SPSPPS_SIZE + RKV_RPS_SIZE + RKV_SCALING_LIST_SIZE + RKV_ERROR_INFO_SIZE;
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
@@ -291,7 +290,7 @@ MPP_RET rkv_h264d_deinit(void *hal)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     rkv_free_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
-	MPP_FREE(p_hal->dump);
+    MPP_FREE(p_hal->dump);
     MPP_FREE(p_hal->pkts);
     if (p_hal->cabac_buf) {
         FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
@@ -376,15 +375,15 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[67] = 0x000000ff;   // disable fpga reset
     p_regs[44] = 0xffffffff;   // 0xffff_ffff, debug enable
     p_regs[77] = 0xffffffff;   // 0xffff_dfff, debug enable
-	p_regs[1] = 0x00000021;   // run hardware
-	//!< dump input register
-	{
-		H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-		memcpy(p_dump->in_regs, p_regs, DEC_RKV_REGISTERS);
-		if (rkv_h264d_hal_debug & H264D_DBG_GEN_REGS) {
-			rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
-		}
-	}
+    p_regs[1] = 0x00000021;   // run hardware
+    //!< dump input register
+    {
+        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
+        memcpy(p_dump->in_regs, p_regs, DEC_RKV_REGISTERS);
+        if (rkv_h264d_hal_debug & H264D_DBG_GEN_REGS) {
+            rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
+        }
+    }
 #ifdef ANDROID
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
@@ -406,46 +405,46 @@ __RETURN:
 //extern "C"
 MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	H264dRkvRegs_t *p_regs = NULL;
-	H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dRkvRegs_t *p_regs = NULL;
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-	INP_CHECK(ret, NULL == p_hal);
-	FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+    INP_CHECK(ret, NULL == p_hal);
+    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-	p_regs = (H264dRkvRegs_t *)p_hal->regs;
+    p_regs = (H264dRkvRegs_t *)p_hal->regs;
 #ifdef ANDROID
-	RK_S32 wait_ret = -1;
-	RK_S32 ret_len = 0, cur_deat = 0;
-	VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-	static struct timeval tv1, tv2;
-	gettimeofday(&tv1, NULL);
-	wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
-	gettimeofday(&tv2, NULL);
-	cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
-	p_hal->total_time += cur_deat;
-	p_hal->iDecodedNum++;
-	(void)wait_ret;
+    RK_S32 wait_ret = -1;
+    RK_S32 ret_len = 0, cur_deat = 0;
+    VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
+    static struct timeval tv1, tv2;
+    gettimeofday(&tv1, NULL);
+    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
+    gettimeofday(&tv2, NULL);
+    cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+    p_hal->total_time += cur_deat;
+    p_hal->iDecodedNum++;
+    (void)wait_ret;
 #endif
-	//!< dump registers
-	{
-		H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-		p_dump->out_regs = (RK_U32 *)p_regs;
-		if (rkv_h264d_hal_debug & H264D_DBG_RET_REGS) {
-			rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
-		}
-		if (p_regs->swreg1_int.sw_dec_error_sta) {
-			rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
-			rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
-		}
-	}
-	p_regs->slot_idx = task->dec.output;
-	p_regs->dpb_err_flag = task->dec.dpb_err_flag;
-	p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
-	if (p_hal->init_cb.callBack
-		&& (p_regs->swreg1_int.sw_dec_error_sta || p_regs->dpb_err_flag)) {
-			p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
-	}
+    //!< dump registers
+    {
+        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
+        p_dump->out_regs = (RK_U32 *)p_regs;
+        if (rkv_h264d_hal_debug & H264D_DBG_RET_REGS) {
+            rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
+        }
+        if (p_regs->swreg1_int.sw_dec_error_sta) {
+            rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
+            rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
+        }
+    }
+    p_regs->slot_idx = task->dec.output;
+    p_regs->dpb_err_flag = task->dec.dpb_err_flag;
+    p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
+    if (p_hal->init_cb.callBack
+        && (p_regs->swreg1_int.sw_dec_error_sta || p_regs->dpb_err_flag)) {
+        p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
+    }
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
@@ -468,8 +467,8 @@ MPP_RET rkv_h264d_reset(void *hal)
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-	memset(p_hal->regs, 0, sizeof(H264dRkvRegs_t));
-	rkv_reset_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
+    memset(p_hal->regs, 0, sizeof(H264dRkvRegs_t));
+    rkv_reset_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:

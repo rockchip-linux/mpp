@@ -137,7 +137,6 @@ static void rkv_write_pps_to_fifo(H264dHalCtx_t *p_hal, FifoCtx_t *pkt)
     } else {
         Scaleing_list_address += offset;
     }
-    //mpp_log("Scaleing_list_address=%08x \n", Scaleing_list_address);
 #if FPGA_TEST
     fifo_write_bits(pkt, 0, 32, "Scaleing_list_address");
 #else
@@ -361,22 +360,26 @@ void rkv_prepare_scanlist_packet(void *hal, FifoCtx_t *pkt)
 //extern "C"
 void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 {
-    RK_S32 i = 0;
-    MppBuffer frame_buf = NULL;
-    MppBuffer bitstream_buf = NULL;
-    H264dHalCtx_t *p_hal   = (H264dHalCtx_t *)hal;
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
 
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     memset(p_regs, 0, sizeof(H264dRkvRegs_t));
-    p_regs->swreg2_sysctrl.sw_dec_mode = 1;  //!< h264
-
-    if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
-        p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
-    } else {
-        p_regs->swreg5_stream_rlc_len.sw_stream_len = (RK_U32)mpp_packet_get_length(task->dec.input_packet);
+    //!< set dec_mode && rlc_mode && rps_mode && slice_num
+    {
+        p_regs->swreg2_sysctrl.sw_dec_mode = 1;  //!< h264
+        if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
+            p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
+        } else {
+            p_regs->swreg5_stream_rlc_len.sw_stream_len = (RK_U32)mpp_packet_get_length(task->dec.input_packet);
+        }
+        if (p_regs->swreg2_sysctrl.sw_h264_rps_mode) { // rps_mode == 1
+            p_regs->swreg43_rps_base.sw_rps_base += 0x8;
+        }
+        p_regs->swreg3_picpar.sw_slice_num_lowbits = 0x7ff; // p_Vid->iNumOfSlicesDecoded & 0x7ff
+        p_regs->swreg3_picpar.sw_slice_num_highbit = 1;     // (p_Vid->iNumOfSlicesDecoded >> 11) & 1
     }
     //!< caculate the yuv_frame_size
     {
@@ -398,97 +401,103 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         } else if (pp->chroma_format_idc == 2) { //!< Y422
             yuv_virstride += 2 * y_virstride;
         }
-        p_regs->swreg3_picpar.sw_y_hor_virstride  = hor_virstride / 16;
+        p_regs->swreg3_picpar.sw_y_hor_virstride = hor_virstride / 16;
         p_regs->swreg3_picpar.sw_uv_hor_virstride = hor_virstride / 16;
         p_regs->swreg8_y_virstride.sw_y_virstride = y_virstride / 16;
         p_regs->swreg9_yuv_virstride.sw_yuv_virstride = yuv_virstride / 16;
-        //mpp_log("$$$$$$$$ hor_stride=%d, y_stride=%d, yuv_stride=%d \n", p_regs->swreg3_picpar.sw_y_hor_virstride,
-        //  p_regs->swreg8_y_virstride.sw_y_virstride, p_regs->swreg9_yuv_virstride.sw_yuv_virstride);
     }
     //!< caculate mv_size
     {
         RK_U32 mb_width = 0, mb_height = 0, mv_size = 0;
-        mb_width  = pp->wFrameWidthInMbsMinus1 + 1;
+        mb_width = pp->wFrameWidthInMbsMinus1 + 1;
         mb_height = (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
         mv_size = mb_width * mb_height * 8; // 64bit per 4x4
         p_regs->compare_len = (p_regs->swreg9_yuv_virstride.sw_yuv_virstride + mv_size) * 2;
     }
-
-    if (p_regs->swreg2_sysctrl.sw_h264_rps_mode) { // rps_mode == 1
-        p_regs->swreg43_rps_base.sw_rps_base += 0x8;
-    }
-    p_regs->swreg3_picpar.sw_slice_num_lowbits = 0x7ff; // p_Vid->iNumOfSlicesDecoded & 0x7ff
-    p_regs->swreg3_picpar.sw_slice_num_highbit = 1;     // (p_Vid->iNumOfSlicesDecoded >> 11) & 1
     //!< set current
-    p_regs->swreg40_cur_poc.sw_cur_poc = pp->CurrFieldOrderCnt[0];
-    p_regs->swreg74_h264_cur_poc1.sw_h264_cur_poc1 = pp->CurrFieldOrderCnt[1];
-    mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-
-#if FPGA_TEST
-    p_regs->swreg7_decout_base.sw_decout_base = pp->CurrPic.Index7Bits + 1;
-#else
-    p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf);
-    //mpp_log_f("line=%d, decout_fd=%d over \n", __LINE__, mpp_buffer_get_fd(frame_buf));
-#endif
-
-    //!< set reference
-    for (i = 0; i < 15; i++) {
-        p_regs->swreg25_39_refer0_14_poc[i]  = (i & 1) ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
-        p_regs->swreg49_63_refer15_29_poc[i] = (i & 1) ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_field = (pp->RefPicFiledFlags >> i) & 0x01;
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_topfield_used  = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_botfield_used  = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
-        p_regs->swreg10_24_refer0_14_base[i].sw_ref_colmv_use_flag = (pp->RefPicColmvUsedFlags >> i) & 0x01;
-
-        if (pp->RefFrameList[i].bPicEntry == 0xff) {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-        } else {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
-        }
-        //mpp_log_f("line=%d, ref[%d]=%d over \n", __LINE__, i, mpp_buffer_get_fd(frame_buf));
-#if FPGA_TEST
-        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
-#else
-        p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf);
-#endif
-    }
-    p_regs->swreg72_refer30_poc = pp->FieldOrderCntList[i][0];
-    p_regs->swreg73_refer31_poc = pp->FieldOrderCntList[i][1];
-    p_regs->swreg48_refer15_base.sw_ref_field = (pp->RefPicFiledFlags >> 15) & 0x01;
-    p_regs->swreg48_refer15_base.sw_ref_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
-    p_regs->swreg48_refer15_base.sw_ref_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
-    p_regs->swreg48_refer15_base.sw_ref_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
-    if (pp->RefFrameList[15].bPicEntry == 0xff) {
+    {
+        MppBuffer frame_buf = NULL;
+        p_regs->swreg40_cur_poc.sw_cur_poc = pp->CurrFieldOrderCnt[0];
+        p_regs->swreg74_h264_cur_poc1.sw_h264_cur_poc1 = pp->CurrFieldOrderCnt[1];
         mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-    } else {
-        mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[15].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+#if FPGA_TEST
+        p_regs->swreg7_decout_base.sw_decout_base = pp->CurrPic.Index7Bits + 1;
+#else
+        p_regs->swreg7_decout_base.sw_decout_base = mpp_buffer_get_fd(frame_buf);
+#endif
+    }
+    //!< set reference
+    {
+        RK_S32 i = 0;
+        RK_S32 ref_index  = -1;
+        RK_S32 near_index = -1;
+        MppBuffer frame_buf = NULL;
+
+        for (i = 0; i < 15; i++) {
+            p_regs->swreg25_39_refer0_14_poc[i] = (i & 1) ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
+            p_regs->swreg49_63_refer15_29_poc[i] = (i & 1) ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
+            p_regs->swreg10_24_refer0_14_base[i].sw_ref_field = (pp->RefPicFiledFlags >> i) & 0x01;
+            p_regs->swreg10_24_refer0_14_base[i].sw_ref_topfield_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
+            p_regs->swreg10_24_refer0_14_base[i].sw_ref_botfield_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
+            p_regs->swreg10_24_refer0_14_base[i].sw_ref_colmv_use_flag = (pp->RefPicColmvUsedFlags >> i) & 0x01;
+#if FPGA_TEST
+            p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
+#else
+            if (pp->RefFrameList[i].bPicEntry != 0xff) {
+                ref_index = pp->RefFrameList[i].Index7Bits;
+                near_index = pp->RefFrameList[i].Index7Bits;
+            }
+            if (near_index < 0) {
+                ref_index = pp->CurrPic.Index7Bits;
+            } else {
+                ref_index = pp->RefFrameList[i].Index7Bits;
+            }
+            mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+            p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf);
+#endif
+        }
+        p_regs->swreg72_refer30_poc = pp->FieldOrderCntList[15][0];
+        p_regs->swreg73_refer31_poc = pp->FieldOrderCntList[15][1];
+        p_regs->swreg48_refer15_base.sw_ref_field = (pp->RefPicFiledFlags >> 15) & 0x01;
+        p_regs->swreg48_refer15_base.sw_ref_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
+        p_regs->swreg48_refer15_base.sw_ref_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
+        p_regs->swreg48_refer15_base.sw_ref_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
+#if FPGA_TEST
+        p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
+#else
+        if (pp->RefFrameList[15].bPicEntry == 0xff) {
+            ref_index = pp->CurrPic.Index7Bits;
+        } else {
+            ref_index = pp->RefFrameList[15].Index7Bits;
+        }
+        mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+        p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
+#endif
     }
 
 #if FPGA_TEST
-    p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
     p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = 0;
     p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = 0;
+    p_regs->swreg41_rlcwrite_base.sw_rlcwrite_base = 0;
 #else
-    p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);
-    //mpp_log_f("line=%d, ref[%d]=%d over \n", __LINE__, 15, mpp_buffer_get_fd(frame_buf));
-    p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
-    //mpp_log_f("line=%d, cabac_table_fd=%d over \n", __LINE__, mpp_buffer_get_fd(p_hal->cabac_buf));
-    mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
-    p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
-    //mpp_log_f("line=%d, rlc_base_fd=%d over \n", __LINE__,mpp_buffer_get_fd(bitstream_buf));
-    p_regs->swreg41_rlcwrite_base.sw_rlcwrite_base = p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base;
+    {
+        MppBuffer bitstream_buf = NULL;
+        mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &bitstream_buf);
+        p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base = mpp_buffer_get_fd(bitstream_buf);
+        p_regs->swreg6_cabactbl_prob_base.sw_cabactbl_base = mpp_buffer_get_fd(p_hal->cabac_buf);
+        p_regs->swreg41_rlcwrite_base.sw_rlcwrite_base = p_regs->swreg4_strm_rlc_base.sw_strm_rlc_base;
+    }
 #endif
-
     fifo_packet_reset(pkt);
     fifo_write_bytes(pkt, (void *)p_hal->regs, 80 * sizeof(RK_U32));
-	{
-		RK_U32 *ptr = (RK_U32*)p_hal->regs;
-		LogInfo(pkt->logctx, "------------------ Frame REG begin ------------------------");
-		for (i = 0; i < 80; i++) {
-			//fifo_write_bits(pkt,  ptr[i], 32,  "reg");   //!< not used in hard		
-			LogInfo(pkt->logctx, "             reg[%3d] = %08x \n", i, ptr[i]);
-		}
-	}	
+    {
+        RK_U32 i = 0;
+        RK_U32 *ptr = (RK_U32*)p_hal->regs;
+        LogInfo(pkt->logctx, "------------------ Frame REG begin ------------------------");
+        for (i = 0; i < 80; i++) {
+            LogInfo(pkt->logctx, "             reg[%3d] = %08x \n", i, ptr[i]);
+        }
+    }
     fifo_align_bits(pkt, 64);
     fifo_flush_bits(pkt);
     fifo_fwrite_data(pkt); //!< "REGH" header 32 bit

@@ -584,8 +584,8 @@ static RK_S32 read_colorspace_details(Vp9CodecContext *ctx)
     if (ctx->colorspace == MPP_FRAME_SPC_RGB) { // RGB = profile 1
 #if 0
         static const enum AVPixelFormat pix_fmt_rgb[3] = {
-                                                             AV_PIX_FMT_GBRP, AV_PIX_FMT_GBRP10, AV_PIX_FMT_GBRP12
-                                                         };
+            AV_PIX_FMT_GBRP, AV_PIX_FMT_GBRP10, AV_PIX_FMT_GBRP12
+        };
         if (ctx->profile & 1) {
             s->ss_h = s->ss_v = 1;
             res = pix_fmt_rgb[bits];
@@ -827,12 +827,12 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                 }
             }
 
-            for (i = 0; i < 3; i++) {                
+            for (i = 0; i < 3; i++) {
                 RK_U32 refw = mpp_frame_get_width(s->refs[s->refidx[i]].f);
                 RK_U32 refh = mpp_frame_get_height(s->refs[s->refidx[i]].f);
                 RK_S32 reffmt =  mpp_frame_get_fmt(s->refs[s->refidx[i]].f);
 
-				vp9d_dbg(VP9D_DBG_REF, "ref get width frame slot %p", s->refs[s->refidx[i]].f);
+                vp9d_dbg(VP9D_DBG_REF, "ref get width frame slot %p", s->refs[s->refidx[i]].f);
                 if (reffmt != fmt) {
                     /* mpp_err("Ref pixfmt (%s) did not match current frame (%s)",
                            av_get_pix_fmt_name(ref->format),

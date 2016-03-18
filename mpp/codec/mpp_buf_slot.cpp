@@ -839,7 +839,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         mpp_assert(slot->status.has_frame);
         if (slot->status.has_frame) {
             if (NULL == *frame )
-            	mpp_frame_init(frame);
+                mpp_frame_init(frame);
             if (*frame)
                 mpp_frame_copy(*frame, slot->frame);
         } else
@@ -892,10 +892,10 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
         // do info change detection here
         generate_info_set(impl, (MppFrame)val, 1);
         mpp_frame_copy(impl->info, impl->info_set);
-		{
-			MppFrameImpl *p = (MppFrameImpl *)impl->info;
-			mpp_log_f("had set frame info: w %4d h %4d hor %4d ver %4d\n", p->width, p->height, p->hor_stride, p->ver_stride);
-		}
+        {
+            MppFrameImpl *p = (MppFrameImpl *)impl->info;
+            mpp_log_f("had set frame info: w %4d h %4d hor %4d ver %4d\n", p->width, p->height, p->hor_stride, p->ver_stride);
+        }
         impl->buf_size = mpp_frame_get_buf_size(impl->info);
     } break;
     default : {

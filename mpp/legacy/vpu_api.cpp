@@ -247,9 +247,9 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
     RK_U32 value = 0;
-	RK_U32 use_mpp_mode = 0;
+    RK_U32 use_mpp_mode = 0;
     mpp_env_get_u32("chg_orig", &value, 0);
-	mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
+    mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
 #ifdef ANDROID
     value = value || (!!access("/dev/rkvdec", F_OK));
 

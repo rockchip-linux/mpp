@@ -71,12 +71,12 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
     READ_UE(p_bitctx, &cur_pps->pic_parameter_set_id, "pic_parameter_set_id");
     READ_UE(p_bitctx, &cur_pps->seq_parameter_set_id, "seq_parameter_set_id");
     //VAL_CHECK(ret, cur_pps->seq_parameter_set_id < 32);
-	if (cur_pps->seq_parameter_set_id <0 || cur_pps->seq_parameter_set_id > 32)	{
-		cur_pps->seq_parameter_set_id = 0;
-	}
-	if (cur_pps->pic_parameter_set_id <0 || cur_pps->pic_parameter_set_id > 256)	{
-		cur_pps->pic_parameter_set_id = 0;
-	}
+    if (cur_pps->seq_parameter_set_id < 0 || cur_pps->seq_parameter_set_id > 32) {
+        cur_pps->seq_parameter_set_id = 0;
+    }
+    if (cur_pps->pic_parameter_set_id < 0 || cur_pps->pic_parameter_set_id > 256)    {
+        cur_pps->pic_parameter_set_id = 0;
+    }
     READ_ONEBIT(p_bitctx, &cur_pps->entropy_coding_mode_flag, "entropy_coding_mode_flag");
     READ_ONEBIT(p_bitctx, &cur_pps->bottom_field_pic_order_in_frame_present_flag, "bottom_field_pic_order_in_frame_present_flag");
 
@@ -166,7 +166,7 @@ MPP_RET activate_pps(H264dVideoCtx_t *p_Vid, H264_PPS_t *pps)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-	INP_CHECK(ret, !p_Vid && !pps);
+    INP_CHECK(ret, !p_Vid && !pps);
     if (p_Vid->active_pps != pps) {
         if (p_Vid->dec_pic) {
             //!< return if the last picture has already been finished

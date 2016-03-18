@@ -32,7 +32,7 @@ typedef struct h264d_hal_ctx_t {
     MppHalApi                hal_api;
     void                     *regs;
     void                     *pkts;
-	void                     *dump;
+    void                     *dump;
     RK_U8                    spt_BitstrmRaw;
     RK_U8                    set_BitstrmRaw;
 
@@ -55,7 +55,7 @@ typedef struct h264d_hal_ctx_t {
     RK_S32                   vpu_socket;
     RK_U64                   total_time;
     RK_U64                   iDecodedNum;
-	IOInterruptCB            init_cb;
+    IOInterruptCB            init_cb;
 } H264dHalCtx_t;
 
 

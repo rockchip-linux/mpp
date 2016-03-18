@@ -59,33 +59,33 @@ extern RK_U32 rkv_h264d_hal_debug;
 
 #define H264D_DBG(level, fmt, ...)\
 do {\
-	if (level & rkv_h264d_parse_debug)\
-		{ mpp_log(fmt, ## __VA_ARGS__);}\
+    if (level & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__);}\
 } while (0)
 
 
 #define H264D_ERR(fmt, ...)\
 do {\
-	if (H264D_DBG_ERROR & rkv_h264d_parse_debug)\
-		{ mpp_err(fmt, ## __VA_ARGS__); }\
+    if (H264D_DBG_ERROR & rkv_h264d_parse_debug)\
+        { mpp_err(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #define ASSERT(val)\
 do {\
-	if (H264D_DBG_ASSERT & rkv_h264d_parse_debug)\
-		{ mpp_assert(val); }\
+    if (H264D_DBG_ASSERT & rkv_h264d_parse_debug)\
+        { mpp_assert(val); }\
 } while (0)
 
 #define H264D_WARNNING(fmt, ...)\
 do {\
-	if (H264D_DBG_WARNNING & rkv_h264d_parse_debug)\
-		{ mpp_log(fmt, ## __VA_ARGS__); }\
+    if (H264D_DBG_WARNNING & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #define H264D_LOG(fmt, ...)\
 do {\
-	if (H264D_DBG_LOG & rkv_h264d_parse_debug)\
-		{  mpp_log(fmt, ## __VA_ARGS__); }\
+    if (H264D_DBG_LOG & rkv_h264d_parse_debug)\
+        {  mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 
