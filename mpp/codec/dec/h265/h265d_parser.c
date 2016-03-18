@@ -1119,6 +1119,60 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
+static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
+{
+
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+
+    do {
+        RK_S32 nb_output = 0;
+        RK_S32 min_poc   = INT_MAX;
+        RK_S32 min_idx = 0;
+        RK_U32 i;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
+            HEVCFrame *frame = &s->DPB[i];
+            if ((frame->flags & HEVC_FRAME_FLAG_OUTPUT) &&
+                frame->sequence == s->seq_output) {
+                nb_output++;
+                if (frame->poc < min_poc) {
+                    min_poc = frame->poc;
+                    min_idx = i;
+                }
+            }
+        }
+
+        /* wait for more frames before output */
+        if (!flush && s->seq_output == s->seq_decode && s->sps &&
+            nb_output <= s->sps->temporal_layer[s->sps->max_sub_layers - 1].num_reorder_pics)
+            return 0;
+
+        if (nb_output) {
+            HEVCFrame *frame = &s->DPB[min_idx];
+
+            frame->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
+            s->output_frame_idx = min_idx;
+
+            mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(s->slots, frame->slot_index, QUEUE_DISPLAY);
+
+            h265d_dbg(H265D_DBG_REF,
+                      "Output frame with POC %d frame->slot_index = %d\n", frame->poc, frame->slot_index);
+
+
+            return 1;
+        }
+
+        if (s->seq_output != s->seq_decode)
+            s->seq_output = (s->seq_output + 1) & 0xff;
+        else
+            break;
+    } while (1);
+
+    return 0;
+}
+
 static RK_S32 hevc_frame_start(HEVCContext *s)
 {
 
@@ -1134,9 +1188,34 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
 
     s->miss_ref_flag = 0;
     ret = mpp_hevc_frame_rps(s);
-    if (s->miss_ref_flag && !IS_IRAP(s)) {
-        mpp_frame_set_errinfo(s->frame, VPU_FRAME_ERR_UNKNOW);
-        s->ref->error_flag = 1;
+    if (s->miss_ref_flag) {
+        if(!IS_IRAP(s)){
+            mpp_frame_set_errinfo(s->frame, VPU_FRAME_ERR_UNKNOW);
+            s->ref->error_flag = 1;
+        }else{
+            /*when found current I frame have miss refer
+              may be stream have error so first set current frame
+              no output and flush other frame output from dpb
+              then set current frame can as output
+            */
+            HEVCFrame *frame = NULL;
+            RK_U32 i =0;
+            for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
+                frame = &s->DPB[i];
+                if(frame->poc == s->poc ) {
+                    frame->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
+                    break;
+                }else{
+                   frame = NULL;
+                }
+            }
+            do {
+               ret = mpp_hevc_output_frame(s->h265dctx, 1);
+            } while (ret);
+            if (frame){
+                frame->flags |= HEVC_FRAME_FLAG_OUTPUT;
+            }
+        }
     }
 
     mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
@@ -1401,61 +1480,6 @@ nsc:
     nal->size = di;
     return si;
 }
-
-static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
-{
-
-    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
-
-    do {
-        RK_S32 nb_output = 0;
-        RK_S32 min_poc   = INT_MAX;
-        RK_S32 min_idx = 0;
-        RK_U32 i;
-
-        for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
-            HEVCFrame *frame = &s->DPB[i];
-            if ((frame->flags & HEVC_FRAME_FLAG_OUTPUT) &&
-                frame->sequence == s->seq_output) {
-                nb_output++;
-                if (frame->poc < min_poc) {
-                    min_poc = frame->poc;
-                    min_idx = i;
-                }
-            }
-        }
-
-        /* wait for more frames before output */
-        if (!flush && s->seq_output == s->seq_decode && s->sps &&
-            nb_output <= s->sps->temporal_layer[s->sps->max_sub_layers - 1].num_reorder_pics)
-            return 0;
-
-        if (nb_output) {
-            HEVCFrame *frame = &s->DPB[min_idx];
-
-            frame->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
-            s->output_frame_idx = min_idx;
-
-            mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(s->slots, frame->slot_index, QUEUE_DISPLAY);
-
-            h265d_dbg(H265D_DBG_REF,
-                      "Output frame with POC %d frame->slot_index = %d\n", frame->poc, frame->slot_index);
-
-
-            return 1;
-        }
-
-        if (s->seq_output != s->seq_decode)
-            s->seq_output = (s->seq_output + 1) & 0xff;
-        else
-            break;
-    } while (1);
-
-    return 0;
-}
-
 
 static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
 {
