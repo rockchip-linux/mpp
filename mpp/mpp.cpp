@@ -85,9 +85,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_dec_init(mDec, coding);
 
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this);
-        mpp_log("mThreadCodec = %p",mThreadCodec);
+        mpp_log("mThreadCodec = %p", mThreadCodec);
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
-        mpp_log("mThreadHal = %p",mThreadHal);
+        mpp_log("mThreadHal = %p", mThreadHal);
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
@@ -299,12 +299,12 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mFastMode = mode;
         break;
     }
-	case MPP_DEC_GET_STREAM_COUNT:{
-		AutoMutex autoLock(mPackets->mutex());
-		mpp_assert(mType == MPP_CTX_DEC);
-		*((RK_S32 *)param) = mPackets->list_size();
-		break;
-	}
+    case MPP_DEC_GET_STREAM_COUNT: {
+        AutoMutex autoLock(mPackets->mutex());
+        mpp_assert(mType == MPP_CTX_DEC);
+        *((RK_S32 *)param) = mPackets->list_size();
+        break;
+    }
     default : {
     } break;
     }

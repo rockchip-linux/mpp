@@ -190,7 +190,7 @@ typedef enum {
     Mem_Malloc = 1,
     Mem_Clone = 2,
     Mem_UnPaired = 3,
-	Mem_Fake = 4,
+    Mem_Fake = 4,
     Mem_Max,
 } H264_Mem_type;
 
@@ -225,7 +225,7 @@ typedef struct h264_dpb_info_t {
     RK_U32    is_used;
     RK_U32    top_valid;
     RK_U32    bot_valid;
-    struct h264_store_pic_t *picbuf;
+    struct h264_store_pic_t *refpic;
 
     RK_U32    have_same;
 } H264_DpbInfo_t;
@@ -293,7 +293,7 @@ typedef struct h264_store_pic_t {
     RK_S32       poc_mmco5;
     RK_S32       top_poc_mmco5;
     RK_S32       bot_poc_mmco5;
-	RK_S32       combine_flag;  // top && bottom field combined flag
+    RK_S32       combine_flag;  // top && bottom field combined flag
     H264_Mem_type       mem_malloc_type;
     struct h264_dpb_mark_t     *mem_mark;
 } H264_StorePic_t;
@@ -841,7 +841,7 @@ typedef struct h264d_input_ctx_t {
     RK_S64 in_pts;
     RK_S64 in_dts;
     RK_U8  has_get_eos;
-	RK_U32 mvc_disable;
+    RK_U32 mvc_disable;
     //!< output data
     RK_U8  *out_buf;
     RK_U32 out_length;
@@ -989,14 +989,14 @@ typedef struct h264d_video_ctx_t {
     RK_S32     have_outpicture_flag;
     RK_S32     exit_picture_flag;
     RK_S32     active_mvc_sps_flag;
-	//!< for error tolerance
+    //!< for error tolerance
     RK_U32     g_framecnt;
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
-    
+
     RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
     RK_U32    iframe_cnt;
-	RK_S32    first_iframe_poc;
-	struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
+    RK_S32    first_iframe_poc;
+    struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
@@ -1051,12 +1051,12 @@ typedef enum slice_state_type {
 } SLICE_STATUS;
 
 typedef struct h264_err_ctx_t {
-	RK_U32    parse_err_flag;
-	RK_U32    dpb_err_flag;
-	RK_U32    used_for_ref_flag;
-	RK_U32    i_slice_no;
-	RK_U32    dpb_err[MAX_NUM_DPB_LAYERS];
-	RK_U32    pre_status[MAX_NUM_DPB_LAYERS];
+    RK_U32    parse_err_flag;
+    RK_U32    dpb_err_flag;
+    RK_U32    used_for_ref_flag;
+    RK_U32    i_slice_no;
+    RK_U32    dpb_err[MAX_NUM_DPB_LAYERS];
+    RK_U32    pre_status[MAX_NUM_DPB_LAYERS];
 } H264dErrCtx_t;
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {
@@ -1091,7 +1091,7 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     task_eos;
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
-	struct h264_err_ctx_t      errctx;
+    struct h264_err_ctx_t      errctx;
 } H264_DecCtx_t;
 
 

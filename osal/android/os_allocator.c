@@ -182,7 +182,7 @@ int _compare_name(const struct dirent *dir)
 {
     if (search_name && strstr(dir->d_name, search_name))
         return 1;
-    
+
     return 0;
 }
 
@@ -206,16 +206,16 @@ RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
     if (n < 0) {
         mpp_err("scan %s for %s failed\n", path, dir_name);
     } else {
-            while (n > 1) {
-                free(dir[--n]);
-            }
+        while (n > 1) {
+            free(dir[--n]);
+        }
 
-            new_path_len = path_len;
-            new_path_len += snprintf(path + path_len, max_length - path_len - 1, 
-                    "/%s", dir[0]->d_name);
+        new_path_len = path_len;
+        new_path_len += snprintf(path + path_len, max_length - path_len - 1,
+                                 "/%s", dir[0]->d_name);
 
-            free(dir[0]);
-            free(dir);
+        free(dir[0]);
+        free(dir);
     }
     search_name = NULL;
     return new_path_len;

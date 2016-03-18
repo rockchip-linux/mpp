@@ -64,7 +64,7 @@ void MppThread::stop()
     if (MPP_THREAD_UNINITED != mStatus) {
         lock();
         mStatus = MPP_THREAD_STOPPING;
-        mpp_log("MPP_THREAD_STOPPING status set mThread %p",this);
+        mpp_log("MPP_THREAD_STOPPING status set mThread %p", this);
         signal();
         unlock();
         void *dummy;

@@ -36,21 +36,21 @@ VpuApi::VpuApi()
     mpp_create(&mpp_ctx, &mpi);
     frame_count  = 0;
     set_eos = 0;
-	vpu_api_debug = 0;
-	fp = NULL;
-	mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
-	if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
-		fp = fopen("data/hevcdump.yuv", "wb");
-	}
+    vpu_api_debug = 0;
+    fp = NULL;
+    mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
+    if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
+        fp = fopen("data/hevcdump.yuv", "wb");
+    }
     mpp_log_f("ok\n");
 }
 
 VpuApi::~VpuApi()
 {
     mpp_log_f("in\n");
-	if (fp) {
-		fclose(fp);
-	}	
+    if (fp) {
+        fclose(fp);
+    }
     mpp_destroy(mpp_ctx);
     mpp_log_f("ok\n");
 }
@@ -158,10 +158,10 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
-		if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
-			mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d", aDecOut->timeUs,
-				mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
-		}
+        if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
+            mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d", aDecOut->timeUs,
+                    mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+        }
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
@@ -196,7 +196,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->FrameBusAddr[1] = fd;
             vframe->vpumem.vir_addr = (RK_U32*)ptr;
             frame_count++;
-			//!< Dump yuv
+            //!< Dump yuv
             if (fp && (frame_count > 350)) {
                 fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
                 fflush(fp);
@@ -306,10 +306,10 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_USE_FAST_MODE;
         break;
     }
-	case VPU_API_DEC_GET_STREAM_COUNT: {
-		mpicmd = MPP_DEC_GET_STREAM_COUNT;
-		break;
-	}
+    case VPU_API_DEC_GET_STREAM_COUNT: {
+        mpicmd = MPP_DEC_GET_STREAM_COUNT;
+        break;
+    }
     default: {
         break;
     }

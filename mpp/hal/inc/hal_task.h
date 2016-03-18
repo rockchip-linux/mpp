@@ -96,8 +96,8 @@ typedef struct HalDecTask_t {
     // previous task hardware working status
     // when hardware error happen status is not zero
     RK_U32          prev_status;
-	RK_U32          dpb_err_flag;
-	RK_U32          used_for_ref_flag;
+    RK_U32          dpb_err_flag;
+    RK_U32          used_for_ref_flag;
     // current tesk protocol syntax information
     MppSyntax       syntax;
 

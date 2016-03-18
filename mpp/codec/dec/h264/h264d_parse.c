@@ -96,7 +96,7 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
         currSlice->listXsizeP[i] = 0;
         currSlice->listXsizeB[i] = 0;
     }
-	free_ref_pic_list_reordering_buffer(currSlice);
+    free_ref_pic_list_reordering_buffer(currSlice);
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 }
 
@@ -158,13 +158,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
     READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
-	{
-		RK_S32  *ptmp = NULL;
-		ptmp = (RK_S32 *)&cur_nal->nal_reference_idc;
-		READ_BITS(p_bitctx, 2, ptmp, "nal_ref_idc");
-		ptmp = (RK_S32 *)&cur_nal->nalu_type;
-		READ_BITS(p_bitctx, 5, ptmp, "nalu_type");
-	}
+    {
+        RK_S32  *ptmp = NULL;
+        ptmp = (RK_S32 *)&cur_nal->nal_reference_idc;
+        READ_BITS(p_bitctx, 2, ptmp, "nal_ref_idc");
+        ptmp = (RK_S32 *)&cur_nal->nalu_type;
+        READ_BITS(p_bitctx, 5, ptmp, "nalu_type");
+    }
     //if (g_nalu_cnt0 == 2384) {
     //    g_nalu_cnt0 = g_nalu_cnt0;
     //}
@@ -232,10 +232,10 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         } else {
             currSlice->p_Dec->nalu_ret = StartOfSlice;
         }
-		if (currSlice->layer_id && currSlice->p_Inp->mvc_disable) {
-			currSlice->p_Dec->nalu_ret = MvcDisAble;
-		}		
-		H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
+        if (currSlice->layer_id && currSlice->p_Inp->mvc_disable) {
+            currSlice->p_Dec->nalu_ret = MvcDisAble;
+        }
+        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         break;
     case NALU_TYPE_SPS:
         FUN_CHECK(ret = process_sps(currSlice));
@@ -288,7 +288,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     case NALU_TYPE_DPA:
     case NALU_TYPE_DPB:
     case NALU_TYPE_DPC:
-		H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_DPA DPB DPC, and not supported.");
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_DPA DPB DPC, and not supported.");
         currSlice->p_Dec->nalu_ret = NaluNotSupport;
         break;
     default:
@@ -348,9 +348,9 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
         add_size = MPP_MIN(HEAD_MAX_SIZE, p_strm->nalu_len);
         ((H264dNaluHead_t *)p_des)->is_frame_end  = 0;
         ((H264dNaluHead_t *)p_des)->nalu_type = p_strm->nalu_type;
-		((H264dNaluHead_t *)p_des)->sodb_len = add_size;
-		memcpy(p_des + sizeof(H264dNaluHead_t), p_strm->nalu_buf, add_size);
-		p_strm->head_offset += add_size + sizeof(H264dNaluHead_t);
+        ((H264dNaluHead_t *)p_des)->sodb_len = add_size;
+        memcpy(p_des + sizeof(H264dNaluHead_t), p_strm->nalu_buf, add_size);
+        p_strm->head_offset += add_size + sizeof(H264dNaluHead_t);
     }
     //!< fill sodb buffer
     if ((p_strm->nalu_type == NALU_TYPE_SLICE)
@@ -359,7 +359,7 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
         if ((dxva_ctx->strm_offset + add_size) >= dxva_ctx->max_strm_size) {
             realloc_buffer(&dxva_ctx->bitstream, &dxva_ctx->max_strm_size, add_size);
         }
-        p_des = &dxva_ctx->bitstream[dxva_ctx->strm_offset];    
+        p_des = &dxva_ctx->bitstream[dxva_ctx->strm_offset];
         memcpy(p_des, g_start_precode, sizeof(g_start_precode));
         memcpy(p_des + sizeof(g_start_precode), p_strm->nalu_buf, p_strm->nalu_len);
         dxva_ctx->strm_offset += p_strm->nalu_len + sizeof(g_start_precode);
@@ -413,7 +413,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     READ_BITS(p_bitctx, 2, &nal_reference_idc);
     READ_BITS(p_bitctx, 5, &p_strm->nalu_type);
 
-	nalu_header_bytes = 1;
+    nalu_header_bytes = 1;
     if ((p_strm->nalu_type == NALU_TYPE_PREFIX) || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
         READ_BITS(p_bitctx, 1, &svc_extension_flag);
         if (svc_extension_flag) {
@@ -598,7 +598,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 //}
 
                 if (p_strm->nalu_type == NALU_TYPE_SLICE
-					|| p_strm->nalu_type == NALU_TYPE_IDR || p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
+                    || p_strm->nalu_type == NALU_TYPE_IDR || p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
                     p_strm->nalu_len += (RK_U32)pkt_impl->length;
                     memcpy(&p_strm->nalu_buf[0], p_strm->curdata, pkt_impl->length + 1);
                     pkt_impl->length = 0;
@@ -800,7 +800,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             p_strm->startcode_found = 1;
             p_strm->endcode_found = 0;
             p_strm->nalu_buf  = NULL;
-            break;           
+            break;
         }
     }
 
@@ -843,7 +843,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     RK_U8 while_loop_flag = 1;
     H264dNaluHead_t *p_head = NULL;
 
-	INP_CHECK(ret, !p_Dec);
+    INP_CHECK(ret, !p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
     p_curdata = p_Dec->p_Cur->strm.head_buf;
@@ -868,7 +868,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
                 p_Dec->nalu_ret = EndOfNalu;
                 p_Dec->next_state = SliceSTATE_ParseNalu;
             }
-			H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ReadNalu");
+            H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ReadNalu");
             break;
         case SliceSTATE_ParseNalu:
             (ret = parser_one_nalu(&p_Dec->p_Cur->slice));
@@ -877,30 +877,30 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             } else if (p_Dec->nalu_ret == StartOfPicture) {
                 p_Dec->next_state = SliceSTATE_InitPicture;
             }  else if (p_Dec->nalu_ret == MvcDisAble) {
-				H264D_LOG("xxxxxxxx MVC disable");
-				goto __FAILED;
+                H264D_LOG("xxxxxxxx MVC disable");
+                goto __FAILED;
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;
             }
-			H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ParseNalu");
+            H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ParseNalu");
             break;
         case SliceSTATE_InitPicture:
             FUN_CHECK(ret = init_picture(&p_Dec->p_Cur->slice));
             p_Dec->next_state = SliceSTATE_GetSliceData;
-			H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_InitPicture");
+            H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_InitPicture");
             break;
         case SliceSTATE_GetSliceData:
             FUN_CHECK(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
             p_Dec->next_state = SliceSTATE_ResetSlice;
-			H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_GetSliceData");
+            H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_GetSliceData");
             break;
         case SliceSTATE_RegisterOneFrame:
             commit_buffer(p_Dec->dxva_ctx);
             while_loop_flag = 0;
             p_Dec->is_parser_end = 1;
             p_Dec->next_state = SliceSTATE_ReadNalu;
-			H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_RegisterOneFrame");
+            H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_RegisterOneFrame");
             break;
         default:
             ret = MPP_NOK;
@@ -911,16 +911,16 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
-	p_Dec->nalu_ret = NALU_NULL;
-	//p_Dec->is_first_frame = 1;
-	//p_Dec->is_new_frame   = 0;
-	//p_Dec->is_parser_end  = 0;
-	p_Dec->next_state = SliceSTATE_ResetSlice;
-	p_Dec->dxva_ctx->slice_count = 0;
-	p_Dec->dxva_ctx->strm_offset = 0;
-	p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
-	p_Dec->p_Vid->exit_picture_flag   = 0;
-	p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
+    p_Dec->nalu_ret = NALU_NULL;
+    //p_Dec->is_first_frame = 1;
+    //p_Dec->is_new_frame   = 0;
+    //p_Dec->is_parser_end  = 0;
+    p_Dec->next_state = SliceSTATE_ResetSlice;
+    p_Dec->dxva_ctx->slice_count = 0;
+    p_Dec->dxva_ctx->strm_offset = 0;
+    p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
+    p_Dec->p_Vid->exit_picture_flag   = 0;
+    p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
 
     return ret;
 }

@@ -42,21 +42,21 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     RK_U32 modification_of_pic_nums_idc = 0;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
-	alloc_ref_pic_list_reordering_buffer(currSlice);
+    alloc_ref_pic_list_reordering_buffer(currSlice);
     if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_0], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
             i = 0;
             do {
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
-				currSlice->modification_of_pic_nums_idc[LIST_0][i] = modification_of_pic_nums_idc;
+                currSlice->modification_of_pic_nums_idc[LIST_0][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
-					READ_UE(p_bitctx, &currSlice->abs_diff_pic_num_minus1[LIST_0][i], "abs_diff_pic_num_minus1_lx");
+                    READ_UE(p_bitctx, &currSlice->abs_diff_pic_num_minus1[LIST_0][i], "abs_diff_pic_num_minus1_lx");
                 } else {
                     if (modification_of_pic_nums_idc == 2) {
-						READ_UE(p_bitctx, &currSlice->long_term_pic_idx[LIST_0][i], "long_term_pic_idx");
+                        READ_UE(p_bitctx, &currSlice->long_term_pic_idx[LIST_0][i], "long_term_pic_idx");
                     } else if (modification_of_pic_nums_idc == 4 || modification_of_pic_nums_idc == 5) {
-						READ_UE(p_bitctx, &currSlice->abs_diff_view_idx_minus1[LIST_0][i], "abs_diff_view_idx_minus1");
+                        READ_UE(p_bitctx, &currSlice->abs_diff_view_idx_minus1[LIST_0][i], "abs_diff_view_idx_minus1");
                     }
                 }
                 i++;
@@ -69,14 +69,14 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
             i = 0;
             do {
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
-				currSlice->modification_of_pic_nums_idc[LIST_1][i] = modification_of_pic_nums_idc;
+                currSlice->modification_of_pic_nums_idc[LIST_1][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
-					READ_UE(p_bitctx, &currSlice->abs_diff_pic_num_minus1[LIST_1][i], "abs_diff_pic_num_minus1_lx");
+                    READ_UE(p_bitctx, &currSlice->abs_diff_pic_num_minus1[LIST_1][i], "abs_diff_pic_num_minus1_lx");
                 } else {
                     if (modification_of_pic_nums_idc == 2) {
-						READ_UE(p_bitctx, &currSlice->long_term_pic_idx[LIST_1][i], "long_term_pic_idx");
+                        READ_UE(p_bitctx, &currSlice->long_term_pic_idx[LIST_1][i], "long_term_pic_idx");
                     } else if (modification_of_pic_nums_idc == 4 || modification_of_pic_nums_idc == 5) {
-						READ_UE(p_bitctx, &currSlice->abs_diff_view_idx_minus1[LIST_1][i], "abs_diff_view_idx_minus1");
+                        READ_UE(p_bitctx, &currSlice->abs_diff_view_idx_minus1[LIST_1][i], "abs_diff_view_idx_minus1");
                     }
                 }
                 i++;
@@ -233,68 +233,67 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
 
 static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PPS_t *pps)
 {
-	RK_U32 ret = 0;
+    RK_U32 ret = 0;
 
-	ret |= (sps->seq_parameter_set_id > 63);
-	ret |= (sps->separate_colour_plane_flag == 1);
-	ret |= (sps->chroma_format_idc == 3);
-	ret |= (sps->bit_depth_luma_minus8 > 2);
-	ret |= (sps->bit_depth_chroma_minus8 > 2);
-	ret |= (sps->log2_max_frame_num_minus4 > 12);
-	ret |= (sps->pic_order_cnt_type > 2);
-	ret |= (sps->log2_max_pic_order_cnt_lsb_minus4 > 12);
-	ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
-	ret |= (sps->max_num_ref_frames > 16);
-	ret |= (sps->pic_width_in_mbs_minus1 > 4095);
-	ret |= (sps->pic_height_in_map_units_minus1 > 2303);
-	ret |= (sps->pic_height_in_map_units_minus1 > 2303);
-	if (ret) {
-		H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
-		goto __FAILED;
-	}
-	if (subset_sps) //!< MVC
-	{
-		ret |= (subset_sps->num_views_minus1 != 1);
-		//        ret |= (subset_sps->num_anchor_refs_l0[0] != 1);
-		if (subset_sps->num_anchor_refs_l0[0] > 0)
-			ret |= (subset_sps->anchor_ref_l0[0][0] != subset_sps->view_id[0]);
-		//    ret |= (subset_sps->num_anchor_refs_l1[0] != 1);
-		if (subset_sps->num_anchor_refs_l1[0] > 0)
-			ret |= (subset_sps->anchor_ref_l1[0][0] != subset_sps->view_id[1]);
+    ret |= (sps->seq_parameter_set_id > 63);
+    ret |= (sps->separate_colour_plane_flag == 1);
+    ret |= (sps->chroma_format_idc == 3);
+    ret |= (sps->bit_depth_luma_minus8 > 2);
+    ret |= (sps->bit_depth_chroma_minus8 > 2);
+    ret |= (sps->log2_max_frame_num_minus4 > 12);
+    ret |= (sps->pic_order_cnt_type > 2);
+    ret |= (sps->log2_max_pic_order_cnt_lsb_minus4 > 12);
+    ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
+    ret |= (sps->max_num_ref_frames > 16);
+    ret |= (sps->pic_width_in_mbs_minus1 > 4095);
+    ret |= (sps->pic_height_in_map_units_minus1 > 2303);
+    ret |= (sps->pic_height_in_map_units_minus1 > 2303);
+    if (ret) {
+        H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
+        goto __FAILED;
+    }
+    if (subset_sps) { //!< MVC
+        ret |= (subset_sps->num_views_minus1 != 1);
+        //        ret |= (subset_sps->num_anchor_refs_l0[0] != 1);
+        if (subset_sps->num_anchor_refs_l0[0] > 0)
+            ret |= (subset_sps->anchor_ref_l0[0][0] != subset_sps->view_id[0]);
+        //    ret |= (subset_sps->num_anchor_refs_l1[0] != 1);
+        if (subset_sps->num_anchor_refs_l1[0] > 0)
+            ret |= (subset_sps->anchor_ref_l1[0][0] != subset_sps->view_id[1]);
 
-		//    ret |= (subset_sps->num_non_anchor_refs_l0[0] != 1);
-		if (subset_sps->num_non_anchor_refs_l0[0] > 0)
-			ret |= (subset_sps->non_anchor_ref_l0[0][0] != subset_sps->view_id[0]);
-		//	ret |= (subset_sps->num_non_anchor_refs_l1[0] != 1);
-		if (subset_sps->num_non_anchor_refs_l1[0] > 0)
-			ret |= (subset_sps->non_anchor_ref_l1[0][0] != subset_sps->view_id[1]);
+        //    ret |= (subset_sps->num_non_anchor_refs_l0[0] != 1);
+        if (subset_sps->num_non_anchor_refs_l0[0] > 0)
+            ret |= (subset_sps->non_anchor_ref_l0[0][0] != subset_sps->view_id[0]);
+        //  ret |= (subset_sps->num_non_anchor_refs_l1[0] != 1);
+        if (subset_sps->num_non_anchor_refs_l1[0] > 0)
+            ret |= (subset_sps->non_anchor_ref_l1[0][0] != subset_sps->view_id[1]);
 
-		ret |= (subset_sps->num_level_values_signalled_minus1 != 0);
-		//ret |= (subset_sps->num_applicable_ops_minus1[0] > 1);
-		ret |= (subset_sps->applicable_op_num_target_views_minus1[0][0] > 1);
-		ret |= (subset_sps->applicable_op_num_views_minus1[0][0] > 1);
-		if (ret) {
-			H264D_ERR("subsps has error, sps_id=%d", sps->seq_parameter_set_id);
-			goto __FAILED;
-		}
-	}
-	//!< check PPS
-	ret |= (pps->pic_parameter_set_id > 255);
-	ret |= (pps->seq_parameter_set_id > 63);
-	ret |= (pps->num_slice_groups_minus1 > 0);
-	ret |= (pps->num_ref_idx_l0_default_active_minus1 > 31);
-	ret |= (pps->num_ref_idx_l1_default_active_minus1 > 31);
-	ret |= (pps->pic_init_qp_minus26 > 25 || pps->pic_init_qp_minus26 < -(26 + 6 * (RK_S32)sps->bit_depth_luma_minus8));
-	ret |= (pps->pic_init_qs_minus26 > 25 || pps->pic_init_qs_minus26 < -26);
-	ret |= (pps->chroma_qp_index_offset > 12 || pps->chroma_qp_index_offset < -12);
-	ret |= (pps->redundant_pic_cnt_present_flag == 1);
-	if (ret) {
-		H264D_ERR("pps has error, sps_id=%d, pps_id", sps->seq_parameter_set_id, pps->pic_parameter_set_id);
-		goto __FAILED;
-	}
-	return MPP_OK;
+        ret |= (subset_sps->num_level_values_signalled_minus1 != 0);
+        //ret |= (subset_sps->num_applicable_ops_minus1[0] > 1);
+        ret |= (subset_sps->applicable_op_num_target_views_minus1[0][0] > 1);
+        ret |= (subset_sps->applicable_op_num_views_minus1[0][0] > 1);
+        if (ret) {
+            H264D_ERR("subsps has error, sps_id=%d", sps->seq_parameter_set_id);
+            goto __FAILED;
+        }
+    }
+    //!< check PPS
+    ret |= (pps->pic_parameter_set_id > 255);
+    ret |= (pps->seq_parameter_set_id > 63);
+    ret |= (pps->num_slice_groups_minus1 > 0);
+    ret |= (pps->num_ref_idx_l0_default_active_minus1 > 31);
+    ret |= (pps->num_ref_idx_l1_default_active_minus1 > 31);
+    ret |= (pps->pic_init_qp_minus26 > 25 || pps->pic_init_qp_minus26 < -(26 + 6 * (RK_S32)sps->bit_depth_luma_minus8));
+    ret |= (pps->pic_init_qs_minus26 > 25 || pps->pic_init_qs_minus26 < -26);
+    ret |= (pps->chroma_qp_index_offset > 12 || pps->chroma_qp_index_offset < -12);
+    ret |= (pps->redundant_pic_cnt_present_flag == 1);
+    if (ret) {
+        H264D_ERR("pps has error, sps_id=%d, pps_id", sps->seq_parameter_set_id, pps->pic_parameter_set_id);
+        goto __FAILED;
+    }
+    return MPP_OK;
 __FAILED:
-	return MPP_NOK;
+    return MPP_NOK;
 }
 
 
@@ -306,9 +305,9 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     H264_subSPS_t *cur_subsps = NULL;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     //!< use parameter set
-    cur_pps = &p_Vid->ppsSet[currSlice->pic_parameter_set_id];	
-	cur_pps = (cur_pps && cur_pps->Valid) ? cur_pps : NULL;
-	VAL_CHECK(ret, cur_pps != NULL);
+    cur_pps = &p_Vid->ppsSet[currSlice->pic_parameter_set_id];
+    cur_pps = (cur_pps && cur_pps->Valid) ? cur_pps : NULL;
+    VAL_CHECK(ret, cur_pps != NULL);
 
     if (currSlice->mvcExt.valid) {
         cur_sps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id].sps;
@@ -332,23 +331,23 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
         cur_subsps = NULL;
     }
 
-	if (p_Vid->active_mvc_sps_flag) { // layer_id == 1
-		cur_subsps = (cur_subsps && cur_subsps->Valid) ? cur_subsps : NULL;
-		VAL_CHECK(ret, cur_subsps != NULL);
-		cur_sps = &cur_subsps->sps;		
-	} else { //!< layer_id == 0
-		cur_subsps = NULL;
-		cur_sps = (cur_sps && cur_sps->Valid) ? cur_sps : NULL;
-		VAL_CHECK(ret, cur_sps != NULL);		
-	}
-	VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
+    if (p_Vid->active_mvc_sps_flag) { // layer_id == 1
+        cur_subsps = (cur_subsps && cur_subsps->Valid) ? cur_subsps : NULL;
+        VAL_CHECK(ret, cur_subsps != NULL);
+        cur_sps = &cur_subsps->sps;
+    } else { //!< layer_id == 0
+        cur_subsps = NULL;
+        cur_sps = (cur_sps && cur_sps->Valid) ? cur_sps : NULL;
+        VAL_CHECK(ret, cur_sps != NULL);
+    }
+    VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
 
-	H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d", currSlice->layer_id, 
-		cur_sps->seq_parameter_set_id, cur_pps->pic_parameter_set_id);
+    H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d", currSlice->layer_id,
+              cur_sps->seq_parameter_set_id, cur_pps->pic_parameter_set_id);
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
-    FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));	
-	
+    FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));
+
     //!< Set SPS to the subset SPS parameters
     if (currSlice->svc_extension_flag == 0) {
         p_Vid->active_subsps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
@@ -377,46 +376,46 @@ void recycle_slice(H264_SLICE_t *currSlice)
 }
 void free_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice)
 {
-	if (currSlice) {
-		MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_0]);
-		MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_0]);
-		MPP_FREE(currSlice->long_term_pic_idx[LIST_0]);
-		MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_1]);
-		MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_1]);
-		MPP_FREE(currSlice->long_term_pic_idx[LIST_1]);
-		MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_0]);
-		MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_1]);
-	}
+    if (currSlice) {
+        MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_0]);
+        MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_0]);
+        MPP_FREE(currSlice->long_term_pic_idx[LIST_0]);
+        MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_1]);
+        MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_1]);
+        MPP_FREE(currSlice->long_term_pic_idx[LIST_1]);
+        MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_0]);
+        MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_1]);
+    }
 }
 MPP_RET alloc_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	currSlice->modification_of_pic_nums_idc[LIST_0] = NULL;
-	currSlice->abs_diff_pic_num_minus1[LIST_0]      = NULL;
-	currSlice->long_term_pic_idx[LIST_0]            = NULL;
-	currSlice->abs_diff_view_idx_minus1[LIST_0]     = NULL;
-	if (currSlice->slice_type != I_SLICE && currSlice->slice_type != SI_SLICE)  {
-		RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
-		MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_0] = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_0]      = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_0]            = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_0]     = mpp_calloc(RK_U32, size));
-	}
-	currSlice->modification_of_pic_nums_idc[LIST_1] = NULL;
-	currSlice->abs_diff_pic_num_minus1[LIST_1]      = NULL;
-	currSlice->long_term_pic_idx[LIST_1]            = NULL;
-	currSlice->abs_diff_view_idx_minus1[LIST_1]     = NULL;
-	if (currSlice->slice_type == B_SLICE)  {
-		RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
-		MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_1] = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_1]      = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_1]            = mpp_calloc(RK_U32, size));
-		MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_1]     = mpp_calloc(RK_U32, size));
-	} 
-	return ret = MPP_OK;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    currSlice->modification_of_pic_nums_idc[LIST_0] = NULL;
+    currSlice->abs_diff_pic_num_minus1[LIST_0]      = NULL;
+    currSlice->long_term_pic_idx[LIST_0]            = NULL;
+    currSlice->abs_diff_view_idx_minus1[LIST_0]     = NULL;
+    if (currSlice->slice_type != I_SLICE && currSlice->slice_type != SI_SLICE)  {
+        RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
+        MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_0] = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_0]      = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_0]            = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_0]     = mpp_calloc(RK_U32, size));
+    }
+    currSlice->modification_of_pic_nums_idc[LIST_1] = NULL;
+    currSlice->abs_diff_pic_num_minus1[LIST_1]      = NULL;
+    currSlice->long_term_pic_idx[LIST_1]            = NULL;
+    currSlice->abs_diff_view_idx_minus1[LIST_1]     = NULL;
+    if (currSlice->slice_type == B_SLICE)  {
+        RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
+        MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_1] = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_1]      = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_1]            = mpp_calloc(RK_U32, size));
+        MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_1]     = mpp_calloc(RK_U32, size));
+    }
+    return ret = MPP_OK;
 __FAILED:
-	free_ref_pic_list_reordering_buffer(currSlice);
-	return ret;
+    free_ref_pic_list_reordering_buffer(currSlice);
+    return ret;
 }
 /*!
 ***********************************************************************
