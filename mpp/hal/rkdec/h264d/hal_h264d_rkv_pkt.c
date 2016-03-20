@@ -445,13 +445,10 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
             p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = pp->RefFrameList[i].Index7Bits + 1;
 #else
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
-                ref_index = pp->RefFrameList[i].Index7Bits;
+                ref_index  = pp->RefFrameList[i].Index7Bits;
                 near_index = pp->RefFrameList[i].Index7Bits;
-            }
-            if (near_index < 0) {
-                ref_index = pp->CurrPic.Index7Bits;
             } else {
-                ref_index = pp->RefFrameList[i].Index7Bits;
+                ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
             }
             mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &frame_buf); //!< reference phy addr
             p_regs->swreg10_24_refer0_14_base[i].sw_refer_base = mpp_buffer_get_fd(frame_buf);
@@ -466,10 +463,10 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
 #if FPGA_TEST
         p_regs->swreg48_refer15_base.sw_refer_base = pp->RefFrameList[15].Index7Bits + 1;
 #else
-        if (pp->RefFrameList[15].bPicEntry == 0xff) {
-            ref_index = pp->CurrPic.Index7Bits;
-        } else {
+        if (pp->RefFrameList[15].bPicEntry != 0xff) {
             ref_index = pp->RefFrameList[15].Index7Bits;
+        } else {
+            ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
         }
         mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &frame_buf); //!< reference phy addr
         p_regs->swreg48_refer15_base.sw_refer_base = mpp_buffer_get_fd(frame_buf);

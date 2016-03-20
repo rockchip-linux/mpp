@@ -186,11 +186,13 @@ typedef struct h264_drpm_t {
 } H264_DRPM_t;
 
 typedef enum {
-    Mem_NULL = 0,
-    Mem_Malloc = 1,
-    Mem_Clone = 2,
+    Mem_NULL     = 0,
+    Mem_Malloc   = 1,
+    Mem_Clone    = 2,
     Mem_UnPaired = 3,
-    Mem_Fake = 4,
+    Mem_TopOnly  = 4,
+    Mem_BotOnly  = 5,
+    Mem_Fake     = 6,
     Mem_Max,
 } H264_Mem_type;
 

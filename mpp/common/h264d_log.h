@@ -219,21 +219,21 @@ typedef struct h264d_logctx_t {
 #define VAL_CHECK(ret, val, ...)\
     do{ if(!(val)){\
     ret = MPP_ERR_VALUE;\
-    H264D_WARNNING("value error.\n");\
+    H264D_WARNNING("value error(%d).\n", __LINE__);\
     goto __FAILED;\
     } } while (0)
 //!< memory malloc check
 #define MEM_CHECK(ret, val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_MALLOC;\
-    H264D_ERR("malloc buffer error.\n");\
+    H264D_ERR("malloc buffer error(%d).\n", __LINE__);\
     ASSERT(0); goto __FAILED;\
     } } while (0)
 //!< file check
 #define FLE_CHECK(ret, val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_OPEN_FILE;\
-    H264D_WARNNING("open file error.\n");\
+    H264D_WARNNING("open file error(%d).\n", __LINE__);\
     ASSERT(0); goto __FAILED;\
     } } while (0)
 
@@ -241,7 +241,7 @@ typedef struct h264d_logctx_t {
 #define INP_CHECK(ret, val, ...)\
     do{ if((val)) {\
     ret = MPP_ERR_INIT;\
-    H264D_WARNNING("input empty.\n");\
+    H264D_WARNNING("input empty(%d).\n", __LINE__);\
     goto __RETURN;\
     } } while (0)
 //!< function return check

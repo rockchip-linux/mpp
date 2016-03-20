@@ -28,8 +28,9 @@
 extern "C" {
 #endif
 
-MPP_RET init_picture  (H264_SLICE_t *currSlice);
-
+MPP_RET update_dpb    (H264_DecCtx_t  *p_Dec);
+MPP_RET init_picture  (H264_SLICE_t   *currSlice);
+MPP_RET reset_dpb_mark(H264_DpbMark_t *p_mark, RK_U32 idx);
 #ifdef  __cplusplus
 }
 #endif
