@@ -33,7 +33,7 @@
 #include "h264d_sps.h"
 #include "h264d_slice.h"
 #include "h264d_dpb.h"
-
+#include "h264d_init.h"
 
 static void close_log_files(LogEnv_t *env)
 {
@@ -362,13 +362,9 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->mem->dxva_ctx.p_Dec = p_Dec;
     FUN_CHECK(ret = init_dxva_ctx(&p_Dec->mem->dxva_ctx));
     p_Dec->dxva_ctx = &p_Dec->mem->dxva_ctx;
-    //!< init Dpb_memory Mark, for fpga check
+    //!< init Dpb_memory Mark
     for (i = 0; i < MAX_MARK_SIZE; i++) {
-        p_Dec->dpb_mark[i].top_used = 0;
-        p_Dec->dpb_mark[i].bot_used = 0;
-        p_Dec->dpb_mark[i].mark_idx = i;
-        p_Dec->dpb_mark[i].slot_idx = -1;
-        p_Dec->dpb_mark[i].pic      = NULL;
+        reset_dpb_mark(&p_Dec->dpb_mark[i], i);
     }
     mpp_buf_slot_setup(p_Dec->frame_slots, MAX_MARK_SIZE);
     //!< malloc mpp packet
@@ -401,15 +397,14 @@ static void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
             MppFrame mframe = NULL;
             mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
             if (mframe) {
-                H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_BUF_FLUSH] p_mark->slot_idx=%d", p_mark->slot_idx);
+                H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_BUF_FLUSH] slot_idx=%d, top_used=%d, bot_used=%d",
+                          p_mark->slot_idx, p_mark->top_used, p_mark->bot_used);
                 mpp_buf_slot_set_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
                 mpp_buf_slot_enqueue(p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
                 mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
-                //  mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-                //  p_Dec->last_frame_slot_idx = p_mark->slot_idx;
             }
         }
-        p_mark->out_flag = 0;
+        reset_dpb_mark(p_mark, i);
     }
 }
 
@@ -499,7 +494,6 @@ __RETURN:
 */
 MPP_RET h264d_reset(void *decoder)
 {
-    RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
     H264dCurStream_t *p_strm = NULL;
@@ -562,14 +556,6 @@ MPP_RET h264d_reset(void *decoder)
     memset(p_Dec->dpb_old[0], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
     memset(p_Dec->dpb_old[1], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
 
-    //!< reset dpb
-    // layer_id == 1
-    for (i = 0; i < MAX_MARK_SIZE; i++) {
-        p_Dec->dpb_mark[i].top_used = 0;
-        p_Dec->dpb_mark[i].bot_used = 0;
-        p_Dec->dpb_mark[i].slot_idx = -1;
-        p_Dec->dpb_mark[i].pic      = NULL;
-    }
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 
 __RETURN:

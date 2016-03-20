@@ -39,11 +39,10 @@ MPP_RET store_picture_in_dpb (H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 
 MPP_RET init_dpb    (H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type);
 MPP_RET flush_dpb   (H264_DpbBuf_t   *p_Dpb, RK_S32 type);
-MPP_RET update_dpb  (H264_DecCtx_t   *p_Dec);
+
 void    free_dpb    (H264_DpbBuf_t   *p_Dpb);
 MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_pic);
-MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice);
-MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice);
+
 RK_U32  get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure);
 void flush_muti_view_output(MppBufSlots frame_slots, H264dOutList_t *p_list, H264dVideoCtx_t *p_Vid);
