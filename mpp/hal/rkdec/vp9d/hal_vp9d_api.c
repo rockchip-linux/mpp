@@ -619,8 +619,8 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     pic_h[1] = vp9_ver_align(pic_param->height) / 2; //(p_cm->height + 1) / 2;
     pic_h[2] = pic_h[1];
 
-    sw_y_hor_virstride = vp9_hor_align(pic_param->width * bit_depth) / 128;
-    sw_uv_hor_virstride = vp9_hor_align(pic_param->width * bit_depth) / 128;
+    sw_y_hor_virstride = (vp9_hor_align((pic_param->width* bit_depth)>>3) >> 4);
+    sw_uv_hor_virstride = (vp9_hor_align((pic_param->width* bit_depth)>>3) >> 4);
     sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
 
     sw_uv_virstride = pic_h[1] * sw_uv_hor_virstride;
@@ -671,8 +671,8 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
         pic_h[0] = vp9_ver_align(ref_frame_height_y);
         pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
-        y_hor_virstride = vp9_hor_align(ref_frame_width_y * bit_depth) / 128 ;
-        uv_hor_virstride = vp9_hor_align(ref_frame_width_y * bit_depth) / 128 ;
+        y_hor_virstride = (vp9_hor_align((ref_frame_width_y* bit_depth) >> 3) >> 4);
+        uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
         y_virstride = y_hor_virstride * pic_h[0];
         uv_virstride = uv_hor_virstride * pic_h[1];
         yuv_virstride = y_virstride + uv_virstride;
