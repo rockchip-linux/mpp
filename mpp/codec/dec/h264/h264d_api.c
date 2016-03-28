@@ -653,10 +653,14 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->in_dts = mpp_packet_get_dts(pkt);
 
     if (mpp_packet_get_eos(pkt)) {
+        if (p_Inp->in_length < 4) {
+            h264d_flush(decoder);
+        }
         p_Inp->in_buf      = NULL;
         p_Inp->in_length   = 0;
         p_Inp->pkt_eos     = 1;
         p_Inp->has_get_eos = 1;
+
     } else {
         p_Inp->in_buf      = (RK_U8 *)mpp_packet_get_pos(pkt);
         p_Inp->in_length   = mpp_packet_get_length(pkt);
@@ -673,13 +677,12 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     }
     H264D_DBG(H264D_DBG_INPUT, "[pkt_in_timeUs] is_avcC=%d, in_pts=%lld, pkt_eos=%d, len=%d, g_framecnt=%d \n",
               p_Inp->is_nalff, p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
-
     if (p_Inp->is_nalff) {
         (ret = parse_prepare_extra_data(p_Inp, p_Dec->p_Cur));
         task->valid = p_Inp->task_valid;  //!< prepare valid flag
     } else  {
         do {
-            (ret = parse_prepare(p_Inp, p_Dec->p_Cur));
+            (ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur));
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
         } while (mpp_packet_get_length(pkt) && !task->valid);
     }
