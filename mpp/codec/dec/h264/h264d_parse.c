@@ -33,6 +33,7 @@
 #include "h264d_sei.h"
 #include "h264d_init.h"
 #include "h264d_fill.h"
+#include "h264d_log.h"
 
 #define  HEAD_MAX_SIZE        12800
 
@@ -332,7 +333,6 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
     RK_U32 add_size = 0;
 
     //!< fill head buffer
-    //mpp_log("store_cur_nalu function In \n");
     if (   (p_strm->nalu_type == NALU_TYPE_SLICE)
            || (p_strm->nalu_type == NALU_TYPE_IDR)
            || (p_strm->nalu_type == NALU_TYPE_SPS)
@@ -365,6 +365,8 @@ static MPP_RET store_cur_nalu(H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx
         memcpy(p_des + sizeof(g_start_precode), p_strm->nalu_buf, p_strm->nalu_len);
         dxva_ctx->strm_offset += p_strm->nalu_len + sizeof(g_start_precode);
     }
+
+
     return ret = MPP_OK;
 __FAILED:
     return ret;
@@ -573,7 +575,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_Dec->p_Inp->task_valid = 1;
         p_Dec->p_Inp->task_eos = 1;
         LogInfo(p_Inp->p_Dec->logctx.parr[RUN_PARSE], "----- end of stream ----");
-        //mpp_log("----- eos: end of stream ----\n");
         goto __RETURN;
     }
     //!< check input
@@ -592,11 +593,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
             if (p_strm->nalu_len == 1) {
                 p_strm->nalu_type = p_strm->nalu_buf[0] & 0x1F;
-                //nalu_header_bytes += 1;
-                //if ((p_strm->nalu_type == NALU_TYPE_PREFIX)
-                //  || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-                //      nalu_header_bytes += 3;
-                //}
 
                 if (p_strm->nalu_type == NALU_TYPE_SLICE
                     || p_strm->nalu_type == NALU_TYPE_IDR || p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
@@ -633,11 +629,14 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_Inp->in_length = pkt_impl->length;
     //!< check input
     if (!p_Inp->in_length) {
+        if (!p_Cur->p_Inp->task_valid) {
+            p_Dec->nalu_ret = EndOfNalu;
+            FUN_CHECK(ret = store_cur_nalu(&p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
+        } else {
+            p_Dec->nalu_ret = HaveNoStream;
+        }
         p_strm->nalu_offset = 0;
-        p_Dec->nalu_ret = HaveNoStream;
-
         p_strm->endcode_found = 1;
-        p_Dec->nalu_ret = EndOfNalu;
 
         reset_nalu(p_strm);
         p_strm->startcode_found = 0;

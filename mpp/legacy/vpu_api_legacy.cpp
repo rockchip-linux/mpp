@@ -159,8 +159,8 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
-            mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d", aDecOut->timeUs,
-                    mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+            mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d, eos=%d", aDecOut->timeUs,
+                    mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe), mpp_frame_get_eos(mframe));
         }
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
