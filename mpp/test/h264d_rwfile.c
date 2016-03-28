@@ -48,7 +48,7 @@
 static const RK_U32 IOBUFSIZE   = 16 * 1024 * 1024; //524288
 static const RK_U32 STMBUFSIZE  = 16 * 1024 * 1024; //524288
 
-
+RK_U32 rkv_h264d_test_debug = 0;
 //!< values for nalu_type
 typedef enum {
     NALU_TYPE_NULL = 0,
@@ -507,14 +507,6 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     ASSERT(forbidden_bit == 0);
     read_bits( pStrmData, 2, &nal_reference_idc);
     read_bits( pStrmData, 5, &nalu_type);
-    if (g_nalu_cnt2 == 344) {
-        g_nalu_cnt2 = g_nalu_cnt2;
-    }
-    //if (g_debug_file0 == NULL)
-    //{
-    //  g_debug_file0 = fopen("rk_debugfile_view0.txt", "wb");
-    //}
-    //FPRINT(g_debug_file0, "[Read_NALU] g_nalu_cnt = %d, nalu_type = %d, nalu_size = %d\n", g_nalu_cnt2++, nalu_type, p_in->IO.nalubytes);
 
     nalu_header_bytes = 1;
     if ((nalu_type == NALU_TYPE_PREFIX) || (nalu_type == NALU_TYPE_SLC_EXT)) {
@@ -528,10 +520,6 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     if ( nalu_type == NALU_TYPE_SLICE || nalu_type == NALU_TYPE_IDR) {
         set_streamdata(pStrmData, (p_in->IO.pNALU + nalu_header_bytes), 4); // reset
         read_ue(pStrmData, &first_mb_in_slice);
-        //FPRINT(g_debug_file0, "first_mb_in_slice = %d \n", first_mb_in_slice);
-        //if (first_mb_in_slice == 0) {
-        //  FPRINT(g_debug_file0, "--- new frame ---- \n");
-        //}
         if (!p_in->is_fist_frame && (first_mb_in_slice == 0)) {
             p_in->is_new_frame = 1;
         }

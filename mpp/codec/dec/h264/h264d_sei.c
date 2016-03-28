@@ -68,7 +68,7 @@ static MPP_RET interpret_user_data_unregistered_info(RK_U8 *payload, RK_S32 size
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    H264D_DBG(H264D_DBG_SEI, "[SEI info] user data info, size=%d", size);
+    H264D_DBG(H264D_DBG_SEI, "[SEI_info] user data info, size=%d", size);
     ASSERT(size >= 16);
 
     sei_msg->user_data_DivX_flag = strstr(_strupr((char *)&payload[16]), "DIVX") ? 1 : 0;
@@ -247,7 +247,7 @@ static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_S
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t  *p_Vid = cur_slice->p_Vid;
 
-    H264D_DBG(H264D_DBG_SEI, "[SEI info] type=%d \n", sei_msg->type);
+    H264D_DBG(H264D_DBG_SEI, "[SEI_info] type=%d \n", sei_msg->type);
     switch (sei_msg->type) {
     case  SEI_BUFFERING_PERIOD:
         FUN_CHECK(ret = interpret_buffering_period_info(msg, sei_msg->payload_size, p_bitctx, sei_msg));

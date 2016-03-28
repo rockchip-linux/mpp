@@ -342,8 +342,8 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     }
     VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
 
-    H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d", currSlice->layer_id,
-              cur_sps->seq_parameter_set_id, cur_pps->pic_parameter_set_id);
+    H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d, structure=%d", currSlice->layer_id,
+              cur_sps->seq_parameter_set_id, cur_pps->pic_parameter_set_id, currSlice->structure);
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
     FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));
@@ -443,14 +443,13 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     LogInfo(p_bitctx->ctx, "----------------------------- SLICE begin --------------------------------");
     //!< read slice head syntax
     READ_UE(p_bitctx, &currSlice->start_mb_nr, "first_mb_in_slice");
-    //FPRINT(g_debug_file1, "first_mb_in_slice = %d \n", currSlice->start_mb_nr);
+    READ_UE(p_bitctx, &temp, "slice_type");
+    p_Vid->slice_type = currSlice->slice_type = temp % 5;
+    READ_UE(p_bitctx, &currSlice->pic_parameter_set_id, "slice_pic_parameter_set_id");
+    init_slice_parmeters(currSlice);
+    FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
+    //!< read rest slice header syntax
     if (currSlice->start_mb_nr == 0/*is_new_picture(currSlice)*/) {
-        READ_UE(p_bitctx, &temp, "slice_type");
-        p_Vid->slice_type = currSlice->slice_type = temp % 5;
-        READ_UE(p_bitctx, &currSlice->pic_parameter_set_id, "slice_pic_parameter_set_id");
-        init_slice_parmeters(currSlice);
-        FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
-        //!< read rest slice header syntax
         READ_BITS(p_bitctx, currSlice->active_sps->log2_max_frame_num_minus4 + 4, &currSlice->frame_num, "frame_num");
         if (currSlice->active_sps->frame_mbs_only_flag) { //!< user in_slice info
             p_Vid->structure = FRAME;
