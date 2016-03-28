@@ -67,7 +67,7 @@ do {\
 #define H264D_ERR(fmt, ...)\
 do {\
     if (H264D_DBG_ERROR & rkv_h264d_parse_debug)\
-        { mpp_err(fmt, ## __VA_ARGS__); }\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #define ASSERT(val)\

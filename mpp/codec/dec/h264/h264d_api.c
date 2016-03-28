@@ -364,7 +364,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->dxva_ctx = &p_Dec->mem->dxva_ctx;
     //!< init Dpb_memory Mark
     for (i = 0; i < MAX_MARK_SIZE; i++) {
-        reset_dpb_mark(&p_Dec->dpb_mark[i], i);
+        reset_dpb_mark(&p_Dec->dpb_mark[i]);
     }
     mpp_buf_slot_setup(p_Dec->frame_slots, MAX_MARK_SIZE);
     //!< malloc mpp packet
@@ -404,7 +404,7 @@ static void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
                 mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
             }
         }
-        reset_dpb_mark(p_mark, i);
+        reset_dpb_mark(p_mark);
     }
 }
 
@@ -599,7 +599,7 @@ MPP_RET  h264d_flush(void *decoder)
     p_Dec->p_Inp->task_eos = 1;
     mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
 __RETURN:
-    H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB display] flush end, task_eos=%d, last_slot_idx=%d", p_Dec->p_Inp->task_eos, p_Dec->last_frame_slot_idx);
+    H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB_display] flush end, task_eos=%d, last_slot_idx=%d", p_Dec->p_Inp->task_eos, p_Dec->last_frame_slot_idx);
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
 __FAILED:
@@ -671,7 +671,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
             goto __RETURN;
         }
     }
-    H264D_DBG(H264D_DBG_INPUT, "[pkt_in timeUs] is_avcC=%d, in_pts=%lld, pkt_eos=%d, len=%d, g_framecnt=%d \n",
+    H264D_DBG(H264D_DBG_INPUT, "[pkt_in_timeUs] is_avcC=%d, in_pts=%lld, pkt_eos=%d, len=%d, g_framecnt=%d \n",
               p_Inp->is_nalff, p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
 
     if (p_Inp->is_nalff) {
@@ -679,7 +679,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         task->valid = p_Inp->task_valid;  //!< prepare valid flag
     } else  {
         do {
-            (ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur));
+            (ret = parse_prepare(p_Inp, p_Dec->p_Cur));
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
         } while (mpp_packet_get_length(pkt) && !task->valid);
     }
@@ -753,7 +753,7 @@ __FAILED: {
             mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
             mpp_buf_slot_enqueue (p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
             mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
-            dec_pic->mem_mark->out_flag = 0;
+            reset_dpb_mark(dec_pic->mem_mark);
             p_Dec->p_Vid->dec_pic = NULL;
             mpp_frame_set_discard(mframe, 1);
         }

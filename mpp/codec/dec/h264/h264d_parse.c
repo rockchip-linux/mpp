@@ -226,6 +226,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     switch (currSlice->p_Cur->nalu.nalu_type) {
     case NALU_TYPE_SLICE:
     case NALU_TYPE_IDR:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         FUN_CHECK(ret = process_slice(currSlice));
         if (currSlice->is_new_picture) {
             currSlice->p_Dec->nalu_ret = StartOfPicture;
@@ -235,22 +236,21 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         if (currSlice->layer_id && currSlice->p_Inp->mvc_disable) {
             currSlice->p_Dec->nalu_ret = MvcDisAble;
         }
-        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         break;
     case NALU_TYPE_SPS:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
         FUN_CHECK(ret = process_sps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_SPS;
-        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
         break;
     case NALU_TYPE_PPS:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=PPS");
         FUN_CHECK(ret = process_pps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_PPS;
-        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=PPS");
         break;
     case NALU_TYPE_SUB_SPS:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SUB_SPS");
         FUN_CHECK(ret = process_subsps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_SubSPS;
-        H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SUB_SPS");
         break;
     case NALU_TYPE_SEI:
         //FUN_CHECK(ret = process_sei(currSlice));
@@ -299,6 +299,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
+    H264D_DBG(H264D_DBG_PARSE_NALU, "parser_one_nalu error.");
     currSlice->p_Dec->nalu_ret = ReadNaluError;
     return ret;
 }

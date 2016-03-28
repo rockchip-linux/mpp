@@ -421,7 +421,7 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         {
             MppBuffer mbuffer = NULL;
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_BUFFER, &mbuffer);
-            H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
+            H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB_malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
                       p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, layer_id, p_Vid->p_Inp->in_pts);
         }
 
@@ -1890,12 +1890,11 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET reset_dpb_mark(H264_DpbMark_t *p_mark, RK_U32 idx)
+MPP_RET reset_dpb_mark(H264_DpbMark_t *p_mark)
 {
     p_mark->top_used = 0;
     p_mark->bot_used = 0;
     p_mark->out_flag = 0;
-    p_mark->mark_idx = idx;
     p_mark->slot_idx = -1;
     p_mark->pic      = NULL;
     p_mark->mframe   = NULL;

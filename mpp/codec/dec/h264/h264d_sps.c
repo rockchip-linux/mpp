@@ -568,7 +568,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         }
         VAL_CHECK(ret, p_Vid->dpb_size[0] > 0);
     }
-    H264D_DBG(H264D_DBG_DPB_INFO, "[DPB size] dpb_size[0]=%d, mvc_flag=%d, dpb_size[1]=%d",
+    H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] dpb_size[0]=%d, mvc_flag=%d, dpb_size[1]=%d",
               p_Vid->dpb_size[0], p_Vid->active_mvc_sps_flag, p_Vid->dpb_size[1]);
     update_video_pars(p_Vid, p_Vid->active_sps);
 __RETURN:

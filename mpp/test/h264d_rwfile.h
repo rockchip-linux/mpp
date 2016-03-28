@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include "rk_type.h"
 #include "mpp_err.h"
-
+#include "mpp_log.h"
 
 #ifndef __H264D_RWFILE_H__
 #define __H264D_RWFILE_H__
@@ -61,6 +61,21 @@ typedef struct inp_par_t {
     void    *bitctx;
 } InputParams;
 
+extern RK_U32 rkv_h264d_test_debug;
+
+
+#define H264D_TEST_TRACE       (0x00000001)
+#define H264D_TEST_TIME        (0x00000002)
+#define H264D_TEST_MUTI_THREAD (0x00000004)
+#define H264D_TEST_DUMPYUV     (0x00000008)
+#define H264D_TEST_FPGA        (0x00000010)
+
+
+#define H264D_TEST_LOG(level, fmt, ...)\
+do {\
+    if (level & rkv_h264d_test_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
 
 
 #ifdef __cplusplus
