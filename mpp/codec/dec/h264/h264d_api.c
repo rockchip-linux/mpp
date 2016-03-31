@@ -196,10 +196,7 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
     p_strm->head_max_size = HEAD_BUF_MAX_SIZE;
     p_strm->head_buf = mpp_malloc_size(RK_U8, p_strm->head_max_size);
     MEM_CHECK(ret, p_strm->nalu_buf && p_strm->head_buf);
-
-    p_strm->prefixdata[0] = 0xff;
-    p_strm->prefixdata[1] = 0xff;
-    p_strm->prefixdata[2] = 0xff;
+    p_strm->prefixdata = 0xffffffff;
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         p_Cur->listP[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
@@ -532,9 +529,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Cur->curr_pts  = 0;
     //!< reset current stream
     p_strm = &p_Dec->p_Cur->strm;
-    p_strm->prefixdata[0]   = 0xff;
-    p_strm->prefixdata[1]   = 0xff;
-    p_strm->prefixdata[2]   = 0xff;
+    p_strm->prefixdata      = 0xffffffff;
     p_strm->nalu_offset     = 0;
     p_strm->nalu_len        = 0;
     p_strm->head_offset     = 0;

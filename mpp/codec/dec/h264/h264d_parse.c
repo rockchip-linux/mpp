@@ -127,13 +127,8 @@ static void reset_nalu(H264dCurStream_t *p_strm)
 
 static void find_prefix_code(RK_U8 *p_data, H264dCurStream_t *p_strm)
 {
-    p_strm->prefixdata[0] = p_strm->prefixdata[1];
-    p_strm->prefixdata[1] = p_strm->prefixdata[2];
-    p_strm->prefixdata[2] = *p_data;
-
-    if (p_strm->prefixdata[0] == 0x00
-        && p_strm->prefixdata[1] == 0x00
-        && p_strm->prefixdata[2] == 0x01) {
+	p_strm->prefixdata = (p_strm->prefixdata << 8) | (*p_data);
+    if ((p_strm->prefixdata & 0x00FFFFFF) == 0x00000001) {
         if (p_strm->startcode_found) {
             p_strm->endcode_found = 1;
         } else {
@@ -580,7 +575,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     //!< check input
     if (!p_Inp->in_length) {
         p_Dec->nalu_ret = HaveNoStream;
-        //mpp_log("----- input have no stream ----\n");
         goto __RETURN;
     }
     while (pkt_impl->length > 0) {
