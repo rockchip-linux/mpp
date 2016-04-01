@@ -25,7 +25,7 @@
 
 int main()
 {
-    MPP_RET ret;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     MppPacket packet = NULL;
     void *data = NULL;
     size_t size = MPP_PACKET_TEST_SIZE;

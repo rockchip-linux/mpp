@@ -20,10 +20,12 @@ add_subdirectory(rkdec/h265d)
 
 add_subdirectory(rkdec/vp9d)
 
+add_subdirectory(rkdec/avsd)
+
 # ----------------------------------------------------------------------------
 # add hardware worker implement
 # ----------------------------------------------------------------------------
 add_subdirectory(worker/libvpu)
 add_subdirectory(worker/libv4l2)
 
-target_link_libraries(mpp_hal hal_h264d hal_vp9d hal_h265d hal_dummy)
+target_link_libraries(mpp_hal hal_h264d hal_vp9d hal_h265d hal_avsd hal_dummy)

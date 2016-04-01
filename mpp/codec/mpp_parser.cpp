@@ -27,6 +27,8 @@
 #include "h264d_api.h"
 #include "h265d_api.h"
 #include "vp9d_api.h"
+#include "avsd_api.h"
+
 // for test and demo
 #include "dummy_dec_api.h"
 
@@ -37,6 +39,7 @@ static const ParserApi *parsers[] = {
     &api_h264d_parser,
     &api_vp9d_parser,
     &api_h265d_parser,
+    &api_avsd_parser,
     &dummy_dec_parser,
 };
 

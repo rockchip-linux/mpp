@@ -22,7 +22,7 @@ set(H264D_HDR
 	h264d_dpb.h
 	h264d_init.h
 	h264d_fill.h
-	
+	h264d_rwfile.h
 	
 	) 
 	
@@ -39,7 +39,7 @@ set(H264D_SRC
 	h264d_dpb.c
 	h264d_init.c
 	h264d_fill.c
-	
+	h264d_rwfile.c
 	
 	) 
 
