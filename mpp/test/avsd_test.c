@@ -105,8 +105,6 @@ __FAILED:
     return ret;
 }
 
-
-
 int main(int argc, char **argv)
 {
     MPP_RET        ret = MPP_ERR_UNKNOW;
@@ -143,6 +141,14 @@ __FAILED:
     MPP_FREE(task);
 
     return ret;
+}
+
+#else
+
+
+int main(int argc, char **argv)
+{
+	return avsd_test_main(argc, argv);
 }
 
 #endif

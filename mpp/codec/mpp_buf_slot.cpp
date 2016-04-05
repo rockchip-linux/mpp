@@ -34,6 +34,7 @@
 #define BUF_SLOT_DBG_OPS_RUNTIME        (0x00000010)
 #define BUF_SLOT_DBG_BUFFER             (0x00000100)
 #define BUF_SLOT_DBG_FRAME              (0x00000200)
+#define BUF_SLOT_DBG_BUF_UESD           (0x00000400)
 #define BUF_SLOT_DBG_OPS_HISTORY        (0x10000000)
 
 #define buf_slot_dbg(flag, fmt, ...)    _mpp_dbg(buf_slot_debug, flag, fmt, ## __VA_ARGS__)
@@ -628,6 +629,26 @@ size_t mpp_buf_slot_get_size(MppBufSlots slots)
     return impl->buf_size;
 }
 
+RK_S32 mpp_buf_slot_get_used_size(MppBufSlots slots)
+{
+	if (NULL == slots) {
+		mpp_err_f("found NULL input\n");
+		return 0;
+	}
+	MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+	AutoMutex auto_lock(impl->lock);
+	RK_S32 i;
+	RK_S32 used_size = 0;
+	MppBufSlotEntry *slot = impl->slots;
+	for (i = 0; i < impl->buf_count; i++, slot++) {
+		if (slot->status.on_used) {
+			buf_slot_dbg(BUF_SLOT_DBG_BUF_UESD, "[BUF_USED] buf_fd=%08x", mpp_buffer_get_fd(slot->buffer));			
+			used_size++;
+		}
+	}
+	return used_size;
+}
+
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
 {
     if (NULL == slots || NULL == index) {
@@ -936,7 +957,6 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
         ret = MPP_NOK;
     } break;
     }
-
     if (MPP_OK == ret) {
         if (SLOTS_FRAME_INFO != type)
             *(RK_U32 *)val = value;

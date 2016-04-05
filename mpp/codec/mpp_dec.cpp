@@ -864,6 +864,10 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
     } break;
+	case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
+		RK_S32 *p = (RK_S32 *)param;
+		*p = mpp_buf_slot_get_used_size(dec->frame_slots);
+	} break;
     default : {
     } break;
     }

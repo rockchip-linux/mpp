@@ -25,11 +25,7 @@ add_library(codec_avsd STATIC
 			${AVSD_HDR} 
 			${AVSD_SRC} 
 		)
-if(EXISTS codec_avsd_impl)
-    target_link_libraries(codec_avsd codec_avsd codec_avsd_impl)
-else()
-    target_link_libraries(codec_avsd mpp)
-endif()
 
+target_link_libraries(codec_avsd mpp)
 set_target_properties(codec_avsd PROPERTIES FOLDER "mpp/codec")	
 

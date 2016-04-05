@@ -50,7 +50,7 @@
 //!< hal marco
 #define H264D_DBG_GEN_REGS          (0x01000000)
 #define H264D_DBG_RET_REGS          (0x02000000)
-
+#define H264D_DBG_DECOUT_INFO       (0x04000000)
 
 extern RK_U32 rkv_h264d_parse_debug;
 

@@ -165,7 +165,7 @@ void    mpp_frame_set_ver_stride(MppFrame frame, RK_U32 ver_stride);
 RK_U32  mpp_frame_get_mode(const MppFrame frame);
 void    mpp_frame_set_mode(MppFrame frame, RK_U32 mode);
 RK_U32  mpp_frame_get_discard(const MppFrame frame);
-void    mpp_frame_set_discard(MppFrame frame, RK_U32 display);
+void    mpp_frame_set_discard(MppFrame frame, RK_U32 discard);
 RK_U32  mpp_frame_get_viewid(const MppFrame frame);
 void    mpp_frame_set_viewid(MppFrame frame, RK_U32 viewid);
 RK_U32  mpp_frame_get_poc(const MppFrame frame);

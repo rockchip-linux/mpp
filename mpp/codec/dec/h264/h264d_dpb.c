@@ -918,8 +918,10 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
     H264_DpbMark_t *p_mark = NULL;
 
     p_mark = p->mem_mark;
-    H264D_DBG(H264D_DBG_DPB_FREE, "[DPB_free] write_picture, type=%d, structure=%d, poc=%d, out_flag=%d",
-              p->mem_malloc_type, p->structure, p->poc, p_mark->out_flag);
+	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] type=%d", p->mem_malloc_type);
+	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] poc=%d", p->poc);
+	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] p_mark=%p", p_mark);
+	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] In, out_flag=%d", p_mark->out_flag);
     if ((p->mem_malloc_type == Mem_Malloc
          || p->mem_malloc_type == Mem_TopOnly
          || p->mem_malloc_type == Mem_BotOnly)
@@ -969,8 +971,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB_dispaly] layer_id=%d, pic_num=%d, poc=%d, last_poc=%d, slice_type=%d(idr=%d), slot_idx=%d(%p), pts=%lld, g_framecnt=%d \n",
                       p->layer_id, p->pic_num, p->poc, p_Vid->last_outputpoc[p->layer_id], p->slice_type, p->idr_flag, p_mark->slot_idx, mbuffer, mpp_frame_get_pts(mframe), p_Vid->g_framecnt);
         }
-        H264D_DBG(H264D_DBG_DPB_FREE, "[DPB_free] after, out_flag=%d", p_mark->out_flag);
-
+        H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] Out, out_flag=%d", p_mark->out_flag);
     }
 }
 
@@ -1685,7 +1686,7 @@ void free_storable_picture(H264_DecCtx_t *p_Dec, H264_StorePic_t *p)
         }
         if (p->mem_malloc_type == Mem_BotOnly) {
             free_dpb_mark(p_Dec, p->mem_mark, BOTTOM_FIELD);
-        }
+        }		
         MPP_FREE(p);
     }
 }
