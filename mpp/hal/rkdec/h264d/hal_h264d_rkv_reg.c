@@ -384,6 +384,8 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
             rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
         }
     }
+	//!< current buffer slot fd
+	H264D_DBG(H264D_DBG_DECOUT_INFO, "[DECOUT_INFO] decout_fd=0x%02x", p_regs[7]);
 #ifdef ANDROID
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;

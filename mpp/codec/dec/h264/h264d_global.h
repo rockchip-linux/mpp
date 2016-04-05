@@ -1065,7 +1065,7 @@ typedef struct h264_dec_ctx_t {
     struct h264d_mem_t        *mem;
     struct h264_dpb_mark_t    *dpb_mark;         //!< for write out, MAX_DPB_SIZE
     struct h264_dpb_info_t    *dpb_info;         //!< 16
-    struct h264_dpb_info_t    *dpb_old[2];       //!< 16
+    //struct h264_dpb_info_t    *dpb_old[2];       //!< 16
     struct h264_refpic_info_t *refpic_info_p;    //!< 32
     struct h264_refpic_info_t *refpic_info_b[2]; //!< [2][32]
     struct h264d_dxva_ctx_t   *dxva_ctx;

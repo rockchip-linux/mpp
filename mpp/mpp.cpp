@@ -305,6 +305,15 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         *((RK_S32 *)param) = mPackets->list_size();
         break;
     }
+	case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
+	    AutoMutex autoLock(mPackets->mutex());
+		if (mType == MPP_CTX_DEC) {
+			mpp_dec_control(mDec, cmd, param);
+		}
+	    break;
+	}
+
+
     default : {
     } break;
     }

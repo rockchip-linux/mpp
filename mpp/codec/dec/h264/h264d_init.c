@@ -417,10 +417,6 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
             mpp_frame_deinit(&mframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
-        }
-        {
-            MppBuffer mbuffer = NULL;
-            mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_BUFFER, &mbuffer);
             H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB_malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, lay_id=%d, pts=%lld \n",
                       p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, layer_id, p_Vid->p_Inp->in_pts);
         }
@@ -1517,14 +1513,14 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
     H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
-    memset(p_Dec->dpb_info, 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
-    memset(&p_Dec->in_task->refer, -1, sizeof(p_Dec->in_task->refer));
+	//!< reset parameters
+	for (i = 0; i < MAX_DPB_SIZE; i++) {
+		reset_dpb_info(&p_Dec->dpb_info[i]);
+	}
     if (currSlice->idr_flag && (currSlice->layer_id == 0)) { // idr_flag==1 && layer_id==0
-        memset(p_Dec->dpb_old[0], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
-        memset(p_Dec->dpb_old[1], 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
         goto __RETURN;
     }
-    //!<---- reference
+    //!< reference
 #if 1
     for (i = 0, j = 0; j < p_Dpb->ref_frames_in_buffer; i++, j++) {
         if (p_Dpb->fs_ref[j]->is_used == 3) {
@@ -1699,11 +1695,6 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
         p_Dec->dpb_info[i].is_used = p_Dpb->fs_ilref[j]->is_used;
     }
 #endif
-    //!< reset left parameters
-    for (; i < MAX_DPB_SIZE; i++) {
-        reset_dpb_info(&p_Dec->dpb_info[i]);
-    }
-    //adjust_input(currSlice);
 __RETURN:
     return MPP_OK;
 }
@@ -1847,10 +1838,12 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
 {
     RK_U32 i = 0;
     RK_S32 slot_idx = 0;
+	RK_U32 dpb_used = 0;
     H264_DecCtx_t *p_Dec = NULL;
     H264_DpbMark_t *p_mark = NULL;
 
     p_Dec = currSlice->p_Dec;
+	memset(&p_Dec->in_task->refer, -1, sizeof(p_Dec->in_task->refer));
     //!< set buf slot flag
     for (i = 0; i < MAX_DPB_SIZE; i++) {
         if ((NULL != p_Dec->dpb_info[i].refpic) && (p_Dec->dpb_info[i].slot_index >= 0)) {
@@ -1860,25 +1853,33 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
         }
     }
     //!< dpb info
-    slot_idx = currSlice->p_Vid->dec_pic->mem_mark->slot_idx;
-    ASSERT(slot_idx >= 0);
-    H264D_DBG(H264D_DBG_DPB_INFO, "---- DPB INFO ----");
-    H264D_DBG(H264D_DBG_DPB_INFO, "cur_slot_idx=%d", slot_idx);
-    for (i = 0; i < MAX_DPB_SIZE; i++) {
-        slot_idx = p_Dec->dpb_info[i].slot_index;
-        if (slot_idx >= 0) {
-            H264D_DBG(H264D_DBG_DPB_INFO, "i=%d, ref_slot_idx=%d", i, slot_idx);
-        }
-    }
+	H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_INFO] cur_slot_idx=%d", p_Dec->in_task->output);
+	for (i = 0; i < MAX_DPB_SIZE; i++) {
+		slot_idx = p_Dec->in_task->refer[i];
+		if (slot_idx >= 0) {
+			H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_INFO] ref_slot_idx[%d]=%d", i, slot_idx);
+		}
+	}
     //!< mark info
-    H264D_DBG(H264D_DBG_DPB_INFO, "---- MARK INFO ----");
     for (i = 0; i < MAX_MARK_SIZE; i++) {
+		RK_S32 fd = 0;
         p_mark = &p_Dec->dpb_mark[i];
         if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {
-            H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_BUF_FLUSH] slot_idx=%d, top_used=%d, bot_used=%d",
-                      p_mark->slot_idx, p_mark->top_used, p_mark->bot_used);
+			dpb_used++;
+			if (p_mark->slot_idx != p_Dec->in_task->output) {
+				fd = mpp_buffer_get_fd(mpp_frame_get_buffer(p_mark->mframe));
+			} else {
+				fd = 0xFF;
+			}
+            H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_MARK_INFO] slot_idx=%d, top_used=%d, bot_used=%d, fd=0x%02x",
+				p_mark->slot_idx, p_mark->top_used, p_mark->bot_used, fd);
         }
     }
+	if (dpb_used > currSlice->p_Dpb->size + 2)	{
+		h264d_reset((void *)p_Dec);
+		return MPP_NOK;
+	}
+
     return MPP_OK;
 }
 
@@ -1939,7 +1940,7 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
     prepare_init_dpb_info(currSlice);
     prepare_init_ref_info(currSlice);
 
-    check_refer_dpb_buf_slots(currSlice);
+    FUN_CHECK(ret = check_refer_dpb_buf_slots(currSlice));
     check_refer_picture_lists(currSlice);
 
     prepare_init_scanlist(currSlice);

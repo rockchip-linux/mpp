@@ -146,10 +146,10 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         return VPU_API_EOS_STREAM_REACHED;
     }
     if (MPP_OK == mpi->decode_get_frame(mpp_ctx, &mframe)) {
-        MppBuffer buf;
-        RK_U64 pts;
-        RK_U32 fd;
-        void* ptr;
+        MppBuffer buf = NULL;
+        RK_U64 pts = 0;
+        RK_U32 fd = 0;
+        void* ptr = NULL;
         aDecOut->size = sizeof(VPU_FRAME);
         vframe->DisplayWidth = mpp_frame_get_width(mframe);
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
@@ -158,10 +158,6 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
-        if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
-            mpp_log("get one frame timeUs %lld, poc=%d, errinfo=%d, discard=%d, eos=%d", aDecOut->timeUs,
-                    mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe), mpp_frame_get_eos(mframe));
-        }
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
         buf = mpp_frame_get_buffer(mframe);
@@ -205,6 +201,10 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
             vframe->vpumem.offset = (RK_U32*)buf;
         }
+		if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
+			mpp_log("get one frame timeUs %lld, fd=0x%x, poc=%d, errinfo=%d, discard=%d, eos=%d", aDecOut->timeUs, fd,
+				mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe), mpp_frame_get_eos(mframe));
+		}
         if (mpp_frame_get_eos(mframe)) {
             set_eos = 1;
             if (buf == NULL) {
@@ -310,6 +310,10 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_GET_STREAM_COUNT;
         break;
     }
+	case VPU_API_GET_VPUMEM_USED_COUNT:{
+		mpicmd = MPP_CODEC_GET_VPUMEM_USED_COUNT;
+		break;
+	}
     default: {
         break;
     }
