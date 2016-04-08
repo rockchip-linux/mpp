@@ -42,6 +42,16 @@ typedef   void (*LOG_FUN)(void *ctx, ...);
     else { mpp_assert(0); goto __BITREAD_ERR;}\
     } while (0)
 
+#define READ_LONGBITS(bitctx, num_bits, out, ...)\
+do {\
+	RK_S32 _out; \
+	bitctx->ret = mpp_read_longbits(bitctx, num_bits, &_out); \
+	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
+	if (!bitctx->ret) { *out = _out; }\
+	else { mpp_assert(0); goto __BITREAD_ERR; }\
+} while (0)
+
+
 
 #define SKIP_BITS(bitctx, num_bits)\
     do {\
@@ -131,8 +141,11 @@ typedef struct bitread_ctx_t {
 extern "C" {
 #endif
 
+//!< Read |num_bits| (1 to 31 inclusive)
 MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
+//!< read more than 32 bits data
 MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out);
+//!< skip bits
 MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits);
 MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
 MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
