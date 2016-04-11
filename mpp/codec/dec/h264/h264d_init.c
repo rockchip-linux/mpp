@@ -1330,7 +1330,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
                 mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-                if (mpp_frame_get_errinfo(mframe)) {
+                if (mframe && mpp_frame_get_errinfo(mframe)) {
                     dpb_error_flag |= 1;
                     H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d",
                               p_Vid->p_Dec->p_Vid->g_framecnt, tmp->mem_mark->slot_idx, i, mpp_frame_get_errinfo(mframe));
@@ -1339,9 +1339,13 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d", currSlice->structure, picNumLX);
                 ASSERT(tmp != NULL);
                 if (tmp) {
-                    fake_short_term_pic(currSlice, picNumLX, tmp);
+					MppFrame mframe = NULL;
+                    fake_short_term_pic(currSlice, picNumLX, tmp);					
+					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+					if (mframe && mpp_frame_get_errinfo(mframe)) {
+						dpb_error_flag |= 1;
+					}
                 }
-                dpb_error_flag |= 0;
             }
 #endif
         } else { //!< (modification_of_pic_nums_idc[i] == 2)
