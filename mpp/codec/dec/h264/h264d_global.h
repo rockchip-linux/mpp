@@ -917,14 +917,6 @@ typedef struct h264d_cur_ctx_t {
     RK_S64                    curr_dts;
 } H264dCurCtx_t;
 
-//!< decoder video parameter
-//!< output list marking
-typedef struct h264d_outlist_t {
-    RK_U32 begin;
-    RK_U32 end;
-    RK_U32 max_size;
-    H264_DpbMark_t *list[MAX_MARK_SIZE];
-} H264dOutList_t;
 //!< parameters for video decoder
 typedef struct h264d_video_ctx_t {
     struct h264_sps_t            spsSet[MAXSPS];      //!< MAXSPS, all sps storage
@@ -995,10 +987,6 @@ typedef struct h264d_video_ctx_t {
     RK_U32     g_framecnt;
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
 
-    RK_S32    last_outputpoc[MAX_NUM_DPB_LAYERS];
-    RK_U32    iframe_cnt;
-    RK_S32    first_iframe_poc;
-    struct h264d_outlist_t outlist[MAX_NUM_DPB_LAYERS];
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
@@ -1056,9 +1044,8 @@ typedef struct h264_err_ctx_t {
     RK_U32    parse_err_flag;
     RK_U32    dpb_err_flag;
     RK_U32    used_for_ref_flag;
-    RK_U32    i_slice_no;
-    RK_U32    dpb_err[MAX_NUM_DPB_LAYERS];
-    RK_U32    pre_status[MAX_NUM_DPB_LAYERS];
+    RK_U32    has_i_slice_flag;
+    RK_S32    first_iframe_poc;
 } H264dErrCtx_t;
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {

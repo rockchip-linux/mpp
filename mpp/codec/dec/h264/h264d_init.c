@@ -1396,6 +1396,12 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
         } else {
             p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1]);
         }
+		//!< B_SLICE only has one refer
+		if ((currSlice->active_sps->vui_seq_parameters.num_reorder_frames > 1)
+			&& (currSlice->p_Dpb->ref_frames_in_buffer < 2)) {
+			p_Dec->errctx.dpb_err_flag |= VPU_FRAME_ERR_UNKNOW;
+			H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] error, B frame only has one refer");
+		}
     }
 #endif
 
@@ -1911,19 +1917,31 @@ MPP_RET reset_dpb_mark(H264_DpbMark_t *p_mark)
 //extern "C"
 MPP_RET init_picture(H264_SLICE_t *currSlice)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264_DecCtx_t *p_Dec = currSlice->p_Vid->p_Dec;
+	RK_U32 recoder_flag = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;	
+    H264_DecCtx_t *p_Dec   = currSlice->p_Vid->p_Dec;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
+	H264dErrCtx_t *p_err   = &p_Dec->errctx;
 
-    p_Dec->errctx.i_slice_no += ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) ? 1 : 0;
-    if (!p_Dec->errctx.i_slice_no) {
-        H264D_WARNNING("[Discard] Discard slice before I Slice.");
-        p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
-        ret = MPP_NOK;
-        goto __FAILED;
-    }
+	//!< discard stream before I_SLICE
+	if (!p_err->has_i_slice_flag) {
+		if ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
+			recoder_flag = 1; //!< recode
+			p_err->has_i_slice_flag = 1;
+		} else {
+			H264D_WARNNING("[Discard] Discard slice before I Slice.");
+			p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
+			ret = MPP_NOK;
+			goto __FAILED;
+		}
+	}
     p_Dec->errctx.used_for_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
+
     FUN_CHECK(ret = alloc_decpic(currSlice));
+
+	if (p_err->has_i_slice_flag && recoder_flag) {
+		p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc 
+	}	
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {
         ASSERT(currSlice->layer_id == 1);

@@ -248,9 +248,6 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->p_Dpb_layer[i]->layer_id  = i;
         p_Vid->p_Dpb_layer[i]->p_Vid     = p_Vid;
         p_Vid->p_Dpb_layer[i]->init_done = 0;
-        memset(&p_Vid->outlist[i], 0, sizeof(p_Vid->outlist[i]));
-        p_Vid->outlist[i].max_size = MAX_MARK_SIZE;
-        p_Vid->last_outputpoc[i] = -1;
     }
     //!< init video pars
     for (i = 0; i < MAXSPS; i++) {
@@ -272,9 +269,6 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->subspsSet[i].num_views_minus1 = -1;
         p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
     }
-    p_Vid->iframe_cnt = 0;
-    //!< memset error context
-
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -499,7 +493,6 @@ MPP_RET h264d_reset(void *decoder)
         // layer_id == 1
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        flush_muti_view_output(p_Dec->frame_slots, p_Dec->p_Vid->outlist, p_Dec->p_Vid);
     }
     flush_dpb_buf_slot(p_Dec);
     //!< reset input parameter
@@ -513,11 +506,8 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Inp->has_get_eos   = 0;
     //!< reset video parameter
     p_Dec->p_Vid->g_framecnt    = 0;
-    p_Dec->p_Vid->last_outputpoc[0] = -1;
-    p_Dec->p_Vid->last_outputpoc[1] = -1;
-    p_Dec->p_Vid->iframe_cnt    = 0;
-    memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
 
+    memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
     p_Dec->p_Cur->last_pts  = 0;
@@ -580,7 +570,6 @@ MPP_RET  h264d_flush(void *decoder)
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 2));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
         //free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
-        flush_muti_view_output(p_Dec->frame_slots, p_Dec->p_Vid->outlist, p_Dec->p_Vid);
     }
     flush_dpb_buf_slot(p_Dec);
     p_Dec->p_Inp->task_eos = 1;
