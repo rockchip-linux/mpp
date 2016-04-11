@@ -866,7 +866,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] error, malloc_type unpaired, type=%d", p->mem_malloc_type);
         }
 		//!<  discard less than first i frame poc 
-		if ((p_err->i_slice_no == 1) && (p->poc < p_err->first_iframe_poc)) {
+		if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
 			mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
 			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] error, cur_poc=%d, first_iframe_poc=%d", p->poc, p_err->first_iframe_poc);
 		}
