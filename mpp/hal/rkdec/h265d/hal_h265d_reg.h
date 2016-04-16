@@ -35,7 +35,7 @@ extern RK_U32 h265h_debug;
 #define H265H_DBG_RPS               (0x00000002)
 #define H265H_DBG_PPS               (0x00000004)
 #define H265H_DBG_REG               (0x00000008)
-
+#define H265H_DBG_FAST_ERR          (0x00000010)
 
 #define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)
 

@@ -41,8 +41,8 @@
 
 #define mpp_free(ptr) mpp_osal_free(ptr)
 
-#define MPP_FREE(ptr) do{ if(ptr) { mpp_free(ptr); ptr = NULL; } } while (0)
-
+#define MPP_FREE(ptr)   do { if(ptr) mpp_free(ptr); ptr = NULL; } while (0)
+#define MPP_FCLOSE(fp)  do { if(fp)  fclose(fp);     fp = NULL; } while (0)
 
 #ifdef __cplusplus
 extern "C" {

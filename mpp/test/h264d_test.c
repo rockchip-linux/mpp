@@ -303,6 +303,7 @@ static MPP_RET decoder_single_test(H264dTestCtx_t *pctx)
             FUN_CHECK(ret = mpp_hal_hw_wait(pApi->hal, task));
             if (pctx->m_dec_pkt_buf) {
                 mpp_buffer_put(pctx->m_dec_pkt_buf);
+				pctx->m_dec_pkt_buf = NULL;
             }
             mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
             mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
