@@ -21,6 +21,10 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
+static void log_info(void *ctx, ...)
+{
+	(void)ctx;
+}
 
 static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 {
@@ -29,7 +33,9 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
-    if (bitctx->need_prevention_detection && *bitctx->data_ == 0x03 && (bitctx->prev_two_bytes_ & 0xffff) == 0) {
+    if (bitctx->need_prevention_detection 
+		&& (*bitctx->data_ == 0x03) 
+		&& ((bitctx->prev_two_bytes_ & 0xffff) == 0)) {
         // Detected 0x000003, skip last byte.
         ++bitctx->data_;
         --bitctx->bytes_left_;
@@ -48,10 +54,6 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
     return MPP_OK;
 }
 
-static void log_info(void *ctx, ...)
-{
-    (void)ctx;
-}
 /*!
 ***********************************************************************
 * \brief
@@ -105,7 +107,7 @@ MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out)
 /*!
 ***********************************************************************
 * \brief
-*   skip bits
+*   skip bits (0 - 31)
 ***********************************************************************
 */
 MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits)
@@ -127,10 +129,57 @@ MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 /*!
 ***********************************************************************
 * \brief
+*   skip bits long (0 - 32)
+***********************************************************************
+*/
+MPP_RET mpp_skip_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits)
+{
+	if (mpp_skip_bits(bitctx, 16)) {
+		return  MPP_ERR_READ_BIT;
+	}
+	if (mpp_skip_bits(bitctx, (num_bits - 16))) {
+		return  MPP_ERR_READ_BIT;
+	}
+	return MPP_OK;
+}
+/*!
+***********************************************************************
+* \brief
+*   show bits (0 - 31)
+***********************************************************************
+*/
+MPP_RET mpp_show_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	BitReadCtx_t tmp_ctx = *bitctx;
+
+	ret = mpp_read_bits(bitctx, num_bits, out);
+	memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
+
+	return ret;
+}
+/*!
+***********************************************************************
+* \brief
+*   show long bits (0 - 32)
+***********************************************************************
+*/
+MPP_RET mpp_show_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	BitReadCtx_t tmp_ctx = *bitctx;
+
+	ret = mpp_read_longbits(bitctx, num_bits, out);
+	memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
+
+	return ret;
+}
+/*!
+***********************************************************************
+* \brief
 *   read unsigned data
 ***********************************************************************
 */
-
 MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32 *val)
 {
     RK_S32 num_bits = -1;
@@ -202,7 +251,7 @@ RK_U32 mpp_has_more_rbsp_data(BitReadCtx_t *bitctx)
 /*!
 ***********************************************************************
 * \brief
-*   initialize bit read contex
+*   initialize bit read context
 ***********************************************************************
 */
 void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
@@ -221,11 +270,22 @@ void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
     bitctx->wlog = log_info;
     bitctx->need_prevention_detection = 0;
 }
-
+/*!
+***********************************************************************
+* \brief
+*   set whether detect 0x03 for h264 and h265
+***********************************************************************
+*/
 void mpp_set_pre_detection(BitReadCtx_t *bitctx)
 {
     bitctx->need_prevention_detection = 1;
 }
+/*!
+***********************************************************************
+* \brief
+*   align data and get current point
+***********************************************************************
+*/
 RK_U8 *mpp_align_get_bits(BitReadCtx_t *bitctx)
 {
     int n = bitctx->num_remaining_bits_in_curr_byte_;
