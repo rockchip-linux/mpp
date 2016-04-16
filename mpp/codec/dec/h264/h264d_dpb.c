@@ -28,6 +28,7 @@
 #include "h264d_log.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
+#include "h264d_init.h"
 
 #ifndef INT_MIN
 #define INT_MIN     (-2147483647 - 1) /* minimum (signed) int value */
@@ -635,8 +636,7 @@ static void free_dpb_mark(H264_DecCtx_t *p_Dec, H264_DpbMark_t *p, RK_S32 struct
     } else if (structure == BOTTOM_FIELD) {
         p->bot_used = (p->bot_used > 0) ? (p->bot_used - 1) : 0;
     }
-    H264D_DBG(H264D_DBG_DPB_FREE, "[DPB_free] top_used=%d, bot_used=%d, out_flag=%d, slot_idx=%d \n",
-              p->top_used, p->bot_used, p->out_flag, p->slot_idx);
+    H264D_DBG(H264D_DBG_DPB_FREE, "[DPB_free] top_used=%d, bot_used=%d, out_flag=%d, slot_idx=%d \n", p->top_used, p->bot_used, p->out_flag, p->slot_idx);
     if (p->top_used == 0 && p->bot_used == 0
         && p->out_flag == 0 && (p->slot_idx >= 0)) {
         mpp_buf_slot_clr_flag(p_Dec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
@@ -652,7 +652,7 @@ static void free_dpb_mark(H264_DecCtx_t *p_Dec, H264_DpbMark_t *p, RK_S32 struct
                           p_Dec->p_Vid->g_framecnt, structure, p->mark_idx, p->slot_idx, mbuffer, poc, pts, frame);
             }
         }
-        p->slot_idx = -1;
+		reset_dpb_mark(p);
     }
 }
 
@@ -784,7 +784,7 @@ static MPP_RET dpb_combine_field_yuv(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *
             ASSERT(fs->top_field->mem_mark->slot_idx == fs->bottom_field->mem_mark->slot_idx);
             fs->frame->mem_malloc_type = fs->top_field->mem_malloc_type;
             fs->frame->mem_mark = fs->top_field->mem_mark;
-        } else if (fs->is_used == 0x1) { // unpaired, have top
+        } else if (fs->is_used == 0x01) { // unpaired, have top
             ASSERT(fs->bottom_field->mem_malloc_type == Mem_UnPaired);
             fs->frame->mem_mark = fs->top_field->mem_mark;
         } else if (fs->is_used == 0x02) { // unpaired, have bottom
@@ -841,9 +841,19 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 
     p_mark = p->mem_mark;
 	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] type=%d", p->mem_malloc_type);
+	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] structure=%d", p->structure);
 	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] poc=%d", p->poc);
 	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] p_mark=%p", p_mark);
 	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] In, out_flag=%d", p_mark->out_flag);
+
+	//if ((p->mem_malloc_type == Mem_TopOnly
+	//	|| p->mem_malloc_type == Mem_BotOnly)
+	//	&& p->structure == FRAME && p_mark->out_flag)
+	//{
+	//	p_mark->out_flag = 0;
+	//	return;
+	//}
+
     if ((p->mem_malloc_type == Mem_Malloc
          || p->mem_malloc_type == Mem_TopOnly
          || p->mem_malloc_type == Mem_BotOnly)
@@ -863,12 +873,12 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         //!< discard unpaired
         if (p->mem_malloc_type == Mem_TopOnly || p->mem_malloc_type == Mem_BotOnly) {
             mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
-			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] error, malloc_type unpaired, type=%d", p->mem_malloc_type);
+			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] discard, malloc_type unpaired, type=%d", p->mem_malloc_type);
         }
 		//!<  discard less than first i frame poc 
 		if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
 			mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
-			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] error, cur_poc=%d, first_iframe_poc=%d", p->poc, p_err->first_iframe_poc);
+			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] discard, cur_poc=%d, first_iframe_poc=%d", p->poc, p_err->first_iframe_poc);
 		}
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
         if (p_Vid->p_Dec->mvc_valid && !p_Vid->p_Inp->mvc_disable) {
@@ -878,6 +888,13 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
             p_mark->out_flag = 0;
         }
+		{
+			MppBuffer mbuffer = NULL;
+			mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_BUFFER, &mbuffer);
+			H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB_dispaly] layer_id=%d, pic_num=%d, poc=%d, slice_type=%d(idr=%d), slot_idx=%d(%p), pts=%lld, g_framecnt=%d \n",
+				p->layer_id, p->pic_num, p->poc, p->slice_type, p->idr_flag, p_mark->slot_idx, mbuffer, mpp_frame_get_pts(mframe), p_Vid->g_framecnt);
+		}
+
     }
 }
 
@@ -951,6 +968,10 @@ static MPP_RET write_stored_frame(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
 
     if (fs->is_used < 3) {
         FUN_CHECK(ret = write_unpaired_field(p_Vid, fs));
+		if (fs->top_field)       free_storable_picture(p_Vid->p_Dec, fs->top_field);
+		if (fs->bottom_field)    free_storable_picture(p_Vid->p_Dec, fs->bottom_field);
+		fs->top_field = NULL;
+		fs->bottom_field = NULL;
     } else {
         write_picture(fs->frame, p_Vid);
     }
@@ -1237,7 +1258,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         }
     }
     //!< if necessary, combine top and botteom to frame
-    if (get_filed_dpb_combine_flag(p_Dpb, p)) {
+    if (get_filed_dpb_combine_flag(p_Dpb->last_picture, p)) {
         FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->last_picture, p, 1));  //!< field_dpb_combine
         update_ref_list(p_Dpb);
         update_ltref_list(p_Dpb);
@@ -1602,26 +1623,29 @@ __FAILED:
 ***********************************************************************
 */
 //extern "C"
-RK_U32 get_filed_dpb_combine_flag(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
+RK_U32 get_filed_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p)
 {
     RK_U32 combine_flag = 0;
 
     if ((p->structure == TOP_FIELD) || (p->structure == BOTTOM_FIELD)) {
         // check for frame store with same pic_number
-        if (p_Dpb->last_picture) {
-            if ((RK_S32)p_Dpb->last_picture->frame_num == p->pic_num) {
-                if (((p->structure == TOP_FIELD) && (p_Dpb->last_picture->is_used == 2))
-                    || ((p->structure == BOTTOM_FIELD) && (p_Dpb->last_picture->is_used == 1))) {
-                    if ((p->used_for_reference && p_Dpb->last_picture->is_orig_reference) ||
-                        (!p->used_for_reference && !p_Dpb->last_picture->is_orig_reference)) {
-                        return combine_flag = 1;
+        if (p_last) {
+            if ((RK_S32)p_last->frame_num == p->pic_num) {
+                if (((p->structure == TOP_FIELD) && (p_last->is_used == 2))
+                    || ((p->structure == BOTTOM_FIELD) && (p_last->is_used == 1))) {
+#if 1					
+					if ((p->used_for_reference && p_last->is_orig_reference) ||
+						(!p->used_for_reference && !p_last->is_orig_reference)) {
+                        combine_flag = 1;
                     }
+#else
+					combine_flag = 1;
+#endif
                 }
             }
         }
-    }
-
-    return combine_flag = 0;
+    }	
+    return combine_flag;
 }
 
 /*!

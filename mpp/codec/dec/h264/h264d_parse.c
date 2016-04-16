@@ -76,6 +76,7 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     RK_U32 i = 0, j = 0;
     H264_SLICE_t *currSlice = &p_Vid->p_Cur->slice;
     FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
+
     memset(currSlice, 0, sizeof(H264_SLICE_t));
     //-- re-init parameters
     currSlice->view_id = -1;
@@ -161,16 +162,11 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         ptmp = (RK_S32 *)&cur_nal->nalu_type;
         READ_BITS(p_bitctx, 5, ptmp, "nalu_type");
     }
-    //if (g_nalu_cnt0 == 2384) {
-    //    g_nalu_cnt0 = g_nalu_cnt0;
-    //}
-
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
     if ((cur_nal->nalu_type == NALU_TYPE_PREFIX) || (cur_nal->nalu_type == NALU_TYPE_SLC_EXT)) {
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag, "svc_extension_flag");
         if (currSlice->svc_extension_flag) {
-            //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
             currSlice->mvcExt.valid = 0;
             LogInfo(logctx->parr[RUN_PARSE], "svc_extension is not supported.");
             goto __FAILED;
@@ -190,13 +186,9 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
             if (cur_nal->nalu_type == NALU_TYPE_SLC_EXT) {
                 cur_nal->nalu_type = NALU_TYPE_SLICE;
             }
-            //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
         }
         cur_nal->ualu_header_bytes += 3;
     }
-    //else {
-    //FPRINT(logctx->parr[LOG_READ_NALU]->fp, "g_nalu_cnt=%d, nalu_type=%d, len=%d \n", g_nalu_cnt++, cur_nal->nalu_type, cur_nal->sodb_len);
-    //}
     mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
     mpp_set_pre_detection(p_bitctx);
     p_Cur->p_Dec->nalu_ret = StartofNalu;
@@ -224,7 +216,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     case NALU_TYPE_IDR:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         FUN_CHECK(ret = process_slice(currSlice));
-        if (currSlice->is_new_picture) {
+        if (currSlice->new_frame_flag) {
             currSlice->p_Dec->nalu_ret = StartOfPicture;
         } else {
             currSlice->p_Dec->nalu_ret = StartOfSlice;

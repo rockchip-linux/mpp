@@ -375,7 +375,8 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[67] = 0x000000ff;   // disable fpga reset
     p_regs[44] = 0xffffffff;   // 0xffff_ffff, debug enable
     p_regs[77] = 0xffffffff;   // 0xffff_dfff, debug enable
-    p_regs[1] = 0x00000021;   // run hardware
+
+    p_regs[1] |= 0x00000061;   // run hardware, enable buf_empty_en
     //!< dump input register
     {
         H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
@@ -443,8 +444,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     p_regs->slot_idx = task->dec.output;
     p_regs->dpb_err_flag = task->dec.dpb_err_flag;
     p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
-    if (p_hal->init_cb.callBack
-        && (p_regs->swreg1_int.sw_dec_error_sta || p_regs->dpb_err_flag)) {
+    if (p_hal->init_cb.callBack) {
         p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
     }
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));

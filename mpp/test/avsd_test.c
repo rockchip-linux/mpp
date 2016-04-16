@@ -42,7 +42,7 @@
 
 
 
-#ifdef AVS_TEST__
+#ifdef AVS_TEST
 int main(int argc, char **argv)
 {
 	return avsd_test_main(argc, argv);

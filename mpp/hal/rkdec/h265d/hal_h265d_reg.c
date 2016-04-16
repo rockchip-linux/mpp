@@ -1540,9 +1540,8 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 					
 			}
 		} else {
-			if (reg_cxt->fast_mode && reg_cxt->fast_mode_err_found) {
-				RK_U32 i = 0;			
-				for (i = 0; i < MPP_ARRAY_ELEMS(task->dec.refer); i++) {
+			if (reg_cxt->fast_mode && reg_cxt->fast_mode_err_found) {	
+				for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(task->dec.refer); i++) {
 					if (task->dec.refer[i] >= 0) {
 						MppFrame frame_ref = NULL;
 
