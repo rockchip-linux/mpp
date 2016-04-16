@@ -33,80 +33,97 @@ typedef   void (*LOG_FUN)(void *ctx, ...);
     } while (0)
 
 
+#define READ_ONEBIT(bitctx, out, ...)\
+	do {\
+		RK_S32 _out; \
+		bitctx->ret = mpp_read_bits(bitctx, 1, &_out); \
+		BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR; }\
+	} while (0)
+
 #define READ_BITS(bitctx, num_bits, out, ...)\
     do {\
-    RK_S32 _out;\
-    bitctx->ret = mpp_read_bits(bitctx, num_bits, &_out);\
-    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
-    if (!bitctx->ret) { *out = _out; }\
-    else { mpp_assert(0); goto __BITREAD_ERR;}\
-    } while (0)
+		RK_S32 _out;\
+		bitctx->ret = mpp_read_bits(bitctx, num_bits, &_out);\
+		BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR;}\
+	} while (0)
 
-#define READ_LONGBITS(bitctx, num_bits, out, ...)\
-do {\
-	RK_S32 _out; \
-	bitctx->ret = mpp_read_longbits(bitctx, num_bits, &_out); \
-	BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
-	if (!bitctx->ret) { *out = _out; }\
-	else { mpp_assert(0); goto __BITREAD_ERR; }\
-} while (0)
+#define READ_BITS_LONG(bitctx, num_bits, out, ...)\
+	do {\
+		RK_U32 _out; \
+		bitctx->ret = mpp_read_longbits(bitctx, num_bits, &_out); \
+		BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out); \
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR; }\
+	} while (0)
 
+#define SHOW_BITS(bitctx, num_bits, out)\
+	do {\
+		RK_S32 _out; \
+		bitctx->ret = mpp_show_bits(bitctx, num_bits, &_out); \
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR; }\
+	} while (0)
 
+#define SHOW_BITS_LONG(bitctx, num_bits, out)\
+	do {\
+		RK_U32 _out; \
+		bitctx->ret = mpp_show_longbits(bitctx, num_bits, &_out); \
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR; }\
+	} while (0)
 
 #define SKIP_BITS(bitctx, num_bits)\
     do {\
-    bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
-    BitReadLog(bitctx, "%48s", "skip");\
-    if (bitctx->ret) { mpp_assert(0); goto __BITREAD_ERR; }\
+		bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
+		BitReadLog(bitctx, "%48s %d bits", "skip", num_bits);\
+		if (bitctx->ret) { goto __BITREAD_ERR; }\
     } while (0)
 
-#define READ_ONEBIT(bitctx, out, ...)\
-    do {\
-    RK_S32 _out;\
-    bitctx->ret = mpp_read_bits(bitctx, 1, &_out);\
-    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
-    if (!bitctx->ret) { *out = _out; }\
-    else { mpp_assert(0); goto __BITREAD_ERR;}\
-    } while (0)
-
-
+#define SKIP_BITS_LONG(bitctx, num_bits)\
+	do {\
+		bitctx->ret = mpp_skip_longbits(bitctx, num_bits); \
+		BitReadLog(bitctx, "%48s %d bits", "skip", num_bits); \
+		if (bitctx->ret) { goto __BITREAD_ERR; }\
+	} while (0)
 
 #define READ_UE(bitctx, out, ...)\
     do {\
-    RK_U32 _out;\
-    bitctx->ret = mpp_read_ue(bitctx, &_out);\
-    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
-    if (!bitctx->ret) { *out = _out; }\
-    else { mpp_assert(0); goto __BITREAD_ERR;}\
+		RK_U32 _out;\
+		bitctx->ret = mpp_read_ue(bitctx, &_out);\
+		BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR;}\
     } while (0)
 
 #define READ_SE(bitctx, out, ...)\
     do {\
-    RK_S32 _out;\
-    bitctx->ret = mpp_read_se(bitctx, &_out);\
-    BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
-    if (!bitctx->ret) { *out = _out; }\
-    else { mpp_assert(0); goto __BITREAD_ERR;}\
+		RK_S32 _out;\
+		bitctx->ret = mpp_read_se(bitctx, &_out);\
+		BitReadLog(bitctx, "%48s = %10d", ##__VA_ARGS__, _out);\
+		if (!bitctx->ret) { *out = _out; }\
+		else { goto __BITREAD_ERR;}\
     } while (0)
 
 #define CHECK_RANGE(bitctx, val, _min, _max)\
     do {\
-    if ((val) < (_min) || (val) > (_max)) {\
-    mpp_log("%d[%d,%d]", val, _min, _max);\
-    bitctx->ret = MPP_ERR_VALUE;\
-    goto __BITREAD_ERR;\
-    }\
+		if ((val) < (_min) || (val) > (_max)) {\
+		mpp_log("%d[%d,%d]", val, _min, _max);\
+		bitctx->ret = MPP_ERR_VALUE;\
+		goto __BITREAD_ERR;\
+		}\
     } while (0)
-
 
 #define CHECK_ERROR(bitctx, val)\
     do {\
-    if (!(val)) {\
-    mpp_log("value false");\
-    bitctx->ret = MPP_ERR_VALUE;\
-    ASSERT(0);\
-    goto __BITREAD_ERR;\
-    }\
+		if (!(val)) {\
+		mpp_log("value false");\
+		bitctx->ret = MPP_ERR_VALUE;\
+		goto __BITREAD_ERR;\
+		}\
     } while (0)
 
 typedef struct bitread_ctx_t {
@@ -122,9 +139,8 @@ typedef struct bitread_ctx_t {
     // Used in emulation prevention three byte detection (see spec).
     // Initially set to 0xffff to accept all initial two-byte sequences.
     RK_S64 prev_two_bytes_;
-    // Number of emulation preventation bytes (0x000003) we met.
+    // Number of emulation presentation bytes (0x000003) we met.
     RK_S64 emulation_prevention_bytes_;
-    // file to debug
     // count PPS SPS SEI read bits
     RK_S32 used_bits;
     RK_U8  *buf;
@@ -141,17 +157,40 @@ typedef struct bitread_ctx_t {
 extern "C" {
 #endif
 
-//!< Read |num_bits| (1 to 31 inclusive)
-MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
-//!< read more than 32 bits data
-MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out);
-//!< skip bits
-MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits);
-MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
-MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
+//!< set bit read context
 void    mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size);
+
+//!< Read bits (1-31)
+MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
+
+//!< Read bits (1-32)
+MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out);
+
+//!< Show bits (1-31)
+MPP_RET mpp_show_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
+
+//!< Show bits (1-32)
+MPP_RET mpp_show_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out);
+
+//!< skip bits(1-31)
+MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits);
+
+//!< skip bits(1-32)
+MPP_RET mpp_skip_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits);
+
+//!< read ue(1-32)
+MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
+
+//!< read se(1-31)
+MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
+
+//!< set whether detect 0x03 (used in h264 and h265)
 void    mpp_set_pre_detection(BitReadCtx_t *bitctx);
+
+//!< check whether has more rbsp data(used in h264)
 RK_U32  mpp_has_more_rbsp_data(BitReadCtx_t * bitctx);
+
+//!< align bits and get current pointer
 RK_U8  *mpp_align_get_bits(BitReadCtx_t *bitctx);
 
 #ifdef  __cplusplus
