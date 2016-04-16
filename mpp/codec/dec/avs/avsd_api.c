@@ -131,6 +131,10 @@ MPP_RET avsd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     AVSD_PARSE_TRACE("In.");
+
+	mpp_packet_set_length(pkt, 0);
+
+
     (void)ctx;
     (void)pkt;
     (void)task;

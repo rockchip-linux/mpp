@@ -112,6 +112,13 @@ typedef enum {
     BOTTOM_FIELD
 } PictureStructure;           //!< New enum for field processing
 
+typedef enum {
+	FIELD_ORDER_NULL,
+	FIELD_ORDER_TOP_FIRST,
+	FIELD_ORDER_BOT_FIRST,
+	FIELD_ORDER_SAME,
+	FIELD_ORDER_MAX
+}FieldOrder;
 //!< Field Coding Types
 typedef enum {
     FRAME_CODING = 0,
@@ -252,7 +259,6 @@ typedef struct h264_store_pic_t {
     RK_S32    long_term_frame_idx;
 
     RK_U32    frame_num;
-    RK_U32    dec_no;
     RK_U8     is_long_term;
     RK_S32    used_for_reference;
     RK_S32    is_output;
@@ -746,7 +752,7 @@ typedef struct h264_slice_t {
     RK_S32       framepoc;    //poc of this frame
     RK_U32       AbsFrameNum;
     RK_S32       PicOrderCntMsb;
-    RK_S32       is_new_picture;
+    RK_S32       new_frame_flag;
     struct h264_sps_t    *active_sps;
     struct h264_subsps_t *active_subsps;
     struct h264_pps_t    *active_pps;
@@ -978,7 +984,6 @@ typedef struct h264d_video_ctx_t {
     RK_S32     FrameNumInPicOrderCntCycle;
     RK_S32     ThisPOC;
     RK_S32     type;
-    RK_U32     dec_no;
     //!< for control running
     RK_S32     have_outpicture_flag;
     RK_S32     exit_picture_flag;
