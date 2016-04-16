@@ -28,6 +28,7 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
+#include <sys/prctl.h>
 
 
 #include "vpu_api.h"
@@ -308,7 +309,16 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.curr_task_rdy) {
+        RK_S64 p_e, p_s,diff;
+        p_s = mpp_time();
         parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
+        p_e = mpp_time();
+        if(mpp_debug & MPP_TIMING){
+            diff = (p_e - p_s)/1000;
+            if(diff > 15){
+                mpp_log("waring mpp prepare stream consume %lld big than 15ms ",diff);
+            }
+        }
         if (0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
             mpp_packet_deinit(&dec->mpp_pkt_in);
             dec->mpp_pkt_in = NULL;
@@ -536,7 +546,7 @@ void *mpp_dec_parser_thread(void *data)
     MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     MppBufSlots packet_slots = dec->packet_slots;
-
+    prctl(PR_SET_NAME, (unsigned long)"rkv_parser", 0, 0, 0);
     /*
      * parser thread need to wait at cases below:
      * 1. no task slot for output
@@ -592,7 +602,7 @@ void *mpp_dec_hal_thread(void *data)
     MppBuffer buffer    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
-
+    prctl(PR_SET_NAME, (unsigned long)"rkv_hal", 0, 0, 0);
     /*
      * hal thread need to wait at cases below:
      * 1. no task slot for work
