@@ -1180,6 +1180,7 @@ static MPP_RET dpb_combine_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, 
     fs->frame->layer_id = fs->layer_id;
     fs->frame->view_id = fs->view_id;
     fs->frame->iCodingType = fs->top_field->iCodingType; //FIELD_CODING;
+	//fs->frame->is_output = fs->is_output;
 
     return ret = MPP_OK;
 __FAILED:
@@ -1304,11 +1305,12 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     } else {
         p_Dpb->last_picture = NULL;
     }
+
     p_Dpb->used_size++;
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] p_Dpb->used_size=%d", p_Dpb->used_size);
     update_ref_list(p_Dpb);
     update_ltref_list(p_Dpb);
-	if (p->mem_mark) {
+	if (p->mem_mark && (p->mem_mark->slot_idx >= 0)) {
 		mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p->mem_mark->slot_idx, SLOT_CODEC_USE);
 	} else {
 		H264D_ERR("error, p->mem_mark == NULL");
@@ -1362,6 +1364,7 @@ void free_dpb(H264_DpbBuf_t *p_Dpb)
     if (p_Dpb->fs) {
         for (i = 0; i < p_Dpb->size; i++) {
             free_frame_store(p_Vid->p_Dec, p_Dpb->fs[i]);
+			p_Dpb->fs[i] = NULL;
         }
         MPP_FREE(p_Dpb->fs);
     }
@@ -1370,6 +1373,7 @@ void free_dpb(H264_DpbBuf_t *p_Dpb)
     if (p_Dpb->fs_ilref) {
         for (i = 0; i < 1; i++) {
             free_frame_store(p_Vid->p_Dec, p_Dpb->fs_ilref[i]);
+			p_Dpb->fs_ilref[i] = NULL;
         }
         MPP_FREE(p_Dpb->fs_ilref);
     }
@@ -1498,6 +1502,7 @@ MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, H26
 
     ASSERT(p  != NULL);
     ASSERT(fs != NULL);
+
     switch (p->structure) {
     case FRAME:
         fs->frame = p;
