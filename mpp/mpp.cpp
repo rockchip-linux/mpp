@@ -196,7 +196,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     RK_U32 eos = mpp_packet_get_eos(packet);
     if (mPackets->list_size() < 4 || eos) {
         MppPacket pkt;
-        mpp_packet_copy_init(&pkt, packet);
+        if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
+			return MPP_NOK;
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         mThreadCodec->signal();
