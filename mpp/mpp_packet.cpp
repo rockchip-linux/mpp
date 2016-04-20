@@ -83,7 +83,7 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     size_t size = mpp_packet_get_size(src);
     void *data = mpp_malloc_size(void, size);
     if (NULL == data) {
-        mpp_err_f("malloc failed\n");
+        mpp_err_f("malloc failed, size %d\n", size);
         return MPP_ERR_MALLOC;
     }
 
