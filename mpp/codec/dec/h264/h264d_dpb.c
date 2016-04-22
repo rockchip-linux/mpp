@@ -1248,7 +1248,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
 
     VAL_CHECK(ret, NULL != p);  //!< if frame, check for new store
-    //!< deal with all frames in dpb
+
+	//!< deal with all frames in dpb
     p_Vid->last_has_mmco_5 = 0;
     p_Vid->last_pic_bottom_field = p->structure == BOTTOM_FIELD;
     if (p->idr_flag) {
@@ -1274,12 +1275,10 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     }
 
     //!< then output frames until one can be removed
-    while ((p_Dpb->used_size == p_Dpb->size)
+    while (p_Dpb->used_size == p_Dpb->size) {
            //|| (p_Dpb->used_size >= p_Vid->active_sps->vui_seq_parameters.num_reorder_frames)
-          ) {
         //!< when is full, first try to remove unused frames
         remove_unused_frame_from_dpb(p_Dpb);
-        {
             //!< non-reference frames may be output directly
             FUN_CHECK(ret = get_smallest_poc(p_Dpb, &min_poc, &min_pos));
             //!< current not used reference
@@ -1291,8 +1290,10 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             }
             //!< used for reference, but not find, then flush a frame in the first
             if ((-1 == min_pos) || (p->poc < min_poc)) {
+			unmark_for_reference(p_Vid->p_Dec, p_Dpb->fs[0]);
+			FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb->fs[0]));
                 FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, 0));
-            }
+			p->is_long_term = 0;
         }
         FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
     }

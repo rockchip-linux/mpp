@@ -706,6 +706,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     p_Dec->errctx.parse_err_flag = 0;
     p_Dec->errctx.dpb_err_flag = 0;
     p_Dec->errctx.used_for_ref_flag = 0;
+	p_Dec->is_parser_end = 0;
     FUN_CHECK(ret = parse_loop(p_Dec));
 
     if (p_Dec->is_parser_end) {
@@ -764,12 +765,14 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-	
+	RK_U32 *p_regs = NULL;
     INP_CHECK(ret, !decoder);
 	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
+	RK_U32 error_flag = 0;
+
+	p_regs = (RK_U32*)errinfo;
 	{		
-		RK_U32 *p_regs = (RK_U32*)errinfo;
 		RK_U32 out_slot_idx = p_regs[78];
 		RK_U32 dpb_err_flag = p_regs[79];
 		RK_U32 ref_flag = p_regs[80];
@@ -777,7 +780,9 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 		RK_U32 dec_rdy_sta   = p_regs[1] & 0x00001000;
 		RK_U32 buf_empty_sta = p_regs[1] & 0x00010000;
 		RK_U32 strmd_error_status = p_regs[45];
-		if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta || dpb_err_flag || strmd_error_status) {
+		RK_U32 strmd_error_detect_flag = p_regs[76] & 0x00008000;   // strmd error detect flag
+		if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta 
+			|| dpb_err_flag || strmd_error_status || strmd_error_detect_flag) {
 			MppFrame mframe = NULL;
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
 			if (ref_flag) {
@@ -785,9 +790,10 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 			} else {
 				mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
 			}
+			error_flag = 1;
 		}
-		H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_frame=%d, slot_idx=%d, swreg[01]=%08x, swreg[45]=%08x, dpb_err=%d, ref_flag=%d",
-			p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], dpb_err_flag, ref_flag);
+		H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, err=%d",
+			p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], dpb_err_flag, ref_flag, error_flag);	
 	}
 
 __RETURN:
