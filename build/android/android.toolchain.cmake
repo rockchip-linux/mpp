@@ -1310,7 +1310,7 @@ set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT
 # ----------------------------------------------------------------------------
 # add libgcc.a to executable link list
 # ----------------------------------------------------------------------------
-set( ANDROID_LIB_GCC "${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_MACHINE_NAME}/${ANDROID_COMPILER_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/libgcc.a")
+set( ANDROID_LIB_GCC "${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_MACHINE_NAME}/${ANDROID_COMPILER_VERSION}/libgcc.a")
 set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
 set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_LIB_GCC}" )
 
