@@ -851,8 +851,6 @@ typedef struct h264d_input_ctx_t {
     RK_U8  has_get_eos;
     RK_U32 mvc_disable;
     //!< output data
-    RK_U8  *out_buf;
-    RK_U32 out_length;
     RK_U8  task_valid;
     RK_U32 task_eos;
 
@@ -863,6 +861,13 @@ typedef struct h264d_input_ctx_t {
     RK_U32 nal_size;
     RK_S32 sps_num;
     RK_S32 pps_num;
+	char fname[2][512];
+	FILE *fp;	
+	RK_U8 *spspps_buf;	
+	RK_U32 spspps_size;
+	RK_U32 spspps_len;
+	RK_U32 spspps_offset;
+	RK_U32 spspps_update_flag;
 } H264dInputCtx_t;
 
 //!< TimeStamp context
