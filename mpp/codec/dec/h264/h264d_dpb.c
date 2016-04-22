@@ -843,13 +843,6 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
     p_mark = p->mem_mark;
 	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] mem_type=%d, struct=%d, poc=%d, top_used=%d, bot_used=%d, slot_idx=%d, mark_idx=%d, out_flag=%d, is_output=%d", 
 		p->mem_malloc_type, p->structure, p->poc, p_mark->top_used, p_mark->bot_used, p_mark->slot_idx, p_mark->mark_idx, p_mark->out_flag, p->is_output);
-	//if ((p->mem_malloc_type == Mem_TopOnly
-	//	|| p->mem_malloc_type == Mem_BotOnly)
-	//	&& p->structure == FRAME && p_mark->out_flag)
-	//{
-	//	p_mark->out_flag = 0;
-	//	return;
-	//}
 
     if ((p->mem_malloc_type == Mem_Malloc
          || p->mem_malloc_type == Mem_TopOnly
@@ -894,6 +887,8 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 		}
 
     }
+
+	
 }
 
 static MPP_RET write_unpaired_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
@@ -972,8 +967,7 @@ static MPP_RET write_stored_frame(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
 		fs->bottom_field = NULL;
     } else {
         write_picture(fs->frame, p_Vid);
-    }
-
+    }    
     fs->is_output = 1;
 
     return ret = MPP_OK;
@@ -1156,6 +1150,7 @@ static MPP_RET dpb_split_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
 
         fs_top->chroma_format_idc = fs_btm->chroma_format_idc = frame->chroma_format_idc;
         fs_top->iCodingType = fs_btm->iCodingType = frame->iCodingType;
+		fs_top->slice_type = fs_btm->slice_type = frame->slice_type;
     } else {
         fs->top_field = NULL;
         fs->bottom_field = NULL;
@@ -1178,7 +1173,9 @@ static MPP_RET dpb_combine_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, 
     fs->frame->layer_id = fs->layer_id;
     fs->frame->view_id = fs->view_id;
     fs->frame->iCodingType = fs->top_field->iCodingType; //FIELD_CODING;
+	fs->frame->frame_num = fs->top_field->frame_num;
 	//fs->frame->is_output = fs->is_output;
+	fs->frame->slice_type = fs->slice_type;
 
     return ret = MPP_OK;
 __FAILED:
@@ -1246,8 +1243,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
 
     VAL_CHECK(ret, NULL != p);  //!< if frame, check for new store
-
-	//!< deal with all frames in dpb
+	p_Vid->last_pic = NULL;
+    //!< deal with all frames in dpb
     p_Vid->last_has_mmco_5 = 0;
     p_Vid->last_pic_bottom_field = p->structure == BOTTOM_FIELD;
     if (p->idr_flag) {
@@ -1271,28 +1268,26 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         sliding_window_memory_management(p_Dpb);
         p->is_long_term = 0;
     }
-
     //!< then output frames until one can be removed
     while (p_Dpb->used_size == p_Dpb->size) {
-           //|| (p_Dpb->used_size >= p_Vid->active_sps->vui_seq_parameters.num_reorder_frames)
         //!< when is full, first try to remove unused frames
         remove_unused_frame_from_dpb(p_Dpb);
-            //!< non-reference frames may be output directly
-            FUN_CHECK(ret = get_smallest_poc(p_Dpb, &min_poc, &min_pos));
-            //!< current not used reference
-            if (!p->used_for_reference) {
-                if ((-1 == min_pos) || (p->poc < min_poc)) {
-                    FUN_CHECK(ret = direct_output(p_Vid, p));  //!< output frame
-                    goto __RETURN;
-                }
-            }
-            //!< used for reference, but not find, then flush a frame in the first
-            if ((-1 == min_pos) || (p->poc < min_poc)) {
+		//!< non-reference frames may be output directly
+		FUN_CHECK(ret = get_smallest_poc(p_Dpb, &min_poc, &min_pos));
+		//!< current not used reference
+		if (!p->used_for_reference) {
+			if ((-1 == min_pos) || (p->poc < min_poc)) {
+				FUN_CHECK(ret = direct_output(p_Vid, p));  //!< output frame
+				goto __RETURN;
+			}
+		}
+		//!< used for reference, but not find, then flush a frame in the first
+		if ((-1 == min_pos) || (p->poc < min_poc)) {
 			unmark_for_reference(p_Vid->p_Dec, p_Dpb->fs[0]);
 			FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb->fs[0]));
-                FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, 0));
+			FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, 0));
 			p->is_long_term = 0;
-        }
+		}
         FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
     }
     //!< remove unused frames
@@ -1304,6 +1299,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     } else {
         p_Dpb->last_picture = NULL;
     }
+	memcpy(&p_Vid->old_pic, p, sizeof(H264_StorePic_t));
+	p_Vid->last_pic = &p_Vid->old_pic;
 
     p_Dpb->used_size++;
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] p_Dpb->used_size=%d", p_Dpb->used_size);
@@ -1514,17 +1511,14 @@ MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, H26
                 fs->long_term_frame_idx = p->long_term_frame_idx;
             }
         }
-        fs->layer_id = p->layer_id;
-        fs->view_id = p->view_id;
         fs->inter_view_flag[0] = fs->inter_view_flag[1] = p->inter_view_flag;
         fs->anchor_pic_flag[0] = fs->anchor_pic_flag[1] = p->anchor_pic_flag;
         FUN_CHECK(ret = dpb_split_field(p_Vid, fs));
+		fs->poc = p->poc;
         break;
     case TOP_FIELD:
         fs->top_field = p;
         fs->is_used |= 1;
-        fs->layer_id = p->layer_id;
-        fs->view_id = p->view_id;
         fs->inter_view_flag[0] = p->inter_view_flag;
         fs->anchor_pic_flag[0] = p->anchor_pic_flag;
         if (p->used_for_reference) {
@@ -1544,8 +1538,6 @@ MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, H26
     case BOTTOM_FIELD:
         fs->bottom_field = p;
         fs->is_used |= 2;
-        fs->layer_id = p->layer_id;
-        fs->view_id = p->view_id;
         fs->inter_view_flag[1] = p->inter_view_flag;
         fs->anchor_pic_flag[1] = p->anchor_pic_flag;
         if (p->used_for_reference) {
@@ -1563,8 +1555,12 @@ MPP_RET insert_picture_in_dpb(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs, H26
         }
         break;
     }
-    fs->frame_num = p->pic_num;
-    fs->is_output = p->is_output;
+	fs->layer_id = p->layer_id;
+	fs->view_id = p->view_id;
+	fs->frame_num = p->pic_num;
+	fs->is_output = p->is_output;
+	fs->slice_type = p->slice_type;
+	fs->structure = p->structure;
 
     return ret = MPP_OK;
 __FAILED:

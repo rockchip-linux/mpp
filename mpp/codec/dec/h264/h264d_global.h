@@ -321,8 +321,9 @@ typedef struct h264_frame_store_t {
     RK_S32    inter_view_flag[2];
     RK_S32    anchor_pic_flag[2];
     RK_S32    layer_id;
-
+	RK_S32    slice_type;
     RK_U32    frame_num;
+	RK_S32    structure;
     struct h264_store_pic_t *frame;
     struct h264_store_pic_t *top_field;
     struct h264_store_pic_t *bottom_field;
@@ -861,6 +862,7 @@ typedef struct h264d_input_ctx_t {
     RK_U32 nal_size;
     RK_S32 sps_num;
     RK_S32 pps_num;
+	//!< write stream
 	char fname[2][512];
 	FILE *fp;	
 	RK_U8 *spspps_buf;	
@@ -868,6 +870,7 @@ typedef struct h264d_input_ctx_t {
 	RK_U32 spspps_len;
 	RK_U32 spspps_offset;
 	RK_U32 spspps_update_flag;
+
 } H264dInputCtx_t;
 
 //!< TimeStamp context
@@ -941,10 +944,13 @@ typedef struct h264d_video_ctx_t {
     struct h264d_cur_ctx_t       *p_Cur;  //!< H264_CurParameters
     struct h264_dpb_buf_t        *p_Dpb_layer[MAX_NUM_DPB_LAYERS];
     struct h264_store_pic_t      *dec_pic;    //!< current decoder picture
+	struct h264_store_pic_t      *last_pic;
+	
     struct h264_store_pic_t      *no_ref_pic; //!< no reference picture
     struct h264_frame_store_t    out_buffer;
     struct h264_dpb_mark_t       *active_dpb_mark[MAX_NUM_DPB_LAYERS];  //!< acitve_dpb_memory
 
+	struct h264_store_pic_t      old_pic;
     struct h264_old_slice_par_t  old_slice;
     RK_S32    *qmatrix[12];  //!< scanlist pointer
     RK_U32    stream_size;

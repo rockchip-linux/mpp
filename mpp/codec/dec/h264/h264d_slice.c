@@ -644,8 +644,8 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         if (g_max_bytes < (p_bitctx->used_bits >> 3)) {
             g_max_bytes = (p_bitctx->used_bits >> 3);
         }		
-		H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d, structure=%d", currSlice->layer_id,
-			currSlice->active_sps->seq_parameter_set_id, currSlice->active_pps->pic_parameter_set_id, currSlice->structure);
+		H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d, structure=%d, frame_num=%d", currSlice->layer_id,
+			currSlice->active_sps->seq_parameter_set_id, currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
     }
 
 
