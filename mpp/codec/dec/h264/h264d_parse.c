@@ -105,10 +105,19 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
 static MPP_RET realloc_buffer(RK_U8 **buf, RK_U32 *max_size, RK_U32 add_size)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    if ((*buf) == NULL) {
+		H264D_ERR("[realloc_buffer] pointer is null, %p",(*buf));
+		ret = MPP_ERR_MALLOC;
+		goto __FAILED;
+	}
     add_size = MPP_ALIGN(add_size, 16);
     //mpp_log("xxxxxxxx max_size=%d, add_size=%d \n",(*max_size), add_size);
     (*buf) = mpp_realloc((*buf), RK_U8, ((*max_size) + add_size));
-    MEM_CHECK(ret, (*buf));
+	if ((*buf) == NULL) {
+		H264D_ERR("[realloc_buffer] max_size=%d, add_size=%d \n",(*max_size), add_size);
+		ret = MPP_ERR_MALLOC;
+		goto __FAILED;
+	}
     (*max_size) += add_size;
 
     return ret = MPP_OK;
@@ -857,7 +866,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ReadNalu");
             break;
         case SliceSTATE_ParseNalu:
-            (ret = parser_one_nalu(&p_Dec->p_Cur->slice));
+            FUN_CHECK(ret = parser_one_nalu(&p_Dec->p_Cur->slice));
             if (p_Dec->nalu_ret == StartOfSlice) {
                 p_Dec->next_state = SliceSTATE_GetSliceData;
             } else if (p_Dec->nalu_ret == StartOfPicture) {
@@ -873,6 +882,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         case SliceSTATE_InitPicture:
             FUN_CHECK(ret = init_picture(&p_Dec->p_Cur->slice));
             p_Dec->next_state = SliceSTATE_GetSliceData;
+			p_Dec->is_parser_end = 1;
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_InitPicture");
             break;
         case SliceSTATE_GetSliceData:
@@ -882,9 +892,11 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_GetSliceData");
             break;
         case SliceSTATE_RegisterOneFrame:
+			if (!p_Dec->is_parser_end){
+				goto __FAILED;
+			}
             commit_buffer(p_Dec->dxva_ctx);
             while_loop_flag = 0;
-            p_Dec->is_parser_end = 1;
             p_Dec->next_state = SliceSTATE_ReadNalu;
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_RegisterOneFrame");
             break;
