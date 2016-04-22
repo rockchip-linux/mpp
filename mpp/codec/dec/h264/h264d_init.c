@@ -377,9 +377,10 @@ __FAILED:
     return ret;
 }
 
-static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
+static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
 {
     RK_U8 idx = 0;
+	MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DpbMark_t *cur_mark = NULL;
     RK_U32 hor_stride = 0, ver_stride = 0;
     H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
@@ -392,6 +393,11 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
         }
         ASSERT(idx <= MAX_MARK_SIZE);
         mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
+		if (p_mark[idx].slot_idx < 0) {
+			H264D_WARNNING("[dpb_mark_malloc] error, buf_slot has not get.");
+			ret = MPP_NOK;
+			goto __FAILED;
+		}
         cur_mark = &p_mark[idx];
 
         cur_mark->out_flag = 1;
@@ -438,6 +444,10 @@ static void dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
     p_Dec->last_frame_slot_idx = cur_mark->slot_idx;
     dec_pic->mem_mark = p_Vid->active_dpb_mark[layer_id];
     dec_pic->mem_mark->pic = dec_pic;
+	return ret = MPP_OK;
+__FAILED:
+	dec_pic->mem_mark = NULL;
+	return ret;
 }
 static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t *dec_pic, RK_S32 last_pic_structure)
 {
@@ -459,10 +469,8 @@ static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t
 			goto __FAILED;
 		}
 	}
-//	H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
-//		dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
-	(void)last_pic_structure;
-
+	H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
+		dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
 	return MPP_OK;
 __FAILED:
 	return ret;
@@ -556,7 +564,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->height_after_crop = p_Vid->height_after_crop;
     dec_pic->combine_flag = get_filed_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
 	FUN_CHECK(ret = check_dpb_field_paired(p_Dpb->last_picture, dec_pic, p_Vid->last_pic_structure));
-    dpb_mark_malloc(p_Vid, dec_pic); //!< malloc dpb_memory
+    FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic)); //!< malloc dpb_memory
     dec_pic->mem_malloc_type = Mem_Malloc;
     dec_pic->colmv_no_used_flag = 0;
     p_Vid->last_pic_structure = dec_pic->structure;
@@ -1397,13 +1405,13 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref)
 
     for (i = 0; i < MAX_REF_SIZE; i++) {
         if (pref[i].valid) {
-            RK_U32 slot_idx = 0;
             MppFrame mframe = NULL;
-            slot_idx = p_Dec->dpb_info[pref->dpb_idx].slot_index;
+			RK_U32 slot_idx = p_Dec->dpb_info[pref->dpb_idx].slot_index;
             mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
+			if(mframe) {
             dpb_error_flag |= mpp_frame_get_errinfo(mframe);
-            //H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d",
-            //          p_Dec->p_Vid->g_framecnt, p_Dec->dpb_info[i].slot_index, i, mpp_frame_get_errinfo(mframe));
+				H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] slot_idx=%d, dpb_err[%d]=%d", slot_idx, i, mpp_frame_get_errinfo(mframe));
+			}
         }
     }
     return dpb_error_flag;
@@ -1413,7 +1421,6 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
 {
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
-    p_Dec->errctx.dpb_err_flag = 0;
     if (I_SLICE == currSlice->slice_type) {
         p_Dec->errctx.dpb_err_flag = 0;
         goto __RETURN;
@@ -1897,11 +1904,13 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
         }
     }
     //!< dpb info
+	if (rkv_h264d_parse_debug & H264D_DBG_DPB_INFO) {
 	H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_INFO] cur_slot_idx=%d", p_Dec->in_task->output);
 	for (i = 0; i < MAX_DPB_SIZE; i++) {
 		slot_idx = p_Dec->in_task->refer[i];
 		if (slot_idx >= 0) {
 			H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_INFO] ref_slot_idx[%d]=%d", i, slot_idx);
+			}
 		}
 	}
     //!< mark info
@@ -1909,21 +1918,22 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
 		p_mark = &p_Dec->dpb_mark[i];
 		if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {
 			dpb_used++;
-			{
+			if (rkv_h264d_parse_debug & H264D_DBG_DPB_INFO) {
 				RK_S32 fd = 0;
 				MppFrame mframe = NULL;
 				MppBuffer mbuffer = NULL;
 				mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 				mbuffer = mframe ? mpp_frame_get_buffer(mframe) : NULL;
 				fd = mbuffer ? mpp_buffer_get_fd(mbuffer) : 0xFF;
-				H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_MARK_INFO] slot_idx=%d, top_used=%d, bot_used=%d, fd=0x%02x",
-					p_mark->slot_idx, p_mark->top_used, p_mark->bot_used, fd);
+				H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_MARK_INFO] slot_idx=%d, top_used=%d, bot_used=%d, out_flag=%d, fd=0x%02x",
+					p_mark->slot_idx, p_mark->top_used, p_mark->bot_used, p_mark->out_flag, fd);
 			}
 		}
 	}
-	H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_MARK_INFO] ---------- cur_slot=%d --------------------", p_Dec->in_task->output);
+	H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_MARK_INFO] ---------- cur_slot=%d --------------------", p_Dec->in_task->output);
 
 	if (dpb_used > currSlice->p_Dpb->size + 2)	{
+		H264D_ERR("[h264d_reset_error]");
 		h264d_reset((void *)p_Dec);
 		return MPP_NOK;
 	}
