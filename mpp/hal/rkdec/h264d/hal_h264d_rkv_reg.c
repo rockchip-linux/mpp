@@ -321,7 +321,9 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
+	if (task->dec.dpb_err_flag)	{
+		goto __RETURN;
+	}
     rkv_prepare_spspps_packet(hal, &pkts->spspps);
     rkv_prepare_framerps_packet(hal, &pkts->rps);
     rkv_prepare_scanlist_packet(hal, &pkts->scanlist);
@@ -367,6 +369,9 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+	if (task->dec.dpb_err_flag) {
+		goto __RETURN;
+	}
     p_regs = (RK_U32 *)p_hal->regs;
 
     p_regs[64] = 0;
@@ -386,14 +391,13 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
         }
     }
 	//!< current buffer slot fd
-	H264D_DBG(H264D_DBG_DECOUT_INFO, "[DECOUT_INFO] decout_fd=0x%02x", p_regs[7]);
+	H264D_DBG(H264D_DBG_DECOUT_INFO, "[DECOUT_INFO] decout_fd=0x%02x", p_regs[7]);	
 #ifdef ANDROID
-    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
-        ret =  MPP_ERR_VPUHW;
-        H264D_ERR("H264 RKV FlushRegs fail. \n");
-    }
+		if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
+			ret =  MPP_ERR_VPUHW;
+			H264D_ERR("H264 RKV FlushRegs fail. \n");
+		}
 #endif
-
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
 __RETURN:
@@ -416,19 +420,22 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     p_regs = (H264dRkvRegs_t *)p_hal->regs;
+	if (task->dec.dpb_err_flag) {
+		goto __SKIP_HARD;
+	}
 #ifdef ANDROID
-    RK_S32 wait_ret = -1;
-    RK_S32 ret_len = 0, cur_deat = 0;
-    VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-    static struct timeval tv1, tv2;
-    gettimeofday(&tv1, NULL);
-    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
-    gettimeofday(&tv2, NULL);
-    cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
-    p_hal->total_time += cur_deat;
-    p_hal->iDecodedNum++;
-    (void)wait_ret;
-#endif
+		RK_S32 wait_ret = -1;
+		RK_S32 ret_len = 0, cur_deat = 0;
+		VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
+		static struct timeval tv1, tv2;
+		gettimeofday(&tv1, NULL);
+		wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS, &ret_cmd, &ret_len);
+		gettimeofday(&tv2, NULL);
+		cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+		p_hal->total_time += cur_deat;
+		p_hal->iDecodedNum++;
+		(void)wait_ret;
+#endif	
     //!< dump registers
     {
         H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
@@ -441,6 +448,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
             rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
         }
     }
+__SKIP_HARD:
     p_regs->slot_idx = task->dec.output;
     p_regs->dpb_err_flag = task->dec.dpb_err_flag;
     p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
