@@ -385,27 +385,7 @@ __FAILED:
     return ret;
 }
 
-static void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
-{
-    RK_U32 i = 0;
-    H264_DpbMark_t *p_mark = NULL;
 
-    for (i = 0; i < MAX_MARK_SIZE; i++) {
-        p_mark = &p_Dec->dpb_mark[i];
-        if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {
-            MppFrame mframe = NULL;
-            mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-            if (mframe) {
-                H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_BUF_FLUSH] slot_idx=%d, top_used=%d, bot_used=%d",
-                          p_mark->slot_idx, p_mark->top_used, p_mark->bot_used);
-                mpp_buf_slot_set_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
-                mpp_buf_slot_enqueue(p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
-                mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
-            }
-        }
-        reset_dpb_mark(p_mark);
-    }
-}
 
 /*!
 ***********************************************************************
@@ -519,6 +499,9 @@ MPP_RET h264d_reset(void *decoder)
 	p_Dec->p_Vid->exit_picture_flag    = 0;
 	p_Dec->p_Vid->active_mvc_sps_flag  = 0;
     p_Dec->p_Vid->g_framecnt           = 0;
+	p_Dec->p_Vid->dec_pic = NULL;
+	p_Dec->p_Vid->last_pic = NULL;
+	memset(&p_Dec->p_Vid->old_pic, 0, sizeof(H264_StorePic_t));
     memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
