@@ -7,7 +7,7 @@ else
     ANDROID_NDK=~/work/android/ndk/android-ndk-r10d/
 fi
 
-PLATFORM=$ANDROID_NDK/platforms/android-17/arch-arm
+PLATFORM=$ANDROID_NDK/platforms/android-21/arch-arm
 
 cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
       -DCMAKE_BUILD_TYPE=Release                                            \
