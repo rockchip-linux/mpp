@@ -28,6 +28,9 @@
 extern "C" {
 #endif
 
+MPP_RET open_stream_file(H264dInputCtx_t *p_Inp, char *path);
+MPP_RET fwrite_stream_to_file(H264dInputCtx_t *p_Inp, RK_U8 *pdata, RK_U32 len);
+MPP_RET close_stream_file(H264dInputCtx_t *p_Inp);
 MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
 MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
 MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);

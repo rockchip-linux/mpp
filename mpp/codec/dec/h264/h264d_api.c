@@ -138,8 +138,8 @@ static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 
     INP_CHECK(ret, !p_Inp);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
-
-    (void)p_Inp;
+	close_stream_file(p_Inp);
+	MPP_FREE(p_Inp->spspps_buf);
 
     FunctionOut(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -154,9 +154,18 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 
     p_Inp->init = *init;
     mpp_env_get_u32("rkv_h264d_mvc_disable", &p_Inp->mvc_disable, 1);
+	open_stream_file(p_Inp, "/sdcard");
+	if (rkv_h264d_parse_debug & H264D_DBG_WRITE_TS_EN) {
+		p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;
+		p_Inp->spspps_buf = mpp_malloc_size(RK_U8, p_Inp->spspps_size);
+		MEM_CHECK(ret, p_Inp->spspps_buf);
+	}
     FunctionOut(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
+__FAILED:
+	free_input_ctx(p_Inp);
+	return ret;
 }
 
 
@@ -504,8 +513,6 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Inp->task_eos      = 0;
     p_Dec->p_Inp->in_pts        = 0;
     p_Dec->p_Inp->in_dts        = 0;
-    p_Dec->p_Inp->out_buf       = NULL;
-    p_Dec->p_Inp->out_length    = 0;
     p_Dec->p_Inp->has_get_eos   = 0;
     //!< reset video parameter
 	p_Dec->p_Vid->have_outpicture_flag = 0;
@@ -662,6 +669,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         (ret = parse_prepare_extra_data(p_Inp, p_Dec->p_Cur));
         task->valid = p_Inp->task_valid;  //!< prepare valid flag
     } else  {
+		fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);
         do {
             (ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur));
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
