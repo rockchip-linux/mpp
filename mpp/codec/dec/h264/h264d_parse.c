@@ -35,7 +35,7 @@
 #include "h264d_fill.h"
 #include "h264d_log.h"
 
-#define  HEAD_MAX_SIZE        12800
+#define  HEAD_SYNTAX_MAX_SIZE        (12800)
 
 static const RK_U8 g_start_precode[3] = {0, 0, 1};
 
@@ -101,7 +101,7 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     free_ref_pic_list_reordering_buffer(currSlice);
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 }
-
+#if 0
 static MPP_RET realloc_buffer(RK_U8 **buf, RK_U32 *max_size, RK_U32 add_size)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -124,7 +124,7 @@ static MPP_RET realloc_buffer(RK_U8 **buf, RK_U32 *max_size, RK_U32 add_size)
 __FAILED:
     return ret;
 }
-
+#endif
 static void reset_nalu(H264dCurStream_t *p_strm)
 {
     if (p_strm->endcode_found) {
@@ -305,13 +305,13 @@ static MPP_RET add_empty_nalu(H264dCurStream_t *p_strm)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U8  *p_des = NULL;
-    RK_U32  add_size = 0;
-    add_size = MPP_MAX(sizeof(H264dNaluHead_t), HEAD_BUF_ADD_SIZE);
-    if ((p_strm->head_offset + add_size) >= p_strm->head_max_size) {
-        FUN_CHECK(ret = realloc_buffer(&p_strm->head_buf, &p_strm->head_max_size, HEAD_BUF_ADD_SIZE));
+    RK_U32 add_size = sizeof(H264dNaluHead_t);
+
+    if ((p_strm->head_offset + add_size) > HEAD_BUF_MAX_SIZE) {
+		H264D_ERR("error, head_offset is larger than %d", HEAD_BUF_MAX_SIZE);
+		goto __FAILED;
     }
     p_des = &p_strm->head_buf[p_strm->head_offset];
-
     ((H264dNaluHead_t *)p_des)->is_frame_end  = 1;
     ((H264dNaluHead_t *)p_des)->nalu_type = 0;
     ((H264dNaluHead_t *)p_des)->sodb_len = 0;
@@ -326,7 +326,6 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U8 *p_des = NULL;
-    RK_U32 add_size = 0;
 
     //!< fill head buffer
     if (   (p_strm->nalu_type == NALU_TYPE_SLICE)
@@ -337,28 +336,35 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
            || (p_strm->nalu_type == NALU_TYPE_SEI)
            || (p_strm->nalu_type == NALU_TYPE_PREFIX)
            || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-        add_size = MPP_MAX(HEAD_BUF_ADD_SIZE, p_strm->nalu_len);
-        if ((p_strm->head_offset + add_size) >= p_strm->head_max_size) {
-            FUN_CHECK(ret = realloc_buffer(&p_strm->head_buf, &p_strm->head_max_size, add_size));
+
+		RK_U32 head_size = MPP_MIN(HEAD_SYNTAX_MAX_SIZE, p_strm->nalu_len);
+		RK_U32 add_size = head_size + sizeof(H264dNaluHead_t);
+
+		if ((p_strm->head_offset + add_size) > HEAD_BUF_MAX_SIZE) {
+			H264D_ERR("error, head_offset is larger than %d", HEAD_BUF_MAX_SIZE);
+			goto __FAILED;
         }
         p_des = &p_strm->head_buf[p_strm->head_offset];
-        add_size = MPP_MIN(HEAD_MAX_SIZE, p_strm->nalu_len);
         ((H264dNaluHead_t *)p_des)->is_frame_end  = 0;
         ((H264dNaluHead_t *)p_des)->nalu_type = p_strm->nalu_type;
-        ((H264dNaluHead_t *)p_des)->sodb_len = add_size;
-        memcpy(p_des + sizeof(H264dNaluHead_t), p_strm->nalu_buf, add_size);
-        p_strm->head_offset += add_size + sizeof(H264dNaluHead_t);
+		((H264dNaluHead_t *)p_des)->sodb_len = head_size;
+		memcpy(p_des + sizeof(H264dNaluHead_t), p_strm->nalu_buf, head_size);
+		p_strm->head_offset += add_size;
     }    //!< fill sodb buffer
      if ((p_strm->nalu_type == NALU_TYPE_SLICE)
         || (p_strm->nalu_type == NALU_TYPE_IDR)) {
-        add_size = MPP_MAX(SODB_BUF_ADD_SIZE, p_strm->nalu_len);
-        if ((dxva_ctx->strm_offset + add_size) >= dxva_ctx->max_strm_size) {
-            realloc_buffer(&dxva_ctx->bitstream, &dxva_ctx->max_strm_size, add_size);
+
+		 RK_U32 add_size = p_strm->nalu_len + sizeof(g_start_precode);
+
+		 if ((dxva_ctx->strm_offset + add_size) > SODB_BUF_MAX_SIZE) {
+			 H264D_ERR("error, bitstream_offset is larger than %d", SODB_BUF_MAX_SIZE);
+			goto __FAILED;
         }
+
         p_des = &dxva_ctx->bitstream[dxva_ctx->strm_offset];
         memcpy(p_des, g_start_precode, sizeof(g_start_precode));
         memcpy(p_des + sizeof(g_start_precode), p_strm->nalu_buf, p_strm->nalu_len);
-        dxva_ctx->strm_offset += p_strm->nalu_len + sizeof(g_start_precode);
+        dxva_ctx->strm_offset += add_size;
     }
 	if (rkv_h264d_parse_debug & H264D_DBG_WRITE_TS_EN) {
 		H264dInputCtx_t *p_Inp = p_Cur->p_Inp;
@@ -382,30 +388,7 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
 __FAILED:
     return ret;
 }
-#if 0
-static void insert_timestamp(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm)
-{
-    RK_U8 i = 0;
-    H264dTimeStamp_t *p_curr = NULL;
-    RK_U64 used_bytes = p_Cur->strm.pkt_used_bytes;
 
-
-
-    for (i = 0; i < MAX_PTS_NUM; i++) {
-        p_curr = &p_strm->pkt_ts[i];
-        if ( (used_bytes > p_curr->begin_off)
-             && (used_bytes < p_curr->end_off) ) {
-            p_Cur->curr_dts = p_curr->dts;
-            p_Cur->curr_pts = p_curr->pts;
-            mpp_err("[TimePkt] insert_pts=%lld, pkt_pts=%lld \n", p_curr->pts, p_Cur->p_Inp->in_pts);
-            break;
-        }
-    }
-
-    //p_Cur->dts = p_Cur->p_Inp->in_dts;
-    //p_Cur->pts = p_Cur->p_Inp->in_pts;
-}
-#endif
 static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -580,8 +563,9 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
         if (p_strm->startcode_found) {
-            if (p_strm->nalu_len >= p_strm->nalu_max_size) {
-                FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
+            if (p_strm->nalu_len >= NALU_BUF_MAX_SIZE) {
+				H264D_ERR("error, nalu_len is larger than %d", NALU_BUF_MAX_SIZE);
+				goto __FAILED;
             }
             p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
             if (p_strm->nalu_len == 1) {
@@ -670,8 +654,9 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
         if (p_strm->startcode_found) {
-            if (p_strm->nalu_len >= p_strm->nalu_max_size) {
-                FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
+            if (p_strm->nalu_len >= NALU_BUF_MAX_SIZE) {
+				H264D_ERR("error, nalu_len is larger than %d", NALU_BUF_MAX_SIZE);
+				goto __FAILED;
             }
             p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
             if (p_strm->nalu_len == 1) {
