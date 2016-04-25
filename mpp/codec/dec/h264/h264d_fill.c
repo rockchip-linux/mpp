@@ -27,43 +27,20 @@
 #include "h264d_fill.h"
 
 
-#define  ALIGN(x, a)       ( ((x) + (a) - 1) & (~((a) - 1)) )
-
 static const RK_U8 start_code[3] = { 0, 0, 1 };
 
-
+#if 0
 static MPP_RET realloc_slice_list(H264dDxvaCtx_t *dxva_ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
     dxva_ctx->max_slice_size += ADD_SLICE_SIZE;
     dxva_ctx->slice_long  = mpp_realloc(dxva_ctx->slice_long, DXVA_Slice_H264_Long, dxva_ctx->max_slice_size);
     MEM_CHECK(ret, dxva_ctx->slice_long);
-
     return ret = MPP_OK;
 __FAILED:
     return ret;
 }
-
-
-//static MPP_RET realloc_stream_buffer(H264dDxvaCtx_t *dxva_ctx, RK_U32 stream_add)
-//{
-//    MPP_RET ret = MPP_ERR_UNKNOW;
-//
-//    if (stream_add > FRAME_BUF_ADD_SIZE) {
-//        dxva_ctx->max_strm_size += ALIGN(stream_add, 128);
-//    } else {
-//        dxva_ctx->max_strm_size += FRAME_BUF_ADD_SIZE;
-//    }
-//    dxva_ctx->bitstream = mpp_realloc(dxva_ctx->bitstream, RK_U8, dxva_ctx->max_strm_size);
-//    MEM_CHECK (ret, dxva_ctx->bitstream);
-//
-//    return ret = MPP_OK;
-//__FAILED:
-//    ASSERT(0);
-//    return ret;
-//}
-
+#endif
 static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -71,8 +48,9 @@ static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
     RK_U32 streamlen_add = 0;
     DXVA_Slice_H264_Long  *p_long = NULL;
 
-    if (dxva_ctx->slice_count >= dxva_ctx->max_slice_size) {
-        FUN_CHECK(ret = realloc_slice_list(dxva_ctx));
+	if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
+		H264D_ERR("error, slcie_num is larger than 1024");
+		goto __FAILED;
     }
     //streamlen_add = p_nal->sodb_len + sizeof(start_code);
     //stream_offset = dxva_ctx->strm_offset + streamlen_add;
@@ -388,7 +366,7 @@ void commit_buffer(H264dDxvaCtx_t *dxva_ctx)
     p_dec = &p_syn->buf[p_syn->num++];
     memset(p_dec, 0, sizeof(DXVA2_DecodeBufferDesc));
     p_dec->CompressedBufferType = DXVA2_BitStreamDateBufferType;
-    p_dec->DataSize = ALIGN(dxva_ctx->strm_offset, 16);
+    p_dec->DataSize = MPP_ALIGN(dxva_ctx->strm_offset, 16);
     memset(dxva_ctx->bitstream + dxva_ctx->strm_offset, 0, p_dec->DataSize - dxva_ctx->strm_offset);
     p_dec->pvPVPState = (void *)dxva_ctx->bitstream;
     //!< commit slice control, DXVA_Slice_H264_Long

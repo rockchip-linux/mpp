@@ -24,7 +24,8 @@
 #include "h264d_sps.h"
 #include "h264d_pps.h"
 
-#if 0
+//#define JUDEG_NEW_FRAME_EN
+#ifdef JUDEG_NEW_FRAME_EN
 static RK_U32 judge_new_frame(H264_SLICE_t *currSlice)
 {
 	RK_U32 is_new_pic_flag = 0;
@@ -33,7 +34,7 @@ static RK_U32 judge_new_frame(H264_SLICE_t *currSlice)
 	H264_OldSlice_t *p_old_slice = &currSlice->p_Vid->old_slice;
 
 	currSlice->new_frame_flag = 0;
-	{ 
+	{
 		result |= (currSlice->start_mb_nr == 0);
 		result |= (p_old_slice->pps_id != (RK_S32)currSlice->pic_parameter_set_id);
 		result |= (p_old_slice->frame_num != currSlice->frame_num);
@@ -593,7 +594,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
 				currSlice->delta_pic_order_cnt[1] = 0;
 			}
 		}
-#if 0
+#ifdef JUDEG_NEW_FRAME_EN
 	}
 	currSlice->new_frame_flag = judge_new_frame(currSlice); // (currSlice->start_mb_nr == 0) ? 1 : 0;
 	if (currSlice->new_frame_flag)
