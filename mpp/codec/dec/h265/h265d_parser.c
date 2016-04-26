@@ -1387,50 +1387,61 @@ fail:
     return 0;
 }
 
-/* FIXME: This is adapted from ff_h264_decode_nal, avoiding duplication
- * between these functions would be nice. */
+
+typedef union {
+    uint32_t u32;
+    uint16_t u16[2];
+    uint8_t  u8 [4];
+    float    f32;
+} mpp_alias32;
+
+#define MPP_FAST_UNALIGNED 1
+
+
+#ifndef MPP_RN32A
+#define MPP_RN32A(p) (((const mpp_alias32*)(p))->u32)
+#endif
 RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
                              HEVCNAL *nal)
 {
-    RK_S32 i, si, di;
-    RK_U8 *dst;
+    RK_S32 i;
 
     s->skipped_bytes = 0;
 
 #define STARTCODE_TEST                                              \
-    if (i + 2 < length && src[i + 1] == 0 && src[i + 2] <= 3) {     \
-        if (src[i + 2] != 3) {                                      \
+    if (i + 2 < length && src[i + 1] == 0 && src[i + 2] < 3) {      \
             /* startcode, so we must be past the end */             \
-            length = i;                                             \
-        }                                                           \
+        length = i;                                                 \
         break;                                                      \
     }
 
-    for (i = 0; i + 1 < length; i += 2) {
+#if MPP_FAST_UNALIGNED
+#define FIND_FIRST_ZERO                                             \
+    if (i > 0 && !src[i])                                           \
+        i--;                                                        \
+    while (src[i])                                                  \
+        i++
+
+    for (i = 0; i + 1 < length; i += 5) {
+        if (!((~MPP_RN32A(src + i) &
+          (MPP_RN32A(src + i) - 0x01000101U)) &
+            0x80008080U))
+        continue;
+
+        FIND_FIRST_ZERO;
+
+        STARTCODE_TEST;
+        i -= 3;
+    }
+#else
+     for (i = 0; i + 1 < length; i += 2) {
         if (src[i])
             continue;
         if (i > 0 && src[i - 1] == 0)
             i--;
         STARTCODE_TEST;
-    }
-
-    if (i >= length - 1) { // no escaped 0
-        if (length + MPP_INPUT_BUFFER_PADDING_SIZE > nal->rbsp_buffer_size) {
-            RK_S32 min_size = length + MPP_INPUT_BUFFER_PADDING_SIZE;
-            mpp_free(nal->rbsp_buffer);
-            nal->rbsp_buffer = NULL;
-            min_size = MPP_MAX(17 * min_size / 16 + 32, min_size);
-            nal->rbsp_buffer = mpp_malloc(RK_U8, min_size);
-            if (nal->rbsp_buffer == NULL) {
-                min_size = 0;
-            }
-            nal->rbsp_buffer_size = min_size;
-        }
-        memcpy(nal->rbsp_buffer, src, length);
-        nal->data = nal->rbsp_buffer;
-        nal->size = length;
-        return length;
-    }
+     }
+#endif
 
     if (length + MPP_INPUT_BUFFER_PADDING_SIZE > nal->rbsp_buffer_size) {
         RK_S32 min_size = length + MPP_INPUT_BUFFER_PADDING_SIZE;
@@ -1444,41 +1455,12 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
         nal->rbsp_buffer_size = min_size;
     }
 
-    if (!nal->rbsp_buffer)
-        return MPP_ERR_NOMEM;
+    memcpy(nal->rbsp_buffer, src, length);
+    nal->data = nal->rbsp_buffer;
+    nal->size = length;
 
-    dst = nal->rbsp_buffer;
-
-    memcpy(dst, src, i);
-    si = di = i;
-    while (si + 2 < length) {
-        // remove escapes (very rare 1:2^22)
-        if (src[si + 2] >= 3) {
-            dst[di++] = src[si++];
-            dst[di++] = src[si++];
-        } else if (src[si] == 0 && src[si + 1] == 0) {
-            if (src[si + 2] == 3) { // escape
-                dst[di++] = 0;
-                dst[di++] = 0;
-                si       += 3;
-
-                s->skipped_bytes++;
-                continue;
-            } else// next start code
-                goto nsc;
-        }
-
-        dst[di++] = src[si++];
-    }
-    while (si < length)
-        dst[di++] = src[si++];
-
-nsc:
-    memset(dst + di, 0, MPP_INPUT_BUFFER_PADDING_SIZE);
-
-    nal->data = dst;
-    nal->size = di;
-    return si;
+    memset(nal->rbsp_buffer + length, 0, MPP_INPUT_BUFFER_PADDING_SIZE);
+    return length;
 }
 
 static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
