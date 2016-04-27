@@ -38,11 +38,11 @@
 
 #define MAX_MARK_SIZE             35   //!< for malloc buffer mark, can be changed
 
-#define MAX_STREM_IN_SIZE         (10*102041024)
+#define MAX_STREM_IN_SIZE         (10*1024*1024)
 
-#define HEAD_BUF_MAX_SIZE         ( 5*102041024)
-#define NALU_BUF_MAX_SIZE         (10*102041024)
-#define SODB_BUF_MAX_SIZE         (10*102041024)
+#define HEAD_BUF_MAX_SIZE         ( 5*1024*1024)
+#define NALU_BUF_MAX_SIZE         (10*1024*1024)
+#define SODB_BUF_MAX_SIZE         (10*1024*1024)
 
 //!< AVC Profile IDC definitions
 typedef enum {
