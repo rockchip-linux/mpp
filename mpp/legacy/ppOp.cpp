@@ -37,24 +37,18 @@ namespace android
 
 status_t ppOpInit(PP_OP_HANDLE *hnd, PP_OPERATION *init)
 {
-
     (void)hnd;
     (void)init;
     return 0;
 }
 
-
-
-status_t ppOpSet(PP_OP_HANDLE hnd, PP_SET_OPT opt, uint32_t val)
+status_t ppOpSet(PP_OP_HANDLE hnd, PP_SET_OPT opt, RK_U32 val)
 {
-
     (void)hnd;
     (void)opt;
     (void)val;
     return 0;
 }
-
-
 
 status_t ppOpPerform(PP_OP_HANDLE hnd)
 {
@@ -64,7 +58,6 @@ status_t ppOpPerform(PP_OP_HANDLE hnd)
 
 status_t ppOpSync(PP_OP_HANDLE hnd)
 {
-
     (void)hnd;
     return 0;
 }
