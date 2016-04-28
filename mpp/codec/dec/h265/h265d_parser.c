@@ -1389,10 +1389,10 @@ fail:
 
 
 typedef union {
-    uint32_t u32;
-    uint16_t u16[2];
-    uint8_t  u8 [4];
-    float    f32;
+    RK_U32  u32;
+    RK_U16  u16[2];
+    RK_U8   u8 [4];
+    float   f32;
 } mpp_alias32;
 
 #define MPP_FAST_UNALIGNED 1
