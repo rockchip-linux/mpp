@@ -30,7 +30,7 @@
 #ifdef ANDROID
 #include <sys/types.h>
 
-typedef int32_t     status_t;
+typedef RK_S32     status_t;
 
 namespace android
 {
@@ -59,33 +59,33 @@ namespace android
 #define PP_ROTATION_180                                 5U
 
 typedef struct {
-    uint32_t srcAddr;           // 16 align
-    uint32_t srcFormat;
-    uint32_t srcWidth;          // 16 align max 2048
-    uint32_t srcHeight;         // 16 align max 2048
-    uint32_t srcHStride;        // 16 align max 2048
-    uint32_t srcVStride;        // 16 align max 2048
-    uint32_t srcCrop8R;         // crop rigth
-    uint32_t srcCrop8D;         // crop down
-    uint32_t srcX;                  // src x
-    uint32_t srcY;                  // src y
-    uint32_t srcReserv[2];
+    RK_U32 srcAddr;           // 16 align
+    RK_U32 srcFormat;
+    RK_U32 srcWidth;          // 16 align max 2048
+    RK_U32 srcHeight;         // 16 align max 2048
+    RK_U32 srcHStride;        // 16 align max 2048
+    RK_U32 srcVStride;        // 16 align max 2048
+    RK_U32 srcCrop8R;         // crop rigth
+    RK_U32 srcCrop8D;         // crop down
+    RK_U32 srcX;                  // src x
+    RK_U32 srcY;                  // src y
+    RK_U32 srcReserv[2];
 
-    uint32_t dstAddr;           // 16 align
-    uint32_t dstFormat;
-    uint32_t dstWidth;          // 16 align max 2048
-    uint32_t dstHeight;         // 16 align max 2048
-    uint32_t dstHStride;        // 16 align max 2048
-    uint32_t dstVStride;        // 16 align max 2048
-    uint32_t dstReserv[2];
-    uint32_t dstX;                  // dst x
-    uint32_t dstY;                  // dst y
+    RK_U32 dstAddr;           // 16 align
+    RK_U32 dstFormat;
+    RK_U32 dstWidth;          // 16 align max 2048
+    RK_U32 dstHeight;         // 16 align max 2048
+    RK_U32 dstHStride;        // 16 align max 2048
+    RK_U32 dstVStride;        // 16 align max 2048
+    RK_U32 dstReserv[2];
+    RK_U32 dstX;                  // dst x
+    RK_U32 dstY;                  // dst y
 
-    uint32_t vpuFd;             // VPUClient handle
-    uint32_t rotation;          // rotation angel
-    uint32_t yuvFullRange;      // yuv is full range or not, set yuv trans table
-    uint32_t deinterlace;       // do deinterlace or not
-    uint32_t optReserv[13];
+    RK_U32 vpuFd;             // VPUClient handle
+    RK_U32 rotation;          // rotation angel
+    RK_U32 yuvFullRange;      // yuv is full range or not, set yuv trans table
+    RK_U32 deinterlace;       // do deinterlace or not
+    RK_U32 optReserv[13];
 } PP_OPERATION;
 
 
@@ -115,7 +115,7 @@ typedef enum {
 typedef void* PP_OP_HANDLE;
 
 status_t ppOpInit(PP_OP_HANDLE *hnd, PP_OPERATION *init);
-status_t ppOpSet(PP_OP_HANDLE hnd, PP_SET_OPT opt, uint32_t val);
+status_t ppOpSet(PP_OP_HANDLE hnd, PP_SET_OPT opt, RK_U32 val);
 status_t ppOpPerform(PP_OP_HANDLE hnd);
 status_t ppOpSync(PP_OP_HANDLE hnd);
 status_t ppOpRelease(PP_OP_HANDLE hnd);
