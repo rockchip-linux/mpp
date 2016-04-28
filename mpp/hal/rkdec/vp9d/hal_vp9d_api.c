@@ -637,7 +637,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     if (!(pic_param->stVP9Segments.enabled && !pic_param->stVP9Segments.update_map)) {
-        uint8_t *seg_cur = NULL, *seg_pre = NULL;
+        RK_U8 *seg_cur = NULL, *seg_pre = NULL;
         if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
             seg_cur = mpp_buffer_get_ptr(reg_cxt->segid_cur_base);
             seg_pre = mpp_buffer_get_ptr(reg_cxt->segid_last_base);
