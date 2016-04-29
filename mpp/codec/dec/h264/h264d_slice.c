@@ -140,8 +140,14 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_0], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
+			RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
             i = 0;
             do {
+				if (i >= size) {
+					ret = MPP_NOK;
+					H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_0](%d)", size);
+					goto __BITREAD_ERR;
+				}
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
                 currSlice->modification_of_pic_nums_idc[LIST_0][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
@@ -160,8 +166,14 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     if (currSlice->slice_type % 5 == B_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_1], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
+			RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
             i = 0;
             do {
+				if (i >= size) {
+					ret = MPP_NOK;
+					H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_1](%d)", size);
+					goto __BITREAD_ERR;
+				}
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
                 currSlice->modification_of_pic_nums_idc[LIST_1][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
@@ -182,6 +194,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
+	free_ref_pic_list_reordering_buffer(currSlice);
     return ret;
 }
 
@@ -645,8 +658,9 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         if (g_max_bytes < (p_bitctx->used_bits >> 3)) {
             g_max_bytes = (p_bitctx->used_bits >> 3);
         }		
-		H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] layer_id=%d,sps_id=%d, pps_id=%d, structure=%d, frame_num=%d", currSlice->layer_id,
-			currSlice->active_sps->seq_parameter_set_id, currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
+		H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] type=%d, layer_id=%d,sps_id=%d, pps_id=%d, struct=%d, frame_num=%d", 
+			currSlice->slice_type, currSlice->layer_id, currSlice->active_sps->seq_parameter_set_id, 
+			currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
     }
 
 
