@@ -15,25 +15,14 @@ add_subdirectory(dec)
 
 add_subdirectory(enc)
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dec/avs_impl/")
-add_subdirectory(dec/avs_impl)
+
 target_link_libraries(mpp_codec
                       codec_h264d
-					  codec_vp9d
-					  codec_h265d
-					  codec_avsd
-					  codec_avsd_impl
+		      codec_vp9d
+		      codec_h265d
+		      codec_avsd
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp)
-else()
-target_link_libraries(mpp_codec
-                      codec_h264d
-					  codec_vp9d
-					  codec_h265d
-					  codec_avsd
-                      codec_dummy_enc
-                      codec_dummy_dec
-                      mpp)
-endif()
+
 

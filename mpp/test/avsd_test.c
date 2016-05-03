@@ -37,18 +37,9 @@
 
 #include "hal_task.h"
 #include "avsd_api.h"
-
+#include "avsd_parse.h"
 #include "hal_avsd_api.h"
 
-
-
-#ifdef AVS_TEST
-int main(int argc, char **argv)
-{
-	return avsd_test_main(argc, argv);
-}
-
-#else
 
 #define AVSD_TEST_ERROR       (0x00000001)
 #define AVSD_TEST_ASSERT      (0x00000002)
@@ -65,36 +56,20 @@ if (level & rkv_avsd_test_debug)\
 } while (0)
 
 
-#define INP_CHECK(ret, val, ...)\
-do{\
-	if ((val)) {\
-		ret = MPP_ERR_INIT; \
-		AVSD_TEST_LOG(AVSD_TEST_WARNNING, "input empty(%d).\n", __LINE__); \
-		goto __RETURN; \
-}} while (0)
+typedef struct ParserImpl_t {
+	ParserCfg           cfg;
 
-#define MEM_CHECK(ret, val, ...)\
-do{\
-	if (!(val)) {\
-		ret = MPP_ERR_MALLOC; \
-		AVSD_TEST_LOG(AVSD_TEST_ERROR, "malloc buffer error(%d).\n", __LINE__); \
-		goto __FAILED; \
-}} while (0)
+	const ParserApi     *api;
+	void                *ctx;
+} ParserImpl;
 
-
-#define FUN_CHECK(val)\
-do{\
-	if ((val) < 0) {\
-		AVSD_TEST_LOG(AVSD_TEST_WARNNING, "Function error(%d).\n", __LINE__); \
-		goto __FAILED; \
-}} while (0)
 
 static RK_U32 rkv_avsd_test_debug = 0;
 
 typedef struct inp_par_t {
 	FILE *fp_in;
 	FILE *fp_out;
-
+	FILE *fp_read;
 	RK_U8 *pbuf;
 	RK_U32 bufsize;
 	RK_U32 len;
@@ -119,20 +94,6 @@ typedef struct avsd_test_ctx_t {
 	MppBufferGroup mStreamGroup;
 } AvsdTestCtx_t;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static MPP_RET decoder_deinit(AvsdTestCtx_t *pctx)
 {
 	MppDec *pApi = &pctx->m_api;
@@ -155,18 +116,23 @@ static MPP_RET decoder_deinit(AvsdTestCtx_t *pctx)
 	}
 	if (pctx->m_dec_pkt_buf) {
 		mpp_buffer_put(pctx->m_dec_pkt_buf);
+		pctx->m_dec_pkt_buf = NULL;
 	}
 	if (pctx->m_dec_pic_buf) {
 		mpp_buffer_put(pctx->m_dec_pic_buf);
+		pctx->m_dec_pic_buf = NULL;
 	}
-	if (pctx->mFrameGroup != NULL) {
+	if (pctx->mFrameGroup) {
 		mpp_err("mFrameGroup deInit");
 		mpp_buffer_group_put(pctx->mFrameGroup);
+		pctx->mFrameGroup = NULL;
 	}
-	if (pctx->mStreamGroup != NULL) {
+	if (pctx->mStreamGroup) {
 		mpp_err("mStreamGroup deInit");
 		mpp_buffer_group_put(pctx->mStreamGroup);
+		pctx->mStreamGroup = NULL;
 	}
+
 	return MPP_OK;
 }
 
@@ -181,14 +147,14 @@ static MPP_RET decoder_init(AvsdTestCtx_t *pctx)
 	if (pctx->mFrameGroup == NULL) {
 		ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_NORMAL);
 		if (MPP_OK != ret) {
-			mpp_err("h264d mpp_buffer_group_get failed\n");
+			mpp_err("avsd mpp_buffer_group_get failed\n");
 			goto __FAILED;
 		}
 	}
 	if (pctx->mStreamGroup == NULL) {
 		ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_NORMAL);
 		if (MPP_OK != ret) {
-			mpp_err("h264d mpp_buffer_group_get failed\n");
+			mpp_err("avsd mpp_buffer_group_get failed\n");
 			goto __FAILED;
 		}
 	}
@@ -207,15 +173,19 @@ static MPP_RET decoder_init(AvsdTestCtx_t *pctx)
 	parser_cfg.packet_slots = pApi->packet_slots;
 	parser_cfg.task_count = 2;
 	FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
+
 	// init hal part
 	memset(&hal_cfg, 0, sizeof(hal_cfg));
 	hal_cfg.type = MPP_CTX_DEC;
 	hal_cfg.coding = pApi->coding;
 	hal_cfg.work_mode = HAL_MODE_LIBVPU;
-	hal_cfg.device_id = HAL_VDPU;
+	hal_cfg.device_id = HAL_RKVDEC;
 	hal_cfg.frame_slots = pApi->frame_slots;
 	hal_cfg.packet_slots = pApi->packet_slots;
 	hal_cfg.task_count = parser_cfg.task_count;
+	hal_cfg.hal_int_cb.opaque = ((ParserImpl *)(pApi->parser))->ctx;
+	hal_cfg.hal_int_cb.callBack = api_avsd_parser.callback;
+	//api_avsd_parser.callback(hal_cfg.hal_int_cb.opaque, NULL);
 	FUN_CHECK(ret = mpp_hal_init(&pApi->hal, &hal_cfg));
 	pApi->tasks = hal_cfg.tasks;
 
@@ -260,9 +230,10 @@ static MPP_RET avsd_input_deinit(InputParams *inp)
 {
 	MPP_RET ret = MPP_ERR_UNKNOW;
 
+	MPP_FREE(inp->pbuf);
 	MPP_FCLOSE(inp->fp_in);
 	MPP_FCLOSE(inp->fp_out);
-
+	MPP_FCLOSE(inp->fp_read);
 	return ret = MPP_OK;
 }
 
@@ -315,8 +286,13 @@ static MPP_RET avsd_input_init(InputParams *inp, RK_S32 ac, char *av[])
 			goto __FAILED;
 		}
 	}
+	if ((inp->fp_read = fopen("F:/avs_log/avs_read.txt", "wb")) == 0) {
+		mpp_log("error, open file %s", "F:/avs_log/avs_read.txt");
+		goto __FAILED;
+	}
+
 	//!< malloc read buffer
-	inp->bufsize = 512; 
+	inp->bufsize = 30*1024; 
 	MEM_CHECK(ret, inp->pbuf = mpp_malloc(RK_U8, inp->bufsize));
 
 	AVSD_TEST_LOG(AVSD_TEST_TRACE, "------------------------------------------------------------");
@@ -339,6 +315,11 @@ static MPP_RET avsd_read_data(InputParams *inp)
 
 	inp->len = (RK_U32)fread(inp->pbuf, sizeof(RK_U8), inp->bufsize, inp->fp_in);
 	inp->is_eof = feof(inp->fp_in);
+
+	if (inp->fp_read){
+		fwrite(inp->pbuf, inp->len, 1, inp->fp_read);
+		fflush(inp->fp_read);
+	}
 
 	return ret = MPP_OK;
 }
@@ -400,10 +381,12 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
 		//!< deinit packet
 		if (mpp_packet_get_length(pkt) == 0) {
 			if (mpp_packet_get_eos(pkt)) {
+				if (task->dec.valid) {
+					mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
+					mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
+					task->dec.valid = 0;
+				}
 				end_of_flag = 1; //!< end of stream
-				task->dec.valid = 0;
-				mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
-				mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
 			}
 			mpp_packet_deinit(&pkt);
 			pkt = NULL;
@@ -415,7 +398,7 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
 			}
 			mpp_buf_slot_get_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, &pctx->m_dec_pic_buf);
 			if (NULL == pctx->m_dec_pic_buf) {
-				RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
+				RK_U32 size = 1920 * 1088 * 3 / 2;// (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
 				mpp_buffer_get(pctx->mFrameGroup, &pctx->m_dec_pic_buf, size);
 				if (pctx->m_dec_pic_buf)
 					mpp_buf_slot_set_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, pctx->m_dec_pic_buf);
@@ -448,9 +431,9 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
 
 		}
 	} while (!end_of_flag);
+
 	//!< flush dpb and send to display
 	FUN_CHECK(ret = mpp_dec_flush(pApi));
-	avsd_flush_frames(pApi, inp->fp_out);
 
 	ret = MPP_OK;
 __FAILED:
@@ -461,19 +444,20 @@ __FAILED:
 int main(int argc, char **argv)
 {
 	MPP_RET ret = MPP_ERR_UNKNOW;
-	AvsdTestCtx_t *pctx = NULL;
+	AvsdTestCtx_t m_decoder;
+	AvsdTestCtx_t *p_dec = &m_decoder;
 
 #if defined(_MSC_VER)
 	mpp_env_set_u32("rkv_avsd_test_debug", 0xFF);
 #endif
 	mpp_env_get_u32("rkv_avsd_test_debug", &rkv_avsd_test_debug, 0x0F);
-	MEM_CHECK(ret, pctx = mpp_calloc(AvsdTestCtx_t, 1));
+	memset(p_dec, 0, sizeof(AvsdTestCtx_t));
 	// read file
-	FUN_CHECK(ret = avsd_input_init(&pctx->m_in, argc, argv));
+	FUN_CHECK(ret = avsd_input_init(&p_dec->m_in, argc, argv));
 	// init
-	decoder_init(pctx);
+	decoder_init(p_dec);
 	// decode
-	ret = decoder_single_test(pctx);
+	ret = decoder_single_test(p_dec);
 	if (ret != MPP_OK) {
 		AVSD_TEST_LOG(AVSD_TEST_TRACE, "[AVSD_TEST] Single-thread test error.");
 		goto __FAILED;
@@ -481,12 +465,11 @@ int main(int argc, char **argv)
 	
 	ret = MPP_OK;
 __FAILED:
-	decoder_deinit(pctx);
-	avsd_input_deinit(&pctx->m_in);
-	MPP_FREE(pctx);
+	decoder_deinit(p_dec);
+	avsd_input_deinit(&p_dec->m_in);
+
 	AVSD_TEST_LOG(AVSD_TEST_TRACE, "[AVSD_TEST] decoder_deinit over.");
 
 	return ret;
 }
 
-#endif
