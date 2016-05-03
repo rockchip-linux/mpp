@@ -21,16 +21,216 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_env.h"
+#include "mpp_packet.h"
+#include "mpp_packet_impl.h"
+#include "mpp_buffer_impl.h"
+
 
 #include "avsd_api.h"
+#include "avsd_parse.h"
+
 
 
 RK_U32 avsd_parse_debug = 0;
+
+
+
+static MPP_RET free_input_ctx(AvsdInputCtx_t *p_inp)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p_inp);
+	AVSD_PARSE_TRACE("In.");
+
+	MPP_FCLOSE(p_inp->fp_log);
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+}
+static MPP_RET init_input_ctx(AvsdInputCtx_t *p_inp, ParserCfg *init)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p_inp && !init);
+	AVSD_PARSE_TRACE("In.");
+
+	p_inp->init = *init;
+#if defined(_WIN32)
+	if ((p_inp->fp_log = fopen("F:/avs_log/avs_runlog.txt", "wb")) == 0) {
+		mpp_log("Wanning, open file, %s(%d)", __FUNCTION__, __LINE__);
+	}
+#endif
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+}
+
+
+static MPP_RET free_cur_ctx(AvsdCurCtx_t *p_cur)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p_cur);
+	AVSD_PARSE_TRACE("In.");
+
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+
+	return ret = MPP_OK;
+}
+static MPP_RET init_cur_ctx(AvsdCurCtx_t *p_cur)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	AvsdCurStream_t *p_strm = NULL;
+	
+	INP_CHECK(ret, !p_cur);
+	AVSD_PARSE_TRACE("In.");
+
+	p_strm = &p_cur->m_strm;
+	p_strm->prefixdata = 0xffffffff;
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+
+}
+
+
+static MPP_RET free_vid_ctx(AvsdVideoCtx_t *p_vid)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p_vid);
+	AVSD_PARSE_TRACE("In.");
+
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+
+	return ret = MPP_OK;
+}
+static MPP_RET init_vid_ctx(AvsdVideoCtx_t *p_vid)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p_vid);
+	AVSD_PARSE_TRACE("In.");
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+}
+
+static MPP_RET free_bitstream(AvsdBitstream_t *p)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p);
+	AVSD_PARSE_TRACE("In.");
+
+	MPP_FREE(p->pbuf);
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+
+	return ret = MPP_OK;
+}
+
+static MPP_RET init_bitstream(AvsdBitstream_t *p)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, !p);
+	AVSD_PARSE_TRACE("In.");
+	p->size = MAX_BITSTREAM_SIZE;
+	p->pbuf = mpp_malloc(RK_U8, MAX_BITSTREAM_SIZE);
+	MEM_CHECK(ret, p->pbuf);
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+__FAILED:
+	return ret;
+}
+
+
+static MPP_RET free_dec_ctx(Avs_DecCtx_t *p_dec)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+
+	INP_CHECK(ret, NULL == p_dec);
+	AVSD_PARSE_TRACE("In.");
+	lib_avsd_free(p_dec->libdec);
+	mpp_packet_deinit(&p_dec->task_pkt);
+	free_bitstream(p_dec->bitstream);
+	MPP_FREE(p_dec->mem);	
+
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+
+	return ret = MPP_OK;
+}
+
+
+
+static MPP_RET init_dec_ctx(Avs_DecCtx_t *p_dec)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	
+	INP_CHECK(ret, !p_dec);
+	AVSD_PARSE_TRACE("In.");	
+
+	mpp_buf_slot_setup(p_dec->frame_slots, 4);
+	p_dec->mem = mpp_calloc(AvsdMemory_t, 1);
+	MEM_CHECK(ret, p_dec->mem);
+	p_dec->bitstream = &p_dec->mem->bitstream;
+	FUN_CHECK(ret = init_bitstream(p_dec->bitstream));
+	//!< malloc mpp packet
+	mpp_packet_init(&p_dec->task_pkt, p_dec->bitstream->pbuf, p_dec->bitstream->size);
+	mpp_packet_set_length(p_dec->task_pkt, 0);
+	MEM_CHECK(ret, p_dec->task_pkt);
+	//!< malloc libavsd.so
+	p_dec->libdec = lib_avsd_malloc(p_dec);
+	MEM_CHECK(ret, p_dec->libdec);
+__RETURN:
+	AVSD_PARSE_TRACE("Out.");
+
+	return ret = MPP_OK;
+__FAILED:
+	free_dec_ctx(p_dec);
+
+	return ret;
+}
+/*!
+***********************************************************************
+* \brief
+*   free all buffer
+***********************************************************************
+*/
+MPP_RET avsd_deinit(void *decoder)
+{
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
+
+	INP_CHECK(ret, !decoder);
+	AVSD_PARSE_TRACE("In.");
+	avsd_flush(decoder);
+	free_input_ctx(p_dec->p_inp);
+	MPP_FREE(p_dec->p_inp);
+	free_cur_ctx(p_dec->p_cur);
+	MPP_FREE(p_dec->p_cur);
+	free_vid_ctx(p_dec->p_vid);
+	MPP_FREE(p_dec->p_vid);
+	free_dec_ctx(p_dec);
+__RETURN:
+	(void)decoder;
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+}
 
 /*!
 ***********************************************************************
@@ -39,48 +239,64 @@ RK_U32 avsd_parse_debug = 0;
 ***********************************************************************
 */
 
-MPP_RET avsd_init(void *ctx, ParserCfg *init)
+MPP_RET avsd_init(void *decoder, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
 
-    mpp_env_get_u32("avsd_debug", &avsd_parse_debug, 0);
+	AVSD_PARSE_TRACE("In.");
+	INP_CHECK(ret, !p_dec);
+	memset(p_dec, 0, sizeof(Avs_DecCtx_t));
+	// init logctx
+	mpp_env_get_u32("avsd_debug", &avsd_parse_debug, 0);
+	//!< get init frame_slots and packet_slots
+	p_dec->frame_slots = init->frame_slots;
+	p_dec->packet_slots = init->packet_slots;
+	//!< malloc decoder buffer
+	p_dec->p_inp = mpp_calloc(AvsdInputCtx_t, 1);
+	p_dec->p_cur = mpp_calloc(AvsdCurCtx_t, 1);
+	p_dec->p_vid = mpp_calloc(AvsdVideoCtx_t, 1);
+	MEM_CHECK(ret, p_dec->p_inp && p_dec->p_cur && p_dec->p_vid);
 
-    AVSD_PARSE_TRACE("In.");
+	p_dec->p_inp->p_dec = p_dec;
+	p_dec->p_inp->p_cur = p_dec->p_cur;
+	p_dec->p_inp->p_vid = p_dec->p_vid;
+	FUN_CHECK(ret = init_input_ctx(p_dec->p_inp, init));
+	p_dec->p_cur->p_dec = p_dec;
+	p_dec->p_cur->p_inp = p_dec->p_inp;
+	p_dec->p_cur->p_vid = p_dec->p_vid;
+	FUN_CHECK(ret = init_cur_ctx(p_dec->p_cur));
+	p_dec->p_vid->p_dec = p_dec;
+	p_dec->p_vid->p_inp = p_dec->p_inp;
+	p_dec->p_vid->p_cur = p_dec->p_cur;
+	FUN_CHECK(ret = init_vid_ctx(p_dec->p_vid));
+	FUN_CHECK(ret = init_dec_ctx(p_dec));
+__RETURN:
+	(void)decoder;
+	(void)init;
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+__FAILED:
+	avsd_deinit(decoder);
 
-    (void)ctx;
-    (void)init;
-    return ret = MPP_OK;
+	return ret;
 }
-
-/*!
-***********************************************************************
-* \brief
-*   free all buffer
-***********************************************************************
-*/
-MPP_RET avsd_deinit(void *ctx)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    AVSD_PARSE_TRACE("In.");
-
-    (void)ctx;
-    return ret = MPP_OK;
-}
-
 /*!
 ***********************************************************************
 * \brief
 *   reset
 ***********************************************************************
 */
-MPP_RET avsd_reset(void *ctx)
+MPP_RET avsd_reset(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
 
     AVSD_PARSE_TRACE("In.");
+	lib_reset(p_dec->libdec);
 
-    (void)ctx;
+	AVSD_PARSE_TRACE("Out.");
+    (void)decoder;
     return ret = MPP_OK;
 }
 
@@ -90,13 +306,16 @@ MPP_RET avsd_reset(void *ctx)
 *   flush
 ***********************************************************************
 */
-MPP_RET avsd_flush(void *ctx)
+MPP_RET avsd_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
     AVSD_PARSE_TRACE("In.");
 
-    (void)ctx;
+	lib_flush(p_dec->libdec);
+
+	AVSD_PARSE_TRACE("Out.");
+    (void)decoder;
     return ret = MPP_OK;
 }
 
@@ -106,16 +325,17 @@ MPP_RET avsd_flush(void *ctx)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET avsd_control(void *ctx, RK_S32 cmd_type, void *param)
+MPP_RET avsd_control(void *decoder, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     AVSD_PARSE_TRACE("In.");
 
-    (void)ctx;
+
+    (void)decoder;
     (void)cmd_type;
     (void)param;
-
+	AVSD_PARSE_TRACE("Out.");
     return ret = MPP_OK;
 }
 
@@ -126,19 +346,53 @@ MPP_RET avsd_control(void *ctx, RK_S32 cmd_type, void *param)
 *   prepare
 ***********************************************************************
 */
-MPP_RET avsd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+	AvsdInputCtx_t *p_inp = NULL;
+	Avs_DecCtx_t   *p_dec = (Avs_DecCtx_t *)decoder;
 
-    AVSD_PARSE_TRACE("In.");
+	AVSD_PARSE_TRACE("In.");
+	INP_CHECK(ret, !decoder && !pkt && !task);
+	p_inp = p_dec->p_inp;
+	if (p_inp->has_get_eos) {
+		mpp_packet_set_length(pkt, 0);
+		goto __RETURN;
+	}
+	p_inp->in_pkt = pkt;
+	p_inp->in_task = task;
 
-	mpp_packet_set_length(pkt, 0);
+	if (mpp_packet_get_eos(pkt)) {
+		if (mpp_packet_get_length(pkt) < 4) {
+			avsd_flush(decoder);
+		}
+		p_inp->has_get_eos = 1;
+	}
+	AVSD_DBG(AVSD_DBG_INPUT, "[pkt_in_timeUs] in_pts=%lld, pkt_eos=%d, len=%d, pkt_no=%d",
+		mpp_packet_get_pts(pkt), mpp_packet_get_eos(pkt), mpp_packet_get_length(pkt), p_inp->pkt_no++);
 
+	if (mpp_packet_get_length(pkt) > MAX_STREM_IN_SIZE) {
+		AVSD_DBG(AVSD_DBG_ERROR, "[pkt_in_timeUs] input error, stream too large");
+		mpp_packet_set_length(pkt, 0);
+		ret = MPP_NOK;
+		goto __FAILED;
+	}
+	p_inp->in_pts = mpp_packet_get_pts(pkt);
+	p_inp->in_dts = mpp_packet_get_dts(pkt);
 
-    (void)ctx;
-    (void)pkt;
-    (void)task;
-    return ret = MPP_OK;
+	memset(task, 0, sizeof(HalDecTask));
+	do {
+		(ret = avsd_parse_prepare(p_inp, p_dec->p_cur));
+
+	} while (mpp_packet_get_length(pkt) && !task->valid);
+__RETURN:
+	(void)decoder;
+	(void)pkt;
+	(void)task;
+	AVSD_PARSE_TRACE("Out.");
+	return ret = MPP_OK;
+__FAILED:
+	return ret;
 }
 
 
@@ -148,14 +402,30 @@ MPP_RET avsd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 *   parser
 ***********************************************************************
 */
-MPP_RET avsd_parse(void *ctx, HalDecTask *in_task)
+MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
     AVSD_PARSE_TRACE("In.");
 
-    (void)ctx;
-    (void)in_task;
+	task->valid = 0;
+	memset(task->refer, -1, sizeof(task->refer));
+
+	lib_parse_one_frame(p_dec->libdec, task);
+
+	if (task->flags.eos) {
+		avsd_flush(decoder);
+		goto __RETURN;
+	}
+	task->valid = 1; // register valid flag
+	if (task->valid) {
+		lib_init_one_frame(p_dec->libdec, task);
+	}
+
+__RETURN:
+    (void)decoder;
+    (void)task;
+	AVSD_PARSE_TRACE("Out.");
 
     return ret = MPP_OK;
 }
@@ -167,14 +437,27 @@ MPP_RET avsd_parse(void *ctx, HalDecTask *in_task)
 */
 MPP_RET avsd_callback(void *decoder, void *info)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	HalTaskInfo *task = (HalTaskInfo *)info;
+	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
+	AVSD_PARSE_TRACE("In.");
 
-    AVSD_PARSE_TRACE("In.");
+	AVSD_PARSE_TRACE("[avsd_parse_decode] frame_dec_no=%d", p_dec->dec_no++);
+	lib_decode_one_frame(p_dec->libdec, &task->dec);
+	{
+		MppBuffer mbuffer = NULL;
+		mpp_buf_slot_get_prop(p_dec->frame_slots, task->dec.output, SLOT_BUFFER, &mbuffer);
+		if (mbuffer) {
+			RK_U8 *p = (RK_U8 *)mpp_buffer_get_ptr(mbuffer);
+			nv12_copy_buffer(p_dec->libdec, p);
+		}	
+	}
+	(void)task;
+	(void)decoder;
+	(void)info;
+	AVSD_PARSE_TRACE("Out.");
 
-    (void)decoder;
-    (void)info;
-
-    return ret = MPP_OK;
+	return ret = MPP_OK;
 }
 
 /*!
@@ -183,11 +466,10 @@ MPP_RET avsd_callback(void *decoder, void *info)
 *   api struct interface
 ***********************************************************************
 */
-
 const ParserApi api_avsd_parser = {
     "avsd_parse",
     MPP_VIDEO_CodingAVS,
-    200,//sizeof(AvsCodecContext),
+    sizeof(Avs_DecCtx_t),
     0,
     avsd_init,
     avsd_deinit,
