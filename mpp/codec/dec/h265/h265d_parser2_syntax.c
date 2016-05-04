@@ -232,7 +232,7 @@ static void fill_scaling_lists(const HEVCContext *h, DXVA_Qmatrix_HEVC *qm)
     const ScalingList *sl = pps->scaling_list_data_present_flag ?
                             &pps->scaling_list : &sps->scaling_list;
 
-    memset(qm, 0, sizeof(*qm));
+    memset(qm, 0, sizeof(DXVA_Qmatrix_HEVC));
     for (i = 0; i < 6; i++) {
         for (j = 0; j < 16; j++) {
             pos = 4 * mpp_hevc_diag_scan4x4_y[j] + mpp_hevc_diag_scan4x4_x[j];

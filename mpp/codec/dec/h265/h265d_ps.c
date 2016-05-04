@@ -1302,21 +1302,26 @@ __BITREAD_ERR:
     memcpy(sl->sl[2][4], default_scaling_list_inter, 64);
     memcpy(sl->sl[2][5], default_scaling_list_inter, 64);
     memcpy(sl->sl[3][0], default_scaling_list_intra, 64);
-    memcpy(sl->sl[3][1], default_scaling_list_inter, 64);
+    memcpy(sl->sl[3][0], default_scaling_list_intra, 64);
+    memcpy(sl->sl[3][1], default_scaling_list_intra, 64);
+    memcpy(sl->sl[3][2], default_scaling_list_intra, 64);
+    memcpy(sl->sl[3][3], default_scaling_list_inter, 64);
+    memcpy(sl->sl[3][4], default_scaling_list_inter, 64);
+    memcpy(sl->sl[3][5], default_scaling_list_inter, 64);
 }
 
-static int scaling_list_data(HEVCContext *s, ScalingList *sl)
+static int scaling_list_data(HEVCContext *s, ScalingList *sl, HEVCSPS *sps)
 {
     BitReadCtx_t *gb = &s->HEVClc->gb;
-    RK_U8 scaling_list_pred_mode_flag[4][6];
+    RK_U8 scaling_list_pred_mode_flag;
     RK_S32 scaling_list_dc_coef[2][6];
     RK_S32 size_id,  i, pos;
     RK_U32 matrix_id;
 
     for (size_id = 0; size_id < 4; size_id++)
-        for (matrix_id = 0; matrix_id < (RK_U32)(size_id == 3 ? 2 : 6); matrix_id++) {
-            READ_ONEBIT(gb, &scaling_list_pred_mode_flag[size_id][matrix_id]);
-            if (!scaling_list_pred_mode_flag[size_id][matrix_id]) {
+        for (matrix_id = 0; matrix_id < 6; matrix_id += ((size_id == 3) ? 3 : 1)) {
+            READ_ONEBIT(gb, &scaling_list_pred_mode_flag);
+            if (!scaling_list_pred_mode_flag) {
                 RK_U32 delta = 0;
                 READ_UE(gb, &delta);
                 /* Only need to handle non-zero delta. Zero means default,
@@ -1361,7 +1366,18 @@ static int scaling_list_data(HEVCContext *s, ScalingList *sl)
                 }
             }
         }
-
+    if (sps->chroma_format_idc == 3) {
+        for (i = 0; i < 64; i++) {
+            sl->sl[3][1][i] = sl->sl[2][1][i];
+            sl->sl[3][2][i] = sl->sl[2][2][i];
+            sl->sl[3][4][i] = sl->sl[2][4][i];
+            sl->sl[3][5][i] = sl->sl[2][5][i];
+        }
+        sl->sl_dc[1][1] = sl->sl_dc[0][1];
+        sl->sl_dc[1][2] = sl->sl_dc[0][2];
+        sl->sl_dc[1][4] = sl->sl_dc[0][4];
+        sl->sl_dc[1][5] = sl->sl_dc[0][5];
+    }
     return 0;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
@@ -1597,7 +1613,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         set_default_scaling_list_data(&sps->scaling_list);
         READ_ONEBIT(gb, &value);
         if (value) {
-            ret = scaling_list_data(s, &sps->scaling_list);
+            ret = scaling_list_data(s, &sps->scaling_list, sps);
             if (ret < 0)
                 goto err;
         }
@@ -2027,7 +2043,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     READ_ONEBIT(gb, &pps->scaling_list_data_present_flag);
     if (pps->scaling_list_data_present_flag) {
         set_default_scaling_list_data(&pps->scaling_list);
-        ret = scaling_list_data(s, &pps->scaling_list);
+        ret = scaling_list_data(s, &pps->scaling_list, sps);
 
         if (ret < 0)
             goto err;

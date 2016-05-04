@@ -1424,9 +1424,9 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
 
     for (i = 0; i + 1 < length; i += 5) {
         if (!((~MPP_RN32A(src + i) &
-          (MPP_RN32A(src + i) - 0x01000101U)) &
-            0x80008080U))
-        continue;
+               (MPP_RN32A(src + i) - 0x01000101U)) &
+              0x80008080U))
+            continue;
 
         FIND_FIRST_ZERO;
 
@@ -1434,13 +1434,13 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
         i -= 3;
     }
 #else
-     for (i = 0; i + 1 < length; i += 2) {
+    for (i = 0; i + 1 < length; i += 2) {
         if (src[i])
             continue;
         if (i > 0 && src[i - 1] == 0)
             i--;
         STARTCODE_TEST;
-     }
+    }
 #endif
 
     if (length + MPP_INPUT_BUFFER_PADDING_SIZE > nal->rbsp_buffer_size) {
