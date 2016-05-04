@@ -70,7 +70,7 @@ typedef struct h265d_reg_context {
     h265d_reg_buf_t g_buf[MAX_GEN_REG];
     RK_U32 fast_mode;
     IOInterruptCB int_cb;
-	RK_U32 fast_mode_err_found;
+    RK_U32 fast_mode_err_found;
 } h265d_reg_context_t;
 
 typedef struct ScalingList {
@@ -1043,12 +1043,12 @@ static void hal_h265d_output_scalinglist_packet(void *ptr, void *dxva)
             sl.sl[2][i][pos] =  dxva_cxt->qm.ucScalingLists2[i][j];
 
             if (i < 2)
-                sl.sl[3][i * 3][pos] =  dxva_cxt->qm.ucScalingLists3[i][j];
+                sl.sl[3][i][pos] =  dxva_cxt->qm.ucScalingLists3[i][j];
         }
 
         sl.sl_dc[0][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID2[i];
         if (i < 2)
-            sl.sl_dc[1][i * 3] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
+            sl.sl_dc[1][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
     }
     hal_record_scaling_list((scalingFactor_t *)ptr, &sl);
 }
@@ -1519,45 +1519,44 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
     p = (RK_U8*)hw_regs;
-	ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78, &cmd, &len);
+    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78, &cmd, &len);
 
 #if 1
-	{
-		if (hw_regs->sw_interrupt.sw_dec_error_sta
-			|| hw_regs->sw_interrupt.sw_dec_empty_sta) {
-			if (!reg_cxt->fast_mode) {
-				if (reg_cxt->int_cb.callBack)
-					reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, NULL);
-			}
-			else {
-				MppFrame mframe = NULL;
-				mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
-				if (mframe){
-					reg_cxt->fast_mode_err_found = 1;
-					mpp_frame_set_errinfo(mframe, 1);
-				
-				}
-					
-			}
-		} else {
-			if (reg_cxt->fast_mode && reg_cxt->fast_mode_err_found) {	
-				for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(task->dec.refer); i++) {
-					if (task->dec.refer[i] >= 0) {
-						MppFrame frame_ref = NULL;
+    {
+        if (hw_regs->sw_interrupt.sw_dec_error_sta
+            || hw_regs->sw_interrupt.sw_dec_empty_sta) {
+            if (!reg_cxt->fast_mode) {
+                if (reg_cxt->int_cb.callBack)
+                    reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, NULL);
+            } else {
+                MppFrame mframe = NULL;
+                mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+                if (mframe) {
+                    reg_cxt->fast_mode_err_found = 1;
+                    mpp_frame_set_errinfo(mframe, 1);
 
-						mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.refer[i], SLOT_FRAME_PTR, &frame_ref);
-						h265h_dbg(H265H_DBG_FAST_ERR, "refer[%d] %d frame %p\n", i, task->dec.refer[i], frame_ref);
-						if (frame_ref && mpp_frame_get_errinfo(frame_ref)) {
-							MppFrame frame_out = NULL;
-							mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &frame_out);
-							mpp_frame_set_errinfo(frame_out, 1);
-							break;
-						}
-					}
-				}
-			}
-		}	
-	}
+                }
+
+            }
+        } else {
+            if (reg_cxt->fast_mode && reg_cxt->fast_mode_err_found) {
+                for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(task->dec.refer); i++) {
+                    if (task->dec.refer[i] >= 0) {
+                        MppFrame frame_ref = NULL;
+
+                        mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.refer[i], SLOT_FRAME_PTR, &frame_ref);
+                        h265h_dbg(H265H_DBG_FAST_ERR, "refer[%d] %d frame %p\n", i, task->dec.refer[i], frame_ref);
+                        if (frame_ref && mpp_frame_get_errinfo(frame_ref)) {
+                            MppFrame frame_out = NULL;
+                            mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &frame_out);
+                            mpp_frame_set_errinfo(frame_out, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
 #else
     if ((hw_regs->sw_interrupt.sw_dec_error_sta ||
          hw_regs->sw_interrupt.sw_dec_empty_sta) &&
@@ -1588,8 +1587,8 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 MPP_RET hal_h265d_reset(void *hal)
 {
     MPP_RET ret = MPP_OK;
-	h265d_reg_context_t *p_hal = (h265d_reg_context_t *)hal;
-	p_hal->fast_mode_err_found = 0;
+    h265d_reg_context_t *p_hal = (h265d_reg_context_t *)hal;
+    p_hal->fast_mode_err_found = 0;
     (void)hal;
     return ret;
 }
