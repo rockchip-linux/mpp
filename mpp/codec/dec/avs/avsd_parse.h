@@ -138,7 +138,37 @@ typedef struct avs_dec_ctx_t {
 	//!< use in libavs.so
 	void                    *libdec;
 	RK_U32                  dec_no;
-	//mpp_list
+
+	RK_U32                  prepare_no;
+	RK_U32                  parse_no;
+	RK_U32                  decode_no;
+	RK_U32                  nvcopy_no;
+
+	RK_S64                  prepare_time;
+	RK_S64                  parse_time;
+
+
+	RK_S64                  read_slice_header_time;
+	RK_S64                  init_arideco_slice_time;
+
+	RK_S64                  start_marcoblock_time;
+	RK_S64                  read_marcoblock_time;
+
+	RK_S64                  get_block_time;
+	RK_S64                  inter_pred_block_time;
+	RK_S64                  intra_pred_block_time;
+	RK_S64                  idc_dequaut_time;
+	RK_S64                  decode_marcoblock_time;
+	RK_S64                  deblock_time;
+
+	RK_S64                  decode_init_time;
+	RK_S64                  decode_data_time;
+	RK_S64                  decode_update_time;
+	RK_S64                  frame_post_time;
+
+	RK_S64                  decode_frame_time;
+
+	RK_S64                  nvcopy_time;
 
 } Avs_DecCtx_t;
 
