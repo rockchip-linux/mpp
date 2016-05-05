@@ -28,6 +28,9 @@
 
 #define AVSD_DBG_INPUT             (0x00000010)   //!< input packet
 
+
+#define AVSD_DBG_TIME              (0x00000020)   //!< input packet
+
 #define AVSD_DBG_CALLBACK          (0x00008000)
 
 
