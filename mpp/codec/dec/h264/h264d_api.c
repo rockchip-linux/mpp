@@ -410,18 +410,19 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1);
     p_Dec->p_Vid = mpp_calloc(H264dVideoCtx_t, 1);
     MEM_CHECK(ret, p_Dec->p_Inp && p_Dec->p_Cur && p_Dec->p_Vid);
-
     p_Dec->p_Inp->p_Dec = p_Dec;
     p_Dec->p_Inp->p_Cur = p_Dec->p_Cur;
     p_Dec->p_Inp->p_Vid = p_Dec->p_Vid;
-    FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp, init));
+
     p_Dec->p_Cur->p_Dec = p_Dec;
     p_Dec->p_Cur->p_Inp = p_Dec->p_Inp;
     p_Dec->p_Cur->p_Vid = p_Dec->p_Vid;
-    FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
+
     p_Dec->p_Vid->p_Dec = p_Dec;
     p_Dec->p_Vid->p_Inp = p_Dec->p_Inp;
     p_Dec->p_Vid->p_Cur = p_Dec->p_Cur;
+	FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp, init));
+	FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
     FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
     FUN_CHECK(ret = init_dec_ctx(p_Dec));
 
@@ -541,6 +542,9 @@ MPP_RET  h264d_flush(void *decoder)
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder);
+	INP_CHECK(ret, !p_Dec->p_Inp);
+	INP_CHECK(ret, !p_Dec->p_Vid);
+
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     if (p_Dec->last_frame_slot_idx < 0) {
