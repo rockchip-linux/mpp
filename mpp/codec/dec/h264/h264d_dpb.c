@@ -598,6 +598,9 @@ static RK_U32 is_used_for_reference(H264_FrameStore_t* fs)
 {
     RK_U8 is_used_flag = 0;
 
+	if (!fs) {
+		return 0;
+	}
     if (fs->is_reference) {
         return is_used_flag = 1;
     }
@@ -662,9 +665,17 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
     RK_U32  i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_FrameStore_t* tmp = NULL;
-    H264_FrameStore_t* fs = p_Dpb->fs[pos];
-    H264_DecCtx_t *p_Dec = p_Dpb->p_Vid->p_Dec;
-    LogCtx_t *runlog = p_Dec->logctx.parr[RUN_PARSE];
+	H264_FrameStore_t* fs = NULL;
+	H264_DecCtx_t *p_Dec = NULL;
+	LogCtx_t *runlog = NULL;
+
+	INP_CHECK(ret, !p_Dpb);	
+    fs = p_Dpb->fs[pos];
+	INP_CHECK(ret, !fs);
+	INP_CHECK(ret, !p_Dpb->p_Vid);
+	p_Dec = p_Dpb->p_Vid->p_Dec;
+	INP_CHECK(ret, !p_Dec);
+    runlog = p_Dec->logctx.parr[RUN_PARSE];
 
     H264D_DBG(H264D_DBG_DPB_FREE, "[FREE_MALLOC] is_used=%d, used_size=%d,frame(%p), top(%p), bot(%p)",
               fs->is_used, p_Dpb->used_size, fs->frame, fs->top_field, fs->bottom_field);
@@ -707,26 +718,33 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
     p_Dpb->fs[p_Dpb->used_size - 1] = tmp;
     p_Dpb->used_size--;
 
-
-
     return ret = MPP_OK;
+__RETURN:
+	return ret;
 __FAILED:
     return ret = MPP_NOK;
+
+
 }
 
 static MPP_RET remove_unused_frame_from_dpb(H264_DpbBuf_t *p_Dpb)
 {
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
+	INP_CHECK(ret, !p_Dpb);
     // check for frames that were already output and no longer used for reference
     for (i = 0; i < p_Dpb->used_size; i++) {
-        if (p_Dpb->fs[i]->is_output && (!is_used_for_reference(p_Dpb->fs[i]))) {
-            FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, i));
-            return MPP_OK;
-        }
+		if (p_Dpb->fs[i]) {
+			if (p_Dpb->fs[i]->is_output && (!is_used_for_reference(p_Dpb->fs[i]))) {
+				FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, i));
+				return MPP_OK;
+			}
+		}
     }
+__RETURN:
+    return ret;	
 __FAILED:
-    return ret;
+	return ret;
 }
 
 static MPP_RET get_smallest_poc(H264_DpbBuf_t *p_Dpb, RK_S32 *poc, RK_S32 *pos)
@@ -955,7 +973,8 @@ __FAILED:
 static MPP_RET write_stored_frame(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
+	INP_CHECK(ret, !p_Vid);
+	INP_CHECK(ret, !fs);
     //!< make sure no direct output field is pending
     FUN_CHECK(ret = flush_direct_output(p_Vid));
 
@@ -971,6 +990,8 @@ static MPP_RET write_stored_frame(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
     fs->is_output = 1;
 
     return ret = MPP_OK;
+__RETURN:
+	return ret;
 __FAILED:
     return ret;
 }
@@ -1735,14 +1756,17 @@ MPP_RET flush_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 type)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
+	INP_CHECK(ret, !p_Dpb);
     //!< diagnostics
     if (!p_Dpb->init_done) {
         goto __RETURN;
     }
     //!< mark all frames unused
     for (i = 0; i < p_Dpb->used_size; i++) {
-        VAL_CHECK(ret, p_Dpb->fs[i]->layer_id == p_Dpb->layer_id);
-        unmark_for_reference(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
+		if (p_Dpb->fs[i] && p_Dpb->p_Vid) {
+			VAL_CHECK(ret, p_Dpb->fs[i]->layer_id == p_Dpb->layer_id);
+			unmark_for_reference(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
+		}
     }
     while (!remove_unused_frame_from_dpb(p_Dpb));
     //!< output frames in POC order
