@@ -1442,14 +1442,27 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref)
 	for (i = 0; i < MAX_REF_SIZE; i++) {
 		if (pref[i].valid) {
 			MppFrame mframe = NULL;
-			RK_U32 slot_idx = p_Dec->dpb_info[pref->dpb_idx].slot_index;
+			RK_U32 slot_idx = p_Dec->dpb_info[pref[i].dpb_idx].slot_index;
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
-			if(mframe) {
+			if (mframe) {
 				dpb_error_flag |= mpp_frame_get_errinfo(mframe);
 				H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] slot_idx=%d, dpb_err[%d]=%d", slot_idx, i, mpp_frame_get_errinfo(mframe));
 			}
 		}
 	}
+
+	//for (i = 0; i < MAX_DPB_SIZE; i++) {
+	//	RK_S32 slot_idx = p_Dec->in_task->refer[i];
+	//	if (slot_idx >= 0) {
+	//		MppFrame mframe = NULL;
+	//		mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
+	//		if (mframe) {
+	//			dpb_error_flag |= mpp_frame_get_errinfo(mframe);
+	//			H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] slot_idx=%d, dpb_err[%d]=%d", slot_idx, i, mpp_frame_get_errinfo(mframe));
+	//		}
+	//	}
+	//}
+
     return dpb_error_flag;
 }
 
@@ -1458,7 +1471,6 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
     if (I_SLICE == currSlice->slice_type) {
-        p_Dec->errctx.dpb_err_flag = 0;
         goto __RETURN;
     }
 #if 1
@@ -1466,14 +1478,20 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
     if ((currSlice->slice_type % 5) != I_SLICE
         && (currSlice->slice_type % 5) != SI_SLICE) {		
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
-            p_Dec->errctx.dpb_err_flag |= check_ref_pic_list(currSlice, 0);
+			if (check_ref_pic_list(currSlice, 0)) {
+				p_Dec->errctx.dpb_err_flag |= VPU_FRAME_ERR_UNKNOW;
+			} else {			
+				p_Dec->errctx.dpb_err_flag = 0;
+			}
         } else {
             p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0]);
         }
     }
     if (currSlice->slice_type % 5 == B_SLICE) {
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
-            p_Dec->errctx.dpb_err_flag |= check_ref_pic_list(currSlice, 1);
+			if (check_ref_pic_list(currSlice, 1)) {
+				p_Dec->errctx.dpb_err_flag |= VPU_FRAME_ERR_UNKNOW;
+			}
         } else {
             p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1]);
         }
@@ -2065,11 +2083,9 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
 	p_err->i_slice_no += ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) ? 1 : 0;
 	if (!p_err->i_slice_no) {
  		H264D_WARNNING("[Discard] Discard slice before I Slice.");
-			p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
 			ret = MPP_NOK;
 			goto __FAILED;
 	}
-    p_Dec->errctx.used_for_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
 
     FUN_CHECK(ret = alloc_decpic(currSlice));
 

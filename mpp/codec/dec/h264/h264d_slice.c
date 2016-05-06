@@ -322,7 +322,14 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     //--- init slice syntax
     currSlice->idr_flag = ((cur_nalu->nalu_type == NALU_TYPE_IDR)
                            || (currSlice->mvcExt.valid && !currSlice->mvcExt.non_idr_flag));
-    currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
+	currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
+	//!< set ref flag and dpb error flag
+	{
+		p_Vid->p_Dec->errctx.used_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
+		if (currSlice->slice_type == I_SLICE) {
+			p_Vid->p_Dec->errctx.dpb_err_flag = 0;
+		}	
+	}
     if ((!currSlice->svc_extension_flag) || currSlice->mvcExt.iPrefixNALU) { // MVC or have prefixNALU
         currSlice->view_id = currSlice->mvcExt.view_id;
         currSlice->inter_view_flag = currSlice->mvcExt.inter_view_flag;
