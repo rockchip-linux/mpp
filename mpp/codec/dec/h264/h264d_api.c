@@ -612,7 +612,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
     p_Inp = p_Dec->p_Inp;
-    if (p_Inp->has_get_eos) {
+    if (p_Inp->has_get_eos || p_Dec->errctx.un_spt_flag) {
 		mpp_packet_set_length(pkt, 0);
         goto __RETURN;
     }
@@ -691,18 +691,17 @@ __FAILED:
 MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
+	H264dErrCtx_t *p_err = NULL;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+	p_err = &p_Dec->errctx;
 
     in_task->valid = 0; // prepare end flag
     p_Dec->in_task = in_task;
 
-    p_Dec->errctx.parse_err_flag = 0;
-    p_Dec->errctx.dpb_err_flag = 0;
-    p_Dec->errctx.used_for_ref_flag = 0;
+    p_err->used_ref_flag = 0;	
 	p_Dec->is_parser_end = 0;
     FUN_CHECK(ret = parse_loop(p_Dec));
 
@@ -720,8 +719,8 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->valid = 1; // register valid flag
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
-        in_task->dpb_err_flag  = p_Dec->errctx.dpb_err_flag;
-        in_task->used_for_ref_flag = p_Dec->errctx.used_for_ref_flag;
+        in_task->flags.dpb_error  = p_err->dpb_err_flag;
+        in_task->flags.used_for_ref = p_err->used_ref_flag;
     }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
@@ -738,7 +737,11 @@ __FAILED:
 				MppFrame mframe = NULL;
 				mpp_buf_slot_get_prop(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 				if (mframe) {
-					mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+					if (p_err->used_ref_flag) {
+						mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+					} else {
+						mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+					}
 				}				
 				mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
 				mpp_buf_slot_enqueue(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
@@ -749,6 +752,7 @@ __FAILED:
 			MPP_FREE(dec_pic);			
 			p_Dec->p_Vid->dec_pic = NULL;
 		}
+		p_err->dpb_err_flag = p_err->used_ref_flag ? 1 : 0;
     }
 
     return ret;

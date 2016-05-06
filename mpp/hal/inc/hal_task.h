@@ -83,8 +83,10 @@ typedef struct MppSyntax_t {
 typedef union HalDecTaskFlag_t {
     RK_U32          val;
     struct {
-        RK_U32      eos         : 1;
-        RK_U32      info_change : 1;
+        RK_U32      eos              : 1;
+        RK_U32      info_change      : 1;
+		RK_U32      dpb_error        : 1;
+		RK_U32      used_for_ref     : 1;
     };
 } HalDecTaskFlag;
 
@@ -96,8 +98,6 @@ typedef struct HalDecTask_t {
     // previous task hardware working status
     // when hardware error happen status is not zero
     RK_U32          prev_status;
-    RK_U32          dpb_err_flag;
-    RK_U32          used_for_ref_flag;
     // current tesk protocol syntax information
     MppSyntax       syntax;
 

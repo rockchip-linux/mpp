@@ -966,6 +966,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             break;
         case SliceSTATE_RegisterOneFrame:
 			if (!p_Dec->is_parser_end){
+				ret = MPP_NOK;
 				goto __FAILED;
 			}
 			commit_buffer(p_Dec->dxva_ctx);
@@ -991,7 +992,6 @@ __FAILED:
     p_Dec->dxva_ctx->strm_offset = 0;
     p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
     p_Dec->p_Vid->exit_picture_flag   = 0;
-    p_Dec->errctx.parse_err_flag |= VPU_FRAME_ERR_UNKNOW;
 
     return ret;
 }

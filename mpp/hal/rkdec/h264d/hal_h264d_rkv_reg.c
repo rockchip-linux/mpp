@@ -321,7 +321,7 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-	if (task->dec.dpb_err_flag)	{
+	if (task->dec.flags.dpb_error)	{
 		goto __RETURN;
 	}
     rkv_prepare_spspps_packet(hal, &pkts->spspps);
@@ -369,7 +369,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-	if (task->dec.dpb_err_flag) {
+	if (task->dec.flags.dpb_error) {
 		goto __RETURN;
 	}
     p_regs = (RK_U32 *)p_hal->regs;
@@ -420,7 +420,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     p_regs = (H264dRkvRegs_t *)p_hal->regs;
-	if (task->dec.dpb_err_flag) {
+	if (task->dec.flags.dpb_error) {
 		goto __SKIP_HARD;
 	}
 #ifdef ANDROID
@@ -450,8 +450,8 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     }
 __SKIP_HARD:
     p_regs->slot_idx = task->dec.output;
-    p_regs->dpb_err_flag = task->dec.dpb_err_flag;
-    p_regs->used_for_ref_flag = task->dec.used_for_ref_flag;
+    p_regs->dpb_err_flag = task->dec.flags.dpb_error;
+    p_regs->used_for_ref_flag = task->dec.flags.used_for_ref;
     if (p_hal->init_cb.callBack) {
         p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
     }
