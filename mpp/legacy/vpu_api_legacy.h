@@ -50,6 +50,7 @@ private:
     RK_U32 set_eos;
     RK_U32 vpu_api_debug;
     FILE *fp;
+	RK_U8  *fp_buf;
 };
 
 #endif /*_VPU_API_H_*/
