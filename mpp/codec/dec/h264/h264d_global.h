@@ -750,7 +750,7 @@ typedef struct h264_slice_t {
     RK_S32       framepoc;    //poc of this frame
     RK_U32       AbsFrameNum;
     RK_S32       PicOrderCntMsb;
-    RK_S32       new_frame_flag;
+    //RK_S32       new_frame_flag;
     struct h264_sps_t    *active_sps;
     struct h264_subsps_t *active_subsps;
     struct h264_pps_t    *active_pps;
