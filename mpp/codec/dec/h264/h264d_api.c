@@ -772,10 +772,12 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
     INP_CHECK(ret, !decoder);
 	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
 
-	RK_U32 error_flag = 0;
+
 
 	p_regs = (RK_U32*)errinfo;
 	{		
+		MppFrame mframe = NULL;
+
 		RK_U32 out_slot_idx = p_regs[78];
 		RK_U32 dpb_err_flag = p_regs[79];
 		RK_U32 ref_flag = p_regs[80];
@@ -784,19 +786,21 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 		RK_U32 buf_empty_sta = p_regs[1] & 0x00010000;
 		RK_U32 strmd_error_status = p_regs[45];
 		RK_U32 strmd_error_detect_flag = p_regs[76] & 0x00008000;   // strmd error detect flag
-		if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta 
-			|| dpb_err_flag || strmd_error_status || strmd_error_detect_flag) {
-			MppFrame mframe = NULL;
-			mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
-			if (ref_flag) {
-				mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-			} else {
-				mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+
+		mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
+		if (mframe) {
+			if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta
+				|| dpb_err_flag || strmd_error_status || strmd_error_detect_flag) {
+				if (ref_flag) {
+					mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+				}
+				else {
+					mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+				}
 			}
-			error_flag = 1;
+			H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, errinfo=%d",
+				p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], dpb_err_flag, ref_flag, mpp_frame_get_errinfo(mframe));
 		}
-		H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, err=%d",
-			p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], dpb_err_flag, ref_flag, error_flag);	
 	}
 
 __RETURN:

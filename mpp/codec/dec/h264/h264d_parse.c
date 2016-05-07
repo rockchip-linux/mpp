@@ -881,10 +881,8 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     ret = MPP_OK;
 __FAILED:
     //p_strm->nalu_len = 0;
-    p_Cur->curr_dts  = p_Inp->in_dts;
-    p_Cur->curr_pts  = p_Inp->in_pts;
-    p_Cur->last_dts  = p_Cur->curr_dts;
-    p_Cur->last_pts  = p_Cur->curr_pts;
+    p_Cur->last_dts  = p_Inp->in_dts;
+    p_Cur->last_dts  = p_Inp->in_pts;
     p_Inp->p_Dec->nalu_ret = HaveNoStream;
 
     return ret;
