@@ -508,10 +508,7 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
 			}
 		}
 	}
-	return MPP_OK;
-
-__FAILED:
-	return ret;
+	return ret = MPP_OK;
 }
 
 static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
