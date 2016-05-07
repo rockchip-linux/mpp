@@ -238,7 +238,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 						mpp_log("[write_out_yuv] FrameWidth = %d, FrameHeight = %d", img_w, img_h);
 					}
 				} else {
-                fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
+                    fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
 					if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
 						mpp_log("[write_out_yuv] FrameWidth = %d, FrameHeight = %d", vframe->FrameWidth, vframe->FrameHeight);
 					}
@@ -259,7 +259,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
                 aDecOut->size = 0;
             }
         }
-		mpp_frame_deinit(&mframe);
+		mpp_free(mframe);
     } else {
         aDecOut->size = 0;
     }
