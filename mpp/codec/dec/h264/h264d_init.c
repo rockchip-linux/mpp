@@ -486,24 +486,28 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
 
 		H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d, num_refs=%d",
 			p_last->slice_type, dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, p_last->poc, dec_pic->poc, num_ref_frames);
-		
-		if ((p_last->slice_type == I_SLICE)
-			&& (dec_pic->slice_type == I_SLICE)){
-			if ((p_last->frame_num > dec_pic->frame_num)
-			||(p_last->poc > dec_pic->poc)
-			|| (dec_pic->poc > (p_last->poc + 32))) {
-				H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] error, flush dpb");
-				FUN_CHECK(ret = flush_dpb(currSlice->p_Vid->p_Dpb_layer[0], 1));
-				if (currSlice->p_Dec->mvc_valid) {
-					FUN_CHECK(ret = flush_dpb(currSlice->p_Vid->p_Dpb_layer[1], 1));
+	
+		if (dec_pic->slice_type != I_SLICE) {
+			if (!(p_last->frame_num == dec_pic->frame_num
+				|| ((p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num) == dec_pic->frame_num))
+			{
+				mpp_log_f("[check frame_num] dec_pic->slice_type=%d, p_last->frame_num=%d,dec_pic->frame_num=%d, slot_idx=%d", 
+					dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, dec_pic->mem_mark->slot_idx);
+				if (dec_pic->mem_mark
+					&& (dec_pic->mem_mark->slot_idx >= 0)) {
+					MppFrame mframe = NULL;
+					mpp_buf_slot_get_prop(currSlice->p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+					if (mframe) {
+						if (currSlice->p_Dec->errctx.used_ref_flag) {
+							mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+						} else {
+							mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+						}
+					}
 				}
-				flush_dpb_buf_slot(currSlice->p_Dec);
-				//h264d_reset((void *)currSlice->p_Dec);		
-				currSlice->p_Dec->errctx.i_slice_no = 1;
 			}
 		}
 	}
-
 	return MPP_OK;
 
 __FAILED:
@@ -598,12 +602,11 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->width_after_crop = p_Vid->width_after_crop;
     dec_pic->height_after_crop = p_Vid->height_after_crop;
     dec_pic->combine_flag = get_filed_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
+    FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic)); //!< malloc dpb_memory
 	FUN_CHECK(ret = check_dpb_field_paired(p_Dpb->last_picture, dec_pic, p_Vid->last_pic_structure));
 	FUN_CHECK(ret = check_dpb_discontinuous(p_Vid->last_pic, dec_pic, currSlice));
-    FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic)); //!< malloc dpb_memory
     dec_pic->mem_malloc_type = Mem_Malloc;
     dec_pic->colmv_no_used_flag = 0;
-    p_Vid->last_pic_structure = dec_pic->structure;
     p_Vid->dec_pic = dec_pic;
 
     return ret = MPP_OK;
@@ -1405,24 +1408,26 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 #if 1
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
-                mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-                if (mframe && mpp_frame_get_errinfo(mframe)) {
-                    dpb_error_flag |= 1;
-                    H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] frame_no=%d, slot_idx=%d, dpb_err[%d]=%d",
-                              p_Vid->p_Dec->p_Vid->g_framecnt, tmp->mem_mark->slot_idx, i, mpp_frame_get_errinfo(mframe));
-                }
+				dpb_error_flag = 1;
+				H264D_DBG(H264D_DBG_DPB_REF_ERR, "find short reference, slot_idx=%d.\n", tmp->mem_mark->slot_idx);
+				if (tmp && tmp->mem_mark) {
+					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+					if (mframe && !mpp_frame_get_errinfo(mframe)) {
+						dpb_error_flag = 0;
+					}
+				}
             } else { //!< missing short reference, and fake a reference
-                H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d", currSlice->structure, picNumLX);
-                if (tmp) {
+                H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d. \n", currSlice->structure, picNumLX);
+				dpb_error_flag = 1;
+				if (tmp && tmp->mem_mark) {
 					MppFrame mframe = NULL;
                     fake_short_term_pic(currSlice, picNumLX, tmp);					
 					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-					if (mframe && mpp_frame_get_errinfo(mframe)) {
-						dpb_error_flag |= 1;
+					if (mframe && !mpp_frame_get_errinfo(mframe)) {
+						dpb_error_flag = 0;
 					}
 				} else {
-					dpb_error_flag |= 1;
-					H264D_WARNNING("[DPB_REF_ERR] has not found nearest reference.");
+					H264D_WARNNING("[DPB_REF_ERR] has not found nearest reference. \n");
 				}
             }
 #endif
@@ -1450,19 +1455,6 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref)
 			}
 		}
 	}
-
-	//for (i = 0; i < MAX_DPB_SIZE; i++) {
-	//	RK_S32 slot_idx = p_Dec->in_task->refer[i];
-	//	if (slot_idx >= 0) {
-	//		MppFrame mframe = NULL;
-	//		mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
-	//		if (mframe) {
-	//			dpb_error_flag |= mpp_frame_get_errinfo(mframe);
-	//			H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] slot_idx=%d, dpb_err[%d]=%d", slot_idx, i, mpp_frame_get_errinfo(mframe));
-	//		}
-	//	}
-	//}
-
     return dpb_error_flag;
 }
 
@@ -1480,8 +1472,6 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
 			if (check_ref_pic_list(currSlice, 0)) {
 				p_Dec->errctx.dpb_err_flag |= VPU_FRAME_ERR_UNKNOW;
-			} else {			
-				p_Dec->errctx.dpb_err_flag = 0;
 			}
         } else {
             p_Dec->errctx.dpb_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0]);
@@ -2030,7 +2020,7 @@ void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
 
 	for (i = 0; i < MAX_MARK_SIZE; i++) {
 		p_mark = &p_Dec->dpb_mark[i];
-		if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {
+		if (p_mark && p_mark->out_flag && (p_mark->slot_idx >= 0)) {
 			MppFrame mframe = NULL;
 			mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 			if (mframe) {
