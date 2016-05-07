@@ -24,100 +24,6 @@
 #include "h264d_sps.h"
 #include "h264d_pps.h"
 
-//#define JUDEG_NEW_FRAME_EN
-#ifdef JUDEG_NEW_FRAME_EN
-static RK_U32 judge_new_frame(H264_SLICE_t *currSlice)
-{
-	RK_U32 is_new_pic_flag = 0;
-	RK_S32 result = 0, result1 = 0;
-	H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
-	H264_OldSlice_t *p_old_slice = &currSlice->p_Vid->old_slice;
-
-	currSlice->new_frame_flag = 0;
-	{
-		result |= (currSlice->start_mb_nr == 0);
-		result |= (p_old_slice->pps_id != (RK_S32)currSlice->pic_parameter_set_id);
-		result |= (p_old_slice->frame_num != currSlice->frame_num);
-		result |= (p_old_slice->field_pic_flag != currSlice->field_pic_flag);
-		if (currSlice->field_pic_flag && p_old_slice->field_pic_flag) {
-			result |= (p_old_slice->bottom_field_flag != currSlice->bottom_field_flag);
-		}
-		if (p_Vid->old_slice.current_mb_nr != 0) {
-			if (currSlice->mb_aff_frame_flag)
-				result |= (currSlice->start_mb_nr << 1) < (p_Vid->old_slice.current_mb_nr);
-			else
-				result |= currSlice->start_mb_nr < p_Vid->old_slice.current_mb_nr;
-		}
-		result |= (p_old_slice->nal_ref_idc != currSlice->nal_reference_idc)
-			&& ((p_old_slice->nal_ref_idc == 0) || (currSlice->nal_reference_idc == 0));
-		result |= (p_old_slice->idr_flag != currSlice->idr_flag);
-		if (currSlice->idr_flag && p_old_slice->idr_flag) {
-			result |= (p_old_slice->idr_pic_id != (RK_S32)currSlice->idr_pic_id);
-		}
-		if (p_Vid->active_sps->pic_order_cnt_type == 0) {
-			result1 |= (p_old_slice->pic_oder_cnt_lsb != currSlice->pic_order_cnt_lsb);
-			if (p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag && !currSlice->field_pic_flag) {
-				result1 |= (p_old_slice->delta_pic_oder_cnt_bottom != currSlice->delta_pic_order_cnt_bottom);
-			}
-		}
-		else if (p_Vid->active_sps->pic_order_cnt_type == 1) {
-			if (!p_Vid->active_sps->delta_pic_order_always_zero_flag) {
-				result1 |= (p_old_slice->delta_pic_order_cnt[0] != currSlice->delta_pic_order_cnt[0]);
-				if (p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag && !currSlice->field_pic_flag) {
-					result1 |= (p_old_slice->delta_pic_order_cnt[1] != currSlice->delta_pic_order_cnt[1]);
-				}
-			}
-		}
-		else {
-			result1 |= (p_old_slice->frame_num != currSlice->frame_num);
-		}
-		result |= (currSlice->view_id != p_old_slice->view_id);
-		result |= (currSlice->inter_view_flag != p_old_slice->inter_view_flag);
-		result |= (currSlice->anchor_pic_flag != p_old_slice->anchor_pic_flag);
-		result |= (currSlice->layer_id != p_old_slice->layer_id);
-	}
-	if (result) {
-		is_new_pic_flag = 1;
-		goto __Updata;
-	}
-	else {
-		return is_new_pic_flag = 0;
-	}
-__Updata:
-	currSlice->new_frame_flag = 1;
-	p_old_slice->current_mb_nr = currSlice->current_mb_nr;
-	p_old_slice->pps_id = currSlice->pic_parameter_set_id;
-	p_old_slice->frame_num = currSlice->frame_num; //p_Vid->frame_num;
-	p_old_slice->field_pic_flag = currSlice->field_pic_flag; //p_Vid->field_pic_flag;
-
-	if (currSlice->field_pic_flag) {
-		p_old_slice->bottom_field_flag = currSlice->bottom_field_flag;
-	}
-
-	p_old_slice->nal_ref_idc = currSlice->nal_reference_idc;
-	p_old_slice->idr_flag = currSlice->idr_flag;
-
-	if (currSlice->idr_flag) {
-		p_old_slice->idr_pic_id = currSlice->idr_pic_id;
-	}
-
-	if (p_Vid->active_sps->pic_order_cnt_type == 0) {
-		p_old_slice->pic_oder_cnt_lsb = currSlice->pic_order_cnt_lsb;
-		p_old_slice->delta_pic_oder_cnt_bottom = currSlice->delta_pic_order_cnt_bottom;
-	}
-
-	if (p_Vid->active_sps->pic_order_cnt_type == 1) {
-		p_old_slice->delta_pic_order_cnt[0] = currSlice->delta_pic_order_cnt[0];
-		p_old_slice->delta_pic_order_cnt[1] = currSlice->delta_pic_order_cnt[1];
-	}
-	p_old_slice->view_id = currSlice->view_id;
-	p_old_slice->inter_view_flag = currSlice->inter_view_flag;
-	p_old_slice->anchor_pic_flag = currSlice->anchor_pic_flag;
-	p_old_slice->layer_id = currSlice->layer_id;
-
-	return is_new_pic_flag;
-}
-#endif
 static void free_slice_drpm_buffer(H264_SLICE_t *currSlice)  // dec_ref_pic_marking
 {
     H264_DRPM_t *tmp_drpm = NULL;
@@ -560,7 +466,6 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     init_slice_parmeters(currSlice);
 	FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
 	//!< read rest slice header syntax
-	if (currSlice->start_mb_nr == 0) 
 	{		
 		READ_BITS(p_bitctx, currSlice->active_sps->log2_max_frame_num_minus4 + 4, &currSlice->frame_num, "frame_num");
 		if (currSlice->active_sps->frame_mbs_only_flag) { //!< user in_slice info
@@ -614,14 +519,6 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
 				currSlice->delta_pic_order_cnt[1] = 0;
 			}
 		}
-#ifdef JUDEG_NEW_FRAME_EN
-	}
-	currSlice->new_frame_flag = judge_new_frame(currSlice); // (currSlice->start_mb_nr == 0) ? 1 : 0;
-	if (currSlice->new_frame_flag)
-	{
-#else
-		currSlice->new_frame_flag = 1;
-#endif
 		currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits; //!< calculate poc used bit length
         //!< redundant_pic_cnt is missing here
         ASSERT(currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag == 0); // add by dw, high 4:2:2 profile not support
