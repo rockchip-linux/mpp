@@ -27,7 +27,7 @@
 #define VPU_API_DBG_OUTPUT    (0x00000001)
 #define VPU_API_DBG_DUMP_YUV  (0x00000002)
 #define VPU_API_DBG_DUMP_LOG  (0x00000004)
-#define MAX_WRITE_HEIGHT      (480) 
+#define MAX_WRITE_HEIGHT      (480)
 #define MAX_WRITE_WIDTH       (960)
 
 VpuApi::VpuApi()
@@ -194,7 +194,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
             vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
             break;
-        }	
+        }
         default:
             break;
         }
@@ -219,7 +219,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 					for (i = 0; i < img_h; i++) {
 						for (j = 0; j < img_w; j++) {
 							pdes[j] = psrc[j * step];
-						}						
+						}
 						pdes += img_w;
 						psrc += step * vframe->FrameWidth;
 					}
@@ -238,7 +238,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 						mpp_log("[write_out_yuv] FrameWidth = %d, FrameHeight = %d", img_w, img_h);
 					}
 				} else {
-                    fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
+                	fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
 					if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
 						mpp_log("[write_out_yuv] FrameWidth = %d, FrameHeight = %d", vframe->FrameWidth, vframe->FrameHeight);
 					}
@@ -259,7 +259,15 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
                 aDecOut->size = 0;
             }
         }
-		mpp_free(mframe);
+
+        /*
+         * IMPORTANT: mframe is malloced frome mpi->decode_get_frame
+         * So we need to deinit mframe here. But the buffer in the frame should not be free with mframe.
+         * Because buffer need to be set to vframe->vpumem.offset and send to display.
+         * The we have to clear the buffer pointer in mframe then release mframe.
+         */
+        mpp_frame_set_buffer(mframe, NULL);
+		mpp_frame_deinit(&mframe);
     } else {
         aDecOut->size = 0;
     }
