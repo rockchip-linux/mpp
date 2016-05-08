@@ -1331,7 +1331,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             s->poc <= s->max_ra) {
             s->is_decoded = 0;
             break;
-        } else if (s->poc < s->max_ra) { //when seek to I slice skip the stream small then I slic poc
+        } else if ((s->poc < s->max_ra) && !IS_IRAP(s)) { //when seek to I slice skip the stream small then I slic poc
             s->is_decoded = 0;
             break;
         } else {
