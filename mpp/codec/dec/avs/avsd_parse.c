@@ -29,6 +29,7 @@
 
 #include "avsd_api.h"
 #include "avsd_parse.h"
+#include "avsd_impl.h"
 
 #if 0
 #define  START_PREFIX_3BYTE   (3)
@@ -196,10 +197,10 @@ MPP_RET avsd_parse_prepare(AvsdInputCtx_t *p_inp, AvsdCurCtx_t *p_cur)
 	if (ret_val < 0) {
 		goto __FAILED;
 	}
-	if (in_task->valid) {
-		mpp_packet_set_pos(in_task->input_packet, pb->pbuf);
-		mpp_packet_set_length(in_task->input_packet, 0);
-	}
+	//if (in_task->valid) {
+	//	mpp_packet_set_pos(in_task->input_packet, pb->pbuf);
+	//	mpp_packet_set_length(in_task->input_packet, 0);
+	//}
 
 	AVSD_PARSE_TRACE("Out.");
 	(void)p_cur;

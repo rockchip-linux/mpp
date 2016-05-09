@@ -180,18 +180,6 @@ extern "C" {
 
 MPP_RET avsd_parse_prepare(AvsdInputCtx_t *p_inp, AvsdCurCtx_t *p_cur);
 
-//!< used in libavs.so
-MPP_RET lib_avsd_free(void *decoder);
-void   *lib_avsd_malloc(void *decoder);
-RK_S32 lib_prepare_one_frame(void *decoder, MppPacket pkt, HalDecTask *task);
-RK_S32 lib_parse_one_frame(void *decoder, HalDecTask *task);
-RK_S32 lib_init_one_frame(void *decoder, HalDecTask *task);
-RK_S32 lib_decode_one_frame(void *decoder, HalDecTask *task);
-RK_S32 lib_flush(void *decoder);
-RK_S32 lib_reset(void *decoder);
-
-RK_S32 nv12_copy_buffer(void *p_dec, RK_U8 *des);
-
 
 
 #ifdef  __cplusplus
