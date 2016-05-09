@@ -32,7 +32,7 @@
 
 #include "avsd_api.h"
 #include "avsd_parse.h"
-
+#include "avsd_impl.h"
 
 RK_U32 avsd_parse_debug = 0;
 

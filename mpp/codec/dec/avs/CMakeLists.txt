@@ -12,6 +12,7 @@ set(AVSD_COMMON
 # avs decoder header	
 set(AVSD_HDR
     avsd_parse.h
+	avsd_impl.h
 	) 
 	
 # avs decoder sourse
@@ -27,8 +28,8 @@ add_library(codec_avsd STATIC
 			${AVSD_SRC} 
 		)
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/avs_impl/")
-add_subdirectory(avs_impl)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/xavs_dec/")
+add_subdirectory(xavs_dec)
 target_link_libraries(codec_avsd codec_avsd_impl)
 else()
 set(LIBAVS "${CMAKE_CURRENT_SOURCE_DIR}/libavs.a")
