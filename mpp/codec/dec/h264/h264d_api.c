@@ -177,8 +177,6 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
     INP_CHECK(ret, !p_Cur);
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
     if (p_Cur) {
-        free_ref_pic_list_reordering_buffer(&p_Cur->slice);
-        recycle_slice(&p_Cur->slice);
         for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
             MPP_FREE(p_Cur->listP[i]);
             MPP_FREE(p_Cur->listB[i]);
@@ -209,6 +207,8 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
         p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         MEM_CHECK(ret, p_Cur->listP[i] && p_Cur->listB[i]); // +1 for reordering
     }
+	reset_cur_slice(p_Cur, &p_Cur->slice);
+
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 
 __RETURN:

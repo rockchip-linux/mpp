@@ -98,7 +98,8 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
         currSlice->listXsizeP[i] = 0;
         currSlice->listXsizeB[i] = 0;
     }
-    free_ref_pic_list_reordering_buffer(currSlice);
+	reset_cur_slice(p_Vid->p_Cur, currSlice);
+
     FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 }
 #if 0
@@ -906,12 +907,13 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     INP_CHECK(ret, !p_Dec);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
+	p_Dec->next_state = SliceSTATE_ResetSlice;
     p_curdata = p_Dec->p_Cur->strm.head_buf;
     while (while_loop_flag) {
         switch (p_Dec->next_state) {
         case SliceSTATE_ResetSlice:
             reset_slice(p_Dec->p_Vid);
-				p_Dec->next_state = SliceSTATE_ReadNalu;
+			p_Dec->next_state = SliceSTATE_ReadNalu;
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_ResetSlice");
             break;
         case SliceSTATE_ReadNalu:

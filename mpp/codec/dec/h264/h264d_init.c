@@ -1460,7 +1460,7 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
     if (I_SLICE == currSlice->slice_type) {
-        goto __RETURN;
+        return;
     }
 #if 1
 	
@@ -1492,8 +1492,6 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
 
 #endif
 
-__RETURN:
-    free_ref_pic_list_reordering_buffer(currSlice);
 }
 
 static void reset_dpb_info(H264_DpbInfo_t *p)

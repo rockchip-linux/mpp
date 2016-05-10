@@ -23,14 +23,15 @@
 #include "h264d_global.h"
 
 
+
+
 #ifdef  __cplusplus
 extern "C" {
-#endif
+#endif	
 
-void     free_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice);
-MPP_RET  alloc_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice);
-void     recycle_slice(H264_SLICE_t *currSlice);
 MPP_RET  process_slice(H264_SLICE_t *currSlice);
+
+MPP_RET  reset_cur_slice(H264dCurCtx_t *p_Cur, H264_SLICE_t *p);
 
 #ifdef  __cplusplus
 }
