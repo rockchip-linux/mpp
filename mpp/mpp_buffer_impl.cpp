@@ -121,6 +121,14 @@ MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
     list_del_init(&group->list_group);
     mpp_free(group);
     service.group_count--;
+    /* if only legacy group left dump the legacy group */
+    if (service.group_count == 1) {
+        MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
+        if (legacy->count) {
+            mpp_log("found legacy group has buffer remain, start dumping\n");
+            mpp_buffer_group_dump(legacy);
+        }
+    }
     return MPP_OK;
 }
 
@@ -258,7 +266,7 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
     AutoMutex auto_lock(&service.mLock);
 
     if (buffer->ref_count <= 0) {
-        mpp_err_f("found non-positive ref_count %d\n", buffer->ref_count);
+        mpp_err_f("found non-positive ref_count %d caller %s\n", buffer->ref_count, buffer->caller);
         return MPP_NOK;
     }
 
