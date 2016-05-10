@@ -20,6 +20,7 @@
 #include <stdlib.h>
 
 #include "rk_type.h"
+#include "mpp_err.h"
 
 #define mpp_malloc_tagged(type, count, tag)  \
     (type*)mpp_osal_malloc(tag, sizeof(type) * (count))
@@ -48,11 +49,27 @@
 extern "C" {
 #endif
 
-void mpp_show_mem_status();
 void *mpp_osal_malloc(const char *tag, size_t size);
 void *mpp_osal_calloc(const char *tag, size_t size);
 void *mpp_osal_realloc(const char *tag, void *ptr, size_t size);
 void mpp_osal_free(void *ptr);
+
+void mpp_show_mem_status();
+
+/*
+ * mpp memory usage snapshot tool
+ *
+ * usage:
+ * call mpp_mem_get_snapshot on context init get one snapshot
+ * call mpp_mem_get_snapshot on context deinit get another snapshot
+ * call mpp_mem_diff_snapshot to show the difference between these two snapshot
+ * call mpp_mem_put_snapshot twice to release these two snapshot
+ */
+typedef void* MppMemSnapshot;
+
+MPP_RET mpp_mem_get_snapshot(MppMemSnapshot *hnd);
+MPP_RET mpp_mem_put_snapshot(MppMemSnapshot *hnd);
+MPP_RET mpp_mem_squash_snapshot(MppMemSnapshot hnd0, MppMemSnapshot hnd1);
 
 #ifdef __cplusplus
 }

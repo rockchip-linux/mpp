@@ -31,8 +31,6 @@
 
 // export configure for script detection
 #define CONFIG_OSAL_MEM_LIST        "osal_mem_list"
-#define CONFIG_OSAL_MEM_STUFF       "osal_mem_stuff"
-
 
 // default memory align size is set to 32
 #define RK_OSAL_MEM_ALIGN       32
@@ -42,6 +40,7 @@
 #define OSAL_MEM_STUFF_EN       (0x00000002)
 
 static RK_S32 osal_mem_flag = -1;
+static RK_U64 osal_mem_index = 0;
 static struct list_head mem_list;
 static pthread_mutex_t mem_list_lock;
 
@@ -49,6 +48,7 @@ struct mem_node {
     struct list_head list;
     void *ptr;
     size_t size;
+    RK_U64 index;
 
     /* memory node extra information */
     char tag[MPP_TAG_SIZE];
@@ -63,10 +63,6 @@ static void get_osal_mem_flag()
         mpp_env_get_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
         if (val) {
             osal_mem_flag |= OSAL_MEM_LIST_EN;
-        }
-        mpp_env_get_u32(CONFIG_OSAL_MEM_STUFF, &val, 0);
-        if (val) {
-            osal_mem_flag |= OSAL_MEM_STUFF_EN;
         }
 
         INIT_LIST_HEAD(&mem_list);
@@ -87,12 +83,14 @@ void *mpp_osal_malloc(const char *tag, size_t size)
     if (MPP_OK == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
         if (osal_mem_flag & OSAL_MEM_LIST_EN) {
             struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
+            mpp_assert(node);
             INIT_LIST_HEAD(&node->list);
             node->ptr   = ptr;
             node->size  = size;
             snprintf(node->tag, sizeof(node->tag), "%s", tag);
 
             pthread_mutex_lock(&mem_list_lock);
+            node->index = osal_mem_index++;
             list_add_tail(&node->list, &mem_list);
             pthread_mutex_unlock(&mem_list_lock);
         }
@@ -160,16 +158,21 @@ void mpp_osal_free(void *ptr)
 
     if (osal_mem_flag & OSAL_MEM_LIST_EN) {
         struct mem_node *pos, *n;
+        RK_U32 found_match = 0;
 
         pthread_mutex_lock(&mem_list_lock);
         list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
             if (ptr == pos->ptr) {
                 list_del_init(&pos->list);
                 free(pos);
+                found_match = 1;
                 break;
             }
         }
         pthread_mutex_unlock(&mem_list_lock);
+
+        if (!found_match)
+            mpp_err_f("can not found match on free %p\n", ptr);
     }
 
     os_free(ptr);
@@ -185,8 +188,111 @@ void mpp_show_mem_status()
 
     pthread_mutex_lock(&mem_list_lock);
     list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
-        mpp_log("unfree memory %p size %d tag %s", pos->ptr, pos->size, pos->tag);
+        mpp_log("unfree memory %p size %d tag %s index %llu",
+            pos->ptr, pos->size, pos->tag, pos->index);
     }
     pthread_mutex_unlock(&mem_list_lock);
+}
+
+typedef struct MppMemSnapshotImpl {
+    struct list_head    list;
+    RK_U64              total_size;
+    RK_U32              total_count;
+} MppMemSnapshotImpl;
+
+MPP_RET mpp_mem_get_snapshot(MppMemSnapshot *hnd)
+{
+    struct mem_node *pos, *n;
+    MppMemSnapshotImpl *p = (MppMemSnapshotImpl *)malloc(sizeof(MppMemSnapshotImpl));
+    if (!p) {
+        mpp_err_f("failed to alloc");
+        *hnd = NULL;
+        return MPP_NOK;
+    }
+
+    INIT_LIST_HEAD(&p->list);
+    p->total_size  = 0;
+    p->total_count = 0;
+
+    pthread_mutex_lock(&mem_list_lock);
+    list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
+        struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
+        mpp_assert(node);
+
+        memcpy(node, pos, sizeof(*pos));
+        INIT_LIST_HEAD(&node->list);
+        list_add_tail(&node->list, &p->list);
+        p->total_size += pos->size;
+        p->total_count++;
+    }
+    *hnd = p;
+    pthread_mutex_unlock(&mem_list_lock);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_mem_put_snapshot(MppMemSnapshot *hnd)
+{
+    if (hnd && *hnd) {
+        MppMemSnapshotImpl *p = (MppMemSnapshotImpl *)*hnd;
+        struct mem_node *pos, *n;
+
+        pthread_mutex_lock(&mem_list_lock);
+        list_for_each_entry_safe(pos, n, &p->list, struct mem_node, list) {
+            list_del_init(&pos->list);
+            free(pos);
+        }
+        free(p);
+        *hnd = NULL;
+        pthread_mutex_unlock(&mem_list_lock);
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_mem_squash_snapshot(MppMemSnapshot hnd0, MppMemSnapshot hnd1)
+{
+    if (!hnd0 || !hnd1) {
+        mpp_err_f("invalid input %p %p\n", hnd0, hnd1);
+        return MPP_NOK;
+    }
+    MppMemSnapshotImpl *p0 = (MppMemSnapshotImpl *)hnd0;
+    MppMemSnapshotImpl *p1 = (MppMemSnapshotImpl *)hnd1;
+    struct mem_node *pos0, *n0;
+    struct mem_node *pos1, *n1;
+
+    mpp_log_f("snapshot0 total count %6d size %d\n", p0->total_count, p0->total_size);
+    mpp_log_f("snapshot1 total count %6d size %d\n", p1->total_count, p1->total_size);
+
+    pthread_mutex_lock(&mem_list_lock);
+    /* handle 0 search */
+    list_for_each_entry_safe(pos0, n0, &p0->list, struct mem_node, list) {
+        RK_U32 found_match = 0;
+
+        list_for_each_entry_safe(pos1, n1, &p1->list, struct mem_node, list) {
+            if (pos0->index == pos1->index) {
+                list_del_init(&pos0->list);
+                list_del_init(&pos1->list);
+                free(pos0);
+                free(pos1);
+                found_match = 1;
+                break;
+            }
+        }
+
+        if (!found_match) {
+            mpp_log_f("snapshot0 %p found mismatch memory %p size %d tag %s index %llu",
+                p0, pos0->ptr, pos0->size, pos0->tag, pos0->index);
+        }
+    }
+
+    /* handle 1 search */
+    list_for_each_entry_safe(pos1, n1, &p1->list, struct mem_node, list) {
+        mpp_log_f("snapshot1 %p found mismatch memory %p size %d tag %s index %llu",
+            p1, pos1->ptr, pos1->size, pos1->tag, pos1->index);
+    }
+    pthread_mutex_unlock(&mem_list_lock);
+
+    return MPP_OK;
 }
 
