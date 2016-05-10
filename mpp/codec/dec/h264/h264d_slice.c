@@ -24,16 +24,7 @@
 #include "h264d_sps.h"
 #include "h264d_pps.h"
 
-static void free_slice_drpm_buffer(H264_SLICE_t *currSlice)  // dec_ref_pic_marking
-{
-    H264_DRPM_t *tmp_drpm = NULL;
 
-    while (currSlice->dec_ref_pic_marking_buffer) {
-        tmp_drpm = currSlice->dec_ref_pic_marking_buffer;
-        currSlice->dec_ref_pic_marking_buffer = tmp_drpm->Next;
-        MPP_FREE(tmp_drpm);
-    }
-}
 
 static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
 {
@@ -42,7 +33,6 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     RK_U32 modification_of_pic_nums_idc = 0;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
-    alloc_ref_pic_list_reordering_buffer(currSlice);
     if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_0], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
@@ -100,8 +90,8 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
-	free_ref_pic_list_reordering_buffer(currSlice);
-    return ret;
+
+	return ret;
 }
 
 static MPP_RET pred_weight_table(H264_SLICE_t *currSlice)
@@ -167,8 +157,7 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
 
     drpm_used_bits = p_bitctx->used_bits;
     pSlice->drpm_used_bitlen = 0;
-    //!< free old buffer content
-    free_slice_drpm_buffer(pSlice);
+
     if (pSlice->idr_flag ||
         (pSlice->svc_extension_flag == 0 && pSlice->mvcExt.non_idr_flag == 0)) {
         READ_ONEBIT(p_bitctx, &pSlice->no_output_of_prior_pics_flag, "no_output_of_prior_pics_flag");
@@ -178,9 +167,9 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
         READ_ONEBIT(p_bitctx, &pSlice->adaptive_ref_pic_buffering_flag, "adaptive_ref_pic_buffering_flag");
 
         if (pSlice->adaptive_ref_pic_buffering_flag) {
+			RK_U32 i = 0;
             do { //!< read Memory Management Control Operation
-                tmp_drpm = mpp_calloc(H264_DRPM_t, 1);
-                MEM_CHECK(ret, tmp_drpm);
+				tmp_drpm = &pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
                 tmp_drpm->Next = NULL;
                 READ_UE(p_bitctx, &val, "memory_management_control_operation");
                 tmp_drpm->memory_management_control_operation = val;
@@ -207,7 +196,7 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
                     }
                     tmp_drpm2->Next = tmp_drpm;
                 }
-
+				i++;
             } while (val != 0);
         }
     }
@@ -215,9 +204,8 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
-__FAILED:
 
-    return ret;
+	return ret;
 }
 
 static void init_slice_parmeters(H264_SLICE_t *currSlice)
@@ -378,62 +366,33 @@ __FAILED:
     return ret;
 }
 
+
 /*!
 ***********************************************************************
 * \brief
-*    parse SEI information
+*    reset current slice buffer
 ***********************************************************************
 */
 //extern "C"
-void recycle_slice(H264_SLICE_t *currSlice)
+MPP_RET reset_cur_slice(H264dCurCtx_t *p_Cur, H264_SLICE_t *p)
 {
-    if (currSlice) {
-        free_slice_drpm_buffer(currSlice);
-    }
+	if (p) {
+		p->modification_of_pic_nums_idc[LIST_0] = p_Cur->modification_of_pic_nums_idc[LIST_0];
+		p->abs_diff_pic_num_minus1[LIST_0]      = p_Cur->abs_diff_pic_num_minus1[LIST_0];
+		p->long_term_pic_idx[LIST_0]            = p_Cur->long_term_pic_idx[LIST_0];
+		p->abs_diff_view_idx_minus1[LIST_0]     = p_Cur->abs_diff_view_idx_minus1[LIST_0];
+
+		p->modification_of_pic_nums_idc[LIST_1] = p_Cur->modification_of_pic_nums_idc[LIST_1];
+		p->abs_diff_pic_num_minus1[LIST_1]      = p_Cur->abs_diff_pic_num_minus1[LIST_1];
+		p->long_term_pic_idx[LIST_1]            = p_Cur->long_term_pic_idx[LIST_1];
+		p->abs_diff_view_idx_minus1[LIST_1]     = p_Cur->abs_diff_view_idx_minus1[LIST_1];
+
+		p->dec_ref_pic_marking_buffer = NULL;
+	}
+
+	return MPP_OK;
 }
-void free_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice)
-{
-    if (currSlice) {
-        MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_0]);
-        MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_0]);
-        MPP_FREE(currSlice->long_term_pic_idx[LIST_0]);
-        MPP_FREE(currSlice->modification_of_pic_nums_idc[LIST_1]);
-        MPP_FREE(currSlice->abs_diff_pic_num_minus1[LIST_1]);
-        MPP_FREE(currSlice->long_term_pic_idx[LIST_1]);
-        MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_0]);
-        MPP_FREE(currSlice->abs_diff_view_idx_minus1[LIST_1]);
-    }
-}
-MPP_RET alloc_ref_pic_list_reordering_buffer(H264_SLICE_t *currSlice)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    currSlice->modification_of_pic_nums_idc[LIST_0] = NULL;
-    currSlice->abs_diff_pic_num_minus1[LIST_0]      = NULL;
-    currSlice->long_term_pic_idx[LIST_0]            = NULL;
-    currSlice->abs_diff_view_idx_minus1[LIST_0]     = NULL;
-    if (currSlice->slice_type != I_SLICE && currSlice->slice_type != SI_SLICE)  {
-        RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
-        MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_0] = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_0]      = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_0]            = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_0]     = mpp_calloc(RK_U32, size));
-    }
-    currSlice->modification_of_pic_nums_idc[LIST_1] = NULL;
-    currSlice->abs_diff_pic_num_minus1[LIST_1]      = NULL;
-    currSlice->long_term_pic_idx[LIST_1]            = NULL;
-    currSlice->abs_diff_view_idx_minus1[LIST_1]     = NULL;
-    if (currSlice->slice_type == B_SLICE)  {
-        RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
-        MEM_CHECK(ret, currSlice->modification_of_pic_nums_idc[LIST_1] = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->abs_diff_pic_num_minus1[LIST_1]      = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->long_term_pic_idx[LIST_1]            = mpp_calloc(RK_U32, size));
-        MEM_CHECK(ret, currSlice->abs_diff_view_idx_minus1[LIST_1]     = mpp_calloc(RK_U32, size));
-    }
-    return ret = MPP_OK;
-__FAILED:
-    free_ref_pic_list_reordering_buffer(currSlice);
-    return ret;
-}
+
 /*!
 ***********************************************************************
 * \brief
@@ -567,14 +526,11 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
 			currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
     }
 
-
     FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 __FAILED:
-    recycle_slice(currSlice);
-
     return ret;
 }

@@ -1067,7 +1067,6 @@ static MPP_RET adaptive_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t 
             goto __FAILED;
         }
         p->dec_ref_pic_marking_buffer = tmp_drpm->Next;
-        MPP_FREE(tmp_drpm);
     }
     if (p_Vid->last_has_mmco_5) { //!< similar IDR frame
         p->pic_num = p->frame_num = 0;

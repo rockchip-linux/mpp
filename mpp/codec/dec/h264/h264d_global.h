@@ -885,6 +885,8 @@ typedef struct h264d_curstrm_t {
 
 } H264dCurStream_t;
 
+#define MAX_REORDER_TIMES   17
+#define MAX_MARKING_TIMES   35
 //!< current parameters
 typedef struct h264d_cur_ctx_t {
     struct h264_sps_t        sps;
@@ -906,6 +908,13 @@ typedef struct h264d_cur_ctx_t {
     RK_S64                    last_dts;
     RK_S64                    curr_pts;
     RK_S64                    curr_dts;
+	//!< malloc buffer for current slice
+	RK_U32                    modification_of_pic_nums_idc[2][MAX_REORDER_TIMES];
+	RK_U32                    abs_diff_pic_num_minus1[2][MAX_REORDER_TIMES];
+	RK_U32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
+	RK_U32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
+						      
+	struct h264_drpm_t        dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
 } H264dCurCtx_t;
 
 //!< parameters for video decoder
