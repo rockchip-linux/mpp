@@ -388,6 +388,8 @@ static MPP_RET force_clear_mpp_buffer_group(MppBufferGroupImpl *p)
         deinit_buffer_no_lock(pos);
     }
 
+    deinit_group_no_lock(p);
+
     return MPP_OK;
 }
 
