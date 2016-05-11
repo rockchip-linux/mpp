@@ -229,26 +229,7 @@ static RK_S32 check_sysfs_iommu()
 
 RK_S32 VPUClientGetIOMMUStatus()
 {
-    int ret = 0;
-    if (vpu_service_iommu_status < 0) {
-        vpu_service_iommu_status = check_sysfs_iommu();
-        if (vpu_service_iommu_status < 0) {
-            int fd = -1;
-            fd = open("/dev/vpu_service", O_RDWR);
-            if (fd >= 0) {
-                ret = (RK_S32)ioctl(fd, VPU_IOC_PROBE_IOMMU_STATUS, &vpu_service_iommu_status);
-                if (ret) {
-                    vpu_service_iommu_status = 0;
-                    mpp_err_f("VPUClient: ioctl VPU_IOC_PROBE_IOMMU_STATUS failed ret %d, disable iommu\n", ret);
-                }
-                close(fd);
-            } else {
-                vpu_service_iommu_status = 0;
-            }
-        }
-        mpp_log("vpu_service_iommu_status %d", vpu_service_iommu_status);
-    }
-
-    return vpu_service_iommu_status;
+    mpp_log("Get IOMMU Status always return 1\n");
+    return 1;
 }
 
