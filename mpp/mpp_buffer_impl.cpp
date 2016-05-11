@@ -354,9 +354,9 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     p->group_id = service.group_id;
 
     mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
-    p->debug_leak       = (mpp_buffer_debug | MPP_BUF_DBG_MEM_LEAK   ) ? (1) : (0);
-    p->log_runtime_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
-    p->log_history_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
+    p->debug_leak       = (mpp_buffer_debug & MPP_BUF_DBG_MEM_LEAK   ) ? (1) : (0);
+    p->log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
+    p->log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
 
     // avoid group_id reuse
     do {
