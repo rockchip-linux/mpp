@@ -229,7 +229,11 @@ static RK_S32 check_sysfs_iommu()
 
 RK_S32 VPUClientGetIOMMUStatus()
 {
-    mpp_log("Get IOMMU Status always return 1\n");
+    static RK_U32 once = 1;
+    if (once) {
+        mpp_log("get iommu status always return true\n");
+        once = 0;
+    }
     return 1;
 }
 
