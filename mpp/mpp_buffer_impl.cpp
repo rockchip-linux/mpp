@@ -127,6 +127,7 @@ MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
         if (legacy->count) {
             mpp_log("found legacy group has buffer remain, start dumping\n");
             mpp_buffer_group_dump(legacy);
+            abort();
         }
     }
     return MPP_OK;
@@ -146,8 +147,6 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
         func(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->count--;
-        if (!buffer->discard)
-            group->count_unused--;
     } else {
         group = SEARCH_GROUP_ORPHAN(buffer->group_id);
         mpp_assert(group);
@@ -188,8 +187,9 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
 
 static void dump_buffer_info(MppBufferImpl *buffer)
 {
-    mpp_log("buffer %p fd %4d size %10d ref_count %3d caller %s\n",
-            buffer, buffer->info.fd, buffer->info.size, buffer->ref_count, buffer->caller);
+    mpp_log("buffer %p fd %4d size %10d ref_count %3d discard %d caller %s\n",
+            buffer, buffer->info.fd, buffer->info.size,
+            buffer->ref_count, buffer->discard, buffer->caller);
 }
 
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info)
@@ -354,6 +354,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     p->group_id = service.group_id;
 
     mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
+    p->debug_leak       = (mpp_buffer_debug | MPP_BUF_DBG_MEM_LEAK   ) ? (1) : (0);
     p->log_runtime_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
     p->log_history_en   = (mpp_buffer_debug | MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
 
@@ -369,6 +370,23 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     mpp_alloctor_get(&p->allocator, &p->alloc_api, type);
 
     *group = p;
+
+    return MPP_OK;
+}
+
+static MPP_RET force_clear_mpp_buffer_group(MppBufferGroupImpl *p)
+{
+    MppBufferImpl *pos, *n;
+
+    mpp_err("force release all remaining buffer\n");
+
+    list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
+        mpp_err("clearing buffer %p pos\n");
+        pos->ref_count = 0;
+        pos->used = 0;
+        pos->discard = 0;
+        deinit_buffer_no_lock(pos);
+    }
 
     return MPP_OK;
 }
@@ -393,14 +411,20 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
     if (list_empty(&p->list_used)) {
         deinit_group_no_lock(p);
     } else {
-        // otherwise move the group to list_orphan and wait for buffer release
-        list_del_init(&p->list_group);
-        list_add_tail(&p->list_group, &service.mListOrphan);
-
         mpp_err("mpp_group %p tag %s caller %s mode %s type %s deinit with %d bytes not released\n",
                 p, p->tag, p->caller, mode2str[p->mode], type2str[p->type], p->usage);
 
         mpp_buffer_group_dump(p);
+
+        /* force to release leaked buffer */
+        if (!p->debug_leak) {
+            force_clear_mpp_buffer_group(p);
+        } else {
+            abort();
+            // otherwise move the group to list_orphan and wait for buffer release
+            list_del_init(&p->list_group);
+            list_add_tail(&p->list_group, &service.mListOrphan);
+        }
     }
 
     return MPP_OK;
