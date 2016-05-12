@@ -1302,62 +1302,6 @@ static H264_StorePic_t *get_long_term_pic(H264_SLICE_t *currSlice, RK_S32 Longte
     }
     return NULL;
 }
-
-static void fake_short_term_pic(H264_SLICE_t *currSlice, RK_S32 picNumLX, H264_StorePic_t *tmp)
-{
-#if 0
-    H264_StorePic_t *fake = NULL;
-    H264_StorePic_t *dec_pic = NULL;
-#if 1
-    fake = alloc_storable_picture(currSlice->p_Vid, tmp->structure);
-    if (fake == NULL) {
-        H264D_ERR("failed to alloc new dpb buffer.");
-        return;
-    }
-    fake->frame_mbs_only_flag = 0;
-    //fs_top = fs->top_field    = alloc_storable_picture(p_Vid, TOP_FIELD);
-
-    fake->is_long_term = 0;
-    fake->view_id = fake->view_id;
-    fake->layer_id = currSlice->layer_id;
-    fake->frame_num = fake->pic_num = picNumLX;
-    dec_pic = currSlice->p_Vid->dec_pic;
-    fake->poc = dec_pic->poc - (dec_pic->pic_num - picNumLX) * 2;
-    fake->used_for_reference = 1;
-    fake->mem_malloc_type = Mem_Fake;
-    fake->mem_mark = tmp->mem_mark;
-    fake->mem_mark->pic = fake;
-    fake->is_output = 1;
-    //!< sliding window
-    sliding_window_memory_management(currSlice->p_Dpb);
-
-    store_picture_in_dpb(currSlice->p_Dpb, fake);
-#else
-    fake = clone_storable_picture(currSlice->p_Vid, tmp);
-    if (fake == NULL) {
-        H264D_ERR("failed to alloc new dpb buffer.");
-        return;
-    }
-    fake->is_long_term = 0;
-    fake->view_id = fake->view_id;
-    fake->layer_id = currSlice->layer_id;
-    fake->frame_num = fake->pic_num = picNumLX;
-    dec_pic = currSlice->p_Vid->dec_pic;
-    fake->poc = dec_pic->poc - (dec_pic->pic_num - picNumLX) * 2;
-    fake->used_for_reference = 1;
-    fake->mem_malloc_type = Mem_Fake;
-    fake->mem_mark = tmp->mem_mark;
-    fake->mem_mark->pic = fake;
-    store_picture_in_dpb(currSlice->p_Dpb, fake);
-
-#endif
-#endif
-    (void)currSlice;
-    (void)picNumLX;
-    (void)tmp;
-}
-
-
 static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 {
     RK_S32 i = 0;
@@ -1365,9 +1309,9 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
     RK_S32 maxPicNum = 0, currPicNum = 0;
     RK_S32 picNumLXNoWrap = 0, picNumLXPred = 0, picNumLX = 0;
 
-    RK_U32 *modification_of_pic_nums_idc = currSlice->modification_of_pic_nums_idc[cur_list];
-    RK_U32 *abs_diff_pic_num_minus1 = currSlice->abs_diff_pic_num_minus1[cur_list];
-    RK_U32 *long_term_pic_idx = currSlice->long_term_pic_idx[cur_list];
+    RK_S32 *modification_of_pic_nums_idc = currSlice->modification_of_pic_nums_idc[cur_list];
+    RK_S32 *abs_diff_pic_num_minus1 = currSlice->abs_diff_pic_num_minus1[cur_list];
+    RK_S32 *long_term_pic_idx = currSlice->long_term_pic_idx[cur_list];
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
 
     if (currSlice->structure == FRAME) {
@@ -1385,24 +1329,18 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
             continue;
         if (modification_of_pic_nums_idc[i] < 2) {
             if (modification_of_pic_nums_idc[i] == 0) {
-                if ( (picNumLXPred - (RK_S32)(abs_diff_pic_num_minus1[i] + 1)) < 0)
+                if ( (picNumLXPred - (abs_diff_pic_num_minus1[i] + 1)) < 0)
                     picNumLXNoWrap = picNumLXPred - (abs_diff_pic_num_minus1[i] + 1) + maxPicNum;
                 else
                     picNumLXNoWrap = picNumLXPred - (abs_diff_pic_num_minus1[i] + 1);
             } else { //!< (modification_of_pic_nums_idc[i] == 1)
-                if (picNumLXPred + (abs_diff_pic_num_minus1[i] + 1) >=  (RK_U32)maxPicNum)
+                if (picNumLXPred + (abs_diff_pic_num_minus1[i] + 1) >= maxPicNum)
                     picNumLXNoWrap = picNumLXPred + (abs_diff_pic_num_minus1[i] + 1) - maxPicNum;
                 else
                     picNumLXNoWrap = picNumLXPred + (abs_diff_pic_num_minus1[i] + 1);
             }
             picNumLXPred = picNumLXNoWrap;
             picNumLX = (picNumLXNoWrap > currPicNum) ? (picNumLXNoWrap - maxPicNum) : picNumLXNoWrap;
-            if (currSlice->field_pic_flag) {
-                picNumLX = (picNumLX - (picNumLX & 0x1)) >> 1;
-                picNumLX = picNumLX < 0 ? (picNumLX + (maxPicNum >> 1)) : picNumLX;
-            }
-            picNumLX = (picNumLX < 0) ? (picNumLX + maxPicNum) : picNumLX;
-
 			error_flag = 1;
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
@@ -1414,21 +1352,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 					}
 				}
             }
-#if 1
-			else { //!< missing short reference, and fake a reference
-                H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d. \n", currSlice->structure, picNumLX);
-				if (tmp && tmp->mem_mark) {
-					MppFrame mframe = NULL;
-                    fake_short_term_pic(currSlice, picNumLX, tmp);					
-					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-					if (mframe && !mpp_frame_get_errinfo(mframe)) {
-						error_flag = 0;
-					}
-				} else {
-					H264D_WARNNING("[DPB_REF_ERR] has not found nearest reference. \n");
-				}
-            }
-#endif
+
         } else { //!< (modification_of_pic_nums_idc[i] == 2)
             tmp = get_long_term_pic(currSlice, long_term_pic_idx[i]);
         }
