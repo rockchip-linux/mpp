@@ -188,26 +188,22 @@ MPP_RET avsd_parse_prepare(AvsdInputCtx_t *p_inp, AvsdCurCtx_t *p_cur)
 
 	Avs_DecCtx_t *p_dec = p_inp->p_dec;
 	HalDecTask *in_task = p_inp->in_task;
-	AvsdBitstream_t *pb = p_dec->bitstream;
 
 	AVSD_PARSE_TRACE("In.");
 
 	in_task->input_packet = p_dec->task_pkt;
-	ret_val = lib_prepare_one_frame(p_dec->libdec, p_inp->in_pkt, in_task);
+	ret_val = lib_avsd_prepare(p_dec->libdec, 
+		(RK_U8 *)mpp_packet_get_pos(p_inp->in_pkt), (RK_S32)mpp_packet_get_length(p_inp->in_pkt));
 	if (ret_val < 0) {
 		goto __FAILED;
 	}
-	//if (in_task->valid) {
-	//	mpp_packet_set_pos(in_task->input_packet, pb->pbuf);
-	//	mpp_packet_set_length(in_task->input_packet, 0);
-	//}
+	in_task->valid = 1;
+	mpp_packet_set_length(p_inp->in_pkt, 0);
 
 	AVSD_PARSE_TRACE("Out.");
 	(void)p_cur;
 	return ret = MPP_OK;
 __FAILED:
-	mpp_packet_set_pos(p_dec->task_pkt, pb->pbuf);
-	mpp_packet_set_length(p_dec->task_pkt, 0);
 	return ret;
 }
 #endif

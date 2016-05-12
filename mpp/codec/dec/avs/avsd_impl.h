@@ -29,18 +29,16 @@
 
 #ifdef  __cplusplus
 extern "C" {
-#endif
+#endif	
 
-MPP_RET lib_avsd_free(void *decoder);
-void   *lib_avsd_malloc(void *decoder);
-MPP_RET lib_prepare_one_frame(void *decoder, MppPacket pkt, HalDecTask *task);
-MPP_RET lib_parse_one_frame(void *decoder, HalDecTask *task);
-MPP_RET lib_init_one_frame(void *decoder, HalDecTask *task);
-MPP_RET lib_decode_one_frame(void *decoder, HalDecTask *task);
-MPP_RET lib_flush(void *decoder);
-MPP_RET lib_reset(void *decoder);
+void  avsd_test_main(int argc, char **argv);
 
-MPP_RET nv12_copy_buffer(void *p_dec, RK_U8 *des);
+void *lib_avsd_create();
+int   lib_avsd_init(void *decoder);
+int   lib_avsd_destory(void *decoder);
+int   lib_avsd_prepare(void *decoder, unsigned char *buf, int len);
+int   lib_avsd_decode_one_frame(void *decoder, int *got_frame);
+int   lib_avsd_get_outframe(void *decoder, int *w, int *h, unsigned char *data[], int *stride, int *crop);
 
 
 #ifdef  __cplusplus
