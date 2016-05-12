@@ -1380,7 +1380,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
     picNumLXPred = currPicNum;
     for (i = 0; modification_of_pic_nums_idc[i] != 3; i++) {
         H264_StorePic_t *tmp = NULL;
-
+		RK_U32 error_flag = 0;
         if (modification_of_pic_nums_idc[i] > 3)
             continue;
         if (modification_of_pic_nums_idc[i] < 2) {
@@ -1403,25 +1403,24 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
             }
             picNumLX = (picNumLX < 0) ? (picNumLX + maxPicNum) : picNumLX;
 #if 1
+			error_flag = 1;
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
-				dpb_error_flag = 1;
 				H264D_DBG(H264D_DBG_DPB_REF_ERR, "find short reference, slot_idx=%d.\n", tmp->mem_mark->slot_idx);
 				if (tmp && tmp->mem_mark) {
 					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 					if (mframe && !mpp_frame_get_errinfo(mframe)) {
-						dpb_error_flag = 0;
+						error_flag = 0;
 					}
 				}
             } else { //!< missing short reference, and fake a reference
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d. \n", currSlice->structure, picNumLX);
-				dpb_error_flag = 1;
 				if (tmp && tmp->mem_mark) {
 					MppFrame mframe = NULL;
                     fake_short_term_pic(currSlice, picNumLX, tmp);					
 					mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
 					if (mframe && !mpp_frame_get_errinfo(mframe)) {
-						dpb_error_flag = 0;
+						error_flag = 0;
 					}
 				} else {
 					H264D_WARNNING("[DPB_REF_ERR] has not found nearest reference. \n");
@@ -1431,6 +1430,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
         } else { //!< (modification_of_pic_nums_idc[i] == 2)
             tmp = get_long_term_pic(currSlice, long_term_pic_idx[i]);
         }
+		dpb_error_flag |= error_flag;
     }
 
     return dpb_error_flag;
