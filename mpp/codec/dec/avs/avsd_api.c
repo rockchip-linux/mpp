@@ -29,7 +29,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_buffer_impl.h"
 
-
 #include "avsd_api.h"
 #include "avsd_parse.h"
 #include "avsd_impl.h"
@@ -163,7 +162,7 @@ static MPP_RET free_dec_ctx(Avs_DecCtx_t *p_dec)
 
 	INP_CHECK(ret, NULL == p_dec);
 	AVSD_PARSE_TRACE("In.");
-	lib_avsd_free(p_dec->libdec);
+	lib_avsd_destory(p_dec->libdec);
 	mpp_packet_deinit(&p_dec->task_pkt);
 	free_bitstream(p_dec->bitstream);
 	MPP_FREE(p_dec->mem);	
@@ -193,8 +192,11 @@ static MPP_RET init_dec_ctx(Avs_DecCtx_t *p_dec)
 	mpp_packet_set_length(p_dec->task_pkt, 0);
 	MEM_CHECK(ret, p_dec->task_pkt);
 	//!< malloc libavsd.so
-	p_dec->libdec = lib_avsd_malloc(p_dec);
+	p_dec->libdec = lib_avsd_create();
 	MEM_CHECK(ret, p_dec->libdec);
+	FUN_CHECK(ret = lib_avsd_init(p_dec->libdec));
+	p_dec->outframe = &p_dec->mem->outframe;
+
 __RETURN:
 	AVSD_PARSE_TRACE("Out.");
 
@@ -292,7 +294,6 @@ MPP_RET avsd_reset(void *decoder)
 	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
 
     AVSD_PARSE_TRACE("In.");
-	lib_reset(p_dec->libdec);
 
 	AVSD_PARSE_TRACE("Out.");
     (void)decoder;
@@ -311,7 +312,6 @@ MPP_RET avsd_flush(void *decoder)
 	Avs_DecCtx_t *p_dec = (Avs_DecCtx_t *)decoder;
     AVSD_PARSE_TRACE("In.");
 
-	lib_flush(p_dec->libdec);
 
 	AVSD_PARSE_TRACE("Out.");
     (void)decoder;
@@ -385,6 +385,12 @@ MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 
 	} while (mpp_packet_get_length(pkt) && !task->valid);
 
+	if (task->valid) {
+		mpp_packet_set_pos(task->input_packet, p_dec->bitstream->pbuf);
+		mpp_packet_set_length(task->input_packet, 16);
+		mpp_packet_set_size(task->input_packet, 32);
+	}
+
 __RETURN:
 	(void)decoder;
 	(void)pkt;
@@ -412,13 +418,36 @@ MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 	p_s = mpp_time();
 	task->valid = 0;
 	memset(task->refer, -1, sizeof(task->refer));
-	lib_parse_one_frame(p_dec->libdec, task);
+	lib_avsd_decode_one_frame(p_dec->libdec, &task->valid);
+	mpp_log("[out_frame] task->valid=%d", task->valid);
 	if (task->flags.eos) {
 		avsd_flush(decoder);
 		goto __RETURN;
 	}
 	if (task->valid) {
-		lib_init_one_frame(p_dec->libdec, task);	
+		RK_S32 out_slot_idx = -1;
+		mpp_buf_slot_get_unused(p_dec->frame_slots, &out_slot_idx);
+		if (out_slot_idx >= 0) {
+			MppFrame mframe = NULL;
+			AvsdOutframe_t *f = p_dec->outframe;
+			lib_avsd_get_outframe(p_dec->libdec, &f->nWidth, &f->nHeight, f->data, f->stride, f->corp);
+			mpp_log("[out_frame] width=%d, height=%d, stride[0]=%d, stride[1]=%d, stride[2]=%d",
+				f->nWidth, f->nHeight, f->stride[0], f->stride[1], f->stride[2]);;
+			mpp_frame_init(&mframe);
+			mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
+			mpp_frame_set_hor_stride(mframe, f->nWidth);  // before crop
+			mpp_frame_set_ver_stride(mframe, f->nHeight);
+			mpp_frame_set_width(mframe, f->nWidth);  // after crop
+			mpp_frame_set_height(mframe, f->nHeight);
+			//mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
+			//mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
+			mpp_buf_slot_set_prop(p_dec->frame_slots, out_slot_idx, SLOT_FRAME, mframe);
+			mpp_frame_deinit(&mframe);
+			mpp_buf_slot_get_prop(p_dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
+			f->hor_stride = mpp_frame_get_hor_stride(mframe);
+			f->ver_stride = mpp_frame_get_ver_stride(mframe); 
+			out_slot_idx = task->output;
+		}
 		p_dec->parse_no++;
 		p_e = mpp_time();
 		diff = (p_e - p_s) / 1000;
@@ -438,6 +467,47 @@ __RETURN:
 *   callback
 ***********************************************************************
 */
+
+MPP_RET nv12_copy_buffer(RK_U8 *des, AvsdOutframe_t *f)
+{
+	RK_S32 i = 0, j = 0;
+	RK_U8 *ptr = NULL;
+
+	//!< copy Y
+	mpp_log("[nv12_copy_buffer] width=%d, height=%d, hor_stride=%d, ver_stride=%d \n", f->nWidth, f->nHeight, f->hor_stride, f->ver_stride);
+	ptr = des;
+	for (i = 0; i < f->nHeight; i++)	{
+		memcpy(ptr, f->data[0] + f->stride[0] * i, f->hor_stride);
+		ptr += f->hor_stride;
+	}
+#if 0
+	//!< copy U
+	ptr = des + f->nHeight * f->nWidth;
+	for (i = 0; i < f->nHeight / 2; i++)	{
+		memcpy(ptr, f->data[1] + f->stride[1] * i, f->nWidth / 2);
+		ptr += f->nWidth / 2;
+	}
+	//!< copy V
+	ptr = des + f->nHeight * f->nWidth * 5 / 4;
+	for (i = 0; i < f->nHeight / 2; i++)	{
+		memcpy(ptr, f->data[2] + f->stride[2] * i, f->nWidth / 2);
+		ptr += f->nWidth / 2;
+	}
+#else
+	//!< copy U V
+	ptr = des + f->hor_stride * f->ver_stride;
+	for (i = 0; i < f->nHeight / 2; i++)	{
+		for (j = 0; j < f->nWidth / 2; j++) {
+			ptr[2 * j + 0] = f->data[1][f->stride[1] * i + j];
+			ptr[2 * j + 1] = f->data[2][f->stride[2] * i + j];
+		}
+		ptr += f->hor_stride;
+	}
+#endif
+
+	return MPP_OK;
+}
+
 MPP_RET avsd_callback(void *decoder, void *info)
 {
 	RK_S64 p_s = 0, p_e = 0, diff = 0;
@@ -447,9 +517,9 @@ MPP_RET avsd_callback(void *decoder, void *info)
 	AVSD_PARSE_TRACE("In.");
 	AVSD_PARSE_TRACE("[avsd_parse_decode] frame_dec_no=%d", p_dec->dec_no);
 	p_dec->dec_no++;
-	{
+	if (task->dec.valid) {
 		p_s = mpp_time();
-		lib_decode_one_frame(p_dec->libdec, &task->dec);
+		//lib_decode_one_frame(p_dec->libdec, &task->dec);
 		p_e = mpp_time();
 		diff = (p_e - p_s) / 1000;
 		p_dec->decode_frame_time += diff;
@@ -470,21 +540,24 @@ MPP_RET avsd_callback(void *decoder, void *info)
 		AVSD_DBG(AVSD_DBG_TIME, "[avsd_time] @ decode updte consume av=%lld ", p_dec->decode_update_time / (1000 * p_dec->dec_no));
 		AVSD_DBG(AVSD_DBG_TIME, "[avsd_time] @ frame post   consume av=%lld ", p_dec->frame_post_time    / (1000 * p_dec->dec_no));
 	}
-	{
+	if (task->dec.valid) {
 		MppBuffer mbuffer = NULL;
 		mpp_buf_slot_get_prop(p_dec->frame_slots, task->dec.output, SLOT_BUFFER, &mbuffer);
-
-		if (mbuffer) {
-			RK_U8 *p = (RK_U8 *)mpp_buffer_get_ptr(mbuffer);
+		if (mbuffer && (task->dec.output >= 0)) {
 			p_s = mpp_time();
-			nv12_copy_buffer(p_dec->libdec, p);
+
+			nv12_copy_buffer((RK_U8 *)mpp_buffer_get_ptr(mbuffer), p_dec->outframe);
+
+			mpp_buf_slot_set_flag(p_dec->frame_slots, task->dec.output, SLOT_QUEUE_USE);
+			mpp_buf_slot_enqueue(p_dec->frame_slots,  task->dec.output, QUEUE_DISPLAY);
+
 			p_e = mpp_time();
 			diff = (p_e - p_s) / 1000;
 			p_dec->nvcopy_time += diff;
 			AVSD_DBG(AVSD_DBG_TIME, "[avsd_time] copy one frame consume time=%lld, av=%lld ", diff, p_dec->nvcopy_time / p_dec->dec_no);
 		}	
 	}
-
+	task->dec.valid = 0;
 	(void)task;
 	(void)decoder;
 	(void)info;

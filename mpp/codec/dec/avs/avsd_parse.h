@@ -117,10 +117,30 @@ typedef struct avsd_bitstream_t {
 }AvsdBitstream_t;
 
 
+typedef struct avsd_outframe_t
+{
+	RK_S32 nWidth;
+	RK_S32 nHeight;
+	RK_U8 *data[4];      // Y U V data
+	RK_S32 stride[4];    // Y U V stride
+	RK_S32 corp[2];      // crop_right crop_bottom
+	RK_S32 hor_stride;
+	RK_S32 ver_stride;
+	RK_S32 nFrameType;   // 0I 1P 2B
+	RK_S32 nBitrate;
+	RK_S32 nFrameCoded;
+	RK_S32 nTopFieldFirst;
+	RK_S32 nFrameIndex;
+} AvsdOutframe_t;
+
 typedef struct avsd_memory_t {
 
 	struct avsd_bitstream_t    bitstream;
+	struct avsd_outframe_t     outframe;
 } AvsdMemory_t;
+
+
+
 
 
 //!< decoder parameters
@@ -137,6 +157,8 @@ typedef struct avs_dec_ctx_t {
 	struct avsd_video_ctx_t *p_vid;
 	//!< use in libavs.so
 	void                    *libdec;
+	struct avsd_outframe_t  *outframe;
+
 	RK_U32                  dec_no;
 
 	RK_U32                  prepare_no;
