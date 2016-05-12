@@ -296,6 +296,7 @@ MPP_RET avsd_reset(void *decoder)
     AVSD_PARSE_TRACE("In.");
 
 	AVSD_PARSE_TRACE("Out.");
+	(void)p_dec;
     (void)decoder;
     return ret = MPP_OK;
 }
@@ -314,6 +315,7 @@ MPP_RET avsd_flush(void *decoder)
 
 
 	AVSD_PARSE_TRACE("Out.");
+	(void)p_dec;
     (void)decoder;
     return ret = MPP_OK;
 }
@@ -418,7 +420,8 @@ MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 	p_s = mpp_time();
 	task->valid = 0;
 	memset(task->refer, -1, sizeof(task->refer));
-	lib_avsd_decode_one_frame(p_dec->libdec, &task->valid);
+
+	lib_avsd_decode_one_frame(p_dec->libdec, (RK_S32 *)&task->valid);
 	mpp_log("[out_frame] task->valid=%d", task->valid);
 	if (task->flags.eos) {
 		avsd_flush(decoder);

@@ -155,7 +155,7 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
     p_Inp->init = *init;
     mpp_env_get_u32("rkv_h264d_mvc_disable", &p_Inp->mvc_disable, 1);
 	open_stream_file(p_Inp, "/sdcard");
-	if (rkv_h264d_parse_debug & H264D_DBG_WRITE_TS_EN) {
+	if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
 		p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;
 		p_Inp->spspps_buf = mpp_malloc_size(RK_U8, p_Inp->spspps_size);
 		MEM_CHECK(ret, p_Inp->spspps_buf);
@@ -399,8 +399,6 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     // init logctx
     FUN_CHECK(ret = logctx_init(&p_Dec->logctx, p_Dec->logctxbuf));
     mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_parse_debug, H264D_DBG_ERROR);
-
-
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< get init frame_slots and packet_slots
     p_Dec->frame_slots  = init->frame_slots;
@@ -721,6 +719,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.dpb_error  = p_err->dpb_err_flag;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
+		
     }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
