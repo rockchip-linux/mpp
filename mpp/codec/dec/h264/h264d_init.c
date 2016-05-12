@@ -1402,7 +1402,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
                 picNumLX = picNumLX < 0 ? (picNumLX + (maxPicNum >> 1)) : picNumLX;
             }
             picNumLX = (picNumLX < 0) ? (picNumLX + maxPicNum) : picNumLX;
-#if 1
+
 			error_flag = 1;
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
@@ -1413,7 +1413,9 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 						error_flag = 0;
 					}
 				}
-            } else { //!< missing short reference, and fake a reference
+            }
+#if 0
+			else { //!< missing short reference, and fake a reference
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d. \n", currSlice->structure, picNumLX);
 				if (tmp && tmp->mem_mark) {
 					MppFrame mframe = NULL;
