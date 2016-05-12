@@ -181,11 +181,11 @@ typedef struct h264_nalu_mvc_ext_t {
 
 //!< decoder refence picture marking
 typedef struct h264_drpm_t {
-    RK_U32 memory_management_control_operation;
-    RK_U32 difference_of_pic_nums_minus1;
-    RK_U32 long_term_pic_num;
-    RK_U32 long_term_frame_idx;
-    RK_U32 max_long_term_frame_idx_plus1;
+	RK_S32 memory_management_control_operation;
+	RK_S32 difference_of_pic_nums_minus1;
+	RK_S32 long_term_pic_num;
+	RK_S32 long_term_frame_idx;
+	RK_S32 max_long_term_frame_idx_plus1;
     struct  h264_drpm_t *Next;
 } H264_DRPM_t;
 
@@ -711,11 +711,11 @@ typedef struct h264_slice_t {
     //--- slice property;
     RK_S32       layer_id;
     RK_S32       idr_flag;
-    RK_U32       idr_pic_id;
+    RK_S32       idr_pic_id;
     RK_S32       nal_reference_idc;            //!< nal_reference_idc from NAL unit
     RK_U32       start_mb_nr;                  //!< MUST be set by NAL even in case of ei_flag == 1
     RK_S32       slice_type;                   //!< slice type
-    RK_U32       pic_parameter_set_id;
+    RK_S32       pic_parameter_set_id;
     RK_S32       colour_plane_id;
     RK_S32       frame_num;
     RK_S32       field_pic_flag;
@@ -726,15 +726,15 @@ typedef struct h264_slice_t {
     RK_S32       delta_pic_order_cnt_bottom;
     RK_S32       delta_pic_order_cnt[2];         // for poc mode 1
     RK_U32       poc_used_bitlen;
-    RK_U32       redundant_pic_cnt;
+    RK_S32       redundant_pic_cnt;
     RK_S32       direct_spatial_mv_pred_flag;
-    RK_U32       num_ref_idx_active[2];          //!< number of available list references
+    RK_S32       num_ref_idx_active[2];          //!< number of available list references
     RK_S32       num_ref_idx_override_flag;
     RK_S32       ref_pic_list_reordering_flag[2];
-    RK_U32       *modification_of_pic_nums_idc[2];
-    RK_U32       *abs_diff_pic_num_minus1[2];
-    RK_U32       *long_term_pic_idx[2];
-    RK_U32       *abs_diff_view_idx_minus1[2];
+	RK_S32       *modification_of_pic_nums_idc[2];
+	RK_S32       *abs_diff_pic_num_minus1[2];
+	RK_S32       *long_term_pic_idx[2];
+	RK_S32       *abs_diff_view_idx_minus1[2];
     struct h264_drpm_t   *dec_ref_pic_marking_buffer;
     RK_U32       drpm_used_bitlen;
     RK_S32       no_output_of_prior_pics_flag;
@@ -909,10 +909,10 @@ typedef struct h264d_cur_ctx_t {
     RK_S64                    curr_pts;
     RK_S64                    curr_dts;
 	//!< malloc buffer for current slice
-	RK_U32                    modification_of_pic_nums_idc[2][MAX_REORDER_TIMES];
-	RK_U32                    abs_diff_pic_num_minus1[2][MAX_REORDER_TIMES];
-	RK_U32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
-	RK_U32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
+	RK_S32                    modification_of_pic_nums_idc[2][MAX_REORDER_TIMES];
+	RK_S32                    abs_diff_pic_num_minus1[2][MAX_REORDER_TIMES];
+	RK_S32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
+	RK_S32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
 						      
 	struct h264_drpm_t        dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
 } H264dCurCtx_t;

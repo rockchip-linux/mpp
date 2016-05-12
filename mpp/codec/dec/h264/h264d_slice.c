@@ -30,7 +30,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
 {
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U32 modification_of_pic_nums_idc = 0;
+    RK_S32 modification_of_pic_nums_idc = 0;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
     if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
@@ -98,7 +98,7 @@ static MPP_RET pred_weight_table(H264_SLICE_t *currSlice)
 {
     RK_S32 se_tmp = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U32 i = 0, j = 0, temp = 0;
+    RK_S32 i = 0, j = 0, temp = 0;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
     READ_UE(p_bitctx, &temp, "log2_weight_denom");
