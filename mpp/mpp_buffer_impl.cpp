@@ -354,9 +354,9 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     p->group_id = service.group_id;
 
     mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
-    p->debug_leak       = (mpp_buffer_debug & MPP_BUF_DBG_MEM_LEAK   ) ? (1) : (0);
     p->log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
     p->log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
+    p->clear_on_exit    = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
 
     // avoid group_id reuse
     do {
@@ -418,11 +418,10 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 
         mpp_buffer_group_dump(p);
 
-        /* force to release leaked buffer */
-        if (!p->debug_leak) {
+        /* if clear on exit we need to release remaining buffer */
+        if (p->clear_on_exit) {
             force_clear_mpp_buffer_group(p);
         } else {
-            abort();
             // otherwise move the group to list_orphan and wait for buffer release
             list_del_init(&p->list_group);
             list_add_tail(&p->list_group, &service.mListOrphan);
@@ -480,14 +479,14 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     mpp_log("type %s\n", type2str[group->type]);
     mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
 
-    mpp_log("\nused buffer count %d\n", group->count_used);
+    mpp_log("used buffer count %d\n", group->count_used);
 
     MppBufferImpl *pos, *n;
     list_for_each_entry_safe(pos, n, &group->list_used, MppBufferImpl, list_status) {
         dump_buffer_info(pos);
     }
 
-    mpp_log("\nunused buffer count %d\n", group->count_unused);
+    mpp_log("unused buffer count %d\n", group->count_unused);
     list_for_each_entry_safe(pos, n, &group->list_unused, MppBufferImpl, list_status) {
         dump_buffer_info(pos);
     }
