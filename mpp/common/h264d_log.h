@@ -46,7 +46,7 @@
 #define H264D_DBG_SEI               (0x00004000)
 #define H264D_DBG_CALLBACK          (0x00008000)
 
-#define H264D_DBG_WRITE_TS_EN       (0x00010000)   //!< write input ts stream
+#define H264D_DBG_WRITE_ES_EN       (0x00010000)   //!< write input ts stream
 #define H264D_DBG_FIELD_PAIRED      (0x00020000)
 #define H264D_DBG_DISCONTINUOUS     (0x00040000)
 #define H264D_DBG_ERR_DUMP          (0x00080000)
