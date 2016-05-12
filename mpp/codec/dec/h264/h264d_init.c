@@ -1414,7 +1414,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
 					}
 				}
             }
-#if 0
+#if 1
 			else { //!< missing short reference, and fake a reference
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] missing short ref, structure=%d, pic_num=%d. \n", currSlice->structure, picNumLX);
 				if (tmp && tmp->mem_mark) {
