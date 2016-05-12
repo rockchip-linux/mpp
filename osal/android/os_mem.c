@@ -19,8 +19,10 @@
 
 int os_malloc(void **memptr, size_t alignment, size_t size)
 {
+    (void)alignment;
     int ret = 0;
     void *ptr = malloc(size);
+
     if (ptr) {
         *memptr = ptr;
     } else {
@@ -28,6 +30,7 @@ int os_malloc(void **memptr, size_t alignment, size_t size)
         ret = -1;
     }
     return ret;
+
     //return posix_memalign(memptr, alignment, size);
 }
 
