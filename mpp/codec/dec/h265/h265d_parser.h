@@ -429,16 +429,7 @@ typedef struct HEVCPPS {
     // Inferred parameters
     RK_U32 *column_width;  ///< ColumnWidth
     RK_U32 *row_height;    ///< RowHeight
-    RK_U32 *col_bd;        ///< ColBd
-    RK_U32 *row_bd;        ///< RowBd
-    RK_S32 *col_idxX;
 
-    RK_S32 *ctb_addr_rs_to_ts; ///< CtbAddrRSToTS
-    RK_S32 *ctb_addr_ts_to_rs; ///< CtbAddrTSToRS
-    RK_S32 *tile_id;           ///< TileId
-    RK_S32 *tile_pos_rs;       ///< TilePosRS
-    RK_S32 *min_cb_addr_zs;    ///< MinCbAddrZS
-    RK_S32 *min_tb_addr_zs;    ///< MinTbAddrZS
 } HEVCPPS;
 
 typedef struct SliceHeader {

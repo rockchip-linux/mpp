@@ -1356,7 +1356,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
         if (!s->sh.dependent_slice_segment_flag &&
             s->sh.slice_type != I_SLICE) {
-            ret = mpp_hevc_slice_rpl(s);
+            // ret = mpp_hevc_slice_rpl(s);
             if (ret < 0) {
                 mpp_log("Error constructing the reference lists for the current slice.\n");
                 goto fail;
@@ -1805,7 +1805,6 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     }
 #endif
     s->nb_frame++;
-
     if (s->is_decoded) {
         h265d_dbg(H265D_DBG_GLOBAL, "Decoded frame with POC %d.\n", s->poc);
         s->is_decoded = 0;

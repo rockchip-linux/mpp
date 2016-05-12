@@ -1846,15 +1846,6 @@ void mpp_hevc_pps_free(RK_U8 *data)
     if (pps != NULL) {
         mpp_free(pps->column_width);
         mpp_free(pps->row_height);
-        mpp_free(pps->col_bd);
-        mpp_free(pps->row_bd);
-        mpp_free(pps->col_idxX);
-        mpp_free(pps->ctb_addr_rs_to_ts);
-        mpp_free(pps->ctb_addr_ts_to_rs);
-        mpp_free(pps->tile_pos_rs);
-        mpp_free(pps->tile_id);
-        mpp_free(pps->min_cb_addr_zs);
-        mpp_free(pps->min_tb_addr_zs);
         mpp_free(pps);
     }
 }
@@ -1864,8 +1855,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
 
     BitReadCtx_t *gb = &s->HEVClc->gb;
     HEVCSPS      *sps = NULL;
-    RK_S32 pic_area_in_ctbs, pic_area_in_min_cbs, pic_area_in_min_tbs;
-    RK_S32 i, j, x, y, ctb_addr_rs, tile_id;
+    RK_S32 i;
     RK_S32 ret    = 0;
     RK_S32 pps_id = 0;
 
@@ -2079,14 +2069,6 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     }
 
     // Inferred parameters
-    pps->col_bd   = mpp_malloc(RK_U32, (pps->num_tile_columns + 1));
-    pps->row_bd   = mpp_malloc(RK_U32, (pps->num_tile_rows + 1));
-    pps->col_idxX = mpp_malloc(RK_S32, sps->ctb_width);
-    if (!pps->col_bd || !pps->row_bd || !pps->col_idxX) {
-        ret = MPP_ERR_NOMEM;
-        goto err;
-    }
-
     if (pps->uniform_spacing_flag) {
         if (!pps->column_width) {
             pps->column_width = mpp_malloc(RK_U32, pps->num_tile_columns );
@@ -2107,87 +2089,6 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
                                  (i * sps->ctb_height) / pps->num_tile_rows;
         }
     }
-
-    pps->col_bd[0] = 0;
-    for (i = 0; i < pps->num_tile_columns; i++)
-        pps->col_bd[i + 1] = pps->col_bd[i] + pps->column_width[i];
-
-    pps->row_bd[0] = 0;
-    for (i = 0; i < pps->num_tile_rows; i++)
-        pps->row_bd[i + 1] = pps->row_bd[i] + pps->row_height[i];
-
-    for (i = 0, j = 0; i < sps->ctb_width; i++) {
-        if ((RK_U32)i > pps->col_bd[j])
-            j++;
-        pps->col_idxX[i] = j;
-    }
-
-    /**
-     * 6.5
-     */
-    pic_area_in_ctbs     = sps->ctb_width    * sps->ctb_height;
-    pic_area_in_min_cbs  = sps->min_cb_width * sps->min_cb_height;
-    pic_area_in_min_tbs  = sps->min_tb_width * sps->min_tb_height;
-
-    pps->ctb_addr_rs_to_ts = mpp_malloc(RK_S32, pic_area_in_ctbs);
-    pps->ctb_addr_ts_to_rs = mpp_malloc(RK_S32, pic_area_in_ctbs);
-    pps->tile_id           = mpp_malloc(RK_S32, pic_area_in_ctbs );
-    pps->min_cb_addr_zs    = mpp_malloc(RK_S32, pic_area_in_min_cbs);
-    pps->min_tb_addr_zs    = mpp_malloc(RK_S32, pic_area_in_min_tbs);
-    if (!pps->ctb_addr_rs_to_ts || !pps->ctb_addr_ts_to_rs ||
-        !pps->tile_id || !pps->min_cb_addr_zs || !pps->min_tb_addr_zs) {
-        ret = MPP_ERR_NOMEM;
-        goto err;
-    }
-
-    for (ctb_addr_rs = 0; ctb_addr_rs < pic_area_in_ctbs; ctb_addr_rs++) {
-        RK_U32 tb_x   = ctb_addr_rs % sps->ctb_width;
-        RK_U32 tb_y   = ctb_addr_rs / sps->ctb_width;
-        RK_S32 tile_x = 0;
-        RK_S32 tile_y = 0;
-        int val    = 0;
-
-        for (i = 0; i < pps->num_tile_columns; i++) {
-            if (tb_x < pps->col_bd[i + 1]) {
-                tile_x = i;
-                break;
-            }
-        }
-
-        for (i = 0; i < pps->num_tile_rows; i++) {
-            if (tb_y < pps->row_bd[i + 1]) {
-                tile_y = i;
-                break;
-            }
-        }
-
-        for (i = 0; i < tile_x; i++)
-            val += pps->row_height[tile_y] * pps->column_width[i];
-        for (i = 0; i < tile_y; i++)
-            val += sps->ctb_width * pps->row_height[i];
-
-        val += (tb_y - pps->row_bd[tile_y]) * pps->column_width[tile_x] +
-               tb_x - pps->col_bd[tile_x];
-
-        pps->ctb_addr_rs_to_ts[ctb_addr_rs] = val;
-        pps->ctb_addr_ts_to_rs[val]         = ctb_addr_rs;
-    }
-
-    for (j = 0, tile_id = 0; j < pps->num_tile_rows; j++)
-        for (i = 0; i < pps->num_tile_columns; i++, tile_id++)
-            for (y = pps->row_bd[j]; (RK_U32)y < pps->row_bd[j + 1]; y++)
-                for (x = pps->col_bd[i]; (RK_U32)x < pps->col_bd[i + 1]; x++)
-                    pps->tile_id[pps->ctb_addr_rs_to_ts[y * sps->ctb_width + x]] = tile_id;
-
-    pps->tile_pos_rs = mpp_malloc(RK_S32, tile_id);
-    if (!pps->tile_pos_rs) {
-        ret = MPP_ERR_NOMEM;
-        goto err;
-    }
-
-    for (j = 0; j < pps->num_tile_rows; j++)
-        for (i = 0; i < pps->num_tile_columns; i++)
-            pps->tile_pos_rs[j * pps->num_tile_columns + i] = pps->row_bd[j] * sps->ctb_width + pps->col_bd[i];
 
     if (s->pps_list[pps_id] != NULL) {
         mpp_hevc_pps_free(s->pps_list[pps_id]);

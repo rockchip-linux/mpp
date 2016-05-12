@@ -171,24 +171,6 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
     return 0;
 }
 
-static int init_slice_rpl(HEVCContext *s)
-{
-    HEVCFrame *frame = s->ref;
-    RK_S32 ctb_count    = frame->ctb_count;
-    RK_S32 ctb_addr_ts  = s->pps->ctb_addr_rs_to_ts[s->sh.slice_segment_addr];
-    RK_S32 i;
-
-    if (s->slice_idx >= s->nb_nals)
-        return  MPP_ERR_STREAM;
-
-    for (i = ctb_addr_ts; i < ctb_count; i++)
-        frame->rpl_tab[i] = (RefPicListTab *)frame->rpl_buf + s->slice_idx;
-
-    frame->refPicList = (RefPicList *)frame->rpl_tab[ctb_addr_ts];
-
-    return 0;
-}
-
 static HEVCFrame *find_ref_idx(HEVCContext *s, int poc)
 {
     RK_U32 i;
@@ -215,77 +197,7 @@ static HEVCFrame *find_ref_idx(HEVCContext *s, int poc)
     return NULL;
 }
 
-int mpp_hevc_slice_rpl(HEVCContext *s)
-{
-    RK_U8 list_idx;
-    RK_U32 i;
-    RK_S32 j, ret;
-    RefPicList *rpl = NULL;
-    RK_S32 cand_lists[3];
 
-    SliceHeader *sh = &s->sh;
-    RK_U8 nb_list = sh->slice_type == B_SLICE ? 2 : 1;
-
-    ret = init_slice_rpl(s);
-    if (ret < 0)
-        return ret;
-
-    if (!(s->rps[ST_CURR_BEF].nb_refs + s->rps[ST_CURR_AFT].nb_refs +
-          s->rps[LT_CURR].nb_refs)) {
-        mpp_err( "Zero refs in the frame RPS.\n");
-        return  MPP_ERR_STREAM;
-    }
-
-    for (list_idx = 0; list_idx < nb_list; list_idx++) {
-        RefPicList rpl_tmp;
-        memset(&rpl_tmp, 0, sizeof(rpl_tmp));
-        rpl = &s->ref->refPicList[list_idx];
-
-        /* The order of the elements is
-         * ST_CURR_BEF - ST_CURR_AFT - LT_CURR for the L0 and
-         * ST_CURR_AFT - ST_CURR_BEF - LT_CURR for the L1 */
-        cand_lists[0] = list_idx ? ST_CURR_AFT : ST_CURR_BEF;
-        cand_lists[1] = list_idx ? ST_CURR_BEF : ST_CURR_AFT;
-        cand_lists[2] = LT_CURR;
-        /* concatenate the candidate lists for the current frame */
-        while ((RK_U32)rpl_tmp.nb_refs < sh->nb_refs[list_idx]) {
-            for (i = 0; i < MPP_ARRAY_ELEMS(cand_lists); i++) {
-                RefPicList *rps = &s->rps[cand_lists[i]];
-                for (j = 0; j < rps->nb_refs && rpl_tmp.nb_refs < MAX_REFS; j++) {
-                    rpl_tmp.list[rpl_tmp.nb_refs]       = rps->list[j];
-                    rpl_tmp.ref[rpl_tmp.nb_refs]        = rps->ref[j];
-                    rpl_tmp.isLongTerm[rpl_tmp.nb_refs] = i == 2;
-                    rpl_tmp.nb_refs++;
-                }
-            }
-        }
-
-        /* reorder the references if necessary */
-        if (sh->rpl_modification_flag[list_idx]) {
-            for (i = 0; i < sh->nb_refs[list_idx]; i++) {
-                int idx = sh->list_entry_lx[list_idx][i];
-
-                if (!s->decoder_id && idx >= rpl_tmp.nb_refs) {
-                    mpp_err( "Invalid reference index.\n");
-                    return  MPP_ERR_STREAM;
-                }
-
-                rpl->list[i]       = rpl_tmp.list[idx];
-                rpl->ref[i]        = rpl_tmp.ref[idx];
-                rpl->isLongTerm[i] = rpl_tmp.isLongTerm[idx];
-                rpl->nb_refs++;
-            }
-        } else {
-            memcpy(rpl, &rpl_tmp, sizeof(*rpl));
-            rpl->nb_refs = MPP_MIN((RK_U32)rpl->nb_refs, sh->nb_refs[list_idx]);
-        }
-
-        if (sh->collocated_list == list_idx &&
-            sh->collocated_ref_idx < (RK_U32)rpl->nb_refs)
-            s->ref->collocated_ref = rpl->ref[sh->collocated_ref_idx];
-    }
-    return 0;
-}
 
 static void mark_ref(HEVCFrame *frame, int flag)
 {
