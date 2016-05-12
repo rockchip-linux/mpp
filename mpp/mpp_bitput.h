@@ -23,30 +23,23 @@
 #include "mpp_common.h"
 #include "mpp_err.h"
 
+
 typedef struct bitput_ctx_t {
-    // Pointer to the start of put address
-    RK_U64 *bit_buf;
-
-    // Pointer to current wite address offset (8 Byte as uint)
-    RK_S32 p_uint_index;
-
-    // Pointer to bit alreay write in uint
-    RK_S32 p_bit_offset;
-
-    // total bit have write
-    RK_S32 p_bit_len;
-
-    // total len of the region to write
-    RK_S32 total_len;
+    RK_U32          buflen;         //!< max buf length, 64bit uint
+    RK_U32          index;           //!< current uint position
+    RK_U64          *pbuf;          //!< outpacket data
+    RK_U64          bvalue;         //!< buffer value, 64 bit
+    RK_U8           bitpos;         //!< bit pos in 64bit
+    RK_U32          size;           //!< data size,except header
 } BitputCtx_t;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
 RK_S32 mpp_set_bitput_ctx(BitputCtx_t *bp, RK_U64 *data, RK_U32 len);
-void mpp_put_bits(BitputCtx_t *bp, RK_U64 data, RK_S32 size);
-void mpp_align(BitputCtx_t *bp, RK_S32 align_width, int flag);
+void mpp_put_bits(BitputCtx_t *bp, RK_U64 invalue, RK_S32 lbits);
+void mpp_align(BitputCtx_t *bp, RK_S32 align_bits, int flag);
 #ifdef  __cplusplus
 }
 #endif
-
 #endif
