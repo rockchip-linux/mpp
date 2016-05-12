@@ -364,7 +364,6 @@ RK_S32 VPUMemFlush(VPUMemLinear_t *p);
 RK_S32 VPUMemClean(VPUMemLinear_t *p);
 RK_S32 VPUMemInvalidate(VPUMemLinear_t *p);
 RK_S32 VPUMemGetFD(VPUMemLinear_t *p);
-RK_S32 vpu_mem_judge_used_heaps_type();
 
 
 /*
