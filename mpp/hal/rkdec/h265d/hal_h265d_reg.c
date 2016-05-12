@@ -71,6 +71,8 @@ typedef struct h265d_reg_context {
     RK_U32 fast_mode;
     IOInterruptCB int_cb;
     RK_U32 fast_mode_err_found;
+    void *scaling_rk;
+    void *scaling_qm;
 } h265d_reg_context_t;
 
 typedef struct ScalingList {
@@ -401,6 +403,18 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 
+    reg_cxt->scaling_qm = mpp_malloc(DXVA_Qmatrix_HEVC, 1);
+    if (reg_cxt->scaling_qm == NULL) {
+        mpp_err("scaling_org alloc fail");
+        return MPP_ERR_MALLOC;
+
+    }
+
+    reg_cxt->scaling_rk = mpp_malloc(scalingFactor_t, 1);
+    if (reg_cxt->scaling_rk == NULL) {
+        mpp_err("scaling_rk alloc fail");
+        return MPP_ERR_MALLOC;
+    }
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit
 #ifdef ANDROID
@@ -471,6 +485,14 @@ MPP_RET hal_h265d_deinit(void *hal)
     if (MPP_OK != ret) {
         mpp_err("h265d cabac_table free buffer failed\n");
         return ret;
+    }
+
+    if (reg_cxt->scaling_qm) {
+        mpp_free(reg_cxt->scaling_qm);
+    }
+
+    if (reg_cxt->scaling_rk) {
+        mpp_free(reg_cxt->scaling_rk);
     }
 
     hal_h265d_release_res(hal);
@@ -1025,32 +1047,36 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static void hal_h265d_output_scalinglist_packet(void *ptr, void *dxva)
+static void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
 {
     scalingList_t sl;
     RK_U32 i, j, pos;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
-    memset(&sl, 0, sizeof(scalingList_t));
-    for (i = 0; i < 6; i++) {
-        for (j = 0; j < 16; j++) {
-            pos = 4 * hal_hevc_diag_scan4x4_y[j] + hal_hevc_diag_scan4x4_x[j];
-            sl.sl[0][i][pos] = dxva_cxt->qm.ucScalingLists0[i][j];
-        }
+    h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
+    if (memcmp((void*)&dxva_cxt->qm, reg_cxt->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
+        memset(&sl, 0, sizeof(scalingList_t));
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 16; j++) {
+                pos = 4 * hal_hevc_diag_scan4x4_y[j] + hal_hevc_diag_scan4x4_x[j];
+                sl.sl[0][i][pos] = dxva_cxt->qm.ucScalingLists0[i][j];
+            }
 
-        for (j = 0; j < 64; j++) {
-            pos = 8 * hal_hevc_diag_scan8x8_y[j] + hal_hevc_diag_scan8x8_x[j];
-            sl.sl[1][i][pos] =  dxva_cxt->qm.ucScalingLists1[i][j];
-            sl.sl[2][i][pos] =  dxva_cxt->qm.ucScalingLists2[i][j];
+            for (j = 0; j < 64; j++) {
+                pos = 8 * hal_hevc_diag_scan8x8_y[j] + hal_hevc_diag_scan8x8_x[j];
+                sl.sl[1][i][pos] =  dxva_cxt->qm.ucScalingLists1[i][j];
+                sl.sl[2][i][pos] =  dxva_cxt->qm.ucScalingLists2[i][j];
 
+                if (i < 2)
+                    sl.sl[3][i][pos] =  dxva_cxt->qm.ucScalingLists3[i][j];
+            }
+
+            sl.sl_dc[0][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID2[i];
             if (i < 2)
-                sl.sl[3][i][pos] =  dxva_cxt->qm.ucScalingLists3[i][j];
+                sl.sl_dc[1][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
         }
-
-        sl.sl_dc[0][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID2[i];
-        if (i < 2)
-            sl.sl_dc[1][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
+        hal_record_scaling_list((scalingFactor_t *)reg_cxt->scaling_rk, &sl);
     }
-    hal_record_scaling_list((scalingFactor_t *)ptr, &sl);
+    memcpy(ptr, reg_cxt->scaling_rk, sizeof(scalingFactor_t));
 }
 
 
@@ -1085,6 +1111,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
 
     for (i = 0; i < 10; i++) pps_packet[i] = 0;
+
     mpp_set_bitput_ctx(&bp, pps_packet, fifo_len);
 
     // SPS
@@ -1165,7 +1192,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.deblocking_filter_override_enabled_flag     , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.pps_deblocking_filter_disabled_flag         , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.pps_beta_offset_div2                        , 4);
-    mpp_put_bits(&bp, dxva_cxt->pp.pps_tc_offset_div2                           , 4);
+    mpp_put_bits(&bp, dxva_cxt->pp.pps_tc_offset_div2                          , 4);
     mpp_put_bits(&bp, dxva_cxt->pp.lists_modification_present_flag             , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.log2_parallel_merge_level_minus2 + 2        , 3);
     mpp_put_bits(&bp, dxva_cxt->pp.slice_segment_header_extension_present_flag , 1);
@@ -1246,7 +1273,6 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     }
 
     {
-        RK_U8 *p0, *p1;
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->scaling_list_data);
         if (dxva_cxt->pp.scaling_list_data_present_flag) {
             addr = (dxva_cxt->pp.pps_id + 16) * 1360;
@@ -1256,7 +1282,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
             addr = 80 * 1360;
         }
 
-        hal_h265d_output_scalinglist_packet(ptr_scaling + addr, dxva);
+        hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
 
 #ifdef ANDROID
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
@@ -1267,15 +1293,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
             addr += fd;
         }
 #endif
-        mpp_put_bits(&bp, 0, 32);
-
-        p0 = (RK_U8*)&pps_packet[9];
-        p1 = (RK_U8*)&addr;
-        p0[2] = p1[0];
-        p0[3] = p1[1];
-        p0[4] = p1[2];
-        p0[5] = p1[3];
-
+        mpp_put_bits(&bp, addr, 32);
         mpp_align(&bp, 64, 0xf);
     }
 
@@ -1579,7 +1597,6 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         reg_cxt->g_buf[index].use_flag = 0;
     }
 #endif
-
     return ret;
 }
 
