@@ -39,7 +39,6 @@ typedef struct VPUReq {
 } VPUReq_t;
 
 static int vpu_service_status = -1;
-static int vpu_service_iommu_status = -1;
 #define VPU_SERVICE_TEST    \
     do { \
         if (vpu_service_status < 0) { \
@@ -152,79 +151,6 @@ RK_U32 VPUCheckSupportWidth()
         fd = -1;
     }
     return hwCfg.maxDecPicWidth;
-}
-
-#include <dirent.h>
-
-static const char *search_name = NULL;
-
-static int _compare_name(const struct dirent *dir)
-{
-    if (search_name && strstr(dir->d_name, search_name))
-        return 1;
-
-    return 0;
-}
-
-/*
- * directory search function:
- * search directory with dir_name on path.
- * if found match dir append name on path and return
- *
- * return 0 for failure
- * return positive value for length of new path
- */
-static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
-{
-    struct dirent **dir;
-    RK_S32 path_len = strnlen(path, max_length);
-    RK_S32 new_path_len = 0;
-    RK_S32 n;
-
-    search_name = dir_name;
-    n = scandir(path, &dir, _compare_name, alphasort);
-    if (n < 0) {
-        mpp_err("scan %s for %s failed\n", path, dir_name);
-    } else {
-        while (n > 1) {
-            free(dir[--n]);
-        }
-
-        new_path_len = path_len;
-        new_path_len += snprintf(path + path_len, max_length - path_len - 1,
-                                 "/%s", dir[0]->d_name);
-
-        free(dir[0]);
-        free(dir);
-    }
-    search_name = NULL;
-    return new_path_len;
-}
-
-static RK_S32 check_sysfs_iommu()
-{
-    char path[256];
-
-    snprintf(path, sizeof(path), "/proc/device-tree");
-    if (find_dir_in_path(path, "vpu_service", sizeof(path))) {
-        if (find_dir_in_path(path, "iommu_enabled", sizeof(path))) {
-            FILE *iommu_fp = fopen(path, "rb");
-
-            if (iommu_fp) {
-                RK_U32 iommu_enabled = 0;
-                fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
-                mpp_log("vpu_service iommu_enabled %d\n", (iommu_enabled > 0));
-                fclose(iommu_fp);
-                return (iommu_enabled) ? (1) : (0);
-            }
-        } else {
-            mpp_err("can not find dts for iommu_enabled\n");
-        }
-    } else {
-        mpp_err("can not find dts for vpu_service\n");
-    }
-
-    return -1;
 }
 
 RK_S32 VPUClientGetIOMMUStatus()

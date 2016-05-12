@@ -276,18 +276,3 @@ RK_S32 VPUMemGetFD(VPUMemLinear_t *p)
     return fd;
 }
 
-RK_S32 vpu_mem_judge_used_heaps_type()
-{
-    // TODO, use property_get
-#if 0//def ANDROID
-    if (!VPUClientGetIOMMUStatus() > 0) {
-        return ION_HEAP(ION_CMA_HEAP_ID);
-    } else {
-        ALOGV("USE ION_SYSTEM_HEAP");
-        return ION_HEAP(ION_VMALLOC_HEAP_ID);
-    }
-#endif
-
-    return 0;
-}
-
