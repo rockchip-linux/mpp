@@ -1044,8 +1044,10 @@ typedef enum slice_state_type {
 
 typedef struct h264_err_ctx_t {
 	RK_U32    un_spt_flag;
-    RK_U32    dpb_err_flag;
+	RK_U32    cur_err_flag;    //!< current decoded picture error
     RK_U32    used_ref_flag;
+	RK_U32    dpb_err_flag;    //!< dpb storage had error
+
     RK_U32    i_slice_no;
     RK_S32    first_iframe_poc;
 } H264dErrCtx_t;

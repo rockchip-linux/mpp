@@ -909,6 +909,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     //!< ==== loop ====
 	p_Dec->next_state = SliceSTATE_ResetSlice;
     p_curdata = p_Dec->p_Cur->strm.head_buf;
+
     while (while_loop_flag) {
         switch (p_Dec->next_state) {
         case SliceSTATE_ResetSlice:
@@ -980,10 +981,6 @@ __RETURN:
     return ret = MPP_OK;
 __FAILED:
     p_Dec->nalu_ret = NALU_NULL;
-    //p_Dec->is_first_frame = 1;
-    //p_Dec->is_new_frame   = 0;
-    //p_Dec->is_parser_end  = 0;
-    p_Dec->next_state = SliceSTATE_ResetSlice;
     p_Dec->dxva_ctx->slice_count = 0;
     p_Dec->dxva_ctx->strm_offset = 0;
     p_Dec->p_Vid->iNumOfSlicesDecoded = 0;
