@@ -639,23 +639,9 @@ static void free_dpb_mark(H264_DecCtx_t *p_Dec, H264_StorePic_t *p, H264_DpbMark
     } else if (structure == BOTTOM_FIELD) {
         p_mark->bot_used = (p_mark->bot_used > 0) ? (p_mark->bot_used - 1) : 0;
     }
-    H264D_DBG(H264D_DBG_DPB_FREE, "[free_dbp_mark] top_used=%d, bot_used=%d, out_flag=%d, is_output=%d, slot_idx=%d \n", 
-		p_mark->top_used, p_mark->bot_used, p_mark->out_flag, p->is_output, p_mark->slot_idx);
     if (p_mark->top_used == 0 && p_mark->bot_used == 0
         && p_mark->out_flag == 0 && (p_mark->slot_idx >= 0)) {
         mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
-        {
-            MppFrame frame = NULL;
-            mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &frame);
-            if (frame) {
-                MppBuffer mbuffer = NULL;
-                RK_U64 pts = frame ? mpp_frame_get_pts(frame) : 0;
-                RK_U32 poc = frame ? mpp_frame_get_poc(frame) : 0;
-                mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_BUFFER, &mbuffer);
-                H264D_DBG(H264D_DBG_DPB_FREE, "[free_dbp_mark] g_frame_no=%d, structure=%d, mark_idx=%d, slot_idx=%d(%p), poc=%d, pts=%lld, %p \n",
-                          p_Dec->p_Vid->g_framecnt, structure, p_mark->mark_idx, p_mark->slot_idx, mbuffer, poc, pts, frame);
-            }
-        }
 		reset_dpb_mark(p_mark);
     }
 }
@@ -676,9 +662,6 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
 	p_Dec = p_Dpb->p_Vid->p_Dec;
 	INP_CHECK(ret, !p_Dec);
     runlog = p_Dec->logctx.parr[RUN_PARSE];
-
-    H264D_DBG(H264D_DBG_DPB_FREE, "[FREE_MALLOC] is_used=%d, used_size=%d,frame(%p), top(%p), bot(%p)",
-              fs->is_used, p_Dpb->used_size, fs->frame, fs->top_field, fs->bottom_field);
 
     switch (fs->is_used) {
     case 3:
@@ -859,9 +842,6 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 	H264dErrCtx_t *p_err = &p_Vid->p_Dec->errctx;
 
     p_mark = p->mem_mark;
-	H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] mem_type=%d, struct=%d, poc=%d, top_used=%d, bot_used=%d, slot_idx=%d, mark_idx=%d, out_flag=%d, is_output=%d", 
-		p->mem_malloc_type, p->structure, p->poc, p_mark->top_used, p_mark->bot_used, p_mark->slot_idx, p_mark->mark_idx, p_mark->out_flag, p->is_output);
-
     if ((p->mem_malloc_type == Mem_Malloc
          || p->mem_malloc_type == Mem_TopOnly
          || p->mem_malloc_type == Mem_BotOnly)
@@ -880,13 +860,19 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
 
         //!< discard unpaired
         if (p->mem_malloc_type == Mem_TopOnly || p->mem_malloc_type == Mem_BotOnly) {
-            mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] discard, malloc_type unpaired, type=%d", p->mem_malloc_type);
+			if (p_err->used_ref_flag) {
+				mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+			} else {
+				mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+			}
         }
 		//!<  discard less than first i frame poc 
 		if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
-			mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-			H264D_DBG(H264D_DBG_DPB_FREE, "[write_picture] discard, cur_poc=%d, first_iframe_poc=%d", p->poc, p_err->first_iframe_poc);
+			if (p_err->used_ref_flag) {
+				mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+			} else {
+				mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+			}
 		}
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
         if (p_Vid->p_Dec->mvc_valid && !p_Vid->p_Inp->mvc_disable) {
@@ -896,17 +882,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
             p_mark->out_flag = 0;
         }
-		if (rkv_h264d_parse_debug & H264D_DBG_DPB_DISPLAY)	
-		{
-			MppBuffer mbuffer = NULL;
-			mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_BUFFER, &mbuffer);
-			H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB_dispaly] layer_id=%d, pic_num=%d, poc=%d, slice_type=%d(idr=%d), slot_idx=%d(%p), pts=%lld, g_framecnt=%d \n",
-				p->layer_id, p->pic_num, p->poc, p->slice_type, p->idr_flag, p_mark->slot_idx, mbuffer, mpp_frame_get_pts(mframe), p_Vid->g_framecnt);
-		}
-
-    }
-
-	
+    }	
 }
 
 static MPP_RET write_unpaired_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
@@ -1598,7 +1574,6 @@ __FAILED:
 void free_storable_picture(H264_DecCtx_t *p_Dec, H264_StorePic_t *p)
 {
     if (p) {
-        H264D_DBG(H264D_DBG_DPB_FREE, "[free_dbp_mark] type=%d, p->is_output=%d", p->mem_malloc_type, p->is_output);
         if (p->mem_malloc_type == Mem_Malloc
             || p->mem_malloc_type == Mem_Clone) {
             free_dpb_mark(p_Dec, p, p->mem_mark, p->structure);

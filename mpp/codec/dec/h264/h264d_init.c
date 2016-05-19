@@ -480,15 +480,19 @@ __FAILED:
 static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t *dec_pic, H264_SLICE_t *currSlice)
 {
 	MPP_RET ret = MPP_ERR_UNKNOW;
-
 	if (p_last && dec_pic && (dec_pic->slice_type != I_SLICE)) {
+		RK_U32 error_flag = 0;
+		RK_S32 wrap_frame_num = 0;
+		if (p_last->used_for_reference)	{
+			wrap_frame_num = (p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num;
+		} else {
+			wrap_frame_num = p_last->frame_num;
+		}		
+		error_flag = (wrap_frame_num != dec_pic->frame_num) ? 1 : 0;
+		currSlice->p_Dec->errctx.cur_err_flag |= error_flag ? VPU_FRAME_ERR_UNKNOW : 0;
+
 		H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d",
 			p_last->slice_type, dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, p_last->poc, dec_pic->poc);
-		if (!(p_last->frame_num == dec_pic->frame_num
-			|| ((p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num) == dec_pic->frame_num))
-		{
-			currSlice->p_Dec->errctx.cur_err_flag |= VPU_FRAME_ERR_UNKNOW;
-		}
 	}
 	return ret = MPP_OK;
 }
@@ -1702,11 +1706,12 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
 {
     void *refpic = NULL;
     RK_U32 i = 0, j = 0, k = 0;
-    RK_S32  poc = 0, TOP_POC = 0, BOT_POC = 0;
-    RK_S32  layer_id = 0, voidx = 0, is_used = 0, near_dpb_idx = 0;
+	RK_S32 poc = 0, TOP_POC = 0, BOT_POC = 0;
+	RK_S32 min_poc = 0, max_poc = 0;
+    RK_S32 layer_id = 0, voidx = 0, is_used = 0, near_dpb_idx = 0;
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
-    memset(p_Dec->refpic_info_p, 0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
+    memset(p_Dec->refpic_info_p,    0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
     memset(p_Dec->refpic_info_b[0], 0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
     memset(p_Dec->refpic_info_b[1], 0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
 
@@ -1757,6 +1762,7 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
             } else {
                 ASSERT(near_dpb_idx >= 0);
                 p_Dec->refpic_info_p[j].dpb_idx = near_dpb_idx;
+				p_Dec->errctx.cur_err_flag |= VPU_FRAME_ERR_UNKNOW;
             }
             if (currSlice->listP[0][j]->structure == BOTTOM_FIELD) {
                 p_Dec->refpic_info_p[j].bottom_flag = 1;
@@ -1772,9 +1778,8 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
     }
     //!<------  set listB -------
     for (k = 0; k < 2; k++) {
-		RK_S32 min_poc =  0xFFFF;
-		RK_S32 max_poc = -0xFFFF;
-		RK_S32 cur_poc = p_Dec->p_Vid->dec_pic->poc;
+		min_poc =  0xFFFF;
+		max_poc = -0xFFFF;
         near_dpb_idx = 0;
         for (j = 0; j < 32; j++) {
             poc = 0;
@@ -1821,6 +1826,7 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
                 } else {
                     ASSERT(near_dpb_idx >= 0);
                     p_Dec->refpic_info_b[k][j].dpb_idx = near_dpb_idx;
+					p_Dec->errctx.cur_err_flag |= VPU_FRAME_ERR_UNKNOW;
                 }
                 if (currSlice->listB[k][j]->structure == BOTTOM_FIELD) {
                     p_Dec->refpic_info_b[k][j].bottom_flag = 1;
@@ -1834,20 +1840,25 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
                 p_Dec->refpic_info_b[k][j].bottom_flag = 0;
             }
         }
-		H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_LIST_B] min_poc=%d, max_poc=%d, dec_poc=%d", min_poc, max_poc, cur_poc);
+
+    }
+	//!< check dpb list poc
+	{
+		RK_S32 cur_poc = p_Dec->p_Vid->dec_pic->poc;
 		if ((currSlice->slice_type % 5) != I_SLICE
 			&& (currSlice->slice_type % 5) != SI_SLICE) {
 			if (cur_poc < min_poc) {
 				p_Dec->errctx.cur_err_flag |= VPU_FRAME_ERR_UNKNOW;
+				H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] min_poc=%d, dec_poc=%d", min_poc, cur_poc);
 			}
 		}
 		if (currSlice->slice_type % 5 == B_SLICE) {
 			if (cur_poc > max_poc) {
 				p_Dec->errctx.cur_err_flag |= VPU_FRAME_ERR_UNKNOW;
+				H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] max_poc=%d, dec_poc=%d", max_poc, cur_poc);
 			}
 		}
-    }
-	
+	}
 __RETURN:
     return MPP_OK;
 }
@@ -1985,7 +1996,6 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
 	if ((p_err->i_slice_no < 2)
 		&& (!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
 		p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc 
-		H264D_DBG(H264D_DBG_DPB_FREE, "[first_iframe_poc] i_slice_no=%d, first_iframe_poc=%d", p_err->i_slice_no, p_err->first_iframe_poc);
 	}	
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {

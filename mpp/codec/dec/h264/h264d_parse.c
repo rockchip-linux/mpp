@@ -451,7 +451,7 @@ __FAILED:
     return ret;
 }
 
-#define  MAX_TS_FILE_SIZE  (100*1024*1024)
+#define  MAX_ES_FILE_SIZE  (100*1024*1024)
 static RK_U32 global_file_fid = 0;
 static RK_U64 global_flie_size = 0;
 /*!
@@ -490,7 +490,7 @@ MPP_RET fwrite_stream_to_file(H264dInputCtx_t *p_Inp, RK_U8 *pdata, RK_U32 len)
 			fflush(p_Inp->fp);
 		}
 		global_flie_size += len;
-		if (global_flie_size > MAX_TS_FILE_SIZE) {
+		if (global_flie_size > MAX_ES_FILE_SIZE) {
 			FCLOSE(p_Inp->fp);
 			global_file_fid = 1 - global_file_fid;
 			global_flie_size = 0;
@@ -958,7 +958,12 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         case SliceSTATE_GetSliceData:
             FUN_CHECK(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
-            p_Dec->next_state = SliceSTATE_ResetSlice;
+			//if (p_Dec->is_parser_end) {
+			//	p_Dec->next_state = SliceSTATE_RegisterOneFrame;
+			//} else 
+			{
+				p_Dec->next_state = SliceSTATE_ResetSlice;
+			}
             H264D_DBG(H264D_DBG_LOOP_STATE, "SliceSTATE_GetSliceData");
             break;
         case SliceSTATE_RegisterOneFrame:

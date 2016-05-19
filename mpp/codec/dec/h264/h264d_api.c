@@ -565,7 +565,6 @@ MPP_RET  h264d_flush(void *decoder)
     p_Dec->p_Inp->task_eos = 1;
     mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
 __RETURN:
-    H264D_DBG(H264D_DBG_DPB_DISPLAY, "[DPB_display] flush end, task_eos=%d, last_slot_idx=%d", p_Dec->p_Inp->task_eos, p_Dec->last_frame_slot_idx);
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
 __FAILED:
