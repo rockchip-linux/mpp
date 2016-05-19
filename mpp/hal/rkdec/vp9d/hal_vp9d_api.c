@@ -229,6 +229,14 @@ MPP_RET hal_vp9d_deinit(void *hal)
             return ret;
         }
     }
+
+    if (reg_cxt->group) {
+        ret = mpp_buffer_group_put(reg_cxt->group);
+        if (MPP_OK != ret) {
+            mpp_err("vp9d group free buffer failed\n");
+            return ret;
+        }
+    }
     return ret = MPP_OK;
 }
 
