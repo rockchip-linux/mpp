@@ -34,6 +34,11 @@
 #include "pthread.h"
 #pragma comment(lib, "pthreadVC2.lib")
 
+/*
+ * add pthread_setname_np for windows
+ */
+int pthread_setname_np(pthread_t thread, const char *name);
+
 #else
 
 #include <unistd.h>

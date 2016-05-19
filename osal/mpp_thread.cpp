@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "mpp_log.h"
+#include "mpp_common.h"
 #include "mpp_thread.h"
 
 #define MPP_THREAD_DBG_FUNCTION     (0x00000001)
@@ -85,4 +86,14 @@ void MppThread::stop()
         mStatus = MPP_THREAD_UNINITED;
     }
 }
+
+#if defined(_WIN32) && !defined(__MINGW32CE__)
+/*
+ * add pthread_setname_np for windows
+ */
+int pthread_setname_np(pthread_t thread, const char *name)
+{
+    return 0;
+}
+#endif
 
