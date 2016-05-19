@@ -28,12 +28,6 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
-#ifndef _MSC_VER
-#include <sys/prctl.h>
-#endif // !_MSC_VER
-
-
-
 
 #include "vpu_api.h"
 
@@ -550,9 +544,7 @@ void *mpp_dec_parser_thread(void *data)
     MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     MppBufSlots packet_slots = dec->packet_slots;
-#ifndef _MSC_VER
-    prctl(PR_SET_NAME, (unsigned long)"rkv_parser", 0, 0, 0);
-#endif
+
     /*
      * parser thread need to wait at cases below:
      * 1. no task slot for output
@@ -608,9 +600,7 @@ void *mpp_dec_hal_thread(void *data)
     MppBuffer buffer    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
-#ifndef _MSC_VER
-    prctl(PR_SET_NAME, (unsigned long)"rkv_hal", 0, 0, 0);
-#endif
+
     /*
      * hal thread need to wait at cases below:
      * 1. no task slot for work
