@@ -850,7 +850,6 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     MppBuffer framebuf = NULL;
     mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_BUFFER, &framebuf);
 
-#if 1
     ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4, &cmd, &len);
 
     for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
@@ -860,7 +859,6 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
         }
         p += 4;
     }
-#endif
 
     hal_vp9d_update_counts(hal, task->dec.syntax.data);
     reg_cxt->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;
@@ -889,7 +887,6 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     if (reg_cxt->int_cb.callBack) {
         reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, (void*)&pic_param->counts);
     }
-    usleep(3000);
 #else
     (void)hal;
 #endif

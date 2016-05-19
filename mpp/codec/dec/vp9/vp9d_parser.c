@@ -1650,7 +1650,28 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
         mpp_buf_slot_set_flag(s->slots,  s->frames[CUR_FRAME].slot_index, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(s->slots, s->frames[CUR_FRAME].slot_index, QUEUE_DISPLAY);
     }
-    // vp9_parser_update(ctx,NULL);
+    vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = %d s->frames[CUR_FRAME] = %d", s->refreshrefmask, s->frames[CUR_FRAME].slot_index);
+    for (i = 0; i < 3; i++) {
+       if (s->refs[s->refidx[i]].ref != NULL) {
+           vp9d_dbg(VP9D_DBG_REF, "ref buf select %d", s->refs[s->refidx[i]].slot_index);
+       }
+    }
+    // ref frame setup
+    for (i = 0; i < 8; i++) {
+       vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = 0x%x", s->refreshrefmask);
+       res = 0;
+       if (s->refreshrefmask & (1 << i)) {
+           if (s->refs[i].ref)
+               vp9_unref_frame(s, &s->refs[i]);
+           vp9d_dbg(VP9D_DBG_REF, "update ref index in %d", i);
+           res = vp9_ref_frame(ctx, &s->refs[i], &s->frames[CUR_FRAME]);
+       }
+
+       if (s->refs[i].ref)
+           vp9d_dbg(VP9D_DBG_REF, "s->refs[%d] = %d", i, s->refs[i].slot_index);
+       if (res < 0)
+           return 0;
+    }
     return 0;
 }
 
@@ -1772,7 +1793,6 @@ static void inv_count_data(VP9Context *s)
 
 void vp9_parser_update(Vp9CodecContext *ctx, void *count_info)
 {
-    RK_S32 res, i;
     VP9Context *s = ctx->priv_data;
 
 #ifdef dump
@@ -1806,27 +1826,6 @@ void vp9_parser_update(Vp9CodecContext *ctx, void *count_info)
 
         }
     }
-    vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = %d s->frames[CUR_FRAME] = %d", s->refreshrefmask, s->frames[CUR_FRAME].slot_index);
-    for (i = 0; i < 3; i++) {
-        if (s->refs[s->refidx[i]].ref != NULL) {
-            vp9d_dbg(VP9D_DBG_REF, "ref buf select %d", s->refs[s->refidx[i]].slot_index);
-        }
-    }
-    // ref frame setup
-    for (i = 0; i < 8; i++) {
-        vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = 0x%x", s->refreshrefmask);
-        res = 0;
-        if (s->refreshrefmask & (1 << i)) {
-            if (s->refs[i].ref)
-                vp9_unref_frame(s, &s->refs[i]);
-            vp9d_dbg(VP9D_DBG_REF, "update ref index in %d", i);
-            res = vp9_ref_frame(ctx, &s->refs[i], &s->frames[CUR_FRAME]);
-        }
-
-        if (s->refs[i].ref)
-            vp9d_dbg(VP9D_DBG_REF, "s->refs[%d] = %d", i, s->refs[i].slot_index);
-        if (res < 0)
-            return;
-    }
+  
     return;
 }
