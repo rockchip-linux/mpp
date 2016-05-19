@@ -185,6 +185,15 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             mpp_buf_slot_reset(frame_slots, task_dec->output);
 
         }
+        if(task->status.task_parsed_rdy){
+            mpp_log("task no send to hal que must clr current frame hal status");
+            mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+            for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+                RK_S32 index = task_dec->refer[i];
+                if (index >= 0)
+                    mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
+            }
+        }
         if (dec->mpp_pkt_in) {
             mpp_packet_deinit(&dec->mpp_pkt_in);
             dec->mpp_pkt_in = NULL;
