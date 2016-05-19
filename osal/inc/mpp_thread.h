@@ -46,6 +46,8 @@
 
 #endif
 
+#define THREAD_NAME_LEN 16
+
 typedef void *(*MppThreadFunc)(void *);
 
 typedef enum {
@@ -189,7 +191,7 @@ typedef enum MppThreadSignal_e {
 class MppThread
 {
 public:
-    MppThread(MppThreadFunc func, void *ctx);
+    MppThread(MppThreadFunc func, void *ctx, const char *name = NULL);
     ~MppThread() {};
 
     MppThreadStatus get_status();
@@ -224,6 +226,7 @@ private:
 
     MppThreadStatus mStatus;
     MppThreadFunc   mFunction;
+    char            mName[THREAD_NAME_LEN];
     void            *mContext;
 
     MppThread();

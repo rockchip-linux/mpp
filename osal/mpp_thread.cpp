@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "mpp_thread"
 
+#include <string.h>
+
 #include "mpp_log.h"
 #include "mpp_thread.h"
 
@@ -25,11 +27,15 @@ static RK_U32 thread_debug = 0;
 
 #define thread_dbg(flag, fmt, ...)  _mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
 
-MppThread::MppThread(MppThreadFunc func, void *ctx)
+MppThread::MppThread(MppThreadFunc func, void *ctx, const char *name)
     : mStatus(MPP_THREAD_UNINITED),
       mFunction(func),
       mContext(ctx)
 {
+    if (name)
+        strncpy(mName, name, sizeof(mName));
+    else
+        snprintf(mName, sizeof(mName), "mpp_thread");
 }
 
 MppThreadStatus MppThread::get_status()
@@ -50,10 +56,14 @@ void MppThread::start()
     if (MPP_THREAD_UNINITED == mStatus) {
         // NOTE: set status here first to avoid unexpected loop quit racing condition
         mStatus = MPP_THREAD_RUNNING;
-        if (0 == pthread_create(&mThread, &attr, mFunction, mContext))
-            thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p create success\n",
-                       mFunction, mContext);
-        else
+        if (0 == pthread_create(&mThread, &attr, mFunction, mContext)) {
+            RK_S32 ret = pthread_setname_np(mThread, mName);
+            if (ret)
+                mpp_err("thread %p setname %s failed\n", mFunction, mName);
+
+            thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p create success\n",
+                       mName, mFunction, mContext);
+        } else
             mStatus = MPP_THREAD_UNINITED;
     }
     pthread_attr_destroy(&attr);
@@ -69,8 +79,8 @@ void MppThread::stop()
         unlock();
         void *dummy;
         pthread_join(mThread, &dummy);
-        thread_dbg(MPP_THREAD_DBG_FUNCTION, "mThread %p mContext %p destroy success\n",
-                   mFunction, mContext);
+        thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p destroy success\n",
+                   mName, mFunction, mContext);
 
         mStatus = MPP_THREAD_UNINITED;
     }
