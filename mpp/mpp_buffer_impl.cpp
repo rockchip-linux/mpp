@@ -117,17 +117,23 @@ static MppBufferGroupImpl *search_group_by_id_no_lock(struct list_head *list, RK
 
 MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
 {
+    MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
+
     mpp_alloctor_put(&group->allocator);
     list_del_init(&group->list_group);
     mpp_free(group);
     service.group_count--;
-    /* if only legacy group left dump the legacy group */
-    if (service.group_count == 1) {
-        MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
-        if (legacy->count) {
-            mpp_log("found legacy group has buffer remain, start dumping\n");
-            mpp_buffer_group_dump(legacy);
-            abort();
+
+    if (group == legacy) {
+        service.mLegacyGroup = NULL;
+    } else {
+        /* if only legacy group left dump the legacy group */
+        if (service.group_count == 1) {
+            if (legacy->count) {
+                mpp_log("found legacy group has buffer remain, start dumping\n");
+                mpp_buffer_group_dump(legacy);
+                //abort();
+            }
         }
     }
     return MPP_OK;
@@ -532,7 +538,7 @@ MppBufferService::~MppBufferService()
     if (mLegacyGroup)
         mpp_buffer_group_deinit(mLegacyGroup);
 
-    // then remove the reset group
+    // then remove the remaining group
     if (!list_empty(&mListGroup)) {
         MppBufferGroupImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
