@@ -84,10 +84,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mDec->mpp = this;
         mpp_dec_init(mDec, coding);
 
-        mThreadCodec = new MppThread(mpp_dec_parser_thread, this);
-        mpp_log("mThreadCodec = %p", mThreadCodec);
-        mThreadHal  = new MppThread(mpp_dec_hal_thread, this);
-        mpp_log("mThreadHal = %p", mThreadHal);
+        mThreadCodec = new MppThread(mpp_dec_parser_thread, this, "mpp_dec_parser");
+        mThreadHal  = new MppThread(mpp_dec_hal_thread, this, "mpp_dec_hal");
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
@@ -100,8 +98,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_enc_init(&mEnc, coding);
-        mThreadCodec = new MppThread(mpp_enc_control_thread, this);
-        mThreadHal  = new MppThread(mpp_enc_hal_thread, this);
+        mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
+        mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
         mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
