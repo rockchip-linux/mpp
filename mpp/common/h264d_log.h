@@ -38,8 +38,7 @@
 
 #define H264D_DBG_DPB_INFO          (0x00000100)   //!< size, 
 #define H264D_DBG_DPB_MALLIC        (0x00000200)   //!< malloc
-#define H264D_DBG_DPB_FREE          (0x00000400)   //!< free
-#define H264D_DBG_DPB_DISPLAY       (0x00000800)   //!< display
+
 
 #define H264D_DBG_DPB_REF_ERR       (0x00001000)
 #define H264D_DBG_SLOT_FLUSH        (0x00002000)   //!< dpb buffer slot remain
