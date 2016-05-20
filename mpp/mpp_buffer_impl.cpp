@@ -119,8 +119,12 @@ MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
 {
     MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
 
-    mpp_assert(group->count_unused == 0);
-    mpp_assert(group->count_used   == 0);
+    if (group->count_unused || group->count_used) {
+        mpp_err("mpp_buffer_group_deinit mismatch counter used %4d unused %4d found\n",
+            group->count_used, group->count_unused);
+        group->count_unused = 0;
+        group->count_used   = 0;
+    }
 
     mpp_alloctor_put(&group->allocator);
     list_del_init(&group->list_group);
