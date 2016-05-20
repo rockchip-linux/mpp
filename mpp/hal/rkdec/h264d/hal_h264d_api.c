@@ -204,7 +204,13 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
 
-    //!< choose hard mode
+	//!< choose hard mode
+#ifdef ANDROID
+	{
+		RK_S32 value = (!!access("/dev/rkvdec", F_OK));
+		cfg->device_id = value ? HAL_VDPU : HAL_RKVDEC;
+	}
+#endif
     switch (cfg->device_id) {
     case HAL_RKVDEC:
         p_api->init    = rkv_h264d_init;
