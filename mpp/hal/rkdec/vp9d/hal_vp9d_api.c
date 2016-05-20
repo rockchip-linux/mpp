@@ -868,7 +868,6 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
         p += 4;
     }
 
-    hal_vp9d_update_counts(hal, task->dec.syntax.data);
     reg_cxt->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;
     for (i = 0 ; i < 4; i ++) {
         reg_cxt->ls_info.last_ref_deltas[i] = pic_param->ref_deltas[i];
@@ -893,7 +892,10 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     vp9h_dbg(VP9H_DBG_PAR, "stVP9Segments.enabled = %d show_frame %d  width %d  height = %d last_intra_only = %d", pic_param->stVP9Segments.enabled,
              pic_param->show_frame, pic_param->width, pic_param->height, reg_cxt->ls_info.last_intra_only);
     if (reg_cxt->int_cb.callBack) {
-        reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, (void*)&pic_param->counts);
+        if (pic_param->refresh_frame_context && !pic_param->parallelmode) {
+            hal_vp9d_update_counts(hal, task->dec.syntax.data);
+            reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, (void*)&pic_param->counts);
+        }
     }
 #else
     (void)hal;
