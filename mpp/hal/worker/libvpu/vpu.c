@@ -52,15 +52,30 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     int ret;
     int fd;
 
-    if (type == VPU_DEC_RKV) {
-        fd = open("/dev/rkvdec", O_RDWR);
-        type = VPU_DEC;
-    } else if (type == VPU_DEC_HEVC) {
-        fd = open("/dev/hevc_service", O_RDWR);
-        type = VPU_DEC;
-    } else {
-        fd = open("/dev/vpu_service", O_RDWR);
+    switch (type) {
+        case VPU_DEC_RKV: {
+            fd = open("/dev/rkvdec", O_RDWR);
+            type = VPU_DEC;
+            break;
+        }
+        case VPU_DEC_HEVC: {
+            fd = open("/dev/hevc_service", O_RDWR);
+            type = VPU_DEC;
+            break;
+        }
+        case VPU_DEC_PP:
+        case VPU_PP:
+        case VPU_DEC:
+        case VPU_ENC: {
+            fd = open("/dev/vpu_service", O_RDWR);
+            break;
+        }
+        default: {
+            fd = -1;
+            break;
+        }
     }
+
 
     if (fd == -1) {
         mpp_err_f("failed to open /dev/rkvdec\n");
