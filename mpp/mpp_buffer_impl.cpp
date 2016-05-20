@@ -119,6 +119,9 @@ MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
 {
     MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
 
+    mpp_assert(group->count_unused == 0);
+    mpp_assert(group->count_used   == 0);
+
     mpp_alloctor_put(&group->allocator);
     list_del_init(&group->list_group);
     mpp_free(group);
@@ -318,8 +321,10 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
                 inc_buffer_ref_no_lock(buffer);
                 break;
             } else {
-                if (MPP_BUFFER_INTERNAL == p->mode)
+                if (MPP_BUFFER_INTERNAL == p->mode) {
                     deinit_buffer_no_lock(pos);
+                    p->count_unused--;
+                }
             }
         }
     }
@@ -392,6 +397,7 @@ static MPP_RET force_clear_mpp_buffer_group(MppBufferGroupImpl *p)
         pos->used = 0;
         pos->discard = 0;
         deinit_buffer_no_lock(pos);
+        p->count_used--;
     }
 
     deinit_group_no_lock(p);
@@ -413,6 +419,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
             deinit_buffer_no_lock(pos);
+            p->count_unused--;
         }
     }
 
@@ -459,6 +466,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
             deinit_buffer_no_lock(pos);
+            p->count_unused--;
         }
     }
 
