@@ -45,7 +45,6 @@
  * MaxnCtuY = 2304/64
 */
 #define MAX_SEGMAP_SIZE  73728
-
 /*
 
 */
@@ -88,6 +87,11 @@ typedef struct hal_vp9_context {
     RK_U32 mv_base_addr;
     RK_U32 pre_mv_base_addr;
     vp9_dec_last_info_t ls_info;
+    /*swap between segid_cur_base & segid_last_base
+        0  used segid_cur_base as last
+        1  used segid_last_base as
+    */
+    RK_U32    last_segid_flag;
 } hal_vp9_context_t;
 
 static RK_U32 vp9_ver_align(RK_U32 val)
@@ -174,6 +178,8 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("vp9h_debug", &vp9h_debug, 0);
 
     reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
+
+    reg_cxt->last_segid_flag = 1;
 #ifdef dump
     if (vp9_fp_yuv != NULL) {
         fclose(vp9_fp_yuv);
@@ -627,8 +633,8 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     pic_h[1] = vp9_ver_align(pic_param->height) / 2; //(p_cm->height + 1) / 2;
     pic_h[2] = pic_h[1];
 
-    sw_y_hor_virstride = (vp9_hor_align((pic_param->width* bit_depth)>>3) >> 4);
-    sw_uv_hor_virstride = (vp9_hor_align((pic_param->width* bit_depth)>>3) >> 4);
+    sw_y_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
+    sw_uv_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
     sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
 
     sw_uv_virstride = pic_h[1] * sw_uv_hor_virstride;
@@ -645,11 +651,12 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     if (!(pic_param->stVP9Segments.enabled && !pic_param->stVP9Segments.update_map)) {
-        RK_U8 *seg_cur = NULL, *seg_pre = NULL;
         if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
-            seg_cur = mpp_buffer_get_ptr(reg_cxt->segid_cur_base);
-            seg_pre = mpp_buffer_get_ptr(reg_cxt->segid_last_base);
-            memcpy(seg_pre, seg_cur, MAX_SEGMAP_SIZE);
+            if (reg_cxt->last_segid_flag) {
+                reg_cxt->last_segid_flag = 0;
+            } else {
+                reg_cxt->last_segid_flag = 1;
+            }
         }
     }
     mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_BUFFER, &framebuf);
@@ -657,8 +664,15 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->swreg4_strm_rlc_base = mpp_buffer_get_fd(streambuf);
     vp9_hw_regs->swreg6_cabactbl_prob_base = mpp_buffer_get_fd(reg_cxt->probe_base);
     vp9_hw_regs->swreg14_vp9_count_base  = mpp_buffer_get_fd(reg_cxt->count_base);
-    vp9_hw_regs->swreg15_vp9_segidlast_base = mpp_buffer_get_fd(reg_cxt->segid_last_base);
-    vp9_hw_regs->swreg16_vp9_segidcur_base = mpp_buffer_get_fd(reg_cxt->segid_cur_base);
+
+    if (reg_cxt->last_segid_flag) {
+        vp9_hw_regs->swreg15_vp9_segidlast_base = mpp_buffer_get_fd(reg_cxt->segid_last_base);
+        vp9_hw_regs->swreg16_vp9_segidcur_base = mpp_buffer_get_fd(reg_cxt->segid_cur_base);
+    } else {
+        vp9_hw_regs->swreg15_vp9_segidlast_base = mpp_buffer_get_fd(reg_cxt->segid_cur_base);
+        vp9_hw_regs->swreg16_vp9_segidcur_base = mpp_buffer_get_fd(reg_cxt->segid_last_base);
+    }
+
     if (VPUClientGetIOMMUStatus() > 0) {
         reg_cxt->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
     } else {
@@ -679,7 +693,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
         pic_h[0] = vp9_ver_align(ref_frame_height_y);
         pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
-        y_hor_virstride = (vp9_hor_align((ref_frame_width_y* bit_depth) >> 3) >> 4);
+        y_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
         uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
         y_virstride = y_hor_virstride * pic_h[0];
         uv_virstride = uv_hor_virstride * pic_h[1];
@@ -917,6 +931,7 @@ MPP_RET hal_vp9d_reset(void *hal)
     memset(&reg_cxt->ls_info, 0, sizeof(reg_cxt->ls_info));
     reg_cxt->mv_base_addr = 0;
     reg_cxt->pre_mv_base_addr = 0;
+    reg_cxt->last_segid_flag = 1;
     return MPP_OK;
 }
 /*!
