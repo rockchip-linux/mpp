@@ -34,10 +34,10 @@ MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
         return MPP_ERR_UNKNOW;
     }
 
-    MPP_RET ret = MPP_OK;
+    MPP_RET ret = MPP_NOK;
     MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
     MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.alloc)
+    if (p->os_api.alloc && p->ctx)
         ret = p->os_api.alloc(p->ctx, info);
     MPP_ALLOCATOR_UNLOCK(p);
 
@@ -52,10 +52,10 @@ MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferInfo *info)
         return MPP_ERR_UNKNOW;
     }
 
-    MPP_RET ret = MPP_OK;
+    MPP_RET ret = MPP_NOK;
     MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
     MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.free)
+    if (p->os_api.free && p->ctx)
         ret = p->os_api.free(p->ctx, info);
     MPP_ALLOCATOR_UNLOCK(p);
 
@@ -69,13 +69,13 @@ MPP_RET mpp_allocator_import(MppAllocator allocator, MppBufferInfo *info)
         return MPP_ERR_UNKNOW;
     }
 
-    MPP_RET ret = MPP_OK;
+    MPP_RET ret = MPP_NOK;
     MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    if (p->os_api.import) {
-        MPP_ALLOCATOR_LOCK(p);
+    MPP_ALLOCATOR_LOCK(p);
+    if (p->os_api.import && p->ctx) {
         ret = p->os_api.import(p->ctx, info);
-        MPP_ALLOCATOR_UNLOCK(p);
     }
+    MPP_ALLOCATOR_UNLOCK(p);
 
     return ret;
 }
@@ -89,13 +89,13 @@ MPP_RET mpp_allocator_release(MppAllocator allocator, MppBufferInfo *info)
         return MPP_ERR_UNKNOW;
     }
 
-    MPP_RET ret = MPP_OK;
+    MPP_RET ret = MPP_NOK;
     MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    if (p->os_api.release) {
-        MPP_ALLOCATOR_LOCK(p);
+    MPP_ALLOCATOR_LOCK(p);
+    if (p->os_api.release && p->ctx) {
         ret = p->os_api.release(p->ctx, info);
-        MPP_ALLOCATOR_UNLOCK(p);
     }
+    MPP_ALLOCATOR_UNLOCK(p);
 
     return ret;
 }
@@ -158,7 +158,7 @@ MPP_RET mpp_alloctor_put(MppAllocator *allocator)
 
     MppAllocatorImpl *p = (MppAllocatorImpl *)*allocator;
     *allocator = NULL;
-    if (p->os_api.close)
+    if (p->os_api.close && p->ctx)
         p->os_api.close(p->ctx);
     pthread_mutex_destroy(&p->lock);
     mpp_free(p);
