@@ -285,7 +285,7 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
         mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
         return ret;
     }
-    ret = ion_map(p->ion_device, (ion_user_handle_t)info->hnd, info->size,
+    ret = ion_map(p->ion_device, (ion_user_handle_t)((intptr_t)info->hnd), info->size,
                   PROT_READ | PROT_WRITE, MAP_SHARED, (off_t)0,
                   (unsigned char**)&info->ptr, &info->fd);
     if (ret) {
@@ -324,7 +324,7 @@ MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
     p = (allocator_ctx_ion *)ctx;
     munmap(data->ptr, data->size);
     close(data->fd);
-    ion_free(p->ion_device, (ion_user_handle_t)data->hnd);
+    ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
     return MPP_OK;
 }
 
