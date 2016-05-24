@@ -1,15 +1,19 @@
 # vim: syntax=cmake
 if(${ANDROID})
 set(OS_DIR android)
+set(MPP_ALLOCATOR allocator/allocator_ion.c)
 elseif(${UNIX})
 set(OS_DIR linux)
+set(MPP_ALLOCATOR allocator/allocator_ion.c)
 elseif(${WIN32})
 set(OS_DIR window)
+set(MPP_ALLOCATOR )
 else()
 message(SEND_ERROR "Can not found platform definistion ${CMAKE_SYSTEM}")
 endif()
 
 include_directories(.)
+include_directories(./allocator)
 
 add_library(osal STATIC
     mpp_allocator.cpp
@@ -24,6 +28,7 @@ add_library(osal STATIC
     ${OS_DIR}/os_mem.c
     ${OS_DIR}/os_env.c
     ${OS_DIR}/os_log.c
+    ${MPP_ALLOCATOR}
     )
 
 if(ANDROID)
