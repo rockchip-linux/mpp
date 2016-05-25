@@ -1,30 +1,30 @@
 # vim: syntax=cmake
 include_directories(.)
 include_directories(common)
+include_directories(base/inc)
 include_directories(codec/inc)
 include_directories(hal/inc)
+
+# ----------------------------------------------------------------------------
+# add mpp base component
+# ----------------------------------------------------------------------------
+add_subdirectory(base)
 
 # ----------------------------------------------------------------------------
 # add codec parsers
 # ----------------------------------------------------------------------------
 add_subdirectory(codec)
 
-
 # ----------------------------------------------------------------------------
 # add register generation hal
 # ----------------------------------------------------------------------------
 add_subdirectory(hal)
-
 
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
 set (MPP_SRC
     mpp_info.cpp
-    mpp_buffer_impl.cpp
-    mpp_buffer.cpp
-    mpp_packet.cpp
-    mpp_frame.cpp
     mpp.cpp
     mpi_impl.cpp
     mpi.cpp
@@ -33,7 +33,7 @@ set (MPP_SRC
 add_library(mpp STATIC ${MPP_SRC})
 set_target_properties(mpp PROPERTIES FOLDER "mpp") 
 set_target_properties(mpp PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(mpp mpp_codec mpp_hal osal)
+target_link_libraries(mpp mpp_base mpp_codec mpp_hal)
 
 add_library(mpp_shared SHARED ${MPP_SRC})
 set_target_properties(mpp_shared PROPERTIES FOLDER "mpp") 

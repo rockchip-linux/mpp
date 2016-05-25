@@ -3,7 +3,6 @@
 # hal vp9 decoder api
 set(HAL_VP9D_API
     ../../inc/hal_vp9d_api.h
-    ../../../common/vp9d_syntax.h
     )
 
     
@@ -15,7 +14,6 @@ set(HAL_VP9D_HDR
 # hal vp9 decoder sourse
 set(HAL_VP9D_SRC
     hal_vp9d_api.c	
-    ../../../mpp_bitput.c
     ) 
     
 add_library(hal_vp9d STATIC
@@ -23,10 +21,11 @@ add_library(hal_vp9d STATIC
             ${HAL_VP9D_HDR} 
             ${HAL_VP9D_SRC} 
             )
-if(ANDROID)
-    target_link_libraries(hal_vp9d vpu osal)
+
+if(WIN32)
+    target_link_libraries(hal_vp9d base)
 else()
-    target_link_libraries(hal_vp9d osal)
+    target_link_libraries(hal_vp9d vpu mpp_base)
 endif()    
 
 set_target_properties(hal_vp9d PROPERTIES FOLDER "mpp/hal")        

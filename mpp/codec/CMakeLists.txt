@@ -4,7 +4,6 @@
 # add mpp_dec implement
 # ----------------------------------------------------------------------------
 add_library(mpp_codec STATIC
-    mpp_buf_slot.cpp
     mpp_enc.cpp
     mpp_dec.cpp
     mpp_parser.cpp
@@ -18,9 +17,9 @@ add_subdirectory(enc)
 
 target_link_libraries(mpp_codec
                       codec_h264d
-		      codec_vp9d
-		      codec_h265d
-		      codec_avsd
+                      codec_vp9d
+                      codec_h265d
+                      codec_avsd
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp)
