@@ -30,7 +30,7 @@ struct HalTaskImpl_t {
     struct list_head    list;
     HalTaskGroupImpl    *group;
     RK_S32              index;
-    MppTaskStatus       status;
+    HalTaskStatus       status;
     HalTaskInfo         task;
 };
 
@@ -120,7 +120,7 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group)
     return MPP_OK;
 }
 
-MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *hnd)
+MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *hnd)
 {
     if (NULL == group || status >= TASK_BUTT || NULL == hnd) {
         mpp_err_f("found invaid input group %p status %d hnd %p\n", group, status, hnd);
@@ -140,7 +140,7 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, MppTaskStatus status, HalTaskHnd *h
     return MPP_OK;
 }
 
-MPP_RET hal_task_check_empty(HalTaskGroup group, MppTaskStatus status)
+MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status)
 {
     if (NULL == group || status >= TASK_BUTT) {
         mpp_err_f("found invaid input group %p status %d \n", group, status);
@@ -154,7 +154,7 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, MppTaskStatus status)
     }
     return MPP_NOK;
 }
-MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *count)
+MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *count)
 {
     if (NULL == group || status >= TASK_BUTT || NULL == count) {
         mpp_err_f("found invaid input group %p status %d count %p\n", group, status, count);
@@ -167,7 +167,7 @@ MPP_RET hal_task_get_count(HalTaskGroup group, MppTaskStatus status, RK_U32 *cou
     return MPP_OK;
 }
 
-MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, MppTaskStatus status)
+MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status)
 {
     if (NULL == hnd || status >= TASK_BUTT) {
         mpp_err_f("found invaid input hnd %p status %d\n", hnd, status);
