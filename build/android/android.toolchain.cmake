@@ -1300,14 +1300,6 @@ if( EXISTS "${__libstl}" OR EXISTS "${__libsupcxx}" )
 endif()
 
 # ----------------------------------------------------------------------------
-# add crt object to executable link list for Android SDK build
-# ----------------------------------------------------------------------------
-set( ANDROID_CRT_BEGIN "${ANDROID_SYSROOT}/usr/lib/crtbegin_dynamic.o")
-set( ANDROID_CRT_END   "${ANDROID_SYSROOT}/usr/lib/crtend_android.o")
-set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
-set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
-
-# ----------------------------------------------------------------------------
 # add libgcc.a to executable link list
 # ----------------------------------------------------------------------------
 set( ANDROID_LIB_GCC "${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_MACHINE_NAME}/${ANDROID_COMPILER_VERSION}/libgcc.a")
