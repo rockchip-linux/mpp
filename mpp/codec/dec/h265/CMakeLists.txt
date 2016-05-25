@@ -6,7 +6,6 @@ set(H265D_PARSER_HDR
     )
 
 set(H265D_PARSER_SRC
-    ../../../mpp_bitread.c
     h265d_parser.c
     h265d_ps.c
     h265d_refs.c
@@ -17,8 +16,9 @@ set(H265D_PARSER_SRC
 add_library(codec_h265d STATIC
 	${H265D_PARSER_SRC} ${H265D_PARSER_HDR}
     )
+
 set_target_properties(codec_h265d PROPERTIES FOLDER "mpp/codec")
 
-target_link_libraries(codec_h265d osal)
+target_link_libraries(codec_h265d mpp_base)
 
 add_subdirectory(test)
