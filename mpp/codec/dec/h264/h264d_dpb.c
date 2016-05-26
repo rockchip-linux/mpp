@@ -1266,7 +1266,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         p->is_long_term = 0;
     }
     //!< then output frames until one can be removed
-    while (p_Dpb->used_size == p_Dpb->size) {
+    while (p_Dpb->used_size == MPP_MIN(p_Dpb->size, 8)) {
         //!< when is full, first try to remove unused frames
         remove_unused_frame_from_dpb(p_Dpb);
         //!< non-reference frames may be output directly
@@ -1666,7 +1666,7 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
         free_dpb(p_Dpb);
     }
     VAL_CHECK(ret, p_Dpb->size = getDpbSize(p_Vid, active_sps));
-    p_Dpb->size += (type == 2 ? 0 : 1);
+	p_Dpb->size = MPP_MAX(1, p_Dpb->size);
     p_Dpb->num_ref_frames = active_sps->max_num_ref_frames;
     if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
         H264D_WARNNING("DPB size at specified level is smaller than reference frames");
