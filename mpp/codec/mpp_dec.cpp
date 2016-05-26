@@ -645,6 +645,8 @@ void *mpp_dec_hal_thread(void *data)
 
             if (task_dec->flags.info_change) {
                 MppFrame info_frame = NULL;
+                mpp_dec_flush(dec);
+                mpp_dec_push_display(mpp);
                 mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
                 mpp_assert(info_frame);
                 mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
