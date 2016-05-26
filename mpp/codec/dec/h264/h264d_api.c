@@ -537,6 +537,7 @@ __FAILED:
 MPP_RET  h264d_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+	RK_U32 dpb_used_size = 0;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder);
@@ -544,8 +545,11 @@ MPP_RET  h264d_flush(void *decoder)
 	INP_CHECK(ret, !p_Dec->p_Vid);
 
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-
-    if (p_Dec->last_frame_slot_idx < 0) {
+	dpb_used_size = p_Dec->p_Vid->p_Dpb_layer[0]->used_size;
+	if (p_Dec->mvc_valid) {
+		dpb_used_size += p_Dec->p_Vid->p_Dpb_layer[1]->used_size;
+	}
+    if (!dpb_used_size && p_Dec->p_Inp->has_get_eos) {
         IOInterruptCB *cb = &p_Dec->p_Inp->init.notify_cb;
         if (cb->callBack) {
             cb->callBack(cb->opaque, NULL);
@@ -562,8 +566,7 @@ MPP_RET  h264d_flush(void *decoder)
         //free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
     }
     flush_dpb_buf_slot(p_Dec);
-    p_Dec->p_Inp->task_eos = 1;
-    mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->task_eos);
+	mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
@@ -618,13 +621,15 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->in_dts = mpp_packet_get_dts(pkt);
 
     if (mpp_packet_get_eos(pkt)) {
+		p_Inp->pkt_eos     = 1;
+		p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
             h264d_flush(decoder);
+			goto __RETURN;
         }
         p_Inp->in_buf      = NULL;
         p_Inp->in_length   = 0;
-        p_Inp->pkt_eos     = 1;
-        p_Inp->has_get_eos = 1;
+
 
     } else {
         p_Inp->in_buf      = (RK_U8 *)mpp_packet_get_pos(pkt);
@@ -718,7 +723,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
 		in_task->flags.used_for_ref = p_err->used_ref_flag;
 		p_err->dpb_err_flag |= p_err->used_ref_flag ? p_err->cur_err_flag : 0;
-		in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;		
+		in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
     }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
@@ -728,7 +733,7 @@ __FAILED:
 	{
         H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
 		if (dec_pic) {
-			H264D_WARNNING("[h264d_parse] h264d_parse failed.");
+			H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
 			if (dec_pic->mem_mark 
 				&& dec_pic->mem_mark->out_flag
 				&& (dec_pic->mem_mark->slot_idx >= 0)) {
