@@ -23,9 +23,8 @@ add_library(hal_avsd STATIC
             ${HAL_AVSD_HDR} 
             ${HAL_AVSD_SRC} 
             )
-target_link_libraries(hal_avsd
-                      mpp
-                      )
+
+target_link_libraries(hal_avsd mpp_base)
 					  
 set_target_properties(hal_avsd PROPERTIES FOLDER "mpp/hal")        
 

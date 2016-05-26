@@ -28,4 +28,4 @@ add_subdirectory(rkdec/avsd)
 add_subdirectory(worker/libvpu)
 add_subdirectory(worker/libv4l2)
 
-target_link_libraries(mpp_hal hal_h264d hal_vp9d hal_h265d hal_avsd hal_dummy)
+target_link_libraries(mpp_hal hal_h264d hal_h265d hal_vp9d hal_avsd hal_dummy)

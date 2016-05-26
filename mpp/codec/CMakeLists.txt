@@ -22,6 +22,6 @@ target_link_libraries(mpp_codec
                       codec_avsd
                       codec_dummy_enc
                       codec_dummy_dec
-                      mpp)
+                      mpp_base)
 
 
