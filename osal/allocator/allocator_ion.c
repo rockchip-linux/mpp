@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "mpp_ion"
+
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -28,6 +30,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 static RK_U32 ion_debug = 0;
 
@@ -140,17 +143,14 @@ RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
 
     search_name = dir_name;
     n = scandir(path, &dir, _compare_name, alphasort);
-    if (n < 0) {
-        mpp_err("scan %s for %s failed\n", path, dir_name);
+    if (n <= 0) {
+        mpp_err("scan %s for %s return %d\n", path, dir_name, n);
     } else {
-        while (n > 1) {
-            free(dir[--n]);
-        }
+        mpp_assert(n == 1);
 
         new_path_len = path_len;
         new_path_len += snprintf(path + path_len, max_length - path_len - 1,
                                  "/%s", dir[0]->d_name);
-
         free(dir[0]);
         free(dir);
     }
@@ -158,29 +158,41 @@ RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
     return new_path_len;
 }
 
+static char *dts_devices[] = {
+    "vpu_service",
+    "hevc_service",
+    "rkvdec",
+    "rkvenc",
+};
+
 RK_S32 check_sysfs_iommu()
 {
+    RK_U32 i = 0, found = 0;
     RK_S32 ret = ION_DETECT_IOMMU_DISABLE;
     char path[256];
 
-    snprintf(path, sizeof(path), "/proc/device-tree");
-    if (find_dir_in_path(path, "vpu_service", sizeof(path))) {
-        if (find_dir_in_path(path, "iommu_enabled", sizeof(path))) {
-            FILE *iommu_fp = fopen(path, "rb");
+    for (i = 0; i < MPP_ARRAY_ELEMS(dts_devices); i++) {
+        snprintf(path, sizeof(path), "/proc/device-tree");
+        if (find_dir_in_path(path, dts_devices[i], sizeof(path))) {
+            if (find_dir_in_path(path, "iommu_enabled", sizeof(path))) {
+                FILE *iommu_fp = fopen(path, "rb");
 
-            if (iommu_fp) {
-                RK_U32 iommu_enabled = 0;
-                fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
-                mpp_log("vpu_service iommu_enabled %d\n", (iommu_enabled > 0));
-                fclose(iommu_fp);
-                if (iommu_enabled)
-                    ret = ION_DETECT_IOMMU_ENABLE;
+                if (iommu_fp) {
+                    RK_U32 iommu_enabled = 0;
+                    fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
+                    mpp_log("%s iommu_enabled %d\n", dts_devices[i], (iommu_enabled > 0));
+                    fclose(iommu_fp);
+                    if (iommu_enabled)
+                        ret = ION_DETECT_IOMMU_ENABLE;
+                }
+                found = 1;
+                break;
             }
-        } else {
-            mpp_err("can not find dts for iommu_enabled\n");
         }
-    } else {
-        mpp_err("can not find dts for vpu_service\n");
+    }
+
+    if (!found) {
+        mpp_err("can not find dts for all possible devices\n");
         ret = ION_DETECT_NO_DTS;
     }
 
