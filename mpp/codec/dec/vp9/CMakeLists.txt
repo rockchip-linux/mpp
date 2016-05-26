@@ -29,8 +29,7 @@ add_library(codec_vp9d STATIC
 				${VP9D_HDR} 
 				${VP9D_SRC} 
 			)
-target_link_libraries(codec_vp9d
-                      mpp
-                      )
+
+target_link_libraries(codec_vp9d mpp_base)
 set_target_properties(codec_vp9d PROPERTIES FOLDER "mpp/codec")
 

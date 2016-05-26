@@ -50,8 +50,7 @@ add_library(codec_h264d STATIC
 				${H264D_HDR} 
 				${H264D_SRC} 
 			)
-target_link_libraries(codec_h264d
-                      mpp
-                      )
+
+target_link_libraries(codec_h264d mpp_base)
 set_target_properties(codec_h264d PROPERTIES FOLDER "mpp/codec")
 

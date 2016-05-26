@@ -23,7 +23,7 @@ add_library(hal_vp9d STATIC
             )
 
 if(WIN32)
-    target_link_libraries(hal_vp9d base)
+    target_link_libraries(hal_vp9d mpp_base)
 else()
     target_link_libraries(hal_vp9d vpu mpp_base)
 endif()    

@@ -37,7 +37,7 @@ add_library(codec_avsd_impl STATIC IMPORTED)
 set_target_properties(codec_avsd_impl PROPERTIES IMPORTED_LOCATION ${LIBAVS})
 target_link_libraries(codec_avsd codec_avsd_impl)
 endif()		
-target_link_libraries(codec_avsd mpp)
+target_link_libraries(codec_avsd mpp_base)
 set_target_properties(codec_avsd PROPERTIES FOLDER "mpp/codec")	
 
 
