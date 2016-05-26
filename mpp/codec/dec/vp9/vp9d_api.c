@@ -52,6 +52,7 @@ MPP_RET vp9d_init(void *ctx, ParserCfg *init)
     if ((ret = vp9d_parser_init(vp9_ctx, init)) != MPP_OK)
         goto _err_exit;
 
+    vp9_ctx->notify_cb = init->notify_cb;
     if ((ret = vp9d_split_init(vp9_ctx)) != MPP_OK)
         goto _err_exit;
 
@@ -183,6 +184,9 @@ MPP_RET vp9d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     } else {
         task->valid = 0;
         task->flags.eos = vp9_ctx->eos;
+        if (vp9_ctx->notify_cb.callBack != NULL && vp9_ctx->eos) {
+            vp9_ctx->notify_cb.callBack(vp9_ctx->notify_cb.opaque, NULL);
+        }
     }
 
     (void)pts;

@@ -22,6 +22,7 @@
 #include "vp9d_syntax.h"
 #include "mpp_frame.h"
 #include "mpp_mem.h"
+#include "hal_task.h"
 
 typedef struct VP9ParseContext {
     RK_S32 n_frames; // 1-8
@@ -98,7 +99,7 @@ typedef struct Vp9CodecContext {
     DXVA_PicParams_VP9 pic_params;
     // DXVA_Slice_VPx_Short slice_short;
     RK_S32 eos;
-
+    IOInterruptCB notify_cb;
 } Vp9CodecContext;
 
 #endif /*__VP9D_CODEC_H__*/
