@@ -1557,7 +1557,7 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
     const RK_U8 *data = NULL;
     RK_S32 size = 0;
     VP9Context *s = (VP9Context *)ctx->priv_data;
-    RK_S32 res, i, ref;
+    RK_S32 res, i, ref = 0;
 
     vp9d_dbg(VP9D_DBG_FUNCTION, "%s", __FUNCTION__);
     task->valid = -1;

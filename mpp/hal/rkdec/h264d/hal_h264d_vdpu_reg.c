@@ -25,6 +25,7 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "vpu.h"
+#include "mpp_time.h"
 
 #include "h264d_log.h"
 #include "hal_regdrv.h"
@@ -616,11 +617,11 @@ MPP_RET vdpu_h264d_wait(void *hal, HalTaskInfo *task)
     RK_S32 wait_ret = -1;
     RK_S32 ret_len = 0, cur_deat = 0;
     VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-    static struct timeval tv1, tv2;
-    gettimeofday(&tv1, NULL);
+    RK_S64 p_s,p_e;
+    p_s = mpp_time();
     wait_ret = VPUClientWaitResult(p_hal->vpu_socket, p_drv->p_reg, DEC_X170_REGISTERS, &ret_cmd, &ret_len);
-    gettimeofday(&tv2, NULL);
-    cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+    p_e = mpp_time();
+    cur_deat = (p_e - p_s) / 1000;
     p_hal->total_time += cur_deat;
     p_hal->iDecodedNum++;
     (void)wait_ret;
