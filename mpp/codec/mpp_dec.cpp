@@ -617,12 +617,10 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
-#ifdef ANDROID
     RK_S32 cur_deat = 0;
     RK_U64 dec_no = 0, total_time = 0;
-    static struct timeval tv1, tv2;
-    gettimeofday(&tv1, NULL);
-#endif
+    RK_S64 p_s,p_e;
+    p_s = mpp_time();
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
          * hal thread wait for dxva interface intput firt
@@ -659,14 +657,12 @@ void *mpp_dec_hal_thread(void *data)
                 continue;
             }
             mpp_hal_hw_wait(dec->hal, &task_info);
-#ifdef ANDROID
-            gettimeofday(&tv2, NULL);
-            cur_deat = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+            p_e = mpp_time();
+            cur_deat = (p_e - p_s);
             total_time += cur_deat;
             //mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
             dec_no++;
-            tv1 = tv2;
-#endif
+            p_s = p_e;
             /*
              * when hardware decoding is done:
              * 1. clear decoding flag (mark buffer is ready)
