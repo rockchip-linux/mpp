@@ -31,6 +31,12 @@ if(NOT COMMAND find_host_program)
     endmacro()
 endif()
 
+option(RKPLATFORM "Enable RK HW CONFIG" OFF)
+if(${CMAKE_RKPLATFORM_ENABLE} MATCHES "ON")
+    option(RKPLATFORM "Enable RK HW CONFIG" ON)
+    set(RKPLATFORM True)
+    add_definitions(-DRKPLATFORM)
+endif()
 
 project (rk_mpp)
 
