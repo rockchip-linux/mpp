@@ -36,13 +36,13 @@ struct HalTaskImpl_t {
 
 struct HalTaskGroupImpl_t {
     MppCtxType          type;
-    RK_S32              count;
+    RK_S32              task_count;
 
     Mutex               *lock;
 
     HalTaskImpl         *tasks;
     struct list_head    list[TASK_BUTT];
-    RK_U32              task_count[TASK_BUTT];
+    RK_U32              count[TASK_BUTT];
 };
 
 MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
@@ -74,7 +74,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
         }
 
         p->type  = type;
-        p->count = count;
+        p->task_count = count;
         p->lock  = lock;
         p->tasks = tasks;
 
@@ -87,7 +87,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
             tasks[i].group  = p;
             tasks[i].status = TASK_IDLE;
             list_add_tail(&tasks[i].list, &p->list[TASK_IDLE]);
-            p->task_count[TASK_IDLE]++;
+            p->count[TASK_IDLE]++;
         }
         *group = p;
         return MPP_OK;
@@ -163,7 +163,7 @@ MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *cou
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
     AutoMutex auto_lock(p->lock);
-    *count = p->task_count[status];
+    *count = p->count[status];
     return MPP_OK;
 }
 
@@ -177,13 +177,13 @@ MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status)
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
     mpp_assert(group);
-    mpp_assert(impl->index < group->count);
+    mpp_assert(impl->index < group->task_count);
 
     AutoMutex auto_lock(group->lock);
     list_del_init(&impl->list);
     list_add_tail(&impl->list, &group->list[status]);
-    group->task_count[impl->status]--;
-    group->task_count[status]++;
+    group->count[impl->status]--;
+    group->count[status]++;
     impl->status = status;
     return MPP_OK;
 }
@@ -197,7 +197,7 @@ MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task)
 
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
-    mpp_assert(impl->index < group->count);
+    mpp_assert(impl->index < group->task_count);
     AutoMutex auto_lock(group->lock);
     memcpy(&impl->task, task, sizeof(impl->task));
     return MPP_OK;
@@ -212,7 +212,7 @@ MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task)
 
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
-    mpp_assert(impl->index < group->count);
+    mpp_assert(impl->index < group->task_count);
     AutoMutex auto_lock(group->lock);
     memcpy(task, &impl->task, sizeof(impl->task));
     return MPP_OK;
