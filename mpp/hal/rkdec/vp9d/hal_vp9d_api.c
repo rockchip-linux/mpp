@@ -129,7 +129,7 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
 
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
         reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
         if (reg_cxt->vpu_socket <= 0) {
@@ -140,7 +140,7 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
 #endif
     if (reg_cxt->group == NULL) {
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
         mpp_err("mpp_buffer_group_get_internal used ion in");
         ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
 #else
@@ -256,7 +256,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
     RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
     vp9_prob partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
     vp9_prob uv_mode_prob[INTRA_MODES][INTRA_MODES - 1];
-#ifdef ANDROID
+#ifdef RKPLATFORM
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t*)hal;
     void *probe_ptr = mpp_buffer_get_ptr(reg_cxt->probe_base);
     if (NULL == probe_ptr) {
@@ -485,7 +485,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         }
         mpp_align(&bp, 128, 0);
     }
-#ifdef ANDROID
+#ifdef RKPLATFORM
     memcpy(probe_ptr, probe_packet, 304 * 8);
 #endif
 #ifdef dump
@@ -590,7 +590,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
 #endif
     RK_S32 intraFlag = 0;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     MppBuffer framebuf = NULL;
 #endif
 #ifdef dump
@@ -645,7 +645,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
     vp9_hw_regs->swreg9_yuv_virstride.sw_yuv_virstride = sw_yuv_virstride;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
@@ -698,7 +698,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         y_virstride = y_hor_virstride * pic_h[0];
         uv_virstride = uv_hor_virstride * pic_h[1];
         yuv_virstride = y_virstride + uv_virstride;
-#ifdef ANDROID
+#ifdef RKPLATFORM
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
             mpp_buf_slot_get_prop(reg_cxt->slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
         }
@@ -735,7 +735,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
                 break;
 
             }
-#ifdef ANDROID
+#ifdef RKPLATFORM
             /*0 map to 11*/
             /*1 map to 12*/
             /*2 map to 13*/
@@ -838,7 +838,7 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
         //mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
-#ifdef ANDROID
+#ifdef RKPLATFORM
 #if 1
     ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
     if (ret != 0) {
@@ -861,7 +861,7 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef ANDROID
+#ifdef RKPLATFORM
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
     RK_U32 i;

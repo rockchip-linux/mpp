@@ -176,7 +176,7 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
 ***********************************************************************
 */
 //extern "C"
-#ifndef ANDROID
+#ifndef RKPLATFORM
 RK_S32 VPUClientGetIOMMUStatus()
 {
     return 0;
@@ -205,7 +205,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     p_hal->packet_slots = cfg->packet_slots;
 
 	//!< choose hard mode
-#ifdef ANDROID
+#ifdef RKPLATFORM
 	{
 		RK_S32 value = (!!access("/dev/rkvdec", F_OK));
 		cfg->device_id = value ? HAL_VDPU : HAL_RKVDEC;
@@ -242,7 +242,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< init logctx
     FUN_CHECK(ret = logctx_init(&p_hal->logctx, p_hal->logctxbuf));
     //!< VPUClientInit
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
         p_hal->vpu_socket = VPUClientInit(vpu_client);
         if (p_hal->vpu_socket <= 0) {
@@ -254,7 +254,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 #endif
     //< get buffer group
     if (p_hal->buf_group == NULL) {
-#ifdef ANDROID
+#ifdef RKPLATFORM
         mpp_log_f("mpp_buffer_group_get_internal used ion In");
         FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
 #else
@@ -285,7 +285,7 @@ MPP_RET hal_h264d_deinit(void *hal)
     FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
     FUN_CHECK(ret = logctx_deinit(&p_hal->logctx));
     //!< VPUClientInit
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (p_hal->vpu_socket >= 0) {
         VPUClientRelease(p_hal->vpu_socket);
     }

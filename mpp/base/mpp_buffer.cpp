@@ -152,7 +152,7 @@ int mpp_buffer_get_fd(MppBuffer buffer)
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     int fd = p->info.fd;
 
-#ifdef  ANDROID
+#ifdef RKPLATFORM
     mpp_assert(fd >= 0);
 #endif
 

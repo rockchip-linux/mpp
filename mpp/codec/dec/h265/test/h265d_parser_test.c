@@ -348,7 +348,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
             return ret;
         }
     }
-#ifndef ANDROID
+#ifndef RKPLATFORM
 #ifdef COMPARE
     {
         void *openHevcHandle = NULL;
@@ -425,7 +425,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
                     }
                 }
                 curtask->valid = -1;
-#ifndef ANDROID
+#ifndef RKPLATFORM
 #ifdef COMPARE
                 mpp_err("hevc_decode_frame in \n");
                 void *sliceInfo = NULL;
@@ -569,7 +569,7 @@ RK_S32 hevc_parser_test(ParserDemoCmdContext_t *cmd)
         mpp_err("mStreamGroup deInit");
         mpp_buffer_group_put(mStreamGroup);
     }
-#ifndef ANDROID
+#ifndef RKPLATFORM
 #ifdef COMPARE
     if (openHevcHandle != NULL) {
         libOpenHevcClose(openHevcHandle);

@@ -393,7 +393,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     }
 	//!< current buffer slot fd
 	H264D_DBG(H264D_DBG_DECOUT_INFO, "[DECOUT_INFO] decout_fd=0x%02x", p_regs[7]);	
-#ifdef ANDROID
+#ifdef RKPLATFORM
 		if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
 			ret =  MPP_ERR_VPUHW;
 			H264D_ERR("H264 RKV FlushRegs fail. \n");
@@ -424,7 +424,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 	if (task->dec.flags.had_error) {
 		goto __SKIP_HARD;
 	}
-#ifdef ANDROID
+#ifdef RKPLATFORM
 		RK_S32 wait_ret = -1;
 		RK_S32 ret_len = 0, cur_deat = 0;
 		VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
