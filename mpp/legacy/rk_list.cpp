@@ -160,7 +160,6 @@ RK_S32 rk_list::del_at_tail(void *data, RK_S32 size)
     if (head && count) {
         _list_del_node_no_lock(head->prev, data, size);
         count--;
-        pthread_mutex_unlock(&mutex);
         ret = 0;
     }
     pthread_mutex_unlock(&mutex);

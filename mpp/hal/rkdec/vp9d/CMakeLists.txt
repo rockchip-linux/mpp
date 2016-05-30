@@ -22,11 +22,7 @@ add_library(hal_vp9d STATIC
             ${HAL_VP9D_SRC} 
             )
 
-if(WIN32)
     target_link_libraries(hal_vp9d mpp_base)
-else()
-    target_link_libraries(hal_vp9d vpu mpp_base)
-endif()    
 
 set_target_properties(hal_vp9d PROPERTIES FOLDER "mpp/hal")        
 

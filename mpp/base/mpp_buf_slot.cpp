@@ -806,7 +806,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         generate_info_set(impl, frame, 0);
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
             impl->info_changed = 1;
-#ifdef ANDROID
+#ifdef RKPLATFORM
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
             mpp_log("info change found\n");
             mpp_log("old width %4d height %4d stride hor %4d ver %4d\n",

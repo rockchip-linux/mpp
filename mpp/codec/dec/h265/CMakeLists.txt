@@ -12,7 +12,6 @@ set(H265D_PARSER_SRC
     h265d_sei.c
     h265d_parser2_syntax.c
     )
-
 add_library(codec_h265d STATIC
 	${H265D_PARSER_SRC} ${H265D_PARSER_HDR}
     )

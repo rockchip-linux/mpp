@@ -582,7 +582,7 @@ MPP_RET vdpu_h264d_start(void *hal, HalTaskInfo *task)
     p_drv->p_reg[57] |= 0xDE;
 
     FUN_CHECK(ret = vdpu_h264d_print_regs(p_hal, p_drv));
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (VPUClientSendReg(p_hal->vpu_socket, p_drv->p_reg, DEC_X170_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
         mpp_err_f("H264 VDPU FlushRegs fail. \n");
@@ -613,7 +613,7 @@ MPP_RET vdpu_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     RK_S32 wait_ret = -1;
     RK_S32 ret_len = 0, cur_deat = 0;
     VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;

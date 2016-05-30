@@ -21,10 +21,6 @@
 #include "vpu.h"
 #include <string.h>
 
-#ifdef ANDROID
-#include <linux/ion.h>
-#endif
-
 static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S32 size)
 {
     MppBufferInfo info;
@@ -177,7 +173,7 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
 RK_S32 VPUMemJudgeIommu()
 {
     int ret = 0;
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (VPUClientGetIOMMUStatus() > 0) {
         //mpp_err("media.used.iommu");
         ret = 1;

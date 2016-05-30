@@ -417,7 +417,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     }
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- VPUClientInit
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
         RK_S32 value = !!access("/dev/rkvdec", F_OK);
         if (value)
@@ -432,7 +432,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 #endif
     if (reg_cxt->group == NULL) {
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
         mpp_err("mpp_buffer_group_get_internal used ion in");
         ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
 #else
@@ -474,7 +474,7 @@ MPP_RET hal_h265d_deinit(void *hal)
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
 
     ///<- VPUClientInit
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (reg_cxt->vpu_socket >= 0) {
         VPUClientRelease(reg_cxt->vpu_socket);
 
@@ -1098,7 +1098,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         mpp_err("%s:%s:%d reg_cxt or dxva_cxt is NULL", __FILE__, __FUNCTION__, __LINE__);
         return MPP_ERR_NULL_PTR;
     }
-#ifdef ANDROID
+#ifdef RKPLATFORM
     void *pps_ptr = mpp_buffer_get_ptr(reg_cxt->pps_data);
     if (NULL == pps_ptr) {
 
@@ -1284,7 +1284,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
         hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
         /* need to config addr */
         if (VPUClientGetIOMMUStatus() > 0) {
@@ -1297,7 +1297,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         mpp_align(&bp, 64, 0xf);
     }
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     for (i = 0; i < 64; i++) {
         memcpy(pps_ptr + i * 80, pps_packet, 80);
     }
@@ -1325,7 +1325,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer streambuf = NULL;
     RK_S32 aglin_offset = 0;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
 #endif
@@ -1404,7 +1404,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->sw_yuv_virstride
         = virstrid_yuv >> 4;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
     hw_regs->sw_decout_base  = mpp_buffer_get_fd(framebuf); //just index need map
 #endif
@@ -1423,7 +1423,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         dxva_cxt->bitstream = mpp_buffer_get_ptr(streambuf);
     }
     hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     hw_regs->sw_cabactbl_base   =  mpp_buffer_get_fd(reg_cxt->cabac_table_data);
     hw_regs->sw_pps_base        =  mpp_buffer_get_fd(reg_cxt->pps_data);
     hw_regs->sw_rps_base        =  mpp_buffer_get_fd(reg_cxt->rps_data);
@@ -1445,7 +1445,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->cabac_error_en = 0xfdfffffd;
     hw_regs->extern_error_en = 0x30000000;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     valid_ref = hw_regs->sw_decout_base;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
@@ -1505,7 +1505,7 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
         //mpp_log("RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
-#ifdef ANDROID
+#ifdef RKPLATFORM
     ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78); // 68 is the nb of uint32_t
 
     if (ret != 0) {
@@ -1523,7 +1523,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
 
     (void)task;
     (void) hal;
-#ifdef ANDROID
+#ifdef RKPLATFORM
     RK_S32 index =  task->dec.reg_index;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
     RK_U8* p = NULL;

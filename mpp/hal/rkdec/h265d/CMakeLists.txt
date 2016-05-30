@@ -16,10 +16,6 @@ add_library(hal_h265d STATIC
 
 set_target_properties(hal_h265d PROPERTIES FOLDER "mpp/hal")
 
-if(WIN32)
     target_link_libraries(hal_h265d mpp_base)
-else()
-    target_link_libraries(hal_h265d vpu mpp_base)
-endif()
 
 #add_subdirectory(test)

@@ -10,7 +10,7 @@ if(H265D_TEST)
     link_directories(.)
     if(ANDROID)
         target_link_libraries(h265d_parser_test mpp_shared utils)   
-    elseif(UNIX)
+    elseif(UNIX_DEBUG)
         set(OPENHEVCSO "${CMAKE_SOURCE_DIR}/mpp/codec/dec/h265/test")
         add_library(openhevcwrapper SHARED IMPORTED)
         set_target_properties(openhevcwrapper PROPERTIES

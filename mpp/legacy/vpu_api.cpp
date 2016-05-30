@@ -17,7 +17,7 @@
 #define MODULE_TAG "vpu_api"
 
 #include <string.h>
-#ifdef ANDROID
+#ifdef RKPLATFORM
 #include <dlfcn.h>
 #include <unistd.h>
 #endif
@@ -193,7 +193,7 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
     return api->control(ctx, cmdType, param);
 }
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
 class VpulibDlsym
 {
 public:
@@ -248,7 +248,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     RK_U32 use_mpp_mode = 0;
     mpp_env_get_u32("chg_orig", &value, 0);
     mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     value = value || (!!access("/dev/rkvdec", F_OK));
 
     if (s != NULL)
@@ -303,7 +303,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
             *ctx = s;
             return 0;
         } else {
-#ifdef ANDROID
+#ifdef RKPLATFORM
             if (s != NULL) {
                 free(s);
                 s = NULL;
@@ -329,7 +329,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     VpuCodecContext *s = *ctx;
     RK_U32 value;
     mpp_env_get_u32("chg_orig", &value, 0);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (value || s->extra_cfg.reserved[0]) {
         close_orign_vpu(ctx);
         mpp_log("org vpu_close_context ok");

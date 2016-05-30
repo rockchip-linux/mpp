@@ -2,8 +2,8 @@
 # ----------------------------------------------------------------------------
 # add libvpu implement
 # ----------------------------------------------------------------------------
-if(ANDROID)
+if(RKPLATFORM)
 add_library(vpu STATIC
     vpu.c
     )
-endif(ANDROID)
+endif(RKPLATFORM)
