@@ -617,7 +617,7 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
-    RK_S32 cur_deat = 0;
+    RK_S64 cur_deat = 0;
     RK_U64 dec_no = 0, total_time = 0;
     RK_S64 p_s,p_e;
     p_s = mpp_time();
