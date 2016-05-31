@@ -15,4 +15,4 @@ add_library(mpp_base STATIC
 
 set_target_properties(mpp_base PROPERTIES FOLDER "mpp/base")
 
-target_link_libraries(mpp_base osal mpp)
+target_link_libraries(mpp_base osal)
