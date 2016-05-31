@@ -211,6 +211,7 @@ MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size
 MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t size);
 void   *mpp_buffer_get_ptr(MppBuffer buffer);
 int     mpp_buffer_get_fd(MppBuffer buffer);
+size_t  mpp_buffer_get_size(MppBuffer buffer);
 
 MPP_RET mpp_buffer_group_get(const char *tag, const char *caller, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
