@@ -19,8 +19,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#include <linux/ion.h>
-
 #include "os_mem.h"
 #include "os_allocator.h"
 #include "allocator_ion.h"

@@ -16,9 +16,6 @@
 
 #include <stdio.h>
 
-#include <linux/drm.h>
-#include <linux/drm_mode.h>
-
 #include "os_mem.h"
 #include "os_allocator.h"
 
