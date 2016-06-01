@@ -17,8 +17,7 @@
 #ifndef __MPP_PACKET_H__
 #define __MPP_PACKET_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "mpp_buffer.h"
 
 typedef void* MppPacket;
 
@@ -34,6 +33,7 @@ extern "C" {
  */
 MPP_RET mpp_packet_new(MppPacket *packet);
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size);
+MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer);
 MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src);
 MPP_RET mpp_packet_deinit(MppPacket *packet);
 
@@ -64,10 +64,12 @@ RK_S64  mpp_packet_get_dts(const MppPacket packet);
 void    mpp_packet_set_flag(MppPacket packet, RK_U32 flag);
 RK_U32  mpp_packet_get_flag(const MppPacket packet);
 
-
 MPP_RET mpp_packet_set_eos(MppPacket packet);
 RK_U32  mpp_packet_get_eos(MppPacket packet);
 MPP_RET mpp_packet_set_extra_data(MppPacket packet);
+
+void        mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer);
+MppBuffer   mpp_packet_get_buffer(const MppPacket packet);
 
 /*
  * data access interface

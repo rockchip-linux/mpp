@@ -55,7 +55,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
     if (NULL == packet) {
-        mpp_err_f("invalid NULL input packet\n", packet);
+        mpp_err_f("invalid NULL input packet\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -71,6 +71,27 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     return MPP_OK;
 }
 
+MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer)
+{
+    if (NULL == packet || NULL == buffer) {
+        mpp_err_f("invalid input packet %p buffer %p\n", packet, buffer);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MPP_RET ret = mpp_packet_new(packet);
+    if (ret) {
+        mpp_err_f("new packet failed\n");
+        return ret;
+    }
+    MppPacketImpl *p = (MppPacketImpl *)*packet;
+    p->data = p->pos    = mpp_buffer_get_ptr(buffer);
+    p->size = p->length = mpp_buffer_get_size(buffer);
+    p->buffer = buffer;
+    mpp_buffer_inc_ref(buffer);
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
 {
     if (NULL == packet || NULL == src) {
@@ -78,33 +99,40 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         return MPP_ERR_NULL_PTR;
     }
 
-    check_mpp_packet_name((MppPacketImpl *)src);
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
+
+    check_mpp_packet_name(src_impl);
     *packet = NULL;
+    MppPacket pkt;
+    MPP_RET ret = mpp_packet_new(&pkt);
+    if (ret)
+        return ret;
+
+    if (src_impl->buffer) {
+        /* if source packet has buffer just create a new reference to buffer */
+        memcpy(pkt, src_impl, sizeof(*src_impl));
+        mpp_buffer_inc_ref(src_impl->buffer);
+        return MPP_OK;
+    }
+
     size_t size = mpp_packet_get_size(src);
     void *data = mpp_malloc_size(void, size);
     if (NULL == data) {
         mpp_err_f("malloc failed, size %d\n", size);
+        mpp_packet_deinit(&pkt);
         return MPP_ERR_MALLOC;
     }
 
-    MppPacket pkt;
-    MPP_RET ret = mpp_packet_new(&pkt);
-    if (MPP_OK == ret) {
-        MppPacketImpl *p = (MppPacketImpl *)pkt;
-        memcpy(p, src, sizeof(*p));
-        p->data = p->pos = data;
-        p->size = p->length = size;
-        p->flag |= MPP_PACKET_FLAG_INTERNAL;
-        if (size) {
-            memcpy(data, ((MppPacketImpl *)src)->data, size);
-        }
-        *packet = pkt;
-        return MPP_OK;
+    MppPacketImpl *p = (MppPacketImpl *)pkt;
+    memcpy(p, src_impl, sizeof(*src_impl));
+    p->data = p->pos = data;
+    p->size = p->length = size;
+    p->flag |= MPP_PACKET_FLAG_INTERNAL;
+    if (size) {
+        memcpy(data, src_impl->data, size);
     }
-
-    mpp_err_f("malloc failed\n");
-    mpp_free(data);
-    return ret;
+    *packet = pkt;
+    return MPP_OK;
 }
 
 MPP_RET mpp_packet_deinit(MppPacket *packet)
@@ -116,9 +144,15 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 
     MppPacketImpl *p = (MppPacketImpl *)(*packet);
     check_mpp_packet_name(p);
+
+    /* release buffer reference */
+    if (p->buffer)
+        mpp_buffer_put(p->buffer);
+
     if (p->flag & MPP_PACKET_FLAG_INTERNAL) {
         mpp_free(p->data);
     }
+
     mpp_free(p);
     *packet = NULL;
     return MPP_OK;
@@ -190,6 +224,36 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
     memset(packet, 0, sizeof(*packet));
     setup_mpp_packet_name(packet);
     return MPP_OK;
+}
+
+void mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return ;
+    }
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
+    if (p->buffer) {
+        mpp_buffer_put(p->buffer);
+    }
+    p->buffer = buffer;
+    if (buffer) {
+        mpp_buffer_inc_ref(buffer);
+    }
+}
+
+MppBuffer mpp_packet_get_buffer(const MppPacket packet)
+{
+    if (NULL == packet) {
+        mpp_err_f("found NULL input\n");
+        return NULL;
+    }
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    check_mpp_packet_name(p);
+    return p->buffer;
 }
 
 MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
