@@ -16,8 +16,13 @@
 
 #include <stdio.h>
 
+#include <linux/drm.h>
+#include <linux/drm_mode.h>
+
 #include "os_mem.h"
 #include "os_allocator.h"
+
+#include "allocator_drm.h"
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
@@ -111,6 +116,9 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     case MPP_BUFFER_TYPE_V4L2 : {
         mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
         *api = allocator_v4l2;
+    } break;
+	case MPP_BUFFER_TYPE_DRM : {
+        *api = allocator_drm;
     } break;
     default : {
         ret = MPP_NOK;
