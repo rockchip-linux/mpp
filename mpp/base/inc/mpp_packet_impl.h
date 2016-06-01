@@ -17,8 +17,7 @@
 #ifndef __MPP_IMPL_H__
 #define __MPP_IMPL_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "mpp_buffer.h"
 
 #define MPP_PACKET_FLAG_EOS             (0x00000001)
 #define MPP_PACKET_FLAG_EXTRA_DATA      (0x00000002)
@@ -46,6 +45,8 @@ typedef struct MppPacketImpl_t {
     RK_S64      dts;
 
     RK_U32      flag;
+
+    MppBuffer   buffer;
 } MppPacketImpl;
 
 /*
