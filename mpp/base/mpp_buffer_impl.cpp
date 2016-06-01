@@ -74,6 +74,7 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "normal",
     "ion",
     "v4l2",
+	"drm",
 };
 #if 0
 static const char *ops2str[BUF_OPS_BUTT] = {
