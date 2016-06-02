@@ -54,6 +54,7 @@
 
 
 #define MPP_TIMING                      (0x00000001)
+#define MPP_ABORT                       (0x10000000)
 
 /*
  * mpp_dbg usage:
@@ -86,12 +87,11 @@
  * 24~31 bit: information print format
  */
 
-#ifdef __DEBUG
-#define mpp_abort()         abort()
-#else
-#define mpp_abort()
-#endif
-
+#define mpp_abort() do {                \
+    if (mpp_debug & MPP_ABORT) {        \
+        abort();                        \
+    }                                   \
+} while (0)
 
 #define MPP_STRINGS(x)      MPP_TO_STRING(x)
 #define MPP_TO_STRING(x)    #x
