@@ -344,8 +344,8 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
+		RK_U32 ImgWidth =  p->ImgWidth; 
         mpicmd = MPP_CODEC_SET_FRAME_INFO;
-        RK_U32 ImgWidth =  p->ImgWidth; 
 		/**hightest of p->ImgWidth bit show current dec bitdepth 
 		  * 0 - 8bit
 		  * 1 - 10bit
