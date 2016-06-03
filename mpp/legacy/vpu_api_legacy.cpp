@@ -345,11 +345,20 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
         mpicmd = MPP_CODEC_SET_FRAME_INFO;
+        RK_U32 ImgWidth =  p->ImgWidth; 
+		/**hightest of p->ImgWidth bit show current dec bitdepth 
+		  * 0 - 8bit
+		  * 1 - 10bit
+		  **/
+        if(((p->ImgWidth&0x80000000)>>31)){
+            p->ImgWidth =  (p->ImgWidth&0x7FFFFFFF);
+            ImgWidth = (p->ImgWidth *10)>>3;
+        }
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
-            p->ImgHorStride = hevc_ver_align_256_odd(p->ImgWidth);
+            p->ImgHorStride = hevc_ver_align_256_odd(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
         } else {
-            p->ImgHorStride = default_align_16(p->ImgWidth);
+            p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
         }
         break;
