@@ -20,6 +20,7 @@ target_link_libraries(mpp_codec
                       codec_vp9d
                       codec_h265d
                       codec_avsd
+		      codec_m2vd
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_base)

@@ -22,6 +22,7 @@ add_subdirectory(rkdec/vp9d)
 
 add_subdirectory(rkdec/avsd)
 
+add_subdirectory(vpu/m2vd)
 # ----------------------------------------------------------------------------
 # add hardware worker implement
 # ----------------------------------------------------------------------------
@@ -29,7 +30,7 @@ add_subdirectory(worker/libvpu)
 add_subdirectory(worker/libv4l2)
 
 if(RKPLATFORM)
-target_link_libraries(mpp_hal hal_h264d hal_h265d hal_vp9d vpu hal_avsd hal_dummy)
+target_link_libraries(mpp_hal hal_h264d hal_h265d hal_vp9d vpu hal_avsd hal_m2vd hal_dummy)
 else()
-target_link_libraries(mpp_hal hal_h264d hal_h265d hal_vp9d hal_avsd hal_dummy)
+target_link_libraries(mpp_hal hal_h264d hal_h265d hal_vp9d hal_avsd hal_m2vd hal_dummy)
 endif()
