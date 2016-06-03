@@ -23,7 +23,7 @@
 
 static void log_info(void *ctx, ...)
 {
-	(void)ctx;
+    (void)ctx;
 }
 
 static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
@@ -33,9 +33,9 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
-    if (bitctx->need_prevention_detection 
-		&& (*bitctx->data_ == 0x03) 
-		&& ((bitctx->prev_two_bytes_ & 0xffff) == 0)) {
+    if (bitctx->need_prevention_detection
+        && (*bitctx->data_ == 0x03)
+        && ((bitctx->prev_two_bytes_ & 0xffff) == 0)) {
         // Detected 0x000003, skip last byte.
         ++bitctx->data_;
         --bitctx->bytes_left_;
@@ -134,13 +134,13 @@ MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 */
 MPP_RET mpp_skip_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 {
-	if (mpp_skip_bits(bitctx, 16)) {
-		return  MPP_ERR_READ_BIT;
-	}
-	if (mpp_skip_bits(bitctx, (num_bits - 16))) {
-		return  MPP_ERR_READ_BIT;
-	}
-	return MPP_OK;
+    if (mpp_skip_bits(bitctx, 16)) {
+        return  MPP_ERR_READ_BIT;
+    }
+    if (mpp_skip_bits(bitctx, (num_bits - 16))) {
+        return  MPP_ERR_READ_BIT;
+    }
+    return MPP_OK;
 }
 /*!
 ***********************************************************************
@@ -150,13 +150,15 @@ MPP_RET mpp_skip_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 */
 MPP_RET mpp_show_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	BitReadCtx_t tmp_ctx = *bitctx;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    BitReadCtx_t tmp_ctx = *bitctx;
+    if (num_bits <= 31)
+        ret = mpp_read_bits(bitctx, num_bits, out);
+    else
+        ret = mpp_read_longbits(bitctx, num_bits, (RK_U32*)out);
+    memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
 
-	ret = mpp_read_bits(bitctx, num_bits, out);
-	memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
-
-	return ret;
+    return ret;
 }
 /*!
 ***********************************************************************
@@ -166,13 +168,13 @@ MPP_RET mpp_show_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
 */
 MPP_RET mpp_show_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out)
 {
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	BitReadCtx_t tmp_ctx = *bitctx;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    BitReadCtx_t tmp_ctx = *bitctx;
 
-	ret = mpp_read_longbits(bitctx, num_bits, out);
-	memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
+    ret = mpp_read_longbits(bitctx, num_bits, out);
+    memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
 
-	return ret;
+    return ret;
 }
 /*!
 ***********************************************************************

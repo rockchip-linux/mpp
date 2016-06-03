@@ -10,5 +10,5 @@ add_subdirectory(vp9)
 
 add_subdirectory(avs)
 
-
+add_subdirectory(m2v)
 
