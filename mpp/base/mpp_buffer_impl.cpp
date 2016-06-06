@@ -127,7 +127,7 @@ MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
         group->count_used   = 0;
     }
 
-    mpp_alloctor_put(&group->allocator);
+    mpp_allocator_put(&group->allocator);
     list_del_init(&group->list_group);
     mpp_free(group);
     service.group_count--;
@@ -383,7 +383,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     } while (p->group_id != service.group_id);
     service.group_count++;
 
-    mpp_alloctor_get(&p->allocator, &p->alloc_api, type);
+    mpp_allocator_get(&p->allocator, &p->alloc_api, type);
 
     *group = p;
 
@@ -540,7 +540,7 @@ MppBufferService::MppBufferService()
     group_id++;
     group_count++;
 
-    mpp_alloctor_get(&p->allocator, &p->alloc_api, MPP_BUFFER_TYPE_ION);
+    mpp_allocator_get(&p->allocator, &p->alloc_api, MPP_BUFFER_TYPE_ION);
 
     mLegacyGroup = p;
 }
