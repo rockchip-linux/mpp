@@ -109,7 +109,7 @@ static MppAllocatorApi mpp_allocator_api = {
     mpp_allocator_release,
 };
 
-MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
+MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
 {
     if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("invalid input: allocator %p api %p type %d\n",
@@ -119,7 +119,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
 
     MppAllocatorImpl *p = mpp_malloc(MppAllocatorImpl, 1);
     if (NULL == p) {
-        mpp_err("mpp_alloctor_get failed to malloc allocator context\n");
+        mpp_err("mpp_allocator_get failed to malloc allocator context\n");
         return MPP_ERR_NULL_PTR;
     } else
         p->type = type;
@@ -140,7 +140,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
         *allocator  = p;
         *api        = &mpp_allocator_api;
     } else {
-        mpp_err("mpp_alloctor_get type %d failed\n", type);
+        mpp_err("mpp_allocator_get type %d failed\n", type);
         mpp_free(p);
         *allocator  = NULL;
         *api        = NULL;
@@ -149,7 +149,7 @@ MPP_RET mpp_alloctor_get(MppAllocator *allocator, MppAllocatorApi **api, MppBuff
     return ret;
 }
 
-MPP_RET mpp_alloctor_put(MppAllocator *allocator)
+MPP_RET mpp_allocator_put(MppAllocator *allocator)
 {
     if (NULL == allocator) {
         mpp_err_f("invalid input: allocator %p\n", allocator);
