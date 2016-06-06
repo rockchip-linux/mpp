@@ -118,7 +118,6 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     mpp_buf_slot_setup(ctx->frame_slots, 16);
 
     ctx->initFlag = 0;
-    ctx->mEosSet = 0;
 
     /* copy from mpeg2decoder::mpeg2decoder */
     memset(&ctx->Framehead, 0, 3 * sizeof(M2VDFrameHead));
@@ -393,7 +392,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
 
     buf = pos = mpp_packet_get_pos(pkt);
-    buf = pos = mpp_packet_get_pos(pkt);
+    p->pts = mpp_packet_get_pts(pkt);
     //MppPacketImpl *packet = (MppPacketImpl *)pkt;
     //uint32_t stream_count = 0;
 
@@ -429,12 +428,6 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     }
 #endif
 
-
-#if 0
-    if (m2vd_list_size(M2VD_LIST_FRM)) {
-        return m2vd_get_frame(p, &p->aDecOut);
-    }
-#endif
     task->valid = 1;
     FUN_T("FUN_O");
     return ret;
@@ -980,8 +973,7 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
 
 MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 {
-    VPU_BITSTREAM  strinfo;
-    memset(&strinfo, 0, sizeof(strinfo));
+    RK_U32 pts = (RK_U32)(ctx->pts/1000);
     if (ctx->resetFlag && ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I) {
         mpp_log("[m2v]: resetFlag[%d] && picture_coding_type[%d] != I_TYPE", ctx->resetFlag, ctx->pic_head.picture_coding_type);
         return MPP_NOK;
@@ -993,8 +985,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         ((ctx->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && (!ctx->pic_code_ext_head.top_field_first)) ||
         (ctx->frame_cur->slot_index == 0xff)) {
         RK_S32      Time;
-
-        if (ctx->PreGetFrameTime != strinfo.SliceTime.TimeLow) {
+        if (ctx->PreGetFrameTime != pts) {
             RK_U32 tmp_frame_period;
             if (ctx->GroupFrameCnt) {
                 ctx->GroupFrameCnt = ctx->GroupFrameCnt + ctx->pic_head.temporal_reference;
@@ -1005,8 +996,8 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             else
                 ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
 
-            tmp_frame_period = strinfo.SliceTime.TimeLow - ctx->PreGetFrameTime;
-            if ((strinfo.SliceTime.TimeLow > ctx->PreGetFrameTime) && (ctx->GroupFrameCnt > 0)) {
+            tmp_frame_period = pts - ctx->PreGetFrameTime;
+            if ((pts > ctx->PreGetFrameTime) && (ctx->GroupFrameCnt > 0)) {
                 tmp_frame_period = (tmp_frame_period * 256) / ctx->GroupFrameCnt;
                 if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) && (abs(ctx->frame_period - tmp_frame_period) > 128)) {
                     if (abs(ctx->preframe_period - tmp_frame_period) > 128)
@@ -1015,10 +1006,10 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                         ctx->frame_period = tmp_frame_period;
                 }
             }
-            ctx->Group_start_Time = strinfo.SliceTime.TimeLow - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
+            ctx->Group_start_Time =pts - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
             if (ctx->Group_start_Time < 0)
                 ctx->Group_start_Time = 0;
-            ctx->PreGetFrameTime = strinfo.SliceTime.TimeLow;
+            ctx->PreGetFrameTime = pts;
             ctx->PreChangeTime_index = ctx->pic_head.temporal_reference;
             ctx->GroupFrameCnt = 0;
         } else if ((RK_S32)ctx->pretemporal_reference > ctx->pic_head.temporal_reference + 5) {

@@ -110,16 +110,6 @@ typedef enum M2VDBufGrpIdx_t {
     M2VD_BUF_GRP_BUTT,
 } M2VDBufGrpIdx;
 
-
-typedef struct {
-    RK_U32      StartCode;
-    RK_U32      SliceLength;
-    TIME_STAMP  SliceTime;
-    RK_U32      SliceType;
-    RK_U32      SliceNum;
-    RK_U32      Res[2];
-} VPU_BITSTREAM; /*completely same as RK28*/
-
 typedef struct M2VFrameHead_t {
     RK_U32          frameNumber;
     RK_U32          tr;
@@ -291,22 +281,16 @@ typedef struct M2VDParserContext_t {
     RK_S32           flush_dpb_eos;
 
     MppPacket       input_packet;
-    IOInterruptCB noticfy_cb;
     RK_U32       eos;
 
-
-    pthread_cond_t  stream_cond;
-    pthread_mutex_t stream_mutex;
-    RK_S32 num_threads;
-    DecoderOut_t aDecOut;
     RK_S32 initFlag;
-    RK_S32 mEosSet;
     RK_S32 decoder_err;
 
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
-
     IOInterruptCB notify_cb;
+
+    RK_U64 pts;
 
     FILE *fp_dbg_file[M2VD_DBG_FILE_NUM];
     FILE *fp_dbg_yuv;
