@@ -466,16 +466,13 @@ static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t
 		{
             H264D_WARNNING("[check_field_paired] (discard) combine_flag=%d, last_used=%d, curr_struct=%d",
                            dec_pic->combine_flag, p_last->is_used, cur_structure);
-            ret = MPP_NOK;
-            goto __FAILED;
+            return ret = MPP_NOK;
         }
     }
 #endif
     H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
               dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
     return MPP_OK;
-__FAILED:
-    return ret;
 }
 
 static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t *dec_pic, H264_SLICE_t *currSlice)
