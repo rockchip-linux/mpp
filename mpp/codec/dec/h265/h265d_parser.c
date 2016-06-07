@@ -1981,6 +1981,7 @@ MPP_RET h265d_flush(void *ctx)
     frame = &s->DPB[s->output_frame_idx];
     if ((frame->slot_index < 0xff) && s->eos) {
         mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_EOS, &eos);
+        frame->slot_index = 0xff;
     } else {
         if (s->notify_cb.callBack != NULL && s->eos) {
             s->notify_cb.callBack(s->notify_cb.opaque, NULL);
