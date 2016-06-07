@@ -276,10 +276,7 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PP
         if (subset_sps->num_non_anchor_refs_l1[0] > 0)
             ret |= (subset_sps->non_anchor_ref_l1[0][0] != subset_sps->view_id[1]);
 
-        ret |= (subset_sps->num_level_values_signalled_minus1 != 0);
         //ret |= (subset_sps->num_applicable_ops_minus1[0] > 1);
-        ret |= (subset_sps->applicable_op_num_target_views_minus1[0][0] > 1);
-        ret |= (subset_sps->applicable_op_num_views_minus1[0][0] > 1);
         if (ret) {
             H264D_ERR("subsps has error, sps_id=%d", sps->seq_parameter_set_id);
             goto __FAILED;
