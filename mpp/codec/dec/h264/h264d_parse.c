@@ -958,9 +958,10 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
         case SliceSTATE_GetSliceData:
             FUN_CHECK(ret = fill_slice_syntax(&p_Dec->p_Cur->slice, p_Dec->dxva_ctx));
             p_Dec->p_Vid->iNumOfSlicesDecoded++;
-			//if (p_Dec->is_parser_end) {
-			//	p_Dec->next_state = SliceSTATE_RegisterOneFrame;
-			//} else 
+			if (p_Dec->is_parser_end) {
+				p_Dec->next_state = SliceSTATE_RegisterOneFrame;
+			}
+			else
 			{
 				p_Dec->next_state = SliceSTATE_ResetSlice;
 			}
