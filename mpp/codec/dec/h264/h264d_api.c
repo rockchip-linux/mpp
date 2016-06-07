@@ -255,6 +255,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->p_Dpb_layer[i]->layer_id  = i;
         p_Vid->p_Dpb_layer[i]->p_Vid     = p_Vid;
         p_Vid->p_Dpb_layer[i]->init_done = 0;
+		p_Vid->p_Dpb_layer[i]->poc_interval = 2;
     }
     //!< init video pars
     for (i = 0; i < MAXSPS; i++) {
@@ -519,7 +520,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->is_parser_end  = 0;
     p_Dec->dxva_ctx->strm_offset = 0;
     p_Dec->dxva_ctx->slice_count = 0;
-
+	p_Dec->last_frame_slot_idx   = -1;
 	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
@@ -777,9 +778,6 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 	RK_U32 *p_regs = NULL;
     INP_CHECK(ret, !decoder);
 	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-
-
-
 	p_regs = (RK_U32*)errinfo;
 	{
 		MppFrame mframe = NULL;

@@ -104,10 +104,20 @@ typedef enum {
 } ColorFormat;
 
 typedef enum {
-    FRAME = 0,
-    TOP_FIELD,
-    BOTTOM_FIELD
+    STRUCT_NULL  = 0,
+    TOP_FIELD    = 0x1,
+    BOTTOM_FIELD = 0x2,
+	FRAME        = 0x3,
+	STRUCT_MAX,
 } PictureStructure;           //!< New enum for field processing
+typedef enum {
+	PIC_ERR_NULL  = 0,
+	PIC_ERR_TOP   = 0x1,
+	PIC_ERR_BOT   = 0x2,
+	PIC_ERR_FRAME = 0x3,
+	PIC_ERR_WHOLE = 0x3,
+	PIC_ERR_MAX,
+}PictureError;
 
 typedef enum {
 	FIELD_ORDER_NULL,
@@ -335,6 +345,7 @@ typedef struct h264_dpb_buf_t {
     RK_U32   ltref_frames_in_buffer;
     RK_U32   used_size_il;
 
+	RK_S32   poc_interval;
     RK_S32   last_output_poc;
     RK_S32   last_output_view_id;
     RK_S32   max_long_term_pic_idx;
