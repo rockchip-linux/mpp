@@ -208,38 +208,47 @@ static void dump_buffer_info(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info)
 {
+    MPP_RET ret = MPP_OK;
     AutoMutex auto_lock(&service.mLock);
 
+    MPP_BUF_FUNCTION_ENTER();
+
+    BufferOp func = NULL;
+    MppBufferImpl *p = NULL;
     MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
     if (NULL == group) {
         mpp_err_f("can not create buffer without group\n");
-        return MPP_NOK;
+        ret = MPP_NOK;
+        goto RET;
     }
 
     if (group->limit_count && group->count >= group->limit_count) {
         mpp_err_f("reach group count limit %d\n", group->limit_count);
-        return MPP_NOK;
+        ret = MPP_NOK;
+        goto RET;
     }
 
     if (group->limit_size && info->size > group->limit_size) {
         mpp_err_f("required size %d reach group size limit %d\n", info->size, group->limit_size);
-        return MPP_NOK;
+        ret = MPP_NOK;
+        goto RET;
     }
 
-    MppBufferImpl *p = mpp_calloc(MppBufferImpl, 1);
+    p = mpp_calloc(MppBufferImpl, 1);
     if (NULL == p) {
         mpp_err_f("failed to allocate context\n");
-        return MPP_ERR_MALLOC;
+        ret = MPP_ERR_MALLOC;
+        goto RET;
     }
 
-    BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
-                    (group->alloc_api->alloc) :
-                    (group->alloc_api->import);
-    MPP_RET ret = func(group->allocator, info);
+    func = (group->mode == MPP_BUFFER_INTERNAL) ?
+           (group->alloc_api->alloc) : (group->alloc_api->import);
+    ret = func(group->allocator, info);
     if (MPP_OK != ret) {
         mpp_err_f("failed to create buffer with size %d\n", info->size);
         mpp_free(p);
-        return MPP_ERR_MALLOC;
+        ret = MPP_ERR_MALLOC;
+        goto RET;
     }
 
     p->info = *info;
@@ -256,59 +265,72 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, 
     group->usage += info->size;
     group->count++;
     group->count_unused++;
-    return MPP_OK;
+RET:
+    MPP_BUF_FUNCTION_LEAVE();
+    return ret;
 }
 
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 {
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
-    deinit_buffer_no_lock(buffer);
+    MPP_RET ret = deinit_buffer_no_lock(buffer);
 
-    return MPP_OK;
+    MPP_BUF_FUNCTION_LEAVE();
+    return ret;
 }
 
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 {
     AutoMutex auto_lock(&service.mLock);
-    return inc_buffer_ref_no_lock(buffer);
+    MPP_BUF_FUNCTION_ENTER();
+
+    MPP_RET ret = inc_buffer_ref_no_lock(buffer);
+
+    MPP_BUF_FUNCTION_LEAVE();
+    return ret;
 }
 
 
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
 {
+    MPP_RET ret = MPP_OK;
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
     if (buffer->ref_count <= 0) {
-        mpp_err_f("found non-positive ref_count %d caller %s\n", buffer->ref_count, buffer->caller);
-        return MPP_NOK;
-    }
-
-    buffer->ref_count--;
-    if (0 == buffer->ref_count) {
-        buffer->used = 0;
-        list_del_init(&buffer->list_status);
-        MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
-        if (group) {
-            if (group == service.mLegacyGroup) {
-                deinit_buffer_no_lock(buffer);
-            } else {
-                if (buffer->discard) {
+        mpp_err_f("found non-positive ref_count %d caller %s\n",
+                  buffer->ref_count, buffer->caller);
+        ret = MPP_NOK;
+    } else {
+        buffer->ref_count--;
+        if (0 == buffer->ref_count) {
+            buffer->used = 0;
+            list_del_init(&buffer->list_status);
+            MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
+            if (group) {
+                if (group == service.mLegacyGroup) {
                     deinit_buffer_no_lock(buffer);
                 } else {
-                    list_add_tail(&buffer->list_status, &group->list_unused);
-                    group->count_unused++;
+                    if (buffer->discard) {
+                        deinit_buffer_no_lock(buffer);
+                    } else {
+                        list_add_tail(&buffer->list_status, &group->list_unused);
+                        group->count_unused++;
+                    }
                 }
-            }
-            group->count_used--;
-            if (group->listener) {
-                MppThread *thread = (MppThread *)group->listener;
-                thread->signal();
+                group->count_used--;
+                if (group->listener) {
+                    MppThread *thread = (MppThread *)group->listener;
+                    thread->signal();
+                }
             }
         }
     }
 
-    return MPP_OK;
+    MPP_BUF_FUNCTION_LEAVE();
+    return ret;
 }
 
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
@@ -316,6 +338,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     MppBufferImpl *buffer = NULL;
 
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
@@ -334,6 +357,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
         }
     }
 
+    MPP_BUF_FUNCTION_LEAVE();
     return buffer;
 }
 
@@ -350,6 +374,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
     mpp_assert(caller);
 
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
     INIT_LIST_HEAD(&p->list_group);
     INIT_LIST_HEAD(&p->list_used);
@@ -387,6 +412,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
 
     *group = p;
 
+    MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
 }
 
@@ -418,6 +444,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
     }
 
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
     // remove unused list
     if (!list_empty(&p->list_unused)) {
@@ -446,6 +473,7 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
         }
     }
 
+    MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
 }
 
@@ -457,6 +485,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
     }
 
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
 
     if (!list_empty(&p->list_used)) {
         MppBufferImpl *pos, *n;
@@ -475,6 +504,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
         }
     }
 
+    MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
 }
 
@@ -486,8 +516,11 @@ MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
     }
 
     AutoMutex auto_lock(&service.mLock);
+    MPP_BUF_FUNCTION_ENTER();
+
     p->listener = listener;
 
+    MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
 }
 
