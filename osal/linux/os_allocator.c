@@ -74,6 +74,28 @@ MPP_RET os_allocator_normal_free(void *ctx, MppBufferInfo *info)
     return MPP_OK;
 }
 
+MPP_RET os_allocator_normal_import(void *ctx, MppBufferInfo *info)
+{
+    (void) ctx;
+    mpp_assert(info->ptr);
+    mpp_assert(info->size);
+    info->hnd   = NULL;
+    info->fd    = -1;
+    return MPP_OK;
+}
+
+MPP_RET os_allocator_normal_release(void *ctx, MppBufferInfo *info)
+{
+    (void) ctx;
+    mpp_assert(info->ptr);
+    mpp_assert(info->size);
+    info->ptr   = NULL;
+    info->size  = 0;
+    info->hnd   = NULL;
+    info->fd    = -1;
+    return MPP_OK;
+}
+
 MPP_RET os_allocator_normal_close(void *ctx)
 {
     if (ctx) {
@@ -88,8 +110,8 @@ static os_allocator allocator_normal = {
     os_allocator_normal_open,
     os_allocator_normal_alloc,
     os_allocator_normal_free,
-    NULL,
-    NULL,
+    os_allocator_normal_import,
+    os_allocator_normal_release,
     os_allocator_normal_close,
 };
 
