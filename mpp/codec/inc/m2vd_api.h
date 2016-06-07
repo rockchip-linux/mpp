@@ -19,6 +19,14 @@
 
 #include "parser_api.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern const ParserApi api_m2vd_parser;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif
