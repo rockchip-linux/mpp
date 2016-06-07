@@ -566,7 +566,11 @@ MPP_RET  h264d_flush(void *decoder)
         //free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
     }
     flush_dpb_buf_slot(p_Dec);
-	mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx, SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
+    if (p_Dec->last_frame_slot_idx >= 0) {
+	    mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
+                              SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
+        p_Dec->last_frame_slot_idx = -1;
+    }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
@@ -703,7 +707,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     in_task->valid = 0; // prepare end flag
     p_Dec->in_task = in_task;
 	p_err->cur_err_flag  = 0;
-    p_err->used_ref_flag = 0;	
+    p_err->used_ref_flag = 0;
 	p_Dec->is_parser_end = 0;
     FUN_CHECK(ret = parse_loop(p_Dec));
 
@@ -729,12 +733,12 @@ __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
 
-__FAILED: 
+__FAILED:
 	{
         H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
 		if (dec_pic) {
 			H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
-			if (dec_pic->mem_mark 
+			if (dec_pic->mem_mark
 				&& dec_pic->mem_mark->out_flag
 				&& (dec_pic->mem_mark->slot_idx >= 0)) {
 				MppFrame mframe = NULL;
@@ -745,14 +749,14 @@ __FAILED:
 					} else {
 						mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
 					}
-				}				
+				}
 				mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
 				mpp_buf_slot_enqueue(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
 				mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
-			}		
+			}
 			reset_dpb_mark(dec_pic->mem_mark);
 			dec_pic->mem_mark = NULL;
-			MPP_FREE(dec_pic);			
+			MPP_FREE(dec_pic);
 			p_Dec->p_Vid->dec_pic = NULL;
 		}
 		p_err->dpb_err_flag |= p_err->used_ref_flag ? 1 : 0;
@@ -778,7 +782,7 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 
 
 	p_regs = (RK_U32*)errinfo;
-	{		
+	{
 		MppFrame mframe = NULL;
 
 		RK_U32 out_slot_idx = p_regs[78];
