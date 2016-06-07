@@ -446,7 +446,6 @@ MPP_RET h264d_deinit(void *decoder)
 
     INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-    h264d_flush(decoder);
     free_input_ctx(p_Dec->p_Inp);
     MPP_FREE(p_Dec->p_Inp);
     free_cur_ctx(p_Dec->p_Cur);
