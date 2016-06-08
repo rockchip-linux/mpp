@@ -1989,17 +1989,21 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
     //!< discard stream before I_SLICE
     p_err->i_slice_no += ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) ? 1 : 0;
     if (!p_err->i_slice_no) {
-        H264D_WARNNING("[Discard] Discard slice before I Slice.");
+        H264D_WARNNING("[Discard] Discard slice before I Slice. \n");
         ret = MPP_NOK;
         goto __FAILED;
     }
-
     FUN_CHECK(ret = alloc_decpic(currSlice));
-
-    if ((p_err->i_slice_no < 2)
-        && (!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
-        p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
-    }
+	if (p_err->i_slice_no < 2) {
+		if ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
+			p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
+		}
+		if (p_Vid->dec_pic->poc < p_err->first_iframe_poc) {
+			H264D_WARNNING("[Discard] Discard poc less than first I Slice. \n");
+			ret = MPP_NOK;
+			goto __FAILED;
+		}
+	}
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {
         ASSERT(currSlice->layer_id == 1);
