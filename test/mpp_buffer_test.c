@@ -18,9 +18,14 @@
 
 #include <string.h>
 
+#if defined(_WIN32)
+#include "vld.h"
+#endif
 #include "mpp_log.h"
+#include "mpp_env.h"
 #include "mpp_buffer.h"
 
+#define MPP_BUFFER_TEST_DEBUG_FLAG      (0xf)
 #define MPP_BUFFER_TEST_SIZE            (SZ_1K*4)
 #define MPP_BUFFER_TEST_COMMIT_COUNT    10
 #define MPP_BUFFER_TEST_NORMAL_COUNT    10
@@ -37,8 +42,12 @@ int main()
     size_t size = MPP_BUFFER_TEST_SIZE;
     RK_S32 count = MPP_BUFFER_TEST_COMMIT_COUNT;
     RK_S32 i;
+    RK_U32 debug = 0;
 
-    mpp_log("mpp_buffer_test start\n");
+    mpp_env_set_u32("mpp_buffer_debug", MPP_BUFFER_TEST_DEBUG_FLAG);
+    mpp_env_get_u32("mpp_buffer_debug", &debug, 0);
+
+    mpp_log("mpp_buffer_test start with debug 0x%x\n", debug);
 
     memset(commit_ptr,    0, sizeof(commit_ptr));
     memset(commit_buffer, 0, sizeof(commit_buffer));
