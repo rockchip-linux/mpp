@@ -42,7 +42,7 @@ struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
     RK_U32              group_id;
-    RK_U32              buffer_id;
+    RK_S32              buffer_id;
     MppBufferMode       mode;
 
     MppBufferInfo       info;
@@ -72,13 +72,13 @@ struct MppBufferGroupImpl_t {
     // status record
     size_t              limit;
     size_t              usage;
-    RK_S32              count;
+    RK_S32              buffer_id;
+    RK_S32              buffer_count;
+    RK_S32              count_used;
+    RK_S32              count_unused;
 
     MppAllocator        allocator;
     MppAllocatorApi     *alloc_api;
-
-    RK_S32              count_used;
-    RK_S32              count_unused;
 
     // thread that will be signal on buffer return
     void                *listener;
@@ -87,6 +87,12 @@ struct MppBufferGroupImpl_t {
     RK_U32              clear_on_exit;
     // is_orphan: 0 - normal group 1 - orphan group
     RK_U32              is_orphan;
+
+    // buffer log function
+    RK_U32              log_runtime_en;
+    RK_U32              log_history_en;
+    RK_U32              log_count;
+    struct list_head    list_logs;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
