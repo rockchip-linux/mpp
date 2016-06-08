@@ -30,7 +30,7 @@ else()
     target_link_libraries(hal_m2vd osal)
 endif()    
 target_link_libraries(hal_m2vd
-                      mpp
+                      mpp_base
 					  )
 set_target_properties(hal_m2vd PROPERTIES FOLDER "mpp/hal")        
 

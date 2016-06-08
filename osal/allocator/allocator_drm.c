@@ -75,7 +75,8 @@ static int drm_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
     if (ret < 0)
         return ret;
     *handle = dmcb.handle;
-
+	(void)heap_mask;
+	(void)flags;
     return ret;
 }
 
@@ -102,7 +103,7 @@ static int drm_handle_to_fd(int fd, RK_U32 handle, int *map_fd, RK_U32 flags)
         mpp_err("map ioctl returned negative fd\n");
         return -EINVAL;
     }
-
+	(void)flags;
     return ret;
 }
 
@@ -140,7 +141,7 @@ static int drm_map(int fd, RK_U32 handle, size_t length, int prot,
         mpp_err("mmap failed: %s\n", strerror(errno));
         return -errno;
     }
-
+	(void)offset;
     return ret;
 }
 
