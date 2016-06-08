@@ -138,10 +138,6 @@ int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int 
     if (NULL == p_mempool) {
         return -1;
     }
-    mpp_buffer_group_get_internal(&p_mempool->group, MPP_BUFFER_TYPE_ION);
-    if (NULL == p_mempool->group) {
-        return -1;
-    }
     p_mempool->commit_hdl     = commit_memory_handle;
     p_mempool->get_free       = get_free_memory_vpumem;
     p_mempool->put_used       = put_used_memory_handle;
@@ -162,9 +158,6 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)ipool;
     if (p_mempool == NULL) {
         return;
-    }
-    if (NULL != p_mempool->group) {
-        mpp_buffer_group_put(p_mempool->group);
     }
     mpp_free(p_mempool);
     return;
