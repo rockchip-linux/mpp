@@ -32,6 +32,7 @@ add_library(osal STATIC
     )
 
 if(ANDROID)
+    add_definitions(-static)
     # in Android pthread is in libc, also need liblog
     target_link_libraries(osal log stdc++ m c )
 else()
