@@ -24,8 +24,7 @@
 
 #include "mpp_buffer_impl.h"
 
-#define SEARCH_GROUP_NORMAL(id)         search_group_by_id_no_lock(&service.mListGroup,  id)
-#define SEARCH_GROUP_ORPHAN(id)         search_group_by_id_no_lock(&service.mListOrphan, id)
+#define SEARCH_GROUP_BY_ID(id)  ((MppBufferService::get_instance())->get_group_by_id(id))
 
 typedef MPP_RET (*BufferOp)(MppAllocator allocator, MppBufferInfo *data);
 
@@ -42,20 +41,28 @@ typedef struct MppBufLog_t {
     struct list_head    list;
     MppBuffer           buf;
     MppBufOps           ops;
-    RK_U32              val_in;
-    RK_U32              val_out;
+    RK_S32              ref_count;
 } MppBufLog;
 
-
+// use this class only need it to init legacy group before main
 class MppBufferService
 {
-public:
+private:
+
+    // avoid any unwanted function
     MppBufferService();
     ~MppBufferService();
+    MppBufferService(const MppBufferService &);
+    MppBufferService &operator=(const MppBufferService &);
 
-    Mutex               mLock;
+    // buffer group final release function
+    void                release_group(MppBufferGroupImpl *group);
+
+    RK_U32              get_group_id();
     RK_U32              group_id;
     RK_U32              group_count;
+    RK_U32              buffer_id;
+    RK_U32              buffer_count;
 
     MppBufferGroupImpl  *mLegacyGroup;
 
@@ -63,6 +70,31 @@ public:
 
     // list for used buffer which do not have group
     struct list_head    mListOrphan;
+
+    // buffer log function
+    RK_U32              log_runtime_en;
+    RK_U32              log_history_en;
+    struct list_head    list_logs;
+
+public:
+    static MppBufferService *get_instance()
+    {
+        static MppBufferService instance;
+        return &instance;
+    }
+    static Mutex *get_lock()
+    {
+        static Mutex lock;
+        return &lock;
+    }
+
+    MppBufferGroupImpl  *get_group(const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);
+    MppBufferGroupImpl  *get_legacy_group();
+    void                put_group(MppBufferGroupImpl *group);
+
+    MppBufferGroupImpl  *get_group_by_id(RK_U32 id);
+    void                add_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops);
+
 };
 
 static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
@@ -76,7 +108,6 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "v4l2",
 	"drm",
 };
-#if 0
 static const char *ops2str[BUF_OPS_BUTT] = {
     "commit",
     "create",
@@ -84,68 +115,8 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "ref dec",
     "destroy",
 };
-#endif
+
 RK_U32 mpp_buffer_debug = 0;
-static MppBufferService service;
-#if 0
-static void add_buf_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops, RK_U32 val_in, RK_U32 val_out)
-{
-    if (group->log_runtime_en) {
-        mpp_log("group %p buffer %p ops %s val in %d out %d\n", group, buffer, ops2str[ops], val_in, val_out);
-    }
-    if (group->log_history_en) {
-        MppBufLog *log = mpp_malloc(MppBufLog, 1);
-        if (log) {
-            INIT_LIST_HEAD(&log->list);
-            log->buf = buffer;
-            log->ops = ops;
-            log->val_in = val_in;
-            log->val_out = val_out;
-        }
-    }
-}
-#endif
-static MppBufferGroupImpl *search_group_by_id_no_lock(struct list_head *list, RK_U32 group_id)
-{
-    MppBufferGroupImpl *pos, *n;
-    list_for_each_entry_safe(pos, n, list, MppBufferGroupImpl, list_group) {
-        if (pos->group_id == group_id) {
-            return pos;
-        }
-    }
-    return NULL;
-}
-
-MPP_RET deinit_group_no_lock(MppBufferGroupImpl *group)
-{
-    MppBufferGroupImpl *legacy = mpp_buffer_legacy_group();
-
-    if (group->count_unused || group->count_used) {
-        mpp_err("mpp_buffer_group_deinit mismatch counter used %4d unused %4d found\n",
-            group->count_used, group->count_unused);
-        group->count_unused = 0;
-        group->count_used   = 0;
-    }
-
-    mpp_allocator_put(&group->allocator);
-    list_del_init(&group->list_group);
-    mpp_free(group);
-    service.group_count--;
-
-    if (group == legacy) {
-        service.mLegacyGroup = NULL;
-    } else {
-        /* if only legacy group left dump the legacy group */
-        if (service.group_count == 1) {
-            if (legacy->count) {
-                mpp_log("found legacy group has buffer remain, start dumping\n");
-                mpp_buffer_group_dump(legacy);
-                //abort();
-            }
-        }
-    }
-    return MPP_OK;
-}
 
 MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
 {
@@ -153,8 +124,8 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
     mpp_assert(buffer->used == 0);
 
     list_del_init(&buffer->list_status);
-    MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
-    if (group) {
+    MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+    if (!group->is_orphan) {
         BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
                         (group->alloc_api->free) :
                         (group->alloc_api->release);
@@ -162,14 +133,12 @@ MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer)
         group->usage -= buffer->info.size;
         group->count--;
     } else {
-        group = SEARCH_GROUP_ORPHAN(buffer->group_id);
-        mpp_assert(group);
         mpp_assert(buffer->mode == MPP_BUFFER_INTERNAL);
         group->alloc_api->free(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->count--;
         if (0 == group->usage)
-            deinit_group_no_lock(group);
+            MppBufferService::get_instance()->put_group(group);
     }
 
     mpp_free(buffer);
@@ -181,7 +150,7 @@ static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer)
 {
     MPP_RET ret = MPP_OK;
     if (!buffer->used) {
-        MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
+        MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
         // NOTE: when increasing ref_count the unused buffer must be under certain group
         mpp_assert(group);
         buffer->used = 1;
@@ -208,14 +177,13 @@ static void dump_buffer_info(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info)
 {
-    MPP_RET ret = MPP_OK;
-    AutoMutex auto_lock(&service.mLock);
-
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
+    MPP_RET ret = MPP_OK;
     BufferOp func = NULL;
     MppBufferImpl *p = NULL;
-    MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(group_id);
+    MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(group_id);
     if (NULL == group) {
         mpp_err_f("can not create buffer without group\n");
         ret = MPP_NOK;
@@ -272,7 +240,7 @@ RET:
 
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 {
-    AutoMutex auto_lock(&service.mLock);
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
     MPP_RET ret = deinit_buffer_no_lock(buffer);
@@ -283,7 +251,7 @@ MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 {
-    AutoMutex auto_lock(&service.mLock);
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
     MPP_RET ret = inc_buffer_ref_no_lock(buffer);
@@ -295,9 +263,10 @@ MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer)
 
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
 {
-    MPP_RET ret = MPP_OK;
-    AutoMutex auto_lock(&service.mLock);
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
+
+    MPP_RET ret = MPP_OK;
 
     if (buffer->ref_count <= 0) {
         mpp_err_f("found non-positive ref_count %d caller %s\n",
@@ -308,23 +277,21 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
         if (0 == buffer->ref_count) {
             buffer->used = 0;
             list_del_init(&buffer->list_status);
-            MppBufferGroupImpl *group = SEARCH_GROUP_NORMAL(buffer->group_id);
-            if (group) {
-                if (group == service.mLegacyGroup) {
+            MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+            if (group == MppBufferService::get_instance()->get_legacy_group()) {
+                deinit_buffer_no_lock(buffer);
+            } else {
+                if (buffer->discard) {
                     deinit_buffer_no_lock(buffer);
                 } else {
-                    if (buffer->discard) {
-                        deinit_buffer_no_lock(buffer);
-                    } else {
-                        list_add_tail(&buffer->list_status, &group->list_unused);
-                        group->count_unused++;
-                    }
+                    list_add_tail(&buffer->list_status, &group->list_unused);
+                    group->count_unused++;
                 }
-                group->count_used--;
-                if (group->listener) {
-                    MppThread *thread = (MppThread *)group->listener;
-                    thread->signal();
-                }
+            }
+            group->count_used--;
+            if (group->listener) {
+                MppThread *thread = (MppThread *)group->listener;
+                thread->signal();
             }
         }
     }
@@ -335,10 +302,10 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
 
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
 {
-    MppBufferImpl *buffer = NULL;
-
-    AutoMutex auto_lock(&service.mLock);
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
+
+    MppBufferImpl *buffer = NULL;
 
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
@@ -364,114 +331,28 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller,
                               MppBufferMode mode, MppBufferType type)
 {
-    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
-    if (NULL == p) {
-        mpp_err_f("failed to allocate context\n");
-        *group = NULL;
-        return MPP_ERR_MALLOC;
-    }
+    AutoMutex auto_lock(MppBufferService::get_lock());
 
     mpp_assert(caller);
-
-    AutoMutex auto_lock(&service.mLock);
     MPP_BUF_FUNCTION_ENTER();
 
-    INIT_LIST_HEAD(&p->list_group);
-    INIT_LIST_HEAD(&p->list_used);
-    INIT_LIST_HEAD(&p->list_unused);
-    INIT_LIST_HEAD(&p->list_logs);
-
-    list_add_tail(&p->list_group, &service.mListGroup);
-
-    if (tag) {
-        snprintf(p->tag, sizeof(p->tag), "%s_%d", tag, service.group_id);
-    } else {
-        snprintf(p->tag, sizeof(p->tag), "unknown");
-    }
-    p->caller   = caller;
-    p->mode     = mode;
-    p->type     = type;
-    p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
-    p->group_id = service.group_id;
-
-    mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
-    p->log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
-    p->log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
-    p->clear_on_exit    = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
-
-    // avoid group_id reuse
-    do {
-        service.group_id++;
-        if (NULL == SEARCH_GROUP_NORMAL(service.group_id) &&
-            NULL == SEARCH_GROUP_ORPHAN(service.group_id))
-            break;
-    } while (p->group_id != service.group_id);
-    service.group_count++;
-
-    mpp_allocator_get(&p->allocator, &p->alloc_api, type);
-
-    *group = p;
+    *group = MppBufferService::get_instance()->get_group(tag, caller, mode, type);
 
     MPP_BUF_FUNCTION_LEAVE();
-    return MPP_OK;
-}
-
-static MPP_RET force_clear_mpp_buffer_group(MppBufferGroupImpl *p)
-{
-    MppBufferImpl *pos, *n;
-
-    mpp_err("force release all remaining buffer\n");
-
-    list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-        mpp_err("clearing buffer %p pos\n");
-        pos->ref_count = 0;
-        pos->used = 0;
-        pos->discard = 0;
-        deinit_buffer_no_lock(pos);
-        p->count_used--;
-    }
-
-    deinit_group_no_lock(p);
-
-    return MPP_OK;
+    return ((*group) ? (MPP_OK) : (MPP_NOK));
 }
 
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 {
+    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    AutoMutex auto_lock(&service.mLock);
     MPP_BUF_FUNCTION_ENTER();
 
-    // remove unused list
-    if (!list_empty(&p->list_unused)) {
-        MppBufferImpl *pos, *n;
-        list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
-            deinit_buffer_no_lock(pos);
-            p->count_unused--;
-        }
-    }
-
-    if (list_empty(&p->list_used)) {
-        deinit_group_no_lock(p);
-    } else {
-        mpp_err("mpp_group %p tag %s caller %s mode %s type %s deinit with %d bytes not released\n",
-                p, p->tag, p->caller, mode2str[p->mode], type2str[p->type], p->usage);
-
-        mpp_buffer_group_dump(p);
-
-        /* if clear on exit we need to release remaining buffer */
-        if (p->clear_on_exit) {
-            force_clear_mpp_buffer_group(p);
-        } else {
-            // otherwise move the group to list_orphan and wait for buffer release
-            list_del_init(&p->list_group);
-            list_add_tail(&p->list_group, &service.mListOrphan);
-        }
-    }
+    MppBufferService::get_instance()->put_group(p);
 
     MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
@@ -479,12 +360,12 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 {
+    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    AutoMutex auto_lock(&service.mLock);
     MPP_BUF_FUNCTION_ENTER();
 
     if (!list_empty(&p->list_used)) {
@@ -510,12 +391,12 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 
 MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
 {
+    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    AutoMutex auto_lock(&service.mLock);
     MPP_BUF_FUNCTION_ENTER();
 
     p->listener = listener;
@@ -546,49 +427,44 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
 
 MppBufferGroupImpl *mpp_buffer_legacy_group()
 {
-    return service.mLegacyGroup;
+    AutoMutex auto_lock(MppBufferService::get_lock());
+    return MppBufferService::get_instance()->get_legacy_group();
 }
 
 MppBufferService::MppBufferService()
     : group_id(0),
       group_count(0),
-      mLegacyGroup(NULL)
+      buffer_id(0),
+      buffer_count(0),
+      mLegacyGroup(NULL),
+      log_runtime_en(0),
+      log_history_en(0)
 {
     INIT_LIST_HEAD(&mListGroup);
     INIT_LIST_HEAD(&mListOrphan);
+    INIT_LIST_HEAD(&list_logs);
+
+    mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
+    log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
+    log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
 
     // NOTE: here can not call mpp_buffer_group_init for the service is not started
-    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
-    INIT_LIST_HEAD(&p->list_group);
-    INIT_LIST_HEAD(&p->list_used);
-    INIT_LIST_HEAD(&p->list_unused);
-    INIT_LIST_HEAD(&p->list_logs);
-
-    list_add_tail(&p->list_group, &mListGroup);
-
-    snprintf(p->tag, sizeof(p->tag), "legacy");
-    p->mode     = MPP_BUFFER_INTERNAL;
-    p->type     = MPP_BUFFER_TYPE_ION;
-
-    group_id++;
-    group_count++;
-
-    mpp_allocator_get(&p->allocator, &p->alloc_api, MPP_BUFFER_TYPE_ION);
-
-    mLegacyGroup = p;
+    mLegacyGroup = get_group("legacy", "MppBufferService", MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
 }
 
 MppBufferService::~MppBufferService()
 {
     // first remove legacy group
-    if (mLegacyGroup)
-        mpp_buffer_group_deinit(mLegacyGroup);
+    if (mLegacyGroup) {
+        put_group(mLegacyGroup);
+        mLegacyGroup = NULL;
+    }
 
     // then remove the remaining group
     if (!list_empty(&mListGroup)) {
         MppBufferGroupImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
-            mpp_buffer_group_deinit(pos);
+            put_group(pos);
         }
     }
 
@@ -597,6 +473,162 @@ MppBufferService::~MppBufferService()
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &mListOrphan, MppBufferImpl, list_status) {
             deinit_buffer_no_lock(pos);
+        }
+    }
+}
+
+RK_U32 MppBufferService::get_group_id()
+{
+    // avoid group_id reuse
+    RK_U32 id = group_id++;
+    while (get_group_by_id(group_id)){
+        group_id++;
+    }
+    group_count++;
+    return id;
+}
+
+MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *caller,
+                                                  MppBufferMode mode, MppBufferType type)
+{
+    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
+    if (NULL == p) {
+        mpp_err("MppBufferService failed to allocate group context\n");
+        return NULL;
+    }
+
+    RK_U32 id = get_group_id();
+
+    INIT_LIST_HEAD(&p->list_group);
+    INIT_LIST_HEAD(&p->list_used);
+    INIT_LIST_HEAD(&p->list_unused);
+
+    list_add_tail(&p->list_group, &mListGroup);
+
+    if (tag) {
+        snprintf(p->tag, sizeof(p->tag), "%s_%d", tag, id);
+    } else {
+        snprintf(p->tag, sizeof(p->tag), "unknown");
+    }
+    p->caller   = caller;
+    p->mode     = mode;
+    p->type     = type;
+    p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
+    p->group_id = id;
+    p->clear_on_exit = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
+
+    mpp_allocator_get(&p->allocator, &p->alloc_api, type);
+
+    return p;
+}
+
+MppBufferGroupImpl *MppBufferService::get_legacy_group()
+{
+    return mLegacyGroup;
+}
+
+void MppBufferService::put_group(MppBufferGroupImpl *p)
+{
+    // remove unused list
+    if (!list_empty(&p->list_unused)) {
+        MppBufferImpl *pos, *n;
+        list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
+            deinit_buffer_no_lock(pos);
+            p->count_unused--;
+        }
+    }
+
+    if (list_empty(&p->list_used)) {
+        release_group(p);
+    } else {
+        mpp_err("mpp_group %p tag %s caller %s mode %s type %s deinit with %d bytes not released\n",
+                p, p->tag, p->caller, mode2str[p->mode], type2str[p->type], p->usage);
+
+        mpp_buffer_group_dump(p);
+
+        /* if clear on exit we need to release remaining buffer */
+        if (p->clear_on_exit) {
+            MppBufferImpl *pos, *n;
+
+            mpp_err("force release all remaining buffer\n");
+
+            list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
+                mpp_err("clearing buffer %p pos\n");
+                pos->ref_count = 0;
+                pos->used = 0;
+                pos->discard = 0;
+                deinit_buffer_no_lock(pos);
+                p->count_used--;
+            }
+
+            release_group(p);
+        } else {
+            // otherwise move the group to list_orphan and wait for buffer release
+            list_del_init(&p->list_group);
+            list_add_tail(&p->list_group, &mListOrphan);
+            p->is_orphan = 1;
+        }
+    }
+}
+
+void MppBufferService::release_group(MppBufferGroupImpl *group)
+{
+    mpp_assert(group->count_used == 0);
+    mpp_assert(group->count_unused == 0);
+    if (group->count_unused || group->count_used) {
+        mpp_err("mpp_buffer_group_deinit mismatch counter used %4d unused %4d found\n",
+            group->count_used, group->count_unused);
+        group->count_unused = 0;
+        group->count_used   = 0;
+    }
+
+    mpp_allocator_put(&group->allocator);
+    list_del_init(&group->list_group);
+    mpp_free(group);
+    group_count--;
+
+    if (group == mLegacyGroup) {
+        mLegacyGroup = NULL;
+    } else {
+        /* if only legacy group left dump the legacy group */
+        if (group_count == 1 && mLegacyGroup->count) {
+            mpp_log("found legacy group has buffer remain, start dumping\n");
+            mpp_buffer_group_dump(mLegacyGroup);
+            abort();
+        }
+    }
+}
+
+MppBufferGroupImpl *MppBufferService::get_group_by_id(RK_U32 id)
+{
+    MppBufferGroupImpl *pos, *n;
+    list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
+        if (pos->group_id == id) {
+            return pos;
+        }
+    }
+
+    list_for_each_entry_safe(pos, n, &mListOrphan, MppBufferGroupImpl, list_group) {
+        if (pos->group_id == id) {
+            return pos;
+        }
+    }
+
+    return NULL;
+}
+
+void MppBufferService::add_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops)
+{
+    if (log_runtime_en) {
+        mpp_log("group %p buffer %p ops %s val ref_count %d\n", group, buffer, ops2str[ops], buffer->ref_count);
+    }
+    if (log_history_en) {
+        MppBufLog *log = mpp_malloc(MppBufLog, 1);
+        if (log) {
+            INIT_LIST_HEAD(&log->list);
+            log->buf = buffer;
+            log->ops = ops;
+            log->ref_count = buffer->ref_count;
         }
     }
 }
