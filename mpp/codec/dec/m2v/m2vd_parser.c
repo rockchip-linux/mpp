@@ -400,7 +400,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     task->valid = 0;
 
     m2vd_parser_split_frame(buf,
-                            mpp_packet_get_length(pkt),
+                            (RK_U32)mpp_packet_get_length(pkt),
                             p->bitstream_sw_buf,
                             &out_size);
     pos += out_size;
@@ -1252,7 +1252,7 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
 
     p->flush_dpb_eos = 0;
 
-    p->frame_size = mpp_packet_get_length(in_task->input_packet);
+    p->frame_size = (RK_U32)mpp_packet_get_length(in_task->input_packet);
 
     mpp_set_bitread_ctx(p->bitread_ctx, p->bitstream_sw_buf, p->frame_size);
 

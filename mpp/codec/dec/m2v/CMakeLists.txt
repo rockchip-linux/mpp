@@ -27,10 +27,9 @@ add_library(codec_m2vd STATIC
 				${M2VD_COMMON}
 				${M2VD_HDR} 
 				${M2VD_SRC} 
-			)
+			)	
 target_link_libraries(codec_m2vd
-                      mpp
-					  mpp_legacy
+                      mpp_base
                       )
 set_target_properties(codec_m2vd PROPERTIES FOLDER "mpp/codec")
 
