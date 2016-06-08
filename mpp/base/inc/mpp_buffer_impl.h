@@ -42,6 +42,7 @@ struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
     RK_U32              group_id;
+    RK_U32              buffer_id;
     MppBufferMode       mode;
 
     MppBufferInfo       info;
@@ -84,11 +85,8 @@ struct MppBufferGroupImpl_t {
 
     // buffer force clear mode flag
     RK_U32              clear_on_exit;
-
-    // buffer log function
-    RK_U32              log_runtime_en;
-    RK_U32              log_history_en;
-    struct list_head    list_logs;
+    // is_orphan: 0 - normal group 1 - orphan group
+    RK_U32              is_orphan;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
@@ -137,6 +135,7 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener);
+// mpp_buffer_group helper function
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
 MppBufferGroupImpl *mpp_buffer_legacy_group();
 
