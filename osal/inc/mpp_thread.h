@@ -64,6 +64,8 @@ typedef enum {
 
 #ifdef __cplusplus
 
+#include "mpp_log.h"
+
 class Mutex;
 class Condition;
 
