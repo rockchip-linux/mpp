@@ -204,40 +204,44 @@ public:
         : rkapi_hdl(NULL),
           rkvpu_open_cxt(NULL),
           rkvpu_close_cxt(NULL) {
-        RK_S32 value = !!access("/dev/rkvdec", F_OK);
-        if (value) {
+        if (!!access("/dev/rkvdec", F_OK)) {
             rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
         }
         if (rkapi_hdl == NULL) {
             rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
         }
-        rkvpu_open_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
-        rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
-        mpp_log("dlopen vpu lib");
+        if (rkapi_hdl) {
+            rkvpu_open_cxt  = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
+            rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
+            mpp_log("dlopen vpu lib success\n");
+        } else {
+            mpp_err("dlopen vpu lib failed\n");
+        }
     }
 
     ~VpulibDlsym() {
-        dlclose(rkapi_hdl);
-        mpp_log("dlclose vpu lib");
+        if (rkapi_hdl) {
+            dlclose(rkapi_hdl);
+            mpp_log("dlclose vpu lib");
+        }
     }
-
 };
 VpulibDlsym gVpulib;
 
 RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
-    if (NULL != gVpulib.rkvpu_open_cxt) {
-        (gVpulib.rkvpu_open_cxt)(ctx);
+    if (gVpulib.rkvpu_open_cxt && ctx) {
+        return (gVpulib.rkvpu_open_cxt)(ctx);
     }
-    return MPP_OK;
+    return MPP_NOK;
 }
 
 RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 {
-    if (NULL != gVpulib.rkvpu_close_cxt) {
-        (gVpulib.rkvpu_close_cxt)(ctx);
+    if (gVpulib.rkvpu_close_cxt && ctx) {
+        return (gVpulib.rkvpu_close_cxt)(ctx);
     }
-    return MPP_OK;
+    return MPP_NOK;
 }
 #endif
 
