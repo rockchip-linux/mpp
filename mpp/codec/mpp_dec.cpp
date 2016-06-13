@@ -185,7 +185,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             mpp_buf_slot_reset(frame_slots, task_dec->output);
 
         }
-        if(task->status.task_parsed_rdy){
+        if (task->status.task_parsed_rdy) {
             mpp_log("task no send to hal que must clr current frame hal status");
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
@@ -316,14 +316,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.curr_task_rdy) {
-        RK_S64 p_e, p_s,diff;
+        RK_S64 p_e, p_s, diff;
         p_s = mpp_time();
         parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         p_e = mpp_time();
-        if(mpp_debug & MPP_TIMING){
-            diff = (p_e - p_s)/1000;
-            if(diff > 15){
-                mpp_log("waring mpp prepare stream consume %lld big than 15ms ",diff);
+        if (mpp_debug & MPP_TIMING) {
+            diff = (p_e - p_s) / 1000;
+            if (diff > 15) {
+                mpp_log("waring mpp prepare stream consume %lld big than 15ms ", diff);
             }
         }
         if (0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
@@ -619,7 +619,7 @@ void *mpp_dec_hal_thread(void *data)
     HalDecTask  *task_dec = &task_info.dec;
     RK_S64 cur_deat = 0;
     RK_U64 dec_no = 0, total_time = 0;
-    RK_S64 p_s,p_e;
+    RK_S64 p_s, p_e;
     p_s = mpp_time();
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
@@ -879,10 +879,10 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
     } break;
-	case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
-		RK_S32 *p = (RK_S32 *)param;
-		*p = mpp_buf_slot_get_used_size(dec->frame_slots);
-	} break;
+    case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
+        RK_S32 *p = (RK_S32 *)param;
+        *p = mpp_buf_slot_get_used_size(dec->frame_slots);
+    } break;
     default : {
     } break;
     }

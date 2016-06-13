@@ -188,7 +188,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     if (mPackets->list_size() < 4 || eos) {
         MppPacket pkt;
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
-			return MPP_NOK;
+            return MPP_NOK;
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         mThreadCodec->signal();
@@ -297,13 +297,13 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         *((RK_S32 *)param) = mPackets->list_size();
         break;
     }
-	case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
-	    AutoMutex autoLock(mPackets->mutex());
-		if (mType == MPP_CTX_DEC) {
-			mpp_dec_control(mDec, cmd, param);
-		}
-	    break;
-	}
+    case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
+        AutoMutex autoLock(mPackets->mutex());
+        if (mType == MPP_CTX_DEC) {
+            mpp_dec_control(mDec, cmd, param);
+        }
+        break;
+    }
 
 
     default : {

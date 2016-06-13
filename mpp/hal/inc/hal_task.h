@@ -85,8 +85,8 @@ typedef union HalDecTaskFlag_t {
     struct {
         RK_U32      eos              : 1;
         RK_U32      info_change      : 1;
-		RK_U32      had_error        : 1;
-		RK_U32      used_for_ref     : 1;
+        RK_U32      had_error        : 1;
+        RK_U32      used_for_ref     : 1;
     };
 } HalDecTaskFlag;
 

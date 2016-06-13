@@ -189,7 +189,7 @@ void mpp_show_mem_status()
     pthread_mutex_lock(&mem_list_lock);
     list_for_each_entry_safe(pos, n, &mem_list, struct mem_node, list) {
         mpp_log("unfree memory %p size %d tag %s index %llu",
-            pos->ptr, pos->size, pos->tag, pos->index);
+                pos->ptr, pos->size, pos->tag, pos->index);
     }
     pthread_mutex_unlock(&mem_list_lock);
 }
@@ -282,14 +282,14 @@ MPP_RET mpp_mem_squash_snapshot(MppMemSnapshot hnd0, MppMemSnapshot hnd1)
 
         if (!found_match) {
             mpp_log_f("snapshot0 %p found mismatch memory %p size %d tag %s index %llu",
-                p0, pos0->ptr, pos0->size, pos0->tag, pos0->index);
+                      p0, pos0->ptr, pos0->size, pos0->tag, pos0->index);
         }
     }
 
     /* handle 1 search */
     list_for_each_entry_safe(pos1, n1, &p1->list, struct mem_node, list) {
         mpp_log_f("snapshot1 %p found mismatch memory %p size %d tag %s index %llu",
-            p1, pos1->ptr, pos1->size, pos1->tag, pos1->index);
+                  p1, pos1->ptr, pos1->size, pos1->tag, pos1->index);
     }
     pthread_mutex_unlock(&mem_list_lock);
 

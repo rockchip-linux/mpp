@@ -617,7 +617,7 @@ MPP_RET vdpu_h264d_wait(void *hal, HalTaskInfo *task)
     RK_S32 wait_ret = -1;
     RK_S32 ret_len = 0, cur_deat = 0;
     VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-    RK_S64 p_s,p_e;
+    RK_S64 p_s, p_e;
     p_s = mpp_time();
     wait_ret = VPUClientWaitResult(p_hal->vpu_socket, p_drv->p_reg, DEC_X170_REGISTERS, &ret_cmd, &ret_len);
     p_e = mpp_time();

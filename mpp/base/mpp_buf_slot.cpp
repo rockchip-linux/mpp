@@ -631,22 +631,22 @@ size_t mpp_buf_slot_get_size(MppBufSlots slots)
 
 RK_S32 mpp_buf_slot_get_used_size(MppBufSlots slots)
 {
-	if (NULL == slots) {
-		mpp_err_f("found NULL input\n");
-		return 0;
-	}
-	MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-	AutoMutex auto_lock(impl->lock);
-	RK_S32 i;
-	RK_S32 used_size = 0;
-	MppBufSlotEntry *slot = impl->slots;
-	for (i = 0; i < impl->buf_count; i++, slot++) {
-		if (slot->status.on_used) {
-			buf_slot_dbg(BUF_SLOT_DBG_BUF_UESD, "[BUF_USED] buf_fd=%08x", mpp_buffer_get_fd(slot->buffer));
-			used_size++;
-		}
-	}
-	return used_size;
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return 0;
+    }
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    AutoMutex auto_lock(impl->lock);
+    RK_S32 i;
+    RK_S32 used_size = 0;
+    MppBufSlotEntry *slot = impl->slots;
+    for (i = 0; i < impl->buf_count; i++, slot++) {
+        if (slot->status.on_used) {
+            buf_slot_dbg(BUF_SLOT_DBG_BUF_UESD, "[BUF_USED] buf_fd=%08x", mpp_buffer_get_fd(slot->buffer));
+            used_size++;
+        }
+    }
+    return used_size;
 }
 
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)

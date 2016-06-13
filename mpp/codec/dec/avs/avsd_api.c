@@ -573,51 +573,51 @@ MPP_RET avsd_callback(void *decoder, void *info)
 #else
 MPP_RET avsd_deinit(void *decoder)
 {
-	(void)decoder;
-	return MPP_OK;
+    (void)decoder;
+    return MPP_OK;
 }
 MPP_RET avsd_init(void *decoder, ParserCfg *init)
 {
-	(void)decoder;
-	(void)init;
-	return MPP_OK;
+    (void)decoder;
+    (void)init;
+    return MPP_OK;
 }
 MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
-	(void)decoder;
-	(void)pkt;
-	(void)task;
-	return MPP_OK;
+    (void)decoder;
+    (void)pkt;
+    (void)task;
+    return MPP_OK;
 
 }
 MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 {
-	(void)decoder;
-	(void)task;
-	return MPP_OK;
+    (void)decoder;
+    (void)task;
+    return MPP_OK;
 }
 MPP_RET avsd_reset(void *decoder)
 {
-	(void)decoder;
-	return MPP_OK;
+    (void)decoder;
+    return MPP_OK;
 }
 MPP_RET avsd_flush(void *decoder)
 {
-	(void)decoder;
-	return MPP_OK;
+    (void)decoder;
+    return MPP_OK;
 }
 MPP_RET avsd_control(void *decoder, RK_S32 cmd_type, void *param)
 {
-	(void)decoder;
-	(void)cmd_type;
-	(void)param;
-	return MPP_OK;
+    (void)decoder;
+    (void)cmd_type;
+    (void)param;
+    return MPP_OK;
 }
 MPP_RET avsd_callback(void *decoder, void *info)
 {
-	(void)decoder;
-	(void)info;
-	return MPP_OK;
+    (void)decoder;
+    (void)info;
+    return MPP_OK;
 }
 #endif
 /*!

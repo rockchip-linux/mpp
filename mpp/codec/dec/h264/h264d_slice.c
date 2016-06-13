@@ -36,14 +36,14 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_0], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
-			RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
+            RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
             i = 0;
             do {
-				if (i >= size) {
-					ret = MPP_NOK;
-					H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_0](%d)", size);
-					goto __BITREAD_ERR;
-				}
+                if (i >= size) {
+                    ret = MPP_NOK;
+                    H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_0](%d)", size);
+                    goto __BITREAD_ERR;
+                }
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
                 currSlice->modification_of_pic_nums_idc[LIST_0][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
@@ -62,14 +62,14 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     if (currSlice->slice_type % 5 == B_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_1], "ref_pic_list_reordering_flag");
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
-			RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
+            RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
             i = 0;
             do {
-				if (i >= size) {
-					ret = MPP_NOK;
-					H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_1](%d)", size);
-					goto __BITREAD_ERR;
-				}
+                if (i >= size) {
+                    ret = MPP_NOK;
+                    H264D_WARNNING("ref_pic_list_reordering error, i >= num_ref_idx_active[LIST_1](%d)", size);
+                    goto __BITREAD_ERR;
+                }
                 READ_UE(p_bitctx, &modification_of_pic_nums_idc, "modification_of_pic_nums_idc");
                 currSlice->modification_of_pic_nums_idc[LIST_1][i] = modification_of_pic_nums_idc;
                 if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
@@ -91,7 +91,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 
-	return ret;
+    return ret;
 }
 
 static MPP_RET pred_weight_table(H264_SLICE_t *currSlice)
@@ -167,9 +167,9 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
         READ_ONEBIT(p_bitctx, &pSlice->adaptive_ref_pic_buffering_flag, "adaptive_ref_pic_buffering_flag");
 
         if (pSlice->adaptive_ref_pic_buffering_flag) {
-			RK_U32 i = 0;
+            RK_U32 i = 0;
             do { //!< read Memory Management Control Operation
-				tmp_drpm = &pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
+                tmp_drpm = &pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
                 tmp_drpm->Next = NULL;
                 READ_UE(p_bitctx, &val, "memory_management_control_operation");
                 tmp_drpm->memory_management_control_operation = val;
@@ -196,7 +196,7 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
                     }
                     tmp_drpm2->Next = tmp_drpm;
                 }
-				i++;
+                i++;
             } while (val != 0);
         }
     }
@@ -205,7 +205,7 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
 __BITREAD_ERR:
     ret = p_bitctx->ret;
 
-	return ret;
+    return ret;
 }
 
 static void init_slice_parmeters(H264_SLICE_t *currSlice)
@@ -216,14 +216,14 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     //--- init slice syntax
     currSlice->idr_flag = ((cur_nalu->nalu_type == NALU_TYPE_IDR)
                            || (currSlice->mvcExt.valid && !currSlice->mvcExt.non_idr_flag));
-	currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
-	//!< set ref flag and dpb error flag
-	{
-		p_Vid->p_Dec->errctx.used_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
-		if (currSlice->slice_type == I_SLICE) {
-			p_Vid->p_Dec->errctx.dpb_err_flag = 0;
-		}	
-	}
+    currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
+    //!< set ref flag and dpb error flag
+    {
+        p_Vid->p_Dec->errctx.used_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
+        if (currSlice->slice_type == I_SLICE) {
+            p_Vid->p_Dec->errctx.dpb_err_flag = 0;
+        }
+    }
     if ((!currSlice->svc_extension_flag) || currSlice->mvcExt.iPrefixNALU) { // MVC or have prefixNALU
         currSlice->view_id = currSlice->mvcExt.view_id;
         currSlice->inter_view_flag = currSlice->mvcExt.inter_view_flag;
@@ -373,21 +373,21 @@ __FAILED:
 //extern "C"
 MPP_RET reset_cur_slice(H264dCurCtx_t *p_Cur, H264_SLICE_t *p)
 {
-	if (p) {
-		p->modification_of_pic_nums_idc[LIST_0] = p_Cur->modification_of_pic_nums_idc[LIST_0];
-		p->abs_diff_pic_num_minus1[LIST_0]      = p_Cur->abs_diff_pic_num_minus1[LIST_0];
-		p->long_term_pic_idx[LIST_0]            = p_Cur->long_term_pic_idx[LIST_0];
-		p->abs_diff_view_idx_minus1[LIST_0]     = p_Cur->abs_diff_view_idx_minus1[LIST_0];
+    if (p) {
+        p->modification_of_pic_nums_idc[LIST_0] = p_Cur->modification_of_pic_nums_idc[LIST_0];
+        p->abs_diff_pic_num_minus1[LIST_0]      = p_Cur->abs_diff_pic_num_minus1[LIST_0];
+        p->long_term_pic_idx[LIST_0]            = p_Cur->long_term_pic_idx[LIST_0];
+        p->abs_diff_view_idx_minus1[LIST_0]     = p_Cur->abs_diff_view_idx_minus1[LIST_0];
 
-		p->modification_of_pic_nums_idc[LIST_1] = p_Cur->modification_of_pic_nums_idc[LIST_1];
-		p->abs_diff_pic_num_minus1[LIST_1]      = p_Cur->abs_diff_pic_num_minus1[LIST_1];
-		p->long_term_pic_idx[LIST_1]            = p_Cur->long_term_pic_idx[LIST_1];
-		p->abs_diff_view_idx_minus1[LIST_1]     = p_Cur->abs_diff_view_idx_minus1[LIST_1];
+        p->modification_of_pic_nums_idc[LIST_1] = p_Cur->modification_of_pic_nums_idc[LIST_1];
+        p->abs_diff_pic_num_minus1[LIST_1]      = p_Cur->abs_diff_pic_num_minus1[LIST_1];
+        p->long_term_pic_idx[LIST_1]            = p_Cur->long_term_pic_idx[LIST_1];
+        p->abs_diff_view_idx_minus1[LIST_1]     = p_Cur->abs_diff_view_idx_minus1[LIST_1];
 
-		p->dec_ref_pic_marking_buffer = NULL;
-	}
+        p->dec_ref_pic_marking_buffer = NULL;
+    }
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 /*!
@@ -420,62 +420,56 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     p_Vid->slice_type = currSlice->slice_type = temp % 5;
     READ_UE(p_bitctx, &currSlice->pic_parameter_set_id, "slice_pic_parameter_set_id");
     init_slice_parmeters(currSlice);
-	FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
-	//!< read rest slice header syntax
-	{		
-		READ_BITS(p_bitctx, currSlice->active_sps->log2_max_frame_num_minus4 + 4, &currSlice->frame_num, "frame_num");
-		if (currSlice->active_sps->frame_mbs_only_flag) { //!< user in_slice info
-			p_Vid->structure = FRAME;
-			currSlice->field_pic_flag = 0;
-			currSlice->bottom_field_flag = 0;
-		}
-		else {
-			READ_ONEBIT(p_bitctx, &currSlice->field_pic_flag, "field_pic_flag");
-			if (currSlice->field_pic_flag) {
-				READ_ONEBIT(p_bitctx, &currSlice->bottom_field_flag, "field_pic_flag");
-				p_Vid->structure = currSlice->bottom_field_flag ? BOTTOM_FIELD : TOP_FIELD;
-			}
-			else {
-				p_Vid->structure = FRAME;
-				currSlice->bottom_field_flag = 0;
-			}
-		}
-		currSlice->structure = p_Vid->structure;
-		currSlice->mb_aff_frame_flag = (currSlice->active_sps->mb_adaptive_frame_field_flag && (currSlice->field_pic_flag == 0));
-		if (currSlice->idr_flag) {
-			READ_UE(p_bitctx, &currSlice->idr_pic_id, "idr_pic_id");
-		}
-		else if (currSlice->svc_extension_flag == 0 && currSlice->mvcExt.non_idr_flag == 0) {
-			READ_UE(p_bitctx, &currSlice->idr_pic_id, "idr_pic_id");
-		}
-		poc_used_bits = p_bitctx->used_bits; //!< init poc used bits
-		if (currSlice->active_sps->pic_order_cnt_type == 0) {
-			READ_BITS(p_bitctx, currSlice->active_sps->log2_max_pic_order_cnt_lsb_minus4 + 4, &currSlice->pic_order_cnt_lsb, "pic_order_cnt_lsb");
-			if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1
-				&& !currSlice->field_pic_flag) {
-				READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt_bottom, "delta_pic_order_cnt_bottom");
-			}
-			else {
-				currSlice->delta_pic_order_cnt_bottom = 0;
-			}
-		}
-		if (currSlice->active_sps->pic_order_cnt_type == 1) {
-			if (!currSlice->active_sps->delta_pic_order_always_zero_flag) {
-				READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt[0], "delta_pic_order_cnt[0]");
+    FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
+    //!< read rest slice header syntax
+    {
+        READ_BITS(p_bitctx, currSlice->active_sps->log2_max_frame_num_minus4 + 4, &currSlice->frame_num, "frame_num");
+        if (currSlice->active_sps->frame_mbs_only_flag) { //!< user in_slice info
+            p_Vid->structure = FRAME;
+            currSlice->field_pic_flag = 0;
+            currSlice->bottom_field_flag = 0;
+        } else {
+            READ_ONEBIT(p_bitctx, &currSlice->field_pic_flag, "field_pic_flag");
+            if (currSlice->field_pic_flag) {
+                READ_ONEBIT(p_bitctx, &currSlice->bottom_field_flag, "field_pic_flag");
+                p_Vid->structure = currSlice->bottom_field_flag ? BOTTOM_FIELD : TOP_FIELD;
+            } else {
+                p_Vid->structure = FRAME;
+                currSlice->bottom_field_flag = 0;
+            }
+        }
+        currSlice->structure = p_Vid->structure;
+        currSlice->mb_aff_frame_flag = (currSlice->active_sps->mb_adaptive_frame_field_flag && (currSlice->field_pic_flag == 0));
+        if (currSlice->idr_flag) {
+            READ_UE(p_bitctx, &currSlice->idr_pic_id, "idr_pic_id");
+        } else if (currSlice->svc_extension_flag == 0 && currSlice->mvcExt.non_idr_flag == 0) {
+            READ_UE(p_bitctx, &currSlice->idr_pic_id, "idr_pic_id");
+        }
+        poc_used_bits = p_bitctx->used_bits; //!< init poc used bits
+        if (currSlice->active_sps->pic_order_cnt_type == 0) {
+            READ_BITS(p_bitctx, currSlice->active_sps->log2_max_pic_order_cnt_lsb_minus4 + 4, &currSlice->pic_order_cnt_lsb, "pic_order_cnt_lsb");
+            if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1
+                && !currSlice->field_pic_flag) {
+                READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt_bottom, "delta_pic_order_cnt_bottom");
+            } else {
+                currSlice->delta_pic_order_cnt_bottom = 0;
+            }
+        }
+        if (currSlice->active_sps->pic_order_cnt_type == 1) {
+            if (!currSlice->active_sps->delta_pic_order_always_zero_flag) {
+                READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt[0], "delta_pic_order_cnt[0]");
 
-				if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1 && !currSlice->field_pic_flag) {
-					READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt[1], "delta_pic_order_cnt[1]");
-				}
-				else {
-					currSlice->delta_pic_order_cnt[1] = 0;  //!< set to zero if not in stream
-				}
-			}
-			else {
-				currSlice->delta_pic_order_cnt[0] = 0;
-				currSlice->delta_pic_order_cnt[1] = 0;
-			}
-		}
-		currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits; //!< calculate poc used bit length
+                if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1 && !currSlice->field_pic_flag) {
+                    READ_SE(p_bitctx, &currSlice->delta_pic_order_cnt[1], "delta_pic_order_cnt[1]");
+                } else {
+                    currSlice->delta_pic_order_cnt[1] = 0;  //!< set to zero if not in stream
+                }
+            } else {
+                currSlice->delta_pic_order_cnt[0] = 0;
+                currSlice->delta_pic_order_cnt[1] = 0;
+            }
+        }
+        currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits; //!< calculate poc used bit length
         //!< redundant_pic_cnt is missing here
         ASSERT(currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag == 0); // add by dw, high 4:2:2 profile not support
         if (currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag) {
@@ -517,10 +511,10 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         }
         if (g_max_bytes < (p_bitctx->used_bits >> 3)) {
             g_max_bytes = (p_bitctx->used_bits >> 3);
-        }		
-		H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] type=%d, layer_id=%d,sps_id=%d, pps_id=%d, struct=%d, frame_num=%d", 
-			currSlice->slice_type, currSlice->layer_id, currSlice->active_sps->seq_parameter_set_id, 
-			currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
+        }
+        H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] type=%d, layer_id=%d,sps_id=%d, pps_id=%d, struct=%d, frame_num=%d",
+                  currSlice->slice_type, currSlice->layer_id, currSlice->active_sps->seq_parameter_set_id,
+                  currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
     }
 
     FunctionOut(logctx->parr[RUN_PARSE]);

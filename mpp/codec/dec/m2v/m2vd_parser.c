@@ -973,7 +973,7 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
 
 MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 {
-    RK_U32 pts = (RK_U32)(ctx->pts/1000);
+    RK_U32 pts = (RK_U32)(ctx->pts / 1000);
     if (ctx->resetFlag && ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I) {
         mpp_log("[m2v]: resetFlag[%d] && picture_coding_type[%d] != I_TYPE", ctx->resetFlag, ctx->pic_head.picture_coding_type);
         return MPP_NOK;
@@ -1006,7 +1006,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                         ctx->frame_period = tmp_frame_period;
                 }
             }
-            ctx->Group_start_Time =pts - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
+            ctx->Group_start_Time = pts - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
             if (ctx->Group_start_Time < 0)
                 ctx->Group_start_Time = 0;
             ctx->PreGetFrameTime = pts;

@@ -53,27 +53,27 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     int fd;
 
     switch (type) {
-        case VPU_DEC_RKV: {
-            fd = open("/dev/rkvdec", O_RDWR);
-            type = VPU_DEC;
-            break;
-        }
-        case VPU_DEC_HEVC: {
-            fd = open("/dev/hevc_service", O_RDWR);
-            type = VPU_DEC;
-            break;
-        }
-        case VPU_DEC_PP:
-        case VPU_PP:
-        case VPU_DEC:
-        case VPU_ENC: {
-            fd = open("/dev/vpu_service", O_RDWR);
-            break;
-        }
-        default: {
-            fd = -1;
-            break;
-        }
+    case VPU_DEC_RKV: {
+        fd = open("/dev/rkvdec", O_RDWR);
+        type = VPU_DEC;
+        break;
+    }
+    case VPU_DEC_HEVC: {
+        fd = open("/dev/hevc_service", O_RDWR);
+        type = VPU_DEC;
+        break;
+    }
+    case VPU_DEC_PP:
+    case VPU_PP:
+    case VPU_DEC:
+    case VPU_ENC: {
+        fd = open("/dev/vpu_service", O_RDWR);
+        break;
+    }
+    default: {
+        fd = -1;
+        break;
+    }
     }
 
 

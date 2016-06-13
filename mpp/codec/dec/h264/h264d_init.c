@@ -462,8 +462,7 @@ static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t
             || (p_last->is_used == 2 && cur_structure == BOTTOM_FIELD) //!< Bot + Bot
             //|| ((!dec_pic->combine_flag) && p_last->is_used == 2 && cur_structure == TOP_FIELD) //!< Bot + Top + not combine
             || ((!dec_pic->combine_flag) && p_last->is_used == 1 && cur_structure == BOTTOM_FIELD) //!< Top + Bot + not combine
-			)  
-		{
+           ) {
             H264D_WARNNING("[check_field_paired] (discard) combine_flag=%d, last_used=%d, curr_struct=%d",
                            dec_pic->combine_flag, p_last->is_used, cur_structure);
             return ret = MPP_NOK;
@@ -1945,7 +1944,7 @@ void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec)
                 mpp_buf_slot_set_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
                 mpp_buf_slot_enqueue(p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
                 mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
-				p_Dec->last_frame_slot_idx = p_mark->slot_idx;
+                p_Dec->last_frame_slot_idx = p_mark->slot_idx;
             }
         }
         reset_dpb_mark(p_mark);
@@ -1994,16 +1993,16 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
         goto __FAILED;
     }
     FUN_CHECK(ret = alloc_decpic(currSlice));
-	if (p_err->i_slice_no < 2) {
-		if ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
-			p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
-		}
-		if (p_Vid->dec_pic->poc < p_err->first_iframe_poc) {
-			H264D_WARNNING("[Discard] Discard poc less than first I Slice. \n");
-			ret = MPP_NOK;
-			goto __FAILED;
-		}
-	}
+    if (p_err->i_slice_no < 2) {
+        if ((!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
+            p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
+        }
+        if (p_Vid->dec_pic->poc < p_err->first_iframe_poc) {
+            H264D_WARNNING("[Discard] Discard poc less than first I Slice. \n");
+            ret = MPP_NOK;
+            goto __FAILED;
+        }
+    }
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {
         ASSERT(currSlice->layer_id == 1);
