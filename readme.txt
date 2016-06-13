@@ -38,8 +38,6 @@ NOTE:
    |
    |----- inc                    header file for external usage, including platform header and mpi header
    |
-   |----- mpi                    Media Process Interface: the api function implement in public (vpu_api layer)
-   |
    |----- mpp                    Media Process Platform : mpi function private implement and mpp infrastructure (vpu_api private layer)
    |  |
    |  |----- common              video codec protocol syntax interface for both codec parser and hal
@@ -112,7 +110,7 @@ NOTE:
    |
    |----- osal                   Operation System Abstract Layer: abstract layer for different operation system
    |  |
-   |  |----- mem     	         mpi memory subsystem for hardware
+   |  |----- mem                 mpi memory subsystem for hardware
    |  |
    |  |----- android             google's android
    |  |
@@ -129,26 +127,26 @@ NOTE:
 
 Here is the mpp implement overall framework:
 
-	+-------------------------+    +--------+
-	|                         |    |        |
-	|        MPI / MPP        |    |        |
-	|   buffer queue manage   |    |        |
-	|                         |    |        |
-	+-------------------------+    |        |
-								   |        |
-	+-------------------------+    |        |
-	|                         |    |        |
-	|          codec          |    |  OSAL  |
-	|    decoder / encoder    |    |        |
-	|                         |    |        |
-	+-------------------------+    |        |
-								   |        |
-	+-----------+ +-----------+    |        |
-	|           | |           |    |        |
-	|  parser   | |    HAL    |    |        |
-	|  recoder  | |  reg_gen  |    |        |
-	|           | |           |    |        |
-	+-----------+ +-----------+    +--------+
+    +-------------------------+    +--------+
+    |                         |    |        |
+    |        MPI / MPP        |    |        |
+    |   buffer queue manage   |    |        |
+    |                         |    |        |
+    +-------------------------+    |        |
+                                   |        |
+    +-------------------------+    |        |
+    |                         |    |        |
+    |          codec          |    |  OSAL  |
+    |    decoder / encoder    |    |        |
+    |                         |    |        |
+    +-------------------------+    |        |
+                                   |        |
+    +-----------+ +-----------+    |        |
+    |           | |           |    |        |
+    |  parser   | |    HAL    |    |        |
+    |  recoder  | |  reg_gen  |    |        |
+    |           | |           |    |        |
+    +-----------+ +-----------+    +--------+
 
 
 Here is the Media Process Interface hierarchical structure
@@ -156,34 +154,34 @@ MpiPacket and MpiFrame is the stream I/O data structure.
 And MpiBuffer encapsulates different buffer implement like Linux's dma-buf and Android's ion.
 This part is learned from ffmpeg.
 
-				+-------------------+
-				|                   |
-				|        MPI        |
-				|                   |
-				+---------+---------+
-						  |
-						  |
-						  v
-				+---------+---------+
-				|                   |
-			+---+        ctx        +---+
-			|   |                   |   |
-			|   +-------------------+   |
-			|                           |
-			v                           v
-	+-------+-------+           +-------+-------+
-	|               |           |               |
-	|     packet    |           |     frame     |
-	|               |           |               |
-	+---------------+           +-------+-------+
-										|
-										|
-										v
-								+-------+-------+
-								|               |
-								|     buffer    |
-								|               |
-								+---------------+
+                +-------------------+
+                |                   |
+                |        MPI        |
+                |                   |
+                +---------+---------+
+                          |
+                          |
+                          v
+                +---------+---------+
+                |                   |
+            +---+        ctx        +---+
+            |   |                   |   |
+            |   +-------------------+   |
+            |                           |
+            v                           v
+    +-------+-------+           +-------+-------+
+    |               |           |               |
+    |     packet    |           |     frame     |
+    |               |           |               |
+    +---------------+           +-------+-------+
+            |                           |
+            |                           |
+            |                           |
+            |     +---------------+     |
+            |     |               |     |
+            +---->+     buffer    +<----+
+                  |               |
+                  +---------------+
 
 
 
