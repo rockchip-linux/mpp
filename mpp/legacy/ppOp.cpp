@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-   * File:
-   * ppOp.h
-   * Description:
-   * Global struct definition in VPU module
-   * Author:
-   *     Wu JunMin
-   * Date:
-   *    2015-03-31 14:43:40
- */
+
 #define LOG_TAG "PpOp"
-#define ATRACE_TAG ATRACE_TAG_VIDEO
+
 #include "vpu.h"
 #include "ppOp.h"
-//#include "reg.h"
 
 #ifdef ANDROID
 

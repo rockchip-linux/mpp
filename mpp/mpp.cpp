@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@ Mpp::Mpp()
       mFrameGetCount(0),
       mTaskPutCount(0),
       mTaskGetCount(0),
-      mInternalGroup(NULL),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
       mThreadCodec(NULL),
@@ -87,7 +86,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this, "mpp_dec_parser");
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this, "mpp_dec_hal");
 
-        mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
 
@@ -101,7 +99,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
         mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
-        mpp_buffer_group_get_internal(&mInternalGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_get_external(&mFrameGroup, MPP_BUFFER_TYPE_ION);
     } break;
@@ -170,10 +167,6 @@ void Mpp::clear()
     if (mTasks) {
         delete mTasks;
         mTasks = NULL;
-    }
-    if (mInternalGroup) {
-        mpp_buffer_group_put(mInternalGroup);
-        mInternalGroup = NULL;
     }
     if (mPacketGroup) {
         mpp_buffer_group_put(mPacketGroup);

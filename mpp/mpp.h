@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,15 +84,11 @@ public:
     RK_U32          mTaskGetCount;
 
     /*
-     * internal buffer group
-     *      - for all kind of table like cabac / scaling list
-     *        fixed to ion buffer group
      * packet buffer group
      *      - packets in I/O, can be ion buffer or normal buffer
      * frame buffer group
      *      - frames in I/O, normally should be a ion buffer group
      */
-    MppBufferGroup  mInternalGroup;
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
 
