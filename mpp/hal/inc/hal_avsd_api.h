@@ -38,8 +38,8 @@ extern RK_U32 avsd_hal_debug;
 
 #define AVSD_HAL_DBG(level, fmt, ...)\
 do {\
-	if (level & avsd_hal_debug)\
-		{ mpp_log(fmt, ## __VA_ARGS__); }\
+    if (level & avsd_hal_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 
@@ -57,17 +57,17 @@ do {\
 #define INP_CHECK(ret, val, ...)\
 do{\
 if ((val)) { \
-		ret = MPP_ERR_INIT; \
-		AVSD_HAL_DBG(AVSD_HAL_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
-		goto __RETURN; \
+        ret = MPP_ERR_INIT; \
+        AVSD_HAL_DBG(AVSD_HAL_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
+        goto __RETURN; \
 }} while (0)
 
 
 typedef struct avsd_hal_ctx_t {
 
-	MppBufSlots              frame_slots;
-	MppBufSlots              packet_slots;
-	IOInterruptCB            init_cb;
+    MppBufSlots              frame_slots;
+    MppBufSlots              packet_slots;
+    IOInterruptCB            init_cb;
 
 } AvsdHalCtx_t;
 

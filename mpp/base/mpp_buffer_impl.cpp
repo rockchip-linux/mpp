@@ -104,7 +104,7 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "normal",
     "ion",
     "v4l2",
-	"drm",
+    "drm",
 };
 static const char *ops2str[BUF_OPS_BUTT] = {
     "grp create ",
@@ -284,7 +284,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, 
     group->buffer_count++;
     group->count_unused++;
 
-    buffer_group_add_log(group, p, (group->mode == MPP_BUFFER_INTERNAL)?(BUF_CREATE):(BUF_COMMIT));
+    buffer_group_add_log(group, p, (group->mode == MPP_BUFFER_INTERNAL) ? (BUF_CREATE) : (BUF_COMMIT));
 RET:
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
@@ -526,7 +526,7 @@ RK_U32 MppBufferService::get_group_id()
 {
     // avoid group_id reuse
     RK_U32 id = group_id++;
-    while (get_group_by_id(group_id)){
+    while (get_group_by_id(group_id)) {
         group_id++;
     }
     group_count++;
@@ -534,7 +534,7 @@ RK_U32 MppBufferService::get_group_id()
 }
 
 MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *caller,
-                                                  MppBufferMode mode, MppBufferType type)
+                                                MppBufferMode mode, MppBufferType type)
 {
     MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
     if (NULL == p) {
@@ -631,7 +631,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
     mpp_assert(group->count_unused == 0);
     if (group->count_unused || group->count_used) {
         mpp_err("mpp_buffer_group_deinit mismatch counter used %4d unused %4d found\n",
-            group->count_used, group->count_unused);
+                group->count_used, group->count_unused);
         group->count_unused = 0;
         group->count_used   = 0;
     }

@@ -107,25 +107,25 @@ typedef enum {
     STRUCT_NULL  = 0,
     TOP_FIELD    = 0x1,
     BOTTOM_FIELD = 0x2,
-	FRAME        = 0x3,
-	STRUCT_MAX,
+    FRAME        = 0x3,
+    STRUCT_MAX,
 } PictureStructure;           //!< New enum for field processing
 typedef enum {
-	PIC_ERR_NULL  = 0,
-	PIC_ERR_TOP   = 0x1,
-	PIC_ERR_BOT   = 0x2,
-	PIC_ERR_FRAME = 0x3,
-	PIC_ERR_WHOLE = 0x3,
-	PIC_ERR_MAX,
-}PictureError;
+    PIC_ERR_NULL  = 0,
+    PIC_ERR_TOP   = 0x1,
+    PIC_ERR_BOT   = 0x2,
+    PIC_ERR_FRAME = 0x3,
+    PIC_ERR_WHOLE = 0x3,
+    PIC_ERR_MAX,
+} PictureError;
 
 typedef enum {
-	FIELD_ORDER_NULL,
-	FIELD_ORDER_TOP_FIRST,
-	FIELD_ORDER_BOT_FIRST,
-	FIELD_ORDER_SAME,
-	FIELD_ORDER_MAX
-}FieldOrder;
+    FIELD_ORDER_NULL,
+    FIELD_ORDER_TOP_FIRST,
+    FIELD_ORDER_BOT_FIRST,
+    FIELD_ORDER_SAME,
+    FIELD_ORDER_MAX
+} FieldOrder;
 //!< Field Coding Types
 typedef enum {
     FRAME_CODING = 0,
@@ -191,11 +191,11 @@ typedef struct h264_nalu_mvc_ext_t {
 
 //!< decoder refence picture marking
 typedef struct h264_drpm_t {
-	RK_S32 memory_management_control_operation;
-	RK_S32 difference_of_pic_nums_minus1;
-	RK_S32 long_term_pic_num;
-	RK_S32 long_term_frame_idx;
-	RK_S32 max_long_term_frame_idx_plus1;
+    RK_S32 memory_management_control_operation;
+    RK_S32 difference_of_pic_nums_minus1;
+    RK_S32 long_term_pic_num;
+    RK_S32 long_term_frame_idx;
+    RK_S32 max_long_term_frame_idx_plus1;
     struct  h264_drpm_t *Next;
 } H264_DRPM_t;
 
@@ -328,9 +328,9 @@ typedef struct h264_frame_store_t {
     RK_S32    inter_view_flag[2];
     RK_S32    anchor_pic_flag[2];
     RK_S32    layer_id;
-	RK_S32    slice_type;
+    RK_S32    slice_type;
     RK_U32    frame_num;
-	RK_S32    structure;
+    RK_S32    structure;
     struct h264_store_pic_t *frame;
     struct h264_store_pic_t *top_field;
     struct h264_store_pic_t *bottom_field;
@@ -345,7 +345,7 @@ typedef struct h264_dpb_buf_t {
     RK_U32   ltref_frames_in_buffer;
     RK_U32   used_size_il;
 
-	RK_S32   poc_interval;
+    RK_S32   poc_interval;
     RK_S32   last_output_poc;
     RK_S32   last_output_view_id;
     RK_S32   max_long_term_pic_idx;
@@ -742,10 +742,10 @@ typedef struct h264_slice_t {
     RK_S32       num_ref_idx_active[2];          //!< number of available list references
     RK_S32       num_ref_idx_override_flag;
     RK_S32       ref_pic_list_reordering_flag[2];
-	RK_S32       *modification_of_pic_nums_idc[2];
-	RK_S32       *abs_diff_pic_num_minus1[2];
-	RK_S32       *long_term_pic_idx[2];
-	RK_S32       *abs_diff_view_idx_minus1[2];
+    RK_S32       *modification_of_pic_nums_idc[2];
+    RK_S32       *abs_diff_pic_num_minus1[2];
+    RK_S32       *long_term_pic_idx[2];
+    RK_S32       *abs_diff_view_idx_minus1[2];
     struct h264_drpm_t   *dec_ref_pic_marking_buffer;
     RK_U32       drpm_used_bitlen;
     RK_S32       no_output_of_prior_pics_flag;
@@ -866,14 +866,14 @@ typedef struct h264d_input_ctx_t {
     RK_U32 nal_size;
     RK_S32 sps_num;
     RK_S32 pps_num;
-	//!< write stream
-	char fname[2][512];
-	FILE *fp;	
-	RK_U8 *spspps_buf;	
-	RK_U32 spspps_size;
-	RK_U32 spspps_len;
-	RK_U32 spspps_offset;
-	RK_U32 spspps_update_flag;
+    //!< write stream
+    char fname[2][512];
+    FILE *fp;
+    RK_U8 *spspps_buf;
+    RK_U32 spspps_size;
+    RK_U32 spspps_len;
+    RK_U32 spspps_offset;
+    RK_U32 spspps_update_flag;
 
 } H264dInputCtx_t;
 
@@ -919,13 +919,13 @@ typedef struct h264d_cur_ctx_t {
     RK_S64                    last_dts;
     RK_S64                    curr_pts;
     RK_S64                    curr_dts;
-	//!< malloc buffer for current slice
-	RK_S32                    modification_of_pic_nums_idc[2][MAX_REORDER_TIMES];
-	RK_S32                    abs_diff_pic_num_minus1[2][MAX_REORDER_TIMES];
-	RK_S32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
-	RK_S32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
-						      
-	struct h264_drpm_t        dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
+    //!< malloc buffer for current slice
+    RK_S32                    modification_of_pic_nums_idc[2][MAX_REORDER_TIMES];
+    RK_S32                    abs_diff_pic_num_minus1[2][MAX_REORDER_TIMES];
+    RK_S32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
+    RK_S32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
+
+    struct h264_drpm_t        dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
 } H264dCurCtx_t;
 
 //!< parameters for video decoder
@@ -941,13 +941,13 @@ typedef struct h264d_video_ctx_t {
     struct h264d_cur_ctx_t       *p_Cur;  //!< H264_CurParameters
     struct h264_dpb_buf_t        *p_Dpb_layer[MAX_NUM_DPB_LAYERS];
     struct h264_store_pic_t      *dec_pic;    //!< current decoder picture
-	struct h264_store_pic_t      *last_pic;
-	
+    struct h264_store_pic_t      *last_pic;
+
     struct h264_store_pic_t      *no_ref_pic; //!< no reference picture
     struct h264_frame_store_t    out_buffer;
     struct h264_dpb_mark_t       *active_dpb_mark[MAX_NUM_DPB_LAYERS];  //!< acitve_dpb_memory
 
-	struct h264_store_pic_t      old_pic;
+    struct h264_store_pic_t      old_pic;
     struct h264_old_slice_par_t  old_slice;
     RK_S32    *qmatrix[12];  //!< scanlist pointer
     RK_U32    stream_size;
@@ -1054,10 +1054,10 @@ typedef enum slice_state_type {
 } SLICE_STATUS;
 
 typedef struct h264_err_ctx_t {
-	RK_U32    un_spt_flag;
-	RK_U32    cur_err_flag;    //!< current decoded picture error
+    RK_U32    un_spt_flag;
+    RK_U32    cur_err_flag;    //!< current decoded picture error
     RK_U32    used_ref_flag;
-	RK_U32    dpb_err_flag;    //!< dpb storage had error
+    RK_U32    dpb_err_flag;    //!< dpb storage had error
 
     RK_U32    i_slice_no;
     RK_S32    first_iframe_poc;

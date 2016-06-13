@@ -138,8 +138,8 @@ static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 
     INP_CHECK(ret, !p_Inp);
     FunctionIn(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
-	close_stream_file(p_Inp);
-	MPP_FREE(p_Inp->spspps_buf);
+    close_stream_file(p_Inp);
+    MPP_FREE(p_Inp->spspps_buf);
 
     FunctionOut(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
@@ -154,18 +154,18 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 
     p_Inp->init = *init;
     mpp_env_get_u32("rkv_h264d_mvc_disable", &p_Inp->mvc_disable, 1);
-	open_stream_file(p_Inp, "/sdcard");
-	if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
-		p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;
-		p_Inp->spspps_buf = mpp_malloc_size(RK_U8, p_Inp->spspps_size);
-		MEM_CHECK(ret, p_Inp->spspps_buf);
-	}
+    open_stream_file(p_Inp, "/sdcard");
+    if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
+        p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;
+        p_Inp->spspps_buf = mpp_malloc_size(RK_U8, p_Inp->spspps_size);
+        MEM_CHECK(ret, p_Inp->spspps_buf);
+    }
     FunctionOut(p_Inp->p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
-	free_input_ctx(p_Inp);
-	return ret;
+    free_input_ctx(p_Inp);
+    return ret;
 }
 
 
@@ -198,8 +198,8 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_strm = &p_Cur->strm;
-	p_strm->nalu_buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
-	p_strm->head_buf = mpp_malloc_size(RK_U8, HEAD_BUF_MAX_SIZE);
+    p_strm->nalu_buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
+    p_strm->head_buf = mpp_malloc_size(RK_U8, HEAD_BUF_MAX_SIZE);
     MEM_CHECK(ret, p_strm->nalu_buf && p_strm->head_buf);
     p_strm->prefixdata = 0xffffffff;
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
@@ -207,7 +207,7 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
         p_Cur->listB[i] = mpp_malloc_size(H264_StorePic_t*, MAX_LIST_SIZE * sizeof(H264_StorePic_t*));
         MEM_CHECK(ret, p_Cur->listP[i] && p_Cur->listB[i]); // +1 for reordering
     }
-	reset_cur_slice(p_Cur, &p_Cur->slice);
+    reset_cur_slice(p_Cur, &p_Cur->slice);
 
     FunctionOut(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 
@@ -255,7 +255,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->p_Dpb_layer[i]->layer_id  = i;
         p_Vid->p_Dpb_layer[i]->p_Vid     = p_Vid;
         p_Vid->p_Dpb_layer[i]->init_done = 0;
-		p_Vid->p_Dpb_layer[i]->poc_interval = 2;
+        p_Vid->p_Dpb_layer[i]->poc_interval = 2;
     }
     //!< init video pars
     for (i = 0; i < MAXSPS; i++) {
@@ -309,9 +309,9 @@ static MPP_RET init_dxva_ctx(H264dDxvaCtx_t *p_dxva)
     INP_CHECK(ret, !p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
     p_dxva->slice_count    = 0;
-	p_dxva->slice_long = mpp_calloc(DXVA_Slice_H264_Long, MAX_SLICE_NUM);
+    p_dxva->slice_long = mpp_calloc(DXVA_Slice_H264_Long, MAX_SLICE_NUM);
     MEM_CHECK(ret, p_dxva->slice_long);
-	p_dxva->bitstream = mpp_malloc(RK_U8, BITSTREAM_MAX_SIZE);
+    p_dxva->bitstream = mpp_malloc(RK_U8, BITSTREAM_MAX_SIZE);
     p_dxva->syn.buf     = mpp_calloc(DXVA2_DecodeBufferDesc, SYNTAX_BUF_SIZE);
     MEM_CHECK(ret, p_dxva->bitstream && p_dxva->syn.buf);
     FunctionOut(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
@@ -360,7 +360,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     //!< init Dpb_memory Mark
     for (i = 0; i < MAX_MARK_SIZE; i++) {
         reset_dpb_mark(&p_Dec->dpb_mark[i]);
-		p_Dec->dpb_mark[i].mark_idx = i;
+        p_Dec->dpb_mark[i].mark_idx = i;
     }
     mpp_buf_slot_setup(p_Dec->frame_slots, MAX_MARK_SIZE);
     //!< malloc mpp packet
@@ -420,8 +420,8 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     p_Dec->p_Vid->p_Dec = p_Dec;
     p_Dec->p_Vid->p_Inp = p_Dec->p_Inp;
     p_Dec->p_Vid->p_Cur = p_Dec->p_Cur;
-	FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp, init));
-	FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
+    FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp, init));
+    FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
     FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
     FUN_CHECK(ret = init_dec_ctx(p_Dec));
 
@@ -490,13 +490,13 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Inp->in_dts        = 0;
     p_Dec->p_Inp->has_get_eos   = 0;
     //!< reset video parameter
-	p_Dec->p_Vid->have_outpicture_flag = 0;
-	p_Dec->p_Vid->exit_picture_flag    = 0;
-	p_Dec->p_Vid->active_mvc_sps_flag  = 0;
+    p_Dec->p_Vid->have_outpicture_flag = 0;
+    p_Dec->p_Vid->exit_picture_flag    = 0;
+    p_Dec->p_Vid->active_mvc_sps_flag  = 0;
     p_Dec->p_Vid->g_framecnt           = 0;
-	p_Dec->p_Vid->dec_pic = NULL;
-	p_Dec->p_Vid->last_pic = NULL;
-	memset(&p_Dec->p_Vid->old_pic, 0, sizeof(H264_StorePic_t));
+    p_Dec->p_Vid->dec_pic = NULL;
+    p_Dec->p_Vid->last_pic = NULL;
+    memset(&p_Dec->p_Vid->old_pic, 0, sizeof(H264_StorePic_t));
     memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
     //!< reset current time stamp
     p_Dec->p_Cur->last_dts  = 0;
@@ -520,8 +520,8 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->is_parser_end  = 0;
     p_Dec->dxva_ctx->strm_offset = 0;
     p_Dec->dxva_ctx->slice_count = 0;
-	p_Dec->last_frame_slot_idx   = -1;
-	FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
+    p_Dec->last_frame_slot_idx   = -1;
+    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -537,18 +537,18 @@ __FAILED:
 MPP_RET  h264d_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	RK_U32 dpb_used_size = 0;
+    RK_U32 dpb_used_size = 0;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder);
-	INP_CHECK(ret, !p_Dec->p_Inp);
-	INP_CHECK(ret, !p_Dec->p_Vid);
+    INP_CHECK(ret, !p_Dec->p_Inp);
+    INP_CHECK(ret, !p_Dec->p_Vid);
 
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	dpb_used_size = p_Dec->p_Vid->p_Dpb_layer[0]->used_size;
-	if (p_Dec->mvc_valid) {
-		dpb_used_size += p_Dec->p_Vid->p_Dpb_layer[1]->used_size;
-	}
+    dpb_used_size = p_Dec->p_Vid->p_Dpb_layer[0]->used_size;
+    if (p_Dec->mvc_valid) {
+        dpb_used_size += p_Dec->p_Vid->p_Dpb_layer[1]->used_size;
+    }
     if (!dpb_used_size && p_Dec->p_Inp->has_get_eos) {
         IOInterruptCB *cb = &p_Dec->p_Inp->init.notify_cb;
         if (cb->callBack) {
@@ -567,7 +567,7 @@ MPP_RET  h264d_flush(void *decoder)
     }
     flush_dpb_buf_slot(p_Dec);
     if (p_Dec->last_frame_slot_idx >= 0) {
-	    mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
+        mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
                               SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
         p_Dec->last_frame_slot_idx = -1;
     }
@@ -617,7 +617,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 
     p_Inp = p_Dec->p_Inp;
     if (p_Inp->has_get_eos || p_Dec->errctx.un_spt_flag) {
-		mpp_packet_set_length(pkt, 0);
+        mpp_packet_set_length(pkt, 0);
         goto __RETURN;
     }
     p_Inp->in_pkt = pkt;
@@ -625,11 +625,11 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->in_dts = mpp_packet_get_dts(pkt);
 
     if (mpp_packet_get_eos(pkt)) {
-		p_Inp->pkt_eos     = 1;
-		p_Inp->has_get_eos = 1;
+        p_Inp->pkt_eos     = 1;
+        p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
             h264d_flush(decoder);
-			goto __RETURN;
+            goto __RETURN;
         }
         p_Inp->in_buf      = NULL;
         p_Inp->in_length   = 0;
@@ -640,13 +640,13 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->in_length   = mpp_packet_get_length(pkt);
         p_Inp->pkt_eos     = 0;
     }
-	if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
-		H264D_ERR("[pkt_in_timeUs] input error, stream too large, pts=%lld, eos=%d, len=%d, pkt_no=%d",
-			p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
-		mpp_packet_set_length(pkt, 0);
-		ret = MPP_NOK;
-		goto __FAILED;
-	}
+    if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
+        H264D_ERR("[pkt_in_timeUs] input error, stream too large, pts=%lld, eos=%d, len=%d, pkt_no=%d",
+                  p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
+        mpp_packet_set_length(pkt, 0);
+        ret = MPP_NOK;
+        goto __FAILED;
+    }
     //!< avcC stream
     if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
         RK_U8 *pdata = p_Inp->in_buf;
@@ -662,7 +662,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         (ret = parse_prepare_extra_data(p_Inp, p_Dec->p_Cur));
         task->valid = p_Inp->task_valid;  //!< prepare valid flag
     } else  {
-		fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);
+        fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);
         do {
             (ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur));
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
@@ -684,7 +684,7 @@ __RETURN:
 
     return ret = MPP_OK;
 __FAILED:
-	return ret;
+    return ret;
 }
 
 
@@ -697,18 +697,18 @@ __FAILED:
 MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	H264dErrCtx_t *p_err = NULL;
+    H264dErrCtx_t *p_err = NULL;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder && !in_task);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	p_err = &p_Dec->errctx;
+    p_err = &p_Dec->errctx;
 
     in_task->valid = 0; // prepare end flag
     p_Dec->in_task = in_task;
-	p_err->cur_err_flag  = 0;
+    p_err->cur_err_flag  = 0;
     p_err->used_ref_flag = 0;
-	p_Dec->is_parser_end = 0;
+    p_Dec->is_parser_end = 0;
     FUN_CHECK(ret = parse_loop(p_Dec));
 
     if (p_Dec->is_parser_end) {
@@ -725,9 +725,9 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->valid = 1; // register valid flag
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
-		in_task->flags.used_for_ref = p_err->used_ref_flag;
-		p_err->dpb_err_flag |= p_err->used_ref_flag ? p_err->cur_err_flag : 0;
-		in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
+        in_task->flags.used_for_ref = p_err->used_ref_flag;
+        p_err->dpb_err_flag |= p_err->used_ref_flag ? p_err->cur_err_flag : 0;
+        in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
     }
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
@@ -736,30 +736,30 @@ __RETURN:
 __FAILED:
 	{
         H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
-		if (dec_pic) {
-			H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
-			if (dec_pic->mem_mark
-				&& dec_pic->mem_mark->out_flag
-				&& (dec_pic->mem_mark->slot_idx >= 0)) {
-				MppFrame mframe = NULL;
-				mpp_buf_slot_get_prop(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-				if (mframe) {
-					if (p_err->used_ref_flag) {
-						mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-					} else {
-						mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
-					}
-				}
-				mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
-				mpp_buf_slot_enqueue(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
-				mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
-			}
-			reset_dpb_mark(dec_pic->mem_mark);
-			dec_pic->mem_mark = NULL;
-			MPP_FREE(dec_pic);
-			p_Dec->p_Vid->dec_pic = NULL;
-		}
-		p_err->dpb_err_flag |= p_err->used_ref_flag ? 1 : 0;
+        if (dec_pic) {
+            H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
+            if (dec_pic->mem_mark
+                && dec_pic->mem_mark->out_flag
+                && (dec_pic->mem_mark->slot_idx >= 0)) {
+                MppFrame mframe = NULL;
+                mpp_buf_slot_get_prop(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+                if (mframe) {
+                    if (p_err->used_ref_flag) {
+                        mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                    } else {
+                        mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                    }
+                }
+                mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
+                mpp_buf_slot_enqueue(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
+                mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
+            }
+            reset_dpb_mark(dec_pic->mem_mark);
+            dec_pic->mem_mark = NULL;
+            MPP_FREE(dec_pic);
+            p_Dec->p_Vid->dec_pic = NULL;
+        }
+        p_err->dpb_err_flag |= p_err->used_ref_flag ? 1 : 0;
     }
 
     return ret;
@@ -775,36 +775,36 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-	RK_U32 *p_regs = NULL;
+    RK_U32 *p_regs = NULL;
     INP_CHECK(ret, !decoder);
-	FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-	p_regs = (RK_U32*)errinfo;
-	{
-		MppFrame mframe = NULL;
+    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
+    p_regs = (RK_U32*)errinfo;
+    {
+        MppFrame mframe = NULL;
 
-		RK_U32 out_slot_idx = p_regs[78];
-		RK_U32 had_err_flag = p_regs[79];
-		RK_U32 used_ref_flag = p_regs[80];
-		RK_U32 dec_error_sta = p_regs[1] & 0x00004000;
-		RK_U32 dec_rdy_sta   = p_regs[1] & 0x00001000;
-		RK_U32 buf_empty_sta = p_regs[1] & 0x00010000;
-		RK_U32 strmd_error_status = p_regs[45];
-		RK_U32 strmd_error_detect_flag = p_regs[76] & 0x00008000;   // strmd error detect flag
+        RK_U32 out_slot_idx = p_regs[78];
+        RK_U32 had_err_flag = p_regs[79];
+        RK_U32 used_ref_flag = p_regs[80];
+        RK_U32 dec_error_sta = p_regs[1] & 0x00004000;
+        RK_U32 dec_rdy_sta   = p_regs[1] & 0x00001000;
+        RK_U32 buf_empty_sta = p_regs[1] & 0x00010000;
+        RK_U32 strmd_error_status = p_regs[45];
+        RK_U32 strmd_error_detect_flag = p_regs[76] & 0x00008000;   // strmd error detect flag
 
-		mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
-		if (mframe) {
-			if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta
-				|| had_err_flag || strmd_error_status || strmd_error_detect_flag) {
-				if (used_ref_flag) {
-					mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-				} else {
-					mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
-				}
-			}
-			H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, errinfo=%d, discard=%d \n",
-				p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], had_err_flag, used_ref_flag, mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
-		}
-	}
+        mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
+        if (mframe) {
+            if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta
+                || had_err_flag || strmd_error_status || strmd_error_detect_flag) {
+                if (used_ref_flag) {
+                    mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                } else {
+                    mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                }
+            }
+            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, errinfo=%d, discard=%d \n",
+                      p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], had_err_flag, used_ref_flag, mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+        }
+    }
 
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);

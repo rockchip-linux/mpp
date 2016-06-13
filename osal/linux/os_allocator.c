@@ -136,7 +136,7 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
         mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
         *api = allocator_v4l2;
     } break;
-	case MPP_BUFFER_TYPE_DRM : {
+    case MPP_BUFFER_TYPE_DRM : {
         *api = allocator_drm;
     } break;
     default : {

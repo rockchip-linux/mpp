@@ -48,9 +48,9 @@ static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
     RK_U32 streamlen_add = 0;
     DXVA_Slice_H264_Long  *p_long = NULL;
 
-	if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
-		H264D_ERR("error, slcie_num is larger than 1024");
-		goto __FAILED;
+    if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
+        H264D_ERR("error, slcie_num is larger than 1024");
+        goto __FAILED;
     }
     //streamlen_add = p_nal->sodb_len + sizeof(start_code);
     //stream_offset = dxva_ctx->strm_offset + streamlen_add;

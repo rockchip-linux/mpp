@@ -47,8 +47,8 @@ do {\
 
 #define AVSD_DBG(level, fmt, ...)\
 do {\
-	if (level & avsd_parse_debug)\
-		{ mpp_log(fmt, ## __VA_ARGS__); }\
+    if (level & avsd_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #ifdef INP_CHECK
@@ -58,9 +58,9 @@ do {\
 #define INP_CHECK(ret, val, ...)\
 do{\
     if ((val)) {\
-		ret = MPP_ERR_INIT; \
-		AVSD_DBG(AVSD_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
-		goto __RETURN; \
+        ret = MPP_ERR_INIT; \
+        AVSD_DBG(AVSD_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
+        goto __RETURN; \
 }} while (0)
 #ifdef MEM_CHECK
 #undef MEM_CHECK
@@ -69,9 +69,9 @@ do{\
 #define MEM_CHECK(ret, val, ...)\
 do{\
     if(!(val)) {\
-		ret = MPP_ERR_MALLOC;\
-		AVSD_DBG(AVSD_DBG_ERROR, "malloc buffer error(%d).\n", __LINE__); \
-		goto __FAILED; \
+        ret = MPP_ERR_MALLOC;\
+        AVSD_DBG(AVSD_DBG_ERROR, "malloc buffer error(%d).\n", __LINE__); \
+        goto __FAILED; \
 }} while (0)
 #ifdef FUN_CHECK
 #undef FUN_CHECK
@@ -80,8 +80,8 @@ do{\
 #define FUN_CHECK(val)\
 do{\
 if ((val) < 0) {\
-		AVSD_DBG(AVSD_DBG_WARNNING, "Function error(%d).\n", __LINE__); \
-		goto __FAILED; \
+        AVSD_DBG(AVSD_DBG_WARNNING, "Function error(%d).\n", __LINE__); \
+        goto __FAILED; \
 }} while (0)
 
 

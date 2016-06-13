@@ -27,7 +27,7 @@
 
 #ifdef  __cplusplus
 extern "C" {
-#endif	
+#endif
 
 MPP_RET  process_slice(H264_SLICE_t *currSlice);
 

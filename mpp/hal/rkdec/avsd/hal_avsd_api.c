@@ -37,17 +37,17 @@ RK_U32 avsd_hal_debug = 0;
 
 static RK_U32 avsd_ver_align(RK_U32 val)
 {
-	return MPP_ALIGN(val, 16);
+    return MPP_ALIGN(val, 16);
 }
 
 static RK_U32 avsd_hor_align(RK_U32 val)
 {
-	return MPP_ALIGN(val, 16);
+    return MPP_ALIGN(val, 16);
 }
 
 static RK_U32 avsd_len_align(RK_U32 val)
 {
-	return (2 * MPP_ALIGN(val, 16));
+    return (2 * MPP_ALIGN(val, 16));
 }
 /*!
 ***********************************************************************
@@ -59,27 +59,27 @@ static RK_U32 avsd_len_align(RK_U32 val)
 MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	AvsdHalCtx_t *p_hal = NULL;
+    AvsdHalCtx_t *p_hal = NULL;
 
     AVSD_HAL_TRACE("In.");
-	INP_CHECK(ret, NULL == decoder);
+    INP_CHECK(ret, NULL == decoder);
 
-	mpp_env_get_u32("avsd_debug", &avsd_hal_debug, 0);
+    mpp_env_get_u32("avsd_debug", &avsd_hal_debug, 0);
 
-	p_hal = (AvsdHalCtx_t *)decoder;
-	memset(p_hal, 0, sizeof(AvsdHalCtx_t));
+    p_hal = (AvsdHalCtx_t *)decoder;
+    memset(p_hal, 0, sizeof(AvsdHalCtx_t));
 
-	p_hal->frame_slots = cfg->frame_slots;
-	p_hal->packet_slots = cfg->packet_slots;
-	//!< callback function to parser module
-	p_hal->init_cb = cfg->hal_int_cb;
+    p_hal->frame_slots = cfg->frame_slots;
+    p_hal->packet_slots = cfg->packet_slots;
+    //!< callback function to parser module
+    p_hal->init_cb = cfg->hal_int_cb;
 
-	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
-	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avsd_ver_align);
-	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avsd_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avsd_ver_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avsd_len_align);
 
 __RETURN:
-	AVSD_HAL_TRACE("Out.");
+    AVSD_HAL_TRACE("Out.");
     (void)decoder;
     (void)cfg;
     return ret = MPP_OK;
@@ -97,7 +97,7 @@ MPP_RET hal_avsd_deinit(void *decoder)
 
     AVSD_HAL_TRACE("In.");
 
-	AVSD_HAL_TRACE("Out.");
+    AVSD_HAL_TRACE("Out.");
     (void)decoder;
     return ret = MPP_OK;
 }
@@ -110,24 +110,24 @@ MPP_RET hal_avsd_deinit(void *decoder)
 //extern "C"
 MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;	
-	AvsdHalCtx_t *p_hal = NULL;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    AvsdHalCtx_t *p_hal = NULL;
 
     AVSD_HAL_TRACE("In.");
-	INP_CHECK(ret, NULL == decoder);
+    INP_CHECK(ret, NULL == decoder);
 
-	p_hal = (AvsdHalCtx_t *)decoder;
+    p_hal = (AvsdHalCtx_t *)decoder;
 
-	if (p_hal->init_cb.callBack) {
-		p_hal->init_cb.callBack(p_hal->init_cb.opaque, task);
-	}
+    if (p_hal->init_cb.callBack) {
+        p_hal->init_cb.callBack(p_hal->init_cb.opaque, task);
+    }
 
 __RETURN:
-	AVSD_HAL_TRACE("Out.");
-	
+    AVSD_HAL_TRACE("Out.");
 
 
-	(void)decoder;
+
+    (void)decoder;
     (void)task;
     return ret = MPP_OK;
 }
@@ -143,10 +143,10 @@ MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     AVSD_HAL_TRACE("In.");
-	INP_CHECK(ret, NULL == decoder);
+    INP_CHECK(ret, NULL == decoder);
 
 __RETURN:
-	AVSD_HAL_TRACE("Out.");
+    AVSD_HAL_TRACE("Out.");
     (void)decoder;
     (void)task;
     return ret = MPP_OK;
@@ -161,19 +161,19 @@ __RETURN:
 MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-	//AvsdHalCtx_t *p_hal = NULL;
+    //AvsdHalCtx_t *p_hal = NULL;
 
-	AVSD_HAL_TRACE("In.");
+    AVSD_HAL_TRACE("In.");
 
-	INP_CHECK(ret, NULL == decoder);
-	//p_hal = (AvsdHalCtx_t *)decoder;
+    INP_CHECK(ret, NULL == decoder);
+    //p_hal = (AvsdHalCtx_t *)decoder;
 
-	//if (p_hal->init_cb.callBack) {
-	//	p_hal->init_cb.callBack(p_hal->init_cb.opaque, task);
-	//}
+    //if (p_hal->init_cb.callBack) {
+    //  p_hal->init_cb.callBack(p_hal->init_cb.opaque, task);
+    //}
 
 __RETURN:
-	AVSD_HAL_TRACE("Out.");
+    AVSD_HAL_TRACE("Out.");
     (void)decoder;
     (void)task;
     return ret = MPP_OK;
