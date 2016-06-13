@@ -1,18 +1,18 @@
 /*
-* Copyright 2010 Rockchip Electronics S.LSI Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #define MODULE_TAG "avsd_test"
 
@@ -246,12 +246,12 @@ static MPP_RET avsd_input_init(InputParams *inp, RK_S32 ac, char *av[])
 
 	inp->output_dec_pic = 0;
 	while (CLcount < ac) {
-		if (!strncmp(av[CLcount], "-h", 2))	{			
+		if (!strncmp(av[CLcount], "-h", 2))	{
 				mpp_log("Options:");
 				mpp_log("   -h     : prints help message.");
 				mpp_log("   -i     :[file]   Set input AVS+ bitstream file.");
 				mpp_log("   -o     :[file]   Set output YUV file.");
-				mpp_log("   -n     :[number] Set decoded frames.");			
+				mpp_log("   -n     :[number] Set decoded frames.");
 				CLcount += 1;
 		}
 		else if (!strncmp(av[CLcount], "-i", 2)) {
@@ -268,7 +268,7 @@ static MPP_RET avsd_input_init(InputParams *inp, RK_S32 ac, char *av[])
 			if (rkv_avsd_test_debug & AVSD_TEST_DUMPYUV) {
 				inp->output_dec_pic = 1;
 				strncpy(outfile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
-			}			
+			}
 			CLcount += 2;
 		}
 		else {
@@ -292,7 +292,7 @@ static MPP_RET avsd_input_init(InputParams *inp, RK_S32 ac, char *av[])
 	}
 
 	//!< malloc read buffer
-	inp->bufsize = 30*1024; 
+	inp->bufsize = 30*1024;
 	MEM_CHECK(ret, inp->pbuf = mpp_malloc(RK_U8, inp->bufsize));
 
 	AVSD_TEST_LOG(AVSD_TEST_TRACE, "------------------------------------------------------------");
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
 		AVSD_TEST_LOG(AVSD_TEST_TRACE, "[AVSD_TEST] Single-thread test error.");
 		goto __FAILED;
 	}
-	
+
 	ret = MPP_OK;
 __FAILED:
 	decoder_deinit(p_dec);

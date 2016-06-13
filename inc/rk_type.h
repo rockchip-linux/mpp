@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,13 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-/*
- * File         : rk_type.h
- * Description  : type definition
- * Author       : Jian Huan
- * Date         : 2010-11-23 21:48:40
  */
 
 #ifndef __RK_TYPE_H__

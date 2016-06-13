@@ -1,7 +1,5 @@
-#ifndef __HAL_M2VD_REG_H__
-#define __HAL_M2VD_REG_H__
 /*
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifndef __HAL_M2VD_REG_H__
+#define __HAL_M2VD_REG_H__
 
 #include "m2vd_syntax.h"
 #include "hal_task.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Rockchip Electronics S.LSI Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -642,7 +642,7 @@ RK_S32 mpp_buf_slot_get_used_size(MppBufSlots slots)
 	MppBufSlotEntry *slot = impl->slots;
 	for (i = 0; i < impl->buf_count; i++, slot++) {
 		if (slot->status.on_used) {
-			buf_slot_dbg(BUF_SLOT_DBG_BUF_UESD, "[BUF_USED] buf_fd=%08x", mpp_buffer_get_fd(slot->buffer));			
+			buf_slot_dbg(BUF_SLOT_DBG_BUF_UESD, "[BUF_USED] buf_fd=%08x", mpp_buffer_get_fd(slot->buffer));
 			used_size++;
 		}
 	}
