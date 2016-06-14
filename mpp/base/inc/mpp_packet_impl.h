@@ -54,4 +54,7 @@ typedef struct MppPacketImpl_t {
  */
 MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 
+/* pointer check function */
+MPP_RET check_is_mpp_packet(void *ptr);
+
 #endif /*__MPP_IMPL_H__*/
