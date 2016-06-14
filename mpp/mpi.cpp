@@ -66,21 +66,6 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
     return MPP_OK;
 }
 
-static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
-{
-    (void)packet;
-    (void)frame;
-
-    MPI_FUNCTION_ENTER();
-    MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
-
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
-}
-
 static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
 {
     MPI_FUNCTION_ENTER();
@@ -121,6 +106,21 @@ static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
     return ret;
 }
 
+static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
+{
+    (void)packet;
+    (void)frame;
+
+    MPI_FUNCTION_ENTER();
+    MpiImpl *p = (MpiImpl *)ctx;
+    MPP_RET ret = check_mpp_ctx(p);
+    if (ret)
+        return ret;
+
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
 static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
 {
     MPI_FUNCTION_ENTER();
@@ -156,6 +156,70 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
     }
 
     ret = p->ctx->get_packet(packet);
+
+    MPI_FUNCTION_LEAVE();
+    return ret;
+}
+
+static MPP_RET mpi_isp(MppCtx ctx, MppFrame dst, MppFrame src)
+{
+    MPI_FUNCTION_ENTER();
+    (void)ctx;
+    (void)dst;
+    (void)src;
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_isp_put_frame(MppCtx ctx, MppFrame frame)
+{
+    MPI_FUNCTION_ENTER();
+    (void)ctx;
+    (void)frame;
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_isp_get_frame(MppCtx ctx, MppFrame *frame)
+{
+    MPI_FUNCTION_ENTER();
+    (void)ctx;
+    (void)frame;
+    MPI_FUNCTION_LEAVE();
+    return MPP_OK;
+}
+
+static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
+{
+    MPI_FUNCTION_ENTER();
+
+    MpiImpl *p = (MpiImpl *)ctx;
+    MPP_RET ret = check_mpp_ctx(p);
+    if (ret)
+        return ret;
+
+    if (type >= MPP_PORT_BUTT || NULL == task) {
+        mpp_err_f("invalid input type %d task %p\n", type, task);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MPI_FUNCTION_LEAVE();
+    return ret;
+}
+
+static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
+{
+    MPI_FUNCTION_ENTER();
+
+    MpiImpl *p = (MpiImpl *)ctx;
+    MPP_RET ret = check_mpp_ctx(p);
+    if (ret)
+        return ret;
+
+    if (type >= MPP_PORT_BUTT || NULL == task) {
+        mpp_err_f("invalid input type %d task %p\n", type, task);
+        return MPP_ERR_UNKNOW;
+    }
 
     MPI_FUNCTION_LEAVE();
     return ret;
@@ -200,11 +264,11 @@ static MppApi mpp_api = {
     mpi_encode,
     mpi_encode_put_frame,
     mpi_encode_get_packet,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    mpi_isp,
+    mpi_isp_put_frame,
+    mpi_isp_get_frame,
+    mpi_dequeue,
+    mpi_enqueue,
     mpi_reset,
     mpi_control,
     mpi_config,
