@@ -17,8 +17,7 @@
 #ifndef __RK_MPI_H__
 #define __RK_MPI_H__
 
-#include "mpp_packet.h"
-#include "mpp_frame.h"
+#include "mpp_task.h"
 
 typedef enum {
     MPP_CTX_DEC,
@@ -59,7 +58,6 @@ typedef enum {
     MPP_VIDEO_CodingMax = 0x7FFFFFFF
 } MppCodingType;
 
-
 typedef enum {
     MPP_CMD_BASE                        = 0,
     MPP_ENABLE_DEINTERLACE,
@@ -91,7 +89,6 @@ typedef enum {
 
     MPI_CMD_BUTT,
 } MpiCmd;
-
 
 typedef void* MppCtx;
 typedef void* MppParam;
@@ -149,15 +146,31 @@ typedef struct MppEncConfig_t {
  * size     : MppApi structure size
  * version  : Mpp svn revision
  *
+ * all api function are seperated into two sets: data io api set and control api set
+ *
+ * the data api set is for data input/output flow including:
+ *
+ * simple data api set:
+ *
  * decode   : both send video stream packet to decoder and get video frame from
  *            decoder at the same time.
+ * encode   : both send video frame to encoder and get encoded video stream from
+ *            encoder at the same time.
+ *
  * decode_put_packet: send video stream packet to decoder only, async interface
  * decode_get_frame : get video frame from decoder only, async interface
  *
- * encode   : both send video frame to encoder and get encoded video stream from
- *            encoder at the same time.
  * encode_put_frame : send video frame to encoder only, async interface
  * encode_get_packet: get encoded video packet from encoder only, async interface
+ *
+ * advance task api set:
+ *
+ *
+ * the control api set is for mpp context control including:
+ * control  : similiar to ioctl in kernel driver, setup or get mpp internal parameter
+ * reset    : clear all data in mpp context, reset to initialized status
+ * the simple api set is for simple codec usage including:
+ *
  *
  * reset    : discard all packet and frame, reset all component,
  *            for both decoder and encoder
@@ -168,17 +181,24 @@ typedef struct MppApi_t {
     RK_U32  size;
     RK_U32  version;
 
-    // sync interface
+    // simple data flow interface
     MPP_RET (*decode)(MppCtx ctx, MppPacket packet, MppFrame *frame);
-    MPP_RET (*encode)(MppCtx ctx, MppFrame frame, MppPacket *packet);
-
-    // async interface
     MPP_RET (*decode_put_packet)(MppCtx ctx, MppPacket packet);
     MPP_RET (*decode_get_frame)(MppCtx ctx, MppFrame *frame);
 
+    MPP_RET (*encode)(MppCtx ctx, MppFrame frame, MppPacket *packet);
     MPP_RET (*encode_put_frame)(MppCtx ctx, MppFrame frame);
     MPP_RET (*encode_get_packet)(MppCtx ctx, MppPacket *packet);
 
+    MPP_RET (*isp)(MppCtx ctx, MppFrame dst, MppFrame src);
+    MPP_RET (*isp_put_frame)(MppCtx ctx, MppFrame frame);
+    MPP_RET (*isp_get_frame)(MppCtx ctx, MppFrame *frame);
+
+    // advance data flow interface
+    MPP_RET (*dequeue)(MppCtx ctx, MppPortType type, MppTask *task);
+    MPP_RET (*enqueue)(MppCtx ctx, MppPortType type, MppTask task);
+
+    // control interface
     MPP_RET (*reset)(MppCtx ctx);
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
     MPP_RET (*config)(MppCtx ctx, MppEncConfig cfg);
