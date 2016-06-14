@@ -29,11 +29,14 @@ static void setup_mpp_frame_name(MppFrameImpl *frame)
     frame->name = module_name;
 }
 
-static void check_mpp_frame_name(MppFrameImpl *frame)
+MPP_RET check_is_mpp_frame(void *frame)
 {
-    mpp_assert(frame->name == module_name);
-    if (frame->name != module_name)
-        abort();
+    if (frame && ((MppFrameImpl*)frame)->name == module_name)
+        return MPP_OK;
+
+    mpp_err_f("pointer %p failed on check\n");
+    mpp_abort();
+    return MPP_NOK;
 }
 
 MPP_RET mpp_frame_init(MppFrame *frame)
@@ -57,12 +60,11 @@ MPP_RET mpp_frame_init(MppFrame *frame)
 
 MPP_RET mpp_frame_deinit(MppFrame *frame)
 {
-    if (NULL == frame || NULL == *frame) {
+    if (NULL == frame || check_is_mpp_frame(*frame)) {
         mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    check_mpp_frame_name((MppFrameImpl *)*frame);
     MppBuffer buffer = mpp_frame_get_buffer(*frame);
     if (buffer)
         mpp_buffer_put(buffer);
@@ -74,52 +76,43 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
 
 MppFrame mpp_frame_get_next(MppFrame frame)
 {
-    if (NULL == frame) {
-        mpp_err_f("invalid NULL pointer input\n");
+    if (check_is_mpp_frame(frame))
         return NULL;
-    }
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
-    check_mpp_frame_name(p);
     return (MppFrame)p->next;
 }
 
 MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
 {
-    if (NULL == frame) {
-        mpp_err_f("invalid NULL pointer input\n");
-        return MPP_ERR_NULL_PTR;
-    }
+    if (check_is_mpp_frame(frame))
+        return MPP_ERR_UNKNOW;
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
-    check_mpp_frame_name(p);
     p->next = (MppFrameImpl *)next;
     return MPP_OK;
 }
 
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 {
-    if (NULL == dst || NULL == src) {
-        mpp_err_f("invalid NULL pointer input\n");
-        return MPP_ERR_NULL_PTR;
+    if (NULL == dst || check_is_mpp_frame(src)) {
+        mpp_err_f("invalid input dst %p src %p\n", dst, src);
+        return MPP_ERR_UNKNOW;
     }
 
-    check_mpp_frame_name((MppFrameImpl *)src);
     memcpy(dst, src, sizeof(MppFrameImpl));
     return MPP_OK;
 }
 
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
 {
-    if (NULL == frame0 || NULL == frame0) {
+    if (check_is_mpp_frame(frame0) || check_is_mpp_frame(frame0)) {
         mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MppFrameImpl *f0 = (MppFrameImpl *)frame0;
     MppFrameImpl *f1 = (MppFrameImpl *)frame1;
-    check_mpp_frame_name(f0);
-    check_mpp_frame_name(f1);
 
     if ((f0->width              == f1->width)  &&
         (f0->height             == f1->height) &&
@@ -142,12 +135,12 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
 #define MPP_FRAME_ACCESSORS(type, field) \
     type mpp_frame_get_##field(const MppFrame s) \
     { \
-        check_mpp_frame_name((MppFrameImpl*)s); \
+        check_is_mpp_frame((MppFrameImpl*)s); \
         return ((MppFrameImpl*)s)->field; \
     } \
     void mpp_frame_set_##field(MppFrame s, type v) \
     { \
-        check_mpp_frame_name((MppFrameImpl*)s); \
+        check_is_mpp_frame((MppFrameImpl*)s); \
         ((MppFrameImpl*)s)->field = v; \
     }
 
