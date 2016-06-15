@@ -39,6 +39,7 @@ MPP_RET store_picture_in_dpb (H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p);
 
 MPP_RET init_dpb    (H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type);
 MPP_RET flush_dpb   (H264_DpbBuf_t   *p_Dpb, RK_S32 type);
+MPP_RET output_dpb  (H264_DecCtx_t *p_Dec, H264_DpbBuf_t *p_Dpb);
 
 void    free_dpb    (H264_DpbBuf_t   *p_Dpb);
 MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_pic);
