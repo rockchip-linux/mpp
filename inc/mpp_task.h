@@ -151,7 +151,12 @@ typedef enum {
  * output side:
  * task_dequeue(ctx, PORT_OUTPUT, &task);
  * task_get_item(task, MODE_OUTPUT, &packet)
+ * task_get_item(task, MODE_OUTPUT, &frame)
  * task_enqueue(ctx, PORT_OUTPUT, task);
+ *
+ * NOTE: this flow can specify the output frame. User will setup both intput frame and output packet
+ * buffer at the input side. Then at output side when user gets a finished task user can get the output
+ * packet and corresponding released input frame.
  *
  * image processing
  *
