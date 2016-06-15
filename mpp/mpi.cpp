@@ -216,8 +216,8 @@ static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
     if (ret)
         return ret;
 
-    if (type >= MPP_PORT_BUTT || NULL == task) {
-        mpp_err_f("invalid input type %d task %p\n", type, task);
+    if (type >= MPP_PORT_BUTT || task < 0) {
+        mpp_err_f("invalid input type %d task %d\n", type, task);
         return MPP_ERR_UNKNOW;
     }
 
