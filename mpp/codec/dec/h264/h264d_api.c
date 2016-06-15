@@ -556,16 +556,12 @@ MPP_RET  h264d_flush(void *decoder)
         }
         goto __RETURN;
     }
-    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1));
-    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
-    //free_dpb(p_Dec->p_Vid->p_Dpb_layer[0]);
+
+    FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[0]));
     if (p_Dec->mvc_valid) {
-        // layer_id == 1
-        FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        //free_dpb(p_Dec->p_Vid->p_Dpb_layer[1]);
+        FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[1]));
     }
-    flush_dpb_buf_slot(p_Dec);
+
     if (p_Dec->last_frame_slot_idx >= 0) {
         mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
                               SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
