@@ -20,6 +20,7 @@ if(H265D_TEST)
     else()
         target_link_libraries(h265d_parser_test mpp_shared utils)
     endif()
+    set_target_properties(h265d_parser_test PROPERTIES FOLDER "mpp/test") 
 endif()
 
 

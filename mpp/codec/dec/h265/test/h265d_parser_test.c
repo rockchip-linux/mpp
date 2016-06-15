@@ -66,10 +66,10 @@ typedef enum VPU_API_DEMO_RET {
 
 
 typedef struct parserDemoCmdContext {
+    char    input_file[200];
+    char    output_file[200];
     RK_U32  width;
     RK_U32  height;
-    RK_U8   input_file[200];
-    RK_U8   output_file[200];
     RK_U8   have_input;
     RK_U8   have_output;
     RK_U8   disable_debug;
