@@ -266,7 +266,7 @@ rk_list::~rk_list()
 #define COUNT_ADD       100
 #define COUNT_DEL       99
 
-volatile int err = 0;
+static volatile int err = 0;
 
 static int rk_list_fifo_test(rk_list *list_0)
 {

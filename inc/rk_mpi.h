@@ -77,8 +77,8 @@ typedef enum {
     MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
     MPP_DEC_USE_PRESENT_TIME_ORDER,
     MPP_DEC_SET_VC1_EXTRA_DATA,
-    MPP_DEC_SET_VP6_ID,
-    MPP_DEC_USE_FAST_MODE,
+    MPP_DEC_SET_PARSER_SPLIT_MODE,      /* Need to setup before init */
+    MPP_DEC_SET_PARSER_FAST_MODE,       /* Need to setup before init */
     MPP_DEC_GET_STREAM_COUNT,
 
     MPP_ENC_CMD_BASE                    = 0x50000,
