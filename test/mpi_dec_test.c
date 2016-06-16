@@ -27,7 +27,6 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
-#include "mpp_common.h"
 
 #include "utils.h"
 
@@ -271,7 +270,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
             switch (*opt) {
             case 'i':
                 if (next) {
-                    snprintf(cmd->file_input, MAX_FILE_NAME_LENGTH, next);
+                    strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH);
                     cmd->file_input[strlen(next)] = '\0';
                     cmd->have_input = 1;
                 } else {
@@ -281,7 +280,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                 break;
             case 'o':
                 if (next) {
-                    snprintf(cmd->file_output, MAX_FILE_NAME_LENGTH, next);
+                    strncpy(cmd->file_output, next, MAX_FILE_NAME_LENGTH);
                     cmd->file_output[strlen(next)] = '\0';
                     cmd->have_output = 1;
                 } else {
