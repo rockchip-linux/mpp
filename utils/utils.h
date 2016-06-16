@@ -17,6 +17,9 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <stdio.h>
+#include "mpp_frame.h"
+
 typedef struct OptionInfo_t {
     const char*     name;
     const char*     argname;
@@ -33,6 +36,7 @@ extern "C" {
 #endif
 
 void _show_options(int count, OptionInfo *options);
+void dump_mpp_frame_to_file(MppFrame frame, FILE *fp);
 
 #ifdef __cplusplus
 }
