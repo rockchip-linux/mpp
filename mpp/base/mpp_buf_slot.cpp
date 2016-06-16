@@ -444,8 +444,10 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
         if (entry->frame) {
             mpp_frame_deinit(&entry->frame);
             slot_ops_with_log(impl, entry, SLOT_CLR_FRAME);
-        } else
-            mpp_buffer_put(entry->buffer);
+        } else {
+            if (entry->buffer)
+                mpp_buffer_put(entry->buffer);
+        }
 
         slot_ops_with_log(impl, entry, SLOT_CLR_BUFFER);
         slot_ops_with_log(impl, entry, SLOT_CLR_ON_USE);
