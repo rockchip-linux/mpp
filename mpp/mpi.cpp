@@ -25,6 +25,22 @@
 #include "mpi_impl.h"
 #include "mpp.h"
 #include "mpp_info.h"
+#include "mpp_common.h"
+
+typedef struct {
+    MppCtxType      type;
+    MppCodingType   coding;
+    const char      *type_name;
+    const char      *coding_name;
+} MppCodingTypeInfo;
+
+static MppCodingTypeInfo support_list[] = {
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG2,  "dec",  "mpeg2",        },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVC,    "dec",  "h.264/AVC",    },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingHEVC,   "dec",  "h.265/HEVC",   },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,    "dec",  "VP9",          },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
+};
 
 #define check_mpp_ctx(ctx)  _check_mpp_ctx(ctx, __FUNCTION__)
 
@@ -328,13 +344,13 @@ MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
         return MPP_ERR_UNKNOW;
     }
 
-    p->ctx->init(type, coding);
+    ret = p->ctx->init(type, coding);
     p->type     = type;
     p->coding   = coding;
 
     get_mpi_debug();
     MPI_FUNCTION_LEAVE_OK();
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET mpp_destroy(MppCtx ctx)
@@ -353,5 +369,35 @@ MPP_RET mpp_destroy(MppCtx ctx)
 
     MPI_FUNCTION_LEAVE();
     return MPP_OK;
+}
+
+MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding)
+{
+    MPP_RET ret = MPP_NOK;
+    RK_U32 i = 0;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(support_list); i++) {
+        MppCodingTypeInfo *info = &support_list[i];
+        if (type    == info->type &&
+            coding  == info->coding) {
+            ret = MPP_OK;
+            break;
+        }
+    }
+    return ret;
+}
+
+void mpp_show_support_format()
+{
+    RK_U32 i = 0;
+
+    mpp_log("mpp coding type support list:");
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(support_list); i++) {
+        MppCodingTypeInfo *info = &support_list[i];
+        mpp_log("type: %s id %d coding: %-16s id %d\n",
+                info->type_name, info->type,
+                info->coding_name, info->coding);
+    }
 }
 

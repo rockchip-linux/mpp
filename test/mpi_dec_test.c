@@ -72,7 +72,7 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
     MpiCmd mpi_cmd      = MPP_CMD_BASE;
     MppParam param      = NULL;
-    RK_U32 output_block = 1;
+    RK_U32 need_split    = 1;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -123,18 +123,19 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
         mpp_err("mpp_create failed\n");
         goto MPP_TEST_OUT;
     }
-    ret = mpp_init(ctx, MPP_CTX_DEC, type);
-    if (MPP_OK != ret) {
-        mpp_err("mpp_init failed\n");
-        goto MPP_TEST_OUT;
-    }
 
-    // NOTE: decoder do not need control function
-    mpi_cmd = MPP_SET_OUTPUT_BLOCK;
-    param = &output_block;
+    // NOTE: decoder split mode need to be set before init
+    mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
+    param = &need_split;
     ret = mpi->control(ctx, mpi_cmd, param);
     if (MPP_OK != ret) {
         mpp_err("mpi->control failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_init(ctx, MPP_CTX_DEC, type);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_init failed\n");
         goto MPP_TEST_OUT;
     }
 
@@ -218,23 +219,12 @@ MPP_TEST_OUT:
     return ret;
 }
 
+
 static void mpi_dec_test_help()
 {
     mpp_log("usage: mpi_dec_test [options]\n");
     show_options(mpi_dec_cmd);
-}
-
-static MPP_RET check_decoder_support_format(MppCodingType type)
-{
-    if (type == MPP_VIDEO_CodingMPEG2 ||
-        type == MPP_VIDEO_CodingMPEG4 ||
-        type == MPP_VIDEO_CodingAVC ||
-        type == MPP_VIDEO_CodingVP9 ||
-        type == MPP_VIDEO_CodingHEVC ||
-        type == MPP_VIDEO_CodingAVS)
-        return MPP_OK;
-
-    return MPP_OK;
+    mpp_show_support_format();
 }
 
 static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
@@ -319,7 +309,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
             case 't':
                 if (next) {
                     cmd->type = (MppCodingType)atoi(next);
-                    err = check_decoder_support_format(cmd->type);
+                    err = mpp_check_support_format(MPP_CTX_DEC, cmd->type);
                 }
 
                 if (!next || err) {
@@ -349,6 +339,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("output file name: %s\n", cmd->file_output);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);
+    mpp_log("type       : %d\n", cmd->type);
     mpp_log("debug flag : %x\n", cmd->debug);
 }
 
