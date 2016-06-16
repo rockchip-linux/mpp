@@ -128,28 +128,35 @@ RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aD
 
 RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
 {
-    //mpp_log_f("in\n");
+    RK_S32 ret;
     MppPacket mpkt = NULL;
+
     mpp_packet_init(&mpkt, pkt->data, pkt->size);
     mpp_packet_set_pts(mpkt, pkt->pts);
     if (pkt->nFlags & OMX_BUFFERFLAG_EOS) {
-        mpp_err("decode_sendstream set eos");
+        mpp_log("decode_sendstream set eos");
         mpp_packet_set_eos(mpkt);
     }
-    if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
+
+    ret = mpi->decode_put_packet(mpp_ctx, mpkt);
+
+    if (ret == MPP_OK) {
         pkt->size = 0;
+    } else {
+        mpp_err("decode_put_packet ret %d\n", ret);
     }
     mpp_packet_deinit(&mpkt);
-    // mpp_log_f("ok\n");
-    return 0;
+    return ret;
 }
 
 RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
 {
-    // mpp_log_f("in\n");
+    RK_S32 ret = 0;
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
-    memset(vframe, 0, sizeof(VPU_FRAME));
     MppFrame  mframe = NULL;
+
+    memset(vframe, 0, sizeof(VPU_FRAME));
+
     if (NULL == mpi) {
         aDecOut->size = 0;
         return 0;
@@ -158,7 +165,11 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->size = 0;
         return VPU_API_EOS_STREAM_REACHED;
     }
-    if (MPP_OK == mpi->decode_get_frame(mpp_ctx, &mframe)) {
+
+    ret = mpi->decode_get_frame(mpp_ctx, &mframe);
+    if (ret || NULL == mframe) {
+        aDecOut->size = 0;
+    } else {
         MppBuffer buf = NULL;
         RK_U64 pts = 0;
         RK_U32 fd = 0;
@@ -268,12 +279,9 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
          */
         mpp_frame_set_buffer(mframe, NULL);
         mpp_frame_deinit(&mframe);
-    } else {
-        aDecOut->size = 0;
     }
 
-    // mpp_log_f("ok\n");
-    return 0;
+    return ret;
 }
 
 RK_S32 VpuApi::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
