@@ -56,7 +56,8 @@ Mpp::Mpp()
       mOutputBlock(0),
       mMultiFrame(0),
       mStatus(0),
-      mFastMode(0)
+      mParserFastMode(0),
+      mParserNeedSplit(0)
 {
 }
 
@@ -77,11 +78,13 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        if (MPP_VIDEO_CodingHEVC == coding) {
-            mDec->fast_mode = mFastMode;
-        }
+        MppDecCfg cfg = {
+            coding,
+            mParserFastMode,
+            mParserNeedSplit,
+        };
         mDec->mpp = this;
-        mpp_dec_init(mDec, coding);
+        mpp_dec_init(mDec, &cfg);
 
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this, "mpp_dec_parser");
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this, "mpp_dec_hal");
@@ -286,9 +289,14 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mpp_dec_control(mDec, cmd, param);
         break;
     }
-    case MPP_DEC_USE_FAST_MODE: {
+    case MPP_DEC_SET_PARSER_SPLIT_MODE: {
         RK_U32 mode = *((RK_U32 *)param);
-        mFastMode = mode;
+        mParserNeedSplit = mode;
+        break;
+    }
+    case MPP_DEC_SET_PARSER_FAST_MODE: {
+        RK_U32 mode = *((RK_U32 *)param);
+        mParserFastMode = mode;
         break;
     }
     case MPP_DEC_GET_STREAM_COUNT: {

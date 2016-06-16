@@ -33,14 +33,23 @@ struct MppDec_t {
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
 
+    // status flag
     RK_U32              reset_flag;
+
+    // work mode flag
+    RK_U32              parser_need_split;
+    RK_U32              parser_fast_mode;
 
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
-    RK_U32              fast_mode;
     void                *mpp;
 };
 
+typedef struct {
+    MppCodingType       coding;
+    RK_U32              fast_mode;
+    RK_U32              need_split;
+} MppDecCfg;
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,7 +64,7 @@ void *mpp_dec_hal_thread(void *data);
 /*
  *
  */
-MPP_RET mpp_dec_init(MppDec *dec, MppCodingType coding);
+MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg);
 MPP_RET mpp_dec_deinit(MppDec *dec);
 
 MPP_RET mpp_dec_reset(MppDec *dec);

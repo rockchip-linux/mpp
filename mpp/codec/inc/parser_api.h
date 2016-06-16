@@ -35,8 +35,8 @@ typedef struct DecParserInitCfg_t {
     MppBufSlots     packet_slots;
 
     // output
-    RK_S32          task_count;
-    RK_S32          need_split;
+    RK_U32          task_count;
+    RK_U32          need_split;
     IOInterruptCB   notify_cb;
 } ParserCfg;
 
