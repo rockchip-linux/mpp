@@ -163,23 +163,27 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
         msleep(50);
 
-        ret = mpi->decode_get_frame(ctx, &frame);
-        if (MPP_OK != ret) {
-            mpp_err("decode_get_frame failed ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        if (frame) {
-            if (mpp_frame_get_info_change(frame)) {
-                mpp_log("decode_get_frame get info changed found\n");
-                mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
-            } else {
-                mpp_log("decode_get_frame get frame %d\n", frame_count++);
-                if (fp_output)
-                    dump_mpp_frame_to_file(frame, fp_output);
+        do {
+            ret = mpi->decode_get_frame(ctx, &frame);
+            if (MPP_OK != ret) {
+                mpp_err("decode_get_frame failed ret %d\n", ret);
+                goto MPP_TEST_OUT;
             }
-            mpp_frame_deinit(&frame);
-        }
+
+            if (frame) {
+                if (mpp_frame_get_info_change(frame)) {
+                    mpp_log("decode_get_frame get info changed found\n");
+                    mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
+                } else {
+                    mpp_log("decode_get_frame get frame %d\n", frame_count++);
+                    if (fp_output)
+                        dump_mpp_frame_to_file(frame, fp_output);
+                }
+                mpp_frame_deinit(&frame);
+            } else {
+                break;
+            }
+        } while (1);
     }
 
     ret = mpi->reset(ctx);
