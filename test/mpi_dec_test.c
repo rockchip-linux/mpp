@@ -31,7 +31,7 @@
 #include "utils.h"
 
 #define MPI_DEC_LOOP_COUNT          4
-#define MPI_STREAM_SIZE             (SZ_512K)
+#define MPI_DEC_STREAM_SIZE         (SZ_64K)
 #define MAX_FILE_NAME_LENGTH        256
 
 typedef struct {
@@ -81,8 +81,9 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
     // resources
     char *buf           = NULL;
-    size_t packet_size  = MPI_STREAM_SIZE;
+    size_t packet_size  = MPI_DEC_STREAM_SIZE;
     size_t read_size    = 0;
+    RK_U32 frame_count  = 0;
 
     mpp_log("mpi_dec_test start\n");
 
@@ -141,7 +142,6 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
     while (!found_eos) {
         read_size = fread(buf, 1, packet_size, fp_input);
-        mpp_log("read packet length %u\n", read_size);
         if (read_size != packet_size || feof(fp_input)) {
             mpp_log("found last packet\n");
             found_eos = 1;
@@ -157,6 +157,7 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
         ret = mpi->decode_put_packet(ctx, packet);
         if (MPP_OK != ret) {
+            mpp_err("decode_put_packet failed ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
@@ -164,6 +165,7 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
 
         ret = mpi->decode_get_frame(ctx, &frame);
         if (MPP_OK != ret) {
+            mpp_err("decode_get_frame failed ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
@@ -172,6 +174,7 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
                 mpp_log("decode_get_frame get info changed found\n");
                 mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
             } else {
+                mpp_log("decode_get_frame get frame %d\n", frame_count++);
                 if (fp_output)
                     dump_mpp_frame_to_file(frame, fp_output);
             }
