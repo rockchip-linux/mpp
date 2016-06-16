@@ -37,3 +37,6 @@ add_mpp_test(mpp_packet)
 
 # mpi unit test
 add_mpp_test(mpi)
+
+# mpi decoder unit test
+add_mpp_test(mpi_dec)
