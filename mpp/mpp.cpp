@@ -63,17 +63,15 @@ Mpp::Mpp()
 
 MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 {
+    if (mpp_check_support_format(type, coding)) {
+        mpp_err("unable to create unsupported type %d coding %d\n", type, coding);
+        return MPP_NOK;
+    }
 
     mType = type;
     mCoding = coding;
     switch (mType) {
     case MPP_CTX_DEC : {
-        mDec = mpp_calloc(MppDec, 1);
-        if (NULL == mDec) {
-            mpp_err_f("failed to malloc context\n");
-            return MPP_ERR_NULL_PTR;
-        }
-
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
@@ -82,9 +80,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             coding,
             mParserFastMode,
             mParserNeedSplit,
+            this,
         };
-        mDec->mpp = this;
-        mpp_dec_init(mDec, &cfg);
+        mpp_dec_init(&mDec, &cfg);
 
         mThreadCodec = new MppThread(mpp_dec_parser_thread, this, "mpp_dec_parser");
         mThreadHal  = new MppThread(mpp_dec_hal_thread, this, "mpp_dec_hal");
@@ -116,12 +114,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mPacketGroup) {
         mThreadCodec->start();
         mThreadHal->start();
+        mInitDone = 1;
     } else {
         mpp_err("error found on mpp initialization\n");
         clear();
     }
 
-    mInitDone = 1;
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
     return MPP_OK;
 }

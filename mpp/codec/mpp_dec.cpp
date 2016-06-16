@@ -705,7 +705,7 @@ void *mpp_dec_hal_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
+MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
 {
     MPP_RET ret;
     MppCodingType coding;
@@ -714,10 +714,19 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
     Parser parser = NULL;
     MppHal hal = NULL;
     RK_S32 hal_task_count = 0;
+    MppDec *p = NULL;
     IOInterruptCB cb = {NULL, NULL};
 
     if (NULL == dec || NULL == cfg) {
         mpp_err_f("invalid input dec %p cfg %p\n", dec, cfg);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    *dec = NULL;
+
+    p = mpp_calloc(MppDec, 1);
+    if (NULL == p) {
+        mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -739,7 +748,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
 
         mpp_buf_slot_setup(packet_slots, hal_task_count);
         cb.callBack = mpp_dec_notify;
-        cb.opaque = dec;
+        cb.opaque = p;
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
@@ -776,19 +785,21 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
             break;
         }
 
-        dec->coding = coding;
-        dec->parser = parser;
-        dec->hal    = hal;
-        dec->tasks  = hal_cfg.tasks;
-        dec->frame_slots  = frame_slots;
-        dec->packet_slots = packet_slots;
+        p->coding = coding;
+        p->parser = parser;
+        p->hal    = hal;
+        p->tasks  = hal_cfg.tasks;
+        p->frame_slots  = frame_slots;
+        p->packet_slots = packet_slots;
 
-        dec->parser_need_split  = cfg->need_split;
-        dec->parser_fast_mode   = cfg->fast_mode;
+        p->mpp                = cfg->mpp;
+        p->parser_need_split  = cfg->need_split;
+        p->parser_fast_mode   = cfg->fast_mode;
+        *dec = p;
         return MPP_OK;
     } while (0);
 
-    mpp_dec_deinit(dec);
+    mpp_dec_deinit(p);
     return MPP_NOK;
 }
 

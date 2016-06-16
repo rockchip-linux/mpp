@@ -49,6 +49,7 @@ typedef struct {
     MppCodingType       coding;
     RK_U32              fast_mode;
     RK_U32              need_split;
+    void                *mpp;
 } MppDecCfg;
 
 #ifdef __cplusplus
@@ -64,7 +65,7 @@ void *mpp_dec_hal_thread(void *data);
 /*
  *
  */
-MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg);
+MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg);
 MPP_RET mpp_dec_deinit(MppDec *dec);
 
 MPP_RET mpp_dec_reset(MppDec *dec);
