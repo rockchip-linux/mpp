@@ -283,7 +283,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
 
     /*
-     * 2. get packet to parse
+     * 2. get packet for parser preparing
      */
     if (!dec->mpp_pkt_in && !task->status.curr_task_rdy) {
         mpp_list *packets = mpp->mPackets;
@@ -302,17 +302,28 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     }
 
     /*
-     * 3. send packet data to parser
+     * 3. send packet data to parser for prepare
      *
-     *    parser functioin input / output
-     *    input:    packet data
-     *    output:   dec task output information (with dxva output slot)
-     *              buffer slot usage informatioin
+     *    parser_prepare functioin input / output
+     *    input:    input MppPacket data from user
+     *    output:   one packet which contains one frame for hardware processing
+     *              output information will be stored in task_dec->input_packet
+     *              output data can be stored inside of parser.
      *
      *    NOTE:
-     *    1. dpb slot will be set internally in parser process.
-     *    2. parse function need to set valid flag when one frame is ready.
-     *    3. if packet size is zero then next packet is needed.
+     *    1. Prepare process is controlled by need_split flag
+     *       If need_split flag is zero prepare function is just copy the input
+     *       packet to task_dec->input_packet
+     *       If need_split flag is non-zero prepare function will call split funciton
+     *       of different coding type and find the start and end of one frame. Then
+     *       copy data to task_dec->input_packet
+     *    2. On need_split mode if one input MppPacket contain multiple frame for
+     *       decoding one parser_prepare call will only frame for task. Then input
+     *       MppPacket->pos/length will be updated. The input MppPacket will not be
+     *       released until it is totally consumed.
+     *    3. On spliting frame if one frame contain multiple slices and these multiple
+     *       slices have different pts/dts the output frame will use the last pts/dts
+     *       as the output frame's pts/dts.
      *
      */
     if (!task->status.curr_task_rdy) {
@@ -332,14 +343,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-    //  if (task_dec->flags.eos && task_dec->valid == 0)
-    {
-        /*may be found eos in prepare step &
-         no any vaild tast gen so try push all frame
-         avoid eos no notify to display
-         */
-        mpp_dec_push_display(mpp);
-    }
+    /*
+     * We may find eos in prepare step and there will be no anymore vaild task generated.
+     * So here we try push all frames to display to avoid eos no notify to display
+     */
+    mpp_dec_push_display(mpp);
 
     task->status.curr_task_rdy = task_dec->valid;
     if (!task->status.curr_task_rdy)
@@ -348,7 +356,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     // NOTE: packet in task should be ready now
     mpp_assert(task_dec->input_packet);
 
-    // copy prepared stream to hardware buffer
+    /*
+     * 4. look for a unused packet slot index
+     */
     if (task_dec->input < 0) {
         mpp_buf_slot_get_unused(packet_slots, &task_dec->input);
     }
@@ -357,6 +367,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (task->wait.dec_pkt_idx)
         return MPP_NOK;
 
+    /*
+     * 5. malloc hardware buffer for the packet slot index
+     */
     task->hal_pkt_idx_in = task_dec->input;
     stream_size = mpp_packet_get_size(task_dec->input_packet);
 
@@ -376,6 +389,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (task->wait.dec_pkt_buf)
         return MPP_NOK;
 
+    /*
+     * 6. copy prepared stream to hardware buffer
+     */
     if (!task->status.dec_pkt_copy_rdy) {
         MppBufferImpl *buf = (MppBufferImpl *)task->hal_pkt_buf_in;
         void *src = mpp_packet_get_data(task_dec->input_packet);
@@ -386,6 +402,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         task->status.dec_pkt_copy_rdy = 1;
     }
 
+    /*
+     * 7. if not fast mode wait previous task done here
+     */
     if (!dec->parser_fast_mode) {
         // wait previous task done
         if (!task->status.prev_task_rdy) {
@@ -402,28 +421,43 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             }
         }
     }
+
+    /*
+     * 7. look for a unused hardware buffer for output
+     */
     if (mpp->mFrameGroup) {
         task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
         if (task->wait.dec_pic_buf)
             return MPP_NOK;
     }
 
-    // if (task_dec->flags.eos && task_dec->valid == 0)
-    {
-        /*may be found eos in parser step &
-          no any vaild tast gen so try push all frame
-          avoid eos no notify to display
-          */
-        mpp_dec_push_display(mpp);
-    }
+    /*
+     * We may find eos in prepare step and there will be no anymore vaild task generated.
+     * So here we try push all frames to display to avoid eos no notify to display
+     */
+    mpp_dec_push_display(mpp);
 
+    /*
+     * 8. send packet data to parser
+     *
+     *    parser prepare functioin input / output
+     *    input:    packet data
+     *    output:   dec task output information (with dxva output slot)
+     *              buffer slot usage informatioin
+     *
+     *    NOTE:
+     *    1. dpb slot will be set internally in parser process.
+     *    2. parse function need to set valid flag when one frame is ready.
+     *    3. if packet size is zero then next packet is needed.
+     *
+     */
     if (!task->status.task_parsed_rdy) {
         parser_parse(dec->parser, task_dec);
         task->status.task_parsed_rdy = 1;
     }
 
     /*
-     * 4. parse local task and slot to check whether new buffer or info change is needed.
+     * 9. parse local task and slot to check whether new buffer or info change is needed.
      *
      * a. first detect info change from frame slot
      * b. then detect whether output index has MppBuffer
