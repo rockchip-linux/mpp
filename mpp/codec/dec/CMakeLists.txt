@@ -12,3 +12,4 @@ add_subdirectory(avs)
 
 add_subdirectory(m2v)
 
+add_subdirectory(mpg4)
