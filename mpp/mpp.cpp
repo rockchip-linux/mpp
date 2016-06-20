@@ -184,6 +184,9 @@ void Mpp::clear()
 
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
+    if (!mInitDone)
+        return MPP_NOK;
+
     AutoMutex autoLock(mPackets->mutex());
     RK_U32 eos = mpp_packet_get_eos(packet);
     if (mPackets->list_size() < 4 || eos) {
@@ -200,6 +203,9 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
+    if (!mInitDone)
+        return MPP_NOK;
+
     AutoMutex autoLock(mFrames->mutex());
     MppFrame first = NULL;
 
@@ -233,6 +239,9 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
 MPP_RET Mpp::put_frame(MppFrame frame)
 {
+    if (!mInitDone)
+        return MPP_NOK;
+
     AutoMutex autoLock(mFrames->mutex());
     if (mFrames->list_size() < 4) {
         mFrames->add_at_tail(frame, sizeof(MppFrameImpl));
@@ -245,6 +254,9 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
+    if (!mInitDone)
+        return MPP_NOK;
+
     AutoMutex autoLock(mPackets->mutex());
     if (0 == mPackets->list_size()) {
         mThreadCodec->signal();
