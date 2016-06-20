@@ -38,7 +38,7 @@
 typedef struct DummyDec_t {
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
-    RK_U32          task_count;
+    RK_S32          task_count;
     void            *stream;
     size_t          stream_size;
     MppPacket       task_pkt;
