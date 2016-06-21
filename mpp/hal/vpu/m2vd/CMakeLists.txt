@@ -24,13 +24,9 @@ add_library(hal_m2vd STATIC
             ${HAL_M2VD_HDR} 
             ${HAL_M2VD_SRC} 
             )
-if(ANDROID)
-    target_link_libraries(hal_m2vd vpu osal)
-else()
-    target_link_libraries(hal_m2vd osal)
-endif()    
-target_link_libraries(hal_m2vd
-                      mpp_base
-					  )
+            
+
+target_link_libraries(hal_m2vd mpp_base)
+
 set_target_properties(hal_m2vd PROPERTIES FOLDER "mpp/hal")        
 

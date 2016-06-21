@@ -31,6 +31,7 @@
 #include "hal_avsd_api.h"
 #include "hal_m2vd_api.h"
 #include "hal_mpg4d_api.h"
+#include "hal_vp8d_api.h"
 
 // for test and demo
 #include "hal_dummy_dec_api.h"
@@ -46,6 +47,7 @@ static const MppHalApi *hw_apis[] = {
     &hal_api_avsd,
     &hal_api_m2vd,
     &hal_api_mpg4d,
+	&hal_api_vp8d,
     &hal_api_dummy_dec,
     &hal_api_dummy_enc,
 };

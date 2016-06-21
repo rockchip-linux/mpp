@@ -30,7 +30,7 @@
 #include "avsd_api.h"
 #include "m2vd_api.h"
 #include "mpg4d_api.h"
-
+#include "vp8d_api.h"
 // for test and demo
 #include "dummy_dec_api.h"
 
@@ -44,6 +44,7 @@ static const ParserApi *parsers[] = {
     &api_avsd_parser,
     &api_m2vd_parser,
     &api_mpg4d_parser,
+	&api_vp8d_parser,
     &dummy_dec_parser,
 };
 
