@@ -189,6 +189,8 @@ RK_S32 VPUClientGetIOMMUStatus()
 ***********************************************************************
 */
 //extern "C"
+#define RKV_MODE  (0x1)
+#define VDPU_MODE (0x2)
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
     MppHalApi *p_api = NULL;
@@ -207,8 +209,11 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< choose hard mode
 #ifdef RKPLATFORM
     {
-        RK_S32 value = (!!access("/dev/rkvdec", F_OK));
-        cfg->device_id = value ? HAL_VDPU : HAL_RKVDEC;
+        RK_U32 mode = 0;
+        RK_S32 value = 0;
+        mpp_env_get_u32("use_mpp_mode", &mode, 0);
+        value = (!!access("/dev/rkvdec", F_OK));
+        cfg->device_id = (value || (mode & VDPU_MODE)) ? HAL_VDPU : HAL_RKVDEC;
     }
 #endif
     switch (cfg->device_id) {

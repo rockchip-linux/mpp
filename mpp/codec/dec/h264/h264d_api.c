@@ -767,38 +767,46 @@ __FAILED:
 *   callback
 ***********************************************************************
 */
+typedef enum MppHalHardType_e {
+    HAL_VDPU,           //!< vpu combined decoder
+    HAL_VEPU,           //!< vpu combined encoder
+    HAL_RKVDEC,         //!< rock-chip h264 h265 vp9 combined decoder
+    HAL_DEVICE_BUTT,
+} HalDeviceId;
 MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    RK_U32 *p_regs = NULL;
+    IOCallbackCtx *ctx = (IOCallbackCtx *)errinfo;
+
     INP_CHECK(ret, !decoder);
     FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
-    p_regs = (RK_U32*)errinfo;
+
     {
         MppFrame mframe = NULL;
+        RK_U32 *p_regs = ctx->regs;
+        HalDecTask *task_dec = (HalDecTask *)ctx->task;
 
-        RK_U32 out_slot_idx = p_regs[78];
-        RK_U32 had_err_flag = p_regs[79];
-        RK_U32 used_ref_flag = p_regs[80];
-        RK_U32 dec_error_sta = p_regs[1] & 0x00004000;
-        RK_U32 dec_rdy_sta   = p_regs[1] & 0x00001000;
-        RK_U32 buf_empty_sta = p_regs[1] & 0x00010000;
-        RK_U32 strmd_error_status = p_regs[45];
-        RK_U32 strmd_error_detect_flag = p_regs[76] & 0x00008000;   // strmd error detect flag
-
-        mpp_buf_slot_get_prop(p_Dec->frame_slots, out_slot_idx, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(p_Dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
         if (mframe) {
-            if (dec_error_sta || (!dec_rdy_sta) || buf_empty_sta
-                || had_err_flag || strmd_error_status || strmd_error_detect_flag) {
-                if (used_ref_flag) {
+            if (ctx->hard_err || task_dec->flags.had_error) {
+                if (task_dec->flags.used_for_ref) {
                     mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-                } else {
+                }
+                else {
                     mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
                 }
             }
-            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, s_idx=%d, sw[01]=%08x, sw[45]=%08x, sw[76]=%08x, dpberr=%d, ref=%d, errinfo=%d, discard=%d \n",
-                      p_Dec->p_Vid->g_framecnt, out_slot_idx, p_regs[1], p_regs[45], p_regs[76], had_err_flag, used_ref_flag, mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
+                p_Dec->p_Vid->g_framecnt, task_dec->output, task_dec->flags.had_error, ctx->hard_err, task_dec->flags.used_for_ref,
+                mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+
+            if (ctx->device_id == HAL_RKVDEC) {
+                H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] sw[01]=%08x, sw[45]=%08x, sw[76]=%08x\n", p_regs[1], p_regs[45], p_regs[76]);
+            }
+            else if (ctx->device_id == HAL_VDPU) {
+
+            }
         }
     }
 

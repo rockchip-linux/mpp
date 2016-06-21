@@ -35,465 +35,312 @@
 #include "hal_h264d_vdpu_reg.h"
 
 
-
-static void print_single_regs(HalRegDrvCtx_t *p_drv, const HalRegDrv_t *pcur)
-{
-    RK_S32 val = 0;
-    hal_get_regdrv(p_drv, pcur->syn_id, (RK_U32 *)&val);
-    LogInfo((LogCtx_t *)p_drv->log, "name=[%24s], reg=[%.2d], bit=[%.2d], len=[%.2d], val=[%8d]",
-            pcur->name, pcur->reg_id, pcur->bitpos, pcur->bitlen, val);
-}
-
-
-RK_U32 g_print_init_value = 1;
-
-static MPP_RET vdpu_h264d_print_regs(H264dHalCtx_t *p_hal, HalRegDrvCtx_t *p_drv)
-{
-    RK_U32 i = 0;
-    //RK_U32 val = 0;
-    LogCtx_t *logctx = NULL;
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    INP_CHECK(ret, NULL == p_drv);
-    logctx = (LogCtx_t *)p_drv->log;
-    if (LogEnable(logctx, LOG_LEVEL_INFO)) {
-#if 1
-        if (g_print_init_value) {
-            g_print_init_value = 0;
-            LogInfo((LogCtx_t *)p_drv->log, "---------------- VDPU REG START ------------------ ");
-            //!< ---------------- init register -------------
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_MODE         ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_ENDIAN   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_IN_ENDIAN    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_STRENDIAN_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_TILED_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_MAX_BURST    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_SCMD_DIS     ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_ADV_PRE_DIS  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_APF_THRESHOLD    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_LATENCY      ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_DATA_DISC_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUTSWAP32_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_INSWAP32_E   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_STRSWAP32_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_TIMEOUT_E    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_CLK_GATE_E   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_IRQ_DIS      ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_AXI_RD_ID    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_AXI_WR_ID    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PRED_BC_TAP_0_0  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PRED_BC_TAP_0_1  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PRED_BC_TAP_0_2  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_LATENCY      ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_CLK_GATE_E   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_TILED_E  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_ENDIAN   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_MAX_BURST    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_DATA_DISC_E  ]);
-            //!< picture parameter
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_MB_WIDTH     ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_MB_HEIGHT_P  ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_QTABLE_BASE      ]);
-        }
-#endif
-
-#if 1
-        {
-            LogInfo(logctx, "[SET_REG] g_framecnt=%d, ---- DECODE BEING -------", p_hal->iDecodedNum);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_DIS      ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_RLC_MODE_E       ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_INIT_QP          ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFIDX0_ACTIVE   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REF_FRAMES       ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_FRAMENUM_LEN     ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_FRAMENUM         ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_CONST_INTRA_E    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_FILT_CTRL_PRES   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_RDPIC_CNT_PRES   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFPIC_MK_LEN    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_IDR_PIC_E        ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_IDR_PIC_ID       ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PPS_ID           ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_POC_LENGTH       ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFER_LTERM_E    ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFER_VALID_E    ]);
-            for (i = 0; i < 16; i++) {
-                if (p_hal->pp->RefFrameList[i].bPicEntry != 0xff) { //!< valid
-                    print_single_regs(p_drv, &p_drv->p_emt[g_refPicNum[i]]);
-                }
-            }
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PICORD_COUNT_E   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_CABAC_E          ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_START_CODE_E     ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_STRM_START_BIT   ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_RLC_VLC_BASE     ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_STREAM_LEN       ]);
-            /* P lists */
-            for (i = 0; i < MPP_ARRAY_ELEMS(g_refPicListP); i++) {
-                print_single_regs(p_drv, &p_drv->p_emt[g_refPicListP[i]]);
-            }
-            /* B lists */
-            for (i = 0; i < MPP_ARRAY_ELEMS(g_refPicList0); i++) {
-                print_single_regs(p_drv, &p_drv->p_emt[g_refPicList0[i]]);
-                print_single_regs(p_drv, &p_drv->p_emt[g_refPicList1[i]]);
-            }
-            /* reference based address */
-            for (i = 0; i < MPP_ARRAY_ELEMS(g_refBase); i++) {
-                print_single_regs(p_drv, &p_drv->p_emt[g_refBase[i]]);
-            }
-            /* inter-view reference picture */
-            if (p_hal->pp->curr_layer_id && p_hal->pp->inter_view_flag) {
-
-                print_single_regs(p_drv, &p_drv->p_emt[VDPU_INTER_VIEW_BASE]);
-                print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFER_VALID_E]);
-            }
-
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_FIXED_QUANT]); //!< VDPU_MVC_E
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_FILTERING_DIS]);   //!< filterDisable = 0;
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_BASE]);    //!< outPhyAddr, pp->CurrPic.Index7Bits
-
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_CH_QP_OFFSET]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_CH_QP_OFFSET2]);
-
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DIR_MV_BASE]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_WRITE_MVS_E]); //!< defalut set 1
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DIR_8X8_INFER_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_WEIGHT_PRED_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_WEIGHT_BIPR_IDC]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_REFIDX1_ACTIVE]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_FIELDPIC_FLAG_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_INTERLACE_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_FIELDMODE_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_PIC_TOPFIELD_E]); //!< bottomFieldFlag
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_SEQ_MBAFF_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_8X8TRANS_FLAG_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_BLACKWHITE_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_TYPE1_QUANT_E]);
-
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_OUT_DIS]); //!< set defalut 0
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_CH_8PIX_ILEAV_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_E]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_QTABLE_BASE]);
-            LogInfo((LogCtx_t *)p_drv->log, "--------- [FLUSH_CNT] flush framecnt=%d -------- \n", p_hal->iDecodedNum);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_IRQ_STAT]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_IRQ]);
-            print_single_regs(p_drv, &p_drv->p_emt[VDPU_DEC_PIC_INF]);
-        }
-#endif
-    }
-    (void)i;
-    (void)p_hal;
-__RETURN:
-    return ret = MPP_OK;
-}
-
-
-static MPP_RET vdpu_set_device_regs(HalRegDrvCtx_t *p_drv)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U32 apfTmpThreshold = 0;
-    INP_CHECK(ret, NULL == p_drv);
-
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_MODE,        DEC_X170_MODE_H264));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_ENDIAN,  DEC_X170_OUTPUT_PICTURE_ENDIAN));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_IN_ENDIAN,   DEC_X170_INPUT_DATA_ENDIAN));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_STRENDIAN_E, DEC_X170_INPUT_STREAM_ENDIAN));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_TILED_E, DEC_X170_OUTPUT_FORMAT));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_MAX_BURST,   DEC_X170_BUS_BURST_LENGTH));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_SCMD_DIS,    DEC_X170_SCMD_DISABLE));
-    //!< set APF_THRESHOLD
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_ADV_PRE_DIS, DEC_X170_APF_DISABLE));
-    if ((DEC_X170_APF_DISABLE) == 0) {
-        if (DEC_X170_REFBU_SEQ) {
-            apfTmpThreshold = DEC_X170_REFBU_NONSEQ / DEC_X170_REFBU_SEQ;
-        } else {
-            apfTmpThreshold = DEC_X170_REFBU_NONSEQ;
-            if (apfTmpThreshold > 63) {
-                apfTmpThreshold = 63;
-            }
-        }
-    }
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_APF_THRESHOLD,   apfTmpThreshold));
-    //!< set device configuration register
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_LATENCY,     DEC_X170_LATENCY_COMPENSATION));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_DATA_DISC_E, DEC_X170_DATA_DISCARD_ENABLE));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUTSWAP32_E, DEC_X170_OUTPUT_SWAP_32_ENABLE));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_INSWAP32_E,  DEC_X170_INPUT_DATA_SWAP_32_ENABLE));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_STRSWAP32_E, DEC_X170_INPUT_STREAM_SWAP_32_ENABLE));
-
-#if( DEC_X170_HW_TIMEOUT_INT_ENA  != 0)
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_TIMEOUT_E, 1));
-#else
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_TIMEOUT_E, 0));
-#endif
-
-#if( DEC_X170_INTERNAL_CLOCK_GATING != 0)
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_CLK_GATE_E, 1));
-#else
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_CLK_GATE_E, 0));
-#endif
-
-#if( DEC_X170_USING_IRQ  == 0)
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_IRQ_DIS, 1));
-#else
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_IRQ_DIS, 0));
-#endif
-    //!< set AXI RW IDs
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_AXI_RD_ID,   (DEC_X170_AXI_ID_R & 0xFFU)));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_AXI_WR_ID,   (DEC_X170_AXI_ID_W & 0xFFU)));
-
-    hal_get_regdrv(p_drv, VDPU_DEC_AXI_WR_ID, &apfTmpThreshold);
-    //mpp_log_f("[SET_REG]:DEC_X170_AXI_ID_W=%d, set_value=%d \n", DEC_X170_AXI_ID_W, apfTmpThreshold);
-
-
-    ///!< Set prediction filter taps
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PRED_BC_TAP_0_0, 1));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PRED_BC_TAP_0_1, (RK_U32)(-5)));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_PRED_BC_TAP_0_2, 20));
-
-
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_LATENCY,      DEC_X170_LATENCY_COMPENSATION));
-    //!< clock_gating  0:clock always on, 1: clock gating module control the key(turn off when decoder free)
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_CLK_GATE_E,   DEC_X170_INTERNAL_CLOCK_GATING));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_TILED_E,  DEC_X170_OUTPUT_FORMAT));
-    //!<output_picture_endian = 1 ( 1:little endian; 0:big endian )
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_OUT_ENDIAN,   DEC_X170_OUTPUT_PICTURE_ENDIAN));
-    //!< bus_burst_length = 16, bus burst
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_MAX_BURST,    DEC_X170_BUS_BURST_LENGTH));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_DATA_DISC_E,  DEC_X170_DATA_DISCARD_ENABLE));
-
-__RETURN:
-    return MPP_OK;
-__FAILED:
-    return ret;
-}
-
-
-
-
-
-
-
 static RK_U32 vdpu_ver_align(RK_U32 val)
 {
-    return MPP_ALIGN(val, 16);
+	return MPP_ALIGN(val, 16);
 }
 
 static RK_U32 vdpu_hor_align(RK_U32 val)
 {
-    return MPP_ALIGN(val, 16);
+	return MPP_ALIGN(val, 16);
 }
-#if 0
-static MPP_RET vdpu_adjust_input(H264dHalCtx_t *p_hal)
+
+static MPP_RET vdpu_set_device_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_reg)
 {
-    RK_U32 i = 0, j = 0;
-    RK_U32 use_flag = 0, find_flag = 0;
-    H264dHalOldDXVA_t *priv = (H264dHalOldDXVA_t *)p_hal->priv;
-    DXVA_PicParams_H264_MVC *pp = p_hal->pp;
-    H264dVdpuDpb_t *new_dpb = priv->new_dpb;
-    H264dVdpuDpb_t *old_dpb = priv->old_dpb[pp->curr_layer_id];
-    H264dVdpuDpb_t *ilt_dpb = priv->ilt_dpb;
+	MPP_RET ret = MPP_ERR_UNKNOW;
 
+	p_reg->sw53.dec_fmt_sel = 0;   //!< set H264 mode
+	p_reg->sw54.dec_out_endian = 1;  //!< little endian	
+	p_reg->sw54.dec_in_endian = 0;  //!< big endian
+	p_reg->sw54.dec_strendian_e = 1; //!< little endian
+	p_reg->sw50.dec_tiled_msb  = 0; //!< 0: raster scan  1: tiled
+	p_reg->sw56.dec_max_burlen = 16;  //!< (0, 4, 8, 16) choice one
+	p_reg->sw50.dec_ascmd0_dis = 0;   //!< disable
+	p_reg->sw50.adv_pref_dis = 0; //!< disable
+	p_reg->sw52.adv_pref_thrd = 8;
+	p_reg->sw50.adtion_latency = 0; //!< compensation for bus latency; values up to 63
+	p_reg->sw56.dec_data_discd_en = 0;
+	p_reg->sw54.dec_out_wordsp = 1;//!< little endian
+	p_reg->sw54.dec_in_wordsp = 1;//!< little endian
+	p_reg->sw54.dec_strm_wordsp = 1;//!< little endian
+	p_reg->sw57.timeout_sts_en = 1;
+	p_reg->sw57.dec_clkgate_en = 1;
+	p_reg->sw55.dec_irq_dis = 0;	
+	//!< set AXI RW IDs
+	p_reg->sw56.dec_axi_id_rd = (0xFF & 0xFFU);  //!< 0-255
+	p_reg->sw56.dec_axi_id_wr = (0x0 & 0xFFU);  //!< 0-255
+	///!< Set prediction filter taps
+	{
+		RK_U32 val = 0;
+		p_reg->sw59.pflt_set0_tap0 = 1;
+		val = (RK_U32)(-5);
+		p_reg->sw59.pflt_set0_tap1 = val;
+		p_reg->sw59.pflt_set0_tap2 = 20;	
+	}
+	p_reg->sw50.adtion_latency = 0;
+	//!< clock_gating  0:clock always on, 1: clock gating module control the key(turn off when decoder free)
+	p_reg->sw57.dec_clkgate_en = 1;
+	p_reg->sw50.dec_tiled_msb = 0; //!< 0: raster scan  1: tiled
+	//!< bus_burst_length = 16, bus burst
+	p_reg->sw56.dec_max_burlen = 16; 
+	p_reg->sw56.dec_data_discd_en = 0;
+    (void)p_hal;
 
-    assert(pp->curr_layer_id == 0);
+	return ret = MPP_OK;
+}
 
-    //!< change input dxva into pdb structure
-    priv->new_dpb_cnt = 0;
-    priv->ilt_dpb_cnt = 0;
-    memset(new_dpb, 0, 16 * sizeof(H264dVdpuDpb_t));
-    memset(ilt_dpb, 0, 16 * sizeof(H264dVdpuDpb_t));
-    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (pp->RefFrameList[i].bPicEntry != 0xff) {
-            new_dpb[i].is_long_term = pp->RefFrameList[i].AssociatedFlag;
-            new_dpb[i].slot_index = pp->RefFrameList[i].Index7Bits;
+static MPP_RET vdpu_get_info_input(H264dHalCtx_t *p_hal, H264dVdpuPriv_t *priv)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    DXVA_PicParams_H264_MVC  *pp = p_hal->pp;
 
-            new_dpb[i].TOP_POC = pp->FieldOrderCntList[i][0];
-            new_dpb[i].BOT_POC = pp->FieldOrderCntList[i][1];
-            new_dpb[i].non_exist_frame = (pp->NonExistingFrameFlags >> i) & 0x1;
-            new_dpb[i].is_ilt = (pp->UsedForInTerviewflags >> i) & 0x1;
-
-            new_dpb[i].frame_num = pp->FrameNumList[i];
-            new_dpb[i].LongTermPicNum = pp->LongTermPicNumList[i];
-
-            use_flag = pp->UsedForReferenceFlags >> (2 * i);
-            if (use_flag & 0x1) {
-                new_dpb[i].top_used = 1;
-            }
-            if (use_flag & 0x2) {
-                new_dpb[i].bot_used = 1;
-            }
-            //!< inter-view frame flag
-            if (new_dpb[i].is_ilt) {
-                assert(0);
-                ilt_dpb[priv->ilt_dpb_cnt] = new_dpb[i];
-                ilt_dpb[priv->ilt_dpb_cnt].valid = 1;
-                priv->ilt_dpb_cnt++;
-            } else {
-                new_dpb[i].valid = 1;
-                priv->new_dpb_cnt++;
+    memset(priv->new_dpb, 0, sizeof(priv->new_dpb));
+    memset(priv->refinfo, 0, sizeof(priv->refinfo));
+    //!< change dpb_info syntax        
+    {
+        RK_U32 i = 0;
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+            if (pp->RefFrameList[i].bPicEntry != 0xff) {
+                priv->new_dpb[i].valid = 1;
+                priv->new_dpb[i].is_long_term = pp->RefFrameList[i].AssociatedFlag;
+                priv->new_dpb[i].slot_index = pp->RefFrameList[i].Index7Bits;
+                priv->new_dpb[i].TOP_POC = pp->FieldOrderCntList[i][0];
+                priv->new_dpb[i].BOT_POC = pp->FieldOrderCntList[i][1];
+                if (priv->new_dpb[i].is_long_term) {
+                    priv->new_dpb[i].long_term_frame_idx = pp->FrameNumList[i];
+                }
+                else {
+                    priv->new_dpb[i].frame_num = pp->FrameNumList[i];
+                }
+                priv->new_dpb[i].long_term_pic_num = pp->LongTermPicNumList[i];
+                priv->new_dpb[i].top_used = ((pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x1) ? 1 : 0;
+                priv->new_dpb[i].bot_used = ((pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x1) ? 1 : 0;
             }
         }
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->ViewIDList); i++) {
+            priv->new_dpb[i].view_id = pp->ViewIDList[i];
+        }
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+            priv->new_dpb[i].colmv_is_used = ((pp->RefPicColmvUsedFlags >> i) & 0x1) ? 1 : 0;
+            priv->new_dpb[i].field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 1 : 0;
+            priv->new_dpb[i].is_ilt_flag = ((pp->UsedForInTerviewflags >> i) & 0x1) ? 1 : 0;
+        }
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefPicLayerIdList); i++) {
+            priv->new_dpb[i].voidx = pp->RefPicLayerIdList[i];
+        }
     }
-    if (p_hal->iDecodedNum == 3) {
-        i = i;
-    }
-
-    //for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-    //  if (new_dpb[i].valid) {
-    //      FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", i, new_dpb[i].frame_num,  new_dpb[i].frame_num);
-    //      FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", new_dpb[i].slot_index, new_dpb[i].is_long_term,
-    //          new_dpb[i].TOP_POC);
-    //  }
-    //}
-    //FPRINT(g_debug_file0, "--------- [new DPB] -------- \n");
-    //for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-    //  if (old_dpb[i].valid) {
-    //      FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", i, old_dpb[i].frame_num,  old_dpb[i].frame_num);
-    //      FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", old_dpb[i].slot_index, old_dpb[i].is_long_term,
-    //          old_dpb[i].TOP_POC);
-    //  }
-    //}
-    //FPRINT(g_debug_file0, "--------- [Old DPB] -------- \n");
-
-    //!< delete old dpb
-    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        find_flag = 0;
-
-        if (old_dpb[i].valid) {
-            for (j = 0; j < MPP_ARRAY_ELEMS(pp->RefFrameList); j++) {
-                if (new_dpb[j].valid) {
-                    find_flag = (old_dpb[i].frame_num == new_dpb[j].frame_num) ? 1 : 0;
-                    if (new_dpb[j].top_used) {
-                        find_flag = (old_dpb[i].TOP_POC == new_dpb[j].TOP_POC) ? find_flag : 0;
-                    }
-                    if (new_dpb[j].bot_used) {
-                        find_flag = (old_dpb[i].BOT_POC == new_dpb[j].BOT_POC) ? find_flag : 0;
-                    }
-                    if (find_flag) { //!< found
-                        new_dpb[j].have_same = 1;
-                        break;
-                    }
+    //!< change ref_pic_info syntax        
+    {
+        RK_U32 i = 0, j = 0;
+        DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
+        //!< list P B0 B1
+        for (j = 0; j < 3; j++) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[j]); i++) {
+                if (p_long->RefPicList[j][i].bPicEntry != 0xff) {
+                    priv->refinfo[j][i].valid = 1;
+                    priv->refinfo[j][i].dpb_idx = p_long->RefPicList[j][i].Index7Bits;
+                    priv->refinfo[j][i].bottom_flag = p_long->RefPicList[j][i].AssociatedFlag;
                 }
             }
         }
-        //!< not found
-        if (find_flag == 0) {
-            memset(&old_dpb[i], 0, sizeof(H264dVdpuDpb_t));
-        }
     }
-    //!< add new dpb
-    for (j = 0; j < MPP_ARRAY_ELEMS(pp->RefFrameList); j++) {
-        if ((new_dpb[j].valid == 0) || new_dpb[j].have_same) {
-            continue;
-        }
-        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-            if (old_dpb[i].valid == 0) {
-                old_dpb[i] = new_dpb[j];
-                break;
-            }
-        }
-    }
-    //!< re-fill reference dxva syntax
-    pp->UsedForReferenceFlags = 0;
-    pp->NonExistingFrameFlags = 0;
-    memset(pp->RefFrameList, 0xff, sizeof(pp->RefFrameList));
-    memset(pp->FieldOrderCntList, 0, sizeof(pp->FieldOrderCntList));
-    memset(pp->LongTermPicNumList, 0, sizeof(pp->LongTermPicNumList));
-    memset(pp->FrameNumList, 0, sizeof(pp->FrameNumList));
-
-    for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (old_dpb[i].valid) {
-            pp->RefFrameList[i].Index7Bits = old_dpb[i].slot_index;
-            pp->RefFrameList[i].AssociatedFlag = old_dpb[i].is_long_term;
-
-            pp->FieldOrderCntList[i][0] = old_dpb[i].TOP_POC;
-            pp->FieldOrderCntList[i][1] = old_dpb[i].BOT_POC;
-            pp->FrameNumList[i] = old_dpb[i].frame_num;
-            pp->LongTermPicNumList[i] = old_dpb[i].LongTermPicNum;
-            pp->NonExistingFrameFlags |= old_dpb[i].non_exist_frame ? (1 << i) : 0;
-            if (old_dpb[i].top_used) { //!< top_field
-                pp->UsedForReferenceFlags |= 1 << (2 * i + 0);
-            }
-            //if (old_dpb[i].bot_used) { //!< bot_field
-            //    pp->UsedForReferenceFlags |= 1 << (2 * i + 1);
-            //}
-        } else {
-            pp->RefFrameList[i].bPicEntry = 0xff;
-            pp->FieldOrderCntList[i][0] = 0;
-            pp->FieldOrderCntList[i][1] = 0;
-            pp->FrameNumList[i] = 0;
-        }
-    }
-
-    //for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-    //  if (old_dpb[i].valid) {
-    //      FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", i, old_dpb[i].frame_num,  old_dpb[i].frame_num);
-    //      FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", old_dpb[i].slot_index, old_dpb[i].is_long_term,
-    //          old_dpb[i].TOP_POC);
-    //  }
-    //}
-
-
-    return MPP_OK;
+    return ret = MPP_OK;
 }
-#endif
+
+static void fill_picture_entry(DXVA_PicEntry_H264 *pic, RK_U32 index, RK_U32 flag)
+{
+    ASSERT((index & 0x7f) == index && (flag & 0x01) == flag);
+    pic->bPicEntry = index | (flag << 7);
+}
+
+static MPP_RET vdpu_refill_info_input(H264dHalCtx_t *p_hal, H264dVdpuPriv_t *priv)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    DXVA_PicParams_H264_MVC  *pp = p_hal->pp;
+    {
+        RK_U32 i = 0;
+        H264dVdpuDpbInfo_t *old_dpb = priv->old_dpb[priv->layed_id];
+        //!< re-fill dpb_info
+        pp->UsedForReferenceFlags = 0;
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+            if (old_dpb[i].valid) {
+                fill_picture_entry(&pp->RefFrameList[i], old_dpb[i].slot_index, old_dpb[i].is_long_term);
+                pp->FieldOrderCntList[i][0] = old_dpb[i].TOP_POC;
+                pp->FieldOrderCntList[i][1] = old_dpb[i].BOT_POC;
+                pp->FrameNumList[i] = old_dpb[i].is_long_term ? old_dpb[i].long_term_frame_idx : old_dpb[i].frame_num;
+                pp->LongTermPicNumList[i] = old_dpb[i].long_term_pic_num;
+                if (old_dpb[i].top_used) { //!< top_field
+                    pp->UsedForReferenceFlags |= 1 << (2 * i + 0);
+                }
+                if (old_dpb[i].bot_used) { //!< bot_field
+                    pp->UsedForReferenceFlags |= 1 << (2 * i + 1);
+                }
+            } else {
+                pp->RefFrameList[i].bPicEntry = 0xff;
+                pp->FieldOrderCntList[i][0] = 0;
+                pp->FieldOrderCntList[i][1] = 0;
+                pp->FrameNumList[i] = 0;
+                pp->LongTermPicNumList[i] = 0;
+            }
+        }
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->ViewIDList); i++) {
+            pp->ViewIDList[i] = old_dpb[i].view_id;
+        }
+        pp->RefPicColmvUsedFlags = 0;
+        pp->RefPicFiledFlags = 0;
+        pp->UsedForInTerviewflags = 0;
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+            if (old_dpb[i].colmv_is_used) {
+                pp->RefPicColmvUsedFlags |= 1 << i;
+            }
+            if (old_dpb[i].field_flag) {
+                pp->RefPicFiledFlags |= 1 << i;
+            }
+            if (old_dpb[i].is_ilt_flag) {
+                pp->UsedForInTerviewflags |= 1 << i;
+            }
+        }
+        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefPicLayerIdList); i++) {
+            pp->RefPicLayerIdList[i] = old_dpb[i].voidx;
+        }     
+    }
+    //!< re-fill ref_info
+    {
+        RK_U32 i = 0, j = 0;
+        DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
+        for (j = 0; j < 3; j++) {
+            H264dVdpuRefPicInfo_t *p = priv->refinfo[j];
+            for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[j]); i++) {
+                if (p[i].valid) {
+                    fill_picture_entry(&p_long->RefPicList[j][i], p[i].dpb_idx, p[i].bottom_flag);
+                }
+                else {
+                    p_long->RefPicList[j][i].bPicEntry = 0xff;
+                }
+            }
+        }
+    }
+    return ret = MPP_OK;
+}
+static MPP_RET vdpu_adjust_input(H264dHalCtx_t *p_hal, H264dVdpuPriv_t *priv)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    priv->layed_id = p_hal->pp->curr_layer_id;
+    vdpu_get_info_input(p_hal, priv);
+    //!< dpb mapping to new order
+    {
+        RK_U32 i = 0, j = 0;
+        RK_U32 find_flag = 0;
+        H264dVdpuDpbInfo_t *new_dpb = priv->new_dpb;
+        H264dVdpuDpbInfo_t *old_dpb = priv->old_dpb[priv->layed_id];
+        //!< delete old dpb
+        for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[priv->layed_id]); i++) {
+            find_flag = 0;
+            if (old_dpb[i].valid) {
+                for (j = 0; j < MPP_ARRAY_ELEMS(priv->new_dpb); j++) {
+                    if (new_dpb[j].valid) {
+                        find_flag = ((old_dpb[i].frame_num == new_dpb[j].frame_num) ? 1 : 0);
+                        find_flag = ((old_dpb[i].slot_index == new_dpb[j].slot_index) ? find_flag : 0);
+                        if (new_dpb[j].top_used) {
+                            find_flag = ((old_dpb[i].TOP_POC == new_dpb[j].TOP_POC) ? find_flag : 0);
+                        }
+                        if (new_dpb[j].bot_used) {
+                            find_flag  = ((old_dpb[i].BOT_POC == new_dpb[j].BOT_POC) ? find_flag : 0);
+                        }
+                        if (find_flag) { //!< found
+                            new_dpb[j].have_same = 1;
+                            new_dpb[j].new_dpb_idx = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            //!< not found
+            if (find_flag == 0) {
+                memset(&old_dpb[i], 0, sizeof(old_dpb[i]));
+            }
+        }
+        //!< add new dpb
+        for (j = 0; j < MPP_ARRAY_ELEMS(priv->new_dpb); j++) {
+            if ((new_dpb[j].valid == 0) || new_dpb[j].have_same) {
+                continue;
+            }
+            for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[priv->layed_id]); i++) {
+                if (old_dpb[i].valid == 0) {
+                    old_dpb[i] = new_dpb[j];
+                    new_dpb[j].new_dpb_idx = i;
+                    break;
+                }
+            }
+        }
+        //!< inter-layer reference
+        priv->ilt_dpb = NULL;
+        if (priv->layed_id) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[1]); i++) {
+                if ((old_dpb[i].valid == 0) && old_dpb[i].is_ilt_flag) {
+                    priv->ilt_dpb = &old_dpb[i];
+                    break;
+                }
+            }        
+        }
+    }
+    //!< addjust ref_dpb
+    {
+        RK_U32 i = 0, j = 0;
+        H264dVdpuDpbInfo_t *new_dpb = priv->new_dpb;
+
+        for (j = 0; j < 3; j++) {
+            H264dVdpuRefPicInfo_t *p = priv->refinfo[j];
+            for (i = 0; i < MPP_ARRAY_ELEMS(priv->refinfo[j]); i++) {
+                if (p[i].valid) {
+                    p[i].dpb_idx = new_dpb[p[i].dpb_idx].new_dpb_idx;
+                }
+            }
+        }    
+    }
+    vdpu_refill_info_input(p_hal, priv);
+
+    return ret = MPP_OK;
+}
 /*!
 ***********************************************************************
 * \brief
-*    init
+*    init  VDPU granite decoder
 ***********************************************************************
 */
 //extern "C"
 MPP_RET vdpu_h264d_init(void *hal, MppHalCfg *cfg)
 {
-    RK_U32 i = 0;
-    RK_U32 cabac_size = 0;
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
-    HalRegDrvCtx_t *p_drv = NULL;
+	RK_U32 cabac_size = 0;
+	MPP_RET ret = MPP_ERR_UNKNOW;
+	H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
+	INP_CHECK(ret, NULL == hal);
 
-    INP_CHECK(ret, NULL == hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+	//!< malloc init registers
+	MEM_CHECK(ret, p_hal->regs = mpp_calloc_size(void, sizeof(H264dVdpuRegs_t)));
+    MEM_CHECK(ret, p_hal->priv = mpp_calloc_size(void, sizeof(H264dVdpuPriv_t)));
+	//!< malloc cabac+scanlis + packets + poc_buf
+	cabac_size = VDPU_CABAC_TAB_SIZE + VDPU_SCALING_LIST_SIZE + VDPU_POC_BUF_SIZE;
+	FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
+	//!< copy cabac table bytes
+	FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)H264_VDPU_Cabac_table, sizeof(H264_VDPU_Cabac_table)));
+    FUN_CHECK(ret = vdpu_set_device_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
+	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu_hor_align);
+	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu_ver_align);
+	mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, NULL);
+	p_hal->iDecodedNum = 0;
 
-    MEM_CHECK(ret, p_hal->priv = mpp_calloc_size(void, sizeof(H264dHalOldDXVA_t)));
-    //!< malloc init registers
-    MEM_CHECK(ret, p_hal->regs = mpp_calloc_size(void, sizeof(HalRegDrvCtx_t)));
-    p_drv = (HalRegDrvCtx_t *)p_hal->regs;
-    p_drv->type     = cfg->type;
-    p_drv->coding   = cfg->coding;
-    p_drv->emt_size = VDPU_MAX_SIZE;
-    p_drv->log      = (void *)p_hal->logctx.parr[LOG_WRITE_REG];
-
-    MEM_CHECK(ret, p_drv->p_emt = mpp_calloc(HalRegDrv_t, p_drv->emt_size + 1));
-    for (i = 0; i < MPP_ARRAY_ELEMS(g_vdpu_drv); i++) {
-
-        p_drv->p_emt[g_vdpu_drv[i].syn_id] = g_vdpu_drv[i];
-        if (VDPU_MAX_SIZE == g_vdpu_drv[i].syn_id) {
-            break;
-        }
-    }
-    p_drv->reg_size = p_drv->p_emt[VDPU_MAX_SIZE].reg_id;
-    MEM_CHECK(ret, p_drv->p_reg = mpp_calloc(RK_U32, p_drv->reg_size));
-    //!< malloc cabac+scanlis + packets + poc_buf
-    cabac_size = VDPU_CABAC_TAB_SIZE + VDPU_SCALING_LIST_SIZE + VDPU_POC_BUF_SIZE;
-    FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
-    //!< copy cabac table bytes
-    FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)H264_VDPU_Cabac_table, sizeof(H264_VDPU_Cabac_table)));
-    //!< setting device register
-    vdpu_set_device_regs(p_drv);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, NULL);
-
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
-    (void)cfg;
+	(void)cfg;
 __RETURN:
-    return MPP_OK;
+	return MPP_OK;
 __FAILED:
-    vdpu_h264d_deinit(hal);
+	vdpu_h264d_deinit(hal);
 
-    return ret;
+	return ret;
 }
+
+
 /*!
 ***********************************************************************
 * \brief
@@ -505,21 +352,16 @@ MPP_RET vdpu_h264d_deinit(void *hal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
-    HalRegDrvCtx_t *p_drv = (HalRegDrvCtx_t *)p_hal->regs;
-    INP_CHECK(ret, NULL == p_hal);
+
+	INP_CHECK(ret, NULL == p_hal);
 
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
+	MPP_FREE(p_hal->regs);
     MPP_FREE(p_hal->priv);
-    if (p_hal->regs) {
-        MPP_FREE(p_drv->p_reg);
-        MPP_FREE(p_drv->p_emt);
-        MPP_FREE(p_hal->regs);
-    }
-    if (p_hal->cabac_buf) {
-        FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
-    }
-
+	if (p_hal->cabac_buf) {
+		FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
+	}
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
@@ -539,25 +381,22 @@ MPP_RET vdpu_h264d_gen_regs(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    HalRegDrvCtx_t *p_drv = (HalRegDrvCtx_t *)p_hal->regs;
-
     INP_CHECK(ret, NULL == p_hal);
-
-    p_hal->in_task = &task->dec;
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+    p_hal->in_task = &task->dec;
+    if (task->dec.flags.had_error)	{
+        goto __RETURN;
+    }
     LogTrace(p_hal->logctx.parr[RUN_HAL], "[Generate register begin]");
-
-    //FUN_CHECK(ret = vdpu_adjust_input(p_hal));
-    FUN_CHECK(ret = vdpu_set_pic_regs(hal, p_drv));
-    FUN_CHECK(ret = vdpu_set_vlc_regs(hal, p_drv));
-    FUN_CHECK(ret = vdpu_set_ref_regs(hal, p_drv));
-    FUN_CHECK(ret = vdpu_set_asic_regs(hal, p_drv));
-
+    FUN_CHECK(ret = vdpu_adjust_input(p_hal, (H264dVdpuPriv_t *)p_hal->priv));
+    FUN_CHECK(ret = vdpu_set_pic_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
+    FUN_CHECK(ret = vdpu_set_vlc_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
+    FUN_CHECK(ret = vdpu_set_ref_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
+    FUN_CHECK(ret = vdpu_set_asic_regs(p_hal,(H264dVdpuRegs_t *)p_hal->regs));
     LogTrace(p_hal->logctx.parr[RUN_HAL], "[Generate register end]");
     p_hal->in_task->valid = 0;
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
-
     return ret = MPP_OK;
 __FAILED:
     return ret;
@@ -573,30 +412,31 @@ MPP_RET vdpu_h264d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal  = (H264dHalCtx_t *)hal;
-    HalRegDrvCtx_t *p_drv = (HalRegDrvCtx_t *)p_hal->regs;
+    H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)p_hal->regs;
 
-    INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_QTABLE_BASE,  mpp_buffer_get_fd(p_hal->cabac_buf))); //!< cabacInit.phy_addr
-    p_drv->p_reg[57] |= 0xDE;
-
-    FUN_CHECK(ret = vdpu_h264d_print_regs(p_hal, p_drv));
-#ifdef RKPLATFORM
-    if (VPUClientSendReg(p_hal->vpu_socket, p_drv->p_reg, DEC_X170_REGISTERS)) {
-        ret =  MPP_ERR_VPUHW;
-        mpp_err_f("H264 VDPU FlushRegs fail. \n");
-    } else {
-        mpp_log("H264 VDPU FlushRegs success, pid=%d, hal_frame_no=%d. \n", getpid(), p_hal->iDecodedNum);
+	FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+    if (task->dec.flags.had_error) {
+        goto __RETURN;
     }
+    p_regs->sw57.cache_en = 1;
+    p_regs->sw57.pref_sigchan = 1;
+    p_regs->sw56.bus_pos_sel = 1;
+    p_regs->sw57.intra_dbl3t = 1;
+    p_regs->sw57.inter_dblspeed = 1;
+    p_regs->sw57.intra_dblspeed = 1;
+#ifdef RKPLATFORM
+    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_VDPU_REGISTERS)) {
+        ret =  MPP_ERR_VPUHW;
+		mpp_err_f("H264 VDPU FlushRegs fail, pid=%d, hal_frame_no=%d. \n", getpid(), p_hal->iDecodedNum);
+	}
+	else {
+		H264D_LOG("H264 VDPU FlushRegs success, pid=%d, hal_frame_no=%d. \n", getpid(), p_hal->iDecodedNum);
+	}
 #endif
-
+__RETURN:
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
-__RETURN:
     return ret = MPP_OK;
-__FAILED:
-    return ret;
 }
 /*!
 ***********************************************************************
@@ -609,36 +449,45 @@ MPP_RET vdpu_h264d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
-    HalRegDrvCtx_t *p_drv = (HalRegDrvCtx_t *)p_hal->regs;
+	H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)p_hal->regs;
 
-    INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+	FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+
+    if (task->dec.flags.had_error) {
+        goto __SKIP_HARD;
+    }
 #ifdef RKPLATFORM
-    RK_S32 wait_ret = -1;
-    RK_S32 ret_len = 0, cur_deat = 0;
-    VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-    RK_S64 p_s, p_e;
-    p_s = mpp_time();
-    wait_ret = VPUClientWaitResult(p_hal->vpu_socket, p_drv->p_reg, DEC_X170_REGISTERS, &ret_cmd, &ret_len);
-    p_e = mpp_time();
-    cur_deat = (p_e - p_s) / 1000;
-    p_hal->total_time += cur_deat;
-    p_hal->iDecodedNum++;
-    (void)wait_ret;
+	{
+		RK_S32 wait_ret = -1;
+		RK_S32 ret_len = 0, cur_deat = 0;
+		VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
+		RK_S64 p_s, p_e;
+		p_s = mpp_time();
+		wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_VDPU_REGISTERS, &ret_cmd, &ret_len);
+		p_e = mpp_time();
+		cur_deat = (p_e - p_s) / 1000;
+		p_hal->total_time += cur_deat;
+		p_hal->iDecodedNum++;
+		(void)wait_ret;
+	}
 #endif
 
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_IRQ_STAT,    0));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_IRQ,         0));
-    FUN_CHECK(ret = hal_set_regdrv(p_drv, VDPU_DEC_PIC_INF,     0));
-
-    //FPRINT(g_debug_file1, "++++++++++ hal_h264_decoder, g_framecnt=%d \n", task->dec.g_framecnt);
-
+__SKIP_HARD:
+    if (p_hal->init_cb.callBack) {
+        IOCallbackCtx m_ctx = { 0 };
+        m_ctx.device_id = HAL_VDPU;
+        if (!p_regs->sw55.dec_rdy_sts) {
+            m_ctx.hard_err = 1;
+        }
+        m_ctx.task = (void *)&task->dec;
+        m_ctx.regs = (RK_U32 *)p_hal->regs;
+        p_hal->init_cb.callBack(p_hal->init_cb.opaque, &m_ctx);
+    }
+	memset(&p_regs->sw55, 0, sizeof(RK_U32));
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
-__RETURN:
+
     return ret = MPP_OK;
-__FAILED:
-    return ret;
 }
 /*!
 ***********************************************************************
@@ -651,13 +500,11 @@ MPP_RET vdpu_h264d_reset(void *hal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    H264dHalOldDXVA_t *priv = NULL;
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-    priv = (H264dHalOldDXVA_t *)p_hal->priv;
-    memset(priv->old_dpb, 0, sizeof(priv->old_dpb));
+    memset(p_hal->priv, 0, sizeof(H264dVdpuPriv_t));
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
@@ -677,9 +524,7 @@ MPP_RET vdpu_h264d_flush(void *hal)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
-
-
+	
 
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
@@ -700,8 +545,6 @@ MPP_RET vdpu_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
-
 
 
 
