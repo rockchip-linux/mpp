@@ -137,13 +137,8 @@ RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
         mpp_log("decode_sendstream set eos");
         mpp_packet_set_eos(mpkt);
     }
-
-    ret = mpi->decode_put_packet(mpp_ctx, mpkt);
-
-    if (ret == MPP_OK) {
+    if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
         pkt->size = 0;
-    } else {
-        mpp_err("decode_put_packet ret %d\n", ret);
     }
     mpp_packet_deinit(&mpkt);
     return ret;
