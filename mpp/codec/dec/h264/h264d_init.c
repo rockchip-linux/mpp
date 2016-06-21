@@ -952,6 +952,8 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
     RK_S32 currPOC = currSlice->ThisPOC;
     RK_S32 anchor_pic_flag = currSlice->anchor_pic_flag;
 
+    currSlice->listXsizeP[0] = 0;
+    currSlice->listXsizeP[1] = 0;
     currSlice->listinterviewidx0 = 0;
     currSlice->listinterviewidx1 = 0;
 
@@ -1054,6 +1056,8 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
     RK_S32 currPOC = currSlice->ThisPOC;
     RK_S32 anchor_pic_flag = currSlice->anchor_pic_flag;
 
+    currSlice->listXsizeB[0] = 0;
+    currSlice->listXsizeB[1] = 0;
     currSlice->listinterviewidx0 = 0;
     currSlice->listinterviewidx1 = 0;
     // B-Slice
@@ -1421,94 +1425,6 @@ static void reset_dpb_info(H264_DpbInfo_t *p)
     p->is_used = 0;
 }
 
-
-#if 0
-static MPP_RET adjust_input(H264_SLICE_t *currSlice)
-{
-    RK_U32 i = 0, j = 0;
-    RK_U32 find_flag = 0;
-
-    H264_DecCtx_t *p_Dec = currSlice->p_Dec;
-    H264_DpbInfo_t *new_dpb = p_Dec->dpb_info;
-    H264_DpbInfo_t *old_dpb = p_Dec->dpb_old[currSlice->layer_id];
-
-
-    //for (i = 0; i < MAX_DPB_SIZE; i++) {
-    //  if (new_dpb[i].refpic) {
-    //      FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", i, new_dpb[i].frame_num,  new_dpb[i].frame_num);
-    //      FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", new_dpb[i].slot_index, new_dpb[i].is_long_term,
-    //          new_dpb[i].TOP_POC);
-    //  }
-    //}
-    //FPRINT(g_debug_file0, "--------- [new DPB] -------- \n");
-    //for (i = 0; i < MAX_DPB_SIZE; i++) {
-    //  if (old_dpb[i].refpic) {
-    //      FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", i, old_dpb[i].frame_num,  old_dpb[i].frame_num);
-    //      FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", old_dpb[i].slot_index, old_dpb[i].is_long_term,
-    //          old_dpb[i].TOP_POC);
-    //  }
-    //}
-    //FPRINT(g_debug_file0, "--------- [Old DPB] -------- \n");
-
-    //!< delete old dpb
-    for (i = 0; i < MAX_DPB_SIZE; i++) {
-        find_flag = 0;
-        if (old_dpb[i].refpic) {
-            for (j = 0; j < MAX_DPB_SIZE; j++) {
-                if (new_dpb[j].refpic) {
-                    find_flag = (old_dpb[i].frame_num == new_dpb[j].frame_num) ? 1 : 0;
-                    find_flag = (old_dpb[i].slot_index == new_dpb[j].slot_index) ? find_flag : 0;
-                    if (new_dpb[j].is_used & 0x1) {
-                        find_flag = (old_dpb[i].TOP_POC == new_dpb[j].TOP_POC) ? find_flag : 0;
-                    }
-                    if (new_dpb[j].is_used & 0x2) {
-                        find_flag = (old_dpb[i].BOT_POC == new_dpb[j].BOT_POC) ? find_flag : 0;
-                    }
-                    if (find_flag) { //!< found
-                        new_dpb[j].have_same = 1;
-                        break;
-                    }
-                }
-            }
-        }
-        //!< not found
-        if (find_flag == 0) {
-            reset_dpb_info(&old_dpb[i]);
-        }
-    }
-    //!< add new dpb
-    for (j = 0; j < MAX_DPB_SIZE; j++) {
-        if ((new_dpb[j].refpic == 0) || new_dpb[j].have_same) {
-            continue;
-        }
-        for (i = 0; i < MAX_DPB_SIZE; i++) {
-            if (old_dpb[i].refpic == 0) {
-                old_dpb[i] = new_dpb[j];
-                break;
-            }
-        }
-    }
-    //memcpy(new_dpb, old_dpb, MAX_DPB_SIZE*sizeof(H264_DpbInfo_t));
-    memset(new_dpb, 0, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
-    for (i = 0, j = 0; i < MAX_DPB_SIZE; i++) {
-        if (old_dpb[i].refpic) {
-            new_dpb[j] = old_dpb[i];
-            //FPRINT(g_debug_file0, "i=%2d, picnum=%d, framenum=%2d, ", j, old_dpb[j].frame_num,  old_dpb[j].frame_num);
-            //FPRINT(g_debug_file0, " dbp_idx=%d, longterm=%d, poc=%d \n", old_dpb[j].slot_index, old_dpb[j].is_long_term,
-            //  old_dpb[i].TOP_POC);
-            j++;
-        }
-    }
-    for (; j < 16; j++) {
-        reset_dpb_info(&new_dpb[j]);
-    }
-    memcpy(old_dpb, new_dpb, MAX_DPB_SIZE * sizeof(H264_DpbInfo_t));
-
-    return MPP_OK;
-}
-#endif
-
-
 static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
 {
     RK_U32 i = 0, j = 0;
@@ -1518,9 +1434,6 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
     //!< reset parameters
     for (i = 0; i < MAX_DPB_SIZE; i++) {
         reset_dpb_info(&p_Dec->dpb_info[i]);
-    }
-    if (currSlice->idr_flag && (currSlice->layer_id == 0)) { // idr_flag==1 && layer_id==0
-        goto __RETURN;
     }
     //!< reference
 #if 1
@@ -1697,7 +1610,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
         p_Dec->dpb_info[i].is_used = p_Dpb->fs_ilref[j]->is_used;
     }
 #endif
-__RETURN:
+
     return MPP_OK;
 }
 
@@ -1873,13 +1786,14 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
     H264_DpbMark_t *p_mark = NULL;
 
     p_Dec = currSlice->p_Dec;
-    memset(&p_Dec->in_task->refer, -1, sizeof(p_Dec->in_task->refer));
     //!< set buf slot flag
     for (i = 0; i < MAX_DPB_SIZE; i++) {
         if ((NULL != p_Dec->dpb_info[i].refpic) && (p_Dec->dpb_info[i].slot_index >= 0)) {
             p_Dec->in_task->refer[i] = p_Dec->dpb_info[i].slot_index;
             mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_HAL_INPUT);
             mpp_buf_slot_set_flag(p_Dec->frame_slots, p_Dec->dpb_info[i].slot_index, SLOT_CODEC_USE);
+        } else {
+            p_Dec->in_task->refer[i] = -1;
         }
     }
     //!< dpb info

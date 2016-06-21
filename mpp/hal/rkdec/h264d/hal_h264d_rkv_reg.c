@@ -450,11 +450,21 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
         }
     }
 __SKIP_HARD:
-    p_regs->slot_idx = task->dec.output;
-    p_regs->had_err_flag = task->dec.flags.had_error;
-    p_regs->used_for_ref = task->dec.flags.used_for_ref;
     if (p_hal->init_cb.callBack) {
-        p_hal->init_cb.callBack(p_hal->init_cb.opaque, p_hal->regs);
+        IOCallbackCtx m_ctx = { 0 };
+        m_ctx.device_id = HAL_RKVDEC;
+        if (p_regs->swreg1_int.sw_dec_error_sta
+            || (!p_regs->swreg1_int.sw_dec_rdy_sta)
+            || p_regs->swreg1_int.sw_dec_empty_sta
+            || p_regs->swreg45_strmd_error_status.sw_strmd_error_status
+            || p_regs->swreg45_strmd_error_status.sw_colmv_error_ref_picidx
+            || p_regs->swreg76_h264_errorinfo_num.sw_strmd_detect_error_flag)
+        {
+            m_ctx.hard_err = 1;
+        }
+        m_ctx.task = (void *)&task->dec;
+        m_ctx.regs = (RK_U32 *)p_hal->regs;
+        p_hal->init_cb.callBack(p_hal->init_cb.opaque, &m_ctx);
     }
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
