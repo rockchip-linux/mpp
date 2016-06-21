@@ -436,8 +436,8 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
     if (structure == FRAME || structure == BOTTOM_FIELD) {
         cur_mark->bot_used += 1;
     }
-    H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB_malloc] g_framecnt=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, struct=%d, lay_id=%d\n",
-              p_Vid->g_framecnt, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, dec_pic->structure, layer_id);
+    H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB_malloc] g_framecnt=%d, com_flag=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, struct=%d, lay_id=%d\n",
+              p_Vid->g_framecnt, dec_pic->combine_flag, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, dec_pic->structure, layer_id);
 
     p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
     mpp_buf_slot_set_flag(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_HAL_OUTPUT);
@@ -453,8 +453,8 @@ __FAILED:
 static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t *dec_pic, RK_S32 last_pic_structure)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_S32 cur_structure = dec_pic->structure;
 #if 0
+    RK_S32 cur_structure = dec_pic->structure;
     //!< check illegal field paired
     if (p_last && (cur_structure == TOP_FIELD || cur_structure == BOTTOM_FIELD)) {
 
@@ -468,9 +468,13 @@ static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t
             return ret = MPP_NOK;
         }
     }
-#endif
     H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
               dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
+#else
+	(void)p_last;
+	(void)dec_pic;
+	(void)last_pic_structure;
+#endif
     return ret = MPP_OK;
 }
 

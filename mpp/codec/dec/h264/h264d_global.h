@@ -772,7 +772,6 @@ typedef struct h264_slice_t {
     RK_S32       listinterviewidx0;
     RK_S32       listinterviewidx1;
 
-    //RK_U8        listXsize[6];
     RK_U8        listXsizeP[2];
     RK_U8        listXsizeB[2];
 
@@ -1005,7 +1004,6 @@ typedef struct h264d_video_ctx_t {
 typedef struct h264d_mem_t {
     struct h264_dpb_mark_t     dpb_mark[MAX_MARK_SIZE];         //!< for fpga register check, dpb mark
     struct h264_dpb_info_t     dpb_info[MAX_DPB_SIZE];         //!< 16
-    struct h264_dpb_info_t     dpb_old[2][MAX_DPB_SIZE];
     struct h264_refpic_info_t  refpic_info_p[MAX_REF_SIZE];    //!< 32
     struct h264_refpic_info_t  refpic_info_b[2][MAX_REF_SIZE];   //!< [2][32]
     struct h264d_dxva_ctx_t    dxva_ctx;
@@ -1067,7 +1065,6 @@ typedef struct h264_dec_ctx_t {
     struct h264d_mem_t        *mem;
     struct h264_dpb_mark_t    *dpb_mark;         //!< for write out, MAX_DPB_SIZE
     struct h264_dpb_info_t    *dpb_info;         //!< 16
-    //struct h264_dpb_info_t    *dpb_old[2];       //!< 16
     struct h264_refpic_info_t *refpic_info_p;    //!< 32
     struct h264_refpic_info_t *refpic_info_b[2]; //!< [2][32]
     struct h264d_dxva_ctx_t   *dxva_ctx;
