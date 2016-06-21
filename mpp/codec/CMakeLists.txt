@@ -22,6 +22,7 @@ target_link_libraries(mpp_codec
                       codec_avsd
                       codec_m2vd
                       codec_mpg4d
+		      codec_vp8d
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_base)

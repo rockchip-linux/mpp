@@ -26,6 +26,8 @@ add_subdirectory(vpu/m2vd)
 
 add_subdirectory(vpu/mpg4d)
 
+add_subdirectory(vpu/vp8d)
+
 # ----------------------------------------------------------------------------
 # add hardware worker implement
 # ----------------------------------------------------------------------------
@@ -44,6 +46,7 @@ target_link_libraries(mpp_hal
                       hal_avsd
                       hal_m2vd
                       hal_mpg4d
+		      hal_vp8d
                       hal_dummy
                       ${RKPLAT_VPU}
                       )

@@ -1,4 +1,5 @@
 /*
+ *
  * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +15,20 @@
  * limitations under the License.
  */
 
-#ifndef __VP8D_API_H__
-#define __VP8D_API_H__
+#ifndef __VP8D_CODEC_H__
+#define __VP8D_CODEC_H__
 
-#include "parser_api.h"
-#ifdef  __cplusplus
-extern "C" {
+#include "rk_type.h"
+#include "mpp_common.h"
+#include "vpu_api.h"
+#include "mpp_frame.h"
+#include "mpp_dec.h"
+#include "mpp_packet.h"
+
+
+typedef struct VP8DContext_t {
+    void        *parse_ctx;
+
+} VP8DContext;
+
 #endif
-extern const ParserApi api_vp8d_parser;
-#ifdef  __cplusplus
-}
-#endif
-#endif /*__VP8D_API_H__*/
