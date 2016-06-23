@@ -46,6 +46,7 @@ public:
 private:
     MppCtx mpp_ctx;
     MppApi *mpi;
+    RK_U32 init_ok;
     RK_U32 frame_count;
     RK_U32 set_eos;
     RK_U32 vpu_api_debug;

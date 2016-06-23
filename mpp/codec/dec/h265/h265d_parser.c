@@ -286,6 +286,7 @@ RK_S32 h265d_split_reset(void *sc)
     s->fetch_timestamp = 1;
     s->buffer = buf;
     s->buffer_size = size;
+    s->eos = 0;
     return MPP_OK;
 }
 
@@ -1971,7 +1972,6 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 MPP_RET h265d_flush(void *ctx)
 {
     RK_S32 ret = 0;
-    RK_U32 eos = 1;
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     HEVCFrame *frame = NULL;
@@ -2001,6 +2001,7 @@ MPP_RET h265d_reset(void *ctx)
     mpp_hevc_flush_dpb(s);
     h265d_split_reset(h265dctx->split_cxt);
     s->max_ra = INT_MAX;
+    s->eos = 0;
     return MPP_OK;
 }
 

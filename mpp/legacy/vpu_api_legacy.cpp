@@ -47,6 +47,7 @@ VpuApi::VpuApi()
         fp = fopen("/sdcard/rk_mpp_dump.yuv", "wb");
         fp_buf = mpp_malloc(RK_U8, (MAX_WRITE_HEIGHT * MAX_WRITE_WIDTH * 2));
     }
+    init_ok = 0;
     mpp_log_f("ok\n");
 }
 
@@ -100,7 +101,7 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
         mpi->decode_put_packet(mpp_ctx, pkt);
         mpp_packet_deinit(&pkt);
     }
-
+    init_ok = 1;
     mpp_log_f("ok\n");
     return ret;
 }
@@ -109,7 +110,7 @@ RK_S32 VpuApi::flush(VpuCodecContext *ctx)
 {
     (void)ctx;
     mpp_log_f("in\n");
-    if (mpi && mpi->reset) {
+    if (mpi && mpi->reset && !init_ok) {
         mpi->reset(mpp_ctx);
     }
     mpp_log_f("ok\n");
@@ -128,8 +129,12 @@ RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aD
 
 RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
 {
-    RK_S32 ret;
+    RK_S32 ret = MPP_OK;
     MppPacket mpkt = NULL;
+
+    if (!init_ok) {
+        return VPU_API_ERR_VPU_CODEC_INIT;
+    }
 
     mpp_packet_init(&mpkt, pkt->data, pkt->size);
     mpp_packet_set_pts(mpkt, pkt->pts);
@@ -149,6 +154,9 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
     RK_S32 ret = 0;
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
     MppFrame  mframe = NULL;
+    if (!init_ok) {
+        return VPU_API_ERR_VPU_CODEC_INIT;
+    }
 
     memset(vframe, 0, sizeof(VPU_FRAME));
 
@@ -335,7 +343,7 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     mpp_log_f("in\n");
 
     (void)ctx;
-    if (mpi == NULL) {
+    if (mpi == NULL && !init_ok) {
         return 0;
     }
 
