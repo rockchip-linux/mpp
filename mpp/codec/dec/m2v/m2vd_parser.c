@@ -1,8 +1,9 @@
 #define MODULE_TAG "m2vd_parser"
 #include <string.h>
+
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"
-#include "vpu.h"
+
 #include "mpp_frame.h"
 #include "mpp_env.h"
 
@@ -166,6 +167,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->maxFrame_inGOP = 0;
     ctx->preframe_period = 0;
     ctx->mHeaderDecFlag = 0;
+    ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
 
     // m2vd_fm_create();
     //CHK_F(mpp_buffer_group_get_internal(&ctx->BufferGroups[M2VD_BUF_GRP_BITMEM], MPP_BUFFER_TYPE_ION));
@@ -307,6 +309,7 @@ MPP_RET m2vd_parser_reset(void *ctx)
     p->frame_ref1->slot_index = 0xff;
     p->ref_frame_cnt = 0;
     p->resetFlag = 1;
+    p->eos = 0;
     FUN_T("FUN_O");
     return ret;
 }
@@ -386,26 +389,48 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     MppPacket input_packet = p->input_packet;
-    RK_U32 out_size = 0;
+    RK_U32 out_size = 0, len_in;
     RK_U8 *pos = NULL;
     RK_U8 *buf = NULL;
 
 
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
+
+
     //MppPacketImpl *packet = (MppPacketImpl *)pkt;
     //uint32_t stream_count = 0;
 
     FUN_T("FUN_I");
     task->valid = 0;
+    len_in = mpp_packet_get_length(pkt),
+    p->eos = mpp_packet_get_eos(pkt);
+    // mpp_log("len_in = %d",len_in);
+    if (len_in > p->max_stream_size) {
+        mpp_free(p->bitstream_sw_buf);
+        p->bitstream_sw_buf = NULL;
+        p->bitstream_sw_buf = mpp_malloc(RK_U8, (len_in + 1024));
+        if (NULL == p->bitstream_sw_buf) {
+            mpp_err("m2vd_parser realloc fail");
+            return MPP_ERR_NOMEM;
+        }
+        p->max_stream_size = len_in + 1024;
+    }
+
+    pos += out_size;
 
     m2vd_parser_split_frame(buf,
-                            (RK_U32)mpp_packet_get_length(pkt),
+                            len_in,
                             p->bitstream_sw_buf,
                             &out_size);
     pos += out_size;
+
     mpp_packet_set_pos(pkt, pos);
-    mpp_assert(out_size <= M2VD_BUF_SIZE_BITMEM);
+
+    if (out_size == 0 && p->eos) {
+        m2vd_parser_flush(ctx);
+        return ret;
+    }
 
     if (M2VD_DBG_SEC_HEADER & m2vd_debug) {
         mpp_log("p->bitstream_sw_buf = 0x%x", p->bitstream_sw_buf);
@@ -413,7 +438,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     }
 
     mpp_packet_set_data(input_packet, p->bitstream_sw_buf);
-    mpp_packet_set_size(input_packet, M2VD_BUF_SIZE_BITMEM);
+    mpp_packet_set_size(input_packet, p->max_stream_size);
     mpp_packet_set_length(input_packet, out_size);
 
     task->input_packet = input_packet;

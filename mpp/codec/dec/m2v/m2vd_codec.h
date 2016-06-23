@@ -3,7 +3,6 @@
 
 #include "rk_type.h"
 #include "mpp_common.h"
-#include "vpu_api.h"
 #include "mpp_frame.h"
 #include "mpp_dec.h"
 #include "mpp_packet.h"
