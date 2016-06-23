@@ -582,16 +582,7 @@ static RK_S32 read_colorspace_details(Vp9CodecContext *ctx)
     ctx->colorspace = colorspaces[mpp_get_bits(&s->gb, 3)];
     vp9d_dbg(VP9D_DBG_HEADER, "color_space %d", ctx->colorspace);
     if (ctx->colorspace == MPP_FRAME_SPC_RGB) { // RGB = profile 1
-#if 0
-        static const enum AVPixelFormat pix_fmt_rgb[3] = {
-            AV_PIX_FMT_GBRP, AV_PIX_FMT_GBRP10, AV_PIX_FMT_GBRP12
-        };
-        if (ctx->profile & 1) {
-            s->ss_h = s->ss_v = 1;
-            res = pix_fmt_rgb[bits];
-            ctx->color_range = MPP_FRAME_RANGE_JPEG;
-        } else
-#endif
+
         {
             mpp_err("RGB not supported in profile %d\n", ctx->profile);
             return MPP_ERR_STREAM;
@@ -1692,6 +1683,11 @@ MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx)
         }
     }
     memset(pc, 0, sizeof(VP9ParseContext));
+
+    s->eos = 0;
+    if (ps) {
+        ps->eos = 0;
+    }
     return MPP_OK;
 }
 static void inv_count_data(VP9Context *s)

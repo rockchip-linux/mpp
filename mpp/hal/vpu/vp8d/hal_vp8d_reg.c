@@ -586,7 +586,7 @@ MPP_RET hal_vp8d_gen_regs(void* hal, HalTaskInfo *task)
     hal_vp8_init_hwcfg(ctx);
     mb_width = (pic_param->width + 15) >> 4;
     mb_height = (pic_param->height + 15) >> 4;
-    mpp_log("mb_width = %d mb_height = %d", mb_width, mb_height);
+    // mpp_log("mb_width = %d mb_height = %d", mb_width, mb_height);
     regs->reg120.sw_pic_mb_width = mb_width & 0x1FF;
     regs->reg120.sw_pic_mb_hight_p =  mb_height & 0xFF;
     regs->reg120.sw_pic_mb_w_ext = mb_width >> 9;
