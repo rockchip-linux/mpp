@@ -18,13 +18,12 @@
 #define MODULE_TAG "m2vd_api"
 
 #include <string.h>
-
-#include "vpu_api.h"
 #include "mpp_env.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
+
 #include "m2vd_api.h"
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"

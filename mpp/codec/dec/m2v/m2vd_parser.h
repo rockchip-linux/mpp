@@ -28,16 +28,14 @@
 #ifndef __M2VD_PARSER_H__
 #define __M2VD_PARSER_H__
 
-#include "mpp_bitread.h"
 #include "mpp_common.h"
-#include "mpp_frame.h"
 #include "mpp_mem.h"
-#include "mpp_dec.h"
-#include "vpu_api.h"
-#include "pthread.h"
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
 #include "mpp_bitread.h"
+
+#include "mpp_frame.h"
+#include "mpp_packet.h"
+
+#include "mpp_dec.h"
 #include "m2vd_syntax.h"
 #include "m2vd_com.h"
 
@@ -97,7 +95,6 @@ typedef enum M2VDPicStruct_t {
     M2VD_PIC_STRUCT_FRAME        = 3
 } M2VDPicStruct;
 
-#define     VPU_BITSTREAM_START_CODE        (0x524b5642)    /* RKVB, rockchip video bitstream */
 #define     M2VD_DBG_FILE_NUM               1
 #define     M2VD_DBG_FILE_W                 1
 #define     M2VD_BUF_SIZE_BITMEM            (512 * 1024)
@@ -236,6 +233,7 @@ typedef struct M2VDParserContext_t {
     BitReadCtx_t  *bitread_ctx;
     RK_U8           *bitstream_sw_buf;
     RK_U8           *qp_tab_sw_buf;
+    RK_U32          max_stream_size;
 
     RK_U32          frame_size;
 
@@ -304,8 +302,6 @@ MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param);
 MPP_RET  m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task);
 MPP_RET  m2vd_parser_parse  (void *ctx, HalDecTask *task);
 MPP_RET  m2vd_parser_callback(void *ctx, void *err_info);
-
-
 
 #endif
 

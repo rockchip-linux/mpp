@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "rk_type.h"
 #include "mpp_log.h"
-#include "vpu_api.h"
 
 #define M2VD_DEMO_MODE         0
 
