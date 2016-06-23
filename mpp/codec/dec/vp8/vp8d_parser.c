@@ -336,6 +336,7 @@ MPP_RET vp8d_parser_reset(void *ctx)
     FUN_T("FUN_IN");
     vp8d_unref_allframe(p);
     p->needKeyFrame = 0;
+    p->eos = 0;
     FUN_T("FUN_OUT");
     return ret;
 }
@@ -401,10 +402,11 @@ MPP_RET vp8d_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 
 MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_OK;
-    RK_U32 out_size = 0;
+    RK_U32 out_size = 0, len_in = 0;
     RK_U8 * pos = NULL;
     RK_U8 *buf = NULL;
     VP8DContext *c = (VP8DContext *)ctx;
+
     VP8DParserContext_t *p = (VP8DParserContext_t *)c->parse_ctx;
     MppPacket input_packet = p->input_packet;
 
@@ -415,25 +417,39 @@ MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
 
-    vp8d_parser_split_frame(buf,
-                            mpp_packet_get_length(pkt),
-                            p->bitstream_sw_buf,
-                            &out_size);
-    pos += out_size;
-    mpp_packet_set_pos(pkt, pos);
-
-    if (out_size > p->max_stream_size) {
+    len_in = mpp_packet_get_length(pkt),
+    p->eos = mpp_packet_get_eos(pkt);
+    // mpp_log("len_in = %d",len_in);
+    if (len_in > p->max_stream_size) {
         mpp_free(p->bitstream_sw_buf);
-        p->bitstream_sw_buf = mpp_malloc(RK_U8, out_size + 1024);
+        p->bitstream_sw_buf = NULL;
+        p->bitstream_sw_buf = mpp_malloc(RK_U8, (len_in + 1024));
         if (NULL == p->bitstream_sw_buf) {
             mpp_err("vp8d_parser realloc fail");
             return MPP_ERR_NOMEM;
         }
-        p->max_stream_size = out_size + 1024;
+        p->max_stream_size = len_in + 1024;
     }
 
-    mpp_log("p->bitstream_sw_buf = 0x%x", p->bitstream_sw_buf);
-    mpp_log("out_size = 0x%x", out_size);
+    vp8d_parser_split_frame(buf,
+                            len_in,
+                            p->bitstream_sw_buf,
+                            &out_size);
+    pos += out_size;
+
+    mpp_packet_set_pos(pkt, pos);
+
+    if (out_size == 0 && p->eos) {
+        if (p->notify_cb.callBack != NULL) {
+            p->notify_cb.callBack(p->notify_cb.opaque, NULL);
+        }
+        return ret;
+    }
+
+
+
+    // mpp_log("p->bitstream_sw_buf = 0x%x", p->bitstream_sw_buf);
+    // mpp_log("out_size = 0x%x", out_size);
     mpp_packet_set_data(input_packet, p->bitstream_sw_buf);
     mpp_packet_set_size(input_packet, p->max_stream_size);
     mpp_packet_set_length(input_packet, out_size);
@@ -1129,8 +1145,8 @@ MPP_RET decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
         p->frameTagSize = p->vpVersion >= 1 ? 3 : 4;
     } else {
         p->offsetToDctParts = (pbase[0] >> 5) | (pbase[1] << 3) | (pbase[2] << 11);
-        mpp_log("offsetToDctParts %d pbase[0] = 0x%x pbase[1] = 0x%x pbase[2] = 0x%x ", p->offsetToDctParts, pbase[0],
-                pbase[1], pbase[2]);
+        // mpp_log("offsetToDctParts %d pbase[0] = 0x%x pbase[1] = 0x%x pbase[2] = 0x%x ", p->offsetToDctParts, pbase[0],
+        // pbase[1], pbase[2]);
         p->showFrame = (pbase[0] >> 4) & 1;
         p->frameTagSize = 3;
     }
@@ -1138,7 +1154,7 @@ MPP_RET decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     size -= p->frameTagSize;
     if (p->keyFrame)
         vp8hwdResetProbs(p);
-    mpp_log_f("p->decMode = %d", p->decMode);
+    //mpp_log_f("p->decMode = %d", p->decMode);
     if (p->decMode == VP8HWD_VP8) {
         ret = vp8_header_parser(p, pbase, size);
     }  else {
@@ -1179,8 +1195,16 @@ MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
     in_task->syntax.data = (void *)p->dxva_ctx;
     in_task->syntax.number = 1;
     in_task->output = p->frame_out->slot_index;
-
     in_task->valid = 1;
+    if (p->eos) {
+        if (p->showFrame) {
+            mpp_buf_slot_set_prop(p->frame_slots, p->frame_out->slot_index, SLOT_EOS, &p->eos);
+        } else {
+            if (p->notify_cb.callBack != NULL) {
+                p->notify_cb.callBack(p->notify_cb.opaque, NULL);
+            }
+        }
+    }
     vp8d_ref_update(p);
 
     FUN_T("FUN_OUT");
