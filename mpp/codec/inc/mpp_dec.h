@@ -39,6 +39,7 @@ struct MppDec_t {
     // work mode flag
     RK_U32              parser_need_split;
     RK_U32              parser_fast_mode;
+    RK_U32              parser_internal_pts;
 
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
@@ -49,6 +50,7 @@ typedef struct {
     MppCodingType       coding;
     RK_U32              fast_mode;
     RK_U32              need_split;
+    RK_U32              internal_pts;
     void                *mpp;
 } MppDecCfg;
 

@@ -789,6 +789,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
             packet_slots,
             hal_task_count,
             cfg->need_split,
+            cfg->internal_pts,
             cb,
         };
 
@@ -826,9 +827,10 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
 
-        p->mpp                = cfg->mpp;
-        p->parser_need_split  = cfg->need_split;
-        p->parser_fast_mode   = cfg->fast_mode;
+        p->mpp                  = cfg->mpp;
+        p->parser_need_split    = cfg->need_split;
+        p->parser_fast_mode     = cfg->fast_mode;
+        p->parser_internal_pts  = cfg->internal_pts;
         *dec = p;
         return MPP_OK;
     } while (0);
