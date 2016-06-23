@@ -353,6 +353,10 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
         break;
     }
+    case VPU_API_USE_PRESENT_TIME_ORDER: {
+        mpicmd = MPP_DEC_USE_PRESENT_TIME_ORDER;
+        break;
+    }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
         RK_U32 ImgWidth =  p->ImgWidth;

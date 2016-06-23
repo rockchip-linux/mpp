@@ -121,6 +121,7 @@ private:
     RK_U32          mStatus;
     RK_U32          mParserFastMode;
     RK_U32          mParserNeedSplit;
+    RK_U32          mParserInternalPts;     /* for MPEG2/MPEG4 */
 
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);

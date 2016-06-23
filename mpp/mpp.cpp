@@ -57,7 +57,8 @@ Mpp::Mpp()
       mMultiFrame(0),
       mStatus(0),
       mParserFastMode(0),
-      mParserNeedSplit(0)
+      mParserNeedSplit(0),
+      mParserInternalPts(0)
 {
 }
 
@@ -80,6 +81,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             coding,
             mParserFastMode,
             mParserNeedSplit,
+            mParserInternalPts,
             this,
         };
         mpp_dec_init(&mDec, &cfg);
@@ -298,14 +300,19 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mpp_dec_control(mDec, cmd, param);
         break;
     }
+    case MPP_DEC_USE_PRESENT_TIME_ORDER: {
+        RK_U32 flag = *((RK_U32 *)param);
+        mParserInternalPts = flag;
+        break;
+    }
     case MPP_DEC_SET_PARSER_SPLIT_MODE: {
-        RK_U32 mode = *((RK_U32 *)param);
-        mParserNeedSplit = mode;
+        RK_U32 flag = *((RK_U32 *)param);
+        mParserNeedSplit = flag;
         break;
     }
     case MPP_DEC_SET_PARSER_FAST_MODE: {
-        RK_U32 mode = *((RK_U32 *)param);
-        mParserFastMode = mode;
+        RK_U32 flag = *((RK_U32 *)param);
+        mParserFastMode = flag;
         break;
     }
     case MPP_DEC_GET_STREAM_COUNT: {
