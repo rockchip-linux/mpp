@@ -96,10 +96,11 @@
  */
 
 typedef void* MppBufSlots;
-typedef void* SlotHnd;
 
-#define BUFFER_INFO_CHANGE              (0x00000001)
-#define DISPLAY_INFO_CHANGE             (0x00000002)
+/*
+ * buffer slot index range is 0~254, 0xff (255) will indicated the invalid index
+ */
+#define SLOT_IDX_BUTT                   (0xff)
 
 #ifdef __cplusplus
 extern "C" {
