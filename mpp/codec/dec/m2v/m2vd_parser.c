@@ -373,9 +373,18 @@ MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
 {
     MPP_RET ret = MPP_OK;
+    RK_U32 val = 0;
+    val = *((RK_U32*)src);
 
-    memcpy(dst, src, src_size);;
-    *dst_size = src_size;
+#define VPU_BITSTREAM_START_CODE (0x42564b52)  /* RKVB, rockchip video bitstream */
+
+    if (VPU_BITSTREAM_START_CODE == val) { // if input data is rk format styl skip those 32 byte
+        memcpy(dst, src + 32, src_size - 32);
+        *dst_size = src_size - 32;
+    } else {
+        memcpy(dst, src, src_size);
+        *dst_size = src_size;
+    }
 
     (void)dst;
 
