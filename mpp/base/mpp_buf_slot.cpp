@@ -36,10 +36,12 @@
 #define BUF_SLOT_DBG_FRAME              (0x00000200)
 #define BUF_SLOT_DBG_BUF_UESD           (0x00000400)
 #define BUF_SLOT_DBG_OPS_HISTORY        (0x10000000)
+#define BUF_SLOT_DBG_ALL                (0x10000011)
 
 #define buf_slot_dbg(flag, fmt, ...)    _mpp_dbg(buf_slot_debug, flag, fmt, ## __VA_ARGS__)
 
 static RK_U32 buf_slot_debug = 0;
+static RK_U32 buf_slot_idx = 0;
 
 #define slot_assert(impl, cond) do {                                    \
     if (!(cond)) {                                                      \
@@ -180,6 +182,7 @@ struct MppBufSlotEntry_t {
 
 struct MppBufSlotsImpl_t {
     Mutex               *lock;
+    RK_U32              slots_idx;
 
     // status tracing
     RK_U32              decode_count;
@@ -269,7 +272,7 @@ static void _dump_slots(const char *caller, MppBufSlotsImpl *impl)
     RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
 
-    mpp_log("\ncaller %s is dumping slots\n", caller);
+    mpp_log("\ncaller %s is dumping slots\n", caller, impl->slots_idx);
     mpp_log("slots %p buffer count %d buffer size %d\n", impl, impl->buf_count, impl->buf_size);
     mpp_log("decode  count %d\n", impl->decode_count);
     mpp_log("display count %d\n", impl->display_count);
@@ -406,8 +409,8 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
     } break;
     }
     slot->status = status;
-    buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "index %2d op: %s status in %08x out %08x",
-                 index, op_string[op], before.val, status.val);
+    buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "slot %3d index %2d op: %s status in %08x out %08x",
+                 impl->slots_idx, index, op_string[op], before.val, status.val);
     add_slot_log(impl->logs, index, op, before, status);
     if (error)
         dump_slots(impl);
@@ -522,8 +525,9 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         impl->hal_hor_align = default_align_16;
         impl->hal_ver_align = default_align_16;
         impl->hal_len_align = NULL;
-        impl->numerator = 10;
-        impl->denominator = 5;
+        impl->numerator     = 10;
+        impl->denominator   = 5;
+        impl->slots_idx     = buf_slot_idx++;
 
         *slots = impl;
         return MPP_OK;
