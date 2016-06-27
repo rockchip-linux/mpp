@@ -149,6 +149,12 @@ MPP_RET hal_m2vd_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     FUN_T("FUN_I");
     M2VDHalContext *p = (M2VDHalContext *)hal;
+#ifdef RKPLATFORM
+    if (p->vpu_socket >= 0) {
+        VPUClientRelease(p->vpu_socket);
+
+    }
+#endif
     if (p->qp_table) {
         ret = mpp_buffer_put(p->qp_table);
         if (MPP_OK != ret) {

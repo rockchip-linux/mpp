@@ -168,28 +168,27 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->preframe_period = 0;
     ctx->mHeaderDecFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
-
-    // m2vd_fm_create();
-    //CHK_F(mpp_buffer_group_get_internal(&ctx->BufferGroups[M2VD_BUF_GRP_BITMEM], MPP_BUFFER_TYPE_ION));
-
-
-
-    //  m2vd_fm_init(8);
     ctx->ref_frame_cnt = 0;
 
 
+    if (M2VD_DBG_DUMP_REG & m2vd_debug) {
+        RK_S32 k = 0;
+        for (k = 0; k < M2VD_DBG_FILE_NUM; k++)
+            ctx->fp_dbg_file[k] = NULL;
 
-    {
-        int k = 0;
+        ctx->fp_dbg_file[0] = fopen("/sdcard/m2vd_dbg_stream.txt", "wb");
+        if (!ctx->fp_dbg_file[0])
+            mpp_log("open file failed: %s", "/sdcard/m2vd_dbg_stream.txt");
+
+        ctx->fp_dbg_yuv = fopen("/sdcard/m2vd_dbg_yuv_out.txt", "wb");
+        if (!ctx->fp_dbg_yuv)
+            mpp_log("open file failed: %s", "/sdcard/m2vd_dbg_yuv_out.txt");
+    }else{
+        RK_S32 k = 0;
         for (k = 0; k < M2VD_DBG_FILE_NUM; k++)
             ctx->fp_dbg_file[k] = NULL;
     }
-    ctx->fp_dbg_file[0] = fopen("/sdcard/m2vd_dbg_stream.txt", "wb");
-    if (!ctx->fp_dbg_file[0])
-        mpp_log("open file failed: %s", "/sdcard/m2vd_dbg_stream.txt");
-    ctx->fp_dbg_yuv = fopen("/sdcard/m2vd_dbg_yuv_out.txt", "wb");
-    if (!ctx->fp_dbg_yuv)
-        mpp_log("open file failed: %s", "/sdcard/m2vd_dbg_yuv_out.txt");
+
 
     FUN_T("FUN_O");
 __FAILED:
@@ -227,9 +226,6 @@ MPP_RET m2vd_parser_deinit(void *ctx)
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
 
     FUN_T("FUN_I");
-
-    // m2vd_deinit_lists();
-    // m2vd_fm_destroy();
 
     for (k = 0; k < M2VD_DBG_FILE_NUM; k++) {
         M2VD_FCLOSE(p->fp_dbg_file[k]);
