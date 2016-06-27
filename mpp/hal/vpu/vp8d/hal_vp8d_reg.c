@@ -246,6 +246,12 @@ MPP_RET hal_vp8d_deinit(void *hal)
 
     FUN_T("FUN_IN");
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
+#ifdef RKPLATFORM
+    if (ctx->vpu_socket >= 0) {
+        VPUClientRelease(ctx->vpu_socket);
+
+    }
+#endif
     if (ctx->probe_table) {
         ret = mpp_buffer_put(ctx->probe_table);
         if (MPP_OK != ret) {

@@ -22,6 +22,10 @@
 #define M2VD_DBG_WARNNING          (0x00000004)
 #define M2VD_DBG_LOG               (0x00000008)
 #define M2VD_DBG_SEC_HEADER        (0x00000010)
+#define M2VD_DBG_DUMP_REG          (0x00000020)
+
+
+
 
 extern RK_U32 m2vd_debug;
 
