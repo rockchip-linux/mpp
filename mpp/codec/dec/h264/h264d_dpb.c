@@ -1818,6 +1818,7 @@ MPP_RET output_dpb(H264_DecCtx_t *p_Dec, H264_DpbBuf_t *p_Dpb)
             FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, pos));
         }
     }
+    (void)p_Dec;
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
