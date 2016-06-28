@@ -627,9 +627,6 @@ MPP_RET vdpu_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 		if (VPUClientGetIOMMUStatus() > 0) {
 			p_regs->sw64.rlc_vlc_st_adr = mpp_buffer_get_fd(bitstream_buf);
 		}
-		else {
-			p_regs->sw64.rlc_vlc_st_adr = (RK_U32)mpp_buffer_get_ptr(bitstream_buf);
-		}
 		p_regs->sw51.stream_len = p_hal->strm_len;
 	}
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
@@ -746,8 +743,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 
         if (VPUClientGetIOMMUStatus() > 0) {
             val = mpp_buffer_get_fd(frame_buf) | (val << 10);
-        } else {
-            val |= (RK_U32)mpp_buffer_get_ptr(frame_buf);
         }
         vdpu_set_refer_pic_base_addr(p_regs, i, val);
 	}
@@ -759,8 +754,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 
             if (VPUClientGetIOMMUStatus() > 0) {
                 p_regs->sw99.ref15_st_addr = mpp_buffer_get_fd(frame_buf); //!< inter-view base, ref15
-            } else {
-                p_regs->sw99.ref15_st_addr = (RK_U32)mpp_buffer_get_ptr(frame_buf);
             }
            p_regs->sw108.refpic_valid_flag |= (pp->field_pic_flag ? 0x3 : 0x10000);
 		}
@@ -771,8 +764,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 
     if (VPUClientGetIOMMUStatus() > 0) {
         outPhyAddr = mpp_buffer_get_fd(frame_buf);
-    } else {
-        outPhyAddr = (RK_U32)mpp_buffer_get_ptr(frame_buf);
     }
 	if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
 		if (VPUClientGetIOMMUStatus() > 0) {
@@ -796,9 +787,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 		dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) ? (picSizeInMbs * 32) : 0;
 		if (VPUClientGetIOMMUStatus() > 0) {
             p_regs->sw62.dmmv_st_adr = (mpp_buffer_get_fd(frame_buf) | (dirMvOffset << 6));
-		}
-		else {
-            p_regs->sw62.dmmv_st_adr = ((RK_U32)mpp_buffer_get_ptr(frame_buf) + dirMvOffset);
 		}
 	}
 	p_regs->sw57.dmmv_wr_en = (p_long->nal_ref_idc != 0) ? 1 : 0; //!< defalut set 1
@@ -841,9 +829,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         }
         if (VPUClientGetIOMMUStatus() > 0) {
             p_regs->sw61.qtable_st_adr = mpp_buffer_get_fd(p_hal->cabac_buf);
-        }
-        else {
-            p_regs->sw61.qtable_st_adr = (RK_U32)mpp_buffer_get_ptr(p_hal->cabac_buf);
         }
     }
 	p_regs->sw57.dec_wr_extmen_dis = 0; //!< set defalut 0
