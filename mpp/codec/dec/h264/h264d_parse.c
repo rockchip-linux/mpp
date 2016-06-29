@@ -678,7 +678,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             p_strm->nalu_len -= START_PREFIX_3BYTE;
             while (p_strm->nalu_buf[p_strm->nalu_len - 1] == 0x00) {
                 p_strm->nalu_len--;
-                break;
             }
             p_Dec->nalu_ret = EndOfNalu;
             FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
