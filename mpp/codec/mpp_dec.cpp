@@ -236,6 +236,16 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
     list->unlock();
 }
 
+static void mpp_put_frame_eos(Mpp *mpp)
+{
+    MppFrame info_frame = NULL;
+    mpp_frame_init(&info_frame);
+    mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
+    mpp_frame_set_eos(info_frame, 1);
+    mpp_put_frame((Mpp*)mpp, info_frame);
+    return;
+}
+
 static void mpp_dec_push_display(Mpp *mpp)
 {
     RK_S32 index;
@@ -257,6 +267,14 @@ static void mpp_dec_push_display(Mpp *mpp)
     mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
 }
 
+static void mpp_dec_push_eos_task(Mpp *mpp, DecTask *task)
+{
+    hal_task_hnd_set_info(task->hnd, &task->info);
+    mpp->mThreadHal->lock();
+    hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
+    mpp->mThreadHal->unlock();
+    mpp->mThreadHal->signal();
+}
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
@@ -343,13 +361,18 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-    /*
-     * We may find eos in prepare step and there will be no anymore vaild task generated.
-     * So here we try push all frames to display to avoid eos no notify to display
-     */
-    mpp_dec_push_display(mpp);
-
     task->status.curr_task_rdy = task_dec->valid;
+    /*
+    * We may find eos in prepare step and there will be no anymore vaild task generated.
+    * So here we try push eos task to hal, hal will push all frame to display then
+    * push a eos frame to tell all frame decoded
+    */
+    //  mpp_dec_push_display(mpp);
+    if (task_dec->flags.eos && !task_dec->valid) {
+        mpp_dec_push_eos_task(mpp, task);
+        task->hnd = NULL;
+    }
+
     if (!task->status.curr_task_rdy)
         return MPP_NOK;
 
@@ -435,7 +458,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * We may find eos in prepare step and there will be no anymore vaild task generated.
      * So here we try push all frames to display to avoid eos no notify to display
      */
-    mpp_dec_push_display(mpp);
+    // mpp_dec_push_display(mpp);
 
     /*
      * 8. send packet data to parser
@@ -487,9 +510,19 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_assert(task->hnd);
     }
 
-    // send info change task to hal thread
+
     if (task_dec->output < 0) {
-        hal_task_hnd_set_status(task->hnd, TASK_IDLE);
+        /*
+         * We may find eos in parser step and there will be no anymore vaild task generated.
+         * So here we try push eos task to hal, hal will push all frame to display then
+         * push a eos frame to tell all frame decoded
+         */
+        if (task_dec->flags.eos) {
+            mpp_dec_push_eos_task(mpp, task);
+        } else {
+            hal_task_hnd_set_status(task->hnd, TASK_IDLE);
+        }
+
         mpp->mTaskPutCount++;
         task->hnd = NULL;
         if (task->status.dec_pkt_copy_rdy) {
@@ -690,6 +723,19 @@ void *mpp_dec_hal_thread(void *data)
                 mpp->mThreadCodec->signal();
                 continue;
             }
+            /*
+             * check eos task
+             * if this task is invalid then eos flag come we will flush display que
+             * then push eos frame to tell all frame decoded
+             */
+            if (task_dec->flags.eos && !task_dec->valid) {
+                mpp_dec_push_display(mpp);
+                mpp_put_frame_eos(mpp);
+                hal_task_hnd_set_status(task, TASK_IDLE);
+                mpp->mThreadCodec->signal();
+                task = NULL;
+                continue;
+            }
             mpp_hal_hw_wait(dec->hal, &task_info);
             p_e = mpp_time();
             cur_deat = (p_e - p_s);
@@ -732,6 +778,14 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_dec_flush(dec);
             }
             mpp_dec_push_display(mpp);
+            /*
+             * check eos task
+             * if this task is valid then eos flag come we will flush display que
+             * then push eos frame to tell all frame decoded
+             */
+            if (task_dec->flags.eos) {
+                mpp_put_frame_eos(mpp);
+            }
         }
     }
 

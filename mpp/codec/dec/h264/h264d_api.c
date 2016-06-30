@@ -561,12 +561,13 @@ MPP_RET  h264d_flush(void *decoder)
     if (p_Dec->mvc_valid) {
         FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[1]));
     }
-
+#if 0
     if (p_Dec->last_frame_slot_idx >= 0) {
         mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
                               SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
         p_Dec->last_frame_slot_idx = -1;
     }
+#endif
 __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;

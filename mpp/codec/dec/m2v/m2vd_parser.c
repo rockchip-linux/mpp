@@ -329,6 +329,7 @@ MPP_RET  m2vd_parser_flush(void *ctx)
     mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
     p->frame_ref0->flags = 0;
 exit:
+    #if 0
     if (p->eos) {
         if ( p->frame_ref0->slot_index < 0xff) {
             mpp_buf_slot_set_prop(p->frame_slots, p->frame_ref0->slot_index, SLOT_EOS, &p->eos);
@@ -338,6 +339,7 @@ exit:
             }
         }
     }
+    #endif
     return ret;
 }
 
@@ -434,6 +436,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     if (out_size == 0 && p->eos) {
         m2vd_parser_flush(ctx);
+        task->flags.eos = 1;
         return ret;
     }
 
