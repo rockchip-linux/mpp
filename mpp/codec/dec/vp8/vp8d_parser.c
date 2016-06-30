@@ -440,9 +440,7 @@ MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     mpp_packet_set_pos(pkt, pos);
 
     if (out_size == 0 && p->eos) {
-        if (p->notify_cb.callBack != NULL) {
-            p->notify_cb.callBack(p->notify_cb.opaque, NULL);
-        }
+        task->flags.eos = p->eos;
         return ret;
     }
 
@@ -1197,13 +1195,7 @@ MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
     in_task->output = p->frame_out->slot_index;
     in_task->valid = 1;
     if (p->eos) {
-        if (p->showFrame) {
-            mpp_buf_slot_set_prop(p->frame_slots, p->frame_out->slot_index, SLOT_EOS, &p->eos);
-        } else {
-            if (p->notify_cb.callBack != NULL) {
-                p->notify_cb.callBack(p->notify_cb.opaque, NULL);
-            }
-        }
+        in_task->flags.eos = p->eos;
     }
     vp8d_ref_update(p);
 

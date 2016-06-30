@@ -1720,15 +1720,15 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             return MPP_FAIL_SPLIT_FRAME;
         }
     } else {
-
         pos = buf + length;
         s->pts = pts;
         mpp_packet_set_pos(pkt, pos);
-        if (s->eos) {
+        if (s->eos && !length) {
             task->valid = 0;
             task->flags.eos = 1;
-
+            mpp_log_f("hevc flush eos");
             h265d_flush(ctx);
+            return ret;
         }
     }
 #ifdef dump
@@ -1796,15 +1796,9 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     } else {
         if (s->eos) {
             h265d_flush(ctx);
+            s->task->flags.eos = 1;
         }
     }
-#if 0
-    for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
-        HEVCFrame *frame = &s->DPB[i];
-        if (frame->poc != INT_MAX)
-            mpp_err("poc[%d] = %d", i, frame->poc);
-    }
-#endif
     s->nb_frame++;
     if (s->is_decoded) {
         h265d_dbg(H265D_DBG_GLOBAL, "Decoded frame with POC %d.\n", s->poc);
@@ -1972,21 +1966,9 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
 MPP_RET h265d_flush(void *ctx)
 {
     RK_S32 ret = 0;
-    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
-    HEVCFrame *frame = NULL;
     do {
         ret = mpp_hevc_output_frame(ctx, 1);
     } while (ret);
-    frame = &s->DPB[s->output_frame_idx];
-    if ((frame->slot_index < 0xff) && s->eos) {
-        mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_EOS, &s->eos);
-    } else {
-        if (s->notify_cb.callBack != NULL && s->eos) {
-            s->notify_cb.callBack(s->notify_cb.opaque, NULL);
-        }
-    }
-
     return MPP_OK;
 }
 

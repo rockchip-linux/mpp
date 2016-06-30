@@ -229,6 +229,7 @@ MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type)
         HalDecTask *p = &task->dec;
         p->valid  = 0;
         p->flags.val = 0;
+        p->flags.eos = 0;
         p->prev_status = 0;
         p->input_packet = NULL;
         p->output = -1;
