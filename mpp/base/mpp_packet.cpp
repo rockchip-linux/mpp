@@ -118,7 +118,11 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     }
 
     size_t size = mpp_packet_get_size(src);
-    void *data = mpp_malloc_size(void, size);
+    /*
+     * due to parser may be read 32 bit interface so we must alloc more size then real size
+     * to avoid read carsh
+     */
+    void *data = mpp_malloc_size(void, size + 256);
     if (NULL == data) {
         mpp_err_f("malloc failed, size %d\n", size);
         mpp_packet_deinit(&pkt);
@@ -132,6 +136,10 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     p->flag |= MPP_PACKET_FLAG_INTERNAL;
     if (size) {
         memcpy(data, src_impl->data, size);
+        /*
+         * clean more alloc byte to zero
+        */
+        memset((RK_U8*)data + size, 0, 256);
     }
     *packet = pkt;
     return MPP_OK;
