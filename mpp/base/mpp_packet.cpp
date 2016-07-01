@@ -33,7 +33,7 @@ MPP_RET check_is_mpp_packet(void *packet)
     if (packet && ((MppPacketImpl*)packet)->name == module_name)
         return MPP_OK;
 
-    mpp_err_f("pointer %p failed on check\n");
+    mpp_err_f("pointer %p failed on check\n", packet);
     mpp_abort();
     return MPP_NOK;
 }

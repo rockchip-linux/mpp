@@ -34,7 +34,7 @@ MPP_RET check_is_mpp_frame(void *frame)
     if (frame && ((MppFrameImpl*)frame)->name == module_name)
         return MPP_OK;
 
-    mpp_err_f("pointer %p failed on check\n");
+    mpp_err_f("pointer %p failed on check\n", frame);
     mpp_abort();
     return MPP_NOK;
 }
