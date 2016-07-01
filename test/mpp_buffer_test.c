@@ -59,7 +59,7 @@ int main()
         goto MPP_BUFFER_failed;
     }
 
-    mpp_log("mpp_buffer_test commit mode start\n");
+    mpp_log("mpp_buffer_test commit mode with unused status start\n");
 
     commit.type = MPP_BUFFER_TYPE_NORMAL;
     commit.size = size;
@@ -73,7 +73,7 @@ int main()
 
         commit.ptr = commit_ptr[i];
 
-        ret = mpp_buffer_commit(group, &commit);
+        ret = mpp_buffer_commit(group, &commit, NULL);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
             goto MPP_BUFFER_failed;
@@ -108,7 +108,54 @@ int main()
 
     mpp_buffer_group_put(group);
 
-    mpp_log("mpp_buffer_test commit mode success\n");
+    mpp_log("mpp_buffer_test commit mode with unused status success\n");
+
+
+    mpp_log("mpp_buffer_test commit mode with used status start\n");
+
+    commit.type = MPP_BUFFER_TYPE_ION;
+    commit.size = size;
+
+    for (i = 0; i < count; i++) {
+        commit_ptr[i] = malloc(size);
+        if (NULL == commit_ptr[i]) {
+            mpp_err("mpp_buffer_test malloc failed\n");
+            goto MPP_BUFFER_failed;
+        }
+
+        commit.ptr = commit_ptr[i];
+
+        /*
+         * NOTE: commit buffer info will be directly return within new MppBuffer
+         *       This mode allow input group is NULL
+         */
+        ret = mpp_buffer_commit(NULL, &commit, &commit_buffer[i]);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
+            goto MPP_BUFFER_failed;
+        }
+    }
+
+    for (i = 0; i < count; i++) {
+        if (commit_buffer[i]) {
+            ret = mpp_buffer_put(commit_buffer[i]);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
+                goto MPP_BUFFER_failed;
+            }
+            commit_buffer[i] = NULL;
+        }
+    }
+
+    for (i = 0; i < count; i++) {
+        if (commit_ptr[i]) {
+            free(commit_ptr[i]);
+            commit_ptr[i] = NULL;
+        }
+    }
+
+    mpp_log("mpp_buffer_test commit mode with used status success\n");
+
 
     mpp_log("mpp_buffer_test normal mode start\n");
 

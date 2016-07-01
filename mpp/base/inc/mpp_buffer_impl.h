@@ -110,7 +110,8 @@ extern RK_U32 mpp_buffer_debug;
 
 /*
  *  mpp_buffer_create       : create a unused buffer with parameter tag/size/data
- *                            buffer will be register to unused list
+ *                            if input buffer is NULL then buffer will be register to unused list
+ *                            otherwise the buffer will be register to used list and set to paramter buffer
  *
  *  mpp_buffer_destroy      : destroy a buffer, it must be on unused status
  *
@@ -131,7 +132,7 @@ extern RK_U32 mpp_buffer_debug;
  * mpp_buffer_ref_inc/dec   - use the buffer
  * mpp_buffer_destory       - destroy the buffer
  */
-MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info);
+MPP_RET mpp_buffer_create(const char *tag, const char *caller, MppBufferGroupImpl *group, MppBufferInfo *info, MppBufferImpl **buffer);
 MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
@@ -143,7 +144,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener);
 // mpp_buffer_group helper function
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
-MppBufferGroupImpl *mpp_buffer_legacy_group();
+MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type);
 
 #ifdef __cplusplus
 }

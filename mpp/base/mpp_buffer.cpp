@@ -22,23 +22,41 @@
 #include "mpp_mem.h"
 #include "mpp_buffer_impl.h"
 
-MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info)
+MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller,
+                                    MppBufferGroup group, MppBufferInfo *info,
+                                    MppBuffer *buffer)
 {
-    if (NULL == group || NULL == info) {
-        mpp_err("mpp_buffer_commit input null pointer group %p info %p\n",
-                group, info);
+    if (NULL == info) {
+        mpp_err("mpp_buffer_commit input null info\n", info);
         return MPP_ERR_NULL_PTR;
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    if (p->type != info->type || p->type >= MPP_BUFFER_TYPE_BUTT ||
-        p->mode != MPP_BUFFER_EXTERNAL) {
-        mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d\n",
-                p->type, info->type, p->mode);
-        return MPP_ERR_UNKNOW;
+
+    if (p) {
+        // if group is specified we need to check the parameter
+        if (p->type != info->type || p->type >= MPP_BUFFER_TYPE_BUTT ||
+            p->mode != MPP_BUFFER_EXTERNAL) {
+            mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d\n",
+                    p->type, info->type, p->mode);
+            return MPP_ERR_UNKNOW;
+        }
+    } else {
+        // otherwise use default external group to manage them
+        p = mpp_buffer_get_misc_group(MPP_BUFFER_EXTERNAL, info->type);
     }
 
-    return mpp_buffer_create(tag, caller, p->group_id, info);
+    mpp_assert(p);
+
+    MPP_RET ret = MPP_OK;
+    if (buffer) {
+        MppBufferImpl *buf = NULL;
+        ret = mpp_buffer_create(tag, caller, p, info, &buf);
+        *buffer = buf;
+    } else {
+        ret = mpp_buffer_create(tag, caller, p, info, NULL);
+    }
+    return ret;
 }
 
 MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size)
@@ -51,7 +69,7 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGr
 
     if (NULL == group) {
         // deprecated, only for libvpu support
-        group = mpp_buffer_legacy_group();
+        group = mpp_buffer_get_misc_group(MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
     }
 
     mpp_assert(group);
@@ -68,8 +86,7 @@ MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGr
             -1,
         };
         // if failed try init a new buffer
-        mpp_buffer_create(tag, caller, p->group_id, &info);
-        buf = mpp_buffer_get_unused(p, size);
+        mpp_buffer_create(tag, caller, p, &info, &buf);
     }
     *buffer = buf;
     return (buf) ? (MPP_OK) : (MPP_NOK);

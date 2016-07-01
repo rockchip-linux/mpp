@@ -181,6 +181,19 @@ typedef struct MppBufferInfo_t {
 
 #define BUFFER_GROUP_SIZE_DEFAULT           (SZ_1M*80)
 
+/*
+ * mpp_buffer_commit usage:
+ *
+ * mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer)
+ *
+ * 1. group - specified the MppBuffer to attach to.
+ *    group can be NULL then this buffer will attached to default legecy group
+ * 2. info  - input information for the output MppBuffer
+ *    info can NOT be NULL. It must contain at least one of ptr/fd.
+ * 3. buffer - generated MppBuffer from MppBufferInfo.
+ *    buffer can be NULL then the buffer is commit to group with a free for get status.
+ *    Otherwise generated buffer will be directly got and ref_count increased.
+ */
 #define mpp_buffer_commit(...) \
         mpp_buffer_commit_with_tag(MODULE_TAG, __FUNCTION__, ## __VA_ARGS__)
 
@@ -201,8 +214,12 @@ extern "C" {
  * MppBuffer interface
  * these interface will change value of group and buffer so before calling functions
  * parameter need to be checked.
+ *
+ * IMPORTANT:
+ * mpp_buffer_commit_with_tag - compounded interface for commit and import
+ *
  */
-MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info);
+MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer);
 MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size);
 MPP_RET mpp_buffer_put(MppBuffer buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
