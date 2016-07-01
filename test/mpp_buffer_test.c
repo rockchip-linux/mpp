@@ -24,6 +24,7 @@
 #include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_buffer.h"
+#include "mpp_allocator.h"
 
 #define MPP_BUFFER_TEST_DEBUG_FLAG      (0xf)
 #define MPP_BUFFER_TEST_SIZE            (SZ_1K*4)
@@ -33,6 +34,8 @@
 int main()
 {
     MPP_RET ret = MPP_OK;
+    MppAllocator allocator = NULL;
+    MppAllocatorApi *api = NULL;
     MppBufferInfo commit;
     MppBufferGroup group = NULL;
     MppBuffer commit_buffer[MPP_BUFFER_TEST_COMMIT_COUNT];
@@ -113,17 +116,21 @@ int main()
 
     mpp_log("mpp_buffer_test commit mode with used status start\n");
 
+    ret = mpp_allocator_get(&allocator, &api, MPP_BUFFER_TYPE_ION);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_buffer_test mpp_allocator_get ion failed\n");
+        goto MPP_BUFFER_failed;
+    }
+
     commit.type = MPP_BUFFER_TYPE_ION;
     commit.size = size;
 
     for (i = 0; i < count; i++) {
-        commit_ptr[i] = malloc(size);
-        if (NULL == commit_ptr[i]) {
-            mpp_err("mpp_buffer_test malloc failed\n");
+        ret = api->alloc(allocator, &commit);
+        if (ret) {
+            mpp_err("mpp_buffer_test mpp_allocator_alloc failed\n");
             goto MPP_BUFFER_failed;
         }
-
-        commit.ptr = commit_ptr[i];
 
         /*
          * NOTE: commit buffer info will be directly return within new MppBuffer
@@ -138,20 +145,33 @@ int main()
 
     for (i = 0; i < count; i++) {
         if (commit_buffer[i]) {
+            ret = mpp_buffer_info_get(commit_buffer[i], &commit);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_info_get failed\n");
+                goto MPP_BUFFER_failed;
+            }
+
             ret = mpp_buffer_put(commit_buffer[i]);
             if (MPP_OK != ret) {
                 mpp_err("mpp_buffer_test mpp_buffer_put commit mode failed\n");
                 goto MPP_BUFFER_failed;
             }
+
             commit_buffer[i] = NULL;
+
+            /* NOTE: buffer info from allocator need to be free directly */
+            ret = api->free(allocator, &commit);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test api->free failed\n");
+                goto MPP_BUFFER_failed;
+            }
         }
     }
 
-    for (i = 0; i < count; i++) {
-        if (commit_ptr[i]) {
-            free(commit_ptr[i]);
-            commit_ptr[i] = NULL;
-        }
+    ret = mpp_allocator_put(&allocator);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_buffer_test mpp_allocator_put failed\n");
+        goto MPP_BUFFER_failed;
     }
 
     mpp_log("mpp_buffer_test commit mode with used status success\n");
@@ -237,6 +257,11 @@ MPP_BUFFER_failed:
         mpp_buffer_put(legacy_buffer);
         legacy_buffer = NULL;
     }
+
+    if (allocator) {
+        mpp_allocator_put(&allocator);
+    }
+    mpp_assert(NULL == allocator);
 
     mpp_log("mpp_buffer_test failed\n");
     return ret;

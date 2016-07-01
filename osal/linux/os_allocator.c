@@ -30,6 +30,7 @@
  */
 typedef struct {
     size_t          alignment;
+    RK_S32          fd_count;
 } allocator_ctx;
 
 MPP_RET os_allocator_normal_open(void **ctx, size_t alignment)
@@ -49,6 +50,8 @@ MPP_RET os_allocator_normal_open(void **ctx, size_t alignment)
     } else
         p->alignment = alignment;
 
+    p->fd_count = 0;
+
     *ctx = p;
     return ret;
 }
@@ -63,6 +66,7 @@ MPP_RET os_allocator_normal_alloc(void *ctx, MppBufferInfo *info)
     }
 
     p = (allocator_ctx *)ctx;
+    info->fd = p->fd_count++;
     return os_malloc(&info->ptr, p->alignment, info->size);
 }
 
@@ -76,11 +80,12 @@ MPP_RET os_allocator_normal_free(void *ctx, MppBufferInfo *info)
 
 MPP_RET os_allocator_normal_import(void *ctx, MppBufferInfo *info)
 {
-    (void) ctx;
+    allocator_ctx *p = (allocator_ctx *)ctx;
+    mpp_assert(ctx);
     mpp_assert(info->ptr);
     mpp_assert(info->size);
     info->hnd   = NULL;
-    info->fd    = -1;
+    info->fd    = p->fd_count++;
     return MPP_OK;
 }
 
@@ -119,8 +124,8 @@ static os_allocator allocator_v4l2 = {
     os_allocator_normal_open,
     os_allocator_normal_alloc,
     os_allocator_normal_free,
-    NULL,
-    NULL,
+    os_allocator_normal_import,
+    os_allocator_normal_release,
     os_allocator_normal_close,
 };
 
