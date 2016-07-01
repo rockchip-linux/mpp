@@ -26,6 +26,44 @@
 #ifndef __MPG4D_SYNTAX__
 #define __MPG4D_SYNTAX__
 
+#include "dxva_syntax.h"
+
+#define MPEG4_VIDOBJLAY_AR_SQUARE           1
+#define MPEG4_VIDOBJLAY_AR_625TYPE_43       2
+#define MPEG4_VIDOBJLAY_AR_525TYPE_43       3
+#define MPEG4_VIDOBJLAY_AR_625TYPE_169      8
+#define MPEG4_VIDOBJLAY_AR_525TYPE_169      9
+#define MPEG4_VIDOBJLAY_AR_EXTPAR           15
+
+#define MPEG4_VIDOBJLAY_SHAPE_RECTANGULAR   0
+#define MPEG4_VIDOBJLAY_SHAPE_BINARY        1
+#define MPEG4_VIDOBJLAY_SHAPE_BINARY_ONLY   2
+#define MPEG4_VIDOBJLAY_SHAPE_GRAYSCALE     3
+
+/*video sprite specific*/
+#define MPEG4_SPRITE_NONE                   0
+#define MPEG4_SPRITE_STATIC                 1
+#define MPEG4_SPRITE_GMC                    2
+
+/*video vop specific*/
+typedef enum {
+    MPEG4_RESYNC_VOP    = -2,
+    MPEG4_INVALID_VOP   = -1,
+    MPEG4_I_VOP         = 0,
+    MPEG4_P_VOP         = 1,
+    MPEG4_B_VOP         = 2,
+    MPEG4_S_VOP         = 3,
+    MPEG4_N_VOP         = 4,
+    MPEG4_D_VOP         = 5,                /*Drop Frame*/
+} MPEG4VOPType;
+
+#define MPEG4_HDR_ERR       -2
+#define MPEG4_DEC_ERR       -4
+#define MPEG4_VLD_ERR       -5
+#define MPEG4_FORMAT_ERR    -6
+#define MPEG4_DIVX_PBBI     -7
+#define MPEG4_INFO_CHANGE   -10
+
 /* MPEG4PT2 Picture Parameter structure */
 typedef struct _DXVA_PicParams_MPEG4_PART2 {
     RK_U8   short_video_header;
@@ -81,37 +119,27 @@ typedef struct _DXVA_PicParams_MPEG4_PART2 {
     RK_U16  Reserved16BitsA;
     RK_U16  Reserved16BitsB;
 
-    // add by lance 2016.04.15
-    RK_U32  consumed_bits;
-    RK_U32  buf_len;
+    // FIXME: added for rockchip hardware information
+    RK_U32  custorm_version;
+    RK_U32  prev_coding_type;
     RK_U32  time_bp;
     RK_U32  time_pp;
-    MppBuffer q_table_buffer;
-    RK_S32  quarterpel;
-    RK_U32  version;
-    RK_U32  intra_dc_threshold;
+    RK_U32  header_bits;
 } DXVA_PicParams_MPEG4_PART2, *LPDXVA_PicParams_MPEG4_PART2;
 
 typedef struct _DXVA_QmatrixData {
-    RK_U8   bNewQmatrix[4]; //intra Y, inter Y, intra chroma, inter chroma
-    RK_U16  Qmatrix[4][64];
+    RK_U8   bNewQmatrix[4]; // intra Y, inter Y, intra chroma, inter chroma
+    RK_U8   Qmatrix[4][64]; // NOTE: here we change U16 to U8
 } DXVA_QmatrixData, *LPDXVA_QmatrixData;
-
-typedef struct _DXVA_SliceInfo {
-    RK_U16  wHorizontalPosition;
-    RK_U16  wVerticalPosition;
-    RK_U32  dwSliceBitsInBuffer;
-    RK_U32  dwSliceDataLocation;
-    RK_U8   bStartCodeBitOffset;
-    RK_U8   bReservedBits;
-    RK_U16  wMBbitOffset;
-    RK_U16  wNumberMBsInSlice;
-    RK_U16  wQuantizerScaleCode;
-    RK_U16  wBadSliceChopping;
-} DXVA_SliceInfo, *LPDXVA_SliceInfo;
 
 typedef struct mpeg4d_dxva2_picture_context {
     DXVA_PicParams_MPEG4_PART2  pp;
+    DXVA_QmatrixData            qm;
+
+    // pointer and storage for buffer descriptor
+    DXVA2_DecodeBufferDesc      *data[3];
+    DXVA2_DecodeBufferDesc      desc[3];
+
     RK_U32                      frame_count;
     const RK_U8                 *bitstream;
     RK_U32                      bitstream_size;

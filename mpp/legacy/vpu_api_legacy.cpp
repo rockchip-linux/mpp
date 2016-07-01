@@ -354,7 +354,7 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_USE_PRESENT_TIME_ORDER: {
-        mpicmd = MPP_DEC_USE_PRESENT_TIME_ORDER;
+        mpicmd = MPP_DEC_SET_INTERNAL_PTS_ENABLE;
         break;
     }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {

@@ -18,19 +18,14 @@
 #ifndef __MPG4D_PARSER_H__
 #define __MPG4D_PARSER_H__
 
-#include "mpp_log.h"
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "hal_task.h"
 
-extern RK_U32 mpg4d_debug;
 #define MPG4D_DBG_FUNCTION          (0x00000001)
-#define MPG4D_DBG_PPS               (0x00000008)
-#define MPG4D_DBG_SLICE_HDR         (0x00000010)
-#define MPG4D_DBG_REF               (0x00000080)
+#define MPG4D_DBG_STARTCODE         (0x00000002)
+#define MPG4D_DBG_BITS              (0x00000004)
 #define MPG4D_DBG_TIME              (0x00000100)
-
-#define mpg4d_dbg(flag, fmt, ...)   _mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 
 typedef void* Mpg4dParser;
 
@@ -45,10 +40,11 @@ MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx);
 
 MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src);
 MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt);
-MPP_RET mpp_mpg4_parser_setup_syntax(Mpg4dParser ctx, MppSyntax syntax);
-MPP_RET mpp_mpg4_parser_setup_output(Mpg4dParser ctx, RK_S32 *output);
+MPP_RET mpp_mpg4_parser_setup_syntax(Mpg4dParser ctx, MppSyntax *syntax);
+MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output);
 MPP_RET mpp_mpg4_parser_setup_refer(Mpg4dParser ctx, RK_S32 *refer, RK_S32 max_ref);
-MPP_RET mpp_mpg4_parser_setup_display(Mpg4dParser ctx);
+MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx);
+MPP_RET mpp_mpg4_parser_set_pts_mode(Mpg4dParser ctx, RK_U32 use_internal_pts);
 
 #ifdef __cplusplus
 }

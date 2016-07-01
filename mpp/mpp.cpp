@@ -300,9 +300,14 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         mpp_dec_control(mDec, cmd, param);
         break;
     }
-    case MPP_DEC_USE_PRESENT_TIME_ORDER: {
-        RK_U32 flag = *((RK_U32 *)param);
-        mParserInternalPts = flag;
+    case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
+        if (mType == MPP_CTX_DEC &&
+           (mCoding == MPP_VIDEO_CodingMPEG2 ||
+            mCoding == MPP_VIDEO_CodingMPEG4)) {
+            mpp_dec_control(mDec, cmd, param);
+        } else {
+            mpp_err("type %x coding %x does not support use internal pts control\n");
+        }
         break;
     }
     case MPP_DEC_SET_PARSER_SPLIT_MODE: {
@@ -328,8 +333,6 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         }
         break;
     }
-
-
     default : {
     } break;
     }

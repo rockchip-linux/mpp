@@ -32,11 +32,14 @@
 #include "mpp_err.h"
 #include "mpp_hal.h"
 
-
+#define MPG4D_HAL_DBG_REG_PUT       (0x00000001)
+#define MPG4D_HAL_DBG_REG_GET       (0x00000002)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern RK_U32 mpg4d_hal_debug;
 
 extern const MppHalApi hal_api_mpg4d;
 

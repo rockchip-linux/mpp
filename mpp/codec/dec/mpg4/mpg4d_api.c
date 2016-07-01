@@ -19,10 +19,11 @@
 
 #include <string.h>
 
+#include "rk_mpi.h"
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
-#include "mpp_packet.h"
 
 #include "mpg4d_api.h"
 #include "mpg4d_parser.h"
@@ -43,6 +44,7 @@ typedef struct {
     // runtime parameter
     RK_U32          need_split;
     RK_U32          frame_count;
+    RK_U32          internal_pts;
     IOInterruptCB   notify_cb;
 
     // parser context
@@ -89,8 +91,9 @@ MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p = (Mpg4dCtx *)dec;
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
-    p->need_split   = cfg->need_split;
     p->task_count   = cfg->task_count = 2;
+    p->need_split   = cfg->need_split;
+    p->internal_pts = cfg->internal_pts;
     p->notify_cb    = cfg->notify_cb;
     p->stream       = stream;
     p->stream_size  = stream_size;
@@ -140,7 +143,8 @@ MPP_RET mpg4d_reset(void *dec)
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
-    return MPP_OK;
+
+    return mpp_mpg4_parser_reset(dec);
 }
 
 
@@ -150,17 +154,26 @@ MPP_RET mpg4d_flush(void *dec)
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
-    return MPP_OK;
+
+    return mpp_mpg4_parser_flush(dec);
 }
 
 
 MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
 {
+    Mpg4dCtx *p;
+
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
-    (void)cmd_type;
+
+    p = (Mpg4dCtx *)dec;
+    switch (cmd_type) {
+    case MPP_DEC_SET_INTERNAL_PTS_ENABLE : {
+        mpp_mpg4_parser_set_pts_mode(p, 1);
+    } break;
+    }
     (void)param;
     return MPP_OK;
 }
@@ -254,6 +267,7 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 
     task->input_packet = p->task_pkt;
     task->flags.eos    = p->task_eos;
+
     return MPP_OK;
 }
 
@@ -271,14 +285,14 @@ MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
     if (ret) {
         // found error on decoding drop this task and clear remaining length
         task->output = -1;
-        mpp_packet_set_length(&task->input_packet, 0);
+        mpp_packet_set_length(task->input_packet, 0);
         return MPP_NOK;
     }
 
-    mpp_mpg4_parser_setup_syntax(p->parser, task->syntax);
-    mpp_mpg4_parser_setup_output(p->parser, &task->output);
+    mpp_mpg4_parser_setup_syntax(p->parser, &task->syntax);
+    mpp_mpg4_parser_setup_hal_output(p->parser, &task->output);
     mpp_mpg4_parser_setup_refer(p->parser, task->refer, MAX_DEC_REF_NUM);
-    mpp_mpg4_parser_setup_display(p->parser);
+    mpp_mpg4_parser_update_dpb(p->parser);
 
     p->frame_count++;
 
@@ -291,6 +305,7 @@ MPP_RET mpg4d_callback(void *dec, void *err_info)
     (void)err_info;
     return MPP_OK;
 }
+
 const ParserApi api_mpg4d_parser = {
     "api_mpg4d_parser",
     MPP_VIDEO_CodingMPEG4,
