@@ -32,7 +32,7 @@ static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S
     info.size = size;
     p_mempool->size = size;
     p_mempool->buff_size = size;
-    mpp_buffer_commit(p_mempool->group, &info, NULL);
+    mpp_buffer_commit(p_mempool->group, &info);
     return info.fd;
 }
 

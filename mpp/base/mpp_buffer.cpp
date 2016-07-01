@@ -22,9 +22,8 @@
 #include "mpp_mem.h"
 #include "mpp_buffer_impl.h"
 
-MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller,
-                                    MppBufferGroup group, MppBufferInfo *info,
-                                    MppBuffer *buffer)
+MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer,
+                                   const char *tag, const char *caller)
 {
     if (NULL == info) {
         mpp_err("mpp_buffer_commit input null info\n", info);
@@ -59,7 +58,8 @@ MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller,
     return ret;
 }
 
-MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size)
+MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t size,
+                                const char *tag, const char *caller)
 {
     if (NULL == buffer || 0 == size) {
         mpp_err("mpp_buffer_get invalid input: group %p buffer %p size %u\n",
@@ -198,8 +198,8 @@ MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET mpp_buffer_group_get(const char *tag, const char *caller, MppBufferMode mode,
-                             MppBufferGroup *group, MppBufferType type)
+MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBufferMode mode,
+                             const char *tag, const char *caller)
 {
     if (NULL == group ||
         mode >= MPP_BUFFER_MODE_BUTT ||

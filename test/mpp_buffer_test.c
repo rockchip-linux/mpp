@@ -76,7 +76,7 @@ int main()
 
         commit.ptr = commit_ptr[i];
 
-        ret = mpp_buffer_commit(group, &commit, NULL);
+        ret = mpp_buffer_commit(group, &commit);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
             goto MPP_BUFFER_failed;
@@ -136,7 +136,7 @@ int main()
          * NOTE: commit buffer info will be directly return within new MppBuffer
          *       This mode allow input group is NULL
          */
-        ret = mpp_buffer_commit(NULL, &commit, &commit_buffer[i]);
+        ret = mpp_buffer_import(&commit_buffer[i], &commit);
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
             goto MPP_BUFFER_failed;

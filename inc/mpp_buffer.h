@@ -182,29 +182,50 @@ typedef struct MppBufferInfo_t {
 #define BUFFER_GROUP_SIZE_DEFAULT           (SZ_1M*80)
 
 /*
- * mpp_buffer_commit usage:
+ * mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer)
  *
- * mpp_buffer_commit(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer)
- *
- * 1. group - specified the MppBuffer to attach to.
+ * 1. group - specified the MppBuffer to be attached to.
  *    group can be NULL then this buffer will attached to default legecy group
+ *    Default to NULL on mpp_buffer_import case
+ *
  * 2. info  - input information for the output MppBuffer
  *    info can NOT be NULL. It must contain at least one of ptr/fd.
+ *
  * 3. buffer - generated MppBuffer from MppBufferInfo.
- *    buffer can be NULL then the buffer is commit to group with a free for get status.
+ *    buffer can be NULL then the buffer is commit to group with unused status.
  *    Otherwise generated buffer will be directly got and ref_count increased.
+ *    Default to NULL on mpp_buffer_commit case
+ *
+ * mpp_buffer_commit usage:
+ *
+ * Add a external buffer info to group. This buffer will be on unused status.
+ * Typical usage is on Android. MediaPlayer gralloc Graphic buffer then commit these buffer
+ * to decoder's buffer group. Then decoder will recycle these buffer and return buffer reference
+ * to MediaPlayer for display.
+ *
+ * mpp_buffer_import usage:
+ *
+ * Transfer a external buffer info to MppBuffer but it is not expected to attached to certain
+ * buffer group. So the group is set to NULL. Then this buffer can be used for MppFrame/MppPacket.
+ * Typical usage is for image processing. Image processing normally will be a oneshot operation
+ * It does not need complicated group management. But in other hand mpp still need to know the
+ * imported buffer is leak or not and trace its usage inside mpp process. So we attach this kind
+ * of buffer to default misc buffer group for management.
  */
-#define mpp_buffer_commit(...) \
-        mpp_buffer_commit_with_tag(MODULE_TAG, __FUNCTION__, ## __VA_ARGS__)
+#define mpp_buffer_commit(group, info, ...) \
+        mpp_buffer_import_with_tag(group, info, NULL, MODULE_TAG, __FUNCTION__)
 
-#define mpp_buffer_get(...) \
-        mpp_buffer_get_with_tag(MODULE_TAG, __FUNCTION__, ## __VA_ARGS__)
+#define mpp_buffer_import(buffer, info, ...) \
+        mpp_buffer_import_with_tag(NULL, info, buffer, MODULE_TAG, __FUNCTION__)
 
-#define mpp_buffer_group_get_internal(...) \
-        mpp_buffer_group_get(MODULE_TAG, __FUNCTION__, MPP_BUFFER_INTERNAL, ## __VA_ARGS__)
+#define mpp_buffer_get(group, buffer, size, ...) \
+        mpp_buffer_get_with_tag(group, buffer, size, MODULE_TAG, __FUNCTION__)
 
-#define mpp_buffer_group_get_external(...) \
-        mpp_buffer_group_get(MODULE_TAG, __FUNCTION__, MPP_BUFFER_EXTERNAL, ## __VA_ARGS__)
+#define mpp_buffer_group_get_internal(group, type, ...) \
+        mpp_buffer_group_get(group, type, MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
+
+#define mpp_buffer_group_get_external(group, type, ...) \
+        mpp_buffer_group_get(group, type, MPP_BUFFER_EXTERNAL, MODULE_TAG, __FUNCTION__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -216,11 +237,13 @@ extern "C" {
  * parameter need to be checked.
  *
  * IMPORTANT:
- * mpp_buffer_commit_with_tag - compounded interface for commit and import
+ * mpp_buffer_import_with_tag - compounded interface for commit and import
  *
  */
-MPP_RET mpp_buffer_commit_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer);
-MPP_RET mpp_buffer_get_with_tag(const char *tag, const char *caller, MppBufferGroup group, MppBuffer *buffer, size_t size);
+MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer,
+                                   const char *tag, const char *caller);
+MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t size,
+                                const char *tag, const char *caller);
 MPP_RET mpp_buffer_put(MppBuffer buffer);
 MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
 
@@ -231,7 +254,8 @@ void   *mpp_buffer_get_ptr(MppBuffer buffer);
 int     mpp_buffer_get_fd(MppBuffer buffer);
 size_t  mpp_buffer_get_size(MppBuffer buffer);
 
-MPP_RET mpp_buffer_group_get(const char *tag, const char *caller, MppBufferMode mode, MppBufferGroup *group, MppBufferType type);
+MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBufferMode mode,
+                             const char *tag, const char *caller);
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
 MPP_RET mpp_buffer_group_clear(MppBufferGroup group);
 RK_S32  mpp_buffer_group_unused(MppBufferGroup group);
