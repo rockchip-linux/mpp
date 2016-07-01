@@ -70,7 +70,8 @@ private:
     RK_U32              group_id;
     RK_U32              group_count;
 
-    MppBufferGroupImpl  *mLegacyGroup;
+    MppBufferGroupImpl  *misc_ion_int;
+    MppBufferGroupImpl  *misc_ion_ext;
 
     struct list_head    mListGroup;
 
@@ -90,7 +91,7 @@ public:
     }
 
     MppBufferGroupImpl  *get_group(const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);
-    MppBufferGroupImpl  *get_legacy_group();
+    MppBufferGroupImpl  *get_misc_group(MppBufferMode mode, MppBufferType type);
     void                put_group(MppBufferGroupImpl *group);
     MppBufferGroupImpl  *get_group_by_id(RK_U32 id);
 };
@@ -223,7 +224,9 @@ static void dump_buffer_info(MppBufferImpl *buffer)
             buffer->ref_count, buffer->discard, buffer->caller);
 }
 
-MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, MppBufferInfo *info)
+MPP_RET mpp_buffer_create(const char *tag, const char *caller,
+                          MppBufferGroupImpl *group, MppBufferInfo *info,
+                          MppBufferImpl **buffer)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
@@ -231,7 +234,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, 
     MPP_RET ret = MPP_OK;
     BufferOp func = NULL;
     MppBufferImpl *p = NULL;
-    MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(group_id);
+
     if (NULL == group) {
         mpp_err_f("can not create buffer without group\n");
         ret = MPP_NOK;
@@ -275,14 +278,20 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, RK_U32 group_id, 
 
     strncpy(p->tag, tag, sizeof(p->tag));
     p->caller = caller;
-    p->group_id = group_id;
+    p->group_id = group->group_id;
     p->buffer_id = group->buffer_id;
     INIT_LIST_HEAD(&p->list_status);
     list_add_tail(&p->list_status, &group->list_unused);
+
     group->buffer_id++;
     group->usage += info->size;
     group->buffer_count++;
     group->count_unused++;
+
+    if (buffer) {
+        inc_buffer_ref_no_lock(p);
+        *buffer = p;
+    }
 
     buffer_group_add_log(group, p, (group->mode == MPP_BUFFER_INTERNAL) ? (BUF_CREATE) : (BUF_COMMIT));
 RET:
@@ -331,7 +340,7 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer)
         if (0 == buffer->ref_count) {
             buffer->used = 0;
             list_del_init(&buffer->list_status);
-            if (group == MppBufferService::get_instance()->get_legacy_group()) {
+            if (group == MppBufferService::get_instance()->get_misc_group(group->mode, group->type)) {
                 deinit_buffer_no_lock(buffer);
             } else {
                 if (buffer->discard) {
@@ -480,29 +489,38 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     buffer_group_dump_log(group);
 }
 
-MppBufferGroupImpl *mpp_buffer_legacy_group()
+MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
-    return MppBufferService::get_instance()->get_legacy_group();
+    return MppBufferService::get_instance()->get_misc_group(mode, type);
 }
 
 MppBufferService::MppBufferService()
     : group_id(0),
       group_count(0),
-      mLegacyGroup(NULL)
+      misc_ion_int(NULL),
+      misc_ion_ext(NULL)
 {
     INIT_LIST_HEAD(&mListGroup);
     INIT_LIST_HEAD(&mListOrphan);
+
     // NOTE: here can not call mpp_buffer_group_init for the service is not started
-    mLegacyGroup = get_group("legacy", "MppBufferService", MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
+    //       misc group can accept all kind of buffer which is available
+    misc_ion_int = get_group("misc_ion_int", "MppBufferService", MPP_BUFFER_INTERNAL, MPP_BUFFER_TYPE_ION);
+    misc_ion_ext = get_group("misc_ion_ext", "MppBufferService", MPP_BUFFER_EXTERNAL, MPP_BUFFER_TYPE_ION);
 }
 
 MppBufferService::~MppBufferService()
 {
     // first remove legacy group
-    if (mLegacyGroup) {
-        put_group(mLegacyGroup);
-        mLegacyGroup = NULL;
+    if (misc_ion_ext) {
+        put_group(misc_ion_ext);
+        misc_ion_ext = NULL;
+    }
+
+    if (misc_ion_int) {
+        put_group(misc_ion_int);
+        misc_ion_int = NULL;
     }
 
     // then remove the remaining group
@@ -574,9 +592,14 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     return p;
 }
 
-MppBufferGroupImpl *MppBufferService::get_legacy_group()
+MppBufferGroupImpl *MppBufferService::get_misc_group(MppBufferMode mode, MppBufferType type)
 {
-    return mLegacyGroup;
+    if (type == MPP_BUFFER_TYPE_NORMAL)
+        return NULL;
+
+    mpp_assert(type == MPP_BUFFER_TYPE_ION);
+    mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
+    return (mode == MPP_BUFFER_INTERNAL) ? (misc_ion_int) : (misc_ion_ext);
 }
 
 void MppBufferService::put_group(MppBufferGroupImpl *p)
@@ -652,13 +675,13 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
     mpp_free(group);
     group_count--;
 
-    if (group == mLegacyGroup) {
-        mLegacyGroup = NULL;
+    if (group == misc_ion_int) {
+        misc_ion_int = NULL;
     } else {
         /* if only legacy group left dump the legacy group */
-        if (group_count == 1 && mLegacyGroup->buffer_count) {
+        if (group_count == 1 && misc_ion_int->buffer_count) {
             mpp_log("found legacy group has buffer remain, start dumping\n");
-            mpp_buffer_group_dump(mLegacyGroup);
+            mpp_buffer_group_dump(misc_ion_int);
             abort();
         }
     }
