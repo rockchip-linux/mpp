@@ -144,7 +144,8 @@ MPP_RET mpg4d_reset(void *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    return mpp_mpg4_parser_reset(dec);
+    Mpg4dCtx *p = (Mpg4dCtx *)dec;
+    return mpp_mpg4_parser_reset(p->parser);
 }
 
 
@@ -155,7 +156,8 @@ MPP_RET mpg4d_flush(void *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    return mpp_mpg4_parser_flush(dec);
+    Mpg4dCtx *p = (Mpg4dCtx *)dec;
+    return mpp_mpg4_parser_flush(p->parser);
 }
 
 
@@ -171,7 +173,7 @@ MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
     p = (Mpg4dCtx *)dec;
     switch (cmd_type) {
     case MPP_DEC_SET_INTERNAL_PTS_ENABLE : {
-        mpp_mpg4_parser_set_pts_mode(p, 1);
+        mpp_mpg4_parser_set_pts_mode(p->parser, 0);
     } break;
     }
     (void)param;
@@ -183,6 +185,7 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     Mpg4dCtx *p;
     RK_U8 *pos;
     size_t length;
+    RK_U32 eos;
 
     if (NULL == dec || NULL == pkt || NULL == task) {
         mpp_err_f("found NULL intput dec %p pkt %p task %p\n", dec, pkt, task);
@@ -192,6 +195,15 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     p = (Mpg4dCtx *)dec;
     pos     = mpp_packet_get_pos(pkt);
     length  = mpp_packet_get_length(pkt);
+    eos     = mpp_packet_get_eos(pkt);
+
+    if (eos && !length) {
+        task->valid = 0;
+        task->flags.eos = 1;
+        mpp_log_f("mpeg4d flush eos");
+        mpg4d_flush(dec);
+        return MPP_OK;
+    }
 
     if (NULL == p->stream) {
         mpp_err("failed to malloc task buffer for hardware with size %d\n", length);
