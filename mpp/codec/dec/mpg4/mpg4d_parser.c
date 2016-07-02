@@ -1093,13 +1093,44 @@ MPP_RET mpp_mpg4_parser_deinit(Mpg4dParser ctx)
 
 MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx)
 {
-    (void)ctx;
+    Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
+    MppBufSlots slots = p->frame_slots;
+    Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
+    Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
+    RK_S32 index = hdr_ref0->slot_idx;
+    if (index >= 0) {
+        mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
+        hdr_ref0->slot_idx = -1;
+    }
+
+    index = hdr_ref1->slot_idx;
+    if (index >= 0) {
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
+        hdr_ref1->slot_idx = -1;
+    }
+
     return MPP_OK;
 }
 
 MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx)
 {
-    (void)ctx;
+    Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
+    MppBufSlots slots = p->frame_slots;
+    Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
+    Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
+
+    if (hdr_ref0->slot_idx >= 0) {
+        mpp_buf_slot_clr_flag(slots, hdr_ref0->slot_idx, SLOT_CODEC_USE);
+        hdr_ref0->slot_idx = -1;
+    }
+
+    if (hdr_ref1->slot_idx >= 0) {
+        mpp_buf_slot_clr_flag(slots, hdr_ref1->slot_idx, SLOT_CODEC_USE);
+        hdr_ref1->slot_idx = -1;
+    }
+
     return MPP_OK;
 }
 
@@ -1360,7 +1391,6 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
         mpp_buf_slot_get_unused(slots, &index);
         mpp_buf_slot_set_flag(slots, index, SLOT_HAL_OUTPUT);
         mpp_frame_set_pts(frame, p->pts);
-        mpp_frame_set_eos(frame, p->eos);
 
         if (hdr_curr->vol.interlacing) {
             frame_mode = (hdr_curr->vop.top_field_first) ?
@@ -1458,19 +1488,6 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
         init_mpg4_hdr_vop(hdr_curr);
         hdr_curr->slot_idx  = -1;
         hdr_curr->pts       = 0;
-    }
-
-    if (p->eos) {
-        index = hdr_ref0->slot_idx;
-        if (index >= 0) {
-            mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
-            mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
-        }
-
-        index = hdr_ref1->slot_idx;
-        if (index >= 0)
-            mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
     }
 
     p->last_pts = p->pts;
