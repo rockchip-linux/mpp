@@ -112,6 +112,7 @@ RK_S32 VpuApi::flush(VpuCodecContext *ctx)
     mpp_log_f("in\n");
     if (mpi && mpi->reset && init_ok) {
         mpi->reset(mpp_ctx);
+        set_eos = 0;
     }
     mpp_log_f("ok\n");
     return 0;
