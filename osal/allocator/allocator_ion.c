@@ -23,7 +23,11 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#if defined(ARMLINUX)
+#include <ion.h>
+#elif defined(ANDROID)
 #include <linux/ion.h>
+#endif
 
 #include "os_mem.h"
 #include "allocator_ion.h"
