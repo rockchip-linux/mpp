@@ -13,10 +13,6 @@ add_library(hal_mpg4d STATIC
     )
 set_target_properties(hal_mpg4d PROPERTIES FOLDER "mpp/hal")
 
-if(ANDROID)
-    target_link_libraries(hal_mpg4d vpu mpp_base)
-else()
-    target_link_libraries(hal_mpg4d mpp_base)
-endif()
+target_link_libraries(hal_mpg4d mpp_base)
 
 #add_subdirectory(test)
