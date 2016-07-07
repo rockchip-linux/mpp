@@ -117,12 +117,6 @@ typedef struct Mp4HdrUserData_t {
 
 typedef struct Mp4HdrVop_t {
     RK_S32  coding_type;
-    RK_U32  last_time_base;
-    RK_U32  time_base;
-    RK_U32  time;
-    RK_U32  time_pp;
-    RK_U32  time_bp;
-    RK_U32  last_non_b_time;
     RK_U32  frameNumber;
     RK_U32  rounding;
     RK_U32  intra_dc_vlc_threshold;
@@ -147,6 +141,13 @@ typedef struct Mpg4Hdr_t {
     // frame related parameter
     RK_S64  pts;
     RK_S32  slot_idx;
+
+    RK_U32  last_time_base;
+    RK_U32  time_base;
+    RK_U32  time;
+    RK_U32  time_pp;
+    RK_U32  time_bp;
+    RK_U32  last_non_b_time;
 } Mpg4Hdr;
 
 
@@ -806,11 +807,6 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
 
     READ_BITS(gb, 2, &(mp4Hdr->vop.coding_type));           /* vop_coding_type */
     mpg4d_dbg_bit("coding_type %d\n", mp4Hdr->vop.coding_type);
-    if (mp4Hdr->vop.coding_type == MPEG4_B_VOP &&
-        (p->hdr_ref0.slot_idx == -1 || p->hdr_ref1.slot_idx == -1)) {
-        mpp_log("MPEG4 DIVX 5 PBBI case found!\n");
-        return MPP_OK;
-    }
 
     READ_BITS(gb, 1, &val);
     while (val != 0) {
@@ -826,20 +822,20 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     }
 
     if (mp4Hdr->vop.coding_type != MPEG4_B_VOP) {
-        mp4Hdr->vop.last_time_base = mp4Hdr->vop.time_base;
-        mp4Hdr->vop.time_base += time_incr;
-        mp4Hdr->vop.time = mp4Hdr->vop.time_base * mp4Hdr->vol.time_inc_resolution + time_increment;
-        mp4Hdr->vop.time_pp = (RK_S32)(mp4Hdr->vop.time - mp4Hdr->vop.last_non_b_time);
-        mp4Hdr->vop.last_non_b_time = mp4Hdr->vop.time;
+        mp4Hdr->last_time_base = mp4Hdr->time_base;
+        mp4Hdr->time_base += time_incr;
+        mp4Hdr->time = mp4Hdr->time_base * mp4Hdr->vol.time_inc_resolution + time_increment;
+        mp4Hdr->time_pp = (RK_S32)(mp4Hdr->time - mp4Hdr->last_non_b_time);
+        mp4Hdr->last_non_b_time = mp4Hdr->time;
     } else {
-        mp4Hdr->vop.time = (mp4Hdr->vop.last_time_base + time_incr) * mp4Hdr->vol.time_inc_resolution + time_increment;
-        mp4Hdr->vop.time_bp = mp4Hdr->vop.time_pp - (RK_S32)(mp4Hdr->vop.last_non_b_time - mp4Hdr->vop.time);
+        mp4Hdr->time = (mp4Hdr->last_time_base + time_incr) * mp4Hdr->vol.time_inc_resolution + time_increment;
+        mp4Hdr->time_bp = mp4Hdr->time_pp - (RK_S32)(mp4Hdr->last_non_b_time - mp4Hdr->time);
     }
 
-    mp4Hdr->pts = (RK_S64)mp4Hdr->vop.time;
+    mp4Hdr->pts = (RK_S64)mp4Hdr->time;
 
     if (p->use_internal_pts) {
-        p->pts = mp4Hdr->vop.time;
+        p->pts = mp4Hdr->time;
     }
 
     SKIP_BITS(gb, 1);
@@ -848,7 +844,13 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     if (!val) {                                         /* vop_coded */
         mp4Hdr->vop.coding_type = MPEG4_N_VOP;
         mpp_log("found N frame\n");
-        return MPP_OK;
+        return MPP_NOK;
+    }
+    /* do coding_type detection here in order to save time_bp / time_pp */
+    if (mp4Hdr->vop.coding_type == MPEG4_B_VOP &&
+        (p->hdr_ref0.slot_idx == -1 || p->hdr_ref1.slot_idx == -1)) {
+        mpg4d_dbg_result("MPEG4 DIVX 5 PBBI case found!\n");
+        return MPP_NOK;
     }
     if (mp4Hdr->vop.coding_type == MPEG4_I_VOP)
         p->found_i_vop = 1;
@@ -982,8 +984,8 @@ static void mpg4d_fill_picture_parameters(const Mpg4dParserImpl *p,
     // Rockchip special data
     pp->custorm_version = p->custorm_version;
     pp->prev_coding_type = (hdr_ref0->vop.coding_type == MPEG4_INVALID_VOP) ? (0) : (hdr_ref0->vop.coding_type);
-    pp->time_bp = hdr_curr->vop.time_bp;
-    pp->time_pp = hdr_curr->vop.time_pp;
+    pp->time_bp = hdr_curr->time_bp;
+    pp->time_pp = hdr_curr->time_pp;
     pp->header_bits = hdr_curr->vop.hdr_bits;
 }
 
@@ -1351,7 +1353,6 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
         }
 
         if (ret) {
-            mpp_assert(0);
             goto __BITREAD_ERR;
         }
 
@@ -1362,7 +1363,7 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
     }
 
     if (p->found_vol) {
-        mpp_log("found vol w %d h %d\n", p->hdr_curr.vol.width, p->hdr_curr.vol.height);
+        mpg4d_dbg_result("found vol w %d h %d\n", p->hdr_curr.vol.width, p->hdr_curr.vol.height);
         p->width    = p->hdr_curr.vol.width;
         p->height   = p->hdr_curr.vol.height;
     }
@@ -1371,9 +1372,10 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
         p->pts  = mpp_packet_get_pts(pkt);
 
     ret = (p->found_vol && p->found_vop) ? (MPP_OK) : (MPP_NOK);
-    mpg4d_dbg_bit("found vol %d vop %d ret %d\n", p->found_vol, p->found_vop, ret);
 
 __BITREAD_ERR:
+    mpg4d_dbg_result("found vol %d vop %d ret %d\n", p->found_vol, p->found_vop, ret);
+
     mpp_packet_set_pos(pkt, buf);
     mpp_packet_set_length(pkt, 0);
     p->eos = mpp_packet_get_eos(pkt);
