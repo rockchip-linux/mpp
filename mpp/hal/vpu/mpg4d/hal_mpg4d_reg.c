@@ -235,6 +235,8 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
             regs->reg131_ref0_base = (RK_U32)ctx->fd_curr;
             regs->reg148_ref1_base = (RK_U32)ctx->fd_curr;
         }
+        regs->reg134_ref2_base = (RK_U32)ctx->fd_curr;
+        regs->reg135_ref3_base = (RK_U32)ctx->fd_curr;
 
         regs->reg136.sw_hrz_bit_of_fwd_mv = pp->vop_fcode_forward;
         regs->reg136.sw_vrz_bit_of_fwd_mv = pp->vop_fcode_forward;
@@ -247,6 +249,8 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 
         regs->reg131_ref0_base = (RK_U32)ctx->fd_curr;
         regs->reg148_ref1_base = (RK_U32)ctx->fd_curr;
+        regs->reg134_ref2_base = (RK_U32)ctx->fd_curr;
+        regs->reg135_ref3_base = (RK_U32)ctx->fd_curr;
 
         regs->reg57_enable_ctrl.sw_write_mvs_e = 0;
         regs->reg62_directmv_base = mv_buf_fd;
