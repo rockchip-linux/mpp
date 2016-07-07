@@ -31,7 +31,9 @@ RK_U32 mpg4d_debug = 0;
 #define mpg4d_dbg(flag, fmt, ...)   _mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 
+#define mpg4d_dbg_func(fmt, ...)    mpg4d_dbg_f(MPG4D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_bit(fmt, ...)     mpg4d_dbg(MPG4D_DBG_BITS, fmt, ## __VA_ARGS__)
+#define mpg4d_dbg_result(fmt, ...)  mpg4d_dbg(MPG4D_DBG_RESULT, fmt, ## __VA_ARGS__)
 
 #define MPEG4_VIDOBJ_START_CODE             0x00000100  /* ..0x0000011f */
 #define MPEG4_VIDOBJLAY_START_CODE          0x00000120  /* ..0x0000012f */
@@ -152,6 +154,9 @@ typedef struct {
     // global paramter
     MppBufSlots     frame_slots;
     RK_U32          use_internal_pts;
+    RK_U32          found_vol;
+    RK_U32          found_vop;
+    RK_U32          found_i_vop;
 
     // frame size parameter
     RK_S32          width;
@@ -498,14 +503,14 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
 
     if (mp4Hdr->vol.vo_type == 0 && vol_control_parameters == 0 && mp4Hdr->vop.frameNumber == 0) {
         mpp_log("looks like this file was encoded with (divx4/(old)xvid/opendivx)\n");
-        return MPEG4_INVALID_VOP;
+        return MPP_NOK;
     }
 
     READ_BITS(cb, 2, &(mp4Hdr->vol.shape));                 /* video_object_layer_shape */
 
     if (mp4Hdr->vol.shape != MPEG4_VIDOBJLAY_SHAPE_RECTANGULAR) {
         mpp_log("unsupported shape %d\n", mp4Hdr->vol.shape);
-        return MPEG4_INVALID_VOP;
+        return MPP_NOK;
     }
 
     if (mp4Hdr->vol.shape == MPEG4_VIDOBJLAY_SHAPE_GRAYSCALE && vol_ver_id != 1) {
@@ -607,7 +612,7 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
 
             if (mp4Hdr->vol.shape == MPEG4_VIDOBJLAY_SHAPE_GRAYSCALE) {
                 mpp_err("SHAPE_GRAYSCALE is not supported\n");
-                return MPEG4_INVALID_VOP;
+                return MPP_NOK;
             }
         } else {
             p->new_qm[0] = 0;
@@ -673,11 +678,11 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
             }
 
             mpp_err("scalability is not supported\n");
-            return MPEG4_INVALID_VOP;
+            return MPP_NOK;
         }
     } else { /* mp4Hdr->shape == BINARY_ONLY */
         mpp_err("shape %d is not supported\n");
-        return MPEG4_INVALID_VOP;
+        return MPP_NOK;
     }
 
     return MPP_OK;
@@ -845,6 +850,8 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
         mpp_log("found N frame\n");
         return MPP_OK;
     }
+    if (mp4Hdr->vop.coding_type == MPEG4_I_VOP)
+        p->found_i_vop = 1;
 
     if (mp4Hdr->vol.newpred_enable) {
         RK_S32 vop_id;
@@ -1056,6 +1063,8 @@ MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
         return MPP_NOK;
     }
 
+    mpg4d_dbg_func("in\n");
+
     mpp_buf_slot_setup(frame_slots, 8);
     p->frame_slots      = frame_slots;
     p->use_internal_pts = 0;
@@ -1070,6 +1079,8 @@ MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
 
     mpp_env_get_u32("mpg4d_debug", &mpg4d_debug, 0);
 
+    mpg4d_dbg_func("out\n");
+
     *ctx = p;
     return MPP_OK;
 }
@@ -1077,6 +1088,9 @@ MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
 MPP_RET mpp_mpg4_parser_deinit(Mpg4dParser ctx)
 {
     Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
+
+    mpg4d_dbg_func("in\n");
+
     if (p) {
         if (p->bit_ctx) {
             mpp_free(p->bit_ctx);
@@ -1088,6 +1102,9 @@ MPP_RET mpp_mpg4_parser_deinit(Mpg4dParser ctx)
         }
         mpp_free(p);
     }
+
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -1098,6 +1115,9 @@ MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx)
     Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
     Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
     RK_S32 index = hdr_ref0->slot_idx;
+
+    mpg4d_dbg_func("in\n");
+
     if (index >= 0) {
         mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
@@ -1111,6 +1131,8 @@ MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx)
         hdr_ref1->slot_idx = -1;
     }
 
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -1121,6 +1143,8 @@ MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx)
     Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
     Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
 
+    mpg4d_dbg_func("in\n");
+
     if (hdr_ref0->slot_idx >= 0) {
         mpp_buf_slot_clr_flag(slots, hdr_ref0->slot_idx, SLOT_CODEC_USE);
         hdr_ref0->slot_idx = -1;
@@ -1130,6 +1154,11 @@ MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx)
         mpp_buf_slot_clr_flag(slots, hdr_ref1->slot_idx, SLOT_CODEC_USE);
         hdr_ref1->slot_idx = -1;
     }
+
+    p->found_i_vop = 0;
+    p->found_vop   = 0;
+
+    mpg4d_dbg_func("out\n");
 
     return MPP_OK;
 }
@@ -1147,6 +1176,8 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
     RK_U32 src_eos = mpp_packet_get_eos(src);
     RK_S32 src_pos = 0;
     RK_U32 state = (RK_U32)-1;
+
+    mpg4d_dbg_func("in\n");
 
     mpp_assert(src_len);
 
@@ -1215,6 +1246,8 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
     p->pos_frm_start = pos_frm_start;
     p->pos_frm_end   = pos_frm_end;
 
+    mpg4d_dbg_func("out\n");
+
     return ret;
 }
 
@@ -1225,9 +1258,9 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
     BitReadCtx_t *gb = p->bit_ctx;
     RK_U8 *buf = mpp_packet_get_data(pkt);
     RK_S32 len = (RK_S32)mpp_packet_get_length(pkt);
-    RK_U32 vol_found = 0;
-    RK_U32 vop_found = 0;
     RK_U32 startcode = 0xff;
+
+    mpg4d_dbg_func("in\n");
 
     // setup bit read context
     mpp_set_bitread_ctx(gb, buf, len);
@@ -1240,6 +1273,8 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
 
         if ((startcode & 0xFFFFFF00) != 0x100)
             continue;
+
+        mpg4d_dbg_bit("found startcode at byte %d\n", gb->used_bits >> 3);
 
         if (mpg4d_debug & MPG4D_DBG_STARTCODE) {
             mpp_log_f("start code %03x\n", startcode);
@@ -1301,8 +1336,8 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
 
         if (startcode >= MPG4_VOL_STARTCODE && startcode <= MPG4_VOL_STOPCODE) {
             ret = mpg4d_parse_vol_header(p, gb);
-            if (!vol_found)
-                vol_found = (ret == MPP_OK);
+            if (!p->found_vol)
+                p->found_vol = (ret == MPP_OK);
         } else if (startcode == MPG4_USER_DATA_STARTCODE) {
             ret = mpg4d_parse_user_data(p, gb);
         } else if (startcode == MPG4_GOP_STARTCODE) {
@@ -1311,8 +1346,8 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
             ret = mpeg4_parse_profile_level(p, gb);
         } else if (startcode == MPG4_VOP_STARTCODE) {
             ret = mpeg4_parse_vop_header(p, gb);
-            if (!vop_found)
-                vop_found = (ret == MPP_OK);
+            if (!p->found_vop)
+                p->found_vop = p->found_i_vop && (ret == MPP_OK);
         }
 
         if (ret) {
@@ -1326,7 +1361,8 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
         }
     }
 
-    if (vol_found) {
+    if (p->found_vol) {
+        mpp_log("found vol w %d h %d\n", p->hdr_curr.vol.width, p->hdr_curr.vol.height);
         p->width    = p->hdr_curr.vol.width;
         p->height   = p->hdr_curr.vol.height;
     }
@@ -1334,12 +1370,15 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
     if (!p->use_internal_pts)
         p->pts  = mpp_packet_get_pts(pkt);
 
-    ret = (vop_found && (ret == MPP_OK)) ? (MPP_OK) : (MPP_NOK);
+    ret = (p->found_vol && p->found_vop) ? (MPP_OK) : (MPP_NOK);
+    mpg4d_dbg_bit("found vol %d vop %d ret %d\n", p->found_vol, p->found_vop, ret);
 
 __BITREAD_ERR:
     mpp_packet_set_pos(pkt, buf);
     mpp_packet_set_length(pkt, 0);
     p->eos = mpp_packet_get_eos(pkt);
+
+    mpg4d_dbg_func("out\n");
 
     return ret;
 }
@@ -1348,6 +1387,8 @@ MPP_RET mpp_mpg4_parser_setup_syntax(Mpg4dParser ctx, MppSyntax *syntax)
 {
     Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
     mpeg4d_dxva2_picture_context_t *syn = p->syntax;
+
+    mpg4d_dbg_func("in\n");
 
     mpg4d_fill_picture_parameters(p, &syn->pp);
     mpg4d_fill_quantization_matrices(p, &syn->qm);
@@ -1360,6 +1401,8 @@ MPP_RET mpp_mpg4_parser_setup_syntax(Mpg4dParser ctx, MppSyntax *syntax)
     syntax->number = 3;
     syntax->data = syn->data;
 
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -1369,7 +1412,9 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
     Mpg4Hdr *hdr_curr = &p->hdr_curr;
     RK_S32 index = -1;
 
-    if (hdr_curr->vop.coding_type != MPEG4_N_VOP) {
+    mpg4d_dbg_func("in\n");
+
+    if (p->found_i_vop && hdr_curr->vop.coding_type != MPEG4_N_VOP) {
         MppBufSlots slots = p->frame_slots;
         RK_U32 frame_mode = MPP_FRAME_FLAG_FRAME;
         MppFrame frame = NULL;
@@ -1409,6 +1454,8 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
     p->output = index;
     *output = index;
 
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -1418,6 +1465,8 @@ MPP_RET mpp_mpg4_parser_setup_refer(Mpg4dParser ctx, RK_S32 *refer, RK_S32 max_r
     Mpg4Hdr *hdr_curr = &p->hdr_curr;
     MppBufSlots slots = p->frame_slots;
     RK_S32 index;
+
+    mpg4d_dbg_func("in\n");
 
     memset(refer, -1, sizeof(max_ref * sizeof(*refer)));
     if (hdr_curr->vop.coding_type != MPEG4_N_VOP) {
@@ -1433,6 +1482,8 @@ MPP_RET mpp_mpg4_parser_setup_refer(Mpg4dParser ctx, RK_S32 *refer, RK_S32 max_r
         }
     }
 
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -1445,6 +1496,8 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
     Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
     RK_S32 coding_type = hdr_curr->vop.coding_type;
     RK_S32 index = p->output;
+
+    mpg4d_dbg_func("in\n");
 
     // update pts increacement
     if (p->pts != p->last_pts)
@@ -1492,13 +1545,21 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
 
     p->last_pts = p->pts;
 
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
 MPP_RET mpp_mpg4_parser_set_pts_mode(Mpg4dParser ctx, RK_U32 use_internal_pts)
 {
     Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
+
+    mpg4d_dbg_func("in\n");
+
     p->use_internal_pts = use_internal_pts;
+
+    mpg4d_dbg_func("out\n");
+
     return MPP_OK;
 }
 

@@ -296,6 +296,7 @@ MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
     ret = mpp_mpg4_parser_decode(p->parser, task->input_packet);
     if (ret) {
         // found error on decoding drop this task and clear remaining length
+        task->valid  = 0;
         task->output = -1;
         mpp_packet_set_length(task->input_packet, 0);
         return MPP_NOK;

@@ -25,6 +25,7 @@
 #define MPG4D_DBG_FUNCTION          (0x00000001)
 #define MPG4D_DBG_STARTCODE         (0x00000002)
 #define MPG4D_DBG_BITS              (0x00000004)
+#define MPG4D_DBG_RESULT            (0x00000008)
 #define MPG4D_DBG_TIME              (0x00000100)
 
 typedef void* Mpg4dParser;
