@@ -42,10 +42,9 @@
 #include "hal_mpg4d_api.h"
 #include "hal_mpg4d_reg.h"
 
-#define MPEG4_MAX_MV_BUF_SIZE       ((1920/16)*(1088/16)*sizeof(RK_U32))
+#define MPEG4_MAX_MV_BUF_SIZE       ((1920/16)*(1088/16)*4*sizeof(RK_U32))
 
 typedef struct mpeg4d_reg_context {
-    RK_S32              mpg4d_fill_quantization_matrices;
     MppBufSlots         frm_slots;
     MppBufSlots         pkt_slots;
     MppBufferGroup      group;
