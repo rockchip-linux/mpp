@@ -35,10 +35,12 @@ typedef struct {
 } MppCodingTypeInfo;
 
 static MppCodingTypeInfo support_list[] = {
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP8,    "dec",  "vp8",         },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG2,  "dec",  "mpeg2",        },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG4,  "dec",  "mpeg4",        },
+//    {   MPP_CTX_DEC,    MPP_VIDEO_CodingH263,   "dec",  "h.263",        },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVC,    "dec",  "h.264/AVC",    },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingHEVC,   "dec",  "h.265/HEVC",   },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP8,    "dec",  "vp8",          },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,    "dec",  "VP9",          },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
 };
