@@ -141,6 +141,7 @@ typedef struct Mpg4Hdr_t {
     // frame related parameter
     RK_S64  pts;
     RK_S32  slot_idx;
+    RK_U32  enqueued;
 
     RK_U32  last_time_base;
     RK_U32  time_base;
@@ -195,6 +196,7 @@ typedef struct {
     RK_S64          last_pts;
     RK_S64          pts_inc;
     RK_S64          pts;
+    RK_U32          frame_num;
 
     // syntax for hal
     mpeg4d_dxva2_picture_context_t *syntax;
@@ -436,6 +438,7 @@ static void init_mpg4_header(Mpg4Hdr *header)
     init_mpg4_hdr_vop(header);
     header->pts         = 0;
     header->slot_idx    = -1;
+    header->enqueued    = 0;
 }
 
 static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
@@ -805,8 +808,7 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     RK_S32 time_increment = 0;
     Mpg4Hdr *mp4Hdr = &p->hdr_curr;
 
-    READ_BITS(gb, 2, &(mp4Hdr->vop.coding_type));           /* vop_coding_type */
-    mpg4d_dbg_bit("coding_type %d\n", mp4Hdr->vop.coding_type);
+    READ_BITS(gb, 2, &(mp4Hdr->vop.coding_type));       /* vop_coding_type */
 
     READ_BITS(gb, 1, &val);
     while (val != 0) {
@@ -844,7 +846,7 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     if (!val) {                                         /* vop_coded */
         mp4Hdr->vop.coding_type = MPEG4_N_VOP;
         mpp_log("found N frame\n");
-        return MPP_NOK;
+        return MPP_OK;
     }
     /* do coding_type detection here in order to save time_bp / time_pp */
     if (mp4Hdr->vop.coding_type == MPEG4_B_VOP &&
@@ -1115,22 +1117,13 @@ MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx)
     Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
     MppBufSlots slots = p->frame_slots;
     Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
-    Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
     RK_S32 index = hdr_ref0->slot_idx;
 
     mpg4d_dbg_func("in\n");
 
-    if (index >= 0) {
+    if (!hdr_ref0->enqueued && index >= 0) {
         mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
-        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
-        hdr_ref0->slot_idx = -1;
-    }
-
-    index = hdr_ref1->slot_idx;
-    if (index >= 0) {
-        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
-        hdr_ref1->slot_idx = -1;
     }
 
     mpg4d_dbg_func("out\n");
@@ -1266,6 +1259,7 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
 
     // setup bit read context
     mpp_set_bitread_ctx(gb, buf, len);
+    p->found_vop = 0;
 
     while (gb->bytes_left_) {
         RK_U32 val = 0;
@@ -1348,18 +1342,28 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
             ret = mpeg4_parse_profile_level(p, gb);
         } else if (startcode == MPG4_VOP_STARTCODE) {
             ret = mpeg4_parse_vop_header(p, gb);
-            if (!p->found_vop)
-                p->found_vop = p->found_i_vop && (ret == MPP_OK);
+            if (MPP_OK == ret) {
+                RK_S32 coding_type = p->hdr_curr.vop.coding_type;
+                mpg4d_dbg_bit("frame %d coding_type %d\n", p->frame_num, coding_type);
+                p->frame_num++;
+
+                if (coding_type == MPEG4_N_VOP) {
+                    ret = MPP_OK;
+                    mpp_align_get_bits(gb);
+                    continue;
+                }
+
+                p->found_vop = p->found_i_vop;
+            }
         }
 
-        if (ret) {
+        if (ret)
             goto __BITREAD_ERR;
-        }
 
-        if (gb->num_remaining_bits_in_curr_byte_) {
-            mpg4d_dbg_bit("byte align skip %d\n", gb->num_remaining_bits_in_curr_byte_);
-            SKIP_BITS(gb, gb->num_remaining_bits_in_curr_byte_);
-        }
+        mpp_align_get_bits(gb);
+
+        if (p->found_vol && p->found_vop)
+            break;
     }
 
     if (p->found_vol) {
@@ -1376,8 +1380,14 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
 __BITREAD_ERR:
     mpg4d_dbg_result("found vol %d vop %d ret %d\n", p->found_vol, p->found_vop, ret);
 
-    mpp_packet_set_pos(pkt, buf);
-    mpp_packet_set_length(pkt, 0);
+    if (ret) {
+        mpp_packet_set_pos(pkt, buf);
+        mpp_packet_set_length(pkt, 0);
+    } else {
+        RK_U32 used_bytes = gb->used_bits >> 3;
+        mpp_packet_set_pos(pkt, buf + used_bytes);
+    }
+
     p->eos = mpp_packet_get_eos(pkt);
 
     mpg4d_dbg_func("out\n");
@@ -1525,7 +1535,7 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
     case MPEG4_S_VOP :
         // the other case -> index reference 0
         index = hdr_ref0->slot_idx;
-        if (index >= 0) {
+        if (!hdr_ref0->enqueued && index >= 0) {
             mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
             mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
         }
@@ -1540,11 +1550,11 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
         // swap ref0 to ref1, current to ref0
         *hdr_ref1 = *hdr_ref0;
         *hdr_ref0 = *hdr_curr;
-        init_mpg4_hdr_vop(hdr_curr);
-        hdr_curr->slot_idx  = -1;
         hdr_curr->pts       = 0;
     }
 
+    init_mpg4_hdr_vop(hdr_curr);
+    hdr_curr->slot_idx = -1;
     p->last_pts = p->pts;
 
     mpg4d_dbg_func("out\n");
