@@ -718,6 +718,7 @@ void *mpp_dec_hal_thread(void *data)
                 mpp_frame_set_info_change(info_frame, 1);
                 mpp_frame_set_errinfo(info_frame, 0);
                 mpp_put_frame(mpp, info_frame);
+
                 hal_task_hnd_set_status(task, TASK_IDLE);
                 task = NULL;
                 mpp->mThreadCodec->signal();
@@ -969,6 +970,8 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
+    parser_control(dec->parser, cmd, param);
+    mpp_hal_control(dec->hal, cmd, param);
 
     switch (cmd) {
     case MPP_CODEC_SET_FRAME_INFO : {
@@ -979,6 +982,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_frame_set_height(frame, p->ImgHeight);
         mpp_frame_set_hor_stride(frame, p->ImgHorStride);
         mpp_frame_set_ver_stride(frame, p->ImgVerStride);
+        mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
         mpp_log_f("setting default w %4d h %4d\n", p->ImgWidth, p->ImgHeight);
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
@@ -991,8 +995,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     } break;
     }
 
-    parser_control(dec->parser, cmd, param);
-    mpp_hal_control(dec->hal, cmd, param);
+
 
     return MPP_OK;
 }

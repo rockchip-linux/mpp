@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "vpu_api.h"
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
@@ -207,6 +208,12 @@ static RK_U32 rkv_len_align(RK_U32 val)
 {
     return (2 * MPP_ALIGN(val, 16));
 }
+
+static RK_U32 rkv_len_align_422(RK_U32 val)
+{
+    return ((5 * MPP_ALIGN(val, 16)) / 2);
+}
+
 
 static void rkv_h264d_hal_dump(H264dHalCtx_t *p_hal, RK_U32 dump_type)
 {
@@ -532,10 +539,20 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+    switch ((MpiCmd)cmd_type)
+    {
+    case MPP_CODEC_SET_FRAME_INFO: {
+        VPU_GENERIC *p = (VPU_GENERIC *)param;
+        if (p->CodecType == MPP_FMT_YUV422SP){
+           mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+           mpp_log_f("control format YUV422SP \n");
+        }
+        break;
+    }
 
-
-
-
+    default:
+        break;
+    }
 
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)hal;

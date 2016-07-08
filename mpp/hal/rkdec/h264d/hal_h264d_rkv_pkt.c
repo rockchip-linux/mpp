@@ -396,9 +396,9 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         if (pp->chroma_format_idc == 0) { //!< Y400
             yuv_virstride = y_virstride;
         } else if (pp->chroma_format_idc == 1) { //!< Y420
-            yuv_virstride += y_virstride + y_virstride / 2;
+            yuv_virstride = y_virstride + y_virstride / 2;
         } else if (pp->chroma_format_idc == 2) { //!< Y422
-            yuv_virstride += 2 * y_virstride;
+            yuv_virstride = 2 * y_virstride;
         }
         p_regs->swreg3_picpar.sw_y_hor_virstride = hor_virstride / 16;
         p_regs->swreg3_picpar.sw_uv_hor_virstride = hor_virstride / 16;

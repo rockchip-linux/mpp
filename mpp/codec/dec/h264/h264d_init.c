@@ -377,6 +377,11 @@ __FAILED:
     return ret;
 }
 
+static RK_U32 rkv_len_align_422(RK_U32 val)
+{
+    return ((5 * MPP_ALIGN(val, 16)) / 2);
+}
+
 static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
 {
     RK_U8 idx = 0;
@@ -411,8 +416,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP_10BIT);
             } else if ((YUV422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP);
+                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             } else if ((YUV422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
+                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             }
             hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
             ver_stride = p_Vid->height;
