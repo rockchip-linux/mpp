@@ -272,10 +272,11 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     }
 #endif
     if (s != NULL) {
-        mpp_log("s->videoCoding=%d, s->width=%d, s->height=%d \n", s->videoCoding, s->width, s->height);
-        if (s->videoCoding == OMX_RK_VIDEO_CodingHEVC
-            || s->videoCoding == OMX_RK_VIDEO_CodingVP9
-            || s->videoCoding == OMX_RK_VIDEO_CodingAVS
+        MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
+                          (s->codecType == CODEC_ENCODER) ? (MPP_CTX_ENC) : (MPP_CTX_BUTT);
+        MppCodingType coding = (MppCodingType)s->videoCoding;
+        mpp_log("videoCoding %d, width %d, height %d \n", s->videoCoding, s->width, s->height);
+        if (MPP_OK == mpp_check_support_format(type, coding)
             || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
                 s->codecType == CODEC_DECODER && ((s->width > 1920) || (s->height > 1088) || use_mpp_mode))) {
             free(s);
