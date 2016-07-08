@@ -1301,10 +1301,10 @@ endif()
 
 # add crt object to executable link list for Android SDK build
 # ----------------------------------------------------------------------------
-#set( ANDROID_CRT_BEGIN "${ANDROID_SYSROOT}/usr/lib/crtbegin_dynamic.o")
-#set( ANDROID_CRT_END   "${ANDROID_SYSROOT}/usr/lib/crtend_android.o")
-#set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
-#set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
+set( ANDROID_CRT_BEGIN "${ANDROID_SYSROOT}/usr/lib/crtbegin_dynamic.o")
+set( ANDROID_CRT_END   "${ANDROID_SYSROOT}/usr/lib/crtend_android.o")
+set( CMAKE_C_LINK_EXECUTABLE         "${CMAKE_C_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
+set( CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE} ${ANDROID_CRT_BEGIN} ${ANDROID_CRT_END}" )
 
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
@@ -1406,7 +1406,7 @@ endif()
 # ----------------------------------------------------------------------------
 # add nostdlib for Android SDK build
 # ----------------------------------------------------------------------------
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -ldl" )
+set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -ldl -lc" )
 
 # cache flags
 set( CMAKE_CXX_FLAGS           ""                        CACHE STRING "c++ flags" )
