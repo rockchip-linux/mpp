@@ -85,6 +85,7 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
         mpp_err("found invalid context input");
         return MPP_ERR_NULL_PTR;
     }
+
     ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
     if (ret) {
         mpp_err_f(" init error. \n");
@@ -203,11 +204,13 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
         }
         case MPP_FMT_YUV422SP: {
             vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
+            vframe->OutputWidth = 0x10;
             break;
         }
         case MPP_FMT_YUV422SP_10BIT: {
             vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
             vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
+            vframe->OutputWidth = 0x23;
             break;
         }
         default:
@@ -246,7 +249,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
                             pdes[2 * j + 1] = psrc[2 * j * step + 1];
                         }
                         pdes += img_w;
-                        psrc += step * vframe->FrameWidth;
+                        psrc += step * vframe->FrameWidth * ((mpp_frame_get_fmt(mframe) > MPP_FMT_YUV420SP_10BIT) ? 2 : 1);
                     }
                     fwrite(fp_buf, 1, img_w * img_h * 3 / 2, fp);
                     if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
@@ -359,17 +362,23 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
+        RK_U32 ImgWidth = 0;
         VPU_GENERIC *p = (VPU_GENERIC *)param;
-        RK_U32 ImgWidth =  p->ImgWidth;
         mpicmd = MPP_CODEC_SET_FRAME_INFO;
         /**hightest of p->ImgWidth bit show current dec bitdepth
           * 0 - 8bit
           * 1 - 10bit
           **/
-        if (((p->ImgWidth & 0x80000000) >> 31)) {
-            p->ImgWidth =  (p->ImgWidth & 0x7FFFFFFF);
-            ImgWidth = (p->ImgWidth * 10) >> 3;
+        if (p->ImgWidth & 0x80000000) {
+
+            ImgWidth = ((p->ImgWidth & 0xFFFF) * 10) >> 3;
+            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;    
         }
+        else {
+            ImgWidth = (p->ImgWidth & 0xFFFF);
+            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
+        }
+        p->ImgWidth = (p->ImgWidth & 0xFFFF);
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
             p->ImgHorStride = hevc_ver_align_256_odd(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
@@ -377,6 +386,7 @@ RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
             p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
         }
+        
         break;
     }
     case VPU_API_SET_INFO_CHANGE: {

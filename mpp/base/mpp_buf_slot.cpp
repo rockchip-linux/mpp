@@ -239,7 +239,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                             (impl->hal_hor_align(width));
     RK_U32 hal_ver_stride = (codec_ver_stride) ?
                             (impl->hal_ver_align(codec_ver_stride)) :
-                            (impl->hal_ver_align(height));
+                            (impl->hal_ver_align(height));    
     if (force_default_align) {
         hal_hor_stride = codec_hor_stride;
         hal_ver_stride = codec_ver_stride;
@@ -251,6 +251,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
 
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
+    mpp_frame_set_fmt(impl->info_set, mpp_frame_get_fmt(frame));
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
     mpp_frame_set_buf_size(impl->info_set, size);
@@ -806,7 +807,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          * 1. buffer size change
          *    this case need to reset buffer group and commit buffer with new size
          * 2. display info change
-         *    if only width/height is change and buffer do not need to be reset
+         *    if only width/height/fmt is change and buffer do not need to be reset
          *    only display info change is need
          */
         generate_info_set(impl, frame, 0);
@@ -815,10 +816,10 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 #ifdef RKPLATFORM
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
             mpp_log("info change found\n");
-            mpp_log("old width %4d height %4d stride hor %4d ver %4d\n",
-                    old->width, old->height, old->hor_stride, old->ver_stride);
-            mpp_log("new width %4d height %4d stride hor %4d ver %4d\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+            mpp_log("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                    old->width, old->height, old->hor_stride, old->ver_stride, old->fmt);
+            mpp_log("new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                    dst->width, dst->height, dst->hor_stride, dst->ver_stride, dst->fmt);
 #endif
             // info change found here
         }
