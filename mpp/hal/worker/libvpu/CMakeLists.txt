@@ -3,7 +3,7 @@
 # add libvpu implement
 # ----------------------------------------------------------------------------
 if(RKPLATFORM)
-add_library(vpu STATIC
+add_library(worker_vpu STATIC
     vpu.c
     )
 endif(RKPLATFORM)

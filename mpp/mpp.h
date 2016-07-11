@@ -56,6 +56,8 @@
  *  +--------------+     +-----------+     +-----------+     +--------------+
  */
 
+#ifdef __cplusplus
+
 class Mpp
 {
 public:
@@ -127,12 +129,8 @@ private:
     Mpp &operator=(const Mpp &);
 };
 
-#ifdef __cplusplus
+
 extern "C" {
-#endif
-
-
-#ifdef __cplusplus
 }
 #endif
 
