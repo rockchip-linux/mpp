@@ -200,7 +200,7 @@ MPP_RET h263d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     if (eos && !length) {
         task->valid = 0;
         task->flags.eos = 1;
-        mpp_log_f("mpeg4d flush eos");
+        mpp_log_f("h263d flush eos");
         h263d_flush(dec);
         return MPP_OK;
     }
