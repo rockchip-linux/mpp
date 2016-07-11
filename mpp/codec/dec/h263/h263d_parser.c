@@ -31,6 +31,7 @@ RK_U32 h263d_debug = 0;
 #define h263d_dbg(flag, fmt, ...)   _mpp_dbg(h263d_debug, flag, fmt, ## __VA_ARGS__)
 #define h263d_dbg_f(flag, fmt, ...) _mpp_dbg_f(h263d_debug, flag, fmt, ## __VA_ARGS__)
 
+#define h263d_dbg_func(fmt, ...)    h263d_dbg_f(H263D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define h263d_dbg_bit(fmt, ...)     h263d_dbg(H263D_DBG_BITS, fmt, ## __VA_ARGS__)
 #define h263d_dbg_status(fmt, ...)  h263d_dbg(H263D_DBG_STATUS, fmt, ## __VA_ARGS__)
 
@@ -58,6 +59,7 @@ typedef struct H263Hdr_t {
     // frame related parameter
     RK_S64  pts;
     RK_S32  slot_idx;
+    RK_U32  enqueued;
     RK_U32  hdr_bits;
 } H263Hdr;
 
@@ -219,12 +221,14 @@ MPP_RET mpp_h263_parser_init(H263dParser *ctx, MppBufSlots frame_slots)
         return MPP_NOK;
     }
 
-    mpp_buf_slot_setup(frame_slots, 8);
+    mpp_buf_slot_setup(frame_slots, 4);
     p->frame_slots      = frame_slots;
     p->use_internal_pts = 0;
     p->pos_frm_start    = -1;
     p->pos_frm_end      = -1;
     p->bit_ctx          = bit_ctx;
+    p->hdr_curr.slot_idx = H263_INVALID_VOP;
+    p->hdr_ref0.slot_idx = H263_INVALID_VOP;
     h263_syntax_init(syntax);
     p->syntax = syntax;
 
@@ -255,12 +259,18 @@ MPP_RET mpp_h263_parser_flush(H263dParser ctx)
 {
     H263dParserImpl *p = (H263dParserImpl *)ctx;
     MppBufSlots slots = p->frame_slots;
-    H263Hdr *hdr_ref0 = &p->hdr_ref0;
+    H263Hdr *hdr_curr = &p->hdr_ref0;
+    RK_S32 index = hdr_curr->slot_idx;
 
-    if (hdr_ref0->slot_idx >= 0) {
-        mpp_buf_slot_clr_flag(slots, hdr_ref0->slot_idx, SLOT_CODEC_USE);
-        hdr_ref0->slot_idx = -1;
+    h263d_dbg_func("in\n");
+
+    if (!hdr_curr->enqueued && index >= 0) {
+        mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
+        hdr_curr->enqueued = 1;
     }
+
+    h263d_dbg_func("out\n");
 
     return MPP_OK;
 }
@@ -269,14 +279,26 @@ MPP_RET mpp_h263_parser_reset(H263dParser ctx)
 {
     H263dParserImpl *p = (H263dParserImpl *)ctx;
     MppBufSlots slots = p->frame_slots;
+    H263Hdr *hdr_curr = &p->hdr_ref0;
     H263Hdr *hdr_ref0 = &p->hdr_ref0;
+    RK_S32 index = hdr_curr->slot_idx;
 
-    if (hdr_ref0->slot_idx >= 0) {
-        mpp_buf_slot_clr_flag(slots, hdr_ref0->slot_idx, SLOT_CODEC_USE);
+    h263d_dbg_func("in\n");
+
+    if (index >= 0) {
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
+        hdr_curr->slot_idx = -1;
+    }
+
+    index = hdr_ref0->slot_idx;
+    if (index >= 0) {
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
         hdr_ref0->slot_idx = -1;
     }
 
     p->found_i_vop = 0;
+
+    h263d_dbg_func("out\n");
 
     return MPP_OK;
 }
@@ -294,6 +316,8 @@ MPP_RET mpp_h263_parser_split(H263dParser ctx, MppPacket dst, MppPacket src)
     RK_U32 src_eos = mpp_packet_get_eos(src);
     RK_S32 src_pos = 0;
     RK_U32 state = (RK_U32)-1;
+
+    h263d_dbg_func("in\n");
 
     mpp_assert(src_len);
 
@@ -364,6 +388,8 @@ MPP_RET mpp_h263_parser_split(H263dParser ctx, MppPacket dst, MppPacket src)
     p->pos_frm_start = pos_frm_start;
     p->pos_frm_end   = pos_frm_end;
 
+    h263d_dbg_func("out\n");
+
     return ret;
 }
 
@@ -376,6 +402,8 @@ MPP_RET mpp_h263_parser_decode(H263dParser ctx, MppPacket pkt)
     RK_S32 len = (RK_S32)mpp_packet_get_length(pkt);
     RK_U32 startcode = 0xff;
     RK_S32 i = 0;
+
+    h263d_dbg_func("in\n");
 
     while (i < len) {
         startcode = (startcode << 8) | buf[i++];
@@ -406,11 +434,14 @@ MPP_RET mpp_h263_parser_decode(H263dParser ctx, MppPacket pkt)
         p->pts  = mpp_packet_get_pts(pkt);
 
 __BITREAD_ERR:
-    h263d_dbg_status("found i_frame %d ret %d\n", p->found_i_vop, ret);
+    h263d_dbg_status("found i_frame %d frame_type %d ret %d\n",
+                     p->found_i_vop, p->hdr_curr.pict_type, ret);
 
     mpp_packet_set_pos(pkt, buf);
     mpp_packet_set_length(pkt, 0);
     p->eos = mpp_packet_get_eos(pkt);
+
+    h263d_dbg_func("out\n");
 
     return ret;
 }
@@ -419,6 +450,8 @@ MPP_RET mpp_h263_parser_setup_syntax(H263dParser ctx, MppSyntax *syntax)
 {
     H263dParserImpl *p = (H263dParserImpl *)ctx;
     h263d_dxva2_picture_context_t *syn = p->syntax;
+
+    h263d_dbg_func("in\n");
 
     h263d_fill_picture_parameters(p, &syn->pp);
 
@@ -430,6 +463,8 @@ MPP_RET mpp_h263_parser_setup_syntax(H263dParser ctx, MppSyntax *syntax)
     syntax->number = 2;
     syntax->data = syn->data;
 
+    h263d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -437,6 +472,8 @@ MPP_RET mpp_h263_parser_setup_hal_output(H263dParser ctx, RK_S32 *output)
 {
     H263dParserImpl *p = (H263dParserImpl *)ctx;
     RK_S32 index = -1;
+
+    h263d_dbg_func("in\n");
 
     if (p->found_i_vop) {
         H263Hdr *hdr_curr = &p->hdr_curr;
@@ -472,6 +509,8 @@ MPP_RET mpp_h263_parser_setup_hal_output(H263dParser ctx, RK_S32 *output)
     p->output = index;
     *output = index;
 
+    h263d_dbg_func("out\n");
+
     return MPP_OK;
 }
 
@@ -482,6 +521,8 @@ MPP_RET mpp_h263_parser_setup_refer(H263dParser ctx, RK_S32 *refer, RK_S32 max_r
     MppBufSlots slots = p->frame_slots;
     RK_S32 index;
 
+    h263d_dbg_func("in\n");
+
     memset(refer, -1, sizeof(max_ref * sizeof(*refer)));
     if (hdr_curr->pict_type == H263_P_VOP) {
         index = p->hdr_ref0.slot_idx;
@@ -490,6 +531,8 @@ MPP_RET mpp_h263_parser_setup_refer(H263dParser ctx, RK_S32 *refer, RK_S32 max_r
             refer[0] = index;
         }
     }
+
+    h263d_dbg_func("out\n");
 
     return MPP_OK;
 }
@@ -500,30 +543,29 @@ MPP_RET mpp_h263_parser_update_dpb(H263dParser ctx)
     MppBufSlots slots = p->frame_slots;
     H263Hdr *hdr_curr = &p->hdr_curr;
     H263Hdr *hdr_ref0 = &p->hdr_ref0;
-    RK_S32 pict_type = hdr_curr->pict_type;
-    RK_S32 index = p->output;
+    RK_S32 index = hdr_curr->slot_idx;
 
-    switch (pict_type) {
-    case H263_I_VOP :
-    case H263_P_VOP : {
-        index = hdr_curr->slot_idx;
-        mpp_assert(index >= 0);
-        mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
-        mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
-        mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_USE);
+    h263d_dbg_func("in\n");
 
-        index = hdr_ref0->slot_idx;
-        if (index >= 0)
-            mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
+    mpp_assert(index >= 0);
+    mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_USE);
+    mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
+    mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
+    hdr_curr->enqueued = 1;
 
-        // swap current to ref0
-        *hdr_ref0 = *hdr_curr;
-        hdr_curr->slot_idx  = H263_INVALID_VOP;
-        hdr_curr->pts       = 0;
-    } break;
-    default : {
-    } break;
+    index = hdr_ref0->slot_idx;
+    if (index >= 0) {
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
+        hdr_ref0->slot_idx = -1;
     }
+
+    // swap current to ref0
+    *hdr_ref0 = *hdr_curr;
+    hdr_curr->slot_idx  = H263_INVALID_VOP;
+    hdr_curr->pts       = 0;
+    hdr_curr->enqueued  = 0;
+
+    h263d_dbg_func("out\n");
 
     return MPP_OK;
 }
