@@ -24,6 +24,7 @@
 
 #include "mpp_parser.h"
 
+#include "h263d_api.h"
 #include "h264d_api.h"
 #include "h265d_api.h"
 #include "vp9d_api.h"
@@ -38,13 +39,14 @@
  * all decoder static register here
  */
 static const ParserApi *parsers[] = {
-    &api_h264d_parser,
-    &api_vp9d_parser,
-    &api_h265d_parser,
     &api_avsd_parser,
+    &api_h263d_parser,
+    &api_h264d_parser,
+    &api_h265d_parser,
     &api_m2vd_parser,
     &api_mpg4d_parser,
     &api_vp8d_parser,
+    &api_vp9d_parser,
     &dummy_dec_parser,
 };
 

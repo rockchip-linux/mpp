@@ -22,6 +22,8 @@ add_subdirectory(rkdec/vp9d)
 
 add_subdirectory(rkdec/avsd)
 
+add_subdirectory(vpu/h263d)
+
 add_subdirectory(vpu/m2vd)
 
 add_subdirectory(vpu/mpg4d)
@@ -35,18 +37,19 @@ add_subdirectory(worker/libvpu)
 add_subdirectory(worker/libv4l2)
 
 if(RKPLATFORM)
-set(RKPLAT_VPU vpu)
+set(RKPLAT_VPU worker_vpu)
 endif(RKPLATFORM)
 
 
 target_link_libraries(mpp_hal
+                      hal_avsd
+                      hal_h263d
                       hal_h264d
                       hal_h265d
-                      hal_vp9d
-                      hal_avsd
                       hal_m2vd
                       hal_mpg4d
-		      hal_vp8d
+                      hal_vp8d
+                      hal_vp9d
                       hal_dummy
                       ${RKPLAT_VPU}
                       )
