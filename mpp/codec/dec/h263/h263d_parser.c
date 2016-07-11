@@ -46,7 +46,7 @@ RK_U32 h263d_debug = 0;
 #define H263_SF_16CIF                       5      /* 101 */
 #define H263_SF_CUSTOM                      6      /* 110 */
 #define H263_EXTENDED_PTYPE                 7      /* 111 */
-#define H263_EXTENDED_PAR                   15     /* 1111 */                                                                                         
+#define H263_EXTENDED_PAR                   15     /* 1111 */
 
 typedef struct H263Hdr_t {
     H263VOPType  pict_type;
@@ -423,11 +423,11 @@ MPP_RET mpp_h263_parser_setup_syntax(H263dParser ctx, MppSyntax *syntax)
     h263d_fill_picture_parameters(p, &syn->pp);
 
     // fill bit stream parameter
-    syn->data[2]->DataSize   = p->bit_ctx->buf_len;
-    syn->data[2]->DataOffset = p->hdr_curr.hdr_bits;
-    syn->data[2]->pvPVPState = p->bit_ctx->buf;
+    syn->data[1]->DataSize   = p->bit_ctx->buf_len;
+    syn->data[1]->DataOffset = p->hdr_curr.hdr_bits;
+    syn->data[1]->pvPVPState = p->bit_ctx->buf;
 
-    syntax->number = 3;
+    syntax->number = 2;
     syntax->data = syn->data;
 
     return MPP_OK;
