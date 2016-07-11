@@ -845,7 +845,7 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     READ_BITS(gb, 1, &val);
     if (!val) {                                         /* vop_coded */
         mp4Hdr->vop.coding_type = MPEG4_N_VOP;
-        mpp_log("found N frame\n");
+        mpg4d_dbg_result("found N frame\n");
         return MPP_OK;
     }
     /* do coding_type detection here in order to save time_bp / time_pp */
@@ -1138,16 +1138,23 @@ MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx)
     MppBufSlots slots = p->frame_slots;
     Mpg4Hdr *hdr_ref0 = &p->hdr_ref0;
     Mpg4Hdr *hdr_ref1 = &p->hdr_ref1;
+    RK_S32 index = hdr_ref0->slot_idx;
 
     mpg4d_dbg_func("in\n");
 
-    if (hdr_ref0->slot_idx >= 0) {
-        mpp_buf_slot_clr_flag(slots, hdr_ref0->slot_idx, SLOT_CODEC_USE);
+    if (index >= 0) {
+        if (!hdr_ref0->enqueued) {
+            mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
+            hdr_ref0->enqueued = 1;
+        }
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
         hdr_ref0->slot_idx = -1;
     }
 
-    if (hdr_ref1->slot_idx >= 0) {
-        mpp_buf_slot_clr_flag(slots, hdr_ref1->slot_idx, SLOT_CODEC_USE);
+    index = hdr_ref1->slot_idx;
+    if (index >= 0) {
+        mpp_buf_slot_clr_flag(slots, index, SLOT_CODEC_USE);
         hdr_ref1->slot_idx = -1;
     }
 
