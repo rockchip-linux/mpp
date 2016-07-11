@@ -277,6 +277,7 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         p->task_eos = mpp_packet_get_eos(p->task_pkt);
     }
 
+    mpp_packet_set_pts(p->task_pkt, p->task_pts);
     task->input_packet = p->task_pkt;
     task->flags.eos    = p->task_eos;
 
