@@ -1124,6 +1124,7 @@ MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx)
     if (!hdr_ref0->enqueued && index >= 0) {
         mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(slots, index, QUEUE_DISPLAY);
+        hdr_ref0->enqueued = 1;
     }
 
     mpg4d_dbg_func("out\n");
