@@ -549,6 +549,7 @@ MPP_RET  h264d_flush(void *decoder)
     if (p_Dec->mvc_valid) {
         dpb_used_size += p_Dec->p_Vid->p_Dpb_layer[1]->used_size;
     }
+#if 0
     if (!dpb_used_size && p_Dec->p_Inp->has_get_eos) {
         IOInterruptCB *cb = &p_Dec->p_Inp->init.notify_cb;
         if (cb->callBack) {
@@ -556,7 +557,7 @@ MPP_RET  h264d_flush(void *decoder)
         }
         goto __RETURN;
     }
-
+#endif
     FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[0]));
     if (p_Dec->mvc_valid) {
         FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[1]));
@@ -626,6 +627,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
             h264d_flush(decoder);
+            task->flags.eos = p_Inp->pkt_eos;
             goto __RETURN;
         }
         p_Inp->in_buf      = NULL;
