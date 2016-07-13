@@ -1458,9 +1458,11 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
         mpp_frame_set_pts(frame, p->pts);
 
         if (hdr_curr->vol.interlacing) {
-            frame_mode = (hdr_curr->vop.top_field_first) ?
-                         (MPP_FRAME_FLAG_TOP_FIELD) :
-                         (MPP_FRAME_FLAG_BOT_FIELD);
+            frame_mode = MPP_FRAME_FLAG_PAIRED_FIELD;
+            if (hdr_curr->vop.top_field_first)
+                frame_mode |= MPP_FRAME_FLAG_TOP_FIRST;
+            else
+                frame_mode |= MPP_FRAME_FLAG_BOT_FIRST;
         }
         mpp_frame_set_mode(frame, frame_mode);
 

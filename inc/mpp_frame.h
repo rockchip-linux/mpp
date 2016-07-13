@@ -24,12 +24,21 @@ typedef void* MppFrame;
 /*
  * bit definition for mode flag in MppFrame
  */
+/* progressive frame */
 #define MPP_FRAME_FLAG_FRAME            (0x00000000)
+/* top field only */
 #define MPP_FRAME_FLAG_TOP_FIELD        (0x00000001)
+/* bottom field only */
 #define MPP_FRAME_FLAG_BOT_FIELD        (0x00000002)
+/* paired field */
 #define MPP_FRAME_FLAG_PAIRED_FIELD     (MPP_FRAME_FLAG_TOP_FIELD|MPP_FRAME_FLAG_BOT_FIELD)
-#define MPP_FRAME_FLAG_DEINTERLACED     (0x00000004)
-#define MPP_FRAME_FLAG_TOP_FIRST        (0x00000008)
+/* paired field with field order of top first */
+#define MPP_FRAME_FLAG_TOP_FIRST        (0x00000004)
+/* paired field with field order of bottom first */
+#define MPP_FRAME_FLAG_BOT_FIRST        (0x00000008)
+/* paired field with unknown field order (MBAFF) */
+#define MPP_FRAME_FLAG_DEINTERLACED     (MPP_FRAME_FLAG_TOP_FIRST|MPP_FRAME_FLAG_BOT_FIRST)
+#define MPP_FRAME_FLAG_FIELD_ORDER_MASK (0x0000000C)
 // for multiview stream
 #define MPP_FRAME_FLAG_VIEW_ID_MASK     (0x000000f0)
 
@@ -203,8 +212,8 @@ MppFrameColorSpace mpp_frame_get_colorspace(const MppFrame frame);
 void    mpp_frame_set_colorspace(MppFrame frame, MppFrameColorSpace colorspace);
 MppFrameChromaLocation mpp_frame_get_chroma_location(const MppFrame frame);
 void    mpp_frame_set_chroma_location(MppFrame frame, MppFrameChromaLocation chroma_location);
-void    mpp_frame_set_fmt(MppFrame frame, MppFrameFormat fmt);
 MppFrameFormat mpp_frame_get_fmt(MppFrame frame);
+void    mpp_frame_set_fmt(MppFrame frame, MppFrameFormat fmt);
 
 
 /*
