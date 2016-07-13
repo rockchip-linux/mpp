@@ -178,13 +178,25 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         MppBuffer buf = NULL;
         RK_U64 pts = 0;
         RK_U32 fd = 0;
+        RK_U32 mode = 0;
         void* ptr = NULL;
         aDecOut->size = sizeof(VPU_FRAME);
         vframe->DisplayWidth = mpp_frame_get_width(mframe);
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
-        vframe->FrameType = mpp_frame_get_mode(mframe);
+        mode = mpp_frame_get_mode(mframe);
+        if (mode == MPP_FRAME_FLAG_FRAME)
+            vframe->FrameType = 0;
+        else {
+            RK_U32 field_order = mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK;
+            if (field_order == MPP_FRAME_FLAG_TOP_FIRST)
+                vframe->FrameType = 1;
+            else if (field_order == MPP_FRAME_FLAG_BOT_FIRST)
+                vframe->FrameType = 2;
+            else if (field_order == MPP_FRAME_FLAG_DEINTERLACED)
+                vframe->FrameType = 4;
+        }
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;

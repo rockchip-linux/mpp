@@ -1084,7 +1084,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         ctx->seq_head.decode_height = (ctx->seq_head.decode_height + 15) & (~15);
         ctx->seq_head.decode_width = (ctx->seq_head.decode_width + 15) & (~15);
         if (ctx->frame_cur->slot_index == 0xff) {
-            RK_S32 frametype = 0;
+            RK_U32 frametype = 0;
             mpp_frame_set_width(ctx->frame_cur->f, ctx->display_width);
             mpp_frame_set_height(ctx->frame_cur->f, ctx->display_height);
             mpp_frame_set_hor_stride(ctx->frame_cur->f, ctx->display_width);
@@ -1095,15 +1095,17 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             mpp_buf_slot_set_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME, ctx->frame_cur->f);
             mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_CODEC_USE);
             mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_HAL_OUTPUT);
-            mpp_frame_set_mode(ctx->frame_cur->f, 0);
             ctx->frame_cur->flags = M2V_OUT_FLAG;
-            frametype = 1 - ctx->seq_ext_head.progressive_sequence;
-            if (frametype) {
-                if (!ctx->pic_code_ext_head.top_field_first) {
-                    frametype = 2;
-                    mpp_frame_set_mode(ctx->frame_cur->f, (RK_U32)frametype);
-                }
+            if (ctx->seq_ext_head.progressive_sequence) {
+                frametype = MPP_FRAME_FLAG_FRAME;
+            } else {
+                frametype = MPP_FRAME_FLAG_PAIRED_FIELD;
+                if (ctx->pic_code_ext_head.top_field_first)
+                    frametype |= MPP_FRAME_FLAG_TOP_FIRST;
+                else
+                    frametype |= MPP_FRAME_FLAG_BOT_FIRST;
             }
+            mpp_frame_set_mode(ctx->frame_cur->f, frametype);
         }
     }
     //alloc frame space
