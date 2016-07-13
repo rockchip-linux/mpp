@@ -184,6 +184,7 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
+        vframe->FrameType = mpp_frame_get_mode(mframe);
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
         pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
@@ -372,7 +373,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         if (p->ImgWidth & 0x80000000) {
 
             ImgWidth = ((p->ImgWidth & 0xFFFF) * 10) >> 3;
-            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;    
+            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
         }
         else {
             ImgWidth = (p->ImgWidth & 0xFFFF);
@@ -386,7 +387,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
             p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
         }
-        
+
         break;
     }
     case VPU_API_SET_INFO_CHANGE: {
