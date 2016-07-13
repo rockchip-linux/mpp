@@ -38,7 +38,7 @@ static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_
         mpp_log("vpu_api_init fail, input invalid");
         return VPU_API_ERR_UNKNOW;
     }
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_init fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -54,7 +54,7 @@ static RK_S32 vpu_api_decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOu
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_decode fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -69,7 +69,7 @@ static RK_S32 vpu_api_sendstream(VpuCodecContext *ctx, VideoPacket_t *pkt)
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_sendstream fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -85,7 +85,7 @@ static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_getframe fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -101,7 +101,7 @@ static RK_S32 vpu_api_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInSt
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_sendframe fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -117,7 +117,7 @@ static RK_S32 vpu_api_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_getframe fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -135,7 +135,7 @@ static RK_S32 vpu_api_encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm,
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_encode fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -152,7 +152,7 @@ static RK_S32 vpu_api_flush(VpuCodecContext *ctx)
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_flush fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -168,7 +168,7 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
         return VPU_API_ERR_UNKNOW;
     }
 
-    VpuApi* api = (VpuApi*)(ctx->vpuApiObj);
+    VpuApiLegacy* api = (VpuApiLegacy*)(ctx->vpuApiObj);
     if (api == NULL) {
         mpp_log("vpu_api_decode fail, vpu api invalid");
         return VPU_API_ERR_UNKNOW;
@@ -289,7 +289,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
             memset(s, 0, sizeof(VpuCodecContext));
             s->enableparsing = 1;
 
-            VpuApi* api = new VpuApi();
+            VpuApiLegacy* api = new VpuApiLegacy();
 
             if (api == NULL) {
                 mpp_err("Vpu api object has not been properly allocated");
@@ -345,7 +345,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
 #endif
     if (s) {
         s->flush(s);
-        VpuApi* api = (VpuApi*)(s->vpuApiObj);
+        VpuApiLegacy* api = (VpuApiLegacy*)(s->vpuApiObj);
         if (s->vpuApiObj) {
             delete api;
             s->vpuApiObj = NULL;

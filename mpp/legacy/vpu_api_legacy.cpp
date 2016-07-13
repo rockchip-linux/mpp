@@ -30,7 +30,7 @@
 #define MAX_WRITE_HEIGHT      (480)
 #define MAX_WRITE_WIDTH       (960)
 
-VpuApi::VpuApi()
+VpuApiLegacy::VpuApiLegacy()
 {
     mpp_log_f("in\n");
     mpp_ctx = NULL;
@@ -51,7 +51,7 @@ VpuApi::VpuApi()
     mpp_log_f("ok\n");
 }
 
-VpuApi::~VpuApi()
+VpuApiLegacy::~VpuApiLegacy()
 {
     mpp_log_f("in\n");
     if (fp) {
@@ -66,7 +66,7 @@ VpuApi::~VpuApi()
     mpp_log_f("ok\n");
 }
 
-RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
+RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
     mpp_log_f("in\n");
     MPP_RET ret = MPP_OK;
@@ -107,7 +107,7 @@ RK_S32 VpuApi::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
     return ret;
 }
 
-RK_S32 VpuApi::flush(VpuCodecContext *ctx)
+RK_S32 VpuApiLegacy::flush(VpuCodecContext *ctx)
 {
     (void)ctx;
     mpp_log_f("in\n");
@@ -119,7 +119,7 @@ RK_S32 VpuApi::flush(VpuCodecContext *ctx)
     return 0;
 }
 
-RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut)
+RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut)
 {
     mpp_log_f("in\n");
     (void)ctx;
@@ -129,7 +129,7 @@ RK_S32 VpuApi::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aD
     return 0;
 }
 
-RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
+RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
 {
     RK_S32 ret = MPP_OK;
     MppPacket mpkt = NULL;
@@ -151,7 +151,7 @@ RK_S32 VpuApi::decode_sendstream(VideoPacket_t *pkt)
     return ret;
 }
 
-RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
+RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
 {
     RK_S32 ret = 0;
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
@@ -291,7 +291,7 @@ RK_S32 VpuApi:: decode_getoutframe(DecoderOut_t *aDecOut)
     return ret;
 }
 
-RK_S32 VpuApi::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
+RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
 {
     mpp_log_f("in\n");
     (void)ctx;
@@ -301,7 +301,7 @@ RK_S32 VpuApi::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, Encode
     return 0;
 }
 
-RK_S32 VpuApi::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)
+RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)
 {
     mpp_log_f("in\n");
     (void)ctx;
@@ -310,7 +310,7 @@ RK_S32 VpuApi::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInS
     return 0;
 }
 
-RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
+RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
 {
     mpp_log_f("in\n");
     (void)ctx;
@@ -319,7 +319,7 @@ RK_S32 VpuApi::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
     return 0;
 }
 
-RK_S32 VpuApi::perform(RK_U32 cmd, RK_U32 *data)
+RK_S32 VpuApiLegacy::perform(RK_U32 cmd, RK_U32 *data)
 {
     mpp_log_f("in\n");
     (void)cmd;
@@ -342,7 +342,7 @@ static RK_U32 default_align_16(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
 }
-RK_S32 VpuApi::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
+RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     mpp_log_f("in\n");
 
