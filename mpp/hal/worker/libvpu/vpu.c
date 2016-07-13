@@ -22,6 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 
 #include "vpu.h"
@@ -38,7 +39,8 @@ typedef struct VPUReq {
     RK_U32  size;
 } VPUReq_t;
 
-static int vpu_service_status = -1;
+static RK_U32 vpu_debug = 0;
+static RK_S32 vpu_service_status = -1;
 #define VPU_SERVICE_TEST    \
     do { \
         if (vpu_service_status < 0) { \
@@ -46,20 +48,25 @@ static int vpu_service_status = -1;
         } \
     } while (0)
 
+static const char *name_rkvdec = "/dev/rkvdec";
+static const char *name_hevc_service = "/dev/hevc_service";
+static const char *name_vpu_service = "/dev/hevc_service";
+
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
     VPU_SERVICE_TEST;
     int ret;
     int fd;
+    const char *name = NULL;
 
     switch (type) {
     case VPU_DEC_RKV: {
-        fd = open("/dev/rkvdec", O_RDWR);
+        name = name_rkvdec;
         type = VPU_DEC;
         break;
     }
     case VPU_DEC_HEVC: {
-        fd = open("/dev/hevc_service", O_RDWR);
+        name = name_hevc_service;
         type = VPU_DEC;
         break;
     }
@@ -67,18 +74,21 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     case VPU_PP:
     case VPU_DEC:
     case VPU_ENC: {
-        fd = open("/dev/vpu_service", O_RDWR);
+        name = name_vpu_service;
         break;
     }
     default: {
-        fd = -1;
+        return -1;
         break;
     }
     }
 
+    fd = open(name, O_RDWR);
+
+    mpp_env_get_u32("vpu_debug", &vpu_debug, 0);
 
     if (fd == -1) {
-        mpp_err_f("failed to open /dev/rkvdec\n");
+        mpp_err_f("failed to open %s\n", name);
         return -1;
     }
     ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);
@@ -105,6 +115,15 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
     int fd = socket;
     RK_S32 ret;
     VPUReq_t req;
+
+    if (vpu_debug) {
+        RK_U32 i;
+
+        for (i = 0; i < nregs; i++) {
+            mpp_log("set reg[%03d]: %08x\n", i, regs[i]);
+        }
+    }
+
     nregs *= sizeof(RK_U32);
     req.req     = regs;
     req.size    = nregs;
@@ -122,15 +141,26 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
     RK_S32 ret;
     VPUReq_t req;
     (void)len;
+
     nregs *= sizeof(RK_U32);
     req.req     = regs;
     req.size    = nregs;
+
     ret = (RK_S32)ioctl(fd, VPU_IOC_GET_REG, &req);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_GET_REG failed ret %d errno %d %s\n", ret, errno, strerror(errno));
         *cmd = VPU_SEND_CONFIG_ACK_FAIL;
     } else
         *cmd = VPU_SEND_CONFIG_ACK_OK;
+
+    if (vpu_debug) {
+        RK_U32 i;
+        nregs >>= 2;
+
+        for (i = 0; i < nregs; i++) {
+            mpp_log("get reg[%03d]: %08x\n", i, regs[i]);
+        }
+    }
 
     return ret;
 }
