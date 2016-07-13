@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef _VPU_API_H_
-#define _VPU_API_H_
+#ifndef _VPU_API_LEGACY_H_
+#define _VPU_API_LEGACY_H_
 
 #include "vpu_api.h"
 #include "rk_mpi.h"
 #include <stdio.h>
 #define OMX_BUFFERFLAG_EOS    0x00000001
 
-class VpuApi
+class VpuApiLegacy
 {
 public:
-    VpuApi();
-    ~VpuApi();
+    VpuApiLegacy();
+    ~VpuApiLegacy();
 
     RK_S32 init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size);
     RK_S32 flush(VpuCodecContext *ctx);
