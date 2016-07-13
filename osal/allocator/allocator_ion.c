@@ -313,12 +313,20 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 
 MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
 {
+    MPP_RET ret = MPP_OK;
     (void)ctx;
     // NOTE: do not use the original buffer fd,
     //       use dup fd to avoid unexpected external fd close
     data->fd = dup(data->fd);
     data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
-    return (data->ptr) ? (MPP_OK) : (MPP_NOK);
+    if (data->ptr == MAP_FAILED) {
+        mpp_err_f("map error %s\n", strerror(errno));
+        ret = MPP_NOK;
+        close(data->fd);
+        data->fd = -1;
+        data->ptr = NULL;
+    }
+    return ret;
 }
 
 MPP_RET os_allocator_ion_release(void *ctx, MppBufferInfo *data)
