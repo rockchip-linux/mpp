@@ -132,6 +132,8 @@ int main()
             goto MPP_BUFFER_failed;
         }
 
+        mpp_log("allocator get ptr %p with fd %d\n", commit.ptr, commit.fd);
+
         /*
          * NOTE: commit buffer info will be directly return within new MppBuffer
          *       This mode allow input group is NULL
@@ -140,6 +142,21 @@ int main()
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
             goto MPP_BUFFER_failed;
+        }
+
+        /*
+         * test imported buffer
+         */
+        {
+            void *ptr = mpp_buffer_get_ptr(commit_buffer[i]);
+            if (NULL == ptr) {
+                mpp_err("mpp_buffer_test mpp_buffer_get_ptr failed\n");
+                goto MPP_BUFFER_failed;
+            }
+
+            mpp_log("get ptr %p from fd %d\n", ptr, mpp_buffer_get_fd(commit_buffer[i]));
+
+            memset(ptr, 0, mpp_buffer_get_size(commit_buffer[i]));
         }
     }
 
