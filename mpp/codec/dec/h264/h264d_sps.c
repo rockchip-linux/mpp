@@ -181,9 +181,9 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         READ_UE(p_bitctx, &cur_sps->chroma_format_idc, "chroma_format_idc");
         mpp_log_f("chroma_format_idc=%d \n", cur_sps->chroma_format_idc);
         if (cur_sps->chroma_format_idc > 2) {
-          H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
+            H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
             p_Dec->errctx.un_spt_flag = VPU_FRAME_ERR_UNSUPPORT;
-          goto __FAILED;
+            goto __FAILED;
         }
         READ_UE(p_bitctx, &cur_sps->bit_depth_luma_minus8, "bit_depth_luma_minus8");
         ASSERT(cur_sps->bit_depth_luma_minus8 < 7);

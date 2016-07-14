@@ -732,8 +732,7 @@ __RETURN:
     FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
     return ret = MPP_OK;
 
-__FAILED:
-	{
+__FAILED: {
         H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
         if (dec_pic) {
             H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
@@ -795,19 +794,17 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
             if (ctx->hard_err || task_dec->flags.had_error) {
                 if (task_dec->flags.used_for_ref) {
                     mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
-                }
-                else {
+                } else {
                     mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
                 }
             }
             H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
-                p_Dec->p_Vid->g_framecnt, task_dec->output, task_dec->flags.had_error, ctx->hard_err, task_dec->flags.used_for_ref,
-                mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+                      p_Dec->p_Vid->g_framecnt, task_dec->output, task_dec->flags.had_error, ctx->hard_err, task_dec->flags.used_for_ref,
+                      mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
 
             if (ctx->device_id == HAL_RKVDEC) {
                 H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] sw[01]=%08x, sw[45]=%08x, sw[76]=%08x\n", p_regs[1], p_regs[45], p_regs[76]);
-            }
-            else if (ctx->device_id == HAL_VDPU) {
+            } else if (ctx->device_id == HAL_VDPU) {
 
             }
         }

@@ -409,7 +409,7 @@ static MPP_RET read_vop_complexity_estimation_header(Mpeg4Estimation *e, BitRead
             if (e->interpolate_mc_q) SKIP_BITS(gb, 8);  /* */
         }
 #else
-    (void)mp4Hdr;
+        (void)mp4Hdr;
 #endif
     }
 
@@ -873,15 +873,15 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
     }
 
     if ((mp4Hdr->vol.shape != MPEG4_VIDOBJLAY_SHAPE_BINARY_ONLY) &&
-       ((mp4Hdr->vop.coding_type == MPEG4_P_VOP) ||
-        (mp4Hdr->vop.coding_type == MPEG4_S_VOP &&
-         mp4Hdr->vol.sprite_enable == MPEG4_SPRITE_GMC))) {
+        ((mp4Hdr->vop.coding_type == MPEG4_P_VOP) ||
+         (mp4Hdr->vop.coding_type == MPEG4_S_VOP &&
+          mp4Hdr->vol.sprite_enable == MPEG4_SPRITE_GMC))) {
         READ_BITS(gb, 1, &(mp4Hdr->vop.rounding));          /* rounding_type */
     }
 
     if (mp4Hdr->vol.reduced_resolution_enable &&
         mp4Hdr->vol.shape == MPEG4_VIDOBJLAY_SHAPE_RECTANGULAR &&
-       (mp4Hdr->vop.coding_type == MPEG4_P_VOP || mp4Hdr->vop.coding_type == MPEG4_I_VOP)) {
+        (mp4Hdr->vop.coding_type == MPEG4_P_VOP || mp4Hdr->vop.coding_type == MPEG4_I_VOP)) {
 
         READ_BITS(gb, 1, &val);
     }
@@ -907,7 +907,7 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
 
     if ((mp4Hdr->vol.sprite_enable == MPEG4_SPRITE_STATIC ||
          mp4Hdr->vol.sprite_enable == MPEG4_SPRITE_GMC) &&
-         mp4Hdr->vop.coding_type == MPEG4_S_VOP) {
+        mp4Hdr->vop.coding_type == MPEG4_S_VOP) {
         mpp_err("unsupport split mode %d coding type %d\n",
                 mp4Hdr->vol.sprite_enable, mp4Hdr->vop.coding_type);
         return MPP_ERR_STREAM;
@@ -1178,7 +1178,7 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
     RK_S32 pos_frm_end   = p->pos_frm_end;
     RK_U32 src_eos = mpp_packet_get_eos(src);
     RK_S32 src_pos = 0;
-    RK_U32 state = (RK_U32)-1;
+    RK_U32 state = (RK_U32) - 1;
 
     mpg4d_dbg_func("in\n");
 

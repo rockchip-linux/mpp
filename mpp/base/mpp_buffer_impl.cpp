@@ -79,13 +79,11 @@ private:
     struct list_head    mListOrphan;
 
 public:
-    static MppBufferService *get_instance()
-    {
+    static MppBufferService *get_instance() {
         static MppBufferService instance;
         return &instance;
     }
-    static Mutex *get_lock()
-    {
+    static Mutex *get_lock() {
         static Mutex lock;
         return &lock;
     }

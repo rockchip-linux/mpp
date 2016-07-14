@@ -207,26 +207,22 @@ public:
     void start();
     void stop();
 
-    void lock(MppThreadSignal id = THREAD_WORK)
-    {
+    void lock(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].lock();
     }
 
-    void unlock(MppThreadSignal id = THREAD_WORK)
-    {
+    void unlock(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].unlock();
     }
 
-    void wait(MppThreadSignal id = THREAD_WORK)
-    {
+    void wait(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].wait();
     }
 
-    void signal(MppThreadSignal id = THREAD_WORK)
-    {
+    void signal(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].signal();
     }

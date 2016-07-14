@@ -203,8 +203,7 @@ public:
     VpulibDlsym()
         : rkapi_hdl(NULL),
           rkvpu_open_cxt(NULL),
-          rkvpu_close_cxt(NULL)
-    {
+          rkvpu_close_cxt(NULL) {
         if (!!access("/dev/rkvdec", F_OK)) {
             rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
         }
@@ -220,8 +219,7 @@ public:
         }
     }
 
-    ~VpulibDlsym()
-    {
+    ~VpulibDlsym() {
         if (rkapi_hdl) {
             dlclose(rkapi_hdl);
             mpp_log("dlclose vpu lib");

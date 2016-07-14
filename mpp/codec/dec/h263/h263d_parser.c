@@ -315,7 +315,7 @@ MPP_RET mpp_h263_parser_split(H263dParser ctx, MppPacket dst, MppPacket src)
     RK_S32 pos_frm_end   = p->pos_frm_end;
     RK_U32 src_eos = mpp_packet_get_eos(src);
     RK_S32 src_pos = 0;
-    RK_U32 state = (RK_U32)-1;
+    RK_U32 state = (RK_U32) - 1;
 
     h263d_dbg_func("in\n");
 

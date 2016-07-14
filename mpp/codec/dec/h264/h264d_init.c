@@ -478,9 +478,9 @@ static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t
     H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
               dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
 #else
-	(void)p_last;
-	(void)dec_pic;
-	(void)last_pic_structure;
+    (void)p_last;
+    (void)dec_pic;
+    (void)last_pic_structure;
 #endif
     return ret = MPP_OK;
 }

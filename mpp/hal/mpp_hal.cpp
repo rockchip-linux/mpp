@@ -48,7 +48,7 @@ static const MppHalApi *hw_apis[] = {
     &hal_api_h265d,
     &hal_api_m2vd,
     &hal_api_mpg4d,
-	&hal_api_vp8d,
+    &hal_api_vp8d,
     &hal_api_vp9d,
     &hal_api_dummy_dec,
     &hal_api_dummy_enc,
