@@ -116,7 +116,7 @@ public:
     void          put_node(MppMetaNode *node);
 };
 
-RK_S32 get_index_of_key(MppMetaKey key, MppMetaKey type)
+RK_S32 get_index_of_key(MppMetaKey key, MppMetaType type)
 {
     RK_S32 i = 0;
     RK_S32 num = MPP_ARRAY_ELEMS(meta_defs);
@@ -208,7 +208,7 @@ void MppMetaService::put_node(MppMetaNode *node)
         mpp_frame_deinit(&node->val.frame);
     } break;
     case MPP_META_TYPE_PACKET : {
-        mpp_packet_deinit(node->val.packet);
+        mpp_packet_deinit(&node->val.packet);
     } break;
     case MPP_META_TYPE_BUFFER : {
         mpp_buffer_put(node->val.buffer);
