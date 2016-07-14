@@ -265,12 +265,12 @@ option(WARNINGS_AS_ERRORS "Stop compiles on first warning" OFF)
 if(WARNINGS_AS_ERRORS)
     if(GCC)
         add_definitions(-Werror)
+        # disable multichar warning
+        add_definitions(-Wno-multichar)
     elseif(MSVC)
         add_definitions(/WX)
     endif()
 endif(WARNINGS_AS_ERRORS)
-# disable multichar warning
-add_definitions(-Wno-multichar)
 
 # ----------------------------------------------------------------------------
 # Visual leak detector
