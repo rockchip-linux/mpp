@@ -269,6 +269,8 @@ if(WARNINGS_AS_ERRORS)
         add_definitions(/WX)
     endif()
 endif(WARNINGS_AS_ERRORS)
+# disable multichar warning
+add_definitions(-Wno-multichar)
 
 # ----------------------------------------------------------------------------
 # Visual leak detector
