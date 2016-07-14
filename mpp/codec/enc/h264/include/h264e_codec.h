@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2010 Rockchip Electronics Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-/*
- * @file       h265e_codec.h
- * @brief
- * @author      gzl(lance.gao@rock-chips.com)
-
- * @version     1.0.0
- * @history
- *   2016.05.13 : Create
  */
 
 #ifndef __H264E_CODEC_H__
