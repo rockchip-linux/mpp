@@ -36,13 +36,12 @@ typedef struct IOInterruptCB {
     void   *opaque;
 } IOInterruptCB;
 
-typedef struct IOCallbackCtx_t
-{
+typedef struct IOCallbackCtx_t {
     RK_U32      device_id;
     void        *task;
     RK_U32      *regs;
     RK_U32       hard_err;
-}IOCallbackCtx;
+} IOCallbackCtx;
 
 /*
  * modified by parser

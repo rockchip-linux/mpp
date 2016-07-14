@@ -208,241 +208,236 @@ static RK_U32 check_dpb_buffer_is_valid(H264dHalCtx_t *p_hal, RK_U32 dpb_idx)
 }
 static MPP_RET vdpu_set_refer_pic_idx(H264dVdpuRegs_t *p_regs, RK_U32 i, RK_U16 val)
 {
-	switch (i)
-	{
-	case 0:
-		p_regs->sw76.num_ref_idx0 = val;
-		break;
-	case 1:
-		p_regs->sw76.num_ref_idx1 = val;
-		break;
-	case 2:
-		p_regs->sw77.num_ref_idx2 = val;
-		break;
-	case 3:
-		p_regs->sw77.num_ref_idx3 = val;
-		break;
-	case 4:
-		p_regs->sw78.num_ref_idx4 = val;
-		break;
-	case 5:
-		p_regs->sw78.num_ref_idx5 = val;
-		break;
-	case 6:
-		p_regs->sw79.num_ref_idx6 = val;
-		break;
-	case 7:
-		p_regs->sw79.num_ref_idx7 = val;
-		break;
-	case 8:
-		p_regs->sw80.num_ref_idx8 = val;
-		break;
-	case 9:
-		p_regs->sw80.num_ref_idx9 = val;
-		break;
-	case 10:
-		p_regs->sw81.num_ref_idx10 = val;
-		break;
-	case 11:
-		p_regs->sw81.num_ref_idx11 = val;
-		break;
-	case 12:
-		p_regs->sw82.num_ref_idx12 = val;
-		break;
-	case 13:
-		p_regs->sw82.num_ref_idx13 = val;
-		break;
-	case 14:
-		p_regs->sw83.num_ref_idx14 = val;
-		break;
-	case 15:
-		p_regs->sw83.num_ref_idx15 = val;
-		break;
-	default:
-		break;
-	}
+    switch (i) {
+    case 0:
+        p_regs->sw76.num_ref_idx0 = val;
+        break;
+    case 1:
+        p_regs->sw76.num_ref_idx1 = val;
+        break;
+    case 2:
+        p_regs->sw77.num_ref_idx2 = val;
+        break;
+    case 3:
+        p_regs->sw77.num_ref_idx3 = val;
+        break;
+    case 4:
+        p_regs->sw78.num_ref_idx4 = val;
+        break;
+    case 5:
+        p_regs->sw78.num_ref_idx5 = val;
+        break;
+    case 6:
+        p_regs->sw79.num_ref_idx6 = val;
+        break;
+    case 7:
+        p_regs->sw79.num_ref_idx7 = val;
+        break;
+    case 8:
+        p_regs->sw80.num_ref_idx8 = val;
+        break;
+    case 9:
+        p_regs->sw80.num_ref_idx9 = val;
+        break;
+    case 10:
+        p_regs->sw81.num_ref_idx10 = val;
+        break;
+    case 11:
+        p_regs->sw81.num_ref_idx11 = val;
+        break;
+    case 12:
+        p_regs->sw82.num_ref_idx12 = val;
+        break;
+    case 13:
+        p_regs->sw82.num_ref_idx13 = val;
+        break;
+    case 14:
+        p_regs->sw83.num_ref_idx14 = val;
+        break;
+    case 15:
+        p_regs->sw83.num_ref_idx15 = val;
+        break;
+    default:
+        break;
+    }
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET vdpu_set_refer_pic_list_p(H264dVdpuRegs_t *p_regs, RK_U32 i, RK_U16 val)
 {
-	switch (i)
-	{
-	case 0:
-		p_regs->sw106.init_reflist_pf0 = val;
-		break;
-	case 1:
-		p_regs->sw106.init_reflist_pf1 = val;
-		break;
-	case 2:
-		p_regs->sw106.init_reflist_pf2 = val;
-		break;
-	case 3:
-		p_regs->sw106.init_reflist_pf3 = val;
-		break;
-	case 4:
-		p_regs->sw74.init_reflist_pf4 = val;
-		break;
-	case 5:
-		p_regs->sw74.init_reflist_pf5 = val;
-		break;
-	case 6:
-		p_regs->sw74.init_reflist_pf6 = val;
-		break;
-	case 7:
-		p_regs->sw74.init_reflist_pf7 = val;
-		break;
-	case 8:
-		p_regs->sw74.init_reflist_pf8 = val;
-		break;
-	case 9:
-		p_regs->sw74.init_reflist_pf9 = val;
-		break;
-	case 10:
-		p_regs->sw75.init_reflist_pf10 = val;
-		break;
-	case 11:
-		p_regs->sw75.init_reflist_pf11 = val;
-		break;
-	case 12:
-		p_regs->sw75.init_reflist_pf12 = val;
-		break;
-	case 13:
-		p_regs->sw75.init_reflist_pf13 = val;
-		break;
-	case 14:
-		p_regs->sw75.init_reflist_pf14 = val;
-		break;
-	case 15:
-		p_regs->sw75.init_reflist_pf15 = val;
-		break;
-	default:
-		break;
-	}
+    switch (i) {
+    case 0:
+        p_regs->sw106.init_reflist_pf0 = val;
+        break;
+    case 1:
+        p_regs->sw106.init_reflist_pf1 = val;
+        break;
+    case 2:
+        p_regs->sw106.init_reflist_pf2 = val;
+        break;
+    case 3:
+        p_regs->sw106.init_reflist_pf3 = val;
+        break;
+    case 4:
+        p_regs->sw74.init_reflist_pf4 = val;
+        break;
+    case 5:
+        p_regs->sw74.init_reflist_pf5 = val;
+        break;
+    case 6:
+        p_regs->sw74.init_reflist_pf6 = val;
+        break;
+    case 7:
+        p_regs->sw74.init_reflist_pf7 = val;
+        break;
+    case 8:
+        p_regs->sw74.init_reflist_pf8 = val;
+        break;
+    case 9:
+        p_regs->sw74.init_reflist_pf9 = val;
+        break;
+    case 10:
+        p_regs->sw75.init_reflist_pf10 = val;
+        break;
+    case 11:
+        p_regs->sw75.init_reflist_pf11 = val;
+        break;
+    case 12:
+        p_regs->sw75.init_reflist_pf12 = val;
+        break;
+    case 13:
+        p_regs->sw75.init_reflist_pf13 = val;
+        break;
+    case 14:
+        p_regs->sw75.init_reflist_pf14 = val;
+        break;
+    case 15:
+        p_regs->sw75.init_reflist_pf15 = val;
+        break;
+    default:
+        break;
+    }
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET vdpu_set_refer_pic_list_b0(H264dVdpuRegs_t *p_regs, RK_U32 i, RK_U16 val)
 {
-	switch (i)
-	{
-	case 0:
-		p_regs->sw100.init_reflist_df0 = val;
-		break;
-	case 1:
-		p_regs->sw100.init_reflist_df1 = val;
-		break;
-	case 2:
-		p_regs->sw100.init_reflist_df2 = val;
-		break;
-	case 3:
-		p_regs->sw100.init_reflist_df3 = val;
-		break;
-	case 4:
-		p_regs->sw100.init_reflist_df4 = val;
-		break;
-	case 5:
-		p_regs->sw100.init_reflist_df5 = val;
-		break;
-	case 6:
-		p_regs->sw101.init_reflist_df6 = val;
-		break;
-	case 7:
-		p_regs->sw101.init_reflist_df7 = val;
-		break;
-	case 8:
-		p_regs->sw101.init_reflist_df8 = val;
-		break;
-	case 9:
-		p_regs->sw101.init_reflist_df9 = val;
-		break;
-	case 10:
-		p_regs->sw101.init_reflist_df10 = val;
-		break;
-	case 11:
-		p_regs->sw101.init_reflist_df11 = val;
-		break;
-	case 12:
-		p_regs->sw102.init_reflist_df12 = val;
-		break;
-	case 13:
-		p_regs->sw102.init_reflist_df13 = val;
-		break;
-	case 14:
-		p_regs->sw102.init_reflist_df14 = val;
-		break;
-	case 15:
-		p_regs->sw102.init_reflist_df15 = val;
-		break;
-	default:
-		break;
-	}
+    switch (i) {
+    case 0:
+        p_regs->sw100.init_reflist_df0 = val;
+        break;
+    case 1:
+        p_regs->sw100.init_reflist_df1 = val;
+        break;
+    case 2:
+        p_regs->sw100.init_reflist_df2 = val;
+        break;
+    case 3:
+        p_regs->sw100.init_reflist_df3 = val;
+        break;
+    case 4:
+        p_regs->sw100.init_reflist_df4 = val;
+        break;
+    case 5:
+        p_regs->sw100.init_reflist_df5 = val;
+        break;
+    case 6:
+        p_regs->sw101.init_reflist_df6 = val;
+        break;
+    case 7:
+        p_regs->sw101.init_reflist_df7 = val;
+        break;
+    case 8:
+        p_regs->sw101.init_reflist_df8 = val;
+        break;
+    case 9:
+        p_regs->sw101.init_reflist_df9 = val;
+        break;
+    case 10:
+        p_regs->sw101.init_reflist_df10 = val;
+        break;
+    case 11:
+        p_regs->sw101.init_reflist_df11 = val;
+        break;
+    case 12:
+        p_regs->sw102.init_reflist_df12 = val;
+        break;
+    case 13:
+        p_regs->sw102.init_reflist_df13 = val;
+        break;
+    case 14:
+        p_regs->sw102.init_reflist_df14 = val;
+        break;
+    case 15:
+        p_regs->sw102.init_reflist_df15 = val;
+        break;
+    default:
+        break;
+    }
 
-	return MPP_OK;
+    return MPP_OK;
 }
 static MPP_RET vdpu_set_refer_pic_list_b1(H264dVdpuRegs_t *p_regs, RK_U32 i, RK_U16 val)
 {
-	switch (i)
-	{
-	case 0:
-		p_regs->sw103.init_reflist_db0 = val;
-		break;
-	case 1:
-		p_regs->sw103.init_reflist_db1 = val;
-		break;
-	case 2:
-		p_regs->sw103.init_reflist_db2 = val;
-		break;
-	case 3:
-		p_regs->sw103.init_reflist_db3 = val;
-		break;
-	case 4:
-		p_regs->sw103.init_reflist_db4 = val;
-		break;
-	case 5:
-		p_regs->sw103.init_reflist_db5 = val;
-		break;
-	case 6:
-		p_regs->sw104.init_reflist_db6 = val;
-		break;
-	case 7:
-		p_regs->sw104.init_reflist_db7 = val;
-		break;
-	case 8:
-		p_regs->sw104.init_reflist_db8 = val;
-		break;
-	case 9:
-		p_regs->sw104.init_reflist_db9 = val;
-		break;
-	case 10:
-		p_regs->sw104.init_reflist_db10 = val;
-		break;
-	case 11:
-		p_regs->sw104.init_reflist_db11 = val;
-		break;
-	case 12:
-		p_regs->sw105.init_reflist_db12 = val;
-		break;
-	case 13:
-		p_regs->sw105.init_reflist_db13 = val;
-		break;
-	case 14:
-		p_regs->sw105.init_reflist_db14 = val;
-		break;
-	case 15:
-		p_regs->sw105.init_reflist_db15 = val;
-		break;
-	default:
-		break;
-	}
+    switch (i) {
+    case 0:
+        p_regs->sw103.init_reflist_db0 = val;
+        break;
+    case 1:
+        p_regs->sw103.init_reflist_db1 = val;
+        break;
+    case 2:
+        p_regs->sw103.init_reflist_db2 = val;
+        break;
+    case 3:
+        p_regs->sw103.init_reflist_db3 = val;
+        break;
+    case 4:
+        p_regs->sw103.init_reflist_db4 = val;
+        break;
+    case 5:
+        p_regs->sw103.init_reflist_db5 = val;
+        break;
+    case 6:
+        p_regs->sw104.init_reflist_db6 = val;
+        break;
+    case 7:
+        p_regs->sw104.init_reflist_db7 = val;
+        break;
+    case 8:
+        p_regs->sw104.init_reflist_db8 = val;
+        break;
+    case 9:
+        p_regs->sw104.init_reflist_db9 = val;
+        break;
+    case 10:
+        p_regs->sw104.init_reflist_db10 = val;
+        break;
+    case 11:
+        p_regs->sw104.init_reflist_db11 = val;
+        break;
+    case 12:
+        p_regs->sw105.init_reflist_db12 = val;
+        break;
+    case 13:
+        p_regs->sw105.init_reflist_db13 = val;
+        break;
+    case 14:
+        p_regs->sw105.init_reflist_db14 = val;
+        break;
+    case 15:
+        p_regs->sw105.init_reflist_db15 = val;
+        break;
+    default:
+        break;
+    }
 
-	return MPP_OK;
+    return MPP_OK;
 }
 
 static MPP_RET vdpu_set_refer_pic_base_addr(H264dVdpuRegs_t *p_regs, RK_U32 i, RK_U32 val)
 {
-    switch (i)
-    {
+    switch (i) {
     case 0:
         p_regs->sw84.ref0_st_addr = val;
         break;
@@ -494,7 +489,7 @@ static MPP_RET vdpu_set_refer_pic_base_addr(H264dVdpuRegs_t *p_regs, RK_U32 i, R
     default:
         break;
     }
-	return MPP_OK;
+    return MPP_OK;
 }
 /*!
 ***********************************************************************
@@ -507,8 +502,8 @@ MPP_RET vdpu_set_pic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-	p_regs->sw110.pic_mb_w = p_hal->pp->wFrameWidthInMbsMinus1 + 1;
-	p_regs->sw110.pic_mb_h = (2 - p_hal->pp->frame_mbs_only_flag) * (p_hal->pp->wFrameHeightInMbsMinus1 + 1);
+    p_regs->sw110.pic_mb_w = p_hal->pp->wFrameWidthInMbsMinus1 + 1;
+    p_regs->sw110.pic_mb_h = (2 - p_hal->pp->frame_mbs_only_flag) * (p_hal->pp->wFrameHeightInMbsMinus1 + 1);
 
     return ret = MPP_OK;
 }
@@ -521,114 +516,108 @@ MPP_RET vdpu_set_pic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 //extern "C"
 MPP_RET vdpu_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 {
-	RK_U32 i = 0;
-	MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U32 i = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
 
-	FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-	p_regs->sw57.dec_wr_extmen_dis = 0;
-	p_regs->sw57.rlc_mode_en = 0;
-	p_regs->sw51.qp_init_val = pp->pic_init_qp_minus26 + 26;
-	p_regs->sw114.max_refidx0 = pp->num_ref_idx_l0_active_minus1 + 1;
-	p_regs->sw111.max_refnum = pp->num_ref_frames;
-	p_regs->sw112.cur_frm_len = pp->log2_max_frame_num_minus4 + 4;
-	p_regs->sw112.curfrm_num = pp->frame_num;	
-	p_regs->sw115.const_intra_en = pp->constrained_intra_pred_flag;	
-	p_regs->sw112.dblk_ctrl_flag = pp->deblocking_filter_control_present_flag;
-	p_regs->sw112.rpcp_flag = pp->redundant_pic_cnt_present_flag;
-	p_regs->sw113.refpic_mk_len = p_hal->slice_long[0].drpm_used_bitlen;
-	p_regs->sw115.idr_pic_flag = p_hal->slice_long[0].idr_flag;
-	p_regs->sw113.idr_pic_id = p_hal->slice_long[0].idr_pic_id;
-	p_regs->sw114.pps_id = p_hal->slice_long[0].active_pps_id;
-	p_regs->sw114.poc_field_len = p_hal->slice_long[0].poc_used_bitlen;
-	/* reference picture flags, TODO separate fields */
-	if (pp->field_pic_flag) {
-		RK_U32 validTmp = 0, validFlags = 0;
-		RK_U32 longTermTmp = 0, longTermflags = 0;
-		for (i = 0; i < 32; i++) {
-			if (pp->RefFrameList[i / 2].bPicEntry == 0xff) { //!< invalid
-				longTermflags <<= 1;
-				validFlags <<= 1;
-			}
-			else {
-				longTermTmp = pp->RefFrameList[i / 2].AssociatedFlag; //!< get long term flag
-				longTermflags = (longTermflags << 1) | longTermTmp;
+    p_regs->sw57.dec_wr_extmen_dis = 0;
+    p_regs->sw57.rlc_mode_en = 0;
+    p_regs->sw51.qp_init_val = pp->pic_init_qp_minus26 + 26;
+    p_regs->sw114.max_refidx0 = pp->num_ref_idx_l0_active_minus1 + 1;
+    p_regs->sw111.max_refnum = pp->num_ref_frames;
+    p_regs->sw112.cur_frm_len = pp->log2_max_frame_num_minus4 + 4;
+    p_regs->sw112.curfrm_num = pp->frame_num;
+    p_regs->sw115.const_intra_en = pp->constrained_intra_pred_flag;
+    p_regs->sw112.dblk_ctrl_flag = pp->deblocking_filter_control_present_flag;
+    p_regs->sw112.rpcp_flag = pp->redundant_pic_cnt_present_flag;
+    p_regs->sw113.refpic_mk_len = p_hal->slice_long[0].drpm_used_bitlen;
+    p_regs->sw115.idr_pic_flag = p_hal->slice_long[0].idr_flag;
+    p_regs->sw113.idr_pic_id = p_hal->slice_long[0].idr_pic_id;
+    p_regs->sw114.pps_id = p_hal->slice_long[0].active_pps_id;
+    p_regs->sw114.poc_field_len = p_hal->slice_long[0].poc_used_bitlen;
+    /* reference picture flags, TODO separate fields */
+    if (pp->field_pic_flag) {
+        RK_U32 validTmp = 0, validFlags = 0;
+        RK_U32 longTermTmp = 0, longTermflags = 0;
+        for (i = 0; i < 32; i++) {
+            if (pp->RefFrameList[i / 2].bPicEntry == 0xff) { //!< invalid
+                longTermflags <<= 1;
+                validFlags <<= 1;
+            } else {
+                longTermTmp = pp->RefFrameList[i / 2].AssociatedFlag; //!< get long term flag
+                longTermflags = (longTermflags << 1) | longTermTmp;
 
-				validTmp = check_dpb_buffer_is_valid(p_hal, pp->RefFrameList[i / 2].Index7Bits);
-				validTmp = validTmp && ((pp->UsedForReferenceFlags >> i) & 0x01);
-				validFlags = (validFlags << 1) | validTmp;
-			}
-		}
-		p_regs->sw107.refpic_term_flag = longTermflags;
-		p_regs->sw108.refpic_valid_flag = validFlags;
-	}
-	else {
-		RK_U32 validTmp = 0, validFlags = 0;
-		RK_U32 longTermTmp = 0, longTermflags = 0;
-		for (i = 0; i < 16; i++) {
-			if (pp->RefFrameList[i].bPicEntry == 0xff) {  //!< invalid
-				longTermflags <<= 1;
-				validFlags <<= 1;
-			}
-			else {
-				longTermTmp = pp->RefFrameList[i].AssociatedFlag;
-				longTermflags = (longTermflags << 1) | longTermTmp;
-				validTmp = check_dpb_buffer_is_valid(p_hal, pp->RefFrameList[i].Index7Bits);
-				validTmp = validTmp && ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03);
-				validFlags = (validFlags << 1) | validTmp;
-			}
-		}
-		p_regs->sw107.refpic_term_flag = (longTermflags << 16);
-		p_regs->sw108.refpic_valid_flag = (validFlags << 16);
-	}
+                validTmp = check_dpb_buffer_is_valid(p_hal, pp->RefFrameList[i / 2].Index7Bits);
+                validTmp = validTmp && ((pp->UsedForReferenceFlags >> i) & 0x01);
+                validFlags = (validFlags << 1) | validTmp;
+            }
+        }
+        p_regs->sw107.refpic_term_flag = longTermflags;
+        p_regs->sw108.refpic_valid_flag = validFlags;
+    } else {
+        RK_U32 validTmp = 0, validFlags = 0;
+        RK_U32 longTermTmp = 0, longTermflags = 0;
+        for (i = 0; i < 16; i++) {
+            if (pp->RefFrameList[i].bPicEntry == 0xff) {  //!< invalid
+                longTermflags <<= 1;
+                validFlags <<= 1;
+            } else {
+                longTermTmp = pp->RefFrameList[i].AssociatedFlag;
+                longTermflags = (longTermflags << 1) | longTermTmp;
+                validTmp = check_dpb_buffer_is_valid(p_hal, pp->RefFrameList[i].Index7Bits);
+                validTmp = validTmp && ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03);
+                validFlags = (validFlags << 1) | validTmp;
+            }
+        }
+        p_regs->sw107.refpic_term_flag = (longTermflags << 16);
+        p_regs->sw108.refpic_valid_flag = (validFlags << 16);
+    }
 
     for (i = 0; i < 16; i++) {
         if (pp->RefFrameList[i].bPicEntry != 0xff) { //!< valid
-            if (pp->RefFrameList[i].AssociatedFlag) { //!< longterm flag			
-                vdpu_set_refer_pic_idx(p_regs, i, pp->LongTermPicNumList[i]); //!< pic_num			
-            }
-            else {
-                vdpu_set_refer_pic_idx(p_regs, i, pp->FrameNumList[i]); //< frame_num			
+            if (pp->RefFrameList[i].AssociatedFlag) { //!< longterm flag
+                vdpu_set_refer_pic_idx(p_regs, i, pp->LongTermPicNumList[i]); //!< pic_num
+            } else {
+                vdpu_set_refer_pic_idx(p_regs, i, pp->FrameNumList[i]); //< frame_num
             }
         }
     }
-	p_regs->sw57.rd_cnt_tab_en = 1;
-	//!< set poc to buffer
-	{
-		RK_U32 *pocBase = NULL;
-		pocBase = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
-		//!< set reference reorder poc
-		for (i = 0; i < 32; i++) {
-			if (pp->RefFrameList[i / 2].bPicEntry != 0xff) {
-				*pocBase++ = pp->FieldOrderCntList[i / 2][i & 0x1];
-			}
-			else {
-				*pocBase++ = 0;
-			}
-		}
-		//!< set current poc
-		if (pp->field_pic_flag || !pp->MbaffFrameFlag) {
-			*pocBase++ = pp->CurrFieldOrderCnt[0];
-			*pocBase++ = pp->CurrFieldOrderCnt[1];
-		}
-		else {
-			*pocBase++ = pp->CurrFieldOrderCnt[0];
-			*pocBase++ = pp->CurrFieldOrderCnt[1];
-		}
-	}
-	p_regs->sw115.cabac_en = pp->entropy_coding_mode_flag;
-	//!< stream position update
-	{
-		MppBuffer bitstream_buf = NULL;
-		p_regs->sw57.st_code_exit = 1;
-		mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input, SLOT_BUFFER, &bitstream_buf);
-		p_regs->sw109.strm_start_bit = 0; //!< sodb stream start bit
-		if (VPUClientGetIOMMUStatus() > 0) {
-			p_regs->sw64.rlc_vlc_st_adr = mpp_buffer_get_fd(bitstream_buf);
-		}
-		p_regs->sw51.stream_len = p_hal->strm_len;
-	}
+    p_regs->sw57.rd_cnt_tab_en = 1;
+    //!< set poc to buffer
+    {
+        RK_U32 *pocBase = NULL;
+        pocBase = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+        //!< set reference reorder poc
+        for (i = 0; i < 32; i++) {
+            if (pp->RefFrameList[i / 2].bPicEntry != 0xff) {
+                *pocBase++ = pp->FieldOrderCntList[i / 2][i & 0x1];
+            } else {
+                *pocBase++ = 0;
+            }
+        }
+        //!< set current poc
+        if (pp->field_pic_flag || !pp->MbaffFrameFlag) {
+            *pocBase++ = pp->CurrFieldOrderCnt[0];
+            *pocBase++ = pp->CurrFieldOrderCnt[1];
+        } else {
+            *pocBase++ = pp->CurrFieldOrderCnt[0];
+            *pocBase++ = pp->CurrFieldOrderCnt[1];
+        }
+    }
+    p_regs->sw115.cabac_en = pp->entropy_coding_mode_flag;
+    //!< stream position update
+    {
+        MppBuffer bitstream_buf = NULL;
+        p_regs->sw57.st_code_exit = 1;
+        mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input, SLOT_BUFFER, &bitstream_buf);
+        p_regs->sw109.strm_start_bit = 0; //!< sodb stream start bit
+        if (VPUClientGetIOMMUStatus() > 0) {
+            p_regs->sw64.rlc_vlc_st_adr = mpp_buffer_get_fd(bitstream_buf);
+        }
+        p_regs->sw51.stream_len = p_hal->strm_len;
+    }
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
     return ret = MPP_OK;
@@ -645,7 +634,7 @@ MPP_RET vdpu_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     RK_U32 i = 0, j = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
-    
+
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     //!< list0 list1 listP
     for (j = 0; j < 3; j++) {
@@ -656,16 +645,13 @@ MPP_RET vdpu_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
                 nn = p_hal->pp->CurrPic.AssociatedFlag ? (2 * i + 1) : (2 * i);
                 if (p_long->RefPicList[j][nn].bPicEntry == 0xff) {
                     val = g_ValueList[i];
-                }
-                else {
+                } else {
                     val = p_long->RefPicList[j][nn].Index7Bits;
                 }
-            }
-            else { //!< frame
+            } else { //!< frame
                 if (p_long->RefPicList[j][i].bPicEntry == 0xff) {
                     val = g_ValueList[i];
-                }
-                else {
+                } else {
                     val = p_long->RefPicList[j][i].Index7Bits;
                 }
             }
@@ -699,26 +685,25 @@ MPP_RET vdpu_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 //extern "C"
 MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 {
-	RK_U32 i = 0, j = 0;
-	RK_U32 outPhyAddr = 0;
-	MppBuffer frame_buf = NULL;
-	MPP_RET ret = MPP_ERR_UNKNOW;
-	DXVA_PicParams_H264_MVC *pp = p_hal->pp;
-	DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
+    RK_U32 i = 0, j = 0;
+    RK_U32 outPhyAddr = 0;
+    MppBuffer frame_buf = NULL;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    DXVA_PicParams_H264_MVC *pp = p_hal->pp;
+    DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
 
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-	/* reference picture physic address */
-	for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+    /* reference picture physic address */
+    for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
         RK_U32 val = 0;
         RK_U32 top_closer = 0;
         RK_U32 field_flag = 0;
-		if (pp->RefFrameList[i].bPicEntry != 0xff) {
-			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
-			j = i;
-		}
-		else {
-			mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
-		}
+        if (pp->RefFrameList[i].bPicEntry != 0xff) {
+            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+            j = i;
+        } else {
+            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+        }
 
         field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 0x2 : 0;
         if (field_flag) {
@@ -730,11 +715,9 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
             if (used_flag & 0x3) {
                 ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0], pp->FieldOrderCntList[i][1]);
-            }
-            else if (used_flag & 0x2) {
+            } else if (used_flag & 0x2) {
                 ref_poc = pp->FieldOrderCntList[i][1];
-            }
-            else if (used_flag & 0x1) {
+            } else if (used_flag & 0x1) {
                 ref_poc = pp->FieldOrderCntList[i][0];
             }
             top_closer = (cur_poc < ref_poc) ? 0x1 : 0;
@@ -745,63 +728,62 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             val = mpp_buffer_get_fd(frame_buf) | (val << 10);
         }
         vdpu_set_refer_pic_base_addr(p_regs, i, val);
-	}
-	/* inter-view reference picture */
-	{
+    }
+    /* inter-view reference picture */
+    {
         H264dVdpuPriv_t *priv = (H264dVdpuPriv_t *)p_hal->priv;
-		if (pp->curr_layer_id && priv->ilt_dpb && priv->ilt_dpb->valid /*pp->inter_view_flag*/) {
-			mpp_buf_slot_get_prop(p_hal->frame_slots, priv->ilt_dpb->slot_index, SLOT_BUFFER, &frame_buf);
+        if (pp->curr_layer_id && priv->ilt_dpb && priv->ilt_dpb->valid /*pp->inter_view_flag*/) {
+            mpp_buf_slot_get_prop(p_hal->frame_slots, priv->ilt_dpb->slot_index, SLOT_BUFFER, &frame_buf);
 
             if (VPUClientGetIOMMUStatus() > 0) {
                 p_regs->sw99.ref15_st_addr = mpp_buffer_get_fd(frame_buf); //!< inter-view base, ref15
             }
-           p_regs->sw108.refpic_valid_flag |= (pp->field_pic_flag ? 0x3 : 0x10000);
-		}
-	}
-	p_regs->sw50.dec_fixed_quant = pp->curr_layer_id; //!< VDPU_MVC_E
-	p_regs->sw50.dblk_flt_dis = 0; //!< filterDisable = 0;
-	mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+            p_regs->sw108.refpic_valid_flag |= (pp->field_pic_flag ? 0x3 : 0x10000);
+        }
+    }
+    p_regs->sw50.dec_fixed_quant = pp->curr_layer_id; //!< VDPU_MVC_E
+    p_regs->sw50.dblk_flt_dis = 0; //!< filterDisable = 0;
+    mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
 
     if (VPUClientGetIOMMUStatus() > 0) {
         outPhyAddr = mpp_buffer_get_fd(frame_buf);
     }
-	if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
-		if (VPUClientGetIOMMUStatus() > 0) {
-			outPhyAddr |= ((pp->wFrameWidthInMbsMinus1 + 1) * 16) << 10;
-		}
-		else {
-			outPhyAddr += (pp->wFrameWidthInMbsMinus1 + 1) * 16;
-		}
-	}
-	p_regs->sw63.dec_out_st_adr = outPhyAddr; //!< outPhyAddr, pp->CurrPic.Index7Bits
-	p_regs->sw110.flt_offset_cb_qp = pp->chroma_qp_index_offset;
-	p_regs->sw110.flt_offset_cr_qp = pp->second_chroma_qp_index_offset;
-	/* set default value for register[41] to avoid illegal translation fd */
-	{
-		RK_U32 dirMvOffset = 0;
-		RK_U32 picSizeInMbs = 0;
+    if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
+        if (VPUClientGetIOMMUStatus() > 0) {
+            outPhyAddr |= ((pp->wFrameWidthInMbsMinus1 + 1) * 16) << 10;
+        } else {
+            outPhyAddr += (pp->wFrameWidthInMbsMinus1 + 1) * 16;
+        }
+    }
+    p_regs->sw63.dec_out_st_adr = outPhyAddr; //!< outPhyAddr, pp->CurrPic.Index7Bits
+    p_regs->sw110.flt_offset_cb_qp = pp->chroma_qp_index_offset;
+    p_regs->sw110.flt_offset_cr_qp = pp->second_chroma_qp_index_offset;
+    /* set default value for register[41] to avoid illegal translation fd */
+    {
+        RK_U32 dirMvOffset = 0;
+        RK_U32 picSizeInMbs = 0;
 
         picSizeInMbs = p_hal->pp->wFrameWidthInMbsMinus1 + 1;
         picSizeInMbs = picSizeInMbs * (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
-		dirMvOffset = picSizeInMbs * ((p_hal->pp->chroma_format_idc == 0) ? 256 : 384);
-		dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) ? (picSizeInMbs * 32) : 0;
-		if (VPUClientGetIOMMUStatus() > 0) {
+        dirMvOffset = picSizeInMbs * ((p_hal->pp->chroma_format_idc == 0) ? 256 : 384);
+        dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) ? (picSizeInMbs * 32) : 0;
+        if (VPUClientGetIOMMUStatus() > 0) {
             p_regs->sw62.dmmv_st_adr = (mpp_buffer_get_fd(frame_buf) | (dirMvOffset << 6));
-		}
-	}
-	p_regs->sw57.dmmv_wr_en = (p_long->nal_ref_idc != 0) ? 1 : 0; //!< defalut set 1
-	p_regs->sw115.dlmv_method_en = pp->direct_8x8_inference_flag;
-	p_regs->sw115.weight_pred_en = pp->weighted_pred_flag;
-	p_regs->sw111.wp_bslice_sel = pp->weighted_bipred_idc;
-	p_regs->sw114.max_refidx1 = (pp->num_ref_idx_l1_active_minus1 + 1);
-	p_regs->sw115.fieldpic_flag_exist = (!pp->frame_mbs_only_flag) ? 1 : 0;
-	p_regs->sw57.curpic_code_sel = (!pp->frame_mbs_only_flag && (pp->MbaffFrameFlag || pp->field_pic_flag)) ? 1 : 0;
-	p_regs->sw57.curpic_stru_sel = pp->field_pic_flag;
-	p_regs->sw57.pic_decfield_sel = (!pp->CurrPic.AssociatedFlag) ? 1 : 0; //!< bottomFieldFlag
-	p_regs->sw57.sequ_mbaff_en = pp->MbaffFrameFlag;
-	p_regs->sw115.tranf_8x8_flag_en = pp->transform_8x8_mode_flag;
-	p_regs->sw115.monochr_en = (p_long->profileIdc >= 100 && pp->chroma_format_idc == 0) ? 1 : 0;
-	p_regs->sw115.scl_matrix_en = pp->scaleing_list_enable_flag;
+        }
+    }
+    p_regs->sw57.dmmv_wr_en = (p_long->nal_ref_idc != 0) ? 1 : 0; //!< defalut set 1
+    p_regs->sw115.dlmv_method_en = pp->direct_8x8_inference_flag;
+    p_regs->sw115.weight_pred_en = pp->weighted_pred_flag;
+    p_regs->sw111.wp_bslice_sel = pp->weighted_bipred_idc;
+    p_regs->sw114.max_refidx1 = (pp->num_ref_idx_l1_active_minus1 + 1);
+    p_regs->sw115.fieldpic_flag_exist = (!pp->frame_mbs_only_flag) ? 1 : 0;
+    p_regs->sw57.curpic_code_sel = (!pp->frame_mbs_only_flag && (pp->MbaffFrameFlag || pp->field_pic_flag)) ? 1 : 0;
+    p_regs->sw57.curpic_stru_sel = pp->field_pic_flag;
+    p_regs->sw57.pic_decfield_sel = (!pp->CurrPic.AssociatedFlag) ? 1 : 0; //!< bottomFieldFlag
+    p_regs->sw57.sequ_mbaff_en = pp->MbaffFrameFlag;
+    p_regs->sw115.tranf_8x8_flag_en = pp->transform_8x8_mode_flag;
+    p_regs->sw115.monochr_en = (p_long->profileIdc >= 100 && pp->chroma_format_idc == 0) ? 1 : 0;
+    p_regs->sw115.scl_matrix_en = pp->scaleing_list_enable_flag;
     {
         RK_U32 offset = VDPU_CABAC_TAB_SIZE + VDPU_POC_BUF_SIZE;
         if (p_hal->pp->scaleing_list_enable_flag) {
@@ -811,18 +793,18 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             for (i = 0; i < 6; i++) {
                 for (j = 0; j < 4; j++) {
                     temp = (p_hal->qm->bScalingLists4x4[i][4 * j + 0] << 24) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 2] << 8) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 2] << 8) |
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
                     *ptr++ = temp;
                 }
             }
             for (i = 0; i < 2; i++) {
                 for (j = 0; j < 16; j++) {
                     temp = (p_hal->qm->bScalingLists8x8[i][4 * j + 0] << 24) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 2] << 8) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 2] << 8) |
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
                     *ptr++ = temp;
                 }
             }
@@ -831,9 +813,9 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             p_regs->sw61.qtable_st_adr = mpp_buffer_get_fd(p_hal->cabac_buf);
         }
     }
-	p_regs->sw57.dec_wr_extmen_dis = 0; //!< set defalut 0
-	p_regs->sw57.addit_ch_fmt_wen = 0;
-	p_regs->sw57.dec_st_work = 1;
+    p_regs->sw57.dec_wr_extmen_dis = 0; //!< set defalut 0
+    p_regs->sw57.addit_ch_fmt_wen = 0;
+    p_regs->sw57.dec_st_work = 1;
     FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     return ret = MPP_OK;
 }

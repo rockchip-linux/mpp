@@ -239,7 +239,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                             (impl->hal_hor_align(width));
     RK_U32 hal_ver_stride = (codec_ver_stride) ?
                             (impl->hal_ver_align(codec_ver_stride)) :
-                            (impl->hal_ver_align(height));    
+                            (impl->hal_ver_align(height));
     if (force_default_align) {
         hal_hor_stride = codec_hor_stride;
         hal_ver_stride = codec_ver_stride;

@@ -183,7 +183,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
         ctx->fp_dbg_yuv = fopen("/sdcard/m2vd_dbg_yuv_out.txt", "wb");
         if (!ctx->fp_dbg_yuv)
             mpp_log("open file failed: %s", "/sdcard/m2vd_dbg_yuv_out.txt");
-    }else{
+    } else {
         RK_S32 k = 0;
         for (k = 0; k < M2VD_DBG_FILE_NUM; k++)
             ctx->fp_dbg_file[k] = NULL;
@@ -329,7 +329,7 @@ MPP_RET  m2vd_parser_flush(void *ctx)
     mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
     p->frame_ref0->flags = 0;
 exit:
-    #if 0
+#if 0
     if (p->eos) {
         if ( p->frame_ref0->slot_index < 0xff) {
             mpp_buf_slot_set_prop(p->frame_slots, p->frame_ref0->slot_index, SLOT_EOS, &p->eos);
@@ -339,7 +339,7 @@ exit:
             }
         }
     }
-    #endif
+#endif
     return ret;
 }
 

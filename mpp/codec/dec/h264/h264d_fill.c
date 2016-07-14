@@ -34,9 +34,9 @@ static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_Slice_H264_Long  *p_long = NULL;
 
-	if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
-		H264D_ERR("error, slcie_num is larger than 1024");
-		goto __FAILED;
+    if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
+        H264D_ERR("error, slcie_num is larger than 1024");
+        goto __FAILED;
     }
     p_long = &dxva_ctx->slice_long[dxva_ctx->slice_count];
     memset(p_long, 0, sizeof(DXVA_Slice_H264_Long));

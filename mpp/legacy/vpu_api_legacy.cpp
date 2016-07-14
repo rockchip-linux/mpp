@@ -386,8 +386,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 
             ImgWidth = ((p->ImgWidth & 0xFFFF) * 10) >> 3;
             p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
-        }
-        else {
+        } else {
             ImgWidth = (p->ImgWidth & 0xFFFF);
             p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
         }

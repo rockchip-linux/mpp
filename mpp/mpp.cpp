@@ -302,8 +302,8 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     }
     case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
         if (mType == MPP_CTX_DEC &&
-           (mCoding == MPP_VIDEO_CodingMPEG2 ||
-            mCoding == MPP_VIDEO_CodingMPEG4)) {
+            (mCoding == MPP_VIDEO_CodingMPEG2 ||
+             mCoding == MPP_VIDEO_CodingMPEG4)) {
             mpp_dec_control(mDec, cmd, param);
         } else {
             mpp_err("type %x coding %x does not support use internal pts control\n");

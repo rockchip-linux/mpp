@@ -465,8 +465,7 @@ __SKIP_HARD:
             || p_regs->swreg1_int.sw_dec_empty_sta
             || p_regs->swreg45_strmd_error_status.sw_strmd_error_status
             || p_regs->swreg45_strmd_error_status.sw_colmv_error_ref_picidx
-            || p_regs->swreg76_h264_errorinfo_num.sw_strmd_detect_error_flag)
-        {
+            || p_regs->swreg76_h264_errorinfo_num.sw_strmd_detect_error_flag) {
             m_ctx.hard_err = 1;
         }
         m_ctx.task = (void *)&task->dec;
@@ -539,13 +538,12 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-    switch ((MpiCmd)cmd_type)
-    {
+    switch ((MpiCmd)cmd_type) {
     case MPP_CODEC_SET_FRAME_INFO: {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
-        if (p->CodecType == MPP_FMT_YUV422SP){
-           mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
-           mpp_log_f("control format YUV422SP \n");
+        if (p->CodecType == MPP_FMT_YUV422SP) {
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_log_f("control format YUV422SP \n");
         }
         break;
     }

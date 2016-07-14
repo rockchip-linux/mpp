@@ -116,10 +116,10 @@ typedef struct  {
         RK_U32  sw_dec_ahb_hlock_e  : 1;
     } reg57_enable_ctrl;
 
-	struct {
-		RK_U32  sw_soft_rst         : 1;
-		RK_U32  reverse0            : 31;
-	} reg58;
+    struct {
+        RK_U32  sw_soft_rst         : 1;
+        RK_U32  reverse0            : 31;
+    } reg58;
 
     struct {
         RK_U32  reserve             : 2;
