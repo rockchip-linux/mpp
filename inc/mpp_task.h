@@ -17,8 +17,7 @@
 #ifndef __MPP_TASK_H__
 #define __MPP_TASK_H__
 
-#include "mpp_frame.h"
-#include "mpp_packet.h"
+#include "mpp_meta.h"
 
 /*
  * Advanced task flow
@@ -55,7 +54,7 @@ typedef enum {
 /*
  * Advance task work flow mode:
  ******************************************************************************
- * 1. async mode (default)
+ * 1. async mode (default_val)
  *
  * mpp_init(type, coding, MPP_WORK_ASYNC)
  *
@@ -176,27 +175,24 @@ typedef enum {
  */
 /* NOTE: use index rather then handle to descripbe task */
 typedef RK_S32  MppTask;
-typedef void*   MppItem;
-
-typedef enum {
-    ITEM_MODE_INPUT,
-    ITEM_MODE_OUTPUT,
-    ITEM_MODE_BUTT,
-} MppItemMode;
-
-typedef enum {
-    ITEM_TYPE_PACKET,
-    ITEM_TYPE_FRAME,
-    ITEM_TYPE_CONFIG,
-    ITEM_TYPE_BUTT,
-} MppItemType;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void mpp_task_set_item(MppTask task, MppItemMode mode, MppItemType type, MppItem item);
-void mpp_task_get_item(MppTask task, MppItemMode mode, MppItemType type, MppItem *item);
+MPP_RET mpp_task_meta_set_s32(MppTask task, MppMetaKey key, RK_S32 val);
+MPP_RET mpp_task_meta_set_s64(MppTask task, MppMetaKey key, RK_S64 val);
+MPP_RET mpp_task_meta_set_ptr(MppTask task, MppMetaKey key, void  *val);
+MPP_RET mpp_task_meta_set_frame (MppTask task, MppMetaKey key, MppFrame  frame);
+MPP_RET mpp_task_meta_set_packet(MppTask task, MppMetaKey key, MppPacket packet);
+MPP_RET mpp_task_meta_set_buffer(MppTask task, MppMetaKey key, MppBuffer buffer);
+
+MPP_RET mpp_task_meta_get_s32(MppTask task, MppMetaKey key, RK_S32 *val, RK_S32 default_val);
+MPP_RET mpp_task_meta_get_s64(MppTask task, MppMetaKey key, RK_S64 *val, RK_S64 default_val);
+MPP_RET mpp_task_meta_get_ptr(MppTask task, MppMetaKey key, void  **val, void  *default_val);
+MPP_RET mpp_task_meta_get_frame (MppTask task, MppMetaKey key, MppFrame  *frame);
+MPP_RET mpp_task_meta_get_packet(MppTask task, MppMetaKey key, MppPacket *packet);
+MPP_RET mpp_task_meta_get_buffer(MppTask task, MppMetaKey key, MppBuffer *buffer);
 
 #ifdef __cplusplus
 }

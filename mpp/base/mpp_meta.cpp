@@ -320,7 +320,7 @@ MPP_RET mpp_meta_set_ptr(MppMeta meta, MppMetaKey key, void *val)
     return set_val_by_key(impl, key, MPP_META_TYPE_PTR, &meta_val);
 }
 
-MPP_RET mpp_meta_get_u32(MppMeta meta, MppMetaKey key, RK_S32 *val)
+MPP_RET mpp_meta_get_s32(MppMeta meta, MppMetaKey key, RK_S32 *val)
 {
     if (NULL == meta) {
         mpp_err_f("found NULL input\n");
@@ -336,7 +336,7 @@ MPP_RET mpp_meta_get_u32(MppMeta meta, MppMetaKey key, RK_S32 *val)
     return ret;
 }
 
-MPP_RET mpp_meta_get_u64(MppMeta meta, MppMetaKey key, RK_S64 *val)
+MPP_RET mpp_meta_get_s64(MppMeta meta, MppMetaKey key, RK_S64 *val)
 {
     if (NULL == meta) {
         mpp_err_f("found NULL input\n");
@@ -368,5 +368,90 @@ MPP_RET mpp_meta_get_ptr(MppMeta meta, MppMetaKey key, void  **val)
     return ret;
 }
 
+MPP_RET mpp_meta_set_frame(MppMeta meta, MppMetaKey key, MppFrame frame)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
 
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    meta_val.frame = frame;
+    return set_val_by_key(impl, key, MPP_META_TYPE_FRAME, &meta_val);
+}
+
+MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket packet)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    meta_val.packet = packet;
+    return set_val_by_key(impl, key, MPP_META_TYPE_PACKET, &meta_val);
+}
+
+MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer buffer)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    meta_val.buffer = buffer;
+    return set_val_by_key(impl, key, MPP_META_TYPE_BUFFER, &meta_val);
+}
+
+MPP_RET mpp_meta_get_frame(MppMeta meta, MppMetaKey key, MppFrame *frame)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_FRAME, &meta_val);
+    if (MPP_OK == ret)
+        *frame = meta_val.frame;
+
+    return ret;
+}
+
+MPP_RET mpp_meta_get_packet(MppMeta meta, MppMetaKey key, MppPacket *packet)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_PACKET, &meta_val);
+    if (MPP_OK == ret)
+        *packet = meta_val.packet;
+
+    return ret;
+}
+
+MPP_RET mpp_meta_get_buffer(MppMeta meta, MppMetaKey key, MppBuffer *buffer)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal meta_val;
+    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_BUFFER, &meta_val);
+    if (MPP_OK == ret)
+        *buffer = meta_val.buffer;
+
+    return ret;
+}
 

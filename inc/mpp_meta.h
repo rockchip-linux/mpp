@@ -86,9 +86,9 @@ MPP_RET mpp_meta_get_s32(MppMeta meta, MppMetaKey key, RK_S32 *val);
 MPP_RET mpp_meta_get_s64(MppMeta meta, MppMetaKey key, RK_S64 *val);
 MPP_RET mpp_meta_get_ptr(MppMeta meta, MppMetaKey key, void  **val);
 
-MPP_RET mpp_meta_set_frame (MppMeta meta, MppMetaKey key, MppFrame  *frame);
-MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket *packet);
-MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer *buffer);
+MPP_RET mpp_meta_set_frame (MppMeta meta, MppMetaKey key, MppFrame  frame);
+MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket packet);
+MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer buffer);
 MPP_RET mpp_meta_get_frame (MppMeta meta, MppMetaKey key, MppFrame  *frame);
 MPP_RET mpp_meta_get_packet(MppMeta meta, MppMetaKey key, MppPacket *packet);
 MPP_RET mpp_meta_get_buffer(MppMeta meta, MppMetaKey key, MppBuffer *buffer);
