@@ -176,6 +176,8 @@ if(GCC)
             add_definitions(-march=armv7-a -mfloat-abi=softfp -mfpu=neon)
         endif()
     endif()
+    # disable multichar warning
+    add_definitions(-Wno-multichar)
 endif(GCC)
 
 # ----------------------------------------------------------------------------
@@ -265,8 +267,6 @@ option(WARNINGS_AS_ERRORS "Stop compiles on first warning" OFF)
 if(WARNINGS_AS_ERRORS)
     if(GCC)
         add_definitions(-Werror)
-        # disable multichar warning
-        add_definitions(-Wno-multichar)
     elseif(MSVC)
         add_definitions(/WX)
     endif()
