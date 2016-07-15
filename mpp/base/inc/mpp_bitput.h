@@ -38,7 +38,7 @@ extern "C" {
 #endif
 RK_S32 mpp_set_bitput_ctx(BitputCtx_t *bp, RK_U64 *data, RK_U32 len);
 void mpp_put_bits(BitputCtx_t *bp, RK_U64 invalue, RK_S32 lbits);
-void mpp_align(BitputCtx_t *bp, RK_S32 align_bits, int flag);
+void mpp_put_align(BitputCtx_t *bp, RK_S32 align_bits, int flag);
 #ifdef  __cplusplus
 }
 #endif

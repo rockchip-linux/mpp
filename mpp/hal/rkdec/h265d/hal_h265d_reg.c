@@ -1018,7 +1018,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 for (i = 0; i < 15; i++) {
                     mpp_put_bits(&bp, rps_pic_info[k][j][i].is_long_term, 1);
                     if (j == 1 && i == 4) {
-                        mpp_align (&bp, 64, 0xf);
+                        mpp_put_align (&bp, 64, 0xf);
                     }
                     mpp_put_bits(&bp, rps_pic_info[k][j][i].dbp_index,    4);
                 }
@@ -1034,7 +1034,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             mpp_put_bits(&bp, slice_nb_rps_poc   [k], 4);
 
             h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", slice_nb_rps_poc[k]);
-            mpp_align   (&bp, 64, 0xf);
+            mpp_put_align   (&bp, 64, 0xf);
         }
         if (rps_buf != NULL) {
             memcpy(rps_buf, rps_packet, nb_slice * 32);
@@ -1154,7 +1154,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     ///<-zrh comment ^ 100 bit above
 
     mpp_put_bits(&bp, 0                                                    , 7 );
-    mpp_align(&bp                                                         , 32, 0xf);
+    mpp_put_align(&bp                                                         , 32, 0xf);
 
     // PPS
     mpp_put_bits(&bp, dxva_cxt->pp.pps_id                                    , 6 );
@@ -1200,7 +1200,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_columns_minus1 + 1, 5);
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_rows_minus1 + 1 , 5 );
     mpp_put_bits(&bp, 3, 2); //mSps_Pps[i]->mMode
-    mpp_align(&bp, 64, 0xf);
+    mpp_put_align(&bp, 64, 0xf);
 
     {
         /// tiles info begin
@@ -1294,7 +1294,7 @@ RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         }
 #endif
         mpp_put_bits(&bp, addr, 32);
-        mpp_align(&bp, 64, 0xf);
+        mpp_put_align(&bp, 64, 0xf);
     }
 
 #ifdef RKPLATFORM

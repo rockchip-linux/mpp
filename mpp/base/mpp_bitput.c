@@ -49,7 +49,7 @@ void mpp_put_bits(BitputCtx_t *bp, RK_U64 invalue, RK_S32 lbits)
     // mpp_log("bp->index = %d bp->bitpos = %d lbits = %d invalue 0x%x bp->hvalue 0x%x  bp->lvalue 0x%x",bp->index,bp->bitpos,lbits, (RK_U32)invalue,(RK_U32)(bp->bvalue >> 32),(RK_U32)bp->bvalue);
 }
 
-void mpp_align(BitputCtx_t *bp, RK_S32 align_bits, int flag)
+void mpp_put_align(BitputCtx_t *bp, RK_S32 align_bits, int flag)
 {
     RK_U32 word_offset = 0,  len = 0;
 
