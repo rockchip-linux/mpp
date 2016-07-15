@@ -27,6 +27,8 @@
 #include <ion.h>
 #elif defined(ANDROID)
 #include <linux/ion.h>
+#else
+#include "ion.h"
 #endif
 
 #include "os_mem.h"
