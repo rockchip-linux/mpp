@@ -18,7 +18,7 @@
 #define __MPP_TASK_IMPL_H__
 
 #include "mpp_list.h"
-#include "mpp_meta.h"
+#include "mpp_task.h"
 
 /*
  * mpp task status transaction

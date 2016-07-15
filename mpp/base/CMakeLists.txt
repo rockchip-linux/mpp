@@ -9,6 +9,7 @@ add_library(mpp_base STATIC
     mpp_buffer.cpp
     mpp_packet.cpp
     mpp_frame.cpp
+    mpp_task_impl.cpp
     mpp_task.cpp
     mpp_meta.cpp
     mpp_bitread.c

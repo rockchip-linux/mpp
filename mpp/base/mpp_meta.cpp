@@ -116,6 +116,37 @@ public:
     void          put_node(MppMetaNode *node);
 };
 
+MppMetaService::MppMetaService()
+  : meta_id(0),
+    meta_count(0),
+    node_count(0)
+{
+    INIT_LIST_HEAD(&mlist_meta);
+    INIT_LIST_HEAD(&mlist_node);
+}
+
+MppMetaService::~MppMetaService()
+{
+    mpp_assert(list_empty(&mlist_meta));
+    mpp_assert(list_empty(&mlist_node));
+
+    while (!list_empty(&mlist_meta)) {
+        MppMetaImpl *pos, *n;
+        list_for_each_entry_safe(pos, n, &mlist_meta, MppMetaImpl, list_meta) {
+            put_meta(pos);
+        }
+    }
+
+    mpp_assert(list_empty(&mlist_node));
+
+    while (!list_empty(&mlist_node)) {
+        MppMetaNode *pos, *n;
+        list_for_each_entry_safe(pos, n, &mlist_node, MppMetaNode, list_node) {
+            put_node(pos);
+        }
+    }
+}
+
 RK_S32 MppMetaService::get_index_of_key(MppMetaKey key, MppMetaType type)
 {
     RK_S32 i = 0;
