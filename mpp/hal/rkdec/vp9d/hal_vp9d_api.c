@@ -307,7 +307,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
     for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
         mpp_put_bits(&bp, pic_param->prob.intra[i], 8);
 
-    mpp_align(&bp, 128, 0);
+    mpp_put_align(&bp, 128, 0);
     if (intraFlag) { //intra probs
         //intra only //149 x 128 bit ,aligned to 152 x 128 bit
         //coeff releated prob   64 x 128 bit
@@ -321,12 +321,12 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
 
                             byte_count++;
                             if (byte_count == 27) {
-                                mpp_align(&bp, 128, 0);
+                                mpp_put_align(&bp, 128, 0);
                                 byte_count = 0;
                             }
                         }
                 }
-                mpp_align(&bp, 128, 0);
+                mpp_put_align(&bp, 128, 0);
             }
 
         //intra mode prob  80 x 128 bit
@@ -338,7 +338,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
                     byte_count++;
                     if (byte_count == 27) {
                         byte_count = 0;
-                        mpp_align(&bp, 128, 0);
+                        mpp_put_align(&bp, 128, 0);
                     }
 
                 }
@@ -351,12 +351,12 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
                 for (m = 0; m < 23; m++)
                     mpp_put_bits(&bp, 0, 8);
             }
-            mpp_align(&bp, 128, 0);
+            mpp_put_align(&bp, 128, 0);
         }
         //align to 152 x 128 bit
         for (i = 0; i < INTER_PROB_SIZE_ALIGN_TO_128 - INTRA_PROB_SIZE_ALIGN_TO_128; i++) { //aligned to 153 x 256 bit
             mpp_put_bits(&bp, 0, 8);
-            mpp_align(&bp, 128, 0);
+            mpp_put_align(&bp, 128, 0);
         }
     } else {
         //inter probs
@@ -387,7 +387,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
             for (j = 0; j < SWITCHABLE_FILTERS - 1; j++)
                 mpp_put_bits(&bp, pic_param->prob.filter[i][j], 8);
 
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
 
         //128 x 128bit
         //coeff releated
@@ -400,12 +400,12 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
                             mpp_put_bits(&bp, pic_param->prob.coef[i][j][0][k][m][n], 8);
                             byte_count++;
                             if (byte_count == 27) {
-                                mpp_align(&bp, 128, 0);
+                                mpp_put_align(&bp, 128, 0);
                                 byte_count = 0;
                             }
                         }
                 }
-                mpp_align(&bp, 128, 0);
+                mpp_put_align(&bp, 128, 0);
             }
         for (i = 0; i < TX_SIZES; i++)
             for (j = 0; j < PLANE_TYPES; j++) {
@@ -416,38 +416,38 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
                             mpp_put_bits(&bp, pic_param->prob.coef[i][j][1][k][m][n], 8);
                             byte_count++;
                             if (byte_count == 27) {
-                                mpp_align(&bp, 128, 0);
+                                mpp_put_align(&bp, 128, 0);
                                 byte_count = 0;
                             }
                         }
 
                     }
                 }
-                mpp_align(&bp, 128, 0);
+                mpp_put_align(&bp, 128, 0);
             }
 
         //intra uv mode 6 x 128
         for (i = 0; i < 3; i++) //intra_uv_mode
             for (j = 0; j < INTRA_MODES - 1; j++)
                 mpp_put_bits(&bp, uv_mode_prob[i][j], 8);
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
 
         for (; i < 6; i++) //intra_uv_mode
             for (j = 0; j < INTRA_MODES - 1; j++)
                 mpp_put_bits(&bp, uv_mode_prob[i][j], 8);
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
 
         for (; i < 9; i++) //intra_uv_mode
             for (j = 0; j < INTRA_MODES - 1; j++)
                 mpp_put_bits(&bp, uv_mode_prob[i][j], 8);
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
         for (; i < INTRA_MODES; i++) //intra_uv_mode
             for (j = 0; j < INTRA_MODES - 1; j++)
                 mpp_put_bits(&bp, uv_mode_prob[i][j], 8);
 
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
         mpp_put_bits(&bp, 0, 8);
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
 
         //mv releated 6 x 128
         for (i = 0; i < MV_JOINTS - 1; i++) //mv_joint_type
@@ -483,7 +483,7 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         for (i = 0; i < 2; i++) { //hp bit
             mpp_put_bits(&bp, pic_param->prob.mv_comp[i].hp, 8);
         }
-        mpp_align(&bp, 128, 0);
+        mpp_put_align(&bp, 128, 0);
     }
 #ifdef RKPLATFORM
     memcpy(probe_ptr, probe_packet, 304 * 8);
