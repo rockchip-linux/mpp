@@ -174,7 +174,7 @@ typedef enum {
  * task_enqueue(ctx, PORT_OUTPUT, task);
  */
 /* NOTE: use index rather then handle to descripbe task */
-typedef RK_S32  MppTask;
+typedef void* MppTask;
 
 #ifdef __cplusplus
 extern "C" {
