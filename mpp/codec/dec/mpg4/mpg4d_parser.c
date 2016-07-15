@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "mpg4d_parser"
+
 #include <string.h>
 
 #include "mpp_env.h"
