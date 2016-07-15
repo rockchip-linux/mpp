@@ -116,7 +116,7 @@ public:
     void          put_node(MppMetaNode *node);
 };
 
-RK_S32 get_index_of_key(MppMetaKey key, MppMetaType type)
+RK_S32 MppMetaService::get_index_of_key(MppMetaKey key, MppMetaType type)
 {
     RK_S32 i = 0;
     RK_S32 num = MPP_ARRAY_ELEMS(meta_defs);
