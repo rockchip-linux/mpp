@@ -677,7 +677,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
         misc_ion_int = NULL;
     } else {
         /* if only legacy group left dump the legacy group */
-        if (group_count == 1 && misc_ion_int->buffer_count) {
+        if (group_count == 1 && misc_ion_int && misc_ion_int->buffer_count) {
             mpp_log("found legacy group has buffer remain, start dumping\n");
             mpp_buffer_group_dump(misc_ion_int);
             abort();
