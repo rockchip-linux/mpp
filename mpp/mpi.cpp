@@ -43,6 +43,7 @@ static MppCodingTypeInfo support_list[] = {
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP8,    "dec",  "vp8",          },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,    "dec",  "VP9",          },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,    "enc",  "h.264/AVC",    },
 };
 
 #define check_mpp_ctx(ctx)  _check_mpp_ctx(ctx, __FUNCTION__)
@@ -222,6 +223,8 @@ static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
         return MPP_ERR_UNKNOW;
     }
 
+    ret = p->ctx->dequeue(type, task);
+
     MPI_FUNCTION_LEAVE();
     return ret;
 }
@@ -235,10 +238,12 @@ static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
     if (ret)
         return ret;
 
-    if (type >= MPP_PORT_BUTT || task < 0) {
-        mpp_err_f("invalid input type %d task %d\n", type, task);
+    if (type >= MPP_PORT_BUTT || NULL == task) {
+        mpp_err_f("invalid input type %d task %p\n", type, task);
         return MPP_ERR_UNKNOW;
     }
+
+    ret = p->ctx->enqueue(type, task);
 
     MPI_FUNCTION_LEAVE();
     return ret;

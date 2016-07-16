@@ -75,9 +75,6 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     MppBuffer frm_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppBuffer pkt_buf[MPI_ENC_IO_COUNT] = { NULL };
 
-    MpiCmd mpi_cmd      = MPP_CMD_BASE;
-    MppParam param      = NULL;
-
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
     RK_U32 height       = cmd->height;
@@ -162,6 +159,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_frame_set_hor_stride(frame, hor_stride);
     mpp_frame_set_ver_stride(frame, ver_stride);
 
+    i = 0;
     while (!pkt_eos) {
         MppTask task = NULL;
         RK_S32 index = i++;
@@ -176,12 +174,13 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         if (read_size != frame_size || feof(fp_input)) {
             mpp_log("found last frame\n");
             frm_eos = 1;
+            break;
         }
 
         mpp_frame_set_buffer(frame, frm_buf_in);
         mpp_frame_set_eos(frame, frm_eos);
 
-        mpp_packet_init_with_buffer(packet, pkt_buf_out);
+        mpp_packet_init_with_buffer(&packet, pkt_buf_out);
 
         ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
         if (ret) {
@@ -198,32 +197,42 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
 
-        msleep(200);
+        msleep(20);
 
-        ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task);
-        if (ret) {
-            mpp_err("mpp task output dequeue failed\n");
-            goto MPP_TEST_OUT;
-        }
-
-        if (task) {
-            mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame);
-            mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet);
-
-            // write packet to file here
-            {
-                void *ptr   = mpp_packet_get_pos(packet);
-                size_t len  = mpp_packet_get_length(packet);
-                fwrite(ptr, 1, len, fp_output);
+        do {
+            ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task);
+            if (ret) {
+                mpp_err("mpp task output dequeue failed\n");
+                goto MPP_TEST_OUT;
             }
-            mpp_packet_deinit(&packet);
-        }
 
-        ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
-        if (ret) {
-            mpp_err("mpp task output enqueue failed\n");
-            goto MPP_TEST_OUT;
-        }
+            if (task) {
+                MppFrame frame_out = NULL;
+                MppFrame packet_out = NULL;
+
+                mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
+                mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
+
+                mpp_assert(packet_out == packet);
+                mpp_assert(frame_out  == frame);
+                if (packet) {
+                    // write packet to file here
+                    // void *ptr   = mpp_packet_get_pos(packet);
+                    // size_t len  = mpp_packet_get_length(packet);
+                    // fwrite(ptr, 1, len, fp_output);
+                    mpp_packet_deinit(&packet);
+                }
+                mpp_log_f("encoded frame %d\n", frame_count);
+                frame_count++;
+
+                ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
+                if (ret) {
+                    mpp_err("mpp task output enqueue failed\n");
+                    goto MPP_TEST_OUT;
+                }
+                break;
+            }
+        } while (1);
     }
 
     ret = mpi->reset(ctx);
@@ -239,14 +248,19 @@ MPP_TEST_OUT:
         ctx = NULL;
     }
 
+    if (frame) {
+        mpp_frame_deinit(&frame);
+        frame = NULL;
+    }
+
     for (i = 0; i < MPI_ENC_IO_COUNT; i++) {
         if (frm_buf[i]) {
-            mpp_buffer_put(&frm_buf[i]);
+            mpp_buffer_put(frm_buf[i]);
             frm_buf[i] = NULL;
         }
 
         if (pkt_buf[i]) {
-            mpp_buffer_put(&pkt_buf[i]);
+            mpp_buffer_put(pkt_buf[i]);
             pkt_buf[i] = NULL;
         }
     }

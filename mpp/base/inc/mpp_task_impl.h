@@ -52,19 +52,17 @@
  *
  */
 typedef enum MppTaskStatus_e {
-    MPP_EXTERNAL_QUEUE,         /* in external queue and ready for external dequeue */
-    MPP_EXTERNAL_HOLD,          /* dequeued and hold by external user, user will config */
-    MPP_INTERNAL_QUEUE,         /* in mpp internal work queue and ready for mpp dequeue */
-    MPP_INTERNAL_HOLD,          /* dequeued and hold by mpp internal worker, mpp is processing */
-    MPP_TASK_BUTT,
+    MPP_INPUT_PORT,             /* in external queue and ready for external dequeue */
+    MPP_INPUT_HOLD,             /* dequeued and hold by external user, user will config */
+    MPP_OUTPUT_PORT,            /* in mpp internal work queue and ready for mpp dequeue */
+    MPP_OUTPUT_HOLD,            /* dequeued and hold by mpp internal worker, mpp is processing */
+    MPP_TASK_STATUS_BUTT,
 } MppTaskStatus;
-
-typedef void* MppPort;
 
 typedef struct MppTaskImpl_t {
     const char          *name;
     struct list_head    list;
-    MppPort             *port;
+    MppTaskQueue        *queue;
     RK_S32              index;
     MppTaskStatus       status;
 
@@ -76,22 +74,6 @@ extern "C" {
 #endif
 
 MPP_RET check_mpp_task_name(MppTask task);
-
-/*
- * mpp_port_init:
- * initialize port with task count and initial status
- * group        - return port pointer
- * type         - initial queue for all tasks
- * task_count   - total task count for this task group
- */
-MPP_RET mpp_port_init(MppPort *port, MppPortType type, RK_S32 task_count);
-MPP_RET mpp_port_deinit(MppPort port);
-
-MPP_RET mpp_port_can_dequeue(MppPort port);
-MPP_RET mpp_port_can_enqueue(MppPort port);
-
-MPP_RET mpp_port_dequeue(MppPort port, MppTask *task);
-MPP_RET mpp_port_enqueue(MppPort port, MppTask task);
 
 #ifdef __cplusplus
 }

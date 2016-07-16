@@ -25,9 +25,9 @@
 #include "mpp_dec.h"
 #include "mpp_enc.h"
 #include "mpp_hal.h"
+#include "mpp_task_impl.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
-#include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
@@ -45,6 +45,10 @@ Mpp::Mpp()
       mTaskGetCount(0),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
+      mInputPort(NULL),
+      mOutputPort(NULL),
+      mInputTaskQueue(NULL),
+      mOutputTaskQueue(NULL),
       mThreadCodec(NULL),
       mThreadHal(NULL),
       mDec(NULL),
@@ -91,7 +95,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
-
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
@@ -109,6 +112,14 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_err("Mpp error type %d\n", mType);
     } break;
     }
+
+    mpp_task_queue_init(&mInputTaskQueue);
+    mpp_task_queue_init(&mOutputTaskQueue);
+    mpp_task_queue_setup(mInputTaskQueue, 4);
+    mpp_task_queue_setup(mOutputTaskQueue, 4);
+
+    mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
+    mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
     if (mFrames && mPackets &&
         (mDec || mEnc) &&
@@ -150,6 +161,19 @@ void Mpp::clear()
         delete mThreadHal;
         mThreadHal = NULL;
     }
+
+    if (mInputTaskQueue) {
+        mpp_task_queue_deinit(mInputTaskQueue);
+        mInputTaskQueue = NULL;
+    }
+    if (mOutputTaskQueue) {
+        mpp_task_queue_deinit(mOutputTaskQueue);
+        mOutputTaskQueue = NULL;
+    }
+
+    mInputPort = NULL;
+    mOutputPort = NULL;
+
     if (mDec || mEnc) {
         if (mType == MPP_CTX_DEC) {
             mpp_dec_deinit(mDec);
@@ -271,6 +295,63 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         mPacketGetCount++;
     }
     return MPP_OK;
+}
+
+MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
+{
+    if (!mInitDone)
+        return MPP_NOK;
+
+    MPP_RET ret = MPP_NOK;
+    AutoMutex autoLock(mPortLock);
+    MppTaskQueue port = NULL;
+    switch (type) {
+    case MPP_PORT_INPUT : {
+        port = mInputPort;
+    } break;
+    case MPP_PORT_OUTPUT : {
+        port = mOutputPort;
+    } break;
+    default : {
+    } break;
+    }
+
+    if (port)
+        ret = mpp_port_dequeue(port, task);
+
+    return ret;
+}
+
+MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
+{
+    if (!mInitDone)
+        return MPP_NOK;
+
+    MPP_RET ret = MPP_NOK;
+    AutoMutex autoLock(mPortLock);
+    MppTaskQueue port = NULL;
+    switch (type) {
+    case MPP_PORT_INPUT : {
+        port = mInputPort;
+    } break;
+    case MPP_PORT_OUTPUT : {
+        port = mOutputPort;
+    } break;
+    default : {
+    } break;
+    }
+
+    if (port) {
+        mThreadCodec->lock();
+        ret = mpp_port_enqueue(port, task);
+        if (MPP_OK == ret) {
+            // if enqueue success wait up thread
+            mThreadCodec->signal();
+        }
+        mThreadCodec->unlock();
+    }
+
+    return ret;
 }
 
 MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
