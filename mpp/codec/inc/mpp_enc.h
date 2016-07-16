@@ -17,12 +17,19 @@
 #ifndef __MPP_ENC_H__
 #define __MPP_ENC_H__
 
-#include "rk_mpi.h"
+#include "mpp_hal.h"
 
 typedef struct MppEnc_t MppEnc;
 
 struct MppEnc_t {
     MppCodingType       coding;
+
+    MppHal              hal;
+
+    // common resource
+    MppBufSlots         frame_slots;
+    MppBufSlots         packet_slots;
+    HalTaskGroup        tasks;
 };
 
 #ifdef __cplusplus

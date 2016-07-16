@@ -42,7 +42,14 @@
  */
 
 /*
- * mpp has two ports: input and output
+ * One mpp task queue has two ports: input and output
+ *
+ * The whole picture is:
+ * Top layer mpp has two ports: mpp_input_port and mpp_output_port
+ * But internally these two ports belongs to two task queue.
+ * The mpp_input_port is the mpp_input_task_queue's input port.
+ * The mpp_output_port is the mpp_output_task_queue's output port.
+ *
  * Each port uses its task queue to communication
  */
 typedef enum {
@@ -175,10 +182,45 @@ typedef enum {
  */
 /* NOTE: use index rather then handle to descripbe task */
 typedef void* MppTask;
+typedef void* MppPort;
+typedef void* MppTaskQueue;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * Mpp task queue function:
+ *
+ * mpp_task_queue_init      - create  task queue structure
+ * mpp_task_queue_deinit    - destory task queue structure
+ * mpp_task_queue_get_port  - return input or output port of task queue
+ *
+ * Typical work flow, task mpp_dec for example:
+ *
+ * 1. Mpp layer creates one task queue in order to connect mpp input and mpp_dec input.
+ * 2. Mpp layer setups the task count in task queue input port.
+ * 3. Get input port from the task queue and assign to mpp input as mpp_input_port.
+ * 4. Get output port from the task queue and assign to mpp_dec input as dec_input_port.
+ * 5. Let the loop start.
+ *    a. mpi user will dequeue task from mpp_input_port.
+ *    b. mpi user will setup task.
+ *    c. mpi user will enqueue task back to mpp_input_port.
+ *    d. task will automatically transfer to dec_input_port.
+ *    e. mpp_dec will dequeue task from dec_input_port.
+ *    f. mpp_dec will process task.
+ *    g. mpp_dec will enqueue task back to dec_input_port.
+ *    h. task will automatically transfer to mpp_input_port.
+ * 6. Stop the loop. All tasks must be return to input port with idle status.
+ * 6. Mpp layer destory the task queue.
+ */
+MPP_RET mpp_task_queue_init(MppTaskQueue *queue);
+MPP_RET mpp_task_queue_setup(MppTaskQueue queue, RK_S32 task_count);
+MPP_RET mpp_task_queue_deinit(MppTaskQueue queue);
+MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type);
+
+MPP_RET mpp_port_dequeue(MppPort port, MppTask *task);
+MPP_RET mpp_port_enqueue(MppPort port, MppTask task);
 
 MPP_RET mpp_task_meta_set_s32(MppTask task, MppMetaKey key, RK_S32 val);
 MPP_RET mpp_task_meta_set_s64(MppTask task, MppMetaKey key, RK_S64 val);

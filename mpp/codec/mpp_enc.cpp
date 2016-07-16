@@ -28,27 +28,43 @@
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *thd_enc  = mpp->mThreadCodec;
-    mpp_list *packets = mpp->mPackets;
-    mpp_list *frames  = mpp->mFrames;
-    MppFrameImpl frame;
-    MppPacket packet;
-    size_t size = SZ_1M;
-    char *buf = mpp_malloc(char, size);
+    MppThread *thd_enc = mpp->mThreadCodec;
+    MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
+    MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
+    MppTask task = NULL;
+    MPP_RET ret = MPP_OK;
 
     while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
-        AutoMutex auto_lock(frames->mutex());
-        if (frames->list_size()) {
-            frames->del_at_head(&frame, sizeof(frame));
+        thd_enc->lock();
+        ret = mpp_port_dequeue(input, &task);
+        if (ret || NULL == task)
+            thd_enc->wait();
+        thd_enc->unlock();
 
-            mpp_packet_init(&packet, buf, size);
-            packets->lock();
-            packets->add_at_tail(&packet, sizeof(packet));
-            packets->signal();
-            packets->unlock();
+        if (task) {
+            MppFrame frame = NULL;
+            MppPacket packet = NULL;
+            // task process here
+
+
+            // enqueue task back to input input
+            mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame);
+            mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet);
+
+            mpp_port_enqueue(input, task);
+            task = NULL;
+
+            // send finished task to output port
+            mpp_port_dequeue(output, &task);
+
+            mpp_task_meta_set_frame(task,  MPP_META_KEY_INPUT_FRM,  frame);
+            mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
+
+            // setup output task here
+            mpp_port_enqueue(output, task);
+            task = NULL;
         }
     }
-    mpp_free(buf);
     return NULL;
 }
 
@@ -123,7 +139,29 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
         return MPP_ERR_NULL_PTR;
     }
 
+    MPP_RET ret = MPP_NOK;
+    MppHal hal = NULL;
+
+    MppHalCfg hal_cfg = {
+        MPP_CTX_ENC,
+        coding,
+        HAL_MODE_LIBVPU,
+        HAL_RKVDEC,
+        NULL,
+        NULL,
+        NULL,
+        2,
+        0,
+        NULL,
+    };
+
+    ret = mpp_hal_init(&hal, &hal_cfg);
+    if (ret) {
+        mpp_err_f("could not init hal\n");
+    }
+
     p->coding = coding;
+
     *enc = p;
 
     return MPP_OK;
@@ -136,6 +174,10 @@ MPP_RET mpp_enc_deinit(MppEnc *enc)
         return MPP_ERR_NULL_PTR;
     }
 
+    MPP_RET ret = mpp_hal_deinit(enc->hal);
+    if (ret) {
+        mpp_err_f("mpp enc hal deinit failed\n");
+    }
     mpp_free(enc);
     return MPP_OK;
 }

@@ -20,6 +20,7 @@
 #include "mpp_list.h"
 #include "mpp_dec.h"
 #include "mpp_enc.h"
+#include "mpp_task.h"
 
 #define MPP_DBG_FUNCTION                (0x00000001)
 #define MPP_DBG_PACKET                  (0x00000002)
@@ -70,6 +71,9 @@ public:
     MPP_RET put_frame(MppFrame frame);
     MPP_RET get_packet(MppPacket *packet);
 
+    MPP_RET dequeue(MppPortType type, MppTask *task);
+    MPP_RET enqueue(MppPortType type, MppTask task);
+
     MPP_RET reset();
     MPP_RET control(MpiCmd cmd, MppParam param);
 
@@ -93,6 +97,16 @@ public:
      */
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
+
+    /*
+     * Mpp task queue for advance task mode
+     */
+    Mutex           mPortLock;
+    MppPort         mInputPort;
+    MppPort         mOutputPort;
+
+    MppTaskQueue    mInputTaskQueue;
+    MppTaskQueue    mOutputTaskQueue;
 
     /*
      * There are two threads for each decoder/encoder: codec thread and hal thread
