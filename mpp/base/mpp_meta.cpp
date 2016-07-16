@@ -114,6 +114,7 @@ public:
 
     MppMetaNode  *get_node(MppMetaImpl *meta, RK_S32 index);
     void          put_node(MppMetaNode *node);
+    MppMetaNode  *find_node(MppMetaImpl *meta, RK_S32 index);
 };
 
 MppMetaService::MppMetaService()
@@ -182,7 +183,7 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
 
 void MppMetaService::put_meta(MppMetaImpl *meta)
 {
-    while (meta->node_count) {
+    while (!list_empty(&meta->list_node)) {
         MppMetaNode *node = list_entry(meta->list_node.next, MppMetaNode, list_meta);
         put_node(node);
         meta->node_count--;
@@ -192,19 +193,27 @@ void MppMetaService::put_meta(MppMetaImpl *meta)
     mpp_free(meta);
 }
 
-MppMetaNode *MppMetaService::get_node(MppMetaImpl *meta, RK_S32 type_id)
+MppMetaNode *MppMetaService::find_node(MppMetaImpl *meta, RK_S32 type_id)
 {
     MppMetaNode *node = NULL;
     if (meta->node_count) {
         MppMetaNode *n, *pos;
 
-        list_for_each_entry_safe(pos, n, &meta->list_node, MppMetaNode, list_node) {
+        list_for_each_entry_safe(pos, n, &meta->list_node, MppMetaNode, list_meta) {
             if (pos->type_id == type_id) {
                 node = pos;
                 break;
             }
         }
-    } else {
+    }
+    return node;
+}
+
+MppMetaNode *MppMetaService::get_node(MppMetaImpl *meta, RK_S32 type_id)
+{
+    MppMetaNode *node = find_node(meta, type_id);
+
+    if (NULL == node) {
         node = mpp_malloc(MppMetaNode, 1);
         if (node) {
             INIT_LIST_HEAD(&node->list_meta);
@@ -236,13 +245,13 @@ void MppMetaService::put_node(MppMetaNode *node)
     // TODO: may be we need to release MppFrame / MppPacket / MppBuffer here
     switch (meta_defs[node->type_id].type) {
     case MPP_META_TYPE_FRAME : {
-        mpp_frame_deinit(&node->val.frame);
+        // mpp_frame_deinit(&node->val.frame);
     } break;
     case MPP_META_TYPE_PACKET : {
-        mpp_packet_deinit(&node->val.packet);
+        // mpp_packet_deinit(&node->val.packet);
     } break;
     case MPP_META_TYPE_BUFFER : {
-        mpp_buffer_put(node->val.buffer);
+        //mpp_buffer_put(node->val.buffer);
     } break;
     default : {
     } break;
@@ -304,7 +313,7 @@ static MPP_RET get_val_by_key(MppMetaImpl *meta, MppMetaKey key, MppMetaType typ
     if (index < 0)
         return ret;
 
-    MppMetaNode *node = service->get_node(meta, index);
+    MppMetaNode *node = service->find_node(meta, index);
     if (node) {
         *val = node->val;
         ret = MPP_OK;
