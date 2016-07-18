@@ -2,7 +2,12 @@
 
 add_subdirectory(dummy)
 
-add_subdirectory(avs)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/avs")
+    set(HAVE_AVSD true)
+    set(CODEC_AVSD codec_avsd)
+    add_definitions(-DHAVE_AVSD)
+    add_subdirectory(avs)
+endif()
 
 add_subdirectory(h263)
 
