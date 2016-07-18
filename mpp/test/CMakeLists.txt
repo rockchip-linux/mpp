@@ -31,6 +31,8 @@ add_mpp_test(h264d)
 include_directories(../codec/dec/vp9)
 add_mpp_test(vp9d)
 
-# avs decoder test
-include_directories(../codec/dec/avs)
-add_mpp_test(avsd)
+if (${HAVE_AVSD})
+    # avs decoder test
+    include_directories(../codec/dec/avs)
+    add_mpp_test(avsd)
+endif()

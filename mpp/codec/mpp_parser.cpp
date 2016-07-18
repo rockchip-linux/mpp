@@ -39,7 +39,9 @@
  * all decoder static register here
  */
 static const ParserApi *parsers[] = {
+#if HAVE_AVSD
     &api_avsd_parser,
+#endif
     &api_h263d_parser,
     &api_h264d_parser,
     &api_h265d_parser,
