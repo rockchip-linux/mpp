@@ -27,10 +27,7 @@
 #define mpi_dbg(flag, fmt, ...)     _mpp_dbg(mpi_debug, flag, fmt, ## __VA_ARGS__)
 #define mpi_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpi_debug, flag, fmt, ## __VA_ARGS__)
 
-#define MPI_FUNCTION_ENTER()        mpi_dbg_f(MPI_DBG_FUNCTION, "enter\n")
-#define MPI_FUNCTION_LEAVE()        mpi_dbg_f(MPI_DBG_FUNCTION, "leave\n")
-#define MPI_FUNCTION_LEAVE_OK()     mpi_dbg_f(MPI_DBG_FUNCTION, "success\n")
-#define MPI_FUNCTION_LEAVE_FAIL()   mpi_dbg_f(MPI_DBG_FUNCTION, "failed\n")
+#define mpi_dbg_func(fmt, ...)      mpi_dbg_f(MPI_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 typedef struct MpiImpl_t MpiImpl;
 
