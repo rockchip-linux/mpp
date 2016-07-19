@@ -221,6 +221,12 @@ typedef struct MppBufferInfo_t {
 #define mpp_buffer_get(group, buffer, size, ...) \
         mpp_buffer_get_with_tag(group, buffer, size, MODULE_TAG, __FUNCTION__)
 
+#define mpp_buffer_put(buffer) \
+        mpp_buffer_put_with_caller(buffer, __FUNCTION__)
+
+#define mpp_buffer_inc_ref(buffer) \
+        mpp_buffer_inc_ref_with_caller(buffer, __FUNCTION__);
+
 #define mpp_buffer_group_get_internal(group, type, ...) \
         mpp_buffer_group_get(group, type, MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
 
@@ -244,8 +250,8 @@ MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, Mp
                                    const char *tag, const char *caller);
 MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t size,
                                 const char *tag, const char *caller);
-MPP_RET mpp_buffer_put(MppBuffer buffer);
-MPP_RET mpp_buffer_inc_ref(MppBuffer buffer);
+MPP_RET mpp_buffer_put_with_caller(MppBuffer buffer, const char *caller);
+MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller);
 
 MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info);
 MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size);
