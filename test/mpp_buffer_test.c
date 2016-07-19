@@ -246,6 +246,8 @@ int main()
         goto MPP_BUFFER_failed;
     }
 
+    mpp_env_set_u32("mpp_buffer_debug", 0);
+
     return ret;
 
 MPP_BUFFER_failed:
@@ -281,6 +283,9 @@ MPP_BUFFER_failed:
     mpp_assert(NULL == allocator);
 
     mpp_log("mpp_buffer_test failed\n");
+
+    mpp_env_set_u32("mpp_buffer_debug", 0);
+
     return ret;
 }
 
