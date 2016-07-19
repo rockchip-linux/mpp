@@ -134,9 +134,8 @@ extern RK_U32 mpp_buffer_debug;
  * mpp_buffer_destory       - destroy the buffer
  */
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, MppBufferGroupImpl *group, MppBufferInfo *info, MppBufferImpl **buffer);
-MPP_RET mpp_buffer_destroy(MppBufferImpl *buffer);
-MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer);
-MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer);
+MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer, const char* caller);
+MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller);
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);

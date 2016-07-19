@@ -92,24 +92,25 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
     return (buf) ? (MPP_OK) : (MPP_NOK);
 }
 
-MPP_RET mpp_buffer_put(MppBuffer buffer)
+
+MPP_RET mpp_buffer_put_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
         mpp_err("mpp_buffer_put invalid input: buffer %p\n", buffer);
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_ref_dec((MppBufferImpl*)buffer);
+    return mpp_buffer_ref_dec((MppBufferImpl*)buffer, caller);
 }
 
-MPP_RET mpp_buffer_inc_ref(MppBuffer buffer)
+MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
         mpp_err("mpp_buffer_inc_ref invalid input: buffer %p\n", buffer);
         return MPP_ERR_UNKNOW;
     }
 
-    return mpp_buffer_ref_inc((MppBufferImpl*)buffer);
+    return mpp_buffer_ref_inc((MppBufferImpl*)buffer, caller);
 }
 
 MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size)
