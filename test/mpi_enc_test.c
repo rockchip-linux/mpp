@@ -182,11 +182,19 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
         mpp_packet_init_with_buffer(&packet, pkt_buf_out);
 
-        ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
-        if (ret) {
-            mpp_err("mpp task input dequeue failed\n");
-            goto MPP_TEST_OUT;
-        }
+        do {
+            ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
+            if (ret) {
+                mpp_err("mpp task input dequeue failed\n");
+                goto MPP_TEST_OUT;
+            }
+            if (task == NULL) {
+                mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
+                usleep(3000);
+            } else
+                break;
+        } while (1);
+
 
         mpp_task_meta_set_frame (task, MPP_META_KEY_INPUT_FRM,  frame);
         mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
