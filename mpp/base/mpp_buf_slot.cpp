@@ -526,7 +526,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         impl->hal_hor_align = default_align_16;
         impl->hal_ver_align = default_align_16;
         impl->hal_len_align = NULL;
-        impl->numerator     = 10;
+        impl->numerator     = 9;
         impl->denominator   = 5;
         impl->slots_idx     = buf_slot_idx++;
 
