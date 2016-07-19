@@ -59,223 +59,279 @@ static MPP_RET _check_mpp_ctx(MpiImpl *p, const char *caller)
 
 static MPP_RET mpi_config(MppCtx ctx, MppEncConfig cfg)
 {
-    (void)cfg;
-
-    MPI_FUNCTION_ENTER();
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    mpi_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
+
+        // TODO: do config here
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
 {
-    (void)packet;
-    (void)frame;
-
-    MPI_FUNCTION_ENTER();
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    mpi_dbg_func("enter ctx %p packet %p frame %p\n", ctx, packet, frame);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
+
+        if (NULL == frame || NULL == packet) {
+            mpp_err_f("found NULL input packet %p frame %p\n", packet, frame);
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
+        // TODO: do decode here
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (NULL == packet) {
-        mpp_err_f("found NULL input packet\n", packet);
-        return MPP_ERR_NULL_PTR;
-    }
+    mpi_dbg_func("enter ctx %p packet %p\n", ctx, packet);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
 
-    ret = p->ctx->put_packet(packet);
+        if (NULL == packet) {
+            mpp_err_f("found NULL input packet\n");
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->put_packet(packet);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (NULL == frame) {
-        mpp_err_f("found NULL input frame\n", frame);
-        return MPP_ERR_NULL_PTR;
-    }
+    mpi_dbg_func("enter ctx %p frame %p\n", ctx, frame);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
 
-    ret = p->ctx->get_frame(frame);
+        if (NULL == frame) {
+            mpp_err_f("found NULL input frame\n");
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->get_frame(frame);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
 {
-    (void)packet;
-    (void)frame;
-
-    MPI_FUNCTION_ENTER();
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    mpi_dbg_func("enter ctx %p frame %p packet %p\n", ctx, frame, packet);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
+
+        if (NULL == frame || NULL == packet) {
+            mpp_err_f("found NULL input frame %p packet %p\n", frame, packet);
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
+
+        // TODO: do encode here
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (NULL == frame) {
-        mpp_err_f("found NULL input frame\n", frame);
-        return MPP_ERR_NULL_PTR;
-    }
+    mpi_dbg_func("enter ctx %p frame %p\n", ctx, frame);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
 
-    ret = p->ctx->put_frame(frame);
+        if (NULL == frame) {
+            mpp_err_f("found NULL input frame\n");
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->put_frame(frame);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (NULL == packet) {
-        mpp_err_f("found NULL input packet\n", packet);
-        return MPP_ERR_NULL_PTR;
-    }
+    mpi_dbg_func("enter ctx %p packet %p\n", ctx, packet);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
 
-    ret = p->ctx->get_packet(packet);
+        if (NULL == packet) {
+            mpp_err_f("found NULL input packet\n");
+            ret = MPP_ERR_NULL_PTR;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->get_packet(packet);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_isp(MppCtx ctx, MppFrame dst, MppFrame src)
 {
-    MPI_FUNCTION_ENTER();
-    (void)ctx;
-    (void)dst;
-    (void)src;
-    MPI_FUNCTION_LEAVE();
+    MPP_RET ret = MPP_OK;
+    mpi_dbg_func("enter ctx %p dst %p src %p\n", ctx, dst, src);
+
+    // TODO: do isp process here
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return MPP_OK;
 }
 
 static MPP_RET mpi_isp_put_frame(MppCtx ctx, MppFrame frame)
 {
-    MPI_FUNCTION_ENTER();
-    (void)ctx;
-    (void)frame;
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    MPP_RET ret = MPP_OK;
+    mpi_dbg_func("enter ctx %p frame %p\n", ctx, frame);
+
+    // TODO: do isp put frame process here
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET mpi_isp_get_frame(MppCtx ctx, MppFrame *frame)
 {
-    MPI_FUNCTION_ENTER();
-    (void)ctx;
-    (void)frame;
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+    MPP_RET ret = MPP_OK;
+    mpi_dbg_func("enter ctx %p frame %p\n", ctx, frame);
+
+    // TODO: do isp get frame process here
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (type >= MPP_PORT_BUTT || NULL == task) {
-        mpp_err_f("invalid input type %d task %p\n", type, task);
-        return MPP_ERR_UNKNOW;
-    }
+    mpi_dbg_func("enter ctx %p type task %p\n", ctx, type, task);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;;
 
-    ret = p->ctx->dequeue(type, task);
+        if (type >= MPP_PORT_BUTT || NULL == task) {
+            mpp_err_f("invalid input type %d task %p\n", type, task);
+            ret = MPP_ERR_UNKNOW;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->dequeue(type, task);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (type >= MPP_PORT_BUTT || NULL == task) {
-        mpp_err_f("invalid input type %d task %p\n", type, task);
-        return MPP_ERR_UNKNOW;
-    }
+    mpi_dbg_func("enter ctx %p type task %p\n", ctx, type, task);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;;
 
-    ret = p->ctx->enqueue(type, task);
+        if (type >= MPP_PORT_BUTT || NULL == task) {
+            mpp_err_f("invalid input type %d task %p\n", type, task);
+            ret = MPP_ERR_UNKNOW;
+            break;
+        }
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->enqueue(type, task);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_reset(MppCtx ctx)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    ret = p->ctx->reset();
+    mpi_dbg_func("enter ctx %p\n", ctx);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;;
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->reset();
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    ret = p->ctx->control(cmd, param);
+    mpi_dbg_func("enter ctx %p cmd %x parm %p\n", ctx, cmd, param);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;;
 
-    MPI_FUNCTION_LEAVE();
+        ret = p->ctx->control(cmd, param);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
@@ -301,82 +357,95 @@ static MppApi mpp_api = {
 
 MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
 {
-    MPI_FUNCTION_ENTER();
-
     if (NULL == ctx || NULL == mpi) {
         mpp_err_f("invalid input ctx %p mpi %p\n", ctx, mpi);
         return MPP_ERR_NULL_PTR;
     }
 
+
     *ctx = NULL;
     *mpi = NULL;
 
-    MpiImpl *p = mpp_malloc(MpiImpl, 1);
-    if (NULL == p) {
-        mpp_err_f("failed to allocate context\n");
-        return MPP_ERR_MALLOC;
-    }
+    MPP_RET ret = MPP_OK;
+    mpi_dbg_func("enter ctx %p mpi %p\n", ctx, mpi);
+    do {
+        MpiImpl *p = mpp_malloc(MpiImpl, 1);
+        if (NULL == p) {
+            mpp_err_f("failed to allocate context\n");
+            ret = MPP_ERR_MALLOC;
+            break;
+        }
 
-    memset(p, 0, sizeof(*p));
-    p->ctx = new Mpp();
-    if (NULL == p->ctx) {
-        mpp_free(p);
-        mpp_err_f("failed to new Mpp\n");
-        return MPP_ERR_MALLOC;
-    }
+        memset(p, 0, sizeof(*p));
+        p->ctx = new Mpp();
+        if (NULL == p->ctx) {
+            mpp_free(p);
+            mpp_err_f("failed to new Mpp\n");
+            ret = MPP_ERR_MALLOC;
+            break;
+        }
 
-    mpp_api.version = mpp_info_get_revision();
-    p->api      = &mpp_api;
-    p->check    = p;
-    *ctx = p;
-    *mpi = p->api;
+        mpp_api.version = mpp_info_get_revision();
+        p->api      = &mpp_api;
+        p->check    = p;
+        *ctx = p;
+        *mpi = p->api;
+    } while (0);
 
     mpp_log("mpp version: %d\n", mpp_api.version);
 
-    MPI_FUNCTION_LEAVE_OK();
-    return MPP_OK;
+    mpi_dbg_func("leave ret %d ctx %p mpi %p\n", ret, *ctx, *mpi);
+    return ret;
 }
 
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
 {
-    MPI_FUNCTION_ENTER();
-
+    MPP_RET ret = MPP_OK;
     MpiImpl *p = (MpiImpl*)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (type >= MPP_CTX_BUTT ||
-        coding >= MPP_VIDEO_CodingMax) {
-        mpp_err_f("invalid input type %d coding %d\n", type, coding);
-        return MPP_ERR_UNKNOW;
-    }
+    mpi_dbg_func("enter ctx %p type %d coding %d\n", ctx, type, coding);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;
 
-    ret = p->ctx->init(type, coding);
-    p->type     = type;
-    p->coding   = coding;
+        if (type >= MPP_CTX_BUTT ||
+            coding >= MPP_VIDEO_CodingMax) {
+            mpp_err_f("invalid input type %d coding %d\n", type, coding);
+            ret = MPP_ERR_UNKNOW;
+            break;
+        }
+
+        ret = p->ctx->init(type, coding);
+        p->type     = type;
+        p->coding   = coding;
+    } while (0);
 
     get_mpi_debug();
-    MPI_FUNCTION_LEAVE_OK();
+    mpi_dbg_func("leave ret %d\n", ret);
     return ret;
 }
 
 MPP_RET mpp_destroy(MppCtx ctx)
 {
-    MPI_FUNCTION_ENTER();
+    mpi_dbg_func("enter ctx %p\n", ctx);
 
+    MPP_RET ret = MPP_OK;
     MpiImpl *p = (MpiImpl*)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-    if (ret)
-        return ret;
 
-    if (p->ctx)
-        delete p->ctx;
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            return ret;
 
-    mpp_free(p);
+        if (p->ctx)
+            delete p->ctx;
 
-    MPI_FUNCTION_LEAVE();
-    return MPP_OK;
+        mpp_free(p);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
 }
 
 MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding)
