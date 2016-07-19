@@ -175,17 +175,16 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
     if (ret || NULL == mframe) {
         aDecOut->size = 0;
     } else {
-        MppBuffer buf = NULL;
-        RK_U64 pts = 0;
-        RK_U32 fd = 0;
-        RK_U32 mode = 0;
-        void* ptr = NULL;
+        MppBuffer buf = mpp_frame_get_buffer(mframe);
+        RK_U64 pts  = mpp_frame_get_pts(mframe);
+        RK_U32 mode = mpp_frame_get_mode(mframe);
+        RK_S32 fd   = -1;
+
         aDecOut->size = sizeof(VPU_FRAME);
         vframe->DisplayWidth = mpp_frame_get_width(mframe);
         vframe->DisplayHeight = mpp_frame_get_height(mframe);
         vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
         vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
-        mode = mpp_frame_get_mode(mframe);
         if (mode == MPP_FRAME_FLAG_FRAME)
             vframe->FrameType = 0;
         else {
@@ -198,11 +197,9 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
                 vframe->FrameType = 4;
         }
         vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
-        pts = mpp_frame_get_pts(mframe);
         aDecOut->timeUs = pts;
         vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
         vframe->ShowTime.TimeLow = (RK_U32)pts;
-        buf = mpp_frame_get_buffer(mframe);
         switch (mpp_frame_get_fmt(mframe)) {
         case MPP_FMT_YUV420SP: {
             vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
@@ -230,12 +227,16 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
             break;
         }
         if (buf) {
-            ptr = mpp_buffer_get_ptr(buf);
+            void* ptr = mpp_buffer_get_ptr(buf);
+
+            mpp_buffer_inc_ref(buf);
             fd = mpp_buffer_get_fd(buf);
+
             vframe->FrameBusAddr[0] = fd;
             vframe->FrameBusAddr[1] = fd;
             vframe->vpumem.vir_addr = (RK_U32*)ptr;
             frame_count++;
+
             //!< Dump yuv
             if (fp && !vframe->ErrorInfo) {
                 if ((vframe->FrameWidth >= 1920) || (vframe->FrameHeight >= 1080)) {
@@ -281,8 +282,11 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
             vframe->vpumem.offset = (RK_U32*)buf;
         }
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
-            mpp_log("get one frame timeUs %lld, fd=0x%x, poc=%d, errinfo=%d, discard=%d, eos=%d, verr=%d", aDecOut->timeUs, fd,
-                    mpp_frame_get_poc(mframe), mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe), mpp_frame_get_eos(mframe), vframe->ErrorInfo);
+            mpp_log("get one frame pts %lld, fd 0x%x, poc %d, errinfo %x, discard %d, eos %d, verr %d",
+                    aDecOut->timeUs, fd, mpp_frame_get_poc(mframe),
+                    mpp_frame_get_errinfo(mframe),
+                    mpp_frame_get_discard(mframe),
+                    mpp_frame_get_eos(mframe), vframe->ErrorInfo);
         }
         if (mpp_frame_get_eos(mframe)) {
             set_eos = 1;
@@ -292,12 +296,11 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         }
 
         /*
-         * IMPORTANT: mframe is malloced frome mpi->decode_get_frame
+         * IMPORTANT: mframe is malloced from mpi->decode_get_frame
          * So we need to deinit mframe here. But the buffer in the frame should not be free with mframe.
          * Because buffer need to be set to vframe->vpumem.offset and send to display.
          * The we have to clear the buffer pointer in mframe then release mframe.
          */
-        mpp_frame_set_buffer(mframe, NULL);
         mpp_frame_deinit(&mframe);
     }
 
@@ -307,11 +310,17 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
 RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
 {
     mpp_log_f("in\n");
+    RK_S32 ret = MPP_OK;
+
+    if (!init_ok) {
+        return VPU_API_ERR_VPU_CODEC_INIT;
+    }
+
     (void)ctx;
     (void)aEncInStrm;
     (void)aEncOut;
     mpp_log_f("ok\n");
-    return 0;
+    return ret;
 }
 
 RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm)

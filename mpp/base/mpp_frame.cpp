@@ -93,6 +93,32 @@ MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
     return MPP_OK;
 }
 
+MppBuffer mpp_frame_get_buffer(MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return NULL;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    return (MppFrame)p->buffer;
+}
+
+void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
+{
+    if (check_is_mpp_frame(frame))
+        return ;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    if (p->buffer != buffer) {
+        if (buffer)
+            mpp_buffer_inc_ref(buffer);
+
+        if (p->buffer)
+            mpp_buffer_put(p->buffer);
+
+        p->buffer = buffer;
+    }
+}
+
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 {
     if (NULL == dst || check_is_mpp_frame(src)) {
@@ -163,6 +189,5 @@ MPP_FRAME_ACCESSORS(MppFrameColorTransferCharacteristic, color_trc)
 MPP_FRAME_ACCESSORS(MppFrameColorSpace, colorspace)
 MPP_FRAME_ACCESSORS(MppFrameChromaLocation, chroma_location)
 MPP_FRAME_ACCESSORS(MppFrameFormat, fmt)
-MPP_FRAME_ACCESSORS(MppBuffer, buffer)
 MPP_FRAME_ACCESSORS(size_t, buf_size)
 MPP_FRAME_ACCESSORS(RK_U32, errinfo)
