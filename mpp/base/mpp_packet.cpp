@@ -233,12 +233,14 @@ void mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer)
         return ;
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
-    if (p->buffer) {
-        mpp_buffer_put(p->buffer);
-    }
-    p->buffer = buffer;
-    if (buffer) {
-        mpp_buffer_inc_ref(buffer);
+    if (p->buffer != buffer) {
+        if (buffer)
+            mpp_buffer_inc_ref(buffer);
+
+        if (p->buffer)
+            mpp_buffer_put(p->buffer);
+
+        p->buffer = buffer;
     }
 }
 

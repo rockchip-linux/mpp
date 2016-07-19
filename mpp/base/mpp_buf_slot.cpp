@@ -448,12 +448,13 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
         if (entry->frame) {
             mpp_frame_deinit(&entry->frame);
             slot_ops_with_log(impl, entry, SLOT_CLR_FRAME);
-        } else {
-            if (entry->buffer)
-                mpp_buffer_put(entry->buffer);
+        }
+        if (entry->buffer) {
+            mpp_buffer_put(entry->buffer);
+            entry->buffer = NULL;
+            slot_ops_with_log(impl, entry, SLOT_CLR_BUFFER);
         }
 
-        slot_ops_with_log(impl, entry, SLOT_CLR_BUFFER);
         slot_ops_with_log(impl, entry, SLOT_CLR_ON_USE);
     }
 }
@@ -831,11 +832,11 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             slot_assert(impl, NULL == slot->frame);
             mpp_buffer_put(slot->buffer);
         }
+        mpp_buffer_inc_ref(buffer);
         slot->buffer = buffer;
+
         if (slot->frame)
             mpp_frame_set_buffer(slot->frame, buffer);
-
-        mpp_buffer_inc_ref(buffer);
     } break;
     default : {
     } break;

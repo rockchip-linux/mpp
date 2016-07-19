@@ -205,11 +205,6 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
         if (task->status.dec_pkt_copy_rdy) {
-            mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &task->hal_pkt_buf_in);
-            if (task->hal_pkt_buf_in) {
-                mpp_buffer_put(task->hal_pkt_buf_in);
-                task->hal_pkt_buf_in = NULL;
-            }
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
@@ -400,8 +395,10 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     mpp_buf_slot_get_prop(packet_slots, task->hal_pkt_idx_in, SLOT_BUFFER, &hal_buf_in);
     if (NULL == hal_buf_in) {
         mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
-        if (hal_buf_in)
+        if (hal_buf_in) {
             mpp_buf_slot_set_prop(packet_slots, task->hal_pkt_idx_in, SLOT_BUFFER, hal_buf_in);
+            mpp_buffer_put(hal_buf_in);
+        }
     } else {
         MppBufferImpl *buf = (MppBufferImpl *)hal_buf_in;
         mpp_assert(buf->info.size >= stream_size);
@@ -526,11 +523,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp->mTaskPutCount++;
         task->hnd = NULL;
         if (task->status.dec_pkt_copy_rdy) {
-            mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &task->hal_pkt_buf_in);
-            if (task->hal_pkt_buf_in) {
-                mpp_buffer_put(task->hal_pkt_buf_in);
-                task->hal_pkt_buf_in = NULL;
-            }
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             task->status.dec_pkt_copy_rdy = 0;
         }
@@ -659,8 +651,6 @@ void *mpp_dec_parser_thread(void *data)
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
-        if (task.hal_pkt_buf_in)
-            mpp_buffer_put(task.hal_pkt_buf_in);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
     mpp_log("mpp_dec_parser_thread exit ok");
@@ -673,7 +663,6 @@ void *mpp_dec_hal_thread(void *data)
     MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
-    MppBuffer buffer    = NULL;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
 
@@ -751,11 +740,6 @@ void *mpp_dec_hal_thread(void *data)
              * 3. add frame to output list
              * repeat 2 and 3 until not frame can be output
              */
-            mpp_buf_slot_get_prop(packet_slots, task_dec->input,  SLOT_BUFFER, &buffer);
-            if (buffer) {
-                mpp_buffer_put(buffer);
-                buffer = NULL;
-            }
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
 
             // TODO: may have risk here
