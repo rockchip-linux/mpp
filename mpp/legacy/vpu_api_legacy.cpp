@@ -31,26 +31,32 @@
 #define MAX_WRITE_WIDTH       (960)
 
 VpuApiLegacy::VpuApiLegacy() :
+    mpp_ctx(NULL),
+    mpi(NULL),
+    init_ok(0),
+    frame_count(0),
+    set_eos(0),
+    vpu_api_debug(0),
+    fp(NULL),
+    fp_buf(NULL),
+    memGroup(NULL),
+    pictureMem(NULL),
+    outbufMem(NULL),
+    inputFrame(NULL),
+    outputPakcet(NULL),
+    outData(NULL),
     use_fd_flag(0),
     task(NULL)
 {
     mpp_log_f("in\n");
-    mpp_ctx = NULL;
-    mpi = NULL;
 
     mpp_create(&mpp_ctx, &mpi);
-    frame_count  = 0;
-    set_eos = 0;
-    vpu_api_debug = 0;
-    fp = NULL;
-    fp_buf = NULL;
-    outData = NULL;
     mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
     if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
         fp = fopen("/sdcard/rk_mpp_dump.yuv", "wb");
         fp_buf = mpp_malloc(RK_U8, (MAX_WRITE_HEIGHT * MAX_WRITE_WIDTH * 2));
     }
-    init_ok = 0;
+
     mpp_log_f("ok\n");
 }
 
@@ -87,11 +93,6 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
     if (CODEC_DECODER == ctx->codecType) {
         type = MPP_CTX_DEC;
     } else if (CODEC_ENCODER == ctx->codecType) {
-        memGroup = NULL;
-        pictureMem = NULL;
-        outbufMem = NULL;
-        inputFrame = NULL;
-        outputPakcet = NULL;
         if (memGroup == NULL) {
             ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
             if (MPP_OK != ret) {
