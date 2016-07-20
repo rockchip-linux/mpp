@@ -299,7 +299,7 @@ MPP_RET mpp_enc_notify(void *ctx, void *info)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_config(MppEnc *enc, MpiCmd cmd, void *param)
+MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
 {
     if (NULL == enc) {
         mpp_err_f("found NULL input enc %p\n", enc);
@@ -311,7 +311,7 @@ MPP_RET mpp_enc_config(MppEnc *enc, MpiCmd cmd, void *param)
     H264EncConfig *encCfg = &(enc->encCfg);
 
     switch (cmd) {
-    case MPP_ENC_SETCFG:
+    case MPP_ENC_SET_CFG:
         encCfg->streamType = H264ENC_BYTE_STREAM;//H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
         encCfg->frameRateDenom = 1;
         if (0 != mppCfg->profile)

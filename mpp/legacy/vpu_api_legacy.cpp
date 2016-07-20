@@ -117,7 +117,14 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         mpp_err("found invalid context input");
         return MPP_ERR_NULL_PTR;
     }
-    if (MPP_CTX_ENC == type) {
+
+    ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
+    if (ret) {
+        mpp_err_f(" init error. \n");
+        return ret;
+    }
+
+    if (MPP_CTX_ENC == type && mpp_ctx) {
         EncParameter_t *encParam = (EncParameter_t*)ctx->private_data;
         MppEncConfig encCfg;
         memset(&encCfg, 0, sizeof(MppEncConfig));
@@ -138,15 +145,8 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
             encCfg.fps_out = encParam->framerate;
         if (0 != encParam->intraPicRate)
             encCfg.gop = encParam->intraPicRate;
-        mpi->config(mpp_ctx, MPP_ENC_SETCFG, encCfg);  // input parameter config
-    }
-    ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
-    if (ret) {
-        mpp_err_f(" init error. \n");
-        return ret;
-    }
-    // TODO
-    if(MPP_CTX_ENC == type) {
+        mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &encCfg);  // input parameter config
+
         if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
             ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
             ctx->extradata = mpp_enc_get_extra_data(mpp_ctx);
@@ -603,7 +603,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         RK_U32 ImgWidth = 0;
         VPU_GENERIC *p = (VPU_GENERIC *)param;
-        mpicmd = MPP_CODEC_SET_FRAME_INFO;
+        mpicmd = MPP_DEC_SET_FRAME_INFO;
         /**hightest of p->ImgWidth bit show current dec bitdepth
           * 0 - 8bit
           * 1 - 10bit
@@ -628,7 +628,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_SET_INFO_CHANGE: {
-        mpicmd = MPP_CODEC_SET_INFO_CHANGE_READY;
+        mpicmd = MPP_DEC_SET_INFO_CHANGE_READY;
         break;
     }
     case VPU_API_USE_FAST_MODE: {
@@ -640,7 +640,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_GET_VPUMEM_USED_COUNT: {
-        mpicmd = MPP_CODEC_GET_VPUMEM_USED_COUNT;
+        mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
         break;
     }
     default: {

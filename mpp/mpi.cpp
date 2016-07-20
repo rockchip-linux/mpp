@@ -57,24 +57,6 @@ static MPP_RET _check_mpp_ctx(MpiImpl *p, const char *caller)
     return MPP_OK;
 }
 
-static MPP_RET mpi_config(MppCtx ctx, MpiCmd cmd, MppEncConfig cfg)
-{
-    MPP_RET ret = MPP_NOK;
-    MpiImpl *p = (MpiImpl *)ctx;
-
-    mpi_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
-    do {
-        ret = check_mpp_ctx(p);
-        if (ret)
-            break;
-
-        ret = p->ctx->config(cmd, cfg);  // configure parameter set
-    } while (0);
-
-    mpi_dbg_func("leave ret %d\n", ret);
-    return ret;
-}
-
 static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
 {
     MPP_RET ret = MPP_NOK;
@@ -351,7 +333,6 @@ static MppApi mpp_api = {
     mpi_enqueue,
     mpi_reset,
     mpi_control,
-    mpi_config,
     {0},
 };
 

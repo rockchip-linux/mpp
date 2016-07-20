@@ -140,6 +140,13 @@ private:
     RK_U32          mParserNeedSplit;
     RK_U32          mParserInternalPts;     /* for MPEG2/MPEG4 */
 
+    MPP_RET control_mpp(MpiCmd cmd, MppParam param);
+    MPP_RET control_osal(MpiCmd cmd, MppParam param);
+    MPP_RET control_codec(MpiCmd cmd, MppParam param);
+    MPP_RET control_dec(MpiCmd cmd, MppParam param);
+    MPP_RET control_enc(MpiCmd cmd, MppParam param);
+    MPP_RET control_isp(MpiCmd cmd, MppParam param);
+
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);
 };

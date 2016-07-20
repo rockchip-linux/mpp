@@ -53,7 +53,7 @@ void *mpp_enc_hal_thread(void *data);
 
 MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding);
 MPP_RET mpp_enc_deinit(MppEnc *enc);
-MPP_RET mpp_enc_config(MppEnc *enc, MpiCmd cmd, void *param);
+MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(void *ctx, void *info);
 MPP_RET mpp_enc_reset(MppEnc *enc);
 
