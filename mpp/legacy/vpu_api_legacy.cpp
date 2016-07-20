@@ -146,12 +146,14 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         return ret;
     }
     // TODO
-    if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
-        ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
-        ctx->extradata = mpp_enc_get_extra_data(mpp_ctx);
-        mpp_log("Mpp generate extra data!");
-    } else
-        mpp_err("No extra data generate!");
+    if(MPP_CTX_ENC == type) {
+        if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
+            ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
+            ctx->extradata = mpp_enc_get_extra_data(mpp_ctx);
+            mpp_log("Mpp generate extra data!");
+        } else
+            mpp_err("No extra data generate!");
+    }
 
     VPU_GENERIC vpug;
     vpug.CodecType  = ctx->codecType;
