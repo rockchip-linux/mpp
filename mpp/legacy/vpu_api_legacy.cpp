@@ -401,7 +401,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         mpp_frame_set_ver_stride(inputFrame, verStride);
 
         if (!use_fd_flag) {
-			RK_U32 outputBufferSize = horStride * verStride;
+            RK_U32 outputBufferSize = horStride * verStride;
             ret = mpp_buffer_get(memGroup, &pictureMem, aEncInStrm->size);
             if (ret != MPP_OK) {
                 mpp_err( "Failed to allocate pictureMem buffer!\n");
@@ -514,6 +514,8 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             mpp_log("outputPacket is NULL!");
         }
 
+        if (pictureMem)
+            mpp_buffer_put(pictureMem);
         if (inputFrame) {
             mpp_frame_deinit(&inputFrame);
             inputFrame = NULL;
