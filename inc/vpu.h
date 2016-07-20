@@ -48,6 +48,7 @@ typedef enum {
     VPU_DEC_PP              = 0x3,
     VPU_DEC_HEVC            = 0x4,
     VPU_DEC_RKV             = 0x5,
+    VPU_ENC_RKV             = 0x6,
     VPU_TYPE_BUTT           ,
 
 } VPU_CLIENT_TYPE;

@@ -76,6 +76,7 @@ public:
 
     MPP_RET reset();
     MPP_RET control(MpiCmd cmd, MppParam param);
+    MPP_RET config(MpiCmd cmd, MppEncConfig cfg);
 
     mpp_list        *mPackets;
     mpp_list        *mFrames;

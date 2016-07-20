@@ -30,7 +30,9 @@
 #define MAX_WRITE_HEIGHT      (480)
 #define MAX_WRITE_WIDTH       (960)
 
-VpuApiLegacy::VpuApiLegacy()
+VpuApiLegacy::VpuApiLegacy() :
+    use_fd_flag(0),
+    task(NULL)
 {
     mpp_log_f("in\n");
     mpp_ctx = NULL;
@@ -42,6 +44,7 @@ VpuApiLegacy::VpuApiLegacy()
     vpu_api_debug = 0;
     fp = NULL;
     fp_buf = NULL;
+    outData = NULL;
     mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
     if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
         fp = fopen("/sdcard/rk_mpp_dump.yuv", "wb");
@@ -62,6 +65,14 @@ VpuApiLegacy::~VpuApiLegacy()
         mpp_free(fp_buf);
         fp_buf = NULL;
     }
+    if (memGroup != NULL) {
+        mpp_err("memGroup deInit");
+        mpp_buffer_group_put(memGroup);
+    }
+    if (outData != NULL) {
+        free(outData);
+        outData = NULL;
+    }
     mpp_destroy(mpp_ctx);
     mpp_log_f("ok\n");
 }
@@ -76,6 +87,27 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
     if (CODEC_DECODER == ctx->codecType) {
         type = MPP_CTX_DEC;
     } else if (CODEC_ENCODER == ctx->codecType) {
+        memGroup = NULL;
+        pictureMem = NULL;
+        outbufMem = NULL;
+        inputFrame = NULL;
+        outputPakcet = NULL;
+        if (memGroup == NULL) {
+            ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
+            if (MPP_OK != ret) {
+                mpp_err("memGroup mpp_buffer_group_get failed\n");
+                return ret;
+            }
+        }
+        // TODO set control cmd
+        MppParam param = NULL;
+        RK_U32 output_block = 1;
+        param = &output_block;
+        ret = mpi->control(mpp_ctx, MPP_SET_OUTPUT_BLOCK, param);
+        if (MPP_OK != ret) {
+            mpp_err("mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        }
+
         type = MPP_CTX_ENC;
     } else {
         return MPP_ERR_VPU_CODEC_INIT;
@@ -85,17 +117,48 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         mpp_err("found invalid context input");
         return MPP_ERR_NULL_PTR;
     }
-
+    if (MPP_CTX_ENC == type) {
+        EncParameter_t *encParam = (EncParameter_t*)ctx->private_data;
+        MppEncConfig encCfg;
+        memset(&encCfg, 0, sizeof(MppEncConfig));
+        // TODO
+        if (0 != encParam->width && 0 != encParam->height) {
+            encCfg.width = encParam->width;
+            encCfg.height = encParam->height;
+        } else
+            mpp_err("Width and height is not set.");
+        outData = (RK_U8*)malloc(encParam->width * encParam->height);
+        if (0 != encParam->levelIdc)
+            encCfg.level = encParam->levelIdc;
+        if (0 != encParam->framerate)
+            encCfg.fps_in = encParam->framerate;
+        if (0 != encParam->framerateout)
+            encCfg.fps_out = encParam->framerateout;
+        else
+            encCfg.fps_out = encParam->framerate;
+        if (0 != encParam->intraPicRate)
+            encCfg.gop = encParam->intraPicRate;
+        mpi->config(mpp_ctx, MPP_ENC_SETCFG, encCfg);  // input parameter config
+    }
     ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
     if (ret) {
         mpp_err_f(" init error. \n");
         return ret;
     }
+    // TODO
+    if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
+        ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
+        ctx->extradata = mpp_enc_get_extra_data(mpp_ctx);
+        mpp_log("Mpp generate extra data!");
+    } else
+        mpp_err("No extra data generate!");
+
     VPU_GENERIC vpug;
     vpug.CodecType  = ctx->codecType;
     vpug.ImgWidth   = ctx->width;
     vpug.ImgHeight  = ctx->height;
-    control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
+    if (MPP_CTX_ENC != type)
+        control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
         mpp_packet_set_extra_data(pkt);
@@ -309,8 +372,8 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
 
 RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut)
 {
+    MPP_RET ret = MPP_OK;
     mpp_log_f("in\n");
-    RK_S32 ret = MPP_OK;
 
     if (!init_ok) {
         return VPU_API_ERR_VPU_CODEC_INIT;
@@ -319,7 +382,159 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     (void)ctx;
     (void)aEncInStrm;
     (void)aEncOut;
+    // TODO
+    if (1) {
+        ret = mpp_frame_init(&inputFrame);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_frame_init failed\n");
+            goto ENCODE_FAIL;
+        }
+        RK_U32 width      = ctx->width;
+        RK_U32 height     = ctx->height;
+        RK_U32 horStride = MPP_ALIGN(width,  16);
+        RK_U32 verStride = MPP_ALIGN(height, 16);
+        mpp_frame_set_width(inputFrame, width);
+        mpp_frame_set_height(inputFrame, height);
+        mpp_frame_set_hor_stride(inputFrame, horStride);
+        mpp_frame_set_ver_stride(inputFrame, verStride);
+
+        if (!use_fd_flag) {
+			RK_U32 outputBufferSize = horStride * verStride;
+            ret = mpp_buffer_get(memGroup, &pictureMem, aEncInStrm->size);
+            if (ret != MPP_OK) {
+                mpp_err( "Failed to allocate pictureMem buffer!\n");
+                pictureMem = NULL;
+                return ret;
+            }
+            memcpy((RK_U8*) mpp_buffer_get_ptr(pictureMem), aEncInStrm->buf, aEncInStrm->size);
+            ret = mpp_buffer_get(memGroup, &outbufMem, outputBufferSize);
+            if (ret != MPP_OK) {
+                mpp_err( "Failed to allocate output buffer!\n");
+                outbufMem = NULL;
+                return 1;
+            }
+        } else {
+            MppBufferInfo inputCommit;
+            MppBufferInfo outputCommit;
+            memset(&inputCommit, 0, sizeof(inputCommit));
+            memset(&outputCommit, 0, sizeof(outputCommit));
+            inputCommit.type = MPP_BUFFER_TYPE_ION;
+            inputCommit.size = aEncInStrm->size;
+            inputCommit.fd = aEncInStrm->bufPhyAddr;
+            outputCommit.type = MPP_BUFFER_TYPE_ION;
+            outputCommit.size = horStride * verStride;  // TODO
+            outputCommit.fd = aEncOut->keyFrame/*bufferFd*/;
+            outputCommit.ptr = (void*)aEncOut->data;
+            mpp_log_f(" new ffmpeg provide fd input fd %d output fd %d", aEncInStrm->bufPhyAddr, aEncOut->keyFrame/*bufferFd*/);
+            ret = mpp_buffer_import(&pictureMem, &inputCommit);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
+                //goto ??;  // TODO
+            }
+
+            ret = mpp_buffer_import(&outbufMem, &outputCommit);
+            if (MPP_OK != ret) {
+                mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
+            }
+            mpp_log_f("mpp import input fd %d output fd %d",
+                      mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem)/*(((MppBufferImpl*)pictureMem)->info.fd), (((MppBufferImpl*)outbufMem)->info.fd)*/);
+        }
+
+        //mpp_packet_init(&outputPakcet, outbufMem, aEncOut->size);
+        mpp_frame_set_buffer(inputFrame, pictureMem);
+        mpp_packet_init_with_buffer(&outputPakcet, outbufMem);
+
+        do {
+            ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
+            if (ret) {
+                mpp_err("mpp task input dequeue failed\n");
+                goto ENCODE_FAIL;
+            }
+            if (task == NULL) {
+                mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
+                usleep(3000);
+            } else
+                break;
+        } while (1);
+
+        mpp_task_meta_set_frame (task, MPP_META_KEY_INPUT_FRM,  inputFrame);
+        mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, outputPakcet);
+
+        if (mpi != NULL) {
+            ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+            if (ret) {
+                mpp_err("mpp task input enqueue failed\n");
+                goto ENCODE_FAIL;
+            }
+            task = NULL;
+
+            do {
+                ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
+                if (ret) {
+                    mpp_err("ret %d mpp task output dequeue failed\n", ret);
+                    goto ENCODE_FAIL;
+                }
+
+                if (task) {
+                    MppFrame frame_out = NULL;
+                    MppFrame packet_out = NULL;
+
+                    mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
+                    mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
+
+                    mpp_assert(packet_out == outputPakcet);
+                    mpp_assert(frame_out  == inputFrame);
+                    mpp_log_f("encoded frame %d\n", frame_count);
+                    frame_count++;
+
+                    ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
+                    if (ret) {
+                        mpp_err("mpp task output enqueue failed\n");
+                        goto ENCODE_FAIL;
+                    }
+                    task = NULL;
+                    break;
+                }
+                usleep(3000);
+            } while (1);
+        } else {
+            mpp_err("mpi pointer is NULL, failed!");
+        }
+
+        // copy encoded stream into output buffer, and set outpub stream size
+        if (outputPakcet != NULL) {
+            aEncOut->size = mpp_packet_get_length(outputPakcet);
+            if (!use_fd_flag)
+                memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(outbufMem), aEncOut->size);
+            mpp_buffer_put(outbufMem);
+            mpp_packet_deinit(&outputPakcet);
+        } else {
+            mpp_log("outputPacket is NULL!");
+        }
+
+        if (inputFrame) {
+            mpp_frame_deinit(&inputFrame);
+            inputFrame = NULL;
+        }
+    } else {
+        aEncOut->data[0] = 0x00;
+        aEncOut->data[1] = 0x00;
+        aEncOut->data[2] = 0x00;
+        aEncOut->data[3] = 0x01;
+        memset(aEncOut->data + 4, 0xFF, 500 - 4);
+        aEncOut->size = 500;
+    }
     mpp_log_f("ok\n");
+    return ret;
+
+ENCODE_FAIL:
+
+    if (inputFrame != NULL)
+        mpp_frame_deinit(&inputFrame);
+
+    if (outputPakcet != NULL)
+        mpp_packet_deinit(&outputPakcet);
+
     return ret;
 }
 

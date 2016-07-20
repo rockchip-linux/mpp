@@ -177,21 +177,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             return ENCHW_NOK;
         }
 
-        /* CABAC context tables: all qps, intra+inter, 464 bytes/table  */
-        // mask and add by lance 2016.05.05
-        /*if (VPUMallocLinear(&asic->cabacCtx, 52 * 2 * 464) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }
-        regs->cabacCtxBase = asic->cabacCtx.phy_addr;*/
-        if (asic->cabacCtx == NULL) {
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->cabacCtx), (52 * 2 * 464)) != MPP_OK) {
-                mpp_err("asic->cabacCtx alloc failed!\n");
-                return ENCHW_NOK;
-            }
-        }
-        regs->cabacCtxBase = mpp_buffer_get_fd(asic->cabacCtx);
-
         // mask and add by lance 2016.05.05
         /*if (regs->riceEnable) {
           u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
@@ -293,11 +278,6 @@ void EncAsicMemFree_V2(asicData_s * asic)
     if (asic->sizeTbl.nal != NULL) {
         mpp_buffer_put(asic->sizeTbl.nal);
         asic->sizeTbl.nal = NULL;
-    }
-
-    if (asic->cabacCtx != NULL) {
-        mpp_buffer_put(asic->cabacCtx);
-        asic->cabacCtx = NULL;
     }
 
     if (asic->riceRead != NULL) {

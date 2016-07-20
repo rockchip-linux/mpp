@@ -15,8 +15,6 @@ set(H264E_COMMON
 set(H264E_HDR
   include/basetype.h
   include/EncGetOption.h
-  include/H264Cabac.h
-  include/H264CabacContext.h
   include/H264CodeFrame.h
   include/H264Init.h
   include/H264Instance.h
@@ -42,7 +40,6 @@ set(H264E_HDR
 # h264 encoder sourse
 set(H264E_SRC
   src/EncGetOption.c
-  src/H264Cabac.c
   src/H264CodeFrame.c
   src/H264EncApi.c
   src/H264Init.c

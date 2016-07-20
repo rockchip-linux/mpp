@@ -150,7 +150,6 @@ i32 EncAsicControllerInit(asicData_s * asic)
     asic->internalImageChroma[0] = NULL;  // modify by lance 2016.05.05
     asic->internalImageLuma[1] = NULL;  // modify by lance 2016.05.05
     asic->internalImageChroma[1] = NULL;
-    asic->cabacCtx = NULL;
     asic->riceRead = NULL;
     asic->riceWrite = NULL;
 
@@ -437,7 +436,6 @@ void EncAsicFrameStart(void * inst, /*const void *ewl, */regValues_s * val, h264
 
     val->regMirror[80] = val->riceWriteBase;
 
-    val->regMirror[81] = val->cabacCtxBase;
     //roi1 area
     val->regMirror[82] = (val->roi1Top & 0xff) << 24;
     val->regMirror[82] |= (val->roi1Bottom & 0xff) << 16;
@@ -609,7 +607,6 @@ void EncAsicFrameStart(void * inst, /*const void *ewl, */regValues_s * val, h264
         fprintf(valCompareFile, "val->constrainedIntraPrediction     0x%08X\n", val->constrainedIntraPrediction);
         fprintf(valCompareFile, "val->vsNextLumaBase                 0x%08X\n", val->vsNextLumaBase);
         fprintf(valCompareFile, "val->riceWriteBase                  0x%08X\n", val->riceWriteBase);
-        fprintf(valCompareFile, "val->cabacCtxBase                   0x%08X\n", val->cabacCtxBase);
         fprintf(valCompareFile, "val->roi1Top                        0x%08X\n", val->roi1Top);
         fprintf(valCompareFile, "val->roi1Bottom                     0x%08X\n", val->roi1Bottom);
         fprintf(valCompareFile, "val->roi1Left                       0x%08X\n", val->roi1Left);
@@ -682,7 +679,6 @@ void EncAsicFrameStart(void * inst, /*const void *ewl, */regValues_s * val, h264
     }
     syntax_data->output_strm_limit_size = val->outputStrmSize;
     syntax_data->output_strm_addr = val->outputStrmBase;
-    syntax_data->cabac_table_addr = val->cabacCtxBase;
     syntax_data->pic_luma_width = instH264Encoder->preProcess.lumWidth;
     syntax_data->pic_luma_height = instH264Encoder->preProcess.lumHeight;
     syntax_data->ref_luma_addr = val->internalImageLumBaseR;  // need to talk with kesheng by lance 2016.05.07

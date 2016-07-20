@@ -17,6 +17,24 @@
 #ifndef __H264E_API_H__
 #define __H264E_API_H__
 
+#include "encoder_codec_api.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+extern const ControlApi api_h264e_controller;
+
+MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg);
+MPP_RET h264e_deinit(void *ctx);
+MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task);
+MPP_RET h264e_reset(void *ctx);
+MPP_RET h264e_flush(void *ctx);
+MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param);
+MPP_RET h264e_callback(void *ctx, void *feedback);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /*__H264E_API_H__*/

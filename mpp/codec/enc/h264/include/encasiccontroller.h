@@ -169,7 +169,6 @@ typedef struct {
     u32 riceEnable;
     u32 riceReadBase;
     u32 riceWriteBase;
-    u32 cabacCtxBase;
     u32 colorConversionCoeffA;
     u32 colorConversionCoeffB;
     u32 colorConversionCoeffC;
@@ -210,7 +209,6 @@ typedef struct {
     MppBufferGroup asicDataBufferGroup;
     MppBuffer internalImageLuma[2];
     MppBuffer internalImageChroma[2];
-    MppBuffer cabacCtx;
     MppBuffer riceRead;
     MppBuffer riceWrite;
     u32 sizeTblSize;

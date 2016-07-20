@@ -101,9 +101,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        mpp_enc_init(&mEnc, coding);
+        mpp_enc_init(mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
-        mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
+        //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
         mpp_buffer_group_get_external(&mFrameGroup, MPP_BUFFER_TYPE_ION);
@@ -122,11 +122,18 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
     if (mFrames && mPackets &&
-        (mDec || mEnc) &&
+        (mDec) &&
         mThreadCodec && mThreadHal &&
         mPacketGroup) {
         mThreadCodec->start();
         mThreadHal->start();
+        mInitDone = 1;
+    } else if (mFrames && mPackets &&
+               (mEnc) &&
+               mThreadCodec/* && mThreadHal */ &&
+               mPacketGroup) {
+        mThreadCodec->start();
+        //mThreadHal->start();  // TODO
         mInitDone = 1;
     } else {
         mpp_err("error found on mpp initialization\n");
@@ -417,6 +424,27 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     default : {
     } break;
     }
+    return MPP_OK;
+}
+
+MPP_RET Mpp::config(MpiCmd cmd, MppEncConfig cfg)
+{
+    switch (cmd) {
+    case MPP_ENC_SETCFG:
+        mEnc = mpp_calloc(MppEnc, 1);
+        if (NULL == mEnc) {
+            mpp_err_f("failed to malloc context\n");
+            return MPP_ERR_NULL_PTR;
+        }
+        mEnc->mpp = this;  // TODO  put these code into config function
+
+        mpp_enc_config(mEnc, cmd, &cfg);
+        break;
+    default:
+        mpp_log("MpiCmd is not found in mpi_config.");
+        break;
+    }
+
     return MPP_OK;
 }
 

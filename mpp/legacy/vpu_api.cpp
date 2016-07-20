@@ -348,7 +348,11 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
             delete api;
             s->vpuApiObj = NULL;
         }
-        mpp_free(s->extradata);
+        //mpp_free(s->extradata);  // TODO
+        if (s->extradata_size > 0) { // TODO
+            s->extradata_size = 0;
+            s->extradata = NULL;
+        }
         mpp_free(s->private_data);
         mpp_free(s);
         *ctx = s = NULL;
