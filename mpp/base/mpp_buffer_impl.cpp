@@ -139,13 +139,16 @@ void buffer_group_add_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppB
             log->ops        = ops;
             log->ref_count  = (buffer) ? (buffer->ref_count) : (0);
             log->caller     = caller;
+
+            if (group->log_count >= BUFFER_OPS_MAX_COUNT) {
+                struct list_head *tmp = logs->next;
+                list_del_init(tmp);
+                mpp_free(list_entry(tmp, MppBufLog, list));
+                group->log_count--;
+            }
+            list_add_tail(&log->list, logs);
+            group->log_count++;
         }
-        if (group->log_count >= BUFFER_OPS_MAX_COUNT) {
-            struct list_head *tmp = logs->next;
-            list_del_init(tmp);
-            mpp_free(list_entry(tmp, MppBufLog, list));
-        }
-        list_add_tail(&log->list, logs);
     }
 }
 
