@@ -958,7 +958,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     mpp_hal_control(dec->hal, cmd, param);
 
     switch (cmd) {
-    case MPP_CODEC_SET_FRAME_INFO : {
+    case MPP_DEC_SET_FRAME_INFO : {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
         MppFrame frame = NULL;
         mpp_frame_init(&frame);
@@ -971,7 +971,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
     } break;
-    case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
+    case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         RK_S32 *p = (RK_S32 *)param;
         *p = mpp_buf_slot_get_used_size(dec->frame_slots);
     } break;

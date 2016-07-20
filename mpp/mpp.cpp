@@ -363,74 +363,54 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
 
 MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 {
-    switch (cmd) {
-    case MPP_DEC_SET_EXT_BUF_GROUP: {
-        mpp_log("mpi_control group %p\n", param);
-        mFrameGroup = (MppBufferGroup)param;
-        mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
-        mpp_log("signal codec thread\n");
-        mThreadCodec->signal();
-        break;
-    }
-    case MPP_SET_OUTPUT_BLOCK: {
-        RK_U32 block = *((RK_U32 *)param);
-        mOutputBlock = block;
-        break;
-    }
-    case MPP_CODEC_SET_INFO_CHANGE_READY: {
-        if (mType == MPP_CTX_DEC) {
-            mpp_buf_slot_ready(mDec->frame_slots);
+    MPP_RET ret = MPP_NOK;
+
+    switch (cmd & CMD_MODULE_ID_MASK) {
+    case CMD_MODULE_OSAL : {
+        ret = control_osal(cmd, param);
+    } break;
+    case CMD_MODULE_MPP : {
+        ret = control_mpp(cmd, param);
+    } break;
+    case CMD_MODULE_CODEC : {
+        switch (cmd & CMD_CTX_ID_MASK) {
+        case CMD_CTX_ID_DEC : {
+            mpp_assert(mType == MPP_CTX_DEC);
+            mpp_assert(cmd > MPP_DEC_CMD_BASE);
+            mpp_assert(cmd < MPP_DEC_CMD_END);
+
+            ret = control_dec(cmd, param);
+        } break;
+        case CMD_CTX_ID_ENC : {
+            mpp_assert(mType == MPP_CTX_ENC);
+            mpp_assert(cmd > MPP_ENC_CMD_BASE);
+            mpp_assert(cmd < MPP_ENC_CMD_END);
+
+            ret = control_enc(cmd, param);
+        } break;
+        case CMD_CTX_ID_ISP : {
+            mpp_assert(mType == MPP_CTX_ISP);
+            ret = control_isp(cmd, param);
+        } break;
+        default : {
+            ret = control_codec(cmd, param);
+        } break;
         }
-        break;
-    }
-    case MPP_CODEC_SET_FRAME_INFO: {
-        mpp_assert(mType == MPP_CTX_DEC);
-        mpp_dec_control(mDec, cmd, param);
-        break;
-    }
-    case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
-        if (mType == MPP_CTX_DEC &&
-            (mCoding == MPP_VIDEO_CodingMPEG2 ||
-             mCoding == MPP_VIDEO_CodingMPEG4)) {
-            mpp_dec_control(mDec, cmd, param);
-        } else {
-            mpp_err("type %x coding %x does not support use internal pts control\n");
-        }
-        break;
-    }
-    case MPP_DEC_SET_PARSER_SPLIT_MODE: {
-        RK_U32 flag = *((RK_U32 *)param);
-        mParserNeedSplit = flag;
-        break;
-    }
-    case MPP_DEC_SET_PARSER_FAST_MODE: {
-        RK_U32 flag = *((RK_U32 *)param);
-        mParserFastMode = flag;
-        break;
-    }
-    case MPP_DEC_GET_STREAM_COUNT: {
-        AutoMutex autoLock(mPackets->mutex());
-        mpp_assert(mType == MPP_CTX_DEC);
-        *((RK_S32 *)param) = mPackets->list_size();
-        break;
-    }
-    case MPP_CODEC_GET_VPUMEM_USED_COUNT: {
-        AutoMutex autoLock(mPackets->mutex());
-        if (mType == MPP_CTX_DEC) {
-            mpp_dec_control(mDec, cmd, param);
-        }
-        break;
-    }
+    } break;
     default : {
     } break;
     }
-    return MPP_OK;
+
+    if (ret)
+        mpp_err("command %x param %p ret %d\n", cmd, param, ret);
+
+    return ret;
 }
 
 MPP_RET Mpp::config(MpiCmd cmd, MppEncConfig cfg)
 {
     switch (cmd) {
-    case MPP_ENC_SETCFG:
+    case MPP_ENC_SET_CFG:
         mEnc = mpp_calloc(MppEnc, 1);
         if (NULL == mEnc) {
             mpp_err_f("failed to malloc context\n");
@@ -438,7 +418,7 @@ MPP_RET Mpp::config(MpiCmd cmd, MppEncConfig cfg)
         }
         mEnc->mpp = this;  // TODO  put these code into config function
 
-        mpp_enc_config(mEnc, cmd, &cfg);
+        mpp_enc_control(mEnc, cmd, &cfg);
         break;
     default:
         mpp_log("MpiCmd is not found in mpi_config.");
@@ -497,5 +477,124 @@ MPP_RET Mpp::reset()
     }
 
     return MPP_OK;
+}
+
+
+MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    mpp_assert(cmd > MPP_CMD_BASE);
+    mpp_assert(cmd < MPP_CMD_END);
+
+    switch (cmd) {
+    case MPP_SET_OUTPUT_BLOCK: {
+        RK_U32 block = *((RK_U32 *)param);
+        mOutputBlock = block;
+    } break;
+    default : {
+    } break;
+    }
+    return ret;
+}
+
+MPP_RET Mpp::control_osal(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    mpp_assert(cmd > MPP_OSAL_CMD_BASE);
+    mpp_assert(cmd < MPP_OSAL_CMD_END);
+
+    (void)cmd;
+    (void)param;
+    return ret;
+}
+
+MPP_RET Mpp::control_codec(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    mpp_assert(cmd > MPP_CODEC_CMD_BASE);
+    mpp_assert(cmd < MPP_CODEC_CMD_END);
+
+    (void)cmd;
+    (void)param;
+    return ret;
+}
+
+MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    switch (cmd) {
+    case MPP_DEC_SET_FRAME_INFO: {
+        ret = mpp_dec_control(mDec, cmd, param);
+    } break;
+    case MPP_DEC_SET_EXT_BUF_GROUP: {
+        mpp_log("mpi_control group %p\n", param);
+        mFrameGroup = (MppBufferGroup)param;
+        ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
+        mpp_log("signal codec thread\n");
+        mThreadCodec->signal();
+    } break;
+    case MPP_DEC_SET_INFO_CHANGE_READY: {
+        ret = mpp_buf_slot_ready(mDec->frame_slots);
+    } break;
+    case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
+        if (mCoding == MPP_VIDEO_CodingMPEG2 || mCoding == MPP_VIDEO_CodingMPEG4) {
+            ret = mpp_dec_control(mDec, cmd, param);
+        } else {
+            mpp_err("coding %x does not support use internal pts control\n", mCoding);
+        }
+    } break;
+    case MPP_DEC_SET_PARSER_SPLIT_MODE: {
+        RK_U32 flag = *((RK_U32 *)param);
+        mParserNeedSplit = flag;
+        ret = MPP_OK;
+    } break;
+    case MPP_DEC_SET_PARSER_FAST_MODE: {
+        RK_U32 flag = *((RK_U32 *)param);
+        mParserFastMode = flag;
+        ret = MPP_OK;
+    } break;
+    case MPP_DEC_GET_STREAM_COUNT: {
+        AutoMutex autoLock(mPackets->mutex());
+        *((RK_S32 *)param) = mPackets->list_size();
+        ret = MPP_OK;
+    } break;
+    case MPP_DEC_GET_VPUMEM_USED_COUNT: {
+        ret = mpp_dec_control(mDec, cmd, param);
+    } break;
+    default : {
+    } break;
+    }
+    return ret;
+}
+
+MPP_RET Mpp::control_enc(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    switch (cmd) {
+    case MPP_ENC_SET_CFG : {
+        if (mEnc)
+            ret = mpp_enc_control(mEnc, cmd, param);
+    } break;
+    default : {
+    } break;
+    }
+    return ret;
+}
+
+MPP_RET Mpp::control_isp(MpiCmd cmd, MppParam param)
+{
+    MPP_RET ret = MPP_NOK;
+
+    mpp_assert(cmd > MPP_ISP_CMD_BASE);
+    mpp_assert(cmd < MPP_ISP_CMD_END);
+
+    (void)cmd;
+    (void)param;
+    return ret;
 }
 

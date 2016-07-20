@@ -22,6 +22,7 @@
 typedef enum {
     MPP_CTX_DEC,
     MPP_CTX_ENC,
+    MPP_CTX_ISP,
     MPP_CTX_BUTT,
 } MppCtxType;
 
@@ -58,36 +59,62 @@ typedef enum {
     MPP_VIDEO_CodingMax = 0x7FFFFFFF
 } MppCodingType;
 
+/*
+ * Command id bit usage is defined as follows:
+ * bit 20 - 23  - module id
+ * bit 16 - 19  - contex id
+ * bit  0 - 15  - command id
+ */
+#define CMD_MODULE_ID_MASK              (0x00F00000)
+#define CMD_MODULE_OSAL                 (0x00100000)
+#define CMD_MODULE_MPP                  (0x00200000)
+#define CMD_MODULE_CODEC                (0x00300000)
+#define CMD_MODULE_HAL                  (0x00400000)
+#define CMD_CTX_ID_MASK                 (0x000F0000)
+#define CMD_CTX_ID_DEC                  (0x00010000)
+#define CMD_CTX_ID_ENC                  (0x00020000)
+#define CMD_CTX_ID_ISP                  (0x00030000)
+#define CMD_ID_MASK                     (0x0000FFFF)
+
 typedef enum {
-    MPP_CMD_BASE                        = 0,
+    MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
+    MPP_OSAL_CMD_END,
+
+    MPP_CMD_BASE                        = CMD_MODULE_MPP,
     MPP_ENABLE_DEINTERLACE,
     MPP_SET_OUTPUT_BLOCK,
+    MPP_CMD_END,
 
-    MPP_HAL_CMD_BASE                    = 0x10000,
-
-    MPP_OSAL_CMD_BASE                   = 0x20000,
-
-    MPP_CODEC_CMD_BASE                  = 0x30000,
-    MPP_CODEC_SET_INFO_CHANGE_READY,
-    MPP_CODEC_SET_FRAME_INFO,
+    MPP_CODEC_CMD_BASE                  = CMD_MODULE_CODEC,
     MPP_CODEC_GET_FRAME_INFO,
-    MPP_CODEC_GET_VPUMEM_USED_COUNT,
+    MPP_CODEC_CMD_END,
 
-    MPP_DEC_CMD_BASE                    = 0x40000,
+    MPP_DEC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_DEC,
+    MPP_DEC_SET_FRAME_INFO,             /* vpu api legacy control for buffer slot dimension init */
     MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
+    MPP_DEC_SET_INFO_CHANGE_READY,
     MPP_DEC_SET_INTERNAL_PTS_ENABLE,
-    MPP_DEC_SET_VC1_EXTRA_DATA,
     MPP_DEC_SET_PARSER_SPLIT_MODE,      /* Need to setup before init */
     MPP_DEC_SET_PARSER_FAST_MODE,       /* Need to setup before init */
     MPP_DEC_GET_STREAM_COUNT,
+    MPP_DEC_GET_VPUMEM_USED_COUNT,
+    MPP_DEC_SET_VC1_EXTRA_DATA,
+    MPP_DEC_CMD_END,
 
-    MPP_ENC_CMD_BASE                    = 0x50000,
+    MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
+    MPP_ENC_SET_CFG,
+    MPP_ENC_GET_CFG,
     MPP_ENC_SET_EXTRA_INFO,
     MPP_ENC_GET_EXTRA_INFO,
-    MPP_ENC_SETCFG,
-    MPP_ENC_GETCFG,
-    MPP_ENC_SETFORMAT,
-    MPP_ENC_SETIDRFRAME,
+    MPP_ENC_SET_FORMAT,
+    MPP_ENC_SET_IDR_FRAME,
+    MPP_ENC_CMD_END,
+
+    MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
+    MPP_ISP_CMD_END,
+
+    MPP_HAL_CMD_BASE                    = CMD_MODULE_HAL,
+    MPP_HAL_CMD_END,
 
     MPI_CMD_BUTT,
 } MpiCmd;
@@ -177,7 +204,6 @@ typedef struct MppEncConfig_t {
  * reset    : discard all packet and frame, reset all component,
  *            for both decoder and encoder
  * control  : control function for mpp property setting
- * config   : config function for encoder, not implement yet.
  */
 typedef struct MppApi_t {
     RK_U32  size;
@@ -203,7 +229,6 @@ typedef struct MppApi_t {
     // control interface
     MPP_RET (*reset)(MppCtx ctx);
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
-    MPP_RET (*config)(MppCtx ctx, MpiCmd cmd, MppEncConfig cfg);
 
     RK_U32 reserv[16];
 } MppApi;

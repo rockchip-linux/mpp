@@ -539,7 +539,7 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     INP_CHECK(ret, NULL == p_hal);
     FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     switch ((MpiCmd)cmd_type) {
-    case MPP_CODEC_SET_FRAME_INFO: {
+    case MPP_DEC_SET_FRAME_INFO: {
         VPU_GENERIC *p = (VPU_GENERIC *)param;
         if (p->CodecType == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);

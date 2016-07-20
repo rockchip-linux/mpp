@@ -155,7 +155,7 @@ int mpi_test()
                     mpp_log("decode_get_frame get info changed found\n");
 
                     // if work in external buffer mode re-commit buffer here
-                    mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
+                    mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                 } else
                     i++;
 
@@ -192,19 +192,14 @@ int mpi_test()
 
     memset(&cfg, 0, sizeof(cfg));
 
-    ret = mpi->config(ctx, MPP_ENC_SETCFG, cfg);
-    if (MPP_OK != ret) {
-        mpp_err("mpi->config failed\n");
-        goto MPP_TEST_FAILED;
-    }
+    cmd = MPP_ENC_SET_CFG;
+    param = &cfg;
 
     ret = mpi->control(ctx, cmd, param);
     if (MPP_OK != ret) {
         mpp_err("mpi->control failed\n");
         goto MPP_TEST_FAILED;
     }
-
-
 
     // interface with both input and output
     for (i = 0; i < MPI_ENC_LOOP_COUNT; i++) {
