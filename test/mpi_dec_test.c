@@ -173,7 +173,7 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
             if (frame) {
                 if (mpp_frame_get_info_change(frame)) {
                     mpp_log("decode_get_frame get info changed found\n");
-                    mpi->control(ctx, MPP_CODEC_SET_INFO_CHANGE_READY, NULL);
+                    mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                 } else {
                     mpp_log("decode_get_frame get frame %d\n", frame_count++);
                     if (fp_output)
