@@ -16,6 +16,8 @@
 
 #define  MODULE_TAG "mpp_enc"
 
+#include "string.h"
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
 
@@ -24,45 +26,63 @@
 #include "mpp_frame_impl.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"
+#include "hal_h264e_api.h"
 
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *thd_enc = mpp->mThreadCodec;
+    MppThread *thd_enc  = mpp->mThreadCodec;
+    EncTask task;  // TODO
+    HalTaskInfo task_info;
     MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
     MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
-    MppTask task = NULL;
+    MppTask     mpp_task = NULL;
     MPP_RET ret = MPP_OK;
+
+    memset(&task_info, 0, sizeof(HalTaskInfo));
 
     while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
         thd_enc->lock();
-        ret = mpp_port_dequeue(input, &task);
-        if (ret || NULL == task)
+        ret = mpp_port_dequeue(input, &mpp_task);
+        if (ret || NULL == mpp_task) {
             thd_enc->wait();
+        }
         thd_enc->unlock();
-
-        if (task) {
-            MppFrame frame = NULL;
-            MppPacket packet = NULL;
+        if (mpp_task != NULL) {
+            MppFrame mpp_frame = NULL;
+            MppPacket mpp_packet = NULL;
             // task process here
 
 
             // enqueue task back to input input
-            mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame);
-            mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet);
+            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &mpp_frame);
+            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &mpp_packet);
 
-            mpp_port_enqueue(input, task);
-            task = NULL;
+            mpp_port_enqueue(input, mpp_task);
+            mpp_task = NULL;
 
+            memset(&task, 0, sizeof(EncTask));
+            task.ctrl_frm_buf_in = mpp_frame_get_buffer(mpp_frame);
+            task.ctrl_pkt_buf_out = mpp_packet_get_buffer(mpp_packet);
+            controller_encode(mpp->mEnc->controller, &task);
+
+            task_info.enc.syntax.data = (void *)(&(task.syntax_data));
+            mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
+            mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
+            /*vpuWaitResult = */mpp_hal_hw_wait((mpp->mEnc->hal), &task_info); // TODO   need to check the return value
+
+
+            RK_U32 outputStreamSize = 0;
+            controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
+
+            mpp_packet_set_length(mpp_packet, outputStreamSize);
             // send finished task to output port
-            mpp_port_dequeue(output, &task);
-
-            mpp_task_meta_set_frame(task,  MPP_META_KEY_INPUT_FRM,  frame);
-            mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
-
+            mpp_port_dequeue(output, &mpp_task);
+            mpp_task_meta_set_frame(mpp_task,  MPP_META_KEY_INPUT_FRM,  mpp_frame);
+            mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, mpp_packet);
             // setup output task here
-            mpp_port_enqueue(output, task);
-            task = NULL;
+            mpp_port_enqueue(output, mpp_task);
+            mpp_task = NULL;
         }
     }
     return NULL;
@@ -131,40 +151,107 @@ void *mpp_enc_hal_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
+static MPP_RET mpp_extra_info_generate(h264e_control_extra_info_cfg *info, const H264EncConfig *encCfg)
 {
-    MppEnc *p = mpp_calloc(MppEnc, 1);
+    info->chroma_qp_index_offset        = encCfg->chroma_qp_index_offset;
+    info->enable_cabac                  = encCfg->enable_cabac;
+    info->pic_init_qp                   = encCfg->pic_init_qp;
+    info->pic_luma_height               = encCfg->height;
+    info->pic_luma_width                = encCfg->width;
+    info->transform8x8_mode             = encCfg->transform8x8_mode;
+
+    info->input_image_format            = encCfg->input_image_format;
+    info->profile_idc                   = encCfg->profile;
+    info->level_idc                     = encCfg->level;
+    info->keyframe_max_interval         = encCfg->keyframe_max_interval;
+    info->second_chroma_qp_index_offset = encCfg->second_chroma_qp_index_offset;
+    info->pps_id                        = encCfg->pps_id;
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding)
+{
+    MPP_RET ret;
+    MppBufSlots frame_slots = NULL;
+    MppBufSlots packet_slots = NULL;
+    Controller controller = NULL;
+    MppHal hal = NULL;
+    MppEnc *p = enc;
+    RK_S32 task_count = 2;
+    IOInterruptCB cb = {NULL, NULL};
+
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_RET ret = MPP_NOK;
-    MppHal hal = NULL;
+    do {
+        ret = mpp_buf_slot_init(&frame_slots);
+        if (ret) {
+            mpp_err_f("could not init frame buffer slot\n");
+            break;
+        }
 
-    MppHalCfg hal_cfg = {
-        MPP_CTX_ENC,
-        coding,
-        HAL_MODE_LIBVPU,
-        HAL_RKVDEC,
-        NULL,
-        NULL,
-        NULL,
-        2,
-        0,
-        NULL,
-    };
+        ret = mpp_buf_slot_init(&packet_slots);
+        if (ret) {
+            mpp_err_f("could not init packet buffer slot\n");
+            break;
+        }
 
-    ret = mpp_hal_init(&hal, &hal_cfg);
-    if (ret) {
-        mpp_err_f("could not init hal\n");
-    }
+        mpp_buf_slot_setup(packet_slots, task_count);
+        cb.callBack = mpp_enc_notify;
+        cb.opaque = enc;
 
-    p->coding = coding;
+        ControllerCfg controller_cfg = {
+            enc->encCfg,
+            coding,
+            task_count,
+            cb,
+        };
 
-    *enc = p;
+        ret = controller_init(&controller, &controller_cfg);
+        if (ret) {
+            mpp_err_f("could not init parser\n");
+            break;
+        }
+        cb.callBack = hal_enc_callback;
+        cb.opaque = controller;
+        // then init hal with task count from parser
+        MppHalCfg hal_cfg = {
+            MPP_CTX_ENC,
+            coding,
+            HAL_MODE_LIBVPU,
+            HAL_VEPU,
+            frame_slots,
+            packet_slots,
+            NULL,
+            1/*controller_cfg.task_count*/,  // TODO
+            0,
+            cb,
+        };
 
-    return MPP_OK;
+        ret = mpp_hal_init(&hal, &hal_cfg);
+        if (ret) {
+            mpp_err_f("could not init hal\n");
+            break;
+        }
+
+        mpp_extra_info_generate(&(enc->extra_info_cfg), &(enc->encCfg));
+        mpp_hal_control(hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
+        mpp_hal_control(hal, MPP_ENC_GET_EXTRA_INFO, (void*)(&(enc->extra_info)));
+
+        p->coding = coding;
+        p->controller = controller;
+        p->hal    = hal;
+        p->tasks  = hal_cfg.tasks;
+        p->frame_slots  = frame_slots;
+        p->packet_slots = packet_slots;
+        return MPP_OK;
+    } while (0);
+
+    mpp_enc_deinit(p);
+    return MPP_NOK;
+
 }
 
 MPP_RET mpp_enc_deinit(MppEnc *enc)
@@ -174,10 +261,26 @@ MPP_RET mpp_enc_deinit(MppEnc *enc)
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_RET ret = mpp_hal_deinit(enc->hal);
-    if (ret) {
-        mpp_err_f("mpp enc hal deinit failed\n");
+    if (enc->controller) {
+        controller_deinit(enc->controller);
+        enc->controller = NULL;
     }
+
+    if (enc->hal) {
+        mpp_hal_deinit(enc->hal);
+        enc->hal = NULL;
+    }
+
+    if (enc->frame_slots) {
+        mpp_buf_slot_deinit(enc->frame_slots);
+        enc->frame_slots = NULL;
+    }
+
+    if (enc->packet_slots) {
+        mpp_buf_slot_deinit(enc->packet_slots);
+        enc->packet_slots = NULL;
+    }
+
     mpp_free(enc);
     return MPP_OK;
 }
@@ -188,4 +291,69 @@ MPP_RET mpp_enc_reset(MppEnc *enc)
     return MPP_OK;
 }
 
+MPP_RET mpp_enc_notify(void *ctx, void *info)
+{
+    // TODO
+    (void)ctx;
+    (void)info;
+    return MPP_OK;
+}
 
+MPP_RET mpp_enc_config(MppEnc *enc, MpiCmd cmd, void *param)
+{
+    if (NULL == enc) {
+        mpp_err_f("found NULL input enc %p\n", enc);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    // TODO
+    MppEncConfig *mppCfg = (MppEncConfig*)param;
+    H264EncConfig *encCfg = &(enc->encCfg);
+
+    switch (cmd) {
+    case MPP_ENC_SETCFG:
+        encCfg->streamType = H264ENC_BYTE_STREAM;//H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
+        encCfg->frameRateDenom = 1;
+        if (0 != mppCfg->profile)
+            encCfg->profile = (h264e_profile)mppCfg->profile;
+        else
+            encCfg->profile = H264_PROFILE_BASELINE;
+        if (0 != mppCfg->level)
+            encCfg->level = (H264EncLevel)mppCfg->level;
+        else
+            encCfg->level = H264ENC_LEVEL_4_0;
+        if (0 != mppCfg->width && 0 != mppCfg->height) {
+            encCfg->width = mppCfg->width;
+            encCfg->height = mppCfg->height;
+            mpp_log("widthxheight %dx%d", encCfg->width, encCfg->height);
+        } else
+            mpp_err("Width or height is not set, width %d height %d", mppCfg->width, mppCfg->height);
+        if (0 != mppCfg->fps_in)
+            encCfg->frameRateNum = mppCfg->fps_in;
+        else
+            encCfg->frameRateNum = 30;
+        if (mppCfg->gop > 0)
+            encCfg->intraPicRate = mppCfg->gop;
+        else
+            encCfg->intraPicRate = 30;
+        if (0 != mppCfg->cabac_en)
+            encCfg->enable_cabac = mppCfg->cabac_en;  // TODO
+        else
+            encCfg->enable_cabac = 0;
+        if (0 != mppCfg->trans8x8_en)
+            encCfg->transform8x8_mode = mppCfg->trans8x8_en; // TODO
+        else
+            encCfg->transform8x8_mode = 0;
+        encCfg->chroma_qp_index_offset = 2;  // TODO
+        encCfg->pic_init_qp = 26;  // TODO
+        encCfg->keyframe_max_interval = 150;  //  TODO
+        encCfg->second_chroma_qp_index_offset = 2;  // TODO
+        encCfg->pps_id = 0;  // TODO
+        encCfg->input_image_format = H264ENC_YUV420_SEMIPLANAR;  // TODO
+        break;
+    default:
+        break;
+    }
+
+    return MPP_OK;
+}

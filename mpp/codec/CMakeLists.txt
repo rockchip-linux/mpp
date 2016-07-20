@@ -5,6 +5,7 @@
 # ----------------------------------------------------------------------------
 add_library(mpp_codec STATIC
     mpp_enc.cpp
+    mpp_controller.cpp
     mpp_dec.cpp
     mpp_parser.cpp
     )
@@ -23,6 +24,7 @@ target_link_libraries(mpp_codec
                       codec_mpg4d
                       codec_vp8d
                       codec_vp9d
+                      codec_h264e
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_base)

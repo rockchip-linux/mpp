@@ -28,13 +28,11 @@ add_library(hal_h264e STATIC
             ${HAL_H264E_SRC} 
             )
 if(ANDROID)
-    target_link_libraries(hal_h264e vpu mpp_base)
+    target_link_libraries(hal_h264e worker_vpu mpp_base)
 else()
     target_link_libraries(hal_h264e mpp_base)
 endif()    
-target_link_libraries(hal_h264e
-                      mpp
-					  )
+
 set_target_properties(hal_h264e PROPERTIES FOLDER "mpp/hal")   
      
 add_subdirectory(test)

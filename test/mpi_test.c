@@ -192,7 +192,7 @@ int mpi_test()
 
     memset(&cfg, 0, sizeof(cfg));
 
-    ret = mpi->config(ctx, cfg);
+    ret = mpi->config(ctx, MPP_ENC_SETCFG, cfg);
     if (MPP_OK != ret) {
         mpp_err("mpi->config failed\n");
         goto MPP_TEST_FAILED;

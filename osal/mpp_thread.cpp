@@ -58,9 +58,11 @@ void MppThread::start()
         // NOTE: set status here first to avoid unexpected loop quit racing condition
         mStatus = MPP_THREAD_RUNNING;
         if (0 == pthread_create(&mThread, &attr, mFunction, mContext)) {
+#ifndef ARMLINUX
             RK_S32 ret = pthread_setname_np(mThread, mName);
             if (ret)
                 mpp_err("thread %p setname %s failed\n", mFunction, mName);
+#endif
 
             thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p create success\n",
                        mName, mFunction, mContext);
@@ -120,6 +122,7 @@ void SetThreadName(DWORD dwThreadID, const char* threadName)
 }
 
 
+#ifndef ARMLINUX
 /*
  * add pthread_setname_np for windows
  */
@@ -129,6 +132,7 @@ int pthread_setname_np(pthread_t thread, const char *name)
     SetThreadName(dwThreadID, name);
     return 0;
 }
+#endif
 
 #endif
 

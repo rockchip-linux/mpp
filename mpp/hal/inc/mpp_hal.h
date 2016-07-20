@@ -31,6 +31,7 @@ typedef enum MppHalHardType_e {
     HAL_VDPU,           //!< vpu combined decoder
     HAL_VEPU,           //!< vpu combined encoder
     HAL_RKVDEC,         //!< rock-chip h264 h265 vp9 combined decoder
+    HAL_RKVENC,         //!< rock-chip h264 h265 combined encoder
     HAL_DEVICE_BUTT,
 } HalDeviceId;
 

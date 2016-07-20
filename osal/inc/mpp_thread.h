@@ -45,7 +45,8 @@ int pthread_setname_np(pthread_t thread, const char *name);
 #include <semaphore.h>
 #include <pthread.h>
 
-#if defined(ANDROID)
+#ifdef ARMLINUX
+#elif defined(ANDROID)
 #define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP PTHREAD_RECURSIVE_MUTEX_INITIALIZER
 #endif
 

@@ -82,6 +82,8 @@ typedef enum {
     MPP_DEC_GET_STREAM_COUNT,
 
     MPP_ENC_CMD_BASE                    = 0x50000,
+    MPP_ENC_SET_EXTRA_INFO,
+    MPP_ENC_GET_EXTRA_INFO,
     MPP_ENC_SETCFG,
     MPP_ENC_GETCFG,
     MPP_ENC_SETFORMAT,
@@ -201,7 +203,7 @@ typedef struct MppApi_t {
     // control interface
     MPP_RET (*reset)(MppCtx ctx);
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
-    MPP_RET (*config)(MppCtx ctx, MppEncConfig cfg);
+    MPP_RET (*config)(MppCtx ctx, MpiCmd cmd, MppEncConfig cfg);
 
     RK_U32 reserv[16];
 } MppApi;
@@ -227,6 +229,8 @@ MPP_RET mpp_destroy(MppCtx ctx);
 // coding type format function
 MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding);
 void    mpp_show_support_format();
+RK_U8 *mpp_enc_get_extra_data(MppCtx ctx);
+RK_U32 mpp_enc_get_extra_data_size(MppCtx ctx);
 
 #ifdef __cplusplus
 }

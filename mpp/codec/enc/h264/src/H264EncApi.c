@@ -41,7 +41,6 @@
 #include "H264CodeFrame.h"
 #include "H264Sei.h"
 #include "H264RateControl.h"
-#include "H264Cabac.h"
 #define LOG_TAG "H264_ENC"
 //#include <utils/Log.h>  // mask by lance 2016.05.05
 #ifdef INTERNAL_TEST
@@ -1010,16 +1009,6 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
                                 rc->virtualBuffer.bufferSize);
     }
 
-    /* Initialize cabac context tables for HW */
-    if (pEncInst->picParameterSet.entropyCodingMode == ENCHW_YES) {
-        // mask and add by lance 2016.05.05
-        /*VPUMemInvalidate(&pEncInst->asic.cabacCtx);
-        H264CabacInit(pEncInst->asic.cabacCtx.vir_addr,
-                      pEncInst->slice.cabacInitIdc);
-        VPUMemClean(&pEncInst->asic.cabacCtx);*/
-        H264CabacInit((u32*)(mpp_buffer_get_ptr(pEncInst->asic.cabacCtx)),
-                      pEncInst->slice.cabacInitIdc);
-    }
     /* Use the first frame QP in the PPS */
     pEncInst->picParameterSet.picInitQpMinus26 = (i32) (rc->qpHdr) - 26;
 

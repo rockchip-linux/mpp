@@ -52,6 +52,14 @@ private:
     RK_U32 vpu_api_debug;
     FILE *fp;
     RK_U8  *fp_buf;
+    MppBufferGroup memGroup;
+    MppBuffer      pictureMem;
+    MppBuffer      outbufMem;
+    MppFrame       inputFrame;
+    MppPacket      outputPakcet;
+    RK_U8*         outData;
+    RK_U32         use_fd_flag;
+    MppTask        task;
 };
 
 #endif /*_VPU_API_H_*/

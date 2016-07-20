@@ -26,6 +26,8 @@
 #include "vpu_api.h"
 #include "utils.h"
 
+#define FOR_TEST_ENCODE 1
+
 static RK_U32 VPU_API_DEMO_DEBUG_DISABLE = 0;
 
 #define BSWAP32(x) \
@@ -241,6 +243,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     struct VpuCodecContext *ctx = NULL;
     RK_S32 nal = 0x00000001;
     RK_S32 fileSize, ret, size;
+    RK_U32 readOneFrameSize = 0;
     EncoderOut_t    enc_out_yuv;
     EncoderOut_t *enc_out = NULL;
     VpuApiEncInput enc_in_strm;
@@ -251,7 +254,16 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     RK_U32 w_align = 0;
     RK_U32 h_align = 0;
 
-    int Format = VPU_H264ENC_YUV420_SEMIPLANAR;
+#ifdef FOR_TEST_ENCODE
+    ctx = (struct VpuCodecContext*)malloc(sizeof(struct VpuCodecContext));
+    if (!ctx) {
+        mpp_err("Input context has not been properly allocated");
+        return -1;
+    }
+    memset(ctx, 0, sizeof(struct VpuCodecContext));
+#endif
+
+    int Format = VPU_H264ENC_YUV420_PLANAR;//VPU_H264ENC_YUV420_SEMIPLANAR;
 
     if (cmd == NULL) {
         return -1;
@@ -288,6 +300,12 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
         }
     }
 
+#ifdef FOR_TEST_ENCODE
+    ctx->videoCoding = OMX_RK_VIDEO_CodingAVC;
+    ctx->codecType = CODEC_ENCODER;
+    ctx->width = cmd->width;
+    ctx->height = cmd->height;
+#endif
     fseek(pInFile, 0L, SEEK_END);
     fileSize = ftell(pInFile);
     fseek(pInFile, 0L, SEEK_SET);
@@ -362,6 +380,8 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     w_align = ((ctx->width + 15) & (~15));
     h_align = ((ctx->height + 15) & (~15));
     size = w_align * h_align * 3 / 2;
+    readOneFrameSize = ctx->width * ctx->height * 3 / 2;
+    mpp_log("%d %d %d %d %d", ctx->width, ctx->height, w_align, h_align, size);
     nal = BSWAP32(nal);
 
     do {
@@ -387,7 +407,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
                 api_enc_in->capability = size;
             }
 
-            if (readBytesFromFile(enc_in->buf, size, pInFile)) {
+            if (readBytesFromFile(enc_in->buf, readOneFrameSize, pInFile)) {
                 break;
             } else {
                 enc_in->size = size;
@@ -402,6 +422,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
         if ((ret = ctx->encode(ctx, enc_in, enc_out)) < 0) {
             ENCODE_ERR_RET(ERROR_VPU_DECODE);
         } else {
+            enc_in->size = 0;  // TODO encode completely, and set enc_in->size to 0
             mpp_log("vpu encode one frame, out len: %d, left size: %d\n",
                     enc_out->size, enc_in->size);
 
@@ -413,7 +434,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
                 if (pOutFile) {
                     mpp_log("dump %d bytes enc output stream to file\n",
                             enc_out->size);
-                    fwrite((RK_U8*)&nal, 1, 4, pOutFile);
+                    //fwrite((RK_U8*)&nal, 1, 4, pOutFile);  // because output stream have start code, so here mask this code
                     fwrite(enc_out->data, 1, enc_out->size, pOutFile);
                     fflush(pOutFile);
                 }
