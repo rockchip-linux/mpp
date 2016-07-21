@@ -144,6 +144,7 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener);
 // mpp_buffer_group helper function
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
+void mpp_buffer_service_dump();
 MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type);
 
 #ifdef __cplusplus

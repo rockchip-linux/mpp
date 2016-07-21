@@ -93,6 +93,7 @@ public:
     MppBufferGroupImpl  *get_misc_group(MppBufferMode mode, MppBufferType type);
     void                put_group(MppBufferGroupImpl *group);
     MppBufferGroupImpl  *get_group_by_id(RK_U32 id);
+    void                dump_misc_group();
 };
 
 static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
@@ -493,6 +494,12 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group)
     buffer_group_dump_log(group);
 }
 
+void mpp_buffer_service_dump()
+{
+    AutoMutex auto_lock(MppBufferService::get_lock());
+    MppBufferService::get_instance()->dump_misc_group();
+}
+
 MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
@@ -711,4 +718,12 @@ MppBufferGroupImpl *MppBufferService::get_group_by_id(RK_U32 id)
     return NULL;
 }
 
+void MppBufferService::dump_misc_group()
+{
+    if (misc_ion_int->buffer_count)
+        mpp_buffer_group_dump(misc_ion_int);
+
+    if (misc_ion_ext->buffer_count)
+        mpp_buffer_group_dump(misc_ion_ext);
+}
 
