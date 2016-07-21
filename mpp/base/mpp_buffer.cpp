@@ -181,7 +181,7 @@ size_t mpp_buffer_get_size(MppBuffer buffer)
 {
     if (NULL == buffer) {
         mpp_err_f("invalid NULL input\n");
-        return -1;
+        return 0;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
