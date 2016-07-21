@@ -204,7 +204,7 @@ RK_S32 check_sysfs_iommu()
 
     if (!dts_info_found) {
         for (i = 0; i < MPP_ARRAY_ELEMS(system_heaps); i++) {
-            snprintf(path, sizeof(path), "/d/ion/heaps");
+            snprintf(path, sizeof(path), "/sys/kernel/debug/ion/heaps");
             if (find_dir_in_path(path, system_heaps[i], sizeof(path))) {
                 mpp_log("%s found\n", system_heaps[i]);
                 ret = ION_DETECT_IOMMU_ENABLE;
