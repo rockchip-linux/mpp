@@ -564,6 +564,8 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     RK_S32 pts          = aEncInStrm->timeUs;
+    RK_S32 import_fd    = -1;
+    RK_U32 import_size  = 0;
 
     /* try import input buffer and output buffer */
     MppFrame frame = NULL;
@@ -598,16 +600,21 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
                       aEncInStrm->bufPhyAddr, aEncInStrm->size);
             goto FUNC_RET;
         }
+        import_fd   = mpp_buffer_get_fd(buffer);
+        import_size = mpp_buffer_get_size(buffer);
+
+        mpp_frame_set_buffer(frame, buffer);
+
+        mpp_buffer_put(buffer);
+        buffer = NULL;
     }
-    mpp_frame_set_buffer(frame, buffer);
 
     if (aEncInStrm->nFlags || aEncInStrm->size == 0) {
         mpp_log_f("found eos true");
         mpp_frame_set_eos(frame, 1);
     }
 
-    vpu_api_dbg_input("w %d h %d fd %d size %d\n", width, height,
-                      mpp_buffer_get_fd(buffer), mpp_buffer_get_size(buffer));
+    vpu_api_dbg_input("w %d h %d fd %d size %d\n", width, height, import_fd, import_size);
 
     ret = mpi->encode_put_frame(mpp_ctx, frame);
     if (ret)
@@ -615,10 +622,6 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
 
     aEncInStrm->size = 0;
 FUNC_RET:
-    if (buffer) {
-        mpp_buffer_put(buffer);
-        buffer = NULL;
-    }
 
     vpu_api_dbg_func("leave ret %d\n", ret);
     return ret;
