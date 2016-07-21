@@ -57,6 +57,7 @@ Mpp::Mpp()
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
       mPacketBlock(0),
+      mInputBlock(0),
       mOutputBlock(0),
       mMultiFrame(0),
       mStatus(0),
@@ -95,6 +96,11 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
+
+        mpp_task_queue_init(&mInputTaskQueue);
+        mpp_task_queue_init(&mOutputTaskQueue);
+        mpp_task_queue_setup(mInputTaskQueue, 4);
+        mpp_task_queue_setup(mOutputTaskQueue, 4);
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
@@ -105,18 +111,18 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
         //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
-        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_NORMAL);
+        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_external(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+
+        mpp_task_queue_init(&mInputTaskQueue);
+        mpp_task_queue_init(&mOutputTaskQueue);
+        mpp_task_queue_setup(mInputTaskQueue, 1);
+        mpp_task_queue_setup(mOutputTaskQueue, 1);
     } break;
     default : {
         mpp_err("Mpp error type %d\n", mType);
     } break;
     }
-
-    mpp_task_queue_init(&mInputTaskQueue);
-    mpp_task_queue_init(&mOutputTaskQueue);
-    mpp_task_queue_setup(mInputTaskQueue, 4);
-    mpp_task_queue_setup(mOutputTaskQueue, 4);
 
     mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
     mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
@@ -275,14 +281,48 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     if (!mInitDone)
         return MPP_NOK;
 
-    AutoMutex autoLock(mFrames->mutex());
-    if (mFrames->list_size() < 4) {
-        mFrames->add_at_tail(frame, sizeof(MppFrameImpl));
-        mThreadCodec->signal();
-        mFramePutCount++;
-        return MPP_OK;
-    }
-    return MPP_NOK;
+    MPP_RET ret = MPP_NOK;
+    MppTask task = NULL;
+
+    do {
+        if (NULL == task) {
+            ret = dequeue(MPP_PORT_INPUT, &task);
+            if (ret) {
+                mpp_log_f("failed to dequeue from input port ret %d\n", ret);
+                break;
+            }
+        }
+
+        /* FIXME: use wait to do block wait */
+        if (mInputBlock && NULL == task) {
+            msleep(2);
+            continue;
+        }
+
+        mpp_assert(task);
+
+        ret = mpp_task_meta_set_frame(task, MPP_META_KEY_INPUT_FRM, frame);
+        if (ret) {
+            mpp_log_f("failed to set input frame to task ret %d\n", ret);
+            break;
+        }
+
+        ret = enqueue(MPP_PORT_INPUT, task);
+        if (ret) {
+            mpp_log_f("failed to enqueue task to input port ret %d\n", ret);
+            break;
+        }
+
+        if (mInputBlock) {
+            while (MPP_NOK == mpp_port_can_dequeue(mInputPort)) {
+                msleep(2);
+            }
+        }
+
+        break;
+    } while (1);
+
+    return ret;
 }
 
 MPP_RET Mpp::get_packet(MppPacket *packet)
@@ -290,18 +330,47 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     if (!mInitDone)
         return MPP_NOK;
 
-    AutoMutex autoLock(mPackets->mutex());
-    if (0 == mPackets->list_size()) {
-        mThreadCodec->signal();
-        if (mOutputBlock)
-            mPackets->wait();
-    }
+    MPP_RET ret = MPP_OK;
+    MppTask task = NULL;
 
-    if (mPackets->list_size()) {
-        mPackets->del_at_head(packet, sizeof(packet));
-        mPacketGetCount++;
-    }
-    return MPP_OK;
+    do {
+        if (NULL == task) {
+            ret = dequeue(MPP_PORT_OUTPUT, &task);
+            if (ret) {
+                mpp_log_f("failed to dequeue from output port ret %d\n", ret);
+                break;
+            }
+        }
+
+        /* FIXME: use wait to do block wait */
+        if (NULL == task) {
+            if (mOutputBlock) {
+                msleep(2);
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        mpp_assert(task);
+
+        ret = mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
+        if (ret) {
+            mpp_log_f("failed to get output packet from task ret %d\n", ret);
+            break;
+        }
+
+        mpp_assert(*packet);
+
+        ret = enqueue(MPP_PORT_OUTPUT, task);
+        if (ret) {
+            mpp_log_f("failed to enqueue task to output port ret %d\n", ret);
+        }
+
+        break;
+    } while (1);
+
+    return ret;
 }
 
 MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
@@ -370,6 +439,9 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
         ret = control_osal(cmd, param);
     } break;
     case CMD_MODULE_MPP : {
+        mpp_assert(cmd > MPP_CMD_BASE);
+        mpp_assert(cmd < MPP_CMD_END);
+
         ret = control_mpp(cmd, param);
     } break;
     case CMD_MODULE_CODEC : {
@@ -393,6 +465,9 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
             ret = control_isp(cmd, param);
         } break;
         default : {
+            mpp_assert(cmd > MPP_CODEC_CMD_BASE);
+            mpp_assert(cmd < MPP_CODEC_CMD_END);
+
             ret = control_codec(cmd, param);
         } break;
         }
@@ -482,17 +557,19 @@ MPP_RET Mpp::reset()
 
 MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
 {
-    MPP_RET ret = MPP_NOK;
-
-    mpp_assert(cmd > MPP_CMD_BASE);
-    mpp_assert(cmd < MPP_CMD_END);
+    MPP_RET ret = MPP_OK;
 
     switch (cmd) {
+    case MPP_SET_INPUT_BLOCK: {
+        RK_U32 block = *((RK_U32 *)param);
+        mInputBlock = block;
+    } break;
     case MPP_SET_OUTPUT_BLOCK: {
         RK_U32 block = *((RK_U32 *)param);
         mOutputBlock = block;
     } break;
     default : {
+        ret = MPP_NOK;
     } break;
     }
     return ret;
@@ -513,9 +590,6 @@ MPP_RET Mpp::control_osal(MpiCmd cmd, MppParam param)
 MPP_RET Mpp::control_codec(MpiCmd cmd, MppParam param)
 {
     MPP_RET ret = MPP_NOK;
-
-    mpp_assert(cmd > MPP_CODEC_CMD_BASE);
-    mpp_assert(cmd < MPP_CODEC_CMD_END);
 
     (void)cmd;
     (void)param;

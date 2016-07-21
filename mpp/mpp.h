@@ -132,6 +132,7 @@ private:
 
     RK_U32          mInitDone;
     RK_U32          mPacketBlock;
+    RK_U32          mInputBlock;
     RK_U32          mOutputBlock;
     RK_U32          mMultiFrame;
 

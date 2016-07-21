@@ -20,7 +20,23 @@
 #include "vpu_api.h"
 #include "rk_mpi.h"
 #include <stdio.h>
+
 #define OMX_BUFFERFLAG_EOS    0x00000001
+
+#define VPU_API_DBG_FUNCTION            (0x00000001)
+#define VPU_API_DBG_DUMP_YUV            (0x00000002)
+#define VPU_API_DBG_DUMP_LOG            (0x00000004)
+#define VPU_API_DBG_INPUT               (0x00000010)
+#define VPU_API_DBG_OUTPUT              (0x00000020)
+
+#define vpu_api_dbg(flag, fmt, ...)     _mpp_dbg(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg_f(flag, fmt, ...)   _mpp_dbg_f(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
+
+#define vpu_api_dbg_func(fmt, ...)      vpu_api_dbg_f(VPU_API_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg_input(fmt, ...)     vpu_api_dbg_f(VPU_API_DBG_INPUT, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg_output(fmt, ...)    vpu_api_dbg_f(VPU_API_DBG_OUTPUT, fmt, ## __VA_ARGS__)
+
+extern RK_U32 vpu_api_debug;
 
 class VpuApiLegacy
 {
@@ -49,17 +65,15 @@ private:
     RK_U32 init_ok;
     RK_U32 frame_count;
     RK_U32 set_eos;
-    RK_U32 vpu_api_debug;
     FILE *fp;
     RK_U8  *fp_buf;
     MppBufferGroup memGroup;
     MppBuffer      pictureMem;
     MppBuffer      outbufMem;
-    MppFrame       inputFrame;
-    MppPacket      outputPakcet;
     RK_U8*         outData;
     RK_U32         use_fd_flag;
-    MppTask        task;
+
+    RK_U32 mEosSet;
 };
 
 #endif /*_VPU_API_H_*/
