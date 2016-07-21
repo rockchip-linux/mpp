@@ -164,18 +164,23 @@ RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
     return new_path_len;
 }
 
-static char *dts_devices[] = {
-    "vpu_service",
-    "hevc_service",
-    "rkvdec",
-    "rkvenc",
-};
-
 RK_S32 check_sysfs_iommu()
 {
-    RK_U32 i = 0, found = 0;
+    RK_U32 i = 0;
+    RK_U32 dts_info_found = 0;
+    RK_U32 ion_info_found = 0;
     RK_S32 ret = ION_DETECT_IOMMU_DISABLE;
     char path[256];
+    static char *dts_devices[] = {
+        "vpu_service",
+        "hevc_service",
+        "rkvdec",
+        "rkvenc",
+    };
+    static char *system_heaps[] = {
+        "vmalloc",
+        "system-heap",
+    };
 
     for (i = 0; i < MPP_ARRAY_ELEMS(dts_devices); i++) {
         snprintf(path, sizeof(path), "/proc/device-tree");
@@ -191,14 +196,26 @@ RK_S32 check_sysfs_iommu()
                     if (iommu_enabled)
                         ret = ION_DETECT_IOMMU_ENABLE;
                 }
-                found = 1;
+                dts_info_found = 1;
                 break;
             }
         }
     }
 
-    if (!found) {
-        mpp_err("can not find dts for all possible devices\n");
+    if (!dts_info_found) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(system_heaps); i++) {
+            snprintf(path, sizeof(path), "/d/ion/heaps");
+            if (find_dir_in_path(path, system_heaps[i], sizeof(path))) {
+                mpp_log("%s found\n", system_heaps[i]);
+                ret = ION_DETECT_IOMMU_ENABLE;
+                ion_info_found = 1;
+                break;
+            }
+        }
+    }
+
+    if (!dts_info_found && !ion_info_found) {
+        mpp_err("can not find any hint from all possible devices\n");
         ret = ION_DETECT_NO_DTS;
     }
 
