@@ -31,12 +31,13 @@
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
+    MppEnc *enc = mpp->mEnc;
     MppThread *thd_enc  = mpp->mThreadCodec;
     EncTask task;  // TODO
     HalTaskInfo task_info;
     MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
     MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
-    MppTask     mpp_task = NULL;
+    MppTask mpp_task = NULL;
     MPP_RET ret = MPP_OK;
 
     memset(&task_info, 0, sizeof(HalTaskInfo));
@@ -48,38 +49,79 @@ void *mpp_enc_control_thread(void *data)
             thd_enc->wait();
         }
         thd_enc->unlock();
-        if (mpp_task != NULL) {
-            MppFrame mpp_frame = NULL;
-            MppPacket mpp_packet = NULL;
-            // task process here
 
+        if (mpp_task != NULL) {
+            MppFrame frame = NULL;
+            MppPacket packet = NULL;
+
+            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
+            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
+
+            mpp_assert(frame);
+
+            memset(&task, 0, sizeof(EncTask));
+
+            if (mpp_frame_get_buffer(frame)) {
+                /*
+                 * if there is available buffer in the input frame do encoding
+                 */
+                if (NULL == packet) {
+                    RK_U32 width  = enc->encCfg.width;
+                    RK_U32 height = enc->encCfg.height;
+                    RK_U32 size = width * height;
+                    MppBuffer buffer = NULL;
+
+                    mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
+                    mpp_log("create buffer size %d fd %d\n", size, mpp_buffer_get_fd(buffer));
+                    mpp_packet_init_with_buffer(&packet, buffer);
+                    mpp_buffer_put(buffer);
+                }
+                mpp_assert(packet);
+
+                mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
+
+                task.ctrl_frm_buf_in = mpp_frame_get_buffer(frame);
+                task.ctrl_pkt_buf_out = mpp_packet_get_buffer(packet);
+                controller_encode(mpp->mEnc->controller, &task);
+
+                task_info.enc.syntax.data = (void *)(&(task.syntax_data));
+                mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
+                mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
+                /*vpuWaitResult = */mpp_hal_hw_wait((mpp->mEnc->hal), &task_info); // TODO   need to check the return value
+
+                RK_U32 outputStreamSize = 0;
+                controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
+
+                mpp_packet_set_length(packet, outputStreamSize);
+            } else {
+                /*
+                 * else init a empty packet for output
+                 */
+                mpp_packet_new(&packet);
+            }
+
+            if (mpp_frame_get_eos(frame))
+                mpp_packet_set_eos(packet);
 
             // enqueue task back to input input
-            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &mpp_frame);
-            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &mpp_packet);
-
             mpp_port_enqueue(input, mpp_task);
             mpp_task = NULL;
 
-            memset(&task, 0, sizeof(EncTask));
-            task.ctrl_frm_buf_in = mpp_frame_get_buffer(mpp_frame);
-            task.ctrl_pkt_buf_out = mpp_packet_get_buffer(mpp_packet);
-            controller_encode(mpp->mEnc->controller, &task);
-
-            task_info.enc.syntax.data = (void *)(&(task.syntax_data));
-            mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
-            mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
-            /*vpuWaitResult = */mpp_hal_hw_wait((mpp->mEnc->hal), &task_info); // TODO   need to check the return value
-
-
-            RK_U32 outputStreamSize = 0;
-            controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
-
-            mpp_packet_set_length(mpp_packet, outputStreamSize);
             // send finished task to output port
             mpp_port_dequeue(output, &mpp_task);
-            mpp_task_meta_set_frame(mpp_task,  MPP_META_KEY_INPUT_FRM,  mpp_frame);
-            mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, mpp_packet);
+            mpp_task_meta_set_frame(mpp_task,  MPP_META_KEY_INPUT_FRM,  frame);
+            mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, packet);
+
+            {
+                RK_S32 is_intra = task.syntax_data.frame_coding_type;
+                RK_U32 flag = mpp_packet_get_flag(packet);
+
+                mpp_task_meta_set_s32(mpp_task, MPP_META_KEY_OUTPUT_INTRA, is_intra);
+                if (is_intra) {
+                    mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
+                }
+            }
+
             // setup output task here
             mpp_port_enqueue(output, mpp_task);
             mpp_task = NULL;

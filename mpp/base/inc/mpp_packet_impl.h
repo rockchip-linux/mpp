@@ -22,6 +22,7 @@
 #define MPP_PACKET_FLAG_EOS             (0x00000001)
 #define MPP_PACKET_FLAG_EXTRA_DATA      (0x00000002)
 #define MPP_PACKET_FLAG_INTERNAL        (0x00000004)
+#define MPP_PACKET_FLAG_INTRA           (0x00000008)
 
 /*
  * mpp_packet_imp structure

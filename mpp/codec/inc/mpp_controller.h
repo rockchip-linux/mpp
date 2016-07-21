@@ -63,7 +63,7 @@ typedef struct EncTask_t {
     MppBuffer       ctrl_frm_buf_in;
     MppBuffer       ctrl_pkt_buf_out;
 
-    h264e_syntax syntax_data;
+    h264e_syntax    syntax_data;
 
     HalTaskInfo     info;
 } EncTask;

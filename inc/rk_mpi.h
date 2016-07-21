@@ -82,6 +82,7 @@ typedef enum {
 
     MPP_CMD_BASE                        = CMD_MODULE_MPP,
     MPP_ENABLE_DEINTERLACE,
+    MPP_SET_INPUT_BLOCK,
     MPP_SET_OUTPUT_BLOCK,
     MPP_CMD_END,
 
@@ -134,6 +135,10 @@ typedef struct MppEncConfig_t {
     RK_S32  width;
     RK_S32  height;
     RK_S32  format;
+
+    /*
+     * Encoder does not support scaling and output data only support yuv420 so far
+     */
 
     /*
      * rate control parameter
