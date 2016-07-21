@@ -800,7 +800,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
     p = mpp_calloc(MppDec, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
-        return MPP_ERR_NULL_PTR;
+        return MPP_ERR_MALLOC;
     }
 
     coding = cfg->coding;

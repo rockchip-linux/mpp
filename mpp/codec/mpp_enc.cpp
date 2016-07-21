@@ -169,20 +169,28 @@ static MPP_RET mpp_extra_info_generate(h264e_control_extra_info_cfg *info, const
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding)
+MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
 {
     MPP_RET ret;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
     Controller controller = NULL;
     MppHal hal = NULL;
-    MppEnc *p = enc;
+    MppEnc *p = NULL;
     RK_S32 task_count = 2;
     IOInterruptCB cb = {NULL, NULL};
 
-    if (NULL == p) {
+    if (NULL == enc) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_NULL_PTR;
+    }
+
+    *enc = NULL;
+
+    p = mpp_calloc(MppEnc, 1);
+    if (NULL == p) {
+        mpp_err_f("failed to malloc context\n");
+        return MPP_ERR_MALLOC;
     }
 
     do {
@@ -200,10 +208,9 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding)
 
         mpp_buf_slot_setup(packet_slots, task_count);
         cb.callBack = mpp_enc_notify;
-        cb.opaque = enc;
+        cb.opaque = p;
 
         ControllerCfg controller_cfg = {
-            enc->encCfg,
             coding,
             task_count,
             cb,
@@ -236,16 +243,13 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding)
             break;
         }
 
-        mpp_extra_info_generate(&(enc->extra_info_cfg), &(enc->encCfg));
-        mpp_hal_control(hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
-        mpp_hal_control(hal, MPP_ENC_GET_EXTRA_INFO, (void*)(&(enc->extra_info)));
-
         p->coding = coding;
         p->controller = controller;
         p->hal    = hal;
         p->tasks  = hal_cfg.tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
+        *enc = p;
         return MPP_OK;
     } while (0);
 
@@ -307,7 +311,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     }
 
     // TODO
-    MppEncConfig *mppCfg = (MppEncConfig*)param;
+    MppEncConfig  *mppCfg = (MppEncConfig*)param;
     H264EncConfig *encCfg = &(enc->encCfg);
 
     switch (cmd) {
@@ -325,7 +329,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         if (0 != mppCfg->width && 0 != mppCfg->height) {
             encCfg->width = mppCfg->width;
             encCfg->height = mppCfg->height;
-            mpp_log("widthxheight %dx%d", encCfg->width, encCfg->height);
+            mpp_log("width %d height %d", encCfg->width, encCfg->height);
         } else
             mpp_err("Width or height is not set, width %d height %d", mppCfg->width, mppCfg->height);
         if (0 != mppCfg->fps_in)
@@ -350,6 +354,13 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         encCfg->second_chroma_qp_index_offset = 2;  // TODO
         encCfg->pps_id = 0;  // TODO
         encCfg->input_image_format = H264ENC_YUV420_SEMIPLANAR;  // TODO
+
+        controller_config(enc->controller, SET_ENC_CFG, (void *)encCfg);
+
+        mpp_extra_info_generate(&(enc->extra_info_cfg), &(enc->encCfg));
+        mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
+        mpp_hal_control(enc->hal, MPP_ENC_GET_EXTRA_INFO, (void*)(&(enc->extra_info)));
+
         break;
     default:
         break;

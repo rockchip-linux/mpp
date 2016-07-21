@@ -382,9 +382,6 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         return VPU_API_ERR_VPU_CODEC_INIT;
     }
 
-    (void)ctx;
-    (void)aEncInStrm;
-    (void)aEncOut;
     // TODO
     if (1) {
         ret = mpp_frame_init(&inputFrame);

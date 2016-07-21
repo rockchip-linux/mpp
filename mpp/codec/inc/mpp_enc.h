@@ -36,7 +36,7 @@ struct MppEnc_t {
     RK_U32              reset_flag;
     void                *mpp;
 
-    H264EncConfig encCfg;
+    H264EncConfig       encCfg;
     h264e_control_extra_info_cfg extra_info_cfg;
     h264e_control_extra_info extra_info;
 };
@@ -51,7 +51,7 @@ extern "C" {
 void *mpp_enc_control_thread(void *data);
 void *mpp_enc_hal_thread(void *data);
 
-MPP_RET mpp_enc_init(MppEnc *enc, MppCodingType coding);
+MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding);
 MPP_RET mpp_enc_deinit(MppEnc *enc);
 MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(void *ctx, void *info);
