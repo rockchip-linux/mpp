@@ -28,6 +28,38 @@
 #include "mpp_packet_impl.h"
 #include "hal_h264e_api.h"
 
+static MPP_RET release_task_in_port(MppPort output)
+{
+    MPP_RET ret = MPP_OK;
+    MppPacket packet = NULL;
+    MppFrame frame = NULL;
+    MppTask mpp_task;
+
+    do {
+        ret = mpp_port_dequeue(output, &mpp_task);
+        if (ret)
+            break;
+
+        if (mpp_task) {
+            packet = NULL;
+            frame = NULL;
+            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
+            if (frame) {
+                mpp_frame_deinit(&frame);
+                frame = NULL;
+            }
+            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
+            if (packet) {
+                mpp_frame_deinit(&packet);
+                packet = NULL;
+            }
+        } else
+            break;
+    } while (1);
+
+    return ret;
+}
+
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -39,6 +71,8 @@ void *mpp_enc_control_thread(void *data)
     MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
     MppTask mpp_task = NULL;
     MPP_RET ret = MPP_OK;
+    MppFrame frame = NULL;
+    MppPacket packet = NULL;
 
     memset(&task_info, 0, sizeof(HalTaskInfo));
 
@@ -51,9 +85,6 @@ void *mpp_enc_control_thread(void *data)
         thd_enc->unlock();
 
         if (mpp_task != NULL) {
-            MppFrame frame = NULL;
-            MppPacket packet = NULL;
-
             mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
             mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
 
@@ -125,8 +156,15 @@ void *mpp_enc_control_thread(void *data)
             // setup output task here
             mpp_port_enqueue(output, mpp_task);
             mpp_task = NULL;
+            packet = NULL;
+            frame = NULL;
         }
     }
+
+    // clear remain task in output port
+    release_task_in_port(input);
+    release_task_in_port(mpp->mOutputPort);
+
     return NULL;
 }
 
