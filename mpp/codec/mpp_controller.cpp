@@ -30,8 +30,8 @@ static const ControlApi *controllers[] = {
 };
 
 typedef struct ControllerImpl_t {
-    ControllerCfg           cfg;
-    const ControlApi     *api;
+    ControllerCfg       cfg;
+    const ControlApi    *api;
     void                *ctx;
 } ControllerImpl;
 
@@ -79,7 +79,6 @@ MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg)
                 return ret;
             }
 
-            p->cfg  = *cfg;
             p->api  = api;
             p->ctx  = ctx;
             *ctrl = p;

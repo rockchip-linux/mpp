@@ -136,9 +136,15 @@ private:
     RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
+
+    /* decoder paramter before init */
     RK_U32          mParserFastMode;
     RK_U32          mParserNeedSplit;
     RK_U32          mParserInternalPts;     /* for MPEG2/MPEG4 */
+
+    /* encoder paramter before init */
+    MppEncConfig    mControlCfg;
+    RK_U32          mControlCfgReady;
 
     MPP_RET control_mpp(MpiCmd cmd, MppParam param);
     MPP_RET control_osal(MpiCmd cmd, MppParam param);

@@ -101,7 +101,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
-        mpp_enc_init(mEnc, coding);
+        mpp_enc_init(&mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
         //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 

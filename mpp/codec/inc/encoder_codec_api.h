@@ -26,6 +26,7 @@
 
 // config cmd
 typedef enum EncCfgCmd_t {
+    SET_ENC_CFG,
     GET_OUTPUT_STREAM_SIZE,
 } EncCfgCmd;
 
@@ -33,8 +34,6 @@ typedef enum EncCfgCmd_t {
  * the reset wait for extension
  */
 typedef struct EncControllerInitCfg_t {
-    H264EncConfig encCfg;
-
     // input
     MppCodingType   coding;
 

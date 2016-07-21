@@ -146,29 +146,9 @@ bool_e H264CheckCfg(const H264EncConfig * pEncCfg)
 H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
 {
     h264Instance_s *inst = pinst;
-//    const void *ewl = NULL;
 
     H264EncRet ret = H264ENC_OK;
-    //EWLInitParam_t param;  // mask by lance 2016.05.12
     ASSERT(pEncCfg);
-//    ASSERT(instAddr);
-
-//    *instAddr = NULL;
-
-    //param.clientType = EWL_CLIENT_TYPE_H264_ENC;  // mask by lance 2016.05.12
-
-    /* Init EWL */
-    /*if((ewl = EWLInit(&param)) == NULL)
-        return H264ENC_EWL_ERROR;*/
-
-    /* Encoder instance */
-    /*inst = (h264Instance_s *) malloc(sizeof(h264Instance_s));
-
-    if(inst == NULL)
-    {
-        ret = H264ENC_MEMORY_ERROR;
-        goto err;
-    }*/
 
     /* Default values */
     H264SeqParameterSetInit(&inst->seqParameterSet);
@@ -201,8 +181,6 @@ H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
         ret = H264ENC_EWL_MEMORY_ERROR;
         goto err;
     }
-
-//    *instAddr = inst;
 
     /* init VUI */
     {
