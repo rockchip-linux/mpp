@@ -332,6 +332,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
+    MppFrame frame = NULL;
 
     do {
         if (NULL == task) {
@@ -353,6 +354,12 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         }
 
         mpp_assert(task);
+
+        mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame);
+        if (frame) {
+            mpp_frame_deinit(&frame);
+            frame = NULL;
+        }
 
         ret = mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
         if (ret) {
