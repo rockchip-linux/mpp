@@ -219,6 +219,7 @@ MPP_RET mpp_task_queue_setup(MppTaskQueue queue, RK_S32 task_count);
 MPP_RET mpp_task_queue_deinit(MppTaskQueue queue);
 MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type);
 
+MPP_RET mpp_port_can_dequeue(MppPort port);
 MPP_RET mpp_port_dequeue(MppPort port, MppTask *task);
 MPP_RET mpp_port_enqueue(MppPort port, MppTask task);
 

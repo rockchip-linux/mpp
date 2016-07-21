@@ -102,6 +102,23 @@ static MPP_RET mpp_port_deinit(MppPort port)
     return MPP_OK;
 }
 
+MPP_RET mpp_port_can_dequeue(MppPort port)
+{
+    MppPortImpl *port_impl = (MppPortImpl *)port;
+    MppTaskQueueImpl *queue = port_impl->queue;
+
+    AutoMutex auto_lock(queue->lock);
+    MppTaskStatusInfo *curr = &queue->info[port_impl->status_curr];
+
+    if (curr->count) {
+        mpp_assert(!list_empty(&curr->list));
+        return MPP_OK;
+    }
+
+    mpp_assert(list_empty(&curr->list));
+    return MPP_NOK;
+}
+
 MPP_RET mpp_port_dequeue(MppPort port, MppTask *task)
 {
     MppPortImpl *port_impl = (MppPortImpl *)port;
