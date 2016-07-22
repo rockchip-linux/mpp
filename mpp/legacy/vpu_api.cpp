@@ -25,10 +25,11 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_common.h"
 
+#include "vpu_api.h"
 #include "vpu_api_legacy.h"
 #include "vpu_mem_legacy.h"
-#include "vpu_api.h"
 
 static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
@@ -194,22 +195,31 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
 }
 
 #ifdef RKPLATFORM
+static const char *codec_paths[] = {
+    "/system/lib/librk_vpuapi.so",
+    "/system/lib/librk_on2.so",
+    "/usr/lib/librk_codec.so",
+};
+
 class VpulibDlsym
 {
 public:
     void *rkapi_hdl;
     RK_S32 (*rkvpu_open_cxt)(VpuCodecContext **ctx);
     RK_S32 (*rkvpu_close_cxt)(VpuCodecContext **ctx);
-    VpulibDlsym()
-        : rkapi_hdl(NULL),
-          rkvpu_open_cxt(NULL),
-          rkvpu_close_cxt(NULL) {
-        if (!!access("/dev/rkvdec", F_OK)) {
-            rkapi_hdl = dlopen("/system/lib/librk_on2.so", RTLD_LAZY);
+    VpulibDlsym() :
+        rkapi_hdl(NULL),
+        rkvpu_open_cxt(NULL),
+        rkvpu_close_cxt(NULL)
+    {
+        RK_U32 i;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(codec_paths); i++) {
+            rkapi_hdl = dlopen(codec_paths[i], RTLD_LAZY);
+            if (rkapi_hdl)
+                break;
         }
-        if (rkapi_hdl == NULL) {
-            rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
-        }
+
         if (rkapi_hdl) {
             rkvpu_open_cxt  = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_open_context");
             rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))dlsym(rkapi_hdl, "vpu_close_context");
@@ -226,7 +236,8 @@ public:
         }
     }
 };
-VpulibDlsym gVpulib;
+
+static VpulibDlsym gVpulib;
 
 RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
@@ -245,6 +256,10 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 }
 #endif
 
+/*
+ * old libvpu path will input a NULL pointer in *ctx
+ * new libvpu path will input non-NULL pointer in *ctx
+ */
 RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
@@ -334,6 +349,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     VpuCodecContext *s = *ctx;
     RK_U32 value;
     mpp_env_get_u32("chg_orig", &value, 0);
+
 #ifdef RKPLATFORM
     if (value || s->extra_cfg.reserved[0]) {
         close_orign_vpu(ctx);
@@ -341,6 +357,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
         return MPP_OK;
     }
 #endif
+
     if (s) {
         s->flush(s);
         VpuApiLegacy* api = (VpuApiLegacy*)(s->vpuApiObj);
