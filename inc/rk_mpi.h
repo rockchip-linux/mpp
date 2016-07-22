@@ -172,7 +172,6 @@ typedef struct MppEncConfig_t {
     RK_S32  profile;
     RK_S32  level;
     RK_S32  cabac_en;
-    RK_S32  trans8x8_en;
 } MppEncConfig;
 
 /*

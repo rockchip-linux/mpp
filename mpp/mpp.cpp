@@ -498,27 +498,6 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     return ret;
 }
 
-MPP_RET Mpp::config(MpiCmd cmd, MppEncConfig cfg)
-{
-    switch (cmd) {
-    case MPP_ENC_SET_CFG:
-        mEnc = mpp_calloc(MppEnc, 1);
-        if (NULL == mEnc) {
-            mpp_err_f("failed to malloc context\n");
-            return MPP_ERR_NULL_PTR;
-        }
-        mEnc->mpp = this;  // TODO  put these code into config function
-
-        mpp_enc_control(mEnc, cmd, &cfg);
-        break;
-    default:
-        mpp_log("MpiCmd is not found in mpi_config.");
-        break;
-    }
-
-    return MPP_OK;
-}
-
 MPP_RET Mpp::reset()
 {
     if (!mInitDone)
@@ -667,8 +646,8 @@ MPP_RET Mpp::control_enc(MpiCmd cmd, MppParam param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        if (mEnc)
-            ret = mpp_enc_control(mEnc, cmd, param);
+        mpp_assert(mEnc);
+        ret = mpp_enc_control(mEnc, cmd, param);
     } break;
     default : {
     } break;

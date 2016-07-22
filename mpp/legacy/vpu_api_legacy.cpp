@@ -31,6 +31,20 @@
 
 RK_U32 vpu_api_debug = 0;
 
+static RK_U32 hevc_ver_align_8(RK_U32 val)
+{
+    return MPP_ALIGN(val, 8);
+}
+
+static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
+
+static RK_U32 default_align_16(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
 
 VpuApiLegacy::VpuApiLegacy() :
     mpp_ctx(NULL),
@@ -43,7 +57,6 @@ VpuApiLegacy::VpuApiLegacy() :
     memGroup(NULL),
     pictureMem(NULL),
     outbufMem(NULL),
-    outData(NULL),
     use_fd_flag(0),
     mEosSet(0)
 {
@@ -76,10 +89,7 @@ VpuApiLegacy::~VpuApiLegacy()
         mpp_err("memGroup deInit");
         mpp_buffer_group_put(memGroup);
     }
-    if (outData != NULL) {
-        free(outData);
-        outData = NULL;
-    }
+
     mpp_destroy(mpp_ctx);
 
     vpu_api_dbg_func("leave\n");
@@ -133,28 +143,40 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         return ret;
     }
 
-    if (MPP_CTX_ENC == type && mpp_ctx) {
-        EncParameter_t *encParam = (EncParameter_t*)ctx->private_data;
-        MppEncConfig encCfg;
-        memset(&encCfg, 0, sizeof(MppEncConfig));
-        // TODO
-        if (0 != encParam->width && 0 != encParam->height) {
-            encCfg.width = encParam->width;
-            encCfg.height = encParam->height;
-        } else
-            mpp_err("Width and height is not set.");
-        outData = (RK_U8*)malloc(encParam->width * encParam->height);
-        if (0 != encParam->levelIdc)
-            encCfg.level = encParam->levelIdc;
-        if (0 != encParam->framerate)
-            encCfg.fps_in = encParam->framerate;
-        if (0 != encParam->framerateout)
-            encCfg.fps_out = encParam->framerateout;
+    if (MPP_CTX_ENC == type) {
+        EncParameter_t *param = (EncParameter_t*)ctx->private_data;
+        MppEncConfig mpp_cfg;
+
+        memset(&mpp_cfg, 0, sizeof(mpp_cfg));
+
+        mpp_log("setup encoder rate control config:\n");
+        mpp_log("width %4d height %4d format %d\n", param->width, param->height, param->format);
+        mpp_log("rc_mode %s qp %d bps %d\n", (param->rc_mode) ? ("VBR") : ("CQP"), param->qp, param->bitRate);
+        mpp_log("fps in %d fps out %d gop %d\n", param->framerate, param->framerateout, param->intraPicRate);
+        mpp_log("setup encoder stream feature config:\n");
+        mpp_log("profile %d level %d cabac %d\n", param->profileIdc, param->levelIdc, param->enableCabac);
+
+        mpp_assert(param->width);
+        mpp_assert(param->height);
+
+        mpp_cfg.width       = param->width;
+        mpp_cfg.height      = param->height;
+        mpp_cfg.format      = param->format;
+        mpp_cfg.rc_mode     = param->rc_mode;
+        mpp_cfg.bps         = param->bitRate;
+        mpp_cfg.fps_in      = param->framerate;
+        if (param->framerateout)
+            mpp_cfg.fps_out = param->framerateout;
         else
-            encCfg.fps_out = encParam->framerate;
-        if (0 != encParam->intraPicRate)
-            encCfg.gop = encParam->intraPicRate;
-        mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &encCfg);  // input parameter config
+            mpp_cfg.fps_out = param->framerate;
+        mpp_cfg.qp          = (param->qp) ? (param->qp) : (26);
+        mpp_cfg.gop         = param->intraPicRate;
+
+        mpp_cfg.profile     = param->profileIdc;
+        mpp_cfg.level       = param->levelIdc;
+        mpp_cfg.cabac_en    = param->enableCabac;
+
+        mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
 
         if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
             ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
@@ -577,9 +599,8 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     info.size = aEncInStrm->size;
     info.fd   = aEncInStrm->bufPhyAddr;
 
-    mpp_log_f("aEncInStrm->nFlags %d size %d pts %lld\n",
-              aEncInStrm->nFlags, aEncInStrm->size, aEncInStrm->timeUs);
-    vpu_api_dbg_input("input info fd %d size %d\n", info.fd, info.size);
+    vpu_api_dbg_input("input fd %d size %d flag %d pts %lld\n",
+                      info.fd, info.size, aEncInStrm->timeUs, aEncInStrm->nFlags);
 
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
@@ -683,20 +704,6 @@ RK_S32 VpuApiLegacy::perform(RK_U32 cmd, RK_U32 *data)
     return 0;
 }
 
-static RK_U32 hevc_ver_align_8(RK_U32 val)
-{
-    return MPP_ALIGN(val, 8);
-}
-
-static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
-
-static RK_U32 default_align_16(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
 RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     vpu_api_dbg_func("enter\n");

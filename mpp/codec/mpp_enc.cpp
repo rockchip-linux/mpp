@@ -399,53 +399,52 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     }
 
     // TODO
-    MppEncConfig  *mppCfg = (MppEncConfig*)param;
+    MppEncConfig  *mpp_cfg = (MppEncConfig*)param;
     H264EncConfig *encCfg = &(enc->encCfg);
 
     switch (cmd) {
     case MPP_ENC_SET_CFG:
-        encCfg->streamType = H264ENC_BYTE_STREAM;//H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
+        //H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
+        encCfg->streamType = H264ENC_BYTE_STREAM;
         encCfg->frameRateDenom = 1;
-        if (0 != mppCfg->profile)
-            encCfg->profile = (h264e_profile)mppCfg->profile;
+        if (mpp_cfg->profile)
+            encCfg->profile = (h264e_profile)mpp_cfg->profile;
         else
             encCfg->profile = H264_PROFILE_BASELINE;
-        if (0 != mppCfg->level)
-            encCfg->level = (H264EncLevel)mppCfg->level;
+        if (mpp_cfg->level)
+            encCfg->level = (H264EncLevel)mpp_cfg->level;
         else
             encCfg->level = H264ENC_LEVEL_4_0;
-        if (0 != mppCfg->width && 0 != mppCfg->height) {
-            encCfg->width = mppCfg->width;
-            encCfg->height = mppCfg->height;
-            mpp_log("width %d height %d", encCfg->width, encCfg->height);
+        if (mpp_cfg->width && mpp_cfg->height) {
+            encCfg->width = mpp_cfg->width;
+            encCfg->height = mpp_cfg->height;
         } else
-            mpp_err("Width or height is not set, width %d height %d", mppCfg->width, mppCfg->height);
-        if (0 != mppCfg->fps_in)
-            encCfg->frameRateNum = mppCfg->fps_in;
+            mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
+        if (mpp_cfg->fps_in)
+            encCfg->frameRateNum = mpp_cfg->fps_in;
         else
             encCfg->frameRateNum = 30;
-        if (mppCfg->gop > 0)
-            encCfg->intraPicRate = mppCfg->gop;
+        if (mpp_cfg->gop > 0)
+            encCfg->intraPicRate = mpp_cfg->gop;
         else
             encCfg->intraPicRate = 30;
-        if (0 != mppCfg->cabac_en)
-            encCfg->enable_cabac = mppCfg->cabac_en;  // TODO
+        if (mpp_cfg->cabac_en)
+            encCfg->enable_cabac = mpp_cfg->cabac_en;
         else
             encCfg->enable_cabac = 0;
-        if (0 != mppCfg->trans8x8_en)
-            encCfg->transform8x8_mode = mppCfg->trans8x8_en; // TODO
-        else
-            encCfg->transform8x8_mode = 0;
+
+        encCfg->transform8x8_mode = (encCfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
         encCfg->chroma_qp_index_offset = 2;  // TODO
-        encCfg->pic_init_qp = 26;  // TODO
+        encCfg->pic_init_qp = mpp_cfg->qp;  // TODO
         encCfg->keyframe_max_interval = 150;  //  TODO
         encCfg->second_chroma_qp_index_offset = 2;  // TODO
-        encCfg->pps_id = 0;  // TODO
-        encCfg->input_image_format = H264ENC_YUV420_SEMIPLANAR;  // TODO
+        encCfg->pps_id = 0;
+        encCfg->input_image_format = H264ENC_YUV420_SEMIPLANAR;
 
         controller_config(enc->controller, SET_ENC_CFG, (void *)encCfg);
 
         mpp_extra_info_generate(&(enc->extra_info_cfg), &(enc->encCfg));
+
         mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
         mpp_hal_control(enc->hal, MPP_ENC_GET_EXTRA_INFO, (void*)(&(enc->extra_info)));
 
