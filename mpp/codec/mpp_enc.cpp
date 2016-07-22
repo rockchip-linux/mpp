@@ -91,7 +91,10 @@ void *mpp_enc_control_thread(void *data)
             mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
             mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
 
-            mpp_assert(frame);
+            if (NULL == frame) {
+                mpp_port_enqueue(input, mpp_task);
+                continue;
+            }
 
             memset(&task, 0, sizeof(EncTask));
 
