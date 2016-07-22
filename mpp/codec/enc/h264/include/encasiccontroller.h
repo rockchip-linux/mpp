@@ -197,9 +197,6 @@ typedef struct {
     u32 roi2Left;
     u32 roi2Bottom;
     u32 roi2Right;
-#ifdef ASIC_WAVE_TRACE_TRIGGER
-    u32 vop_count;
-#endif
     u32 hw_status;
 } regValues_s;
 

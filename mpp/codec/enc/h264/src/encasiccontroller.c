@@ -19,10 +19,10 @@
 ------------------------------------------------------------------------------*/
 #include <string.h>
 
-#include "mpp_log.h"  // add by lance 2016.05.06
+#include "mpp_log.h"
 #include "enccommon.h"
 #include "encasiccontroller.h"
-#include "H264Instance.h"  // add by lance 2016.05.08
+#include "H264Instance.h"
 #include "encpreprocess.h"
 #include "ewl.h"
 #include <stdio.h>
@@ -34,10 +34,6 @@
 /*------------------------------------------------------------------------------
     Module defines
 ------------------------------------------------------------------------------*/
-
-#ifdef ASIC_WAVE_TRACE_TRIGGER
-extern i32 trigger_point;    /* picture which will be traced */
-#endif
 
 /* Mask fields */
 #define mask_2b         (u32)0x00000003
@@ -152,10 +148,6 @@ i32 EncAsicControllerInit(asicData_s * asic)
     asic->internalImageChroma[1] = NULL;
     asic->riceRead = NULL;
     asic->riceWrite = NULL;
-
-#ifdef ASIC_WAVE_TRACE_TRIGGER
-    asic->regs.vop_count = 0;
-#endif
 
     /* get ASIC ID value */
     asic->regs.asicHwId = EncAsicGetId(/*asic->ewl*/);  // mask by lance 2016.05.12
@@ -773,11 +765,6 @@ void EncAsicGetRegisters(/*const void *ewl, */regValues_s * val)  // mask by lan
         }
 #endif
     }
-
-#ifdef TRACE_REGS
-    EncTraceRegs(ewl, 1, EncAsicGetRegisterValue(ewl, val->regMirror, HEncMbCount));
-#endif
-
 }
 
 /*------------------------------------------------------------------------------

@@ -322,9 +322,6 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst, const H264EncIn * pEncIn,
 H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut);
 
-/* Rockchip internal encoder testing */
-H264EncRet H264EncSetTestId(H264EncInst inst, u32 testId);
-
 /*------------------------------------------------------------------------------
     5. Encoder API tracing callback function
 ------------------------------------------------------------------------------*/
