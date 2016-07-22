@@ -76,16 +76,19 @@ H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
 
     /* Set parameters depending on user config */
     if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
+        mpp_err("SetParameter error\n");
         ret = H264ENC_INVALID_ARGUMENT;
         goto err;
     }
     /* Check and init the rest of parameters */
     if (CheckParameter(inst) != ENCHW_OK) {
+        mpp_err("CheckParameter error\n");
         ret = H264ENC_INVALID_ARGUMENT;
         goto err;
     }
 
     if (H264InitRc(&inst->rateControl) != ENCHW_OK) {
+        mpp_err("H264InitRc error\n");
         return H264ENC_INVALID_ARGUMENT;
     }
     /* Initialize ASIC */
@@ -228,23 +231,22 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
 
     inst->seqParameterSet.levelIdx = tmp;
 
-#if 1   /* enforce maximum frame size in level */
+    /* enforce maximum frame size in level */
     if (inst->mbPerFrame > H264MaxFS[inst->seqParameterSet.levelIdx]) {
-        return ENCHW_NOK;
+        while (inst->mbPerFrame > H264MaxFS[inst->seqParameterSet.levelIdx])
+            inst->seqParameterSet.levelIdx++;
     }
-#endif
 
-#if 0   /* enforce macroblock rate limit in level */
+    /* enforce macroblock rate limit in level */
     {
-        u32 mb_rate =
-            (pEncCfg->frameRateNum * inst->mbPerFrame) /
-            pEncCfg->frameRateDenom;
+        u32 mb_rate = (pEncCfg->frameRateNum * inst->mbPerFrame) /
+                       pEncCfg->frameRateDenom;
 
         if (mb_rate > H264MaxMBPS[inst->seqParameterSet.levelIdx]) {
-            return ENCHW_NOK;
+            mpp_log("input mb rate %d is larger than restriction %d\n",
+                    inst->mbPerFrame, H264MaxMBPS[inst->seqParameterSet.levelIdx]);
         }
     }
-#endif
 
     /* Picture parameter set */
     inst->picParameterSet.picInitQpMinus26 = (i32) H264ENC_DEFAULT_QP - 26;
@@ -357,6 +359,16 @@ H264EncRet H264Cfg(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
     /* Set parameters depending on user config */
     if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
         ret = H264ENC_INVALID_ARGUMENT;
+    }
+
+    /* Check and init the rest of parameters */
+    if (CheckParameter(inst) != ENCHW_OK) {
+        ret = H264ENC_INVALID_ARGUMENT;
+        return ret;
+    }
+
+    if (H264InitRc(&inst->rateControl) != ENCHW_OK) {
+        return H264ENC_INVALID_ARGUMENT;
     }
 
     return ret;
