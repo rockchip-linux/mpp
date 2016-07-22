@@ -190,11 +190,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             // ------------
             oriRcCfg.qpHdr = 26;
             oriRcCfg.qpMin = 18;
-            oriRcCfg.qpMax = 51;
+            oriRcCfg.qpMax = 40;
             oriRcCfg.pictureSkip = 0;
-            oriRcCfg.pictureRc = 1;
-            oriRcCfg.mbRc = 1;
-            oriRcCfg.bitPerSecond = 100000;
+            oriRcCfg.pictureRc = 0;
+            oriRcCfg.mbRc = 0;
+            oriRcCfg.bitPerSecond = 8*SZ_1M;
             oriRcCfg.hrd = 0;
             oriRcCfg.hrdCpbSize = 30000000;
             oriRcCfg.gopLen = 30;
