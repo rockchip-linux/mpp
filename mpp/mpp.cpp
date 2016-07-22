@@ -113,7 +113,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_get_external(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
 
         mpp_task_queue_init(&mInputTaskQueue);
         mpp_task_queue_init(&mOutputTaskQueue);
