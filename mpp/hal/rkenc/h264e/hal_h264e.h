@@ -22,7 +22,7 @@
 #include "mpp_hal.h"
 #include "h264e_syntax.h"
 
-#define H264E_HAL_LOG_MODE              0x00000000
+#define H264E_HAL_LOG_MODE              0x00000111
 
 #define H264E_HAL_LOG_ERROR             0x00000001
 #define H264E_HAL_LOG_ASSERT            0x00000010

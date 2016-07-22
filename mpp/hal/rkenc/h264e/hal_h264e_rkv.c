@@ -240,7 +240,7 @@ h264e_hal_rkv_frame *hal_h264e_rkv_frame_pop_unused( h264e_hal_context *ctx)
     }
 
     if ( !frame ) {
-        mpp_log("!frame, return NULL");
+        h264e_hal_log_err("!frame, return NULL");
         return NULL;
     }
     frame->i_reference_count = 1;
@@ -331,7 +331,7 @@ static void hal_h264e_rkv_reference_build_list(h264e_hal_context *ctx)
 
         if ( ref_cfg->i_long_term_en && ref_cfg->hw_longterm_mode && ((dpb_ctx->fdec->i_frame_cnt % ref_cfg->i_long_term_internal) == 0))
             fdec->long_term_flag = 1;
-        mpp_log("dpb_ctx->i_slice_type == SLICE_TYPE_I, return");
+        h264e_hal_log_detail("dpb_ctx->i_slice_type == SLICE_TYPE_I, return");
         return;
     }
 
@@ -522,7 +522,7 @@ static MPP_RET hal_h264e_rkv_reference_update( h264e_hal_context *ctx)
 
     h264e_hal_debug_enter();
     if ( !dpb_ctx->fdec->b_kept_as_ref ) {
-        mpp_log("!dpb_ctx->fdec->b_kept_as_ref, return early");
+        h264e_hal_log_err("!dpb_ctx->fdec->b_kept_as_ref, return early");
         return MPP_OK;
     }
 
@@ -572,7 +572,7 @@ static MPP_RET hal_h264e_rkv_reference_frame_set( h264e_hal_context *ctx, h264e_
 
     dpb_ctx->fdec = hal_h264e_rkv_frame_pop_unused(ctx);
     if ( !dpb_ctx->fdec ) {
-        mpp_log("!dpb_ctx->fdec, current recon buf get failed");
+        h264e_hal_log_err("!dpb_ctx->fdec, current recon buf get failed");
         return MPP_NOK;
     }
 
@@ -698,7 +698,7 @@ static MPP_RET hal_h264e_rkv_reference_frame_update( h264e_hal_context *ctx)
 
     h264e_hal_debug_enter();
     if (MPP_OK != hal_h264e_rkv_reference_update(ctx)) {
-        mpp_log("reference update failed, return now");
+        h264e_hal_log_err("reference update failed, return now");
         return MPP_NOK;
     }
 
@@ -1380,7 +1380,7 @@ MPP_RET hal_h264e_rkv_encapsulate_nals(h264e_hal_rkv_out *out)
         nal_buffer += nal[i].i_payload;
     }
 
-    mpp_log("nals total size: %d bytes",  nal_buffer - out->nal_buf);
+    h264e_hal_log_detail("nals total size: %d bytes",  nal_buffer - out->nal_buf);
 
     h264e_hal_debug_leave();
 
@@ -1532,7 +1532,7 @@ MPP_RET hal_h264e_rkv_sps_write(h264e_hal_sps *sps, h264e_hal_rkv_stream *s)
     hal_h264e_rkv_stream_rbsp_trailing(s);
     hal_h264e_rkv_stream_flush(s);
 
-    mpp_log("write pure sps head size: %d bits", s->count_bit);
+    h264e_hal_log_detail("write pure sps head size: %d bits", s->count_bit);
 
     h264e_hal_debug_leave();
 
@@ -1705,7 +1705,7 @@ MPP_RET hal_h264e_rkv_pps_write(h264e_hal_pps *pps, h264e_hal_sps *sps, h264e_ha
     hal_h264e_rkv_stream_rbsp_trailing( s );
     hal_h264e_rkv_stream_flush( s );
 
-    mpp_log("write pure pps size: %d bits", s->count_bit);
+    h264e_hal_log_detail("write pure pps size: %d bits", s->count_bit);
 
     h264e_hal_debug_leave();
 
@@ -1769,10 +1769,10 @@ static MPP_RET hal_h264e_rkv_get_extra_info(void *dst_extra_info, void *src_extr
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_log("get nal num: %d", src->nal_num);
+    h264e_hal_log_detail("get nal num: %d", src->nal_num);
     dst->size = 0;
     for (k = 0; k < src->nal_num; k++) {
-        mpp_log("get extra info nal type %d, size %d bytes", src->nal[k].i_type, src->nal[k].i_payload);
+        h264e_hal_log_detail("get extra info nal type %d, size %d bytes", src->nal[k].i_type, src->nal[k].i_payload);
 
         memcpy(dst->buf + dst->size, src->nal[k].p_payload, src->nal[k].i_payload);
         dst->size += src->nal[k].i_payload;
@@ -1844,7 +1844,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
 
     ctx->vpu_socket = -1;
     ctx->vpu_client = VPU_ENC_RKV;
-    mpp_log("vpu client: %d", ctx->vpu_client);
+    h264e_hal_log_detail("vpu client: %d", ctx->vpu_client);
 #ifdef ANDROID
     if (ctx->vpu_socket <= 0) {
         ctx->vpu_socket = VPUClientInit(ctx->vpu_client);
@@ -1853,7 +1853,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
             return MPP_ERR_UNKNOW;
         } else {
             VPUHwEncConfig_t hwCfg;
-            mpp_log("get vpu_socket(%d), success. \n", ctx->vpu_socket);
+            h264e_hal_log_detail("get vpu_socket(%d), success. \n", ctx->vpu_socket);
             memset(&hwCfg, 0, sizeof(VPUHwEncConfig_t));
             if (VPUClientGetHwCfg(ctx->vpu_socket, (RK_U32*)&hwCfg, sizeof(hwCfg))) {
                 mpp_err("h264enc # Get HwCfg failed, release vpu\n");
@@ -1965,7 +1965,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     if (ctx->frame_cnt == 0) {
         if (MPP_OK != hal_h264e_rkv_allocate_buffers(ctx, syn)) {
-            mpp_log("hal_h264e_rkv_allocate_buffers failed, free now");
+            h264e_hal_log_err("hal_h264e_rkv_allocate_buffers failed, free now");
             hal_h264e_rkv_free_buffers(ctx);
         }
     }
@@ -1991,11 +1991,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
 #if (RKV_H264E_NUM_REFS > 1)
     if (MPP_OK != hal_h264e_rkv_reference_frame_set(ctx, syn)) {
-        mpp_log("hal_h264e_rkv_reference_frame_set failed, multi-ref error");
+        h264e_hal_log_err("hal_h264e_rkv_reference_frame_set failed, multi-ref error");
     }
 #endif
 
-    mpp_log("generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
+    h264e_hal_log_detail("generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
             ctx->frame_cnt_gen_ready, ctx->num_frames_to_send - 1);
 
 
@@ -2508,12 +2508,12 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
 
     h264e_hal_debug_enter();
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        mpp_log("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
+        h264e_hal_log_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
                 ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     }
 
-    mpp_log("memcpy %d frames' regs from reg list to reg info", ioctl_info->frame_num);
+    h264e_hal_log_detail("memcpy %d frames' regs from reg list to reg info", ioctl_info->frame_num);
     for (k = 0; k < ioctl_info->frame_num; k++)
         memcpy(&ioctl_info->reg_info[k].regs, &reg_list[k], sizeof(h264e_rkv_reg_set));
 
@@ -2530,12 +2530,12 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
         return MPP_NOK;
     }
 
-    mpp_log("vpu client is sending %d regs", length);
+    h264e_hal_log_detail("vpu client is sending %d regs", length);
     if (MPP_OK != VPUClientSendReg(ctx->vpu_socket, (RK_U32 *)ioctl_info, length)) {
         mpp_err("VPUClientSendReg Failed!!!");
         return  MPP_ERR_VPUHW;
     } else {
-        mpp_log("VPUClientSendReg successfully!");
+        h264e_hal_log_detail("VPUClientSendReg successfully!");
     }
 #else
     (void)length;
@@ -2567,15 +2567,15 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     h264e_hal_debug_enter();
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        mpp_log("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
+        h264e_hal_log_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
                 ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     } else {
         ctx->frame_cnt_gen_ready = 0;
         if (ctx->enc_mode == 3) {
-            mpp_log("only for test enc_mode 3 ..."); //TODO: remove later
+            h264e_hal_log_detail("only for test enc_mode 3 ..."); //TODO: remove later
             if (ctx->frame_cnt_send_ready != RKV_H264E_LINKTABLE_FRAME_NUM) {
-                mpp_log("frame_cnt_send_ready(%d) != RKV_H264E_LINKTABLE_FRAME_NUM(%d), wait hardware later",
+                h264e_hal_log_detail("frame_cnt_send_ready(%d) != RKV_H264E_LINKTABLE_FRAME_NUM(%d), wait hardware later",
                         ctx->frame_cnt_send_ready, RKV_H264E_LINKTABLE_FRAME_NUM);
                 return MPP_OK;
             } else {
@@ -2590,19 +2590,19 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         return MPP_NOK;
     }
 
-    mpp_log("VPUClientWaitResult expect length %d\n", length);
+    h264e_hal_log_detail("VPUClientWaitResult expect length %d\n", length);
 
     hw_ret = VPUClientWaitResult(ctx->vpu_socket, (RK_U32 *)reg_out,
                                  length, &cmd, NULL);
 
-    mpp_log("VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
+    h264e_hal_log_detail("VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
 
 
     if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
-        mpp_log("hardware wait error");
+        h264e_hal_log_err("hardware wait error");
 
     if (hw_ret != MPP_OK) {
-        mpp_log("hardware returns error:%d", hw_ret);
+        h264e_hal_log_err("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
     }
 #else
@@ -2644,7 +2644,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     h264e_hal_debug_enter();
 
-    mpp_log("hal_h264e_rkv_control cmd 0x%x, info %p", cmd_type, param);
+    h264e_hal_log_detail("hal_h264e_rkv_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
         hal_h264e_rkv_set_extra_info(ctx, param);

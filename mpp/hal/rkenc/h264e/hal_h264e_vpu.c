@@ -1313,7 +1313,7 @@ static MPP_RET hal_h264e_vpu_write_sps(h264e_hal_vpu_stream *stream, h264e_hal_s
 
     hal_h264e_vpu_rbsp_trailing_bits(stream);
 
-    mpp_log("sps write size: %d bytes", stream->byte_cnt);
+    h264e_hal_log_detail("sps write size: %d bytes", stream->byte_cnt);
 
     h264e_hal_debug_leave();
 
@@ -1356,7 +1356,7 @@ static MPP_RET hal_h264e_vpu_write_pps(h264e_hal_vpu_stream *stream, h264e_hal_p
 
     hal_h264e_vpu_rbsp_trailing_bits(stream);
 
-    mpp_log("pps write size: %d bytes", stream->byte_cnt);
+    h264e_hal_log_detail("pps write size: %d bytes", stream->byte_cnt);
 
     h264e_hal_debug_leave();
 
@@ -1518,8 +1518,8 @@ static MPP_RET hal_h264e_vpu_get_extra_info(void *dst_extra_info, void *src_extr
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_log("get extra info sps size: %d bytes", sps_stream->byte_cnt);
-    mpp_log("get extra info pps size: %d bytes", pps_stream->byte_cnt);
+    h264e_hal_log_detail("get extra info sps size: %d bytes", sps_stream->byte_cnt);
+    h264e_hal_log_detail("get extra info pps size: %d bytes", pps_stream->byte_cnt);
 
     dst->size = sps_stream->byte_cnt + pps_stream->byte_cnt;
     memcpy(dst->buf,                        sps_stream->buffer, sps_stream->byte_cnt);
@@ -1562,7 +1562,7 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
 
     ctx->vpu_socket = -1;
     ctx->vpu_client = VPU_ENC;
-    mpp_log("vpu client: %d", ctx->vpu_client);
+    h264e_hal_log_detail("vpu client: %d", ctx->vpu_client);
 #ifdef ANDROID
     if (ctx->vpu_socket <= 0) {
         ctx->vpu_socket = VPUClientInit(ctx->vpu_client);
@@ -1571,7 +1571,7 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
             return MPP_ERR_UNKNOW;
         } else {
             VPUHwEncConfig_t hwCfg;
-            mpp_log("get vpu_socket(%d), success. \n", ctx->vpu_socket);
+            h264e_hal_log_detail("get vpu_socket(%d), success. \n", ctx->vpu_socket);
             memset(&hwCfg, 0, sizeof(VPUHwEncConfig_t));
             if (VPUClientGetHwCfg(ctx->vpu_socket, (RK_U32*)&hwCfg, sizeof(hwCfg))) {
                 mpp_err("h264enc # Get HwCfg failed, release vpu\n");
@@ -1648,7 +1648,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 
     if (ctx->frame_cnt == 0) {
         if (MPP_OK != hal_h264e_vpu_allocate_buffers(ctx, syn)) {
-            mpp_log("hal_h264e_vpu_allocate_buffers failed, free now");
+            h264e_hal_log_err("hal_h264e_vpu_allocate_buffers failed, free now");
             hal_h264e_vpu_free_buffers(ctx);
         }
     }
@@ -1659,7 +1659,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 
     memset(reg, 0, sizeof(h264e_vpu_reg_set));
 
-    mpp_log("frame %d generate regs now", ctx->frame_cnt);
+    h264e_hal_log_detail("frame %d generate regs now", ctx->frame_cnt);
 
     /* If frame encode type for current frame is intra, write sps pps to
        the output buffer */
@@ -1929,12 +1929,12 @@ MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
 #ifdef ANDROID
     if (ctx->vpu_socket > 0) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
-        mpp_log("vpu client is sending %d regs", ON2_H264E_NUM_REGS);
+        h264e_hal_log_detail("vpu client is sending %d regs", ON2_H264E_NUM_REGS);
         if (MPP_OK != VPUClientSendReg(ctx->vpu_socket, p_regs, ON2_H264E_NUM_REGS)) {
             mpp_err("VPUClientSendReg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
-            mpp_log("VPUClientSendReg successfully!");
+            h264e_hal_log_detail("VPUClientSendReg successfully!");
         }
     } else {
         mpp_err("invalid vpu socket: %d", ctx->vpu_socket);
@@ -1985,14 +1985,14 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
         RK_S32 hw_ret = VPUClientWaitResult(ctx->vpu_socket, (RK_U32 *)reg_out,
                                             ON2_H264E_NUM_REGS, &cmd, &length);
 
-        mpp_log("VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
+        h264e_hal_log_detail("VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
 
 
         if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
-            mpp_log("hardware wait error");
+            mpp_err("hardware wait error");
 
         if (hw_ret != MPP_OK) {
-            mpp_log("hardware returns error:%d", hw_ret);
+            mpp_err("hardware returns error:%d", hw_ret);
             return MPP_ERR_VPUHW;
         }
     } else {
@@ -2042,7 +2042,7 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     h264e_hal_debug_enter();
 
-    mpp_log("hal_h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
+    h264e_hal_log_detail("hal_h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
         hal_h264e_vpu_set_extra_info(ctx->extra_info, param);
