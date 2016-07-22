@@ -316,6 +316,7 @@ static MPP_RET get_val_by_key(MppMetaImpl *meta, MppMetaKey key, MppMetaType typ
     MppMetaNode *node = service->find_node(meta, index);
     if (node) {
         *val = node->val;
+        service->put_node(node);
         ret = MPP_OK;
     }
     return ret;

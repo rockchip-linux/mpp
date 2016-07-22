@@ -28,7 +28,7 @@
 #include "mpp_packet_impl.h"
 #include "hal_h264e_api.h"
 
-static MPP_RET release_task_in_port(MppPort output)
+static MPP_RET release_task_in_port(MppPort port)
 {
     MPP_RET ret = MPP_OK;
     MppPacket packet = NULL;
@@ -36,23 +36,26 @@ static MPP_RET release_task_in_port(MppPort output)
     MppTask mpp_task;
 
     do {
-        ret = mpp_port_dequeue(output, &mpp_task);
+        ret = mpp_port_dequeue(port, &mpp_task);
         if (ret)
             break;
 
         if (mpp_task) {
             packet = NULL;
             frame = NULL;
-            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
+            ret = mpp_task_meta_get_frame(mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
             if (frame) {
                 mpp_frame_deinit(&frame);
                 frame = NULL;
             }
-            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
+            ret = mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
             if (packet) {
-                mpp_frame_deinit(&packet);
+                mpp_packet_deinit(&packet);
                 packet = NULL;
             }
+
+            mpp_port_enqueue(port, mpp_task);
+            mpp_task = NULL;
         } else
             break;
     } while (1);
@@ -134,13 +137,17 @@ void *mpp_enc_control_thread(void *data)
             if (mpp_frame_get_eos(frame))
                 mpp_packet_set_eos(packet);
 
-            // enqueue task back to input input
+            /*
+             * first clear output packet
+             * then enqueue task back to input port
+             * final user will release the mpp_frame they had input
+             */
+            mpp_task_meta_set_frame(mpp_task, MPP_META_KEY_INPUT_FRM, frame);
             mpp_port_enqueue(input, mpp_task);
             mpp_task = NULL;
 
             // send finished task to output port
             mpp_port_dequeue(output, &mpp_task);
-            mpp_task_meta_set_frame(mpp_task,  MPP_META_KEY_INPUT_FRM,  frame);
             mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, packet);
 
             {
@@ -162,6 +169,7 @@ void *mpp_enc_control_thread(void *data)
     }
 
     // clear remain task in output port
+    release_task_in_port(mpp->mInputPort);
     release_task_in_port(input);
     release_task_in_port(mpp->mOutputPort);
 
