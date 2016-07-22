@@ -136,6 +136,9 @@ private:
     RK_U32          mOutputBlock;
     RK_U32          mMultiFrame;
 
+    // task for put_frame / put_packet
+    MppTask         mInputTask;
+
     RK_U32          mStatus;
 
     /* decoder paramter before init */

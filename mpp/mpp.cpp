@@ -60,6 +60,7 @@ Mpp::Mpp()
       mInputBlock(0),
       mOutputBlock(0),
       mMultiFrame(0),
+      mInputTask(NULL),
       mStatus(0),
       mParserFastMode(0),
       mParserNeedSplit(0),
@@ -282,7 +283,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         return MPP_NOK;
 
     MPP_RET ret = MPP_NOK;
-    MppTask task = NULL;
+    MppTask task = mInputTask;
 
     do {
         if (NULL == task) {
@@ -317,10 +318,25 @@ MPP_RET Mpp::put_frame(MppFrame frame)
             while (MPP_NOK == mpp_port_can_dequeue(mInputPort)) {
                 msleep(2);
             }
+
+            ret = dequeue(MPP_PORT_INPUT, &task);
+            if (ret) {
+                mpp_log_f("failed to dequeue from input port ret %d\n", ret);
+                break;
+            }
+
+            mpp_assert(task);
+            ret = mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame);
+            if (frame) {
+                mpp_frame_deinit(&frame);
+                frame = NULL;
+            }
         }
 
         break;
     } while (1);
+
+    mInputTask = task;
 
     return ret;
 }
@@ -332,7 +348,6 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
-    MppFrame frame = NULL;
 
     do {
         if (NULL == task) {
@@ -354,12 +369,6 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         }
 
         mpp_assert(task);
-
-        mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame);
-        if (frame) {
-            mpp_frame_deinit(&frame);
-            frame = NULL;
-        }
 
         ret = mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
         if (ret) {

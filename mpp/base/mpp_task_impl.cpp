@@ -282,7 +282,8 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
     if (p->tasks) {
         for (RK_S32 i = 0; i < p->task_count; i++) {
             /* we must ensure that all task return to init status */
-            mpp_assert(p->tasks[i].status == MPP_INPUT_PORT);
+            mpp_assert(p->tasks[i].status == MPP_INPUT_PORT ||
+                       p->tasks[i].status == MPP_INPUT_HOLD);
             mpp_meta_put(p->tasks[i].meta);
         }
         mpp_free(p->tasks);
