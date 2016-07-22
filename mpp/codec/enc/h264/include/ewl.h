@@ -112,12 +112,6 @@ i32 EWLRelease(const void *inst);
  * or EWL_ERROR if unable to reserve the resource. */
 //    i32 EWLReserveHw(const void *inst);
 
-/* Release the HW resource
- * EWLReleaseHw is called when the HW has finished the frame encoding.
- * The codec SW will continue the frame encoding but the HW can
- * be used by another codec.*/
-//    void EWLReleaseHw(const void *inst);
-
 /* Frame buffers memory */
 //    i32 EWLMallocRefFrm(const void *inst, u32 size, VPULinearMem_t * info);
 //    void EWLFreeRefFrm(const void *inst, VPULinearMem_t * info);

@@ -18,64 +18,16 @@
 #define __ENC_COMMON_H__
 
 /*------------------------------------------------------------------------------
-    1. External compiler flags
-------------------------------------------------------------------------------*/
-
-/* Encoder global definitions
- *
- * _ASSERT_USED     # Asserts enabled
- * _DEBUG_PRINT     # Prints debug information on stdout
- * TRACE_STREAM     # Creates stream trace file
- * TEST_DATA        # Creates test data files
- * MPEG4_HW_VLC_MODE_ENABLED    # Control: MPEG-4 ASIC supports VLC mode
- * MPEG4_HW_RLC_MODE_ENABLED    # Control: MPEG-4 ASIC supports RLC mode
- * LOEFFLER_DCT                 # System: MPEG-4 DCT using SW algorithm
- * LOEFFLER_ASIC_DCT            # System: MPEG-4 DCT using ASIC algorithm
- * LOEFFLER_IDCT                # System: MPEG-4 IDCT using SW algorithm
- * LOEFFLER_ASIC_IDCT           # System: MPEG-4 IDCT using ASIC algorithm
- * SW_QUANT                     # System: MPEG-4 quantization using SW algorithm
- * FIXED_POINT_QUANT            # System: MPEG-4 quantization using ASIC algorithm
- *
- * Can be defined here or using compiler flags */
-
-#define LOEFFLER_ASIC_DCT
-#define LOEFFLER_ASIC_IDCT
-#define FIXED_POINT_QUANT
-
-/*------------------------------------------------------------------------------
     2. Include headers
 ------------------------------------------------------------------------------*/
 
 #include "basetype.h"
 #include "ewl.h"
 
-/* Test data generation requires stream trace */
-#ifdef TEST_DATA
-#ifndef TRACE_STREAM
-#define TRACE_STREAM
-#endif
-#endif
-
-/* Stream tracing requires encdebug.h */
-#ifdef TRACE_STREAM
-#ifndef H8270_HAVE_ENCDEBUG_H
-#define H8270_HAVE_ENCDEBUG_H
-#endif
-#endif
-
-#ifdef H8270_HAVE_ENCDEBUG_H
-#include "encdebug.h"
-#else
 #define ASSERT(expr)
 #define DEBUG_PRINT(args)
 #define COMMENT(x)
-#define COMMENTMBTYPE(x,y)
 #define TRACE_BIT_STREAM(v,n)
-#endif
-
-#ifdef H8270_HAVE_ENCTRACE_H
-#include "enctrace.h"
-#endif
 
 /*------------------------------------------------------------------------------
     3. Module defines

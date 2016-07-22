@@ -23,15 +23,13 @@
 #include "h264e_codec.h"
 #include "h264e_syntax.h"
 
-// TODO  modify by lance 2016.05.19
 #include "h264encapi.h"
 #include "mpp_controller.h"
 #include "h264e_utils.h"
 #include "h264e_macro.h"
 
-// add by lance 2016.06.16
 #ifdef SYNTAX_DATA_IN_FILE
-FILE *fp_on2_syntax_in = NULL;
+FILE *fp_syntax_in = NULL;
 #endif
 
 MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
@@ -43,9 +41,9 @@ MPP_RET h264e_deinit(void *ctx)
 {
     H264EncInst encInst = (H264EncInst)ctx;
     h264Instance_s * pEncInst = (h264Instance_s*)ctx;
-    H264EncRet ret/* = MPP_OK*/;  // TODO  modify by lance 2016.05.19
-    H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
-    H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
+    H264EncRet ret/* = MPP_OK*/;
+    H264EncIn *encIn = &(pEncInst->encIn);
+    H264EncOut *encOut = &(pEncInst->encOut);
 
     /* End stream */
     ret = H264EncStrmEnd(encInst, encIn, encOut);
@@ -57,11 +55,11 @@ MPP_RET h264e_deinit(void *ctx)
         mpp_err("H264EncRelease() failed, ret %d.", ret);
         return MPP_NOK;
     }
-    // add by lance 2016.06.16
+
 #ifdef SYNTAX_DATA_IN_FILE
-    if (NULL != fp_on2_syntax_in) {
-        fclose(fp_on2_syntax_in);
-        fp_on2_syntax_in = NULL;
+    if (NULL != fp_syntax_in) {
+        fclose(fp_syntax_in);
+        fp_syntax_in = NULL;
     }
 #endif
     return MPP_OK;
@@ -318,10 +316,10 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 
         // add by lance 2016.06.16
     #ifdef SYNTAX_DATA_IN_FILE
-        if (NULL == fp_on2_syntax_in) {
-            fp_on2_syntax_in = fopen("/data/test/vpu_syntax_in.txt", "ab");
-            if (NULL == fp_on2_syntax_in)
-                mpp_err("open fp_on2_syntax_in failed!");
+        if (NULL == fp_syntax_in) {
+            fp_syntax_in = fopen("/data/test/vpu_syntax_in.txt", "ab");
+            if (NULL == fp_syntax_in)
+                mpp_err("open fp_syntax_in failed!");
         }
     #endif
         h264e_control_debug_leave();

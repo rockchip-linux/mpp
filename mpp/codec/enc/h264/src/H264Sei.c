@@ -109,11 +109,6 @@ void H264UpdateSeiTS(sei_s * sei, u32 timeInc)
     ts->hrf = (ts->hr != 0);
     ts->minf = ts->hrf || (ts->min != 0);
     ts->secf = ts->minf || (ts->sec != 0);
-
-#ifdef TRACE_PIC_TIMING
-    DEBUG_PRINT(("Picture Timing: %02i:%02i:%02i  %6i ticks\n", ts->hr, ts->min,
-                 ts->sec, (sei->nframes * ts->nuit + sei->toffs)));
-#endif
 }
 
 /*------------------------------------------------------------------------------

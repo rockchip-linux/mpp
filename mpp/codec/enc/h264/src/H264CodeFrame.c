@@ -25,7 +25,7 @@
 //#include <cutils/properties.h>  // mask by lance 2016.05.05
 
 #ifdef SYNTAX_DATA_IN_FILE
-extern FILE *fp_on2_syntax_in;
+extern FILE *fp_syntax_in;
 #endif
 
 /*------------------------------------------------------------------------------
@@ -60,14 +60,6 @@ static const u32 h264SkipSadPenalty[52] = {     //rk29
     0, 0
 };
 
-/* Penalty factor in 1/256 units for skip mode, 2550/(qp-1)-50 */   //rk30
-u32 h264SkipSadPenalty_rk30[52] = {
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 233, 205, 182, 163, 146,
-    132, 120, 109, 100,  92,  84,  78,  71,  66,  61,  56,  52,  48,  44,  41,
-    38,  35,  32,  30,  27,  25,  23,  21,  19,  17,  15,  14,  12,  11,   9,
-    8,   7,   5,   4,   3,   2,   1
-};
-
 /*------------------------------------------------------------------------------
     4. Local function prototypes
 ------------------------------------------------------------------------------*/
@@ -88,16 +80,15 @@ void H264CodeFrame(h264Instance_s * inst, h264e_syntax *syntax_data)
     H264SetNewFrame(inst);
     if (!inst->time_debug_init) {
         inst->time_debug_init = 1;
-        //total = 0;  // mask by lance 2016.05.05
         encNum = 0;
     }
 
     EncAsicFrameStart((void*)inst,/* inst->asic.ewl,*/ &inst->asic.regs, syntax_data);  // mask by lance 2016.05.12
 #ifdef SYNTAX_DATA_IN_FILE
-    if (NULL != fp_on2_syntax_in) {
+    if (NULL != fp_syntax_in) {
         regValues_s *syn = &inst->asic.regs;
         int k = 0;
-        FILE *fp = fp_on2_syntax_in;
+        FILE *fp = fp_syntax_in;
         //VPU_DEBUG("on2_syntax_in.txt open");
         fprintf(fp, "#FRAME %d:\n", inst->frameCnt);
 

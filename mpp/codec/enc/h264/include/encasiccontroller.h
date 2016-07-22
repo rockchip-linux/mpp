@@ -74,9 +74,6 @@ typedef enum {
     ASIC_INTRA = 1
 } asicFrameCodingType_e;
 
-#define ASIC_PENALTY_TABLE_SIZE         128
-#define ASIC_PENALTY_UNDEFINED          0
-
 typedef struct {
     u32 irqDisable;
     u32 irqInterval;
@@ -143,7 +140,6 @@ typedef struct {
     u32 jpegSliceEnable;
     u32 jpegRestartInterval;
     u32 jpegRestartMarker;
-    u32 regMirror[184];
     u32 inputLumaBaseOffset;
     u32 inputChromaBaseOffset;
     u32 h264Inter4x4Disabled;
@@ -159,7 +155,6 @@ typedef struct {
     u32 timeInc;
     u32 timeIncBits;
     u32 asicCfgReg;
-    u32 asicHwId;
     u32 intra16Favor;
     u32 interFavor;
     u32 skipPenalty;
@@ -178,8 +173,6 @@ typedef struct {
     u32 gMaskMsb;
     u32 bMaskMsb;
 
-    u8 dmvPenalty[ASIC_PENALTY_TABLE_SIZE];
-    u8 dmvQpelPenalty[ASIC_PENALTY_TABLE_SIZE];
     u32 splitMvMode;
     u32 diffMvPenalty[3];
     u32 splitPenalty[4];
@@ -226,41 +219,8 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
 void EncAsicMemFree_V2(asicData_s * asic);
 
 /* Functions for controlling ASIC */
-void EncAsicSetQuantTable(asicData_s * asic,
-                          const u8 * lumTable, const u8 * chTable);
-
-void EncAsicGetRegisters(/*const void *ewl, */regValues_s * val);  // mask by lance 2016.05.12
-
-u32 EncAsicGetStatus(regValues_s *val);
-
-u32 EncAsicGetId(/*const void *ewl*/);  // mask by lance 2016.05.12
-
 void EncAsicFrameStart(void * inst,/* const void *ewl,*/ regValues_s * val, h264e_syntax *syntax_data);  // mask by lance 2016.05.12
-
-void EncAsicStop(/*const void *ewl*/);  // mask by lance 2016.05.12
 
 void EncAsicRecycleInternalImage(regValues_s * val);
 
-i32 EncAsicCheckStatus_V2(asicData_s * asic);
-
-#ifdef MPEG4_HW_RLC_MODE_ENABLED
-
-i32 EncAsicMemAlloc(asicData_s * asic, u32 width, u32 height, u32 rlcBufSize);
-void EncAsicMemFree(asicData_s * asic);
-
-/* Functions for parsing data from ASIC output tables */
-asicMbType_e EncAsicMbType(const u32 * control);
-i32 EncAsicQp(const u32 * control);
-void EncAsicMv(const u32 * control, i8 mv[4], i32 xy);
-void EncAsicDc(i32 * mbDc, const u32 * control);
-i32 EncAsicRlcCount(const u32 * mbRlc[6], i32 mbRlcCount[6],
-                    const u32 * rlcData, const u32 * control);
-
-void EncAsicFrameContinue(const void *ewl, regValues_s * val);
-
-i32 EncAsicCheckStatus(asicData_s * asic);
-i32 ExpGolombSigned(i32 val);
-
-#endif /* MPEG4_HW_RLC_MODE_ENABLED */
-i32 ExpGolombSigned(i32 val);  // add by lance 2016.05.12
 #endif

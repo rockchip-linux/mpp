@@ -30,10 +30,6 @@
 #include "H264RateControl.h"
 #include "H264Mad.h"
 
-#ifdef VIDEOSTAB_ENABLED
-#include "vidstabcommon.h"
-#endif
-
 /*------------------------------------------------------------------------------
     2. External compiler flags
 --------------------------------------------------------------------------------
@@ -124,10 +120,6 @@ typedef struct {
     madTable_s mad;
     asicData_s asic;
     const void *inst;
-#ifdef VIDEOSTAB_ENABLED
-    HWStabData vsHwData;
-    SwStbData vsSwData;
-#endif
     u32 time_debug_init;
     RK_U32 intraPeriodCnt;  //  count the frame amount from last intra frame,
     // then determine next frame to which type to be encoded
