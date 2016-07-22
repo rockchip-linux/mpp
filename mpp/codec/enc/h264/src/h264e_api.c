@@ -29,8 +29,6 @@
 #include "h264e_utils.h"
 #include "h264e_macro.h"
 
-#define USE_NEW_INTERFACE 1  // add by lance 2016.06.01
-
 // add by lance 2016.06.16
 #ifdef SYNTAX_DATA_IN_FILE
 FILE *fp_on2_syntax_in = NULL;
@@ -78,29 +76,13 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
     H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
     const H264EncCfg *encCfgParam = &(pEncInst->h264EncCfg);
-    //h264e_syntax *syntax_data = NULL;
-    //MppBufferInfo outInfo;  // add by lance 2016.05.06  // mask by lance 2016.07.04
     RK_U32 srcLumaWidth = pEncInst->lumWidthSrc;
     RK_U32 srcLumaHeight = pEncInst->lumHeightSrc;
 
-
-    // TODO modify by lance 2016.05.19
-    (void)task;
-    //(EncTask*)task;  // add by lance 2016.05.30
-    //memset(&encIn, 0, sizeof(H264EncIn));  // memset  add by lance 2016.05.31
-    //memset(&encOut, 0, sizeof(H264EncOut));  // memset  add by lance 2016.05.31
-
     encIn->pOutBuf = (u32*)mpp_buffer_get_ptr(((EncTask*)task)->ctrl_pkt_buf_out);
-    // mask and add by lance 2016.05.06
-    //encIn.busOutBuf = outbufMem.phy_addr;
     encIn->busOutBuf = mpp_buffer_get_fd(((EncTask*)task)->ctrl_pkt_buf_out);
-    // mask and add by lance 2016.05.06
-    //encIn.outBufSize = outbufMem.size;
-    //mpp_buffer_info_get(((EncTask*)task)->ctrl_pkt_buf_out, &outInfo);
     encIn->outBufSize = mpp_buffer_get_size(((EncTask*)task)->ctrl_pkt_buf_out);
 
-
-    // TODO  modify by lance 2016.05.21
     /* Start stream */
     if (pEncInst->encStatus == H264ENCSTAT_INIT) {
         ret = H264EncStrmStart(encoderOpen, encIn, encOut);
@@ -170,10 +152,8 @@ MPP_RET h264e_flush(void *ctx)
 
 MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
-
     h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
-    (void)cmd;
-    (void)param;
+
     switch (cmd) {
     case SET_ENC_CFG : {
         const H264EncConfig *encCfg = (const H264EncConfig *)param;
@@ -187,14 +167,10 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         H264EncCodingCtrl oriCodingCfg;
         H264EncPreProcessingCfg oriPreProcCfg;
         H264EncRet ret/* = MPP_OK*/;  // TODO  modify by lance 2016.05.19
-        H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
-        H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
-        (void)encIn;  // modify by lance 2016.05.22
-        (void)encOut;  // modify by lance 2016.05.22
 
         h264e_control_debug_enter();
 
-        if ((ret = H264EncInit(encCfg/*&encCfg*/, pEncInst)) != H264ENC_OK) {  // TODO  encCfg is set by user modify by lance 2016.06.12
+        if ((ret = H264EncInit(encCfg, pEncInst)) != H264ENC_OK) {
             mpp_err("H264EncInit() failed, ret %d.", ret);
             return -1;
         }
@@ -368,14 +344,12 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     regValues_s *val = &(pEncInst->asic.regs);
     h264e_feedback *fb = (h264e_feedback *)feedback;
     int i = 0;
-    // for debug the new api interface    modify by lance 2016.05.19
-#ifdef USE_NEW_INTERFACE
+
     H264EncRet ret;
     H264EncInst encInst = (H264EncInst)ctx;
     H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
     H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
     MPP_RET vpuWaitResult = MPP_OK;
-#endif
 
     /* HW output stream size, bits to bytes */
     val->outputStrmSize = fb->out_strm_size;
@@ -399,8 +373,6 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     /*hw status*/
     val->hw_status = fb->hw_status;
 
-    // USE_NEW_INTERFACE is for debug the new api interface  modify by lance 2016.05.19
-#ifdef USE_NEW_INTERFACE
     // vpuWaitResult should be given from hal part, and here assume it is OK  // TODO  modify by lance 2016.06.01
     ret = H264EncStrmEncodeAfter(encInst, encIn, encOut, vpuWaitResult);    // add by lance 2016.05.07
     switch (ret) {
@@ -476,7 +448,6 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 #endif
         break;
     }
-#endif
 
     return MPP_OK;
 }

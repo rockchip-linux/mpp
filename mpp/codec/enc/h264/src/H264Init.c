@@ -49,86 +49,6 @@ static bool_e CheckParameter(const h264Instance_s * inst);
 
 /*------------------------------------------------------------------------------
 
-    H264CheckCfg
-
-    Function checks that the configuration is valid.
-
-    Input   pEncCfg Pointer to configuration structure.
-
-    Return  ENCHW_OK      The configuration is valid.
-            ENCHW_NOK     Some of the parameters in configuration are not valid.
-
-------------------------------------------------------------------------------*/
-bool_e H264CheckCfg(const H264EncConfig * pEncCfg)
-{
-    ASSERT(pEncCfg);
-
-    if ((pEncCfg->streamType != H264ENC_BYTE_STREAM) &&
-        (pEncCfg->streamType != H264ENC_NAL_UNIT_STREAM))
-        return ENCHW_NOK;
-
-    /* Encoded image width limits, multiple of 4 */
-    if (pEncCfg->width < H264ENC_MIN_ENC_WIDTH ||
-        pEncCfg->width > H264ENC_MAX_ENC_WIDTH || (pEncCfg->width & 0x3) != 0)
-        return ENCHW_NOK;
-
-    /* Encoded image height limits, multiple of 2 */
-    if (pEncCfg->height < H264ENC_MIN_ENC_HEIGHT ||
-        pEncCfg->height > H264ENC_MAX_ENC_HEIGHT || (pEncCfg->height & 0x1) != 0)
-        return ENCHW_NOK;
-
-    /* total macroblocks per picture limit */
-    if (((pEncCfg->height + 15) / 16) * ((pEncCfg->width + 15) / 16) >
-        H264ENC_MAX_MBS_PER_PIC) {
-        return ENCHW_NOK;
-    }
-
-    /* Check frame rate */
-    if (pEncCfg->frameRateNum < 1 || pEncCfg->frameRateNum > ((1 << 16) - 1))
-        return ENCHW_NOK;
-
-    if (pEncCfg->frameRateDenom < 1) {
-        return ENCHW_NOK;
-    }
-
-    /* special allowal of 1000/1001, 0.99 fps by customer request */
-    if (pEncCfg->frameRateDenom > pEncCfg->frameRateNum &&
-        !(pEncCfg->frameRateDenom == 1001 && pEncCfg->frameRateNum == 1000)) {
-        return ENCHW_NOK;
-    }
-
-    /* check level */
-    if ((pEncCfg->level > H264ENC_MAX_LEVEL) &&
-        (pEncCfg->level != H264ENC_LEVEL_1_b)) {
-        return ENCHW_NOK;
-    }
-
-#if 0
-    /* check HW limitations */
-    {
-        VPUHwEncConfig_t cfg;
-
-        while (VPUClientGetHwCfg(pEncInst->asic.regs.socket, (RK_U32*)&cfg, sizeof(cfg))) {
-            usleep(1);
-        }
-
-        /* is H.264 encoding supported */
-        if (cfg.h264Enabled == EWL_HW_CONFIG_NOT_SUPPORTED) {
-            return ENCHW_NOK;
-        }
-
-        /* max width supported */
-        if (cfg.maxEncodedWidth < pEncCfg->width) {
-            return ENCHW_NOK;
-        }
-    }
-#endif
-
-    return ENCHW_OK;
-}
-
-/*------------------------------------------------------------------------------
-
     H264Init
 
     Function initializes the Encoder and create new encoder instance.
@@ -148,12 +68,12 @@ H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
     h264Instance_s *inst = pinst;
 
     H264EncRet ret = H264ENC_OK;
-    ASSERT(pEncCfg);
 
     /* Default values */
     H264SeqParameterSetInit(&inst->seqParameterSet);
     H264PicParameterSetInit(&inst->picParameterSet);
     H264SliceInit(&inst->slice);
+
     /* Set parameters depending on user config */
     if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
         ret = H264ENC_INVALID_ARGUMENT;
@@ -227,17 +147,9 @@ err:
 ------------------------------------------------------------------------------*/
 void H264Shutdown(h264Instance_s * data)
 {
-    //const void *ewl;  // mask by lance 2016.05.12
-
     ASSERT(data);
 
-    //ewl = data->asic.ewl;  // mask by lance 2016.05.12
-
     EncAsicMemFree_V2(&data->asic);
-
-//    free(data);
-
-//    (void) EWLRelease(ewl);
 }
 
 /*------------------------------------------------------------------------------
@@ -435,3 +347,18 @@ i32 H264GetAllowedWidth(i32 width, H264EncPictureFormat inputType)
         return ((width + 7) / 8) * 8;
     }
 }
+
+H264EncRet H264Cfg(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
+{
+    h264Instance_s *inst = pinst;
+
+    H264EncRet ret = H264ENC_OK;
+
+    /* Set parameters depending on user config */
+    if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
+        ret = H264ENC_INVALID_ARGUMENT;
+    }
+
+    return ret;
+}
+

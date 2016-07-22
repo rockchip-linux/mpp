@@ -102,11 +102,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             }
         }
 
-        /* Allocate internal image, not needed for JPEG */
-        /*if (VPUMallocLinear(&asic->internalImageLuma[0], (internalImageLumaSize + 4096)) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }*/
         if (asic->internalImageLuma[0] == NULL) {
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageLuma[0]), (internalImageLumaSize + 4096)) != MPP_OK) {
                 mpp_err("asic->internalImageLuma[0] alloc failed!\n");
@@ -114,10 +109,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             }
         }
 
-        /*if (VPUMallocLinear(&asic->internalImageChroma[0], (internalImageChromaSize + 4096)) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }*/
         if (asic->internalImageChroma[0] == NULL) {
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageChroma[0]), (internalImageChromaSize + 4096)) != MPP_OK) {
                 mpp_err("asic->internalImageChroma[0] alloc failed!\n");
@@ -125,11 +116,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             }
         }
 
-        /* Allocate internal image, not needed for JPEG */
-        /*if (VPUMallocLinear(&asic->internalImageLuma[1], (internalImageLumaSize + 4096)) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }*/
         if (asic->internalImageLuma[1] == NULL) {
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageLuma[1]), (internalImageLumaSize + 4096)) != MPP_OK) {
                 mpp_err("asic->internalImageLuma[1] alloc failed!\n");
@@ -137,10 +123,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             }
         }
 
-        /*if (VPUMallocLinear(&asic->internalImageChroma[1], (internalImageChromaSize + 4096)) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }*/
         if (asic->internalImageChroma[1] == NULL) {
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageChroma[1]), (internalImageChromaSize + 4096)) != MPP_OK) {
                 mpp_err("asic->internalImageChroma[1] alloc failed!\n");
@@ -148,15 +130,9 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             }
         }
 
-        /* Set base addresses to the registers */
-        // mask and add by lance 2016.05.05
-        /*regs->internalImageLumBaseW = asic->internalImageLuma[0].phy_addr;
-        regs->internalImageChrBaseW = asic->internalImageChroma[0].phy_addr;
-        regs->internalImageLumBaseR = asic->internalImageLuma[1].phy_addr;
-        regs->internalImageChrBaseR = asic->internalImageChroma[1].phy_addr;*/
         regs->internalImageLumBaseW = mpp_buffer_get_fd(asic->internalImageLuma[0]);
         regs->internalImageChrBaseW = mpp_buffer_get_fd(asic->internalImageChroma[0]);
-        regs->internalImageLumBaseR =  mpp_buffer_get_fd(asic->internalImageLuma[1]);
+        regs->internalImageLumBaseR = mpp_buffer_get_fd(asic->internalImageLuma[1]);
         regs->internalImageChrBaseR = mpp_buffer_get_fd(asic->internalImageChroma[1]);
 
         /* NAL size table, table size must be 64-bit multiple,
@@ -167,30 +143,11 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
             asic->sizeTblSize = (sizeof(u32) * (height + 1) + 7) & (~7);
         }
 
-        // mask and add by lance 2016.05.05
-        /*if (VPUMallocLinear(buff, asic->sizeTblSize) != EWL_OK) {
-            EncAsicMemFree_V2(asic);
-            return ENCHW_NOK;
-        }*/
         if (mpp_buffer_get(asic->asicDataBufferGroup, buff, asic->sizeTblSize) != MPP_OK) {
             mpp_err("asic->sizeTbl alloc failed!\n");
             return ENCHW_NOK;
         }
 
-        // mask and add by lance 2016.05.05
-        /*if (regs->riceEnable) {
-          u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
-            if (VPUMallocLinear(&asic->riceRead, bytes) != EWL_OK) {
-                EncAsicMemFree_V2(asic);
-                return ENCHW_NOK;
-            }
-            if (VPUMallocLinear(&asic->riceWrite, bytes) != EWL_OK) {
-                EncAsicMemFree_V2(asic);
-                return ENCHW_NOK;
-            }
-            regs->riceReadBase = asic->riceRead.phy_addr;
-            regs->riceWriteBase = asic->riceWrite.phy_addr;
-        }*/
         if (regs->riceEnable) {
             u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->riceRead), bytes) != MPP_OK) {

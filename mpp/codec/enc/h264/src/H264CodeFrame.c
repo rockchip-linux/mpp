@@ -261,19 +261,5 @@ void H264SetNewFrame(h264Instance_s * inst)
     regs->madThreshold = inst->mad.threshold / 256;
     regs->madQpDelta = inst->rateControl.mbQpAdjustment;
 
-#if defined(TRACE_RECON) || defined(ASIC_WAVE_TRACE_TRIGGER)
-    {
-        u32 index;
-
-        if (asic->regs.internalImageLumBaseW ==
-            asic->internalImageLuma[0].phy_addr)
-            index = 0;
-        else
-            index = 1;
-
-        memset(asic->internalImageLuma[index].vir_addr, 0,
-               asic->internalImageLuma[index].size);
-    }
-#endif
 
 }

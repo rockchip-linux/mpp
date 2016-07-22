@@ -69,5 +69,3 @@ add_library(codec_h264e STATIC
   )
 target_link_libraries(codec_h264e mpp_base)
 set_target_properties(codec_h264e PROPERTIES FOLDER "mpp/codec")
-
-add_subdirectory(test)
