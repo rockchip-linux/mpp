@@ -255,31 +255,3 @@ void EncAsicMemFree_V2(asicData_s * asic)
     // --------------
 }
 
-/*------------------------------------------------------------------------------
-------------------------------------------------------------------------------*/
-i32 EncAsicCheckStatus_V2(asicData_s * asic)
-{
-    i32 ret;
-    u32 status;
-
-    status = ASIC_STATUS_FRAME_READY;/*EncAsicGetStatus(&asic->regs);*/  // modify by lance 2016.05.06
-
-    if (status & ASIC_STATUS_ERROR) {
-        ret = ASIC_STATUS_ERROR;
-    } else if (status & ASIC_STATUS_HW_RESET) {
-        ret = ASIC_STATUS_HW_RESET;
-    } else if (status & ASIC_STATUS_FRAME_READY) {
-        //regValues_s *regs = &asic->regs;  // maks by lance 2016.05.12
-
-        //EncAsicGetRegisters(asic->ewl, regs);  // mask by lance 2016.05.06
-        ret = ASIC_STATUS_FRAME_READY;
-    } else {
-        ret = ASIC_STATUS_BUFF_FULL;
-        /* we do not support recovery from buffer full situation so */
-        /* ASIC has to be stopped                                   */
-        EncAsicStop(asic->ewl);
-    }
-
-//    EWLReleaseHw(asic->ewl);
-    return ret;
-}
