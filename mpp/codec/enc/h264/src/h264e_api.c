@@ -375,7 +375,7 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     ret = H264EncStrmEncodeAfter(encInst, encIn, encOut, vpuWaitResult);    // add by lance 2016.05.07
     switch (ret) {
     case H264ENC_FRAME_READY:
-        mpp_log("after encode frame ready");  // add by lance 2016.06.01
+        h264e_control_log("after encode frame ready");  // add by lance 2016.06.01
 
 
         if (encOut->codingType != H264ENC_NOTCODED_FRAME) {

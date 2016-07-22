@@ -66,7 +66,7 @@ void H264EncTrace(const char *msg)
     mpp_log("%s\n", msg);
 }
 
-#define H264ENC_TRACE 1  // add for debuging modify by lance 2016.07.02
+//#define H264ENC_TRACE 1  // add for debuging modify by lance 2016.07.02
 /* Tracing macro */
 #ifdef H264ENC_TRACE
 #define APITRACE(str) H264EncTrace(str)
