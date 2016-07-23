@@ -72,7 +72,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
 {
     u32 mbTotal;
     regValues_s *regs;
-    MppBuffer *buff = NULL;
 
     ASSERT(asic != NULL);
     ASSERT(width != 0);
@@ -135,19 +134,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
         regs->internalImageLumBaseR = mpp_buffer_get_fd(asic->internalImageLuma[1]);
         regs->internalImageChrBaseR = mpp_buffer_get_fd(asic->internalImageChroma[1]);
 
-        /* NAL size table, table size must be 64-bit multiple,
-         * space for zero at the end of table */
-        if (regs->codingType == ASIC_H264) {
-            /* Atleast 1 macroblock row in every slice */
-            buff = &asic->sizeTbl.nal;
-            asic->sizeTblSize = (sizeof(u32) * (height + 1) + 7) & (~7);
-        }
-
-        if (mpp_buffer_get(asic->asicDataBufferGroup, buff, asic->sizeTblSize) != MPP_OK) {
-            mpp_err("asic->sizeTbl alloc failed!\n");
-            return ENCHW_NOK;
-        }
-
         if (regs->riceEnable) {
             u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
             if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->riceRead), bytes) != MPP_OK) {
@@ -177,39 +163,6 @@ void EncAsicMemFree_V2(asicData_s * asic)
 {
     ASSERT(asic != NULL);
 
-    // mask by lance 2016.05.05
-    /*if (asic->internalImageLuma[0] != NULL)
-        VPUFreeLinear(&asic->internalImageLuma[0]);
-
-    if (asic->internalImageChroma[0] != NULL)
-        VPUFreeLinear(&asic->internalImageChroma[0]);
-
-    if (asic->internalImageLuma[1] != NULL)
-        VPUFreeLinear(&asic->internalImageLuma[1]);
-
-    if (asic->internalImageChroma[1] != NULL)
-        VPUFreeLinear(&asic->internalImageChroma[1]);
-
-    if (asic->sizeTbl.nal.vir_addr != NULL)
-        VPUFreeLinear(&asic->sizeTbl.nal);
-
-    if (asic->cabacCtx.vir_addr != NULL)
-        VPUFreeLinear(&asic->cabacCtx);
-
-    if (asic->riceRead.vir_addr != NULL)
-        VPUFreeLinear(&asic->riceRead);
-
-    if (asic->riceWrite.vir_addr != NULL)
-        VPUFreeLinear(&asic->riceWrite);
-
-    asic->internalImageLuma[0] = NULL;
-    asic->internalImageChroma[0] = NULL;
-    asic->internalImageLuma[1] = NULL;
-    asic->internalImageChroma[1] = NULL;
-    asic->sizeTbl.nal = NULL;
-    asic->cabacCtx = NULL;
-    asic->riceRead = NULL;
-    asic->riceWrite = NULL;*/
     // --------------
     // add by lance 2016.05.05
     if (asic->internalImageLuma[0] != NULL) {
@@ -230,11 +183,6 @@ void EncAsicMemFree_V2(asicData_s * asic)
     if (asic->internalImageChroma[1] != NULL) {
         mpp_buffer_put(asic->internalImageChroma[1]);
         asic->internalImageChroma[1] = NULL;
-    }
-
-    if (asic->sizeTbl.nal != NULL) {
-        mpp_buffer_put(asic->sizeTbl.nal);
-        asic->sizeTbl.nal = NULL;
     }
 
     if (asic->riceRead != NULL) {

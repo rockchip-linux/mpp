@@ -150,7 +150,6 @@ void H264CodeFrame(h264Instance_s * inst, h264e_syntax *syntax_data)
 ------------------------------------------------------------------------------*/
 void H264SetNewFrame(h264Instance_s * inst)
 {
-    asicData_s *asic = &inst->asic;
     regValues_s *regs = &inst->asic.regs;
 
     regs->outputStrmSize -= inst->stream.byteCnt;
@@ -243,10 +242,6 @@ void H264SetNewFrame(h264Instance_s * inst)
         regs->interFavor = h264InterFavor[regs->qp];
     if (regs->skipPenalty == 1)
         regs->skipPenalty = h264SkipSadPenalty[regs->qp];
-
-    //regs->sizeTblBase.nal = asic->sizeTbl.nal.phy_addr;  // mask by lance 2016.05.05
-    regs->sizeTblBase.nal = mpp_buffer_get_fd(asic->sizeTbl.nal);  // add by lance 2016.05.05
-    regs->sizeTblPresent = 1;
 
     /* MAD threshold range [0, 63*256] register 6-bits range [0,63] */
     regs->madThreshold = inst->mad.threshold / 256;
