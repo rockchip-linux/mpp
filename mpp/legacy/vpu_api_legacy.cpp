@@ -445,6 +445,9 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     mpp_frame_set_hor_stride(frame, hor_stride);
     mpp_frame_set_ver_stride(frame, ver_stride);
 
+    if (aEncOut->timeUs != 0)
+        use_fd_flag = 1;
+
     if (!use_fd_flag) {
         RK_U32 outputBufferSize = hor_stride * ver_stride;
         ret = mpp_buffer_get(memGroup, &pictureMem, aEncInStrm->size);
@@ -466,8 +469,8 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         inputCommit.fd = aEncInStrm->bufPhyAddr;
 
         outputCommit.type = MPP_BUFFER_TYPE_ION;
-        outputCommit.size = hor_stride * ver_stride;  // TODO
-        outputCommit.fd = aEncOut->keyFrame/*bufferFd*/;
+        outputCommit.size = *(((RK_S32*)(&aEncOut->timeUs)) + 1);  // TODO
+        outputCommit.fd = *(((RK_S32*)(&aEncOut->timeUs)));
         outputCommit.ptr = (void*)aEncOut->data;
 
         ret = mpp_buffer_import(&pictureMem, &inputCommit);
@@ -479,11 +482,10 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
         }
-        mpp_log_f("mpp import input fd %d output fd %d",
-                  mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem)/*(((MppBufferImpl*)pictureMem)->info.fd), (((MppBufferImpl*)outbufMem)->info.fd)*/);
+        mpp_dbg_f(MPP_TIMING, "mpp import input fd %d output fd %d",
+                  mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem));
     }
 
-    //mpp_packet_init(&packet, outbufMem, aEncOut->size);
     mpp_frame_set_buffer(frame, pictureMem);
     mpp_packet_init_with_buffer(&packet, outbufMem);
 
@@ -522,12 +524,10 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                 MppFrame frame_out = NULL;
                 MppFrame packet_out = NULL;
 
-                mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
                 mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
 
                 mpp_assert(packet_out == packet);
-                mpp_assert(frame_out  == frame);
-                mpp_log_f("encoded frame %d\n", frame_count);
+                mpp_dbg_f(MPP_TIMING, "encoded frame %d\n", frame_count);
                 frame_count++;
 
                 ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
@@ -536,6 +536,23 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                     goto ENCODE_FAIL;
                 }
                 task = NULL;
+
+                // dequeue task from MPP_PORT_INPUT
+                ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
+                if (ret) {
+                    mpp_log_f("failed to dequeue from input port ret %d\n", ret);
+                    break;
+                }
+                mpp_assert(task);
+                ret = mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame_out);
+                mpp_assert(frame_out  == frame);
+                ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+                if (ret) {
+                    mpp_err("mpp task output enqueue failed\n");
+                    goto ENCODE_FAIL;
+                }
+                task = NULL;
+
                 break;
             }
             usleep(3000);
@@ -546,7 +563,12 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
 
     // copy encoded stream into output buffer, and set outpub stream size
     if (packet != NULL) {
-        aEncOut->size = mpp_packet_get_length(packet);
+        RK_S64 pts = mpp_packet_get_pts(packet);
+        RK_U32 flag = mpp_packet_get_flag(packet);
+        size_t length = mpp_packet_get_length(packet);
+        aEncOut->size = (RK_S32)length;
+        aEncOut->timeUs = pts;
+        aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
         if (!use_fd_flag)
             memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(outbufMem), aEncOut->size);
         mpp_buffer_put(outbufMem);
