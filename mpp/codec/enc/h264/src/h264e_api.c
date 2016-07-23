@@ -34,6 +34,8 @@ FILE *fp_syntax_in = NULL;
 
 MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 {
+    (void)ctx;
+    (void)ctrlCfg;
     return MPP_OK;
 }
 
@@ -158,7 +160,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         pEncInst->h264EncCfg.intraPicRate = encCfg->intraPicRate;
         pEncInst->intraPeriodCnt = encCfg->intraPicRate;
 
-        h264Instance_s * pEncInst = (h264Instance_s*)ctx;
         H264EncInst encoderOpen = (H264EncInst)ctx;
 
         H264EncRateCtrl oriRcCfg;
