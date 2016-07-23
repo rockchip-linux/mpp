@@ -41,6 +41,8 @@
 #include "H264CodeFrame.h"
 #include "H264Sei.h"
 #include "H264RateControl.h"
+#include "h264e_macro.h"
+
 #define LOG_TAG "H264_ENC"
 //#include <utils/Log.h>  // mask by lance 2016.05.05
 
