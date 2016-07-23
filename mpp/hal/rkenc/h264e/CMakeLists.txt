@@ -27,7 +27,7 @@ add_library(hal_h264e STATIC
             ${HAL_H264E_HDR} 
             ${HAL_H264E_SRC} 
             )
-if(ANDROID)
+if(RKPLATFORM)
     target_link_libraries(hal_h264e worker_vpu mpp_base)
 else()
     target_link_libraries(hal_h264e mpp_base)
