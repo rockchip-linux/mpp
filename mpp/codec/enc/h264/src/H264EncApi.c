@@ -795,7 +795,7 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
     pPreProcCfg->colorConversion.coeffC = pPP->colorConversionCoeffC;
     pPreProcCfg->colorConversion.coeffE = pPP->colorConversionCoeffE;
     pPreProcCfg->colorConversion.coeffF = pPP->colorConversionCoeffF;
-    mpp_log(" %d  %d  %d  %d ... %d  %d  %d  %d  ... %d %d %d ... %d %d  modify by lance 2016.04.26",
+    h264e_control_log(" %d  %d  %d  %d ... %d  %d  %d  %d  ... %d %d %d ... %d %d  modify by lance 2016.04.26",
             pPreProcCfg->origHeight, pPreProcCfg->origWidth, pPreProcCfg->xOffset, pPreProcCfg->yOffset,
             pPreProcCfg->rotation, pPreProcCfg->inputType, pPreProcCfg->videoStabilization, pPreProcCfg->colorConversion.type,
             pPreProcCfg->colorConversion.coeffA, pPreProcCfg->colorConversion.coeffB, pPreProcCfg->colorConversion.coeffC,

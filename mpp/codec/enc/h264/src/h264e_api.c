@@ -179,7 +179,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             h264e_deinit((void*)encoderOpen);
             return -1;
         } else {
-            mpp_log("Get rate control: qp %2d [%2d, %2d]  %8d bps  "
+            h264e_control_log("Get rate control: qp %2d [%2d, %2d]  %8d bps  "
                     "pic %d mb %d skip %d  hrd %d\n  cpbSize %d gopLen %d "
                     "intraQpDelta %2d\n",
                     oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond,
@@ -271,7 +271,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             h264e_deinit((void*)encoderOpen);
             return -1;
         } else {
-            mpp_log("Get PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
+            h264e_control_log("Get PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
                     ": stab %d : cc %d\n",
                     oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
                     oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
