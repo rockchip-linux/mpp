@@ -8,11 +8,7 @@ if(H264E_HAL_TEST)
     add_executable(h264e_hal_test h264e_hal_test.c)
     include_directories(.)
     link_directories(.)
-    if(ANDROID)
-        target_link_libraries(h264e_hal_test mpp_shared utils)   
-    else()
-        target_link_libraries(h264e_hal_test mpp_shared utils)
-    endif()
+    target_link_libraries(h264e_hal_test mpp_shared utils)
 endif()
 
 

@@ -1563,7 +1563,7 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
     ctx->vpu_socket = -1;
     ctx->vpu_client = VPU_ENC;
     h264e_hal_log_detail("vpu client: %d", ctx->vpu_client);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         ctx->vpu_socket = VPUClientInit(ctx->vpu_client);
         if (ctx->vpu_socket <= 0) {
@@ -1608,7 +1608,7 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
     }
 #endif
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         mpp_err("invalid vpu socket: %d", ctx->vpu_socket);
         return MPP_NOK;
@@ -1926,7 +1926,7 @@ MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     (void)task;
     h264e_hal_debug_enter();
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket > 0) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
         h264e_hal_log_detail("vpu client is sending %d regs", ON2_H264E_NUM_REGS);
@@ -1978,7 +1978,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
     (void)task;
     h264e_hal_debug_enter();
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket > 0) {
         VPU_CMD_TYPE cmd = 0;
         RK_S32 length = 0;

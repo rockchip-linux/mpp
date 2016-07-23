@@ -1845,7 +1845,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->vpu_socket = -1;
     ctx->vpu_client = VPU_ENC_RKV;
     h264e_hal_log_detail("vpu client: %d", ctx->vpu_client);
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         ctx->vpu_socket = VPUClientInit(ctx->vpu_client);
         if (ctx->vpu_socket <= 0) {
@@ -1893,7 +1893,7 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
     }
 
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         mpp_err("invalid vpu socket: %d", ctx->vpu_socket);
         return MPP_NOK;
@@ -2524,7 +2524,7 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
 
     (void)task;
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         mpp_err("invalid vpu socket: %d", ctx->vpu_socket);
         return MPP_NOK;
@@ -2584,7 +2584,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         }
     }
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
         mpp_err("invalid vpu socket: %d", ctx->vpu_socket);
         return MPP_NOK;
