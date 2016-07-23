@@ -112,11 +112,6 @@ typedef struct {
     u32 rlcLimitSpace;
     u32 socket;   // vpu socket    // now it will be inited by hal part, so mask it    by lance 2016.05.09
 
-    union {
-        u32 nal;
-        u32 vp;
-        u32 gob;
-    } sizeTblBase;
     u32 internalImageLumBaseW;
     u32 internalImageChrBaseW;
     u32 internalImageLumBaseR;
@@ -132,7 +127,6 @@ typedef struct {
     u32 rlcCount;
     u32 qpSum;
     u32 h264StrmMode;   /* 0 - byte stream, 1 - NAL units */
-    u32 sizeTblPresent;
     u32 gobHeaderMask;
     u32 gobFrameId;
     u8 quantTable[8 * 8 * 2];
@@ -201,12 +195,6 @@ typedef struct {
     MppBuffer internalImageChroma[2];
     MppBuffer riceRead;
     MppBuffer riceWrite;
-    u32 sizeTblSize;
-    union {
-        MppBuffer nal;
-        MppBuffer vp;
-        MppBuffer gob;
-    } sizeTbl;
 } asicData_s;
 
 /*------------------------------------------------------------------------------

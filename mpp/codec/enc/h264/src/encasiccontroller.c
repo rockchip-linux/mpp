@@ -164,12 +164,9 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
             }
         }
         fprintf(valCompareFile, "val->outputStrmBase                 0x%08X\n", val->outputStrmBase);
-        fprintf(valCompareFile, "val->sizeTblBase.nal                0x%08X\n", val->sizeTblBase.nal);
-        fprintf(valCompareFile, "val->sizeTblPresent                 0x%08X\n", val->sizeTblPresent);
         fprintf(valCompareFile, "val->madThreshold                   0x%08X\n", val->madThreshold);
         fprintf(valCompareFile, "val->inputImageFormat               0x%08X\n", val->inputImageFormat);
         fprintf(valCompareFile, "val->inputImageRotation             0x%08X\n", val->inputImageRotation);
-        fprintf(valCompareFile, "val->sizeTblPresent                 0x%08X\n", val->sizeTblPresent);
         fprintf(valCompareFile, "val->intra16Favor                   0x%08X\n", val->intra16Favor);
         fprintf(valCompareFile, "val->interFavor                     0x%08X\n", val->interFavor);
         fprintf(valCompareFile, "val->picInitQp                      0x%08X\n", val->picInitQp);
@@ -262,7 +259,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->input_cb_addr = val->inputCbBase;
     syntax_data->input_cr_addr = val->inputCrBase;
     syntax_data->input_image_format = val->inputImageFormat;
-    syntax_data->nal_size_table_addr = val->sizeTblBase.nal;
     syntax_data->color_conversion_coeff_a = val->colorConversionCoeffA;
     syntax_data->color_conversion_coeff_b = val->colorConversionCoeffB;
     syntax_data->color_conversion_coeff_c = val->colorConversionCoeffC;

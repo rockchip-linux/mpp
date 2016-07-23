@@ -82,7 +82,6 @@ typedef struct h264e_syntax_t {
     RK_U32 ref_chroma_addr;             // internalImageChrBaseR
     RK_U32 recon_luma_addr;             // internalImageLumBaseW
     RK_U32 recon_chroma_addr;           // internalImageChrBaseW
-    RK_U32 nal_size_table_addr;         //
 } h264e_syntax;
 
 typedef struct h264e_feedback_t {

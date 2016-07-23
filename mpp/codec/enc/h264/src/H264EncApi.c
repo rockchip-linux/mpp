@@ -798,10 +798,10 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
     pPreProcCfg->colorConversion.coeffE = pPP->colorConversionCoeffE;
     pPreProcCfg->colorConversion.coeffF = pPP->colorConversionCoeffF;
     h264e_control_log(" %d  %d  %d  %d ... %d  %d  %d  %d  ... %d %d %d ... %d %d  modify by lance 2016.04.26",
-            pPreProcCfg->origHeight, pPreProcCfg->origWidth, pPreProcCfg->xOffset, pPreProcCfg->yOffset,
-            pPreProcCfg->rotation, pPreProcCfg->inputType, pPreProcCfg->videoStabilization, pPreProcCfg->colorConversion.type,
-            pPreProcCfg->colorConversion.coeffA, pPreProcCfg->colorConversion.coeffB, pPreProcCfg->colorConversion.coeffC,
-            pPreProcCfg->colorConversion.coeffE, pPreProcCfg->colorConversion.coeffF);
+                      pPreProcCfg->origHeight, pPreProcCfg->origWidth, pPreProcCfg->xOffset, pPreProcCfg->yOffset,
+                      pPreProcCfg->rotation, pPreProcCfg->inputType, pPreProcCfg->videoStabilization, pPreProcCfg->colorConversion.type,
+                      pPreProcCfg->colorConversion.coeffA, pPreProcCfg->colorConversion.coeffB, pPreProcCfg->colorConversion.coeffC,
+                      pPreProcCfg->colorConversion.coeffE, pPreProcCfg->colorConversion.coeffF);
 
     APITRACE("H264EncGetPreProcessing: OK");
     return H264ENC_OK;
@@ -1463,9 +1463,6 @@ void H264GetNalUnitSizes(const h264Instance_s * pEncInst, u32 * pNaluSizeBuf)
     if (pEncInst->slice.sliceSize != 0)
         nals += (pEncInst->mbPerFrame + pEncInst->slice.sliceSize - 1) /
                 pEncInst->slice.sliceSize;
-
-    //pTmp = (u32 *) pEncInst->asic.sizeTbl.nal.vir_addr;  // mask by lance 2016.05.05
-    pTmp = (u32 *)mpp_buffer_get_ptr(pEncInst->asic.sizeTbl.nal);  // add by lance 2016.05.05
 
     /* whole frame can be in one NAL unit */
     do {
