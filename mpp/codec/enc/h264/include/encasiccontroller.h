@@ -151,9 +151,6 @@ typedef struct {
     i32 madQpDelta;
     u32 madThreshold;
     u32 madCount;
-    u32 riceEnable;
-    u32 riceReadBase;
-    u32 riceWriteBase;
     u32 colorConversionCoeffA;
     u32 colorConversionCoeffB;
     u32 colorConversionCoeffC;
@@ -186,9 +183,6 @@ typedef struct {
 typedef struct {
     const void *ewl;
     regValues_s regs;
-    MppBufferGroup asicDataBufferGroup;
-    MppBuffer riceRead;
-    MppBuffer riceWrite;
 } asicData_s;
 
 /*------------------------------------------------------------------------------
@@ -198,11 +192,7 @@ i32 EncAsicControllerInit(asicData_s * asic);
 
 i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
                        u32 encodingType);
-void EncAsicMemFree_V2(asicData_s * asic);
 
 /* Functions for controlling ASIC */
 void EncAsicFrameStart(void * inst,/* const void *ewl,*/ regValues_s * val, h264e_syntax *syntax_data);  // mask by lance 2016.05.12
-
-void EncAsicRecycleInternalImage(regValues_s * val);
-
 #endif

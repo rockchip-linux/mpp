@@ -40,6 +40,4 @@ i32 H264GetAllowedWidth(i32 width, H264EncPictureFormat inputType);
 
 H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst);
 
-void H264Shutdown(h264Instance_s *data);
-
 #endif
