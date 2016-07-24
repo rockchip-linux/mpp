@@ -179,8 +179,6 @@ H264EncRet H264EncRelease(H264EncInst inst)
         return H264ENC_INSTANCE_ERROR;
     }
 
-    H264Shutdown(pEncInst);
-
     APITRACE("H264EncRelease: OK");
     return H264ENC_OK;
 }
@@ -1335,9 +1333,6 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst, const H264EncIn * pEncIn,
             return H264ENC_FRAME_READY;
         }
     }
-
-    /* Use the reconstructed frame as the reference for the next frame */
-    EncAsicRecycleInternalImage(&pEncInst->asic.regs);
 
     /* Store the stream size and frame coding type in output structure */
     pEncOut->streamSize = pEncInst->stream.byteCnt;

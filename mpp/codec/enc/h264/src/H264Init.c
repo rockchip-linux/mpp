@@ -140,23 +140,6 @@ err:
 
 /*------------------------------------------------------------------------------
 
-    H264Shutdown
-
-    Function frees the encoder instance.
-
-    Input   h264Instance_s *    Pointer to the encoder instance to be freed.
-                            After this the pointer is no longer valid.
-
-------------------------------------------------------------------------------*/
-void H264Shutdown(h264Instance_s * data)
-{
-    ASSERT(data);
-
-    EncAsicMemFree_V2(&data->asic);
-}
-
-/*------------------------------------------------------------------------------
-
     SetParameter
 
     Set all parameters in instance to valid values depending on user config.
@@ -240,7 +223,7 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     /* enforce macroblock rate limit in level */
     {
         u32 mb_rate = (pEncCfg->frameRateNum * inst->mbPerFrame) /
-                       pEncCfg->frameRateDenom;
+                      pEncCfg->frameRateDenom;
 
         if (mb_rate > H264MaxMBPS[inst->seqParameterSet.levelIdx]) {
             mpp_log("input mb rate %d is larger than restriction %d\n",

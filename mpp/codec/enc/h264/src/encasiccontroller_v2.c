@@ -85,60 +85,6 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
     width = (width + 15) / 16;
     height = (height + 15) / 16;
 
-    if (regs->codingType != ASIC_JPEG) {
-        if (asic->asicDataBufferGroup == NULL) {
-            if (mpp_buffer_group_get_internal((&(asic->asicDataBufferGroup)), MPP_BUFFER_TYPE_ION) != MPP_OK) {
-                mpp_err("mpeg4d mpp_buffer_group_get failed\n");
-                return ENCHW_NOK;
-            }
-        }
-
-        if (regs->riceEnable) {
-            u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->riceRead), bytes) != MPP_OK) {
-                mpp_err("asic->riceRead alloc failed!\n");
-                return ENCHW_NOK;
-            }
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->riceWrite), bytes) != MPP_OK) {
-                mpp_err("asic->riceWrite alloc failed!\n");
-                return ENCHW_NOK;
-            }
-            regs->riceReadBase = mpp_buffer_get_fd(asic->riceRead);
-            regs->riceWriteBase = mpp_buffer_get_fd(asic->riceWrite);
-        }
-    }
-
     return ENCHW_OK;
-}
-
-/*------------------------------------------------------------------------------
-
-    EncAsicMemFree_V2
-
-    Free HW/SW shared memory
-
-------------------------------------------------------------------------------*/
-void EncAsicMemFree_V2(asicData_s * asic)
-{
-    ASSERT(asic != NULL);
-
-    // --------------
-    // add by lance 2016.05.05
-    if (asic->riceRead != NULL) {
-        mpp_buffer_put(asic->riceRead);
-        asic->riceRead = NULL;
-    }
-
-    if (asic->riceWrite != NULL) {
-        mpp_buffer_put(asic->riceWrite);
-        asic->riceWrite = NULL;
-    }
-
-    if (asic->asicDataBufferGroup != NULL) {
-        mpp_log("asic->asicDataBufferGroup free!\n");
-        mpp_buffer_group_put(asic->asicDataBufferGroup);
-        asic->asicDataBufferGroup = NULL;
-    }
-    // --------------
 }
 

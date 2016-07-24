@@ -68,16 +68,11 @@ i32 EncAsicControllerInit(asicData_s * asic)
     /* Initialize default values */
     asic->regs.roundingCtrl = 0;
     asic->regs.cpDistanceMbs = 0;
-    asic->regs.riceEnable = 0;
 
     /* User must set these */
     asic->regs.inputLumBase = 0;
     asic->regs.inputCbBase = 0;
     asic->regs.inputCrBase = 0;
-
-    asic->asicDataBufferGroup = NULL;  // add by lance 2016.05.05
-    asic->riceRead = NULL;
-    asic->riceWrite = NULL;
 
     /* we do NOT reset hardware at this point because */
     /* of the multi-instance support                  */
@@ -89,17 +84,6 @@ i32 EncAsicControllerInit(asicData_s * asic)
     }
 #endif
     return ENCHW_OK;
-}
-
-void EncAsicRecycleInternalImage(regValues_s * val)
-{
-    /* The next encoded frame will use current reconstructed frame as */
-    /* the reference */
-    u32 tmp;
-
-    tmp = val->riceReadBase;
-    val->riceReadBase = val->riceWriteBase;
-    val->riceWriteBase = tmp;
 }
 
 void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data)
@@ -164,7 +148,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
         fprintf(valCompareFile, "val->idrPicId                       0x%08X\n", val->idrPicId);
         fprintf(valCompareFile, "val->constrainedIntraPrediction     0x%08X\n", val->constrainedIntraPrediction);
         fprintf(valCompareFile, "val->vsNextLumaBase                 0x%08X\n", val->vsNextLumaBase);
-        fprintf(valCompareFile, "val->riceWriteBase                  0x%08X\n", val->riceWriteBase);
         fprintf(valCompareFile, "val->roi1Top                        0x%08X\n", val->roi1Top);
         fprintf(valCompareFile, "val->roi1Bottom                     0x%08X\n", val->roi1Bottom);
         fprintf(valCompareFile, "val->roi1Left                       0x%08X\n", val->roi1Left);
@@ -192,7 +175,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
         fprintf(valCompareFile, "val->asicCfgReg                     0x%08X\n", val->asicCfgReg);
         fprintf(valCompareFile, "val->ppsId                          0x%08X\n", val->ppsId);
         fprintf(valCompareFile, "val->frameNum                       0x%08X\n", val->frameNum);
-        fprintf(valCompareFile, "val->riceEnable                     0x%08X\n", val->riceEnable);
         fprintf(valCompareFile, "val->irqDisable                     0x%08X\n", val->irqDisable);
         fflush(valCompareFile);
         ++oneFrameFlagTest;
