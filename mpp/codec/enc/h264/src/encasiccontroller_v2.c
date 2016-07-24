@@ -70,7 +70,6 @@
 i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
                        u32 encodingType)
 {
-    u32 mbTotal;
     regValues_s *regs;
 
     ASSERT(asic != NULL);
@@ -86,53 +85,13 @@ i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
     width = (width + 15) / 16;
     height = (height + 15) / 16;
 
-    mbTotal = width * height;
-
     if (regs->codingType != ASIC_JPEG) {
-        /* The sizes of the memories */
-        u32 internalImageLumaSize = mbTotal * (16 * 16);
-
-        u32 internalImageChromaSize = mbTotal * (2 * 8 * 8);
-
         if (asic->asicDataBufferGroup == NULL) {
             if (mpp_buffer_group_get_internal((&(asic->asicDataBufferGroup)), MPP_BUFFER_TYPE_ION) != MPP_OK) {
                 mpp_err("mpeg4d mpp_buffer_group_get failed\n");
                 return ENCHW_NOK;
             }
         }
-
-        if (asic->internalImageLuma[0] == NULL) {
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageLuma[0]), (internalImageLumaSize + 4096)) != MPP_OK) {
-                mpp_err("asic->internalImageLuma[0] alloc failed!\n");
-                return ENCHW_NOK;
-            }
-        }
-
-        if (asic->internalImageChroma[0] == NULL) {
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageChroma[0]), (internalImageChromaSize + 4096)) != MPP_OK) {
-                mpp_err("asic->internalImageChroma[0] alloc failed!\n");
-                return ENCHW_NOK;
-            }
-        }
-
-        if (asic->internalImageLuma[1] == NULL) {
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageLuma[1]), (internalImageLumaSize + 4096)) != MPP_OK) {
-                mpp_err("asic->internalImageLuma[1] alloc failed!\n");
-                return ENCHW_NOK;
-            }
-        }
-
-        if (asic->internalImageChroma[1] == NULL) {
-            if (mpp_buffer_get(asic->asicDataBufferGroup, &(asic->internalImageChroma[1]), (internalImageChromaSize + 4096)) != MPP_OK) {
-                mpp_err("asic->internalImageChroma[1] alloc failed!\n");
-                return ENCHW_NOK;
-            }
-        }
-
-        regs->internalImageLumBaseW = mpp_buffer_get_fd(asic->internalImageLuma[0]);
-        regs->internalImageChrBaseW = mpp_buffer_get_fd(asic->internalImageChroma[0]);
-        regs->internalImageLumBaseR = mpp_buffer_get_fd(asic->internalImageLuma[1]);
-        regs->internalImageChrBaseR = mpp_buffer_get_fd(asic->internalImageChroma[1]);
 
         if (regs->riceEnable) {
             u32 bytes = ((width + 11) / 12 * (height * 2 - 1)) * 8;
@@ -165,26 +124,6 @@ void EncAsicMemFree_V2(asicData_s * asic)
 
     // --------------
     // add by lance 2016.05.05
-    if (asic->internalImageLuma[0] != NULL) {
-        mpp_buffer_put(asic->internalImageLuma[0]);
-        asic->internalImageLuma[0] = NULL;
-    }
-
-    if (asic->internalImageLuma[1] != NULL) {
-        mpp_buffer_put(asic->internalImageLuma[1]);
-        asic->internalImageLuma[1] = NULL;
-    }
-
-    if (asic->internalImageChroma[0] != NULL) {
-        mpp_buffer_put(asic->internalImageChroma[0]);
-        asic->internalImageChroma[0] = NULL;
-    }
-
-    if (asic->internalImageChroma[1] != NULL) {
-        mpp_buffer_put(asic->internalImageChroma[1]);
-        asic->internalImageChroma[1] = NULL;
-    }
-
     if (asic->riceRead != NULL) {
         mpp_buffer_put(asic->riceRead);
         asic->riceRead = NULL;

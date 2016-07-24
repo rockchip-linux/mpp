@@ -76,10 +76,6 @@ i32 EncAsicControllerInit(asicData_s * asic)
     asic->regs.inputCrBase = 0;
 
     asic->asicDataBufferGroup = NULL;  // add by lance 2016.05.05
-    asic->internalImageLuma[0] = NULL;  // modify by lance 2016.05.05
-    asic->internalImageChroma[0] = NULL;  // modify by lance 2016.05.05
-    asic->internalImageLuma[1] = NULL;  // modify by lance 2016.05.05
-    asic->internalImageChroma[1] = NULL;
     asic->riceRead = NULL;
     asic->riceWrite = NULL;
 
@@ -100,14 +96,6 @@ void EncAsicRecycleInternalImage(regValues_s * val)
     /* The next encoded frame will use current reconstructed frame as */
     /* the reference */
     u32 tmp;
-
-    tmp = val->internalImageLumBaseW;
-    val->internalImageLumBaseW = val->internalImageLumBaseR;
-    val->internalImageLumBaseR = tmp;
-
-    tmp = val->internalImageChrBaseW;
-    val->internalImageChrBaseW = val->internalImageChrBaseR;
-    val->internalImageChrBaseR = tmp;
 
     tmp = val->riceReadBase;
     val->riceReadBase = val->riceWriteBase;
@@ -132,7 +120,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
         fprintf(valCompareFile, "val->strmStartLSB                   0x%08X\n", val->strmStartLSB);
         fprintf(valCompareFile, "val->outputStrmSize                 0x%08X\n", val->outputStrmSize);
         fprintf(valCompareFile, "val->madQpDelta                     0x%08X\n", val->madQpDelta);
-        fprintf(valCompareFile, "val->internalImageLumBaseR          0x%08X\n", val->internalImageLumBaseR);
         fprintf(valCompareFile, "val->internalImageChrBaseR          0x%08X\n", val->internalImageChrBaseR);
         fprintf(valCompareFile, "val->mbsInRow                       0x%08X\n", val->mbsInRow);
         fprintf(valCompareFile, "val->mbsInCol                       0x%08X\n", val->mbsInCol);
@@ -251,10 +238,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->output_strm_addr = val->outputStrmBase;
     syntax_data->pic_luma_width = instH264Encoder->preProcess.lumWidth;
     syntax_data->pic_luma_height = instH264Encoder->preProcess.lumHeight;
-    syntax_data->ref_luma_addr = val->internalImageLumBaseR;  // need to talk with kesheng by lance 2016.05.07
-    syntax_data->ref_chroma_addr = val->internalImageChrBaseR;  // need to talk with kesheng by lance 2016.05.07
-    syntax_data->recon_luma_addr = val->internalImageLumBaseW;
-    syntax_data->recon_chroma_addr = val->internalImageChrBaseW;
     syntax_data->input_luma_addr = val->inputLumBase;
     syntax_data->input_cb_addr = val->inputCbBase;
     syntax_data->input_cr_addr = val->inputCrBase;
