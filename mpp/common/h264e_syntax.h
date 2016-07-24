@@ -76,12 +76,6 @@ typedef struct h264e_syntax_t {
     RK_S32 level_idc; //TODO: may be removed later, get from sps/pps instead
     RK_S32 link_table_en;
     RK_S32 keyframe_max_interval;
-
-    /* remove later */
-    RK_U32 ref_luma_addr;               // internalImageLumBaseR
-    RK_U32 ref_chroma_addr;             // internalImageChrBaseR
-    RK_U32 recon_luma_addr;             // internalImageLumBaseW
-    RK_U32 recon_chroma_addr;           // internalImageChrBaseW
 } h264e_syntax;
 
 typedef struct h264e_feedback_t {

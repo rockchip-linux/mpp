@@ -112,10 +112,6 @@ typedef struct {
     u32 rlcLimitSpace;
     u32 socket;   // vpu socket    // now it will be inited by hal part, so mask it    by lance 2016.05.09
 
-    u32 internalImageLumBaseW;
-    u32 internalImageChrBaseW;
-    u32 internalImageLumBaseR;
-    u32 internalImageChrBaseR;
     u32 inputLumBase;
     u32 inputCbBase;
     u32 inputCrBase;
@@ -191,8 +187,6 @@ typedef struct {
     const void *ewl;
     regValues_s regs;
     MppBufferGroup asicDataBufferGroup;
-    MppBuffer internalImageLuma[2];
-    MppBuffer internalImageChroma[2];
     MppBuffer riceRead;
     MppBuffer riceWrite;
 } asicData_s;
