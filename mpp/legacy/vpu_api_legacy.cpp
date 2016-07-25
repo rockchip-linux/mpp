@@ -58,7 +58,8 @@ VpuApiLegacy::VpuApiLegacy() :
     pictureMem(NULL),
     outbufMem(NULL),
     use_fd_flag(0),
-    mEosSet(0)
+    mEosSet(0),
+    outData(NULL)
 {
     mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
 
@@ -84,6 +85,10 @@ VpuApiLegacy::~VpuApiLegacy()
     if (fp_buf) {
         mpp_free(fp_buf);
         fp_buf = NULL;
+    }
+    if (outData != NULL) {
+        mpp_free(outData);
+        outData = NULL;
     }
     if (memGroup != NULL) {
         mpp_err("memGroup deInit");
@@ -158,6 +163,8 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         mpp_assert(param->width);
         mpp_assert(param->height);
+
+        outData = mpp_malloc(RK_U8, (param->width * param->height));
 
         mpp_cfg.width       = param->width;
         mpp_cfg.height      = param->height;
@@ -569,8 +576,10 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
-        if (!use_fd_flag)
+        if (!use_fd_flag) {
+            aEncOut->data = outData;
             memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(outbufMem), aEncOut->size);
+        }
         mpp_buffer_put(outbufMem);
         mpp_packet_deinit(&packet);
     } else {
@@ -685,21 +694,19 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
 
     if (packet) {
         RK_U8 *src = (RK_U8 *)mpp_packet_get_data(packet);
-        RK_U8 *dst = (RK_U8 *)malloc(SZ_1M);
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
 
         mpp_assert(length);
-        mpp_assert(dst);
         // remove first 00 00 00 01
         length -= 4;
-        aEncOut->data = dst;
+        aEncOut->data = outData;
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
-        memcpy(dst, src + 4, length);
+        memcpy(outData, src + 4, length);
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
 
