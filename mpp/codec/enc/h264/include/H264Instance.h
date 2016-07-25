@@ -75,12 +75,7 @@ typedef struct {
     u32 *pOutBuf;        /* Pointer to output stream buffer */
     u32 busOutBuf;       /* Bus address of output stream buffer */
     u32 outBufSize;      /* Size of output stream buffer in bytes */
-    u32 *pNaluSizeBuf;   /* Output buffer for NAL unit sizes
-                              * pNaluSizeBuf[0] = NALU 0 size in bytes
-                              * pNaluSizeBuf[1] = NALU 1 size in bytes
-                              * etc
-                              */
-    u32 naluSizeBufSize; /* Size of pNaluSizeBuf in bytes */
+
     H264EncPictureCodingType codingType;    /* Proposed picture coding type,
                                                  * INTRA/PREDICTED
                                                  */

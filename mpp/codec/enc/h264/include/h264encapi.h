@@ -315,7 +315,7 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
 H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
                              H264EncOut * pEncOut, h264e_syntax *syntax_data);
 
-H264EncRet H264EncStrmEncodeAfter(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
                                   H264EncOut * pEncOut, MPP_RET vpuWaitResult);  // add by lance 2016.05.07
 
 /* H264EncStrmEnd ends a stream with an EOS code. */
