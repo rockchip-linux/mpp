@@ -9,7 +9,7 @@ fi
 
 PLATFORM=$ANDROID_NDK/platforms/android-21/arch-arm64
 
-cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
+cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
       -DCMAKE_BUILD_TYPE=Release                                            \
       -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
@@ -19,7 +19,7 @@ cmake -DCMAKE_TOOLCHAIN_FILE=./android.toolchain.cmake                      \
       -DANDROID_NATIVE_API_LEVEL=android-21                                 \
       -DANDROID_STL=system                                                  \
       -DCMAKE_RKPLATFORM_ENABLE=ON                                          \
-      ../../
+      ../../../
 
 # ----------------------------------------------------------------------------
 # usefull cmake debug flag
