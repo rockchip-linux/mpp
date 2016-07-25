@@ -279,6 +279,7 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
     }
     if (set_eos) {
         aDecOut->size = 0;
+        mEosSet = 1;
         return VPU_API_EOS_STREAM_REACHED;
     }
 
@@ -287,6 +288,7 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->size = 0;
     } else {
         MppBuffer buf = mpp_frame_get_buffer(mframe);
+        MppBufferInfo info;
         RK_U64 pts  = mpp_frame_get_pts(mframe);
         RK_U32 mode = mpp_frame_get_mode(mframe);
         RK_S32 fd   = -1;
@@ -389,7 +391,10 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
                 fflush(fp);
             }
             vframe->vpumem.phy_addr = fd;
+            memset(&info, 0, sizeof(MppBufferInfo));
+            mpp_buffer_info_get(buf, &info);
             vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
+            vframe->vpumem.size |= ((info.buf_index << 28) & 0xf0000000);
             vframe->vpumem.offset = (RK_U32*)buf;
         }
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
@@ -680,6 +685,50 @@ FUNC_RET:
     return ret;
 }
 
+RK_S32 VpuApiLegacy::getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *decoder_format)
+{
+    int32_t ret = 0;
+
+    memset(decoder_format, 0, sizeof(DecoderFormat_t));
+
+    decoder_format->width = ctx->width;
+    decoder_format->height = ctx->height;
+    decoder_format->stride = ctx->width;
+    decoder_format->format = VPU_VIDEO_PIXEL_FMT_NV12;
+    decoder_format->frame_size = (decoder_format->width * decoder_format->height * 3) >> 1;
+
+    switch (ctx->videoCoding) {
+    case OMX_RK_VIDEO_CodingMPEG2:      /**< AKA: H.262 */
+    case OMX_RK_VIDEO_CodingMPEG4:      /**< MPEG-4 */
+    case OMX_RK_VIDEO_CodingAVC:        /**< H.264/AVC */
+    case OMX_RK_VIDEO_CodingVP8:                     /**< VP8 */
+    case OMX_RK_VIDEO_CodingHEVC:
+    case OMX_RK_VIDEO_CodingH263:
+        decoder_format->aligned_width = (decoder_format->width + 15) & (~15);
+        //printf("decoder_format->aligned_width %d\n", decoder_format->aligned_width);
+        decoder_format->aligned_height = (decoder_format->height + 15) & (~15);
+        decoder_format->aligned_stride = decoder_format->aligned_width;
+        decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
+        break;
+#if 0
+    case OMX_RK_VIDEO_CodingHEVC:        /**< H.265/HEVC */
+        decoder_format->aligned_width = (decoder_format->width + 255) & (~255);
+        if ((decoder_format->aligned_width >> 8) % 2 == 0) {
+            decoder_format->aligned_width += 256;
+        }
+        decoder_format->aligned_height = (decoder_format->height + 7) & (~7);
+        decoder_format->aligned_stride = decoder_format->aligned_width;
+        decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
+        break;
+#endif
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
 RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
 {
     RK_S32 ret = 0;
@@ -771,8 +820,13 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         }
         p->ImgWidth = (p->ImgWidth & 0xFFFF);
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
+#ifdef SOFIA_3GR_LINUX
+            p->ImgHorStride = default_align_16(ImgWidth);
+            p->ImgVerStride = default_align_16(p->ImgHeight);
+#else
             p->ImgHorStride = hevc_ver_align_256_odd(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
+#endif
         } else {
             p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
@@ -794,6 +848,20 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     }
     case VPU_API_GET_VPUMEM_USED_COUNT: {
         mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
+        break;
+    }
+	case VPU_API_DEC_GET_EOS_STATUS: {
+        *(RK_S32 *)param = mEosSet;
+        mpicmd = MPI_CMD_BUTT;
+        break;
+    }
+    case VPU_API_SET_OUTPUT_BLOCK: {
+        mpicmd = MPP_SET_OUTPUT_BLOCK;
+        break;
+    }
+    case VPU_API_DEC_GETFORMAT: {
+        mpicmd = MPI_CMD_BUTT;
+        getDecoderFormat(ctx, (DecoderFormat_t *)param);
         break;
     }
     default: {

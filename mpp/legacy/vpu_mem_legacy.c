@@ -29,7 +29,9 @@ static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S
     memset(&info, 0, sizeof(MppBufferInfo));
     info.type = MPP_BUFFER_TYPE_ION;
     info.fd = mem_hdl;
-    info.size = size;
+    info.size = size & 0x0fffffff;
+    info.buf_index = (size & 0xf0000000) >> 28;
+	mpp_log_f("size %d buf_index %d",  info.size, info.buf_index);
     p_mempool->size = size;
     p_mempool->buff_size = size;
     mpp_buffer_commit(p_mempool->group, &info);

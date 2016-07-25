@@ -20,6 +20,7 @@
 #include "os_allocator.h"
 
 #include "allocator_drm.h"
+#include "allocator_ion.h"
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
@@ -133,9 +134,11 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
 {
     MPP_RET ret = MPP_OK;
     switch (type) {
-    case MPP_BUFFER_TYPE_NORMAL :
-    case MPP_BUFFER_TYPE_ION : {
+    case MPP_BUFFER_TYPE_NORMAL : {
         *api = allocator_normal;
+    } break;
+    case MPP_BUFFER_TYPE_ION : {
+        *api = allocator_ion;
     } break;
     case MPP_BUFFER_TYPE_V4L2 : {
         mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");

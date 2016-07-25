@@ -194,6 +194,7 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
     return api->control(ctx, cmdType, param);
 }
 
+#ifndef SOFIA_3GR_LINUX
 #ifdef RKPLATFORM
 static const char *codec_paths[] = {
     "/system/lib/librk_vpuapi.so",
@@ -255,7 +256,7 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     return MPP_NOK;
 }
 #endif
-
+#endif
 /*
  * old libvpu path will input a NULL pointer in *ctx
  * new libvpu path will input non-NULL pointer in *ctx
@@ -267,6 +268,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     RK_U32 use_mpp_mode = 0;
     mpp_env_get_u32("chg_orig", &value, 0);
     mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
+#ifndef SOFIA_3GR_LINUX
 #ifdef RKPLATFORM
     value = value || (!!access("/dev/rkvdec", F_OK));
 
@@ -283,7 +285,6 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         *ctx = s;
         return MPP_OK;
     }
-#endif
     if (s != NULL) {
         MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
                           (s->codecType == CODEC_ENCODER) ? (MPP_CTX_ENC) : (MPP_CTX_BUTT);
@@ -293,6 +294,8 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
             || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
                 s->codecType == CODEC_DECODER && ((s->width > 1920) || (s->height > 1088) || use_mpp_mode))) {
             free(s);
+#endif
+#endif
             s = NULL;
             s = mpp_malloc(VpuCodecContext, 1);
             if (!s) {
@@ -322,7 +325,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 
             *ctx = s;
             return 0;
-        } else {
+#ifndef SOFIA_3GR_LINUX            
 #ifdef RKPLATFORM
             if (s != NULL) {
                 free(s);
@@ -335,6 +338,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 #endif
         }
     }
+#endif
 
     if (!s->vpuApiObj) {
         mpp_err("Input context has not been properly allocated and is not NULL either");
@@ -349,7 +353,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
     VpuCodecContext *s = *ctx;
     RK_U32 value;
     mpp_env_get_u32("chg_orig", &value, 0);
-
+#ifndef SOFIA_3GR_LINUX
 #ifdef RKPLATFORM
     if (value || s->extra_cfg.reserved[0]) {
         close_orign_vpu(ctx);
@@ -357,7 +361,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
         return MPP_OK;
     }
 #endif
-
+#endif
     if (s) {
         s->flush(s);
         VpuApiLegacy* api = (VpuApiLegacy*)(s->vpuApiObj);
