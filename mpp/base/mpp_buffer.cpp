@@ -84,6 +84,7 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
             NULL,
             NULL,
             -1,
+            -1,
         };
         // if failed try init a new buffer
         mpp_buffer_create(tag, caller, p, &info, &buf);

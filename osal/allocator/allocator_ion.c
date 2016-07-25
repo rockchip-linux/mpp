@@ -124,7 +124,7 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
 
 static const char *search_name = NULL;
 
-int _compare_name(const struct dirent *dir)
+static int _compare_name(const struct dirent *dir)
 {
     if (search_name && strstr(dir->d_name, search_name))
         return 1;
@@ -140,7 +140,7 @@ int _compare_name(const struct dirent *dir)
  * return 0 for failure
  * return positive value for length of new path
  */
-RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
+static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
 {
     struct dirent **dir;
     RK_S32 path_len = strnlen(path, max_length);
@@ -181,6 +181,9 @@ RK_S32 check_sysfs_iommu()
         "vmalloc",
         "system-heap",
     };
+#ifdef SOFIA_3GR_LINUX
+	return ret;
+#endif
 
     for (i = 0; i < MPP_ARRAY_ELEMS(dts_devices); i++) {
         snprintf(path, sizeof(path), "/proc/device-tree");

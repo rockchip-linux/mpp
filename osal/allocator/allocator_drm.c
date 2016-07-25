@@ -149,7 +149,7 @@ static int drm_map(int fd, RK_U32 handle, size_t length, int prot,
 
 static const char *search_name = NULL;
 
-int _compare_name(const struct dirent *dir)
+static int _compare_name(const struct dirent *dir)
 {
     if (search_name && strstr(dir->d_name, search_name))
         return 1;
@@ -165,7 +165,7 @@ int _compare_name(const struct dirent *dir)
  * return 0 for failure
  * return positive value for length of new path
  */
-RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
+static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
 {
     struct dirent **dir;
     RK_S32 path_len = strnlen(path, max_length);
@@ -196,7 +196,7 @@ static char *dts_devices[] = {
     "rkvenc",
 };
 
-RK_S32 check_sysfs_iommu()
+static RK_S32 check_sysfs_iommu()
 {
     RK_U32 i = 0, found = 0;
     RK_S32 ret = DRM_DETECT_IOMMU_DISABLE;
