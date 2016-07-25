@@ -57,9 +57,9 @@ VpuApiLegacy::VpuApiLegacy() :
     memGroup(NULL),
     pictureMem(NULL),
     outbufMem(NULL),
+    outData(NULL),
     use_fd_flag(0),
-    mEosSet(0),
-    outData(NULL)
+    mEosSet(0)
 {
     mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
 
@@ -476,8 +476,9 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         inputCommit.fd = aEncInStrm->bufPhyAddr;
 
         outputCommit.type = MPP_BUFFER_TYPE_ION;
-        outputCommit.size = *(((RK_S32*)(&aEncOut->timeUs)) + 1);  // TODO
-        outputCommit.fd = *(((RK_S32*)(&aEncOut->timeUs)));
+        RK_S32 *tmp = (RK_S32*)(&aEncOut->timeUs);
+        memcpy(&outputCommit.fd, tmp, sizeof(RK_S32));
+        memcpy(&outputCommit.size, (tmp + 1), sizeof(RK_S32));
         outputCommit.ptr = (void*)aEncOut->data;
 
         ret = mpp_buffer_import(&pictureMem, &inputCommit);
