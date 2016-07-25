@@ -181,11 +181,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             return -1;
         } else {
             h264e_control_log("Get rate control: qp %2d [%2d, %2d]  %8d bps  "
-                    "pic %d mb %d skip %d  hrd %d\n  cpbSize %d gopLen %d "
-                    "intraQpDelta %2d\n",
-                    oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond,
-                    oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                    oriRcCfg.hrdCpbSize, oriRcCfg.gopLen, oriRcCfg.intraQpDelta);
+                              "pic %d mb %d skip %d  hrd %d\n  cpbSize %d gopLen %d "
+                              "intraQpDelta %2d\n",
+                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond,
+                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
+                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen, oriRcCfg.intraQpDelta);
 
             // will be replaced  modify by lance 2016.05.20
             // ------------
@@ -195,7 +195,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriRcCfg.pictureSkip = 0;
             oriRcCfg.pictureRc = 0;
             oriRcCfg.mbRc = 0;
-            oriRcCfg.bitPerSecond = 8*SZ_1M;
+            oriRcCfg.bitPerSecond = 8 * SZ_1M;
             oriRcCfg.hrd = 0;
             oriRcCfg.hrdCpbSize = 30000000;
             oriRcCfg.gopLen = 30;
@@ -273,10 +273,10 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             return -1;
         } else {
             h264e_control_log("Get PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
-                    ": stab %d : cc %d\n",
-                    oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
-                    oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
-                    oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
+                              ": stab %d : cc %d\n",
+                              oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
+                              oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
+                              oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
             // ----------------
             // will be replaced  modify by lance 2016.05.20
             oriPreProcCfg.inputType = H264ENC_YUV420_SEMIPLANAR;//H264ENC_YUV420_PLANAR;
@@ -316,13 +316,13 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         }
 
         // add by lance 2016.06.16
-    #ifdef SYNTAX_DATA_IN_FILE
+#ifdef SYNTAX_DATA_IN_FILE
         if (NULL == fp_syntax_in) {
             fp_syntax_in = fopen("/data/test/vpu_syntax_in.txt", "ab");
             if (NULL == fp_syntax_in)
                 mpp_err("open fp_syntax_in failed!");
         }
-    #endif
+#endif
         h264e_control_debug_leave();
 
 
@@ -346,7 +346,6 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 
     H264EncRet ret;
     H264EncInst encInst = (H264EncInst)ctx;
-    H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
     H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
     MPP_RET vpuWaitResult = MPP_OK;
 
@@ -373,7 +372,7 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     val->hw_status = fb->hw_status;
 
     // vpuWaitResult should be given from hal part, and here assume it is OK  // TODO  modify by lance 2016.06.01
-    ret = H264EncStrmEncodeAfter(encInst, encIn, encOut, vpuWaitResult);    // add by lance 2016.05.07
+    ret = H264EncStrmEncodeAfter(encInst, encOut, vpuWaitResult);    // add by lance 2016.05.07
     switch (ret) {
     case H264ENC_FRAME_READY:
         h264e_control_log("after encode frame ready");  // add by lance 2016.06.01

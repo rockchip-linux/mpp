@@ -80,9 +80,6 @@ void H264EncTrace(const char *msg)
     4. Local function prototypes
 ------------------------------------------------------------------------------*/
 
-static void H264GetNalUnitSizes(const h264Instance_s * pEncInst,
-                                u32 * pNaluSizeBuf);
-
 static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
                        u32 stabilizedHeight);
 
@@ -892,12 +889,6 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
         return H264ENC_INVALID_ARGUMENT;
     }
 
-    if (pEncIn->pNaluSizeBuf != NULL &&
-        pEncIn->naluSizeBufSize < (3 * sizeof(u32))) {
-        APITRACE("H264EncStrmStart: ERROR Invalid input. NAL size buffer");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
     /* Set stream buffer, the size has been checked */
     (void) H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
                          (u32) pEncIn->outBufSize);
@@ -938,16 +929,8 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
                 rc->hrd, rc->outRateNum, rc->outRateDenom);
 
     H264SeqParameterSet(&pEncInst->stream, &pEncInst->seqParameterSet);
-    if (pEncIn->pNaluSizeBuf != NULL) {
-        pEncIn->pNaluSizeBuf[0] = pEncInst->stream.byteCnt;
-    }
 
     H264PicParameterSet(&pEncInst->stream, &pEncInst->picParameterSet);
-    if (pEncIn->pNaluSizeBuf != NULL) {
-        pEncIn->pNaluSizeBuf[1] =
-            pEncInst->stream.byteCnt - pEncIn->pNaluSizeBuf[0];
-        pEncIn->pNaluSizeBuf[2] = 0;
-    }
 
     if (pEncInst->stream.overflow == ENCHW_YES) {
         pEncOut->streamSize = 0;
@@ -1025,20 +1008,12 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
 
         nals += 3;  /* SEI, Filler and "0-end" */
 
-        if (pEncIn->pNaluSizeBuf != NULL &&
-            pEncIn->naluSizeBufSize < (nals * sizeof(u32))) {
-            APITRACE("H264EncStrmEncode: ERROR Invalid input. NAL size buffer");
-            return H264ENC_INVALID_ARGUMENT;
-        }
     }
 
     /* Clear the output structure */
     pEncOut->codingType = H264ENC_NOTCODED_FRAME;
     pEncOut->streamSize = 0;
 
-    /* Clear the NAL unit size table */
-    if (pEncIn->pNaluSizeBuf != NULL)
-        pEncIn->pNaluSizeBuf[0] = 0;
 
     /* Check status, INIT and ERROR not allowed */
     if ((pEncInst->encStatus != H264ENCSTAT_START_STREAM) &&
@@ -1220,7 +1195,7 @@ RK_S32 EncAsicCheckHwStatus(asicData_s *asic)
     return ret;
 }
 
-H264EncRet H264EncStrmEncodeAfter(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
                                   H264EncOut * pEncOut, MPP_RET vpuWaitResult)
 {
     h264Instance_s *pEncInst = (h264Instance_s *) inst;  // add by lance 2016.05.07
@@ -1346,11 +1321,6 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst, const H264EncIn * pEncIn,
         pEncOut->codingType = H264ENC_PREDICTED_FRAME;
     }
 
-    /* Return NAL units' size table if requested */
-    if (pEncIn->pNaluSizeBuf != NULL) {
-        H264GetNalUnitSizes(pEncInst, pEncIn->pNaluSizeBuf);
-    }
-
     /* Frame was encoded so increment frame number */
     pEncInst->frameCnt++;
     pSlice->frameNum++;
@@ -1404,12 +1374,6 @@ H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
         return H264ENC_INVALID_ARGUMENT;
     }
 
-    if (pEncIn->pNaluSizeBuf != NULL &&
-        pEncIn->naluSizeBufSize < (2 * sizeof(u32))) {
-        APITRACE("H264EncStrmEnd: ERROR Invalid input. NAL size buffer");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
     /* Set stream buffer and check the size */
     if (H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
                       (u32) pEncIn->outBufSize) != ENCHW_OK) {
@@ -1423,50 +1387,10 @@ H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
     /* Bytes generated */
     pEncOut->streamSize = pEncInst->stream.byteCnt;
 
-    if (pEncIn->pNaluSizeBuf != NULL) {
-        pEncIn->pNaluSizeBuf[0] = pEncOut->streamSize;
-        pEncIn->pNaluSizeBuf[1] = 0;
-    }
-
     /* Status == INIT   Stream ended, next stream can be started */
     pEncInst->encStatus = H264ENCSTAT_INIT;
 
     APITRACE("H264EncStrmEnd: OK");
     return H264ENC_OK;
-}
-
-/*------------------------------------------------------------------------------
-
-    Function name : H264GetNalUnitSizes
-    Description   : Writes each NAL unit size to the user supplied buffer.
-        Takes sizes from the buffer written by HW. List ends with a zero value.
-
-    Return type   : void
-    Argument      : pEncInst - encoder instance
-    Argument      : pNaluSizeBuf - where to write the NAL sizes
-------------------------------------------------------------------------------*/
-void H264GetNalUnitSizes(const h264Instance_s * pEncInst, u32 * pNaluSizeBuf)
-{
-    const sei_s *sei = &pEncInst->rateControl.sei;
-    const u32 *pTmp;
-    i32 nals = 0;
-
-    if (sei->enabled == ENCHW_YES || sei->userDataEnabled == ENCHW_YES) {
-        *pNaluSizeBuf++ = sei->nalUnitSize; /* first NAL is the SEI message */
-    }
-
-    if (pEncInst->slice.sliceSize != 0)
-        nals += (pEncInst->mbPerFrame + pEncInst->slice.sliceSize - 1) /
-                pEncInst->slice.sliceSize;
-
-    /* whole frame can be in one NAL unit */
-    do {
-        *pNaluSizeBuf++ = (*pTmp++) / 8;    /* bits to bytes */
-    } while ((--nals > 0) && (*pTmp != 0));
-
-    if (pEncInst->fillerNalSize)
-        *pNaluSizeBuf++ = pEncInst->fillerNalSize;
-
-    *pNaluSizeBuf = 0;  /* END of table */
 }
 
