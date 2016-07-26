@@ -23,3 +23,4 @@ add_subdirectory(vp8)
 
 add_subdirectory(vp9)
 
+add_subdirectory(jpeg)
