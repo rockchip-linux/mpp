@@ -30,6 +30,8 @@
 
 #include "utils.h"
 
+#include "vpu_api.h"
+
 #define MPI_ENC_IO_COUNT            (4)
 #define MAX_FILE_NAME_LENGTH        256
 
@@ -50,7 +52,7 @@ static OptionInfo mpi_enc_cmd[] = {
     {"o",               "output_file",          "output bitstream file, "},
     {"w",               "width",                "the width of input bitstream"},
     {"h",               "height",               "the height of input bitstream"},
-    {"f",               "type",                 "input stream coding type"},
+    {"t",               "type",                 "input stream coding type"},
     {"d",               "debug",                "debug flag"},
 };
 
@@ -65,6 +67,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     // base flow context
     MppCtx ctx              = NULL;
     MppApi *mpi             = NULL;
+    MppEncConfig mpp_cfg;
 
     // input / output
     RK_S32 i;
@@ -87,6 +90,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     size_t packet_size  = width * height;           /* NOTE: packet buffer may overflow */
     size_t read_size    = 0;
     RK_U32 frame_count  = 0;
+    RK_U64 stream_size  = 0;
 
     mpp_log("mpi_enc_test start\n");
 
@@ -148,6 +152,28 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
+    memset(&mpp_cfg, 0, sizeof(mpp_cfg));
+    mpp_cfg.width       = width;
+    mpp_cfg.height      = height;
+    mpp_cfg.format      = VPU_H264ENC_YUV420_PLANAR;
+    mpp_cfg.rc_mode     = 1;
+    mpp_cfg.skip_cnt    = 0;
+    mpp_cfg.bps         = SZ_4M * 8;
+    mpp_cfg.fps_in      = 30;
+    mpp_cfg.fps_out     = 30;
+    mpp_cfg.qp          = 24;
+    mpp_cfg.gop         = 60;
+
+    mpp_cfg.profile     = 100;
+    mpp_cfg.level       = 41;
+    mpp_cfg.cabac_en    = 1;
+
+    ret = mpi->control(ctx, MPP_ENC_SET_CFG, &mpp_cfg);
+    if (MPP_OK != ret) {
+        mpp_err("mpi control failed\n");
+        goto MPP_TEST_OUT;
+    }
+
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
         mpp_err("mpp_frame_init failed\n");
@@ -191,8 +217,15 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             if (task == NULL) {
                 mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
                 usleep(3000);
-            } else
+            } else {
+                MppFrame frame_out = NULL;
+
+                mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
+                if (frame_out)
+                    mpp_assert(frame_out == frame);
+
                 break;
+            }
         } while (1);
 
 
@@ -215,22 +248,23 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             }
 
             if (task) {
-                MppFrame frame_out = NULL;
                 MppFrame packet_out = NULL;
 
-                mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
                 mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
 
                 mpp_assert(packet_out == packet);
-                mpp_assert(frame_out  == frame);
                 if (packet) {
                     // write packet to file here
-                    // void *ptr   = mpp_packet_get_pos(packet);
-                    // size_t len  = mpp_packet_get_length(packet);
-                    // fwrite(ptr, 1, len, fp_output);
+                    void *ptr   = mpp_packet_get_pos(packet);
+                    size_t len  = mpp_packet_get_length(packet);
+
+                    if (fp_output)
+                        fwrite(ptr, 1, len, fp_output);
                     mpp_packet_deinit(&packet);
+
+                    mpp_log_f("encoded frame %d size %d\n", frame_count, len);
+                    stream_size += len;
                 }
-                mpp_log_f("encoded frame %d\n", frame_count);
                 frame_count++;
 
                 ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
@@ -294,7 +328,8 @@ MPP_TEST_OUT:
     }
 
     if (MPP_OK == ret)
-        mpp_log("mpi_enc_test success\n");
+        mpp_log("mpi_enc_test success total frame %d bps %lld\n",
+                frame_count, (RK_U64)((stream_size * 8) / (frame_count / mpp_cfg.fps_out)));
     else
         mpp_err("mpi_enc_test failed ret %d\n", ret);
 

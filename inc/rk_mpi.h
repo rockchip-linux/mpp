@@ -147,9 +147,13 @@ typedef struct MppEncConfig_t {
      *            0 - fix qp mode
      *            1 - constant bit rate mode (CBR)
      *            2 - variable bit rate mode (VBR)
+     * skip_cnt - max continuous frame skip count
+     *            0 - frame skip is not allow
      * bps      - target bit rate, unit: bit per second
      * fps_in   - input  frame rate, unit: frame per second
+     *            if 0 then default set to 30
      * fps_out  - output frame rate, unit: frame per second
+     *            if 0 then default set to fps_in
      * qp       - constant qp for fix qp mode
      *            initial qp for CBR / VBR
      * gop      - gap between Intra frame
@@ -160,6 +164,7 @@ typedef struct MppEncConfig_t {
      *            etc...
      */
     RK_S32  rc_mode;
+    RK_S32  skip_cnt;
     RK_S32  bps;
     RK_S32  fps_in;
     RK_S32  fps_out;

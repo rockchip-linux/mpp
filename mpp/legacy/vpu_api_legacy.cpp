@@ -170,6 +170,7 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         mpp_cfg.height      = param->height;
         mpp_cfg.format      = param->format;
         mpp_cfg.rc_mode     = param->rc_mode;
+        mpp_cfg.skip_cnt    = 0;
         mpp_cfg.bps         = param->bitRate;
         mpp_cfg.fps_in      = param->framerate;
         if (param->framerateout)
