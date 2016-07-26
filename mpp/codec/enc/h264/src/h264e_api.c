@@ -157,74 +157,17 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
     switch (cmd) {
     case SET_ENC_CFG : {
         const H264EncConfig *encCfg = (const H264EncConfig *)param;
-        pEncInst->h264EncCfg.intraPicRate = encCfg->intraPicRate;
-        pEncInst->intraPeriodCnt = encCfg->intraPicRate;
 
         H264EncInst encoderOpen = (H264EncInst)ctx;
-
-        H264EncRateCtrl oriRcCfg;
         H264EncCodingCtrl oriCodingCfg;
         H264EncPreProcessingCfg oriPreProcCfg;
-        H264EncRet ret/* = MPP_OK*/;  // TODO  modify by lance 2016.05.19
+        H264EncRet ret = MPP_OK;
 
         h264e_control_debug_enter();
 
         if ((ret = H264EncInit(encCfg, pEncInst)) != H264ENC_OK) {
             mpp_err("H264EncInit() failed, ret %d.", ret);
             return -1;
-        }
-
-        /* Encoder setup: rate control */
-        if ((ret = H264EncGetRateCtrl(encoderOpen, &oriRcCfg)) != H264ENC_OK) {
-            mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
-            h264e_deinit((void*)encoderOpen);
-            return -1;
-        } else {
-            h264e_control_log("Get rate control: qp %2d [%2d, %2d]  %8d bps  "
-                              "pic %d mb %d skip %d  hrd %d\n  cpbSize %d gopLen %d "
-                              "intraQpDelta %2d\n",
-                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond,
-                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen, oriRcCfg.intraQpDelta);
-
-            // will be replaced  modify by lance 2016.05.20
-            // ------------
-            oriRcCfg.qpHdr = 26;
-            oriRcCfg.qpMin = 18;
-            oriRcCfg.qpMax = 40;
-            oriRcCfg.pictureSkip = 0;
-            oriRcCfg.pictureRc = 0;
-            oriRcCfg.mbRc = 0;
-            oriRcCfg.bitPerSecond = 8 * SZ_1M;
-            oriRcCfg.hrd = 0;
-            oriRcCfg.hrdCpbSize = 30000000;
-            oriRcCfg.gopLen = 30;
-            oriRcCfg.intraQpDelta = 4;
-            oriRcCfg.fixedIntraQp = 0;
-            oriRcCfg.mbQpAdjustment = 0;
-            if ((ret = H264EncSetRateCtrl(encoderOpen, &oriRcCfg)) != H264ENC_OK) {
-                mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
-            }
-            // ------------
-
-            // TODO modify by lance 2016.05.20
-            // will use in future
-            /*mpp_log("Set rate control: qp %2d [%2d, %2d] %8d bps  "
-                            "pic %d mb %d skip %d  hrd %d\n"
-                            "  cpbSize %d gopLen %d intraQpDelta %2d "
-                            "fixedIntraQp %2d mbQpAdjustment %d\n",
-                            encRcCfg->qpHdr, encRcCfg->qpMin, encRcCfg->qpMax, encRcCfg->bitPerSecond,
-                            encRcCfg->pictureRc, encRcCfg->mbRc, encRcCfg->pictureSkip, encRcCfg->hrd,
-                            encRcCfg->hrdCpbSize, encRcCfg->gopLen, encRcCfg->intraQpDelta,
-                            encRcCfg->fixedIntraQp, encRcCfg->mbQpAdjustment);
-
-            if ((ret = H264EncSetRateCtrl(encoderOpen, encRcCfg)) != H264ENC_OK) {
-                mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
-            }*/
         }
 
         /* Encoder setup: coding control */
@@ -248,22 +191,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 h264e_deinit((void*)encoderOpen);
                 return -1;
             }
-            // ------------
-            // TODO modify by lance 2016.05.20
-            // will use in future
-            /*mpp_log("Set coding control: SEI %d Slice %5d   deblocking %d "
-                        "constrained intra %d video range %d\n"
-                        "  cabac %d cabac initial idc %d Adaptive 8x8 transform %d\n",
-                        encCodingCfg->seiMessages, encCodingCfg->sliceSize,
-                        encCodingCfg->disableDeblockingFilter,
-                        encCodingCfg->constrainedIntraPrediction, encCodingCfg->videoFullRange, encCodingCfg->enableCabac,
-                        encCodingCfg->cabacInitIdc, encCodingCfg->transform8x8Mode );
-
-            if ((ret = H264EncSetCodingCtrl(encoderOpen, encCodingCfg)) != H264ENC_OK) {
-                mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
-            }*/
         }
 
         /* PreP setup */
@@ -294,25 +221,12 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 oriPreProcCfg.colorConversion.coeffE = 35000;
                 oriPreProcCfg.colorConversion.coeffF = 38000;
             }
+
             if ((ret = H264EncSetPreProcessing(encoderOpen, &oriPreProcCfg)) != H264ENC_OK) {
                 mpp_err("H264EncSetPreProcessing() failed.", ret);
                 h264e_deinit((void*)encoderOpen);
                 return -1;
             }
-            // ----------------
-            // TODO modify by lance 2016.05.20
-            // will use in future
-            /*mpp_log("Set PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
-             ": stab %d : cc %d\n",
-             encPreProcCfg->origWidth, encPreProcCfg->origHeight, encPreProcCfg->xOffset,
-             encPreProcCfg->yOffset, encPreProcCfg->inputType, encPreProcCfg->rotation,
-             encPreProcCfg->videoStabilization, encPreProcCfg->colorConversion.type);
-
-            if ((ret = H264EncSetPreProcessing(encoderOpen, encPreProcCfg)) != H264ENC_OK) {
-                mpp_err("H264EncSetPreProcessing() failed.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
-            }*/
         }
 
         // add by lance 2016.06.16
@@ -326,6 +240,63 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         h264e_control_debug_leave();
 
 
+    } break;
+    case SET_ENC_RC_CFG : {
+        const H264EncRateCtrl *encCfg = (const H264EncRateCtrl *)param;
+        H264EncInst encoder = (H264EncInst)ctx;
+        H264EncRateCtrl oriRcCfg;
+        H264EncRet ret = MPP_OK;
+
+        mpp_assert(pEncInst);
+        pEncInst->h264EncCfg.intraPicRate = encCfg->intraPicRate;
+        pEncInst->intraPeriodCnt = encCfg->intraPicRate;
+
+        /* Encoder setup: rate control */
+        if ((ret = H264EncGetRateCtrl(encoder, &oriRcCfg)) != H264ENC_OK) {
+            mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
+            return -1;
+        } else {
+            h264e_control_log("Get rate control: qp %2d [%2d, %2d] bps %8d\n",
+                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
+
+            h264e_control_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
+                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
+                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
+
+            // will be replaced  modify by lance 2016.05.20
+            // ------------
+            if (encCfg->qpHdr)
+                oriRcCfg.qpHdr = encCfg->qpHdr;
+
+            if (encCfg->qpMin)
+                oriRcCfg.qpMin = encCfg->qpMin;
+
+            if (encCfg->qpMax)
+                oriRcCfg.qpMax = encCfg->qpMax;
+
+            oriRcCfg.pictureSkip = encCfg->pictureSkip;
+            oriRcCfg.pictureRc = encCfg->pictureRc;
+            oriRcCfg.mbRc = encCfg->mbRc;
+            oriRcCfg.bitPerSecond = encCfg->bitPerSecond;
+            oriRcCfg.hrd = encCfg->hrd;
+            oriRcCfg.hrdCpbSize = encCfg->hrdCpbSize;
+            oriRcCfg.gopLen = encCfg->gopLen;
+            oriRcCfg.intraQpDelta = encCfg->intraQpDelta;
+            oriRcCfg.fixedIntraQp = encCfg->fixedIntraQp;
+            oriRcCfg.mbQpAdjustment = encCfg->mbQpAdjustment;
+
+            h264e_control_log("Set rate control: qp %2d [%2d, %2d] bps %8d\n",
+                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
+
+            h264e_control_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
+                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
+                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
+
+            if ((ret = H264EncSetRateCtrl(encoder, &oriRcCfg)) != H264ENC_OK) {
+                mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
+                return -1;
+            }
+        }
     } break;
     case GET_OUTPUT_STREAM_SIZE:
         *((RK_U32*)param) = getOutputStreamSize(pEncInst);

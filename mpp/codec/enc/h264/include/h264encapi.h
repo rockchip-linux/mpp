@@ -143,7 +143,6 @@ typedef struct {
                               * defined by timeIncrement of encoded pictures,
                               * [1..frameRateNum] */
     H264EncComplexityLevel complexityLevel; /* For compatibility */
-    RK_U32 intraPicRate;  // intra period
     RK_U32 enable_cabac;
     RK_U32 transform8x8_mode;
     RK_U32 pic_init_qp;
@@ -151,7 +150,6 @@ typedef struct {
     RK_U32 pic_luma_height;
     RK_U32 pic_luma_width;
     H264EncPictureFormat input_image_format;
-    RK_U32 keyframe_max_interval;
     RK_U32 second_chroma_qp_index_offset;
     RK_U32 pps_id;
 } H264EncConfig;
@@ -196,6 +194,8 @@ typedef struct {
     u32 pictureRc;       /* Adjust QP between pictures, [0,1] */
     u32 mbRc;            /* Adjust QP inside picture, [0,1] */
     u32 pictureSkip;     /* Allow rate control to skip pictures, [0,1] */
+    u32 intraPicRate;    /* intra period */
+    u32 keyframe_max_interval;
     i32 qpHdr;           /* QP for next encoded picture, [-1..51]
                               * -1 = Let rate control calculate initial QP
                               * This QP is used for all pictures if

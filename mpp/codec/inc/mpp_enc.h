@@ -36,7 +36,8 @@ struct MppEnc_t {
     RK_U32              reset_flag;
     void                *mpp;
 
-    H264EncConfig       encCfg;
+    H264EncConfig       enc_cfg;
+    H264EncRateCtrl     enc_rc_cfg;
     h264e_control_extra_info_cfg extra_info_cfg;
     h264e_control_extra_info extra_info;
 };
