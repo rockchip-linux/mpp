@@ -30,6 +30,8 @@ add_subdirectory(vpu/mpg4d)
 
 add_subdirectory(vpu/vp8d)
 
+add_subdirectory(vpu/jpegd)
+
 add_subdirectory(rkenc/h264e)
 
 # ----------------------------------------------------------------------------
@@ -52,7 +54,8 @@ target_link_libraries(mpp_hal
                       hal_mpg4d
                       hal_vp8d
                       hal_vp9d
-                      hal_h264e
+		      hal_jpegd
+                      hal_h264e		      
                       hal_dummy
                       ${RKPLAT_VPU}
                       )

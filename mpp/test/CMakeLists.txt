@@ -36,3 +36,7 @@ if (${HAVE_AVSD})
     include_directories(../codec/dec/avs)
     add_mpp_test(avsd)
 endif()
+
+# jpeg decoder test
+include_directories(../codec/dec/jpeg)
+add_mpp_test(jpegd)
