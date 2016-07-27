@@ -884,13 +884,15 @@ static void hal_h264e_vpu_dump_mpp_feedback(h264e_hal_context *ctx)
     }
 }
 
-static void hal_h264e_vpu_dump_mpp_strm_out_header(void *extra_info, h264e_hal_context *ctx)
+static void hal_h264e_vpu_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPacket packet)
 {
-    h264e_control_extra_info *info = (h264e_control_extra_info *)extra_info;
     h264e_hal_vpu_dump_files *dump_files = (h264e_hal_vpu_dump_files *)ctx->dump_files;
+    void *ptr   = mpp_packet_get_data(packet);
+    size_t len  = mpp_packet_get_length(packet);
     FILE *fp = dump_files->fp_mpp_strm_out;
+
     if (fp) {
-        fwrite(info->buf, 1, info->size, fp);
+        fwrite(ptr, 1, len, fp);
         fflush(fp);
     } else {
         mpp_log("try to dump strm header to mpp_strm_out.txt, but file is not opened");
@@ -1505,32 +1507,6 @@ static MPP_RET hal_h264e_vpu_set_extra_info(void *extra_info, void *param)
     return MPP_OK;
 }
 
-#if 0
-static MPP_RET hal_h264e_vpu_get_extra_info(void *dst_extra_info, void *src_extra_info)
-{
-    h264e_hal_vpu_extra_info *src = (h264e_hal_vpu_extra_info *)src_extra_info;
-    h264e_hal_vpu_stream *sps_stream = &src->sps_stream;
-    h264e_hal_vpu_stream *pps_stream = &src->pps_stream;
-    h264e_control_extra_info *dst = (h264e_control_extra_info *)dst_extra_info;
-
-    h264e_hal_debug_enter();
-    if (dst == NULL) {
-        mpp_err("dst_extra_info is NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    h264e_hal_log_detail("get extra info sps size: %d bytes", sps_stream->byte_cnt);
-    h264e_hal_log_detail("get extra info pps size: %d bytes", pps_stream->byte_cnt);
-
-    dst->size = sps_stream->byte_cnt + pps_stream->byte_cnt;
-    memcpy(dst->buf,                        sps_stream->buffer, sps_stream->byte_cnt);
-    memcpy(dst->buf + sps_stream->byte_cnt,   pps_stream->buffer, pps_stream->byte_cnt);
-
-    h264e_hal_debug_leave();
-    return MPP_OK;
-}
-#endif
-
 static RK_S32 exp_golomb_signed(RK_S32 val)
 {
     RK_S32 tmp = 0;
@@ -2088,8 +2064,7 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
 
         *pkt_out = pkt;
 #ifdef H264E_DUMP_DATA_TO_FILE
-        hal_h264e_vpu_get_extra_info(param, ctx->extra_info);
-        hal_h264e_vpu_dump_mpp_strm_out_header(param, ctx);
+        hal_h264e_vpu_dump_mpp_strm_out_header(ctx, pkt);
 #endif
         break;
     }

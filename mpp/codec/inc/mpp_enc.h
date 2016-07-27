@@ -42,7 +42,6 @@ struct MppEnc_t {
     H264EncConfig       enc_cfg;
     H264EncRateCtrl     enc_rc_cfg;
     h264e_control_extra_info_cfg extra_info_cfg;
-    h264e_control_extra_info extra_info;
 };
 
 #ifdef __cplusplus
