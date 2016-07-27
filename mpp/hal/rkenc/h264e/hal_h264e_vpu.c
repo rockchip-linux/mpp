@@ -22,8 +22,6 @@
 #include "hal_h264e.h"
 #include "hal_h264e_vpu.h"
 
-#define H264E_MAX_PACKETED_PARAM_SIZE       256
-
 /* H.264 motion estimation parameters */
 static const RK_U32 h264_prev_mode_favor[52] = {
     7, 7, 8, 8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16, 17, 18,
@@ -1507,6 +1505,7 @@ static MPP_RET hal_h264e_vpu_set_extra_info(void *extra_info, void *param)
     return MPP_OK;
 }
 
+#if 0
 static MPP_RET hal_h264e_vpu_get_extra_info(void *dst_extra_info, void *src_extra_info)
 {
     h264e_hal_vpu_extra_info *src = (h264e_hal_vpu_extra_info *)src_extra_info;
@@ -1530,6 +1529,7 @@ static MPP_RET hal_h264e_vpu_get_extra_info(void *dst_extra_info, void *src_extr
     h264e_hal_debug_leave();
     return MPP_OK;
 }
+#endif
 
 static RK_S32 exp_golomb_signed(RK_S32 val)
 {

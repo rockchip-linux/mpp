@@ -1607,7 +1607,8 @@ MPP_RET h264e_hal_vpu_test()
     HalTaskInfo task_info;
     h264e_syntax syntax_data;
     h264e_control_extra_info_cfg extra_info_cfg;
-    h264e_control_extra_info extra_info;
+    MppPacket extra_info_pkt;
+    RK_U8 extra_info_buf[H264E_MAX_PACKETED_PARAM_SIZE] = {0};
     MppBufferGroup hw_input_buf_grp = NULL;
     MppBufferGroup hw_output_buf_grp = NULL;
     MppBuffer hw_input_buf[3] = {NULL}; //Y, U, V
@@ -1617,6 +1618,8 @@ MPP_RET h264e_hal_vpu_test()
 
     RK_U8 *input_sw_buf = mpp_malloc(RK_U8, MAX_FRAME_TOTAL_SIZE);
 
+    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
+    
     get_vpu_syntax_in(&syntax_data, hw_input_buf, hw_output_strm_buf);
     fseek(fp_golden_syntax_in, 0L, SEEK_SET);
 
@@ -1646,7 +1649,7 @@ MPP_RET h264e_hal_vpu_test()
 
     h264e_hal_set_extra_info_cfg(&extra_info_cfg, &syntax_data);
     hal_h264e_vpu_control(&ctx, MPP_ENC_SET_EXTRA_INFO, &extra_info_cfg);
-    hal_h264e_vpu_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info);
+    hal_h264e_vpu_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info_pkt);
 
 
     do {
@@ -1690,7 +1693,7 @@ __test_end:
     hal_h264e_deinit(&ctx);
     h264e_hal_test_deinit(&ctx, &task_info);
 
-
+    mpp_packet_deinit(&extra_info_pkt);
     //free sw buf
     if (input_sw_buf) {
         mpp_free(input_sw_buf);
