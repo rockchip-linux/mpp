@@ -87,6 +87,7 @@
 
 
 #define H264E_REF_MAX 16
+#define H264E_MAX_PACKETED_PARAM_SIZE       256 //sps + pps
 
 typedef enum h264e_hal_slice_type_t {
     H264E_HAL_SLICE_TYPE_P  = 0,
