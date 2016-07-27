@@ -340,21 +340,21 @@ typedef struct {
                                  */
 } JpegDecImageInfo;
 
-typedef struct JpegSyntaxParam{
+typedef struct JpegSyntaxParam {
     StreamStorage stream;
     FrameInfo frame;
     ImageData image;
     ScanInfo scan;
     DecInfo info;
     HuffmanTables vlc;
-    QuantTables quant;	
-    JpegDecImageInfo imageInfo; 
-	RK_U32 ppInputFomart; 
+    QuantTables quant;
+    JpegDecImageInfo imageInfo;
+    RK_U32 ppInputFomart;
     PostProcessInfo ppInfo;
     RK_U32 is8190;
     RK_U32 fuseBurned;
-	RK_U32 ppScaleW;
-	RK_U32 ppScaleH;
+    RK_U32 ppScaleW;
+    RK_U32 ppScaleH;
     RK_U32 minSupportedWidth;
     RK_U32 minSupportedHeight;
     RK_U32 maxSupportedWidth;
@@ -370,7 +370,7 @@ typedef struct JpegSyntaxParam{
 
     const void *ppInstance;
     VPUMemLinear_t *pictureMem;
-}JpegSyntaxParam;
+} JpegSyntaxParam;
 
 
 #endif /*__JPEGD_SYNTAX__*/

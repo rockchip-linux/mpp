@@ -39,53 +39,53 @@ extern RK_U32 jpegd_log;
 
 
 #define JPEGD_ASSERT(val)\
-		do {\
-			if (JPEGD_DBG_ASSERT)\
-				{ mpp_assert(val); }\
-		} while (0)
+        do {\
+            if (JPEGD_DBG_ASSERT)\
+                { mpp_assert(val); }\
+        } while (0)
 
 
 //check function return
 #define CHECK_FUN(val)                                            \
-			do{ 													  \
-				if((val) < 0) { 									  \
-					ret = (val);									  \
-					mpp_log("func return error(Line %d), ret:%d\n", __LINE__, ret); \
-					goto __FAILED;									  \
-				}													  \
-			  } while (0)
+            do{                                                       \
+                if((val) < 0) {                                       \
+                    ret = (val);                                      \
+                    mpp_log("func return error(Line %d), ret:%d\n", __LINE__, ret); \
+                    goto __FAILED;                                    \
+                }                                                     \
+              } while (0)
 
 //memory malloc check
 #define CHECK_MEM(val, ...)\
-					do{ if(!(val)) {\
-					ret = MPP_ERR_MALLOC;\
-					mpp_log("malloc buffer error(Line %d), pointer:%p\n", __LINE__, val);\
-					goto __FAILED;\
-					} } while (0)
+                    do{ if(!(val)) {\
+                    ret = MPP_ERR_MALLOC;\
+                    mpp_log("malloc buffer error(Line %d), pointer:%p\n", __LINE__, val);\
+                    goto __FAILED;\
+                    } } while (0)
 
 #define JPEGD_VERBOSE_LOG(fmt, ...) \
-					do {\
-						if (JPEGD_VBE_LOG & jpegd_log)\
-							{ mpp_log("[Verbose] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
-					} while (0)
+                    do {\
+                        if (JPEGD_VBE_LOG & jpegd_log)\
+                            { mpp_log("[Verbose] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
+                    } while (0)
 
 #define JPEGD_DEBUG_LOG(fmt, ...) \
-					do {\
-						if (JPEGD_DBG_LOG & jpegd_log)\
-							{ mpp_log("[Debug] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
-					} while (0)
+                    do {\
+                        if (JPEGD_DBG_LOG & jpegd_log)\
+                            { mpp_log("[Debug] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
+                    } while (0)
 
 #define JPEGD_INFO_LOG(fmt, ...) \
-					do {\
-						if (JPEGD_INF_LOG & jpegd_log)\
-							{ mpp_log("[Info] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
-					} while (0)					
-					
+                    do {\
+                        if (JPEGD_INF_LOG & jpegd_log)\
+                            { mpp_log("[Info] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
+                    } while (0)
+
 #define JPEGD_ERROR_LOG(fmt, ...) \
-					do {\
-						if (JPEGD_ERR_LOG & jpegd_log)\
-							{ mpp_log("[Error] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
-					} while (0)
+                    do {\
+                        if (JPEGD_ERR_LOG & jpegd_log)\
+                            { mpp_log("[Error] func(%s), line(%d), "fmt"", __FUNCTION__, __LINE__, ##__VA_ARGS__); }\
+                    } while (0)
 
 
 MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task);

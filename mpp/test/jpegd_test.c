@@ -67,17 +67,17 @@ typedef struct jpegdDemoCtx {
     MppDec         api;
     HalDecTask     task;
     MppBuffer      pkt_buf;
-    MppBuffer      pic_buf;   
+    MppBuffer      pic_buf;
     MppBufferGroup frmbuf_grp;
-    MppBufferGroup strmbuf_grp; 
+    MppBufferGroup strmbuf_grp;
     MppPacket      pkt;
 
-	FILE*          pOutFile;
+    FILE*          pOutFile;
 
     RK_U8          *strmbuf;
-    RK_U32         strmbytes;   
+    RK_U32         strmbytes;
     RK_U32         dec_frm_num;
-}jpegdDemoCtx;
+} jpegdDemoCtx;
 
 static OptionInfo jpeg_parserCmd[] = {
     {"i",               "input_file",           "input bitstream file"},
@@ -95,14 +95,14 @@ MPP_RET jpegd_readbytes_from_file(RK_U8* buf, RK_S32 aBytes, FILE* fp)
     if ((NULL == buf) || (NULL == fp) || (0 == aBytes)) {
         return -1;
     }
-	
+
     RK_S32 rd_bytes = fread(buf, 1, aBytes, fp);
-	if(rd_bytes != aBytes){
-		mpp_log("read %u bytes from file fail, actually only %#x bytes is read.", (RK_U32)aBytes, rd_bytes);
+    if (rd_bytes != aBytes) {
+        mpp_log("read %u bytes from file fail, actually only %#x bytes is read.", (RK_U32)aBytes, rd_bytes);
         return -1;
-	}
+    }
     mpp_log("read %d bytes from file sucessfully, the first 4 bytes: %08x", rd_bytes, *((RK_U32*)buf));
-    
+
     return ret;
 }
 
@@ -126,13 +126,13 @@ static void jpeg_show_options(int count, OptionInfo *options)
 static RK_S32 jpeg_show_help()
 {
     mpp_log("usage: parserDemo [options] input_file, \n\n");
-	jpeg_show_options(sizeof(jpeg_parserCmd)/sizeof(OptionInfo), jpeg_parserCmd);
+    jpeg_show_options(sizeof(jpeg_parserCmd) / sizeof(OptionInfo), jpeg_parserCmd);
     return 0;
 }
 
 static RK_S32 jpeg_parse_options(int argc, char **argv, parserDemoCmdCtx* cmdCxt)
 {
-	mpp_log("jpeg_parse_options enter\n");
+    mpp_log("jpeg_parse_options enter\n");
     const char *opt;
     RK_S32 optindex, handleoptions = 1, ret = 0;
 
@@ -235,13 +235,13 @@ PARSE_OPINIONS_OUT:
         jpeg_show_usage();
         return  MPP_ERR_STREAM;
     }
-	mpp_log("jpeg_parse_options exit\n");
+    mpp_log("jpeg_parse_options exit\n");
     return ret;
 }
 
 MPP_RET jpegd_test_deinit(jpegdDemoCtx *ctx)
 {
-	FUN_TEST("Enter");		
+    FUN_TEST("Enter");
     MppDec *pApi = &(ctx->api);
     if (pApi->parser) {
         parser_deinit(pApi->parser);
@@ -271,275 +271,275 @@ MPP_RET jpegd_test_deinit(jpegdDemoCtx *ctx)
         mpp_err("strmbuf_grp deinit");
         mpp_buffer_group_put(ctx->strmbuf_grp);
     }
-    if(ctx->strmbuf) {
+    if (ctx->strmbuf) {
         mpp_err("strmbuf free");
-        mpp_free(ctx->strmbuf);            
+        mpp_free(ctx->strmbuf);
     }
-	if(ctx->pOutFile){
+    if (ctx->pOutFile) {
         mpp_err("close output file");
-		fclose(ctx->pOutFile);
-		ctx->pOutFile = NULL;
-	}
-    
-	FUN_TEST("Exit");	
+        fclose(ctx->pOutFile);
+        ctx->pOutFile = NULL;
+    }
+
+    FUN_TEST("Exit");
     return MPP_OK;
 }
 
 MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
 {
-	FUN_TEST("Enter");	
-	MPP_RET ret = MPP_OK;
-	MppDec *pMppDec = NULL;
-	ParserCfg parser_cfg;
-	MppHalCfg hal_cfg;
+    FUN_TEST("Enter");
+    MPP_RET ret = MPP_OK;
+    MppDec *pMppDec = NULL;
+    ParserCfg parser_cfg;
+    MppHalCfg hal_cfg;
 
-	memset(ctx, 0, sizeof(jpegdDemoCtx));
-	ctx->cfg = cmd;
-	
-	//demo configure
-	ctx->pOutFile = fopen("/data/spurs.yuv", "wb+");
-	if(NULL == ctx->pOutFile){
-		JPEGD_ERROR_LOG("create spurs.yuv failed");
-	}
+    memset(ctx, 0, sizeof(jpegdDemoCtx));
+    ctx->cfg = cmd;
 
-	//malloc buffers for software
-	CHECK_MEM(ctx->strmbuf = mpp_malloc_size(RK_U8, JPEGD_STREAM_BUFF_SIZE));
-	
-	//malloc buffers for hardware
-	if (ctx->frmbuf_grp == NULL) {
-		ret = mpp_buffer_group_get_internal(&ctx->frmbuf_grp, MPP_BUFFER_TYPE_ION);
-		if (MPP_OK != ret) {
-			mpp_err("frmbuf_grp: jpegd mpp_buffer_group_get_internal failed\n");
-			goto __FAILED;
-		}
-	}
-	if (ctx->strmbuf_grp == NULL) {
-		ret = mpp_buffer_group_get_internal(&ctx->strmbuf_grp, MPP_BUFFER_TYPE_ION);
-		if (MPP_OK != ret) {
-			mpp_err("strmbuf_grp: jpegd mpp_buffer_group_get_internal failed\n");
-			goto __FAILED;
-		}
-	}
-	
-	//api config
-	pMppDec = &ctx->api;
-	pMppDec->coding = MPP_VIDEO_CodingMJPEG;
+    //demo configure
+    ctx->pOutFile = fopen("/data/spurs.yuv", "wb+");
+    if (NULL == ctx->pOutFile) {
+        JPEGD_ERROR_LOG("create spurs.yuv failed");
+    }
 
-	CHECK_FUN(mpp_buf_slot_init(&pMppDec->frame_slots));
-	CHECK_MEM(pMppDec->frame_slots);
-	mpp_buf_slot_setup(pMppDec->frame_slots, 2);
+    //malloc buffers for software
+    CHECK_MEM(ctx->strmbuf = mpp_malloc_size(RK_U8, JPEGD_STREAM_BUFF_SIZE));
 
-	CHECK_FUN(mpp_buf_slot_init(&pMppDec->packet_slots));
-	CHECK_MEM(pMppDec->packet_slots);
-	mpp_buf_slot_setup(pMppDec->packet_slots, 2);
+    //malloc buffers for hardware
+    if (ctx->frmbuf_grp == NULL) {
+        ret = mpp_buffer_group_get_internal(&ctx->frmbuf_grp, MPP_BUFFER_TYPE_ION);
+        if (MPP_OK != ret) {
+            mpp_err("frmbuf_grp: jpegd mpp_buffer_group_get_internal failed\n");
+            goto __FAILED;
+        }
+    }
+    if (ctx->strmbuf_grp == NULL) {
+        ret = mpp_buffer_group_get_internal(&ctx->strmbuf_grp, MPP_BUFFER_TYPE_ION);
+        if (MPP_OK != ret) {
+            mpp_err("strmbuf_grp: jpegd mpp_buffer_group_get_internal failed\n");
+            goto __FAILED;
+        }
+    }
 
-	//parser config
-	memset(&parser_cfg, 0, sizeof(parser_cfg));
-	parser_cfg.coding = pMppDec->coding;
-	parser_cfg.frame_slots = pMppDec->frame_slots;
-	parser_cfg.packet_slots = pMppDec->packet_slots;
-	parser_cfg.task_count = 2;
-	parser_cfg.need_split = 0;
-	CHECK_FUN(parser_init(&pMppDec->parser, &parser_cfg));
+    //api config
+    pMppDec = &ctx->api;
+    pMppDec->coding = MPP_VIDEO_CodingMJPEG;
 
-	//hal config
-	memset(&hal_cfg, 0, sizeof(hal_cfg));
-	hal_cfg.type = MPP_CTX_DEC;
-	hal_cfg.coding = pMppDec->coding;
-	hal_cfg.work_mode = HAL_MODE_LIBVPU;
-	{
-		RK_U32 hal_device_id = 0;
-		//mpp_env_get_u32("h264d_chg_org", &hal_device_id, 1);
-		hal_device_id = 0;
-		if (hal_device_id == 1) {
-			hal_cfg.device_id = HAL_RKVDEC;
-		} else {
-			hal_cfg.device_id = HAL_VDPU;
-		}
-	}
-	hal_cfg.frame_slots = pMppDec->frame_slots;
-	hal_cfg.packet_slots = pMppDec->packet_slots;
-	hal_cfg.task_count = parser_cfg.task_count;
-	CHECK_FUN(mpp_hal_init(&pMppDec->hal, &hal_cfg));
-	pMppDec->tasks = hal_cfg.tasks;
+    CHECK_FUN(mpp_buf_slot_init(&pMppDec->frame_slots));
+    CHECK_MEM(pMppDec->frame_slots);
+    mpp_buf_slot_setup(pMppDec->frame_slots, 2);
 
-	memset(&ctx->task, 0, sizeof(ctx->task));
-	memset(ctx->task.refer, -1, sizeof(ctx->task.refer));
-	ctx->task.input = -1;
+    CHECK_FUN(mpp_buf_slot_init(&pMppDec->packet_slots));
+    CHECK_MEM(pMppDec->packet_slots);
+    mpp_buf_slot_setup(pMppDec->packet_slots, 2);
 
-	FUN_TEST("Exit");
-	return MPP_OK;
+    //parser config
+    memset(&parser_cfg, 0, sizeof(parser_cfg));
+    parser_cfg.coding = pMppDec->coding;
+    parser_cfg.frame_slots = pMppDec->frame_slots;
+    parser_cfg.packet_slots = pMppDec->packet_slots;
+    parser_cfg.task_count = 2;
+    parser_cfg.need_split = 0;
+    CHECK_FUN(parser_init(&pMppDec->parser, &parser_cfg));
+
+    //hal config
+    memset(&hal_cfg, 0, sizeof(hal_cfg));
+    hal_cfg.type = MPP_CTX_DEC;
+    hal_cfg.coding = pMppDec->coding;
+    hal_cfg.work_mode = HAL_MODE_LIBVPU;
+    {
+        RK_U32 hal_device_id = 0;
+        //mpp_env_get_u32("h264d_chg_org", &hal_device_id, 1);
+        hal_device_id = 0;
+        if (hal_device_id == 1) {
+            hal_cfg.device_id = HAL_RKVDEC;
+        } else {
+            hal_cfg.device_id = HAL_VDPU;
+        }
+    }
+    hal_cfg.frame_slots = pMppDec->frame_slots;
+    hal_cfg.packet_slots = pMppDec->packet_slots;
+    hal_cfg.task_count = parser_cfg.task_count;
+    CHECK_FUN(mpp_hal_init(&pMppDec->hal, &hal_cfg));
+    pMppDec->tasks = hal_cfg.tasks;
+
+    memset(&ctx->task, 0, sizeof(ctx->task));
+    memset(ctx->task.refer, -1, sizeof(ctx->task.refer));
+    ctx->task.input = -1;
+
+    FUN_TEST("Exit");
+    return MPP_OK;
 __FAILED:
-	FUN_TEST("Exit");
-	return ret;
+    FUN_TEST("Exit");
+    return ret;
 }
 
 MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
 {
-	FUN_TEST("Enter");
-	MPP_RET ret = MPP_OK;
-	MppDec *pMppDec = NULL;
-	HalDecTask *curtask = NULL;
-	jpegdDemoCtx DemoCtx;
+    FUN_TEST("Enter");
+    MPP_RET ret = MPP_OK;
+    MppDec *pMppDec = NULL;
+    HalDecTask *curtask = NULL;
+    jpegdDemoCtx DemoCtx;
     FILE* pInFile = NULL;
-	RK_S32 fileSize = 0;
+    RK_S32 fileSize = 0;
 
     // 1.jpegd_test_init
-	jpegd_test_init(cmd, &DemoCtx);
+    jpegd_test_init(cmd, &DemoCtx);
 
-	pMppDec = &DemoCtx.api;
-	curtask = &DemoCtx.task;
+    pMppDec = &DemoCtx.api;
+    curtask = &DemoCtx.task;
 
-	do {
-		RK_S32 slot_idx = 0;
+    do {
+        RK_S32 slot_idx = 0;
 
-		if (cmd->have_input) {
-			mpp_log("input bitstream w: %d, h: %d, path: %s\n",
-					cmd->width, cmd->height, cmd->input_file);
-		
-			pInFile = fopen(cmd->input_file, "rb");
-			if (pInFile == NULL) {
-				mpp_log("input file not exsist\n");
-				goto __FAILED;
-			}
-		} else {
-			mpp_log("please set input bitstream file\n");
-			goto __FAILED;
-		}
+        if (cmd->have_input) {
+            mpp_log("input bitstream w: %d, h: %d, path: %s\n",
+                    cmd->width, cmd->height, cmd->input_file);
 
-		fseek(pInFile, 0L, SEEK_END);
-   	 	fileSize = ftell(pInFile);
-    	fseek(pInFile, 0L, SEEK_SET);
+            pInFile = fopen(cmd->input_file, "rb");
+            if (pInFile == NULL) {
+                mpp_log("input file not exsist\n");
+                goto __FAILED;
+            }
+        } else {
+            mpp_log("please set input bitstream file\n");
+            goto __FAILED;
+        }
 
-		// 2.jpegd_readbytes_from_file
-		ret = jpegd_readbytes_from_file(DemoCtx.strmbuf, fileSize, pInFile);
-		if(ret != MPP_OK){
-			mpp_log("read bytes from file failed\n");
-			goto __FAILED;
-		}		
-		mpp_packet_init(&DemoCtx.pkt, DemoCtx.strmbuf, fileSize);
+        fseek(pInFile, 0L, SEEK_END);
+        fileSize = ftell(pInFile);
+        fseek(pInFile, 0L, SEEK_SET);
 
-		// 3.parser_prepare
-		CHECK_FUN(parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask)); // jpegd_parser_prepare
+        // 2.jpegd_readbytes_from_file
+        ret = jpegd_readbytes_from_file(DemoCtx.strmbuf, fileSize, pInFile);
+        if (ret != MPP_OK) {
+            mpp_log("read bytes from file failed\n");
+            goto __FAILED;
+        }
+        mpp_packet_init(&DemoCtx.pkt, DemoCtx.strmbuf, fileSize);
 
-		if (-1 == curtask->input) {
-			if (MPP_OK == mpp_buf_slot_get_unused(pMppDec->packet_slots, &slot_idx) ) {
-				MppBuffer buffer = NULL;
-				curtask->input = slot_idx;
-		
-				mpp_buf_slot_get_prop(pMppDec->packet_slots, slot_idx, SLOT_BUFFER, &buffer);
-				if (NULL == buffer) {
-					RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pMppDec->packet_slots);
-					if (size == 0) {
-						size = (1024 * 1024);
-					}
-					
-					mpp_buffer_get(DemoCtx.strmbuf_grp, &buffer, size);
-					if (buffer != NULL){
-						mpp_err("mpp_buf_slot_get_prop, buffer:%p, size:%d", buffer, size);
-						mpp_buf_slot_set_prop(pMppDec->packet_slots, slot_idx, SLOT_BUFFER, buffer);
-					}
-				}
+        // 3.parser_prepare
+        CHECK_FUN(parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask)); // jpegd_parser_prepare
 
-				mpp_buffer_write(buffer, 0, 
-								 mpp_packet_get_data(curtask->input_packet),
-								 mpp_packet_get_size(curtask->input_packet));
-				
-				mpp_err("%s Line %d, (*input_packet):%p, length:%d", __func__,__LINE__,
-								mpp_packet_get_data(curtask->input_packet),
-								mpp_packet_get_size(curtask->input_packet));
-				DemoCtx.pkt_buf = buffer;
+        if (-1 == curtask->input) {
+            if (MPP_OK == mpp_buf_slot_get_unused(pMppDec->packet_slots, &slot_idx) ) {
+                MppBuffer buffer = NULL;
+                curtask->input = slot_idx;
 
-				mpp_buf_slot_set_flag(pMppDec->packet_slots, curtask->input, SLOT_CODEC_READY);
-				mpp_buf_slot_set_flag(pMppDec->packet_slots, curtask->input, SLOT_HAL_INPUT);	
-			}
-		}
+                mpp_buf_slot_get_prop(pMppDec->packet_slots, slot_idx, SLOT_BUFFER, &buffer);
+                if (NULL == buffer) {
+                    RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pMppDec->packet_slots);
+                    if (size == 0) {
+                        size = (1024 * 1024);
+                    }
 
-		CHECK_FUN(parser_parse(pMppDec->parser, curtask)); // jpegd_parser_parse
-		
-		if (curtask->valid) {
-			HalTaskInfo task_info;
-			MppBuffer buffer = NULL;
-			task_info.dec = *curtask;
-			RK_S32 index = curtask->output;
+                    mpp_buffer_get(DemoCtx.strmbuf_grp, &buffer, size);
+                    if (buffer != NULL) {
+                        mpp_err("mpp_buf_slot_get_prop, buffer:%p, size:%d", buffer, size);
+                        mpp_buf_slot_set_prop(pMppDec->packet_slots, slot_idx, SLOT_BUFFER, buffer);
+                    }
+                }
 
-			if (mpp_buf_slot_is_changed(pMppDec->frame_slots)) {
-				mpp_buf_slot_ready(pMppDec->frame_slots);
-			}
-		
-			mpp_buf_slot_get_prop(pMppDec->frame_slots, index, SLOT_BUFFER, &buffer);
-			if (NULL == buffer) {
-				RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pMppDec->frame_slots);
-				if (size == 0) {
-					size = 1920 * 1080 * 5;
-				}
+                mpp_buffer_write(buffer, 0,
+                                 mpp_packet_get_data(curtask->input_packet),
+                                 mpp_packet_get_size(curtask->input_packet));
 
-				mpp_buffer_get(DemoCtx.frmbuf_grp, &buffer, size);
-				if (buffer){
-					mpp_buf_slot_set_prop(pMppDec->frame_slots, index, SLOT_BUFFER, buffer);
-					mpp_err("frame_slots, buffer:%p, size:%d", buffer, size);
-				}
-				
-				DemoCtx.pic_buf = buffer;
-			}
+                mpp_err("%s Line %d, (*input_packet):%p, length:%d", __func__, __LINE__,
+                        mpp_packet_get_data(curtask->input_packet),
+                        mpp_packet_get_size(curtask->input_packet));
+                DemoCtx.pkt_buf = buffer;
 
-			mpp_hal_reg_gen(pMppDec->hal, &task_info);	// jpegd_hal_gen_regs
-			mpp_hal_hw_start(pMppDec->hal, &task_info); // jpegd_hal_start
-			mpp_hal_hw_wait(pMppDec->hal, &task_info); // jpegd_hal_wait
-			
-			parser_reset(pMppDec->parser); //[TEMP] jpegd_parser_reset
+                mpp_buf_slot_set_flag(pMppDec->packet_slots, curtask->input, SLOT_CODEC_READY);
+                mpp_buf_slot_set_flag(pMppDec->packet_slots, curtask->input, SLOT_HAL_INPUT);
+            }
+        }
 
-			void* pOutYUV = NULL;
-			pOutYUV = mpp_buffer_get_ptr(DemoCtx.pic_buf);
-            if (pOutYUV) {			
-				JPEGD_INFO_LOG("pOutYUV:%p", pOutYUV);
-				JpegSyntaxParam *pTmpSyn = (JpegSyntaxParam *)curtask->syntax.data;
-				RK_U32 width = pTmpSyn->frame.hwX;
-				RK_U32 height = pTmpSyn->frame.hwY;
+        CHECK_FUN(parser_parse(pMppDec->parser, curtask)); // jpegd_parser_parse
 
-				JPEGD_INFO_LOG("Output Image: %d*%d", width, height);
+        if (curtask->valid) {
+            HalTaskInfo task_info;
+            MppBuffer buffer = NULL;
+            task_info.dec = *curtask;
+            RK_S32 index = curtask->output;
+
+            if (mpp_buf_slot_is_changed(pMppDec->frame_slots)) {
+                mpp_buf_slot_ready(pMppDec->frame_slots);
+            }
+
+            mpp_buf_slot_get_prop(pMppDec->frame_slots, index, SLOT_BUFFER, &buffer);
+            if (NULL == buffer) {
+                RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pMppDec->frame_slots);
+                if (size == 0) {
+                    size = 1920 * 1080 * 5;
+                }
+
+                mpp_buffer_get(DemoCtx.frmbuf_grp, &buffer, size);
+                if (buffer) {
+                    mpp_buf_slot_set_prop(pMppDec->frame_slots, index, SLOT_BUFFER, buffer);
+                    mpp_err("frame_slots, buffer:%p, size:%d", buffer, size);
+                }
+
+                DemoCtx.pic_buf = buffer;
+            }
+
+            mpp_hal_reg_gen(pMppDec->hal, &task_info);  // jpegd_hal_gen_regs
+            mpp_hal_hw_start(pMppDec->hal, &task_info); // jpegd_hal_start
+            mpp_hal_hw_wait(pMppDec->hal, &task_info); // jpegd_hal_wait
+
+            parser_reset(pMppDec->parser); //[TEMP] jpegd_parser_reset
+
+            void* pOutYUV = NULL;
+            pOutYUV = mpp_buffer_get_ptr(DemoCtx.pic_buf);
+            if (pOutYUV) {
+                JPEGD_INFO_LOG("pOutYUV:%p", pOutYUV);
+                JpegSyntaxParam *pTmpSyn = (JpegSyntaxParam *)curtask->syntax.data;
+                RK_U32 width = pTmpSyn->frame.hwX;
+                RK_U32 height = pTmpSyn->frame.hwY;
+
+                JPEGD_INFO_LOG("Output Image: %d*%d", width, height);
                 if (DemoCtx.pOutFile) {
                     fwrite(pOutYUV, 1, width * height * 3 / 2, DemoCtx.pOutFile);
                     fflush(DemoCtx.pOutFile);
                 }
             }
-        }	
-			
-		/*** parser packet deinit ***/
-		if(DemoCtx.pkt_buf) {
-			mpp_buffer_put(DemoCtx.pkt_buf);
-		}
-		if(DemoCtx.pic_buf) {
-			mpp_buffer_put(DemoCtx.pic_buf);
-		}
+        }
 
-		mpp_buf_slot_clr_flag(pMppDec->packet_slots, curtask->input, SLOT_HAL_INPUT);
-		mpp_buf_slot_clr_flag(pMppDec->frame_slots, curtask->output, SLOT_HAL_OUTPUT);
+        /*** parser packet deinit ***/
+        if (DemoCtx.pkt_buf) {
+            mpp_buffer_put(DemoCtx.pkt_buf);
+        }
+        if (DemoCtx.pic_buf) {
+            mpp_buffer_put(DemoCtx.pic_buf);
+        }
 
-		memset(curtask, 0, sizeof(HalDecTask));
-		memset(&curtask->refer, -1, sizeof(curtask->refer));
-		curtask->input = -1;
+        mpp_buf_slot_clr_flag(pMppDec->packet_slots, curtask->input, SLOT_HAL_INPUT);
+        mpp_buf_slot_clr_flag(pMppDec->frame_slots, curtask->output, SLOT_HAL_OUTPUT);
 
-		DemoCtx.dec_frm_num ++;
-	}while(0);
-	
-	CHECK_FUN(mpp_dec_flush(pMppDec));
-	
+        memset(curtask, 0, sizeof(HalDecTask));
+        memset(&curtask->refer, -1, sizeof(curtask->refer));
+        curtask->input = -1;
+
+        DemoCtx.dec_frm_num ++;
+    } while (0);
+
+    CHECK_FUN(mpp_dec_flush(pMppDec));
+
 __FAILED:
-	if(pInFile){
-		fclose(pInFile);
-		pInFile = NULL;
-	}
-	jpegd_test_deinit(&DemoCtx);
+    if (pInFile) {
+        fclose(pInFile);
+        pInFile = NULL;
+    }
+    jpegd_test_deinit(&DemoCtx);
 
-	FUN_TEST("Exit");
+    FUN_TEST("Exit");
     return MPP_OK;
 }
 
 int main(int argc, char **argv)
 {
-	FUN_TEST("Enter");
-	
+    FUN_TEST("Enter");
+
     RK_S32 ret = 0;
     parserDemoCmdCtx demoCmdCtx;
     parserDemoCmdCtx* cmd = NULL;
@@ -565,6 +565,6 @@ int main(int argc, char **argv)
     }
     jpegd_parser_test(cmd);
 
-	FUN_TEST("Exit");
+    FUN_TEST("Exit");
     return MPP_OK;
 }

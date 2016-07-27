@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 
 #ifndef __HAL_JPEGD_REG_H__
 #define __HAL_JPEGD_REG_H__
@@ -70,7 +70,7 @@
 #define PP_OUT_FORMAT_YUV420INTERLAVE    5
 
 
-typedef struct JpegRegSet{
+typedef struct JpegRegSet {
     struct {
         RK_U32  sw_pp_max_burst     : 5;
         RK_U32  sw_pp_scmd_dis      : 1;
@@ -78,179 +78,179 @@ typedef struct JpegRegSet{
         RK_U32  sw_pp_axi_rd_id     : 8;
         RK_U32  sw_pp_axi_wr_id     : 8;
     } reg0;
-	
-	struct {
-		  RK_U32  sw_color_coeffa1	  : 10;
-		  RK_U32  sw_color_coeffa2	  : 10;
-		  RK_U32  sw_color_coeffb 	  : 10;
-	} reg1;
-		
-	struct {
-		  RK_U32  sw_color_coeffc	  : 10;
-		  RK_U32  sw_color_coeffd	  : 10;
-		  RK_U32  sw_color_coeffe 	  : 10;
-	} reg2;
 
-	struct {
+    struct {
+        RK_U32  sw_color_coeffa1    : 10;
+        RK_U32  sw_color_coeffa2    : 10;
+        RK_U32  sw_color_coeffb     : 10;
+    } reg1;
+
+    struct {
+        RK_U32  sw_color_coeffc     : 10;
+        RK_U32  sw_color_coeffd     : 10;
+        RK_U32  sw_color_coeffe     : 10;
+    } reg2;
+
+    struct {
         RK_U32  sw_pp_color_coefff     : 8;
     } reg3;
-			
-	struct {
-		  RK_U32  sw_scale_wratio	  : 18;
-		  RK_U32  sw_hor_scale_mode	  : 2;
-		  RK_U32  sw_ver_scale_mode	  : 2;
-	} reg4;
-			
-	struct {
-		RK_U32	sw_scale_hratio	   : 18;
-	} reg5;	
-			
-	struct {
-		RK_U32	sw_wscale_invra	   : 16;
-		RK_U32	sw_hscale_invra	   : 16;		
-	} reg6;
-	
-	RK_U32 reg7;
-	RK_U32 reg8;
-	RK_U32 reg9_r_mask;
-	RK_U32 reg10_g_mask;
-	RK_U32 reg11_b_mask;
-	RK_U32 reg12_pp_bot_yin_base;
-	RK_U32 reg13_pp_bot_cin_base;
 
-	struct {
+    struct {
+        RK_U32  sw_scale_wratio     : 18;
+        RK_U32  sw_hor_scale_mode   : 2;
+        RK_U32  sw_ver_scale_mode   : 2;
+    } reg4;
+
+    struct {
+        RK_U32  sw_scale_hratio    : 18;
+    } reg5;
+
+    struct {
+        RK_U32  sw_wscale_invra    : 16;
+        RK_U32  sw_hscale_invra    : 16;
+    } reg6;
+
+    RK_U32 reg7;
+    RK_U32 reg8;
+    RK_U32 reg9_r_mask;
+    RK_U32 reg10_g_mask;
+    RK_U32 reg11_b_mask;
+    RK_U32 reg12_pp_bot_yin_base;
+    RK_U32 reg13_pp_bot_cin_base;
+
+    struct {
         RK_U32  sw_crop_startx      : 9;
         RK_U32  sw_crop_starty_ext  : 3;
-		RK_U32  sw_reserved_1       : 4;
-		RK_U32  sw_crop_starty      : 8;
-		RK_U32  sw_crop_startx_ext  : 3;
-		RK_U32  sw_reserved_2       : 1;
-		RK_U32  sw_pp_crop8_d_e     : 1;
-		RK_U32  sw_pp_crop8_r_e     : 1;
+        RK_U32  sw_reserved_1       : 4;
+        RK_U32  sw_crop_starty      : 8;
+        RK_U32  sw_crop_startx_ext  : 3;
+        RK_U32  sw_reserved_2       : 1;
+        RK_U32  sw_pp_crop8_d_e     : 1;
+        RK_U32  sw_pp_crop8_r_e     : 1;
     } reg14;
-	
-	struct {
+
+    struct {
         RK_U32  sw_rangemap_coef_y      : 5;
         RK_U32  sw_ycbcr_range          : 1;
-		RK_U32  sw_reserved_1           : 2;
-		RK_U32  sw_rangemap_coef_c      : 5;
+        RK_U32  sw_reserved_1           : 2;
+        RK_U32  sw_rangemap_coef_c      : 5;
     } reg15;
-			
-	struct {
-		RK_U32	sw_rgb_r_padd		: 5;
-		RK_U32	sw_reserved_1		: 3;
-		RK_U32	sw_rgb_g_padd		: 5;
-		RK_U32	sw_reserved_2		: 3;
-		RK_U32  sw_rgb_b_padd       : 5;
-	} reg16;
-		
-	RK_U32 reg17;
-	RK_U32 reg18_pp_in_lu_base;
-	RK_U32 reg19;
-	RK_U32 reg20;
-	RK_U32 reg21_pp_out_lu_base;
-	RK_U32 reg22_pp_out_ch_base;
-	RK_U32 reg23;
-	RK_U32 reg24;
-	RK_U32 reg25;
-	RK_U32 reg26;
-	RK_U32 reg27;
-	RK_U32 reg28;
-	RK_U32 reg29;
-	RK_U32 reg30;
 
-	struct {
+    struct {
+        RK_U32  sw_rgb_r_padd       : 5;
+        RK_U32  sw_reserved_1       : 3;
+        RK_U32  sw_rgb_g_padd       : 5;
+        RK_U32  sw_reserved_2       : 3;
+        RK_U32  sw_rgb_b_padd       : 5;
+    } reg16;
+
+    RK_U32 reg17;
+    RK_U32 reg18_pp_in_lu_base;
+    RK_U32 reg19;
+    RK_U32 reg20;
+    RK_U32 reg21_pp_out_lu_base;
+    RK_U32 reg22_pp_out_ch_base;
+    RK_U32 reg23;
+    RK_U32 reg24;
+    RK_U32 reg25;
+    RK_U32 reg26;
+    RK_U32 reg27;
+    RK_U32 reg28;
+    RK_U32 reg29;
+    RK_U32 reg30;
+
+    struct {
         RK_U32  sw_contrast_thr1      : 8;
         RK_U32  sw_contrast_thr2      : 8;
     } reg31;
-	
-	struct {
-        RK_U32  sw_contrast_off1      : 10;
-		RK_U32  sw_reserved_1         : 6;
-		RK_U32  sw_contrast_off2      : 10;
-    } reg32;
-	
-	RK_U32 reg33;
 
-	struct {
+    struct {
+        RK_U32  sw_contrast_off1      : 10;
+        RK_U32  sw_reserved_1         : 6;
+        RK_U32  sw_contrast_off2      : 10;
+    } reg32;
+
+    RK_U32 reg33;
+
+    struct {
         RK_U32  sw_pp_in_width      : 9;
         RK_U32  sw_pp_in_w_ext      : 3;
-		RK_U32  sw_ext_orig_width   : 9;
-		RK_U32  sw_pp_in_height     : 8;
-		RK_U32  sw_pp_in_h_ext      : 3;
+        RK_U32  sw_ext_orig_width   : 9;
+        RK_U32  sw_pp_in_height     : 8;
+        RK_U32  sw_pp_in_h_ext      : 3;
     } reg34;
-		
-	struct {
+
+    struct {
         RK_U32  sw_pp_out_width      : 11;
         RK_U32  sw_reserved_1      : 5;
-		RK_U32  sw_pp_out_height     : 11;
+        RK_U32  sw_pp_out_height     : 11;
     } reg35;
-		
-	struct {
+
+    struct {
         RK_U32  sw_dither_select_r      : 2;
         RK_U32  sw_dither_select_g      : 2;
-		RK_U32  sw_dither_select_b      : 2;
+        RK_U32  sw_dither_select_b      : 2;
     } reg36;
 
-	struct {
+    struct {
         RK_U32  sw_pp_in_endian     : 1;
         RK_U32  sw_pp_in_a1_endian  : 1;
-		RK_U32  sw_pp_in_a2_endsel  : 1;
-		RK_U32  sw_pp_out_endian    : 1;
-		RK_U32  sw_rgb_pix_in32     : 1;
+        RK_U32  sw_pp_in_a2_endsel  : 1;
+        RK_U32  sw_pp_out_endian    : 1;
+        RK_U32  sw_rgb_pix_in32     : 1;
         RK_U32  sw_reserved_1       : 3;
-		RK_U32  sw_pp_in_swap32_e   : 1;
-		RK_U32  sw_pp_in_a1_swap32  : 1;
-		RK_U32  sw_pp_out_swap16_e  : 1;
-		RK_U32  sw_pp_out_swap32_e  : 1;
-		RK_U32  sw_reserved_2       : 4;
-		RK_U32  sw_pp_in_start_ch   : 1;
-		RK_U32  sw_pp_out_start_ch  : 1;
-		RK_U32  sw_pp_in_cr_first   : 1;
-		RK_U32  sw_pp_out_cr_first  : 1;
-		RK_U32  sw_reserved_3       : 4;
+        RK_U32  sw_pp_in_swap32_e   : 1;
+        RK_U32  sw_pp_in_a1_swap32  : 1;
+        RK_U32  sw_pp_out_swap16_e  : 1;
+        RK_U32  sw_pp_out_swap32_e  : 1;
+        RK_U32  sw_reserved_2       : 4;
+        RK_U32  sw_pp_in_start_ch   : 1;
+        RK_U32  sw_pp_out_start_ch  : 1;
+        RK_U32  sw_pp_in_cr_first   : 1;
+        RK_U32  sw_pp_out_cr_first  : 1;
+        RK_U32  sw_reserved_3       : 4;
         RK_U32  sw_pp_in_struct     : 3;
     } reg37;
 
-	struct {
+    struct {
         RK_U32  sw_rotation_mode      : 3;
         RK_U32  sw_reserved_1         : 5;
-		RK_U32  sw_pp_in_format       : 3;
-		RK_U32  sw_pp_out_format      : 3;
-		RK_U32  sw_reserved_2         : 2;
-		RK_U32  sw_pp_in_format_es    : 3;
+        RK_U32  sw_pp_in_format       : 3;
+        RK_U32  sw_pp_out_format      : 3;
+        RK_U32  sw_reserved_2         : 2;
+        RK_U32  sw_pp_in_format_es    : 3;
     } reg38;
 
-	struct {
+    struct {
         RK_U32  sw_display_width      : 12;
     } reg39;
 
-	RK_U32 reg40;
+    RK_U32 reg40;
 
-	struct {
+    struct {
         RK_U32  sw_pp_e             : 1;
         RK_U32  sw_deint_blend_e    : 1;
-		RK_U32  sw_deint_e          : 1;
-		RK_U32  sw_pp_clk_gate_e    : 1;
-		RK_U32  sw_pp_pipeline_e    : 1;
+        RK_U32  sw_deint_e          : 1;
+        RK_U32  sw_pp_clk_gate_e    : 1;
+        RK_U32  sw_pp_pipeline_e    : 1;
         RK_U32  sw_reserved_1       : 3;
         RK_U32  sw_rangemap_y_e     : 1;
         RK_U32  sw_rangemap_c_e     : 1;
-		RK_U32  sw_reserved_2       : 6;
-		RK_U32  sw_pp_data_disc_e   : 1;
-		RK_U32  sw_reserved_3       : 3;
-		RK_U32  sw_mask1_e          : 1;
-		RK_U32  sw_mask2_e          : 1;
-		RK_U32  sw_mask1_ablend_e   : 1;
-		RK_U32  sw_mask2_ablend_e   : 1;
-		RK_U32  sw_up_cross_e       : 1;
-		RK_U32  sw_down_cross_e     : 1;
-		RK_U32  sw_left_cross_e     : 1;
-		RK_U32  sw_right_cross_e    : 1;
-		RK_U32  sw_pp_ahb_hlock_e   : 1;
+        RK_U32  sw_reserved_2       : 6;
+        RK_U32  sw_pp_data_disc_e   : 1;
+        RK_U32  sw_reserved_3       : 3;
+        RK_U32  sw_mask1_e          : 1;
+        RK_U32  sw_mask2_e          : 1;
+        RK_U32  sw_mask1_ablend_e   : 1;
+        RK_U32  sw_mask2_ablend_e   : 1;
+        RK_U32  sw_up_cross_e       : 1;
+        RK_U32  sw_down_cross_e     : 1;
+        RK_U32  sw_left_cross_e     : 1;
+        RK_U32  sw_right_cross_e    : 1;
+        RK_U32  sw_pp_ahb_hlock_e   : 1;
     } reg41;
 
-	RK_U32   ppReg2[8];
+    RK_U32   ppReg2[8];
     struct {
         RK_U32  sw_dec_out_tiled_e  : 1;
         RK_U32  sw_dec_latency      : 6;
@@ -433,12 +433,12 @@ typedef struct JpegRegSet{
         RK_U32  sw_cb_ac_vlctable    : 1;
         RK_U32  sw_cr_ac_vlctable    : 1;
         RK_U32  sw_jpeg_stream_all   : 1;
-		RK_U32  sw_jpeg_filright_e   : 1;
-		RK_U32  sw_jpeg_mode         : 3;
-		RK_U32  sw_jpeg_qtables      : 2;
-		RK_U32  sw_reserved_1        : 12;		
-		RK_U32  sw_sync_marker_e     : 1;
-		RK_U32  sw_strm_start_bit    : 6;
+        RK_U32  sw_jpeg_filright_e   : 1;
+        RK_U32  sw_jpeg_mode         : 3;
+        RK_U32  sw_jpeg_qtables      : 2;
+        RK_U32  sw_reserved_1        : 12;
+        RK_U32  sw_sync_marker_e     : 1;
+        RK_U32  sw_strm_start_bit    : 6;
     } reg122;
 
     struct {
@@ -520,112 +520,112 @@ typedef struct JpegRegSet{
     } reg133;
 
     struct {
-		RK_U32  sw_ac1_code1_cnt   : 2;
-		RK_U32  sw_reserved_1      : 1;
-		RK_U32  sw_ac1_code2_cnt   : 3;
-		RK_U32  sw_reserved_2      : 1;
-		RK_U32  sw_ac1_code3_cnt   : 4;
-		RK_U32  sw_ac1_code4_cnt   : 5;
-		RK_U32  sw_ac1_code5_cnt   : 6;
-		RK_U32  sw_reserved_3      : 2;
-		RK_U32  sw_ac1_code6_cnt   : 7;		
-	}reg134;
-	
-    struct {
-		RK_U32  sw_ac1_code7_cnt   : 8;
-		RK_U32  sw_ac1_code8_cnt   : 8;
-		RK_U32  sw_ac1_code9_cnt   : 8;
-		RK_U32  sw_ac1_code10_cnt  : 8;
-	}reg135;
+        RK_U32  sw_ac1_code1_cnt   : 2;
+        RK_U32  sw_reserved_1      : 1;
+        RK_U32  sw_ac1_code2_cnt   : 3;
+        RK_U32  sw_reserved_2      : 1;
+        RK_U32  sw_ac1_code3_cnt   : 4;
+        RK_U32  sw_ac1_code4_cnt   : 5;
+        RK_U32  sw_ac1_code5_cnt   : 6;
+        RK_U32  sw_reserved_3      : 2;
+        RK_U32  sw_ac1_code6_cnt   : 7;
+    } reg134;
 
     struct {
-		RK_U32  sw_ac1_code11_cnt   : 8;
-		RK_U32  sw_ac1_code12_cnt   : 8;
-		RK_U32  sw_ac1_code13_cnt   : 8;
-		RK_U32  sw_ac1_code14_cnt   : 8;
-	}reg136;
+        RK_U32  sw_ac1_code7_cnt   : 8;
+        RK_U32  sw_ac1_code8_cnt   : 8;
+        RK_U32  sw_ac1_code9_cnt   : 8;
+        RK_U32  sw_ac1_code10_cnt  : 8;
+    } reg135;
 
     struct {
-		RK_U32  sw_ac1_code15_cnt   : 8;
-		RK_U32  sw_ac1_code16_cnt   : 8;
-		RK_U32  sw_ac2_code1_cnt    : 2;	
-		RK_U32  sw_reserved_1       : 1;
-		RK_U32  sw_ac2_code2_cnt    : 3;	
-		RK_U32  sw_reserved_2       : 1;
-		RK_U32  sw_ac2_code3_cnt    : 4;	
-		RK_U32  sw_ac2_code4_cnt    : 5;	
+        RK_U32  sw_ac1_code11_cnt   : 8;
+        RK_U32  sw_ac1_code12_cnt   : 8;
+        RK_U32  sw_ac1_code13_cnt   : 8;
+        RK_U32  sw_ac1_code14_cnt   : 8;
+    } reg136;
+
+    struct {
+        RK_U32  sw_ac1_code15_cnt   : 8;
+        RK_U32  sw_ac1_code16_cnt   : 8;
+        RK_U32  sw_ac2_code1_cnt    : 2;
+        RK_U32  sw_reserved_1       : 1;
+        RK_U32  sw_ac2_code2_cnt    : 3;
+        RK_U32  sw_reserved_2       : 1;
+        RK_U32  sw_ac2_code3_cnt    : 4;
+        RK_U32  sw_ac2_code4_cnt    : 5;
     } reg137;
 
     struct {
-		RK_U32  sw_ac2_code5_cnt    : 6;	
-		RK_U32  sw_reserved_1       : 2;
-		RK_U32  sw_ac2_code6_cnt    : 7;	
-		RK_U32  sw_reserved_2       : 1;
-		RK_U32  sw_ac2_code7_cnt    : 8;	
-		RK_U32  sw_ac2_code8_cnt    : 8;	
+        RK_U32  sw_ac2_code5_cnt    : 6;
+        RK_U32  sw_reserved_1       : 2;
+        RK_U32  sw_ac2_code6_cnt    : 7;
+        RK_U32  sw_reserved_2       : 1;
+        RK_U32  sw_ac2_code7_cnt    : 8;
+        RK_U32  sw_ac2_code8_cnt    : 8;
     } reg138;
 
     struct {
-		RK_U32  sw_ac2_code9_cnt    : 8;
-		RK_U32  sw_ac2_code10_cnt   : 8;
-		RK_U32  sw_ac2_code11_cnt   : 8;
-		RK_U32  sw_ac2_code12_cnt   : 8;
-	}reg139;
+        RK_U32  sw_ac2_code9_cnt    : 8;
+        RK_U32  sw_ac2_code10_cnt   : 8;
+        RK_U32  sw_ac2_code11_cnt   : 8;
+        RK_U32  sw_ac2_code12_cnt   : 8;
+    } reg139;
 
     struct {
-		RK_U32  sw_ac2_code13_cnt   : 8;
-		RK_U32  sw_ac2_code14_cnt   : 8;
-		RK_U32  sw_ac2_code15_cnt   : 8;
-		RK_U32  sw_ac2_code16_cnt   : 8;
-	}reg140;
+        RK_U32  sw_ac2_code13_cnt   : 8;
+        RK_U32  sw_ac2_code14_cnt   : 8;
+        RK_U32  sw_ac2_code15_cnt   : 8;
+        RK_U32  sw_ac2_code16_cnt   : 8;
+    } reg140;
 
-	struct {
-		RK_U32  sw_dc1_code1_cnt    : 2;
-		RK_U32  sw_reserved_1       : 2;
-		RK_U32  sw_dc1_code2_cnt    : 3;
-		RK_U32  sw_reserved_2       : 1;
-		RK_U32  sw_dc1_code3_cnt    : 4;
-		RK_U32  sw_dc1_code4_cnt    : 4;
-		RK_U32  sw_dc1_code5_cnt    : 4;
-		RK_U32  sw_dc1_code6_cnt    : 4;
-		RK_U32  sw_dc1_code7_cnt    : 4;
-		RK_U32  sw_dc1_code8_cnt    : 4;
-	}reg141;
+    struct {
+        RK_U32  sw_dc1_code1_cnt    : 2;
+        RK_U32  sw_reserved_1       : 2;
+        RK_U32  sw_dc1_code2_cnt    : 3;
+        RK_U32  sw_reserved_2       : 1;
+        RK_U32  sw_dc1_code3_cnt    : 4;
+        RK_U32  sw_dc1_code4_cnt    : 4;
+        RK_U32  sw_dc1_code5_cnt    : 4;
+        RK_U32  sw_dc1_code6_cnt    : 4;
+        RK_U32  sw_dc1_code7_cnt    : 4;
+        RK_U32  sw_dc1_code8_cnt    : 4;
+    } reg141;
 
-	struct {
-		RK_U32  sw_dc1_code9_cnt     : 4;
-		RK_U32  sw_dc1_code10_cnt    : 4;
-		RK_U32  sw_dc1_code11_cnt    : 4;
-		RK_U32  sw_dc1_code12_cnt    : 4;
-		RK_U32  sw_dc1_code13_cnt    : 4;
-		RK_U32  sw_dc1_code14_cnt    : 4;
-		RK_U32  sw_dc1_code15_cnt    : 4;
-		RK_U32  sw_dc1_code16_cnt    : 4;
-	}reg142;
+    struct {
+        RK_U32  sw_dc1_code9_cnt     : 4;
+        RK_U32  sw_dc1_code10_cnt    : 4;
+        RK_U32  sw_dc1_code11_cnt    : 4;
+        RK_U32  sw_dc1_code12_cnt    : 4;
+        RK_U32  sw_dc1_code13_cnt    : 4;
+        RK_U32  sw_dc1_code14_cnt    : 4;
+        RK_U32  sw_dc1_code15_cnt    : 4;
+        RK_U32  sw_dc1_code16_cnt    : 4;
+    } reg142;
 
-	struct {
-		RK_U32  sw_dc2_code1_cnt    : 2;
-		RK_U32  sw_reserved_1       : 2;
-		RK_U32  sw_dc2_code2_cnt    : 3;
-		RK_U32  sw_reserved_2       : 1;
-		RK_U32  sw_dc2_code3_cnt    : 4;
-		RK_U32  sw_dc2_code4_cnt    : 4;
-		RK_U32  sw_dc2_code5_cnt    : 4;
-		RK_U32  sw_dc2_code6_cnt    : 4;
-		RK_U32  sw_dc2_code7_cnt    : 4;
-		RK_U32  sw_dc2_code8_cnt    : 4;
-	}reg143;
+    struct {
+        RK_U32  sw_dc2_code1_cnt    : 2;
+        RK_U32  sw_reserved_1       : 2;
+        RK_U32  sw_dc2_code2_cnt    : 3;
+        RK_U32  sw_reserved_2       : 1;
+        RK_U32  sw_dc2_code3_cnt    : 4;
+        RK_U32  sw_dc2_code4_cnt    : 4;
+        RK_U32  sw_dc2_code5_cnt    : 4;
+        RK_U32  sw_dc2_code6_cnt    : 4;
+        RK_U32  sw_dc2_code7_cnt    : 4;
+        RK_U32  sw_dc2_code8_cnt    : 4;
+    } reg143;
 
-	struct {
-		RK_U32  sw_dc2_code9_cnt     : 4;
-		RK_U32  sw_dc2_code10_cnt    : 4;
-		RK_U32  sw_dc2_code11_cnt    : 4;
-		RK_U32  sw_dc2_code12_cnt    : 4;
-		RK_U32  sw_dc2_code13_cnt    : 4;
-		RK_U32  sw_dc2_code14_cnt    : 4;
-		RK_U32  sw_dc2_code15_cnt    : 4;
-		RK_U32  sw_dc2_code16_cnt    : 4;
-	}reg144;
+    struct {
+        RK_U32  sw_dc2_code9_cnt     : 4;
+        RK_U32  sw_dc2_code10_cnt    : 4;
+        RK_U32  sw_dc2_code11_cnt    : 4;
+        RK_U32  sw_dc2_code12_cnt    : 4;
+        RK_U32  sw_dc2_code13_cnt    : 4;
+        RK_U32  sw_dc2_code14_cnt    : 4;
+        RK_U32  sw_dc2_code15_cnt    : 4;
+        RK_U32  sw_dc2_code16_cnt    : 4;
+    } reg144;
 
     RK_U32 reg145_bitpl_ctrl_base;
     RK_U32 reg_dct_strm1_base[2];
@@ -710,14 +710,14 @@ typedef struct JpegHalContext {
     JpegRegSet  regs;
     MppBufferGroup group;
     MppBuffer frame_buf;
-	MppBuffer pTableBase;
+    MppBuffer pTableBase;
 
-	RK_U32 hal_debug_enable;
-	RK_U32 frame_count;
-	RK_U32 output_yuv_count;
-	
+    RK_U32 hal_debug_enable;
+    RK_U32 frame_count;
+    RK_U32 output_yuv_count;
+
     FILE *fp_reg_in;
     FILE *fp_reg_out;
-}JpegHalContext;
+} JpegHalContext;
 
 #endif /* __HAL_JPEGD_REG_H__ */
