@@ -44,7 +44,7 @@ static MppCodingTypeInfo support_list[] = {
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,    "dec",  "VP9",          },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
 	{	MPP_CTX_DEC,	MPP_VIDEO_CodingMJPEG,	"dec",	"jpeg", 		},
-    {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,    "enc",  "h.264/AVC",    },   
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,    "enc",  "h.264/AVC",    },
 };
 
 #define check_mpp_ctx(ctx)  _check_mpp_ctx(ctx, __FUNCTION__)
@@ -460,21 +460,3 @@ void mpp_show_support_format()
     }
 }
 
-RK_U32 mpp_enc_get_extra_data_size(MppCtx ctx)
-{
-    mpi_dbg_func("enter ctx %p\n", ctx);
-    MpiImpl *p = (MpiImpl*)ctx;
-    RK_U32 ret = p->ctx->mEnc->extra_info.size;
-    mpi_dbg_func("leave\n");
-    return ret;
-}
-
-RK_U8 *mpp_enc_get_extra_data(MppCtx ctx)
-{
-    mpi_dbg_func("enter ctx %p\n", ctx);
-    MpiImpl *p = (MpiImpl*)ctx;
-    RK_U8 *extra_data = p->ctx->mEnc->extra_info.buf;
-    mpp_log("Mpp get extra data now!");
-    mpi_dbg_func("leave\n");
-    return extra_data;
-}

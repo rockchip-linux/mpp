@@ -86,11 +86,11 @@ VpuApiLegacy::~VpuApiLegacy()
         mpp_free(fp_buf);
         fp_buf = NULL;
     }
-    if (outData != NULL) {
+    if (outData) {
         mpp_free(outData);
         outData = NULL;
     }
-    if (memGroup != NULL) {
+    if (memGroup) {
         mpp_err("memGroup deInit");
         mpp_buffer_group_put(memGroup);
     }
@@ -186,12 +186,16 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
 
-        if (mpp_enc_get_extra_data_size(mpp_ctx) > 0) {
-            ctx->extradata_size = mpp_enc_get_extra_data_size(mpp_ctx);
-            ctx->extradata = mpp_enc_get_extra_data(mpp_ctx);
+        mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
+
+        if (pkt) {
+            ctx->extradata_size = mpp_packet_get_length(pkt);
+            ctx->extradata      = mpp_packet_get_data(pkt);
             mpp_log("Mpp generate extra data!");
-        } else
+        } else {
             mpp_err("No extra data generate!");
+        }
+        pkt = NULL;
     }
 
     VPU_GENERIC vpug;
@@ -584,7 +588,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
         if (!use_fd_flag) {
-            aEncOut->data = outData;
+            mpp_assert(aEncOut->data);
             memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(outbufMem), aEncOut->size);
         }
         mpp_buffer_put(outbufMem);

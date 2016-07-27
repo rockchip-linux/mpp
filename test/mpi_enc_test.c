@@ -170,8 +170,25 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, &mpp_cfg);
     if (MPP_OK != ret) {
-        mpp_err("mpi control failed\n");
+        mpp_err("mpi control enc set cfg failed\n");
         goto MPP_TEST_OUT;
+    }
+
+    ret = mpi->control(ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
+    if (MPP_OK != ret) {
+        mpp_err("mpi control enc get extra info failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    /* get and write sps/pps for H.264 */
+    if (packet) {
+        void *ptr   = mpp_packet_get_pos(packet);
+        size_t len  = mpp_packet_get_length(packet);
+
+        if (fp_output)
+            fwrite(ptr, 1, len, fp_output);
+
+        packet = NULL;
     }
 
     ret = mpp_frame_init(&frame);

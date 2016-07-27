@@ -273,7 +273,7 @@ typedef struct VpuCodecContext {
 
     RK_U32 width;
     RK_U32 height;
-    RK_U8 *extradata;
+    void  *extradata;
     RK_S32 extradata_size;
 
     RK_U8  enableparsing;
