@@ -325,7 +325,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 
             *ctx = s;
             return 0;
-#ifndef SOFIA_3GR_LINUX            
+#ifndef SOFIA_3GR_LINUX
 #ifdef RKPLATFORM
             if (s != NULL) {
                 free(s);

@@ -263,8 +263,6 @@ MPP_RET mpp_destroy(MppCtx ctx);
 // coding type format function
 MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding);
 void    mpp_show_support_format();
-RK_U8 *mpp_enc_get_extra_data(MppCtx ctx);
-RK_U32 mpp_enc_get_extra_data_size(MppCtx ctx);
 
 #ifdef __cplusplus
 }

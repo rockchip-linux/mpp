@@ -645,7 +645,8 @@ MPP_RET Mpp::control_enc(MpiCmd cmd, MppParam param)
     MPP_RET ret = MPP_NOK;
 
     switch (cmd) {
-    case MPP_ENC_SET_CFG : {
+    case MPP_ENC_SET_CFG :
+    case MPP_ENC_GET_EXTRA_INFO : {
         mpp_assert(mEnc);
         ret = mpp_enc_control(mEnc, cmd, param);
     } break;

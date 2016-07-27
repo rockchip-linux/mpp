@@ -20,6 +20,8 @@
 #include "vpu.h"
 #include "mpp_log.h"
 #include "mpp_hal.h"
+
+#include "mpp_packet.h"
 #include "h264e_syntax.h"
 
 #define H264E_HAL_LOG_MODE              0x00000111
@@ -301,6 +303,10 @@ typedef struct h264e_hal_context_t {
     h264e_hal_param     param;
     RK_U32              enc_mode;
     void                *dump_files;
+
+    void                *param_buf;
+    size_t              param_size;
+    MppPacket           packeted_param;
 } h264e_hal_context;
 
 #endif

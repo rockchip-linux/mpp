@@ -411,7 +411,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     H264EncRateCtrl *enc_rc_cfg = &(enc->enc_rc_cfg);
 
     switch (cmd) {
-    case MPP_ENC_SET_CFG:
+    case MPP_ENC_SET_CFG : {
         //H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
         enc_cfg->streamType = H264ENC_BYTE_STREAM;
         enc_cfg->frameRateDenom = 1;
@@ -487,11 +487,13 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         mpp_extra_info_generate(enc);
 
         mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
-        mpp_hal_control(enc->hal, MPP_ENC_GET_EXTRA_INFO, (void*)(&(enc->extra_info)));
 
-        break;
-    default:
-        break;
+    } break;
+    case MPP_ENC_GET_EXTRA_INFO : {
+        mpp_hal_control(enc->hal, cmd, param);
+    } break;
+    default : {
+    } break;
     }
 
     return MPP_OK;
