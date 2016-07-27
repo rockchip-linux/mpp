@@ -100,7 +100,7 @@ enum {
     JPEGDEC_THUMBNAIL = 1
 };
 
-enum{
+enum {
     SOF0 = 0xC0,
     SOF1 = 0xC1,
     SOF2 = 0xC2,
@@ -168,22 +168,22 @@ enum{
 };
 
 typedef struct JpegParserContext {
-	MppBufSlots packet_slots;
+    MppBufSlots packet_slots;
     MppBufSlots frame_slots;
     RK_S32      frame_slot_index; /* slot index for output */
-    RK_U8 *recv_buffer; 
-	JpegSyntaxParam *pSyntax; 	
+    RK_U8 *recv_buffer;
+    JpegSyntaxParam *pSyntax;
     JpegDecImageInfo imageInfo;
 
-	RK_U32 streamLength;   /* input stream length or buffer size */
+    RK_U32 streamLength;   /* input stream length or buffer size */
     RK_U32 bufferSize; /* input stream buffer size */
     RK_U32 decImageType;   /* Full image or Thumbnail to be decoded */
     RK_U32 sliceMbSet; /* slice mode: mcu rows to decode */
-	RK_U32 color_conv;	
+    RK_U32 color_conv;
     RK_U32 dri_en;
-	
+
     MppPacket input_packet;
-	MppFrame output_frame;
+    MppFrame output_frame;
     RK_U32 is8190;
     RK_U32 fuseBurned;
     RK_U32 minSupportedWidth;
@@ -194,10 +194,10 @@ typedef struct JpegParserContext {
     RK_U32 maxSupportedSliceSize;
     RK_U32 extensionsSupported;
 
-	RK_S64 pts;
-
-	RK_U32 parser_debug_enable;
-	RK_U32 input_jpeg_count;
-}JpegParserContext;
+    RK_S64 pts;
+    RK_U32 eos;
+    RK_U32 parser_debug_enable;
+    RK_U32 input_jpeg_count;
+} JpegParserContext;
 
 #endif /* __JPEGD_PARSER_H__ */
