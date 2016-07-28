@@ -18,9 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#ifdef ANDROID
 #include <unistd.h>
-#endif
 #include "vpu.h"
 #include "mpp_hal.h"
 #include "hal_h264e_api.h"
@@ -33,14 +31,10 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     MppHalApi *api = &ctx->api;
 
-    mpp_log("cfg device id: %d", cfg->device_id);
-#if 0//#ifdef ANDROID
-    if (access("/dev/rkvenc", F_OK) == 0) //device exists
+    if (!access("/dev/rkvenc", F_OK))
         cfg->device_id = HAL_RKVENC;
     else
         cfg->device_id = HAL_VEPU;
-#endif
-    mpp_log("final device id: %d", cfg->device_id);
 
     switch (cfg->device_id) {
     case HAL_VEPU:

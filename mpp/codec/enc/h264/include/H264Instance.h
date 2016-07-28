@@ -17,9 +17,8 @@
 #ifndef __H264_INSTANCE_H__
 #define __H264_INSTANCE_H__
 
-/*------------------------------------------------------------------------------
-    1. Include headers
-------------------------------------------------------------------------------*/
+#include "mpp_log.h"
+
 #include "enccommon.h"
 #include "encpreprocess.h"
 #include "encasiccontroller.h"
@@ -30,13 +29,6 @@
 #include "H264RateControl.h"
 #include "H264Mad.h"
 
-/*------------------------------------------------------------------------------
-    2. External compiler flags
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-    3. Module defines
-------------------------------------------------------------------------------*/
 enum H264EncStatus {
     H264ENCSTAT_INIT = 0xA1,
     H264ENCSTAT_START_STREAM,
@@ -122,5 +114,14 @@ typedef struct {
     H264EncOut encOut;      //  put input struct into instance, todo    modify by lance 2016.05.31
     H264EncCfg h264EncCfg;
 } h264Instance_s;
+
+#define H264E_DBG_FUNCTION          (0x00000001)
+
+extern RK_U32 h264e_debug;
+
+#define h264e_dbg(flag, fmt, ...)   _mpp_dbg(h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(h264e_debug, flag, fmt, ## __VA_ARGS__)
+
+#define h264e_dbg_func(fmt, ...)    h264e_dbg_f(H264E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 #endif
