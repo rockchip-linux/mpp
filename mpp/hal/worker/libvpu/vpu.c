@@ -200,11 +200,6 @@ RK_U32 VPUCheckSupportWidth()
 
 RK_S32 VPUClientGetIOMMUStatus()
 {
-    static RK_U32 once = 1;
-    if (once) {
-        mpp_log("get iommu status always return true\n");
-        once = 0;
-    }
     return 1;
 }
 
