@@ -43,6 +43,22 @@
 #define VPU_OUTPUT_FORMAT_BIT_14                    (0x00030000)
 #define VPU_OUTPUT_FORMAT_BIT_16                    (0x00040000)
 
+typedef enum {
+    ENC_INPUT_YUV420_PLANAR = 0,              /* YYYY... UUUU... VVVV */
+    ENC_INPUT_YUV420_SEMIPLANAR = 1,          /* YYYY... UVUVUV...    */
+    ENC_INPUT_YUV422_INTERLEAVED_YUYV = 2,    /* YUYVYUYV...          */
+    ENC_INPUT_YUV422_INTERLEAVED_UYVY = 3,    /* UYVYUYVY...          */
+    ENC_INPUT_RGB565 = 4,                     /* 16-bit RGB           */
+    ENC_INPUT_BGR565 = 5,                     /* 16-bit RGB           */
+    ENC_INPUT_RGB555 = 6,                     /* 15-bit RGB           */
+    ENC_INPUT_BGR555 = 7,                     /* 15-bit RGB           */
+    ENC_INPUT_RGB444 = 8,                     /* 12-bit RGB           */
+    ENC_INPUT_BGR444 = 9,                     /* 12-bit RGB           */
+    ENC_INPUT_RGB888 = 10,                    /* 24-bit RGB           */
+    ENC_INPUT_BGR888 = 11,                    /* 24-bit RGB           */
+    ENC_INPUT_RGB101010 = 12,                 /* 30-bit RGB           */
+    ENC_INPUT_BGR101010 = 13                  /* 30-bit RGB           */
+} EncInputPictureType;
 
 typedef enum VPU_API_CMD {
     VPU_API_ENC_SETCFG,
@@ -143,23 +159,6 @@ typedef struct EncoderOut {
     RK_S32 keyFrame;
 
 } EncoderOut_t;
-
-typedef enum {
-    VPU_H264ENC_YUV420_PLANAR = 0,              /* YYYY... UUUU... VVVV */
-    VPU_H264ENC_YUV420_SEMIPLANAR = 1,          /* YYYY... UVUVUV...    */
-    VPU_H264ENC_YUV422_INTERLEAVED_YUYV = 2,    /* YUYVYUYV...          */
-    VPU_H264ENC_YUV422_INTERLEAVED_UYVY = 3,    /* UYVYUYVY...          */
-    VPU_H264ENC_RGB565 = 4,                     /* 16-bit RGB           */
-    VPU_H264ENC_BGR565 = 5,                     /* 16-bit RGB           */
-    VPU_H264ENC_RGB555 = 6,                     /* 15-bit RGB           */
-    VPU_H264ENC_BGR555 = 7,                     /* 15-bit RGB           */
-    VPU_H264ENC_RGB444 = 8,                     /* 12-bit RGB           */
-    VPU_H264ENC_BGR444 = 9,                     /* 12-bit RGB           */
-    VPU_H264ENC_RGB888 = 10,                    /* 24-bit RGB           */
-    VPU_H264ENC_BGR888 = 11,                    /* 24-bit RGB           */
-    VPU_H264ENC_RGB101010 = 12,                 /* 30-bit RGB           */
-    VPU_H264ENC_BGR101010 = 13                  /* 30-bit RGB           */
-} H264EncPictureType;
 
 /*
  * Enumeration used to define the possible video compression codings.

@@ -155,7 +155,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     memset(&mpp_cfg, 0, sizeof(mpp_cfg));
     mpp_cfg.width       = width;
     mpp_cfg.height      = height;
-    mpp_cfg.format      = VPU_H264ENC_YUV420_PLANAR;
+    mpp_cfg.format      = ENC_INPUT_YUV420_PLANAR;
     mpp_cfg.rc_mode     = 1;
     mpp_cfg.skip_cnt    = 0;
     mpp_cfg.bps         = SZ_4M * 8;

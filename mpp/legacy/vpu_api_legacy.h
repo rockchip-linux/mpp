@@ -71,11 +71,13 @@ private:
     RK_U32 set_eos;
     FILE *fp;
     RK_U8  *fp_buf;
-    MppBufferGroup memGroup;
-    MppBuffer      pictureMem;
-    MppBuffer      outbufMem;
-    RK_U8*         outData;
-    RK_U32         use_fd_flag;
+
+    /* encoder parameters */
+    MppBufferGroup      memGroup;
+    MppBuffer           pictureMem;
+    MppBuffer           outbufMem;
+    RK_U8*              outData;
+    EncInputPictureType enc_in_fmt;
 
     RK_U32 mEosSet;
 };

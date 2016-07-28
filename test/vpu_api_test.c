@@ -263,7 +263,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(ctx, 0, sizeof(struct VpuCodecContext));
 #endif
 
-    int Format = VPU_H264ENC_YUV420_PLANAR;//VPU_H264ENC_YUV420_SEMIPLANAR;
+    int Format = ENC_INPUT_YUV420_PLANAR;
 
     if (cmd == NULL) {
         return -1;
@@ -303,9 +303,10 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 #ifdef FOR_TEST_ENCODE
     ctx->videoCoding = OMX_RK_VIDEO_CodingAVC;
     ctx->codecType = CODEC_ENCODER;
-    ctx->width = cmd->width;
+    ctx->width  = cmd->width;
     ctx->height = cmd->height;
 #endif
+
     fseek(pInFile, 0L, SEEK_END);
     fileSize = ftell(pInFile);
     fseek(pInFile, 0L, SEEK_SET);
@@ -340,13 +341,14 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(ctx->private_data, 0, sizeof(EncParameter_t));
 
     enc_param = (EncParameter_t*)ctx->private_data;
-    enc_param->width = cmd->width;
-    enc_param->height = cmd->height;
-    enc_param->bitRate = 100000;
-    enc_param->framerate = 25;
-    enc_param->enableCabac   = 0;
-    enc_param->cabacInitIdc  = 0;
-    enc_param->intraPicRate  = 30;
+    enc_param->width        = cmd->width;
+    enc_param->height       = cmd->height;
+    enc_param->rc_mode      = 0;
+    enc_param->bitRate      = 100000;
+    enc_param->framerate    = 25;
+    enc_param->enableCabac  = 1;
+    enc_param->cabacInitIdc = 0;
+    enc_param->intraPicRate = 30;
 
     if ((ret = ctx->init(ctx, NULL, 0)) != 0) {
         mpp_log("init vpu api context fail, ret: 0x%X\n", ret);
