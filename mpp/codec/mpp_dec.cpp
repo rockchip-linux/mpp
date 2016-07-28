@@ -348,7 +348,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         p_s = mpp_time();
         parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         p_e = mpp_time();
-        if (mpp_debug & MPP_TIMING) {
+        if (mpp_debug & MPP_DBG_TIMING) {
             diff = (p_e - p_s) / 1000;
             if (diff > 15) {
                 mpp_log("waring mpp prepare stream consume %lld big than 15ms ", diff);

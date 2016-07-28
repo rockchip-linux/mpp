@@ -23,7 +23,7 @@
 
 RK_S64 mpp_time()
 {
-    if (!(mpp_debug & MPP_TIMING))
+    if (!(mpp_debug & MPP_DBG_TIMING))
         return 0;
 
     struct timeb tb;
@@ -36,7 +36,7 @@ RK_S64 mpp_time()
 
 RK_S64 mpp_time()
 {
-    if (!(mpp_debug & MPP_TIMING))
+    if (!(mpp_debug & MPP_DBG_TIMING))
         return 0;
 
     struct timeval tv_date;
@@ -48,11 +48,11 @@ RK_S64 mpp_time()
 
 void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, char *fmt)
 {
-    if (!(mpp_debug & MPP_TIMING))
+    if (!(mpp_debug & MPP_DBG_TIMING))
         return;
 
     RK_S64 diff = end - start;
     if (diff >= limit)
-        mpp_dbg(MPP_TIMING, "%s timing %.2f ms\n", fmt, diff / (float)1000);
+        mpp_dbg(MPP_DBG_TIMING, "%s timing %.2f ms\n", fmt, diff / (float)1000);
 }
 

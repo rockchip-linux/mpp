@@ -33,7 +33,7 @@
 
 static RK_S32 vpu_api_init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
-    mpp_dbg_f(MPP_TIMING, "vpu_api_init in, extra_size: %d", extra_size);
+    vpu_api_dbg_func("vpu_api_init in, extra_size: %d", extra_size);
 
     if (ctx == NULL) {
         mpp_log("vpu_api_init fail, input invalid");
@@ -175,7 +175,7 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
         return VPU_API_ERR_UNKNOW;
     }
 
-    mpp_dbg_f(MPP_TIMING, "vpu_api_control in");
+    vpu_api_dbg_func("enter\n");
     switch (cmdType) {
     case VPU_API_SET_VPUMEM_CONTEXT: {
         vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)param;
@@ -188,7 +188,7 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
     }
     }
 
-    mpp_dbg_f(MPP_TIMING, "vpu_api_control to mpi");
+    vpu_api_dbg_func("pass to mpi\n");
     return api->control(ctx, cmdType, param);
 }
 
@@ -287,7 +287,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
                           (s->codecType == CODEC_ENCODER) ? (MPP_CTX_ENC) : (MPP_CTX_BUTT);
         MppCodingType coding = (MppCodingType)s->videoCoding;
-        mpp_dbg_f(MPP_TIMING, "videoCoding %x, width %d, height %d \n", s->videoCoding, s->width, s->height);
+        vpu_api_dbg_func("videoCoding %x, width %d, height %d \n", s->videoCoding, s->width, s->height);
         if (MPP_OK == mpp_check_support_format(type, coding)
             || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
                 s->codecType == CODEC_DECODER && ((s->width > 1920) || (s->height > 1088) || use_mpp_mode))) {
@@ -347,7 +347,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 
 RK_S32 vpu_close_context(VpuCodecContext **ctx)
 {
-    mpp_dbg_f(MPP_TIMING, "vpu_close_context in");
+    vpu_api_dbg_func("enter\n");
     VpuCodecContext *s = *ctx;
     RK_U32 value;
     mpp_env_get_u32("chg_orig", &value, 0);
@@ -375,7 +375,7 @@ RK_S32 vpu_close_context(VpuCodecContext **ctx)
         mpp_free(s->private_data);
         mpp_free(s);
         *ctx = s = NULL;
-        mpp_dbg_f(MPP_TIMING, "vpu_close_context ok");
+        vpu_api_dbg_func("leave\n");
     }
     return 0;
 }
