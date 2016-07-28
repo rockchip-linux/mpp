@@ -785,6 +785,12 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME: {
         MppFrame frame = val;
+
+        if (NULL == frame && slot->frame) {
+            mpp_frame_deinit(&slot->frame);
+            break;
+        }
+
         slot_assert(impl, slot->status.not_ready);
         if (NULL == slot->frame)
             mpp_frame_init(&slot->frame);
