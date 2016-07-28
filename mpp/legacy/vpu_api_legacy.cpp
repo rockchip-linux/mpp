@@ -46,6 +46,11 @@ static RK_U32 default_align_16(RK_U32 val)
     return MPP_ALIGN(val, 16);
 }
 
+static RK_U32 hevc_ver_align_64(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}
+
 VpuApiLegacy::VpuApiLegacy() :
     mpp_ctx(NULL),
     mpi(NULL),
@@ -255,12 +260,16 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     mpp_packet_init(&mpkt, pkt->data, pkt->size);
     mpp_packet_set_pts(mpkt, pkt->pts);
     if (pkt->nFlags & OMX_BUFFERFLAG_EOS) {
-        mpp_log("decode_sendstream set eos");
         mpp_packet_set_eos(mpkt);
     }
-    if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
-        pkt->size = 0;
-    }
+
+    do {
+        if ((ret = mpi->decode_put_packet(mpp_ctx, mpkt)) == MPP_OK) {
+            pkt->size = 0;
+            break;
+        }
+    } while (pkt->nFlags & OMX_BUFFERFLAG_SYNC);
+
     mpp_packet_deinit(&mpkt);
 
     vpu_api_dbg_func("leave ret %d\n", ret);
@@ -398,7 +407,7 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
             memset(&info, 0, sizeof(MppBufferInfo));
             mpp_buffer_info_get(buf, &info);
             vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
-            vframe->vpumem.size |= ((info.buf_index << 28) & 0xf0000000);
+            vframe->vpumem.size |= ((info.index << 27) & 0xf8000000);
             vframe->vpumem.offset = (RK_U32*)buf;
         }
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
@@ -706,7 +715,6 @@ RK_S32 VpuApiLegacy::getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *dec
     case OMX_RK_VIDEO_CodingMPEG4:      /**< MPEG-4 */
     case OMX_RK_VIDEO_CodingAVC:        /**< H.264/AVC */
     case OMX_RK_VIDEO_CodingVP8:                     /**< VP8 */
-    case OMX_RK_VIDEO_CodingHEVC:
     case OMX_RK_VIDEO_CodingH263:
         decoder_format->aligned_width = (decoder_format->width + 15) & (~15);
         //printf("decoder_format->aligned_width %d\n", decoder_format->aligned_width);
@@ -714,17 +722,13 @@ RK_S32 VpuApiLegacy::getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *dec
         decoder_format->aligned_stride = decoder_format->aligned_width;
         decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
         break;
-#if 0
     case OMX_RK_VIDEO_CodingHEVC:        /**< H.265/HEVC */
-        decoder_format->aligned_width = (decoder_format->width + 255) & (~255);
-        if ((decoder_format->aligned_width >> 8) % 2 == 0) {
-            decoder_format->aligned_width += 256;
-        }
+        //decoder_format->aligned_width = ((decoder_format->width + 255) & (~255)) | 256;
+        decoder_format->aligned_width = (decoder_format->width + 63) & (~63);
         decoder_format->aligned_height = (decoder_format->height + 7) & (~7);
         decoder_format->aligned_stride = decoder_format->aligned_width;
         decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
         break;
-#endif
     default:
         ret = -1;
         break;
@@ -825,8 +829,8 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         p->ImgWidth = (p->ImgWidth & 0xFFFF);
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
 #ifdef SOFIA_3GR_LINUX
-            p->ImgHorStride = default_align_16(ImgWidth);
-            p->ImgVerStride = default_align_16(p->ImgHeight);
+            p->ImgHorStride = hevc_ver_align_64(ImgWidth);
+            p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
 #else
             p->ImgHorStride = hevc_ver_align_256_odd(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
