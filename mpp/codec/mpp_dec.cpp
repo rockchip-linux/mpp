@@ -226,7 +226,10 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
     mpp_list *list = mpp->mFrames;
     MppBuffer buffer = mpp_frame_get_buffer(frame);
 
-    mpp_buffer_inc_ref(buffer);
+    /* avoid increase reference on invalid eos frame or info change frame */
+    if (buffer)
+        mpp_buffer_inc_ref(buffer);
+
     list->lock();
     list->add_at_tail(&frame, sizeof(frame));
     mpp->mFramePutCount++;
@@ -679,6 +682,7 @@ void *mpp_dec_hal_thread(void *data)
     RK_S64 cur_deat = 0;
     RK_U64 dec_no = 0, total_time = 0;
     RK_S64 p_s, p_e;
+
     p_s = mpp_time();
     while (MPP_THREAD_RUNNING == hal->get_status()) {
         /*
