@@ -261,7 +261,7 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     }
 
     do {
-        if ((ret = mpi->decode_put_packet(mpp_ctx, mpkt)) == MPP_OK) {
+        if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
             pkt->size = 0;
             break;
         }
