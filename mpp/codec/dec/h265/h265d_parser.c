@@ -1479,7 +1479,7 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
             buf    += s->nal_length_size;
             length -= s->nal_length_size;
 
-            if (extract_length > (RK_S32)length) {
+            if ((RK_U32)extract_length > length) {
                 mpp_err( "Invalid NAL unit size.\n");
                 ret =  MPP_ERR_STREAM;
                 goto fail;
