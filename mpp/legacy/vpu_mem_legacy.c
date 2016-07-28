@@ -105,7 +105,6 @@ vpu_display_mem_pool* open_vpu_memory_pool()
 {
     vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
 
-    mpp_err("open_vpu_memory_pool in\n");
     if (NULL == p_mempool) {
         return NULL;
     }
@@ -128,7 +127,6 @@ void close_vpu_memory_pool(vpu_display_mem_pool *p)
 {
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
 
-    mpp_err("close_vpu_memory_pool in xxxxxxxxxxxxxxx");
     mpp_buffer_group_put(p_mempool->group);
     mpp_free(p_mempool);
     return;

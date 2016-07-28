@@ -975,7 +975,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_frame_set_hor_stride(frame, p->ImgHorStride);
         mpp_frame_set_ver_stride(frame, p->ImgVerStride);
         mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
-        mpp_log_f("setting default w %4d h %4d\n", p->ImgWidth, p->ImgHeight);
+        mpp_log("setting default w %4d h %4d\n", p->ImgWidth, p->ImgHeight);
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
         mpp_frame_deinit(&frame);
     } break;
