@@ -53,7 +53,8 @@
 #define mpp_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_debug, flag, fmt, ## __VA_ARGS__)
 
 
-#define MPP_TIMING                      (0x00000001)
+#define MPP_DBG_TIMING                  (0x00000001)
+#define MPP_DBG_PTS                     (0x00000002)
 #define MPP_ABORT                       (0x10000000)
 
 /*

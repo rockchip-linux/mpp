@@ -509,8 +509,8 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         if (MPP_OK != ret) {
             mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
         }
-        mpp_dbg_f(MPP_TIMING, "mpp import input fd %d output fd %d",
-                  mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem));
+        vpu_api_dbg_func("mpp import input fd %d output fd %d",
+                         mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem));
     }
 
     mpp_frame_set_buffer(frame, pictureMem);
@@ -554,7 +554,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                 mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
 
                 mpp_assert(packet_out == packet);
-                mpp_dbg_f(MPP_TIMING, "encoded frame %d\n", frame_count);
+                vpu_api_dbg_func("encoded frame %d\n", frame_count);
                 frame_count++;
 
                 ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
