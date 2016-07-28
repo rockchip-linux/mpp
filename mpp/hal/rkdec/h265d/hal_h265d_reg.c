@@ -270,9 +270,9 @@ static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
     return MPP_ALIGN(val, 256) | 256;
 }
 
-static RK_U32 default_align_16(RK_U32 val)
+static RK_U32 hevc_ver_align_64(RK_U32 val)
 {
-    return MPP_ALIGN(val, 16);
+    return MPP_ALIGN(val, 64);
 }
 
 MPP_RET hal_h265d_alloc_res(void *hal)
@@ -407,8 +407,8 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->int_cb = cfg->hal_int_cb;
     reg_cxt->fast_mode = cfg->fast_mode;
 #ifdef SOFIA_3GR_LINUX
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, default_align_16);
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, default_align_16);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_64);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 #else
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
@@ -1397,10 +1397,18 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     numCuInWidth   = width / uiMaxCUWidth  + (width % uiMaxCUWidth != 0);
 
+#ifdef SOFIA_3GR_LINUX
+	stride_y      = (((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 63)
+                       & (~63)) >> 3);
+    stride_uv     = (((numCuInWidth * uiMaxCUHeight * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 63)
+                       & (~63)) >> 3);
+#else
     stride_y      = ((((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 2047)
                        & (~2047)) | 2048) >> 3);
     stride_uv     = ((((numCuInWidth * uiMaxCUHeight * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 2047)
                        & (~2047)) | 2048) >> 3);
+#endif
+
     virstrid_y    = stride_y * height;
 
     virstrid_yuv  = virstrid_y + stride_uv * height / 2;

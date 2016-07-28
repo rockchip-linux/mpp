@@ -224,6 +224,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 {
     mpp_list *list = mpp->mFrames;
+
     MppBuffer buffer = mpp_frame_get_buffer(frame);
 
     /* avoid increase reference on invalid eos frame or info change frame */

@@ -38,13 +38,6 @@ if(${CMAKE_RKPLATFORM_ENABLE} MATCHES "ON")
     add_definitions(-DRKPLATFORM)
 endif()
 
-option(SOFIA_3GR_LINUX "Enable 3GR HW CONFIG" OFF)
-if(${CMAKE_SOFIA_3GR_LINUX_ENABLE} MATCHES "ON")
-    option(SOFIA_3GR_LINUX "Enable RK HW CONFIG" ON)
-    set(SOFIA_3GR_LINUX True)
-    add_definitions(-DSOFIA_3GR_LINUX)
-endif()
-
 project (rk_mpp)
 
 cmake_minimum_required (VERSION 2.8.8) # OBJECT libraries require 2.8.8

@@ -229,6 +229,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
     AutoMutex autoLock(mPackets->mutex());
     RK_U32 eos = mpp_packet_get_eos(packet);
+
     if (mPackets->list_size() < 4 || eos) {
         MppPacket pkt;
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
@@ -238,6 +239,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         mThreadCodec->signal();
         return MPP_OK;
     }
+    
     return MPP_NOK;
 }
 

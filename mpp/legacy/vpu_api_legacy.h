@@ -21,7 +21,8 @@
 #include "rk_mpi.h"
 #include <stdio.h>
 
-#define OMX_BUFFERFLAG_EOS    0x00000001
+#define OMX_BUFFERFLAG_EOS		0x00000001
+#define OMX_BUFFERFLAG_SYNC		0x00000002
 
 #define VPU_API_DBG_FUNCTION            (0x00000001)
 #define VPU_API_DBG_DUMP_YUV            (0x00000002)
