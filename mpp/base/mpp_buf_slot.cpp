@@ -316,7 +316,7 @@ static void add_slot_log(mpp_list *logs, RK_S32 index, MppBufSlotOps op, SlotSta
     }
 }
 
-static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppBufSlotOps op)
+static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppBufSlotOps op, void *arg)
 {
     RK_U32 error = 0;
     RK_S32 index = slot->index;
@@ -391,18 +391,16 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
         slot->eos = 0;
     } break;
     case SLOT_SET_FRAME : {
-        status.has_frame = 1;
+        status.has_frame = (arg) ? (1) : (0);
     } break;
     case SLOT_CLR_FRAME : {
         status.has_frame = 0;
-        slot->frame = NULL;
     } break;
     case SLOT_SET_BUFFER : {
-        status.has_buffer = 1;
+        status.has_buffer = (arg) ? (1) : (0);
     } break;
     case SLOT_CLR_BUFFER : {
         status.has_buffer = 0;
-        slot->buffer = NULL;
     } break;
     default : {
         mpp_err("found invalid operation code %d\n", op);
@@ -410,8 +408,8 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
     } break;
     }
     slot->status = status;
-    buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "slot %3d index %2d op: %s status in %08x out %08x",
-                 impl->slots_idx, index, op_string[op], before.val, status.val);
+    buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "slot %3d index %2d op: %s arg %p status in %08x out %08x",
+                 impl->slots_idx, index, op_string[op], arg, before.val, status.val);
     add_slot_log(impl->logs, index, op, before, status);
     if (error)
         dump_slots(impl);
@@ -425,7 +423,7 @@ static void init_slot_entry(MppBufSlotsImpl *impl, RK_S32 pos, RK_S32 count)
         INIT_LIST_HEAD(&slot->list);
         slot->index = pos + i;
         slot->frame = NULL;
-        slot_ops_with_log(impl, slot, SLOT_INIT);
+        slot_ops_with_log(impl, slot, SLOT_INIT, NULL);
     }
 }
 
@@ -446,16 +444,16 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
         !status.hal_use &&
         !status.queue_use) {
         if (entry->frame) {
+            slot_ops_with_log(impl, entry, SLOT_CLR_FRAME, entry->frame);
             mpp_frame_deinit(&entry->frame);
-            slot_ops_with_log(impl, entry, SLOT_CLR_FRAME);
         }
         if (entry->buffer) {
             mpp_buffer_put(entry->buffer);
+            slot_ops_with_log(impl, entry, SLOT_CLR_BUFFER, entry->buffer);
             entry->buffer = NULL;
-            slot_ops_with_log(impl, entry, SLOT_CLR_BUFFER);
         }
 
-        slot_ops_with_log(impl, entry, SLOT_CLR_ON_USE);
+        slot_ops_with_log(impl, entry, SLOT_CLR_ON_USE, NULL);
     }
 }
 
@@ -671,8 +669,8 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
     for (i = 0; i < impl->buf_count; i++, slot++) {
         if (!slot->status.on_used) {
             *index = i;
-            slot_ops_with_log(impl, slot, SLOT_SET_ON_USE);
-            slot_ops_with_log(impl, slot, SLOT_SET_NOT_READY);
+            slot_ops_with_log(impl, slot, SLOT_SET_ON_USE, NULL);
+            slot_ops_with_log(impl, slot, SLOT_SET_NOT_READY, NULL);
             return MPP_OK;
         }
     }
@@ -694,7 +692,7 @@ MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    slot_ops_with_log(impl, &impl->slots[index], set_flag_op[type]);
+    slot_ops_with_log(impl, &impl->slots[index], set_flag_op[type], NULL);
     return MPP_OK;
 }
 
@@ -709,7 +707,7 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl, slot, clr_flag_op[type]);
+    slot_ops_with_log(impl, slot, clr_flag_op[type], NULL);
 
     if (type == SLOT_HAL_OUTPUT)
         impl->decode_count++;
@@ -729,7 +727,7 @@ MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_S32 index, SlotQueueType type
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl, slot, SLOT_ENQUEUE);
+    slot_ops_with_log(impl, slot, SLOT_ENQUEUE, NULL);
 
     // add slot to display list
     list_del_init(&slot->list);
@@ -756,7 +754,7 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
     slot_assert(impl, slot->index < impl->buf_count);
-    slot_ops_with_log(impl, slot, SLOT_DEQUEUE);
+    slot_ops_with_log(impl, slot, SLOT_DEQUEUE, NULL);
     impl->display_count++;
     *index = slot->index;
 
@@ -774,7 +772,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl, slot, set_val_op[type]);
+    slot_ops_with_log(impl, slot, set_val_op[type], val);
 
     switch (type) {
     case SLOT_EOS: {
@@ -785,11 +783,6 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME: {
         MppFrame frame = val;
-
-        if (NULL == frame && slot->frame) {
-            mpp_frame_deinit(&slot->frame);
-            break;
-        }
 
         slot_assert(impl, slot->status.not_ready);
         if (NULL == slot->frame)
@@ -993,9 +986,9 @@ MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index)
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
-    slot_ops_with_log(impl, slot, SLOT_CLR_QUEUE_USE);
-    slot_ops_with_log(impl, slot, SLOT_DEQUEUE);
-    slot_ops_with_log(impl, slot, SLOT_CLR_ON_USE);
+    slot_ops_with_log(impl, slot, SLOT_CLR_QUEUE_USE, NULL);
+    slot_ops_with_log(impl, slot, SLOT_DEQUEUE, NULL);
+    slot_ops_with_log(impl, slot, SLOT_CLR_ON_USE, NULL);
     return MPP_OK;
 }
 

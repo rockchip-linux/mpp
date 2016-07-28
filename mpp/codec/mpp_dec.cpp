@@ -199,7 +199,11 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             dec->mpp_pkt_in = NULL;
         }
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-            mpp_buf_slot_set_prop(frame_slots, index, SLOT_FRAME, NULL);
+            /* release extra ref in slot's MppBuffer */
+            MppBuffer buffer = NULL;
+            mpp_buf_slot_get_prop(frame_slots, index, SLOT_BUFFER, &buffer);
+            if (buffer)
+                mpp_buffer_put(buffer);
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
         if (task->status.dec_pkt_copy_rdy) {
@@ -252,7 +256,10 @@ static void mpp_dec_push_display(Mpp *mpp)
         if (!dec->reset_flag) {
             mpp_put_frame(mpp, frame);
         } else {
-            mpp_buf_slot_set_prop(frame_slots, index, SLOT_FRAME, NULL);
+            /* release extra ref in slot's MppBuffer */
+            MppBuffer buffer = mpp_frame_get_buffer(frame);
+            if (buffer)
+                mpp_buffer_put(buffer);
         }
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }
