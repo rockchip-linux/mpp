@@ -304,6 +304,9 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         RK_U32 mode = mpp_frame_get_mode(mframe);
         RK_S32 fd   = -1;
 
+        if (buf)
+            mpp_buffer_inc_ref(buf);
+
         aDecOut->size = sizeof(VPU_FRAME);
         vframe->DisplayWidth = mpp_frame_get_width(mframe);
         vframe->DisplayHeight = mpp_frame_get_height(mframe);

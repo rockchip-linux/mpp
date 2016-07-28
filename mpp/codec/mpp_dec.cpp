@@ -199,9 +199,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             dec->mpp_pkt_in = NULL;
         }
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
-            MppFrame frame = NULL;
-            mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-            mpp_frame_deinit(&frame);
+            mpp_buf_slot_set_prop(frame_slots, index, SLOT_FRAME, NULL);
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
         if (task->status.dec_pkt_copy_rdy) {
@@ -224,12 +222,6 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 {
     mpp_list *list = mpp->mFrames;
-
-    MppBuffer buffer = mpp_frame_get_buffer(frame);
-
-    /* avoid increase reference on invalid eos frame or info change frame */
-    if (buffer)
-        mpp_buffer_inc_ref(buffer);
 
     list->lock();
     list->add_at_tail(&frame, sizeof(frame));
@@ -259,10 +251,8 @@ static void mpp_dec_push_display(Mpp *mpp)
         mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
         if (!dec->reset_flag) {
             mpp_put_frame(mpp, frame);
-            //mpp_log("discard=%d \n",0);
         } else {
-            mpp_frame_deinit(&frame);
-            //mpp_log("discard=%d \n",1);
+            mpp_buf_slot_set_prop(frame_slots, index, SLOT_FRAME, NULL);
         }
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }

@@ -239,7 +239,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         mThreadCodec->signal();
         return MPP_OK;
     }
-    
+
     return MPP_NOK;
 }
 
