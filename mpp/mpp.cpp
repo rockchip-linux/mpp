@@ -235,9 +235,6 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
             return MPP_NOK;
 
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log_f("pts %lld\n", mpp_packet_get_pts(packet));
-
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         mThreadCodec->signal();
@@ -264,10 +261,6 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
     if (mFrames->list_size()) {
         mFrames->del_at_head(&first, sizeof(frame));
-
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log_f("pts %lld\n", mpp_frame_get_pts(first));
-
         mFrameGetCount++;
         mThreadHal->signal();
 
@@ -276,10 +269,6 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
             MppFrame next = NULL;
             while (mFrames->list_size()) {
                 mFrames->del_at_head(&next, sizeof(frame));
-
-                if (mpp_debug & MPP_DBG_PTS)
-                    mpp_log_f("pts %lld\n", mpp_frame_get_pts(next));
-
                 mFrameGetCount++;
                 mThreadHal->signal();
                 mpp_frame_set_next(prev, next);
@@ -327,9 +316,6 @@ MPP_RET Mpp::put_frame(MppFrame frame)
             mpp_log_f("failed to enqueue task to input port ret %d\n", ret);
             break;
         }
-
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log_f("pts %lld\n", mpp_frame_get_pts(frame));
 
         if (mInputBlock) {
             while (MPP_NOK == mpp_port_can_dequeue(mInputPort)) {
