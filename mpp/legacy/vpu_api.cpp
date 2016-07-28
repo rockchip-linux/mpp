@@ -178,8 +178,6 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
     mpp_dbg_f(MPP_TIMING, "vpu_api_control in");
     switch (cmdType) {
     case VPU_API_SET_VPUMEM_CONTEXT: {
-
-        mpp_log("vpu_api_control in vpu mem contxt");
         vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)param;
 
         param = (void*)p_mempool->group;

@@ -602,10 +602,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         ret = mpp_dec_control(mDec, cmd, param);
     } break;
     case MPP_DEC_SET_EXT_BUF_GROUP: {
-        mpp_log("mpi_control group %p\n", param);
         mFrameGroup = (MppBufferGroup)param;
         ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
-        mpp_log("signal codec thread\n");
         mThreadCodec->signal();
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
@@ -648,6 +646,7 @@ MPP_RET Mpp::control_enc(MpiCmd cmd, MppParam param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG :
+    case MPP_ENC_GET_CFG :
     case MPP_ENC_GET_EXTRA_INFO : {
         mpp_assert(mEnc);
         ret = mpp_enc_control(mEnc, cmd, param);
