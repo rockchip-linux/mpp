@@ -63,7 +63,7 @@ VpuApiLegacy::VpuApiLegacy() :
     pictureMem(NULL),
     outbufMem(NULL),
     outData(NULL),
-    use_fd_flag(0),
+    enc_in_fmt(ENC_INPUT_YUV420_PLANAR),
     mEosSet(0)
 {
     mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
@@ -96,8 +96,8 @@ VpuApiLegacy::~VpuApiLegacy()
         outData = NULL;
     }
     if (memGroup) {
-        mpp_err("memGroup deInit");
         mpp_buffer_group_put(memGroup);
+        memGroup = NULL;
     }
 
     mpp_destroy(mpp_ctx);
@@ -196,9 +196,6 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         if (pkt) {
             ctx->extradata_size = mpp_packet_get_length(pkt);
             ctx->extradata      = mpp_packet_get_data(pkt);
-            mpp_log("Mpp generate extra data!");
-        } else {
-            mpp_err("No extra data generate!");
         }
         pkt = NULL;
     }
@@ -448,6 +445,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     /* try import input buffer and output buffer */
     MppBufferInfo   inputCommit;
     MppBufferInfo   outputCommit;
+    RK_U32          use_fd_flag = 0;
 
     memset(&inputCommit, 0, sizeof(inputCommit));
     memset(&outputCommit, 0, sizeof(outputCommit));
@@ -802,6 +800,15 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 
     MpiCmd mpicmd = MPI_CMD_BUTT;
     switch (cmd) {
+    case VPU_API_ENC_SETCFG : {
+        mpicmd = MPP_ENC_SET_CFG;
+    } break;
+    case VPU_API_ENC_GETCFG : {
+        mpicmd = MPP_ENC_GET_CFG;
+    } break;
+    case VPU_API_ENC_SETFORMAT : {
+        enc_in_fmt = *((EncInputPictureType *)param);
+    } break;
     case VPU_API_SET_VPUMEM_CONTEXT: {
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
         break;
@@ -858,18 +865,18 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
         break;
     }
-	case VPU_API_DEC_GET_EOS_STATUS: {
-        *(RK_S32 *)param = mEosSet;
+    case VPU_API_DEC_GETFORMAT: {
         mpicmd = MPI_CMD_BUTT;
+        getDecoderFormat(ctx, (DecoderFormat_t *)param);
         break;
     }
     case VPU_API_SET_OUTPUT_BLOCK: {
         mpicmd = MPP_SET_OUTPUT_BLOCK;
         break;
     }
-    case VPU_API_DEC_GETFORMAT: {
+	case VPU_API_DEC_GET_EOS_STATUS: {
+        *(RK_S32 *)param = mEosSet;
         mpicmd = MPI_CMD_BUTT;
-        getDecoderFormat(ctx, (DecoderFormat_t *)param);
         break;
     }
     default: {

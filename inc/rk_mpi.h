@@ -134,6 +134,8 @@ typedef struct MppEncConfig_t {
      */
     RK_S32  width;
     RK_S32  height;
+    RK_S32  hor_stride;
+    RK_S32  ver_stride;
     RK_S32  format;
 
     /*
