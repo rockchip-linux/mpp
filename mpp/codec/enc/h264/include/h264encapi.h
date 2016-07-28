@@ -270,10 +270,6 @@ typedef struct {
     4. Encoder API function prototypes
 ------------------------------------------------------------------------------*/
 
-/* Version information */
-H264EncApiVersion H264EncGetApiVersion(void);
-H264EncBuild H264EncGetBuild(void);
-
 /* Initialization & release */
 H264EncRet H264EncInit(const H264EncConfig * pEncConfig,
                        h264Instance_s * instAddr);
@@ -321,12 +317,6 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
 /* H264EncStrmEnd ends a stream with an EOS code. */
 H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut);
-
-/*------------------------------------------------------------------------------
-    5. Encoder API tracing callback function
-------------------------------------------------------------------------------*/
-
-void H264EncTrace(const char *msg);
 
 #ifdef __cplusplus
 }

@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-/*------------------------------------------------------------------------------
-       Version Information
-------------------------------------------------------------------------------*/
+#define MODULE_TAG "h264e_api"
 
-#define H264ENC_MAJOR_VERSION 1
-#define H264ENC_MINOR_VERSION 0
-
-#define H264ENC_BUILD_MAJOR 1
-#define H264ENC_BUILD_MINOR 33
-#define H264ENC_BUILD_REVISION 0
-#define H264ENC_SW_BUILD ((H264ENC_BUILD_MAJOR * 1000000) + \
-(H264ENC_BUILD_MINOR * 1000) + H264ENC_BUILD_REVISION)
-
-/*------------------------------------------------------------------------------
-    1. Include headers
-------------------------------------------------------------------------------*/
 #include <string.h>
 
 #include "mpp_log.h"
+
 #include "h264encapi.h"
 #include "enccommon.h"
 #include "H264Instance.h"
@@ -42,9 +29,6 @@
 #include "H264Sei.h"
 #include "H264RateControl.h"
 #include "h264e_macro.h"
-
-#define LOG_TAG "H264_ENC"
-//#include <utils/Log.h>  // mask by lance 2016.05.05
 
 #include "ewl.h"
 
@@ -61,65 +45,10 @@
 #define H264_BUS_ADDRESS_VALID(bus_address)  (((bus_address) != 0)/* &&*/ \
                                               /*((bus_address & 0x07) == 0)*/)
 
-//#define H264ENC_TRACE
-
-void H264EncTrace(const char *msg)
-{
-    mpp_log("%s\n", msg);
-}
-
-//#define H264ENC_TRACE 1  // add for debuging modify by lance 2016.07.02
-/* Tracing macro */
-#ifdef H264ENC_TRACE
-#define APITRACE(str) H264EncTrace(str)
-#else
-#define APITRACE(str)
-#endif
-
-/*------------------------------------------------------------------------------
-    4. Local function prototypes
-------------------------------------------------------------------------------*/
+RK_U32 h264e_debug = 0;
 
 static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
                        u32 stabilizedHeight);
-
-/*------------------------------------------------------------------------------
-
-    Function name : H264EncGetApiVersion
-    Description   : Return the API version info
-
-    Return type   : H264EncApiVersion
-    Argument      : void
-------------------------------------------------------------------------------*/
-H264EncApiVersion H264EncGetApiVersion(void)
-{
-    H264EncApiVersion ver;
-
-    ver.major = H264ENC_MAJOR_VERSION;
-    ver.minor = H264ENC_MINOR_VERSION;
-
-    APITRACE("H264EncGetApiVersion# OK");
-    return ver;
-}
-
-/*------------------------------------------------------------------------------
-    Function name : H264EncGetBuild
-    Description   : Return the SW and HW build information
-
-    Return type   : H264EncBuild
-    Argument      : void
-------------------------------------------------------------------------------*/
-H264EncBuild H264EncGetBuild(void)
-{
-    H264EncBuild ver;
-
-    ver.swBuild = H264ENC_SW_BUILD;
-    ver.hwBuild = 0x82701110;//EWLReadAsicID();
-
-    APITRACE("H264EncGetBuild# OK");
-
-    return (ver);
-}
 
 /*------------------------------------------------------------------------------
     Function name : H264EncInit
@@ -134,11 +63,11 @@ H264EncRet H264EncInit(const H264EncConfig * pEncCfg, h264Instance_s * instAddr)
     H264EncRet ret;
     h264Instance_s *pEncInst = instAddr;
 
-    mpp_log_f("enter\n");
+    h264e_dbg_func("enter\n");
 
     ret = H264Init(pEncCfg, pEncInst);
     if (ret != H264ENC_OK) {
-        mpp_log("H264EncInit: ERROR Initialization failed");
+        mpp_err("H264EncInit: ERROR Initialization failed");
         return ret;
     }
 
@@ -146,7 +75,7 @@ H264EncRet H264EncInit(const H264EncConfig * pEncCfg, h264Instance_s * instAddr)
     pEncInst->encStatus = H264ENCSTAT_INIT;
     pEncInst->inst = pEncInst;  /* used as checksum */
 
-    mpp_log_f("leave\n");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -162,21 +91,21 @@ H264EncRet H264EncRelease(H264EncInst inst)
 {
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
 
-    APITRACE("H264EncRelease#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if (pEncInst == NULL) {
-        APITRACE("H264EncRelease: ERROR Null argument");
+        h264e_dbg_func("H264EncRelease: ERROR Null argument");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncRelease: ERROR Invalid instance");
+        h264e_dbg_func("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
-    APITRACE("H264EncRelease: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -194,23 +123,23 @@ H264EncRet H264EncSetCodingCtrl(H264EncInst inst,
 {
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
 
-    APITRACE("H264EncSetCodingCtrl#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pCodeParams == NULL)) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
     /* Check for invalid values */
     if (pCodeParams->sliceSize > pEncInst->mbPerCol) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Invalid sliceSize");
+        mpp_err_f("ERROR Invalid sliceSize\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -224,18 +153,18 @@ H264EncRet H264EncSetCodingCtrl(H264EncInst inst,
         pCodeParams->enableCabac > 1 ||
         pCodeParams->transform8x8Mode > 2 ||
         pCodeParams->seiMessages > 1 || pCodeParams->videoFullRange > 1) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Invalid enable/disable");
+        mpp_err_f("ERROR Invalid enable/disable\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if (pCodeParams->sampleAspectRatioWidth > 65535 ||
         pCodeParams->sampleAspectRatioHeight > 65535) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Invalid sampleAspectRatio");
+        mpp_err_f("ERROR Invalid sampleAspectRatio\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if (pCodeParams->cabacInitIdc > 2) {
-        APITRACE("H264EncSetCodingCtrl: ERROR Invalid cabacInitIdc");
+        mpp_err_f("ERROR Invalid cabacInitIdc\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -281,7 +210,7 @@ set_slice_size:
     /* Slice size is set in macroblock rows => convert to macroblocks */
     pEncInst->slice.sliceSize = pCodeParams->sliceSize * pEncInst->mbPerRow;
 
-    APITRACE("H264EncSetCodingCtrl: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -299,17 +228,17 @@ H264EncRet H264EncGetCodingCtrl(H264EncInst inst,
 {
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
 
-    APITRACE("H264EncGetCodingCtrl#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pCodeParams == NULL)) {
-        APITRACE("H264EncGetCodingCtrl: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncGetCodingCtrl: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -333,7 +262,7 @@ H264EncRet H264EncGetCodingCtrl(H264EncInst inst,
     pCodeParams->cabacInitIdc = pEncInst->slice.cabacInitIdc;
     pCodeParams->transform8x8Mode = pEncInst->picParameterSet.transform8x8Mode;
 
-    APITRACE("H264EncGetCodingCtrl: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -354,17 +283,17 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
 
     u32 i, tmp;
 
-    APITRACE("H264EncSetRateCtrl#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pRateCtrl == NULL)) {
-        APITRACE("H264EncSetRateCtrl: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncSetRateCtrl: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -373,15 +302,14 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
     /* after stream was started with HRD ON,
      * it is not allowed to change RC params */
     if (pEncInst->encStatus == H264ENCSTAT_START_FRAME && rc->hrd == ENCHW_YES) {
-        APITRACE
-        ("H264EncSetRateCtrl: ERROR Stream started with HRD ON. Not allowed to change any aprameters");
+        mpp_err_f("ERROR Stream started with HRD ON. Not allowed to change any aprameters\n");
         return H264ENC_INVALID_STATUS;
     }
 
     /* Check for invalid input values */
     if (pRateCtrl->pictureRc > 1 ||
         pRateCtrl->mbRc > 1 || pRateCtrl->pictureSkip > 1 || pRateCtrl->hrd > 1) {
-        APITRACE("H264EncSetRateCtrl: ERROR Invalid enable/disable value");
+        mpp_err_f("ERROR Invalid enable/disable value\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -389,26 +317,26 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
         pRateCtrl->qpMin > 51 ||
         pRateCtrl->qpMax > 51 ||
         pRateCtrl->qpMax < pRateCtrl->qpMin) {
-        APITRACE("H264EncSetRateCtrl: ERROR Invalid QP");
+        mpp_err_f("ERROR Invalid QP\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if ((pRateCtrl->qpHdr != -1) &&
         (pRateCtrl->qpHdr < (i32)pRateCtrl->qpMin ||
          pRateCtrl->qpHdr > (i32)pRateCtrl->qpMax)) {
-        APITRACE("H264EncSetRateCtrl: ERROR QP out of range");
+        mpp_err_f("ERROR QP out of range\n");
         return H264ENC_INVALID_ARGUMENT;
     }
     if ((u32)(pRateCtrl->intraQpDelta + 12) > 24) {
-        APITRACE("H264EncSetRateCtrl: ERROR intraQpDelta out of range");
+        mpp_err_f("ERROR intraQpDelta out of range\n");
         return H264ENC_INVALID_ARGUMENT;
     }
     if (pRateCtrl->fixedIntraQp > 51) {
-        APITRACE("H264EncSetRateCtrl: ERROR fixedIntraQp out of range");
+        mpp_err_f("ERROR fixedIntraQp out of range\n");
         return H264ENC_INVALID_ARGUMENT;
     }
     if (pRateCtrl->gopLen < 1 || pRateCtrl->gopLen > 150) {
-        APITRACE("H264EncSetRateCtrl: ERROR Invalid GOP length");
+        mpp_err_f("ERROR Invalid GOP length\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -417,7 +345,7 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
          pRateCtrl->pictureSkip || pRateCtrl->hrd) &&
         (pRateCtrl->bitPerSecond < 10000 ||
          pRateCtrl->bitPerSecond > H264ENC_MAX_BITRATE)) {
-        APITRACE("H264EncSetRateCtrl: ERROR Invalid bitPerSecond");
+        mpp_err_f("ERROR Invalid bitPerSecond\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -455,14 +383,12 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
         /* if HRD is ON we have to obay all its limits */
         if (pRateCtrl->hrd != 0) {
             if (cpbSize > H264MaxCPBS[level]) {
-                APITRACE
-                ("H264EncSetRateCtrl: ERROR. HRD is ON. hrdCpbSize higher than maximum allowed for stream level");
+                mpp_err_f("ERROR. HRD is ON. hrdCpbSize higher than maximum allowed for stream level\n");
                 return H264ENC_INVALID_ARGUMENT;
             }
 
             if (bps > H264MaxBR[level]) {
-                APITRACE
-                ("H264EncSetRateCtrl: ERROR. HRD is ON. bitPerSecond higher than maximum allowed for stream level");
+                mpp_err_f("ERROR. HRD is ON. bitPerSecond higher than maximum allowed for stream level\n");
                 return H264ENC_INVALID_ARGUMENT;
             }
         }
@@ -503,7 +429,7 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
     rc->mbQpAdjustment = pRateCtrl->mbQpAdjustment;
     (void) H264InitRc(rc);  /* new parameters checked already */
 
-    APITRACE("H264EncSetRateCtrl: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -521,17 +447,17 @@ H264EncRet H264EncGetRateCtrl(H264EncInst inst, H264EncRateCtrl * pRateCtrl)
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
     h264RateControl_s *rc;
 
-    APITRACE("H264EncGetRateCtrl#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pRateCtrl == NULL)) {
-        APITRACE("H264EncGetRateCtrl: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncGetRateCtrl: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -552,7 +478,7 @@ H264EncRet H264EncGetRateCtrl(H264EncInst inst, H264EncRateCtrl * pRateCtrl)
     pRateCtrl->intraQpDelta = rc->intraQpDelta;
     pRateCtrl->fixedIntraQp = rc->fixedIntraQp;
 
-    APITRACE("H264EncGetRateCtrl: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -602,56 +528,33 @@ H264EncRet H264EncSetPreProcessing(H264EncInst inst,
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
     preProcess_s pp_tmp;
 
-    APITRACE("H264EncSetPreProcessing#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((inst == NULL) || (pPreProcCfg == NULL)) {
-        APITRACE("H264EncSetPreProcessing: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncSetPreProcessing: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
-#if 0
-    /* check HW limitations */
-    {
-        VPUHwEncConfig_t cfg;
-
-        while (VPUClientGetHwCfg(pEncInst->asic.regs.socket, (RK_U32*)&cfg, sizeof(cfg))) {
-            usleep(1);
-        }
-
-        /* is video stabilization supported? */
-        if (cfg.vsEnabled == EWL_HW_CONFIG_NOT_SUPPORTED &&
-            pPreProcCfg->videoStabilization != 0) {
-            APITRACE("H264EncSetPreProcessing: ERROR Stabilization not supported");
-            return H264ENC_INVALID_ARGUMENT;
-        }
-        if (cfg.rgbEnabled == EWL_HW_CONFIG_NOT_SUPPORTED &&
-            pPreProcCfg->inputType > 3) {
-            APITRACE("H264EncSetPreProcessing: ERROR RGB input not supported");
-            return H264ENC_INVALID_ARGUMENT;
-        }
-    }
-#endif
-
     if (pPreProcCfg->origWidth > H264ENC_MAX_PP_INPUT_WIDTH ||
         pPreProcCfg->origHeight > H264ENC_MAX_PP_INPUT_HEIGHT) {
-        APITRACE("H264EncSetPreProcessing: ERROR Too big input image");
+        mpp_err_f("ERROR Too big input image\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if (pPreProcCfg->inputType > H264ENC_BGR101010) {
-        APITRACE("H264EncSetPreProcessing: ERROR Invalid YUV type");
+        mpp_err_f("ERROR Invalid YUV type\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if (pPreProcCfg->rotation > H264ENC_ROTATE_90L) {
-        APITRACE("H264EncSetPreProcessing: ERROR Invalid rotation");
+        mpp_err_f("ERROR Invalid rotation\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -675,7 +578,7 @@ H264EncRet H264EncSetPreProcessing(H264EncInst inst,
 
     /* Check for invalid values */
     if (EncPreProcessCheck(&pp_tmp) != ENCHW_OK) {
-        APITRACE("H264EncSetPreProcessing: ERROR Invalid cropping values");
+        mpp_err_f("ERROR Invalid cropping values\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -718,8 +621,7 @@ H264EncRet H264EncSetPreProcessing(H264EncInst inst,
 
         if (VSCheckSize(pp_tmp.lumWidthSrc, pp_tmp.lumHeightSrc, width, height)
             != 0) {
-            APITRACE
-            ("H264EncSetPreProcessing: ERROR Invalid size for stabilization");
+            mpp_err_f("ERROR Invalid size for stabilization\n");
             return H264ENC_INVALID_ARGUMENT;
         }
     }
@@ -736,12 +638,12 @@ H264EncRet H264EncSetPreProcessing(H264EncInst inst,
         preProcess_s *pp = &pEncInst->preProcess;
 
         if (memcpy(pp, &pp_tmp, sizeof(preProcess_s)) != pp) {
-            APITRACE("H264EncSetPreProcessing: memcpy failed");
+            mpp_err_f("memcpy failed\n");
             return H264ENC_SYSTEM_ERROR;
         }
     }
 
-    APITRACE("H264EncSetPreProcessing: OK");
+    h264e_dbg_func("leave\n");
 
     return H264ENC_OK;
 }
@@ -759,17 +661,17 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
     h264Instance_s *pEncInst = (h264Instance_s *) inst;
     preProcess_s *pPP;
 
-    APITRACE("H264EncGetPreProcessing#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((inst == NULL) || (pPreProcCfg == NULL)) {
-        APITRACE("H264EncGetPreProcessing: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncGetPreProcessing: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -798,7 +700,7 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
                       pPreProcCfg->colorConversion.coeffA, pPreProcCfg->colorConversion.coeffB, pPreProcCfg->colorConversion.coeffC,
                       pPreProcCfg->colorConversion.coeffE, pPreProcCfg->colorConversion.coeffF);
 
-    APITRACE("H264EncGetPreProcessing: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -821,13 +723,13 @@ H264EncRet H264EncSetSeiUserData(H264EncInst inst, const u8 * pUserData,
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (userDataSize != 0 && pUserData == NULL)) {
-        APITRACE("H264EncSetSeiUserData: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncSetSeiUserData: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -860,17 +762,17 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
     h264Instance_s *pEncInst = (h264Instance_s *)inst;
     h264RateControl_s *rc;
 
-    APITRACE("H264EncStrmStart#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pEncIn == NULL) || (pEncOut == NULL)) {
-        APITRACE("H264EncStrmStart: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncStrmStart: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -878,14 +780,14 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
 
     /* Check status */
     if (pEncInst->encStatus != H264ENCSTAT_INIT) {
-        APITRACE("H264EncStrmStart: ERROR Invalid status");
+        mpp_err_f("ERROR Invalid status\n");
         return H264ENC_INVALID_STATUS;
     }
 
     /* Check for invalid input values */
     if ((pEncIn->pOutBuf == NULL) ||
         (pEncIn->outBufSize < H264ENCSTRMSTART_MIN_BUF)) {
-        APITRACE("H264EncStrmStart: ERROR Invalid input. Stream buffer");
+        mpp_err_f("ERROR Invalid input. Stream buffer\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -934,7 +836,7 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
 
     if (pEncInst->stream.overflow == ENCHW_YES) {
         pEncOut->streamSize = 0;
-        APITRACE("H264EncStrmStart: ERROR Output buffer too small");
+        mpp_err_f("ERROR Output buffer too small\n");
         return H264ENC_OUTPUT_BUFFER_OVERFLOW;
     }
 
@@ -960,7 +862,7 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
         }
     }
 
-    APITRACE("H264EncStrmStart: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -981,17 +883,17 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
     regValues_s *regs;
     /*h264EncodeFrame_e ret;*/  // mask by lance 2016.05.12
 
-    APITRACE("H264EncStrmEncode#");
+    h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pEncIn == NULL) || (pEncOut == NULL)) {
-        APITRACE("H264EncStrmEncode: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncStrmEncode: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
@@ -1018,7 +920,7 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
     /* Check status, INIT and ERROR not allowed */
     if ((pEncInst->encStatus != H264ENCSTAT_START_STREAM) &&
         (pEncInst->encStatus != H264ENCSTAT_START_FRAME)) {
-        APITRACE("H264EncStrmEncode: ERROR Invalid status");
+        mpp_err_f("ERROR Invalid status\n");
         return H264ENC_INVALID_STATUS;
     }
 
@@ -1027,20 +929,20 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
         (pEncIn->pOutBuf == NULL) ||
         (pEncIn->outBufSize < H264ENCSTRMENCODE_MIN_BUF) ||
         (pEncIn->codingType > H264ENC_PREDICTED_FRAME)) {
-        APITRACE("H264EncStrmEncode: ERROR Invalid input. Output buffer");
+        mpp_err_f("ERROR Invalid input. Output buffer\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     switch (pEncInst->preProcess.inputFormat) {
     case H264ENC_YUV420_PLANAR:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busChromaV)) {
-            APITRACE("H264EncStrmEncode: ERROR Invalid input busChromaU");
+            mpp_err_f("ERROR Invalid input busChromaV\n");
             return H264ENC_INVALID_ARGUMENT;
         }
         /* fall through */
     case H264ENC_YUV420_SEMIPLANAR:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busChromaU)) {
-            APITRACE("H264EncStrmEncode: ERROR Invalid input busChromaU");
+            mpp_err_f("ERROR Invalid input busChromaU\n");
             return H264ENC_INVALID_ARGUMENT;
         }
         /* fall through */
@@ -1057,18 +959,18 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
     case H264ENC_RGB101010:
     case H264ENC_BGR101010:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busLuma)) {
-            APITRACE("H264EncStrmEncode: ERROR Invalid input busLuma");
+            mpp_err_f("ERROR Invalid input busLuma\n");
             return H264ENC_INVALID_ARGUMENT;
         }
         break;
     default:
-        APITRACE("H264EncStrmEncode: ERROR Invalid input format");
+        mpp_err_f("ERROR Invalid input format\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     if (pEncInst->preProcess.videoStab) {
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busLumaStab)) {
-            APITRACE("H264EncStrmEncode: ERROR Invalid input busLumaStab");
+            mpp_err_f("ERROR Invalid input busLumaStab\n");
             return H264ENC_INVALID_ARGUMENT;
         }
     }
@@ -1080,7 +982,7 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
     /* Set stream buffer, the size has been checked */
     if (H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
                       (i32) pEncIn->outBufSize) == ENCHW_NOK) {
-        APITRACE("H264EncStrmEncode: ERROR Invalid output buffer");
+        mpp_err_f("ERROR Invalid output buffer\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -1134,7 +1036,7 @@ H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
 
     /* Rate control may choose to skip the frame */
     if (pEncInst->rateControl.frameCoded == ENCHW_NO) {
-        APITRACE("H264EncStrmEncode: OK, frame skipped");
+        h264e_dbg_func("H264EncStrmEncode: OK, frame skipped");
         pSlice->frameNum = pSlice->prevFrameNum;    /* restore frame_num */
 
         return H264ENC_FRAME_READY;
@@ -1251,22 +1153,22 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
 
         switch (ret) {
         case H264ENCODE_TIMEOUT:
-            APITRACE("H264EncStrmEncode: ERROR HW timeout");
+            mpp_err_f("ERROR HW timeout\n");
             to_user = H264ENC_HW_TIMEOUT;
             break;
         case H264ENCODE_HW_RESET:
-            APITRACE("H264EncStrmEncode: ERROR HW reset detected");
+            mpp_err_f("ERROR HW reset detected\n");
             to_user = H264ENC_HW_RESET;
             break;
         case H264ENCODE_HW_ERROR:
-            APITRACE("H264EncStrmEncode: ERROR HW bus access error");
+            mpp_err_f("ERROR HW bus access error\n");
             to_user = H264ENC_HW_BUS_ERROR;
             break;
         case H264ENCODE_SYSTEM_ERROR:
         default:
             /* System error has occured, encoding can't continue */
             pEncInst->encStatus = H264ENCSTAT_ERROR;
-            APITRACE("H264EncStrmEncode: ERROR Fatal system error");
+            mpp_err_f("ERROR Fatal system error\n");
             to_user = H264ENC_SYSTEM_ERROR;
         }
         return to_user;
@@ -1287,7 +1189,7 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
     if (pEncInst->stream.overflow == ENCHW_YES) {
         /* Error has occured and the frame is invalid */
         /* pEncOut->codingType = H264ENC_NOTCODED_FRAME; */
-        APITRACE("H264EncStrmEncode: ERROR Output buffer too small");
+        mpp_err_f("ERROR Output buffer too small\n");
         return H264ENC_OUTPUT_BUFFER_OVERFLOW;
     }
 
@@ -1304,7 +1206,7 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
         if (stat == H264RC_OVERFLOW) {
             /* pEncOut->codingType = H264ENC_NOTCODED_FRAME; */
             pSlice->frameNum = pSlice->prevFrameNum;    /* revert frame_num */
-            APITRACE("H264EncStrmEncode: OK, Frame discarded (HRD overflow)");
+            h264e_dbg_func("H264EncStrmEncode: OK, Frame discarded (HRD overflow)");
             return H264ENC_FRAME_READY;
         }
     }
@@ -1327,7 +1229,7 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
     pSlice->frameNum %= (1U << pSlice->frameNumBits);
 
     pEncInst->encStatus = H264ENCSTAT_START_FRAME;
-    APITRACE("H264EncStrmEncode: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_FRAME_READY;
 }
 
@@ -1345,23 +1247,23 @@ H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
 {
     h264Instance_s *pEncInst = (h264Instance_s *)inst;
 
-    APITRACE("H264EncStrmEnd#");
+    h264e_dbg_func("enter\n");
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pEncIn == NULL) || (pEncOut == NULL)) {
-        APITRACE("H264EncStrmEnd: ERROR Null argument");
+        mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
 
     /* Check for existing instance */
     if (pEncInst->inst != pEncInst) {
-        APITRACE("H264EncStrmEnd: ERROR Invalid instance");
+        mpp_err_f("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
     }
 
     /* Check status, this also makes sure that the instance is valid */
     if ((pEncInst->encStatus != H264ENCSTAT_START_FRAME) &&
         (pEncInst->encStatus != H264ENCSTAT_START_STREAM)) {
-        APITRACE("H264EncStrmEnd: ERROR Invalid status");
+        mpp_err_f("ERROR Invalid status\n");
         return H264ENC_INVALID_STATUS;
     }
 
@@ -1370,14 +1272,14 @@ H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
     /* Check for invalid input values */
     if (pEncIn->pOutBuf == NULL ||
         (pEncIn->outBufSize < H264ENCSTRMSTART_MIN_BUF)) {
-        APITRACE("H264EncStrmEnd: ERROR Invalid input. Stream buffer");
+        mpp_err_f("ERROR Invalid input. Stream buffer\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
     /* Set stream buffer and check the size */
     if (H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
                       (u32) pEncIn->outBufSize) != ENCHW_OK) {
-        APITRACE("H264EncStrmEnd: ERROR Output buffer too small");
+        mpp_err_f("ERROR Output buffer too small\n");
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -1390,7 +1292,7 @@ H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
     /* Status == INIT   Stream ended, next stream can be started */
     pEncInst->encStatus = H264ENCSTAT_INIT;
 
-    APITRACE("H264EncStrmEnd: OK");
+    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
