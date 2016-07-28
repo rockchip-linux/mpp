@@ -949,13 +949,12 @@ static MPP_RET hal_h264e_vpu_free_buffers(h264e_hal_context *ctx)
         }
     }
 
-    for (k = 0; k < H264E_HAL_VPU_BUF_GRP_BUTT; k++) {
-        if (buffers->hw_buf_grp[k]) {
-            if (MPP_OK != mpp_buffer_group_put(buffers->hw_buf_grp[k])) {
-                mpp_err("buf group[%d] put failed", k);
-                return MPP_NOK;
-            }
+    if (buffers->hw_buf_grp) {
+        if (MPP_OK != mpp_buffer_group_put(buffers->hw_buf_grp)) {
+            mpp_err("buf group[%d] put failed", k);
+            return MPP_NOK;
         }
+        buffers->hw_buf_grp = NULL;
     }
 
     h264e_hal_debug_leave();
@@ -1009,32 +1008,35 @@ static void hal_h264e_vpu_write_cabac_table(h264e_syntax *syn, MppBuffer hw_caba
 
 static MPP_RET hal_h264e_vpu_allocate_buffers(h264e_hal_context *ctx, h264e_syntax *syn)
 {
+    MPP_RET ret = MPP_OK;
     RK_S32 k = 0;
     h264e_hal_vpu_buffers *buffers = (h264e_hal_vpu_buffers *)ctx->buffers;
     RK_U32 frame_size = ((syn->pic_luma_width + 15) & (~15)) * ((syn->pic_luma_height + 15) & (~15)) * 3 / 2;
 
     h264e_hal_debug_enter();
-    for (k = 0; k < H264E_HAL_VPU_BUF_GRP_BUTT; k++) {
-        if (MPP_OK != mpp_buffer_group_get_internal(&buffers->hw_buf_grp[k], MPP_BUFFER_TYPE_ION)) {
-            mpp_err("buf group[%d] get failed", k);
-            return MPP_ERR_MALLOC;
-        }
+    ret = mpp_buffer_group_get_internal(&buffers->hw_buf_grp, MPP_BUFFER_TYPE_ION);
+    if (ret) {
+        mpp_err("buf group get failed ret %d\n", ret);
+        return ret;
     }
 
-    if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_VPU_BUF_GRP_CABAC_TBL], &buffers->hw_cabac_table_buf, H264E_CABAC_TABLE_BUF_SIZE)) {
-        mpp_err("hw_cabac_table_buf get failed");
-        return MPP_ERR_MALLOC;
+    ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_cabac_table_buf, H264E_CABAC_TABLE_BUF_SIZE);
+    if (ret) {
+        mpp_err("hw_cabac_table_buf get failed\n");
+        return ret;
     }
 
-    if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_VPU_BUF_GRP_NALSIZE_TBL], &buffers->hw_nal_size_table_buf, (sizeof(RK_U32) * (syn->pic_luma_height + 1) + 7) & (~7))) {
-        mpp_err("hw_nal_size_table_buf get failed");
-        return MPP_ERR_MALLOC;
+    ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_nal_size_table_buf, (sizeof(RK_U32) * (syn->pic_luma_height + 1) + 7) & (~7));
+    if (ret) {
+        mpp_err("hw_nal_size_table_buf get failed\n");
+        return ret;
     }
 
     for (k = 0; k < 2; k++) {
-        if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_VPU_BUF_GRP_REC], &buffers->hw_rec_buf[k], frame_size + 4096)) {
-            mpp_err("hw_rec_buf[%d] get failed", k);
-            return MPP_ERR_MALLOC;
+        ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_rec_buf[k], frame_size + 4096);
+        if (ret) {
+            mpp_err("hw_rec_buf[%d] get failed\n", k);
+            return ret;
         }
     }
 
