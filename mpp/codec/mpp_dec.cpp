@@ -229,6 +229,10 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
 
     list->lock();
     list->add_at_tail(&frame, sizeof(frame));
+
+    if (mpp_debug & MPP_DBG_PTS)
+        mpp_log("output frame pts %lld\n", mpp_frame_get_pts(frame));
+
     mpp->mFramePutCount++;
     list->signal();
     list->unlock();
@@ -346,6 +350,10 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (!task->status.curr_task_rdy) {
         RK_S64 p_e, p_s, diff;
         p_s = mpp_time();
+
+        if (mpp_debug & MPP_DBG_PTS)
+            mpp_log("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
+
         parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         p_e = mpp_time();
         if (mpp_debug & MPP_DBG_TIMING) {
