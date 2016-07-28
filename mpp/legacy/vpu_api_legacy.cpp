@@ -347,7 +347,6 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         if (buf) {
             void* ptr = mpp_buffer_get_ptr(buf);
 
-            mpp_buffer_inc_ref(buf);
             fd = mpp_buffer_get_fd(buf);
 
             vframe->FrameBusAddr[0] = fd;
