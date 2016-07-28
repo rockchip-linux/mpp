@@ -646,7 +646,7 @@ typedef enum h264e_hal_vpu_buf_grp_t {
 } h264e_hal_vpu_buf_grp;
 
 typedef struct h264e_hal_vpu_buffers_t {
-    MppBufferGroup hw_buf_grp[H264E_HAL_VPU_BUF_GRP_BUTT];
+    MppBufferGroup hw_buf_grp;
 
     MppBuffer hw_rec_buf[2];
     MppBuffer hw_cabac_table_buf;
