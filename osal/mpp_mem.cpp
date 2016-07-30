@@ -29,17 +29,14 @@
 
 #include "os_mem.h"
 
-// export configure for script detection
-#define CONFIG_OSAL_MEM_LIST        "osal_mem_list"
+// mpp_mem_flag bit mask
+#define OSAL_MEM_LIST_EN        (0x00000001)
+#define OSAL_MEM_RUNTIME_LOG    (0x00000002)
 
 // default memory align size is set to 32
 #define RK_OSAL_MEM_ALIGN       32
 
-// osal_mem_flag bit mask
-#define OSAL_MEM_LIST_EN        (0x00000001)
-#define OSAL_MEM_STUFF_EN       (0x00000002)
-
-static RK_S32 osal_mem_flag = -1;
+static RK_U32 mpp_mem_flag  = 0;
 static RK_U64 osal_mem_index = 0;
 static struct list_head mem_list;
 static pthread_mutex_t mem_list_lock;
@@ -56,14 +53,9 @@ struct mem_node {
 
 static void get_osal_mem_flag()
 {
-    if (osal_mem_flag < 0) {
-        RK_U32 val;
-
-        osal_mem_flag = 0;
-        mpp_env_get_u32(CONFIG_OSAL_MEM_LIST, &val, 0);
-        if (val) {
-            osal_mem_flag |= OSAL_MEM_LIST_EN;
-        }
+    static RK_U32 once = 1;
+    if (once) {
+        mpp_env_get_u32("mpp_mem_flag", &mpp_mem_flag, 0);
 
         INIT_LIST_HEAD(&mem_list);
 
@@ -72,32 +64,36 @@ static void get_osal_mem_flag()
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
         pthread_mutex_init(&mem_list_lock, &attr);
         pthread_mutexattr_destroy(&attr);
+        once = 0;
     }
 }
 
 void *mpp_osal_malloc(const char *tag, size_t size)
 {
     void *ptr;
+
     get_osal_mem_flag();
 
-    if (MPP_OK == os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size)) {
-        if (osal_mem_flag & OSAL_MEM_LIST_EN) {
-            struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
-            mpp_assert(node);
-            INIT_LIST_HEAD(&node->list);
-            node->ptr   = ptr;
-            node->size  = size;
-            snprintf(node->tag, sizeof(node->tag), "%s", tag);
+    os_malloc(&ptr, RK_OSAL_MEM_ALIGN, size);
 
-            pthread_mutex_lock(&mem_list_lock);
-            node->index = osal_mem_index++;
-            list_add_tail(&node->list, &mem_list);
-            pthread_mutex_unlock(&mem_list_lock);
-        }
+    if (mpp_mem_flag & OSAL_MEM_RUNTIME_LOG)
+        mpp_log("mpp_malloc  tag %-16s size %-8u ret %p\n", tag, size, ptr);
 
-        return ptr;
-    } else
-        return NULL;
+    if ((mpp_mem_flag & OSAL_MEM_LIST_EN) && ptr) {
+        struct mem_node *node = (struct mem_node *)malloc(sizeof(struct mem_node));
+        mpp_assert(node);
+        INIT_LIST_HEAD(&node->list);
+        node->ptr   = ptr;
+        node->size  = size;
+        snprintf(node->tag, sizeof(node->tag), "%s", tag);
+
+        pthread_mutex_lock(&mem_list_lock);
+        node->index = osal_mem_index++;
+        list_add_tail(&node->list, &mem_list);
+        pthread_mutex_unlock(&mem_list_lock);
+    }
+
+    return ptr;
 }
 
 void *mpp_osal_calloc(const char *tag, size_t size)
@@ -120,7 +116,7 @@ void *mpp_osal_realloc(const char *tag, void *ptr, size_t size)
 
     get_osal_mem_flag();
 
-    if (osal_mem_flag & OSAL_MEM_LIST_EN) {
+    if (mpp_mem_flag & OSAL_MEM_LIST_EN) {
         struct mem_node *pos, *n;
 
         ret = NULL;
@@ -143,8 +139,11 @@ void *mpp_osal_realloc(const char *tag, void *ptr, size_t size)
         os_realloc(ptr, &ret, RK_OSAL_MEM_ALIGN, size);
     }
 
+    if (mpp_mem_flag & OSAL_MEM_RUNTIME_LOG)
+        mpp_log("mpp_realloc tag %-16s size %-8u ptr %p ret %p\n", tag, size, ptr, ret);
+
     if (NULL == ret)
-        mpp_err("mpp_realloc ptr 0x%p to size %d failed\n", ptr, size);
+        mpp_err("mpp_realloc ptr %p to size %d failed\n", ptr, size);
 
     return ret;
 }
@@ -156,7 +155,7 @@ void mpp_osal_free(void *ptr)
 
     get_osal_mem_flag();
 
-    if (osal_mem_flag & OSAL_MEM_LIST_EN) {
+    if (mpp_mem_flag & OSAL_MEM_LIST_EN) {
         struct mem_node *pos, *n;
         RK_U32 found_match = 0;
 
@@ -174,6 +173,9 @@ void mpp_osal_free(void *ptr)
         if (!found_match)
             mpp_err_f("can not found match on free %p\n", ptr);
     }
+
+    if (mpp_mem_flag & OSAL_MEM_RUNTIME_LOG)
+        mpp_log("mpp_free %p\n", ptr);
 
     os_free(ptr);
 }
