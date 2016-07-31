@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "JPEGD_PARSER"
+#define MODULE_TAG "jpegd_parser"
 
 #include "mpp_bitread.h"
 #include "mpp_mem.h"
@@ -2697,6 +2697,55 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
     return ret;
 }
 
+void jpegd_free_huffman_tables(void *ctx)
+{
+	FUN_TEST("Enter");
+	JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
+
+	if (JpegParserCtx->pSyntax->vlc.acTable0.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.acTable0.vals);
+		JpegParserCtx->pSyntax->vlc.acTable0.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.acTable1.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.acTable1.vals);
+		JpegParserCtx->pSyntax->vlc.acTable1.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.acTable2.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.acTable2.vals);
+		JpegParserCtx->pSyntax->vlc.acTable2.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.acTable3.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.acTable3.vals);
+		JpegParserCtx->pSyntax->vlc.acTable3.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.dcTable0.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable0.vals);
+		JpegParserCtx->pSyntax->vlc.dcTable0.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.dcTable1.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable1.vals);
+		JpegParserCtx->pSyntax->vlc.dcTable1.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.dcTable2.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable2.vals);
+		JpegParserCtx->pSyntax->vlc.dcTable2.vals = NULL;
+	}
+
+	if (JpegParserCtx->pSyntax->vlc.dcTable3.vals) {
+		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable3.vals);
+		JpegParserCtx->pSyntax->vlc.dcTable3.vals = NULL;
+	}
+
+	FUN_TEST("Exit");
+}
+
+
 MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
 {
     FUN_TEST("Enter");
@@ -2704,6 +2753,7 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
     JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
     task->valid = 0;
 
+	jpegd_free_huffman_tables(JpegParserCtx);
     memset(JpegParserCtx->pSyntax, 0, sizeof(JpegSyntaxParam));
     jpegd_get_image_info(JpegParserCtx);
     ret = jpegd_decode_frame(JpegParserCtx);
@@ -2716,6 +2766,8 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
         task->valid = 1;
         jpegd_update_frame(JpegParserCtx);
     }
+
+	//mpp_show_mem_status();
 
     FUN_TEST("Exit");
     return ret;
@@ -2731,45 +2783,7 @@ MPP_RET jpegd_deinit(void *ctx)
         JpegParserCtx->recv_buffer = NULL;
     }
 
-    if (JpegParserCtx->pSyntax->vlc.acTable0.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.acTable0.vals);
-        JpegParserCtx->pSyntax->vlc.acTable0.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.acTable1.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.acTable1.vals);
-        JpegParserCtx->pSyntax->vlc.acTable1.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.acTable2.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.acTable2.vals);
-        JpegParserCtx->pSyntax->vlc.acTable2.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.acTable3.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.acTable3.vals);
-        JpegParserCtx->pSyntax->vlc.acTable3.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.dcTable0.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable0.vals);
-        JpegParserCtx->pSyntax->vlc.dcTable0.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.dcTable1.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable1.vals);
-        JpegParserCtx->pSyntax->vlc.dcTable1.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.dcTable2.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable2.vals);
-        JpegParserCtx->pSyntax->vlc.dcTable2.vals = NULL;
-    }
-
-    if (JpegParserCtx->pSyntax->vlc.dcTable3.vals) {
-        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable3.vals);
-        JpegParserCtx->pSyntax->vlc.dcTable3.vals = NULL;
-    }
+	jpegd_free_huffman_tables(JpegParserCtx);
 
     if (JpegParserCtx->pSyntax) {
         mpp_free(JpegParserCtx->pSyntax);
