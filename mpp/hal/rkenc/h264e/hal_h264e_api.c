@@ -21,16 +21,20 @@
 #include <unistd.h>
 #include "vpu.h"
 #include "mpp_hal.h"
+#include "mpp_env.h"
 #include "hal_h264e_api.h"
 #include "hal_h264e.h"
 #include "hal_h264e_vpu.h"
 #include "hal_h264e_rkv.h"
+
+RK_U32 h264e_hal_log_mode = 0;
 
 MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
 {
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     MppHalApi *api = &ctx->api;
 
+    mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00000111);
     if (!access("/dev/rkvenc", F_OK))
         cfg->device_id = HAL_RKVENC;
     else

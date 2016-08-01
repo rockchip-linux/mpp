@@ -24,7 +24,7 @@
 #include "mpp_packet.h"
 #include "h264e_syntax.h"
 
-#define H264E_HAL_LOG_MODE              0x00000111
+extern RK_U32 h264e_hal_log_mode;
 
 #define H264E_HAL_LOG_ERROR             0x00000001
 #define H264E_HAL_LOG_ASSERT            0x00000010
@@ -46,25 +46,25 @@
 
 #define h264e_hal_debug_enter() \
     do {\
-        if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_FLOW)\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
             { mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__); }\
     } while (0)
 
 #define h264e_hal_debug_leave() \
     do {\
-        if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_FLOW)\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
             { mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__); }\
     } while (0)
 
 #define h264e_hal_log_err(fmt, ...) \
             do {\
-                if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_ERROR)\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_ERROR)\
                     { mpp_err(fmt, ## __VA_ARGS__); }\
             } while (0)
 
 #define h264e_hal_log_detail(fmt, ...) \
             do {\
-                if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_DETAIL)\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
                     { mpp_log(fmt, ## __VA_ARGS__); }\
             } while (0)
 
@@ -81,8 +81,17 @@
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \
         reg[(addr)>>2] = (RK_U32)(val);                                      \
-        if(H264E_HAL_LOG_MODE & 0/*H264E_HAL_LOG_INFO*/)                              \
+        if(h264e_hal_log_mode & 0/*H264E_HAL_LOG_INFO*/)                              \
             mpp_log("line(%d) set reg[%03d/%03x]: %08x", __LINE__, (addr)>>2, addr, val); \
+    } while (0)
+
+
+#define H264E_HAL_VALIDATE_GT(val, name, limit)                    \
+    do {                                                     \
+        if((val)<=(limit)) {                                 \
+            mpp_err("%s(%d) should > %d", name, val, limit); \
+            return MPP_NOK;                                  \
+        }                                                    \
     } while (0)
 
 

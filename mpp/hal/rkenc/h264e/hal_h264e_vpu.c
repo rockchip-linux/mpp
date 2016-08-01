@@ -713,49 +713,48 @@ const RK_S32 h264_context_init[3][460][2] = {
 #ifdef H264E_DUMP_DATA_TO_FILE
 static MPP_RET hal_h264e_vpu_open_dump_files(void *dump_files)
 {
-#if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_FILE)
-    char base_path[512];
-    char full_path[512];
-    h264e_hal_vpu_dump_files *files = (h264e_hal_vpu_dump_files *)dump_files;
-    strcpy(base_path, "/sdcard/h264e_data/");
+    if (h264e_hal_log_mode & H264E_HAL_LOG_FILE) {
+        char base_path[512];
+        char full_path[512];
+        h264e_hal_vpu_dump_files *files = (h264e_hal_vpu_dump_files *)dump_files;
+        strcpy(base_path, "/sdcard/h264e_data/");
 
-    sprintf(full_path, "%s%s", base_path, "mpp_syntax_in.txt");
-    files->fp_mpp_syntax_in = fopen(full_path, "wb");
-    if (!files->fp_mpp_syntax_in) {
-        mpp_err("%s open error", full_path);
-        return MPP_ERR_OPEN_FILE;
+        sprintf(full_path, "%s%s", base_path, "mpp_syntax_in.txt");
+        files->fp_mpp_syntax_in = fopen(full_path, "wb");
+        if (!files->fp_mpp_syntax_in) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+
+        sprintf(full_path, "%s%s", base_path, "mpp_reg_in.txt");
+        files->fp_mpp_reg_in = fopen(full_path, "wb");
+        if (!files->fp_mpp_reg_in) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_reg_out.txt");
+        files->fp_mpp_reg_out = fopen(full_path, "wb");
+        if (!files->fp_mpp_reg_out) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_feedback.txt");
+        files->fp_mpp_feedback = fopen(full_path, "wb");
+        if (!files->fp_mpp_feedback) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_strm_out.bin");
+        files->fp_mpp_strm_out = fopen(full_path, "wb");
+        if (!files->fp_mpp_strm_out) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
     }
-
-
-    sprintf(full_path, "%s%s", base_path, "mpp_reg_in.txt");
-    files->fp_mpp_reg_in = fopen(full_path, "wb");
-    if (!files->fp_mpp_reg_in) {
-        mpp_err("%s open error", full_path);
-        return MPP_ERR_OPEN_FILE;
-    }
-
-    sprintf(full_path, "%s%s", base_path, "mpp_reg_out.txt");
-    files->fp_mpp_reg_out = fopen(full_path, "wb");
-    if (!files->fp_mpp_reg_out) {
-        mpp_err("%s open error", full_path);
-        return MPP_ERR_OPEN_FILE;
-    }
-
-    sprintf(full_path, "%s%s", base_path, "mpp_feedback.txt");
-    files->fp_mpp_feedback = fopen(full_path, "wb");
-    if (!files->fp_mpp_feedback) {
-        mpp_err("%s open error", full_path);
-        return MPP_ERR_OPEN_FILE;
-    }
-
-    sprintf(full_path, "%s%s", base_path, "mpp_strm_out.bin");
-    files->fp_mpp_strm_out = fopen(full_path, "wb");
-    if (!files->fp_mpp_strm_out) {
-        mpp_err("%s open error", full_path);
-        return MPP_ERR_OPEN_FILE;
-    }
-#endif //#if (H264E_HAL_LOG_MODE & H264E_HAL_LOG_FILE)
-    (void)dump_files;
     return MPP_OK;
 }
 
@@ -833,7 +832,7 @@ static void hal_h264e_vpu_dump_mpp_reg_in(h264e_hal_context *ctx)
         RK_S32 k = 0;
         RK_U32 *reg = (RK_U32 *)ctx->regs;
         fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
-        for (k = 0; k < ON2_H264E_NUM_REGS; k++) {
+        for (k = 0; k < VEPU_H264E_NUM_REGS; k++) {
             fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
             //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
         }
@@ -851,7 +850,7 @@ static void hal_h264e_vpu_dump_mpp_reg_out(h264e_hal_context *ctx)
         RK_S32 k = 0;
         RK_U32 *reg = (RK_U32 *)ctx->regs;
         fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt - 1);
-        for (k = 0; k < ON2_H264E_NUM_REGS; k++) {
+        for (k = 0; k < VEPU_H264E_NUM_REGS; k++) {
             fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
             //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
         }
@@ -1622,6 +1621,23 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
     return MPP_OK;
 }
 
+static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
+{
+    h264e_hal_debug_enter();
+    
+    /* validate */
+    H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
+    H264E_HAL_VALIDATE_GT(syn->keyframe_max_interval, "keyframe_max_interval", 0);
+
+    /* adjust */
+    syn->output_strm_limit_size /= 8; /* 64-bit addresses */
+    syn->output_strm_limit_size &= (~0x07);  /* 8 multiple size */
+    
+    h264e_hal_debug_leave();
+    return MPP_OK;
+}
+
+
 MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32 scaler = 0, i = 0;
@@ -1654,6 +1670,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 #ifdef H264E_DUMP_DATA_TO_FILE
     hal_h264e_vpu_dump_mpp_syntax_in(syn, ctx);
 #endif
+    hal_h264e_vpu_validate_syntax(syn);
 
     memset(reg, 0, sizeof(h264e_vpu_reg_set));
 
@@ -1927,8 +1944,8 @@ MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM
     if (ctx->vpu_socket > 0) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
-        h264e_hal_log_detail("vpu client is sending %d regs", ON2_H264E_NUM_REGS);
-        if (MPP_OK != VPUClientSendReg(ctx->vpu_socket, p_regs, ON2_H264E_NUM_REGS)) {
+        h264e_hal_log_detail("vpu client is sending %d regs", VEPU_H264E_NUM_REGS);
+        if (MPP_OK != VPUClientSendReg(ctx->vpu_socket, p_regs, VEPU_H264E_NUM_REGS)) {
             mpp_err("VPUClientSendReg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
@@ -1981,7 +1998,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
         VPU_CMD_TYPE cmd = 0;
         RK_S32 length = 0;
         RK_S32 hw_ret = VPUClientWaitResult(ctx->vpu_socket, (RK_U32 *)reg_out,
-                                            ON2_H264E_NUM_REGS, &cmd, &length);
+                                            VEPU_H264E_NUM_REGS, &cmd, &length);
 
         h264e_hal_log_detail("VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
 
