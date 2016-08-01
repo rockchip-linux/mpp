@@ -1147,7 +1147,7 @@ static MPP_RET hal_h264e_rkv_reference_frame_set( h264e_hal_context *ctx, h264e_
     dpb_ctx->fdec->b_kept_as_ref = i_nal_ref_idc != RKVENC_NAL_PRIORITY_DISPOSABLE;// && h->param.i_keyint_max > 1;
 
 
-    if (syn->keyframe_max_interval == 1)
+    if (sps->keyframe_max_interval == 1)
         i_nal_ref_idc = RKVENC_NAL_PRIORITY_LOW;
 
     dpb_ctx->i_nal_ref_idc = i_nal_ref_idc;
@@ -1555,6 +1555,9 @@ MPP_RET hal_h264e_rkv_set_sps(h264e_hal_sps *sps, h264e_hal_param *par, h264e_co
             sps->vui.i_log2_max_mv_length_vertical = (RK_S32)log2f((float)H264E_HAL_MAX( 1, analyse_mv_range * 4 - 1 ) ) + 1;
     }
 
+    /* only for backup, excluded in read SPS */
+    sps->keyframe_max_interval = cfg->keyframe_max_interval;
+    
     return MPP_OK;
 }
 
@@ -2451,7 +2454,6 @@ static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn)
     
     /* validate */
     H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
-    H264E_HAL_VALIDATE_GT(syn->keyframe_max_interval, "keyframe_max_interval", 0);
 
     /* adjust */
     if((h264e_rkv_csp)syn->input_image_format == H264E_RKV_CSP_YUV420P){
@@ -2567,7 +2569,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg10.enc_stnd       = 0; //H264
     regs->swreg10.roi_enc        = 0; //syn->swreg10.roi_enc;
-    regs->swreg10.cur_frm_ref    = ((ctx->frame_cnt + 1) % syn->keyframe_max_interval) != 0; //syn->swreg10.cur_frm_ref;       //Current frame should be refered in future
+    regs->swreg10.cur_frm_ref    = ((ctx->frame_cnt + 1) % sps->keyframe_max_interval) != 0; //syn->swreg10.cur_frm_ref;       //Current frame should be refered in future
     regs->swreg10.mei_stor       = 0; //syn->swreg10.mei_stor;
     regs->swreg10.bs_scp         = 1; //syn->swreg10.bs_scp;
     regs->swreg10.pic_qp         = syn->qp;//syn->swreg10.pic_qp; //if CQP, pic_qp=qp constant.
@@ -2840,7 +2842,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
             i_nal_type    = RKVENC_NAL_SLICE;
             i_nal_ref_idc = RKVENC_NAL_PRIORITY_DISPOSABLE;
         }
-        if (syn->keyframe_max_interval == 1)
+        if (sps->keyframe_max_interval == 1)
             i_nal_ref_idc = RKVENC_NAL_PRIORITY_LOW;
 
         regs->swreg57.nal_ref_idc      = i_nal_ref_idc; //syn->swreg57.nal_ref_idc;

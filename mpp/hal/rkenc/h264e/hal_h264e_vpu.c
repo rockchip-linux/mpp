@@ -1430,6 +1430,8 @@ static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_c
         sps->crop.i_top = 0;
     }
 
+    /* only for backup, exclued in read SPS */
+    sps->keyframe_max_interval = cfg->keyframe_max_interval;
 }
 
 static void hal_h264e_vpu_set_pps(h264e_hal_pps *pps, h264e_control_extra_info_cfg *cfg)
@@ -1627,7 +1629,6 @@ static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
     
     /* validate */
     H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
-    H264E_HAL_VALIDATE_GT(syn->keyframe_max_interval, "keyframe_max_interval", 0);
 
     /* adjust */
     syn->output_strm_limit_size /= 8; /* 64-bit addresses */
