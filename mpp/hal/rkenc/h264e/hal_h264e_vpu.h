@@ -606,7 +606,7 @@
 #define     VDPU_REG_PRED_FLT_PRED_BC_TAP_4_3(x)    (((x) & 0x3ff) << 12)
 #define     VDPU_REG_PRED_FLT_PRED_BC_TAP_5_0(x)    (((x) & 0x3ff) << 2)
 
-#define     ON2_H264E_NUM_REGS  184
+#define     VEPU_H264E_NUM_REGS  184
 #define     H264E_CABAC_TABLE_BUF_SIZE (52*2*464)
 
 typedef struct h264e_hal_vpu_dump_files_t {
@@ -654,7 +654,7 @@ typedef struct h264e_hal_vpu_buffers_t {
 } h264e_hal_vpu_buffers;
 
 typedef struct h264e_vpu_reg_set_t {
-    RK_U32 val[ON2_H264E_NUM_REGS];
+    RK_U32 val[VEPU_H264E_NUM_REGS];
 } h264e_vpu_reg_set;
 
 MPP_RET hal_h264e_vpu_init    (void *hal, MppHalCfg *cfg);

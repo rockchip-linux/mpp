@@ -34,7 +34,7 @@
 #define RKVENC_IS_TYPE_B(x) ((x)==RKVENC_FRAME_TYPE_B || (x)==RKVENC_FRAME_TYPE_BREF)
 #define RKVENC_IS_DISPOSABLE(type) ( type == RKVENC_FRAME_TYPE_B )
 
-const RK_S32 h264e_csp_idx_map[RKV_H264E_CSP_BUTT] = {RKV_H264E_CSP2_BGRA, RKV_H264E_CSP2_BGR, RKV_H264E_CSP2_RGB, 0, RKV_H264E_CSP2_NV16, RKV_H264E_CSP2_I422, RKV_H264E_CSP2_NV12,
+const RK_S32 h264e_csp_idx_map[H264E_RKV_CSP_BUTT] = {RKV_H264E_CSP2_BGRA, RKV_H264E_CSP2_BGR, RKV_H264E_CSP2_RGB, 0, RKV_H264E_CSP2_NV16, RKV_H264E_CSP2_I422, RKV_H264E_CSP2_NV12,
                                                       RKV_H264E_CSP2_I420, RKV_H264E_CSP2_RGB, RKV_H264E_CSP2_RGB
                                                      };
 
@@ -147,7 +147,517 @@ static const RK_U8 h264e_rkv_zigzag_scan8[2][64] = {
     }
 };
 
-#if (RKV_H264E_NUM_REFS > 1)
+static RK_U32 reg_idx2addr_map[132] = {
+    0xffff, //0, unvalid.
+    0x0000, //1
+    0x0004, //2
+    0x0008, //3
+    0x000c, //4
+    0x0010, //5
+    0x0014, //6
+    0x0018, //7
+    0x001C, //8
+    0x0030, //9
+    0x0034, //10
+    0x0038, //11
+    0x003c, //12
+    0x0040, //13
+    0x0044, //14
+    0x0048, //15
+    0x004c, //16
+    0x0050, //17
+    0x0054, //18
+    0x0058, //19
+    0x005c, //20
+    0x0060, //21.0~21.4
+    0x0074, //22.0~22.39
+    0x0114, //23
+    0x0118, //24
+    0x011c, //25
+    0x0120, //26
+    0x0124, //27
+    0x0128, //28
+    0x012c, //29
+    0x0130, //30
+    0x0134, //31
+    0x0138, //32
+    0x013c, //33
+    0x0140, //34
+    0x0144, //35
+    0x0148, //36
+    0x014c, //36
+    0x0150, //38
+    0x0154, //39
+    0x0158, //40
+    0x015c, //41
+    0x0160, //42
+    0x0164, //43
+    0x0168, //44
+    0x016c, //45
+    0x0170, //46
+    0x0174, //47
+    0x0178, //48
+    0x017c, //49
+    0x0180, //50
+    0x0184, //51
+    0x0188, //52
+    0x018c, //53
+    0x0190, //54
+    0x0194, //55
+    0x0198, //56
+    0x019c, //57
+    0x01a0, //58
+    0x01a4, //59
+    0x01a8, //60
+    0x01ac, //61
+    0x01b0, //62
+    0x01b4, //63
+    0x01b8, //64
+    0x01c0, //65
+    0x01c4, //66
+    0x01d0, //67.0~67.7
+    0x01f0, //68.0~68.7
+    0x0210, //69
+    0x0214, //70
+    0x0218, //71
+    0x021c, //72
+    0x0220, //73
+    0x0224, //74
+    0x0228, //75
+    0x022c, //76
+    0x0230, //77
+    0x0234, //78
+    0x0238, //79
+    0x0400, //80.0~80.255
+    0x0800, //81
+    0x0804, //82
+    0x0808, //83
+    0x0810, //84
+    0x0814, //85
+    0x0818, //86
+    0x0820, //87
+    0x0824, //88
+    0x0828, //89
+    0x082c, //90
+    0x0830, //91
+    0x0834, //92
+    0x0840, //93
+    0x0844, //94
+    0x0848, //95
+    0x084c, //96
+    0x0850, //97
+    0x0854, //98
+    0x0860, //99( 33 regs below are not present in c-model, included)
+    0x0864, //100
+    0x0868, //101
+    0x086c, //102
+    0x0870, //103
+    0x0874, //104
+    0x0880, //105
+    0x0884, //106
+    0x0888, //107
+    0x088c, //108
+    0x0890, //109
+    0x0894, //110
+    0x0898, //111
+    0x089c, //112
+    0x08a0, //113
+    0x08a4, //114
+    0x08a8, //115
+    0x08ac, //116
+    0x08b0, //117
+    0x08b4, //118
+    0x08b8, //119
+    0x08bc, //120
+    0x08c0, //121
+    0x08c4, //122
+    0x08c8, //123
+    0x08cc, //124
+    0x08d0, //125
+    0x08d4, //126
+    0x08d8, //127
+    0x08dc, //128
+    0x08e0, //129
+    0x08e4, //130
+    0x08e8, //131
+};
+
+static MPP_RET hal_h264e_rkv_close_dump_files(void *dump_files)
+{
+    h264e_hal_rkv_dump_files *files = (h264e_hal_rkv_dump_files *)dump_files;
+    H264E_HAL_FCLOSE(files->fp_mpp_syntax_in);
+    H264E_HAL_FCLOSE(files->fp_mpp_reg_in);
+    H264E_HAL_FCLOSE(files->fp_mpp_reg_out);
+    H264E_HAL_FCLOSE(files->fp_mpp_strm_out);
+    H264E_HAL_FCLOSE(files->fp_mpp_feedback);
+    H264E_HAL_FCLOSE(files->fp_mpp_extra_ino_cfg);
+    return MPP_OK;
+}
+
+
+static MPP_RET hal_h264e_rkv_open_dump_files(void *dump_files)
+{
+    if(h264e_hal_log_mode & H264E_HAL_LOG_FILE) {
+        char base_path[512];
+        char full_path[512];
+        h264e_hal_rkv_dump_files *files = (h264e_hal_rkv_dump_files *)dump_files;
+        strcpy(base_path, "/sdcard/h264e_data/");
+
+        sprintf(full_path, "%s%s", base_path, "mpp_syntax_in.txt");
+        files->fp_mpp_syntax_in = fopen(full_path, "wb");
+        if (!files->fp_mpp_syntax_in) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+
+        sprintf(full_path, "%s%s", base_path, "mpp_reg_in.txt");
+        files->fp_mpp_reg_in = fopen(full_path, "wb");
+        if (!files->fp_mpp_reg_in) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_reg_out.txt");
+        files->fp_mpp_reg_out = fopen(full_path, "wb");
+        if (!files->fp_mpp_reg_out) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_feedback.txt");
+        files->fp_mpp_feedback = fopen(full_path, "wb");
+        if (!files->fp_mpp_feedback) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_strm_out.bin");
+        files->fp_mpp_strm_out = fopen(full_path, "wb");
+        if (!files->fp_mpp_strm_out) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }
+
+        sprintf(full_path, "%s%s", base_path, "mpp_extra_info_cfg.txt");
+        files->fp_mpp_extra_ino_cfg= fopen(full_path, "wb");
+        if (!files->fp_mpp_extra_ino_cfg) {
+            mpp_err("%s open error", full_path);
+            return MPP_ERR_OPEN_FILE;
+        }    
+     }
+    return MPP_OK;
+}
+
+static void hal_h264e_rkv_dump_mpp_syntax_in(h264e_syntax *syn, h264e_hal_context *ctx)
+{
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_syntax_in;
+    if (fp) {
+        //RK_S32 k = 0;
+        fprintf(fp, "#FRAME %d\n", ctx->frame_cnt);
+
+		fprintf(fp, "%-16d %s\n", syn->pic_luma_width, "pic_luma_width");
+		fprintf(fp, "%-16d %s\n", syn->pic_luma_height, "pic_luma_height");
+		fprintf(fp, "%-16d %s\n", syn->level_idc, "level_idc");
+		fprintf(fp, "%-16d %s\n", syn->profile_idc, "profile_idc");
+        fprintf(fp, "%-16d %s\n", syn->frame_coding_type, "frame_coding_type");
+		fprintf(fp, "%-16d %s\n", syn->qp, "swreg10.pic_qp");
+		fprintf(fp, "%-16d %s\n", syn->input_image_format, "swreg14.src_cfmt");
+
+		fprintf(fp, "%-16d %s\n", syn->enable_cabac, "swreg59.etpy_mode");
+		fprintf(fp, "%-16d %s\n", syn->pic_init_qp, "swreg59.pic_init_qp");
+		fprintf(fp, "%-16d %s\n", syn->chroma_qp_index_offset, "swreg59.cb_ofst");
+		fprintf(fp, "%-16d %s\n", syn->second_chroma_qp_index_offset, "swreg59.cr_ofst");
+
+		fprintf(fp, "%-16d %s\n", syn->slice_type, "swreg60.sli_type");
+		fprintf(fp, "%-16d %s\n", syn->pps_id, "swreg60.pps_id");
+		fprintf(fp, "%-16d %s\n", syn->frame_num, "swreg60.frm_num");
+        fprintf(fp, "%-16d %s\n", syn->cabac_init_idc, "swreg60.cbc_init_idc");
+
+		fprintf(fp, "%-16d %s\n", syn->idr_pic_id, "swreg61.idr_pid");
+		fprintf(fp, "%-16d %s\n", syn->pic_order_cnt_lsb, "swreg61.poc_lsb");
+
+        fprintf(fp, "%-16d %s\n", syn->keyframe_max_interval, "keyframe_max_interval");
+
+        fprintf(fp, "\n");
+        fflush(fp);
+    } else {
+        mpp_log("try to dump data to mpp_syntax_in.txt, but file is not opened");
+    }
+}
+
+static void hal_h264e_rkv_dump_mpp_reg_in(h264e_hal_context *ctx)
+{
+    RK_S32 k = 0;
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_reg_in;
+    h264e_rkv_reg_set *reg_list = (h264e_rkv_reg_set *)ctx->regs;
+    RK_U32 *regs = (RK_U32 *)&reg_list[ctx->frame_cnt_gen_ready];
+
+#if RKV_H264E_ADD_RESERVE_REGS
+    h264e_rkv_reg_set * r = (h264e_rkv_reg_set *)regs;
+#endif
+    mpp_log("dump_rkv_mpp_reg_in enter, %d regs are dumped", RK_H264E_NUM_REGS);
+    if (fp) {
+        fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  1,  1, reg_idx2addr_map[ 1], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  2,  2, reg_idx2addr_map[ 2], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  3,  3, reg_idx2addr_map[ 3], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  4,  4, reg_idx2addr_map[ 4], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  5,  5, reg_idx2addr_map[ 5], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  6,  6, reg_idx2addr_map[ 6], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  7,  7, reg_idx2addr_map[ 7], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  8,  8, reg_idx2addr_map[ 8], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_08_09);
+#endif
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n",  9,  9, reg_idx2addr_map[ 9], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 10, 10, reg_idx2addr_map[10], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 11, 11, reg_idx2addr_map[11], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 12, 12, reg_idx2addr_map[12], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 13, 13, reg_idx2addr_map[13], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 14, 14, reg_idx2addr_map[14], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 15, 15, reg_idx2addr_map[15], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 16, 16, reg_idx2addr_map[16], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 17, 17, reg_idx2addr_map[17], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 18, 18, reg_idx2addr_map[18], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 19, 19, reg_idx2addr_map[19], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 20, 20, reg_idx2addr_map[20], *regs++);
+        for (k = 0; k < 5; k++)
+            fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 21, 21, reg_idx2addr_map[21], *regs++);
+        for (k = 0; k < 40; k++)
+            fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 22, 22, reg_idx2addr_map[22], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 23, 23, reg_idx2addr_map[23], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 24, 24, reg_idx2addr_map[24], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 25, 25, reg_idx2addr_map[25], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 26, 26, reg_idx2addr_map[26], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 27, 27, reg_idx2addr_map[27], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 28, 28, reg_idx2addr_map[28], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 29, 29, reg_idx2addr_map[29], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 30, 30, reg_idx2addr_map[30], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 31, 31, reg_idx2addr_map[31], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 32, 32, reg_idx2addr_map[32], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 33, 33, reg_idx2addr_map[33], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 34, 34, reg_idx2addr_map[34], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 35, 35, reg_idx2addr_map[35], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 36, 36, reg_idx2addr_map[36], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 37, 37, reg_idx2addr_map[37], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 38, 38, reg_idx2addr_map[38], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 39, 39, reg_idx2addr_map[39], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 40, 40, reg_idx2addr_map[40], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 41, 41, reg_idx2addr_map[41], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 42, 42, reg_idx2addr_map[42], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 43, 43, reg_idx2addr_map[43], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 44, 44, reg_idx2addr_map[44], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 45, 45, reg_idx2addr_map[45], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 46, 46, reg_idx2addr_map[46], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 47, 47, reg_idx2addr_map[47], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 48, 48, reg_idx2addr_map[48], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 49, 49, reg_idx2addr_map[49], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 50, 50, reg_idx2addr_map[50], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 51, 51, reg_idx2addr_map[51], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 52, 52, reg_idx2addr_map[52], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 53, 53, reg_idx2addr_map[53], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 54, 54, reg_idx2addr_map[54], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 55, 55, reg_idx2addr_map[55], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 56, 56, reg_idx2addr_map[56], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 57, 57, reg_idx2addr_map[57], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 58, 58, reg_idx2addr_map[58], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 59, 59, reg_idx2addr_map[59], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 60, 60, reg_idx2addr_map[60], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 61, 61, reg_idx2addr_map[61], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 62, 62, reg_idx2addr_map[62], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 63, 63, reg_idx2addr_map[63], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 64, 64, reg_idx2addr_map[64], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_64_65);
+#endif
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 65, 65, reg_idx2addr_map[65], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 66, 66, reg_idx2addr_map[66], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_66_67);
+#endif
+
+        for (k = 0; k < 8; k++)
+            fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 67, 67, reg_idx2addr_map[67], *regs++);
+        for (k = 0; k < 8; k++)
+            fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 68, 68, reg_idx2addr_map[68], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 69, 69, reg_idx2addr_map[69], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 70, 70, reg_idx2addr_map[70], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 71, 71, reg_idx2addr_map[71], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 72, 72, reg_idx2addr_map[72], *regs++);
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 74, 73, reg_idx2addr_map[73], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 75, 74, reg_idx2addr_map[74], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 76, 75, reg_idx2addr_map[75], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 77, 76, reg_idx2addr_map[76], *regs++);
+#if !RKV_H264E_REMOVE_UNNECESSARY_REGS
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 78, 77, reg_idx2addr_map[77], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 79, 78, reg_idx2addr_map[78], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 80, 79, reg_idx2addr_map[79], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_79_80);
+#endif
+
+        for (k = 0; k < 256; k++)
+            fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 73, 80, reg_idx2addr_map[80], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 81, 81, reg_idx2addr_map[81], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 82, 82, reg_idx2addr_map[82], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 83, 83, reg_idx2addr_map[83], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_83_84);
+#endif
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 84, 84, reg_idx2addr_map[84], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 85, 85, reg_idx2addr_map[85], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 86, 86, reg_idx2addr_map[86], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_86_87);
+#endif
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 87, 87, reg_idx2addr_map[87], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 88, 88, reg_idx2addr_map[88], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 89, 89, reg_idx2addr_map[89], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 90, 90, reg_idx2addr_map[90], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 91, 91, reg_idx2addr_map[91], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 92, 92, reg_idx2addr_map[92], *regs++);
+#if RKV_H264E_ADD_RESERVE_REGS
+        regs += MPP_ARRAY_ELEMS(r->reserve_92_93);
+#endif
+
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 93, 93, reg_idx2addr_map[93], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 94, 94, reg_idx2addr_map[94], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 95, 95, reg_idx2addr_map[95], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 96, 96, reg_idx2addr_map[96], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 97, 97, reg_idx2addr_map[97], *regs++);
+        fprintf(fp, "reg[%03d/%03d/%04x]: %08x\n", 98, 98, reg_idx2addr_map[98], *regs  );
+#endif //#if !RKV_H264E_REMOVE_UNNECESSARY_REGS
+
+
+        fprintf(fp, "\n");
+        fflush(fp);
+    } else {
+        mpp_log("try to dump data to mpp_reg_in.txt, but file is not opened");
+    }
+}
+
+static void hal_h264e_rkv_dump_mpp_extra_info_cfg(h264e_hal_context *ctx, h264e_control_extra_info_cfg *cfg)
+{
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_extra_ino_cfg;
+    if(fp) {
+
+        
+        /* common cfg */
+        fprintf(fp, "%-16d %s\n", cfg->pic_luma_width, "pic_luma_width");
+        fprintf(fp, "%-16d %s\n", cfg->pic_luma_height, "pic_luma_height");
+    	fprintf(fp, "%-16d %s\n", cfg->enable_cabac, "enable_cabac");
+    	fprintf(fp, "%-16d %s\n", cfg->transform8x8_mode, "transform8x8_mode");
+    	fprintf(fp, "%-16d %s\n", cfg->chroma_qp_index_offset, "chroma_qp_index_offset");
+    	fprintf(fp, "%-16d %s\n", cfg->pic_init_qp, "pic_init_qp");
+        //RK_S32 rotation_enable; //0: 0/180 degrees, 1: 90/270 degrees //TODO: add rotation
+
+        /* additional cfg only for rkv */
+        fprintf(fp, "%-16d %s\n", cfg->input_image_format, "input_image_format");
+        fprintf(fp, "%-16d %s\n", cfg->profile_idc, "profile_idc"); 
+        fprintf(fp, "%-16d %s\n", cfg->level_idc, "level_idc"); //TODO: may be removed later, get from sps/pps instead
+        fprintf(fp, "%-16d %s\n", cfg->keyframe_max_interval, "keyframe_max_interval");
+        fprintf(fp, "%-16d %s\n", cfg->second_chroma_qp_index_offset, "second_chroma_qp_index_offset");
+    	fprintf(fp, "%-16d %s\n", cfg->pps_id, "pps_id"); //TODO: may be removed later, get from sps/pps instead
+    	
+        fprintf(fp, "\n");
+        fflush(fp);    	
+    }
+}
+
+static void hal_h264e_rkv_dump_mpp_reg_out(h264e_hal_context *ctx)
+{
+    RK_U32 k = 0;
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_reg_out;    
+    h264e_rkv_ioctl_output *reg_out = (h264e_rkv_ioctl_output *)ctx->ioctl_output;    
+    RK_U32 *p_reg = (RK_U32 *)reg_out + sizeof(reg_out->frame_num)/4;
+    if (fp) {       
+        fprintf(fp, "%d frames out\n", reg_out->frame_num);
+        for(k= 0; k<ctx->num_frames_to_send; k++) { 
+            fprintf(fp, "#FRAME %d:\n", (ctx->frame_cnt-1) - (ctx->num_frames_to_send-1-k));
+            for (k=0; k<12; k++) {
+                fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, p_reg[k]);
+            }
+            fprintf(fp, "\n");
+            p_reg += sizeof(reg_out->elem[0])/4;
+        }
+        fflush(fp);
+    } else {
+        mpp_log("try to dump data to mpp_reg_out.txt, but file is not opened");
+    }
+}
+
+static void hal_h264e_rkv_dump_mpp_feedback(h264e_hal_context *ctx)
+{
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_feedback;   
+    if (fp) {
+        h264e_feedback *fb = &ctx->feedback;
+        (void)fb;
+    } else {
+        mpp_log("try to dump data to mpp_feedback.txt, but file is not opened");
+    }
+}
+
+static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_control_extra_info *extra_info, h264e_hal_context *ctx)
+{
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_strm_out;       
+    if (fp) {
+        fwrite(extra_info->buf, 1, extra_info->size, fp);
+        fflush(fp);
+    } else {
+        mpp_log("try to dump strm header to mpp_strm_out.txt, but file is not opened");
+    }
+}
+
+void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
+{
+    h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
+    FILE *fp = dump_files->fp_mpp_strm_out;     
+    if (fp) {
+        RK_U32 k = 0;
+        RK_U32 strm_size = 0;
+        RK_U8 *sw_buf = NULL;
+        RK_U8 *hw_buf_vir_addr = NULL;
+        h264e_rkv_ioctl_output *ioctl_output = (h264e_rkv_ioctl_output *)ctx->ioctl_output;
+        h264e_rkv_ioctl_output_elem *out_elem = ioctl_output->elem;
+        RK_U32 frame_num = ioctl_output->frame_num;
+
+        mpp_log("dump %d frames strm out below", frame_num);
+        for (k = 0; k < frame_num; k++) {
+            strm_size = (RK_U32)out_elem[k].swreg69.bs_lgth;
+            hw_buf_vir_addr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf[k]);
+            sw_buf = mpp_malloc(RK_U8, strm_size);
+
+            mpp_log("dump frame %d strm_size: %d", k, strm_size);
+
+            memcpy(sw_buf, hw_buf_vir_addr, strm_size);
+
+            fwrite(sw_buf, 1, strm_size, fp);
+
+            if (sw_buf)
+                mpp_free(sw_buf);
+        }
+        fflush(fp);
+
+
+        (void)hw_buf;
+    } else {
+        mpp_log("try to dump data to mpp_strm_out.txt, but file is not opened");
+    }
+}
+
 void hal_h264e_rkv_frame_push( h264e_hal_rkv_frame **list, h264e_hal_rkv_frame *frame )
 {
     RK_S32 i = 0;
@@ -156,7 +666,6 @@ void hal_h264e_rkv_frame_push( h264e_hal_rkv_frame **list, h264e_hal_rkv_frame *
     h264e_hal_log_detail("frame push list[%d] %p", i, frame);
 
 }
-
 
 static h264e_hal_rkv_frame *hal_h264e_rkv_frame_new(h264e_hal_rkv_dpb_ctx *dpb_ctx)
 {
@@ -706,9 +1215,6 @@ static MPP_RET hal_h264e_rkv_reference_frame_update( h264e_hal_context *ctx)
     return MPP_OK;
 }
 
-#endif //RKV_H264E_NUM_REFS > 1
-
-
 static MPP_RET hal_h264e_rkv_free_buffers(h264e_hal_context *ctx)
 {
     RK_S32 k = 0;
@@ -844,7 +1350,6 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
             frame_buf[k].hw_buf = buffers->hw_rec_buf[k];
         }
     }
-
 
     h264e_hal_debug_leave();
     return MPP_OK;
@@ -1580,13 +2085,13 @@ MPP_RET hal_h264e_rkv_set_pps(h264e_hal_pps *pps, h264e_hal_param *par, h264e_co
     }
     pps->i_pic_init_qs = 26 + H264_QP_BD_OFFSET;
 
-    pps->i_chroma_qp_index_offset = cfg->chroma_qp_index_offset;
-    pps->i_second_chroma_qp_index_offset = cfg->second_chroma_qp_index_offset;
+    pps->i_chroma_qp_index_offset = 0; //TODO: cfg->chroma_qp_index_offset;
+    pps->i_second_chroma_qp_index_offset = 0; //TODO: cfg->second_chroma_qp_index_offset;
     pps->b_deblocking_filter_control = Sw_deblock_filter_ctrl_present_flag;
     pps->b_constrained_intra_pred = par->constrained_intra;
     pps->b_redundant_pic_cnt = 0;
 
-    pps->b_transform_8x8_mode = cfg->transform8x8_mode ? 1 : 0;
+    pps->b_transform_8x8_mode = 1; //TODO: cfg->transform8x8_mode ? 1 : 0;
 
     pps->b_cqm_preset = b_cqm_preset;
 
@@ -1738,6 +2243,8 @@ static MPP_RET hal_h264e_rkv_set_extra_info(h264e_hal_context *ctx, void *param)
     h264e_hal_pps *pps_info = &info->pps;
 
     h264e_hal_debug_enter();
+    hal_h264e_rkv_dump_mpp_extra_info_cfg(ctx, cfg);
+
     info->nal_num = 0;
     hal_h264e_rkv_stream_reset(&info->stream);
 
@@ -1828,6 +2335,8 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->buffers        = mpp_calloc(h264e_hal_rkv_buffers, 1);
     ctx->extra_info     = mpp_calloc(h264e_hal_rkv_out, 1);
     ctx->dpb_ctx        = mpp_calloc(h264e_hal_rkv_dpb_ctx, 1);
+    ctx->dump_files     = mpp_calloc(h264e_hal_rkv_dump_files, 1);
+    hal_h264e_rkv_open_dump_files(ctx->dump_files);
     hal_h264e_rkv_init_extra_info(ctx->extra_info);
     hal_h264e_rkv_reference_init(ctx->dpb_ctx, &ctx->param);
 
@@ -1891,7 +2400,11 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         hal_h264e_rkv_reference_deinit(ctx->dpb_ctx);
         MPP_FREE(ctx->dpb_ctx);
     }
-
+    
+    if(ctx->dump_files) {
+        hal_h264e_rkv_close_dump_files(ctx->dump_files);
+        MPP_FREE(ctx->dump_files);
+    }
 
 #ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
@@ -1932,6 +2445,24 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
     return MPP_OK;
 }
 
+static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn)
+{
+    h264e_hal_debug_enter();
+    
+    /* validate */
+    H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
+    H264E_HAL_VALIDATE_GT(syn->keyframe_max_interval, "keyframe_max_interval", 0);
+
+    /* adjust */
+    if((h264e_rkv_csp)syn->input_image_format == H264E_RKV_CSP_YUV420P){
+        syn->input_cb_addr = syn->input_luma_addr;
+        syn->input_cr_addr = syn->input_luma_addr;
+    }
+    
+    h264e_hal_debug_leave();
+    return MPP_OK;
+}
+
 MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32 k = 0;
@@ -1957,10 +2488,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     ctx->enc_mode = RKV_H264E_ENC_MODE;
 
     h264e_hal_debug_enter();
+    hal_h264e_rkv_dump_mpp_syntax_in(syn, ctx);
 
-    mpp_assert(sps->i_level_idc   == syn->level_idc);
-    mpp_assert(sps->i_profile_idc == syn->profile_idc);
-
+    hal_h264e_rkv_validate_syntax(syn);
     hal_h264e_rkv_adjust_param(ctx); //TODO: future expansion
 
     if (ctx->frame_cnt == 0) {
@@ -1989,24 +2519,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         hal_h264e_rkv_set_ioctl_extra_info(&ioctl_info->reg_info[0].extra_info, syn);
     }
 
-#if (RKV_H264E_NUM_REFS > 1)
-    if (MPP_OK != hal_h264e_rkv_reference_frame_set(ctx, syn)) {
+    if(MPP_OK != hal_h264e_rkv_reference_frame_set(ctx, syn)) {
         h264e_hal_log_err("hal_h264e_rkv_reference_frame_set failed, multi-ref error");
     }
-#endif
 
     h264e_hal_log_detail("generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
             ctx->frame_cnt_gen_ready, ctx->num_frames_to_send - 1);
-
-
-    if (syn->frame_num != dpb_ctx->i_frame_num)
-        mpp_err("syn vs dpb_ctx: syn->frame_num(%d) != dpb_ctx->i_frame_num(%d)", syn->frame_num, dpb_ctx->i_frame_num);
-    if (syn->idr_pic_id != (RK_U16)dpb_ctx->i_idr_pic_id)
-        mpp_err("syn vs dpb_ctx: syn->idr_pic_id(%d) != dpb_ctx->i_idr_pic_id(%d)", syn->idr_pic_id, dpb_ctx->i_idr_pic_id);
-    if (syn->pic_order_cnt_lsb != (dpb_ctx->fdec->i_poc & ((1 << sps->i_log2_max_poc_lsb) - 1)))
-        mpp_err("syn vs dpb_ctx: syn->pic_order_cnt_lsb(%d) != (dpb_ctx->fdec->i_poc & ((1 << sps->i_log2_max_poc_lsb) - 1))(%d)",
-                syn->pic_order_cnt_lsb, (dpb_ctx->fdec->i_poc & ((1 << sps->i_log2_max_poc_lsb) - 1)));
-
+    
     memset(regs, 0, sizeof(h264e_rkv_reg_set));
 
     regs->swreg01.rkvenc_ver      = 0x1;
@@ -2154,9 +2673,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg36_meiw_addr    = mpp_buffer_get_fd(bufs->hw_mei_buf[mul_buf_idx]);
     regs->swreg37_bsbt_addr    = syn->output_strm_addr;
     if (VPUClientGetIOMMUStatus() > 0)
-        regs->swreg38_bsbb_addr = regs->swreg37_bsbt_addr | (pic_width_align16 * pic_height_align16 * 3) << 10; // TODO: stream size relative with syntax
+        regs->swreg38_bsbb_addr = regs->swreg37_bsbt_addr | (syn->output_strm_limit_size << 10); // TODO: stream size relative with syntax
     else
-        regs->swreg38_bsbb_addr = regs->swreg37_bsbt_addr + (pic_width_align16 * pic_height_align16 * 3);
+        regs->swreg38_bsbb_addr = regs->swreg37_bsbt_addr + (syn->output_strm_limit_size);
     regs->swreg39_bsbr_addr    = regs->swreg38_bsbb_addr;
     regs->swreg40_bsbw_addr    = regs->swreg37_bsbt_addr; //syn->addr_cfg.bsbw_addr;
 
@@ -2290,7 +2809,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg55.ctu_ebits    = 0; //syn->swreg55.ctu_ebits;
 
     regs->swreg56.rect_size         = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
-    regs->swreg56.inter_4x4         = !syn->h264_inter4x4_disabled; //NOTE!
+    regs->swreg56.inter_4x4         = 1;
     regs->swreg56.arb_sel           = 0; //syn->swreg56.arb_sel;
     regs->swreg56.vlc_lmt           = (sps->i_profile_idc < H264_PROFILE_HIGH && !syn->enable_cabac);
     regs->swreg56.rdo_mark          = 0; //syn->swreg56.rdo_mark;
@@ -2334,13 +2853,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg58.mpoc_lm4    = sps->i_log2_max_poc_lsb - 4; //syn->swreg58.mpoc_lm4;
 
     regs->swreg59.etpy_mode       = syn->enable_cabac;
-    regs->swreg59.trns_8x8        = 1; //syn->swreg59.trns_8x8;
+    regs->swreg59.trns_8x8        = pps->b_transform_8x8_mode; //syn->swreg59.trns_8x8;
     regs->swreg59.csip_flg        = par->constrained_intra; //syn->swreg59.csip_flg;
     regs->swreg59.num_ref0_idx    = pps->i_num_ref_idx_l0_default_active - 1; //syn->swreg59.num_ref0_idx;
     regs->swreg59.num_ref1_idx    = pps->i_num_ref_idx_l1_default_active - 1; //syn->swreg59.num_ref1_idx;
     regs->swreg59.pic_init_qp     = syn->pic_init_qp - H264_QP_BD_OFFSET;
-    regs->swreg59.cb_ofst         = 0; //syn->chroma_qp_index_offset;
-    regs->swreg59.cr_ofst         = 0; //syn->second_chroma_qp_index_offset;
+    regs->swreg59.cb_ofst         = pps->i_chroma_qp_index_offset; //syn->chroma_qp_index_offset;
+    regs->swreg59.cr_ofst         = pps->i_second_chroma_qp_index_offset; //syn->second_chroma_qp_index_offset;
     regs->swreg59.wght_pred       = 0x0;
     regs->swreg59.dbf_cp_flg      = 1; //syn->deblocking_filter_control;
 
@@ -2483,9 +3002,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg98.axip1_wrk_cyc    = 0x0;
 #endif //#if !RKV_H264E_REMOVE_UNNECESSARY_REGS
 
-#if (RKV_H264E_NUM_REFS > 1)
+    hal_h264e_rkv_dump_mpp_reg_in(ctx);
+
     hal_h264e_rkv_reference_frame_update(ctx);
-#endif
     dpb_ctx->i_frame_cnt++;
     if (dpb_ctx->i_nal_ref_idc != RKVENC_NAL_PRIORITY_DISPOSABLE)
         dpb_ctx->i_frame_num ++;
@@ -2548,9 +3067,17 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
 
 static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_output *out)
 {
-    (void)fb;
-    (void)out;
+    RK_U32 k = 0;
+    h264e_rkv_ioctl_output_elem *elem = NULL;
+	h264e_hal_debug_enter();
+    for(k=0; k<out->frame_num; k++) {
+        elem = &out->elem[k];
+        fb->hw_status = elem->hw_status;
+        fb->qp_sum = elem->swreg71.qp_sum;
+        fb->out_strm_size = elem->swreg69.bs_lgth;
+    }
 
+	h264e_hal_debug_leave();
     return MPP_OK;
 }
 
@@ -2616,6 +3143,9 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         int_cb.callBack(int_cb.opaque, fb);
     }
 
+    hal_h264e_rkv_dump_mpp_reg_out(ctx);
+    hal_h264e_rkv_dump_mpp_feedback(ctx);
+
     h264e_hal_debug_leave();
 
     return MPP_OK;
@@ -2652,6 +3182,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     }
     case MPP_ENC_GET_EXTRA_INFO: {
         hal_h264e_rkv_get_extra_info(param, ctx->extra_info);
+        hal_h264e_rkv_dump_mpp_strm_out_header(param, ctx);
         break;
     }
     default : {

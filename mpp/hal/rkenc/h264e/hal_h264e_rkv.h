@@ -36,7 +36,7 @@ enc_mode
 #define RKV_H264E_LINKTABLE_EACH_NUM        1
 #endif
 
-#define RKV_H264E_NUM_REFS                  3
+#define RKV_H264E_NUM_REFS                  1
 #define RKV_H264E_LONGTERM_REF_EN           0
 //-------------------------------------------------------------------------------
 
@@ -70,19 +70,18 @@ enc_mode
 #define RKV_H264E_CQM_JVT                1
 #define RKV_H264E_CQM_CUSTOM             2
 
-
 typedef enum h264e_rkv_csp_t {
-    RKV_H264E_CSP_ARGB8888,     // 0
-    RKV_H264E_CSP_BGR888,       // 1
-    RKV_H264E_CSP_RGB565,       // 2
-    RKV_H264E_CSP_NONE,         // 3
-    RKV_H264E_CSP_YUV422sp,     // 4
-    RKV_H264E_CSP_YUV422planar, // 5
-    RKV_H264E_CSP_YUV420sp,     // 6
-    RKV_H264E_CSP_YUV420planar, // 7
-    RKV_H264E_CSP_YUYV422,      // 8
-    RKV_H264E_CSP_UYVY422,      // 9
-    RKV_H264E_CSP_BUTT,         // 10
+    H264E_RKV_CSP_ARGB8888,     // 0
+    H264E_RKV_CSP_BGR888,       // 1
+    H264E_RKV_CSP_RGB565,       // 2
+    H264E_RKV_CSP_NONE,         // 3
+    H264E_RKV_CSP_YUV422SP,     // 4
+    H264E_RKV_CSP_YUV422P,      // 5
+    H264E_RKV_CSP_YUV420SP,     // 6
+    H264E_RKV_CSP_YUV420P,      // 7
+    H264E_RKV_CSP_YUYV422,      // 8
+    H264E_RKV_CSP_UYVY422,      // 9
+    H264E_RKV_CSP_BUTT,         // 10
 } h264e_rkv_csp;
 
 
@@ -149,6 +148,14 @@ typedef struct h264e_hal_rkv_nal_t {
     RK_S32 sh_head_len;
 } h264e_hal_rkv_nal;
 
+typedef struct h264e_hal_rkv_dump_files_t {
+    FILE *fp_mpp_syntax_in;
+    FILE *fp_mpp_reg_in;
+    FILE *fp_mpp_reg_out;
+    FILE *fp_mpp_strm_out;
+    FILE *fp_mpp_feedback;
+    FILE *fp_mpp_extra_ino_cfg;
+} h264e_hal_rkv_dump_files;
 
 typedef struct h264e_hal_rkv_stream_t {
     RK_U8 *p_start;
@@ -198,7 +205,7 @@ struct h264e_hal_rkv_frame_t;
 typedef struct h264e_hal_rkv_frame_t {
     MppBuffer   hw_buf;
     RK_S32      hw_buf_used;
-    RK_S32      i_frame_cnt;     /* Presentation frame number */
+    RK_S32      i_frame_cnt;     /* Presentation frame number */    
     RK_S32      i_frame_num; /* 7.4.3 frame_num */
     RK_S32      long_term_flag;
     RK_S32      reorder_longterm_flag;

@@ -86,7 +86,10 @@ typedef struct h264e_feedback_t {
     RK_S32 mad_count;
     RK_S32 rlc_count;
     RK_U32 out_strm_size;
-} h264e_feedback;
+
+    /* for VEPU future extansion */
+    //TODO: add nal size table feedback
+}h264e_feedback;
 
 
 typedef struct h264e_control_extra_info_cfg_t {

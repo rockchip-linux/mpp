@@ -153,8 +153,6 @@ void H264SetNewFrame(h264Instance_s * inst)
     regValues_s *regs = &inst->asic.regs;
 
     regs->outputStrmSize -= inst->stream.byteCnt;
-    regs->outputStrmSize /= 8;  /* 64-bit addresses */
-    regs->outputStrmSize &= (~0x07);    /* 8 multiple size */
 
     /* 64-bit aligned stream base address */
     regs->outputStrmBase += (inst->stream.byteCnt & (~0x07));
