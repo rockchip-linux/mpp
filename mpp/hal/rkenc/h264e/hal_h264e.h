@@ -197,6 +197,9 @@ typedef struct h264e_hal_sps_t {
 
     RK_S32 b_qpprime_y_zero_transform_bypass;
     RK_S32 i_chroma_format_idc;
+
+    /* only for backup, excluded in read SPS*/
+    RK_S32 keyframe_max_interval;
 } h264e_hal_sps;
 
 typedef struct h264e_hal_pps_t {
