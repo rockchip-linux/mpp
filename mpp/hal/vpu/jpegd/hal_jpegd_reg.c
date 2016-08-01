@@ -2079,6 +2079,7 @@ MPP_RET hal_jpegd_control(void *hal, RK_S32 cmd_type, void *param)
     (void)hal;
     (void)cmd_type;
     (void)param;
+    FUN_TEST("Exit");
     return  ret;
 }
 

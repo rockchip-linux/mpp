@@ -34,7 +34,7 @@
 #include "utils.h"
 
 
-#define JPEGD_STREAM_BUFF_SIZE (10*1024*1024)
+#define JPEGD_STREAM_BUFF_SIZE (512*1024)
 
 typedef enum VPU_API_DEMO_RET {
     PARSER_DEMO_OK = 0,

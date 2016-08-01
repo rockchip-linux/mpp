@@ -1206,6 +1206,20 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         return ret;
     }
 
+    if (pkt_length > JpegParserCtx->bufferSize) {
+        JPEGD_INFO_LOG("Huge Frame(%d Bytes)!", pkt_length);
+        mpp_free(JpegParserCtx->recv_buffer);
+        JpegParserCtx->recv_buffer = NULL;
+
+        JpegParserCtx->recv_buffer = mpp_calloc(RK_U8, pkt_length + 1024);
+        if (NULL == JpegParserCtx->recv_buffer) {
+            JPEGD_ERROR_LOG("no memory!");
+            return MPP_ERR_NOMEM;
+        }
+
+        JpegParserCtx->bufferSize = pkt_length + 1024;
+    }
+
     jpegd_parser_split_frame(pPacket, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
 
     pPos += pkt_length;
@@ -2699,50 +2713,50 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
 
 void jpegd_free_huffman_tables(void *ctx)
 {
-	FUN_TEST("Enter");
-	JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
+    FUN_TEST("Enter");
+    JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
 
-	if (JpegParserCtx->pSyntax->vlc.acTable0.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.acTable0.vals);
-		JpegParserCtx->pSyntax->vlc.acTable0.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.acTable0.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.acTable0.vals);
+        JpegParserCtx->pSyntax->vlc.acTable0.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.acTable1.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.acTable1.vals);
-		JpegParserCtx->pSyntax->vlc.acTable1.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.acTable1.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.acTable1.vals);
+        JpegParserCtx->pSyntax->vlc.acTable1.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.acTable2.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.acTable2.vals);
-		JpegParserCtx->pSyntax->vlc.acTable2.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.acTable2.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.acTable2.vals);
+        JpegParserCtx->pSyntax->vlc.acTable2.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.acTable3.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.acTable3.vals);
-		JpegParserCtx->pSyntax->vlc.acTable3.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.acTable3.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.acTable3.vals);
+        JpegParserCtx->pSyntax->vlc.acTable3.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.dcTable0.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable0.vals);
-		JpegParserCtx->pSyntax->vlc.dcTable0.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.dcTable0.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable0.vals);
+        JpegParserCtx->pSyntax->vlc.dcTable0.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.dcTable1.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable1.vals);
-		JpegParserCtx->pSyntax->vlc.dcTable1.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.dcTable1.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable1.vals);
+        JpegParserCtx->pSyntax->vlc.dcTable1.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.dcTable2.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable2.vals);
-		JpegParserCtx->pSyntax->vlc.dcTable2.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.dcTable2.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable2.vals);
+        JpegParserCtx->pSyntax->vlc.dcTable2.vals = NULL;
+    }
 
-	if (JpegParserCtx->pSyntax->vlc.dcTable3.vals) {
-		mpp_free(JpegParserCtx->pSyntax->vlc.dcTable3.vals);
-		JpegParserCtx->pSyntax->vlc.dcTable3.vals = NULL;
-	}
+    if (JpegParserCtx->pSyntax->vlc.dcTable3.vals) {
+        mpp_free(JpegParserCtx->pSyntax->vlc.dcTable3.vals);
+        JpegParserCtx->pSyntax->vlc.dcTable3.vals = NULL;
+    }
 
-	FUN_TEST("Exit");
+    FUN_TEST("Exit");
 }
 
 
@@ -2753,7 +2767,7 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
     JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
     task->valid = 0;
 
-	jpegd_free_huffman_tables(JpegParserCtx);
+    jpegd_free_huffman_tables(JpegParserCtx);
     memset(JpegParserCtx->pSyntax, 0, sizeof(JpegSyntaxParam));
     jpegd_get_image_info(JpegParserCtx);
     ret = jpegd_decode_frame(JpegParserCtx);
@@ -2767,7 +2781,7 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
         jpegd_update_frame(JpegParserCtx);
     }
 
-	//mpp_show_mem_status();
+    //mpp_show_mem_status();
 
     FUN_TEST("Exit");
     return ret;
@@ -2783,7 +2797,7 @@ MPP_RET jpegd_deinit(void *ctx)
         JpegParserCtx->recv_buffer = NULL;
     }
 
-	jpegd_free_huffman_tables(JpegParserCtx);
+    jpegd_free_huffman_tables(JpegParserCtx);
 
     if (JpegParserCtx->pSyntax) {
         mpp_free(JpegParserCtx->pSyntax);
@@ -2853,9 +2867,10 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 
     JpegParserCtx->recv_buffer = mpp_calloc(RK_U8, JPEGD_STREAM_BUFF_SIZE);
     if (NULL == JpegParserCtx->recv_buffer) {
-        JPEGD_ERROR_LOG("NULL pointer");
-        return MPP_ERR_NULL_PTR;
+        JPEGD_ERROR_LOG("no memory!");
+        return MPP_ERR_NOMEM;
     }
+    JpegParserCtx->bufferSize = JPEGD_STREAM_BUFF_SIZE;
     mpp_packet_init(&JpegParserCtx->input_packet, JpegParserCtx->recv_buffer, JPEGD_STREAM_BUFF_SIZE);
 
     mpp_frame_init(&JpegParserCtx->output_frame);
@@ -2875,7 +2890,6 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     JpegParserCtx->pSyntax->ppInstance = (void *)0; /* will be changed when need pp */
 
     memset(&(JpegParserCtx->imageInfo), 0, sizeof(JpegDecImageInfo));
-    JpegParserCtx->bufferSize = JPEGD_STREAM_BUFF_SIZE;
     JpegParserCtx->decImageType = JPEGDEC_IMAGE; /* FULL MODEs */
     JpegParserCtx->sliceMbSet = 0; /* will be changed when over 16MB*/
     JpegParserCtx->color_conv = 1;
