@@ -32,7 +32,6 @@ set(H264E_HDR
   include/encpreprocess.h
   include/ewl.h
   include/h264encapi.h
-  include/h264encapi_ext.h
   include/h264e_codec.h
   include/h264e_utils.h
   ) 
@@ -55,7 +54,6 @@ set(H264E_SRC
   src/encasiccontroller.c
   src/encasiccontroller_v2.c
   src/encpreprocess.c
-  src/h264encapi_ext.c
   src/h264e_api.c
   src/h264e_utils.c
   ) 
