@@ -2114,14 +2114,14 @@ MPP_RET jpegd_get_image_info(JpegParserContext *ctx)
         return MPP_ERR_VALUE;
     }
 
-    if ((pCtx->streamLength > DEC_RK70_MAX_STREAM) &&
-        (pCtx->bufferSize < JPEGDEC_RK70_MIN_BUFFER || pCtx->bufferSize > JPEGDEC_RK70_MAX_BUFFER)) {
+    if ((pCtx->streamLength > DEC_MAX_STREAM) &&
+        (pCtx->bufferSize < JPEGDEC_MIN_BUFFER || pCtx->bufferSize > JPEGDEC_MAX_BUFFER)) {
         JPEGD_ERROR_LOG("bufferSize = %d,streamLength = %d\n", pCtx->bufferSize, pCtx->streamLength);
         return MPP_ERR_VALUE;
     }
 
-    if (pCtx->bufferSize && (pCtx->bufferSize < JPEGDEC_RK70_MIN_BUFFER ||
-                             pCtx->bufferSize > JPEGDEC_RK70_MAX_BUFFER)) {
+    if (pCtx->bufferSize && (pCtx->bufferSize < JPEGDEC_MIN_BUFFER ||
+                             pCtx->bufferSize > JPEGDEC_MAX_BUFFER)) {
         JPEGD_ERROR_LOG("bufferSize = %d\n", pCtx->bufferSize);
         return MPP_ERR_VALUE;
     }
@@ -2317,22 +2317,7 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
                         return (JPEGDEC_STRM_ERROR);
                     }
                 }
-
                 JPEGD_VERBOSE_LOG("Stuffing bits deleted\n");
-                if (pCtx->dri_en == 0xffd0) {
-                    /*ALOGI("STREAM HAS dri marker!");
-                    RK_U8 *dst, *tmp;
-                    tmp = PTR_JPGC->stream.pCurrPos;
-                    dst = PTR_JPGC->stream.pCurrPos;
-                    for(i=0;i<PTR_JPGC->stream.streamLength;i++)
-                    {
-                        if(tmp[i]==0xff && tmp[i+1]==0x00 && tmp[i+2]==0xff)
-                            i += 2;
-                        *dst++ = tmp[i];
-                    }
-                    VPUMemClean(pDecIn->pstreamMem);
-                    VPUMemInvalidate(pDecIn->pstreamMem);*/
-                }
                 break;
             }
             case DHT: { /* Start of Huffman tables */
@@ -2538,7 +2523,7 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
     } while ((pSyntax->stream.readBits >> 3) <= pSyntax->stream.streamLength);
 
     if (!findhufftable) {
-        JPEGD_ERROR_LOG("do not find Huffman Tables");
+        JPEGD_INFO_LOG("do not find Huffman Tables");
         jpegd_default_huffman_tables(pCtx);
     }
 
@@ -2614,12 +2599,6 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
         pSyntax->stream.readBits = 0;
         pSyntax->stream.streamLength = (RK_U32)mpp_packet_get_size(pCtx->input_packet);
         pSyntax->stream.appnFlag = 0;
-        /*pDecOut->outputPictureY.pVirtualAddress = NULL;
-        pDecOut->outputPictureY.busAddress = 0;
-        pDecOut->outputPictureCbCr.pVirtualAddress = NULL;
-        pDecOut->outputPictureCbCr.busAddress = 0;
-        pDecOut->outputPictureCr.pVirtualAddress = NULL;
-        pDecOut->outputPictureCr.busAddress = 0;*/
     } else {
         pSyntax->image.headerReady = 0;
     }
@@ -2683,18 +2662,6 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
             JPEGD_ERROR_LOG("(sliceMbSet * Number of MCU's in row) > Number of MCU's in frame");
             return (JPEGDEC_PARAM_ERROR);
         }
-    }
-
-    /* Handle stream/hw parameters after buffer empty */
-    if (pSyntax->info.inputBufferEmpty) {
-        // TODO:
-    }
-
-    /* update user allocated output */
-    // TODO:
-
-    if (pSyntax->info.progressiveFinish) {
-        // TODO:
     }
 
     /* check if input streaming used */
@@ -2942,6 +2909,7 @@ MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
     (void)ctx;
     (void)cmd;
     (void)param;
+    FUN_TEST("Exit");
     return MPP_OK;
 }
 
@@ -2950,6 +2918,7 @@ MPP_RET jpegd_callback(void *ctx, void *err_info)
     FUN_TEST("Enter");
     (void) ctx;
     (void) err_info;
+    FUN_TEST("Exit");
     return MPP_OK;
 }
 
