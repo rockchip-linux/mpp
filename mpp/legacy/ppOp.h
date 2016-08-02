@@ -17,7 +17,7 @@
 #ifndef _PPOP_H_
 #define _PPOP_H_
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
 #include <sys/types.h>
 
 typedef RK_S32     status_t;
