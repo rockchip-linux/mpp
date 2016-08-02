@@ -217,7 +217,6 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         if (read_size != frame_size || feof(fp_input)) {
             mpp_log("found last frame\n");
             frm_eos = 1;
-            break;
         }
 
         mpp_frame_set_buffer(frame, frm_buf_in);
@@ -275,12 +274,19 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
                     void *ptr   = mpp_packet_get_pos(packet);
                     size_t len  = mpp_packet_get_length(packet);
 
+                    pkt_eos = mpp_packet_get_eos(packet);
+
                     if (fp_output)
                         fwrite(ptr, 1, len, fp_output);
                     mpp_packet_deinit(&packet);
 
                     mpp_log_f("encoded frame %d size %d\n", frame_count, len);
                     stream_size += len;
+
+                    if (pkt_eos) {
+                        mpp_log("found last packet\n");
+                        mpp_assert(frm_eos);
+                    }
                 }
                 frame_count++;
 
@@ -292,6 +298,9 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
                 break;
             }
         } while (1);
+
+        if (frm_eos && pkt_eos)
+            break;
     }
 
     ret = mpi->reset(ctx);
@@ -471,8 +480,8 @@ static void mpi_enc_test_show_options(MpiEncTestCmd* cmd)
     mpp_log("cmd parse result:\n");
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);
-    mpp_log("width      : %4d\n", cmd->width);
-    mpp_log("height     : %4d\n", cmd->height);
+    mpp_log("width      : %d\n", cmd->width);
+    mpp_log("height     : %d\n", cmd->height);
     mpp_log("type       : %d\n", cmd->type);
     mpp_log("debug flag : %x\n", cmd->debug);
 }

@@ -172,7 +172,6 @@ void *mpp_enc_control_thread(void *data)
     }
 
     // clear remain task in output port
-    release_task_in_port(mpp->mInputPort);
     release_task_in_port(input);
     release_task_in_port(mpp->mOutputPort);
 
