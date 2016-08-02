@@ -184,6 +184,10 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
         }
     }
 #endif
+    // TODO for rkv
+    syntax_data->pic_order_cnt_lsb = 2 * val->frameNum;
+    syntax_data->second_chroma_qp_index_offset = val->chromaQpIndexOffset;
+    syntax_data->slice_type = instH264Encoder->slice.sliceType;
 
     syntax_data->frame_coding_type = val->frameCodingType;
     syntax_data->pic_init_qp = val->picInitQp;
