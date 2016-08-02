@@ -31,10 +31,10 @@
 #include "jpegd_syntax.h"
 
 /* Max amount of stream */
-#define DEC_RK70_MAX_STREAM         ((1<<24)-1)
+#define DEC_MAX_STREAM         ((1<<24)-1)
 
-#define JPEGDEC_RK70_MIN_BUFFER 256//5120
-#define JPEGDEC_RK70_MAX_BUFFER 16776960
+#define JPEGDEC_MIN_BUFFER 256
+#define JPEGDEC_MAX_BUFFER 16776960
 #define JPEGDEC_MAX_SLICE_SIZE 4096
 #define JPEGDEC_TABLE_SIZE 544
 #define JPEGDEC_MIN_WIDTH 48
@@ -49,8 +49,6 @@
 #define JPEGDEC_MAX_WIDTH_TN 256
 #define JPEGDEC_MAX_HEIGHT_TN 256
 
-//#define JPEGDEC_BASELINE_TABLE_SIZE 544
-#define JPEGDEC_PROGRESSIVE_TABLE_SIZE 576
 #define JPEGDEC_QP_BASE 32
 #define JPEGDEC_AC1_BASE 48
 #define JPEGDEC_AC2_BASE 88
@@ -75,12 +73,6 @@
 
 /* progressive */
 #define JPEGDEC_COEFF_SIZE 96
-
-/* Timeout value for the VPUWaitHwReady() call. */
-/* Set to -1 for an unspecified value */
-#ifndef DEC_RK70_TIMEOUT_LENGTH
-#define DEC_RK70_TIMEOUT_LENGTH     (-1)
-#endif
 
 enum {
     JPEGDEC_NO_UNITS = 0,   /* No units, X and Y specify
