@@ -254,15 +254,6 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     RK_U32 w_align = 0;
     RK_U32 h_align = 0;
 
-#ifdef FOR_TEST_ENCODE
-    ctx = (struct VpuCodecContext*)malloc(sizeof(struct VpuCodecContext));
-    if (!ctx) {
-        mpp_err("Input context has not been properly allocated");
-        return -1;
-    }
-    memset(ctx, 0, sizeof(struct VpuCodecContext));
-#endif
-
     int Format = ENC_INPUT_YUV420_PLANAR;
 
     if (cmd == NULL) {
@@ -301,6 +292,13 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     }
 
 #ifdef FOR_TEST_ENCODE
+    ctx = (struct VpuCodecContext*)malloc(sizeof(struct VpuCodecContext));
+    if (!ctx) {
+        mpp_err("Input context has not been properly allocated");
+        return -1;
+    }
+    memset(ctx, 0, sizeof(struct VpuCodecContext));
+
     ctx->videoCoding = OMX_RK_VIDEO_CodingAVC;
     ctx->codecType = CODEC_ENCODER;
     ctx->width  = cmd->width;
@@ -370,11 +368,20 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
         fflush(pOutFile);
     }
 
-    ctx->control(ctx, VPU_API_ENC_SETFORMAT, &Format);
+    ret = ctx->control(ctx, VPU_API_ENC_SETFORMAT, &Format);
+    if (ret)
+        mpp_err("VPU_API_ENC_SETFORMAT ret %d\n", ret);
 
-    ctx->control(ctx, VPU_API_ENC_GETCFG, enc_param);
+    ret = ctx->control(ctx, VPU_API_ENC_GETCFG, enc_param);
+    if (ret)
+        mpp_log("VPU_API_ENC_GETCFG ret %d\n", ret);
+
     enc_param->rc_mode = 1;
-    ctx->control(ctx, VPU_API_ENC_SETCFG, enc_param);
+
+    ret = ctx->control(ctx, VPU_API_ENC_SETCFG, enc_param);
+    if (ret)
+        mpp_log("VPU_API_ENC_SETCFG ret %d\n", ret);
+
     /*
      ** vpu api encode process.
     */
