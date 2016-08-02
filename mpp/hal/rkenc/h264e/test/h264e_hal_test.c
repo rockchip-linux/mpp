@@ -1220,7 +1220,8 @@ MPP_RET h264e_hal_rkv_test()
     MppHalCfg hal_cfg;
     HalTaskInfo task_info;
     h264e_control_extra_info_cfg extra_info_cfg;
-    h264e_control_extra_info extra_info;
+    MppPacket extra_info_pkt;
+    RK_U8 extra_info_buf[H264E_MAX_PACKETED_PARAM_SIZE] = {0};
     //h264e_hal_rkv_dbg_info dbg_info;
     h264e_syntax syntax_data[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBufferGroup hw_input_buf_grp = NULL;
@@ -1229,6 +1230,9 @@ MPP_RET h264e_hal_rkv_test()
     MppBuffer hw_output_strm_buf_mul[RKV_H264E_LINKTABLE_FRAME_NUM] = {NULL};
     RK_U32 frame_luma_stride = 0;
     struct timeval t0;
+
+    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
+
 
     get_rkv_syntax_in(&syntax_data[0], hw_input_buf_mul, hw_output_strm_buf_mul);
     fseek(fp_golden_syntax_in, 0L, SEEK_SET);
@@ -1262,7 +1266,7 @@ MPP_RET h264e_hal_rkv_test()
 
     h264e_hal_set_extra_info_cfg(&extra_info_cfg, &syntax_data[0]); //TODO: use dbg info for input instead
     hal_h264e_rkv_control(&ctx, MPP_ENC_SET_EXTRA_INFO, &extra_info_cfg);
-    hal_h264e_rkv_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info);
+    hal_h264e_rkv_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info_pkt);
 
     do {
         /* get golden input */
@@ -1308,6 +1312,8 @@ MPP_RET h264e_hal_rkv_test()
 
 
 __test_end:
+    mpp_packet_deinit(&extra_info_pkt);
+    
     hal_h264e_deinit(&ctx);
     h264e_hal_test_deinit(&ctx, &task_info);
 

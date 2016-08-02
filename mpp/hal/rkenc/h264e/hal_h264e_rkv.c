@@ -609,17 +609,21 @@ static void hal_h264e_rkv_dump_mpp_feedback(h264e_hal_context *ctx)
     }
 }
 
-static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_control_extra_info *extra_info, h264e_hal_context *ctx)
+static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPacket packet)
 {
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_strm_out;       
+    void *ptr   = mpp_packet_get_data(packet);
+    size_t len  = mpp_packet_get_length(packet);
+    FILE *fp = dump_files->fp_mpp_strm_out;
+
     if (fp) {
-        fwrite(extra_info->buf, 1, extra_info->size, fp);
+        fwrite(ptr, 1, len, fp);
         fflush(fp);
     } else {
         mpp_log("try to dump strm header to mpp_strm_out.txt, but file is not opened");
     }
 }
+
 
 void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
 {
@@ -779,7 +783,7 @@ static void hal_h264e_rkv_reference_hierarchy_reset( h264e_hal_context *ctx)
     RK_S32 i = 0;
     RK_S32 b_hasdelayframe = 0;
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
-    h264e_hal_rkv_out *extra_info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *extra_info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps = &extra_info->sps;
     RK_S32 i_num_reorder_frames = sps->vui.i_num_reorder_frames;
 
@@ -821,7 +825,7 @@ static RK_S32 hal_h264e_rkv_reference_distance( h264e_hal_ref_param *ref_cfg, h2
 static void hal_h264e_rkv_reference_build_list(h264e_hal_context *ctx)
 {
     RK_S32 b_ok = 1, i = 0, list = 0, j = 0;
-    h264e_hal_rkv_out *extra_info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *extra_info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps = &extra_info->sps;
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
     h264e_hal_param *par = &ctx->param;
@@ -1024,7 +1028,7 @@ static void hal_h264e_rkv_reference_build_list(h264e_hal_context *ctx)
 static MPP_RET hal_h264e_rkv_reference_update( h264e_hal_context *ctx)
 {
     RK_S32 i = 0, j = 0;
-    h264e_hal_rkv_out *extra_info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *extra_info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps = &extra_info->sps;
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
     h264e_hal_ref_param *ref_cfg = &ctx->param.ref;
@@ -1073,7 +1077,7 @@ static MPP_RET hal_h264e_rkv_reference_frame_set( h264e_hal_context *ctx, h264e_
     RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
     RK_S32 list = 0, k = 0;
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
-    h264e_hal_rkv_out *extra_info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *extra_info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps = &extra_info->sps;
     h264e_hal_ref_param *ref_cfg = &ctx->param.ref;
 
@@ -1767,20 +1771,20 @@ MPP_RET hal_h264e_rkv_stream_flush(h264e_hal_rkv_stream *s)
     return MPP_OK;
 }
 
-void hal_h264e_rkv_nals_init(h264e_hal_rkv_out *out)
+void hal_h264e_rkv_nals_init(h264e_hal_rkv_extra_info *out)
 {
     out->nal_buf = mpp_calloc(RK_U8, 512);
     out->nal_num = 0;
 }
 
-void hal_h264e_rkv_nals_deinit(h264e_hal_rkv_out *out)
+void hal_h264e_rkv_nals_deinit(h264e_hal_rkv_extra_info *out)
 {
     MPP_FREE(out->nal_buf);
 
     out->nal_num = 0;
 }
 
-void hal_h264e_rkv_nal_start(h264e_hal_rkv_out *out, RK_S32 i_type, RK_S32 i_ref_idc)
+void hal_h264e_rkv_nal_start(h264e_hal_rkv_extra_info *out, RK_S32 i_type, RK_S32 i_ref_idc)
 {
     h264e_hal_rkv_stream *s = &out->stream;
     RK_U8 *stream_buf = s->p_start;
@@ -1793,7 +1797,7 @@ void hal_h264e_rkv_nal_start(h264e_hal_rkv_out *out, RK_S32 i_type, RK_S32 i_ref
     out->nal[out->nal_num].i_padding = 0;
 }
 
-void hal_h264e_rkv_nal_end(h264e_hal_rkv_out *out)
+void hal_h264e_rkv_nal_end(h264e_hal_rkv_extra_info *out)
 {
     h264e_hal_rkv_nal *nal = &(out->nal[out->nal_num]);
     h264e_hal_rkv_stream *s = &out->stream;
@@ -1859,7 +1863,7 @@ void hal_h264e_rkv_nal_encode(RK_U8 *dst, h264e_hal_rkv_nal *nal)
 
 
 
-MPP_RET hal_h264e_rkv_encapsulate_nals(h264e_hal_rkv_out *out)
+MPP_RET hal_h264e_rkv_encapsulate_nals(h264e_hal_rkv_extra_info *out)
 {
     RK_S32 i = 0;
     RK_S32 i_avcintra_class = 0;
@@ -2220,7 +2224,7 @@ MPP_RET hal_h264e_rkv_pps_write(h264e_hal_pps *pps, h264e_hal_sps *sps, h264e_ha
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_rkv_init_extra_info(h264e_hal_rkv_out *extra_info)
+static MPP_RET hal_h264e_rkv_init_extra_info(h264e_hal_rkv_extra_info *extra_info)
 {
     hal_h264e_rkv_nals_init(extra_info);
     hal_h264e_rkv_stream_init(&extra_info->stream);
@@ -2230,7 +2234,7 @@ static MPP_RET hal_h264e_rkv_init_extra_info(h264e_hal_rkv_out *extra_info)
 
 static MPP_RET hal_h264e_rkv_deinit_extra_info(void *extra_info)
 {
-    h264e_hal_rkv_out *info = (h264e_hal_rkv_out *)extra_info;
+    h264e_hal_rkv_extra_info *info = (h264e_hal_rkv_extra_info *)extra_info;
     hal_h264e_rkv_stream_deinit(&info->stream);
     hal_h264e_rkv_nals_deinit(info);
 
@@ -2241,7 +2245,7 @@ static MPP_RET hal_h264e_rkv_set_extra_info(h264e_hal_context *ctx, void *param)
 {
     h264e_control_extra_info_cfg *cfg = (h264e_control_extra_info_cfg *)param;
     h264e_hal_param *par = &ctx->param;
-    h264e_hal_rkv_out *info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps_info = &info->sps;
     h264e_hal_pps *pps_info = &info->pps;
 
@@ -2265,29 +2269,6 @@ static MPP_RET hal_h264e_rkv_set_extra_info(h264e_hal_context *ctx, void *param)
 
     h264e_hal_debug_leave();
 
-    return MPP_OK;
-}
-
-static MPP_RET hal_h264e_rkv_get_extra_info(void *dst_extra_info, void *src_extra_info)
-{
-    RK_S32 k = 0;
-    h264e_hal_rkv_out *src = (h264e_hal_rkv_out *)src_extra_info;
-    h264e_control_extra_info *dst = (h264e_control_extra_info *)dst_extra_info;
-    h264e_hal_debug_enter();
-    if (dst == NULL) {
-        mpp_err("dst_extra_info is NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    h264e_hal_log_detail("get nal num: %d", src->nal_num);
-    dst->size = 0;
-    for (k = 0; k < src->nal_num; k++) {
-        h264e_hal_log_detail("get extra info nal type %d, size %d bytes", src->nal[k].i_type, src->nal[k].i_payload);
-
-        memcpy(dst->buf + dst->size, src->nal[k].p_payload, src->nal[k].i_payload);
-        dst->size += src->nal[k].i_payload;
-    }
-    h264e_hal_debug_leave();
     return MPP_OK;
 }
 
@@ -2336,7 +2317,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->ioctl_output   = mpp_calloc(h264e_rkv_ioctl_output, 1);
     ctx->regs           = mpp_calloc(h264e_rkv_reg_set, RKV_H264E_LINKTABLE_FRAME_NUM);
     ctx->buffers        = mpp_calloc(h264e_hal_rkv_buffers, 1);
-    ctx->extra_info     = mpp_calloc(h264e_hal_rkv_out, 1);
+    ctx->extra_info     = mpp_calloc(h264e_hal_rkv_extra_info, 1);
     ctx->dpb_ctx        = mpp_calloc(h264e_hal_rkv_dpb_ctx, 1);
     ctx->dump_files     = mpp_calloc(h264e_hal_rkv_dump_files, 1);
     hal_h264e_rkv_open_dump_files(ctx->dump_files);
@@ -2476,7 +2457,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_rkv_ioctl_input *ioctl_info = (h264e_rkv_ioctl_input *)ctx->ioctl_input;
     h264e_rkv_reg_set *reg_list = (h264e_rkv_reg_set *)ctx->regs;
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
-    h264e_hal_rkv_out *extra_info = (h264e_hal_rkv_out *)ctx->extra_info;
+    h264e_hal_rkv_extra_info *extra_info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
     h264e_hal_sps *sps = &extra_info->sps;
     h264e_hal_pps *pps = &extra_info->pps;
 
@@ -3183,8 +3164,21 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
         break;
     }
     case MPP_ENC_GET_EXTRA_INFO: {
-        hal_h264e_rkv_get_extra_info(param, ctx->extra_info);
-        hal_h264e_rkv_dump_mpp_strm_out_header(param, ctx);
+        RK_S32 k = 0;        
+        size_t offset = 0;
+        MppPacket  pkt      = ctx->packeted_param;
+        MppPacket *pkt_out  = (MppPacket *)param;
+        h264e_hal_rkv_extra_info *src = (h264e_hal_rkv_extra_info *)ctx->extra_info;
+
+        for (k = 0; k < src->nal_num; k++) {
+            h264e_hal_log_detail("get extra info nal type %d, size %d bytes", src->nal[k].i_type, src->nal[k].i_payload);
+            mpp_packet_write(pkt, offset, src->nal[k].p_payload, src->nal[k].i_payload);
+            offset += src->nal[k].i_payload;
+        }
+        mpp_packet_set_length(pkt, offset);
+        *pkt_out = pkt;
+        
+        hal_h264e_rkv_dump_mpp_strm_out_header(ctx, pkt);
         break;
     }
     default : {

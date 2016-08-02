@@ -171,14 +171,14 @@ typedef struct h264e_hal_rkv_stream_t {
 } h264e_hal_rkv_stream;
 
 
-typedef struct h264e_hal_rkv_out_t {
+typedef struct h264e_hal_rkv_extra_info_t {
     RK_S32               nal_num;
     h264e_hal_rkv_nal    nal[RKV_H264E_RKV_NAL_IDX_BUTT];
     RK_U8                *nal_buf;
     h264e_hal_rkv_stream stream;
     h264e_hal_sps        sps;
     h264e_hal_pps        pps;
-} h264e_hal_rkv_out;
+} h264e_hal_rkv_extra_info;
 #define RKV_H264E_REF_MAX 16
 typedef RK_U8 pixel;
 struct h264e_hal_rkv_weight_t;
