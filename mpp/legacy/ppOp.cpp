@@ -19,7 +19,7 @@
 #include "vpu.h"
 #include "ppOp.h"
 
-#ifdef ANDROID
+#ifdef RKPLATFORM
 
 namespace android
 {
