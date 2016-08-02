@@ -794,9 +794,8 @@ RK_S32 VpuApiLegacy::perform(RK_U32 cmd, RK_U32 *data)
 
 RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
-    vpu_api_dbg_func("enter\n");
+    vpu_api_dbg_func("enter cmd %x param %p\n", cmd, param);
 
-    (void)ctx;
     if (mpi == NULL && !init_ok) {
         return 0;
     }
@@ -811,6 +810,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_ENC_SETFORMAT : {
         enc_in_fmt = *((EncInputPictureType *)param);
+        return 0;
     } break;
     case VPU_API_SET_VPUMEM_CONTEXT: {
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
@@ -889,7 +889,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 
     RK_S32 ret = -1;
     if (mpicmd < MPI_CMD_BUTT)
-        ret = mpi->control(mpp_ctx, (MpiCmd)mpicmd, (MppParam)param);
+        ret = mpi->control(mpp_ctx, mpicmd, (MppParam)param);
 
     vpu_api_dbg_func("leave\n");
     return ret;
