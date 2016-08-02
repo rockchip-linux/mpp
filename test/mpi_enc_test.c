@@ -98,6 +98,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         fp_input = fopen(cmd->file_input, "rb");
         if (NULL == fp_input) {
             mpp_err("failed to open input file %s\n", cmd->file_input);
+            ret = MPP_ERR_OPEN_FILE;
             goto MPP_TEST_OUT;
         }
     }
@@ -106,6 +107,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         fp_output = fopen(cmd->file_output, "w+b");
         if (NULL == fp_output) {
             mpp_err("failed to open output file %s\n", cmd->file_output);
+            ret = MPP_ERR_OPEN_FILE;
             goto MPP_TEST_OUT;
         }
     }
@@ -153,6 +155,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     }
 
     memset(&mpp_cfg, 0, sizeof(mpp_cfg));
+    mpp_cfg.size        = sizeof(mpp_cfg);
     mpp_cfg.width       = width;
     mpp_cfg.height      = height;
     mpp_cfg.format      = ENC_INPUT_YUV420_PLANAR;
