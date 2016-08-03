@@ -3,4 +3,4 @@
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=debug \
     -DCMAKE_TOOLCHAIN_FILE=./arm.linux.cross.cmake \
     -DCMAKE_RKPLATFORM_ENABLE=ON                   \
-    ../../../  && ccmake  ../../../
+    ../../../  && cmake --build .
