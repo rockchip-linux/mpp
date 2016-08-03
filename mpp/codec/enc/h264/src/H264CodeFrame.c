@@ -17,16 +17,10 @@
 /*------------------------------------------------------------------------------
     1. Include headers
 ------------------------------------------------------------------------------*/
-#include "mpp_log.h"  // add by lance 2016.05.06
+#include "mpp_log.h"
 #include "enccommon.h"
 #include "ewl.h"
 #include "H264CodeFrame.h"
-#include "h264e_macro.h"
-//#include <cutils/properties.h>  // mask by lance 2016.05.05
-
-#ifdef SYNTAX_DATA_IN_FILE
-extern FILE *fp_syntax_in;
-#endif
 
 /*------------------------------------------------------------------------------
     2. External compiler flags
@@ -84,57 +78,6 @@ void H264CodeFrame(h264Instance_s * inst, h264e_syntax *syntax_data)
     }
 
     EncAsicFrameStart((void*)inst,/* inst->asic.ewl,*/ &inst->asic.regs, syntax_data);  // mask by lance 2016.05.12
-#ifdef SYNTAX_DATA_IN_FILE
-    if (NULL != fp_syntax_in) {
-        regValues_s *syn = &inst->asic.regs;
-        int k = 0;
-        FILE *fp = fp_syntax_in;
-        //VPU_DEBUG("on2_syntax_in.txt open");
-        fprintf(fp, "#FRAME %d:\n", inst->frameCnt);
-
-        fprintf(fp, "%-16d %s\n", syn->frameCodingType, "frame_coding_type");
-        fprintf(fp, "%-16d %s\n", syn->picInitQp, "pic_init_qp");
-        fprintf(fp, "%-16d %s\n", syn->sliceAlphaOffset, "slice_alpha_offset");
-        fprintf(fp, "%-16d %s\n", syn->sliceBetaOffset, "slice_beta_offset");
-        fprintf(fp, "%-16d %s\n", syn->chromaQpIndexOffset, "chroma_qp_index_offset");
-        fprintf(fp, "%-16d %s\n", syn->filterDisable, "filter_disable");
-        fprintf(fp, "%-16d %s\n", syn->idrPicId, "idr_pic_id");
-        fprintf(fp, "%-16d %s\n", syn->ppsId, "pps_id");
-        fprintf(fp, "%-16d %s\n", syn->frameNum, "frame_num");
-        fprintf(fp, "%-16d %s\n", syn->sliceSizeMbRows, "slice_size_mb_rows");
-        fprintf(fp, "%-16d %s\n", syn->h264Inter4x4Disabled, "h264_inter4x4_disabled");
-        fprintf(fp, "%-16d %s\n", syn->enableCabac, "enable_cabac");
-        fprintf(fp, "%-16d %s\n", syn->transform8x8Mode, "transform8x8_mode");
-        fprintf(fp, "%-16d %s\n", syn->cabacInitIdc, "cabac_init_idc");
-        fprintf(fp, "%-16d %s\n", syn->qp, "qp");
-        fprintf(fp, "%-16d %s\n", syn->madQpDelta, "mad_qp_delta");
-        fprintf(fp, "%-16d %s\n", syn->madThreshold, "mad_threshold");
-        fprintf(fp, "%-16d %s\n", syn->qpMin, "qp_min");
-        fprintf(fp, "%-16d %s\n", syn->qpMax, "qp_max");
-        fprintf(fp, "%-16d %s\n", syn->cpDistanceMbs, "cp_distance_mbs");
-        for (k = 0; k < 10; k++)
-            fprintf(fp, "%-16d cp_target[%d]\n", syn->cpTarget[k], k);
-        for (k = 0; k < 7; k++)
-            fprintf(fp, "%-16d target_error[%d]\n", syn->targetError[k], k);
-        for (k = 0; k < 7; k++)
-            fprintf(fp, "%-16d delta_qp[%d]\n", syn->deltaQp[k], k);
-        fprintf(fp, "%-16d %s\n", syn->outputStrmSize, "output_strm_limit_size");
-        fprintf(fp, "%-16d %s\n", inst->preProcess.lumWidthSrc, "pic_luma_width");
-        fprintf(fp, "%-16d %s\n", inst->preProcess.lumHeightSrc, "pic_luma_height");
-        fprintf(fp, "%-16d %s\n", syn->inputImageFormat, "input_image_format");
-        fprintf(fp, "%-16d %s\n", syn->colorConversionCoeffA, "color_conversion_coeff_a");
-        fprintf(fp, "%-16d %s\n", syn->colorConversionCoeffB, "color_conversion_coeff_b");
-        fprintf(fp, "%-16d %s\n", syn->colorConversionCoeffC, "color_conversion_coeff_c");
-        fprintf(fp, "%-16d %s\n", syn->colorConversionCoeffE, "color_conversion_coeff_e");
-        fprintf(fp, "%-16d %s\n", syn->colorConversionCoeffF, "color_conversion_coeff_f");
-        fprintf(fp, "%-16d %s\n", syn->rMaskMsb, "color_conversion_r_mask_msb");
-        fprintf(fp, "%-16d %s\n", syn->gMaskMsb, "color_conversion_g_mask_msb");
-        fprintf(fp, "%-16d %s\n", syn->bMaskMsb, "color_conversion_b_mask_msb");
-
-        fprintf(fp, "\n");
-        fflush(fp);
-    }
-#endif
     /* Reset the favor values for next frame */
     inst->asic.regs.intra16Favor = 0;
     inst->asic.regs.interFavor = 0;
