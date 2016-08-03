@@ -46,19 +46,18 @@ MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 
 MPP_RET h264e_deinit(void *ctx)
 {
-    H264EncInst encInst = (H264EncInst)ctx;
-    h264Instance_s * pEncInst = (h264Instance_s*)ctx;
+    h264Instance_s * pEncInst = (h264Instance_s *)ctx;
     H264EncRet ret/* = MPP_OK*/;
     H264EncIn *encIn = &(pEncInst->encIn);
     H264EncOut *encOut = &(pEncInst->encOut);
 
     /* End stream */
-    ret = H264EncStrmEnd(encInst, encIn, encOut);
+    ret = H264EncStrmEnd(pEncInst, encIn, encOut);
     if (ret != H264ENC_OK) {
         mpp_err("H264EncStrmEnd() failed, ret %d.", ret);
     }
 
-    if ((ret = H264EncRelease(encInst)) != H264ENC_OK) {
+    if ((ret = H264EncRelease(pEncInst)) != H264ENC_OK) {
         mpp_err("H264EncRelease() failed, ret %d.", ret);
         return MPP_NOK;
     }
@@ -69,21 +68,19 @@ MPP_RET h264e_deinit(void *ctx)
 MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
 {
     H264EncRet ret;
-    H264EncInst encInst = (H264EncInst)ctx;
-    H264EncInst encoderOpen = (H264EncInst)ctx;
-    h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
-    H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
-    H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
-    RK_U32 srcLumaWidth = pEncInst->lumWidthSrc;
-    RK_U32 srcLumaHeight = pEncInst->lumHeightSrc;
+    h264Instance_s *p = (h264Instance_s *)ctx;
+    H264EncIn *encIn = &(p->encIn);
+    H264EncOut *encOut = &(p->encOut);
+    RK_U32 srcLumaWidth = p->lumWidthSrc;
+    RK_U32 srcLumaHeight = p->lumHeightSrc;
 
     encIn->pOutBuf = (u32*)mpp_buffer_get_ptr(((EncTask*)task)->ctrl_pkt_buf_out);
     encIn->busOutBuf = mpp_buffer_get_fd(((EncTask*)task)->ctrl_pkt_buf_out);
     encIn->outBufSize = mpp_buffer_get_size(((EncTask*)task)->ctrl_pkt_buf_out);
 
     /* Start stream */
-    if (pEncInst->encStatus == H264ENCSTAT_INIT) {
-        ret = H264EncStrmStart(encoderOpen, encIn, encOut);
+    if (p->encStatus == H264ENCSTAT_INIT) {
+        ret = H264EncStrmStart(p, encIn, encOut);
         if (ret != H264ENC_OK) {
             mpp_err("H264EncStrmStart() failed, ret %d.", ret);
             return -1;
@@ -116,18 +113,18 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     //encIn.busLumaStab = mpp_buffer_get_fd(pictureStabMem)/*pictureStabMem.phy_addr*/;
 
     /* Select frame type */
-    if (pEncInst->intraPicRate != 0 &&
-        (pEncInst->intraPeriodCnt >= pEncInst->intraPicRate)) {
+    if (p->intraPicRate != 0 &&
+        (p->intraPeriodCnt >= p->intraPicRate)) {
         encIn->codingType = H264ENC_INTRA_FRAME;
     } else {
         encIn->codingType = H264ENC_PREDICTED_FRAME;
     }
 
     if (encIn->codingType == H264ENC_INTRA_FRAME)
-        pEncInst->intraPeriodCnt = 0;
+        p->intraPeriodCnt = 0;
 
     // TODO syntax_data need to be assigned    modify by lance 2016.05.19
-    ret = H264EncStrmEncode(encInst, encIn, encOut, &(((EncTask*)task)->syntax_data));
+    ret = H264EncStrmEncode(p, encIn, encOut, &(((EncTask*)task)->syntax_data));
     if (ret != H264ENC_FRAME_READY) {
         mpp_err("H264EncStrmEncode() failed, ret %d.", ret);  // TODO    need to be modified by lance 2016.05.31
         return MPP_NOK;
@@ -254,7 +251,7 @@ static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_NOK;
-    h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
+    h264Instance_s *enc = (h264Instance_s *)ctx;    // add by lance 2016.05.31
 
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
@@ -263,11 +260,9 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         ret = h264e_check_mpp_cfg((MppEncConfig *)param);
     } break;
     case SET_ENC_CFG : {
-        const MppEncConfig  *mpp_cfg = (const MppEncConfig *)param;
-        H264EncConfig cfg;
-        H264EncConfig *enc_cfg = &cfg;
+        MppEncConfig  *mpp_cfg = (MppEncConfig *)param;
+        H264EncConfig *enc_cfg = &enc->enc_cfg;
 
-        H264EncInst encoder = (H264EncInst)ctx;
         H264EncCodingCtrl oriCodingCfg;
         H264EncPreProcessingCfg oriPreProcCfg;
 
@@ -295,13 +290,13 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_cfg->pps_id = 0;
         enc_cfg->input_image_format = (H264EncPictureFormat)mpp_cfg->format;
 
-        ret = H264EncCfg(encoder, enc_cfg);
+        ret = H264EncCfg(enc, enc_cfg);
 
         /* Encoder setup: coding control */
-        ret = H264EncGetCodingCtrl(encoder, &oriCodingCfg);
+        ret = H264EncGetCodingCtrl(enc, &oriCodingCfg);
         if (ret) {
             mpp_err("H264EncGetCodingCtrl() failed, ret %d.", ret);
-            h264e_deinit((void*)encoder);
+            h264e_deinit((void*)enc);
             break;
         } else {
             // will be replaced  modify by lance 2016.05.20
@@ -314,19 +309,19 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriCodingCfg.transform8x8Mode = 0;
             oriCodingCfg.videoFullRange = 0;
             oriCodingCfg.seiMessages = 0;
-            ret = H264EncSetCodingCtrl(encoder, &oriCodingCfg);
+            ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
             if (ret) {
                 mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)encoder);
+                h264e_deinit((void*)enc);
                 break;
             }
         }
 
         /* PreP setup */
-        ret = H264EncGetPreProcessing(encoder, &oriPreProcCfg);
+        ret = H264EncGetPreProcessing(enc, &oriPreProcCfg);
         if (ret) {
             mpp_err("H264EncGetPreProcessing() failed, ret %d.\n", ret);
-            h264e_deinit((void*)encoder);
+            h264e_deinit((void*)enc);
             break;
         } else {
             mpp_log_f("Get PreP: input %dx%d : offset %dx%d : format %d : rotation %d : stab %d : cc %d\n",
@@ -351,22 +346,20 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 oriPreProcCfg.colorConversion.coeffF = 38000;
             }
 
-            ret = H264EncSetPreProcessing(encoder, &oriPreProcCfg);
+            ret = H264EncSetPreProcessing(enc, &oriPreProcCfg);
             if (ret) {
                 mpp_err("H264EncSetPreProcessing() failed.", ret);
-                h264e_deinit((void*)encoder);
+                h264e_deinit((void*)enc);
                 break;
             }
         }
     } break;
     case SET_ENC_RC_CFG : {
-        const MppEncConfig  *mpp_cfg = (const MppEncConfig *)param;
-        H264EncRateCtrl cfg;
-        H264EncRateCtrl *enc_rc_cfg = &cfg;
-        H264EncInst encoder = (H264EncInst)ctx;
+        MppEncConfig    *mpp_cfg    = (MppEncConfig *)param;
+        H264EncRateCtrl *enc_rc_cfg = &enc->enc_rc_cfg;
         H264EncRateCtrl oriRcCfg;
 
-        mpp_assert(pEncInst);
+        mpp_assert(enc);
 
         if (mpp_cfg->rc_mode) {
             /* VBR / CBR mode */
@@ -404,11 +397,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_rc_cfg->mbQpAdjustment = 3;
         enc_rc_cfg->hrdCpbSize = mpp_cfg->bps / 8;
 
-        pEncInst->intraPicRate = enc_rc_cfg->intraPicRate;
-        pEncInst->intraPeriodCnt = enc_rc_cfg->intraPicRate;
+        enc->intraPicRate = enc_rc_cfg->intraPicRate;
+        enc->intraPeriodCnt = enc_rc_cfg->intraPicRate;
 
         /* Encoder setup: rate control */
-        ret = H264EncGetRateCtrl(encoder, &oriRcCfg);
+        ret = H264EncGetRateCtrl(enc, &oriRcCfg);
         if (ret) {
             mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
         } else {
@@ -448,15 +441,37 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                     oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
                     oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
 
-            ret = H264EncSetRateCtrl(encoder, &oriRcCfg);
+            ret = H264EncSetRateCtrl(enc, &oriRcCfg);
             if (ret) {
                 mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
             }
         }
     } break;
-    case GET_OUTPUT_STREAM_SIZE:
-        *((RK_U32*)param) = getOutputStreamSize(pEncInst);
-        break;
+    case GET_ENC_EXTRA_INFO : {
+        h264e_control_extra_info_cfg **dst  = (h264e_control_extra_info_cfg **)param;
+        h264e_control_extra_info_cfg *info  = &enc->info;
+        H264EncConfig *enc_cfg              = &enc->enc_cfg;
+        H264EncRateCtrl *enc_rc_cfg         = &enc->enc_rc_cfg;
+
+        info->chroma_qp_index_offset        = enc_cfg->chroma_qp_index_offset;
+        info->enable_cabac                  = enc_cfg->enable_cabac;
+        info->pic_init_qp                   = enc_cfg->pic_init_qp;
+        info->pic_luma_height               = enc_cfg->height;
+        info->pic_luma_width                = enc_cfg->width;
+        info->transform8x8_mode             = enc_cfg->transform8x8_mode;
+
+        info->input_image_format            = enc_cfg->input_image_format;
+        info->profile_idc                   = enc_cfg->profile;
+        info->level_idc                     = enc_cfg->level;
+        info->keyframe_max_interval         = enc_rc_cfg->keyframe_max_interval;
+        info->second_chroma_qp_index_offset = enc_cfg->second_chroma_qp_index_offset;
+        info->pps_id                        = enc_cfg->pps_id;
+
+        *dst = info;
+    } break;
+    case GET_OUTPUT_STREAM_SIZE : {
+        *((RK_U32*)param) = getOutputStreamSize(enc);
+    } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
         break;
@@ -469,14 +484,12 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 
 MPP_RET h264e_callback(void *ctx, void *feedback)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *)ctx;
-    regValues_s *val = &(pEncInst->asic.regs);
-    h264e_feedback *fb = (h264e_feedback *)feedback;
-    int i = 0;
-
+    h264Instance_s *enc = (h264Instance_s *)ctx;
+    regValues_s    *val = &(enc->asic.regs);
+    h264e_feedback *fb  = (h264e_feedback *)feedback;
+    H264EncOut *encOut  = &(enc->encOut);
+    RK_S32 i = 0;
     H264EncRet ret;
-    H264EncInst encInst = (H264EncInst)ctx;
-    H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
     MPP_RET vpuWaitResult = MPP_OK;
 
     /* HW output stream size, bits to bytes */
@@ -502,11 +515,11 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     val->hw_status = fb->hw_status;
 
     // vpuWaitResult should be given from hal part, and here assume it is OK  // TODO  modify by lance 2016.06.01
-    ret = H264EncStrmEncodeAfter(encInst, encOut, vpuWaitResult);    // add by lance 2016.05.07
+    ret = H264EncStrmEncodeAfter(enc, encOut, vpuWaitResult);    // add by lance 2016.05.07
     switch (ret) {
     case H264ENC_FRAME_READY:
         if (encOut->codingType != H264ENC_NOTCODED_FRAME) {
-            pEncInst->intraPeriodCnt++;
+            enc->intraPeriodCnt++;
         }
         break;
 

@@ -20,6 +20,7 @@
 #include "mpp_log.h"
 #include "enccommon.h"
 #include "ewl.h"
+#include "h264encapi.h"
 #include "H264CodeFrame.h"
 
 /*------------------------------------------------------------------------------

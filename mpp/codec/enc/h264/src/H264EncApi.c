@@ -57,11 +57,9 @@ static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
     Argument      : pEncCfg - initialization parameters
                     instAddr - where to save the created instance
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncInit(h264Instance_s *instAddr)
+H264EncRet H264EncInit(h264Instance_s *pEncInst)
 {
     H264EncRet ret;
-    h264Instance_s *pEncInst = instAddr;
-
     h264e_dbg_func("enter\n");
 
     ret = H264Init(pEncInst);
@@ -88,10 +86,8 @@ H264EncRet H264EncInit(h264Instance_s *instAddr)
     Return type   : H264EncRet
     Argument      : inst - the instance to be released
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncRelease(H264EncInst inst)
+H264EncRet H264EncRelease(h264Instance_s *pEncInst)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
-
     h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
@@ -110,11 +106,9 @@ H264EncRet H264EncRelease(H264EncInst inst)
     return H264ENC_OK;
 }
 
-H264EncRet H264EncCfg(H264EncInst inst, const H264EncConfig * pEncConfig)
+H264EncRet H264EncCfg(h264Instance_s *pEncInst, const H264EncConfig * pEncConfig)
 {
     H264EncRet ret;
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
-
     h264e_dbg_func("enter\n");
 
     ret = H264Cfg(pEncConfig, pEncInst);
@@ -136,11 +130,8 @@ H264EncRet H264EncCfg(H264EncInst inst, const H264EncConfig * pEncConfig)
     Argument      : inst - the instance in use
                     pCodeParams - user provided parameters
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetCodingCtrl(H264EncInst inst,
-                                const H264EncCodingCtrl * pCodeParams)
+H264EncRet H264EncSetCodingCtrl(h264Instance_s *pEncInst, const H264EncCodingCtrl * pCodeParams)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
-
     h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
@@ -241,11 +232,9 @@ set_slice_size:
     Argument      : inst - the instance in use
                     pCodeParams - palce where parameters are returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncGetCodingCtrl(H264EncInst inst,
+H264EncRet H264EncGetCodingCtrl(h264Instance_s *pEncInst,
                                 H264EncCodingCtrl * pCodeParams)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
-
     h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
@@ -293,10 +282,9 @@ H264EncRet H264EncGetCodingCtrl(H264EncInst inst,
     Argument      : inst - the instance in use
                     pRateCtrl - user provided parameters
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetRateCtrl(H264EncInst inst,
+H264EncRet H264EncSetRateCtrl(h264Instance_s *pEncInst,
                               const H264EncRateCtrl * pRateCtrl)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
     h264RateControl_s *rc;
 
     u32 i, tmp;
@@ -460,9 +448,8 @@ H264EncRet H264EncSetRateCtrl(H264EncInst inst,
     Argument      : inst - the instance in use
                     pRateCtrl - place where parameters are returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncGetRateCtrl(H264EncInst inst, H264EncRateCtrl * pRateCtrl)
+H264EncRet H264EncGetRateCtrl(h264Instance_s *pEncInst, H264EncRateCtrl * pRateCtrl)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
     h264RateControl_s *rc;
 
     h264e_dbg_func("enter\n");
@@ -540,16 +527,15 @@ i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
     Argument        : inst - encoder instance in use
     Argument        : pPreProcCfg - user provided parameters
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetPreProcessing(H264EncInst inst,
+H264EncRet H264EncSetPreProcessing(h264Instance_s *pEncInst,
                                    const H264EncPreProcessingCfg * pPreProcCfg)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
     preProcess_s pp_tmp;
 
     h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
-    if ((inst == NULL) || (pPreProcCfg == NULL)) {
+    if ((pEncInst == NULL) || (pPreProcCfg == NULL)) {
         mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
@@ -673,16 +659,15 @@ H264EncRet H264EncSetPreProcessing(H264EncInst inst,
     Argument        : inst - encoder instance
     Argument        : pPreProcCfg - place where the parameters are returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncGetPreProcessing(H264EncInst inst,
+H264EncRet H264EncGetPreProcessing(h264Instance_s *pEncInst,
                                    H264EncPreProcessingCfg * pPreProcCfg)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
     preProcess_s *pPP;
 
     h264e_dbg_func("enter\n");
 
     /* Check for illegal inputs */
-    if ((inst == NULL) || (pPreProcCfg == NULL)) {
+    if ((pEncInst == NULL) || (pPreProcCfg == NULL)) {
         mpp_err_f("ERROR Null argument\n");
         return H264ENC_NULL_ARGUMENT;
     }
@@ -729,11 +714,9 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
                                    maximum size H264ENC_MAX_USER_DATA_SIZE
                                    not valid size disables userData sei messages
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetSeiUserData(H264EncInst inst, const u8 * pUserData,
+H264EncRet H264EncSetSeiUserData(h264Instance_s *pEncInst, const u8 * pUserData,
                                  u32 userDataSize)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
-
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (userDataSize != 0 && pUserData == NULL)) {
         mpp_err_f("ERROR Null argument\n");
@@ -769,10 +752,9 @@ H264EncRet H264EncSetSeiUserData(H264EncInst inst, const u8 * pUserData,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmStart(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
                             H264EncOut * pEncOut)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *)inst;
     h264RateControl_s *rc;
 
     h264e_dbg_func("enter\n");
@@ -888,10 +870,9 @@ H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncode(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
                              H264EncOut * pEncOut, h264e_syntax *syntax_data)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;
     slice_s *pSlice;
     regValues_s *regs;
     /*h264EncodeFrame_e ret;*/  // mask by lance 2016.05.12
@@ -1110,16 +1091,14 @@ RK_S32 EncAsicCheckHwStatus(asicData_s *asic)
     return ret;
 }
 
-H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
+H264EncRet H264EncStrmEncodeAfter(h264Instance_s *pEncInst,
                                   H264EncOut * pEncOut, MPP_RET vpuWaitResult)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *) inst;  // add by lance 2016.05.07
-    slice_s *pSlice;  // add by lance 2016.05.07
-    regValues_s *regs;  // add by lance 2016.05.07
-    h264EncodeFrame_e ret = H264ENCODE_OK;  // add by lance 2016.05.07
+    slice_s *pSlice;
+    regValues_s *regs;
+    h264EncodeFrame_e ret = H264ENCODE_OK;
     asicData_s *asic = &pEncInst->asic;
-    // add by lance 2016.05.07
-    /* some shortcuts */
+
     pSlice = &pEncInst->slice;
     regs = &pEncInst->asic.regs;
     if (vpuWaitResult != MPP_OK) {
@@ -1255,11 +1234,9 @@ H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEnd(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut)
 {
-    h264Instance_s *pEncInst = (h264Instance_s *)inst;
-
     h264e_dbg_func("enter\n");
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (pEncIn == NULL) || (pEncOut == NULL)) {
