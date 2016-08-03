@@ -27,11 +27,8 @@
 #include "h264encapi.h"
 #include "mpp_controller.h"
 #include "h264e_utils.h"
-#include "h264e_macro.h"
 
-#ifdef SYNTAX_DATA_IN_FILE
-FILE *fp_syntax_in = NULL;
-#endif
+RK_U32 h264e_ctrl_debug = 0;
 
 MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 {
@@ -66,12 +63,6 @@ MPP_RET h264e_deinit(void *ctx)
         return MPP_NOK;
     }
 
-#ifdef SYNTAX_DATA_IN_FILE
-    if (NULL != fp_syntax_in) {
-        fclose(fp_syntax_in);
-        fp_syntax_in = NULL;
-    }
-#endif
     return MPP_OK;
 }
 
@@ -265,7 +256,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
     MPP_RET ret = MPP_NOK;
     h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
 
-    h264e_control_debug_enter();
+    h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
     switch (cmd) {
     case CHK_ENC_CFG : {
@@ -312,11 +303,10 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             h264e_deinit((void*)encoder);
             break;
         } else {
-            h264e_control_log("Get PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
-                              ": stab %d : cc %d\n",
-                              oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
-                              oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
-                              oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
+            mpp_log_f("Get PreP: input %dx%d : offset %dx%d : format %d : rotation %d : stab %d : cc %d\n",
+                      oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
+                      oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
+                      oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
             // ----------------
             // will be replaced  modify by lance 2016.05.20
             oriPreProcCfg.inputType = H264ENC_YUV420_SEMIPLANAR;//H264ENC_YUV420_PLANAR;
@@ -342,15 +332,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 break;
             }
         }
-
-        // add by lance 2016.06.16
-#ifdef SYNTAX_DATA_IN_FILE
-        if (NULL == fp_syntax_in) {
-            fp_syntax_in = fopen("/data/test/vpu_syntax_in.txt", "ab");
-            if (NULL == fp_syntax_in)
-                mpp_err("open fp_syntax_in failed!");
-        }
-#endif
     } break;
     case SET_ENC_RC_CFG : {
         const H264EncRateCtrl *encCfg = (const H264EncRateCtrl *)param;
@@ -366,12 +347,12 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         if (ret) {
             mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
         } else {
-            h264e_control_log("Get rate control: qp %2d [%2d, %2d] bps %8d\n",
-                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
+            mpp_log_f("Get rate control: qp %2d [%2d, %2d] bps %8d\n",
+                      oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
 
-            h264e_control_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
-                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
+            mpp_log_f("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
+                      oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
+                      oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
 
             // will be replaced  modify by lance 2016.05.20
             // ------------
@@ -395,12 +376,12 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriRcCfg.fixedIntraQp = encCfg->fixedIntraQp;
             oriRcCfg.mbQpAdjustment = encCfg->mbQpAdjustment;
 
-            h264e_control_log("Set rate control: qp %2d [%2d, %2d] bps %8d\n",
-                              oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
+            mpp_log("Set rate control: qp %2d [%2d, %2d] bps %8d\n",
+                    oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
 
-            h264e_control_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
-                              oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                              oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
+            mpp_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
+                    oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
+                    oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
 
             ret = H264EncSetRateCtrl(encoder, &oriRcCfg);
             if (ret) {
@@ -415,7 +396,8 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         mpp_err("No correspond cmd found, and can not config!");
         break;
     }
-    h264e_control_debug_leave();
+
+    h264e_dbg_func("leave ret %d\n", ret);
 
     return ret;
 }
@@ -458,75 +440,17 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
     ret = H264EncStrmEncodeAfter(encInst, encOut, vpuWaitResult);    // add by lance 2016.05.07
     switch (ret) {
     case H264ENC_FRAME_READY:
-        h264e_control_log("after encode frame ready");  // add by lance 2016.06.01
-
-
         if (encOut->codingType != H264ENC_NOTCODED_FRAME) {
             pEncInst->intraPeriodCnt++;
         }
-#if 0
-        mpp_log("%5i | %3i | %2i | %s | %8u | %7i %6i | ",
-                next, frameCnt, rc.qpHdr,
-                encOut->codingType == H264ENC_INTRA_FRAME ? " I  " :
-                encOut->codingType == H264ENC_PREDICTED_FRAME ? " P  " : "skip",
-                bitrate, streamSize, encOut->streamSize);
-        if (cml->psnr)
-            psnr = PrintPSNR(/*(u8 *)
-                                 (((h264Instance_s *)encoderInst)->asic.regs.inputLumBase +
-                                  ((h264Instance_s *)encoderInst)->asic.regs.inputLumaBaseOffset),
-                                 (u8 *)
-                                 (((h264Instance_s *)encoderInst)->asic.regs.internalImageLumBaseR),
-                                 cml->lumWidthSrc, cml->width, cml->height*/);  // mask by lance 2016.05.12
-        if (psnr) {
-            psnrSum += psnr;
-            psnrCnt++;
-        }
-        // mask and add by lance 2016.05.06
-        /*PrintNalSizes(encIn.pNaluSizeBuf, (u8 *) outbufMem.vir_addr,
-          encOut.streamSize, cml->byteStream);*/
-        PrintNalSizes(encIn->pNaluSizeBuf/*, (u8 *) mpp_buffer_get_ptr(outbufMem),
-                                              encOut.streamSize, cml->byteStream*/);  // mask by lance 2016.05.12
-        mpp_log("\n");
-
-        // mask and add by lance 2016.05.06
-        //WriteStrm(fout, outbufMem.vir_addr, encOut.streamSize, 0);
-        WriteStrm(fout, (u32*)mpp_buffer_get_ptr(outbufMem), encOut->streamSize, 0);
-
-        if (cml->byteStream == 0) {
-            WriteNalSizesToFile(nal_sizes_file, encIn->pNaluSizeBuf,
-                                encIn->naluSizeBufSize);
-        }
-
-        if (pUserData) {
-            /* We want the user data to be written only once so
-             * we disable the user data and free the memory after
-             * first frame has been encoded. */
-            H264EncSetSeiUserData(encoderInst, NULL, 0);
-            free(pUserData);
-            pUserData = NULL;
-        }
-#endif
         break;
 
     case H264ENC_OUTPUT_BUFFER_OVERFLOW:
         mpp_log("output buffer overflow!");
-#if 0
-        mpp_log("%5i | %3i | %2i | %s | %8u | %7i %6i | \n",
-                next, frameCnt, rc.qpHdr, "lost",
-                bitrate, streamSize, encOut->streamSize);
-#endif
         break;
 
     default:
         mpp_log("afterencode default!");
-#if 0
-        PrintErrorValue("H264EncStrmEncode() failed.", ret);
-        /* For debugging, can be removed */
-        // mask and add by lance 2016.05.06
-        //WriteStrm(fout, outbufMem.vir_addr, encOut.streamSize, 0);
-        WriteStrm(fout, (u32*)mpp_buffer_get_ptr(outbufMem), encOut->streamSize, 0);
-        /* We try to continue encoding the next frame */
-#endif
         break;
     }
 

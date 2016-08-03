@@ -18,6 +18,7 @@
 
 #include <string.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 
 #include "h264encapi.h"
@@ -28,7 +29,6 @@
 #include "H264CodeFrame.h"
 #include "H264Sei.h"
 #include "H264RateControl.h"
-#include "h264e_macro.h"
 
 #include "ewl.h"
 
@@ -44,7 +44,6 @@
 
 #define H264_BUS_ADDRESS_VALID(bus_address)  (((bus_address) != 0)/* &&*/ \
                                               /*((bus_address & 0x07) == 0)*/)
-
 RK_U32 h264e_debug = 0;
 
 static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
@@ -74,6 +73,8 @@ H264EncRet H264EncInit(h264Instance_s *instAddr)
     /* Status == INIT   Initialization succesful */
     pEncInst->encStatus = H264ENCSTAT_INIT;
     pEncInst->inst = pEncInst;  /* used as checksum */
+
+    mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 
     h264e_dbg_func("leave\n");
     return H264ENC_OK;
@@ -711,11 +712,6 @@ H264EncRet H264EncGetPreProcessing(H264EncInst inst,
     pPreProcCfg->colorConversion.coeffC = pPP->colorConversionCoeffC;
     pPreProcCfg->colorConversion.coeffE = pPP->colorConversionCoeffE;
     pPreProcCfg->colorConversion.coeffF = pPP->colorConversionCoeffF;
-    h264e_control_log(" %d  %d  %d  %d ... %d  %d  %d  %d  ... %d %d %d ... %d %d  modify by lance 2016.04.26",
-                      pPreProcCfg->origHeight, pPreProcCfg->origWidth, pPreProcCfg->xOffset, pPreProcCfg->yOffset,
-                      pPreProcCfg->rotation, pPreProcCfg->inputType, pPreProcCfg->videoStabilization, pPreProcCfg->colorConversion.type,
-                      pPreProcCfg->colorConversion.coeffA, pPreProcCfg->colorConversion.coeffB, pPreProcCfg->colorConversion.coeffC,
-                      pPreProcCfg->colorConversion.coeffE, pPreProcCfg->colorConversion.coeffF);
 
     h264e_dbg_func("leave\n");
     return H264ENC_OK;
