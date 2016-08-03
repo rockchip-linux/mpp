@@ -406,84 +406,19 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     }
 
     MPP_RET ret = MPP_NOK;
-    H264EncRateCtrl *enc_rc_cfg = &(enc->enc_rc_cfg);
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        MppEncConfig    *mpp_cfg    = &enc->mpp_cfg;
-        H264EncConfig   *enc_cfg    = &enc->enc_cfg;
-        //H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
-        enc->mpp_cfg = *((MppEncConfig *)param);
+        MppEncConfig *mpp_cfg = &enc->mpp_cfg;
+
+        *mpp_cfg = *((MppEncConfig *)param);
 
         /* before set config to controller check it first */
-        ret = controller_config(enc->controller, CHK_ENC_CFG,  (void *)&enc->mpp_cfg);
+        ret = controller_config(enc->controller, CHK_ENC_CFG, (void *)mpp_cfg);
         if (ret)
             break;
-
-        enc_cfg->streamType = H264ENC_BYTE_STREAM;
-        enc_cfg->frameRateDenom = 1;
-        enc_cfg->profile    = (H264Profile)mpp_cfg->profile;
-        enc_cfg->level      = (H264Level)mpp_cfg->level;
-
-        if (mpp_cfg->width && mpp_cfg->height) {
-            enc_cfg->width  = mpp_cfg->width;
-            enc_cfg->height = mpp_cfg->height;
-        } else
-            mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
-
-        enc_cfg->frameRateNum = mpp_cfg->fps_in;
-        if (mpp_cfg->cabac_en)
-            enc_cfg->enable_cabac = mpp_cfg->cabac_en;
-        else
-            enc_cfg->enable_cabac = 0;
-
-        enc_cfg->transform8x8_mode = (enc_cfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
-        enc_cfg->chroma_qp_index_offset = 2;
-        enc_cfg->pic_init_qp = mpp_cfg->qp;
-        enc_cfg->second_chroma_qp_index_offset = 2;
-        enc_cfg->pps_id = 0;
-        enc_cfg->input_image_format = (H264EncPictureFormat)mpp_cfg->format;
-
-        controller_config(enc->controller, SET_ENC_CFG, (void *)enc_cfg);
-
-        if (mpp_cfg->rc_mode) {
-            /* VBR / CBR mode */
-            RK_S32 max_qp = MPP_MAX(mpp_cfg->qp + 6, 48);
-            RK_S32 min_qp = MPP_MIN(mpp_cfg->qp - 6, 16);
-
-            enc_rc_cfg->pictureRc       = 1;
-            enc_rc_cfg->mbRc            = 1;
-            enc_rc_cfg->qpHdr           = mpp_cfg->qp;
-            enc_rc_cfg->qpMax           = max_qp;
-            enc_rc_cfg->qpMin           = min_qp;
-            enc_rc_cfg->hrd             = 1;
-            enc_rc_cfg->intraQpDelta    = 3;
-        } else {
-            /* CQP mode */
-            enc_rc_cfg->pictureRc       = 0;
-            enc_rc_cfg->mbRc            = 0;
-            enc_rc_cfg->qpHdr           = mpp_cfg->qp;
-            enc_rc_cfg->qpMax           = mpp_cfg->qp;
-            enc_rc_cfg->qpMin           = mpp_cfg->qp;
-            enc_rc_cfg->hrd             = 0;
-            enc_rc_cfg->intraQpDelta    = 0;
-        }
-        enc_rc_cfg->pictureSkip = mpp_cfg->skip_cnt;
-
-        if (mpp_cfg->gop > 0)
-            enc_rc_cfg->intraPicRate = mpp_cfg->gop;
-        else
-            enc_rc_cfg->intraPicRate = 30;
-
-        enc_rc_cfg->keyframe_max_interval = 150;
-        enc_rc_cfg->bitPerSecond = mpp_cfg->bps;
-        enc_rc_cfg->gopLen = mpp_cfg->gop;
-        enc_rc_cfg->fixedIntraQp = 0;
-        enc_rc_cfg->mbQpAdjustment = 3;
-        enc_rc_cfg->hrdCpbSize = mpp_cfg->bps / 8;
-
-        controller_config(enc->controller, SET_ENC_RC_CFG,  (void *)enc_rc_cfg);
-
+        controller_config(enc->controller, SET_ENC_CFG,     (void *)mpp_cfg);
+        controller_config(enc->controller, SET_ENC_RC_CFG,  (void *)mpp_cfg);
         mpp_extra_info_generate(enc);
 
         ret = mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
