@@ -803,10 +803,51 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     MpiCmd mpicmd = MPI_CMD_BUTT;
     switch (cmd) {
     case VPU_API_ENC_SETCFG : {
-        mpicmd = MPP_ENC_SET_CFG;
+        /* input EncParameter_t need to be transform to MppEncConfig */
+        EncParameter_t *cfg = (EncParameter_t *)param;
+        MppEncConfig mpp_cfg;
+
+        mpp_cfg.size        = sizeof(mpp_cfg);
+        mpp_cfg.version     = 0;
+        mpp_cfg.width       = cfg->width;
+        mpp_cfg.height      = cfg->height;
+        mpp_cfg.hor_stride  = MPP_ALIGN(cfg->width, 16);
+        mpp_cfg.ver_stride  = MPP_ALIGN(cfg->height, 16);
+        mpp_cfg.format      = (RK_S32)enc_in_fmt;
+        mpp_cfg.rc_mode     = cfg->rc_mode;
+        mpp_cfg.skip_cnt    = 0;
+        mpp_cfg.bps         = cfg->bitRate;
+        mpp_cfg.fps_in      = cfg->framerate;
+        mpp_cfg.fps_out     = cfg->framerateout;
+        mpp_cfg.qp          = cfg->qp;
+        mpp_cfg.gop         = cfg->intraPicRate;
+        mpp_cfg.profile     = cfg->profileIdc;
+        mpp_cfg.level       = cfg->levelIdc;
+        mpp_cfg.cabac_en    = cfg->enableCabac;
+
+        return mpi->control(mpp_ctx, MPP_ENC_SET_CFG, (MppParam)&mpp_cfg);
     } break;
     case VPU_API_ENC_GETCFG : {
-        mpicmd = MPP_ENC_GET_CFG;
+        /* input EncParameter_t need to be transform to MppEncConfig */
+        EncParameter_t *cfg = (EncParameter_t *)param;
+        MppEncConfig mpp_cfg;
+
+        MPP_RET ret = mpi->control(mpp_ctx, MPP_ENC_GET_CFG, (MppParam)&mpp_cfg);
+
+        cfg->width          = mpp_cfg.width;
+        cfg->height         = mpp_cfg.height;
+        cfg->rc_mode        = mpp_cfg.rc_mode;
+        cfg->bitRate        = mpp_cfg.bps;
+        cfg->framerate      = mpp_cfg.fps_in;
+        cfg->framerateout   = mpp_cfg.fps_out;
+        cfg->qp             = mpp_cfg.qp;
+        cfg->intraPicRate   = mpp_cfg.gop;
+        cfg->profileIdc     = mpp_cfg.profile;
+        cfg->levelIdc       = mpp_cfg.level;
+        cfg->enableCabac    = mpp_cfg.cabac_en;
+        cfg->cabacInitIdc   = 0;
+
+        return ret;
     } break;
     case VPU_API_ENC_SETFORMAT : {
         enc_in_fmt = *((EncInputPictureType *)param);

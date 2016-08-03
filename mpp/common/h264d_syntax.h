@@ -19,6 +19,7 @@
 #ifndef __H264D_SYNTAX_H__
 #define __H264D_SYNTAX_H__
 
+#include "h264_syntax.h"
 #include "dxva_syntax.h"
 
 /* H.264/AVC-specific structures */

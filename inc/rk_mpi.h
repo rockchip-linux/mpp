@@ -129,6 +129,10 @@ typedef void* MppParam;
  * and decoder will try to decode the
  */
 typedef struct MppEncConfig_t {
+    /* encoder config also need to know size of itself */
+    RK_U32  size;
+    RK_U32  version;
+
     /*
      * input source data format
      */

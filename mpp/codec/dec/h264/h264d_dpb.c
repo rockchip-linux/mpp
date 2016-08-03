@@ -117,7 +117,7 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
     }
     size /= pic_size;
     if (p_Vid->active_mvc_sps_flag &&
-        (p_Vid->profile_idc == MVC_HIGH || p_Vid->profile_idc == STEREO_HIGH)) {
+        (p_Vid->profile_idc == H264_PROFILE_MVC_HIGH || p_Vid->profile_idc == H264_PROFILE_STEREO_HIGH)) {
         num_views = p_Vid->active_subsps->num_views_minus1 + 1;
         size = MPP_MIN(2 * size, MPP_MAX(1, RoundLog2(num_views)) * 16) / num_views;
     } else {

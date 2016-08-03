@@ -161,7 +161,7 @@ static void set_pps_scanlist_matrix(H264_SPS_t *sps, H264_PPS_t *pps, H264dVideo
 //extern "C"
 RK_U32 is_prext_profile(RK_U32 profile_idc)
 {
-    return (profile_idc >= FREXT_HP || profile_idc == FREXT_CAVLC444) ? 1 : 0;
+    return (profile_idc >= H264_PROFILE_HIGH || profile_idc == H264_PROFILE_FREXT_CAVLC444) ? 1 : 0;
 }
 
 /*!

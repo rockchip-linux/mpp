@@ -181,7 +181,6 @@ typedef struct {
 } regValues_s;
 
 typedef struct {
-    const void *ewl;
     regValues_s regs;
 } asicData_s;
 
@@ -189,9 +188,6 @@ typedef struct {
     4. Function prototypes
 ------------------------------------------------------------------------------*/
 i32 EncAsicControllerInit(asicData_s * asic);
-
-i32 EncAsicMemAlloc_V2(asicData_s * asic, u32 width, u32 height,
-                       u32 encodingType);
 
 /* Functions for controlling ASIC */
 void EncAsicFrameStart(void * inst,/* const void *ewl,*/ regValues_s * val, h264e_syntax *syntax_data);  // mask by lance 2016.05.12

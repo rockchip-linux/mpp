@@ -337,12 +337,13 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
             break;
         }
 
-        p->coding = coding;
-        p->controller = controller;
-        p->hal    = hal;
-        p->tasks  = hal_cfg.tasks;
+        p->coding       = coding;
+        p->controller   = controller;
+        p->hal          = hal;
+        p->tasks        = hal_cfg.tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
+        p->mpp_cfg.size = sizeof(p->mpp_cfg);
         *enc = p;
         return MPP_OK;
     } while (0);
@@ -404,35 +405,33 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         return MPP_ERR_NULL_PTR;
     }
 
-    // TODO
-    MppEncConfig    *mpp_cfg    = (MppEncConfig*)param;
-    H264EncConfig   *enc_cfg    = &(enc->enc_cfg);
+    MPP_RET ret = MPP_NOK;
     H264EncRateCtrl *enc_rc_cfg = &(enc->enc_rc_cfg);
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
+        MppEncConfig    *mpp_cfg    = &enc->mpp_cfg;
+        H264EncConfig   *enc_cfg    = &enc->enc_cfg;
         //H264ENC_NAL_UNIT_STREAM;  // decide whether stream start with start code,e.g."00 00 00 01"
-        enc->mpp_cfg = *mpp_cfg;
+        enc->mpp_cfg = *((MppEncConfig *)param);
+
+        /* before set config to controller check it first */
+        ret = controller_config(enc->controller, CHK_ENC_CFG,  (void *)&enc->mpp_cfg);
+        if (ret)
+            break;
 
         enc_cfg->streamType = H264ENC_BYTE_STREAM;
         enc_cfg->frameRateDenom = 1;
-        if (mpp_cfg->profile)
-            enc_cfg->profile = (h264e_profile)mpp_cfg->profile;
-        else
-            enc_cfg->profile = H264_PROFILE_BASELINE;
-        if (mpp_cfg->level)
-            enc_cfg->level = (H264EncLevel)mpp_cfg->level;
-        else
-            enc_cfg->level = H264ENC_LEVEL_4_0;
+        enc_cfg->profile    = (H264Profile)mpp_cfg->profile;
+        enc_cfg->level      = (H264Level)mpp_cfg->level;
+
         if (mpp_cfg->width && mpp_cfg->height) {
-            enc_cfg->width = mpp_cfg->width;
+            enc_cfg->width  = mpp_cfg->width;
             enc_cfg->height = mpp_cfg->height;
         } else
             mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
-        if (mpp_cfg->fps_in)
-            enc_cfg->frameRateNum = mpp_cfg->fps_in;
-        else
-            enc_cfg->frameRateNum = 30;
+
+        enc_cfg->frameRateNum = mpp_cfg->fps_in;
         if (mpp_cfg->cabac_en)
             enc_cfg->enable_cabac = mpp_cfg->cabac_en;
         else
@@ -443,7 +442,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         enc_cfg->pic_init_qp = mpp_cfg->qp;
         enc_cfg->second_chroma_qp_index_offset = 2;
         enc_cfg->pps_id = 0;
-        enc_cfg->input_image_format = H264ENC_YUV420_SEMIPLANAR;
+        enc_cfg->input_image_format = (H264EncPictureFormat)mpp_cfg->format;
 
         controller_config(enc->controller, SET_ENC_CFG, (void *)enc_cfg);
 
@@ -487,19 +486,24 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
 
         mpp_extra_info_generate(enc);
 
-        mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
+        ret = mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
 
     } break;
     case MPP_ENC_GET_CFG : {
+        MppEncConfig *mpp_cfg = (MppEncConfig *)param;
+
+        mpp_assert(mpp_cfg->size == sizeof(enc->mpp_cfg));
+
         *mpp_cfg = enc->mpp_cfg;
+        ret = MPP_OK;
     } break;
     case MPP_ENC_GET_EXTRA_INFO : {
-        mpp_hal_control(enc->hal, cmd, param);
+        ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     default : {
     } break;
     }
 
-    return MPP_OK;
+    return ret;
 }
 

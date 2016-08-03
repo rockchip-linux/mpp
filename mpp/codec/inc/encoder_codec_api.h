@@ -26,6 +26,7 @@
 
 // config cmd
 typedef enum EncCfgCmd_t {
+    CHK_ENC_CFG,
     SET_ENC_CFG,
     SET_ENC_RC_CFG,
     GET_OUTPUT_STREAM_SIZE,

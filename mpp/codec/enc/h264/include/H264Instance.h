@@ -82,12 +82,6 @@ typedef struct {
     u32 streamSize;      /* Size of output stream in bytes */
 } H264EncOut;
 
-/* Encoder configure parameter */
-typedef struct {
-    RK_U32 intraPicRate;        // set I frame interval, and is 30 default
-} H264EncCfg;
-
-
 typedef struct {
     u32 encStatus;
     RK_U32 lumWidthSrc;  // TODO  need to think again  modify by lance 2016.06.15
@@ -112,7 +106,7 @@ typedef struct {
     // then determine next frame to which type to be encoded
     H264EncIn encIn;        // put input struct into instance, todo    modify by lance 2016.05.31
     H264EncOut encOut;      //  put input struct into instance, todo    modify by lance 2016.05.31
-    H264EncCfg h264EncCfg;
+    RK_U32 intraPicRate;        // set I frame interval, and is 30 default
 } h264Instance_s;
 
 #define H264E_DBG_FUNCTION          (0x00000001)
