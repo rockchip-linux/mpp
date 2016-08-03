@@ -103,8 +103,8 @@ void *mpp_enc_control_thread(void *data)
                  * if there is available buffer in the input frame do encoding
                  */
                 if (NULL == packet) {
-                    RK_U32 width  = enc->enc_cfg.width;
-                    RK_U32 height = enc->enc_cfg.height;
+                    RK_U32 width  = enc->mpp_cfg.width;
+                    RK_U32 height = enc->mpp_cfg.height;
                     RK_U32 size = width * height;
                     MppBuffer buffer = NULL;
 
@@ -239,28 +239,6 @@ void *mpp_enc_hal_thread(void *data)
     }
 
     return NULL;
-}
-
-static MPP_RET mpp_extra_info_generate(MppEnc *enc)
-{
-    h264e_control_extra_info_cfg *info  = &enc->extra_info_cfg;
-    H264EncConfig *enc_cfg              = &enc->enc_cfg;
-    H264EncRateCtrl *enc_rc_cfg         = &enc->enc_rc_cfg;
-
-    info->chroma_qp_index_offset        = enc_cfg->chroma_qp_index_offset;
-    info->enable_cabac                  = enc_cfg->enable_cabac;
-    info->pic_init_qp                   = enc_cfg->pic_init_qp;
-    info->pic_luma_height               = enc_cfg->height;
-    info->pic_luma_width                = enc_cfg->width;
-    info->transform8x8_mode             = enc_cfg->transform8x8_mode;
-
-    info->input_image_format            = enc_cfg->input_image_format;
-    info->profile_idc                   = enc_cfg->profile;
-    info->level_idc                     = enc_cfg->level;
-    info->keyframe_max_interval         = enc_rc_cfg->keyframe_max_interval;
-    info->second_chroma_qp_index_offset = enc_cfg->second_chroma_qp_index_offset;
-    info->pps_id                        = enc_cfg->pps_id;
-    return MPP_OK;
 }
 
 MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
@@ -410,18 +388,21 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
         MppEncConfig *mpp_cfg = &enc->mpp_cfg;
+        void *extra_info_cfg = NULL;
 
         *mpp_cfg = *((MppEncConfig *)param);
 
         /* before set config to controller check it first */
         ret = controller_config(enc->controller, CHK_ENC_CFG, (void *)mpp_cfg);
-        if (ret)
+        if (ret) {
+            mpp_err("config check failed ret %d\n", ret);
             break;
+        }
         controller_config(enc->controller, SET_ENC_CFG,     (void *)mpp_cfg);
         controller_config(enc->controller, SET_ENC_RC_CFG,  (void *)mpp_cfg);
-        mpp_extra_info_generate(enc);
+        controller_config(enc->controller, GET_ENC_EXTRA_INFO,  (void *)&extra_info_cfg);
 
-        ret = mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, (void*)(&(enc->extra_info_cfg)));
+        ret = mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, extra_info_cfg);
 
     } break;
     case MPP_ENC_GET_CFG : {

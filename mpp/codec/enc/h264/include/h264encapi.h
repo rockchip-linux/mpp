@@ -28,8 +28,6 @@ extern "C"
 
 #include "H264Instance.h"
 
-typedef const void *H264EncInst;
-
 /* Function return values */
 typedef enum {
     H264ENC_OK = 0,
@@ -53,12 +51,40 @@ typedef enum {
     H264ENC_HW_RESET = -16
 } H264EncRet;
 
+/* Picture rotation for pre-processing */
+typedef enum {
+    H264ENC_ROTATE_0 = 0,
+    H264ENC_ROTATE_90R = 1, /* Rotate 90 degrees clockwise */
+    H264ENC_ROTATE_90L = 2  /* Rotate 90 degrees counter-clockwise */
+} H264EncPictureRotation;
+
+/* Picture color space conversion (RGB input) for pre-processing */
+typedef enum {
+    H264ENC_RGBTOYUV_BT601 = 0, /* Color conversion according to BT.601 */
+    H264ENC_RGBTOYUV_BT709 = 1, /* Color conversion according to BT.709 */
+    H264ENC_RGBTOYUV_USER_DEFINED = 2   /* User defined color conversion */
+} H264EncColorConversionType;
+
+enum H264EncStatus {
+    H264ENCSTAT_INIT = 0xA1,
+    H264ENCSTAT_START_STREAM,
+    H264ENCSTAT_START_FRAME,
+    H264ENCSTAT_ERROR
+};
+
 /* Stream type for initialization */
 typedef enum {
     H264ENC_BYTE_STREAM = 0,    /* H.264 annex B: NAL unit starts with
                                      * hex bytes '00 00 00 01' */
     H264ENC_NAL_UNIT_STREAM = 1 /* Plain NAL units without startcode */
 } H264EncStreamType;
+
+/* Picture type for encoding */
+typedef enum {
+    H264ENC_INTRA_FRAME = 0,
+    H264ENC_PREDICTED_FRAME = 1,
+    H264ENC_NOTCODED_FRAME  /* Used just as a return value */
+} H264EncPictureCodingType;
 
 /* Picture YUV type for initialization */
 typedef enum {
@@ -78,57 +104,10 @@ typedef enum {
     H264ENC_BGR101010 = 13  /* 30-bit RGB           */
 } H264EncPictureFormat;
 
-/* Picture rotation for pre-processing */
-typedef enum {
-    H264ENC_ROTATE_0 = 0,
-    H264ENC_ROTATE_90R = 1, /* Rotate 90 degrees clockwise */
-    H264ENC_ROTATE_90L = 2  /* Rotate 90 degrees counter-clockwise */
-} H264EncPictureRotation;
-
-/* Picture color space conversion (RGB input) for pre-processing */
-typedef enum {
-    H264ENC_RGBTOYUV_BT601 = 0, /* Color conversion according to BT.601 */
-    H264ENC_RGBTOYUV_BT709 = 1, /* Color conversion according to BT.709 */
-    H264ENC_RGBTOYUV_USER_DEFINED = 2   /* User defined color conversion */
-} H264EncColorConversionType;
-
-/* Complexity level */
-typedef enum {
-    H264ENC_COMPLEXITY_1 = 1
-} H264EncComplexityLevel;
 
 /*------------------------------------------------------------------------------
     3. Structures for API function parameters
 ------------------------------------------------------------------------------*/
-
-/* Configuration info for initialization
- * Width and height are picture dimensions after rotation
- * Width and height are restricted by level limitations
- */
-typedef struct {
-    H264EncStreamType streamType;   /* Byte stream / Plain NAL units */
-    /* Stream Profile will be automatically decided,
-     * CABAC -> main/high, 8x8-transform -> high */
-    H264Profile profile;
-    H264Level   level;
-    u32 width;           /* Encoded picture width in pixels, multiple of 4 */
-    u32 height;          /* Encoded picture height in pixels, multiple of 2 */
-    u32 frameRateNum;    /* The stream time scale, [1..65535] */
-    u32 frameRateDenom;  /* Maximum frame rate is frameRateNum/frameRateDenom
-                              * in frames/second. The actual frame rate will be
-                              * defined by timeIncrement of encoded pictures,
-                              * [1..frameRateNum] */
-    H264EncComplexityLevel complexityLevel; /* For compatibility */
-    RK_U32 enable_cabac;
-    RK_U32 transform8x8_mode;
-    RK_U32 pic_init_qp;
-    RK_U32 chroma_qp_index_offset;
-    RK_U32 pic_luma_height;
-    RK_U32 pic_luma_width;
-    H264EncPictureFormat input_image_format;
-    RK_U32 second_chroma_qp_index_offset;
-    RK_U32 pps_id;
-} H264EncConfig;
 
 /* Coding control parameters */
 typedef struct {
@@ -164,6 +143,106 @@ typedef struct {
     u32 transform8x8Mode;   /* Enable 8x8 transform mode, High profile
                                  * 0=disabled, 1=adaptive 8x8, 2=always 8x8 */
 } H264EncCodingCtrl;
+
+
+/* Input pre-processing */
+typedef struct {
+    H264EncColorConversionType type;
+    u16 coeffA;          /* User defined color conversion coefficient */
+    u16 coeffB;          /* User defined color conversion coefficient */
+    u16 coeffC;          /* User defined color conversion coefficient */
+    u16 coeffE;          /* User defined color conversion coefficient */
+    u16 coeffF;          /* User defined color conversion coefficient */
+} H264EncColorConversion;
+
+typedef struct {
+    u32 origWidth;
+    u32 origHeight;
+    u32 xOffset;
+    u32 yOffset;
+    H264EncPictureFormat inputType;
+    H264EncPictureRotation rotation;
+    u32 videoStabilization;
+    H264EncColorConversion colorConversion;
+} H264EncPreProcessingCfg;
+
+/* Version information */
+typedef struct {
+    u32 major;           /* Encoder API major version */
+    u32 minor;           /* Encoder API minor version */
+} H264EncApiVersion;
+
+typedef struct {
+    u32 swBuild;         /* Software build ID */
+    u32 hwBuild;         /* Hardware build ID */
+} H264EncBuild;
+
+/* Encoder input structure */
+typedef struct {
+    u32 busLuma;         /* Bus address for input picture
+                              * planar format: luminance component
+                              * semiplanar format: luminance component
+                              * interleaved format: whole picture
+                              */
+    u32 busChromaU;      /* Bus address for input chrominance
+                              * planar format: cb component
+                              * semiplanar format: both chrominance
+                              * interleaved format: not used
+                              */
+    u32 busChromaV;      /* Bus address for input chrominance
+                              * planar format: cr component
+                              * semiplanar format: not used
+                              * interleaved format: not used
+                              */
+    u32 timeIncrement;   /* The previous picture duration in units
+                              * of frameRateDenom/frameRateNum.
+                              * 0 for the very first picture.
+                              */
+    u32 *pOutBuf;        /* Pointer to output stream buffer */
+    u32 busOutBuf;       /* Bus address of output stream buffer */
+    u32 outBufSize;      /* Size of output stream buffer in bytes */
+
+    H264EncPictureCodingType codingType;    /* Proposed picture coding type,
+                                                 * INTRA/PREDICTED
+                                                 */
+    u32 busLumaStab;     /* bus address of next picture to stabilize (luminance) */
+} H264EncIn;
+
+/* Encoder output structure */
+typedef struct {
+    H264EncPictureCodingType codingType;    /* Realized picture coding type,
+                                                 * INTRA/PREDICTED/NOTCODED
+                                                 */
+    u32 streamSize;      /* Size of output stream in bytes */
+} H264EncOut;
+
+/* Configuration info for initialization
+ * Width and height are picture dimensions after rotation
+ * Width and height are restricted by level limitations
+ */
+typedef struct {
+    H264EncStreamType streamType;   /* Byte stream / Plain NAL units */
+    /* Stream Profile will be automatically decided,
+     * CABAC -> main/high, 8x8-transform -> high */
+    H264Profile profile;
+    H264Level   level;
+    u32 width;           /* Encoded picture width in pixels, multiple of 4 */
+    u32 height;          /* Encoded picture height in pixels, multiple of 2 */
+    u32 frameRateNum;    /* The stream time scale, [1..65535] */
+    u32 frameRateDenom;  /* Maximum frame rate is frameRateNum/frameRateDenom
+                              * in frames/second. The actual frame rate will be
+                              * defined by timeIncrement of encoded pictures,
+                              * [1..frameRateNum] */
+    RK_U32 enable_cabac;
+    RK_U32 transform8x8_mode;
+    RK_U32 pic_init_qp;
+    RK_U32 chroma_qp_index_offset;
+    RK_U32 pic_luma_height;
+    RK_U32 pic_luma_width;
+    H264EncPictureFormat input_image_format;
+    RK_U32 second_chroma_qp_index_offset;
+    RK_U32 pps_id;
+} H264EncConfig;
 
 /* Rate control parameters */
 typedef struct {
@@ -210,67 +289,75 @@ typedef struct {
                               */
 } H264EncRateCtrl;
 
-/* Input pre-processing */
 typedef struct {
-    H264EncColorConversionType type;
-    u16 coeffA;          /* User defined color conversion coefficient */
-    u16 coeffB;          /* User defined color conversion coefficient */
-    u16 coeffC;          /* User defined color conversion coefficient */
-    u16 coeffE;          /* User defined color conversion coefficient */
-    u16 coeffF;          /* User defined color conversion coefficient */
-} H264EncColorConversion;
+    u32 encStatus;
+    RK_U32 lumWidthSrc;  // TODO  need to think again  modify by lance 2016.06.15
+    RK_U32 lumHeightSrc;  // TODO  need to think again  modify by lance 2016.06.15
+    u32 mbPerFrame;
+    u32 mbPerRow;
+    u32 mbPerCol;
+    u32 frameCnt;
+    u32 fillerNalSize;
+    u32 testId;
+    stream_s stream;
+    preProcess_s preProcess;
+    sps_s seqParameterSet;
+    pps_s picParameterSet;
+    slice_s slice;
+    h264RateControl_s rateControl;
+    madTable_s mad;
+    asicData_s asic;
+    const void *inst;
+    u32 time_debug_init;
+    RK_U32 intraPeriodCnt;  //  count the frame amount from last intra frame,
+    // then determine next frame to which type to be encoded
+    H264EncIn encIn;        // put input struct into instance, todo    modify by lance 2016.05.31
+    H264EncOut encOut;      //  put input struct into instance, todo    modify by lance 2016.05.31
+    RK_U32 intraPicRate;        // set I frame interval, and is 30 default
 
-typedef struct {
-    u32 origWidth;
-    u32 origHeight;
-    u32 xOffset;
-    u32 yOffset;
-    H264EncPictureFormat inputType;
-    H264EncPictureRotation rotation;
-    u32 videoStabilization;
-    H264EncColorConversion colorConversion;
-} H264EncPreProcessingCfg;
+    h264e_control_extra_info_cfg info;
+    H264EncConfig   enc_cfg;
+    H264EncRateCtrl enc_rc_cfg;
+} h264Instance_s;
 
-/* Version information */
-typedef struct {
-    u32 major;           /* Encoder API major version */
-    u32 minor;           /* Encoder API minor version */
-} H264EncApiVersion;
+#define H264E_DBG_FUNCTION          (0x00000001)
 
-typedef struct {
-    u32 swBuild;         /* Software build ID */
-    u32 hwBuild;         /* Hardware build ID */
-} H264EncBuild;
+extern RK_U32 h264e_debug;
+
+#define h264e_dbg(flag, fmt, ...)   _mpp_dbg(h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(h264e_debug, flag, fmt, ## __VA_ARGS__)
+
+#define h264e_dbg_func(fmt, ...)    h264e_dbg_f(H264E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 /*------------------------------------------------------------------------------
     4. Encoder API function prototypes
 ------------------------------------------------------------------------------*/
 
 /* Initialization & release */
-H264EncRet H264EncInit(h264Instance_s *instAddr);
-H264EncRet H264EncRelease(H264EncInst inst);
+H264EncRet H264EncInit(h264Instance_s *inst);
+H264EncRet H264EncRelease(h264Instance_s *inst);
 
 /* Encoder configuration before stream generation */
-H264EncRet H264EncCfg(H264EncInst inst, const H264EncConfig * pEncConfig);
-H264EncRet H264EncSetCodingCtrl(H264EncInst inst, const H264EncCodingCtrl *
+H264EncRet H264EncCfg(h264Instance_s *inst, const H264EncConfig * pEncConfig);
+H264EncRet H264EncSetCodingCtrl(h264Instance_s *inst, const H264EncCodingCtrl *
                                 pCodingParams);
-H264EncRet H264EncGetCodingCtrl(H264EncInst inst, H264EncCodingCtrl *
+H264EncRet H264EncGetCodingCtrl(h264Instance_s *inst, H264EncCodingCtrl *
                                 pCodingParams);
 
 /* Encoder configuration before and during stream generation */
-H264EncRet H264EncSetRateCtrl(H264EncInst inst,
+H264EncRet H264EncSetRateCtrl(h264Instance_s *inst,
                               const H264EncRateCtrl * pRateCtrl);
-H264EncRet H264EncGetRateCtrl(H264EncInst inst,
+H264EncRet H264EncGetRateCtrl(h264Instance_s *inst,
                               H264EncRateCtrl * pRateCtrl);
 
-H264EncRet H264EncSetPreProcessing(H264EncInst inst,
+H264EncRet H264EncSetPreProcessing(h264Instance_s *inst,
                                    const H264EncPreProcessingCfg *
                                    pPreProcCfg);
-H264EncRet H264EncGetPreProcessing(H264EncInst inst,
+H264EncRet H264EncGetPreProcessing(h264Instance_s *inst,
                                    H264EncPreProcessingCfg * pPreProcCfg);
 
 /* Encoder user data insertion during stream generation */
-H264EncRet H264EncSetSeiUserData(H264EncInst inst, const u8 * pUserData,
+H264EncRet H264EncSetSeiUserData(h264Instance_s *inst, const u8 * pUserData,
                                  u32 userDataSize);
 
 /* Stream generation */
@@ -278,20 +365,20 @@ H264EncRet H264EncSetSeiUserData(H264EncInst inst, const u8 * pUserData,
 /* H264EncStrmStart generates the SPS and PPS. SPS is the first NAL unit and PPS
  * is the second NAL unit. NaluSizeBuf indicates the size of NAL units.
  */
-H264EncRet H264EncStrmStart(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmStart(h264Instance_s *inst, const H264EncIn * pEncIn,
                             H264EncOut * pEncOut);
 
 /* H264EncStrmEncode encodes one video frame. If SEI messages are enabled the
  * first NAL unit is a SEI message.
  */
-H264EncRet H264EncStrmEncode(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncode(h264Instance_s *inst, const H264EncIn * pEncIn,
                              H264EncOut * pEncOut, h264e_syntax *syntax_data);
 
-H264EncRet H264EncStrmEncodeAfter(H264EncInst inst,
-                                  H264EncOut * pEncOut, MPP_RET vpuWaitResult);  // add by lance 2016.05.07
+H264EncRet H264EncStrmEncodeAfter(h264Instance_s *inst,
+                                  H264EncOut * pEncOut, MPP_RET vpuWaitResult);
 
 /* H264EncStrmEnd ends a stream with an EOS code. */
-H264EncRet H264EncStrmEnd(H264EncInst inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEnd(h264Instance_s *inst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut);
 
 #ifdef __cplusplus

@@ -40,9 +40,6 @@ struct MppEnc_t {
      * configuration parameter to controller and hal
      */
     MppEncConfig        mpp_cfg;
-    H264EncConfig       enc_cfg;
-    H264EncRateCtrl     enc_rc_cfg;
-    h264e_control_extra_info_cfg extra_info_cfg;
 };
 
 #ifdef __cplusplus
