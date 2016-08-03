@@ -52,7 +52,6 @@ set(H264E_SRC
   src/H264SequenceParameterSet.c
   src/H264Slice.c
   src/encasiccontroller.c
-  src/encasiccontroller_v2.c
   src/encpreprocess.c
   src/h264e_api.c
   src/h264e_utils.c
