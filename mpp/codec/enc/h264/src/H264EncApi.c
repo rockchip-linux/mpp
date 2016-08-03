@@ -58,14 +58,14 @@ static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
     Argument      : pEncCfg - initialization parameters
                     instAddr - where to save the created instance
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncInit(const H264EncConfig * pEncCfg, h264Instance_s * instAddr)
+H264EncRet H264EncInit(h264Instance_s *instAddr)
 {
     H264EncRet ret;
     h264Instance_s *pEncInst = instAddr;
 
     h264e_dbg_func("enter\n");
 
-    ret = H264Init(pEncCfg, pEncInst);
+    ret = H264Init(pEncInst);
     if (ret != H264ENC_OK) {
         mpp_err("H264EncInit: ERROR Initialization failed");
         return ret;
@@ -103,6 +103,23 @@ H264EncRet H264EncRelease(H264EncInst inst)
     if (pEncInst->inst != pEncInst) {
         h264e_dbg_func("ERROR Invalid instance\n");
         return H264ENC_INSTANCE_ERROR;
+    }
+
+    h264e_dbg_func("leave\n");
+    return H264ENC_OK;
+}
+
+H264EncRet H264EncCfg(H264EncInst inst, const H264EncConfig * pEncConfig)
+{
+    H264EncRet ret;
+    h264Instance_s *pEncInst = (h264Instance_s *) inst;
+
+    h264e_dbg_func("enter\n");
+
+    ret = H264Cfg(pEncConfig, pEncInst);
+    if (ret != H264ENC_OK) {
+        mpp_err("H264EncCfg: ERROR Config failed");
+        return ret;
     }
 
     h264e_dbg_func("leave\n");

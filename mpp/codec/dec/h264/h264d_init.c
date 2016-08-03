@@ -548,7 +548,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->inter_view_flag = currSlice->inter_view_flag;
     dec_pic->anchor_pic_flag = currSlice->anchor_pic_flag;
     if (dec_pic->layer_id == 1) {
-        if ((p_Vid->profile_idc == MVC_HIGH) || (p_Vid->profile_idc == STEREO_HIGH)) {
+        if ((p_Vid->profile_idc == H264_PROFILE_MVC_HIGH) || (p_Vid->profile_idc == H264_PROFILE_STEREO_HIGH)) {
             FUN_CHECK(ret = init_mvc_picture(currSlice));
         }
     }

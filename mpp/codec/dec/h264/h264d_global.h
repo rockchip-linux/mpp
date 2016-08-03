@@ -26,9 +26,6 @@
 #include "h264d_log.h"
 #include "h264d_syntax.h"
 
-//!< define
-#define MAXSPS                    32
-#define MAXPPS                    256
 #define START_PREFIX_3BYTE        3
 #define MAX_NUM_DPB_LAYERS        2
 #define MAX_LIST_SIZE             33   //!< for init list reorder
@@ -43,51 +40,6 @@
 #define HEAD_BUF_MAX_SIZE         ( 5*1024*1024)
 #define NALU_BUF_MAX_SIZE         (10*1024*1024)
 #define SODB_BUF_MAX_SIZE         (10*1024*1024)
-
-//!< AVC Profile IDC definitions
-typedef enum {
-    FREXT_CAVLC444 = 44,       //!< YUV 4:4:4/14 "CAVLC 4:4:4"
-    BASELINE       = 66,       //!< YUV 4:2:0/8  "Baseline"
-    H264_MAIN      = 77,       //!< YUV 4:2:0/8  "Main"
-    EXTENDED       = 88,       //!< YUV 4:2:0/8  "Extended"
-    FREXT_HP       = 100,      //!< YUV 4:2:0/8  "High"
-    FREXT_Hi10P    = 110,      //!< YUV 4:2:0/10 "High 10"
-    FREXT_Hi422    = 122,      //!< YUV 4:2:2/10 "High 4:2:2"
-    FREXT_Hi444    = 244,      //!< YUV 4:4:4/14 "High 4:4:4"
-    MVC_HIGH       = 118,      //!< YUV 4:2:0/8  "Multiview High"
-    STEREO_HIGH    = 128       //!< YUV 4:2:0/8  "Stereo High"
-} ProfileIDC;
-
-//!< values for nalu_type
-typedef enum {
-    NALU_TYPE_NULL      = 0,
-    NALU_TYPE_SLICE     = 1,
-    NALU_TYPE_DPA       = 2,
-    NALU_TYPE_DPB       = 3,
-    NALU_TYPE_DPC       = 4,
-    NALU_TYPE_IDR       = 5,
-    NALU_TYPE_SEI       = 6,
-    NALU_TYPE_SPS       = 7,
-    NALU_TYPE_PPS       = 8,
-    NALU_TYPE_AUD       = 9,   // Access Unit Delimiter
-    NALU_TYPE_EOSEQ     = 10,  // end of sequence
-    NALU_TYPE_EOSTREAM  = 11,  // end of stream
-    NALU_TYPE_FILL      = 12,
-    NALU_TYPE_SPSEXT    = 13,
-    NALU_TYPE_PREFIX    = 14,  // prefix
-    NALU_TYPE_SUB_SPS   = 15,
-    NALU_TYPE_SLICE_AUX = 19,
-    NALU_TYPE_SLC_EXT   = 20,  // slice extensive
-    NALU_TYPE_VDRD      = 24   // View and Dependency Representation Delimiter NAL Unit
-} Nalu_type;
-
-//!< values for nal_ref_idc
-typedef enum {
-    NALU_PRIORITY_HIGHEST    = 3,
-    NALU_PRIORITY_HIGH       = 2,
-    NALU_PRIORITY_LOW        = 1,
-    NALU_PRIORITY_DISPOSABLE = 0
-} NalRefIdc_type;
 
 //!< PPS parameters
 #define MAXnum_slice_groups_minus1  8
@@ -110,6 +62,7 @@ typedef enum {
     FRAME        = 0x3,
     STRUCT_MAX,
 } PictureStructure;           //!< New enum for field processing
+
 typedef enum {
     PIC_ERR_NULL  = 0,
     PIC_ERR_TOP   = 0x1,
@@ -126,6 +79,7 @@ typedef enum {
     FIELD_ORDER_SAME,
     FIELD_ORDER_MAX
 } FieldOrder;
+
 //!< Field Coding Types
 typedef enum {
     FRAME_CODING = 0,

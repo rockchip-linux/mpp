@@ -17,6 +17,7 @@
 #define MODULE_TAG "H264E_API"
 
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 #include "H264Instance.h"
 #include "h264e_api.h"
@@ -34,9 +35,16 @@ FILE *fp_syntax_in = NULL;
 
 MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 {
-    (void)ctx;
+    h264Instance_s * pEncInst = (h264Instance_s*)ctx;
+    MPP_RET ret = (MPP_RET)H264EncInit(pEncInst);
+
+    if (ret) {
+        mpp_err_f("H264EncInit() failed ret %d", ret);
+    }
+
     (void)ctrlCfg;
-    return MPP_OK;
+
+    return ret;
 }
 
 MPP_RET h264e_deinit(void *ctx)
@@ -75,7 +83,6 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
     H264EncIn *encIn = &(pEncInst->encIn);  // TODO modify by lance 2016.05.19
     H264EncOut *encOut = &(pEncInst->encOut);  // TODO modify by lance 2016.05.19
-    const H264EncCfg *encCfgParam = &(pEncInst->h264EncCfg);
     RK_U32 srcLumaWidth = pEncInst->lumWidthSrc;
     RK_U32 srcLumaHeight = pEncInst->lumHeightSrc;
 
@@ -118,8 +125,8 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     //encIn.busLumaStab = mpp_buffer_get_fd(pictureStabMem)/*pictureStabMem.phy_addr*/;
 
     /* Select frame type */
-    if (encCfgParam->intraPicRate != 0 &&
-        (pEncInst->intraPeriodCnt >= encCfgParam->intraPicRate)) {
+    if (pEncInst->intraPicRate != 0 &&
+        (pEncInst->intraPeriodCnt >= pEncInst->intraPicRate)) {
         encIn->codingType = H264ENC_INTRA_FRAME;
     } else {
         encIn->codingType = H264ENC_PREDICTED_FRAME;
@@ -150,31 +157,135 @@ MPP_RET h264e_flush(void *ctx)
     return MPP_OK;
 }
 
+
+static const H264Profile h264e_supported_profile[] =
+{
+    H264_PROFILE_BASELINE,
+    H264_PROFILE_MAIN,
+    H264_PROFILE_HIGH,
+};
+
+static const H264Level h264e_supported_level[] =
+{
+    H264_LEVEL_1,
+    H264_LEVEL_1_b,
+    H264_LEVEL_1_1,
+    H264_LEVEL_1_2,
+    H264_LEVEL_1_3,
+    H264_LEVEL_2,
+    H264_LEVEL_2_1,
+    H264_LEVEL_2_2,
+    H264_LEVEL_3,
+    H264_LEVEL_3_1,
+    H264_LEVEL_3_2,
+    H264_LEVEL_4_0,
+    H264_LEVEL_4_1,
+    H264_LEVEL_4_2,
+};
+
+static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
+{
+    MPP_RET ret = MPP_NOK;
+    RK_U32 i, count;
+
+    count = MPP_ARRAY_ELEMS(h264e_supported_profile);
+    for (i = 0; i < count; i++) {
+        if (h264e_supported_profile[i] == (H264Profile)mpp_cfg->profile) {
+            break;
+        }
+    }
+
+    if (i >= count) {
+        mpp_log_f("invalid profile %d set to default baseline\n", mpp_cfg->profile);
+        mpp_cfg->profile = H264_PROFILE_BASELINE;
+    }
+
+    count = MPP_ARRAY_ELEMS(h264e_supported_level);
+    for (i = 0; i < count; i++) {
+        if (h264e_supported_level[i] == (H264Level)mpp_cfg->level) {
+            break;
+        }
+    }
+
+    if (i >= count) {
+        mpp_log_f("invalid level %d set to default 4.0\n", mpp_cfg->level);
+        mpp_cfg->level = H264_LEVEL_3;
+    }
+
+    if (mpp_cfg->fps_in <= 0) {
+        mpp_log_f("invalid input fps %d will be set to default 30\n", mpp_cfg->fps_in);
+        mpp_cfg->fps_in = 30;
+    }
+
+    if (mpp_cfg->fps_out <= 0) {
+        mpp_log_f("invalid output fps %d will be set to fps_in 30\n", mpp_cfg->fps_out, mpp_cfg->fps_in);
+        mpp_cfg->fps_out = mpp_cfg->fps_in;
+    }
+
+    if (mpp_cfg->gop <= 0) {
+        mpp_log_f("invalid gop %d will be set to fps_out 30\n", mpp_cfg->gop, mpp_cfg->fps_out);
+        mpp_cfg->gop = mpp_cfg->fps_out;
+    }
+
+    if (mpp_cfg->rc_mode < 0 || mpp_cfg->rc_mode > 2) {
+        mpp_err_f("invalid rc_mode %d\n", mpp_cfg->rc_mode);
+        return ret;
+    }
+
+    if (mpp_cfg->qp <= 0 || mpp_cfg->qp > 51) {
+        mpp_log_f("invalid qp %d set to default 26\n", mpp_cfg->qp);
+        mpp_cfg->qp = 26;
+    }
+
+    if (mpp_cfg->bps <= 0) {
+        mpp_err_f("invalid bit rate %d\n", mpp_cfg->bps);
+        return ret;
+    }
+
+    if (mpp_cfg->width <= 0 || mpp_cfg->height <= 0) {
+        mpp_err_f("invalid width %d height %d\n", mpp_cfg->width, mpp_cfg->height);
+        return ret;
+    }
+
+    if (mpp_cfg->hor_stride <= 0) {
+        mpp_err_f("invalid hor_stride %d will be set to %d\n", mpp_cfg->hor_stride, MPP_ALIGN(mpp_cfg->width, 16));
+        mpp_cfg->hor_stride = MPP_ALIGN(mpp_cfg->width, 16);
+    }
+
+    if (mpp_cfg->ver_stride <= 0) {
+        mpp_err_f("invalid ver_stride %d will be set to %d\n", mpp_cfg->ver_stride, MPP_ALIGN(mpp_cfg->height, 16));
+        mpp_cfg->ver_stride = MPP_ALIGN(mpp_cfg->height, 16);
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
+    MPP_RET ret = MPP_NOK;
     h264Instance_s *pEncInst = (h264Instance_s *)ctx;    // add by lance 2016.05.31
 
+    h264e_control_debug_enter();
+
     switch (cmd) {
+    case CHK_ENC_CFG : {
+        ret = h264e_check_mpp_cfg((MppEncConfig *)param);
+    } break;
     case SET_ENC_CFG : {
         const H264EncConfig *encCfg = (const H264EncConfig *)param;
 
-        H264EncInst encoderOpen = (H264EncInst)ctx;
+        H264EncInst encoder = (H264EncInst)ctx;
         H264EncCodingCtrl oriCodingCfg;
         H264EncPreProcessingCfg oriPreProcCfg;
-        H264EncRet ret = MPP_OK;
 
-        h264e_control_debug_enter();
-
-        if ((ret = H264EncInit(encCfg, pEncInst)) != H264ENC_OK) {
-            mpp_err("H264EncInit() failed, ret %d.", ret);
-            return -1;
-        }
+        ret = H264EncCfg(encoder, encCfg);
 
         /* Encoder setup: coding control */
-        if ((ret = H264EncGetCodingCtrl(encoderOpen, &oriCodingCfg)) != H264ENC_OK) {
+        ret = H264EncGetCodingCtrl(encoder, &oriCodingCfg);
+        if (ret) {
             mpp_err("H264EncGetCodingCtrl() failed, ret %d.", ret);
-            h264e_deinit((void*)encoderOpen);
-            return -1;
+            h264e_deinit((void*)encoder);
+            break;
         } else {
             // will be replaced  modify by lance 2016.05.20
             // ------------
@@ -186,18 +297,20 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriCodingCfg.transform8x8Mode = 0;
             oriCodingCfg.videoFullRange = 0;
             oriCodingCfg.seiMessages = 0;
-            if ((ret = H264EncSetCodingCtrl(encoderOpen, &oriCodingCfg)) != H264ENC_OK) {
+            ret = H264EncSetCodingCtrl(encoder, &oriCodingCfg);
+            if (ret) {
                 mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
+                h264e_deinit((void*)encoder);
+                break;
             }
         }
 
         /* PreP setup */
-        if ((ret = H264EncGetPreProcessing(encoderOpen, &oriPreProcCfg)) != H264ENC_OK) {
+        ret = H264EncGetPreProcessing(encoder, &oriPreProcCfg);
+        if (ret) {
             mpp_err("H264EncGetPreProcessing() failed, ret %d.\n", ret);
-            h264e_deinit((void*)encoderOpen);
-            return -1;
+            h264e_deinit((void*)encoder);
+            break;
         } else {
             h264e_control_log("Get PreP: input %4dx%d : offset %4dx%d : format %d : rotation %d "
                               ": stab %d : cc %d\n",
@@ -208,8 +321,8 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             // will be replaced  modify by lance 2016.05.20
             oriPreProcCfg.inputType = H264ENC_YUV420_SEMIPLANAR;//H264ENC_YUV420_PLANAR;
             oriPreProcCfg.rotation = H264ENC_ROTATE_0;
-            oriPreProcCfg.origWidth = encCfg->width/*352*/;
-            oriPreProcCfg.origHeight = encCfg->height/*288*/;
+            oriPreProcCfg.origWidth = encCfg->width;
+            oriPreProcCfg.origHeight = encCfg->height;
             oriPreProcCfg.xOffset = 0;
             oriPreProcCfg.yOffset = 0;
             oriPreProcCfg.videoStabilization = 0;
@@ -222,10 +335,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 oriPreProcCfg.colorConversion.coeffF = 38000;
             }
 
-            if ((ret = H264EncSetPreProcessing(encoderOpen, &oriPreProcCfg)) != H264ENC_OK) {
+            ret = H264EncSetPreProcessing(encoder, &oriPreProcCfg);
+            if (ret) {
                 mpp_err("H264EncSetPreProcessing() failed.", ret);
-                h264e_deinit((void*)encoderOpen);
-                return -1;
+                h264e_deinit((void*)encoder);
+                break;
             }
         }
 
@@ -237,24 +351,20 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                 mpp_err("open fp_syntax_in failed!");
         }
 #endif
-        h264e_control_debug_leave();
-
-
     } break;
     case SET_ENC_RC_CFG : {
         const H264EncRateCtrl *encCfg = (const H264EncRateCtrl *)param;
         H264EncInst encoder = (H264EncInst)ctx;
         H264EncRateCtrl oriRcCfg;
-        H264EncRet ret = MPP_OK;
 
         mpp_assert(pEncInst);
-        pEncInst->h264EncCfg.intraPicRate = encCfg->intraPicRate;
+        pEncInst->intraPicRate = encCfg->intraPicRate;
         pEncInst->intraPeriodCnt = encCfg->intraPicRate;
 
         /* Encoder setup: rate control */
-        if ((ret = H264EncGetRateCtrl(encoder, &oriRcCfg)) != H264ENC_OK) {
+        ret = H264EncGetRateCtrl(encoder, &oriRcCfg);
+        if (ret) {
             mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
-            return -1;
         } else {
             h264e_control_log("Get rate control: qp %2d [%2d, %2d] bps %8d\n",
                               oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
@@ -292,9 +402,9 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                               oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
                               oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
 
-            if ((ret = H264EncSetRateCtrl(encoder, &oriRcCfg)) != H264ENC_OK) {
+            ret = H264EncSetRateCtrl(encoder, &oriRcCfg);
+            if (ret) {
                 mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
-                return -1;
             }
         }
     } break;
@@ -305,7 +415,9 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         mpp_err("No correspond cmd found, and can not config!");
         break;
     }
-    return MPP_OK;
+    h264e_control_debug_leave();
+
+    return ret;
 }
 
 MPP_RET h264e_callback(void *ctx, void *feedback)
@@ -430,7 +542,7 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 const ControlApi api_h264e_controller = {
     "h264e_control",
     MPP_VIDEO_CodingAVC,
-    sizeof(h264Instance_s),//sizeof(H264eContext),  // TODO modify by lance 2016.05.20
+    sizeof(h264Instance_s),
     0,
     h264e_init,
     h264e_deinit,

@@ -15,11 +15,15 @@
  */
 
 #define MODULE_TAG "hal_h264e_rk"
+
 #include <string.h>
 #include <math.h>
+
 #include "vpu.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
+
+#include "h264_syntax.h"
 #include "hal_h264e.h"
 #include "hal_h264e_rkv.h"
 
@@ -344,7 +348,7 @@ static MPP_RET hal_h264e_rkv_open_dump_files(void *dump_files)
         if (!files->fp_mpp_extra_ino_cfg) {
             mpp_err("%s open error", full_path);
             return MPP_ERR_OPEN_FILE;
-        }    
+        }
      }
     return MPP_OK;
 }
@@ -551,7 +555,7 @@ static void hal_h264e_rkv_dump_mpp_extra_info_cfg(h264e_hal_context *ctx, h264e_
     FILE *fp = dump_files->fp_mpp_extra_ino_cfg;
     if(fp) {
 
-        
+
         /* common cfg */
         fprintf(fp, "%-16d %s\n", cfg->pic_luma_width, "pic_luma_width");
         fprintf(fp, "%-16d %s\n", cfg->pic_luma_height, "pic_luma_height");
@@ -563,14 +567,14 @@ static void hal_h264e_rkv_dump_mpp_extra_info_cfg(h264e_hal_context *ctx, h264e_
 
         /* additional cfg only for rkv */
         fprintf(fp, "%-16d %s\n", cfg->input_image_format, "input_image_format");
-        fprintf(fp, "%-16d %s\n", cfg->profile_idc, "profile_idc"); 
+        fprintf(fp, "%-16d %s\n", cfg->profile_idc, "profile_idc");
         fprintf(fp, "%-16d %s\n", cfg->level_idc, "level_idc"); //TODO: may be removed later, get from sps/pps instead
         fprintf(fp, "%-16d %s\n", cfg->keyframe_max_interval, "keyframe_max_interval");
         fprintf(fp, "%-16d %s\n", cfg->second_chroma_qp_index_offset, "second_chroma_qp_index_offset");
     	fprintf(fp, "%-16d %s\n", cfg->pps_id, "pps_id"); //TODO: may be removed later, get from sps/pps instead
-    	
+
         fprintf(fp, "\n");
-        fflush(fp);    	
+        fflush(fp);
     }
 }
 
@@ -578,12 +582,12 @@ static void hal_h264e_rkv_dump_mpp_reg_out(h264e_hal_context *ctx)
 {
     RK_U32 k = 0;
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_reg_out;    
-    h264e_rkv_ioctl_output *reg_out = (h264e_rkv_ioctl_output *)ctx->ioctl_output;    
+    FILE *fp = dump_files->fp_mpp_reg_out;
+    h264e_rkv_ioctl_output *reg_out = (h264e_rkv_ioctl_output *)ctx->ioctl_output;
     RK_U32 *p_reg = (RK_U32 *)reg_out + sizeof(reg_out->frame_num)/4;
-    if (fp) {       
+    if (fp) {
         fprintf(fp, "%d frames out\n", reg_out->frame_num);
-        for(k= 0; k<ctx->num_frames_to_send; k++) { 
+        for(k= 0; k<ctx->num_frames_to_send; k++) {
             fprintf(fp, "#FRAME %d:\n", (ctx->frame_cnt-1) - (ctx->num_frames_to_send-1-k));
             for (k=0; k<12; k++) {
                 fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, p_reg[k]);
@@ -600,7 +604,7 @@ static void hal_h264e_rkv_dump_mpp_reg_out(h264e_hal_context *ctx)
 static void hal_h264e_rkv_dump_mpp_feedback(h264e_hal_context *ctx)
 {
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_feedback;   
+    FILE *fp = dump_files->fp_mpp_feedback;
     if (fp) {
         h264e_feedback *fb = &ctx->feedback;
         (void)fb;
@@ -628,7 +632,7 @@ static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPa
 void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
 {
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_strm_out;     
+    FILE *fp = dump_files->fp_mpp_strm_out;
     if (fp) {
         RK_U32 k = 0;
         RK_U32 strm_size = 0;
@@ -1561,7 +1565,7 @@ MPP_RET hal_h264e_rkv_set_sps(h264e_hal_sps *sps, h264e_hal_param *par, h264e_co
 
     /* only for backup, excluded in read SPS */
     sps->keyframe_max_interval = cfg->keyframe_max_interval;
-    
+
     return MPP_OK;
 }
 
@@ -2384,7 +2388,7 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         hal_h264e_rkv_reference_deinit(ctx->dpb_ctx);
         MPP_FREE(ctx->dpb_ctx);
     }
-    
+
     if(ctx->dump_files) {
         hal_h264e_rkv_close_dump_files(ctx->dump_files);
         MPP_FREE(ctx->dump_files);
@@ -2432,7 +2436,7 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
 static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn)
 {
     h264e_hal_debug_enter();
-    
+
     /* validate */
     H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
 
@@ -2441,7 +2445,7 @@ static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn)
         syn->input_cb_addr = syn->input_luma_addr;
         syn->input_cr_addr = syn->input_luma_addr;
     }
-    
+
     h264e_hal_debug_leave();
     return MPP_OK;
 }
@@ -2508,7 +2512,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_hal_log_detail("generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
             ctx->frame_cnt_gen_ready, ctx->num_frames_to_send - 1);
-    
+
     memset(regs, 0, sizeof(h264e_rkv_reg_set));
 
     regs->swreg01.rkvenc_ver      = 0x1;
@@ -3164,7 +3168,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
         break;
     }
     case MPP_ENC_GET_EXTRA_INFO: {
-        RK_S32 k = 0;        
+        RK_S32 k = 0;
         size_t offset = 0;
         MppPacket  pkt      = ctx->packeted_param;
         MppPacket *pkt_out  = (MppPacket *)param;
@@ -3177,7 +3181,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
         }
         mpp_packet_set_length(pkt, offset);
         *pkt_out = pkt;
-        
+
         hal_h264e_rkv_dump_mpp_strm_out_header(ctx, pkt);
         break;
     }

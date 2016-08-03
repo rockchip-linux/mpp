@@ -23,6 +23,7 @@
 
 #include "vpu_api.h"
 
+#include "h264_syntax.h"
 #include "h264d_log.h"
 #include "h264d_sps.h"
 #include "h264d_scalist.h"
@@ -154,11 +155,16 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     cur_sps->delta_pic_order_always_zero_flag     = 0;
     LogInfo(p_bitctx->ctx, "----------------------------- SPS begin --------------------------------");
     READ_BITS(p_bitctx, 8, &cur_sps->profile_idc, "profile_idc");
-    VAL_CHECK (ret, (cur_sps->profile_idc == BASELINE)  || (cur_sps->profile_idc == H264_MAIN)
-               || (cur_sps->profile_idc == EXTENDED)    || (cur_sps->profile_idc == FREXT_HP)
-               || (cur_sps->profile_idc == FREXT_Hi10P) || (cur_sps->profile_idc == FREXT_Hi422)
-               || (cur_sps->profile_idc == FREXT_Hi444) || (cur_sps->profile_idc == FREXT_CAVLC444)
-               || (cur_sps->profile_idc == MVC_HIGH)    || (cur_sps->profile_idc == STEREO_HIGH)
+    VAL_CHECK (ret, (cur_sps->profile_idc == H264_PROFILE_BASELINE)
+               || (cur_sps->profile_idc == H264_PROFILE_MAIN)
+               || (cur_sps->profile_idc == H264_PROFILE_EXTENDED)
+               || (cur_sps->profile_idc == H264_PROFILE_HIGH)
+               || (cur_sps->profile_idc == H264_PROFILE_HIGH10)
+               || (cur_sps->profile_idc == H264_PROFILE_HIGH422)
+               || (cur_sps->profile_idc == H264_PROFILE_HIGH444)
+               || (cur_sps->profile_idc == H264_PROFILE_FREXT_CAVLC444)
+               || (cur_sps->profile_idc == H264_PROFILE_MVC_HIGH)
+               || (cur_sps->profile_idc == H264_PROFILE_STEREO_HIGH)
               );
     READ_ONEBIT(p_bitctx, &cur_sps->constrained_set0_flag, "constrained_set0_flag");
     READ_ONEBIT(p_bitctx, &cur_sps->constrained_set1_flag, "constrained_set1_flag");
@@ -326,8 +332,8 @@ static MPP_RET parser_subsps_ext(BitReadCtx_t *p_bitctx, H264_subSPS_t *cur_subs
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    if ((cur_subsps->sps.profile_idc == MVC_HIGH)
-        || (cur_subsps->sps.profile_idc == STEREO_HIGH)) {
+    if ((cur_subsps->sps.profile_idc == H264_PROFILE_MVC_HIGH)
+        || (cur_subsps->sps.profile_idc == H264_PROFILE_STEREO_HIGH)) {
         READ_ONEBIT(p_bitctx, &cur_subsps->bit_equal_to_one, "bit_equal_to_one");
         ASSERT(cur_subsps->bit_equal_to_one == 1);
         FUN_CHECK(ret = sps_mvc_extension(p_bitctx, cur_subsps));

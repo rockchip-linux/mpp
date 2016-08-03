@@ -63,7 +63,7 @@ static bool_e CheckParameter(const h264Instance_s * inst);
             H264ENC_INVALID_ARGUMENT
 
 ------------------------------------------------------------------------------*/
-H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
+H264EncRet H264Init(h264Instance_s * pinst)
 {
     h264Instance_s *inst = pinst;
 
@@ -74,66 +74,11 @@ H264EncRet H264Init(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
     H264PicParameterSetInit(&inst->picParameterSet);
     H264SliceInit(&inst->slice);
 
-    /* Set parameters depending on user config */
-    if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
-        mpp_err("SetParameter error\n");
-        ret = H264ENC_INVALID_ARGUMENT;
-        goto err;
-    }
-    /* Check and init the rest of parameters */
-    if (CheckParameter(inst) != ENCHW_OK) {
-        mpp_err("CheckParameter error\n");
-        ret = H264ENC_INVALID_ARGUMENT;
-        goto err;
-    }
-
-    if (H264InitRc(&inst->rateControl) != ENCHW_OK) {
-        mpp_err("H264InitRc error\n");
-        return H264ENC_INVALID_ARGUMENT;
-    }
     /* Initialize ASIC */
-    inst->asic.ewl = NULL;//ewl;
-    (void) EncAsicControllerInit(&inst->asic);
+    EncAsicControllerInit(&inst->asic);
 
-    /* Allocate internal SW/HW shared memories */
-    if (EncAsicMemAlloc_V2(&inst->asic,
-                           (u32) inst->preProcess.lumWidth,
-                           (u32) inst->preProcess.lumHeight,
-                           ASIC_H264) != ENCHW_OK) {
-
-        ret = H264ENC_EWL_MEMORY_ERROR;
-        goto err;
-    }
-
-    /* init VUI */
-    {
-        const h264VirtualBuffer_s *vb = &inst->rateControl.virtualBuffer;
-
-        H264SpsSetVuiTimigInfo(&inst->seqParameterSet,
-                               vb->timeScale, vb->unitsInTic);
-    }
-
-    if (inst->seqParameterSet.levelIdc >= 31)
-        inst->asic.regs.h264Inter4x4Disabled = 1;
-    else
-        inst->asic.regs.h264Inter4x4Disabled = 0;
-
-    /* When resolution larger than 720p = 3600 macroblocks
-     * there is not enough time to do 1/4 pixel ME */
-    if (inst->mbPerFrame > 3600)
-        inst->asic.regs.disableQuarterPixelMv = 1;
-    else
-        inst->asic.regs.disableQuarterPixelMv = 0;
-
+    inst->asic.regs.codingType = ASIC_H264;
     inst->asic.regs.skipPenalty = 1;
-
-    return ret;
-
-err:
-    /*if(inst != NULL)
-        free(inst);*/
-    /*if(ewl != NULL)
-        (void) EWLRelease(ewl);*/
 
     return ret;
 }
@@ -202,15 +147,17 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     }
 
     /* Level 1b is indicated with levelIdc == 11 and constraintSet3 */
-    if (pEncCfg->level == H264ENC_LEVEL_1_b) {
+    if (pEncCfg->level == H264_LEVEL_1_b) {
         inst->seqParameterSet.levelIdc = 11;
         inst->seqParameterSet.constraintSet3 = ENCHW_YES;
     }
 
     /* Get the index for the table of level maximum values */
     tmp = H264GetLevelIndex(inst->seqParameterSet.levelIdc);
-    if (tmp == INVALID_LEVEL)
+    if (tmp == INVALID_LEVEL) {
+        mpp_err("H264GetLevelIndex failed\n");
         return ENCHW_NOK;
+    }
 
     inst->seqParameterSet.levelIdx = tmp;
 
@@ -342,17 +289,41 @@ H264EncRet H264Cfg(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
     /* Set parameters depending on user config */
     if (SetParameter(inst, pEncCfg) != ENCHW_OK) {
         ret = H264ENC_INVALID_ARGUMENT;
+        mpp_err_f("SetParameter failed\n");
+        return ret;
     }
 
     /* Check and init the rest of parameters */
     if (CheckParameter(inst) != ENCHW_OK) {
         ret = H264ENC_INVALID_ARGUMENT;
+        mpp_err_f("CheckParameter failed\n");
         return ret;
     }
 
     if (H264InitRc(&inst->rateControl) != ENCHW_OK) {
+        mpp_err_f("H264InitRc failed\n");
         return H264ENC_INVALID_ARGUMENT;
     }
+
+    /* init VUI */
+    {
+        const h264VirtualBuffer_s *vb = &inst->rateControl.virtualBuffer;
+
+        H264SpsSetVuiTimigInfo(&inst->seqParameterSet,
+                               vb->timeScale, vb->unitsInTic);
+    }
+
+    if (inst->seqParameterSet.levelIdc >= 31)
+        inst->asic.regs.h264Inter4x4Disabled = 1;
+    else
+        inst->asic.regs.h264Inter4x4Disabled = 0;
+
+    /* When resolution larger than 720p = 3600 macroblocks
+     * there is not enough time to do 1/4 pixel ME */
+    if (inst->mbPerFrame > 3600)
+        inst->asic.regs.disableQuarterPixelMv = 1;
+    else
+        inst->asic.regs.disableQuarterPixelMv = 0;
 
     return ret;
 }

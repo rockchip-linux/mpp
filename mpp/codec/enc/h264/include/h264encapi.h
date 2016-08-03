@@ -17,6 +17,7 @@
 #ifndef __H264ENCAPI_H__
 #define __H264ENCAPI_H__
 
+#include "h264_syntax.h"
 #include "basetype.h"
 #include "h264e_syntax.h"
 
@@ -27,15 +28,7 @@ extern "C"
 
 #include "H264Instance.h"
 
-/*------------------------------------------------------------------------------
-    1. Type definition for encoder instance
-------------------------------------------------------------------------------*/
-
 typedef const void *H264EncInst;
-
-/*------------------------------------------------------------------------------
-    2. Enumerations for API parameters
-------------------------------------------------------------------------------*/
 
 /* Function return values */
 typedef enum {
@@ -66,23 +59,6 @@ typedef enum {
                                      * hex bytes '00 00 00 01' */
     H264ENC_NAL_UNIT_STREAM = 1 /* Plain NAL units without startcode */
 } H264EncStreamType;
-
-/* Level for initialization */
-typedef enum {
-    H264ENC_LEVEL_1 = 10,
-    H264ENC_LEVEL_1_b = 99,
-    H264ENC_LEVEL_1_1 = 11,
-    H264ENC_LEVEL_1_2 = 12,
-    H264ENC_LEVEL_1_3 = 13,
-    H264ENC_LEVEL_2 = 20,
-    H264ENC_LEVEL_2_1 = 21,
-    H264ENC_LEVEL_2_2 = 22,
-    H264ENC_LEVEL_3 = 30,
-    H264ENC_LEVEL_3_1 = 31,
-    H264ENC_LEVEL_3_2 = 32,
-    H264ENC_LEVEL_4_0 = 40,
-    H264ENC_LEVEL_4_1 = 41
-} H264EncLevel;
 
 /* Picture YUV type for initialization */
 typedef enum {
@@ -133,8 +109,8 @@ typedef struct {
     H264EncStreamType streamType;   /* Byte stream / Plain NAL units */
     /* Stream Profile will be automatically decided,
      * CABAC -> main/high, 8x8-transform -> high */
-    h264e_profile profile;
-    H264EncLevel level;
+    H264Profile profile;
+    H264Level   level;
     u32 width;           /* Encoded picture width in pixels, multiple of 4 */
     u32 height;          /* Encoded picture height in pixels, multiple of 2 */
     u32 frameRateNum;    /* The stream time scale, [1..65535] */
@@ -271,11 +247,11 @@ typedef struct {
 ------------------------------------------------------------------------------*/
 
 /* Initialization & release */
-H264EncRet H264EncInit(const H264EncConfig * pEncConfig,
-                       h264Instance_s * instAddr);
+H264EncRet H264EncInit(h264Instance_s *instAddr);
 H264EncRet H264EncRelease(H264EncInst inst);
 
 /* Encoder configuration before stream generation */
+H264EncRet H264EncCfg(H264EncInst inst, const H264EncConfig * pEncConfig);
 H264EncRet H264EncSetCodingCtrl(H264EncInst inst, const H264EncCodingCtrl *
                                 pCodingParams);
 H264EncRet H264EncGetCodingCtrl(H264EncInst inst, H264EncCodingCtrl *

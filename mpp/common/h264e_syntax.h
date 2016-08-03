@@ -1,18 +1,10 @@
 #ifndef __H264E_SYNTAX_H__
 #define __H264E_SYNTAX_H__
+
 #include "rk_type.h"
 
 #define H264_BIT_DEPTH      8
 #define H264_QP_BD_OFFSET   (6*(H264_BIT_DEPTH-8))
-
-typedef enum h264e_profile_t {
-    H264_PROFILE_BASELINE = 66,
-    H264_PROFILE_MAIN     = 77,
-    H264_PROFILE_HIGH    = 100,
-    H264_PROFILE_HIGH10  = 110,
-    H264_PROFILE_HIGH422 = 122,
-    H264_PROFILE_HIGH444_PREDICTIVE = 244,
-} h264e_profile;
 
 typedef struct  h264e_osd_pos_t {
     RK_U32    lt_pos_x : 8;
