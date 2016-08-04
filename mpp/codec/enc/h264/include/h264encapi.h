@@ -20,6 +20,7 @@
 #include "h264_syntax.h"
 #include "basetype.h"
 #include "h264e_syntax.h"
+#include "mpp_frame.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -86,24 +87,6 @@ typedef enum {
     H264ENC_NOTCODED_FRAME  /* Used just as a return value */
 } H264EncPictureCodingType;
 
-/* Picture YUV type for initialization */
-typedef enum {
-    H264ENC_YUV420_PLANAR = 0,  /* YYYY... UUUU... VVVV */
-    H264ENC_YUV420_SEMIPLANAR = 1,  /* YYYY... UVUVUV...    */
-    H264ENC_YUV422_INTERLEAVED_YUYV = 2,    /* YUYVYUYV...          */
-    H264ENC_YUV422_INTERLEAVED_UYVY = 3,    /* UYVYUYVY...          */
-    H264ENC_RGB565 = 4, /* 16-bit RGB           */
-    H264ENC_BGR565 = 5, /* 16-bit RGB           */
-    H264ENC_RGB555 = 6, /* 15-bit RGB           */
-    H264ENC_BGR555 = 7, /* 15-bit RGB           */
-    H264ENC_RGB444 = 8, /* 12-bit RGB           */
-    H264ENC_BGR444 = 9, /* 12-bit RGB           */
-    H264ENC_RGB888 = 10,    /* 24-bit RGB           */
-    H264ENC_BGR888 = 11,    /* 24-bit RGB           */
-    H264ENC_RGB101010 = 12, /* 30-bit RGB           */
-    H264ENC_BGR101010 = 13  /* 30-bit RGB           */
-} H264EncPictureFormat;
-
 
 /*------------------------------------------------------------------------------
     3. Structures for API function parameters
@@ -160,7 +143,7 @@ typedef struct {
     u32 origHeight;
     u32 xOffset;
     u32 yOffset;
-    H264EncPictureFormat inputType;
+    MppFrameFormat inputType;
     H264EncPictureRotation rotation;
     u32 videoStabilization;
     H264EncColorConversion colorConversion;
@@ -239,7 +222,7 @@ typedef struct {
     RK_U32 chroma_qp_index_offset;
     RK_U32 pic_luma_height;
     RK_U32 pic_luma_width;
-    H264EncPictureFormat input_image_format;
+    MppFrameFormat input_image_format;
     RK_U32 second_chroma_qp_index_offset;
     RK_U32 pps_id;
 } H264EncConfig;

@@ -552,7 +552,7 @@ H264EncRet H264EncSetPreProcessing(h264Instance_s *pEncInst,
         return H264ENC_INVALID_ARGUMENT;
     }
 
-    if (pPreProcCfg->inputType > H264ENC_BGR101010) {
+    if (pPreProcCfg->inputType > MPP_FMT_ABGR8888) {
         mpp_err_f("ERROR Invalid YUV type\n");
         return H264ENC_INVALID_ARGUMENT;
     }
@@ -686,7 +686,7 @@ H264EncRet H264EncGetPreProcessing(h264Instance_s *pEncInst,
     pPreProcCfg->yOffset = pPP->verOffsetSrc;
 
     pPreProcCfg->rotation = (H264EncPictureRotation) pPP->rotation;
-    pPreProcCfg->inputType = (H264EncPictureFormat) pPP->inputFormat;
+    pPreProcCfg->inputType = (MppFrameFormat) pPP->inputFormat;
 
     pPreProcCfg->videoStabilization = pPP->videoStab;
 
@@ -928,30 +928,36 @@ H264EncRet H264EncStrmEncode(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
     }
 
     switch (pEncInst->preProcess.inputFormat) {
-    case H264ENC_YUV420_PLANAR:
+    case MPP_FMT_YUV420P:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busChromaV)) {
             mpp_err_f("ERROR Invalid input busChromaV\n");
             return H264ENC_INVALID_ARGUMENT;
         }
         /* fall through */
-    case H264ENC_YUV420_SEMIPLANAR:
+    case MPP_FMT_YUV420SP:
+    case MPP_FMT_YUV420SP_VU:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busChromaU)) {
             mpp_err_f("ERROR Invalid input busChromaU\n");
             return H264ENC_INVALID_ARGUMENT;
         }
         /* fall through */
-    case H264ENC_YUV422_INTERLEAVED_YUYV:
-    case H264ENC_YUV422_INTERLEAVED_UYVY:
-    case H264ENC_RGB565:
-    case H264ENC_BGR565:
-    case H264ENC_RGB555:
-    case H264ENC_BGR555:
-    case H264ENC_RGB444:
-    case H264ENC_BGR444:
-    case H264ENC_RGB888:
-    case H264ENC_BGR888:
-    case H264ENC_RGB101010:
-    case H264ENC_BGR101010:
+    case MPP_FMT_YUV422P:
+    case MPP_FMT_YUV422SP:
+    case MPP_FMT_YUV422SP_VU:
+    case MPP_FMT_YUV422_YUYV:
+    case MPP_FMT_YUV422_UYVY:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565:
+    case MPP_FMT_RGB555:
+    case MPP_FMT_BGR555:
+    case MPP_FMT_RGB444:
+    case MPP_FMT_BGR444:
+    case MPP_FMT_RGB888:
+    case MPP_FMT_BGR888:
+    case MPP_FMT_RGB101010:
+    case MPP_FMT_BGR101010:
+    case MPP_FMT_ARGB8888:
+    case MPP_FMT_ABGR8888:
         if (!H264_BUS_ADDRESS_VALID(pEncIn->busLuma)) {
             mpp_err_f("ERROR Invalid input busLuma\n");
             return H264ENC_INVALID_ARGUMENT;

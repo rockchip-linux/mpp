@@ -19,8 +19,8 @@
 ------------------------------------------------------------------------------*/
 #include "encpreprocess.h"
 #include "enccommon.h"
-#include "vpu.h"  // add by lance 2016.05.06
 #include "mpp_log.h"
+#include "mpp_frame.h"
 
 /*------------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
     stride = (preProcess->lumWidthSrc + 15) & (~15); /* 16 pixel multiple stride */
 
     /* cropping */
-    if (preProcess->inputFormat <= 1) { /* YUV 420 */
+    if (preProcess->inputFormat <= MPP_FMT_YUV420SP_VU) { /* YUV 420 */
         /* Input image position after crop and stabilization */
         tmp = preProcess->verOffsetSrc;
         tmp *= stride;
@@ -121,7 +121,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
             regs->vsNextLumaBase += (tmp & (~7));
 
         /* Chroma */
-        if (preProcess->inputFormat == 0) {
+        if (preProcess->inputFormat == MPP_FMT_YUV420P) {
             tmp = preProcess->verOffsetSrc / 2;
             tmp *= stride / 2;
             tmp += preProcess->horOffsetSrc / 2;
@@ -147,7 +147,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
             regs->inputCbBase += (tmp & (~7));
             regs->inputChromaBaseOffset = tmp & 7;
         }
-    } else if (preProcess->inputFormat <= 9) { /* YUV 422 / RGB 16bpp */
+    } else if (preProcess->inputFormat <= MPP_FMT_BGR444) { /* YUV 422 / RGB 16bpp */
         /* Input image position after crop and stabilization */
         tmp = preProcess->verOffsetSrc;
         tmp *= stride;
@@ -175,20 +175,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         if (preProcess->videoStab)
             regs->vsNextLumaBase += (tmp & (~7));
     }
-
-    /* YUV subsampling and rotation */
-    if (preProcess->inputFormat <= 3)
-        regs->inputImageFormat = preProcess->inputFormat;   /* YUV */
-    else if (preProcess->inputFormat <= 5)
-        regs->inputImageFormat = ASIC_INPUT_RGB565;         /* 16-bit RGB */
-    else if (preProcess->inputFormat <= 7)
-        regs->inputImageFormat = ASIC_INPUT_RGB555;         /* 15-bit RGB */
-    else if (preProcess->inputFormat <= 9)
-        regs->inputImageFormat = ASIC_INPUT_RGB444;         /* 12-bit RGB */
-    else if (preProcess->inputFormat <= 11)
-        regs->inputImageFormat = ASIC_INPUT_RGB888;         /* 24-bit RGB */
-    else
-        regs->inputImageFormat = ASIC_INPUT_RGB101010;      /* 30-bit RGB */
+    regs->inputImageFormat = preProcess->inputFormat;
 
     regs->inputImageRotation = preProcess->rotation;
 
@@ -288,52 +275,52 @@ void EncSetColorConversion(preProcess_s * preProcess, asicData_s * asic)
 
     /* Setup masks to separate R, G and B from RGB */
     switch (preProcess->inputFormat) {
-    case 4: /* RGB565 */
+    case MPP_FMT_RGB565: /* RGB565 */
         regs->rMaskMsb = 15;
         regs->gMaskMsb = 10;
         regs->bMaskMsb = 4;
         break;
-    case 5: /* BGR565 */
+    case MPP_FMT_BGR565: /* BGR565 */
         regs->bMaskMsb = 15;
         regs->gMaskMsb = 10;
         regs->rMaskMsb = 4;
         break;
-    case 6: /* RGB555 */
+    case MPP_FMT_RGB555: /* RGB555 */
         regs->rMaskMsb = 14;
         regs->gMaskMsb = 9;
         regs->bMaskMsb = 4;
         break;
-    case 7: /* BGR555 */
+    case MPP_FMT_BGR555: /* BGR555 */
         regs->bMaskMsb = 14;
         regs->gMaskMsb = 9;
         regs->rMaskMsb = 4;
         break;
-    case 8: /* RGB444 */
+    case MPP_FMT_RGB444: /* RGB444 */
         regs->rMaskMsb = 11;
         regs->gMaskMsb = 7;
         regs->bMaskMsb = 3;
         break;
-    case 9: /* BGR444 */
+    case MPP_FMT_BGR444: /* BGR444 */
         regs->bMaskMsb = 11;
         regs->gMaskMsb = 7;
         regs->rMaskMsb = 3;
         break;
-    case 10: /* RGB888 */
+    case MPP_FMT_RGB888: /* RGB888 */
         regs->rMaskMsb = 23;
         regs->gMaskMsb = 15;
         regs->bMaskMsb = 7;
         break;
-    case 11: /* BGR888 */
+    case MPP_FMT_BGR888: /* BGR888 */
         regs->bMaskMsb = 23;
         regs->gMaskMsb = 15;
         regs->rMaskMsb = 7;
         break;
-    case 12: /* RGB101010 */
+    case MPP_FMT_RGB101010: /* RGB101010 */
         regs->rMaskMsb = 29;
         regs->gMaskMsb = 19;
         regs->bMaskMsb = 9;
         break;
-    case 13: /* BGR101010 */
+    case MPP_FMT_BGR101010: /* BGR101010 */
         regs->bMaskMsb = 29;
         regs->gMaskMsb = 19;
         regs->rMaskMsb = 9;

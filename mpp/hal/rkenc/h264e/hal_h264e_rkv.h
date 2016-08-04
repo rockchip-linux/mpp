@@ -70,10 +70,10 @@ enc_mode
 #define RKV_H264E_CQM_JVT                1
 #define RKV_H264E_CQM_CUSTOM             2
 
-typedef enum h264e_rkv_csp_t {
-    H264E_RKV_CSP_ARGB8888,     // 0
+typedef enum h264e_hal_rkv_csp_t {
+    H264E_RKV_CSP_BGRA8888,     // 0
     H264E_RKV_CSP_BGR888,       // 1
-    H264E_RKV_CSP_RGB565,       // 2
+    H264E_RKV_CSP_BGR565,       // 2
     H264E_RKV_CSP_NONE,         // 3
     H264E_RKV_CSP_YUV422SP,     // 4
     H264E_RKV_CSP_YUV422P,      // 5
@@ -82,7 +82,7 @@ typedef enum h264e_rkv_csp_t {
     H264E_RKV_CSP_YUYV422,      // 8
     H264E_RKV_CSP_UYVY422,      // 9
     H264E_RKV_CSP_BUTT,         // 10
-} h264e_rkv_csp;
+} h264e_hal_rkv_csp;
 
 
 typedef enum h264e_rkv_chroma_fmt_t {
@@ -205,7 +205,7 @@ struct h264e_hal_rkv_frame_t;
 typedef struct h264e_hal_rkv_frame_t {
     MppBuffer   hw_buf;
     RK_S32      hw_buf_used;
-    RK_S32      i_frame_cnt;     /* Presentation frame number */    
+    RK_S32      i_frame_cnt;     /* Presentation frame number */
     RK_S32      i_frame_num; /* 7.4.3 frame_num */
     RK_S32      long_term_flag;
     RK_S32      reorder_longterm_flag;

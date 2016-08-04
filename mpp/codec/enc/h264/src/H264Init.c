@@ -228,7 +228,7 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     /* Pre processing */
     inst->preProcess.lumWidth = pEncCfg->width;
     inst->preProcess.lumWidthSrc =
-        H264GetAllowedWidth(pEncCfg->width, H264ENC_YUV420_PLANAR);
+        H264GetAllowedWidth(pEncCfg->width, MPP_FMT_YUV420P);
 
     inst->preProcess.lumHeight = pEncCfg->height;
     inst->preProcess.lumHeightSrc = pEncCfg->height;
@@ -237,7 +237,7 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     inst->preProcess.verOffsetSrc = 0;
 
     inst->preProcess.rotation = ROTATE_0;
-    inst->preProcess.inputFormat = H264ENC_YUV420_PLANAR;
+    inst->preProcess.inputFormat = inst->enc_cfg.input_image_format;
     inst->preProcess.videoStab = 0;
 
     inst->preProcess.colorConversionType = 0;
@@ -266,9 +266,9 @@ bool_e CheckParameter(const h264Instance_s * inst)
     Round the width to the next multiple of 8 or 16 depending on YUV type.
 
 ------------------------------------------------------------------------------*/
-i32 H264GetAllowedWidth(i32 width, H264EncPictureFormat inputType)
+i32 H264GetAllowedWidth(i32 width, MppFrameFormat inputType)
 {
-    if (inputType == H264ENC_YUV420_PLANAR) {
+    if (inputType == MPP_FMT_YUV420P) {
         /* Width must be multiple of 16 to make
          * chrominance row 64-bit aligned */
         return ((width + 15) / 16) * 16;

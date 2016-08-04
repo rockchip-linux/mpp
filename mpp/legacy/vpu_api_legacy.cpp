@@ -25,6 +25,7 @@
 
 #include "vpu_api_legacy.h"
 #include "mpp_packet_impl.h"
+#include "mpp_frame.h"
 
 #define MAX_WRITE_HEIGHT        (480)
 #define MAX_WRITE_WIDTH         (960)
@@ -168,6 +169,7 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         mpp_assert(param->width);
         mpp_assert(param->height);
+        perform(INPUT_FORMAT_MAP, &param->format);
 
         outData = mpp_malloc(RK_U8, (param->width * param->height));
 
@@ -783,11 +785,46 @@ FUNC_RET:
     return ret;
 }
 
-RK_S32 VpuApiLegacy::perform(RK_U32 cmd, RK_U32 *data)
+RK_S32 VpuApiLegacy::perform(PerformCmd cmd, RK_S32 *data)
 {
     vpu_api_dbg_func("enter\n");
-    (void)cmd;
-    (void)data;
+    switch (cmd) {
+    case INPUT_FORMAT_MAP : {
+        if ((EncInputPictureType)(*data) ==  ENC_INPUT_YUV420_PLANAR)
+            *data = MPP_FMT_YUV420P;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_YUV420_SEMIPLANAR)
+            *data = MPP_FMT_YUV420SP;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_YUV422_INTERLEAVED_YUYV)
+            *data = MPP_FMT_YUV422_YUYV;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_YUV422_INTERLEAVED_UYVY)
+            *data = MPP_FMT_YUV422_UYVY;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_RGB565)
+            *data = MPP_FMT_RGB565;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_BGR565)
+            *data = MPP_FMT_BGR565;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_RGB555)
+            *data = MPP_FMT_RGB555;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_BGR555)
+            *data = MPP_FMT_BGR555;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_RGB444)
+            *data = MPP_FMT_RGB444;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_BGR444)
+            *data = MPP_FMT_BGR444;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_RGB888)
+            *data = MPP_FMT_RGB888;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_BGR888)
+            *data = MPP_FMT_BGR888;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_RGB101010)
+            *data = MPP_FMT_RGB101010;
+        else if ((EncInputPictureType)(*data) == ENC_INPUT_BGR101010)
+            *data = MPP_FMT_BGR101010;
+        else
+            mpp_err("There is no match format, err!!!!!!");
+    } break;
+    default:
+        mpp_err("cmd can not match with any option!");
+        break;
+    }
     vpu_api_dbg_func("leave\n");
     return 0;
 }
@@ -918,7 +955,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_SET_OUTPUT_BLOCK;
         break;
     }
-	case VPU_API_DEC_GET_EOS_STATUS: {
+    case VPU_API_DEC_GET_EOS_STATUS: {
         *(RK_S32 *)param = mEosSet;
         mpicmd = MPI_CMD_BUTT;
         break;

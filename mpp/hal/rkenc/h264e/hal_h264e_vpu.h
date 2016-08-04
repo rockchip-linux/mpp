@@ -617,6 +617,27 @@ typedef struct h264e_hal_vpu_dump_files_t {
     FILE *fp_mpp_feedback;
 } h264e_hal_vpu_dump_files;
 
+/* transplant from vpu_api.h:EncInputPictureType */
+typedef enum {
+    H264E_VPU_CSP_YUV420P   = 0,    // YYYY... UUUU... VVVV
+    H264E_VPU_CSP_YUV420SP  = 1,    // YYYY... UVUVUV...
+    H264E_VPU_CSP_YUYV422   = 2,    // YUYVYUYV...
+    H264E_VPU_CSP_UYVY422   = 3,    // UYVYUYVY...
+    H264E_VPU_CSP_RGB565    = 4,    // 16-bit RGB
+    H264E_VPU_CSP_BGR565    = 5,    // 16-bit RGB
+    H264E_VPU_CSP_RGB555    = 6,    // 15-bit RGB
+    H264E_VPU_CSP_BGR555    = 7,    // 15-bit RGB
+    H264E_VPU_CSP_RGB444    = 8,    // 12-bit RGB
+    H264E_VPU_CSP_BGR444    = 9,    // 12-bit RGB
+    H264E_VPU_CSP_RGB888    = 10,   // 24-bit RGB
+    H264E_VPU_CSP_BGR888    = 11,   // 24-bit RGB
+    H264E_VPU_CSP_RGB101010 = 12,   // 30-bit RGB
+    H264E_VPU_CSP_BGR101010 = 13,   // 30-bit RGB
+    H264E_VPU_CSP_NONE,
+    H264E_VPU_CSP_BUTT,
+} h264e_vpu_csp;
+
+
 /* struct for assemble bitstream */
 typedef struct h264e_hal_vpu_stream_t {
     RK_U8 *buffer; /* point to first byte of stream */
