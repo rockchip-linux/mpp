@@ -49,8 +49,10 @@ static RK_S32 vpu_service_status = -1;
     } while (0)
 
 static const char *name_rkvdec = "/dev/rkvdec";
+static const char *name_rkvenc = "/dev/rkvenc";
 static const char *name_hevc_service = "/dev/hevc_service";
 static const char *name_vpu_service = "/dev/vpu_service";
+
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
@@ -75,6 +77,10 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     case VPU_DEC:
     case VPU_ENC: {
         name = name_vpu_service;
+        break;
+    }
+    case VPU_ENC_RKV: {
+        name = name_rkvenc;
         break;
     }
     default: {
