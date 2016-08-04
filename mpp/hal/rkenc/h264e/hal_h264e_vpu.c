@@ -19,8 +19,10 @@
 #include "vpu.h"
 #include "rk_mpi.h"
 #include "mpp_mem.h"
+#include "mpp_frame.h"
 #include "hal_h264e.h"
 #include "hal_h264e_vpu.h"
+
 
 /* H.264 motion estimation parameters */
 static const RK_U32 h264_prev_mode_favor[52] = {
@@ -918,6 +920,109 @@ void hal_h264e_vpu_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer hw_buf)
 }
 #endif
 
+static h264e_vpu_csp hal_h264e_vpu_convert_csp(RK_S32 src_type)
+{
+    MppFrameFormat src_fmt = (MppFrameFormat)src_type;
+    h264e_vpu_csp dst_fmt;
+    switch (src_fmt) {
+    case MPP_FMT_YUV420P: {
+        dst_fmt = H264E_VPU_CSP_YUV420P;
+        break;
+    }
+    case MPP_FMT_YUV420SP: {
+        dst_fmt = H264E_VPU_CSP_YUV420SP;
+        break;
+    }
+    case MPP_FMT_YUV420SP_10BIT: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV420SP_VU: { //TODO: to be confirmed
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV422P: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV422SP: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV422SP_10BIT: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV422SP_VU: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_YUV422_YUYV: {
+        dst_fmt = H264E_VPU_CSP_YUYV422;
+        break;
+    }
+    case MPP_FMT_YUV422_UYVY: {
+        dst_fmt = H264E_VPU_CSP_UYVY422;
+        break;
+    }
+    case MPP_FMT_RGB565: {
+        dst_fmt = H264E_VPU_CSP_RGB565;
+        break;
+    }
+    case MPP_FMT_BGR565: {
+        dst_fmt = H264E_VPU_CSP_RGB565;
+        break;
+    }
+    case MPP_FMT_RGB555: {
+        dst_fmt = H264E_VPU_CSP_RGB555;
+        break;
+    }
+    case MPP_FMT_BGR555: {
+        dst_fmt = H264E_VPU_CSP_BGR555;
+        break;
+    }
+    case MPP_FMT_RGB444: {
+        dst_fmt = H264E_VPU_CSP_RGB444;
+        break;
+    }
+    case MPP_FMT_BGR444: {
+        dst_fmt = H264E_VPU_CSP_BGR444;
+        break;
+    }
+    case MPP_FMT_RGB888: {
+        dst_fmt = H264E_VPU_CSP_RGB888;
+        break;
+    }
+    case MPP_FMT_BGR888: {
+        dst_fmt = H264E_VPU_CSP_BGR888;
+        break;
+    }
+    case MPP_FMT_RGB101010: {
+        dst_fmt = H264E_VPU_CSP_RGB101010;
+        break;
+    }
+    case MPP_FMT_BGR101010: {
+        dst_fmt = H264E_VPU_CSP_BGR101010;
+        break;
+    }
+    case MPP_FMT_ARGB8888: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    case MPP_FMT_ABGR8888: {
+        dst_fmt = H264E_VPU_CSP_NONE;
+        break;
+    }
+    default: {
+        h264e_hal_log_err("unvalid src color space: %d", src_type);
+        dst_fmt = H264E_VPU_CSP_NONE;
+    }
+    }
+
+    return dst_fmt;
+}
+
+
 static MPP_RET hal_h264e_vpu_free_buffers(h264e_hal_context *ctx)
 {
     RK_S32 k = 0;
@@ -1626,14 +1731,16 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
 static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
 {
     h264e_hal_debug_enter();
-    
+
     /* validate */
     H264E_HAL_VALIDATE_GT(syn->output_strm_limit_size, "output_strm_limit_size", 0);
 
     /* adjust */
     syn->output_strm_limit_size /= 8; /* 64-bit addresses */
     syn->output_strm_limit_size &= (~0x07);  /* 8 multiple size */
-    
+    syn->input_image_format = (RK_U32)hal_h264e_vpu_convert_csp(syn->input_image_format);
+    H264E_HAL_VALIDATE_NEQ(syn->input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
+
     h264e_hal_debug_leave();
     return MPP_OK;
 }
@@ -1671,7 +1778,9 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 #ifdef H264E_DUMP_DATA_TO_FILE
     hal_h264e_vpu_dump_mpp_syntax_in(syn, ctx);
 #endif
-    hal_h264e_vpu_validate_syntax(syn);
+    if (MPP_OK != hal_h264e_vpu_validate_syntax(syn)) {
+        h264e_hal_log_err("hal_h264e_vpu_validate_syntax failed");
+    }
 
     memset(reg, 0, sizeof(h264e_vpu_reg_set));
 

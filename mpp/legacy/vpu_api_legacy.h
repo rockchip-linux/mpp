@@ -21,8 +21,8 @@
 #include "rk_mpi.h"
 #include <stdio.h>
 
-#define OMX_BUFFERFLAG_EOS		0x00000001
-#define OMX_BUFFERFLAG_SYNC		0x00000002
+#define OMX_BUFFERFLAG_EOS      0x00000001
+#define OMX_BUFFERFLAG_SYNC     0x00000002
 
 #define VPU_API_DBG_FUNCTION            (0x00000001)
 #define VPU_API_DBG_DUMP_YUV            (0x00000002)
@@ -38,6 +38,10 @@
 #define vpu_api_dbg_output(fmt, ...)    vpu_api_dbg_f(VPU_API_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
 extern RK_U32 vpu_api_debug;
+
+typedef enum {
+    INPUT_FORMAT_MAP,
+} PerformCmd;
 
 class VpuApiLegacy
 {
@@ -57,7 +61,7 @@ public:
     RK_S32 encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm);
     RK_S32 encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut);
 
-    RK_S32 perform(RK_U32 cmd, RK_U32 *data);
+    RK_S32 perform(PerformCmd cmd, RK_S32 *data);
     RK_S32 control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param);
 
 private:

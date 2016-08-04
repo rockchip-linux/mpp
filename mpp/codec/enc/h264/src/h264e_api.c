@@ -146,15 +146,13 @@ MPP_RET h264e_flush(void *ctx)
 }
 
 
-static const H264Profile h264e_supported_profile[] =
-{
+static const H264Profile h264e_supported_profile[] = {
     H264_PROFILE_BASELINE,
     H264_PROFILE_MAIN,
     H264_PROFILE_HIGH,
 };
 
-static const H264Level h264e_supported_level[] =
-{
+static const H264Level h264e_supported_level[] = {
     H264_LEVEL_1,
     H264_LEVEL_1_b,
     H264_LEVEL_1_1,
@@ -288,7 +286,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_cfg->pic_init_qp = mpp_cfg->qp;
         enc_cfg->second_chroma_qp_index_offset = 2;
         enc_cfg->pps_id = 0;
-        enc_cfg->input_image_format = (H264EncPictureFormat)mpp_cfg->format;
+        enc_cfg->input_image_format = (MppFrameFormat)mpp_cfg->format;
 
         ret = H264EncCfg(enc, enc_cfg);
 
@@ -330,7 +328,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                       oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
             // ----------------
             // will be replaced  modify by lance 2016.05.20
-            oriPreProcCfg.inputType = H264ENC_YUV420_SEMIPLANAR;//H264ENC_YUV420_PLANAR;
+            oriPreProcCfg.inputType = MPP_FMT_YUV420P;
             oriPreProcCfg.rotation = H264ENC_ROTATE_0;
             oriPreProcCfg.origWidth = enc_cfg->width;
             oriPreProcCfg.origHeight = enc_cfg->height;

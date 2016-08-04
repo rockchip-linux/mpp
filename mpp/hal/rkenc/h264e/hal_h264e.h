@@ -94,6 +94,14 @@ extern RK_U32 h264e_hal_log_mode;
         }                                                    \
     } while (0)
 
+#define H264E_HAL_VALIDATE_NEQ(val, name, limit)                    \
+    do {                                                     \
+        if((val)==(limit)) {                                 \
+            mpp_err("%s(%d) should not = %d", name, val, limit); \
+            return MPP_NOK;                                  \
+        }                                                    \
+    } while (0)
+
 
 #define H264E_REF_MAX 16
 #define H264E_MAX_PACKETED_PARAM_SIZE       256 //sps + pps
@@ -103,6 +111,12 @@ typedef enum h264e_hal_slice_type_t {
     H264E_HAL_SLICE_TYPE_B  = 1,
     H264E_HAL_SLICE_TYPE_I  = 2,
 } h264e_hal_slice_type;
+
+typedef struct h264e_hal_csp_info_t {
+    RK_U32 fmt;
+    RK_U32        cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
+    RK_U32        aswap; // 0: BGRA, 1:ABGR.
+} h264e_hal_csp_info;
 
 typedef struct h264e_hal_sps_t {
     RK_S32 i_id;
@@ -200,6 +214,7 @@ typedef struct h264e_hal_sps_t {
 
     /* only for backup, excluded in read SPS*/
     RK_S32 keyframe_max_interval;
+    h264e_hal_csp_info src_colorspace;
 } h264e_hal_sps;
 
 typedef struct h264e_hal_pps_t {

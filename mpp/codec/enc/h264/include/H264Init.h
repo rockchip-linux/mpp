@@ -20,7 +20,7 @@
 #include "h264encapi.h"
 #include "H264Instance.h"
 
-i32 H264GetAllowedWidth(i32 width, H264EncPictureFormat inputType);
+i32 H264GetAllowedWidth(i32 width, MppFrameFormat inputType);
 
 H264EncRet H264Init(h264Instance_s * pinst);
 H264EncRet H264Cfg(const H264EncConfig * pEncCfg, h264Instance_s * pinst);

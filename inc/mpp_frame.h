@@ -138,16 +138,37 @@ typedef enum {
     MPP_CHROMA_LOC_NB,                  ///< Not part of ABI
 } MppFrameChromaLocation;
 
+#define MppFrameFormatMask    0xffff0000
+#define MppFrameFormatYUV     0x00010000
+#define MppFrameFormatRGB     0x00020000
+
 /*
  *mpp color format define
  */
 typedef enum {
-    MPP_FMT_YUV420SP       = 0,
-    MPP_FMT_YUV420SP_10BIT = 1,
-    MPP_FMT_YUV422SP       = 2,
-    MPP_FMT_YUV422SP_10BIT = 3,                  ///< Not part of ABI
+    MPP_FMT_YUV420P        = MppFrameFormatYUV,          /* YYYY... UUUU... VVVV */
+    MPP_FMT_YUV420SP,                                    /* YYYY... UVUVUV...      */
+    MPP_FMT_YUV420SP_10BIT,
+    MPP_FMT_YUV420SP_VU,                                 /* YYYY... VUVUVU...      */
+    MPP_FMT_YUV422P,                                     /* YYYY... UUUU... VVVV */
+    MPP_FMT_YUV422SP,                                    /* YYYY... UVUVUV...      */
+    MPP_FMT_YUV422SP_10BIT,                              ///< Not part of ABI
+    MPP_FMT_YUV422SP_VU,                                 /* YYYY... VUVUVU...      */
+    MPP_FMT_YUV422_YUYV,                                 /* YUYVYUYV...              */
+    MPP_FMT_YUV422_UYVY,                                 /* UYVYUYVY...              */
+    MPP_FMT_RGB565         = MppFrameFormatRGB,          /* 16-bit RGB                 */
+    MPP_FMT_BGR565,                                      /* 16-bit RGB                 */
+    MPP_FMT_RGB555,                                      /* 15-bit RGB                 */
+    MPP_FMT_BGR555,                                      /* 15-bit RGB                 */
+    MPP_FMT_RGB444,                                      /* 12-bit RGB                 */
+    MPP_FMT_BGR444,                                      /* 12-bit RGB                 */
+    MPP_FMT_RGB888,                                      /* 24-bit RGB                 */
+    MPP_FMT_BGR888,                                      /* 24-bit RGB                 */
+    MPP_FMT_RGB101010,                                   /* 30-bit RGB                 */
+    MPP_FMT_BGR101010,                                   /* 30-bit RGB                 */
+    MPP_FMT_ARGB8888,                                    /* 32-bit RGB                 */
+    MPP_FMT_ABGR8888,                                    /* 32-bit RGB                 */
 } MppFrameFormat;
-
 
 #ifdef __cplusplus
 extern "C" {
