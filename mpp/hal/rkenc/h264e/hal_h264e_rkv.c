@@ -455,7 +455,7 @@ static MPP_RET hal_h264e_rkv_open_dump_files(void *dump_files)
         char base_path[512];
         char full_path[512];
         h264e_hal_rkv_dump_files *files = (h264e_hal_rkv_dump_files *)dump_files;
-        strcpy(base_path, "/sdcard/h264e_data/");
+        strcpy(base_path, "/tmp/");
 
         sprintf(full_path, "%s%s", base_path, "mpp_syntax_in.txt");
         files->fp_mpp_syntax_in = fopen(full_path, "wb");
@@ -2475,6 +2475,9 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->extra_info     = mpp_calloc(h264e_hal_rkv_extra_info, 1);
     ctx->dpb_ctx        = mpp_calloc(h264e_hal_rkv_dpb_ctx, 1);
     ctx->dump_files     = mpp_calloc(h264e_hal_rkv_dump_files, 1);
+    ctx->param_size = H264E_MAX_PACKETED_PARAM_SIZE;
+    ctx->param_buf  = mpp_calloc_size(void, ctx->param_size);
+    mpp_packet_init(&ctx->packeted_param, ctx->param_buf, ctx->param_size);
     hal_h264e_rkv_open_dump_files(ctx->dump_files);
     hal_h264e_rkv_init_extra_info(ctx->extra_info);
     hal_h264e_rkv_reference_init(ctx->dpb_ctx, &ctx->param);
@@ -2533,6 +2536,11 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
     if (ctx->extra_info) {
         hal_h264e_rkv_deinit_extra_info(ctx->extra_info);
         MPP_FREE(ctx->extra_info);
+    }
+
+    if (ctx->packeted_param) {
+        mpp_packet_deinit(&ctx->packeted_param);
+        ctx->packeted_param = NULL;
     }
 
     if (ctx->dpb_ctx) {
