@@ -168,6 +168,7 @@ typedef enum {
     MPP_FMT_BGR101010,                                   /* 30-bit RGB                 */
     MPP_FMT_ARGB8888,                                    /* 32-bit RGB                 */
     MPP_FMT_ABGR8888,                                    /* 32-bit RGB                 */
+    MPP_FMT_BUTT,
 } MppFrameFormat;
 
 #ifdef __cplusplus

@@ -114,8 +114,8 @@ typedef enum h264e_hal_slice_type_t {
 
 typedef struct h264e_hal_csp_info_t {
     RK_U32 fmt;
-    RK_U32        cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
-    RK_U32        aswap; // 0: BGRA, 1:ABGR.
+    RK_U32 cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
+    RK_U32 aswap; // 0: BGRA, 1:ABGR.
 } h264e_hal_csp_info;
 
 typedef struct h264e_hal_sps_t {

@@ -920,10 +920,10 @@ void hal_h264e_vpu_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer hw_buf)
 }
 #endif
 
-static h264e_vpu_csp hal_h264e_vpu_convert_csp(RK_S32 src_type)
+static h264e_hal_vpu_csp hal_h264e_vpu_convert_csp(RK_S32 src_type)
 {
     MppFrameFormat src_fmt = (MppFrameFormat)src_type;
-    h264e_vpu_csp dst_fmt;
+    h264e_hal_vpu_csp dst_fmt;
     switch (src_fmt) {
     case MPP_FMT_YUV420P: {
         dst_fmt = H264E_VPU_CSP_YUV420P;

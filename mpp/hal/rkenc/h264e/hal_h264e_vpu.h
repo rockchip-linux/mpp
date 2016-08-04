@@ -634,8 +634,8 @@ typedef enum {
     H264E_VPU_CSP_RGB101010 = 12,   // 30-bit RGB
     H264E_VPU_CSP_BGR101010 = 13,   // 30-bit RGB
     H264E_VPU_CSP_NONE,
-    H264E_VPU_CSP_BUTT,
-} h264e_vpu_csp;
+	H264E_VPU_CSP_BUTT,
+} h264e_hal_vpu_csp;
 
 
 /* struct for assemble bitstream */
