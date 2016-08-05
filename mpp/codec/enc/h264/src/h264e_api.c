@@ -302,7 +302,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriCodingCfg.sliceSize = 0;
             oriCodingCfg.constrainedIntraPrediction = 0;
             oriCodingCfg.disableDeblockingFilter = 0;
-            oriCodingCfg.enableCabac = 0;
             oriCodingCfg.cabacInitIdc = 0;
             oriCodingCfg.transform8x8Mode = 0;
             oriCodingCfg.videoFullRange = 0;
@@ -326,23 +325,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                       oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
                       oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
                       oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
-            // ----------------
-            // will be replaced  modify by lance 2016.05.20
-            oriPreProcCfg.inputType = MPP_FMT_YUV420P;
-            oriPreProcCfg.rotation = H264ENC_ROTATE_0;
-            oriPreProcCfg.origWidth = enc_cfg->width;
-            oriPreProcCfg.origHeight = enc_cfg->height;
-            oriPreProcCfg.xOffset = 0;
-            oriPreProcCfg.yOffset = 0;
-            oriPreProcCfg.videoStabilization = 0;
-            oriPreProcCfg.colorConversion.type = H264ENC_RGBTOYUV_BT601;
-            if (oriPreProcCfg.colorConversion.type == H264ENC_RGBTOYUV_USER_DEFINED) {
-                oriPreProcCfg.colorConversion.coeffA = 20000;
-                oriPreProcCfg.colorConversion.coeffB = 44000;
-                oriPreProcCfg.colorConversion.coeffC = 5000;
-                oriPreProcCfg.colorConversion.coeffE = 35000;
-                oriPreProcCfg.colorConversion.coeffF = 38000;
-            }
 
             ret = H264EncSetPreProcessing(enc, &oriPreProcCfg);
             if (ret) {
