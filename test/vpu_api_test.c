@@ -341,6 +341,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     enc_param = (EncParameter_t*)ctx->private_data;
     enc_param->width        = cmd->width;
     enc_param->height       = cmd->height;
+    enc_param->format       = ENC_INPUT_YUV420_PLANAR;
     enc_param->rc_mode      = 0;
     enc_param->bitRate      = 100000;
     enc_param->framerate    = 25;
