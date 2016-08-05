@@ -139,8 +139,8 @@ typedef enum {
 } MppFrameChromaLocation;
 
 #define MppFrameFormatMask    0xffff0000
-#define MppFrameFormatYUV     0x00010000
-#define MppFrameFormatRGB     0x00020000
+#define MppFrameFormatYUV     0x00000000
+#define MppFrameFormatRGB     0x00010000
 
 /*
  *mpp color format define
