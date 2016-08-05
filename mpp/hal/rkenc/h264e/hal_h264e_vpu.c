@@ -1842,7 +1842,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 
     val = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
           | VEPU_REG_IN_IMG_LUMA_OFFSET(0)
-          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(mbs_in_row * 16);
+          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(syn->pic_luma_width);
     H264E_HAL_SET_REG(reg, VEPU_REG_INPUT_LUMA_INFO, val);
 
     val = VEPU_REG_CHECKPOINT_CHECK1(syn->cp_target[0])
