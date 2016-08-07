@@ -74,7 +74,7 @@ MPP_RET h264e_deinit(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
+MPP_RET h264e_encode(void *ctx, HalEncTask *task)
 {
     H264EncRet ret;
     H264ECtx *p = (H264ECtx *)ctx;
@@ -83,9 +83,9 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     RK_U32 srcLumaWidth = p->lumWidthSrc;
     RK_U32 srcLumaHeight = p->lumHeightSrc;
 
-    encIn->pOutBuf = (u32*)mpp_buffer_get_ptr(((EncTask*)task)->ctrl_pkt_buf_out);
-    encIn->busOutBuf = mpp_buffer_get_fd(((EncTask*)task)->ctrl_pkt_buf_out);
-    encIn->outBufSize = mpp_buffer_get_size(((EncTask*)task)->ctrl_pkt_buf_out);
+    encIn->pOutBuf = (u32*)mpp_buffer_get_ptr(task->output);
+    encIn->busOutBuf = mpp_buffer_get_fd(task->output);
+    encIn->outBufSize = mpp_buffer_get_size(task->output);
 
     /* Start stream */
     if (p->encStatus == H264ENCSTAT_INIT) {
@@ -104,34 +104,34 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
     /* Setup encoder input */
     {
         u32 w = srcLumaWidth;
-        encIn->busLuma = mpp_buffer_get_fd(((EncTask*)task)->ctrl_frm_buf_in)/*pictureMem.phy_addr*/;
+        encIn->busLuma = mpp_buffer_get_fd(task->input);
 
-        encIn->busChromaU = encIn->busLuma | ((w * srcLumaHeight) << 10);    // TODO    288 need to be modify by lance 2016.05.31
+        encIn->busChromaU = encIn->busLuma | ((w * srcLumaHeight) << 10);
         encIn->busChromaV = encIn->busChromaU +
-                            ((((w + 1) >> 1) * ((srcLumaHeight + 1) >> 1)) << 10);    // TODO    288 need to be modify by lance 2016.05.31
+                            ((((w + 1) >> 1) * ((srcLumaHeight + 1) >> 1)) << 10);
     }
 
-
-
-    //encIn.busLumaStab = mpp_buffer_get_fd(pictureStabMem)/*pictureStabMem.phy_addr*/;
-
     /* Select frame type */
-    if (p->intraPicRate != 0 &&
-        (p->intraPeriodCnt >= p->intraPicRate)) {
-        encIn->codingType = H264ENC_INTRA_FRAME;
+    if (p->intraPicRate != 0 && (p->intraPeriodCnt >= p->intraPicRate)) {
+        encIn->codingType   = H264ENC_INTRA_FRAME;
+        task->is_intra      = 1;
     } else {
-        encIn->codingType = H264ENC_PREDICTED_FRAME;
+        encIn->codingType   = H264ENC_PREDICTED_FRAME;
+        task->is_intra      = 0;
     }
 
     if (encIn->codingType == H264ENC_INTRA_FRAME)
         p->intraPeriodCnt = 0;
 
-    // TODO syntax_data need to be assigned    modify by lance 2016.05.19
-    ret = H264EncStrmEncode(p, encIn, encOut, &(((EncTask*)task)->syntax_data));
+    memset(&p->syntax, 0, sizeof(p->syntax));
+    ret = H264EncStrmEncode(p, encIn, encOut, &p->syntax);
     if (ret != H264ENC_FRAME_READY) {
         mpp_err("H264EncStrmEncode() failed, ret %d.", ret);  // TODO    need to be modified by lance 2016.05.31
         return MPP_NOK;
     }
+
+    task->syntax.data   = &p->syntax;
+    task->syntax.number = 1;
 
     return MPP_OK;
 }

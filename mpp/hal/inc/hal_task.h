@@ -128,15 +128,13 @@ typedef struct HalEncTask_t {
     // current tesk protocol syntax information
     MppSyntax       syntax;
 
-    // current tesk output stream buffer index
-    RK_S32          output;
+    // current tesk output stream buffer
+    MppBuffer       output;
 
-    // current tesk input slot buffer index
-    RK_S32          input;
-    // current task reference index, -1 for unused
-    RK_S32          refer;
-    // current task recon index
-    RK_S32          recon;
+    // current tesk input slot buffer
+    MppBuffer       input;
+
+    RK_U32          is_intra;
 } HalEncTask;
 
 

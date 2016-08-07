@@ -35,18 +35,18 @@ typedef struct ControllerImpl_t {
     void                *ctx;
 } ControllerImpl;
 
-MPP_RET controller_encode(Controller ctrller, /*HalEncTask **/EncTask *task)
+MPP_RET controller_encode(Controller ctrl, HalEncTask *task)
 {
-    if (NULL == ctrller || NULL == task) {
+    if (NULL == ctrl || NULL == task) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    ControllerImpl *p = (ControllerImpl *)ctrller;
+    ControllerImpl *p = (ControllerImpl *)ctrl;
     if (!p->api->encode)
         return MPP_OK;
 
-    return p->api->encode(p->ctx, (void*)task);
+    return p->api->encode(p->ctx, task);
 }
 
 MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg)
@@ -105,26 +105,26 @@ MPP_RET controller_deinit(Controller ctrl)
     return MPP_OK;
 }
 
-MPP_RET hal_enc_callback(void *ctrller, void *err_info)
+MPP_RET hal_enc_callback(void *ctrl, void *err_info)
 {
-    if (NULL == ctrller) {
+    if (NULL == ctrl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    ControllerImpl *p = (ControllerImpl *)ctrller;
+    ControllerImpl *p = (ControllerImpl *)ctrl;
     if (!p->api->callback)
         return MPP_OK;
     return p->api->callback(p->ctx, err_info);
 }
 
-MPP_RET controller_config(Controller ctrller, RK_S32 cmd, void *para)
+MPP_RET controller_config(Controller ctrl, RK_S32 cmd, void *para)
 {
-    if (NULL == ctrller) {
+    if (NULL == ctrl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    ControllerImpl *p = (ControllerImpl *)ctrller;
+    ControllerImpl *p = (ControllerImpl *)ctrl;
     if (!p->api->config)
         return MPP_OK;
 
