@@ -47,7 +47,6 @@ set(H264E_SRC
   src/H264PictureParameterSet.c
   src/H264PutBits.c
   src/H264RateControl.c
-  src/H264RateControl_new.c
   src/H264Sei.c
   src/H264SequenceParameterSet.c
   src/H264Slice.c
