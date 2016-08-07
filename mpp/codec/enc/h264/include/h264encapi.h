@@ -18,7 +18,6 @@
 #define __H264ENCAPI_H__
 
 #include "h264_syntax.h"
-#include "basetype.h"
 #include "h264e_syntax.h"
 #include "mpp_frame.h"
 
@@ -94,36 +93,36 @@ typedef enum {
 
 /* Coding control parameters */
 typedef struct {
-    u32 sliceSize;       /* Slice size in macroblock rows,
+    RK_U32 sliceSize;       /* Slice size in macroblock rows,
                               * 0 to encode each picture in one slice,
                               * [0..height/16]
                               */
-    u32 seiMessages;     /* Insert picture timing and buffering
+    RK_U32 seiMessages;     /* Insert picture timing and buffering
                               * period SEI messages into the stream,
                               * [0,1]
                               */
-    u32 videoFullRange;  /* Input video signal sample range, [0,1]
+    RK_U32 videoFullRange;  /* Input video signal sample range, [0,1]
                               * 0 = Y range in [16..235],
                               * Cb&Cr range in [16..240]
                               * 1 = Y, Cb and Cr range in [0..255]
                               */
-    u32 constrainedIntraPrediction; /* 0 = No constrains,
+    RK_U32 constrainedIntraPrediction; /* 0 = No constrains,
                                          * 1 = Only use intra neighbours */
-    u32 disableDeblockingFilter;    /* 0 = Filter enabled,
+    RK_U32 disableDeblockingFilter;    /* 0 = Filter enabled,
                                          * 1 = Filter disabled,
                                          * 2 = Filter disabled on slice edges */
-    u32 sampleAspectRatioWidth; /* Horizontal size of the sample aspect
+    RK_U32 sampleAspectRatioWidth; /* Horizontal size of the sample aspect
                                      * ratio (in arbitrary units), 0 for
                                      * unspecified, [0..65535]
                                      */
-    u32 sampleAspectRatioHeight;    /* Vertical size of the sample aspect ratio
+    RK_U32 sampleAspectRatioHeight;    /* Vertical size of the sample aspect ratio
                                          * (in same units as sampleAspectRatioWidth)
                                          * 0 for unspecified, [0..65535]
                                          */
-    u32 enableCabac;     /* 0 = CAVLC - Base profile,
+    RK_U32 enableCabac;     /* 0 = CAVLC - Base profile,
                               * 1 = CABAC - Main profile */
-    u32 cabacInitIdc;    /* [0,2] */
-    u32 transform8x8Mode;   /* Enable 8x8 transform mode, High profile
+    RK_U32 cabacInitIdc;    /* [0,2] */
+    RK_U32 transform8x8Mode;   /* Enable 8x8 transform mode, High profile
                                  * 0=disabled, 1=adaptive 8x8, 2=always 8x8 */
 } H264EncCodingCtrl;
 
@@ -131,64 +130,64 @@ typedef struct {
 /* Input pre-processing */
 typedef struct {
     H264EncColorConversionType type;
-    u16 coeffA;          /* User defined color conversion coefficient */
-    u16 coeffB;          /* User defined color conversion coefficient */
-    u16 coeffC;          /* User defined color conversion coefficient */
-    u16 coeffE;          /* User defined color conversion coefficient */
-    u16 coeffF;          /* User defined color conversion coefficient */
+    RK_U16 coeffA;          /* User defined color conversion coefficient */
+    RK_U16 coeffB;          /* User defined color conversion coefficient */
+    RK_U16 coeffC;          /* User defined color conversion coefficient */
+    RK_U16 coeffE;          /* User defined color conversion coefficient */
+    RK_U16 coeffF;          /* User defined color conversion coefficient */
 } H264EncColorConversion;
 
 typedef struct {
-    u32 origWidth;
-    u32 origHeight;
-    u32 xOffset;
-    u32 yOffset;
+    RK_U32 origWidth;
+    RK_U32 origHeight;
+    RK_U32 xOffset;
+    RK_U32 yOffset;
     MppFrameFormat inputType;
     H264EncPictureRotation rotation;
-    u32 videoStabilization;
+    RK_U32 videoStabilization;
     H264EncColorConversion colorConversion;
 } H264EncPreProcessingCfg;
 
 /* Version information */
 typedef struct {
-    u32 major;           /* Encoder API major version */
-    u32 minor;           /* Encoder API minor version */
+    RK_U32 major;           /* Encoder API major version */
+    RK_U32 minor;           /* Encoder API minor version */
 } H264EncApiVersion;
 
 typedef struct {
-    u32 swBuild;         /* Software build ID */
-    u32 hwBuild;         /* Hardware build ID */
+    RK_U32 swBuild;         /* Software build ID */
+    RK_U32 hwBuild;         /* Hardware build ID */
 } H264EncBuild;
 
 /* Encoder input structure */
 typedef struct {
-    u32 busLuma;         /* Bus address for input picture
+    RK_U32 busLuma;         /* Bus address for input picture
                               * planar format: luminance component
                               * semiplanar format: luminance component
                               * interleaved format: whole picture
                               */
-    u32 busChromaU;      /* Bus address for input chrominance
+    RK_U32 busChromaU;      /* Bus address for input chrominance
                               * planar format: cb component
                               * semiplanar format: both chrominance
                               * interleaved format: not used
                               */
-    u32 busChromaV;      /* Bus address for input chrominance
+    RK_U32 busChromaV;      /* Bus address for input chrominance
                               * planar format: cr component
                               * semiplanar format: not used
                               * interleaved format: not used
                               */
-    u32 timeIncrement;   /* The previous picture duration in units
+    RK_U32 timeIncrement;   /* The previous picture duration in units
                               * of frameRateDenom/frameRateNum.
                               * 0 for the very first picture.
                               */
-    u32 *pOutBuf;        /* Pointer to output stream buffer */
-    u32 busOutBuf;       /* Bus address of output stream buffer */
-    u32 outBufSize;      /* Size of output stream buffer in bytes */
+    RK_U32 *pOutBuf;        /* Pointer to output stream buffer */
+    RK_U32 busOutBuf;       /* Bus address of output stream buffer */
+    RK_U32 outBufSize;      /* Size of output stream buffer in bytes */
 
     H264EncPictureCodingType codingType;    /* Proposed picture coding type,
                                                  * INTRA/PREDICTED
                                                  */
-    u32 busLumaStab;     /* bus address of next picture to stabilize (luminance) */
+    RK_U32 busLumaStab;     /* bus address of next picture to stabilize (luminance) */
 } H264EncIn;
 
 /* Encoder output structure */
@@ -196,7 +195,7 @@ typedef struct {
     H264EncPictureCodingType codingType;    /* Realized picture coding type,
                                                  * INTRA/PREDICTED/NOTCODED
                                                  */
-    u32 streamSize;      /* Size of output stream in bytes */
+    RK_U32 streamSize;      /* Size of output stream in bytes */
 } H264EncOut;
 
 /* Configuration info for initialization
@@ -209,10 +208,10 @@ typedef struct {
      * CABAC -> main/high, 8x8-transform -> high */
     H264Profile profile;
     H264Level   level;
-    u32 width;           /* Encoded picture width in pixels, multiple of 4 */
-    u32 height;          /* Encoded picture height in pixels, multiple of 2 */
-    u32 frameRateNum;    /* The stream time scale, [1..65535] */
-    u32 frameRateDenom;  /* Maximum frame rate is frameRateNum/frameRateDenom
+    RK_U32 width;           /* Encoded picture width in pixels, multiple of 4 */
+    RK_U32 height;          /* Encoded picture height in pixels, multiple of 2 */
+    RK_U32 frameRateNum;    /* The stream time scale, [1..65535] */
+    RK_U32 frameRateDenom;  /* Maximum frame rate is frameRateNum/frameRateDenom
                               * in frames/second. The actual frame rate will be
                               * defined by timeIncrement of encoded pictures,
                               * [1..frameRateNum] */
@@ -229,43 +228,43 @@ typedef struct {
 
 /* Rate control parameters */
 typedef struct {
-    u32 pictureRc;       /* Adjust QP between pictures, [0,1] */
-    u32 mbRc;            /* Adjust QP inside picture, [0,1] */
-    u32 pictureSkip;     /* Allow rate control to skip pictures, [0,1] */
-    u32 intraPicRate;    /* intra period */
-    u32 keyframe_max_interval;
-    i32 qpHdr;           /* QP for next encoded picture, [-1..51]
+    RK_U32 pictureRc;       /* Adjust QP between pictures, [0,1] */
+    RK_U32 mbRc;            /* Adjust QP inside picture, [0,1] */
+    RK_U32 pictureSkip;     /* Allow rate control to skip pictures, [0,1] */
+    RK_U32 intraPicRate;    /* intra period */
+    RK_U32 keyframe_max_interval;
+    RK_S32 qpHdr;           /* QP for next encoded picture, [-1..51]
                               * -1 = Let rate control calculate initial QP
                               * This QP is used for all pictures if
                               * HRD and pictureRc and mbRc are disabled
                               * If HRD is enabled it may override this QP
                               */
-    u32 qpMin;           /* Minimum QP for any picture, [0..51] */
-    u32 qpMax;           /* Maximum QP for any picture, [0..51] */
-    u32 bitPerSecond;    /* Target bitrate in bits/second, this is
+    RK_U32 qpMin;           /* Minimum QP for any picture, [0..51] */
+    RK_U32 qpMax;           /* Maximum QP for any picture, [0..51] */
+    RK_U32 bitPerSecond;    /* Target bitrate in bits/second, this is
                               * needed if pictureRc, mbRc, pictureSkip or
                               * hrd is enabled
                               */
-    u32 hrd;             /* Hypothetical Reference Decoder model, [0,1]
+    RK_U32 hrd;             /* Hypothetical Reference Decoder model, [0,1]
                               * restricts the instantaneous bitrate and
                               * total bit amount of every coded picture.
                               * Enabling HRD will cause tight constrains
                               * on the operation of the rate control
                               */
-    u32 hrdCpbSize;      /* Size of Coded Picture Buffer in HRD (bits) */
-    u32 gopLen;          /* Length for Group of Pictures, indicates
+    RK_U32 hrdCpbSize;      /* Size of Coded Picture Buffer in HRD (bits) */
+    RK_U32 gopLen;          /* Length for Group of Pictures, indicates
                               * the distance of two intra pictures,
                               * including first intra [1..150]
                               */
-    i32 intraQpDelta;    /* Intra QP delta. intraQP = QP + intraQpDelta
+    RK_S32 intraQpDelta;    /* Intra QP delta. intraQP = QP + intraQpDelta
                               * This can be used to change the relative quality
                               * of the Intra pictures or to lower the size
                               * of Intra pictures.
                               */
-    u32 fixedIntraQp;    /* Fixed QP value for all Intra pictures,
+    RK_U32 fixedIntraQp;    /* Fixed QP value for all Intra pictures,
                               * 0 = Rate control calculates intra QP.
                               */
-    i32 mbQpAdjustment;  /* Encoder uses MAD thresholding to recognize
+    RK_S32 mbQpAdjustment;  /* Encoder uses MAD thresholding to recognize
                               * macroblocks with least details. This value is
                               * used to adjust the QP of these macroblocks
                               * increasing the subjective quality. [-8..7]
@@ -273,15 +272,15 @@ typedef struct {
 } H264EncRateCtrl;
 
 typedef struct {
-    u32 encStatus;
+    RK_U32 encStatus;
     RK_U32 lumWidthSrc;  // TODO  need to think again  modify by lance 2016.06.15
     RK_U32 lumHeightSrc;  // TODO  need to think again  modify by lance 2016.06.15
-    u32 mbPerFrame;
-    u32 mbPerRow;
-    u32 mbPerCol;
-    u32 frameCnt;
-    u32 fillerNalSize;
-    u32 testId;
+    RK_U32 mbPerFrame;
+    RK_U32 mbPerRow;
+    RK_U32 mbPerCol;
+    RK_U32 frameCnt;
+    RK_U32 fillerNalSize;
+    RK_U32 testId;
     stream_s stream;
     preProcess_s preProcess;
     sps_s seqParameterSet;
@@ -291,7 +290,7 @@ typedef struct {
     madTable_s mad;
     asicData_s asic;
     const void *inst;
-    u32 time_debug_init;
+    RK_U32 time_debug_init;
     RK_U32 intraPeriodCnt;  //  count the frame amount from last intra frame,
     // then determine next frame to which type to be encoded
     H264EncIn encIn;        // put input struct into instance, todo    modify by lance 2016.05.31
@@ -337,8 +336,8 @@ H264EncRet H264EncGetRateCtrl(H264ECtx *inst,
                               H264EncRateCtrl * pRateCtrl);
 
 /* Encoder user data insertion during stream generation */
-H264EncRet H264EncSetSeiUserData(H264ECtx *inst, const u8 * pUserData,
-                                 u32 userDataSize);
+H264EncRet H264EncSetSeiUserData(H264ECtx *inst, const RK_U8 * pUserData,
+                                 RK_U32 userDataSize);
 
 /* Stream generation */
 

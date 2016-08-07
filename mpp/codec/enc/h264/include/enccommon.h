@@ -21,7 +21,7 @@
     2. Include headers
 ------------------------------------------------------------------------------*/
 
-#include "basetype.h"
+#include "rk_type.h"
 #include "ewl.h"
 
 #define ASSERT(expr)
@@ -56,24 +56,24 @@ typedef enum {
 
 /* VLC TABLE */
 typedef struct {
-    i32 value;  /* Value of bits  */
-    i32 number; /* Number of bits */
+    RK_S32 value;  /* Value of bits  */
+    RK_S32 number; /* Number of bits */
 } table_s;
 
 /* used in stream buffer handling */
 typedef struct {
-    u8 *stream; /* Pointer to next byte of stream */
-    u32 size;   /* Byte size of stream buffer */
-    u32 byteCnt;    /* Byte counter */
-    u32 bitCnt; /* Bit counter */
-    u32 byteBuffer; /* Byte buffer */
-    u32 bufferedBits;   /* Amount of bits in byte buffer, [0-7] */
-    u32 zeroBytes;  /* Amount of consecutive zero bytes */
-    i32 overflow;    /* This will signal a buffer overflow */
-    u32 emulCnt; /* Counter for emulation_3_byte, needed in SEI */
-    i32 *table;         /* Video packet or Gob sizes */
-    i32 tableSize;      /* Size of above table */
-    i32 tableCnt;       /* Table counter of above table */
+    RK_U8 *stream; /* Pointer to next byte of stream */
+    RK_U32 size;   /* Byte size of stream buffer */
+    RK_U32 byteCnt;    /* Byte counter */
+    RK_U32 bitCnt; /* Bit counter */
+    RK_U32 byteBuffer; /* Byte buffer */
+    RK_U32 bufferedBits;   /* Amount of bits in byte buffer, [0-7] */
+    RK_U32 zeroBytes;  /* Amount of consecutive zero bytes */
+    RK_S32 overflow;    /* This will signal a buffer overflow */
+    RK_U32 emulCnt; /* Counter for emulation_3_byte, needed in SEI */
+    RK_S32 *table;         /* Video packet or Gob sizes */
+    RK_S32 tableSize;      /* Size of above table */
+    RK_S32 tableCnt;       /* Table counter of above table */
 } stream_s;
 
 /* General tools */

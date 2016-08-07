@@ -76,10 +76,10 @@ void H264PicParameterSet(stream_s * stream, pps_s * pps)
     H264ExpGolombUnsigned(stream, pps->picParameterSetId);
     COMMENT("seq_parameter_set_id");
 
-    H264NalBits(stream, (i32) pps->entropyCodingMode, 1);
+    H264NalBits(stream, (RK_S32) pps->entropyCodingMode, 1);
     COMMENT("entropy_coding_mode_flag");
 
-    H264NalBits(stream, (i32) pps->picOrderPresent, 1);
+    H264NalBits(stream, (RK_S32) pps->picOrderPresent, 1);
     COMMENT("pic_order_present_flag");
 
     H264ExpGolombUnsigned(stream, pps->numSliceGroupsMinus1);
@@ -93,7 +93,7 @@ void H264PicParameterSet(stream_s * stream, pps_s * pps)
     H264ExpGolombUnsigned(stream, pps->numRefIdxL1ActiveMinus1);
     COMMENT("num_ref_idx_l1_active_minus1");
 
-    H264NalBits(stream, (i32) pps->weightedPred, 1);
+    H264NalBits(stream, (RK_S32) pps->weightedPred, 1);
     COMMENT("weighted_pred_flag");
 
     H264NalBits(stream, pps->weightedBipredIdc, 2);
@@ -108,13 +108,13 @@ void H264PicParameterSet(stream_s * stream, pps_s * pps)
     H264ExpGolombSigned(stream, pps->chromaQpIndexOffset);
     COMMENT("chroma_qp_index_offset");
 
-    H264NalBits(stream, (i32) pps->deblockingFilterControlPresent, 1);
+    H264NalBits(stream, (RK_S32) pps->deblockingFilterControlPresent, 1);
     COMMENT("deblocking_filter_control_present_flag");
 
-    H264NalBits(stream, (i32) pps->constIntraPred, 1);
+    H264NalBits(stream, (RK_S32) pps->constIntraPred, 1);
     COMMENT("constrained_intra_pred_flag");
 
-    H264NalBits(stream, (i32) pps->redundantPicCntPresent, 1);
+    H264NalBits(stream, (RK_S32) pps->redundantPicCntPresent, 1);
     COMMENT("redundant_pic_cnt_present_flag");
 
     if (pps->transform8x8Mode == ENCHW_YES) {

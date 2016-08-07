@@ -34,14 +34,14 @@
         ENCHW_NOK   Error condition.
 
 ------------------------------------------------------------------------------*/
-i32 EncPreProcessCheck(const preProcess_s * preProcess)
+RK_S32 EncPreProcessCheck(const preProcess_s * preProcess)
 {
-    i32 status = ENCHW_OK;
-    u32 tmp;
-    u32 width, height;
+    RK_S32 status = ENCHW_OK;
+    RK_U32 tmp;
+    RK_U32 width, height;
 
 #if 0
-    u32 w_mask;
+    RK_U32 w_mask;
 
     if (preProcess->inputFormat == 0)
         w_mask = 0x0F;  /* 16 multiple */
@@ -64,7 +64,7 @@ i32 EncPreProcessCheck(const preProcess_s * preProcess)
     width = preProcess->lumWidth;
     height = preProcess->lumHeight;
     if (preProcess->rotation) {
-        u32 tmp_rotation;  // modify by lance 2016.05.12
+        RK_U32 tmp_rotation;  // modify by lance 2016.05.12
 
         tmp_rotation = width;  // modify by lance 2016.05.12
         width = height;
@@ -97,10 +97,10 @@ i32 EncPreProcessCheck(const preProcess_s * preProcess)
 ------------------------------------------------------------------------------*/
 void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
 {
-    u32 tmp;
-    u32 width, height;
+    RK_U32 tmp;
+    RK_U32 width, height;
     regValues_s *regs;
-    u32 stride;
+    RK_U32 stride;
 
     ASSERT(asic != NULL && preProcess != NULL);
 
@@ -191,7 +191,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
     width = preProcess->lumWidth;
     height = preProcess->lumHeight;
     if (preProcess->rotation) {
-        u32 tmp_rotation;  // modify by lance 2016.05.12
+        RK_U32 tmp_rotation;  // modify by lance 2016.05.12
 
         tmp_rotation = width;  // modify by lance 2016.05.12
         width = height;

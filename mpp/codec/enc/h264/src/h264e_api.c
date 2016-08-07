@@ -83,7 +83,7 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     RK_U32 srcLumaWidth = p->lumWidthSrc;
     RK_U32 srcLumaHeight = p->lumHeightSrc;
 
-    encIn->pOutBuf = (u32*)mpp_buffer_get_ptr(task->output);
+    encIn->pOutBuf = (RK_U32*)mpp_buffer_get_ptr(task->output);
     encIn->busOutBuf = mpp_buffer_get_fd(task->output);
     encIn->outBufSize = mpp_buffer_get_size(task->output);
 
@@ -103,7 +103,7 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
 
     /* Setup encoder input */
     {
-        u32 w = srcLumaWidth;
+        RK_U32 w = srcLumaWidth;
         encIn->busLuma = mpp_buffer_get_fd(task->input);
 
         encIn->busChromaU = encIn->busLuma | ((w * srcLumaHeight) << 10);

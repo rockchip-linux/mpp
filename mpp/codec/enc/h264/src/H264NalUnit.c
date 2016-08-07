@@ -37,7 +37,7 @@
     H264NalUnit
 
 ------------------------------------------------------------------------------*/
-void H264NalUnitHdr(stream_s * stream, i32 nalRefIdc, nalUnitType_e nalUnitType,
+void H264NalUnitHdr(stream_s * stream, RK_S32 nalRefIdc, nalUnitType_e nalUnitType,
                     true_e byteStream)
 {
     if (byteStream == ENCHW_YES) {
@@ -60,7 +60,7 @@ void H264NalUnitHdr(stream_s * stream, i32 nalRefIdc, nalUnitType_e nalUnitType,
     H264PutBits(stream, nalRefIdc, 2);
     COMMENT("nal_ref_idc");
 
-    H264PutBits(stream, (i32) nalUnitType, 5);
+    H264PutBits(stream, (RK_S32) nalUnitType, 5);
     COMMENT("nal_unit_type");
 
     stream->zeroBytes = 0; /* we start new counter for zero bytes */
@@ -87,10 +87,10 @@ void H264NalUnitTrailinBits(stream_s * stream, true_e byteStream)
     return;
 }
 
-u32 H264FillerNALU(stream_s * sp, i32 cnt, true_e byteStream)
+RK_U32 H264FillerNALU(stream_s * sp, RK_S32 cnt, true_e byteStream)
 {
-    i32 i = cnt;
-    u32 nal_size;
+    RK_S32 i = cnt;
+    RK_U32 nal_size;
 
     nal_size = sp->byteCnt;
 

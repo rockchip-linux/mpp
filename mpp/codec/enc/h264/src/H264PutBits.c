@@ -49,11 +49,11 @@ static bool_e H264BufferStatus(stream_s * stream);
         number  Number of bits
 
 ------------------------------------------------------------------------------*/
-void H264PutBits(stream_s * buffer, i32 value, i32 number)
+void H264PutBits(stream_s * buffer, RK_S32 value, RK_S32 number)
 {
-    i32 bits;
-    u32 byteBuffer = buffer->byteBuffer;
-    u8 *stream = buffer->stream;
+    RK_S32 bits;
+    RK_U32 byteBuffer = buffer->byteBuffer;
+    RK_U8 *stream = buffer->stream;
 
     if (H264BufferStatus(buffer) != ENCHW_OK) {
         return;
@@ -70,7 +70,7 @@ void H264PutBits(stream_s * buffer, i32 value, i32 number)
     byteBuffer = byteBuffer | value;
 
     while (bits > 7) {
-        *stream = (u8) (byteBuffer >> 24);
+        *stream = (RK_U8) (byteBuffer >> 24);
 
         bits -= 8;
         byteBuffer <<= 8;
@@ -79,7 +79,7 @@ void H264PutBits(stream_s * buffer, i32 value, i32 number)
     }
 
     buffer->byteBuffer = byteBuffer;
-    buffer->bufferedBits = (u8) bits;
+    buffer->bufferedBits = (RK_U8) bits;
     buffer->stream = stream;
 
     return;
@@ -101,11 +101,11 @@ void H264PutBits(stream_s * buffer, i32 value, i32 number)
         number  Number of bits
 
 ------------------------------------------------------------------------------*/
-void H264PutNalBits(stream_s * buffer, i32 value, i32 number)
+void H264PutNalBits(stream_s * buffer, RK_S32 value, RK_S32 number)
 {
-    i32 bits;
-    u8 *stream = buffer->stream;
-    u32 byteBuffer = buffer->byteBuffer;
+    RK_S32 bits;
+    RK_U8 *stream = buffer->stream;
+    RK_U32 byteBuffer = buffer->byteBuffer;
 
     ASSERT(value < (1 << number));
     ASSERT(number < 25);
@@ -113,21 +113,21 @@ void H264PutNalBits(stream_s * buffer, i32 value, i32 number)
     TRACE_BIT_STREAM(value, number);
 
     bits = number + buffer->bufferedBits;
-    byteBuffer = byteBuffer | ((u32) value << (32 - bits));
+    byteBuffer = byteBuffer | ((RK_U32) value << (32 - bits));
 
     while (bits > 7) {
-        i32 zeroBytes = buffer->zeroBytes;
-        i32 byteCnt = buffer->byteCnt;
+        RK_S32 zeroBytes = buffer->zeroBytes;
+        RK_S32 byteCnt = buffer->byteCnt;
 
         if (H264BufferStatus(buffer) != ENCHW_OK)
             return;
 
-        *stream = (u8) (byteBuffer >> 24);
+        *stream = (RK_U8) (byteBuffer >> 24);
         byteCnt++;
 
         if ((zeroBytes == 2) && (*stream < 4)) {
             *stream++ = 3;
-            *stream = (u8) (byteBuffer >> 24);
+            *stream = (RK_U8) (byteBuffer >> 24);
             byteCnt++;
             zeroBytes = 0;
             buffer->emulCnt++;
@@ -146,7 +146,7 @@ void H264PutNalBits(stream_s * buffer, i32 value, i32 number)
         buffer->stream = stream;
     }
 
-    buffer->bufferedBits = (u8) bits;
+    buffer->bufferedBits = (RK_U8) bits;
     buffer->byteBuffer = byteBuffer;
 }
 
@@ -161,7 +161,7 @@ void H264PutNalBits(stream_s * buffer, i32 value, i32 number)
         size    Size of stream buffer.
 
 ------------------------------------------------------------------------------*/
-bool_e H264SetBuffer(stream_s * buffer, u8 * stream, i32 size)
+bool_e H264SetBuffer(stream_s * buffer, RK_U8 * stream, RK_S32 size)
 {
     buffer->stream = stream;
     buffer->size = size;
@@ -207,15 +207,15 @@ bool_e H264BufferStatus(stream_s * stream)
     H264ExpGolombUnsigned
 
 ------------------------------------------------------------------------------*/
-void H264ExpGolombUnsigned(stream_s * stream, u32 val)
+void H264ExpGolombUnsigned(stream_s * stream, RK_U32 val)
 {
-    u32 numBits = 0;
+    RK_U32 numBits = 0;
 
     val++;
     while (val >> ++numBits);
 
     if (numBits > 12) {
-        u32 tmp;
+        RK_U32 tmp;
         tmp = numBits - 1;
 
         if (tmp > 24) {
@@ -244,14 +244,14 @@ void H264ExpGolombUnsigned(stream_s * stream, u32 val)
     H264ExpGolombSigned
 
 ------------------------------------------------------------------------------*/
-void H264ExpGolombSigned(stream_s * stream, i32 val)
+void H264ExpGolombSigned(stream_s * stream, RK_S32 val)
 {
-    u32 tmp;
+    RK_U32 tmp;
 
     if (val > 0)
-        tmp = (u32) (2 * val - 1);
+        tmp = (RK_U32) (2 * val - 1);
     else
-        tmp = (u32) (-2 * val);
+        tmp = (RK_U32) (-2 * val);
 
     H264ExpGolombUnsigned(stream, tmp);
 }

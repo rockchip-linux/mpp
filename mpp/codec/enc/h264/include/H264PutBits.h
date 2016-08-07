@@ -20,7 +20,6 @@
 /*------------------------------------------------------------------------------
     1. Include headers
 ------------------------------------------------------------------------------*/
-#include "basetype.h"
 #include "enccommon.h"
 /*------------------------------------------------------------------------------
     2. External compiler flags
@@ -30,27 +29,16 @@
     3. Module defines
 ------------------------------------------------------------------------------*/
 
-#if 1
 #define H264NalBits(stream, val, num) H264PutNalBits(stream, val, num)
-#else
-#define H264NalBits(stream, val, num) \
-    if (stream->bufferedBits + num < 8) { \
-        i32 bits = stream->bufferedBits + (num); \
-        stream->bufferedBits += (num); \
-        stream->byteBuffer = stream->byteBuffer | ((u32)(val) << (32-bits)); \
-    } else { \
-        H264PutNalBits(stream, val, num); \
-    }
-#endif
 
 /*------------------------------------------------------------------------------
     4. Function prototypes
 ------------------------------------------------------------------------------*/
-bool_e H264SetBuffer(stream_s * buffer, u8 * stream, i32 size);
-void H264PutBits(stream_s *, i32, i32);
-void H264PutNalBits(stream_s *, i32, i32);
-void H264ExpGolombUnsigned(stream_s * stream, u32 val);
-void H264ExpGolombSigned(stream_s * stream, i32 val);
+bool_e H264SetBuffer(stream_s * buffer, RK_U8 * stream, RK_S32 size);
+void H264PutBits(stream_s *, RK_S32, RK_S32);
+void H264PutNalBits(stream_s *, RK_S32, RK_S32);
+void H264ExpGolombUnsigned(stream_s * stream, RK_U32 val);
+void H264ExpGolombSigned(stream_s * stream, RK_S32 val);
 void H264RbspTrailingBits(stream_s * stream);
 void H264Comment(char *comment);
 

@@ -17,8 +17,6 @@
 #ifndef __ENC_ASIC_CONTROLLER_H__
 #define __ENC_ASIC_CONTROLLER_H__
 
-#include "basetype.h"
-#include "enccfg.h"
 #include "ewl.h"
 #include "mpp_mem.h"
 #include "mpp_buffer.h"
@@ -75,55 +73,55 @@ typedef enum {
 } asicFrameCodingType_e;
 
 typedef struct {
-    u32 qp;
-    u32 qpMin;
-    u32 qpMax;
-    u32 frameCodingType;
-    u32 idrPicId;
-    u32 frameNum;
-    u32 picInitQp;
-    i32 sliceAlphaOffset;
-    i32 sliceBetaOffset;
-    u32 filterDisable;
-    u32 transform8x8Mode;
-    u32 enableCabac;
-    u32 cabacInitIdc;
-    i32 chromaQpIndexOffset;
-    u32 sliceSizeMbRows;
-    u32 inputImageFormat;
-    u32 inputImageRotation;
-    u32 outputStrmBase;
-    u32 outputStrmSize;
+    RK_U32 qp;
+    RK_U32 qpMin;
+    RK_U32 qpMax;
+    RK_U32 frameCodingType;
+    RK_U32 idrPicId;
+    RK_U32 frameNum;
+    RK_U32 picInitQp;
+    RK_S32 sliceAlphaOffset;
+    RK_S32 sliceBetaOffset;
+    RK_U32 filterDisable;
+    RK_U32 transform8x8Mode;
+    RK_U32 enableCabac;
+    RK_U32 cabacInitIdc;
+    RK_S32 chromaQpIndexOffset;
+    RK_U32 sliceSizeMbRows;
+    RK_U32 inputImageFormat;
+    RK_U32 inputImageRotation;
+    RK_U32 outputStrmBase;
+    RK_U32 outputStrmSize;
 
-    u32 inputLumBase;
-    u32 inputCbBase;
-    u32 inputCrBase;
-    u32 cpDistanceMbs;
-    u32 *cpTargetResults;
-    const u32 *cpTarget;
-    const i32 *targetError;
-    const i32 *deltaQp;
-    u32 rlcCount;
-    u32 qpSum;
-    u32 h264StrmMode;   /* 0 - byte stream, 1 - NAL units */
-    u32 inputLumaBaseOffset;
-    u32 inputChromaBaseOffset;
-    u32 h264Inter4x4Disabled;
-    u32 disableQuarterPixelMv;
-    u32 vsNextLumaBase;
-    u32 vsMode;
-    i32 madQpDelta;
-    u32 madThreshold;
-    u32 madCount;
-    u32 colorConversionCoeffA;
-    u32 colorConversionCoeffB;
-    u32 colorConversionCoeffC;
-    u32 colorConversionCoeffE;
-    u32 colorConversionCoeffF;
-    u32 rMaskMsb;
-    u32 gMaskMsb;
-    u32 bMaskMsb;
-    u32 hw_status;
+    RK_U32 inputLumBase;
+    RK_U32 inputCbBase;
+    RK_U32 inputCrBase;
+    RK_U32 cpDistanceMbs;
+    RK_U32 *cpTargetResults;
+    const RK_U32 *cpTarget;
+    const RK_S32 *targetError;
+    const RK_S32 *deltaQp;
+    RK_U32 rlcCount;
+    RK_U32 qpSum;
+    RK_U32 h264StrmMode;   /* 0 - byte stream, 1 - NAL units */
+    RK_U32 inputLumaBaseOffset;
+    RK_U32 inputChromaBaseOffset;
+    RK_U32 h264Inter4x4Disabled;
+    RK_U32 disableQuarterPixelMv;
+    RK_U32 vsNextLumaBase;
+    RK_U32 vsMode;
+    RK_S32 madQpDelta;
+    RK_U32 madThreshold;
+    RK_U32 madCount;
+    RK_U32 colorConversionCoeffA;
+    RK_U32 colorConversionCoeffB;
+    RK_U32 colorConversionCoeffC;
+    RK_U32 colorConversionCoeffE;
+    RK_U32 colorConversionCoeffF;
+    RK_U32 rMaskMsb;
+    RK_U32 gMaskMsb;
+    RK_U32 bMaskMsb;
+    RK_U32 hw_status;
 } regValues_s;
 
 typedef struct {
@@ -133,7 +131,7 @@ typedef struct {
 /*------------------------------------------------------------------------------
     4. Function prototypes
 ------------------------------------------------------------------------------*/
-i32 EncAsicControllerInit(asicData_s * asic);
+RK_S32 EncAsicControllerInit(asicData_s * asic);
 
 /* Functions for controlling ASIC */
 void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data);

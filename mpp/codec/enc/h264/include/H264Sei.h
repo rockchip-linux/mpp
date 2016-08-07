@@ -21,50 +21,50 @@
 #include "H264PutBits.h"
 
 typedef struct {
-    u32 fts;    /* Full time stamp */
-    u32 timeScale;
-    u32 nuit;   /* number of units in tick */
-    u32 time;   /* Modulo time */
-    u32 secf;
-    u32 sec;    /* Seconds */
-    u32 minf;
-    u32 min;    /* Minutes */
-    u32 hrf;
-    u32 hr; /* Hours */
+    RK_U32 fts;    /* Full time stamp */
+    RK_U32 timeScale;
+    RK_U32 nuit;   /* number of units in tick */
+    RK_U32 time;   /* Modulo time */
+    RK_U32 secf;
+    RK_U32 sec;    /* Seconds */
+    RK_U32 minf;
+    RK_U32 min;    /* Minutes */
+    RK_U32 hrf;
+    RK_U32 hr; /* Hours */
 } timeStamp_s;
 
 typedef struct {
     timeStamp_s ts;
-    u32 nalUnitSize;
-    u32 enabled;
+    RK_U32 nalUnitSize;
+    RK_U32 enabled;
     true_e byteStream;
-    u32 hrd;    /* HRD conformance */
-    u32 seqId;
-    u32 icrd;   /* initial cpb removal delay */
-    u32 icrdLen;
-    u32 icrdo;  /* initial cpb removal delay offset */
-    u32 icrdoLen;
-    u32 crd;    /* CPB removal delay */
-    u32 crdLen;
-    u32 dod;    /* DPB removal delay */
-    u32 dodLen;
-    u32 psp;
-    u32 ps;
-    u32 cts;
-    u32 cntType;
-    u32 cdf;
-    u32 nframes;
-    u32 toffs;
-    u32 toffsLen;
-    u32 userDataEnabled;
-    const u8 * pUserData;
-    u32 userDataSize;
+    RK_U32 hrd;    /* HRD conformance */
+    RK_U32 seqId;
+    RK_U32 icrd;   /* initial cpb removal delay */
+    RK_U32 icrdLen;
+    RK_U32 icrdo;  /* initial cpb removal delay offset */
+    RK_U32 icrdoLen;
+    RK_U32 crd;    /* CPB removal delay */
+    RK_U32 crdLen;
+    RK_U32 dod;    /* DPB removal delay */
+    RK_U32 dodLen;
+    RK_U32 psp;
+    RK_U32 ps;
+    RK_U32 cts;
+    RK_U32 cntType;
+    RK_U32 cdf;
+    RK_U32 nframes;
+    RK_U32 toffs;
+    RK_U32 toffsLen;
+    RK_U32 userDataEnabled;
+    const RK_U8 * pUserData;
+    RK_U32 userDataSize;
 } sei_s;
 
-void H264InitSei(sei_s * sei, true_e byteStream, u32 hrd, u32 timeScale,
-                 u32 nuit);
-void H264UpdateSeiTS(sei_s * sei, u32 timeInc);
-void H264FillerSei(stream_s * sp, sei_s * sei, i32 cnt);
+void H264InitSei(sei_s * sei, true_e byteStream, RK_U32 hrd, RK_U32 timeScale,
+                 RK_U32 nuit);
+void H264UpdateSeiTS(sei_s * sei, RK_U32 timeInc);
+void H264FillerSei(stream_s * sp, sei_s * sei, RK_S32 cnt);
 void H264BufferingSei(stream_s * stream, sei_s * sei);
 void H264PicTimingSei(stream_s * stream, sei_s * sei);
 void H264UserDataUnregSei(stream_s * sp, sei_s * sei);

@@ -22,10 +22,7 @@ extern "C"
 {
 #endif
 
-#include "basetype.h"
-//#include "vpu_mem.h"  // mask by lance 2016.05.05
 #include "vpu.h"
-//#include "vpu_drv.h"
 
 /* Return values */
 #define EWL_OK                      0
@@ -56,28 +53,28 @@ extern "C"
 
 /* Hardware configuration description */
 typedef struct EWLHwConfig {
-    u32 maxEncodedWidth; /* Maximum supported width for video encoding (not JPEG) */
-    u32 h264Enabled;     /* HW supports H.264 */
-    u32 jpegEnabled;     /* HW supports JPEG */
-    u32 mpeg4Enabled;    /* HW supports MPEG-4 */
-    u32 vsEnabled;       /* HW supports video stabilization */
-    u32 rgbEnabled;      /* HW supports RGB input */
-    u32 busType;         /* HW bus type in use */
-    u32 busWidth;
-    u32 synthesisLanguage;
+    RK_U32 maxEncodedWidth; /* Maximum supported width for video encoding (not JPEG) */
+    RK_U32 h264Enabled;     /* HW supports H.264 */
+    RK_U32 jpegEnabled;     /* HW supports JPEG */
+    RK_U32 mpeg4Enabled;    /* HW supports MPEG-4 */
+    RK_U32 vsEnabled;       /* HW supports video stabilization */
+    RK_U32 rgbEnabled;      /* HW supports RGB input */
+    RK_U32 busType;         /* HW bus type in use */
+    RK_U32 busWidth;
+    RK_U32 synthesisLanguage;
 } EWLHwConfig_t;
 
 /* Allocated linear memory area information */
 /*    typedef struct EWLLinearMem
     {
-        u32 *vir_addr;
-        u32 phy_addr;
-        u32 size;
+        RK_U32 *vir_addr;
+        RK_U32 phy_addr;
+        RK_U32 size;
     } VPULinearMem_t;*/
 
 /* EWLInitParam is used to pass parameters when initializing the EWL */
 typedef struct EWLInitParam {
-    u32 clientType;
+    RK_U32 clientType;
 } EWLInitParam_t;
 
 #define EWL_CLIENT_TYPE_H264_ENC         1U
@@ -90,7 +87,7 @@ typedef struct EWLInitParam {
 ------------------------------------------------------------------------------*/
 
 /* Read and return the HW ID register value, static implementation */
-u32 EWLReadAsicID(void);
+RK_U32 EWLReadAsicID(void);
 
 /* Read and return HW configuration info, static implementation */
 //    EWLHwConfig_t EWLReadAsicConfig(void);
@@ -103,21 +100,21 @@ u32 EWLReadAsicID(void);
 /* Release the EWL instance
  * Returns EWL_OK or EWL_ERROR
  * EWLRelease is called when the encoder instance is released */
-i32 EWLRelease(const void *inst);
+RK_S32 EWLRelease(const void *inst);
 
 /* Reserve the HW resource for one codec instance
  * EWLReserveHw is called when beginning a frame encoding
  * The function may block until the resource is available.
  * Returns EWL_OK if the resource was successfully reserved for this instance
  * or EWL_ERROR if unable to reserve the resource. */
-//    i32 EWLReserveHw(const void *inst);
+//    RK_S32 EWLReserveHw(const void *inst);
 
 /* Frame buffers memory */
-//    i32 EWLMallocRefFrm(const void *inst, u32 size, VPULinearMem_t * info);
+//    RK_S32 EWLMallocRefFrm(const void *inst, RK_U32 size, VPULinearMem_t * info);
 //    void EWLFreeRefFrm(const void *inst, VPULinearMem_t * info);
 
 /* SW/HW shared memory */
-//    i32 EWLMallocLinear(const void *inst, u32 size, VPULinearMem_t * info);
+//    RK_S32 EWLMallocLinear(const void *inst, RK_U32 size, VPULinearMem_t * info);
 //    void VPUFreeLinear(const void *inst, VPULinearMem_t * info);
 
 /* D-Cache coherence *//* Not in use currently */
@@ -130,33 +127,33 @@ i32 EWLRelease(const void *inst);
  * Enable indicates when the HW is enabled. If shadow registers are used then
  * they must be flushed to the HW registers when enable is '1' before
  * writing the register that enables the HW */
-void EWLWriteReg(const void *inst, u32 offset, u32 val);
+void EWLWriteReg(const void *inst, RK_U32 offset, RK_U32 val);
 
 /* Read and return the value of a HW register
  * The status register is read after every macroblock encoding by SW
  * The other registers which may be updated by the HW are read after
  * BUFFER_FULL or FRAME_READY interrupt
  * Offset is relative to the the HW ID register (#0) in bytes */
-u32 EWLReadReg(const void *inst, u32 offset);
+RK_U32 EWLReadReg(const void *inst, RK_U32 offset);
 
 /* Writing all registers in one call *//*Not in use currently */
-void EWLWriteRegAll(const void *inst, const u32 * table, u32 size);
+void EWLWriteRegAll(const void *inst, const RK_U32 * table, RK_U32 size);
 /* Reading all registers in one call *//*Not in use currently */
-void EWLReadRegAll(const void *inst, u32 * table, u32 size);
+void EWLReadRegAll(const void *inst, RK_U32 * table, RK_U32 size);
 
 /* HW enable/disable. This will write <val> to register <offset> and by */
 /* this enablig/disabling the hardware */
-void EWLEnableHW(const void *inst, u32 offset, u32 val);
-void EWLDisableHW(const void *inst, u32 offset, u32 val);
+void EWLEnableHW(const void *inst, RK_U32 offset, RK_U32 val);
+void EWLDisableHW(const void *inst, RK_U32 offset, RK_U32 val);
 
 
 
 /* SW/SW shared memory handling */
-void *EWLmalloc(u32 n);
-//   void *EWLcalloc(u32 n, u32 s);
+void *EWLmalloc(RK_U32 n);
+//   void *EWLcalloc(RK_U32 n, RK_U32 s);
 //    void EWLfree(void *p);
-void *EWLmemcpy(void *d, const void *s, u32 n);
-void *EWLmemset(void *d, i32 c, u32 n);
+void *EWLmemcpy(void *d, const void *s, RK_U32 n);
+void *EWLmemset(void *d, RK_S32 c, RK_U32 n);
 
 #ifdef __cplusplus
 }

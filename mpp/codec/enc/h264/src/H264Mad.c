@@ -21,9 +21,9 @@
     Init MAD structure
 
 ------------------------------------------------------------------------------*/
-void H264MadInit(madTable_s *mad, u32 mbPerFrame)
+void H264MadInit(madTable_s *mad, RK_U32 mbPerFrame)
 {
-    i32 i;
+    RK_S32 i;
 
     mad->mbPerFrame = mbPerFrame;
 
@@ -40,10 +40,10 @@ void H264MadInit(madTable_s *mad, u32 mbPerFrame)
 /*------------------------------------------------------------------------------
   update_tables()
 ------------------------------------------------------------------------------*/
-static void update_tables(madTable_s *p, i32 th, i32 count)
+static void update_tables(madTable_s *p, RK_S32 th, RK_S32 count)
 {
-    const i32 clen = 3;
-    i32 tmp = p->pos;
+    const RK_S32 clen = 3;
+    RK_S32 tmp = p->pos;
 
     p->th[tmp]    = th;
     p->count[tmp] = count;
@@ -58,9 +58,9 @@ static void update_tables(madTable_s *p, i32 th, i32 count)
 /*------------------------------------------------------------------------------
   lin_sx()  calculate value of Sx for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_sx(i32 *x, i32 n)
+static RK_S32 lin_sx(RK_S32 *x, RK_S32 n)
 {
-    i32 sum = 0;
+    RK_S32 sum = 0;
 
     while (n--) {
         sum += x[n];
@@ -74,9 +74,9 @@ static i32 lin_sx(i32 *x, i32 n)
 /*------------------------------------------------------------------------------
   lin_sxy()  calculate value of Sxy for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_sxy(i32 *qp, i32 *r, i32 n)
+static RK_S32 lin_sxy(RK_S32 *qp, RK_S32 *r, RK_S32 n)
 {
-    i32 sum = 0;
+    RK_S32 sum = 0;
 
     while (n--) {
         sum += qp[n] * r[n];
@@ -90,9 +90,9 @@ static i32 lin_sxy(i32 *qp, i32 *r, i32 n)
 /*------------------------------------------------------------------------------
   lin_nsxx()  calculate value of n * Sxx for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_nsxx(i32 *qp, i32 n)
+static RK_S32 lin_nsxx(RK_S32 *qp, RK_S32 n)
 {
-    i32 sum = 0, d = n;
+    RK_S32 sum = 0, d = n;
 
     while (n--) {
         sum += d * qp[n] * qp[n];
@@ -108,12 +108,12 @@ static i32 lin_nsxx(i32 *qp, i32 n)
 ------------------------------------------------------------------------------*/
 static void update_model(madTable_s *p)
 {
-    i32 *count = p->count, *th = p->th, n = p->len;
-    i32 sx = lin_sx(p->count, n);
-    i32 sy = lin_sx(p->th, n);
-    i32 a1 = 0, a2 = 0;
+    RK_S32 *count = p->count, *th = p->th, n = p->len;
+    RK_S32 sx = lin_sx(p->count, n);
+    RK_S32 sy = lin_sx(p->th, n);
+    RK_S32 a1 = 0, a2 = 0;
 
-    /*i32 i;
+    /*RK_S32 i;
     for (i = 0; i < n; i++) {
         printf("model: cnt %i  th %i\n", count[i], th[i]);
     }*/
@@ -158,12 +158,12 @@ static void update_model(madTable_s *p)
     under threshold. Trying to adjust threshold so that madCount == targetCount.
 
 ------------------------------------------------------------------------------*/
-void H264MadThreshold(madTable_s *mad, u32 madCount)
+void H264MadThreshold(madTable_s *mad, RK_U32 madCount)
 {
     /* Target to improve quality for 30% of macroblocks */
-    u32 targetCount = 30 * mad->mbPerFrame / 100;  // modify by lance 2016.05.12
-    i32 threshold = mad->threshold;
-    i32 lowLimit, highLimit;
+    RK_U32 targetCount = 30 * mad->mbPerFrame / 100;  // modify by lance 2016.05.12
+    RK_S32 threshold = mad->threshold;
+    RK_S32 lowLimit, highLimit;
 
     update_tables(mad, mad->threshold, madCount);
     update_model(mad);

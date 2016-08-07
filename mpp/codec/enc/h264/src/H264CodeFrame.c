@@ -50,20 +50,20 @@ void H264SetNewFrame(H264ECtx * inst)
     regs->sliceSizeMbRows = inst->slice.sliceSize / inst->mbPerRow;
     regs->chromaQpIndexOffset = inst->picParameterSet.chromaQpIndexOffset;
 
-    regs->picInitQp = (u32) (inst->picParameterSet.picInitQpMinus26 + 26);
+    regs->picInitQp = (RK_U32) (inst->picParameterSet.picInitQpMinus26 + 26);
 
     regs->qp = inst->rateControl.qpHdr;
     regs->qpMin = inst->rateControl.qpMin;
     regs->qpMax = inst->rateControl.qpMax;
 
     if (inst->rateControl.mbRc) {
-        regs->cpTarget = (u32 *) inst->rateControl.qpCtrl.wordCntTarget;
+        regs->cpTarget = (RK_U32 *) inst->rateControl.qpCtrl.wordCntTarget;
         regs->targetError = inst->rateControl.qpCtrl.wordError;
         regs->deltaQp = inst->rateControl.qpCtrl.qpChange;
 
         regs->cpDistanceMbs = inst->rateControl.qpCtrl.checkPointDistance;
 
-        regs->cpTargetResults = (u32 *) inst->rateControl.qpCtrl.wordCntPrev;
+        regs->cpTargetResults = (RK_U32 *) inst->rateControl.qpCtrl.wordCntPrev;
     } else {
         regs->cpTarget = NULL;
     }

@@ -89,7 +89,7 @@ H264EncRet H264Init(H264ECtx * pinst)
 ------------------------------------------------------------------------------*/
 bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
 {
-    i32 width, height, tmp, bps;
+    RK_S32 width, height, tmp, bps;
     ASSERT(inst);
 
     /* Internal images, next macroblock boundary */
@@ -158,7 +158,7 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
 
     /* enforce macroblock rate limit in level */
     {
-        u32 mb_rate = (pEncCfg->frameRateNum * inst->mbPerFrame) /
+        RK_U32 mb_rate = (pEncCfg->frameRateNum * inst->mbPerFrame) /
                       pEncCfg->frameRateDenom;
 
         if (mb_rate > H264MaxMBPS[inst->seqParameterSet.levelIdx]) {
@@ -168,7 +168,7 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
     }
 
     /* Picture parameter set */
-    inst->picParameterSet.picInitQpMinus26 = (i32) H264ENC_DEFAULT_QP - 26;
+    inst->picParameterSet.picInitQpMinus26 = (RK_S32) H264ENC_DEFAULT_QP - 26;
 
     /* Rate control setup */
 
@@ -255,7 +255,7 @@ bool_e CheckParameter(const H264ECtx * inst)
     Round the width to the next multiple of 8 or 16 depending on YUV type.
 
 ------------------------------------------------------------------------------*/
-i32 H264GetAllowedWidth(i32 width, MppFrameFormat inputType)
+RK_S32 H264GetAllowedWidth(RK_S32 width, MppFrameFormat inputType)
 {
     if (inputType == MPP_FMT_YUV420P) {
         /* Width must be multiple of 16 to make

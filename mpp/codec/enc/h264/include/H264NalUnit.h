@@ -20,7 +20,6 @@
 /*------------------------------------------------------------------------------
     1. Include headers
 ------------------------------------------------------------------------------*/
-#include "basetype.h"
 #include "H264PutBits.h"
 
 /*------------------------------------------------------------------------------
@@ -34,9 +33,9 @@
 /*------------------------------------------------------------------------------
     4. Function prototypes
 ------------------------------------------------------------------------------*/
-void H264NalUnitHdr(stream_s * stream, i32 nalRefIdc, nalUnitType_e
+void H264NalUnitHdr(stream_s * stream, RK_S32 nalRefIdc, nalUnitType_e
                     nalUnitType, true_e byteStream);
 void H264NalUnitTrailinBits(stream_s * stream, true_e byteStream);
-u32 H264FillerNALU(stream_s * sp, i32 cnt, true_e byteStream);
+RK_U32 H264FillerNALU(stream_s * sp, RK_S32 cnt, true_e byteStream);
 
 #endif

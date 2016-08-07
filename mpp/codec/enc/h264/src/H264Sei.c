@@ -27,16 +27,16 @@
 /*------------------------------------------------------------------------------
   H264InitSei()
 ------------------------------------------------------------------------------*/
-void H264InitSei(sei_s * sei, true_e byteStream, u32 hrd, u32 timeScale,
-                 u32 nuit)
+void H264InitSei(sei_s * sei, true_e byteStream, RK_U32 hrd, RK_U32 timeScale,
+                 RK_U32 nuit)
 {
     ASSERT(sei != NULL);
 
     sei->byteStream = byteStream;
     sei->hrd = hrd;
     sei->seqId = 0x0;
-    sei->psp = (u32) ENCHW_YES;
-    sei->cts = (u32) ENCHW_YES;
+    sei->psp = (RK_U32) ENCHW_YES;
+    sei->cts = (RK_U32) ENCHW_YES;
     /* sei->icrd = 0; */
     sei->icrdLen = 24;
     /* sei->icrdo = 0; */
@@ -52,7 +52,7 @@ void H264InitSei(sei_s * sei, true_e byteStream, u32 hrd, u32 timeScale,
     sei->toffs = 0;
 
     {
-        u32 n = 1;
+        RK_U32 n = 1;
 
         while (nuit > (1U << n))
             n++;
@@ -65,12 +65,12 @@ void H264InitSei(sei_s * sei, true_e byteStream, u32 hrd, u32 timeScale,
     sei->ts.sec = 0;
     sei->ts.min = 0;
     sei->ts.hr = 0;
-    sei->ts.fts = (u32) ENCHW_YES;
-    sei->ts.secf = (u32) ENCHW_NO;
-    sei->ts.minf = (u32) ENCHW_NO;
-    sei->ts.hrf = (u32) ENCHW_NO;
+    sei->ts.fts = (RK_U32) ENCHW_YES;
+    sei->ts.secf = (RK_U32) ENCHW_NO;
+    sei->ts.minf = (RK_U32) ENCHW_NO;
+    sei->ts.hrf = (RK_U32) ENCHW_NO;
 
-    sei->userDataEnabled = (u32) ENCHW_NO;
+    sei->userDataEnabled = (RK_U32) ENCHW_NO;
     sei->userDataSize = 0;
     sei->pUserData = NULL;
 }
@@ -78,7 +78,7 @@ void H264InitSei(sei_s * sei, true_e byteStream, u32 hrd, u32 timeScale,
 /*------------------------------------------------------------------------------
   H264UpdateSeiTS()  Calculate new time stamp.
 ------------------------------------------------------------------------------*/
-void H264UpdateSeiTS(sei_s * sei, u32 timeInc)
+void H264UpdateSeiTS(sei_s * sei, RK_U32 timeInc)
 {
     timeStamp_s *ts = &sei->ts;
 
@@ -116,9 +116,9 @@ void H264UpdateSeiTS(sei_s * sei, u32 timeInc)
   could be huge. Use of temporary stream buffer is not needed, because size is
   know.
 ------------------------------------------------------------------------------*/
-void H264FillerSei(stream_s * sp, sei_s * sei, i32 cnt)
+void H264FillerSei(stream_s * sp, sei_s * sei, RK_S32 cnt)
 {
-    i32 i = cnt;
+    RK_S32 i = cnt;
 
     ASSERT(sp != NULL && sei != NULL);
 
@@ -147,8 +147,8 @@ void H264FillerSei(stream_s * sp, sei_s * sei, i32 cnt)
 ------------------------------------------------------------------------------*/
 void H264BufferingSei(stream_s * sp, sei_s * sei)
 {
-    u8 *pPayloadSizePos;
-    u32 startByteCnt;
+    RK_U8 *pPayloadSizePos;
+    RK_U32 startByteCnt;
 
     ASSERT(sei != NULL);
 
@@ -181,7 +181,7 @@ void H264BufferingSei(stream_s * sp, sei_s * sei)
     }
 
     {
-        u32 payload_size;
+        RK_U32 payload_size;
 
         payload_size = sp->byteCnt - startByteCnt - sp->emulCnt;
         *pPayloadSizePos = payload_size;
@@ -230,8 +230,8 @@ static void TimeStamp(stream_s * sp, timeStamp_s * ts)
 ------------------------------------------------------------------------------*/
 void H264PicTimingSei(stream_s * sp, sei_s * sei)
 {
-    u8 *pPayloadSizePos;
-    u32 startByteCnt;
+    RK_U8 *pPayloadSizePos;
+    RK_U32 startByteCnt;
 
     ASSERT(sei != NULL);
 
@@ -286,7 +286,7 @@ void H264PicTimingSei(stream_s * sp, sei_s * sei)
     }
 
     {
-        u32 payload_size;
+        RK_U32 payload_size;
 
         payload_size = sp->byteCnt - startByteCnt - sp->emulCnt;
         *pPayloadSizePos = payload_size;
@@ -298,8 +298,8 @@ void H264PicTimingSei(stream_s * sp, sei_s * sei)
 ------------------------------------------------------------------------------*/
 void H264UserDataUnregSei(stream_s * sp, sei_s * sei)
 {
-    u32 i, cnt;
-    const u8 * pUserData;
+    RK_U32 i, cnt;
+    const RK_U8 * pUserData;
     ASSERT(sei != NULL);
     ASSERT(sei->pUserData != NULL);
     ASSERT(sei->userDataSize >= 16);
