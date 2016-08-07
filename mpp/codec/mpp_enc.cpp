@@ -28,6 +28,11 @@
 #include "mpp_packet_impl.h"
 #include "hal_h264e_api.h"
 
+static void reset_hal_enc_task(HalEncTask *task)
+{
+    memset(task, 0, sizeof(*task));
+}
+
 static MPP_RET release_task_in_port(MppPort port)
 {
     MPP_RET ret = MPP_OK;
@@ -68,8 +73,8 @@ void *mpp_enc_control_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppEnc *enc = mpp->mEnc;
     MppThread *thd_enc  = mpp->mThreadCodec;
-    EncTask task;  // TODO
     HalTaskInfo task_info;
+    HalEncTask *enc_task = &task_info.enc;
     MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
     MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
     MppTask mpp_task = NULL;
@@ -96,7 +101,7 @@ void *mpp_enc_control_thread(void *data)
                 continue;
             }
 
-            memset(&task, 0, sizeof(EncTask));
+            reset_hal_enc_task(enc_task);
 
             if (mpp_frame_get_buffer(frame)) {
                 /*
@@ -117,14 +122,13 @@ void *mpp_enc_control_thread(void *data)
 
                 mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
 
-                task.ctrl_frm_buf_in = mpp_frame_get_buffer(frame);
-                task.ctrl_pkt_buf_out = mpp_packet_get_buffer(packet);
-                controller_encode(mpp->mEnc->controller, &task);
+                enc_task->input  = mpp_frame_get_buffer(frame);
+                enc_task->output = mpp_packet_get_buffer(packet);
+                controller_encode(mpp->mEnc->controller, enc_task);
 
-                task_info.enc.syntax.data = (void *)(&(task.syntax_data));
                 mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
                 mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
-                /*vpuWaitResult = */mpp_hal_hw_wait((mpp->mEnc->hal), &task_info); // TODO   need to check the return value
+                mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
 
                 RK_U32 outputStreamSize = 0;
                 controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
@@ -154,7 +158,7 @@ void *mpp_enc_control_thread(void *data)
             mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, packet);
 
             {
-                RK_S32 is_intra = task.syntax_data.frame_coding_type;
+                RK_S32 is_intra = enc_task->is_intra;
                 RK_U32 flag = mpp_packet_get_flag(packet);
 
                 mpp_task_meta_set_s32(mpp_task, MPP_META_KEY_OUTPUT_INTRA, is_intra);

@@ -301,6 +301,9 @@ typedef struct {
     h264e_control_extra_info_cfg info;
     H264EncConfig   enc_cfg;
     H264EncRateCtrl enc_rc_cfg;
+
+    // data for hal
+    h264e_syntax    syntax;
 } H264ECtx;
 
 #define H264E_DBG_FUNCTION          (0x00000001)

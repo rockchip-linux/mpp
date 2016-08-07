@@ -70,7 +70,7 @@ typedef struct ControlApi_t {
     MPP_RET (*init)(void *ctx, ControllerCfg *ctrlCfg);
     MPP_RET (*deinit)(void *ctx);
 
-    MPP_RET (*encode)(void *ctx, /*HalEncTask **/void *task);  // TODO
+    MPP_RET (*encode)(void *ctx, HalEncTask *task);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
