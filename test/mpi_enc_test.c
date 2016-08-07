@@ -41,6 +41,7 @@ typedef struct {
     MppCodingType   type;
     RK_U32          width;
     RK_U32          height;
+    MppFrameFormat  format;
     RK_U32          debug;
 
     RK_U32          have_input;
@@ -52,6 +53,7 @@ static OptionInfo mpi_enc_cmd[] = {
     {"o",               "output_file",          "output bitstream file, "},
     {"w",               "width",                "the width of input bitstream"},
     {"h",               "height",               "the height of input bitstream"},
+    {"f",               "format",               "the picture format of input bitstream"},
     {"t",               "type",                 "input stream coding type"},
     {"d",               "debug",                "debug flag"},
 };
@@ -83,6 +85,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     RK_U32 height       = cmd->height;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
+    MppFrameFormat fmt  = cmd->format;
     MppCodingType type  = cmd->type;
 
     // resources
@@ -158,12 +161,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_cfg.size        = sizeof(mpp_cfg);
     mpp_cfg.width       = width;
     mpp_cfg.height      = height;
-    mpp_cfg.format      = ENC_INPUT_YUV420_PLANAR;
+    mpp_cfg.format      = fmt;
     mpp_cfg.rc_mode     = 1;
     mpp_cfg.skip_cnt    = 0;
-    mpp_cfg.bps         = SZ_4M * 8;
     mpp_cfg.fps_in      = 30;
     mpp_cfg.fps_out     = 30;
+    mpp_cfg.bps         = width * height * 2 * mpp_cfg.fps_in;
     mpp_cfg.qp          = 24;
     mpp_cfg.gop         = 60;
 
@@ -358,7 +361,7 @@ MPP_TEST_OUT:
 
     if (MPP_OK == ret)
         mpp_log("mpi_enc_test success total frame %d bps %lld\n",
-                frame_count, (RK_U64)((stream_size * 8) / (frame_count / mpp_cfg.fps_out)));
+                frame_count, (RK_U64)((stream_size * 8 * mpp_cfg.fps_out) / frame_count));
     else
         mpp_err("mpi_enc_test failed ret %d\n", ret);
 
@@ -449,6 +452,18 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
                     cmd->height = atoi(next);
                 } else {
                     mpp_log("input height is invalid\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'f':
+                if (next) {
+                    cmd->format = (MppFrameFormat)atoi(next);
+                    err = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
+                            cmd->format >= MPP_FMT_RGB_BUTT);
+                }
+
+                if (!next || err) {
+                    mpp_err("invalid input format %d\n", cmd->format);
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
