@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "H264E_API"
+#define MODULE_TAG "h264e_api"
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
 
@@ -32,8 +33,15 @@ RK_U32 h264e_ctrl_debug = 0;
 
 MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 {
-    h264Instance_s * pEncInst = (h264Instance_s*)ctx;
+    h264e_dbg_func("enter\n");
+
+    H264ECtx * pEncInst = (H264ECtx*)ctx;
     MPP_RET ret = (MPP_RET)H264EncInit(pEncInst);
+
+    pEncInst->encStatus = H264ENCSTAT_INIT;
+    pEncInst->inst = pEncInst;
+
+    mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 
     if (ret) {
         mpp_err_f("H264EncInit() failed ret %d", ret);
@@ -41,12 +49,13 @@ MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg)
 
     (void)ctrlCfg;
 
+    h264e_dbg_func("leave\n");
     return ret;
 }
 
 MPP_RET h264e_deinit(void *ctx)
 {
-    h264Instance_s * pEncInst = (h264Instance_s *)ctx;
+    H264ECtx * pEncInst = (H264ECtx *)ctx;
     H264EncRet ret/* = MPP_OK*/;
     H264EncIn *encIn = &(pEncInst->encIn);
     H264EncOut *encOut = &(pEncInst->encOut);
@@ -68,7 +77,7 @@ MPP_RET h264e_deinit(void *ctx)
 MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
 {
     H264EncRet ret;
-    h264Instance_s *p = (h264Instance_s *)ctx;
+    H264ECtx *p = (H264ECtx *)ctx;
     H264EncIn *encIn = &(p->encIn);
     H264EncOut *encOut = &(p->encOut);
     RK_U32 srcLumaWidth = p->lumWidthSrc;
@@ -94,18 +103,12 @@ MPP_RET h264e_encode(void *ctx, /*HalEncTask **/void *task)
 
     /* Setup encoder input */
     {
-        u32 w = (srcLumaWidth + 15) & (~0x0f);  // TODO    352 need to be modify by lance 2016.05.31
-        // mask by lance 2016.07.04
-        //MppBufferInfo inInfo;   // add by lance 2016.05.06
-        //mpp_buffer_info_get(((EncTask*)task)->ctrl_frm_buf_in, &inInfo);
+        u32 w = srcLumaWidth;
         encIn->busLuma = mpp_buffer_get_fd(((EncTask*)task)->ctrl_frm_buf_in)/*pictureMem.phy_addr*/;
 
         encIn->busChromaU = encIn->busLuma | ((w * srcLumaHeight) << 10);    // TODO    288 need to be modify by lance 2016.05.31
         encIn->busChromaV = encIn->busChromaU +
                             ((((w + 1) >> 1) * ((srcLumaHeight + 1) >> 1)) << 10);    // TODO    288 need to be modify by lance 2016.05.31
-        // mask by lance 2016.07.04
-        /*mpp_log("enc->busChromaU %15x V %15x w %d srcLumaHeight %d size %d",
-                encIn->busChromaU, encIn->busChromaV, w, srcLumaHeight, inInfo.size);*/
     }
 
 
@@ -249,7 +252,7 @@ static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_NOK;
-    h264Instance_s *enc = (h264Instance_s *)ctx;    // add by lance 2016.05.31
+    H264ECtx *enc = (H264ECtx *)ctx;    // add by lance 2016.05.31
 
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
@@ -262,7 +265,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         H264EncConfig *enc_cfg = &enc->enc_cfg;
 
         H264EncCodingCtrl oriCodingCfg;
-        H264EncPreProcessingCfg oriPreProcCfg;
 
         enc_cfg->streamType = H264ENC_BYTE_STREAM;
         enc_cfg->frameRateDenom = 1;
@@ -297,38 +299,15 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             h264e_deinit((void*)enc);
             break;
         } else {
-            // will be replaced  modify by lance 2016.05.20
-            // ------------
             oriCodingCfg.sliceSize = 0;
             oriCodingCfg.constrainedIntraPrediction = 0;
             oriCodingCfg.disableDeblockingFilter = 0;
             oriCodingCfg.cabacInitIdc = 0;
-            oriCodingCfg.transform8x8Mode = 0;
             oriCodingCfg.videoFullRange = 0;
             oriCodingCfg.seiMessages = 0;
             ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
             if (ret) {
                 mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)enc);
-                break;
-            }
-        }
-
-        /* PreP setup */
-        ret = H264EncGetPreProcessing(enc, &oriPreProcCfg);
-        if (ret) {
-            mpp_err("H264EncGetPreProcessing() failed, ret %d.\n", ret);
-            h264e_deinit((void*)enc);
-            break;
-        } else {
-            mpp_log_f("Get PreP: input %dx%d : offset %dx%d : format %d : rotation %d : stab %d : cc %d\n",
-                      oriPreProcCfg.origWidth, oriPreProcCfg.origHeight, oriPreProcCfg.xOffset,
-                      oriPreProcCfg.yOffset, oriPreProcCfg.inputType, oriPreProcCfg.rotation,
-                      oriPreProcCfg.videoStabilization, oriPreProcCfg.colorConversion.type);
-
-            ret = H264EncSetPreProcessing(enc, &oriPreProcCfg);
-            if (ret) {
-                mpp_err("H264EncSetPreProcessing() failed.", ret);
                 h264e_deinit((void*)enc);
                 break;
             }
@@ -375,7 +354,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_rc_cfg->gopLen = mpp_cfg->gop;
         enc_rc_cfg->fixedIntraQp = 0;
         enc_rc_cfg->mbQpAdjustment = 3;
-        enc_rc_cfg->hrdCpbSize = mpp_cfg->bps / 8;
+        enc_rc_cfg->hrdCpbSize = mpp_cfg->bps;
 
         enc->intraPicRate = enc_rc_cfg->intraPicRate;
         enc->intraPeriodCnt = enc_rc_cfg->intraPicRate;
@@ -464,7 +443,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 
 MPP_RET h264e_callback(void *ctx, void *feedback)
 {
-    h264Instance_s *enc = (h264Instance_s *)ctx;
+    H264ECtx *enc = (H264ECtx *)ctx;
     regValues_s    *val = &(enc->asic.regs);
     h264e_feedback *fb  = (h264e_feedback *)feedback;
     H264EncOut *encOut  = &(enc->encOut);
@@ -524,7 +503,7 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 const ControlApi api_h264e_controller = {
     "h264e_control",
     MPP_VIDEO_CodingAVC,
-    sizeof(h264Instance_s),
+    sizeof(H264ECtx),
     0,
     h264e_init,
     h264e_deinit,

@@ -46,6 +46,6 @@ typedef enum {
 /*------------------------------------------------------------------------------
     4. Function prototypes
 ------------------------------------------------------------------------------*/
-void H264CodeFrame(h264Instance_s * inst, h264e_syntax *syntax_data);
+void H264CodeFrame(H264ECtx * inst, h264e_syntax *syntax_data);
 
 #endif

@@ -46,9 +46,6 @@
                                               /*((bus_address & 0x07) == 0)*/)
 RK_U32 h264e_debug = 0;
 
-static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
-                       u32 stabilizedHeight);
-
 /*------------------------------------------------------------------------------
     Function name : H264EncInit
     Description   : Initialize an encoder instance and returns it to application
@@ -57,10 +54,9 @@ static i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
     Argument      : pEncCfg - initialization parameters
                     instAddr - where to save the created instance
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncInit(h264Instance_s *pEncInst)
+H264EncRet H264EncInit(H264ECtx *pEncInst)
 {
     H264EncRet ret;
-    h264e_dbg_func("enter\n");
 
     ret = H264Init(pEncInst);
     if (ret != H264ENC_OK) {
@@ -69,12 +65,8 @@ H264EncRet H264EncInit(h264Instance_s *pEncInst)
     }
 
     /* Status == INIT   Initialization succesful */
-    pEncInst->encStatus = H264ENCSTAT_INIT;
-    pEncInst->inst = pEncInst;  /* used as checksum */
 
-    mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 
-    h264e_dbg_func("leave\n");
     return H264ENC_OK;
 }
 
@@ -86,7 +78,7 @@ H264EncRet H264EncInit(h264Instance_s *pEncInst)
     Return type   : H264EncRet
     Argument      : inst - the instance to be released
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncRelease(h264Instance_s *pEncInst)
+H264EncRet H264EncRelease(H264ECtx *pEncInst)
 {
     h264e_dbg_func("enter\n");
 
@@ -106,7 +98,7 @@ H264EncRet H264EncRelease(h264Instance_s *pEncInst)
     return H264ENC_OK;
 }
 
-H264EncRet H264EncCfg(h264Instance_s *pEncInst, const H264EncConfig * pEncConfig)
+H264EncRet H264EncCfg(H264ECtx *pEncInst, const H264EncConfig * pEncConfig)
 {
     H264EncRet ret;
     h264e_dbg_func("enter\n");
@@ -130,7 +122,7 @@ H264EncRet H264EncCfg(h264Instance_s *pEncInst, const H264EncConfig * pEncConfig
     Argument      : inst - the instance in use
                     pCodeParams - user provided parameters
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetCodingCtrl(h264Instance_s *pEncInst, const H264EncCodingCtrl * pCodeParams)
+H264EncRet H264EncSetCodingCtrl(H264ECtx *pEncInst, const H264EncCodingCtrl * pCodeParams)
 {
     h264e_dbg_func("enter\n");
 
@@ -232,7 +224,7 @@ set_slice_size:
     Argument      : inst - the instance in use
                     pCodeParams - palce where parameters are returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncGetCodingCtrl(h264Instance_s *pEncInst,
+H264EncRet H264EncGetCodingCtrl(H264ECtx *pEncInst,
                                 H264EncCodingCtrl * pCodeParams)
 {
     h264e_dbg_func("enter\n");
@@ -282,7 +274,7 @@ H264EncRet H264EncGetCodingCtrl(h264Instance_s *pEncInst,
     Argument      : inst - the instance in use
                     pRateCtrl - user provided parameters
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncSetRateCtrl(h264Instance_s *pEncInst,
+H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
                               const H264EncRateCtrl * pRateCtrl)
 {
     h264RateControl_s *rc;
@@ -448,7 +440,7 @@ H264EncRet H264EncSetRateCtrl(h264Instance_s *pEncInst,
     Argument      : inst - the instance in use
                     pRateCtrl - place where parameters are returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncGetRateCtrl(h264Instance_s *pEncInst, H264EncRateCtrl * pRateCtrl)
+H264EncRet H264EncGetRateCtrl(H264ECtx *pEncInst, H264EncRateCtrl * pRateCtrl)
 {
     h264RateControl_s *rc;
 
@@ -487,234 +479,7 @@ H264EncRet H264EncGetRateCtrl(h264Instance_s *pEncInst, H264EncRateCtrl * pRateC
     return H264ENC_OK;
 }
 
-/*------------------------------------------------------------------------------
-    Function name   : VSCheckSize
-    Description     :
-    Return type     : i32
-    Argument        : u32 inputWidth
-    Argument        : u32 inputHeight
-    Argument        : u32 stabilizedWidth
-    Argument        : u32 stabilizedHeight
-------------------------------------------------------------------------------*/
-i32 VSCheckSize(u32 inputWidth, u32 inputHeight, u32 stabilizedWidth,
-                u32 stabilizedHeight)
-{
-    /* Input picture minimum dimensions */
-    if ((inputWidth < 104) || (inputHeight < 104))
-        return 1;
-
-    /* Stabilized picture minimum  values */
-    if ((stabilizedWidth < 96) || (stabilizedHeight < 96))
-        return 1;
-
-    /* Stabilized dimensions multiple of 4 */
-    if (((stabilizedWidth & 3) != 0) || ((stabilizedHeight & 3) != 0))
-        return 1;
-
-    /* Edge >= 4 pixels, not checked because stabilization can be
-     * used without cropping for scene detection
-    if((inputWidth < (stabilizedWidth + 8)) ||
-       (inputHeight < (stabilizedHeight + 8)))
-        return 1; */
-
-    return 0;
-}
-
-/*------------------------------------------------------------------------------
-    Function name   : H264EncSetPreProcessing
-    Description     : Sets the preprocessing parameters
-    Return type     : H264EncRet
-    Argument        : inst - encoder instance in use
-    Argument        : pPreProcCfg - user provided parameters
-------------------------------------------------------------------------------*/
-H264EncRet H264EncSetPreProcessing(h264Instance_s *pEncInst,
-                                   const H264EncPreProcessingCfg * pPreProcCfg)
-{
-    preProcess_s pp_tmp;
-
-    h264e_dbg_func("enter\n");
-
-    /* Check for illegal inputs */
-    if ((pEncInst == NULL) || (pPreProcCfg == NULL)) {
-        mpp_err_f("ERROR Null argument\n");
-        return H264ENC_NULL_ARGUMENT;
-    }
-
-    /* Check for existing instance */
-    if (pEncInst->inst != pEncInst) {
-        mpp_err_f("ERROR Invalid instance\n");
-        return H264ENC_INSTANCE_ERROR;
-    }
-
-    if (pPreProcCfg->origWidth > H264ENC_MAX_PP_INPUT_WIDTH ||
-        pPreProcCfg->origHeight > H264ENC_MAX_PP_INPUT_HEIGHT) {
-        mpp_err_f("ERROR Too big input image\n");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
-    if (pPreProcCfg->inputType > MPP_FMT_ABGR8888) {
-        mpp_err_f("ERROR Invalid YUV type\n");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
-    if (pPreProcCfg->rotation > H264ENC_ROTATE_90L) {
-        mpp_err_f("ERROR Invalid rotation\n");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
-    pp_tmp.lumHeightSrc = pPreProcCfg->origHeight;
-    pp_tmp.lumWidthSrc = pPreProcCfg->origWidth;
-
-    if (pPreProcCfg->videoStabilization == 0) {
-        pp_tmp.horOffsetSrc = pPreProcCfg->xOffset;
-        pp_tmp.verOffsetSrc = pPreProcCfg->yOffset;
-    } else {
-        pp_tmp.horOffsetSrc = pp_tmp.verOffsetSrc = 0;
-    }
-
-    pp_tmp.lumWidth = pEncInst->preProcess.lumWidth;
-    pp_tmp.lumHeight = pEncInst->preProcess.lumHeight;
-
-    pp_tmp.rotation = pPreProcCfg->rotation;
-    pp_tmp.inputFormat = pPreProcCfg->inputType;
-
-    pp_tmp.videoStab = (pPreProcCfg->videoStabilization != 0) ? 1 : 0;
-
-    /* Check for invalid values */
-    if (EncPreProcessCheck(&pp_tmp) != ENCHW_OK) {
-        mpp_err_f("ERROR Invalid cropping values\n");
-        return H264ENC_INVALID_ARGUMENT;
-    }
-
-    /* Set cropping parameters if required */
-    if ( pEncInst->preProcess.lumWidth % 16 || pEncInst->preProcess.lumHeight % 16 ) {
-        u32 fillRight = (pEncInst->preProcess.lumWidth + 15) / 16 * 16 -
-                        pEncInst->preProcess.lumWidth;
-        u32 fillBottom = (pEncInst->preProcess.lumHeight + 15) / 16 * 16 -
-                         pEncInst->preProcess.lumHeight;
-
-        pEncInst->seqParameterSet.frameCropping = ENCHW_YES;
-        pEncInst->seqParameterSet.frameCropLeftOffset = 0;
-        pEncInst->seqParameterSet.frameCropRightOffset = 0;
-        pEncInst->seqParameterSet.frameCropTopOffset = 0;
-        pEncInst->seqParameterSet.frameCropBottomOffset = 0;
-
-        if (pPreProcCfg->rotation == 0) {   /* No rotation */
-            pEncInst->seqParameterSet.frameCropRightOffset = fillRight / 2;
-            pEncInst->seqParameterSet.frameCropBottomOffset = fillBottom / 2;
-        } else if (pPreProcCfg->rotation == 1) {    /* Rotate right */
-            pEncInst->seqParameterSet.frameCropLeftOffset = fillRight / 2;
-            pEncInst->seqParameterSet.frameCropBottomOffset = fillBottom / 2;
-        } else {    /* Rotate left */
-            pEncInst->seqParameterSet.frameCropRightOffset = fillRight / 2;
-            pEncInst->seqParameterSet.frameCropTopOffset = fillBottom / 2;
-        }
-    }
-
-    if (pp_tmp.videoStab != 0) {
-        u32 width = pp_tmp.lumWidth;
-        u32 height = pp_tmp.lumHeight;
-
-        if (pp_tmp.rotation) {
-            u32 tmp;
-
-            tmp = width;
-            width = height;
-            height = tmp;
-        }
-
-        if (VSCheckSize(pp_tmp.lumWidthSrc, pp_tmp.lumHeightSrc, width, height)
-            != 0) {
-            mpp_err_f("ERROR Invalid size for stabilization\n");
-            return H264ENC_INVALID_ARGUMENT;
-        }
-    }
-
-    pp_tmp.colorConversionType = pPreProcCfg->colorConversion.type;
-    pp_tmp.colorConversionCoeffA = pPreProcCfg->colorConversion.coeffA;
-    pp_tmp.colorConversionCoeffB = pPreProcCfg->colorConversion.coeffB;
-    pp_tmp.colorConversionCoeffC = pPreProcCfg->colorConversion.coeffC;
-    pp_tmp.colorConversionCoeffE = pPreProcCfg->colorConversion.coeffE;
-    pp_tmp.colorConversionCoeffF = pPreProcCfg->colorConversion.coeffF;
-    EncSetColorConversion(&pp_tmp, &pEncInst->asic);
-
-    {
-        preProcess_s *pp = &pEncInst->preProcess;
-
-        if (memcpy(pp, &pp_tmp, sizeof(preProcess_s)) != pp) {
-            mpp_err_f("memcpy failed\n");
-            return H264ENC_SYSTEM_ERROR;
-        }
-    }
-
-    h264e_dbg_func("leave\n");
-
-    return H264ENC_OK;
-}
-
-/*------------------------------------------------------------------------------
-    Function name   : H264EncGetPreProcessing
-    Description     : Returns current preprocessing parameters
-    Return type     : H264EncRet
-    Argument        : inst - encoder instance
-    Argument        : pPreProcCfg - place where the parameters are returned
-------------------------------------------------------------------------------*/
-H264EncRet H264EncGetPreProcessing(h264Instance_s *pEncInst,
-                                   H264EncPreProcessingCfg * pPreProcCfg)
-{
-    preProcess_s *pPP;
-
-    h264e_dbg_func("enter\n");
-
-    /* Check for illegal inputs */
-    if ((pEncInst == NULL) || (pPreProcCfg == NULL)) {
-        mpp_err_f("ERROR Null argument\n");
-        return H264ENC_NULL_ARGUMENT;
-    }
-
-    /* Check for existing instance */
-    if (pEncInst->inst != pEncInst) {
-        mpp_err_f("ERROR Invalid instance\n");
-        return H264ENC_INSTANCE_ERROR;
-    }
-
-    pPP = &pEncInst->preProcess;
-
-    pPreProcCfg->origHeight = pPP->lumHeightSrc;
-    pPreProcCfg->origWidth = pPP->lumWidthSrc;
-    pPreProcCfg->xOffset = pPP->horOffsetSrc;
-    pPreProcCfg->yOffset = pPP->verOffsetSrc;
-
-    pPreProcCfg->rotation = (H264EncPictureRotation) pPP->rotation;
-    pPreProcCfg->inputType = (MppFrameFormat) pPP->inputFormat;
-
-    pPreProcCfg->videoStabilization = pPP->videoStab;
-
-    pPreProcCfg->colorConversion.type =
-        (H264EncColorConversionType) pPP->colorConversionType;
-    pPreProcCfg->colorConversion.coeffA = pPP->colorConversionCoeffA;
-    pPreProcCfg->colorConversion.coeffB = pPP->colorConversionCoeffB;
-    pPreProcCfg->colorConversion.coeffC = pPP->colorConversionCoeffC;
-    pPreProcCfg->colorConversion.coeffE = pPP->colorConversionCoeffE;
-    pPreProcCfg->colorConversion.coeffF = pPP->colorConversionCoeffF;
-
-    h264e_dbg_func("leave\n");
-    return H264ENC_OK;
-}
-
-/*------------------------------------------------------------------------------
-    Function name : H264EncSetSeiUserData
-    Description   : Sets user data SEI messages
-    Return type   : H264EncRet
-    Argument      : inst - the instance in use
-                    pUserData - pointer to userData, this is used by the
-                                encoder so it must not be released before
-                                disabling user data
-                    userDataSize - size of userData, minimum size 16,
-                                   maximum size H264ENC_MAX_USER_DATA_SIZE
-                                   not valid size disables userData sei messages
-------------------------------------------------------------------------------*/
-H264EncRet H264EncSetSeiUserData(h264Instance_s *pEncInst, const u8 * pUserData,
+H264EncRet H264EncSetSeiUserData(H264ECtx *pEncInst, const u8 * pUserData,
                                  u32 userDataSize)
 {
     /* Check for illegal inputs */
@@ -752,7 +517,7 @@ H264EncRet H264EncSetSeiUserData(h264Instance_s *pEncInst, const u8 * pUserData,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmStart(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmStart(H264ECtx *pEncInst, const H264EncIn * pEncIn,
                             H264EncOut * pEncOut)
 {
     h264RateControl_s *rc;
@@ -870,12 +635,11 @@ H264EncRet H264EncStrmStart(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmEncode(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncode(H264ECtx *pEncInst, const H264EncIn * pEncIn,
                              H264EncOut * pEncOut, h264e_syntax *syntax_data)
 {
     slice_s *pSlice;
     regValues_s *regs;
-    /*h264EncodeFrame_e ret;*/  // mask by lance 2016.05.12
 
     h264e_dbg_func("enter\n");
 
@@ -964,7 +728,7 @@ H264EncRet H264EncStrmEncode(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
         }
         break;
     default:
-        mpp_err_f("ERROR Invalid input format\n");
+        mpp_err_f("ERROR Invalid input format %d\n", pEncInst->preProcess.inputFormat);
         return H264ENC_INVALID_ARGUMENT;
     }
 
@@ -1072,7 +836,7 @@ H264EncRet H264EncStrmEncode(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
     }
 
     /* Code one frame */
-    H264CodeFrame(pEncInst, syntax_data);  // mask by lance 2016.05.12
+    H264CodeFrame(pEncInst, syntax_data);
 
     // need to think about it also    modify by lance 2016.05.07
     return H264ENC_FRAME_READY;
@@ -1097,7 +861,7 @@ RK_S32 EncAsicCheckHwStatus(asicData_s *asic)
     return ret;
 }
 
-H264EncRet H264EncStrmEncodeAfter(h264Instance_s *pEncInst,
+H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
                                   H264EncOut * pEncOut, MPP_RET vpuWaitResult)
 {
     slice_s *pSlice;
@@ -1240,7 +1004,7 @@ H264EncRet H264EncStrmEncodeAfter(h264Instance_s *pEncInst,
     Argument      : pEncIn - user provided input parameters
                     pEncOut - place where output info is returned
 ------------------------------------------------------------------------------*/
-H264EncRet H264EncStrmEnd(h264Instance_s *pEncInst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEnd(H264ECtx *pEncInst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut)
 {
     h264e_dbg_func("enter\n");

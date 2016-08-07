@@ -301,7 +301,7 @@ typedef struct {
     h264e_control_extra_info_cfg info;
     H264EncConfig   enc_cfg;
     H264EncRateCtrl enc_rc_cfg;
-} h264Instance_s;
+} H264ECtx;
 
 #define H264E_DBG_FUNCTION          (0x00000001)
 
@@ -317,30 +317,24 @@ extern RK_U32 h264e_debug;
 ------------------------------------------------------------------------------*/
 
 /* Initialization & release */
-H264EncRet H264EncInit(h264Instance_s *inst);
-H264EncRet H264EncRelease(h264Instance_s *inst);
+H264EncRet H264EncInit(H264ECtx *inst);
+H264EncRet H264EncRelease(H264ECtx *inst);
 
 /* Encoder configuration before stream generation */
-H264EncRet H264EncCfg(h264Instance_s *inst, const H264EncConfig * pEncConfig);
-H264EncRet H264EncSetCodingCtrl(h264Instance_s *inst, const H264EncCodingCtrl *
+H264EncRet H264EncCfg(H264ECtx *inst, const H264EncConfig * pEncConfig);
+H264EncRet H264EncSetCodingCtrl(H264ECtx *inst, const H264EncCodingCtrl *
                                 pCodingParams);
-H264EncRet H264EncGetCodingCtrl(h264Instance_s *inst, H264EncCodingCtrl *
+H264EncRet H264EncGetCodingCtrl(H264ECtx *inst, H264EncCodingCtrl *
                                 pCodingParams);
 
 /* Encoder configuration before and during stream generation */
-H264EncRet H264EncSetRateCtrl(h264Instance_s *inst,
+H264EncRet H264EncSetRateCtrl(H264ECtx *inst,
                               const H264EncRateCtrl * pRateCtrl);
-H264EncRet H264EncGetRateCtrl(h264Instance_s *inst,
+H264EncRet H264EncGetRateCtrl(H264ECtx *inst,
                               H264EncRateCtrl * pRateCtrl);
 
-H264EncRet H264EncSetPreProcessing(h264Instance_s *inst,
-                                   const H264EncPreProcessingCfg *
-                                   pPreProcCfg);
-H264EncRet H264EncGetPreProcessing(h264Instance_s *inst,
-                                   H264EncPreProcessingCfg * pPreProcCfg);
-
 /* Encoder user data insertion during stream generation */
-H264EncRet H264EncSetSeiUserData(h264Instance_s *inst, const u8 * pUserData,
+H264EncRet H264EncSetSeiUserData(H264ECtx *inst, const u8 * pUserData,
                                  u32 userDataSize);
 
 /* Stream generation */
@@ -348,20 +342,20 @@ H264EncRet H264EncSetSeiUserData(h264Instance_s *inst, const u8 * pUserData,
 /* H264EncStrmStart generates the SPS and PPS. SPS is the first NAL unit and PPS
  * is the second NAL unit. NaluSizeBuf indicates the size of NAL units.
  */
-H264EncRet H264EncStrmStart(h264Instance_s *inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmStart(H264ECtx *inst, const H264EncIn * pEncIn,
                             H264EncOut * pEncOut);
 
 /* H264EncStrmEncode encodes one video frame. If SEI messages are enabled the
  * first NAL unit is a SEI message.
  */
-H264EncRet H264EncStrmEncode(h264Instance_s *inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEncode(H264ECtx *inst, const H264EncIn * pEncIn,
                              H264EncOut * pEncOut, h264e_syntax *syntax_data);
 
-H264EncRet H264EncStrmEncodeAfter(h264Instance_s *inst,
+H264EncRet H264EncStrmEncodeAfter(H264ECtx *inst,
                                   H264EncOut * pEncOut, MPP_RET vpuWaitResult);
 
 /* H264EncStrmEnd ends a stream with an EOS code. */
-H264EncRet H264EncStrmEnd(h264Instance_s *inst, const H264EncIn * pEncIn,
+H264EncRet H264EncStrmEnd(H264ECtx *inst, const H264EncIn * pEncIn,
                           H264EncOut * pEncOut);
 
 #ifdef __cplusplus
