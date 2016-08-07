@@ -36,18 +36,18 @@
 ------------------------------------------------------------------------------*/
 
 /* Mask fields */
-#define mask_2b         (u32)0x00000003
-#define mask_3b         (u32)0x00000007
-#define mask_4b         (u32)0x0000000F
-#define mask_5b         (u32)0x0000001F
-#define mask_6b         (u32)0x0000003F
-#define mask_11b        (u32)0x000007FF
-#define mask_14b        (u32)0x00003FFF
-#define mask_16b        (u32)0x0000FFFF
+#define mask_2b         (RK_U32)0x00000003
+#define mask_3b         (RK_U32)0x00000007
+#define mask_4b         (RK_U32)0x0000000F
+#define mask_5b         (RK_U32)0x0000001F
+#define mask_6b         (RK_U32)0x0000003F
+#define mask_11b        (RK_U32)0x000007FF
+#define mask_14b        (RK_U32)0x00003FFF
+#define mask_16b        (RK_U32)0x0000FFFF
 
 #define HSWREG(n)       ((n)*4)
 
-i32 EncAsicControllerInit(asicData_s * asic)
+RK_S32 EncAsicControllerInit(asicData_s * asic)
 {
     ASSERT(asic != NULL);
 

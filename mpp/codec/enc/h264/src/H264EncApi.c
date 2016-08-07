@@ -279,7 +279,7 @@ H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
 {
     h264RateControl_s *rc;
 
-    u32 i, tmp;
+    RK_U32 i, tmp;
 
     h264e_dbg_func("enter\n");
 
@@ -320,12 +320,12 @@ H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
     }
 
     if ((pRateCtrl->qpHdr != -1) &&
-        (pRateCtrl->qpHdr < (i32)pRateCtrl->qpMin ||
-         pRateCtrl->qpHdr > (i32)pRateCtrl->qpMax)) {
+        (pRateCtrl->qpHdr < (RK_S32)pRateCtrl->qpMin ||
+         pRateCtrl->qpHdr > (RK_S32)pRateCtrl->qpMax)) {
         mpp_err_f("ERROR QP out of range\n");
         return H264ENC_INVALID_ARGUMENT;
     }
-    if ((u32)(pRateCtrl->intraQpDelta + 12) > 24) {
+    if ((RK_U32)(pRateCtrl->intraQpDelta + 12) > 24) {
         mpp_err_f("ERROR intraQpDelta out of range\n");
         return H264ENC_INVALID_ARGUMENT;
     }
@@ -348,9 +348,9 @@ H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
     }
 
     {
-        u32 cpbSize = pRateCtrl->hrdCpbSize;
-        u32 bps = pRateCtrl->bitPerSecond;
-        u32 level = pEncInst->seqParameterSet.levelIdx;
+        RK_U32 cpbSize = pRateCtrl->hrdCpbSize;
+        RK_U32 bps = pRateCtrl->bitPerSecond;
+        RK_U32 level = pEncInst->seqParameterSet.levelIdx;
 
         /* Saturates really high settings */
         /* bits per unpacked frame */
@@ -362,7 +362,7 @@ H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
 
         if (cpbSize == 0) {
             cpbSize = H264MaxCPBS[level];
-        } else if (cpbSize == (u32) (-1)) {
+        } else if (cpbSize == (RK_U32) (-1)) {
             cpbSize = bps;
         }
 
@@ -471,7 +471,7 @@ H264EncRet H264EncGetRateCtrl(H264ECtx *pEncInst, H264EncRateCtrl * pRateCtrl)
     pRateCtrl->hrd = rc->hrd == ENCHW_NO ? 0 : 1;
     pRateCtrl->gopLen = rc->gopLen;
 
-    pRateCtrl->hrdCpbSize = (u32) rc->virtualBuffer.bufferSize;
+    pRateCtrl->hrdCpbSize = (RK_U32) rc->virtualBuffer.bufferSize;
     pRateCtrl->intraQpDelta = rc->intraQpDelta;
     pRateCtrl->fixedIntraQp = rc->fixedIntraQp;
 
@@ -479,8 +479,8 @@ H264EncRet H264EncGetRateCtrl(H264ECtx *pEncInst, H264EncRateCtrl * pRateCtrl)
     return H264ENC_OK;
 }
 
-H264EncRet H264EncSetSeiUserData(H264ECtx *pEncInst, const u8 * pUserData,
-                                 u32 userDataSize)
+H264EncRet H264EncSetSeiUserData(H264ECtx *pEncInst, const RK_U8 * pUserData,
+                                 RK_U32 userDataSize)
 {
     /* Check for illegal inputs */
     if ((pEncInst == NULL) || (userDataSize != 0 && pUserData == NULL)) {
@@ -552,8 +552,8 @@ H264EncRet H264EncStrmStart(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     }
 
     /* Set stream buffer, the size has been checked */
-    (void) H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
-                         (u32) pEncIn->outBufSize);
+    (void) H264SetBuffer(&pEncInst->stream, (RK_U8 *) pEncIn->pOutBuf,
+                         (RK_U32) pEncIn->outBufSize);
 
     /* Set the profile to be used */
     if (pEncInst->seqParameterSet.profileIdc != 66 && pEncInst->seqParameterSet.profileIdc != 77
@@ -584,7 +584,7 @@ H264EncRet H264EncStrmStart(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     }
 
     /* Use the first frame QP in the PPS */
-    pEncInst->picParameterSet.picInitQpMinus26 = (i32) (rc->qpHdr) - 26;
+    pEncInst->picParameterSet.picInitQpMinus26 = (RK_S32) (rc->qpHdr) - 26;
 
     /* Init SEI */
     H264InitSei(&rc->sei, pEncInst->seqParameterSet.byteStream,
@@ -607,15 +607,15 @@ H264EncRet H264EncStrmStart(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     pEncInst->encStatus = H264ENCSTAT_START_STREAM;
 
     pEncInst->slice.frameNum = 0;
-    pEncInst->rateControl.fillerIdx = (u32) (-1);
+    pEncInst->rateControl.fillerIdx = (RK_U32) (-1);
 
     if (rc->hrd == ENCHW_YES) {
         /* Update HRD Parameters to RC if needed */
-        u32 bitrate = H264SpsGetVuiHrdBitRate(&pEncInst->seqParameterSet);
-        u32 cpbsize = H264SpsGetVuiHrdCpbSize(&pEncInst->seqParameterSet);
+        RK_U32 bitrate = H264SpsGetVuiHrdBitRate(&pEncInst->seqParameterSet);
+        RK_U32 cpbsize = H264SpsGetVuiHrdCpbSize(&pEncInst->seqParameterSet);
 
-        if ((rc->virtualBuffer.bitRate != (i32)bitrate) ||
-            (rc->virtualBuffer.bufferSize != (i32)cpbsize)) {
+        if ((rc->virtualBuffer.bitRate != (RK_S32)bitrate) ||
+            (rc->virtualBuffer.bufferSize != (RK_S32)cpbsize)) {
             rc->virtualBuffer.bitRate = bitrate;
             rc->virtualBuffer.bufferSize = cpbsize;
             (void) H264InitRc(rc);
@@ -656,7 +656,7 @@ H264EncRet H264EncStrmEncode(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     }
 
     {
-        u32 nals;
+        RK_U32 nals;
 
         if (pEncInst->slice.sliceSize != 0) {
             /* how many  picture slices we have */
@@ -744,8 +744,8 @@ H264EncRet H264EncStrmEncode(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     regs = &pEncInst->asic.regs;
 
     /* Set stream buffer, the size has been checked */
-    if (H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
-                      (i32) pEncIn->outBufSize) == ENCHW_NOK) {
+    if (H264SetBuffer(&pEncInst->stream, (RK_U8 *) pEncIn->pOutBuf,
+                      (RK_S32) pEncIn->outBufSize) == ENCHW_NOK) {
         mpp_err_f("ERROR Invalid output buffer\n");
         return H264ENC_INVALID_ARGUMENT;
     }
@@ -880,7 +880,7 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
             ret = H264ENCODE_TIMEOUT;
         }
     } else {
-        i32 status = EncAsicCheckHwStatus(asic);
+        RK_S32 status = EncAsicCheckHwStatus(asic);
         switch (status) {
         case ASIC_STATUS_ERROR:
             ret = H264ENCODE_HW_ERROR;
@@ -894,7 +894,7 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
             break;
         case ASIC_STATUS_FRAME_READY: {
             /* last not full 64-bit counted in HW data */
-            const u32 hw_offset = pEncInst->stream.byteCnt & (0x07U);
+            const RK_U32 hw_offset = pEncInst->stream.byteCnt & (0x07U);
             pEncInst->stream.byteCnt +=
                 (asic->regs.outputStrmSize - hw_offset);
             pEncInst->stream.stream +=
@@ -938,11 +938,11 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
 
     /* Filler data if needed */
     if (0) {
-        u32 s = H264FillerRc(&pEncInst->rateControl, pEncInst->frameCnt);
+        RK_U32 s = H264FillerRc(&pEncInst->rateControl, pEncInst->frameCnt);
 
         if (s != 0) {
             s = H264FillerNALU(&pEncInst->stream,
-                               (i32) s, pEncInst->seqParameterSet.byteStream);
+                               (RK_S32) s, pEncInst->seqParameterSet.byteStream);
         }
         pEncInst->fillerNalSize = s;
     }
@@ -957,7 +957,7 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
 
     /* Rate control action after vop */
     {
-        i32 stat;
+        RK_S32 stat;
 
         stat = H264AfterPicRc(&pEncInst->rateControl, regs->rlcCount,
                               pEncInst->stream.byteCnt, regs->qpSum);
@@ -1037,8 +1037,8 @@ H264EncRet H264EncStrmEnd(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     }
 
     /* Set stream buffer and check the size */
-    if (H264SetBuffer(&pEncInst->stream, (u8 *) pEncIn->pOutBuf,
-                      (u32) pEncIn->outBufSize) != ENCHW_OK) {
+    if (H264SetBuffer(&pEncInst->stream, (RK_U8 *) pEncIn->pOutBuf,
+                      (RK_U32) pEncIn->outBufSize) != ENCHW_OK) {
         mpp_err_f("ERROR Output buffer too small\n");
         return H264ENC_INVALID_ARGUMENT;
     }

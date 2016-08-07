@@ -20,7 +20,6 @@
 /*------------------------------------------------------------------------------
     1. Include headers
 ------------------------------------------------------------------------------*/
-#include "basetype.h"
 #include "enccommon.h"
 #include "H264PutBits.h"
 
@@ -33,18 +32,18 @@
 ------------------------------------------------------------------------------*/
 typedef struct {
     true_e byteStream;
-    i32 picParameterSetId;
-    i32 seqParameterSetId;
+    RK_S32 picParameterSetId;
+    RK_S32 seqParameterSetId;
     true_e entropyCodingMode;
     true_e picOrderPresent;
-    i32 numSliceGroupsMinus1;
-    i32 numRefIdxL0ActiveMinus1;
-    i32 numRefIdxL1ActiveMinus1;
+    RK_S32 numSliceGroupsMinus1;
+    RK_S32 numRefIdxL0ActiveMinus1;
+    RK_S32 numRefIdxL1ActiveMinus1;
     true_e weightedPred;
-    i32 weightedBipredIdc;
-    i32 picInitQpMinus26;
-    i32 picInitQsMinus26;
-    i32 chromaQpIndexOffset;
+    RK_S32 weightedBipredIdc;
+    RK_S32 picInitQpMinus26;
+    RK_S32 picInitQsMinus26;
+    RK_S32 chromaQpIndexOffset;
     true_e deblockingFilterControlPresent;
     true_e constIntraPred;
     true_e redundantPicCntPresent;

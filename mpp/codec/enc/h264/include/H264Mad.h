@@ -25,23 +25,23 @@
 #define MAD_TABLE_LEN              5
 
 typedef struct {
-    i32  a1;               /* model parameter, y = a1*x + a2 */
-    i32  a2;               /* model parameter */
-    i32  th[MAD_TABLE_LEN];     /* mad threshold */
-    i32  count[MAD_TABLE_LEN];  /* number of macroblocks under threshold */
-    i32  pos;              /* current position */
-    i32  len;              /* current lenght */
-    i32  threshold;        /* current frame threshold */
-    i32  mbPerFrame;       /* number of macroblocks per frame */
+    RK_S32  a1;               /* model parameter, y = a1*x + a2 */
+    RK_S32  a2;               /* model parameter */
+    RK_S32  th[MAD_TABLE_LEN];     /* mad threshold */
+    RK_S32  count[MAD_TABLE_LEN];  /* number of macroblocks under threshold */
+    RK_S32  pos;              /* current position */
+    RK_S32  len;              /* current lenght */
+    RK_S32  threshold;        /* current frame threshold */
+    RK_S32  mbPerFrame;       /* number of macroblocks per frame */
 } madTable_s;
 
 /*------------------------------------------------------------------------------
     Function prototypes
 ------------------------------------------------------------------------------*/
 
-void H264MadInit(madTable_s *mad, u32 mbPerFrame);
+void H264MadInit(madTable_s *mad, RK_U32 mbPerFrame);
 
-void H264MadThreshold(madTable_s *madTable, u32 madCount);
+void H264MadThreshold(madTable_s *madTable, RK_U32 madCount);
 
 #endif
 

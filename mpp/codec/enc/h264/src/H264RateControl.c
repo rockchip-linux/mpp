@@ -63,7 +63,7 @@ FILE *fpRcTrc = NULL;
   Local structures
 ------------------------------------------------------------------------------*/
 /* q_step values scaled up by 4 and evenly rounded */
-i32 q_step[53] = { 3, 3, 3, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11,
+RK_S32 q_step[53] = { 3, 3, 3, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11,
                    13, 14, 16, 18, 20, 23, 25, 28, 32, 36, 40, 45, 51, 57, 64, 72, 80, 90,
                    101, 114, 128, 144, 160, 180, 203, 228, 256, 288, 320, 360, 405, 456,
                    513, 577, 640, 720, 810, 896
@@ -73,26 +73,26 @@ i32 q_step[53] = { 3, 3, 3, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11,
   Local function prototypes
 ------------------------------------------------------------------------------*/
 
-static i32 InitialQp_new(i32 bits, i32 pels);
+static RK_S32 InitialQp_new(RK_S32 bits, RK_S32 pels);
 static void MbQuant_new(h264RateControl_s * rc);
 static void LinearModel_new(h264RateControl_s * rc);
 static void AdaptiveModel_new(h264RateControl_s * rc);
-static void SourceParameter_new(h264RateControl_s * rc, i32 nonZeroCnt);
+static void SourceParameter_new(h264RateControl_s * rc, RK_S32 nonZeroCnt);
 static void PicSkip_new(h264RateControl_s * rc);
 static void PicQuantLimit_new(h264RateControl_s * rc);
-static i32 VirtualBuffer_new(h264VirtualBuffer_s *vb, i32 timeInc, true_e hrd);
+static RK_S32 VirtualBuffer_new(h264VirtualBuffer_s *vb, RK_S32 timeInc, true_e hrd);
 static void PicQuant_new(h264RateControl_s * rc);
-static i32 avg_rc_error_new(linReg_s *p);
-static void update_rc_error_new(linReg_s *p, i32 bits);
-static i32 gop_avg_qp_new(h264RateControl_s *rc);
-static i32 new_pic_quant_new(linReg_s *p, i32 bits, true_e useQpDeltaLimit);
-static i32 get_avg_bits_new(linReg_s *p, i32 n);
-static void update_tables_new(linReg_s *p, i32 qp, i32 bits);
+static RK_S32 avg_rc_error_new(linReg_s *p);
+static void update_rc_error_new(linReg_s *p, RK_S32 bits);
+static RK_S32 gop_avg_qp_new(h264RateControl_s *rc);
+static RK_S32 new_pic_quant_new(linReg_s *p, RK_S32 bits, true_e useQpDeltaLimit);
+static RK_S32 get_avg_bits_new(linReg_s *p, RK_S32 n);
+static void update_tables_new(linReg_s *p, RK_S32 qp, RK_S32 bits);
 static void update_model_new(linReg_s *p);
-static i32 lin_sy_new(i32 *qp, i32 *r, i32 n);
-static i32 lin_sx_new(i32 *qp, i32 n);
-static i32 lin_sxy_new(i32 *qp, i32 *r, i32 n);
-static i32 lin_nsxx_new(i32 *qp, i32 n);
+static RK_S32 lin_sy_new(RK_S32 *qp, RK_S32 *r, RK_S32 n);
+static RK_S32 lin_sx_new(RK_S32 *qp, RK_S32 n);
+static RK_S32 lin_sxy_new(RK_S32 *qp, RK_S32 *r, RK_S32 n);
+static RK_S32 lin_nsxx_new(RK_S32 *qp, RK_S32 n);
 
 
 /*------------------------------------------------------------------------------
@@ -103,12 +103,12 @@ static i32 lin_nsxx_new(i32 *qp, i32 n);
       Nth frame.
 
 ------------------------------------------------------------------------------*/
-u32 H264FillerRc(h264RateControl_s * rc, u32 frameCnt)
+RK_U32 H264FillerRc(h264RateControl_s * rc, RK_U32 frameCnt)
 {
-    const u8 filler[] = { 0, 9, 0, 9, 9, 9, 0, 2, 2, 0 };
-    u32 idx;
+    const RK_U8 filler[] = { 0, 9, 0, 9, 9, 9, 0, 2, 2, 0 };
+    RK_U32 idx;
 
-    if (rc->fillerIdx == (u32) (-1)) {
+    if (rc->fillerIdx == (RK_U32) (-1)) {
         rc->fillerIdx = sizeof(filler) / sizeof(*filler) - 1;
     }
 
@@ -130,13 +130,13 @@ u32 H264FillerRc(h264RateControl_s * rc, u32 frameCnt)
   Calculate()  I try to avoid overflow and calculate good enough result of a*b/c
 
 ------------------------------------------------------------------------------*/
-i32 H264Calculate(i32 a, i32 b, i32 c)
+RK_S32 H264Calculate(RK_S32 a, RK_S32 b, RK_S32 c)
 {
-    u32 left = 32;
-    u32 right = 0;
-    u32 shift;
-    i32 sign = 1;
-    i32 tmp;
+    RK_U32 left = 32;
+    RK_U32 right = 0;
+    RK_U32 shift;
+    RK_S32 sign = 1;
+    RK_S32 tmp;
 
     if (a == 0 || b == 0) {
         return 0;
@@ -166,12 +166,12 @@ i32 H264Calculate(i32 a, i32 b, i32 c)
         a = tmp;
     }
 
-    for (--left; (((u32)a << left) >> left) != (u32)a; --left);
+    for (--left; (((RK_U32)a << left) >> left) != (RK_U32)a; --left);
     left--; /* unsigned values have one more bit on left,
                we want signed accuracy. shifting signed values gives
                lint warnings */
 
-    while (((u32)b >> right) > (u32)c) {
+    while (((RK_U32)b >> right) > (RK_U32)c) {
         right++;
     }
 
@@ -179,7 +179,7 @@ i32 H264Calculate(i32 a, i32 b, i32 c)
         return 0x7FFFFFFF * sign;
     } else {
         shift = left - right;
-        return (i32)((((u32)a << shift) / (u32)c * (u32)b) >> shift) * sign;
+        return (RK_S32)((((RK_U32)a << shift) / (RK_U32)c * (RK_U32)b) >> shift) * sign;
     }
 }
 
@@ -198,7 +198,7 @@ bool_e H264InitRc(h264RateControl_s * rc)
 
     /* QP -1: Initial QP estimation done by RC */
     if (rc->qpHdr == -1) {
-        i32 tmp = H264Calculate(vb->bitRate, rc->outRateDenom, rc->outRateNum);
+        RK_S32 tmp = H264Calculate(vb->bitRate, rc->outRateDenom, rc->outRateNum);
         rc->qpHdr = InitialQp_new(tmp, rc->mbPerPic * 16 * 16);
         PicQuantLimit_new(rc);
     }
@@ -306,8 +306,8 @@ bool_e H264InitRc(h264RateControl_s * rc)
         rc->gBufferMin = vb->bufferSize;
         rc->gBufferMax = 0;
 #endif
-        rc->sei.icrd = (u32)rc->gInitialDelay;
-        rc->sei.icrdo = (u32)rc->gInitialDoffs;
+        rc->sei.icrd = (RK_U32)rc->gInitialDelay;
+        rc->sei.icrdo = (RK_U32)rc->gInitialDoffs;
 
         DBG(1, (DBGOUTPUT, "\n InitialDelay\t%i\n Offset\t\t%i\n",
                 rc->gInitialDelay, rc->gInitialDoffs));
@@ -320,15 +320,15 @@ bool_e H264InitRc(h264RateControl_s * rc)
   InitialQp_new()  Returns sequence initial quantization parameter.
 
 ------------------------------------------------------------------------------*/
-static i32 InitialQp_new(i32 bits, i32 pels)
+static RK_S32 InitialQp_new(RK_S32 bits, RK_S32 pels)
 {
-    const i32 qp_tbl[2][9] = {
+    const RK_S32 qp_tbl[2][9] = {
         {27, 44, 72, 119, 192, 314, 453, 653, 0x7FFFFFFF},
         /*{26, 38, 59, 96, 173, 305, 545, 0x7FFFFFFF},*/
         {49, 45, 41, 37, 33, 29, 25, 21, 17}
     };
-    const i32 upscale = 8000;
-    i32 i = -1;
+    const RK_S32 upscale = 8000;
+    RK_S32 i = -1;
 
     /* prevents overflow, QP would anyway be 17 with this high bitrate
        for all resolutions under and including 1920x1088 */
@@ -363,9 +363,9 @@ static i32 InitialQp_new(i32 bits, i32 pels)
   bits are lost and must be decremented from virtualBitCnt. (NOTE: Drift
   calculation will mess virtualBitCnt up, so the loss is added to realBitCnt)
 ------------------------------------------------------------------------------*/
-static i32 VirtualBuffer_new(h264VirtualBuffer_s *vb, i32 timeInc, true_e hrd)
+static RK_S32 VirtualBuffer_new(h264VirtualBuffer_s *vb, RK_S32 timeInc, true_e hrd)
 {
-    i32 drift, target, bitPerPic = vb->bitPerPic;
+    RK_S32 drift, target, bitPerPic = vb->bitPerPic;
     if (hrd) {
 #if RC_CBR_HRD
         /* In CBR mode, bucket _must not_ underflow. Insert filler when
@@ -421,15 +421,15 @@ static i32 VirtualBuffer_new(h264VirtualBuffer_s *vb, i32 timeInc, true_e hrd)
   status and return RC_OVERFLOW if coded frame must be skipped. Otherwise
   returns number of required filler payload bytes.
 ------------------------------------------------------------------------------*/
-i32 H264AfterPicRc(h264RateControl_s * rc, u32 nonZeroCnt, u32 byteCnt,
-                   u32 qpSum)
+RK_S32 H264AfterPicRc(h264RateControl_s * rc, RK_U32 nonZeroCnt, RK_U32 byteCnt,
+                   RK_U32 qpSum)
 {
     h264VirtualBuffer_s *vb = &rc->virtualBuffer;
-    i32 bitPerPic = rc->virtualBuffer.bitPerPic;
-    i32 tmp, stat, bitCnt = (i32)byteCnt * 8;
+    RK_S32 bitPerPic = rc->virtualBuffer.bitPerPic;
+    RK_S32 tmp, stat, bitCnt = (RK_S32)byteCnt * 8;
 
     (void) bitPerPic;
-    rc->qpSum = (i32)qpSum;
+    rc->qpSum = (RK_S32)qpSum;
     rc->frameBitCnt = bitCnt;
     rc->nonZeroCnt = nonZeroCnt;
     rc->gopBitCnt += bitCnt;
@@ -518,8 +518,8 @@ i32 H264AfterPicRc(h264RateControl_s * rc, u32 nonZeroCnt, u32 byteCnt,
     rc->gInitialDelay = H264Calculate(90000, stat, vb->bitRate);
     rc->gInitialDoffs = rc->gDelaySum - rc->gInitialDelay;
 
-    rc->sei.icrd  = (u32)rc->gInitialDelay;
-    rc->sei.icrdo = (u32)rc->gInitialDoffs;
+    rc->sei.icrd  = (RK_U32)rc->gInitialDelay;
+    rc->sei.icrdo = (RK_U32)rc->gInitialDoffs;
 
     DBG(1, (DBGOUTPUT, "initialDelay: %5i  ", rc->gInitialDelay));
     DBG(1, (DBGOUTPUT, "initialDoffs: %5i\n", rc->gInitialDoffs));
@@ -544,10 +544,10 @@ i32 H264AfterPicRc(h264RateControl_s * rc, u32 nonZeroCnt, u32 byteCnt,
   H264BeforePicRc()  Update virtual buffer, and calculate picInitQp for current
   picture , and coded status.
 ------------------------------------------------------------------------------*/
-void H264BeforePicRc(h264RateControl_s * rc, u32 timeInc, u32 sliceType)
+void H264BeforePicRc(h264RateControl_s * rc, RK_U32 timeInc, RK_U32 sliceType)
 {
     h264VirtualBuffer_s *vb = &rc->virtualBuffer;
-    i32 i, rcWindow, intraBits = 0, tmp = 0;
+    RK_S32 i, rcWindow, intraBits = 0, tmp = 0;
 
     rc->frameCoded = ENCHW_YES;
     rc->sliceTypeCur = sliceType;
@@ -555,7 +555,7 @@ void H264BeforePicRc(h264RateControl_s * rc, u32 timeInc, u32 sliceType)
     DBG(0, (DBGOUTPUT, "\nBEFORE PIC RC:\n"));
     DBG(0, (DBGOUTPUT, "Frame type current\t%2i\n", sliceType));
 
-    tmp = VirtualBuffer_new(&rc->virtualBuffer, (i32) timeInc, rc->hrd);
+    tmp = VirtualBuffer_new(&rc->virtualBuffer, (RK_S32) timeInc, rc->hrd);
     //printf("tmp0=%d\n", tmp);
     for (i = 0; i < CHECK_POINTS_MAX; i++) {
         rc->qpCtrl.wordCntTarget[i] = 0;
@@ -681,7 +681,7 @@ void H264BeforePicRc(h264RateControl_s * rc, u32 timeInc, u32 sliceType)
 ------------------------------------------------------------------------------*/
 void MbQuant_new(h264RateControl_s * rc)
 {
-    i32 nonZeroTarget;
+    RK_S32 nonZeroTarget;
 
     /* Disable Mb Rc for Intra Slices, because coeffTarget will be wrong */
     if (rc->sliceTypeCur == ISLICE || rc->sliceTypeCur == ISLICES ||
@@ -693,7 +693,7 @@ void MbQuant_new(h264RateControl_s * rc)
     nonZeroTarget = H264Calculate(rc->targetPicSize, 256, rc->srcPrm);
     nonZeroTarget = MIN(rc->coeffCntMax, MAX(0, nonZeroTarget));
 
-    nonZeroTarget = MIN(0x7FFFFFFFU / 1024U, (u32)nonZeroTarget);
+    nonZeroTarget = MIN(0x7FFFFFFFU / 1024U, (RK_U32)nonZeroTarget);
 
     rc->virtualBuffer.nonZeroTarget = nonZeroTarget;
 
@@ -712,16 +712,16 @@ void MbQuant_new(h264RateControl_s * rc)
 ------------------------------------------------------------------------------*/
 void LinearModel_new(h264RateControl_s * rc)
 {
-    const i32 sscale = 256;
+    const RK_S32 sscale = 256;
     h264QpCtrl_s *qc = &rc->qpCtrl;
-    i32 scaler;
-    i32 i;
-    i32 tmp, nonZeroTarget = rc->virtualBuffer.nonZeroTarget;
+    RK_S32 scaler;
+    RK_S32 i;
+    RK_S32 tmp, nonZeroTarget = rc->virtualBuffer.nonZeroTarget;
 
     ASSERT(nonZeroTarget < (0x7FFFFFFF / sscale));
 
     if (nonZeroTarget > 0) {
-        scaler = H264Calculate(nonZeroTarget, sscale, (i32) rc->mbPerPic);
+        scaler = H264Calculate(nonZeroTarget, sscale, (RK_S32) rc->mbPerPic);
     } else {
         return;
     }
@@ -772,11 +772,11 @@ void LinearModel_new(h264RateControl_s * rc)
 ------------------------------------------------------------------------------*/
 void AdaptiveModel_new(h264RateControl_s * rc)
 {
-    const i32 sscale = 256;
+    const RK_S32 sscale = 256;
     h264QpCtrl_s *qc = &rc->qpCtrl;
-    i32 i;
-    i32 tmp, nonZeroTarget = rc->virtualBuffer.nonZeroTarget;
-    i32 scaler;
+    RK_S32 i;
+    RK_S32 tmp, nonZeroTarget = rc->virtualBuffer.nonZeroTarget;
+    RK_S32 scaler;
 
     ASSERT(nonZeroTarget < (0x7FFFFFFF / sscale));
 
@@ -789,7 +789,7 @@ void AdaptiveModel_new(h264RateControl_s * rc)
             nonZeroTarget, rc->nonZeroCnt, scaler / sscale));
 
     for (i = 0; i < rc->qpCtrl.checkPoints; i++) {
-        tmp = (i32) (qc->wordCntPrev[i] * scaler) / sscale;
+        tmp = (RK_S32) (qc->wordCntPrev[i] * scaler) / sscale;
         tmp = MIN(WORD_CNT_MAX, tmp / 32 + 1);
         if (tmp < 0) tmp = WORD_CNT_MAX;    /* Detect overflow */
         qc->wordCntTarget[i] = tmp; /* div32 for regs */
@@ -833,7 +833,7 @@ void AdaptiveModel_new(h264RateControl_s * rc)
   has been scaled up by factor 256.
 
 ------------------------------------------------------------------------------*/
-void SourceParameter_new(h264RateControl_s * rc, i32 nonZeroCnt)
+void SourceParameter_new(h264RateControl_s * rc, RK_S32 nonZeroCnt)
 {
     ASSERT(rc->qpSum <= 51 * rc->mbPerPic);
     ASSERT(nonZeroCnt <= rc->coeffCntMax);
@@ -857,9 +857,9 @@ void SourceParameter_new(h264RateControl_s * rc, i32 nonZeroCnt)
 void PicSkip_new(h264RateControl_s * rc)
 {
     h264VirtualBuffer_s *vb = &rc->virtualBuffer;
-    i32 bitAvailable = vb->virtualBitCnt - vb->realBitCnt;
-    i32 skipIncLimit = -vb->bitPerPic / 3;
-    i32 skipDecLimit = vb->bitPerPic / 3;
+    RK_S32 bitAvailable = vb->virtualBitCnt - vb->realBitCnt;
+    RK_S32 skipIncLimit = -vb->bitPerPic / 3;
+    RK_S32 skipDecLimit = vb->bitPerPic / 3;
 
     /* When frameRc is enabled, skipFrameTarget is not allowed to be > 1
      * This makes sure that not too many frames is skipped and lets
@@ -888,7 +888,7 @@ void PicSkip_new(h264RateControl_s * rc)
 ------------------------------------------------------------------------------*/
 void PicQuant_new(h264RateControl_s * rc)
 {
-    i32 normBits, targetBits;
+    RK_S32 normBits, targetBits;
     true_e useQpDeltaLimit = ENCHW_YES;
 
     if (rc->picRc != ENCHW_YES) {
@@ -899,7 +899,7 @@ void PicQuant_new(h264RateControl_s * rc)
 
     /* If HRD is enabled we must make sure this frame fits in buffer */
     if (rc->hrd == ENCHW_YES) {
-        i32 bitsAvailable =
+        RK_S32 bitsAvailable =
             (rc->virtualBuffer.bufferSize - rc->virtualBuffer.bucketFullness);
 
         /* If the previous frame didn't fit the buffer we don't limit QP change */
@@ -945,7 +945,7 @@ void PicQuantLimit_new(h264RateControl_s * rc)
 /*------------------------------------------------------------------------------
   avg_rc_error_new()  PI(D)-control for rate prediction error.
 ------------------------------------------------------------------------------*/
-static i32 avg_rc_error_new(linReg_s *p)
+static RK_S32 avg_rc_error_new(linReg_s *p)
 {
     return DIV(p->bits[2] * 4 + p->bits[1] * 6 + p->bits[0] * 0, 100);
 }
@@ -953,11 +953,11 @@ static i32 avg_rc_error_new(linReg_s *p)
 /*------------------------------------------------------------------------------
   update_overhead()  Update PI(D)-control values
 ------------------------------------------------------------------------------*/
-static void update_rc_error_new(linReg_s *p, i32 bits)
+static void update_rc_error_new(linReg_s *p, RK_S32 bits)
 {
     p->len = 3;
 
-    if (bits == (i32)0x7fffffff) {
+    if (bits == (RK_S32)0x7fffffff) {
         /* RESET */
         p->bits[0] = 0;
         p->bits[1] = 0;
@@ -976,9 +976,9 @@ static void update_rc_error_new(linReg_s *p, i32 bits)
 /*------------------------------------------------------------------------------
   gop_avg_qp_new()  Average quantization parameter of P frames since previous I.
 ------------------------------------------------------------------------------*/
-i32 gop_avg_qp_new(h264RateControl_s *rc)
+RK_S32 gop_avg_qp_new(h264RateControl_s *rc)
 {
-    i32 tmp = rc->qpHdrPrev;
+    RK_S32 tmp = rc->qpHdrPrev;
 
     if (rc->gopQpSum && rc->gopQpDiv) {
         tmp = DIV(rc->gopQpSum, rc->gopQpDiv);
@@ -987,7 +987,7 @@ i32 gop_avg_qp_new(h264RateControl_s *rc)
     rc->gopAvgBitCnt = DIV(rc->gopBitCnt, (rc->gopQpDiv + 1));
     /* Ratio of intra_frame_bits/all_gop_bits % for previous GOP */
     if (rc->gopBitCnt) {
-        i32 gopIntraBitRatio =
+        RK_S32 gopIntraBitRatio =
             H264Calculate(get_avg_bits_new(&rc->intra, 1), rc->mbPerPic, 256) * 100;
         gopIntraBitRatio = DIV(gopIntraBitRatio, rc->gopBitCnt);
         /* GOP bit count must be > intra bit count, so ratio must be < 100 */
@@ -1005,10 +1005,10 @@ i32 gop_avg_qp_new(h264RateControl_s *rc)
   new_pic_quant_new()  Calculate new quantization parameter from the 2nd degree R-Q
   equation. Further adjust Qp for "smoother" visual quality.
 ------------------------------------------------------------------------------*/
-static i32 new_pic_quant_new(linReg_s *p, i32 bits, true_e useQpDeltaLimit)
+static RK_S32 new_pic_quant_new(linReg_s *p, RK_S32 bits, true_e useQpDeltaLimit)
 {
-    i32 tmp, qp_best = p->qp_prev, qp = p->qp_prev, diff;
-    i32 diff_prev = 0, qp_prev = 0, diff_best = 0x7FFFFFFF;
+    RK_S32 tmp, qp_best = p->qp_prev, qp = p->qp_prev, diff;
+    RK_S32 diff_prev = 0, qp_prev = 0, diff_best = 0x7FFFFFFF;
 
     DBG(1, (DBGOUTPUT, "R/cx:%6d ", bits));
 
@@ -1086,11 +1086,11 @@ static i32 new_pic_quant_new(linReg_s *p, i32 bits, true_e useQpDeltaLimit)
 /*------------------------------------------------------------------------------
   get_avg_bits_new()
 ------------------------------------------------------------------------------*/
-static i32 get_avg_bits_new(linReg_s *p, i32 n)
+static RK_S32 get_avg_bits_new(linReg_s *p, RK_S32 n)
 {
-    i32 i;
-    i32 sum = 0;
-    i32 pos = p->pos;
+    RK_S32 i;
+    RK_S32 sum = 0;
+    RK_S32 pos = p->pos;
 
     if (!p->len) return 0;
 
@@ -1112,10 +1112,10 @@ static i32 get_avg_bits_new(linReg_s *p, i32 n)
 /*------------------------------------------------------------------------------
   update_tables_new()  only statistics of PSLICE, please.
 ------------------------------------------------------------------------------*/
-static void update_tables_new(linReg_s *p, i32 qp, i32 bits)
+static void update_tables_new(linReg_s *p, RK_S32 qp, RK_S32 bits)
 {
-    const i32 clen = RC_TABLE_LENGTH;
-    i32 tmp = p->pos;
+    const RK_S32 clen = RC_TABLE_LENGTH;
+    RK_S32 tmp = p->pos;
 
     p->qp_prev   = qp;
     p->qs[tmp]   = q_step[qp];
@@ -1134,8 +1134,8 @@ static void update_tables_new(linReg_s *p, i32 qp, i32 bits)
 ------------------------------------------------------------------------------*/
 static void update_model_new(linReg_s *p)
 {
-    i32 *qs = p->qs, *r = p->bits, n = p->len;
-    i32 i, a1, a2, sx = lin_sx_new(qs, n), sy = lin_sy_new(qs, r, n);
+    RK_S32 *qs = p->qs, *r = p->bits, n = p->len;
+    RK_S32 i, a1, a2, sx = lin_sx_new(qs, n), sy = lin_sy_new(qs, r, n);
 
     for (i = 0; i < n; i++) {
         DBG(2, (DBGOUTPUT, "model: qs %i  r %i\n", qs[i], r[i]));
@@ -1183,9 +1183,9 @@ static void update_model_new(linReg_s *p)
 /*------------------------------------------------------------------------------
   lin_sy_new()  calculate value of Sy for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_sy_new(i32 *qp, i32 *r, i32 n)
+static RK_S32 lin_sy_new(RK_S32 *qp, RK_S32 *r, RK_S32 n)
 {
-    i32 sum = 0;
+    RK_S32 sum = 0;
 
     while (n--) {
         sum += qp[n] * qp[n] * r[n];
@@ -1199,9 +1199,9 @@ static i32 lin_sy_new(i32 *qp, i32 *r, i32 n)
 /*------------------------------------------------------------------------------
   lin_sx_new()  calculate value of Sx for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_sx_new(i32 *qp, i32 n)
+static RK_S32 lin_sx_new(RK_S32 *qp, RK_S32 n)
 {
-    i32 tmp = 0;
+    RK_S32 tmp = 0;
 
     while (n--) {
         ASSERT(qp[n]);
@@ -1213,9 +1213,9 @@ static i32 lin_sx_new(i32 *qp, i32 n)
 /*------------------------------------------------------------------------------
   lin_sxy_new()  calculate value of Sxy for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_sxy_new(i32 *qp, i32 *r, i32 n)
+static RK_S32 lin_sxy_new(RK_S32 *qp, RK_S32 *r, RK_S32 n)
 {
-    i32 tmp, sum = 0;
+    RK_S32 tmp, sum = 0;
 
     while (n--) {
         tmp = qp[n] * qp[n] * qp[n];
@@ -1234,9 +1234,9 @@ static i32 lin_sxy_new(i32 *qp, i32 *r, i32 n)
 /*------------------------------------------------------------------------------
   lin_nsxx_new()  calculate value of n * Sxy for n points.
 ------------------------------------------------------------------------------*/
-static i32 lin_nsxx_new(i32 *qp, i32 n)
+static RK_S32 lin_nsxx_new(RK_S32 *qp, RK_S32 n)
 {
-    i32 tmp = 0, sum = 0, d = n ;
+    RK_S32 tmp = 0, sum = 0, d = n ;
 
     while (n--) {
         tmp = qp[n];

@@ -42,19 +42,19 @@ typedef enum {
 
 typedef struct {
     true_e byteStream;
-    u32 sliceSize;
+    RK_U32 sliceSize;
     sliceType_e sliceType;
     nalUnitType_e nalUnitType;
-    u32 picParameterSetId;
-    u32 prevFrameNum;
-    u32 frameNum;
-    u32 frameNumBits;
-    u32 idrPicId;
-    u32 nalRefIdc;
-    u32 disableDeblocking;
-    i32 filterOffsetA;
-    i32 filterOffsetB;
-    u32 cabacInitIdc;
+    RK_U32 picParameterSetId;
+    RK_U32 prevFrameNum;
+    RK_U32 frameNum;
+    RK_U32 frameNumBits;
+    RK_U32 idrPicId;
+    RK_U32 nalRefIdc;
+    RK_U32 disableDeblocking;
+    RK_S32 filterOffsetA;
+    RK_S32 filterOffsetB;
+    RK_U32 cabacInitIdc;
 } slice_s;
 
 /*------------------------------------------------------------------------------

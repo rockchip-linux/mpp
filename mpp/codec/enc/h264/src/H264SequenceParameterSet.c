@@ -36,28 +36,28 @@
 #define EXTENDED_SAR            255
 
 
-const u32 H264LevelIdc[15] =
+const RK_U32 H264LevelIdc[15] =
 { 10, 11, 12, 13, 20, 21, 22, 30, 31, 32, 40, 41, 42, 50, 51 };
 
-const u32 H264MaxCPBS[15] = {
+const RK_U32 H264MaxCPBS[15] = {
     210000, 600000, 1200000, 2400000, 2400000, 4800000, 4800000, 12000000,
     16800000, 24000000, 30000000, 75000000, 75000000, 162000000, 288000000
 };
 
-const u32 H264MaxFS[15] = { 99, 396, 396, 396, 396, 792, 1620, 1620,
+const RK_U32 H264MaxFS[15] = { 99, 396, 396, 396, 396, 792, 1620, 1620,
                             3600, 5120, 8192, 8192, 8192, 22080, 36864
                           };
 
 /* sqrt(8*maxFrameSize) is maximum width and height of specific level */
-const u32 H264SqrtMaxFS8[15] =
+const RK_U32 H264SqrtMaxFS8[15] =
 { 28, 56, 56, 56, 56, 79, 113, 113, 169, 202, 256, 256, 256, 420, 543 };
 
-const u32 H264MaxMBPS[15] = {
+const RK_U32 H264MaxMBPS[15] = {
     1485, 3000, 6000, 11880, 11880, 19800, 20250, 40500,
     108000, 216000, 245760, 245760, 491520, 589824, 983040
 };
 
-const u32 H264MaxBR[15] = {
+const RK_U32 H264MaxBR[15] = {
     76800, 230400, 460800, 921600, 2400000, 4800000, 4800000, 12000000,
     16800000, 24000000, 24000000, 60000000, 60000000, 162000000, 288000000
 };
@@ -66,8 +66,8 @@ const u32 H264MaxBR[15] = {
     4. Local function prototypes
 ------------------------------------------------------------------------------*/
 
-static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames);
-static i32 GetAspectRatioIdc(i32 sarWidth, i32 sarHeight);
+static void WriteVui(stream_s * strm, vui_t * vui, RK_S32 numRefFrames);
+static RK_S32 GetAspectRatioIdc(RK_S32 sarWidth, RK_S32 sarHeight);
 static void UpdateVuiPresence(sps_s * sps);
 
 /*------------------------------------------------------------------------------
@@ -124,16 +124,16 @@ void H264SeqParameterSet(stream_s * stream, sps_s * sps)
     H264NalBits(stream, sps->profileIdc, 8);
     COMMENT("profile_idc");
 
-    H264NalBits(stream, (i32) sps->constraintSet0, 1);
+    H264NalBits(stream, (RK_S32) sps->constraintSet0, 1);
     COMMENT("constraint_set0_flag");
 
-    H264NalBits(stream, (i32) sps->constraintSet1, 1);
+    H264NalBits(stream, (RK_S32) sps->constraintSet1, 1);
     COMMENT("constraint_set1_flag");
 
-    H264NalBits(stream, (i32) sps->constraintSet2, 1);
+    H264NalBits(stream, (RK_S32) sps->constraintSet2, 1);
     COMMENT("constraint_set2_flag");
 
-    H264NalBits(stream, (i32) sps->constraintSet3, 1);
+    H264NalBits(stream, (RK_S32) sps->constraintSet3, 1);
     COMMENT("constraint_set3_flag");
 
     H264NalBits(stream, 0, 4);
@@ -171,7 +171,7 @@ void H264SeqParameterSet(stream_s * stream, sps_s * sps)
     H264ExpGolombUnsigned(stream, sps->numRefFrames);
     COMMENT("num_ref_frames");
 
-    H264NalBits(stream, (i32) sps->gapsInFrameNumValueAllowed, 1);
+    H264NalBits(stream, (RK_S32) sps->gapsInFrameNumValueAllowed, 1);
     COMMENT("gaps_in_frame_num_value_allowed_flag");
 
     H264ExpGolombUnsigned(stream, sps->picWidthInMbsMinus1);
@@ -180,13 +180,13 @@ void H264SeqParameterSet(stream_s * stream, sps_s * sps)
     H264ExpGolombUnsigned(stream, sps->picHeightInMapUnitsMinus1);
     COMMENT("pic_height_in_map_units_minus1");
 
-    H264NalBits(stream, (i32) sps->frameMbsOnly, 1);
+    H264NalBits(stream, (RK_S32) sps->frameMbsOnly, 1);
     COMMENT("frame_mbs_only_flag");
 
-    H264NalBits(stream, (i32) sps->direct8x8Inference, 1);
+    H264NalBits(stream, (RK_S32) sps->direct8x8Inference, 1);
     COMMENT("direct_8x8_inference_flag");
 
-    H264NalBits(stream, (i32) sps->frameCropping, 1);
+    H264NalBits(stream, (RK_S32) sps->frameCropping, 1);
     COMMENT("frame_cropping_flag");
 
     /* Frame cropping parameters */
@@ -203,7 +203,7 @@ void H264SeqParameterSet(stream_s * stream, sps_s * sps)
 
     UpdateVuiPresence(sps);
 
-    H264NalBits(stream, (i32) sps->vuiParametersPresent, 1);
+    H264NalBits(stream, (RK_S32) sps->vuiParametersPresent, 1);
     COMMENT("vui_parameters_present_flag");
 
     if (sps->vuiParametersPresent == ENCHW_YES)
@@ -233,19 +233,19 @@ void UpdateVuiPresence(sps_s * sps)
 
         Inputs:
           vui_t *vui            pointer to VUI params structure
-          u32 numRefFrames      number of reference frames, used as
+          RK_U32 numRefFrames      number of reference frames, used as
                                 max_dec_frame_buffering
 
         Outputs:
           stream_s *            pointer to stream data
 
 ------------------------------------------------------------------------------*/
-static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames)
+static void WriteVui(stream_s * strm, vui_t * vui, RK_S32 numRefFrames)
 {
 
     /* Variables */
 
-    i32 sarIdc;
+    RK_S32 sarIdc;
 
     /* Code */
 
@@ -308,7 +308,7 @@ static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames)
         COMMENT("timing_info_present_flag");
     }
 
-    H264NalBits(strm, (i32) vui->nalHrdParametersPresentFlag, 1);
+    H264NalBits(strm, (RK_S32) vui->nalHrdParametersPresentFlag, 1);
     COMMENT("nal_hrd_parameters_present_flag");
 
     if (vui->nalHrdParametersPresentFlag == ENCHW_YES) {
@@ -316,9 +316,9 @@ static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames)
         COMMENT("cpb_cnt_minus1");
 
         {
-            u32 bit_rate_scale = 1;
-            u32 cpb_size_scale = 1;
-            u32 tmp, i = 0;
+            RK_U32 bit_rate_scale = 1;
+            RK_U32 cpb_size_scale = 1;
+            RK_U32 tmp, i = 0;
 
             tmp = vui->cpbSize;
             while (4095 < (tmp >> (4 + i++)));
@@ -367,10 +367,10 @@ static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames)
         COMMENT("low_delay_hrd_flag");
     }
 
-    H264NalBits(strm, (i32) vui->pictStructPresentFlag, 1);
+    H264NalBits(strm, (RK_S32) vui->pictStructPresentFlag, 1);
     COMMENT("pic_struct_present_flag");
 
-    H264NalBits(strm, (i32) vui->bitStreamRestrictionFlag, 1);
+    H264NalBits(strm, (RK_S32) vui->bitStreamRestrictionFlag, 1);
     COMMENT("bit_stream_restriction_flag");
 
     if (vui->bitStreamRestrictionFlag == ENCHW_YES) {
@@ -405,19 +405,19 @@ static void WriteVui(stream_s * strm, vui_t * vui, i32 numRefFrames)
         Functional description:
 
         Inputs:
-          u32 sarWidth      sample aspect ratio width
-          u32 sarHeight     sample aspect ratio height
+          RK_U32 sarWidth      sample aspect ratio width
+          RK_U32 sarHeight     sample aspect ratio height
 
         Outputs:
 
         Returns:
-          u32   acpectRatioIdc
+          RK_U32   acpectRatioIdc
 
 ------------------------------------------------------------------------------*/
-static i32 GetAspectRatioIdc(i32 sarWidth, i32 sarHeight)
+static RK_S32 GetAspectRatioIdc(RK_S32 sarWidth, RK_S32 sarHeight)
 {
 
-    i32 aspectRatioIdc;
+    RK_S32 aspectRatioIdc;
 
     if (sarWidth == 0 || sarHeight == 0) /* unspecified */
         aspectRatioIdc = 0;
@@ -470,9 +470,9 @@ static i32 GetAspectRatioIdc(i32 sarWidth, i32 sarHeight)
 
         Inputs:
           seqParamSet_t *       pointer to SPS data structure
-          u32 bitRate           bit rate in bits per second
-          u32 frameRateNum      numerator of the frame rate
-          u32 frameRateDenom    denominator of the frame rate
+          RK_U32 bitRate           bit rate in bits per second
+          RK_U32 frameRateNum      numerator of the frame rate
+          RK_U32 frameRateDenom    denominator of the frame rate
 
         Outputs:
           seqParamSet_t *       pointer to SPS data structure
@@ -482,13 +482,13 @@ static i32 GetAspectRatioIdc(i32 sarWidth, i32 sarHeight)
           ENCHW_NOK for invalid params
 
 ------------------------------------------------------------------------------*/
-bool_e H264CheckLevel(sps_s * sps, i32 bitRate, i32 frameRateNum,
-                      i32 frameRateDenom)
+bool_e H264CheckLevel(sps_s * sps, RK_S32 bitRate, RK_S32 frameRateNum,
+                      RK_S32 frameRateDenom)
 {
 
     /* Variables */
 
-    i32 tmp, i;
+    RK_S32 tmp, i;
 
     /* Code */
 
@@ -501,14 +501,14 @@ bool_e H264CheckLevel(sps_s * sps, i32 bitRate, i32 frameRateNum,
 
     tmp = (sps->picWidthInMbsMinus1 + 1) * (sps->picHeightInMapUnitsMinus1 + 1);
 
-    if ((u32) tmp > H264MaxFS[i] ||
-        (u32) sps->picWidthInMbsMinus1 >= H264SqrtMaxFS8[i] ||
-        (u32) sps->picHeightInMapUnitsMinus1 >= H264SqrtMaxFS8[i])
+    if ((RK_U32) tmp > H264MaxFS[i] ||
+        (RK_U32) sps->picWidthInMbsMinus1 >= H264SqrtMaxFS8[i] ||
+        (RK_U32) sps->picHeightInMapUnitsMinus1 >= H264SqrtMaxFS8[i])
         return (ENCHW_NOK);
 
     tmp = frameRateNum * tmp / frameRateDenom;
 
-    if (H264MaxMBPS[sps->levelIdx] < (u32) tmp)
+    if (H264MaxMBPS[sps->levelIdx] < (RK_U32) tmp)
         return (ENCHW_NOK);
 
     return (ENCHW_OK);
@@ -524,20 +524,20 @@ bool_e H264CheckLevel(sps_s * sps, i32 bitRate, i32 frameRateNum,
             level argument. If invalid level -> return INVALID_LEVEL
 
         Inputs:
-            u32 levelIdc
+            RK_U32 levelIdc
 
         Outputs:
 
         Returns:
-            u32 index
+            RK_U32 index
             INVALID_LEVEL
 
 ------------------------------------------------------------------------------*/
 
-u32 H264GetLevelIndex(u32 levelIdc)
+RK_U32 H264GetLevelIndex(RK_U32 levelIdc)
 {
 
-    u32 i;
+    RK_U32 i;
 
     i = 0;
     while (H264LevelIdc[i] != levelIdc) {
@@ -558,15 +558,15 @@ u32 H264GetLevelIndex(u32 levelIdc)
           Set VUI parameters in the SPS structure
 
         Inputs:
-          u32 timeScale
-          u32 numUnitsInTick
+          RK_U32 timeScale
+          RK_U32 numUnitsInTick
           bool zeroReorderFrames
 
         Outputs:
           seqParamSet_t *       pointer to SPS structure
 
 ------------------------------------------------------------------------------*/
-void H264SpsSetVuiTimigInfo(sps_s * sps, u32 timeScale, u32 numUnitsInTick)
+void H264SpsSetVuiTimigInfo(sps_s * sps, RK_U32 timeScale, RK_U32 numUnitsInTick)
 {
     if (timeScale)
         sps->vuiParametersPresent = ENCHW_YES;
@@ -575,7 +575,7 @@ void H264SpsSetVuiTimigInfo(sps_s * sps, u32 timeScale, u32 numUnitsInTick)
     sps->vui.numUnitsInTick = numUnitsInTick;
 }
 
-void H264SpsSetVuiVideoInfo(sps_s * sps, u32 videoFullRange)
+void H264SpsSetVuiVideoInfo(sps_s * sps, RK_U32 videoFullRange)
 {
     if (videoFullRange)
         sps->vuiParametersPresent = ENCHW_YES;
@@ -583,8 +583,8 @@ void H264SpsSetVuiVideoInfo(sps_s * sps, u32 videoFullRange)
     sps->vui.videoFullRange = videoFullRange;   /* used as video_signal_type_present_flag */
 }
 
-void H264SpsSetVuiAspectRatio(sps_s * sps, u32 sampleAspectRatioWidth,
-                              u32 sampleAspectRatioHeight)
+void H264SpsSetVuiAspectRatio(sps_s * sps, RK_U32 sampleAspectRatioWidth,
+                              RK_U32 sampleAspectRatioHeight)
 {
     ASSERT(sampleAspectRatioWidth < (1 << 16));
     ASSERT(sampleAspectRatioHeight < (1 << 16));
@@ -611,7 +611,7 @@ void H264SpsSetVuiAspectRatio(sps_s * sps, u32 sampleAspectRatioWidth,
 
 ------------------------------------------------------------------------------*/
 
-void H264SpsSetVuiHrd(sps_s * sps, u32 present)
+void H264SpsSetVuiHrd(sps_s * sps, RK_U32 present)
 {
     ASSERT(sps);
 
@@ -630,7 +630,7 @@ void H264SpsSetVuiHrd(sps_s * sps, u32 present)
     sps->vui.dpbOutputDelayLength = 24;
 
     {
-        u32 n = 1;
+        RK_U32 n = 1;
 
         while (sps->vui.numUnitsInTick > (1U << n)) {
             n++;
@@ -649,35 +649,35 @@ void H264SpsSetVuiHrd(sps_s * sps, u32 present)
 
         Inputs:
           seqParamSet_t *       pointer to SPS structure
-          u32 bitRate
+          RK_U32 bitRate
 
         Outputs:
           seqParamSet_t *       pointer to SPS structure
 
 ------------------------------------------------------------------------------*/
 
-void H264SpsSetVuiHrdBitRate(sps_s * sps, u32 bitRate)
+void H264SpsSetVuiHrdBitRate(sps_s * sps, RK_U32 bitRate)
 {
     ASSERT(sps);
 
     sps->vui.bitRate = bitRate;
 }
 
-void H264SpsSetVuiHrdCpbSize(sps_s * sps, u32 cpbSize)
+void H264SpsSetVuiHrdCpbSize(sps_s * sps, RK_U32 cpbSize)
 {
     ASSERT(sps);
 
     sps->vui.cpbSize = cpbSize;
 }
 
-u32 H264SpsGetVuiHrdBitRate(sps_s * sps)
+RK_U32 H264SpsGetVuiHrdBitRate(sps_s * sps)
 {
     ASSERT(sps);
 
     return sps->vui.bitRate;
 }
 
-u32 H264SpsGetVuiHrdCpbSize(sps_s * sps)
+RK_U32 H264SpsGetVuiHrdCpbSize(sps_s * sps)
 {
     ASSERT(sps);
 
@@ -713,9 +713,9 @@ void H264EndOfStream(stream_s * stream, sps_s * sps)
     Description     : Signal presence of pic_struct in picture timing SEI
     Return type     : void
     Argument        : sps_s * sps
-    Argument        : u32 flag
+    Argument        : RK_U32 flag
 ------------------------------------------------------------------------------*/
-void H264SpsSetVuiPictStructPresentFlag(sps_s * sps, u32 flag)
+void H264SpsSetVuiPictStructPresentFlag(sps_s * sps, RK_U32 flag)
 {
     sps->vui.pictStructPresentFlag = flag;
 }
