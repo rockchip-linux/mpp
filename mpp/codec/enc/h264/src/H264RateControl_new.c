@@ -27,9 +27,6 @@
  */
 #include "H264RateControl.h"
 #include "H264Slice.h"
-#ifdef ROI_SUPPORT
-#include "H264RoiModel.h"
-#endif
 
 /*------------------------------------------------------------------------------
   Module defines
@@ -562,15 +559,9 @@ void H264BeforePicRc(h264RateControl_s * rc, u32 timeInc, u32 sliceType)
     }
 
     /* mb rate control (check point rate control) */
-#ifdef ROI_SUPPORT
-    if (rc->roiRc) {
-        H264EncRoiModel(rc);
-        PicQuantLimit_new(rc);
-    } else
-#endif
-        if (rc->mbRc) {
-            MbQuant_new(rc);
-        }
+    if (rc->mbRc) {
+        MbQuant_new(rc);
+    }
 
     /* reset counters */
     rc->qpSum = 0;
