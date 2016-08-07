@@ -43,9 +43,9 @@
 /*------------------------------------------------------------------------------
     4. Local function prototypes
 ------------------------------------------------------------------------------*/
-static bool_e SetParameter(h264Instance_s * inst,
+static bool_e SetParameter(H264ECtx * inst,
                            const H264EncConfig * pEncCfg);
-static bool_e CheckParameter(const h264Instance_s * inst);
+static bool_e CheckParameter(const H264ECtx * inst);
 
 /*------------------------------------------------------------------------------
 
@@ -63,9 +63,9 @@ static bool_e CheckParameter(const h264Instance_s * inst);
             H264ENC_INVALID_ARGUMENT
 
 ------------------------------------------------------------------------------*/
-H264EncRet H264Init(h264Instance_s * pinst)
+H264EncRet H264Init(H264ECtx * pinst)
 {
-    h264Instance_s *inst = pinst;
+    H264ECtx *inst = pinst;
 
     H264EncRet ret = H264ENC_OK;
 
@@ -77,9 +77,6 @@ H264EncRet H264Init(h264Instance_s * pinst)
     /* Initialize ASIC */
     EncAsicControllerInit(&inst->asic);
 
-    inst->asic.regs.codingType = ASIC_H264;
-    inst->asic.regs.skipPenalty = 1;
-
     return ret;
 }
 
@@ -90,7 +87,7 @@ H264EncRet H264Init(h264Instance_s * pinst)
     Set all parameters in instance to valid values depending on user config.
 
 ------------------------------------------------------------------------------*/
-bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
+bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
 {
     i32 width, height, tmp, bps;
     ASSERT(inst);
@@ -125,14 +122,6 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     inst->mbPerFrame = width / 16 * height / 16;
     inst->mbPerRow = width / 16;
     inst->mbPerCol = height / 16;
-
-    /* Disable intra and ROI areas by default */
-    inst->asic.regs.intraAreaTop = inst->asic.regs.intraAreaBottom = inst->mbPerCol;
-    inst->asic.regs.intraAreaLeft = inst->asic.regs.intraAreaRight = inst->mbPerRow;
-    inst->asic.regs.roi1Top = inst->asic.regs.roi1Bottom = inst->mbPerCol;
-    inst->asic.regs.roi1Left = inst->asic.regs.roi1Right = inst->mbPerRow;
-    inst->asic.regs.roi2Top = inst->asic.regs.roi2Bottom = inst->mbPerCol;
-    inst->asic.regs.roi2Left = inst->asic.regs.roi2Right = inst->mbPerRow;
 
     /* Sequence parameter set */
     inst->seqParameterSet.levelIdc = pEncCfg->level;
@@ -251,7 +240,7 @@ bool_e SetParameter(h264Instance_s * inst, const H264EncConfig * pEncCfg)
     CheckParameter
 
 ------------------------------------------------------------------------------*/
-bool_e CheckParameter(const h264Instance_s * inst)
+bool_e CheckParameter(const H264ECtx * inst)
 {
     /* Check crop */
     if (EncPreProcessCheck(&inst->preProcess) != ENCHW_OK) {
@@ -280,9 +269,9 @@ i32 H264GetAllowedWidth(i32 width, MppFrameFormat inputType)
     }
 }
 
-H264EncRet H264Cfg(const H264EncConfig * pEncCfg, h264Instance_s * pinst)
+H264EncRet H264Cfg(const H264EncConfig * pEncCfg, H264ECtx * pinst)
 {
-    h264Instance_s *inst = pinst;
+    H264ECtx *inst = pinst;
 
     H264EncRet ret = H264ENC_OK;
 

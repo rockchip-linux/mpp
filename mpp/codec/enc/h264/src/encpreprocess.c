@@ -109,7 +109,32 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
     stride = (preProcess->lumWidthSrc + 15) & (~15); /* 16 pixel multiple stride */
 
     /* cropping */
-    if (preProcess->inputFormat <= MPP_FMT_YUV420SP_VU) { /* YUV 420 */
+    switch (preProcess->inputFormat) {
+    case MPP_FMT_YUV420SP : {
+        tmp = preProcess->verOffsetSrc;
+        tmp *= stride;
+        tmp += preProcess->horOffsetSrc;
+        regs->inputLumBase += (tmp & (~7));
+        regs->inputLumaBaseOffset = tmp & 7;
+
+        if (preProcess->videoStab)
+            regs->vsNextLumaBase += (tmp & (~7));
+
+        tmp = preProcess->verOffsetSrc / 2;
+        tmp *= stride / 2;
+        tmp += preProcess->horOffsetSrc / 2;
+
+        if (VPUClientGetIOMMUStatus() <= 0) {
+            regs->inputCbBase += (tmp & (~7));
+            regs->inputCrBase += (tmp & (~7));
+        } else {
+            regs->inputCbBase += (tmp & (~7)) << 10;
+            regs->inputCrBase += (tmp & (~7)) << 10;
+        }
+
+        regs->inputChromaBaseOffset = tmp & 7;
+    } break;
+    case MPP_FMT_YUV420P : {
         /* Input image position after crop and stabilization */
         tmp = preProcess->verOffsetSrc;
         tmp *= stride;
@@ -120,33 +145,16 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         if (preProcess->videoStab)
             regs->vsNextLumaBase += (tmp & (~7));
 
-        /* Chroma */
-        if (preProcess->inputFormat == MPP_FMT_YUV420P) {
-            tmp = preProcess->verOffsetSrc / 2;
-            tmp *= stride / 2;
-            tmp += preProcess->horOffsetSrc / 2;
+        tmp = preProcess->verOffsetSrc / 2;
+        tmp *= stride / 2;
+        tmp += preProcess->horOffsetSrc / 2;
+        tmp *= 2;
 
-            if (VPUClientGetIOMMUStatus() <= 0/*!VPUMemJudgeIommu()*/) {  // modify by lance 2016.05.06
-                regs->inputCbBase += (tmp & (~7));
-            } else {
-                regs->inputCbBase += (tmp & (~7)) << 10;
-            }
-
-            if (VPUClientGetIOMMUStatus() <= 0/*!VPUMemJudgeIommu()*/) {  // modify by lance 2016.05.06
-                regs->inputCrBase += (tmp & (~7));
-            } else {
-                regs->inputCrBase += (tmp & (~7)) << 10;
-            }
-            regs->inputChromaBaseOffset = tmp & 7;
-        } else {
-            tmp = preProcess->verOffsetSrc / 2;
-            tmp *= stride / 2;
-            tmp += preProcess->horOffsetSrc / 2;
-            tmp *= 2;
-
-            regs->inputCbBase += (tmp & (~7));
-            regs->inputChromaBaseOffset = tmp & 7;
-        }
+        regs->inputCbBase += (tmp & (~7));
+        regs->inputChromaBaseOffset = tmp & 7;
+    } break;
+    }
+    if (preProcess->inputFormat < MPP_FMT_YUV_BUTT) { /* YUV 420 */
     } else if (preProcess->inputFormat <= MPP_FMT_BGR444) { /* YUV 422 / RGB 16bpp */
         /* Input image position after crop and stabilization */
         tmp = preProcess->verOffsetSrc;
@@ -190,31 +198,11 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         height = tmp_rotation;  // modify by lance 2016.05.12
     }
 
-    /* Set mandatory input parameters in asic structure */
-    regs->mbsInRow = (width + 15) / 16;
-    regs->mbsInCol = (height + 15) / 16;
-    regs->pixelsOnRow =  preProcess->lumWidth;
-
-    /* Set the overfill values */
-    if (width & 0x0F)
-        regs->xFill = (16 - (width & 0x0F)) / 4;
-    else
-        regs->xFill = 0;
-
-    if (height & 0x0F)
-        regs->yFill = 16 - (height & 0x0F);
-    else
-        regs->yFill = 0;
-
     /* video stabilization */
-    if (regs->codingType != ASIC_JPEG && preProcess->videoStab != 0)
+    if (preProcess->videoStab != 0)
         regs->vsMode = 2;
     else
         regs->vsMode = 0;
-
-#ifdef TRACE_PREPROCESS
-    EncTracePreProcess(preProcess);
-#endif
 
     return;
 }

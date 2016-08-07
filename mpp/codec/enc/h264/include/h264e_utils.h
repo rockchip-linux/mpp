@@ -16,4 +16,4 @@
 
 #include "H264Instance.h"
 
-RK_U32 getOutputStreamSize(h264Instance_s *pEncInst);
+RK_U32 getOutputStreamSize(H264ECtx *pEncInst);

@@ -16,7 +16,7 @@
 
 #include "h264e_utils.h"
 
-RK_U32 getOutputStreamSize(h264Instance_s *pEncInst)
+RK_U32 getOutputStreamSize(H264ECtx *pEncInst)
 {
     regValues_s *val = &(pEncInst->asic.regs);
 

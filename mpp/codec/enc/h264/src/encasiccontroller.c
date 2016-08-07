@@ -47,26 +47,11 @@
 
 #define HSWREG(n)       ((n)*4)
 
-//#define WRITE_VAL_INFO_FOR_COMPARE 1
-#ifdef WRITE_VAL_INFO_FOR_COMPARE
-FILE *valCompareFile = NULL;
-int oneFrameFlagTest = 0;
-#endif
-
 i32 EncAsicControllerInit(asicData_s * asic)
 {
     ASSERT(asic != NULL);
 
-    /* Initialize default values from defined configuration */
-    asic->regs.irqDisable = ENC6820_IRQ_DISABLE;
-
-    asic->regs.asicCfgReg =
-        ((ENC6820_OUTPUT_SWAP_32 & (1)) << 26) |
-        ((ENC6820_OUTPUT_SWAP_16 & (1)) << 27) |
-        ((ENC6820_OUTPUT_SWAP_8 & (1)) << 28);
-
     /* Initialize default values */
-    asic->regs.roundingCtrl = 0;
     asic->regs.cpDistanceMbs = 0;
 
     /* User must set these */
@@ -76,114 +61,13 @@ i32 EncAsicControllerInit(asicData_s * asic)
 
     /* we do NOT reset hardware at this point because */
     /* of the multi-instance support                  */
-#ifdef WRITE_VAL_INFO_FOR_COMPARE
-    oneFrameFlagTest = 0;
-    if (valCompareFile == NULL) {
-        if ((valCompareFile = fopen("/data/test/val_cmp.file", "w")) == NULL)
-            mpp_err("val original File open failed!");
-    }
-#endif
     return ENCHW_OK;
 }
 
 void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data)
 {
-    h264Instance_s *instH264Encoder = (h264Instance_s *)inst;
+    H264ECtx *instH264Encoder = (H264ECtx *)inst;
     int iCount = 0;
-#ifdef WRITE_VAL_INFO_FOR_COMPARE
-    int iTest = 0;
-    if (oneFrameFlagTest < 240 && valCompareFile != NULL) {
-        fprintf(valCompareFile, "val->intraAreaTop                   0x%08X\n", val->intraAreaTop);
-        fprintf(valCompareFile, "val->intraAreaBottom                0x%08X\n", val->intraAreaBottom);
-        fprintf(valCompareFile, "val->intraAreaLeft                  0x%08X\n", val->intraAreaLeft);
-        fprintf(valCompareFile, "val->intraAreaRight                 0x%08X\n", val->intraAreaRight);
-        fprintf(valCompareFile, "val->inputLumBase                   0x%08X\n", val->inputLumBase);
-        fprintf(valCompareFile, "val->inputCbBase                    0x%08X\n", val->inputCbBase);
-        fprintf(valCompareFile, "val->inputCrBase                    0x%08X\n", val->inputCrBase);
-        fprintf(valCompareFile, "val->strmStartMSB                   0x%08X\n", val->strmStartMSB);
-        fprintf(valCompareFile, "val->strmStartLSB                   0x%08X\n", val->strmStartLSB);
-        fprintf(valCompareFile, "val->outputStrmSize                 0x%08X\n", val->outputStrmSize);
-        fprintf(valCompareFile, "val->madQpDelta                     0x%08X\n", val->madQpDelta);
-        fprintf(valCompareFile, "val->internalImageChrBaseR          0x%08X\n", val->internalImageChrBaseR);
-        fprintf(valCompareFile, "val->mbsInRow                       0x%08X\n", val->mbsInRow);
-        fprintf(valCompareFile, "val->mbsInCol                       0x%08X\n", val->mbsInCol);
-        fprintf(valCompareFile, "val->qp                             0x%08X\n", val->qp);
-        fprintf(valCompareFile, "val->disableQuarterPixelMv          0x%08X\n", val->disableQuarterPixelMv);
-        fprintf(valCompareFile, "val->cabacInitIdc                   0x%08X\n", val->cabacInitIdc);
-        fprintf(valCompareFile, "val->enableCabac                    0x%08X\n", val->enableCabac);
-        fprintf(valCompareFile, "val->transform8x8Mode               0x%08X\n", val->transform8x8Mode);
-        fprintf(valCompareFile, "val->h264Inter4x4Disabled           0x%08X\n", val->h264Inter4x4Disabled);
-        fprintf(valCompareFile, "val->h264StrmMode                   0x%08X\n", val->h264StrmMode);
-        fprintf(valCompareFile, "val->sliceSizeMbRows                0x%08X\n", val->sliceSizeMbRows);
-        fprintf(valCompareFile, "val->firstFreeBit                   0x%08X\n", val->firstFreeBit);
-        fprintf(valCompareFile, "val->xFill                          0x%08X\n", val->xFill);
-        fprintf(valCompareFile, "val->yFill                          0x%08X\n", val->yFill);
-        fprintf(valCompareFile, "val->inputChromaBaseOffset          0x%08X\n", val->inputChromaBaseOffset);
-        fprintf(valCompareFile, "val->inputLumaBaseOffset            0x%08X\n", val->inputLumaBaseOffset);
-        fprintf(valCompareFile, "val->pixelsOnRow                    0x%08X\n", val->pixelsOnRow);
-        fprintf(valCompareFile, "val->internalImageLumBaseW          0x%08X\n", val->internalImageLumBaseW);
-        fprintf(valCompareFile, "val->internalImageChrBaseW          0x%08X\n", val->internalImageChrBaseW);
-        if (val->cpTarget != NULL) {
-            for (iTest = 0; iTest < 10; ++iTest) {
-                fprintf(valCompareFile, "val->cpTarget[%2d]                   0x%08X\n", iTest, val->cpTarget[iTest]);
-            }
-            for (iTest = 0; iTest < 6; ++iTest) {
-                fprintf(valCompareFile, "val->targetError[%2d]                0x%08X\n", iTest, val->targetError[iTest]);
-            }
-            for (iTest = 0; iTest < 7; ++iTest) {
-                fprintf(valCompareFile, "val->deltaQp[%2d]                    0x%08X\n", iTest, val->deltaQp[iTest]);
-            }
-        }
-        fprintf(valCompareFile, "val->outputStrmBase                 0x%08X\n", val->outputStrmBase);
-        fprintf(valCompareFile, "val->madThreshold                   0x%08X\n", val->madThreshold);
-        fprintf(valCompareFile, "val->inputImageFormat               0x%08X\n", val->inputImageFormat);
-        fprintf(valCompareFile, "val->inputImageRotation             0x%08X\n", val->inputImageRotation);
-        fprintf(valCompareFile, "val->intra16Favor                   0x%08X\n", val->intra16Favor);
-        fprintf(valCompareFile, "val->interFavor                     0x%08X\n", val->interFavor);
-        fprintf(valCompareFile, "val->picInitQp                      0x%08X\n", val->picInitQp);
-        fprintf(valCompareFile, "val->sliceAlphaOffset               0x%08X\n", val->sliceAlphaOffset);
-        fprintf(valCompareFile, "val->sliceBetaOffset                0x%08X\n", val->sliceBetaOffset);
-        fprintf(valCompareFile, "val->chromaQpIndexOffset            0x%08X\n", val->chromaQpIndexOffset);
-        fprintf(valCompareFile, "val->filterDisable                  0x%08X\n", val->filterDisable);
-        fprintf(valCompareFile, "val->idrPicId                       0x%08X\n", val->idrPicId);
-        fprintf(valCompareFile, "val->constrainedIntraPrediction     0x%08X\n", val->constrainedIntraPrediction);
-        fprintf(valCompareFile, "val->vsNextLumaBase                 0x%08X\n", val->vsNextLumaBase);
-        fprintf(valCompareFile, "val->roi1Top                        0x%08X\n", val->roi1Top);
-        fprintf(valCompareFile, "val->roi1Bottom                     0x%08X\n", val->roi1Bottom);
-        fprintf(valCompareFile, "val->roi1Left                       0x%08X\n", val->roi1Left);
-        fprintf(valCompareFile, "val->roi1Right                      0x%08X\n", val->roi1Right);
-        fprintf(valCompareFile, "val->roi2Top                        0x%08X\n", val->roi2Top);
-        fprintf(valCompareFile, "val->roi2Bottom                     0x%08X\n", val->roi2Bottom);
-        fprintf(valCompareFile, "val->roi2Left                       0x%08X\n", val->roi2Left);
-        fprintf(valCompareFile, "val->roi2Right                      0x%08X\n", val->roi2Right);
-        fprintf(valCompareFile, "val->vsMode                         0x%08X\n", val->vsMode);
-        fprintf(valCompareFile, "val->colorConversionCoeffB          0x%08X\n", val->colorConversionCoeffB);
-        fprintf(valCompareFile, "val->colorConversionCoeffA          0x%08X\n", val->colorConversionCoeffA);
-        fprintf(valCompareFile, "val->colorConversionCoeffC          0x%08X\n", val->colorConversionCoeffC);
-        fprintf(valCompareFile, "val->colorConversionCoeffE          0x%08X\n", val->colorConversionCoeffE);
-        fprintf(valCompareFile, "val->colorConversionCoeffF          0x%08X\n", val->colorConversionCoeffF);
-        fprintf(valCompareFile, "val->bMaskMsb                       0x%08X\n", val->bMaskMsb);
-        fprintf(valCompareFile, "val->gMaskMsb                       0x%08X\n", val->gMaskMsb);
-        fprintf(valCompareFile, "val->rMaskMsb                       0x%08X\n", val->rMaskMsb);
-        fprintf(valCompareFile, "val->splitMvMode                    0x%08X\n", val->splitMvMode);
-        fprintf(valCompareFile, "val->qpMax                          0x%08X\n", val->qpMax);
-        fprintf(valCompareFile, "val->qpMin                          0x%08X\n", val->qpMin);
-        fprintf(valCompareFile, "val->cpDistanceMbs                  0x%08X\n", val->cpDistanceMbs);
-        fprintf(valCompareFile, "val->zeroMvFavorDiv2                0x%08X\n", val->zeroMvFavorDiv2);
-        fprintf(valCompareFile, "val->frameCodingType                0x%08X\n", val->frameCodingType);
-        fprintf(valCompareFile, "val->codingType                     0x%08X\n", val->codingType);
-        fprintf(valCompareFile, "val->asicCfgReg                     0x%08X\n", val->asicCfgReg);
-        fprintf(valCompareFile, "val->ppsId                          0x%08X\n", val->ppsId);
-        fprintf(valCompareFile, "val->frameNum                       0x%08X\n", val->frameNum);
-        fprintf(valCompareFile, "val->irqDisable                     0x%08X\n", val->irqDisable);
-        fflush(valCompareFile);
-        ++oneFrameFlagTest;
-        if (valCompareFile != NULL && (oneFrameFlagTest == 239)) {
-            fclose(valCompareFile);
-            valCompareFile = NULL;
-        }
-    }
-#endif
     // TODO for rkv
     syntax_data->pic_order_cnt_lsb = 2 * val->frameNum;
     syntax_data->second_chroma_qp_index_offset = val->chromaQpIndexOffset;
@@ -196,7 +80,7 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->chroma_qp_index_offset = val->chromaQpIndexOffset;
     syntax_data->filter_disable = val->filterDisable;
     syntax_data->idr_pic_id = val->idrPicId;
-    syntax_data->pps_id = val->ppsId;
+    syntax_data->pps_id = 0;
     syntax_data->frame_num = val->frameNum;
     syntax_data->slice_size_mb_rows = val->sliceSizeMbRows;
     syntax_data->h264_inter4x4_disabled = val->h264Inter4x4Disabled;
