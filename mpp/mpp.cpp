@@ -469,7 +469,7 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
     case CMD_MODULE_CODEC : {
         switch (cmd & CMD_CTX_ID_MASK) {
         case CMD_CTX_ID_DEC : {
-            mpp_assert(mType == MPP_CTX_DEC);
+            mpp_assert(mType == MPP_CTX_DEC || mType == MPP_CTX_BUTT);
             mpp_assert(cmd > MPP_DEC_CMD_BASE);
             mpp_assert(cmd < MPP_DEC_CMD_END);
 
