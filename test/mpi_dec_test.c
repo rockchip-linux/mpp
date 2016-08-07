@@ -51,14 +51,15 @@ static OptionInfo mpi_dec_cmd[] = {
     {"o",               "output_file",          "output bitstream file, "},
     {"w",               "width",                "the width of input bitstream"},
     {"h",               "height",               "the height of input bitstream"},
-    {"f",               "type",                 "input stream coding type"},
+    {"t",               "type",                 "input stream coding type"},
     {"d",               "debug",                "debug flag"},
 };
 
 int mpi_dec_test(MpiDecTestCmd *cmd)
 {
     MPP_RET ret         = MPP_OK;
-    RK_U32 found_eos    = 0;
+    RK_U32 pkt_eos      = 0;
+    RK_U32 frm_eos      = 0;
     FILE *fp_input      = NULL;
     FILE *fp_output     = NULL;
 
@@ -140,11 +141,12 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
-    while (!found_eos) {
+    while (!pkt_eos) {
+        RK_S32 pkt_done = 0;
         read_size = fread(buf, 1, packet_size, fp_input);
         if (read_size != packet_size || feof(fp_input)) {
             mpp_log("found last packet\n");
-            found_eos = 1;
+            pkt_eos = 1;
         }
 
         // write data to packet
@@ -152,37 +154,56 @@ int mpi_dec_test(MpiDecTestCmd *cmd)
         // reset pos
         mpp_packet_set_pos(packet, buf);
         // setup eos flag
-        if (found_eos)
+        if (pkt_eos)
             mpp_packet_set_eos(packet);
 
-        ret = mpi->decode_put_packet(ctx, packet);
-        if (MPP_OK != ret) {
-            mpp_err("decode_put_packet failed ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        msleep(50);
-
+        frame = NULL;
         do {
-            ret = mpi->decode_get_frame(ctx, &frame);
-            if (MPP_OK != ret) {
-                mpp_err("decode_get_frame failed ret %d\n", ret);
-                goto MPP_TEST_OUT;
+            // send the packet first if packet is not done
+            if (!pkt_done) {
+                ret = mpi->decode_put_packet(ctx, packet);
+                if (MPP_OK == ret)
+                    pkt_done = 1;
             }
 
-            if (frame) {
-                if (mpp_frame_get_info_change(frame)) {
-                    mpp_log("decode_get_frame get info changed found\n");
-                    mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
-                } else {
-                    mpp_log("decode_get_frame get frame %d\n", frame_count++);
-                    if (fp_output)
-                        dump_mpp_frame_to_file(frame, fp_output);
+            // then get all available frame and release
+            do {
+                RK_S32 get_frm = 0;
+                ret = mpi->decode_get_frame(ctx, &frame);
+                if (MPP_OK != ret) {
+                    mpp_err("decode_get_frame failed ret %d\n", ret);
+                    goto MPP_TEST_OUT;
                 }
-                mpp_frame_deinit(&frame);
-            } else {
+
+                if (frame) {
+                    if (mpp_frame_get_info_change(frame)) {
+                        mpp_log("decode_get_frame get info changed found\n");
+                        mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    } else {
+                        mpp_log("decode_get_frame get frame %d\n", frame_count++);
+                        if (fp_output)
+                            dump_mpp_frame_to_file(frame, fp_output);
+                    }
+                    frm_eos = mpp_frame_get_eos(frame);
+                    mpp_frame_deinit(&frame);
+                    frame = NULL;
+                    get_frm = 1;
+                }
+
+                // if last packet is send but last frame is not found continue
+                if (pkt_eos && pkt_done && !frm_eos)
+                    continue;
+
+                if (get_frm)
+                    continue;
+
                 break;
-            }
+            } while (1);
+
+            if (pkt_done)
+                break;
+
+            msleep(50);
         } while (1);
     }
 
