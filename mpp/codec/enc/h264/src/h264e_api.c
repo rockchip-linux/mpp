@@ -371,16 +371,9 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
                       oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
                       oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
 
-            // will be replaced  modify by lance 2016.05.20
-            // ------------
-            if (enc_rc_cfg->qpHdr)
-                oriRcCfg.qpHdr = enc_rc_cfg->qpHdr;
-
-            if (enc_rc_cfg->qpMin)
-                oriRcCfg.qpMin = enc_rc_cfg->qpMin;
-
-            if (enc_rc_cfg->qpMax)
-                oriRcCfg.qpMax = enc_rc_cfg->qpMax;
+            oriRcCfg.qpHdr = enc_rc_cfg->qpHdr;
+            oriRcCfg.qpMin = enc_rc_cfg->qpMin;
+            oriRcCfg.qpMax = enc_rc_cfg->qpMax;
 
             oriRcCfg.pictureSkip = enc_rc_cfg->pictureSkip;
             oriRcCfg.pictureRc = enc_rc_cfg->pictureRc;
