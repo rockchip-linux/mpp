@@ -156,6 +156,7 @@ typedef enum {
     MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU...        */
     MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV...              */
     MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY...              */
+    MPP_FMT_YUV_BUTT,
     MPP_FMT_RGB565          = MPP_FRAME_FMT_RGB,        /* 16-bit RGB               */
     MPP_FMT_BGR565,                                     /* 16-bit RGB               */
     MPP_FMT_RGB555,                                     /* 15-bit RGB               */
@@ -168,7 +169,8 @@ typedef enum {
     MPP_FMT_BGR101010,                                  /* 30-bit RGB               */
     MPP_FMT_ARGB8888,                                   /* 32-bit RGB               */
     MPP_FMT_ABGR8888,                                   /* 32-bit RGB               */
-    MPP_FMT_BUTT,
+    MPP_FMT_RGB_BUTT,
+    MPP_FMT_BUTT            = MPP_FMT_RGB_BUTT,
 } MppFrameFormat;
 
 #ifdef __cplusplus
