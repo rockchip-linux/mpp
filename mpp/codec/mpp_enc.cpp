@@ -394,7 +394,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         MppEncConfig *mpp_cfg = &enc->mpp_cfg;
         void *extra_info_cfg = NULL;
 
-        *mpp_cfg = *((MppEncConfig *)param);
+        memcpy(mpp_cfg, param, sizeof(enc->mpp_cfg));
 
         /* before set config to controller check it first */
         ret = controller_config(enc->controller, CHK_ENC_CFG, (void *)mpp_cfg);
