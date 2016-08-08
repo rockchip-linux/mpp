@@ -330,8 +330,8 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             enc_rc_cfg->qpHdr           = mpp_cfg->qp;
             enc_rc_cfg->qpMax           = max_qp;
             enc_rc_cfg->qpMin           = min_qp;
-            enc_rc_cfg->hrd             = 1;
-            enc_rc_cfg->intraQpDelta    = 3;
+            enc_rc_cfg->hrd             = 0;
+            enc_rc_cfg->intraQpDelta    = -3;
         } else {
             /* CQP mode */
             enc_rc_cfg->pictureRc       = 0;
