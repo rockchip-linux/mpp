@@ -13,7 +13,6 @@ set(H264E_COMMON
 	
 # h264 encoder header	
 set(H264E_HDR
-  include/basetype.h
   include/H264CodeFrame.h
   include/H264Init.h
   include/H264Instance.h
@@ -26,7 +25,6 @@ set(H264E_HDR
   include/H264SequenceParameterSet.h
   include/H264Slice.h
   include/encasiccontroller.h
-  include/enccfg.h
   include/enccommon.h
   include/encpreprocess.h
   include/ewl.h
