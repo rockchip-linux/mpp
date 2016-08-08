@@ -17,7 +17,6 @@
 #ifndef H264_SEI_H
 #define H264_SEI_H
 
-#include "basetype.h"
 #include "H264PutBits.h"
 
 typedef struct {
