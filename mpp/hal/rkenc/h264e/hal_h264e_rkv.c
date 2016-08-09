@@ -27,6 +27,8 @@
 #include "hal_h264e.h"
 #include "hal_h264e_rkv.h"
 
+#define RKVENC_DUMP_INFO                0
+
 #define RKVENC_FRAME_TYPE_AUTO          0x0000  /* Let x264 choose the right type */
 #define RKVENC_FRAME_TYPE_IDR           0x0001
 #define RKVENC_FRAME_TYPE_I             0x0002
@@ -505,6 +507,7 @@ static MPP_RET hal_h264e_rkv_open_dump_files(void *dump_files)
 
 static void hal_h264e_rkv_dump_mpp_syntax_in(h264e_syntax *syn, h264e_hal_context *ctx)
 {
+#if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_syntax_in;
     if (fp) {
@@ -539,10 +542,15 @@ static void hal_h264e_rkv_dump_mpp_syntax_in(h264e_syntax *syn, h264e_hal_contex
     } else {
         mpp_log("try to dump data to mpp_syntax_in.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+    (void)syn;
+#endif
 }
 
 static void hal_h264e_rkv_dump_mpp_reg_in(h264e_hal_context *ctx)
 {
+#if RKVENC_DUMP_INFO
     RK_S32 k = 0;
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_reg_in;
@@ -697,15 +705,17 @@ static void hal_h264e_rkv_dump_mpp_reg_in(h264e_hal_context *ctx)
     } else {
         mpp_log("try to dump data to mpp_reg_in.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+#endif
 }
 
 static void hal_h264e_rkv_dump_mpp_extra_info_cfg(h264e_hal_context *ctx, h264e_control_extra_info_cfg *cfg)
 {
+#if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_extra_ino_cfg;
     if (fp) {
-
-
         /* common cfg */
         fprintf(fp, "%-16d %s\n", cfg->pic_luma_width, "pic_luma_width");
         fprintf(fp, "%-16d %s\n", cfg->pic_luma_height, "pic_luma_height");
@@ -726,10 +736,15 @@ static void hal_h264e_rkv_dump_mpp_extra_info_cfg(h264e_hal_context *ctx, h264e_
         fprintf(fp, "\n");
         fflush(fp);
     }
+#else
+    (void)ctx;
+    (void)cfg;
+#endif
 }
 
 static void hal_h264e_rkv_dump_mpp_reg_out(h264e_hal_context *ctx)
 {
+#if RKVENC_DUMP_INFO
     RK_U32 k = 0;
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_reg_out;
@@ -749,10 +764,14 @@ static void hal_h264e_rkv_dump_mpp_reg_out(h264e_hal_context *ctx)
     } else {
         mpp_log("try to dump data to mpp_reg_out.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+#endif
 }
 
 static void hal_h264e_rkv_dump_mpp_feedback(h264e_hal_context *ctx)
 {
+#if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_feedback;
     if (fp) {
@@ -761,10 +780,14 @@ static void hal_h264e_rkv_dump_mpp_feedback(h264e_hal_context *ctx)
     } else {
         mpp_log("try to dump data to mpp_feedback.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+#endif
 }
 
 static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPacket packet)
 {
+#if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     void *ptr   = mpp_packet_get_data(packet);
     size_t len  = mpp_packet_get_length(packet);
@@ -776,11 +799,16 @@ static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPa
     } else {
         mpp_log("try to dump strm header to mpp_strm_out.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+    (void)packet;
+#endif
 }
 
 
 void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
 {
+#if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
     FILE *fp = dump_files->fp_mpp_strm_out;
     if (fp) {
@@ -814,6 +842,10 @@ void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
     } else {
         mpp_log("try to dump data to mpp_strm_out.txt, but file is not opened");
     }
+#else
+    (void)ctx;
+    (void)hw_buf;
+#endif
 }
 
 void hal_h264e_rkv_frame_push( h264e_hal_rkv_frame **list, h264e_hal_rkv_frame *frame )
@@ -1246,6 +1278,18 @@ static MPP_RET hal_h264e_rkv_reference_frame_set( h264e_hal_context *ctx, h264e_
     dpb_ctx->i_max_ref0 = ref_cfg->i_frame_reference;
     dpb_ctx->i_max_ref1 = H264E_HAL_MIN( sps->vui.i_num_reorder_frames, ref_cfg->i_frame_reference );
 
+    if (syn->frame_num == 0) {
+        syn->frame_coding_type = RKVENC_FRAME_TYPE_IDR;
+    } else {
+        if (syn->frame_coding_type) {
+            /* ASIC_INTRA */
+            syn->frame_coding_type = RKVENC_FRAME_TYPE_I;
+        } else {
+            /* ASIC_INTER */
+            syn->frame_coding_type = RKVENC_FRAME_TYPE_P;
+        }
+    }
+
     if (syn->frame_coding_type == RKVENC_FRAME_TYPE_IDR) {
         dpb_ctx->i_frame_num = 0;
         dpb_ctx->frames.i_last_idr = dpb_ctx->i_frame_cnt;
@@ -1278,7 +1322,7 @@ static MPP_RET hal_h264e_rkv_reference_frame_set( h264e_hal_context *ctx, h264e_
     dpb_ctx->b_ref_pic_list_reordering[1] = 0;
 
     /* calculate nal type and nal ref idc */
-    if ( syn->frame_coding_type == RKVENC_FRAME_TYPE_IDR ) { //TODO: extend syn->frame_coding_type definition
+    if (syn->frame_coding_type == RKVENC_FRAME_TYPE_IDR) { //TODO: extend syn->frame_coding_type definition
         /* reset ref pictures */
         i_nal_type    = RKVENC_NAL_SLICE_IDR;
         i_nal_ref_idc = RKVENC_NAL_PRIORITY_HIGHEST;
