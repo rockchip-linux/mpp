@@ -343,11 +343,13 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     enc_param->height       = cmd->height;
     enc_param->format       = ENC_INPUT_YUV420_PLANAR;
     enc_param->rc_mode      = 0;
-    enc_param->bitRate      = 100000;
+    enc_param->bitRate      = 4000000;
     enc_param->framerate    = 25;
     enc_param->enableCabac  = 1;
     enc_param->cabacInitIdc = 0;
     enc_param->intraPicRate = 30;
+    enc_param->profileIdc = 66;
+    enc_param->levelIdc = 40;
 
     if ((ret = ctx->init(ctx, NULL, 0)) != 0) {
         mpp_log("init vpu api context fail, ret: 0x%X\n", ret);

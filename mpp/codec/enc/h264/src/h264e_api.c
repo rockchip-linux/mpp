@@ -322,8 +322,8 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 
         if (mpp_cfg->rc_mode) {
             /* VBR / CBR mode */
-            RK_S32 max_qp = MPP_MAX(mpp_cfg->qp + 6, 48);
-            RK_S32 min_qp = MPP_MIN(mpp_cfg->qp - 6, 16);
+            RK_S32 max_qp = MPP_MAX(mpp_cfg->qp + 6, 51);
+            RK_S32 min_qp = MPP_MIN(mpp_cfg->qp - 6, 18);
 
             enc_rc_cfg->pictureRc       = 1;
             enc_rc_cfg->mbRc            = 1;
@@ -353,7 +353,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_rc_cfg->bitPerSecond = mpp_cfg->bps;
         enc_rc_cfg->gopLen = mpp_cfg->gop;
         enc_rc_cfg->fixedIntraQp = 0;
-        enc_rc_cfg->mbQpAdjustment = 3;
+        enc_rc_cfg->mbQpAdjustment = 0;
         enc_rc_cfg->hrdCpbSize = mpp_cfg->bps;
 
         enc->intraPicRate = enc_rc_cfg->intraPicRate;
@@ -437,6 +437,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 MPP_RET h264e_callback(void *ctx, void *feedback)
 {
     H264ECtx *enc = (H264ECtx *)ctx;
+    H264EncIn *encIn = &(enc->encIn);
     regValues_s    *val = &(enc->asic.regs);
     h264e_feedback *fb  = (h264e_feedback *)feedback;
     H264EncOut *encOut  = &(enc->encOut);
@@ -483,6 +484,8 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
         mpp_log("afterencode default!");
         break;
     }
+
+    encIn->timeIncrement = 1;
 
     return MPP_OK;
 }
