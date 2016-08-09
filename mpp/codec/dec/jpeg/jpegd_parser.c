@@ -2859,7 +2859,7 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     memset(&(JpegParserCtx->imageInfo), 0, sizeof(JpegDecImageInfo));
     JpegParserCtx->decImageType = JPEGDEC_IMAGE; /* FULL MODEs */
     JpegParserCtx->sliceMbSet = 0; /* will be changed when over 16MB*/
-    JpegParserCtx->color_conv = 1;
+    JpegParserCtx->color_conv = 0;
 
     /* max */
     JpegParserCtx->maxSupportedWidth = JPEGDEC_MAX_WIDTH_8190;
@@ -2906,11 +2906,25 @@ MPP_RET jpegd_reset(void *ctx)
 MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
 {
     FUN_TEST("Enter");
-    (void)ctx;
-    (void)cmd;
-    (void)param;
+
+    MPP_RET ret = MPP_OK;
+    JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
+    if (NULL == JpegParserCtx) {
+        JPEGD_ERROR_LOG("NULL pointer");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    switch (cmd) {
+    case MPP_DEC_SET_OUTPUT_FORMAT: {
+        JpegParserCtx->color_conv = *((RK_U32 *)param);
+        JPEGD_INFO_LOG("output_format:%d\n", JpegParserCtx->color_conv);
+    } break;
+    default :
+        ret = MPP_NOK;
+    }
+
     FUN_TEST("Exit");
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET jpegd_callback(void *ctx, void *err_info)
