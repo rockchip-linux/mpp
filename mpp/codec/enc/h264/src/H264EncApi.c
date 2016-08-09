@@ -968,7 +968,7 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
         if (stat == H264RC_OVERFLOW) {
             /* pEncOut->codingType = H264ENC_NOTCODED_FRAME; */
             pSlice->frameNum = pSlice->prevFrameNum;    /* revert frame_num */
-            h264e_dbg_func("H264EncStrmEncode: OK, Frame discarded (HRD overflow)");
+            mpp_err("H264EncStrmEncode: OK, Frame discarded (HRD overflow)!");
             return H264ENC_FRAME_READY;
         }
     }
