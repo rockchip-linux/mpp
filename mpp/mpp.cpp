@@ -638,6 +638,9 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         ret = mpp_dec_control(mDec, cmd, param);
     } break;
+    case MPP_DEC_SET_OUTPUT_FORMAT: {
+        ret = mpp_dec_control(mDec, cmd, param);
+    } break;
     default : {
     } break;
     }
