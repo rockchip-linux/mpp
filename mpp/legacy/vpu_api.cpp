@@ -192,7 +192,6 @@ static RK_S32 vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *p
     return api->control(ctx, cmdType, param);
 }
 
-#ifndef SOFIA_3GR_LINUX
 #ifdef RKPLATFORM
 static const char *codec_paths[] = {
     "/system/lib/librk_vpuapi.so",
@@ -238,6 +237,11 @@ public:
 
 static VpulibDlsym gVpulib;
 
+RK_S32 check_orign_vpu()
+{
+    return (gVpulib.rkapi_hdl) ? (MPP_OK) : (MPP_NOK);
+}
+
 RK_S32 open_orign_vpu(VpuCodecContext **ctx)
 {
     if (gVpulib.rkvpu_open_cxt && ctx) {
@@ -254,7 +258,7 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     return MPP_NOK;
 }
 #endif
-#endif
+
 /*
  * old libvpu path will input a NULL pointer in *ctx
  * new libvpu path will input non-NULL pointer in *ctx
@@ -262,120 +266,165 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
 RK_S32 vpu_open_context(VpuCodecContext **ctx)
 {
     VpuCodecContext *s = *ctx;
-    RK_U32 value = 0;
-    RK_U32 use_mpp_mode = 0;
-    mpp_env_get_u32("chg_orig", &value, 0);
-    mpp_env_get_u32("use_mpp_mode", &use_mpp_mode, 0);
-#ifndef SOFIA_3GR_LINUX
+    RK_S32 ret = -1;
+    RK_U32 force_original = 0;
+    RK_U32 force_mpp_mode = 0;
+    RK_U32 caller_use_mpp_path = 0;
+    RK_U32 use_mpp = 0;
+
+    vpu_api_dbg_func("enter\n");
+
+    mpp_env_get_u32("use_original", &force_original, 0);
+    mpp_env_get_u32("use_mpp_mode", &force_mpp_mode, 0);
+
 #ifdef RKPLATFORM
-    value = value || (!!access("/dev/rkvdec", F_OK));
+    /* if there is no original vpuapi library force to mpp path */
+    if (!check_orign_vpu())
+        force_mpp_mode = 1;
+#else
+    /* simulation mode force mpp path */
+    force_mpp_mode = 1;
+#endif
 
-    if (s != NULL)
-        value = (value & (s->videoCoding != OMX_RK_VIDEO_CodingHEVC));
+    if (force_original) {
+        /* force mpp mode here */
+        use_mpp = 0;
+    } else if (force_mpp_mode) {
+        /* force mpp mode here */
+        use_mpp = 1;
+    } else if (!!access("/dev/rkvdec", F_OK)) {
+        /* if there is no rkvdec it means the platform must be vpu1 */
+        if (s && s->videoCoding == OMX_RK_VIDEO_CodingHEVC &&
+            !access("/dev/hevc_service", F_OK)) {
+            /* if this is a hevc request and exist hevc_service for decoding use mpp */
+            use_mpp = 1;
+        } else {
+            /* otherwise use original vpuapi path */
+            use_mpp = 0;
+        }
+    } else if (NULL == s) {
+        /* caller is original vpuapi path. Force use original vpuapi path */
+        use_mpp = 0;
+    } else {
+        if (s->videoCoding == OMX_RK_VIDEO_CodingAVC && s->codecType == CODEC_DECODER &&
+            s->width <= 1920 && s->height <= 1088) {
+            /* H.264 smaller than 1080p use original vpuapi library for better error process */
+            use_mpp = 0;
+        } else {
+            MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
+                              (s->codecType == CODEC_ENCODER) ? (MPP_CTX_ENC) : (MPP_CTX_BUTT);
+            MppCodingType coding = (MppCodingType)s->videoCoding;
 
-    if (value || !s) {
-        if (s) {
+            if (MPP_OK == mpp_check_support_format(type, coding)) {
+                /* If current mpp can support this format use mpp */
+                use_mpp = 1;
+            } else {
+                /* unsupport format use vpuapi library */
+                use_mpp = 0;
+            }
+        }
+    }
+
+    if (NULL == s) {
+        /* if contex is initialized then it means the caller is from original vpuapi path */
+        caller_use_mpp_path = 0;
+    } else {
+        caller_use_mpp_path = 1;
+    }
+
+    if (!use_mpp) {
+        /* use vpuapi path then we have to check the caller */
+        if (caller_use_mpp_path && s) {
             free(s);
             s = NULL;
         }
-        open_orign_vpu(&s);
-        s->extra_cfg.reserved[0] = 1;
-        *ctx = s;
-        return MPP_OK;
-    }
-    if (s != NULL) {
-        MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
-                          (s->codecType == CODEC_ENCODER) ? (MPP_CTX_ENC) : (MPP_CTX_BUTT);
-        MppCodingType coding = (MppCodingType)s->videoCoding;
-        vpu_api_dbg_func("videoCoding %x, width %d, height %d \n", s->videoCoding, s->width, s->height);
-        if (MPP_OK == mpp_check_support_format(type, coding)
-            || (s->videoCoding == OMX_RK_VIDEO_CodingAVC &&
-                s->codecType == CODEC_DECODER && ((s->width > 1920) || (s->height > 1088) || use_mpp_mode))) {
+        vpu_api_dbg_func("use vpuapi path\n");
+
+        ret = open_orign_vpu(&s);
+        if (!ret && s) {
+            s->extra_cfg.reserved[0] = 1;
+        }
+    } else {
+        /* use mpp path then we also need to check the caller */
+        if (!caller_use_mpp_path && s) {
             free(s);
-#endif
-#endif
             s = NULL;
-            s = mpp_malloc(VpuCodecContext, 1);
-            if (!s) {
-                mpp_err("Input context has not been properly allocated");
-                return -1;
-            }
-            memset(s, 0, sizeof(VpuCodecContext));
+        }
+        vpu_api_dbg_func("use mpp path\n");
+
+        s = mpp_calloc(VpuCodecContext, 1);
+        if (s) {
             s->enableparsing = 1;
 
             VpuApiLegacy* api = new VpuApiLegacy();
 
-            if (api == NULL) {
+            if (api) {
+                s->vpuApiObj = (void*)api;
+                s->init = vpu_api_init;
+                s->decode = vpu_api_decode;
+                s->encode = vpu_api_encode;
+                s->flush = vpu_api_flush;
+                s->control = vpu_api_control;
+                s->decode_sendstream = vpu_api_sendstream;
+                s->decode_getframe = vpu_api_getframe;
+                s->encoder_sendframe = vpu_api_sendframe;
+                s->encoder_getstream = vpu_api_getstream;
+                ret = 0;
+            } else {
                 mpp_err("Vpu api object has not been properly allocated");
-                return -1;
-            }
-
-            s->vpuApiObj = (void*)api;
-            s->init = vpu_api_init;
-            s->decode = vpu_api_decode;
-            s->encode = vpu_api_encode;
-            s->flush = vpu_api_flush;
-            s->control = vpu_api_control;
-            s->decode_sendstream = vpu_api_sendstream;
-            s->decode_getframe = vpu_api_getframe;
-            s->encoder_sendframe = vpu_api_sendframe;
-            s->encoder_getstream = vpu_api_getstream;
-
-            *ctx = s;
-            return 0;
-#ifndef SOFIA_3GR_LINUX
-#ifdef RKPLATFORM
-            if (s != NULL) {
-                free(s);
+                mpp_free(s);
                 s = NULL;
             }
-            open_orign_vpu(&s);
-            s->extra_cfg.reserved[0] = 1;
-            *ctx = s;
-            return MPP_OK;
-#endif
+        } else {
+            mpp_err("Input context has not been properly allocated");
         }
     }
-#endif
 
-    if (!s->vpuApiObj) {
-        mpp_err("Input context has not been properly allocated and is not NULL either");
-        return -1;
-    }
-    return 0;
+    *ctx = s;
+
+    vpu_api_dbg_func("leave\n");
+    return ret;
 }
 
 RK_S32 vpu_close_context(VpuCodecContext **ctx)
 {
     vpu_api_dbg_func("enter\n");
     VpuCodecContext *s = *ctx;
-    RK_U32 value;
-    mpp_env_get_u32("chg_orig", &value, 0);
-#ifndef SOFIA_3GR_LINUX
-#ifdef RKPLATFORM
-    if (value || s->extra_cfg.reserved[0]) {
-        close_orign_vpu(ctx);
-        mpp_log("org vpu_close_context ok");
-        return MPP_OK;
-    }
-#endif
-#endif
+    RK_S32 ret = -1;
+    RK_U32 force_original = 0;
+
+    mpp_env_get_u32("force_original", &force_original, 0);
+
     if (s) {
-        s->flush(s);
-        VpuApiLegacy* api = (VpuApiLegacy*)(s->vpuApiObj);
-        if (s->vpuApiObj) {
-            delete api;
-            s->vpuApiObj = NULL;
+        if (s->extra_cfg.reserved[0]) {
+            ret = close_orign_vpu(ctx);
+            mpp_log("org vpu_close_context ok");
+        } else {
+            if (s->flush)
+                s->flush(s);
+
+            VpuApiLegacy* api = (VpuApiLegacy*)(s->vpuApiObj);
+            if (s->vpuApiObj) {
+                delete api;
+                s->vpuApiObj = NULL;
+            }
+
+            if (s->extradata_size > 0) {
+                s->extradata_size = 0;
+                s->extradata = NULL;
+            }
+
+            if (s->private_data)
+                mpp_free(s->private_data);
+
+            mpp_free(s);
+            ret = 0;
         }
-        //mpp_free(s->extradata);  // TODO
-        if (s->extradata_size > 0) { // TODO
-            s->extradata_size = 0;
-            s->extradata = NULL;
-        }
-        mpp_free(s->private_data);
-        mpp_free(s);
+
         *ctx = s = NULL;
-        vpu_api_dbg_func("leave\n");
     }
-    return 0;
+
+    vpu_api_dbg_func("leave\n");
+
+    return ret;
 }
