@@ -1392,11 +1392,11 @@ MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStr
                 /* check format */
                 if (H[0] == 2 && V[0] == 2 &&
                     H[1] == 1 && V[1] == 1 && H[2] == 1 && V[2] == 1) {
-                    pImageInfo->outputFormat = JPEGDEC_YCbCr420_SEMIPLANAR;
+                    pImageInfo->outputFormat = MPP_FMT_YUV420SP;
                     pSyntax->frame.numMcuInRow = (pSyntax->frame.hwX / 16);
                     pSyntax->frame.numMcuInFrame = ((pSyntax->frame.hwX * pSyntax->frame.hwY) / 256);
                 } else if (H[0] == 2 && V[0] == 1 && H[1] == 1 && V[1] == 1 && H[2] == 1 && V[2] == 1) {
-                    pImageInfo->outputFormat = JPEGDEC_YCbCr422_SEMIPLANAR;
+                    pImageInfo->outputFormat = MPP_FMT_YUV422SP;
                     pSyntax->frame.numMcuInRow = (pSyntax->frame.hwX / 16);
                     pSyntax->frame.numMcuInFrame = ((pSyntax->frame.hwX * pSyntax->frame.hwY) / 128);
                 } else if (H[0] == 1 && V[0] == 2 &&
@@ -1731,10 +1731,10 @@ MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStr
                                     /* check format */
                                     if (Htn[0] == 2 && Vtn[0] == 2 &&
                                         Htn[1] == 1 && Vtn[1] == 1 && Htn[2] == 1 && Vtn[2] == 1) {
-                                        pImageInfo->outputFormatThumb = JPEGDEC_YCbCr420_SEMIPLANAR;
+                                        pImageInfo->outputFormatThumb = MPP_FMT_YUV420SP;
                                     } else if (Htn[0] == 2 && Vtn[0] == 1 &&
                                                Htn[1] == 1 && Vtn[1] == 1 && Htn[2] == 1 && Vtn[2] == 1) {
-                                        pImageInfo->outputFormatThumb = JPEGDEC_YCbCr422_SEMIPLANAR;
+                                        pImageInfo->outputFormatThumb = MPP_FMT_YUV422SP;
                                     } else if (Htn[0] == 1 && Vtn[0] == 2 &&
                                                Htn[1] == 1 && Vtn[1] == 1 && Htn[2] == 1 && Vtn[2] == 1) {
                                         pImageInfo->outputFormatThumb = JPEGDEC_YCbCr440;
