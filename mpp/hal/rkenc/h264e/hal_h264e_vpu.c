@@ -1730,6 +1730,7 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
 
 static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
 {
+    RK_U32 input_image_format = H264E_VPU_CSP_NONE;
     h264e_hal_debug_enter();
 
     /* validate */
@@ -1738,8 +1739,8 @@ static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
     /* adjust */
     syn->output_strm_limit_size /= 8; /* 64-bit addresses */
     syn->output_strm_limit_size &= (~0x07);  /* 8 multiple size */
-    syn->input_image_format = (RK_U32)hal_h264e_vpu_convert_csp(syn->input_image_format);
-    H264E_HAL_VALIDATE_NEQ(syn->input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
+    input_image_format = (RK_U32)hal_h264e_vpu_convert_csp(syn->input_image_format);
+    H264E_HAL_VALIDATE_NEQ(input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
 
     h264e_hal_debug_leave();
     return MPP_OK;
@@ -1887,7 +1888,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     H264E_HAL_SET_REG(reg, VEPU_REG_CHKPT_DELTA_QP, val);
 
     val = VEPU_REG_MAD_THRESHOLD(syn->mad_threshold)
-          | VEPU_REG_IN_IMG_CTRL_FMT(syn->input_image_format)
+          | VEPU_REG_IN_IMG_CTRL_FMT(hal_h264e_vpu_convert_csp(syn->input_image_format))
           | VEPU_REG_IN_IMG_ROTATE_MODE(0)
           | VEPU_REG_SIZE_TABLE_PRESENT; //FIXED
     H264E_HAL_SET_REG(reg, VEPU_REG_ENC_CTRL1, val);

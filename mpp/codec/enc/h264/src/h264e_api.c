@@ -278,10 +278,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
 
         enc_cfg->frameRateNum = mpp_cfg->fps_in;
-        if (mpp_cfg->cabac_en)
-            enc_cfg->enable_cabac = mpp_cfg->cabac_en;
-        else
-            enc_cfg->enable_cabac = 0;
+        enc_cfg->enable_cabac = mpp_cfg->cabac_en;
 
         enc_cfg->transform8x8_mode = (enc_cfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
         enc_cfg->chroma_qp_index_offset = 2;
@@ -302,9 +299,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             oriCodingCfg.sliceSize = 0;
             oriCodingCfg.constrainedIntraPrediction = 0;
             oriCodingCfg.disableDeblockingFilter = 0;
+            oriCodingCfg.enableCabac = enc_cfg->enable_cabac;
             oriCodingCfg.cabacInitIdc = 0;
             oriCodingCfg.videoFullRange = 0;
             oriCodingCfg.seiMessages = 0;
+            oriCodingCfg.transform8x8Mode = enc_cfg->transform8x8_mode;
             ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
             if (ret) {
                 mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
