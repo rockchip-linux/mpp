@@ -2680,7 +2680,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_hal_rkv_buffers *bufs = (h264e_hal_rkv_buffers *)ctx->buffers;
     RK_U32 mul_buf_idx = ctx->frame_cnt % RKV_H264E_LINKTABLE_FRAME_NUM;
     RK_U32 buf2_idx = ctx->frame_cnt % 2;
-    RK_U32 frame_coding_type = syn->frame_coding_type;
 
     //RK_S32 pic_height_align64 = (syn->pic_luma_height + 63) & (~63);
     ctx->enc_mode = RKV_H264E_ENC_MODE;
@@ -3026,6 +3025,20 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     {
         RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
+        RK_U32 frame_coding_type = syn->frame_coding_type;
+
+        if (syn->frame_num == 0) {
+            frame_coding_type = RKVENC_FRAME_TYPE_IDR;
+        } else {
+            if (frame_coding_type) {
+                /* ASIC_INTRA */
+                frame_coding_type = RKVENC_FRAME_TYPE_I;
+            } else {
+                /* ASIC_INTER */
+                frame_coding_type = RKVENC_FRAME_TYPE_P;
+            }
+        }
+
         if (frame_coding_type == RKVENC_FRAME_TYPE_IDR ) { //TODO: extend syn->frame_coding_type definition
             /* reset ref pictures */
             i_nal_type    = RKVENC_NAL_SLICE_IDR;
