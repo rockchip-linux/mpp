@@ -165,7 +165,6 @@ typedef struct JpegParserContext {
     RK_S32      frame_slot_index; /* slot index for output */
     RK_U8 *recv_buffer;
     JpegSyntaxParam *pSyntax;
-    JpegDecImageInfo imageInfo;
 
     RK_U32 streamLength;   /* input stream length or buffer size */
     RK_U32 bufferSize; /* input stream buffer size */

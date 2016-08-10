@@ -347,6 +347,99 @@ static void jpegd_select_chroma_table(JpegSyntaxParam *pSyntax, JpegHalContext *
     return;
 }
 
+MPP_RET jpegd_set_output_format(JpegSyntaxParam *pSyntax)
+{
+    FUN_TEST("Enter");
+    MPP_RET ret = MPP_OK;
+    if (NULL == pSyntax) {
+        JPEGD_ERROR_LOG("NULL pointer");
+        return MPP_ERR_NULL_PTR;
+    }
+    PostProcessInfo ppInfo;
+    RK_U32 ppInputFomart = 0;
+    RK_U32 ppScaleW = 640, ppScaleH = 480;
+
+    if (0/*pCtx->color_conv*/) {
+        /* Using pp to convert all format to yuv420sp */
+        switch (pSyntax->imageInfo.outputFormat) {
+        case JPEGDEC_YCbCr400:
+            ppInputFomart = PP_IN_FORMAT_YUV400;
+            break;
+        case JPEGDEC_YCbCr420_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
+            break;
+        case JPEGDEC_YCbCr422_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
+            break;
+        case JPEGDEC_YCbCr440:
+            ppInputFomart = PP_IN_FORMAT_YUV440SEMI;
+            break;
+        case JPEGDEC_YCbCr411_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV411_SEMI;
+            break;
+        case JPEGDEC_YCbCr444_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV444_SEMI;
+            break;
+        }
+
+        // set pp info
+        memset(&ppInfo, 0, sizeof(ppInfo));
+        ppInfo.enable = 1;
+        ppInfo.outFomart = 5;   //PP_OUT_FORMAT_YUV420INTERLAVE
+        ppScaleW = pSyntax->imageInfo.outputWidth;
+        ppScaleH = pSyntax->imageInfo.outputHeight;
+        if (ppScaleW > 1920) { // || ppScaleH > 1920) {
+            ppScaleW = (ppScaleW + 15) & (~15); //(ppScaleW + 15)/16*16;
+            ppScaleH = (ppScaleH + 15) & (~15);
+        } else {
+            ppScaleW = (ppScaleW + 7) & (~7); // pp dest width must be dividable by 8
+            ppScaleH = (ppScaleH + 1) & (~1); // must be dividable by 2.in pp downscaling ,the output lines always equal (desire lines - 1);
+        }
+
+        JPEGD_INFO_LOG("Post Process! ppScaleW:%d, ppScaleH:%d", ppScaleW, ppScaleH);
+        pSyntax->ppInstance = (void *)1;
+    } else {
+        /* keep original output format */
+        memset(&ppInfo, 0, sizeof(ppInfo));
+        ppInfo.outFomart = 5;   //PP_OUT_FORMAT_YUV420INTERLAVE
+        ppScaleW = pSyntax->imageInfo.outputWidth;
+        ppScaleH = pSyntax->imageInfo.outputHeight;
+
+        ppScaleW = (ppScaleW + 15) & (~15);
+        ppScaleH = (ppScaleH + 15) & (~15);
+
+        switch (pSyntax->imageInfo.outputFormat) {
+        case JPEGDEC_YCbCr400:
+            ppInputFomart = PP_IN_FORMAT_YUV400;
+            break;
+        case JPEGDEC_YCbCr420_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
+            break;
+        case JPEGDEC_YCbCr422_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
+            break;
+        case JPEGDEC_YCbCr440:
+            ppInputFomart = PP_IN_FORMAT_YUV440SEMI;
+            break;
+        case JPEGDEC_YCbCr411_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV411_SEMI;
+            break;
+        case JPEGDEC_YCbCr444_SEMIPLANAR:
+            ppInputFomart = PP_IN_FORMAT_YUV444_SEMI;
+            break;
+        }
+
+        pSyntax->ppInstance = (void *)0;
+    }
+
+    memcpy(&(pSyntax->ppInfo), &(ppInfo), sizeof(PostProcessInfo));
+    pSyntax->ppScaleW = ppScaleW;
+    pSyntax->ppScaleH = ppScaleH;
+    pSyntax->ppInputFomart = ppInputFomart;
+
+    FUN_TEST("Exit");
+    return  ret;
+}
 
 static void jpegd_write_tables(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
 {
@@ -1831,7 +1924,7 @@ MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (JpegHalCtx->vpu_socket <= 0) {
-        JpegHalCtx->vpu_socket = VPUClientInit(VPU_DEC_PP/*VPU_DEC*/);
+        JpegHalCtx->vpu_socket = VPUClientInit(/*VPU_DEC_PP*/VPU_DEC);
         if (JpegHalCtx->vpu_socket <= 0) {
             JPEGD_ERROR_LOG("get vpu_socket(%d) <= 0, failed. \n", JpegHalCtx->vpu_socket);
             return MPP_ERR_UNKNOW;
@@ -1943,6 +2036,7 @@ MPP_RET hal_jpegd_gen_regs(void *hal,  HalTaskInfo *syn)
 
     if (syn->dec.valid) {
         syn->dec.valid = 0;
+        jpegd_set_output_format(pSyntax);
 
 #ifdef RKPLATFORM
         mpp_buf_slot_get_prop(JpegHalCtx->packet_slots, syn->dec.input, SLOT_BUFFER, &streambuf);
