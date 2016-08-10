@@ -239,7 +239,7 @@ static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
     MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
 
-    mpi_dbg_func("enter ctx %p type task %p\n", ctx, type, task);
+    mpi_dbg_func("enter ctx %p type %d task %p\n", ctx, type, task);
     do {
         ret = check_mpp_ctx(p);
         if (ret)
@@ -263,7 +263,7 @@ static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
     MPP_RET ret = MPP_NOK;
     MpiImpl *p = (MpiImpl *)ctx;
 
-    mpi_dbg_func("enter ctx %p type task %p\n", ctx, type, task);
+    mpi_dbg_func("enter ctx %p type %d task %p\n", ctx, type, task);
     do {
         ret = check_mpp_ctx(p);
         if (ret)
