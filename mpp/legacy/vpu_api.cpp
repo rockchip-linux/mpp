@@ -279,7 +279,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 
 #ifdef RKPLATFORM
     /* if there is no original vpuapi library force to mpp path */
-    if (!check_orign_vpu())
+    if (check_orign_vpu())
         force_mpp_mode = 1;
 #else
     /* simulation mode force mpp path */
