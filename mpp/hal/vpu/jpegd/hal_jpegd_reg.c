@@ -319,39 +319,17 @@ static void jpegd_select_chroma_table(JpegSyntaxParam *pSyntax, JpegHalContext *
         reg->reg122.sw_cb_dc_vlctable3 = 0;
     } else {
         JPEGD_INFO_LOG("JPEGDEC_PROGRESSIVE");
-#if 0
-        /* if non-interleaved ==> decoding mode YUV400, uses table zero (0) */
-        if (PTR_JPGC->info.nonInterleaved) {
-            rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE, 0);
-            rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE, 0);
-            rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE3, 0);
-            rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE3, 0);
-        } else {
-            /* if later stage DC ==> no need for table */
-            if (PTR_JPGC->scan.Ah != 0 && PTR_JPGC->scan.Ss == 0) {
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE, 0);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE3, 0);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE, 0);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE3, 0);
-            } else {
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE, 0);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CR_DC_VLCTABLE3, 1);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE, 1);
-                rk_SetRegisterFile(PTR_JPGC->reghandle, HWIF_CB_DC_VLCTABLE3, 0);
-            }
-        }
-#endif
     }
 
     FUN_TEST("Exit");
     return;
 }
 
-MPP_RET jpegd_set_output_format(JpegSyntaxParam *pSyntax)
+MPP_RET jpegd_set_output_format(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
-    if (NULL == pSyntax) {
+    if (NULL == pSyntax || NULL == pCtx) {
         JPEGD_ERROR_LOG("NULL pointer");
         return MPP_ERR_NULL_PTR;
     }
@@ -359,16 +337,16 @@ MPP_RET jpegd_set_output_format(JpegSyntaxParam *pSyntax)
     RK_U32 ppInputFomart = 0;
     RK_U32 ppScaleW = 640, ppScaleH = 480;
 
-    if (0/*pCtx->color_conv*/) {
+    if (pCtx->set_output_fmt_flag && (pCtx->output_fmt != pSyntax->imageInfo.outputFormat)) {
         /* Using pp to convert all format to yuv420sp */
         switch (pSyntax->imageInfo.outputFormat) {
         case JPEGDEC_YCbCr400:
             ppInputFomart = PP_IN_FORMAT_YUV400;
             break;
-        case JPEGDEC_YCbCr420_SEMIPLANAR:
+        case MPP_FMT_YUV420SP:
             ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
             break;
-        case JPEGDEC_YCbCr422_SEMIPLANAR:
+        case MPP_FMT_YUV422SP:
             ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
             break;
         case JPEGDEC_YCbCr440:
@@ -412,10 +390,10 @@ MPP_RET jpegd_set_output_format(JpegSyntaxParam *pSyntax)
         case JPEGDEC_YCbCr400:
             ppInputFomart = PP_IN_FORMAT_YUV400;
             break;
-        case JPEGDEC_YCbCr420_SEMIPLANAR:
+        case MPP_FMT_YUV420SP:
             ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
             break;
-        case JPEGDEC_YCbCr422_SEMIPLANAR:
+        case MPP_FMT_YUV422SP:
             ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
             break;
         case JPEGDEC_YCbCr440:
@@ -1965,6 +1943,9 @@ MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
+    JpegHalCtx->output_fmt = MPP_FMT_YUV420SP;
+    JpegHalCtx->set_output_fmt_flag = 0;
+
     //init dbg stuff
     JpegHalCtx->hal_debug_enable = 0;
     JpegHalCtx->frame_count = 0;
@@ -2010,6 +1991,8 @@ MPP_RET hal_jpegd_deinit(void *hal)
         }
     }
 
+    JpegHalCtx->output_fmt = MPP_FMT_YUV420SP;
+    JpegHalCtx->set_output_fmt_flag = 0;
     JpegHalCtx->hal_debug_enable = 0;
     JpegHalCtx->frame_count = 0;
     JpegHalCtx->output_yuv_count = 0;
@@ -2036,7 +2019,7 @@ MPP_RET hal_jpegd_gen_regs(void *hal,  HalTaskInfo *syn)
 
     if (syn->dec.valid) {
         syn->dec.valid = 0;
-        jpegd_set_output_format(pSyntax);
+        jpegd_set_output_format(JpegHalCtx, pSyntax);
 
 #ifdef RKPLATFORM
         mpp_buf_slot_get_prop(JpegHalCtx->packet_slots, syn->dec.input, SLOT_BUFFER, &streambuf);
@@ -2169,10 +2152,21 @@ MPP_RET hal_jpegd_control(void *hal, RK_S32 cmd_type, void *param)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
+    JpegHalContext *JpegHalCtx = (JpegHalContext *)hal;
+    if (NULL == JpegHalCtx) {
+        JPEGD_ERROR_LOG("NULL pointer");
+        return MPP_ERR_NULL_PTR;
+    }
 
-    (void)hal;
-    (void)cmd_type;
-    (void)param;
+    switch (cmd_type) {
+    case MPP_DEC_SET_OUTPUT_FORMAT: {
+        JpegHalCtx->output_fmt = *((MppFrameFormat *)param);
+        JpegHalCtx->set_output_fmt_flag = 1;
+        JPEGD_INFO_LOG("output_format:%d\n", JpegHalCtx->output_fmt);
+    } break;
+    default :
+        ret = MPP_NOK;
+    }
     FUN_TEST("Exit");
     return  ret;
 }

@@ -712,6 +712,8 @@ typedef struct JpegHalContext {
     MppBuffer frame_buf;
     MppBuffer pTableBase;
 
+    MppFrameFormat output_fmt;
+    RK_U32 set_output_fmt_flag;
     RK_U32 hal_debug_enable;
     RK_U32 frame_count;
     RK_U32 output_yuv_count;
