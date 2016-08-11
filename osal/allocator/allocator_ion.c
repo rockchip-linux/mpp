@@ -34,6 +34,7 @@
 #include "os_mem.h"
 #include "allocator_ion.h"
 
+#include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
@@ -49,7 +50,9 @@ static RK_U32 ion_debug = 0;
 #define ION_DETECT_IOMMU_ENABLE     (0x1)   /* use ION_HEAP_TYPE_SYSTEM */
 #define ION_DETECT_NO_DTS           (0x2)   /* use ION_HEAP_TYPE_CARVEOUT */
 
-#define ion_dbg(flag, fmt, ...) _mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg(flag, fmt, ...)     _mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg_f(flag, fmt, ...)   _mpp_dbg_f(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg_func(fmt, ...)      ion_dbg_f(ION_FUNCTION, fmt, ## __VA_ARGS__)
 
 static int ion_ioctl(int fd, int req, void *arg)
 {
@@ -65,7 +68,7 @@ static int ion_ioctl(int fd, int req, void *arg)
 static int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
                      unsigned int flags, ion_user_handle_t *handle)
 {
-    int ret;
+    int ret = -EINVAL;
     struct ion_allocation_data data = {
         .len = len,
         .align = align,
@@ -73,22 +76,31 @@ static int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
         .flags = flags,
     };
 
-    if (handle == NULL)
-        return -EINVAL;
+    ion_dbg_func("enter: fd %d len %d align %d heap_mask %x flags %x",
+                 fd, len, align, heap_mask, flags);
 
-    ret = ion_ioctl(fd, ION_IOC_ALLOC, &data);
-    if (ret < 0)
-        return ret;
-    *handle = data.handle;
+    if (handle) {
+        ret = ion_ioctl(fd, ION_IOC_ALLOC, &data);
+        if (ret >= 0)
+            *handle = data.handle;
+    }
+
+    ion_dbg_func("leave: ret %d\n", ret);
+
     return ret;
 }
 
 static int ion_free(int fd, ion_user_handle_t handle)
 {
+    int ret;
     struct ion_handle_data data = {
         .handle = handle,
     };
-    return ion_ioctl(fd, ION_IOC_FREE, &data);
+
+    ion_dbg_func("enter: fd %d\n", fd);
+    ret = ion_ioctl(fd, ION_IOC_FREE, &data);
+    ion_dbg_func("leave: ret %d\n", ret);
+    return ret;
 }
 
 static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
@@ -181,6 +193,8 @@ RK_S32 check_sysfs_iommu()
         "vmalloc",
         "system-heap",
     };
+
+    mpp_env_get_u32("ion_debug", &ion_debug, 0);
 #ifdef SOFIA_3GR_LINUX
 	return ret;
 #endif
@@ -315,6 +329,8 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
         return MPP_ERR_NULL_PTR;
     }
 
+    ion_dbg_func("enter: ctx %p size %d\n", ctx, info->size);
+
     p = (allocator_ctx_ion *)ctx;
     ret = ion_alloc(p->ion_device, info->size, p->alignment,
                     ion_heap_mask, 0,
@@ -328,8 +344,9 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
                   (unsigned char**)&info->ptr, &info->fd);
     if (ret) {
         mpp_err("os_allocator_ion_alloc ion_map failed ret %d\n", ret);
-        return ret;
     }
+
+    ion_dbg_func("leave: ret %d\n", ret);
     return ret;
 }
 
@@ -339,6 +356,8 @@ MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
     (void)ctx;
     // NOTE: do not use the original buffer fd,
     //       use dup fd to avoid unexpected external fd close
+    ion_dbg_func("enter: ctx %p fd %d size %d\n", ctx, data->fd, data->size);
+
     data->fd = dup(data->fd);
     data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
     if (data->ptr == MAP_FAILED) {
@@ -348,14 +367,18 @@ MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
         data->fd = -1;
         data->ptr = NULL;
     }
+    ion_dbg_func("leave: ret %d\n", ret);
     return ret;
 }
 
 MPP_RET os_allocator_ion_release(void *ctx, MppBufferInfo *data)
 {
-    (void)ctx;
+    ion_dbg_func("enter: ctx %p fd %d ptr %p size %d\n", ctx, data->fd, data->ptr, data->size);
+
     munmap(data->ptr, data->size);
     close(data->fd);
+
+    ion_dbg_func("leave\n");
     return MPP_OK;
 }
 
@@ -367,10 +390,14 @@ MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
         return MPP_ERR_NULL_PTR;
     }
 
+    ion_dbg_func("enter: ctx %p fd %d ptr %p size %d\n", ctx, data->fd, data->ptr, data->size);
+
     p = (allocator_ctx_ion *)ctx;
     munmap(data->ptr, data->size);
     close(data->fd);
     ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
+
+    ion_dbg_func("leave\n");
     return MPP_OK;
 }
 
@@ -384,12 +411,17 @@ MPP_RET os_allocator_ion_close(void *ctx)
         return MPP_ERR_NULL_PTR;
     }
 
+    ion_dbg_func("enter: ctx\n", ctx);
+
     p = (allocator_ctx_ion *)ctx;
     ret = close(p->ion_device);
     mpp_free(p);
     if (ret < 0)
-        return (MPP_RET) - errno;
-    return MPP_OK;
+        ret = (MPP_RET) - errno;
+
+    ion_dbg_func("leave: ret %d\n", ret);
+
+    return ret;
 }
 
 os_allocator allocator_ion = {
