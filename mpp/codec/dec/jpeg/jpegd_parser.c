@@ -224,7 +224,6 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 {
     /*  check input format */
     if (pSyntax->frame.Nf == 3) {
-        /* JPEG_YCBCR420 */
         if (pSyntax->frame.component[0].H == 2 &&
             pSyntax->frame.component[0].V == 2 &&
             pSyntax->frame.component[1].H == 1 &&
@@ -238,17 +237,12 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma = (pSyntax->info.X * (pSyntax->info.sliceMbSetValue * 16));
-
-                /* CbCr */
                 pSyntax->image.sizeChroma = pSyntax->image.sizeLuma / 2;
             }
-        }
-        /* JPEG_YCBCR422 */
-        else if (pSyntax->frame.component[0].H == 2 && pSyntax->frame.component[0].V == 1 &&
-                 pSyntax->frame.component[1].H == 1 && pSyntax->frame.component[1].V == 1 &&
-                 pSyntax->frame.component[2].H == 1 && pSyntax->frame.component[2].V == 1) {
+        } else if (pSyntax->frame.component[0].H == 2 && pSyntax->frame.component[0].V == 1 &&
+                   pSyntax->frame.component[1].H == 1 && pSyntax->frame.component[1].V == 1 &&
+                   pSyntax->frame.component[2].H == 1 && pSyntax->frame.component[2].V == 1) {
             JPEGD_INFO_LOG("YCbCr Format: YUV422(%d*%d:%d*%d:%d*%d)",
                            pSyntax->frame.component[0].H, pSyntax->frame.component[0].V,
                            pSyntax->frame.component[1].H, pSyntax->frame.component[1].V,
@@ -263,20 +257,15 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma = (pSyntax->info.X * (pSyntax->info.sliceMbSetValue * 16));
-
-                /* CbCr */
                 pSyntax->image.sizeChroma = pSyntax->image.sizeLuma;
             }
-        }
-        /* JPEG_YCBCR440 */
-        else if (pSyntax->frame.component[0].H == 1 &&
-                 pSyntax->frame.component[0].V == 2 &&
-                 pSyntax->frame.component[1].H == 1 &&
-                 pSyntax->frame.component[1].V == 1 &&
-                 pSyntax->frame.component[2].H == 1 &&
-                 pSyntax->frame.component[2].V == 1) {
+        } else if (pSyntax->frame.component[0].H == 1 &&
+                   pSyntax->frame.component[0].V == 2 &&
+                   pSyntax->frame.component[1].H == 1 &&
+                   pSyntax->frame.component[1].V == 1 &&
+                   pSyntax->frame.component[2].H == 1 &&
+                   pSyntax->frame.component[2].V == 1) {
             JPEGD_INFO_LOG("YCbCr Format: YUV440(1*2:1*1:1*1)");
             pSyntax->info.yCbCrMode = JPEGDEC_YUV440;
             pSyntax->info.X = (pSyntax->frame.hwX);
@@ -288,10 +277,7 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma = (pSyntax->info.X * (pSyntax->info.sliceMbSetValue * 16));
-
-                /* CbCr */
                 pSyntax->image.sizeChroma = pSyntax->image.sizeLuma;
             }
         }
@@ -316,20 +302,15 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma = (pSyntax->info.X * (pSyntax->info.sliceMbSetValue * 16));
-
-                /* CbCr */
                 pSyntax->image.sizeChroma = pSyntax->image.sizeLuma * 2;
             }
-        }
-        /* JPEG_YCBCR411 */
-        else if (pSyntax->frame.component[0].H == 4 &&
-                 pSyntax->frame.component[0].V == 1 &&
-                 pSyntax->frame.component[1].H == 1 &&
-                 pSyntax->frame.component[1].V == 1 &&
-                 pSyntax->frame.component[2].H == 1 &&
-                 pSyntax->frame.component[2].V == 1) {
+        } else if (pSyntax->frame.component[0].H == 4 &&
+                   pSyntax->frame.component[0].V == 1 &&
+                   pSyntax->frame.component[1].H == 1 &&
+                   pSyntax->frame.component[1].V == 1 &&
+                   pSyntax->frame.component[2].H == 1 &&
+                   pSyntax->frame.component[2].V == 1) {
             JPEGD_INFO_LOG("YCbCr Format: YUV411(4*1:1*1:1*1)");
             pSyntax->info.yCbCrMode = JPEGDEC_YUV411;
             pSyntax->info.X = (pSyntax->frame.hwX);
@@ -341,10 +322,7 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma = (pSyntax->info.X * (pSyntax->info.sliceMbSetValue * 16));
-
-                /* CbCr */
                 pSyntax->image.sizeChroma = pSyntax->image.sizeLuma / 2;
             }
         } else {
@@ -370,11 +348,9 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 
             /* calculate new output size if slice mode used */
             if (pSyntax->info.sliceMbSetValue) {
-                /* Y */
                 pSyntax->image.sizeLuma =
                     ((((pSyntax->info.X + 15) / 16) * 16) * (pSyntax->info.sliceMbSetValue * 16));
 
-                /* CbCr */
                 pSyntax->image.sizeChroma = 0;
             }
         } else {
@@ -1741,10 +1717,10 @@ MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStr
                                     } else if (Htn[0] == 1 && Vtn[0] == 1 &&
                                                Htn[1] == 0 && Vtn[1] == 0 && Htn[2] == 0 && Vtn[2] == 0) {
                                         pImageInfo->outputFormatThumb = JPEGDEC_YCbCr400;
-                                    } else if (pCtx->is8190 && Htn[0] == 4 && Vtn[0] == 1 &&
+                                    } else if (Htn[0] == 4 && Vtn[0] == 1 &&
                                                Htn[1] == 1 && Vtn[1] == 1 && Htn[2] == 1 && Vtn[2] == 1) {
                                         pImageInfo->outputFormatThumb = JPEGDEC_YCbCr411_SEMIPLANAR;
-                                    } else if (pCtx->is8190 && Htn[0] == 1 && Vtn[0] == 1 &&
+                                    } else if (Htn[0] == 1 && Vtn[0] == 1 &&
                                                Htn[1] == 1 && Vtn[1] == 1 && Htn[2] == 1 && Vtn[2] == 1) {
                                         pImageInfo->outputFormatThumb = JPEGDEC_YCbCr444_SEMIPLANAR;
                                     } else {
@@ -2151,7 +2127,7 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
     RK_U32 currentBytes = 0;
     RK_U32 appLength = 0;
     RK_U32 appBits = 0;
-    JpegDecRet retCode;         /* Returned code container */
+    JpegDecRet retCode;
     RK_U32 findhufftable = 0;
 
     JpegSyntaxParam *pSyntax = pCtx->pSyntax;
@@ -2273,7 +2249,6 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
                     return (JPEGDEC_STRM_ERROR);
                 }
                 pSyntax->frame.Ri = jpegd_get_two_bytes(pStream);
-                pCtx->dri_en = 0xffd0;  //find dri
                 break;
             }
             case RST0: /* Restart with modulo 8 count m */
@@ -2425,7 +2400,7 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
     } while ((pSyntax->stream.readBits >> 3) <= pSyntax->stream.streamLength);
 
     if (!findhufftable) {
-        JPEGD_INFO_LOG("do not find Huffman Tables");
+        JPEGD_VERBOSE_LOG("do not find Huffman Tables");
         jpegd_default_huffman_tables(pCtx);
     }
 
@@ -2508,47 +2483,38 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
     /* set mcu/slice value */
     pSyntax->info.sliceMbSetValue = pCtx->sliceMbSet;
 
-    /* check HW supported features */
-    if (!pCtx->is8190) {
-        // TODO:
-    } else {
-        /* check if fuse was burned */
-        if (pCtx->fuseBurned) {
-            /* return if not valid HW and unsupported operation type */
-            if (pSyntax->info.operationType == JPEGDEC_PROGRESSIVE) {
-                JPEGD_ERROR_LOG ("Operation type not supported");
-                return (JPEGDEC_UNSUPPORTED);
-            }
-        }
+    if (pSyntax->info.operationType == JPEGDEC_PROGRESSIVE) {
+        JPEGD_ERROR_LOG ("Operation type not supported");
+        return (JPEGDEC_UNSUPPORTED);
+    }
 
-        /* check slice config */
-        if ((pCtx->sliceMbSet && pCtx->decImageType == JPEGDEC_IMAGE &&
-             pSyntax->info.operationType != JPEGDEC_BASELINE) ||
-            (pCtx->sliceMbSet && pCtx->decImageType == JPEGDEC_THUMBNAIL &&
-             pSyntax->info.operationTypeThumb != JPEGDEC_BASELINE)) {
-            JPEGD_ERROR_LOG("Slice mode not supported for this operation type");
-            return (JPEGDEC_SLICE_MODE_UNSUPPORTED);
-        }
+    /* check slice config */
+    if ((pCtx->sliceMbSet && pCtx->decImageType == JPEGDEC_IMAGE &&
+         pSyntax->info.operationType != JPEGDEC_BASELINE) ||
+        (pCtx->sliceMbSet && pCtx->decImageType == JPEGDEC_THUMBNAIL &&
+         pSyntax->info.operationTypeThumb != JPEGDEC_BASELINE)) {
+        JPEGD_ERROR_LOG("Slice mode not supported for this operation type");
+        return (JPEGDEC_SLICE_MODE_UNSUPPORTED);
+    }
 
-        /* check if frame size over 16M */
-        if ((!pCtx->sliceMbSet) &&
-            ((pSyntax->frame.hwX * pSyntax->frame.hwY) > JPEGDEC_MAX_PIXEL_AMOUNT)) {
-            JPEGD_ERROR_LOG ("Resolution > 16M ==> use slice mode!");
-            return (JPEGDEC_PARAM_ERROR);
-        }
+    /* check if frame size over 16M */
+    if ((!pCtx->sliceMbSet) &&
+        ((pSyntax->frame.hwX * pSyntax->frame.hwY) > JPEGDEC_MAX_PIXEL_AMOUNT)) {
+        JPEGD_ERROR_LOG ("Resolution > 16M ==> use slice mode!");
+        return (JPEGDEC_PARAM_ERROR);
+    }
 
-        if (pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr400 ||
-            pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr440 ||
-            pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr444_SEMIPLANAR)
-            mcuSizeDivider = 2;
-        else
-            mcuSizeDivider = 1;
+    if (pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr400 ||
+        pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr440 ||
+        pSyntax->info.getInfoYCbCrMode == JPEGDEC_YCbCr444_SEMIPLANAR)
+        mcuSizeDivider = 2;
+    else
+        mcuSizeDivider = 1;
 
-        /* check slice config */
-        if ((pCtx->sliceMbSet * (pSyntax->frame.numMcuInRow / mcuSizeDivider)) > pCtx->maxSupportedSliceSize) {
-            JPEGD_ERROR_LOG("sliceMbSet  > JPEGDEC_MAX_SLICE_SIZE");
-            return (JPEGDEC_PARAM_ERROR);
-        }
+    /* check slice config */
+    if ((pCtx->sliceMbSet * (pSyntax->frame.numMcuInRow / mcuSizeDivider)) > pCtx->maxSupportedSliceSize) {
+        JPEGD_ERROR_LOG("sliceMbSet  > JPEGDEC_MAX_SLICE_SIZE");
+        return (JPEGDEC_PARAM_ERROR);
     }
 
     /* check slice size */
@@ -2681,6 +2647,7 @@ MPP_RET jpegd_deinit(void *ctx)
         mpp_packet_deinit(&JpegParserCtx->input_packet);
     }
 
+    JpegParserCtx->output_fmt = MPP_FMT_YUV420SP;
     JpegParserCtx->pts = 0;
     JpegParserCtx->eos = 0;
     JpegParserCtx->parser_debug_enable = 0;
@@ -2747,7 +2714,6 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
         JPEGD_ERROR_LOG("Failed to allocate output frame buffer");
         return MPP_ERR_NOMEM;
     }
-    JpegParserCtx->fuseBurned = 1; /* changed by application*/
 
     JpegParserCtx->pSyntax = mpp_calloc(JpegSyntaxParam, 1);
     if (NULL == JpegParserCtx->pSyntax) {
@@ -2760,7 +2726,7 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 
     JpegParserCtx->decImageType = JPEGDEC_IMAGE; /* FULL MODEs */
     JpegParserCtx->sliceMbSet = 0; /* will be changed when over 16MB*/
-    JpegParserCtx->color_conv = 0;
+    JpegParserCtx->output_fmt = MPP_FMT_YUV420SP;
 
     /* max */
     JpegParserCtx->maxSupportedWidth = JPEGDEC_MAX_WIDTH_8190;
@@ -2772,7 +2738,6 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     JpegParserCtx->minSupportedWidth = JPEGDEC_MIN_WIDTH;
     JpegParserCtx->minSupportedHeight = JPEGDEC_MIN_HEIGHT;
 
-    JpegParserCtx->is8190 = 1;
     JpegParserCtx->extensionsSupported = 1;
 
     JpegParserCtx->pts = 0;
@@ -2816,8 +2781,8 @@ MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
 
     switch (cmd) {
     case MPP_DEC_SET_OUTPUT_FORMAT: {
-        JpegParserCtx->color_conv = *((RK_U32 *)param);
-        JPEGD_INFO_LOG("output_format:%d\n", JpegParserCtx->color_conv);
+        JpegParserCtx->output_fmt = *((RK_U32 *)param);
+        JPEGD_INFO_LOG("output_format:%d\n", JpegParserCtx->output_fmt);
     } break;
     default :
         ret = MPP_NOK;

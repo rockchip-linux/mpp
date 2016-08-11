@@ -24,8 +24,6 @@
 #define MAX_NUMBER_OF_COMPONENTS 3
 
 #define JPEGDEC_YCbCr400 0x080000U
-//#define JPEGDEC_YCbCr420_SEMIPLANAR 0x020001U
-//#define JPEGDEC_YCbCr422_SEMIPLANAR 0x010001U
 #define JPEGDEC_YCbCr440 0x010004U
 #define JPEGDEC_YCbCr411_SEMIPLANAR 0x100000U
 #define JPEGDEC_YCbCr444_SEMIPLANAR 0x200000U
@@ -209,10 +207,8 @@ typedef struct {
     RK_U32 pfCompId;
     RK_U32 pfNeeded[MAX_NUMBER_OF_COMPONENTS];
     VPUMemLinear_t tmpStrm;
-
 } DecInfo;
 
-// TODO: The way to malloc buffer has been changed in MPP
 typedef struct {
     VPUMemLinear_t outLumaBuffer;
     VPUMemLinear_t outChromaBuffer;
@@ -296,8 +292,6 @@ typedef struct DecPpInterface_ {
 typedef struct {
     int enable;
     int outFomart; /* =0,RGB565;=1,ARGB 8888 */
-    //int destWidth;
-    //int destHeight;
     int scale_denom;
     int shouldDither;
     int cropX;
@@ -316,10 +310,7 @@ typedef struct {
     RK_U32 units;
     RK_U32 xDensity;
     RK_U32 yDensity;
-    RK_U32 outputFormat;   /* JPEGDEC_YCbCr400
-                             * JPEGDEC_YCbCr420
-                             * JPEGDEC_YCbCr422
-                             */
+    RK_U32 outputFormat;
     RK_U32 codingMode; /* JPEGDEC_BASELINE
                          * JPEGDEC_PROGRESSIVE
                          * JPEGDEC_NONINTERLEAVED
@@ -351,26 +342,11 @@ typedef struct JpegSyntaxParam {
     JpegDecImageInfo imageInfo;
     RK_U32 ppInputFomart;
     PostProcessInfo ppInfo;
-    RK_U32 is8190;
-    RK_U32 fuseBurned;
     RK_U32 ppScaleW;
     RK_U32 ppScaleH;
-    RK_U32 minSupportedWidth;
-    RK_U32 minSupportedHeight;
-    RK_U32 maxSupportedWidth;
-    RK_U32 maxSupportedHeight;
-    RK_U32 maxSupportedPixelAmount;
-    RK_U32 maxSupportedSliceSize;
-    RK_U32 extensionsSupported;
     JpegAsicBuffers asicBuff;
     DecPpInterface ppControl;
-    RK_U32 ppStatus;
-    int socket;    /* socket instance */
-    void* vpumem_ctx;
-
     const void *ppInstance;
-    VPUMemLinear_t *pictureMem;
 } JpegSyntaxParam;
-
 
 #endif /*__JPEGD_SYNTAX__*/
