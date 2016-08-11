@@ -1859,12 +1859,10 @@ MPP_RET jpegd_gen_regs(JpegHalContext *ctx, JpegSyntaxParam *syntax)
                         }
                     } else {
                         JPEGD_INFO_LOG("Continue HW decoding after progressive scan ready");
-                        // TODO: configure registers for progressive continue image
                         pSyntax->info.progressiveScanReady = 0;
                     }
                 } else {
                     JPEGD_INFO_LOG("Continue HW decoding after slice ready");
-                    // TODO: configure registers for continue image
                 }
 
                 pSyntax->info.SliceCount++;
@@ -1902,7 +1900,7 @@ MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (JpegHalCtx->vpu_socket <= 0) {
-        JpegHalCtx->vpu_socket = VPUClientInit(/*VPU_DEC_PP*/VPU_DEC);
+        JpegHalCtx->vpu_socket = VPUClientInit(VPU_DEC);
         if (JpegHalCtx->vpu_socket <= 0) {
             JPEGD_ERROR_LOG("get vpu_socket(%d) <= 0, failed. \n", JpegHalCtx->vpu_socket);
             return MPP_ERR_UNKNOW;
@@ -2022,6 +2020,19 @@ MPP_RET hal_jpegd_gen_regs(void *hal,  HalTaskInfo *syn)
         jpegd_set_output_format(JpegHalCtx, pSyntax);
 
 #ifdef RKPLATFORM
+        if (JpegHalCtx->set_output_fmt_flag && (JpegHalCtx->vpu_socket > 0)) {
+            VPUClientRelease(JpegHalCtx->vpu_socket);
+            JpegHalCtx->vpu_socket = 0;
+
+            JpegHalCtx->vpu_socket = VPUClientInit(VPU_DEC_PP);
+            if (JpegHalCtx->vpu_socket <= 0) {
+                JPEGD_ERROR_LOG("get vpu_socket(%d) <= 0, failed. \n", JpegHalCtx->vpu_socket);
+                return MPP_ERR_UNKNOW;
+            } else {
+                JPEGD_VERBOSE_LOG("get vpu_socket(%d), success. \n", JpegHalCtx->vpu_socket);
+            }
+        }
+
         mpp_buf_slot_get_prop(JpegHalCtx->packet_slots, syn->dec.input, SLOT_BUFFER, &streambuf);
         pSyntax->stream.streamBus = mpp_buffer_get_fd(streambuf);
 

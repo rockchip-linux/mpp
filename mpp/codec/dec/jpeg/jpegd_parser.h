@@ -170,13 +170,10 @@ typedef struct JpegParserContext {
     RK_U32 bufferSize; /* input stream buffer size */
     RK_U32 decImageType;   /* Full image or Thumbnail to be decoded */
     RK_U32 sliceMbSet; /* slice mode: mcu rows to decode */
-    RK_U32 color_conv;
-    RK_U32 dri_en;
+    MppFrameFormat output_fmt;
 
     MppPacket input_packet;
     MppFrame output_frame;
-    RK_U32 is8190;
-    RK_U32 fuseBurned;
     RK_U32 minSupportedWidth;
     RK_U32 minSupportedHeight;
     RK_U32 maxSupportedWidth;
