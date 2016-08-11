@@ -78,8 +78,6 @@ private:
 
     /* encoder parameters */
     MppBufferGroup      memGroup;
-    MppBuffer           pictureMem;
-    MppBuffer           outbufMem;
     RK_U8*              outData;
     EncInputPictureType enc_in_fmt;
 

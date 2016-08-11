@@ -16,6 +16,9 @@
 
 #define MODULE_TAG "vpu_api_legacy"
 
+#ifndef _WIN32
+#include <fcntl.h>
+#endif
 #include "string.h"
 
 #include "mpp_log.h"
@@ -61,8 +64,6 @@ VpuApiLegacy::VpuApiLegacy() :
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
-    pictureMem(NULL),
-    outbufMem(NULL),
     outData(NULL),
     enc_in_fmt(ENC_INPUT_YUV420_PLANAR),
     mEosSet(0)
@@ -449,10 +450,23 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     if (!init_ok)
         return VPU_API_ERR_VPU_CODEC_INIT;
 
+    /* check input param */
+    if (!aEncInStrm || !aEncOut || NULL == aEncInStrm->buf || 0 == aEncInStrm->size) {
+        mpp_err("invalid input and output\n");
+        return VPU_API_ERR_UNKNOW;
+    }
+
+    /* detect input file handle */
+
     /* try import input buffer and output buffer */
     MppBufferInfo   inputCommit;
     MppBufferInfo   outputCommit;
-    RK_U32          use_fd_flag = 0;
+    RK_U32          use_fd_flag = 1;
+
+#ifndef _WIN32
+    if (fcntl(aEncInStrm->bufPhyAddr, F_GETFL, NULL) == -1)
+        use_fd_flag = 0;
+#endif
 
     memset(&inputCommit, 0, sizeof(inputCommit));
     memset(&outputCommit, 0, sizeof(outputCommit));
@@ -461,13 +475,15 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     RK_U32 height       = ctx->height;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
-    MppFrame    frame;
-    MppPacket   packet;
+    MppFrame    frame   = NULL;
+    MppPacket   packet  = NULL;
+    MppBuffer   pic_buf = NULL;
+    MppBuffer   str_buf = NULL;
 
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
-        mpp_err("mpp_frame_init failed\n");
-        goto ENCODE_FAIL;
+        mpp_err_f("mpp_frame_init failed\n");
+        goto ENCODE_OUT;
     }
 
     mpp_frame_set_width(frame, width);
@@ -475,23 +491,24 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     mpp_frame_set_hor_stride(frame, hor_stride);
     mpp_frame_set_ver_stride(frame, ver_stride);
 
-    if (aEncOut->timeUs != 0)
-        use_fd_flag = 1;
-
     if (!use_fd_flag) {
         RK_U32 outputBufferSize = hor_stride * ver_stride;
-        ret = mpp_buffer_get(memGroup, &pictureMem, aEncInStrm->size);
-        if (ret != MPP_OK) {
-            mpp_err( "Failed to allocate pictureMem buffer!\n");
-            pictureMem = NULL;
-            return ret;
+
+        if (NULL == aEncInStrm->buf) {
+            ret = MPP_ERR_NULL_PTR;
+            goto ENCODE_OUT;
         }
-        memcpy((RK_U8*) mpp_buffer_get_ptr(pictureMem), aEncInStrm->buf, aEncInStrm->size);
-        ret = mpp_buffer_get(memGroup, &outbufMem, outputBufferSize);
-        if (ret != MPP_OK) {
-            mpp_err( "Failed to allocate output buffer!\n");
-            outbufMem = NULL;
-            return 1;
+
+        ret = mpp_buffer_get(memGroup, &pic_buf, aEncInStrm->size);
+        if (ret) {
+            mpp_err_f("allocate input picture buffer failed\n");
+            goto ENCODE_OUT;
+        }
+        memcpy((RK_U8*) mpp_buffer_get_ptr(pic_buf), aEncInStrm->buf, aEncInStrm->size);
+        ret = mpp_buffer_get(memGroup, &str_buf, outputBufferSize);
+        if (ret) {
+            mpp_err_f("allocate output stream buffer failed\n");
+            goto ENCODE_OUT;
         }
     } else {
         inputCommit.type = MPP_BUFFER_TYPE_ION;
@@ -499,32 +516,35 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         inputCommit.fd = aEncInStrm->bufPhyAddr;
 
         outputCommit.type = MPP_BUFFER_TYPE_ION;
+        /* in order to avoid interface change use space in output to transmit information */
         RK_S32 *tmp = (RK_S32*)(&aEncOut->timeUs);
         memcpy(&outputCommit.fd, tmp, sizeof(RK_S32));
         memcpy(&outputCommit.size, (tmp + 1), sizeof(RK_S32));
         outputCommit.ptr = (void*)aEncOut->data;
 
-        ret = mpp_buffer_import(&pictureMem, &inputCommit);
+        ret = mpp_buffer_import(&pic_buf, &inputCommit);
         if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
+            mpp_err_f("import input picture buffer failed\n");
+            goto ENCODE_OUT;
         }
 
-        ret = mpp_buffer_import(&outbufMem, &outputCommit);
+        ret = mpp_buffer_import(&str_buf, &outputCommit);
         if (MPP_OK != ret) {
-            mpp_err("mpp_buffer_test mpp_buffer_commit failed\n");
+            mpp_err_f("import output stream buffer failed\n");
+            goto ENCODE_OUT;
         }
         vpu_api_dbg_func("mpp import input fd %d output fd %d",
-                         mpp_buffer_get_fd(pictureMem), mpp_buffer_get_fd(outbufMem));
+                         mpp_buffer_get_fd(pic_buf), mpp_buffer_get_fd(str_buf));
     }
 
-    mpp_frame_set_buffer(frame, pictureMem);
-    mpp_packet_init_with_buffer(&packet, outbufMem);
+    mpp_frame_set_buffer(frame, pic_buf);
+    mpp_packet_init_with_buffer(&packet, str_buf);
 
     do {
         ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
         if (ret) {
             mpp_err("mpp task input dequeue failed\n");
-            goto ENCODE_FAIL;
+            goto ENCODE_OUT;
         }
         if (task == NULL) {
             mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
@@ -540,7 +560,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
         if (ret) {
             mpp_err("mpp task input enqueue failed\n");
-            goto ENCODE_FAIL;
+            goto ENCODE_OUT;
         }
         task = NULL;
 
@@ -548,7 +568,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
             if (ret) {
                 mpp_err("ret %d mpp task output dequeue failed\n", ret);
-                goto ENCODE_FAIL;
+                goto ENCODE_OUT;
             }
 
             if (task) {
@@ -564,7 +584,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                 ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
                 if (ret) {
                     mpp_err("mpp task output enqueue failed\n");
-                    goto ENCODE_FAIL;
+                    goto ENCODE_OUT;
                 }
                 task = NULL;
 
@@ -580,7 +600,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                 ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
                 if (ret) {
                     mpp_err("mpp task output enqueue failed\n");
-                    goto ENCODE_FAIL;
+                    goto ENCODE_OUT;
                 }
                 task = NULL;
 
@@ -602,31 +622,31 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
         if (!use_fd_flag) {
             mpp_assert(aEncOut->data);
-            memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(outbufMem), aEncOut->size);
+            memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(str_buf), aEncOut->size);
         }
-        mpp_buffer_put(outbufMem);
         mpp_packet_deinit(&packet);
     } else {
         mpp_log("outputPacket is NULL!");
     }
 
-    if (pictureMem)
-        mpp_buffer_put(pictureMem);
-    if (frame) {
-        mpp_frame_deinit(&frame);
-        frame = NULL;
+ENCODE_OUT:
+    if (pic_buf) {
+        mpp_buffer_put(pic_buf);
+        pic_buf = NULL;
     }
 
-    vpu_api_dbg_func("leave ret %d\n", ret);
-    return ret;
+    if (str_buf) {
+        mpp_buffer_put(str_buf);
+        str_buf = NULL;
+    }
 
-ENCODE_FAIL:
-
-    if (frame != NULL)
+    if (frame)
         mpp_frame_deinit(&frame);
 
-    if (packet != NULL)
+    if (packet)
         mpp_packet_deinit(&packet);
+
+    vpu_api_dbg_func("leave ret %d\n", ret);
 
     return ret;
 }
