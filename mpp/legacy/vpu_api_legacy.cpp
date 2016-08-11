@@ -16,7 +16,7 @@
 
 #define MODULE_TAG "vpu_api_legacy"
 
-#ifndef _WIN32
+#ifdef RKPLATFORM
 #include <fcntl.h>
 #endif
 #include "string.h"
@@ -24,6 +24,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 
 #include "vpu_api_legacy.h"
@@ -463,7 +464,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     MppBufferInfo   outputCommit;
     RK_U32          use_fd_flag = 1;
 
-#ifndef _WIN32
+#ifdef RKPLATFORM
     if (fcntl(aEncInStrm->bufPhyAddr, F_GETFL, NULL) == -1)
         use_fd_flag = 0;
 #endif
@@ -548,7 +549,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         }
         if (task == NULL) {
             mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-            usleep(3000);
+            msleep(3);
         } else
             break;
     } while (1);
@@ -606,7 +607,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
 
                 break;
             }
-            usleep(3000);
+            msleep(3);
         } while (1);
     } else {
         mpp_err("mpi pointer is NULL, failed!");

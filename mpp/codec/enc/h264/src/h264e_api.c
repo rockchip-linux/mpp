@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "h264e_api"
 
+#include <string.h>
+
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"

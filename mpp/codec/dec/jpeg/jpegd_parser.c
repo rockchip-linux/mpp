@@ -1166,7 +1166,7 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     RK_U32 pkt_length = 0;
     RK_U32 copy_length = 0;
     void *pPacket = NULL;
-    void *pPos = NULL;
+    RK_U8 *pPos = NULL;
 
     task->valid = 0;
 

@@ -445,7 +445,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
                                  mpp_packet_get_data(curtask->input_packet),
                                  mpp_packet_get_size(curtask->input_packet));
 
-                mpp_err("%s Line %d, (*input_packet):%p, length:%d", __func__, __LINE__,
+                mpp_err("%s Line %d, (*input_packet):%p, length:%d", __FUNCTION__, __LINE__,
                         mpp_packet_get_data(curtask->input_packet),
                         mpp_packet_get_size(curtask->input_packet));
                 DemoCtx.pkt_buf = buffer;
