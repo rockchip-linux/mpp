@@ -16,7 +16,6 @@
 
 #include "mpp_log.h"
 #include "enccommon.h"
-#include "ewl.h"
 #include "h264encapi.h"
 #include "H264CodeFrame.h"
 
@@ -35,57 +34,41 @@ void H264CodeFrame(H264ECtx * inst, h264e_syntax *syntax_data)
     EncAsicFrameStart((void*)inst, &inst->asic.regs, syntax_data);
 }
 
-void H264SetNewFrame(H264ECtx * inst)
+void H264SetNewFrame(H264ECtx * ctx)
 {
-    regValues_s *regs = &inst->asic.regs;
+    regValues_s *regs = &ctx->asic.regs;
 
-    regs->outputStrmSize -= inst->stream.byteCnt;
+    regs->outputStrmSize -= ctx->stream.byteCnt;
 
     /* 64-bit aligned stream base address */
-    regs->outputStrmBase += (inst->stream.byteCnt & (~0x07));
-    regs->frameNum = inst->slice.frameNum;
-    regs->idrPicId = inst->slice.idrPicId;
+    regs->outputStrmBase += (ctx->stream.byteCnt & (~0x07));
 
-    /* Store the final register values in the register structure */
-    regs->sliceSizeMbRows = inst->slice.sliceSize / inst->mbPerRow;
-    regs->chromaQpIndexOffset = inst->picParameterSet.chromaQpIndexOffset;
+    if (ctx->rateControl.mbRc) {
+        regs->cpTarget = (RK_U32 *) ctx->rateControl.qpCtrl.wordCntTarget;
+        regs->targetError = ctx->rateControl.qpCtrl.wordError;
+        regs->deltaQp = ctx->rateControl.qpCtrl.qpChange;
 
-    regs->picInitQp = (RK_U32) (inst->picParameterSet.picInitQpMinus26 + 26);
+        regs->cpDistanceMbs = ctx->rateControl.qpCtrl.checkPointDistance;
 
-    regs->qp = inst->rateControl.qpHdr;
-    regs->qpMin = inst->rateControl.qpMin;
-    regs->qpMax = inst->rateControl.qpMax;
-
-    if (inst->rateControl.mbRc) {
-        regs->cpTarget = (RK_U32 *) inst->rateControl.qpCtrl.wordCntTarget;
-        regs->targetError = inst->rateControl.qpCtrl.wordError;
-        regs->deltaQp = inst->rateControl.qpCtrl.qpChange;
-
-        regs->cpDistanceMbs = inst->rateControl.qpCtrl.checkPointDistance;
-
-        regs->cpTargetResults = (RK_U32 *) inst->rateControl.qpCtrl.wordCntPrev;
+        regs->cpTargetResults = (RK_U32 *) ctx->rateControl.qpCtrl.wordCntPrev;
     } else {
         regs->cpTarget = NULL;
     }
 
-    regs->filterDisable = inst->slice.disableDeblocking;
-    if (inst->slice.disableDeblocking != 1) {
-        regs->sliceAlphaOffset = inst->slice.filterOffsetA / 2;
-        regs->sliceBetaOffset = inst->slice.filterOffsetB / 2;
+    regs->filterDisable = ctx->slice.disableDeblocking;
+    if (ctx->slice.disableDeblocking != 1) {
+        regs->sliceAlphaOffset = ctx->slice.filterOffsetA / 2;
+        regs->sliceBetaOffset = ctx->slice.filterOffsetB / 2;
     } else {
         regs->sliceAlphaOffset = 0;
         regs->sliceBetaOffset = 0;
     }
-    regs->transform8x8Mode = inst->picParameterSet.transform8x8Mode;
-    regs->enableCabac = inst->picParameterSet.entropyCodingMode;
-    if (inst->picParameterSet.entropyCodingMode) {
-        regs->cabacInitIdc = inst->slice.cabacInitIdc;
-    }
+
     regs->frameCodingType =
-        (inst->slice.sliceType == ISLICE) ? ASIC_INTRA : ASIC_INTER;
+        (ctx->slice.sliceType == ISLICE) ? ASIC_INTRA : ASIC_INTER;
 
     /* MAD threshold range [0, 63*256] register 6-bits range [0,63] */
-    regs->madThreshold = inst->mad.threshold / 256;
-    regs->madQpDelta = inst->rateControl.mbQpAdjustment;
+    regs->madThreshold = ctx->mad.threshold / 256;
+    regs->madQpDelta = ctx->rateControl.mbQpAdjustment;
 }
 
