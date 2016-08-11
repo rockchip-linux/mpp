@@ -19,7 +19,6 @@
 ------------------------------------------------------------------------------*/
 #include "H264Init.h"
 #include "enccommon.h"
-#include "ewl.h"
 #include "mpp_log.h"
 
 /*------------------------------------------------------------------------------
@@ -306,13 +305,6 @@ H264EncRet H264Cfg(const H264EncConfig * pEncCfg, H264ECtx * pinst)
         inst->asic.regs.h264Inter4x4Disabled = 1;
     else
         inst->asic.regs.h264Inter4x4Disabled = 0;
-
-    /* When resolution larger than 720p = 3600 macroblocks
-     * there is not enough time to do 1/4 pixel ME */
-    if (inst->mbPerFrame > 3600)
-        inst->asic.regs.disableQuarterPixelMv = 1;
-    else
-        inst->asic.regs.disableQuarterPixelMv = 0;
 
     return ret;
 }

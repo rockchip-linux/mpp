@@ -30,8 +30,6 @@
 #include "H264Sei.h"
 #include "H264RateControl.h"
 
-#include "ewl.h"
-
 /* Parameter limits */
 #define H264ENCSTRMSTART_MIN_BUF        64
 #define H264ENCSTRMENCODE_MIN_BUF       4096
@@ -758,11 +756,6 @@ H264EncRet H264EncStrmEncode(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     regs->outputStrmBase = pEncIn->busOutBuf;
     regs->outputStrmSize = pEncIn->outBufSize;
 
-    /* setup stabilization */
-    if (pEncInst->preProcess.videoStab) {
-        regs->vsNextLumaBase = pEncIn->busLumaStab;
-    }
-
     {
         H264EncPictureCodingType ct = pEncIn->codingType;
 
@@ -873,7 +866,7 @@ H264EncRet H264EncStrmEncodeAfter(H264ECtx *pEncInst,
     pSlice = &pEncInst->slice;
     regs = &pEncInst->asic.regs;
     if (vpuWaitResult != MPP_OK) {
-        if (vpuWaitResult == EWL_ERROR) {
+        if (vpuWaitResult == MPP_NOK) {
             /* IRQ error => Stop and release HW */
             ret = H264ENCODE_SYSTEM_ERROR;
         } else { /*if(ewl_ret == EWL_HW_WAIT_TIMEOUT) */

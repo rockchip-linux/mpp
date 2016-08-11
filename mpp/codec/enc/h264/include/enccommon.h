@@ -22,7 +22,6 @@
 ------------------------------------------------------------------------------*/
 
 #include "rk_type.h"
-#include "ewl.h"
 
 #define ASSERT(expr)
 #define DEBUG_PRINT(args)
@@ -53,12 +52,6 @@ typedef enum {
     ENDOFSTREAM = 11,   /* End of stream */
     FILLERDATA = 12 /* Filler data */
 } nalUnitType_e;
-
-/* VLC TABLE */
-typedef struct {
-    RK_S32 value;  /* Value of bits  */
-    RK_S32 number; /* Number of bits */
-} table_s;
 
 /* used in stream buffer handling */
 typedef struct {

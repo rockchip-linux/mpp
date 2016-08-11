@@ -17,7 +17,6 @@
 #ifndef __ENC_ASIC_CONTROLLER_H__
 #define __ENC_ASIC_CONTROLLER_H__
 
-#include "ewl.h"
 #include "mpp_mem.h"
 #include "mpp_buffer.h"
 #include "h264e_syntax.h"
@@ -73,21 +72,10 @@ typedef enum {
 } asicFrameCodingType_e;
 
 typedef struct {
-    RK_U32 qp;
-    RK_U32 qpMin;
-    RK_U32 qpMax;
     RK_U32 frameCodingType;
-    RK_U32 idrPicId;
-    RK_U32 frameNum;
-    RK_U32 picInitQp;
     RK_S32 sliceAlphaOffset;
     RK_S32 sliceBetaOffset;
     RK_U32 filterDisable;
-    RK_U32 transform8x8Mode;
-    RK_U32 enableCabac;
-    RK_U32 cabacInitIdc;
-    RK_S32 chromaQpIndexOffset;
-    RK_U32 sliceSizeMbRows;
     RK_U32 inputImageFormat;
     RK_U32 inputImageRotation;
     RK_U32 outputStrmBase;
@@ -107,9 +95,6 @@ typedef struct {
     RK_U32 inputLumaBaseOffset;
     RK_U32 inputChromaBaseOffset;
     RK_U32 h264Inter4x4Disabled;
-    RK_U32 disableQuarterPixelMv;
-    RK_U32 vsNextLumaBase;
-    RK_U32 vsMode;
     RK_S32 madQpDelta;
     RK_U32 madThreshold;
     RK_U32 madCount;

@@ -24,7 +24,6 @@
 #include "encasiccontroller.h"
 #include "H264Instance.h"
 #include "encpreprocess.h"
-#include "ewl.h"
 #include <stdio.h>
 
 /*------------------------------------------------------------------------------
@@ -66,32 +65,33 @@ RK_S32 EncAsicControllerInit(asicData_s * asic)
 
 void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data)
 {
-    H264ECtx *instH264Encoder = (H264ECtx *)inst;
+    H264ECtx *ctx = (H264ECtx *)inst;
     int iCount = 0;
-    // TODO for rkv
-    syntax_data->pic_order_cnt_lsb = 2 * val->frameNum;
-    syntax_data->second_chroma_qp_index_offset = val->chromaQpIndexOffset;
-    syntax_data->slice_type = instH264Encoder->slice.sliceType;
 
-    syntax_data->frame_coding_type = val->frameCodingType;
-    syntax_data->pic_init_qp = val->picInitQp;
+    syntax_data->pic_order_cnt_lsb = 2 * ctx->slice.frameNum;;
+    syntax_data->second_chroma_qp_index_offset = ctx->picParameterSet.chromaQpIndexOffset;
+    syntax_data->slice_type = ctx->slice.sliceType;
+
+    syntax_data->frame_coding_type  = val->frameCodingType;
+    syntax_data->pic_init_qp        = ctx->picParameterSet.picInitQpMinus26 + 26;
     syntax_data->slice_alpha_offset = val->sliceAlphaOffset;
-    syntax_data->slice_beta_offset = val->sliceBetaOffset;
-    syntax_data->chroma_qp_index_offset = val->chromaQpIndexOffset;
-    syntax_data->filter_disable = val->filterDisable;
-    syntax_data->idr_pic_id = val->idrPicId;
-    syntax_data->pps_id = 0;
-    syntax_data->frame_num = val->frameNum;
-    syntax_data->slice_size_mb_rows = val->sliceSizeMbRows;
+    syntax_data->slice_beta_offset  = val->sliceBetaOffset;
+    syntax_data->chroma_qp_index_offset = ctx->picParameterSet.chromaQpIndexOffset;
+    syntax_data->filter_disable     = val->filterDisable;
+    syntax_data->idr_pic_id         = ctx->slice.idrPicId;
+    syntax_data->pps_id             = 0;
+    syntax_data->frame_num          = ctx->slice.frameNum;
+    syntax_data->slice_size_mb_rows = ctx->slice.sliceSize / ctx->mbPerRow;
     syntax_data->h264_inter4x4_disabled = val->h264Inter4x4Disabled;
-    syntax_data->enable_cabac = val->enableCabac;
-    syntax_data->transform8x8_mode = val->transform8x8Mode;
-    syntax_data->cabac_init_idc = val->cabacInitIdc;
-    syntax_data->qp = val->qp;
-    syntax_data->mad_qp_delta = val->madQpDelta;
-    syntax_data->mad_threshold = val->madThreshold;
-    syntax_data->qp_min = val->qpMin;
-    syntax_data->qp_max = val->qpMax;
+    syntax_data->enable_cabac       = ctx->picParameterSet.entropyCodingMode;
+    syntax_data->transform8x8_mode  = ctx->picParameterSet.transform8x8Mode;
+    syntax_data->cabac_init_idc     = (ctx->picParameterSet.entropyCodingMode) ? (ctx->slice.cabacInitIdc) : (0);
+    syntax_data->mad_qp_delta       = val->madQpDelta;
+    syntax_data->mad_threshold      = val->madThreshold;
+
+    syntax_data->qp     = ctx->rateControl.qpHdr;
+    syntax_data->qp_min = ctx->rateControl.qpMin;
+    syntax_data->qp_max = ctx->rateControl.qpMax;
     syntax_data->cp_distance_mbs = val->cpDistanceMbs;
     if (val->cpTarget != NULL) {
         for (iCount = 0; iCount < 10; ++iCount) {
@@ -106,8 +106,8 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     }
     syntax_data->output_strm_limit_size = val->outputStrmSize;
     syntax_data->output_strm_addr = val->outputStrmBase;
-    syntax_data->pic_luma_width = instH264Encoder->preProcess.lumWidth;
-    syntax_data->pic_luma_height = instH264Encoder->preProcess.lumHeight;
+    syntax_data->pic_luma_width = ctx->preProcess.lumWidth;
+    syntax_data->pic_luma_height = ctx->preProcess.lumHeight;
     syntax_data->input_luma_addr = val->inputLumBase;
     syntax_data->input_cb_addr = val->inputCbBase;
     syntax_data->input_cr_addr = val->inputCrBase;

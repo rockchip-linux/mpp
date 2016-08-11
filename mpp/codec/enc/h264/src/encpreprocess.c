@@ -117,9 +117,6 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         regs->inputLumBase += (tmp & (~7));
         regs->inputLumaBaseOffset = tmp & 7;
 
-        if (preProcess->videoStab)
-            regs->vsNextLumaBase += (tmp & (~7));
-
         tmp = preProcess->verOffsetSrc / 2;
         tmp *= stride / 2;
         tmp += preProcess->horOffsetSrc / 2;
@@ -142,9 +139,6 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         regs->inputLumBase += (tmp & (~7));
         regs->inputLumaBaseOffset = tmp & 7;
 
-        if (preProcess->videoStab)
-            regs->vsNextLumaBase += (tmp & (~7));
-
         tmp = preProcess->verOffsetSrc / 2;
         tmp *= stride / 2;
         tmp += preProcess->horOffsetSrc / 2;
@@ -165,9 +159,6 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         regs->inputLumBase += (tmp & (~7));
         regs->inputLumaBaseOffset = tmp & 7;
         regs->inputChromaBaseOffset = (regs->inputLumaBaseOffset / 4) * 4;
-
-        if (preProcess->videoStab)
-            regs->vsNextLumaBase += (tmp & (~7));
     } else { /* RGB 32bpp */
         /* Input image position after crop and stabilization */
         tmp = preProcess->verOffsetSrc;
@@ -179,9 +170,6 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         /* Note: HW does the cropping AFTER RGB to YUYV conversion
          * so the offset is calculated using 16bpp */
         regs->inputLumaBaseOffset = (tmp & 7) / 2;
-
-        if (preProcess->videoStab)
-            regs->vsNextLumaBase += (tmp & (~7));
     }
     regs->inputImageFormat = preProcess->inputFormat;
 
@@ -197,12 +185,6 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         width = height;
         height = tmp_rotation;  // modify by lance 2016.05.12
     }
-
-    /* video stabilization */
-    if (preProcess->videoStab != 0)
-        regs->vsMode = 2;
-    else
-        regs->vsMode = 0;
 
     return;
 }
