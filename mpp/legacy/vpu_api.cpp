@@ -257,6 +257,23 @@ RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     }
     return MPP_NOK;
 }
+#else
+RK_S32 check_orign_vpu()
+{
+    return (MPP_NOK);
+}
+
+RK_S32 open_orign_vpu(VpuCodecContext **ctx)
+{
+    (void)ctx;
+    return MPP_NOK;
+}
+
+RK_S32 close_orign_vpu(VpuCodecContext **ctx)
+{
+    (void)ctx;
+    return MPP_NOK;
+}
 #endif
 
 /*

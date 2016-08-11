@@ -162,7 +162,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_cfg.width       = width;
     mpp_cfg.height      = height;
     mpp_cfg.format      = fmt;
-    mpp_cfg.rc_mode     = 1;
+    mpp_cfg.rc_mode     = 0;
     mpp_cfg.skip_cnt    = 0;
     mpp_cfg.fps_in      = 30;
     mpp_cfg.fps_out     = 30;
@@ -238,7 +238,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             }
             if (task == NULL) {
                 mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-                usleep(3000);
+                msleep(3);
             } else {
                 MppFrame frame_out = NULL;
 
