@@ -169,7 +169,6 @@ typedef struct JpegParserContext {
     RK_U32 streamLength;   /* input stream length or buffer size */
     RK_U32 bufferSize; /* input stream buffer size */
     RK_U32 decImageType;   /* Full image or Thumbnail to be decoded */
-    RK_U32 sliceMbSet; /* slice mode: mcu rows to decode */
     MppFrameFormat output_fmt;
 
     MppPacket input_packet;

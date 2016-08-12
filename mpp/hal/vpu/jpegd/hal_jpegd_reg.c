@@ -42,13 +42,6 @@ static const RK_U8 zzOrder[64] = {
     58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
 };
 
-void jpegd_calculate_slice_size(JpegSyntaxParam *pSyntax)
-{
-    FUN_TEST("Enter");
-    (void)pSyntax;
-    FUN_TEST("Exit");
-}
-
 void jpegd_input_buff_load_init(JpegSyntaxParam *pSyntax)
 {
     FUN_TEST("Enter");
@@ -1841,12 +1834,6 @@ MPP_RET jpegd_gen_regs(JpegHalContext *ctx, JpegSyntaxParam *syntax)
 
             /* check if we had to load input buffer or not */
             if (!pSyntax->info.inputBufferEmpty) {
-                /* if slice mode ==> set slice height */
-                if (pSyntax->info.sliceMbSetValue && pSyntax->ppControl.usePipeline == 0) {
-                    jpegd_calculate_slice_size(pSyntax);
-                    JPEGD_INFO_LOG("sliceHeight is %d, sliceMbSetValue is %d", pSyntax->info.sliceHeight, pSyntax->info.sliceMbSetValue);
-                }
-
                 /* Start HW or continue after pause */
                 if (!pSyntax->info.SliceReadyForPause) {
                     if (!pSyntax->info.progressiveScanReady || pSyntax->info.nonInterleavedScanReady) {
@@ -2120,7 +2107,7 @@ MPP_RET hal_jpegd_wait(void *hal, HalTaskInfo *task)
         mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, task->dec.output, SLOT_BUFFER, &outputBuf);
         pOutYUV = mpp_buffer_get_ptr(outputBuf);
 
-        snprintf(name, sizeof(name), "/data/output%02d.yuv", JpegHalCtx->output_yuv_count);
+        snprintf(name, sizeof(name), "/tmp/output%02d.yuv", JpegHalCtx->output_yuv_count);
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {
             JpegSyntaxParam *pTmpSyn = (JpegSyntaxParam *)task->dec.syntax.data;
