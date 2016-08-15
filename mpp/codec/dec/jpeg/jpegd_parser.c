@@ -1145,7 +1145,7 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     }
 
     if (pkt_length > JpegParserCtx->bufferSize) {
-        JPEGD_INFO_LOG("Huge Frame(%d Bytes)!", pkt_length);
+        JPEGD_INFO_LOG("Huge Frame(%d Bytes)! bufferSize:%d", pkt_length, JpegParserCtx->bufferSize);
         mpp_free(JpegParserCtx->recv_buffer);
         JpegParserCtx->recv_buffer = NULL;
 
@@ -1186,7 +1186,6 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     mpp_packet_set_length(input_packet, pkt_length);
 
     JpegParserCtx->streamLength = pkt_length;
-    JpegParserCtx->bufferSize = pkt_length;
     task->input_packet = input_packet;
     task->valid = 1;
     JPEGD_VERBOSE_LOG("input_packet:%p, recv_buffer:%p, pkt_length:%d", input_packet,
