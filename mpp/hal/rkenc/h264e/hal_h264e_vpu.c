@@ -1370,6 +1370,14 @@ static MPP_RET hal_h264e_vpu_write_sps(h264e_hal_vpu_stream *stream, h264e_hal_s
 
     hal_h264e_vpu_write_ue(stream, sps->i_id, "seq_parameter_set_id"); //8D
 
+	if (sps->i_profile_idc >= 100) {
+        hal_h264e_vpu_write_ue(stream, sps->i_chroma_format_idc, "chroma_format_idc");
+        hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8, "bit_depth_luma_minus8");
+        hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8, "bit_depth_chroma_minus8");
+        hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->b_qpprime_y_zero_transform_bypass, 1, "qpprime_y_zero_transform_bypass_flag");
+        hal_h264e_vpu_stream_put_bits_with_detect(stream, 0, 1, "seq_scaling_matrix_present_flag");
+    }
+
     hal_h264e_vpu_write_ue(stream, sps->i_log2_max_frame_num - 4, "log2_max_frame_num_minus4");
 
     hal_h264e_vpu_write_ue(stream, sps->i_poc_type, "pic_order_cnt_type"); //68 16
@@ -1473,13 +1481,13 @@ static MPP_RET hal_h264e_vpu_write_pps(h264e_hal_vpu_stream *stream, h264e_hal_p
 
 static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_cfg *cfg)
 {
-    sps->i_profile_idc = 66;   /* 66 = baseline, 77 = main, 100 = high */
+    sps->i_profile_idc = cfg->profile_idc;   /* 66 = baseline, 77 = main, 100 = high */
     sps->b_constraint_set0 = 1;
     sps->b_constraint_set1 = 1;
     sps->b_constraint_set2 = 1;
     sps->b_constraint_set3 = 0;
 
-    sps->i_level_idc = 40;
+    sps->i_level_idc = cfg->level_idc;
     sps->i_id = 0;
     sps->i_log2_max_frame_num = 16;
     sps->i_poc_type = 2;
@@ -1490,6 +1498,7 @@ static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_c
     sps->i_mb_height = ( cfg->pic_luma_height + 15 ) / 16;
     sps->b_frame_mbs_only = 1;
     sps->b_direct8x8_inference = 1;
+	sps->i_chroma_format_idc = 1;
 
     sps->b_vui = 1;
 
@@ -1550,13 +1559,13 @@ static void hal_h264e_vpu_set_pps(h264e_hal_pps *pps, h264e_control_extra_info_c
     pps->i_num_ref_idx_l1_default_active = 1;
     pps->b_weighted_pred = 0;
     pps->i_weighted_bipred_idc = 0;
-    pps->i_pic_init_qp = 26;
-    pps->i_pic_init_qs = 26;
-    pps->i_chroma_qp_index_offset = 2;
+    pps->i_pic_init_qp = cfg->pic_init_qp;
+    pps->i_pic_init_qs = cfg->pic_init_qp;
+    pps->i_chroma_qp_index_offset = cfg->chroma_qp_index_offset;
     pps->b_deblocking_filter_control = 1;
     pps->b_constrained_intra_pred = 0;
     pps->b_redundant_pic_cnt = 0;
-    pps->b_transform_8x8_mode = 0;
+    pps->b_transform_8x8_mode = cfg->transform8x8_mode;
 
     (void)cfg;
 }
@@ -1766,7 +1775,8 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 prev_mode_favor = h264_prev_mode_favor[syn->qp];
     h264e_hal_vpu_buffers *bufs = (h264e_hal_vpu_buffers *)ctx->buffers;
     RK_U32 buf2_idx = ctx->frame_cnt % 2;
-
+    h264e_hal_vpu_extra_info *extra_info = (h264e_hal_vpu_extra_info *)ctx->extra_info;
+    h264e_hal_pps *pps = &extra_info->pps;
     h264e_hal_debug_enter();
 
     if (ctx->frame_cnt == 0) {
@@ -1820,7 +1830,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     val |= VEPU_REG_CABAC_INIT_IDC(syn->cabac_init_idc);
     if (syn->enable_cabac)
         val |= VEPU_REG_ENTROPY_CODING_MODE;
-    if (syn->transform8x8_mode)
+    if (pps->b_transform_8x8_mode)
         val |= VEPU_REG_H264_TRANS8X8_MODE;
     if (syn->h264_inter4x4_disabled)
         val |= VEPU_REG_H264_INTER4X4_MODE;
