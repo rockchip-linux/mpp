@@ -27,7 +27,6 @@ set(H264E_HDR
   include/encasiccontroller.h
   include/enccommon.h
   include/encpreprocess.h
-  include/ewl.h
   include/h264encapi.h
   include/h264e_codec.h
   include/h264e_utils.h
