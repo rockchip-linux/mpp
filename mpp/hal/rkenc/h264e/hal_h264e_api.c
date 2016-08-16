@@ -38,7 +38,7 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     MppHalApi *api = &ctx->api;
 
-    mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00000111);
+    mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00101111);
     if (!access("/dev/rkvenc", F_OK))
         cfg->device_id = HAL_RKVENC;
     else

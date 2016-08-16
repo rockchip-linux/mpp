@@ -72,6 +72,12 @@ typedef struct h264e_hal_test_cfg_t {
     RK_U32 hw_mode;
     char input_syntax_file_path[256];
     char input_yuv_file_path[256];
+    RK_U32 pic_width;
+    RK_U32 pic_height;
+    RK_U32 src_format;
+    RK_U32 num_frames;
+
+    h264e_hal_rkv_coveragetest_cfg test;
 } h264e_hal_test_cfg;
 
 static RK_U32 h264e_rkv_revert_csp(h264e_hal_csp_info csp_info)
@@ -221,12 +227,14 @@ static MPP_RET h264e_rkv_test_open_files(h264e_hal_test_cfg test_cfg)
         return MPP_ERR_OPEN_FILE;
     }
 
+    #if !RKV_H264E_SDK_TEST
     sprintf(full_path, "%s", test_cfg.input_syntax_file_path);
     fp_golden_syntax_in = fopen(full_path, "rb");
     if (!fp_golden_syntax_in) {
         mpp_err("%s open error", full_path);
         return MPP_ERR_OPEN_FILE;
     }
+    #endif
 
     #if 0
     sprintf(full_path, "%s%s", base_path, "mpp_yuv_in.yuv");
@@ -1090,13 +1098,13 @@ static MPP_RET get_rkv_dbg_info(h264e_hal_rkv_dbg_info *info, h264e_syntax *syn,
 #endif
 
 
-static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBuffer *hw_output_strm_buf)
+static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBuffer *hw_output_strm_buf, h264e_hal_test_cfg *cfg)
 
-{
-    //RK_S32 k = 0;
+{    
+    h264e_hal_csp_info csp_info;
     RK_U32 buf_idx = g_frame_read_cnt % RKV_H264E_LINKTABLE_FRAME_NUM;
     h264e_hal_debug_enter();
-    mpp_assert(fp_golden_syntax_in);
+    //mpp_assert(fp_golden_syntax_in);
     memset(syn, 0, sizeof(h264e_syntax));
 
     if (hw_in_buf[buf_idx]) {
@@ -1107,12 +1115,49 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
     if (hw_output_strm_buf[buf_idx])
         syn->output_strm_addr = mpp_buffer_get_fd(hw_output_strm_buf[buf_idx]);
     syn->output_strm_limit_size = 1024 * 1024 * 2;
+ 
+    #if RKV_H264E_SDK_TEST
+    mpp_log("make syntax begin");
+    syn->pic_luma_width = cfg->pic_width;
+    syn->pic_luma_height = cfg->pic_height;
+    syn->level_idc = H264_LEVEL_4_1;
+    syn->profile_idc = H264_PROFILE_HIGH;
+    mpp_log("syn->level_idc %d", syn->level_idc);
+    mpp_log("syn->profile_idc %d", syn->profile_idc);
+    syn->keyframe_max_interval = 30;
+    if(g_frame_cnt==0 || g_frame_cnt%syn->keyframe_max_interval==0) {
+        syn->frame_coding_type = 1; //IDR
+        syn->slice_type = 2;
+    } else {
+        syn->frame_coding_type = 3; //P 
+        syn->slice_type = 0;
+    }
+    syn->qp = 26;
+    csp_info.fmt = H264E_RKV_CSP_YUV420P;
+    csp_info.cswap = 0; //TODO:
+    csp_info.aswap = 0; //TODO:
+    syn->input_image_format = h264e_rkv_revert_csp(csp_info);
 
+    syn->enable_cabac = 1;
+    syn->pic_init_qp = 26;
+    syn->chroma_qp_index_offset = 0;
+    syn->second_chroma_qp_index_offset = 0;
+
+    syn->pps_id = 0 ;
+    syn->frame_num = 0;
+    syn->cabac_init_idc = 0;
+
+    
+    syn->idr_pic_id = 0;
+    syn->pic_order_cnt_lsb = 0;
+
+
+    mpp_log("make syntax end");
+    #else
     if (fp_golden_syntax_in) {
         FILE *fp = fp_golden_syntax_in;
         char temp[512] = {0};
         RK_S32 data = 0;
-        h264e_hal_csp_info csp_info;
 
         if (!fgets(temp, 512, fp))
             return MPP_EOS_STREAM_REACHED;
@@ -1151,7 +1196,8 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
     } else {
         mpp_err("rkv_syntax_in.txt doesn't exits");
     }
-
+    #endif
+    
     h264e_hal_debug_leave();
     return MPP_OK;
 }
@@ -1161,6 +1207,7 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
     RK_S32 k = 0;
     memset(cfg, 0, sizeof(h264e_hal_test_cfg));
 
+    cfg->num_frames = 30;
     for (k = 1; k < arg_num; k++) {
         if (!strcmp("-hw", arg_str[k])) {
             cfg->hw_mode = atoi(arg_str[k + 1]);
@@ -1174,6 +1221,45 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
             strcpy(cfg->input_syntax_file_path, arg_str[k + 1]);
             k++;
         }
+
+        if (!strcmp("-w", arg_str[k])) {
+            cfg->pic_width = atoi(arg_str[k + 1]);
+            k++;
+        }
+        if (!strcmp("-h", arg_str[k])) {
+            cfg->pic_height = atoi(arg_str[k + 1]);
+            k++;
+        }
+        if (!strcmp("-fmt", arg_str[k])) {
+            cfg->src_format = atoi(arg_str[k + 1]);
+            k++;
+        }
+        if (!strcmp("-frame", arg_str[k])) {
+            cfg->num_frames = atoi(arg_str[k + 1]);
+            k++;
+        }
+
+        /* coverage test */
+        if (!strcmp("--test-qp", arg_str[k])) {
+            cfg->test.qp = atoi(arg_str[k + 1]);
+            k++;
+        }        
+        if (!strcmp("--test-preproc", arg_str[k])) {
+            cfg->test.preproc = atoi(arg_str[k + 1]);
+            k++;
+        }        
+        if (!strcmp("--test-osd", arg_str[k])) {
+            cfg->test.osd = atoi(arg_str[k + 1]);
+            k++;
+        }        
+        if (!strcmp("--test-mbrc", arg_str[k])) {
+            cfg->test.mbrc = atoi(arg_str[k + 1]);
+            k++;
+        }        
+        if (!strcmp("--test-roi", arg_str[k])) {
+            cfg->test.roi = atoi(arg_str[k + 1]);
+            k++;
+        }        
     }
 
 
@@ -1181,11 +1267,21 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
         mpp_log("test param parse error: input_yuv_file_path is NULL");
         return MPP_NOK;
     }
-
+    #if RKV_H264E_SDK_TEST
+    if (!cfg->pic_width) {
+        mpp_log("test param parse error: pic_width is 0");
+        return MPP_NOK;
+    }
+    if (!cfg->pic_height) {
+        mpp_log("test param parse error: pic_height is 0");
+        return MPP_NOK;
+    }
+    #else
     if (!cfg->input_syntax_file_path) {
         mpp_log("test param parse error: input_syntax_file_path is NULL");
         return MPP_NOK;
     }
+    #endif
 
     if (cfg->hw_mode == 0)
         test_device_id = HAL_RKVENC;
@@ -1196,6 +1292,19 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
         return MPP_NOK;
     }
 
+    mpp_log("======== hal converage test cfg (st) =======");
+    if(cfg->test.qp)
+        mpp_log("cfg->test.qp %d", cfg->test.qp);
+    if(cfg->test.preproc)
+        mpp_log("cfg->test.preproc %d", cfg->test.preproc);
+    if(cfg->test.osd)
+        mpp_log("cfg->test.osd %d", cfg->test.osd);
+    if(cfg->test.mbrc)
+        mpp_log("cfg->test.mbrc %d", cfg->test.mbrc);
+    if(cfg->test.roi)
+        mpp_log("cfg->test.roi %d", cfg->test.roi);
+    mpp_log("======== hal converage test cfg (ed) =======");
+    
     return MPP_OK;
 }
 
@@ -1265,7 +1374,8 @@ MPP_RET h264e_hal_vpu_test()
     mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
 
     get_vpu_syntax_in(&syntax_data, hw_input_buf, hw_output_strm_buf);
-    fseek(fp_golden_syntax_in, 0L, SEEK_SET);
+    if(fp_golden_syntax_in)
+        fseek(fp_golden_syntax_in, 0L, SEEK_SET);
 
     frame_luma_stride = ((syntax_data.pic_luma_width + 15) & (~15)) * ((syntax_data.pic_luma_height + 15) & (~15));
 
@@ -1361,7 +1471,7 @@ __test_end:
 }
 
 
-MPP_RET h264e_hal_rkv_test()
+MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
 {
     RK_S32 k = 0;
     MPP_RET ret = MPP_OK;
@@ -1383,8 +1493,9 @@ MPP_RET h264e_hal_rkv_test()
     mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
 
 
-    get_rkv_syntax_in(&syntax_data[0], hw_input_buf_mul, hw_output_strm_buf_mul);
-    fseek(fp_golden_syntax_in, 0L, SEEK_SET);
+    get_rkv_syntax_in(&syntax_data[0], hw_input_buf_mul, hw_output_strm_buf_mul, test_cfg);
+	if(fp_golden_syntax_in)
+    	fseek(fp_golden_syntax_in, 0L, SEEK_SET);
 
 
     frame_luma_stride = ((syntax_data[0].pic_luma_width + 15) & (~15)) * ((syntax_data[0].pic_luma_height + 15) & (~15));
@@ -1413,6 +1524,8 @@ MPP_RET h264e_hal_rkv_test()
     hal_cfg.device_id = test_device_id;
     hal_h264e_init(&ctx, &hal_cfg);
 
+    ctx.test_cfg = (void *)&test_cfg->test;
+
     h264e_hal_set_extra_info_cfg(&extra_info_cfg, &syntax_data[0]); //TODO: use dbg info for input instead
     hal_h264e_rkv_control(&ctx, MPP_ENC_SET_EXTRA_INFO, &extra_info_cfg);
     hal_h264e_rkv_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info_pkt);
@@ -1425,14 +1538,19 @@ MPP_RET h264e_hal_rkv_test()
             mpp_log("read %d frames input", frame_num);
             for (k = 0; k < frame_num; k++, g_frame_read_cnt++) {
                 syn = &syntax_data[g_frame_read_cnt % RKV_H264E_LINKTABLE_FRAME_NUM];
-                if (MPP_EOS_STREAM_REACHED == get_rkv_syntax_in(syn, hw_input_buf_mul, hw_output_strm_buf_mul)) {
+                if (MPP_EOS_STREAM_REACHED == get_rkv_syntax_in(syn, hw_input_buf_mul, hw_output_strm_buf_mul, test_cfg)) {
                     mpp_log("syntax input file end, total %d frames are encoded, test is ended", g_frame_cnt);
                     goto __test_end;
                 }
                 ret = get_rkv_h264e_yuv_in_frame(syn, hw_input_buf_mul);
                 if (ret == MPP_EOS_STREAM_REACHED) {
-                    mpp_log("yuv file end, total %d frames are encoded, test is ended", g_frame_cnt);
-                    break;
+                    if(g_frame_cnt == test_cfg->num_frames) {
+                        mpp_log("total %d frames are encoded, test is ended", g_frame_cnt);
+                        goto __test_end;
+                    } else {
+        	        fseek(fp_h264e_yuv_in, 0L, SEEK_SET);
+                        ret = get_rkv_h264e_yuv_in_frame(syn, hw_input_buf_mul);
+                    }
                 } else if (ret == MPP_NOK) {
                     mpp_err("read yuv file failed, test is ended early");
                     goto __test_end;
@@ -1457,6 +1575,11 @@ MPP_RET h264e_hal_rkv_test()
 
         if (g_frame_cnt == g_frame_read_cnt)
             hal_h264e_rkv_dump_mpp_strm_out(&ctx, hw_output_strm_buf_mul);
+        if(g_frame_cnt==test_cfg->num_frames) {
+            mpp_log("test_cfg->num_frames %d reached, end test", test_cfg->num_frames);
+            goto __test_end;
+        }
+            
     } while (1);
 
 
@@ -1507,7 +1630,7 @@ int main(int argc, char **argv)
             goto __test_end;
         }
         mpp_log("choose h264e_hal_rkv_test");
-        h264e_hal_rkv_test();
+        h264e_hal_rkv_test(&test_cfg);
     }
 
 __test_end:
