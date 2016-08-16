@@ -27,6 +27,9 @@ enc_mode
     2: multi-frame encode start with link table
     3: multi-frame encode link table update
 */
+#define RKV_H264E_SDK_TEST                  1
+
+
 #define RKV_H264E_ENC_MODE                  1 //2/3
 #define RKV_H264E_LINKTABLE_FRAME_NUM       1 //2
 
@@ -70,7 +73,29 @@ enc_mode
 #define RKV_H264E_CQM_JVT                1
 #define RKV_H264E_CQM_CUSTOM             2
 
-typedef enum h264e_hal_rkv_csp_t {
+
+#define RKV_H264E_INT_ONE_FRAME_FINISH    0x00000001
+#define RKV_H264E_INT_LINKTABLE_FINISH    0x00000002
+#define RKV_H264E_INT_SAFE_CLEAR_FINISH   0x00000004
+#define RKV_H264E_INT_ONE_SLICE_FINISH    0x00000008
+#define RKV_H264E_INT_BIT_STREAM_OVERFLOW 0x00000010
+#define RKV_H264E_INT_BUS_WRITE_FULL      0x00000020
+#define RKV_H264E_INT_BUS_WRITE_ERROR     0x00000040
+#define RKV_H264E_INT_BUS_READ_ERROR      0x00000080
+#define RKV_H264E_INT_TIMEOUT_ERROR       0x00000100
+
+#if RKV_H264E_SDK_TEST
+typedef struct h264e_hal_rkv_coveragetest_cfg_t {
+    RK_U32 qp;
+    RK_U32 preproc;
+    RK_U32 osd;
+    RK_U32 mbrc;
+    RK_U32 roi;
+}h264e_hal_rkv_coveragetest_cfg;
+#endif
+
+
+typedef enum h264e_rkv_csp_t {
     H264E_RKV_CSP_BGRA8888,     // 0
     H264E_RKV_CSP_BGR888,       // 1
     H264E_RKV_CSP_BGR565,       // 2
@@ -116,6 +141,13 @@ typedef enum h264e_hal_rkv_buf_grp_t {
     H264E_HAL_RKV_BUF_GRP_BUTT
 } h264e_hal_rkv_buf_grp;
 
+typedef struct h264e_hal_rkv_roi_cfg_t {
+    RK_U8 qp_y          : 6;
+    RK_U8 set_qp_y_en   : 1;
+    RK_U8 forbit_inter  : 1;
+}h264e_hal_rkv_roi_cfg;
+   
+
 typedef struct h264e_hal_rkv_buffers_t {
     MppBufferGroup hw_buf_grp[H264E_HAL_RKV_BUF_GRP_BUTT];
 
@@ -124,9 +156,10 @@ typedef struct h264e_hal_rkv_buffers_t {
     MppBuffer hw_pp_buf[2];
     MppBuffer hw_dsp_buf[2]; //down scale picture
     MppBuffer hw_mei_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
-    MppBuffer hw_cmv_buf[2];
+    //MppBuffer hw_cmv_buf[2];
     MppBuffer hw_roi_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBuffer hw_rec_buf[RKV_H264E_NUM_REFS + 1]; //extra 1 frame for current recon
+    MppBuffer hw_osd_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
 } h264e_hal_rkv_buffers;
 
 typedef struct h264e_hal_rkv_nal_t {

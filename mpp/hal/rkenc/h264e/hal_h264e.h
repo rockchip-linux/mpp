@@ -335,6 +335,7 @@ typedef struct h264e_hal_context_t {
     void                *param_buf;
     size_t              param_size;
     MppPacket           packeted_param;
+    void                *test_cfg;    
 } h264e_hal_context;
 
 #endif

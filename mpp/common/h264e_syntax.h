@@ -2,6 +2,7 @@
 #define __H264E_SYNTAX_H__
 
 #include "rk_type.h"
+#include "h264_syntax.h"
 
 #define H264_BIT_DEPTH      8
 #define H264_QP_BD_OFFSET   (6*(H264_BIT_DEPTH-8))
@@ -68,11 +69,16 @@ typedef struct h264e_syntax_t {
     RK_S32 level_idc; //TODO: may be removed later, get from sps/pps instead
     RK_S32 link_table_en;
     RK_S32 keyframe_max_interval;
+
+    RK_S32 mb_rc_mode; //0:frame/slice 1:mb; //0: disable mbrc, 1:slice/frame rc, 2:MB rc.
+    RK_S32 roi_en;
+    RK_S32 osd_mode; //0: disable osd, 1:palette type 0(congfigurable mode), 2:palette type 1(fixed mode).
+    RK_S32 preproc_en;
 } h264e_syntax;
 
 typedef struct h264e_feedback_t {
     /* rc */
-    RK_U32 hw_status;
+    RK_U32 hw_status; /* 0:corret, 1:error */
     RK_S32 qp_sum;
     RK_S32 cp[10];
     RK_S32 mad_count;
