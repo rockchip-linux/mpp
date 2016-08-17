@@ -56,6 +56,59 @@ static RK_U32 hevc_ver_align_64(RK_U32 val)
     return MPP_ALIGN(val, 64);
 }
 
+static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
+{
+    MppFrameFormat ret = MPP_FMT_BUTT;
+    switch (type) {
+    case ENC_INPUT_YUV420_PLANAR : {
+        ret = MPP_FMT_YUV420P;
+    } break;
+    case ENC_INPUT_YUV420_SEMIPLANAR : {
+        ret = MPP_FMT_YUV420SP;
+    } break;
+    case ENC_INPUT_YUV422_INTERLEAVED_YUYV : {
+        ret = MPP_FMT_YUV422_YUYV;
+    } break;
+    case ENC_INPUT_YUV422_INTERLEAVED_UYVY : {
+        ret = MPP_FMT_YUV422_UYVY;
+    } break;
+    case ENC_INPUT_RGB565 : {
+        ret = MPP_FMT_RGB565;
+    } break;
+    case ENC_INPUT_BGR565 : {
+        ret = MPP_FMT_BGR565;
+    } break;
+    case ENC_INPUT_RGB555 : {
+        ret = MPP_FMT_RGB555;
+    } break;
+    case ENC_INPUT_BGR555 : {
+        ret = MPP_FMT_BGR555;
+    } break;
+    case ENC_INPUT_RGB444 : {
+        ret = MPP_FMT_RGB444;
+    } break;
+    case ENC_INPUT_BGR444 : {
+        ret = MPP_FMT_BGR444;
+    } break;
+    case ENC_INPUT_RGB888 : {
+        ret = MPP_FMT_RGB888;
+    } break;
+    case ENC_INPUT_BGR888 : {
+        ret = MPP_FMT_BGR888;
+    } break;
+    case ENC_INPUT_RGB101010 : {
+        ret = MPP_FMT_RGB101010;
+    } break;
+    case ENC_INPUT_BGR101010 : {
+        ret = MPP_FMT_BGR101010;
+    } break;
+    default : {
+        mpp_err("There is no match format, err!!!!!!");
+    } break;
+    }
+    return ret;
+}
+
 VpuApiLegacy::VpuApiLegacy() :
     mpp_ctx(NULL),
     mpi(NULL),
@@ -172,14 +225,13 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         mpp_assert(param->width);
         mpp_assert(param->height);
 
-        RK_S32 tmp_fmt = param->format;
-        perform(INPUT_FORMAT_MAP, &tmp_fmt);
+        enc_in_fmt = (EncInputPictureType)param->format;
 
         outData = mpp_malloc(RK_U8, (param->width * param->height));
 
         mpp_cfg.width       = param->width;
         mpp_cfg.height      = param->height;
-        mpp_cfg.format      = tmp_fmt;
+        mpp_cfg.format      = vpu_pic_type_remap_to_mpp(enc_in_fmt);
         mpp_cfg.rc_mode     = param->rc_mode;
         mpp_cfg.skip_cnt    = 0;
         mpp_cfg.bps         = param->bitRate;
@@ -807,59 +859,6 @@ FUNC_RET:
     vpu_api_dbg_func("leave ret %d\n", ret);
     return ret;
 }
-
-static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
-{
-    MppFrameFormat ret = MPP_FMT_BUTT;
-    switch (type) {
-    case ENC_INPUT_YUV420_PLANAR : {
-        ret = MPP_FMT_YUV420P;
-    } break;
-    case ENC_INPUT_YUV420_SEMIPLANAR : {
-        ret = MPP_FMT_YUV420SP;
-    } break;
-    case ENC_INPUT_YUV422_INTERLEAVED_YUYV : {
-        ret = MPP_FMT_YUV422_YUYV;
-    } break;
-    case ENC_INPUT_YUV422_INTERLEAVED_UYVY : {
-        ret = MPP_FMT_YUV422_UYVY;
-    } break;
-    case ENC_INPUT_RGB565 : {
-        ret = MPP_FMT_RGB565;
-    } break;
-    case ENC_INPUT_BGR565 : {
-        ret = MPP_FMT_BGR565;
-    } break;
-    case ENC_INPUT_RGB555 : {
-        ret = MPP_FMT_RGB555;
-    } break;
-    case ENC_INPUT_BGR555 : {
-        ret = MPP_FMT_BGR555;
-    } break;
-    case ENC_INPUT_RGB444 : {
-        ret = MPP_FMT_RGB444;
-    } break;
-    case ENC_INPUT_BGR444 : {
-        ret = MPP_FMT_BGR444;
-    } break;
-    case ENC_INPUT_RGB888 : {
-        ret = MPP_FMT_RGB888;
-    } break;
-    case ENC_INPUT_BGR888 : {
-        ret = MPP_FMT_BGR888;
-    } break;
-    case ENC_INPUT_RGB101010 : {
-        ret = MPP_FMT_RGB101010;
-    } break;
-    case ENC_INPUT_BGR101010 : {
-        ret = MPP_FMT_BGR101010;
-    } break;
-    default : {
-        mpp_err("There is no match format, err!!!!!!");
-    } break;
-    }
-    return ret;
- }
 
 RK_S32 VpuApiLegacy::perform(PerformCmd cmd, RK_S32 *data)
 {
