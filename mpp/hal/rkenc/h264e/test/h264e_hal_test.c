@@ -1114,7 +1114,6 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
     }
     if (hw_output_strm_buf[buf_idx])
         syn->output_strm_addr = mpp_buffer_get_fd(hw_output_strm_buf[buf_idx]);
-    syn->output_strm_limit_size = 1024 * 1024 * 2;
  
     #if RKV_H264E_SDK_TEST
     mpp_log("make syntax begin");
@@ -1126,10 +1125,10 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
     mpp_log("syn->profile_idc %d", syn->profile_idc);
     syn->keyframe_max_interval = 30;
     if(g_frame_cnt==0 || g_frame_cnt%syn->keyframe_max_interval==0) {
-        syn->frame_coding_type = 1; //IDR
+        syn->frame_coding_type = 1; //intra
         syn->slice_type = 2;
     } else {
-        syn->frame_coding_type = 3; //P 
+        syn->frame_coding_type = 0; //inter
         syn->slice_type = 0;
     }
     syn->qp = 26;
@@ -1197,7 +1196,8 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
         mpp_err("rkv_syntax_in.txt doesn't exits");
     }
     #endif
-    
+    syn->output_strm_limit_size = syn->pic_luma_width * syn->pic_luma_height * 1.5;
+
     h264e_hal_debug_leave();
     return MPP_OK;
 }
@@ -1516,7 +1516,7 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
         mpp_buffer_get(hw_input_buf_grp, &hw_input_buf_mul[k], frame_luma_stride * 3 / 2);
 
     for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++)
-        mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf_mul[k], 1024 * 1024 * 2);
+        mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf_mul[k], syntax_data[0].pic_luma_width * syntax_data[0].pic_luma_height * 1.5);
 
 
     hal_cfg.hal_int_cb.callBack = h264_hal_test_call_back;
