@@ -27,7 +27,7 @@
 #include "hal_h264e.h"
 #include "hal_h264e_rkv.h"
 
-#define RKVENC_DUMP_INFO                1
+#define RKVENC_DUMP_INFO                0
 
 #define RKVENC_FRAME_TYPE_AUTO          0x0000  /* Let x264 choose the right type */
 #define RKVENC_FRAME_TYPE_IDR           0x0001
@@ -1546,7 +1546,7 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
                 mpp_err("hw_rec_buf[%d] get failed", k);
                 return MPP_ERR_MALLOC;
             } else {
-                mpp_log("hw_rec_buf[%d] %p done, fd %d", k, buffers->hw_rec_buf[k], mpp_buffer_get_fd(buffers->hw_rec_buf[k]));
+                h264e_hal_log_detail("hw_rec_buf[%d] %p done, fd %d", k, buffers->hw_rec_buf[k], mpp_buffer_get_fd(buffers->hw_rec_buf[k]));
             } 
             frame_buf[k].hw_buf = buffers->hw_rec_buf[k];
         }
@@ -2983,8 +2983,7 @@ MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, RK
         stridec = (regs->swreg14.src_cfmt == 4 || regs->swreg14.src_cfmt == 6) ? stridey : ((stridey + 1) / 2 - 1);
         regs->swreg23.src_ystrid    = stridey; //syn->swreg23.src_ystrid;
         regs->swreg23.src_cstrid    = stridec; //syn->swreg23.src_cstrid;    ////YUV420 planar;
-    
-        mpp_log("regs->swreg23 %08x", regs->swreg23);
+
 
         (void)test;
     }
@@ -3135,18 +3134,12 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg26_adr_srcv     = syn->input_cr_addr; //syn->addr_cfg.adr_srcv;
     regs->swreg27_fltw_addr    = mpp_buffer_get_fd(bufs->hw_pp_buf[buf2_idx]);
     regs->swreg28_fltr_addr    = mpp_buffer_get_fd(bufs->hw_pp_buf[1 - buf2_idx]);
-    mpp_log("regs->swreg24_adr_srcy %d", regs->swreg24_adr_srcy);
-    mpp_log("regs->swreg25_adr_srcu %d", regs->swreg25_adr_srcu);
-    mpp_log("regs->swreg26_adr_srcv %d", regs->swreg26_adr_srcv);
 
     hal_h264e_rkv_set_roi_regs(regs, syn, bufs->hw_roi_buf[mul_buf_idx], ctx->frame_cnt, test_cfg);
 
     regs->swreg30_rfpw_addr    = mpp_buffer_get_fd(dpb_ctx->fdec->hw_buf);//syn->addr_cfg.rfpw_addr; //TODO: extend recon luma buf
     if (dpb_ctx->fref[0][0])
         regs->swreg31_rfpr_addr    = mpp_buffer_get_fd(dpb_ctx->fref[0][0]->hw_buf); //syn->addr_cfg.rfpr_addr;
-    mpp_log("regs->swreg30_rfpw_addr %d",regs->swreg30_rfpw_addr);
-    mpp_log("regs->swreg31_rfpr_addr %d",regs->swreg31_rfpr_addr);
-
     //regs->swreg32_cmvw_addr    = mpp_buffer_get_fd(bufs->hw_cmv_buf[buf2_idx]);
     regs->swreg34_dspw_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[buf2_idx]); //syn->addr_cfg.dspw_addr;
     regs->swreg35_dspr_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[1 - buf2_idx]); //syn->addr_cfg.dspr_addr;
@@ -3159,10 +3152,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg39_bsbr_addr    = regs->swreg38_bsbb_addr;
     regs->swreg40_bsbw_addr    = regs->swreg38_bsbb_addr; //syn->addr_cfg.bsbw_addr;
 
-    mpp_log("regs->swreg37_bsbt_addr %08x",regs->swreg37_bsbt_addr);
-    mpp_log("regs->swreg37_bsbb_addr %08x",regs->swreg38_bsbb_addr);
-    mpp_log("regs->swreg37_bsbr_addr %08x",regs->swreg39_bsbr_addr);
-    mpp_log("regs->swreg37_bsbw_addr %08x",regs->swreg40_bsbw_addr);
     //mpp_log("regs->swreg37_bsbt_addr: %08x", regs->swreg37_bsbt_addr);
     //mpp_log("regs->swreg38_bsbb_addr: %08x", regs->swreg38_bsbb_addr);
     //mpp_log("regs->swreg39_bsbr_addr: %08x", regs->swreg39_bsbr_addr);
@@ -3273,9 +3262,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     {
         RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
-
-        mpp_log("syn->frame_coding_type %d", syn->frame_coding_type);
-        mpp_log("syn->input_image_format %d", syn->input_image_format);
 
         if (syn->frame_coding_type == RKVENC_FRAME_TYPE_IDR ) { //TODO: extend syn->frame_coding_type definition
             /* reset ref pictures */
@@ -3443,7 +3429,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     ctx->frame_cnt_gen_ready++;
     ctx->frame_cnt++;
 
-    h264e_hal_log_err("regs->swreg02 0x%08x", regs->swreg02);
     h264e_hal_debug_leave();
 
     return MPP_OK;
@@ -3545,7 +3530,6 @@ static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_ou
         }
         
         fb->hw_status = elem->hw_status;
-        h264e_hal_log_err("ST_DTRNS %08x", elem->swreg77);
     }
 
     h264e_hal_debug_leave();
