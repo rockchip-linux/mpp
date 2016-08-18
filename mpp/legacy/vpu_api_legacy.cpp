@@ -465,7 +465,9 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
             memset(&info, 0, sizeof(MppBufferInfo));
             mpp_buffer_info_get(buf, &info);
             vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
-            vframe->vpumem.size |= ((info.index << 27) & 0xf8000000);
+            /* setup index to vpumem only if index is valid */
+            if (info.index >= 0)
+                vframe->vpumem.size |= ((info.index << 27) & 0xf8000000);
             vframe->vpumem.offset = (RK_U32*)buf;
         }
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
