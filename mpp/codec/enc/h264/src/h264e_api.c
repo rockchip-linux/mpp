@@ -268,10 +268,16 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 
         H264EncCodingCtrl oriCodingCfg;
 
-        enc_cfg->streamType = H264ENC_BYTE_STREAM;
-        enc_cfg->frameRateDenom = 1;
-        enc_cfg->profile    = (H264Profile)mpp_cfg->profile;
-        enc_cfg->level      = (H264Level)mpp_cfg->level;
+        enc_cfg->streamType         = H264ENC_BYTE_STREAM;
+        enc_cfg->frameRateDenom     = 1;
+        enc_cfg->profile            = (H264Profile)mpp_cfg->profile;
+        enc_cfg->level              = (H264Level)mpp_cfg->level;
+        enc_cfg->enable_cabac       = mpp_cfg->cabac_en;
+        enc_cfg->transform8x8_mode  = (enc_cfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
+        enc_cfg->chroma_qp_index_offset = 2;
+        enc_cfg->second_chroma_qp_index_offset = 2;
+        enc_cfg->pic_init_qp        = mpp_cfg->qp;
+        enc_cfg->pps_id = 0;
 
         if (mpp_cfg->width && mpp_cfg->height) {
             enc_cfg->width  = mpp_cfg->width;
@@ -279,45 +285,31 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         } else
             mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
 
-        enc_cfg->frameRateNum = mpp_cfg->fps_in;
-        enc_cfg->enable_cabac = mpp_cfg->cabac_en;
-
-        enc_cfg->transform8x8_mode = (enc_cfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
-        enc_cfg->chroma_qp_index_offset = 2;
-        enc_cfg->pic_init_qp = mpp_cfg->qp;
-        enc_cfg->second_chroma_qp_index_offset = 2;
-        enc_cfg->pps_id = 0;
-        enc_cfg->input_image_format = (MppFrameFormat)mpp_cfg->format;
+        enc_cfg->input_image_format = mpp_cfg->format;
+        enc_cfg->frameRateNum       = mpp_cfg->fps_in;
+        enc_cfg->frameRateDenom     = 1;
 
         ret = H264EncCfg(enc, enc_cfg);
 
         /* Encoder setup: coding control */
-        ret = H264EncGetCodingCtrl(enc, &oriCodingCfg);
+        oriCodingCfg.sliceSize = 0;
+        oriCodingCfg.seiMessages = 0;
+        oriCodingCfg.videoFullRange = 0;
+        oriCodingCfg.constrainedIntraPrediction = 0;
+        oriCodingCfg.disableDeblockingFilter = 0;
+        oriCodingCfg.enableCabac = enc_cfg->enable_cabac;
+        oriCodingCfg.cabacInitIdc = 0;
+        oriCodingCfg.transform8x8Mode = enc_cfg->transform8x8_mode;
+        ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
         if (ret) {
-            mpp_err("H264EncGetCodingCtrl() failed, ret %d.", ret);
+            mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
             h264e_deinit((void*)enc);
             break;
-        } else {
-            oriCodingCfg.sliceSize = 0;
-            oriCodingCfg.constrainedIntraPrediction = 0;
-            oriCodingCfg.disableDeblockingFilter = 0;
-            oriCodingCfg.enableCabac = enc_cfg->enable_cabac;
-            oriCodingCfg.cabacInitIdc = 0;
-            oriCodingCfg.videoFullRange = 0;
-            oriCodingCfg.seiMessages = 0;
-            oriCodingCfg.transform8x8Mode = enc_cfg->transform8x8_mode;
-            ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
-            if (ret) {
-                mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
-                h264e_deinit((void*)enc);
-                break;
-            }
         }
     } break;
     case SET_ENC_RC_CFG : {
         MppEncConfig    *mpp_cfg    = (MppEncConfig *)param;
         H264EncRateCtrl *enc_rc_cfg = &enc->enc_rc_cfg;
-        H264EncRateCtrl oriRcCfg;
 
         mpp_assert(enc);
 
@@ -360,45 +352,17 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc->intraPicRate = enc_rc_cfg->intraPicRate;
         enc->intraPeriodCnt = enc_rc_cfg->intraPicRate;
 
-        /* Encoder setup: rate control */
-        ret = H264EncGetRateCtrl(enc, &oriRcCfg);
-        if (ret) {
-            mpp_err("H264EncGetRateCtrl() failed, ret %d.", ret);
-        } else {
-            mpp_log_f("Get rate control: qp %2d [%2d, %2d] bps %8d\n",
-                      oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
+        mpp_log("Set rate control: qp %2d [%2d, %2d] bps %8d\n",
+                enc_rc_cfg->qpHdr, enc_rc_cfg->qpMin, enc_rc_cfg->qpMax, enc_rc_cfg->bitPerSecond);
 
-            mpp_log_f("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
-                      oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                      oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
+        mpp_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
+                enc_rc_cfg->pictureRc, enc_rc_cfg->mbRc, enc_rc_cfg->pictureSkip, enc_rc_cfg->hrd,
+                enc_rc_cfg->hrdCpbSize, enc_rc_cfg->gopLen);
 
-            oriRcCfg.qpHdr = enc_rc_cfg->qpHdr;
-            oriRcCfg.qpMin = enc_rc_cfg->qpMin;
-            oriRcCfg.qpMax = enc_rc_cfg->qpMax;
+        ret = H264EncSetRateCtrl(enc, enc_rc_cfg);
+        if (ret)
+            mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
 
-            oriRcCfg.pictureSkip = enc_rc_cfg->pictureSkip;
-            oriRcCfg.pictureRc = enc_rc_cfg->pictureRc;
-            oriRcCfg.mbRc = enc_rc_cfg->mbRc;
-            oriRcCfg.bitPerSecond = enc_rc_cfg->bitPerSecond;
-            oriRcCfg.hrd = enc_rc_cfg->hrd;
-            oriRcCfg.hrdCpbSize = enc_rc_cfg->hrdCpbSize;
-            oriRcCfg.gopLen = enc_rc_cfg->gopLen;
-            oriRcCfg.intraQpDelta = enc_rc_cfg->intraQpDelta;
-            oriRcCfg.fixedIntraQp = enc_rc_cfg->fixedIntraQp;
-            oriRcCfg.mbQpAdjustment = enc_rc_cfg->mbQpAdjustment;
-
-            mpp_log("Set rate control: qp %2d [%2d, %2d] bps %8d\n",
-                    oriRcCfg.qpHdr, oriRcCfg.qpMin, oriRcCfg.qpMax, oriRcCfg.bitPerSecond);
-
-            mpp_log("pic %d mb %d skip %d hrd %d cpbSize %d gopLen %d\n",
-                    oriRcCfg.pictureRc, oriRcCfg.mbRc, oriRcCfg.pictureSkip, oriRcCfg.hrd,
-                    oriRcCfg.hrdCpbSize, oriRcCfg.gopLen);
-
-            ret = H264EncSetRateCtrl(enc, &oriRcCfg);
-            if (ret) {
-                mpp_err("H264EncSetRateCtrl() failed, ret %d.", ret);
-            }
-        }
     } break;
     case GET_ENC_EXTRA_INFO : {
         h264e_control_extra_info_cfg **dst  = (h264e_control_extra_info_cfg **)param;
@@ -421,9 +385,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         info->pps_id                        = enc_cfg->pps_id;
 
         *dst = info;
+        ret = MPP_OK;
     } break;
     case GET_OUTPUT_STREAM_SIZE : {
         *((RK_U32*)param) = getOutputStreamSize(enc);
+        ret = MPP_OK;
     } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");

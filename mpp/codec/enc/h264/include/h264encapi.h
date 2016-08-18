@@ -326,14 +326,10 @@ H264EncRet H264EncRelease(H264ECtx *inst);
 H264EncRet H264EncCfg(H264ECtx *inst, const H264EncConfig * pEncConfig);
 H264EncRet H264EncSetCodingCtrl(H264ECtx *inst, const H264EncCodingCtrl *
                                 pCodingParams);
-H264EncRet H264EncGetCodingCtrl(H264ECtx *inst, H264EncCodingCtrl *
-                                pCodingParams);
 
 /* Encoder configuration before and during stream generation */
 H264EncRet H264EncSetRateCtrl(H264ECtx *inst,
                               const H264EncRateCtrl * pRateCtrl);
-H264EncRet H264EncGetRateCtrl(H264ECtx *inst,
-                              H264EncRateCtrl * pRateCtrl);
 
 /* Encoder user data insertion during stream generation */
 H264EncRet H264EncSetSeiUserData(H264ECtx *inst, const RK_U8 * pUserData,

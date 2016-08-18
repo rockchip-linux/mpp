@@ -215,56 +215,6 @@ set_slice_size:
 
 /*------------------------------------------------------------------------------
 
-    Function name : H264EncGetCodingCtrl
-    Description   : Returns current encoding parameters
-
-    Return type   : H264EncRet
-    Argument      : inst - the instance in use
-                    pCodeParams - palce where parameters are returned
-------------------------------------------------------------------------------*/
-H264EncRet H264EncGetCodingCtrl(H264ECtx *pEncInst,
-                                H264EncCodingCtrl * pCodeParams)
-{
-    h264e_dbg_func("enter\n");
-
-    /* Check for illegal inputs */
-    if ((pEncInst == NULL) || (pCodeParams == NULL)) {
-        mpp_err_f("ERROR Null argument\n");
-        return H264ENC_NULL_ARGUMENT;
-    }
-
-    /* Check for existing instance */
-    if (pEncInst->inst != pEncInst) {
-        mpp_err_f("ERROR Invalid instance\n");
-        return H264ENC_INSTANCE_ERROR;
-    }
-
-    /* Get values */
-    pCodeParams->constrainedIntraPrediction =
-        (pEncInst->picParameterSet.constIntraPred == ENCHW_NO) ? 0 : 1;
-
-    /* Slice size from macroblocks to macroblock rows */
-    pCodeParams->sliceSize = pEncInst->slice.sliceSize / pEncInst->mbPerRow;
-
-    pCodeParams->seiMessages =
-        (pEncInst->rateControl.sei.enabled == ENCHW_YES) ? 1 : 0;
-    pCodeParams->videoFullRange =
-        (pEncInst->seqParameterSet.vui.videoFullRange == ENCHW_YES) ? 1 : 0;
-    pCodeParams->sampleAspectRatioWidth =
-        pEncInst->seqParameterSet.vui.sarWidth;
-    pCodeParams->sampleAspectRatioHeight =
-        pEncInst->seqParameterSet.vui.sarHeight;
-    pCodeParams->disableDeblockingFilter = pEncInst->slice.disableDeblocking;
-    pCodeParams->enableCabac = pEncInst->picParameterSet.entropyCodingMode;
-    pCodeParams->cabacInitIdc = pEncInst->slice.cabacInitIdc;
-    pCodeParams->transform8x8Mode = pEncInst->picParameterSet.transform8x8Mode;
-
-    h264e_dbg_func("leave\n");
-    return H264ENC_OK;
-}
-
-/*------------------------------------------------------------------------------
-
     Function name : H264EncSetRateCtrl
     Description   : Sets rate control parameters
 
@@ -424,54 +374,6 @@ H264EncRet H264EncSetRateCtrl(H264ECtx *pEncInst,
     rc->fixedIntraQp = pRateCtrl->fixedIntraQp;
     rc->mbQpAdjustment = pRateCtrl->mbQpAdjustment;
     (void) H264InitRc(rc);  /* new parameters checked already */
-
-    h264e_dbg_func("leave\n");
-    return H264ENC_OK;
-}
-
-/*------------------------------------------------------------------------------
-
-    Function name : H264EncGetRateCtrl
-    Description   : Return current rate control parameters
-
-    Return type   : H264EncRet
-    Argument      : inst - the instance in use
-                    pRateCtrl - place where parameters are returned
-------------------------------------------------------------------------------*/
-H264EncRet H264EncGetRateCtrl(H264ECtx *pEncInst, H264EncRateCtrl * pRateCtrl)
-{
-    h264RateControl_s *rc;
-
-    h264e_dbg_func("enter\n");
-
-    /* Check for illegal inputs */
-    if ((pEncInst == NULL) || (pRateCtrl == NULL)) {
-        mpp_err_f("ERROR Null argument\n");
-        return H264ENC_NULL_ARGUMENT;
-    }
-
-    /* Check for existing instance */
-    if (pEncInst->inst != pEncInst) {
-        mpp_err_f("ERROR Invalid instance\n");
-        return H264ENC_INSTANCE_ERROR;
-    }
-
-    /* Get the values */
-    rc = &pEncInst->rateControl;
-
-    pRateCtrl->pictureRc = rc->picRc == ENCHW_NO ? 0 : 1;
-    pRateCtrl->mbRc = rc->mbRc == ENCHW_NO ? 0 : 1;
-    pRateCtrl->pictureSkip = rc->picSkip == ENCHW_NO ? 0 : 1;
-    pRateCtrl->qpHdr = rc->qpHdr;
-    pRateCtrl->qpMin = rc->qpMin;
-    pRateCtrl->qpMax = rc->qpMax;
-    pRateCtrl->bitPerSecond = rc->virtualBuffer.bitRate;
-    pRateCtrl->hrd = rc->hrd == ENCHW_NO ? 0 : 1;
-    pRateCtrl->gopLen = rc->gopLen;
-
-    pRateCtrl->hrdCpbSize = (RK_U32) rc->virtualBuffer.bufferSize;
-    pRateCtrl->intraQpDelta = rc->intraQpDelta;
-    pRateCtrl->fixedIntraQp = rc->fixedIntraQp;
 
     h264e_dbg_func("leave\n");
     return H264ENC_OK;

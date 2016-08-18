@@ -225,7 +225,7 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
     inst->preProcess.verOffsetSrc = 0;
 
     inst->preProcess.rotation = ROTATE_0;
-    inst->preProcess.inputFormat = inst->enc_cfg.input_image_format;
+    inst->preProcess.inputFormat = pEncCfg->input_image_format;
     inst->preProcess.videoStab = 0;
 
     inst->preProcess.colorConversionType = 0;
