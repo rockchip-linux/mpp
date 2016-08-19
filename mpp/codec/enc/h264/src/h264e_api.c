@@ -266,7 +266,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         MppEncConfig  *mpp_cfg = (MppEncConfig *)param;
         H264EncConfig *enc_cfg = &enc->enc_cfg;
 
-        H264EncCodingCtrl oriCodingCfg;
+        H264EncCodingCtrl coding_cfg;
 
         enc_cfg->streamType         = H264ENC_BYTE_STREAM;
         enc_cfg->frameRateDenom     = 1;
@@ -292,15 +292,10 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         ret = H264EncCfg(enc, enc_cfg);
 
         /* Encoder setup: coding control */
-        oriCodingCfg.sliceSize = 0;
-        oriCodingCfg.seiMessages = 0;
-        oriCodingCfg.videoFullRange = 0;
-        oriCodingCfg.constrainedIntraPrediction = 0;
-        oriCodingCfg.disableDeblockingFilter = 0;
-        oriCodingCfg.enableCabac = enc_cfg->enable_cabac;
-        oriCodingCfg.cabacInitIdc = 0;
-        oriCodingCfg.transform8x8Mode = enc_cfg->transform8x8_mode;
-        ret = H264EncSetCodingCtrl(enc, &oriCodingCfg);
+        memset(&coding_cfg, 0, sizeof(coding_cfg));
+        coding_cfg.enableCabac = enc_cfg->enable_cabac;
+        coding_cfg.transform8x8Mode = enc_cfg->transform8x8_mode;
+        ret = H264EncSetCodingCtrl(enc, &coding_cfg);
         if (ret) {
             mpp_err("H264EncSetCodingCtrl() failed, ret %d.", ret);
             h264e_deinit((void*)enc);
@@ -342,7 +337,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         else
             enc_rc_cfg->intraPicRate = 30;
 
-        enc_rc_cfg->keyframe_max_interval = 150;
+        enc_rc_cfg->keyframe_max_interval = mpp_cfg->gop;
         enc_rc_cfg->bitPerSecond = mpp_cfg->bps;
         enc_rc_cfg->gopLen = mpp_cfg->gop;
         enc_rc_cfg->fixedIntraQp = 0;
