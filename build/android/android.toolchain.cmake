@@ -1394,7 +1394,11 @@ endif()
 # ----------------------------------------------------------------------------
 # add linker definition for Android SDK build
 # ----------------------------------------------------------------------------
+if( X86_64 OR MIPS64 OR ARM64_V8A )
+set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,-dynamic-linker,/system/bin/linker64 " )
+else()
 set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,-dynamic-linker,/system/bin/linker " )
+endif()
 
 if( ANDROID_COMPILER_IS_CLANG )
  set( ANDROID_CXX_FLAGS "-target ${ANDROID_LLVM_TRIPLE} -Qunused-arguments ${ANDROID_CXX_FLAGS}" )
