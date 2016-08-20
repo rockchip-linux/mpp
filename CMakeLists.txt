@@ -243,7 +243,6 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
             endif (NOT TORTOISE_WCREV_EXECUTABLE)
         endif(WIN32)
     endif(Subversion_FOUND)
-
 endif(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
 
 if(${HAVE_SVN})
@@ -253,15 +252,78 @@ if(${HAVE_SVN})
     set(VERSION_REVISION        ${Project_WC_REVISION})
     set(VERSION_LAST_AUTHOR     ${Project_WC_LAST_CHANGED_AUTHOR})
     set(VERSION_LAST_DATA       ${Project_WC_LAST_CHANGED_DATE})
+    set(VERSION_ONE_LINE        "${VERSION_REVISION} author: ${VERSION_LAST_AUTHOR} date: ${VERSION_LAST_DATA}")
+    set(VERSION_VER_NUM         ${VERSION_REVISION})
 else()
     set(VERSION_REVISION -1)
 endif()
 
-configure_file(
-    "${PROJECT_SOURCE_DIR}/build/cmake/svn_info.in"
-    "${PROJECT_SOURCE_DIR}/mpp/svn_info.h"
-)
+# ----------------------------------------------------------------------------
+# Create git version information
+# ----------------------------------------------------------------------------
+if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
+    find_package(Git)
+    if(GIT_FOUND)
+        # get author
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
+            OUTPUT_VARIABLE EXEC_OUT
+            ERROR_VARIABLE EXEC_ERROR
+            RESULT_VARIABLE EXEC_RET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE)
 
+        if (NOT EXEC_RET)
+            message(STATUS "author: ${EXEC_OUT}")
+            set(VERSION_LAST_AUTHOR ${EXEC_OUT})
+        endif()
+
+        # get date
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad
+            OUTPUT_VARIABLE EXEC_OUT
+            ERROR_VARIABLE EXEC_ERROR
+            RESULT_VARIABLE EXEC_RET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE)
+
+        if (NOT EXEC_RET)
+            message(STATUS "author: ${EXEC_OUT}")
+            set(VERSION_LAST_DATA ${EXEC_OUT})
+        endif()
+
+        # get version hash
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+            OUTPUT_VARIABLE EXEC_OUT
+            ERROR_VARIABLE EXEC_ERROR
+            RESULT_VARIABLE EXEC_RET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE)
+
+        if (NOT EXEC_RET)
+            set(VERSION_REVISION ${EXEC_OUT})
+        endif()
+
+        # get one line version information
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%h author: %an %s"
+            OUTPUT_VARIABLE EXEC_OUT
+            ERROR_VARIABLE EXEC_ERROR
+            RESULT_VARIABLE EXEC_RET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE)
+
+        if (NOT EXEC_RET)
+            message(STATUS "git version: ${EXEC_OUT}")
+            set(VERSION_ONE_LINE ${EXEC_OUT})
+            string(REPLACE "\"" "" VERSION_ONE_LINE ${VERSION_ONE_LINE})
+        endif()
+
+        set(VERSION_VER_NUM -1)
+    endif()
+endif(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
+
+configure_file(
+    "${PROJECT_SOURCE_DIR}/build/cmake/version.in"
+    "${PROJECT_SOURCE_DIR}/mpp/version.h"
+)
 
 # ----------------------------------------------------------------------------
 # Build options
