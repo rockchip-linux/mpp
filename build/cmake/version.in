@@ -17,10 +17,11 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
-#define	SVN_VERSION             "@VERSION_REVISION@"
-#define	SVN_AUTHOR              "@VERSION_LAST_AUTHOR@"
-#define	SVN_DATE                "@VERSION_LAST_DATA@"
-#define	SVN_ONE_LINE            "r@VERSION_REVISION@ author: @VERSION_LAST_AUTHOR@ date: @VERSION_LAST_DATA@"
+#define	MPP_VERSION             "@VERSION_REVISION@"
+#define	MPP_AUTHOR              "@VERSION_LAST_AUTHOR@"
+#define	MPP_DATE                "@VERSION_LAST_DATA@"
+#define	MPP_ONE_LINE            "@VERSION_ONE_LINE@"
+#define	MPP_VER_NUM             "@VERSION_VER_NUM@"
 
 #endif /*__VERSION_H__*/
 

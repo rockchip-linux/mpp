@@ -23,16 +23,17 @@
 #include "mpp_env.h"
 #include "mpp_info.h"
 
-#include "svn_info.h"
+#include "version.h"
 
 /*
  * To avoid string | grep author getting multiple results
  * use commit to replace author
  */
-static char mpp_version_revision[]  = SVN_VERSION;
-static char mpp_version_commit[]    = SVN_AUTHOR;
-static char mpp_version_date[]      = SVN_DATE;
-static char mpp_version_one_line[]  = SVN_ONE_LINE;
+static char mpp_version_revision[]  = MPP_VERSION;
+static char mpp_version_commit[]    = MPP_AUTHOR;
+static char mpp_version_date[]      = MPP_DATE;
+static char mpp_version_one_line[]  = MPP_ONE_LINE;
+static char mpp_version_number[]    = MPP_VER_NUM;
 
 static RK_CHIP_TYPE chip_version(void)
 {
@@ -97,6 +98,6 @@ RK_CHIP_TYPE get_chip_type()
 
 int mpp_info_get_revision()
 {
-    return atoi(SVN_VERSION);
+    return atoi(mpp_version_number);
 }
 
