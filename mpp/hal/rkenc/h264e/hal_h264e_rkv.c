@@ -3032,7 +3032,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     hal_h264e_rkv_adjust_param(ctx); //TODO: future expansion
 
-    mpp_log("frame_cnt %d start gen regs", ctx->frame_cnt);
+    h264e_hal_log_detail("frame_cnt %d start gen regs", ctx->frame_cnt);
 
     if (ctx->frame_cnt == 0) {
         if (MPP_OK != hal_h264e_rkv_allocate_buffers(ctx, syn, sps, test_cfg)) {
@@ -3501,12 +3501,12 @@ static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_ou
         fb->out_strm_size = elem->swreg69.bs_lgth;        
 
         fb->hw_status = 0;
-        mpp_log("hw_status: 0x%08x", elem->hw_status);
+        h264e_hal_log_detail("hw_status: 0x%08x", elem->hw_status);
         if(elem->hw_status & RKV_H264E_INT_LINKTABLE_FINISH) {
             h264e_hal_log_err("RKV_H264E_INT_LINKTABLE_FINISH");
         }        
         if(elem->hw_status & RKV_H264E_INT_ONE_FRAME_FINISH) {
-            h264e_hal_log_err("RKV_H264E_INT_ONE_FRAME_FINISH");
+            h264e_hal_log_detail("RKV_H264E_INT_ONE_FRAME_FINISH");
         }
         if(elem->hw_status & RKV_H264E_INT_ONE_SLICE_FINISH) {
             h264e_hal_log_err("RKV_H264E_INT_ONE_SLICE_FINISH");
