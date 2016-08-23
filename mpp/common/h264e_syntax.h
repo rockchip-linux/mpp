@@ -87,7 +87,7 @@ typedef struct h264e_feedback_t {
 
     /* for VEPU future extansion */
     //TODO: add nal size table feedback
-}h264e_feedback;
+} h264e_feedback;
 
 
 typedef struct h264e_control_extra_info_cfg_t {

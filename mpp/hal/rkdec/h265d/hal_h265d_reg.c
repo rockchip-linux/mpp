@@ -1392,10 +1392,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     numCuInWidth   = width / uiMaxCUWidth  + (width % uiMaxCUWidth != 0);
 
 #ifdef SOFIA_3GR_LINUX
-	stride_y      = (((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 63)
-                       & (~63)) >> 3);
+    stride_y      = (((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 63)
+                      & (~63)) >> 3);
     stride_uv     = (((numCuInWidth * uiMaxCUHeight * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 63)
-                       & (~63)) >> 3);
+                      & (~63)) >> 3);
 #else
     stride_y      = ((((numCuInWidth * uiMaxCUWidth * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 2047)
                        & (~2047)) | 2048) >> 3);

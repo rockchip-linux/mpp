@@ -1370,7 +1370,7 @@ static MPP_RET hal_h264e_vpu_write_sps(h264e_hal_vpu_stream *stream, h264e_hal_s
 
     hal_h264e_vpu_write_ue(stream, sps->i_id, "seq_parameter_set_id"); //8D
 
-	if (sps->i_profile_idc >= 100) { //High profile
+    if (sps->i_profile_idc >= 100) { //High profile
         hal_h264e_vpu_write_ue(stream, sps->i_chroma_format_idc, "chroma_format_idc");
         hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8, "bit_depth_luma_minus8");
         hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8, "bit_depth_chroma_minus8");
@@ -1498,7 +1498,7 @@ static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_c
     sps->i_mb_height = ( cfg->pic_luma_height + 15 ) / 16;
     sps->b_frame_mbs_only = 1;
     sps->b_direct8x8_inference = 1;
-	sps->i_chroma_format_idc = 1; //YUV420
+    sps->i_chroma_format_idc = 1; //YUV420
 
     sps->b_vui = 1;
 

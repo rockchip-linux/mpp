@@ -293,8 +293,8 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     group->count_unused++;
 
     buffer_group_add_log(group, p,
-                        (group->mode == MPP_BUFFER_INTERNAL) ? (BUF_CREATE) : (BUF_COMMIT),
-                        caller);
+                         (group->mode == MPP_BUFFER_INTERNAL) ? (BUF_CREATE) : (BUF_COMMIT),
+                         caller);
 
     if (buffer) {
         inc_buffer_ref_no_lock(p, caller);

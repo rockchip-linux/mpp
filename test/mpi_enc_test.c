@@ -459,7 +459,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
                 if (next) {
                     cmd->format = (MppFrameFormat)atoi(next);
                     err = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
-                            cmd->format >= MPP_FMT_RGB_BUTT);
+                           cmd->format >= MPP_FMT_RGB_BUTT);
                 }
 
                 if (!next || err) {

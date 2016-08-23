@@ -146,6 +146,6 @@ RK_S32 H264Calculate(RK_S32 a, RK_S32 b, RK_S32 c);
 bool_e H264InitRc(h264RateControl_s * rc);
 void H264BeforePicRc(h264RateControl_s * rc, RK_U32 timeInc, RK_U32 sliceType);
 RK_S32 H264AfterPicRc(h264RateControl_s * rc, RK_U32 nonZeroCnt, RK_U32 byteCnt,
-                   RK_U32 qpSum);
+                      RK_U32 qpSum);
 #endif /* H264_RATE_CONTROL_H */
 

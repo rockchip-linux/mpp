@@ -45,8 +45,8 @@ const RK_U32 H264MaxCPBS[15] = {
 };
 
 const RK_U32 H264MaxFS[15] = { 99, 396, 396, 396, 396, 792, 1620, 1620,
-                            3600, 5120, 8192, 8192, 8192, 22080, 36864
-                          };
+                               3600, 5120, 8192, 8192, 8192, 22080, 36864
+                             };
 
 /* sqrt(8*maxFrameSize) is maximum width and height of specific level */
 const RK_U32 H264SqrtMaxFS8[15] =

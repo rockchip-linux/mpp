@@ -50,7 +50,7 @@ static const ParserApi *parsers[] = {
     &api_mpg4d_parser,
     &api_vp8d_parser,
     &api_vp9d_parser,
-	&api_jpegd_parser,
+    &api_jpegd_parser,
     &dummy_dec_parser,
 };
 
