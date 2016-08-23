@@ -134,11 +134,12 @@ void close_vpu_memory_pool(vpu_display_mem_pool *p)
 
 int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
 {
-
     vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
     if (NULL == p_mempool) {
         return -1;
     }
+    mpp_buffer_group_get_internal(&p_mempool->group, MPP_BUFFER_TYPE_ION);
+    mpp_buffer_group_limit_config(p_mempool->group, size, num + 4);
     p_mempool->commit_hdl     = commit_memory_handle;
     p_mempool->get_free       = get_free_memory_vpumem;
     p_mempool->put_used       = put_used_memory_handle;
@@ -149,8 +150,6 @@ int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int 
     p_mempool->buff_size      = size;
     p_mempool->size           = size;
     *ipool = (vpu_display_mem_pool*)p_mempool;
-
-    (void)num;
     return 0;
 }
 
@@ -160,7 +159,13 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
     if (p_mempool == NULL) {
         return;
     }
+
+    if (p_mempool->group) {
+        mpp_buffer_group_put(p_mempool->group);
+        p_mempool->group = NULL;
+    }
     mpp_free(p_mempool);
+    p_mempool = NULL;
     return;
 }
 
