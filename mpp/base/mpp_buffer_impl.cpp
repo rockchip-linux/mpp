@@ -246,7 +246,8 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     }
 
     if (group->limit_count && group->buffer_count >= group->limit_count) {
-        mpp_err_f("group %d reach count limit %d\n", group->group_id, group->limit_count);
+        if (group->log_runtime_en)
+            mpp_log_f("group %d reach count limit %d\n", group->group_id, group->limit_count);
         ret = MPP_NOK;
         goto RET;
     }
