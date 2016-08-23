@@ -45,6 +45,7 @@ Mpp::Mpp()
       mTaskGetCount(0),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
+      mExternalFrameGroup(0),
       mInputPort(NULL),
       mOutputPort(NULL),
       mInputTaskQueue(NULL),
@@ -213,11 +214,8 @@ void Mpp::clear()
         mpp_buffer_group_put(mPacketGroup);
         mPacketGroup = NULL;
     }
-    if (mFrameGroup) {
-        MppBufferMode mode = mpp_buffer_group_mode(mFrameGroup);
-        if (MPP_BUFFER_INTERNAL == mode) {
-            mpp_buffer_group_put(mFrameGroup);
-        }
+    if (mFrameGroup && !mExternalFrameGroup) {
+        mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
 }
@@ -607,8 +605,14 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     } break;
     case MPP_DEC_SET_EXT_BUF_GROUP: {
         mFrameGroup = (MppBufferGroup)param;
-        ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
-        mThreadCodec->signal();
+        if (param) {
+            mExternalFrameGroup = 1;
+            ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
+            mThreadCodec->signal();
+        } else {
+            mExternalFrameGroup = 0;
+            ret = mpp_buffer_group_set_listener(NULL, (void *)mThreadCodec);
+        }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
         ret = mpp_buf_slot_ready(mDec->frame_slots);

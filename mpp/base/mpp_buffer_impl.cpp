@@ -683,6 +683,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
         mpp_assert(group->log_count == 0);
     }
 
+    mpp_assert(group->allocator);
     mpp_allocator_put(&group->allocator);
     list_del_init(&group->list_group);
     mpp_free(group);
