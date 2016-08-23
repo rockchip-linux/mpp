@@ -91,7 +91,7 @@ typedef struct h264e_hal_rkv_coveragetest_cfg_t {
     RK_U32 osd;
     RK_U32 mbrc;
     RK_U32 roi;
-}h264e_hal_rkv_coveragetest_cfg;
+} h264e_hal_rkv_coveragetest_cfg;
 #endif
 
 
@@ -145,8 +145,8 @@ typedef struct h264e_hal_rkv_roi_cfg_t {
     RK_U8 qp_y          : 6;
     RK_U8 set_qp_y_en   : 1;
     RK_U8 forbit_inter  : 1;
-}h264e_hal_rkv_roi_cfg;
-   
+} h264e_hal_rkv_roi_cfg;
+
 
 typedef struct h264e_hal_rkv_buffers_t {
     MppBufferGroup hw_buf_grp[H264E_HAL_RKV_BUF_GRP_BUTT];

@@ -158,7 +158,7 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
     /* enforce macroblock rate limit in level */
     {
         RK_U32 mb_rate = (pEncCfg->frameRateNum * inst->mbPerFrame) /
-                      pEncCfg->frameRateDenom;
+                         pEncCfg->frameRateDenom;
 
         if (mb_rate > H264MaxMBPS[inst->seqParameterSet.levelIdx]) {
             mpp_log("input mb rate %d is larger than restriction %d\n",

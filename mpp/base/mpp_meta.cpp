@@ -90,13 +90,11 @@ private:
     RK_U32              node_count;
 
 public:
-    static MppMetaService *get_instance()
-    {
+    static MppMetaService *get_instance() {
         static MppMetaService instance;
         return &instance;
     }
-    static Mutex *get_lock()
-    {
+    static Mutex *get_lock() {
         static Mutex lock;
         return &lock;
     }
@@ -118,9 +116,9 @@ public:
 };
 
 MppMetaService::MppMetaService()
-  : meta_id(0),
-    meta_count(0),
-    node_count(0)
+    : meta_id(0),
+      meta_count(0),
+      node_count(0)
 {
     INIT_LIST_HEAD(&mlist_meta);
     INIT_LIST_HEAD(&mlist_node);

@@ -196,7 +196,7 @@ RK_S32 check_sysfs_iommu()
 
     mpp_env_get_u32("ion_debug", &ion_debug, 0);
 #ifdef SOFIA_3GR_LINUX
-	return ret;
+    return ret;
 #endif
 
     for (i = 0; i < MPP_ARRAY_ELEMS(dts_devices); i++) {

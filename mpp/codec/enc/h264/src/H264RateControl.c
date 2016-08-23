@@ -64,10 +64,10 @@ FILE *fpRcTrc = NULL;
 ------------------------------------------------------------------------------*/
 /* q_step values scaled up by 4 and evenly rounded */
 RK_S32 q_step[53] = { 3, 3, 3, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11,
-                   13, 14, 16, 18, 20, 23, 25, 28, 32, 36, 40, 45, 51, 57, 64, 72, 80, 90,
-                   101, 114, 128, 144, 160, 180, 203, 228, 256, 288, 320, 360, 405, 456,
-                   513, 577, 640, 720, 810, 896
-                 };
+                      13, 14, 16, 18, 20, 23, 25, 28, 32, 36, 40, 45, 51, 57, 64, 72, 80, 90,
+                      101, 114, 128, 144, 160, 180, 203, 228, 256, 288, 320, 360, 405, 456,
+                      513, 577, 640, 720, 810, 896
+                    };
 
 /*------------------------------------------------------------------------------
   Local function prototypes
@@ -422,7 +422,7 @@ static RK_S32 VirtualBuffer_new(h264VirtualBuffer_s *vb, RK_S32 timeInc, true_e 
   returns number of required filler payload bytes.
 ------------------------------------------------------------------------------*/
 RK_S32 H264AfterPicRc(h264RateControl_s * rc, RK_U32 nonZeroCnt, RK_U32 byteCnt,
-                   RK_U32 qpSum)
+                      RK_U32 qpSum)
 {
     h264VirtualBuffer_s *vb = &rc->virtualBuffer;
     RK_S32 bitPerPic = rc->virtualBuffer.bitPerPic;

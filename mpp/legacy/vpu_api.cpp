@@ -208,8 +208,7 @@ public:
     VpulibDlsym() :
         rkapi_hdl(NULL),
         rkvpu_open_cxt(NULL),
-        rkvpu_close_cxt(NULL)
-    {
+        rkvpu_close_cxt(NULL) {
         RK_U32 i;
 
         for (i = 0; i < MPP_ARRAY_ELEMS(codec_paths); i++) {
