@@ -1,0 +1,41 @@
+#
+# Normal rules
+#
+.*
+*.swp
+
+#
+# Generated cmake build files
+#
+# linux Makefile
+build/*/*/CMakeCache.txt
+build/*/*/CMakeFiles/
+build/*/*/CTestTestfile.cmake
+build/*/*/Makefile
+build/*/*/cmake_install.cmake
+build/*/*/mpp/
+build/*/*/osal/
+build/*/*/test/
+build/*/*/utils/
+
+#
+# Generated include files
+#
+mpp/version.h
+
+#
+# git files that we don't want to ignore even it they are dot-files
+#
+!.gitignore
+!.mailmap
+
+# gnu global files
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+ID
+
+*.orig
+*~
+\#*#
