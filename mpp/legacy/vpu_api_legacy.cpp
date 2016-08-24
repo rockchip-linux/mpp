@@ -318,17 +318,24 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
         mpp_packet_set_eos(mpkt);
     }
 
+    vpu_api_dbg_input("input size %-6d flag %x pts %lld\n",
+                      pkt->size, pkt->nFlags, pkt->pts);
+
     do {
-        if (mpi->decode_put_packet(mpp_ctx, mpkt) == MPP_OK) {
+        ret = mpi->decode_put_packet(mpp_ctx, mpkt);
+        if (ret == MPP_OK) {
             pkt->size = 0;
             break;
+        } else if (pkt->nFlags & OMX_BUFFERFLAG_SYNC) {
+            msleep(1);
         }
     } while (pkt->nFlags & OMX_BUFFERFLAG_SYNC);
 
     mpp_packet_deinit(&mpkt);
 
     vpu_api_dbg_func("leave ret %d\n", ret);
-    return ret;
+    /* NOTE: always return success for old player compatibility */
+    return MPP_OK;
 }
 
 RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
@@ -336,16 +343,20 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
     RK_S32 ret = 0;
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
     MppFrame  mframe = NULL;
+
+    vpu_api_dbg_func("enter\n");
+
     if (!init_ok) {
         return VPU_API_ERR_VPU_CODEC_INIT;
     }
-
-    memset(vframe, 0, sizeof(VPU_FRAME));
 
     if (NULL == mpi) {
         aDecOut->size = 0;
         return 0;
     }
+
+    memset(vframe, 0, sizeof(VPU_FRAME));
+
     if (set_eos) {
         aDecOut->size = 0;
         mEosSet = 1;
@@ -493,6 +504,8 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         mpp_frame_deinit(&mframe);
     }
 
+    vpu_api_dbg_func("leave ret %d\n", ret);
+
     return ret;
 }
 
@@ -602,7 +615,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             goto ENCODE_OUT;
         }
         if (task == NULL) {
-            mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
+            vpu_api_dbg_func("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
             msleep(3);
         } else
             break;
@@ -881,7 +894,7 @@ RK_S32 VpuApiLegacy::perform(PerformCmd cmd, RK_S32 *data)
 
 RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
-    vpu_api_dbg_func("enter cmd %x param %p\n", cmd, param);
+    vpu_api_dbg_func("enter cmd 0x%x param %p\n", cmd, param);
 
     if (mpi == NULL && !init_ok) {
         return 0;
