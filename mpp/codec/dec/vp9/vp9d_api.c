@@ -181,12 +181,10 @@ MPP_RET vp9d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         task->valid = 1;
         mpp_packet_set_pts(vp9_ctx->pkt, pts);
         mpp_packet_set_dts(vp9_ctx->pkt, dts);
+        task->flags.eos = vp9_ctx->eos;
     } else {
         task->valid = 0;
         task->flags.eos = vp9_ctx->eos;
-        if (vp9_ctx->notify_cb.callBack != NULL && vp9_ctx->eos) {
-            vp9_ctx->notify_cb.callBack(vp9_ctx->notify_cb.opaque, NULL);
-        }
     }
 
     (void)pts;
