@@ -22,9 +22,11 @@
 #include "os_mem.h"
 #include "os_allocator.h"
 #include "allocator_ion.h"
+#include "allocator_drm.h"
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 typedef struct {
     RK_U32  alignment;
@@ -70,7 +72,7 @@ MPP_RET os_allocator_normal_alloc(void *ctx, MppBufferInfo *info)
 
 MPP_RET os_allocator_normal_free(void *ctx, MppBufferInfo *info)
 {
-    (void) ctx;
+    (void)ctx;
     if (info->ptr)
         os_free(info->ptr);
     return MPP_OK;
@@ -89,7 +91,7 @@ MPP_RET os_allocator_normal_import(void *ctx, MppBufferInfo *info)
 
 MPP_RET os_allocator_normal_release(void *ctx, MppBufferInfo *info)
 {
-    (void) ctx;
+    (void)ctx;
     mpp_assert(info->ptr);
     mpp_assert(info->size);
     info->ptr   = NULL;
@@ -121,17 +123,25 @@ static os_allocator allocator_normal = {
 MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
 {
     MPP_RET ret = MPP_OK;
+
     switch (type) {
     case MPP_BUFFER_TYPE_NORMAL :
     case MPP_BUFFER_TYPE_V4L2 : {
         *api = allocator_normal;
-    } break;
+    }
+    break;
     case MPP_BUFFER_TYPE_ION : {
         *api = allocator_ion;
-    } break;
+    }
+    break;
+    case MPP_BUFFER_TYPE_DRM : {
+        *api = allocator_drm;
+    }
+    break;
     default : {
         ret = MPP_NOK;
-    } break;
+    }
+    break;
     }
     return ret;
 }

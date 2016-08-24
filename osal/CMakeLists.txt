@@ -1,7 +1,7 @@
 # vim: syntax=cmake
 if(${ANDROID})
 set(OS_DIR android)
-set(MPP_ALLOCATOR allocator/allocator_ion.c)
+set(MPP_ALLOCATOR allocator/allocator_ion.c allocator/allocator_drm.c)
 elseif(${UNIX})
 set(OS_DIR linux)
 set(MPP_ALLOCATOR allocator/allocator_ion.c allocator/allocator_drm.c)
