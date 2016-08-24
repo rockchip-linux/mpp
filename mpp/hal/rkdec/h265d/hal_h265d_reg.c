@@ -265,15 +265,18 @@ static RK_U32 hevc_ver_align_8(RK_U32 val)
     return MPP_ALIGN(val, 8);
 }
 
-static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
-
-static RK_U32 hevc_ver_align_64(RK_U32 val)
+#ifdef SOFIA_3GR_LINUX
+static RK_U32 hevc_hor_align_64(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
+#else
+static RK_U32 hevc_hor_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
+#endif
+
 
 MPP_RET hal_h265d_alloc_res(void *hal)
 {
@@ -407,10 +410,10 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->int_cb = cfg->hal_int_cb;
     reg_cxt->fast_mode = cfg->fast_mode;
 #ifdef SOFIA_3GR_LINUX
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_64);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_hor_align_64);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 #else
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_ver_align_256_odd);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_hor_align_256_odd);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 #endif
 

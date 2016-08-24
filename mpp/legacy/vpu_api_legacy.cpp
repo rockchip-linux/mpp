@@ -41,21 +41,23 @@ static RK_U32 hevc_ver_align_8(RK_U32 val)
     return MPP_ALIGN(val, 8);
 }
 
-static RK_U32 hevc_ver_align_256_odd(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
 
 static RK_U32 default_align_16(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
 }
 
-static RK_U32 hevc_ver_align_64(RK_U32 val)
+#ifdef SOFIA_3GR_LINUX
+static RK_U32 hevc_hor_align_64(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
-
+#else
+static RK_U32 hevc_hor_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
+#endif
 static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
 {
     MppFrameFormat ret = MPP_FMT_BUTT;
@@ -980,12 +982,15 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         p->ImgWidth = (p->ImgWidth & 0xFFFF);
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
 #ifdef SOFIA_3GR_LINUX
-            p->ImgHorStride = hevc_ver_align_64(ImgWidth);
+            p->ImgHorStride = hevc_hor_align_64(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
 #else
-            p->ImgHorStride = hevc_ver_align_256_odd(ImgWidth);
+            p->ImgHorStride = hevc_hor_align_256_odd(ImgWidth);
             p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
 #endif
+        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingVP9) {
+            p->ImgHorStride = MPP_ALIGN(ImgWidth, 128);
+            p->ImgVerStride = MPP_ALIGN(p->ImgHeight, 64);
         } else {
             p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
