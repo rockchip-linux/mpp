@@ -92,6 +92,14 @@
 #define DRM_MODE_DIRTY_ON       1
 #define DRM_MODE_DIRTY_ANNOTATE 2
 
+/* rotation property bits */
+#define DRM_ROTATE_0    0
+#define DRM_ROTATE_90   1
+#define DRM_ROTATE_180  2
+#define DRM_ROTATE_270  3
+#define DRM_REFLECT_X   4
+#define DRM_REFLECT_Y   5
+
 struct drm_mode_modeinfo {
     __u32 clock;
     __u16 hdisplay, hsync_start, hsync_end, htotal, hskew;
@@ -259,6 +267,13 @@ struct drm_mode_get_connector {
 #define DRM_MODE_PROP_OBJECT        DRM_MODE_PROP_TYPE(1)
 #define DRM_MODE_PROP_SIGNED_RANGE  DRM_MODE_PROP_TYPE(2)
 
+/* the PROP_ATOMIC flag is used to hide properties from userspace that
+ * is not aware of atomic properties.  This is mostly to work around
+ * older userspace (DDX drivers) that read/write each prop they find,
+ * witout being aware that this could be triggering a lengthy modeset.
+ */
+#define DRM_MODE_PROP_ATOMIC        0x80000000
+
 struct drm_mode_property_enum {
     __u64 value;
     char name[DRM_PROP_NAME_LEN];
@@ -322,8 +337,7 @@ struct drm_mode_fb_cmd {
     __u32 handle;
 };
 
-#define DRM_MODE_FB_INTERLACED  (1<<0) /* for interlaced framebuffers */
-#define DRM_MODE_FB_MODIFIERS   (1<<1) /* enables ->modifer[] */
+#define DRM_MODE_FB_INTERLACED (1<<0) /* for interlaced framebuffers */
 
 struct drm_mode_fb_cmd2 {
     __u32 fb_id;
@@ -344,18 +358,10 @@ struct drm_mode_fb_cmd2 {
      * So it would consist of Y as offset[0] and UV as
      * offset[1].  Note that offset[0] will generally
      * be 0.
-     *
-     * To accommodate tiled, compressed, etc formats, a per-plane
-     * modifier can be specified.  The default value of zero
-     * indicates "native" format as specified by the fourcc.
-     * Vendor specific modifier token.  This allows, for example,
-     * different tiling/swizzling pattern on different planes.
-     * See discussion above of DRM_FORMAT_MOD_xxx.
      */
     __u32 handles[4];
     __u32 pitches[4]; /* pitch for each plane */
     __u32 offsets[4]; /* offset of each plane */
-    __u64 modifier[4]; /* ie, tiling, compressed (per plane) */
 };
 
 #define DRM_MODE_FB_DIRTY_ANNOTATE_COPY 0x01
@@ -517,9 +523,16 @@ struct drm_mode_destroy_dumb {
 };
 
 /* page-flip flags are valid, plus: */
-#define DRM_MODE_ATOMIC_TEST_ONLY   0x0100
-#define DRM_MODE_ATOMIC_NONBLOCK    0x0200
-#define DRM_MODE_ATOMIC_ALLOW_MODESET   0x0400
+#define DRM_MODE_ATOMIC_TEST_ONLY 0x0100
+#define DRM_MODE_ATOMIC_NONBLOCK  0x0200
+#define DRM_MODE_ATOMIC_ALLOW_MODESET 0x0400
+
+#define DRM_MODE_ATOMIC_FLAGS (\
+        DRM_MODE_PAGE_FLIP_EVENT |\
+        DRM_MODE_PAGE_FLIP_ASYNC |\
+        DRM_MODE_ATOMIC_TEST_ONLY |\
+        DRM_MODE_ATOMIC_NONBLOCK |\
+        DRM_MODE_ATOMIC_ALLOW_MODESET)
 
 struct drm_mode_atomic {
     __u32 flags;
@@ -551,6 +564,5 @@ struct drm_mode_create_blob {
 struct drm_mode_destroy_blob {
     __u32 blob_id;
 };
-
 
 #endif

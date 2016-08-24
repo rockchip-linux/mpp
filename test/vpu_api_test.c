@@ -73,15 +73,15 @@ typedef struct VpuApiEncInput {
 } VpuApiEncInput;
 
 static OptionInfo vpuApiCmd[] = {
-    {"i",       "input_file",  "input bitstream file"},
-    {"o",       "output_file", "output bitstream file, "},
-    {"w",       "width",       "the width of input bitstream"},
-    {"h",       "height",      "the height of input bitstream"},
-    {"t",       "codec_type",  "the codec type, dec: deoder, enc: encoder, default: decoder"},
-    {"coding",  "coding_type", "encoding type of the bitstream"},
-    {"vframes", "number",      "set the number of video frames to record"},
-    {"ss",      "time_off",    "set the start time offset, use Ms as the unit."},
-    {"d",       "disable",     "disable the debug output info."},
+    { "i",       "input_file",  "input bitstream file" },
+    { "o",       "output_file", "output bitstream file, " },
+    { "w",       "width",       "the width of input bitstream" },
+    { "h",       "height",      "the height of input bitstream" },
+    { "t",       "codec_type",  "the codec type, dec: deoder, enc: encoder, default: decoder" },
+    { "coding",  "coding_type", "encoding type of the bitstream" },
+    { "vframes", "number",      "set the number of video frames to record" },
+    { "ss",      "time_off",    "set the start time offset, use Ms as the unit." },
+    { "d",       "disable",     "disable the debug output info." },
 };
 
 static void show_usage()
@@ -99,7 +99,7 @@ static RK_S32 show_help()
     return 0;
 }
 
-static RK_S32 parse_options(int argc, char **argv, VpuApiDemoCmdContext_t* cmdCxt)
+static RK_S32 parse_options(int argc, char **argv, VpuApiDemoCmdContext_t *cmdCxt)
 {
     char *opt;
     RK_S32 optindex, handleoptions = 1, ret = 0;
@@ -219,7 +219,7 @@ PARSE_OPINIONS_OUT:
     return ret;
 }
 
-static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
+static RK_S32 readBytesFromFile(RK_U8 *buf, RK_S32 aBytes, FILE *file)
 {
     RK_S32 ret = 0;
 
@@ -238,8 +238,8 @@ static RK_S32 readBytesFromFile(RK_U8* buf, RK_S32 aBytes, FILE* file)
 
 static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 {
-    FILE* pInFile = NULL;
-    FILE* pOutFile = NULL;
+    FILE *pInFile = NULL;
+    FILE *pOutFile = NULL;
     struct VpuCodecContext *ctx = NULL;
     RK_S32 nal = 0x00000001;
     RK_S32 fileSize, ret, size;
@@ -292,7 +292,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     }
 
 #ifdef FOR_TEST_ENCODE
-    ctx = (struct VpuCodecContext*)malloc(sizeof(struct VpuCodecContext));
+    ctx = (struct VpuCodecContext *)malloc(sizeof(struct VpuCodecContext));
     if (!ctx) {
         mpp_err("Input context has not been properly allocated");
         return -1;
@@ -315,7 +315,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 
     memset(&enc_out_yuv, 0, sizeof(EncoderOut_t));
     enc_out = &enc_out_yuv;
-    enc_out->data = (RK_U8*)malloc(cmd->width * cmd->height);
+    enc_out->data = (RK_U8 *)malloc(cmd->width * cmd->height);
     if (enc_out->data == NULL) {
         ENCODE_ERR_RET(ERROR_MEMORY);
     }
@@ -338,7 +338,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     ctx->private_data = malloc(sizeof(EncParameter_t));
     memset(ctx->private_data, 0, sizeof(EncParameter_t));
 
-    enc_param = (EncParameter_t*)ctx->private_data;
+    enc_param = (EncParameter_t *)ctx->private_data;
     enc_param->width        = cmd->width;
     enc_param->height       = cmd->height;
     enc_param->format       = ENC_INPUT_YUV420_PLANAR;
@@ -404,7 +404,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 
         if (enc_in && (enc_in->size == 0)) {
             if (enc_in->buf == NULL) {
-                enc_in->buf = (RK_U8*)(malloc)(size);
+                enc_in->buf = (RK_U8 *)(malloc)(size);
                 if (enc_in->buf == NULL) {
                     ENCODE_ERR_RET(ERROR_MEMORY);
                 }
@@ -412,7 +412,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
             }
 
             if (api_enc_in->capability < ((RK_U32)size)) {
-                enc_in->buf = (RK_U8*)(realloc)((void*)(enc_in->buf), size);
+                enc_in->buf = (RK_U8 *)(realloc)((void *)(enc_in->buf), size);
                 if (enc_in->buf == NULL) {
                     ENCODE_ERR_RET(ERROR_MEMORY);
                 }
@@ -428,7 +428,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
             }
 
             mpp_log("read one frame, size: %d, timeUs: %lld, filePos: %ld\n",
-                    enc_in->size, enc_in->timeUs , ftell(pInFile));
+                    enc_in->size, enc_in->timeUs, ftell(pInFile));
         }
 
         if ((ret = ctx->encode(ctx, enc_in, enc_out)) < 0) {
@@ -495,19 +495,19 @@ ENCODE_OUT:
 
 static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
 {
-    FILE* pInFile = NULL;
-    FILE* pOutFile = NULL;
-    struct VpuCodecContext* ctx = NULL;
+    FILE *pInFile = NULL;
+    FILE *pOutFile = NULL;
+    struct VpuCodecContext *ctx = NULL;
     RK_S32 fileSize = 0, pkt_size = 0;
     RK_S32 ret = 0;
     RK_U32 frame_count = 0;
     DecoderOut_t    decOut;
     VideoPacket_t demoPkt;
-    VideoPacket_t* pkt = NULL;
+    VideoPacket_t *pkt = NULL;
     DecoderOut_t *pOut = NULL;
     VPU_FRAME *frame = NULL;
     RK_S64 fakeTimeUs = 0;
-    RK_U8* pExtra = NULL;
+    RK_U8 *pExtra = NULL;
     RK_U32 extraSize = 0;
     RK_U32 wAlign16  = 0;
     RK_U32 hAlign16  = 0;
@@ -563,7 +563,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(&decOut, 0, sizeof(DecoderOut_t));
     pOut = &decOut;
 
-    pOut->data = (RK_U8*)(malloc)(sizeof(VPU_FRAME));
+    pOut->data = (RK_U8 *)(malloc)(sizeof(VPU_FRAME));
     if (pOut->data == NULL) {
         DECODE_ERR_RET(ERROR_MEMORY);
     }
@@ -577,13 +577,13 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     /*
      ** read codec extra data from input stream file.
     */
-    if (readBytesFromFile((RK_U8*)(&extraSize), 4, pInFile)) {
+    if (readBytesFromFile((RK_U8 *)(&extraSize), 4, pInFile)) {
         DECODE_ERR_RET(ERROR_IO);
     }
 
     mpp_log("codec extra data size: %d\n", extraSize);
 
-    pExtra = (RK_U8*)(malloc)(extraSize);
+    pExtra = (RK_U8 *)(malloc)(extraSize);
     if (pExtra == NULL) {
         DECODE_ERR_RET(ERROR_MEMORY);
     }
@@ -620,12 +620,12 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
         }
 
         if (pkt && (pkt->size == 0)) {
-            if (readBytesFromFile((RK_U8*)(&pkt_size), 4, pInFile)) {
+            if (readBytesFromFile((RK_U8 *)(&pkt_size), 4, pInFile)) {
                 break;
             }
 
             if (pkt->data == NULL) {
-                pkt->data = (RK_U8*)(malloc)(pkt_size);
+                pkt->data = (RK_U8 *)(malloc)(pkt_size);
                 if (pkt->data == NULL) {
                     DECODE_ERR_RET(ERROR_MEMORY);
                 }
@@ -633,7 +633,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
             }
 
             if (pkt->capability < ((RK_U32)pkt_size)) {
-                pkt->data = (RK_U8*)(realloc)((void*)(pkt->data), pkt_size);
+                pkt->data = (RK_U8 *)(realloc)((void *)(pkt->data), pkt_size);
                 if (pkt->data == NULL) {
                     DECODE_ERR_RET(ERROR_MEMORY);
                 }
@@ -655,7 +655,14 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
         /* note: must set out put size to 0 before do decoder. */
         pOut->size = 0;
 
-        if ((ret = ctx->decode(ctx, pkt, pOut)) != 0) {
+        if (ctx->decode_sendstream(ctx, pkt) != 0) {
+            mpp_log("send packet failed");
+            DECODE_ERR_RET(ERROR_VPU_DECODE);
+        }
+
+
+        if ((ret = ctx->decode_getframe(ctx, pOut)) != 0) {
+            mpp_log("get decoded data failed\n");
             DECODE_ERR_RET(ERROR_VPU_DECODE);
         } else {
             mpp_log("vpu decode one frame, out len: %d, left size: %d\n",
@@ -677,7 +684,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
                     mpp_log("write %d frame(yuv420sp) data, %d bytes to file\n",
                             frame_count, frameSize);
 
-                    fwrite((RK_U8*)(frame->vpumem.vir_addr), 1, frameSize, pOutFile);
+                    fwrite((RK_U8 *)(frame->vpumem.vir_addr), 1, frameSize, pOutFile);
                     fflush(pOutFile);
                 }
 
@@ -743,7 +750,7 @@ int main(int argc, char **argv)
     }
 
     cmd = &demoCmdCtx;
-    memset (cmd, 0, sizeof(VpuApiDemoCmdContext_t));
+    memset(cmd, 0, sizeof(VpuApiDemoCmdContext_t));
     cmd->codec_type = CODEC_DECODER;
     if ((ret = parse_options(argc, argv, cmd)) != 0) {
         if (ret == VPU_DEMO_PARSE_HELP_OK) {
