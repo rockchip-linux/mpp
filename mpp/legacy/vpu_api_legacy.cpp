@@ -58,6 +58,7 @@ static RK_U32 hevc_hor_align_256_odd(RK_U32 val)
     return MPP_ALIGN(val, 256) | 256;
 }
 #endif
+
 static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
 {
     MppFrameFormat ret = MPP_FMT_BUTT;
@@ -111,12 +112,61 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
     return ret;
 }
 
+static void vpu_api_dump_yuv(VPU_FRAME *vframe, FILE *fp, RK_U8 *fp_buf, RK_S64 pts)
+{
+    //!< Dump yuv
+    if (fp && !vframe->ErrorInfo) {
+        RK_U8 *ptr = (RK_U8 *)vframe->vpumem.vir_addr;
+
+        if ((vframe->FrameWidth >= 1920) || (vframe->FrameHeight >= 1080)) {
+            RK_U32 i = 0, j = 0, step = 0;
+            RK_U32 img_w = 0, img_h = 0;
+            RK_U8 *pdes = NULL, *psrc = NULL;
+
+            step = MPP_MAX(vframe->FrameWidth / MAX_WRITE_WIDTH, vframe->FrameHeight / MAX_WRITE_HEIGHT);
+            img_w = vframe->FrameWidth / step;
+            img_h = vframe->FrameHeight / step;
+            pdes = fp_buf;
+            psrc = ptr;
+            for (i = 0; i < img_h; i++) {
+                for (j = 0; j < img_w; j++) {
+                    pdes[j] = psrc[j * step];
+                }
+                pdes += img_w;
+                psrc += step * vframe->FrameWidth;
+            }
+            pdes = fp_buf + img_w * img_h;
+            psrc = (RK_U8 *)ptr + vframe->FrameWidth * vframe->FrameHeight;
+            for (i = 0; i < (img_h / 2); i++) {
+                for (j = 0; j < (img_w / 2); j++) {
+                    pdes[2 * j + 0] = psrc[2 * j * step + 0];
+                    pdes[2 * j + 1] = psrc[2 * j * step + 1];
+                }
+                pdes += img_w;
+                psrc += step * vframe->FrameWidth * ((vframe->ColorType & VPU_OUTPUT_FORMAT_BIT_10) ? 2 : 1);
+            }
+            fwrite(fp_buf, 1, img_w * img_h * 3 / 2, fp);
+            if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
+                mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", pts, img_w, img_h);
+            }
+        } else {
+            fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
+            if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
+                mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", pts, vframe->FrameWidth, vframe->FrameHeight);
+            }
+        }
+        fflush(fp);
+    }
+}
+
 VpuApiLegacy::VpuApiLegacy() :
     mpp_ctx(NULL),
     mpi(NULL),
     init_ok(0),
     frame_count(0),
     set_eos(0),
+    block_input(0),
+    block_output(0),
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
@@ -171,7 +221,14 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
     MppCtxType type;
     MppPacket pkt = NULL;
 
+    if (mpp_ctx == NULL || mpi == NULL) {
+        mpp_err("found invalid context input");
+        return MPP_ERR_NULL_PTR;
+    }
+
     if (CODEC_DECODER == ctx->codecType) {
+        block_input = 0;
+        block_output = 0;
         type = MPP_CTX_DEC;
     } else if (CODEC_ENCODER == ctx->codecType) {
         if (memGroup == NULL) {
@@ -181,28 +238,22 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
                 return ret;
             }
         }
-        // TODO set control cmd
-        MppParam param = NULL;
-        RK_U32 block = 1;
-        param = &block;
-        ret = mpi->control(mpp_ctx, MPP_SET_INPUT_BLOCK, param);
-        if (MPP_OK != ret) {
-            mpp_err("mpi->control MPP_SET_INPUT_BLOCK failed\n");
-        }
-        block = 0;
-        ret = mpi->control(mpp_ctx, MPP_SET_OUTPUT_BLOCK, param);
-        if (MPP_OK != ret) {
-            mpp_err("mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
-        }
-
+        block_input = 1;
+        block_output = 0;
         type = MPP_CTX_ENC;
     } else {
         return MPP_ERR_VPU_CODEC_INIT;
     }
 
-    if (mpp_ctx == NULL || mpi == NULL) {
-        mpp_err("found invalid context input");
-        return MPP_ERR_NULL_PTR;
+    /* setup input / output block mode */
+    ret = mpi->control(mpp_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block_input);
+    if (MPP_OK != ret) {
+        mpp_err("mpi->control MPP_SET_INPUT_BLOCK failed\n");
+    }
+
+    ret = mpi->control(mpp_ctx, MPP_SET_OUTPUT_BLOCK, (MppParam)&block_output);
+    if (MPP_OK != ret) {
+        mpp_err("mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
     }
 
     ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
@@ -328,10 +379,11 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
         if (ret == MPP_OK) {
             pkt->size = 0;
             break;
-        } else if (pkt->nFlags & OMX_BUFFERFLAG_SYNC) {
+        } else {
+            /* reduce cpu overhead here */
             msleep(1);
         }
-    } while (pkt->nFlags & OMX_BUFFERFLAG_SYNC);
+    } while (block_input);
 
     mpp_packet_deinit(&mpkt);
 
@@ -340,7 +392,78 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     return MPP_OK;
 }
 
-RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
+static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
+{
+    MppBuffer buf = mpp_frame_get_buffer(mframe);
+    MppBufferInfo info;
+    RK_U64 pts  = mpp_frame_get_pts(mframe);
+    RK_U32 mode = mpp_frame_get_mode(mframe);
+
+    if (buf)
+        mpp_buffer_inc_ref(buf);
+
+    vframe->DisplayWidth = mpp_frame_get_width(mframe);
+    vframe->DisplayHeight = mpp_frame_get_height(mframe);
+    vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
+    vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
+    if (mode == MPP_FRAME_FLAG_FRAME)
+        vframe->FrameType = 0;
+    else {
+        RK_U32 field_order = mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK;
+        if (field_order == MPP_FRAME_FLAG_TOP_FIRST)
+            vframe->FrameType = 1;
+        else if (field_order == MPP_FRAME_FLAG_BOT_FIRST)
+            vframe->FrameType = 2;
+        else if (field_order == MPP_FRAME_FLAG_DEINTERLACED)
+            vframe->FrameType = 4;
+    }
+    vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
+    vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
+    vframe->ShowTime.TimeLow = (RK_U32)pts;
+    switch (mpp_frame_get_fmt(mframe)) {
+    case MPP_FMT_YUV420SP: {
+        vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
+        vframe->OutputWidth = 0x20;
+        break;
+    }
+    case MPP_FMT_YUV420SP_10BIT: {
+        vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
+        vframe->OutputWidth = 0x22;
+        break;
+    }
+    case MPP_FMT_YUV422SP: {
+        vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
+        vframe->OutputWidth = 0x10;
+        break;
+    }
+    case MPP_FMT_YUV422SP_10BIT: {
+        vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
+        vframe->OutputWidth = 0x23;
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (buf) {
+        void* ptr = mpp_buffer_get_ptr(buf);
+        RK_S32 fd = mpp_buffer_get_fd(buf);
+
+        vframe->FrameBusAddr[0] = fd;
+        vframe->FrameBusAddr[1] = fd;
+        vframe->vpumem.vir_addr = (RK_U32*)ptr;
+        vframe->vpumem.phy_addr = fd;
+
+        memset(&info, 0, sizeof(MppBufferInfo));
+        mpp_buffer_info_get(buf, &info);
+        vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
+        vframe->vpumem.offset = (RK_U32*)buf;
+    }
+}
+
+RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
 {
     RK_S32 ret = 0;
     VPU_FRAME *vframe = (VPU_FRAME *)aDecOut->data;
@@ -352,12 +475,12 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         return VPU_API_ERR_VPU_CODEC_INIT;
     }
 
+    memset(vframe, 0, sizeof(VPU_FRAME));
+
     if (NULL == mpi) {
         aDecOut->size = 0;
         return 0;
     }
-
-    memset(vframe, 0, sizeof(VPU_FRAME));
 
     if (set_eos) {
         aDecOut->size = 0;
@@ -370,131 +493,28 @@ RK_S32 VpuApiLegacy:: decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->size = 0;
     } else {
         MppBuffer buf = mpp_frame_get_buffer(mframe);
-        MppBufferInfo info;
-        RK_U64 pts  = mpp_frame_get_pts(mframe);
-        RK_U32 mode = mpp_frame_get_mode(mframe);
-        RK_S32 fd   = -1;
 
-        if (buf)
-            mpp_buffer_inc_ref(buf);
+        setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
+        vpu_api_dump_yuv(vframe, fp, fp_buf, mpp_frame_get_pts(mframe));
 
         aDecOut->size = sizeof(VPU_FRAME);
-        vframe->DisplayWidth = mpp_frame_get_width(mframe);
-        vframe->DisplayHeight = mpp_frame_get_height(mframe);
-        vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
-        vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
-        if (mode == MPP_FRAME_FLAG_FRAME)
-            vframe->FrameType = 0;
-        else {
-            RK_U32 field_order = mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK;
-            if (field_order == MPP_FRAME_FLAG_TOP_FIRST)
-                vframe->FrameType = 1;
-            else if (field_order == MPP_FRAME_FLAG_BOT_FIRST)
-                vframe->FrameType = 2;
-            else if (field_order == MPP_FRAME_FLAG_DEINTERLACED)
-                vframe->FrameType = 4;
-        }
-        vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
-        aDecOut->timeUs = pts;
-        vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
-        vframe->ShowTime.TimeLow = (RK_U32)pts;
-        switch (mpp_frame_get_fmt(mframe)) {
-        case MPP_FMT_YUV420SP: {
-            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
-            vframe->OutputWidth = 0x20;
-            break;
-        }
-        case MPP_FMT_YUV420SP_10BIT: {
-            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
-            vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
-            vframe->OutputWidth = 0x22;
-            break;
-        }
-        case MPP_FMT_YUV422SP: {
-            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
-            vframe->OutputWidth = 0x10;
-            break;
-        }
-        case MPP_FMT_YUV422SP_10BIT: {
-            vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
-            vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
-            vframe->OutputWidth = 0x23;
-            break;
-        }
-        default:
-            break;
-        }
-        if (buf) {
-            void* ptr = mpp_buffer_get_ptr(buf);
+        aDecOut->timeUs = mpp_frame_get_pts(mframe);
+        frame_count++;
 
-            fd = mpp_buffer_get_fd(buf);
-
-            vframe->FrameBusAddr[0] = fd;
-            vframe->FrameBusAddr[1] = fd;
-            vframe->vpumem.vir_addr = (RK_U32*)ptr;
-            frame_count++;
-
-            //!< Dump yuv
-            if (fp && !vframe->ErrorInfo) {
-                if ((vframe->FrameWidth >= 1920) || (vframe->FrameHeight >= 1080)) {
-                    RK_U32 i = 0, j = 0, step = 0;
-                    RK_U32 img_w = 0, img_h = 0;
-                    RK_U8 *pdes = NULL, *psrc = NULL;
-                    step = MPP_MAX(vframe->FrameWidth / MAX_WRITE_WIDTH, vframe->FrameHeight / MAX_WRITE_HEIGHT);
-                    img_w = vframe->FrameWidth / step;
-                    img_h = vframe->FrameHeight / step;
-                    pdes = fp_buf;
-                    psrc = (RK_U8 *)ptr;
-                    for (i = 0; i < img_h; i++) {
-                        for (j = 0; j < img_w; j++) {
-                            pdes[j] = psrc[j * step];
-                        }
-                        pdes += img_w;
-                        psrc += step * vframe->FrameWidth;
-                    }
-                    pdes = fp_buf + img_w * img_h;
-                    psrc = (RK_U8 *)ptr + vframe->FrameWidth * vframe->FrameHeight;
-                    for (i = 0; i < (img_h / 2); i++) {
-                        for (j = 0; j < (img_w / 2); j++) {
-                            pdes[2 * j + 0] = psrc[2 * j * step + 0];
-                            pdes[2 * j + 1] = psrc[2 * j * step + 1];
-                        }
-                        pdes += img_w;
-                        psrc += step * vframe->FrameWidth * ((mpp_frame_get_fmt(mframe) > MPP_FMT_YUV420SP_10BIT) ? 2 : 1);
-                    }
-                    fwrite(fp_buf, 1, img_w * img_h * 3 / 2, fp);
-                    if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
-                        mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", aDecOut->timeUs, img_w, img_h);
-                    }
-                } else {
-                    fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
-                    if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
-                        mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", aDecOut->timeUs, vframe->FrameWidth, vframe->FrameHeight);
-                    }
-                }
-                fflush(fp);
-            }
-            vframe->vpumem.phy_addr = fd;
-            memset(&info, 0, sizeof(MppBufferInfo));
-            mpp_buffer_info_get(buf, &info);
-            vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
-            /* setup index to vpumem only if index is valid */
-            if (info.index >= 0)
-                vframe->vpumem.size |= ((info.index << 27) & 0xf8000000);
-            vframe->vpumem.offset = (RK_U32*)buf;
-        }
-        if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
-            mpp_log("get one frame pts %lld, fd 0x%x, poc %d, errinfo %x, discard %d, eos %d, verr %d",
-                    aDecOut->timeUs, fd, mpp_frame_get_poc(mframe),
-                    mpp_frame_get_errinfo(mframe),
-                    mpp_frame_get_discard(mframe),
-                    mpp_frame_get_eos(mframe), vframe->ErrorInfo);
-        }
         if (mpp_frame_get_eos(mframe)) {
             set_eos = 1;
             if (buf == NULL) {
                 aDecOut->size = 0;
             }
+        }
+        if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
+            mpp_log("get one frame pts %lld, fd 0x%x, poc %d, errinfo %x, discard %d, eos %d, verr %d",
+                    aDecOut->timeUs,
+                    ((buf) ? (mpp_buffer_get_fd(buf)) : (-1)),
+                    mpp_frame_get_poc(mframe),
+                    mpp_frame_get_errinfo(mframe),
+                    mpp_frame_get_discard(mframe),
+                    mpp_frame_get_eos(mframe), vframe->ErrorInfo);
         }
 
         /*
