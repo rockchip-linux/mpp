@@ -120,7 +120,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
         tmp = preProcess->verOffsetSrc / 2;
         tmp *= stride / 2;
         tmp += preProcess->horOffsetSrc / 2;
-
+#ifdef RKPLATFORM
         if (VPUClientGetIOMMUStatus() <= 0) {
             regs->inputCbBase += (tmp & (~7));
             regs->inputCrBase += (tmp & (~7));
@@ -128,7 +128,7 @@ void EncPreProcess(asicData_s * asic, const preProcess_s * preProcess)
             regs->inputCbBase += (tmp & (~7)) << 10;
             regs->inputCrBase += (tmp & (~7)) << 10;
         }
-
+#endif
         regs->inputChromaBaseOffset = tmp & 7;
     } break;
     case MPP_FMT_YUV420P : {

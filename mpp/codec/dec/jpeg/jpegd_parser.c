@@ -1134,7 +1134,7 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     JpegParserCtx->pts = mpp_packet_get_pts(pkt);
     JpegParserCtx->eos = mpp_packet_get_eos(pkt);
-    pkt_length = mpp_packet_get_length(pkt);
+    pkt_length = (RK_U32)mpp_packet_get_length(pkt);
     pPacket = pPos = mpp_packet_get_pos(pkt);
 
     if (JpegParserCtx->eos) {

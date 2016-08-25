@@ -254,7 +254,7 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
 
         if (pkt) {
-            ctx->extradata_size = mpp_packet_get_length(pkt);
+            ctx->extradata_size = (RK_S32)mpp_packet_get_length(pkt);
             ctx->extradata      = mpp_packet_get_data(pkt);
         }
         pkt = NULL;
@@ -730,7 +730,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_U32 height       = ctx->height;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
-    RK_S32 pts          = aEncInStrm->timeUs;
+    RK_S32 pts          = (RK_S32)aEncInStrm->timeUs;
     RK_S32 import_fd    = -1;
     RK_U32 import_size  = 0;
 
@@ -767,7 +767,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
             goto FUNC_RET;
         }
         import_fd   = mpp_buffer_get_fd(buffer);
-        import_size = mpp_buffer_get_size(buffer);
+        import_size = (RK_U32)mpp_buffer_get_size(buffer);
 
         mpp_frame_set_buffer(frame, buffer);
 

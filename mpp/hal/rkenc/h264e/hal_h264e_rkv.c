@@ -1780,7 +1780,7 @@ MPP_RET hal_h264e_rkv_set_sps(h264e_hal_sps *sps, h264e_hal_param *par, h264e_co
 
 RK_S32 hal_h264e_rkv_stream_get_pos(h264e_hal_rkv_stream *s)
 {
-    return (8 * (s->p - s->p_start) + (4 * 8) - s->i_left);
+    return (RK_S32)(8 * (s->p - s->p_start) + (4 * 8) - s->i_left);
 }
 
 
@@ -2015,7 +2015,7 @@ void hal_h264e_rkv_nal_end(h264e_hal_rkv_extra_info *out)
     h264e_hal_rkv_stream *s = &out->stream;
     RK_U8 *stream_buf = s->p_start;
     RK_U8 *end = &stream_buf[hal_h264e_rkv_stream_get_pos(s) / 8];
-    nal->i_payload = end - nal->p_payload;
+    nal->i_payload = (RK_S32)(end - nal->p_payload);
     /* Assembly implementation of nal_escape reads past the end of the input.
     * While undefined padding wouldn't actually affect the output, it makes valgrind unhappy. */
     memset(end, 0xff, 64);
@@ -2058,7 +2058,7 @@ void hal_h264e_rkv_nal_encode(RK_U8 *dst, h264e_hal_rkv_nal *nal)
     *dst++ = (0x00 << 7) | (nal->i_ref_idc << 5) | nal->i_type;
 
     dst = hal_h264e_rkv_nal_escape_c(dst, src, end);
-    size = (dst - orig_dst) - 4;
+    size = (RK_S32)((dst - orig_dst) - 4);
 
     /* Write the size header for mp4/etc */
     if (!b_annexb) {

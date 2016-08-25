@@ -96,7 +96,7 @@ MPP_RET jpegd_readbytes_from_file(RK_U8* buf, RK_S32 aBytes, FILE* fp)
         return -1;
     }
 
-    RK_S32 rd_bytes = fread(buf, 1, aBytes, fp);
+    RK_S32 rd_bytes = (RK_S32)fread(buf, 1, aBytes, fp);
     if (rd_bytes != aBytes) {
         mpp_log("read %u bytes from file fail, actually only %#x bytes is read.", (RK_U32)aBytes, rd_bytes);
         return -1;
