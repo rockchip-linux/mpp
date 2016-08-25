@@ -117,9 +117,6 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->color_conversion_coeff_c = val->colorConversionCoeffC;
     syntax_data->color_conversion_coeff_e = val->colorConversionCoeffE;
     syntax_data->color_conversion_coeff_f = val->colorConversionCoeffF;
-    syntax_data->color_conversion_r_mask_msb = val->rMaskMsb;
-    syntax_data->color_conversion_g_mask_msb = val->gMaskMsb;
-    syntax_data->color_conversion_b_mask_msb = val->bMaskMsb;
     // ----------------
 }
 

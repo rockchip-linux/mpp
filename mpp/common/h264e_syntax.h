@@ -60,9 +60,6 @@ typedef struct h264e_syntax_t {
     RK_U32 color_conversion_coeff_c;    //colorConversionCoeffC
     RK_U32 color_conversion_coeff_e;    //colorConversionCoeffE
     RK_U32 color_conversion_coeff_f;    //colorConversionCoeffF
-    RK_U32 color_conversion_r_mask_msb; //rMaskMsb
-    RK_U32 color_conversion_g_mask_msb; //gMaskMsb
-    RK_U32 color_conversion_b_mask_msb; //bMaskMsb
 
     /* RKVENC extra syntax below */
     RK_S32 profile_idc; //TODO: may be removed later, get from sps/pps instead

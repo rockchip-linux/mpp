@@ -754,6 +754,7 @@ RK_S32 EncAsicCheckHwStatus(asicData_s *asic)
             ret = ASIC_STATUS_BUFF_FULL;
         }
     */
+    (void)asic;
     return ret;
 }
 

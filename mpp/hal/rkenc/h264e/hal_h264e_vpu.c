@@ -920,106 +920,141 @@ void hal_h264e_vpu_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer hw_buf)
 }
 #endif
 
-static h264e_hal_vpu_csp hal_h264e_vpu_convert_csp(RK_S32 src_type)
+static h264e_hal_vpu_csp_info hal_h264e_vpu_convert_csp(RK_S32 src_type)
 {
     MppFrameFormat src_fmt = (MppFrameFormat)src_type;
-    h264e_hal_vpu_csp dst_fmt;
+    h264e_hal_vpu_csp_info dst_info;
+    dst_info.fmt = 0;
+    dst_info.r_mask_msb = 0;
+    dst_info.g_mask_msb = 0;
+    dst_info.b_mask_msb = 0;
+
     switch (src_fmt) {
     case MPP_FMT_YUV420P: {
-        dst_fmt = H264E_VPU_CSP_YUV420P;
+        dst_info.fmt = H264E_VPU_CSP_YUV420P;
         break;
     }
     case MPP_FMT_YUV420SP: {
-        dst_fmt = H264E_VPU_CSP_YUV420SP;
+        dst_info.fmt = H264E_VPU_CSP_YUV420SP;
         break;
     }
     case MPP_FMT_YUV420SP_10BIT: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV420SP_VU: { //TODO: to be confirmed
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV422P: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV422SP: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV422SP_10BIT: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV422SP_VU: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_YUV422_YUYV: {
-        dst_fmt = H264E_VPU_CSP_YUYV422;
+        dst_info.fmt = H264E_VPU_CSP_YUYV422;
         break;
     }
     case MPP_FMT_YUV422_UYVY: {
-        dst_fmt = H264E_VPU_CSP_UYVY422;
+        dst_info.fmt = H264E_VPU_CSP_UYVY422;
         break;
     }
     case MPP_FMT_RGB565: {
-        dst_fmt = H264E_VPU_CSP_RGB565;
+        dst_info.fmt = H264E_VPU_CSP_RGB565;
+        dst_info.r_mask_msb = 15;
+        dst_info.g_mask_msb = 10;
+        dst_info.b_mask_msb = 4;
         break;
     }
     case MPP_FMT_BGR565: {
-        dst_fmt = H264E_VPU_CSP_RGB565;
+        dst_info.fmt = H264E_VPU_CSP_RGB565;
+        dst_info.r_mask_msb = 4;
+        dst_info.g_mask_msb = 10;
+        dst_info.b_mask_msb = 15;
         break;
     }
     case MPP_FMT_RGB555: {
-        dst_fmt = H264E_VPU_CSP_RGB555;
+        dst_info.fmt = H264E_VPU_CSP_RGB555;
+        dst_info.r_mask_msb = 14;
+        dst_info.g_mask_msb = 9;
+        dst_info.b_mask_msb = 4;
         break;
     }
     case MPP_FMT_BGR555: {
-        dst_fmt = H264E_VPU_CSP_BGR555;
+        dst_info.fmt = H264E_VPU_CSP_RGB555;
+        dst_info.r_mask_msb = 14;
+        dst_info.g_mask_msb = 9;
+        dst_info.b_mask_msb = 4;
         break;
     }
     case MPP_FMT_RGB444: {
-        dst_fmt = H264E_VPU_CSP_RGB444;
+        dst_info.fmt = H264E_VPU_CSP_RGB444;
+        dst_info.r_mask_msb = 11;
+        dst_info.g_mask_msb = 7;
+        dst_info.b_mask_msb = 3;
         break;
     }
     case MPP_FMT_BGR444: {
-        dst_fmt = H264E_VPU_CSP_BGR444;
+        dst_info.fmt = H264E_VPU_CSP_RGB444;
+        dst_info.r_mask_msb = 11;
+        dst_info.g_mask_msb = 7;
+        dst_info.b_mask_msb = 3;
         break;
     }
     case MPP_FMT_RGB888: {
-        dst_fmt = H264E_VPU_CSP_RGB888;
+        dst_info.fmt = H264E_VPU_CSP_RGB888;
+        dst_info.r_mask_msb = 23;
+        dst_info.g_mask_msb = 15;
+        dst_info.b_mask_msb = 7;
         break;
     }
     case MPP_FMT_BGR888: {
-        dst_fmt = H264E_VPU_CSP_BGR888;
+        dst_info.fmt = H264E_VPU_CSP_RGB888;
+        dst_info.r_mask_msb = 23;
+        dst_info.g_mask_msb = 15;
+        dst_info.b_mask_msb = 7;
         break;
     }
     case MPP_FMT_RGB101010: {
-        dst_fmt = H264E_VPU_CSP_RGB101010;
+        dst_info.fmt = H264E_VPU_CSP_RGB101010;
+        dst_info.r_mask_msb = 29;
+        dst_info.g_mask_msb = 19;
+        dst_info.b_mask_msb = 9;
         break;
     }
     case MPP_FMT_BGR101010: {
-        dst_fmt = H264E_VPU_CSP_BGR101010;
+        dst_info.fmt = H264E_VPU_CSP_RGB101010;
+        dst_info.r_mask_msb = 29;
+        dst_info.g_mask_msb = 19;
+        dst_info.b_mask_msb = 9;
         break;
     }
     case MPP_FMT_ARGB8888: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     case MPP_FMT_ABGR8888: {
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
         break;
     }
     default: {
         h264e_hal_log_err("unvalid src color space: %d", src_type);
-        dst_fmt = H264E_VPU_CSP_NONE;
+        dst_info.fmt = H264E_VPU_CSP_NONE;
     }
     }
 
-    return dst_fmt;
+    return dst_info;
 }
 
 
@@ -1737,9 +1772,8 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
+static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn, h264e_hal_vpu_csp_info *src_fmt)
 {
-    RK_U32 input_image_format = H264E_VPU_CSP_NONE;
     h264e_hal_debug_enter();
 
     /* validate */
@@ -1748,8 +1782,10 @@ static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn)
     /* adjust */
     syn->output_strm_limit_size /= 8; /* 64-bit addresses */
     syn->output_strm_limit_size &= (~0x07);  /* 8 multiple size */
-    input_image_format = (RK_U32)hal_h264e_vpu_convert_csp(syn->input_image_format);
-    H264E_HAL_VALIDATE_NEQ(input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
+    *src_fmt = hal_h264e_vpu_convert_csp(syn->input_image_format);
+    syn->input_image_format = src_fmt->fmt;
+
+    H264E_HAL_VALIDATE_NEQ(syn->input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
 
     h264e_hal_debug_leave();
     return MPP_OK;
@@ -1765,6 +1801,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     RK_U8 dmv_penalty[128] = {0};
     RK_U8 dmv_qpel_penalty[128] = {0};
     RK_U32 diff_mv_penalty[3] = {0};
+    h264e_hal_vpu_csp_info src_fmt;
 
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     RK_U32 *reg = (RK_U32 *)ctx->regs;
@@ -1789,10 +1826,10 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 #ifdef H264E_DUMP_DATA_TO_FILE
     hal_h264e_vpu_dump_mpp_syntax_in(syn, ctx);
 #endif
-    if (MPP_OK != hal_h264e_vpu_validate_syntax(syn)) {
+    if (MPP_OK != hal_h264e_vpu_validate_syntax(syn, &src_fmt)) {
         h264e_hal_log_err("hal_h264e_vpu_validate_syntax failed");
     }
-
+    ctx->enc_task = task->enc;
     memset(reg, 0, sizeof(h264e_vpu_reg_set));
 
     h264e_hal_log_detail("frame %d generate regs now", ctx->frame_cnt);
@@ -1898,7 +1935,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     H264E_HAL_SET_REG(reg, VEPU_REG_CHKPT_DELTA_QP, val);
 
     val = VEPU_REG_MAD_THRESHOLD(syn->mad_threshold)
-          | VEPU_REG_IN_IMG_CTRL_FMT(hal_h264e_vpu_convert_csp(syn->input_image_format))
+          | VEPU_REG_IN_IMG_CTRL_FMT(src_fmt.fmt)
           | VEPU_REG_IN_IMG_ROTATE_MODE(0)
           | VEPU_REG_SIZE_TABLE_PRESENT; //FIXED
     H264E_HAL_SET_REG(reg, VEPU_REG_ENC_CTRL1, val);
@@ -1948,9 +1985,9 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     val = VEPU_REG_RGB2YUV_CONVERSION_COEFF(syn->color_conversion_coeff_f);
     H264E_HAL_SET_REG(reg, VEPU_REG_RGB2YUV_CONVERSION_COEF3, val); //FIXED
 
-    val = VEPU_REG_RGB_MASK_B_MSB(syn->color_conversion_b_mask_msb)
-          | VEPU_REG_RGB_MASK_G_MSB(syn->color_conversion_g_mask_msb)
-          | VEPU_REG_RGB_MASK_R_MSB(syn->color_conversion_r_mask_msb);
+    val = VEPU_REG_RGB_MASK_B_MSB(src_fmt.b_mask_msb)
+          | VEPU_REG_RGB_MASK_G_MSB(src_fmt.g_mask_msb)
+          | VEPU_REG_RGB_MASK_R_MSB(src_fmt.r_mask_msb);
     H264E_HAL_SET_REG(reg, VEPU_REG_RGB_MASK_MSB, val); //FIXED
 
     diff_mv_penalty[0] = h264_diff_mv_penalty4p[syn->qp];
@@ -2147,6 +2184,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
 
 #ifdef H264E_DUMP_DATA_TO_FILE
     hal_h264e_vpu_dump_mpp_reg_out(ctx);
+    hal_h264e_vpu_dump_mpp_strm_out(ctx, ctx->enc_task.output);
 #endif
     //hal_h264e_vpu_dump_mpp_strm_out(ctx, NULL);
 
