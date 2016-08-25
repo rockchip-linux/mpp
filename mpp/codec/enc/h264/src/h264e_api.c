@@ -87,7 +87,7 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
 
     encIn->pOutBuf = (RK_U32*)mpp_buffer_get_ptr(task->output);
     encIn->busOutBuf = mpp_buffer_get_fd(task->output);
-    encIn->outBufSize = mpp_buffer_get_size(task->output);
+    encIn->outBufSize = (RK_U32)mpp_buffer_get_size(task->output);
 
     /* Start stream */
     if (p->encStatus == H264ENCSTAT_INIT) {

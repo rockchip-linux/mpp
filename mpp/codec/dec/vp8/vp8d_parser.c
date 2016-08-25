@@ -417,7 +417,7 @@ MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
 
-    len_in = mpp_packet_get_length(pkt),
+    len_in = (RK_U32)mpp_packet_get_length(pkt),
     p->eos = mpp_packet_get_eos(pkt);
     // mpp_log("len_in = %d",len_in);
     if (len_in > p->max_stream_size) {

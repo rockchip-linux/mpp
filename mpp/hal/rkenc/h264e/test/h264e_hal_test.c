@@ -340,7 +340,7 @@ static MPP_RET get_rkv_h264e_yuv_in_frame(h264e_syntax *syn, MppBuffer *hw_buf)
     RK_U8 *hw_buf_ptr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf[g_frame_read_cnt % RKV_H264E_LINKTABLE_FRAME_NUM]);;
     mpp_assert(fp_h264e_yuv_in);
 
-    read_ret = fread(hw_buf_ptr, 1, frame_size, fp_h264e_yuv_in);
+    read_ret = (RK_U32)fread(hw_buf_ptr, 1, frame_size, fp_h264e_yuv_in);
     if (read_ret == 0) {
         mpp_log("yuv file end, nothing is read in %d frame", g_frame_read_cnt);
         return MPP_EOS_STREAM_REACHED;
@@ -366,7 +366,7 @@ static MPP_RET get_h264e_yuv_in_one_frame(RK_U8 *sw_buf, h264e_syntax *syn, MppB
     mpp_assert(fp_h264e_yuv_in);
 
     //TODO: remove sw_buf, read & write fd ptr directly
-    read_ret = fread(sw_buf, 1, frame_size, fp_h264e_yuv_in);
+    read_ret = (RK_U32)fread(sw_buf, 1, frame_size, fp_h264e_yuv_in);
     if (read_ret == 0) {
         mpp_log("yuv file end, nothing is read in frame %d", g_frame_cnt);
         return MPP_EOS_STREAM_REACHED;
@@ -1196,7 +1196,7 @@ static MPP_RET get_rkv_syntax_in( h264e_syntax *syn, MppBuffer *hw_in_buf, MppBu
         mpp_err("rkv_syntax_in.txt doesn't exits");
     }
 #endif
-    syn->output_strm_limit_size = syn->pic_luma_width * syn->pic_luma_height * 1.5;
+    syn->output_strm_limit_size = (RK_U32)(syn->pic_luma_width * syn->pic_luma_height * 3 / 2);
 
     h264e_hal_debug_leave();
     return MPP_OK;
@@ -1516,7 +1516,7 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
         mpp_buffer_get(hw_input_buf_grp, &hw_input_buf_mul[k], frame_luma_stride * 3 / 2);
 
     for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++)
-        mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf_mul[k], syntax_data[0].pic_luma_width * syntax_data[0].pic_luma_height * 1.5);
+        mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf_mul[k], syntax_data[0].pic_luma_width * syntax_data[0].pic_luma_height * 3 / 2);
 
 
     hal_cfg.hal_int_cb.callBack = h264_hal_test_call_back;

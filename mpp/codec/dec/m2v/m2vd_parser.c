@@ -426,7 +426,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     FUN_T("FUN_I");
     task->valid = 0;
-    len_in = mpp_packet_get_length(pkt),
+    len_in = (RK_U32)mpp_packet_get_length(pkt),
     p->eos = mpp_packet_get_eos(pkt);
     // mpp_log("len_in = %d",len_in);
     if (len_in > p->max_stream_size) {
