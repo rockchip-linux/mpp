@@ -117,6 +117,12 @@ typedef enum h264e_rkv_chroma_fmt_t {
     RKV_H264E_CHROMA_444 = 3,
 } h264e_rkv_chroma_fmt;
 
+typedef struct h264e_hal_rkv_csp_info_t {
+    RK_U32 fmt;
+    RK_U32 cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
+    RK_U32 aswap; // 0: BGRA, 1:ABGR.
+} h264e_hal_rkv_csp_info;
+
 typedef enum h264e_rkv_cqm4_t {
     RKV_H264E_CQM_4IY = 0,
     RKV_H264E_CQM_4PY = 1,

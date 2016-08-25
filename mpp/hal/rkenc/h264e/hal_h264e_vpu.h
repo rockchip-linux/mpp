@@ -637,6 +637,12 @@ typedef enum {
     H264E_VPU_CSP_BUTT,
 } h264e_hal_vpu_csp;
 
+typedef struct h264e_hal_vpu_csp_info_t {
+    RK_U32 fmt;
+    RK_U32 r_mask_msb;
+    RK_U32 g_mask_msb;
+    RK_U32 b_mask_msb;
+} h264e_hal_vpu_csp_info;
 
 /* struct for assemble bitstream */
 typedef struct h264e_hal_vpu_stream_t {

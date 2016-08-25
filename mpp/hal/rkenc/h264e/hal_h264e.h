@@ -27,11 +27,18 @@
 extern RK_U32 h264e_hal_log_mode;
 
 #define H264E_HAL_LOG_ERROR             0x00000001
-#define H264E_HAL_LOG_ASSERT            0x00000010
-#define H264E_HAL_LOG_WARNNING          0x00000100
-#define H264E_HAL_LOG_FLOW              0x00001000
+
+#define H264E_HAL_LOG_SIMPLE            0x00000010
+
+#define H264E_HAL_LOG_FLOW              0x00000100
+
+#define H264E_HAL_LOG_DPB               0x00001000
+#define H264E_HAL_LOG_HEADER            0x00002000
+
 #define H264E_HAL_LOG_DETAIL            0x00010000
+
 #define H264E_HAL_LOG_FILE              0x00100000
+
 
 
 #define H264E_HAL_MASK_2b               (RK_U32)0x00000003
@@ -65,6 +72,30 @@ extern RK_U32 h264e_hal_log_mode;
 #define h264e_hal_log_detail(fmt, ...) \
             do {\
                 if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
+#define h264e_hal_log_dpb(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_DPB)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
+#define h264e_hal_log_header(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_HEADER)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
+#define h264e_hal_log_simple(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_SIMPLE)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
+#define h264e_hal_log_file(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_FILE)\
                     { mpp_log(fmt, ## __VA_ARGS__); }\
             } while (0)
 
@@ -111,12 +142,6 @@ typedef enum h264e_hal_slice_type_t {
     H264E_HAL_SLICE_TYPE_B  = 1,
     H264E_HAL_SLICE_TYPE_I  = 2,
 } h264e_hal_slice_type;
-
-typedef struct h264e_hal_csp_info_t {
-    RK_U32 fmt;
-    RK_U32 cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
-    RK_U32 aswap; // 0: BGRA, 1:ABGR.
-} h264e_hal_csp_info;
 
 typedef struct h264e_hal_sps_t {
     RK_S32 i_id;
@@ -214,7 +239,6 @@ typedef struct h264e_hal_sps_t {
 
     /* only for backup, excluded in read SPS*/
     RK_S32 keyframe_max_interval;
-    h264e_hal_csp_info src_colorspace;
 } h264e_hal_sps;
 
 typedef struct h264e_hal_pps_t {
@@ -330,6 +354,7 @@ typedef struct h264e_hal_context_t {
     RK_U32              frame_cnt;
     h264e_hal_param     param;
     RK_U32              enc_mode;
+    HalEncTask          enc_task;
     void                *dump_files;
 
     void                *param_buf;
