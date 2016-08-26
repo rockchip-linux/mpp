@@ -1,6 +1,8 @@
 # This file setup the enable flag of all supported codecs
 
-if( NOT DEFINED DISABLE_AVSD AND
+# AVS decoder
+option(ENABLE_AVSD   "Enable avs decoder" ON)
+if( ENABLE_AVSD AND
     EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/codec/dec/avs" )
     set(HAVE_AVSD true)
     set(CODEC_AVSD codec_avsd)
@@ -9,7 +11,8 @@ if( NOT DEFINED DISABLE_AVSD AND
 endif()
 
 # H.263 decoder
-if( NOT DEFINED DISABLE_H263D )
+option(ENABLE_H263D  "Enable h.263 decoder" ON)
+if( ENABLE_H263D )
     set(HAVE_H263D true)
     set(CODEC_H263D codec_h263d)
     set(HAL_H263D hal_h263d)
@@ -17,7 +20,8 @@ if( NOT DEFINED DISABLE_H263D )
 endif()
 
 # H.264 decoder
-if( NOT DEFINED DISABLE_H264D )
+option(ENABLE_H264D  "Enable h.264 decoder" ON)
+if( ENABLE_H264D )
     set(HAVE_H264D true)
     set(CODEC_H264D codec_h264d)
     set(HAL_H264D hal_h264d)
@@ -25,7 +29,8 @@ if( NOT DEFINED DISABLE_H264D )
 endif()
 
 # H.265 decoder
-if( NOT DEFINED DISABLE_H265D )
+option(ENABLE_H265D  "Enable h.265 decoder" ON)
+if( ENABLE_H265D )
     set(HAVE_H265D true)
     set(CODEC_H265D codec_h265d)
     set(HAL_H265D hal_h265d)
@@ -33,7 +38,8 @@ if( NOT DEFINED DISABLE_H265D )
 endif()
 
 # mpeg2 decoder
-if( NOT DEFINED DISABLE_MPEG2D )
+option(ENABLE_MPEG2D "Enable mpeg2 decoder" ON)
+if( ENABLE_MPEG2D )
     set(HAVE_MPEG2D true)
     set(CODEC_MPEG2D codec_mpeg2d)
     set(HAL_MPEG2D hal_mpeg2d)
@@ -41,7 +47,8 @@ if( NOT DEFINED DISABLE_MPEG2D )
 endif()
 
 # mpeg4 decoder
-if( NOT DEFINED DISABLE_MPEG4D )
+option(ENABLE_MPEG4D "Enable mpeg4 decoder" ON)
+if( ENABLE_MPEG4D )
     set(HAVE_MPEG4D true)
     set(CODEC_MPEG4D codec_mpeg4d)
     set(HAL_MPEG4D hal_mpeg4d)
@@ -49,7 +56,8 @@ if( NOT DEFINED DISABLE_MPEG4D )
 endif()
 
 # VP8 decoder
-if( NOT DEFINED DISABLE_VP8D )
+option(ENABLE_VP8D   "Enable vp8 decoder" ON)
+if( ENABLE_VP8D )
     set(HAVE_VP8D true)
     set(CODEC_VP8D codec_vp8d)
     set(HAL_VP8D hal_vp8d)
@@ -57,7 +65,8 @@ if( NOT DEFINED DISABLE_VP8D )
 endif()
 
 # VP9 decoder
-if( NOT DEFINED DISABLE_VP9D )
+option(ENABLE_VP9D   "Enable vp9 decoder" ON)
+if( ENABLE_VP9D )
     set(HAVE_VP9D true)
     set(CODEC_VP9D codec_vp9d)
     set(HAL_VP9D hal_vp9d)
@@ -65,7 +74,8 @@ if( NOT DEFINED DISABLE_VP9D )
 endif()
 
 # jpeg decoder
-if( NOT DEFINED DISABLE_JPEGD )
+option(ENABLE_JPEGD  "Enable jpeg decoder" ON)
+if( ENABLE_JPEGD )
     set(HAVE_JPEGD true)
     set(CODEC_JPEGD codec_jpegd)
     set(HAL_JPEGD hal_jpegd)
@@ -73,7 +83,8 @@ if( NOT DEFINED DISABLE_JPEGD )
 endif()
 
 # H.264 encoder
-if( NOT DEFINED DISABLE_H264E )
+option(ENABLE_H264E  "Enable h.264 encoder" ON)
+if( ENABLE_H264E )
     set(HAVE_H264E true)
     set(CODEC_H264E codec_h264e)
     set(HAL_H264E hal_h264e)
@@ -81,7 +92,8 @@ if( NOT DEFINED DISABLE_H264E )
 endif()
 
 # jpeg encoder
-if( NOT DEFINED DISABLE_JPEGE )
+option(ENABLE_JPEGE  "Enable jpeg encoder" ON)
+if( ENABLE_JPEGE )
     set(HAVE_JPEGE true)
     set(CODEC_JPEGE codec_jpege)
     set(HAL_JPEGE hal_jpege)
