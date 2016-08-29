@@ -280,8 +280,6 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         enc_in_fmt = (EncInputPictureType)param->format;
 
-        outData = mpp_malloc(RK_U8, (param->width * param->height));
-
         mpp_cfg.width       = param->width;
         mpp_cfg.height      = param->height;
         mpp_cfg.format      = vpu_pic_type_remap_to_mpp(enc_in_fmt);
@@ -872,9 +870,14 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
 
-        mpp_assert(length);
+        if (NULL == outData)
+            outData = mpp_malloc(RK_U8, (ctx->width * ctx->height));
+
+        mpp_assert(outData);
+        mpp_assert(length >= 4);
         // remove first 00 00 00 01
         length -= 4;
+
         aEncOut->data = outData;
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
