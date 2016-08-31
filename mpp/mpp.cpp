@@ -303,7 +303,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
         mpp_assert(task);
 
-        ret = mpp_task_meta_set_frame(task, MPP_META_KEY_INPUT_FRM, frame);
+        ret = mpp_task_meta_set_frame(task, KEY_INPUT_FRAME, frame);
         if (ret) {
             mpp_log_f("failed to set input frame to task ret %d\n", ret);
             break;
@@ -327,7 +327,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
             }
 
             mpp_assert(task);
-            ret = mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame);
+            ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame);
             if (frame) {
                 mpp_frame_deinit(&frame);
                 frame = NULL;
@@ -371,7 +371,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
         mpp_assert(task);
 
-        ret = mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
+        ret = mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, packet);
         if (ret) {
             mpp_log_f("failed to get output packet from task ret %d\n", ret);
             break;

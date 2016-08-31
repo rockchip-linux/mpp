@@ -45,27 +45,44 @@ typedef enum MppMetaDataType_e {
      * mpp meta data of data flow
      * reference counter will be used for these meta data type
      */
-    MPP_META_TYPE_FRAME         = 'mfrm',
-    MPP_META_TYPE_PACKET        = 'mpkt',
-    MPP_META_TYPE_BUFFER        = 'mbuf',
+    TYPE_FRAME                  = 'mfrm',
+    TYPE_PACKET                 = 'mpkt',
+    TYPE_BUFFER                 = 'mbuf',
 
     /* mpp meta data of normal data type */
-    MPP_META_TYPE_S32           = 's32 ',
-    MPP_META_TYPE_S64           = 's64 ',
-    MPP_META_TYPE_PTR           = 'ptr ',
+    TYPE_S32                    = 's32 ',
+    TYPE_S64                    = 's64 ',
+    TYPE_PTR                    = 'ptr ',
 } MppMetaType;
 
 typedef enum MppMetaKey_e {
-    MPP_META_KEY_INPUT_FRM      = 'ifrm',
-    MPP_META_KEY_INPUT_PKT      = 'ipkt',
-    MPP_META_KEY_OUTPUT_FRM     = 'ofrm',
-    MPP_META_KEY_OUTPUT_PKT     = 'opkt',
-    MPP_META_KEY_MOTION_INFO    = 'mvif',   /* output motion information for motion detection */
+    /* data flow key */
+    KEY_INPUT_FRAME             = 'ifrm',
+    KEY_INPUT_PACKET            = 'ipkt',
+    KEY_OUTPUT_FRAME            = 'ofrm',
+    KEY_OUTPUT_PACKET           = 'opkt',
+    KEY_MOTION_INFO             = 'mvif',   /* output motion information for motion detection */
 
-    MPP_META_KEY_INPUT_BLOCK    = 'iblk',
-    MPP_META_KEY_OUTPUT_BLOCK   = 'oblk',
-    MPP_META_KEY_INPUT_IDR_REQ  = 'iidr',   /* input idr frame request flag */
-    MPP_META_KEY_OUTPUT_INTRA   = 'oidr',   /* output intra frame indicator */
+    /* flow control key */
+    KEY_INPUT_BLOCK             = 'iblk',
+    KEY_OUTPUT_BLOCK            = 'oblk',
+    KEY_INPUT_IDR_REQ           = 'iidr',   /* input idr frame request flag */
+    KEY_OUTPUT_INTRA            = 'oidr',   /* output intra frame indicator */
+
+    /* flow control key */
+    KEY_WIDTH                   = 'wdth',
+    KEY_HEIGHT                  = 'hght',
+    KEY_BITRATE                 = 'bps ',
+    KEY_BITRATE_UP              = 'bpsu',
+    KEY_BITRATE_LOW             = 'bpsl',
+    KEY_INPUT_FPS               = 'ifps',
+    KEY_OUTPUT_FPS              = 'ofps',
+    KEY_GOP                     = 'gop ',
+    KEY_QP                      = 'qp  ',
+    KEY_QP_MIN                  = 'qmin',
+    KEY_QP_MAX                  = 'qmax',
+    KEY_QP_DIFF_RANGE           = 'qdif',
+    KEY_RC_MODE                 = 'rcmo',
 } MppMetaKey;
 
 typedef void* MppMeta;
