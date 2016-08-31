@@ -670,8 +670,8 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             break;
     } while (1);
 
-    mpp_task_meta_set_frame (task, MPP_META_KEY_INPUT_FRM,  frame);
-    mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
+    mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
+    mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
 
     if (mpi != NULL) {
         ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
@@ -692,7 +692,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                 MppFrame frame_out = NULL;
                 MppFrame packet_out = NULL;
 
-                mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
+                mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
 
                 mpp_assert(packet_out == packet);
                 vpu_api_dbg_func("encoded frame %d\n", frame_count);
@@ -712,7 +712,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
                     break;
                 }
                 mpp_assert(task);
-                ret = mpp_task_meta_get_frame(task, MPP_META_KEY_INPUT_FRM, &frame_out);
+                ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame_out);
                 mpp_assert(frame_out  == frame);
                 ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
                 if (ret) {

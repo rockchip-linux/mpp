@@ -310,7 +310,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             } else {
                 MppFrame frame_out = NULL;
 
-                mpp_task_meta_get_frame (task, MPP_META_KEY_INPUT_FRM,  &frame_out);
+                mpp_task_meta_get_frame (task, KEY_INPUT_FRAME,  &frame_out);
                 if (frame_out)
                     mpp_assert(frame_out == frame);
 
@@ -319,8 +319,8 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         } while (1);
 
 
-        mpp_task_meta_set_frame (task, MPP_META_KEY_INPUT_FRM,  frame);
-        mpp_task_meta_set_packet(task, MPP_META_KEY_OUTPUT_PKT, packet);
+        mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
+        mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
 
         ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
         if (ret) {
@@ -340,7 +340,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             if (task) {
                 MppFrame packet_out = NULL;
 
-                mpp_task_meta_get_packet(task, MPP_META_KEY_OUTPUT_PKT, &packet_out);
+                mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
 
                 mpp_assert(packet_out == packet);
                 if (packet) {

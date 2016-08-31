@@ -63,14 +63,14 @@ typedef struct MppMetaNode_t {
 static MppMetaDef meta_defs[] = {
     /* categorized by type */
     /* data flow type */
-    {   MPP_META_KEY_INPUT_FRM,         MPP_META_TYPE_FRAME,    },
-    {   MPP_META_KEY_OUTPUT_FRM,        MPP_META_TYPE_FRAME,    },
-    {   MPP_META_KEY_INPUT_PKT,         MPP_META_TYPE_PACKET,   },
-    {   MPP_META_KEY_OUTPUT_PKT,        MPP_META_TYPE_PACKET,   },
-    {   MPP_META_KEY_MOTION_INFO,       MPP_META_TYPE_BUFFER,   },  /* buffer for motion detection */
+    {   KEY_INPUT_FRAME,       TYPE_FRAME,    },
+    {   KEY_OUTPUT_FRAME,      TYPE_FRAME,    },
+    {   KEY_INPUT_PACKET,      TYPE_PACKET,   },
+    {   KEY_OUTPUT_PACKET,     TYPE_PACKET,   },
+    {   KEY_MOTION_INFO,       TYPE_BUFFER,   },  /* buffer for motion detection */
 
-    {   MPP_META_KEY_INPUT_BLOCK,       MPP_META_TYPE_S32,      },
-    {   MPP_META_KEY_OUTPUT_BLOCK,      MPP_META_TYPE_S32,      },
+    {   KEY_INPUT_BLOCK,       TYPE_S32,      },
+    {   KEY_OUTPUT_BLOCK,      TYPE_S32,      },
 };
 
 class MppMetaService
@@ -242,13 +242,13 @@ void MppMetaService::put_node(MppMetaNode *node)
     node_count--;
     // TODO: may be we need to release MppFrame / MppPacket / MppBuffer here
     switch (meta_defs[node->type_id].type) {
-    case MPP_META_TYPE_FRAME : {
+    case TYPE_FRAME : {
         // mpp_frame_deinit(&node->val.frame);
     } break;
-    case MPP_META_TYPE_PACKET : {
+    case TYPE_PACKET : {
         // mpp_packet_deinit(&node->val.packet);
     } break;
-    case MPP_META_TYPE_BUFFER : {
+    case TYPE_BUFFER : {
         //mpp_buffer_put(node->val.buffer);
     } break;
     default : {
@@ -330,7 +330,7 @@ MPP_RET mpp_meta_set_s32(MppMeta meta, MppMetaKey key, RK_S32 val)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.val_s32 = val;
-    return set_val_by_key(impl, key, MPP_META_TYPE_S32, &meta_val);
+    return set_val_by_key(impl, key, TYPE_S32, &meta_val);
 }
 
 MPP_RET mpp_meta_set_s64(MppMeta meta, MppMetaKey key, RK_S64 val)
@@ -343,7 +343,7 @@ MPP_RET mpp_meta_set_s64(MppMeta meta, MppMetaKey key, RK_S64 val)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.val_s64 = val;
-    return set_val_by_key(impl, key, MPP_META_TYPE_S64, &meta_val);
+    return set_val_by_key(impl, key, TYPE_S64, &meta_val);
 }
 
 MPP_RET mpp_meta_set_ptr(MppMeta meta, MppMetaKey key, void *val)
@@ -356,7 +356,7 @@ MPP_RET mpp_meta_set_ptr(MppMeta meta, MppMetaKey key, void *val)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.val_ptr = val;
-    return set_val_by_key(impl, key, MPP_META_TYPE_PTR, &meta_val);
+    return set_val_by_key(impl, key, TYPE_PTR, &meta_val);
 }
 
 MPP_RET mpp_meta_get_s32(MppMeta meta, MppMetaKey key, RK_S32 *val)
@@ -368,7 +368,7 @@ MPP_RET mpp_meta_get_s32(MppMeta meta, MppMetaKey key, RK_S32 *val)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_S32, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_S32, &meta_val);
     if (MPP_OK == ret)
         *val = meta_val.val_s32;
 
@@ -384,7 +384,7 @@ MPP_RET mpp_meta_get_s64(MppMeta meta, MppMetaKey key, RK_S64 *val)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_S64, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_S64, &meta_val);
     if (MPP_OK == ret)
         *val = meta_val.val_s64;
 
@@ -400,7 +400,7 @@ MPP_RET mpp_meta_get_ptr(MppMeta meta, MppMetaKey key, void  **val)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_PTR, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_PTR, &meta_val);
     if (MPP_OK == ret)
         *val = meta_val.val_ptr;
 
@@ -417,7 +417,7 @@ MPP_RET mpp_meta_set_frame(MppMeta meta, MppMetaKey key, MppFrame frame)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.frame = frame;
-    return set_val_by_key(impl, key, MPP_META_TYPE_FRAME, &meta_val);
+    return set_val_by_key(impl, key, TYPE_FRAME, &meta_val);
 }
 
 MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket packet)
@@ -430,7 +430,7 @@ MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket packet)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.packet = packet;
-    return set_val_by_key(impl, key, MPP_META_TYPE_PACKET, &meta_val);
+    return set_val_by_key(impl, key, TYPE_PACKET, &meta_val);
 }
 
 MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer buffer)
@@ -443,7 +443,7 @@ MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer buffer)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
     meta_val.buffer = buffer;
-    return set_val_by_key(impl, key, MPP_META_TYPE_BUFFER, &meta_val);
+    return set_val_by_key(impl, key, TYPE_BUFFER, &meta_val);
 }
 
 MPP_RET mpp_meta_get_frame(MppMeta meta, MppMetaKey key, MppFrame *frame)
@@ -455,7 +455,7 @@ MPP_RET mpp_meta_get_frame(MppMeta meta, MppMetaKey key, MppFrame *frame)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_FRAME, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_FRAME, &meta_val);
     if (MPP_OK == ret)
         *frame = meta_val.frame;
 
@@ -471,7 +471,7 @@ MPP_RET mpp_meta_get_packet(MppMeta meta, MppMetaKey key, MppPacket *packet)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_PACKET, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_PACKET, &meta_val);
     if (MPP_OK == ret)
         *packet = meta_val.packet;
 
@@ -487,7 +487,7 @@ MPP_RET mpp_meta_get_buffer(MppMeta meta, MppMetaKey key, MppBuffer *buffer)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     MppMetaVal meta_val;
-    MPP_RET ret = get_val_by_key(impl, key, MPP_META_TYPE_BUFFER, &meta_val);
+    MPP_RET ret = get_val_by_key(impl, key, TYPE_BUFFER, &meta_val);
     if (MPP_OK == ret)
         *buffer = meta_val.buffer;
 

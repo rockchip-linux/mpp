@@ -48,12 +48,12 @@ static MPP_RET release_task_in_port(MppPort port)
         if (mpp_task) {
             packet = NULL;
             frame = NULL;
-            ret = mpp_task_meta_get_frame(mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
+            ret = mpp_task_meta_get_frame(mpp_task, KEY_INPUT_FRAME,  &frame);
             if (frame) {
                 mpp_frame_deinit(&frame);
                 frame = NULL;
             }
-            ret = mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
+            ret = mpp_task_meta_get_packet(mpp_task, KEY_OUTPUT_PACKET, &packet);
             if (packet) {
                 mpp_packet_deinit(&packet);
                 packet = NULL;
@@ -93,8 +93,8 @@ void *mpp_enc_control_thread(void *data)
         thd_enc->unlock();
 
         if (mpp_task != NULL) {
-            mpp_task_meta_get_frame (mpp_task, MPP_META_KEY_INPUT_FRM,  &frame);
-            mpp_task_meta_get_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, &packet);
+            mpp_task_meta_get_frame (mpp_task, KEY_INPUT_FRAME,  &frame);
+            mpp_task_meta_get_packet(mpp_task, KEY_OUTPUT_PACKET, &packet);
 
             if (NULL == frame) {
                 mpp_port_enqueue(input, mpp_task);
@@ -149,19 +149,19 @@ void *mpp_enc_control_thread(void *data)
              * then enqueue task back to input port
              * final user will release the mpp_frame they had input
              */
-            mpp_task_meta_set_frame(mpp_task, MPP_META_KEY_INPUT_FRM, frame);
+            mpp_task_meta_set_frame(mpp_task, KEY_INPUT_FRAME, frame);
             mpp_port_enqueue(input, mpp_task);
             mpp_task = NULL;
 
             // send finished task to output port
             mpp_port_dequeue(output, &mpp_task);
-            mpp_task_meta_set_packet(mpp_task, MPP_META_KEY_OUTPUT_PKT, packet);
+            mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
 
             {
                 RK_S32 is_intra = enc_task->is_intra;
                 RK_U32 flag = mpp_packet_get_flag(packet);
 
-                mpp_task_meta_set_s32(mpp_task, MPP_META_KEY_OUTPUT_INTRA, is_intra);
+                mpp_task_meta_set_s32(mpp_task, KEY_OUTPUT_INTRA, is_intra);
                 if (is_intra) {
                     mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
                 }
