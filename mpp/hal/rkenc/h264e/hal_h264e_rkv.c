@@ -2600,6 +2600,13 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         ctx->packeted_param = NULL;
     }
 
+    if (ctx->param_buf) {
+        mpp_free(ctx->param_buf);
+        ctx->param_buf = NULL;
+    }
+
+    ctx->param_size = 0;
+
     if (ctx->dpb_ctx) {
         hal_h264e_rkv_reference_deinit(ctx->dpb_ctx);
         MPP_FREE(ctx->dpb_ctx);
