@@ -185,8 +185,10 @@ if(GCC)
         endif()
     endif()
 
-    set(CMAKE_C_VISIBILITY_PRESET hidden)
-    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    if(NOT $(CMAKE_BUILD_TYPE) MATCHES "Release")
+        set(CMAKE_C_VISIBILITY_PRESET hidden)
+        set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    endif()
 
     # disable multichar warning
     add_definitions(-Wno-multichar)
