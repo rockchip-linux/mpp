@@ -158,20 +158,22 @@ static const H264Profile h264e_supported_profile[] = {
 };
 
 static const H264Level h264e_supported_level[] = {
-    H264_LEVEL_1,
+    H264_LEVEL_1_0,
     H264_LEVEL_1_b,
     H264_LEVEL_1_1,
     H264_LEVEL_1_2,
     H264_LEVEL_1_3,
-    H264_LEVEL_2,
+    H264_LEVEL_2_0,
     H264_LEVEL_2_1,
     H264_LEVEL_2_2,
-    H264_LEVEL_3,
+    H264_LEVEL_3_0,
     H264_LEVEL_3_1,
     H264_LEVEL_3_2,
     H264_LEVEL_4_0,
     H264_LEVEL_4_1,
     H264_LEVEL_4_2,
+    H264_LEVEL_5_0,
+    H264_LEVEL_5_1,
 };
 
 static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
@@ -200,7 +202,7 @@ static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 
     if (i >= count) {
         mpp_log_f("invalid level %d set to default 4.0\n", mpp_cfg->level);
-        mpp_cfg->level = H264_LEVEL_3;
+        mpp_cfg->level = H264_LEVEL_4_0;
     }
 
     if (mpp_cfg->fps_in <= 0) {

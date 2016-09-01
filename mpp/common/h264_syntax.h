@@ -41,15 +41,15 @@ typedef enum h264e_profile_t {
 
 //!< AVC Level IDC definitions
 typedef enum {
-    H264_LEVEL_1                    = 10,
+    H264_LEVEL_1_0                  = 10,
     H264_LEVEL_1_b                  = 99,
     H264_LEVEL_1_1                  = 11,
     H264_LEVEL_1_2                  = 12,
     H264_LEVEL_1_3                  = 13,
-    H264_LEVEL_2                    = 20,
+    H264_LEVEL_2_0                  = 20,
     H264_LEVEL_2_1                  = 21,
     H264_LEVEL_2_2                  = 22,
-    H264_LEVEL_3                    = 30,
+    H264_LEVEL_3_0                  = 30,
     H264_LEVEL_3_1                  = 31,
     H264_LEVEL_3_2                  = 32,
     H264_LEVEL_4_0                  = 40,
