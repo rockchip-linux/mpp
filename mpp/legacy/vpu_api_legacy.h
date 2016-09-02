@@ -84,6 +84,9 @@ private:
     RK_U8*              outData;
     EncInputPictureType enc_in_fmt;
 
+    RK_S32 fd_input;
+    RK_S32 fd_output;
+
     RK_U32 mEosSet;
 };
 
