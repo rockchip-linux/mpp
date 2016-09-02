@@ -24,10 +24,9 @@ target_link_libraries(mpp_codec
                       codec_mpg4d
                       codec_vp8d
                       codec_vp9d
-		      codec_jpegd
-                      codec_h264e		      
+                      codec_jpegd
+                      codec_h264e
+                      codec_jpege
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_base)
-
-
