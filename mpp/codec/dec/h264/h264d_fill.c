@@ -29,14 +29,25 @@
 
 static const RK_U8 start_code[3] = { 0, 0, 1 };
 
+static MPP_RET realloc_slice_list(H264dDxvaCtx_t *dxva_ctx)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    dxva_ctx->max_slice_size += ADD_SLICE_SIZE;
+    dxva_ctx->slice_long  = mpp_realloc(dxva_ctx->slice_long, DXVA_Slice_H264_Long, dxva_ctx->max_slice_size);
+    MEM_CHECK(ret, dxva_ctx->slice_long);
+
+    return ret = MPP_OK;
+__FAILED:
+    return ret;
+}
 static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_Slice_H264_Long  *p_long = NULL;
 
-    if (dxva_ctx->slice_count > MAX_SLICE_NUM) {
-        H264D_ERR("error, slcie_num is larger than 1024");
-        goto __FAILED;
+    if (dxva_ctx->slice_count >= dxva_ctx->max_slice_size) {
+        FUN_CHECK(ret = realloc_slice_list(dxva_ctx));
     }
     p_long = &dxva_ctx->slice_long[dxva_ctx->slice_count];
     memset(p_long, 0, sizeof(DXVA_Slice_H264_Long));

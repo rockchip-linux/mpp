@@ -35,11 +35,12 @@
 
 #define MAX_MARK_SIZE             35   //!< for malloc buffer mark, can be changed
 
-#define MAX_STREM_IN_SIZE         (10*1024*1024)
-
-#define HEAD_BUF_MAX_SIZE         ( 5*1024*1024)
-#define NALU_BUF_MAX_SIZE         (10*1024*1024)
-#define SODB_BUF_MAX_SIZE         (10*1024*1024)
+#define HEAD_BUF_MAX_SIZE         (1*1024*1024)
+#define HEAD_BUF_ADD_SIZE         (512)
+#define NALU_BUF_MAX_SIZE         (2*1024*1024)
+#define NALU_BUF_ADD_SIZE         (512)
+#define SODB_BUF_MAX_SIZE         (2*1024*1024)
+#define SODB_BUF_ADD_SIZE         (512)
 
 //!< PPS parameters
 #define MAXnum_slice_groups_minus1  8
@@ -775,16 +776,20 @@ typedef struct h264_old_slice_par_t {
 } H264_OldSlice_t;
 
 //!< DXVA context
-#define MAX_SLICE_NUM              (1024)
-#define BITSTREAM_MAX_SIZE         (10*1024*1024)
+#define MAX_SLICE_NUM              (20)
+#define ADD_SLICE_SIZE             (5)
+#define BITSTREAM_MAX_SIZE         (2*1024*1024)
+#define BITSTREAM_ADD_SIZE         (512)
 #define SYNTAX_BUF_SIZE            (5)
 typedef struct h264d_dxva_ctx_t {
     RK_U8                            cfgBitstrmRaw;
     struct _DXVA_PicParams_H264_MVC  pp;
     struct _DXVA_Qmatrix_H264        qm;
+    RK_U32                           max_slice_size;
     RK_U32                           slice_count;
     struct _DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
     RK_U8                            *bitstream;
+    RK_U32                           max_strm_size;
     RK_U32                           strm_offset;
     struct h264d_syntax_t            syn;
     struct h264_dec_ctx_t            *p_Dec;
@@ -834,6 +839,7 @@ typedef struct h264d_input_ctx_t {
 //!< current stream
 typedef struct h264d_curstrm_t {
     RK_U32    nalu_offset;     //!< The offset of the input stream
+    RK_U32    nalu_max_size;   //!< Cur Unit Buffer size
     RK_U8     *curdata;
 
     RK_S32    nalu_type;
@@ -841,6 +847,7 @@ typedef struct h264d_curstrm_t {
     RK_U8     *nalu_buf;       //!< store read nalu data
 
     RK_U32    head_offset;
+    RK_U32    head_max_size;
     RK_U8     *head_buf;       //!< store header data, sps/pps/slice header
 
     RK_U64    prefixdata;

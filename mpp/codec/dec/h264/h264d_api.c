@@ -198,8 +198,10 @@ static MPP_RET init_cur_ctx(H264dCurCtx_t *p_Cur)
     FunctionIn(p_Cur->p_Dec->logctx.parr[RUN_PARSE]);
 
     p_strm = &p_Cur->strm;
-    p_strm->nalu_buf = mpp_malloc_size(RK_U8, NALU_BUF_MAX_SIZE);
-    p_strm->head_buf = mpp_malloc_size(RK_U8, HEAD_BUF_MAX_SIZE);
+    p_strm->nalu_max_size = NALU_BUF_MAX_SIZE;
+    p_strm->nalu_buf = mpp_malloc_size(RK_U8, p_strm->nalu_max_size);
+    p_strm->head_max_size = HEAD_BUF_MAX_SIZE;
+    p_strm->head_buf = mpp_malloc_size(RK_U8, p_strm->head_max_size);
     MEM_CHECK(ret, p_strm->nalu_buf && p_strm->head_buf);
     p_strm->prefixdata = 0xffffffff;
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
@@ -309,9 +311,11 @@ static MPP_RET init_dxva_ctx(H264dDxvaCtx_t *p_dxva)
     INP_CHECK(ret, !p_dxva);
     FunctionIn(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
     p_dxva->slice_count    = 0;
-    p_dxva->slice_long = mpp_calloc(DXVA_Slice_H264_Long, MAX_SLICE_NUM);
+    p_dxva->max_slice_size = MAX_SLICE_NUM;
+    p_dxva->max_strm_size  = BITSTREAM_MAX_SIZE;
+    p_dxva->slice_long  = mpp_calloc(DXVA_Slice_H264_Long,  p_dxva->max_slice_size);
     MEM_CHECK(ret, p_dxva->slice_long);
-    p_dxva->bitstream = mpp_malloc(RK_U8, BITSTREAM_MAX_SIZE);
+    p_dxva->bitstream   = mpp_malloc(RK_U8, p_dxva->max_strm_size);
     p_dxva->syn.buf     = mpp_calloc(DXVA2_DecodeBufferDesc, SYNTAX_BUF_SIZE);
     MEM_CHECK(ret, p_dxva->bitstream && p_dxva->syn.buf);
     FunctionOut(p_dxva->p_Dec->logctx.parr[RUN_PARSE]);
@@ -364,7 +368,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     }
     mpp_buf_slot_setup(p_Dec->frame_slots, MAX_MARK_SIZE);
     //!< malloc mpp packet
-    mpp_packet_init(&p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream, BITSTREAM_MAX_SIZE);
+    mpp_packet_init(&p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream, p_Dec->dxva_ctx->max_strm_size);
     MEM_CHECK(ret, p_Dec->task_pkt);
     //!< set Dec support decoder method
     p_Dec->spt_decode_mtds = MPP_DEC_BY_FRAME;
@@ -604,6 +608,7 @@ __RETURN:
 *   prepare
 ***********************************************************************
 */
+#define MAX_STREM_IN_SIZE         (10*1024*1024)
 MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -673,7 +678,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
                MPP_ALIGN(p_Dec->dxva_ctx->strm_offset, 16) - p_Dec->dxva_ctx->strm_offset);
         mpp_packet_set_data(p_Dec->task_pkt, p_Dec->dxva_ctx->bitstream);
         mpp_packet_set_length(p_Dec->task_pkt, MPP_ALIGN(p_Dec->dxva_ctx->strm_offset, 16));
-        mpp_packet_set_size(p_Dec->task_pkt, BITSTREAM_MAX_SIZE);
+        mpp_packet_set_size(p_Dec->task_pkt, p_Dec->dxva_ctx->max_strm_size);
         task->input_packet = p_Dec->task_pkt;
     } else {
         task->input_packet = NULL;
