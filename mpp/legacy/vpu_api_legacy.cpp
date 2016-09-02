@@ -731,6 +731,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
 
     // copy encoded stream into output buffer, and set outpub stream size
     if (packet != NULL) {
+        RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
@@ -746,6 +747,10 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             }
             memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(str_buf), aEncOut->size);
         }
+
+        vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
+                           packet, length, pts, aEncOut->keyFrame, eos);
+
         mpp_packet_deinit(&packet);
     } else {
         mpp_log("outputPacket is NULL!");

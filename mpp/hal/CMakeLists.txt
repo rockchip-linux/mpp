@@ -34,6 +34,8 @@ add_subdirectory(vpu/jpegd)
 
 add_subdirectory(rkenc/h264e)
 
+add_subdirectory(vpu/jpege)
+
 # ----------------------------------------------------------------------------
 # add hardware worker implement
 # ----------------------------------------------------------------------------
@@ -54,8 +56,9 @@ target_link_libraries(mpp_hal
                       hal_mpg4d
                       hal_vp8d
                       hal_vp9d
-		      hal_jpegd
-                      hal_h264e		      
+                      hal_jpegd
+                      hal_h264e
+                      hal_jpege
                       hal_dummy
                       ${RKPLAT_VPU}
                       )

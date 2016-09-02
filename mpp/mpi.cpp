@@ -45,6 +45,7 @@ static MppCodingTypeInfo support_list[] = {
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
     {   MPP_CTX_DEC,    MPP_VIDEO_CodingMJPEG,  "dec",  "jpeg",         },
     {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,    "enc",  "h.264/AVC",    },
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingMJPEG,  "enc",  "jpeg",         },
 };
 
 #define check_mpp_ctx(ctx)  _check_mpp_ctx(ctx, __FUNCTION__)

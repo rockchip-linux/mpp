@@ -19,7 +19,9 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+
 #include "h264e_api.h"
+#include "jpege_api.h"
 #include "mpp_controller.h"
 
 /*
@@ -27,6 +29,7 @@
  */
 static const ControlApi *controllers[] = {
     &api_h264e_controller,
+    &api_jpege_controller,
 };
 
 typedef struct ControllerImpl_t {
