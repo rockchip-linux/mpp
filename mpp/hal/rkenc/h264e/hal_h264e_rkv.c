@@ -3086,24 +3086,14 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg04.lkt_addr = 0x10000000;//syn->swreg04.lkt_addr;
 
     regs->swreg05.ofe_fnsh    = 1; //syn->swreg05.ofe_fnsh;
-    regs->swreg05.lkt_fnsh    = 0; //syn->swreg05.lkt_fnsh;
-    regs->swreg05.clr_fnsh    = 0; //syn->swreg05.clr_fnsh;
-    regs->swreg05.ose_fnsh    = 0; //syn->swreg05.ose_fnsh;
+    regs->swreg05.lkt_fnsh    = 1; //syn->swreg05.lkt_fnsh;
+    regs->swreg05.clr_fnsh    = 1; //syn->swreg05.clr_fnsh;
+    regs->swreg05.ose_fnsh    = 1; //syn->swreg05.ose_fnsh;
     regs->swreg05.bs_ovflr    = 1; //syn->swreg05.bs_ovflr;
     regs->swreg05.brsp_ful    = 1; //syn->swreg05.brsp_ful;
     regs->swreg05.brsp_err    = 1; //syn->swreg05.brsp_err;
     regs->swreg05.rrsp_err    = 1; //syn->swreg05.rrsp_err;
     regs->swreg05.tmt_err     = 1; //syn->swreg05.tmt_err ;
-
-    regs->swreg07.clr_ofe_fnsh    = 0x1;
-    regs->swreg07.clr_lkt_fnsh    = 0x1;
-    regs->swreg07.clr_clr_fnsh    = 0x1;
-    regs->swreg07.clr_ose_fnsh    = 0x1;
-    regs->swreg07.clr_bs_ovflr    = 0x1;
-    regs->swreg07.clr_brsp_ful    = 0x1;
-    regs->swreg07.clr_brsp_err    = 0x1;
-    regs->swreg07.clr_rrsp_err    = 0x1;
-    regs->swreg07.clr_tmt_err     = 0x1;
 
     regs->swreg09.pic_wd8_m1    = pic_width_align16 / 8 - 1;
     regs->swreg09.pic_wfill     = (syn->pic_luma_width & 0xf) ? (16 - (syn->pic_luma_width & 0xf)) : 0;
