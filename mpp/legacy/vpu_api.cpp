@@ -285,8 +285,14 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     RK_S32 ret = -1;
     RK_U32 force_original = 0;
     RK_U32 force_mpp_mode = 0;
-    RK_U32 caller_use_mpp_path = 0;
     RK_U32 use_mpp = 0;
+
+    CODEC_TYPE codecType = CODEC_NONE;
+    OMX_RK_VIDEO_CODINGTYPE videoCoding = OMX_RK_VIDEO_CodingUnused;
+    RK_U32 width = 0;
+    RK_U32 height = 0;
+    void  *extradata = NULL;
+    RK_S32 extradata_size = 0;
 
     vpu_api_dbg_func("enter\n");
 
@@ -341,19 +347,23 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         }
     }
 
-    if (NULL == s) {
-        /* if contex is initialized then it means the caller is from original vpuapi path */
-        caller_use_mpp_path = 0;
-    } else {
-        caller_use_mpp_path = 1;
+    /*
+     * No matter what is the old context just release it.
+     * But we need to save to pre-configured parameter
+     */
+    if (s) {
+        codecType       = s->codecType;
+        videoCoding     = s->videoCoding;
+        width           = s->width;
+        height          = s->height;
+        extradata       = s->extradata;
+        extradata_size  = s->extradata_size;
+
+        free(s);
+        s = NULL;
     }
 
     if (!use_mpp) {
-        /* use vpuapi path then we have to check the caller */
-        if (caller_use_mpp_path && s) {
-            free(s);
-            s = NULL;
-        }
         vpu_api_dbg_func("use vpuapi path\n");
 
         ret = open_orign_vpu(&s);
@@ -361,11 +371,6 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
             s->extra_cfg.reserved[0] = 1;
         }
     } else {
-        /* use mpp path then we also need to check the caller */
-        if (!caller_use_mpp_path && s) {
-            free(s);
-            s = NULL;
-        }
         vpu_api_dbg_func("use mpp path\n");
 
         s = mpp_calloc(VpuCodecContext, 1);
@@ -396,6 +401,14 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         }
     }
 
+    if (s) {
+        s->codecType        = codecType;
+        s->videoCoding      = videoCoding;
+        s->width            = width;
+        s->height           = height;
+        s->extradata        = extradata;
+        s->extradata_size   = extradata_size;
+    }
     *ctx = s;
 
     vpu_api_dbg_func("leave\n");
