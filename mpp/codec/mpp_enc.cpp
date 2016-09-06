@@ -294,12 +294,12 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
 
         ret = controller_init(&controller, &controller_cfg);
         if (ret) {
-            mpp_err_f("could not init parser\n");
+            mpp_err_f("could not init controller\n");
             break;
         }
         cb.callBack = hal_enc_callback;
         cb.opaque = controller;
-        // then init hal with task count from parser
+        // then init hal with task count from controller
         MppHalCfg hal_cfg = {
             MPP_CTX_ENC,
             coding,
