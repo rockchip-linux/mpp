@@ -1,64 +1,74 @@
+/*
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef __JPEGE_SYNTAX_H__
 #define __JPEGE_SYNTAX_H__
 
-#include "rk_type.h"
+#include "mpp_frame.h"
 
+typedef struct JpegeSyntax_t {
+	RK_U32          width;
+	RK_U32          height;
+    MppFrameFormat  format;
 
+    /* For quantization table */
+    RK_U32          quality;
+    RK_U8           *qtable_y;
+    RK_U8           *qtable_c;
 
+    /*
+     * For color conversion
+     *
+     * 0 = bt601
+     * 1 = bt709
+     * 2 = user defined
+     */
+    RK_U32          color_conversion_type;
+    RK_U32          coeffA;
+    RK_U32          coeffB;
+    RK_U32          coeffC;
+    RK_U32          coeffE;
+    RK_U32          coeffF;
 
+    /* For slice encoding mode */
+	RK_U32          slice_enable;
+	RK_U32          slice_size_mb_rows;
+	RK_U32          restart_interval;
 
-typedef struct jpege_syntax_t {
-	RK_U32 qp;
-	RK_U32 qpMin;
-	RK_U32 qpMax;
-	RK_U32 xFill;
-	RK_U32 yFill;
-	RK_U32 frameNum;
-	RK_U32 idrPicId;
-	RK_U32 mbsInRow;
-	RK_U32 mbsInCol;
-	RK_U32 jpegMode;
-	RK_U32 cabacInitIdc;
-	RK_U32 enableCabac;
-	RK_U32 sliceSizeMbRows;
-	RK_U32 outputStrmBase;
-	RK_U32 outputStrmSize;
-	RK_U32 inputLumBase;             // inputLumBase
-	RK_U32 inputCrBase;               // inputCbBase
-	RK_U32 inputCbBase;               // inputCrBase
-	RK_U32 pixelsOnRow;          // inputImageFormat
-	RK_U32 jpegSliceEnable;
-	RK_U32 jpegRestartInterval;
-	RK_U32 inputLumaBaseOffset;
-	RK_U32 filterDisable;
-	RK_U32 inputChromaBaseOffset;
-	RK_S32 chromaQpIndexOffset;
-	RK_U32 strmStartMSB;
-	RK_U32 strmStartLSB;	
-	RK_S32 madQpDelta;
-	RK_U32 firstFreeBit;
-	RK_U32 madThreshold;
-	RK_S32 sliceAlphaOffset;
-	RK_S32 sliceBetaOffset;
-	RK_U32 transform8x8Mode;
-	RK_U32 jpegcolor_conversion_coeff_a;    //colorConversionCoeffA
-	RK_U32 jpegcolor_conversion_coeff_b;    //colorConversionCoeffB
-	RK_U32 jpegcolor_conversion_coeff_c;    //colorConversionCoeffC
-	RK_U32 jpegcolor_conversion_coeff_e;    //colorConversionCoeffE
-	RK_U32 jpegcolor_conversion_coeff_f;    //colorConversionCoeffF
-	RK_U32 jpegcolor_conversion_r_mask_msb; //rMaskMsb
-	RK_U32 jpegcolor_conversion_g_mask_msb; //gMaskMsb
-	RK_U32 jpegcolor_conversion_b_mask_msb; //bMaskMsb
+    /*
+     * For unit type and density
+     *
+     * units_type   0 - no unit
+     *              1 - dots per inch
+     *              2 - dots per cm
+     *
+     * X/Y density  specify the pixel aspect ratio
+     */
+    RK_U32          units_type;
+    RK_U32          density_x;
+    RK_U32          density_y;
 
-	/* RKVENC extra syntax below */
-	RK_S32 profile_idc; //TODO: may be removed later, get from sps/pps instead
-	RK_S32 level_idc; //TODO: may be removed later, get from sps/pps instead
-	RK_S32 link_table_en;
-	RK_S32 keyframe_max_interval;
-} jpege_syntax; //EncJpegInstance.h
+    /* For comment header */
+    RK_U32          comment_length;
+    RK_U8           *comment_data;
+} JpegeSyntax;
 
-
-
-
+typedef struct JpegeFeedback_t {
+    RK_U32 hw_status;       /* zero -> correct; non-zero -> error */
+    RK_U32 stream_length;
+} JpegeFeedback;
 
 #endif

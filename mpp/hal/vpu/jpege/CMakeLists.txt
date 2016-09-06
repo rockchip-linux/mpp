@@ -5,6 +5,7 @@ set(HAL_JPEGE_HDR
    )
 
 set(HAL_JPEGE_SRC
+    hal_jpege_hdr.c
     hal_jpege_api.c
     )
 
