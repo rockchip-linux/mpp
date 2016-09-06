@@ -138,7 +138,11 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
         *api = allocator_normal;
     } break;
     case MPP_BUFFER_TYPE_ION : {
+#ifdef RKPLATFORM
         *api = allocator_ion;
+#else
+        *api = allocator_normal;
+#endif
     } break;
     case MPP_BUFFER_TYPE_V4L2 : {
         mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
