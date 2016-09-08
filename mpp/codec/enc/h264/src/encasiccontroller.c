@@ -93,6 +93,7 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->qp_min = ctx->rateControl.qpMin;
     syntax_data->qp_max = ctx->rateControl.qpMax;
     syntax_data->cp_distance_mbs = val->cpDistanceMbs;
+    syntax_data->mb_rc_mode = ctx->rateControl.mbRc;
     if (val->cpTarget != NULL) {
         for (iCount = 0; iCount < 10; ++iCount) {
             syntax_data->cp_target[iCount] = val->cpTarget[iCount];

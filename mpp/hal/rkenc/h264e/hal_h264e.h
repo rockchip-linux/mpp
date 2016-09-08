@@ -337,30 +337,31 @@ typedef struct h264e_hal_param_t {
 } h264e_hal_param;
 
 typedef struct h264e_hal_context_t {
-    MppHalApi           api;
-    VPU_CLIENT_TYPE     vpu_client;
-    RK_S32              vpu_socket;
-    IOInterruptCB       int_cb;
-    h264e_feedback      feedback;
-    void                *regs;
-    void                *ioctl_input;
-    void                *ioctl_output;
-    void                *buffers;
-    void                *extra_info;
-    void                *dpb_ctx;
-    RK_U32              frame_cnt_gen_ready;
-    RK_U32              frame_cnt_send_ready;
-    RK_U32              num_frames_to_send;
-    RK_U32              frame_cnt;
-    h264e_hal_param     param;
-    RK_U32              enc_mode;
-    HalEncTask          enc_task;
-    void                *dump_files;
+    MppHalApi                       api;
+    VPU_CLIENT_TYPE                 vpu_client;
+    RK_S32                          vpu_socket;
+    IOInterruptCB                   int_cb;
+    h264e_feedback                  feedback;
+    void                            *regs;
+    void                            *ioctl_input;
+    void                            *ioctl_output;
+    void                            *buffers;
+    void                            *extra_info;
+    void                            *dpb_ctx;
+    RK_U32                          frame_cnt_gen_ready;
+    RK_U32                          frame_cnt_send_ready;
+    RK_U32                          num_frames_to_send;
+    RK_U32                          frame_cnt;
+    h264e_hal_param                 param;
+    RK_U32                          enc_mode;
+    HalEncTask                      enc_task;
+    void                            *dump_files;
 
-    void                *param_buf;
-    size_t              param_size;
-    MppPacket           packeted_param;
-    void                *test_cfg;
+    void                            *param_buf;
+    size_t                          param_size;
+    MppPacket                       packeted_param;
+    void                            *test_cfg;
+    h264e_control_extra_info_cfg    extra_info_cfg;
 } h264e_hal_context;
 
 #endif
