@@ -655,7 +655,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     mpp_packet_init_with_buffer(&packet, str_buf);
 
     vpu_api_dbg_func("mpp import input fd %d output fd %d",
-            mpp_buffer_get_fd(pic_buf), mpp_buffer_get_fd(str_buf));
+                     mpp_buffer_get_fd(pic_buf), mpp_buffer_get_fd(str_buf));
 
     do {
         ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);

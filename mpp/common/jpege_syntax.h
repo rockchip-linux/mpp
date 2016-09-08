@@ -20,8 +20,8 @@
 #include "mpp_frame.h"
 
 typedef struct JpegeSyntax_t {
-	RK_U32          width;
-	RK_U32          height;
+    RK_U32          width;
+    RK_U32          height;
     MppFrameFormat  format;
 
     /* For quantization table */
@@ -44,9 +44,9 @@ typedef struct JpegeSyntax_t {
     RK_U32          coeffF;
 
     /* For slice encoding mode */
-	RK_U32          slice_enable;
-	RK_U32          slice_size_mb_rows;
-	RK_U32          restart_interval;
+    RK_U32          slice_enable;
+    RK_U32          slice_size_mb_rows;
+    RK_U32          restart_interval;
 
     /*
      * For unit type and density

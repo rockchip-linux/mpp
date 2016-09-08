@@ -310,7 +310,7 @@ static MPP_RET add_empty_nalu(H264dCurStream_t *p_strm)
     RK_U32 add_size = sizeof(H264dNaluHead_t);
 
     if ((p_strm->head_offset + add_size) >= p_strm->head_max_size) {
-       FUN_CHECK(ret = realloc_buffer(&p_strm->head_buf, &p_strm->head_max_size, HEAD_BUF_ADD_SIZE));
+        FUN_CHECK(ret = realloc_buffer(&p_strm->head_buf, &p_strm->head_max_size, HEAD_BUF_ADD_SIZE));
     }
     p_des = &p_strm->head_buf[p_strm->head_offset];
     ((H264dNaluHead_t *)p_des)->is_frame_end  = 1;
@@ -357,7 +357,7 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
         RK_U32 add_size = p_strm->nalu_len + sizeof(g_start_precode);
 
         if ((dxva_ctx->strm_offset + add_size) >= dxva_ctx->max_strm_size) {
-        FUN_CHECK(ret = realloc_buffer(&dxva_ctx->bitstream, &dxva_ctx->max_strm_size, add_size));
+            FUN_CHECK(ret = realloc_buffer(&dxva_ctx->bitstream, &dxva_ctx->max_strm_size, add_size));
         }
 
         p_des = &dxva_ctx->bitstream[dxva_ctx->strm_offset];

@@ -544,7 +544,7 @@ static MPP_RET get_vpu_syntax_in(h264e_syntax *syn, MppBuffer hw_in_buf, MppBuff
     if (hw_in_buf)
         syn->input_luma_addr = mpp_buffer_get_fd(hw_in_buf);
     syn->input_cb_addr = syn->input_luma_addr | (frame_luma_size << 10);
-    syn->input_cr_addr = syn->input_cb_addr | ((frame_luma_size/4) << 10);
+    syn->input_cr_addr = syn->input_cb_addr | ((frame_luma_size / 4) << 10);
 
     if (hw_output_strm_buf)
         syn->output_strm_addr = mpp_buffer_get_fd(hw_output_strm_buf);
@@ -1371,7 +1371,7 @@ MPP_RET h264e_hal_vpu_test()
         goto __test_end;
     }
 
-    mpp_buffer_get(hw_input_buf_grp, &hw_input_buf, frame_luma_size*3/2);
+    mpp_buffer_get(hw_input_buf_grp, &hw_input_buf, frame_luma_size * 3 / 2);
     mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf, 1024 * 1024 * 2);
 
     task_info.enc.syntax.data = (void *)&syntax_data;
@@ -1433,7 +1433,7 @@ __test_end:
 
     //free hw buf
     if (hw_input_buf)
-            mpp_buffer_put(hw_input_buf);
+        mpp_buffer_put(hw_input_buf);
     if (hw_output_strm_buf)
         mpp_buffer_put(hw_output_strm_buf);
 
@@ -1549,7 +1549,7 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
 
         g_frame_cnt ++;
 
-        if(g_frame_cnt==test_cfg->num_frames) {
+        if (g_frame_cnt == test_cfg->num_frames) {
             mpp_log("test_cfg->num_frames %d reached, end test", test_cfg->num_frames);
             goto __test_end;
         }

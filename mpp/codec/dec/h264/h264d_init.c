@@ -1398,27 +1398,25 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
         && (currSlice->slice_type % 5) != SI_SLICE) {
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
             p_err->cur_err_flag |= check_ref_pic_list(currSlice, 0) ? 1 : 0;
-            }
-        else {
+        } else {
             RK_S32 pps_refs = currSlice->active_pps->num_ref_idx_l0_default_active_minus1 + 1;
             RK_S32 over_flag = currSlice->num_ref_idx_override_flag;
             RK_S32 active_l0 = over_flag ? currSlice->num_ref_idx_active[LIST_0] : pps_refs;
             p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_p, active_l0) ? 1 : 0;
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list0 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l0=%d\n",
-                p_err->cur_err_flag, pps_refs, over_flag, active_l0);
+                      p_err->cur_err_flag, pps_refs, over_flag, active_l0);
         }
     }
     if (currSlice->slice_type % 5 == B_SLICE) {
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
             p_err->cur_err_flag |= check_ref_pic_list(currSlice, 1) ? 1 : 0;
-            }
-        else {
+        } else {
             RK_S32 pps_refs = currSlice->active_pps->num_ref_idx_l1_default_active_minus1 + 1;
             RK_S32 over_flag = currSlice->num_ref_idx_override_flag;
             RK_S32 active_l1 = over_flag ? currSlice->num_ref_idx_active[LIST_1] : pps_refs;
             p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1], active_l1) ? 1 : 0;
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list1 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l1=%d\n",
-                p_err->cur_err_flag, pps_refs, over_flag, active_l1);
+                      p_err->cur_err_flag, pps_refs, over_flag, active_l1);
         }
         //!< B_SLICE only has one refer
         if ((currSlice->active_sps->vui_seq_parameters.num_reorder_frames > 1)
@@ -1933,7 +1931,7 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
     FUN_CHECK(ret = alloc_decpic(currSlice));
     if ((p_err->i_slice_no < 2)
         && (!currSlice->layer_id) && (I_SLICE == currSlice->slice_type)) {
-            p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
+        p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
     }
     //!< idr_memory_management MVC_layer, idr_flag==1
     if (currSlice->layer_id && !currSlice->svc_extension_flag && !currSlice->mvcExt.non_idr_flag) {

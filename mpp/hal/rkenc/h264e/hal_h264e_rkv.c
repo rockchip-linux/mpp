@@ -1504,7 +1504,7 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
         }
     }
 
-    #if 0 //default setting
+#if 0 //default setting
     RK_U32 num_mei_oneframe = (syn->pic_luma_width + 255) / 256 * ((syn->pic_luma_height + 15) / 16);
     for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
         if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_MEI], &buffers->hw_mei_buf[k], num_mei_oneframe * 16 * 4)) {
@@ -1514,7 +1514,7 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
             h264e_hal_log_dpb("hw_mei_buf[%d] %p done, fd %d", k, buffers->hw_mei_buf[k], mpp_buffer_get_fd(buffers->hw_mei_buf[k]));
         }
     }
-    #endif
+#endif
 
     if (syn->roi_en || (test_cfg && test_cfg->roi)) {
         for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {

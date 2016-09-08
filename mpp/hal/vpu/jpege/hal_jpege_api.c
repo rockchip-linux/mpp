@@ -181,7 +181,7 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
 
     regs[60] = (((bytepos & 7) * 8) << 16) |
                ((hor_stride - width) << 4) |
-                (ver_stride - height);
+               (ver_stride - height);
     regs[61] = hor_stride;
 
     switch (fmt) {
@@ -365,7 +365,7 @@ MPP_RET hal_jpege_wait(void *hal, HalTaskInfo *task)
     val = regs[53];
     feedback.stream_length = jpege_bits_get_bitpos(bits) / 8 + val / 8;
     hal_jpege_dbg_output("stream length: sw %d hw %d total %d\n",
-            jpege_bits_get_bitpos(bits) / 8, val / 8, feedback.stream_length);
+                         jpege_bits_get_bitpos(bits) / 8, val / 8, feedback.stream_length);
 
     ctx->int_cb.callBack(ctx->int_cb.opaque, &feedback);
 
