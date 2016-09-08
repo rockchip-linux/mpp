@@ -808,7 +808,7 @@ static void hal_h264e_rkv_dump_mpp_strm_out_header(h264e_hal_context *ctx, MppPa
 }
 
 
-void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
+void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer hw_buf)
 {
 #if RKVENC_DUMP_INFO
     h264e_hal_rkv_dump_files *dump_files = (h264e_hal_rkv_dump_files *)ctx->dump_files;
@@ -825,10 +825,10 @@ void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
         h264e_hal_log_file("dump %d frames strm out below", frame_num);
         for (k = 0; k < frame_num; k++) {
             strm_size = (RK_U32)out_elem[k].swreg69.bs_lgth;
-            hw_buf_vir_addr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf[k]);
+            hw_buf_vir_addr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf);
             sw_buf = mpp_malloc(RK_U8, strm_size);
 
-            h264e_hal_log_file("dump frame %d, fd %d, strm_size: %d", k, mpp_buffer_get_fd(hw_buf[k]), strm_size);
+            h264e_hal_log_file("dump frame %d, fd %d, strm_size: %d", k, mpp_buffer_get_fd(hw_buf), strm_size);
 
             memcpy(sw_buf, hw_buf_vir_addr, strm_size);
 
@@ -838,9 +838,6 @@ void hal_h264e_rkv_dump_mpp_strm_out(h264e_hal_context *ctx, MppBuffer *hw_buf)
                 mpp_free(sw_buf);
         }
         fflush(fp);
-
-
-        (void)hw_buf;
     } else {
         h264e_hal_log_file("try to dump data to mpp_strm_out.txt, but file is not opened");
     }
@@ -2638,7 +2635,6 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
     info = &extra_info->elem[1];
     info->reg_idx = 72;
     info->offset  = frame_size * 5 / 4; //TODO: relevant with YUV format
-
     return MPP_OK;
 }
 
@@ -2653,7 +2649,6 @@ static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn, h264e_hal_rkv_cs
     /* adjust */
     *src_fmt = hal_h264e_rkv_convert_csp(input_image_format);
     syn->input_image_format = src_fmt->fmt;
-    syn->input_image_format = H264E_RKV_CSP_YUV420SP; //TODO: removed later
 
     syn->input_cb_addr = syn->input_luma_addr;
     syn->input_cr_addr = syn->input_luma_addr;
@@ -2982,7 +2977,6 @@ MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, Mp
         regs->swreg23.src_ystrid    = stridey; //syn->swreg23.src_ystrid;
         regs->swreg23.src_cstrid    = stridec; //syn->swreg23.src_cstrid;    ////YUV420 planar;
 
-
         (void)test;
     }
 
@@ -3119,7 +3113,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg24_adr_srcy     = syn->input_luma_addr; //syn->addr_cfg.adr_srcy;
     regs->swreg25_adr_srcu     = syn->input_cb_addr; //syn->addr_cfg.adr_srcu;
     regs->swreg26_adr_srcv     = syn->input_cr_addr; //syn->addr_cfg.adr_srcv;
-
 
     hal_h264e_rkv_set_roi_regs(regs, syn, bufs->hw_roi_buf[mul_buf_idx], ctx->frame_cnt, test_cfg);
 
