@@ -1687,6 +1687,8 @@ JpegDecRet jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     reg->reg122.sw_jpeg_filright_e = pSyntax->info.fillRight;
 
     reg->reg148.sw_slice_h = pSyntax->info.sliceHeight;
+    /* Set bit 20 and bit 21 of reg148 to 1, notifying hardware to decode jpeg including DRI segment */
+    reg->reg148.sw_resver = 0x003000;
 
     /* Set JPEG operation mode */
     if (pSyntax->info.operationType != JPEGDEC_PROGRESSIVE) {
@@ -1726,6 +1728,7 @@ JpegDecRet jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     /* set restart interval */
     if (pSyntax->frame.Ri) {
         reg->reg122.sw_sync_marker_e = 1;
+        /* If exists DRI segment, bit 0 to bit 15 of reg123 is set to restart interval */
         reg->reg123.sw_pjpeg_rest_freq = pSyntax->frame.Ri;
     } else {
         reg->reg122.sw_sync_marker_e = 0;
