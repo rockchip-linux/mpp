@@ -1635,16 +1635,17 @@ static MPP_RET hal_h264e_vpu_deinit_extra_info(void *extra_info)
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vpu_set_extra_info(void *extra_info, void *param)
+static MPP_RET hal_h264e_vpu_set_extra_info(h264e_hal_context *ctx, void *param)
 {
     h264e_control_extra_info_cfg *cfg = (h264e_control_extra_info_cfg *)param;
-    h264e_hal_vpu_extra_info *info = (h264e_hal_vpu_extra_info *)extra_info;
+    h264e_hal_vpu_extra_info *info = (h264e_hal_vpu_extra_info *)ctx->extra_info;
     h264e_hal_vpu_stream *sps_stream = &info->sps_stream;
     h264e_hal_vpu_stream *pps_stream = &info->pps_stream;
     h264e_hal_sps *sps = &info->sps;
     h264e_hal_pps *pps = &info->pps;
     h264e_hal_debug_enter();
 
+    ctx->extra_info_cfg = *cfg;
     hal_h264e_vpu_stream_buffer_reset(sps_stream);
     hal_h264e_vpu_stream_buffer_reset(pps_stream);
 
@@ -2219,7 +2220,7 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
     h264e_hal_log_detail("hal_h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
-        hal_h264e_vpu_set_extra_info(ctx->extra_info, param);
+        hal_h264e_vpu_set_extra_info(ctx, param);
         break;
     }
     case MPP_ENC_GET_EXTRA_INFO: {
