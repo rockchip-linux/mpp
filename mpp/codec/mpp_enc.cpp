@@ -81,6 +81,7 @@ void *mpp_enc_control_thread(void *data)
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
     MppPacket packet = NULL;
+    MppBuffer mv_info = NULL;
 
     memset(&task_info, 0, sizeof(HalTaskInfo));
 
@@ -95,6 +96,7 @@ void *mpp_enc_control_thread(void *data)
         if (mpp_task != NULL) {
             mpp_task_meta_get_frame (mpp_task, KEY_INPUT_FRAME,  &frame);
             mpp_task_meta_get_packet(mpp_task, KEY_OUTPUT_PACKET, &packet);
+            mpp_task_meta_get_buffer(mpp_task, KEY_MOTION_INFO, &mv_info);
 
             if (NULL == frame) {
                 mpp_port_enqueue(input, mpp_task);
@@ -124,6 +126,7 @@ void *mpp_enc_control_thread(void *data)
 
                 enc_task->input  = mpp_frame_get_buffer(frame);
                 enc_task->output = mpp_packet_get_buffer(packet);
+                enc_task->mv_info = mv_info;
                 controller_encode(mpp->mEnc->controller, enc_task);
 
                 mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
@@ -418,6 +421,12 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         ret = MPP_OK;
     } break;
     case MPP_ENC_GET_EXTRA_INFO : {
+        ret = mpp_hal_control(enc->hal, cmd, param);
+    } break;
+    case MPP_ENC_SET_RC_CFG : {
+        ret = mpp_hal_control(enc->hal, cmd, param);
+    } break;
+    case MPP_ENC_GET_RC_CFG : {
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     default : {

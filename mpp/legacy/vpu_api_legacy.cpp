@@ -729,7 +729,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         mpp_err("mpi pointer is NULL, failed!");
     }
 
-    // copy encoded stream into output buffer, and set outpub stream size
+    // copy encoded stream into output buffer, and set output stream size
     if (packet != NULL) {
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);

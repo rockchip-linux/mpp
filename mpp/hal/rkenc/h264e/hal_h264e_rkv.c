@@ -3074,7 +3074,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_hal_rkv_buffers *bufs = (h264e_hal_rkv_buffers *)ctx->buffers;
     RK_U32 mul_buf_idx = ctx->frame_cnt % RKV_H264E_LINKTABLE_FRAME_NUM;
     RK_U32 buf2_idx = ctx->frame_cnt % 2;
-    //RK_S32 pic_height_align64 = (syn->pic_luma_height + 63) & (~63);
+
+    MppBuffer mv_info_buf = task->enc.mv_info;
+
     ctx->enc_mode = RKV_H264E_ENC_MODE;
 
     h264e_hal_debug_enter();
@@ -3157,7 +3159,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg10.enc_stnd       = 0; //H264
     regs->swreg10.cur_frm_ref    = ((ctx->frame_cnt + 1) % sps->keyframe_max_interval) != 0; //syn->swreg10.cur_frm_ref;       //Current frame should be refered in future
-    regs->swreg10.mei_stor       = 0; //syn->swreg10.mei_stor;
     regs->swreg10.bs_scp         = 1; //syn->swreg10.bs_scp;
     regs->swreg10.slice_int      = 0; //syn->swreg10.slice_int;
     regs->swreg10.node_int       = 0; //syn->swreg10.node_int;//node_int_frame_pos
@@ -3199,7 +3200,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     if (bufs->hw_dsp_buf[1 - buf2_idx])
         regs->swreg35_dspr_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[1 - buf2_idx]); //syn->addr_cfg.dspr_addr;
 
-    regs->swreg36_meiw_addr    = 0; //mpp_buffer_get_fd(bufs->hw_mei_buf[mul_buf_idx]);
+    if(mv_info_buf) {
+        regs->swreg10.mei_stor    = 1; //syn->swreg10.mei_stor;
+        regs->swreg36_meiw_addr   = mpp_buffer_get_fd(mv_info_buf); //mpp_buffer_get_fd(bufs->hw_mei_buf[mul_buf_idx]);
+    }
+
     regs->swreg38_bsbb_addr    = syn->output_strm_addr;
     if (VPUClientGetIOMMUStatus() > 0)
         regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr | (syn->output_strm_limit_size << 10); // TODO: stream size relative with syntax

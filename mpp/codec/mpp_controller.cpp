@@ -25,7 +25,7 @@
 #include "mpp_controller.h"
 
 /*
- * all decoder static register here
+ * all encoder controller static register here
  */
 static const ControlApi *controllers[] = {
 #if HAVE_H264E
@@ -78,7 +78,7 @@ MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg)
                 return MPP_ERR_MALLOC;
             }
 
-            MPP_RET ret = api->init(ctx, cfg);  // FIXME need to be thinked by lance 2016.05.18
+            MPP_RET ret = api->init(ctx, cfg);
             if (MPP_OK != ret) {
                 mpp_err_f("failed to init controller\n");
                 mpp_free(p);

@@ -140,6 +140,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     MppPacket packet        = NULL;
     MppBuffer frm_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppBuffer pkt_buf[MPI_ENC_IO_COUNT] = { NULL };
+    MppBuffer md_buf[MPI_ENC_IO_COUNT] = { NULL };
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -151,7 +152,10 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
     // resources
     size_t frame_size   = hor_stride * ver_stride * 3 / 2;
-    size_t packet_size  = width * height;           /* NOTE: packet buffer may overflow */
+    /* NOTE: packet buffer may overflow */
+    size_t packet_size  = width * height;
+    /* 32 for each 16x16 block */
+    size_t mdinfo_size  = (((hor_stride + 255)&(~255))/16) * (ver_stride / 16) * 4; //NOTE: hor_stride should be 16-MB aligned
     size_t read_size    = 0;
     RK_U32 frame_count  = 0;
     RK_U64 stream_size  = 0;
@@ -197,6 +201,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         ret = mpp_buffer_get(pkt_grp, &pkt_buf[i], packet_size);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
+            goto MPP_TEST_OUT;
+        }
+
+        ret = mpp_buffer_get(pkt_grp, &md_buf[i], mdinfo_size);
+        if (ret) {
+            mpp_err("failed to get buffer for motion detection info ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
     }
@@ -276,6 +286,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         RK_S32 index = i++;
         MppBuffer frm_buf_in  = frm_buf[index];
         MppBuffer pkt_buf_out = pkt_buf[index];
+        MppBuffer md_info_buf = md_buf[index];
         void *buf = mpp_buffer_get_ptr(frm_buf_in);
 
         if (i == MPI_ENC_IO_COUNT)
@@ -310,7 +321,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             } else {
                 MppFrame frame_out = NULL;
 
-                mpp_task_meta_get_frame (task, KEY_INPUT_FRAME,  &frame_out);
+                mpp_task_meta_get_frame(task, KEY_INPUT_FRAME,  &frame_out);
                 if (frame_out)
                     mpp_assert(frame_out == frame);
 
@@ -321,6 +332,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
         mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
         mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
+        mpp_task_meta_set_buffer(task, KEY_MOTION_INFO, md_info_buf);
 
         ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
         if (ret) {
@@ -404,6 +416,11 @@ MPP_TEST_OUT:
         if (pkt_buf[i]) {
             mpp_buffer_put(pkt_buf[i]);
             pkt_buf[i] = NULL;
+        }
+
+        if (md_buf[i]) {
+            mpp_buffer_put(md_buf[i]);
+            md_buf[i] = NULL;
         }
     }
 

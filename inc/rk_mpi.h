@@ -18,6 +18,7 @@
 #define __RK_MPI_H__
 
 #include "mpp_task.h"
+#include "rk_mpi_cmd.h"
 
 typedef enum {
     MPP_CTX_DEC,
@@ -58,68 +59,6 @@ typedef enum {
     MPP_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
     MPP_VIDEO_CodingMax = 0x7FFFFFFF
 } MppCodingType;
-
-/*
- * Command id bit usage is defined as follows:
- * bit 20 - 23  - module id
- * bit 16 - 19  - contex id
- * bit  0 - 15  - command id
- */
-#define CMD_MODULE_ID_MASK              (0x00F00000)
-#define CMD_MODULE_OSAL                 (0x00100000)
-#define CMD_MODULE_MPP                  (0x00200000)
-#define CMD_MODULE_CODEC                (0x00300000)
-#define CMD_MODULE_HAL                  (0x00400000)
-#define CMD_CTX_ID_MASK                 (0x000F0000)
-#define CMD_CTX_ID_DEC                  (0x00010000)
-#define CMD_CTX_ID_ENC                  (0x00020000)
-#define CMD_CTX_ID_ISP                  (0x00030000)
-#define CMD_ID_MASK                     (0x0000FFFF)
-
-typedef enum {
-    MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
-    MPP_OSAL_CMD_END,
-
-    MPP_CMD_BASE                        = CMD_MODULE_MPP,
-    MPP_ENABLE_DEINTERLACE,
-    MPP_SET_INPUT_BLOCK,
-    MPP_SET_OUTPUT_BLOCK,
-    MPP_CMD_END,
-
-    MPP_CODEC_CMD_BASE                  = CMD_MODULE_CODEC,
-    MPP_CODEC_GET_FRAME_INFO,
-    MPP_CODEC_CMD_END,
-
-    MPP_DEC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_DEC,
-    MPP_DEC_SET_FRAME_INFO,             /* vpu api legacy control for buffer slot dimension init */
-    MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
-    MPP_DEC_SET_INFO_CHANGE_READY,
-    MPP_DEC_SET_INTERNAL_PTS_ENABLE,
-    MPP_DEC_SET_PARSER_SPLIT_MODE,      /* Need to setup before init */
-    MPP_DEC_SET_PARSER_FAST_MODE,       /* Need to setup before init */
-    MPP_DEC_GET_STREAM_COUNT,
-    MPP_DEC_GET_VPUMEM_USED_COUNT,
-    MPP_DEC_SET_VC1_EXTRA_DATA,
-    MPP_DEC_SET_OUTPUT_FORMAT,
-    MPP_DEC_CMD_END,
-
-    MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
-    MPP_ENC_SET_CFG,
-    MPP_ENC_GET_CFG,
-    MPP_ENC_SET_EXTRA_INFO,
-    MPP_ENC_GET_EXTRA_INFO,
-    MPP_ENC_SET_FORMAT,
-    MPP_ENC_SET_IDR_FRAME,
-    MPP_ENC_CMD_END,
-
-    MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
-    MPP_ISP_CMD_END,
-
-    MPP_HAL_CMD_BASE                    = CMD_MODULE_HAL,
-    MPP_HAL_CMD_END,
-
-    MPI_CMD_BUTT,
-} MpiCmd;
 
 typedef void* MppCtx;
 typedef void* MppParam;
