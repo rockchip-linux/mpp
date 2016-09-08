@@ -1323,15 +1323,15 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         }
         FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
     }
-        //!< store current decoder picture at end of dpb
-        FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->fs[p_Dpb->used_size], p, 0));
-        if (p->structure != FRAME) {
-            p_Dpb->last_picture = p_Dpb->fs[p_Dpb->used_size];
-        } else {
-            p_Dpb->last_picture = NULL;
-        }
-        memcpy(&p_Vid->old_pic, p, sizeof(H264_StorePic_t));
-        p_Vid->last_pic = &p_Vid->old_pic;
+    //!< store current decoder picture at end of dpb
+    FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->fs[p_Dpb->used_size], p, 0));
+    if (p->structure != FRAME) {
+        p_Dpb->last_picture = p_Dpb->fs[p_Dpb->used_size];
+    } else {
+        p_Dpb->last_picture = NULL;
+    }
+    memcpy(&p_Vid->old_pic, p, sizeof(H264_StorePic_t));
+    p_Vid->last_pic = &p_Vid->old_pic;
 
     p_Dpb->used_size++;
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] p_Dpb->used_size=%d", p_Dpb->used_size);
