@@ -7,7 +7,7 @@ set(JPEGD_PARSER_SRC
     jpegd_parser.c
     )
 add_library(codec_jpegd STATIC
-	${JPEGD_PARSER_SRC} ${JPEGD_PARSER_HDR}
+    ${JPEGD_PARSER_SRC} ${JPEGD_PARSER_HDR}
     )
 
 set_target_properties(codec_jpegd PROPERTIES FOLDER "mpp/codec")
