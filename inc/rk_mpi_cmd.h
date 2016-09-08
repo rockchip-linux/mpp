@@ -14,12 +14,78 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_H__
-#define __MPP_ENC_H__
+#ifndef __RK_MPI_CMD_H__
+#define __RK_MPI_CMD_H__
 
-#include "rk_mpi.h"
-#include "mpp_controller.h"
-#include "mpp_hal.h"
+#include "rk_type.h"
+
+/*
+ * Command id bit usage is defined as follows:
+ * bit 20 - 23  - module id
+ * bit 16 - 19  - contex id
+ * bit  0 - 15  - command id
+ */
+#define CMD_MODULE_ID_MASK              (0x00F00000)
+#define CMD_MODULE_OSAL                 (0x00100000)
+#define CMD_MODULE_MPP                  (0x00200000)
+#define CMD_MODULE_CODEC                (0x00300000)
+#define CMD_MODULE_HAL                  (0x00400000)
+#define CMD_CTX_ID_MASK                 (0x000F0000)
+#define CMD_CTX_ID_DEC                  (0x00010000)
+#define CMD_CTX_ID_ENC                  (0x00020000)
+#define CMD_CTX_ID_ISP                  (0x00030000)
+#define CMD_ID_MASK                     (0x0000FFFF)
+
+typedef enum {
+    MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
+    MPP_OSAL_CMD_END,
+
+    MPP_CMD_BASE                        = CMD_MODULE_MPP,
+    MPP_ENABLE_DEINTERLACE,
+    MPP_SET_INPUT_BLOCK,
+    MPP_SET_OUTPUT_BLOCK,
+    MPP_CMD_END,
+
+    MPP_CODEC_CMD_BASE                  = CMD_MODULE_CODEC,
+    MPP_CODEC_GET_FRAME_INFO,
+    MPP_CODEC_CMD_END,
+
+    MPP_DEC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_DEC,
+    MPP_DEC_SET_FRAME_INFO,             /* vpu api legacy control for buffer slot dimension init */
+    MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
+    MPP_DEC_SET_INFO_CHANGE_READY,
+    MPP_DEC_SET_INTERNAL_PTS_ENABLE,
+    MPP_DEC_SET_PARSER_SPLIT_MODE,      /* Need to setup before init */
+    MPP_DEC_SET_PARSER_FAST_MODE,       /* Need to setup before init */
+    MPP_DEC_GET_STREAM_COUNT,
+    MPP_DEC_GET_VPUMEM_USED_COUNT,
+    MPP_DEC_SET_VC1_EXTRA_DATA,
+    MPP_DEC_SET_OUTPUT_FORMAT,
+    MPP_DEC_CMD_END,
+
+    MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
+    MPP_ENC_SET_RC_CFG,
+    MPP_ENC_GET_RC_CFG,
+    MPP_ENC_SET_PREP_CFG,
+    MPP_ENC_GET_PREP_CFG,
+    MPP_ENC_SET_OSD_CFG,
+    MPP_ENC_GET_OSD_CFG,
+    MPP_ENC_SET_CFG,
+    MPP_ENC_GET_CFG,
+    MPP_ENC_SET_EXTRA_INFO,
+    MPP_ENC_GET_EXTRA_INFO,
+    MPP_ENC_SET_FORMAT,
+    MPP_ENC_SET_IDR_FRAME,
+    MPP_ENC_CMD_END,
+
+    MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
+    MPP_ISP_CMD_END,
+
+    MPP_HAL_CMD_BASE                    = CMD_MODULE_HAL,
+    MPP_HAL_CMD_END,
+
+    MPI_CMD_BUTT,
+} MpiCmd;
 
 /*
  * Configure of encoder is separated into four parts.
@@ -153,49 +219,153 @@
  *   +                          +                 +                       +
  */
 
-typedef struct MppEnc_t MppEnc;
-
-struct MppEnc_t {
-    MppCodingType       coding;
-    Controller          controller;
-    MppHal              hal;
-
-    // common resource
-    MppBufSlots         frame_slots;
-    MppBufSlots         packet_slots;
-    HalTaskGroup        tasks;
-
-    RK_U32              reset_flag;
-    void                *mpp;
-
-    /* Encoder configure set */
-    MppEncRcCfg         rc_cfg;
-    MppFrame            data_cfg;
-
-    /*
-     * configuration parameter to controller and hal
-     */
-    MppEncConfig        mpp_cfg;
-};
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+/*
+ * Rate control parameter
+ *
+ * rc_mode      - rate control mode
+ * Mpp balances quality and bit rate by the mode index
+ * Mpp provide 5 level of balance mode of quality and bit rate
+ * 1 - only quality mode: only quality parameter takes effect
+ * 2 - more quality mode: quality parameter takes more effect
+ * 3 - balance mode     : balance quality and bitrate 50 to 50
+ * 4 - more bitrate mode: bitrate parameter takes more effect
+ * 5 - only bitrate mode: only bitrate parameter takes effect
+ *
+ * quality      - quality parameter
+ * mpp does not give the direct parameter in different protocol.
+ * mpp provide total 5 quality level 1 ~ 5
+ * 0 - auto
+ * 1 - worst
+ * 2 - worse
+ * 3 - medium
+ * 4 - better
+ * 5 - best
+ *
+ * bit rate parameters
+ * mpp gives three bit rate control parameter for control
+ * bps_target   - target  bit rate, unit: bit per second
+ * bps_max      - maximun bit rate, unit: bit per second
+ * bps_min      - minimun bit rate, unit: bit per second
+ * if user need constant bit rate set parameters to the similar value
+ * if user need variable bit rate set parameters as they need
+ *
+ * frame rate parameters have great effect on rate control
+ * all fps parameter is in 32bit
+ * low  16bit is denominator
+ * high 16bit is numerator
+ * if high 16bit is zero then the whole integer is just fps
+ * fps_in       - input  frame rate, unit: frame per second
+ *                if 0 then default set to 30
+ * fps_out      - output frame rate, unit: frame per second
+ *                if 0 then default set to fps_in
+ * gop          - gap between Intra frame
+ *                0 for only 1 I frame the rest are all P frames
+ *                1 for all I frame
+ *                2 for I P I P I P
+ *                3 for I P P I P P
+ *                etc...
+ * skip_cnt     - max continuous frame skip count
+ *                0 - frame skip is not allow
+ *
+ */
+typedef struct MppEncRcCfg_t {
+    RK_S32  rc_mode;
+    RK_S32  quality;
+    RK_S32  bps_target;
+    RK_S32  bps_max;
+    RK_S32  bps_min;
+    RK_S32  fps_in;
+    RK_S32  fps_out;
+    RK_S32  gop;
+    RK_S32  skip_cnt;
+} MppEncRcCfg;
 
 /*
- * main thread for all encoder. This thread will connect encoder / hal / mpp
+ * Mpp frame parameter
+ * direct use MppFrame to store information
  */
-void *mpp_enc_control_thread(void *data);
-void *mpp_enc_hal_thread(void *data);
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding);
-MPP_RET mpp_enc_deinit(MppEnc *enc);
-MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
-MPP_RET mpp_enc_notify(void *ctx, void *info);
-MPP_RET mpp_enc_reset(MppEnc *enc);
+/*
+ * Mpp codec parameter
+ * parameter is defined in different syntax header
+ */
 
-#ifdef __cplusplus
-}
-#endif
+/*
+ * Mpp preprocess parameter
+ */
+typedef struct MppEncPrepCfg_t {
+    MppFrameFormat      format_in;
+    MppFrameFormat      format_out;
+    RK_U32              rotation;
+} MppEncPrepCfg;
 
-#endif /*__MPP_ENC_H__*/
+/*
+ * Mpp ROI parameter
+ * Region configture define a rectangle as ROI
+ */
+typedef struct MppEncROIRegion_t {
+    RK_U16              x;
+    RK_U16              y;
+    RK_U16              w;
+    RK_U16              h;
+    RK_U16              intra;
+    RK_U16              quality;
+} MppEncROIRegion;
+
+typedef struct MppEncROICfg_t {
+    RK_U32              number;
+    MppEncROIRegion     *regions;
+} MppEncROICfg;
+
+/*
+ * Mpp OSD parameter
+ *
+ * Mpp OSD support total 8 regions
+ * Mpp OSD support 256-color palette two mode palette:
+ * 1. Configurable OSD palette
+ *    When palette is set.
+ * 2. fixed OSD palette
+ *    When palette is NULL.
+ */
+typedef struct MppEncOSDRegion_t {
+    RK_U16              x;
+    RK_U16              y;
+    RK_U16              w;
+    RK_U16              h;
+    RK_U8               *data;
+} MppEncOSDRegion;
+
+typedef struct MppEncOSDCfg_t {
+    RK_U32              number;
+    RK_U8               *palette;
+    MppEncOSDRegion     *regions;
+} MppEncOSDCfg;
+
+/*
+ * Mpp Motion Detection parameter
+ *
+ * Mpp can output Motion Detection infomation for each frame.
+ * If user euqueue a encode task with KEY_MOTION_INFO by following function
+ * then encoder will output Motion Detection information to the buffer.
+ *
+ * mpp_task_meta_set_buffer(task, KEY_MOTION_INFO, buffer);
+ *
+ * Motion Detection information will be organized in this way:
+ * 1. Each 16x16 block will have a 32 bit block information which contains
+ *    15 bit SAD(Sum of Abstract Difference value
+ *    9 bit signed horizontal motion vector
+ *    8 bit signed vertical motion vector
+ * 2. The sequence of MD information in the buffer is corresponding to the
+ *    block position in the frame, left-to right, top-to-bottom.
+ * 3. If the width of the frame is not a multiple of 256 pixels (16 macro
+ *    blocks), DMA would extend the frame to a multiple of 256 pixels and
+ *    the extended blocks' MD information are 32'h0000_0000.
+ * 4. Buffer must be ion buffer and 1024 byte aligned.
+ */
+typedef struct MppEncMDBlkInfo_t {
+    RK_U32              sad     :15;    /* bit  0~14 - SAD */
+    RK_S32              mvx     :9;     /* bit 15~23 - signed horizontal mv */
+    RK_S32              mvy     :8;     /* bit 24~31 - signed vertical mv */
+} MppEncMDBlkInfo;
+
+#endif /*__RK_MPI_CMD_H__*/

@@ -39,6 +39,7 @@ typedef struct EncTask_t {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg);
 MPP_RET controller_deinit(Controller ctrl);
 MPP_RET controller_encode(Controller ctrl, HalEncTask *task);

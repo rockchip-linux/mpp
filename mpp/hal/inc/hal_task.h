@@ -146,6 +146,9 @@ typedef struct HalEncTask_t {
     // current tesk input slot buffer
     MppBuffer       input;
 
+    // current mv info output buffer
+    MppBuffer       mv_info;
+
     RK_U32          is_intra;
 
     HalEncTaskFlag  flags;
