@@ -58,6 +58,67 @@ static OptionInfo mpi_enc_cmd[] = {
     {"d",               "debug",                "debug flag"},
 };
 
+static MPP_RET fill_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, RK_U32 frame_count)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 width        = mpp_cfg->width;
+    RK_U32 height       = mpp_cfg->height;
+    RK_U32 hor_stride   = mpp_cfg->hor_stride;
+    RK_U32 ver_stride   = mpp_cfg->ver_stride;
+    MppFrameFormat fmt  = mpp_cfg->format;
+    RK_U8 *buf_y = buf;
+    RK_U8 *buf_c = buf + hor_stride * ver_stride;
+    RK_U32 x, y;
+
+    switch (fmt) {
+    case MPP_FMT_YUV420SP : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
+            }
+        }
+
+        p = buf_c;
+        for (y = 0; y < height / 2; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x*2+0] = 128 + y + frame_count * 2;
+                p[x*2+1] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV420P : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
+            }
+        }
+
+        p = buf_c;
+        for (y = 0; y < height / 2; y++, p += hor_stride / 2) {
+            for (x = 0; x < width / 2; x++) {
+                p[x] = 128 + y + frame_count * 2;
+            }
+        }
+
+        p = buf_c + hor_stride * ver_stride / 4;
+        for (y = 0; y < height / 2; y++, p += hor_stride / 2) {
+            for (x = 0; x < width / 2; x++) {
+                p[x] = 64 + x + frame_count * 5;
+            }
+        }
+    } break;
+    default : {
+        mpp_err_f("filling function do not support type %d\n", fmt);
+        ret = MPP_NOK;
+    } break;
+    }
+    return ret;
+}
+
 int mpi_enc_test(MpiEncTestCmd *cmd)
 {
     MPP_RET ret             = MPP_OK;
@@ -101,8 +162,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         fp_input = fopen(cmd->file_input, "rb");
         if (NULL == fp_input) {
             mpp_err("failed to open input file %s\n", cmd->file_input);
-            ret = MPP_ERR_OPEN_FILE;
-            goto MPP_TEST_OUT;
+            mpp_err("create default yuv image for test\n");
         }
     }
 
@@ -161,13 +221,15 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_cfg.size        = sizeof(mpp_cfg);
     mpp_cfg.width       = width;
     mpp_cfg.height      = height;
+    mpp_cfg.hor_stride  = hor_stride;
+    mpp_cfg.ver_stride  = ver_stride;
     mpp_cfg.format      = fmt;
     mpp_cfg.rc_mode     = 0;
     mpp_cfg.skip_cnt    = 0;
     mpp_cfg.fps_in      = 30;
     mpp_cfg.fps_out     = 30;
     mpp_cfg.bps         = width * height * 2 * mpp_cfg.fps_in;
-    mpp_cfg.qp          = 24;
+    mpp_cfg.qp          = (type == MPP_VIDEO_CodingMJPEG) ? (10) : (24);
     mpp_cfg.gop         = 60;
 
     mpp_cfg.profile     = 100;
@@ -219,10 +281,16 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         if (i == MPI_ENC_IO_COUNT)
             i = 0;
 
-        read_size = fread(buf, 1, frame_size, fp_input);
-        if (read_size != frame_size || feof(fp_input)) {
-            mpp_log("found last frame\n");
-            frm_eos = 1;
+        if (fp_input) {
+            read_size = fread(buf, 1, frame_size, fp_input);
+            if (read_size != frame_size || feof(fp_input)) {
+                mpp_log("found last frame\n");
+                frm_eos = 1;
+            }
+        } else {
+            ret = fill_yuv_image(buf, &mpp_cfg, frame_count);
+            if (ret)
+                goto MPP_TEST_OUT;
         }
 
         mpp_frame_set_buffer(frame, frm_buf_in);
