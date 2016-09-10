@@ -43,14 +43,30 @@ static const ParserApi *parsers[] = {
 #if HAVE_AVSD
     &api_avsd_parser,
 #endif
+#if HAVE_H263D
     &api_h263d_parser,
+#endif
+#if HAVE_H264D
     &api_h264d_parser,
+#endif
+#if HAVE_H265D
     &api_h265d_parser,
+#endif
+#if HAVE_MPEG2D
     &api_m2vd_parser,
+#endif
+#if HAVE_MPEG4D
     &api_mpg4d_parser,
+#endif
+#if HAVE_VP8D
     &api_vp8d_parser,
+#endif
+#if HAVE_VP9D
     &api_vp9d_parser,
+#endif
+#if HAVE_JPEGD
     &api_jpegd_parser,
+#endif
     &dummy_dec_parser,
 };
 

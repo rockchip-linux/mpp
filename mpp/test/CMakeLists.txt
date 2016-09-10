@@ -14,7 +14,7 @@ macro(add_mpp_test module)
     if(${test_tag})
         add_executable(${test_name} ${test_name}.c)
         target_link_libraries(${test_name} mpp_shared)
-        set_target_properties(${test_name} PROPERTIES FOLDER "mpp/test") 
+        set_target_properties(${test_name} PROPERTIES FOLDER "mpp/test")
         install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
         #add_test(NAME ${test_name} COMMAND ${test_name})
     endif()
@@ -24,19 +24,25 @@ endmacro()
 add_mpp_test(mpp_info)
 
 # h264 decoder test
-include_directories(../codec/dec/h264)
-add_mpp_test(h264d)
+if( HAVE_H264D )
+    include_directories(../codec/dec/h264)
+    add_mpp_test(h264d)
+endif()
 
 # vp9 decoder test
-include_directories(../codec/dec/vp9)
-add_mpp_test(vp9d)
+if( HAVE_VP9D )
+    include_directories(../codec/dec/vp9)
+    add_mpp_test(vp9d)
+endif()
 
-if (${HAVE_AVSD})
+if( HAVE_AVSD )
     # avs decoder test
     include_directories(../codec/dec/avs)
     add_mpp_test(avsd)
 endif()
 
 # jpeg decoder test
-include_directories(../codec/dec/jpeg)
-add_mpp_test(jpegd)
+if( HAVE_JPEGD )
+    include_directories(../codec/dec/jpeg)
+    add_mpp_test(jpegd)
+endif()
