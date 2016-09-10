@@ -28,8 +28,12 @@
  * all decoder static register here
  */
 static const ControlApi *controllers[] = {
+#if HAVE_H264E
     &api_h264e_controller,
+#endif
+#if HAVE_JPEGE
     &api_jpege_controller,
+#endif
 };
 
 typedef struct ControllerImpl_t {

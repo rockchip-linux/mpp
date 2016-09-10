@@ -9,6 +9,7 @@ add_library(mpp_codec STATIC
     mpp_dec.cpp
     mpp_parser.cpp
     )
+
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
 
 add_subdirectory(dec)
@@ -17,16 +18,16 @@ add_subdirectory(enc)
 
 target_link_libraries(mpp_codec
                       ${CODEC_AVSD}
-                      codec_h263d
-                      codec_h264d
-                      codec_h265d
-                      codec_m2vd
-                      codec_mpg4d
-                      codec_vp8d
-                      codec_vp9d
-                      codec_jpegd
-                      codec_h264e
-                      codec_jpege
+                      ${CODEC_H263D}
+                      ${CODEC_H264D}
+                      ${CODEC_H265D}
+                      ${CODEC_MPEG2D}
+                      ${CODEC_MPEG4D}
+                      ${CODEC_VP8D}
+                      ${CODEC_VP9D}
+                      ${CODEC_JPEGD}
+                      ${CODEC_H264E}
+                      ${CODEC_JPEGE}
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_base)

@@ -45,15 +45,33 @@
  * all hardware api static register here
  */
 static const MppHalApi *hw_apis[] = {
+#if HAVE_AVSD
     &hal_api_avsd,
+#endif
+#if HAVE_H263D
     &hal_api_h263d,
+#endif
+#if HAVE_H264D
     &hal_api_h264d,
+#endif
+#if HAVE_H265D
     &hal_api_h265d,
+#endif
+#if HAVE_MPEG2D
     &hal_api_m2vd,
+#endif
+#if HAVE_MPEG4D
     &hal_api_mpg4d,
+#endif
+#if HAVE_VP8D
     &hal_api_vp8d,
+#endif
+#if HAVE_VP9D
     &hal_api_vp9d,
+#endif
+#if HAVE_JPEGD
     &hal_api_jpegd,
+#endif
     &hal_api_h264e,
     &hal_api_jpege,
     &hal_api_dummy_dec,

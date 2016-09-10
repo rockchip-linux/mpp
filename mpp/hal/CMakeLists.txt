@@ -2,6 +2,15 @@
 include_directories(worker/inc)
 
 # ----------------------------------------------------------------------------
+# add hardware hal
+# ----------------------------------------------------------------------------
+add_subdirectory(vpu)
+add_subdirectory(rkdec)
+add_subdirectory(rkenc)
+add_subdirectory(dummy)
+add_subdirectory(rkdec/avsd)
+
+# ----------------------------------------------------------------------------
 # add mpp_hal implement
 # ----------------------------------------------------------------------------
 add_library(mpp_hal STATIC
@@ -11,30 +20,6 @@ add_library(mpp_hal STATIC
     )
 
 set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
-
-add_subdirectory(dummy)
-
-add_subdirectory(rkdec/h264d)
-
-add_subdirectory(rkdec/h265d)
-
-add_subdirectory(rkdec/vp9d)
-
-add_subdirectory(rkdec/avsd)
-
-add_subdirectory(vpu/h263d)
-
-add_subdirectory(vpu/m2vd)
-
-add_subdirectory(vpu/mpg4d)
-
-add_subdirectory(vpu/vp8d)
-
-add_subdirectory(vpu/jpegd)
-
-add_subdirectory(rkenc/h264e)
-
-add_subdirectory(vpu/jpege)
 
 # ----------------------------------------------------------------------------
 # add hardware worker implement
@@ -46,19 +31,18 @@ if(RKPLATFORM)
 set(RKPLAT_VPU worker_vpu)
 endif(RKPLATFORM)
 
-
 target_link_libraries(mpp_hal
-                      hal_avsd
-                      hal_h263d
-                      hal_h264d
-                      hal_h265d
-                      hal_m2vd
-                      hal_mpg4d
-                      hal_vp8d
-                      hal_vp9d
-                      hal_jpegd
-                      hal_h264e
-                      hal_jpege
+                      ${HAL_AVSD}
+                      ${HAL_H263D}
+                      ${HAL_H264D}
+                      ${HAL_H265D}
+                      ${HAL_MPEG2D}
+                      ${HAL_MPEG4D}
+                      ${HAL_VP8D}
+                      ${HAL_VP9D}
+                      ${HAL_JPEGD}
+                      ${HAL_H264E}
+                      ${HAL_JPEGE}
                       hal_dummy
                       ${RKPLAT_VPU}
                       )

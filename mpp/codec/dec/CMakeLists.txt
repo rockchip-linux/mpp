@@ -2,25 +2,38 @@
 
 add_subdirectory(dummy)
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/avs")
-    set(HAVE_AVSD true)
-    set(CODEC_AVSD codec_avsd)
-    add_definitions(-DHAVE_AVSD)
+if( HAVE_AVSD )
     add_subdirectory(avs)
 endif()
 
-add_subdirectory(h263)
+if( HAVE_H263D )
+    add_subdirectory(h263)
+endif()
 
-add_subdirectory(h264)
+if( HAVE_H264D )
+    add_subdirectory(h264)
+endif()
 
-add_subdirectory(h265)
+if( HAVE_H265D )
+    add_subdirectory(h265)
+endif()
 
-add_subdirectory(m2v)
+if( HAVE_MPEG2D )
+    add_subdirectory(m2v)
+endif()
 
-add_subdirectory(mpg4)
+if( HAVE_MPEG4D )
+    add_subdirectory(mpg4)
+endif()
 
-add_subdirectory(vp8)
+if( HAVE_VP8D )
+    add_subdirectory(vp8)
+endif()
 
-add_subdirectory(vp9)
+if( HAVE_VP9D )
+    add_subdirectory(vp9)
+endif()
 
-add_subdirectory(jpeg)
+if( HAVE_JPEGD )
+    add_subdirectory(jpeg)
+endif()

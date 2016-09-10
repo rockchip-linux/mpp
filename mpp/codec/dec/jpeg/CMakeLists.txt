@@ -6,12 +6,13 @@ set(JPEGD_PARSER_HDR
 set(JPEGD_PARSER_SRC
     jpegd_parser.c
     )
-add_library(codec_jpegd STATIC
-    ${JPEGD_PARSER_SRC} ${JPEGD_PARSER_HDR}
+
+add_library(${CODEC_JPEGD} STATIC
+    ${JPEGD_PARSER_SRC}
+    ${JPEGD_PARSER_HDR}
     )
 
-set_target_properties(codec_jpegd PROPERTIES FOLDER "mpp/codec")
-
-target_link_libraries(codec_jpegd mpp_base)
+set_target_properties(${CODEC_JPEGD} PROPERTIES FOLDER "mpp/codec")
+target_link_libraries(${CODEC_JPEGD} mpp_base)
 
 #add_subdirectory(test)

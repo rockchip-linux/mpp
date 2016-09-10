@@ -10,12 +10,12 @@ set(HAL_H265D_SRC
     hal_h265d_reg.c
     )
 
-add_library(hal_h265d STATIC
-    ${HAL_H265D_SRC} ${HAL_H265D_HDR}
+add_library(${HAL_H265D} STATIC
+    ${HAL_H265D_SRC}
+    ${HAL_H265D_HDR}
     )
 
-set_target_properties(hal_h265d PROPERTIES FOLDER "mpp/hal")
-
-    target_link_libraries(hal_h265d mpp_base)
+set_target_properties(${HAL_H265D} PROPERTIES FOLDER "mpp/hal")
+target_link_libraries(${HAL_H265D} mpp_base)
 
 #add_subdirectory(test)
