@@ -51,10 +51,10 @@ typedef struct {
 static OptionInfo mpi_enc_cmd[] = {
     {"i",               "input_file",           "input bitstream file"},
     {"o",               "output_file",          "output bitstream file, "},
-    {"w",               "width",                "the width of input bitstream"},
-    {"h",               "height",               "the height of input bitstream"},
-    {"f",               "format",               "the picture format of input bitstream"},
-    {"t",               "type",                 "input stream coding type"},
+    {"w",               "width",                "the width of input picture"},
+    {"h",               "height",               "the height of input picture"},
+    {"f",               "format",               "the format of input picture"},
+    {"t",               "type",                 "output stream coding type"},
     {"d",               "debug",                "debug flag"},
 };
 
