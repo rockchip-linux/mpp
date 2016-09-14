@@ -326,17 +326,17 @@ MPP_RET hal_jpege_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    RK_U32 *regs = ctx->regs;
-    (void)task;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0)
-        ret = VPUClientSendReg(ctx->vpu_fd, regs, VPU2_REG_NUM);
+        ret = VPUClientSendReg(ctx->vpu_fd, ctx->regs, VPU2_REG_NUM);
 #endif
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
+    (void)ctx;
+    (void)task;
     return ret;
 }
 
