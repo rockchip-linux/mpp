@@ -15,16 +15,6 @@
  * limitations under the License.
  */
 
-/*
-* @file       hal_vpu_mpg4d_reg.c
-* @brief
-* @author      gzl(lance.gao@rock-chips.com)
-
-* @version     1.0.0
-* @history
-*   2016.04.11 : Create
-*/
-
 #define MODULE_TAG "hal_vpu_mpg4d"
 
 #include <stdio.h>
@@ -453,9 +443,9 @@ MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
 MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
 
 #ifdef RKPLATFORM
+    hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
     RK_U32 reg_count = (sizeof(*ctx->regs) / sizeof(RK_U32));
     RK_U32* regs = (RK_U32 *)ctx->regs;
 
@@ -469,6 +459,7 @@ MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
     ret = VPUClientSendReg(ctx->vpu_fd, regs, reg_count);
 #endif
     (void)ret;
+    (void)hal;
     (void)task;
     return ret;
 }
@@ -476,8 +467,8 @@ MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
 #ifdef RKPLATFORM
+    hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
     VpuMpg4dRegSet_t reg_out;
     RK_U32* regs = (RK_U32 *)&reg_out;
     RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
@@ -496,6 +487,7 @@ MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
     }
 #endif
     (void)ret;
+    (void)hal;
     (void)task;
     return ret;
 }

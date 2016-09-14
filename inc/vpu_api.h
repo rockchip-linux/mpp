@@ -373,7 +373,7 @@ extern "C"
 /*
  * vpu memory handle interface
  */
-RK_S32 VPUMemJudgeIommu();
+RK_S32 VPUMemJudgeIommu(void);
 RK_S32 VPUMallocLinear(VPUMemLinear_t *p, RK_U32 size);
 RK_S32 VPUFreeLinear(VPUMemLinear_t *p);
 RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src);
