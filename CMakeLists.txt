@@ -264,7 +264,7 @@ endif()
 # Create git version information
 # ----------------------------------------------------------------------------
 if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
-    find_package(Git)
+    find_host_package(Git)
     if(GIT_FOUND)
         # get author
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
