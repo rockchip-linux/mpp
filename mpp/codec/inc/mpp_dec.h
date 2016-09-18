@@ -63,6 +63,7 @@ extern "C" {
  */
 void *mpp_dec_parser_thread(void *data);
 void *mpp_dec_hal_thread(void *data);
+void *mpp_dec_advanced_thread(void *data);
 
 /*
  *

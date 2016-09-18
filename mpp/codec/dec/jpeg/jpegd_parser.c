@@ -2406,8 +2406,6 @@ MPP_RET jpegd_update_frame(JpegParserContext *ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_buf_slot_set_flag(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_QUEUE_USE);
-    mpp_buf_slot_enqueue(pCtx->frame_slots, pCtx->frame_slot_index, QUEUE_DISPLAY);
     mpp_buf_slot_clr_flag(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_CODEC_USE);
     pCtx->frame_slot_index = -1;
 
