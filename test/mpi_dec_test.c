@@ -55,7 +55,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"d",               "debug",                "debug flag"},
 };
 
-int mpi_dec_test(MpiDecTestCmd *cmd)
+int mpi_dec_test_decode_simple(MpiDecTestCmd *cmd)
 {
     MPP_RET ret         = MPP_OK;
     RK_U32 pkt_eos      = 0;
@@ -247,6 +247,239 @@ MPP_TEST_OUT:
     return ret;
 }
 
+int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
+{
+    MPP_RET ret         = MPP_OK;
+    RK_U32 pkt_eos      = 0;
+    FILE *fp_input      = NULL;
+    FILE *fp_output     = NULL;
+
+    // base flow context
+    MppCtx ctx          = NULL;
+    MppApi *mpi         = NULL;
+
+    // input / output
+    MppPacket packet    = NULL;
+    MppFrame  frame     = NULL;
+
+    MpiCmd mpi_cmd      = MPP_CMD_BASE;
+    MppParam param      = NULL;
+    RK_U32 need_split    = 1;
+
+    // paramter for resource malloc
+    RK_U32 width        = cmd->width;
+    RK_U32 height       = cmd->height;
+    MppCodingType type  = cmd->type;
+
+    // resources
+    MppBuffer pkt_buf  = NULL;
+    MppBuffer frm_buf = NULL;
+    size_t packet_size  = MPI_DEC_STREAM_SIZE;
+    size_t read_size    = 0;
+    RK_U32 frame_count  = 0;
+    void *buf = NULL;
+    (void)read_size;
+
+    MppBufferGroup frm_grp  = NULL;
+    MppBufferGroup pkt_grp  = NULL;
+
+    mpp_log("mpi_dec_test start\n");
+
+    if (cmd->have_input) {
+        fp_input = fopen(cmd->file_input, "rb");
+        if (NULL == fp_input) {
+            mpp_err("failed to open input file %s\n", cmd->file_input);
+            goto MPP_TEST_OUT;
+        }
+    }
+
+    if (cmd->have_output) {
+        fp_output = fopen(cmd->file_output, "w+b");
+        if (NULL == fp_output) {
+            mpp_err("failed to open output file %s\n", cmd->file_output);
+            goto MPP_TEST_OUT;
+        }
+    }
+
+    ret = mpp_buffer_group_get_internal(&frm_grp, MPP_BUFFER_TYPE_ION);
+    if (ret) {
+        mpp_err("failed to get buffer group for input frame ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_buffer_group_get_internal(&pkt_grp, MPP_BUFFER_TYPE_ION);
+    if (ret) {
+        mpp_err("failed to get buffer group for output packet ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    fseek(fp_input, 0L, SEEK_END);
+    packet_size = ftell(fp_input);
+    fseek(fp_input, 0L, SEEK_SET);
+
+    RK_U32 frm_size = width * height * 3 / 2;
+    ret = mpp_frame_init(&frame); /* output frame */
+    if (MPP_OK != ret) {
+        mpp_err("mpp_frame_init failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_buffer_get(frm_grp, &frm_buf, frm_size);
+    if (ret) {
+        mpp_err("failed to get buffer for input frame ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_buffer_get(pkt_grp, &pkt_buf, packet_size);
+    if (ret) {
+        mpp_err("failed to get buffer for input frame ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+    mpp_packet_init_with_buffer(&packet, pkt_buf);
+    buf = mpp_buffer_get_ptr(pkt_buf);
+
+    mpp_frame_set_buffer(frame, frm_buf);
+    mpp_log("mpi_dec_test decoder test start w %d h %d type %d\n", width, height, type);
+
+    // decoder demo
+    ret = mpp_create(&ctx, &mpi);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_create failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    // NOTE: decoder split mode need to be set before init
+    mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
+    param = &need_split;
+    ret = mpi->control(ctx, mpi_cmd, param);
+    if (MPP_OK != ret) {
+        mpp_err("mpi->control failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_init(ctx, MPP_CTX_DEC, type);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_init failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    while (!pkt_eos) {
+        MppTask task = NULL;
+        read_size = fread(buf, 1, packet_size, fp_input);
+        /* if (read_size != packet_size || feof(fp_input)) {
+            mpp_log("found last packet\n");
+            pkt_eos = 1;
+        }*/
+        pkt_eos = 1;
+
+        do {
+            ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
+            if (ret) {
+                mpp_err("mpp task input dequeue failed\n");
+                goto MPP_TEST_OUT;
+            }
+
+            if (task == NULL) {
+                mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
+                msleep(3);
+            } else {
+                break;
+            }
+        } while (1);
+
+        mpp_task_meta_set_packet(task, KEY_INPUT_PACKET, packet);
+        mpp_task_meta_set_frame (task, KEY_OUTPUT_FRAME,  frame);
+
+        ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);  /* input queue */
+        if (ret) {
+            mpp_err("mpp task input enqueue failed\n");
+            goto MPP_TEST_OUT;
+        }
+
+        msleep(20);
+
+        do {
+            ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task); /* output queue */
+            if (ret) {
+                mpp_err("mpp task output dequeue failed\n");
+                goto MPP_TEST_OUT;
+            }
+
+            if (task) {
+                MppFrame frame_out = NULL;
+                mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
+                //mpp_assert(packet_out == packet);
+
+                if (frame) {   /* write frame to file here */
+                    MppBuffer buf_out   = mpp_frame_get_buffer(frame_out);
+                    void *ptr = mpp_buffer_get_ptr(buf_out);
+                    size_t len  = mpp_buffer_get_size(buf_out);
+
+                    if (fp_output)
+                        fwrite(ptr, 1, len, fp_output);
+
+                    mpp_log_f("decoded frame %d size %d\n", frame_count, len);
+                }
+
+                ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task); /* output queue */
+                if (ret) {
+                    mpp_err("mpp task output enqueue failed\n");
+                    goto MPP_TEST_OUT;
+                }
+                break;
+            }
+        } while (1);
+    }
+
+    ret = mpi->reset(ctx);
+    if (MPP_OK != ret) {
+        mpp_err("mpi->reset failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+MPP_TEST_OUT:
+    if (packet) {
+        mpp_packet_deinit(&packet);
+        packet = NULL;
+    }
+
+    if (frame) {
+        mpp_frame_deinit(&frame);
+        frame = NULL;
+    }
+
+    if (ctx) {
+        mpp_destroy(ctx);
+        ctx = NULL;
+    }
+
+    if (buf) {
+        mpp_free(buf);
+        buf = NULL;
+    }
+
+    if (frm_buf) {
+        mpp_free(frm_buf);
+        frm_buf = NULL;
+    }
+
+    if (fp_output) {
+        fclose(fp_output);
+        fp_output = NULL;
+    }
+
+    if (fp_input) {
+        fclose(fp_input);
+        fp_input = NULL;
+    }
+
+    if (MPP_OK == ret)
+        mpp_log_f("success\n");
+    else
+        mpp_err_f("failed ret %d\n", ret);
+
+    return ret;
+}
 
 static void mpi_dec_test_help()
 {
@@ -394,7 +627,11 @@ int main(int argc, char **argv)
 
     mpp_env_set_u32("mpi_debug", cmd->debug);
 
-    mpi_dec_test(cmd);
+    if (cmd->type != MPP_VIDEO_CodingMJPEG) {
+        mpi_dec_test_decode_simple(cmd);
+    } else {
+        mpi_dec_test_decode_advanced(cmd);
+    }
 
     mpp_env_set_u32("mpi_debug", 0x0);
     return 0;

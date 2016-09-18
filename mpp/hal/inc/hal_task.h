@@ -130,6 +130,7 @@ typedef struct HalDecTask_t {
     // for test purpose
     // current tesk output slot index
     RK_S32          output;
+
     // current task reference slot index, -1 for unused
     RK_S32          refer[MAX_DEC_REF_NUM];
 } HalDecTask;

@@ -791,6 +791,149 @@ void *mpp_dec_hal_thread(void *data)
     return NULL;
 }
 
+static MPP_RET dec_release_task_in_port(MppPort port)
+{
+    MPP_RET ret = MPP_OK;
+    MppPacket packet = NULL;
+    MppFrame frame = NULL;
+    MppTask mpp_task;
+
+    do {
+        ret = mpp_port_dequeue(port, &mpp_task);
+        if (ret || mpp_task == NULL)
+            break;
+
+        packet = NULL;
+        frame = NULL;
+        ret = mpp_task_meta_get_frame(mpp_task, KEY_OUTPUT_FRAME,  &frame);
+        if (frame) {
+            mpp_frame_deinit(&frame);
+            frame = NULL;
+        }
+        ret = mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
+        if (packet) {
+            mpp_packet_deinit(&packet);
+            packet = NULL;
+        }
+
+        mpp_port_enqueue(port, mpp_task);
+        mpp_task = NULL;
+    } while (1);
+
+    return ret;
+}
+
+void *mpp_dec_advanced_thread(void *data)
+{
+    Mpp *mpp = (Mpp*)data;
+    MppDec *dec      = mpp->mDec;
+    MppBufSlots frame_slots = dec->frame_slots;
+    MppBufSlots packet_slots = dec->packet_slots;
+    MppThread *thd_dec  = mpp->mThreadCodec;
+    DecTask task;   /* decoder task */
+    DecTask *pTask = &task;
+    dec_task_init(pTask);
+    HalDecTask  *task_dec = &pTask->info.dec;
+
+    MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
+    MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
+    MppTask mpp_task = NULL;
+    MPP_RET ret = MPP_OK;
+    MppFrame frame = NULL;
+    MppPacket packet = NULL;
+
+    while (MPP_THREAD_RUNNING == thd_dec->get_status()) {
+        thd_dec->lock();
+        ret = mpp_port_dequeue(input, &mpp_task);
+        if (ret || NULL == mpp_task) {
+            thd_dec->wait();
+        }
+        thd_dec->unlock();
+
+        if (mpp_task != NULL) {
+            mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
+            mpp_task_meta_get_frame (mpp_task, KEY_OUTPUT_FRAME,  &frame);
+
+            if (NULL == packet) {
+                mpp_port_enqueue(input, mpp_task);
+                continue;
+            }
+
+            if (mpp_packet_get_buffer(packet)) {
+                /*
+                 * if there is available buffer in the input packet do decoding
+                 */
+                MppBuffer input_buffer = mpp_packet_get_buffer(packet);
+                MppBuffer output_buffer = mpp_frame_get_buffer(frame);
+
+                parser_prepare(dec->parser, packet, task_dec);
+
+                /*
+                 *  look for a unused packet slot index
+                 */
+                if (task_dec->input < 0) {
+                    mpp_buf_slot_get_unused(packet_slots, &task_dec->input);
+                }
+                mpp_buf_slot_set_prop(packet_slots, task_dec->input, SLOT_BUFFER, input_buffer);
+                mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
+                mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
+
+                ret = parser_parse(dec->parser, task_dec);
+                if (ret != MPP_OK) {
+                    mpp_err_f("something wrong with parser_parse!\n");
+                    mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+                    mpp_frame_init(&frame);
+                    goto DEC_OUT;
+                }
+
+                mpp_buf_slot_set_prop(frame_slots, task_dec->output, SLOT_BUFFER, output_buffer);
+
+                // register genertation
+                mpp_hal_reg_gen(dec->hal, &pTask->info);
+                mpp_hal_hw_start(dec->hal, &pTask->info);
+                mpp_hal_hw_wait(dec->hal, &pTask->info);
+
+                mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+                mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+            } else {
+                /*
+                 * else init a empty frame for output
+                 */
+                mpp_log_f("line(%d): Error! Get no buffer from input packet\n", __LINE__);
+                mpp_frame_init(&frame);
+            }
+
+            /*
+             * first clear output packet
+             * then enqueue task back to input port
+             * final user will release the mpp_frame they had input
+             */
+DEC_OUT:
+            mpp_task_meta_set_packet(mpp_task, KEY_INPUT_PACKET, packet);
+            mpp_port_enqueue(input, mpp_task);
+            mpp_task = NULL;
+
+            // send finished task to output port
+            mpp_port_dequeue(output, &mpp_task);
+            mpp_task_meta_set_frame(mpp_task, KEY_OUTPUT_FRAME, frame);
+
+            // setup output task here
+            mpp_port_enqueue(output, mpp_task);
+            mpp_task = NULL;
+            packet = NULL;
+            frame = NULL;
+
+            hal_task_info_init(&pTask->info, MPP_CTX_DEC);
+        }
+    }
+
+    // clear remain task in output port
+    dec_release_task_in_port(input);
+    dec_release_task_in_port(mpp->mOutputPort);
+
+    return NULL;
+}
+
 MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
 {
     MPP_RET ret;
