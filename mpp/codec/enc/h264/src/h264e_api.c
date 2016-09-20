@@ -339,7 +339,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         else
             enc_rc_cfg->intraPicRate = 30;
 
-        enc_rc_cfg->keyframe_max_interval = mpp_cfg->gop;
         enc_rc_cfg->bitPerSecond = mpp_cfg->bps;
         enc_rc_cfg->gopLen = mpp_cfg->gop;
         enc_rc_cfg->fixedIntraQp = 0;
@@ -377,7 +376,8 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         info->input_image_format            = enc_cfg->input_image_format;
         info->profile_idc                   = enc_cfg->profile;
         info->level_idc                     = enc_cfg->level;
-        info->keyframe_max_interval         = enc_rc_cfg->keyframe_max_interval;
+        info->keyframe_max_interval         = enc_rc_cfg->intraPicRate;
+        info->frame_rate                    = enc_cfg->frameRateNum;
         info->second_chroma_qp_index_offset = enc_cfg->second_chroma_qp_index_offset;
         info->pps_id                        = enc_cfg->pps_id;
 

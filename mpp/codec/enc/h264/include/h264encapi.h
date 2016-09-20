@@ -231,8 +231,7 @@ typedef struct {
     RK_U32 pictureRc;       /* Adjust QP between pictures, [0,1] */
     RK_U32 mbRc;            /* Adjust QP inside picture, [0,1] */
     RK_U32 pictureSkip;     /* Allow rate control to skip pictures, [0,1] */
-    RK_U32 intraPicRate;    /* intra period */
-    RK_U32 keyframe_max_interval;
+    RK_U32 intraPicRate;    /* intra period, namely keyframe_max_interval */
     RK_S32 qpHdr;           /* QP for next encoded picture, [-1..51]
                               * -1 = Let rate control calculate initial QP
                               * This QP is used for all pictures if

@@ -66,7 +66,7 @@ extern RK_U32 h264e_hal_log_mode;
 #define h264e_hal_log_err(fmt, ...) \
             do {\
                 if (h264e_hal_log_mode & H264E_HAL_LOG_ERROR)\
-                    { mpp_err(fmt, ## __VA_ARGS__); }\
+                    { mpp_err_f(fmt, ## __VA_ARGS__); }\
             } while (0)
 
 #define h264e_hal_log_detail(fmt, ...) \

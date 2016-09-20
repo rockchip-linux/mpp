@@ -1469,12 +1469,40 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
     RK_S32 k = 0;
     h264e_hal_rkv_buffers *buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
     RK_U32 num_mbs_oneframe = (syn->pic_luma_width + 15) / 16 * ((syn->pic_luma_height + 15) / 16);
-    RK_U32 frame_size = ((syn->pic_luma_width + 15) & (~15)) * ((syn->pic_luma_height + 15) & (~15)) * 3 / 2;
+    RK_U32 frame_size = ((syn->pic_luma_width + 15) & (~15)) * ((syn->pic_luma_height + 15) & (~15)); //only Y component
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
     h264e_hal_rkv_frame *frame_buf = dpb_ctx->frame_buf;
     RK_U32 all_intra_mode = sps->keyframe_max_interval == 1;
     h264e_hal_debug_enter();
-    //TODO: reduce buf size
+
+    switch ((h264e_hal_rkv_csp)syn->input_image_format) {
+    case H264E_RKV_CSP_YUV420P:
+    case H264E_RKV_CSP_YUV420SP: {
+        frame_size = frame_size * 3 / 2;
+        break;
+    }
+    case H264E_RKV_CSP_YUV422P:
+    case H264E_RKV_CSP_YUV422SP:
+    case H264E_RKV_CSP_YUYV422:
+    case H264E_RKV_CSP_UYVY422:
+    case H264E_RKV_CSP_BGR565: {
+        frame_size *= 2;
+        break;
+    }
+    case H264E_RKV_CSP_BGR888: {
+        frame_size *= 3;
+        break;
+    }
+    case H264E_RKV_CSP_BGRA8888: {
+        frame_size *= 4;
+        break;
+    }
+    default: {
+        h264e_hal_log_err("unvalid src color space: %d, return early", syn->input_image_format);
+        return MPP_NOK;
+    }
+    }
+
     for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
         if (MPP_OK != mpp_buffer_group_get_internal(&buffers->hw_buf_grp[k], MPP_BUFFER_TYPE_ION)) {
             h264e_hal_log_err("buf group[%d] get failed", k);
@@ -1606,7 +1634,7 @@ MPP_RET hal_h264e_rkv_set_sps(h264e_hal_sps *sps, h264e_hal_param *par, h264e_co
     RK_S32 crop_rect_top = 0;
     RK_S32 crop_rect_bottom = 0;
     RK_S32 i_timebase_num = 1;
-    RK_S32 i_timebase_den = 25;
+    RK_S32 i_timebase_den = cfg->frame_rate;
     RK_S32 b_vfr_input = 0;
     RK_S32 i_nal_hrd = 0;
     RK_S32 b_pic_struct = 0;
@@ -3038,6 +3066,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_hal_rkv_coveragetest_cfg *test_cfg = (h264e_hal_rkv_coveragetest_cfg *)ctx->test_cfg;
     h264e_hal_sps *sps = &extra_info->sps;
     h264e_hal_pps *pps = &extra_info->pps;
+    HalEncTask *enc_task = &task->enc;
 
     RK_S32 pic_width_align16 = (syn->pic_luma_width + 15) & (~15);
     RK_S32 pic_height_align16 = (syn->pic_luma_height + 15) & (~15);
@@ -3051,11 +3080,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_hal_debug_enter();
     hal_h264e_rkv_dump_mpp_syntax_in(syn, ctx);
 
-    if (MPP_OK != hal_h264e_rkv_validate_syntax(syn, &src_fmt, ctx->frame_cnt % sps->keyframe_max_interval == 0)) {
-        h264e_hal_log_err("hal_h264e_rkv_validate_syntax failed");
-    }
+    enc_task->flags.err = 0;
 
-    ctx->enc_task = task->enc;
+    if (MPP_OK != hal_h264e_rkv_validate_syntax(syn, &src_fmt, ctx->frame_cnt % sps->keyframe_max_interval == 0)) {
+        h264e_hal_log_err("hal_h264e_rkv_validate_syntax failed, return early");
+        enc_task->flags.err |= HAL_ENC_TASK_ERR_GENREG;
+        return MPP_NOK;
+    }
 
     hal_h264e_rkv_adjust_param(ctx); //TODO: future expansion
 
@@ -3063,8 +3094,10 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     if (ctx->frame_cnt == 0) {
         if (MPP_OK != hal_h264e_rkv_allocate_buffers(ctx, syn, sps, test_cfg)) {
-            h264e_hal_log_err("hal_h264e_rkv_allocate_buffers failed, free now");
+            h264e_hal_log_err("hal_h264e_rkv_allocate_buffers failed, free buffers and return");
+            enc_task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
             hal_h264e_rkv_free_buffers(ctx);
+            return MPP_ERR_MALLOC;
         }
     }
 
@@ -3464,8 +3497,14 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
     h264e_rkv_reg_set *reg_list = (h264e_rkv_reg_set *)ctx->regs;
     RK_U32 length = 0, k = 0;
     h264e_rkv_ioctl_input *ioctl_info = (h264e_rkv_ioctl_input *)ctx->ioctl_input;
+    HalEncTask *enc_task = &task->enc;
 
     h264e_hal_debug_enter();
+    if (enc_task->flags.err) {
+        h264e_hal_log_err("enc_task->flags.err %08x, return early", enc_task->flags.err);
+        return MPP_NOK;
+    }
+
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
         h264e_hal_log_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
                              ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
@@ -3568,8 +3607,13 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     RK_S32 length = (sizeof(reg_out->frame_num) + sizeof(reg_out->elem[0]) * ctx->num_frames_to_send) >> 2;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
-    (void)task;
+    HalEncTask *enc_task = &task->enc;
     h264e_hal_debug_enter();
+
+    if (enc_task->flags.err) {
+        h264e_hal_log_err("enc_task->flags.err %08x, return early", enc_task->flags.err);
+        return MPP_NOK;
+    }
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
         h264e_hal_log_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
@@ -3623,7 +3667,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 
     hal_h264e_rkv_dump_mpp_reg_out(ctx);
     hal_h264e_rkv_dump_mpp_feedback(ctx);
-    hal_h264e_rkv_dump_mpp_strm_out(ctx, ctx->enc_task.output);
+    hal_h264e_rkv_dump_mpp_strm_out(ctx, enc_task->output);
     h264e_hal_debug_leave();
 
     return MPP_OK;

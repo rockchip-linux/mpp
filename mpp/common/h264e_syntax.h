@@ -95,6 +95,7 @@ typedef struct h264e_control_extra_info_cfg_t {
     RK_S32 transform8x8_mode;
     RK_S32 chroma_qp_index_offset;
     RK_S32 pic_init_qp;
+    RK_S32 frame_rate;
     //RK_S32 rotation_enable; //0: 0/180 degrees, 1: 90/270 degrees //TODO: add rotation
 
     /* additional cfg only for rkv */
