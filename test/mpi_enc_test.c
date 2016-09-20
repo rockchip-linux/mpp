@@ -83,8 +83,8 @@ static MPP_RET fill_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, RK_U32 frame_co
         p = buf_c;
         for (y = 0; y < height / 2; y++, p += hor_stride) {
             for (x = 0; x < width / 2; x++) {
-                p[x*2+0] = 128 + y + frame_count * 2;
-                p[x*2+1] = 64  + x + frame_count * 5;
+                p[x * 2 + 0] = 128 + y + frame_count * 2;
+                p[x * 2 + 1] = 64  + x + frame_count * 5;
             }
         }
     } break;

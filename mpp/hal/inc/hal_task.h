@@ -86,6 +86,14 @@ typedef struct MppSyntax_t {
  *              +----------------------+ +----v----+
  */
 
+#define HAL_ENC_TASK_ERR_INIT         0x00000001
+#define HAL_ENC_TASK_ERR_ALLOC        0x00000010
+#define HAL_ENC_TASK_ERR_EXTRAINFO    0x00000100
+#define HAL_ENC_TASK_ERR_GENREG       0x00001000
+#define HAL_ENC_TASK_ERR_START        0x00010000
+#define HAL_ENC_TASK_ERR_WAIT         0x00100000
+
+
 typedef union HalDecTaskFlag_t {
     RK_U32          val;
     struct {
@@ -95,6 +103,10 @@ typedef union HalDecTaskFlag_t {
         RK_U32      used_for_ref     : 1;
     };
 } HalDecTaskFlag;
+
+typedef struct HalEncTaskFlag_t {
+    RK_U32 err;
+} HalEncTaskFlag;
 
 typedef struct HalDecTask_t {
     // set by parser to signal that it is valid
@@ -135,6 +147,9 @@ typedef struct HalEncTask_t {
     MppBuffer       input;
 
     RK_U32          is_intra;
+
+    HalEncTaskFlag  flags;
+
 } HalEncTask;
 
 

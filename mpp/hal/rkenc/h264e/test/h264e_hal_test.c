@@ -1331,6 +1331,8 @@ static void h264e_hal_set_extra_info_cfg(h264e_control_extra_info_cfg *info, h26
     info->keyframe_max_interval         = syn->keyframe_max_interval;
     info->second_chroma_qp_index_offset = syn->second_chroma_qp_index_offset;
     info->pps_id                        = syn->pps_id;
+
+    info->frame_rate                    = 30;
 }
 
 MPP_RET h264e_hal_vpu_test()
