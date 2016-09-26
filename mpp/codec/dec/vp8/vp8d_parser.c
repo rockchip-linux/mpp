@@ -1190,6 +1190,11 @@ MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
     }
 
     vp8d_convert_to_syntx(p, in_task);
+    /* Rollback entropy probabilities if refresh is not set */
+    if (p->refreshEntropyProbs == 0) {
+        memcpy((void*)&p->entropy, (void*)&p->entropyLast, (unsigned long)sizeof(vp8EntropyProbs_t));
+        memcpy((void*)p->vp7ScanOrder, (void*)p->vp7PrevScanOrder, (unsigned long)sizeof(p->vp7ScanOrder));
+    }
     in_task->syntax.data = (void *)p->dxva_ctx;
     in_task->syntax.number = 1;
     in_task->output = p->frame_out->slot_index;
