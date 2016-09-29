@@ -267,7 +267,7 @@ typedef struct M2VDParserContext_t {
     RK_U32          ref_frame_cnt;
     long long       top_first_cnt;
     long long       bottom_first_cnt;
-    RK_S32             mHeaderDecFlag;
+    RK_S32            mHeaderDecFlag;
     M2VDFrameHead     Framehead[3];
     M2VDFrameHead    *frame_ref0;
     M2VDFrameHead    *frame_ref1;
@@ -286,6 +286,7 @@ typedef struct M2VDParserContext_t {
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
     IOInterruptCB notify_cb;
+    RK_U32  cur_slot_index;
 
     RK_U64 pts;
 
