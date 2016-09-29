@@ -308,6 +308,7 @@ typedef struct M2VDHalContext_t {
     MppBufferGroup group;
     MppBuffer qp_table;
     RK_U32 dec_frame_cnt;
+    IOInterruptCB int_cb;
     FILE *fp_reg_in;
     FILE *fp_reg_out;
 } M2VDHalContext;

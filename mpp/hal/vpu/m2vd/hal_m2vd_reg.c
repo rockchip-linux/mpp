@@ -62,6 +62,7 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
     //configure
     p->packet_slots = cfg->packet_slots;
     p->frame_slots = cfg->frame_slots;
+    p->int_cb = cfg->hal_int_cb;
 
     mpp_env_get_u32("m2vh_debug", &m2vh_debug, 0);
     //get vpu socket
@@ -361,6 +362,10 @@ MPP_RET hal_m2vd_wait(void *hal, HalTaskInfo *task)
         for (k = 0; k < M2VD_REG_NUM; k++)
             fprintf(ctx->fp_reg_out, "[(D)%03d, (X)%03x]  %08x\n", k, k, p_reg[k]);
         fflush(ctx->fp_reg_out);
+    }
+    if (reg_out.interrupt.sw_dec_error_int | reg_out.interrupt.sw_dec_buffer_int) {
+        if (ctx->int_cb.callBack)
+            ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
     }
     if (M2VH_DBG_IRQ & m2vh_debug)
         mpp_log("VPUClientWaitResult return interrupt:%08x", reg_out.interrupt);

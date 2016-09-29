@@ -1249,6 +1249,7 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
     dst->bitstream_start_bit = readbits & 0x3f;
     dst->qp_tab = p->qp_tab_sw_buf;
     dst->CurrPic.Index7Bits = p->frame_cur->slot_index;
+    p->cur_slot_index = p->frame_cur->slot_index;
 
     if (p->frame_ref0->slot_index == 0xff) {
         pbw = p->frame_cur;
@@ -1265,7 +1266,7 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
         dst->frame_refs[1].Index7Bits = pfw->slot_index;
         dst->frame_refs[2].Index7Bits = pbw->slot_index;
         dst->frame_refs[3].Index7Bits = pbw->slot_index;
-        //p->frame_cur->->ErrorInfo = pfw->frame_space->ErrorInfo | pbw->frame_space->ErrorInfo;
+        p->frame_cur->error_info = pfw->error_info | pbw->error_info;
     } else {
         if ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME) ||
             ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && p->pic_code_ext_head.top_field_first) ||
@@ -1281,9 +1282,13 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
         }
         dst->frame_refs[2].Index7Bits = p->frame_cur->slot_index;
         dst->frame_refs[3].Index7Bits = p->frame_cur->slot_index;
-//       p->frame_cur->frame_space->ErrorInfo = pbw->frame_space->ErrorInfo;
+        p->frame_cur->error_info = pbw->error_info;
+    }
+    if (p->frame_cur->picCodingType == M2VD_CODING_TYPE_I) {
+        p->frame_cur->error_info = 0;
     }
     dst->seq_ext_head_dec_flag = p->MPEG2_Flag;
+    mpp_frame_set_errinfo(p->frame_cur->f, p->frame_cur->error_info);
     FUN_T("FUN_O");
     return ret;
 }
@@ -1362,9 +1367,16 @@ __FAILED:
 MPP_RET m2vd_parser_callback(void *ctx, void *errinfo)
 {
     MPP_RET ret = MPP_OK;
-    FUN_T("FUN_I");
-    (void)ctx;
+    M2VDContext *c = (M2VDContext *)ctx;
+    M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
+    MppFrame frame = NULL;
     (void)errinfo;
+
+    FUN_T("FUN_I");
+    mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
+    mpp_frame_set_errinfo(frame, 1);
+    m2vd_parser_reset(ctx);
     FUN_T("FUN_O");
+
     return ret;
 }
