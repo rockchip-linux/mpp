@@ -354,7 +354,6 @@ typedef struct h264e_hal_context_t {
     RK_U32                          frame_cnt;
     h264e_hal_param                 param;
     RK_U32                          enc_mode;
-    HalEncTask                      enc_task;
     void                            *dump_files;
 
     void                            *param_buf;
@@ -362,6 +361,9 @@ typedef struct h264e_hal_context_t {
     MppPacket                       packeted_param;
     void                            *test_cfg;
     h264e_control_extra_info_cfg    extra_info_cfg;
+
+    RK_U32                          osd_plt_type; //0:user define, 1:default
+    MppEncOSDData                   osd_data;
 } h264e_hal_context;
 
 #endif

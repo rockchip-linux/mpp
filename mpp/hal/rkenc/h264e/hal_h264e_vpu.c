@@ -1830,7 +1830,6 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     if (MPP_OK != hal_h264e_vpu_validate_syntax(syn, &src_fmt)) {
         h264e_hal_log_err("hal_h264e_vpu_validate_syntax failed");
     }
-    ctx->enc_task = task->enc;
     memset(reg, 0, sizeof(h264e_vpu_reg_set));
 
     h264e_hal_log_detail("frame %d generate regs now", ctx->frame_cnt);

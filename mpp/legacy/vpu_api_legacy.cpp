@@ -543,7 +543,7 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
             mpp_log("outputPacket is NULL!");
         }
 
-DECODE_OUT:
+    DECODE_OUT:
         if (str_buf) {
             mpp_buffer_put(str_buf);
             str_buf = NULL;

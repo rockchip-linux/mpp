@@ -908,7 +908,7 @@ void *mpp_dec_advanced_thread(void *data)
              * then enqueue task back to input port
              * final user will release the mpp_frame they had input
              */
-DEC_OUT:
+        DEC_OUT:
             mpp_task_meta_set_packet(mpp_task, KEY_INPUT_PACKET, packet);
             mpp_port_enqueue(input, mpp_task);
             mpp_task = NULL;

@@ -88,7 +88,6 @@ enc_mode
 typedef struct h264e_hal_rkv_coveragetest_cfg_t {
     RK_U32 qp;
     RK_U32 preproc;
-    RK_U32 osd;
     RK_U32 mbrc;
     RK_U32 roi;
 } h264e_hal_rkv_coveragetest_cfg;
@@ -157,15 +156,11 @@ typedef struct h264e_hal_rkv_roi_cfg_t {
 typedef struct h264e_hal_rkv_buffers_t {
     MppBufferGroup hw_buf_grp[H264E_HAL_RKV_BUF_GRP_BUTT];
 
-    //MppBuffer hw_input_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
-    //MppBuffer hw_output_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBuffer hw_pp_buf[2];
     MppBuffer hw_dsp_buf[2]; //down scale picture
     MppBuffer hw_mei_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
-    //MppBuffer hw_cmv_buf[2];
     MppBuffer hw_roi_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBuffer hw_rec_buf[RKV_H264E_NUM_REFS + 1]; //extra 1 frame for current recon
-    MppBuffer hw_osd_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
 } h264e_hal_rkv_buffers;
 
 typedef struct h264e_hal_rkv_nal_t {

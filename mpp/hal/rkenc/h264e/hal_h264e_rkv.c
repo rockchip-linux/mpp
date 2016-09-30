@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_h264e_rk"
+#define MODULE_TAG "hal_h264e_rkv"
 
 #include <string.h>
 #include <math.h>
+#include <sys/ioctl.h>
 
 #include "vpu.h"
 #include "mpp_common.h"
@@ -39,6 +40,11 @@
 #define RKVENC_IS_TYPE_I(x) ((x)==RKVENC_FRAME_TYPE_I || (x)==RKVENC_FRAME_TYPE_IDR)
 #define RKVENC_IS_TYPE_B(x) ((x)==RKVENC_FRAME_TYPE_B || (x)==RKVENC_FRAME_TYPE_BREF)
 #define RKVENC_IS_DISPOSABLE(type) ( type == RKVENC_FRAME_TYPE_B )
+
+#define H264E_IOC_MAGIC                       'l'
+#define H264E_IOC_CUSTOM_BASE                 0x1000
+#define H264E_IOC_SET_OSD_PLT                 _IOW(H264E_IOC_MAGIC, H264E_IOC_CUSTOM_BASE+1, MppEncOSDPlt)
+
 
 const RK_S32 h264e_csp_idx_map[H264E_RKV_CSP_BUTT] = {RKV_H264E_CSP2_BGRA, RKV_H264E_CSP2_BGR, RKV_H264E_CSP2_RGB, 0, RKV_H264E_CSP2_NV16, RKV_H264E_CSP2_I422, RKV_H264E_CSP2_NV12,
                                                       RKV_H264E_CSP2_I420, RKV_H264E_CSP2_RGB, RKV_H264E_CSP2_RGB
@@ -289,6 +295,24 @@ static RK_U32 reg_idx2addr_map[132] = {
     0x08e8, //131
 };
 #endif
+
+static MPP_RET hal_h264e_rkv_cfg_hardware(RK_S32 socket, RK_U32 cmd, void *param)
+{
+    RK_S32 ret = 0;
+
+    if (param == NULL) {
+        h264e_hal_log_err("input param is NULL");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    ret = (RK_S32)ioctl(socket, cmd, param);
+    if (ret) {
+        h264e_hal_log_err("ioctl H264E_IOC_SET_OSDL_PLT failed ret %d", ret);
+        return MPP_NOK;
+    }
+
+    return MPP_OK;
+}
 
 static h264e_hal_rkv_csp_info hal_h264e_rkv_convert_csp(RK_S32 src_type)
 {
@@ -1428,12 +1452,6 @@ static MPP_RET hal_h264e_rkv_free_buffers(h264e_hal_context *ctx)
                 return MPP_NOK;
             }
         }
-        if (buffers->hw_osd_buf[k]) {
-            if (MPP_OK != mpp_buffer_put(buffers->hw_osd_buf[k])) {
-                h264e_hal_log_err("hw_osd_buf[%d] put failed", k);
-                return MPP_NOK;
-            }
-        }
     }
 
     {
@@ -1565,17 +1583,6 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
                 h264e_hal_log_dpb("hw_rec_buf[%d] %p done, fd %d", k, buffers->hw_rec_buf[k], mpp_buffer_get_fd(buffers->hw_rec_buf[k]));
             }
             frame_buf[k].hw_buf = buffers->hw_rec_buf[k];
-        }
-    }
-
-    if (syn->osd_mode || (test_cfg && test_cfg->osd)) {
-        for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
-            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_REC], &buffers->hw_osd_buf[k], num_mbs_oneframe * 256)) {
-                h264e_hal_log_err("hw_osd_buf[%d] get failed", buffers->hw_osd_buf[k]);
-                return MPP_ERR_MALLOC;
-            } else {
-                h264e_hal_log_dpb("hw_osd_buf[%d] %p done, fd %d", k, buffers->hw_osd_buf[k], mpp_buffer_get_fd(buffers->hw_osd_buf[k]));
-            }
         }
     }
 
@@ -2496,6 +2503,48 @@ static MPP_RET hal_h264e_rkv_set_extra_info(h264e_hal_context *ctx, void *param)
     return MPP_OK;
 }
 
+static MPP_RET hal_h264e_rkv_set_osd_plt(h264e_hal_context *ctx, void *param)
+{
+    MppEncOSDPlt *plt = (MppEncOSDPlt *)param;
+    h264e_hal_debug_enter();
+    if (plt->buf) {
+        ctx->osd_plt_type = 0;
+        if (MPP_OK != hal_h264e_rkv_cfg_hardware(ctx->vpu_socket, H264E_IOC_SET_OSD_PLT, param)) {
+            h264e_hal_log_err("set osd plt error");
+            return MPP_NOK;
+        }
+    } else {
+        ctx->osd_plt_type = 1;
+    }
+
+    h264e_hal_debug_leave();
+    return MPP_OK;
+}
+
+static MPP_RET hal_h264e_rkv_set_osd_data(h264e_hal_context *ctx, void *param)
+{
+    MppEncOSDData *src = (MppEncOSDData *)param;
+    MppEncOSDData *dst = &ctx->osd_data;
+    RK_U32 num = src->num_region;
+
+    h264e_hal_debug_enter();
+    if (num > 8) {
+        h264e_hal_log_err("number of region %d exceed maxinum 8");
+        return MPP_NOK;
+    }
+
+    dst->num_region = num;
+
+    if (num) {
+        if (src->buf) {
+            dst->buf = src->buf;
+            memcpy(dst->region, src->region, num * sizeof(MppEncOSDRegion));
+        }
+    }
+
+    h264e_hal_debug_leave();
+    return MPP_OK;
+}
 
 static void hal_h264e_rkv_reference_deinit( h264e_hal_rkv_dpb_ctx *dpb_ctx)
 {
@@ -2612,10 +2661,7 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         ctx->packeted_param = NULL;
     }
 
-    if (ctx->param_buf) {
-        mpp_free(ctx->param_buf);
-        ctx->param_buf = NULL;
-    }
+    MPP_FREE(ctx->param_buf);
 
     ctx->param_size = 0;
 
@@ -2833,108 +2879,49 @@ MPP_RET hal_h264e_rkv_set_roi_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, M
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_rkv_set_osd_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, MppBuffer osd_idx_buf,
-                                   h264e_hal_rkv_coveragetest_cfg *test)
+MPP_RET hal_h264e_rkv_set_osd_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *regs)
 {
-    if (test && test->osd) {
-#define OSD_SIZE_MBS  4 //size of osd in mb
-        RK_S32 k = 0;
-        RK_U32 osd_r0_en = 1;
-        RK_U32 osd_r1_en = 1;
-        RK_U32 osd_r2_en = 1;
-        RK_U32 osd_r3_en = 1;
-        RK_U32 osd_r4_en = 1;
-        RK_U32 osd_r5_en = 1;
-        RK_U32 osd_r6_en = 1;
-        RK_U32 osd_r7_en = 1;
+#define H264E_DEFAULT_OSD_INV_THR 15 //TODO: open interface later
+    RK_U32 k = 0;
+    MppEncOSDData *osd_data = &ctx->osd_data;
+    RK_U32 num = osd_data->num_region;
+    MppEncOSDRegion *region = osd_data->region;
+    RK_U32 buf_fd = mpp_buffer_get_fd(osd_data->buf);
 
-        RK_U32 osd_r0_inv_en = 0;
-        RK_U32 osd_r1_inv_en = 0;
-        RK_U32 osd_r2_inv_en = 0;
-        RK_U32 osd_r3_inv_en = 0;
-        RK_U32 osd_r4_inv_en = 0;
-        RK_U32 osd_r5_inv_en = 0;
-        RK_U32 osd_r6_inv_en = 0;
-        RK_U32 osd_r7_inv_en = 0;
+    regs->swreg65.osd_clk_sel    = 1;
+    regs->swreg65.osd_plt_type   = ctx->osd_plt_type;
 
-        RK_U32 osd_size_pixels = 16 * OSD_SIZE_MBS * 16 * OSD_SIZE_MBS;
-        h264e_hal_log_detail("---- test-osd ----");
+    for (k = 0; k < num; k++) {
+        regs->swreg65.osd_en |= region[k].enable << k;
+        regs->swreg65.osd_inv |= region[k].inverse << k;
 
+        if (region[k].enable) {
+            regs->swreg67_osd_pos[k].lt_pos_x = region[k].start_mb_x;
+            regs->swreg67_osd_pos[k].lt_pos_y = region[k].start_mb_y;
+            regs->swreg67_osd_pos[k].rd_pos_x = region[k].start_mb_x + region[k].num_mb_x - 1;
+            regs->swreg67_osd_pos[k].rd_pos_y = region[k].start_mb_y + region[k].num_mb_y - 1;
 
-        regs->swreg65.osd_en         = (osd_r0_en << 0) + (osd_r1_en << 1) + (osd_r2_en << 2) + (osd_r3_en << 3) + (osd_r4_en << 4) + (osd_r5_en << 5) + (osd_r6_en << 6) + (osd_r7_en << 7);
-        regs->swreg65.osd_inv        = (osd_r0_inv_en << 0) + (osd_r1_inv_en << 1) + (osd_r2_inv_en << 2) + (osd_r3_inv_en << 3) +
-                                       (osd_r4_inv_en << 4) + (osd_r5_inv_en << 5) + (osd_r6_inv_en << 6) + (osd_r7_inv_en << 7);
-
-        regs->swreg65.osd_clk_sel    = 1;
-        regs->swreg65.osd_plt_type   = 0; //OSD_plt_type;
-
-        regs->swreg66.osd_inv_r1    = 0; //OSD_r1_inv_range;
-        regs->swreg66.osd_inv_r2    = 0; //OSD_r2_inv_range;
-        regs->swreg66.osd_inv_r3    = 0; //OSD_r3_inv_range;
-        regs->swreg66.osd_inv_r4    = 0; //OSD_r4_inv_range;
-        regs->swreg66.osd_inv_r5    = 0; //OSD_r5_inv_range;
-        regs->swreg66.osd_inv_r6    = 0; //OSD_r6_inv_range;
-        regs->swreg66.osd_inv_r7    = 0; //OSD_r7_inv_range;
-
-        regs->swreg67_osd_pos[0].lt_pos_x    = 0 * OSD_SIZE_MBS; //OSD_r0_x_lt_pos;
-        regs->swreg67_osd_pos[0].lt_pos_y    = 0 * OSD_SIZE_MBS; //OSD_r0_y_lt_pos;
-        regs->swreg67_osd_pos[0].rd_pos_x    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r0_x_rd_pos;
-        regs->swreg67_osd_pos[0].rd_pos_y    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r0_y_rd_pos;
-
-        regs->swreg67_osd_pos[1].lt_pos_x    = 1 * OSD_SIZE_MBS; //OSD_r1_x_lt_pos;
-        regs->swreg67_osd_pos[1].lt_pos_y    = 0 * OSD_SIZE_MBS; //OSD_r1_y_lt_pos;
-        regs->swreg67_osd_pos[1].rd_pos_x    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r1_x_rd_pos;
-        regs->swreg67_osd_pos[1].rd_pos_y    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r1_y_rd_pos;
-
-        regs->swreg67_osd_pos[2].lt_pos_x    = 2 * OSD_SIZE_MBS; //OSD_r2_x_lt_pos;
-        regs->swreg67_osd_pos[2].lt_pos_y    = 0 * OSD_SIZE_MBS; //OSD_r2_y_lt_pos;
-        regs->swreg67_osd_pos[2].rd_pos_x    = 2 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r2_x_rd_pos;
-        regs->swreg67_osd_pos[2].rd_pos_y    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r2_y_rd_pos;
-
-        regs->swreg67_osd_pos[3].lt_pos_x    = 3 * OSD_SIZE_MBS; //OSD_r3_x_lt_pos;
-        regs->swreg67_osd_pos[3].lt_pos_y    = 0 * OSD_SIZE_MBS; //OSD_r3_y_lt_pos;
-        regs->swreg67_osd_pos[3].rd_pos_x    = 3 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r3_x_rd_pos;
-        regs->swreg67_osd_pos[3].rd_pos_y    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r3_y_rd_pos;
-
-        regs->swreg67_osd_pos[4].lt_pos_x    = 0 * OSD_SIZE_MBS; //OSD_r4_x_lt_pos;
-        regs->swreg67_osd_pos[4].lt_pos_y    = 1 * OSD_SIZE_MBS; //OSD_r4_y_lt_pos;
-        regs->swreg67_osd_pos[4].rd_pos_x    = 0 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r4_x_rd_pos;
-        regs->swreg67_osd_pos[4].rd_pos_y    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r4_x_rd_pos;
-
-        regs->swreg67_osd_pos[5].lt_pos_x    = 1 * OSD_SIZE_MBS; //OSD_r5_x_lt_pos;
-        regs->swreg67_osd_pos[5].lt_pos_y    = 1 * OSD_SIZE_MBS; //OSD_r5_y_lt_pos;
-        regs->swreg67_osd_pos[5].rd_pos_x    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r5_x_rd_pos;
-        regs->swreg67_osd_pos[5].rd_pos_y    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r5_y_rd_pos;
-
-        regs->swreg67_osd_pos[6].lt_pos_x    = 2 * OSD_SIZE_MBS; //OSD_r6_x_lt_pos;
-        regs->swreg67_osd_pos[6].lt_pos_y    = 1 * OSD_SIZE_MBS; //OSD_r6_y_lt_pos;
-        regs->swreg67_osd_pos[6].rd_pos_x    = 2 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r6_x_rd_pos;
-        regs->swreg67_osd_pos[6].rd_pos_y    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r6_y_rd_pos;
-
-        regs->swreg67_osd_pos[7].lt_pos_x    = 3 * OSD_SIZE_MBS; //OSD_r7_x_lt_pos;
-        regs->swreg67_osd_pos[7].lt_pos_y    = 1 * OSD_SIZE_MBS; //OSD_r7_y_lt_pos;
-        regs->swreg67_osd_pos[7].rd_pos_x    = 3 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r7_x_rd_pos;
-        regs->swreg67_osd_pos[7].rd_pos_y    = 1 * OSD_SIZE_MBS + OSD_SIZE_MBS - 1; //OSD_r7_y_rd_pos;
-
-        for (k = 0; k < 8; k++) {
-            if (regs->swreg65.osd_plt_type == 0) //configurable
-                memset((RK_U8 *)mpp_buffer_get_ptr(osd_idx_buf) + k * osd_size_pixels, 32 * k, osd_size_pixels);
-            else //fixed mode: only support idx 0~7
-                memset((RK_U8 *)mpp_buffer_get_ptr(osd_idx_buf) + k * osd_size_pixels,    k, osd_size_pixels);
-
-            regs->swreg68_indx_addr_i[k]     = mpp_buffer_get_fd(osd_idx_buf) | ((k * osd_size_pixels) << 10); //h->param.indx_addr_i[i];
+            regs->swreg68_indx_addr_i[k] = buf_fd | (region[k].buf_offset << 10);
         }
-#if 0 //written in kernel
-        for (k = 0; k < 256; k++) {
-            regs->swreg73_osd_indx_tab_i[k]  = k | (0x80 << 8) | (0x80 << 16) | (k << 24);
-        }
-#endif
 
-    } else {
-
-        (void)test;
     }
-    (void)syn;
+
+    if (region[0].inverse)
+        regs->swreg66.osd_inv_r0 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[1].inverse)
+        regs->swreg66.osd_inv_r1 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[2].inverse)
+        regs->swreg66.osd_inv_r2 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[3].inverse)
+        regs->swreg66.osd_inv_r3 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[4].inverse)
+        regs->swreg66.osd_inv_r4 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[5].inverse)
+        regs->swreg66.osd_inv_r5 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[6].inverse)
+        regs->swreg66.osd_inv_r6 = H264E_DEFAULT_OSD_INV_THR;
+    if (region[7].inverse)
+        regs->swreg66.osd_inv_r7 = H264E_DEFAULT_OSD_INV_THR;
 
     return MPP_OK;
 }
@@ -3193,14 +3180,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg30_rfpw_addr    = mpp_buffer_get_fd(dpb_ctx->fdec->hw_buf);//syn->addr_cfg.rfpw_addr; //TODO: extend recon luma buf
     if (dpb_ctx->fref[0][0])
         regs->swreg31_rfpr_addr    = mpp_buffer_get_fd(dpb_ctx->fref[0][0]->hw_buf); //syn->addr_cfg.rfpr_addr;
-    //regs->swreg32_cmvw_addr    = mpp_buffer_get_fd(bufs->hw_cmv_buf[buf2_idx]);
 
     if (bufs->hw_dsp_buf[buf2_idx])
         regs->swreg34_dspw_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[buf2_idx]); //syn->addr_cfg.dspw_addr;
     if (bufs->hw_dsp_buf[1 - buf2_idx])
         regs->swreg35_dspr_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[1 - buf2_idx]); //syn->addr_cfg.dspr_addr;
 
-    if(mv_info_buf) {
+    if (mv_info_buf) {
         regs->swreg10.mei_stor    = 1; //syn->swreg10.mei_stor;
         regs->swreg36_meiw_addr   = mpp_buffer_get_fd(mv_info_buf); //mpp_buffer_get_fd(bufs->hw_mei_buf[mul_buf_idx]);
     }
@@ -3395,7 +3381,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         regs->swreg64.dopn_m1_1    = dpb_ctx->i_mmco_command_count > (mmco4_pre + 1) ? dpb_ctx->mmco[(mmco4_pre + 1)].i_difference_of_pic_nums - 1 : 0; //syn->swreg64.dopn_m1_1;
     }
 
-    hal_h264e_rkv_set_osd_regs(regs, syn, bufs->hw_osd_buf[mul_buf_idx], test_cfg);
+    hal_h264e_rkv_set_osd_regs(ctx, regs);
 
     regs->swreg69.bs_lgth    = 0x0;
 
@@ -3723,6 +3709,14 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
         *pkt_out = pkt;
 
         hal_h264e_rkv_dump_mpp_strm_out_header(ctx, pkt);
+        break;
+    }
+    case MPP_ENC_SET_OSD_PLT_CFG: {
+        hal_h264e_rkv_set_osd_plt(ctx, param);
+        break;
+    }
+    case MPP_ENC_SET_OSD_DATA_CFG: {
+        hal_h264e_rkv_set_osd_data(ctx, param);
         break;
     }
     default : {

@@ -209,6 +209,31 @@ static RK_U32 h264e_vpu_revert_csp(RK_U32 csp)
     return (RK_U32)dst_fmt;
 }
 
+static MPP_RET h264e_rkv_test_gen_osd_data(MppEncOSDData *osd_data, MppBuffer *hw_osd_buf_mul)
+{
+    RK_U32 k = 0, buf_size = 0;
+    RK_U8 data = 0;
+
+    osd_data->num_region = 8;
+    osd_data->buf = hw_osd_buf_mul[g_frame_read_cnt % RKV_H264E_LINKTABLE_FRAME_NUM];
+    for (k = 0; k < osd_data->num_region; k++) {
+        osd_data->region[k].enable = 1;
+        osd_data->region[k].inverse = 0;
+        osd_data->region[k].start_mb_x = k * 4;
+        osd_data->region[k].start_mb_y = k * 4;
+        osd_data->region[k].num_mb_x = 3;
+        osd_data->region[k].num_mb_y = 3;
+
+        buf_size = osd_data->region[k].num_mb_x * osd_data->region[k].num_mb_y * 256;
+        osd_data->region[k].buf_offset = k * buf_size;
+
+        data = k;
+        memset((RK_U8 *)mpp_buffer_get_ptr(osd_data->buf) + osd_data->region[k].buf_offset, data, buf_size);
+    }
+
+    return MPP_OK;
+}
+
 
 static MPP_RET h264e_rkv_test_open_files(h264e_hal_test_cfg test_cfg)
 {
@@ -1232,10 +1257,6 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
             cfg->test.preproc = atoi(arg_str[k + 1]);
             k++;
         }
-        if (!strcmp("--test-osd", arg_str[k])) {
-            cfg->test.osd = atoi(arg_str[k + 1]);
-            k++;
-        }
         if (!strcmp("--test-mbrc", arg_str[k])) {
             cfg->test.mbrc = atoi(arg_str[k + 1]);
             k++;
@@ -1281,8 +1302,6 @@ static MPP_RET h264e_hal_test_parse_options(int arg_num, char **arg_str, h264e_h
         mpp_log("cfg->test.qp %d", cfg->test.qp);
     if (cfg->test.preproc)
         mpp_log("cfg->test.preproc %d", cfg->test.preproc);
-    if (cfg->test.osd)
-        mpp_log("cfg->test.osd %d", cfg->test.osd);
     if (cfg->test.mbrc)
         mpp_log("cfg->test.mbrc %d", cfg->test.mbrc);
     if (cfg->test.roi)
@@ -1464,8 +1483,21 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
     MppBufferGroup hw_output_buf_grp = NULL;
     MppBuffer hw_input_buf_mul[RKV_H264E_LINKTABLE_FRAME_NUM] = {NULL};
     MppBuffer hw_output_strm_buf_mul[RKV_H264E_LINKTABLE_FRAME_NUM] = {NULL};
+    MppBuffer hw_osd_buf_mul[RKV_H264E_LINKTABLE_FRAME_NUM] = {NULL};
     RK_U32 frame_luma_stride = 0;
+    MppEncOSDPlt osd_plt;
+    MppEncOSDData osd_data;
     RK_S64 t0;
+    RK_U32 plt_table[8] = {
+        MPP_ENC_OSD_PLT_WHITE,
+        MPP_ENC_OSD_PLT_YELLOW,
+        MPP_ENC_OSD_PLT_CYAN,
+        MPP_ENC_OSD_PLT_GREEN,
+        MPP_ENC_OSD_PLT_TRANS,
+        MPP_ENC_OSD_PLT_RED,
+        MPP_ENC_OSD_PLT_BLUE,
+        MPP_ENC_OSD_PLT_BLACK
+    };
 
     mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
 
@@ -1489,8 +1521,10 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
         goto __test_end;
     }
 
-    for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++)
+    for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
         mpp_buffer_get(hw_input_buf_grp, &hw_input_buf_mul[k], frame_luma_stride * 3 / 2);
+        mpp_buffer_get(hw_input_buf_grp, &hw_osd_buf_mul[k], frame_luma_stride);
+    }
 
     for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++)
         mpp_buffer_get(hw_output_buf_grp, &hw_output_strm_buf_mul[k], syntax_data[0].pic_luma_width * syntax_data[0].pic_luma_height * 3 / 2);
@@ -1507,6 +1541,14 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
     hal_h264e_rkv_control(&ctx, MPP_ENC_SET_EXTRA_INFO, &extra_info_cfg);
     hal_h264e_rkv_control(&ctx, MPP_ENC_GET_EXTRA_INFO, &extra_info_pkt);
 
+    if (osd_plt.buf) {
+        for (k = 0; k < 256; k++) {
+            osd_plt.buf[k] = plt_table[k % 8];
+        }
+    }
+
+    hal_h264e_rkv_control(&ctx, MPP_ENC_SET_OSD_PLT_CFG, (void *)&osd_plt);
+
     do {
         /* get golden input */
         if (g_frame_read_cnt <= g_frame_cnt) {
@@ -1514,6 +1556,10 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
             RK_S32 frame_num = RKV_H264E_ENC_MODE == 1 ? 1 : RKV_H264E_LINKTABLE_FRAME_NUM;
             mpp_log("read %d frames input", frame_num);
             for (k = 0; k < frame_num; k++, g_frame_read_cnt++) {
+
+                h264e_rkv_test_gen_osd_data(&osd_data, hw_osd_buf_mul);
+                hal_h264e_rkv_control(&ctx, MPP_ENC_SET_OSD_DATA_CFG, (void *)&osd_data);
+
                 syn = &syntax_data[g_frame_read_cnt % RKV_H264E_LINKTABLE_FRAME_NUM];
                 if (MPP_EOS_STREAM_REACHED == get_rkv_syntax_in(syn, hw_input_buf_mul, hw_output_strm_buf_mul, test_cfg)) {
                     mpp_log("syntax input file end, total %d frames are encoded, test is ended", g_frame_cnt);
@@ -1571,6 +1617,8 @@ __test_end:
             mpp_buffer_put(hw_input_buf_mul[k]);
         if (hw_output_strm_buf_mul[k])
             mpp_buffer_put(hw_output_strm_buf_mul[k]);
+        if (hw_osd_buf_mul[k])
+            mpp_buffer_put(hw_osd_buf_mul[k]);
     }
 
     if (hw_input_buf_grp)

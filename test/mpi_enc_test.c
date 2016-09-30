@@ -119,6 +119,41 @@ static MPP_RET fill_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, RK_U32 frame_co
     return ret;
 }
 
+static MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
+{
+    RK_U32 k = 0, buf_size = 0;
+    RK_U8 data = 0;
+
+    osd_data->num_region = 8;
+    osd_data->buf = osd_buf;
+    for (k = 0; k < osd_data->num_region; k++) {
+        osd_data->region[k].enable = 1;
+        osd_data->region[k].inverse = frame_cnt & 1;
+        osd_data->region[k].start_mb_x = k * 4;
+        osd_data->region[k].start_mb_y = k * 4;
+        osd_data->region[k].num_mb_x = 3;
+        osd_data->region[k].num_mb_y = 3;
+
+        buf_size = osd_data->region[k].num_mb_x * osd_data->region[k].num_mb_y * 256;
+        osd_data->region[k].buf_offset = k * buf_size;
+
+        data = k;
+        memset((RK_U8 *)mpp_buffer_get_ptr(osd_data->buf) + osd_data->region[k].buf_offset, data, buf_size);
+    }
+
+    return MPP_OK;
+}
+
+static MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table)
+{
+    RK_U32 k = 0;
+    if (osd_plt->buf) {
+        for (k = 0; k < 256; k++)
+            osd_plt->buf[k] = table[k % 8];
+    }
+    return MPP_OK;
+}
+
 int mpi_enc_test(MpiEncTestCmd *cmd)
 {
     MPP_RET ret             = MPP_OK;
@@ -141,6 +176,8 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     MppBuffer frm_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppBuffer pkt_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppBuffer md_buf[MPI_ENC_IO_COUNT] = { NULL };
+    MppBuffer osd_idx_buf[MPI_ENC_IO_COUNT] = { NULL };
+    MppEncOSDPlt osd_plt;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -154,11 +191,23 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     size_t frame_size   = hor_stride * ver_stride * 3 / 2;
     /* NOTE: packet buffer may overflow */
     size_t packet_size  = width * height;
-    /* 32 for each 16x16 block */
-    size_t mdinfo_size  = (((hor_stride + 255)&(~255))/16) * (ver_stride / 16) * 4; //NOTE: hor_stride should be 16-MB aligned
+    /* 32bits for each 16x16 block */
+    size_t mdinfo_size  = (((hor_stride + 255) & (~255)) / 16) * (ver_stride / 16) * 4; //NOTE: hor_stride should be 16-MB aligned
+    /* osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes). for general use, 1/8 Y buffer is enough. */
+    size_t osd_idx_size  = hor_stride * ver_stride / 8;
     size_t read_size    = 0;
     RK_U32 frame_count  = 0;
     RK_U64 stream_size  = 0;
+    RK_U32 plt_table[8] = {
+        MPP_ENC_OSD_PLT_WHITE,
+        MPP_ENC_OSD_PLT_YELLOW,
+        MPP_ENC_OSD_PLT_CYAN,
+        MPP_ENC_OSD_PLT_GREEN,
+        MPP_ENC_OSD_PLT_TRANS,
+        MPP_ENC_OSD_PLT_RED,
+        MPP_ENC_OSD_PLT_BLUE,
+        MPP_ENC_OSD_PLT_BLACK
+    };
 
     mpp_log("mpi_enc_test start\n");
 
@@ -195,6 +244,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         ret = mpp_buffer_get(frm_grp, &frm_buf[i], frame_size);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
+            goto MPP_TEST_OUT;
+        }
+
+        ret = mpp_buffer_get(frm_grp, &osd_idx_buf[i], osd_idx_size);
+        if (ret) {
+            mpp_err("failed to get buffer for osd idx buf ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
@@ -280,6 +335,14 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_frame_set_hor_stride(frame, hor_stride);
     mpp_frame_set_ver_stride(frame, ver_stride);
 
+    /* gen and cfg osd plt */
+    mpi_enc_gen_osd_plt(&osd_plt, plt_table);
+    ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &osd_plt);
+    if (MPP_OK != ret) {
+        mpp_err("mpi control enc set osd plt failed\n");
+        goto MPP_TEST_OUT;
+    }
+
     i = 0;
     while (!pkt_eos) {
         MppTask task = NULL;
@@ -287,6 +350,8 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         MppBuffer frm_buf_in  = frm_buf[index];
         MppBuffer pkt_buf_out = pkt_buf[index];
         MppBuffer md_info_buf = md_buf[index];
+        MppBuffer osd_data_buf = osd_idx_buf[index];
+        MppEncOSDData osd_data;
         void *buf = mpp_buffer_get_ptr(frm_buf_in);
 
         if (i == MPI_ENC_IO_COUNT)
@@ -333,6 +398,14 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
         mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
         mpp_task_meta_set_buffer(task, KEY_MOTION_INFO, md_info_buf);
+
+        /* gen and cfg osd plt */
+        mpi_enc_gen_osd_data(&osd_data, osd_data_buf, frame_count);
+        ret = mpi->control(ctx, MPP_ENC_SET_OSD_DATA_CFG, &osd_data);
+        if (MPP_OK != ret) {
+            mpp_err("mpi control enc set osd data failed\n");
+            goto MPP_TEST_OUT;
+        }
 
         ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
         if (ret) {
@@ -421,6 +494,11 @@ MPP_TEST_OUT:
         if (md_buf[i]) {
             mpp_buffer_put(md_buf[i]);
             md_buf[i] = NULL;
+        }
+
+        if (osd_idx_buf[i]) {
+            mpp_buffer_put(osd_idx_buf[i]);
+            osd_idx_buf[i] = NULL;
         }
     }
 
