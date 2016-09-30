@@ -36,6 +36,15 @@
 #define CMD_CTX_ID_ISP                  (0x00030000)
 #define CMD_ID_MASK                     (0x0000FFFF)
 
+#define MPP_ENC_OSD_PLT_WHITE           ((255<<24)|(128<<16)|(128<<8)|235)
+#define MPP_ENC_OSD_PLT_YELLOW          ((255<<24)|(146<<16)|( 16<<8 )|210)
+#define MPP_ENC_OSD_PLT_CYAN            ((255<<24)|( 16<<16 )|(166<<8)|170)
+#define MPP_ENC_OSD_PLT_GREEN           ((255<<24)|( 34<<16 )|( 54<<8 )|145)
+#define MPP_ENC_OSD_PLT_TRANS           ((  0<<24)|(222<<16)|(202<<8)|106)
+#define MPP_ENC_OSD_PLT_RED             ((255<<24)|(240<<16)|( 90<<8 )|81)
+#define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)|41)
+#define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)|16)
+
 typedef enum {
     MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
     MPP_OSAL_CMD_END,
@@ -68,7 +77,8 @@ typedef enum {
     MPP_ENC_GET_RC_CFG,
     MPP_ENC_SET_PREP_CFG,
     MPP_ENC_GET_PREP_CFG,
-    MPP_ENC_SET_OSD_CFG,
+    MPP_ENC_SET_OSD_PLT_CFG,
+    MPP_ENC_SET_OSD_DATA_CFG,
     MPP_ENC_GET_OSD_CFG,
     MPP_ENC_SET_CFG,
     MPP_ENC_GET_CFG,
@@ -326,20 +336,41 @@ typedef struct MppEncROICfg_t {
  *    When palette is set.
  * 2. fixed OSD palette
  *    When palette is NULL.
+ *
+ * if MppEncOSDPlt.buf != NULL , palette includes maximun 256 levels,
+ * every level composed of 32 bits defined below:
+ * Y     : 8 bits
+ * U     : 8 bits
+ * V     : 8 bits
+ * alpha : 8 bits
+ */
+typedef struct MppEncOSDPlt_t {
+    RK_U32 buf[256];
+} MppEncOSDPlt;
+
+/* position info is unit in 16 pixels(one MB), and
+ * x-directon range in pixels = (rd_pos_x - lt_pos_x + 1) * 16;
+ * y-directon range in pixels = (rd_pos_y - lt_pos_y + 1) * 16;
  */
 typedef struct MppEncOSDRegion_t {
-    RK_U16              x;
-    RK_U16              y;
-    RK_U16              w;
-    RK_U16              h;
-    RK_U8               *data;
+    RK_U32    enable;
+    RK_U32    inverse;
+    RK_U32    start_mb_x;
+    RK_U32    start_mb_y;
+    RK_U32    num_mb_x;
+    RK_U32    num_mb_y;
+    RK_U32    buf_offset;
 } MppEncOSDRegion;
 
-typedef struct MppEncOSDCfg_t {
-    RK_U32              number;
-    RK_U8               *palette;
-    MppEncOSDRegion     *regions;
-} MppEncOSDCfg;
+
+/* if num_region > 0 && region==NULL
+ * use old osd data
+ */
+typedef struct MppEncOSDData_t {
+    MppBuffer       buf;
+    RK_U32          num_region;
+    MppEncOSDRegion region[8];
+} MppEncOSDData;
 
 /*
  * Mpp Motion Detection parameter
@@ -363,9 +394,9 @@ typedef struct MppEncOSDCfg_t {
  * 4. Buffer must be ion buffer and 1024 byte aligned.
  */
 typedef struct MppEncMDBlkInfo_t {
-    RK_U32              sad     :15;    /* bit  0~14 - SAD */
-    RK_S32              mvx     :9;     /* bit 15~23 - signed horizontal mv */
-    RK_S32              mvy     :8;     /* bit 24~31 - signed vertical mv */
+    RK_U32              sad     : 15;   /* bit  0~14 - SAD */
+    RK_S32              mvx     : 9;    /* bit 15~23 - signed horizontal mv */
+    RK_S32              mvy     : 8;    /* bit 24~31 - signed vertical mv */
 } MppEncMDBlkInfo;
 
 #endif /*__RK_MPI_CMD_H__*/
