@@ -1,10 +1,14 @@
 # vim: syntax=cmake
+if (HAVE_DRM)
+    set(DRM_FILES allocator/allocator_drm.c)
+endif()
+
 if(${ANDROID})
 set(OS_DIR android)
-set(MPP_ALLOCATOR allocator/allocator_ion.c allocator/allocator_drm.c)
+set(MPP_ALLOCATOR allocator/allocator_ion.c ${DRM_FILES})
 elseif(${UNIX})
 set(OS_DIR linux)
-set(MPP_ALLOCATOR allocator/allocator_ion.c allocator/allocator_drm.c)
+set(MPP_ALLOCATOR allocator/allocator_ion.c ${DRM_FILES})
 elseif(${WIN32})
 set(OS_DIR window)
 set(MPP_ALLOCATOR )
