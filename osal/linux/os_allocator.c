@@ -149,7 +149,11 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
         *api = allocator_v4l2;
     } break;
     case MPP_BUFFER_TYPE_DRM : {
+#ifdef HAVE_DRM
         *api = allocator_drm;
+#else
+        *api = allocator_normal;
+#endif
     } break;
     default : {
         ret = MPP_NOK;

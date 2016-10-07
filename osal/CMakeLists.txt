@@ -1,5 +1,6 @@
 # vim: syntax=cmake
 if (HAVE_DRM)
+    add_definitions(-DHAVE_DRM)
     set(DRM_FILES allocator/allocator_drm.c)
 endif()
 
