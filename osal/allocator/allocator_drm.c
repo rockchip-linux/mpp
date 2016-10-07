@@ -29,6 +29,7 @@
 #include "os_mem.h"
 #include "allocator_drm.h"
 
+#include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
@@ -39,10 +40,6 @@ static RK_U32 drm_debug = 0;
 #define DRM_DEVICE                  (0x00000002)
 #define DRM_CLIENT                  (0x00000004)
 #define DRM_IOCTL                   (0x00000008)
-
-#define DRM_DETECT_IOMMU_DISABLE    (0x0)   /* use DRM_HEAP_TYPE_DMA */
-#define DRM_DETECT_IOMMU_ENABLE     (0x1)   /* use DRM_HEAP_TYPE_SYSTEM */
-#define DRM_DETECT_NO_DTS           (0x2)   /* use DRM_HEAP_TYPE_CARVEOUT */
 
 #define drm_dbg(flag, fmt, ...) _mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
 
@@ -200,127 +197,10 @@ static int drm_free(int fd, RK_U32 handle)
     return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
 }
 
-#include <dirent.h>
-
-static const char *search_name = NULL;
-
-static int _compare_name(const struct dirent *dir)
-{
-    if (search_name && strstr(dir->d_name, search_name))
-        return 1;
-
-    return 0;
-}
-
-/*
- * directory search functdrm:
- * search directory with dir_name on path.
- * if found match dir append name on path and return
- *
- * return 0 for failure
- * return positive value for length of new path
- */
-static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_length)
-{
-    struct dirent **dir;
-    RK_S32 path_len = strnlen(path, max_length);
-    RK_S32 new_path_len = 0;
-    RK_S32 n;
-
-    search_name = dir_name;
-    n = scandir(path, &dir, _compare_name, alphasort);
-    if (n <= 0) {
-        mpp_err("scan %s for %s return %d\n", path, dir_name, n);
-    } else {
-        mpp_assert(n == 1);
-
-        new_path_len = path_len;
-        new_path_len += snprintf(path + path_len, max_length - path_len - 1,
-                                 "/%s", dir[0]->d_name);
-        free(dir[0]);
-        free(dir);
-    }
-    search_name = NULL;
-    return new_path_len;
-}
-
-static RK_S32 check_sysfs_iommu()
-{
-    RK_U32 i = 0;
-    RK_U32 dts_info_found = 0;
-    RK_U32 ion_info_found = 0;
-    RK_S32 ret = DRM_DETECT_IOMMU_DISABLE;
-    char path[256];
-    static char *dts_devices[] = {
-        "vpu_service",
-        "hevc_service",
-        "rkvdec",
-        "rkvenc",
-    };
-    static char *system_heaps[] = {
-        "vmalloc",
-        "system-heap",
-    };
-
-    mpp_env_get_u32("drm_debug", &drm_debug, 0);
-#ifdef SOFIA_3GR_LINUX
-    return ret;
-#endif
-
-    for (i = 0; i < MPP_ARRAY_ELEMS(dts_devices); i++) {
-        snprintf(path, sizeof(path), "/proc/device-tree");
-        if (find_dir_in_path(path, dts_devices[i], sizeof(path))) {
-            if (find_dir_in_path(path, "iommu_enabled", sizeof(path))) {
-                FILE *iommu_fp = fopen(path, "rb");
-
-                if (iommu_fp) {
-                    RK_U32 iommu_enabled = 0;
-                    fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
-                    mpp_log("%s iommu_enabled %d\n", dts_devices[i], (iommu_enabled > 0));
-                    fclose(iommu_fp);
-                    if (iommu_enabled)
-                        ret = DRM_DETECT_IOMMU_ENABLE;
-                }
-                dts_info_found = 1;
-                break;
-            }
-        }
-    }
-
-    if (!dts_info_found) {
-        for (i = 0; i < MPP_ARRAY_ELEMS(system_heaps); i++) {
-            snprintf(path, sizeof(path), "/sys/kernel/debug/ion/heaps");
-            if (find_dir_in_path(path, system_heaps[i], sizeof(path))) {
-                mpp_log("%s found\n", system_heaps[i]);
-                ret = DRM_DETECT_IOMMU_ENABLE;
-                ion_info_found = 1;
-                break;
-            }
-        }
-    }
-
-    if (!dts_info_found && !ion_info_found) {
-        mpp_err("can not find any hint from all possible devices\n");
-        ret = DRM_DETECT_NO_DTS;
-    }
-
-    return ret;
-}
-
 typedef struct {
     RK_U32  alignment;
     RK_S32  drm_device;
 } allocator_ctx_drm;
-
-#define VPU_IOC_MAGIC                       'l'
-#define VPU_IOC_PROBE_IOMMU_STATUS          _IOR(VPU_IOC_MAGIC, 5, unsigned long)
-#define VPU_IOC_PROBE_HEAP_STATUS           _IOR(VPU_IOC_MAGIC, 6, unsigned long)
-
-enum {
-    DRM_HEAP_TYPE_SYSTEM = 0,
-    DRM_HEAP_TYPE_CMA,
-    DRM_HEAP_NUMS,
-};
 
 const char *dev_drm = "/dev/dri/card0";
 
