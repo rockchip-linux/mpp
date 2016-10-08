@@ -2882,46 +2882,54 @@ MPP_RET hal_h264e_rkv_set_roi_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, M
 MPP_RET hal_h264e_rkv_set_osd_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *regs)
 {
 #define H264E_DEFAULT_OSD_INV_THR 15 //TODO: open interface later
-    RK_U32 k = 0;
     MppEncOSDData *osd_data = &ctx->osd_data;
-    RK_U32 num = osd_data->num_region;
-    MppEncOSDRegion *region = osd_data->region;
-    RK_U32 buf_fd = mpp_buffer_get_fd(osd_data->buf);
 
-    regs->swreg65.osd_clk_sel    = 1;
-    regs->swreg65.osd_plt_type   = ctx->osd_plt_type;
+    if (osd_data->buf) {
 
-    for (k = 0; k < num; k++) {
-        regs->swreg65.osd_en |= region[k].enable << k;
-        regs->swreg65.osd_inv |= region[k].inverse << k;
+        RK_S32 buf_fd = mpp_buffer_get_fd(osd_data->buf);
 
-        if (region[k].enable) {
-            regs->swreg67_osd_pos[k].lt_pos_x = region[k].start_mb_x;
-            regs->swreg67_osd_pos[k].lt_pos_y = region[k].start_mb_y;
-            regs->swreg67_osd_pos[k].rd_pos_x = region[k].start_mb_x + region[k].num_mb_x - 1;
-            regs->swreg67_osd_pos[k].rd_pos_y = region[k].start_mb_y + region[k].num_mb_y - 1;
+        if (buf_fd >= 0) {
 
-            regs->swreg68_indx_addr_i[k] = buf_fd | (region[k].buf_offset << 10);
+            RK_U32 k = 0;
+            RK_U32 num = osd_data->num_region;
+            MppEncOSDRegion *region = osd_data->region;
+
+            regs->swreg65.osd_clk_sel    = 1;
+            regs->swreg65.osd_plt_type   = ctx->osd_plt_type;
+
+            for (k = 0; k < num; k++) {
+                regs->swreg65.osd_en |= region[k].enable << k;
+                regs->swreg65.osd_inv |= region[k].inverse << k;
+
+                if (region[k].enable) {
+                    regs->swreg67_osd_pos[k].lt_pos_x = region[k].start_mb_x;
+                    regs->swreg67_osd_pos[k].lt_pos_y = region[k].start_mb_y;
+                    regs->swreg67_osd_pos[k].rd_pos_x = region[k].start_mb_x + region[k].num_mb_x - 1;
+                    regs->swreg67_osd_pos[k].rd_pos_y = region[k].start_mb_y + region[k].num_mb_y - 1;
+
+                    regs->swreg68_indx_addr_i[k] = buf_fd | (region[k].buf_offset << 10);
+                }
+
+            }
+
+            if (region[0].inverse)
+                regs->swreg66.osd_inv_r0 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[1].inverse)
+                regs->swreg66.osd_inv_r1 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[2].inverse)
+                regs->swreg66.osd_inv_r2 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[3].inverse)
+                regs->swreg66.osd_inv_r3 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[4].inverse)
+                regs->swreg66.osd_inv_r4 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[5].inverse)
+                regs->swreg66.osd_inv_r5 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[6].inverse)
+                regs->swreg66.osd_inv_r6 = H264E_DEFAULT_OSD_INV_THR;
+            if (region[7].inverse)
+                regs->swreg66.osd_inv_r7 = H264E_DEFAULT_OSD_INV_THR;
         }
-
     }
-
-    if (region[0].inverse)
-        regs->swreg66.osd_inv_r0 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[1].inverse)
-        regs->swreg66.osd_inv_r1 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[2].inverse)
-        regs->swreg66.osd_inv_r2 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[3].inverse)
-        regs->swreg66.osd_inv_r3 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[4].inverse)
-        regs->swreg66.osd_inv_r4 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[5].inverse)
-        regs->swreg66.osd_inv_r5 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[6].inverse)
-        regs->swreg66.osd_inv_r6 = H264E_DEFAULT_OSD_INV_THR;
-    if (region[7].inverse)
-        regs->swreg66.osd_inv_r7 = H264E_DEFAULT_OSD_INV_THR;
 
     return MPP_OK;
 }
