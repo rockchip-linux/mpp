@@ -77,8 +77,8 @@ typedef enum {
     MPP_ENC_GET_RC_CFG,
     MPP_ENC_SET_PREP_CFG,
     MPP_ENC_GET_PREP_CFG,
-    MPP_ENC_SET_OSD_PLT_CFG,
-    MPP_ENC_SET_OSD_DATA_CFG,
+    MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPlt */
+    MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
     MPP_ENC_GET_OSD_CFG,
     MPP_ENC_SET_CFG,
     MPP_ENC_GET_CFG,
