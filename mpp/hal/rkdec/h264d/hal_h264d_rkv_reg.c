@@ -201,7 +201,7 @@ static RK_U32 rkv_ver_align(RK_U32 val)
 
 static RK_U32 rkv_hor_align(RK_U32 val)
 {
-    return MPP_ALIGN(val, 16);
+    return (MPP_ALIGN(val, 256) | 256);
 }
 
 static RK_U32 rkv_len_align(RK_U32 val)
