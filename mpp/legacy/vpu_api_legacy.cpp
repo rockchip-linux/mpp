@@ -1256,6 +1256,10 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingVP9) {
             p->ImgHorStride = MPP_ALIGN(ImgWidth, 128);
             p->ImgVerStride = MPP_ALIGN(p->ImgHeight, 64);
+        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC
+            && (ctx->width > 1920 || ctx->height > 1088)) {
+            p->ImgHorStride = hevc_hor_align_256_odd(ImgWidth);
+            p->ImgVerStride = default_align_16(p->ImgHeight);
         } else {
             p->ImgHorStride = default_align_16(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
