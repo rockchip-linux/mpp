@@ -153,6 +153,7 @@ int mpi_dec_test_decode_simple(MpiDecTestCmd *cmd)
         mpp_packet_write(packet, 0, buf, read_size);
         // reset pos
         mpp_packet_set_pos(packet, buf);
+        mpp_packet_set_length(packet, read_size);
         // setup eos flag
         if (pkt_eos)
             mpp_packet_set_eos(packet);
@@ -239,11 +240,6 @@ MPP_TEST_OUT:
         fp_input = NULL;
     }
 
-    if (MPP_OK == ret)
-        mpp_log("mpi_dec_test success\n");
-    else
-        mpp_err("mpi_dec_test failed ret %d\n", ret);
-
     return ret;
 }
 
@@ -276,9 +272,9 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
     MppBuffer frm_buf = NULL;
     size_t packet_size  = MPI_DEC_STREAM_SIZE;
     size_t read_size    = 0;
+    size_t file_size    = 0;
     RK_U32 frame_count  = 0;
     void *buf = NULL;
-    (void)read_size;
 
     MppBufferGroup frm_grp  = NULL;
     MppBufferGroup pkt_grp  = NULL;
@@ -291,6 +287,12 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
             mpp_err("failed to open input file %s\n", cmd->file_input);
             goto MPP_TEST_OUT;
         }
+
+        // get file size for MJPEG
+        fseek(fp_input, 0L, SEEK_END);
+        file_size = ftell(fp_input);
+        rewind(fp_input);
+        mpp_log("input file size %ld\n", file_size);
     }
 
     if (cmd->have_output) {
@@ -313,10 +315,6 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
-    fseek(fp_input, 0L, SEEK_END);
-    packet_size = ftell(fp_input);
-    fseek(fp_input, 0L, SEEK_SET);
-
     RK_U32 frm_size = width * height * 3 / 2;
     ret = mpp_frame_init(&frame); /* output frame */
     if (MPP_OK != ret) {
@@ -328,6 +326,11 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
     if (ret) {
         mpp_err("failed to get buffer for input frame ret %d\n", ret);
         goto MPP_TEST_OUT;
+    }
+
+    // NOTE: for mjpeg decoding send the whole file
+    if (type == MPP_VIDEO_CodingMJPEG) {
+        packet_size = file_size;
     }
 
     ret = mpp_buffer_get(pkt_grp, &pkt_buf, packet_size);
@@ -366,11 +369,17 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
     while (!pkt_eos) {
         MppTask task = NULL;
         read_size = fread(buf, 1, packet_size, fp_input);
-        /* if (read_size != packet_size || feof(fp_input)) {
+        if (read_size != packet_size || feof(fp_input)) {
             mpp_log("found last packet\n");
             pkt_eos = 1;
-        }*/
-        pkt_eos = 1;
+        }
+
+        // reset pos
+        mpp_packet_set_pos(packet, buf);
+        mpp_packet_set_length(packet, read_size);
+        // setup eos flag
+        if (pkt_eos)
+            mpp_packet_set_eos(packet);
 
         do {
             ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
@@ -410,15 +419,22 @@ int mpi_dec_test_decode_advanced(MpiDecTestCmd *cmd)
                 mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
                 //mpp_assert(packet_out == packet);
 
-                if (frame) {   /* write frame to file here */
-                    MppBuffer buf_out   = mpp_frame_get_buffer(frame_out);
-                    void *ptr = mpp_buffer_get_ptr(buf_out);
-                    size_t len  = mpp_buffer_get_size(buf_out);
+                if (frame) {
+                    /* write frame to file here */
+                    MppBuffer buf_out = mpp_frame_get_buffer(frame_out);
 
-                    if (fp_output)
-                        fwrite(ptr, 1, len, fp_output);
+                    if (buf_out) {
+                        void *ptr = mpp_buffer_get_ptr(buf_out);
+                        size_t len  = mpp_buffer_get_size(buf_out);
 
-                    mpp_log_f("decoded frame %d size %d\n", frame_count, len);
+                        if (fp_output)
+                            fwrite(ptr, 1, len, fp_output);
+
+                        mpp_log("decoded frame %d size %d\n", frame_count, len);
+                    }
+
+                    if (mpp_frame_get_eos(frame_out))
+                        mpp_log("found eos frame\n");
                 }
 
                 ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task); /* output queue */
@@ -453,13 +469,13 @@ MPP_TEST_OUT:
         ctx = NULL;
     }
 
-    if (buf) {
-        mpp_free(buf);
-        buf = NULL;
+    if (pkt_buf) {
+        mpp_buffer_put(pkt_buf);
+        pkt_buf = NULL;
     }
 
     if (frm_buf) {
-        mpp_free(frm_buf);
+        mpp_buffer_put(frm_buf);
         frm_buf = NULL;
     }
 
@@ -472,11 +488,6 @@ MPP_TEST_OUT:
         fclose(fp_input);
         fp_input = NULL;
     }
-
-    if (MPP_OK == ret)
-        mpp_log_f("success\n");
-    else
-        mpp_err_f("failed ret %d\n", ret);
 
     return ret;
 }
@@ -628,10 +639,15 @@ int main(int argc, char **argv)
     mpp_env_set_u32("mpi_debug", cmd->debug);
 
     if (cmd->type != MPP_VIDEO_CodingMJPEG) {
-        mpi_dec_test_decode_simple(cmd);
+        ret = mpi_dec_test_decode_simple(cmd);
     } else {
-        mpi_dec_test_decode_advanced(cmd);
+        ret = mpi_dec_test_decode_advanced(cmd);
     }
+
+    if (MPP_OK == ret)
+        mpp_log("test success\n");
+    else
+        mpp_err("test failed ret %d\n", ret);
 
     mpp_env_set_u32("mpi_debug", 0x0);
     return 0;

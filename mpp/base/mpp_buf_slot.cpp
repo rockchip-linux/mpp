@@ -815,9 +815,11 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             impl->info_changed = 1;
 #ifdef RKPLATFORM
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
-            mpp_log("info change found\n");
-            mpp_log("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
-                    old->width, old->height, old->hor_stride, old->ver_stride, old->fmt);
+            if (old->width || old->height) {
+                mpp_log("info change found\n");
+                mpp_log("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                        old->width, old->height, old->hor_stride, old->ver_stride, old->fmt);
+            }
             mpp_log("new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride, dst->fmt);
 #endif
@@ -900,6 +902,12 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     switch (type) {
     case SLOTS_EOS: {
         impl->eos = value;
+    } break;
+    case SLOTS_NUMERATOR : {
+        impl->numerator = value;
+    } break;
+    case SLOTS_DENOMINATOR : {
+        impl->denominator = value;
     } break;
     case SLOTS_HOR_ALIGN: {
         impl->hal_hor_align = (AlignFunc)val;

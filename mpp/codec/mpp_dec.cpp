@@ -869,6 +869,17 @@ void *mpp_dec_advanced_thread(void *data)
                 parser_prepare(dec->parser, packet, task_dec);
 
                 /*
+                 * We may find eos in prepare step and there will be no anymore vaild task generated.
+                 * So here we try push eos task to hal, hal will push all frame to display then
+                 * push a eos frame to tell all frame decoded
+                 */
+                if (task_dec->flags.eos && !task_dec->valid) {
+                    mpp_frame_init(&frame);
+                    mpp_frame_set_eos(frame, 1);
+                    goto DEC_OUT;
+                }
+
+                /*
                  *  look for a unused packet slot index
                  */
                 if (task_dec->input < 0) {
@@ -884,6 +895,17 @@ void *mpp_dec_advanced_thread(void *data)
                     mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                     mpp_frame_init(&frame);
                     goto DEC_OUT;
+                }
+
+                if (mpp_buf_slot_is_changed(frame_slots)) {
+                    size_t slot_size = mpp_buf_slot_get_size(frame_slots);
+                    size_t buffer_size = mpp_buffer_get_size(output_buffer);
+
+                    if (slot_size == buffer_size) {
+                        mpp_buf_slot_ready(frame_slots);
+                    }
+
+                    mpp_assert(slot_size == buffer_size);
                 }
 
                 mpp_buf_slot_set_prop(frame_slots, task_dec->output, SLOT_BUFFER, output_buffer);
