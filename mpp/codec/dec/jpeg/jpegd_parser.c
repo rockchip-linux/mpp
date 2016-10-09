@@ -1125,22 +1125,22 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     MPP_RET ret = MPP_OK;
     JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
     MppPacket input_packet = JpegParserCtx->input_packet;
-    RK_U32 pkt_length = 0;
     RK_U32 copy_length = 0;
-    void *pPacket = NULL;
-    RK_U8 *pPos = NULL;
-
-    task->valid = 0;
+    void *base = mpp_packet_get_pos(pkt);
+    RK_U8 *pos = base;
+    RK_U32 pkt_length = (RK_U32)mpp_packet_get_length(pkt);
+    RK_U32 eos = (pkt_length) ? (mpp_packet_get_eos(pkt)) : (1);
 
     JpegParserCtx->pts = mpp_packet_get_pts(pkt);
-    JpegParserCtx->eos = mpp_packet_get_eos(pkt);
-    pkt_length = (RK_U32)mpp_packet_get_length(pkt);
-    pPacket = pPos = mpp_packet_get_pos(pkt);
 
-    if (JpegParserCtx->eos) {
+    task->valid = 0;
+    task->flags.eos = eos;
+    JpegParserCtx->eos = eos;
 
+    JPEGD_INFO_LOG("pkt_length %d eos %d\n", pkt_length, eos);
+
+    if (!pkt_length) {
         JPEGD_INFO_LOG("it is end of stream.");
-        task->flags.eos = 1;
         return ret;
     }
 
@@ -1158,10 +1158,10 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         JpegParserCtx->bufferSize = pkt_length + 1024;
     }
 
-    jpegd_parser_split_frame(pPacket, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
+    jpegd_parser_split_frame(base, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
 
-    pPos += pkt_length;
-    mpp_packet_set_pos(pkt, pPos);
+    pos += pkt_length;
+    mpp_packet_set_pos(pkt, pos);
     if (copy_length != pkt_length) {
         JPEGD_INFO_LOG("there seems to be something wrong with split_frame. pkt_length:%d, copy_length:%d", pkt_length, copy_length);
     }
@@ -1175,7 +1175,7 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {
             JPEGD_INFO_LOG("input jpeg(%d Bytes) saving to %s\n", pkt_length, name);
-            fwrite(pPacket, pkt_length, 1, jpg_file);
+            fwrite(base, pkt_length, 1, jpg_file);
             fclose(jpg_file);
             JpegParserCtx->input_jpeg_count++;
         }
@@ -2379,15 +2379,24 @@ MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
     }
 
     if (pCtx->frame_slot_index == -1) {
+        RK_U32 value;
+
         mpp_frame_set_width(pCtx->output_frame, pCtx->pSyntax->frame.X);
         mpp_frame_set_height(pCtx->output_frame, pCtx->pSyntax->frame.Y);
         mpp_frame_set_hor_stride(pCtx->output_frame, pCtx->pSyntax->frame.X);
         mpp_frame_set_ver_stride(pCtx->output_frame, pCtx->pSyntax->frame.Y);
         mpp_frame_set_pts(pCtx->output_frame, pCtx->pts);
 
+        if (pCtx->eos)
+            mpp_frame_set_eos(pCtx->output_frame, 1);
+
         mpp_buf_slot_get_unused(pCtx->frame_slots, &pCtx->frame_slot_index);
         JPEGD_INFO_LOG("frame_slot_index:%d, X:%d, Y:%d", pCtx->frame_slot_index, pCtx->pSyntax->frame.X, pCtx->pSyntax->frame.Y);
 
+        value = 3;
+        mpp_slots_set_prop(pCtx->frame_slots, SLOTS_NUMERATOR, &value);
+        value = 2;
+        mpp_slots_set_prop(pCtx->frame_slots, SLOTS_DENOMINATOR, &value);
         mpp_buf_slot_set_prop(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_FRAME, pCtx->output_frame);
         mpp_buf_slot_set_flag(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_CODEC_USE);
         mpp_buf_slot_set_flag(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_HAL_OUTPUT);
@@ -2453,7 +2462,7 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
     if (!pSyntax->info.SliceReadyForPause &&
         !pSyntax->info.inputBufferEmpty && pCtx->bufferSize) {
         pSyntax->info.inputStreaming = 1;
-        pSyntax->info.inputBufferLen = pCtx->bufferSize;
+        pSyntax->info.inputBufferLen = pCtx->streamLength;
         pSyntax->info.decodedStreamLen += pSyntax->info.inputBufferLen;
     }
 
@@ -2616,7 +2625,7 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     JpegParserCtx->frame_slots = parser_cfg->frame_slots;
     JpegParserCtx->packet_slots = parser_cfg->packet_slots;
     JpegParserCtx->frame_slot_index = -1;
-    mpp_buf_slot_setup(JpegParserCtx->frame_slots, 16);
+    mpp_buf_slot_setup(JpegParserCtx->frame_slots, 1);
 
     JpegParserCtx->recv_buffer = mpp_calloc(RK_U8, JPEGD_STREAM_BUFF_SIZE);
     if (NULL == JpegParserCtx->recv_buffer) {

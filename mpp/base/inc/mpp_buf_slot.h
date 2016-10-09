@@ -231,6 +231,8 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
 typedef enum SlotsPropType_e {
     SLOTS_EOS,
+    SLOTS_NUMERATOR,            // numerator of buffer size scale ratio
+    SLOTS_DENOMINATOR,          // denominator of buffer size scale ratio
     SLOTS_HOR_ALIGN,            // input must be buf_align function pointer
     SLOTS_VER_ALIGN,            // input must be buf_align function pointer
     SLOTS_LEN_ALIGN,

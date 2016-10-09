@@ -252,6 +252,9 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         mThreadCodec->signal();
+
+        // when packet has been send clear the length
+        mpp_packet_set_length(pkt, 0);
         return MPP_OK;
     }
 
