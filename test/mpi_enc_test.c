@@ -178,6 +178,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     MppBuffer md_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppBuffer osd_idx_buf[MPI_ENC_IO_COUNT] = { NULL };
     MppEncOSDPlt osd_plt;
+    MppEncSeiMode sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -300,6 +301,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     mpp_cfg.profile     = 100;
     mpp_cfg.level       = 41;
     mpp_cfg.cabac_en    = 1;
+
+    ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
+    if (MPP_OK != ret) {
+        mpp_err("mpi control enc set sei cfg failed\n");
+        goto MPP_TEST_OUT;
+    }
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, &mpp_cfg);
     if (MPP_OK != ret) {

@@ -420,19 +420,13 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         *mpp_cfg = enc->mpp_cfg;
         ret = MPP_OK;
     } break;
-    case MPP_ENC_GET_EXTRA_INFO : {
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_RC_CFG : {
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_GET_RC_CFG : {
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_OSD_PLT_CFG : {
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_OSD_DATA_CFG : {
+    case MPP_ENC_GET_EXTRA_INFO :
+    case MPP_ENC_SET_RC_CFG :
+    case MPP_ENC_GET_RC_CFG :
+    case MPP_ENC_SET_OSD_PLT_CFG :
+    case MPP_ENC_SET_OSD_DATA_CFG :
+    case MPP_ENC_SET_SEI_CFG :
+    case MPP_ENC_GET_SEI_DATA : {
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     default : {

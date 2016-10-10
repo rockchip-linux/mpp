@@ -84,6 +84,9 @@ enc_mode
 #define RKV_H264E_INT_BUS_READ_ERROR      0x00000080
 #define RKV_H264E_INT_TIMEOUT_ERROR       0x00000100
 
+#define H264E_SEI_CHG_SPSPPS        0x00000001
+#define H264E_SEI_CHG_RC            0x00000010
+
 #if RKV_H264E_SDK_TEST
 typedef struct h264e_hal_rkv_coveragetest_cfg_t {
     RK_U32 qp;
@@ -201,7 +204,8 @@ typedef struct h264e_hal_rkv_stream_t {
 
     //add buf pointer
     RK_U8 *buf;
-    RK_U32 count_bit;
+    RK_U8 *buf_plus8;
+    RK_U32 count_bit; // only for debug
 } h264e_hal_rkv_stream;
 
 
@@ -209,10 +213,14 @@ typedef struct h264e_hal_rkv_extra_info_t {
     RK_S32               nal_num;
     h264e_hal_rkv_nal    nal[RKV_H264E_RKV_NAL_IDX_BUTT];
     RK_U8                *nal_buf;
+    RK_U8                *sei_buf;
+    RK_U32               sei_change_flg;
     h264e_hal_rkv_stream stream;
     h264e_hal_sps        sps;
     h264e_hal_pps        pps;
+    h264e_hal_sei        sei;
 } h264e_hal_rkv_extra_info;
+
 #define RKV_H264E_REF_MAX 16
 typedef RK_U8 pixel;
 struct h264e_hal_rkv_weight_t;

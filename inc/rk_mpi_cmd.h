@@ -45,6 +45,12 @@
 #define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)|41)
 #define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)|16)
 
+typedef enum MppEncSeiMode_t {
+    MPP_ENC_SEI_MODE_DISABLE,                /* default mode, SEI writing is disabled */
+    MPP_ENC_SEI_MODE_ONE_SEQ,                /* one sequence has only one SEI */
+    MPP_ENC_SEI_MODE_ONE_FRAME               /* one frame may have one SEI, if SEI info has changed */
+} MppEncSeiMode;
+
 typedef enum {
     MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
     MPP_OSAL_CMD_END,
@@ -86,6 +92,8 @@ typedef enum {
     MPP_ENC_GET_EXTRA_INFO,
     MPP_ENC_SET_FORMAT,
     MPP_ENC_SET_IDR_FRAME,
+    MPP_ENC_SET_SEI_CFG,               /*SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
+    MPP_ENC_GET_SEI_DATA,              /*SEI: Supplement Enhancemant Information, parameter is MppPacket */
     MPP_ENC_CMD_END,
 
     MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
