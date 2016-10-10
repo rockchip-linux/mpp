@@ -254,7 +254,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         mThreadCodec->signal();
 
         // when packet has been send clear the length
-        mpp_packet_set_length(pkt, 0);
+        mpp_packet_set_length(packet, 0);
         return MPP_OK;
     }
 
