@@ -1645,7 +1645,7 @@ static MPP_RET hal_h264e_vpu_set_extra_info(h264e_hal_context *ctx, void *param)
     h264e_hal_pps *pps = &info->pps;
     h264e_hal_debug_enter();
 
-    ctx->extra_info_cfg = *cfg;
+    info->sei.extra_info_cfg = *cfg;
     hal_h264e_vpu_stream_buffer_reset(sps_stream);
     hal_h264e_vpu_stream_buffer_reset(pps_stream);
 
@@ -1686,9 +1686,8 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
     ctx->buffers = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(h264e_hal_vpu_extra_info, 1);
     ctx->dump_files = mpp_calloc(h264e_hal_vpu_dump_files, 1);
-    ctx->param_size = H264E_MAX_PACKETED_PARAM_SIZE;
-    ctx->param_buf  = mpp_calloc_size(void, ctx->param_size);
-    mpp_packet_init(&ctx->packeted_param, ctx->param_buf, ctx->param_size);
+    ctx->param_buf  = mpp_calloc_size(void,  H264E_EXTRA_INFO_BUF_SIZE);
+    mpp_packet_init(&ctx->packeted_param, ctx->param_buf, H264E_EXTRA_INFO_BUF_SIZE);
 
     hal_h264e_vpu_init_extra_info(ctx->extra_info);
 #ifdef H264E_DUMP_DATA_TO_FILE
@@ -1727,6 +1726,7 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
     h264e_hal_debug_enter();
 
     MPP_FREE(ctx->regs);
+    MPP_FREE(ctx->param_buf);
 
     if (ctx->extra_info) {
         hal_h264e_vpu_deinit_extra_info(ctx->extra_info);
@@ -1737,13 +1737,6 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
         mpp_packet_deinit(&ctx->packeted_param);
         ctx->packeted_param = NULL;
     }
-
-    if (ctx->param_buf) {
-        mpp_free(ctx->param_buf);
-        ctx->param_buf = NULL;
-    }
-
-    ctx->param_size = 0;
 
     if (ctx->buffers) {
         hal_h264e_vpu_free_buffers(ctx);
@@ -2244,6 +2237,10 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
 #ifdef H264E_DUMP_DATA_TO_FILE
         hal_h264e_vpu_dump_mpp_strm_out_header(ctx, pkt);
 #endif
+        break;
+    }
+    case MPP_ENC_SET_SEI_CFG: {
+        ctx->sei_mode = *((MppEncSeiMode *)param);
         break;
     }
     default : {

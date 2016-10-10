@@ -1363,7 +1363,7 @@ MPP_RET h264e_hal_vpu_test()
     h264e_syntax syntax_data;
     h264e_control_extra_info_cfg extra_info_cfg;
     MppPacket extra_info_pkt;
-    RK_U8 extra_info_buf[H264E_MAX_PACKETED_PARAM_SIZE] = {0};
+    RK_U8 extra_info_buf[H264E_EXTRA_INFO_BUF_SIZE] = {0};
     MppBufferGroup hw_input_buf_grp = NULL;
     MppBufferGroup hw_output_buf_grp = NULL;
     MppBuffer hw_input_buf = NULL; //Y, U, V
@@ -1373,7 +1373,7 @@ MPP_RET h264e_hal_vpu_test()
 
     RK_U8 *input_sw_buf = mpp_malloc(RK_U8, MAX_FRAME_TOTAL_SIZE);
 
-    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
+    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_EXTRA_INFO_BUF_SIZE);
 
     get_vpu_syntax_in(&syntax_data, hw_input_buf, hw_output_strm_buf, frame_luma_size);
     if (fp_golden_syntax_in)
@@ -1476,8 +1476,7 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
     HalTaskInfo task_info;
     h264e_control_extra_info_cfg extra_info_cfg;
     MppPacket extra_info_pkt;
-    RK_U8 extra_info_buf[H264E_MAX_PACKETED_PARAM_SIZE] = {0};
-    //h264e_hal_rkv_dbg_info dbg_info;
+    RK_U8 extra_info_buf[H264E_EXTRA_INFO_BUF_SIZE] = {0};
     h264e_syntax syntax_data[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBufferGroup hw_input_buf_grp = NULL;
     MppBufferGroup hw_output_buf_grp = NULL;
@@ -1499,7 +1498,7 @@ MPP_RET h264e_hal_rkv_test(h264e_hal_test_cfg *test_cfg)
         MPP_ENC_OSD_PLT_BLACK
     };
 
-    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_MAX_PACKETED_PARAM_SIZE);
+    mpp_packet_init(&extra_info_pkt, (void *)extra_info_buf, H264E_EXTRA_INFO_BUF_SIZE);
 
 
     get_rkv_syntax_in(&syntax_data[0], hw_input_buf_mul, hw_output_strm_buf_mul, test_cfg);

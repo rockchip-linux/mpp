@@ -663,6 +663,7 @@ typedef struct h264e_hal_vpu_extra_info_t {
     h264e_hal_vpu_stream pps_stream;
     h264e_hal_sps sps;
     h264e_hal_pps pps;
+    h264e_hal_sei sei;
 } h264e_hal_vpu_extra_info;
 
 typedef enum h264e_hal_vpu_buf_grp_t {

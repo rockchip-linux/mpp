@@ -34,6 +34,7 @@ extern RK_U32 h264e_hal_log_mode;
 
 #define H264E_HAL_LOG_DPB               0x00001000
 #define H264E_HAL_LOG_HEADER            0x00002000
+#define H264E_HAL_LOG_SEI               0x00004000
 
 #define H264E_HAL_LOG_DETAIL            0x00010000
 
@@ -87,6 +88,12 @@ extern RK_U32 h264e_hal_log_mode;
                     { mpp_log(fmt, ## __VA_ARGS__); }\
             } while (0)
 
+#define h264e_hal_log_sei(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_SEI)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
 #define h264e_hal_log_simple(fmt, ...) \
             do {\
                 if (h264e_hal_log_mode & H264E_HAL_LOG_SIMPLE)\
@@ -133,9 +140,18 @@ extern RK_U32 h264e_hal_log_mode;
         }                                                    \
     } while (0)
 
+#define H264E_HAL_SPRINT(s, ...)  \
+    do {                               \
+        s += sprintf(s, ## __VA_ARGS__); \
+    } while (0)
 
-#define H264E_REF_MAX 16
-#define H264E_MAX_PACKETED_PARAM_SIZE       256 //sps + pps
+#define H264E_UUID_LENGTH                   16
+
+#define H264E_REF_MAX                       16
+
+#define H264E_SPSPPS_BUF_SIZE               512  //sps + pps
+#define H264E_SEI_BUF_SIZE                  1024 //unit in byte, may not be large enough in the future
+#define H264E_EXTRA_INFO_BUF_SIZE           (H264E_SPSPPS_BUF_SIZE + H264E_SEI_BUF_SIZE)
 
 typedef enum h264e_hal_slice_type_t {
     H264E_HAL_SLICE_TYPE_P  = 0,
@@ -272,9 +288,22 @@ typedef struct h264e_hal_pps_t {
     const RK_U8 *scaling_list[8]; /* could be 12, but we don't allow separate Cb/Cr lists */
 } h264e_hal_pps;
 
+typedef enum h264e_sei_payload_type_t {
+    H264E_SEI_BUFFERING_PERIOD       = 0,
+    H264E_SEI_PIC_TIMING             = 1,
+    H264E_SEI_PAN_SCAN_RECT          = 2,
+    H264E_SEI_FILLER                 = 3,
+    H264E_SEI_USER_DATA_REGISTERED   = 4,
+    H264E_SEI_USER_DATA_UNREGISTERED = 5,
+    H264E_SEI_RECOVERY_POINT         = 6,
+    H264E_SEI_DEC_REF_PIC_MARKING    = 7,
+    H264E_SEI_FRAME_PACKING          = 45,
+} h264e_sei_payload_type;
+
 typedef enum h264e_rkv_nal_idx_t {
     RKV_H264E_RKV_NAL_IDX_SPS,
     RKV_H264E_RKV_NAL_IDX_PPS,
+    RKV_H264E_RKV_NAL_IDX_SEI,
     RKV_H264E_RKV_NAL_IDX_BUTT,
 } h264e_rkv_nal_idx;
 
@@ -315,6 +344,12 @@ typedef struct h264e_hal_vui_param_t {
     RK_S32         i_colmatrix;
     RK_S32         i_chroma_loc;    /* both top & bottom */
 } h264e_hal_vui_param;
+
+typedef struct h264e_hal_sei_t {
+    RK_U32                       frame_cnt;
+    h264e_control_extra_info_cfg extra_info_cfg;
+    MppEncRcCfg                  rc_cfg;
+} h264e_hal_sei;
 
 typedef struct h264e_hal_ref_param_t {
     RK_S32         i_frame_reference;  /* Maximum number of reference frames */
@@ -357,13 +392,12 @@ typedef struct h264e_hal_context_t {
     void                            *dump_files;
 
     void                            *param_buf;
-    size_t                          param_size;
     MppPacket                       packeted_param;
     void                            *test_cfg;
-    h264e_control_extra_info_cfg    extra_info_cfg;
 
     RK_U32                          osd_plt_type; //0:user define, 1:default
     MppEncOSDData                   osd_data;
+    MppEncSeiMode                   sei_mode;
 } h264e_hal_context;
 
 #endif
