@@ -162,7 +162,7 @@ static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_leng
     search_name = dir_name;
     n = scandir(path, &dir, _compare_name, alphasort);
     if (n <= 0) {
-        mpp_err("scan %s for %s return %d\n", path, dir_name, n);
+        mpp_log("scan %s for %s return %d\n", path, dir_name, n);
     } else {
         mpp_assert(n == 1);
 
