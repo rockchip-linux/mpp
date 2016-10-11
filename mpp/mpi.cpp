@@ -88,6 +88,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
 
     mpi_dbg_func("enter ctx %p packet %p frame %p\n", ctx, packet, frame);
     do {
+        RK_U32 packet_done = 0;
         ret = check_mpp_ctx(p);
         if (ret)
             break;
@@ -97,8 +98,31 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
             ret = MPP_ERR_NULL_PTR;
             break;
         }
-        // TODO: do decode here
+
+        *frame = NULL;
+
+        do {
+            /*
+             * if there is frame to return get the frame first
+             */
+            ret = p->ctx->get_frame(frame);
+            if (ret || *frame)
+                break;
+
+            /* when packet is send do one more get frame here */
+            if (packet_done)
+                break;
+
+            /*
+             * then send input stream with block mode
+             */
+            ret = p->ctx->put_packet(packet);
+            if (MPP_OK == ret)
+                packet_done = 1;
+        } while (1);
     } while (0);
+
+    mpp_assert(0 == mpp_packet_get_length(packet));
 
     mpi_dbg_func("leave ret %d\n", ret);
     return ret;
