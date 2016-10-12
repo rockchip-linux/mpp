@@ -373,7 +373,7 @@ void rkv_generate_regs(void *hal, HalTaskInfo *task, FifoCtx_t *pkt)
         if (p_regs->swreg2_sysctrl.sw_rlc_mode == 1) {
             p_regs->swreg5_stream_rlc_len.sw_stream_len = 0;
         } else {
-            p_regs->swreg5_stream_rlc_len.sw_stream_len = (RK_U32)mpp_packet_get_length(task->dec.input_packet);
+            p_regs->swreg5_stream_rlc_len.sw_stream_len = p_hal->strm_len;
         }
         if (p_regs->swreg2_sysctrl.sw_h264_rps_mode) { // rps_mode == 1
             p_regs->swreg43_rps_base.sw_rps_base += 0x8;
