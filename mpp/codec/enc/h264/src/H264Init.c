@@ -162,7 +162,7 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
 
         if (mb_rate > H264MaxMBPS[inst->seqParameterSet.levelIdx]) {
             mpp_log("input mb rate %d is larger than restriction %d\n",
-                    inst->mbPerFrame, H264MaxMBPS[inst->seqParameterSet.levelIdx]);
+                    mb_rate, H264MaxMBPS[inst->seqParameterSet.levelIdx]);
         }
     }
 
