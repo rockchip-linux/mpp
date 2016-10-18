@@ -226,7 +226,7 @@ typedef struct MppBufferInfo_t {
         mpp_buffer_put_with_caller(buffer, __FUNCTION__)
 
 #define mpp_buffer_inc_ref(buffer) \
-        mpp_buffer_inc_ref_with_caller(buffer, __FUNCTION__);
+        mpp_buffer_inc_ref_with_caller(buffer, __FUNCTION__)
 
 #define mpp_buffer_group_get_internal(group, type, ...) \
         mpp_buffer_group_get(group, type, MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
