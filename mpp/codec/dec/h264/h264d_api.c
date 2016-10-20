@@ -730,7 +730,6 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
-        p_err->dpb_err_flag |= p_err->used_ref_flag ? p_err->cur_err_flag : 0;
         in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
     }
 __RETURN:
@@ -762,7 +761,6 @@ __FAILED: {
             MPP_FREE(dec_pic);
             p_Dec->p_Vid->dec_pic = NULL;
         }
-        p_err->dpb_err_flag |= p_err->used_ref_flag ? 1 : 0;
     }
 
     return ret;
