@@ -1547,7 +1547,7 @@ static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_c
 
     sps->vui.b_timing_info_present = 1;
     sps->vui.i_num_units_in_tick = 1;
-    sps->vui.i_time_scale = 0x19;
+    sps->vui.i_time_scale = cfg->frame_rate * 2;
     sps->vui.b_fixed_frame_rate = 0;
 
     sps->vui.b_nal_hrd_parameters_present = 0;
