@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "h264e_api"
+#define MODULE_TAG "H264EncApi"
 
 #include <string.h>
 
@@ -583,11 +583,22 @@ H264EncRet H264EncStrmEncode(H264ECtx *pEncInst, const H264EncIn * pEncIn,
     }
 
     /* Check for invalid input values */
-    if ((!H264_BUS_ADDRESS_VALID(pEncIn->busOutBuf)) ||
-        (pEncIn->pOutBuf == NULL) ||
-        (pEncIn->outBufSize < H264ENCSTRMENCODE_MIN_BUF) ||
-        (pEncIn->codingType > H264ENC_PREDICTED_FRAME)) {
-        mpp_err_f("ERROR Invalid input. Output buffer\n");
+    if ((!H264_BUS_ADDRESS_VALID(pEncIn->busOutBuf))) {
+        mpp_err_f("ERROR Invalid input busOutBuf is NULL\n");
+        return H264ENC_INVALID_ARGUMENT;
+    }
+    if (pEncIn->pOutBuf == NULL) {
+        mpp_err_f("ERROR Invalid input pOutBuf is NULL\n");
+        return H264ENC_INVALID_ARGUMENT;
+    }
+    if (pEncIn->outBufSize < H264ENCSTRMENCODE_MIN_BUF) {
+        mpp_err_f("ERROR Invalid input outBufSize %d < min size %d\n",
+                  pEncIn->outBufSize, H264ENCSTRMENCODE_MIN_BUF);
+        return H264ENC_INVALID_ARGUMENT;
+    }
+    if (pEncIn->codingType > H264ENC_PREDICTED_FRAME) {
+        mpp_err_f("ERROR Invalid input codingType %d < predicted %d\n",
+                  pEncIn->codingType, H264ENC_PREDICTED_FRAME);
         return H264ENC_INVALID_ARGUMENT;
     }
 
