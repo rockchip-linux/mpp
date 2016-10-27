@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(_WIN32)
 #include <malloc.h>
 #include "os_mem.h"
 
@@ -34,3 +35,4 @@ void os_free(void *ptr)
     _aligned_free(ptr);
 }
 
+#endif

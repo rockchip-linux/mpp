@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__ANDROID__)
 #include <android/log.h>
 
 void os_log(const char* tag, const char* msg, va_list list)
@@ -25,4 +26,4 @@ void os_err(const char* tag, const char* msg, va_list list)
 {
     __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, list);
 }
-
+#endif

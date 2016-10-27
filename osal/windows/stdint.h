@@ -1,3 +1,4 @@
+#if defined(_WIN32)
 #pragma once
 
 /* a minimal set of C99 types for use with MSVC */
@@ -11,3 +12,5 @@ typedef unsigned char uint8_t;
 typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned __int64 uint64_t;
+
+#endif
