@@ -177,9 +177,6 @@ if(GCC)
             add_definitions(-march=armv7-a -mfloat-abi=hard -mfpu=neon)
         endif()
     else()
-        if(X64 AND NOT WIN32)
-            add_definitions(-fPIC)
-        endif(X64 AND NOT WIN32)
         if(X86 AND NOT X64)
             add_definitions(-march=i686)
         endif()
@@ -192,6 +189,8 @@ if(GCC)
 
     # disable multichar warning
     add_definitions(-Wno-multichar)
+    # add PIC flag
+    add_definitions(-fPIC)
 endif(GCC)
 
 # ----------------------------------------------------------------------------
