@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(_WIN32)
 #include "os_allocator.h"
 #include "allocator_std.h"
 
@@ -37,3 +38,4 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     return ret;
 }
 
+#endif

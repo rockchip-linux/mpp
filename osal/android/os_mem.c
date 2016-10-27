@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__ANDROID__)
 #include <stdlib.h>
 #include "os_mem.h"
 
@@ -45,4 +46,4 @@ void os_free(void *ptr)
 {
     free(ptr);
 }
-
+#endif
