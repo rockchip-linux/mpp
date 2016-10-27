@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__gnu_linux__)
 #include <stdio.h>
 #include <stdarg.h>
 #include "os_log.h"
@@ -34,3 +35,4 @@ void os_err(const char* tag, const char* msg, va_list list)
     vfprintf(stderr, line, list);
 }
 
+#endif

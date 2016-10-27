@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__ANDROID__)
 #include "allocator_std.h"
 #include "allocator_ion.h"
 #include "allocator_drm.h"
@@ -47,4 +48,4 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     }
     return ret;
 }
-
+#endif

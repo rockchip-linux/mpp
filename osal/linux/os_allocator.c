@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__gnu_linux__)
 #include "mpp_log.h"
 
 #include "allocator_std.h"
@@ -57,3 +58,4 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     return ret;
 }
 
+#endif

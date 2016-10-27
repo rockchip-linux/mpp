@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#if defined(__ANDROID__)
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -74,4 +75,4 @@ RK_S32 os_set_env_str(const char *name, char *value)
     return (len) ? (0) : (-1);
 }
 
-
+#endif
