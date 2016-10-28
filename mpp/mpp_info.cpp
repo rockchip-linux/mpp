@@ -23,7 +23,7 @@
 #include "mpp_env.h"
 #include "mpp_info.h"
 
-#include "version.h"
+#include "config.h"
 
 /*
  * To avoid string | grep author getting multiple results
