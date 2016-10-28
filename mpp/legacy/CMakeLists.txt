@@ -20,7 +20,7 @@ set (MPP_LEGACY_SRC
 
 add_library(mpp_legacy STATIC ${MPP_LEGACY_SRC})
 set_target_properties(mpp_legacy PROPERTIES FOLDER "mpp/legacy")
-target_link_libraries(mpp_legacy mpp)
+target_link_libraries(mpp_legacy rockchip_mpp)
 
 add_library(mpp_legacy_shared SHARED ${MPP_LEGACY_SRC})
 set_target_properties(mpp_legacy_shared PROPERTIES FOLDER "mpp/legacy")
@@ -30,7 +30,7 @@ set_target_properties(mpp_legacy_shared PROPERTIES C_VISIBILITY_PRESET default)
 set_target_properties(mpp_legacy_shared PROPERTIES CXX_VISIBILITY_PRESET default)
 
 if(RKPLATFORM)
-    target_link_libraries(mpp_legacy_shared dl mpp_shared)
+    target_link_libraries(mpp_legacy_shared dl rockchip_mpp)
 else()
-    target_link_libraries(mpp_legacy_shared mpp_shared)
+    target_link_libraries(mpp_legacy_shared rockchip_mpp)
 endif()
