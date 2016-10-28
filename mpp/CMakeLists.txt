@@ -7,7 +7,7 @@ include(codecs.cmake)
 # ----------------------------------------------------------------------------
 # add include directory
 # ----------------------------------------------------------------------------
-include_directories(.)
+include_directories(inc)
 include_directories(common)
 include_directories(base/inc)
 include_directories(codec/inc)
