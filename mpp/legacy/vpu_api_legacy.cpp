@@ -1278,8 +1278,11 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         break;
     }
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
+        RK_S32 ret = -1;
         RK_U32 ImgWidth = 0;
         VPU_GENERIC *p = (VPU_GENERIC *)param;
+        MppFrame frame = NULL;
+
         mpicmd = MPP_DEC_SET_FRAME_INFO;
         /**hightest of p->ImgWidth bit show current dec bitdepth
           * 0 - 8bit
@@ -1314,7 +1317,18 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
             p->ImgVerStride = default_align_16(p->ImgHeight);
         }
 
-        break;
+        mpp_frame_init(&frame);
+
+        mpp_frame_set_width(frame, p->ImgWidth);
+        mpp_frame_set_height(frame, p->ImgHeight);
+        mpp_frame_set_hor_stride(frame, p->ImgHorStride);
+        mpp_frame_set_ver_stride(frame, p->ImgVerStride);
+        mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
+
+        ret = mpi->control(mpp_ctx, mpicmd, (MppParam)param);
+
+        mpp_frame_deinit(&frame);
+        return ret;
     }
     case VPU_API_SET_INFO_CHANGE: {
         mpicmd = MPP_DEC_SET_INFO_CHANGE_READY;

@@ -1137,17 +1137,15 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_DEC_SET_FRAME_INFO : {
-        VPU_GENERIC *p = (VPU_GENERIC *)param;
-        MppFrame frame = NULL;
-        mpp_frame_init(&frame);
-        mpp_frame_set_width(frame, p->ImgWidth);
-        mpp_frame_set_height(frame, p->ImgHeight);
-        mpp_frame_set_hor_stride(frame, p->ImgHorStride);
-        mpp_frame_set_ver_stride(frame, p->ImgVerStride);
-        mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
-        mpp_log("setting default w %4d h %4d\n", p->ImgWidth, p->ImgHeight);
+        MppFrame frame = (MppFrame)param;
+
+        mpp_log("setting default w %4d h %4d h_str %4d v_str %4d\n",
+                mpp_frame_get_width(frame),
+                mpp_frame_get_height(frame),
+                mpp_frame_get_hor_stride(frame),
+                mpp_frame_get_ver_stride(frame));
+
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
-        mpp_frame_deinit(&frame);
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         RK_S32 *p = (RK_S32 *)param;
