@@ -1046,6 +1046,16 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                 ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
 
             tmp_frame_period = pts - ctx->PreGetFrameTime;
+
+            if ((pts > ctx->PreGetFrameTime) && (ctx->pic_head.temporal_reference > ctx->PreChangeTime_index)) {
+                RK_S32 theshold_frame_period = tmp_frame_period * 2 ;
+                RK_S32 predict_frame_period = (ctx->pic_head.temporal_reference - ctx->PreChangeTime_index) * ctx->preframe_period / 256;
+                if (theshold_frame_period < predict_frame_period) {
+                    pts = ctx->PreGetFrameTime + predict_frame_period;
+                    tmp_frame_period = predict_frame_period;
+                }
+            }
+
             if ((pts > ctx->PreGetFrameTime) && (ctx->GroupFrameCnt > 0)) {
                 tmp_frame_period = (tmp_frame_period * 256) / ctx->GroupFrameCnt;
                 if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) && (abs(ctx->frame_period - tmp_frame_period) > 128)) {
@@ -1055,6 +1065,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                         ctx->frame_period = tmp_frame_period;
                 }
             }
+
             ctx->Group_start_Time = pts - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
             if (ctx->Group_start_Time < 0)
                 ctx->Group_start_Time = 0;
@@ -1350,6 +1361,11 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
             mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_HAL_INPUT);
             in_task->refer[1] = p->frame_ref1->slot_index;
         }
+
+        MppFrame frame = NULL;
+        mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
+        mpp_frame_set_poc(frame, p->pic_head.temporal_reference);
+
         in_task->valid = 1;
         m2v_update_ref_frame(p);
     }
