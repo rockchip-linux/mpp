@@ -183,6 +183,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->maxFrame_inGOP = 0;
     ctx->preframe_period = 0;
     ctx->mHeaderDecFlag = 0;
+    ctx->mHeaderGopFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
 
@@ -998,6 +999,9 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
             break;
         case GROUP_START_CODE:
             ret = m2vd_decode_gop_header(ctx);
+            if (!ret) {
+                ctx->mHeaderGopFlag = 1;
+            }
             break;
         case PICTURE_START_CODE:
             ret = m2vd_decode_pic_header(ctx);
@@ -1047,7 +1051,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 
             tmp_frame_period = pts - ctx->PreGetFrameTime;
 
-            if ((pts > ctx->PreGetFrameTime) && (ctx->pic_head.temporal_reference > ctx->PreChangeTime_index)) {
+            if ((pts > ctx->PreGetFrameTime) && (ctx->pic_head.temporal_reference > (RK_S32)ctx->PreChangeTime_index)) {
                 RK_S32 theshold_frame_period = tmp_frame_period * 2 ;
                 RK_S32 predict_frame_period = (ctx->pic_head.temporal_reference - ctx->PreChangeTime_index) * ctx->preframe_period / 256;
                 if (theshold_frame_period < predict_frame_period) {
@@ -1110,6 +1114,12 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         ctx->frame_cur->picCodingType = ctx->pic_head.picture_coding_type;
         ctx->seq_head.decode_height = (ctx->seq_head.decode_height + 15) & (~15);
         ctx->seq_head.decode_width = (ctx->seq_head.decode_width + 15) & (~15);
+
+        if ((ctx->ref_frame_cnt < 2) && (ctx->frame_cur->picCodingType == M2VD_CODING_TYPE_B)) {
+            // not enough refs on B-type need cal pts and parser ctx but not need to decode
+            mpp_log("[m2v]: (ref_frame_cnt[%d] < 2) && (frame_cur->picCodingType[%d] == B_TYPE)", ctx->ref_frame_cnt, ctx->frame_cur->picCodingType);
+            return MPP_NOK;
+        }
         if (ctx->frame_cur->slot_index == 0xff) {
             RK_U32 frametype = 0;
             mpp_frame_set_width(ctx->frame_cur->f, ctx->display_width);
@@ -1327,6 +1337,11 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
 
     if (!p->mHeaderDecFlag) {
         mpp_log("[m2v]: !mHeaderDecFlag");
+        goto __FAILED;
+    }
+
+    if (!p->mHeaderGopFlag) {
+        mpp_log("[m2v]: !mHeaderGopFlag");
         goto __FAILED;
     }
 
