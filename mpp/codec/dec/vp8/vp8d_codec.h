@@ -18,14 +18,6 @@
 #ifndef __VP8D_CODEC_H__
 #define __VP8D_CODEC_H__
 
-#include "rk_type.h"
-#include "mpp_common.h"
-#include "vpu_api.h"
-#include "mpp_frame.h"
-#include "mpp_dec.h"
-#include "mpp_packet.h"
-
-
 typedef struct VP8DContext_t {
     void        *parse_ctx;
 

@@ -29,8 +29,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
 
-#include "vpu_api.h"
-
 typedef union PaserTaskWait_u {
     RK_U32          val;
     struct {

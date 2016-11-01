@@ -20,8 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "vpu_api.h"
-
 #include "h264d_log.h"
 #include "h264d_sps.h"
 #include "h264d_sei.h"

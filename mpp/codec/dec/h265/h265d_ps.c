@@ -27,10 +27,9 @@
 
 #define MODULE_TAG "H265PARSER_PS"
 
+#include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "h265d_parser.h"
-#include "mpp_mem.h"
-#include "vpu_api.h"
 
 static const RK_U8 default_scaling_list_intra[] = {
     16, 16, 16, 16, 17, 18, 21, 24,

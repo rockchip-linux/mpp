@@ -18,11 +18,8 @@
 #define __MPP_IMPL_H__
 
 #include "mpp.h"
-#include "vpu_api.h"
 
 #define MPI_DBG_FUNCTION            (0x00000001)
-
-
 
 #define mpi_dbg(flag, fmt, ...)     _mpp_dbg(mpi_debug, flag, fmt, ## __VA_ARGS__)
 #define mpi_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpi_debug, flag, fmt, ## __VA_ARGS__)
