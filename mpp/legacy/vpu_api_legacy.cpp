@@ -1325,7 +1325,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpp_frame_set_ver_stride(frame, p->ImgVerStride);
         mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
 
-        ret = mpi->control(mpp_ctx, mpicmd, (MppParam)param);
+        ret = mpi->control(mpp_ctx, mpicmd, (MppParam)frame);
 
         mpp_frame_deinit(&frame);
         return ret;
