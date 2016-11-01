@@ -21,13 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vpu_api.h"
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
-#include "vpu.h"
 #include "mpp_time.h"
 
+#include "vpu.h"
 
 #include "h264d_log.h"
 #include "hal_h264d_global.h"

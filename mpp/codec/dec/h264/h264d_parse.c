@@ -20,7 +20,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "vpu_api.h"
 #include "mpp_mem.h"
 #include "mpp_packet.h"
 #include "mpp_packet_impl.h"

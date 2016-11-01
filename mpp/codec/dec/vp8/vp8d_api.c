@@ -18,12 +18,7 @@
 #define MODULE_TAG "vp8d_api"
 
 #include <string.h>
-#include "vpu_api.h"
-#include "mpp_env.h"
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
-#include "mpp_mem.h"
-#include "mpp_log.h"
+
 #include "vp8d_api.h"
 #include "vp8d_parser.h"
 #include "vp8d_codec.h"

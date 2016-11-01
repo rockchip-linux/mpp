@@ -22,7 +22,6 @@
 #include <string.h>
 
 #include "mpp_mem.h"
-#include "vpu_api.h"
 
 #include "h264d_log.h"
 #include "h264d_init.h"
