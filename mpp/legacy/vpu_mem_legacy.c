@@ -21,7 +21,8 @@
 #include "vpu.h"
 #include <string.h>
 
-static RK_S32 commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S32 size)
+static RK_S32
+commit_memory_handle(vpu_display_mem_pool *p, RK_S32 mem_hdl, RK_S32 size)
 {
     MppBufferInfo info;
     vpu_display_mem_pool_impl *p_mempool = (vpu_display_mem_pool_impl *)p;
@@ -103,7 +104,8 @@ static RK_S32 reset_vpu_mem_pool(vpu_display_mem_pool *p)
 
 vpu_display_mem_pool* open_vpu_memory_pool()
 {
-    vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
+    vpu_display_mem_pool_impl *p_mempool =
+        mpp_calloc(vpu_display_mem_pool_impl, 1);
 
     if (NULL == p_mempool) {
         return NULL;
@@ -132,9 +134,11 @@ void close_vpu_memory_pool(vpu_display_mem_pool *p)
     return;
 }
 
-int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size)
+int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool,
+                                     int num, int size)
 {
-    vpu_display_mem_pool_impl *p_mempool = mpp_calloc(vpu_display_mem_pool_impl, 1);
+    vpu_display_mem_pool_impl *p_mempool =
+        mpp_calloc(vpu_display_mem_pool_impl, 1);
     if (NULL == p_mempool) {
         return -1;
     }
@@ -204,7 +208,8 @@ RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx)
     if (ctx == NULL) {
         return VPUMallocLinear(p, size);
     }
-    dma_buf = (VPUMemLinear_t *)p_mempool->get_free((vpu_display_mem_pool *)ctx);
+    dma_buf = (VPUMemLinear_t *)
+              p_mempool->get_free((vpu_display_mem_pool *)ctx);
     memset(p, 0, sizeof(VPUMemLinear_t));
     if (dma_buf != NULL) {
         if (dma_buf->size < size) {
@@ -218,7 +223,6 @@ RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx)
     return -1;
 }
 
-
 RK_S32 VPUFreeLinear(VPUMemLinear_t *p)
 {
     if (p->offset != NULL) {
@@ -226,7 +230,6 @@ RK_S32 VPUFreeLinear(VPUMemLinear_t *p)
     }
     return 0;
 }
-
 
 RK_S32 VPUMemDuplicate(VPUMemLinear_t *dst, VPUMemLinear_t *src)
 {
