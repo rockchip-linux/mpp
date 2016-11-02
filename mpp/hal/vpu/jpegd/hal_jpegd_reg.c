@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "mpp_buffer.h"
 #include "mpp_log.h"
@@ -184,8 +185,8 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax, JpegHalContext *pC
     JPEGD_INFO_LOG("Stream virtual address start: %p\n", JPG_STR->pStartOfStream);
 
     /* calculate and set stream start address to hw */
-    addrTmp = (((RK_U32) JPG_STR->pStartOfStream & 0x3) +
-               (RK_U32) (JPG_STR->pCurrPos - JPG_STR->pStartOfStream)) & (~7);
+    addrTmp = (((uintptr_t) JPG_STR->pStartOfStream & 0x3) +
+                (RK_U32)(JPG_STR->pCurrPos - JPG_STR->pStartOfStream)) & (~7);
 
     JPEGD_INFO_LOG("pStartOfStream data: 0x%x, 0x%x, 0x%x, 0x%x", JPG_STR->pStartOfStream[JPG_STR->streamLength - 4],
                    JPG_STR->pStartOfStream[JPG_STR->streamLength - 3],
@@ -204,7 +205,7 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax, JpegHalContext *pC
     /* change current pos to bus address style */
     /* remove three lowest bits and add the difference to bitPosInWord */
     /* used as bit pos in word not as bit pos in byte actually... */
-    switch ((RK_U32) JPG_STR->pCurrPos & (7)) {
+    switch ((uintptr_t) JPG_STR->pCurrPos & (7)) {
     case 0:
         break;
     case 1:
@@ -237,7 +238,7 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax, JpegHalContext *pC
 
     /* set up stream length for HW.
      * length = size of original buffer - stream we already decoded in SW */
-    JPG_STR->pCurrPos = (RK_U8 *) ((RK_U32) JPG_STR->pCurrPos & (~7));
+    JPG_STR->pCurrPos = (RK_U8 *) ((uintptr_t) JPG_STR->pCurrPos & (~7));
 
     if (pSyntax->info.inputStreaming) {
         JPEGD_VERBOSE_LOG("inputStreaming-1, inputBufferLen:%d", pSyntax->info.inputBufferLen);
