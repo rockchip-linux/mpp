@@ -19,6 +19,7 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+#include "mpp_platform.h"
 
 #include "vpu.h"
 
@@ -28,6 +29,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <rk_mpi.h>
 
 #define VPU_IOC_MAGIC                       'l'
 
@@ -45,75 +47,56 @@ typedef struct VPUReq {
 
 static RK_U32 vpu_debug = 0;
 
-static const char *name_rkvdec = "/dev/rkvdec";
-static const char *name_rkvenc = "/dev/rkvenc";
-static const char *name_hevc_service = "/dev/hevc_service";
-static const char *name_vpu_service = "/dev/vpu_service";
-static const char *name_avsd = "/dev/avsd";
-static const char *name_vepu = "/dev/vepu";
-
-static const char *determine_vepu_dev()
-{
-    if (access(name_vepu, F_OK) == 0)
-        return name_vepu;
-    else
-        return name_vpu_service;
-}
-
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
     int ret;
     int fd;
-    const char *name = NULL;
+    const char *path;
+    MppCtxType ctx_type;
+    MppCodingType coding = MPP_VIDEO_CodingAutoDetect;
 
     switch (type) {
-    case VPU_DEC_RKV: {
-        name = name_rkvdec;
+    case VPU_DEC_HEVC:
+        coding = MPP_VIDEO_CodingHEVC;
+        ctx_type  = MPP_CTX_DEC;
         type = VPU_DEC;
         break;
-    }
-    case VPU_DEC_AVS: {
-        name = name_avsd;
+    case VPU_DEC_AVS:
+        coding = MPP_VIDEO_CodingAVS;
+        ctx_type  = MPP_CTX_DEC;
         type = VPU_DEC;
         break;
-    }
-    case VPU_DEC_HEVC: {
-        name = name_hevc_service;
+    case VPU_DEC_RKV:
         type = VPU_DEC;
-        break;
-    }
+    case VPU_DEC:
     case VPU_DEC_PP:
     case VPU_PP:
-    case VPU_DEC: {
-        name = name_vpu_service;
+        ctx_type  = MPP_CTX_DEC;
         break;
-    }
-    case VPU_ENC: {
-        name = determine_vepu_dev();
+    case VPU_ENC:
+    case VPU_ENC_RKV:
+        ctx_type = MPP_CTX_ENC;
         break;
-    }
-    case VPU_ENC_RKV: {
-        name = name_rkvenc;
-        break;
-    }
-    default: {
+    default:
         return -1;
         break;
     }
-    }
 
-    fd = open(name, O_RDWR);
+    path = mpp_get_vcodec_dev_name (ctx_type, coding);
+    fd = open(path, O_RDWR);
 
     mpp_env_get_u32("vpu_debug", &vpu_debug, 0);
 
     if (fd == -1) {
         mpp_err_f("failed to open %s, errno = %d, error msg: %s\n",
-                  name, errno, strerror(errno));
+                  path, errno, strerror(errno));
         return -1;
     }
+
     ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);
     if (ret) {
-        mpp_err_f("ioctl VPU_IOC_SET_CLIENT_TYPE failed ret %d errno %d\n", ret, errno);
+        mpp_err_f("ioctl VPU_IOC_SET_CLIENT_TYPE failed ret %d errno %d\n",
+                  ret, errno);
         return -2;
     }
     return fd;
