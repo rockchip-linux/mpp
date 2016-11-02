@@ -6,6 +6,9 @@ PROJECT(rockchip_mpp C CXX)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+set(LIBROCKCHIP_MPP_VERSION "1")
+set(LIBROCKCHIP_MPP_ABI_VERSION "1")
 # ----------------------------------------------------------------------------
 # setup mpp codec config first
 # ----------------------------------------------------------------------------
@@ -66,11 +69,13 @@ target_link_libraries(rockchip_mpp_static
 target_include_directories(rockchip_mpp_static PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
+
+set_target_properties(rockchip_mpp PROPERTIES VERSION ${LIBROCKCHIP_MPP_VERSION}
+SOVERSION ${LIBROCKCHIP_MPP_ABI_VERSION})
+
+install(TARGETS rockchip_mpp LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+install(TARGETS rockchip_mpp_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
 add_subdirectory(legacy)
 
 add_subdirectory(test)
-
-install(TARGETS mpp mpp_shared
-        ARCHIVE DESTINATION "${LIB_INSTALL_DIR}"
-        LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
-        )
