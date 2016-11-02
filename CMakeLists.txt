@@ -12,12 +12,15 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os")
 
 # putting those into config.h would be better
 set(RKPLATFORM "" CACHE BOOL "Enable RK HW CONFIG")
+if(RKPLATFORM)
+ADD_DEFINITIONS(-DRKPLATFORM)
+endif(RKPLATFORM)
 
 # ----------------------------------------------------------------------------
 # Create git version information
 # ----------------------------------------------------------------------------
 if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
-    find_host_package(Git)
+    find_package(Git)
     if(GIT_FOUND)
         # get author
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
@@ -123,5 +126,21 @@ add_subdirectory(mpp)
 add_subdirectory(test)
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h")
+"${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h")
+
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/rockchip_mpp.pc.cmake"
+"${CMAKE_CURRENT_BINARY_DIR}/rockchip_mpp.pc" @ONLY)
+
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/rockchip_vpu.pc.cmake"
+"${CMAKE_CURRENT_BINARY_DIR}/rockchip_vpu.pc" @ONLY)
+
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/rockchip_mpp.pc"
+DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/rockchip_vpu.pc"
+DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+
+INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/inc/"
+DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/rockchip")
+
 # End generate the build configure file
