@@ -429,7 +429,7 @@ RK_S32 VPUMemFlush(VPUMemLinear_t *p);
 RK_S32 VPUMemClean(VPUMemLinear_t *p);
 RK_S32 VPUMemInvalidate(VPUMemLinear_t *p);
 RK_S32 VPUMemGetFD(VPUMemLinear_t *p);
-
+RK_S32 VPUMallocLinearFromRender(VPUMemLinear_t *p, RK_U32 size, void *ctx);
 
 /*
  * vpu memory allocator and manager interface
