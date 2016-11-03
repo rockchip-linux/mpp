@@ -188,7 +188,8 @@ VpuApiLegacy::VpuApiLegacy() :
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
-    outData(NULL),
+    buffer_out(NULL),
+    buffer_size(0),
     enc_in_fmt(ENC_INPUT_YUV420_PLANAR),
     fd_input(-1),
     fd_output(-1),
@@ -219,10 +220,11 @@ VpuApiLegacy::~VpuApiLegacy()
         mpp_free(fp_buf);
         fp_buf = NULL;
     }
-    if (outData) {
-        mpp_free(outData);
-        outData = NULL;
+    if (buffer_out) {
+        mpp_free(buffer_out);
+        buffer_out = NULL;
     }
+    buffer_size = 0;
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
         memGroup = NULL;
@@ -592,7 +594,7 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
             mpp_err("mpi pointer is NULL, failed!");
         }
 
-        // copy encoded stream into output buffer, and set outpub stream size
+        // copy decoded frame into output buffer, and set outpub frame size
         if (mframe != NULL) {
             MppBuffer buf_out   = mpp_frame_get_buffer(mframe);
             size_t len  = mpp_buffer_get_size(buf_out);
@@ -600,11 +602,8 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
 
             if (!is_valid_dma_fd(fd)) {
                 mpp_log_f("fd for output is invalid!\n");
-                if (NULL == aDecOut->data) {
-                    if (NULL == outData)
-                        outData = mpp_malloc(RK_U8, (width * height));
-                    aDecOut->data = outData;
-                }
+                // TODO: check frame format and allocate correct buffer
+                aDecOut->data = mpp_malloc(RK_U8, width * height * 3 / 2);
                 memcpy(aDecOut->data, (RK_U8*) mpp_buffer_get_ptr(pic_buf), aDecOut->size);
             }
 
@@ -982,12 +981,16 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
 
         if (!is_valid_dma_fd(fd)) {
-            if (NULL == aEncOut->data) {
-                if (NULL == outData)
-                    outData = mpp_malloc(RK_U8, (width * height));
-                aEncOut->data = outData;
+            if (buffer_size < length) {
+                buffer_size = MPP_ALIGN(length + 4, SZ_4K);
+
+                if (buffer_out)
+                    mpp_free(buffer_out);
+
+                buffer_out = mpp_malloc(RK_U8, buffer_size);
             }
-            memcpy(aEncOut->data, (RK_U8*) mpp_buffer_get_ptr(str_buf), aEncOut->size);
+            memcpy(buffer_out, (RK_U8*) mpp_buffer_get_ptr(str_buf), length);
+            aEncOut->data = buffer_out;
         }
 
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
@@ -1161,19 +1164,25 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
 
-        if (NULL == outData)
-            outData = mpp_malloc(RK_U8, (ctx->width * ctx->height));
+        if (buffer_size < length) {
+            buffer_size = MPP_ALIGN(length + 4, SZ_4K);
 
-        mpp_assert(outData);
+            if (buffer_out)
+                mpp_free(buffer_out);
+
+            buffer_out = mpp_malloc(RK_U8, buffer_size);
+        }
+
+        mpp_assert(buffer_out);
         mpp_assert(length >= 4);
         // remove first 00 00 00 01
         length -= 4;
 
-        aEncOut->data = outData;
+        aEncOut->data = buffer_out;
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
-        memcpy(outData, src + 4, length);
+        memcpy(buffer_out, src + 4, length);
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
 
