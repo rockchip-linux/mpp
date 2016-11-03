@@ -1,0 +1,57 @@
+/*
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef __MPP_PLATFORM__
+#define __MPP_PLATFORM__
+
+#include "rk_type.h"
+
+/*
+ * Platform flag detection is for rockchip hardware platform detection
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Platform video codec hardware feature
+ */
+#define HAVE_VPU1               (0x00000001)
+#define HAVE_VPU2               (0x00000002)
+#define HAVE_HEVC_DEC           (0x00000010)
+#define HAVE_RKVDEC             (0x00000020)
+#define HAVE_RKVENC             (0x00000100)
+#define HAVE_H265E              (0x00010000)
+
+RK_U32 mpp_get_vcodec_hw_flag(void);
+
+/*
+ * Platform image process hardware feature
+ */
+#define HAVE_IPP                (0x00000001)
+#define HAVE_RGA                (0x00000002)
+#define HAVE_RGA2               (0x00000004)
+#define HAVE_IEP                (0x00000008)
+
+RK_U32 mpp_get_2d_hw_flag(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*__MPP_PLATFORM__*/
+
