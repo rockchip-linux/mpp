@@ -43,6 +43,7 @@ typedef struct {
     RK_U32          height;
     MppFrameFormat  format;
     RK_U32          debug;
+    RK_U32          num_frames;
 
     RK_U32          have_input;
     RK_U32          have_output;
@@ -129,10 +130,10 @@ static MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, 
     for (k = 0; k < osd_data->num_region; k++) {
         osd_data->region[k].enable = 1;
         osd_data->region[k].inverse = frame_cnt & 1;
-        osd_data->region[k].start_mb_x = k * 4;
-        osd_data->region[k].start_mb_y = k * 4;
-        osd_data->region[k].num_mb_x = 3;
-        osd_data->region[k].num_mb_y = 3;
+        osd_data->region[k].start_mb_x = k * 3;
+        osd_data->region[k].start_mb_y = k * 2;
+        osd_data->region[k].num_mb_x = 2;
+        osd_data->region[k].num_mb_y = 2;
 
         buf_size = osd_data->region[k].num_mb_x * osd_data->region[k].num_mb_y * 256;
         osd_data->region[k].buf_offset = k * buf_size;
@@ -187,6 +188,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     MppFrameFormat fmt  = cmd->format;
     MppCodingType type  = cmd->type;
+    RK_U32 max_num_frame = cmd->num_frames;
 
     // resources
     size_t frame_size   = hor_stride * ver_stride * 3 / 2;
@@ -465,6 +467,10 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             }
         } while (1);
 
+        if (max_num_frame && frame_count >= max_num_frame) {
+            mpp_log_f("encode max %d frames", frame_count);
+            break;
+        }
         if (frm_eos && pkt_eos)
             break;
     }
@@ -645,6 +651,14 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
 
                 if (!next || err) {
                     mpp_err("invalid input coding type\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'F':
+                if (next) {
+                    cmd->num_frames = atoi(next);
+                } else {
+                    mpp_err("invalid input number of frames\n");
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
