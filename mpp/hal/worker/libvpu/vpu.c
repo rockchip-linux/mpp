@@ -28,11 +28,13 @@
 #include "vpu.h"
 
 #define VPU_IOC_MAGIC                       'l'
+
 #define VPU_IOC_SET_CLIENT_TYPE             _IOW(VPU_IOC_MAGIC, 1, unsigned long)
 #define VPU_IOC_GET_HW_FUSE_STATUS          _IOW(VPU_IOC_MAGIC, 2, unsigned long)
 #define VPU_IOC_SET_REG                     _IOW(VPU_IOC_MAGIC, 3, unsigned long)
 #define VPU_IOC_GET_REG                     _IOW(VPU_IOC_MAGIC, 4, unsigned long)
 #define VPU_IOC_PROBE_IOMMU_STATUS          _IOR(VPU_IOC_MAGIC, 5, unsigned long)
+#define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
 
 typedef struct VPUReq {
     RK_U32 *req;
@@ -136,6 +138,22 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
     ret = (RK_S32)ioctl(fd, VPU_IOC_SET_REG, &req);
     if (ret)
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n", ret, errno, strerror(errno));
+
+    return ret;
+}
+
+RK_S32 VPUClientSendReg2(RK_S32 socket, RK_S32 offset, RK_S32 size, void *param)
+{
+    RK_S32 ret = 0;
+
+    if (param == NULL) {
+        mpp_err_f("input param is NULL");
+        return 1;
+    }
+
+    ret = (RK_S32)ioctl(socket, VPU_IOC_WRITE(offset, size), param);
+    if (ret)
+        mpp_err_f("ioctl VPU_IOC_WRITE failed ret %d", ret);
 
     return ret;
 }
