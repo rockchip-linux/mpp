@@ -10,6 +10,8 @@ add_library(mpp_codec STATIC
     mpp_parser.cpp
     )
 
+add_library(mpp_rc STATIC mpp_rc.cpp)
+
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
 
 add_subdirectory(dec)

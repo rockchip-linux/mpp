@@ -757,6 +757,39 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         goto MPP_TEST_OUT;
     }
 
+    MppEncRcCfg rc_cfg;
+    rc_cfg.change = MPP_ENC_RC_CFG_CHANGE_ALL;
+    rc_cfg.rc_mode = 3;
+    rc_cfg.quality = 0;
+    rc_cfg.bps_target = 2000000;
+    rc_cfg.bps_max = 3000000;
+    rc_cfg.bps_min = 1000000;
+    rc_cfg.fps_in_denorm = 1;
+    rc_cfg.fps_out_denorm = 1;
+    rc_cfg.fps_in_num = 30;
+    rc_cfg.fps_out_denorm = 30;
+    rc_cfg.fps_in_flex = 0;
+    rc_cfg.fps_out_flex = 0;
+    rc_cfg.gop = 30;
+    rc_cfg.skip_cnt = 0;
+
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, &rc_cfg);
+
+    MppEncPrepCfg prep_cfg;
+    prep_cfg.change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                             MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+    prep_cfg.width         = width;
+    prep_cfg.height        = height;
+    prep_cfg.hor_stride    = hor_stride;
+    prep_cfg.ver_stride    = ver_stride;
+    prep_cfg.format        = fmt;
+
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
+    if (ret) {
+        mpp_err("mpi control enc set prep cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
     ret = enc_mpi->control(enc_ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
     if (MPP_OK != ret) {
         mpp_err("mpi control enc get extra info failed\n");

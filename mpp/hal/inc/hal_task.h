@@ -143,6 +143,7 @@ typedef struct HalEncTask_t {
 
     // current tesk output stream buffer
     MppBuffer       output;
+    RK_U32          length;
 
     // current tesk input slot buffer
     MppBuffer       input;

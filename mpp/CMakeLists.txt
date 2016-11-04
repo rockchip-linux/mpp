@@ -12,6 +12,7 @@ include_directories(common)
 include_directories(base/inc)
 include_directories(codec/inc)
 include_directories(hal/inc)
+include_directories(hal/common)
 
 # ----------------------------------------------------------------------------
 # add mpp base component

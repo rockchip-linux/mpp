@@ -10,42 +10,12 @@ set(H264E_COMMON
 
 # h264 encoder header
 set(H264E_HDR
-    include/H264CodeFrame.h
-    include/H264Init.h
-    include/H264Instance.h
-    include/H264Mad.h
-    include/H264NalUnit.h
-    include/H264PictureParameterSet.h
-    include/H264PutBits.h
-    include/H264RateControl.h
-    include/H264Sei.h
-    include/H264SequenceParameterSet.h
-    include/H264Slice.h
-    include/encasiccontroller.h
-    include/enccommon.h
-    include/encpreprocess.h
-    include/h264encapi.h
     include/h264e_codec.h
-    include/h264e_utils.h
     )
 
 # h264 encoder sourse
 set(H264E_SRC
-    src/H264CodeFrame.c
-    src/H264EncApi.c
-    src/H264Init.c
-    src/H264Mad.c
-    src/H264NalUnit.c
-    src/H264PictureParameterSet.c
-    src/H264PutBits.c
-    src/H264RateControl.c
-    src/H264Sei.c
-    src/H264SequenceParameterSet.c
-    src/H264Slice.c
-    src/encasiccontroller.c
-    src/encpreprocess.c
     src/h264e_api.c
-    src/h264e_utils.c
     )
 
 
@@ -56,5 +26,5 @@ add_library(${CODEC_H264E} STATIC
     ${H264E_SRC}
     )
 
-target_link_libraries(${CODEC_H264E} mpp_base)
+target_link_libraries(${CODEC_H264E} mpp_rc mpp_base)
 set_target_properties(${CODEC_H264E} PROPERTIES FOLDER "mpp/codec")

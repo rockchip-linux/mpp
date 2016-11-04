@@ -80,21 +80,27 @@ typedef enum {
     MPP_DEC_CMD_END,
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
-    MPP_ENC_SET_RC_CFG,
-    MPP_ENC_GET_RC_CFG,
-    MPP_ENC_SET_PREP_CFG,
-    MPP_ENC_GET_PREP_CFG,
+    /* legacy support for vpuapi */
+    MPP_ENC_SET_CFG,
+    MPP_ENC_GET_CFG,
+    /* basic encoder setup control */
+    MPP_ENC_SET_ALL_CFG,                /* set MppEncCfgSet structure */
+    MPP_ENC_GET_ALL_CFG,                /* get MppEncCfgSet structure */
+    MPP_ENC_SET_PREP_CFG,               /* set MppEncPrepCfg structure */
+    MPP_ENC_GET_PREP_CFG,               /* get MppEncPrepCfg structure */
+    MPP_ENC_SET_RC_CFG,                 /* set MppEncRcCfg structure */
+    MPP_ENC_GET_RC_CFG,                 /* get MppEncRcCfg structure */
+    MPP_ENC_SET_CODEC_CFG,              /* set MppEncCodecCfg structure */
+    MPP_ENC_GET_CODEC_CFG,              /* get MppEncCodecCfg structure */
+    /* runtime encoder setup control */
+    MPP_ENC_SET_IDR_FRAME,              /* next frame will be encoded as intra frame */
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPlt */
     MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
     MPP_ENC_GET_OSD_CFG,
-    MPP_ENC_SET_CFG,
-    MPP_ENC_GET_CFG,
     MPP_ENC_SET_EXTRA_INFO,
-    MPP_ENC_GET_EXTRA_INFO,
-    MPP_ENC_SET_FORMAT,
-    MPP_ENC_SET_IDR_FRAME,
-    MPP_ENC_SET_SEI_CFG,               /*SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
-    MPP_ENC_GET_SEI_DATA,              /*SEI: Supplement Enhancemant Information, parameter is MppPacket */
+    MPP_ENC_GET_EXTRA_INFO,             /* get vps / sps / pps from hal */
+    MPP_ENC_SET_SEI_CFG,                /* SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
+    MPP_ENC_GET_SEI_DATA,               /* SEI: Supplement Enhancemant Information, parameter is MppPacket */
     MPP_ENC_CMD_END,
 
     MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
@@ -168,10 +174,10 @@ typedef enum {
  *   +----------init------------>                 |                       |
  *   |                          |                 |                       |
  *   |                          |                 |                       |
- *   |         MppFrame         |                 |                       |
- *   +---------control---------->     MppFrame    |                       |
+ *   |         PrepCfg          |                 |                       |
+ *   +---------control---------->     PrepCfg     |                       |
  *   |                          +-----control----->                       |
- *   |                          |                 |        MppFrame       |
+ *   |                          |                 |        PrepCfg        |
  *   |                          +--------------------------control-------->
  *   |                          |                 |                    allocate
  *   |                          |                 |                     buffer
@@ -192,10 +198,6 @@ typedef enum {
  *   |      Get extra info      |                 |                       |
  *   +---------control---------->                 |                       |
  *   |                          |                 |                       |
- *   |                          |                 |                       |
- *   |         PrepCfg          |                 |                       |
- *   +---------control---------->                 |        PrepCfg        |
- *   |                          +--------------------------control-------->
  *   |                          |                 |                       |
  *   |         ROICfg           |                 |                       |
  *   +---------control---------->                 |        ROICfg         |
@@ -240,93 +242,182 @@ typedef enum {
 
 /*
  * Rate control parameter
- *
- * rc_mode      - rate control mode
- * Mpp balances quality and bit rate by the mode index
- * Mpp provide 5 level of balance mode of quality and bit rate
- * 1 - only quality mode: only quality parameter takes effect
- * 2 - more quality mode: quality parameter takes more effect
- * 3 - balance mode     : balance quality and bitrate 50 to 50
- * 4 - more bitrate mode: bitrate parameter takes more effect
- * 5 - only bitrate mode: only bitrate parameter takes effect
- *
- * quality      - quality parameter
- * mpp does not give the direct parameter in different protocol.
- * mpp provide total 5 quality level 1 ~ 5
- * 0 - auto
- * 1 - worst
- * 2 - worse
- * 3 - medium
- * 4 - better
- * 5 - best
- *
- * bit rate parameters
- * mpp gives three bit rate control parameter for control
- * bps_target   - target  bit rate, unit: bit per second
- * bps_max      - maximun bit rate, unit: bit per second
- * bps_min      - minimun bit rate, unit: bit per second
- * if user need constant bit rate set parameters to the similar value
- * if user need variable bit rate set parameters as they need
- *
- * frame rate parameters have great effect on rate control
- * all fps parameter is in 32bit
- * low  16bit is denominator
- * high 16bit is numerator
- * if high 16bit is zero then the whole integer is just fps
- * fps_in       - input  frame rate, unit: frame per second
- *                if 0 then default set to 30
- * fps_out      - output frame rate, unit: frame per second
- *                if 0 then default set to fps_in
- * gop          - gap between Intra frame
- *                0 for only 1 I frame the rest are all P frames
- *                1 for all I frame
- *                2 for I P I P I P
- *                3 for I P P I P P
- *                etc...
- * skip_cnt     - max continuous frame skip count
- *                0 - frame skip is not allow
- *
  */
+typedef enum MppEncRcCfgChange_e {
+    MPP_ENC_RC_CFG_CHANGE_RC_MODE       = (1 << 0),
+    MPP_ENC_RC_CFG_CHANGE_QUALITY       = (1 << 1),
+    MPP_ENC_RC_CFG_CHANGE_BPS           = (1 << 2),     /* change on bps target / max / min */
+    MPP_ENC_RC_CFG_CHANGE_FPS_IN        = (1 << 5),     /* change on fps in  flex / numerator / denorminator */
+    MPP_ENC_RC_CFG_CHANGE_FPS_OUT       = (1 << 6),     /* change on fps out flex / numerator / denorminator */
+    MPP_ENC_RC_CFG_CHANGE_GOP           = (1 << 7),
+    MPP_ENC_RC_CFG_CHANGE_SKIP_CNT      = (1 << 8),
+    MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
+} MppEncRcCfgChange;
+
 typedef struct MppEncRcCfg_t {
+    RK_U32  change;
+
+    /*
+     * rc_mode - rate control mode
+     * Mpp balances quality and bit rate by the mode index
+     * Mpp provide 5 level of balance mode of quality and bit rate
+     * 1 - only quality mode: only quality parameter takes effect
+     * 2 - more quality mode: quality parameter takes more effect
+     * 3 - balance mode     : balance quality and bitrate 50 to 50
+     * 4 - more bitrate mode: bitrate parameter takes more effect
+     * 5 - only bitrate mode: only bitrate parameter takes effect
+     */
     RK_S32  rc_mode;
+
+    /*
+     * quality - quality parameter
+     * mpp does not give the direct parameter in different protocol.
+     * mpp provide total 5 quality level 1 ~ 5
+     * 0 - auto
+     * 1 - worst
+     * 2 - worse
+     * 3 - medium
+     * 4 - better
+     * 5 - best
+     */
     RK_S32  quality;
+
+    /*
+     * bit rate parameters
+     * mpp gives three bit rate control parameter for control
+     * bps_target   - target  bit rate, unit: bit per second
+     * bps_max      - maximun bit rate, unit: bit per second
+     * bps_min      - minimun bit rate, unit: bit per second
+     * if user need constant bit rate set parameters to the similar value
+     * if user need variable bit rate set parameters as they need
+     */
     RK_S32  bps_target;
     RK_S32  bps_max;
     RK_S32  bps_min;
-    RK_S32  fps_in;
-    RK_S32  fps_out;
+
+    /*
+     * frame rate parameters have great effect on rate control
+     *
+     * fps_in_flex
+     * 0 - fix input frame rate
+     * 1 - variable input frame rate
+     *
+     * fps_in_num
+     * input frame rate numerator, if 0 then default 30
+     *
+     * fps_in_denorm
+     * input frame rate denorminator, if 0 then default 1
+     *
+     * fps_out_flex
+     * 0 - fix output frame rate
+     * 1 - variable output frame rate
+     *
+     * fps_out_num
+     * output frame rate numerator, if 0 then default 30
+     *
+     * fps_out_denorm
+     * output frame rate denorminator, if 0 then default 1
+     */
+    RK_S32  fps_in_flex;
+    RK_S32  fps_in_num;
+    RK_S32  fps_in_denorm;
+    RK_S32  fps_out_flex;
+    RK_S32  fps_out_num;
+    RK_S32  fps_out_denorm;
+
+    /*
+     * gop - group of picture, gap between Intra frame
+     * 0 for only 1 I frame the rest are all P frames
+     * 1 for all I frame
+     * 2 for I P I P I P
+     * 3 for I P P I P P
+     * etc...
+     */
     RK_S32  gop;
+
+    /*
+     * skip_cnt - max continuous frame skip count
+     * 0 - frame skip is not allow
+     */
     RK_S32  skip_cnt;
 } MppEncRcCfg;
 
 /*
- * Mpp frame parameter
- * direct use MppFrame to store information
- */
-
-/*
- * Mpp codec parameter
- * parameter is defined in different syntax header
- */
-
-/*
  * Mpp preprocess parameter
  */
-typedef struct MppEncPrepCfg_t {
-    MppFrameFormat      format_in;
-    MppFrameFormat      format_out;
-    RK_U32              rotation;
+typedef enum MppEncPrepCfgChange_e {
+    MPP_ENC_PREP_CFG_CHANGE_INPUT       = (1 << 0),     /* change on input config */
+    MPP_ENC_PREP_CFG_CHANGE_FORMAT      = (1 << 2),     /* change on format */
+    /* transform parameter */
+    MPP_ENC_PREP_CFG_CHANGE_ROTATION    = (1 << 4),     /* change on ration */
+    MPP_ENC_PREP_CFG_CHANGE_MIRRORING   = (1 << 5),     /* change on mirroring */
+    /* enhancement parameter */
+    MPP_ENC_PREP_CFG_CHANGE_DENOISE     = (1 << 8),     /* change on denoise */
+    MPP_ENC_PREP_CFG_CHANGE_SHARPEN     = (1 << 9),     /* change on denoise */
+    MPP_ENC_PREP_CFG_CHANGE_ALL         = (0xFFFFFFFF),
+} MppEncPrepCfgChange;
 
-    // sharpen
-    RK_U32              src_shp_en_y;
-    RK_U32              src_shp_en_uv;
-    RK_U32              src_shp_thr;
-    RK_U32              src_shp_div;
-    RK_U32              src_shp_w0;
-    RK_U32              src_shp_w1;
-    RK_U32              src_shp_w2;
-    RK_U32              src_shp_w3;
-    RK_U32              src_shp_w4;
+/*
+ * Preprocess sharpen parameter
+ *
+ * 5x5 sharpen core
+ *
+ * enable_y  - enable luma sharpen
+ * enable_c  - enable chroma sharpen
+ */
+typedef struct {
+    RK_U32              enable_y;
+    RK_U32              enable_uv;
+    RK_S32              coef[5];
+    RK_S32              div;
+    RK_S32              threshold;
+} MppEncPrepSharpenCfg;
+
+typedef struct MppEncPrepCfg_t {
+    RK_U32              change;
+
+    /*
+     * Mpp encoder input data dimension config
+     *
+     * width / height / hor_stride / ver_stride / format
+     * These information will be used for buffer allocation and rc config init
+     * The output format is always YUV420. So if input is RGB then color
+     * conversion will be done internally
+     */
+    RK_S32              width;
+    RK_S32              height;
+    RK_S32              hor_stride;
+    RK_S32              ver_stride;
+
+    /*
+     * Mpp encoder input data format config
+     */
+    MppFrameFormat      format;
+    MppFrameColorSpace  color;
+
+    /*
+     * input frame rotation parameter
+     * 0 - disable rotation
+     * 1 - 90 degree
+     * 2 - 180 degree
+     * 3 - 270 degree
+     */
+    RK_S32              rotation;
+
+    /*
+     * input frame mirroring parameter
+     * 0 - disable mirroring
+     * 1 - horizontal mirroring
+     * 2 - vertical mirroring
+     */
+    RK_S32              mirroring;
+
+    /*
+     * TODO:
+     */
+    RK_S32              denoise;
+
+    MppEncPrepSharpenCfg sharpen;
 } MppEncPrepCfg;
 
 /*
@@ -418,5 +509,324 @@ typedef struct MppEncMDBlkInfo_t {
     RK_S32              mvx     : 9;    /* bit 15~23 - signed horizontal mv */
     RK_S32              mvy     : 8;    /* bit 24~31 - signed vertical mv */
 } MppEncMDBlkInfo;
+
+/*
+ * Mpp video codec related configuration
+ */
+typedef struct MppEncHwCfg_t {
+    RK_U32              change;
+    RK_S32              me_search_range_x;
+    RK_S32              me_search_range_y;
+} MppEncHwCfg;
+
+
+/*
+ * Mpp codec parameter
+ * parameter is defined from here
+ */
+
+/*
+ * H.264 configurable parameter
+ */
+typedef struct MppEncH264VuiCfg_t {
+    RK_U32 change;
+
+    RK_U32 b_vui;
+
+    RK_S32 b_aspect_ratio_info_present;
+    RK_S32 i_sar_width;
+    RK_S32 i_sar_height;
+
+    RK_S32 b_overscan_info_present;
+    RK_S32 b_overscan_info;
+
+    RK_S32 b_signal_type_present;
+    RK_S32 i_vidformat;
+    RK_S32 b_fullrange;
+    RK_S32 b_color_description_present;
+    RK_S32 i_colorprim;
+    RK_S32 i_transfer;
+    RK_S32 i_colmatrix;
+
+    RK_S32 b_chroma_loc_info_present;
+    RK_S32 i_chroma_loc_top;
+    RK_S32 i_chroma_loc_bottom;
+
+    RK_S32 b_timing_info_present;
+    RK_U32 i_num_units_in_tick;
+    RK_U32 i_time_scale;
+    RK_S32 b_fixed_frame_rate;
+
+    RK_S32 b_nal_hrd_parameters_present;
+    RK_S32 b_vcl_hrd_parameters_present;
+
+    struct {
+        RK_S32 i_cpb_cnt;
+        RK_S32 i_bit_rate_scale;
+        RK_S32 i_cpb_size_scale;
+        RK_S32 i_bit_rate_value;
+        RK_S32 i_cpb_size_value;
+        RK_S32 i_bit_rate_unscaled;
+        RK_S32 i_cpb_size_unscaled;
+        RK_S32 b_cbr_hrd;
+
+        RK_S32 i_initial_cpb_removal_delay_length;
+        RK_S32 i_cpb_removal_delay_length;
+        RK_S32 i_dpb_output_delay_length;
+        RK_S32 i_time_offset_length;
+    } hrd;
+
+    RK_S32 b_pic_struct_present;
+    RK_S32 b_bitstream_restriction;
+    RK_S32 b_motion_vectors_over_pic_boundaries;
+    RK_S32 i_max_bytes_per_pic_denom;
+    RK_S32 i_max_bits_per_mb_denom;
+    RK_S32 i_log2_max_mv_length_horizontal;
+    RK_S32 i_log2_max_mv_length_vertical;
+    RK_S32 i_num_reorder_frames;
+    RK_S32 i_max_dec_frame_buffering;
+
+    /* FIXME to complete */
+} MppEncH264VuiCfg;
+
+typedef struct MppEncH264RefCfg_t {
+    RK_S32         i_frame_reference;  /* Maximum number of reference frames */
+    RK_S32         i_ref_pos;
+    RK_S32         i_long_term_en;
+    RK_S32         i_long_term_internal;
+    RK_S32         hw_longterm_mode;
+    RK_S32         i_dpb_size;         /* Force a DPB size larger than that implied by B-frames and reference frames.
+                                        * Useful in combination with interactive error resilience. */
+    RK_S32         i_frame_packing;
+} MppEncH264RefCfg;
+
+typedef struct MppEncH264SeiCfg_t {
+    RK_U32              change;
+} MppEncH264SeiCfg;
+
+typedef enum MppEncH264CfgChange_e {
+    /* change on stream type */
+    MPP_ENC_H264_CFG_STREAM_TYPE            = (1 << 0),
+    /* change on svc / profile / level */
+    MPP_ENC_H264_CFG_CHANGE_PROFILE         = (1 << 1),
+    /* change on entropy_coding_mode / cabac_init_idc */
+    MPP_ENC_H264_CFG_CHANGE_ENTROPY         = (1 << 2),
+
+    /* change on transform8x8_mode */
+    MPP_ENC_H264_CFG_CHANGE_TRANS_8x8       = (1 << 4),
+    /* change on constrained_intra_pred_mode */
+    MPP_ENC_H264_CFG_CHANGE_CONST_INTRA     = (1 << 5),
+    /* change on chroma_cb_qp_offset/ chroma_cr_qp_offset */
+    MPP_ENC_H264_CFG_CHANGE_CHROMA_QP       = (1 << 6),
+    /* change on deblock_disable / deblock_offset_alpha / deblock_offset_beta */
+    MPP_ENC_H264_CFG_CHANGE_DEBLOCKING      = (1 << 7),
+    /* change on use_longterm */
+    MPP_ENC_H264_CFG_CHANGE_LONG_TERM       = (1 << 8),
+
+    /* change on max_qp / min_qp / max_qp_step */
+    MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
+    /* change on intra_refresh_mode / intra_refresh_arg */
+    MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH   = (1 << 17),
+    /* change on slice_mode / slice_arg */
+    MPP_ENC_H264_CFG_CHANGE_SLICE_MODE      = (1 << 18),
+
+    /* change on vui */
+    MPP_ENC_H264_CFG_CHANGE_VUI             = (1 << 28),
+    /* change on sei */
+    MPP_ENC_H264_CFG_CHANGE_SEI             = (1 << 29),
+    MPP_ENC_H264_CFG_CHANGE_REF             = (1 << 30),
+    MPP_ENC_H264_CFG_CHANGE_ALL             = (0xFFFFFFFF),
+} MppEncH264CfgChange;
+
+typedef struct MppEncH264Cfg_t {
+    RK_U32              change;
+
+    /*
+     * H.264 stream format
+     * 0 - H.264 Annex B: NAL unit starts with '00 00 00 01'
+     * 1 - Plain NAL units without startcode
+     */
+    RK_S32              stream_type;
+
+    /* H.264 codec syntax config */
+    RK_S32              svc;                        /* 0 - avc 1 - svc */
+
+    /*
+     * H.264 profile_idc parameter
+     * 66  - Baseline profile
+     * 77  - Main profile
+     * 100 - High profile
+     */
+    RK_S32              profile;
+
+    /*
+     * H.264 level_idc parameter
+     * 10 / 11 / 12 / 13    - qcif@15fps / cif@7.5fps / cif@15fps / cif@30fps
+     * 20 / 21 / 22         - cif@30fps / half-D1@@25fps / D1@12.5fps
+     * 30 / 31 / 32         - D1@25fps / 720p@30fps / 720p@60fps
+     * 40 / 41 / 42         - 1080p@30fps / 1080p@30fps / 1080p@60fps
+     * 50 / 51 / 52         - 4K@30fps
+     */
+    RK_S32              level;
+
+    /*
+     * H.264 entropy coding method
+     * 0 - CAVLC
+     * 1 - CABAC
+     * When CABAC is select cabac_init_idc can be range 0~2
+     */
+    RK_S32              entropy_coding_mode;
+    RK_S32              cabac_init_idc;
+
+    /*
+     * 8x8 intra prediction and 8x8 transform enable flag
+     * This flag can only be enable under High profile
+     * 0 : disable (BP/MP)
+     * 1 : enable  (HP)
+     */
+    RK_S32              transform8x8_mode;
+
+    /*
+     * 0 : disable
+     * 1 : enable
+     */
+    RK_S32              constrained_intra_pred_mode;
+
+    /*
+     * chroma qp offset (-12 - 12)
+     */
+    RK_S32              chroma_cb_qp_offset;
+    RK_S32              chroma_cr_qp_offset;
+
+    /*
+     * H.264 deblock filter mode flag
+     * 0 : enable
+     * 1 : disable
+     * 2 : disable deblocking filter at slice boundaries
+     *
+     * deblock filter offset alpha (-6 - 6)
+     * deblock filter offset beta  (-6 - 6)
+     */
+    RK_S32              deblock_disable;
+    RK_S32              deblock_offset_alpha;
+    RK_S32              deblock_offset_beta;
+
+    /*
+     * H.264 long term reference picture enable flag
+     * 0 - disable
+     * 1 - enable
+     */
+    RK_S32              use_longterm;
+
+    /*
+     * quality config
+     * qp_max       - 8 ~ 51
+     * qp_min       - 0 ~ 48
+     * qp_max_step  - max delta qp step between two frames
+     */
+    RK_S32              qp_init;
+    RK_S32              qp_max;
+    RK_S32              qp_min;
+    RK_S32              qp_max_step;
+
+    /*
+     * intra fresh config
+     *
+     * intra_refresh_mode
+     * 0 - no intra refresh
+     * 1 - intra refresh by MB row
+     * 2 - intra refresh by MB column
+     * 3 - intra refresh by MB gap
+     *
+     * intra_refresh_arg
+     * mode 0 - no effect
+     * mode 1 - refresh MB row number
+     * mode 2 - refresh MB colmn number
+     * mode 3 - refresh MB gap count
+     */
+    RK_S32              intra_refresh_mode;
+    RK_S32              intra_refresh_arg;
+
+    /* slice mode config */
+    RK_S32              slice_mode;
+    RK_S32              slice_arg;
+
+    /* extra info */
+    MppEncH264VuiCfg    vui;
+    MppEncH264SeiCfg    sei;
+    MppEncH264RefCfg    ref;
+} MppEncH264Cfg;
+
+/*
+ * H.265 configurable parameter
+ */
+typedef struct MppEncH265VuiCfg_t {
+    RK_U32              change;
+    RK_S32              vui_present;
+    RK_S32              vui_aspect_ratio;
+    RK_S32              vui_sar_size;
+    RK_S32              full_range;
+    RK_S32              time_scale;
+} MppEncH265VuiCfg;
+
+typedef struct MppEncH265SeiCfg_t {
+    RK_U32              change;
+} MppEncH265SeiCfg;
+
+typedef struct MppEncH265Cfg_t {
+    RK_U32              change;
+
+    /* H.265 codec syntax config */
+    RK_S32              profile;
+    RK_S32              level;
+    RK_S32              tier;
+    RK_S32              const_intra_pred;           /* constraint intra prediction flag */
+    RK_S32              ctu_size;
+    RK_S32              tmvp_enable;
+    RK_S32              wpp_enable;
+    RK_S32              merge_range;
+    RK_S32              sao_enable;
+
+    /* quality config */
+    RK_S32              max_qp;
+    RK_S32              min_qp;
+    RK_S32              max_delta_qp;
+
+    /* intra fresh config */
+    RK_S32              intra_refresh_mode;
+    RK_S32              intra_refresh_arg;
+
+    /* slice mode config */
+    RK_S32              independ_slice_mode;
+    RK_S32              independ_slice_arg;
+    RK_S32              depend_slice_mode;
+    RK_S32              depend_slice_arg;
+
+    /* extra info */
+    MppEncH265VuiCfg    vui;
+    MppEncH265SeiCfg    sei;
+} MppEncH265Cfg;
+
+/*
+ * motion jpeg configurable parameter
+ */
+typedef enum MppEncJpegCfgChange_e {
+    /* change on quant parameter */
+    MPP_ENC_JPEG_CFG_CHANGE_QP              = (1 << 0),
+    MPP_ENC_JPEG_CFG_CHANGE_ALL             = (0xFFFFFFFF),
+} MppEncJpegCfgChange;
+
+typedef struct MppEncJpegCfg_t {
+    RK_U32              change;
+    RK_S32              quant;
+} MppEncJpegCfg;
+
+/*
+ * vp8 configurable parameter
+ */
+typedef struct MppEncVp8Cfg_t {
+    RK_U32              change;
+    RK_S32              quant;
+} MppEncVp8Cfg;
 
 #endif /*__RK_MPI_CMD_H__*/

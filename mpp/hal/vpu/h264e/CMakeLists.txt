@@ -4,18 +4,18 @@ include_directories(../../common/h264/)
 
 # hal h264 header
 set(HAL_H264E_HDR
-    hal_h264e_rkv.h
+    hal_h264e_vpu.h
     )
 
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
-    hal_h264e_rkv.c
+    hal_h264e_vpu.c
     )
 
-add_library(hal_h264e_rkv STATIC
+add_library(hal_h264e_vpu STATIC
             ${HAL_H264E_HDR}
             ${HAL_H264E_SRC}
             )
 
-target_link_libraries(hal_h264e_rkv hal_h264e)
-set_target_properties(hal_h264e_rkv PROPERTIES FOLDER "mpp/hal")
+target_link_libraries(hal_h264e_vpu hal_h264e)
+set_target_properties(hal_h264e_vpu PROPERTIES FOLDER "mpp/hal")

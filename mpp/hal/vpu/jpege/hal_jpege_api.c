@@ -423,6 +423,7 @@ MPP_RET hal_jpege_wait(void *hal, HalTaskInfo *task)
     feedback.hw_status = val & 0x70;
     val = regs[53];
     feedback.stream_length = jpege_bits_get_bitpos(bits) / 8 + val / 8;
+    task->enc.length = feedback.stream_length;
     hal_jpege_dbg_output("stream length: sw %d hw %d total %d\n",
                          jpege_bits_get_bitpos(bits) / 8, val / 8, feedback.stream_length);
 

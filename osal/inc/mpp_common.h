@@ -21,6 +21,8 @@
 
 #define MPP_TAG_SIZE            32
 
+#define MPP_ABS(x)              ((x) < (0) ? -(x) : (x))
+
 #define MPP_MAX(a, b)           ((a) > (b) ? (a) : (b))
 #define MPP_MAX3(a, b, c)       MPP_MAX(MPP_MAX(a,b),c)
 #define MPP_MAX4(a, b, c, d)    MPP_MAX((a), MPP_MAX3((b), (c), (d)))

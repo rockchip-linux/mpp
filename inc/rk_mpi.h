@@ -138,6 +138,24 @@ typedef struct MppEncConfig_t {
     RK_S32  cabac_en;
 } MppEncConfig;
 
+typedef struct MppEncCodecCfg_t {
+    MppCodingType       coding;
+
+    union {
+        RK_U32          change;
+        MppEncH264Cfg   h264;
+        MppEncH265Cfg   h265;
+        MppEncJpegCfg   jpeg;
+        MppEncVp8Cfg    vp8;
+    };
+} MppEncCodecCfg;
+
+typedef struct MppEncCfgSet_t {
+    MppEncPrepCfg       prep;
+    MppEncRcCfg         rc;
+    MppEncCodecCfg      codec;
+} MppEncCfgSet;
+
 /**
  * @ingroup rk_mpi
  * @brief mpp main work function set
