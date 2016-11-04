@@ -1,5 +1,6 @@
 # vim: syntax=cmake
 include_directories(worker/inc)
+include_directories(common)
 
 # ----------------------------------------------------------------------------
 # add hardware hal
@@ -9,6 +10,7 @@ add_subdirectory(rkdec)
 add_subdirectory(rkenc)
 add_subdirectory(dummy)
 add_subdirectory(rkdec/avsd)
+add_subdirectory(common)
 
 # ----------------------------------------------------------------------------
 # add mpp_hal implement

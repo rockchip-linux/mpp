@@ -609,6 +609,11 @@
 #define     VEPU_H264E_NUM_REGS  184
 #define     H264E_CABAC_TABLE_BUF_SIZE (52*2*464)
 
+typedef enum H264eVpuFrameType_t {
+    H264E_VPU_FRAME_P = 0,
+    H264E_VPU_FRAME_I = 1
+} H264eVpuFrameType;
+
 typedef struct h264e_hal_vpu_dump_files_t {
     FILE *fp_mpp_syntax_in;
     FILE *fp_mpp_reg_in;
@@ -616,33 +621,6 @@ typedef struct h264e_hal_vpu_dump_files_t {
     FILE *fp_mpp_strm_out;
     FILE *fp_mpp_feedback;
 } h264e_hal_vpu_dump_files;
-
-/* transplant from vpu_api.h:EncInputPictureType */
-typedef enum {
-    H264E_VPU_CSP_YUV420P   = 0,    // YYYY... UUUU... VVVV
-    H264E_VPU_CSP_YUV420SP  = 1,    // YYYY... UVUVUV...
-    H264E_VPU_CSP_YUYV422   = 2,    // YUYVYUYV...
-    H264E_VPU_CSP_UYVY422   = 3,    // UYVYUYVY...
-    H264E_VPU_CSP_RGB565    = 4,    // 16-bit RGB
-    H264E_VPU_CSP_BGR565    = 5,    // 16-bit RGB
-    H264E_VPU_CSP_RGB555    = 6,    // 15-bit RGB
-    H264E_VPU_CSP_BGR555    = 7,    // 15-bit RGB
-    H264E_VPU_CSP_RGB444    = 8,    // 12-bit RGB
-    H264E_VPU_CSP_BGR444    = 9,    // 12-bit RGB
-    H264E_VPU_CSP_RGB888    = 10,   // 24-bit RGB
-    H264E_VPU_CSP_BGR888    = 11,   // 24-bit RGB
-    H264E_VPU_CSP_RGB101010 = 12,   // 30-bit RGB
-    H264E_VPU_CSP_BGR101010 = 13,   // 30-bit RGB
-    H264E_VPU_CSP_NONE,
-    H264E_VPU_CSP_BUTT,
-} h264e_hal_vpu_csp;
-
-typedef struct h264e_hal_vpu_csp_info_t {
-    RK_U32 fmt;
-    RK_U32 r_mask_msb;
-    RK_U32 g_mask_msb;
-    RK_U32 b_mask_msb;
-} h264e_hal_vpu_csp_info;
 
 /* struct for assemble bitstream */
 typedef struct h264e_hal_vpu_stream_t {
@@ -665,21 +643,6 @@ typedef struct h264e_hal_vpu_extra_info_t {
     h264e_hal_pps pps;
     h264e_hal_sei sei;
 } h264e_hal_vpu_extra_info;
-
-typedef enum h264e_hal_vpu_buf_grp_t {
-    H264E_HAL_VPU_BUF_GRP_REC,
-    H264E_HAL_VPU_BUF_GRP_CABAC_TBL,
-    H264E_HAL_VPU_BUF_GRP_NALSIZE_TBL,
-    H264E_HAL_VPU_BUF_GRP_BUTT,
-} h264e_hal_vpu_buf_grp;
-
-typedef struct h264e_hal_vpu_buffers_t {
-    MppBufferGroup hw_buf_grp;
-
-    MppBuffer hw_rec_buf[2];
-    MppBuffer hw_cabac_table_buf;
-    MppBuffer hw_nal_size_table_buf;
-} h264e_hal_vpu_buffers;
 
 typedef struct h264e_vpu_reg_set_t {
     RK_U32 val[VEPU_H264E_NUM_REGS];

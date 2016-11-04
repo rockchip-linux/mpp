@@ -177,11 +177,6 @@ MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
         mpp_cfg->format = syntax->format;
         mpp_cfg->qp     = syntax->quality;
     } break;
-    case GET_ENC_EXTRA_INFO : {
-    } break;
-    case GET_OUTPUT_STREAM_SIZE : {
-        *((RK_U32*)param) = p->feedback.stream_length;
-    } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
         ret = MPP_NOK;

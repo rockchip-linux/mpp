@@ -22,6 +22,7 @@
 #include "mpp_packet.h"
 #include "mpp_log.h"
 #include "mpp_hal.h"
+#include "mpp_rc.h"
 
 #include "h264e_syntax.h"
 
@@ -36,12 +37,10 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_LOG_DPB               0x00001000
 #define H264E_HAL_LOG_HEADER            0x00002000
 #define H264E_HAL_LOG_SEI               0x00004000
-#define H264E_HAL_LOG_PP                0x00008000
 
 #define H264E_HAL_LOG_DETAIL            0x00010000
 
 #define H264E_HAL_LOG_FILE              0x00100000
-
 
 
 
@@ -58,62 +57,56 @@ extern RK_U32 h264e_hal_log_mode;
 #define h264e_hal_debug_enter() \
     do {\
         if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
-            { mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__); }\
+            mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
     } while (0)
 
 #define h264e_hal_debug_leave() \
     do {\
         if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
-            { mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__); }\
+            mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
     } while (0)
 
 #define h264e_hal_log_err(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_ERROR)\
-                    { mpp_err_f(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_ERROR)\
+            mpp_err_f(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_detail(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_dpb(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_DPB)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_DPB)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_header(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_HEADER)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_HEADER)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_sei(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_SEI)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_SEI)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_simple(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_SIMPLE)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_SIMPLE)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define h264e_hal_log_file(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_FILE)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
-
-#define h264e_hal_log_pp(fmt, ...) \
-            do {\
-                if (h264e_hal_log_mode & H264E_HAL_LOG_PP)\
-                    { mpp_log(fmt, ## __VA_ARGS__); }\
-            } while (0)
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_FILE)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 #define H264E_HAL_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define H264E_HAL_MAX(a,b) ( (a)>(b) ? (a) : (b) )
@@ -128,14 +121,14 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \
         reg[(addr)>>2] = (RK_U32)(val);                                      \
-        if(h264e_hal_log_mode & 0/*H264E_HAL_LOG_INFO*/)                              \
+        if (h264e_hal_log_mode & 0/*H264E_HAL_LOG_INFO*/)                              \
             mpp_log("line(%d) set reg[%03d/%03x]: %08x", __LINE__, (addr)>>2, addr, val); \
     } while (0)
 
 
 #define H264E_HAL_VALIDATE_GT(val, name, limit)                    \
     do {                                                     \
-        if((val)<=(limit)) {                                 \
+        if ((val)<=(limit)) {                                 \
             mpp_err("%s(%d) should > %d", name, val, limit); \
             return MPP_NOK;                                  \
         }                                                    \
@@ -161,6 +154,101 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_SPSPPS_BUF_SIZE               512  //sps + pps
 #define H264E_SEI_BUF_SIZE                  1024 //unit in byte, may not be large enough in the future
 #define H264E_EXTRA_INFO_BUF_SIZE           (H264E_SPSPPS_BUF_SIZE + H264E_SEI_BUF_SIZE)
+
+#define H264E_NUM_REFS               1
+#define H264E_LONGTERM_REF_EN        0
+#define H264E_CQM_FLAT               0
+#define H264E_CQM_JVT                1
+#define H264E_CQM_CUSTOM             2
+#define H264E_B_PYRAMID_NONE         0
+#define H264E_B_PYRAMID_STRICT       1
+#define H264E_B_PYRAMID_NORMAL       2
+
+#define H264E_CSP2_MASK           0x00ff  /* */
+#define H264E_CSP2_NONE           0x0000  /* Invalid mode     */
+#define H264E_CSP2_I420           0x0001  /* yuv 4:2:0 planar */
+#define H264E_CSP2_YV12           0x0002  /* yvu 4:2:0 planar */
+#define H264E_CSP2_NV12           0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
+#define H264E_CSP2_I422           0x0004  /* yuv 4:2:2 planar */
+#define H264E_CSP2_YV16           0x0005  /* yvu 4:2:2 planar */
+#define H264E_CSP2_NV16           0x0006  /* yuv 4:2:2, with one y plane and one packed u+v */
+#define H264E_CSP2_V210           0x0007  /* 10-bit yuv 4:2:2 packed in 32 */
+#define H264E_CSP2_I444           0x0008  /* yuv 4:4:4 planar */
+#define H264E_CSP2_YV24           0x0009  /* yvu 4:4:4 planar */
+#define H264E_CSP2_BGR            0x000a  /* packed bgr 24bits   */
+#define H264E_CSP2_BGRA           0x000b  /* packed bgr 32bits   */
+#define H264E_CSP2_RGB            0x000c  /* packed rgb 24bits   */
+#define H264E_CSP2_MAX            0x000d  /* end of list */
+#define H264E_CSP2_VFLIP          0x1000  /* the csp is vertically flipped */
+#define H264E_CSP2_HIGH_DEPTH     0x2000  /* the csp has a depth of 16 bits per pixel component */
+
+typedef enum h264e_rkv_csp_t {
+    H264E_RKV_CSP_BGRA8888,     // 0
+    H264E_RKV_CSP_BGR888,       // 1
+    H264E_RKV_CSP_BGR565,       // 2
+    H264E_RKV_CSP_NONE,         // 3
+    H264E_RKV_CSP_YUV422SP,     // 4
+    H264E_RKV_CSP_YUV422P,      // 5
+    H264E_RKV_CSP_YUV420SP,     // 6
+    H264E_RKV_CSP_YUV420P,      // 7
+    H264E_RKV_CSP_YUYV422,      // 8
+    H264E_RKV_CSP_UYVY422,      // 9
+    H264E_RKV_CSP_BUTT,         // 10
+} h264e_hal_rkv_csp;
+
+typedef struct h264e_hal_rkv_csp_info_t {
+    RK_U32 fmt;
+    RK_U32 cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
+    RK_U32 aswap; // 0: BGRA, 1:ABGR.
+} h264e_hal_rkv_csp_info;
+
+/* transplant from vpu_api.h:EncInputPictureType */
+typedef enum {
+    H264E_VPU_CSP_YUV420P   = 0,    // YYYY... UUUU... VVVV
+    H264E_VPU_CSP_YUV420SP  = 1,    // YYYY... UVUVUV...
+    H264E_VPU_CSP_YUYV422   = 2,    // YUYVYUYV...
+    H264E_VPU_CSP_UYVY422   = 3,    // UYVYUYVY...
+    H264E_VPU_CSP_RGB565    = 4,    // 16-bit RGB
+    H264E_VPU_CSP_BGR565    = 5,    // 16-bit RGB
+    H264E_VPU_CSP_RGB555    = 6,    // 15-bit RGB
+    H264E_VPU_CSP_BGR555    = 7,    // 15-bit RGB
+    H264E_VPU_CSP_RGB444    = 8,    // 12-bit RGB
+    H264E_VPU_CSP_BGR444    = 9,    // 12-bit RGB
+    H264E_VPU_CSP_RGB888    = 10,   // 24-bit RGB
+    H264E_VPU_CSP_BGR888    = 11,   // 24-bit RGB
+    H264E_VPU_CSP_RGB101010 = 12,   // 30-bit RGB
+    H264E_VPU_CSP_BGR101010 = 13,   // 30-bit RGB
+    H264E_VPU_CSP_NONE,
+    H264E_VPU_CSP_BUTT,
+} h264e_hal_vpu_csp;
+
+typedef struct h264e_hal_vpu_csp_info_t {
+    RK_U32 fmt;
+    RK_U32 r_mask_msb;
+    RK_U32 g_mask_msb;
+    RK_U32 b_mask_msb;
+} h264e_hal_vpu_csp_info;
+
+typedef enum h264e_chroma_fmt_t {
+    H264E_CHROMA_400 = 0,
+    H264E_CHROMA_420 = 1,
+    H264E_CHROMA_422 = 2,
+    H264E_CHROMA_444 = 3,
+} h264e_chroma_fmt;
+
+typedef enum h264e_cqm4_t {
+    H264E_CQM_4IY = 0,
+    H264E_CQM_4PY = 1,
+    H264E_CQM_4IC = 2,
+    H264E_CQM_4PC = 3
+} h264e_cqm4;
+
+typedef enum h264e_cqm8_t {
+    H264E_CQM_8IY = 0,
+    H264E_CQM_8PY = 1,
+    H264E_CQM_8IC = 2,
+    H264E_CQM_8PC = 3,
+} h264e_cqm8;
 
 typedef enum h264e_hal_slice_type_t {
     H264E_HAL_SLICE_TYPE_P  = 0,
@@ -201,63 +289,7 @@ typedef struct h264e_hal_sps_t {
         RK_S32 i_bottom;
     } crop;
 
-    RK_S32 b_vui;
-    struct {
-        RK_S32 b_aspect_ratio_info_present;
-        RK_S32 i_sar_width;
-        RK_S32 i_sar_height;
-
-        RK_S32 b_overscan_info_present;
-        RK_S32 b_overscan_info;
-
-        RK_S32 b_signal_type_present;
-        RK_S32 i_vidformat;
-        RK_S32 b_fullrange;
-        RK_S32 b_color_description_present;
-        RK_S32 i_colorprim;
-        RK_S32 i_transfer;
-        RK_S32 i_colmatrix;
-
-        RK_S32 b_chroma_loc_info_present;
-        RK_S32 i_chroma_loc_top;
-        RK_S32 i_chroma_loc_bottom;
-
-        RK_S32 b_timing_info_present;
-        RK_U32 i_num_units_in_tick;
-        RK_U32 i_time_scale;
-        RK_S32 b_fixed_frame_rate;
-
-        RK_S32 b_nal_hrd_parameters_present;
-        RK_S32 b_vcl_hrd_parameters_present;
-
-        struct {
-            RK_S32 i_cpb_cnt;
-            RK_S32 i_bit_rate_scale;
-            RK_S32 i_cpb_size_scale;
-            RK_S32 i_bit_rate_value;
-            RK_S32 i_cpb_size_value;
-            RK_S32 i_bit_rate_unscaled;
-            RK_S32 i_cpb_size_unscaled;
-            RK_S32 b_cbr_hrd;
-
-            RK_S32 i_initial_cpb_removal_delay_length;
-            RK_S32 i_cpb_removal_delay_length;
-            RK_S32 i_dpb_output_delay_length;
-            RK_S32 i_time_offset_length;
-        } hrd;
-
-        RK_S32 b_pic_struct_present;
-        RK_S32 b_bitstream_restriction;
-        RK_S32 b_motion_vectors_over_pic_boundaries;
-        RK_S32 i_max_bytes_per_pic_denom;
-        RK_S32 i_max_bits_per_mb_denom;
-        RK_S32 i_log2_max_mv_length_horizontal;
-        RK_S32 i_log2_max_mv_length_vertical;
-        RK_S32 i_num_reorder_frames;
-        RK_S32 i_max_dec_frame_buffering;
-
-        /* FIXME to complete */
-    } vui;
+    MppEncH264VuiCfg vui;
 
     RK_S32 b_qpprime_y_zero_transform_bypass;
     RK_S32 i_chroma_format_idc;
@@ -373,17 +405,16 @@ typedef struct h264e_hal_ref_param_t {
 
 
 typedef struct h264e_hal_param_t {
+    RK_S32 hw_type; // 0:rkv, 1:vpu
     RK_S32 constrained_intra;
 
     h264e_hal_vui_param vui;
     h264e_hal_ref_param ref;
-
 } h264e_hal_param;
 
 typedef struct h264e_hal_context_t {
     MppHalApi                       api;
-    VPU_CLIENT_TYPE                 vpu_client;
-    RK_S32                          vpu_socket;
+    RK_S32                          vpu_fd;
     IOInterruptCB                   int_cb;
     h264e_feedback                  feedback;
     void                            *regs;
@@ -407,7 +438,25 @@ typedef struct h264e_hal_context_t {
     RK_U32                          osd_plt_type; //0:user define, 1:default
     MppEncOSDData                   osd_data;
     MppEncSeiMode                   sei_mode;
-    MppEncPrepCfg                   prep_cfg;
+
+    MppEncCfgSet                    *cfg;
+    MppEncCfgSet                    *set;
+    RK_U32                          idr_pic_id;
+
+    RK_U32                          buffer_ready;
+    H264eHwCfg                      hw_cfg;
+    MppLinReg                       *inter_qs;
+    MppLinReg                       *intra_qs;
 } h264e_hal_context;
+
+MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps);
+MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_sps *sps);
+void hal_h264e_set_param(h264e_hal_param *p, RK_S32 hw_type);
+
+const RK_U8 * const h264e_cqm_jvt[8];
+const RK_U8 h264e_zigzag_scan4[2][16];
+const RK_U8 h264e_zigzag_scan8[2][64];
+void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
+void hal_h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
 
 #endif

@@ -21,16 +21,11 @@
 #include "mpp_buf_slot.h"
 #include "hal_task.h"
 
-// TODO
-#include "../enc/h264/include/h264encapi.h"
-
 // config cmd
 typedef enum EncCfgCmd_t {
     CHK_ENC_CFG,
     SET_ENC_CFG,
     SET_ENC_RC_CFG,
-    GET_ENC_EXTRA_INFO,
-    GET_OUTPUT_STREAM_SIZE,
     SET_IDR_FRAME,
 } EncCfgCmd;
 
@@ -40,6 +35,8 @@ typedef enum EncCfgCmd_t {
 typedef struct EncControllerInitCfg_t {
     // input
     MppCodingType   coding;
+    MppEncCfgSet    *cfg;
+    MppEncCfgSet    *set;
 
     // output
     RK_S32          task_count;

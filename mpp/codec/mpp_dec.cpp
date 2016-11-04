@@ -1038,6 +1038,8 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
             frame_slots,
             packet_slots,
             NULL,
+            NULL,
+            NULL,
             parser_cfg.task_count,
             cfg->fast_mode,
             cb,

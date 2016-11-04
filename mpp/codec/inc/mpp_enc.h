@@ -18,6 +18,8 @@
 #define __MPP_ENC_H__
 
 #include "rk_mpi.h"
+
+#include "mpp_thread.h"
 #include "mpp_controller.h"
 #include "mpp_hal.h"
 
@@ -83,10 +85,10 @@
  *   +----------init------------>                 |                       |
  *   |                          |                 |                       |
  *   |                          |                 |                       |
- *   |         MppFrame         |                 |                       |
- *   +---------control---------->     MppFrame    |                       |
+ *   |         PrepCfg          |                 |                       |
+ *   +---------control---------->     PrepCfg     |                       |
  *   |                          +-----control----->                       |
- *   |                          |                 |        MppFrame       |
+ *   |                          |                 |        PrepCfg        |
  *   |                          +--------------------------control-------->
  *   |                          |                 |                    allocate
  *   |                          |                 |                     buffer
@@ -107,10 +109,6 @@
  *   |      Get extra info      |                 |                       |
  *   +---------control---------->                 |                       |
  *   |                          |                 |                       |
- *   |                          |                 |                       |
- *   |         PrepCfg          |                 |                       |
- *   +---------control---------->                 |        PrepCfg        |
- *   |                          +--------------------------control-------->
  *   |                          |                 |                       |
  *   |         ROICfg           |                 |                       |
  *   +---------control---------->                 |        ROICfg         |
@@ -165,12 +163,13 @@ struct MppEnc_t {
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
 
+    // internal status and protection
+    Mutex               lock;
     RK_U32              reset_flag;
-    void                *mpp;
 
     /* Encoder configure set */
-    MppEncRcCfg         rc_cfg;
-    MppFrame            data_cfg;
+    MppEncCfgSet        cfg;
+    MppEncCfgSet        set;
 
     /*
      * configuration parameter to controller and hal
@@ -193,6 +192,15 @@ MPP_RET mpp_enc_deinit(MppEnc *enc);
 MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(void *ctx, void *info);
 MPP_RET mpp_enc_reset(MppEnc *enc);
+
+/*
+ * preprocess config and rate-control config is common config then they will
+ * be done in mpp_enc layer
+ *
+ * codec related config will be set in each hal component
+ */
+void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src);
+void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src);
 
 #ifdef __cplusplus
 }

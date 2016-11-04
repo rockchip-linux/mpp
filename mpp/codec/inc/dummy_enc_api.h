@@ -17,8 +17,6 @@
 #ifndef __DUMMY_ENC_API_H__
 #define __DUMMY_ENC_API_H__
 
-#include "mpp_enc.h"
-
 #ifdef  __cplusplus
 extern "C" {
 #endif

@@ -118,9 +118,14 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
             p->api          = hw_apis[i];
             p->task_count   = cfg->task_count;
             p->ctx          = mpp_calloc_size(void, p->api->ctx_size);
-            p->api->init(p->ctx, cfg);
 
-            MPP_RET ret = hal_task_group_init(&p->tasks, p->type, p->task_count);
+            MPP_RET ret = p->api->init(p->ctx, cfg);
+            if (ret) {
+                mpp_err_f("hal %s init failed ret %d\n", hw_apis[i]->name, ret);
+                break;
+            }
+
+            ret = hal_task_group_init(&p->tasks, p->type, p->task_count);
             if (ret) {
                 mpp_err_f("hal_task_group_init failed ret %d\n", ret);
                 break;

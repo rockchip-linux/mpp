@@ -27,7 +27,7 @@
 #include "mpp_hal.h"
 #include "mpp_env.h"
 #include "hal_h264e_api.h"
-#include "hal_h264e.h"
+#include "hal_h264e_com.h"
 #include "hal_h264e_vpu.h"
 #include "hal_h264e_rkv.h"
 
@@ -37,6 +37,11 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
 {
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     MppHalApi *api = &ctx->api;
+    MppEncCodecCfg *codec = &cfg->cfg->codec;
+    MppEncH264Cfg *h264 = &codec->h264;
+    MppEncH264VuiCfg *vui = &h264->vui;
+    MppEncH264RefCfg *ref = &h264->ref;
+    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
 
     mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00000001);
     if (!access("/dev/rkvenc", F_OK))
@@ -54,6 +59,7 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
         api->reset   = hal_h264e_vpu_reset;
         api->flush   = hal_h264e_vpu_flush;
         api->control = hal_h264e_vpu_control;
+        hw_cfg->hw_type = H264E_VPU;
         break;
     case HAL_RKVENC:
         api->init    = hal_h264e_rkv_init;
@@ -64,11 +70,57 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
         api->reset   = hal_h264e_rkv_reset;
         api->flush   = hal_h264e_rkv_flush;
         api->control = hal_h264e_rkv_control;
+        hw_cfg->hw_type = H264E_RKV;
         break;
     default:
         mpp_err("invalid device_id: %d", cfg->device_id);
         return MPP_NOK;
     }
+
+    /*
+     * default codec:
+     * High Profile
+     * frame mode
+     * all flag enabled
+     */
+    codec->change = 0;
+    codec->coding = MPP_VIDEO_CodingAVC;
+    h264->profile = 100;
+    h264->level = 31;
+    h264->entropy_coding_mode = 1;
+    h264->cabac_init_idc = 0;
+    h264->transform8x8_mode = 1;
+    h264->constrained_intra_pred_mode = 0;
+    h264->chroma_cb_qp_offset = 0;
+    h264->chroma_cr_qp_offset = 0;
+    h264->deblock_disable = 0;
+    h264->deblock_offset_alpha = 0;
+    h264->deblock_offset_beta = 0;
+    h264->use_longterm = 0;
+    h264->qp_init = 26;
+    h264->qp_max = 48;
+    h264->qp_min = 16;
+    h264->qp_max_step = 8;
+    h264->intra_refresh_mode = 0;
+    h264->intra_refresh_arg = 0;
+    h264->slice_mode = 0;
+    h264->slice_arg = 0;
+    h264->vui.change = 0;
+    h264->sei.change = 0;
+
+    vui->b_vui          = 1;
+
+    ref->i_frame_reference = H264E_NUM_REFS;
+    ref->i_dpb_size = H264E_NUM_REFS;
+    ref->i_ref_pos = 1;
+    ref->i_long_term_en = H264E_LONGTERM_REF_EN;
+    ref->hw_longterm_mode = 0;
+    ref->i_long_term_internal = 0;
+    ref->i_frame_packing = -1;
+
+
+    ctx->cfg = cfg->cfg;
+    ctx->set = cfg->set;
 
     return api->init(hal, cfg);
 }

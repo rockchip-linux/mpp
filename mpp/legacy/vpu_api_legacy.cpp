@@ -306,6 +306,97 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
 
+        MppEncPrepCfg prep_cfg;
+        prep_cfg.change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                              MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+        prep_cfg.width      = param->width;
+        prep_cfg.height     = param->height;
+        prep_cfg.hor_stride = MPP_ALIGN(param->width, 16);
+        prep_cfg.ver_stride = MPP_ALIGN(param->height, 16);
+        prep_cfg.format     = (MppFrameFormat)mpp_cfg.format;
+
+        mpi->control(mpp_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
+
+        MppEncRcCfg rc_cfg;
+        rc_cfg.change       = MPP_ENC_RC_CFG_CHANGE_ALL;
+        rc_cfg.rc_mode      = (mpp_cfg.rc_mode == 0) ? (1) :    /* 0 - constant QP */
+                              (mpp_cfg.rc_mode == 1) ? (5) :    /* 1 - constant bitrate */
+                              (3);     /* 2 - variable bitrate */
+        rc_cfg.quality      = 0;                                /* auto quality */
+
+        if (rc_cfg.rc_mode == 1) {
+            /* constant QP does not have bps */
+            rc_cfg.bps_target   = -1;
+            rc_cfg.bps_max      = -1;
+            rc_cfg.bps_min      = -1;
+        } else if (rc_cfg.rc_mode == 5) {
+            /* constant bitrate has very small bps range of 1/16 bps */
+            rc_cfg.bps_target   = mpp_cfg.bps;
+            rc_cfg.bps_max      = mpp_cfg.bps * 17 / 16;
+            rc_cfg.bps_min      = mpp_cfg.bps * 15 / 16;
+        } else if (rc_cfg.rc_mode == 3) {
+            /* variable bitrate has large bps range */
+            rc_cfg.bps_target   = mpp_cfg.bps;
+            rc_cfg.bps_max      = mpp_cfg.bps * 17 / 16;
+            rc_cfg.bps_min      = mpp_cfg.bps * 1 / 16;
+        }
+
+        /* fix input / output frame rate */
+        rc_cfg.fps_in_flex      = 0;
+        rc_cfg.fps_in_num       = mpp_cfg.fps_in;
+        rc_cfg.fps_in_denorm    = 1;
+        rc_cfg.fps_out_flex     = 0;
+        rc_cfg.fps_out_num      = mpp_cfg.fps_out;
+        rc_cfg.fps_out_denorm   = 1;
+
+        rc_cfg.gop              = mpp_cfg.gop;
+        rc_cfg.skip_cnt         = mpp_cfg.skip_cnt;
+
+        mpi->control(mpp_ctx, MPP_ENC_SET_RC_CFG, &rc_cfg);
+
+        MppEncCodecCfg codec_cfg;
+        codec_cfg.coding = (MppCodingType)ctx->videoCoding;
+        switch (codec_cfg.coding) {
+        case MPP_VIDEO_CodingAVC : {
+            codec_cfg.h264.change = MPP_ENC_H264_CFG_STREAM_TYPE |
+                                    MPP_ENC_H264_CFG_CHANGE_PROFILE |
+                                    MPP_ENC_H264_CFG_CHANGE_ENTROPY |
+                                    MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+            codec_cfg.h264.stream_type = 1;
+            codec_cfg.h264.profile  = mpp_cfg.profile;
+            codec_cfg.h264.level    = mpp_cfg.level;
+            codec_cfg.h264.entropy_coding_mode  = mpp_cfg.cabac_en;
+
+            if (rc_cfg.rc_mode == 1) {
+                /* constant QP mode qp is fixed */
+                codec_cfg.h264.qp_max       = mpp_cfg.qp;
+                codec_cfg.h264.qp_min       = mpp_cfg.qp;
+                codec_cfg.h264.qp_max_step  = 0;
+            } else if (rc_cfg.rc_mode == 5) {
+                /* constant bitrate do not limit qp range */
+                codec_cfg.h264.qp_max       = 48;
+                codec_cfg.h264.qp_min       = 4;
+                codec_cfg.h264.qp_max_step  = 51;
+            } else if (rc_cfg.rc_mode == 3) {
+                /* variable bitrate has qp min limit */
+                codec_cfg.h264.qp_max       = 48;
+                codec_cfg.h264.qp_min       = mpp_cfg.qp;
+                codec_cfg.h264.qp_max_step  = 8;
+            }
+            codec_cfg.h264.qp_init = 26;
+        } break;
+        case MPP_VIDEO_CodingMJPEG : {
+            codec_cfg.jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
+            codec_cfg.jpeg.quant = mpp_cfg.qp;
+        } break;
+        case MPP_VIDEO_CodingVP8 :
+        case MPP_VIDEO_CodingHEVC :
+        default : {
+            mpp_err_f("support encoder coding type %d\n", codec_cfg.coding);
+        } break;
+        }
+        mpi->control(mpp_ctx, MPP_ENC_SET_CODEC_CFG, &codec_cfg);
+
         mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
 
         if (pkt) {

@@ -47,6 +47,9 @@ typedef struct MppHalCfg_t {
     HalDeviceId     device_id;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
+    // for encoder
+    MppEncCfgSet    *cfg;           /* encoder runtime config */
+    MppEncCfgSet    *set;           /* encoder input config */
 
     // output
     HalTaskGroup    tasks;

@@ -21,21 +21,6 @@
 
 typedef void* Controller;
 
-typedef struct EncTask_t {
-    HalTaskHnd      hnd;
-
-    RK_S32          hal_frm_idx_in;
-    RK_S32          hal_pkt_idx_out;
-
-    MppBuffer       ctrl_frm_buf_in;
-    MppBuffer       ctrl_pkt_buf_out;
-
-    h264e_syntax    syntax_data;
-
-    HalTaskInfo     info;
-} EncTask;
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
