@@ -18,7 +18,6 @@
 
 #include <string.h>
 #include <math.h>
-#include <sys/ioctl.h>
 
 #include "vpu.h"
 #include "mpp_common.h"
@@ -41,9 +40,8 @@
 #define RKVENC_IS_TYPE_B(x) ((x)==RKVENC_FRAME_TYPE_B || (x)==RKVENC_FRAME_TYPE_BREF)
 #define RKVENC_IS_DISPOSABLE(type) ( type == RKVENC_FRAME_TYPE_B )
 
-#define H264E_IOC_MAGIC                       'l'
-#define H264E_IOC_CUSTOM_BASE                 0x1000
-#define H264E_IOC_SET_OSD_PLT                 _IOW(H264E_IOC_MAGIC, H264E_IOC_CUSTOM_BASE+1, MppEncOSDPlt)
+#define H264E_IOC_CUSTOM_BASE           0x1000
+#define H264E_IOC_SET_OSD_PLT           (H264E_IOC_CUSTOM_BASE + 1)
 
 
 const RK_S32 h264e_csp_idx_map[H264E_RKV_CSP_BUTT] = {RKV_H264E_CSP2_BGRA, RKV_H264E_CSP2_BGR, RKV_H264E_CSP2_RGB, 0, RKV_H264E_CSP2_NV16, RKV_H264E_CSP2_I422, RKV_H264E_CSP2_NV12,
@@ -295,24 +293,6 @@ static RK_U32 reg_idx2addr_map[132] = {
     0x08e8, //131
 };
 #endif
-
-static MPP_RET hal_h264e_rkv_cfg_hardware(RK_S32 socket, RK_U32 cmd, void *param)
-{
-    RK_S32 ret = 0;
-
-    if (param == NULL) {
-        h264e_hal_log_err("input param is NULL");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    ret = (RK_S32)ioctl(socket, cmd, param);
-    if (ret) {
-        h264e_hal_log_err("ioctl H264E_IOC_SET_OSDL_PLT failed ret %d", ret);
-        return MPP_NOK;
-    }
-
-    return MPP_OK;
-}
 
 static h264e_hal_rkv_csp_info hal_h264e_rkv_convert_csp(RK_S32 src_type)
 {
@@ -2636,7 +2616,7 @@ static MPP_RET hal_h264e_rkv_set_osd_plt(h264e_hal_context *ctx, void *param)
     h264e_hal_debug_enter();
     if (plt->buf) {
         ctx->osd_plt_type = 0;
-        if (MPP_OK != hal_h264e_rkv_cfg_hardware(ctx->vpu_socket, H264E_IOC_SET_OSD_PLT, param)) {
+        if (MPP_OK != VPUClientSendReg2(ctx->vpu_socket, H264E_IOC_SET_OSD_PLT, sizeof(MppEncOSDPlt), param)) {
             h264e_hal_log_err("set osd plt error");
             return MPP_NOK;
         }
