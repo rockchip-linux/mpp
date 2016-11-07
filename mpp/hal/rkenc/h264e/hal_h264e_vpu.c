@@ -2239,12 +2239,16 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
 #endif
         break;
     }
+    case MPP_ENC_SET_OSD_PLT_CFG:
+    case MPP_ENC_SET_OSD_DATA_CFG: {
+        break;
+    }
     case MPP_ENC_SET_SEI_CFG: {
         ctx->sei_mode = *((MppEncSeiMode *)param);
         break;
     }
     default : {
-        mpp_err("unrecognizable cmd type %d", cmd_type);
+        mpp_err("unrecognizable cmd type %x", cmd_type);
     } break;
     }
 

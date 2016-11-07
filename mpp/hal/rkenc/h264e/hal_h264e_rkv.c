@@ -3857,7 +3857,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
         break;
     }
     default : {
-        h264e_hal_log_err("unrecognizable cmd type %d", cmd_type);
+        h264e_hal_log_err("unrecognizable cmd type %x", cmd_type);
     } break;
     }
 
