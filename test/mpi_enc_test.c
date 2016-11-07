@@ -56,6 +56,7 @@ static OptionInfo mpi_enc_cmd[] = {
     {"h",               "height",               "the height of input picture"},
     {"f",               "format",               "the format of input picture"},
     {"t",               "type",                 "output stream coding type"},
+    {"n",               "max frame number",     "max encoding frame number"},
     {"d",               "debug",                "debug flag"},
 };
 
@@ -188,7 +189,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     MppFrameFormat fmt  = cmd->format;
     MppCodingType type  = cmd->type;
-    RK_U32 max_num_frame = cmd->num_frames;
+    RK_U32 num_frames   = cmd->num_frames;
 
     // resources
     size_t frame_size   = hor_stride * ver_stride * 3 / 2;
@@ -467,7 +468,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             }
         } while (1);
 
-        if (max_num_frame && frame_count >= max_num_frame) {
+        if (num_frames && frame_count >= num_frames) {
             mpp_log_f("encode max %d frames", frame_count);
             break;
         }
@@ -654,11 +655,11 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
-            case 'F':
+            case 'n':
                 if (next) {
                     cmd->num_frames = atoi(next);
                 } else {
-                    mpp_err("invalid input number of frames\n");
+                    mpp_err("invalid input max number of frames\n");
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
