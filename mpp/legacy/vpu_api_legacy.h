@@ -81,8 +81,6 @@ private:
 
     /* encoder parameters */
     MppBufferGroup      memGroup;
-    RK_U8*              buffer_out;
-    RK_U32              buffer_size;
     EncInputPictureType enc_in_fmt;
 
     RK_S32 fd_input;

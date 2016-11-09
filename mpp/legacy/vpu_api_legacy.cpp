@@ -188,8 +188,6 @@ VpuApiLegacy::VpuApiLegacy() :
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
-    buffer_out(NULL),
-    buffer_size(0),
     enc_in_fmt(ENC_INPUT_YUV420_PLANAR),
     fd_input(-1),
     fd_output(-1),
@@ -220,11 +218,6 @@ VpuApiLegacy::~VpuApiLegacy()
         mpp_free(fp_buf);
         fp_buf = NULL;
     }
-    if (buffer_out) {
-        mpp_free(buffer_out);
-        buffer_out = NULL;
-    }
-    buffer_size = 0;
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
         memGroup = NULL;
@@ -596,11 +589,11 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
 
         // copy decoded frame into output buffer, and set outpub frame size
         if (mframe != NULL) {
-            MppBuffer buf_out   = mpp_frame_get_buffer(mframe);
+            MppBuffer buf_out = mpp_frame_get_buffer(mframe);
             size_t len  = mpp_buffer_get_size(buf_out);
             aDecOut->size = len;
 
-            if (!is_valid_dma_fd(fd)) {
+            if (fd_output) {
                 mpp_log_f("fd for output is invalid!\n");
                 // TODO: check frame format and allocate correct buffer
                 aDecOut->data = mpp_malloc(RK_U8, width * height * 3 / 2);
@@ -976,22 +969,25 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
+
+        if (!fd_output) {
+            RK_U8 *src = (RK_U8 *)mpp_packet_get_data(packet);
+            size_t buffer = MPP_ALIGN(length, SZ_4K);
+
+            aEncOut->data = mpp_malloc(RK_U8, buffer);
+
+            if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC) {
+                // remove first 00 00 00 01
+                length -= 4;
+                memcpy(aEncOut->data, src + 4, length);
+            } else {
+                memcpy(aEncOut->data, src, length);
+            }
+        }
+
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
-
-        if (!is_valid_dma_fd(fd)) {
-            if (buffer_size < length) {
-                buffer_size = MPP_ALIGN(length + 4, SZ_4K);
-
-                if (buffer_out)
-                    mpp_free(buffer_out);
-
-                buffer_out = mpp_malloc(RK_U8, buffer_size);
-            }
-            memcpy(buffer_out, (RK_U8*) mpp_buffer_get_ptr(str_buf), length);
-            aEncOut->data = buffer_out;
-        }
 
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
@@ -1121,7 +1117,7 @@ RK_S32 VpuApiLegacy::getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *dec
     case OMX_RK_VIDEO_CodingMPEG2:      /**< AKA: H.262 */
     case OMX_RK_VIDEO_CodingMPEG4:      /**< MPEG-4 */
     case OMX_RK_VIDEO_CodingAVC:        /**< H.264/AVC */
-    case OMX_RK_VIDEO_CodingVP8:                     /**< VP8 */
+    case OMX_RK_VIDEO_CodingVP8:        /**< VP8 */
     case OMX_RK_VIDEO_CodingH263:
         decoder_format->aligned_width = (decoder_format->width + 15) & (~15);
         //printf("decoder_format->aligned_width %d\n", decoder_format->aligned_width);
@@ -1163,26 +1159,20 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
+        size_t size = MPP_ALIGN(length + 4, SZ_4K);
+        aEncOut->data = mpp_malloc(RK_U8, size);
 
-        if (buffer_size < length) {
-            buffer_size = MPP_ALIGN(length + 4, SZ_4K);
-
-            if (buffer_out)
-                mpp_free(buffer_out);
-
-            buffer_out = mpp_malloc(RK_U8, buffer_size);
+        if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC) {
+            // remove first 00 00 00 01
+            length -= 4;
+            memcpy(aEncOut->data, src + 4, length);
+        } else {
+            memcpy(aEncOut->data, src, length);
         }
 
-        mpp_assert(buffer_out);
-        mpp_assert(length >= 4);
-        // remove first 00 00 00 01
-        length -= 4;
-
-        aEncOut->data = buffer_out;
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
-        memcpy(buffer_out, src + 4, length);
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
 
