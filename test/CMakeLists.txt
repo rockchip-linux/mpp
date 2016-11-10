@@ -43,3 +43,6 @@ add_mpp_test(mpi_dec)
 
 # mpi encoder unit test
 add_mpp_test(mpi_enc)
+
+# mpi rc unit test
+add_mpp_test(mpi_rc)
