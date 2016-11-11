@@ -89,6 +89,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
     mpi_dbg_func("enter ctx %p packet %p frame %p\n", ctx, packet, frame);
     do {
         RK_U32 packet_done = 0;
+        Mpp *mpp = p->ctx;
         ret = check_mpp_ctx(p);
         if (ret)
             break;
@@ -103,11 +104,14 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
 
         do {
             /*
-             * if there is frame to return get the frame first
+             * If there is frame to return get the frame first
+             * But if the output mode is block then we need to send packet first
              */
-            ret = p->ctx->get_frame(frame);
-            if (ret || *frame)
-                break;
+            if (!mpp->mOutputBlock || packet_done) {
+                ret = mpp->get_frame(frame);
+                if (ret || *frame)
+                    break;
+            }
 
             /* when packet is send do one more get frame here */
             if (packet_done)
@@ -116,7 +120,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
             /*
              * then send input stream with block mode
              */
-            ret = p->ctx->put_packet(packet);
+            ret = mpp->put_packet(packet);
             if (MPP_OK == ret)
                 packet_done = 1;
         } while (1);
