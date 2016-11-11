@@ -109,6 +109,8 @@ public:
     MppTaskQueue    mInputTaskQueue;
     MppTaskQueue    mOutputTaskQueue;
 
+    RK_U32          mInputBlock;
+    RK_U32          mOutputBlock;
     /*
      * There are two threads for each decoder/encoder: codec thread and hal thread
      *
@@ -131,9 +133,6 @@ private:
     MppCodingType   mCoding;
 
     RK_U32          mInitDone;
-    RK_U32          mPacketBlock;
-    RK_U32          mInputBlock;
-    RK_U32          mOutputBlock;
     RK_U32          mMultiFrame;
 
     // task for put_frame / put_packet
