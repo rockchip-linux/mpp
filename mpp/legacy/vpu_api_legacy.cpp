@@ -1268,14 +1268,15 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         enc_in_fmt = *((EncInputPictureType *)param);
         return 0;
     } break;
+    case VPU_API_ENC_SETIDRFRAME : {
+        mpicmd = MPP_ENC_SET_IDR_FRAME;
+    } break;
     case VPU_API_SET_VPUMEM_CONTEXT: {
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
-        break;
-    }
+    } break;
     case VPU_API_USE_PRESENT_TIME_ORDER: {
         mpicmd = MPP_DEC_SET_INTERNAL_PTS_ENABLE;
-        break;
-    }
+    } break;
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         RK_S32 ret = -1;
         RK_U32 ImgWidth = 0;
@@ -1331,37 +1332,29 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     }
     case VPU_API_SET_INFO_CHANGE: {
         mpicmd = MPP_DEC_SET_INFO_CHANGE_READY;
-        break;
-    }
+    } break;
     case VPU_API_USE_FAST_MODE: {
         mpicmd = MPP_DEC_SET_PARSER_FAST_MODE;
-        break;
-    }
+    } break;
     case VPU_API_DEC_GET_STREAM_COUNT: {
         mpicmd = MPP_DEC_GET_STREAM_COUNT;
-        break;
-    }
+    } break;
     case VPU_API_GET_VPUMEM_USED_COUNT: {
         mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
-        break;
-    }
+    } break;
     case VPU_API_DEC_GETFORMAT: {
         mpicmd = MPI_CMD_BUTT;
         getDecoderFormat(ctx, (DecoderFormat_t *)param);
-        break;
-    }
+    } break;
     case VPU_API_SET_OUTPUT_BLOCK: {
         mpicmd = MPP_SET_OUTPUT_BLOCK;
-        break;
-    }
+    } break;
     case VPU_API_DEC_GET_EOS_STATUS: {
         *(RK_S32 *)param = mEosSet;
         mpicmd = MPI_CMD_BUTT;
-        break;
-    }
+    } break;
     default: {
-        break;
-    }
+    } break;
     }
 
     RK_S32 ret = -1;
