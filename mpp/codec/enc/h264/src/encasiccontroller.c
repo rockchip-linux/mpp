@@ -102,7 +102,7 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
             syntax_data->target_error[iCount] = val->targetError[iCount];
         }
         for (iCount = 0; iCount < 7; ++iCount) {
-            syntax_data->delta_qp[iCount] = val->deltaQp[6-iCount];
+            syntax_data->delta_qp[iCount] = val->deltaQp[6 - iCount];
         }
     }
     syntax_data->output_strm_limit_size = val->outputStrmSize;

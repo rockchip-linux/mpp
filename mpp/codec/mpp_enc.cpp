@@ -420,10 +420,12 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         *mpp_cfg = enc->mpp_cfg;
         ret = MPP_OK;
     } break;
+    case MPP_ENC_SET_IDR_FRAME : {
+        ret = controller_config(enc->controller, SET_IDR_FRAME, param);
+    } break;
     case MPP_ENC_GET_EXTRA_INFO :
     case MPP_ENC_SET_RC_CFG :
     case MPP_ENC_GET_RC_CFG :
-    case MPP_ENC_SET_IDR_FRAME :
     case MPP_ENC_SET_OSD_PLT_CFG :
     case MPP_ENC_SET_OSD_DATA_CFG :
     case MPP_ENC_SET_SEI_CFG :
