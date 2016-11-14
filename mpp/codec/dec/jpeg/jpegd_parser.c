@@ -2380,7 +2380,21 @@ MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
 
     if (pCtx->frame_slot_index == -1) {
         RK_U32 value;
+        MppFrameFormat fmt = MPP_FMT_YUV420SP;
 
+        switch (pCtx->pSyntax->info.yCbCrMode) {
+        case JPEGDEC_YUV420: {
+            fmt = MPP_FMT_YUV420SP;
+        } break;
+        case JPEGDEC_YUV422: {
+            fmt = MPP_FMT_YUV422SP;
+        } break;
+        default : {
+            fmt = MPP_FMT_YUV420SP;
+        } break;
+        }
+
+        mpp_frame_set_fmt(pCtx->output_frame, fmt);
         mpp_frame_set_width(pCtx->output_frame, pCtx->pSyntax->frame.X);
         mpp_frame_set_height(pCtx->output_frame, pCtx->pSyntax->frame.Y);
         mpp_frame_set_hor_stride(pCtx->output_frame, pCtx->pSyntax->frame.X);
