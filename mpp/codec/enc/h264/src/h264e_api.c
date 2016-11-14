@@ -388,6 +388,11 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         *((RK_U32*)param) = getOutputStreamSize(enc);
         ret = MPP_OK;
     } break;
+    case SET_IDR_FRAME : {
+        H264EncRateCtrl *enc_rc_cfg = &enc->enc_rc_cfg;
+        enc->intraPeriodCnt = enc_rc_cfg->intraPicRate;
+        ret = MPP_OK;
+    } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
         break;

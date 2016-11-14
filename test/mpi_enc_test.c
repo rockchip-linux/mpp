@@ -35,6 +35,8 @@
 #define MPI_ENC_IO_COUNT            (4)
 #define MAX_FILE_NAME_LENGTH        256
 
+#define MPI_ENC_TEST_SET_IDR_FRAME  0
+
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
@@ -408,6 +410,17 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
         mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
         mpp_task_meta_set_buffer(task, KEY_MOTION_INFO, md_info_buf);
+
+        /* set idr frame */
+#if MPI_ENC_TEST_SET_IDR_FRAME
+        if (frame_count && frame_count % (mpp_cfg.gop / 4) == 0) {
+            ret = mpi->control(ctx, MPP_ENC_SET_IDR_FRAME, NULL);
+            if (MPP_OK != ret) {
+                mpp_err("mpi control enc set idr frame failed\n");
+                goto MPP_TEST_OUT;
+            }
+        }
+#endif
 
         /* gen and cfg osd plt */
         mpi_enc_gen_osd_data(&osd_data, osd_data_buf, frame_count);

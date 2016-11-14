@@ -31,6 +31,7 @@ typedef enum EncCfgCmd_t {
     SET_ENC_RC_CFG,
     GET_ENC_EXTRA_INFO,
     GET_OUTPUT_STREAM_SIZE,
+    SET_IDR_FRAME,
 } EncCfgCmd;
 
 /*
