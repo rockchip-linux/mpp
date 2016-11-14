@@ -186,7 +186,7 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax, JpegHalContext *pC
 
     /* calculate and set stream start address to hw */
     addrTmp = (((uintptr_t) JPG_STR->pStartOfStream & 0x3) +
-                (RK_U32)(JPG_STR->pCurrPos - JPG_STR->pStartOfStream)) & (~7);
+               (RK_U32)(JPG_STR->pCurrPos - JPG_STR->pStartOfStream)) & (~7);
 
     JPEGD_INFO_LOG("pStartOfStream data: 0x%x, 0x%x, 0x%x, 0x%x", JPG_STR->pStartOfStream[JPG_STR->streamLength - 4],
                    JPG_STR->pStartOfStream[JPG_STR->streamLength - 3],
