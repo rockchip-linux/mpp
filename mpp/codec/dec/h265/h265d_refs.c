@@ -86,43 +86,33 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
             continue;
         }
 
-        if (ret != MPP_OK) {
-            goto fail;
-        }
         h265d_dbg(H265D_DBG_GLOBAL, "width = %d height = %d", s->h265dctx->width, s->h265dctx->height);
         mpp_frame_set_width(frame->frame, s->h265dctx->width);
         mpp_frame_set_height(frame->frame, s->h265dctx->height);
-
         mpp_frame_set_hor_stride(frame->frame, (s->h265dctx->coded_width * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
         mpp_frame_set_errinfo(frame->frame, 0);
-
+        mpp_frame_set_pts(frame->frame, s->pts);
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
 
-
-        // frame->frame->color_type              = s->h265dctx->pix_fmt;
-        //  if (!frame->frame->sample_aspect_ratio.num)
-        //     frame->frame->sample_aspect_ratio = s->h265dctx->sample_aspect_ratio;
-        mpp_frame_set_pts(frame->frame, s->pts);
-
         frame->rpl_buf = mpp_calloc(RK_U8, s->nb_nals * sizeof(RefPicListTab));
-        if (!frame->rpl_buf)
+        if (!frame->rpl_buf) {
+            mpp_err( "rpl_buf malloc fail\n");
             goto fail;
-
+        }
         frame->ctb_count = s->sps->ctb_width * s->sps->ctb_height;
         frame->rpl_tab_buf = mpp_malloc(RK_U8, frame->ctb_count * sizeof(RefPicListTab));
-
-        if (!frame->rpl_tab_buf)
+        if (!frame->rpl_tab_buf) {
+            mpp_err( "rpl_tab_buf malloc fail\n");
             goto fail;
-
+        }
         frame->rpl_tab  = (RefPicListTab **)frame->rpl_tab_buf;
-
         for (j = 0; j < frame->ctb_count; j++)
             frame->rpl_tab[j] = (RefPicListTab *)frame->rpl_buf;
 
-//       frame->frame->top_field_first = s->picture_struct;
         ret = mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
+        mpp_assert(ret == MPP_OK);
         return frame;
     fail:
         mpp_hevc_unref_frame(s, frame, ~0);
@@ -146,22 +136,21 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
             frame->poc == poc && !s->nuh_layer_id) {
             mpp_err( "Duplicate POC in a sequence: %d.\n",
                      poc);
-            //s->miss_ref_flag = 1;
             return  MPP_ERR_STREAM;
         }
     }
 
     ref = alloc_frame(s);
-    if (!ref)
+    if (!ref) {
+        mpp_err( "alloc_frame error\n");
         return MPP_ERR_NOMEM;
+    }
 
     *mframe = ref->frame;
     s->ref = ref;
-
     ref->poc      = poc;
     h265d_dbg(H265D_DBG_REF, "alloc frame poc %d slot_index %d", poc, ref->slot_index);
     ref->flags    = HEVC_FRAME_FLAG_OUTPUT | HEVC_FRAME_FLAG_SHORT_REF;
-
     mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_HAL_OUTPUT);
     s->task->output = ref->slot_index;
@@ -191,9 +180,7 @@ static HEVCFrame *find_ref_idx(HEVCContext *s, int poc)
                 return ref;
         }
     }
-
-    mpp_err(
-        "Could not find ref with POC %d\n", poc);
+    mpp_err("Could not find ref with POC %d\n", poc);
     return NULL;
 }
 
@@ -212,28 +199,12 @@ static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
     frame = alloc_frame(s);
     if (!frame)
         return NULL;
-#if 0
-    if (!s->sps->pixel_shift) {
-        for (i = 0; frame->frame->buf[i]; i++)
-            memset(frame->frame->buf[i]->data, 1 << (s->sps->bit_depth - 1),
-                   frame->frame->buf[i]->size);
-    } else {
-        for (i = 0; frame->frame->data[i]; i++)
-            for (y = 0; y < (s->sps->height >> s->sps->vshift[i]); y++)
-                for (x = 0; x < (s->sps->width >> s->sps->hshift[i]); x++) {
-                    AV_WN16(frame->frame->data[i] + y * frame->frame->linesize[i] + 2 * x,
-                            1 << (s->sps->bit_depth - 1));
-                }
-    }
-#endif
     frame->poc      = poc;
-
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_READY);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
     mpp_log("generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
     frame->sequence = s->seq_decode;
     frame->flags    = 0;
-
     return frame;
 }
 

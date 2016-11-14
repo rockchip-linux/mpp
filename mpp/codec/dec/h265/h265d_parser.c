@@ -1271,24 +1271,32 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     switch (s->nal_unit_type) {
     case NAL_VPS:
         ret = mpp_hevc_decode_nal_vps(s);
-        if (ret < 0)
+        if (ret < 0) {
+            mpp_err("mpp_hevc_decode_nal_vps error ret = %d", ret);
             goto fail;
+        }
         break;
     case NAL_SPS:
         ret = mpp_hevc_decode_nal_sps(s);
-        if (ret < 0)
+        if (ret < 0) {
+            mpp_err("mpp_hevc_decode_nal_sps error ret = %d", ret);
             goto fail;
+        }
         break;
     case NAL_PPS:
         ret = mpp_hevc_decode_nal_pps(s);
-        if (ret < 0)
+        if (ret < 0) {
+            mpp_err("mpp_hevc_decode_nal_pps error ret = %d", ret);
             goto fail;
+        }
         break;
     case NAL_SEI_PREFIX:
     case NAL_SEI_SUFFIX:
         ret = mpp_hevc_decode_nal_sei(s);
-        if (ret < 0)
+        if (ret < 0) {
+            mpp_err("mpp_hevc_decode_nal_sei error ret = %d", ret);
             goto fail;
+        }
         break;
     case NAL_TRAIL_R:
     case NAL_TRAIL_N:
@@ -1316,8 +1324,10 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header in");
         ret = hls_slice_header(s);
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header out");
-        if (ret < 0)
+        if (ret < 0) {
+            mpp_err("hls_slice_header error ret = %d", ret);
             return ret;
+        }
 
         if (s->max_ra == INT_MAX) {
             if (s->nal_unit_type == NAL_CRA_NUT || IS_BLA(s)) {
@@ -1342,8 +1352,10 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
         if (s->sh.first_slice_in_pic_flag) {
             ret = hevc_frame_start(s);
-            if (ret < 0)
+            if (ret < 0) {
+                mpp_err("hevc_frame_start = %d", ret);
                 return ret;
+            }
         } else if (!s->ref) {
             mpp_err("First slice in a frame missing.\n");
             goto fail;
@@ -1359,7 +1371,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             s->sh.slice_type != I_SLICE) {
             // ret = mpp_hevc_slice_rpl(s);
             if (ret < 0) {
-                mpp_log("Error constructing the reference lists for the current slice.\n");
+                mpp_err("Error constructing the reference lists for the current slice.\n");
                 goto fail;
             }
             //    rk_get_ref_info(s);
@@ -1587,8 +1599,7 @@ static RK_S32 parser_nal_units(HEVCContext *s)
     for (i = 0; i < s->nb_nals; i++) {
         ret = parser_nal_unit(s, s->nals[i].data, s->nals[i].size);
         if (ret < 0) {
-            mpp_log("Error parsing NAL unit #%d.\n", i);
-            ret = 0;
+            mpp_err("Error parsing NAL unit #%d,error ret = 0xd.\n", i, ret);
             goto fail;
         }
     }
