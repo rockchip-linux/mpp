@@ -602,8 +602,9 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     AutoMutex auto_lock(impl->lock);
-    slot_assert(impl, impl->info_changed);
     slot_assert(impl, impl->slots);
+    if (!impl->info_changed)
+        mpp_log("found info change ready set without internal info change\n");
 
     // ready mean the info_set will be copy to info as the new configuration
     if (impl->buf_count != impl->new_count) {

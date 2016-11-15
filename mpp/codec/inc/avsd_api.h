@@ -23,74 +23,18 @@
 #define AVSD_DBG_ERROR             (0x00000001)
 #define AVSD_DBG_ASSERT            (0x00000002)
 #define AVSD_DBG_WARNNING          (0x00000004)
-#define AVSD_DBG_TRACE             (0x00000008)
-
+#define AVSD_DBG_LOG               (0x00000008)
 
 #define AVSD_DBG_INPUT             (0x00000010)   //!< input packet
-
-
 #define AVSD_DBG_TIME              (0x00000020)   //!< input packet
 
 #define AVSD_DBG_CALLBACK          (0x00008000)
 
 
-
-
-extern RK_U32 avsd_parse_debug;
-
-#define AVSD_PARSE_TRACE(fmt, ...)\
-do {\
-    if (AVSD_DBG_TRACE & avsd_parse_debug)\
-        { mpp_log_f(fmt, ## __VA_ARGS__); }\
-} while (0)
-
-
-#define AVSD_DBG(level, fmt, ...)\
-do {\
-    if (level & avsd_parse_debug)\
-        { mpp_log(fmt, ## __VA_ARGS__); }\
-} while (0)
-
-#ifdef INP_CHECK
-#undef INP_CHECK
-#endif
-//!< input check
-#define INP_CHECK(ret, val, ...)\
-do{\
-    if ((val)) {\
-        ret = MPP_ERR_INIT; \
-        AVSD_DBG(AVSD_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
-        goto __RETURN; \
-}} while (0)
-#ifdef MEM_CHECK
-#undef MEM_CHECK
-#endif
-//!< memory malloc check
-#define MEM_CHECK(ret, val, ...)\
-do{\
-    if(!(val)) {\
-        ret = MPP_ERR_MALLOC;\
-        AVSD_DBG(AVSD_DBG_ERROR, "malloc buffer error(%d).\n", __LINE__); \
-        goto __FAILED; \
-}} while (0)
-#ifdef FUN_CHECK
-#undef FUN_CHECK
-#endif
-//!< function return check
-#define FUN_CHECK(val)\
-do{\
-if ((val) < 0) {\
-        AVSD_DBG(AVSD_DBG_WARNNING, "Function error(%d).\n", __LINE__); \
-        goto __FAILED; \
-}} while (0)
-
-
-
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
-
+extern RK_U32 avsd_parse_debug;
 extern const ParserApi api_avsd_parser;
 
 MPP_RET  avsd_init   (void *decoder, ParserCfg *cfg);
