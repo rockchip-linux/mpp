@@ -66,6 +66,9 @@ typedef struct {
         RK_U32    sw_softrst_en_p     : 1  ;
         RK_U32    sw_force_softreset_valid: 1 ;
         RK_U32    sw_softreset_rdy    : 1  ;
+        RK_U32    sw_wr_ddr_align_en  : 1;
+        RK_U32    sw_scl_down_en      : 1;
+        RK_U32    sw_allow_not_wr_unref_bframe : 1;
     } sw_interrupt; ///<- zrh: do nothing in C Model
 
     struct swreg_sysctrl {
