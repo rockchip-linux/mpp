@@ -46,12 +46,10 @@
 #define AVSD_TEST_WARNNING    (0x00000004)
 #define AVSD_TEST_TRACE       (0x00000008)
 
-#define AVSD_TEST_DUMPYUV     (0x00000010)
-
 
 #define AVSD_TEST_LOG(level, fmt, ...)\
 do {\
-if (level & rkv_avsd_test_debug)\
+if (level & avsd_test_debug)\
         { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
@@ -64,17 +62,20 @@ typedef struct ParserImpl_t {
 } ParserImpl;
 
 
-static RK_U32 rkv_avsd_test_debug = 0;
+static RK_U32 avsd_test_debug = 0;
 
 typedef struct inp_par_t {
-    FILE *fp_in;
-    FILE *fp_out;
-    FILE *fp_read;
-    RK_U8 *pbuf;
-    RK_U32 bufsize;
-    RK_U32 len;
+    FILE  *fp_in;
+    FILE  *fp_out;
+    FILE  *fp_chk;
 
-    RK_U32 output_dec_pic;   // output_dec_pic
+    RK_U8 *pktbuf;
+    RK_U32 pktsize;
+    RK_U32 pktlen;
+
+    RK_U32 nalu_find;
+    RK_U32 frame_find;
+    RK_U32 prefix;
 
     RK_U32 dec_num; // to be decoded
     RK_U32 dec_no;  // current decoded number
@@ -92,6 +93,8 @@ typedef struct avsd_test_ctx_t {
     MppBuffer      m_dec_pic_buf;
     MppBufferGroup mFrameGroup;
     MppBufferGroup mStreamGroup;
+
+    RK_U32         display_no;
 } AvsdTestCtx_t;
 
 static MPP_RET decoder_deinit(AvsdTestCtx_t *pctx)
@@ -145,21 +148,24 @@ static MPP_RET decoder_init(AvsdTestCtx_t *pctx)
     MppDec *pApi = &pctx->m_api;
 
     if (pctx->mFrameGroup == NULL) {
-        ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_NORMAL);
-        if (MPP_OK != ret) {
-            mpp_err("avsd mpp_buffer_group_get failed\n");
-            goto __FAILED;
-        }
+#ifdef RKPLATFORM
+        mpp_log_f("mFrameGroup used ion In");
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_ION));
+#else
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_NORMAL));
+#endif
     }
     if (pctx->mStreamGroup == NULL) {
-        ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_NORMAL);
-        if (MPP_OK != ret) {
-            mpp_err("avsd mpp_buffer_group_get failed\n");
-            goto __FAILED;
-        }
+#ifdef RKPLATFORM
+        mpp_log_f("mStreamGroup used ion In");
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_ION));
+#else
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_NORMAL));
+#endif
     }
     // codec
     pApi->coding = MPP_VIDEO_CodingAVS;
+
     // malloc slot
     FUN_CHECK(ret = mpp_buf_slot_init(&pApi->frame_slots));
     MEM_CHECK(ret, pApi->frame_slots);
@@ -185,7 +191,6 @@ static MPP_RET decoder_init(AvsdTestCtx_t *pctx)
     hal_cfg.task_count = parser_cfg.task_count;
     hal_cfg.hal_int_cb.opaque = ((ParserImpl *)(pApi->parser))->ctx;
     hal_cfg.hal_int_cb.callBack = api_avsd_parser.callback;
-    //api_avsd_parser.callback(hal_cfg.hal_int_cb.opaque, NULL);
     FUN_CHECK(ret = mpp_hal_init(&pApi->hal, &hal_cfg));
     pApi->tasks = hal_cfg.tasks;
 
@@ -197,7 +202,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET avsd_flush_frames(MppDec *pApi, FILE *fp)
+static MPP_RET avsd_flush_frames(MppDec *pApi, AvsdTestCtx_t *pctx, FILE *fp_out, FILE *fp_chk)
 {
     RK_S32 slot_idx = 0;
     MppFrame out_frame = NULL;
@@ -212,16 +217,17 @@ static MPP_RET avsd_flush_frames(MppDec *pApi, FILE *fp)
             stride_h = mpp_frame_get_ver_stride(out_frame);
             framebuf = mpp_frame_get_buffer(out_frame);
             ptr = mpp_buffer_get_ptr(framebuf);
-            if (fp) {
-                fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp);
-                fflush(fp);
+            if (fp_out) {
+                fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp_out);
+                fflush(fp_out);
             }
             mpp_frame_deinit(&out_frame);
             out_frame = NULL;
         }
         mpp_buf_slot_clr_flag(pApi->frame_slots, slot_idx, SLOT_QUEUE_USE);
+        pctx->display_no++;
     }
-
+    (void)fp_chk;
     return MPP_OK;
 }
 
@@ -230,72 +236,60 @@ static MPP_RET avsd_input_deinit(InputParams *inp)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    MPP_FREE(inp->pbuf);
+    MPP_FREE(inp->pktbuf);
     MPP_FCLOSE(inp->fp_in);
     MPP_FCLOSE(inp->fp_out);
-    MPP_FCLOSE(inp->fp_read);
+    MPP_FCLOSE(inp->fp_chk);
+
     return ret = MPP_OK;
 }
 
 static MPP_RET avsd_input_init(InputParams *inp, RK_S32 ac, char *av[])
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    char infile_name[128];    //!< Telenor AVS input
-    char outfile_name[128];   //!< Decoded YUV 4:2:0 output
-    RK_S32 CLcount = 1;
+    RK_S32 ac_cnt = 1;
 
-    inp->output_dec_pic = 0;
-    while (CLcount < ac) {
-        if (!strncmp(av[CLcount], "-h", 2)) {
+    while (ac_cnt < ac) {
+        if (!strncmp(av[ac_cnt], "-h", 2)) {
             mpp_log("Options:");
             mpp_log("   -h     : prints help message.");
             mpp_log("   -i     :[file]   Set input AVS+ bitstream file.");
             mpp_log("   -o     :[file]   Set output YUV file.");
+            mpp_log("   -c     :[file]   Set input check file.");
             mpp_log("   -n     :[number] Set decoded frames.");
-            CLcount += 1;
-        } else if (!strncmp(av[CLcount], "-i", 2)) {
-            strncpy(infile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
-            CLcount += 2;
-        } else if (!strncmp(av[CLcount], "-n", 2)) {
-            if (!sscanf(av[CLcount + 1], "%d", &inp->dec_num)) {
+            ac_cnt += 1;
+        } else if (!strncmp(av[ac_cnt], "-i", 2)) {
+            AVSD_TEST_LOG(AVSD_TEST_TRACE, "Input AVS+ bitstream : %s", av[ac_cnt + 1]);
+            if ((inp->fp_in = fopen(av[ac_cnt + 1], "rb")) == NULL) {
+                mpp_err_f("error, open file %s ", av[ac_cnt + 1]);
+            }
+            ac_cnt += 2;
+        } else if (!strncmp(av[ac_cnt], "-n", 2)) {
+            if (!sscanf(av[ac_cnt + 1], "%d", &inp->dec_num)) {
                 goto __FAILED;
             }
-            CLcount += 2;
-        } else if (!strncmp(av[CLcount], "-o", 2)) {
-            if (rkv_avsd_test_debug & AVSD_TEST_DUMPYUV) {
-                inp->output_dec_pic = 1;
-                strncpy(outfile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
+            ac_cnt += 2;
+        } else if (!strncmp(av[ac_cnt], "-o", 2)) {
+            AVSD_TEST_LOG(AVSD_TEST_TRACE, "Output decoded YUV   : %s", av[ac_cnt + 1]);
+            if ((inp->fp_out = fopen(av[ac_cnt + 1], "wb")) == NULL) {
+                mpp_err_f("error, open file %s ", av[ac_cnt + 1]);
             }
-            CLcount += 2;
+            ac_cnt += 2;
+        } else if (!strncmp(av[ac_cnt], "-c", 2)) {
+            AVSD_TEST_LOG(AVSD_TEST_TRACE, "Input check data  : %s", av[ac_cnt + 1]);
+            if ((inp->fp_chk = fopen(av[ac_cnt + 1], "rb")) == NULL) {
+                mpp_err_f("error, open file %s ", av[ac_cnt + 1]);
+            }
+            ac_cnt += 2;
         } else {
-            mpp_err("error, %s cannot explain command! \n", av[CLcount]);
+            mpp_err("error, %s cannot explain command! \n", av[ac_cnt]);
             goto __FAILED;
         }
     }
-    if ((inp->fp_in = fopen(infile_name, "rb")) == 0) {
-        mpp_err("error, open file %s ", infile_name);
-        goto __FAILED;
-    }
-    if (inp->output_dec_pic) {
-        if ((inp->fp_out = fopen(outfile_name, "wb")) == 0) {
-            mpp_err("error, open file %s ", outfile_name);
-            goto __FAILED;
-        }
-    }
-    if ((inp->fp_read = fopen("F:/avs_log/avs_read.txt", "wb")) == 0) {
-        mpp_log("error, open file %s", "F:/avs_log/avs_read.txt");
-        goto __FAILED;
-    }
-
-    //!< malloc read buffer
-    inp->bufsize = 30 * 1024;
-    MEM_CHECK(ret, inp->pbuf = mpp_malloc(RK_U8, inp->bufsize));
-
-    AVSD_TEST_LOG(AVSD_TEST_TRACE, "------------------------------------------------------------");
-    AVSD_TEST_LOG(AVSD_TEST_TRACE, "Input AVS+ bitstream : %s", infile_name);
-    AVSD_TEST_LOG(AVSD_TEST_TRACE, "Output decoded YUV   : %s", outfile_name);
-    AVSD_TEST_LOG(AVSD_TEST_TRACE, "------------------------------------------------------------");
-    AVSD_TEST_LOG(AVSD_TEST_TRACE, "Frame   TR    QP   SnrY    SnrU    SnrV   Time(ms)   FRM/FLD");
+    //!< malloc packet buffer
+    inp->pktsize = 2 * 1024 * 1024;
+    MEM_CHECK(ret, inp->pktbuf = mpp_malloc(RK_U8, inp->pktsize));
+    inp->pktlen = 0;
 
     return MPP_OK;
 __FAILED:
@@ -304,19 +298,40 @@ __FAILED:
     return ret;
 }
 
-
 static MPP_RET avsd_read_data(InputParams *inp)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U8  curdata = 0;
 
-    inp->len = (RK_U32)fread(inp->pbuf, sizeof(RK_U8), inp->bufsize, inp->fp_in);
-    inp->is_eof = feof(inp->fp_in);
-
-    if (inp->fp_read) {
-        fwrite(inp->pbuf, inp->len, 1, inp->fp_read);
-        fflush(inp->fp_read);
+    while (!inp->is_eof) {
+        //!< copy header
+        if (!inp->nalu_find && (inp->prefix & 0xFFFFFF00) == 0x00000100) {
+            RK_U8 *p_data = (RK_U8 *)&inp->prefix;
+            inp->nalu_find = 1;
+            inp->pktbuf[inp->pktlen++] = p_data[3];
+            inp->pktbuf[inp->pktlen++] = p_data[2];
+            inp->pktbuf[inp->pktlen++] = p_data[1];
+            inp->pktbuf[inp->pktlen++] = p_data[0];
+        }
+        //!< find frame end
+        if ((inp->prefix == I_PICUTRE_START_CODE) || (inp->prefix == PB_PICUTRE_START_CODE)) {
+            if (inp->frame_find) {
+                inp->pktlen -= sizeof(inp->prefix);
+                inp->nalu_find = 0;
+                inp->frame_find = 0;
+                break;
+            }
+            inp->frame_find = 1;
+        }
+        //!< read one byte
+        fread(&curdata, sizeof(RK_U8), 1, inp->fp_in);
+        inp->prefix = (inp->prefix << 8) | curdata;
+        inp->is_eof = feof(inp->fp_in);
+        //!< copy data
+        if (!inp->is_eof && inp->nalu_find) {
+            inp->pktbuf[inp->pktlen++] = curdata;
+        }
     }
-
     return ret = MPP_OK;
 }
 
@@ -341,17 +356,24 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
                 mpp_packet_init(&pkt, NULL, 0);
                 mpp_packet_set_eos(pkt);
             } else {
-                FUN_CHECK(ret = avsd_read_data(inp));
-                mpp_packet_init(&pkt, inp->pbuf, inp->len);
+                RK_U32 frame_num = 0;
+                while (frame_num < 1) {
+                    FUN_CHECK(ret = avsd_read_data(inp));
+                    frame_num++;
+                }
+                //if (inp->fp_out) {
+                //    fwrite(inp->pktbuf, 1, inp->pktlen, inp->fp_out);
+                //    fflush(inp->fp_out);
+                //}
+                mpp_packet_init(&pkt, inp->pktbuf, inp->pktlen);
+                inp->pktlen = 0;
             }
         }
         //!< prepare
         FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
-
         //!< parse
         if (task->dec.valid) {
             MppBufferImpl *buf = NULL;
-
             task->dec.valid = 0;
             if (task->dec.input < 0) {
                 mpp_buf_slot_get_unused(pApi->packet_slots, &task->dec.input);
@@ -393,7 +415,8 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
             }
             mpp_buf_slot_get_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, &pctx->m_dec_pic_buf);
             if (NULL == pctx->m_dec_pic_buf) {
-                RK_U32 size = 1920 * 1088 * 3 / 2;// (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
+                RK_U32 size = (RK_U32)mpp_buf_slot_get_size(pApi->frame_slots);
+                mpp_log_f("get_slot_size=%d \n", size);
                 mpp_buffer_get(pctx->mFrameGroup, &pctx->m_dec_pic_buf, size);
                 if (pctx->m_dec_pic_buf)
                     mpp_buf_slot_set_prop(pApi->frame_slots, task->dec.output, SLOT_BUFFER, pctx->m_dec_pic_buf);
@@ -409,7 +432,7 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
             mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
             mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
             //!< write frame out
-            avsd_flush_frames(pApi, inp->fp_out);
+            avsd_flush_frames(pApi, pctx, NULL/*inp->fp_out*/, inp->fp_chk);
             //!< clear refrece flag
             {
                 RK_U32 i = 0;
@@ -429,6 +452,7 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
 
     //!< flush dpb and send to display
     FUN_CHECK(ret = mpp_dec_flush(pApi));
+    avsd_flush_frames(pApi, pctx, NULL/*inp->fp_out*/, inp->fp_chk);
 
     ret = MPP_OK;
 __FAILED:
@@ -443,9 +467,9 @@ int main(int argc, char **argv)
     AvsdTestCtx_t *p_dec = &m_decoder;
 
 #if defined(_MSC_VER)
-    mpp_env_set_u32("rkv_avsd_test_debug", 0xFF);
+    mpp_env_set_u32("avsd_test_debug", 0xFF);
 #endif
-    mpp_env_get_u32("rkv_avsd_test_debug", &rkv_avsd_test_debug, 0x0F);
+    mpp_env_get_u32("avsd_test_debug", &avsd_test_debug, 0);
     memset(p_dec, 0, sizeof(AvsdTestCtx_t));
     // read file
     FUN_CHECK(ret = avsd_input_init(&p_dec->m_in, argc, argv));
@@ -466,5 +490,6 @@ __FAILED:
     AVSD_TEST_LOG(AVSD_TEST_TRACE, "[AVSD_TEST] decoder_deinit over.");
 
     return ret;
+
 }
 

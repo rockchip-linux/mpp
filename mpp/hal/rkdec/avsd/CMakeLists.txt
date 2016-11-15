@@ -8,12 +8,12 @@ set(HAL_AVSD_API
     
 # hal avs header   
 set(HAL_AVSD_HDR
-
+	hal_avsd_reg.h
     ) 
     
 # hal avs decoder sourse
 set(HAL_AVSD_SRC
-
+	hal_avsd_reg.c
     hal_avsd_api.c	
 
     ) 

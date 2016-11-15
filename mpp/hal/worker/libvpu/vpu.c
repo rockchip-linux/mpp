@@ -54,6 +54,7 @@ static const char *name_rkvdec = "/dev/rkvdec";
 static const char *name_rkvenc = "/dev/rkvenc";
 static const char *name_hevc_service = "/dev/hevc_service";
 static const char *name_vpu_service = "/dev/vpu_service";
+static const char *name_avsd = "/dev/avsd";
 
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
@@ -66,6 +67,11 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     switch (type) {
     case VPU_DEC_RKV: {
         name = name_rkvdec;
+        type = VPU_DEC;
+        break;
+    }
+    case VPU_DEC_AVS: {
+        name = name_avsd;
         type = VPU_DEC;
         break;
     }
