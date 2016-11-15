@@ -55,7 +55,15 @@ static const char *name_rkvenc = "/dev/rkvenc";
 static const char *name_hevc_service = "/dev/hevc_service";
 static const char *name_vpu_service = "/dev/vpu_service";
 static const char *name_avsd = "/dev/avsd";
+static const char *name_vepu = "/dev/vepu";
 
+static const char *determine_vepu_dev()
+{
+    if (access(name_vepu, F_OK) == 0)
+        return name_vepu;
+    else
+        return name_vpu_service;
+}
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
@@ -82,9 +90,12 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     }
     case VPU_DEC_PP:
     case VPU_PP:
-    case VPU_DEC:
-    case VPU_ENC: {
+    case VPU_DEC: {
         name = name_vpu_service;
+        break;
+    }
+    case VPU_ENC: {
+        name = determine_vepu_dev();
         break;
     }
     case VPU_ENC_RKV: {
