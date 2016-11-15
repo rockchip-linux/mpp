@@ -1453,6 +1453,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     hw_regs->sw_interrupt.sw_dec_e         = 1;
     hw_regs->sw_interrupt.sw_dec_timeout_e = 1;
+    hw_regs->sw_interrupt.sw_wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag ? 0 : 1;
 
 
     ///find s->rps_model[i] position, and set register
@@ -1523,7 +1524,6 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
     ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78); // 68 is the nb of uint32_t
-
     if (ret != 0) {
         mpp_err("RK_HEVC_DEC: ERROR: VPUClientSendReg Failed!!!\n");
         return MPP_ERR_VPUHW;
