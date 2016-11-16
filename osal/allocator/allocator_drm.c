@@ -33,6 +33,7 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+#include "mpp_runtime.h"
 
 static RK_U32 drm_debug = 0;
 
@@ -60,12 +61,13 @@ static int drm_ioctl(int fd, int req, void *arg)
 static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
 {
     static unsigned long pagesize_mask = 0;
+    func_mmap64 fp_mmap64 = mpp_rt_get_mmap64();
 
     if (fd < 0)
         return NULL;
 
     if (!pagesize_mask)
-        pagesize_mask = getpagesize() - 1;
+        pagesize_mask = sysconf(_SC_PAGESIZE) - 1;
 
     len = (len + pagesize_mask) & ~pagesize_mask;
 
@@ -73,7 +75,10 @@ static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
         return NULL;
     }
 
-    return mmap64(NULL, len, prot, flags, fd, offset);
+    if (fp_mmap64)
+        return fp_mmap64(NULL, len, prot, flags, fd, offset);
+
+    return NULL;
 }
 
 static int drm_handle_to_fd(int fd, RK_U32 handle, int *map_fd, RK_U32 flags)
