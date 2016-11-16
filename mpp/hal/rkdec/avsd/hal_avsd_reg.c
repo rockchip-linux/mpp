@@ -47,10 +47,8 @@ static RK_S32 get_packet_fd(AvsdHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_log_f("packet_slot_idx=%d \n", idx);
     mpp_buf_slot_get_prop(p_hal->packet_slots, idx, SLOT_BUFFER, &mbuffer);
     ret_fd =  mpp_buffer_get_fd(mbuffer);
-    mpp_log_f("packet_slot_ret_fd=%08x \n", ret_fd);
 
     return ret_fd;
 }
@@ -59,10 +57,8 @@ static RK_S32 get_frame_fd(AvsdHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_log_f("frame_slot_idx=%d \n", idx);
     mpp_buf_slot_get_prop(p_hal->frame_slots, idx, SLOT_BUFFER, &mbuffer);
     ret_fd = mpp_buffer_get_fd(mbuffer);
-    mpp_log_f("frame_slot_ret_fd=%08x \n", ret_fd);
 
     return ret_fd;
 }
@@ -216,50 +212,13 @@ MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         RK_U32 stride = p_syn->pp.horizontalSize;
         p_regs->sw13.dec_out_base = get_frame_fd(p_hal, task->output) | (stride << 10);
     }
-#if 0
     {
         RK_S32 tmp_fwd = -1;
-        RK_S32 work0_tmp = -1;
-
-        tmp_fwd = (p_hal->work1 < 0) ? p_hal->work0 : p_hal->work1;
-        tmp_fwd = (tmp_fwd < 0) ? p_hal->work_out : tmp_fwd;
-        work0_tmp = (p_hal->work0 < 0) ? p_hal->work_out : p_hal->work0;
-        mpp_log_f("work0=%d, work1=%d, workout=%d, work0_tmp=%d, tmp_fwd=%d\n",
-                  p_hal->work0, p_hal->work1, p_hal->work_out, work0_tmp, tmp_fwd);
-        mpp_log_f("output_fd=%x, ref0_fd=%x, ref1_fd=%x\n", task->output, task->refer[0], task->refer[1]);
-        if (p_syn->pp.picCodingType == BFRAME) {
-            p_regs->sw14.refer0_base = get_frame_fd(p_hal, p_hal->pic[tmp_fwd].slot_idx);
-            p_regs->sw15.refer1_base = get_frame_fd(p_hal, p_hal->pic[tmp_fwd].slot_idx);
-            p_regs->sw16.refer2_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-            p_regs->sw17.refer3_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-        } else {
-            if (!p_hal->first_field
-                && p_syn->pp.pictureStructure == FIELDPICTURE) {
-                p_regs->sw14.refer0_base = get_frame_fd(p_hal, p_hal->pic[p_hal->work_out].slot_idx);
-                p_regs->sw15.refer1_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-                p_regs->sw16.refer2_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-                p_regs->sw17.refer3_base = get_frame_fd(p_hal, p_hal->pic[tmp_fwd].slot_idx);
-            } else {
-                p_regs->sw14.refer0_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-                p_regs->sw15.refer1_base = get_frame_fd(p_hal, p_hal->pic[work0_tmp].slot_idx);
-                p_regs->sw16.refer2_base = get_frame_fd(p_hal, p_hal->pic[tmp_fwd].slot_idx);
-                p_regs->sw17.refer3_base = get_frame_fd(p_hal, p_hal->pic[tmp_fwd].slot_idx);
-            }
-        }
-    }
-#else
-    {
-        RK_S32 tmp_fwd = -1;
-        RK_S32 work0_tmp = -1;
         RK_S32 refer0 = -1;
         RK_S32 refer1 = -1;
 
         tmp_fwd = (p_hal->work1 < 0) ? p_hal->work0 : p_hal->work1;
         tmp_fwd = (tmp_fwd < 0) ? p_hal->work_out : tmp_fwd;
-        work0_tmp = (p_hal->work0 < 0) ? p_hal->work_out : p_hal->work0;
-        mpp_log_f("work0=%d, work1=%d, workout=%d, work0_tmp=%d, tmp_fwd=%d\n",
-                  p_hal->work0, p_hal->work1, p_hal->work_out, work0_tmp, tmp_fwd);
-        mpp_log_f("output_fd=%x, ref0_fd=%x, ref1_fd=%x\n", task->output, task->refer[0], task->refer[1]);
 
         refer0 = (task->refer[0] < 0) ? task->output : task->refer[0];
         refer1 = (task->refer[1] < 0) ? refer0 : task->refer[1];
@@ -277,7 +236,6 @@ MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
             p_regs->sw17.refer3_base = get_frame_fd(p_hal, refer1);
         }
     }
-#endif
     //!< block distances
     if (p_syn->pp.pictureStructure == FRAMEPICTURE) {
         if (p_syn->pp.picCodingType == BFRAME) {

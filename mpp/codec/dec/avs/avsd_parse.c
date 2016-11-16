@@ -270,8 +270,6 @@ static MPP_RET get_i_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, 
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 val_temp = 0;
     ph->picture_coding_type = I_PICTURE;
-    //ph->picture_reference_flag = 1;
-    //ph->advanced_pred_mode_disable = 1;
 
     READ_BITS(bitctx, 16, &ph->bbv_delay, "bbv_delay");
     if (vsh->profile_id == 0x48) {
@@ -376,12 +374,17 @@ __FAILED:
     return ret;
 }
 
+static void reset_one_save(AvsdFrame_t *p)
+{
+    if (p) {
+        memset(p, 0, sizeof(AvsdFrame_t));
+        p->slot_idx = -1;
+    }
+}
 
-static AvsdFrame_t *get_one_frame_from_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
+static AvsdFrame_t *get_one_save(AvsdCtx_t *p_dec, HalDecTask *task)
 {
     RK_U32 i = 0;
-    RK_S32 slot_idx = -1;
-    MppFrame mframe = NULL;
     AvsdFrame_t *p_cur = NULL;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
@@ -395,7 +398,82 @@ static AvsdFrame_t *get_one_frame_from_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
         AVSD_DBG(AVSD_DBG_WARNNING, "error, mem_save dpb has not get.\n");
         goto __FAILED;
     }
+    (void)task;
+    return p_cur;
+__FAILED:
+    reset_one_save(p_cur);
 
+    return NULL;
+}
+
+static MPP_RET set_frame_unref(AvsdCtx_t *pdec, AvsdFrame_t *p)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    if (p && p->slot_idx >= 0) {
+        mpp_buf_slot_clr_flag(pdec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
+        memset(p, 0, sizeof(AvsdFrame_t));
+        p->slot_idx = -1;
+    }
+
+    return ret = MPP_OK;
+}
+
+
+static MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    if (p && p->slot_idx >= 0 && !p->had_display) {
+        mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(p_dec->frame_slots, p->slot_idx, QUEUE_DISPLAY);
+        p->had_display = 1;
+    }
+
+    return ret = MPP_OK;
+}
+/*!
+***********************************************************************
+* \brief
+*    reset decoder parameters
+***********************************************************************
+*/
+MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec)
+{
+    RK_U32 i = 0;
+
+    set_frame_output(p_dec, p_dec->dpb[1]);
+    set_frame_output(p_dec, p_dec->dpb[0]);
+    set_frame_output(p_dec, p_dec->cur);
+    set_frame_unref(p_dec, p_dec->dpb[1]);
+    set_frame_unref(p_dec, p_dec->dpb[0]);
+    set_frame_unref(p_dec, p_dec->cur);
+
+    p_dec->cur = NULL;
+    p_dec->dpb[0] = NULL;
+    p_dec->dpb[1] = NULL;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
+        memset(&p_dec->mem->save[i], 0, sizeof(AvsdFrame_t));
+        p_dec->mem->save[i].slot_idx = -1;
+    }
+
+    return MPP_OK;
+}
+
+/*!
+***********************************************************************
+* \brief
+*    set refer
+***********************************************************************
+*/
+MPP_RET avsd_set_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
+{
+    MppFrame mframe = NULL;
+    RK_S32 slot_idx = -1;
+    AvsdFrame_t *p_cur = p_dec->cur;
+
+    //!< set current dpb for decode
     mpp_buf_slot_get_unused(p_dec->frame_slots, &slot_idx);
     if (slot_idx < 0) {
         AVSD_DBG(AVSD_DBG_WARNNING, "error, buf_slot has not get.\n");
@@ -436,78 +514,9 @@ static AvsdFrame_t *get_one_frame_from_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
     mpp_buf_slot_set_flag(p_dec->frame_slots, p_cur->slot_idx, SLOT_CODEC_USE);
     mpp_buf_slot_set_flag(p_dec->frame_slots, p_cur->slot_idx, SLOT_HAL_OUTPUT);
 
-    return p_cur;
-__FAILED:
-    if (p_cur) {
-        memset(p_cur, 0, sizeof(AvsdFrame_t));
-        p_cur->slot_idx = -1;
-    }
-
-    return NULL;
-}
-
-static MPP_RET set_frame_unref(AvsdCtx_t *pdec, AvsdFrame_t *p)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    if (p && p->slot_idx >= 0) {
-        mpp_buf_slot_clr_flag(pdec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
-        memset(p, 0, sizeof(AvsdFrame_t));
-        p->slot_idx = -1;
-    }
-
-    return ret = MPP_OK;
-}
-
-
-static MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    if (p && p->slot_idx >= 0) {
-        mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_QUEUE_USE);
-        mpp_buf_slot_enqueue(p_dec->frame_slots, p->slot_idx, QUEUE_DISPLAY);
-    }
-
-    return ret = MPP_OK;
-}
-/*!
-***********************************************************************
-* \brief
-*    reset decoder parameters
-***********************************************************************
-*/
-MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec)
-{
-    RK_U32 i = 0;
-
-    set_frame_output(p_dec, p_dec->dpb[1]);
-    set_frame_output(p_dec, p_dec->dpb[0]);
-    set_frame_output(p_dec, p_dec->cur);
-    set_frame_unref(p_dec, p_dec->dpb[1]);
-    set_frame_unref(p_dec, p_dec->dpb[0]);
-    set_frame_unref(p_dec, p_dec->cur);
-
-    p_dec->cur = NULL;
-    p_dec->dpb[0] = NULL;
-    p_dec->dpb[1] = NULL;
-
-    for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
-        memset(&p_dec->mem->save[i], 0, sizeof(AvsdFrame_t));
-        p_dec->mem->save[i].slot_idx = -1;
-    }
-
-    return MPP_OK;
-}
-/*!
-***********************************************************************
-* \brief
-*    set refer
-***********************************************************************
-*/
-MPP_RET avsd_set_refers(AvsdCtx_t *p_dec, HalDecTask *task)
-{
-
+    //!< set task
+    task->output = p_dec->cur->slot_idx;
+    //!< set task refers
     if (p_dec->dpb[0] && p_dec->dpb[0]->slot_idx >= 0 &&
         (p_dec->dpb[0]->slot_idx != p_dec->cur->slot_idx)) {
         mpp_buf_slot_set_flag(p_dec->frame_slots, p_dec->dpb[0]->slot_idx, SLOT_HAL_INPUT);
@@ -519,7 +528,6 @@ MPP_RET avsd_set_refers(AvsdCtx_t *p_dec, HalDecTask *task)
     }
     if (p_dec->dpb[1] && p_dec->dpb[1]->slot_idx >= 0 &&
         (p_dec->dpb[1]->slot_idx != p_dec->cur->slot_idx)) {
-
         mpp_buf_slot_set_flag(p_dec->frame_slots, p_dec->dpb[1]->slot_idx, SLOT_HAL_INPUT);
         if (p_dec->ph.picture_coding_type == B_PICTURE) {
             task->refer[0] = p_dec->dpb[1]->slot_idx;
@@ -529,6 +537,8 @@ MPP_RET avsd_set_refers(AvsdCtx_t *p_dec, HalDecTask *task)
     }
 
     return MPP_OK;
+__FAILED:
+    return MPP_NOK;
 }
 /*!
 ***********************************************************************
@@ -553,40 +563,23 @@ MPP_RET avsd_commit_syntaxs(AvsdSyntax_t *syn, HalDecTask *task)
 MPP_RET avsd_update_dpb(AvsdCtx_t *p_dec)
 {
     if (p_dec->ph.picture_coding_type != B_PICTURE) {
-#if 1
-        /*        if (p_dec->vsh.low_delay) {
-                    set_frame_output(p_dec, p_dec->dpb[0]);
-                    set_frame_unref(p_dec, p_dec->dpb[0]);
-                    p_dec->dpb[0] = NULL;
-                } else*/ {
-            set_frame_output(p_dec, p_dec->dpb[1]);
+        set_frame_output(p_dec, p_dec->dpb[0]);
+        if (p_dec->vsh.low_delay) {
+            set_frame_unref(p_dec, p_dec->dpb[0]);
+            p_dec->dpb[0] = NULL;
+        } else {
             set_frame_unref(p_dec, p_dec->dpb[1]);
             p_dec->dpb[1] = NULL;
         }
         p_dec->dpb[1] = p_dec->dpb[0];
         p_dec->dpb[0] = p_dec->cur;
         p_dec->cur = NULL;
-#else
-        set_frame_output(p_dec, p_dec->dpb[1]);
-        set_frame_unref(p_dec, p_dec->dpb[1]);
-        AVSD_SWAP(AvsdFrame_t *, p_dec->cur, p_dec->dpb[1]);
-        //AVSD_SWAP(AvsdFrame_t *, p_dec->dpb[0], p_dec->dpb[1]);
-        p_dec->cur = NULL;
-#endif
     } else {
-        //AVSD_SWAP(AvsdFrame_t *, p_dec->dpb[0], p_dec->dpb[1]);
         set_frame_output(p_dec, p_dec->cur);
         set_frame_unref(p_dec, p_dec->cur);
         p_dec->cur = NULL;
     }
-    //FPRINT(p_dec->fp_log, "-------- \n");
-    //if (p_dec->dpb[0]) {
-    //    FPRINT(p_dec->fp_log, "dpb[0]->mark = %d\n", p_dec->dpb[0]->frame_mark);
-    //}
-    //if (p_dec->dpb[1]) {
-    //    FPRINT(p_dec->fp_log, "dpb[1]->mark = %d\n",p_dec->dpb[1]->frame_mark);
-    //}
-    //FPRINT(p_dec->fp_log, "-------- \n");
+
     return MPP_OK;
 }
 
@@ -772,14 +765,12 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
         }
         switch (startcode) {
         case VIDEO_SEQUENCE_START_CODE:
-            //avsd_reset_parameters(p_dec);
             ret = get_sequence_header(&p_dec->bitctx, &p_dec->vsh);
             if (ret == MPP_OK) {
                 p_dec->got_vsh = 1;
             }
             break;
         case VIDEO_SEQUENCE_END_CODE:
-            //avsd_reset_parameters(p_dec);
             break;
         case USER_DATA_CODE:
             break;
@@ -791,11 +782,9 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
                 avsd_reset_parameters(p_dec);
                 p_dec->got_keyframe = 1;
             }
-            set_frame_output(p_dec, p_dec->cur);
-            set_frame_unref(p_dec, p_dec->cur);
             ret = get_i_picture_header(&p_dec->bitctx, &p_dec->vsh, &p_dec->ph);
             if (ret == MPP_OK) {
-                p_dec->cur = get_one_frame_from_dpb(p_dec, task);
+                p_dec->cur = get_one_save(p_dec, task);
             }
             p_dec->cur->pic_type = pic_type = I_PICTURE;
             p_dec->vec_flag++;
@@ -808,11 +797,9 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
                 avsd_reset_parameters(p_dec);
                 break;
             }
-            set_frame_output(p_dec, p_dec->cur);
-            set_frame_unref(p_dec, p_dec->cur);
             ret = get_pb_picture_header(&p_dec->bitctx, &p_dec->vsh, &p_dec->ph);
             if (ret == MPP_OK) {
-                p_dec->cur = get_one_frame_from_dpb(p_dec, task);
+                p_dec->cur = get_one_save(p_dec, task);
             }
             p_dec->cur->pic_type = pic_type = p_dec->ph.picture_coding_type;
             p_dec->vec_flag += (p_dec->vec_flag == 1 && pic_type == P_PICTURE);
@@ -827,9 +814,10 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
                 mpp_err_f("missing refer frame.\n");
                 ret = MPP_NOK;
                 goto __FAILED;
-            } else if (startcode >= SLICE_MIN_START_CODE
-                       && startcode <= SLICE_MAX_START_CODE)  {
-                task->valid |= 1;
+            }
+            if (startcode >= SLICE_MIN_START_CODE
+                && startcode <= SLICE_MAX_START_CODE) {
+                task->valid = 1;
             }
 
             break;
@@ -838,6 +826,8 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
 
     return ret = MPP_OK;
 __FAILED:
+    reset_one_save(p_dec->cur);
+
     return ret;
 }
 

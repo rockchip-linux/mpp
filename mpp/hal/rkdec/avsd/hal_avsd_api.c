@@ -51,13 +51,11 @@ static RK_U32 avsd_len_align(RK_U32 val)
     return (2 * MPP_ALIGN(val, 16));
 }
 
-
 static void explain_input_buffer(AvsdHalCtx_t *p_hal, HalDecTask *task)
 {
-
     memcpy(&p_hal->syn, task->syntax.data, sizeof(AvsdSyntax_t));
-
 }
+
 static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -65,8 +63,6 @@ static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 
     //!< update syntax
     p_hal->data_offset = p_regs->sw12.rlc_vlc_base >> 10;
-    //p_hal->syn.bitstream_size -= p_hal->data_offset;
-    mpp_log_f("stream_size=%d, data_offset=%d\n", p_hal->data_offset);
     //!< re-generate register
     memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
     FUN_CHECK(ret = set_defalut_parameters(p_hal));
@@ -126,7 +122,6 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
         buf_size = (1920 * 1088) * 2;
         FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->mv_buf, buf_size));
     }
-    mpp_log_f("p_hal->buf_group=%p \n", p_hal->buf_group);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avsd_ver_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avsd_len_align);
@@ -201,7 +196,6 @@ MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    mpp_log_f("p_hal->p_regs=%p\n", p_hal->p_regs);
     memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
     explain_input_buffer(p_hal, &task->dec);
     p_hal->data_offset = 0;

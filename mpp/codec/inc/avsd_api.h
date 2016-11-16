@@ -20,21 +20,9 @@
 #include "parser_api.h"
 
 
-#define AVSD_DBG_ERROR             (0x00000001)
-#define AVSD_DBG_ASSERT            (0x00000002)
-#define AVSD_DBG_WARNNING          (0x00000004)
-#define AVSD_DBG_LOG               (0x00000008)
-
-#define AVSD_DBG_INPUT             (0x00000010)   //!< input packet
-#define AVSD_DBG_TIME              (0x00000020)   //!< input packet
-
-#define AVSD_DBG_CALLBACK          (0x00008000)
-
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
-extern RK_U32 avsd_parse_debug;
 extern const ParserApi api_avsd_parser;
 
 MPP_RET  avsd_init   (void *decoder, ParserCfg *cfg);

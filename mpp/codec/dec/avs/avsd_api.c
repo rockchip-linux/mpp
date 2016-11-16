@@ -129,6 +129,8 @@ MPP_RET avsd_reset(void *decoder)
     AVSD_PARSE_TRACE("In.");
 
     avsd_reset_parameters(p_dec);
+    p_dec->got_keyframe = 0;
+    p_dec->vec_flag = 0;
 
     AVSD_PARSE_TRACE("Out.");
     (void)p_dec;
@@ -149,6 +151,8 @@ MPP_RET avsd_flush(void *decoder)
     AVSD_PARSE_TRACE("In.");
 
     avsd_reset_parameters(p_dec);
+    p_dec->got_keyframe = 0;
+    p_dec->vec_flag = 0;
 
     AVSD_PARSE_TRACE("Out.");
     (void)p_dec;
@@ -265,11 +269,10 @@ MPP_RET avsd_parse(void *decoder, HalDecTask *task)
     avsd_parse_stream(p_dec, task);
     if (task->valid) {
         avsd_fill_parameters(p_dec, p_dec->syn);
-        task->output = p_dec->cur->slot_idx;
-        avsd_set_refers(p_dec, task);
+        avsd_set_dpb(p_dec, task);
+
         avsd_commit_syntaxs(p_dec->syn, task);
         avsd_update_dpb(p_dec);
-        //task->flags.had_error = 1;
     }
 
     AVSD_PARSE_TRACE("Out.");
