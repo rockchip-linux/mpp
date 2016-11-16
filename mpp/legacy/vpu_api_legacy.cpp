@@ -555,6 +555,8 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
                 mpp_err("mpp task input enqueue failed\n");
                 goto DECODE_OUT;
             }
+
+            pkt->size = 0;
             task = NULL;
 
             do {
@@ -628,6 +630,9 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
                 pkt->size, pkt->nFlags, pkt->pts);
 
         ret = mpi->decode(mpp_ctx, packet, &mframe);
+        if (MPP_OK == ret) {
+            pkt->size = 0;
+        }
         if (ret || NULL == mframe) {
             aDecOut->size = 0;
         } else {
