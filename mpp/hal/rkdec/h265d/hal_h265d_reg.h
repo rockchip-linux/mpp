@@ -62,7 +62,7 @@ typedef struct {
         RK_U32    sw_dec_bus_sta      : 1  ;
         RK_U32    sw_dec_error_sta    : 1  ;
         RK_U32    sw_dec_empty_sta    : 1  ;
-        RK_U32    reserve3            : 3  ;
+        RK_U32    reserve4            : 4  ;
         RK_U32    sw_softrst_en_p     : 1  ;
         RK_U32    sw_force_softreset_valid: 1 ;
         RK_U32    sw_softreset_rdy    : 1  ;
