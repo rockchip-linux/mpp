@@ -404,6 +404,9 @@ static RK_S32 VirtualBuffer_new(h264VirtualBuffer_s *vb, RK_S32 timeInc, true_e 
         vb->picTimeInc    -= vb->timeScale;
         vb->virtualBitCnt -= vb->bitRate;
         vb->realBitCnt    -= vb->bitRate;
+        // limit realBitCnt to avoid compensating too many bits for next frame
+        if (vb->realBitCnt < 0 && (ABS(vb->realBitCnt) > vb->bitRate / 10))
+            vb->realBitCnt = -vb->bitRate / 10;
     }
     drift = H264Calculate(vb->bitRate, vb->picTimeInc, vb->timeScale);
     drift -= vb->virtualBitCnt;
