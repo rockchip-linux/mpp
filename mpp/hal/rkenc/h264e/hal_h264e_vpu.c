@@ -24,6 +24,7 @@
 #include "hal_h264e.h"
 #include "hal_h264e_vpu.h"
 
+//#define H264E_DUMP_DATA_TO_FILE
 
 /* H.264 motion estimation parameters */
 static const RK_U32 h264_prev_mode_favor[52] = {
@@ -729,7 +730,6 @@ static MPP_RET hal_h264e_vpu_open_dump_files(void *dump_files)
             return MPP_ERR_OPEN_FILE;
         }
 
-
         sprintf(full_path, "%s%s", base_path, "mpp_reg_in.txt");
         files->fp_mpp_reg_in = fopen(full_path, "wb");
         if (!files->fp_mpp_reg_in) {
@@ -809,6 +809,9 @@ static void hal_h264e_vpu_dump_mpp_syntax_in(h264e_syntax *syn, h264e_hal_contex
         fprintf(fp, "%-16d %s\n", syn->output_strm_limit_size, "output_strm_limit_size");
         fprintf(fp, "%-16d %s\n", syn->pic_luma_width, "pic_luma_width");
         fprintf(fp, "%-16d %s\n", syn->pic_luma_height, "pic_luma_height");
+        fprintf(fp, "0x%-14x %s\n", syn->input_luma_addr, "input_luma_addr");
+        fprintf(fp, "0x%-14x %s\n", syn->input_cb_addr, "input_cb_addr");
+        fprintf(fp, "0x%-16x %s\n", syn->input_cr_addr, "input_cr_addr");
         fprintf(fp, "%-16d %s\n", syn->input_image_format, "input_image_format");
 
         fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_a, "color_conversion_coeff_a");
@@ -816,9 +819,6 @@ static void hal_h264e_vpu_dump_mpp_syntax_in(h264e_syntax *syn, h264e_hal_contex
         fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_c, "color_conversion_coeff_c");
         fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_e, "color_conversion_coeff_e");
         fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_f, "color_conversion_coeff_f");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_r_mask_msb, "color_conversion_r_mask_msb");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_g_mask_msb, "color_conversion_g_mask_msb");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_b_mask_msb, "color_conversion_b_mask_msb");
 
         fprintf(fp, "\n");
         fflush(fp);
@@ -1101,6 +1101,43 @@ static MPP_RET hal_h264e_vpu_free_buffers(h264e_hal_context *ctx)
     return MPP_OK;
 }
 
+static void hal_h264e_vpu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
+{
+    RK_U32 i = 0;
+    RK_S32 words = size_bytes / 4;
+    RK_U32 val, val2, tmp, tmp2;
+
+    mpp_assert((size_bytes % 8) == 0);
+
+    while (words > 0) {
+        val = buf[i];
+        tmp = 0;
+
+        tmp |= (val & 0xFF) << 24;
+        tmp |= (val & 0xFF00) << 8;
+        tmp |= (val & 0xFF0000) >> 8;
+        tmp |= (val & 0xFF000000) >> 24;
+
+        {
+            val2 = buf[i + 1];
+            tmp2 = 0;
+
+            tmp2 |= (val2 & 0xFF) << 24;
+            tmp2 |= (val2 & 0xFF00) << 8;
+            tmp2 |= (val2 & 0xFF0000) >> 8;
+            tmp2 |= (val2 & 0xFF000000) >> 24;
+
+            buf[i] = tmp2;
+            words--;
+            i++;
+
+        }
+        buf[i] = tmp;
+        words--;
+        i++;
+    }
+}
+
 static void hal_h264e_vpu_write_cabac_table(h264e_syntax *syn, MppBuffer hw_cabac_tab_buf)
 {
     const RK_S32(*context)[460][2];
@@ -1124,23 +1161,16 @@ static void hal_h264e_vpu_write_cabac_table(h264e_syntax *syn, MppBuffer hw_caba
                 RK_S32 m = (RK_S32)(*context)[i][0];
                 RK_S32 n = (RK_S32)(*context)[i][1];
 
-                RK_S32 pre_ctx_state =
-                    H264E_HAL_CLIP3(1, 126,
-                                    ((m * (RK_S32)qp) >> 4) + n);
+                RK_S32 pre_ctx_state = H264E_HAL_CLIP3(((m * (RK_S32)qp) >> 4) + n, 1, 126);
 
-                if (pre_ctx_state <= 63) {
-                    table[qp * 464 * 2 + j * 464 + i] =
-                        (RK_U8)((63
-                                 - pre_ctx_state) << 1);
-                } else {
-                    table[qp * 464 * 2 + j * 464 + i] =
-                        (RK_U8)(((pre_ctx_state - 64)
-                                 << 1) | 1);
-                }
+                if (pre_ctx_state <= 63)
+                    table[qp * 464 * 2 + j * 464 + i] = (RK_U8)((63 - pre_ctx_state) << 1);
+                else
+                    table[qp * 464 * 2 + j * 464 + i] = (RK_U8)(((pre_ctx_state - 64) << 1) | 1);
             }
         }
     }
-
+    hal_h264e_vpu_swap_endian((RK_U32 *)table, H264E_CABAC_TABLE_BUF_SIZE);
     mpp_buffer_write(hw_cabac_tab_buf, 0, table, H264E_CABAC_TABLE_BUF_SIZE);
 
     h264e_hal_debug_leave();
@@ -1518,9 +1548,9 @@ static MPP_RET hal_h264e_vpu_write_pps(h264e_hal_vpu_stream *stream, h264e_hal_p
 static void hal_h264e_vpu_set_sps(h264e_hal_sps *sps, h264e_control_extra_info_cfg *cfg)
 {
     sps->i_profile_idc = cfg->profile_idc;   /* 66 = baseline, 77 = main, 100 = high */
-    sps->b_constraint_set0 = 1;
-    sps->b_constraint_set1 = 1;
-    sps->b_constraint_set2 = 1;
+    sps->b_constraint_set0 = 0;
+    sps->b_constraint_set1 = 0;
+    sps->b_constraint_set2 = 0;
     sps->b_constraint_set3 = 0;
 
     sps->i_level_idc = cfg->level_idc;
@@ -1588,7 +1618,7 @@ static void hal_h264e_vpu_set_pps(h264e_hal_pps *pps, h264e_control_extra_info_c
 {
     pps->i_id = 0;
     pps->i_sps_id = 0;
-    pps->b_cabac = 0;
+    pps->b_cabac = cfg->enable_cabac;
     pps->b_pic_order = 0;
     pps->i_num_slice_groups = 1;
     pps->i_num_ref_idx_l0_default_active = 1;
@@ -1879,7 +1909,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     if (mbs_in_row * mbs_in_col > 3600)
         val = VEPU_REG_DISABLE_QUARTER_PIXEL_MV;
     val |= VEPU_REG_CABAC_INIT_IDC(syn->cabac_init_idc);
-    if (syn->enable_cabac)
+    if (pps->b_cabac)
         val |= VEPU_REG_ENTROPY_CODING_MODE;
     if (pps->b_transform_8x8_mode)
         val |= VEPU_REG_H264_TRANS8X8_MODE;
@@ -2067,7 +2097,6 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_LUMA, syn->input_luma_addr);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CB, syn->input_cb_addr);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CR, syn->input_cr_addr);
-
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_OUTPUT_STREAM, syn->output_strm_addr);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_OUTPUT_CTRL, mpp_buffer_get_fd(bufs->hw_nal_size_table_buf));
 
@@ -2198,7 +2227,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
 
 #ifdef H264E_DUMP_DATA_TO_FILE
     hal_h264e_vpu_dump_mpp_reg_out(ctx);
-    hal_h264e_vpu_dump_mpp_strm_out(ctx, ctx->enc_task.output);
+    hal_h264e_vpu_dump_mpp_strm_out(ctx, task->enc.output);
 #endif
     //hal_h264e_vpu_dump_mpp_strm_out(ctx, NULL);
 
