@@ -2816,7 +2816,7 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn, h264e_hal_rkv_csp_info *src_fmt, RK_U32 gop_start)
+static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn, h264e_hal_rkv_csp_info *src_fmt)
 {
     RK_U32 input_image_format = syn->input_image_format;
     h264e_hal_debug_enter();
@@ -2833,10 +2833,7 @@ static MPP_RET hal_h264e_rkv_validate_syntax(h264e_syntax *syn, h264e_hal_rkv_cs
 
     H264E_HAL_VALIDATE_NEQ(syn->input_image_format, "input_image_format", H264E_RKV_CSP_NONE);
     if (syn->frame_coding_type == 1) { /* ASIC_INTRA */
-        if (gop_start)
-            syn->frame_coding_type = RKVENC_FRAME_TYPE_IDR;
-        else
-            syn->frame_coding_type = RKVENC_FRAME_TYPE_I;
+        syn->frame_coding_type = RKVENC_FRAME_TYPE_IDR;
     } else { /* ASIC_INTER */
         syn->frame_coding_type = RKVENC_FRAME_TYPE_P;
     }
@@ -3183,7 +3180,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     enc_task->flags.err = 0;
 
-    if (MPP_OK != hal_h264e_rkv_validate_syntax(syn, &src_fmt, ctx->frame_cnt % sps->keyframe_max_interval == 0)) {
+    if (MPP_OK != hal_h264e_rkv_validate_syntax(syn, &src_fmt)) {
         h264e_hal_log_err("hal_h264e_rkv_validate_syntax failed, return early");
         enc_task->flags.err |= HAL_ENC_TASK_ERR_GENREG;
         return MPP_NOK;
@@ -3265,7 +3262,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg09.pic_hfill     = (syn->pic_luma_height & 0xf) ? (16 - (syn->pic_luma_height & 0xf)) : 0;
 
     regs->swreg10.enc_stnd       = 0; //H264
-    regs->swreg10.cur_frm_ref    = ((ctx->frame_cnt + 1) % sps->keyframe_max_interval) != 0; //syn->swreg10.cur_frm_ref;       //Current frame should be refered in future
+    regs->swreg10.cur_frm_ref    = 1; //current frame will be refered
     regs->swreg10.bs_scp         = 1; //syn->swreg10.bs_scp;
     regs->swreg10.slice_int      = 0; //syn->swreg10.slice_int;
     regs->swreg10.node_int       = 0; //syn->swreg10.node_int;//node_int_frame_pos
@@ -3296,7 +3293,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg26_adr_srcv     = syn->input_cr_addr; //syn->addr_cfg.adr_srcv;
 
     hal_h264e_rkv_set_roi_regs(regs, syn, bufs->hw_roi_buf[mul_buf_idx], ctx->frame_cnt, test_cfg);
-
     regs->swreg30_rfpw_addr    = mpp_buffer_get_fd(dpb_ctx->fdec->hw_buf);//syn->addr_cfg.rfpw_addr; //TODO: extend recon luma buf
     if (dpb_ctx->fref[0][0])
         regs->swreg31_rfpr_addr    = mpp_buffer_get_fd(dpb_ctx->fref[0][0]->hw_buf); //syn->addr_cfg.rfpr_addr;
