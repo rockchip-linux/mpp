@@ -1053,7 +1053,8 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 
             if ((pts > ctx->PreGetFrameTime) && (ctx->pic_head.temporal_reference > (RK_S32)ctx->PreChangeTime_index)) {
                 RK_S32 theshold_frame_period = tmp_frame_period * 2 ;
-                RK_S32 predict_frame_period = (ctx->pic_head.temporal_reference - ctx->PreChangeTime_index) * ctx->preframe_period / 256;
+                RK_S32 last_frame_period = ctx->preframe_period ? ctx->preframe_period : ctx->frame_period;
+                RK_S32 predict_frame_period = (ctx->pic_head.temporal_reference - ctx->PreChangeTime_index) * last_frame_period / 256;
                 if (theshold_frame_period < predict_frame_period) {
                     pts = ctx->PreGetFrameTime + predict_frame_period;
                     tmp_frame_period = predict_frame_period;
