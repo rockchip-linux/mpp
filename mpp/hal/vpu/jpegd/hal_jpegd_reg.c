@@ -1688,19 +1688,22 @@ JpegDecRet jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     reg->reg122.sw_jpeg_filright_e = pSyntax->info.fillRight;
 
     reg->reg148.sw_slice_h = pSyntax->info.sliceHeight;
-    /* Set bit 20 and bit 21 of reg148 to 1, notifying hardware to decode jpeg including DRI segment */
-    reg->reg148.sw_resver = 0x003000;
+    /* Set bit 21 of reg148 to 1, notifying hardware to decode jpeg including DRI segment */
+    reg->reg148.sw_syn_marker_e = 1;
+
+    /* tell hardware that height is 8-pixel aligned, but not 16-pixel aligned */
+    if ((pSyntax->frame.Y % 16) &&
+        (pSyntax->info.yCbCrMode == JPEGDEC_YUV422 ||
+         pSyntax->info.yCbCrMode == JPEGDEC_YUV444 ||
+         pSyntax->info.yCbCrMode == JPEGDEC_YUV411)) {
+        reg->reg148.sw_jpeg_height8_flag = 1;
+    }
 
     /* Set JPEG operation mode */
     if (pSyntax->info.operationType != JPEGDEC_PROGRESSIVE) {
         reg->reg57_enable_ctrl.sw_pjpeg_e = 0;
     } else {
         reg->reg57_enable_ctrl.sw_pjpeg_e = 1;
-    }
-
-    /* Set needed progressive parameters */
-    if (pSyntax->info.operationType == JPEGDEC_PROGRESSIVE) { // TODO: unsupported so far
-        JPEGD_INFO_LOG("JPEGDEC_PROGRESSIVE");
     }
 
     if (pSyntax->info.operationType == JPEGDEC_BASELINE) {
@@ -1759,14 +1762,12 @@ JpegDecRet jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
 
         if (pSyntax->info.operationType == JPEGDEC_BASELINE) {
             /* Luminance output */
-            JPEGD_INFO_LOG("INTERNAL: Set LUMA OUTPUT data base address\n");
             JPEGD_INFO_LOG("Luma virtual: %p, phy_addr: %x\n", pSyntax->asicBuff.outLumaBuffer.vir_addr,
                            pSyntax->asicBuff.outLumaBuffer.phy_addr);
             reg->reg63_dec_out_base = pSyntax->asicBuff.outLumaBuffer.phy_addr;
 
             /* Chrominance output */
             if (pSyntax->image.sizeChroma) {
-                JPEGD_INFO_LOG("INTERNAL: Set CHROMA OUTPUT data base address\n");
                 JPEGD_INFO_LOG("Chroma virtual: %p, phy_addr: %x\n", pSyntax->asicBuff.outChromaBuffer.vir_addr,
                                pSyntax->asicBuff.outChromaBuffer.phy_addr);
                 reg->reg131_jpg_ch_out_base = pSyntax->asicBuff.outChromaBuffer.phy_addr;
@@ -1779,10 +1780,8 @@ JpegDecRet jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     }
 
     pSyntax->info.sliceStartCount = 1;
-    //pSyntax->asicRunning = 1;
 
     /* Enable jpeg mode and set slice mode */
-    JPEGD_VERBOSE_LOG("Enable jpeg\n");
     reg->reg57_enable_ctrl.sw_dec_e = 1;
 
     FUN_TEST("Exit");
