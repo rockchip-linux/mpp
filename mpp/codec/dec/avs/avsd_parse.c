@@ -432,6 +432,7 @@ static MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p)
 
     return ret = MPP_OK;
 }
+
 /*!
 ***********************************************************************
 * \brief
@@ -540,6 +541,7 @@ MPP_RET avsd_set_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
 __FAILED:
     return MPP_NOK;
 }
+
 /*!
 ***********************************************************************
 * \brief
@@ -564,13 +566,7 @@ MPP_RET avsd_update_dpb(AvsdCtx_t *p_dec)
 {
     if (p_dec->ph.picture_coding_type != B_PICTURE) {
         set_frame_output(p_dec, p_dec->dpb[0]);
-        if (p_dec->vsh.low_delay) {
-            set_frame_unref(p_dec, p_dec->dpb[0]);
-            p_dec->dpb[0] = NULL;
-        } else {
-            set_frame_unref(p_dec, p_dec->dpb[1]);
-            p_dec->dpb[1] = NULL;
-        }
+        set_frame_unref(p_dec, p_dec->dpb[1]);
         p_dec->dpb[1] = p_dec->dpb[0];
         p_dec->dpb[0] = p_dec->cur;
         p_dec->cur = NULL;
