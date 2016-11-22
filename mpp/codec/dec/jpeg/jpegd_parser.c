@@ -2397,8 +2397,8 @@ MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
         mpp_frame_set_fmt(pCtx->output_frame, fmt);
         mpp_frame_set_width(pCtx->output_frame, pCtx->pSyntax->frame.X);
         mpp_frame_set_height(pCtx->output_frame, pCtx->pSyntax->frame.Y);
-        mpp_frame_set_hor_stride(pCtx->output_frame, pCtx->pSyntax->frame.X);
-        mpp_frame_set_ver_stride(pCtx->output_frame, pCtx->pSyntax->frame.Y);
+        mpp_frame_set_hor_stride(pCtx->output_frame, pCtx->pSyntax->frame.hwX);
+        mpp_frame_set_ver_stride(pCtx->output_frame, pCtx->pSyntax->frame.hwY);
         mpp_frame_set_pts(pCtx->output_frame, pCtx->pts);
 
         if (pCtx->eos)
@@ -2407,9 +2407,9 @@ MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
         mpp_buf_slot_get_unused(pCtx->frame_slots, &pCtx->frame_slot_index);
         JPEGD_INFO_LOG("frame_slot_index:%d, X:%d, Y:%d", pCtx->frame_slot_index, pCtx->pSyntax->frame.X, pCtx->pSyntax->frame.Y);
 
-        value = 3;
-        mpp_slots_set_prop(pCtx->frame_slots, SLOTS_NUMERATOR, &value);
         value = 2;
+        mpp_slots_set_prop(pCtx->frame_slots, SLOTS_NUMERATOR, &value);
+        value = 1;
         mpp_slots_set_prop(pCtx->frame_slots, SLOTS_DENOMINATOR, &value);
         mpp_buf_slot_set_prop(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_FRAME, pCtx->output_frame);
         mpp_buf_slot_set_flag(pCtx->frame_slots, pCtx->frame_slot_index, SLOT_CODEC_USE);

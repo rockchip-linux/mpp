@@ -92,7 +92,7 @@ typedef struct JpegRegSet {
     } reg2;
 
     struct {
-        RK_U32  sw_pp_color_coefff     : 8;
+        RK_U32  sw_pp_color_coefff  : 8;
     } reg3;
 
     struct {
@@ -182,7 +182,7 @@ typedef struct JpegRegSet {
 
     struct {
         RK_U32  sw_pp_out_width      : 11;
-        RK_U32  sw_reserved_1      : 5;
+        RK_U32  sw_reserved_1        : 5;
         RK_U32  sw_pp_out_height     : 11;
     } reg35;
 
@@ -266,10 +266,10 @@ typedef struct JpegRegSet {
     } reg50_dec_ctrl;
 
     struct {
-        RK_U32 sw_stream_len       : 24;
+        RK_U32  sw_stream_len       : 24;
         RK_U32  reserve1            : 1;
         RK_U32  sw_init_qp          : 6;
-        RK_U32  reserve2           : 1;
+        RK_U32  reserve2            : 1;
     } reg51_stream_info;
 
     struct {
@@ -292,20 +292,20 @@ typedef struct JpegRegSet {
     } reg54_endian;
 
     struct {
-        RK_U32  sw_dec_irq      : 1;
-        RK_U32  sw_dec_irq_dis  : 1;
-        RK_U32  reserve0        : 2;
-        RK_U32  sw_dec_rdy_int  : 1;
-        RK_U32  sw_dec_bus_int  : 1;
+        RK_U32  sw_dec_irq          : 1;
+        RK_U32  sw_dec_irq_dis      : 1;
+        RK_U32  reserve0            : 2;
+        RK_U32  sw_dec_rdy_int      : 1;
+        RK_U32  sw_dec_bus_int      : 1;
         RK_U32  sw_dec_buffer_int   : 1;
-        RK_U32  reserve1        : 1;
-        RK_U32  sw_dec_aso_int  : 1;
+        RK_U32  reserve1            : 1;
+        RK_U32  sw_dec_aso_int      : 1;
         RK_U32  sw_dec_slice_int    : 1;
-        RK_U32  sw_dec_pic_inf  : 1;
-        RK_U32  reserve2        : 1;
-        RK_U32  sw_dec_error_int: 1;
-        RK_U32  sw_dec_timeout  : 1;
-        RK_U32  reserve3        : 18;
+        RK_U32  sw_dec_pic_inf      : 1;
+        RK_U32  reserve2            : 1;
+        RK_U32  sw_dec_error_int    : 1;
+        RK_U32  sw_dec_timeout      : 1;
+        RK_U32  reserve3            : 18;
     } reg55_Interrupt;
 
     struct {
@@ -331,7 +331,7 @@ typedef struct JpegRegSet {
         RK_U32  sw_write_mvs_e      : 1;
         RK_U32  sw_sorenson_e       : 1;
         RK_U32  sw_fwd_interlace_e  : 1;
-        RK_U32  sw_pic_topfield_e   : 1 ;
+        RK_U32  sw_pic_topfield_e   : 1;
         RK_U32  sw_pic_inter_e      : 1;
         RK_U32  sw_pic_b_e          : 1;
         RK_U32  sw_pic_fieldmode_e  : 1;
@@ -342,10 +342,10 @@ typedef struct JpegRegSet {
         RK_U32  sw_ch_8pix_ileav_e  : 1;
         RK_U32  sw_start_code_e     : 1;
         RK_U32  resever1            : 8;
-        RK_U32 sw_dec_ahb_hlock_e  : 1;
+        RK_U32 sw_dec_ahb_hlock_e   : 1;
     } reg57_enable_ctrl;
 
-    RK_U32                        reg58_soft_rest;
+    RK_U32          reg58_soft_rest;
 
     struct {
         RK_U32  resever             : 2;
@@ -448,7 +448,7 @@ typedef struct JpegRegSet {
     struct {
         RK_U32  sw_stream1_len      : 24;
         RK_U32  sw_coeffs_part_am   : 4;
-        RK_U32  sw_resever          : 4;
+        RK_U32  sw_reserved         : 4;
     } reg124;
 
     struct {
@@ -516,7 +516,7 @@ typedef struct JpegRegSet {
         RK_U32  sw_filt_ref_adj_2  : 7;
         RK_U32  sw_filt_ref_adj_1  : 7;
         RK_U32  sw_filt_ref_adj_0  : 7;
-        RK_U32  sw_resver          : 4;
+        RK_U32  sw_reserved        : 4;
     } reg133;
 
     struct {
@@ -631,8 +631,11 @@ typedef struct JpegRegSet {
     RK_U32 reg_dct_strm1_base[2];
 
     struct {
-        RK_U32  sw_slice_h  : 8;
-        RK_U32  sw_resver   : 24;
+        RK_U32  sw_slice_h           : 8;
+        RK_U32  sw_reserved_1        : 12;
+        RK_U32  sw_jpeg_height8_flag : 1;
+        RK_U32  sw_syn_marker_e      : 1;
+        RK_U32  sw_reserved_2        : 10;
     } reg148;
 
     RK_U32 reg149_segment_map_base;
@@ -643,21 +646,21 @@ typedef struct JpegRegSet {
         RK_U32  sw_dct_start_bit_5   : 6;
         RK_U32  sw_dct_start_bit_4   : 6;
         RK_U32  sw_dct_start_bit_3   : 6;
-        RK_U32  sw_resver            : 2;
+        RK_U32  sw_reserved          : 2;
     } reg150;
 
     struct {
-        RK_U32  sw_quant_3        : 11;
-        RK_U32  sw_quant_2        : 11;
+        RK_U32  sw_quant_3         : 11;
+        RK_U32  sw_quant_2         : 11;
         RK_U32  sw_quant_delta_3   : 5;
         RK_U32  sw_quant_delta_2   : 5;
     } reg151;
 
     struct {
-        RK_U32  sw_quant_5        : 11;
-        RK_U32  sw_quant_4        : 11;
+        RK_U32  sw_quant_5         : 11;
+        RK_U32  sw_quant_4         : 11;
         RK_U32  sw_quant_delta_4   : 5;
-        RK_U32  sw_resver         : 5;
+        RK_U32  sw_reserved        : 5;
     } reg152;
 
     struct {
