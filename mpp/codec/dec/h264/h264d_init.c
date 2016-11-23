@@ -420,7 +420,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
                 mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             }
-            hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 127) & (~127)) / 8;
+            hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 7) & (~7)) / 8;
             ver_stride = p_Vid->height;
             mpp_frame_set_hor_stride(mframe, hor_stride);  // before crop
             mpp_frame_set_ver_stride(mframe, ver_stride);
