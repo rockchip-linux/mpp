@@ -221,6 +221,9 @@ bool_e SetParameter(H264ECtx * inst, const H264EncConfig * pEncCfg)
     inst->preProcess.lumHeight = pEncCfg->height;
     inst->preProcess.lumHeightSrc = pEncCfg->height;
 
+    inst->preProcess.hor_stride = pEncCfg->hor_stride;
+    inst->preProcess.ver_stride = pEncCfg->ver_stride;
+
     inst->preProcess.horOffsetSrc = 0;
     inst->preProcess.verOffsetSrc = 0;
 

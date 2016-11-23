@@ -627,7 +627,7 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
         }
 
         vpu_api_dbg_input("input size %-6d flag %x pts %lld\n",
-                pkt->size, pkt->nFlags, pkt->pts);
+                          pkt->size, pkt->nFlags, pkt->pts);
 
         ret = mpi->decode(mpp_ctx, packet, &mframe);
         if (MPP_OK == ret) {
@@ -1313,8 +1313,8 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingVP9) {
             p->ImgHorStride = MPP_ALIGN(ImgWidth, 128);
             p->ImgVerStride = MPP_ALIGN(p->ImgHeight, 64);
-        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC
-            && (p->ImgWidth > 1920 || p->ImgHeight > 1088)) {
+        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC &&
+                   (p->ImgWidth > 1920 || p->ImgHeight > 1088)) {
             p->ImgHorStride = hevc_hor_align_256_odd(ImgWidth);
             p->ImgVerStride = default_align_16(p->ImgHeight);
         } else {

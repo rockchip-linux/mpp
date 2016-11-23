@@ -82,8 +82,8 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     H264ECtx *p = (H264ECtx *)ctx;
     H264EncIn *encIn = &(p->encIn);
     H264EncOut *encOut = &(p->encOut);
-    RK_U32 srcLumaWidth = p->lumWidthSrc;
-    RK_U32 srcLumaHeight = p->lumHeightSrc;
+    RK_U32 srcHorStride = p->preProcess.hor_stride;
+    RK_U32 srcVerStride = p->preProcess.ver_stride;
 
     encIn->pOutBuf = (RK_U32*)mpp_buffer_get_ptr(task->output);
     encIn->busOutBuf = mpp_buffer_get_fd(task->output);
@@ -104,14 +104,10 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     }
 
     /* Setup encoder input */
-    {
-        RK_U32 w = srcLumaWidth;
-        encIn->busLuma = mpp_buffer_get_fd(task->input);
-
-        encIn->busChromaU = encIn->busLuma | ((w * srcLumaHeight) << 10);
-        encIn->busChromaV = encIn->busChromaU +
-                            ((((w + 1) >> 1) * ((srcLumaHeight + 1) >> 1)) << 10);
-    }
+    // TODO: support more format in the future
+    encIn->busLuma = mpp_buffer_get_fd(task->input);
+    encIn->busChromaU = encIn->busLuma | ((srcHorStride * srcVerStride) << 10);
+    encIn->busChromaV = encIn->busLuma | ((srcHorStride * srcVerStride * 5 / 4) << 10);
 
     /* Select frame type */
     if (p->intraPicRate != 0 && (p->intraPeriodCnt >= p->intraPicRate)) {
@@ -286,6 +282,16 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
             enc_cfg->height = mpp_cfg->height;
         } else
             mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
+
+        if (mpp_cfg->hor_stride && mpp_cfg->ver_stride) {
+            enc_cfg->hor_stride = mpp_cfg->hor_stride;
+            enc_cfg->ver_stride = mpp_cfg->ver_stride;
+        } else {
+            mpp_err("hor_stride %d ver_stride %d is invalid, use width and height",
+                    mpp_cfg->hor_stride, mpp_cfg->ver_stride);
+            enc_cfg->hor_stride = enc_cfg->width;
+            enc_cfg->ver_stride = enc_cfg->height;
+        }
 
         enc_cfg->input_image_format = mpp_cfg->format;
         enc_cfg->frameRateNum       = mpp_cfg->fps_in;

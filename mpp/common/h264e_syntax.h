@@ -51,6 +51,8 @@ typedef struct h264e_syntax_t {
     RK_U32 output_strm_addr;            // outputStrmBase
     RK_U32 pic_luma_width;              // preProcess->lumWidth
     RK_U32 pic_luma_height;             // preProcess->lumHeight
+    RK_U32 pic_hor_stride;              // preProcess->hor_stride
+    RK_U32 pic_ver_stride;              // preProcess->ver_stride
     RK_U32 input_luma_addr;             // inputLumBase
     RK_U32 input_cb_addr;               // inputCbBase
     RK_U32 input_cr_addr;               // inputCrBase

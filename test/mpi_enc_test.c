@@ -36,6 +36,7 @@
 #define MAX_FILE_NAME_LENGTH        256
 
 #define MPI_ENC_TEST_SET_IDR_FRAME  0
+#define MPI_ENC_TEST_SET_OSD        0
 
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
@@ -61,6 +62,79 @@ static OptionInfo mpi_enc_cmd[] = {
     {"n",               "max frame number",     "max encoding frame number"},
     {"d",               "debug",                "debug flag"},
 };
+
+static MPP_RET read_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, FILE *fp)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 read_size;
+    RK_U32 row = 0;
+    RK_U32 width        = mpp_cfg->width;
+    RK_U32 height       = mpp_cfg->height;
+    RK_U32 hor_stride   = mpp_cfg->hor_stride;
+    RK_U32 ver_stride   = mpp_cfg->ver_stride;
+    MppFrameFormat fmt  = mpp_cfg->format;
+    RK_U8 *buf_y = buf;
+    RK_U8 *buf_u = buf_y + hor_stride * ver_stride; // NOTE: diff from gen_yuv_image
+    RK_U8 *buf_v = buf_u + hor_stride * ver_stride / 4; // NOTE: diff from gen_yuv_image
+
+    switch (fmt) {
+    case MPP_FMT_YUV420SP : {
+        for (row = 0; row < height; row++) {
+            read_size = fread(buf_y + row * hor_stride, 1, width, fp);
+            if (read_size != width) {
+                mpp_err_f("read ori yuv file luma failed");
+                ret  = MPP_NOK;
+                goto err;
+            }
+        }
+
+        for (row = 0; row < height / 2; row++) {
+            read_size = fread(buf_u + row * hor_stride, 1, width, fp);
+            if (read_size != width) {
+                mpp_err_f("read ori yuv file cb failed");
+                ret  = MPP_NOK;
+                goto err;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV420P : {
+        for (row = 0; row < height; row++) {
+            read_size = fread(buf_y + row * hor_stride, 1, width, fp);
+            if (read_size != width) {
+                mpp_err_f("read ori yuv file luma failed");
+                ret  = MPP_NOK;
+                goto err;
+            }
+        }
+
+        for (row = 0; row < height / 2; row++) {
+            read_size = fread(buf_u + row * hor_stride / 2, 1, width / 2, fp);
+            if (read_size != width / 2) {
+                mpp_err_f("read ori yuv file cb failed");
+                ret  = MPP_NOK;
+                goto err;
+            }
+        }
+
+        for (row = 0; row < height / 2; row++) {
+            read_size = fread(buf_v + row * hor_stride / 2, 1, width / 2, fp);
+            if (read_size != width / 2) {
+                mpp_err_f("read ori yuv file cr failed");
+                ret  = MPP_NOK;
+                goto err;
+            }
+        }
+    } break;
+    default : {
+        mpp_err_f("read image do not support fmt %d\n", fmt);
+        ret = MPP_NOK;
+    } break;
+    }
+
+err:
+
+    return ret;
+}
 
 static MPP_RET fill_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, RK_U32 frame_count)
 {
@@ -187,7 +261,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
     RK_U32 height       = cmd->height;
-    RK_U32 hor_stride   = MPP_ALIGN(width,  16);
+    RK_U32 hor_stride   = MPP_ALIGN(width, 16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     MppFrameFormat fmt  = cmd->format;
     MppCodingType type  = cmd->type;
@@ -201,7 +275,6 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     size_t mdinfo_size  = (((hor_stride + 255) & (~255)) / 16) * (ver_stride / 16) * 4; //NOTE: hor_stride should be 16-MB aligned
     /* osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes). for general use, 1/8 Y buffer is enough. */
     size_t osd_idx_size  = hor_stride * ver_stride / 8;
-    size_t read_size    = 0;
     RK_U32 frame_count  = 0;
     RK_U64 stream_size  = 0;
     RK_U32 plt_table[8] = {
@@ -349,11 +422,13 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
     /* gen and cfg osd plt */
     mpi_enc_gen_osd_plt(&osd_plt, plt_table);
+#if MPI_ENC_TEST_SET_OSD
     ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &osd_plt);
     if (MPP_OK != ret) {
         mpp_err("mpi control enc set osd plt failed\n");
         goto MPP_TEST_OUT;
     }
+#endif
 
     i = 0;
     while (!pkt_eos) {
@@ -370,9 +445,9 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             i = 0;
 
         if (fp_input) {
-            read_size = fread(buf, 1, frame_size, fp_input);
-            if (read_size != frame_size || feof(fp_input)) {
-                mpp_log("found last frame\n");
+            ret = read_yuv_image(buf, &mpp_cfg, fp_input);
+            if (ret != MPP_OK  || feof(fp_input)) {
+                mpp_log("found last frame. feof %d\n", feof(fp_input));
                 frm_eos = 1;
             }
         } else {
@@ -424,11 +499,13 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
         /* gen and cfg osd plt */
         mpi_enc_gen_osd_data(&osd_data, osd_data_buf, frame_count);
+#if MPI_ENC_TEST_SET_OSD
         ret = mpi->control(ctx, MPP_ENC_SET_OSD_DATA_CFG, &osd_data);
         if (MPP_OK != ret) {
             mpp_err("mpi control enc set osd data failed\n");
             goto MPP_TEST_OUT;
         }
+#endif
 
         ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
         if (ret) {
