@@ -200,6 +200,11 @@ static RK_U32 rkv_ver_align(RK_U32 val)
 
 static RK_U32 rkv_hor_align(RK_U32 val)
 {
+    return MPP_ALIGN(val, 16);
+}
+
+static RK_U32 rkv_hor_align_256_odds(RK_U32 val)
+{
     return (MPP_ALIGN(val, 256) | 256);
 }
 
@@ -540,10 +545,15 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO: {
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
+        RK_U32 imgwidth = mpp_frame_get_width((MppFrame)param);
+        RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
 
+        mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if (fmt == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
-            mpp_log_f("control format YUV422SP \n");
+        }
+        if (imgwidth > 1920 || imgheight > 1088) {
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align_256_odds);
         }
         break;
     }
