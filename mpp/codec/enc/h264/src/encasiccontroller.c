@@ -109,6 +109,8 @@ void EncAsicFrameStart(void * inst, regValues_s * val, h264e_syntax *syntax_data
     syntax_data->output_strm_addr = val->outputStrmBase;
     syntax_data->pic_luma_width = ctx->preProcess.lumWidth;
     syntax_data->pic_luma_height = ctx->preProcess.lumHeight;
+    syntax_data->pic_hor_stride = ctx->preProcess.hor_stride;
+    syntax_data->pic_ver_stride = ctx->preProcess.ver_stride;
     syntax_data->input_luma_addr = val->inputLumBase;
     syntax_data->input_cb_addr = val->inputCbBase;
     syntax_data->input_cr_addr = val->inputCrBase;

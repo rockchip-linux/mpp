@@ -40,8 +40,10 @@
 typedef struct {
     RK_U32 lumWidthSrc;    /* Source input image width */
     RK_U32 lumHeightSrc;   /* Source input image height */
-    RK_U32 lumWidth;   /* Encoded image width */
-    RK_U32 lumHeight;  /* Encoded image height */
+    RK_U32 lumWidth;       /* Encoded image width */
+    RK_U32 lumHeight;      /* Encoded image height */
+    RK_U32 hor_stride;     /* Encoded image horizontal stride */
+    RK_U32 ver_stride;     /* Encoded image vertical stride */
     RK_U32 horOffsetSrc;   /* Encoded frame offset, reference is ... */
     RK_U32 verOffsetSrc;   /* ...top  left corner of source image */
     RK_U32 inputFormat;

@@ -18,6 +18,7 @@
 #include <string.h>
 #include "vpu.h"
 #include "rk_mpi.h"
+#include "mpp_common.h"
 #include "mpp_mem.h"
 #include "mpp_frame.h"
 #include "hal_h264e.h"
@@ -1768,6 +1769,10 @@ MPP_RET hal_h264e_vpu_deinit(void *hal)
 
 static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn, h264e_hal_vpu_csp_info *src_fmt)
 {
+    MPP_RET ret = MPP_OK;
+    RK_U32 width_align16 = MPP_ALIGN(syn->pic_luma_width, 16);
+    RK_U32 height_align16 = MPP_ALIGN(syn->pic_luma_height, 16);
+
     h264e_hal_debug_enter();
 
     /* validate */
@@ -1781,8 +1786,24 @@ static MPP_RET hal_h264e_vpu_validate_syntax(h264e_syntax *syn, h264e_hal_vpu_cs
 
     H264E_HAL_VALIDATE_NEQ(syn->input_image_format, "input_image_format", H264E_VPU_CSP_NONE);
 
+    if (syn->pic_hor_stride != syn->pic_luma_width &&
+        syn->pic_hor_stride != width_align16) {
+        mpp_err_f("syn->pic_hor_stride %d is not supported for vpu", syn->pic_hor_stride);
+        ret = MPP_NOK;
+        goto err;
+    }
+    if (syn->pic_ver_stride != syn->pic_luma_height &&
+        syn->pic_ver_stride != height_align16) {
+        mpp_err_f("syn->pic_ver_stride %d is not supported for vpu", syn->pic_ver_stride);
+        ret = MPP_NOK;
+        goto err;
+    }
+
+err:
+
     h264e_hal_debug_leave();
-    return MPP_OK;
+
+    return ret;
 }
 
 

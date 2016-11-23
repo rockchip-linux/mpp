@@ -2796,10 +2796,12 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
 }
 
 
-MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_info, h264e_syntax *syn)
+MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_info, h264e_syntax *syn, h264e_rkv_reg_set *regs)
 {
     h264e_rkv_ioctl_extra_info_elem *info = NULL;
-    RK_U32 frame_size = syn->pic_luma_width * syn->pic_luma_height; // TODO: according to yuv format
+    RK_U32 hor_stride = regs->swreg23.src_ystrid + 1;
+    RK_U32 ver_stride = syn->pic_ver_stride ? syn->pic_ver_stride : syn->pic_luma_height;
+    RK_U32 frame_size = hor_stride * ver_stride; // TODO: according to yuv format
 
     extra_info->magic = 0;
     extra_info->cnt = 2;
@@ -3131,13 +3133,17 @@ MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, Mp
         for (k = 0; k < 40; k++)
             regs->swreg22_h3d_tbl[k]  = h264e_h3d_tbl[k];
 
-        stridey = (regs->swreg19.src_rot == 1 || regs->swreg19.src_rot == 3) ? (syn->pic_luma_height - 1) : (syn->pic_luma_width - 1);
-        if (regs->swreg14.src_cfmt == 0 )
-            stridey = (stridey + 1) * 4 - 1;
-        else if (regs->swreg14.src_cfmt == 1 )
-            stridey = (stridey + 1) * 3 - 1;
-        else if ( regs->swreg14.src_cfmt == 2 || regs->swreg14.src_cfmt == 8 || regs->swreg14.src_cfmt == 9 )
-            stridey = (stridey + 1) * 2 - 1;
+        if (syn->pic_hor_stride) {
+            stridey = syn->pic_hor_stride - 1;
+        } else {
+            stridey = (regs->swreg19.src_rot == 1 || regs->swreg19.src_rot == 3) ? (syn->pic_luma_height - 1) : (syn->pic_luma_width - 1);
+            if (regs->swreg14.src_cfmt == 0 )
+                stridey = (stridey + 1) * 4 - 1;
+            else if (regs->swreg14.src_cfmt == 1 )
+                stridey = (stridey + 1) * 3 - 1;
+            else if ( regs->swreg14.src_cfmt == 2 || regs->swreg14.src_cfmt == 8 || regs->swreg14.src_cfmt == 9 )
+                stridey = (stridey + 1) * 2 - 1;
+        }
         stridec = (regs->swreg14.src_cfmt == 4 || regs->swreg14.src_cfmt == 6) ? stridey : ((stridey + 1) / 2 - 1);
         regs->swreg23.src_ystrid    = stridey; //syn->swreg23.src_ystrid;
         regs->swreg23.src_cstrid    = stridec; //syn->swreg23.src_cstrid;    ////YUV420 planar;
@@ -3153,6 +3159,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
     h264e_hal_param *par = &ctx->param;
     h264e_rkv_reg_set *regs = NULL;
+    h264e_rkv_ioctl_reg_info *ioctl_reg_info = NULL;
     h264e_hal_rkv_csp_info src_fmt;
     h264e_syntax *syn = (h264e_syntax *)task->enc.syntax.data;
     h264e_rkv_ioctl_input *ioctl_info = (h264e_rkv_ioctl_input *)ctx->ioctl_input;
@@ -3216,14 +3223,14 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         }
         regs = &reg_list[idx];
         ioctl_info->reg_info[idx].reg_num = sizeof(h264e_rkv_reg_set) / 4;
-        hal_h264e_rkv_set_ioctl_extra_info(&ioctl_info->reg_info[idx].extra_info, syn);
+        ioctl_reg_info = &ioctl_info->reg_info[idx];
     } else {
         ctx->num_frames_to_send = 1;
         ioctl_info->frame_num = ctx->num_frames_to_send;
         ioctl_info->enc_mode = ctx->enc_mode;
         regs = &reg_list[0];
         ioctl_info->reg_info[0].reg_num = sizeof(h264e_rkv_reg_set) / 4;
-        hal_h264e_rkv_set_ioctl_extra_info(&ioctl_info->reg_info[0].extra_info, syn);
+        ioctl_reg_info = &ioctl_info->reg_info[0];
     }
 
     if (MPP_OK != hal_h264e_rkv_reference_frame_set(ctx, syn)) {
@@ -3287,6 +3294,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg13.cime_dspw_orsd    = 0x0;
 
     hal_h264e_rkv_set_pp_regs(regs, syn, bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx], ctx->frame_cnt, test_cfg);
+    hal_h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, regs);
 
     regs->swreg24_adr_srcy     = syn->input_luma_addr; //syn->addr_cfg.adr_srcy;
     regs->swreg25_adr_srcu     = syn->input_cb_addr; //syn->addr_cfg.adr_srcu;

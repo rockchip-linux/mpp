@@ -210,6 +210,8 @@ typedef struct {
     H264Level   level;
     RK_U32 width;           /* Encoded picture width in pixels, multiple of 4 */
     RK_U32 height;          /* Encoded picture height in pixels, multiple of 2 */
+    RK_U32 hor_stride;      /* Encoded picture horizontal stride in pixels */
+    RK_U32 ver_stride;      /* Encoded picture vertical stride in pixels */
     RK_U32 frameRateNum;    /* The stream time scale, [1..65535] */
     RK_U32 frameRateDenom;  /* Maximum frame rate is frameRateNum/frameRateDenom
                               * in frames/second. The actual frame rate will be

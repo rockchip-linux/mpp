@@ -296,15 +296,14 @@ MPP_RET avsd_callback(void *decoder, void *info)
         MppFrame mframe = NULL;
         HalDecTask *task_dec = (HalDecTask *)ctx->task;
         AVSD_DBG(AVSD_DBG_CALLBACK, "reg[1]=%08x, ref=%d, dpberr=%d, harderr-%d\n",
-            ctx->regs[1], task_dec->flags.used_for_ref, task_dec->flags.had_error, ctx->hard_err);
+                 ctx->regs[1], task_dec->flags.used_for_ref, task_dec->flags.had_error, ctx->hard_err);
 
         mpp_buf_slot_get_prop(p_dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
         if (mframe) {
             if (ctx->hard_err || task_dec->flags.had_error) {
                 if (task_dec->flags.used_for_ref) {
                     mpp_frame_set_errinfo(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
-                }
-                else {
+                } else {
                     mpp_frame_set_discard(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
                 }
             }

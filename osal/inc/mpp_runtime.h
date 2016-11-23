@@ -23,7 +23,7 @@
  * Runtime function detection is for rockchip software platform detection
  */
 
-typedef void *(*func_mmap64)(void* addr,size_t length, int prot, int flags,
+typedef void *(*func_mmap64)(void* addr, size_t length, int prot, int flags,
                              int fd, off_t offset);
 
 #ifdef __cplusplus
