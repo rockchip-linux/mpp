@@ -334,6 +334,7 @@ set(CMAKE_INSTALL_PREFIX "")
 set(LIB_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/lib" CACHE STRING "Install location of libraries")
 set(BIN_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/bin" CACHE STRING "Install location of executables")
 set(TEST_INSTALL_DIR "${CMAKE_BINARY_DIR}/test" CACHE STRING "Install location of unit test")
+set(INC_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/inc" CACHE STRING "Install location of headers")
 
 
 # ----------------------------------------------------------------------------
@@ -388,9 +389,9 @@ if(MSVC)
     set(WIN32_PTHREAD_LIB_DIRS "${CMAKE_SOURCE_DIR}/osal/window/pthread/lib")
     set(WIN32_PTHREAD_DLL_DIRS "${CMAKE_SOURCE_DIR}/osal/window/pthread/dll")
     if(X64)
-		set(WIN32_ARCH "x64")
-	else()
-		set(WIN32_ARCH "x86")
+        set(WIN32_ARCH "x64")
+    else()
+        set(WIN32_ARCH "x86")
     endif()
     include_directories("${WIN32_PTHREAD_LIB_DIRS}/${WIN32_ARCH}")
     include_directories("${WIN32_PTHREAD_DLL_DIRS}/${WIN32_ARCH}")
@@ -457,3 +458,11 @@ add_subdirectory(mpp)
 #  test / demo
 # ----------------------------------------------------------------------------
 add_subdirectory(test)
+
+# ----------------------------------------------------------------------------
+#  install headers
+# ----------------------------------------------------------------------------
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/inc/
+        DESTINATION "${INC_INSTALL_DIR}"
+        FILES_MATCHING PATTERN "*.h"
+        )
