@@ -331,7 +331,7 @@ configure_file(
 # Build options
 # ----------------------------------------------------------------------------
 set(CMAKE_INSTALL_PREFIX "")
-set(LIB_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/lib" CACHE STRING "Install location of libraries")
+set(LIB_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/lib/${SYSPROC}" CACHE STRING "Install location of libraries")
 set(BIN_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/bin" CACHE STRING "Install location of executables")
 set(TEST_INSTALL_DIR "${CMAKE_BINARY_DIR}/test" CACHE STRING "Install location of unit test")
 set(INC_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/inc" CACHE STRING "Install location of headers")
