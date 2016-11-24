@@ -57,3 +57,7 @@ add_subdirectory(legacy)
 
 add_subdirectory(test)
 
+install(TARGETS mpp mpp_shared
+        ARCHIVE DESTINATION "${LIB_INSTALL_DIR}"
+        LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
+        )
