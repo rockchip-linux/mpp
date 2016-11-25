@@ -353,12 +353,27 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
 {
     MPP_RET ret = MPP_OK;
-    (void)ctx;
-    // NOTE: do not use the original buffer fd,
-    //       use dup fd to avoid unexpected external fd close
+    int fs_flag = fcntl(data->fd, F_GETFL, NULL);
+    int fd_flag = fcntl(data->fd, F_GETFD, NULL);
+
     ion_dbg_func("enter: ctx %p fd %d size %d\n", ctx, data->fd, data->size);
 
+    if (fs_flag == -1 || fd_flag == -1 || fd_flag == 0) {
+        mpp_err_f("input fd %d is invalid, fs_flag %d fd_flag %d\n",
+                  data->fd, fs_flag, fd_flag);
+        return MPP_NOK;
+    }
+
+    // NOTE: do not use the original buffer fd,
+    //       use dup fd to avoid unexpected external fd close
     data->fd = dup(data->fd);
+    // fd 0 is not supported in kernel driver, dup a new fd
+    if (data->fd == 0) {
+        RK_S32 new_fd = dup(data->fd);
+        close(data->fd);
+        data->fd = new_fd;
+        mpp_log_f("found fd 0, dup new fd %d\n", new_fd);
+    }
     data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
     if (data->ptr == MAP_FAILED) {
         mpp_err_f("map error %s\n", strerror(errno));
