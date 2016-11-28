@@ -168,7 +168,7 @@ static int is_valid_dma_fd(int fd)
     int fs_flag = fcntl(fd, F_GETFL, NULL);
     int fd_flag = fcntl(fd, F_GETFD, NULL);
 
-    if (fs_flag == -1 || fd_flag == -1 || fd_flag == 0) {
+    if (fs_flag == -1 || fd_flag == -1) {
         ret = 0;
     }
 #else

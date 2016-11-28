@@ -358,7 +358,7 @@ MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
 
     ion_dbg_func("enter: ctx %p fd %d size %d\n", ctx, data->fd, data->size);
 
-    if (fs_flag == -1 || fd_flag == -1 || fd_flag == 0) {
+    if (fs_flag == -1 || fd_flag == -1) {
         mpp_err_f("input fd %d is invalid, fs_flag %d fd_flag %d\n",
                   data->fd, fs_flag, fd_flag);
         return MPP_NOK;
