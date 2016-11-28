@@ -31,7 +31,7 @@
 #include "utils.h"
 
 #define MPI_DEC_LOOP_COUNT          4
-#define MPI_DEC_STREAM_SIZE         (SZ_64K)
+#define MPI_DEC_STREAM_SIZE         (SZ_2K)
 #define MAX_FILE_NAME_LENGTH        256
 
 typedef struct {
