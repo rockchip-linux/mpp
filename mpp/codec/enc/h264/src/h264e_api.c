@@ -174,7 +174,6 @@ static const H264Level h264e_supported_level[] = {
 
 static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 {
-    MPP_RET ret = MPP_NOK;
     RK_U32 i, count;
 
     count = MPP_ARRAY_ELEMS(h264e_supported_profile);
@@ -218,7 +217,7 @@ static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 
     if (mpp_cfg->rc_mode < 0 || mpp_cfg->rc_mode > 2) {
         mpp_err_f("invalid rc_mode %d\n", mpp_cfg->rc_mode);
-        return ret;
+        return MPP_NOK;
     }
 
     if (mpp_cfg->qp <= 0 || mpp_cfg->qp > 51) {
@@ -228,22 +227,22 @@ static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
 
     if (mpp_cfg->bps <= 0) {
         mpp_err_f("invalid bit rate %d\n", mpp_cfg->bps);
-        return ret;
+        return MPP_NOK;
     }
 
     if (mpp_cfg->width <= 0 || mpp_cfg->height <= 0) {
         mpp_err_f("invalid width %d height %d\n", mpp_cfg->width, mpp_cfg->height);
-        return ret;
+        return MPP_NOK;
     }
 
     if (mpp_cfg->hor_stride <= 0) {
-        mpp_err_f("invalid hor_stride %d will be set to %d\n", mpp_cfg->hor_stride, MPP_ALIGN(mpp_cfg->width, 16));
-        mpp_cfg->hor_stride = MPP_ALIGN(mpp_cfg->width, 16);
+        mpp_err_f("invalid hor_stride %d will be set to %d\n", mpp_cfg->hor_stride, mpp_cfg->width);
+        mpp_cfg->hor_stride = mpp_cfg->width;
     }
 
     if (mpp_cfg->ver_stride <= 0) {
-        mpp_err_f("invalid ver_stride %d will be set to %d\n", mpp_cfg->ver_stride, MPP_ALIGN(mpp_cfg->height, 16));
-        mpp_cfg->ver_stride = MPP_ALIGN(mpp_cfg->height, 16);
+        mpp_err_f("invalid ver_stride %d will be set to %d\n", mpp_cfg->ver_stride, mpp_cfg->height);
+        mpp_cfg->ver_stride = mpp_cfg->height;
     }
 
     return MPP_OK;
@@ -272,30 +271,17 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         enc_cfg->level              = (H264Level)mpp_cfg->level;
         enc_cfg->enable_cabac       = mpp_cfg->cabac_en;
         enc_cfg->transform8x8_mode  = (enc_cfg->profile >= H264_PROFILE_HIGH) ? (1) : (0);
-        enc_cfg->chroma_qp_index_offset = 2;
-        enc_cfg->second_chroma_qp_index_offset = 2;
         enc_cfg->pic_init_qp        = mpp_cfg->qp;
-        enc_cfg->pps_id = 0;
-
-        if (mpp_cfg->width && mpp_cfg->height) {
-            enc_cfg->width  = mpp_cfg->width;
-            enc_cfg->height = mpp_cfg->height;
-        } else
-            mpp_err("width %d height %d is not available\n", mpp_cfg->width, mpp_cfg->height);
-
-        if (mpp_cfg->hor_stride && mpp_cfg->ver_stride) {
-            enc_cfg->hor_stride = mpp_cfg->hor_stride;
-            enc_cfg->ver_stride = mpp_cfg->ver_stride;
-        } else {
-            mpp_err("hor_stride %d ver_stride %d is invalid, use width and height",
-                    mpp_cfg->hor_stride, mpp_cfg->ver_stride);
-            enc_cfg->hor_stride = enc_cfg->width;
-            enc_cfg->ver_stride = enc_cfg->height;
-        }
-
+        enc_cfg->pps_id             = 0;
+        enc_cfg->width              = mpp_cfg->width;
+        enc_cfg->height             = mpp_cfg->height;
+        enc_cfg->hor_stride         = mpp_cfg->hor_stride;
+        enc_cfg->ver_stride         = mpp_cfg->ver_stride;
         enc_cfg->input_image_format = mpp_cfg->format;
         enc_cfg->frameRateNum       = mpp_cfg->fps_in;
         enc_cfg->frameRateDenom     = 1;
+        enc_cfg->chroma_qp_index_offset = 0;
+        enc_cfg->second_chroma_qp_index_offset = 0;
 
         ret = H264EncCfg(enc, enc_cfg);
 
