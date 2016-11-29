@@ -31,7 +31,7 @@
 #include "utils.h"
 
 #define MPI_DEC_LOOP_COUNT          4
-#define MPI_DEC_STREAM_SIZE         (SZ_2K)
+#define MPI_DEC_STREAM_SIZE         (SZ_4K)
 #define MAX_FILE_NAME_LENGTH        256
 
 typedef struct {
@@ -100,9 +100,12 @@ static int decode_simple(MpiDecLoopData *data)
 
     // write data to packet
     mpp_packet_write(packet, 0, buf, read_size);
-    // reset pos
+    // reset pos and set valid length
     mpp_packet_set_pos(packet, buf);
     mpp_packet_set_length(packet, read_size);
+    // setup eos flag
+    if (pkt_eos)
+        mpp_packet_set_eos(packet);
 
     do {
         // send the packet first if packet is not done
@@ -139,12 +142,18 @@ static int decode_simple(MpiDecLoopData *data)
             }
 
             // if last packet is send but last frame is not found continue
-            if (pkt_eos && pkt_done && !frm_eos)
+            if (pkt_eos && pkt_done && !frm_eos) {
+                msleep(10);
                 continue;
+            }
+
+            if (frm_eos) {
+                mpp_log("found last frame\n");
+                break;
+            }
 
             if (get_frm)
                 continue;
-
             break;
         } while (1);
 

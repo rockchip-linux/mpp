@@ -117,29 +117,32 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         return MPP_OK;
     }
 
-    size_t size = mpp_packet_get_size(src);
+    /*
+     * NOTE: only copy valid data
+     */
+    size_t length = mpp_packet_get_length(src);
     /*
      * due to parser may be read 32 bit interface so we must alloc more size then real size
      * to avoid read carsh
      */
-    void *data = mpp_malloc_size(void, size + 256);
-    if (NULL == data) {
-        mpp_err_f("malloc failed, size %d\n", size);
+    void *pos = mpp_malloc_size(void, length + 256);
+    if (NULL == pos) {
+        mpp_err_f("malloc failed, size %d\n", length);
         mpp_packet_deinit(&pkt);
         return MPP_ERR_MALLOC;
     }
 
     MppPacketImpl *p = (MppPacketImpl *)pkt;
     memcpy(p, src_impl, sizeof(*src_impl));
-    p->data = p->pos = data;
-    p->size = p->length = size;
+    p->data = p->pos = pos;
+    p->size = p->length = length;
     p->flag |= MPP_PACKET_FLAG_INTERNAL;
-    if (size) {
-        memcpy(data, src_impl->data, size);
+    if (length) {
+        memcpy(pos, src_impl->pos, length);
         /*
          * clean more alloc byte to zero
         */
-        memset((RK_U8*)data + size, 0, 256);
+        memset((RK_U8*)pos + length, 0, 256);
     }
     *packet = pkt;
     return MPP_OK;
@@ -173,8 +176,8 @@ void mpp_packet_set_pos(MppPacket packet, void *pos)
         return ;
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
-    p->pos    = pos;
-    p->length = p->size - ((char *)pos - (char *)p->data);
+    p->length -= (RK_U8 *)pos - (RK_U8 *)p->pos;
+    p->pos = pos;
     mpp_assert(p->data <= p->pos);
     mpp_assert(p->size >= p->length);
 }
