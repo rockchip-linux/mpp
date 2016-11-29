@@ -20,23 +20,36 @@
 #include "mpp_task.h"
 #include "rk_mpi_cmd.h"
 
+/**
+ * @addtogroup rk_mpi
+ * @brief rockchip media process interface
+ *
+ *        Mpp provides application programming interface for the application layer.
+ */
+
+/**
+ * @ingroup rk_mpi
+ * @brief The type of mpp context
+ */
 typedef enum {
-    MPP_CTX_DEC,
-    MPP_CTX_ENC,
-    MPP_CTX_ISP,
-    MPP_CTX_BUTT,
+    MPP_CTX_DEC,  /**< decoder */
+    MPP_CTX_ENC,  /**< encoder */
+    MPP_CTX_ISP,  /**< isp */
+    MPP_CTX_BUTT, /**< undefined */
 } MppCtxType;
 
 /**
- * Enumeration used to define the possible video compression codings.
- * NOTE:  This essentially refers to file extensions. If the coding is
+ * @ingroup rk_mpi
+ * @brief Enumeration used to define the possible video compression codings.
+ *        sync with the omx_video.h
+ *
+ * @note  This essentially refers to file extensions. If the coding is
  *        being used to specify the ENCODE type, then additional work
  *        must be done to configure the exact flavor of the compression
  *        to be used.  For decode cases where the user application can
  *        not differentiate between MPEG-4 and H.264 bit streams, it is
  *        up to the codec to handle this.
  */
-//sync with the omx_video.h
 typedef enum {
     MPP_VIDEO_CodingUnused,             /**< Value when coding is N/A */
     MPP_VIDEO_CodingAutoDetect,         /**< Autodetection of coding type */
@@ -125,12 +138,11 @@ typedef struct MppEncConfig_t {
     RK_S32  cabac_en;
 } MppEncConfig;
 
-/*
- * mpp main work function set
- * size     : MppApi structure size
- * version  : Mpp svn revision
+/**
+ * @ingroup rk_mpi
+ * @brief mpp main work function set
  *
- * all api function are seperated into two sets: data io api set and control api set
+ * @note all api function are seperated into two sets: data io api set and control api set
  *
  * the data api set is for data input/output flow including:
  *
@@ -165,12 +177,51 @@ typedef struct MppApi_t {
     RK_U32  version;
 
     // simple data flow interface
+    /**
+     * @brief both send video stream packet to decoder and get video frame from
+     *        decoder at the same time
+     * @param ctx The context of mpp
+     * @param packet[in] The input video stream
+     * @param frame[out] The output picture
+     * @return 0 for decode success, others for failure
+     */
     MPP_RET (*decode)(MppCtx ctx, MppPacket packet, MppFrame *frame);
+    /**
+     * @brief send video stream packet to decoder only, async interface
+     * @param ctx The context of mpp
+     * @param packet The input video stream
+     * @return 0 for success, others for failure
+     */
     MPP_RET (*decode_put_packet)(MppCtx ctx, MppPacket packet);
+    /**
+     * @brief get video frame from decoder only, async interface
+     * @param ctx The context of mpp
+     * @param frame The output picture
+     * @return 0 for success, others for failure
+     */
     MPP_RET (*decode_get_frame)(MppCtx ctx, MppFrame *frame);
-
+    /**
+     * @brief both send video frame to encoder and get encoded video stream from
+     *        encoder at the same time
+     * @param ctx The context of mpp
+     * @param frame[in] The input video data
+     * @param packet[out] The output compressed data
+     * @return 0 for encode success, others for failure
+     */
     MPP_RET (*encode)(MppCtx ctx, MppFrame frame, MppPacket *packet);
+    /**
+     * @brief send video frame to encoder only, async interface
+     * @param ctx The context of mpp
+     * @param frame The input video data
+     * @return 0 for success, others for failure
+     */
     MPP_RET (*encode_put_frame)(MppCtx ctx, MppFrame frame);
+    /**
+     * @brief get encoded video packet from encoder only, async interface
+     * @param ctx The context of mpp
+     * @param packet The output compressed data
+     * @return 0 for success, others for failure
+     */
     MPP_RET (*encode_get_packet)(MppCtx ctx, MppPacket *packet);
 
     MPP_RET (*isp)(MppCtx ctx, MppFrame dst, MppFrame src);
@@ -178,13 +229,42 @@ typedef struct MppApi_t {
     MPP_RET (*isp_get_frame)(MppCtx ctx, MppFrame *frame);
 
     // advance data flow interface
+    /**
+     * @brief dequeue MppTask
+     * @param ctx The context of mpp
+     * @param type input port or output port which are both for data transaction
+     * @param task MppTask which is sent to mpp for process
+     * @return 0 for success, oters for failure
+     */
     MPP_RET (*dequeue)(MppCtx ctx, MppPortType type, MppTask *task);
+    /**
+     * @brief enqueue MppTask
+     * @param ctx The context of mpp
+     * @param type input port or output port which are both for data transaction
+     * @param task MppTask which is sent to mpp for process
+     * @return 0 for success, oters for failure
+     */
     MPP_RET (*enqueue)(MppCtx ctx, MppPortType type, MppTask task);
 
     // control interface
+    /**
+     * @brief discard all packet and frame, reset all component,
+     *        for both decoder and encoder
+     * @param ctx The context of mpp
+     */
     MPP_RET (*reset)(MppCtx ctx);
+    /**
+     * @brief control function for mpp property setting
+     * @param ctx The context of mpp
+     * @param cmd The mpi command
+     * @param param The mpi command parameter
+     * @return 0 for success, oters for failure
+     */
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
 
+    /**
+     * @brief The reserved segment
+     */
     RK_U32 reserv[16];
 } MppApi;
 
@@ -193,17 +273,28 @@ typedef struct MppApi_t {
 extern "C" {
 #endif
 
-/*
- * mpp interface work flow
- *
- * 1. mpp_create : Create empty context structure and mpi function pointers.
- * 2. mpp_init   : Call after mpp_create to setup mpp type and video format.
- *                 This function will call internal context init function.
- * 3. Use functions in MppApi to access mpp services.
- * 4. mpp_destory: Destroy mpp context and free both context and mpi structure
+/**
+ * @ingroup rk_mpi
+ * @brief Create empty context structure and mpi function pointers.
+ *        Use functions in MppApi to access mpp services.
+ * @param ctx pointer of the mpp context
+ * @param mpi pointer of mpi function
  */
 MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi);
+/**
+ * @ingroup rk_mpi
+ * @brief Call after mpp_create to setup mpp type and video format.
+ *        This function will call internal context init function.
+ * @param ctx The context of mpp
+ * @param type MppCtxType, decoder or encoder
+ * @param coding video compression coding
+ */
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding);
+/**
+ * @ingroup rk_mpi
+ * @brief Destroy mpp context and free both context and mpi structure
+ * @param ctx The context of mpp
+ */
 MPP_RET mpp_destroy(MppCtx ctx);
 
 // coding type format function
