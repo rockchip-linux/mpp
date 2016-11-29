@@ -176,7 +176,19 @@ void mpp_packet_set_pos(MppPacket packet, void *pos)
         return ;
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
-    p->length -= (RK_U8 *)pos - (RK_U8 *)p->pos;
+    size_t offset = (RK_U8 *)pos - (RK_U8 *)p->data;
+    size_t diff = (RK_U8 *)pos - (RK_U8 *)p->pos;
+
+    /*
+     * If set pos is a simple update on original buffer update the length
+     * If set pos setup a new buffer reset length to size - offset
+     * This will avoid assert on change "data" in mpp_packet
+     */
+    if (diff <= p->length)
+        p->length -= diff;
+    else
+        p->length = p->size - offset;
+
     p->pos = pos;
     mpp_assert(p->data <= p->pos);
     mpp_assert(p->size >= p->length);
