@@ -3048,7 +3048,8 @@ MPP_RET hal_h264e_rkv_set_osd_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *re
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, MppBuffer hw_buf_w, MppBuffer hw_buf_r, RK_U32 frame_cnt,
+MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, MppEncPrepCfg *prep_cfg,
+                                  MppBuffer hw_buf_w, MppBuffer hw_buf_r, RK_U32 frame_cnt,
                                   h264e_hal_rkv_coveragetest_cfg *test)
 {
     RK_S32 k = 0;
@@ -3156,8 +3157,18 @@ MPP_RET hal_h264e_rkv_set_pp_regs(h264e_rkv_reg_set *regs, h264e_syntax *syn, Mp
                 stridey = (stridey + 1) * 2 - 1;
         }
         stridec = (regs->swreg14.src_cfmt == 4 || regs->swreg14.src_cfmt == 6) ? stridey : ((stridey + 1) / 2 - 1);
-        regs->swreg23.src_ystrid    = stridey; //syn->swreg23.src_ystrid;
-        regs->swreg23.src_cstrid    = stridec; //syn->swreg23.src_cstrid;    ////YUV420 planar;
+        regs->swreg23.src_ystrid    = stridey;
+        regs->swreg23.src_cstrid    = stridec;
+
+        regs->swreg19.src_shp_y    = prep_cfg->src_shp_en_y;
+        regs->swreg19.src_shp_c    = prep_cfg->src_shp_en_uv;
+        regs->swreg19.src_shp_div  = prep_cfg->src_shp_div;
+        regs->swreg19.src_shp_thld = prep_cfg->src_shp_thr;
+        regs->swreg21_scr_stbl[0]  = prep_cfg->src_shp_w0;
+        regs->swreg21_scr_stbl[1]  = prep_cfg->src_shp_w1;
+        regs->swreg21_scr_stbl[2]  = prep_cfg->src_shp_w2;
+        regs->swreg21_scr_stbl[3]  = prep_cfg->src_shp_w3;
+        regs->swreg21_scr_stbl[4]  = prep_cfg->src_shp_w4;
 
         (void)test;
     }
@@ -3304,7 +3315,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg13.axi_brsp_cke      = 0x7f; //syn->swreg13.axi_brsp_cke;
     regs->swreg13.cime_dspw_orsd    = 0x0;
 
-    hal_h264e_rkv_set_pp_regs(regs, syn, bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx], ctx->frame_cnt, test_cfg);
+    hal_h264e_rkv_set_pp_regs(regs, syn, &ctx->prep_cfg, bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx], ctx->frame_cnt, test_cfg);
     hal_h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, regs);
 
     regs->swreg24_adr_srcy     = syn->input_luma_addr; //syn->addr_cfg.adr_srcy;
@@ -3849,6 +3860,10 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     }
     case MPP_ENC_GET_SEI_DATA: {
         hal_h264e_rkv_get_extra_info(ctx, (MppPacket *)param);
+        break;
+    }
+    case MPP_ENC_SET_PREP_CFG: {
+        memcpy(&ctx->prep_cfg, param, sizeof(ctx->prep_cfg));
         break;
     }
     default : {

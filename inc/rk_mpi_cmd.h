@@ -18,6 +18,7 @@
 #define __RK_MPI_CMD_H__
 
 #include "rk_type.h"
+#include "mpp_frame.h"
 
 /*
  * Command id bit usage is defined as follows:
@@ -315,6 +316,17 @@ typedef struct MppEncPrepCfg_t {
     MppFrameFormat      format_in;
     MppFrameFormat      format_out;
     RK_U32              rotation;
+
+    // sharpen
+    RK_U32              src_shp_en_y;
+    RK_U32              src_shp_en_uv;
+    RK_U32              src_shp_thr;
+    RK_U32              src_shp_div;
+    RK_U32              src_shp_w0;
+    RK_U32              src_shp_w1;
+    RK_U32              src_shp_w2;
+    RK_U32              src_shp_w3;
+    RK_U32              src_shp_w4;
 } MppEncPrepCfg;
 
 /*
