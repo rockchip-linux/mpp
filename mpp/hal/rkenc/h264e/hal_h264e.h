@@ -18,10 +18,11 @@
 #define __HAL_H264E_H__
 
 #include "vpu.h"
+#include "rk_mpi_cmd.h"
+#include "mpp_packet.h"
 #include "mpp_log.h"
 #include "mpp_hal.h"
 
-#include "mpp_packet.h"
 #include "h264e_syntax.h"
 
 extern RK_U32 h264e_hal_log_mode;
@@ -35,10 +36,12 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_LOG_DPB               0x00001000
 #define H264E_HAL_LOG_HEADER            0x00002000
 #define H264E_HAL_LOG_SEI               0x00004000
+#define H264E_HAL_LOG_PP                0x00008000
 
 #define H264E_HAL_LOG_DETAIL            0x00010000
 
 #define H264E_HAL_LOG_FILE              0x00100000
+
 
 
 
@@ -103,6 +106,12 @@ extern RK_U32 h264e_hal_log_mode;
 #define h264e_hal_log_file(fmt, ...) \
             do {\
                 if (h264e_hal_log_mode & H264E_HAL_LOG_FILE)\
+                    { mpp_log(fmt, ## __VA_ARGS__); }\
+            } while (0)
+
+#define h264e_hal_log_pp(fmt, ...) \
+            do {\
+                if (h264e_hal_log_mode & H264E_HAL_LOG_PP)\
                     { mpp_log(fmt, ## __VA_ARGS__); }\
             } while (0)
 
@@ -398,6 +407,7 @@ typedef struct h264e_hal_context_t {
     RK_U32                          osd_plt_type; //0:user define, 1:default
     MppEncOSDData                   osd_data;
     MppEncSeiMode                   sei_mode;
+    MppEncPrepCfg                   prep_cfg;
 } h264e_hal_context;
 
 #endif

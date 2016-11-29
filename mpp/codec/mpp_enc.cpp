@@ -429,7 +429,8 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     case MPP_ENC_SET_OSD_PLT_CFG :
     case MPP_ENC_SET_OSD_DATA_CFG :
     case MPP_ENC_SET_SEI_CFG :
-    case MPP_ENC_GET_SEI_DATA : {
+    case MPP_ENC_GET_SEI_DATA :
+    case MPP_ENC_SET_PREP_CFG : {
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     default : {
