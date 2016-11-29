@@ -20,6 +20,10 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
+/**
+ * @brief rockchip media process interface
+ */
+
 #define VPU_API_NOPTS_VALUE          (0x8000000000000000LL)
 
 /*
@@ -43,21 +47,24 @@
 #define VPU_OUTPUT_FORMAT_BIT_14                    (0x00030000)
 #define VPU_OUTPUT_FORMAT_BIT_16                    (0x00040000)
 
+/**
+ * @brief input picture type
+ */
 typedef enum {
-    ENC_INPUT_YUV420_PLANAR = 0,              /* YYYY... UUUU... VVVV */
-    ENC_INPUT_YUV420_SEMIPLANAR = 1,          /* YYYY... UVUVUV...    */
-    ENC_INPUT_YUV422_INTERLEAVED_YUYV = 2,    /* YUYVYUYV...          */
-    ENC_INPUT_YUV422_INTERLEAVED_UYVY = 3,    /* UYVYUYVY...          */
-    ENC_INPUT_RGB565 = 4,                     /* 16-bit RGB           */
-    ENC_INPUT_BGR565 = 5,                     /* 16-bit RGB           */
-    ENC_INPUT_RGB555 = 6,                     /* 15-bit RGB           */
-    ENC_INPUT_BGR555 = 7,                     /* 15-bit RGB           */
-    ENC_INPUT_RGB444 = 8,                     /* 12-bit RGB           */
-    ENC_INPUT_BGR444 = 9,                     /* 12-bit RGB           */
-    ENC_INPUT_RGB888 = 10,                    /* 24-bit RGB           */
-    ENC_INPUT_BGR888 = 11,                    /* 24-bit RGB           */
-    ENC_INPUT_RGB101010 = 12,                 /* 30-bit RGB           */
-    ENC_INPUT_BGR101010 = 13                  /* 30-bit RGB           */
+    ENC_INPUT_YUV420_PLANAR = 0,              /**< YYYY... UUUU... VVVV */
+    ENC_INPUT_YUV420_SEMIPLANAR = 1,          /**< YYYY... UVUVUV...    */
+    ENC_INPUT_YUV422_INTERLEAVED_YUYV = 2,    /**< YUYVYUYV...          */
+    ENC_INPUT_YUV422_INTERLEAVED_UYVY = 3,    /**< UYVYUYVY...          */
+    ENC_INPUT_RGB565 = 4,                     /**< 16-bit RGB           */
+    ENC_INPUT_BGR565 = 5,                     /**< 16-bit RGB           */
+    ENC_INPUT_RGB555 = 6,                     /**< 15-bit RGB           */
+    ENC_INPUT_BGR555 = 7,                     /**< 15-bit RGB           */
+    ENC_INPUT_RGB444 = 8,                     /**< 12-bit RGB           */
+    ENC_INPUT_BGR444 = 9,                     /**< 12-bit RGB           */
+    ENC_INPUT_RGB888 = 10,                    /**< 24-bit RGB           */
+    ENC_INPUT_BGR888 = 11,                    /**< 24-bit RGB           */
+    ENC_INPUT_RGB101010 = 12,                 /**< 30-bit RGB           */
+    ENC_INPUT_BGR101010 = 13                  /**< 30-bit RGB           */
 } EncInputPictureType;
 
 typedef enum VPU_API_CMD {
@@ -161,15 +168,16 @@ typedef struct EncoderOut {
 } EncoderOut_t;
 
 /*
- * Enumeration used to define the possible video compression codings.
- * NOTE:  This essentially refers to file extensions. If the coding is
+ * @brief Enumeration used to define the possible video compression codings.
+ * @note  This essentially refers to file extensions. If the coding is
  *        being used to specify the ENCODE type, then additional work
  *        must be done to configure the exact flavor of the compression
  *        to be used.  For decode cases where the user application can
  *        not differentiate between MPEG-4 and H.264 bit streams, it is
  *        up to the codec to handle this.
+ *
+ *        sync with the omx_video.h
  */
-//sync with the omx_video.h
 typedef enum OMX_RK_VIDEO_CODINGTYPE {
     OMX_RK_VIDEO_CodingUnused,                          /**< Value when coding is N/A */
     OMX_RK_VIDEO_CodingAutoDetect,                      /**< Autodetection of coding type */
@@ -253,16 +261,15 @@ typedef struct EncParameter {
     RK_S32 reserved[3];
 } EncParameter_t;
 
-
 typedef struct EXtraCfg {
     RK_S32 vc1extra_size;
     RK_S32 vp6codeid;
     RK_S32 tsformat;
     RK_U32 reserved[20];
 } EXtraCfg_t;
+
 /**
- * @addtogroup rk_vpu_codec
- * @{
+ * @brief vpu function interface
  */
 typedef struct VpuCodecContext {
     void* vpuApiObj;
@@ -276,8 +283,6 @@ typedef struct VpuCodecContext {
     RK_S32 extradata_size;
 
     RK_U8  enableparsing;
-
-
 
     RK_S32 no_thread;
     EXtraCfg_t extra_cfg;
@@ -300,35 +305,61 @@ typedef struct VpuCodecContext {
      * @param extra_size The size of extra data.
      *
      * @return 0 for init success, others for failure.
-     * note: check whether ctx has been allocated success after you do init.
+     * @note check whether ctx has been allocated success after you do init.
      */
     RK_S32 (*init)(struct VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size);
-
     /**
+     * @brief both send video stream packet to decoder and get video frame from
+     *        decoder at the same time
+     * @param ctx The context of vpu codec
+     * @param pkt[in] Stream to be decoded
+     * @param aDecOut[out] Decoding frame
      * @return 0 for decode success, others for failure.
      */
     RK_S32 (*decode)(struct VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut);
-
     /**
+     * @brief both send video frame to encoder and get encoded video stream from
+     *        encoder at the same time.
+     * @param ctx The context of vpu codec
+     * @param aEncInStrm[in] Frame to be encoded
+     * @param aEncOut[out] Encoding stream
      * @return 0 for encode success, others for failure.
      */
     RK_S32 (*encode)(struct VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut);
-
     /**
-     * flush codec while do fast forward playing.
-     *
+     * @brief flush codec while do fast forward playing.
+     * @param ctx The context of vpu codec
      * @return 0 for flush success, others for failure.
      */
     RK_S32 (*flush)(struct VpuCodecContext *ctx);
     RK_S32 (*control)(struct VpuCodecContext *ctx, VPU_API_CMD cmdType, void* param);
     /**
-     *seperate the decode function to two function
-     *
-    */
+     * @brief send video stream packet to decoder only, async interface
+     * @param ctx The context of vpu codec
+     * @param pkt Stream to be decoded
+     * @return 0 for success, others for failure.
+     */
     RK_S32 (*decode_sendstream)(struct VpuCodecContext *ctx, VideoPacket_t *pkt);
+    /**
+     * @brief get video frame from decoder only, async interface
+     * @param ctx The context of vpu codec
+     * @param aDecOut Decoding frame
+     * @return 0 for success, others for failure.
+     */
     RK_S32 (*decode_getframe)(struct VpuCodecContext *ctx, DecoderOut_t *aDecOut);
-
+    /**
+     * @brief send video frame to encoder only, async interface
+     * @param ctx The context of vpu codec
+     * @param aEncInStrm Frame to be encoded
+     * @return 0 for success, others for failure.
+     */
     RK_S32 (*encoder_sendframe)(struct VpuCodecContext *ctx, EncInputStream_t *aEncInStrm);
+    /**
+     * @brief get encoded video packet from encoder only, async interface
+     * @param ctx The context of vpu codec
+     * @param aEncOut Encoding stream
+     * @return 0 for success, others for failure.
+     */
     RK_S32 (*encoder_getstream)(struct VpuCodecContext *ctx, EncoderOut_t *aEncOut);
 } VpuCodecContext_t;
 
@@ -338,7 +369,15 @@ extern "C"
 {
 #endif
 
+/**
+ * @brief open context of vpu
+ * @param ctx pointer of vpu codec context
+ */
 RK_S32 vpu_open_context(struct VpuCodecContext **ctx);
+/**
+ * @brief close context of vpu
+ * @param ctx pointer of vpu codec context
+ */
 RK_S32 vpu_close_context(struct VpuCodecContext **ctx);
 
 #ifdef __cplusplus
