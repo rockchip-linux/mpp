@@ -33,7 +33,7 @@
 
 int mpi_test()
 {
-    MPP_RET ret;
+    MPP_RET ret = MPP_NOK;
     MppCtx ctx  = NULL;
     MppApi *mpi = NULL;
     MppEncConfig cfg;
@@ -275,20 +275,22 @@ MPP_TEST_FAILED:
 
     mpp_log("mpi_test failed\n");
 
-    return -1;
+    return ret;
 }
 
 
 int main(int argc, char **argv)
 {
+    int ret = 0;
+
     (void)argc;
     (void)argv;
 
     mpp_env_set_u32("mpi_debug", 0x1);
 
-    mpi_test();
+    ret = mpi_test();
 
     mpp_env_set_u32("mpi_debug", 0x0);
-    return 0;
+    return ret;
 }
 
