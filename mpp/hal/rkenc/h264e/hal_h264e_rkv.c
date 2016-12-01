@@ -2616,10 +2616,12 @@ static MPP_RET hal_h264e_rkv_set_osd_plt(h264e_hal_context *ctx, void *param)
     h264e_hal_debug_enter();
     if (plt->buf) {
         ctx->osd_plt_type = 0;
+#ifdef RKPLATFORM
         if (MPP_OK != VPUClientSendReg2(ctx->vpu_socket, H264E_IOC_SET_OSD_PLT, sizeof(MppEncOSDPlt), param)) {
             h264e_hal_log_err("set osd plt error");
             return MPP_NOK;
         }
+#endif
     } else {
         ctx->osd_plt_type = 1;
     }
