@@ -66,9 +66,9 @@ extern RK_U32 rkv_h264d_test_debug;
 
 #define H264D_TEST_TRACE       (0x00000001)
 #define H264D_TEST_TIME        (0x00000002)
-#define H264D_TEST_MUTI_THREAD (0x00000004)
-#define H264D_TEST_DUMPYUV     (0x00000008)
-#define H264D_TEST_FPGA        (0x00000010)
+#define H264D_TEST_DUMPYUV     (0x00000004)
+#define H264D_TEST_FPGA        (0x00000008)
+#define H264D_TEST_MUTI_THREAD (0x00000010)
 
 
 #define H264D_TEST_LOG(level, fmt, ...)\

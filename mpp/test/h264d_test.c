@@ -110,17 +110,21 @@ static MPP_RET decoder_deinit(H264dTestCtx_t *pctx)
     }
     if (pctx->m_dec_pkt_buf) {
         mpp_buffer_put(pctx->m_dec_pkt_buf);
+        pctx->m_dec_pkt_buf = NULL;
     }
     if (pctx->m_dec_pic_buf) {
         mpp_buffer_put(pctx->m_dec_pic_buf);
+        pctx->m_dec_pic_buf = NULL;
     }
-    if (pctx->mFrameGroup != NULL) {
+    if (pctx->mFrameGroup) {
         mpp_err("mFrameGroup deInit");
         mpp_buffer_group_put(pctx->mFrameGroup);
+        pctx->mFrameGroup = NULL;
     }
-    if (pctx->mStreamGroup != NULL) {
+    if (pctx->mStreamGroup) {
         mpp_err("mStreamGroup deInit");
         mpp_buffer_group_put(pctx->mStreamGroup);
+        pctx->mStreamGroup = NULL;
     }
     return MPP_OK;
 }
@@ -138,14 +142,24 @@ static MPP_RET decoder_init(H264dTestCtx_t *pctx)
     mpp_env_get_u32("rkv_h264d_test_debug", &rkv_h264d_test_debug, 0);
 
     if (pctx->mFrameGroup == NULL) {
-        ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_ION);
+#ifdef RKPLATFORM
+        mpp_log_f("mFrameGroup used ion In");
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_ION));
+#else
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mFrameGroup, MPP_BUFFER_TYPE_NORMAL));
+#endif
         if (MPP_OK != ret) {
             mpp_err("h264d mpp_buffer_group_get failed\n");
             goto __FAILED;
         }
     }
     if (pctx->mStreamGroup == NULL) {
-        ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_ION);
+#ifdef RKPLATFORM
+        mpp_log_f("mStreamGroup used ion In");
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_ION));
+#else
+        FUN_CHECK(ret = mpp_buffer_group_get_internal(&pctx->mStreamGroup, MPP_BUFFER_TYPE_NORMAL));
+#endif
         if (MPP_OK != ret) {
             mpp_err("h264d mpp_buffer_group_get failed\n");
             goto __FAILED;
@@ -209,7 +223,7 @@ static MPP_RET flush_decoded_frames(MppDec *pApi, FILE *fp)
             stride_h = mpp_frame_get_ver_stride(out_frame);
             framebuf = mpp_frame_get_buffer(out_frame);
             ptr = mpp_buffer_get_ptr(framebuf);
-            if ((rkv_h264d_test_debug & H264D_TEST_DUMPYUV) && fp) {
+            if (fp) {
                 fwrite(ptr, 1, stride_w * stride_h * 3 / 2, fp);
                 fflush(fp);
             }
@@ -246,8 +260,6 @@ static MPP_RET decoder_single_test(H264dTestCtx_t *pctx)
                 FUN_CHECK(ret = h264d_read_one_frame(pIn));
                 mpp_packet_init(&pkt, pIn->strm.pbuf, pIn->strm.strmbytes);
             }
-            H264D_TEST_LOG(H264D_TEST_TRACE, "[H264D_TEST] ---- decoder, read_one_frame Frame_no = %d", pIn->iFrmdecoded);
-            pIn->iFrmdecoded++;
         }
         //!< prepare
         FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
@@ -277,10 +289,12 @@ static MPP_RET decoder_single_test(H264dTestCtx_t *pctx)
         //!< deinit packet
         if (mpp_packet_get_length(pkt) == 0) {
             if (mpp_packet_get_eos(pkt)) {
+                if (task->dec.valid) {
+                    mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
+                    mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
+                    task->dec.valid = 0;
+                }
                 end_of_flag = 1; //!< end of stream
-                task->dec.valid = 0;
-                mpp_buf_slot_clr_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
-                mpp_buf_slot_clr_flag(pApi->frame_slots, task->dec.output, SLOT_HAL_OUTPUT);
             }
             mpp_packet_deinit(&pkt);
             pkt = NULL;
@@ -322,6 +336,8 @@ static MPP_RET decoder_single_test(H264dTestCtx_t *pctx)
             memset(task, 0, sizeof(HalTaskInfo));
             memset(task->dec.refer, -1, sizeof(task->dec.refer));
             task->dec.input = -1;
+            H264D_TEST_LOG(H264D_TEST_TRACE, "[H264D_TEST] ---- had decode frame_no = %d", pIn->iFrmdecoded);
+            pIn->iFrmdecoded++;
 
         }
     } while (!end_of_flag);
@@ -615,6 +631,6 @@ __FAILED:
     MPP_FREE(pctx);
     H264D_TEST_LOG(H264D_TEST_TRACE, "[H264D_TEST] decoder_deinit over.");
 
-    return ret;
+    return 0;
 }
 
