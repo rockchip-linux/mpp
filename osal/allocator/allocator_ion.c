@@ -188,6 +188,7 @@ RK_S32 check_sysfs_iommu()
         "hevc_service",
         "rkvdec",
         "rkvenc",
+        "vpu_combo",
     };
     static char *system_heaps[] = {
         "vmalloc",
