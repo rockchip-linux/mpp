@@ -430,13 +430,13 @@ MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
             if (VPUClientGetIOMMUStatus() > 0) {
                 regs->reg64_input_stream_base = fd | (addr << 10);
             } else {
-                regs->reg_dct_strm_base[i] = fd + addr;
+                regs->reg64_input_stream_base = fd + addr;
             }
         } else if ( i <= 5) {
             if (VPUClientGetIOMMUStatus() > 0) {
-                regs->reg_dct_strm_base[i] = fd | (addr << 10);
+                regs->reg_dct_strm_base[i - 1] = fd | (addr << 10);
             } else {
-                regs->reg_dct_strm_base[i] = fd + addr;
+                regs->reg_dct_strm_base[i - 1] = fd + addr;
             }
         } else {
             if (VPUClientGetIOMMUStatus() > 0) {
