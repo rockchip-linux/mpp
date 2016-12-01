@@ -802,9 +802,9 @@ int main(int argc, char **argv)
 
     mpp_env_set_u32("mpi_debug", cmd->debug);
 
-    mpi_enc_test(cmd);
+    ret = mpi_enc_test(cmd);
 
     mpp_env_set_u32("mpi_debug", 0x0);
-    return 0;
+    return ret;
 }
 
