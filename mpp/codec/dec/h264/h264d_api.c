@@ -668,7 +668,11 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     } else  {
         fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);
         do {
-            (ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur));
+            if (p_Inp->init.need_split) {
+                ret = parse_prepare(p_Inp, p_Dec->p_Cur);
+            } else {
+                ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur);
+            }
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
         } while (mpp_packet_get_length(pkt) && !task->valid);
     }

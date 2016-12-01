@@ -685,7 +685,7 @@ MPP_RET h264d_open_files(InputParams *p_in)
     char *outpath_dir = NULL;
     mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
     FLE_CHECK(ret, p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
-    p_in->fp_yuv_data = open_file(outpath_dir, p_in->infile_name, ".yuv", "wb");
+    p_in->fp_yuv_data = fopen("out.yuv", "wb");
     return MPP_OK;
 __FAILED:
     h264d_close_files(p_in);
@@ -741,22 +741,25 @@ __FAILED:
 */
 MPP_RET h264d_read_one_frame(InputParams *p_in)
 {
-    p_in->strm.strmbytes = 0;
-    p_in->is_new_frame = 0;
-    //-- copy first nalu
-    if (!p_in->is_fist_frame) {
-        write_nalu_prefix(p_in);
-        memcpy(&p_in->strm.pbuf[p_in->strm.strmbytes], p_in->IO.pNALU, p_in->IO.nalubytes);
-        p_in->strm.strmbytes += p_in->IO.nalubytes;
+    if (0) {
+        p_in->strm.strmbytes = 0;
+        p_in->is_new_frame = 0;
+        //-- copy first nalu
+        if (!p_in->is_fist_frame) {
+            write_nalu_prefix(p_in);
+            memcpy(&p_in->strm.pbuf[p_in->strm.strmbytes], p_in->IO.pNALU, p_in->IO.nalubytes);
+            p_in->strm.strmbytes += p_in->IO.nalubytes;
+        }
+        //-- read one nalu and copy to stream buffer
+        do {
+            find_next_nalu(p_in);
+            read_next_nalu(p_in);
+        } while (!p_in->is_new_frame && !p_in->is_eof);
+    } else {
+        RK_U32 read_len = 512;
+        p_in->strm.strmbytes = fread(p_in->strm.pbuf, 1, read_len, p_in->fp_bitstream);
+        p_in->is_eof = p_in->strm.strmbytes ? 0 : 1;
     }
-    //-- read one nalu and copy to stream buffer
-    do {
-        find_next_nalu(p_in);
-        read_next_nalu(p_in);
-    } while (!p_in->is_new_frame && !p_in->is_eof);
-    //if (first_mb_in_slice == 0) {
-    //FPRINT(g_debug_file0, "--- new frame ---- \n");
-    //}
 
     return MPP_OK;
 }
