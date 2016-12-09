@@ -642,7 +642,7 @@ void MppBufferService::put_group(MppBufferGroupImpl *p)
             mpp_err("force release all remaining buffer\n");
 
             list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-                mpp_err("clearing buffer %p pos\n");
+                mpp_err("clearing buffer %p\n", pos);
                 pos->ref_count = 0;
                 pos->used = 0;
                 pos->discard = 0;
