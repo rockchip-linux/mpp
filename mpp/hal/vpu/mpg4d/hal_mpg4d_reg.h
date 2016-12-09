@@ -300,7 +300,7 @@ typedef struct  {
         RK_U32  sw_hrz_bit_of_bwd_mv    : 4;
         RK_U32  sw_vrz_bit_of_fwd_mv    : 4;
         RK_U32  sw_hrz_bit_of_fwd_mv    : 4;
-        RK_U32  sw_alt_scan             : 1;
+        RK_U32  sw_alt_scan_flag_e      : 1;
         RK_U32  sw_reserve              : 12;
     } reg136;
 
