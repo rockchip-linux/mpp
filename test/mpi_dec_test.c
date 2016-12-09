@@ -128,7 +128,81 @@ static int decode_simple(MpiDecLoopData *data)
 
             if (frame) {
                 if (mpp_frame_get_info_change(frame)) {
+                    RK_U32 width = mpp_frame_get_width(frame);
+                    RK_U32 height = mpp_frame_get_height(frame);
+                    RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
+                    RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
+
                     mpp_log("decode_get_frame get info changed found\n");
+                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d]",
+                            width, height, hor_stride, ver_stride);
+
+                    /*
+                     * NOTE: We can choose decoder's buffer mode here.
+                     * There are three mode that decoder can support:
+                     *
+                     * Mode 1: Pure internal mode
+                     * In the mode user will NOT call MPP_DEC_SET_EXT_BUF_GROUP
+                     * control to decoder. Only call MPP_DEC_SET_INFO_CHANGE_READY
+                     * to let decoder go on. Then decoder will use create buffer
+                     * internally and user need to release each frame they get.
+                     *
+                     * Advantage:
+                     * Easy to use and get a demo quickly
+                     * Disadvantage:
+                     * 1. The buffer from decoder may not be return before
+                     * decoder is close. So memroy leak or crash may happen.
+                     * 2. The decoder memory usage can not be control. Decoder
+                     * is on a free-to-run status and consume all memory it can
+                     * get.
+                     * 3. Difficult to implement zero-copy display path.
+                     *
+                     * Mode 2: Half internal mode
+                     * This is the mode current test code using. User need to
+                     * create MppBufferGroup according to the returned info
+                     * change MppFrame. User can use mpp_buffer_group_limit_config
+                     * function to limit decoder memory usage.
+                     *
+                     * Advantage:
+                     * 1. Easy to use
+                     * 2. User can release MppBufferGroup after decoder is closed.
+                     *    So memory can stay longer safely.
+                     * 3. Can limit the memory usage by mpp_buffer_group_limit_config
+                     * Disadvantage:
+                     * 1. The buffer limitation is still not accurate. Memory usage
+                     * is 100% fixed.
+                     * 2. Also difficult to implement zero-copy display path.
+                     *
+                     * Mode 3: Pure external mode
+                     * In this mode use need to create empty MppBufferGroup and
+                     * import memory from external allocator by file handle.
+                     * On Android surfaceflinger will create buffer. Then
+                     * mediaserver get the file handle from surfaceflinger and
+                     * commit to decoder's MppBufferGroup.
+                     *
+                     * Advantage:
+                     * 1. Most efficient way for zero-copy display
+                     * Disadvantage:
+                     * 1. Difficult to learn and use.
+                     * 2. Player work flow may limit this usage.
+                     * 3. May need a external parser to get the correct buffer
+                     * size for the external allocator.
+                     *
+                     * The required buffer size caculation:
+                     * hor_stride * ver_stride * 3 / 2 for pixel data
+                     * hor_stride * ver_stride / 2 for extra info
+                     * Total hor_stride * ver_stride * 2 will be enough.
+                     *
+                     * For H.264/H.265 20+ buffers will be enough.
+                     * For other codec 10 buffers will be enough.
+                     */
+                    ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                    if (ret) {
+                        mpp_err("get mpp buffer group  failed ret %d\n", ret);
+                        break;
+                    }
+                    mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
+
                     mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                 } else {
                     mpp_log("decode_get_frame get frame %d\n", data->frame_count++);
@@ -287,8 +361,6 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     size_t packet_size  = MPI_DEC_STREAM_SIZE;
     MppBuffer pkt_buf   = NULL;
     MppBuffer frm_buf   = NULL;
-    MppBufferGroup frm_grp  = NULL;
-    MppBufferGroup pkt_grp  = NULL;
 
     MpiDecLoopData data;
 
@@ -329,13 +401,13 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
     } else {
-        ret = mpp_buffer_group_get_internal(&frm_grp, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("failed to get buffer group for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
-        ret = mpp_buffer_group_get_internal(&pkt_grp, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&data.pkt_grp, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("failed to get buffer group for output packet ret %d\n", ret);
             goto MPP_TEST_OUT;
@@ -347,7 +419,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
 
-        ret = mpp_buffer_get(frm_grp, &frm_buf, width * height * 3 / 2);
+        ret = mpp_buffer_get(data.frm_grp, &frm_buf, width * height * 3 / 2);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
@@ -358,7 +430,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             packet_size = file_size;
         }
 
-        ret = mpp_buffer_get(pkt_grp, &pkt_buf, packet_size);
+        ret = mpp_buffer_get(data.pkt_grp, &pkt_buf, packet_size);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
@@ -451,16 +523,16 @@ MPP_TEST_OUT:
             mpp_buffer_put(frm_buf);
             frm_buf = NULL;
         }
+    }
 
-        if (pkt_grp) {
-            mpp_buffer_group_put(pkt_grp);
-            pkt_grp = NULL;
-        }
+    if (data.pkt_grp) {
+        mpp_buffer_group_put(data.pkt_grp);
+        data.pkt_grp = NULL;
+    }
 
-        if (frm_grp) {
-            mpp_buffer_group_put(frm_grp);
-            frm_grp = NULL;
-        }
+    if (data.frm_grp) {
+        mpp_buffer_group_put(data.frm_grp);
+        data.frm_grp = NULL;
     }
 
     if (data.fp_output) {
