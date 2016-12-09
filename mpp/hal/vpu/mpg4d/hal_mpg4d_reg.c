@@ -143,7 +143,13 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
         regs->reg120.sw_mb_height_off = 0;
     }
     regs->reg53_dec_mode = 1;
-    regs->reg120.sw_alt_scan_e = pp->alternate_vertical_scan_flag;
+
+    /* note: When comparing bit 19 of reg136(that is sw_alt_scan_flag_e) with bit 6 of
+    **       reg120(that is sw_alt_scan_e), we may be confused about the function of
+    **       these two bits. According to C Model, just sw_alt_scan_flag_e is set,
+    **       but not sw_alt_scan_e.
+    */
+    regs->reg136.sw_alt_scan_flag_e = pp->alternate_vertical_scan_flag;
     regs->reg52_error_concealment.sw_startmb_x = 0;
     regs->reg52_error_concealment.sw_startmb_y = 0;
     regs->reg50_dec_ctrl.sw_filtering_dis = 1;
