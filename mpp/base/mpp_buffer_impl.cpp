@@ -325,7 +325,8 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
 
     MPP_RET ret = MPP_OK;
     MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
-    buffer_group_add_log(group, buffer, BUF_REF_DEC, caller);
+    if (group)
+        buffer_group_add_log(group, buffer, BUF_REF_DEC, caller);
 
     if (buffer->ref_count <= 0) {
         mpp_err_f("found non-positive ref_count %d caller %s\n",
@@ -716,6 +717,8 @@ MppBufferGroupImpl *MppBufferService::get_group_by_id(RK_U32 id)
             return pos;
         }
     }
+
+    mpp_err_f("can not find group with id %d\n", id);
 
     return NULL;
 }
