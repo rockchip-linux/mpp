@@ -838,9 +838,7 @@ void *mpp_dec_advanced_thread(void *data)
     MppTask mpp_task = NULL;
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
-    MppFrame tmp_frame = NULL;
     MppPacket packet = NULL;
-    mpp_frame_init(&tmp_frame);
 
     while (MPP_THREAD_RUNNING == thd_dec->get_status()) {
         thd_dec->lock();
@@ -915,13 +913,14 @@ void *mpp_dec_advanced_thread(void *data)
                 mpp_hal_hw_start(dec->hal, &pTask->info);
                 mpp_hal_hw_wait(dec->hal, &pTask->info);
 
-                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &tmp_frame);
-                mpp_frame_set_width(frame, mpp_frame_get_width(tmp_frame));
-                mpp_frame_set_height(frame, mpp_frame_get_height(tmp_frame));
-                mpp_frame_set_hor_stride(frame, mpp_frame_get_hor_stride(tmp_frame));
-                mpp_frame_set_ver_stride(frame, mpp_frame_get_ver_stride(tmp_frame));
-                mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp_frame));
-                mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp_frame));
+                MppFrame tmp = NULL;
+                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME_PTR, &tmp);
+                mpp_frame_set_width(frame, mpp_frame_get_width(tmp));
+                mpp_frame_set_height(frame, mpp_frame_get_height(tmp));
+                mpp_frame_set_hor_stride(frame, mpp_frame_get_hor_stride(tmp));
+                mpp_frame_set_ver_stride(frame, mpp_frame_get_ver_stride(tmp));
+                mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp));
+                mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp));
 
                 mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                 mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -960,11 +959,6 @@ void *mpp_dec_advanced_thread(void *data)
     // clear remain task in output port
     dec_release_task_in_port(input);
     dec_release_task_in_port(mpp->mOutputPort);
-
-    if (tmp_frame) {
-        mpp_frame_deinit(&tmp_frame);
-        tmp_frame = NULL;
-    }
 
     return NULL;
 }
