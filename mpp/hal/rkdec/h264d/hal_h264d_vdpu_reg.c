@@ -28,7 +28,6 @@
 #include "mpp_time.h"
 
 #include "h264d_log.h"
-#include "hal_regdrv.h"
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"
 #include "hal_h264d_vdpu_pkt.h"
