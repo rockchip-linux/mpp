@@ -26,7 +26,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
-#include "h264d_log.h"
 #include "h264d_rwfile.h"
 
 
@@ -36,13 +35,7 @@
 #define     START_PREFIX_3BYTE   3
 #define     MAX_ITEMS_TO_PARSE   32
 
-#define     RKVDEC_REG_HEADER    0x48474552
-#define     RKVDEC_PPS_HEADER    0x48535050
-#define     RKVDEC_SCL_HEADER    0x534c4353
-#define     RKVDEC_RPS_HEADER    0x48535052
-#define     RKVDEC_CRC_HEADER    0x48435243
-#define     RKVDEC_STM_HEADER    0x4d525453
-#define     RKVDEC_ERR_HEADER    0x524f5245
+
 
 
 static const RK_U32 IOBUFSIZE   = 16 * 1024 * 1024; //524288
@@ -93,235 +86,44 @@ typedef struct {
     RK_S32 pps_id;
 } TempDataCtx_t;
 
-static void display_input_cmd(RK_S32 argc, char *argv[])
-{
-    RK_S32 nn = 0;
-    char *pnamecmd = NULL;
-    char strcmd[MAX_STRING_SIZE] = {0};
 
-    strcat(strcmd, "INPUT_CMD:  ");
-    pnamecmd = strrchr(argv[0], '/');
-    pnamecmd = pnamecmd ? pnamecmd  : (strrchr(argv[0], '\\')) ;
-    pnamecmd = pnamecmd ? strcat(strcmd, pnamecmd + 1) : argv[0];
-    for (nn = 0; nn < argc; nn++) {
-        strcat(strcmd, " ");
-        strcat(strcmd, argv[nn]);
-    }
-    mpp_log("%s \n", strcmd);
-}
-
-static void print_help_message(char *cmd)
-{
-    mpp_err("##### Options");
-    mpp_err("   -h/--help      : prints help message.");
-    mpp_err("   --cmppath      :[string] Set golden input  file store directory.");
-    mpp_err("   --outpath      :[string] Set driver output file store directory.");
-    mpp_err("   -r/--raw       :[number] Set bitstream raw cfg, 0/1: slice long 2:slice short.");
-    mpp_err("   -c/--cfg       :[file]   Set configure file< such as, decoder.cfg>.");
-    mpp_err("   -i/--input     :[file]   Set input bitstream file.");
-    mpp_err("   -n/--num       :[number] Set decoded frames.");
-    mpp_err("##### Examples of usage:");
-    mpp_err("   %s  -h", cmd);
-    mpp_err("   %s  -c decoder.cfg", cmd);
-    mpp_err("   %s  -i input.bin  -n  10 ", cmd);
-}
-
-static RK_U8 *get_config_file_content(char *fname)
-{
-    FILE *fp_cfg = NULL;
-    RK_U8 *pbuf = NULL;
-    RK_U32 filesize = 0;
-
-    if (!(fp_cfg = fopen(fname, "r"))) {
-        mpp_log("Cannot open configuration file %s.", fname);
-        goto __FAILED;
-    }
-
-    if (fseek(fp_cfg, 0, SEEK_END)) {
-        mpp_log("Cannot fseek in configuration file %s.", fname);
-        goto __FAILED;
-    }
-
-    filesize = ftell(fp_cfg);
-
-    if (filesize > 150000) {
-        mpp_log("\n Unreasonable Filesize %d reported by ftell for configuration file %s.", filesize, fname);
-        goto __FAILED;
-    }
-    if (fseek(fp_cfg, 0, SEEK_SET)) {
-        mpp_log("Cannot fseek in configuration file %s.", fname);
-        goto __FAILED;
-    }
-
-    if (!(pbuf = mpp_malloc_size(RK_U8, filesize + 1))) {
-        mpp_log("Cannot malloc content buffer for file %s.", fname);
-        goto __FAILED;
-    }
-    filesize = (long)fread(pbuf, 1, filesize, fp_cfg);
-    pbuf[filesize] = '\0';
-
-    FCLOSE(fp_cfg);
-
-    return pbuf;
-__FAILED:
-    FCLOSE(fp_cfg);
-
-    return NULL;
-}
-
-static MPP_RET parse_content(InputParams *p_in, RK_U8 *p)
-{
-    RK_S32 i = 0, item = 0;
-    RK_S32 InString = 0, InItem = 0;
-    RK_U8  *bufend  = NULL;
-    RK_U8  *items[MAX_ITEMS_TO_PARSE] = { NULL };
-
-    //==== parsing
-    bufend = &p[strlen((const char *)p)];
-    while (p < bufend) {
-        switch (*p) {
-        case 13:
-            ++p;
-            break;
-        case '#':                 // Found comment
-            *p = '\0';              // Replace '#' with '\0' in case of comment immediately following integer or string
-            while (*p != '\n' && p < bufend)  // Skip till EOL or EOF, whichever comes first
-                ++p;
-            InString = 0;
-            InItem = 0;
-            break;
-        case '\n':
-            InItem = 0;
-            InString = 0;
-            *p++ = '\0';
-            break;
-        case ' ':
-        case '\t':              // Skip whitespace, leave state unchanged
-            if (InString)
-                p++;
-            else {
-                // Terminate non-strings once whitespace is found
-                *p++ = '\0';
-                InItem = 0;
-            }
-            break;
-
-        case '"':               // Begin/End of String
-            *p++ = '\0';
-            if (!InString) {
-                items[item++] = p;
-                InItem = ~InItem;
-            } else
-                InItem = 0;
-            InString = ~InString; // Toggle
-            break;
-
-        default:
-            if (!InItem) {
-                items[item++] = p;
-                InItem = ~InItem;
-            }
-            p++;
-        }
-    }
-    item--;
-    //===== read syntax
-    for (i = 0; i < item; i += 3) {
-        if (!strncmp((const char*)items[i], "InputFile", 9)) {
-            strncpy((char *)p_in->infile_name, (const char*)items[i + 2], strlen((const char*)items[i + 2]) + 1);
-        } else if (!strncmp((const char*)items[i], "GoldenDataPath", 14)) {
-            strncpy((char *)p_in->cmp_path_dir, (const char*)items[i + 2], strlen((const char*)items[i + 2]) + 1);
-        } else if (!strncmp((const char*)items[i], "OutputDataPath", 14)) {
-            strncpy((char *)p_in->out_path_dir, (const char*)items[i + 2], strlen((const char*)items[i + 2]) + 1);
-        } else if (!strncmp((const char*)items[i], "DecodedFrames", 13)) {
-            if (!sscanf((const char*)items[i + 2], "%d", &p_in->iDecFrmNum)) {
-                goto __FAILED;
-            }
-        } else if (!strncmp((const char*)items[i], "BitStrmRawCfg", 13)) {
-            if (!sscanf((const char*)items[i + 2], "%d", &p_in->raw_cfg)) {
-                goto __FAILED;
-            }
-        }
-    }
-
-    return MPP_OK;
-__FAILED:
-    return MPP_NOK;
-}
 
 static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
 {
     RK_S32  CLcount  = 0;
-    RK_U8  *content  = NULL;
-    char   *pnamecmd = NULL;
-    RK_U8  have_cfg_flag = 0;
 
     CLcount = 1;
     while (CLcount < ac) {
-        if (!strncmp(av[1], "-h", 2) || !strncmp(av[1], "--help", 6)) {
-            pnamecmd = strrchr(av[0], '/');
-            pnamecmd = pnamecmd ? pnamecmd : strrchr(av[0], '\\');
-            pnamecmd = pnamecmd ? (pnamecmd + 1) : av[0];
-            print_help_message(pnamecmd);
-            goto __FAILED;
-        } else if (!strncmp(av[CLcount], "-n", 2) || !strncmp(av[1], "--num", 5)) { // decoded frames
+        if (!strncmp(av[1], "-h", 2)) {
+            mpp_log("   -h  : prints help message.");
+            mpp_log("   -i  :[file]   Set input bitstream file.");
+            mpp_log("   -o  :[file]   Set input bitstream file.");
+            mpp_log("   -n  :[number] Set decoded frames.");
+            goto __RETURN;
+        } else if (!strncmp(av[CLcount], "-n", 2)) { // decoded frames
             if (!sscanf(av[CLcount + 1], "%d", &p_in->iDecFrmNum)) {
                 goto __FAILED;
             }
             CLcount += 2;
-        } else if (!strncmp(av[CLcount], "-i", 2) || !strncmp(av[1], "--input", 7)) {
+        } else if (!strncmp(av[CLcount], "-i", 2)) {
             strncpy(p_in->infile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
             CLcount += 2;
-        } else if (!strncmp(av[CLcount], "--cmppath", 9)) { // compare direct path
-            strncpy(p_in->cmp_path_dir, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
+        } else if (!strncmp(av[CLcount], "-o", 2)) {
+            strncpy(p_in->infile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
             CLcount += 2;
-        } else if (!strncmp(av[CLcount], "--outpath", 9)) { // compare direct path
-            strncpy(p_in->out_path_dir, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
-            CLcount += 2;
-        } else if (!strncmp(av[1], "-r", 2) || !strncmp(av[CLcount], "--raw", 5)) {
-            if (!sscanf(av[CLcount + 1], "%d", &p_in->raw_cfg)) {
-                goto __FAILED;
-            }
-            CLcount += 2;
-        } else if (!strncmp(av[1], "-c", 2) || !strncmp(av[CLcount], "--cfg", 5)) { // configure file
-            strncpy(p_in->cfgfile_name, av[CLcount + 1], FILE_NAME_SIZE);
-            CLcount += 2;
-            have_cfg_flag = 1;
-        } else {
-            mpp_log("Error: %s cannot explain command! \n", av[CLcount]);
+        }
+        else {
+            mpp_err("error, cannot explain command: %s.\n", av[CLcount]);
             goto __FAILED;
         }
     }
-    if (have_cfg_flag) {
-        if (!(content = get_config_file_content(p_in->cfgfile_name))) {
-            goto __FAILED;
-        }
-        if (parse_content(p_in, content)) {
-            goto __FAILED;
-        }
-        MPP_FREE(content);
-    }
-
+__RETURN:
     return MPP_OK;
 __FAILED:
 
     return MPP_NOK;
 }
 
-static FILE *open_file(char *path, char *infile, char *sufix, const char *mode)
-{
-    char *pnamecmd = NULL;
-    char tmp_fname[FILE_NAME_SIZE] = { 0 };
-
-    pnamecmd = strrchr(infile, '/');
-    pnamecmd = pnamecmd ? pnamecmd : strrchr(infile, '\\');
-    pnamecmd = pnamecmd ? (pnamecmd + 1) : infile;
-
-
-    sprintf(tmp_fname, "%s/%s%s", path, pnamecmd, sufix);
-
-    return fopen(tmp_fname, mode);
-}
 
 static MPP_RET update_curr_byte(GetBitCtx_t *pStrmData)
 {
@@ -490,7 +292,7 @@ static void find_next_nalu(InputParams *p_in)
         p_in->IO.pbuf[p_in->IO.offset + 2] = read_one_byte(p_in);
     } while (!p_in->is_eof);
 }
-RK_U32 g_nalu_cnt2 = 0;
+
 static MPP_RET read_next_nalu(InputParams *p_in)
 {
     RK_S32 forbidden_bit      = -1;
@@ -534,109 +336,6 @@ static MPP_RET read_next_nalu(InputParams *p_in)
     return MPP_OK;
 }
 
-static void reset_tmpdata_ctx(TempDataCtx_t *tmp)
-{
-    tmp->header = 0;
-    tmp->len    = 0;
-    tmp->pps_id = 0;
-}
-
-
-static void read_golden_data(FILE *fp, TempDataCtx_t *tmpctx, RK_U32 frame_no)
-{
-    RK_U32 header = 0, datasize = 0;
-
-    reset_tmpdata_ctx(tmpctx);
-    fread(&header,   1, sizeof(RK_U32), fp);
-    fread(&datasize, 1, sizeof(RK_U32), fp);
-    while (!feof(fp)) {
-        switch (header) {
-        case RKVDEC_PPS_HEADER:
-            tmpctx->pps_id = datasize >> 16;
-            datasize = datasize & 0xffff;
-        case RKVDEC_SCL_HEADER:
-        case RKVDEC_RPS_HEADER:
-        case RKVDEC_STM_HEADER:
-            fseek(fp, datasize, SEEK_CUR);
-            break;
-        case RKVDEC_REG_HEADER:
-            fseek(fp, datasize, SEEK_CUR);
-            goto __RETURN;
-            break;
-        case RKVDEC_CRC_HEADER:
-            fread(tmpctx->data, sizeof(RK_U8), datasize, fp);
-            tmpctx->len = datasize;
-            break;
-        case RKVDEC_ERR_HEADER:
-            break;
-        default:
-            mpp_log("ERROR: frame_no=%d. \n", frame_no);
-            ASSERT(0);
-            break;
-        }
-        fread(&header,   1, sizeof(RK_U32), fp);
-        fread(&datasize, 1, sizeof(RK_U32), fp);
-    }
-__RETURN:
-    return;
-}
-
-static void write_bytes(FILE *fp_in, TempDataCtx_t *tmpctx, FILE *fp_out)
-{
-    RK_U32 i = 0;
-    RK_U8  temp = 0;
-    RK_U32 data_temp = 0;
-    data_temp = (tmpctx->pps_id << 16) | tmpctx->len;
-
-    fwrite(&tmpctx->header, sizeof(RK_U32), 1, fp_out);
-    fwrite(&data_temp, sizeof(RK_U32), 1, fp_out);
-    while (i < tmpctx->len) {
-        fread (&temp, sizeof(RK_U8), 1, fp_in);
-        fwrite(&temp, sizeof(RK_U8), 1, fp_out);
-        i++;
-    }
-}
-
-
-static void write_driver_bytes(FILE *fp_out, TempDataCtx_t *in_tmpctx, FILE *fp_in, RK_U32 frame_no)
-{
-    RK_U32 header = 0, datasize = 0;
-    TempDataCtx_t m_tmpctx = { 0 };
-
-    fread(&header,   1, sizeof(RK_U32), fp_in);
-    fread(&datasize, 1, sizeof(RK_U32), fp_in);
-
-    while (!feof(fp_in)) {
-        memset(&m_tmpctx, 0, sizeof(TempDataCtx_t));
-        switch (header) {
-        case RKVDEC_PPS_HEADER:
-            m_tmpctx.pps_id = in_tmpctx->pps_id;
-        case RKVDEC_SCL_HEADER:
-        case RKVDEC_RPS_HEADER:
-        case RKVDEC_STM_HEADER:
-            m_tmpctx.header = header;
-            m_tmpctx.len = datasize;
-            write_bytes(fp_in, &m_tmpctx, fp_out);
-            break;
-        case RKVDEC_REG_HEADER:
-            m_tmpctx.header = header;
-            m_tmpctx.len = datasize;
-            header = RKVDEC_CRC_HEADER;
-            fwrite(&header, sizeof(RK_U32), 1, fp_out);
-            fwrite(&in_tmpctx->len, sizeof(RK_U32), 1, fp_out);
-            fwrite(in_tmpctx->data, sizeof(RK_U8), in_tmpctx->len, fp_out);
-            write_bytes(fp_in, &m_tmpctx, fp_out);
-            return;
-        default:
-            mpp_log("ERROR: frame_no=%d. \n", frame_no);
-            ASSERT(0);
-            break;
-        }
-        fread(&header,   1, sizeof(RK_U32), fp_in);
-        fread(&datasize, 1, sizeof(RK_U32), fp_in);
-    }
-}
-
 
 /*!
 ***********************************************************************
@@ -648,7 +347,7 @@ MPP_RET h264d_configure(InputParams *p_in, RK_S32 ac, char *av[])
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     VAL_CHECK(ret, ac > 1);
-    display_input_cmd(ac, av);
+
     FUN_CHECK (ret = parse_command(p_in, ac, av));
 
     return MPP_OK;
@@ -665,10 +364,8 @@ __FAILED:
 */
 MPP_RET h264d_close_files(InputParams *p_in)
 {
-    FCLOSE(p_in->fp_bitstream);
-    FCLOSE(p_in->fp_golden_data);
-    FCLOSE(p_in->fp_yuv_data);
-    FCLOSE(p_in->fp_driver_data);
+    MPP_FCLOSE(p_in->fp_bitstream);
+    MPP_FCLOSE(p_in->fp_yuv_data);
 
     return MPP_OK;
 }
@@ -682,10 +379,9 @@ MPP_RET h264d_close_files(InputParams *p_in)
 MPP_RET h264d_open_files(InputParams *p_in)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    char *outpath_dir = NULL;
-    mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
+
     FLE_CHECK(ret, p_in->fp_bitstream = fopen(p_in->infile_name, "rb"));
-    p_in->fp_yuv_data = fopen("out.yuv", "wb");
+    p_in->fp_yuv_data = fopen(p_in->infile_name, "wb");
     return MPP_OK;
 __FAILED:
     h264d_close_files(p_in);
@@ -762,53 +458,4 @@ MPP_RET h264d_read_one_frame(InputParams *p_in)
     }
 
     return MPP_OK;
-}
-/*!
-***********************************************************************
-* \brief
-*   write fpage data to file
-***********************************************************************
-*/
-MPP_RET h264d_write_fpga_data(InputParams *p_in)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    TempDataCtx_t tmpctx = { 0 };
-    FILE *fp_log = NULL;
-    RK_U32 frame_no = 0;
-    RK_U32 ctrl_value = 0;
-    RK_U32 ctrl_debug = 0;
-    RK_U32 ctrl_fpga  = 0;
-    RK_U32 ctrl_write = 0;
-    char *outpath_dir = NULL;
-    char *cmppath_dir = NULL;
-
-    mpp_env_get_u32(logenv_name.ctrl, &ctrl_value, 0);
-    ctrl_debug = GetBitVal(ctrl_value, LOG_DEBUG);
-    ctrl_fpga  = GetBitVal(ctrl_value, LOG_FPGA);
-    ctrl_write = GetBitVal(ctrl_value, LOG_WRITE);
-    INP_CHECK(ret, !(ctrl_debug && ctrl_fpga && ctrl_write));
-    mpp_env_get_str(logenv_name.outpath,  &outpath_dir,  NULL);
-    mpp_env_get_str(logenv_name.cmppath,  &cmppath_dir,  NULL);
-    p_in->fp_driver_data = open_file(outpath_dir, p_in->infile_name, ".dat", "wb");
-    p_in->fp_golden_data = open_file(cmppath_dir, p_in->infile_name, ".dat", "rb");
-    fp_log = fopen(strcat(outpath_dir, "/h264d_driver_data.dat"), "rb");
-    FLE_CHECK(ret, p_in->fp_golden_data);
-    FLE_CHECK(ret, p_in->fp_driver_data);
-    FLE_CHECK(ret, p_in->fp_yuv_data);
-    FLE_CHECK(ret, fp_log);
-    tmpctx.data = mpp_calloc_size(RK_U8, 128);
-    MEM_CHECK(ret, tmpctx.data); //!< for read golden fpga data
-    while (!feof(p_in->fp_golden_data) && !feof(fp_log)) {
-        read_golden_data (p_in->fp_golden_data, &tmpctx, frame_no);
-        write_driver_bytes(p_in->fp_driver_data, &tmpctx, fp_log, frame_no);
-        frame_no++;
-    }
-    //remove(out_name);
-__RETURN:
-    ret = MPP_OK;
-__FAILED:
-    MPP_FREE(tmpctx.data);
-    h264d_close_files(p_in);
-
-    return ret;
 }
