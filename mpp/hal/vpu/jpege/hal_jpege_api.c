@@ -30,14 +30,31 @@
 
 #include "vpu.h"
 
-#define VPU2_REG_NUM    184
+#define VPU2_REG_NUM        (184)
+#define EXTRA_INFO_MAGIC    (0x4C4A46)
+
+typedef struct JpegeIocExtInfoSlot_t {
+    RK_U32       reg_idx;
+    RK_U32       offset;
+} JpegeIocExtInfoSlot;
+
+typedef struct JpegeIocExtInfo_t {
+    RK_U32                 magic; /* tell kernel that it is extra info */
+    RK_U32                 cnt;
+    JpegeIocExtInfoSlot    slots[5];
+} JpegeIocExtInfo;
+
+typedef struct JpegeIocRegInfo_t {
+    RK_U32                 regs[VPU2_REG_NUM];
+    JpegeIocExtInfo        extra_info;
+} JpegeIocRegInfo;
 
 typedef struct hal_jpege_ctx_s {
-    RK_S32          vpu_fd;
+    RK_S32                 vpu_fd;
 
-    IOInterruptCB   int_cb;
-    JpegeBits       bits;
-    RK_U32          regs[VPU2_REG_NUM];
+    IOInterruptCB          int_cb;
+    JpegeBits              bits;
+    JpegeIocRegInfo        ioctl_info;
 } HalJpegeCtx;
 
 #define HAL_JPEGE_DBG_FUNCTION          (0x00000001)
@@ -80,7 +97,7 @@ MPP_RET hal_jpege_init(void *hal, MppHalCfg *cfg)
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
 
-    memset(ctx->regs, 0, sizeof(ctx->regs));
+    memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return MPP_OK;
@@ -108,6 +125,46 @@ MPP_RET hal_jpege_deinit(void *hal)
     return MPP_OK;
 }
 
+static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *syntax)
+{
+    if(info == NULL || syntax == NULL){
+        mpp_err_f("invalid input parameter!");
+        return MPP_NOK;
+    }
+
+    RK_U32 width        = syntax->width;
+    RK_U32 height       = syntax->height;
+    MppFrameFormat fmt  = syntax->format;
+    RK_U32 hor_stride   = MPP_ALIGN(width,  16);
+    RK_U32 ver_stride   = MPP_ALIGN(height, 16);
+    JpegeIocExtInfoSlot *slot = NULL;
+
+    info->magic = EXTRA_INFO_MAGIC;
+    info->cnt = 2;
+
+    if(fmt == MPP_FMT_YUV420P){
+        slot = &(info->slots[0]);
+        slot->reg_idx = 49;
+        slot->offset = hor_stride * ver_stride;
+
+        slot = &(info->slots[1]);
+        slot->reg_idx = 50;
+        slot->offset = hor_stride * ver_stride * 5 / 4;
+    }else if(fmt == MPP_FMT_YUV420SP){
+        slot = &(info->slots[0]);
+        slot->reg_idx = 49;
+        slot->offset = hor_stride * ver_stride;
+
+        slot = &(info->slots[1]);
+        slot->reg_idx = 50;
+        slot->offset = hor_stride * ver_stride;
+    }else{
+        mpp_log_f("other format(%d)\n", fmt);
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
@@ -121,7 +178,8 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
-    RK_U32 *regs = ctx->regs;
+    RK_U32 *regs = ctx->ioctl_info.regs;
+    JpegeIocExtInfo *extra_info = &(ctx->ioctl_info.extra_info);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
     const RK_U8 *qtable[2];
@@ -138,8 +196,9 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
 
     // input address setup
     regs[48] = mpp_buffer_get_fd(input);
-    regs[49] = mpp_buffer_get_fd(input) + ((hor_stride * height) << 10);
+    regs[49] = mpp_buffer_get_fd(input);
     regs[50] = regs[49];
+    hal_jpege_set_extra_info(extra_info, syntax);
 
     // output address setup
     bitpos = jpege_bits_get_bitpos(bits);
@@ -331,7 +390,7 @@ MPP_RET hal_jpege_start(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0)
-        ret = VPUClientSendReg(ctx->vpu_fd, ctx->regs, VPU2_REG_NUM);
+        ret = VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)&(ctx->ioctl_info), sizeof(ctx->ioctl_info) / sizeof(RK_U32));
 #endif
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
@@ -345,7 +404,7 @@ MPP_RET hal_jpege_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeBits bits = ctx->bits;
-    RK_U32 *regs = ctx->regs;
+    RK_U32 *regs = ctx->ioctl_info.regs;
     JpegeFeedback feedback;
     RK_U32 val;
     (void)task;
