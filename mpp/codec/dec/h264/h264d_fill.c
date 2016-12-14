@@ -23,7 +23,6 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
-#include "h264d_log.h"
 #include "h264d_fill.h"
 
 

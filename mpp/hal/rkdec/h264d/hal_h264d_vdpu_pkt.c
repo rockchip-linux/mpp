@@ -21,14 +21,13 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_common.h"
 #include "hal_task.h"
 
 #include "dxva_syntax.h"
 #include "vpu.h"
 
-#include "h264d_log.h"
 #include "h264d_syntax.h"
-#include "hal_h264d_fifo.h"
 #include "hal_h264d_api.h"
 #include "hal_h264d_global.h"
 #include "hal_h264d_vdpu_pkt.h"
@@ -520,8 +519,6 @@ MPP_RET vdpu_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
 
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
     p_regs->sw57.dec_wr_extmen_dis = 0;
     p_regs->sw57.rlc_mode_en = 0;
     p_regs->sw51.qp_init_val = pp->pic_init_qp_minus26 + 26;
@@ -618,7 +615,6 @@ MPP_RET vdpu_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         }
         p_regs->sw51.stream_len = p_hal->strm_len;
     }
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
     return ret = MPP_OK;
 }
@@ -635,7 +631,6 @@ MPP_RET vdpu_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
 
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     //!< list0 list1 listP
     for (j = 0; j < 3; j++) {
         for (i = 0; i < 16; i++) {
@@ -672,7 +667,6 @@ MPP_RET vdpu_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             }
         }
     }
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
     return ret = MPP_OK;
 }
@@ -692,7 +686,6 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
 
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     /* reference picture physic address */
     for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
         RK_U32 val = 0;
@@ -816,7 +809,7 @@ MPP_RET vdpu_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     p_regs->sw57.dec_wr_extmen_dis = 0; //!< set defalut 0
     p_regs->sw57.addit_ch_fmt_wen = 0;
     p_regs->sw57.dec_st_work = 1;
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
+
     return ret = MPP_OK;
 }
 

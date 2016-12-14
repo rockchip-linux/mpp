@@ -20,12 +20,87 @@
 #define __HAL_H264D_GLOBAL_H__
 
 #include "mpp_hal.h"
+#include "mpp_log.h"
+
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
 
-#include "h264d_log.h"
-#include "hal_h264d_fifo.h"
 
+
+#define H264D_DBG_ERROR             (0x00000001)
+#define H264D_DBG_ASSERT            (0x00000002)
+#define H264D_DBG_WARNNING          (0x00000004)
+#define H264D_DBG_LOG               (0x00000008)
+
+
+extern RK_U32 rkv_h264d_hal_debug;
+
+
+#define H264D_DBG(level, fmt, ...)\
+do {\
+    if (level & rkv_h264d_hal_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+
+#define H264D_ERR(fmt, ...)\
+do {\
+    if (H264D_DBG_ERROR & rkv_h264d_hal_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+#define ASSERT(val)\
+do {\
+    if (H264D_DBG_ASSERT & rkv_h264d_hal_debug)\
+        { mpp_assert(val); }\
+} while (0)
+
+#define H264D_WARNNING(fmt, ...)\
+do {\
+    if (H264D_DBG_WARNNING & rkv_h264d_hal_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+#define H264D_LOG(fmt, ...)\
+do {\
+    if (H264D_DBG_LOG & rkv_h264d_hal_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+
+//!< vaule check
+#define VAL_CHECK(ret, val, ...)\
+do{\
+    if (!(val)){\
+        ret = MPP_ERR_VALUE; \
+        H264D_WARNNING("value error(%d).\n", __LINE__); \
+        goto __FAILED; \
+}} while (0)
+//!< memory malloc check
+#define MEM_CHECK(ret, val, ...)\
+do{\
+    if (!(val)) {\
+        ret = MPP_ERR_MALLOC; \
+        H264D_ERR("malloc buffer error(%d).\n", __LINE__); \
+        ASSERT(0); goto __FAILED; \
+}} while (0)
+
+
+//!< input check
+#define INP_CHECK(ret, val, ...)\
+do{\
+    if ((val)) {\
+        ret = MPP_ERR_INIT; \
+        H264D_WARNNING("input empty(%d).\n", __LINE__); \
+        goto __RETURN; \
+}} while (0)
+//!< function return check
+#define FUN_CHECK(val)\
+do{\
+    if ((val) < 0) {\
+        H264D_WARNNING("Function error(%d).\n", __LINE__); \
+        goto __FAILED; \
+}} while (0)
 
 
 typedef struct h264d_hal_ctx_t {
@@ -43,8 +118,7 @@ typedef struct h264d_hal_ctx_t {
     DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
     RK_U8                    *bitstream;
     RK_U32                   strm_len;
-    H264dLogCtx_t            logctx;           //!< debug log file
-    LogCtx_t                 logctxbuf[LOG_MAX];
+
     void                     *priv;       //!< resert data for extent
     //!< add
     HalDecTask               *in_task;
@@ -60,4 +134,4 @@ typedef struct h264d_hal_ctx_t {
 
 
 
-#endif /*__HAL_H264D_REG_H__*/
+#endif /*__HAL_H264D_GLOBAL_H__*/

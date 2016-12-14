@@ -21,8 +21,7 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "hal_task.h"
-#include "h264d_log.h"
-#include "hal_h264d_fifo.h"
+
 #include "hal_h264d_global.h"
 
 typedef struct {

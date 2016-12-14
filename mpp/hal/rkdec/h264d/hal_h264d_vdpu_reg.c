@@ -25,9 +25,9 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "vpu.h"
+#include "mpp_common.h"
 #include "mpp_time.h"
 
-#include "h264d_log.h"
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"
 #include "hal_h264d_vdpu_pkt.h"
@@ -352,15 +352,12 @@ MPP_RET vdpu_h264d_deinit(void *hal)
 
     INP_CHECK(ret, NULL == p_hal);
 
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
-
     MPP_FREE(p_hal->regs);
     MPP_FREE(p_hal->priv);
     if (p_hal->cabac_buf) {
         FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
     }
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -379,20 +376,20 @@ MPP_RET vdpu_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+
     p_hal->in_task = &task->dec;
     if (task->dec.flags.had_error)  {
         goto __RETURN;
     }
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "[Generate register begin]");
+
     FUN_CHECK(ret = vdpu_adjust_input(p_hal, (H264dVdpuPriv_t *)p_hal->priv));
     FUN_CHECK(ret = vdpu_set_pic_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu_set_vlc_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu_set_ref_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu_set_asic_regs(p_hal, (H264dVdpuRegs_t *)p_hal->regs));
-    LogTrace(p_hal->logctx.parr[RUN_HAL], "[Generate register end]");
+
     p_hal->in_task->valid = 0;
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
+
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -411,7 +408,6 @@ MPP_RET vdpu_h264d_start(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal  = (H264dHalCtx_t *)hal;
     H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)p_hal->regs;
 
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     if (task->dec.flags.had_error) {
         goto __RETURN;
     }
@@ -430,7 +426,6 @@ MPP_RET vdpu_h264d_start(void *hal, HalTaskInfo *task)
     }
 #endif
 __RETURN:
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
     return ret = MPP_OK;
 }
@@ -446,8 +441,6 @@ MPP_RET vdpu_h264d_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
     H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)p_hal->regs;
-
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     if (task->dec.flags.had_error) {
         goto __SKIP_HARD;
@@ -480,7 +473,7 @@ __SKIP_HARD:
         p_hal->init_cb.callBack(p_hal->init_cb.opaque, &m_ctx);
     }
     memset(&p_regs->sw55, 0, sizeof(RK_U32));
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
+
     (void)task;
 
     return ret = MPP_OK;
@@ -498,11 +491,9 @@ MPP_RET vdpu_h264d_reset(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     memset(p_hal->priv, 0, sizeof(H264dVdpuPriv_t));
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 }
@@ -519,11 +510,7 @@ MPP_RET vdpu_h264d_flush(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-
-
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 }
@@ -540,11 +527,7 @@ MPP_RET vdpu_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-
-
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)hal;
     (void)cmd_type;
     (void)param;

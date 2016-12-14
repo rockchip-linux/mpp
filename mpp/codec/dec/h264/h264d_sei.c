@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "h264d_log.h"
+#include "h264d_global.h"
 #include "h264d_sps.h"
 #include "h264d_sei.h"
 
@@ -367,7 +367,6 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
     H264_SEI_t *sei_msg  = &currSlice->p_Cur->sei;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
-    FunctionIn(currSlice->logctx->parr[RUN_PARSE]);
     memset(sei_msg, 0, sizeof(*sei_msg));
     sei_msg->mvc_scalable_nesting_flag = 0;  //init to false
     sei_msg->p_Dec = currSlice->p_Dec;
@@ -399,8 +398,6 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         }
 
     } while ((p_bitctx->data_[0] != 0x80) && (p_bitctx->bytes_left_ > 1));    // more_rbsp_data()  msg[offset] != 0x80
-
-    FunctionOut(currSlice->logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __BITREAD_ERR:

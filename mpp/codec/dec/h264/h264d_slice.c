@@ -19,7 +19,7 @@
 
 #include "mpp_mem.h"
 
-#include "h264d_log.h"
+#include "h264d_global.h"
 #include "h264d_slice.h"
 #include "h264d_sps.h"
 #include "h264d_pps.h"
@@ -402,18 +402,14 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     RK_U32 temp = 0;
     RK_U32 poc_used_bits = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dLogCtx_t *logctx = currSlice->logctx;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     H264dCurCtx_t *p_Cur = currSlice->p_Cur;
     BitReadCtx_t *p_bitctx = &p_Cur->bitctx;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     //!< initial value
     currSlice->p_Dpb_layer[0] = p_Vid->p_Dpb_layer[0];
     currSlice->p_Dpb_layer[1] = p_Vid->p_Dpb_layer[1];
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_SLICE]);
 
-    LogInfo(p_bitctx->ctx, "----------------------------- SLICE begin --------------------------------");
     //!< read slice head syntax
     READ_UE(p_bitctx, &currSlice->start_mb_nr, "first_mb_in_slice");
     READ_UE(p_bitctx, &temp, "slice_type");
@@ -509,15 +505,10 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         if (currSlice->nal_reference_idc) {
             FUN_CHECK(ret = dec_ref_pic_marking(currSlice));
         }
-        if (g_max_bytes < (p_bitctx->used_bits >> 3)) {
-            g_max_bytes = (p_bitctx->used_bits >> 3);
-        }
         H264D_DBG(H264D_DBG_PPS_SPS, "[SLICE_HEAD] type=%d, layer_id=%d,sps_id=%d, pps_id=%d, struct=%d, frame_num=%d",
                   currSlice->slice_type, currSlice->layer_id, currSlice->active_sps->seq_parameter_set_id,
                   currSlice->active_pps->pic_parameter_set_id, currSlice->structure, currSlice->frame_num);
     }
-
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __BITREAD_ERR:

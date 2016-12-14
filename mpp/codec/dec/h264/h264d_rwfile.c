@@ -111,8 +111,7 @@ static MPP_RET parse_command(InputParams *p_in, int ac, char *av[])
         } else if (!strncmp(av[CLcount], "-o", 2)) {
             strncpy(p_in->infile_name, av[CLcount + 1], strlen((const char*)av[CLcount + 1]) + 1);
             CLcount += 2;
-        }
-        else {
+        } else {
             mpp_err("error, cannot explain command: %s.\n", av[CLcount]);
             goto __FAILED;
         }

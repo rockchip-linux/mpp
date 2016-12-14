@@ -25,7 +25,6 @@
 #include "mpp_common.h"
 #include "mpp_buf_slot.h"
 
-#include "h264d_log.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
 #include "h264d_init.h"
@@ -420,7 +419,6 @@ static void mark_pic_long_term(H264_DpbBuf_t *p_Dpb, H264_StorePic_t* p, RK_S32 
 {
     RK_U32 i = 0;
     RK_S32 add_top = 0, add_bottom = 0;
-    LogCtx_t *runlog = p_Dpb->p_Vid->p_Dec->logctx.parr[RUN_PARSE];
 
     if (p->structure == FRAME) {
         for (i = 0; i < p_Dpb->ref_frames_in_buffer; i++) {
@@ -441,7 +439,7 @@ static void mark_pic_long_term(H264_DpbBuf_t *p_Dpb, H264_StorePic_t* p, RK_S32 
                 }
             }
         }
-        LogWarnning(runlog, "reference frame for long term marking not found.");
+        H264D_WARNNING("reference frame for long term marking not found.");
     } else {
         if (p->structure == TOP_FIELD) {
             add_top = 1;
@@ -454,7 +452,7 @@ static void mark_pic_long_term(H264_DpbBuf_t *p_Dpb, H264_StorePic_t* p, RK_S32 
             if (p_Dpb->fs_ref[i]->is_reference & 1) {
                 if ((!p_Dpb->fs_ref[i]->top_field->is_long_term) && (p_Dpb->fs_ref[i]->top_field->pic_num == picNumX)) {
                     if ((p_Dpb->fs_ref[i]->is_long_term) && (p_Dpb->fs_ref[i]->long_term_frame_idx != long_term_frame_idx)) {
-                        LogWarnning(runlog, "assigning long_term_frame_idx different from other field.");
+                        H264D_WARNNING("assigning long_term_frame_idx different from other field.");
                     }
                     p_Dpb->fs_ref[i]->long_term_frame_idx = p_Dpb->fs_ref[i]->top_field->long_term_frame_idx = long_term_frame_idx;
                     p_Dpb->fs_ref[i]->top_field->long_term_pic_num = 2 * long_term_frame_idx + add_top;
@@ -470,7 +468,7 @@ static void mark_pic_long_term(H264_DpbBuf_t *p_Dpb, H264_StorePic_t* p, RK_S32 
             if (p_Dpb->fs_ref[i]->is_reference & 2) {
                 if ((!p_Dpb->fs_ref[i]->bottom_field->is_long_term) && (p_Dpb->fs_ref[i]->bottom_field->pic_num == picNumX)) {
                     if ((p_Dpb->fs_ref[i]->is_long_term) && (p_Dpb->fs_ref[i]->long_term_frame_idx != long_term_frame_idx)) {
-                        LogWarnning(runlog, "assigning long_term_frame_idx different from other field.");
+                        H264D_WARNNING("assigning long_term_frame_idx different from other field.");
                     }
 
                     p_Dpb->fs_ref[i]->long_term_frame_idx = p_Dpb->fs_ref[i]->bottom_field->long_term_frame_idx
@@ -486,7 +484,7 @@ static void mark_pic_long_term(H264_DpbBuf_t *p_Dpb, H264_StorePic_t* p, RK_S32 
                 }
             }
         }
-        LogWarnning(runlog, "reference field for long term marking not found.");
+        H264D_WARNNING("reference field for long term marking not found.");
     }
 }
 
@@ -586,11 +584,10 @@ static void sliding_window_memory_management(H264_DpbBuf_t *p_Dpb)
 
 static void check_num_ref(H264_DpbBuf_t *p_Dpb)
 {
-    LogCtx_t *runlog = p_Dpb->p_Vid->p_Dec->logctx.parr[RUN_PARSE];
 
     if ((RK_S32)(p_Dpb->ltref_frames_in_buffer + p_Dpb->ref_frames_in_buffer) > MPP_MAX(1, p_Dpb->num_ref_frames)) {
         sliding_window_memory_management(p_Dpb);
-        LogWarnning(runlog, "Max number of reference frames exceeded");
+        H264D_WARNNING("Max number of reference frames exceeded");
     }
 }
 
@@ -653,7 +650,6 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
     H264_FrameStore_t* tmp = NULL;
     H264_FrameStore_t* fs = NULL;
     H264_DecCtx_t *p_Dec = NULL;
-    LogCtx_t *runlog = NULL;
 
     INP_CHECK(ret, !p_Dpb);
     fs = p_Dpb->fs[pos];
@@ -661,7 +657,6 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
     INP_CHECK(ret, !p_Dpb->p_Vid);
     p_Dec = p_Dpb->p_Vid->p_Dec;
     INP_CHECK(ret, !p_Dec);
-    runlog = p_Dec->logctx.parr[RUN_PARSE];
 
     switch (fs->is_used) {
     case 3:
@@ -683,7 +678,7 @@ static MPP_RET remove_frame_from_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 pos)
     case 0:
         break;
     default:
-        LogError(runlog, "invalid frame store type.");
+        H264D_ERR("invalid frame store type.");
         goto __FAILED;
     }
 

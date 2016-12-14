@@ -25,6 +25,7 @@
 #include "mpp_packet_impl.h"
 #include "hal_task.h"
 
+#include "h264d_global.h"
 #include "h264d_parse.h"
 #include "h264d_slice.h"
 #include "h264d_sps.h"
@@ -32,7 +33,6 @@
 #include "h264d_sei.h"
 #include "h264d_init.h"
 #include "h264d_fill.h"
-#include "h264d_log.h"
 
 #define  HEAD_SYNTAX_MAX_SIZE        (12800)
 
@@ -74,7 +74,6 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
 {
     RK_U32 i = 0, j = 0;
     H264_SLICE_t *currSlice = &p_Vid->p_Cur->slice;
-    FunctionIn(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 
     memset(currSlice, 0, sizeof(H264_SLICE_t));
     //-- re-init parameters
@@ -83,7 +82,6 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     currSlice->p_Dec   = p_Vid->p_Dec;
     currSlice->p_Cur   = p_Vid->p_Cur;
     currSlice->p_Inp   = p_Vid->p_Inp;
-    currSlice->logctx  = &p_Vid->p_Dec->logctx;
     currSlice->active_sps = p_Vid->active_sps;
     currSlice->active_pps = p_Vid->active_pps;
     //--- reset listP listB
@@ -98,8 +96,6 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
         currSlice->listXsizeB[i] = 0;
     }
     reset_cur_slice(p_Vid->p_Cur, currSlice);
-
-    FunctionOut(p_Vid->p_Dec->logctx.parr[RUN_PARSE]);
 }
 
 static MPP_RET realloc_buffer(RK_U8 **buf, RK_U32 *max_size, RK_U32 add_size)
@@ -152,17 +148,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    H264dLogCtx_t   *logctx   = currSlice->logctx;
     H264dCurCtx_t   *p_Cur    = currSlice->p_Cur;
     BitReadCtx_t    *p_bitctx = &p_Cur->bitctx;
     H264_Nalu_t     *cur_nal  = &p_Cur->nalu;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     mpp_set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
     mpp_set_pre_detection(p_bitctx);
 
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
-    LogInfo(p_bitctx->ctx, "================== NAL begin ===================");
     READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
     ASSERT(cur_nal->forbidden_bit == 0);
     {
@@ -178,7 +170,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag, "svc_extension_flag");
         if (currSlice->svc_extension_flag) {
             currSlice->mvcExt.valid = 0;
-            LogInfo(logctx->parr[RUN_PARSE], "svc_extension is not supported.");
+            H264D_WARNNING("svc_extension is not supported.");
             goto __FAILED;
         } else { //!< MVC
             currSlice->mvcExt.valid = 1;
@@ -202,7 +194,6 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
     mpp_set_pre_detection(p_bitctx);
     p_Cur->p_Dec->nalu_ret = StartofNalu;
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __BITREAD_ERR:
@@ -216,9 +207,7 @@ __FAILED:
 static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    LogCtx_t *runlog = currSlice->logctx->parr[RUN_PARSE];
 
-    FunctionIn(runlog);
     FUN_CHECK(ret = parser_nalu_header(currSlice));
     //!< nalu_parse
     switch (currSlice->p_Cur->nalu.nalu_type) {
@@ -293,7 +282,6 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
     }
-    FunctionOut(runlog);
 
     return ret = MPP_OK;
 __FAILED:
@@ -391,17 +379,16 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 nalu_header_bytes  = 0;
     RK_U32 first_mb_in_slice  = 0;
-    H264dLogCtx_t   *logctx   = &p_Cur->p_Dec->logctx;
+
     BitReadCtx_t    *p_bitctx = &p_Cur->bitctx;
     RK_U32      forbidden_bit = -1;
     RK_U32  nal_reference_idc = -1;
     RK_U32 svc_extension_flag = -1;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     memset(p_bitctx, 0, sizeof(BitReadCtx_t));
     mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
     mpp_set_pre_detection(p_bitctx);
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_NALU]);
+
     READ_BITS(p_bitctx, 1, &forbidden_bit);
     ASSERT(forbidden_bit == 0);
     READ_BITS(p_bitctx, 2, &nal_reference_idc);
@@ -411,7 +398,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     if ((p_strm->nalu_type == NALU_TYPE_PREFIX) || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
         READ_BITS(p_bitctx, 1, &svc_extension_flag);
         if (svc_extension_flag) {
-            LogInfo(logctx->parr[RUN_PARSE], "svc_extension is not supported.");
+            H264D_WARNNING("svc_extension is not supported.");
             goto __FAILED;
         } else {
             if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
@@ -439,7 +426,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
 
         }
     }
-    FunctionOut(logctx->parr[RUN_PARSE]);
+
     return ret = MPP_OK;
 __BITREAD_ERR:
     return ret = p_bitctx->ret;
@@ -487,7 +474,7 @@ MPP_RET fwrite_stream_to_file(H264dInputCtx_t *p_Inp, RK_U8 *pdata, RK_U32 len)
         }
         global_flie_size += len;
         if (global_flie_size > MAX_ES_FILE_SIZE) {
-            FCLOSE(p_Inp->fp);
+            MPP_FCLOSE(p_Inp->fp);
             global_file_fid = 1 - global_file_fid;
             global_flie_size = 0;
             p_Inp->fp = fopen(p_Inp->fname[global_file_fid], "wb");
@@ -513,7 +500,7 @@ MPP_RET close_stream_file(H264dInputCtx_t *p_Inp)
     if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
         if (p_Inp->fp) {
             fflush(p_Inp->fp);
-            FCLOSE(p_Inp->fp);
+            MPP_FCLOSE(p_Inp->fp);
         }
     }
 
@@ -530,12 +517,10 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 nalu_header_bytes = 0;
 
-    H264dLogCtx_t   *logctx  = &p_Inp->p_Dec->logctx;
     H264_DecCtx_t   *p_Dec   = p_Inp->p_Dec;
     H264dCurStream_t *p_strm = &p_Cur->strm;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     p_Dec->nalu_ret = NALU_NULL;
     p_Inp->task_valid = 0;
 
@@ -545,14 +530,12 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         FUN_CHECK(ret = add_empty_nalu(p_strm));
         p_Dec->p_Inp->task_valid = 1;
         p_Dec->p_Inp->task_eos = 1;
-        LogInfo(p_Inp->p_Dec->logctx.parr[RUN_PARSE], "----- end of stream ----");
-        //mpp_log("----- eos: end of stream ----\n");
+        H264D_LOG("----- end of stream ----");
         goto __RETURN;
     }
     //!< check input
     if (!p_Inp->in_length) {
         p_Dec->nalu_ret = HaveNoStream;
-        //mpp_log("----- input have no stream ----\n");
         goto __RETURN;
     }
     while (pkt_impl->length > 0) {
@@ -604,7 +587,6 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     }
 
 __RETURN:
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:
@@ -621,12 +603,10 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    H264dLogCtx_t   *logctx  = &p_Inp->p_Dec->logctx;
     H264_DecCtx_t   *p_Dec   = p_Inp->p_Dec;
     H264dCurStream_t *p_strm = &p_Cur->strm;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     p_Dec->nalu_ret = NALU_NULL;
     p_Inp->task_valid = 0;
 
@@ -636,7 +616,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         FUN_CHECK(ret = add_empty_nalu(p_strm));
         p_Dec->p_Inp->task_valid = 1;
         p_Dec->p_Inp->task_eos = 1;
-        LogInfo(p_Inp->p_Dec->logctx.parr[RUN_PARSE], "----- end of stream ----");
+        H264D_LOG("----- end of stream ----");
         goto __RETURN;
     }
     //!< check input
@@ -708,7 +688,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     }
 
 __RETURN:
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:
@@ -725,13 +704,11 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     RK_S32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    H264dLogCtx_t *logctx  = &p_Inp->p_Dec->logctx;
     H264dCurStream_t *p_strm = &p_Cur->strm;
     RK_U8 *pdata = p_Inp->in_buf;
     RK_U64 extrasize = p_Inp->in_length;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     //!< free nalu_buffer
     MPP_FREE(p_strm->nalu_buf);
     if (p_Inp->in_length < 7) {
@@ -755,8 +732,6 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->nalu_type = NALU_TYPE_SPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
-        //mpp_log("[SPS] i=%d, nalu_len=%d, %02x, %02x, %02x, %02x, %02x, %02x \n", i, p_strm->nalu_len,
-        //pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5]);
         pdata += p_strm->nalu_len;
         extrasize -= p_strm->nalu_len;
     }
@@ -771,19 +746,13 @@ MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->nalu_type = NALU_TYPE_PPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
-        //mpp_log("[PPS] i=%d, nalu_len=%d, %02x, %02x, %02x, %02x, %02x, %02x \n", i, p_strm->nalu_len,
-        //  pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5]);
         pdata += p_strm->nalu_len;
         extrasize -= p_strm->nalu_len;
     }
     pkt_impl->length = 0;
     p_strm->nalu_buf = NULL;
     p_strm->startcode_found = 1;
-    //mpp_log("profile=%d, level=%d, nal_size=%d, sps_num=%d, pps_num=%d \n", p_Inp->profile,
-    //  p_Inp->level, p_Inp->nal_size, p_Inp->sps_num, p_Inp->pps_num);
 
-//__RETURN:
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:
@@ -798,11 +767,10 @@ __FAILED:
 MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dLogCtx_t   *logctx  = &p_Inp->p_Dec->logctx;
+
     H264dCurStream_t *p_strm = &p_Cur->strm;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     p_Inp->task_valid = 0;
     if (p_Inp->pkt_eos) {
         p_Inp->task_eos = 1;
@@ -858,8 +826,6 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             break;
         }
     }
-
-//__EOS_RETRUN:
     //!< one frame end
     if (p_Cur->p_Dec->is_new_frame) {
         //!< add an empty nalu to tell frame end
@@ -872,8 +838,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_Cur->last_dts = p_Inp->in_dts;
         p_Cur->last_pts = p_Inp->in_pts;
     }
-//__RETURN:
-    FunctionOut(logctx->parr[RUN_PARSE]);
+
     ret = MPP_OK;
 __FAILED:
     //p_strm->nalu_len = 0;
@@ -900,7 +865,6 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
     H264dNaluHead_t *p_head = NULL;
 
     INP_CHECK(ret, !p_Dec);
-    FunctionIn(p_Dec->logctx.parr[RUN_PARSE]);
     //!< ==== loop ====
     p_Dec->next_state = SliceSTATE_ResetSlice;
     p_curdata = p_Dec->p_Cur->strm.head_buf;
@@ -975,7 +939,7 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
             break;
         }
     }
-    FunctionOut(p_Dec->logctx.parr[RUN_PARSE]);
+
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
