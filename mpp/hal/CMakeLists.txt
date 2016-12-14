@@ -16,7 +16,6 @@ add_subdirectory(rkdec/avsd)
 add_library(mpp_hal STATIC
     hal_task.cpp
     mpp_hal.cpp
-    hal_regdrv.c
     )
 
 set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
