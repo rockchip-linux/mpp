@@ -3,7 +3,7 @@
 
 #include "rk_type.h"
 #include "mpp_err.h"
-#include "h264d_log.h"
+
 
 
 typedef struct {
@@ -14,8 +14,6 @@ typedef struct {
     RK_U64          bvalue;         //!< buffer value, 64 bit
     RK_U8           bitpos;         //!< bit pos in 64bit
     RK_U32          size;           //!< data size,except header
-    LogCtx_t        *logctx;        //!< for debug
-    FILE            *fp_data;       //!< for fpga
 } FifoCtx_t;
 
 

@@ -22,7 +22,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 
-#include "h264d_log.h"
+#include "hal_h264d_global.h"
 #include "hal_h264d_fifo.h"
 
 /*!
@@ -54,16 +54,6 @@ void fifo_flush_bits(FifoCtx_t *pkt)
     }
 }
 
-//void fifo_fwrite_header(FifoCtx_t *pkt, RK_S32 pkt_size)
-//{
-//  if (pkt->fp_data)
-//  {
-//      pkt->size = pkt_size;
-//      fifo_fwrite(pkt->fp_data, &pkt->header, sizeof(RK_U32));
-//      fifo_fwrite(pkt->fp_data, &pkt->size, sizeof(RK_U32));
-//  }
-//}
-
 /*!
 ***********************************************************************
 * \brief
@@ -73,14 +63,7 @@ void fifo_flush_bits(FifoCtx_t *pkt)
 //extern "C"
 void fifo_fwrite_data(FifoCtx_t *pkt)
 {
-    RK_U32 pkt_size = 0;
-
-    if (pkt->fp_data) {
-        pkt_size = pkt->index * sizeof(RK_U64);
-        fifo_fwrite(pkt->fp_data, &pkt->header, sizeof(RK_U32));
-        fifo_fwrite(pkt->fp_data, &pkt_size,    sizeof(RK_U32));
-        fifo_fwrite(pkt->fp_data, pkt->pbuf, pkt->index * sizeof(RK_U64));
-    }
+    (void)pkt;
 }
 
 /*!
@@ -98,7 +81,6 @@ void  fifo_write_bits(FifoCtx_t *pkt, RK_U64 invalue, RK_U8 lbits, const char *n
 
     hbits = 64 - lbits;
     invalue = (invalue << hbits) >> hbits;
-    LogInfo(pkt->logctx, "%48s = %10d  (bits=%d)", name, invalue, lbits);
     pkt->bvalue |= invalue << pkt->bitpos;  // high bits value
     if ((pkt->bitpos + lbits) >= 64) {
         pkt->pbuf[pkt->index] = pkt->bvalue;
@@ -108,6 +90,7 @@ void  fifo_write_bits(FifoCtx_t *pkt, RK_U64 invalue, RK_U8 lbits, const char *n
     }
     pkt->pbuf[pkt->index] = pkt->bvalue;
     pkt->bitpos = (pkt->bitpos + lbits) & 63;
+    (void)name;
 }
 /*!
 ***********************************************************************

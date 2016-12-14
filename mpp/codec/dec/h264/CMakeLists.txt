@@ -7,7 +7,6 @@ set(H264D_API
     )
 
 set(H264D_COMMON
-    ../../../common/h264d_log.h
     ../../../common/h264d_syntax.h
     )
 
@@ -29,7 +28,6 @@ set(H264D_HDR
 # h264 decoder sourse
 set(H264D_SRC
     h264d_api.c
-    h264d_log.c
     h264d_parse.c
     h264d_slice.c
     h264d_sps.c

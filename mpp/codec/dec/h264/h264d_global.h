@@ -22,9 +22,106 @@
 #include "rk_type.h"
 #include "rk_mpi.h"
 
+#include "mpp_log.h"
+#include "mpp_bitread.h"
+
 #include "h264d_api.h"
-#include "h264d_log.h"
 #include "h264d_syntax.h"
+
+
+
+#define H264D_DBG_ERROR             (0x00000001)
+#define H264D_DBG_ASSERT            (0x00000002)
+#define H264D_DBG_WARNNING          (0x00000004)
+#define H264D_DBG_LOG               (0x00000008)
+
+#define H264D_DBG_INPUT             (0x00000010)   //!< input packet
+#define H264D_DBG_PPS_SPS           (0x00000020)
+#define H264D_DBG_LOOP_STATE        (0x00000040)
+#define H264D_DBG_PARSE_NALU        (0x00000080)
+
+#define H264D_DBG_DPB_INFO          (0x00000100)   //!< dpb size
+#define H264D_DBG_DPB_MALLIC        (0x00000200)   //!< malloc
+
+
+#define H264D_DBG_DPB_REF_ERR       (0x00001000)
+#define H264D_DBG_SLOT_FLUSH        (0x00002000)   //!< dpb buffer slot remain
+#define H264D_DBG_SEI               (0x00004000)
+#define H264D_DBG_CALLBACK          (0x00008000)
+
+#define H264D_DBG_WRITE_ES_EN       (0x00010000)   //!< write input ts stream
+#define H264D_DBG_FIELD_PAIRED      (0x00020000)
+#define H264D_DBG_DISCONTINUOUS     (0x00040000)
+
+extern RK_U32 rkv_h264d_parse_debug;
+
+#define H264D_DBG(level, fmt, ...)\
+do {\
+    if (level & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+
+#define H264D_ERR(fmt, ...)\
+do {\
+    if (H264D_DBG_ERROR & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+#define ASSERT(val)\
+do {\
+    if (H264D_DBG_ASSERT & rkv_h264d_parse_debug)\
+        { mpp_assert(val); }\
+} while (0)
+
+#define H264D_WARNNING(fmt, ...)\
+do {\
+    if (H264D_DBG_WARNNING & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+#define H264D_LOG(fmt, ...)\
+do {\
+    if (H264D_DBG_LOG & rkv_h264d_parse_debug)\
+        { mpp_log(fmt, ## __VA_ARGS__); }\
+} while (0)
+
+
+//!< vaule check
+#define VAL_CHECK(ret, val, ...)\
+do{\
+    if (!(val)){\
+        ret = MPP_ERR_VALUE; \
+        H264D_WARNNING("value error(%d).\n", __LINE__); \
+        goto __FAILED; \
+}} while (0)
+//!< memory malloc check
+#define MEM_CHECK(ret, val, ...)\
+do{\
+    if (!(val)) {\
+        ret = MPP_ERR_MALLOC; \
+        H264D_ERR("malloc buffer error(%d).\n", __LINE__); \
+        goto __FAILED; \
+}} while (0)
+
+
+//!< input check
+#define INP_CHECK(ret, val, ...)\
+do{\
+if ((val)) {\
+        ret = MPP_ERR_INIT; \
+        H264D_WARNNING("input empty(%d).\n", __LINE__); \
+        goto __RETURN; \
+}} while (0)
+//!< function return check
+#define FUN_CHECK(val)\
+do{\
+if ((val) < 0) {\
+        H264D_WARNNING("Function error(%d).\n", __LINE__); \
+        goto __FAILED; \
+}} while (0)
+
+
 
 #define START_PREFIX_3BYTE        3
 #define MAX_NUM_DPB_LAYERS        2
@@ -753,8 +850,6 @@ typedef struct h264_slice_t {
     struct h264d_input_ctx_t  *p_Inp;    // H264_InputParameters
     struct h264d_cur_ctx_t    *p_Cur;    // H264_CurParameters
     struct h264d_video_ctx_t  *p_Vid;
-    struct h264d_logctx_t *logctx;   // debug log file
-
 } H264_SLICE_t;
 
 //!< Old slice parameter for check new frame
@@ -1041,8 +1136,6 @@ typedef struct h264_dec_ctx_t {
     RK_U8                      is_new_frame;
     RK_U8                      is_parser_end;
     RK_U8                      mvc_valid;
-    struct h264d_logctx_t      logctx;           //!< debug log file
-    struct log_ctx_t           logctxbuf[LOG_MAX];
 
     //!< add
     MppBufSlots                frame_slots;   //!< corresponding to dpb_mark

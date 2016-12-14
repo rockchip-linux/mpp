@@ -23,7 +23,7 @@
 
 #include "mpp_mem.h"
 
-#include "h264d_log.h"
+#include "h264d_global.h"
 #include "h264d_init.h"
 #include "h264d_dpb.h"
 #include "h264d_scalist.h"

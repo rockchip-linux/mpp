@@ -25,10 +25,10 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_time.h"
+#include "mpp_common.h"
 
 #include "vpu.h"
 
-#include "h264d_log.h"
 #include "hal_h264d_global.h"
 #include "hal_h264d_rkv_pkt.h"
 #include "hal_h264d_rkv_reg.h"
@@ -218,35 +218,6 @@ static RK_U32 rkv_len_align_422(RK_U32 val)
     return ((5 * MPP_ALIGN(val, 16)) / 2);
 }
 
-
-static void rkv_h264d_hal_dump(H264dHalCtx_t *p_hal, RK_U32 dump_type)
-{
-    if (rkv_h264d_hal_debug & H264D_DBG_ERR_DUMP) {
-        RK_U32 i = 0;
-        RK_U32 *p_hal_regs = NULL;
-        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-        switch (dump_type) {
-        case H264D_DBG_GEN_REGS:
-            p_hal_regs = (RK_U32 *)p_dump->in_regs;
-            mpp_log("------- register input ------ \n");
-            for (i = 0; i < DEC_RKV_REGISTERS; i++) {
-                mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
-            }
-            break;
-        case H264D_DBG_RET_REGS:
-            p_hal_regs = (RK_U32 *)p_dump->out_regs;
-            mpp_log("------- register output ------ \n");
-            for (i = 0; i < DEC_RKV_REGISTERS; i++) {
-                mpp_log("reg[%d]=%08x", i, p_hal_regs[i]);
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-}
-
 /*!
 ***********************************************************************
 * \brief
@@ -261,7 +232,6 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
     p_hal->iDecodedNum = 0;
     MEM_CHECK(ret, p_hal->pkts = mpp_calloc_size(void, sizeof(H264dRkvPkt_t)));
     MEM_CHECK(ret, p_hal->dump = mpp_malloc_size(void, sizeof(H264dRkvErrDump_t)));
@@ -270,14 +240,13 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
     //!< copy cabac table bytes
     FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)H264_RKV_Cabac_table, sizeof(H264_RKV_Cabac_table)));
-    FUN_CHECK(ret = rkv_alloc_fifo_packet(&p_hal->logctx, (H264dRkvPkt_t *)p_hal->pkts));
+    FUN_CHECK(ret = rkv_alloc_fifo_packet((H264dRkvPkt_t *)p_hal->pkts));
     p_hal->regs = (void *)((H264dRkvPkt_t *)p_hal->pkts)->reg.pbuf;
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)cfg;
 __RETURN:
     return MPP_OK;
@@ -299,7 +268,6 @@ MPP_RET rkv_h264d_deinit(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     rkv_free_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
     MPP_FREE(p_hal->dump);
@@ -308,7 +276,6 @@ MPP_RET rkv_h264d_deinit(void *hal)
         FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
     }
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -332,7 +299,7 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     H264dRkvRegs_t *p_regs = (H264dRkvRegs_t *)p_hal->regs;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+
     if (task->dec.flags.had_error)  {
         goto __RETURN;
     }
@@ -361,7 +328,6 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
 
     ((HalDecTask*)&task->dec)->valid = 0;
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 
 __RETURN:
     return ret = MPP_OK;
@@ -380,7 +346,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+
     if (task->dec.flags.had_error) {
         goto __RETURN;
     }
@@ -394,23 +360,14 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[77] = 0xffffffff;   // 0xffff_dfff, debug enable
 
     p_regs[1] |= 0x00000061;   // run hardware, enable buf_empty_en
-    //!< dump input register
-    {
-        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-        memcpy(p_dump->in_regs, p_regs, DEC_RKV_REGISTERS);
-        if (rkv_h264d_hal_debug & H264D_DBG_GEN_REGS) {
-            rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
-        }
-    }
-    //!< current buffer slot fd
-    H264D_DBG(H264D_DBG_DECOUT_INFO, "[DECOUT_INFO] decout_fd=0x%02x", p_regs[7]);
+
 #ifdef RKPLATFORM
     if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
         H264D_ERR("H264 RKV FlushRegs fail. \n");
     }
 #endif
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
+
     (void)task;
 __RETURN:
     return ret = MPP_OK;
@@ -429,7 +386,6 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     p_regs = (H264dRkvRegs_t *)p_hal->regs;
     if (task->dec.flags.had_error) {
@@ -448,18 +404,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
     p_hal->iDecodedNum++;
     (void)wait_ret;
 #endif
-    //!< dump registers
-    {
-        H264dRkvErrDump_t *p_dump = (H264dRkvErrDump_t *)p_hal->dump;
-        p_dump->out_regs = (RK_U32 *)p_regs;
-        if (rkv_h264d_hal_debug & H264D_DBG_RET_REGS) {
-            rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
-        }
-        if (p_regs->swreg1_int.sw_dec_error_sta) {
-            rkv_h264d_hal_dump(p_hal, H264D_DBG_GEN_REGS);
-            rkv_h264d_hal_dump(p_hal, H264D_DBG_RET_REGS);
-        }
-    }
+
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {
         IOCallbackCtx m_ctx = { 0 };
@@ -478,7 +423,6 @@ __SKIP_HARD:
     }
     memset(&p_regs->swreg1_int, 0, sizeof(RK_U32));
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
     (void)task;
 __RETURN:
     return ret = MPP_OK;
@@ -496,12 +440,10 @@ MPP_RET rkv_h264d_reset(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
     memset(p_hal->regs, 0, sizeof(H264dRkvRegs_t));
     rkv_reset_fifo_packet((H264dRkvPkt_t *)p_hal->pkts);
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 }
@@ -518,13 +460,7 @@ MPP_RET rkv_h264d_flush(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
 
-
-
-
-
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 }
@@ -541,7 +477,7 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    FunctionIn(p_hal->logctx.parr[RUN_HAL]);
+
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO: {
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
@@ -562,7 +498,6 @@ MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
         break;
     }
 
-    FunctionOut(p_hal->logctx.parr[RUN_HAL]);
 __RETURN:
     return ret = MPP_OK;
 }

@@ -23,8 +23,8 @@
 
 #include "vpu_api.h"
 
+#include "h264d_global.h"
 #include "h264_syntax.h"
-#include "h264d_log.h"
 #include "h264d_sps.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
@@ -153,7 +153,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     cur_sps->separate_colour_plane_flag           = 0;
     cur_sps->log2_max_pic_order_cnt_lsb_minus4    = 0;
     cur_sps->delta_pic_order_always_zero_flag     = 0;
-    LogInfo(p_bitctx->ctx, "----------------------------- SPS begin --------------------------------");
+
     READ_BITS(p_bitctx, 8, &cur_sps->profile_idc, "profile_idc");
     VAL_CHECK (ret, (cur_sps->profile_idc == H264_PROFILE_BASELINE)
                || (cur_sps->profile_idc == H264_PROFILE_MAIN)
@@ -197,9 +197,9 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         READ_ONEBIT(p_bitctx, &cur_sps->qpprime_y_zero_transform_bypass_flag, "qpprime_y_zero_transform_bypass_flag");
         READ_ONEBIT(p_bitctx, &cur_sps->seq_scaling_matrix_present_flag, "seq_scaling_matrix_present_flag");
         if (cur_sps->seq_scaling_matrix_present_flag) {
-            LogInfo(p_bitctx->ctx, "Scaling matrix present.");
+            H264D_WARNNING("Scaling matrix present.");
             if (parse_sps_scalinglists(p_bitctx, cur_sps)) {
-                LogError(p_bitctx->ctx, "rkv_parse_sps_scalinglists error.");
+                mpp_log_f(" parse_sps_scaling_list error.");
             }
         }
     }
@@ -418,14 +418,12 @@ static void update_last_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, RK_U
 MPP_RET process_sps(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dLogCtx_t *logctx = currSlice->logctx;
+
     H264dCurCtx_t *p_Cur = currSlice->p_Cur;
     BitReadCtx_t *p_bitctx = &p_Cur->bitctx;
     H264_SPS_t *cur_sps = &p_Cur->sps;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     reset_cur_sps_data(cur_sps); // reset
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_SPS]);
     //!< parse sps
     FUN_CHECK(ret = parser_sps(p_bitctx, cur_sps, currSlice->p_Dec));
     //!< decide "max_dec_frame_buffering" for DPB
@@ -434,7 +432,6 @@ MPP_RET process_sps(H264_SLICE_t *currSlice)
     if (cur_sps->Valid) {
         memcpy(&currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id], cur_sps, sizeof(H264_SPS_t));
     }
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:
@@ -492,15 +489,13 @@ void recycle_subsps(H264_subSPS_t *subset_sps)
 MPP_RET process_subsps(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dLogCtx_t *logctx = currSlice->logctx;
+
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
     H264_subSPS_t *cur_subsps = &currSlice->p_Cur->subsps;
     H264_subSPS_t *p_subset = NULL;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     reset_cur_subpps_data(cur_subsps); //reset
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_SUBSPS]);
-    LogInfo(p_bitctx->ctx, "----------------------------- subSPS begin --------------------------------");
+
     FUN_CHECK(ret = parser_sps(p_bitctx, &cur_subsps->sps, currSlice->p_Dec));
     FUN_CHECK(ret = parser_subsps_ext(p_bitctx, cur_subsps));
     if (cur_subsps->sps.Valid) {
@@ -514,12 +509,10 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
         recycle_subsps(p_subset);
     }
     memcpy(p_subset, cur_subsps, sizeof(H264_subSPS_t));
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:
     recycle_subsps(&currSlice->p_Cur->subsps);
-    //ASSERT(0);
 
     return ret;
 }

@@ -21,7 +21,6 @@
 
 #include "mpp_err.h"
 
-#include "h264d_log.h"
 #include "h264d_pps.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
@@ -67,7 +66,6 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
-    LogInfo(p_bitctx->ctx, "----------------------------- PPS begin --------------------------------");
     READ_UE(p_bitctx, &cur_pps->pic_parameter_set_id, "pic_parameter_set_id");
     READ_UE(p_bitctx, &cur_pps->seq_parameter_set_id, "seq_parameter_set_id");
     //VAL_CHECK(ret, cur_pps->seq_parameter_set_id < 32);
@@ -105,7 +103,7 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
         READ_ONEBIT(p_bitctx, &cur_pps->transform_8x8_mode_flag, "transform_8x8_mode_flag");
         READ_ONEBIT(p_bitctx, &cur_pps->pic_scaling_matrix_present_flag, "pic_scaling_matrix_present_flag");
         if (cur_pps->pic_scaling_matrix_present_flag) {
-            LogInfo(p_bitctx->ctx, "Picture scaling matrix present.");
+            H264D_WARNNING("Picture scaling matrix present.");
             FUN_CHECK(ret = parse_pps_calingLists(p_bitctx, cur_sps, cur_pps));
         }
         READ_SE(p_bitctx, &cur_pps->second_chroma_qp_index_offset, "second_chroma_qp_index_offset");
@@ -135,20 +133,17 @@ __FAILED:
 MPP_RET process_pps(H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dLogCtx_t *logctx = currSlice->logctx;
+
     H264dCurCtx_t *p_Cur = currSlice->p_Cur;
     BitReadCtx_t *p_bitctx = &p_Cur->bitctx;
     H264_PPS_t *cur_pps = &p_Cur->pps;
 
-    FunctionIn(logctx->parr[RUN_PARSE]);
     reset_curpps_data(cur_pps);// reset
-    set_bitread_logctx(p_bitctx, logctx->parr[LOG_READ_PPS]);
+
     FUN_CHECK(ret = parser_pps(p_bitctx, &p_Cur->sps, cur_pps));
     //!< MakePPSavailable
     ASSERT(cur_pps->Valid == 1);
     memcpy(&currSlice->p_Vid->ppsSet[cur_pps->pic_parameter_set_id], cur_pps, sizeof(H264_PPS_t));
-
-    FunctionOut(logctx->parr[RUN_PARSE]);
 
     return ret = MPP_OK;
 __FAILED:

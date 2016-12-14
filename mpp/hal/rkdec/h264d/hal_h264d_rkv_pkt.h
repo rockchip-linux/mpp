@@ -22,7 +22,6 @@
 #include "mpp_err.h"
 #include "hal_task.h"
 
-#include "h264d_log.h"
 #include "hal_h264d_fifo.h"
 
 
@@ -44,7 +43,7 @@ extern "C" {
 #endif
 void    rkv_reset_fifo_packet(H264dRkvPkt_t *pkt);
 void    rkv_free_fifo_packet (H264dRkvPkt_t *pkt);
-MPP_RET rkv_alloc_fifo_packet(H264dLogCtx_t *logctx, H264dRkvPkt_t *pkts);
+MPP_RET rkv_alloc_fifo_packet(H264dRkvPkt_t *pkts);
 
 void    rkv_prepare_spspps_packet  (void *hal, FifoCtx_t *pkt);
 void    rkv_prepare_framerps_packet(void *hal, FifoCtx_t *pkt);
