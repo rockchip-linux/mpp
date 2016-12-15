@@ -1650,12 +1650,9 @@ MPP_RET hal_h264e_rkv_set_sps(h264e_hal_sps *sps, h264e_hal_param *par, h264e_co
 
     sps->i_level_idc = cfg->level_idc;
     if ( cfg->level_idc == 9 && ( sps->i_profile_idc == H264_PROFILE_BASELINE || sps->i_profile_idc == H264_PROFILE_MAIN ) ) {
-        sps->b_constraint_set3 = 1; /* level 1b with Baseline or Main profile is signalled via constraint_set3 */
+        mpp_log_f("warnings: for profile %d, change level from 9(that is 1b) to 11", sps->i_profile_idc);
         sps->i_level_idc      = 11;
     }
-    /* Intra profiles */
-    if ( cfg->keyframe_max_interval == 1 && sps->i_profile_idc > H264_PROFILE_HIGH )
-        sps->b_constraint_set3 = 1;
 
     sps->vui.i_num_reorder_frames = i_bframe_pyramid ? 2 : i_bframe ? 1 : 0;
     /* extra slot with pyramid so that we don't have to override the
@@ -2388,13 +2385,25 @@ MPP_RET hal_h264e_rkv_set_pps(h264e_hal_pps *pps, h264e_hal_param *par, h264e_co
     }
     pps->i_pic_init_qs = 26 + H264_QP_BD_OFFSET;
 
-    pps->i_chroma_qp_index_offset = 0; //TODO: cfg->chroma_qp_index_offset;
-    pps->i_second_chroma_qp_index_offset = 0; //TODO: cfg->second_chroma_qp_index_offset;
+    pps->b_transform_8x8_mode = cfg->transform8x8_mode;
+    pps->i_chroma_qp_index_offset = cfg->chroma_qp_index_offset;
+    pps->i_second_chroma_qp_index_offset = cfg->second_chroma_qp_index_offset;
     pps->b_deblocking_filter_control = Sw_deblock_filter_ctrl_present_flag;
     pps->b_constrained_intra_pred = par->constrained_intra;
     pps->b_redundant_pic_cnt = 0;
 
-    pps->b_transform_8x8_mode = sps->i_profile_idc >= H264_PROFILE_HIGH; //TODO: cfg->transform8x8_mode ? 1 : 0;
+    if (sps->i_profile_idc < H264_PROFILE_HIGH) {
+        if (pps->b_transform_8x8_mode) {
+            pps->b_transform_8x8_mode = 0;
+            mpp_log_f("wanrning: for profile %d b_transform_8x8_mode should be 0",
+                      sps->i_profile_idc);
+        }
+        if (pps->i_second_chroma_qp_index_offset) {
+            pps->i_second_chroma_qp_index_offset = 0;
+            mpp_log_f("wanrning: for profile %d i_second_chroma_qp_index_offset should be 0",
+                      sps->i_profile_idc);
+        }
+    }
 
     pps->b_cqm_preset = b_cqm_preset;
 
