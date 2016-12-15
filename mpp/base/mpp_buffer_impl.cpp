@@ -38,6 +38,7 @@ typedef enum MppBufOps_e {
     GRP_OPS_BUTT    = GRP_DESTROY,
     BUF_COMMIT,
     BUF_CREATE,
+    BUF_MMAP,
     BUF_REF_INC,
     BUF_REF_DEC,
     BUF_DESTROY,
@@ -113,6 +114,7 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "grp destroy",
     "buf commit ",
     "buf create ",
+    "buf mmap   ",
     "buf ref inc",
     "buf ref dec",
     "buf destroy",
@@ -302,6 +304,28 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         *buffer = p;
     }
 RET:
+    MPP_BUF_FUNCTION_LEAVE();
+    return ret;
+}
+
+MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller)
+{
+    AutoMutex auto_lock(MppBufferService::get_lock());
+    MPP_BUF_FUNCTION_ENTER();
+
+    MPP_RET ret = MPP_NOK;
+    MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+
+    if (group && group->alloc_api && group->alloc_api->mmap) {
+        ret = group->alloc_api->mmap(group->allocator, &buffer->info);
+
+        buffer_group_add_log(group, buffer, BUF_MMAP, caller);
+    }
+
+    if (ret)
+        mpp_err_f("buffer %p group %p fd %d map failed caller %s\n",
+                  buffer, group, buffer->info.fd, caller);
+
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
 }
@@ -717,8 +741,6 @@ MppBufferGroupImpl *MppBufferService::get_group_by_id(RK_U32 id)
             return pos;
         }
     }
-
-    mpp_err_f("can not find group with id %d\n", id);
 
     return NULL;
 }

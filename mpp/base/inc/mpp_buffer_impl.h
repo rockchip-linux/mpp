@@ -114,7 +114,9 @@ extern RK_U32 mpp_buffer_debug;
  *                            if input buffer is NULL then buffer will be register to unused list
  *                            otherwise the buffer will be register to used list and set to paramter buffer
  *
- *  mpp_buffer_destroy      : destroy a buffer, it must be on unused status
+ *  mpp_buffer_mmap         : The created mpp_buffer can not be accessed directly.
+ *                            It required map to access. This is an optimization
+ *                            for reducing virtual memory usage.
  *
  *  mpp_buffer_get_unused   : get unused buffer with size. it will first search
  *                            the unused list. if failed it will create on from
@@ -134,6 +136,7 @@ extern RK_U32 mpp_buffer_debug;
  * mpp_buffer_destory       - destroy the buffer
  */
 MPP_RET mpp_buffer_create(const char *tag, const char *caller, MppBufferGroupImpl *group, MppBufferInfo *info, MppBufferImpl **buffer);
+MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer, const char* caller);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller);
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);

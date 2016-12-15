@@ -30,6 +30,7 @@ typedef struct MppAllocatorApi_t {
     MPP_RET (*free)(MppAllocator allocator, MppBufferInfo *data);
     MPP_RET (*import)(MppAllocator allocator, MppBufferInfo *data);
     MPP_RET (*release)(MppAllocator allocator, MppBufferInfo *data);
+    MPP_RET (*mmap)(MppAllocator allocator, MppBufferInfo *data);
 } MppAllocatorApi;
 
 #ifdef __cplusplus
