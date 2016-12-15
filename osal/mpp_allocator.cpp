@@ -26,78 +26,80 @@
 #define MPP_ALLOCATOR_LOCK(p)   pthread_mutex_lock(&(p)->lock);
 #define MPP_ALLOCATOR_UNLOCK(p) pthread_mutex_unlock(&(p)->lock);
 
-MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
+typedef enum OsAllocatorApiId_e {
+    ALLOC_API_ALLOC,
+    ALLOC_API_FREE,
+    ALLOC_API_IMPORT,
+    ALLOC_API_RELEASE,
+    ALLOC_API_MMAP,
+    ALLOC_API_BUTT,
+} OsAllocatorApiId;
+
+static MPP_RET mpp_allocator_api_wrapper(MppAllocator allocator, MppBufferInfo *info, OsAllocatorApiId id)
 {
-    if (NULL == allocator || NULL == info) {
-        mpp_err_f("invalid input: allocator %p info %p\n",
-                  allocator, info);
+    if (NULL == allocator || NULL == info || id >= ALLOC_API_BUTT) {
+        mpp_err_f("invalid input: allocator %p info %p id %d\n",
+                  allocator, info, id);
         return MPP_ERR_UNKNOW;
     }
 
     MPP_RET ret = MPP_NOK;
     MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
+    OsAllocatorFunc func;
+
     MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.alloc && p->ctx)
-        ret = p->os_api.alloc(p->ctx, info);
+    switch (id) {
+    case ALLOC_API_ALLOC : {
+        func = p->os_api.alloc;
+    } break;
+    case ALLOC_API_FREE : {
+        func = p->os_api.free;
+    } break;
+    case ALLOC_API_IMPORT : {
+        func = p->os_api.import;
+    } break;
+    case ALLOC_API_RELEASE : {
+        func = p->os_api.release;
+    } break;
+    case ALLOC_API_MMAP : {
+        func = p->os_api.mmap;
+    } break;
+    default : {
+        func = NULL;
+    } break;
+    }
+
+    if (func && p->ctx)
+        ret = func(p->ctx, info);
+
     MPP_ALLOCATOR_UNLOCK(p);
 
     return ret;
+}
+
+MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
+{
+    return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_ALLOC);
 }
 
 MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferInfo *info)
 {
-    if (NULL == allocator || NULL == info) {
-        mpp_err_f("invalid input: allocator %p info %p\n",
-                  allocator, info);
-        return MPP_ERR_UNKNOW;
-    }
-
-    MPP_RET ret = MPP_NOK;
-    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.free && p->ctx)
-        ret = p->os_api.free(p->ctx, info);
-    MPP_ALLOCATOR_UNLOCK(p);
-
-    return ret;
+    return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_FREE);
 }
 
 MPP_RET mpp_allocator_import(MppAllocator allocator, MppBufferInfo *info)
 {
-    if (NULL == info) {
-        mpp_err_f("invalid input: info %p\n", info);
-        return MPP_ERR_UNKNOW;
-    }
-
-    MPP_RET ret = MPP_NOK;
-    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.import && p->ctx) {
-        ret = p->os_api.import(p->ctx, info);
-    }
-    MPP_ALLOCATOR_UNLOCK(p);
-
-    return ret;
+    return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_IMPORT);
 }
-
 
 MPP_RET mpp_allocator_release(MppAllocator allocator, MppBufferInfo *info)
 {
-    if (NULL == allocator || NULL == info) {
-        mpp_err_f("invalid input: allocator %p info %p\n",
-                  allocator, info);
-        return MPP_ERR_UNKNOW;
-    }
+    return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_RELEASE);
+}
 
-    MPP_RET ret = MPP_NOK;
-    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    MPP_ALLOCATOR_LOCK(p);
-    if (p->os_api.release && p->ctx) {
-        ret = p->os_api.release(p->ctx, info);
-    }
-    MPP_ALLOCATOR_UNLOCK(p);
-
-    return ret;
+MPP_RET mpp_allocator_mmap(MppAllocator allocator, MppBufferInfo *info)
+{
+    return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_MMAP);
 }
 
 static MppAllocatorApi mpp_allocator_api = {
@@ -107,7 +109,7 @@ static MppAllocatorApi mpp_allocator_api = {
     mpp_allocator_free,
     mpp_allocator_import,
     mpp_allocator_release,
-    NULL,
+    mpp_allocator_mmap,
 };
 
 MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)

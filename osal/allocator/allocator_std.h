@@ -15,25 +15,6 @@
  */
 
 #include "os_allocator.h"
-#include "allocator_std.h"
 
-/*
- * window only support MPP_BUFFER_TYPE_NORMAL
- */
-
-MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
-{
-    MPP_RET ret = MPP_OK;
-    switch (type) {
-    case MPP_BUFFER_TYPE_NORMAL :
-    case MPP_BUFFER_TYPE_ION :
-    case MPP_BUFFER_TYPE_V4L2 : {
-        *api = allocator_std;
-    } break;
-    default : {
-        ret = MPP_NOK;
-    } break;
-    }
-    return ret;
-}
+extern os_allocator allocator_std;
 

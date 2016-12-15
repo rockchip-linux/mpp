@@ -360,9 +360,10 @@ MPP_RET os_allocator_drm_close(void *ctx)
 
 os_allocator allocator_drm = {
     os_allocator_drm_open,
+    os_allocator_drm_close,
     os_allocator_drm_alloc,
     os_allocator_drm_free,
     os_allocator_drm_import,
     os_allocator_drm_release,
-    os_allocator_drm_close,
+    NULL,
 };
