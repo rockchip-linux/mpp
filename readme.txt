@@ -344,7 +344,7 @@ User can use mpp_buffer_group_limit_config to limit decoder memory usage.
 
 Advantage:
 1. Easy to use
-2. User can release MppBufferGroup after decoder is closed. 
+2. User can release MppBufferGroup after decoder is closed.
    So memory can stay longer safely.
 3. Can limit the memory usage by mpp_buffer_group_limit_config
 Disadvantage:
