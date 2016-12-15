@@ -103,8 +103,7 @@ static int ion_free(int fd, ion_user_handle_t handle)
     return ret;
 }
 
-static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
-                   int flags, off_t offset, unsigned char **ptr, int *map_fd)
+static int ion_map_fd(int fd, ion_user_handle_t handle, int *map_fd)
 {
     int ret;
     struct ion_fd_data data = {
@@ -113,23 +112,32 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
 
     if (map_fd == NULL)
         return -EINVAL;
-    if (ptr == NULL)
-        return -EINVAL;
 
     ret = ion_ioctl(fd, ION_IOC_MAP, &data);
     if (ret < 0)
         return ret;
+
     *map_fd = data.fd;
     if (*map_fd < 0) {
         mpp_err("map ioctl returned negative fd\n");
         return -EINVAL;
     }
-    *ptr = mmap(NULL, length, prot, flags, *map_fd, offset);
+
+    return 0;
+}
+
+static int ion_mmap(int fd, size_t length, int prot, int flags, off_t offset, void **ptr)
+{
+    if (ptr == NULL)
+        return -EINVAL;
+
+    *ptr = mmap(NULL, length, prot, flags, fd, offset);
     if (*ptr == MAP_FAILED) {
         mpp_err("mmap failed: %s\n", strerror(errno));
+        *ptr = NULL;
         return -errno;
     }
-    return ret;
+    return 0;
 }
 
 #include <dirent.h>
@@ -252,7 +260,7 @@ const char *dev_ion = "/dev/ion";
 static RK_S32 ion_heap_id = -1;
 static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
 
-MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
+MPP_RET allocator_ion_open(void **ctx, size_t alignment)
 {
     RK_S32 fd;
     allocator_ctx_ion *p;
@@ -320,9 +328,11 @@ MPP_RET os_allocator_ion_open(void **ctx, size_t alignment)
     return MPP_OK;
 }
 
-MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
+MPP_RET allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 {
     MPP_RET ret = MPP_OK;
+    int fd = -1;
+    ion_user_handle_t hnd = -1;
     allocator_ctx_ion *p = NULL;
 
     if (NULL == ctx) {
@@ -333,72 +343,91 @@ MPP_RET os_allocator_ion_alloc(void *ctx, MppBufferInfo *info)
     ion_dbg_func("enter: ctx %p size %d\n", ctx, info->size);
 
     p = (allocator_ctx_ion *)ctx;
-    ret = ion_alloc(p->ion_device, info->size, p->alignment,
-                    ion_heap_mask, 0,
-                    (ion_user_handle_t *)&info->hnd);
-    if (ret) {
-        mpp_err("os_allocator_ion_alloc ion_alloc failed ret %d\n", ret);
-        return ret;
-    }
-    ret = ion_map(p->ion_device, (ion_user_handle_t)((intptr_t)info->hnd), info->size,
-                  PROT_READ | PROT_WRITE, MAP_SHARED, (off_t)0,
-                  (unsigned char**)&info->ptr, &info->fd);
-    if (ret) {
-        mpp_err("os_allocator_ion_alloc ion_map failed ret %d\n", ret);
+    ret = ion_alloc(p->ion_device, info->size, p->alignment, ion_heap_mask, 0, &hnd);
+    if (ret)
+        mpp_err_f("ion_alloc failed ret %d\n", ret);
+    else {
+        ret = ion_map_fd(p->ion_device, hnd, &fd);
+        if (ret)
+            mpp_err_f("ion_map_fd failed ret %d\n", ret);
     }
 
-    ion_dbg_func("leave: ret %d\n", ret);
+    info->fd  = fd;
+    info->ptr = NULL;
+    info->hnd = (void *)hnd;
+
+    ion_dbg_func("leave: ret %d handle %d fd %d\n", ret, hnd, fd);
     return ret;
 }
 
-MPP_RET os_allocator_ion_import(void *ctx, MppBufferInfo *data)
+MPP_RET allocator_ion_import(void *ctx, MppBufferInfo *data)
+{
+    MPP_RET ret = MPP_NOK;
+    allocator_ctx_ion *p = (allocator_ctx_ion *)ctx;
+    struct ion_fd_data fd_data;
+
+    ion_dbg_func("enter: ctx %p dev %d fd %d size %d\n",
+                 ctx, p->ion_device, data->fd, data->size);
+
+    fd_data.fd = data->fd;
+    ret = ion_ioctl(p->ion_device, ION_IOC_IMPORT, &fd_data);
+    if (NULL == (void *)fd_data.handle) {
+        mpp_err_f("fd %d import failed for %s\n", data->fd, strerror(errno));
+        goto RET;
+    }
+
+    data->hnd = (void *)fd_data.handle;
+    data->ptr = NULL;
+RET:
+    ion_dbg_func("leave: ret %d handle %d\n", ret, data->hnd);
+    return ret;
+}
+
+MPP_RET allocator_ion_mmap(void *ctx, MppBufferInfo *data)
 {
     MPP_RET ret = MPP_OK;
-    int fs_flag = fcntl(data->fd, F_GETFL, NULL);
-    int fd_flag = fcntl(data->fd, F_GETFD, NULL);
+
+    if (NULL == ctx) {
+        mpp_err_f("do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
 
     ion_dbg_func("enter: ctx %p fd %d size %d\n", ctx, data->fd, data->size);
 
-    if (fs_flag == -1 || fd_flag == -1) {
-        mpp_err_f("input fd %d is invalid, fs_flag %d fd_flag %d\n",
-                  data->fd, fs_flag, fd_flag);
-        return MPP_NOK;
-    }
+    if (NULL == data->ptr)
+        ret = ion_mmap(data->fd, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, 0, &data->ptr);
 
-    // NOTE: do not use the original buffer fd,
-    //       use dup fd to avoid unexpected external fd close
-    data->fd = dup(data->fd);
-    // fd 0 is not supported in kernel driver, dup a new fd
-    if (data->fd == 0) {
-        RK_S32 new_fd = dup(data->fd);
-        close(data->fd);
-        data->fd = new_fd;
-        mpp_log_f("found fd 0, dup new fd %d\n", new_fd);
-    }
-    data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, 0);
-    if (data->ptr == MAP_FAILED) {
-        mpp_err_f("map error %s\n", strerror(errno));
-        ret = MPP_NOK;
-        close(data->fd);
-        data->fd = -1;
-        data->ptr = NULL;
-    }
-    ion_dbg_func("leave: ret %d\n", ret);
+    ion_dbg_func("leave: ret %d ptr %p\n", ret, data->ptr);
     return ret;
 }
 
-MPP_RET os_allocator_ion_release(void *ctx, MppBufferInfo *data)
+MPP_RET allocator_ion_release(void *ctx, MppBufferInfo *data)
 {
-    ion_dbg_func("enter: ctx %p fd %d ptr %p size %d\n", ctx, data->fd, data->ptr, data->size);
+    ion_dbg_func("enter: ctx %p handle %d fd %d ptr %p size %d\n",
+                 ctx, (intptr_t)data->hnd, data->fd, data->ptr, data->size);
+    allocator_ctx_ion *p = NULL;
 
-    munmap(data->ptr, data->size);
-    close(data->fd);
+    if (NULL == ctx) {
+        mpp_err_f("do not accept NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+    p = (allocator_ctx_ion *)ctx;
+
+    if (data->ptr) {
+        munmap(data->ptr, data->size);
+        data->ptr = NULL;
+    }
+    if (data->hnd) {
+        ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
+        data->hnd = NULL;
+    }
 
     ion_dbg_func("leave\n");
+
     return MPP_OK;
 }
 
-MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
+MPP_RET allocator_ion_free(void *ctx, MppBufferInfo *data)
 {
     allocator_ctx_ion *p = NULL;
     if (NULL == ctx) {
@@ -409,15 +438,24 @@ MPP_RET os_allocator_ion_free(void *ctx, MppBufferInfo *data)
     ion_dbg_func("enter: ctx %p fd %d ptr %p size %d\n", ctx, data->fd, data->ptr, data->size);
 
     p = (allocator_ctx_ion *)ctx;
-    munmap(data->ptr, data->size);
-    close(data->fd);
-    ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
+    if (data->ptr) {
+        munmap(data->ptr, data->size);
+        data->ptr = NULL;
+    }
+    if (data->fd > 0) {
+        close(data->fd);
+        data->fd = -1;
+    }
+    if (data->hnd) {
+        ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
+        data->hnd = NULL;
+    }
 
     ion_dbg_func("leave\n");
     return MPP_OK;
 }
 
-MPP_RET os_allocator_ion_close(void *ctx)
+MPP_RET allocator_ion_close(void *ctx)
 {
     int ret;
     allocator_ctx_ion *p;
@@ -441,12 +479,12 @@ MPP_RET os_allocator_ion_close(void *ctx)
 }
 
 os_allocator allocator_ion = {
-    os_allocator_ion_open,
-    os_allocator_ion_close,
-    os_allocator_ion_alloc,
-    os_allocator_ion_free,
-    os_allocator_ion_import,
-    os_allocator_ion_release,
-    NULL,
+    allocator_ion_open,
+    allocator_ion_close,
+    allocator_ion_alloc,
+    allocator_ion_free,
+    allocator_ion_import,
+    allocator_ion_release,
+    allocator_ion_mmap,
 };
 
