@@ -423,10 +423,10 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 6. copy prepared stream to hardware buffer
      */
     if (!task->status.dec_pkt_copy_rdy) {
-        MppBufferImpl *buf = (MppBufferImpl *)task->hal_pkt_buf_in;
+        void *dst = mpp_buffer_get_ptr(task->hal_pkt_buf_in);
         void *src = mpp_packet_get_data(task_dec->input_packet);
         size_t length = mpp_packet_get_length(task_dec->input_packet);
-        memcpy(buf->info.ptr, src, length);
+        memcpy(dst, src, length);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         task->status.dec_pkt_copy_rdy = 1;
