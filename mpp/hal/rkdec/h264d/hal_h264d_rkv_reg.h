@@ -31,209 +31,207 @@ typedef struct h264d_rkv_regs_t {
         RK_U32    codec_flag : 1;
         RK_U32    reserve1 : 1;
         RK_U32    prod_num : 16;
-    } swreg0_id;
+    } sw00;
     struct {
-        RK_U32    sw_dec_e : 1;//0
-        RK_U32    sw_dec_clkgate_e : 1; // 1
+        RK_U32    dec_e : 1;//0
+        RK_U32    dec_clkgate_e : 1; // 1
         RK_U32    reserve0 : 1;// 2
-        RK_U32    sw_timeout_mode : 1; // 3
-        RK_U32    sw_dec_irq_dis : 1;//4    // 4
-        RK_U32    sw_dec_timeout_e : 1; //5
-        RK_U32    sw_buf_empty_en : 1; // 6
-        RK_U32    sw_stmerror_waitdecfifo_empty : 1; // 7
-        RK_U32    sw_dec_irq : 1; // 8
-        RK_U32    sw_dec_irq_raw : 1; // 9
+        RK_U32    timeout_mode : 1; // 3
+        RK_U32    dec_irq_dis : 1;//4    // 4
+        RK_U32    dec_timeout_e : 1; //5
+        RK_U32    buf_empty_en : 1; // 6
+        RK_U32    stmerror_waitdecfifo_empty : 1; // 7
+        RK_U32    dec_irq : 1; // 8
+        RK_U32    dec_irq_raw : 1; // 9
         RK_U32    reserve2 : 2;
-        RK_U32    sw_dec_rdy_sta : 1; //12
-        RK_U32    sw_dec_bus_sta : 1; //13
-        RK_U32    sw_dec_error_sta : 1; // 14
-        RK_U32    sw_dec_timeout_sta : 1; //15
-        RK_U32    sw_dec_empty_sta : 1; // 16
-        RK_U32    sw_colmv_ref_error_sta : 1; // 17
-        RK_U32    sw_cabu_end_sta : 1; // 18
-        RK_U32    sw_h264orvp9_error_mode : 1; //19
-        RK_U32    sw_softrst_en_p : 1; //20
-        RK_U32    sw_force_softreset_valid : 1; //21
-        RK_U32    sw_softreset_rdy : 1; // 22
-    } swreg1_int;
+        RK_U32    dec_rdy_sta : 1; //12
+        RK_U32    dec_bus_sta : 1; //13
+        RK_U32    dec_error_sta : 1; // 14
+        RK_U32    dec_timeout_sta : 1; //15
+        RK_U32    dec_empty_sta : 1; // 16
+        RK_U32    colmv_ref_error_sta : 1; // 17
+        RK_U32    cabu_end_sta : 1; // 18
+        RK_U32    h264orvp9_error_mode : 1; //19
+        RK_U32    softrst_en_p : 1; //20
+        RK_U32    force_softreset_valid : 1; //21
+        RK_U32    softreset_rdy : 1; // 22
+        RK_U32    reserve1 : 9;
+    } sw01;
     struct {
-        RK_U32    sw_in_endian : 1;
-        RK_U32    sw_in_swap32_e : 1;
-        RK_U32    sw_in_swap64_e : 1;
-        RK_U32    sw_str_endian : 1;
-        RK_U32    sw_str_swap32_e : 1;
-        RK_U32    sw_str_swap64_e : 1;
-        RK_U32    sw_out_endian : 1;
-        RK_U32    sw_out_swap32_e : 1;
-        RK_U32    sw_out_cbcr_swap : 1;
+        RK_U32    in_endian : 1;
+        RK_U32    in_swap32_e : 1;
+        RK_U32    in_swap64_e : 1;
+        RK_U32    str_endian : 1;
+        RK_U32    str_swap32_e : 1;
+        RK_U32    str_swap64_e : 1;
+        RK_U32    out_endian : 1;
+        RK_U32    out_swap32_e : 1;
+        RK_U32    out_cbcr_swap : 1;
         RK_U32    reserve0 : 1;
-        RK_U32    sw_rlc_mode_direct_write : 1;
-        RK_U32    sw_rlc_mode : 1;
-        RK_U32    sw_strm_start_bit : 7;
+        RK_U32    rlc_mode_direct_write : 1;
+        RK_U32    rlc_mode : 1;
+        RK_U32    strm_start_bit : 7;
         RK_U32    reserve1 : 1;
-        RK_U32    sw_dec_mode : 2;
+        RK_U32    dec_mode : 2;
         RK_U32    reserve2 : 2;
-        RK_U32    sw_h264_rps_mode : 1;
-        RK_U32    sw_h264_stream_mode : 1;
-        RK_U32    sw_h264_stream_lastpacket : 1;
-        RK_U32    sw_h264_firstslice_flag : 1;
-        RK_U32    sw_h264_frame_orslice : 1;
-        RK_U32    sw_buspr_slot_disable : 1;
-    } swreg2_sysctrl;
+        RK_U32    rps_mode : 1;
+        RK_U32    stream_mode : 1;
+        RK_U32    stream_lastpacket : 1;
+        RK_U32    firstslice_flag : 1;
+        RK_U32    frame_orslice : 1;
+        RK_U32    buspr_slot_disable : 1;
+        RK_U32    reverse3 : 2;
+    } sw02;
     struct {
-        RK_U32    sw_y_hor_virstride : 9;
+        RK_U32    y_hor_virstride : 9;
         RK_U32    reserve : 2;
-        RK_U32    sw_slice_num_highbit : 1;
-        RK_U32    sw_uv_hor_virstride : 9;
-        RK_U32    sw_slice_num_lowbits : 11;
-    } swreg3_picpar;
+        RK_U32    slice_num_highbit : 1;
+        RK_U32    uv_hor_virstride : 9;
+        RK_U32    slice_num_lowbits : 11;
+    } sw03;
     struct {
-        RK_U32    sw_strm_rlc_base;
-    } swreg4_strm_rlc_base;
+        RK_U32    strm_rlc_base : 32;
+    } sw04;
     struct {
-        RK_U32 sw_stream_len : 27;
-    } swreg5_stream_rlc_len;
+        RK_U32    stream_len : 27;
+        RK_U32    reverse0 : 5;
+    } sw05;
     struct {
-        RK_U32    sw_cabactbl_base;
-    } swreg6_cabactbl_prob_base;
+        RK_U32    cabactbl_base : 32;
+    } sw06;
     struct {
-        RK_U32    sw_decout_base;
-    } swreg7_decout_base;
+        RK_U32    decout_base : 32;
+    } sw07;
     struct {
-        RK_U32    sw_y_virstride : 20;
-    } swreg8_y_virstride;
+        RK_U32    y_virstride : 20;
+        RK_U32    reverse0 : 12;
+    } sw08;
     struct {
-        RK_U32    sw_yuv_virstride : 21;
-    } swreg9_yuv_virstride;
+        RK_U32    yuv_virstride : 21;
+        RK_U32    reverse0 : 11;
+    } sw09;
     struct {
-        RK_U32 sw_refer_base : 10;
-        RK_U32 sw_ref_field : 1;
-        RK_U32 sw_ref_topfield_used : 1;
-        RK_U32 sw_ref_botfield_used : 1;
-        RK_U32 sw_ref_colmv_use_flag : 1;
-
-    } swreg10_24_refer0_14_base[15];
-    RK_U32   swreg25_39_refer0_14_poc[15];
+        RK_U32    ref0_14_base : 10;
+        RK_U32    ref0_14_field : 1;
+        RK_U32    ref0_14_topfield_used : 1;
+        RK_U32    ref0_14_botfield_used : 1;
+        RK_U32    ref0_14_colmv_use_flag : 1;
+    } sw10_24[15];
     struct {
-        RK_U32 sw_cur_poc : 32;
-    } swreg40_cur_poc;
+        RK_U32    ref0_14_poc : 32;
+    } sw25_39[15];
     struct {
-        RK_U32 sw_rlcwrite_base;
-    } swreg41_rlcwrite_base;
+        RK_U32    cur_poc : 32;
+    } sw40;
     struct {
-        RK_U32 sw_pps_base;
-    } swreg42_pps_base;
-    struct swreg_sw_rps_base {
-        RK_U32 sw_rps_base;
-    } swreg43_rps_base;
-    struct swreg_strmd_error_e {
-        RK_U32 sw_strmd_error_e : 28;
-        RK_U32 reserve : 4;
-    } swreg44_strmd_error_en;
+        RK_U32    rlcwrite_base;
+    } sw41;
     struct {
-        RK_U32 sw_strmd_error_status : 28;
-        RK_U32 sw_colmv_error_ref_picidx : 4;
-    } swreg45_strmd_error_status;
+        RK_U32    pps_base;
+    } sw42;
     struct {
-        RK_U32 sw_strmd_error_ctu_xoffset : 8;
-        RK_U32 sw_strmd_error_ctu_yoffset : 8;
-        RK_U32 sw_streamfifo_space2full : 7;
-        RK_U32 reserve : 1;
-        RK_U32 sw_vp9_error_ctu0_en : 1;
-    } swreg46_strmd_error_ctu;
+        RK_U32    rps_base;
+    } sw43;
     struct {
-        RK_U32 sw_saowr_xoffet : 9;
-        RK_U32 reserve : 7;
-        RK_U32 sw_saowr_yoffset : 10;
-    } swreg47_sao_ctu_position;
+        RK_U32    strmd_error_e : 28;
+        RK_U32    reserve : 4;
+    } sw44;
     struct {
-        RK_U32 sw_refer_base : 10;
-        RK_U32 sw_ref_field : 1;
-        RK_U32 sw_ref_topfield_used : 1;
-        RK_U32 sw_ref_botfield_used : 1;
-        RK_U32 sw_ref_colmv_use_flag : 1;
-
-    } swreg48_refer15_base;
-    RK_U32   swreg49_63_refer15_29_poc[15];
+        RK_U32    strmd_error_status : 28;
+        RK_U32    colmv_error_ref_picidx : 4;
+    } sw45;
     struct {
-        RK_U32 sw_performance_cycle : 32;
-    } swreg64_performance_cycle;
+        RK_U32    strmd_error_ctu_xoffset : 8;
+        RK_U32    strmd_error_ctu_yoffset : 8;
+        RK_U32    streamfifo_space2full : 7;
+        RK_U32    reserve0 : 1;
+        RK_U32    vp9_error_ctu0_en : 1;
+        RK_U32    reverse1 : 7;
+    } sw46;
     struct {
-        RK_U32 sw_axi_ddr_rdata : 32;
-    } swreg65_axi_ddr_rdata;
+        RK_U32    saowr_xoffet : 9;
+        RK_U32    reserve0 : 7;
+        RK_U32    saowr_yoffset : 10;
+        RK_U32    reverse1 : 6;
+    } sw47;
     struct {
-        RK_U32 sw_axi_ddr_rdata : 32;
-    } swreg66_axi_ddr_wdata;
+        RK_U32    ref15_base : 10;
+        RK_U32    ref15_field : 1;
+        RK_U32    ref15_topfield_used : 1;
+        RK_U32    ref15_botfield_used : 1;
+        RK_U32    ref15_colmv_use_flag : 1;
+        RK_U32    reverse0 : 18;
+    } sw48;
     struct {
-        RK_U32 sw_busifd_resetn : 1;
-        RK_U32 sw_cabac_resetn : 1;
-        RK_U32 sw_dec_ctrl_resetn : 1;
-        RK_U32 sw_transd_resetn : 1;
-        RK_U32 sw_intra_resetn : 1;
-        RK_U32 sw_inter_resetn : 1;
-        RK_U32 sw_recon_resetn : 1;
-        RK_U32 sw_filer_resetn : 1;
-    } swreg67_fpgadebug_reset;
+        RK_U32    ref15_29_poc : 32;
+    } sw49_63[15];
     struct {
-        RK_U32 perf_cnt0_sel : 6;
-        RK_U32 reserve0 : 2;
-        RK_U32 perf_cnt1_sel : 6;
-        RK_U32 reserve1 : 2;
-        RK_U32 perf_cnt2_sel : 6;
-    } swreg68_performance_sel;
+        RK_U32    performance_cycle : 32;
+    } sw64;
     struct {
-        RK_U32 perf_cnt0 : 32;
-    } swreg69_performance_cnt0;
+        RK_U32    axi_ddr_rdata : 32;
+    } sw65;
     struct {
-        RK_U32 perf_cnt1 : 32;
-    } swreg70_performance_cnt1;
+        RK_U32    axi_ddr_rdata : 32;
+    } sw66;
     struct {
-        RK_U32 perf_cnt2 : 32;
-    } swreg71_performance_cnt2;
-    RK_U32   swreg72_refer30_poc;
-    RK_U32   swreg73_refer31_poc;
+        RK_U32    busifd_resetn : 1;
+        RK_U32    cabac_resetn : 1;
+        RK_U32    dec_ctrl_resetn : 1;
+        RK_U32    transd_resetn : 1;
+        RK_U32    intra_resetn : 1;
+        RK_U32    inter_resetn : 1;
+        RK_U32    recon_resetn : 1;
+        RK_U32    filer_resetn : 1;
+        RK_U32    reverse0 : 24;
+    } sw67;
     struct {
-        RK_U32 sw_h264_cur_poc1 : 32;
-    } swreg74_h264_cur_poc1;
+        RK_U32    perf_cnt0_sel : 6;
+        RK_U32    reserve0 : 2;
+        RK_U32    perf_cnt1_sel : 6;
+        RK_U32    reserve1 : 2;
+        RK_U32    perf_cnt2_sel : 6;
+        RK_U32    reverse1 : 10;
+    } sw68;
     struct {
-        //RK_U32 reserve : 4;
-        //RK_U32 sw_errorinfo_base : 28;
-        RK_U32 sw_errorinfo_base : 32;
-    } swreg75_h264_errorinfo_base;
+        RK_U32    perf_cnt0 : 32;
+    } sw69;
     struct {
-        RK_U32 sw_slicedec_num : 14;
-        RK_U32 reserve : 1;
-        RK_U32 sw_strmd_detect_error_flag : 1;
-        RK_U32 sw_error_packet_num : 14;
-    } swreg76_h264_errorinfo_num;
+        RK_U32    perf_cnt1 : 32;
+    } sw70;
     struct {
-        RK_U32 sw_h264_error_en_highbits : 30;
-        RK_U32 reserve : 2;
-    } swreg77_h264_error_e;
-    RK_U32 slot_idx;
-    RK_U32 had_err_flag;
-    RK_U32 used_for_ref;
-    RK_U32 compare_len;
-    RK_U32 reverse[100];
+        RK_U32    perf_cnt2 : 32;
+    } sw71;
+    struct {
+        RK_U32    ref30_poc;
+    } sw72;
+    struct {
+        RK_U32    ref31_poc;
+    } sw73;
+    struct {
+        RK_U32    cur_poc1 : 32;
+    } sw74;
+    struct {
+        RK_U32    errorinfo_base : 32;
+    } sw75;
+    struct {
+        RK_U32    slicedec_num : 14;
+        RK_U32    reserve0 : 1;
+        RK_U32    strmd_detect_error_flag : 1;
+        RK_U32    error_packet_num : 14;
+        RK_U32    reverse1 : 2;
+    } sw76;
+    struct {
+        RK_U32    error_en_highbits : 30;
+        RK_U32    reserve : 2;
+    } sw77;
+    RK_U32        reverse[2];
 } H264dRkvRegs_t;
-
-
-/* Number registers for the decoder */
-#define DEC_RKV_REGISTERS          78
-
-typedef struct h264d_rkv_err_dump_t {
-    RK_U32 in_regs[DEC_RKV_REGISTERS];
-    RK_U32 *out_regs;
-
-} H264dRkvErrDump_t;
-
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern const RK_U32 H264_RKV_Cabac_table[926 * 4];
 
 MPP_RET rkv_h264d_init    (void *hal, MppHalCfg *cfg);
 MPP_RET rkv_h264d_deinit  (void *hal);
