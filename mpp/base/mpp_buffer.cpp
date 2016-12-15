@@ -114,7 +114,7 @@ MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller)
     return mpp_buffer_ref_inc((MppBufferImpl*)buffer, caller);
 }
 
-MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size)
+MPP_RET mpp_buffer_read_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller)
 {
     if (NULL == buffer || NULL == data) {
         mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
@@ -125,13 +125,18 @@ MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size
         return MPP_OK;
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
+    if (NULL == p->info.ptr)
+        mpp_buffer_mmap(p, caller);
+
     void *src = p->info.ptr;
     mpp_assert(src != NULL);
-    memcpy(data, (char*)src + offset, size);
+    if (src)
+        memcpy(data, (char*)src + offset, size);
+
     return MPP_OK;
 }
 
-MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t size)
+MPP_RET mpp_buffer_write_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller)
 {
     if (NULL == buffer || NULL == data) {
         mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
@@ -142,13 +147,18 @@ MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t siz
         return MPP_OK;
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
+    if (NULL == p->info.ptr)
+        mpp_buffer_mmap(p, caller);
+
     void *dst = p->info.ptr;
     mpp_assert(dst != NULL);
-    memcpy((char*)dst + offset, data, size);
+    if (dst)
+        memcpy((char*)dst + offset, data, size);
+
     return MPP_OK;
 }
 
-void *mpp_buffer_get_ptr(MppBuffer buffer)
+void *mpp_buffer_get_ptr_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
         mpp_err_f("invalid NULL input\n");
@@ -156,12 +166,17 @@ void *mpp_buffer_get_ptr(MppBuffer buffer)
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
-    void *ptr = p->info.ptr;
-    mpp_assert(ptr != NULL);
-    return ptr;
+    if (NULL == p->info.ptr)
+        mpp_buffer_mmap(p, caller);
+
+    mpp_assert(p->info.ptr != NULL);
+    if (NULL == p->info.ptr)
+        mpp_err("mpp_buffer_get_ptr buffer %p ret NULL caller\n", buffer, caller);
+
+    return p->info.ptr;
 }
 
-int mpp_buffer_get_fd(MppBuffer buffer)
+int mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
         mpp_err_f("invalid NULL input\n");
@@ -173,12 +188,14 @@ int mpp_buffer_get_fd(MppBuffer buffer)
 
 #ifdef RKPLATFORM
     mpp_assert(fd >= 0);
+    if (fd < 0)
+        mpp_err("mpp_buffer_get_fd buffer %p fd %d caller %s\n", buffer, fd, caller);
 #endif
 
     return fd;
 }
 
-size_t mpp_buffer_get_size(MppBuffer buffer)
+size_t mpp_buffer_get_size_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
         mpp_err_f("invalid NULL input\n");
@@ -186,17 +203,25 @@ size_t mpp_buffer_get_size(MppBuffer buffer)
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
+    if (p->info.size == 0)
+        mpp_err("mpp_buffer_get_size buffer %p ret zero size caller %s\n", buffer, caller);
+
     return p->info.size;
 }
 
-MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info)
+MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, const char *caller)
 {
     if (NULL == buffer || NULL == info) {
         mpp_err_f("invalid input: buffer %p info %p\n", buffer, info);
         return MPP_ERR_UNKNOW;
     }
 
-    *info = ((MppBufferImpl*)buffer)->info;
+    MppBufferImpl *p = (MppBufferImpl*)buffer;
+    if (NULL == p->info.ptr)
+        mpp_buffer_mmap(p, caller);
+
+    *info = p->info;
+    (void)caller;
     return MPP_OK;
 }
 

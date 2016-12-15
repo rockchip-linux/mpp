@@ -213,13 +213,13 @@ typedef struct MppBufferInfo_t {
  * imported buffer is leak or not and trace its usage inside mpp process. So we attach this kind
  * of buffer to default misc buffer group for management.
  */
-#define mpp_buffer_commit(group, info, ...) \
+#define mpp_buffer_commit(group, info) \
         mpp_buffer_import_with_tag(group, info, NULL, MODULE_TAG, __FUNCTION__)
 
-#define mpp_buffer_import(buffer, info, ...) \
+#define mpp_buffer_import(buffer, info) \
         mpp_buffer_import_with_tag(NULL, info, buffer, MODULE_TAG, __FUNCTION__)
 
-#define mpp_buffer_get(group, buffer, size, ...) \
+#define mpp_buffer_get(group, buffer, size) \
         mpp_buffer_get_with_tag(group, buffer, size, MODULE_TAG, __FUNCTION__)
 
 #define mpp_buffer_put(buffer) \
@@ -227,6 +227,24 @@ typedef struct MppBufferInfo_t {
 
 #define mpp_buffer_inc_ref(buffer) \
         mpp_buffer_inc_ref_with_caller(buffer, __FUNCTION__)
+
+#define mpp_buffer_info_get(buffer, info) \
+        mpp_buffer_info_get_with_caller(buffer, info, __FUNCTION__)
+
+#define mpp_buffer_read(buffer, offset, data, size) \
+        mpp_buffer_read_with_caller(buffer, offset, data, size, __FUNCTION__)
+
+#define mpp_buffer_write(buffer, offset, data, size) \
+        mpp_buffer_write_with_caller(buffer, offset, data, size, __FUNCTION__)
+
+#define mpp_buffer_get_ptr(buffer) \
+        mpp_buffer_get_ptr_with_caller(buffer, __FUNCTION__)
+
+#define mpp_buffer_get_fd(buffer) \
+        mpp_buffer_get_fd_with_caller(buffer, __FUNCTION__)
+
+#define mpp_buffer_get_size(buffer) \
+        mpp_buffer_get_size_with_caller(buffer, __FUNCTION__)
 
 #define mpp_buffer_group_get_internal(group, type, ...) \
         mpp_buffer_group_get(group, type, MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
@@ -254,12 +272,12 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
 MPP_RET mpp_buffer_put_with_caller(MppBuffer buffer, const char *caller);
 MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller);
 
-MPP_RET mpp_buffer_info_get(MppBuffer buffer, MppBufferInfo *info);
-MPP_RET mpp_buffer_read(MppBuffer buffer, size_t offset, void *data, size_t size);
-MPP_RET mpp_buffer_write(MppBuffer buffer, size_t offset, void *data, size_t size);
-void   *mpp_buffer_get_ptr(MppBuffer buffer);
-int     mpp_buffer_get_fd(MppBuffer buffer);
-size_t  mpp_buffer_get_size(MppBuffer buffer);
+MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, const char *caller);
+MPP_RET mpp_buffer_read_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller);
+MPP_RET mpp_buffer_write_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller);
+void   *mpp_buffer_get_ptr_with_caller(MppBuffer buffer, const char *caller);
+int     mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller);
+size_t  mpp_buffer_get_size_with_caller(MppBuffer buffer, const char *caller);
 
 MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBufferMode mode,
                              const char *tag, const char *caller);

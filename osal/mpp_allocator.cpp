@@ -107,6 +107,7 @@ static MppAllocatorApi mpp_allocator_api = {
     mpp_allocator_free,
     mpp_allocator_import,
     mpp_allocator_release,
+    NULL,
 };
 
 MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
