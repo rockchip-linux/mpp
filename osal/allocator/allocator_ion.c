@@ -442,10 +442,11 @@ MPP_RET os_allocator_ion_close(void *ctx)
 
 os_allocator allocator_ion = {
     os_allocator_ion_open,
+    os_allocator_ion_close,
     os_allocator_ion_alloc,
     os_allocator_ion_free,
     os_allocator_ion_import,
     os_allocator_ion_release,
-    os_allocator_ion_close,
+    NULL,
 };
 
