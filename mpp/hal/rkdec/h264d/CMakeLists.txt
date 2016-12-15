@@ -13,7 +13,6 @@ set(HAL_H264D_HDR
 	hal_h264d_rkv_reg.h
 	hal_h264d_rkv_pkt.h
 	hal_h264d_vdpu_reg.h
-	hal_h264d_vdpu_pkt.h
     ) 
     
 # hal h264 decoder sourse
@@ -23,7 +22,6 @@ set(HAL_H264D_SRC
 	hal_h264d_rkv_reg.c
 	hal_h264d_rkv_pkt.c
 	hal_h264d_vdpu_reg.c
-	hal_h264d_vdpu_pkt.c
     ) 
     
 add_library(hal_h264d STATIC
