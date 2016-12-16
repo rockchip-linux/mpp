@@ -628,8 +628,19 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         mFrameGroup = (MppBufferGroup)param;
         if (param) {
             mExternalFrameGroup = 1;
-            ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
-            mThreadCodec->signal();
+            if (mThreadCodec) {
+                ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
+                mThreadCodec->signal();
+            } else {
+                /*
+                 * NOTE: If frame buffer group is configured before decoder init
+                 * then the buffer limitation maybe not be correctly setup
+                 * without infomation from InfoChange frame.
+                 * And the thread signal connection may not be setup here. It
+                 * may have a bad effect on MPP efficiency.
+                 */
+                mpp_err("WARNING: setup buffer group before decoder init\n");
+            }
         } else {
             mExternalFrameGroup = 0;
             ret = mpp_buffer_group_set_listener(NULL, (void *)mThreadCodec);
