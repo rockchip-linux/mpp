@@ -125,9 +125,11 @@
 
 #include <direct.h>
 #include <io.h>
+#include <sys/stat.h>
 #define chdir                   _chdir
 #define mkdir                   _mkdir
 #define access                  _access
+#define off_t                   _off_t
 
 #define R_OK                    4 /* Test for read permission. */
 #define W_OK                    2 /* Test for write permission. */
