@@ -357,7 +357,6 @@ RK_S32 VpuApiLegacy::flush(VpuCodecContext *ctx)
 static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
 {
     MppBuffer buf = mpp_frame_get_buffer(mframe);
-    MppBufferInfo info;
     RK_U64 pts  = mpp_frame_get_pts(mframe);
     RK_U32 mode = mpp_frame_get_mode(mframe);
 
@@ -418,8 +417,6 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
         vframe->vpumem.vir_addr = (RK_U32*)ptr;
         vframe->vpumem.phy_addr = fd;
 
-        memset(&info, 0, sizeof(MppBufferInfo));
-        mpp_buffer_info_get(buf, &info);
         vframe->vpumem.size = vframe->FrameWidth * vframe->FrameHeight * 3 / 2;
         vframe->vpumem.offset = (RK_U32*)buf;
     }
