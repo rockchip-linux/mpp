@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#include <unistd.h>
-
+#include "mpp_common.h"
 #include "mpp_platform.h"
 
 RK_U32 mpp_get_vcodec_hw_flag(void)
