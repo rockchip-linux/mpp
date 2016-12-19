@@ -839,8 +839,7 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             if (pp->RefFrameList[i / 2].bPicEntry == 0xff) { //!< invalid
                 longTermflags <<= 1;
                 validFlags <<= 1;
-            }
-            else {
+            } else {
                 longTermTmp = pp->RefFrameList[i / 2].AssociatedFlag; //!< get long term flag
                 longTermflags = (longTermflags << 1) | longTermTmp;
 
@@ -849,16 +848,14 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         }
         p_regs->sw107.refpic_term_flag = longTermflags;
         p_regs->sw108.refpic_valid_flag = validFlags;
-    }
-    else {
+    } else {
         RK_U32 validFlags = 0;
         RK_U32 longTermTmp = 0, longTermflags = 0;
         for (i = 0; i < 16; i++) {
             if (pp->RefFrameList[i].bPicEntry == 0xff) {  //!< invalid
                 longTermflags <<= 1;
                 validFlags <<= 1;
-            }
-            else {
+            } else {
                 longTermTmp = pp->RefFrameList[i].AssociatedFlag;
                 longTermflags = (longTermflags << 1) | longTermTmp;
                 validFlags = (validFlags << 1) | ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03);
@@ -872,8 +869,7 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         if (pp->RefFrameList[i].bPicEntry != 0xff) { //!< valid
             if (pp->RefFrameList[i].AssociatedFlag) { //!< longterm flag
                 set_refer_pic_idx(p_regs, i, pp->LongTermPicNumList[i]); //!< pic_num
-            }
-            else {
+            } else {
                 set_refer_pic_idx(p_regs, i, pp->FrameNumList[i]); //< frame_num
             }
         }
@@ -887,8 +883,7 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         for (i = 0; i < 32; i++) {
             if (pp->RefFrameList[i / 2].bPicEntry != 0xff) {
                 *ptr++ = pp->FieldOrderCntList[i / 2][i & 0x1];
-            }
-            else {
+            } else {
                 *ptr++ = 0;
             }
         }
@@ -896,8 +891,7 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         if (pp->field_pic_flag || !pp->MbaffFrameFlag) {
             *ptr++ = pp->CurrFieldOrderCnt[0];
             *ptr++ = pp->CurrFieldOrderCnt[1];
-        }
-        else {
+        } else {
             *ptr++ = pp->CurrFieldOrderCnt[0];
             *ptr++ = pp->CurrFieldOrderCnt[1];
         }
@@ -931,16 +925,13 @@ static MPP_RET set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
                 nn = p_hal->pp->CurrPic.AssociatedFlag ? (2 * i + 1) : (2 * i);
                 if (p_long->RefPicList[j][nn].bPicEntry == 0xff) {
                     val = vdpu_value_list[i];
-                }
-                else {
+                } else {
                     val = p_long->RefPicList[j][nn].Index7Bits;
                 }
-            }
-            else { //!< frame
+            } else { //!< frame
                 if (p_long->RefPicList[j][i].bPicEntry == 0xff) {
                     val = vdpu_value_list[i];
-                }
-                else {
+                } else {
                     val = p_long->RefPicList[j][i].Index7Bits;
                 }
             }
@@ -982,8 +973,7 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         if (pp->RefFrameList[i].bPicEntry != 0xff) {
             mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
             j = i;
-        }
-        else {
+        } else {
             mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
         }
 
@@ -997,11 +987,9 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
             if (used_flag & 0x3) {
                 ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0], pp->FieldOrderCntList[i][1]);
-            }
-            else if (used_flag & 0x2) {
+            } else if (used_flag & 0x2) {
                 ref_poc = pp->FieldOrderCntList[i][1];
-            }
-            else if (used_flag & 0x1) {
+            } else if (used_flag & 0x1) {
                 ref_poc = pp->FieldOrderCntList[i][0];
             }
             top_closer = (cur_poc < ref_poc) ? 0x1 : 0;
@@ -1062,18 +1050,18 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             for (i = 0; i < 6; i++) {
                 for (j = 0; j < 4; j++) {
                     temp = (p_hal->qm->bScalingLists4x4[i][4 * j + 0] << 24) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 2] << 8) |
-                        (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 1] << 16) |
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 2] << 8) |
+                           (p_hal->qm->bScalingLists4x4[i][4 * j + 3]);
                     *ptr++ = temp;
                 }
             }
             for (i = 0; i < 2; i++) {
                 for (j = 0; j < 16; j++) {
                     temp = (p_hal->qm->bScalingLists8x8[i][4 * j + 0] << 24) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 2] << 8) |
-                        (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 1] << 16) |
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 2] << 8) |
+                           (p_hal->qm->bScalingLists8x8[i][4 * j + 3]);
                     *ptr++ = temp;
                 }
             }

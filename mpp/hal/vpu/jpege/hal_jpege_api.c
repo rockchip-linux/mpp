@@ -127,7 +127,7 @@ MPP_RET hal_jpege_deinit(void *hal)
 
 static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *syntax)
 {
-    if(info == NULL || syntax == NULL){
+    if (info == NULL || syntax == NULL) {
         mpp_err_f("invalid input parameter!");
         return MPP_NOK;
     }
@@ -142,7 +142,7 @@ static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *synt
     info->magic = EXTRA_INFO_MAGIC;
     info->cnt = 2;
 
-    if(fmt == MPP_FMT_YUV420P){
+    if (fmt == MPP_FMT_YUV420P) {
         slot = &(info->slots[0]);
         slot->reg_idx = 49;
         slot->offset = hor_stride * ver_stride;
@@ -150,7 +150,7 @@ static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *synt
         slot = &(info->slots[1]);
         slot->reg_idx = 50;
         slot->offset = hor_stride * ver_stride * 5 / 4;
-    }else if(fmt == MPP_FMT_YUV420SP){
+    } else if (fmt == MPP_FMT_YUV420SP) {
         slot = &(info->slots[0]);
         slot->reg_idx = 49;
         slot->offset = hor_stride * ver_stride;
@@ -158,7 +158,7 @@ static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *synt
         slot = &(info->slots[1]);
         slot->reg_idx = 50;
         slot->offset = hor_stride * ver_stride;
-    }else{
+    } else {
         mpp_log_f("other format(%d)\n", fmt);
     }
 
@@ -390,7 +390,7 @@ MPP_RET hal_jpege_start(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0)
-        ret = VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)&(ctx->ioctl_info), sizeof(ctx->ioctl_info) / sizeof(RK_U32));
+        ret = VPUClientSendReg(ctx->vpu_fd, (RK_U32 *) & (ctx->ioctl_info), sizeof(ctx->ioctl_info) / sizeof(RK_U32));
 #endif
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
