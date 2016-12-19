@@ -1407,7 +1407,6 @@ MPP_RET m2vd_parser_callback(void *ctx, void *errinfo)
     FUN_T("FUN_I");
     mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
     mpp_frame_set_errinfo(frame, 1);
-    m2vd_parser_reset(ctx);
     FUN_T("FUN_O");
 
     return ret;
