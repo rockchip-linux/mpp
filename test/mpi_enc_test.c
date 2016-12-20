@@ -461,26 +461,25 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 
         mpp_packet_init_with_buffer(&packet, pkt_buf_out);
 
-        do {
-            ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
-            if (ret) {
-                mpp_err("mpp task input dequeue failed\n");
-                goto MPP_TEST_OUT;
-            }
-            if (task == NULL) {
-                mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-                msleep(3);
-            } else {
-                MppFrame frame_out = NULL;
+        ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp task input poll failed ret %d\n", ret);
+            goto MPP_TEST_OUT;
+        }
 
-                mpp_task_meta_get_frame(task, KEY_INPUT_FRAME,  &frame_out);
-                if (frame_out)
-                    mpp_assert(frame_out == frame);
+        ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
+        if (ret || NULL == task) {
+            mpp_err("mpp task input dequeue failed ret %d task %p\n", ret, task);
+            goto MPP_TEST_OUT;
+        }
 
-                break;
-            }
-        } while (1);
+        if (task) {
+            MppFrame frame_out = NULL;
 
+            mpp_task_meta_get_frame(task, KEY_INPUT_FRAME,  &frame_out);
+            if (frame_out)
+                mpp_assert(frame_out == frame);
+        }
 
         mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
         mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
@@ -513,50 +512,51 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
 
-        msleep(20);
+        ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp task output poll failed ret %d\n", ret);
+            goto MPP_TEST_OUT;
+        }
 
-        do {
-            ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task);
+        ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task);
+        if (ret || NULL == task) {
+            mpp_err("mpp task output dequeue failed ret %d task %p\n", ret, task);
+            goto MPP_TEST_OUT;
+        }
+
+        if (task) {
+            MppFrame packet_out = NULL;
+
+            mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
+
+            mpp_assert(packet_out == packet);
+            if (packet) {
+                // write packet to file here
+                void *ptr   = mpp_packet_get_pos(packet);
+                size_t len  = mpp_packet_get_length(packet);
+
+                pkt_eos = mpp_packet_get_eos(packet);
+
+                if (fp_output)
+                    fwrite(ptr, 1, len, fp_output);
+                mpp_packet_deinit(&packet);
+
+                mpp_log_f("encoded frame %d size %d\n", frame_count, len);
+                stream_size += len;
+
+                if (pkt_eos) {
+                    mpp_log("found last packet\n");
+                    mpp_assert(frm_eos);
+                }
+            }
+            frame_count++;
+
+            ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
             if (ret) {
-                mpp_err("mpp task output dequeue failed\n");
+                mpp_err("mpp task output enqueue failed\n");
                 goto MPP_TEST_OUT;
             }
-
-            if (task) {
-                MppFrame packet_out = NULL;
-
-                mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
-
-                mpp_assert(packet_out == packet);
-                if (packet) {
-                    // write packet to file here
-                    void *ptr   = mpp_packet_get_pos(packet);
-                    size_t len  = mpp_packet_get_length(packet);
-
-                    pkt_eos = mpp_packet_get_eos(packet);
-
-                    if (fp_output)
-                        fwrite(ptr, 1, len, fp_output);
-                    mpp_packet_deinit(&packet);
-
-                    mpp_log_f("encoded frame %d size %d\n", frame_count, len);
-                    stream_size += len;
-
-                    if (pkt_eos) {
-                        mpp_log("found last packet\n");
-                        mpp_assert(frm_eos);
-                    }
-                }
-                frame_count++;
-
-                ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
-                if (ret) {
-                    mpp_err("mpp task output enqueue failed\n");
-                    goto MPP_TEST_OUT;
-                }
-                break;
-            }
-        } while (1);
+        }
 
         if (num_frames && frame_count >= num_frames) {
             mpp_log_f("encode max %d frames", frame_count);

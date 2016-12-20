@@ -71,6 +71,7 @@ public:
     MPP_RET put_frame(MppFrame frame);
     MPP_RET get_packet(MppPacket *packet);
 
+    MPP_RET poll(MppPortType type, MppPollType timeout);
     MPP_RET dequeue(MppPortType type, MppTask *task);
     MPP_RET enqueue(MppPortType type, MppTask task);
 
@@ -109,8 +110,8 @@ public:
     MppTaskQueue    mInputTaskQueue;
     MppTaskQueue    mOutputTaskQueue;
 
-    RK_U32          mInputBlock;
-    RK_U32          mOutputBlock;
+    MppPollType     mInputBlock;
+    MppPollType     mOutputBlock;
     /*
      * There are two threads for each decoder/encoder: codec thread and hal thread
      *
@@ -134,9 +135,6 @@ private:
 
     RK_U32          mInitDone;
     RK_U32          mMultiFrame;
-
-    // task for put_frame / put_packet
-    MppTask         mInputTask;
 
     RK_U32          mStatus;
 

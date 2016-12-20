@@ -50,8 +50,8 @@ Mpp::Mpp()
       mOutputPort(NULL),
       mInputTaskQueue(NULL),
       mOutputTaskQueue(NULL),
-      mInputBlock(0),
-      mOutputBlock(0),
+      mInputBlock(MPP_POLL_NON_BLOCK),
+      mOutputBlock(MPP_POLL_NON_BLOCK),
       mThreadCodec(NULL),
       mThreadHal(NULL),
       mDec(NULL),
@@ -60,7 +60,6 @@ Mpp::Mpp()
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
       mMultiFrame(0),
-      mInputTask(NULL),
       mStatus(0),
       mParserFastMode(0),
       mParserNeedSplit(0),
@@ -270,8 +269,9 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
     if (0 == mFrames->list_size()) {
         mThreadCodec->signal();
-        if (mOutputBlock)
+        if (mOutputBlock == MPP_POLL_BLOCK)
             mFrames->wait();
+        /* NOTE: this sleep is to avoid user's dead loop */
         msleep(1);
     }
 
@@ -302,61 +302,58 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         return MPP_NOK;
 
     MPP_RET ret = MPP_NOK;
-    MppTask task = mInputTask;
+    MppTask task = NULL;
 
-    do {
-        if (NULL == task) {
-            ret = dequeue(MPP_PORT_INPUT, &task);
-            if (ret) {
-                mpp_log_f("failed to dequeue from input port ret %d\n", ret);
-                break;
-            }
-        }
+    ret = poll(MPP_PORT_INPUT, mInputBlock);
+    if (ret) {
+        mpp_log_f("poll on set timeout %d ret %d\n", mInputBlock, ret);
+        goto RET;
+    }
 
-        /* FIXME: use wait to do block wait */
-        if (mInputBlock && NULL == task) {
-            msleep(2);
-            continue;
-        }
+    ret = dequeue(MPP_PORT_INPUT, &task);
+    if (ret || NULL == task) {
+        mpp_log_f("dequeue on set ret %d task %p\n", ret, task);
+        goto RET;
+    }
 
+    mpp_assert(task);
+
+    ret = mpp_task_meta_set_frame(task, KEY_INPUT_FRAME, frame);
+    if (ret) {
+        mpp_log_f("set input frame to task ret %d\n", ret);
+        goto RET;
+    }
+
+    ret = enqueue(MPP_PORT_INPUT, task);
+    if (ret) {
+        mpp_log_f("enqueue ret %d\n", ret);
+        goto RET;
+    }
+
+    ret = poll(MPP_PORT_INPUT, mInputBlock);
+    if (ret) {
+        mpp_log_f("poll on get timeout %d ret %d\n", mInputBlock, ret);
+        goto RET;
+    }
+
+    ret = dequeue(MPP_PORT_INPUT, &task);
+    if (ret) {
+        mpp_log_f("dequeue on get ret %d\n", ret);
+        goto RET;
+    }
+
+    if (mInputBlock != MPP_POLL_NON_BLOCK)
         mpp_assert(task);
 
-        ret = mpp_task_meta_set_frame(task, KEY_INPUT_FRAME, frame);
-        if (ret) {
-            mpp_log_f("failed to set input frame to task ret %d\n", ret);
-            break;
+    if (task) {
+        ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame);
+        if (frame) {
+            mpp_frame_deinit(&frame);
+            frame = NULL;
         }
+    }
 
-        ret = enqueue(MPP_PORT_INPUT, task);
-        if (ret) {
-            mpp_log_f("failed to enqueue task to input port ret %d\n", ret);
-            break;
-        }
-
-        if (mInputBlock) {
-            while (MPP_NOK == mpp_port_can_dequeue(mInputPort)) {
-                msleep(2);
-            }
-
-            ret = dequeue(MPP_PORT_INPUT, &task);
-            if (ret) {
-                mpp_log_f("failed to dequeue from input port ret %d\n", ret);
-                break;
-            }
-
-            mpp_assert(task);
-            ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame);
-            if (frame) {
-                mpp_frame_deinit(&frame);
-                frame = NULL;
-            }
-        }
-
-        break;
-    } while (1);
-
-    mInputTask = task;
-
+RET:
     return ret;
 }
 
@@ -368,45 +365,61 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
 
-    do {
-        if (NULL == task) {
-            ret = dequeue(MPP_PORT_OUTPUT, &task);
-            if (ret) {
-                mpp_log_f("failed to dequeue from output port ret %d\n", ret);
-                break;
-            }
-        }
+    ret = poll(MPP_PORT_OUTPUT, mOutputBlock);
+    if (ret) {
+        mpp_log_f("poll on get timeout %d ret %d\n", mOutputBlock, ret);
+        goto RET;
+    }
 
-        /* FIXME: use wait to do block wait */
-        if (NULL == task) {
-            if (mOutputBlock) {
-                msleep(2);
-                continue;
-            } else {
-                break;
-            }
-        }
+    ret = dequeue(MPP_PORT_OUTPUT, &task);
+    if (ret || NULL == task) {
+        mpp_log_f("dequeue on get ret %d task %p\n", ret, task);
+        goto RET;
+    }
 
-        mpp_assert(task);
+    mpp_assert(task);
 
-        ret = mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, packet);
-        if (ret) {
-            mpp_log_f("failed to get output packet from task ret %d\n", ret);
-            break;
-        }
+    ret = mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, packet);
+    if (ret) {
+        mpp_log_f("get output packet from task ret %d\n", ret);
+        goto RET;
+    }
 
-        mpp_assert(*packet);
+    mpp_assert(*packet);
 
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log_f("pts %lld\n", mpp_packet_get_pts(*packet));
+    if (mpp_debug & MPP_DBG_PTS)
+        mpp_log_f("pts %lld\n", mpp_packet_get_pts(*packet));
 
-        ret = enqueue(MPP_PORT_OUTPUT, task);
-        if (ret) {
-            mpp_log_f("failed to enqueue task to output port ret %d\n", ret);
-        }
+    ret = enqueue(MPP_PORT_OUTPUT, task);
+    if (ret)
+        mpp_log_f("enqueue on set ret %d\n", ret);
+RET:
 
-        break;
-    } while (1);
+    return ret;
+}
+
+MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
+{
+    if (!mInitDone)
+        return MPP_NOK;
+
+    MPP_RET ret = MPP_NOK;
+    AutoMutex autoLock(mPortLock);
+    MppTaskQueue port = NULL;
+
+    switch (type) {
+    case MPP_PORT_INPUT : {
+        port = mInputPort;
+    } break;
+    case MPP_PORT_OUTPUT : {
+        port = mOutputPort;
+    } break;
+    default : {
+    } break;
+    }
+
+    if (port)
+        ret = mpp_port_poll(port, timeout);
 
     return ret;
 }
@@ -419,6 +432,7 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
     MPP_RET ret = MPP_NOK;
     AutoMutex autoLock(mPortLock);
     MppTaskQueue port = NULL;
+
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mInputPort;
@@ -444,6 +458,7 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
     MPP_RET ret = MPP_NOK;
     AutoMutex autoLock(mPortLock);
     MppTaskQueue port = NULL;
+
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mInputPort;
@@ -581,11 +596,11 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
 
     switch (cmd) {
     case MPP_SET_INPUT_BLOCK: {
-        RK_U32 block = *((RK_U32 *)param);
+        MppPollType block = *((MppPollType *)param);
         mInputBlock = block;
     } break;
     case MPP_SET_OUTPUT_BLOCK: {
-        RK_U32 block = *((RK_U32 *)param);
+        MppPollType block = *((MppPollType *)param);
         mOutputBlock = block;
     } break;
     default : {

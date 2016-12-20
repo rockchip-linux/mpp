@@ -285,6 +285,32 @@ static MPP_RET mpi_isp_get_frame(MppCtx ctx, MppFrame *frame)
     return ret;
 }
 
+static MPP_RET mpi_poll(MppCtx ctx, MppPortType type, MppPollType timeout)
+{
+    MPP_RET ret = MPP_NOK;
+    MpiImpl *p = (MpiImpl *)ctx;
+
+    mpi_dbg_func("enter ctx %p type %d timeout %d\n", ctx, type, timeout);
+    do {
+        ret = check_mpp_ctx(p);
+        if (ret)
+            break;;
+
+        if (type >= MPP_PORT_BUTT ||
+            timeout < MPP_POLL_BUTT ||
+            timeout > MPP_POLL_MAX) {
+            mpp_err_f("invalid input type %d timeout %d\n", type, timeout);
+            ret = MPP_ERR_UNKNOW;
+            break;
+        }
+
+        ret = p->ctx->poll(type, timeout);
+    } while (0);
+
+    mpi_dbg_func("leave ret %d\n", ret);
+    return ret;
+}
+
 static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
 {
     MPP_RET ret = MPP_NOK;
@@ -381,6 +407,7 @@ static MppApi mpp_api = {
     mpi_isp,
     mpi_isp_put_frame,
     mpi_isp_get_frame,
+    mpi_poll,
     mpi_dequeue,
     mpi_enqueue,
     mpi_reset,

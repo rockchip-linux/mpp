@@ -73,9 +73,6 @@ private:
     RK_U32 frame_count;
     RK_U32 set_eos;
 
-    RK_U32 block_input;
-    RK_U32 block_output;
-
     FILE *fp;
     RK_U8  *fp_buf;
 

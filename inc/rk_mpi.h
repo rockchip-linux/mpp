@@ -230,11 +230,18 @@ typedef struct MppApi_t {
 
     // advance data flow interface
     /**
+     * @brief poll port for dequeue
+     * @param ctx The context of mpp
+     * @param type input port or output port which are both for data transaction
+     * @return 0 for success there is valid task for dequeue, others for failure
+     */
+    MPP_RET (*poll)(MppCtx ctx, MppPortType type, MppPollType timeout);
+    /**
      * @brief dequeue MppTask
      * @param ctx The context of mpp
      * @param type input port or output port which are both for data transaction
      * @param task MppTask which is sent to mpp for process
-     * @return 0 for success, oters for failure
+     * @return 0 for success, others for failure
      */
     MPP_RET (*dequeue)(MppCtx ctx, MppPortType type, MppTask *task);
     /**
@@ -242,7 +249,7 @@ typedef struct MppApi_t {
      * @param ctx The context of mpp
      * @param type input port or output port which are both for data transaction
      * @param task MppTask which is sent to mpp for process
-     * @return 0 for success, oters for failure
+     * @return 0 for success, others for failure
      */
     MPP_RET (*enqueue)(MppCtx ctx, MppPortType type, MppTask task);
 
@@ -258,7 +265,7 @@ typedef struct MppApi_t {
      * @param ctx The context of mpp
      * @param cmd The mpi command
      * @param param The mpi command parameter
-     * @return 0 for success, oters for failure
+     * @return 0 for success, others for failure
      */
     MPP_RET (*control)(MppCtx ctx, MpiCmd cmd, MppParam param);
 

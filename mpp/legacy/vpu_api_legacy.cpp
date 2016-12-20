@@ -183,8 +183,6 @@ VpuApiLegacy::VpuApiLegacy() :
     init_ok(0),
     frame_count(0),
     set_eos(0),
-    block_input(0),
-    block_output(0),
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
@@ -242,10 +240,15 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
     }
 
     if (CODEC_DECODER == ctx->codecType) {
-        block_input = 0;
-        block_output = 0;
         type = MPP_CTX_DEC;
     } else if (CODEC_ENCODER == ctx->codecType) {
+        MppPollType block = MPP_POLL_BLOCK;
+
+        /* setup input / output block mode */
+        ret = mpi->control(mpp_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block);
+        if (MPP_OK != ret)
+            mpp_err("mpi->control MPP_SET_INPUT_BLOCK failed\n");
+
         if (memGroup == NULL) {
             ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
             if (MPP_OK != ret) {
@@ -253,22 +256,10 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
                 return ret;
             }
         }
-        block_input = 1;
-        block_output = 0;
+
         type = MPP_CTX_ENC;
     } else {
         return MPP_ERR_VPU_CODEC_INIT;
-    }
-
-    /* setup input / output block mode */
-    ret = mpi->control(mpp_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block_input);
-    if (MPP_OK != ret) {
-        mpp_err("mpi->control MPP_SET_INPUT_BLOCK failed\n");
-    }
-
-    ret = mpi->control(mpp_ctx, MPP_SET_OUTPUT_BLOCK, (MppParam)&block_output);
-    if (MPP_OK != ret) {
-        mpp_err("mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
     }
 
     ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
@@ -531,60 +522,56 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
         vpu_api_dbg_func("mpp import input fd %d output fd %d",
                          mpp_buffer_get_fd(str_buf), mpp_buffer_get_fd(pic_buf));
 
-        do {
-            ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
-            if (ret) {
-                mpp_err("mpp task input dequeue failed\n");
-                goto DECODE_OUT;
-            }
-            if (task == NULL) {
-                vpu_api_dbg_func("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-                msleep(3);
-            } else
-                break;
-        } while (1);
+        ret = mpi->poll(mpp_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp input poll failed\n");
+            goto DECODE_OUT;
+        }
+
+        ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
+        if (ret) {
+            mpp_err("mpp task input dequeue failed\n");
+            goto DECODE_OUT;
+        }
 
         mpp_task_meta_set_packet(task, KEY_INPUT_PACKET, packet);
         mpp_task_meta_set_frame (task, KEY_OUTPUT_FRAME, mframe);
 
-        if (mpi != NULL) {
-            ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+        ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+        if (ret) {
+            mpp_err("mpp task input enqueue failed\n");
+            goto DECODE_OUT;
+        }
+
+        pkt->size = 0;
+        task = NULL;
+
+        ret = mpi->poll(mpp_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp output poll failed\n");
+            goto DECODE_OUT;
+        }
+
+        ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
+        if (ret) {
+            mpp_err("ret %d mpp task output dequeue failed\n", ret);
+            goto DECODE_OUT;
+        }
+
+        if (task) {
+            MppFrame frame_out = NULL;
+
+            mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
+            mpp_assert(frame_out == mframe);
+            vpu_api_dbg_func("decoded frame %d\n", frame_count);
+            frame_count++;
+
+            ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
             if (ret) {
-                mpp_err("mpp task input enqueue failed\n");
+                mpp_err("mpp task output enqueue failed\n");
                 goto DECODE_OUT;
             }
-
-            pkt->size = 0;
             task = NULL;
-
-            do {
-                ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
-                if (ret) {
-                    mpp_err("ret %d mpp task output dequeue failed\n", ret);
-                    goto DECODE_OUT;
-                }
-
-                if (task) {
-                    MppFrame frame_out = NULL;
-
-                    mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
-                    mpp_assert(frame_out == mframe);
-                    vpu_api_dbg_func("decoded frame %d\n", frame_count);
-                    frame_count++;
-
-                    ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
-                    if (ret) {
-                        mpp_err("mpp task output enqueue failed\n");
-                        goto DECODE_OUT;
-                    }
-                    task = NULL;
-
-                    break;
-                }
-                msleep(3);
-            } while (1);
-        } else {
-            mpp_err("mpi pointer is NULL, failed!");
         }
 
         // copy decoded frame into output buffer, and set outpub frame size
@@ -700,16 +687,13 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     vpu_api_dbg_input("input size %-6d flag %x pts %lld\n",
                       pkt->size, pkt->nFlags, pkt->pts);
 
-    do {
-        ret = mpi->decode_put_packet(mpp_ctx, mpkt);
-        if (ret == MPP_OK) {
-            pkt->size = 0;
-            break;
-        } else {
-            /* reduce cpu overhead here */
-            msleep(1);
-        }
-    } while (block_input);
+    ret = mpi->decode_put_packet(mpp_ctx, mpkt);
+    if (ret == MPP_OK) {
+        pkt->size = 0;
+    } else {
+        /* reduce cpu overhead here */
+        msleep(1);
+    }
 
     mpp_packet_deinit(&mpkt);
 
@@ -896,80 +880,88 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     vpu_api_dbg_func("mpp import input fd %d output fd %d",
                      mpp_buffer_get_fd(pic_buf), mpp_buffer_get_fd(str_buf));
 
-    do {
-        ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
-        if (ret) {
-            mpp_err("mpp task input dequeue failed\n");
-            goto ENCODE_OUT;
-        }
-        if (task == NULL) {
-            vpu_api_dbg_func("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-            msleep(3);
-        } else
-            break;
-    } while (1);
+    ret = mpi->poll(mpp_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+    if (ret) {
+        mpp_err("mpp input poll failed\n");
+        goto ENCODE_OUT;
+    }
+
+    ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
+    if (ret) {
+        mpp_err("mpp task input dequeue failed\n");
+        goto ENCODE_OUT;
+    }
+    if (task == NULL) {
+        mpp_err("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
+        goto ENCODE_OUT;
+    }
 
     mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  frame);
     mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
 
-    if (mpi != NULL) {
-        ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+    ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+    if (ret) {
+        mpp_err("mpp task input enqueue failed\n");
+        goto ENCODE_OUT;
+    }
+    task = NULL;
+
+    ret = mpi->poll(mpp_ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
+    if (ret) {
+        mpp_err("mpp output poll failed\n");
+        goto ENCODE_OUT;
+    }
+
+    ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
+    if (ret) {
+        mpp_err("ret %d mpp task output dequeue failed\n", ret);
+        goto ENCODE_OUT;
+    }
+
+    mpp_assert(task);
+
+    if (task) {
+        MppFrame frame_out = NULL;
+        MppFrame packet_out = NULL;
+
+        mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
+
+        mpp_assert(packet_out == packet);
+        vpu_api_dbg_func("encoded frame %d\n", frame_count);
+        frame_count++;
+
+        ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
         if (ret) {
-            mpp_err("mpp task input enqueue failed\n");
+            mpp_err("mpp task output enqueue failed\n");
             goto ENCODE_OUT;
         }
         task = NULL;
 
-        do {
-            ret = mpi->dequeue(mpp_ctx, MPP_PORT_OUTPUT, &task);
-            if (ret) {
-                mpp_err("ret %d mpp task output dequeue failed\n", ret);
-                goto ENCODE_OUT;
-            }
+        ret = mpi->poll(mpp_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp input poll failed\n");
+            goto ENCODE_OUT;
+        }
 
-            if (task) {
-                MppFrame frame_out = NULL;
-                MppFrame packet_out = NULL;
-
-                mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
-
-                mpp_assert(packet_out == packet);
-                vpu_api_dbg_func("encoded frame %d\n", frame_count);
-                frame_count++;
-
-                ret = mpi->enqueue(mpp_ctx, MPP_PORT_OUTPUT, task);
-                if (ret) {
-                    mpp_err("mpp task output enqueue failed\n");
-                    goto ENCODE_OUT;
-                }
-                task = NULL;
-
-                // dequeue task from MPP_PORT_INPUT
-                ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
-                if (ret) {
-                    mpp_log_f("failed to dequeue from input port ret %d\n", ret);
-                    break;
-                }
-                mpp_assert(task);
-                ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame_out);
-                mpp_assert(frame_out  == frame);
-                ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
-                if (ret) {
-                    mpp_err("mpp task output enqueue failed\n");
-                    goto ENCODE_OUT;
-                }
-                task = NULL;
-
-                break;
-            }
-            msleep(3);
-        } while (1);
-    } else {
-        mpp_err("mpi pointer is NULL, failed!");
+        // dequeue task from MPP_PORT_INPUT
+        ret = mpi->dequeue(mpp_ctx, MPP_PORT_INPUT, &task);
+        if (ret) {
+            mpp_log_f("failed to dequeue from input port ret %d\n", ret);
+            goto ENCODE_OUT;
+        }
+        mpp_assert(task);
+        ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame_out);
+        mpp_assert(frame_out  == frame);
+        ret = mpi->enqueue(mpp_ctx, MPP_PORT_INPUT, task);
+        if (ret) {
+            mpp_err("mpp task output enqueue failed\n");
+            goto ENCODE_OUT;
+        }
+        task = NULL;
     }
 
     // copy encoded stream into output buffer, and set output stream size
-    if (packet != NULL) {
+    if (packet) {
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);

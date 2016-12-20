@@ -91,6 +91,21 @@ typedef enum {
 } MppTaskWorkMode;
 
 /*
+ * Mpp port pull type
+ *
+ * MPP_POLL_BLOCK           - for block poll
+ * MPP_POLL_NON_BLOCK       - for non-block poll
+ * small than MPP_POLL_MAX  - for poll with timeout in ms
+ * small than MPP_POLL_BUTT or larger than MPP_POLL_MAX is invalid value
+ */
+typedef enum {
+    MPP_POLL_BUTT       = -2,
+    MPP_POLL_BLOCK      = -1,
+    MPP_POLL_NON_BLOCK  = 0,
+    MPP_POLL_MAX        = 1000,
+} MppPollType;
+
+/*
  * MppTask is descriptor of a task which send to mpp for process
  * mpp can support different type of work mode, for example:
  *
@@ -219,7 +234,7 @@ MPP_RET mpp_task_queue_setup(MppTaskQueue queue, RK_S32 task_count);
 MPP_RET mpp_task_queue_deinit(MppTaskQueue queue);
 MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type);
 
-MPP_RET mpp_port_can_dequeue(MppPort port);
+MPP_RET mpp_port_poll(MppPort port, MppPollType timeout);
 MPP_RET mpp_port_dequeue(MppPort port, MppTask *task);
 MPP_RET mpp_port_enqueue(MppPort port, MppTask task);
 
