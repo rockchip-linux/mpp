@@ -903,7 +903,11 @@ void *mpp_dec_advanced_thread(void *data)
                         mpp_buf_slot_ready(frame_slots);
                     }
 
-                    mpp_assert(slot_size == buffer_size);
+                    if (slot_size != buffer_size) {
+                        mpp_err_f("slot size %d is not equal to buffer size %d\n",
+                                  slot_size, buffer_size);
+                        mpp_assert(slot_size == buffer_size);
+                    }
                 }
 
                 mpp_buf_slot_set_prop(frame_slots, task_dec->output, SLOT_BUFFER, output_buffer);
@@ -943,6 +947,7 @@ void *mpp_dec_advanced_thread(void *data)
             mpp_task = NULL;
 
             // send finished task to output port
+            mpp_port_poll(output, MPP_POLL_BLOCK);
             mpp_port_dequeue(output, &mpp_task);
             mpp_task_meta_set_frame(mpp_task, KEY_OUTPUT_FRAME, frame);
 

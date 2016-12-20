@@ -821,25 +821,25 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
 
         mpp_packet_init_with_buffer(&packet, pkt_buf_out);
 
-        do {
-            ret = enc_mpi->dequeue(enc_ctx, MPP_PORT_INPUT, &enc_task);
-            if (ret) {
-                mpp_err("mpp task input dequeue failed\n");
-                goto MPP_TEST_OUT;
-            }
-            if (enc_task == NULL) {
-                mpp_log("mpi dequeue from MPP_PORT_INPUT fail, task equal with NULL!");
-                msleep(3);
-            } else {
-                MppFrame tmp_frm = NULL;
+        ret = enc_mpi->poll(enc_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp input poll failed\n");
+            goto MPP_TEST_OUT;
+        }
 
-                mpp_task_meta_get_frame(enc_task, KEY_INPUT_FRAME,  &tmp_frm);
-                if (tmp_frm)
-                    mpp_assert(tmp_frm == frame_in);
+        ret = enc_mpi->dequeue(enc_ctx, MPP_PORT_INPUT, &enc_task);
+        if (ret) {
+            mpp_err("mpp task input dequeue failed\n");
+            goto MPP_TEST_OUT;
+        }
 
-                break;
-            }
-        } while (1);
+        mpp_assert(enc_task);
+        {
+            MppFrame tmp_frm = NULL;
+            mpp_task_meta_get_frame(enc_task, KEY_INPUT_FRAME,  &tmp_frm);
+            if (tmp_frm)
+                mpp_assert(tmp_frm == frame_in);
+        }
 
         mpp_task_meta_set_frame (enc_task, KEY_INPUT_FRAME,  frame_in);
         mpp_task_meta_set_packet(enc_task, KEY_OUTPUT_PACKET, packet);

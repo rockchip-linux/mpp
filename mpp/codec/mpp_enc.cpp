@@ -171,6 +171,7 @@ void *mpp_enc_control_thread(void *data)
             mpp_task = NULL;
 
             // send finished task to output port
+            mpp_port_poll(output, MPP_POLL_BLOCK);
             mpp_port_dequeue(output, &mpp_task);
             mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
 
