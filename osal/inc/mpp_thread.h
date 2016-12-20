@@ -139,7 +139,9 @@ public:
     Condition(int type);
     ~Condition();
     void wait(Mutex& mutex);
+    void wait(Mutex* mutex);
     void timedwait(Mutex& mutex, RK_S64 timeout);
+    void timedwait(Mutex* mutex, RK_S64 timeout);
     void signal();
 
 private:
@@ -158,12 +160,23 @@ inline void Condition::wait(Mutex& mutex)
 {
     pthread_cond_wait(&mCond, &mutex.mMutex);
 }
+inline void Condition::wait(Mutex* mutex)
+{
+    pthread_cond_wait(&mCond, &mutex->mMutex);
+}
 inline void Condition::timedwait(Mutex& mutex, RK_S64 timeout)
 {
     struct timespec time;
     time.tv_sec  = (time_t)(timeout >> 32);
     time.tv_nsec = (long)timeout;
     pthread_cond_timedwait(&mCond, &mutex.mMutex, &time);
+}
+inline void Condition::timedwait(Mutex* mutex, RK_S64 timeout)
+{
+    struct timespec time;
+    time.tv_sec  = (time_t)(timeout >> 32);
+    time.tv_nsec = (long)timeout;
+    pthread_cond_timedwait(&mCond, &mutex->mMutex, &time);
 }
 inline void Condition::signal()
 {
