@@ -138,11 +138,11 @@ public:
     Condition();
     Condition(int type);
     ~Condition();
-    void wait(Mutex& mutex);
-    void wait(Mutex* mutex);
-    void timedwait(Mutex& mutex, RK_S64 timeout);
-    void timedwait(Mutex* mutex, RK_S64 timeout);
-    void signal();
+    RK_S32 wait(Mutex& mutex);
+    RK_S32 wait(Mutex* mutex);
+    RK_S32 timedwait(Mutex& mutex, RK_S64 timeout);
+    RK_S32 timedwait(Mutex* mutex, RK_S64 timeout);
+    RK_S32 signal();
 
 private:
     pthread_cond_t mCond;
@@ -156,31 +156,31 @@ inline Condition::~Condition()
 {
     pthread_cond_destroy(&mCond);
 }
-inline void Condition::wait(Mutex& mutex)
+inline RK_S32 Condition::wait(Mutex& mutex)
 {
-    pthread_cond_wait(&mCond, &mutex.mMutex);
+    return pthread_cond_wait(&mCond, &mutex.mMutex);
 }
-inline void Condition::wait(Mutex* mutex)
+inline RK_S32 Condition::wait(Mutex* mutex)
 {
-    pthread_cond_wait(&mCond, &mutex->mMutex);
+    return pthread_cond_wait(&mCond, &mutex->mMutex);
 }
-inline void Condition::timedwait(Mutex& mutex, RK_S64 timeout)
+inline RK_S32 Condition::timedwait(Mutex& mutex, RK_S64 timeout)
 {
     struct timespec time;
     time.tv_sec  = (time_t)(timeout >> 32);
     time.tv_nsec = (long)timeout;
-    pthread_cond_timedwait(&mCond, &mutex.mMutex, &time);
+    return pthread_cond_timedwait(&mCond, &mutex.mMutex, &time);
 }
-inline void Condition::timedwait(Mutex* mutex, RK_S64 timeout)
+inline RK_S32 Condition::timedwait(Mutex* mutex, RK_S64 timeout)
 {
     struct timespec time;
     time.tv_sec  = (time_t)(timeout >> 32);
     time.tv_nsec = (long)timeout;
-    pthread_cond_timedwait(&mCond, &mutex->mMutex, &time);
+    return pthread_cond_timedwait(&mCond, &mutex->mMutex, &time);
 }
-inline void Condition::signal()
+inline RK_S32 Condition::signal()
 {
-    pthread_cond_signal(&mCond);
+    return pthread_cond_signal(&mCond);
 }
 
 class MppMutexCond
