@@ -852,8 +852,8 @@ JpegDecRet jpegd_decode_huffman_tables(JpegParserContext *ctx)
         }
     }
 
-    return (JPEGDEC_OK);
     FUN_TEST("Exit");
+    return (JPEGDEC_OK);
 }
 
 JpegDecRet jpegd_decode_quant_tables(JpegParserContext *ctx)
