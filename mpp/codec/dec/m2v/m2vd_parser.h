@@ -122,7 +122,7 @@ typedef struct M2VFrameHead_t {
     MppFrame        f;
     RK_U32          flags;
     RK_S32          slot_index;
-    RK_U32          error_info;
+    //RK_U32          error_info;
 } M2VDFrameHead;
 
 
