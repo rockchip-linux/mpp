@@ -1100,18 +1100,19 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             Time = 0;
         }
         //base.Current_frame->ShowTime = Time;//Video_Bitsream.Slice_Time.low_part;
-
-        if (ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I && ctx->pic_head.pre_picture_coding_type == ctx->pic_head.picture_coding_type) {
-            if ((ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference > 3) || (ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference < -3)) {
-                if (ctx->frame_cur->error_info == 0)
-                    ctx->frame_cur->error_info = 1;
+        //!< mark current slot error
+        if (ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I
+            && ctx->pic_head.pre_picture_coding_type == ctx->pic_head.picture_coding_type) {
+            if ((ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference > 3)
+                || (ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference < -3)) {
+                mpp_frame_set_errinfo(ctx->frame_cur->f, 1);
             }
-        } else {
-            ctx->frame_cur->error_info = 0;
+            else{
+                mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
+            }
         }
         ctx->pic_head.pre_temporal_reference = ctx->pic_head.temporal_reference;
         ctx->pic_head.pre_picture_coding_type = ctx->pic_head.picture_coding_type;
-
         ctx->frame_cur->picCodingType = ctx->pic_head.picture_coding_type;
         ctx->seq_head.decode_height = (ctx->seq_head.decode_height + 15) & (~15);
         ctx->seq_head.decode_width = (ctx->seq_head.decode_width + 15) & (~15);
@@ -1199,6 +1200,8 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
     M2VDFrameHead *pbw = p->frame_ref0;
     BitReadCtx_t *bx = p->bitread_ctx;
     RK_U32 i = 0;
+    RK_U32 error_info = 0;
+
     RK_S32 readbits = m2vd_get_readbits(bx);
 
     dst->seq.decode_width                       = p->seq_head.decode_width;
@@ -1284,12 +1287,17 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
         dst->frame_refs[i].bPicEntry = 0xff;
     }
     if (p->pic_head.picture_coding_type == M2VD_CODING_TYPE_B) {
+        MppFrame frame0 = NULL;
+        MppFrame frame1 = NULL;
         dst->frame_refs[0].Index7Bits = pfw->slot_index;
         dst->frame_refs[1].Index7Bits = pfw->slot_index;
         dst->frame_refs[2].Index7Bits = pbw->slot_index;
         dst->frame_refs[3].Index7Bits = pbw->slot_index;
-        p->frame_cur->error_info = pfw->error_info | pbw->error_info;
+        mpp_buf_slot_get_prop(p->frame_slots, pfw->slot_index, SLOT_FRAME_PTR, &frame0);
+        mpp_buf_slot_get_prop(p->frame_slots, pbw->slot_index, SLOT_FRAME_PTR, &frame1);
+        error_info = mpp_frame_get_errinfo(frame0) | mpp_frame_get_errinfo(frame1);
     } else {
+        MppFrame frame = NULL;
         if ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME) ||
             ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && p->pic_code_ext_head.top_field_first) ||
             ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && (!p->pic_code_ext_head.top_field_first))) {
@@ -1304,13 +1312,18 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
         }
         dst->frame_refs[2].Index7Bits = p->frame_cur->slot_index;
         dst->frame_refs[3].Index7Bits = p->frame_cur->slot_index;
-        p->frame_cur->error_info = pbw->error_info;
+        mpp_buf_slot_get_prop(p->frame_slots, pbw->slot_index, SLOT_FRAME_PTR, &frame);
+        error_info = mpp_frame_get_errinfo(frame);
     }
     if (p->frame_cur->picCodingType == M2VD_CODING_TYPE_I) {
-        p->frame_cur->error_info = 0;
+        error_info = 0;
     }
     dst->seq_ext_head_dec_flag = p->MPEG2_Flag;
-    mpp_frame_set_errinfo(p->frame_cur->f, p->frame_cur->error_info);
+    {
+        MppFrame frame = NULL;
+        mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
+        mpp_frame_set_errinfo(frame, error_info);
+    }
     FUN_T("FUN_O");
     return ret;
 }
