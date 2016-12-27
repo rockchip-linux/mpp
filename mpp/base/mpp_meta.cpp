@@ -184,8 +184,8 @@ void MppMetaService::put_meta(MppMetaImpl *meta)
     while (!list_empty(&meta->list_node)) {
         MppMetaNode *node = list_entry(meta->list_node.next, MppMetaNode, list_meta);
         put_node(node);
-        meta->node_count--;
     }
+    mpp_assert(meta->node_count == 0);
     list_del_init(&meta->list_meta);
     meta_count--;
     mpp_free(meta);
