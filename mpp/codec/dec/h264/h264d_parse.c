@@ -155,19 +155,19 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     mpp_set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
     mpp_set_pre_detection(p_bitctx);
 
-    READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit, "forbidden_bit");
+    READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit);
     ASSERT(cur_nal->forbidden_bit == 0);
     {
         RK_S32  *ptmp = NULL;
         ptmp = (RK_S32 *)&cur_nal->nal_reference_idc;
-        READ_BITS(p_bitctx, 2, ptmp, "nal_ref_idc");
+        READ_BITS(p_bitctx, 2, ptmp); //!<  nal_ref_idc
         ptmp = (RK_S32 *)&cur_nal->nalu_type;
-        READ_BITS(p_bitctx, 5, ptmp, "nalu_type");
+        READ_BITS(p_bitctx, 5, ptmp); //!< nalu_type
     }
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
     if ((cur_nal->nalu_type == NALU_TYPE_PREFIX) || (cur_nal->nalu_type == NALU_TYPE_SLC_EXT)) {
-        READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag, "svc_extension_flag");
+        READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
             currSlice->mvcExt.valid = 0;
             H264D_WARNNING("svc_extension is not supported.");
@@ -175,13 +175,13 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         } else { //!< MVC
             currSlice->mvcExt.valid = 1;
             p_Cur->p_Dec->mvc_valid = 1;
-            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.non_idr_flag,     "nalu_type");
-            READ_BITS(p_bitctx,    6, &currSlice->mvcExt.priority_id,      "priority_id");
-            READ_BITS(p_bitctx,   10, &currSlice->mvcExt.view_id,          "view_id");
-            READ_BITS(p_bitctx,    3, &currSlice->mvcExt.temporal_id,      "temporal_id");
-            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.anchor_pic_flag,  "anchor_pic_flag");
-            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.inter_view_flag,  "inter_view_flag");
-            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.reserved_one_bit, "reserved_one_bit");
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.non_idr_flag);
+            READ_BITS(p_bitctx,    6, &currSlice->mvcExt.priority_id);
+            READ_BITS(p_bitctx,   10, &currSlice->mvcExt.view_id);
+            READ_BITS(p_bitctx,    3, &currSlice->mvcExt.temporal_id);
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.anchor_pic_flag);
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.inter_view_flag);
+            READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.reserved_one_bit);
             ASSERT(currSlice->mvcExt.reserved_one_bit == 1);
             currSlice->mvcExt.iPrefixNALU = (cur_nal->nalu_type == NALU_TYPE_PREFIX) ? 1 : 0;
             //!< combine NALU_TYPE_SLC_EXT into NALU_TYPE_SLICE

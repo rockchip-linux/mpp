@@ -152,20 +152,20 @@ static MPP_RET h263_parse_picture_header(H263dParserImpl *p, BitReadCtx_t *gb)
     H263VOPType pict_type = H263_INVALID_VOP;
 
     /* start code */
-    READ_BITS(gb, 17, &val, "start code");
+    READ_BITS(gb, 17, &val); /* start code */
     mpp_assert(val == 1);
 
     /* gob */
-    READ_BITS(gb, 5, &val, "gob");
+    READ_BITS(gb, 5, &val); /* gob */
     mpp_assert(val == 0);
 
     /* time reference */
-    READ_BITS(gb, 8, &hdr_curr->TR, "TR");
+    READ_BITS(gb, 8, &hdr_curr->TR);
 
     SKIP_BITS(gb, 5);
 
     /* source format */
-    READ_BITS(gb, 3, &val, "source format");
+    READ_BITS(gb, 3, &val); /* source format */
     hdr_curr->width  = h263d_fmt_to_dimension[val][0];
     hdr_curr->height = h263d_fmt_to_dimension[val][1];
     if (!hdr_curr->width && !hdr_curr->height) {

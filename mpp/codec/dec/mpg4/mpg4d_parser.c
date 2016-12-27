@@ -452,11 +452,11 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
     RK_S32 vol_control_parameters;
 
     SKIP_BITS(cb, 1);                                   /* random_accessible_vol */
-    READ_BITS(cb, 8, &(mp4Hdr->vol.vo_type), "vo_type");
+    READ_BITS(cb, 8, &(mp4Hdr->vol.vo_type));
 
-    READ_BITS(cb, 1, &val, "is_object_layer_identifier");
+    READ_BITS(cb, 1, &val); /* is_object_layer_identifier */
     if (val) {
-        READ_BITS(cb, 4, &vol_ver_id, "video_object_layer_verid");
+        READ_BITS(cb, 4, &vol_ver_id);  /* video_object_layer_verid */
         SKIP_BITS(cb, 3);                               /* video_object_layer_priority */
     } else {
         vol_ver_id = mp4Hdr->vol.ver_id;
@@ -477,20 +477,20 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
         SKIP_BITS(cb, 2);                               /* chroma_format */
         READ_BITS(cb, 1, &(mp4Hdr->vol.low_delay));     /* low_delay flage (1 means no B_VOP) */
 
-        READ_BITS(cb, 1, &val, "vbv_parameters");
+        READ_BITS(cb, 1, &val); /* vbv_parameters */
         if (val) {
             RK_U32 bitrate;
             RK_U32 buffer_size;
             RK_U32 occupancy;
 
-            READ_BITS(cb, 15, &val, "first_half_bit_rate");
+            READ_BITS(cb, 15, &val); /* first_half_bit_rate */
             bitrate = val << 15;
             SKIP_BITS(cb, 1);
-            READ_BITS(cb, 15, &val, "latter_half_bit_rate");
+            READ_BITS(cb, 15, &val); /* latter_half_bit_rate */
             bitrate |= val;
             SKIP_BITS(cb, 1);
 
-            READ_BITS(cb, 15, &val, "first_half_vbv_buffer_size");
+            READ_BITS(cb, 15, &val); /* first_half_vbv_buffer_size */
             buffer_size = val << 3;
             SKIP_BITS(cb, 1);
             READ_BITS(cb, 3, &val);
@@ -626,7 +626,7 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
         }
 
         if (vol_ver_id != 1) {
-            READ_BITS(cb, 1, &(mp4Hdr->vol.quarter_sample), "quarter_sample");
+            READ_BITS(cb, 1, &(mp4Hdr->vol.quarter_sample));
         } else
             mp4Hdr->vol.quarter_sample = 0;
 

@@ -86,35 +86,35 @@ static MPP_RET get_sequence_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh)
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 val_temp = 0;
 
-    READ_BITS(bitctx, 8, &vsh->profile_id, "profile_id");
+    READ_BITS(bitctx, 8, &vsh->profile_id);
     //!< check profile_id
     if (vsh->profile_id != 0x20 && vsh->profile_id != 0x48) {
         ret = MPP_NOK;
         mpp_err_f("profile_id 0x%02x is not supported.\n", vsh->profile_id);
         goto __FAILED;
     }
-    READ_BITS(bitctx, 8, &vsh->level_id, "level_id");
+    READ_BITS(bitctx, 8, &vsh->level_id);
     if (vsh->level_id > 0x42) {
         ret = MPP_NOK;
         mpp_err_f("level_id 0x%02x is not supported.\n", vsh->level_id);
         goto __FAILED;
     }
-    READ_ONEBIT(bitctx, &vsh->progressive_sequence, "progressive_sequence");
-    READ_BITS(bitctx, 14, &vsh->horizontal_size, "horizontal_size");
-    READ_BITS(bitctx, 14, &vsh->vertical_size,   "vertical_size");
-    READ_BITS(bitctx, 2,  &vsh->chroma_format,   "chroma_format");
-    READ_BITS(bitctx, 3, &vsh->sample_precision, "sample_precision");
-    READ_BITS(bitctx, 4, &vsh->aspect_ratio, "aspect_ratio");
-    READ_BITS(bitctx, 4, &vsh->frame_rate_code, "frame_rate_code");
-    READ_BITS(bitctx, 18, &val_temp, "bit_rate_high_18");
+    READ_ONEBIT(bitctx, &vsh->progressive_sequence);
+    READ_BITS(bitctx, 14, &vsh->horizontal_size);
+    READ_BITS(bitctx, 14, &vsh->vertical_size);
+    READ_BITS(bitctx, 2,  &vsh->chroma_format);
+    READ_BITS(bitctx, 3, &vsh->sample_precision);
+    READ_BITS(bitctx, 4, &vsh->aspect_ratio);
+    READ_BITS(bitctx, 4, &vsh->frame_rate_code);
+    READ_BITS(bitctx, 18, &val_temp); //!< bit_rate_high_18
     vsh->bit_rate = val_temp << 12;
     SKIP_BITS(bitctx, 1);
-    READ_BITS(bitctx, 12, &val_temp, "bit_rate_low_12");
+    READ_BITS(bitctx, 12, &val_temp); //!< bit_rate_low_12
     vsh->bit_rate += val_temp;
-    READ_ONEBIT(bitctx, &vsh->low_delay, "low_delay");
+    READ_ONEBIT(bitctx, &vsh->low_delay);
     SKIP_BITS(bitctx, 1);
-    READ_BITS(bitctx, 18, &vsh->bbv_buffer_size, "bbv_buffer_size");
-    READ_BITS(bitctx, 3, &val_temp, "reserved_bits"); //!< 3bits 000
+    READ_BITS(bitctx, 18, &vsh->bbv_buffer_size);
+    READ_BITS(bitctx, 3, &val_temp); //!< reserve 3bits 000
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserver bits error.\n");
     }
@@ -172,12 +172,12 @@ static MPP_RET get_extend_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, Avs
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
 
-    READ_ONEBIT(bitctx, &ph->loop_filter_disable, "loop_filter_disable");
+    READ_ONEBIT(bitctx, &ph->loop_filter_disable);
     if (!ph->loop_filter_disable) {
-        READ_ONEBIT(bitctx, &ph->loop_filter_parameter_flag, "loop_filter_parameter_flag");
+        READ_ONEBIT(bitctx, &ph->loop_filter_parameter_flag);
         if (ph->loop_filter_parameter_flag) {
-            READ_SE(bitctx, &ph->alpha_c_offset, "alpha_c_offset");
-            READ_SE(bitctx, &ph->beta_offset, "beta_offset");
+            READ_SE(bitctx, &ph->alpha_c_offset);
+            READ_SE(bitctx, &ph->beta_offset);
         }
     }
     ph->chroma_quant_param_delta_cb = 0;
@@ -187,29 +187,29 @@ static MPP_RET get_extend_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, Avs
         ph->weighting_quant_param_delta2[i] = 0;
     }
     if (vsh->profile_id == 0x48) {
-        READ_ONEBIT(bitctx, &ph->weighting_quant_flag, "weighting_quant_flag");
+        READ_ONEBIT(bitctx, &ph->weighting_quant_flag);
         if (ph->weighting_quant_flag) {
             SKIP_BITS(bitctx, 1);
-            READ_ONEBIT(bitctx, &ph->chroma_quant_param_disable, "chroma_quant_param_disable");
+            READ_ONEBIT(bitctx, &ph->chroma_quant_param_disable);
             if (!ph->chroma_quant_param_disable) {
-                READ_SE(bitctx, &ph->chroma_quant_param_delta_cb, "chroma_quant_param_delta_cb");
-                READ_SE(bitctx, &ph->chroma_quant_param_delta_cr, "chroma_quant_param_delta_cr");
+                READ_SE(bitctx, &ph->chroma_quant_param_delta_cb);
+                READ_SE(bitctx, &ph->chroma_quant_param_delta_cr);
             }
-            READ_BITS(bitctx, 2, &ph->weighting_quant_param_index, "weighting_quant_param_index");
-            READ_BITS(bitctx, 2, &ph->weighting_quant_model, "weighting_quant_model");
+            READ_BITS(bitctx, 2, &ph->weighting_quant_param_index);
+            READ_BITS(bitctx, 2, &ph->weighting_quant_model);
             if (ph->weighting_quant_param_index == 1) {
                 for (i = 0; i < 6; i++) {
-                    READ_SE(bitctx, &ph->weighting_quant_param_delta1[i], "weighting_quant_param_delta1");
+                    READ_SE(bitctx, &ph->weighting_quant_param_delta1[i]);
                 }
             } else if (ph->weighting_quant_param_index == 2) {
                 for (i = 0; i < 6; i++) {
-                    READ_SE(bitctx, &ph->weighting_quant_param_delta2[i], "weighting_quant_param_delta2");
+                    READ_SE(bitctx, &ph->weighting_quant_param_delta2[i]);
                 }
             }
         }
         gen_weight_quant_param(ph); //!< generate wqP[m][6]
 
-        READ_ONEBIT(bitctx, &ph->aec_enable, "aec_enable");
+        READ_ONEBIT(bitctx, &ph->aec_enable);
     }
 
     return ret = MPP_OK;
@@ -222,20 +222,20 @@ static MPP_RET get_seq_dispay_ext_header(BitReadCtx_t *bitctx, AvsdSeqExtHeader_
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 val_temp = 0;
 
-    READ_BITS(bitctx, 3, &ext->video_format, "video_format");
-    READ_ONEBIT(bitctx, &ext->sample_range, "sample_range");
-    READ_ONEBIT(bitctx, &ext->color_description, "color_description");
+    READ_BITS(bitctx, 3, &ext->video_format);
+    READ_ONEBIT(bitctx, &ext->sample_range);
+    READ_ONEBIT(bitctx, &ext->color_description);
 
     if (ext->color_description) {
-        READ_BITS(bitctx, 8, &ext->color_primaries, "color_primaries");
-        READ_BITS(bitctx, 8, &ext->transfer_characteristics, "transfer_characteristics");
-        READ_BITS(bitctx, 8, &ext->matrix_coefficients, "matrix_coefficients");
+        READ_BITS(bitctx, 8, &ext->color_primaries);
+        READ_BITS(bitctx, 8, &ext->transfer_characteristics);
+        READ_BITS(bitctx, 8, &ext->matrix_coefficients);
     }
-    READ_BITS(bitctx, 14, &ext->display_horizontalSize, "display_horizontalSize");
+    READ_BITS(bitctx, 14, &ext->display_horizontalSize);
     SKIP_BITS(bitctx, 1); //!< marker bit
-    READ_BITS(bitctx, 14, &ext->display_verticalSize, "display_verticalSize");
+    READ_BITS(bitctx, 14, &ext->display_verticalSize);
 
-    READ_BITS(bitctx, 2, &val_temp, "reserve 2 bits");
+    READ_BITS(bitctx, 2, &val_temp); //!< reserve 2 bits
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserve bits not equal to zeros.\n");
     }
@@ -248,7 +248,7 @@ static MPP_RET get_extension_header(BitReadCtx_t *bitctx, AvsdSeqExtHeader_t *ex
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 val_temp = 0;
 
-    READ_BITS(bitctx, 4, &val_temp, "extension_start_code");
+    READ_BITS(bitctx, 4, &val_temp); //!< extension_start_code
     switch (val_temp) {
     case SEQUENCE_DISPLAY_EXTENTION:
         FUN_CHECK(ret = get_seq_dispay_ext_header(bitctx, ext));
@@ -271,36 +271,36 @@ static MPP_RET get_i_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, 
     RK_U32 val_temp = 0;
     ph->picture_coding_type = I_PICTURE;
 
-    READ_BITS(bitctx, 16, &ph->bbv_delay, "bbv_delay");
+    READ_BITS(bitctx, 16, &ph->bbv_delay);
     if (vsh->profile_id == 0x48) {
         SKIP_BITS(bitctx, 1);
-        READ_BITS(bitctx, 7, &ph->bbv_delay_extension, "bbv_delay_extension");
+        READ_BITS(bitctx, 7, &ph->bbv_delay_extension);
     }
-    READ_ONEBIT(bitctx, &ph->time_code_flag, "time_code_flag");
+    READ_ONEBIT(bitctx, &ph->time_code_flag);
     if (ph->time_code_flag) {
-        READ_BITS(bitctx, 24, &ph->time_code, "time_code");
+        READ_BITS(bitctx, 24, &ph->time_code);
     }
     SKIP_BITS(bitctx, 1);
-    READ_BITS(bitctx, 8, &ph->picture_distance, "picture_distance");
+    READ_BITS(bitctx, 8, &ph->picture_distance);
     if (vsh->low_delay) {
-        READ_UE(bitctx, &ph->bbv_check_times, "bbv_check_times");
+        READ_UE(bitctx, &ph->bbv_check_times);
     }
-    READ_ONEBIT(bitctx, &ph->progressive_frame, "progressive_frame");
+    READ_ONEBIT(bitctx, &ph->progressive_frame);
     if (!ph->progressive_frame) {
-        READ_ONEBIT(bitctx, &ph->picture_structure, "picture_structure");
+        READ_ONEBIT(bitctx, &ph->picture_structure);
     } else {
         ph->picture_structure = 1; //!< frame picture
     }
-    READ_ONEBIT(bitctx, &ph->top_field_first, "top_field_first");
-    READ_ONEBIT(bitctx, &ph->repeat_first_field, "repeat_first_field");
-    READ_ONEBIT(bitctx, &ph->fixed_picture_qp, "fixed_picture_qp");
-    READ_BITS(bitctx, 6, &ph->picture_qp, "picture_qp");
+    READ_ONEBIT(bitctx, &ph->top_field_first);
+    READ_ONEBIT(bitctx, &ph->repeat_first_field);
+    READ_ONEBIT(bitctx, &ph->fixed_picture_qp);
+    READ_BITS(bitctx, 6, &ph->picture_qp);
     if (!ph->progressive_frame && !ph->picture_structure) {
-        READ_ONEBIT(bitctx, &ph->skip_mode_flag, "skip_mode_flag");
+        READ_ONEBIT(bitctx, &ph->skip_mode_flag);
     } else {
         ph->skip_mode_flag = 0;
     }
-    READ_BITS(bitctx, 4, &val_temp, "reserve 4 bits");
+    READ_BITS(bitctx, 4, &val_temp); //!< reserve 4 bits
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserve bits not equal to zeros.\n");
     }
@@ -323,35 +323,35 @@ static MPP_RET get_pb_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh,
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 val_temp = 0;
 
-    READ_BITS(bitctx, 16, &ph->bbv_delay, "bbv_delay");
+    READ_BITS(bitctx, 16, &ph->bbv_delay);
     if (vsh->profile_id == 0x48) {
         SKIP_BITS(bitctx, 1);
-        READ_BITS(bitctx, 7, &ph->bbv_delay_extension, "bbv_delay_extension");
+        READ_BITS(bitctx, 7, &ph->bbv_delay_extension);
     }
-    READ_BITS(bitctx, 2, &ph->picture_coding_type, "picture_coding_type");
-    READ_BITS(bitctx, 8, &ph->picture_distance, "picture_distance");
+    READ_BITS(bitctx, 2, &ph->picture_coding_type);
+    READ_BITS(bitctx, 8, &ph->picture_distance);
     if (vsh->low_delay) {
-        READ_UE(bitctx, &ph->bbv_check_times, "bbv_check_times");
+        READ_UE(bitctx, &ph->bbv_check_times);
     }
-    READ_ONEBIT(bitctx, &ph->progressive_frame, "progressive_frame");
+    READ_ONEBIT(bitctx, &ph->progressive_frame);
 
     if (!ph->progressive_frame) {
-        READ_ONEBIT(bitctx, &ph->picture_structure, "picture_structure");
+        READ_ONEBIT(bitctx, &ph->picture_structure);
         if (!ph->picture_structure) {
-            READ_ONEBIT(bitctx, &ph->advanced_pred_mode_disable, "advanced_pred_mode_disable");
+            READ_ONEBIT(bitctx, &ph->advanced_pred_mode_disable);
         }
     } else {
         ph->picture_structure = 1; //!< frame picture
     }
-    READ_ONEBIT(bitctx, &ph->top_field_first, "top_field_first");
-    READ_ONEBIT(bitctx, &ph->repeat_first_field, "repeat_first_field");
-    READ_ONEBIT(bitctx, &ph->fixed_picture_qp, "fixed_picture_qp");
-    READ_BITS(bitctx, 6, &ph->picture_qp, "picture_qp");
+    READ_ONEBIT(bitctx, &ph->top_field_first);
+    READ_ONEBIT(bitctx, &ph->repeat_first_field);
+    READ_ONEBIT(bitctx, &ph->fixed_picture_qp);
+    READ_BITS(bitctx, 6, &ph->picture_qp);
     if (!(ph->picture_coding_type == B_PICTURE && ph->picture_structure == P_PICTURE)) {
-        READ_ONEBIT(bitctx, &ph->picture_reference_flag, "picture_reference_flag");
+        READ_ONEBIT(bitctx, &ph->picture_reference_flag);
     }
-    READ_ONEBIT(bitctx, &ph->no_forward_reference_flag, "no_forward_reference_flag");
-    READ_ONEBIT(bitctx, &ph->pb_field_enhanced_flag, "pb_field_enhanced_flag");
+    READ_ONEBIT(bitctx, &ph->no_forward_reference_flag);
+    READ_ONEBIT(bitctx, &ph->pb_field_enhanced_flag);
     if (vsh->profile_id != 0x48) {
         ph->no_forward_reference_flag = 0;
         ph->pb_field_enhanced_flag = 0;
@@ -359,11 +359,11 @@ static MPP_RET get_pb_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh,
     ph->weighting_quant_flag = 0;
     ph->aec_enable = 0;
 
-    READ_BITS(bitctx, 2, &val_temp, "reserve bits");
+    READ_BITS(bitctx, 2, &val_temp); //!< reserve bits
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserve bits not equal to zeros.\n");
     }
-    READ_ONEBIT(bitctx, &ph->skip_mode_flag, "skip_mode_flag");
+    READ_ONEBIT(bitctx, &ph->skip_mode_flag);
 
     FUN_CHECK(ret = get_extend_header(bitctx, vsh, ph));
 
