@@ -185,8 +185,7 @@ MPP_RET parse_scalingList(BitReadCtx_t *p_bitctx, RK_S32 size, RK_S32 *scaling_l
     for (j = 0; j < size; ++j) {
         scanj = zz_scan[j];
         if (next_scale != 0) {
-            READ_SE(p_bitctx, &delta_scale, "delta_scale");
-            CHECK_RANGE(p_bitctx, delta_scale, -128, 127);
+            READ_SE(p_bitctx, &delta_scale);
             next_scale = (last_scale + delta_scale + 256) & 0xff;
             *use_default = (scanj == 0 && next_scale == 0) ? 1 : 0;
         }
@@ -298,7 +297,7 @@ MPP_RET parse_sps_scalinglists(BitReadCtx_t *p_bitctx, H264_SPS_t *sps)
     MPP_RET ret = MPP_ERR_UNKNOW;
     // Parse scaling_list4x4.
     for (i = 0; i < 6; ++i) {
-        READ_ONEBIT(p_bitctx, &sps->seq_scaling_list_present_flag[i], "seq_scaling_list_present_flag");
+        READ_ONEBIT(p_bitctx, &sps->seq_scaling_list_present_flag[i]);
 
         if (sps->seq_scaling_list_present_flag[i]) {
             FUN_CHECK(ret = parse_scalingList(p_bitctx, H264ScalingList4x4Length,
@@ -307,7 +306,7 @@ MPP_RET parse_sps_scalinglists(BitReadCtx_t *p_bitctx, H264_SPS_t *sps)
     }
     // Parse scaling_list8x8.
     for (i = 0; i < ((sps->chroma_format_idc != YUV444) ? 2 : 6); ++i) {
-        READ_ONEBIT(p_bitctx, &sps->seq_scaling_list_present_flag[6 + i], "seq_scaling_list_present_flag");
+        READ_ONEBIT(p_bitctx, &sps->seq_scaling_list_present_flag[6 + i]);
         if (sps->seq_scaling_list_present_flag[6 + i]) {
             FUN_CHECK(ret = parse_scalingList(p_bitctx, H264ScalingList8x8Length,
                                               sps->ScalingList8x8[i], &sps->UseDefaultScalingMatrix8x8Flag[i]));

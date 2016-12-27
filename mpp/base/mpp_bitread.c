@@ -21,10 +21,6 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-static void log_info(void *ctx, ...)
-{
-    (void)ctx;
-}
 
 static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 {
@@ -269,7 +265,6 @@ void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
     bitctx->buf = data;
     bitctx->buf_len = size;
     bitctx->used_bits = 0;
-    bitctx->wlog = log_info;
     bitctx->need_prevention_detection = 0;
 }
 /*!
@@ -294,14 +289,4 @@ RK_U8 *mpp_align_get_bits(BitReadCtx_t *bitctx)
     if (n)
         mpp_skip_bits(bitctx, n);
     return bitctx->data_;
-}
-/*!
-***********************************************************************
-* \brief
-*   get current data value
-***********************************************************************
-*/
-RK_U8 mpp_get_curdata_value(BitReadCtx_t *bitctx)
-{
-    return (*bitctx->data_);
 }

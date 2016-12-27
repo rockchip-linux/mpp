@@ -157,10 +157,10 @@ static MPP_RET interpret_recovery_point_info(RK_U8 *payload, RK_S32 size, BitRea
     mpp_set_bitread_ctx(p_bitctx, payload, size);
     mpp_set_pre_detection(p_bitctx);
 
-    READ_UE(p_bitctx, &sei_msg->recovery_point.recovery_frame_cnt, "recovery_frame_cnt");
-    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.exact_match_flag, "exact_match_flag");
-    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.broken_link_flag, "broken_link_flag");
-    READ_BITS(p_bitctx, 2, &sei_msg->recovery_point.changing_slice_group_idc, "changing_slice_group_idc");
+    READ_UE(p_bitctx, &sei_msg->recovery_point.recovery_frame_cnt);
+    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.exact_match_flag);
+    READ_ONEBIT(p_bitctx, &sei_msg->recovery_point.broken_link_flag);
+    READ_BITS(p_bitctx, 2, &sei_msg->recovery_point.changing_slice_group_idc);
 
     return ret = MPP_OK;
 __BITREAD_ERR:
@@ -186,19 +186,19 @@ static MPP_RET interpret_mvc_scalable_nesting_info(RK_U8 *payload, RK_S32 size, 
     mpp_set_bitread_ctx(p_strm, payload, size);
     mpp_set_pre_detection(p_bitctx);
 
-    READ_ONEBIT(p_strm, &operation_point_flag, "operation_point_flag");
+    READ_ONEBIT(p_strm, &operation_point_flag);
     if (!operation_point_flag) {
-        READ_ONEBIT(p_strm, &all_view_components_in_au_flag, "all_view_components_in_au_flag");
-        READ_UE(p_strm, &num_view_components_minus1, "num_view_components_minus1");
+        READ_ONEBIT(p_strm, &all_view_components_in_au_flag);
+        READ_UE(p_strm, &num_view_components_minus1);
         for (i = 0; i <= num_view_components_minus1; i++) {
-            READ_BITS(p_strm, 10, &sei_view_id, "sei_view_id");
+            READ_BITS(p_strm, 10, &sei_view_id);
         }
     } else {
-        READ_UE(p_strm, &num_view_components_op_minus1, "num_view_components_op_minus1");
+        READ_UE(p_strm, &num_view_components_op_minus1);
         for (i = 0; i <= num_view_components_op_minus1; i++) {
-            READ_BITS(p_strm, 10, &sei_op_view_id, "sei_op_view_id");
+            READ_BITS(p_strm, 10, &sei_op_view_id);
         }
-        READ_BITS(p_strm, 3, &sei_op_temporal_id, "sei_op_temporal_id");
+        READ_BITS(p_strm, 3, &sei_op_temporal_id);
     }
 
     p_bitctx->used_bits = p_strm->used_bits;
@@ -216,9 +216,7 @@ static MPP_RET interpret_buffering_period_info(RK_U8 *payload, RK_S32 size, BitR
     p_bitctx = &tmp_strmdata;
     mpp_set_bitread_ctx(p_bitctx, payload, size);
     mpp_set_pre_detection(p_bitctx);
-    READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id, "seq_parameter_set_id");
-    //mpp_log("sei_msg->seq_parameter_set_id=%d \n", sei_msg->seq_parameter_set_id);
-    CHECK_RANGE(p_bitctx, sei_msg->seq_parameter_set_id, 0, 32);
+    READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id);
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
@@ -372,18 +370,18 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
     sei_msg->p_Dec = currSlice->p_Dec;
     do {
         sei_msg->type = 0;
-        READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_byte");
+        READ_BITS(p_bitctx, 8, &tmp_byte);
         while (tmp_byte == 0xFF) {
             sei_msg->type += 255;
-            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
+            READ_BITS(p_bitctx, 8, &tmp_byte);
         }
         sei_msg->type += tmp_byte;   // this is the last byte
 
         sei_msg->payload_size = 0;
-        READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
+        READ_BITS(p_bitctx, 8, &tmp_byte);
         while (tmp_byte == 0xFF) {
             sei_msg->payload_size += 255;
-            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_type");
+            READ_BITS(p_bitctx, 8, &tmp_byte);
         }
         sei_msg->payload_size += tmp_byte;   // this is the last byte
 
@@ -394,7 +392,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
             sei_msg->payload_size = ((p_bitctx->used_bits + 0x07) >> 3);
         }
         for (nn = 0; nn < sei_msg->payload_size; nn++) { // read bytes
-            READ_BITS(p_bitctx, 8, &tmp_byte, "tmp_byte");
+            READ_BITS(p_bitctx, 8, &tmp_byte);
         }
 
     } while ((p_bitctx->data_[0] != 0x80) && (p_bitctx->bytes_left_ > 1));    // more_rbsp_data()  msg[offset] != 0x80
