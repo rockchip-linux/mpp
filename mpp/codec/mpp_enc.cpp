@@ -106,6 +106,7 @@ void *mpp_enc_control_thread(void *data)
             reset_hal_enc_task(enc_task);
 
             if (mpp_frame_get_buffer(frame)) {
+                RK_U32 outputStreamSize = 0;
                 /*
                  * if there is available buffer in the input frame do encoding
                  */
@@ -127,15 +128,14 @@ void *mpp_enc_control_thread(void *data)
                 enc_task->input  = mpp_frame_get_buffer(frame);
                 enc_task->output = mpp_packet_get_buffer(packet);
                 enc_task->mv_info = mv_info;
-                controller_encode(mpp->mEnc->controller, enc_task);
+                ret = controller_encode(mpp->mEnc->controller, enc_task);
 
-                mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
-                mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
-                mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
-
-                RK_U32 outputStreamSize = 0;
-                controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
-
+                if (!ret) {
+                    mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
+                    mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
+                    mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
+                    controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
+                }
                 mpp_packet_set_length(packet, outputStreamSize);
             } else {
                 /*

@@ -1106,8 +1106,7 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             if ((ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference > 3)
                 || (ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference < -3)) {
                 mpp_frame_set_errinfo(ctx->frame_cur->f, 1);
-            }
-            else{
+            } else {
                 mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
             }
         }
