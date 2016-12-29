@@ -1462,7 +1462,7 @@ static MPP_RET hal_h264e_rkv_free_buffers(h264e_hal_context *ctx)
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_syntax *syn, h264e_hal_sps *sps, h264e_hal_rkv_coveragetest_cfg *test_cfg)
+static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_syntax *syn, h264e_hal_rkv_coveragetest_cfg *test_cfg)
 {
     RK_S32 k = 0;
     h264e_hal_rkv_buffers *buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
@@ -1470,7 +1470,6 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
     RK_U32 frame_size = ((syn->pic_luma_width + 15) & (~15)) * ((syn->pic_luma_height + 15) & (~15)); //only Y component
     h264e_hal_rkv_dpb_ctx *dpb_ctx = (h264e_hal_rkv_dpb_ctx *)ctx->dpb_ctx;
     h264e_hal_rkv_frame *frame_buf = dpb_ctx->frame_buf;
-    RK_U32 all_intra_mode = sps->keyframe_max_interval == 1;
     h264e_hal_debug_enter();
 
     switch ((h264e_hal_rkv_csp)syn->input_image_format) {
@@ -1519,14 +1518,12 @@ static MPP_RET hal_h264e_rkv_allocate_buffers(h264e_hal_context *ctx, h264e_synt
         }
     }
 
-    if (!all_intra_mode) {
-        for (k = 0; k < 2; k++) {
-            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_DSP], &buffers->hw_dsp_buf[k], frame_size / 16)) {
-                h264e_hal_log_err("hw_dsp_buf[%d] get failed", k);
-                return MPP_ERR_MALLOC;
-            } else {
-                h264e_hal_log_dpb("hw_dsp_buf[%d] %p done, fd %d", k, buffers->hw_dsp_buf[k], mpp_buffer_get_fd(buffers->hw_dsp_buf[k]));
-            }
+    for (k = 0; k < 2; k++) {
+        if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_DSP], &buffers->hw_dsp_buf[k], frame_size / 16)) {
+            h264e_hal_log_err("hw_dsp_buf[%d] get failed", k);
+            return MPP_ERR_MALLOC;
+        } else {
+            h264e_hal_log_dpb("hw_dsp_buf[%d] %p done, fd %d", k, buffers->hw_dsp_buf[k], mpp_buffer_get_fd(buffers->hw_dsp_buf[k]));
         }
     }
 
@@ -3228,7 +3225,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     if (ctx->frame_cnt == 0) {
-        if (MPP_OK != hal_h264e_rkv_allocate_buffers(ctx, syn, sps, test_cfg)) {
+        if (MPP_OK != hal_h264e_rkv_allocate_buffers(ctx, syn, test_cfg)) {
             h264e_hal_log_err("hal_h264e_rkv_allocate_buffers failed, free buffers and return");
             enc_task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
             hal_h264e_rkv_free_buffers(ctx);
