@@ -129,13 +129,27 @@ void *mpp_enc_control_thread(void *data)
                 enc_task->output = mpp_packet_get_buffer(packet);
                 enc_task->mv_info = mv_info;
                 ret = controller_encode(mpp->mEnc->controller, enc_task);
-
-                if (!ret) {
-                    mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
-                    mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
-                    mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
-                    controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
+                if (ret) {
+                    mpp_err("mpp %p controller_encode failed return %d", mpp, ret);
+                    goto TASK_END;
                 }
+                ret = mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
+                if (ret) {
+                    mpp_err("mpp %p hal_reg_gen failed return %d", mpp, ret);
+                    goto TASK_END;
+                }
+                ret = mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
+                if (ret) {
+                    mpp_err("mpp %p hal_hw_start failed return %d", mpp, ret);
+                    goto TASK_END;
+                }
+                ret = mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
+                if (ret) {
+                    mpp_err("mpp %p hal_hw_wait failed return %d", mpp, ret);
+                    goto TASK_END;
+                }
+                controller_config(mpp->mEnc->controller, GET_OUTPUT_STREAM_SIZE, (void*)&outputStreamSize);
+            TASK_END:
                 mpp_packet_set_length(packet, outputStreamSize);
             } else {
                 /*
