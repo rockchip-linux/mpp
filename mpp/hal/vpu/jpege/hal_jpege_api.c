@@ -138,11 +138,9 @@ static MPP_RET hal_jpege_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *synt
         return MPP_NOK;
     }
 
-    RK_U32 width        = syntax->width;
-    RK_U32 height       = syntax->height;
     MppFrameFormat fmt  = syntax->format;
-    RK_U32 hor_stride   = MPP_ALIGN(width,  16);
-    RK_U32 ver_stride   = MPP_ALIGN(height, 16);
+    RK_U32 hor_stride   = syntax->hor_stride;
+    RK_U32 ver_stride   = syntax->ver_stride;
     JpegeIocExtInfoSlot *slot = NULL;
 
     info->magic = EXTRA_INFO_MAGIC;
