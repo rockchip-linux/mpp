@@ -22,6 +22,8 @@
 typedef struct JpegeSyntax_t {
     RK_U32          width;
     RK_U32          height;
+    RK_U32          hor_stride;
+    RK_U32          ver_stride;
     MppFrameFormat  format;
 
     /* For quantization table */
