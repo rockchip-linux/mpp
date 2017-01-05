@@ -36,7 +36,6 @@ int mpi_test()
     MPP_RET ret = MPP_NOK;
     MppCtx ctx  = NULL;
     MppApi *mpi = NULL;
-    MppEncConfig cfg;
 
     MppPacket dec_in    = NULL;
     MppFrame  dec_out   = NULL;
@@ -187,17 +186,6 @@ int mpi_test()
     ret = mpp_init(ctx, MPP_CTX_ENC, MPP_VIDEO_CodingUnused);
     if (MPP_OK != ret) {
         mpp_err("mpp_init failed\n");
-        goto MPP_TEST_FAILED;
-    }
-
-    memset(&cfg, 0, sizeof(cfg));
-
-    cmd = MPP_ENC_SET_CFG;
-    param = &cfg;
-
-    ret = mpi->control(ctx, cmd, param);
-    if (MPP_OK != ret) {
-        mpp_err("mpi->control failed\n");
         goto MPP_TEST_FAILED;
     }
 

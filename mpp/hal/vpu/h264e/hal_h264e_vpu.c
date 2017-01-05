@@ -512,10 +512,12 @@ void hal_h264e_vpu_stream_put_bits_with_detect(h264e_hal_vpu_stream * buffer, RK
     RK_U8 *stream = buffer->stream;
     RK_U32 byte_buffer = buffer->byte_buffer;
 
-    mpp_assert(value < (1 << number));
-    mpp_assert(number < 25);
-
     h264e_hal_log_header("assemble %s value %x, bits %d\n", name, value, number);
+
+    if (value) {
+        mpp_assert(value < (1 << number));
+        mpp_assert(number < 25);
+    }
 
     bits = number + buffer->buffered_bits;
     byte_buffer = byte_buffer | ((RK_U32) value << (32 - bits));

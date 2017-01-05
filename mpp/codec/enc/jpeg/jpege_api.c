@@ -40,11 +40,10 @@ RK_U32 jpege_debug = 0;
 #define jpege_dbg_output(fmt, ...)  jpege_dbg(JPEGE_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
 typedef struct {
-    /* output to hal */
-    JpegeSyntax     syntax;
-
     /* input from hal */
     JpegeFeedback   feedback;
+    MppEncCfgSet    *cfg;
+    MppEncCfgSet    *set;
 } JpegeCtx;
 
 MPP_RET jpege_callback(void *ctx, void *feedback)
@@ -64,17 +63,18 @@ MPP_RET jpege_callback(void *ctx, void *feedback)
     return MPP_OK;
 }
 
-MPP_RET jpege_init(void *ctx, ControllerCfg *ctrlCfg)
+MPP_RET jpege_init(void *ctx, ControllerCfg *cfg)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
 
     mpp_env_get_u32("jpege_debug", &jpege_debug, 0);
     jpege_dbg_func("enter ctx %p\n", ctx);
 
-    memset(&p->syntax, 0, sizeof(p->syntax));
+    p->cfg = cfg->cfg;
+    p->set = cfg->set;
 
-    mpp_assert(ctrlCfg->coding = MPP_VIDEO_CodingMJPEG);
-    ctrlCfg->task_count = 1;
+    mpp_assert(cfg->coding = MPP_VIDEO_CodingMJPEG);
+    cfg->task_count = 1;
 
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
@@ -89,14 +89,10 @@ MPP_RET jpege_deinit(void *ctx)
 
 MPP_RET jpege_encode(void *ctx, HalEncTask *task)
 {
-    JpegeCtx *p = (JpegeCtx *)ctx;
-
     jpege_dbg_func("enter ctx %p\n", ctx);
 
     task->valid = 1;
-    task->syntax.data   = &p->syntax;
-    task->syntax.number = 1;
-    task->is_intra      = 1;
+    task->is_intra = 1;
 
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
@@ -116,75 +112,12 @@ MPP_RET jpege_flush(void *ctx)
     return MPP_OK;
 }
 
-static MPP_RET jpege_check_cfg(MppEncConfig *cfg)
-{
-    if (cfg->width < 16 && cfg->width > 8192) {
-        mpp_err("jpege: invalid width %d is not in range [16..8192]\n", cfg->width);
-        return MPP_NOK;
-    }
-
-    if (cfg->height < 16 && cfg->height > 8192) {
-        mpp_err("jpege: invalid height %d is not in range [16..8192]\n", cfg->height);
-        return MPP_NOK;
-    }
-
-    if (cfg->format != MPP_FMT_YUV420SP &&
-        cfg->format != MPP_FMT_YUV420P  &&
-        cfg->format != MPP_FMT_RGB888) {
-        mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
-        return MPP_NOK;
-    }
-
-    if (cfg->qp < 0 || cfg->qp > 10) {
-        mpp_err("jpege: invalid quality level %d is not in range [0..10] set to default 8\n");
-        cfg->qp = 8;
-    }
-
-    return MPP_OK;
-}
-
 MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
-    JpegeCtx *p = (JpegeCtx *)ctx;
 
     jpege_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
-
-    switch (cmd) {
-    case CHK_ENC_CFG : {
-        /* NOTE */
-        return jpege_check_cfg((MppEncConfig *)param);
-    } break;
-    case SET_ENC_CFG : {
-        MppEncConfig *mpp_cfg = (MppEncConfig *)param;
-
-        if (jpege_check_cfg(mpp_cfg))
-            break;
-
-        JpegeSyntax *syntax = &p->syntax;
-        syntax->width   = mpp_cfg->width;
-        syntax->height  = mpp_cfg->height;
-        syntax->format  = mpp_cfg->format;
-        syntax->quality = mpp_cfg->qp;
-    } break;
-    case SET_ENC_RC_CFG : {
-        mpp_assert(p);
-        MppEncConfig *mpp_cfg = (MppEncConfig *)param;
-        JpegeSyntax *syntax = &p->syntax;
-
-        mpp_cfg->width  = syntax->width;
-        mpp_cfg->height = syntax->height;
-        mpp_cfg->format = syntax->format;
-        mpp_cfg->qp     = syntax->quality;
-    } break;
-    default:
-        mpp_err("No correspond cmd found, and can not config!");
-        ret = MPP_NOK;
-        break;
-    }
-
     jpege_dbg_func("leave ret %d\n", ret);
-
     return ret;
 }
 

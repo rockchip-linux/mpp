@@ -170,11 +170,6 @@ struct MppEnc_t {
     /* Encoder configure set */
     MppEncCfgSet        cfg;
     MppEncCfgSet        set;
-
-    /*
-     * configuration parameter to controller and hal
-     */
-    MppEncConfig        mpp_cfg;
 };
 
 #ifdef __cplusplus

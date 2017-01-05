@@ -138,6 +138,8 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     MppEncCfgSet *cfg = p->cfg;
     MppEncRcCfg *rc = &cfg->rc;
 
+    h264e_dbg_func("enter\n");
+
     if (!p->rc_ready) {
         mpp_err_f("not initialize encoding\n");
         task->valid = 0;
@@ -151,6 +153,8 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     task->syntax.data   = &p->syntax;
     task->syntax.number = 1;
     task->valid = 1;
+
+    h264e_dbg_func("leave\n");
 
     return MPP_OK;
 }
@@ -193,82 +197,6 @@ static const H264Level h264e_supported_level[] = {
     H264_LEVEL_5_1,
 };
 
-static MPP_RET h264e_check_mpp_cfg(MppEncConfig *mpp_cfg)
-{
-    RK_U32 i, count;
-
-    count = MPP_ARRAY_ELEMS(h264e_supported_profile);
-    for (i = 0; i < count; i++) {
-        if (h264e_supported_profile[i] == (H264Profile)mpp_cfg->profile) {
-            break;
-        }
-    }
-
-    if (i >= count) {
-        mpp_log_f("invalid profile %d set to default baseline\n", mpp_cfg->profile);
-        mpp_cfg->profile = H264_PROFILE_BASELINE;
-    }
-
-    count = MPP_ARRAY_ELEMS(h264e_supported_level);
-    for (i = 0; i < count; i++) {
-        if (h264e_supported_level[i] == (H264Level)mpp_cfg->level) {
-            break;
-        }
-    }
-
-    if (i >= count) {
-        mpp_log_f("invalid level %d set to default 4.0\n", mpp_cfg->level);
-        mpp_cfg->level = H264_LEVEL_4_0;
-    }
-
-    if (mpp_cfg->fps_in <= 0) {
-        mpp_log_f("invalid input fps %d will be set to default 30\n", mpp_cfg->fps_in);
-        mpp_cfg->fps_in = 30;
-    }
-
-    if (mpp_cfg->fps_out <= 0) {
-        mpp_log_f("invalid output fps %d will be set to fps_in 30\n", mpp_cfg->fps_out, mpp_cfg->fps_in);
-        mpp_cfg->fps_out = mpp_cfg->fps_in;
-    }
-
-    if (mpp_cfg->gop <= 0) {
-        mpp_log_f("invalid gop %d will be set to fps_out 30\n", mpp_cfg->gop, mpp_cfg->fps_out);
-        mpp_cfg->gop = mpp_cfg->fps_out;
-    }
-
-    if (mpp_cfg->rc_mode < 0 || mpp_cfg->rc_mode > 2) {
-        mpp_err_f("invalid rc_mode %d\n", mpp_cfg->rc_mode);
-        return MPP_NOK;
-    }
-
-    if (mpp_cfg->qp <= 0 || mpp_cfg->qp > 51) {
-        mpp_log_f("invalid qp %d set to default 26\n", mpp_cfg->qp);
-        mpp_cfg->qp = 26;
-    }
-
-    if (mpp_cfg->bps <= 0) {
-        mpp_err_f("invalid bit rate %d\n", mpp_cfg->bps);
-        return MPP_NOK;
-    }
-
-    if (mpp_cfg->width <= 0 || mpp_cfg->height <= 0) {
-        mpp_err_f("invalid width %d height %d\n", mpp_cfg->width, mpp_cfg->height);
-        return MPP_NOK;
-    }
-
-    if (mpp_cfg->hor_stride <= 0) {
-        mpp_err_f("invalid hor_stride %d will be set to %d\n", mpp_cfg->hor_stride, mpp_cfg->width);
-        mpp_cfg->hor_stride = mpp_cfg->width;
-    }
-
-    if (mpp_cfg->ver_stride <= 0) {
-        mpp_err_f("invalid ver_stride %d will be set to %d\n", mpp_cfg->ver_stride, mpp_cfg->height);
-        mpp_cfg->ver_stride = mpp_cfg->height;
-    }
-
-    return MPP_OK;
-}
-
 MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -277,9 +205,6 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
     switch (cmd) {
-    case CHK_ENC_CFG : {
-        ret = h264e_check_mpp_cfg((MppEncConfig *)param);
-    } break;
     case SET_IDR_FRAME : {
         p->idr_request++;
     } break;

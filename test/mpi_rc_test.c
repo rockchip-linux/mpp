@@ -107,16 +107,16 @@ static OptionInfo mpi_rc_cmd[] = {
     {"c",               "rc test item",         "rc test item flags, one bit each item: roi|force_intra|gop|fps|bps"},
 };
 
-static MPP_RET mpi_rc_read_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, FILE *fp)
+static MPP_RET mpi_rc_read_yuv_image(RK_U8 *buf, MppEncPrepCfg *prep_cfg, FILE *fp)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 read_size;
     RK_U32 row = 0;
-    RK_U32 width        = mpp_cfg->width;
-    RK_U32 height       = mpp_cfg->height;
-    RK_U32 hor_stride   = mpp_cfg->hor_stride;
-    RK_U32 ver_stride   = mpp_cfg->ver_stride;
-    MppFrameFormat fmt  = mpp_cfg->format;
+    RK_U32 width        = prep_cfg->width;
+    RK_U32 height       = prep_cfg->height;
+    RK_U32 hor_stride   = prep_cfg->hor_stride;
+    RK_U32 ver_stride   = prep_cfg->ver_stride;
+    MppFrameFormat fmt  = prep_cfg->format;
     RK_U8 *buf_y = buf;
     RK_U8 *buf_u = buf_y + hor_stride * ver_stride; // NOTE: diff from gen_yuv_image
     RK_U8 *buf_v = buf_u + hor_stride * ver_stride / 4; // NOTE: diff from gen_yuv_image
@@ -180,14 +180,14 @@ err:
     return ret;
 }
 
-static MPP_RET gen_yuv_image(RK_U8 *buf, MppEncConfig *mpp_cfg, RK_U32 frame_count)
+static MPP_RET gen_yuv_image(RK_U8 *buf, MppEncPrepCfg *prep_cfg, RK_U32 frame_count)
 {
     MPP_RET ret = MPP_OK;
-    RK_U32 width        = mpp_cfg->width;
-    RK_U32 height       = mpp_cfg->height;
-    RK_U32 hor_stride   = mpp_cfg->hor_stride;
-    RK_U32 ver_stride   = mpp_cfg->ver_stride;
-    MppFrameFormat fmt  = mpp_cfg->format;
+    RK_U32 width        = prep_cfg->width;
+    RK_U32 height       = prep_cfg->height;
+    RK_U32 hor_stride   = prep_cfg->hor_stride;
+    RK_U32 ver_stride   = prep_cfg->ver_stride;
+    MppFrameFormat fmt  = prep_cfg->format;
     RK_U8 *buf_y = buf;
     RK_U8 *buf_c = buf + hor_stride * ver_stride;
     RK_U32 x, y;
@@ -537,34 +537,6 @@ static void mpi_rc_log_stat(MpiRcTestCtx *ctx, RK_U32 frame_count, RK_U32 one_se
     }
 }
 
-#if 0
-static void mpi_rc_change_cfg(MppEncConfig *mpp_cfg, MpiRcTestCmd *cmd, RK_U32 frame_count)
-{
-    RK_U32 item = cmd->item_flag;
-    if (item & MPI_RC_ITEM_BPS) {
-        mpp_log_f("change bps");
-    }
-
-    if (item & MPI_RC_ITEM_FPS) {
-        mpp_log_f("change fps");
-    }
-
-    if (item & MPI_RC_ITEM_GOP) {
-        mpp_log_f("change gop");
-    }
-
-    if (item & MPI_RC_ITEM_FORCE_I) {
-        mpp_log_f("change fps");
-    }
-
-    if (item & MPI_RC_ITEM_ROI) {
-        mpp_log_f("change roi");
-    }
-    (void)mpp_cfg;
-    (void)frame_count;
-}
-#endif
-
 static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
 {
     MPP_RET ret             = MPP_OK;
@@ -587,7 +559,6 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     MppApi *enc_mpi         = NULL;
     MppCtx dec_ctx          = NULL;
     MppApi *dec_mpi         = NULL;
-    MppEncConfig mpp_cfg;
 
     // input / output
     RK_S32 i;
@@ -618,12 +589,15 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     RK_U32 frame_count  = 0;
     RK_U64 stream_size  = 0;
     RK_U64 stream_size_1s = 0;
-    MppEncRcCfg rc_cfg;
-    MppEncPrepCfg prep_cfg;
-    MppEncCodecCfg codec_cfg;
+
+    // runtime config
+    MppEncCfgSet cfg;
+    MppEncRcCfg *rc_cfg = &cfg.rc;
+    MppEncPrepCfg *prep_cfg = &cfg.prep;
+    MppEncCodecCfg *codec_cfg = &cfg.codec;
+    RK_S32 fps = 30;
 
     mpp_log_f("test start width %d height %d codingtype %d\n", width, height, type);
-
     ret = mpp_buffer_group_get_internal(&frm_grp, MPP_BUFFER_TYPE_ION);
     if (ret) {
         mpp_err("failed to get buffer group for input frame ret %d\n", ret);
@@ -731,77 +705,54 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         goto MPP_TEST_OUT;
     }
 
-    memset(&mpp_cfg, 0, sizeof(mpp_cfg));
-    mpp_cfg.size        = sizeof(mpp_cfg);
-    mpp_cfg.width       = width;
-    mpp_cfg.height      = height;
-    mpp_cfg.hor_stride  = hor_stride;
-    mpp_cfg.ver_stride  = ver_stride;
-    mpp_cfg.format      = fmt;
-    mpp_cfg.rc_mode     = 0;
-    mpp_cfg.skip_cnt    = 0;
-    mpp_cfg.fps_in      = 30;
-    mpp_cfg.fps_out     = 30;
-    mpp_cfg.bps         = width * height * 2 * mpp_cfg.fps_in;
-    mpp_cfg.qp          = (type == MPP_VIDEO_CodingMJPEG) ? (10) : (24);
-    mpp_cfg.gop         = 60;
-
-    mpp_cfg.profile     = 100;
-    mpp_cfg.level       = 41;
-    mpp_cfg.cabac_en    = 1;
-
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
     if (MPP_OK != ret) {
-        mpp_err("mpi control enc set cfg failed\n");
+        mpp_err("mpi control enc set sei cfg failed\n");
         goto MPP_TEST_OUT;
     }
 
-    rc_cfg.change = MPP_ENC_RC_CFG_CHANGE_ALL;
-    rc_cfg.rc_mode = 3;
-    rc_cfg.quality = 0;
-    rc_cfg.bps_target = 2000000;
-    rc_cfg.bps_max = 3000000;
-    rc_cfg.bps_min = 1000000;
-    rc_cfg.fps_in_denorm = 1;
-    rc_cfg.fps_out_denorm = 1;
-    rc_cfg.fps_in_num = 30;
-    rc_cfg.fps_out_num = 30;
-    rc_cfg.fps_in_flex = 0;
-    rc_cfg.fps_out_flex = 0;
-    rc_cfg.gop = 30;
-    rc_cfg.skip_cnt = 0;
+    rc_cfg->change = MPP_ENC_RC_CFG_CHANGE_ALL;
+    rc_cfg->rc_mode = 3;
+    rc_cfg->quality = 0;
+    rc_cfg->bps_target = 2000000;
+    rc_cfg->bps_max = 3000000;
+    rc_cfg->bps_min = 1000000;
+    rc_cfg->fps_in_denorm = 1;
+    rc_cfg->fps_out_denorm = 1;
+    rc_cfg->fps_in_num = fps;
+    rc_cfg->fps_out_denorm = fps;
+    rc_cfg->fps_in_flex = 0;
+    rc_cfg->fps_out_flex = 0;
+    rc_cfg->gop = 30;
+    rc_cfg->skip_cnt = 0;
 
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, &rc_cfg);
-    if (ret) {
-        mpp_err("mpi control enc set rc cfg failed ret %d\n", ret);
-        goto MPP_TEST_OUT;
-    }
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
 
-    prep_cfg.change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                             MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-    prep_cfg.width         = width;
-    prep_cfg.height        = height;
-    prep_cfg.hor_stride    = hor_stride;
-    prep_cfg.ver_stride    = ver_stride;
-    prep_cfg.format        = fmt;
+    prep_cfg->change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                           MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+    prep_cfg->width      = width;
+    prep_cfg->height     = height;
+    prep_cfg->hor_stride = hor_stride;
+    prep_cfg->ver_stride = ver_stride;
+    prep_cfg->format     = fmt;
 
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, prep_cfg);
     if (ret) {
         mpp_err("mpi control enc set prep cfg failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
-    codec_cfg.coding = type;
-    codec_cfg.h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
-                            MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+    codec_cfg->coding = type;
+    codec_cfg->h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
+                             MPP_ENC_H264_CFG_CHANGE_ENTROPY |
+                             MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
     /*
      * H.264 profile_idc parameter
      * 66  - Baseline profile
      * 77  - Main profile
      * 100 - High profile
      */
-    codec_cfg.h264.profile  = 100;
+    codec_cfg->h264.profile  = 100;
     /*
      * H.264 level_idc parameter
      * 10 / 11 / 12 / 13    - qcif@15fps / cif@7.5fps / cif@15fps / cif@30fps
@@ -810,51 +761,30 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
      * 40 / 41 / 42         - 1080p@30fps / 1080p@30fps / 1080p@60fps
      * 50 / 51 / 52         - 4K@30fps
      */
-    codec_cfg.h264.level    = 40;
-    codec_cfg.h264.entropy_coding_mode  = 1;
-    codec_cfg.h264.cabac_init_idc  = 0;
+    codec_cfg->h264.level    = 40;
+    codec_cfg->h264.entropy_coding_mode  = 1;
+    codec_cfg->h264.cabac_init_idc  = 0;
 
-    if (rc_cfg.rc_mode == 1) {
+    if (rc_cfg->rc_mode == 1) {
         /* constant QP mode qp is fixed */
-        codec_cfg.h264.qp_max   = 26;
-        codec_cfg.h264.qp_min   = 26;
-        codec_cfg.h264.qp_max_step  = 0;
-    } else if (rc_cfg.rc_mode == 5) {
+        codec_cfg->h264.qp_max   = 26;
+        codec_cfg->h264.qp_min   = 26;
+        codec_cfg->h264.qp_max_step  = 0;
+    } else if (rc_cfg->rc_mode == 5) {
         /* constant bitrate do not limit qp range */
-        codec_cfg.h264.qp_max   = 48;
-        codec_cfg.h264.qp_min   = 4;
-        codec_cfg.h264.qp_max_step  = 16;
-    } else if (rc_cfg.rc_mode == 3) {
+        codec_cfg->h264.qp_max   = 48;
+        codec_cfg->h264.qp_min   = 4;
+        codec_cfg->h264.qp_max_step  = 16;
+    } else if (rc_cfg->rc_mode == 3) {
         /* variable bitrate has qp min limit */
-        codec_cfg.h264.qp_max   = 40;
-        codec_cfg.h264.qp_min   = 12;
-        codec_cfg.h264.qp_max_step  = 8;
+        codec_cfg->h264.qp_max   = 40;
+        codec_cfg->h264.qp_min   = 12;
+        codec_cfg->h264.qp_max_step  = 8;
     }
-    codec_cfg.h264.qp_init      = 26;
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, &codec_cfg);
+    codec_cfg->h264.qp_init      = 26;
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
-        goto MPP_TEST_OUT;
-    }
-
-    /* optional */
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
-    if (ret) {
-        mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
-        goto MPP_TEST_OUT;
-    }
-
-    prep_cfg.change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                             MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-    prep_cfg.width         = width;
-    prep_cfg.height        = height;
-    prep_cfg.hor_stride    = hor_stride;
-    prep_cfg.ver_stride    = ver_stride;
-    prep_cfg.format        = fmt;
-
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
-    if (ret) {
-        mpp_err("mpi control enc set prep cfg failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
@@ -906,13 +836,13 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
             i = 0;
 
         if (fp_input) {
-            ret = mpi_rc_read_yuv_image(buf, &mpp_cfg, fp_input);
+            ret = mpi_rc_read_yuv_image(buf, prep_cfg, fp_input);
             if (MPP_OK != ret || feof(fp_input)) {
                 mpp_log("found last frame\n");
                 frm_eos = 1;
             }
         } else {
-            ret = gen_yuv_image(buf, &mpp_cfg, frame_count);
+            ret = gen_yuv_image(buf, prep_cfg, frame_count);
             if (ret)
                 goto MPP_TEST_OUT;
         }
@@ -984,7 +914,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
                 stream_size += len;
                 stream_size_1s += len;
                 stat->frame_size = len;
-                if ((frame_count + 1) % mpp_cfg.fps_in == 0) {
+                if ((frame_count + 1) % fps == 0) {
                     stat->ins_bitrate = stream_size_1s;
                     stream_size_1s = 0;
                 }
@@ -1028,15 +958,10 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
                                 mpp_log("decode_get_frame get info changed found\n");
                                 dec_mpi->control(dec_ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                             } else {
-                                /*
-                                   mpp_log_f("decoded frame %d width %d height %d\n",
-                                   frame_count, mpp_frame_get_width(frame_out),
-                                   mpp_frame_get_height(frame_out));
-                                   */
                                 if (fp_dec_out)
                                     dump_mpp_frame_to_file(frame_out, fp_dec_out);
                                 mpi_rc_calc_stat(ctx, frame_in, frame_out);
-                                mpi_rc_log_stat(ctx, frame_count, (frame_count + 1) % mpp_cfg.fps_in == 0,
+                                mpi_rc_log_stat(ctx, frame_count, (frame_count + 1) % fps == 0,
                                                 frame_count + 1 == num_frames);
                                 dec_get_frm = 1;
                             }
@@ -1090,7 +1015,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         goto MPP_TEST_OUT;
     }
 
-    stat->avg_bitrate = (RK_U64)stream_size * mpp_cfg.fps_out / frame_count;
+    stat->avg_bitrate = (RK_U64)stream_size * fps / frame_count;
     mpp_log_f("avg_bitrate %d byte/s", stat->avg_bitrate);
     if (fp_stat)
         fprintf(fp_stat, "%d\n", stat->avg_bitrate);
@@ -1152,7 +1077,7 @@ MPP_TEST_OUT:
 
     if (MPP_OK == ret)
         mpp_log("test success total frame %d bps %lld\n",
-                frame_count, (RK_U64)((stream_size * 8 * mpp_cfg.fps_out) / frame_count));
+                frame_count, (RK_U64)((stream_size * 8 * fps) / frame_count));
     else
         mpp_err_f("failed ret %d\n", ret);
 

@@ -122,11 +122,12 @@ void *mpp_enc_control_thread(void *data)
                  * if there is available buffer in the input frame do encoding
                  */
                 if (NULL == packet) {
-                    RK_U32 width  = enc->mpp_cfg.width;
-                    RK_U32 height = enc->mpp_cfg.height;
+                    RK_U32 width  = enc->cfg.prep.width;
+                    RK_U32 height = enc->cfg.prep.height;
                     RK_U32 size = width * height;
                     MppBuffer buffer = NULL;
 
+                    mpp_assert(size);
                     mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
                     mpp_packet_init_with_buffer(&packet, buffer);
                     mpp_buffer_put(buffer);
@@ -362,7 +363,6 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
         p->tasks        = hal_cfg.tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
-        p->mpp_cfg.size = sizeof(p->mpp_cfg);
         *enc = p;
         return MPP_OK;
     } while (0);
@@ -429,36 +429,29 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     AutoMutex auto_lock(&enc->lock);
 
     switch (cmd) {
-    case MPP_ENC_SET_CFG : {
-        mpp_enc_dbg_ctrl("set config\n");
-#if 0
-        MppEncConfig *mpp_cfg = &enc->mpp_cfg;
-        void *extra_info_cfg = NULL;
+    case MPP_ENC_SET_ALL_CFG : {
+        mpp_enc_dbg_ctrl("set all config\n");
+        memcpy(&enc->set, param, sizeof(enc->set));
 
-        memcpy(mpp_cfg, param, sizeof(enc->mpp_cfg));
+        ret = controller_config(enc->controller, MPP_ENC_SET_RC_CFG, param);
+        if (!ret)
+            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_RC_CFG, &enc->set.rc);
 
-        /* before set config to controller check it first */
-        ret = controller_config(enc->controller, CHK_ENC_CFG, (void *)mpp_cfg);
-        if (ret) {
-            mpp_err("config check failed ret %d\n", ret);
-            break;
-        }
-        controller_config(enc->controller, SET_ENC_CFG,     (void *)mpp_cfg);
-        controller_config(enc->controller, SET_ENC_RC_CFG,  (void *)mpp_cfg);
-        controller_config(enc->controller, GET_ENC_EXTRA_INFO,  (void *)&extra_info_cfg);
+        if (!ret)
+            mpp_enc_update_rc_cfg(&enc->cfg.rc, &enc->set.rc);
 
-        ret = mpp_hal_control(enc->hal, MPP_ENC_SET_EXTRA_INFO, extra_info_cfg);
-#endif
+        if (!ret)
+            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_PREP_CFG, &enc->set.prep);
+
+        if (!ret)
+            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_CODEC_CFG, &enc->set.codec);
     } break;
-    case MPP_ENC_GET_CFG : {
-        MppEncConfig *mpp_cfg = (MppEncConfig *)param;
+    case MPP_ENC_GET_ALL_CFG : {
+        MppEncCfgSet *p = (MppEncCfgSet *)param;
 
-        mpp_enc_dbg_ctrl("get config\n");
-        mpp_assert(mpp_cfg->size == sizeof(enc->mpp_cfg));
-
-        *mpp_cfg = enc->mpp_cfg;
+        mpp_enc_dbg_ctrl("get all config\n");
+        memcpy(p, &enc->cfg, sizeof(*p));
     } break;
-
     case MPP_ENC_SET_PREP_CFG : {
         mpp_enc_dbg_ctrl("set prep config\n");
         memcpy(&enc->set.prep, param, sizeof(enc->set.prep));

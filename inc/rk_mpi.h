@@ -81,63 +81,6 @@ typedef void* MppParam;
  * send a stream header to mpi ctx using parameter data / size
  * and decoder will try to decode the
  */
-typedef struct MppEncConfig_t {
-    /* encoder config also need to know size of itself */
-    RK_U32  size;
-    RK_U32  version;
-
-    /*
-     * input source data format
-     */
-    RK_S32  width;
-    RK_S32  height;
-    RK_S32  hor_stride;
-    RK_S32  ver_stride;
-    RK_S32  format;
-
-    /*
-     * Encoder does not support scaling and output data only support yuv420 so far
-     */
-
-    /*
-     * rate control parameter
-     *
-     * rc_mode  - rate control mode
-     *            0 - fix qp mode
-     *            1 - constant bit rate mode (CBR)
-     *            2 - variable bit rate mode (VBR)
-     * skip_cnt - max continuous frame skip count
-     *            0 - frame skip is not allow
-     * bps      - target bit rate, unit: bit per second
-     * fps_in   - input  frame rate, unit: frame per second
-     *            if 0 then default set to 30
-     * fps_out  - output frame rate, unit: frame per second
-     *            if 0 then default set to fps_in
-     * qp       - constant qp for fix qp mode
-     *            initial qp for CBR / VBR
-     * gop      - gap between Intra frame
-     *            0 for only 1 I frame the rest are all P frames
-     *            1 for all I frame
-     *            2 for I P I P I P
-     *            3 for I P P I P P
-     *            etc...
-     */
-    RK_S32  rc_mode;
-    RK_S32  skip_cnt;
-    RK_S32  bps;
-    RK_S32  fps_in;
-    RK_S32  fps_out;
-    RK_S32  qp;
-    RK_S32  gop;
-
-    /*
-     * stream feature parameter
-     */
-    RK_S32  profile;
-    RK_S32  level;
-    RK_S32  cabac_en;
-} MppEncConfig;
-
 typedef struct MppEncCodecCfg_t {
     MppCodingType       coding;
 

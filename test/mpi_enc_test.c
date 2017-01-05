@@ -67,7 +67,6 @@ typedef struct {
     // base flow context
     MppCtx ctx;
     MppApi *mpi;
-    MppEncConfig mpp_cfg;
     MppEncPrepCfg prep_cfg;
     MppEncRcCfg rc_cfg;
     MppEncCodecCfg codec_cfg;

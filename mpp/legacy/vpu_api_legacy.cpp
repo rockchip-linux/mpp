@@ -112,6 +112,143 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
     return ret;
 }
 
+static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
+                                   MppCodingType coding, MppFrameFormat fmt,
+                                   EncParameter_t *cfg)
+{
+    MPP_RET ret = MPP_OK;
+    MppEncCfgSet set;
+    MppEncCodecCfg *codec_cfg = &set.codec;
+    MppEncPrepCfg *prep_cfg = &set.prep;
+    MppEncRcCfg *rc_cfg = &set.rc;
+    RK_S32 width    = cfg->width;
+    RK_S32 height   = cfg->height;
+    RK_S32 bps      = cfg->bitRate;
+    RK_S32 fps_in   = cfg->framerate;
+    RK_S32 fps_out  = (cfg->framerateout) ? (cfg->framerateout) : (fps_in);
+    RK_S32 gop      = (cfg->intraPicRate) ? (cfg->intraPicRate) : (fps_out);
+    RK_S32 qp_init  = (coding == MPP_VIDEO_CodingAVC) ? (26) :
+                      (coding == MPP_VIDEO_CodingMJPEG) ? (10) :
+                      (coding == MPP_VIDEO_CodingVP8) ? (56) : (0);
+    RK_S32 qp       = (cfg->qp) ? (cfg->qp) : (qp_init);
+    RK_S32 profile  = cfg->profileIdc;
+    RK_S32 level    = cfg->levelIdc;
+    RK_S32 cabac_en = cfg->enableCabac;
+    RK_S32 rc_mode  = cfg->rc_mode;
+
+    mpp_log("setup encoder rate control config:\n");
+    mpp_log("width %4d height %4d format %d\n", width, height, fmt);
+    mpp_log("rc_mode %s qp %d bps %d\n", (rc_mode) ? ("VBR") : ("CQP"), qp, bps);
+    mpp_log("fps in %d fps out %d gop %d\n", fps_in, fps_out, gop);
+    mpp_log("setup encoder stream feature config:\n");
+    mpp_log("profile %d level %d cabac %d\n", profile, level, cabac_en);
+
+    mpp_assert(width);
+    mpp_assert(height);
+    mpp_assert(qp);
+
+    prep_cfg->change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                           MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+    prep_cfg->width      = width;
+    prep_cfg->height     = height;
+    prep_cfg->hor_stride = MPP_ALIGN(width, 16);
+    prep_cfg->ver_stride = MPP_ALIGN(height, 16);
+    prep_cfg->format     = fmt;
+    ret = mpi->control(mpp_ctx, MPP_ENC_SET_PREP_CFG, prep_cfg);
+    if (ret) {
+        mpp_err("setup preprocess config failed ret %d\n", ret);
+        goto RET;
+    }
+
+    rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
+    /* auto quality */
+    rc_cfg->quality = 0;
+    if (rc_mode == 0) {
+        /* 0 - constant QP */
+        /* constant QP does not have bps */
+        rc_cfg->rc_mode     = 1;
+        rc_cfg->bps_target  = -1;
+        rc_cfg->bps_max     = -1;
+        rc_cfg->bps_min     = -1;
+    } else if (rc_mode == 1) {
+        /* 1 - constant bitrate */
+        /* constant bitrate has very small bps range of 1/16 bps */
+        rc_cfg->rc_mode     = 5;
+        rc_cfg->bps_target  = bps;
+        rc_cfg->bps_max     = bps * 17 / 16;
+        rc_cfg->bps_min     = bps * 15 / 16;
+    } else if (rc_mode == 2) {
+        /* 2 - variable bitrate */
+        /* variable bitrate has large bps range */
+        rc_cfg->rc_mode     = 3;
+        rc_cfg->bps_target  = bps;
+        rc_cfg->bps_max     = bps * 17 / 16;
+        rc_cfg->bps_min     = bps * 1 / 16;
+    }
+
+    /* fix input / output frame rate */
+    rc_cfg->fps_in_flex     = 0;
+    rc_cfg->fps_in_num      = fps_in;
+    rc_cfg->fps_in_denorm   = 1;
+    rc_cfg->fps_out_flex    = 0;
+    rc_cfg->fps_out_num     = fps_out;
+    rc_cfg->fps_out_denorm  = 1;
+    rc_cfg->gop             = gop;
+    rc_cfg->skip_cnt        = 0;
+    ret = mpi->control(mpp_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
+    if (ret) {
+        mpp_err("setup rate control config failed ret %d\n", ret);
+        goto RET;
+    }
+
+    codec_cfg->coding = coding;
+    switch (coding) {
+    case MPP_VIDEO_CodingAVC : {
+        codec_cfg->h264.change = MPP_ENC_H264_CFG_STREAM_TYPE |
+                                 MPP_ENC_H264_CFG_CHANGE_PROFILE |
+                                 MPP_ENC_H264_CFG_CHANGE_ENTROPY |
+                                 MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+        codec_cfg->h264.stream_type = 1;
+        codec_cfg->h264.profile  = profile;
+        codec_cfg->h264.level    = level;
+        codec_cfg->h264.entropy_coding_mode  = cabac_en;
+        codec_cfg->h264.cabac_init_idc  = 0;
+
+        if (rc_mode == 0) {
+            /* constant QP mode qp is fixed */
+            codec_cfg->h264.qp_max      = qp;
+            codec_cfg->h264.qp_min      = qp;
+            codec_cfg->h264.qp_max_step = 0;
+        } else if (rc_mode == 1) {
+            /* constant bitrate do not limit qp range */
+            codec_cfg->h264.qp_max      = 48;
+            codec_cfg->h264.qp_min      = 4;
+            codec_cfg->h264.qp_max_step = 51;
+        } else if (rc_mode == 2) {
+            /* variable bitrate has qp min limit */
+            codec_cfg->h264.qp_max      = 48;
+            codec_cfg->h264.qp_min      = qp;
+            codec_cfg->h264.qp_max_step = 8;
+        }
+        codec_cfg->h264.qp_init = 26;
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        codec_cfg->jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
+        codec_cfg->jpeg.quant = qp;
+    } break;
+    case MPP_VIDEO_CodingVP8 :
+    case MPP_VIDEO_CodingHEVC :
+    default : {
+        mpp_err_f("support encoder coding type %d\n", coding);
+    } break;
+    }
+    ret = mpi->control(mpp_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
+    if (ret)
+        mpp_err("setup codec config failed ret %d\n", ret);
+RET:
+    return ret;
+}
+
 static void vpu_api_dump_yuv(VPU_FRAME *vframe, FILE *fp, RK_U8 *fp_buf, RK_S64 pts)
 {
     //!< Dump yuv
@@ -186,7 +323,7 @@ VpuApiLegacy::VpuApiLegacy() :
     fp(NULL),
     fp_buf(NULL),
     memGroup(NULL),
-    enc_in_fmt(ENC_INPUT_YUV420_PLANAR),
+    format(MPP_FMT_YUV420P),
     fd_input(-1),
     fd_output(-1),
     mEosSet(0)
@@ -202,6 +339,7 @@ VpuApiLegacy::VpuApiLegacy() :
         fp_buf = mpp_malloc(RK_U8, (MAX_WRITE_HEIGHT * MAX_WRITE_WIDTH * 2));
     }
 
+    memset(&enc_cfg, 0, sizeof(enc_cfg));
     vpu_api_dbg_func("leave\n");
 }
 
@@ -270,132 +408,11 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
     if (MPP_CTX_ENC == type) {
         EncParameter_t *param = (EncParameter_t*)ctx->private_data;
-        MppEncConfig mpp_cfg;
+        MppCodingType coding = (MppCodingType)ctx->videoCoding;
+        format = vpu_pic_type_remap_to_mpp((EncInputPictureType)param->format);
 
-        memset(&mpp_cfg, 0, sizeof(mpp_cfg));
-
-        mpp_log("setup encoder rate control config:\n");
-        mpp_log("width %4d height %4d format %d\n", param->width, param->height, param->format);
-        mpp_log("rc_mode %s qp %d bps %d\n", (param->rc_mode) ? ("VBR") : ("CQP"), param->qp, param->bitRate);
-        mpp_log("fps in %d fps out %d gop %d\n", param->framerate, param->framerateout, param->intraPicRate);
-        mpp_log("setup encoder stream feature config:\n");
-        mpp_log("profile %d level %d cabac %d\n", param->profileIdc, param->levelIdc, param->enableCabac);
-
-        mpp_assert(param->width);
-        mpp_assert(param->height);
-
-        enc_in_fmt = (EncInputPictureType)param->format;
-
-        mpp_cfg.width       = param->width;
-        mpp_cfg.height      = param->height;
-        mpp_cfg.format      = vpu_pic_type_remap_to_mpp(enc_in_fmt);
-        mpp_cfg.rc_mode     = param->rc_mode;
-        mpp_cfg.skip_cnt    = 0;
-        mpp_cfg.bps         = param->bitRate;
-        mpp_cfg.fps_in      = param->framerate;
-        if (param->framerateout)
-            mpp_cfg.fps_out = param->framerateout;
-        else
-            mpp_cfg.fps_out = param->framerate;
-        mpp_cfg.qp          = (param->qp) ? (param->qp) : (26);
-        mpp_cfg.gop         = param->intraPicRate;
-
-        mpp_cfg.profile     = param->profileIdc;
-        mpp_cfg.level       = param->levelIdc;
-        mpp_cfg.cabac_en    = param->enableCabac;
-
-        mpi->control(mpp_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
-
-        MppEncPrepCfg prep_cfg;
-        prep_cfg.change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                              MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-        prep_cfg.width      = param->width;
-        prep_cfg.height     = param->height;
-        prep_cfg.hor_stride = MPP_ALIGN(param->width, 16);
-        prep_cfg.ver_stride = MPP_ALIGN(param->height, 16);
-        prep_cfg.format     = (MppFrameFormat)mpp_cfg.format;
-
-        mpi->control(mpp_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
-
-        MppEncRcCfg rc_cfg;
-        rc_cfg.change       = MPP_ENC_RC_CFG_CHANGE_ALL;
-        rc_cfg.rc_mode      = (mpp_cfg.rc_mode == 0) ? (1) :    /* 0 - constant QP */
-                              (mpp_cfg.rc_mode == 1) ? (5) :    /* 1 - constant bitrate */
-                              (3);     /* 2 - variable bitrate */
-        rc_cfg.quality      = 0;                                /* auto quality */
-
-        if (rc_cfg.rc_mode == 1) {
-            /* constant QP does not have bps */
-            rc_cfg.bps_target   = -1;
-            rc_cfg.bps_max      = -1;
-            rc_cfg.bps_min      = -1;
-        } else if (rc_cfg.rc_mode == 5) {
-            /* constant bitrate has very small bps range of 1/16 bps */
-            rc_cfg.bps_target   = mpp_cfg.bps;
-            rc_cfg.bps_max      = mpp_cfg.bps * 17 / 16;
-            rc_cfg.bps_min      = mpp_cfg.bps * 15 / 16;
-        } else if (rc_cfg.rc_mode == 3) {
-            /* variable bitrate has large bps range */
-            rc_cfg.bps_target   = mpp_cfg.bps;
-            rc_cfg.bps_max      = mpp_cfg.bps * 17 / 16;
-            rc_cfg.bps_min      = mpp_cfg.bps * 1 / 16;
-        }
-
-        /* fix input / output frame rate */
-        rc_cfg.fps_in_flex      = 0;
-        rc_cfg.fps_in_num       = mpp_cfg.fps_in;
-        rc_cfg.fps_in_denorm    = 1;
-        rc_cfg.fps_out_flex     = 0;
-        rc_cfg.fps_out_num      = mpp_cfg.fps_out;
-        rc_cfg.fps_out_denorm   = 1;
-
-        rc_cfg.gop              = mpp_cfg.gop;
-        rc_cfg.skip_cnt         = mpp_cfg.skip_cnt;
-
-        mpi->control(mpp_ctx, MPP_ENC_SET_RC_CFG, &rc_cfg);
-
-        MppEncCodecCfg codec_cfg;
-        codec_cfg.coding = (MppCodingType)ctx->videoCoding;
-        switch (codec_cfg.coding) {
-        case MPP_VIDEO_CodingAVC : {
-            codec_cfg.h264.change = MPP_ENC_H264_CFG_STREAM_TYPE |
-                                    MPP_ENC_H264_CFG_CHANGE_PROFILE |
-                                    MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                                    MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
-            codec_cfg.h264.stream_type = 1;
-            codec_cfg.h264.profile  = mpp_cfg.profile;
-            codec_cfg.h264.level    = mpp_cfg.level;
-            codec_cfg.h264.entropy_coding_mode  = mpp_cfg.cabac_en;
-
-            if (rc_cfg.rc_mode == 1) {
-                /* constant QP mode qp is fixed */
-                codec_cfg.h264.qp_max       = mpp_cfg.qp;
-                codec_cfg.h264.qp_min       = mpp_cfg.qp;
-                codec_cfg.h264.qp_max_step  = 0;
-            } else if (rc_cfg.rc_mode == 5) {
-                /* constant bitrate do not limit qp range */
-                codec_cfg.h264.qp_max       = 48;
-                codec_cfg.h264.qp_min       = 4;
-                codec_cfg.h264.qp_max_step  = 51;
-            } else if (rc_cfg.rc_mode == 3) {
-                /* variable bitrate has qp min limit */
-                codec_cfg.h264.qp_max       = 48;
-                codec_cfg.h264.qp_min       = mpp_cfg.qp;
-                codec_cfg.h264.qp_max_step  = 8;
-            }
-            codec_cfg.h264.qp_init = 26;
-        } break;
-        case MPP_VIDEO_CodingMJPEG : {
-            codec_cfg.jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
-            codec_cfg.jpeg.quant = mpp_cfg.qp;
-        } break;
-        case MPP_VIDEO_CodingVP8 :
-        case MPP_VIDEO_CodingHEVC :
-        default : {
-            mpp_err_f("support encoder coding type %d\n", codec_cfg.coding);
-        } break;
-        }
-        mpi->control(mpp_ctx, MPP_ENC_SET_CODEC_CFG, &codec_cfg);
+        memcpy(&enc_cfg, param, sizeof(enc_cfg));
+        vpu_api_set_enc_cfg(mpp_ctx, mpi, coding, format, param);
 
         mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
 
@@ -1306,54 +1323,18 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     MpiCmd mpicmd = MPI_CMD_BUTT;
     switch (cmd) {
     case VPU_API_ENC_SETCFG : {
-        /* input EncParameter_t need to be transform to MppEncConfig */
-        EncParameter_t *cfg = (EncParameter_t *)param;
-        MppEncConfig mpp_cfg;
-
-        mpp_cfg.size        = sizeof(mpp_cfg);
-        mpp_cfg.version     = 0;
-        mpp_cfg.width       = cfg->width;
-        mpp_cfg.height      = cfg->height;
-        mpp_cfg.hor_stride  = MPP_ALIGN(cfg->width, 16);
-        mpp_cfg.ver_stride  = MPP_ALIGN(cfg->height, 16);
-        mpp_cfg.format      = vpu_pic_type_remap_to_mpp(enc_in_fmt);
-        mpp_cfg.rc_mode     = cfg->rc_mode;
-        mpp_cfg.skip_cnt    = 0;
-        mpp_cfg.bps         = cfg->bitRate;
-        mpp_cfg.fps_in      = cfg->framerate;
-        mpp_cfg.fps_out     = cfg->framerateout;
-        mpp_cfg.qp          = cfg->qp;
-        mpp_cfg.gop         = cfg->intraPicRate;
-        mpp_cfg.profile     = cfg->profileIdc;
-        mpp_cfg.level       = cfg->levelIdc;
-        mpp_cfg.cabac_en    = cfg->enableCabac;
-
-        return mpi->control(mpp_ctx, MPP_ENC_SET_CFG, (MppParam)&mpp_cfg);
+        MppCodingType coding = (MppCodingType)ctx->videoCoding;
+        
+        memcpy(&enc_cfg, param, sizeof(enc_cfg));
+        return vpu_api_set_enc_cfg(mpp_ctx, mpi, coding, format, &enc_cfg);
     } break;
     case VPU_API_ENC_GETCFG : {
-        /* input EncParameter_t need to be transform to MppEncConfig */
-        EncParameter_t *cfg = (EncParameter_t *)param;
-        MppEncConfig mpp_cfg;
-
-        MPP_RET ret = mpi->control(mpp_ctx, MPP_ENC_GET_CFG, (MppParam)&mpp_cfg);
-
-        cfg->width          = mpp_cfg.width;
-        cfg->height         = mpp_cfg.height;
-        cfg->rc_mode        = mpp_cfg.rc_mode;
-        cfg->bitRate        = mpp_cfg.bps;
-        cfg->framerate      = mpp_cfg.fps_in;
-        cfg->framerateout   = mpp_cfg.fps_out;
-        cfg->qp             = mpp_cfg.qp;
-        cfg->intraPicRate   = mpp_cfg.gop;
-        cfg->profileIdc     = mpp_cfg.profile;
-        cfg->levelIdc       = mpp_cfg.level;
-        cfg->enableCabac    = mpp_cfg.cabac_en;
-        cfg->cabacInitIdc   = 0;
-
-        return ret;
+        memcpy(param, &enc_cfg, sizeof(enc_cfg));
+        return 0;
     } break;
     case VPU_API_ENC_SETFORMAT : {
-        enc_in_fmt = *((EncInputPictureType *)param);
+        EncInputPictureType type = *((EncInputPictureType *)param);
+        format = vpu_pic_type_remap_to_mpp(type);
         return 0;
     } break;
     case VPU_API_ENC_SETIDRFRAME : {
