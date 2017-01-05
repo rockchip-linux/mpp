@@ -537,6 +537,7 @@ static void mpi_rc_log_stat(MpiRcTestCtx *ctx, RK_U32 frame_count, RK_U32 one_se
     }
 }
 
+#if 0
 static void mpi_rc_change_cfg(MppEncConfig *mpp_cfg, MpiRcTestCmd *cmd, RK_U32 frame_count)
 {
     RK_U32 item = cmd->item_flag;
@@ -562,6 +563,7 @@ static void mpi_rc_change_cfg(MppEncConfig *mpp_cfg, MpiRcTestCmd *cmd, RK_U32 f
     (void)mpp_cfg;
     (void)frame_count;
 }
+#endif
 
 static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
 {
@@ -616,6 +618,9 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     RK_U32 frame_count  = 0;
     RK_U64 stream_size  = 0;
     RK_U64 stream_size_1s = 0;
+    MppEncRcCfg rc_cfg;
+    MppEncPrepCfg prep_cfg;
+    MppEncCodecCfg codec_cfg;
 
     mpp_log_f("test start width %d height %d codingtype %d\n", width, height, type);
 
@@ -692,7 +697,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     mpp_frame_set_width(frame_tmp, width);
     mpp_frame_set_height(frame_tmp, height);
     // NOTE: only for current version, otherwise there will be info change
-    mpp_frame_set_hor_stride(frame_tmp, (MPP_ALIGN(hor_stride, 256) | 256));
+    mpp_frame_set_hor_stride(frame_tmp, /*(MPP_ALIGN(hor_stride, 256) | 256)*/hor_stride);
     mpp_frame_set_ver_stride(frame_tmp, ver_stride);
     mpp_frame_set_fmt(frame_tmp, MPP_FMT_YUV420SP); // dec out frame only support 420sp
     ret = dec_mpi->control(dec_ctx, MPP_DEC_SET_FRAME_INFO, (MppParam)frame_tmp);
@@ -745,19 +750,12 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     mpp_cfg.level       = 41;
     mpp_cfg.cabac_en    = 1;
 
-    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
-    if (MPP_OK != ret) {
-        mpp_err("mpi control enc set sei cfg failed\n");
-        goto MPP_TEST_OUT;
-    }
-
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
     if (MPP_OK != ret) {
         mpp_err("mpi control enc set cfg failed\n");
         goto MPP_TEST_OUT;
     }
 
-    MppEncRcCfg rc_cfg;
     rc_cfg.change = MPP_ENC_RC_CFG_CHANGE_ALL;
     rc_cfg.rc_mode = 3;
     rc_cfg.quality = 0;
@@ -767,15 +765,85 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     rc_cfg.fps_in_denorm = 1;
     rc_cfg.fps_out_denorm = 1;
     rc_cfg.fps_in_num = 30;
-    rc_cfg.fps_out_denorm = 30;
+    rc_cfg.fps_out_num = 30;
     rc_cfg.fps_in_flex = 0;
     rc_cfg.fps_out_flex = 0;
     rc_cfg.gop = 30;
     rc_cfg.skip_cnt = 0;
 
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, &rc_cfg);
+    if (ret) {
+        mpp_err("mpi control enc set rc cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
 
-    MppEncPrepCfg prep_cfg;
+    prep_cfg.change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                             MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+    prep_cfg.width         = width;
+    prep_cfg.height        = height;
+    prep_cfg.hor_stride    = hor_stride;
+    prep_cfg.ver_stride    = ver_stride;
+    prep_cfg.format        = fmt;
+
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg);
+    if (ret) {
+        mpp_err("mpi control enc set prep cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    codec_cfg.coding = type;
+    codec_cfg.h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
+                            MPP_ENC_H264_CFG_CHANGE_ENTROPY |
+                            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+    /*
+     * H.264 profile_idc parameter
+     * 66  - Baseline profile
+     * 77  - Main profile
+     * 100 - High profile
+     */
+    codec_cfg.h264.profile  = 100;
+    /*
+     * H.264 level_idc parameter
+     * 10 / 11 / 12 / 13    - qcif@15fps / cif@7.5fps / cif@15fps / cif@30fps
+     * 20 / 21 / 22         - cif@30fps / half-D1@@25fps / D1@12.5fps
+     * 30 / 31 / 32         - D1@25fps / 720p@30fps / 720p@60fps
+     * 40 / 41 / 42         - 1080p@30fps / 1080p@30fps / 1080p@60fps
+     * 50 / 51 / 52         - 4K@30fps
+     */
+    codec_cfg.h264.level    = 40;
+    codec_cfg.h264.entropy_coding_mode  = 1;
+    codec_cfg.h264.cabac_init_idc  = 0;
+
+    if (rc_cfg.rc_mode == 1) {
+        /* constant QP mode qp is fixed */
+        codec_cfg.h264.qp_max   = 26;
+        codec_cfg.h264.qp_min   = 26;
+        codec_cfg.h264.qp_max_step  = 0;
+    } else if (rc_cfg.rc_mode == 5) {
+        /* constant bitrate do not limit qp range */
+        codec_cfg.h264.qp_max   = 48;
+        codec_cfg.h264.qp_min   = 4;
+        codec_cfg.h264.qp_max_step  = 16;
+    } else if (rc_cfg.rc_mode == 3) {
+        /* variable bitrate has qp min limit */
+        codec_cfg.h264.qp_max   = 40;
+        codec_cfg.h264.qp_min   = 12;
+        codec_cfg.h264.qp_max_step  = 8;
+    }
+    codec_cfg.h264.qp_init      = 26;
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, &codec_cfg);
+    if (ret) {
+        mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    /* optional */
+    ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
+    if (ret) {
+        mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
     prep_cfg.change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                              MPP_ENC_PREP_CFG_CHANGE_FORMAT;
     prep_cfg.width         = width;
@@ -877,138 +945,130 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         mpp_task_meta_set_frame (enc_task, KEY_INPUT_FRAME,  frame_in);
         mpp_task_meta_set_packet(enc_task, KEY_OUTPUT_PACKET, packet);
 
-        if (cmd->item_flag) {
-            mpi_rc_change_cfg(&mpp_cfg, cmd, frame_count);
-            ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CFG, &mpp_cfg);
-            if (MPP_OK != ret) {
-                mpp_err("mpi control enc set cfg failed\n");
-                goto MPP_TEST_OUT;
-            }
-        }
-
         ret = enc_mpi->enqueue(enc_ctx, MPP_PORT_INPUT, enc_task);
         if (ret) {
             mpp_err("mpp task input enqueue failed\n");
             goto MPP_TEST_OUT;
         }
 
-        msleep(20);
+        ret = enc_mpi->poll(enc_ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
+        if (ret) {
+            mpp_err("mpp task output poll failed ret %d\n", ret);
+            goto MPP_TEST_OUT;
+        }
 
-        do {
-            ret = enc_mpi->dequeue(enc_ctx, MPP_PORT_OUTPUT, &enc_task);
-            if (ret) {
-                mpp_err("mpp task output dequeue failed\n");
-                goto MPP_TEST_OUT;
-            }
+        ret = enc_mpi->dequeue(enc_ctx, MPP_PORT_OUTPUT, &enc_task);
+        if (ret || NULL == enc_task) {
+            mpp_err("mpp task output dequeue failed ret %d task %p\n", ret, enc_task);
+            goto MPP_TEST_OUT;
+        }
 
-            if (enc_task) {
-                MppFrame packet_out = NULL;
+        if (enc_task) {
+            MppFrame packet_out = NULL;
 
-                mpp_task_meta_get_packet(enc_task, KEY_OUTPUT_PACKET, &packet_out);
+            mpp_task_meta_get_packet(enc_task, KEY_OUTPUT_PACKET, &packet_out);
 
-                mpp_assert(packet_out == packet);
-                if (packet) {
-                    // write packet to file here
-                    void *ptr   = mpp_packet_get_pos(packet);
-                    size_t len  = mpp_packet_get_length(packet);
-                    RK_U32 dec_pkt_done = 0;
+            mpp_assert(packet_out == packet);
+            if (packet) {
+                // write packet to file here
+                void *ptr   = mpp_packet_get_pos(packet);
+                size_t len  = mpp_packet_get_length(packet);
+                RK_U32 dec_pkt_done = 0;
 
-                    pkt_eos = mpp_packet_get_eos(packet);
+                pkt_eos = mpp_packet_get_eos(packet);
 
-                    if (fp_enc_out)
-                        fwrite(ptr, 1, len, fp_enc_out);
+                if (fp_enc_out)
+                    fwrite(ptr, 1, len, fp_enc_out);
 
-                    //mpp_log_f("encoded frame %d size %d\n", frame_count, len);
-                    stream_size += len;
-                    stream_size_1s += len;
-                    stat->frame_size = len;
-                    if ((frame_count + 1) % mpp_cfg.fps_in == 0) {
-                        stat->ins_bitrate = stream_size_1s;
-                        stream_size_1s = 0;
+                //mpp_log_f("encoded frame %d size %d\n", frame_count, len);
+                stream_size += len;
+                stream_size_1s += len;
+                stat->frame_size = len;
+                if ((frame_count + 1) % mpp_cfg.fps_in == 0) {
+                    stat->ins_bitrate = stream_size_1s;
+                    stream_size_1s = 0;
+                }
+
+                if (pkt_eos) {
+                    mpp_log("found last packet\n");
+                    mpp_assert(frm_eos);
+                }
+
+                /* decode one frame */
+                // write packet to dec input
+                memset(dec_in_buf, 0, packet_size);
+                mpp_packet_write(dec_packet, 0, ptr, len);
+                // reset pos
+                mpp_packet_set_pos(dec_packet, dec_in_buf);
+                mpp_packet_set_length(dec_packet, len);
+                mpp_packet_set_size(dec_packet, len);
+                frame_out = NULL;
+
+                do {
+                    // send the packet first if packet is not done
+                    if (!dec_pkt_done) {
+                        ret = dec_mpi->decode_put_packet(dec_ctx, dec_packet);
+                        if (MPP_OK == ret)
+                            dec_pkt_done = 1;
                     }
 
-                    if (pkt_eos) {
-                        mpp_log("found last packet\n");
-                        mpp_assert(frm_eos);
-                    }
-
-                    /* decode one frame */
-                    // write packet to dec input
-                    memset(dec_in_buf, 0, packet_size);
-                    mpp_packet_write(dec_packet, 0, ptr, len);
-                    // reset pos
-                    mpp_packet_set_pos(dec_packet, dec_in_buf);
-                    mpp_packet_set_length(dec_packet, len);
-                    mpp_packet_set_size(dec_packet, len);
-                    frame_out = NULL;
-
+                    // then get all available frame and release
                     do {
-                        // send the packet first if packet is not done
-                        if (!dec_pkt_done) {
-                            ret = dec_mpi->decode_put_packet(dec_ctx, dec_packet);
-                            if (MPP_OK == ret)
-                                dec_pkt_done = 1;
+                        RK_S32 dec_get_frm = 0;
+                        RK_U32 dec_frm_eos = 0;
+
+                        ret = dec_mpi->decode_get_frame(dec_ctx, &frame_out);
+                        if (MPP_OK != ret) {
+                            mpp_err("decode_get_frame failed ret %d\n", ret);
+                            break;
                         }
 
-                        // then get all available frame and release
-                        do {
-                            RK_S32 dec_get_frm = 0;
-                            RK_U32 dec_frm_eos = 0;
-
-                            ret = dec_mpi->decode_get_frame(dec_ctx, &frame_out);
-                            if (MPP_OK != ret) {
-                                mpp_err("decode_get_frame failed ret %d\n", ret);
-                                break;
+                        if (frame_out) {
+                            if (mpp_frame_get_info_change(frame_out)) {
+                                mpp_log("decode_get_frame get info changed found\n");
+                                dec_mpi->control(dec_ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                            } else {
+                                /*
+                                   mpp_log_f("decoded frame %d width %d height %d\n",
+                                   frame_count, mpp_frame_get_width(frame_out),
+                                   mpp_frame_get_height(frame_out));
+                                   */
+                                if (fp_dec_out)
+                                    dump_mpp_frame_to_file(frame_out, fp_dec_out);
+                                mpi_rc_calc_stat(ctx, frame_in, frame_out);
+                                mpi_rc_log_stat(ctx, frame_count, (frame_count + 1) % mpp_cfg.fps_in == 0,
+                                                frame_count + 1 == num_frames);
+                                dec_get_frm = 1;
                             }
+                            dec_frm_eos = mpp_frame_get_eos(frame_out);
+                            mpp_frame_deinit(&frame_out);
+                            frame_out = NULL;
+                        }
 
-                            if (frame_out) {
-                                if (mpp_frame_get_info_change(frame_out)) {
-                                    mpp_log("decode_get_frame get info changed found\n");
-                                    dec_mpi->control(dec_ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
-                                } else {
-                                    /*
-                                    mpp_log_f("decoded frame %d width %d height %d\n",
-                                              frame_count, mpp_frame_get_width(frame_out),
-                                              mpp_frame_get_height(frame_out));
-                                    */
-                                    if (fp_dec_out)
-                                        dump_mpp_frame_to_file(frame_out, fp_dec_out);
-                                    mpi_rc_calc_stat(ctx, frame_in, frame_out);
-                                    mpi_rc_log_stat(ctx, frame_count, (frame_count + 1) % mpp_cfg.fps_in == 0,
-                                                    frame_count + 1 == num_frames);
-                                    dec_get_frm = 1;
-                                }
-                                dec_frm_eos = mpp_frame_get_eos(frame_out);
-                                mpp_frame_deinit(&frame_out);
-                                frame_out = NULL;
-                            }
+                        // if last packet is send but last frame is not found continue
+                        if (pkt_eos && dec_pkt_done && !dec_frm_eos)
+                            continue;
 
-                            // if last packet is send but last frame is not found continue
-                            if (pkt_eos && dec_pkt_done && !dec_frm_eos)
-                                continue;
-
-                            if (dec_get_frm)
-                                break;
-                        } while (1);
-
-                        if (dec_pkt_done)
+                        if (dec_get_frm)
                             break;
-
-                        msleep(50);
                     } while (1);
 
-                    mpp_packet_deinit(&packet); // encoder packet deinit
-                }
-                frame_count++;
+                    if (dec_pkt_done)
+                        break;
 
-                ret = enc_mpi->enqueue(enc_ctx, MPP_PORT_OUTPUT, enc_task);
-                if (ret) {
-                    mpp_err("mpp task output enqueue failed\n");
-                    goto MPP_TEST_OUT;
-                }
-                break;
+                    msleep(5);
+                } while (1);
+
+                mpp_packet_deinit(&packet); // encoder packet deinit
             }
-        } while (1);
+            frame_count++;
+
+            ret = enc_mpi->enqueue(enc_ctx, MPP_PORT_OUTPUT, enc_task);
+            if (ret) {
+                mpp_err("mpp task output enqueue failed\n");
+                goto MPP_TEST_OUT;
+            }
+        }
 
         if (num_frames && frame_count >= num_frames) {
             mpp_log_f("codec max %d frames", frame_count);
@@ -1094,7 +1154,7 @@ MPP_TEST_OUT:
         mpp_log("test success total frame %d bps %lld\n",
                 frame_count, (RK_U64)((stream_size * 8 * mpp_cfg.fps_out) / frame_count));
     else
-        mpp_err("mpi_rc_test failed ret %d\n", ret);
+        mpp_err_f("failed ret %d\n", ret);
 
     return ret;
 }
