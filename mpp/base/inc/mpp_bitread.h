@@ -26,40 +26,49 @@
 
 #define   __BITREAD_ERR   __bitread_error
 
-
 #define READ_ONEBIT(bitctx, out)\
     do {\
-        bitctx->ret = mpp_read_bits(bitctx, 1, (RK_S32 *)out); \
-        if (bitctx->ret) { goto __BITREAD_ERR; }\
+        RK_S32 _out; \
+        bitctx->ret = mpp_read_bits(bitctx, 1, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define READ_BITS(bitctx, num_bits, out)\
     do {\
-        bitctx->ret = mpp_read_bits(bitctx, num_bits, (RK_S32 *)out);\
-        if (bitctx->ret) { goto __BITREAD_ERR;}\
+        RK_S32 _out; \
+        bitctx->ret = mpp_read_bits(bitctx, num_bits, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define READ_BITS_LONG(bitctx, num_bits, out)\
     do {\
-        bitctx->ret = mpp_read_longbits(bitctx, num_bits, (RK_U32 *)out); \
-        if (bitctx->ret) { goto __BITREAD_ERR; }\
+        RK_U32 _out; \
+        bitctx->ret = mpp_read_longbits(bitctx, num_bits, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define SHOW_BITS(bitctx, num_bits, out)\
     do {\
-        bitctx->ret = mpp_show_bits(bitctx, num_bits, (RK_S32 *)out); \
-        if (bitctx->ret) { goto __BITREAD_ERR; }\
+        RK_S32 _out; \
+        bitctx->ret = mpp_show_bits(bitctx, num_bits, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define SHOW_BITS_LONG(bitctx, num_bits, out)\
     do {\
-        bitctx->ret = mpp_show_longbits(bitctx, num_bits, (RK_U32 *)out); \
-        if (bitctx->ret) { goto __BITREAD_ERR; }\
+        RK_U32 _out; \
+        bitctx->ret = mpp_show_longbits(bitctx, num_bits, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define SKIP_BITS(bitctx, num_bits)\
     do {\
-        bitctx->ret = mpp_skip_bits(bitctx, num_bits);\
+        bitctx->ret = mpp_skip_bits(bitctx, num_bits); \
         if (bitctx->ret) { goto __BITREAD_ERR; }\
     } while (0)
 
@@ -71,16 +80,19 @@
 
 #define READ_UE(bitctx, out)\
     do {\
-        bitctx->ret = mpp_read_ue(bitctx, (RK_U32 *)out);\
-        if (bitctx->ret) { goto __BITREAD_ERR;}\
+        RK_U32 _out; \
+        bitctx->ret = mpp_read_ue(bitctx, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
 
 #define READ_SE(bitctx, out)\
     do {\
-        bitctx->ret = mpp_read_se(bitctx, (RK_S32 *)out);\
-        if (bitctx->ret) { goto __BITREAD_ERR;}\
+        RK_S32 _out; \
+        bitctx->ret = mpp_read_se(bitctx, &_out); \
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
     } while (0)
-
 
 typedef struct bitread_ctx_t {
     // Pointer to the next unread (not in curr_byte_) byte in the stream.
