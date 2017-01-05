@@ -32,6 +32,7 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_platform.h"
 
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
@@ -41,10 +42,17 @@
 
 #include "hal_h264d_rkv_reg.h"
 #include "hal_h264d_vdpu_reg.h"
-
+#include "hal_h264d_vdpu1_reg.h"
 
 RK_U32 rkv_h264d_hal_debug = 0;
 
+typedef enum vpu_hard_mode_e {
+    MODE_NULL   = 0,
+    RKVDEC_MODE = 0x01,
+    VDPU1_MODE  = 0x02,
+    VDPU2_MODE  = 0x04,
+    MODE_BUTT,
+} VpuHardMode;
 
 static void explain_input_buffer(void *hal, HalDecTask *task)
 {
@@ -94,14 +102,13 @@ RK_S32 VPUClientGetIOMMUStatus()
 ***********************************************************************
 */
 //extern "C"
-#define RKV_MODE  (0x1)
-#define VDPU_MODE (0x2)
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
     MppHalApi *p_api = NULL;
     VPU_CLIENT_TYPE vpu_client = VPU_DEC_RKV;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    VpuHardMode hard_mode = MODE_NULL;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
@@ -112,17 +119,24 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     p_hal->packet_slots = cfg->packet_slots;
 
     //!< choose hard mode
-#ifdef RKPLATFORM
     {
         RK_U32 mode = 0;
-        RK_S32 value = 0;
+        RK_U32 hw_flag = 0;
         mpp_env_get_u32("use_mpp_mode", &mode, 0);
-        value = (!!access("/dev/rkvdec", F_OK));
-        cfg->device_id = (value || (mode & VDPU_MODE)) ? HAL_VDPU : HAL_RKVDEC;
+        hw_flag = mpp_get_vcodec_hw_flag();
+        mpp_assert(hw_flag & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
+        if ((mode <= RKVDEC_MODE) && (hw_flag & HAVE_RKVDEC)) {
+            hard_mode = RKVDEC_MODE;
+        } else if (hw_flag & HAVE_VPU1) {
+            hard_mode = VDPU1_MODE;
+        } else if (hw_flag & HAVE_VPU2) {
+            hard_mode = VDPU2_MODE;
+        }
+        H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
+                  mode, hw_flag, hard_mode);
     }
-#endif
-    switch (cfg->device_id) {
-    case HAL_RKVDEC:
+    switch (hard_mode) {
+    case RKVDEC_MODE:
         p_api->init    = rkv_h264d_init;
         p_api->deinit  = rkv_h264d_deinit;
         p_api->reg_gen = rkv_h264d_gen_regs;
@@ -131,9 +145,22 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = rkv_h264d_reset;
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
-        vpu_client = VPU_DEC_RKV;
+        cfg->device_id = HAL_RKVDEC;
+        vpu_client     = VPU_DEC_RKV;
         break;
-    case HAL_VDPU:
+    case VDPU1_MODE:
+        p_api->init    = vdpu1_h264d_init;
+        p_api->deinit  = vdpu1_h264d_deinit;
+        p_api->reg_gen = vdpu1_h264d_gen_regs;
+        p_api->start   = vdpu1_h264d_start;
+        p_api->wait    = vdpu1_h264d_wait;
+        p_api->reset   = vdpu1_h264d_reset;
+        p_api->flush   = vdpu1_h264d_flush;
+        p_api->control = vdpu1_h264d_control;
+        cfg->device_id = HAL_VDPU;
+        vpu_client     = VPU_DEC;
+        break;
+    case VDPU2_MODE:
         p_api->init    = vdpu_h264d_init;
         p_api->deinit  = vdpu_h264d_deinit;
         p_api->reg_gen = vdpu_h264d_gen_regs;
@@ -142,8 +169,12 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu_h264d_reset;
         p_api->flush   = vdpu_h264d_flush;
         p_api->control = vdpu_h264d_control;
-        vpu_client = VPU_DEC;
+        cfg->device_id = HAL_VDPU;
+        vpu_client     = VPU_DEC;
+        break;
     default:
+        mpp_err_f("hard mode error, value=%d\n", hard_mode);
+        mpp_assert(0);
         break;
     }
     //!< callback function to parser module
