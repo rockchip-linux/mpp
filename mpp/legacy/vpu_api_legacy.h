@@ -77,13 +77,15 @@ private:
     RK_U8  *fp_buf;
 
     /* encoder parameters */
-    MppBufferGroup      memGroup;
-    EncInputPictureType enc_in_fmt;
+    MppBufferGroup memGroup;
+    MppFrameFormat format;
 
     RK_S32 fd_input;
     RK_S32 fd_output;
 
     RK_U32 mEosSet;
+
+    EncParameter_t enc_cfg;
 };
 
 #endif /*_VPU_API_H_*/

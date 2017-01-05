@@ -80,9 +80,6 @@ typedef enum {
     MPP_DEC_CMD_END,
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
-    /* legacy support for vpuapi */
-    MPP_ENC_SET_CFG,
-    MPP_ENC_GET_CFG,
     /* basic encoder setup control */
     MPP_ENC_SET_ALL_CFG,                /* set MppEncCfgSet structure */
     MPP_ENC_GET_ALL_CFG,                /* get MppEncCfgSet structure */

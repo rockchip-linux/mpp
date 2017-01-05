@@ -23,12 +23,14 @@
 
 #define MPP_RC_DBG_FUNCTION          (0x00000001)
 #define MPP_RC_DBG_RC                (0x00000010)
+#define MPP_RC_DBG_CFG               (0x00000100)
 
 #define mpp_rc_dbg(flag, fmt, ...)   _mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_rc_dbg_func(fmt, ...)    mpp_rc_dbg_f(MPP_RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_rc(fmt, ...)      mpp_rc_dbg(MPP_RC_DBG_RC, fmt, ## __VA_ARGS__)
+#define mpp_rc_dbg_cfg(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_CFG, fmt, ## __VA_ARGS__)
 
 #define SIGN(a)         ((a) < (0) ? (-1) : (1))
 #define DIV(a, b)       (((a) + (SIGN(a) * (b)) / 2) / (b))
@@ -283,12 +285,15 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
      * step 1: update parameters
      */
     if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
+        mpp_rc_dbg_cfg("bps: %d [%d %d]\n", cfg->bps_target,
+                       cfg->bps_min, cfg->bps_max);
         ctx->bps_min = cfg->bps_min;
         ctx->bps_max = cfg->bps_max;
         ctx->bps_target = cfg->bps_target;
     }
 
     if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+        mpp_rc_dbg_cfg("fps: %d / %d\n", cfg->fps_out_num, cfg->fps_out_denorm);
         ctx->fps_num = cfg->fps_out_num;
         ctx->fps_denom = cfg->fps_out_denorm;
         ctx->fps_out = ctx->fps_num / ctx->fps_denom;
@@ -298,6 +303,8 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
     if ((change & MPP_ENC_RC_CFG_CHANGE_GOP) &&
         (ctx->gop != cfg->gop)) {
         RK_S32 gop = cfg->gop;
+
+        mpp_rc_dbg_cfg("gop: %d\n", cfg->gop);
 
         if (ctx->intra)
             mpp_data_deinit(ctx->intra);

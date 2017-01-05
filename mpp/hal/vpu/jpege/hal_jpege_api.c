@@ -39,22 +39,26 @@ typedef struct JpegeIocExtInfoSlot_t {
 } JpegeIocExtInfoSlot;
 
 typedef struct JpegeIocExtInfo_t {
-    RK_U32                 magic; /* tell kernel that it is extra info */
-    RK_U32                 cnt;
-    JpegeIocExtInfoSlot    slots[5];
+    RK_U32              magic; /* tell kernel that it is extra info */
+    RK_U32              cnt;
+    JpegeIocExtInfoSlot slots[5];
 } JpegeIocExtInfo;
 
 typedef struct JpegeIocRegInfo_t {
-    RK_U32                 regs[VPU2_REG_NUM];
-    JpegeIocExtInfo        extra_info;
+    RK_U32              regs[VPU2_REG_NUM];
+    JpegeIocExtInfo     extra_info;
 } JpegeIocRegInfo;
 
 typedef struct hal_jpege_ctx_s {
-    RK_S32                 vpu_fd;
+    RK_S32              vpu_fd;
 
-    IOInterruptCB          int_cb;
-    JpegeBits              bits;
-    JpegeIocRegInfo        ioctl_info;
+    IOInterruptCB       int_cb;
+    JpegeBits           bits;
+    JpegeIocRegInfo     ioctl_info;
+
+    MppEncCfgSet        *cfg;
+    MppEncCfgSet        *set;
+    JpegeSyntax         syntax;
 } HalJpegeCtx;
 
 #define HAL_JPEGE_DBG_FUNCTION          (0x00000001)
@@ -98,6 +102,8 @@ MPP_RET hal_jpege_init(void *hal, MppHalCfg *cfg)
     mpp_assert(ctx->bits);
 
     memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
+    ctx->cfg = cfg->cfg;
+    ctx->set = cfg->set;
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return MPP_OK;
@@ -171,10 +177,12 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
     HalEncTask *info = &task->enc;
     MppBuffer input  = info->input;
     MppBuffer output = info->output;
-    JpegeSyntax *syntax = (JpegeSyntax *)info->syntax.data;
-    RK_U32 width        = syntax->width;
-    RK_U32 height       = syntax->height;
-    MppFrameFormat fmt  = syntax->format;
+    JpegeSyntax *syntax = &ctx->syntax;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppEncCodecCfg *codec = &ctx->cfg->codec;
+    RK_U32 width        = prep->width;
+    RK_U32 height       = prep->height;
+    MppFrameFormat fmt  = prep->format;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
@@ -186,6 +194,11 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 val32;
     RK_S32 bitpos;
     RK_S32 bytepos;
+
+    syntax->width   = width;
+    syntax->height  = height;
+    syntax->format  = fmt;
+    syntax->quality = codec->jpeg.quant;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
@@ -449,12 +462,70 @@ MPP_RET hal_jpege_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_jpege_control(void *hal, RK_S32 cmd, void *param)
 {
-    hal_jpege_dbg_func("enter hal %p cmd %x param %p\n", hal, cmd_type, param);
+    (void)hal;
+    MPP_RET ret = MPP_OK;
+
+    hal_jpege_dbg_func("enter hal %p cmd %x param %p\n", hal, cmd, param);
+
+    switch (cmd) {
+    case MPP_ENC_SET_PREP_CFG : {
+        MppEncPrepCfg *cfg = (MppEncPrepCfg *)param;
+        if (cfg->width < 16 && cfg->width > 8192) {
+            mpp_err("jpege: invalid width %d is not in range [16..8192]\n", cfg->width);
+            ret = MPP_NOK;
+        }
+
+        if (cfg->height < 16 && cfg->height > 8192) {
+            mpp_err("jpege: invalid height %d is not in range [16..8192]\n", cfg->height);
+            ret = MPP_NOK;
+        }
+
+        if (cfg->format != MPP_FMT_YUV420SP &&
+            cfg->format != MPP_FMT_YUV420P  &&
+            cfg->format != MPP_FMT_RGB888) {
+            mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
+            ret = MPP_NOK;
+        }
+    } break;
+    case MPP_ENC_GET_PREP_CFG:
+    case MPP_ENC_GET_CODEC_CFG:
+    case MPP_ENC_SET_IDR_FRAME:
+    case MPP_ENC_SET_OSD_PLT_CFG:
+    case MPP_ENC_SET_OSD_DATA_CFG:
+    case MPP_ENC_GET_OSD_CFG:
+    case MPP_ENC_SET_EXTRA_INFO:
+    case MPP_ENC_GET_EXTRA_INFO:
+    case MPP_ENC_GET_SEI_DATA:
+    case MPP_ENC_SET_SEI_CFG:
+    case MPP_ENC_SET_RC_CFG : {
+    } break;
+    case MPP_ENC_SET_CODEC_CFG : {
+        HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+        MppEncJpegCfg *src = &ctx->set->codec.jpeg;
+        MppEncJpegCfg *dst = &ctx->cfg->codec.jpeg;
+        RK_U32 change = src->change;
+
+        if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
+            if (src->quant < 0 || src->quant > 10) {
+                mpp_err("jpege: invalid quality level %d is not in range [0..10] set to default 8\n");
+                src->quant = 8;
+            }
+            dst->quant = src->quant;
+        }
+
+        dst->change = 0;
+        src->change = 0;
+    } break;
+    default:
+        mpp_err("No correspond cmd(%08x) found, and can not config!", cmd);
+        ret = MPP_NOK;
+        break;
+    }
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
-    return MPP_OK;
+    return ret;
 }
 
 const MppHalApi hal_api_jpege = {

@@ -304,12 +304,14 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     MPP_RET ret = MPP_NOK;
     MppTask task = NULL;
 
+    /* poll input port for valid task */
     ret = poll(MPP_PORT_INPUT, mInputBlock);
     if (ret) {
         mpp_log_f("poll on set timeout %d ret %d\n", mInputBlock, ret);
         goto RET;
     }
 
+    /* dequeue task for setup */
     ret = dequeue(MPP_PORT_INPUT, &task);
     if (ret || NULL == task) {
         mpp_log_f("dequeue on set ret %d task %p\n", ret, task);
@@ -318,24 +320,28 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
     mpp_assert(task);
 
+    /* setup task */
     ret = mpp_task_meta_set_frame(task, KEY_INPUT_FRAME, frame);
     if (ret) {
         mpp_log_f("set input frame to task ret %d\n", ret);
         goto RET;
     }
 
+    /* enqueue valid task to encoder */
     ret = enqueue(MPP_PORT_INPUT, task);
     if (ret) {
         mpp_log_f("enqueue ret %d\n", ret);
         goto RET;
     }
 
-    ret = poll(MPP_PORT_INPUT, mInputBlock);
+    /* wait enqueued task finished */
+    ret = poll(MPP_PORT_INPUT, MPP_POLL_BLOCK);
     if (ret) {
         mpp_log_f("poll on get timeout %d ret %d\n", mInputBlock, ret);
         goto RET;
     }
 
+    /* get previous enqueued task back */
     ret = dequeue(MPP_PORT_INPUT, &task);
     if (ret) {
         mpp_log_f("dequeue on get ret %d\n", ret);
@@ -345,6 +351,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     if (mInputBlock != MPP_POLL_NON_BLOCK)
         mpp_assert(task);
 
+    /* clear the enqueued task back */
     if (task) {
         ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame);
         if (frame) {
@@ -353,6 +360,20 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         }
     }
 
+    /* enqueue empty task back to encoder */
+    ret = enqueue(MPP_PORT_INPUT, task);
+    if (ret) {
+        mpp_log_f("enqueue on get ret %d\n", ret);
+        goto RET;
+    }
+
+    /*
+     * This process can be replaced by simple poll operation
+     * NOTE: But here is a risk that the frame pointer is still in task
+     *       but it is a invalid pointer
+     *       The safer way is to dequeue the task and destroy Mppframe
+     *       with it then enqueue task back to the port
+     */
 RET:
     return ret;
 }
@@ -367,7 +388,9 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     ret = poll(MPP_PORT_OUTPUT, mOutputBlock);
     if (ret) {
-        mpp_log_f("poll on get timeout %d ret %d\n", mOutputBlock, ret);
+        // NOTE: Do not treat poll failure as error. Just clear output
+        ret = MPP_OK;
+        *packet = NULL;
         goto RET;
     }
 
