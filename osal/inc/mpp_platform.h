@@ -30,12 +30,18 @@ extern "C" {
 /*
  * Platform video codec hardware feature
  */
+/* RK combined codec */
 #define HAVE_VPU1               (0x00000001)
 #define HAVE_VPU2               (0x00000002)
-#define HAVE_HEVC_DEC           (0x00000010)
-#define HAVE_RKVDEC             (0x00000020)
-#define HAVE_RKVENC             (0x00000100)
-#define HAVE_H265E              (0x00010000)
+/* RK standalone decoder */
+#define HAVE_HEVC_DEC           (0x00000100)
+#define HAVE_RKVDEC             (0x00000200)
+#define HAVE_AVSDEC             (0x00001000)
+/* RK standalone encoder */
+#define HAVE_RKVENC             (0x00010000)
+#define HAVE_VEPU               (0x00020000)
+/* External encoder */
+#define HAVE_H265E              (0x01000000)
 
 RK_U32 mpp_get_vcodec_hw_flag(void);
 
