@@ -385,7 +385,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
 
             if (ctx->acc_intra_count) {
                 intra_percent = ctx->acc_intra_bits * 1.0 /
-                    (ctx->acc_intra_bits + ctx->acc_inter_bits);
+                                (ctx->acc_intra_bits + ctx->acc_inter_bits);
                 ctx->last_intra_percent = intra_percent;
             }
 
@@ -403,7 +403,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
                 RK_S32 bits_prev_intra = mpp_data_avg(ctx->intra, 1, 1, 1);
 
                 ctx->bits_per_inter = (ctx->bps_target - bits_prev_intra + diff_bit * (1 - ctx->last_intra_percent)) /
-                    (ctx->window_len - 1);
+                                      (ctx->window_len - 1);
 
                 mpp_rc_dbg_rc("RC: rc ctx %p bits pic %d win %d intra %d inter %d\n",
                               ctx, ctx->bits_per_pic, ctx->window_len,

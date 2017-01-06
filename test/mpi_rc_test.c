@@ -238,6 +238,7 @@ static MPP_RET gen_yuv_image(RK_U8 *buf, MppEncPrepCfg *prep_cfg, RK_U32 frame_c
         ret = MPP_NOK;
     } break;
     }
+
     return ret;
 }
 
@@ -306,7 +307,7 @@ static MPP_RET mpi_rc_init(MpiRcTestCtx *ctx)
             ret = MPP_ERR_OPEN_FILE;
             goto err;
         }
-        fprintf(file->fp_stat, "frame,size(byte),psnr,ssim,ins_bitrate(byte/s),avg_bitrate(byte/s)\n");
+        fprintf(file->fp_stat, "frame,size(bit),psnr,ssim,ins_bitrate(bit/s),avg_bitrate(bit/s)\n");
     }
 
     ctx->com_buf = mpp_malloc(RK_U8, cmd->width * cmd->height * 2);
@@ -522,10 +523,10 @@ static void mpi_rc_log_stat(MpiRcTestCtx *ctx, RK_U32 frame_count, RK_U32 one_se
     MpiRcFile *file  = &ctx->file;
     FILE *fp  = file->fp_stat;
 
-    mpp_log("frame %3d | frame_size %6d bytes | psnr %5.2f | ssim %5.5f",
+    mpp_log("frame %3d | frame_size %6d bits | psnr %5.2f | ssim %5.5f",
             frame_count, stat->frame_size, stat->psnr_y, stat->ssim_y);
     if (one_second)
-        mpp_log("ins_bitrate %d byte/s", stat->ins_bitrate);
+        mpp_log("ins_bitrate %d bit/s", stat->ins_bitrate);
 
     if (fp) {
         fprintf(fp, "%3d,%6d,%5.2f,%5.5f,",
@@ -595,7 +596,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     MppEncRcCfg *rc_cfg = &cfg.rc;
     MppEncPrepCfg *prep_cfg = &cfg.prep;
     MppEncCodecCfg *codec_cfg = &cfg.codec;
-    RK_S32 fps = 30;
+    RK_S32 fps = 20;
 
     mpp_log_f("test start width %d height %d codingtype %d\n", width, height, type);
     ret = mpp_buffer_group_get_internal(&frm_grp, MPP_BUFFER_TYPE_ION);
@@ -712,29 +713,33 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     }
 
     rc_cfg->change = MPP_ENC_RC_CFG_CHANGE_ALL;
-    rc_cfg->rc_mode = 3;
+    rc_cfg->rc_mode = 5;
     rc_cfg->quality = 0;
-    rc_cfg->bps_target = 2000000;
-    rc_cfg->bps_max = 3000000;
-    rc_cfg->bps_min = 1000000;
+    rc_cfg->bps_target = 800000;
+    rc_cfg->bps_max =  800000;
+    rc_cfg->bps_min =  800000;
     rc_cfg->fps_in_denorm = 1;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->fps_in_num = fps;
     rc_cfg->fps_out_num = fps;
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_out_flex = 0;
-    rc_cfg->gop = 30;
+    rc_cfg->gop = fps;
     rc_cfg->skip_cnt = 0;
 
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
+    if (ret) {
+        mpp_err("mpi control enc set rc cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
 
-    prep_cfg->change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                           MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-    prep_cfg->width      = width;
-    prep_cfg->height     = height;
-    prep_cfg->hor_stride = hor_stride;
-    prep_cfg->ver_stride = ver_stride;
-    prep_cfg->format     = fmt;
+    prep_cfg->change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                              MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+    prep_cfg->width         = width;
+    prep_cfg->height        = height;
+    prep_cfg->hor_stride    = hor_stride;
+    prep_cfg->ver_stride    = ver_stride;
+    prep_cfg->format        = fmt;
 
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_PREP_CFG, prep_cfg);
     if (ret) {
@@ -781,7 +786,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         codec_cfg->h264.qp_min   = 12;
         codec_cfg->h264.qp_max_step  = 8;
     }
-    codec_cfg->h264.qp_init      = 26;
+    codec_cfg->h264.qp_init      = 0;
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
@@ -910,10 +915,10 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
                 if (fp_enc_out)
                     fwrite(ptr, 1, len, fp_enc_out);
 
-                //mpp_log_f("encoded frame %d size %d\n", frame_count, len);
-                stream_size += len;
-                stream_size_1s += len;
-                stat->frame_size = len;
+                //mpp_log_f("encoded frame %d size %d bits\n", frame_count, len * 8);
+                stream_size += len * 8;
+                stream_size_1s += len * 8;
+                stat->frame_size = len * 8;
                 if ((frame_count + 1) % fps == 0) {
                     stat->ins_bitrate = stream_size_1s;
                     stream_size_1s = 0;
@@ -1016,7 +1021,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     }
 
     stat->avg_bitrate = (RK_U64)stream_size * fps / frame_count;
-    mpp_log_f("avg_bitrate %d byte/s", stat->avg_bitrate);
+    mpp_log_f("avg_bitrate %d bit/s", stat->avg_bitrate);
     if (fp_stat)
         fprintf(fp_stat, "%d\n", stat->avg_bitrate);
 

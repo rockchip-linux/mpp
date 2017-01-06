@@ -697,12 +697,12 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     if (sps->i_profile_idc < H264_PROFILE_HIGH) {
         if (pps->b_transform_8x8_mode) {
             pps->b_transform_8x8_mode = 0;
-            mpp_log_f("wanrning: for profile %d b_transform_8x8_mode should be 0",
+            mpp_log_f("warning: for profile %d b_transform_8x8_mode should be 0",
                       sps->i_profile_idc);
         }
         if (pps->i_second_chroma_qp_index_offset) {
             pps->i_second_chroma_qp_index_offset = 0;
-            mpp_log_f("wanrning: for profile %d i_second_chroma_qp_index_offset should be 0",
+            mpp_log_f("warning: for profile %d i_second_chroma_qp_index_offset should be 0",
                       sps->i_profile_idc);
         }
     }

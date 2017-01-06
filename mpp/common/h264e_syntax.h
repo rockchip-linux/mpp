@@ -95,7 +95,6 @@ typedef struct H264eHwCfg_t {
     RK_S32 link_table_en;
     RK_S32 keyframe_max_interval;
 
-    RK_S32 mb_rc_mode; //0: disable mbrc, 1:slice/frame rc, 2:MB rc.
     RK_S32 roi_en;
     RK_S32 osd_mode; //0: disable osd, 1:palette type 0(congfigurable mode), 2:palette type 1(fixed mode).
     RK_S32 preproc_en;
