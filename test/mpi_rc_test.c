@@ -713,8 +713,8 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     }
 
     rc_cfg->change = MPP_ENC_RC_CFG_CHANGE_ALL;
-    rc_cfg->rc_mode = 5;
-    rc_cfg->quality = 0;
+    rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
+    rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
     rc_cfg->bps_target = 800000;
     rc_cfg->bps_max =  800000;
     rc_cfg->bps_min =  800000;
@@ -770,23 +770,26 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     codec_cfg->h264.entropy_coding_mode  = 1;
     codec_cfg->h264.cabac_init_idc  = 0;
 
-    if (rc_cfg->rc_mode == 1) {
-        /* constant QP mode qp is fixed */
-        codec_cfg->h264.qp_max   = 26;
-        codec_cfg->h264.qp_min   = 26;
-        codec_cfg->h264.qp_max_step  = 0;
-    } else if (rc_cfg->rc_mode == 5) {
+    codec_cfg->h264.qp_init = 0;
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
         /* constant bitrate do not limit qp range */
         codec_cfg->h264.qp_max   = 48;
         codec_cfg->h264.qp_min   = 4;
         codec_cfg->h264.qp_max_step  = 16;
-    } else if (rc_cfg->rc_mode == 3) {
-        /* variable bitrate has qp min limit */
-        codec_cfg->h264.qp_max   = 40;
-        codec_cfg->h264.qp_min   = 12;
-        codec_cfg->h264.qp_max_step  = 8;
+    } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
+        if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
+            /* constant QP mode qp is fixed */
+            codec_cfg->h264.qp_init  = 26;
+            codec_cfg->h264.qp_max   = 26;
+            codec_cfg->h264.qp_min   = 26;
+            codec_cfg->h264.qp_max_step  = 0;
+        } else {
+            /* variable bitrate has qp min limit */
+            codec_cfg->h264.qp_max   = 40;
+            codec_cfg->h264.qp_min   = 12;
+            codec_cfg->h264.qp_max_step  = 8;
+        }
     }
-    codec_cfg->h264.qp_init      = 0;
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
@@ -1081,8 +1084,8 @@ MPP_TEST_OUT:
     MPP_FREE(dec_in_buf);
 
     if (MPP_OK == ret)
-        mpp_log("test success total frame %d bps %lld\n",
-                frame_count, (RK_U64)((stream_size * 8 * fps) / frame_count));
+        mpp_log("test success total frame %d bps %d\n",
+                frame_count, stat->avg_bitrate);
     else
         mpp_err_f("failed ret %d\n", ret);
 

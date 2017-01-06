@@ -534,45 +534,26 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     }
 
     rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
-    /*
-     * rc_mode - rate control mode
-     * Mpp balances quality and bit rate by the mode index
-     * Mpp provide 5 level of balance mode of quality and bit rate
-     * 1 - only quality mode: only quality parameter takes effect
-     * 2 - more quality mode: quality parameter takes more effect
-     * 3 - balance mode     : balance quality and bitrate 50 to 50
-     * 4 - more bitrate mode: bitrate parameter takes more effect
-     * 5 - only bitrate mode: only bitrate parameter takes effect
-     */
-    rc_cfg->rc_mode = 1;
-    /*
-     * quality - quality parameter
-     * mpp does not give the direct parameter in different protocol.
-     * mpp provide total 5 quality level 1 ~ 5
-     * 0 - auto
-     * 1 - worst
-     * 2 - worse
-     * 3 - medium
-     * 4 - better
-     * 5 - best
-     */
-    rc_cfg->quality = 0;
+    rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
+    rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
 
-    if (rc_cfg->rc_mode == 1) {
-        /* constant QP does not have bps */
-        rc_cfg->bps_target   = -1;
-        rc_cfg->bps_max      = -1;
-        rc_cfg->bps_min      = -1;
-    } else if (rc_cfg->rc_mode == 5) {
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
         /* constant bitrate has very small bps range of 1/16 bps */
         rc_cfg->bps_target   = p->bps;
         rc_cfg->bps_max      = p->bps * 17 / 16;
         rc_cfg->bps_min      = p->bps * 15 / 16;
-    } else if (rc_cfg->rc_mode == 3) {
-        /* variable bitrate has large bps range */
-        rc_cfg->bps_target   = p->bps;
-        rc_cfg->bps_max      = p->bps * 17 / 16;
-        rc_cfg->bps_min      = p->bps * 1 / 16;
+    } else if (rc_cfg->rc_mode ==  MPP_ENC_RC_MODE_VBR) {
+        if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
+            /* constant QP does not have bps */
+            rc_cfg->bps_target   = -1;
+            rc_cfg->bps_max      = -1;
+            rc_cfg->bps_min      = -1;
+        } else {
+            /* variable bitrate has large bps range */
+            rc_cfg->bps_target   = p->bps;
+            rc_cfg->bps_max      = p->bps * 17 / 16;
+            rc_cfg->bps_min      = p->bps * 1 / 16;
+        }
     }
 
     /* fix input / output frame rate */
@@ -619,22 +600,25 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.entropy_coding_mode  = 1;
         codec_cfg->h264.cabac_init_idc  = 0;
 
-        if (rc_cfg->rc_mode == 1) {
-            /* constant QP mode qp is fixed */
-            p->qp_max   = p->qp_init;
-            p->qp_min   = p->qp_init;
-            p->qp_step  = 0;
-        } else if (rc_cfg->rc_mode == 5) {
+        if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
             /* constant bitrate do not limit qp range */
             p->qp_max   = 48;
             p->qp_min   = 4;
             p->qp_step  = 16;
-        } else if (rc_cfg->rc_mode == 3) {
-            /* variable bitrate has qp min limit */
-            p->qp_max   = 40;
-            p->qp_min   = 12;
-            p->qp_step  = 8;
+        } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
+            if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
+                /* constant QP mode qp is fixed */
+                p->qp_max   = p->qp_init;
+                p->qp_min   = p->qp_init;
+                p->qp_step  = 0;
+            } else {
+                /* variable bitrate has qp min limit */
+                p->qp_max   = 40;
+                p->qp_min   = 12;
+                p->qp_step  = 8;
+            }
         }
+
         codec_cfg->h264.qp_max      = p->qp_max;
         codec_cfg->h264.qp_min      = p->qp_min;
         codec_cfg->h264.qp_max_step = p->qp_step;

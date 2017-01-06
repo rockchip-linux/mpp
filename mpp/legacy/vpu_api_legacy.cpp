@@ -138,7 +138,7 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
 
     mpp_log("setup encoder rate control config:\n");
     mpp_log("width %4d height %4d format %d\n", width, height, fmt);
-    mpp_log("rc_mode %s qp %d bps %d\n", (rc_mode) ? ("VBR") : ("CQP"), qp, bps);
+    mpp_log("rc_mode %s qp %d bps %d\n", (rc_mode) ? ("CBR") : ("CQP"), qp, bps);
     mpp_log("fps in %d fps out %d gop %d\n", fps_in, fps_out, gop);
     mpp_log("setup encoder stream feature config:\n");
     mpp_log("profile %d level %d cabac %d\n", profile, level, cabac_en);
@@ -161,29 +161,22 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
     }
 
     rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
-    /* auto quality */
-    rc_cfg->quality = 0;
     if (rc_mode == 0) {
-        /* 0 - constant QP */
-        /* constant QP does not have bps */
-        rc_cfg->rc_mode     = 1;
+        /* 0 - constant qp mode: fixed qp */
+        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_VBR;
+        rc_cfg->quality     = MPP_ENC_RC_QUALITY_CQP;
         rc_cfg->bps_target  = -1;
         rc_cfg->bps_max     = -1;
         rc_cfg->bps_min     = -1;
     } else if (rc_mode == 1) {
-        /* 1 - constant bitrate */
-        /* constant bitrate has very small bps range of 1/16 bps */
-        rc_cfg->rc_mode     = 5;
+        /* 1 - constant bitrate: small bps range */
+        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_CBR;
+        rc_cfg->quality     = MPP_ENC_RC_QUALITY_MEDIUM;
         rc_cfg->bps_target  = bps;
         rc_cfg->bps_max     = bps * 17 / 16;
         rc_cfg->bps_min     = bps * 15 / 16;
-    } else if (rc_mode == 2) {
-        /* 2 - variable bitrate */
-        /* variable bitrate has large bps range */
-        rc_cfg->rc_mode     = 3;
-        rc_cfg->bps_target  = bps;
-        rc_cfg->bps_max     = bps * 17 / 16;
-        rc_cfg->bps_min     = bps * 1 / 16;
+    } else {
+        mpp_err("invalid vpu rc mode %d\n", rc_mode);
     }
 
     /* fix input / output frame rate */
@@ -216,21 +209,17 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
 
         if (rc_mode == 0) {
             /* constant QP mode qp is fixed */
+            codec_cfg->h264.qp_init     = qp;
             codec_cfg->h264.qp_max      = qp;
             codec_cfg->h264.qp_min      = qp;
             codec_cfg->h264.qp_max_step = 0;
-        } else if (rc_mode == 1) {
+        } else {
             /* constant bitrate do not limit qp range */
+            codec_cfg->h264.qp_init     = 0;
             codec_cfg->h264.qp_max      = 48;
             codec_cfg->h264.qp_min      = 4;
-            codec_cfg->h264.qp_max_step = 51;
-        } else if (rc_mode == 2) {
-            /* variable bitrate has qp min limit */
-            codec_cfg->h264.qp_max      = 48;
-            codec_cfg->h264.qp_min      = qp;
-            codec_cfg->h264.qp_max_step = 8;
+            codec_cfg->h264.qp_max_step = 16;
         }
-        codec_cfg->h264.qp_init = 26;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         codec_cfg->jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
@@ -1324,7 +1313,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     switch (cmd) {
     case VPU_API_ENC_SETCFG : {
         MppCodingType coding = (MppCodingType)ctx->videoCoding;
-        
+
         memcpy(&enc_cfg, param, sizeof(enc_cfg));
         return vpu_api_set_enc_cfg(mpp_ctx, mpi, coding, format, &enc_cfg);
     } break;
