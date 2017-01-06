@@ -963,6 +963,24 @@ typedef struct h264e_rkv_ioctl_output_t {
     h264e_rkv_ioctl_output_elem     elem[RKV_H264E_LINKTABLE_MAX_SIZE];
 } h264e_rkv_ioctl_output;
 
+/* mode cfg */
+typedef struct H264eRkvMbRcMcfg_t {
+    RK_U32 aq_prop; //0~16, 0:only enable aq, 16:only enable checkpoint
+
+    RK_U32 aq_strength; //0~3
+
+    RK_U32 mb_num;
+    RK_U32 qp_range; //0~15
+    RK_U32 error_bits_div;
+    RK_U32 num_positive_class; //0~9
+    RK_U32 filter_strength;
+} H264eRkvMbRcMcfg;
+
+/* quality cfg */
+typedef struct H264eRkvMbRcQcfg_t {
+    RK_U32 qp_min;
+    RK_U32 qp_max;
+} H264eRkvMbRcQcfg;
 
 #define RK_H264E_NUM_REGS     ((RK_S32)(sizeof(h264e_rkv_reg_set)/4))
 

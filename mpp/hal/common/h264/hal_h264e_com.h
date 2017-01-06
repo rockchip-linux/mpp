@@ -117,6 +117,12 @@ extern RK_U32 h264e_hal_log_mode;
             mpp_log(fmt, ## __VA_ARGS__);\
     } while (0)
 
+#define h264e_hal_log_rc(fmt, ...) \
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_RC)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
+
 #define H264E_HAL_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define H264E_HAL_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 #define H264E_HAL_MIN3(a,b,c) H264E_HAL_MIN((a),H264E_HAL_MIN((b),(c)))
@@ -190,6 +196,20 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_CSP2_MAX            0x000d  /* end of list */
 #define H264E_CSP2_VFLIP          0x1000  /* the csp is vertically flipped */
 #define H264E_CSP2_HIGH_DEPTH     0x2000  /* the csp has a depth of 16 bits per pixel component */
+
+#define H264E_MB_RC_ONLY_QUALITY  1
+#define H264E_MB_RC_MORE_QUALITY  2
+#define H264E_MB_RC_BALANCE       3
+#define H264E_MB_RC_MORE_BITRATE  4
+#define H264E_MB_RC_ONLY_BITRATE  5
+#define H264E_MB_RC_M_NUM         5
+
+#define H264E_MB_RC_Q_WORST       1
+#define H264E_MB_RC_Q_WORSE       2
+#define H264E_MB_RC_Q_MEDIUM      3
+#define H264E_MB_RC_Q_BETTER      4
+#define H264E_MB_RC_Q_BEST        5
+#define H264E_MB_RC_Q_NUM         5
 
 typedef enum h264e_rkv_csp_t {
     H264E_RKV_CSP_BGRA8888,     // 0
@@ -421,6 +441,38 @@ typedef struct h264e_hal_param_t {
     h264e_hal_ref_param ref;
 } h264e_hal_param;
 
+typedef struct H264eMbRcCtx_t {
+    /*
+     * rc_mode - rate control mode
+     * Mpp balances quality and bit rate by the mode index
+     * Mpp provide 5 level of balance mode of quality and bit rate
+     * 1 - only quality mode: only quality parameter takes effect
+     * 2 - more quality mode: quality parameter takes more effect
+     * 3 - balance mode     : balance quality and bitrate 50 to 50
+     * 4 - more bitrate mode: bitrate parameter takes more effect
+     * 5 - only bitrate mode: only bitrate parameter takes effect
+     */
+    RK_U32 mode;
+
+    /*
+     * quality - quality parameter
+     * mpp does not give the direct parameter in different protocol.
+     * mpp provide total 5 quality level 1 ~ 5
+     * 0 - auto
+     * 1 - worst
+     * 2 - worse
+     * 3 - medium
+     * 4 - better
+     * 5 - best
+     */
+    RK_U32  quality;
+
+    RK_U32 num_positive_class; /*range: 1~9, deafult: 4 */
+
+    RK_S32 last_frame_target_qp;
+    RK_S32 last_frame_real_qp;
+} H264eMbRcCtx;
+
 typedef struct h264e_hal_context_t {
     MppHalApi                       api;
     RK_S32                          vpu_fd;
@@ -457,6 +509,7 @@ typedef struct h264e_hal_context_t {
     MppLinReg                       *inter_qs;
     MppLinReg                       *intra_qs;
     MppData                         *qp_p;
+    H264eMbRcCtx                    mb_rc;
 } h264e_hal_context;
 
 MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps);

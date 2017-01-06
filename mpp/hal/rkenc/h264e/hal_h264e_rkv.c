@@ -223,6 +223,24 @@ static RK_U32 reg_idx2addr_map[132] = {
 };
 #endif
 
+static H264eRkvMbRcMcfg mb_rc_m_cfg[H264E_MB_RC_M_NUM] = {
+    /* aq_prop, aq_strength, mb_num, qp_range, error_bits_div, num_positive_class, filter_strength */
+    {16,        1,           0,      1,        0,              0,                  1}, // mode = 1
+    {8,         1,           1,      2,        8,              4,                  0}, // mode = 2
+    {4,         1,           1,      4,        8,              4,                  0}, // mode = 3
+    {2,         1,           1,      8,        8,              4,                  0}, // mode = 4
+    {0,         1,           1,      12,       8,              4,                  0}, // mode = 5
+};
+
+static H264eRkvMbRcQcfg mb_rc_q_cfg[H264E_MB_RC_Q_NUM] = {
+    /* qp_min, qp_max */
+    {31,       51}, // quality = 1
+    {28,       46}, // quality = 2
+    {24,       42}, // quality = 3
+    {20,       39}, // quality = 4
+    {16,       35}, // quality = 5
+};
+
 static MPP_RET hal_h264e_rkv_close_dump_files(void *dump_files)
 {
     h264e_hal_rkv_dump_files *files = (h264e_hal_rkv_dump_files *)dump_files;
@@ -2241,8 +2259,31 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *regs, H264eHwCfg *syn,
-                                  RcSyntax *rc_syn, h264e_hal_rkv_coveragetest_cfg *test)
+static void hal_h264e_rkv_set_mb_rc(h264e_hal_context *ctx)
+{
+    RK_U32 m = 0;
+    RK_U32 q = 0;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncRcCfg *rc = &cfg->rc;
+    H264eHwCfg *hw = &ctx->hw_cfg;
+    H264eMbRcCtx *mb_rc = &ctx->mb_rc;
+
+    m = rc->rc_mode;
+    q = rc->quality;
+
+    /* for intra frame, pay more attention to quality */
+    if (hw->frame_type == H264E_RKV_FRAME_I)
+        m--;
+    m = H264E_HAL_CLIP3(m, 1, 5);
+
+    mb_rc->mode = m;
+    mb_rc->quality = q;
+    h264e_hal_log_rc("mode %d quality %d", mb_rc->mode, mb_rc->quality);
+}
+
+
+static MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *regs, H264eHwCfg *syn,
+                                         RcSyntax *rc_syn, h264e_hal_rkv_coveragetest_cfg *test)
 {
     if (test && test->mbrc) {
         RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
@@ -2293,55 +2334,75 @@ MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *reg
         RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
         RK_U32 mb_target_size_mul_16 = (rc_syn->bit_target << 4) / num_mbs_oneframe;
         RK_U32 mb_target_size = mb_target_size_mul_16 >> 4;
-        RK_U32 aq_strength = 2;
-        RK_U32 rc_ctu_num = (syn->width + 15) / 16;
+        H264eMbRcCtx *mb_rc = &ctx->mb_rc;
+        H264eRkvMbRcMcfg m_cfg;
+
+        hal_h264e_rkv_set_mb_rc(ctx);
+        m_cfg = mb_rc_m_cfg[mb_rc->mode - 1];
+
+        syn->qp_min = MPP_MIN(syn->qp, syn->qp_min);
+        syn->qp_max = MPP_MAX(syn->qp, syn->qp_max);
 
         regs->swreg10.pic_qp        = syn->qp;//syn->swreg10.pic_qp; //if CQP, pic_qp=qp constant.
-        regs->swreg46.rc_en         = syn->mb_rc_mode >= 1 ? 1 : 0; //0: disable mb rc
-        regs->swreg46.rc_mode       = syn->mb_rc_mode == 2 ? 1 : 0; //0:frame/slice rc; 1:mbrc
-        if (rc_syn->type == INTRA_FRAME)
-            regs->swreg54.rc_qp_range    = 2;
-        else
-            regs->swreg54.rc_qp_range    = 4;
-        regs->swreg54.rc_max_qp      = syn->qp_max;
-        regs->swreg54.rc_min_qp      = syn->qp_min;
-        if (regs->swreg46.rc_mode) { //mb rc mode open
-            regs->swreg46.aqmode_en      = 1;
-            regs->swreg46.aq_strg        = (RK_U32)(aq_strength * 1.0397 * 256);
-            regs->swreg46.Reserved       = 0x0;
-            regs->swreg46.rc_ctu_num     = rc_ctu_num;
+        regs->swreg46.rc_en         = 1; //0: disable mb rc
+        regs->swreg46.rc_mode       = m_cfg.aq_prop < 16; //0:frame/slice rc; 1:mbrc
 
-            regs->swreg47.bits_error0    = (mb_target_size * rc_ctu_num / 8) * -4;
-            regs->swreg47.bits_error1    = (mb_target_size * rc_ctu_num / 8) * -3;
-            regs->swreg48.bits_error2    = (mb_target_size * rc_ctu_num / 8) * -2;
-            regs->swreg48.bits_error3    = (mb_target_size * rc_ctu_num / 8) * -1;
-            regs->swreg49.bits_error4    = (mb_target_size * rc_ctu_num / 8) * 1;
-            regs->swreg49.bits_error5    = (mb_target_size * rc_ctu_num / 8) * 2;
-            regs->swreg50.bits_error6    = (mb_target_size * rc_ctu_num / 8) * 3;
-            regs->swreg50.bits_error7    = (mb_target_size * rc_ctu_num / 8) * 4;
-            regs->swreg51.bits_error8    = (mb_target_size * rc_ctu_num / 8) * 5;
+        regs->swreg46.aqmode_en     = m_cfg.aq_prop && m_cfg.aq_strength;
+        regs->swreg46.aq_strg       = (RK_U32)(m_cfg.aq_strength * 1.0397 * 256);
+        regs->swreg54.rc_qp_mod     = 2; //sw_quality_flag;
+        regs->swreg54.rc_fact0      = m_cfg.aq_prop;
+        regs->swreg54.rc_fact1      = 16 - m_cfg.aq_prop;
+        regs->swreg54.rc_max_qp     = syn->qp_max;
+        regs->swreg54.rc_min_qp     = syn->qp_min;
 
-            regs->swreg52.qp_adjust0    = -4;
-            regs->swreg52.qp_adjust1    = -3;
-            regs->swreg52.qp_adjust2    = -2;
-            regs->swreg52.qp_adjust3    = -1;
-            regs->swreg52.qp_adjust4    =  0;
-            regs->swreg52.qp_adjust5    =  1;
-            regs->swreg53.qp_adjust6    =  2;
-            regs->swreg53.qp_adjust7    =  3;
-            regs->swreg53.qp_adjust8    =  4;
-
-            regs->swreg54.rc_qp_mod      = 2; //sw_quality_flag;
-            if (syn->frame_type == H264E_RKV_FRAME_I) {
-                regs->swreg54.rc_fact0       = 8; //sw_quality_factor_0;
-                regs->swreg54.rc_fact1       = 8; //sw_quality_factor_1;
-            } else {
-                regs->swreg54.rc_fact0       = 0; //sw_quality_factor_0;
-                regs->swreg54.rc_fact1       = 16; //sw_quality_factor_1;
-            }
-
-            regs->swreg55.ctu_ebits      = mb_target_size_mul_16;
+        if (regs->swreg46.aqmode_en) {
+            regs->swreg54.rc_max_qp = (RK_U32)MPP_MIN(syn->qp_max, (RK_S32)(syn->qp + m_cfg.qp_range));
+            regs->swreg54.rc_min_qp = (RK_U32)MPP_MAX(syn->qp_min, (RK_S32)(syn->qp - m_cfg.qp_range));
+            if (regs->swreg54.rc_max_qp < regs->swreg54.rc_min_qp)
+                MPP_SWAP(RK_U32, regs->swreg54.rc_max_qp, regs->swreg54.rc_min_qp);
         }
+
+        if (regs->swreg46.rc_mode) { //checkpoint rc open
+            RK_S32 shift = m_cfg.num_positive_class - 4;
+            RK_U32 target = mb_target_size * m_cfg.mb_num;
+
+            regs->swreg54.rc_qp_range    = m_cfg.qp_range;
+            regs->swreg46.rc_ctu_num     = m_cfg.mb_num;
+            regs->swreg55.ctu_ebits      = mb_target_size_mul_16;
+
+            regs->swreg47.bits_error0    = (RK_S32)((pow(0.88, 4) - 1) * (double)target);
+            regs->swreg47.bits_error1    = (RK_S32)((pow(0.88, 3) - 1) * (double)target);
+            regs->swreg48.bits_error2    = (RK_S32)((pow(0.88, 2) - 1) * (double)target);
+            regs->swreg48.bits_error3    = (RK_S32)((pow(0.88, 1) - 1) * (double)target);
+            regs->swreg49.bits_error4    = (RK_S32)((pow(1.12, 1) - 1) * (double)target);
+            regs->swreg49.bits_error5    = (RK_S32)((pow(1.12, 2) - 1) * (double)target);
+            regs->swreg50.bits_error6    = (RK_S32)((pow(1.12, 3) - 1) * (double)target);
+            regs->swreg50.bits_error7    = (RK_S32)((pow(1.12, 4) - 1) * (double)target);
+            regs->swreg51.bits_error8    = (RK_S32)((pow(1.12, 5) - 1) * (double)target);
+
+            regs->swreg52.qp_adjust0    = -4 + shift;
+            regs->swreg52.qp_adjust1    = -3 + shift;
+            regs->swreg52.qp_adjust2    = -2 + shift;
+            regs->swreg52.qp_adjust3    = -1 + shift;
+            regs->swreg52.qp_adjust4    =  0 + shift;
+            regs->swreg52.qp_adjust5    =  1 + shift;
+            regs->swreg53.qp_adjust6    =  2 + shift;
+            regs->swreg53.qp_adjust7    =  3 + shift;
+            regs->swreg53.qp_adjust8    =  4 + shift;
+
+        }
+        regs->swreg62.sli_beta_ofst     = m_cfg.filter_strength;
+        regs->swreg62.sli_alph_ofst     = m_cfg.filter_strength;
+
+        h264e_hal_log_rc("rc_en %d rc_mode %d level %d qp %d qp_min %d qp_max %d",
+                         regs->swreg46.rc_en, regs->swreg46.rc_mode, mb_rc->mode,
+                         regs->swreg10.pic_qp, regs->swreg54.rc_min_qp, regs->swreg54.rc_max_qp);
+
+        h264e_hal_log_rc("aq_prop %d aq_strength %d mb_num %d qp_range %d error_bits_div %d num_pos_class %d",
+                         m_cfg.aq_prop, m_cfg.aq_strength, m_cfg.mb_num, m_cfg.qp_range, m_cfg.error_bits_div,
+                         m_cfg.num_positive_class);
+        h264e_hal_log_rc("target qp %d frame_bits %d", syn->qp, rc_syn->bit_target);
+
         (void)ctx;
     }
 
@@ -2596,6 +2657,7 @@ static RK_S32 hal_h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, R
             } else
                 break;
         } while (qp <= qp_max && qp >= qp_min);
+        qp_best = mpp_clip(qp_best, qp_min, qp_max);
     }
 
     return qp_best;
@@ -2727,8 +2789,6 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
     h264e_hal_log_detail("RC: qp calc ctx %p qp [%d %d] prev %d target bit %d\n",
                          ctx->inter_qs, codec->qp_min, codec->qp_max, hw_cfg->qp_prev,
                          rc_syn->bit_target);
-    if (rc->rc_mode >= 4) //bitrate parameter takes more effect
-        hw_cfg->mb_rc_mode = 2;
 
     {
         RK_S32 prev_frame_type = hw_cfg->frame_type;
@@ -3135,8 +3195,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg62.rodr_pic_idx      = dpb_ctx->ref_pic_list_order[0][0].idc; //syn->swreg62.rodr_pic_idx;
     regs->swreg62.ref_list0_rodr    = dpb_ctx->b_ref_pic_list_reordering[0]; //syn->swreg62.ref_list0_rodr;
-    regs->swreg62.sli_beta_ofst     = 0; //syn->slice_beta_offset;
-    regs->swreg62.sli_alph_ofst     = 0; //syn->slice_alpha_offset;
     regs->swreg62.dis_dblk_idc      = 0; //syn->disable_deblocking_filter_idc;
     regs->swreg62.rodr_pic_num      = dpb_ctx->ref_pic_list_order[0][0].arg; //syn->swreg62.rodr_pic_num;
 
@@ -3313,6 +3371,7 @@ static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_ou
 {
     RK_U32 k = 0;
     h264e_rkv_ioctl_output_elem *elem = NULL;
+
     h264e_hal_debug_enter();
     for (k = 0; k < out->frame_num; k++) {
         elem = &out->elem[k];
@@ -3360,6 +3419,7 @@ static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_ou
     }
 
     h264e_hal_debug_leave();
+
     return MPP_OK;
 }
 
@@ -3374,9 +3434,10 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     h264e_feedback *fb = &ctx->feedback;
     HalEncTask *enc_task = &task->enc;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
+    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    H264eMbRcCtx *mb_rc = &ctx->mb_rc;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
     /* for dumping ratecontrol message */
-    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
 
     h264e_hal_debug_enter();
@@ -3472,6 +3533,11 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
                           h264_q_step[avg_qp], result.bits * 256 / mb_per_pic);
 
         int_cb.callBack(int_cb.opaque, fb);
+
+        mb_rc->last_frame_real_qp = avg_qp;
+        mb_rc->last_frame_target_qp = hw_cfg->qp;
+
+        h264e_hal_log_rc("real   qp %d frame_bits %d", avg_qp, result.bits);
     }
 
     hal_h264e_rkv_dump_mpp_reg_out(ctx);
@@ -3543,6 +3609,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncH264Cfg *src = &ctx->set->codec.h264;
         MppEncH264Cfg *dst = &ctx->cfg->codec.h264;
+        MppEncRcCfg   *rc = &ctx->cfg->rc;
         RK_U32 change = src->change;
 
         // TODO: do codec check first
@@ -3577,6 +3644,12 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
             dst->qp_max = src->qp_max;
             dst->qp_min = src->qp_min;
             dst->qp_max_step = src->qp_max_step;
+            /* (VBR) if focus on quality, qp range is limited more precisely */
+            if (rc->rc_mode <= H264E_MB_RC_MORE_QUALITY) {
+                H264eRkvMbRcQcfg cfg = mb_rc_q_cfg[rc->quality - 1];
+                dst->qp_min = cfg.qp_min;
+                dst->qp_max = cfg.qp_max;
+            }
         }
         if (change & MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH) {
             dst->intra_refresh_mode = src->intra_refresh_mode;
