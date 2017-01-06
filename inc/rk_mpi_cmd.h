@@ -52,6 +52,22 @@ typedef enum MppEncSeiMode_t {
     MPP_ENC_SEI_MODE_ONE_FRAME               /* one frame may have one SEI, if SEI info has changed */
 } MppEncSeiMode;
 
+typedef enum MppEncRcMode_t {
+    MPP_ENC_RC_MODE_VBR,
+    MPP_ENC_RC_MODE_CBR,
+    MPP_ENC_RC_MODE_BUTT
+} MppEncRcMode;
+
+typedef enum MppEncRcQuality_t {
+    MPP_ENC_RC_QUALITY_WORST,
+    MPP_ENC_RC_QUALITY_WORSE,
+    MPP_ENC_RC_QUALITY_MEDIUM,
+    MPP_ENC_RC_QUALITY_BETTER,
+    MPP_ENC_RC_QUALITY_BEST,
+    MPP_ENC_RC_QUALITY_CQP,
+    MPP_ENC_RC_QUALITY_BUTT
+} MppEncRcQuality;
+
 typedef enum {
     MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
     MPP_OSAL_CMD_END,
@@ -256,28 +272,36 @@ typedef struct MppEncRcCfg_t {
 
     /*
      * rc_mode - rate control mode
-     * Mpp balances quality and bit rate by the mode index
-     * Mpp provide 5 level of balance mode of quality and bit rate
-     * 1 - only quality mode: only quality parameter takes effect
-     * 2 - more quality mode: quality parameter takes more effect
-     * 3 - balance mode     : balance quality and bitrate 50 to 50
-     * 4 - more bitrate mode: bitrate parameter takes more effect
-     * 5 - only bitrate mode: only bitrate parameter takes effect
+     *
+     * mpp provide two rate control mode:
+     *
+     * Constant Bit Rate (CBR) mode
+     * - paramter 'bps*' define target bps
+     * - paramter quality and qp will not take effect
+     *
+     * Variable Bit Rate (VBR) mode
+     * - paramter 'quality' define 5 quality levels
+     * - paramter 'bps*' is used as reference but not strict condition
+     * - special Constant QP (CQP) mode is under VBR mode
+     *   CQP mode will work with qp in CodecCfg. But only use for test
+     *
+     * default: CBR
      */
-    RK_S32  rc_mode;
+    MppEncRcMode rc_mode;
 
     /*
-     * quality - quality parameter
-     * mpp does not give the direct parameter in different protocol.
-     * mpp provide total 5 quality level 1 ~ 5
-     * 0 - auto
-     * 1 - worst
-     * 2 - worse
-     * 3 - medium
-     * 4 - better
-     * 5 - best
+     * quality - quality parameter, only takes effect in VBR mode
+     *
+     * Mpp does not give the direct parameter in different protocol.
+     *
+     * Mpp provide total 5 quality level:
+     * Worst - worse - Medium - better - best
+     *
+     * extra CQP level means special constant-qp (CQP) mode
+     *
+     * default value: Medium
      */
-    RK_S32  quality;
+    MppEncRcQuality quality;
 
     /*
      * bit rate parameters

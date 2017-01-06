@@ -971,9 +971,6 @@ typedef struct H264eRkvMbRcMcfg_t {
 
     RK_U32 mb_num;
     RK_U32 qp_range; //0~15
-    RK_U32 error_bits_div;
-    RK_U32 num_positive_class; //0~9
-    RK_U32 filter_strength;
 } H264eRkvMbRcMcfg;
 
 /* quality cfg */
