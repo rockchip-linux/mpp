@@ -519,45 +519,45 @@ typedef struct h264e_rkv_reg_set_t {
     } swreg46; //RC_CFG
 
     struct {
-        RK_U32    bits_error0 : 16;
-        RK_U32    bits_error1 : 16;
+        RK_S32    bits_error0 : 16;
+        RK_S32    bits_error1 : 16;
     } swreg47; //RC_ERP0
 
     struct {
-        RK_U32    bits_error2 : 16;
-        RK_U32    bits_error3 : 16;
+        RK_S32    bits_error2 : 16;
+        RK_S32    bits_error3 : 16;
     } swreg48; //RC_ERP1
 
     struct {
-        RK_U32    bits_error4 : 16;
-        RK_U32    bits_error5 : 16;
+        RK_S32    bits_error4 : 16;
+        RK_S32    bits_error5 : 16;
     } swreg49; //RC_ERP2
 
     struct {
-        RK_U32    bits_error6 : 16;
-        RK_U32    bits_error7 : 16;
+        RK_S32    bits_error6 : 16;
+        RK_S32    bits_error7 : 16;
     } swreg50; //RC_ERP3
 
     struct {
-        RK_U32    bits_error8 : 16;
-        RK_U32    reserve : 16;
+        RK_S32    bits_error8 : 16;
+        RK_S32    reserve : 16;
     } swreg51; //RC_ERP4
 
     struct {
-        RK_U32    qp_adjuest0 : 5;
-        RK_U32    qp_adjuest1 : 5;
-        RK_U32    qp_adjuest2 : 5;
-        RK_U32    qp_adjuest3 : 5;
-        RK_U32    qp_adjuest4 : 5;
-        RK_U32    qp_adjuest5 : 5;
-        RK_U32    reserve : 2;
+        RK_S32    qp_adjust0 : 5;
+        RK_S32    qp_adjust1 : 5;
+        RK_S32    qp_adjust2 : 5;
+        RK_S32    qp_adjust3 : 5;
+        RK_S32    qp_adjust4 : 5;
+        RK_S32    qp_adjust5 : 5;
+        RK_S32    reserve : 2;
     } swreg52; //     RC_ADJ0
 
     struct {
-        RK_U32    qp_adjuest6 : 5;
-        RK_U32    qp_adjuest7 : 5;
-        RK_U32    qp_adjuest8 : 5;
-        RK_U32    reserve : 17;
+        RK_S32    qp_adjust6 : 5;
+        RK_S32    qp_adjust7 : 5;
+        RK_S32    qp_adjust8 : 5;
+        RK_S32    reserve : 17;
     } swreg53; //     RC_ADJ1
 
     struct {

@@ -97,8 +97,8 @@ typedef struct H264eHwCfg_t {
     RK_S32 slice_size_mb_rows;
     RK_S32 cp_distance_mbs;
     RK_S32 cp_target[10];
-    RK_S32 target_error[7];
-    RK_S32 delta_qp[7];
+    RK_S32 target_error[9]; //for rkv there are 9 levels
+    RK_S32 delta_qp[9];
 
     /* RKVENC extra syntax below */
     RK_S32 profile_idc;
@@ -106,7 +106,7 @@ typedef struct H264eHwCfg_t {
     RK_S32 link_table_en;
     RK_S32 keyframe_max_interval;
 
-    RK_S32 mb_rc_mode; //0:frame/slice 1:mb; //0: disable mbrc, 1:slice/frame rc, 2:MB rc.
+    RK_S32 mb_rc_mode; //0: disable mbrc, 1:slice/frame rc, 2:MB rc.
     RK_S32 roi_en;
     RK_S32 osd_mode; //0: disable osd, 1:palette type 0(congfigurable mode), 2:palette type 1(fixed mode).
     RK_S32 preproc_en;

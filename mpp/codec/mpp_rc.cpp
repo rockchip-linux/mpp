@@ -550,12 +550,13 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
     }
 
     /* step 1: save data */
+    RK_S64 y = (RK_S64)x * x * r;
     ctx->x[ctx->i] = x;
     ctx->r[ctx->i] = r;
-    ctx->y[ctx->i] = x * x * r;
+    ctx->y[ctx->i] = y;
 
     mpp_rc_dbg_rc("RC: linreg %p save index %d x %d r %d x*x*r %lld\n",
-                  ctx, ctx->i, x, r, (RK_S64)(x * x * r));
+                  ctx, ctx->i, x, r, y);
 
     if (++ctx->i >= ctx->size)
         ctx->i = 0;
