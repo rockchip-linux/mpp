@@ -428,6 +428,25 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
             mpp_frame_set_height(mframe, p_Vid->height_after_crop);
             mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
             mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
+
+            //!< set display parameter
+            if (p_Vid->active_sps->vui_parameters_present_flag) {
+                H264_VUI_t *p = &p_Vid->active_sps->vui_seq_parameters;
+                if (p->video_signal_type_present_flag && p->video_full_range_flag) {
+                    mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_JPEG);
+                } else {
+                    mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_MPEG);
+                }
+                if (p->colour_description_present_flag) {
+                    mpp_frame_set_color_primaries(mframe, p->colour_primaries);
+                    mpp_frame_set_color_trc(mframe, p->transfer_characteristics);
+                    mpp_frame_set_colorspace(mframe, p->matrix_coefficients);
+                } else {
+                    mpp_frame_set_color_primaries(mframe, MPP_FRAME_PRI_UNSPECIFIED);
+                    mpp_frame_set_color_trc(mframe, MPP_FRAME_PRI_UNSPECIFIED);
+                    mpp_frame_set_colorspace(mframe, MPP_FRAME_SPC_UNSPECIFIED);
+                }
+            }
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
             mpp_frame_deinit(&mframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
