@@ -38,6 +38,9 @@ add_mpp_test(mpi_enc)
 # mpi rc unit test
 add_mpp_test(mpi_rc)
 
+# new mpi rc unit test
+add_mpp_test(mpi_rc2)
+
 macro(add_legacy_test module)
     set(test_name ${module}_test)
     string(TOUPPER ${test_name} test_tag)
