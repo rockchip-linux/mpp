@@ -443,6 +443,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     }
 
     rc_syn->bit_target = ctx->bits_target;
+
     rc_syn->type = ctx->cur_frmtype;
     if (ctx->cur_frmtype == INTRA_FRAME) {
         mpp_rc_dbg_rc("RC: rc ctx %p intra target bits %d\n", ctx, ctx->bits_target);
@@ -496,7 +497,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
     return MPP_OK;
 }
 
-MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size)
+MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode)
 {
     if (NULL == ctx) {
         mpp_log_f("invalid ctx %p\n", ctx);
@@ -515,6 +516,7 @@ MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size)
         p->r = p->x + size;
         p->y = (RK_S64 *)(p->r + size);
         p->size = size;
+        p->weight_mode = weight_mode;
     }
 
     *ctx = p;
@@ -531,6 +533,14 @@ MPP_RET mpp_linreg_deinit(MppLinReg *ctx)
     mpp_free(ctx);
     return MPP_OK;
 }
+
+static RK_S64 linreg_weight[5][10] = {
+    {1000, 500, 250, 125, 63, 31, 16, 8, 4, 2},
+    {1000, 600, 360, 216, 130, 78, 47, 28, 17, 10},
+    {1000, 700, 490, 343, 240, 168, 117, 82, 57, 40},
+    {1000, 800, 640, 512, 409, 328, 262, 210, 168, 134},
+    {1000, 900, 810, 729, 656, 590, 531, 478, 430, 387},
+};
 
 /*
  * This function want to calculate coefficient 'b' 'a' using ordinary
@@ -577,6 +587,9 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
 
     RK_S32 *cx = ctx->x;
     RK_S64 *cy = ctx->y;
+    RK_S64 ws = 0;
+    RK_S32 idx = 0;
+    RK_S64 w;
 
     n = ctx->n;
     i = ctx->i;
@@ -587,14 +600,16 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
         else
             i--;
 
-        acc_xy += cx[i] * cy[i];
-        acc_x += cx[i];
-        acc_y += cy[i];
-        acc_sq_x += cx[i] * cx[i];
+        w = linreg_weight[ctx->weight_mode][idx++];
+        ws += w;
+        acc_xy += w * cx[i] * cy[i];
+        acc_x += w * cx[i];
+        acc_y += w * cy[i];
+        acc_sq_x += w * cx[i] * cx[i];
     }
 
-    b_num = ctx->n * acc_xy - acc_x * acc_y;
-    denom = ctx->n * acc_sq_x - acc_x * acc_x;
+    b_num = DIV(acc_xy - acc_x * acc_y, ws);
+    denom = DIV(acc_sq_x - acc_x * acc_x, ws);
 
     mpp_rc_dbg_rc("RC: linreg %p acc_xy %lld acc_x %lld acc_y %lld acc_sq_x %lld\n",
                   ctx, acc_xy, acc_x, acc_y, acc_sq_x);
@@ -609,7 +624,7 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
     else
         ctx->b = 0;
 
-    ctx->a = DIV(acc_y, ctx->n) - DIV(acc_x * ctx->b, ctx->n);
+    ctx->a = DIV(acc_y - acc_x * ctx->b, ws);
 
     mpp_rc_dbg_rc("RC: linreg %p after  update coefficient a %d b %d\n",
                   ctx, ctx->a, ctx->b);
