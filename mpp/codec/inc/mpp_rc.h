@@ -72,6 +72,7 @@ typedef struct linear_model_s {
     RK_S32 *x;          /* x */
     RK_S32 *r;          /* r */
     RK_S64 *y;          /* y = x * x * r */
+    RK_S32 weight_mode; /* different weight ratio*/
 } MppLinReg;
 
 typedef enum ENC_FRAME_TYPE_E {
@@ -232,7 +233,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result);
  */
 MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn);
 
-MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size);
+MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode);
 MPP_RET mpp_linreg_deinit(MppLinReg *ctx);
 MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r);
 RK_S32  mpp_linreg_calc(MppLinReg *ctx, RK_S32 r);

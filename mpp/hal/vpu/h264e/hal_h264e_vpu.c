@@ -1053,9 +1053,9 @@ static MPP_RET hal_h264e_vpu_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
     }
 
     if (NULL == ctx->intra_qs)
-        mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10));
+        mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10), 2);
     if (NULL == ctx->inter_qs)
-        mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10));
+        mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10), 2);
 
     mpp_assert(ctx->intra_qs);
     mpp_assert(ctx->inter_qs);

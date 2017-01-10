@@ -2730,9 +2730,9 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
     }
 
     if (NULL == ctx->intra_qs)
-        mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10));
+        mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10), 2);
     if (NULL == ctx->inter_qs)
-        mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10));
+        mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10), 2);
 
     mpp_assert(ctx->intra_qs);
     mpp_assert(ctx->inter_qs);
@@ -2746,13 +2746,15 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
 
     {
         RK_S32 prev_frame_type = hw_cfg->frame_type;
+        RK_S32 mb_per_pic =
+            ((ctx->cfg->prep.width + 15) >> 4) * ((ctx->cfg->prep.height + 15) >> 4);
 
         if (rc_syn->type == INTRA_FRAME) {
             hw_cfg->frame_type = H264E_RKV_FRAME_I;
             hw_cfg->coding_type = RKVENC_CODING_TYPE_IDR;
             hw_cfg->frame_num = 0;
 
-            hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->intra_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target);
+            hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->intra_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 256 / mb_per_pic);
 
             /*
              * Previous frame is inter then intra frame can not
@@ -2764,7 +2766,7 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
             hw_cfg->frame_type = H264E_RKV_FRAME_P;
             hw_cfg->coding_type = RKVENC_CODING_TYPE_P;
 
-            hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target);
+            hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 256 / mb_per_pic);
 
             /*
              * Previous frame is intra then inter frame can not
@@ -3451,6 +3453,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         RcSyntax *syn = (RcSyntax *)task->enc.syntax.data;
         RcHalResult result;
         RK_S32 avg_qp = 0;
+        RK_S32 mb_per_pic =
+            ((ctx->cfg->prep.width + 15) >> 4) * ((ctx->cfg->prep.height + 15) >> 4);
 
         avg_qp = fb->qp_sum / num_mb;
 
@@ -3464,7 +3468,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         mpp_linreg_update((syn->type == INTRA_FRAME) ?
                           (ctx->intra_qs) :
                           (ctx->inter_qs),
-                          h264_q_step[avg_qp], result.bits);
+                          h264_q_step[avg_qp], result.bits * 256 / mb_per_pic);
 
         int_cb.callBack(int_cb.opaque, fb);
     }
