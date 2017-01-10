@@ -570,6 +570,7 @@ MPP_RET rkv_h264d_deinit(void *hal)
     INP_CHECK(ret, NULL == p_hal);
 
     MPP_FREE(p_hal->pkts);
+    MPP_FREE(p_hal->regs);
     if (p_hal->cabac_buf) {
         FUN_CHECK(ret = mpp_buffer_put(p_hal->cabac_buf));
     }
