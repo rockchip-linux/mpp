@@ -140,6 +140,8 @@ typedef struct MppRateControl_s {
     RK_S32 acc_intra_count;
     RK_S32 acc_inter_count;
     RK_S32 acc_total_count;
+    RK_S32 last_fps_bits;
+    float last_intra_percent;
 
     /* runtime status parameter */
     ENC_FRAME_TYPE cur_frmtype;
@@ -155,6 +157,7 @@ typedef struct MppRateControl_s {
     MppData *gop_bits;
     MppPIDCtx pid_intra;
     MppPIDCtx pid_inter;
+    MppPIDCtx pid_fps;
 
     /*
      * output target bits on current status

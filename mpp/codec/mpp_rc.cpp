@@ -330,6 +330,7 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
         mpp_pid_reset(&ctx->pid_inter);
         mpp_pid_set_param(&ctx->pid_intra, 4, 6, 0, 100, ctx->window_len);
         mpp_pid_set_param(&ctx->pid_inter, 4, 6, 0, 100, ctx->window_len);
+        mpp_pid_set_param(&ctx->pid_fps, 4, 6, 0, 100, ctx->window_len);
 
         clear_acc = 1;
 
@@ -349,37 +350,43 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
         ctx->acc_total_bits = 0;
         ctx->acc_intra_count = 0;
         ctx->acc_inter_count = 0;
+        ctx->last_fps_bits = 0;
     }
 
     RK_S32 gop = ctx->gop;
     RK_S32 avg = ctx->bits_per_pic;
 
     ctx->cur_frmtype = INTER_P_FRAME;
-    if (gop == 0) {
-        /* only one intra then all inter */
-        ctx->gop_mode = MPP_GOP_ALL_INTER;
-        ctx->bits_per_inter = avg;
-        ctx->bits_per_intra = avg * 10;
-        ctx->intra_to_inter_rate = 0;
-    } else if (gop == 1) {
-        /* all intra */
-        ctx->gop_mode = MPP_GOP_ALL_INTRA;
-        ctx->bits_per_inter = 0;
-        ctx->bits_per_intra = avg;
-        ctx->intra_to_inter_rate = 0;
-        gop_start = 1;
-    } else if (ctx->gop < ctx->window_len) {
-        /* small gop - use fix allocation */
-        ctx->gop_mode = MPP_GOP_SMALL;
-        ctx->intra_to_inter_rate = gop + 1;
-        ctx->bits_per_inter = avg / 2;
-        ctx->bits_per_intra = ctx->bits_per_inter * ctx->intra_to_inter_rate;
-    } else {
-        /* large gop - use dynamic allocation */
-        ctx->gop_mode = MPP_GOP_LARGE;
-        ctx->intra_to_inter_rate = 10;
-        ctx->bits_per_inter = ctx->bits_per_pic;
-        ctx->bits_per_intra = ctx->bits_per_inter * ctx->intra_to_inter_rate;
+    if (clear_acc) {
+        if (gop == 0) {
+            /* only one intra then all inter */
+            ctx->gop_mode = MPP_GOP_ALL_INTER;
+            ctx->bits_per_inter = avg;
+            ctx->bits_per_intra = avg * 10;
+            ctx->intra_to_inter_rate = 0;
+        } else if (gop == 1) {
+            /* all intra */
+            ctx->gop_mode = MPP_GOP_ALL_INTRA;
+            ctx->bits_per_inter = 0;
+            ctx->bits_per_intra = avg;
+            ctx->intra_to_inter_rate = 0;
+            gop_start = 1;
+        } else if (ctx->gop < ctx->window_len) {
+            /* small gop - use fix allocation */
+            ctx->gop_mode = MPP_GOP_SMALL;
+            ctx->intra_to_inter_rate = gop + 1;
+            ctx->bits_per_inter = avg / 2;
+            ctx->bits_per_intra = ctx->bits_per_inter * ctx->intra_to_inter_rate;
+        } else {
+            /* large gop - use dynamic allocation */
+            RK_U32 intra_to_inter_rate;
+            ctx->gop_mode = MPP_GOP_LARGE;
+            mpp_env_get_u32("intra_rate", &intra_to_inter_rate, 3);
+            ctx->intra_to_inter_rate = intra_to_inter_rate;
+            ctx->bits_per_inter = ctx->bits_per_pic;
+            ctx->bits_per_intra = ctx->bits_per_inter * ctx->intra_to_inter_rate;
+            ctx->bits_per_inter -= ctx->bits_per_intra / (ctx->fps_out - 1);
+        }
     }
 
     if (ctx->acc_total_count == gop)
@@ -415,16 +422,31 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     } break;
     default : {
         if (ctx->cur_frmtype == INTRA_FRAME) {
-            ctx->bits_target = ctx->bits_per_intra - mpp_pid_calc(&ctx->pid_intra);
+            float intra_percent = 0.0;
+            RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_fps);
+
+            if (ctx->acc_intra_count) {
+                intra_percent = ctx->acc_intra_bits * 1.0 /
+                    (ctx->acc_intra_bits + ctx->acc_inter_bits);
+                ctx->last_intra_percent = intra_percent;
+            }
+
+            if (ctx->acc_intra_count) {
+                ctx->bits_target = (ctx->fps_out * ctx->bits_per_pic + diff_bit) * intra_percent;
+            } else
+                ctx->bits_target = ctx->bits_per_intra - mpp_pid_calc(&ctx->pid_intra);
         } else {
             if (ctx->pre_frmtype == INTRA_FRAME) {
+                RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_fps);
                 /*
                  * case - inter frame after intra frame
                  * update inter target bits with compensation of previous intra frame
                  */
                 RK_S32 bits_prev_intra = mpp_data_avg(ctx->intra, 1, 1, 1);
-                ctx->bits_per_inter = ctx->bits_per_pic - (bits_prev_intra - ctx->bits_per_pic) /
-                                      (ctx->window_len - 1);
+
+                ctx->bits_per_inter = (ctx->bps_target - bits_prev_intra + diff_bit * (1 - ctx->last_intra_percent)) /
+                    (ctx->window_len - 1);
+
                 mpp_rc_dbg_rc("RC: rc ctx %p bits pic %d win %d intra %d inter %d\n",
                               ctx, ctx->bits_per_pic, ctx->window_len,
                               bits_prev_intra, ctx->bits_per_inter);
@@ -435,12 +457,15 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             } else {
                 RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_inter);
                 ctx->bits_target = ctx->bits_per_inter - diff_bit;
+
                 mpp_rc_dbg_rc("RC: rc ctx %p inter pid diff %d target %d\n",
                               ctx, diff_bit, ctx->bits_target);
             }
         }
     } break;
     }
+
+    ctx->bits_target = ctx->bits_target > 0 ? ctx->bits_target : 0;
 
     rc_syn->bit_target = ctx->bits_target;
 
@@ -472,16 +497,23 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         ctx->acc_intra_bits += bits;
         mpp_data_update(ctx->intra, bits);
         mpp_data_update(ctx->gop_bits, bits);
-        mpp_pid_update(&ctx->pid_intra, bits - ctx->bits_per_intra);
+        mpp_pid_update(&ctx->pid_intra, bits - ctx->bits_target);
     } else {
         mpp_rc_dbg_rc("RC: rc ctx %p inter real bits %d target %d\n",
                       ctx, bits, ctx->bits_per_inter);
         ctx->acc_inter_count++;
         ctx->acc_inter_bits += bits;
         mpp_data_update(ctx->gop_bits, bits);
-        mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_per_inter);
+        mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_target);
     }
     ctx->acc_total_count++;
+    ctx->last_fps_bits += bits;
+
+    /* new fps start */
+    if (ctx->acc_total_count % ctx->fps_out == 0) {
+        mpp_pid_update(&ctx->pid_fps, ctx->bps_target - ctx->last_fps_bits);
+        ctx->last_fps_bits = 0;
+    }
 
     switch (ctx->gop_mode) {
     case MPP_GOP_ALL_INTER : {
