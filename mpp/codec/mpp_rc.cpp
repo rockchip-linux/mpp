@@ -593,13 +593,13 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
         acc_sq_x += cx[i] * cx[i];
     }
 
-    b_num = n * acc_xy - acc_x * acc_y;
-    denom = n * acc_sq_x - acc_x * acc_x;
+    b_num = ctx->n * acc_xy - acc_x * acc_y;
+    denom = ctx->n * acc_sq_x - acc_x * acc_x;
 
     mpp_rc_dbg_rc("RC: linreg %p acc_xy %lld acc_x %lld acc_y %lld acc_sq_x %lld\n",
                   ctx, acc_xy, acc_x, acc_y, acc_sq_x);
     mpp_rc_dbg_rc("RC: linreg %p n %d b_num %lld denom %lld\n",
-                  ctx, n, b_num, denom);
+                  ctx, ctx->n, b_num, denom);
 
     mpp_rc_dbg_rc("RC: linreg %p before update coefficient a %d b %d\n",
                   ctx, ctx->a, ctx->b);
@@ -609,7 +609,7 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
     else
         ctx->b = 0;
 
-    ctx->a = DIV(acc_y, n) - DIV(acc_x * ctx->b, n);
+    ctx->a = DIV(acc_y, ctx->n) - DIV(acc_x * ctx->b, ctx->n);
 
     mpp_rc_dbg_rc("RC: linreg %p after  update coefficient a %d b %d\n",
                   ctx, ctx->a, ctx->b);
