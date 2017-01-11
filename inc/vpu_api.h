@@ -426,7 +426,7 @@ RK_S32 VPUMemGetFD(VPUMemLinear_t *p);
 /*
  * vpu memory allocator and manager interface
  */
-vpu_display_mem_pool* open_vpu_memory_pool();
+vpu_display_mem_pool* open_vpu_memory_pool(void);
 void close_vpu_memory_pool(vpu_display_mem_pool *p);
 int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int size);
 void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool);

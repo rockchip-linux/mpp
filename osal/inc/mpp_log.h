@@ -113,7 +113,7 @@ extern "C" {
 extern RK_U32 mpp_debug;
 
 void mpp_log_set_flag(RK_U32 flag);
-RK_U32 mpp_log_get_flag();
+RK_U32 mpp_log_get_flag(void);
 
 void _mpp_log(const char *tag, const char *fmt, const char *func, ...);
 void _mpp_err(const char *tag, const char *fmt, const char *func, ...);
