@@ -670,7 +670,6 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     RK_S32 b_interlaced = 0;
     RK_S32 analyse_weighted_pred = 0;
     RK_S32 analyse_b_weighted_bipred = 0;
-    RK_S32 pps_init_qp = -1; //TODO: merge with syn
     RK_S32 Sw_deblock_filter_ctrl_present_flag = 1;
     RK_S32 b_cqm_preset = 0;
 
@@ -688,8 +687,8 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     pps->i_weighted_bipred_idc = analyse_b_weighted_bipred ? 2 : 0;
 
     pps->i_pic_init_qp = cfg->qp_init;
-    if (pps_init_qp >= 0 && pps_init_qp <= 51) {
-        pps->i_pic_init_qp = pps_init_qp;
+    if (pps->i_pic_init_qp >= 0 && pps->i_pic_init_qp <= 51) {
+        pps->i_pic_init_qp = 26;
     }
     pps->i_pic_init_qs = pps->i_pic_init_qp; // only for SP/SI slices
 
