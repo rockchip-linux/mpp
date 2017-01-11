@@ -2340,17 +2340,20 @@ MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *reg
         RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
         RK_U32 mb_target_size_mul_16 = (rc_syn->bit_target << 4) / num_mbs_oneframe;
         RK_U32 mb_target_size = mb_target_size_mul_16 >> 4;
-        RK_U32 aq_strength = 0;
-        RK_U32 rc_ctu_num = 1;
+        RK_U32 aq_strength = 2;
+        RK_U32 rc_ctu_num = (syn->width + 15) / 16;
 
         regs->swreg10.pic_qp        = syn->qp;//syn->swreg10.pic_qp; //if CQP, pic_qp=qp constant.
         regs->swreg46.rc_en         = syn->mb_rc_mode >= 1 ? 1 : 0; //0: disable mb rc
         regs->swreg46.rc_mode       = syn->mb_rc_mode == 2 ? 1 : 0; //0:frame/slice rc; 1:mbrc
-        regs->swreg54.rc_qp_range    = 15;
+        if (rc_syn->type == INTRA_FRAME)
+            regs->swreg54.rc_qp_range    = 2;
+        else
+            regs->swreg54.rc_qp_range    = 4;
         regs->swreg54.rc_max_qp      = syn->qp_max;
         regs->swreg54.rc_min_qp      = syn->qp_min;
         if (regs->swreg46.rc_mode) { //mb rc mode open
-            regs->swreg46.aqmode_en      = 0;
+            regs->swreg46.aqmode_en      = 1;
             regs->swreg46.aq_strg        = (RK_U32)(aq_strength * 1.0397 * 256);
             regs->swreg46.Reserved       = 0x0;
             regs->swreg46.rc_ctu_num     = rc_ctu_num;
@@ -2375,9 +2378,14 @@ MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *reg
             regs->swreg53.qp_adjust7    =  3;
             regs->swreg53.qp_adjust8    =  4;
 
-            regs->swreg54.rc_qp_mod      = 3; //sw_quality_flag;
-            regs->swreg54.rc_fact0       = 16; //sw_quality_factor_0;
-            regs->swreg54.rc_fact1       = 0; //sw_quality_factor_1;
+            regs->swreg54.rc_qp_mod      = 2; //sw_quality_flag;
+            if (syn->frame_type == H264E_RKV_FRAME_I) {
+                regs->swreg54.rc_fact0       = 8; //sw_quality_factor_0;
+                regs->swreg54.rc_fact1       = 8; //sw_quality_factor_1;
+            } else {
+                regs->swreg54.rc_fact0       = 0; //sw_quality_factor_0;
+                regs->swreg54.rc_fact1       = 16; //sw_quality_factor_1;
+            }
 
             regs->swreg55.ctu_ebits      = mb_target_size_mul_16;
         }
@@ -2761,7 +2769,7 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
              * have a big qp step between these two frames
              */
             if (prev_frame_type == H264E_RKV_FRAME_P)
-                hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 4, hw_cfg->qp_prev + 4);
+                hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 2, hw_cfg->qp_prev + 2);
         } else {
             hw_cfg->frame_type = H264E_RKV_FRAME_P;
             hw_cfg->coding_type = RKVENC_CODING_TYPE_P;
