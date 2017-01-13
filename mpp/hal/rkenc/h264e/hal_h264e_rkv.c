@@ -2977,6 +2977,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     if (mv_info_buf) {
         regs->swreg10.mei_stor    = 1; //syn->swreg10.mei_stor;
         regs->swreg36_meiw_addr   = mpp_buffer_get_fd(mv_info_buf); //mpp_buffer_get_fd(bufs->hw_mei_buf[mul_buf_idx]);
+    } else {
+        regs->swreg10.mei_stor    = 0;
+        regs->swreg36_meiw_addr   = 0;
     }
 
     regs->swreg38_bsbb_addr    = syn->output_strm_addr;
