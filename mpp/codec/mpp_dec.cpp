@@ -872,7 +872,6 @@ void *mpp_dec_advanced_thread(void *data)
                  * push a eos frame to tell all frame decoded
                  */
                 if (task_dec->flags.eos && !task_dec->valid) {
-                    mpp_frame_init(&frame);
                     mpp_frame_set_eos(frame, 1);
                     goto DEC_OUT;
                 }
@@ -891,7 +890,6 @@ void *mpp_dec_advanced_thread(void *data)
                 if (ret != MPP_OK) {
                     mpp_err_f("something wrong with parser_parse!\n");
                     mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
-                    mpp_frame_init(&frame);
                     goto DEC_OUT;
                 }
 
