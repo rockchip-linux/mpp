@@ -447,6 +447,7 @@ typedef struct h264e_hal_context_t {
     H264eHwCfg                      hw_cfg;
     MppLinReg                       *inter_qs;
     MppLinReg                       *intra_qs;
+    MppData                         *qp_p;
 } h264e_hal_context;
 
 MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps);

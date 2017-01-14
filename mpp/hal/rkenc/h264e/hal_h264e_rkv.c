@@ -2247,6 +2247,11 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         MPP_FREE(ctx->dump_files);
     }
 
+    if (ctx->qp_p) {
+        mpp_data_deinit(ctx->qp_p);
+        ctx->qp_p = NULL;
+    }
+
 #ifdef RKPLATFORM
     if (ctx->vpu_fd <= 0) {
         h264e_hal_log_err("invalid vpu socket: %d", ctx->vpu_fd);
@@ -2380,8 +2385,8 @@ MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *reg
 
             regs->swreg54.rc_qp_mod      = 2; //sw_quality_flag;
             if (syn->frame_type == H264E_RKV_FRAME_I) {
-                regs->swreg54.rc_fact0       = 8; //sw_quality_factor_0;
-                regs->swreg54.rc_fact1       = 8; //sw_quality_factor_1;
+                regs->swreg54.rc_fact0       = 16; //sw_quality_factor_0;
+                regs->swreg54.rc_fact1       = 0; //sw_quality_factor_1;
             } else {
                 regs->swreg54.rc_fact0       = 0; //sw_quality_factor_0;
                 regs->swreg54.rc_fact1       = 16; //sw_quality_factor_1;
@@ -2741,9 +2746,11 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10), 2);
     if (NULL == ctx->inter_qs)
         mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10), 2);
-
+    if (NULL == ctx->qp_p)
+        mpp_data_init(&ctx->qp_p, MPP_MIN(rc->gop, 10));
     mpp_assert(ctx->intra_qs);
     mpp_assert(ctx->inter_qs);
+    mpp_assert(ctx->qp_p);
 
     /* frame type and rate control setup */
     h264e_hal_log_detail("RC: qp calc ctx %p qp [%d %d] prev %d target bit %d\n",
@@ -2762,7 +2769,7 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
             hw_cfg->coding_type = RKVENC_CODING_TYPE_IDR;
             hw_cfg->frame_num = 0;
 
-            hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->intra_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 256 / mb_per_pic);
+            hw_cfg->qp = mpp_data_avg(ctx->qp_p, -1, 1, 1) - 3;
 
             /*
              * Previous frame is inter then intra frame can not
@@ -2791,6 +2798,8 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
     hw_cfg->qp = mpp_clip(hw_cfg->qp,
                           hw_cfg->qp_prev - codec->qp_max_step,
                           hw_cfg->qp_prev + codec->qp_max_step);
+    if (hw_cfg->frame_type == H264E_RKV_FRAME_P)
+        mpp_data_update(ctx->qp_p, hw_cfg->qp);
 
     h264e_hal_log_detail("RC: qp calc ctx %p qp clip %d prev %d step %d\n",
                          ctx->inter_qs, hw_cfg->qp, hw_cfg->qp_prev, codec->qp_max_step);
