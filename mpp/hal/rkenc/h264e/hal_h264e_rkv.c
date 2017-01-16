@@ -2385,8 +2385,8 @@ MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *reg
 
             regs->swreg54.rc_qp_mod      = 2; //sw_quality_flag;
             if (syn->frame_type == H264E_RKV_FRAME_I) {
-                regs->swreg54.rc_fact0       = 16; //sw_quality_factor_0;
-                regs->swreg54.rc_fact1       = 0; //sw_quality_factor_1;
+                regs->swreg54.rc_fact0       = 8; //sw_quality_factor_0;
+                regs->swreg54.rc_fact1       = 8; //sw_quality_factor_1;
             } else {
                 regs->swreg54.rc_fact0       = 0; //sw_quality_factor_0;
                 regs->swreg54.rc_fact1       = 16; //sw_quality_factor_1;
@@ -2740,6 +2740,40 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         hw_cfg->qp = hw_cfg->pic_init_qp;
 
         codec->change = 0;
+    }
+
+    /* init qp calculate, if outside doesn't set init qp.
+     * mpp will use bpp to estimates one.
+     */
+    if (hw_cfg->pic_init_qp <= 0) {
+        RK_S32 qp_tbl[2][9] = {
+            {27, 44, 72, 119, 192, 314, 453, 653, 0x7FFFFFFF},
+            {49, 45, 41, 37, 33, 29, 25, 21, 17}};
+        RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
+        RK_S32 bits_per_pic = axb_div_c(rc->bps_target,
+                                        rc->fps_out_denorm,
+                                        rc->fps_out_num);
+
+        if (pels) {
+            RK_S32 upscale = 8000;
+            if (bits_per_pic > 1000000)
+                hw_cfg->pic_init_qp = codec->qp_min;
+            else {
+                RK_S32 j = -1;
+
+                pels >>= 8;
+                bits_per_pic >>= 5;
+
+                bits_per_pic *= pels + 250;
+                bits_per_pic /= 350 + (3 * pels) / 4;
+                bits_per_pic = axb_div_c(bits_per_pic, upscale, pels << 6);
+
+                while (qp_tbl[0][++j] < bits_per_pic);
+
+                hw_cfg->pic_init_qp = qp_tbl[1][j];
+                hw_cfg->qp_prev = hw_cfg->pic_init_qp;
+            }
+        }
     }
 
     if (NULL == ctx->intra_qs)
