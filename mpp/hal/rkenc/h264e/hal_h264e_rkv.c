@@ -3443,6 +3443,9 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     HalEncTask *enc_task = &task->enc;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    /* for dumping ratecontrol message */
+    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
 
     h264e_hal_debug_enter();
 
@@ -3514,6 +3517,22 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         result.bits = fb->out_strm_size * 8;
         result.type = syn->type;
         fb->result = &result;
+
+        /* dump rc message */
+        h264e_hal_log_rc("target bits %d real bits %d "
+                         "target qp %d real qp %d\n",
+                         rc_syn->bit_target, result.bits,
+                         hw_cfg->qp, avg_qp);
+        if (h264e_hal_log_mode & H264E_HAL_LOG_DUMP_RC) {
+            FILE *fp = fopen("/tmp/rc_log.txt", "ab+");
+            if (fp) {
+                fprintf(fp, "bits: %d %d qp %d %d\n",
+                        rc_syn->bit_target, result.bits,
+                        hw_cfg->qp, avg_qp);
+                fclose(fp);
+            } else
+                mpp_err("can not open rc log file");
+        }
 
         mpp_linreg_update((syn->type == INTRA_FRAME) ?
                           (ctx->intra_qs) :
