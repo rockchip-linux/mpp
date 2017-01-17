@@ -37,8 +37,10 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_LOG_DPB               0x00001000
 #define H264E_HAL_LOG_HEADER            0x00002000
 #define H264E_HAL_LOG_SEI               0x00004000
+#define H264E_HAL_LOG_RC                0x00008000
 
 #define H264E_HAL_LOG_DETAIL            0x00010000
+#define H264E_HAL_LOG_DUMP_RC           0x00020000
 
 #define H264E_HAL_LOG_FILE              0x00100000
 
@@ -75,6 +77,12 @@ extern RK_U32 h264e_hal_log_mode;
 #define h264e_hal_log_detail(fmt, ...) \
     do {\
         if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
+
+#define h264e_hal_log_rc(fmt, ...) \
+    do {\
+        if (h264e_hal_log_mode & H264E_HAL_LOG_RC)\
             mpp_log(fmt, ## __VA_ARGS__);\
     } while (0)
 
