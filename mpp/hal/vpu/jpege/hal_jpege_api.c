@@ -375,16 +375,18 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
         RK_S32 i;
 
         for (i = 0; i < 16; i++) {
-            regs[i] = qtable[0][i * 4 + 0] << 24 |
-                      qtable[0][i * 4 + 1] << 16 |
-                      qtable[0][i * 4 + 2] << 8 |
-                      qtable[0][i * 4 + 3];
+            /* qtable need to reorder in particular order */
+            regs[i] = qtable[0][qp_reorder_table[i * 4 + 0]] << 24 |
+                      qtable[0][qp_reorder_table[i * 4 + 1]] << 16 |
+                      qtable[0][qp_reorder_table[i * 4 + 2]] << 8 |
+                      qtable[0][qp_reorder_table[i * 4 + 3]];
         }
         for (i = 0; i < 16; i++) {
-            regs[i + 16] = qtable[1][i * 4 + 0] << 24 |
-                           qtable[1][i * 4 + 1] << 16 |
-                           qtable[1][i * 4 + 2] << 8 |
-                           qtable[1][i * 4 + 3];
+            /* qtable need to reorder in particular order */
+            regs[i + 16] = qtable[1][qp_reorder_table[i * 4 + 0]] << 24 |
+                           qtable[1][qp_reorder_table[i * 4 + 1]] << 16 |
+                           qtable[1][qp_reorder_table[i * 4 + 2]] << 8 |
+                           qtable[1][qp_reorder_table[i * 4 + 3]];
         }
     }
 
