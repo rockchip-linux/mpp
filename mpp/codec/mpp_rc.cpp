@@ -458,7 +458,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
     ctx->last_fps_bits += bits;
 
     /* new fps start */
-    if (ctx->acc_total_count % ctx->fps_out == 0) {
+    if ((ctx->acc_intra_count + ctx->acc_inter_count) % ctx->fps_out == 0) {
         mpp_pid_update(&ctx->pid_fps, ctx->bps_target - ctx->last_fps_bits);
         ctx->last_fps_bits = 0;
     }
