@@ -121,7 +121,6 @@ static void hal_h264e_vpu_dump_mpp_syntax_in(H264eHwCfg *syn, h264e_hal_context 
         RK_S32 k = 0;
         fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
         fprintf(fp, "%-16d %s\n", syn->frame_type, "frame_coding_type");
-        fprintf(fp, "%-16d %s\n", syn->pic_init_qp, "pic_init_qp");
         fprintf(fp, "%-16d %s\n", syn->slice_alpha_offset, "slice_alpha_offset");
         fprintf(fp, "%-16d %s\n", syn->slice_beta_offset, "slice_beta_offset");
         fprintf(fp, "%-16d %s\n", syn->chroma_qp_index_offset, "chroma_qp_index_offset");
@@ -1037,7 +1036,6 @@ static MPP_RET hal_h264e_vpu_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         hw_cfg->enable_cabac = codec->entropy_coding_mode;
         hw_cfg->cabac_init_idc = codec->cabac_init_idc;
         hw_cfg->transform8x8_mode = codec->transform8x8_mode;
-        hw_cfg->pic_init_qp = codec->qp_init;
         hw_cfg->chroma_qp_index_offset = codec->chroma_cb_qp_offset;
         hw_cfg->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
         hw_cfg->filter_disable = codec->deblock_disable;
@@ -1045,9 +1043,9 @@ static MPP_RET hal_h264e_vpu_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         hw_cfg->slice_beta_offset = codec->deblock_offset_beta;
         hw_cfg->inter4x4_disabled = (codec->profile >= 31) ? (1) : (0);
         hw_cfg->constrained_intra_prediction = codec->constrained_intra_pred_mode;
+        hw_cfg->qp = codec->qp_init;
 
-        hw_cfg->qp_prev = hw_cfg->pic_init_qp;
-        hw_cfg->qp = hw_cfg->pic_init_qp;
+        hw_cfg->qp_prev = hw_cfg->qp;
 
         codec->change = 0;
     }
@@ -1140,6 +1138,8 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    h264e_hal_vpu_extra_info *extra_info = (h264e_hal_vpu_extra_info *)ctx->extra_info;
+    h264e_hal_pps *pps = &extra_info->pps;
     h264e_hal_vpu_buffers *bufs = (h264e_hal_vpu_buffers *)ctx->buffers;
     MppEncH264Cfg *codec = &ctx->cfg->codec.h264;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
@@ -1293,7 +1293,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
           | VEPU_REG_INTER_MODE(h264_inter_favor[hw_cfg->qp]);
     H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_INTER_MODE, val);
 
-    val = VEPU_REG_PPS_INIT_QP(hw_cfg->pic_init_qp)
+    val = VEPU_REG_PPS_INIT_QP(pps->i_pic_init_qp)
           | VEPU_REG_SLICE_FILTER_ALPHA(hw_cfg->slice_alpha_offset)
           | VEPU_REG_SLICE_FILTER_BETA(hw_cfg->slice_beta_offset)
           | VEPU_REG_CHROMA_QP_OFFSET(hw_cfg->chroma_qp_index_offset)

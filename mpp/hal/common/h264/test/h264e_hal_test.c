@@ -424,11 +424,6 @@ static MPP_RET get_vpu_syntax_in(H264eHwCfg *syn, MppBuffer hw_in_buf, MppBuffer
         fgets(temp, 512, fp_golden_syntax_in);
         syn->frame_type = data;
 
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
-        syn->pic_init_qp = data;
-
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
         syn->slice_alpha_offset = data;
@@ -618,7 +613,6 @@ static MPP_RET get_rkv_syntax_in( H264eHwCfg *syn, MppBuffer *hw_in_buf, MppBuff
     syn->input_format = h264e_rkv_revert_csp(csp_info);
 
     syn->enable_cabac = 1;
-    syn->pic_init_qp = 26;
     syn->chroma_qp_index_offset = 0;
     syn->second_chroma_qp_index_offset = 0;
 
@@ -810,7 +804,6 @@ static void h264e_hal_set_extra_info_cfg(h264e_control_extra_info_cfg *info, H26
 {
     info->chroma_qp_index_offset        = syn->chroma_qp_index_offset;
     info->enable_cabac                  = syn->enable_cabac;
-    info->pic_init_qp                   = syn->pic_init_qp;
     info->pic_luma_height               = syn->height;
     info->pic_luma_width                = syn->width;
     info->transform8x8_mode             = syn->transform8x8_mode;

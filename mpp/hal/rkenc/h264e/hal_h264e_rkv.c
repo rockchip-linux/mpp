@@ -308,7 +308,6 @@ static void hal_h264e_rkv_dump_mpp_syntax_in(H264eHwCfg *syn, h264e_hal_context 
         fprintf(fp, "%-16d %s\n", syn->input_format, "swreg14.src_cfmt");
 
         fprintf(fp, "%-16d %s\n", syn->enable_cabac, "swreg59.etpy_mode");
-        fprintf(fp, "%-16d %s\n", syn->pic_init_qp, "swreg59.pic_init_qp");
         fprintf(fp, "%-16d %s\n", syn->chroma_qp_index_offset, "swreg59.cb_ofst");
         fprintf(fp, "%-16d %s\n", syn->second_chroma_qp_index_offset, "swreg59.cr_ofst");
 
@@ -2295,7 +2294,6 @@ MPP_RET hal_h264e_rkv_set_ioctl_extra_info(h264e_rkv_ioctl_extra_info *extra_inf
 MPP_RET hal_h264e_rkv_set_rc_regs(h264e_hal_context *ctx, h264e_rkv_reg_set *regs, H264eHwCfg *syn,
                                   RcSyntax *rc_syn, h264e_hal_rkv_coveragetest_cfg *test)
 {
-    regs->swreg59.pic_init_qp     = syn->pic_init_qp - H264_QP_BD_OFFSET;
     if (test && test->mbrc) {
         RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
         RK_U32 frame_target_bitrate = (syn->width * syn->height / 1920 / 1080) * 10000000 / 8; //Bytes
@@ -2727,7 +2725,6 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         hw_cfg->enable_cabac = codec->entropy_coding_mode;
         hw_cfg->cabac_init_idc = codec->cabac_init_idc;
         hw_cfg->transform8x8_mode = codec->transform8x8_mode;
-        hw_cfg->pic_init_qp = codec->qp_init;
         hw_cfg->chroma_qp_index_offset = codec->chroma_cb_qp_offset;
         hw_cfg->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
         hw_cfg->filter_disable = codec->deblock_disable;
@@ -2735,9 +2732,9 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         hw_cfg->slice_beta_offset = codec->deblock_offset_beta;
         hw_cfg->inter4x4_disabled = (codec->profile >= 31) ? (1) : (0);
         hw_cfg->constrained_intra_prediction = codec->constrained_intra_pred_mode;
+        hw_cfg->qp = codec->qp_init;
 
-        hw_cfg->qp_prev = hw_cfg->pic_init_qp;
-        hw_cfg->qp = hw_cfg->pic_init_qp;
+        hw_cfg->qp_prev = hw_cfg->qp;
 
         codec->change = 0;
     }
@@ -2745,10 +2742,11 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
     /* init qp calculate, if outside doesn't set init qp.
      * mpp will use bpp to estimates one.
      */
-    if (hw_cfg->pic_init_qp <= 0) {
+    if (hw_cfg->qp <= 0) {
         RK_S32 qp_tbl[2][9] = {
             {27, 44, 72, 119, 192, 314, 453, 653, 0x7FFFFFFF},
-            {49, 45, 41, 37, 33, 29, 25, 21, 17}};
+            {49, 45, 41, 37, 33, 29, 25, 21, 17}
+        };
         RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
         RK_S32 bits_per_pic = axb_div_c(rc->bps_target,
                                         rc->fps_out_denorm,
@@ -2757,7 +2755,7 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
         if (pels) {
             RK_S32 upscale = 8000;
             if (bits_per_pic > 1000000)
-                hw_cfg->pic_init_qp = codec->qp_min;
+                hw_cfg->qp = codec->qp_min;
             else {
                 RK_S32 j = -1;
 
@@ -2770,8 +2768,8 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
 
                 while (qp_tbl[0][++j] < bits_per_pic);
 
-                hw_cfg->pic_init_qp = qp_tbl[1][j];
-                hw_cfg->qp_prev = hw_cfg->pic_init_qp;
+                hw_cfg->qp = qp_tbl[1][j];
+                hw_cfg->qp_prev = hw_cfg->qp;
             }
         }
     }
@@ -3138,11 +3136,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     hal_h264e_rkv_set_rc_regs(ctx, regs, syn, (RcSyntax *)enc_task->syntax.data, test_cfg);
 
-    regs->swreg56.rect_size         = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
-    regs->swreg56.inter_4x4         = 1;
-    regs->swreg56.arb_sel           = 0; //syn->swreg56.arb_sel;
-    regs->swreg56.vlc_lmt           = (sps->i_profile_idc < H264_PROFILE_HIGH && !syn->enable_cabac);
-    regs->swreg56.rdo_mark          = 0; //syn->swreg56.rdo_mark;
+    regs->swreg56.rect_size        = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
+    regs->swreg56.inter_4x4        = 1;
+    regs->swreg56.arb_sel          = 0; //syn->swreg56.arb_sel;
+    regs->swreg56.vlc_lmt          = (sps->i_profile_idc < H264_PROFILE_HIGH && !syn->enable_cabac);
+    regs->swreg56.rdo_mark         = 0; //syn->swreg56.rdo_mark;
     /*if (syn->transform8x8_mode == 0 && (syn->swreg56.rdo_mark & 0xb5) == 0xb5) //NOTE: bug may exist here
     {
         h264e_hal_log_err("RdoMark and trans8x8 conflict!");
@@ -3186,6 +3184,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg59.csip_flg        = par->constrained_intra; //syn->swreg59.csip_flg;
     regs->swreg59.num_ref0_idx    = pps->i_num_ref_idx_l0_default_active - 1; //syn->swreg59.num_ref0_idx;
     regs->swreg59.num_ref1_idx    = pps->i_num_ref_idx_l1_default_active - 1; //syn->swreg59.num_ref1_idx;
+    regs->swreg59.pic_init_qp     = pps->i_pic_init_qp - H264_QP_BD_OFFSET;
     regs->swreg59.cb_ofst         = pps->i_chroma_qp_index_offset; //syn->chroma_qp_index_offset;
     regs->swreg59.cr_ofst         = pps->i_second_chroma_qp_index_offset; //syn->second_chroma_qp_index_offset;
     regs->swreg59.wght_pred       = 0x0;

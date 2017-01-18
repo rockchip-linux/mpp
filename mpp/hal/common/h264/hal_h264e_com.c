@@ -686,10 +686,8 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     pps->b_weighted_pred = analyse_weighted_pred > 0;
     pps->i_weighted_bipred_idc = analyse_b_weighted_bipred ? 2 : 0;
 
-    pps->i_pic_init_qp = cfg->qp_init;
-    if (pps->i_pic_init_qp < 0 || pps->i_pic_init_qp > 51) {
-        pps->i_pic_init_qp = 26;
-    }
+    /* pps.pic_init_qp is not included in user interface, just fix it */
+    pps->i_pic_init_qp = 26;
     pps->i_pic_init_qs = pps->i_pic_init_qp; // only for SP/SI slices
 
     pps->b_transform_8x8_mode = cfg->transform8x8_mode;
