@@ -521,17 +521,13 @@ MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps)
     sps->i_id = 0;
     sps->i_mb_width = ( prep->width + 15 ) / 16;
     sps->i_mb_height = ( prep->height + 15 ) / 16;
-    sps->i_chroma_format_idc = csp >= H264E_CSP2_I444 ? H264E_CHROMA_444 :
-                               csp >= H264E_CSP2_I422 ? H264E_CHROMA_422 : H264E_CHROMA_420;
+    sps->i_chroma_format_idc = H264E_CHROMA_420; // for rkv and vpu, only support YUV420
 
     sps->b_qpprime_y_zero_transform_bypass = 0; //param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     sps->i_profile_idc = codec->profile;
 
-    sps->b_constraint_set0  = 0; //sps->i_profile_idc == H264_PROFILE_BASELINE;
-    /* x264 doesn't support the features that are in Baseline and not in Main,
-     * namely arbitrary_slice_order and slice_groups. */
-    sps->b_constraint_set1  = 0; //sps->i_profile_idc <= H264_PROFILE_MAIN;
-    /* Never set constraint_set2, it is not necessary and not used in real world. */
+    sps->b_constraint_set0  = 0;
+    sps->b_constraint_set1  = 0;
     sps->b_constraint_set2  = 0;
     sps->b_constraint_set3  = 0;
 
