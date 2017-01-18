@@ -66,7 +66,6 @@ typedef struct H264eHwCfg_t {
     RK_S32 enable_cabac;
     RK_S32 cabac_init_idc;
     RK_S32 constrained_intra_prediction;
-    RK_S32 pic_init_qp;
     RK_S32 transform8x8_mode;
 
     RK_S32 pps_id;
