@@ -660,7 +660,8 @@ MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps)
 }
 MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_sps *sps)
 {
-    MppEncH264Cfg *cfg = &ctx->cfg->codec.h264;
+    MppEncH264Cfg *codec = &ctx->cfg->codec.h264;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 k = 0;
     RK_S32 i_avcintra_class = 0;
     RK_S32 b_interlaced = 0;
@@ -671,7 +672,7 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
 
     pps->i_id = 0;
     pps->i_sps_id = sps->i_id;
-    pps->b_cabac = cfg->entropy_coding_mode;
+    pps->b_cabac = codec->entropy_coding_mode;
 
     pps->b_pic_order = !i_avcintra_class && b_interlaced;
     pps->i_num_slice_groups = 1;
@@ -686,11 +687,11 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     pps->i_pic_init_qp = 26;
     pps->i_pic_init_qs = pps->i_pic_init_qp; // only for SP/SI slices
 
-    pps->b_transform_8x8_mode = cfg->transform8x8_mode;
-    pps->i_chroma_qp_index_offset = cfg->chroma_cb_qp_offset;
-    pps->i_second_chroma_qp_index_offset = cfg->chroma_cr_qp_offset;
+    pps->b_transform_8x8_mode = prep->width <= 1920 ? 0 : codec->transform8x8_mode;
+    pps->i_chroma_qp_index_offset = codec->chroma_cb_qp_offset;
+    pps->i_second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
     pps->b_deblocking_filter_control = Sw_deblock_filter_ctrl_present_flag;
-    pps->b_constrained_intra_pred = cfg->constrained_intra_pred_mode;
+    pps->b_constrained_intra_pred = codec->constrained_intra_pred_mode;
     pps->b_redundant_pic_cnt = 0;
 
     if (sps->i_profile_idc < H264_PROFILE_HIGH) {
