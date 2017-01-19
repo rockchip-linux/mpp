@@ -84,8 +84,8 @@ typedef struct hal_vp9_context {
     MppBuffer segid_last_base;
     void*     hw_regs;
     IOInterruptCB int_cb;
-    RK_U32 mv_base_addr;
-    RK_U32 pre_mv_base_addr;
+    RK_S32 mv_base_addr;
+    RK_S32 pre_mv_base_addr;
     vp9_dec_last_info_t ls_info;
     /*swap between segid_cur_base & segid_last_base
         0  used segid_cur_base as last
@@ -122,8 +122,8 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     mpp_log("hal_vp9d_init in");
     reg_cxt->slots = cfg->frame_slots;
     reg_cxt->int_cb = cfg->hal_int_cb;
-    reg_cxt->mv_base_addr = 0;
-    reg_cxt->pre_mv_base_addr = 0;
+    reg_cxt->mv_base_addr = -1;
+    reg_cxt->pre_mv_base_addr = -1;
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, vp9_ver_align);
 
@@ -678,8 +678,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     } else {
         reg_cxt->mv_base_addr =  vp9_hw_regs->swreg7_decout_base + (sw_yuv_virstride << 4);
     }
-
-    if (!reg_cxt->pre_mv_base_addr) {
+    if (reg_cxt->pre_mv_base_addr < 0) {
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
     vp9_hw_regs->swreg52_vp9_refcolmv_base = reg_cxt->pre_mv_base_addr;
@@ -929,8 +928,8 @@ MPP_RET hal_vp9d_reset(void *hal)
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
     mpp_log("hal_vp9d_reset in");
     memset(&reg_cxt->ls_info, 0, sizeof(reg_cxt->ls_info));
-    reg_cxt->mv_base_addr = 0;
-    reg_cxt->pre_mv_base_addr = 0;
+    reg_cxt->mv_base_addr = -1;
+    reg_cxt->pre_mv_base_addr = -1;
     reg_cxt->last_segid_flag = 1;
     return MPP_OK;
 }
@@ -943,8 +942,11 @@ MPP_RET hal_vp9d_reset(void *hal)
 //extern "C"
 MPP_RET hal_vp9d_flush(void *hal)
 {
-    (void)hal;
+    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
+    mpp_log("hal_vp9d_flush in");
 
+    reg_cxt->mv_base_addr = -1;
+    reg_cxt->pre_mv_base_addr = -1;
 
     return MPP_OK;
 }
