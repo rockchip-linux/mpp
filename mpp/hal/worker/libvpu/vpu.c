@@ -113,7 +113,8 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     mpp_env_get_u32("vpu_debug", &vpu_debug, 0);
 
     if (fd == -1) {
-        mpp_err_f("failed to open %s\n", name);
+        mpp_err_f("failed to open %s, errno = %d, error msg: %s\n",
+                                name, errno, strerror(errno));
         return -1;
     }
     ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);
