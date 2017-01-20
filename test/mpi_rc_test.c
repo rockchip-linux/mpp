@@ -720,7 +720,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     rc_cfg->fps_in_denorm = 1;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->fps_in_num = fps;
-    rc_cfg->fps_out_denorm = fps;
+    rc_cfg->fps_out_num = fps;
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_out_flex = 0;
     rc_cfg->gop = 30;
