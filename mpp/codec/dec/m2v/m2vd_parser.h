@@ -268,7 +268,6 @@ typedef struct M2VDParserContext_t {
     long long       top_first_cnt;
     long long       bottom_first_cnt;
     RK_S32            mHeaderDecFlag;
-    RK_S32            mHeaderGopFlag;
     M2VDFrameHead     Framehead[3];
     M2VDFrameHead    *frame_ref0;
     M2VDFrameHead    *frame_ref1;
