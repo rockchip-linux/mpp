@@ -244,7 +244,17 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
         mpp_rc_dbg_cfg("fps: %d / %d\n", cfg->fps_out_num, cfg->fps_out_denorm);
         ctx->fps_num = cfg->fps_out_num;
         ctx->fps_denom = cfg->fps_out_denorm;
+        if (ctx->fps_denom == 0) {
+            mpp_err("denorm can not be 0, change to default 1");
+            ctx->fps_denom = 1;
+        }
         ctx->fps_out = ctx->fps_num / ctx->fps_denom;
+        if (ctx->fps_out == 0) {
+            mpp_err("fps out can not be 0, change to default 30");
+            ctx->fps_out = 30;
+            ctx->fps_num = 30;
+            ctx->fps_denom = 1;
+        }
         clear_acc = 1;
     }
 
