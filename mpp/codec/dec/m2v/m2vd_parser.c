@@ -20,6 +20,7 @@
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"
 
+#include "mpp_packet_impl.h"
 #include "mpp_frame.h"
 #include "mpp_env.h"
 
@@ -183,7 +184,6 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->maxFrame_inGOP = 0;
     ctx->preframe_period = 0;
     ctx->mHeaderDecFlag = 0;
-    ctx->mHeaderGopFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
 
@@ -420,14 +420,19 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
+    len_in = (RK_U32)mpp_packet_get_length(pkt);
 
+    if(mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+        pos += len_in;
+        mpp_packet_set_pos(pkt, pos);
+        return ret;
+    }
 
     //MppPacketImpl *packet = (MppPacketImpl *)pkt;
     //uint32_t stream_count = 0;
 
     FUN_T("FUN_I");
     task->valid = 0;
-    len_in = (RK_U32)mpp_packet_get_length(pkt),
     p->eos = mpp_packet_get_eos(pkt);
     // mpp_log("len_in = %d",len_in);
     if (len_in > p->max_stream_size) {
@@ -999,9 +1004,6 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
             break;
         case GROUP_START_CODE:
             ret = m2vd_decode_gop_header(ctx);
-            if (!ret) {
-                ctx->mHeaderGopFlag = 1;
-            }
             break;
         case PICTURE_START_CODE:
             ret = m2vd_decode_pic_header(ctx);
@@ -1350,11 +1352,6 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
 
     if (!p->mHeaderDecFlag) {
         mpp_log("[m2v]: !mHeaderDecFlag");
-        goto __FAILED;
-    }
-
-    if (!p->mHeaderGopFlag) {
-        mpp_log("[m2v]: !mHeaderGopFlag");
         goto __FAILED;
     }
 
