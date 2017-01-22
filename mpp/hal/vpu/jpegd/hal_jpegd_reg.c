@@ -2086,6 +2086,8 @@ MPP_RET hal_jpegd_wait(void *hal, HalTaskInfo *task)
     JpegRegSet reg_out;
     VPU_CMD_TYPE cmd = 0;
     RK_S32 length = 0;
+    RK_U32 errinfo = 1;
+    MppFrame tmp = NULL;
     memset(&reg_out, 0, sizeof(JpegRegSet));
 
     ret = VPUClientWaitResult(JpegHalCtx->vpu_socket, (RK_U32 *)&reg_out, JPEGD_REG_NUM, &cmd, &length);
@@ -2098,8 +2100,12 @@ MPP_RET hal_jpegd_wait(void *hal, HalTaskInfo *task)
     } else if (reg_out.reg55_Interrupt.sw_dec_buffer_int) {
         JPEGD_ERROR_LOG("IRQ BUFFER EMPTY!");
     } else if (reg_out.reg55_Interrupt.sw_dec_irq) {
+        errinfo = 0;
         JPEGD_INFO_LOG("DECODE SUCCESS!");
     }
+
+    mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, task->dec.output, SLOT_FRAME_PTR, &tmp);
+    mpp_frame_set_errinfo(tmp, errinfo);
 
     /* debug information */
     if (JpegHalCtx->hal_debug_enable && JpegHalCtx->output_yuv_count < 3) {

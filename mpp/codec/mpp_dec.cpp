@@ -889,6 +889,7 @@ void *mpp_dec_advanced_thread(void *data)
                 ret = parser_parse(dec->parser, task_dec);
                 if (ret != MPP_OK) {
                     mpp_err_f("something wrong with parser_parse!\n");
+                    mpp_frame_set_errinfo(frame, 1); /* 0 - OK; 1 - error */
                     mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                     goto DEC_OUT;
                 }
@@ -923,6 +924,7 @@ void *mpp_dec_advanced_thread(void *data)
                 mpp_frame_set_ver_stride(frame, mpp_frame_get_ver_stride(tmp));
                 mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp));
                 mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp));
+                mpp_frame_set_errinfo(frame, mpp_frame_get_errinfo(tmp));
 
                 mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                 mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -932,6 +934,7 @@ void *mpp_dec_advanced_thread(void *data)
                  */
                 mpp_log_f("line(%d): Error! Get no buffer from input packet\n", __LINE__);
                 mpp_frame_init(&frame);
+                mpp_frame_set_errinfo(frame, 1);
             }
 
             /*
