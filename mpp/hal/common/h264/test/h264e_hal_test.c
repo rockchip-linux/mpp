@@ -434,19 +434,11 @@ static MPP_RET get_vpu_syntax_in(H264eHwCfg *syn, MppBuffer hw_in_buf, MppBuffer
 
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
-        syn->chroma_qp_index_offset = data;
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
         syn->filter_disable = data;
 
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
         syn->idr_pic_id = data;
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
-        syn->pps_id = data;
 
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
@@ -459,18 +451,6 @@ static MPP_RET get_vpu_syntax_in(H264eHwCfg *syn, MppBuffer hw_in_buf, MppBuffer
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
         syn->inter4x4_disabled = data;
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
-        syn->enable_cabac = data;
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
-        syn->transform8x8_mode = data;
-
-        fscanf(fp_golden_syntax_in, "%d", &data);
-        fgets(temp, 512, fp_golden_syntax_in);
-        syn->cabac_init_idc = data;
 
         fscanf(fp_golden_syntax_in, "%d", &data);
         fgets(temp, 512, fp_golden_syntax_in);
@@ -596,10 +576,6 @@ static MPP_RET get_rkv_syntax_in( H264eHwCfg *syn, MppBuffer *hw_in_buf, MppBuff
     mpp_log("make syntax begin");
     syn->width = cfg->pic_width;
     syn->height = cfg->pic_height;
-    syn->level_idc = H264_LEVEL_4_1;
-    syn->profile_idc = H264_PROFILE_HIGH;
-    mpp_log("syn->level_idc %d", syn->level_idc);
-    mpp_log("syn->profile_idc %d", syn->profile_idc);
     syn->keyframe_max_interval = 30;
     if (g_frame_cnt == 0 || g_frame_cnt % syn->keyframe_max_interval == 0) {
         syn->frame_type = 1; //intra
@@ -612,15 +588,7 @@ static MPP_RET get_rkv_syntax_in( H264eHwCfg *syn, MppBuffer *hw_in_buf, MppBuff
     csp_info.aswap = 0; //TODO:
     syn->input_format = h264e_rkv_revert_csp(csp_info);
 
-    syn->enable_cabac = 1;
-    syn->chroma_qp_index_offset = 0;
-    syn->second_chroma_qp_index_offset = 0;
-
-    syn->pps_id = 0 ;
     syn->frame_num = 0;
-    syn->cabac_init_idc = 0;
-
-
     syn->idr_pic_id = 0;
     syn->pic_order_cnt_lsb = 0;
 
@@ -637,8 +605,6 @@ static MPP_RET get_rkv_syntax_in( H264eHwCfg *syn, MppBuffer *hw_in_buf, MppBuff
 
         H264E_HAL_FSCAN(fp, "%d\n", syn->width);
         H264E_HAL_FSCAN(fp, "%d\n", syn->height);
-        H264E_HAL_FSCAN(fp, "%d\n", syn->level_idc);
-        H264E_HAL_FSCAN(fp, "%d\n", syn->profile_idc);
         H264E_HAL_FSCAN(fp, "%d\n", syn->frame_type);
         H264E_HAL_FSCAN(fp, "%d\n", syn->qp);
         H264E_HAL_FSCAN(fp, "%d\n", syn->input_format);
@@ -802,18 +768,11 @@ MPP_RET h264_hal_test_call_back(void *control, void *feedback)
 
 static void h264e_hal_set_extra_info_cfg(h264e_control_extra_info_cfg *info, H264eHwCfg *syn)
 {
-    info->chroma_qp_index_offset        = syn->chroma_qp_index_offset;
-    info->enable_cabac                  = syn->enable_cabac;
     info->pic_luma_height               = syn->height;
     info->pic_luma_width                = syn->width;
-    info->transform8x8_mode             = syn->transform8x8_mode;
 
     info->input_image_format            = syn->input_format;
-    info->profile_idc                   = syn->profile_idc;
-    info->level_idc                     = syn->level_idc;
     info->keyframe_max_interval         = syn->keyframe_max_interval;
-    info->second_chroma_qp_index_offset = syn->second_chroma_qp_index_offset;
-    info->pps_id                        = syn->pps_id;
 
     info->frame_rate                    = 30;
 }

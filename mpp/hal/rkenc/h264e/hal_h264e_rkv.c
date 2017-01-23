@@ -301,20 +301,12 @@ static void hal_h264e_rkv_dump_mpp_syntax_in(H264eHwCfg *syn, h264e_hal_context 
 
         fprintf(fp, "%-16d %s\n", syn->width, "pic_luma_width");
         fprintf(fp, "%-16d %s\n", syn->height, "pic_luma_height");
-        fprintf(fp, "%-16d %s\n", syn->level_idc, "level_idc");
-        fprintf(fp, "%-16d %s\n", syn->profile_idc, "profile_idc");
         fprintf(fp, "%-16d %s\n", syn->coding_type, "frame_coding_type");
         fprintf(fp, "%-16d %s\n", syn->qp, "swreg10.pic_qp");
         fprintf(fp, "%-16d %s\n", syn->input_format, "swreg14.src_cfmt");
 
-        fprintf(fp, "%-16d %s\n", syn->enable_cabac, "swreg59.etpy_mode");
-        fprintf(fp, "%-16d %s\n", syn->chroma_qp_index_offset, "swreg59.cb_ofst");
-        fprintf(fp, "%-16d %s\n", syn->second_chroma_qp_index_offset, "swreg59.cr_ofst");
-
         fprintf(fp, "%-16d %s\n", syn->frame_type, "swreg60.sli_type");
-        fprintf(fp, "%-16d %s\n", syn->pps_id, "swreg60.pps_id");
         fprintf(fp, "%-16d %s\n", syn->frame_num, "swreg60.frm_num");
-        fprintf(fp, "%-16d %s\n", syn->cabac_init_idc, "swreg60.cbc_init_idc");
 
         fprintf(fp, "%-16d %s\n", syn->idr_pic_id, "swreg61.idr_pid");
         fprintf(fp, "%-16d %s\n", syn->pic_order_cnt_lsb, "swreg61.poc_lsb");
@@ -2719,19 +2711,12 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
 
     if (codec->change) {
         // TODO: setup sps / pps here
-
-        hw_cfg->pps_id = 0;
         hw_cfg->idr_pic_id = !ctx->idr_pic_id;
-        hw_cfg->enable_cabac = codec->entropy_coding_mode;
-        hw_cfg->cabac_init_idc = codec->cabac_init_idc;
-        hw_cfg->transform8x8_mode = codec->transform8x8_mode;
-        hw_cfg->chroma_qp_index_offset = codec->chroma_cb_qp_offset;
-        hw_cfg->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
         hw_cfg->filter_disable = codec->deblock_disable;
         hw_cfg->slice_alpha_offset = codec->deblock_offset_alpha;
         hw_cfg->slice_beta_offset = codec->deblock_offset_beta;
         hw_cfg->inter4x4_disabled = (codec->profile >= 31) ? (1) : (0);
-        hw_cfg->constrained_intra_prediction = codec->constrained_intra_pred_mode;
+        hw_cfg->cabac_init_idc = codec->cabac_init_idc;
         hw_cfg->qp = codec->qp_init;
 
         hw_cfg->qp_prev = hw_cfg->qp;
@@ -2872,7 +2857,6 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
 MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 {
     h264e_hal_context *ctx = (h264e_hal_context *)hal;
-    h264e_hal_param *par = &ctx->param;
     h264e_rkv_reg_set *regs = NULL;
     h264e_rkv_ioctl_reg_info *ioctl_reg_info = NULL;
     H264eHwCfg *syn = &ctx->hw_cfg;
@@ -3139,14 +3123,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg56.rect_size        = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
     regs->swreg56.inter_4x4        = 1;
     regs->swreg56.arb_sel          = 0; //syn->swreg56.arb_sel;
-    regs->swreg56.vlc_lmt          = (sps->i_profile_idc < H264_PROFILE_HIGH && !syn->enable_cabac);
+    regs->swreg56.vlc_lmt          = (sps->i_profile_idc < H264_PROFILE_HIGH && !pps->b_cabac);
     regs->swreg56.rdo_mark         = 0; //syn->swreg56.rdo_mark;
-    /*if (syn->transform8x8_mode == 0 && (syn->swreg56.rdo_mark & 0xb5) == 0xb5) //NOTE: bug may exist here
-    {
-        h264e_hal_log_err("RdoMark and trans8x8 conflict!");
-        mpp_assert(0);
-        return MPP_NOK;
-    }*/
 
     {
         RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
@@ -3179,9 +3157,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg58.drct_8x8    = 1;      //syn->swreg58.drct_8x8;
     regs->swreg58.mpoc_lm4    = sps->i_log2_max_poc_lsb - 4; //syn->swreg58.mpoc_lm4;
 
-    regs->swreg59.etpy_mode       = syn->enable_cabac;
+    regs->swreg59.etpy_mode       = pps->b_cabac;
     regs->swreg59.trns_8x8        = pps->b_transform_8x8_mode; //syn->swreg59.trns_8x8;
-    regs->swreg59.csip_flg        = par->constrained_intra; //syn->swreg59.csip_flg;
+    regs->swreg59.csip_flg        = pps->b_constrained_intra_pred;
     regs->swreg59.num_ref0_idx    = pps->i_num_ref_idx_l0_default_active - 1; //syn->swreg59.num_ref0_idx;
     regs->swreg59.num_ref1_idx    = pps->i_num_ref_idx_l1_default_active - 1; //syn->swreg59.num_ref1_idx;
     regs->swreg59.pic_init_qp     = pps->i_pic_init_qp - H264_QP_BD_OFFSET;
@@ -3191,7 +3169,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg59.dbf_cp_flg      = 1; //syn->deblocking_filter_control;
 
     regs->swreg60.sli_type        = syn->frame_type; //syn->swreg60.sli_type;
-    regs->swreg60.pps_id          = syn->pps_id;
+    regs->swreg60.pps_id          = pps->i_id;
     regs->swreg60.drct_smvp       = 0x0;
     regs->swreg60.num_ref_ovrd    = 0;
     regs->swreg60.cbc_init_idc    = syn->cabac_init_idc;
