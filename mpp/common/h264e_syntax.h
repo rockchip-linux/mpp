@@ -62,21 +62,13 @@ typedef struct H264eHwCfg_t {
      */
     RK_S32 frame_type;
 
-    /* Parameter in sps/pps/slice */
-    RK_S32 enable_cabac;
     RK_S32 cabac_init_idc;
-    RK_S32 constrained_intra_prediction;
-    RK_S32 transform8x8_mode;
-
-    RK_S32 pps_id;
     RK_S32 frame_num;
     RK_S32 pic_order_cnt_lsb;
     RK_S32 filter_disable;
     RK_S32 idr_pic_id;
     RK_S32 slice_alpha_offset;
     RK_S32 slice_beta_offset;
-    RK_S32 chroma_qp_index_offset;
-    RK_S32 second_chroma_qp_index_offset;
     RK_S32 inter4x4_disabled;
 
     /* rate control relevant */
@@ -100,8 +92,6 @@ typedef struct H264eHwCfg_t {
     RK_S32 delta_qp[9];
 
     /* RKVENC extra syntax below */
-    RK_S32 profile_idc;
-    RK_S32 level_idc;
     RK_S32 link_table_en;
     RK_S32 keyframe_max_interval;
 

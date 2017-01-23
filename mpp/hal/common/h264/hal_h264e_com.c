@@ -723,7 +723,7 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
         h264e_hal_log_err("CQM_CUSTOM mode is not supported now");
         return MPP_NOK;
     default:
-        h264e_hal_log_err("invalid cqm_preset mode");
+        h264e_hal_log_err("invalid cqm_preset mode %d", b_cqm_preset);
         return MPP_NOK;
     }
 
