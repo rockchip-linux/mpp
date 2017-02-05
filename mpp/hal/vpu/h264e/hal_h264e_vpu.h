@@ -639,9 +639,12 @@ typedef struct h264e_hal_vpu_stream_t {
 typedef struct h264e_hal_vpu_extra_info_t {
     h264e_hal_vpu_stream sps_stream;
     h264e_hal_vpu_stream pps_stream;
+    h264e_hal_vpu_stream sei_stream;
     h264e_hal_sps sps;
     h264e_hal_pps pps;
     h264e_hal_sei sei;
+    RK_U8 *sei_buf;
+    RK_U32 sei_change_flg;
 } h264e_hal_vpu_extra_info;
 
 typedef struct h264e_vpu_reg_set_t {

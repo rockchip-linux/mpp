@@ -730,3 +730,56 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
     return MPP_OK;
 }
 
+void hal_h264e_sei_pack2str(char *str, h264e_hal_context *ctx)
+{
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncH264Cfg *codec = &cfg->codec.h264;
+    MppEncPrepCfg *prep = &cfg->prep;
+    MppEncRcCfg *rc = &cfg->rc;
+
+    if (prep->change || codec->change || rc->change)
+        H264E_HAL_SPRINT(str, "frm %d: ", ctx->frame_cnt);
+
+    /* prep cfg */
+    if (prep->change) {
+        RK_U32 change = prep->change;
+
+        H264E_HAL_SPRINT(str, "[prep] ");
+        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+            H264E_HAL_SPRINT(str, "w=%d ", prep->width);
+            H264E_HAL_SPRINT(str, "h=%d ", prep->height);
+            H264E_HAL_SPRINT(str, "fmt=%d ", prep->format);
+            H264E_HAL_SPRINT(str, "h_std=%d ", prep->hor_stride);
+            H264E_HAL_SPRINT(str, "v_std=%d ", prep->ver_stride);
+        }
+    }
+
+    /* codec cfg */
+    if (codec->change) {
+        H264E_HAL_SPRINT(str, "[codec] ");
+        H264E_HAL_SPRINT(str, "profile=%d ", codec->profile);
+        H264E_HAL_SPRINT(str, "level=%d ", codec->level);
+        H264E_HAL_SPRINT(str, "b_cabac=%d ", codec->entropy_coding_mode);
+        H264E_HAL_SPRINT(str, "cabac_idc=%d ", codec->cabac_init_idc);
+        H264E_HAL_SPRINT(str, "t8x8=%d ", codec->transform8x8_mode);
+        H264E_HAL_SPRINT(str, "constrain_intra=%d ", codec->constrained_intra_pred_mode);
+        H264E_HAL_SPRINT(str, "dblk=%d:%d:%d ", codec->deblock_disable,
+                         codec->deblock_offset_alpha, codec->deblock_offset_beta);
+        H264E_HAL_SPRINT(str, "cbcr_qp_offset=%d:%d ", codec->chroma_cb_qp_offset,
+                         codec->chroma_cr_qp_offset);
+        H264E_HAL_SPRINT(str, "qp_max=%d ", codec->qp_max);
+        H264E_HAL_SPRINT(str, "qp_min=%d ", codec->qp_min);
+        H264E_HAL_SPRINT(str, "qp_max_step=%d ", codec->qp_max_step);
+    }
+
+    /* rc cfg */
+    if (rc->change) {
+        H264E_HAL_SPRINT(str, "[rc] ");
+        H264E_HAL_SPRINT(str, "rc_mode=%d ", rc->rc_mode);
+        H264E_HAL_SPRINT(str, "quality=%d ", rc->quality);
+        H264E_HAL_SPRINT(str, "bps=%d:%d:%d ", rc->bps_target, rc->bps_min, rc->bps_max);
+        H264E_HAL_SPRINT(str, "fps_in=%d:%d:%d ", rc->fps_in_num, rc->fps_in_denorm, rc->fps_in_flex);
+        H264E_HAL_SPRINT(str, "fps_out=%d:%d:%d ", rc->fps_out_num, rc->fps_out_denorm, rc->fps_out_flex);
+        H264E_HAL_SPRINT(str, "gop=%d ", rc->gop);
+    }
+}
