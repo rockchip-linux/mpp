@@ -1636,58 +1636,6 @@ MPP_RET hal_h264e_rkv_encapsulate_nals(h264e_hal_rkv_extra_info *out)
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_rkv_sei_pack2str(char *str, h264e_hal_context *ctx)
-{
-    h264e_hal_rkv_extra_info *info = (h264e_hal_rkv_extra_info *)ctx->extra_info;
-    h264e_hal_sps *sps = &info->sps;
-    h264e_hal_pps *pps = &info->pps;
-    MppEncCfgSet *cfg = ctx->cfg;
-    MppEncPrepCfg *prep = &cfg->prep;
-    MppEncRcCfg *rc_cfg = &cfg->rc;
-
-    h264e_hal_debug_enter();
-
-    H264E_HAL_SPRINT(str, "frame %d rkvenc_cfg: ", ctx->frame_cnt);
-
-    if (info->sei_change_flg & H264E_SEI_CHG_SPSPPS) {
-        h264e_hal_log_sei("write sei extra_info_cfg");
-        H264E_HAL_SPRINT(str, "extra_info: ");
-        H264E_HAL_SPRINT(str, "pic_w %d ",                           prep->width);
-        H264E_HAL_SPRINT(str, "pic_h %d ",                           prep->height);
-        H264E_HAL_SPRINT(str, "en_cabac %d ",                        pps->b_cabac);
-        H264E_HAL_SPRINT(str, "t8x8 %d ",                            pps->b_transform_8x8_mode);
-        H264E_HAL_SPRINT(str, "cb_qp_ofst %d ",                      pps->i_chroma_qp_index_offset);
-        H264E_HAL_SPRINT(str, "pic_init_qp %d ",                     pps->i_pic_init_qp);
-        H264E_HAL_SPRINT(str, "fps %d ",                             rc_cfg->fps_in_num / rc_cfg->fps_in_denorm);
-        H264E_HAL_SPRINT(str, "src_fmt %d ",                         prep->format);
-        H264E_HAL_SPRINT(str, "profile %d ",                         sps->i_profile_idc);
-        H264E_HAL_SPRINT(str, "level %d ",                           sps->i_level_idc);
-        H264E_HAL_SPRINT(str, "key_interval %d ",                    sps->keyframe_max_interval);
-        H264E_HAL_SPRINT(str, "cr_qp_ofst %d ",                      pps->i_second_chroma_qp_index_offset);
-        H264E_HAL_SPRINT(str, "pps_id %d ",                          pps->i_id);
-        info->sei_change_flg &= ~H264E_SEI_CHG_SPSPPS;
-    }
-
-    if (info->sei_change_flg & H264E_SEI_CHG_RC) {
-        h264e_hal_log_sei("write sei rc_cfg");
-        H264E_HAL_SPRINT(str, "rc: ");
-        H264E_HAL_SPRINT(str, "mode %d ",                            rc_cfg->rc_mode);
-        H264E_HAL_SPRINT(str, "qlt %d ",                             rc_cfg->quality);
-        H264E_HAL_SPRINT(str, "bps_tgt %d ",                         rc_cfg->bps_target);
-        H264E_HAL_SPRINT(str, "bps_max %d ",                         rc_cfg->bps_max);
-        H264E_HAL_SPRINT(str, "bps_min %d ",                         rc_cfg->bps_min);
-        H264E_HAL_SPRINT(str, "fps_in %d ",                          rc_cfg->fps_in_num / rc_cfg->fps_in_denorm);
-        H264E_HAL_SPRINT(str, "fps_out %d ",                         rc_cfg->fps_out_num / rc_cfg->fps_out_denorm);
-        H264E_HAL_SPRINT(str, "gop %d ",                             rc_cfg->gop);
-        H264E_HAL_SPRINT(str, "skip_cnt %d ",                        rc_cfg->skip_cnt);
-        info->sei_change_flg &= ~H264E_SEI_CHG_RC;
-    }
-
-    h264e_hal_debug_leave();
-
-    return MPP_OK;
-}
-
 static MPP_RET hal_h264e_rkv_sei_write(h264e_hal_rkv_stream *s, RK_U8 *payload, RK_S32 payload_size, RK_S32 payload_type)
 {
     RK_S32 i = 0;
@@ -1722,7 +1670,7 @@ MPP_RET hal_h264e_rkv_sei_encode(h264e_hal_context *ctx)
     char *str = (char *)info->sei_buf;
     RK_S32 str_len = 0;
 
-    hal_h264e_rkv_sei_pack2str(str + H264E_UUID_LENGTH, ctx);
+    hal_h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx);
 
     str_len = strlen(str) + 1;
     if (str_len > H264E_SEI_BUF_SIZE) {

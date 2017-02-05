@@ -748,11 +748,63 @@ static MPP_RET hal_h264e_vpu_write_pps(h264e_hal_vpu_stream *stream, h264e_hal_p
     return MPP_OK;
 }
 
+static MPP_RET hal_h264e_vpu_write_sei(h264e_hal_vpu_stream *s, RK_U8 *payload, RK_S32 payload_size, RK_S32 payload_type)
+{
+    RK_S32 i = 0;
+
+    h264e_hal_debug_enter();
+
+    hal_h264e_vpu_nal_start(s, RKVENC_NAL_PRIORITY_DISPOSABLE, RKVENC_NAL_SEI);
+
+    for (i = 0; i <= payload_type - 255; i += 255)
+        hal_h264e_vpu_stream_put_bits_with_detect(s, 0xff, 8, "sei_payload_type_ff_byte");
+    hal_h264e_vpu_stream_put_bits_with_detect(s, payload_type - i, 8, "sei_last_payload_type_byte");
+
+    for (i = 0; i <= payload_size - 255; i += 255)
+        hal_h264e_vpu_stream_put_bits_with_detect(s, 0xff, 8, "sei_payload_size_ff_byte");
+    hal_h264e_vpu_stream_put_bits_with_detect( s, payload_size - i, 8, "sei_last_payload_size_byte");
+
+    for (i = 0; i < payload_size; i++)
+        hal_h264e_vpu_stream_put_bits_with_detect(s, (RK_U32)payload[i], 8, "sei_payload_data");
+
+    hal_h264e_vpu_rbsp_trailing_bits(s);
+
+    h264e_hal_debug_leave();
+
+    return MPP_OK;
+}
+
+
+MPP_RET hal_h264e_vpu_sei_encode(h264e_hal_context *ctx)
+{
+    h264e_hal_vpu_extra_info *info = (h264e_hal_vpu_extra_info *)ctx->extra_info;
+    h264e_hal_vpu_stream *sei_stream = &info->sei_stream;
+    char *str = (char *)info->sei_buf;
+    RK_S32 str_len = 0;
+
+    hal_h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx);
+
+    str_len = strlen(str) + 1;
+    if (str_len > H264E_SEI_BUF_SIZE) {
+        h264e_hal_log_err("SEI actual string length %d exceed malloced size %d", str_len, H264E_SEI_BUF_SIZE);
+        return MPP_NOK;
+    } else {
+        hal_h264e_vpu_write_sei(sei_stream, (RK_U8 *)str, str_len, H264E_SEI_USER_DATA_UNREGISTERED);
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET hal_h264e_vpu_init_extra_info(void *extra_info)
 {
+    static const RK_U8 h264e_sei_uuid[H264E_UUID_LENGTH] = {
+        0x63, 0xfc, 0x6a, 0x3c, 0xd8, 0x5c, 0x44, 0x1e,
+        0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77
+    };
     h264e_hal_vpu_extra_info *info = (h264e_hal_vpu_extra_info *)extra_info;
     h264e_hal_vpu_stream *sps_stream = &info->sps_stream;
     h264e_hal_vpu_stream *pps_stream = &info->pps_stream;
+    h264e_hal_vpu_stream *sei_stream = &info->sei_stream;
 
     if (MPP_OK != hal_h264e_vpu_stream_buffer_init(sps_stream, 128)) {
         mpp_err("sps stream sw buf init failed");
@@ -762,6 +814,12 @@ static MPP_RET hal_h264e_vpu_init_extra_info(void *extra_info)
         mpp_err("pps stream sw buf init failed");
         return MPP_NOK;
     }
+    if (MPP_OK != hal_h264e_vpu_stream_buffer_init(sei_stream, H264E_SEI_BUF_SIZE)) {
+        mpp_err("sei stream sw buf init failed");
+        return MPP_NOK;
+    }
+    info->sei_buf = mpp_calloc_size(RK_U8, H264E_SEI_BUF_SIZE);
+    memcpy(info->sei_buf, h264e_sei_uuid, H264E_UUID_LENGTH);
 
     return MPP_OK;
 }
@@ -771,9 +829,12 @@ static MPP_RET hal_h264e_vpu_deinit_extra_info(void *extra_info)
     h264e_hal_vpu_extra_info *info = (h264e_hal_vpu_extra_info *)extra_info;
     h264e_hal_vpu_stream *sps_stream = &info->sps_stream;
     h264e_hal_vpu_stream *pps_stream = &info->pps_stream;
+    h264e_hal_vpu_stream *sei_stream = &info->sei_stream;
 
     MPP_FREE(sps_stream->buffer);
     MPP_FREE(pps_stream->buffer);
+    MPP_FREE(sei_stream->buffer);
+    MPP_FREE(info->sei_buf);
 
     return MPP_OK;
 }
@@ -796,6 +857,12 @@ static MPP_RET hal_h264e_vpu_set_extra_info(h264e_hal_context *ctx)
 
     hal_h264e_vpu_write_sps(sps_stream, sps);
     hal_h264e_vpu_write_pps(pps_stream, pps);
+
+    if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_SEQ || ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME) {
+        info->sei_change_flg |= H264E_SEI_CHG_SPSPPS;
+        hal_h264e_vpu_sei_encode(ctx);
+    }
+
 
     h264e_hal_debug_leave();
 
@@ -1538,8 +1605,6 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
         mpp_assert(avg_qp >= 0);
         mpp_assert(avg_qp <= 51);
 
-        mpp_log("qp sum %d avg %d\n", fb->qp_sum, avg_qp);
-
         result.bits = fb->out_strm_size * 8;
         result.type = syn->type;
         fb->result = &result;
@@ -1598,6 +1663,7 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
         h264e_hal_vpu_extra_info *src = (h264e_hal_vpu_extra_info *)ctx->extra_info;
         h264e_hal_vpu_stream *sps_stream = &src->sps_stream;
         h264e_hal_vpu_stream *pps_stream = &src->pps_stream;
+        h264e_hal_vpu_stream *sei_stream = &src->sei_stream;
 
         size_t offset = 0;
 
@@ -1608,6 +1674,9 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
 
         mpp_packet_write(pkt, offset, pps_stream->buffer, pps_stream->byte_cnt);
         offset += pps_stream->byte_cnt;
+
+        mpp_packet_write(pkt, offset, sei_stream->buffer, sei_stream->byte_cnt);
+        offset += sei_stream->byte_cnt;
 
         mpp_packet_set_length(pkt, offset);
 

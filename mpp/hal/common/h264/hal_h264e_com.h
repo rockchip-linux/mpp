@@ -44,7 +44,8 @@ extern RK_U32 h264e_hal_log_mode;
 
 #define H264E_HAL_LOG_FILE              0x00100000
 
-
+#define H264E_SEI_CHG_SPSPPS        0x00000001
+#define H264E_SEI_CHG_RC            0x00000010
 
 #define H264E_HAL_MASK_2b               (RK_U32)0x00000003
 #define H264E_HAL_MASK_3b               (RK_U32)0x00000007
@@ -467,5 +468,6 @@ const RK_U8 h264e_zigzag_scan4[2][16];
 const RK_U8 h264e_zigzag_scan8[2][64];
 void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
 void hal_h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
+void hal_h264e_sei_pack2str(char *str, h264e_hal_context *ctx);
 
 #endif
