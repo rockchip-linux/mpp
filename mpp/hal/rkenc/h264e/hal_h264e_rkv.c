@@ -2608,10 +2608,6 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
             hw_cfg->width   = prep->width;
             hw_cfg->height  = prep->height;
             hw_cfg->input_format = prep->format;
-
-            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 16));
-            mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 16));
-
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
 
@@ -3437,7 +3433,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 
         avg_qp = fb->qp_sum / num_mb;
 
-        mpp_assert(avg_qp >= 0);
+        mpp_assert(avg_qp >= 1);
         mpp_assert(avg_qp <= 51);
 
         result.bits = fb->out_strm_size * 8;
