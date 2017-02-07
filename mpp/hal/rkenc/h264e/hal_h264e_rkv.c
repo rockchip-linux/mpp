@@ -228,8 +228,8 @@ static H264eRkvMbRcMcfg mb_rc_m_cfg[H264E_MB_RC_M_NUM] = {
     {16,        1,           0,      1,        0,              0,                  1}, // mode = 1
     {8,         1,           1,      2,        8,              4,                  0}, // mode = 2
     {4,         1,           1,      4,        8,              4,                  0}, // mode = 3
-    {2,         1,           1,      8,        8,              4,                  0}, // mode = 4
-    {0,         1,           1,      12,       8,              4,                  0}, // mode = 5
+    {2,         1,           1,      4,        8,              4,                  0}, // mode = 4
+    {0,         1,           1,      2,        8,              4,                  0}, // mode = 5
 };
 
 static H264eRkvMbRcQcfg mb_rc_q_cfg[H264E_MB_RC_Q_NUM] = {
@@ -2744,9 +2744,9 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
      * mpp will use bpp to estimates one.
      */
     if (hw_cfg->qp <= 0) {
-        RK_S32 qp_tbl[2][9] = {
-            {27, 44, 72, 119, 192, 314, 453, 653, 0x7FFFFFFF},
-            {49, 45, 41, 37, 33, 29, 25, 21, 17}
+        RK_S32 qp_tbl[2][13] = {
+            {26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936, 1472, 0x7fffffff},
+            {42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6}
         };
         RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
         RK_S32 bits_per_pic = axb_div_c(rc->bps_target,
@@ -2800,7 +2800,10 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
             hw_cfg->coding_type = RKVENC_CODING_TYPE_IDR;
             hw_cfg->frame_num = 0;
 
-            hw_cfg->qp = mpp_data_avg(ctx->qp_p, -1, 1, 1) - 3;
+            if (ctx->frame_cnt == 0)
+                hw_cfg->qp = hw_cfg->qp_prev;
+            else
+                hw_cfg->qp = mpp_data_avg(ctx->qp_p, -1, 1, 1) - 3;
 
             /*
              * Previous frame is inter then intra frame can not
@@ -3423,6 +3426,59 @@ static MPP_RET hal_h264e_rkv_set_feedback(h264e_feedback *fb, h264e_rkv_ioctl_ou
     return MPP_OK;
 }
 
+/* this function must be called after first VPUClientWaitResult,
+ * since it depend on h264e_feedback structure, and this structure will
+ * be filled after VPUClientWaitResult called
+ */ 
+static MPP_RET hal_h264e_rkv_resend(h264e_hal_context *ctx, RK_S32 mb_rc)
+{
+    unsigned int k = 0;
+    h264e_rkv_ioctl_input *ioctl_info = (h264e_rkv_ioctl_input *)ctx->ioctl_input;
+    h264e_rkv_reg_set *reg_list = (h264e_rkv_reg_set *)ctx->regs;
+    RK_S32 length;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    VPU_CMD_TYPE cmd = 0;
+    h264e_rkv_ioctl_output *reg_out = (h264e_rkv_ioctl_output *)ctx->ioctl_output;
+    h264e_feedback *fb = &ctx->feedback;
+    RK_S32 hw_ret = 0;
+
+    reg_list->swreg10.pic_qp        = fb->qp_sum / num_mb;//syn->swreg10.pic_qp; //if CQP, pic_qp=qp constant.
+    reg_list->swreg46.rc_en         = mb_rc; //0: disable mb rc
+    reg_list->swreg46.rc_mode       = mb_rc ? 1 : 0; //0:frame/slice rc; 1:mbrc
+    reg_list->swreg46.aqmode_en		= mb_rc;
+
+    for (k = 0; k < ioctl_info->frame_num; k++)
+        memcpy(&ioctl_info->reg_info[k].regs,
+               &reg_list[k], sizeof(h264e_rkv_reg_set));
+
+    length = (sizeof(ioctl_info->enc_mode) +
+              sizeof(ioctl_info->frame_num) +
+              sizeof(ioctl_info->reg_info[0]) *
+              ioctl_info->frame_num) >> 2;
+
+    if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
+        h264e_hal_log_err("VPUClientSendReg Failed!!!");
+        return MPP_ERR_VPUHW;
+    } else {
+        h264e_hal_log_detail("VPUClientSendReg successfully!");
+    }
+
+    hw_ret = VPUClientWaitResult(ctx->vpu_fd,
+                                 (RK_U32 *)reg_out,
+                                 length, &cmd, NULL);
+
+    if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
+        h264e_hal_log_err("hardware wait error");
+
+    if (hw_ret != MPP_OK) {
+        h264e_hal_log_err("hardware returns error:%d", hw_ret);
+        return MPP_ERR_VPUHW;
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 {
     VPU_CMD_TYPE cmd = 0;
@@ -3493,6 +3549,14 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 #endif
 
     hal_h264e_rkv_set_feedback(fb, reg_out);
+
+    /* we need re-encode */
+    if (ctx->frame_cnt == 1) {
+        hal_h264e_rkv_resend(ctx, 0);
+
+        hal_h264e_rkv_set_feedback(fb, reg_out);
+    }
+
     task->enc.length = fb->out_strm_size;
     h264e_hal_log_detail("output stream size %d\n", fb->out_strm_size);
     if (int_cb.callBack) {

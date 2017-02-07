@@ -155,6 +155,7 @@ typedef struct MppRateControl_s {
      */
     MppData *intra;
     MppData *gop_bits;
+    MppData *intra_percent;
     MppPIDCtx pid_intra;
     MppPIDCtx pid_inter;
     MppPIDCtx pid_fps;
