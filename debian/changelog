@@ -1,0 +1,49 @@
+mpp (1.3.1-1) testing; urgency=medium
+
+  * [allocator]: force using drm allocator in Linux platform
+  * [mpp_buffer]: access the index field of buffer info
+  * [mpi]: decode_put_packet() would return the internal error
+  * [meta]: use fourcc format to store the meta data for those enum types
+  * [drm]: use mmap64() in native way for GNU Linux target
+  * [mpp/hal/vp8d]: rename and add device type info
+  * [mpp/hal/vp8d]: add support for VDPU1
+  * [mpp_frame]: export more functions to MppFrame fields
+  * [h264d]: make H.264 common data and functions together
+  * [h264d]: move the register table into the other file
+  * [test]: fix the align problem in decode_advanced()
+  * [jpegd] rename to its device type
+  * [jpegd]: isolate the common functions
+  * [jpegd]: add support for VDPU1
+
+ -- Randy Li <randy.li@rock-chips.com>  Thu, 09 Mar 2017 09:52:21 +0000
+
+mpp (1.3.0-1) testing; urgency=medium
+
+  * [mpp]: a fixup for wrong place scope symbols
+  * .gitignore: the intial version of gitignore
+  * build: support cross build in debian
+  * mpp: add pkgconfig file
+  * debian: support install for multiarch
+  * debian: add debian build rules
+  * utils: move the header files to common include directories
+  * osal: match system implementation with pre-defined marco
+  * osal: rename the directory of windows implementation
+  * osal: build: update the build system
+  * osal: build: use system default thread library
+  * osal: build: test: do not install unit test
+  * mpp: move header files into header directory
+  * mpp: test: build: rename the mpp library name in unit test
+  * mpp: legacy: rename mpp legacy library as rockchip_vpu
+  * mpp: build: update build rules
+  * build: a simple build rules
+  * mpp: install mpp library to target
+  * build: install development files
+  * build: add pkgconfig support
+
+ -- Randy Li <randy.li@rock-chips.com>  Wed, 08 Feb 2017 08:37:49 +0000
+
+mpp (73f2ee87a7f836daa6d09b3f65e5abd8e1380318-1) unstable; urgency=low
+
+  * The origin version from algorithmn group
+
+ -- Randy Li <randy.li@rock-chips.com>  Sun, 05 Feb 2017 03:14:14 +0000
