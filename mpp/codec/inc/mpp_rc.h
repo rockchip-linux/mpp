@@ -215,7 +215,7 @@ MPP_RET mpp_rc_deinit(MppRateControl *ctx);
  * Called in mpp_control function.
  * If parameter changed mark flag and let encoder recalculate bit allocation.
  */
-MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg);
+MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 force_idr);
 
 /*
  * When one frame is encoded hal will call this function to update paramter

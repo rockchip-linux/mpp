@@ -146,7 +146,9 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
         return MPP_NOK;
     }
 
-    mpp_rc_update_user_cfg(p->rc, rc);
+    mpp_rc_update_user_cfg(p->rc, rc, !!p->idr_request);
+    if (p->idr_request)
+        p->idr_request--;
 
     mpp_rc_bits_allocation(p->rc, rc_syn);
 

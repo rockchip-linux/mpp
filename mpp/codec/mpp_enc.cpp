@@ -420,7 +420,7 @@ MPP_RET mpp_enc_notify(void *ctx, void *info)
 
 MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
 {
-    if (NULL == enc || NULL == param) {
+    if (NULL == enc || (NULL == param && cmd != MPP_ENC_SET_IDR_FRAME)) {
         mpp_err_f("found NULL input enc %p cmd %x param %d\n", enc, cmd, param);
         return MPP_ERR_NULL_PTR;
     }
