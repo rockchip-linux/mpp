@@ -509,6 +509,7 @@ typedef struct h264e_hal_context_t {
     MppLinReg                       *inter_qs;
     MppLinReg                       *intra_qs;
     MppData                         *qp_p;
+    MppData                         *sse_p;
     H264eMbRcCtx                    mb_rc;
 } h264e_hal_context;
 

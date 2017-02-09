@@ -551,13 +551,157 @@ MPP_RET mpp_linreg_deinit(MppLinReg *ctx)
     return MPP_OK;
 }
 
-static RK_S64 linreg_weight[5][10] = {
-    {1000, 500, 250, 125, 63, 31, 16, 8, 4, 2},
-    {1000, 600, 360, 216, 130, 78, 47, 28, 17, 10},
-    {1000, 700, 490, 343, 240, 168, 117, 82, 57, 40},
-    {1000, 800, 640, 512, 409, 328, 262, 210, 168, 134},
-    {1000, 900, 810, 729, 656, 590, 531, 478, 430, 387},
+static RK_S64 linreg_weight[6][15] = {
+    {1000, 500, 250, 125, 63, 31, 16, 8, 4, 2, 1, 0, 0, 0, 0},
+    {1000, 600, 360, 216, 130, 78, 47, 28, 17, 10, 6, 4, 2, 1, 0},
+    {1000, 700, 490, 343, 240, 168, 117, 82, 57, 40, 32, 26, 20, 16, 13},
+    {1000, 800, 640, 512, 409, 328, 262, 210, 168, 134, 107, 86, 69, 55, 44},
+    {1000, 900, 810, 729, 656, 590, 531, 478, 430, 387, 348, 313, 282, 254, 229},
+    {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000}
 };
+
+MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
+{
+    double a00 = 0.0, a01 = 0.0, a02 = 0.0, a10 = 0.0, a11 = 0.0, a12 = 0.0, a20 = 0.0, a21 = 0.0, a22 = 0.0;
+    double ta00, ta01, ta02, ta10, ta11, ta12, ta20, ta21, ta22;
+    double b0 = 0.0, b1 = 0.0, b2 = 0.0;
+    double matrix_value = 0.0;
+
+    RK_S32 cq = 0;
+    RK_S32 est_b = 0;
+    RK_S32 w = 0;
+
+    double a = 0.0, b = 0.0, c = 0.0;
+
+    /* step 1: save data */
+    RK_S64 y = (RK_S64)x * x * r;
+    ctx->x[ctx->i] = x;
+    ctx->r[ctx->i] = r;
+    ctx->y[ctx->i] = y;
+
+    mpp_rc_dbg_rc("RC: linreg %p save index %d x %d r %d x*x*r %lld\n",
+                  ctx, ctx->i, x, r, y);
+
+    if (++ctx->i >= ctx->size)
+        ctx->i = 0;
+
+    if (ctx->n < ctx->size)
+        ctx->n++;
+
+    /* step 2: update coefficient */
+    RK_S32 i = 0;
+    RK_S32 n;
+
+    RK_S32 *cx = ctx->x;
+    RK_S32 *cr = ctx->r;
+    RK_S32 idx = 0;
+
+    n = ctx->n;
+    i = ctx->i;
+
+    while (n--) {
+        if (i == 0)
+            i = ctx->size - 1;
+        else
+            i--;
+
+       cq = cx[i];
+
+        /* limite wlen when complexity change sharply */
+        if (idx++ > wlen)
+            break;
+    }
+
+    w = idx;
+    idx = 0;
+    n = w;
+    i = ctx->i;
+
+    while (n--) {
+        if (i == 0)
+            i = ctx->size - 1;
+        else
+            i--;
+
+        if (cq != cx[i])
+            est_b = 1;
+
+        a += 1.0 * cx[i] * cr[i] / w;
+    }
+
+    if (est_b && w >= 1) {
+        n = w;
+        i = ctx->i;
+        while (n--) {
+            if (i == 0)
+                i = ctx->size - 1;
+            else
+                i--;
+
+            double wt = linreg_weight[ctx->weight_mode][idx++] * 1000.0;
+
+            a00 += wt;
+            a01 += wt / cx[i];
+            a02 += wt / cx[i] / cx[i];
+            a10  = a01;
+            a11  = a02;
+            a12 += wt / cx[i] / cx[i] / cx[i];
+            a20  = a02;
+            a21  = a12;
+            a22 += wt / cx[i] / cx[i] / cx[i] / cx[i];
+
+            b0 += wt * cr[i];
+            b1 += wt * cr[i] / cx[i];
+            b2 += wt * cr[i] / cx[i] / cx[i];
+        }
+
+        ta00 = a11 * a22 - a21 * a12;
+        ta01 = -(a01 * a22 - a21 * a02);
+        ta02 = a01 * a12 - a11 * a02;
+        ta10 = -(a10 * a22 - a20 * a12);
+        ta11 = a00 * a22 - a20 * a02;
+        ta12 = -(a00 * a02 - a10 * a02);
+        ta20 = a10 * a21 - a20 * a11;
+        ta21 = -(a00 * a21 - a20 * a01);
+        ta22 = a00 * a11 - a10 * a01;
+
+        mpp_rc_dbg_rc("matrix A:\n");
+
+        mpp_rc_dbg_rc("%e %e %e\n", a00, a01, a02);
+        mpp_rc_dbg_rc("%e %e %e\n", a10, a11, a12);
+        mpp_rc_dbg_rc("%e %e %e\n", a20, a21, a22);
+
+        mpp_rc_dbg_rc("adjoint matrix of A:\n");
+
+        mpp_rc_dbg_rc("%e %e %e\n", ta00, ta01, ta02);
+        mpp_rc_dbg_rc("%e %e %e\n", ta10, ta11, ta12);
+        mpp_rc_dbg_rc("%e %e %e\n", ta20, ta21, ta22);
+
+        mpp_rc_dbg_rc("vector B:\n");
+
+        mpp_rc_dbg_rc("%e %e %e\n", b0, b1, b2);
+
+        matrix_value = a00 * a11 * a22 + a01 * a12 * a20 + a02 * a10 * a21
+            - a02 * a11 * a20 - a00 * a12 * a21 - a01 * a10 * a22;
+
+        mpp_rc_dbg_rc("matrix value: %e\n", matrix_value);
+
+        if (matrix_value < 0.000001)
+            matrix_value = 0.000001;
+
+        a = (ta00 * b0 + ta01 * b1 + ta02 * b2) / matrix_value;
+        b = (ta10 * b0 + ta11 * b1 + ta12 * b2) / matrix_value;
+        c = (ta20 * b0 + ta21 * b1 + ta22 * b2) / matrix_value;
+    }
+
+    ctx->a = a;
+    ctx->b = b;
+    ctx->c = c;
+
+    mpp_rc_dbg_rc("quadreg: a %e b %e c %e\n", a, b, c);
+
+    return MPP_OK;
+}
 
 /*
  * This function want to calculate coefficient 'b' 'a' using ordinary
@@ -647,6 +791,14 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
                   ctx, ctx->a, ctx->b);
 
     return MPP_OK;
+}
+
+RK_S32 mpp_quadreg_calc(MppLinReg *ctx, RK_S32 x)
+{
+    if (x <= 0)
+        return -1;
+
+    return ctx->a + DIV(ctx->b, x) + DIV(ctx->c, x * x);
 }
 
 RK_S32 mpp_linreg_calc(MppLinReg *ctx, RK_S32 x)
