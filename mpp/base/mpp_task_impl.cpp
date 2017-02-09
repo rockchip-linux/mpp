@@ -332,8 +332,10 @@ RET:
     if (ret) {
         if (lock)
             delete lock;
-        MPP_FREE(cond[MPP_INPUT_PORT]);
-        MPP_FREE(cond[MPP_OUTPUT_PORT]);
+        if (cond[MPP_INPUT_PORT])
+            delete cond[MPP_INPUT_PORT];
+        if (cond[MPP_OUTPUT_PORT])
+            delete cond[MPP_OUTPUT_PORT];
         MPP_FREE(p);
     }
 
@@ -411,6 +413,14 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
     p->lock->unlock();
     if (p->lock)
         delete p->lock;
+    if (p->info[MPP_INPUT_PORT].cond) {
+        delete p->info[MPP_INPUT_PORT].cond;
+        p->info[MPP_INPUT_PORT].cond = NULL;
+    }
+    if (p->info[MPP_OUTPUT_PORT].cond) {
+        delete p->info[MPP_OUTPUT_PORT].cond;
+        p->info[MPP_OUTPUT_PORT].cond = NULL;
+    }
     mpp_free(p);
     return MPP_OK;
 }
