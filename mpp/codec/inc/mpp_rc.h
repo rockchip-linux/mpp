@@ -66,8 +66,9 @@ typedef struct linear_model_s {
     RK_S32 n;           /* elements count */
     RK_S32 i;           /* elements index for store */
 
-    RK_S64 a;           /* coefficient */
-    RK_S64 b;           /* coefficient */
+    double a;           /* coefficient */
+    double b;           /* coefficient */
+    double c;
 
     RK_S32 *x;          /* x */
     RK_S32 *r;          /* r */
@@ -240,7 +241,9 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn);
 MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode);
 MPP_RET mpp_linreg_deinit(MppLinReg *ctx);
 MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r);
+MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen);
 RK_S32  mpp_linreg_calc(MppLinReg *ctx, RK_S32 r);
+RK_S32  mpp_quadreg_calc(MppLinReg *ctx, RK_S32 r);
 
 #ifdef __cplusplus
 }
