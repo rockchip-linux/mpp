@@ -598,8 +598,8 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
         acc_sq_x += w * cx[i] * cx[i];
     }
 
-    b_num = DIV(acc_xy - acc_x * acc_y, ws);
-    denom = DIV(acc_sq_x - acc_x * acc_x, ws);
+    b_num = acc_xy - acc_y * acc_x / ws;
+    denom = acc_sq_x - acc_x * acc_x / ws;
 
     mpp_rc_dbg_rc("RC: linreg %p acc_xy %lld acc_x %lld acc_y %lld acc_sq_x %lld\n",
                   ctx, acc_xy, acc_x, acc_y, acc_sq_x);
