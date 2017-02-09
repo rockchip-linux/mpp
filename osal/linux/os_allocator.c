@@ -35,7 +35,7 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     } break;
     case MPP_BUFFER_TYPE_ION : {
 #ifdef RKPLATFORM
-        *api = allocator_ion;
+        *api = allocator_drm;
 #else
         *api = allocator_std;
 #endif
