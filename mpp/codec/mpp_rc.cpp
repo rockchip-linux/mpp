@@ -223,7 +223,7 @@ MPP_RET mpp_rc_deinit(MppRateControl *ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
+MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 force_idr)
 {
     if (NULL == ctx || NULL == cfg) {
         mpp_log_f("invalid ctx %p cfg %p\n", ctx, cfg);
@@ -323,7 +323,6 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
     RK_S32 gop = ctx->gop;
     RK_S32 avg = ctx->bits_per_pic;
 
-    ctx->cur_frmtype = INTER_P_FRAME;
     if (clear_acc) {
         if (gop == 0) {
             /* only one intra then all inter */
@@ -359,10 +358,16 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg)
     if (ctx->acc_total_count == gop)
         gop_start = 1;
 
-    if (gop_start) {
+    if (force_idr) {
         ctx->cur_frmtype = INTRA_FRAME;
-        ctx->acc_total_count = 0;
+    } else {
+        if (gop_start)
+            ctx->cur_frmtype = INTRA_FRAME;
+        else
+            ctx->cur_frmtype = INTER_P_FRAME;
     }
+    if (ctx->cur_frmtype == INTRA_FRAME)
+        ctx->acc_total_count = 0;
 
     cfg->change = 0;
 
