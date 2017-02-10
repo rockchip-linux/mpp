@@ -2191,6 +2191,16 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         ctx->qp_p = NULL;
     }
 
+    if (ctx->intra_qs) {
+        mpp_linreg_deinit(ctx->intra_qs);
+        ctx->intra_qs = NULL;
+    }
+
+    if (ctx->inter_qs) {
+        mpp_linreg_deinit(ctx->inter_qs);
+        ctx->inter_qs = NULL;
+    }
+
 #ifdef RKPLATFORM
     if (ctx->vpu_fd <= 0) {
         h264e_hal_log_err("invalid vpu socket: %d", ctx->vpu_fd);
