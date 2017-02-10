@@ -312,8 +312,8 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
     mpp_rc_dbg_rc("RC: rc ctx %p target bit per picture %d\n", ctx, ctx->bits_per_pic);
 
     if (clear_acc) {
-        ctx->acc_intra_bits = 0;
-        ctx->acc_inter_bits = 0;
+        ctx->acc_intra_bits_in_fps = 0;
+        ctx->acc_inter_bits_in_fps = 0;
         ctx->acc_total_bits = 0;
         ctx->acc_intra_count = 0;
         ctx->acc_inter_count = 0;
@@ -366,8 +366,11 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
         else
             ctx->cur_frmtype = INTER_P_FRAME;
     }
-    if (ctx->cur_frmtype == INTRA_FRAME)
+    if (ctx->cur_frmtype == INTRA_FRAME) {
         ctx->acc_total_count = 0;
+        ctx->acc_inter_bits_in_fps = 0;
+        ctx->acc_intra_bits_in_fps = 0;
+    }
 
     cfg->change = 0;
 
@@ -470,7 +473,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         mpp_rc_dbg_rc("RC: rc ctx %p intra real bits %d target %d\n",
                       ctx, bits, ctx->bits_per_intra);
         ctx->acc_intra_count++;
-        ctx->acc_intra_bits += bits;
+        ctx->acc_intra_bits_in_fps += bits;
         mpp_data_update(ctx->intra, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_intra, bits - ctx->bits_target);
@@ -478,7 +481,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         mpp_rc_dbg_rc("RC: rc ctx %p inter real bits %d target %d\n",
                       ctx, bits, ctx->bits_per_inter);
         ctx->acc_inter_count++;
-        ctx->acc_inter_bits += bits;
+        ctx->acc_inter_bits_in_fps += bits;
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_target);
     }
@@ -488,12 +491,12 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
     /* new fps start */
     if ((ctx->acc_intra_count + ctx->acc_inter_count) % ctx->fps_out == 0) {
         mpp_pid_update(&ctx->pid_fps, ctx->bps_target - ctx->last_fps_bits);
-        if (ctx->acc_intra_bits && ctx->acc_inter_bits)
+        if (ctx->acc_intra_bits_in_fps && ctx->acc_inter_bits_in_fps)
             mpp_data_update(ctx->intra_percent,
-                            ctx->acc_intra_bits * 100 /
-                            (ctx->acc_inter_bits + ctx->acc_intra_bits));
-        ctx->acc_intra_bits = 0;
-        ctx->acc_inter_bits = 0;
+                            ctx->acc_intra_bits_in_fps * 100 /
+                            (ctx->acc_inter_bits_in_fps + ctx->acc_intra_bits_in_fps));
+        ctx->acc_intra_bits_in_fps = 0;
+        ctx->acc_inter_bits_in_fps = 0;
         ctx->last_fps_bits = 0;
     }
 
