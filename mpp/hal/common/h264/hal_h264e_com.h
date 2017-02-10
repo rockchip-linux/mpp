@@ -163,7 +163,7 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_MB_RC_WIDE_RANGE    5
 #define H264E_MB_RC_M_NUM         6
 
-typedef enum H264eRkvCsp_t {
+typedef enum H264eRkvCsp_e {
     H264E_RKV_CSP_BGRA8888,     // 0
     H264E_RKV_CSP_BGR888,       // 1
     H264E_RKV_CSP_BGR565,       // 2
@@ -178,7 +178,7 @@ typedef enum H264eRkvCsp_t {
 } H264eRkvCsp;
 
 /* transplant from vpu_api.h:EncInputPictureType */
-typedef enum H264VpuCsp_t {
+typedef enum H264VpuCsp_e {
     H264E_VPU_CSP_YUV420P   = 0,    // YYYY... UUUU... VVVV
     H264E_VPU_CSP_YUV420SP  = 1,    // YYYY... UVUVUV...
     H264E_VPU_CSP_YUYV422   = 2,    // YUYVYUYV...
@@ -197,34 +197,40 @@ typedef enum H264VpuCsp_t {
     H264E_VPU_CSP_BUTT,
 } H264eVpuCsp;
 
-typedef enum H264eChromaFmt_t {
+typedef enum H264eChromaFmt_e {
     H264E_CHROMA_400 = 0,
     H264E_CHROMA_420 = 1,
     H264E_CHROMA_422 = 2,
     H264E_CHROMA_444 = 3,
 } H264eChromaFmt;
 
-typedef enum H264eCqm4_t {
+typedef enum H264eCqm4_e {
     H264E_CQM_4IY = 0,
     H264E_CQM_4PY = 1,
     H264E_CQM_4IC = 2,
     H264E_CQM_4PC = 3
 } H264eCqm4;
 
-typedef enum H264eCqm8_t {
+typedef enum H264eCqm8_e {
     H264E_CQM_8IY = 0,
     H264E_CQM_8PY = 1,
     H264E_CQM_8IC = 2,
     H264E_CQM_8PC = 3,
 } H264eCqm8;
 
-typedef enum H264eSliceType_t {
+typedef enum H264eSliceType_e {
     H264E_HAL_SLICE_TYPE_P  = 0,
     H264E_HAL_SLICE_TYPE_B  = 1,
     H264E_HAL_SLICE_TYPE_I  = 2,
 } H264eSliceType;
 
-typedef struct H264eSps_t {
+typedef enum H264eOsdPltType_e {
+    H264E_OSD_PLT_TYPE_NONE     = -1,
+    H264E_OSD_PLT_TYPE_USERDEF  = 0,
+    H264E_OSD_PLT_TYPE_DEFAULT  = 1,
+} H264eOsdPltType;
+
+typedef struct H264eSps_e {
     RK_S32 i_id;
 
     RK_S32 i_profile_idc;
@@ -421,7 +427,7 @@ typedef struct H264eHalContext_t {
     void                            *param_buf;
     MppPacket                       packeted_param;
 
-    RK_U32                          osd_plt_type; //0:user define, 1:default
+    H264eOsdPltType                 osd_plt_type; //-1:invalid, 0:user define, 1:default
     MppEncOSDData                   osd_data;
     MppEncSeiMode                   sei_mode;
 

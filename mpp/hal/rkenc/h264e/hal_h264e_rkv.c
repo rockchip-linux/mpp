@@ -2013,7 +2013,7 @@ static MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
     MppEncOSDPlt *plt = (MppEncOSDPlt *)param;
     h264e_hal_enter();
     if (plt->buf) {
-        ctx->osd_plt_type = 0;
+        ctx->osd_plt_type = H264E_OSD_PLT_TYPE_USERDEF;
 #ifdef RKPLATFORM
         if (MPP_OK != mpp_device_send_reg_with_id(ctx->vpu_fd,
                                                   H264E_IOC_SET_OSD_PLT, param,
@@ -2023,7 +2023,7 @@ static MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
         }
 #endif
     } else {
-        ctx->osd_plt_type = 1;
+        ctx->osd_plt_type = H264E_OSD_PLT_TYPE_DEFAULT;
     }
 
     h264e_hal_leave();
@@ -2037,6 +2037,9 @@ static MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
     RK_U32 num = src->num_region;
 
     h264e_hal_enter();
+    if (ctx->osd_plt_type == H264E_OSD_PLT_TYPE_NONE)
+        mpp_err("warning: plt type is invalid\n");
+
     if (num > 8) {
         h264e_hal_err("number of region %d exceed maxinum 8");
         return MPP_NOK;
@@ -2114,6 +2117,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->frame_cnt_gen_ready = 0;
     ctx->frame_cnt_send_ready = 0;
     ctx->num_frames_to_send = 1;
+    ctx->osd_plt_type = H264E_OSD_PLT_TYPE_NONE;
 
     /* support multi-refs */
     dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
@@ -2395,7 +2399,9 @@ h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
             MppEncOSDRegion *region = osd_data->region;
 
             regs->swreg65.osd_clk_sel    = 1;
-            regs->swreg65.osd_plt_type   = ctx->osd_plt_type;
+            regs->swreg65.osd_plt_type   = ctx->osd_plt_type == H264E_OSD_PLT_TYPE_NONE ?
+                                           H264E_OSD_PLT_TYPE_DEFAULT :
+                                           ctx->osd_plt_type;
 
             for (k = 0; k < num; k++) {
                 regs->swreg65.osd_en |= region[k].enable << k;
