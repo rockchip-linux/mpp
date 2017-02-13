@@ -195,6 +195,8 @@ MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
 
     syntax->width   = width;
     syntax->height  = height;
+    syntax->hor_stride = prep->hor_stride;
+    syntax->ver_stride = prep->ver_stride;
     syntax->format  = fmt;
     syntax->quality = codec->jpeg.quant;
 
