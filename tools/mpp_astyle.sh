@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
-astyle --options=astylerc ../*.cpp ../*.c ../*.h
+./astyle --quiet --options=astylerc ../*.cpp ../*.c ../*.h
 

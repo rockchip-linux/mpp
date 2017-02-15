@@ -114,7 +114,7 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
 
     if (fd == -1) {
         mpp_err_f("failed to open %s, errno = %d, error msg: %s\n",
-                                name, errno, strerror(errno));
+                  name, errno, strerror(errno));
         return -1;
     }
     ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);

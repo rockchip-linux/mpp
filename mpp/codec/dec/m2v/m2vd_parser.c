@@ -422,7 +422,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     p->pts = mpp_packet_get_pts(pkt);
     len_in = (RK_U32)mpp_packet_get_length(pkt);
 
-    if(mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
         pos += len_in;
         mpp_packet_set_pos(pkt, pos);
         return ret;
