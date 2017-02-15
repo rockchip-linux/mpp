@@ -605,7 +605,7 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
         else
             i--;
 
-       cq = cx[i];
+        cq = cx[i];
 
         /* limite wlen when complexity change sharply */
         if (idx++ > wlen)
@@ -682,7 +682,7 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
         mpp_rc_dbg_rc("%e %e %e\n", b0, b1, b2);
 
         matrix_value = a00 * a11 * a22 + a01 * a12 * a20 + a02 * a10 * a21
-            - a02 * a11 * a20 - a00 * a12 * a21 - a01 * a10 * a22;
+                       - a02 * a11 * a20 - a00 * a12 * a21 - a01 * a10 * a22;
 
         mpp_rc_dbg_rc("matrix value: %e\n", matrix_value);
 
