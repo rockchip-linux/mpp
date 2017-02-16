@@ -145,12 +145,7 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
         (f0->hor_stride         == f1->hor_stride) &&
         (f0->ver_stride         == f1->ver_stride) &&
         (f0->fmt                == f1->fmt) &&
-        (f0->buf_size           == f1->buf_size) &&
-        (f0->color_range        == f1->color_range) &&
-        (f0->color_primaries    == f1->color_primaries) &&
-        (f0->color_trc          == f1->color_trc) &&
-        (f0->colorspace         == f1->colorspace) &&
-        (f0->chroma_location    == f1->chroma_location)) {
+        (f0->buf_size           == f1->buf_size)) {
         return MPP_OK;
     }
     return MPP_NOK;
