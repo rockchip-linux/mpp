@@ -706,6 +706,10 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
                       sps->i_profile_idc);
         }
     }
+    if (sps->i_profile_idc == H264_PROFILE_BASELINE && pps->b_cabac) {
+        mpp_log_f("warning: for profile baseline b_cabac should be 0");
+        pps->b_cabac = 0;
+    }
 
     pps->b_cqm_preset = b_cqm_preset;
 
