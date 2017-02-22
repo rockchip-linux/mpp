@@ -253,7 +253,7 @@ void Mpp::clear()
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     AutoMutex autoLock(mPackets->mutex());
     RK_U32 eos = mpp_packet_get_eos(packet);
@@ -272,7 +272,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         return MPP_OK;
     }
 
-    return MPP_NOK;
+    return MPP_ERR_BUFFER_FULL;
 }
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
@@ -280,7 +280,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     RK_S32 ret;
 
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     AutoMutex autoLock(mFrames->mutex());
     MppFrame first = NULL;
@@ -328,7 +328,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 MPP_RET Mpp::put_frame(MppFrame frame)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
     MppTask task = NULL;
@@ -410,7 +410,7 @@ RET:
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
@@ -453,7 +453,7 @@ RET:
 MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
@@ -478,7 +478,7 @@ MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
 MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
@@ -503,7 +503,7 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
@@ -587,7 +587,7 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 MPP_RET Mpp::reset()
 {
     if (!mInitDone)
-        return MPP_OK;
+        return MPP_ERR_INIT;
 
     MppPacket pkt = NULL;
 
