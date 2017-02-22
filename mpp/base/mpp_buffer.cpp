@@ -209,6 +209,31 @@ size_t mpp_buffer_get_size_with_caller(MppBuffer buffer, const char *caller)
     return p->info.size;
 }
 
+int mpp_buffer_get_index_with_caller(MppBuffer buffer, const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err_f("invalid NULL input\n");
+        return -1;
+    }
+
+    MppBufferImpl *p = (MppBufferImpl*)buffer;
+    return p->info.index;
+}
+
+void mpp_buffer_set_index_with_caller(MppBuffer buffer, int index,
+                                      const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err_f("invalid NULL input\n");
+        return;
+    }
+
+    MppBufferImpl *p = (MppBufferImpl*)buffer;
+    p->info.index = index;
+    (void)caller;
+}
+
+
 MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, const char *caller)
 {
     if (NULL == buffer || NULL == info) {
