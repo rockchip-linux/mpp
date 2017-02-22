@@ -239,7 +239,7 @@ void Mpp::clear()
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
     if (!mInitDone)
-        return MPP_NOK;
+        return MPP_ERR_INIT;
 
     AutoMutex autoLock(mPackets->mutex());
     RK_U32 eos = mpp_packet_get_eos(packet);
@@ -258,7 +258,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         return MPP_OK;
     }
 
-    return MPP_NOK;
+    return MPP_ERR_BUFFER_FULL;
 }
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
