@@ -45,7 +45,7 @@ typedef enum {
     MPP_FAIL_SPLIT_FRAME        = MPP_ERR_BASE - 8,
     MPP_ERR_VPUHW               = MPP_ERR_BASE - 9,
     MPP_EOS_STREAM_REACHED      = MPP_ERR_BASE - 11,
-
+    MPP_ERR_BUFFER_FULL         = MPP_ERR_BASE - 12,
 } MPP_RET;
 
 #endif /*__MPP_ERR_H__*/
