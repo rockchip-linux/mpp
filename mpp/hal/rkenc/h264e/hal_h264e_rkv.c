@@ -54,7 +54,7 @@ double QP2Qstep( double qp_avg )
     for (i = 0; i < (QP / 24); i++)
         Qstep *= 2;
 
-    return Qstep * 4;
+    return round(Qstep * 4);
 }
 
 static const RK_U32 h264e_h3d_tbl[40] = {
@@ -2672,8 +2672,8 @@ static RK_S32 hal_h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, R
         do {
             RK_S32 est_bits = mpp_quadreg_calc(ctx, QP2Qstep(qp));
             RK_S32 diff = est_bits - bits;
-            h264e_hal_log_detail("RC: qp est qp %d bit %d diff %d best %d\n",
-                                 qp, bits, diff, diff_best);
+            h264e_hal_log_detail("RC: qp est qp %d qstep %f bit %d diff %d best %d\n",
+                                 qp, QP2Qstep(qp), bits, diff, diff_best);
             if (MPP_ABS(diff) < MPP_ABS(diff_best)) {
                 diff_best = MPP_ABS(diff);
                 qp_best = qp;
@@ -2846,7 +2846,7 @@ static MPP_RET hal_h264e_rkv_update_hw_cfg(h264e_hal_context *ctx, HalEncTask *t
 
             if (!is_cqp) {
                 RK_S32 sse = mpp_data_avg(ctx->sse_p, 1, 1, 1) + 1;
-                hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 256 / sse);
+                hw_cfg->qp = hal_h264e_rkv_find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 1024 / sse);
 
                 /*
                  * Previous frame is intra then inter frame can not
@@ -3632,8 +3632,10 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
                 mpp_err("can not open rc log file");
         }
 
-        if (syn->type == INTER_P_FRAME)
-            mpp_quadreg_update(ctx->inter_qs, QP2Qstep(avg_qp), result.bits * 256 / avg_sse, wlen);
+        if (syn->type == INTER_P_FRAME) {
+            mpp_save_regdata(ctx->inter_qs, QP2Qstep(avg_qp), result.bits * 1024 / avg_sse);
+            mpp_quadreg_update(ctx->inter_qs, wlen);
+        }
 
         hw_cfg->qp_prev = avg_qp;
 
