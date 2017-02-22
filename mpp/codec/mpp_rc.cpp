@@ -16,6 +16,9 @@
 
 #define MODULE_TAG "mpp_rc"
 
+#include <math.h>
+#include <memory.h>
+
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
@@ -560,20 +563,17 @@ static RK_S64 linreg_weight[6][15] = {
     {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000}
 };
 
-MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
+static inline RK_S64 POW(RK_S64 A, RK_S64 B)
 {
-    double a00 = 0.0, a01 = 0.0, a02 = 0.0, a10 = 0.0, a11 = 0.0, a12 = 0.0, a20 = 0.0, a21 = 0.0, a22 = 0.0;
-    double ta00, ta01, ta02, ta10, ta11, ta12, ta20, ta21, ta22;
-    double b0 = 0.0, b1 = 0.0, b2 = 0.0;
-    double matrix_value = 0.0;
+    RK_S64 X = 1;
+    while (B--)
+        X *= A;
 
-    RK_S32 cq = 0;
-    RK_S32 est_b = 0;
-    RK_S32 w = 0;
+    return X;
+}
 
-    double a = 0.0, b = 0.0, c = 0.0;
-
-    /* step 1: save data */
+void mpp_save_regdata(MppLinReg *ctx, RK_S32 x, RK_S32 r)
+{
     RK_S64 y = (RK_S64)x * x * r;
     ctx->x[ctx->i] = x;
     ctx->r[ctx->i] = r;
@@ -587,6 +587,25 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
 
     if (ctx->n < ctx->size)
         ctx->n++;
+}
+
+MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 wlen)
+{
+    double A[3][3];
+    double B[3];
+
+    RK_S32 cq = 0;
+    RK_S32 est_b = 0;
+    RK_S32 w = 0;
+    RK_S32 err = 0;
+    RK_S32 std = 0;
+
+    RK_S32 k, l;
+
+    double a = 0, b = 0, c = 0;
+
+    memset(A, 0, sizeof(A));
+    memset(B, 0, sizeof(B));
 
     /* step 2: update coefficient */
     RK_S32 i = 0;
@@ -594,7 +613,9 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
 
     RK_S32 *cx = ctx->x;
     RK_S32 *cr = ctx->r;
+    RK_S64 *cy = ctx->y;
     RK_S32 idx = 0;
+    RK_S32 aver_x = 0;
 
     n = ctx->n;
     i = ctx->i;
@@ -606,6 +627,7 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
             i--;
 
         cq = cx[i];
+        aver_x += cx[i];
 
         /* limite wlen when complexity change sharply */
         if (idx++ > wlen)
@@ -613,6 +635,8 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
     }
 
     w = idx;
+    aver_x = round(1.0 * aver_x / w);
+
     idx = 0;
     n = w;
     i = ctx->i;
@@ -626,8 +650,19 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
         if (cq != cx[i])
             est_b = 1;
 
-        a += 1.0 * cx[i] * cr[i] / w;
+        err = cx[i] - aver_x;
+        std += err * err;
+        b += 1.0 * cx[i] * cr[i] / w;
     }
+
+    mpp_rc_dbg_rc("qstep std %f average %d\n", sqrt(1.0 * std / w), aver_x);
+
+    /*
+     * Do not calculate quadratic model when samples distributing in narrow range,
+     * avoid the quadratic model distortion.
+     */
+    if (sqrt(1.0 * std / w) * 32 < aver_x)
+        return MPP_OK;
 
     if (est_b && w >= 1) {
         n = w;
@@ -638,67 +673,63 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
             else
                 i--;
 
-            double wt = linreg_weight[ctx->weight_mode][idx++] * 1000.0;
+            RK_S64 wt = linreg_weight[ctx->weight_mode][idx++];
 
-            a00 += wt;
-            a01 += wt / cx[i];
-            a02 += wt / cx[i] / cx[i];
-            a10  = a01;
-            a11  = a02;
-            a12 += wt / cx[i] / cx[i] / cx[i];
-            a20  = a02;
-            a21  = a12;
-            a22 += wt / cx[i] / cx[i] / cx[i] / cx[i];
+            mpp_rc_dbg_rc("qs[%d] %d, r[%d] %d, y[%d] %lld\n",
+                          idx - 1, cx[i], idx - 1, cr[i], idx - 1, cy[i]);
 
-            b0 += wt * cr[i];
-            b1 += wt * cr[i] / cx[i];
-            b2 += wt * cr[i] / cx[i] / cx[i];
+            for (k = 0; k < 3; k++) {
+                for (l = 0; l < 3; l++) {
+                    A[k][l] += wt * POW(cx[i], k + l);
+                }
+            }
+
+            for (k = 0; k < 3; k++)
+                B[k] += wt * cy[i] * POW(cx[i], k);
         }
 
-        ta00 = a11 * a22 - a21 * a12;
-        ta01 = -(a01 * a22 - a21 * a02);
-        ta02 = a01 * a12 - a11 * a02;
-        ta10 = -(a10 * a22 - a20 * a12);
-        ta11 = a00 * a22 - a20 * a02;
-        ta12 = -(a00 * a02 - a10 * a02);
-        ta20 = a10 * a21 - a20 * a11;
-        ta21 = -(a00 * a21 - a20 * a01);
-        ta22 = a00 * a11 - a10 * a01;
+        mpp_rc_dbg_rc("\nmatrix A:\n");
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\n", A[0][0], A[0][1], A[0][2]);
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\n", A[1][0], A[1][1], A[1][2]);
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\n", A[2][0], A[2][1], A[2][2]);
 
-        mpp_rc_dbg_rc("matrix A:\n");
+        mpp_rc_dbg_rc("\nvector B:\n");
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\n", B[0], B[1], B[2]);
 
-        mpp_rc_dbg_rc("%e %e %e\n", a00, a01, a02);
-        mpp_rc_dbg_rc("%e %e %e\n", a10, a11, a12);
-        mpp_rc_dbg_rc("%e %e %e\n", a20, a21, a22);
+        A[2][1] = A[2][1] - A[0][1] * (A[2][0] / A[0][0]);
+        A[2][2] = A[2][2] - A[0][2] * (A[2][0] / A[0][0]);
+        B[2]    = B[2]    - B[0]    * (A[2][0] / A[0][0]);
+        A[2][0] = 0;
 
-        mpp_rc_dbg_rc("adjoint matrix of A:\n");
+        A[1][1] = A[1][1] - A[0][1] * (A[1][0] / A[0][0]);
+        A[1][2] = A[1][2] - A[0][2] * (A[1][0] / A[0][0]);
+        B[1]    = B[1]    - B[0]    * (A[1][0] / A[0][0]);
+        A[1][0] = 0;
 
-        mpp_rc_dbg_rc("%e %e %e\n", ta00, ta01, ta02);
-        mpp_rc_dbg_rc("%e %e %e\n", ta10, ta11, ta12);
-        mpp_rc_dbg_rc("%e %e %e\n", ta20, ta21, ta22);
+        A[2][2] = A[2][2] - A[1][2] * (A[2][1] / A[1][1]);
+        B[2]    = B[2]    - B[1]    * (A[2][1] / A[1][1]);
+        A[2][1] = 0;
 
-        mpp_rc_dbg_rc("vector B:\n");
+        c = B[2] / A[2][2];
+        b = (B[1] - A[1][2] * c) / A[1][1];
+        a = (B[0] - A[0][2] * c - A[0][1] * b) / A[0][0];
 
-        mpp_rc_dbg_rc("%e %e %e\n", b0, b1, b2);
-
-        matrix_value = a00 * a11 * a22 + a01 * a12 * a20 + a02 * a10 * a21
-                       - a02 * a11 * a20 - a00 * a12 * a21 - a01 * a10 * a22;
-
-        mpp_rc_dbg_rc("matrix value: %e\n", matrix_value);
-
-        if (matrix_value < 0.000001)
-            matrix_value = 0.000001;
-
-        a = (ta00 * b0 + ta01 * b1 + ta02 * b2) / matrix_value;
-        b = (ta10 * b0 + ta11 * b1 + ta12 * b2) / matrix_value;
-        c = (ta20 * b0 + ta21 * b1 + ta22 * b2) / matrix_value;
+        mpp_rc_dbg_rc("\nmatrix after gaussian elimination:\n");
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\t\t| %e\n", A[0][0], A[0][1], A[0][2], B[0]);
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\t\t| %e\n", A[1][0], A[1][1], A[1][2], B[1]);
+        mpp_rc_dbg_rc("%e\t\t%e\t\t%e\t\t| %e\n", A[2][0], A[2][1], A[2][2], B[2]);
     }
 
-    ctx->a = a;
-    ctx->b = b;
-    ctx->c = c;
+    if (c < 0) {
+        mpp_linreg_update(ctx);
+    } else {
+        ctx->a = a;
+        ctx->b = b;
+        ctx->c = c;
 
-    mpp_rc_dbg_rc("quadreg: a %e b %e c %e\n", a, b, c);
+        mpp_rc_dbg_rc("quadreg: a %e b %e c %e\n",
+                      a, b, c);
+    }
 
     return MPP_OK;
 }
@@ -713,27 +744,12 @@ MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r, RK_S32 wlen)
  * b = b_n / denom
  * a = a_n / denom
  */
-MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
+MPP_RET mpp_linreg_update(MppLinReg *ctx)
 {
     if (NULL == ctx) {
         mpp_log_f("invalid ctx %p\n", ctx);
         return MPP_ERR_NULL_PTR;
     }
-
-    /* step 1: save data */
-    RK_S64 y = (RK_S64)x * x * r;
-    ctx->x[ctx->i] = x;
-    ctx->r[ctx->i] = r;
-    ctx->y[ctx->i] = y;
-
-    mpp_rc_dbg_rc("RC: linreg %p save index %d x %d r %d x*x*r %lld\n",
-                  ctx, ctx->i, x, r, y);
-
-    if (++ctx->i >= ctx->size)
-        ctx->i = 0;
-
-    if (ctx->n < ctx->size)
-        ctx->n++;
 
     /* step 2: update coefficient */
     RK_S32 i = 0;
@@ -786,6 +802,7 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx, RK_S32 x, RK_S32 r)
         ctx->b = 0;
 
     ctx->a = DIV(acc_y - acc_x * ctx->b, ws);
+    ctx->c = 0;
 
     mpp_rc_dbg_rc("RC: linreg %p after  update coefficient a %d b %d\n",
                   ctx, ctx->a, ctx->b);
@@ -798,14 +815,6 @@ RK_S32 mpp_quadreg_calc(MppLinReg *ctx, RK_S32 x)
     if (x <= 0)
         return -1;
 
-    return ctx->a + DIV(ctx->b, x) + DIV(ctx->c, x * x);
-}
-
-RK_S32 mpp_linreg_calc(MppLinReg *ctx, RK_S32 x)
-{
-    if (x <= 0)
-        return -1;
-
-    return DIV(ctx->b, x) + DIV(ctx->a, x * x);
+    return ctx->c + DIV(ctx->b, x) + DIV(ctx->a, x * x);
 }
 

@@ -1005,7 +1005,7 @@ static RK_S32 find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, RK_S32 qp_start
         qp_best = mpp_clip(qp_best + codec->qp_max_step, qp_min, qp_max);
     } else {
         do {
-            RK_S32 est_bits = mpp_linreg_calc(ctx, h264_q_step[qp]);
+            RK_S32 est_bits = mpp_quadreg_calc(ctx, h264_q_step[qp]);
             RK_S32 diff = est_bits - bits;
             hal_vpu_h264e_dbg_qp("RC: qp est qp %d bit %d diff %d best %d\n",
                                  qp, bits, diff, diff_best);
@@ -1609,10 +1609,13 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
         result.type = syn->type;
         fb->result = &result;
 
+        mpp_save_regdata((syn->type == INTRA_FRAME) ?
+                         (ctx->intra_qs) :
+                         (ctx->inter_qs),
+                         h264_q_step[avg_qp], result.bits);
         mpp_linreg_update((syn->type == INTRA_FRAME) ?
                           (ctx->intra_qs) :
-                          (ctx->inter_qs),
-                          h264_q_step[avg_qp], result.bits);
+                          (ctx->inter_qs));
 
         int_cb.callBack(int_cb.opaque, fb);
     }
