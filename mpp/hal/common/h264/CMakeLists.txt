@@ -21,5 +21,3 @@ add_library(hal_h264e STATIC
 
 target_link_libraries(hal_h264e hal_h264e_rkv hal_h264e_vpu mpp_base)
 set_target_properties(hal_h264e PROPERTIES FOLDER "mpp/hal")
-
-add_subdirectory(test)

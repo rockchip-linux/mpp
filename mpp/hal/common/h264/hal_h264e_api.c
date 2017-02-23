@@ -35,7 +35,7 @@ RK_U32 h264e_hal_log_mode = 0;
 
 MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
     MppEncCodecCfg *codec = &cfg->cfg->codec;
     MppEncH264Cfg *h264 = &codec->h264;
@@ -129,7 +129,7 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
 
 MPP_RET hal_h264e_deinit(void *hal)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->deinit(hal);
@@ -137,7 +137,7 @@ MPP_RET hal_h264e_deinit(void *hal)
 
 MPP_RET hal_h264e_gen_regs(void *hal, HalTaskInfo *task)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->reg_gen(hal, task);
@@ -145,7 +145,7 @@ MPP_RET hal_h264e_gen_regs(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h264e_start(void *hal, HalTaskInfo *task)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->start(hal, task);
@@ -153,7 +153,7 @@ MPP_RET hal_h264e_start(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h264e_wait(void *hal, HalTaskInfo *task)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->wait(hal, task);
@@ -161,7 +161,7 @@ MPP_RET hal_h264e_wait(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h264e_reset(void *hal)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->reset(hal);
@@ -169,7 +169,7 @@ MPP_RET hal_h264e_reset(void *hal)
 
 MPP_RET hal_h264e_flush(void *hal)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->flush(hal);
@@ -177,7 +177,7 @@ MPP_RET hal_h264e_flush(void *hal)
 
 MPP_RET hal_h264e_control(void *hal, RK_S32 cmd_type, void *param)
 {
-    h264e_hal_context *ctx = (h264e_hal_context *)hal;
+    H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;
 
     return api->control(hal, cmd_type, param);
@@ -188,7 +188,7 @@ const MppHalApi hal_api_h264e = {
     "h264e_rkvenc",
     MPP_CTX_ENC,
     MPP_VIDEO_CodingAVC,
-    sizeof(h264e_hal_context),
+    sizeof(H264eHalContext),
     0,
     hal_h264e_init,
     hal_h264e_deinit,
