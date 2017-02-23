@@ -687,7 +687,7 @@ MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps)
     pps->i_pic_init_qp = 26;
     pps->i_pic_init_qs = pps->i_pic_init_qp; // only for SP/SI slices
 
-    pps->b_transform_8x8_mode = prep->width <= 1920 ? 0 : codec->transform8x8_mode;
+    pps->b_transform_8x8_mode = codec->transform8x8_mode;
     pps->i_chroma_qp_index_offset = codec->chroma_cb_qp_offset;
     pps->i_second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
     pps->b_deblocking_filter_control = Sw_deblock_filter_ctrl_present_flag;
