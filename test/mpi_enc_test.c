@@ -580,6 +580,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     case MPP_VIDEO_CodingAVC : {
         codec_cfg->h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
                                  MPP_ENC_H264_CFG_CHANGE_ENTROPY |
+                                 MPP_ENC_H264_CFG_CHANGE_TRANS_8x8 |
                                  MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
         /*
          * H.264 profile_idc parameter
@@ -599,12 +600,14 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.level    = 40;
         codec_cfg->h264.entropy_coding_mode  = 1;
         codec_cfg->h264.cabac_init_idc  = 0;
+        codec_cfg->h264.transform8x8_mode = 1;
 
         if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
             /* constant bitrate do not limit qp range */
             p->qp_max   = 48;
             p->qp_min   = 4;
             p->qp_step  = 16;
+            p->qp_init  = 0;
         } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
             if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
                 /* constant QP mode qp is fixed */
@@ -616,6 +619,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
                 p->qp_max   = 40;
                 p->qp_min   = 12;
                 p->qp_step  = 8;
+                p->qp_init  = 0;
             }
         }
 
