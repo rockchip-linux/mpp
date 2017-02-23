@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_h264e_com"
+#define MODULE_TAG "h264e_com"
 
 #include <string.h>
 #include <math.h>
@@ -147,7 +147,7 @@ const RK_U8 h264e_zigzag_scan8[2][64] = {
 
 };
 
-void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
+void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 {
     MppFrameFormat format = (MppFrameFormat)prep_cfg->format;
     switch (format) {
@@ -284,7 +284,7 @@ void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
         break;
     }
     default: {
-        h264e_hal_log_err("unvalid src color space: %d", format);
+        h264e_hal_err("unvalid src color space: %d", format);
         hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
@@ -293,7 +293,7 @@ void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 }
 
 
-void hal_h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
+void h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 {
     MppFrameFormat format = (MppFrameFormat)prep_cfg->format;
     hw_cfg->input_format = 0;
@@ -428,22 +428,22 @@ void hal_h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 }
 
 
-static RK_S32 hal_h264e_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
+static RK_S32 h264e_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 {
     RK_S32 csp = 0;
 
     if (hw_cfg->hw_type == H264E_RKV) {
-        hal_h264e_rkv_set_format(hw_cfg, prep_cfg);
+        h264e_rkv_set_format(hw_cfg, prep_cfg);
         csp = h264e_rkv_csp_idx_map[hw_cfg->input_format] & H264E_CSP2_MASK;
     } else {
-        hal_h264e_vpu_set_format(hw_cfg, prep_cfg);
+        h264e_vpu_set_format(hw_cfg, prep_cfg);
         csp = h264e_vpu_csp_idx_map[hw_cfg->input_format] & H264E_CSP2_MASK;
     }
 
     return csp;
 }
 
-static void hal_h264e_set_vui(h264e_hal_vui_param *vui)
+static void h264e_set_vui(H264eVuiParam *vui)
 {
     vui->i_sar_height   = 0;
     vui->i_sar_width    = 0;
@@ -456,7 +456,7 @@ static void hal_h264e_set_vui(h264e_hal_vui_param *vui)
     vui->i_chroma_loc   = 0;
 }
 
-static void hal_h264e_set_ref(h264e_hal_ref_param *ref)
+static void h264e_set_ref(H264eRefParam *ref)
 {
     ref->i_frame_reference = H264E_NUM_REFS;
     ref->i_dpb_size = H264E_NUM_REFS;
@@ -467,18 +467,18 @@ static void hal_h264e_set_ref(h264e_hal_ref_param *ref)
     ref->i_frame_packing = -1;
 }
 
-void hal_h264e_set_param(h264e_hal_param *p, RK_S32 hw_type)
+void h264e_set_param(H264eHalParam *p, RK_S32 hw_type)
 {
-    h264e_hal_vui_param *vui = &p->vui;
-    h264e_hal_ref_param *ref = &p->ref;
+    H264eVuiParam *vui = &p->vui;
+    H264eRefParam *ref = &p->ref;
 
     p->hw_type = hw_type;
     p->constrained_intra = 0;
-    hal_h264e_set_vui(vui);
-    hal_h264e_set_ref(ref);
+    h264e_set_vui(vui);
+    h264e_set_ref(ref);
 }
 
-MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps)
+MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
 {
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     MppEncH264Cfg *codec = &ctx->cfg->codec.h264;
@@ -517,7 +517,7 @@ MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps)
     RK_S32 i_dpb_size = ref->i_dpb_size;
     RK_S32 i_frame_reference = ref->i_frame_reference;
 
-    csp = hal_h264e_set_format(hw_cfg, prep);
+    csp = h264e_set_format(hw_cfg, prep);
     sps->i_id = 0;
     sps->i_mb_width = ( prep->width + 15 ) / 16;
     sps->i_mb_height = ( prep->height + 15 ) / 16;
@@ -658,7 +658,7 @@ MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps)
 
     return MPP_OK;
 }
-MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_sps *sps)
+MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps)
 {
     MppEncH264Cfg *codec = &ctx->cfg->codec.h264;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
@@ -724,17 +724,17 @@ MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_
         break;
     case H264E_CQM_CUSTOM:
         /* match the transposed DCT & zigzag */
-        h264e_hal_log_err("CQM_CUSTOM mode is not supported now");
+        h264e_hal_err("CQM_CUSTOM mode is not supported now");
         return MPP_NOK;
     default:
-        h264e_hal_log_err("invalid cqm_preset mode %d", b_cqm_preset);
+        h264e_hal_err("invalid cqm_preset mode %d", b_cqm_preset);
         return MPP_NOK;
     }
 
     return MPP_OK;
 }
 
-void hal_h264e_sei_pack2str(char *str, h264e_hal_context *ctx)
+void h264e_sei_pack2str(char *str, H264eHalContext *ctx)
 {
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncH264Cfg *codec = &cfg->codec.h264;

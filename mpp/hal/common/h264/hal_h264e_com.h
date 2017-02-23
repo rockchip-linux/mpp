@@ -28,21 +28,19 @@
 
 extern RK_U32 h264e_hal_log_mode;
 
-#define H264E_HAL_LOG_ERROR             0x00000001
+#define H264E_DBG_SIMPLE            0x00000010
 
-#define H264E_HAL_LOG_SIMPLE            0x00000010
+#define H264E_DBG_FLOW              0x00000100
 
-#define H264E_HAL_LOG_FLOW              0x00000100
+#define H264E_DBG_DPB               0x00001000
+#define H264E_DBG_HEADER            0x00002000
+#define H264E_DBG_SEI               0x00004000
+#define H264E_DBG_RC                0x00008000
 
-#define H264E_HAL_LOG_DPB               0x00001000
-#define H264E_HAL_LOG_HEADER            0x00002000
-#define H264E_HAL_LOG_SEI               0x00004000
-#define H264E_HAL_LOG_RC                0x00008000
+#define H264E_DBG_DETAIL            0x00010000
+#define H264E_DBG_DUMP_RC           0x00020000
 
-#define H264E_HAL_LOG_DETAIL            0x00010000
-#define H264E_HAL_LOG_DUMP_RC           0x00020000
-
-#define H264E_HAL_LOG_FILE              0x00100000
+#define H264E_DBG_FILE              0x00100000
 
 #define H264E_SEI_CHG_SPSPPS        0x00000001
 #define H264E_SEI_CHG_RC            0x00000010
@@ -56,71 +54,28 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_MASK_14b              (RK_U32)0x00003FFF
 #define H264E_HAL_MASK_16b              (RK_U32)0x0000FFFF
 
-
-#define h264e_hal_debug_enter() \
+#define h264e_hal_err(fmt, ...) \
     do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
+        mpp_err_f(fmt, ## __VA_ARGS__);\
+    } while (0)
+
+#define h264e_hal_dbg(type, fmt, ...) \
+    do {\
+        if (h264e_hal_log_mode & type)\
+            mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
+
+
+#define h264e_hal_enter() \
+    do {\
+        if (h264e_hal_log_mode & H264E_DBG_FLOW)\
             mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
     } while (0)
 
-#define h264e_hal_debug_leave() \
+#define h264e_hal_leave() \
     do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_FLOW)\
+        if (h264e_hal_log_mode & H264E_DBG_FLOW)\
             mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
-    } while (0)
-
-#define h264e_hal_log_err(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_ERROR)\
-            mpp_err_f(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_detail(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_DETAIL)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_rc(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_RC)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_dpb(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_DPB)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_header(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_HEADER)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_sei(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_SEI)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_simple(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_SIMPLE)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_file(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_FILE)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_log_rc(fmt, ...) \
-    do {\
-        if (h264e_hal_log_mode & H264E_HAL_LOG_RC)\
-            mpp_log(fmt, ## __VA_ARGS__);\
     } while (0)
 
 #define H264E_HAL_MIN(a,b) ( (a)<(b) ? (a) : (b) )
@@ -204,7 +159,7 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_MB_RC_ONLY_BITRATE  4
 #define H264E_MB_RC_M_NUM         5
 
-typedef enum h264e_rkv_csp_t {
+typedef enum H264eRkvCsp_t {
     H264E_RKV_CSP_BGRA8888,     // 0
     H264E_RKV_CSP_BGR888,       // 1
     H264E_RKV_CSP_BGR565,       // 2
@@ -216,16 +171,10 @@ typedef enum h264e_rkv_csp_t {
     H264E_RKV_CSP_YUYV422,      // 8
     H264E_RKV_CSP_UYVY422,      // 9
     H264E_RKV_CSP_BUTT,         // 10
-} h264e_hal_rkv_csp;
-
-typedef struct h264e_hal_rkv_csp_info_t {
-    RK_U32 fmt;
-    RK_U32 cswap; // U/V swap for YUV420SP/YUV422SP/YUYV422/UYUV422; R/B swap for BGRA88/RGB888/RGB565.
-    RK_U32 aswap; // 0: BGRA, 1:ABGR.
-} h264e_hal_rkv_csp_info;
+} H264eRkvCsp;
 
 /* transplant from vpu_api.h:EncInputPictureType */
-typedef enum {
+typedef enum H264VpuCsp_t {
     H264E_VPU_CSP_YUV420P   = 0,    // YYYY... UUUU... VVVV
     H264E_VPU_CSP_YUV420SP  = 1,    // YYYY... UVUVUV...
     H264E_VPU_CSP_YUYV422   = 2,    // YUYVYUYV...
@@ -242,43 +191,36 @@ typedef enum {
     H264E_VPU_CSP_BGR101010 = 13,   // 30-bit RGB
     H264E_VPU_CSP_NONE,
     H264E_VPU_CSP_BUTT,
-} h264e_hal_vpu_csp;
+} H264eVpuCsp;
 
-typedef struct h264e_hal_vpu_csp_info_t {
-    RK_U32 fmt;
-    RK_U32 r_mask_msb;
-    RK_U32 g_mask_msb;
-    RK_U32 b_mask_msb;
-} h264e_hal_vpu_csp_info;
-
-typedef enum h264e_chroma_fmt_t {
+typedef enum H264eChromaFmt_t {
     H264E_CHROMA_400 = 0,
     H264E_CHROMA_420 = 1,
     H264E_CHROMA_422 = 2,
     H264E_CHROMA_444 = 3,
-} h264e_chroma_fmt;
+} H264eChromaFmt;
 
-typedef enum h264e_cqm4_t {
+typedef enum H264eCqm4_t {
     H264E_CQM_4IY = 0,
     H264E_CQM_4PY = 1,
     H264E_CQM_4IC = 2,
     H264E_CQM_4PC = 3
-} h264e_cqm4;
+} H264eCqm4;
 
-typedef enum h264e_cqm8_t {
+typedef enum H264eCqm8_t {
     H264E_CQM_8IY = 0,
     H264E_CQM_8PY = 1,
     H264E_CQM_8IC = 2,
     H264E_CQM_8PC = 3,
-} h264e_cqm8;
+} H264eCqm8;
 
-typedef enum h264e_hal_slice_type_t {
+typedef enum H264eSliceType_t {
     H264E_HAL_SLICE_TYPE_P  = 0,
     H264E_HAL_SLICE_TYPE_B  = 1,
     H264E_HAL_SLICE_TYPE_I  = 2,
-} h264e_hal_slice_type;
+} H264eSliceType;
 
-typedef struct h264e_hal_sps_t {
+typedef struct H264eSps_t {
     RK_S32 i_id;
 
     RK_S32 i_profile_idc;
@@ -318,9 +260,9 @@ typedef struct h264e_hal_sps_t {
 
     /* only for backup, excluded in read SPS*/
     RK_S32 keyframe_max_interval;
-} h264e_hal_sps;
+} H264eSps;
 
-typedef struct h264e_hal_pps_t {
+typedef struct H264ePps_t {
     RK_S32 i_id;
     RK_S32 i_sps_id;
 
@@ -349,9 +291,9 @@ typedef struct h264e_hal_pps_t {
 
     RK_S32 b_cqm_preset; //pic_scaling_list_present_flag
     const RK_U8 *scaling_list[8]; /* could be 12, but we don't allow separate Cb/Cr lists */
-} h264e_hal_pps;
+} H264ePps;
 
-typedef enum h264e_sei_payload_type_t {
+typedef enum H264eSeiPayloadType_t {
     H264E_SEI_BUFFERING_PERIOD       = 0,
     H264E_SEI_PIC_TIMING             = 1,
     H264E_SEI_PAN_SCAN_RECT          = 2,
@@ -361,38 +303,31 @@ typedef enum h264e_sei_payload_type_t {
     H264E_SEI_RECOVERY_POINT         = 6,
     H264E_SEI_DEC_REF_PIC_MARKING    = 7,
     H264E_SEI_FRAME_PACKING          = 45,
-} h264e_sei_payload_type;
+} H264eSeiPayloadType;
 
-typedef enum h264e_rkv_nal_idx_t {
-    RKV_H264E_RKV_NAL_IDX_SPS,
-    RKV_H264E_RKV_NAL_IDX_PPS,
-    RKV_H264E_RKV_NAL_IDX_SEI,
-    RKV_H264E_RKV_NAL_IDX_BUTT,
-} h264e_rkv_nal_idx;
-
-typedef enum rkvenc_nal_unit_type_t {
-    RKVENC_NAL_UNKNOWN     = 0,
-    RKVENC_NAL_SLICE       = 1,
-    RKVENC_NAL_SLICE_DPA   = 2,
-    RKVENC_NAL_SLICE_DPB   = 3,
-    RKVENC_NAL_SLICE_DPC   = 4,
-    RKVENC_NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
-    RKVENC_NAL_SEI         = 6,    /* ref_idc == 0 */
-    RKVENC_NAL_SPS         = 7,
-    RKVENC_NAL_PPS         = 8,
-    RKVENC_NAL_AUD         = 9,
-    RKVENC_NAL_FILLER      = 12,
+typedef enum H264eNalUnitType_t {
+    H264E_NAL_UNKNOWN     = 0,
+    H264E_NAL_SLICE       = 1,
+    H264E_NAL_SLICE_DPA   = 2,
+    H264E_NAL_SLICE_DPB   = 3,
+    H264E_NAL_SLICE_DPC   = 4,
+    H264E_NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
+    H264E_NAL_SEI         = 6,    /* ref_idc == 0 */
+    H264E_NAL_SPS         = 7,
+    H264E_NAL_PPS         = 8,
+    H264E_NAL_AUD         = 9,
+    H264E_NAL_FILLER      = 12,
     /* ref_idc == 0 for 6,9,10,11,12 */
-} rkvenc_nal_unit_type;
+} H264eNalUnitType;
 
-typedef enum rkvencnal_priority_t {
-    RKVENC_NAL_PRIORITY_DISPOSABLE = 0,
-    RKVENC_NAL_PRIORITY_LOW        = 1,
-    RKVENC_NAL_PRIORITY_HIGH       = 2,
-    RKVENC_NAL_PRIORITY_HIGHEST    = 3,
-} rkvenc_nal_priority;
+typedef enum H264eNalPriority_t {
+    H264E_NAL_PRIORITY_DISPOSABLE = 0,
+    H264E_NAL_PRIORITY_LOW        = 1,
+    H264E_NAL_PRIORITY_HIGH       = 2,
+    H264E_NAL_PRIORITY_HIGHEST    = 3,
+} H264eNalPriority;
 
-typedef struct h264e_hal_vui_param_t {
+typedef struct H264eVuiParam_t {
     /* they will be reduced to be 0 < x <= 65535 and prime */
     RK_S32         i_sar_height;
     RK_S32         i_sar_width;
@@ -406,15 +341,15 @@ typedef struct h264e_hal_vui_param_t {
     RK_S32         i_transfer;
     RK_S32         i_colmatrix;
     RK_S32         i_chroma_loc;    /* both top & bottom */
-} h264e_hal_vui_param;
+} H264eVuiParam;
 
-typedef struct h264e_hal_sei_t {
+typedef struct H264eSei_t {
     RK_U32                       frame_cnt;
     h264e_control_extra_info_cfg extra_info_cfg;
     MppEncRcCfg                  rc_cfg;
-} h264e_hal_sei;
+} H264eSei;
 
-typedef struct h264e_hal_ref_param_t {
+typedef struct H264eRefParam_t {
     RK_S32         i_frame_reference;  /* Maximum number of reference frames */
     RK_S32         i_ref_pos;
     RK_S32         i_long_term_en;
@@ -423,16 +358,15 @@ typedef struct h264e_hal_ref_param_t {
     RK_S32         i_dpb_size;         /* Force a DPB size larger than that implied by B-frames and reference frames.
                                         * Useful in combination with interactive error resilience. */
     RK_S32         i_frame_packing;
-} h264e_hal_ref_param;
+} H264eRefParam;
 
-
-typedef struct h264e_hal_param_t {
+typedef struct H264eHalParam_t {
     RK_S32 hw_type; // 0:rkv, 1:vpu
     RK_S32 constrained_intra;
 
-    h264e_hal_vui_param vui;
-    h264e_hal_ref_param ref;
-} h264e_hal_param;
+    H264eVuiParam vui;
+    H264eRefParam ref;
+} H264eHalParam;
 
 typedef struct H264eMbRcCtx_t {
     /*
@@ -460,7 +394,7 @@ typedef struct H264eMbRcCtx_t {
     RK_S32  quality;
 } H264eMbRcCtx;
 
-typedef struct h264e_hal_context_t {
+typedef struct H264eHalContext_t {
     MppHalApi                       api;
     RK_S32                          vpu_fd;
     IOInterruptCB                   int_cb;
@@ -475,13 +409,12 @@ typedef struct h264e_hal_context_t {
     RK_U32                          frame_cnt_send_ready;
     RK_U32                          num_frames_to_send;
     RK_U32                          frame_cnt;
-    h264e_hal_param                 param;
+    H264eHalParam                 param;
     RK_U32                          enc_mode;
     void                            *dump_files;
 
     void                            *param_buf;
     MppPacket                       packeted_param;
-    void                            *test_cfg;
 
     RK_U32                          osd_plt_type; //0:user define, 1:default
     MppEncOSDData                   osd_data;
@@ -498,17 +431,17 @@ typedef struct h264e_hal_context_t {
     MppData                         *qp_p;
     MppData                         *sse_p;
     H264eMbRcCtx                    mb_rc;
-} h264e_hal_context;
+} H264eHalContext;
 
-MPP_RET hal_h264e_set_sps(h264e_hal_context *ctx, h264e_hal_sps *sps);
-MPP_RET hal_h264e_set_pps(h264e_hal_context *ctx, h264e_hal_pps *pps, h264e_hal_sps *sps);
-void hal_h264e_set_param(h264e_hal_param *p, RK_S32 hw_type);
+MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps);
+MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps);
+void hal_h264e_set_param(H264eHalParam *p, RK_S32 hw_type);
 
 const RK_U8 * const h264e_cqm_jvt[8];
 const RK_U8 h264e_zigzag_scan4[2][16];
 const RK_U8 h264e_zigzag_scan8[2][64];
-void hal_h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
-void hal_h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
-void hal_h264e_sei_pack2str(char *str, h264e_hal_context *ctx);
+void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
+void h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
+void h264e_sei_pack2str(char *str, H264eHalContext *ctx);
 
 #endif

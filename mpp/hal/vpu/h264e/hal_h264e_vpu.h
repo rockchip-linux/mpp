@@ -614,16 +614,16 @@ typedef enum H264eVpuFrameType_t {
     H264E_VPU_FRAME_I = 1
 } H264eVpuFrameType;
 
-typedef struct h264e_hal_vpu_dump_files_t {
+typedef struct H264eVpuDumpFiles_t {
     FILE *fp_mpp_syntax_in;
     FILE *fp_mpp_reg_in;
     FILE *fp_mpp_reg_out;
     FILE *fp_mpp_strm_out;
     FILE *fp_mpp_feedback;
-} h264e_hal_vpu_dump_files;
+} H264eVpuDumpFiles;
 
 /* struct for assemble bitstream */
-typedef struct h264e_hal_vpu_stream_t {
+typedef struct H264eVpuStream_t {
     RK_U8 *buffer; /* point to first byte of stream */
     RK_U8 *stream; /* Pointer to next byte of stream */
     RK_U32 size;   /* Byte size of stream buffer */
@@ -634,22 +634,22 @@ typedef struct h264e_hal_vpu_stream_t {
     RK_U32 zero_bytes; /* Amount of consecutive zero bytes */
     RK_S32 overflow;    /* This will signal a buffer overflow */
     RK_U32 emul_cnt; /* Counter for emulation_3_byte, needed in SEI */
-} h264e_hal_vpu_stream;
+} H264eVpuStream;
 
-typedef struct h264e_hal_vpu_extra_info_t {
-    h264e_hal_vpu_stream sps_stream;
-    h264e_hal_vpu_stream pps_stream;
-    h264e_hal_vpu_stream sei_stream;
-    h264e_hal_sps sps;
-    h264e_hal_pps pps;
-    h264e_hal_sei sei;
+typedef struct H264eVpuExtraInfo_t {
+    H264eVpuStream sps_stream;
+    H264eVpuStream pps_stream;
+    H264eVpuStream sei_stream;
+    H264eSps sps;
+    H264ePps pps;
+    H264eSei sei;
     RK_U8 *sei_buf;
     RK_U32 sei_change_flg;
-} h264e_hal_vpu_extra_info;
+} H264eVpuExtraInfo;
 
-typedef struct h264e_vpu_reg_set_t {
+typedef struct H264eVpuRegSet_t {
     RK_U32 val[VEPU_H264E_NUM_REGS];
-} h264e_vpu_reg_set;
+} H264eVpuRegSet;
 
 MPP_RET hal_h264e_vpu_init    (void *hal, MppHalCfg *cfg);
 MPP_RET hal_h264e_vpu_deinit  (void *hal);
