@@ -448,6 +448,8 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     MppBuffer buf = mpp_frame_get_buffer(mframe);
     RK_U64 pts  = mpp_frame_get_pts(mframe);
     RK_U32 mode = mpp_frame_get_mode(mframe);
+    MppFrameColorTransferCharacteristic colorTrc = mpp_frame_get_color_trc(mframe);
+    MppFrameColorPrimaries colorPri = mpp_frame_get_color_primaries(mframe);
 
     if (buf)
         mpp_buffer_inc_ref(buf);
@@ -474,27 +476,48 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     case MPP_FMT_YUV420SP: {
         vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
         vframe->OutputWidth = 0x20;
-        break;
-    }
+    } break;
     case MPP_FMT_YUV420SP_10BIT: {
         vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
         vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
         vframe->OutputWidth = 0x22;
-        break;
-    }
+    } break;
     case MPP_FMT_YUV422SP: {
         vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
         vframe->OutputWidth = 0x10;
-        break;
-    }
+    } break;
     case MPP_FMT_YUV422SP_10BIT: {
         vframe->ColorType = VPU_OUTPUT_FORMAT_YUV422;
         vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
         vframe->OutputWidth = 0x23;
-        break;
+    } break;
+    default: {
+    } break;
     }
-    default:
-        break;
+
+    switch (colorPri) {
+    case MPP_FRAME_PRI_BT2020: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT2020;
+    } break;
+    case MPP_FRAME_PRI_BT709: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT709;
+    } break;
+    default: {
+    } break;
+    }
+
+    switch (colorTrc) {
+    case MPP_FRAME_TRC_SMPTEST2084: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_DYNCRANGE_HDR10; //HDR10
+    } break;
+    case MPP_FRAME_TRC_ARIB_STD_B67: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_DYNCRANGE_HDR_HLG; //HDR_HLG
+    } break;
+    case MPP_FRAME_TRC_BT2020_10: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT2020; //BT2020
+    } break;
+    default: {
+    } break;
     }
 
     if (buf) {

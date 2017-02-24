@@ -94,6 +94,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
         mpp_frame_set_errinfo(frame->frame, 0);
         mpp_frame_set_pts(frame->frame, s->pts);
+        mpp_frame_set_color_primaries(frame->frame,s->sps->vui.colour_primaries);
+        mpp_frame_set_color_trc(frame->frame,s->sps->vui.transfer_characteristic);
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
 
         frame->rpl_buf = mpp_calloc(RK_U8, s->nb_nals * sizeof(RefPicListTab));
