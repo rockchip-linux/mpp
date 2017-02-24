@@ -19,25 +19,3 @@
 #endif
 
 #include "mpp_runtime.h"
-
-static func_mmap64 mpp_rt_mmap64 = NULL;
-
-func_mmap64 mpp_rt_get_mmap64()
-{
-#ifdef RKPLATFORM
-    static RK_U32 once = 1;
-
-    if (once) {
-        void *libc_hdl = dlopen("libc", RTLD_LAZY);
-        if (libc_hdl) {
-            mpp_rt_mmap64 = (func_mmap64)dlsym(libc_hdl, "mmap64");
-            dlclose(libc_hdl);
-        }
-
-        once = 0;
-    }
-#endif
-
-    return mpp_rt_mmap64;
-}
-

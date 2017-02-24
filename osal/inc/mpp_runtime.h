@@ -19,13 +19,6 @@
 
 #include "mpp_common.h"
 
-/*
- * Runtime function detection is for rockchip software platform detection
- */
-
-typedef void *(*func_mmap64)(void* addr, size_t length, int prot, int flags,
-                             int fd, off_t offset);
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,8 +27,6 @@ extern "C" {
  * Runtime function detection is to support different binary on different
  * runtime environment. This is usefull on product environemnt.
  */
-
-func_mmap64 mpp_rt_get_mmap64();
 
 #ifdef __cplusplus
 }
