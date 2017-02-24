@@ -68,6 +68,7 @@ typedef enum {
     MPP_FRAME_PRI_SMPTE240M   = 7,      ///< functionally identical to above
     MPP_FRAME_PRI_FILM        = 8,      ///< colour filters using Illuminant C
     MPP_FRAME_PRI_BT2020      = 9,      ///< ITU-R BT2020
+    MPP_FRAME_PRI_SMPTEST428_1 = 10,    ///< SMPTE ST 428-1 (CIE 1931 XYZ)
     MPP_FRAME_PRI_NB,                   ///< Not part of ABI
 } MppFrameColorPrimaries;
 
@@ -91,6 +92,9 @@ typedef enum {
     MPP_FRAME_TRC_IEC61966_2_1 = 13,    ///< IEC 61966-2-1 (sRGB or sYCC)
     MPP_FRAME_TRC_BT2020_10    = 14,    ///< ITU-R BT2020 for 10 bit system
     MPP_FRAME_TRC_BT2020_12    = 15,    ///< ITU-R BT2020 for 12 bit system
+    MPP_FRAME_TRC_SMPTEST2084  = 16,    ///< SMPTE ST 2084 for 10-, 12-, 14- and 16-bit systems
+    MPP_FRAME_TRC_SMPTEST428_1 = 17,    ///< SMPTE ST 428-1
+    MPP_FRAME_TRC_ARIB_STD_B67 = 18,    ///< ARIB STD-B67, known as "Hybrid log-gamma"
     MPP_FRAME_TRC_NB,                   ///< Not part of ABI
 } MppFrameColorTransferCharacteristic;
 
