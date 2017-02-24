@@ -46,14 +46,6 @@
 
 RK_U32 rkv_h264d_hal_debug = 0;
 
-typedef enum vpu_hard_mode_e {
-    MODE_NULL   = 0,
-    RKVDEC_MODE = 0x01,
-    VDPU1_MODE  = 0x02,
-    VDPU2_MODE  = 0x04,
-    MODE_BUTT,
-} VpuHardMode;
-
 static void explain_input_buffer(void *hal, HalDecTask *task)
 {
     RK_U32 i = 0;
