@@ -23,6 +23,9 @@
 #include "mpp_frame.h"
 #include "mpp_packet.h"
 
+#define FOURCC_META(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | \
+                  ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
+
 /*
  * Mpp Metadata definition
  *
@@ -45,44 +48,44 @@ typedef enum MppMetaDataType_e {
      * mpp meta data of data flow
      * reference counter will be used for these meta data type
      */
-    TYPE_FRAME                  = 'mfrm',
-    TYPE_PACKET                 = 'mpkt',
-    TYPE_BUFFER                 = 'mbuf',
+    TYPE_FRAME                  = FOURCC_META('m', 'f', 'r', 'm'),
+    TYPE_PACKET                 = FOURCC_META('m', 'p', 'k', 't'),
+    TYPE_BUFFER                 = FOURCC_META('m', 'b', 'u', 'f'),
 
     /* mpp meta data of normal data type */
-    TYPE_S32                    = 's32 ',
-    TYPE_S64                    = 's64 ',
-    TYPE_PTR                    = 'ptr ',
+    TYPE_S32                    = FOURCC_META('s', '3', '2', ' '),
+    TYPE_S64                    = FOURCC_META('s', '6', '4', ' '),
+    TYPE_PTR                    = FOURCC_META('p', 't', 'r', ' '),
 } MppMetaType;
 
 typedef enum MppMetaKey_e {
     /* data flow key */
-    KEY_INPUT_FRAME             = 'ifrm',
-    KEY_INPUT_PACKET            = 'ipkt',
-    KEY_OUTPUT_FRAME            = 'ofrm',
-    KEY_OUTPUT_PACKET           = 'opkt',
-    KEY_MOTION_INFO             = 'mvif',   /* output motion information for motion detection */
+    KEY_INPUT_FRAME             = FOURCC_META('i', 'f', 'r', 'm'),
+    KEY_INPUT_PACKET            = FOURCC_META('i', 'p', 'k', 't'),
+    KEY_OUTPUT_FRAME            = FOURCC_META('o', 'f', 'r', 'm'),
+    KEY_OUTPUT_PACKET           = FOURCC_META('o', 'p', 'k', 't'),
+    KEY_MOTION_INFO             = FOURCC_META('m', 'v', 'i', 'f'),   /* output motion information for motion detection */
 
     /* flow control key */
-    KEY_INPUT_BLOCK             = 'iblk',
-    KEY_OUTPUT_BLOCK            = 'oblk',
-    KEY_INPUT_IDR_REQ           = 'iidr',   /* input idr frame request flag */
-    KEY_OUTPUT_INTRA            = 'oidr',   /* output intra frame indicator */
+    KEY_INPUT_BLOCK             = FOURCC_META('i', 'b', 'l', 'k'),
+    KEY_OUTPUT_BLOCK            = FOURCC_META('o', 'b', 'l', 'k'),
+    KEY_INPUT_IDR_REQ           = FOURCC_META('i', 'i', 'd', 'r'),   /* input idr frame request flag */
+    KEY_OUTPUT_INTRA            = FOURCC_META('o', 'i', 'd', 'r'),   /* output intra frame indicator */
 
     /* flow control key */
-    KEY_WIDTH                   = 'wdth',
-    KEY_HEIGHT                  = 'hght',
-    KEY_BITRATE                 = 'bps ',
-    KEY_BITRATE_UP              = 'bpsu',
-    KEY_BITRATE_LOW             = 'bpsl',
-    KEY_INPUT_FPS               = 'ifps',
-    KEY_OUTPUT_FPS              = 'ofps',
-    KEY_GOP                     = 'gop ',
-    KEY_QP                      = 'qp  ',
-    KEY_QP_MIN                  = 'qmin',
-    KEY_QP_MAX                  = 'qmax',
-    KEY_QP_DIFF_RANGE           = 'qdif',
-    KEY_RC_MODE                 = 'rcmo',
+    KEY_WIDTH                   = FOURCC_META('w', 'd', 't', 'h'),
+    KEY_HEIGHT                  = FOURCC_META('h', 'g', 'h', 't'),
+    KEY_BITRATE                 = FOURCC_META('b', 'p', 's', ' '),
+    KEY_BITRATE_UP              = FOURCC_META('b', 'p', 's', 'u'),
+    KEY_BITRATE_LOW             = FOURCC_META('b', 'p', 's', 'l'),
+    KEY_INPUT_FPS               = FOURCC_META('i', 'f', 'p', 's'),
+    KEY_OUTPUT_FPS              = FOURCC_META('o', 'f', 'p', 's'),
+    KEY_GOP                     = FOURCC_META('g', 'o', 'p', ' '),
+    KEY_QP                      = FOURCC_META('q', 'p', ' ', ' '),
+    KEY_QP_MIN                  = FOURCC_META('q', 'm', 'i', 'n'),
+    KEY_QP_MAX                  = FOURCC_META('q', 'm', 'a', 'x'),
+    KEY_QP_DIFF_RANGE           = FOURCC_META('q', 'd', 'i', 'f'),
+    KEY_RC_MODE                 = FOURCC_META('r', 'c', 'm', 'o'),
 } MppMetaKey;
 
 typedef void* MppMeta;
