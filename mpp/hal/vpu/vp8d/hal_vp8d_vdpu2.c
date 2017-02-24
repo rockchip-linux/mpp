@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_vp8d_reg"
+#define MODULE_TAG "hal_vp8d_vdpu2"
 #include <string.h>
 
 #include "mpp_log.h"
@@ -22,25 +22,10 @@
 #include "mpp_mem.h"
 
 #include "vpu.h"
-#include "hal_vp8d_reg.h"
+#include "hal_vp8d_vdpu2.h"
+#include "hal_vp8d_vdpu2_reg.h"
 
-
-RK_U32 vp8h_debug = 0;
-
-#define VP8HWD_VP7             1
-#define VP8HWD_VP8             2
-#define VP8HWD_WEBP            3
-
-#define DEC_MODE_VP7           9
-#define DEC_MODE_VP8           10
-
-#define VP8D_PROB_TABLE_SIZE  (1<<16) /* TODO */
-#define VP8D_MAX_SEGMAP_SIZE  (2048 + 1024)  //1920*1080 /* TODO */
-#define FUN_T(tag) \
-    do {\
-        if (VP8H_DBG_FUNCTION & vp8h_debug)\
-            { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
-    } while (0)
+static RK_U32 vp8h_debug;
 
 /* VP7 QP LUTs */
 static const RK_U16 YDcQLookup[128] = {
@@ -172,7 +157,7 @@ static const RK_U32 mcFilter[8][6] = {
     { 0, -1,   12,  123,  -6,  0 }
 };
 
-MPP_RET hal_vp8d_init(void *hal, MppHalCfg *cfg)
+MPP_RET hal_vp8d_vdpu2_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
@@ -240,7 +225,7 @@ MPP_RET hal_vp8d_init(void *hal, MppHalCfg *cfg)
     return ret;
 }
 
-MPP_RET hal_vp8d_deinit(void *hal)
+MPP_RET hal_vp8d_vdpu2_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
 
@@ -282,7 +267,7 @@ MPP_RET hal_vp8d_deinit(void *hal)
     return ret;
 }
 
-MPP_RET hal_vp8_init_hwcfg(VP8DHalContext_t *ctx)
+static MPP_RET hal_vp8_init_hwcfg(VP8DHalContext_t *ctx)
 {
 
     VP8DRegSet_t *reg = (VP8DRegSet_t *)ctx->regs;
@@ -323,7 +308,7 @@ MPP_RET hal_vp8_init_hwcfg(VP8DHalContext_t *ctx)
     return MPP_OK;
 }
 
-MPP_RET hal_vp8d_pre_filter_tap_set(VP8DHalContext_t *ctx)
+static MPP_RET hal_vp8d_pre_filter_tap_set(VP8DHalContext_t *ctx)
 {
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
 
@@ -376,7 +361,8 @@ MPP_RET hal_vp8d_pre_filter_tap_set(VP8DHalContext_t *ctx)
     return MPP_OK;
 }
 
-MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
+static MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx,
+                                          HalTaskInfo *task)
 {
     RK_U32 i = 0, len = 0, len1 = 0;
     RK_U32 extraBytesPacked = 0;
@@ -479,7 +465,8 @@ MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
     FUN_T("FUN_OUT");
     return MPP_OK;
 }
-void hal_vp8hw_asic_probe_update(DXVA_PicParams_VP8 *p, RK_U8 *probTbl)
+
+static void hal_vp8hw_asic_probe_update(DXVA_PicParams_VP8 *p, RK_U8 *probTbl)
 {
     RK_U8   *dst;
     RK_U32  i, j, k;
@@ -575,7 +562,8 @@ void hal_vp8hw_asic_probe_update(DXVA_PicParams_VP8 *p, RK_U8 *probTbl)
     FUN_T("FUN_OUT");
     return ;
 }
-MPP_RET hal_vp8d_gen_regs(void* hal, HalTaskInfo *task)
+
+MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 mb_width = 0, mb_height = 0;
@@ -739,7 +727,7 @@ MPP_RET hal_vp8d_gen_regs(void* hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vp8d_start(void *hal, HalTaskInfo *task)
+MPP_RET hal_vp8d_vdpu2_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
 
@@ -770,7 +758,7 @@ MPP_RET hal_vp8d_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vp8d_wait(void *hal, HalTaskInfo *task)
+MPP_RET hal_vp8d_vdpu2_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
 #ifdef RKPLATFORM
@@ -789,7 +777,7 @@ MPP_RET hal_vp8d_wait(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vp8d_reset(void *hal)
+MPP_RET hal_vp8d_vdpu2_reset(void *hal)
 {
     MPP_RET ret = MPP_OK;
 
@@ -799,7 +787,7 @@ MPP_RET hal_vp8d_reset(void *hal)
     return ret;
 }
 
-MPP_RET hal_vp8d_flush(void *hal)
+MPP_RET hal_vp8d_vdpu2_flush(void *hal)
 {
     MPP_RET ret = MPP_OK;
 
@@ -809,7 +797,7 @@ MPP_RET hal_vp8d_flush(void *hal)
     return ret;
 }
 
-MPP_RET hal_vp8d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_vp8d_vdpu2_control(void *hal, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
 

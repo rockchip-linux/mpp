@@ -9,13 +9,13 @@ set(HAL_VP8D_API
 
 # hal vp8 header
 set(HAL_VP8D_HDR
-    hal_vp8d_reg.h
+    hal_vp8d_base.h
     )
 
 # hal vp8 decoder sourse
 set(HAL_VP8D_SRC
     hal_vp8d_api.c
-    hal_vp8d_reg.c
+    hal_vp8d_vdpu2.c
     )
 
 add_library(hal_vp8d STATIC
