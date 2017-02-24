@@ -16,6 +16,7 @@ set(HAL_VP8D_HDR
 set(HAL_VP8D_SRC
     hal_vp8d_api.c
     hal_vp8d_vdpu2.c
+    hal_vp8d_vdpu1.c
     )
 
 add_library(hal_vp8d STATIC
