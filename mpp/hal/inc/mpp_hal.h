@@ -35,9 +35,16 @@ typedef enum MppHalHardType_e {
     HAL_DEVICE_BUTT,
 } HalDeviceId;
 
+typedef enum vpu_hard_mode_e {
+    MODE_NULL   = 0,
+    RKVDEC_MODE = 0x01,
+    VDPU1_MODE  = 0x02,
+    VDPU2_MODE  = 0x04,
+    MODE_BUTT,
+} VpuHardMode;
+
 
 typedef void*   MppHalCtx;
-
 
 typedef struct MppHalCfg_t {
     // input
