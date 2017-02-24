@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_VP8D_REG_H__
-#define __HAL_VP8D_REG_H__
-#include <stdio.h>
 
-#include "mpp_hal.h"
-#include "mpp_buf_slot.h"
+#ifndef __HAL_VP8D_VDPU2_REG_H__
+#define __HAL_VP8D_VDPU2_REG_H__
+#include "rk_type.h"
 
-#include "vp8d_syntax.h"
-#include "hal_task.h"
+#define VP8HWD_VP7             1
+#define VP8HWD_VP8             2
+#define VP8HWD_WEBP            3
 
-extern RK_U32 vp8h_debug;
-#define VP8H_DBG_FUNCTION          (0x00000001)
-#define VP8H_DBG_REG               (0x00000002)
-#define VP8H_DBG_DUMP_REG          (0x00000004)
-#define VP8H_DBG_IRQ               (0x00000008)
+#define DEC_MODE_VP7           9
+#define DEC_MODE_VP8           10
+
+#define VP8D_PROB_TABLE_SIZE  (1<<16) /* TODO */
+#define VP8D_MAX_SEGMAP_SIZE  (2048 + 1024)  //1920*1080 /* TODO */
 
 #define VP8D_REG_NUM    159
-#define vp8h_dbg(flag, fmt, ...) _mpp_dbg_f(vp8h_debug, flag, fmt, ## __VA_ARGS__)
 
 typedef struct  {
     unsigned long                 ppReg[50];
@@ -412,28 +410,5 @@ typedef struct  {
         RK_U32  sw_pred_bc_tap_4_2   : 10;
     } reg158;
 } VP8DRegSet_t;
-
-typedef struct VP8DHalContext {
-    MppBufSlots packet_slots;
-    MppBufSlots frame_slots;
-    RK_S32      vpu_socket;
-    void        *regs;
-    RK_U8       reg_size;
-    MppBufferGroup group;
-    MppBuffer probe_table;
-    MppBuffer seg_map;
-    RK_U32 dec_frame_cnt;
-    FILE *fp_reg_in;
-    FILE *fp_reg_out;
-} VP8DHalContext_t;
-
-MPP_RET hal_vp8d_init    (void *hal, MppHalCfg *cfg);
-MPP_RET hal_vp8d_deinit  (void *hal);
-MPP_RET hal_vp8d_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_start   (void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_wait    (void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_reset   (void *hal);
-MPP_RET hal_vp8d_flush   (void *hal);
-MPP_RET hal_vp8d_control (void *hal, RK_S32 cmd_type, void *param);
 
 #endif
