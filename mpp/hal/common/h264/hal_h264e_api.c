@@ -29,7 +29,7 @@
 #include "mpp_env.h"
 #include "hal_h264e_api.h"
 #include "hal_h264e_com.h"
-#include "hal_h264e_vpu.h"
+#include "hal_h264e_vepu2.h"
 #include "hal_h264e_rkv.h"
 
 RK_U32 h264e_hal_log_mode = 0;

@@ -28,7 +28,7 @@
 #include "mpp_rc.h"
 
 #include "hal_h264e_com.h"
-#include "hal_h264e_vpu.h"
+#include "hal_h264e_vepu2.h"
 #include "hal_h264e_vpu_tbl.h"
 
 //#define H264E_DUMP_DATA_TO_FILE
