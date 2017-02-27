@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_h264e_vpu"
+#define MODULE_TAG "hal_h264e_vepu2"
 
 #include <string.h>
 #include <limits.h>
@@ -28,30 +28,12 @@
 #include "mpp_rc.h"
 
 #include "hal_h264e_com.h"
-#include "hal_h264e_vepu2.h"
 #include "hal_h264e_vpu_tbl.h"
-
-//#define H264E_DUMP_DATA_TO_FILE
-
-typedef struct h264e_hal_vpu_buffers_t {
-    MppBufferGroup hw_buf_grp;
-
-    MppBuffer hw_rec_buf[2];
-    MppBuffer hw_cabac_table_buf;
-    MppBuffer hw_nal_size_table_buf;
-} h264e_hal_vpu_buffers;
-
-#define HAL_VPU_H264E_DBG_FUNCTION          (0x00000001)
-#define HAL_VPU_H264E_DBG_QP                (0x00000010)
-
-#define hal_vpu_h264e_dbg(flag, fmt, ...)   _mpp_dbg(hal_vpu_h264e_debug, flag, fmt, ## __VA_ARGS__)
-#define hal_vpu_h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(hal_vpu_h264e_debug, flag, fmt, ## __VA_ARGS__)
-
-#define hal_vpu_h264e_dbg_func(fmt, ...)    hal_vpu_h264e_dbg_f(HAL_VPU_H264E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
-#define hal_vpu_h264e_dbg_qp(fmt, ...)      hal_vpu_h264e_dbg(HAL_VPU_H264E_DBG_QP, fmt, ## __VA_ARGS__)
+#include "hal_h264e_vepu.h"
+#include "hal_h264e_vepu2.h"
+#include "hal_h264e_vepu2_reg_tbl.h"
 
 static RK_U32 hal_vpu_h264e_debug = 0;
-
 
 #ifdef H264E_DUMP_DATA_TO_FILE
 static MPP_RET h264e_vpu_open_dump_files(void *dump_files)
@@ -169,7 +151,7 @@ static void h264e_vpu_dump_mpp_reg_in(H264eHalContext *ctx)
         RK_S32 k = 0;
         RK_U32 *reg = (RK_U32 *)ctx->regs;
         fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
-        for (k = 0; k < VEPU_H264E_NUM_REGS; k++) {
+        for (k = 0; k < VEPU2_H264E_NUM_REGS; k++) {
             fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
             //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
         }
@@ -187,7 +169,7 @@ static void h264e_vpu_dump_mpp_reg_out(H264eHalContext *ctx)
         RK_S32 k = 0;
         RK_U32 *reg = (RK_U32 *)ctx->regs;
         fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt - 1);
-        for (k = 0; k < VEPU_H264E_NUM_REGS; k++) {
+        for (k = 0; k < VEPU2_H264E_NUM_REGS; k++) {
             fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
             //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
         }
@@ -466,8 +448,8 @@ static MPP_RET h264e_vpu_stream_buffer_init(H264eVpuStream *strmbuf, RK_S32 size
 }
 
 
-void h264e_vpu_stream_put_bits(H264eVpuStream *buffer, RK_S32 value, RK_S32 number,
-                               const char *name)
+static void h264e_vpu_stream_put_bits(H264eVpuStream *buffer, RK_S32 value,
+                                      RK_S32 number, const char *name)
 {
     RK_S32 bits;
     RK_U32 byte_buffer = buffer->byte_buffer;
@@ -501,7 +483,9 @@ void h264e_vpu_stream_put_bits(H264eVpuStream *buffer, RK_S32 value, RK_S32 numb
     return;
 }
 
-void h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer, RK_S32 value, RK_S32 number, const char *name)
+static void
+h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer, RK_S32 value,
+                                      RK_S32 number, const char *name)
 {
     RK_S32 bits;
     RK_U8 *stream = buffer->stream;
@@ -553,7 +537,7 @@ void h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer, RK_S32 value
 }
 
 
-void h264e_vpu_rbsp_trailing_bits(H264eVpuStream * stream)
+static void h264e_vpu_rbsp_trailing_bits(H264eVpuStream * stream)
 {
     h264e_vpu_stream_put_bits_with_detect(stream, 1, 1, "rbsp_stop_one_bit");
     if (stream->buffered_bits > 0) {
@@ -618,8 +602,6 @@ static MPP_RET h264e_vpu_nal_start(H264eVpuStream * stream, RK_S32 nalRefIdc, H2
 
     return MPP_OK;
 }
-
-
 
 static MPP_RET h264e_vpu_write_sps(H264eVpuStream *stream, H264eSps *sps)
 {
@@ -775,8 +757,7 @@ static MPP_RET h264e_vpu_write_sei(H264eVpuStream *s, RK_U8 *payload, RK_S32 pay
     return MPP_OK;
 }
 
-
-MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
+static MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
 {
     H264eVpuExtraInfo *info = (H264eVpuExtraInfo *)ctx->extra_info;
     H264eVpuStream *sei_stream = &info->sei_stream;
@@ -885,8 +866,7 @@ static RK_S32 exp_golomb_signed(RK_S32 val)
     return tmp * 2 - 1;
 }
 
-
-MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
+MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     MPP_RET ret = MPP_OK;
@@ -895,7 +875,7 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
     h264e_hal_enter();
 
     ctx->int_cb     = cfg->hal_int_cb;
-    ctx->regs       = mpp_calloc(H264eVpuRegSet, 1);
+    ctx->regs       = mpp_calloc(H264eVpu2RegSet, 1);
     ctx->buffers    = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(H264eVpuExtraInfo, 1);
     ctx->dump_files = mpp_calloc(H264eVpuDumpFiles, 1);
@@ -934,7 +914,7 @@ MPP_RET hal_h264e_vpu_init(void *hal, MppHalCfg *cfg)
     return ret;
 }
 
-MPP_RET hal_h264e_vpu_deinit(void *hal)
+MPP_RET hal_h264e_vepu2_deinit(void *hal)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     h264e_hal_enter();
@@ -1190,7 +1170,7 @@ static MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
+MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     H264eHalContext *ctx = (H264eHalContext *)hal;
@@ -1231,7 +1211,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     mb_w = (prep->width  + 15) / 16;
     mb_h = (prep->height + 15) / 16;
 
-    memset(reg, 0, sizeof(H264eVpuRegSet));
+    memset(reg, 0, sizeof(H264eVpu2RegSet));
 
     h264e_hal_dbg(H264E_DBG_DETAIL, "frame %d generate regs now", ctx->frame_cnt);
 
@@ -1511,7 +1491,7 @@ MPP_RET hal_h264e_vpu_gen_regs(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
+MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     (void)task;
@@ -1519,8 +1499,8 @@ MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM
     if (ctx->vpu_fd > 0) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
-        h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU_H264E_NUM_REGS);
-        if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, p_regs, VEPU_H264E_NUM_REGS)) {
+        h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
+        if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, p_regs, VEPU2_H264E_NUM_REGS)) {
             mpp_err("VPUClientSendReg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
@@ -1537,7 +1517,7 @@ MPP_RET hal_h264e_vpu_start(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-static MPP_RET h264e_vpu_set_feedback(h264e_feedback *fb, H264eVpuRegSet *reg)
+static MPP_RET h264e_vpu_set_feedback(h264e_feedback *fb, H264eVpu2RegSet *reg)
 {
     RK_S32 i = 0;
     RK_U32 cpt_prev = 0, overflow = 0;
@@ -1559,10 +1539,10 @@ static MPP_RET h264e_vpu_set_feedback(h264e_feedback *fb, H264eVpuRegSet *reg)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
+MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
-    H264eVpuRegSet *reg_out = (H264eVpuRegSet *)ctx->regs;
+    H264eVpu2RegSet *reg_out = (H264eVpu2RegSet *)ctx->regs;
     MppEncPrepCfg *prep = &ctx->set->prep;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
@@ -1575,7 +1555,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
         VPU_CMD_TYPE cmd = 0;
         RK_S32 length = 0;
         RK_S32 hw_ret = VPUClientWaitResult(ctx->vpu_fd, (RK_U32 *)reg_out,
-                                            VEPU_H264E_NUM_REGS, &cmd, &length);
+                                            VEPU2_H264E_NUM_REGS, &cmd, &length);
 
         h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
 
@@ -1632,7 +1612,7 @@ MPP_RET hal_h264e_vpu_wait(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_reset(void *hal)
+MPP_RET hal_h264e_vepu2_reset(void *hal)
 {
     (void)hal;
     h264e_hal_enter();
@@ -1641,7 +1621,7 @@ MPP_RET hal_h264e_vpu_reset(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_flush(void *hal)
+MPP_RET hal_h264e_vepu2_flush(void *hal)
 {
     (void)hal;
     h264e_hal_enter();
@@ -1650,7 +1630,7 @@ MPP_RET hal_h264e_vpu_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     h264e_hal_enter();
@@ -1797,4 +1777,3 @@ MPP_RET hal_h264e_vpu_control(void *hal, RK_S32 cmd_type, void *param)
     h264e_hal_leave();
     return MPP_OK;
 }
-

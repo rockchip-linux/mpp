@@ -4,7 +4,7 @@ include_directories(../../common/h264/)
 
 # hal h264 header
 set(HAL_H264E_HDR
-    hal_h264e_vepu2.h
+    hal_h264e_vepu.h
     )
 
 # hal h264 encoder sourse
