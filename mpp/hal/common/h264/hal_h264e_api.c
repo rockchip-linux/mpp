@@ -23,6 +23,7 @@
 #endif
 
 #include "mpp_common.h"
+#include "mpp_platform.h"
 #include "vpu.h"
 #include "mpp_hal.h"
 #include "mpp_env.h"
@@ -42,26 +43,12 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     MppEncH264VuiCfg *vui = &h264->vui;
     MppEncH264RefCfg *ref = &h264->ref;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    RK_U32 vcodec_type = 0;
 
     mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00000001);
-    if (!access("/dev/rkvenc", F_OK))
-        cfg->device_id = HAL_RKVENC;
-    else
-        cfg->device_id = HAL_VEPU;
 
-    switch (cfg->device_id) {
-    case HAL_VEPU:
-        api->init    = hal_h264e_vpu_init;
-        api->deinit  = hal_h264e_vpu_deinit;
-        api->reg_gen = hal_h264e_vpu_gen_regs;
-        api->start   = hal_h264e_vpu_start;
-        api->wait    = hal_h264e_vpu_wait;
-        api->reset   = hal_h264e_vpu_reset;
-        api->flush   = hal_h264e_vpu_flush;
-        api->control = hal_h264e_vpu_control;
-        hw_cfg->hw_type = H264E_VPU;
-        break;
-    case HAL_RKVENC:
+    vcodec_type = mpp_get_vcodec_type();
+    if (vcodec_type & HAVE_RKVENC) {
         api->init    = hal_h264e_rkv_init;
         api->deinit  = hal_h264e_rkv_deinit;
         api->reg_gen = hal_h264e_rkv_gen_regs;
@@ -71,9 +58,19 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
         api->flush   = hal_h264e_rkv_flush;
         api->control = hal_h264e_rkv_control;
         hw_cfg->hw_type = H264E_RKV;
-        break;
-    default:
-        mpp_err("invalid device_id: %d", cfg->device_id);
+    } else if (vcodec_type & HAVE_VPU2) {
+        api->init    = hal_h264e_vpu_init;
+        api->deinit  = hal_h264e_vpu_deinit;
+        api->reg_gen = hal_h264e_vpu_gen_regs;
+        api->start   = hal_h264e_vpu_start;
+        api->wait    = hal_h264e_vpu_wait;
+        api->reset   = hal_h264e_vpu_reset;
+        api->flush   = hal_h264e_vpu_flush;
+        api->control = hal_h264e_vpu_control;
+        hw_cfg->hw_type = H264E_VPU;
+    } else {
+        mpp_err("vcodec type %08x can not find H.264 encoder device\n",
+                vcodec_type);
         return MPP_NOK;
     }
 
