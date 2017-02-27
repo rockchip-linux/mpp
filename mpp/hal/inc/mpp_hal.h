@@ -40,6 +40,7 @@ typedef enum vpu_hard_mode_e {
     RKVDEC_MODE = 0x01,
     VDPU1_MODE  = 0x02,
     VDPU2_MODE  = 0x04,
+    RKVENC_MODE = 0x05,
     MODE_BUTT,
 } VpuHardMode;
 
