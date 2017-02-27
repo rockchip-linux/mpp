@@ -59,14 +59,14 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
         api->control = hal_h264e_rkv_control;
         hw_cfg->hw_type = H264E_RKV;
     } else if (vcodec_type & HAVE_VPU2) {
-        api->init    = hal_h264e_vpu_init;
-        api->deinit  = hal_h264e_vpu_deinit;
-        api->reg_gen = hal_h264e_vpu_gen_regs;
-        api->start   = hal_h264e_vpu_start;
-        api->wait    = hal_h264e_vpu_wait;
-        api->reset   = hal_h264e_vpu_reset;
-        api->flush   = hal_h264e_vpu_flush;
-        api->control = hal_h264e_vpu_control;
+        api->init    = hal_h264e_vepu2_init;
+        api->deinit  = hal_h264e_vepu2_deinit;
+        api->reg_gen = hal_h264e_vepu2_gen_regs;
+        api->start   = hal_h264e_vepu2_start;
+        api->wait    = hal_h264e_vepu2_wait;
+        api->reset   = hal_h264e_vepu2_reset;
+        api->flush   = hal_h264e_vepu2_flush;
+        api->control = hal_h264e_vepu2_control;
         hw_cfg->hw_type = H264E_VPU;
     } else {
         mpp_err("vcodec type %08x can not find H.264 encoder device\n",
