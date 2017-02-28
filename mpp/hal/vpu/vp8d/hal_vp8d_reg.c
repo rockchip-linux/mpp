@@ -416,8 +416,8 @@ MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
 
     len = pic_param->offsetToDctParts + pic_param->frameTagSize -
           (pic_param->stream_start_offset - extraBytesPacked);
-    if (pic_param->decMode == VP8HWD_VP7) /* give extra byte for VP7 to pass test cases */
-        len ++;
+    /* give extra byte of data to negotiate "tight" buffers */
+    len++;
 
     regs->reg124.sw_stream1_len = len;
     regs->reg124.sw_coeffs_part_am = (1 << pic_param->log2_nbr_of_dct_partitions) - 1;
