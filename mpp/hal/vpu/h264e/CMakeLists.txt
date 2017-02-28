@@ -9,6 +9,7 @@ set(HAL_H264E_HDR
 
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
+    hal_h264e_header.c
     hal_h264e_vepu2.c
     )
 
