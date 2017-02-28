@@ -31,6 +31,7 @@
 #include "hal_h264e_com.h"
 #include "hal_h264e_vepu2.h"
 #include "hal_h264e_rkv.h"
+#include "hal_h264e_vepu1.h"
 
 RK_U32 h264e_hal_log_mode = 0;
 
@@ -67,6 +68,16 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
         api->reset   = hal_h264e_vepu2_reset;
         api->flush   = hal_h264e_vepu2_flush;
         api->control = hal_h264e_vepu2_control;
+        hw_cfg->hw_type = H264E_VPU;
+    } else if (vcodec_type & HAVE_VPU1) {
+        api->init = hal_h264e_vepu1_init;
+        api->deinit  = hal_h264e_vepu1_deinit;
+        api->reg_gen = hal_h264e_vepu1_gen_regs;
+        api->start   = hal_h264e_vepu1_start;
+        api->wait    = hal_h264e_vepu1_wait;
+        api->reset   = hal_h264e_vepu1_reset;
+        api->flush   = hal_h264e_vepu1_flush;
+        api->control = hal_h264e_vepu1_control;
         hw_cfg->hw_type = H264E_VPU;
     } else {
         mpp_err("vcodec type %08x can not find H.264 encoder device\n",
