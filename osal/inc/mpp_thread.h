@@ -193,6 +193,8 @@ public:
     void unlock()   { mLock.unlock(); }
     void wait()     { mCondition.wait(mLock); }
     void signal()   { mCondition.signal(); }
+    Mutex *mutex()  { return &mLock; }
+
 private:
     Mutex           mLock;
     Condition       mCondition;
@@ -238,6 +240,11 @@ public:
     void signal(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
         mMutexCond[id].signal();
+    }
+
+    Mutex *mutex(MppThreadSignal id = THREAD_WORK) {
+        mpp_assert(id < THREAD_SIGNAL_BUTT);
+        return mMutexCond[id].mutex();
     }
 
 private:

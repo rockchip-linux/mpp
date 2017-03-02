@@ -840,13 +840,18 @@ void *mpp_dec_advanced_thread(void *data)
     MppFrame frame = NULL;
     MppPacket packet = NULL;
 
-    while (MPP_THREAD_RUNNING == thd_dec->get_status()) {
-        thd_dec->lock();
-        ret = mpp_port_dequeue(input, &mpp_task);
-        if (ret || NULL == mpp_task) {
-            thd_dec->wait();
+    while (1) {
+        {
+            AutoMutex autolock(thd_dec->mutex());
+            if (MPP_THREAD_RUNNING == thd_dec->get_status()) {
+                ret = mpp_port_dequeue(input, &mpp_task);
+                if (ret || NULL == mpp_task) {
+                    thd_dec->wait();
+                }
+            } else {
+                break;
+            }
         }
-        thd_dec->unlock();
 
         if (mpp_task != NULL) {
             mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
