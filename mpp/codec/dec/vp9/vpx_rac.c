@@ -23,8 +23,8 @@
     { \
         (*b) += bytes; \
         return read(*b - bytes); \
-    } \
- 
+    }
+
 DEF(be24, 3, MPP_RB24, MPP_WB24)
 DEF(be16, 2, MPP_RB16, MPP_WB16)
 
