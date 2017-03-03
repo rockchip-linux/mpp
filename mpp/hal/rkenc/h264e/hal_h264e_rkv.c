@@ -2466,7 +2466,7 @@ static RK_S32 h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, RK_S3
             RK_S32 est_bits = mpp_quadreg_calc(ctx, QP2Qstep(qp));
             RK_S32 diff = est_bits - bits;
             h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp est qp %d qstep %f bit %d diff %d best %d\n",
-                                 qp, QP2Qstep(qp), bits, diff, diff_best);
+                          qp, QP2Qstep(qp), bits, diff, diff_best);
             if (MPP_ABS(diff) < MPP_ABS(diff_best)) {
                 diff_best = MPP_ABS(diff);
                 qp_best = qp;
