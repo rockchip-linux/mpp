@@ -18,6 +18,7 @@
 #define __MPP_PLATFORM__
 
 #include "rk_type.h"
+#include "rk_mpi.h"
 
 /*
  * Platform flag detection is for rockchip hardware platform detection
@@ -43,7 +44,9 @@ extern "C" {
 /* External encoder */
 #define HAVE_H265E              (0x01000000)
 
-RK_U32 mpp_get_vcodec_hw_flag(void);
+const char *mpp_get_soc_name(void);
+RK_U32 mpp_get_vcodec_type(void);
+const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
 
 /*
  * Platform image process hardware feature

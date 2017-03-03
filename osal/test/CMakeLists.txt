@@ -29,6 +29,9 @@ add_mpp_osal_test(mpp_env)
 # malloc system unit test
 add_mpp_osal_test(mpp_mem)
 
+# hardware platform feature detection unit test
+add_mpp_osal_test(mpp_platform)
+
 # thread implement unit test
 add_mpp_osal_test(mpp_thread)
 
