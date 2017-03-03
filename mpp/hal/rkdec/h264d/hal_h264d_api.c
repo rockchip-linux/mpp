@@ -113,19 +113,19 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< choose hard mode
     {
         RK_U32 mode = 0;
-        RK_U32 hw_flag = 0;
+        RK_U32 vcodec_type = 0;
         mpp_env_get_u32("use_mpp_mode", &mode, 0);
-        hw_flag = mpp_get_vcodec_hw_flag();
-        mpp_assert(hw_flag & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
-        if ((mode <= RKVDEC_MODE) && (hw_flag & HAVE_RKVDEC)) {
+        vcodec_type = mpp_get_vcodec_type();
+        mpp_assert(vcodec_type & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
+        if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
             hard_mode = RKVDEC_MODE;
-        } else if (hw_flag & HAVE_VPU1) {
+        } else if (vcodec_type & HAVE_VPU1) {
             hard_mode = VDPU1_MODE;
-        } else if (hw_flag & HAVE_VPU2) {
+        } else if (vcodec_type & HAVE_VPU2) {
             hard_mode = VDPU2_MODE;
         }
         H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
-                  mode, hw_flag, hard_mode);
+                  mode, vcodec_type, hard_mode);
     }
     switch (hard_mode) {
     case RKVDEC_MODE:

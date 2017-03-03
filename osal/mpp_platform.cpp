@@ -19,76 +19,333 @@
 #endif
 #include <string.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
+#include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
+#define MAX_SOC_NAME_LENGTH     32
+
+class MppPlatformService;
+
+typedef enum RockchipSocType_e {
+    ROCKCHIP_SOC_RK3066,
+    ROCKCHIP_SOC_RK3188,
+    ROCKCHIP_SOC_RK3288,
+    ROCKCHIP_SOC_RK312X,
+    ROCKCHIP_SOC_RK3368,
+    ROCKCHIP_SOC_RK3399,
+    ROCKCHIP_SOC_RK322X,
+    ROCKCHIP_SOC_RK322XH,
+    ROCKCHIP_SOC_RV1108,
+} RockchipSocType;
+
 typedef struct {
     const char *compatible;
-    RK_U32 flag;
+    RockchipSocType soc_type;
+    RK_U32 vcodec_type;
 } MppVpuType;
 
 static const MppVpuType mpp_vpu_version[] = {
-    { "rk3066",  HAVE_VPU1,  },
-    { "rk312x",  HAVE_VPU1,  },
-    { "rk3288",  HAVE_VPU1,  },
-    { "rk3368",  HAVE_VPU1,  },
-    { "rk3399",  HAVE_VPU2,  },
-    { "rk322x",  HAVE_VPU2,  },
-    { "rk322xh", HAVE_VPU2,  },
-    { "rk1108",  HAVE_VPU2,  },
-    { "rv1108",  HAVE_VPU2,  },
+    { "rk3066",  ROCKCHIP_SOC_RK3066,   HAVE_VPU1,                 },
+    { "rk3188",  ROCKCHIP_SOC_RK3188,   HAVE_VPU1,                 },
+    { "rk3288",  ROCKCHIP_SOC_RK3288,   HAVE_VPU1 | HAVE_HEVC_DEC, },
+    { "rk3126",  ROCKCHIP_SOC_RK312X,   HAVE_VPU1 | HAVE_HEVC_DEC, },
+    { "rk3128",  ROCKCHIP_SOC_RK312X,   HAVE_VPU1 | HAVE_HEVC_DEC, },
+    { "rk3368",  ROCKCHIP_SOC_RK3368,   HAVE_VPU1 | HAVE_HEVC_DEC, },
+    { "rk3399",  ROCKCHIP_SOC_RK3399,   HAVE_VPU2 | HAVE_RKVDEC,   },
+    { "rk3228",  ROCKCHIP_SOC_RK322X,   HAVE_VPU2 | HAVE_RKVDEC,   },
+    { "rk3229",  ROCKCHIP_SOC_RK322X,   HAVE_VPU2 | HAVE_RKVDEC,   },
+    { "rk3228h", ROCKCHIP_SOC_RK322XH,  HAVE_VPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_H265E, },
+    { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
 };
 
-RK_U32 mpp_get_vcodec_hw_flag(void)
+/* For vpu1 / vpu2 */
+static const char *mpp_vpu_dev[] = {
+    "/dev/vpu_service",
+    "/dev/vpu-service",
+};
+
+/* For hevc 4K decoder */
+static const char *mpp_hevc_dev[] = {
+    "/dev/hevc_service",
+    "/dev/hevc-service",
+};
+
+/* For H.264/H.265/VP9 4K decoder */
+static const char *mpp_rkvdec_dev[] = {
+    "/dev/rkvdec",
+};
+
+/* For H.264 4K encoder */
+static const char *mpp_rkvenc_dev[] = {
+    "/dev/rkvenc",
+};
+
+/* For rk322xh avs+ decoder */
+static const char *mpp_avsd_dev[] = {
+    "/dev/avsd",
+};
+
+/* For rk322xh H.264 / jpeg encoder */
+static const char *mpp_vepu_dev[] = {
+    "/dev/vepu",
+};
+
+/* For rk322xh H.265 encoder */
+static const char *mpp_h265e_dev[] = {
+    "/dev/h265e",
+};
+
+#define mpp_find_device(dev) _mpp_find_device(dev, MPP_ARRAY_ELEMS(dev))
+
+static const char *_mpp_find_device(const char **dev, RK_U32 size)
 {
-    static RK_U32 flag = 0;
+    RK_U32 i;
 
-    if (flag)
-        return flag;
+    for (i = 0; i < size; i++) {
+        if (!access(dev[i], F_OK))
+            return dev[i];
+    }
+    return NULL;
+}
 
+class MppPlatformService
+{
+private:
+    // avoid any unwanted function
+    MppPlatformService();
+    ~MppPlatformService();
+    MppPlatformService(const MppPlatformService &);
+    MppPlatformService &operator=(const MppPlatformService &);
+
+    char            *soc_name;
+    RockchipSocType soc_type;
+    RK_U32          vcodec_type;
+    RK_U32          vcodec_capability;
+
+public:
+    static MppPlatformService *get_instance() {
+        static MppPlatformService instance;
+        return &instance;
+    }
+
+    const char      *get_soc_name() { return soc_name; };
+    RockchipSocType get_soc_type() { return soc_type; };
+    RK_U32          get_vcodec_type() { return vcodec_type; };
+    RK_U32          get_vcodec_capability() { return vcodec_capability; };
+};
+
+MppPlatformService::MppPlatformService()
+    : soc_name(NULL),
+      vcodec_type(0),
+      vcodec_capability(0)
+{
 #ifdef RKPLATFORM
-    {
-        /* judge vdpu support version */
-        RK_S32 fd = -1;
-        /* set vpu1 defalut for old chip without dts */
-        flag = HAVE_VPU1;
-        fd = open("/proc/device-tree/compatible", O_RDONLY);
-        if (fd < 0) {
-            mpp_err("open /proc/device-tree/compatible error.\n");
-        } else {
-            RK_U32 i = 0;
-            char temp[256];
-            if (read(fd, temp, sizeof(temp) - 1) > 0) {
+    /* judge vdpu support version */
+    RK_S32 fd = -1;
+
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+
+    /* set vpu1 defalut for old chip without dts */
+    vcodec_type = HAVE_VPU1;
+    fd = open("/proc/device-tree/compatible", O_RDONLY);
+    if (fd < 0) {
+        mpp_err("open /proc/device-tree/compatible error.\n");
+    } else {
+        RK_U32 i = 0;
+        soc_name = mpp_malloc_size(char, MAX_SOC_NAME_LENGTH);
+        if (soc_name) {
+            RK_U32 found_match_soc_name = 0;
+
+            snprintf(soc_name, MAX_SOC_NAME_LENGTH, "unknown");
+            if (read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1) > 0) {
                 for (i = 0; i < MPP_ARRAY_ELEMS(mpp_vpu_version); i++) {
-                    if (strstr(temp, mpp_vpu_version[i].compatible)) {
-                        flag = mpp_vpu_version[i].flag;
+                    if (strstr(soc_name, mpp_vpu_version[i].compatible)) {
+                        vcodec_type = mpp_vpu_version[i].vcodec_type;
+                        soc_type = mpp_vpu_version[i].soc_type;
+                        mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", soc_name);
+                        found_match_soc_name = 1;
                         break;
                     }
                 }
             }
-            close(fd);
+
+            if (!found_match_soc_name)
+                mpp_log("can not found match soc name: %s\n", soc_name);
+        } else {
+            mpp_err("failed to malloc soc name\n");
         }
-        /* for rk3288 / rk3368 /rk312x hevc decoder */
-        if (!access("/dev/hevc_service", F_OK)) {
-            flag |= HAVE_HEVC_DEC;
-        }
-        /* for rk3228 / rk3229 / rk3399 decoder */
-        if (!access("/dev/rkvdec", F_OK)) {
-            flag |= HAVE_RKVDEC;
-        }
-        /* for rk1108 encoder */
-        if (!access("/dev/rkvenc", F_OK)) {
-            flag |= HAVE_RKVENC;
-        }
-        /* for avs decoder */
-        if (!access("/dev/avsd", F_OK)) {
-            flag |= HAVE_AVSDEC;
-        }
+        close(fd);
     }
+
+    /*
+     * NOTE: The following check is for kernel driver device double check
+     * Some kernel does not have all device dts. So we need to remove the
+     * feature if the kernel device does not exist.
+     * The other case is customer changes the compatible name in dts then can
+     * not find a match soc type then we try to add the feature.
+     */
+    /* for all chip vpu decoder */
+    if (!mpp_find_device(mpp_vpu_dev))
+        vcodec_type &= ~(HAVE_VPU1 | HAVE_VPU2);
+    /* for rk3288 / rk3368 /rk312x RK hevc decoder */
+    if (!mpp_find_device(mpp_hevc_dev))
+        vcodec_type &= ~HAVE_HEVC_DEC;
+    else
+        vcodec_type |= HAVE_HEVC_DEC;
+
+    /* for rk3228 / rk3229 / rk3399 / rv1108 decoder */
+    if (!mpp_find_device(mpp_rkvdec_dev))
+        vcodec_type &= ~HAVE_RKVDEC;
+    else
+        vcodec_type |= HAVE_RKVDEC;
+
+    /* for rk322xh avs+ decoder */
+    if (!mpp_find_device(mpp_avsd_dev))
+        vcodec_type &= ~HAVE_AVSDEC;
+    else
+        vcodec_type |= HAVE_AVSDEC;
+
+    /* for rv1108 encoder */
+    if (!mpp_find_device(mpp_rkvenc_dev))
+        vcodec_type &= ~HAVE_RKVENC;
+    else
+        vcodec_type |= HAVE_RKVENC;
+
+    /* for rk322xh h264/jpeg encoder */
+    if (!mpp_find_device(mpp_vepu_dev))
+        vcodec_type &= ~HAVE_VEPU;
+    else
+        vcodec_type |= HAVE_VEPU;
+
+    /* for rk322xh H.265 encoder */
+    if (!mpp_find_device(mpp_h265e_dev))
+        vcodec_type &= ~HAVE_H265E;
+    else
+        vcodec_type |= HAVE_H265E;
+
+    mpp_dbg(MPP_DBG_PLATFORM, "vcodec type %08x\n", vcodec_type);
+#endif
+}
+
+MppPlatformService::~MppPlatformService()
+{
+    MPP_FREE(soc_name);
+}
+
+const char *mpp_get_soc_name(void)
+{
+    static const char *soc_name = NULL;
+
+    if (soc_name)
+        return soc_name;
+
+    soc_name = MppPlatformService::get_instance()->get_soc_name();
+    return soc_name;
+}
+
+RK_U32 mpp_get_vcodec_type(void)
+{
+    static RK_U32 vcodec_type = 0;
+
+    if (vcodec_type)
+        return vcodec_type;
+
+    vcodec_type = MppPlatformService::get_instance()->get_vcodec_type();
+    return vcodec_type;
+}
+
+const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
+{
+    const char *dev = NULL;
+#ifdef RKPLATFORM
+    RockchipSocType soc_type = MppPlatformService::get_instance()->get_soc_type();
+
+    switch (soc_type) {
+    case ROCKCHIP_SOC_RK3066 :
+    case ROCKCHIP_SOC_RK3188 : {
+        /* rk3066/rk3188 have vpu1 only */
+        dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RK3288 :
+    case ROCKCHIP_SOC_RK312X :
+    case ROCKCHIP_SOC_RK3368 : {
+        /*
+         * rk3288/rk312x/rk3368 have codec:
+         * 1 - vpu1
+         * 2 - RK hevc decoder
+         */
+        if (coding == MPP_VIDEO_CodingHEVC && type == MPP_CTX_DEC)
+            dev = mpp_find_device(mpp_hevc_dev);
+        else
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RK3399 :
+    case ROCKCHIP_SOC_RK322X : {
+        /*
+         * rk322x/rk3399 have codec:
+         * 1 - vpu2
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         */
+        if (type == MPP_CTX_DEC &&
+            (coding == MPP_VIDEO_CodingAVC ||
+             coding == MPP_VIDEO_CodingHEVC ||
+             coding == MPP_VIDEO_CodingVP9))
+            dev = mpp_find_device(mpp_rkvdec_dev);
+        else
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RK322XH : {
+        /*
+         * rk322xh has codec:
+         * 1 - vpu2
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - avs+ decoder
+         * 4 - H.265 encoder
+         */
+        if (type == MPP_CTX_ENC) {
+            if (coding == MPP_VIDEO_CodingHEVC)
+                dev = mpp_find_device(mpp_h265e_dev);
+            else
+                dev = mpp_find_device(mpp_vepu_dev);
+        } else if (type == MPP_CTX_DEC) {
+            if (coding == MPP_VIDEO_CodingAVS)
+                dev = mpp_find_device(mpp_avsd_dev);
+            else if (coding == MPP_VIDEO_CodingAVC ||
+                     coding == MPP_VIDEO_CodingHEVC ||
+                     coding == MPP_VIDEO_CodingVP9)
+                dev = mpp_find_device(mpp_rkvdec_dev);
+            else
+                dev = mpp_find_device(mpp_vpu_dev);
+        }
+    } break;
+    case ROCKCHIP_SOC_RV1108 : {
+        /*
+         * rv1108 has codec:
+         * 1 - vpu2
+         * 2 - RK H.264 4K decoder
+         * 3 - RK H.264 4K encoder
+         */
+        if (coding == MPP_VIDEO_CodingAVC) {
+            if (type == MPP_CTX_ENC)
+                dev = mpp_find_device(mpp_rkvenc_dev);
+            else
+                dev = mpp_find_device(mpp_rkvdec_dev);
+        } else if (coding == MPP_VIDEO_CodingMJPEG)
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    default : {
+        dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    }
+#else
+    (void)type;
+    (void)coding;
 #endif
 
-    return flag;
+    return dev;
 }
 
 RK_U32 mpp_get_2d_hw_flag(void)
@@ -96,7 +353,6 @@ RK_U32 mpp_get_2d_hw_flag(void)
     RK_U32 flag = 0;
 
 #ifdef RKPLATFORM
-
     if (!access("/dev/rga", F_OK))
         flag |= HAVE_RGA;
 
@@ -106,5 +362,4 @@ RK_U32 mpp_get_2d_hw_flag(void)
 
     return flag;
 }
-
 
