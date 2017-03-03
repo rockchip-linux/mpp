@@ -14,11 +14,10 @@ set(H265D_PARSER_SRC
     )
 
 add_library(${CODEC_H265D} STATIC
-	${H265D_PARSER_SRC}
+    ${H265D_PARSER_SRC}
     ${H265D_PARSER_HDR}
     )
 
 set_target_properties(${CODEC_H265D} PROPERTIES FOLDER "mpp/codec")
 target_link_libraries(${CODEC_H265D} mpp_base)
-
 add_subdirectory(test)
