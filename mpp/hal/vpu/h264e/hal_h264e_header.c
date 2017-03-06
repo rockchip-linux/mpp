@@ -821,8 +821,8 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
             hw_cfg->height  = prep->height;
             hw_cfg->input_format = prep->format;
 
-            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 16));
-            mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 16));
+            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
+            mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
 
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
