@@ -42,13 +42,6 @@ typedef struct VPUReq {
 } VPUReq_t;
 
 static RK_U32 vpu_debug = 0;
-static RK_S32 vpu_service_status = -1;
-#define VPU_SERVICE_TEST    \
-    do { \
-        if (vpu_service_status < 0) { \
-            vpu_service_status = (access("/dev/vpu_service", F_OK) == 0); \
-        } \
-    } while (0)
 
 static const char *name_rkvdec = "/dev/rkvdec";
 static const char *name_rkvenc = "/dev/rkvenc";
@@ -67,7 +60,6 @@ static const char *determine_vepu_dev()
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
-    VPU_SERVICE_TEST;
     int ret;
     int fd;
     const char *name = NULL;
@@ -127,7 +119,6 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
 
 RK_S32 VPUClientRelease(int socket)
 {
-    VPU_SERVICE_TEST;
     int fd = socket;
     if (fd > 0) {
         close(fd);
@@ -137,7 +128,6 @@ RK_S32 VPUClientRelease(int socket)
 
 RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
 {
-    VPU_SERVICE_TEST;
     int fd = socket;
     RK_S32 ret;
     VPUReq_t req;
@@ -178,7 +168,6 @@ RK_S32 VPUClientSendReg2(RK_S32 socket, RK_S32 offset, RK_S32 size, void *param)
 
 RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE *cmd, RK_S32 *len)
 {
-    VPU_SERVICE_TEST;
     int fd = socket;
     RK_S32 ret;
     VPUReq_t req;
@@ -209,7 +198,6 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
 
 RK_S32 VPUClientGetHwCfg(int socket, RK_U32 *cfg, RK_U32 cfg_size)
 {
-    VPU_SERVICE_TEST;
     int fd = socket;
     RK_S32 ret;
     VPUReq_t req;
