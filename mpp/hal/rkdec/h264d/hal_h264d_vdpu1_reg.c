@@ -1142,7 +1142,6 @@ MPP_RET vdpu1_h264d_init(void *hal, MppHalCfg *cfg)
     FUN_CHECK(ret = vdpu1_set_device_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu1_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu1_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, NULL);
 
     (void)cfg;
 __RETURN:
