@@ -15,6 +15,7 @@ set(HAL_H264D_SRC
         hal_h264d_rkv_reg.c
         hal_h264d_vdpu_reg.c
         hal_h264d_vdpu1_reg.c
+        hal_h264d_common.c
     )
 
 add_library(hal_h264d STATIC
