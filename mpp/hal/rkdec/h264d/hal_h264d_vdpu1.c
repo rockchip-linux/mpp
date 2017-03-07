@@ -30,13 +30,12 @@
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"
-#include "hal_h264d_vdpu1_reg.h"
 #include "hal_h264d_common.h"
+#include "hal_h264d_vdpu1.h"
+#include "hal_h264d_vdpu1_reg.h"
 
-/* Number registers for the decoder */
-#define DEC_VDPU1_REGISTERS         (102)
-
-static MPP_RET vdpu1_set_refer_pic_idx(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U16 val)
+static MPP_RET vdpu1_set_refer_pic_idx(H264dVdpu1Regs_t *p_regs, RK_U32 i,
+                                       RK_U16 val)
 {
     switch (i) {
     case 0:
@@ -94,7 +93,8 @@ static MPP_RET vdpu1_set_refer_pic_idx(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U1
     return MPP_OK;
 }
 
-static MPP_RET vdpu1_set_refer_pic_list_p(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U16 val)
+static MPP_RET vdpu1_set_refer_pic_list_p(H264dVdpu1Regs_t *p_regs, RK_U32 i,
+                                          RK_U16 val)
 {
     switch (i) {
     case 0:
@@ -152,7 +152,8 @@ static MPP_RET vdpu1_set_refer_pic_list_p(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK
     return MPP_OK;
 }
 
-static MPP_RET vdpu1_set_refer_pic_list_b0(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U16 val)
+static MPP_RET vdpu1_set_refer_pic_list_b0(H264dVdpu1Regs_t *p_regs, RK_U32 i,
+                                           RK_U16 val)
 {
     switch (i) {
     case 0:
@@ -210,7 +211,8 @@ static MPP_RET vdpu1_set_refer_pic_list_b0(H264dVdpu1Regs_t *p_regs, RK_U32 i, R
     return MPP_OK;
 }
 
-static MPP_RET vdpu1_set_refer_pic_list_b1(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U16 val)
+static MPP_RET vdpu1_set_refer_pic_list_b1(H264dVdpu1Regs_t *p_regs, RK_U32 i,
+                                           RK_U16 val)
 {
     switch (i) {
     case 0:
@@ -268,7 +270,8 @@ static MPP_RET vdpu1_set_refer_pic_list_b1(H264dVdpu1Regs_t *p_regs, RK_U32 i, R
     return MPP_OK;
 }
 
-static MPP_RET vdpu1_set_refer_pic_base_addr(H264dVdpu1Regs_t *p_regs, RK_U32 i, RK_U32 val)
+static MPP_RET vdpu1_set_refer_pic_base_addr(H264dVdpu1Regs_t *p_regs, RK_U32 i,
+                                             RK_U32 val)
 {
     switch (i) {
     case 0:
@@ -325,17 +328,20 @@ static MPP_RET vdpu1_set_refer_pic_base_addr(H264dVdpu1Regs_t *p_regs, RK_U32 i,
     return MPP_OK;
 }
 
-static MPP_RET vdpu1_set_pic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs)
+static MPP_RET vdpu1_set_pic_regs(H264dHalCtx_t *p_hal,
+                                  H264dVdpu1Regs_t *p_regs)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     p_regs->SwReg04.sw_pic_mb_width = p_hal->pp->wFrameWidthInMbsMinus1 + 1;
-    p_regs->SwReg04.sw_pic_mb_height_p = (2 - p_hal->pp->frame_mbs_only_flag) * (p_hal->pp->wFrameHeightInMbsMinus1 + 1);
+    p_regs->SwReg04.sw_pic_mb_height_p = (2 - p_hal->pp->frame_mbs_only_flag)
+                                         * (p_hal->pp->wFrameHeightInMbsMinus1 + 1);
 
     return ret = MPP_OK;
 }
 
-static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs)
+static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal,
+                                  H264dVdpu1Regs_t *p_regs)
 {
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -351,7 +357,8 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs
     p_regs->SwReg07.sw_framenum = pp->frame_num;
 
     p_regs->SwReg08.sw_const_intra_e = pp->constrained_intra_pred_flag;
-    p_regs->SwReg08.sw_filt_ctrl_pres = pp->deblocking_filter_control_present_flag;
+    p_regs->SwReg08.sw_filt_ctrl_pres =
+        pp->deblocking_filter_control_present_flag;
     p_regs->SwReg08.sw_rdpic_cnt_pres = pp->redundant_pic_cnt_present_flag;
     p_regs->SwReg08.sw_refpic_mk_len = p_hal->slice_long[0].drpm_used_bitlen;
     p_regs->SwReg08.sw_idr_pic_e = p_hal->slice_long[0].idr_flag;
@@ -409,7 +416,8 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs
     //!< set poc to buffer
     {
         RK_U32 *pocBase = NULL;
-        pocBase = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + VDPU_CABAC_TAB_SIZE);
+        pocBase = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf)
+                             + VDPU_CABAC_TAB_SIZE);
 
         //!< set reference reorder poc
         for (i = 0; i < 32; i++) {
@@ -437,7 +445,8 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs
         MppBuffer bitstream_buf = NULL;
         p_regs->SwReg06.sw_start_code_e = 1;
 
-        mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input, SLOT_BUFFER, &bitstream_buf);
+        mpp_buf_slot_get_prop(p_hal->packet_slots, p_hal->in_task->input,
+                              SLOT_BUFFER, &bitstream_buf);
 
         p_regs->SwReg05.sw_strm_start_bit = 0; /* sodb stream start bit */
         p_regs->SwReg12.rlc_vlc_st_adr = mpp_buffer_get_fd(bitstream_buf);
@@ -448,7 +457,8 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs
     return ret = MPP_OK;
 }
 
-static MPP_RET vdpu1_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs)
+static MPP_RET vdpu1_set_ref_regs(H264dHalCtx_t *p_hal,
+                                  H264dVdpu1Regs_t *p_regs)
 {
     RK_U32 i = 0, j = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -495,7 +505,8 @@ static MPP_RET vdpu1_set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs
     return ret = MPP_OK;
 }
 
-static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_regs)
+static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal,
+                                   H264dVdpu1Regs_t *p_regs)
 {
     RK_U32 i = 0, j = 0;
     RK_U32 outPhyAddr = 0;
@@ -510,10 +521,14 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
         RK_U32 top_closer = 0;
         RK_U32 field_flag = 0;
         if (pp->RefFrameList[i].bPicEntry != 0xff) {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->RefFrameList[i].Index7Bits, SLOT_BUFFER, &frame_buf); //!< reference phy addr
+            mpp_buf_slot_get_prop(p_hal->frame_slots,
+                                  pp->RefFrameList[i].Index7Bits,
+                                  SLOT_BUFFER, &frame_buf); //!< reference phy addr
             j = i;
         } else {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+            mpp_buf_slot_get_prop(p_hal->frame_slots,
+                                  pp->CurrPic.Index7Bits,
+                                  SLOT_BUFFER, &frame_buf); //!< current out phy addr
         }
 
         field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 0x2 : 0;
@@ -522,10 +537,12 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
             RK_S32 cur_poc = 0;
             RK_S32 ref_poc = 0;
 
-            cur_poc = pp->CurrPic.AssociatedFlag ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
+            cur_poc = pp->CurrPic.AssociatedFlag
+                      ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
             used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
             if (used_flag & 0x3) {
-                ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0], pp->FieldOrderCntList[i][1]);
+                ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0],
+                                  pp->FieldOrderCntList[i][1]);
             } else if (used_flag & 0x2) {
                 ref_poc = pp->FieldOrderCntList[i][1];
             } else if (used_flag & 0x1) {
@@ -543,16 +560,21 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
     {
         H264dVdpuPriv_t *priv = (H264dVdpuPriv_t *)p_hal->priv;
         if (pp->curr_layer_id && priv->ilt_dpb && priv->ilt_dpb->valid /*pp->inter_view_flag*/) {
-            mpp_buf_slot_get_prop(p_hal->frame_slots, priv->ilt_dpb->slot_index, SLOT_BUFFER, &frame_buf);
+            mpp_buf_slot_get_prop(p_hal->frame_slots,
+                                  priv->ilt_dpb->slot_index,
+                                  SLOT_BUFFER, &frame_buf);
             p_regs->SwReg29.sw_refer15_base = mpp_buffer_get_fd(frame_buf); //!< inter-view base, ref15
-            p_regs->SwReg39.refpic_valid_flag |= (pp->field_pic_flag ? 0x3 : 0x10000);
+            p_regs->SwReg39.refpic_valid_flag |=
+                (pp->field_pic_flag ? 0x3 : 0x10000);
         }
     }
 
     p_regs->SwReg03.sw_pic_fixed_quant = pp->curr_layer_id; //!< VDPU_MVC_E
     p_regs->SwReg03.sw_filtering_dis = 0;
 
-    mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &frame_buf); //!< current out phy addr
+    mpp_buf_slot_get_prop(p_hal->frame_slots,
+                          pp->CurrPic.Index7Bits,
+                          SLOT_BUFFER, &frame_buf); //!< current out phy addr
     outPhyAddr = mpp_buffer_get_fd(frame_buf);
     if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
         outPhyAddr |= ((pp->wFrameWidthInMbsMinus1 + 1) * 16) << 10;
@@ -568,9 +590,12 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
         RK_U32 picSizeInMbs = 0;
 
         picSizeInMbs = p_hal->pp->wFrameWidthInMbsMinus1 + 1;
-        picSizeInMbs = picSizeInMbs * (2 - pp->frame_mbs_only_flag) * (pp->wFrameHeightInMbsMinus1 + 1);
-        dirMvOffset = picSizeInMbs * ((p_hal->pp->chroma_format_idc == 0) ? 256 : 384);
-        dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) ? (picSizeInMbs * 32) : 0;
+        picSizeInMbs = picSizeInMbs * (2 - pp->frame_mbs_only_flag)
+                       * (pp->wFrameHeightInMbsMinus1 + 1);
+        dirMvOffset = picSizeInMbs
+                      * ((p_hal->pp->chroma_format_idc == 0) ? 256 : 384);
+        dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag)
+                       ? (picSizeInMbs * 32) : 0;
         p_regs->SwReg41.dmmv_st_adr = (mpp_buffer_get_fd(frame_buf) | (dirMvOffset << 6));
     }
 
@@ -581,12 +606,15 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
     p_regs->SwReg09.sw_refidx1_active = (pp->num_ref_idx_l1_active_minus1 + 1);
     p_regs->SwReg05.sw_fieldpic_flag_e = (!pp->frame_mbs_only_flag) ? 1 : 0;
 
-    p_regs->SwReg03.sw_pic_interlace_e = (!pp->frame_mbs_only_flag && (pp->MbaffFrameFlag || pp->field_pic_flag)) ? 1 : 0;
+    p_regs->SwReg03.sw_pic_interlace_e =
+        (!pp->frame_mbs_only_flag
+         && (pp->MbaffFrameFlag || pp->field_pic_flag)) ? 1 : 0;
     p_regs->SwReg03.sw_pic_fieldmode_e = pp->field_pic_flag;
     p_regs->SwReg03.sw_pic_topfield_e = (!pp->CurrPic.AssociatedFlag) ? 1 : 0; /* bottomFieldFlag */
     p_regs->SwReg03.sw_seq_mbaff_e = pp->MbaffFrameFlag;
     p_regs->SwReg08.sw_8x8trans_flag_e = pp->transform_8x8_mode_flag;
-    p_regs->SwReg07.sw_blackwhite_e = (p_long->profileIdc >= 100 && pp->chroma_format_idc == 0) ? 1 : 0;
+    p_regs->SwReg07.sw_blackwhite_e = (p_long->profileIdc >= 100
+                                       && pp->chroma_format_idc == 0) ? 1 : 0;
     p_regs->SwReg05.sw_type1_quant_e = pp->scaleing_list_enable_flag;
 
     {
@@ -594,7 +622,8 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
         if (p_hal->pp->scaleing_list_enable_flag) {
             RK_U32 temp = 0;
             RK_U32 *ptr = NULL;
-            ptr = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf) + offset);
+            ptr = (RK_U32 *)((RK_U8 *)mpp_buffer_get_ptr(p_hal->cabac_buf)
+                             + offset);
 
             for (i = 0; i < 6; i++) {
                 for (j = 0; j < 4; j++) {
@@ -626,7 +655,8 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg
     return ret = MPP_OK;
 }
 
-static MPP_RET vdpu1_set_device_regs(H264dHalCtx_t *p_hal, H264dVdpu1Regs_t *p_reg)
+static MPP_RET vdpu1_set_device_regs(H264dHalCtx_t *p_hal,
+                                     H264dVdpu1Regs_t *p_reg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -688,16 +718,23 @@ MPP_RET vdpu1_h264d_init(void *hal, MppHalCfg *cfg)
     INP_CHECK(ret, NULL == hal);
 
     //!< malloc init registers
-    MEM_CHECK(ret, p_hal->regs = mpp_calloc_size(void, sizeof(H264dVdpu1Regs_t)));
-    MEM_CHECK(ret, p_hal->priv = mpp_calloc_size(void, sizeof(H264dVdpuPriv_t)));
+    MEM_CHECK(ret, p_hal->regs =
+                  mpp_calloc_size(void, sizeof(H264dVdpu1Regs_t)));
+    MEM_CHECK(ret, p_hal->priv =
+                  mpp_calloc_size(void, sizeof(H264dVdpuPriv_t)));
 
     //!< malloc cabac+scanlis + packets + poc_buf
-    cabac_size = VDPU_CABAC_TAB_SIZE + VDPU_SCALING_LIST_SIZE + VDPU_POC_BUF_SIZE;
-    FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf, cabac_size));
+    cabac_size = VDPU_CABAC_TAB_SIZE + VDPU_SCALING_LIST_SIZE
+                 + VDPU_POC_BUF_SIZE;
+    FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->cabac_buf,
+                                   cabac_size));
 
     //!< copy cabac table bytes
-    FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0, (void *)vdpu_cabac_table, sizeof(vdpu_cabac_table)));
-    FUN_CHECK(ret = vdpu1_set_device_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
+    FUN_CHECK(ret = mpp_buffer_write(p_hal->cabac_buf, 0,
+                                     (void *)vdpu_cabac_table,
+                                     sizeof(vdpu_cabac_table)));
+    FUN_CHECK(ret = vdpu1_set_device_regs(p_hal,
+                                          (H264dVdpu1Regs_t *)p_hal->regs));
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu_ver_align);
 
@@ -761,7 +798,8 @@ MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task)
     FUN_CHECK(ret = vdpu1_set_pic_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu1_set_vlc_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu1_set_ref_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
-    FUN_CHECK(ret = vdpu1_set_asic_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
+    FUN_CHECK(ret = vdpu1_set_asic_regs(p_hal,
+                                        (H264dVdpu1Regs_t *)p_hal->regs));
     p_hal->in_task->valid = 0;
 
 __RETURN:
@@ -795,9 +833,11 @@ MPP_RET vdpu1_h264d_start(void *hal, HalTaskInfo *task)
     p_regs->SwReg57.sw_paral_bus = 1;
 
 #ifdef RKPLATFORM
-    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_VDPU1_REGISTERS)) {
+    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs,
+                         DEC_VDPU1_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
-        mpp_err_f("H264 VDPU1 FlushRegs fail, pid=%d, hal_frame_no=%d. \n", getpid());
+        mpp_err_f("H264 VDPU1 FlushRegs fail, pid=%d, hal_frame_no=%d. \n",
+                  getpid());
     }
 #endif
 
@@ -827,7 +867,9 @@ MPP_RET vdpu1_h264d_wait(void *hal, HalTaskInfo *task)
         RK_S32 wait_ret = -1;
         RK_S32 ret_len = 0;
         VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-        wait_ret = VPUClientWaitResult(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_VDPU1_REGISTERS, &ret_cmd, &ret_len);
+        wait_ret = VPUClientWaitResult(p_hal->vpu_socket,
+                                       (RK_U32 *)p_hal->regs,
+                                       DEC_VDPU1_REGISTERS, &ret_cmd, &ret_len);
         if (wait_ret) {
             ret = MPP_ERR_VPUHW;
             mpp_err("H264 VDPU1 wait result fail, pid=%d.\n", getpid());
