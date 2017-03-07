@@ -41,8 +41,8 @@
 #include "hal_h264d_api.h"
 
 #include "hal_h264d_rkv_reg.h"
-#include "hal_h264d_vdpu_reg.h"
-#include "hal_h264d_vdpu1_reg.h"
+#include "hal_h264d_vdpu2.h"
+#include "hal_h264d_vdpu1.h"
 
 RK_U32 rkv_h264d_hal_debug = 0;
 
@@ -153,14 +153,14 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         vpu_client     = VPU_DEC;
         break;
     case VDPU2_MODE:
-        p_api->init    = vdpu_h264d_init;
-        p_api->deinit  = vdpu_h264d_deinit;
-        p_api->reg_gen = vdpu_h264d_gen_regs;
-        p_api->start   = vdpu_h264d_start;
-        p_api->wait    = vdpu_h264d_wait;
-        p_api->reset   = vdpu_h264d_reset;
-        p_api->flush   = vdpu_h264d_flush;
-        p_api->control = vdpu_h264d_control;
+        p_api->init    = vdpu2_h264d_init;
+        p_api->deinit  = vdpu2_h264d_deinit;
+        p_api->reg_gen = vdpu2_h264d_gen_regs;
+        p_api->start   = vdpu2_h264d_start;
+        p_api->wait    = vdpu2_h264d_wait;
+        p_api->reset   = vdpu2_h264d_reset;
+        p_api->flush   = vdpu2_h264d_flush;
+        p_api->control = vdpu2_h264d_control;
         cfg->device_id = HAL_VDPU;
         vpu_client     = VPU_DEC;
         break;
@@ -187,9 +187,11 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     if (p_hal->buf_group == NULL) {
 #ifdef RKPLATFORM
         mpp_log_f("mpp_buffer_group_get_internal used ion In");
-        FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
+        FUN_CHECK(ret = mpp_buffer_group_get_internal
+                        (&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
 #else
-        FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
+        FUN_CHECK(ret = mpp_buffer_group_get_internal
+                        (&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
 #endif
     }
 
@@ -317,18 +319,18 @@ MPP_RET hal_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 
 
 const MppHalApi hal_api_h264d = {
-    "h264d_rkdec",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingAVC,
-    sizeof(H264dHalCtx_t),
-    0,
-    hal_h264d_init,
-    hal_h264d_deinit,
-    hal_h264d_gen_regs,
-    hal_h264d_start,
-    hal_h264d_wait,
-    hal_h264d_reset,
-    hal_h264d_flush,
-    hal_h264d_control,
+    .name = "h264d_rkdec",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(H264dHalCtx_t),
+    .flag = 0,
+    .init = hal_h264d_init,
+    .deinit = hal_h264d_deinit,
+    .reg_gen = hal_h264d_gen_regs,
+    .start = hal_h264d_start,
+    .wait = hal_h264d_wait,
+    .reset = hal_h264d_reset,
+    .flush = hal_h264d_flush,
+    .control = hal_h264d_control,
 };
 

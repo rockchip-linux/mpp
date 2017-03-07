@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264D_VDPU1_REG_H__
-#define __HAL_H264D_VDPU1_REG_H__
+#ifndef __HAL_H264D_VDPU1_REG_TBL_H__
+#define __HAL_H264D_VDPU1_REG_TBL_H__
 
-#include "mpp_hal.h"
+#include "rk_type.h"
 
+/* Number registers for the decoder */
+#define DEC_VDPU1_REGISTERS         (101)
 
 typedef struct {
     RK_U32 SwReg00;
@@ -422,25 +424,7 @@ typedef struct {
         RK_U32 reserve0 : 24;
     } SwReg57;
 
-    RK_U32 SwReg58_101[44];
+    RK_U32 SwReg58_100[43];
 } H264dVdpu1Regs_t;
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-MPP_RET vdpu1_h264d_init    (void *hal, MppHalCfg *cfg);
-MPP_RET vdpu1_h264d_deinit  (void *hal);
-MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_h264d_start   (void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_h264d_wait    (void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_h264d_reset   (void *hal);
-MPP_RET vdpu1_h264d_flush   (void *hal);
-MPP_RET vdpu1_h264d_control (void *hal, RK_S32 cmd_type, void *param);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /*__HAL_H264D_VDPU1_REG_H__*/
+#endif /*__HAL_H264D_VDPU1_REG_TBL_H__*/
