@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +14,9 @@
  * limitations under the License.
  */
 
-
-#ifndef __HAL_JPEGD_REG_H__
-#define __HAL_JPEGD_REG_H__
+#ifndef __HAL_JPEGD_VDPU2_REG_H__
+#define __HAL_JPEGD_VDPU2_REG_H__
 #include "rk_type.h"
-#include "mpp_log.h"
-#include "mpp_buf_slot.h"
-
-#include "jpegd_syntax.h"
 
 #define JPEGD_REG_NUM    159
 #define JPEG_RK70_MODE_JPEG       (3)
@@ -41,34 +35,11 @@
 #define DEC_RK70_ASIC_SERVICE_PRIORITY_RD_1         3
 #define DEC_RK70_ASIC_SERVICE_PRIORITY_RD_2         4
 
-#define DEC_RK70_OUTPUT_FORMAT_RASTER_SCAN          0
-#define DEC_RK70_OUTPUT_FORMAT_TILED                1
-
 #define DEC_RK70_SCMD_DISABLE           (0)
 #define DEC_RK70_LATENCY_COMPENSATION     0
 #define DEC_RK70_DATA_DISCARD_ENABLE      0
 
 #define JPEGDEC_SLICE_START_VALUE 0
-
-//modify following values in special product
-#define BRIGHTNESS 4    // -128 ~ 127
-#define CONTRAST 0      // -64 ~ 64
-#define SATURATION 0    // -64 ~ 128
-#define PP_IN_FORMAT_YUV422INTERLAVE            0
-#define PP_IN_FORMAT_YUV420SEMI                     1
-#define PP_IN_FORMAT_YUV420PLANAR                  2
-#define PP_IN_FORMAT_YUV400                             3
-#define PP_IN_FORMAT_YUV422SEMI                     4
-#define PP_IN_FORMAT_YUV420SEMITIELED           5
-#define PP_IN_FORMAT_YUV440SEMI                     6
-#define PP_IN_FORMAT_YUV444_SEMI                                 7
-#define PP_IN_FORMAT_YUV411_SEMI                                 8
-
-#define PP_OUT_FORMAT_RGB565                    0
-#define PP_OUT_FORMAT_ARGB                       1
-#define PP_OUT_FORMAT_YUV422INTERLAVE    3
-#define PP_OUT_FORMAT_YUV420INTERLAVE    5
-
 
 typedef struct JpegRegSet {
     struct {
@@ -706,23 +677,4 @@ typedef struct JpegRegSet {
     } reg158;
 } JpegRegSet;
 
-typedef struct JpegHalContext {
-    MppBufSlots packet_slots;
-    MppBufSlots frame_slots;
-    RK_S32      vpu_socket;
-    JpegRegSet  regs;
-    MppBufferGroup group;
-    MppBuffer frame_buf;
-    MppBuffer pTableBase;
-
-    MppFrameFormat output_fmt;
-    RK_U32 set_output_fmt_flag;
-    RK_U32 hal_debug_enable;
-    RK_U32 frame_count;
-    RK_U32 output_yuv_count;
-
-    FILE *fp_reg_in;
-    FILE *fp_reg_out;
-} JpegHalContext;
-
-#endif /* __HAL_JPEGD_REG_H__ */
+#endif /* __HAL_JPEGD_VDPU2_REG_H__ */
