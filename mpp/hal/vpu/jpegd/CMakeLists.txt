@@ -2,11 +2,12 @@
 # hal jpeg reg
 
 set(HAL_JPEGD_HDR
-    hal_jpegd_reg.h
+    hal_jpegd_common.h
     )
 
 set(HAL_JPEGD_SRC
-    hal_jpegd_reg.c
+    hal_jpegd_api.c
+    hal_jpegd_vdpu2.c
     )
 
 add_library(hal_jpegd STATIC
