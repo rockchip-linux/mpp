@@ -139,7 +139,7 @@ int create_vpu_memory_pool_allocator(vpu_display_mem_pool **ipool, int num, int 
         return -1;
     }
     mpp_buffer_group_get_internal(&p_mempool->group, MPP_BUFFER_TYPE_ION);
-    mpp_buffer_group_limit_config(p_mempool->group, size, num + 4);
+    mpp_buffer_group_limit_config(p_mempool->group, 0, num + 4);
     p_mempool->commit_hdl     = commit_memory_handle;
     p_mempool->get_free       = get_free_memory_vpumem;
     p_mempool->put_used       = put_used_memory_handle;
