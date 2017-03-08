@@ -23,6 +23,7 @@
 #include "mpp_platform.h"
 #include "hal_jpegd_base.h"
 #include "hal_jpegd_vdpu2.h"
+#include "hal_jpegd_vdpu1.h"
 
 static MPP_RET hal_jpegd_reg_gen (void *hal, HalTaskInfo *task)
 {
@@ -82,6 +83,8 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
     hw_flag = mpp_get_vcodec_type();
     if (hw_flag & HAVE_VPU2)
         hard_mode = VDPU2_MODE;
+    if (hw_flag & HAVE_VPU1)
+        hard_mode = VDPU1_MODE;
 
     switch (hard_mode) {
     case VDPU2_MODE:
@@ -93,6 +96,16 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
         p_api->reset = hal_jpegd_vdpu2_reset;
         p_api->flush = hal_jpegd_vdpu2_flush;
         p_api->control = hal_jpegd_vdpu2_control;
+        break;
+    case VDPU1_MODE:
+        p_api->init = hal_jpegd_vdpu1_init;
+        p_api->deinit = hal_jpegd_vdpu1_deinit;
+        p_api->reg_gen = hal_jpegd_vdpu1_gen_regs;
+        p_api->start = hal_jpegd_vdpu1_start;
+        p_api->wait = hal_jpegd_vdpu1_wait;
+        p_api->reset = hal_jpegd_vdpu1_reset;
+        p_api->flush = hal_jpegd_vdpu1_flush;
+        p_api->control = hal_jpegd_vdpu1_control;
         break;
     default:
         return MPP_ERR_INIT;
