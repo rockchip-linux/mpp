@@ -185,6 +185,7 @@ typedef struct JpegParserContext {
     RK_U32 eos;
     RK_U32 parser_debug_enable;
     RK_U32 input_jpeg_count;
+    RK_S32 copy_flag; /* 0 - no need to copy stream; 1 - need to copy */
 } JpegParserContext;
 
 #endif /* __JPEGD_PARSER_H__ */

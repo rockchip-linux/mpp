@@ -24,7 +24,7 @@
 
 #include "jpegd_api.h"
 #include "jpegd_parser.h"
-
+#include "mpp_platform.h"
 
 #define STRM_ERROR 0xFFFFFFFFU
 RK_U32 jpegd_log = 0;
@@ -507,8 +507,8 @@ JpegDecRet jpegd_decode_frame_header(JpegParserContext *ctx)
         return (retCode);
     }
 
-    return (JPEGDEC_OK);
     FUN_TEST("Exit");
+    return (JPEGDEC_OK);
 }
 
 JpegDecRet jpegd_decode_scan_header(JpegParserContext *ctx)
@@ -1104,13 +1104,51 @@ MPP_RET jpegd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32
                 continue;
             }
             if (end[-1] == 0x00 && end [-2] == 0xFF) {
+                JPEGD_INFO_LOG("remove tailing FF 00 before FF D9 end flag.");
                 end -= 2;
                 continue;
             }
             break;
         } while (1);
 
-        JPEGD_INFO_LOG("remove tailing FF 00 before FF D9 end flag.");
+
+        end[0] = 0xff;
+        end[1] = 0xD9;
+    }
+
+    FUN_TEST("Exit");
+    return ret;
+}
+
+MPP_RET jpegd_parser_handle_stream(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
+{
+    FUN_TEST("Enter");
+    MPP_RET ret = MPP_OK;
+    if (NULL == src || NULL == dst || src_size <= 0) {
+        JPEGD_ERROR_LOG("NULL pointer or wrong src_size(%d)", src_size);
+        return MPP_ERR_NULL_PTR;
+    }
+    RK_U8 *end;
+    *dst_size = 0;  /* no need to copy */
+    end = src + src_size;
+
+    /* NOTE: hardware bug, need to remove tailing FF 00 before FF D9 end flag */
+    if (end[-1] == 0xD9 && end[-2] == 0xFF) {
+        end -= 2;
+
+        do {
+            if (end[-1] == 0xFF) {
+                end--;
+                continue;
+            }
+            if (end[-1] == 0x00 && end [-2] == 0xFF) {
+                JPEGD_INFO_LOG("remove tailing FF 00 before FF D9 end flag.");
+                end -= 2;
+                continue;
+            }
+            break;
+        } while (1);
+
         end[0] = 0xff;
         end[1] = 0xD9;
     }
@@ -1124,6 +1162,11 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
     JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
+    if (!JpegParserCtx->copy_flag) {
+        /* no need to copy stream, handle packet from upper application directly*/
+        JpegParserCtx->input_packet = pkt;
+    }
+
     MppPacket input_packet = JpegParserCtx->input_packet;
     RK_U32 copy_length = 0;
     void *base = mpp_packet_get_pos(pkt);
@@ -1158,7 +1201,10 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         JpegParserCtx->bufferSize = pkt_length + 1024;
     }
 
-    jpegd_parser_split_frame(base, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
+    if (JpegParserCtx->copy_flag)
+        jpegd_parser_split_frame(base, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
+    else
+        jpegd_parser_handle_stream(base, pkt_length, JpegParserCtx->recv_buffer, &copy_length);
 
     pos += pkt_length;
     mpp_packet_set_pos(pkt, pos);
@@ -1181,9 +1227,11 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         }
     }
 
-    mpp_packet_set_data(input_packet, JpegParserCtx->recv_buffer);
-    mpp_packet_set_size(input_packet, pkt_length);
-    mpp_packet_set_length(input_packet, pkt_length);
+    if (JpegParserCtx->copy_flag) {
+        mpp_packet_set_data(input_packet, JpegParserCtx->recv_buffer);
+        mpp_packet_set_size(input_packet, pkt_length);
+        mpp_packet_set_length(input_packet, pkt_length);
+    }
 
     JpegParserCtx->streamLength = pkt_length;
     task->input_packet = input_packet;
@@ -2534,7 +2582,6 @@ void jpegd_free_huffman_tables(void *ctx)
     FUN_TEST("Exit");
 }
 
-
 MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
 {
     FUN_TEST("Enter");
@@ -2544,20 +2591,21 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
 
     jpegd_free_huffman_tables(JpegParserCtx);
     memset(JpegParserCtx->pSyntax, 0, sizeof(JpegSyntaxParam));
-    jpegd_get_image_info(JpegParserCtx);
-    ret = jpegd_decode_frame(JpegParserCtx);
 
+    ret = jpegd_get_image_info(JpegParserCtx);
     if (MPP_OK == ret) {
-        jpegd_allocate_frame(JpegParserCtx);
-        task->syntax.data = (void *)JpegParserCtx->pSyntax;
-        task->syntax.number = sizeof(JpegSyntaxParam);
-        task->output = JpegParserCtx->frame_slot_index;
-        task->valid = 1;
-        jpegd_update_frame(JpegParserCtx);
+        ret = jpegd_decode_frame(JpegParserCtx);
+        if (MPP_OK == ret) {
+            jpegd_allocate_frame(JpegParserCtx);
+
+            task->syntax.data = (void *)JpegParserCtx->pSyntax;
+            task->syntax.number = sizeof(JpegSyntaxParam);
+            task->output = JpegParserCtx->frame_slot_index;
+            task->valid = 1;
+
+            jpegd_update_frame(JpegParserCtx);
+        }
     }
-
-    //mpp_show_mem_status();
-
     FUN_TEST("Exit");
     return ret;
 }
@@ -2583,8 +2631,12 @@ MPP_RET jpegd_deinit(void *ctx)
         mpp_free(JpegParserCtx->output_frame);
     }
 
-    if (JpegParserCtx->input_packet) {
-        mpp_packet_deinit(&JpegParserCtx->input_packet);
+    if (JpegParserCtx->copy_flag) {
+        if (JpegParserCtx->input_packet) {
+            mpp_packet_deinit(&JpegParserCtx->input_packet);
+        }
+    } else {
+        JpegParserCtx->input_packet = NULL;
     }
 
     JpegParserCtx->output_fmt = MPP_FMT_YUV420SP;
@@ -2635,6 +2687,15 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     }
     mpp_env_get_u32("jpegd_log", &jpegd_log, JPEGD_ERR_LOG);
 
+    const char* soc_name = NULL;
+    soc_name = mpp_get_soc_name();
+    if (soc_name && strstr(soc_name, "1108")) {
+        /* rv1108: no need to copy stream when decoding jpeg */
+        JpegParserCtx->copy_flag = 0;
+    } else {
+        JpegParserCtx->copy_flag = 1;
+    }
+
     reset_jpeg_parser_context(JpegParserCtx);
     JpegParserCtx->frame_slots = parser_cfg->frame_slots;
     JpegParserCtx->packet_slots = parser_cfg->packet_slots;
@@ -2647,7 +2708,11 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
         return MPP_ERR_NOMEM;
     }
     JpegParserCtx->bufferSize = JPEGD_STREAM_BUFF_SIZE;
-    mpp_packet_init(&JpegParserCtx->input_packet, JpegParserCtx->recv_buffer, JPEGD_STREAM_BUFF_SIZE);
+    if (JpegParserCtx->copy_flag) {
+        mpp_packet_init(&JpegParserCtx->input_packet, JpegParserCtx->recv_buffer, JPEGD_STREAM_BUFF_SIZE);
+    } else {
+        JpegParserCtx->input_packet = NULL;
+    }
 
     mpp_frame_init(&JpegParserCtx->output_frame);
     if (!JpegParserCtx->output_frame) {
