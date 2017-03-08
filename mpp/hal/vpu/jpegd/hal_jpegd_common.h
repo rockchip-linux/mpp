@@ -50,4 +50,8 @@ static const RK_U8 zzOrder[64] = {
     58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
 };
 
+MPP_RET jpegd_allocate_chroma_out_buffer(JpegSyntaxParam *pSyntax);
+void jpegd_write_tables(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx);
+MPP_RET
+jpegd_set_output_format(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax);
 #endif /* __HAL_JPEGD_COMMON_H__ */
