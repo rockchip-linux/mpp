@@ -27,6 +27,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
+#include "mpp_common.h"
 
 #include "utils.h"
 
@@ -403,6 +404,9 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
     } else {
+        RK_U32 hor_stride = MPP_ALIGN(width, 16);
+        RK_U32 ver_stride = MPP_ALIGN(height, 16);
+
         ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("failed to get buffer group for input frame ret %d\n", ret);
@@ -421,7 +425,14 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
 
-        ret = mpp_buffer_get(data.frm_grp, &frm_buf, width * height * 2);
+        /*
+         * NOTE: For jpeg could have YUV420 and YUV422 the buffer should be
+         * larger for output. And the buffer dimension should align to 16.
+         * YUV420 buffer is 3/2 times of w*h.
+         * YUV422 buffer is 2 times of w*h.
+         * So create larger buffer with 2 times w*h.
+         */
+        ret = mpp_buffer_get(data.frm_grp, &frm_buf, hor_stride * ver_stride * 2);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
@@ -441,7 +452,6 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         buf = mpp_buffer_get_ptr(pkt_buf);
 
         mpp_frame_set_buffer(frame, frm_buf);
-        mpp_log("mpi_dec_test decoder test start w %d h %d type %d\n", width, height, type);
     }
 
     mpp_log("mpi_dec_test decoder test start w %d h %d type %d\n", width, height, type);
