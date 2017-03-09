@@ -19,15 +19,13 @@
 #include <limits.h>
 
 #include "rk_mpi.h"
-#include "mpp_env.h"
 #include "mpp_mem.h"
-#include "mpp_frame.h"
 #include "mpp_common.h"
-#include "mpp_rc.h"
 
 #include "hal_h264e_com.h"
 #include "hal_h264e_vepu.h"
 #include "hal_h264e_vpu_tbl.h"
+#include "hal_h264e_header.h"
 
 static void hal_h264e_vpu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
 {
