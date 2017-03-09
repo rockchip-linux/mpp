@@ -27,6 +27,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
+#include "mpp_common.h"
 
 #include "utils.h"
 
@@ -354,8 +355,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     RK_U32 need_split   = 1;
 
     // paramter for resource malloc
-    RK_U32 width        = cmd->width;
-    RK_U32 height       = cmd->height;
+    RK_U32 width        = MPP_ALIGN(cmd->width, 16);
+    RK_U32 height       = MPP_ALIGN(cmd->height, 16);
     MppCodingType type  = cmd->type;
 
     // resources
