@@ -620,7 +620,7 @@ static RK_S32 compare_vps(HEVCVPS *openhevc_vps, HEVCVPS *vps)
         return -1;
     }
     if (openhevc_vps->vps_num_ticks_poc_diff_one !=
-        openhevc_vps->vps_num_ticks_poc_diff_one) {
+        vps->vps_num_ticks_poc_diff_one) {
         mpp_log("vps_poc_proportional_to_timing_flag \n");
         return -1;
     }
@@ -1278,7 +1278,7 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-/*static */void set_default_scaling_list_data(ScalingList *sl)///<- zrh remove "static"
+static void set_default_scaling_list_data(ScalingList *sl)
 {
     int matrixId;
 
