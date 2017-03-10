@@ -42,7 +42,8 @@ static RK_U32 mpp_log_flag = 0;
 static const char *msg_log_warning = "log message is long\n";
 static const char *msg_log_nothing = "\n";
 
-void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt, const char *fname, va_list args)
+static void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt,
+                      const char *fname, va_list args)
 {
     char msg[MPP_LOG_MAX_LEN + 1];
     char *tmp = msg;
