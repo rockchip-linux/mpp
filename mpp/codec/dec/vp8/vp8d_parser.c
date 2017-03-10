@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #define MODULE_TAG "vp8d_parser"
+
 #include <string.h>
 
 #include "vp8d_parser.h"
@@ -23,16 +23,15 @@
 #include "mpp_frame.h"
 #include "mpp_env.h"
 
-RK_U32 vp8d_debug = 0x0;
-
 #define FUN_T(tag) \
     do {\
         if (VP8D_DBG_FUNCTION & vp8d_debug)\
             { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
     } while (0)
 
+static RK_U32 vp8d_debug = 0x0;
 
-void vp8hwdBoolStart(vpBoolCoder_t *bit_ctx, RK_U8 *buffer, RK_U32 len)
+static void vp8hwdBoolStart(vpBoolCoder_t *bit_ctx, RK_U8 *buffer, RK_U32 len)
 {
     FUN_T("FUN_IN");
     bit_ctx->lowvalue = 0;
@@ -41,7 +40,8 @@ void vp8hwdBoolStart(vpBoolCoder_t *bit_ctx, RK_U8 *buffer, RK_U32 len)
     bit_ctx->buffer = buffer;
     bit_ctx->pos = 0;
 
-    bit_ctx->value = (bit_ctx->buffer[0] << 24) + (bit_ctx->buffer[1] << 16) + (bit_ctx->buffer[2] << 8) + (bit_ctx->buffer[3]);
+    bit_ctx->value = (bit_ctx->buffer[0] << 24) + (bit_ctx->buffer[1] << 16)
+                     + (bit_ctx->buffer[2] << 8) + (bit_ctx->buffer[3]);
 
     bit_ctx->pos += 4;
 
@@ -51,7 +51,7 @@ void vp8hwdBoolStart(vpBoolCoder_t *bit_ctx, RK_U8 *buffer, RK_U32 len)
     FUN_T("FUN_OUT");
 }
 
-RK_U32 vp8hwdDecodeBool(vpBoolCoder_t *bit_ctx, RK_S32 probability)
+static RK_U32 vp8hwdDecodeBool(vpBoolCoder_t *bit_ctx, RK_S32 probability)
 {
     RK_U32  bit = 0;
     RK_U32  split;
@@ -103,7 +103,7 @@ RK_U32 vp8hwdDecodeBool(vpBoolCoder_t *bit_ctx, RK_S32 probability)
     return bit;
 }
 
-RK_U32 vp8hwdDecodeBool128(vpBoolCoder_t *bit_ctx)
+static RK_U32 vp8hwdDecodeBool128(vpBoolCoder_t *bit_ctx)
 {
     RK_U32 bit = 0;
     RK_U32 split;
@@ -154,7 +154,7 @@ RK_U32 vp8hwdDecodeBool128(vpBoolCoder_t *bit_ctx)
     return bit;
 }
 
-RK_U32 vp8hwdReadBits(vpBoolCoder_t *bit_ctx, RK_S32 bits)
+static RK_U32 vp8hwdReadBits(vpBoolCoder_t *bit_ctx, RK_S32 bits)
 {
     RK_U32 z = 0;
     RK_S32 bit;
@@ -168,7 +168,7 @@ RK_U32 vp8hwdReadBits(vpBoolCoder_t *bit_ctx, RK_S32 bits)
     return z;
 }
 
-RK_U32 ScaleDimension( RK_U32 orig, RK_U32 scale )
+static RK_U32 ScaleDimension( RK_U32 orig, RK_U32 scale )
 {
 
     FUN_T("FUN_IN");
@@ -191,7 +191,7 @@ RK_U32 ScaleDimension( RK_U32 orig, RK_U32 scale )
     return orig;
 }
 
-RK_S32 DecodeQuantizerDelta(vpBoolCoder_t *bit_ctx)
+static RK_S32 DecodeQuantizerDelta(vpBoolCoder_t *bit_ctx)
 {
     RK_S32  result = 0;
 
@@ -237,14 +237,15 @@ MPP_RET vp8d_parser_init(void *ctx, ParserCfg *parser_cfg)
     }
     p->decMode = VP8HWD_VP8;
     p->bitstream_sw_buf = mpp_malloc(RK_U8, VP8D_BUF_SIZE_BITMEM);
-    mpp_packet_init(&p->input_packet, p->bitstream_sw_buf, VP8D_BUF_SIZE_BITMEM);
+    mpp_packet_init(&p->input_packet, p->bitstream_sw_buf,
+                    VP8D_BUF_SIZE_BITMEM);
     p->max_stream_size = VP8D_BUF_SIZE_BITMEM;
 
     FUN_T("FUN_OUT");
     return ret;
 }
 
-void vp8d_unref_frame(VP8DParserContext_t *p, VP8Frame *frame)
+static void vp8d_unref_frame(VP8DParserContext_t *p, VP8Frame *frame)
 {
 
     FUN_T("FUN_IN");
@@ -267,7 +268,7 @@ void vp8d_unref_frame(VP8DParserContext_t *p, VP8Frame *frame)
     return;
 }
 
-void vp8d_unref_allframe(VP8DParserContext_t *p)
+static void vp8d_unref_allframe(VP8DParserContext_t *p)
 {
 
     FUN_T("FUN_IN");
@@ -347,7 +348,7 @@ MPP_RET vp8d_parser_reset(void *ctx)
 *   flush
 ***********************************************************************
 */
-MPP_RET  vp8d_parser_flush(void *ctx)
+MPP_RET vp8d_parser_flush(void *ctx)
 {
     MPP_RET ret = MPP_OK;
 
@@ -363,7 +364,7 @@ MPP_RET  vp8d_parser_flush(void *ctx)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET  vp8d_parser_control(void *ctx, RK_S32 cmd_type, void *param)
+MPP_RET vp8d_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
 
@@ -384,7 +385,8 @@ MPP_RET  vp8d_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 ***********************************************************************
 */
 
-MPP_RET vp8d_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
+static MPP_RET vp8d_parser_split_frame(RK_U8 *src, RK_U32 src_size,
+                                       RK_U8 *dst, RK_U32 *dst_size)
 {
     MPP_RET ret = MPP_OK;
 
@@ -459,7 +461,8 @@ MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     return ret;
 }
 
-MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
+static MPP_RET
+vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 i, tmp;
@@ -485,7 +488,8 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
 
     pic_param->frame_type = !p->keyFrame;
     pic_param->stVP8Segments.segmentation_enabled = p->segmentationEnabled;
-    pic_param->stVP8Segments.update_mb_segmentation_map = p->segmentationMapUpdate;
+    pic_param->stVP8Segments.update_mb_segmentation_map =
+        p->segmentationMapUpdate;
     pic_param->mode_ref_lf_delta_enabled = p->modeRefLfEnabled;
     pic_param->mb_no_coeff_skip = p->coeffSkipMode;
     pic_param->width               = p->width;
@@ -494,7 +498,8 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
     pic_param->filter_type      = p->loopFilterType;
     pic_param->sharpness    = p->loopFilterSharpness;
     pic_param->filter_level     = p->loopFilterLevel;
-    pic_param->stVP8Segments.update_mb_segmentation_data  = p->segmentFeatureMode;
+    pic_param->stVP8Segments.update_mb_segmentation_data =
+        p->segmentFeatureMode;
     pic_param->version      = p->vpVersion;
     pic_param->bool_value          = ((p->bitstr.value >> 24) & (0xFFU));
     pic_param->bool_range          = (p->bitstr.range & (0xFFU));
@@ -514,8 +519,10 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
     pic_param->prob_last = p->probRefLast;
     pic_param->prob_golden = p->probRefGolden;
 
-    memcpy(pic_param->vp8_coef_update_probs, p->entropy.probCoeffs, sizeof(pic_param->vp8_coef_update_probs));
-    memcpy(pic_param->vp8_mv_update_probs, p->entropy.probMvContext, sizeof(pic_param->vp8_mv_update_probs));
+    memcpy(pic_param->vp8_coef_update_probs, p->entropy.probCoeffs,
+           sizeof(pic_param->vp8_coef_update_probs));
+    memcpy(pic_param->vp8_mv_update_probs, p->entropy.probMvContext,
+           sizeof(pic_param->vp8_mv_update_probs));
 
     for ( i = 0; i < 3; i++) {
         pic_param->intra_chroma_prob[i] = p->entropy.probChromaPredMode[i];
@@ -530,7 +537,8 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
         pic_param->stVP8Segments.segment_feature_data[0][i] = p->segmentQp[i];
         pic_param->ref_lf_deltas[i] = p->mbRefLfDelta[i];
         pic_param->mode_lf_deltas[i] = p->mbModeLfDelta[i];
-        pic_param->stVP8Segments.segment_feature_data[1][i] = p->segmentLoopfilter[i];
+        pic_param->stVP8Segments.segment_feature_data[1][i] =
+            p->segmentLoopfilter[i];
         pic_param->intra_16x16_prob[i] = p->entropy.probLuma16x16PredMode[i];
     }
 
@@ -539,7 +547,8 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
 
     if (p->frame_ref != NULL) {
         pic_param->lst_fb_idx.Index7Bits = p->frame_ref->slot_index;
-        mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref->slot_index, SLOT_HAL_INPUT);
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref->slot_index,
+                              SLOT_HAL_INPUT);
         in_task->refer[0] = p->frame_ref->slot_index;
     } else {
         pic_param->lst_fb_idx.Index7Bits = 0x7f;
@@ -547,7 +556,8 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
 
     if (p->frame_golden != NULL) {
         pic_param->gld_fb_idx.Index7Bits = p->frame_golden->slot_index;
-        mpp_buf_slot_set_flag(p->frame_slots, p->frame_golden->slot_index, SLOT_HAL_INPUT);
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_golden->slot_index,
+                              SLOT_HAL_INPUT);
         in_task->refer[1] = p->frame_golden->slot_index;
     } else {
         pic_param->gld_fb_idx.Index7Bits = 0x7f;
@@ -555,19 +565,21 @@ MPP_RET vp8d_convert_to_syntx( VP8DParserContext_t *p, HalDecTask *in_task)
 
     if (p->frame_alternate != NULL) {
         pic_param->alt_fb_idx.Index7Bits = p->frame_alternate->slot_index;
-        mpp_buf_slot_set_flag(p->frame_slots, p->frame_alternate->slot_index, SLOT_HAL_INPUT);
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_alternate->slot_index,
+                              SLOT_HAL_INPUT);
         in_task->refer[2] = p->frame_alternate->slot_index;
     } else {
         pic_param->alt_fb_idx.Index7Bits = 0x7f;
     }
 
-    memcpy(pic_param->dctPartitionOffsets, p->dctPartitionOffsets, sizeof(p->dctPartitionOffsets));
+    memcpy(pic_param->dctPartitionOffsets, p->dctPartitionOffsets,
+           sizeof(p->dctPartitionOffsets));
 
     FUN_T("FUN_OUT");
     return ret;
 }
 
-MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
+static MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
 {
     MPP_RET ret = MPP_OK;
 
@@ -596,19 +608,25 @@ MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
         mpp_frame_set_ver_stride(p->frame_out->f, p->height);
         mpp_frame_set_errinfo(p->frame_out->f, 0);
         mpp_frame_set_pts(p->frame_out->f, p->pts);
-        ret = mpp_buf_slot_get_unused(p->frame_slots, &p->frame_out->slot_index);
+        ret = mpp_buf_slot_get_unused(p->frame_slots,
+                                      &p->frame_out->slot_index);
         if (MPP_OK != ret) {
             mpp_err("vp8 buf_slot_get_unused get fail");
             return ret;
         }
-        mpp_buf_slot_set_prop(p->frame_slots, p->frame_out->slot_index, SLOT_FRAME, p->frame_out->f);
-        mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index, SLOT_CODEC_USE);
-        mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index, SLOT_HAL_OUTPUT);
+        mpp_buf_slot_set_prop(p->frame_slots, p->frame_out->slot_index,
+                              SLOT_FRAME, p->frame_out->f);
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index,
+                              SLOT_CODEC_USE);
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index,
+                              SLOT_HAL_OUTPUT);
         mpp_frame_set_mode(p->frame_out->f, 0);
 
         if (p->showFrame) {
-            mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(p->frame_slots, p->frame_out->slot_index, QUEUE_DISPLAY);
+            mpp_buf_slot_set_flag(p->frame_slots, p->frame_out->slot_index,
+                                  SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(p->frame_slots, p->frame_out->slot_index,
+                                 QUEUE_DISPLAY);
         }
         p->frame_out->ref_count++;
     }
@@ -617,7 +635,7 @@ MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
     return ret;
 }
 
-void vp8d_ref_frame(VP8Frame *frame)
+static void vp8d_ref_frame(VP8Frame *frame)
 {
 
     FUN_T("FUN_IN");
@@ -631,7 +649,7 @@ void vp8d_ref_frame(VP8Frame *frame)
 }
 
 
-MPP_RET vp8d_ref_update(VP8DParserContext_t *p)
+static MPP_RET vp8d_ref_update(VP8DParserContext_t *p)
 {
 
     FUN_T("FUN_IN");
@@ -702,7 +720,7 @@ MPP_RET vp8d_ref_update(VP8DParserContext_t *p)
     return 0;
 }
 
-void vp8hwdResetProbs(VP8DParserContext_t *p)
+static void vp8hwdResetProbs(VP8DParserContext_t *p)
 {
     RK_U32 i, j, k, l;
     static const RK_U32 Vp7DefaultScan[] = {
@@ -747,12 +765,13 @@ void vp8hwdResetProbs(VP8DParserContext_t *p)
         for ( j = 0 ; j < 8 ; ++j )
             for ( k = 0 ; k < 3 ; ++k )
                 for ( l = 0 ; l < 11 ; ++l )
-                    p->entropy.probCoeffs[i][j][k][l] = DefaultCoeffProbs[i][j][k][l];
+                    p->entropy.probCoeffs[i][j][k][l] =
+                        DefaultCoeffProbs[i][j][k][l];
 
     FUN_T("FUN_OUT");
 }
 
-void vp8hwdDecodeCoeffUpdate(VP8DParserContext_t *p)
+static void vp8hwdDecodeCoeffUpdate(VP8DParserContext_t *p)
 {
     RK_U32 i, j, k, l;
 
@@ -761,8 +780,10 @@ void vp8hwdDecodeCoeffUpdate(VP8DParserContext_t *p)
         for ( j = 0; j < 8; j++ ) {
             for ( k = 0; k < 3; k++ ) {
                 for ( l = 0; l < 11; l++ ) {
-                    if (vp8hwdDecodeBool(&p->bitstr, CoeffUpdateProbs[i][j][k][l]))
-                        p->entropy.probCoeffs[i][j][k][l] = vp8hwdReadBits(&p->bitstr, 8);
+                    if (vp8hwdDecodeBool(&p->bitstr,
+                                         CoeffUpdateProbs[i][j][k][l]))
+                        p->entropy.probCoeffs[i][j][k][l] =
+                            vp8hwdReadBits(&p->bitstr, 8);
                 }
             }
         }
@@ -770,7 +791,8 @@ void vp8hwdDecodeCoeffUpdate(VP8DParserContext_t *p)
     FUN_T("FUN_OUT");
 }
 
-MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
+static MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase,
+                                 RK_U32 size)
 {
     RK_U32  tmp;
     int     i, j;
@@ -802,7 +824,8 @@ MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
         if (vp8hwdDecodeBool128(bit_ctx)) {    /* Segmentation map update */
             p->segmentFeatureMode = vp8hwdDecodeBool128(bit_ctx);
             memset(&p->segmentQp[0], 0, MAX_NBR_OF_SEGMENTS * sizeof(RK_S32));
-            memset(&p->segmentLoopfilter[0], 0, MAX_NBR_OF_SEGMENTS * sizeof(RK_S32));
+            memset(&p->segmentLoopfilter[0], 0,
+                   MAX_NBR_OF_SEGMENTS * sizeof(RK_S32));
             for (i = 0; i < MAX_NBR_OF_SEGMENTS; i++) {
                 if (vp8hwdDecodeBool128(bit_ctx)) {
                     p->segmentQp[i] = vp8hwdReadBits(bit_ctx, 7);
@@ -909,8 +932,10 @@ MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
 
     /* Make a "backup" of current entropy probabilities if refresh is not set */
     if (p->refreshEntropyProbs == 0) {
-        memcpy((void*)&p->entropyLast, (void*)&p->entropy, (unsigned long)sizeof(vp8EntropyProbs_t));
-        memcpy( (void*)p->vp7PrevScanOrder, (void*)p->vp7ScanOrder, (unsigned long)sizeof(p->vp7ScanOrder));
+        memcpy((void*)&p->entropyLast, (void*)&p->entropy,
+               (unsigned long)sizeof(vp8EntropyProbs_t));
+        memcpy( (void*)p->vp7PrevScanOrder, (void*)p->vp7ScanOrder,
+                (unsigned long)sizeof(p->vp7ScanOrder));
     }
 
     vp8hwdDecodeCoeffUpdate(p);
@@ -955,7 +980,8 @@ MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     return MPP_OK;
 }
 
-MPP_RET vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
+static MPP_RET
+vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
 {
     RK_U32  tmp;
     int     i, j;
@@ -1001,11 +1027,16 @@ MPP_RET vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
         p->nbrDctPartitions = 0;
     }
     p->qpYAc = (RK_S32)vp8hwdReadBits(bit_ctx, 7 );
-    p->qpYDc  = vp8hwdReadBits(bit_ctx, 1 ) ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
-    p->qpY2Dc = vp8hwdReadBits(bit_ctx, 1 ) ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
-    p->qpY2Ac = vp8hwdReadBits(bit_ctx, 1 ) ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
-    p->qpChDc = vp8hwdReadBits(bit_ctx, 1 ) ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
-    p->qpChAc = vp8hwdReadBits(bit_ctx, 1 ) ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
+    p->qpYDc  = vp8hwdReadBits(bit_ctx, 1 )
+                ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
+    p->qpY2Dc = vp8hwdReadBits(bit_ctx, 1 )
+                ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
+    p->qpY2Ac = vp8hwdReadBits(bit_ctx, 1 )
+                ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
+    p->qpChDc = vp8hwdReadBits(bit_ctx, 1 )
+                ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
+    p->qpChAc = vp8hwdReadBits(bit_ctx, 1 )
+                ? (RK_S32)vp8hwdReadBits(bit_ctx, 7 ) : p->qpYAc;
     if (!p->keyFrame) {
         p->refreshGolden = vp8hwdDecodeBool128(bit_ctx);
         if (p->vpVersion >= 1) {
@@ -1030,8 +1061,10 @@ MPP_RET vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     }
 
     if (!p->refreshEntropyProbs) {
-        memcpy(&p->entropyLast, &p->entropy, (unsigned long)sizeof(vp8EntropyProbs_t));
-        memcpy(p->vp7PrevScanOrder, p->vp7ScanOrder, (unsigned long)sizeof(p->vp7ScanOrder));
+        memcpy(&p->entropyLast, &p->entropy,
+               (unsigned long)sizeof(vp8EntropyProbs_t));
+        memcpy(p->vp7PrevScanOrder, p->vp7ScanOrder,
+               (unsigned long)sizeof(p->vp7ScanOrder));
     }
     if (p->refreshLast) {
         if (vp8hwdDecodeBool128(bit_ctx)) {
@@ -1063,7 +1096,8 @@ MPP_RET vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
         p->probRefLast = vp8hwdReadBits(bit_ctx, 8);
         if (vp8hwdDecodeBool128(bit_ctx)) {
             for (i = 0; i < 4; i++)
-                p->entropy.probLuma16x16PredMode[i] = vp8hwdReadBits(bit_ctx, 8);
+                p->entropy.probLuma16x16PredMode[i] =
+                    vp8hwdReadBits(bit_ctx, 8);
         }
         if (vp8hwdDecodeBool128(bit_ctx)) {
             for (i = 0; i < 3; i++)
@@ -1091,7 +1125,8 @@ MPP_RET vp7_header_parser(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     return MPP_OK;
 }
 
-MPP_RET vp8hwdSetPartitionOffsets(VP8DParserContext_t *p, RK_U8 *stream, RK_U32 len)
+static MPP_RET
+vp8hwdSetPartitionOffsets(VP8DParserContext_t *p, RK_U8 *stream, RK_U32 len)
 {
     RK_U32 i = 0;
     RK_U32 offset = 0;
@@ -1104,7 +1139,8 @@ MPP_RET vp8hwdSetPartitionOffsets(VP8DParserContext_t *p, RK_U8 *stream, RK_U32 
 
     stream += p->frameTagSize;
 
-    baseOffset = p->frameTagSize + p->offsetToDctParts + 3 * ( (1 << p->nbrDctPartitions) - 1);
+    baseOffset = p->frameTagSize + p->offsetToDctParts
+                 + 3 * ( (1 << p->nbrDctPartitions) - 1);
 
     stream += p->offsetToDctParts + extraBytesPacked;
     for ( i = 0 ; i < (RK_U32)(1 << p->nbrDctPartitions) - 1 ; ++i ) {
@@ -1120,9 +1156,8 @@ MPP_RET vp8hwdSetPartitionOffsets(VP8DParserContext_t *p, RK_U8 *stream, RK_U32 
     return (p->dctPartitionOffsets[i] < len ? MPP_OK : MPP_ERR_STREAM);
 }
 
-
-
-MPP_RET decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
+static MPP_RET
+decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
 {
     MPP_RET ret;
 
@@ -1143,8 +1178,10 @@ MPP_RET decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
         p->frameTagSize = p->vpVersion >= 1 ? 3 : 4;
     } else {
         p->offsetToDctParts = (pbase[0] >> 5) | (pbase[1] << 3) | (pbase[2] << 11);
-        // mpp_log("offsetToDctParts %d pbase[0] = 0x%x pbase[1] = 0x%x pbase[2] = 0x%x ", p->offsetToDctParts, pbase[0],
-        // pbase[1], pbase[2]);
+#if 0
+        mpp_log("offsetToDctParts %d pbase[0] = 0x%x pbase[1] = 0x%x pbase[2] = 0x%x ",
+                p->offsetToDctParts, pbase[0], pbase[1], pbase[2]);
+#endif
         p->showFrame = (pbase[0] >> 4) & 1;
         p->frameTagSize = 3;
     }
@@ -1163,7 +1200,6 @@ MPP_RET decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     }
     return MPP_OK;
 }
-
 
 MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
 {
@@ -1192,8 +1228,10 @@ MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
     vp8d_convert_to_syntx(p, in_task);
     /* Rollback entropy probabilities if refresh is not set */
     if (p->refreshEntropyProbs == 0) {
-        memcpy((void*)&p->entropy, (void*)&p->entropyLast, (unsigned long)sizeof(vp8EntropyProbs_t));
-        memcpy((void*)p->vp7ScanOrder, (void*)p->vp7PrevScanOrder, (unsigned long)sizeof(p->vp7ScanOrder));
+        memcpy((void*)&p->entropy, (void*)&p->entropyLast,
+               (unsigned long)sizeof(vp8EntropyProbs_t));
+        memcpy((void*)p->vp7ScanOrder, (void*)p->vp7PrevScanOrder,
+               (unsigned long)sizeof(p->vp7ScanOrder));
     }
     in_task->syntax.data = (void *)p->dxva_ctx;
     in_task->syntax.number = 1;
