@@ -24,16 +24,16 @@
 #include "vp8d_codec.h"
 
 const ParserApi api_vp8d_parser = {
-    "vp8d_parse",
-    MPP_VIDEO_CodingVP8,
-    sizeof(VP8DContext),
-    0,
-    vp8d_parser_init,
-    vp8d_parser_deinit,
-    vp8d_parser_prepare,
-    vp8d_parser_parse,
-    vp8d_parser_reset,
-    vp8d_parser_flush,
-    vp8d_parser_control,
-    vp8d_parser_callback,
+    .name = "vp8d_parse",
+    .coding = MPP_VIDEO_CodingVP8,
+    .ctx_size = sizeof(VP8DContext),
+    .flag = 0,
+    .init = vp8d_parser_init,
+    .deinit = vp8d_parser_deinit,
+    .prepare = vp8d_parser_prepare,
+    .parse = vp8d_parser_parse,
+    .reset = vp8d_parser_reset,
+    .flush = vp8d_parser_flush,
+    .control = vp8d_parser_control,
+    .callback = vp8d_parser_callback,
 };
