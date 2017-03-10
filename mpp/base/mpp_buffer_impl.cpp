@@ -81,11 +81,13 @@ private:
     struct list_head    mListOrphan;
 
 public:
-    static MppBufferService *get_instance() {
+    static MppBufferService *get_instance()
+    {
         static MppBufferService instance;
         return &instance;
     }
-    static Mutex *get_lock() {
+    static Mutex *get_lock()
+    {
         static Mutex lock;
         return &lock;
     }
@@ -122,12 +124,14 @@ static const char *ops2str[BUF_OPS_BUTT] = {
 
 RK_U32 mpp_buffer_debug = 0;
 
-void buffer_group_add_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppBufOps ops, const char* caller)
+static void buffer_group_add_log(MppBufferGroupImpl *group,
+                                 MppBufferImpl *buffer, MppBufOps ops, const char* caller)
 {
     if (group->log_runtime_en) {
         if (buffer) {
-            mpp_log("group %2d buffer %2d fd %2d ops %s ref_count %d caller %s\n", group->group_id,
-                    buffer->buffer_id, buffer->info.fd, ops2str[ops], buffer->ref_count, caller);
+            mpp_log("group %2d buffer %2d fd %2d ops %s ref_count %d caller %s\n",
+                    group->group_id, buffer->buffer_id, buffer->info.fd,
+                    ops2str[ops], buffer->ref_count, caller);
         } else {
             mpp_log("group %2d ops %s\n", group->group_id, ops2str[ops]);
         }
@@ -155,7 +159,7 @@ void buffer_group_add_log(MppBufferGroupImpl *group, MppBufferImpl *buffer, MppB
     }
 }
 
-void buffer_group_dump_log(MppBufferGroupImpl *group)
+static void buffer_group_dump_log(MppBufferGroupImpl *group)
 {
     if (group->log_history_en) {
         struct list_head *logs = &group->list_logs;
@@ -165,17 +169,19 @@ void buffer_group_dump_log(MppBufferGroupImpl *group)
             MppBufLog *log = list_entry(tmp, MppBufLog, list);
             list_del_init(tmp);
             if (log->buffer_id >= 0) {
-                mpp_log("group %2d buffer %2d ops %s ref_count %d caller %s\n", group->group_id,
-                        log->buffer_id, ops2str[log->ops], log->ref_count, log->caller);
+                mpp_log("group %2d buffer %2d ops %s ref_count %d caller %s\n",
+                        group->group_id, log->buffer_id,
+                        ops2str[log->ops], log->ref_count, log->caller);
             } else {
-                mpp_log("group %3d ops %s\n", group->group_id, ops2str[log->ops]);
+                mpp_log("group %3d ops %s\n", group->group_id,
+                        ops2str[log->ops]);
             }
             mpp_free(log);
         }
     }
 }
 
-MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
+static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
 {
     mpp_assert(buffer->ref_count == 0);
     mpp_assert(buffer->used == 0);
