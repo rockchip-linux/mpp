@@ -17,17 +17,17 @@
 #include <stdio.h>
 
 #include "os_mem.h"
-#include "os_allocator.h"
-
 #include "mpp_mem.h"
 #include "mpp_log.h"
+
+#include "allocator_std.h"
 
 typedef struct {
     size_t alignment;
     RK_S32 fd_count;
 } allocator_ctx;
 
-MPP_RET allocator_std_open(void **ctx, size_t alignment)
+static MPP_RET allocator_std_open(void **ctx, size_t alignment)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx *p = NULL;
@@ -50,7 +50,7 @@ MPP_RET allocator_std_open(void **ctx, size_t alignment)
     return ret;
 }
 
-MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info)
+static MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info)
 {
     allocator_ctx *p = NULL;
 
@@ -64,7 +64,7 @@ MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info)
     return (MPP_RET)os_malloc(&info->ptr, p->alignment, info->size);
 }
 
-MPP_RET allocator_std_free(void *ctx, MppBufferInfo *info)
+static MPP_RET allocator_std_free(void *ctx, MppBufferInfo *info)
 {
     (void) ctx;
     if (info->ptr)
@@ -72,7 +72,7 @@ MPP_RET allocator_std_free(void *ctx, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET allocator_std_import(void *ctx, MppBufferInfo *info)
+static MPP_RET allocator_std_import(void *ctx, MppBufferInfo *info)
 {
     allocator_ctx *p = (allocator_ctx *)ctx;
     mpp_assert(ctx);
@@ -83,7 +83,7 @@ MPP_RET allocator_std_import(void *ctx, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET allocator_std_release(void *ctx, MppBufferInfo *info)
+static MPP_RET allocator_std_release(void *ctx, MppBufferInfo *info)
 {
     (void) ctx;
     mpp_assert(info->ptr);
@@ -95,7 +95,7 @@ MPP_RET allocator_std_release(void *ctx, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET allocator_std_mmap(void *ctx, MppBufferInfo *info)
+static MPP_RET allocator_std_mmap(void *ctx, MppBufferInfo *info)
 {
     mpp_assert(ctx);
     mpp_assert(info->ptr);
@@ -103,7 +103,7 @@ MPP_RET allocator_std_mmap(void *ctx, MppBufferInfo *info)
     return MPP_OK;
 }
 
-MPP_RET allocator_std_close(void *ctx)
+static MPP_RET allocator_std_close(void *ctx)
 {
     if (ctx) {
         mpp_free(ctx);
@@ -114,12 +114,12 @@ MPP_RET allocator_std_close(void *ctx)
 }
 
 os_allocator allocator_std = {
-    allocator_std_open,
-    allocator_std_close,
-    allocator_std_alloc,
-    allocator_std_free,
-    allocator_std_import,
-    allocator_std_release,
-    allocator_std_mmap,
+    .open = allocator_std_open,
+    .close = allocator_std_close,
+    .alloc = allocator_std_alloc,
+    .free = allocator_std_free,
+    .import = allocator_std_import,
+    .release = allocator_std_release,
+    .mmap = allocator_std_mmap,
 };
 
