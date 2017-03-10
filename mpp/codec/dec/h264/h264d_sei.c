@@ -15,7 +15,7 @@
 * limitations under the License.
 */
 
-#define  MODULE_TAG  "h264d_sei"
+#define MODULE_TAG  "h264d_sei"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,10 +24,10 @@
 #include "h264d_sps.h"
 #include "h264d_sei.h"
 
-
 #ifndef _WIN32
 #include <ctype.h>
-char *_strupr(char *str)
+
+static char *_strupr(char *str)
 {
     char *orign = str;
     for (; *str != '\0'; str++) {
