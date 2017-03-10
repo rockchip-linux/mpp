@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#ifndef _ALLOCATOR_DRM_H_
+#define _ALLOCATOR_DRM_H_
+
 #include "os_allocator.h"
 
 extern os_allocator allocator_drm;
+
+#endif

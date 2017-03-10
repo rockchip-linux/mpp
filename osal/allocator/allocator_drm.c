@@ -44,6 +44,13 @@ static RK_U32 drm_debug = 0;
 
 #define drm_dbg(flag, fmt, ...) _mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
 
+typedef struct {
+    RK_U32  alignment;
+    RK_S32  drm_device;
+} allocator_ctx_drm;
+
+static const char *dev_drm = "/dev/dri/card0";
+
 static int drm_ioctl(int fd, int req, void *arg)
 {
     int ret;
@@ -202,14 +209,7 @@ static int drm_free(int fd, RK_U32 handle)
     return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
 }
 
-typedef struct {
-    RK_U32  alignment;
-    RK_S32  drm_device;
-} allocator_ctx_drm;
-
-const char *dev_drm = "/dev/dri/card0";
-
-MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
+static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
 {
     RK_S32 fd;
     allocator_ctx_drm *p;
@@ -252,7 +252,7 @@ MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
     return MPP_OK;
 }
 
-MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
+static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx_drm *p = NULL;
@@ -272,7 +272,8 @@ MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
     }
     drm_dbg(DRM_FUNCTION, "handle %d", (RK_U32)((intptr_t)info->hnd));
     ret = drm_map(p->drm_device, (RK_U32)((intptr_t)info->hnd), info->size,
-                  PROT_READ | PROT_WRITE, MAP_SHARED, (unsigned char **)&info->ptr, &info->fd);
+                  PROT_READ | PROT_WRITE, MAP_SHARED,
+                  (unsigned char **)&info->ptr, &info->fd);
     if (ret) {
         mpp_err("os_allocator_drm_alloc drm_map failed ret %d\n", ret);
         return ret;
@@ -280,7 +281,7 @@ MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
     return ret;
 }
 
-MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
+static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx_drm *p = (allocator_ctx_drm *)ctx;
@@ -304,7 +305,8 @@ MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 
     drm_dbg(DRM_FUNCTION, "dev fd %d length %d", p->drm_device, data->size);
 
-    data->ptr = drm_mmap(p->drm_device, data->size, PROT_READ | PROT_WRITE, MAP_SHARED, dmmd.offset);
+    data->ptr = drm_mmap(p->drm_device, data->size, PROT_READ | PROT_WRITE,
+                         MAP_SHARED, dmmd.offset);
     if (data->ptr == MAP_FAILED) {
         mpp_err("mmap failed: %s\n", strerror(errno));
         return -errno;
@@ -315,7 +317,7 @@ MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
     return ret;
 }
 
-MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data)
+static MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data)
 {
     (void)ctx;
     munmap(data->ptr, data->size);
@@ -323,7 +325,7 @@ MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data)
     return MPP_OK;
 }
 
-MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
+static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
 {
     allocator_ctx_drm *p = NULL;
 
@@ -339,7 +341,7 @@ MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
     return MPP_OK;
 }
 
-MPP_RET os_allocator_drm_close(void *ctx)
+static MPP_RET os_allocator_drm_close(void *ctx)
 {
     int ret;
     allocator_ctx_drm *p;
@@ -359,11 +361,11 @@ MPP_RET os_allocator_drm_close(void *ctx)
 }
 
 os_allocator allocator_drm = {
-    os_allocator_drm_open,
-    os_allocator_drm_close,
-    os_allocator_drm_alloc,
-    os_allocator_drm_free,
-    os_allocator_drm_import,
-    os_allocator_drm_release,
-    NULL,
+    .open = os_allocator_drm_open,
+    .close = os_allocator_drm_close,
+    .alloc = os_allocator_drm_alloc,
+    .free = os_allocator_drm_free,
+    .import = os_allocator_drm_import,
+    .release = os_allocator_drm_release,
+    .mmap = NULL,
 };
