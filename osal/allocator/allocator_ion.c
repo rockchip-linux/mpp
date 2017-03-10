@@ -184,7 +184,7 @@ static RK_S32 find_dir_in_path(char *path, const char *dir_name, size_t max_leng
     return new_path_len;
 }
 
-RK_S32 check_sysfs_iommu()
+static RK_S32 check_sysfs_iommu()
 {
     RK_U32 i = 0;
     RK_U32 dts_info_found = 0;
@@ -216,8 +216,9 @@ RK_S32 check_sysfs_iommu()
 
                 if (iommu_fp) {
                     RK_U32 iommu_enabled = 0;
-                    fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp);
-                    mpp_log("%s iommu_enabled %d\n", dts_devices[i], (iommu_enabled > 0));
+                    if (fread(&iommu_enabled, sizeof(RK_U32), 1, iommu_fp))
+                        mpp_log("%s iommu_enabled %d\n", dts_devices[i],
+                                (iommu_enabled > 0));
                     fclose(iommu_fp);
                     if (iommu_enabled)
                         ret = ION_DETECT_IOMMU_ENABLE;

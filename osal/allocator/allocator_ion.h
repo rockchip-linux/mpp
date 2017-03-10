@@ -13,8 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef _ALLOCATOR_ION_H_
+#define _ALLOCATOR_ION_H_
 
 #include "os_allocator.h"
 
 extern os_allocator allocator_ion;
 
+MPP_RET allocator_ion_open(void **ctx, size_t alignment);
+MPP_RET allocator_ion_alloc(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_ion_import(void *ctx, MppBufferInfo *data);
+MPP_RET allocator_ion_mmap(void *ctx, MppBufferInfo *data);
+MPP_RET allocator_ion_release(void *ctx, MppBufferInfo *data);
+MPP_RET allocator_ion_free(void *ctx, MppBufferInfo *data);
+MPP_RET allocator_ion_close(void *ctx);
+
+#endif
