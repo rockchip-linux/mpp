@@ -46,7 +46,7 @@ typedef struct {
     MppEncCfgSet    *set;
 } JpegeCtx;
 
-MPP_RET jpege_callback(void *ctx, void *feedback)
+static MPP_RET jpege_callback(void *ctx, void *feedback)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
     JpegeFeedback *result = &p->feedback;
@@ -63,7 +63,7 @@ MPP_RET jpege_callback(void *ctx, void *feedback)
     return MPP_OK;
 }
 
-MPP_RET jpege_init(void *ctx, ControllerCfg *cfg)
+static MPP_RET jpege_init(void *ctx, ControllerCfg *cfg)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
 
@@ -80,14 +80,14 @@ MPP_RET jpege_init(void *ctx, ControllerCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET jpege_deinit(void *ctx)
+static MPP_RET jpege_deinit(void *ctx)
 {
     jpege_dbg_func("enter ctx %p\n", ctx);
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
 }
 
-MPP_RET jpege_encode(void *ctx, HalEncTask *task)
+static MPP_RET jpege_encode(void *ctx, HalEncTask *task)
 {
     jpege_dbg_func("enter ctx %p\n", ctx);
 
@@ -98,21 +98,21 @@ MPP_RET jpege_encode(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-MPP_RET jpege_reset(void *ctx)
+static MPP_RET jpege_reset(void *ctx)
 {
     jpege_dbg_func("enter ctx %p\n", ctx);
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
 }
 
-MPP_RET jpege_flush(void *ctx)
+static MPP_RET jpege_flush(void *ctx)
 {
     jpege_dbg_func("enter ctx %p\n", ctx);
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
 }
 
-MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
+static MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
 
@@ -122,15 +122,15 @@ MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
 }
 
 const ControlApi api_jpege_controller = {
-    "jpege_control",
-    MPP_VIDEO_CodingMJPEG,
-    sizeof(JpegeCtx),
-    0,
-    jpege_init,
-    jpege_deinit,
-    jpege_encode,
-    jpege_reset,
-    jpege_flush,
-    jpege_config,
-    jpege_callback,
+    .name = "jpege_control",
+    .coding = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(JpegeCtx),
+    .flag = 0,
+    .init = jpege_init,
+    .deinit = jpege_deinit,
+    .encode = jpege_encode,
+    .reset = jpege_reset,
+    .flush = jpege_flush,
+    .config = jpege_config,
+    .callback = jpege_callback,
 };

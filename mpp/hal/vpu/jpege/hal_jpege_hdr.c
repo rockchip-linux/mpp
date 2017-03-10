@@ -749,7 +749,7 @@ static void write_jpeg_dqt_header(JpegeBits *bits, const RK_U8 *qtables[2])
     }
 }
 
-void write_jpeg_SOFO_header(JpegeBits *bits, JpegeSyntax *syntax)
+static void write_jpeg_SOFO_header(JpegeBits *bits, JpegeSyntax *syntax)
 {
     RK_S32 i;
     RK_U32 width = syntax->width;

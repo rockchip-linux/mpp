@@ -142,5 +142,3 @@ const MppHalApi hal_api_jpege = {
     .flush = hal_jpege_flush,
     .control = hal_jpege_control,
 };
-
-
