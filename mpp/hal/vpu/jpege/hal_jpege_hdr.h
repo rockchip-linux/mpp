@@ -35,7 +35,8 @@ RK_U8 *jpege_bits_get_buf(JpegeBits ctx);
 RK_S32 jpege_bits_get_bitpos(JpegeBits ctx);
 RK_S32 jpege_bits_get_bytepos(JpegeBits ctx);
 
-MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qtable[2]);
+MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax,
+                          const RK_U8 *qtable[2]);
 
 #ifdef __cplusplus
 }
