@@ -35,7 +35,9 @@ typedef enum OsAllocatorApiId_e {
     ALLOC_API_BUTT,
 } OsAllocatorApiId;
 
-static MPP_RET mpp_allocator_api_wrapper(MppAllocator allocator, MppBufferInfo *info, OsAllocatorApiId id)
+static MPP_RET mpp_allocator_api_wrapper(MppAllocator allocator,
+                                         MppBufferInfo *info,
+                                         OsAllocatorApiId id)
 {
     if (NULL == allocator || NULL == info || id >= ALLOC_API_BUTT) {
         mpp_err_f("invalid input: allocator %p info %p id %d\n",
@@ -77,42 +79,44 @@ static MPP_RET mpp_allocator_api_wrapper(MppAllocator allocator, MppBufferInfo *
     return ret;
 }
 
-MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
+static MPP_RET mpp_allocator_alloc(MppAllocator allocator, MppBufferInfo *info)
 {
     return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_ALLOC);
 }
 
-MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferInfo *info)
+static MPP_RET mpp_allocator_free(MppAllocator allocator, MppBufferInfo *info)
 {
     return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_FREE);
 }
 
-MPP_RET mpp_allocator_import(MppAllocator allocator, MppBufferInfo *info)
+static MPP_RET mpp_allocator_import(MppAllocator allocator, MppBufferInfo *info)
 {
     return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_IMPORT);
 }
 
-MPP_RET mpp_allocator_release(MppAllocator allocator, MppBufferInfo *info)
+static MPP_RET mpp_allocator_release(MppAllocator allocator,
+                                     MppBufferInfo *info)
 {
     return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_RELEASE);
 }
 
-MPP_RET mpp_allocator_mmap(MppAllocator allocator, MppBufferInfo *info)
+static MPP_RET mpp_allocator_mmap(MppAllocator allocator, MppBufferInfo *info)
 {
     return mpp_allocator_api_wrapper(allocator, info, ALLOC_API_MMAP);
 }
 
 static MppAllocatorApi mpp_allocator_api = {
-    sizeof(mpp_allocator_api),
-    1,
-    mpp_allocator_alloc,
-    mpp_allocator_free,
-    mpp_allocator_import,
-    mpp_allocator_release,
-    mpp_allocator_mmap,
+    .size = sizeof(mpp_allocator_api),
+    .version = 1,
+    .alloc = mpp_allocator_alloc,
+    .free = mpp_allocator_free,
+    .import = mpp_allocator_import,
+    .release =  mpp_allocator_release,
+    .mmap  = mpp_allocator_mmap,
 };
 
-MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type)
+MPP_RET mpp_allocator_get(MppAllocator *allocator,
+                          MppAllocatorApi **api, MppBufferType type)
 {
     if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("invalid input: allocator %p api %p type %d\n",

@@ -37,7 +37,8 @@ typedef struct MppAllocatorApi_t {
 extern "C" {
 #endif
 
-MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api, MppBufferType type);
+MPP_RET mpp_allocator_get(MppAllocator *allocator,
+		MppAllocatorApi **api, MppBufferType type);
 MPP_RET mpp_allocator_put(MppAllocator *allocator);
 
 #ifdef __cplusplus
