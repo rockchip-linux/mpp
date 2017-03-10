@@ -170,7 +170,7 @@ static RK_S32 mpp_combine_frame(SplitContext_t *sc, RK_S32 next, const RK_U8 **b
     return 0;
 }
 
-RK_S32 h265d_split_init(void **sc)
+static RK_S32 h265d_split_init(void **sc)
 {
     SplitContext_t *s = NULL;
     if (s == NULL) {
@@ -188,7 +188,7 @@ RK_S32 h265d_split_init(void **sc)
     return MPP_OK;
 }
 
-void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off)
+static void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off)
 {
     RK_S32 i;
 
@@ -210,9 +210,10 @@ void mpp_fetch_timestamp(SplitContext_t *s, RK_S32 off)
         }
     }
 }
-RK_S32 h265d_split_frame(void *sc,
-                         const RK_U8 **poutbuf, RK_S32 *poutbuf_size,
-                         const RK_U8 *buf, RK_S32 buf_size, RK_S64 pts, RK_S64 dts)
+static RK_S32 h265d_split_frame(void *sc,
+                                const RK_U8 **poutbuf, RK_S32 *poutbuf_size,
+                                const RK_U8 *buf, RK_S32 buf_size, RK_S64 pts,
+                                RK_S64 dts)
 {
     RK_S32 next, i;
 
@@ -272,7 +273,7 @@ RK_S32 h265d_split_frame(void *sc,
     return next;
 }
 
-RK_S32 h265d_split_reset(void *sc)
+static RK_S32 h265d_split_reset(void *sc)
 {
     RK_U8 *buf = NULL;
     RK_U32 size = 0;
@@ -291,7 +292,7 @@ RK_S32 h265d_split_reset(void *sc)
 }
 
 
-RK_S32 h265d_split_deinit(void *sc)
+static RK_S32 h265d_split_deinit(void *sc)
 {
     SplitContext_t *s = (SplitContext_t *)sc;
     if (s->buffer) {
@@ -1607,7 +1608,7 @@ fail:
     return ret;
 }
 
-RK_U16 U16_AT(const RK_U8 *ptr)
+static RK_U16 U16_AT(const RK_U8 *ptr)
 {
     return ptr[0] << 8 | ptr[1];
 }
