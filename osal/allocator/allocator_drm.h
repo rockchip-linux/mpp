@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
+#ifndef _ALLOCATOR_DRM_H_
+#define _ALLOCATOR_DRM_H_
+
 #include "os_allocator.h"
 
 extern os_allocator allocator_drm;
+
+MPP_RET os_allocator_drm_open(void **ctx, size_t alignment);
+MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info);
+MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data);
+MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data);
+MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data);
+MPP_RET os_allocator_drm_close(void *ctx);
+
+#endif
