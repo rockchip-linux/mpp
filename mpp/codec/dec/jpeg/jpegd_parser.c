@@ -45,7 +45,7 @@ RK_U32 jpegd_log = 0;
           Returns 8 bit value if ok
           else returns STRM_ERROR (0xFFFFFFFF)
 ------------------------------------------------------------------------------*/
-RK_U32 jpegd_get_byte(StreamStorage * pStream)
+static RK_U32 jpegd_get_byte(StreamStorage * pStream)
 {
     RK_U32 tmp;
 
@@ -74,7 +74,7 @@ RK_U32 jpegd_get_byte(StreamStorage * pStream)
         Outputs:
           Returns 16 bit value
 ------------------------------------------------------------------------------*/
-RK_U32 jpegd_get_two_bytes(StreamStorage * pStream)
+static RK_U32 jpegd_get_two_bytes(StreamStorage * pStream)
 {
     RK_U32 tmp;
 
@@ -107,7 +107,7 @@ RK_U32 jpegd_get_two_bytes(StreamStorage * pStream)
         Outputs:
           Returns  32 bit value
 ------------------------------------------------------------------------------*/
-RK_U32 jpegd_show_bits(StreamStorage * pStream)
+static RK_U32 jpegd_show_bits(StreamStorage * pStream)
 {
     RK_S32 bits;
     RK_U32 readBits;
@@ -165,7 +165,7 @@ RK_U32 jpegd_show_bits(StreamStorage * pStream)
           OK
           STRM_ERROR
 ------------------------------------------------------------------------------*/
-RK_U32 jpegd_flush_bits(StreamStorage * pStream, RK_U32 bits)
+static RK_U32 jpegd_flush_bits(StreamStorage * pStream, RK_U32 bits)
 {
     RK_U32 tmp;
     RK_U32 extraBits = 0;
@@ -220,7 +220,7 @@ RK_U32 jpegd_flush_bits(StreamStorage * pStream, RK_U32 bits)
     }
 }
 
-JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
+static JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
 {
     /*  check input format */
     if (pSyntax->frame.Nf == 3) {
@@ -234,13 +234,19 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
             pSyntax->info.yCbCrMode = JPEGDEC_YUV420;
             pSyntax->info.X = pSyntax->frame.hwX;
             pSyntax->info.Y = pSyntax->frame.hwY;
-        } else if (pSyntax->frame.component[0].H == 2 && pSyntax->frame.component[0].V == 1 &&
-                   pSyntax->frame.component[1].H == 1 && pSyntax->frame.component[1].V == 1 &&
-                   pSyntax->frame.component[2].H == 1 && pSyntax->frame.component[2].V == 1) {
+        } else if (pSyntax->frame.component[0].H == 2
+                   && pSyntax->frame.component[0].V == 1 &&
+                   pSyntax->frame.component[1].H == 1
+                   && pSyntax->frame.component[1].V == 1 &&
+                   pSyntax->frame.component[2].H == 1
+                   && pSyntax->frame.component[2].V == 1) {
             JPEGD_INFO_LOG("YCbCr Format: YUV422(%d*%d:%d*%d:%d*%d)",
-                           pSyntax->frame.component[0].H, pSyntax->frame.component[0].V,
-                           pSyntax->frame.component[1].H, pSyntax->frame.component[1].V,
-                           pSyntax->frame.component[2].H, pSyntax->frame.component[2].V);
+                           pSyntax->frame.component[0].H,
+                           pSyntax->frame.component[0].V,
+                           pSyntax->frame.component[1].H,
+                           pSyntax->frame.component[1].V,
+                           pSyntax->frame.component[2].H,
+                           pSyntax->frame.component[2].V);
             pSyntax->info.yCbCrMode = JPEGDEC_YUV422;
             pSyntax->info.X = (pSyntax->frame.hwX);
             pSyntax->info.Y = (pSyntax->frame.hwY);
@@ -330,7 +336,7 @@ JpegDecRet jpegd_set_yuv_mode(JpegSyntaxParam *pSyntax)
     return (JPEGDEC_OK);
 }
 
-JpegDecRet jpegd_decode_frame_header(JpegParserContext *ctx)
+static JpegDecRet jpegd_decode_frame_header(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -511,7 +517,7 @@ JpegDecRet jpegd_decode_frame_header(JpegParserContext *ctx)
     return (JPEGDEC_OK);
 }
 
-JpegDecRet jpegd_decode_scan_header(JpegParserContext *ctx)
+static JpegDecRet jpegd_decode_scan_header(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -698,7 +704,7 @@ JpegDecRet jpegd_decode_scan_header(JpegParserContext *ctx)
     return (JPEGDEC_OK);
 }
 
-JpegDecRet jpegd_decode_scan(JpegParserContext *ctx)
+static JpegDecRet jpegd_decode_scan(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -856,7 +862,7 @@ JpegDecRet jpegd_decode_huffman_tables(JpegParserContext *ctx)
     return (JPEGDEC_OK);
 }
 
-JpegDecRet jpegd_decode_quant_tables(JpegParserContext *ctx)
+static JpegDecRet jpegd_decode_quant_tables(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -920,7 +926,7 @@ JpegDecRet jpegd_decode_quant_tables(JpegParserContext *ctx)
     FUN_TEST("Exit");
 }
 
-JpegDecRet jpegd_default_huffman_tables(JpegParserContext *ctx)
+static JpegDecRet jpegd_default_huffman_tables(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -1053,7 +1059,9 @@ JpegDecRet jpegd_default_huffman_tables(JpegParserContext *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
+static MPP_RET
+jpegd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst,
+		RK_U32 *dst_size)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
@@ -1120,7 +1128,9 @@ MPP_RET jpegd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32
     return ret;
 }
 
-MPP_RET jpegd_parser_handle_stream(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
+static MPP_RET
+jpegd_parser_handle_stream(RK_U8 *src, RK_U32 src_size,
+		RK_U8 *dst, RK_U32 *dst_size)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
@@ -1243,7 +1253,8 @@ MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     return ret;
 }
 
-MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStream)
+static MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx,
+		StreamStorage *pStream)
 {
     FUN_TEST("Enter");
     if (NULL == ctx || NULL == pStream) {
@@ -1252,7 +1263,8 @@ MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStr
     }
 
     JpegParserContext *pCtx = ctx;
-    JpegDecImageInfo *pImageInfo = (JpegDecImageInfo *) & (pCtx->pSyntax->imageInfo);
+    JpegDecImageInfo *pImageInfo = (JpegDecImageInfo *)
+	    &(pCtx->pSyntax->imageInfo);
     JpegSyntaxParam *pSyntax = pCtx->pSyntax;
     RK_U32 Nf = 0, Ns = 0, NsThumb = 0;
     RK_U32 i, j = 0, init = 0, initThumb = 0;
@@ -2072,7 +2084,7 @@ MPP_RET jpegd_read_decode_parameters(JpegParserContext *ctx, StreamStorage *pStr
     return MPP_OK;
 }
 
-MPP_RET jpegd_get_image_info(JpegParserContext *ctx)
+static MPP_RET jpegd_get_image_info(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -2091,7 +2103,9 @@ MPP_RET jpegd_get_image_info(JpegParserContext *ctx)
     }
 
     if ((pCtx->streamLength > DEC_MAX_STREAM) &&
-        (pCtx->bufferSize < JPEGDEC_MIN_BUFFER || pCtx->bufferSize > JPEGDEC_MAX_BUFFER)) {
+        (pCtx->bufferSize < JPEGDEC_MIN_BUFFER
+	 || pCtx->bufferSize > JPEGDEC_MAX_BUFFER))
+    {
         JPEGD_ERROR_LOG("bufferSize = %d,streamLength = %d\n", pCtx->bufferSize, pCtx->streamLength);
         return MPP_ERR_VALUE;
     }
@@ -2122,7 +2136,7 @@ MPP_RET jpegd_get_image_info(JpegParserContext *ctx)
     return ret;
 }
 
-MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
+static MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -2199,7 +2213,8 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
                 if (pSyntax->stream.bitPosInByte) {
                     /* delete stuffing bits */
                     currentByte = (8 - pSyntax->stream.bitPosInByte);
-                    if (jpegd_flush_bits(pStream, 8 - pSyntax->stream.bitPosInByte) == STRM_ERROR) {
+                    if (jpegd_flush_bits(pStream,
+                                         8 - pSyntax->stream.bitPosInByte) == STRM_ERROR) {
                         JPEGD_ERROR_LOG("Stream Error");
                         return (JPEGDEC_STRM_ERROR);
                     }
@@ -2417,7 +2432,7 @@ MPP_RET jpegd_decode_frame_impl(JpegParserContext *ctx)
     FUN_TEST("Exit");
 }
 
-MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
+static MPP_RET jpegd_allocate_frame(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
@@ -2484,7 +2499,7 @@ MPP_RET jpegd_update_frame(JpegParserContext *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
+static MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
@@ -2534,7 +2549,7 @@ MPP_RET jpegd_decode_frame(JpegParserContext *ctx)
     return ret;
 }
 
-void jpegd_free_huffman_tables(void *ctx)
+static void jpegd_free_huffman_tables(void *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *JpegParserCtx = (JpegParserContext *)ctx;
@@ -2649,7 +2664,7 @@ MPP_RET jpegd_deinit(void *ctx)
     return 0;
 }
 
-MPP_RET reset_jpeg_parser_context(JpegParserContext *ctx)
+static MPP_RET reset_jpeg_parser_context(JpegParserContext *ctx)
 {
     FUN_TEST("Enter");
     JpegParserContext *pCtx = ctx;
