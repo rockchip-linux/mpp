@@ -154,18 +154,12 @@ static RK_S32 mastering_display_colour_volume(HEVCContext *s)
     BitReadCtx_t *gb = &s->HEVClc->gb;
     for (i = 0; i < 3; i++) {
         READ_BITS(gb, 16, &value);
-        mpp_log("display_primaries_x[%d] = %d", i, value);
         READ_BITS(gb, 16, &value);
-        mpp_log("display_primaries_y[%d] = %d", i, value);
     }
     READ_BITS(gb, 16, &value);
-    mpp_log("white_point_x = %d", value);
     READ_BITS(gb, 16, &value);
-    mpp_log("white_point_y = %d", value);
     mpp_read_longbits(gb, 32, &lum);
-    mpp_log("max_display_mastering_lum = %d", lum);
     mpp_read_longbits(gb, 32, &lum);
-    mpp_log("min_display_mastering_lum = %d", lum);
 
     return 0;
 
