@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include "os_log.h"
 
 #define LINE_SZ 1024
 
