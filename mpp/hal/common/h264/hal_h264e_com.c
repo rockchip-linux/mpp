@@ -653,7 +653,9 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
         sps->vui.i_max_bytes_per_pic_denom = 0;
         sps->vui.i_max_bits_per_mb_denom = 0;
         sps->vui.i_log2_max_mv_length_horizontal =
-            sps->vui.i_log2_max_mv_length_vertical = (RK_S32)log2f((float)H264E_HAL_MAX( 1, analyse_mv_range * 4 - 1  ) ) + 1;
+            sps->vui.i_log2_max_mv_length_vertical =
+                (RK_S32)log2f((float)H264E_HAL_MAX(1, analyse_mv_range * 4 - 1))
+                + 1;
     }
 
     return MPP_OK;
@@ -712,13 +714,13 @@ MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps)
 
     pps->b_cqm_preset = b_cqm_preset;
 
-    switch ( pps->b_cqm_preset  ) {
+    switch (pps->b_cqm_preset) {
     case H264E_CQM_FLAT:
-        for (k = 0; k < 8; k++ )
+        for (k = 0; k < 8; k++)
             pps->scaling_list[k] = h264e_cqm_flat16;
         break;
     case H264E_CQM_JVT:
-        for (k = 0; k < 8; k++ )
+        for (k = 0; k < 8; k++)
             pps->scaling_list[k] = h264e_cqm_jvt[k];
         break;
     case H264E_CQM_CUSTOM:

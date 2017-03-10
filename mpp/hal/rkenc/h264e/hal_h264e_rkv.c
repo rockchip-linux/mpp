@@ -44,19 +44,6 @@
 #define H264E_IOC_CUSTOM_BASE           0x1000
 #define H264E_IOC_SET_OSD_PLT           (H264E_IOC_CUSTOM_BASE + 1)
 
-double QP2Qstep( double qp_avg )
-{
-    RK_S32 i;
-    double Qstep;
-    RK_S32 QP = qp_avg * 4.0;
-
-    Qstep = 0.625 * pow(1.0293, QP % 24);
-    for (i = 0; i < (QP / 24); i++)
-        Qstep *= 2;
-
-    return round(Qstep * 4);
-}
-
 static const RK_U32 h264e_h3d_tbl[40] = {
     0x0b080400, 0x1815120f, 0x23201e1b, 0x2c2a2725,
     0x33312f2d, 0x38373634, 0x3d3c3b39, 0x403f3e3d,
@@ -257,6 +244,18 @@ static MPP_RET h264e_rkv_close_dump_files(void *dump_files)
     return MPP_OK;
 }
 
+static double QP2Qstep( double qp_avg )
+{
+    RK_S32 i;
+    double Qstep;
+    RK_S32 QP = qp_avg * 4.0;
+
+    Qstep = 0.625 * pow(1.0293, QP % 24);
+    for (i = 0; i < (QP / 24); i++)
+        Qstep *= 2;
+
+    return round(Qstep * 4);
+}
 
 static MPP_RET h264e_rkv_open_dump_files(void *dump_files)
 {
@@ -502,14 +501,16 @@ static void h264e_rkv_dump_mpp_feedback(H264eHalContext *ctx)
         h264e_feedback *fb = &ctx->feedback;
         (void)fb;
     } else {
-        h264e_hal_dbg(H264E_DBG_FILE, "try to dump data to mpp_feedback.txt, but file is not opened");
+        h264e_hal_dbg(H264E_DBG_FILE,
+                      "try to dump data to mpp_feedback.txt, but file is not opened");
     }
 #else
     (void)ctx;
 #endif
 }
 
-static void h264e_rkv_dump_mpp_strm_out_header(H264eHalContext *ctx, MppPacket packet)
+static void
+h264e_rkv_dump_mpp_strm_out_header(H264eHalContext *ctx, MppPacket packet)
 {
 #if RKVENC_DUMP_INFO
     H264eRkvDumpFiles *dump_files = (H264eRkvDumpFiles *)ctx->dump_files;
@@ -521,7 +522,8 @@ static void h264e_rkv_dump_mpp_strm_out_header(H264eHalContext *ctx, MppPacket p
         fwrite(ptr, 1, len, fp);
         fflush(fp);
     } else {
-        h264e_hal_dbg(H264E_DBG_FILE, "try to dump strm header to mpp_strm_out.txt, but file is not opened");
+        h264e_hal_dbg(H264E_DBG_FILE,
+                      "try to dump strm header to mpp_strm_out.txt, but file is not opened");
     }
 #else
     (void)ctx;
@@ -530,7 +532,7 @@ static void h264e_rkv_dump_mpp_strm_out_header(H264eHalContext *ctx, MppPacket p
 }
 
 
-void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
+static void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
 {
 #if RKVENC_DUMP_INFO
     H264eRkvDumpFiles *dump_files = (H264eRkvDumpFiles *)ctx->dump_files;
@@ -540,17 +542,20 @@ void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
         RK_U32 strm_size = 0;
         RK_U8 *sw_buf = NULL;
         RK_U8 *hw_buf_vir_addr = NULL;
-        H264eRkvIoctlOutput *ioctl_output = (H264eRkvIoctlOutput *)ctx->ioctl_output;
+        H264eRkvIoctlOutput *ioctl_output =
+            (H264eRkvIoctlOutput *)ctx->ioctl_output;
         H264eRkvIoctlOutputElem *out_elem = ioctl_output->elem;
         RK_U32 frame_num = ioctl_output->frame_num;
 
-        h264e_hal_dbg(H264E_DBG_FILE, "dump %d frames strm out below", frame_num);
+        h264e_hal_dbg(H264E_DBG_FILE, "dump %d frames strm out below",
+                      frame_num);
         for (k = 0; k < frame_num; k++) {
             strm_size = (RK_U32)out_elem[k].swreg69.bs_lgth;
             hw_buf_vir_addr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf);
             sw_buf = mpp_malloc(RK_U8, strm_size);
 
-            h264e_hal_dbg(H264E_DBG_FILE, "dump frame %d, fd %d, strm_size: %d", k, mpp_buffer_get_fd(hw_buf), strm_size);
+            h264e_hal_dbg(H264E_DBG_FILE, "dump frame %d, fd %d, strm_size: %d",
+                          k, mpp_buffer_get_fd(hw_buf), strm_size);
 
             memcpy(sw_buf, hw_buf_vir_addr, strm_size);
 
@@ -561,7 +566,8 @@ void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
         }
         fflush(fp);
     } else {
-        h264e_hal_dbg(H264E_DBG_FILE, "try to dump data to mpp_strm_out.txt, but file is not opened");
+        h264e_hal_dbg(H264E_DBG_FILE,
+                      "try to dump data to mpp_strm_out.txt, but file is not opened");
     }
 #else
     (void)ctx;
@@ -569,7 +575,7 @@ void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
 #endif
 }
 
-void h264e_rkv_frame_push( H264eRkvFrame **list, H264eRkvFrame *frame )
+static void h264e_rkv_frame_push( H264eRkvFrame **list, H264eRkvFrame *frame )
 {
     RK_S32 i = 0;
     while ( list[i] ) i++;
@@ -602,7 +608,7 @@ static H264eRkvFrame *h264e_rkv_frame_new(H264eRkvDpbCtx *dpb_ctx)
     return new_frame;
 }
 
-H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
+static H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
 {
     H264eRkvFrame *frame;
     RK_S32 i = 0;
@@ -614,7 +620,8 @@ H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
     return frame;
 }
 
-void h264e_rkv_frame_unshift( H264eRkvFrame **list, H264eRkvFrame *frame )
+static void
+h264e_rkv_frame_unshift(H264eRkvFrame **list, H264eRkvFrame *frame)
 {
     RK_S32 i = 0;
     while ( list[i] ) i++;
@@ -624,7 +631,7 @@ void h264e_rkv_frame_unshift( H264eRkvFrame **list, H264eRkvFrame *frame )
     h264e_hal_dbg(H264E_DBG_DPB, "frame unshift list[0] %p", frame);
 }
 
-H264eRkvFrame *h264e_rkv_frame_shift( H264eRkvFrame **list )
+static H264eRkvFrame *h264e_rkv_frame_shift( H264eRkvFrame **list )
 {
     H264eRkvFrame *frame = list[0];
     RK_S32 i;
@@ -636,7 +643,8 @@ H264eRkvFrame *h264e_rkv_frame_shift( H264eRkvFrame **list )
 }
 
 
-void h264e_rkv_frame_push_unused( H264eRkvDpbCtx *dpb_ctx, H264eRkvFrame *frame )
+static void
+h264e_rkv_frame_push_unused( H264eRkvDpbCtx *dpb_ctx, H264eRkvFrame *frame)
 {
     h264e_hal_enter();
     mpp_assert( frame->i_reference_count > 0 );
@@ -646,7 +654,7 @@ void h264e_rkv_frame_push_unused( H264eRkvDpbCtx *dpb_ctx, H264eRkvFrame *frame 
     h264e_hal_leave();
 }
 
-H264eRkvFrame *h264e_rkv_frame_pop_unused( H264eHalContext *ctx)
+static H264eRkvFrame *h264e_rkv_frame_pop_unused( H264eHalContext *ctx)
 {
     H264eRkvFrame *frame = NULL;
 
@@ -1291,12 +1299,12 @@ static void h264e_rkv_adjust_param(H264eHalContext *ctx)
     (void)par;
 }
 
-RK_S32 h264e_rkv_stream_get_pos(H264eRkvStream *s)
+static RK_S32 h264e_rkv_stream_get_pos(H264eRkvStream *s)
 {
     return (RK_S32)(8 * (s->p - s->p_start) + (4 * 8) - s->i_left);
 }
 
-MPP_RET h264e_rkv_stream_init(H264eRkvStream *s)
+static MPP_RET h264e_rkv_stream_init(H264eRkvStream *s)
 {
     RK_S32 offset = 0;
     s->buf = mpp_calloc(RK_U8, H264E_EXTRA_INFO_BUF_SIZE);
@@ -1307,7 +1315,8 @@ MPP_RET h264e_rkv_stream_init(H264eRkvStream *s)
     //s->p_end = (RK_U8*)s->buf + i_data;
     s->i_left = (4 - offset) * 8;
     //s->cur_bits = endian_fix32(M32(s->p));
-    s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16) + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
+    s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16)
+                  + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
     s->cur_bits >>= (4 - offset) * 8;
     s->count_bit = 0;
 
@@ -1315,7 +1324,7 @@ MPP_RET h264e_rkv_stream_init(H264eRkvStream *s)
 }
 
 
-MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
+static MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
 {
     RK_S32 offset = 0;
     h264e_hal_enter();
@@ -1323,7 +1332,8 @@ MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
     offset = (size_t)(s->buf_plus8) & 3;
     s->p = s->p_start;
     s->i_left = (4 - offset) * 8;
-    s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16) + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
+    s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16)
+                  + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
     s->cur_bits >>= (4 - offset) * 8;
     s->count_bit = 0;
 
@@ -1331,7 +1341,7 @@ MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_deinit(H264eRkvStream *s)
+static MPP_RET h264e_rkv_stream_deinit(H264eRkvStream *s)
 {
     MPP_FREE(s->buf);
 
@@ -1346,25 +1356,29 @@ MPP_RET h264e_rkv_stream_deinit(H264eRkvStream *s)
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_realign(H264eRkvStream *s)
+static MPP_RET h264e_rkv_stream_realign(H264eRkvStream *s)
 {
     RK_S32 offset = (size_t)(s->p) & 3; //used to judge alignment
     if (offset) {
         s->p = s->p - offset; //move pointer to 32bit aligned pos
         s->i_left = (4 - offset) * 8; //init
         //s->cur_bits = endian_fix32(M32(s->p));
-        s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16) + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
+        s->cur_bits = (*(s->p) << 24) + (*(s->p + 1) << 16)
+                      + (*(s->p + 2) << 8) + (*(s->p + 3) << 0);
         s->cur_bits >>= (4 - offset) * 8; //shift right the invalid bit
     }
 
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_write_with_log(H264eRkvStream *s, RK_S32 i_count, RK_U32 val, char *name)
+static MPP_RET
+h264e_rkv_stream_write_with_log(H264eRkvStream *s, RK_S32 i_count,
+                                RK_U32 val, char *name)
 {
     RK_U32 i_bits = val;
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write bits name %s, count %d, val %d", name, i_count, val);
+    h264e_hal_dbg(H264E_DBG_HEADER, "write bits name %s, count %d, val %d",
+                  name, i_count, val);
 
     s->count_bit += i_count;
     if (i_count < s->i_left) {
@@ -1386,7 +1400,8 @@ MPP_RET h264e_rkv_stream_write_with_log(H264eRkvStream *s, RK_S32 i_count, RK_U3
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_write1_with_log(H264eRkvStream *s, RK_U32 val, char *name)
+static MPP_RET
+h264e_rkv_stream_write1_with_log(H264eRkvStream *s, RK_U32 val, char *name)
 {
     RK_U32 i_bit = val;
 
@@ -1408,12 +1423,15 @@ MPP_RET h264e_rkv_stream_write1_with_log(H264eRkvStream *s, RK_U32 val, char *na
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_write_ue_with_log(H264eRkvStream *s, RK_U32 val, char *name)
+static MPP_RET
+h264e_rkv_stream_write_ue_with_log(H264eRkvStream *s, RK_U32 val, char *name)
 {
     RK_S32 size = 0;
     RK_S32 tmp = ++val;
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write UE bits name %s, val %d (2 steps below are real writting)", name, val);
+    h264e_hal_dbg(H264E_DBG_HEADER,
+                  "write UE bits name %s, val %d (2 steps below are real writting)",
+                  name, val);
     if (tmp >= 0x10000) {
         size = 32;
         tmp >>= 16;
@@ -1430,7 +1448,8 @@ MPP_RET h264e_rkv_stream_write_ue_with_log(H264eRkvStream *s, RK_U32 val, char *
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_stream_write_se_with_log(H264eRkvStream *s, RK_S32 val, char *name)
+static MPP_RET
+h264e_rkv_stream_write_se_with_log(H264eRkvStream *s, RK_S32 val, char *name)
 {
     RK_S32 size = 0;
     RK_S32 tmp = 1 - val * 2;
@@ -1447,7 +1466,8 @@ MPP_RET h264e_rkv_stream_write_se_with_log(H264eRkvStream *s, RK_S32 val, char *
     return h264e_rkv_stream_write_with_log(s, size, val, name);
 }
 
-MPP_RET h264e_rkv_stream_write32(H264eRkvStream *s, RK_U32 i_bits, char *name)
+static MPP_RET
+h264e_rkv_stream_write32(H264eRkvStream *s, RK_U32 i_bits, char *name)
 {
     h264e_rkv_stream_write_with_log(s, 16, i_bits >> 16, name);
     h264e_rkv_stream_write_with_log(s, 16, i_bits      , name);
@@ -1466,7 +1486,7 @@ static RK_S32 h264e_rkv_stream_size_se( RK_S32 val )
 }
 
 
-MPP_RET h264e_rkv_stream_rbsp_trailing(H264eRkvStream *s)
+static MPP_RET h264e_rkv_stream_rbsp_trailing(H264eRkvStream *s)
 {
     //align bits, 1+N zeros.
     h264e_rkv_stream_write1_with_log(s, 1, "align_1_bit");
@@ -1475,8 +1495,11 @@ MPP_RET h264e_rkv_stream_rbsp_trailing(H264eRkvStream *s)
     return MPP_OK;
 }
 
-/* Write the rest of cur_bits to the bitstream; results in a bitstream no longer 32-bit aligned. */
-MPP_RET h264e_rkv_stream_flush(H264eRkvStream *s)
+/*
+ * Write the rest of cur_bits to the bitstream;
+ * results in a bitstream no longer 32-bit aligned.
+ */
+static MPP_RET h264e_rkv_stream_flush(H264eRkvStream *s)
 {
     //do 4 bytes aligned
     //M32(s->p) = endian_fix32(s->cur_bits << (s->i_left & 31));
@@ -1485,26 +1508,31 @@ MPP_RET h264e_rkv_stream_flush(H264eRkvStream *s)
     *(s->p + 1) = (tmp_bit >> 16) & 0xff;
     *(s->p + 2) = (tmp_bit >> 8) & 0xff;
     *(s->p + 3) = (tmp_bit >> 0) & 0xff;
-    s->p += 4 - (s->i_left >> 3);//p point to bit which aligned, rather than the pos next to 4-byte alinged
+    /*
+     * p point to bit which aligned, rather than
+     * the pos next to 4-byte alinged
+     */
+    s->p += 4 - (s->i_left >> 3);
     s->i_left = 4 * 8;
 
     return MPP_OK;
 }
 
-void h264e_rkv_nals_init(H264eRkvExtraInfo *out)
+static void h264e_rkv_nals_init(H264eRkvExtraInfo *out)
 {
     out->nal_buf = mpp_calloc(RK_U8, H264E_EXTRA_INFO_BUF_SIZE);
     out->nal_num = 0;
 }
 
-void h264e_rkv_nals_deinit(H264eRkvExtraInfo *out)
+static void h264e_rkv_nals_deinit(H264eRkvExtraInfo *out)
 {
     MPP_FREE(out->nal_buf);
 
     out->nal_num = 0;
 }
 
-void h264e_rkv_nal_start(H264eRkvExtraInfo *out, RK_S32 i_type, RK_S32 i_ref_idc)
+static void
+h264e_rkv_nal_start(H264eRkvExtraInfo *out, RK_S32 i_type, RK_S32 i_ref_idc)
 {
     H264eRkvStream *s = &out->stream;
     H264eRkvNal *nal = &out->nal[out->nal_num];
@@ -1514,23 +1542,28 @@ void h264e_rkv_nal_start(H264eRkvExtraInfo *out, RK_S32 i_type, RK_S32 i_ref_idc
     nal->b_long_startcode = 1;
 
     nal->i_payload = 0;
-    nal->p_payload = &s->buf_plus8[h264e_rkv_stream_get_pos(s) / 8]; ////NOTE: consistent with stream_init
+    /* NOTE: consistent with stream_init */
+    nal->p_payload = &s->buf_plus8[h264e_rkv_stream_get_pos(s) / 8];
     nal->i_padding = 0;
 }
 
-void h264e_rkv_nal_end(H264eRkvExtraInfo *out)
+static void h264e_rkv_nal_end(H264eRkvExtraInfo *out)
 {
     H264eRkvNal *nal = &(out->nal[out->nal_num]);
     H264eRkvStream *s = &out->stream;
-    RK_U8 *end = &s->buf_plus8[h264e_rkv_stream_get_pos(s) / 8]; //NOTE: consistent with stream_init
+    /* NOTE: consistent with stream_init */
+    RK_U8 *end = &s->buf_plus8[h264e_rkv_stream_get_pos(s) / 8];
     nal->i_payload = (RK_S32)(end - nal->p_payload);
-    /* Assembly implementation of nal_escape reads past the end of the input.
-    * While undefined padding wouldn't actually affect the output, it makes valgrind unhappy. */
+    /*
+     * Assembly implementation of nal_escape reads past the end of the input.
+     * While undefined padding wouldn't actually affect the output,
+     * it makes valgrind unhappy.
+     */
     memset(end, 0xff, 64);
     out->nal_num++;
 }
 
-RK_U8 *h264e_rkv_nal_escape_c(RK_U8 *dst, RK_U8 *src, RK_U8 *end)
+static RK_U8 *h264e_rkv_nal_escape_c(RK_U8 *dst, RK_U8 *src, RK_U8 *end)
 {
     if (src < end) *dst++ = *src++;
     if (src < end) *dst++ = *src++;
@@ -1542,7 +1575,7 @@ RK_U8 *h264e_rkv_nal_escape_c(RK_U8 *dst, RK_U8 *src, RK_U8 *end)
     return dst;
 }
 
-void h264e_rkv_nal_encode(RK_U8 *dst, H264eRkvNal *nal)
+static void h264e_rkv_nal_encode(RK_U8 *dst, H264eRkvNal *nal)
 {
     RK_S32 b_annexb = 1;
     RK_S32 size = 0;
@@ -1578,9 +1611,7 @@ void h264e_rkv_nal_encode(RK_U8 *dst, H264eRkvNal *nal)
     nal->p_payload = orig_dst;
 }
 
-
-
-MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
+static MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
 {
     RK_S32 i = 0;
     RK_S32 i_avcintra_class = 0;
@@ -1609,14 +1640,17 @@ MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
         nal_buffer += nal[i].i_payload;
     }
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "nals total size: %d bytes",  nal_buffer - out->nal_buf);
+    h264e_hal_dbg(H264E_DBG_HEADER, "nals total size: %d bytes",
+                  nal_buffer - out->nal_buf);
 
     h264e_hal_leave();
 
     return MPP_OK;
 }
 
-static MPP_RET h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload, RK_S32 payload_size, RK_S32 payload_type)
+static MPP_RET
+h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload,
+                    RK_S32 payload_size, RK_S32 payload_type)
 {
     RK_S32 i = 0;
 
@@ -1626,15 +1660,20 @@ static MPP_RET h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload, RK_S32 pay
     h264e_rkv_stream_realign(s);
 
     for (i = 0; i <= payload_type - 255; i += 255)
-        h264e_rkv_stream_write_with_log(s, 8, 0xff, "sei_payload_type_ff_byte");
-    h264e_rkv_stream_write_with_log(s, 8, payload_type - i, "sei_last_payload_type_byte");
+        h264e_rkv_stream_write_with_log(s, 8, 0xff,
+                                        "sei_payload_type_ff_byte");
+    h264e_rkv_stream_write_with_log(s, 8, payload_type - i,
+                                    "sei_last_payload_type_byte");
 
     for (i = 0; i <= payload_size - 255; i += 255)
-        h264e_rkv_stream_write_with_log(s, 8, 0xff, "sei_payload_size_ff_byte");
-    h264e_rkv_stream_write_with_log( s, 8, payload_size - i , "sei_last_payload_size_byte");
+        h264e_rkv_stream_write_with_log(s, 8, 0xff,
+                                        "sei_payload_size_ff_byte");
+    h264e_rkv_stream_write_with_log( s, 8, payload_size - i,
+                                     "sei_last_payload_size_byte");
 
     for (i = 0; i < payload_size; i++)
-        h264e_rkv_stream_write_with_log(s, 8, (RK_U32)payload[i], "sei_payload_data");
+        h264e_rkv_stream_write_with_log(s, 8, (RK_U32)payload[i],
+                                        "sei_payload_data");
 
     h264e_rkv_stream_rbsp_trailing(s);
     h264e_rkv_stream_flush(s);
@@ -1644,7 +1683,7 @@ static MPP_RET h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload, RK_S32 pay
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
+static MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
 {
     H264eRkvExtraInfo *info = (H264eRkvExtraInfo *)ctx->extra_info;
     char *str = (char *)info->sei_buf;
@@ -1654,7 +1693,8 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
 
     str_len = strlen(str) + 1;
     if (str_len > H264E_SEI_BUF_SIZE) {
-        h264e_hal_err("SEI actual string length %d exceed malloced size %d", str_len, H264E_SEI_BUF_SIZE);
+        h264e_hal_err("SEI actual string length %d exceed malloced size %d",
+                      str_len, H264E_SEI_BUF_SIZE);
         return MPP_NOK;
     } else {
         h264e_rkv_sei_write(&info->stream, (RK_U8 *)str, str_len, H264E_SEI_USER_DATA_UNREGISTERED);
@@ -1664,7 +1704,7 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
+static MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
 {
     h264e_hal_enter();
 
@@ -1849,7 +1889,7 @@ static void h264e_rkv_scaling_list_write( H264eRkvStream *s, H264ePps *pps, RK_S
     }
 }
 
-MPP_RET h264e_rkv_pps_write(H264ePps *pps, H264eSps *sps, H264eRkvStream *s)
+static MPP_RET h264e_rkv_pps_write(H264ePps *pps, H264eSps *sps, H264eRkvStream *s)
 {
     h264e_hal_enter();
 
@@ -2203,8 +2243,9 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
     return MPP_OK;
 }
 
-
-MPP_RET h264e_rkv_set_ioctl_extra_info(H264eRkvIoctlExtraInfo *extra_info, H264eHwCfg *syn, H264eRkvRegSet *regs)
+static MPP_RET
+h264e_rkv_set_ioctl_extra_info(H264eRkvIoctlExtraInfo *extra_info,
+                               H264eHwCfg *syn, H264eRkvRegSet *regs)
 {
     H264eRkvIoctlExtraInfoElem *info = NULL;
     RK_U32 hor_stride = regs->swreg23.src_ystrid + 1;
@@ -2262,7 +2303,8 @@ static void h264e_rkv_set_mb_rc(H264eHalContext *ctx)
 static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
                                      H264eHwCfg *syn, RcSyntax *rc_syn)
 {
-    RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
+    RK_U32 num_mbs_oneframe =
+        (syn->width + 15) / 16 * ((syn->height + 15) / 16);
     RK_U32 mb_target_size_mul_16 = (rc_syn->bit_target << 4) / num_mbs_oneframe;
     RK_U32 mb_target_size = mb_target_size_mul_16 >> 4;
     MppEncRcCfg *rc = &ctx->cfg->rc;
@@ -2345,7 +2387,8 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
+static MPP_RET
+h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
 {
 #define H264E_DEFAULT_OSD_INV_THR 15 //TODO: open interface later
     MppEncOSDData *osd_data = &ctx->osd_data;
@@ -2368,10 +2411,13 @@ MPP_RET h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
                 if (region[k].enable) {
                     regs->swreg67_osd_pos[k].lt_pos_x = region[k].start_mb_x;
                     regs->swreg67_osd_pos[k].lt_pos_y = region[k].start_mb_y;
-                    regs->swreg67_osd_pos[k].rd_pos_x = region[k].start_mb_x + region[k].num_mb_x - 1;
-                    regs->swreg67_osd_pos[k].rd_pos_y = region[k].start_mb_y + region[k].num_mb_y - 1;
+                    regs->swreg67_osd_pos[k].rd_pos_x =
+                        region[k].start_mb_x + region[k].num_mb_x - 1;
+                    regs->swreg67_osd_pos[k].rd_pos_y =
+                        region[k].start_mb_y + region[k].num_mb_y - 1;
 
-                    regs->swreg68_indx_addr_i[k] = buf_fd | (region[k].buf_offset << 10);
+                    regs->swreg68_indx_addr_i[k] =
+                        buf_fd | (region[k].buf_offset << 10);
                 }
             }
 
@@ -2397,9 +2443,9 @@ MPP_RET h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
-                              MppEncPrepCfg *prep_cfg, MppBuffer hw_buf_w,
-                              MppBuffer hw_buf_r)
+static MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
+                                     MppEncPrepCfg *prep_cfg, MppBuffer hw_buf_w,
+                                     MppBuffer hw_buf_r)
 {
     RK_S32 k = 0;
     RK_S32 stridey = 0;
@@ -2416,15 +2462,18 @@ MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
     if (syn->hor_stride) {
         stridey = syn->hor_stride - 1;
     } else {
-        stridey = (regs->swreg19.src_rot == 1 || regs->swreg19.src_rot == 3) ? (syn->height - 1) : (syn->width - 1);
+        stridey = (regs->swreg19.src_rot == 1 || regs->swreg19.src_rot == 3)
+                  ? (syn->height - 1) : (syn->width - 1);
         if (regs->swreg14.src_cfmt == 0 )
             stridey = (stridey + 1) * 4 - 1;
         else if (regs->swreg14.src_cfmt == 1 )
             stridey = (stridey + 1) * 3 - 1;
-        else if ( regs->swreg14.src_cfmt == 2 || regs->swreg14.src_cfmt == 8 || regs->swreg14.src_cfmt == 9 )
+        else if ( regs->swreg14.src_cfmt == 2 || regs->swreg14.src_cfmt == 8
+                  || regs->swreg14.src_cfmt == 9 )
             stridey = (stridey + 1) * 2 - 1;
     }
-    stridec = (regs->swreg14.src_cfmt == 4 || regs->swreg14.src_cfmt == 6) ? stridey : ((stridey + 1) / 2 - 1);
+    stridec = (regs->swreg14.src_cfmt == 4 || regs->swreg14.src_cfmt == 6)
+              ? stridey : ((stridey + 1) / 2 - 1);
     regs->swreg23.src_ystrid    = stridey;
     regs->swreg23.src_cstrid    = stridec;
 
@@ -2444,7 +2493,9 @@ MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
     return MPP_OK;
 }
 
-static RK_S32 h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, RK_S32 qp_start, RK_S32 bits)
+static RK_S32
+h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec,
+                       RK_S32 qp_start, RK_S32 bits)
 {
     RK_S32 qp = qp_start;
     RK_S32 qp_best = qp_start;
@@ -2462,7 +2513,8 @@ static RK_S32 h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, RK_S3
         do {
             RK_S32 est_bits = mpp_quadreg_calc(ctx, QP2Qstep(qp));
             RK_S32 diff = est_bits - bits;
-            h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp est qp %d qstep %f bit %d diff %d best %d\n",
+            h264e_hal_dbg(H264E_DBG_DETAIL,
+                          "RC: qp est qp %d qstep %f bit %d diff %d best %d\n",
                           qp, QP2Qstep(qp), bits, diff, diff_best);
             if (MPP_ABS(diff) < MPP_ABS(diff_best)) {
                 diff_best = MPP_ABS(diff);
@@ -2480,7 +2532,9 @@ static RK_S32 h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec, RK_S3
     return qp_best;
 }
 
-static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H264eHwCfg *hw_cfg)
+static MPP_RET
+h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
+                        H264eHwCfg *hw_cfg)
 {
     RK_S32 i;
     MppEncCfgSet *cfg = ctx->cfg;
@@ -2562,7 +2616,10 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
      */
     if (hw_cfg->qp <= 0) {
         RK_S32 qp_tbl[2][13] = {
-            {26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936, 1472, 0x7fffffff},
+            {
+                26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936,
+                1472, 0x7fffffff
+            },
             {42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6}
         };
         RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
@@ -2606,13 +2663,15 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
     mpp_assert(ctx->sse_p);
 
     /* frame type and rate control setup */
-    h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp calc ctx %p qp [%d %d] prev %d target bit %d\n",
+    h264e_hal_dbg(H264E_DBG_DETAIL,
+                  "RC: qp calc ctx %p qp [%d %d] prev %d target bit %d\n",
                   ctx->inter_qs, codec->qp_min, codec->qp_max, hw_cfg->qp_prev,
                   rc_syn->bit_target);
 
     {
         RK_S32 prev_frame_type = hw_cfg->frame_type;
-        RK_S32 is_cqp = rc->rc_mode == MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP;
+        RK_S32 is_cqp = rc->rc_mode ==
+                        MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP;
 
         if (rc_syn->type == INTRA_FRAME) {
             hw_cfg->frame_type = H264E_RKV_FRAME_I;
@@ -2628,7 +2687,8 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
                  * have a big qp step between these two frames
                  */
                 if (prev_frame_type == H264E_RKV_FRAME_P)
-                    hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 2, hw_cfg->qp_prev + 2);
+                    hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 2,
+                                          hw_cfg->qp_prev + 2);
             }
         } else {
             hw_cfg->frame_type = H264E_RKV_FRAME_P;
@@ -2636,14 +2696,17 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
 
             if (!is_cqp) {
                 RK_S32 sse = mpp_data_avg(ctx->sse_p, 1, 1, 1) + 1;
-                hw_cfg->qp = h264e_rkv_find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev, rc_syn->bit_target * 1024 / sse);
+                hw_cfg->qp = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
+                                                    hw_cfg->qp_prev,
+                                                    rc_syn->bit_target * 1024 / sse);
 
                 /*
                  * Previous frame is intra then inter frame can not
                  * have a big qp step between these two frames
                  */
                 if (prev_frame_type == H264E_RKV_FRAME_I)
-                    hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 4, hw_cfg->qp_prev + 4);
+                    hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 4,
+                                          hw_cfg->qp_prev + 4);
             }
         }
     }
@@ -2655,8 +2718,10 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
                           hw_cfg->qp_prev - codec->qp_max_step,
                           hw_cfg->qp_prev + codec->qp_max_step);
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp calc ctx %p qp clip %d prev %d step %d\n",
-                  ctx->inter_qs, hw_cfg->qp, hw_cfg->qp_prev, codec->qp_max_step);
+    h264e_hal_dbg(H264E_DBG_DETAIL,
+                  "RC: qp calc ctx %p qp clip %d prev %d step %d\n",
+                  ctx->inter_qs, hw_cfg->qp,
+                  hw_cfg->qp_prev, codec->qp_max_step);
 
     hw_cfg->qp_prev = hw_cfg->qp;
 
@@ -2729,12 +2794,16 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_rkv_adjust_param(ctx); //TODO: future expansion
 
-    h264e_hal_dbg(H264E_DBG_SIMPLE, "frame %d | type %d | start gen regs", ctx->frame_cnt, syn->frame_type);
+    h264e_hal_dbg(H264E_DBG_SIMPLE,
+                  "frame %d | type %d | start gen regs",
+                  ctx->frame_cnt, syn->frame_type);
 
-    if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME && extra_info->sei_change_flg) {
+    if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME
+        && extra_info->sei_change_flg) {
         extra_info->nal_num = 0;
         h264e_rkv_stream_reset(&extra_info->stream);
-        h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
+        h264e_rkv_nal_start(extra_info, H264E_NAL_SEI,
+                            H264E_NAL_PRIORITY_DISPOSABLE);
         h264e_rkv_sei_encode(ctx);
         h264e_rkv_nal_end(extra_info);
     }
@@ -2771,7 +2840,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         h264e_hal_err("h264e_rkv_reference_frame_set failed, multi-ref error");
     }
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
+    h264e_hal_dbg(H264E_DBG_DETAIL,
+                  "generate regs when frame_cnt_gen_ready/(num_frames_to_send-1): %d/%d",
                   ctx->frame_cnt_gen_ready, ctx->num_frames_to_send - 1);
 
     memset(regs, 0, sizeof(H264eRkvRegSet));
@@ -2797,10 +2867,12 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg05.rrsp_err    = 1;
     regs->swreg05.tmt_err     = 1;
 
-    regs->swreg09.pic_wd8_m1    = pic_width_align16 / 8 - 1;
-    regs->swreg09.pic_wfill     = (syn->width & 0xf) ? (16 - (syn->width & 0xf)) : 0;
-    regs->swreg09.pic_hd8_m1    = pic_height_align16 / 8 - 1;
-    regs->swreg09.pic_hfill     = (syn->height & 0xf) ? (16 - (syn->height & 0xf)) : 0;
+    regs->swreg09.pic_wd8_m1  = pic_width_align16 / 8 - 1;
+    regs->swreg09.pic_wfill   = (syn->width & 0xf)
+                                ? (16 - (syn->width & 0xf)) : 0;
+    regs->swreg09.pic_hd8_m1  = pic_height_align16 / 8 - 1;
+    regs->swreg09.pic_hfill   = (syn->height & 0xf)
+                                ? (16 - (syn->height & 0xf)) : 0;
 
     regs->swreg10.enc_stnd       = 0; //H264
     regs->swreg10.cur_frm_ref    = 1; //current frame will be refered
@@ -2827,7 +2899,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg13.axi_brsp_cke      = 0x7f;
     regs->swreg13.cime_dspw_orsd    = 0x0;
 
-    h264e_rkv_set_pp_regs(regs, syn, &ctx->set->prep, bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx]);
+    h264e_rkv_set_pp_regs(regs, syn, &ctx->set->prep,
+                          bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx]);
     h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, regs);
 
     regs->swreg24_adr_srcy     = syn->input_luma_addr;
@@ -2836,12 +2909,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg30_rfpw_addr    = mpp_buffer_get_fd(dpb_ctx->fdec->hw_buf);
     if (dpb_ctx->fref[0][0])
-        regs->swreg31_rfpr_addr    = mpp_buffer_get_fd(dpb_ctx->fref[0][0]->hw_buf);
+        regs->swreg31_rfpr_addr = mpp_buffer_get_fd(dpb_ctx->fref[0][0]->hw_buf);
 
     if (bufs->hw_dsp_buf[buf2_idx])
-        regs->swreg34_dspw_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[buf2_idx]);
+        regs->swreg34_dspw_addr = mpp_buffer_get_fd(bufs->hw_dsp_buf[buf2_idx]);
     if (bufs->hw_dsp_buf[1 - buf2_idx])
-        regs->swreg35_dspr_addr    = mpp_buffer_get_fd(bufs->hw_dsp_buf[1 - buf2_idx]);
+        regs->swreg35_dspr_addr =
+            mpp_buffer_get_fd(bufs->hw_dsp_buf[1 - buf2_idx]);
 
     if (mv_info_buf) {
         regs->swreg10.mei_stor    = 1;
@@ -2853,16 +2927,23 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg38_bsbb_addr    = syn->output_strm_addr;
     if (VPUClientGetIOMMUStatus() > 0)
-        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr | (syn->output_strm_limit_size << 10); // TODO: stream size relative with syntax
+        /* TODO: stream size relative with syntax */
+        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr
+                                  | (syn->output_strm_limit_size << 10);
     else
-        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr + (syn->output_strm_limit_size);
+        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr
+                                  + (syn->output_strm_limit_size);
     regs->swreg39_bsbr_addr    = regs->swreg38_bsbb_addr;
     regs->swreg40_bsbw_addr    = regs->swreg38_bsbb_addr;
 
-    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg37_bsbt_addr: %08x", regs->swreg37_bsbt_addr);
-    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg38_bsbb_addr: %08x", regs->swreg38_bsbb_addr);
-    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg39_bsbr_addr: %08x", regs->swreg39_bsbr_addr);
-    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg40_bsbw_addr: %08x", regs->swreg40_bsbw_addr);
+    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg37_bsbt_addr: %08x",
+                  regs->swreg37_bsbt_addr);
+    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg38_bsbb_addr: %08x",
+                  regs->swreg38_bsbb_addr);
+    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg39_bsbr_addr: %08x",
+                  regs->swreg39_bsbr_addr);
+    h264e_hal_dbg(H264E_DBG_DPB, "regs->swreg40_bsbw_addr: %08x",
+                  regs->swreg40_bsbw_addr);
 
     regs->swreg41.sli_cut         = 0;
     regs->swreg41.sli_cut_mode    = 0;
@@ -2875,10 +2956,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     {
         RK_U32 cime_wid_4p = 0, cime_hei_4p = 0;
-        if ( sps->i_level_idc == 10 || sps->i_level_idc == 9 ) { //9 is level 1b;
+        if (sps->i_level_idc == 10 || sps->i_level_idc == 9) { //9 is level 1b;
             cime_wid_4p = 44;
             cime_hei_4p = 12;
-        } else if ( sps->i_level_idc == 11 || sps->i_level_idc == 12 || sps->i_level_idc == 13 || sps->i_level_idc == 20 ) {
+        } else if ( sps->i_level_idc == 11 || sps->i_level_idc == 12
+                    || sps->i_level_idc == 13 || sps->i_level_idc == 20 ) {
             cime_wid_4p = 44;
             cime_hei_4p = 28;
         } else {
@@ -2895,8 +2977,10 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         if (cime_hei_4p / 4 * 2 > (RK_U32)(regs->swreg09.pic_hd8_m1 + 2) / 2)
             cime_hei_4p = (regs->swreg09.pic_hd8_m1 + 2) / 2 / 2 * 4;
 
-        if (cime_wid_4p / 4 > (RK_U32)(((regs->swreg09.pic_wd8_m1 + 1) * 8 + 63) / 64 * 64 / 128 * 4))
-            cime_wid_4p = ((regs->swreg09.pic_wd8_m1 + 1) * 8 + 63) / 64 * 64 / 128 * 4 * 4;
+        if (cime_wid_4p / 4 > (RK_U32)(((regs->swreg09.pic_wd8_m1 + 1)
+                                        * 8 + 63) / 64 * 64 / 128 * 4))
+            cime_wid_4p = ((regs->swreg09.pic_wd8_m1 + 1)
+                           * 8 + 63) / 64 * 64 / 128 * 4 * 4;
 
         regs->swreg43.cime_srch_h    = cime_wid_4p / 4;
         regs->swreg43.cime_srch_v    = cime_hei_4p / 4;
@@ -2908,7 +2992,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg44.pmv_mdst_h    = 5;
     regs->swreg44.pmv_mdst_v    = 5;
-    regs->swreg44.mv_limit      = (sps->i_level_idc > 20) ? 2 : ((sps->i_level_idc >= 11) ? 1 : 0);
+    regs->swreg44.mv_limit      = (sps->i_level_idc > 20)
+                                  ? 2 : ((sps->i_level_idc >= 11) ? 1 : 0);
     regs->swreg44.mv_num        = 3;
 
     if (pic_width_align16 > 3584)
@@ -2934,11 +3019,14 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     {
         RK_U32 i_swin_all_4_h = (2 * regs->swreg43.cime_srch_v + 1);
-        RK_U32 i_swin_all_16_w = ((regs->swreg43.cime_srch_h * 4 + 15) / 16 * 2 + 1);
+        RK_U32 i_swin_all_16_w = ((regs->swreg43.cime_srch_h * 4 + 15)
+                                  / 16 * 2 + 1);
         if (i_swin_all_4_h < regs->swreg45.cime_rama_h)
-            regs->swreg45.cime_rama_max = (i_swin_all_4_h - 1) * pic_width_in_blk64 + i_swin_all_16_w;
+            regs->swreg45.cime_rama_max = (i_swin_all_4_h - 1)
+                                          * pic_width_in_blk64 + i_swin_all_16_w;
         else
-            regs->swreg45.cime_rama_max = (regs->swreg45.cime_rama_h - 1) * pic_width_in_blk64 + i_swin_all_16_w;
+            regs->swreg45.cime_rama_max = (regs->swreg45.cime_rama_h - 1)
+                                          * pic_width_in_blk64 + i_swin_all_16_w;
     }
 
     regs->swreg45.cach_l1_dtmr     = 0x3;
@@ -2954,16 +3042,19 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_rkv_set_rc_regs(ctx, regs, syn, (RcSyntax *)enc_task->syntax.data);
 
-    regs->swreg56.rect_size        = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
-    regs->swreg56.inter_4x4        = 1;
-    regs->swreg56.arb_sel          = 0;
-    regs->swreg56.vlc_lmt          = (sps->i_profile_idc < H264_PROFILE_HIGH && !pps->b_cabac);
-    regs->swreg56.rdo_mark         = 0;
+    regs->swreg56.rect_size = (sps->i_profile_idc == H264_PROFILE_BASELINE
+                               && sps->i_level_idc <= 30);
+    regs->swreg56.inter_4x4 = 1;
+    regs->swreg56.arb_sel   = 0;
+    regs->swreg56.vlc_lmt   = (sps->i_profile_idc < H264_PROFILE_HIGH
+                               && !pps->b_cabac);
+    regs->swreg56.rdo_mark  = 0;
 
     {
         RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
 
-        if (syn->coding_type == RKVENC_CODING_TYPE_IDR ) { //TODO: extend syn->frame_coding_type definition
+        /* TODO: extend syn->frame_coding_type definition */
+        if (syn->coding_type == RKVENC_CODING_TYPE_IDR ) {
             /* reset ref pictures */
             i_nal_type    = H264E_NAL_SLICE_IDR;
             i_nal_ref_idc = H264E_NAL_PRIORITY_HIGHEST;
@@ -3011,7 +3102,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg60.frm_num         = dpb_ctx->i_frame_num;
 
     regs->swreg61.idr_pid    = dpb_ctx->i_idr_pic_id;
-    regs->swreg61.poc_lsb    = dpb_ctx->fdec->i_poc & ((1 << sps->i_log2_max_poc_lsb) - 1);
+    regs->swreg61.poc_lsb    = dpb_ctx->fdec->i_poc
+                               & ((1 << sps->i_log2_max_poc_lsb) - 1);
 
     regs->swreg62.rodr_pic_idx      = dpb_ctx->ref_pic_list_order[0][0].idc;
     regs->swreg62.ref_list0_rodr    = dpb_ctx->b_ref_pic_list_reordering[0];
@@ -3019,16 +3111,23 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg62.rodr_pic_num      = dpb_ctx->ref_pic_list_order[0][0].arg;
 
     {
-        RK_S32 mmco4_pre = dpb_ctx->i_mmco_command_count > 0 && (dpb_ctx->mmco[0].memory_management_control_operation == 4);
+        RK_S32 mmco4_pre = dpb_ctx->i_mmco_command_count > 0
+                           && (dpb_ctx->mmco[0].memory_management_control_operation == 4);
         regs->swreg63.nopp_flg     = 0x0;
         regs->swreg63.ltrf_flg     = dpb_ctx->i_long_term_reference_flag;
         regs->swreg63.arpm_flg     = dpb_ctx->i_mmco_command_count;
         regs->swreg63.mmco4_pre    = mmco4_pre;
-        regs->swreg63.mmco_0       = dpb_ctx->i_mmco_command_count > mmco4_pre ? dpb_ctx->mmco[mmco4_pre].memory_management_control_operation : 0;
-        regs->swreg63.dopn_m1_0    = dpb_ctx->i_mmco_command_count > mmco4_pre ? dpb_ctx->mmco[mmco4_pre].i_difference_of_pic_nums - 1 : 0;
+        regs->swreg63.mmco_0       = dpb_ctx->i_mmco_command_count > mmco4_pre
+                                     ? dpb_ctx->mmco[mmco4_pre].memory_management_control_operation : 0;
+        regs->swreg63.dopn_m1_0    = dpb_ctx->i_mmco_command_count > mmco4_pre
+                                     ? dpb_ctx->mmco[mmco4_pre].i_difference_of_pic_nums - 1 : 0;
 
-        regs->swreg64.mmco_1       = dpb_ctx->i_mmco_command_count > (mmco4_pre + 1) ? dpb_ctx->mmco[(mmco4_pre + 1)].memory_management_control_operation : 0;
-        regs->swreg64.dopn_m1_1    = dpb_ctx->i_mmco_command_count > (mmco4_pre + 1) ? dpb_ctx->mmco[(mmco4_pre + 1)].i_difference_of_pic_nums - 1 : 0;
+        regs->swreg64.mmco_1       = dpb_ctx->i_mmco_command_count
+                                     > (mmco4_pre + 1)
+                                     ? dpb_ctx->mmco[(mmco4_pre + 1)].memory_management_control_operation : 0;
+        regs->swreg64.dopn_m1_1    = dpb_ctx->i_mmco_command_count
+                                     > (mmco4_pre + 1)
+                                     ? dpb_ctx->mmco[(mmco4_pre + 1)].i_difference_of_pic_nums - 1 : 0;
     }
 
     h264e_rkv_set_osd_regs(ctx, regs);
@@ -3084,19 +3183,24 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
 
     h264e_hal_enter();
     if (enc_task->flags.err) {
-        h264e_hal_err("enc_task->flags.err %08x, return early", enc_task->flags.err);
+        h264e_hal_err("enc_task->flags.err %08x, return early",
+                      enc_task->flags.err);
         return MPP_NOK;
     }
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        h264e_hal_dbg(H264E_DBG_DETAIL, "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
+        h264e_hal_dbg(H264E_DBG_DETAIL,
+                      "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
                       ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     }
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "memcpy %d frames' regs from reg list to reg info", ioctl_info->frame_num);
+    h264e_hal_dbg(H264E_DBG_DETAIL,
+                  "memcpy %d frames' regs from reg list to reg info",
+                  ioctl_info->frame_num);
     for (k = 0; k < ioctl_info->frame_num; k++)
-        memcpy(&ioctl_info->reg_info[k].regs, &reg_list[k], sizeof(H264eRkvRegSet));
+        memcpy(&ioctl_info->reg_info[k].regs, &reg_list[k],
+               sizeof(H264eRkvRegSet));
 
     length = (sizeof(ioctl_info->enc_mode) + sizeof(ioctl_info->frame_num) +
               sizeof(ioctl_info->reg_info[0]) * ioctl_info->frame_num) >> 2;
@@ -3196,7 +3300,8 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
     H264eRkvRegSet *reg_list = (H264eRkvRegSet *)ctx->regs;
     RK_S32 length;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
-    RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
+                    * MPP_ALIGN(prep->height, 16) / 16 / 16;
     VPU_CMD_TYPE cmd = 0;
     H264eRkvIoctlOutput *reg_out = (H264eRkvIoctlOutput *)ctx->ioctl_output;
     h264e_feedback *fb = &ctx->feedback;
@@ -3245,33 +3350,40 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     RK_S32 hw_ret = 0;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     H264eRkvIoctlOutput *reg_out = (H264eRkvIoctlOutput *)ctx->ioctl_output;
-    RK_S32 length = (sizeof(reg_out->frame_num) + sizeof(reg_out->elem[0]) * ctx->num_frames_to_send) >> 2;
+    RK_S32 length = (sizeof(reg_out->frame_num)
+                     + sizeof(reg_out->elem[0])
+                     * ctx->num_frames_to_send) >> 2;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
     HalEncTask *enc_task = &task->enc;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
-    RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
+                    * MPP_ALIGN(prep->height, 16) / 16 / 16;
     /* for dumping ratecontrol message */
     RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
 
     h264e_hal_enter();
 
     if (enc_task->flags.err) {
-        h264e_hal_err("enc_task->flags.err %08x, return early", enc_task->flags.err);
+        h264e_hal_err("enc_task->flags.err %08x, return early",
+                      enc_task->flags.err);
         return MPP_NOK;
     }
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        h264e_hal_dbg(H264E_DBG_DETAIL, "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
+        h264e_hal_dbg(H264E_DBG_DETAIL,
+                      "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
                       ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     } else {
         ctx->frame_cnt_gen_ready = 0;
         if (ctx->enc_mode == 3) {
-            h264e_hal_dbg(H264E_DBG_DETAIL, "only for test enc_mode 3 ..."); //TODO: remove later
+            /* TODO: remove later */
+            h264e_hal_dbg(H264E_DBG_DETAIL, "only for test enc_mode 3 ...");
             if (ctx->frame_cnt_send_ready != RKV_H264E_LINKTABLE_FRAME_NUM) {
-                h264e_hal_dbg(H264E_DBG_DETAIL, "frame_cnt_send_ready(%d) != RKV_H264E_LINKTABLE_FRAME_NUM(%d), wait hardware later",
+                h264e_hal_dbg(H264E_DBG_DETAIL,
+                              "frame_cnt_send_ready(%d) != RKV_H264E_LINKTABLE_FRAME_NUM(%d), wait hardware later",
                               ctx->frame_cnt_send_ready, RKV_H264E_LINKTABLE_FRAME_NUM);
                 return MPP_OK;
             } else {
@@ -3286,12 +3398,15 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         return MPP_NOK;
     }
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult expect length %d\n", length);
+    h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult expect length %d\n",
+                  length);
 
     hw_ret = VPUClientWaitResult(ctx->vpu_fd, (RK_U32 *)reg_out,
                                  length, &cmd, NULL);
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
+    h264e_hal_dbg(H264E_DBG_DETAIL,
+                  "VPUClientWaitResult: ret %d, cmd %d, len %d\n",
+                  hw_ret, cmd, length);
 
 
     if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
@@ -3317,7 +3432,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     }
 
     task->enc.length = fb->out_strm_size;
-    h264e_hal_dbg(H264E_DBG_DETAIL, "output stream size %d\n", fb->out_strm_size);
+    h264e_hal_dbg(H264E_DBG_DETAIL, "output stream size %d\n",
+                  fb->out_strm_size);
     if (int_cb.callBack) {
         RcSyntax *syn = (RcSyntax *)task->enc.syntax.data;
         RcHalResult result;
@@ -3361,7 +3477,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         }
 
         if (syn->type == INTER_P_FRAME) {
-            mpp_save_regdata(ctx->inter_qs, QP2Qstep(avg_qp), result.bits * 1024 / avg_sse);
+            mpp_save_regdata(ctx->inter_qs, QP2Qstep(avg_qp),
+                             result.bits * 1024 / avg_sse);
             mpp_quadreg_update(ctx->inter_qs, wlen);
         }
 
@@ -3373,7 +3490,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         }
 
         int_cb.callBack(int_cb.opaque, fb);
-        h264e_hal_dbg(H264E_DBG_RC, "real   qp %0.2f frame_bits %d", avg_qp, result.bits);
+        h264e_hal_dbg(H264E_DBG_RC, "real qp %0.2f frame_bits %d",
+                      avg_qp, result.bits);
     }
 
     h264e_rkv_dump_mpp_reg_out(ctx);
@@ -3407,7 +3525,8 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     H264eHalContext *ctx = (H264eHalContext *)hal;
     h264e_hal_enter();
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "h264e_rkv_control cmd 0x%x, info %p", cmd_type, param);
+    h264e_hal_dbg(H264E_DBG_DETAIL, "h264e_rkv_control cmd 0x%x, info %p",
+                  cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
         break;
