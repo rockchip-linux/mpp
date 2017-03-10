@@ -67,12 +67,17 @@ typedef struct hal_jpege_ctx_s {
 
 RK_U32 hal_jpege_debug = 0;
 
-#define hal_jpege_dbg(flag, fmt, ...)   _mpp_dbg(hal_jpege_debug, flag, fmt, ## __VA_ARGS__)
-#define hal_jpege_dbg_f(flag, fmt, ...) _mpp_dbg_f(hal_jpege_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_jpege_dbg(flag, fmt, ...)   \
+    _mpp_dbg(hal_jpege_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_jpege_dbg_f(flag, fmt, ...) \
+    _mpp_dbg_f(hal_jpege_debug, flag, fmt, ## __VA_ARGS__)
 
-#define hal_jpege_dbg_func(fmt, ...)    hal_jpege_dbg_f(HAL_JPEGE_DBG_FUNCTION, fmt, ## __VA_ARGS__)
-#define hal_jpege_dbg_input(fmt, ...)   hal_jpege_dbg(HAL_JPEGE_DBG_INPUT, fmt, ## __VA_ARGS__)
-#define hal_jpege_dbg_output(fmt, ...)  hal_jpege_dbg(HAL_JPEGE_DBG_OUTPUT, fmt, ## __VA_ARGS__)
+#define hal_jpege_dbg_func(fmt, ...)    \
+    hal_jpege_dbg_f(HAL_JPEGE_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define hal_jpege_dbg_input(fmt, ...)   \
+    hal_jpege_dbg(HAL_JPEGE_DBG_INPUT, fmt, ## __VA_ARGS__)
+#define hal_jpege_dbg_output(fmt, ...)  \
+    hal_jpege_dbg(HAL_JPEGE_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
 /* JPEG QUANT table order */
 static const RK_U32 qp_reorder_table[64] = {
@@ -529,18 +534,17 @@ MPP_RET hal_jpege_control(void *hal, RK_S32 cmd, void *param)
 }
 
 const MppHalApi hal_api_jpege = {
-    "jpege_vpu",
-    MPP_CTX_ENC,
-    MPP_VIDEO_CodingMJPEG,
-    sizeof(HalJpegeCtx),
-    0,
-    hal_jpege_init,
-    hal_jpege_deinit,
-    hal_jpege_gen_regs,
-    hal_jpege_start,
-    hal_jpege_wait,
-    hal_jpege_reset,
-    hal_jpege_flush,
-    hal_jpege_control,
+    .name = "jpege_vpu",
+    .type = MPP_CTX_ENC,
+    .coding = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(HalJpegeCtx),
+    .flag = 0,
+    .init = hal_jpege_init,
+    .deinit = hal_jpege_deinit,
+    .reg_gen = hal_jpege_gen_regs,
+    .start = hal_jpege_start,
+    .wait = hal_jpege_wait,
+    .reset = hal_jpege_reset,
+    .flush = hal_jpege_flush,
+    .control = hal_jpege_control,
 };
-
