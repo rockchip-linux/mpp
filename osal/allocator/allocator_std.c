@@ -17,10 +17,10 @@
 #include <stdio.h>
 
 #include "os_mem.h"
-#include "os_allocator.h"
-
 #include "mpp_mem.h"
 #include "mpp_log.h"
+
+#include "allocator_std.h"
 
 typedef struct {
     size_t alignment;

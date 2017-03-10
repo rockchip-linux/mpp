@@ -13,8 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef _ALLOCATOR_STD_H_
+#define _ALLOCATOR_STD_H_
 
 #include "os_allocator.h"
 
 extern os_allocator allocator_std;
 
+MPP_RET allocator_std_open(void **ctx, size_t alignment);
+MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_std_free(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_std_import(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_std_release(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_std_mmap(void *ctx, MppBufferInfo *info);
+MPP_RET allocator_std_close(void *ctx);
+
+#endif
