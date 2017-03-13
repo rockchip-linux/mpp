@@ -3219,6 +3219,7 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
               sizeof(ioctl_info->reg_info[0]) *
               ioctl_info->frame_num) >> 2;
 
+#ifdef RKPLATFORM
     if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
         h264e_hal_err("VPUClientSendReg Failed!!!");
         return MPP_ERR_VPUHW;
@@ -3229,7 +3230,7 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
     hw_ret = VPUClientWaitResult(ctx->vpu_fd,
                                  (RK_U32 *)reg_out,
                                  length, &cmd, NULL);
-
+#endif
     if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
         h264e_hal_err("hardware wait error");
 
