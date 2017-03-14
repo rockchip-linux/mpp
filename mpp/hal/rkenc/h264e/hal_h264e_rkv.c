@@ -3250,6 +3250,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     h264e_feedback *fb = &ctx->feedback;
     HalEncTask *enc_task = &task->enc;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppEncRcCfg *rcfg = &ctx->cfg->rc;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
     /* for dumping ratecontrol message */
@@ -3313,6 +3314,24 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     if (ctx->frame_cnt == 1) {
         h264e_rkv_resend(ctx, 0);
 
+        h264e_rkv_set_feedback(fb, reg_out);
+    } else if ((RK_S32)ctx->frame_cnt < rcfg->fps_out_num / rcfg->fps_out_denorm &&
+               rc_syn->type == INTER_P_FRAME &&
+               rc_syn->bit_target > fb->out_strm_size * 8 * 1.5) {
+        /* re-encode frame if it meets all the conditions below:
+         * 1. gop is the first gop
+         * 2. type is p frame
+         * 3. target_bits is larger than 1.5 * real_bits
+         * and the qp_init will decrease 3 when re-encode.
+         *
+         * TODO: maybe use sse to calculate a proper value instead of 3
+         * or add a much more suitable condition to start this re-encode
+         * process.
+         */
+        RK_S32 new_qp = fb->qp_sum / num_mb - 3;
+        fb->qp_sum = new_qp * num_mb;
+
+        h264e_rkv_resend(ctx, 1);
         h264e_rkv_set_feedback(fb, reg_out);
     }
 

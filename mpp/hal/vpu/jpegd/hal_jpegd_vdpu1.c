@@ -633,7 +633,7 @@ jpegd_set_post_processor(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
         } else {
             if (outWidth * outHeight > 0x400000) {
                 JPEGD_ERROR_LOG
-			("out offset big than 22bit iommu map may be error");
+                ("out offset big than 22bit iommu map may be error");
             } else {
                 post->reg67_pp_out_ch_base = (phy_addr
                                               | ((outWidth * outHeight)  << 10));
@@ -873,7 +873,7 @@ static MPP_RET jpegd_gen_regs(JpegHalContext *ctx, JpegSyntaxParam *syntax)
         do {
             /* loop until decoding control should return for user */
             if (pSyntax->ppInstance != NULL) {
-		/* if pp enabled ==> set pp control */
+                /* if pp enabled ==> set pp control */
                 pSyntax->ppControl.usePipeline = 1;
             }
 
