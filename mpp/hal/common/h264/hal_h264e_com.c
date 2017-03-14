@@ -661,7 +661,6 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
 MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps)
 {
     MppEncH264Cfg *codec = &ctx->cfg->codec.h264;
-    MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 k = 0;
     RK_S32 i_avcintra_class = 0;
     RK_S32 b_interlaced = 0;
