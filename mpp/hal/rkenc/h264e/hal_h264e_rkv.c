@@ -2349,15 +2349,13 @@ MPP_RET h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
 {
 #define H264E_DEFAULT_OSD_INV_THR 15 //TODO: open interface later
     MppEncOSDData *osd_data = &ctx->osd_data;
+    RK_U32 num = osd_data->num_region;
 
-    if (osd_data->buf) {
-
+    if (num && osd_data->buf) { // enable OSD
         RK_S32 buf_fd = mpp_buffer_get_fd(osd_data->buf);
 
         if (buf_fd >= 0) {
-
             RK_U32 k = 0;
-            RK_U32 num = osd_data->num_region;
             MppEncOSDRegion *region = osd_data->region;
 
             regs->swreg65.osd_clk_sel    = 1;
@@ -2375,7 +2373,6 @@ MPP_RET h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
 
                     regs->swreg68_indx_addr_i[k] = buf_fd | (region[k].buf_offset << 10);
                 }
-
             }
 
             if (region[0].inverse)
