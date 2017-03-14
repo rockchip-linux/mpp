@@ -81,7 +81,7 @@ MPP_RET h264e_init(void *ctx, ControllerCfg *ctrl_cfg)
     prep->hor_stride = 1280;
     prep->ver_stride = 720;
     prep->format = MPP_FMT_YUV420SP;
-    prep->rotation = 0;
+    prep->rotation = MPP_ENC_ROT_0;
     prep->mirroring = 0;
     prep->denoise = 0;
 

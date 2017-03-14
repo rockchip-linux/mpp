@@ -521,12 +521,14 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     p->qp_init  = (p->type == MPP_VIDEO_CodingMJPEG) ? (10) : (26);
 
     prep_cfg->change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                              MPP_ENC_PREP_CFG_CHANGE_ROTATION |
                               MPP_ENC_PREP_CFG_CHANGE_FORMAT;
     prep_cfg->width         = p->width;
     prep_cfg->height        = p->height;
     prep_cfg->hor_stride    = p->hor_stride;
     prep_cfg->ver_stride    = p->ver_stride;
     prep_cfg->format        = p->fmt;
+    prep_cfg->rotation      = MPP_ENC_ROT_0;
     ret = mpi->control(ctx, MPP_ENC_SET_PREP_CFG, prep_cfg);
     if (ret) {
         mpp_err("mpi control enc set prep cfg failed ret %d\n", ret);

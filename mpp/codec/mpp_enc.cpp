@@ -535,12 +535,6 @@ void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     RK_U32 change = src->change;
 
     if (change) {
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-            dst->width = src->width;
-            dst->height = src->height;
-            dst->hor_stride = src->hor_stride;
-            dst->ver_stride = src->ver_stride;
-        }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
             dst->format = src->format;
@@ -556,6 +550,18 @@ void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
             dst->sharpen = src->sharpen;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+                dst->width = src->height;
+                dst->height = src->width;
+            } else {
+                dst->width = src->width;
+                dst->height = src->height;
+            }
+            dst->hor_stride = src->hor_stride;
+            dst->ver_stride = src->ver_stride;
+        }
 
         /*
          * NOTE: use OR here for avoiding overwrite on multiple config

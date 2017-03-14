@@ -386,7 +386,7 @@ typedef enum MppEncPrepCfgChange_e {
  * 5x5 sharpen core
  *
  * enable_y  - enable luma sharpen
- * enable_c  - enable chroma sharpen
+ * enable_uv - enable chroma sharpen
  */
 typedef struct {
     RK_U32              enable_y;
@@ -395,6 +395,21 @@ typedef struct {
     RK_S32              div;
     RK_S32              threshold;
 } MppEncPrepSharpenCfg;
+
+/*
+ * input frame rotation parameter
+ * 0 - disable rotation
+ * 1 - 90 degree
+ * 2 - 180 degree
+ * 3 - 270 degree
+ */
+typedef enum MppEncRotationCfg_t {
+    MPP_ENC_ROT_0,
+    MPP_ENC_ROT_90,
+    MPP_ENC_ROT_180,
+    MPP_ENC_ROT_270,
+    MPP_ENC_ROT_BUTT
+} MppEncRotationCfg;
 
 typedef struct MppEncPrepCfg_t {
     RK_U32              change;
@@ -418,14 +433,7 @@ typedef struct MppEncPrepCfg_t {
     MppFrameFormat      format;
     MppFrameColorSpace  color;
 
-    /*
-     * input frame rotation parameter
-     * 0 - disable rotation
-     * 1 - 90 degree
-     * 2 - 180 degree
-     * 3 - 270 degree
-     */
-    RK_S32              rotation;
+    MppEncRotationCfg   rotation;
 
     /*
      * input frame mirroring parameter
