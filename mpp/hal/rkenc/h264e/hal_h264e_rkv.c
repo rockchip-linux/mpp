@@ -2432,7 +2432,8 @@ static MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
     RK_S32 stridey = 0;
     RK_S32 stridec = 0;
 
-    regs->swreg14.src_cfmt        = syn->input_format;
+    regs->swreg14.src_cfmt = syn->input_format;
+    regs->swreg19.src_rot = prep_cfg->rotation;
 
     for (k = 0; k < 5; k++)
         regs->swreg21_scr_stbl[k] = 0;
@@ -2443,8 +2444,7 @@ static MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
     if (syn->hor_stride) {
         stridey = syn->hor_stride - 1;
     } else {
-        stridey = (regs->swreg19.src_rot == 1 || regs->swreg19.src_rot == 3)
-                  ? (syn->height - 1) : (syn->width - 1);
+        stridey = syn->width - 1;
         if (regs->swreg14.src_cfmt == 0 )
             stridey = (stridey + 1) * 4 - 1;
         else if (regs->swreg14.src_cfmt == 1 )
@@ -2531,18 +2531,13 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             hw_cfg->width   = prep->width;
             hw_cfg->height  = prep->height;
-            hw_cfg->input_format = prep->format;
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
-
-            // for smaller resolution, SEI may have a bad influence on RC
-            if (hw_cfg->width * hw_cfg->height < 640 * 480)
-                ctx->sei_mode = MPP_ENC_SEI_MODE_DISABLE;
-
-            h264e_rkv_set_format(hw_cfg, prep);
         }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
+            hw_cfg->input_format = prep->format;
+            h264e_rkv_set_format(hw_cfg, prep);
             switch (prep->color) {
             case MPP_FRAME_SPC_RGB : {
                 /* BT.601 */
@@ -2880,7 +2875,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg13.axi_brsp_cke      = 0x7f;
     regs->swreg13.cime_dspw_orsd    = 0x0;
 
-    h264e_rkv_set_pp_regs(regs, syn, &ctx->set->prep,
+    h264e_rkv_set_pp_regs(regs, syn, &ctx->cfg->prep,
                           bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx]);
     h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, regs);
 

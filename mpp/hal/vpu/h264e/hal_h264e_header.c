@@ -817,18 +817,18 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             hw_cfg->width   = prep->width;
             hw_cfg->height  = prep->height;
-            hw_cfg->input_format = prep->format;
 
+            // for libvpu, 8-pixel alignment is enough
             mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
             mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
 
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
-
-            h264e_vpu_set_format(hw_cfg, prep);
         }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
+            hw_cfg->input_format = prep->format;
+            h264e_vpu_set_format(hw_cfg, prep);
             switch (prep->color) {
             case MPP_FRAME_SPC_RGB : {
                 /* BT.601 */
