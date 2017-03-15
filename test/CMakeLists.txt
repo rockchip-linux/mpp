@@ -13,15 +13,33 @@ macro(add_mpp_test module)
     option(${test_tag} "Build mpp ${module} unit test" ON)
     if(${test_tag})
         add_executable(${test_name} ${test_name}.c)
-        target_link_libraries(${test_name} rockchip_mpp rockchip_vpu utils)
+        target_link_libraries(${test_name} rockchip_mpp utils)
         set_target_properties(${test_name} PROPERTIES FOLDER "test")
         #install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
         #add_test(NAME ${test_name} COMMAND ${test_name})
     endif()
 endmacro()
 
+macro(add_vpu_test module)
+    set(test_name ${module}_test)
+    string(TOUPPER ${test_name} test_tag)
+    #message(STATUS "moduule   : ${module}")
+    #message(STATUS "test_name : ${test_name}")
+    #message(STATUS "test_tag  : ${test_tag}")
+
+    option(${test_tag} "Build vpu ${module} unit test" ON)
+    if(${test_tag})
+        add_executable(${test_name} ${test_name}.c)
+        target_link_libraries(${test_name} rockchip_vpu utils)
+        set_target_properties(${test_name} PROPERTIES FOLDER "test")
+        #install(TARGETS ${test_name} RUNTIME DESTINATION ${TEST_INSTALL_DIR})
+        #add_test(NAME ${test_name} COMMAND ${test_name})
+    endif()
+endmacro()
+
+
 # legacy vpu_api unit test
-add_mpp_test(vpu_api)
+add_vpu_test(vpu_api)
 
 # mpp_buffer unit test
 add_mpp_test(mpp_buffer)
