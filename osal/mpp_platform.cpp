@@ -31,6 +31,7 @@ class MppPlatformService;
 
 typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_AUTO,
+    ROCKCHIP_SOC_RK3036,
     ROCKCHIP_SOC_RK3066,
     ROCKCHIP_SOC_RK3188,
     ROCKCHIP_SOC_RK3288,
@@ -52,6 +53,7 @@ typedef struct {
 } MppVpuType;
 
 static const MppVpuType mpp_vpu_version[] = {
+    { "rk3036",  ROCKCHIP_SOC_RK3036,   HAVE_VPU1 | HAVE_HEVC_DEC, },
     { "rk3066",  ROCKCHIP_SOC_RK3066,   HAVE_VPU1,                 },
     { "rk3188",  ROCKCHIP_SOC_RK3188,   HAVE_VPU1,                 },
     { "rk3288",  ROCKCHIP_SOC_RK3288,   HAVE_VPU1 | HAVE_HEVC_DEC, },
