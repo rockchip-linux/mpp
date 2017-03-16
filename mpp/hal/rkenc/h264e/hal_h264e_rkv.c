@@ -1644,14 +1644,13 @@ static MPP_RET h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload, RK_S32 pay
     return MPP_OK;
 }
 
-MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
+MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx, RcSyntax *rc_syn)
 {
     H264eRkvExtraInfo *info = (H264eRkvExtraInfo *)ctx->extra_info;
     char *str = (char *)info->sei_buf;
     RK_S32 str_len = 0;
 
-    h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx);
-
+    h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx, rc_syn);
     str_len = strlen(str) + 1;
     if (str_len > H264E_SEI_BUF_SIZE) {
         h264e_hal_err("SEI actual string length %d exceed malloced size %d", str_len, H264E_SEI_BUF_SIZE);
@@ -1659,7 +1658,6 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx)
     } else {
         h264e_rkv_sei_write(&info->stream, (RK_U8 *)str, str_len, H264E_SEI_USER_DATA_UNREGISTERED);
     }
-
 
     return MPP_OK;
 }
@@ -1964,13 +1962,6 @@ static MPP_RET h264e_rkv_set_extra_info(H264eHalContext *ctx)
     h264e_set_pps(ctx, pps, sps);
     h264e_rkv_pps_write(pps, sps, &info->stream);
     h264e_rkv_nal_end(info);
-
-    if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_SEQ || ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME) {
-        info->sei_change_flg |= H264E_SEI_CHG_SPSPPS;
-        h264e_rkv_nal_start(info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
-        h264e_rkv_sei_encode(ctx);
-        h264e_rkv_nal_end(info);
-    }
 
     h264e_rkv_encapsulate_nals(info);
 
@@ -2500,6 +2491,10 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
 
+            // for smaller resolution, SEI may have a bad influence on RC
+            if (hw_cfg->width * hw_cfg->height < 640 * 480)
+                ctx->sei_mode = MPP_ENC_SEI_MODE_DISABLE;
+
             h264e_rkv_set_format(hw_cfg, prep);
         }
 
@@ -2538,8 +2533,6 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
             } break;
             }
         }
-
-        prep->change = 0;
     }
 
     if (codec->change) {
@@ -2553,8 +2546,6 @@ static MPP_RET h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task, H
         hw_cfg->qp = codec->qp_init;
 
         hw_cfg->qp_prev = hw_cfg->qp;
-
-        codec->change = 0;
     }
 
     /* init qp calculate, if outside doesn't set init qp.
@@ -2705,6 +2696,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     H264ePps *pps = &extra_info->pps;
     HalEncTask *enc_task = &task->enc;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    RcSyntax *rc_syn = (RcSyntax *)enc_task->syntax.data;
 
     RK_S32 pic_width_align16 = 0;
     RK_S32 pic_height_align16 = 0;
@@ -2731,12 +2723,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_hal_dbg(H264E_DBG_SIMPLE, "frame %d | type %d | start gen regs", ctx->frame_cnt, syn->frame_type);
 
-    if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME && extra_info->sei_change_flg) {
+    if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
         extra_info->nal_num = 0;
         h264e_rkv_stream_reset(&extra_info->stream);
         h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
-        h264e_rkv_sei_encode(ctx);
+        h264e_rkv_sei_encode(ctx, rc_syn);
         h264e_rkv_nal_end(extra_info);
+        rc_syn->bit_target -= extra_info->nal[0].i_payload; // take off SEI size
     }
 
     if (ctx->frame_cnt == 0) {
@@ -2952,7 +2945,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     else if (pic_width_align16 <= 4096)
         regs->swreg45.cach_l2_tag  = 0x3;
 
-    h264e_rkv_set_rc_regs(ctx, regs, syn, (RcSyntax *)enc_task->syntax.data);
+    h264e_rkv_set_rc_regs(ctx, regs, syn, rc_syn);
 
     regs->swreg56.rect_size        = (sps->i_profile_idc == H264_PROFILE_BASELINE && sps->i_level_idc <= 30);
     regs->swreg56.inter_4x4        = 1;
@@ -3127,10 +3120,12 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-static MPP_RET h264e_rkv_set_feedback(h264e_feedback *fb, H264eRkvIoctlOutput *out)
+static MPP_RET h264e_rkv_set_feedback(H264eHalContext *ctx, H264eRkvIoctlOutput *out, HalEncTask *enc_task)
 {
     RK_U32 k = 0;
     H264eRkvIoctlOutputElem *elem = NULL;
+    H264eRkvExtraInfo *extra_info = (H264eRkvExtraInfo *)ctx->extra_info;
+    h264e_feedback *fb = &ctx->feedback;
 
     h264e_hal_enter();
     for (k = 0; k < out->frame_num; k++) {
@@ -3178,6 +3173,13 @@ static MPP_RET h264e_rkv_set_feedback(h264e_feedback *fb, H264eRkvIoctlOutput *o
         }
 
         fb->hw_status = elem->hw_status;
+    }
+
+    if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
+        H264eRkvNal *nal = &extra_info->nal[0];
+        mpp_buffer_write(enc_task->output, fb->out_strm_size,
+                         nal->p_payload, nal->i_payload);
+        fb->out_strm_size += nal->i_payload;
     }
 
     h264e_hal_leave();
@@ -3249,8 +3251,10 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
     HalEncTask *enc_task = &task->enc;
-    MppEncPrepCfg *prep = &ctx->cfg->prep;
-    MppEncRcCfg *rcfg = &ctx->cfg->rc;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncPrepCfg *prep = &cfg->prep;
+    MppEncRcCfg *rc = &cfg->rc;
+    MppEncH264Cfg *codec = &cfg->codec.h264;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
     /* for dumping ratecontrol message */
@@ -3308,14 +3312,14 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     (void)cmd;
 #endif
 
-    h264e_rkv_set_feedback(fb, reg_out);
+    h264e_rkv_set_feedback(ctx, reg_out, enc_task);
 
     /* we need re-encode */
     if (ctx->frame_cnt == 1) {
         h264e_rkv_resend(ctx, 0);
 
-        h264e_rkv_set_feedback(fb, reg_out);
-    } else if ((RK_S32)ctx->frame_cnt < rcfg->fps_out_num / rcfg->fps_out_denorm &&
+        h264e_rkv_set_feedback(ctx, reg_out, enc_task);
+    } else if ((RK_S32)ctx->frame_cnt < rc->fps_out_num / rc->fps_out_denorm &&
                rc_syn->type == INTER_P_FRAME &&
                rc_syn->bit_target > fb->out_strm_size * 8 * 1.5) {
         /* re-encode frame if it meets all the conditions below:
@@ -3332,7 +3336,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         fb->qp_sum = new_qp * num_mb;
 
         h264e_rkv_resend(ctx, 1);
-        h264e_rkv_set_feedback(fb, reg_out);
+        h264e_rkv_set_feedback(ctx, reg_out, enc_task);
     }
 
     task->enc.length = fb->out_strm_size;
@@ -3398,6 +3402,11 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     h264e_rkv_dump_mpp_reg_out(ctx);
     h264e_rkv_dump_mpp_feedback(ctx);
     h264e_rkv_dump_mpp_strm_out(ctx, enc_task->output);
+
+    codec->change = 0;
+    prep->change = 0;
+    rc->change = 0;
+
     h264e_hal_leave();
 
     return MPP_OK;

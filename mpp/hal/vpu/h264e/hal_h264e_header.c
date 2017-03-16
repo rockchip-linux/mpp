@@ -573,7 +573,7 @@ static MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
     char *str = (char *)info->sei_buf;
     RK_S32 str_len = 0;
 
-    h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx);
+    h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx, NULL);
 
     str_len = strlen(str) + 1;
     if (str_len > H264E_SEI_BUF_SIZE) {

@@ -645,7 +645,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     }
 
     /* optional */
-    p->sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
+    p->sei_mode = MPP_ENC_SEI_MODE_ONE_FRAME;
     ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
     if (ret) {
         mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
