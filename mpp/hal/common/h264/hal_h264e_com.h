@@ -112,9 +112,13 @@ extern RK_U32 h264e_hal_log_mode;
         }                                                    \
     } while (0)
 
-#define H264E_HAL_SPRINT(s, ...)  \
+#define H264E_HAL_SPRINT(s, len, ...)  \
     do {                               \
-        s += sprintf(s, ## __VA_ARGS__); \
+        if (len > 0) { \
+            RK_S32 n = snprintf(s, len, ## __VA_ARGS__); \
+            s += n; \
+            len -= n; \
+        } \
     } while (0)
 
 #define H264E_UUID_LENGTH                   16
@@ -442,6 +446,6 @@ const RK_U8 h264e_zigzag_scan4[2][16];
 const RK_U8 h264e_zigzag_scan8[2][64];
 void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
 void h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
-void h264e_sei_pack2str(char *str, H264eHalContext *ctx);
+void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn);
 
 #endif
