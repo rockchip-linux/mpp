@@ -79,6 +79,7 @@ static RK_S32 put_used_memory_handle(vpu_display_mem_pool *p, void *hdl)
     MppBuffer buf = (MppBuffer)dmabuf->offset;
     if (buf != NULL) {
         mpp_buffer_put(buf);
+        memset(dmabuf, 0, sizeof(VPUMemLinear_t));
     }
     (void)p;
     return MPP_OK;
