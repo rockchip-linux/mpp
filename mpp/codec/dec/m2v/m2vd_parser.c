@@ -184,6 +184,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->maxFrame_inGOP = 0;
     ctx->preframe_period = 0;
     ctx->mHeaderDecFlag = 0;
+    ctx->mExtraHeaderDecFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
 
@@ -422,12 +423,6 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     p->pts = mpp_packet_get_pts(pkt);
     len_in = (RK_U32)mpp_packet_get_length(pkt);
 
-    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
-        pos += len_in;
-        mpp_packet_set_pos(pkt, pos);
-        return ret;
-    }
-
     //MppPacketImpl *packet = (MppPacketImpl *)pkt;
     //uint32_t stream_count = 0;
 
@@ -470,6 +465,9 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     mpp_packet_set_data(input_packet, p->bitstream_sw_buf);
     mpp_packet_set_size(input_packet, p->max_stream_size);
     mpp_packet_set_length(input_packet, out_size);
+    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+        mpp_packet_set_extra_data(input_packet);
+    }
 
     task->input_packet = input_packet;
 
@@ -999,7 +997,12 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
         case SEQUENCE_HEADER_CODE:
             ret = m2vd_decode_seq_header(ctx);
             if (!ret) {
-                ctx->mHeaderDecFlag = 1;
+                MppPacket pkt = ctx->input_packet;
+                if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+                    ctx->mExtraHeaderDecFlag = 1;
+                } else {
+                    ctx->mHeaderDecFlag = 1;
+                }
             }
             break;
         case GROUP_START_CODE:
@@ -1351,8 +1354,13 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
     rev = m2vd_decode_head(p);
 
     if (!p->mHeaderDecFlag) {
-        mpp_log("[m2v]: !mHeaderDecFlag");
-        goto __FAILED;
+        if (p->mExtraHeaderDecFlag && p->pic_head.picture_coding_type == M2VD_CODING_TYPE_I) {
+            p->mHeaderDecFlag = 1;
+            mpp_log("[m2v]: use extra data sequence header");
+        } else {
+            mpp_log("[m2v]: !mHeaderDecFlag");
+            goto __FAILED;
+        }
     }
 
     p->mb_width = (p->seq_head.decode_width + 15) >> 4;
