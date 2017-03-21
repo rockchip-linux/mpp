@@ -68,6 +68,7 @@ public:
     Mutex *mutex();
 
     void wait();
+    RK_S32 wait(RK_S64 timeout);
     void signal();
 
 private:

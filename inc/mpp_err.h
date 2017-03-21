@@ -31,6 +31,7 @@ typedef enum {
     MPP_ERR_OPEN_FILE           = -5,
     MPP_ERR_VALUE               = -6,
     MPP_ERR_READ_BIT            = -7,
+    MPP_ERR_TIMEOUT             = -8,
 
     MPP_ERR_BASE                = -1000,
 

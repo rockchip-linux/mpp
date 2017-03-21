@@ -112,6 +112,7 @@ public:
 
     MppPollType     mInputBlock;
     MppPollType     mOutputBlock;
+    RK_S64          mOutputBlockTimeout;
     /*
      * There are two threads for each decoder/encoder: codec thread and hal thread
      *
