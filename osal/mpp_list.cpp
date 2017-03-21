@@ -274,6 +274,11 @@ void mpp_list::wait()
     mCondition.wait(mMutex);
 }
 
+RK_S32 mpp_list::wait(RK_S64 timeout)
+{
+    return mCondition.timedwait(mMutex, timeout);
+}
+
 void mpp_list::signal()
 {
     mCondition.signal();
