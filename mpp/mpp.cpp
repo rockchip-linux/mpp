@@ -16,6 +16,7 @@
 
 #define  MODULE_TAG "mpp"
 
+#include <errno.h>
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
@@ -52,6 +53,7 @@ Mpp::Mpp()
       mOutputTaskQueue(NULL),
       mInputBlock(MPP_POLL_NON_BLOCK),
       mOutputBlock(MPP_POLL_NON_BLOCK),
+      mOutputBlockTimeout(-1),
       mThreadCodec(NULL),
       mThreadHal(NULL),
       mDec(NULL),
@@ -261,6 +263,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
+    RK_S32 ret;
+
     if (!mInitDone)
         return MPP_NOK;
 
@@ -270,7 +274,21 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     if (0 == mFrames->list_size()) {
         mThreadCodec->signal();
         if (mOutputBlock == MPP_POLL_BLOCK)
-            mFrames->wait();
+        {
+            if (mOutputBlockTimeout >= 0)
+            {
+                ret = mFrames->wait(mOutputBlockTimeout);
+                if (ret)
+                {
+                    if (ret == ETIMEDOUT)
+                        return MPP_ERR_TIMEOUT;
+                    else
+                        return MPP_NOK;
+                }
+            }
+            else
+                mFrames->wait();
+        }
         /* NOTE: this sleep is to avoid user's dead loop */
         msleep(1);
     }
@@ -625,6 +643,9 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
     case MPP_SET_OUTPUT_BLOCK: {
         MppPollType block = *((MppPollType *)param);
         mOutputBlock = block;
+    } break;
+    case MPP_SET_OUTPUT_BLOCK_TIMEOUT: {
+        mOutputBlockTimeout = *((RK_S64 *)param);
     } break;
     default : {
         ret = MPP_NOK;
