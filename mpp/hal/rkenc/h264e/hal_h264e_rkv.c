@@ -3135,44 +3135,34 @@ static MPP_RET h264e_rkv_set_feedback(H264eHalContext *ctx, H264eRkvIoctlOutput 
         fb->sse_sum = elem->swreg70.sse_l32 +
                       ((RK_S64)(elem->swreg71.sse_h8 & 0xff) << 32);
 
-        fb->hw_status = 0;
-        h264e_hal_dbg(H264E_DBG_DETAIL, "hw_status: 0x%08x", elem->hw_status);
-        if (elem->hw_status & RKV_H264E_INT_LINKTABLE_FINISH) {
-            h264e_hal_err("RKV_H264E_INT_LINKTABLE_FINISH");
-        }
-        if (elem->hw_status & RKV_H264E_INT_ONE_FRAME_FINISH) {
-            h264e_hal_dbg(H264E_DBG_DETAIL, "RKV_H264E_INT_ONE_FRAME_FINISH");
-        }
-        if (elem->hw_status & RKV_H264E_INT_ONE_SLICE_FINISH) {
-            h264e_hal_err("RKV_H264E_INT_ONE_SLICE_FINISH");
-        }
-
-        if (elem->hw_status & RKV_H264E_INT_SAFE_CLEAR_FINISH) {
-            h264e_hal_err("RKV_H264E_INT_SAFE_CLEAR_FINISH");
-        }
-
-        if (elem->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW) {
-            h264e_hal_err("RKV_H264E_INT_BIT_STREAM_OVERFLOW");
-            fb->hw_status = 1;
-        }
-        if (elem->hw_status & RKV_H264E_INT_BUS_WRITE_FULL) {
-            h264e_hal_err("RKV_H264E_INT_BUS_WRITE_FULL");
-            fb->hw_status = 1;
-        }
-        if (elem->hw_status & RKV_H264E_INT_BUS_WRITE_ERROR) {
-            h264e_hal_err("RKV_H264E_INT_BUS_WRITE_ERROR");
-            fb->hw_status = 1;
-        }
-        if (elem->hw_status & RKV_H264E_INT_BUS_READ_ERROR) {
-            h264e_hal_err("RKV_H264E_INT_BUS_READ_ERROR");
-            fb->hw_status = 1;
-        }
-        if (elem->hw_status & RKV_H264E_INT_TIMEOUT_ERROR) {
-            h264e_hal_err("RKV_H264E_INT_TIMEOUT_ERROR");
-            fb->hw_status = 1;
-        }
-
         fb->hw_status = elem->hw_status;
+        h264e_hal_dbg(H264E_DBG_DETAIL, "hw_status: 0x%08x", elem->hw_status);
+        if (elem->hw_status & RKV_H264E_INT_LINKTABLE_FINISH)
+            h264e_hal_err("RKV_H264E_INT_LINKTABLE_FINISH");
+
+        if (elem->hw_status & RKV_H264E_INT_ONE_FRAME_FINISH)
+            h264e_hal_dbg(H264E_DBG_DETAIL, "RKV_H264E_INT_ONE_FRAME_FINISH");
+
+        if (elem->hw_status & RKV_H264E_INT_ONE_SLICE_FINISH)
+            h264e_hal_err("RKV_H264E_INT_ONE_SLICE_FINISH");
+
+        if (elem->hw_status & RKV_H264E_INT_SAFE_CLEAR_FINISH)
+            h264e_hal_err("RKV_H264E_INT_SAFE_CLEAR_FINISH");
+
+        if (elem->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW)
+            h264e_hal_err("RKV_H264E_INT_BIT_STREAM_OVERFLOW");
+
+        if (elem->hw_status & RKV_H264E_INT_BUS_WRITE_FULL)
+            h264e_hal_err("RKV_H264E_INT_BUS_WRITE_FULL");
+
+        if (elem->hw_status & RKV_H264E_INT_BUS_WRITE_ERROR)
+            h264e_hal_err("RKV_H264E_INT_BUS_WRITE_ERROR");
+
+        if (elem->hw_status & RKV_H264E_INT_BUS_READ_ERROR)
+            h264e_hal_err("RKV_H264E_INT_BUS_READ_ERROR");
+
+        if (elem->hw_status & RKV_H264E_INT_TIMEOUT_ERROR)
+            h264e_hal_err("RKV_H264E_INT_TIMEOUT_ERROR");
     }
 
     if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
@@ -3335,6 +3325,12 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         RK_S32 new_qp = fb->qp_sum / num_mb - 3;
         fb->qp_sum = new_qp * num_mb;
 
+        h264e_rkv_resend(ctx, 1);
+        h264e_rkv_set_feedback(ctx, reg_out, enc_task);
+    } else if (fb->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW) {
+        h264e_hal_err("re-encode for overflow ...\n");
+        RK_S32 new_qp = fb->qp_sum / num_mb + 3;
+        fb->qp_sum = new_qp * num_mb;
         h264e_rkv_resend(ctx, 1);
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
     }
