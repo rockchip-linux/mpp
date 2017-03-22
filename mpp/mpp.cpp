@@ -263,6 +263,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
+    RK_S32 ret;
+
     if (!mInitDone)
         return MPP_NOK;
 
@@ -275,10 +277,14 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         {
             if (mOutputBlockTimeout >= 0)
             {
-                if (mFrames->wait(mOutputBlockTimeout) == ETIMEDOUT)
-                    return MPP_ERR_TIMEOUT;
-                else if (mFrames->wait(mOutputBlockTimeout))
-                    return MPP_NOK;
+                ret = mFrames->wait(mOutputBlockTimeout);
+                if (ret)
+                {
+                    if (ret == ETIMEDOUT)
+                        return MPP_ERR_TIMEOUT;
+                    else
+                        return MPP_NOK;
+                }
             }
             else
                 mFrames->wait();
