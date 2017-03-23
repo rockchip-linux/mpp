@@ -975,7 +975,7 @@ MPP_RET jpegd_set_output_format(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
         // set pp info
         memset(&ppInfo, 0, sizeof(ppInfo));
         ppInfo.enable = 1;
-        ppInfo.outFomart = 5;   //PP_OUT_FORMAT_YUV420INTERLAVE
+        ppInfo.outFomart = PP_OUT_FORMAT_YUV420INTERLAVE;
         ppScaleW = pSyntax->imageInfo.outputWidth;
         ppScaleH = pSyntax->imageInfo.outputHeight;
         if (ppScaleW > 1920) { // || ppScaleH > 1920) {
@@ -996,8 +996,9 @@ MPP_RET jpegd_set_output_format(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
         pSyntax->ppInstance = (void *)1;
     } else {
         /* keep original output format */
+        pCtx->output_fmt = pSyntax->imageInfo.outputFormat;
         memset(&ppInfo, 0, sizeof(ppInfo));
-        ppInfo.outFomart = 5;   //PP_OUT_FORMAT_YUV420INTERLAVE
+        ppInfo.outFomart = PP_OUT_FORMAT_YUV420INTERLAVE;
         ppScaleW = pSyntax->imageInfo.outputWidth;
         ppScaleH = pSyntax->imageInfo.outputHeight;
 

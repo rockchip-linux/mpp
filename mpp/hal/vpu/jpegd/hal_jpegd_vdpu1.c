@@ -355,7 +355,7 @@ jpegd_set_post_processor(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
 
     post->reg88_mask_1_size.sw_ext_orig_width = inWidth >> 4;
 
-    post->reg61_dev_conf.sw_pp_clk_gate_e = 1;
+    post->reg61_dev_conf.sw_pp_clk_gate_e = 0;
     post->reg61_dev_conf.sw_pp_ahb_hlock_e = 1;
     post->reg61_dev_conf.sw_pp_data_disc_e = 1;
 
@@ -727,10 +727,13 @@ jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
      */
     reg->reg5.sw_sync_marker_e = 1;
 
-    /*
-     * FIXME tell hardware that height is 8-pixel aligned,
-     * but not 16-pixel aligned
-     */
+    /* tell hardware that height is 8-pixel aligned, but not 16-pixel aligned */
+    if ((pSyntax->frame.Y % 16) &&
+        (pSyntax->info.yCbCrMode == JPEGDEC_YUV422 ||
+         pSyntax->info.yCbCrMode == JPEGDEC_YUV444 ||
+         pSyntax->info.yCbCrMode == JPEGDEC_YUV411)) {
+        reg->reg15.sw_jpeg_height8_flag = 1;
+    }
 
     /* Set JPEG operation mode */
     if (pSyntax->info.operationType != JPEGDEC_PROGRESSIVE) {
@@ -1165,7 +1168,14 @@ MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
     if (reg_out.reg1_interrupt.sw_dec_bus_int) {
         JPEGD_ERROR_LOG("IRQ BUS ERROR!");
     } else if (reg_out.reg1_interrupt.sw_dec_error_int) {
-        JPEGD_ERROR_LOG("IRQ STREAM ERROR!");
+    /*
+     * NOTE: It is a bug of VDPU1, when sample color is YUV422,
+     * YUV444, YUV411, the height could be aligned with 8 but not 16
+     */
+    if (JpegHalCtx->output_fmt != MPP_FMT_YUV420SP)
+        ret = 0;
+    else
+        JPEGD_ERROR_LOG("IRQ STREAM ERROR! %d", JpegHalCtx->output_fmt);
     } else if (reg_out.reg1_interrupt.sw_dec_timeout) {
         JPEGD_ERROR_LOG("IRQ TIMEOUT!");
     } else if (reg_out.reg1_interrupt.sw_dec_buffer_int) {

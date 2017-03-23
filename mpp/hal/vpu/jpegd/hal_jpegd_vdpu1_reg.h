@@ -111,7 +111,7 @@ typedef struct {
 
     struct {
         RK_U32  sw_pp_in_width      : 9;
-        RK_U32  sw_pp_in_height     : 7;
+        RK_U32  sw_pp_in_height     : 8;
         RK_U32  reserved1           : 1;
         RK_U32  sw_rangemap_coef_y  : 5;
         RK_U32  reserved0           : 1;
@@ -121,7 +121,7 @@ typedef struct {
     RK_U32 reg73_pp_bot_yin_base;
     RK_U32 reg74_pp_bot_cin_base;
 
-    RK_U32 reg75_reg79[5];
+    RK_U32 reg75_reg78[4];
 
     struct {
         RK_U32   sw_scale_wratio    : 18;
@@ -214,12 +214,12 @@ typedef struct {
     } reg91_pip_2;
 
     struct {
-        RK_U32  sw_pp_in_h_ext      : 3;
-        RK_U32  sw_pp_in_w_ext      : 3;
-        RK_U32  sw_crop_starty_ext  : 3;
-        RK_U32  sw_crop_startx_ext  : 3;
-        RK_U32  reserved0           : 8;
         RK_U32  sw_display_width    : 12;
+        RK_U32  reserved0           : 8;
+        RK_U32  sw_crop_startx_ext  : 3;
+        RK_U32  sw_crop_starty_ext  : 3;
+        RK_U32  sw_pp_in_w_ext      : 3;
+        RK_U32  sw_pp_in_h_ext      : 3;
     } reg92_display;
 
     RK_U32 reg93_ablend1_base;
@@ -388,7 +388,15 @@ typedef struct  {
 
     struct {
         RK_U32  sw_jpeg_slice_h      : 8;
-        RK_U32  reserved0            : 24;
+        RK_U32  sw_roi_en            : 1;
+        RK_U32  sw_roi_decode        : 1;
+        RK_U32  sw_roi_out_sel       : 2;
+        RK_U32  sw_roi_distance      : 4;
+        RK_U32  sw_roi_sample_size   : 2;
+        RK_U32  sw_jpegroi_in_swap32 : 1;
+        RK_U32  sw_jpegroi_in_endian : 1;
+        RK_U32  sw_jpeg_height8_flag : 1;
+        RK_U32  reserved0            : 11;
     } reg15;
 
     struct {
