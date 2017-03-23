@@ -3404,8 +3404,15 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 
     /* we need re-encode */
     if (ctx->frame_cnt == 1) {
-        h264e_rkv_resend(ctx, 0);
-
+        if (fb->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW) {
+            RK_S32 new_qp = fb->qp_sum / num_mb + 3;
+            h264e_hal_dbg(H264E_DBG_DETAIL,
+                          "re-encode for first frame overflow ...\n");
+            fb->qp_sum = new_qp * num_mb;
+            h264e_rkv_resend(ctx, 0);
+        } else {
+            h264e_rkv_resend(ctx, 0);
+        }
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
     } else if ((RK_S32)ctx->frame_cnt < rc->fps_out_num / rc->fps_out_denorm &&
                rc_syn->type == INTER_P_FRAME &&
@@ -3426,8 +3433,9 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         h264e_rkv_resend(ctx, 1);
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
     } else if (fb->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW) {
-        h264e_hal_err("re-encode for overflow ...\n");
         RK_S32 new_qp = fb->qp_sum / num_mb + 3;
+        h264e_hal_dbg(H264E_DBG_DETAIL,
+                      "re-encode for overflow ...\n");
         fb->qp_sum = new_qp * num_mb;
         h264e_rkv_resend(ctx, 1);
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
