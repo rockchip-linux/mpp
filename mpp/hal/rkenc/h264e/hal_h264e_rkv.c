@@ -620,17 +620,6 @@ static H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
     return frame;
 }
 
-static void
-h264e_rkv_frame_unshift(H264eRkvFrame **list, H264eRkvFrame *frame)
-{
-    RK_S32 i = 0;
-    while ( list[i] ) i++;
-    while ( i-- )
-        list[i + 1] = list[i];
-    list[0] = frame;
-    h264e_hal_dbg(H264E_DBG_DPB, "frame unshift list[0] %p", frame);
-}
-
 static H264eRkvFrame *h264e_rkv_frame_shift( H264eRkvFrame **list )
 {
     H264eRkvFrame *frame = list[0];

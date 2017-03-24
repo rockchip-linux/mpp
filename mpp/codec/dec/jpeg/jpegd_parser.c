@@ -90,65 +90,6 @@ static RK_U32 jpegd_get_two_bytes(StreamStorage * pStream)
 }
 
 /*------------------------------------------------------------------------------
-        Function name: jpegd_show_bits
-
-        Functional description:
-          Reads 32 bits from stream and returns the bits, does not update
-          stream pointers. If there are not enough bits in data buffer it
-          reads the rest of the data buffer bits and fills the lsb of return
-          value with zero bits.
-
-          Note! This function will skip the byte valued 0x00 if the previous
-          byte value was 0xFF!!!
-
-        Inputs:
-          StreamStorage *pStream   Pointer to structure
-
-        Outputs:
-          Returns  32 bit value
-------------------------------------------------------------------------------*/
-static RK_U32 jpegd_show_bits(StreamStorage * pStream)
-{
-    RK_S32 bits;
-    RK_U32 readBits;
-    RK_U32 out = 0;
-    RK_U8 *pData = pStream->pCurrPos;
-
-    /* bits left in buffer */
-    bits = (RK_S32) (8 * pStream->streamLength - pStream->readBits);
-    if (!bits)
-        return (0);
-
-    readBits = 0;
-    do {
-        if (pData > pStream->pStartOfStream) {
-            /* FF 00 bytes in stream -> jump over 00 byte */
-            if ((pData[-1] == 0xFF) && (pData[0] == 0x00)) {
-                pData++;
-                bits -= 8;
-            }
-        }
-        if (readBits == 32 && pStream->bitPosInByte) {
-            out <<= pStream->bitPosInByte;
-            out |= *pData >> (8 - pStream->bitPosInByte);
-            readBits = 0;
-            break;
-        }
-        out = (out << 8) | *pData++;
-        readBits += 8;
-        bits -= 8;
-    } while (readBits < (32 + pStream->bitPosInByte) && bits > 0);
-
-    if (bits <= 0 &&
-        ((readBits + pStream->readBits) >= (pStream->streamLength * 8))) {
-        /* not enough bits in stream, fill with zeros */
-        out = (out << (32 - (readBits - pStream->bitPosInByte)));
-    }
-
-    return (out);
-}
-
-/*------------------------------------------------------------------------------
         Function name: jpegd_flush_bits
 
         Functional description:
