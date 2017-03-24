@@ -1168,14 +1168,14 @@ MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
     if (reg_out.reg1_interrupt.sw_dec_bus_int) {
         JPEGD_ERROR_LOG("IRQ BUS ERROR!");
     } else if (reg_out.reg1_interrupt.sw_dec_error_int) {
-    /*
-     * NOTE: It is a bug of VDPU1, when sample color is YUV422,
-     * YUV444, YUV411, the height could be aligned with 8 but not 16
-     */
-    if (JpegHalCtx->output_fmt != MPP_FMT_YUV420SP)
-        ret = 0;
-    else
-        JPEGD_ERROR_LOG("IRQ STREAM ERROR! %d", JpegHalCtx->output_fmt);
+        /*
+         * NOTE: It is a bug of VDPU1, when sample color is YUV422,
+         * YUV444, YUV411, the height could be aligned with 8 but not 16
+         */
+        if (JpegHalCtx->output_fmt != MPP_FMT_YUV420SP)
+            ret = 0;
+        else
+            JPEGD_ERROR_LOG("IRQ STREAM ERROR! %d", JpegHalCtx->output_fmt);
     } else if (reg_out.reg1_interrupt.sw_dec_timeout) {
         JPEGD_ERROR_LOG("IRQ TIMEOUT!");
     } else if (reg_out.reg1_interrupt.sw_dec_buffer_int) {
