@@ -1223,11 +1223,11 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
     {
         /// tiles info begin
-        unsigned char column_width[20];
-        unsigned char row_height[22];
+        RK_U16 column_width[20];
+        RK_U16 row_height[22];
 
-        memset(column_width, 0, 20);
-        memset(row_height, 0, 22);
+        memset(column_width, 0, sizeof(column_width));
+        memset(row_height, 0, sizeof(row_height));
 
         if (dxva_cxt->pp.tiles_enabled_flag) {
             if (dxva_cxt->pp.uniform_spacing_flag == 0) {
