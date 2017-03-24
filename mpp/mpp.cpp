@@ -273,20 +273,16 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
 
     if (0 == mFrames->list_size()) {
         mThreadCodec->signal();
-        if (mOutputBlock == MPP_POLL_BLOCK)
-        {
-            if (mOutputBlockTimeout >= 0)
-            {
+        if (mOutputBlock == MPP_POLL_BLOCK) {
+            if (mOutputBlockTimeout >= 0) {
                 ret = mFrames->wait(mOutputBlockTimeout);
-                if (ret)
-                {
+                if (ret) {
                     if (ret == ETIMEDOUT)
                         return MPP_ERR_TIMEOUT;
                     else
                         return MPP_NOK;
                 }
-            }
-            else
+            } else
                 mFrames->wait();
         }
         /* NOTE: this sleep is to avoid user's dead loop */
