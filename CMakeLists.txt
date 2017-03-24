@@ -26,6 +26,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
     if(GIT_FOUND)
         # get author
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -39,6 +40,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
 
         # get date
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -52,6 +54,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
 
         # get version hash
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -64,6 +67,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git/")
 
         # get one line version information
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%h author: %an %s"
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
