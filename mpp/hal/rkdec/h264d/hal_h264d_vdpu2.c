@@ -750,11 +750,12 @@ MPP_RET vdpu2_h264d_gen_regs(void *hal, HalTaskInfo *task)
     H264dVdpuPriv_t *priv = NULL;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     INP_CHECK(ret, NULL == p_hal);
-
     p_hal->in_task = &task->dec;
+
     if (task->dec.flags.had_error)  {
         goto __RETURN;
     }
+    priv = p_hal->priv;
     priv->layed_id = p_hal->pp->curr_layer_id;
 
     FUN_CHECK(ret = adjust_input(priv, &p_hal->slice_long[0], p_hal->pp));
