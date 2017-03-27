@@ -18,28 +18,17 @@
 #define __HAL_JPEGD_VDPU2_REG_H__
 #include "rk_type.h"
 
-#define JPEGD_REG_NUM    159
-#define JPEG_RK70_MODE_JPEG       (3)
+#define JPEGD_REG_NUM                         (159)
+#define EXTRA_INFO_MAGIC                      (0x4C4A46)
 
-#define DEC_RK70_LITTLE_ENDIAN       1
-#define DEC_RK70_BIG_ENDIAN          0
+#define DEC_MODE_JPEG                         (3)
+#define DEC_LITTLE_ENDIAN                     (1)
+#define DEC_BIG_ENDIAN                        (0)
 
-#define DEC_RK70_BUS_BURST_LENGTH_UNDEFINED        0
-#define DEC_RK70_BUS_BURST_LENGTH_4                4
-#define DEC_RK70_BUS_BURST_LENGTH_8                8
-#define DEC_RK70_BUS_BURST_LENGTH_16               16
-
-#define DEC_RK70_ASIC_SERVICE_PRIORITY_DEFAULT      0
-#define DEC_RK70_ASIC_SERVICE_PRIORITY_WR_1         1
-#define DEC_RK70_ASIC_SERVICE_PRIORITY_WR_2         2
-#define DEC_RK70_ASIC_SERVICE_PRIORITY_RD_1         3
-#define DEC_RK70_ASIC_SERVICE_PRIORITY_RD_2         4
-
-#define DEC_RK70_SCMD_DISABLE           (0)
-#define DEC_RK70_LATENCY_COMPENSATION     0
-#define DEC_RK70_DATA_DISCARD_ENABLE      0
-
-#define JPEGDEC_SLICE_START_VALUE 0
+#define DEC_BUS_BURST_LENGTH_16               (16)
+#define DEC_SCMD_DISABLE                      (0)
+#define DEC_LATENCY_COMPENSATION              (0)
+#define DEC_DATA_DISCARD_ENABLE               (0)
 
 typedef struct JpegRegSet {
     struct {
@@ -676,5 +665,13 @@ typedef struct JpegRegSet {
         RK_U32  sw_pred_bc_tap_4_2   : 10;
     } reg158;
 } JpegRegSet;
+
+typedef struct JpegdIocRegInfo_t {
+    JpegRegSet             regs;
+
+    /* vepu_reg_num - vdpu_reg_num */
+    RK_U32                 regs_diff[184 - JPEGD_REG_NUM];
+    JpegdIocExtInfo        extra_info;
+} JpegdIocRegInfo;
 
 #endif /* __HAL_JPEGD_VDPU2_REG_H__ */

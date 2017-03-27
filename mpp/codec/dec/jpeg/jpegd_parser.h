@@ -30,55 +30,40 @@
 
 #include "jpegd_syntax.h"
 
-/* Max amount of stream */
-#define DEC_MAX_STREAM         ((1<<24)-1)
+/* Max amount of stream: 16777216 = 16*1024*1024 = 4K*4K */
+#define DEC_MAX_STREAM                          ((1<<24)-1)
+#define JPEGDEC_MIN_BUFFER                      (256)
+#define JPEGDEC_MAX_BUFFER                      (16776960)
+#define JPEGDEC_MIN_WIDTH                       (48)
+#define JPEGDEC_MIN_HEIGHT                      (48)
+#define JPEGDEC_MAX_PIXEL_AMOUNT                (16370688)
+#define JPEGDEC_MAX_WIDTH_8190                  (8176)
+#define JPEGDEC_MAX_HEIGHT_8190                 (8176)
+#define JPEGDEC_MAX_PIXEL_AMOUNT_8190           (66846976)
+#define JPEGDEC_MAX_SLICE_SIZE_8190             (8100)
+#define JPEGDEC_MAX_WIDTH_TN                    (256)
+#define JPEGDEC_MAX_HEIGHT_TN                   (256)
 
-#define JPEGDEC_MIN_BUFFER 256
-#define JPEGDEC_MAX_BUFFER 16776960
-#define JPEGDEC_MAX_SLICE_SIZE 4096
-#define JPEGDEC_TABLE_SIZE 544
-#define JPEGDEC_MIN_WIDTH 48
-#define JPEGDEC_MIN_HEIGHT 48
-#define JPEGDEC_MAX_WIDTH 4672
-#define JPEGDEC_MAX_HEIGHT 4672
-#define JPEGDEC_MAX_PIXEL_AMOUNT 16370688
-#define JPEGDEC_MAX_WIDTH_8190 8176
-#define JPEGDEC_MAX_HEIGHT_8190 8176
-#define JPEGDEC_MAX_PIXEL_AMOUNT_8190 66846976
-#define JPEGDEC_MAX_SLICE_SIZE_8190 8100
-#define JPEGDEC_MAX_WIDTH_TN 256
-#define JPEGDEC_MAX_HEIGHT_TN 256
+#define PP_IN_FORMAT_YUV422INTERLAVE            (0)
+#define PP_IN_FORMAT_YUV420SEMI                 (1)
+#define PP_IN_FORMAT_YUV420PLANAR               (2)
+#define PP_IN_FORMAT_YUV400                     (3)
+#define PP_IN_FORMAT_YUV422SEMI                 (4)
+#define PP_IN_FORMAT_YUV420SEMITIELED           (5)
+#define PP_IN_FORMAT_YUV440SEMI                 (6)
+#define PP_IN_FORMAT_YUV444_SEMI                (7)
+#define PP_IN_FORMAT_YUV411_SEMI                (8)
 
-#define JPEGDEC_QP_BASE 32
-#define JPEGDEC_AC1_BASE 48
-#define JPEGDEC_AC2_BASE 88
-#define JPEGDEC_DC1_BASE 129
-#define JPEGDEC_DC2_BASE 132
-#define JPEGDEC_DC3_BASE 135
-
-#define PP_IN_FORMAT_YUV422INTERLAVE            0
-#define PP_IN_FORMAT_YUV420SEMI                 1
-#define PP_IN_FORMAT_YUV420PLANAR               2
-#define PP_IN_FORMAT_YUV400                     3
-#define PP_IN_FORMAT_YUV422SEMI                 4
-#define PP_IN_FORMAT_YUV420SEMITIELED           5
-#define PP_IN_FORMAT_YUV440SEMI                 6
-#define PP_IN_FORMAT_YUV444_SEMI                7
-#define PP_IN_FORMAT_YUV411_SEMI                8
-
-#define PP_OUT_FORMAT_RGB565                    0
-#define PP_OUT_FORMAT_ARGB                       1
-#define PP_OUT_FORMAT_YUV422INTERLAVE    3
-#define PP_OUT_FORMAT_YUV420INTERLAVE    5
-
-/* progressive */
-#define JPEGDEC_COEFF_SIZE 96
+#define PP_OUT_FORMAT_RGB565                    (0)
+#define PP_OUT_FORMAT_ARGB                      (1)
+#define PP_OUT_FORMAT_YUV422INTERLAVE           (3)
+#define PP_OUT_FORMAT_YUV420INTERLAVE           (5)
 
 enum {
-    JPEGDEC_NO_UNITS = 0,   /* No units, X and Y specify
+    JPEGDEC_NO_UNITS = 0,       /* No units, X and Y specify
                                  * the pixel aspect ratio    */
     JPEGDEC_DOTS_PER_INCH = 1,  /* X and Y are dots per inch */
-    JPEGDEC_DOTS_PER_CM = 2 /* X and Y are dots per cm   */
+    JPEGDEC_DOTS_PER_CM = 2     /* X and Y are dots per cm   */
 };
 
 enum {
@@ -160,32 +145,32 @@ enum {
 };
 
 typedef struct JpegParserContext {
-    MppBufSlots packet_slots;
-    MppBufSlots frame_slots;
-    RK_S32      frame_slot_index; /* slot index for output */
-    RK_U8 *recv_buffer;
-    JpegSyntaxParam *pSyntax;
+    MppBufSlots              packet_slots;
+    MppBufSlots              frame_slots;
+    RK_S32                   frame_slot_index; /* slot index for output */
+    RK_U8                    *recv_buffer;
+    JpegSyntaxParam          *pSyntax;
 
-    RK_U32 streamLength;   /* input stream length or buffer size */
-    RK_U32 bufferSize; /* input stream buffer size */
-    RK_U32 decImageType;   /* Full image or Thumbnail to be decoded */
-    MppFrameFormat output_fmt;
+    RK_U32                   streamLength;   /* input stream length or buffer size */
+    RK_U32                   bufferSize;     /* input stream buffer size */
+    RK_U32                   decImageType;   /* Full image or Thumbnail to be decoded */
+    MppFrameFormat           output_fmt;
 
-    MppPacket input_packet;
-    MppFrame output_frame;
-    RK_U32 minSupportedWidth;
-    RK_U32 minSupportedHeight;
-    RK_U32 maxSupportedWidth;
-    RK_U32 maxSupportedHeight;
-    RK_U32 maxSupportedPixelAmount;
-    RK_U32 maxSupportedSliceSize;
-    RK_U32 extensionsSupported;
+    MppPacket                input_packet;
+    MppFrame                 output_frame;
+    RK_U32                   minSupportedWidth;
+    RK_U32                   minSupportedHeight;
+    RK_U32                   maxSupportedWidth;
+    RK_U32                   maxSupportedHeight;
+    RK_U32                   maxSupportedPixelAmount;
+    RK_U32                   maxSupportedSliceSize;
+    RK_U32                   extensionsSupported;
 
-    RK_S64 pts;
-    RK_U32 eos;
-    RK_U32 parser_debug_enable;
-    RK_U32 input_jpeg_count;
-    RK_S32 copy_flag; /* 0 - no need to copy stream; 1 - need to copy */
+    RK_S64                   pts;
+    RK_U32                   eos;
+    RK_U32                   parser_debug_enable;
+    RK_U32                   input_jpeg_count;
+    RK_S32                   copy_flag; /* 0 - no need to copy stream; 1 - need to copy */
 } JpegParserContext;
 
 #endif /* __JPEGD_PARSER_H__ */
