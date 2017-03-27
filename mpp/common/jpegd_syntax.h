@@ -20,27 +20,27 @@
 
 #include "vpu_api.h"
 
-#define MIN_NUMBER_OF_COMPONENTS 1
-#define MAX_NUMBER_OF_COMPONENTS 3
+#define MIN_NUMBER_OF_COMPONENTS              (1)
+#define MAX_NUMBER_OF_COMPONENTS              (3)
 
-#define JPEGDEC_YCbCr400 0x080000U
-#define JPEGDEC_YCbCr440 0x010004U
-#define JPEGDEC_YCbCr411_SEMIPLANAR 0x100000U
-#define JPEGDEC_YCbCr444_SEMIPLANAR 0x200000U
+#define JPEGDEC_YCbCr400                      (0x080000U)
+#define JPEGDEC_YCbCr440                      (0x010004U)
+#define JPEGDEC_YCbCr411_SEMIPLANAR           (0x100000U)
+#define JPEGDEC_YCbCr444_SEMIPLANAR           (0x200000U)
 
-#define JPEGDEC_BASELINE 0x0
-#define JPEGDEC_PROGRESSIVE 0x1
-#define JPEGDEC_NONINTERLEAVED 0x2
+#define JPEGDEC_BASELINE                      (0x0)
+#define JPEGDEC_PROGRESSIVE                   (0x1)
+#define JPEGDEC_NONINTERLEAVED                (0x2)
 
-#define JPEGDEC_YUV400 0
-#define JPEGDEC_YUV420 2
-#define JPEGDEC_YUV422 3
-#define JPEGDEC_YUV444 4
-#define JPEGDEC_YUV440 5
-#define JPEGDEC_YUV411 6
+#define JPEGDEC_YUV400                        (0)
+#define JPEGDEC_YUV420                        (2)
+#define JPEGDEC_YUV422                        (3)
+#define JPEGDEC_YUV444                        (4)
+#define JPEGDEC_YUV440                        (5)
+#define JPEGDEC_YUV411                        (6)
 
-#define JPEGD_STREAM_BUFF_SIZE (512*1024)
-#define JPEGDEC_BASELINE_TABLE_SIZE  (544)
+#define JPEGD_STREAM_BUFF_SIZE                (512*1024)
+#define JPEGDEC_BASELINE_TABLE_SIZE           (544)
 
 typedef enum {
     JPEGDEC_SLICE_READY = 2,
@@ -213,7 +213,6 @@ typedef struct {
     VPUMemLinear_t outLumaBuffer;
     VPUMemLinear_t outChromaBuffer;
     VPUMemLinear_t outChromaBuffer2;
-
 } JpegAsicBuffers;
 
 typedef struct {
@@ -271,7 +270,7 @@ typedef struct DecPpInterface_ {
     RK_U32 topField;
     RK_U32 inwidth;
     RK_U32 inheight;
-    RK_U32 usePipeline;
+    RK_U32 usePipeline;         /* only this variance be used */
     RK_U32 littleEndian;
     RK_U32 wordSwap;
     RK_U32 croppedW;
@@ -311,7 +310,7 @@ typedef struct {
     RK_U32 xDensity;
     RK_U32 yDensity;
     RK_U32 outputFormat;
-    RK_U32 codingMode; /* JPEGDEC_BASELINE
+    RK_U32 codingMode;  /* JPEGDEC_BASELINE
                          * JPEGDEC_PROGRESSIVE
                          * JPEGDEC_NONINTERLEAVED
                          */
@@ -332,21 +331,21 @@ typedef struct {
 } JpegDecImageInfo;
 
 typedef struct JpegSyntaxParam {
-    StreamStorage stream;
-    FrameInfo frame;
-    ImageData image;
-    ScanInfo scan;
-    DecInfo info;
-    HuffmanTables vlc;
-    QuantTables quant;
-    JpegDecImageInfo imageInfo;
-    RK_U32 ppInputFomart;
-    PostProcessInfo ppInfo;
-    RK_U32 ppScaleW;
-    RK_U32 ppScaleH;
-    JpegAsicBuffers asicBuff;
-    DecPpInterface ppControl;
-    const void *ppInstance;
+    StreamStorage          stream;
+    FrameInfo              frame;
+    ImageData              image;
+    ScanInfo               scan;
+    DecInfo                info;
+    HuffmanTables          vlc;
+    QuantTables            quant;
+    JpegDecImageInfo       imageInfo;
+    RK_U32                 ppInputFomart;
+    PostProcessInfo        ppInfo;
+    RK_U32                 ppScaleW;
+    RK_U32                 ppScaleH;
+    JpegAsicBuffers        asicBuff;
+    DecPpInterface         ppControl;
+    const void             *ppInstance;
 } JpegSyntaxParam;
 
 #endif /*__JPEGD_SYNTAX__*/

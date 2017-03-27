@@ -37,13 +37,6 @@
 #include "hal_jpegd_vdpu2.h"
 #include "hal_jpegd_vdpu2_reg.h"
 
-static void jpegd_input_buff_load_init(JpegSyntaxParam *pSyntax)
-{
-    FUN_TEST("Enter");
-    // TODO: no need so far
-    (void)pSyntax;
-    FUN_TEST("Exit");
-}
 
 static void
 jpegd_write_len_bits(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
@@ -51,7 +44,8 @@ jpegd_write_len_bits(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     FUN_TEST("Enter");
     ScanInfo         *JPG_SCN = &pSyntax->scan;
     HuffmanTables    *JPG_VLC = &pSyntax->vlc;
-    JpegRegSet *reg = pCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)pCtx->regs;
+    JpegRegSet *reg = &(info->regs);
 
     VlcTable *pTable1 = NULL;
     VlcTable *pTable2 = NULL;
@@ -170,7 +164,8 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax,
 {
     FUN_TEST("Enter");
     StreamStorage *JPG_STR = &pSyntax->stream;
-    JpegRegSet *reg = pCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)pCtx->regs;
+    JpegRegSet *reg = &(info->regs);
 
     RK_U32 addrTmp = 0;
     RK_U32 amountOfStream = 0;
@@ -275,7 +270,8 @@ static void jpegd_select_chroma_table(JpegSyntaxParam *pSyntax,
 {
     FUN_TEST("Enter");
     ScanInfo         *JPG_SCN = &pSyntax->scan;
-    JpegRegSet *reg = pCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)pCtx->regs;
+    JpegRegSet *reg = &(info->regs);
 
     /* this trick is done because hw always wants luma table as ac hw table 1 */
     if (JPG_SCN->Ta[0] == 0) {
@@ -321,8 +317,35 @@ static void jpegd_select_chroma_table(JpegSyntaxParam *pSyntax,
     return;
 }
 
-static MPP_RET
-jpegd_set_post_processor(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
+static MPP_RET jpegd_set_extra_info(JpegHalContext *ctx, RK_U32 offset)
+{
+    FUN_TEST("Enter");
+    if (NULL == ctx) {
+        JPEGD_ERROR_LOG("NULL pointer");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    JpegdIocRegInfo *reg_info = (JpegdIocRegInfo *)ctx->regs;
+    JpegdIocExtInfo *info = &(reg_info->extra_info);
+    JpegdIocExtInfoSlot *slot = NULL;
+    info->cnt = 1;
+
+    slot = &(info->slots[0]);
+    slot->offset = offset;
+
+    if (ctx->set_output_fmt_flag) {
+        /* pp enable */
+        slot->reg_idx = 22;
+    } else {
+        slot->reg_idx = 131;
+    }
+
+    FUN_TEST("Exit");
+    return MPP_OK;
+}
+
+static MPP_RET jpegd_set_post_processor(JpegHalContext *pCtx,
+                                        JpegSyntaxParam *pSyntax)
 {
     FUN_TEST("Enter");
     if (NULL == pCtx || NULL == pSyntax) {
@@ -331,7 +354,8 @@ jpegd_set_post_processor(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
     }
 
     PostProcessInfo *ppInfo = &(pSyntax->ppInfo);
-    JpegRegSet *reg = pCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)pCtx->regs;
+    JpegRegSet *reg = &(info->regs);
     int inColor = pSyntax->ppInputFomart;
     int outColor = ppInfo->outFomart;
     int dither = ppInfo->shouldDither;
@@ -630,8 +654,10 @@ jpegd_set_post_processor(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
         if (VPUClientGetIOMMUStatus() <= 0) {
             reg->reg22_pp_out_ch_base = (phy_addr + outWidth * outHeight);
         } else {
-            if (outWidth * outHeight > 0x400000) {
-                JPEGD_ERROR_LOG("out offset big than 22bit iommu map may be error");
+            if (pCtx->set_output_fmt_flag) {
+                /* pp enable */
+                jpegd_set_extra_info(pCtx, outWidth * outHeight);
+                reg->reg22_pp_out_ch_base = phy_addr;
             } else {
                 reg->reg22_pp_out_ch_base = (phy_addr | ((outWidth * outHeight)
                                                          << 10));
@@ -687,11 +713,12 @@ static MPP_RET
 jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
 {
     FUN_TEST("Enter");
-    JpegRegSet *reg = pCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)pCtx->regs;
+    JpegRegSet *reg = &(info->regs);
 
     reg->reg50_dec_ctrl.sw_filtering_dis = 1;
 
-    reg->reg53_dec_mode = JPEG_RK70_MODE_JPEG;
+    reg->reg53_dec_mode = DEC_MODE_JPEG;
 
     reg->reg57_enable_ctrl.sw_dec_out_dis = 0;
     reg->reg57_enable_ctrl.sw_rlc_mode_e = pSyntax->info.rlcMode;
@@ -717,7 +744,8 @@ jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     reg->reg122.sw_jpeg_filright_e = pSyntax->info.fillRight;
 
     reg->reg148.sw_slice_h = pSyntax->info.sliceHeight;
-    /* Set bit 21 of reg148 to 1, notifying hardware to decode jpeg including DRI segment */
+    /* Set bit 21 of reg148 to 1, notifying hardware to decode jpeg
+     * including DRI segment */
     reg->reg148.sw_syn_marker_e = 1;
 
     /* tell hardware that height is 8-pixel aligned, but not 16-pixel aligned */
@@ -761,7 +789,8 @@ jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
     /* set restart interval */
     if (pSyntax->frame.Ri) {
         reg->reg122.sw_sync_marker_e = 1;
-        /* If exists DRI segment, bit 0 to bit 15 of reg123 is set to restart interval */
+        /* If exists DRI segment, bit 0 to bit 15 of reg123 is set
+         * to restart interval */
         reg->reg123.sw_pjpeg_rest_freq = pSyntax->frame.Ri;
     } else {
         reg->reg122.sw_sync_marker_e = 0;
@@ -781,10 +810,6 @@ jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
             reg->reg131_jpg_ch_out_base = 0;
         }
 
-        if (pSyntax->info.sliceStartCount == JPEGDEC_SLICE_START_VALUE) {
-            /* Enable pp */
-        }
-
         pSyntax->info.pipeline = 1;
     } else {
         JPEGD_INFO_LOG("ppInstance is NULL!");
@@ -801,8 +826,12 @@ jpegd_configure_regs(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
                 JPEGD_INFO_LOG("Chroma virtual: %p, phy_addr: %x\n",
                                pSyntax->asicBuff.outChromaBuffer.vir_addr,
                                pSyntax->asicBuff.outChromaBuffer.phy_addr);
-                reg->reg131_jpg_ch_out_base =
-                    pSyntax->asicBuff.outChromaBuffer.phy_addr;
+                if (!pCtx->set_output_fmt_flag) {
+                    /* pp disable */
+                    jpegd_set_extra_info(pCtx, pSyntax->image.sizeLuma);
+                    reg->reg131_jpg_ch_out_base =
+                        (pSyntax->asicBuff.outChromaBuffer.phy_addr & 0x3ff);
+                }
             }
         } else {
             JPEGD_INFO_LOG("NON_JPEGDEC_BASELINE");
@@ -824,13 +853,13 @@ static MPP_RET jpegd_regs_init(JpegRegSet *reg)
 {
     FUN_TEST("Enter");
     reg->reg50_dec_ctrl.sw_dec_out_tiled_e = 0;
-    reg->reg50_dec_ctrl.sw_dec_scmd_dis = DEC_RK70_SCMD_DISABLE;
-    reg->reg50_dec_ctrl.sw_dec_latency = DEC_RK70_LATENCY_COMPENSATION;
+    reg->reg50_dec_ctrl.sw_dec_scmd_dis = DEC_SCMD_DISABLE;
+    reg->reg50_dec_ctrl.sw_dec_latency = DEC_LATENCY_COMPENSATION;
 
-    reg->reg54_endian.sw_dec_in_endian = DEC_RK70_BIG_ENDIAN;
-    reg->reg54_endian.sw_dec_out_endian = DEC_RK70_LITTLE_ENDIAN;
-    reg->reg54_endian.sw_dec_strendian_e = DEC_RK70_LITTLE_ENDIAN;
-    reg->reg54_endian.sw_dec_outswap32_e = DEC_RK70_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_in_endian = DEC_BIG_ENDIAN;
+    reg->reg54_endian.sw_dec_out_endian = DEC_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_strendian_e = DEC_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_outswap32_e = DEC_LITTLE_ENDIAN;
     reg->reg54_endian.sw_dec_inswap32_e = 1;
     reg->reg54_endian.sw_dec_strswap32_e = 1;
 
@@ -838,8 +867,8 @@ static MPP_RET jpegd_regs_init(JpegRegSet *reg)
 
     reg->reg56_axi_ctrl.sw_dec_axi_rn_id = 0xff;
     reg->reg56_axi_ctrl.sw_dec_axi_wr_id = 0;
-    reg->reg56_axi_ctrl.sw_dec_max_burst = DEC_RK70_BUS_BURST_LENGTH_16;
-    reg->reg56_axi_ctrl.sw_dec_data_disc_e = DEC_RK70_DATA_DISCARD_ENABLE;
+    reg->reg56_axi_ctrl.sw_dec_max_burst = DEC_BUS_BURST_LENGTH_16;
+    reg->reg56_axi_ctrl.sw_dec_data_disc_e = DEC_DATA_DISCARD_ENABLE;
 
     reg->reg57_enable_ctrl.sw_dec_timeout_e = 1;
     reg->reg57_enable_ctrl.sw_dec_clk_gate_e = 1;
@@ -863,7 +892,8 @@ static MPP_RET jpegd_gen_regs(JpegHalContext *ctx, JpegSyntaxParam *syntax)
     if (pSyntax->image.headerReady) {
         JPEGD_INFO_LOG("image header is ready");
         do { /* loop until decoding control should return for user */
-            if (pSyntax->ppInstance != NULL) { /* if pp enabled ==> set pp control */
+            if (pSyntax->ppInstance != NULL) {
+                /* if pp enabled ==> set pp control */
                 pSyntax->ppControl.usePipeline = 1;
             }
 
@@ -891,7 +921,6 @@ static MPP_RET jpegd_gen_regs(JpegHalContext *ctx, JpegSyntaxParam *syntax)
                 pSyntax->info.SliceCount++;
             } else {
                 JPEGD_INFO_LOG("Continue HW decoding after input buffer has been loaded");
-                jpegd_input_buff_load_init(pSyntax);
 
                 /* buffer loaded ==> reset flag */
                 pSyntax->info.inputBufferEmpty = 0;
@@ -909,7 +938,6 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
     JpegHalContext *JpegHalCtx = (JpegHalContext *)hal;
-    JpegRegSet *reg = NULL;
     if (NULL == JpegHalCtx) {
         JpegHalCtx = (JpegHalContext *)mpp_calloc(JpegHalContext, 1);
         if (NULL == JpegHalCtx) {
@@ -937,18 +965,19 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
     }
 #endif
 
-    /* allocate regs buffer */
-    if (JpegHalCtx->regs == NULL) {
-        JpegHalCtx->regs = mpp_calloc_size(void, sizeof(JpegRegSet));
-        if (JpegHalCtx->regs == NULL) {
-            mpp_err("hal jpegd reg alloc failed\n");
-
-            FUN_TEST("FUN_OUT");
-            return MPP_ERR_NOMEM;
-        }
+    //init regs
+    JpegdIocRegInfo *info = NULL;
+    JpegRegSet *reg = NULL;
+    info = mpp_calloc(JpegdIocRegInfo, 1);
+    if (info == NULL) {
+        mpp_err_f("allocate jpegd ioctl info failed\n");
+        return MPP_ERR_NOMEM;
     }
-    reg = JpegHalCtx->regs;
-    memset(reg, 0, sizeof(JpegRegSet));
+    memset(info, 0, sizeof(JpegdIocRegInfo));
+    info->extra_info.magic = EXTRA_INFO_MAGIC;
+    JpegHalCtx->regs = (void *)info;
+
+    reg = &(info->regs);
     jpegd_regs_init(reg);
 
     //malloc hw buf
@@ -1097,7 +1126,7 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
 
         if (JpegHalCtx->hal_debug_enable && JpegHalCtx->frame_count < 3) {
             RK_U32 idx = 0;
-            RK_U32 *pRegs = (RK_U32 *) JpegHalCtx->regs;
+            RK_U32 *pRegs = (RK_U32 *) & (JpegHalCtx->regs);
             JPEGD_INFO_LOG("sizeof(JpegRegSet)=%d, sizeof(pRegs[0])=%d",
                            sizeof(JpegRegSet), sizeof(pRegs[0]));
 
@@ -1123,7 +1152,8 @@ MPP_RET hal_jpegd_vdpu2_start(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     RK_U32 *p_regs = (RK_U32 *)JpegHalCtx->regs;
-    ret = VPUClientSendReg(JpegHalCtx->vpu_socket, p_regs, JPEGD_REG_NUM);
+    ret = VPUClientSendReg(JpegHalCtx->vpu_socket, p_regs,
+                           sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
     if (ret != 0) {
         JPEGD_ERROR_LOG("VPUClientSendReg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -1144,24 +1174,26 @@ MPP_RET hal_jpegd_vdpu2_wait(void *hal, HalTaskInfo *task)
     (void)task;
 
 #ifdef RKPLATFORM
-    JpegRegSet reg_out;
+    JpegRegSet *reg_out = NULL;
     VPU_CMD_TYPE cmd = 0;
     RK_S32 length = 0;
     RK_U32 errinfo = 1;
     MppFrame tmp = NULL;
-    memset(&reg_out, 0, sizeof(JpegRegSet));
+    RK_U32 reg[184];
 
-    ret = VPUClientWaitResult(JpegHalCtx->vpu_socket, (RK_U32 *)&reg_out,
-                              JPEGD_REG_NUM, &cmd, &length);
-    if (reg_out.reg55_Interrupt.sw_dec_bus_int) {
+    ret = VPUClientWaitResult(JpegHalCtx->vpu_socket, reg,
+                              sizeof(reg) / sizeof(RK_U32), &cmd, &length);
+
+    reg_out = (JpegRegSet *)reg;
+    if (reg_out->reg55_Interrupt.sw_dec_bus_int) {
         JPEGD_ERROR_LOG("IRQ BUS ERROR!");
-    } else if (reg_out.reg55_Interrupt.sw_dec_error_int) {
+    } else if (reg_out->reg55_Interrupt.sw_dec_error_int) {
         JPEGD_ERROR_LOG("IRQ STREAM ERROR!");
-    } else if (reg_out.reg55_Interrupt.sw_dec_timeout) {
+    } else if (reg_out->reg55_Interrupt.sw_dec_timeout) {
         JPEGD_ERROR_LOG("IRQ TIMEOUT!");
-    } else if (reg_out.reg55_Interrupt.sw_dec_buffer_int) {
+    } else if (reg_out->reg55_Interrupt.sw_dec_buffer_int) {
         JPEGD_ERROR_LOG("IRQ BUFFER EMPTY!");
-    } else if (reg_out.reg55_Interrupt.sw_dec_irq) {
+    } else if (reg_out->reg55_Interrupt.sw_dec_irq) {
         errinfo = 0;
         JPEGD_INFO_LOG("DECODE SUCCESS!");
     }
@@ -1221,7 +1253,8 @@ MPP_RET hal_jpegd_vdpu2_flush(void *hal)
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu2_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_jpegd_vdpu2_control(void *hal, RK_S32 cmd_type,
+                                void *param)
 {
     FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;

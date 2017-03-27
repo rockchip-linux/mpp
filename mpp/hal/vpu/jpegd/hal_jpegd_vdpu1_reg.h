@@ -17,19 +17,16 @@
 #define __HAL_JPEGD_VDPU1_REG_TABLE_H__
 #include "rk_type.h"
 
-#define JPEGD_REG_NUM  101
+#define JPEGD_REG_NUM                       (101)
 
-#define DEC_VDPU1_LITTLE_ENDIAN       1
-#define DEC_VDPU1_BIG_ENDIAN          0
+#define DEC_VDPU1_LITTLE_ENDIAN             (1)
+#define DEC_VDPU1_BIG_ENDIAN                (0)
 
-#define DEC_VDPU1_BUS_BURST_LENGTH_UNDEFINED        0
-#define DEC_VDPU1_BUS_BURST_LENGTH_4                4
-#define DEC_VDPU1_BUS_BURST_LENGTH_8                8
-#define DEC_VDPU1_BUS_BURST_LENGTH_16               16
+#define DEC_VDPU1_BUS_BURST_LENGTH_16       (16)
 
-#define DEC_VDPU1_SCMD_DISABLE          (0)
-#define DEC_VDPU1_LATENCY_COMPENSATION      0
-#define DEC_VDPU1_DATA_DISCARD_ENABLE       0
+#define DEC_VDPU1_SCMD_DISABLE              (0)
+#define DEC_VDPU1_LATENCY_COMPENSATION      (0)
+#define DEC_VDPU1_DATA_DISCARD_ENABLE       (0)
 
 
 typedef struct {
@@ -604,5 +601,13 @@ typedef struct  {
     RK_U32      reg59_addit_ch_st_base;
     post_processor_reg  post;
 } JpegRegSet;
+
+typedef struct JpegdIocRegInfo_t {
+    JpegRegSet             regs;
+
+    /* vepu_reg_num - vdpu_reg_num */
+    RK_U32                 regs_diff[164 - JPEGD_REG_NUM];
+    JpegdIocExtInfo        extra_info;
+} JpegdIocRegInfo;
 
 #endif

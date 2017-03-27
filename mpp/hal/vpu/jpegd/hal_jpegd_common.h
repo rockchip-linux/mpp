@@ -18,16 +18,9 @@
 #define __HAL_JPEGD_COMMON_H__
 #include "hal_jpegd_base.h"
 
-#define DEC_RK70_SCMD_DISABLE           (0)
-#define DEC_RK70_LATENCY_COMPENSATION     0
-#define DEC_RK70_DATA_DISCARD_ENABLE      0
-
-#define JPEGDEC_SLICE_START_VALUE 0
-
-//modify following values in special product
-#define BRIGHTNESS 4    // -128 ~ 127
-#define CONTRAST 0      // -64 ~ 64
-#define SATURATION 0    // -64 ~ 128
+#define BRIGHTNESS                                  4    /* -128 ~ 127 */
+#define CONTRAST                                    0    /* -64 ~ 64 */
+#define SATURATION                                  0    /* -64 ~ 128 */
 #define PP_IN_FORMAT_YUV422INTERLAVE                0
 #define PP_IN_FORMAT_YUV420SEMI                     1
 #define PP_IN_FORMAT_YUV420PLANAR                   2
