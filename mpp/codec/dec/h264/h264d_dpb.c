@@ -1811,22 +1811,12 @@ __FAILED:
 //extern "C"
 MPP_RET output_dpb(H264_DecCtx_t *p_Dec, H264_DpbBuf_t *p_Dpb)
 {
-    RK_S32 poc = 0, pos = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    INP_CHECK(ret, !p_Dpb);
 
-    while (get_smallest_poc(p_Dpb, &poc, &pos)) {
-        p_Dpb->last_output_poc = poc;
-        FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[pos]));
-        if (!is_used_for_reference(p_Dpb->fs[pos])) {
-            FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, pos));
-        }
-    }
+    while (!remove_unused_frame_from_dpb(p_Dpb));
+
     (void)p_Dec;
-__RETURN:
     return ret = MPP_OK;
-__FAILED:
-    return ret;
 }
 /*!
 ***********************************************************************
