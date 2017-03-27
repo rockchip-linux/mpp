@@ -428,37 +428,17 @@ __FAILED:
 MPP_RET  h264d_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U32 dpb_used_size = 0;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder);
     INP_CHECK(ret, !p_Dec->p_Inp);
     INP_CHECK(ret, !p_Dec->p_Vid);
 
-    dpb_used_size = p_Dec->p_Vid->p_Dpb_layer[0]->used_size;
-    if (p_Dec->mvc_valid) {
-        dpb_used_size += p_Dec->p_Vid->p_Dpb_layer[1]->used_size;
-    }
-#if 0
-    if (!dpb_used_size && p_Dec->p_Inp->has_get_eos) {
-        IOInterruptCB *cb = &p_Dec->p_Inp->init.notify_cb;
-        if (cb->callBack) {
-            cb->callBack(cb->opaque, NULL);
-        }
-        goto __RETURN;
-    }
-#endif
     FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[0]));
     if (p_Dec->mvc_valid) {
         FUN_CHECK(ret = output_dpb(p_Dec, p_Dec->p_Vid->p_Dpb_layer[1]));
     }
-#if 0
-    if (p_Dec->last_frame_slot_idx >= 0) {
-        mpp_buf_slot_set_prop(p_Dec->frame_slots, p_Dec->last_frame_slot_idx,
-                              SLOT_EOS, &p_Dec->p_Inp->has_get_eos);
-        p_Dec->last_frame_slot_idx = -1;
-    }
-#endif
+
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -512,7 +492,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->pkt_eos     = 1;
         p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
-            h264d_flush(decoder);
+            h264d_reset(decoder);
             task->flags.eos = p_Inp->pkt_eos;
             goto __RETURN;
         }
@@ -604,7 +584,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         p_Dec->p_Vid->g_framecnt++;
         ret = update_dpb(p_Dec);
         if (in_task->flags.eos) {
-            h264d_flush(decoder);
+            h264d_reset(decoder);
             goto __RETURN;
         }
         if (ret) {
