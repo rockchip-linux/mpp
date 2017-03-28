@@ -18,334 +18,171 @@
 #ifndef __JPEGD_SYNTAX__
 #define __JPEGD_SYNTAX__
 
-#include "vpu_api.h"
+#define JPEGDEC_YUV400                    (0)
+#define JPEGDEC_YUV420                    (2)
+#define JPEGDEC_YUV422                    (3)
+#define JPEGDEC_YUV444                    (4)
+#define JPEGDEC_YUV440                    (5)
+#define JPEGDEC_YUV411                    (6)
 
-#define MIN_NUMBER_OF_COMPONENTS              (1)
-#define MAX_NUMBER_OF_COMPONENTS              (3)
+#define JPEGD_STREAM_BUFF_SIZE            (512*1024)
+#define MAX_COMPONENTS                    (3)       /* for JFIF: YCbCr */
+#define DRI_MARKER_LENGTH                 (4)       /* must be 4 bytes */
+#define QUANTIZE_TABLE_LENGTH             (64)
+#define MAX_AC_HUFFMAN_TABLE_LENGTH       (162)     /* for baseline */
+#define MAX_DC_HUFFMAN_TABLE_LENGTH       (12)      /* for baseline */
+#define MAX_HUFFMAN_CODE_BIT_LENGTH       (16)      /* The longest code word is 16 bits */
+#define MIN_WIDTH                         (48)      /* 48 Bytes */
+#define MIN_HEIGHT                        (48)      /* 48 Bytes */
+#define MAX_WIDTH                         (4*1024)  /* 4K Bytes */
+#define MAX_HEIGHT                        (4*1024)  /* 4K Bytes */
+#define MAX_STREAM_LENGTH                 (MAX_WIDTH * MAX_HEIGHT) /* 16M Bytes */
+#define ZERO_PADDING_LENGTH               (4)       /* 4 Bytes */
+#define JPEGD_BASELINE_TABLE_SIZE         (QUANTIZE_TABLE_LENGTH * 3 \
+                                           + MAX_AC_HUFFMAN_TABLE_LENGTH * 2 \
+                                           + MAX_DC_HUFFMAN_TABLE_LENGTH * 2 \
+                                           + ZERO_PADDING_LENGTH) /* 544 Bytes */
 
-#define JPEGDEC_YCbCr400                      (0x080000U)
-#define JPEGDEC_YCbCr440                      (0x010004U)
-#define JPEGDEC_YCbCr411_SEMIPLANAR           (0x100000U)
-#define JPEGDEC_YCbCr444_SEMIPLANAR           (0x200000U)
+#define JPEGD_DBG_FUNCTION                (0x00000001)
+#define JPEGD_DBG_STARTCODE               (0x00000002)
+#define JPEGD_DBG_TABLE                   (0x00000004)
+#define JPEGD_DBG_RESULT                  (0x00000008)
+#define JPEGD_DBG_IO                      (0x00000010) /* input and output write file */
+#define JPEGD_DBG_PARSER_INFO             (0x00000020) /* parser information */
+#define JPEGD_DBG_SYNTAX_ERR              (0x00000040) /* syntax error */
+#define JPEGD_DBG_HAL_INFO                (0x00000080) /* hal information */
 
-#define JPEGDEC_BASELINE                      (0x0)
-#define JPEGDEC_PROGRESSIVE                   (0x1)
-#define JPEGDEC_NONINTERLEAVED                (0x2)
+extern RK_U32 jpegd_debug;
 
-#define JPEGDEC_YUV400                        (0)
-#define JPEGDEC_YUV420                        (2)
-#define JPEGDEC_YUV422                        (3)
-#define JPEGDEC_YUV444                        (4)
-#define JPEGDEC_YUV440                        (5)
-#define JPEGDEC_YUV411                        (6)
+#define jpegd_dbg(flag, fmt, ...)         _mpp_dbg(jpegd_debug, flag, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_f(flag, fmt, ...)       _mpp_dbg_f(jpegd_debug, flag, fmt, ## __VA_ARGS__)
 
-#define JPEGD_STREAM_BUFF_SIZE                (512*1024)
-#define JPEGDEC_BASELINE_TABLE_SIZE           (544)
+#define jpegd_dbg_func(fmt, ...)          jpegd_dbg_f(JPEGD_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_marker(fmt, ...)        jpegd_dbg(JPEGD_DBG_STARTCODE, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_table(fmt, ...)         jpegd_dbg(JPEGD_DBG_TABLE, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_result(fmt, ...)        jpegd_dbg(JPEGD_DBG_RESULT, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_io(fmt, ...)            jpegd_dbg(JPEGD_DBG_IO, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_parser(fmt, ...)        jpegd_dbg(JPEGD_DBG_PARSER_INFO, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_syntax(fmt, ...)        jpegd_dbg(JPEGD_DBG_SYNTAX_ERR, fmt, ## __VA_ARGS__)
+#define jpegd_dbg_hal(fmt, ...)           jpegd_dbg(JPEGD_DBG_HAL_INFO, fmt, ## __VA_ARGS__)
 
-typedef enum {
-    JPEGDEC_SLICE_READY = 2,
-    JPEGDEC_FRAME_READY = 1,
-    JPEGDEC_STRM_PROCESSED = 3,
-    JPEGDEC_SCAN_PROCESSED = 4,
-    JPEGDEC_OK = 0,
-    JPEGDEC_ERROR = -1,
-    JPEGDEC_UNSUPPORTED = -2,
-    JPEGDEC_PARAM_ERROR = -3,
-    JPEGDEC_MEMFAIL = -4,
-    JPEGDEC_INITFAIL = -5,
-    JPEGDEC_INVALID_STREAM_LENGTH = -6,
-    JPEGDEC_STRM_ERROR = -7,
-    JPEGDEC_INVALID_INPUT_BUFFER_SIZE = -8,
-    JPEGDEC_HW_RESERVED = -9,
-    JPEGDEC_INCREASE_INPUT_BUFFER = -10,
-    JPEGDEC_SLICE_MODE_UNSUPPORTED = -11,
-    JPEGDEC_DWL_HW_TIMEOUT = -253,
-    JPEGDEC_DWL_ERROR = -254,
-    JPEGDEC_HW_BUS_ERROR = -255,
-    JPEGDEC_SYSTEM_ERROR = -256,
-    JPEGDEC_FORMAT_NOT_SUPPORTED = -1000
-} JpegDecRet;
 
+enum huffman_table_type {
+    HUFFMAN_TABLE_TYPE_DC = 0,
+    HUFFMAN_TABLE_TYPE_AC = 1,
+    HUFFMAN_TABLE_TYPE_BUTT = 2,
+};
+
+enum huffman_table_id {
+    HUFFMAN_TABLE_ID_ZERO = 0,
+    HUFFMAN_TABLE_ID_ONE = 1,
+    HUFFMAN_TABLE_ID_TWO = 2,
+    HUFFMAN_TABLE_ID_THREE = 3,
+    HUFFMAN_TABLE_ID_BUTT = 4,
+};
+
+enum quantize_table_id {
+    QUANTIZE_TABLE_ID_ZERO = 0,
+    QUANTIZE_TABLE_ID_ONE = 1,
+    QUANTIZE_TABLE_ID_TWO = 2,
+    QUANTIZE_TABLE_ID_THREE = 3,
+    QUANTIZE_TABLE_ID_BUTT = 4,
+};
+
+/* Alternating Current Table */
 typedef struct {
-    RK_U32 C;  /* Component id */
-    RK_U32 H;  /* Horizontal sampling factor */
-    RK_U32 V;  /* Vertical sampling factor */
-    RK_U32 Tq; /* Quantization table destination selector */
-} Components;
+    RK_U32         bits[MAX_HUFFMAN_CODE_BIT_LENGTH];
+    RK_U32         vals[MAX_AC_HUFFMAN_TABLE_LENGTH];
+    RK_U32         actual_length; /* calculate based on actual stream */
+} AcTable;
 
+/* Direct Current Table */
 typedef struct {
-    RK_U8 *pStartOfStream;
-    RK_U8 *pCurrPos;
-    RK_U32 streamBus; /* physical address */
-    RK_U32 bitPosInByte;
-    RK_U32 streamLength;
-    RK_U32 readBits;
-    RK_U32 appnFlag;
-    RK_U32 thumbnail;
-    RK_U32 returnSosMarker;
-} StreamStorage;
+    RK_U32         bits[MAX_HUFFMAN_CODE_BIT_LENGTH];
+    RK_U32         vals[MAX_DC_HUFFMAN_TABLE_LENGTH];
+    RK_U32         actual_length; /* calculate based on actual stream */
+} DcTable;
 
-typedef struct {
-    RK_U8 *pStartOfImage;
-    RK_U8 *pLum;
-    RK_U8 *pCr;
-    RK_U8 *pCb;
-    RK_U32 imageReady;
-    RK_U32 headerReady;
-    RK_U32 size;
-    RK_U32 sizeLuma;
-    RK_U32 sizeChroma;
-    RK_U32 ready;
-    RK_U32 columns[MAX_NUMBER_OF_COMPONENTS];
-    RK_U32 pixelsPerRow[MAX_NUMBER_OF_COMPONENTS];
-} ImageData;
+typedef struct JpegdSyntax {
+    /* just 16 bits because quantization parameters are much less than 2^16 */
+    RK_U16         quant_matrixes[4][QUANTIZE_TABLE_LENGTH];
 
-typedef struct {
-    RK_U32 Lf;
-    RK_U32 P;
-    RK_U32 Y;
-    RK_U32 hwY;
-    RK_U32 X;
-    RK_U32 hwX;
-    RK_U32 Nf; /* Number of components in frame */
-    RK_U32 codingType;
-    RK_U32 numMcuInFrame;
-    RK_U32 numMcuInRow;
-    RK_U32 mcuNumber;
-    RK_U32 nextRstNumber;
-    RK_U32 Ri;
-    RK_U32 driPeriod;
-    RK_U32 block;
-    RK_U32 row;
-    RK_U32 col;
-    RK_U32 cIndex;
-    RK_U32 *pBuffer;
-    RK_U32 bufferBus;
-    RK_S32 *pBufferCb;
-    RK_S32 *pBufferCr;
-    VPUMemLinear_t pTableBase;
-    RK_U32 numBlocks[MAX_NUMBER_OF_COMPONENTS];
-    RK_U32 blocksPerRow[MAX_NUMBER_OF_COMPONENTS];
-    RK_U32 useAcOffset[MAX_NUMBER_OF_COMPONENTS];
-    Components component[MAX_NUMBER_OF_COMPONENTS];
-} FrameInfo;
+    /* only two ac table for baseline */
+    AcTable        ac_table[2];
 
-typedef struct {
-    RK_U32 Ls;
-    RK_U32 Ns;
-    RK_U32 Cs[MAX_NUMBER_OF_COMPONENTS];   /* Scan component selector */
-    RK_U32 Td[MAX_NUMBER_OF_COMPONENTS];   /* Selects table for DC */
-    RK_U32 Ta[MAX_NUMBER_OF_COMPONENTS];   /* Selects table for AC */
-    RK_U32 Ss;
-    RK_U32 Se;
-    RK_U32 Ah;
-    RK_U32 Al;
-    RK_U32 index;
-    RK_S32 numIdctRows;
-    RK_S32 pred[MAX_NUMBER_OF_COMPONENTS];
-} ScanInfo;
+    /* only two dc table for baseline */
+    DcTable        dc_table[2];
 
-typedef struct {
-    RK_U32 sliceHeight;
-    RK_U32 amountOfQTables;
-    RK_U32 yCbCrMode;
-    RK_U32 yCbCr422;
-    RK_U32 column;
-    RK_U32 X; /* width */
-    RK_U32 Y; /* height */
-    RK_U32 memSize;
-    RK_U32 SliceCount;
-    RK_U32 SliceReadyForPause;
-    RK_U32 SliceMBCutValue;
-    RK_U32 pipeline;
-    RK_U32 userAllocMem;
-    RK_U32 sliceMbSetValue;
-    RK_U32 timeout;
-    RK_U32 rlcMode;
-    RK_U32 lumaPos;
-    RK_U32 chromaPos;
-    RK_U32 sliceStartCount;
-    RK_U32 amountOfSlices;
-    RK_U32 noSliceIrqForUser;
-    RK_U32 sliceLimitReached;
-    RK_U32 inputBufferEmpty;
-    RK_U32 fillRight;
-    RK_U32 fillBottom;
-    RK_U32 streamEnd;
-    RK_U32 streamEndFlag;
-    RK_U32 inputBufferLen;
-    RK_U32 inputStreaming;
-    RK_U32 decodedStreamLen;
-    RK_U32 init;
-    RK_U32 initThumb;
-    RK_U32 initBufferSize;
-    RK_S32 dcRes[MAX_NUMBER_OF_COMPONENTS];
-    VPUMemLinear_t outLuma;
-    VPUMemLinear_t outChroma;
-    VPUMemLinear_t outChroma2;
-    VPUMemLinear_t givenOutLuma;
-    VPUMemLinear_t givenOutChroma;
-    VPUMemLinear_t givenOutChroma2;
-    RK_S32 pred[MAX_NUMBER_OF_COMPONENTS];
-    /* progressive parameters */
-    RK_U32 nonInterleaved;
-    RK_U32 componentId;
-    RK_U32 operationType;
-    RK_U32 operationTypeThumb;
-    RK_U32 progressiveScanReady;
-    RK_U32 nonInterleavedScanReady;
-    RK_U32 allocated;
-    RK_U32 yCbCrModeOrig;
-    RK_U32 getInfoYCbCrMode;
-    RK_U32 components[MAX_NUMBER_OF_COMPONENTS];
-    VPUMemLinear_t pCoeffBase;
+    /* quantizer scale calculated from quant_matrixes */
+    RK_U32         qscale[4];
 
-    RK_U32 fillX;
-    RK_U32 fillY;
+    /* output format */
+    MppFrameFormat output_fmt;
 
-    RK_U32 progressiveFinish;
-    RK_U32 pfCompId;
-    RK_U32 pfNeeded[MAX_NUMBER_OF_COMPONENTS];
-    VPUMemLinear_t tmpStrm;
-} DecInfo;
+    /* especially for jpeg */
+    RK_U32         yuv_mode;
+    RK_U8          fill_bottom;
+    RK_U8          fill_right;
 
-typedef struct {
-    VPUMemLinear_t outLumaBuffer;
-    VPUMemLinear_t outChromaBuffer;
-    VPUMemLinear_t outChromaBuffer2;
-} JpegAsicBuffers;
+    /* syntax in SOS */
+    RK_U8          scan_start;
+    RK_U8          scan_end;
+    RK_U8          prev_shift; /* Ah */
+    RK_U8          point_transform; /* Al */
 
-typedef struct {
-    RK_U32 bits[16];
-    RK_U32 *vals;
-    RK_U32 tableLength;
-    RK_U32 start;
-    RK_U32 last;
-} VlcTable;
+    /* 0 - not found; 1 - found */
+    RK_U8          dht_found;
+    RK_U8          eoi_found;
 
-typedef struct {
-    RK_U32 Lh;
-    VlcTable acTable0;
-    VlcTable acTable1;
-    VlcTable acTable2;
-    VlcTable acTable3;
-    VlcTable dcTable0;
-    VlcTable dcTable1;
-    VlcTable dcTable2;
-    VlcTable dcTable3;
-    VlcTable *table;
-} HuffmanTables;
+    /* amount of quantize tables: 1 or 3 */
+    RK_U8          qtable_cnt;
 
-typedef struct {
-    RK_U32 Lq; /* Quantization table definition length */
-    RK_U32 table0[64];
-    RK_U32 table1[64];
-    RK_U32 table2[64];
-    RK_U32 table3[64];
-    RK_U32 *table;
-} QuantTables;
+    /* length of sos segment */
+    RK_U32         sos_len;
 
-/* Control interface between decoder and pp */
-/* decoder writes, pp read-only */
-typedef struct DecPpInterface_ {
-    enum {
-        DECPP_IDLE = 0,
-        DECPP_RUNNING,  /* PP was started */
-        DECPP_PIC_READY, /* PP has finished a picture */
-        DECPP_PIC_NOT_FINISHED /* PP still processing a picture */
-    } ppStatus; /* Decoder keeps track of what it asked the pp to do */
+    /* decoded bytes by software */
+    RK_U32         strm_offset;
 
-    enum {
-        MULTIBUFFER_UNINIT = 0, /* buffering mode not yet decided */
-        MULTIBUFFER_DISABLED,   /* Single buffer legacy mode */
-        MULTIBUFFER_SEMIMODE,   /* enabled but full pipel cannot be used */
-        MULTIBUFFER_FULLMODE    /* enabled and full pipeline successful */
-    } multiBufStat;
+    /* hardware decode start address */
+    RK_U8          *cur_pos;
 
-    RK_U32 inputBusLuma;
-    RK_U32 inputBusChroma;
-    RK_U32 bottomBusLuma;
-    RK_U32 bottomBusChroma;
-    RK_U32 picStruct;           /* structure of input picture */
-    RK_U32 topField;
-    RK_U32 inwidth;
-    RK_U32 inheight;
-    RK_U32 usePipeline;         /* only this variance be used */
-    RK_U32 littleEndian;
-    RK_U32 wordSwap;
-    RK_U32 croppedW;
-    RK_U32 croppedH;
+    /* length of a jpeg packet */
+    RK_U32         pkt_len;
 
-    RK_U32 bufferIndex;         /* multibuffer, where to put PP output */
-    RK_U32 displayIndex;        /* multibuffer, next picture in display order */
-    RK_U32 prevAnchorDisplayIndex;
+    /* Horizontal pixel density */
+    RK_U16         hor_density;
 
-    /* VC-1 */
-    RK_U32 rangeRed;
-    RK_U32 rangeMapYEnable;
-    RK_U32 rangeMapYCoeff;
-    RK_U32 rangeMapCEnable;
-    RK_U32 rangeMapCCoeff;
-} DecPpInterface;
+    /* Vertical pixel density */
+    RK_U16         ver_density;
 
-typedef struct {
-    int enable;
-    int outFomart; /* =0,RGB565;=1,ARGB 8888 */
-    int scale_denom;
-    int shouldDither;
-    int cropX;
-    int cropY;
-    int cropW;
-    int cropH;
-} PostProcessInfo;
+    RK_U32         width, height;
+    RK_U32         hor_stride, ver_stride;
 
-/* Image information */
-typedef struct {
-    RK_U32 displayWidth;
-    RK_U32 displayHeight;
-    RK_U32 outputWidth;    /* Number of pixels/line in the image  */
-    RK_U32 outputHeight;   /* Number of lines in in the image     */
-    RK_U32 version;
-    RK_U32 units;
-    RK_U32 xDensity;
-    RK_U32 yDensity;
-    RK_U32 outputFormat;
-    RK_U32 codingMode;  /* JPEGDEC_BASELINE
-                         * JPEGDEC_PROGRESSIVE
-                         * JPEGDEC_NONINTERLEAVED
-                         */
+    /* Number of components in frame */
+    RK_U32         nb_components;
 
-    RK_U32 thumbnailType;  /* Thumbnail exist or not or not supported */
-    RK_U32 displayWidthThumb;
-    RK_U32 displayHeightThumb;
-    RK_U32 outputWidthThumb;   /* Number of pixels/line in the image  */
-    RK_U32 outputHeightThumb;  /* Number of lines in in the image     */
-    RK_U32 outputFormatThumb;  /* JPEGDEC_YCbCr400
-                                 * JPEGDEC_YCbCr420
-                                 * JPEGDEC_YCbCr422
-                                 */
-    RK_U32 codingModeThumb;    /* JPEGDEC_BASELINE
-                                 * JPEGDEC_PROGRESSIVE
-                                 * JPEGDEC_NONINTERLEAVED
-                                 */
-} JpegDecImageInfo;
+    /* Component id */
+    RK_U32         component_id[MAX_COMPONENTS];
 
-typedef struct JpegSyntaxParam {
-    StreamStorage          stream;
-    FrameInfo              frame;
-    ImageData              image;
-    ScanInfo               scan;
-    DecInfo                info;
-    HuffmanTables          vlc;
-    QuantTables            quant;
-    JpegDecImageInfo       imageInfo;
-    RK_U32                 ppInputFomart;
-    PostProcessInfo        ppInfo;
-    RK_U32                 ppScaleW;
-    RK_U32                 ppScaleH;
-    JpegAsicBuffers        asicBuff;
-    DecPpInterface         ppControl;
-    const void             *ppInstance;
-} JpegSyntaxParam;
+    /* Horizontal sampling factor */
+    RK_U32         h_count[MAX_COMPONENTS];
+
+    /* Vertical sampling factor */
+    RK_U32         v_count[MAX_COMPONENTS];
+
+    /* Huffman Table ID used by DC */
+    RK_U32         dc_index[MAX_COMPONENTS];
+
+    /* Huffman Table ID used by AC */
+    RK_U32         ac_index[MAX_COMPONENTS];
+
+    /* maximum h and v counts */
+    RK_U32         h_max, v_max;
+
+    /* quant table index for each component */
+    RK_U32         quant_index[MAX_COMPONENTS];
+
+    RK_U32         restart_interval;
+} JpegdSyntax;
 
 #endif /*__JPEGD_SYNTAX__*/

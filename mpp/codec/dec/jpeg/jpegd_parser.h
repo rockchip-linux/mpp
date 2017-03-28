@@ -27,150 +27,131 @@
 #include "mpp_dec.h"
 #include "mpp_buf_slot.h"
 #include "mpp_packet.h"
+#include "mpp_bitread.h"
 
 #include "jpegd_syntax.h"
 
-/* Max amount of stream: 16777216 = 16*1024*1024 = 4K*4K */
-#define DEC_MAX_STREAM                          ((1<<24)-1)
-#define JPEGDEC_MIN_BUFFER                      (256)
-#define JPEGDEC_MAX_BUFFER                      (16776960)
-#define JPEGDEC_MIN_WIDTH                       (48)
-#define JPEGDEC_MIN_HEIGHT                      (48)
-#define JPEGDEC_MAX_PIXEL_AMOUNT                (16370688)
-#define JPEGDEC_MAX_WIDTH_8190                  (8176)
-#define JPEGDEC_MAX_HEIGHT_8190                 (8176)
-#define JPEGDEC_MAX_PIXEL_AMOUNT_8190           (66846976)
-#define JPEGDEC_MAX_SLICE_SIZE_8190             (8100)
-#define JPEGDEC_MAX_WIDTH_TN                    (256)
-#define JPEGDEC_MAX_HEIGHT_TN                   (256)
+#define JPEG_IDENTIFIER(a, b, c, d) \
+       ((RK_U32)(d) | ((RK_U32)(c) << 8) | \
+         ((RK_U32)(b) << 16) | ((RK_U32)(a) << 24))
 
-#define PP_IN_FORMAT_YUV422INTERLAVE            (0)
-#define PP_IN_FORMAT_YUV420SEMI                 (1)
-#define PP_IN_FORMAT_YUV420PLANAR               (2)
-#define PP_IN_FORMAT_YUV400                     (3)
-#define PP_IN_FORMAT_YUV422SEMI                 (4)
-#define PP_IN_FORMAT_YUV420SEMITIELED           (5)
-#define PP_IN_FORMAT_YUV440SEMI                 (6)
-#define PP_IN_FORMAT_YUV444_SEMI                (7)
-#define PP_IN_FORMAT_YUV411_SEMI                (8)
 
-#define PP_OUT_FORMAT_RGB565                    (0)
-#define PP_OUT_FORMAT_ARGB                      (1)
-#define PP_OUT_FORMAT_YUV422INTERLAVE           (3)
-#define PP_OUT_FORMAT_YUV420INTERLAVE           (5)
+/* JPEG marker codes */
+enum JpegMarker {
+    /* start of frame */
+    SOF0  = 0xc0,       /* baseline */
+    SOF1  = 0xc1,       /* extended sequential, huffman */
+    SOF2  = 0xc2,       /* progressive, huffman */
+    SOF3  = 0xc3,       /* lossless, huffman */
 
-enum {
-    JPEGDEC_NO_UNITS = 0,       /* No units, X and Y specify
-                                 * the pixel aspect ratio    */
-    JPEGDEC_DOTS_PER_INCH = 1,  /* X and Y are dots per inch */
-    JPEGDEC_DOTS_PER_CM = 2     /* X and Y are dots per cm   */
+    SOF5  = 0xc5,       /* differential sequential, huffman */
+    SOF6  = 0xc6,       /* differential progressive, huffman */
+    SOF7  = 0xc7,       /* differential lossless, huffman */
+    JPG   = 0xc8,       /* reserved for JPEG extension */
+    SOF9  = 0xc9,       /* extended sequential, arithmetic */
+    SOF10 = 0xca,       /* progressive, arithmetic */
+    SOF11 = 0xcb,       /* lossless, arithmetic */
+
+    SOF13 = 0xcd,       /* differential sequential, arithmetic */
+    SOF14 = 0xce,       /* differential progressive, arithmetic */
+    SOF15 = 0xcf,       /* differential lossless, arithmetic */
+
+    DHT   = 0xc4,       /* define huffman tables */
+
+    DAC   = 0xcc,       /* define arithmetic-coding conditioning */
+
+    /* restart with modulo 8 count "m" */
+    RST0  = 0xd0,
+    RST1  = 0xd1,
+    RST2  = 0xd2,
+    RST3  = 0xd3,
+    RST4  = 0xd4,
+    RST5  = 0xd5,
+    RST6  = 0xd6,
+    RST7  = 0xd7,
+
+    SOI   = 0xd8,       /* start of image */
+    EOI   = 0xd9,       /* end of image */
+    SOS   = 0xda,       /* start of scan */
+    DQT   = 0xdb,       /* define quantization tables */
+    DNL   = 0xdc,       /* define number of lines */
+    DRI   = 0xdd,       /* define restart interval */
+    DHP   = 0xde,       /* define hierarchical progression */
+    EXP   = 0xdf,       /* expand reference components */
+
+    APP0  = 0xe0,
+    APP1  = 0xe1,
+    APP2  = 0xe2,
+    APP3  = 0xe3,
+    APP4  = 0xe4,
+    APP5  = 0xe5,
+    APP6  = 0xe6,
+    APP7  = 0xe7,
+    APP8  = 0xe8,
+    APP9  = 0xe9,
+    APP10 = 0xea,
+    APP11 = 0xeb,
+    APP12 = 0xec,
+    APP13 = 0xed,
+    APP14 = 0xee,
+    APP15 = 0xef,
+
+    JPG0  = 0xf0,
+    JPG1  = 0xf1,
+    JPG2  = 0xf2,
+    JPG3  = 0xf3,
+    JPG4  = 0xf4,
+    JPG5  = 0xf5,
+    JPG6  = 0xf6,
+    SOF48 = 0xf7,       ///< JPEG-LS
+    LSE   = 0xf8,       ///< JPEG-LS extension parameters
+    JPG9  = 0xf9,
+    JPG10 = 0xfa,
+    JPG11 = 0xfb,
+    JPG12 = 0xfc,
+    JPG13 = 0xfd,
+
+    COM   = 0xfe,       /* comment */
+
+    TEM   = 0x01,       /* temporary private use for arithmetic coding */
+
+    /* 0x02 -> 0xbf reserved */
 };
 
-enum {
-    JPEGDEC_THUMBNAIL_JPEG = 0x10,
-    JPEGDEC_THUMBNAIL_NOT_SUPPORTED_FORMAT = 0x11,
-    JPEGDEC_NO_THUMBNAIL = 0x12
-};
-
-enum {
-    JPEGDEC_IMAGE = 0,
-    JPEGDEC_THUMBNAIL = 1
-};
-
-enum {
-    SOF0 = 0xC0,
-    SOF1 = 0xC1,
-    SOF2 = 0xC2,
-    SOF3 = 0xC3,
-    SOF5 = 0xC5,
-    SOF6 = 0xC6,
-    SOF7 = 0xC7,
-    SOF9 = 0xC8,
-    SOF10 = 0xCA,
-    SOF11 = 0xCB,
-    SOF13 = 0xCD,
-    SOF14 = 0xCE,
-    SOF15 = 0xCF,
-    JPG = 0xC8,
-    DHT = 0xC4,
-    DAC = 0xCC,
-    SOI = 0xD8,
-    EOI = 0xD9,
-    SOS = 0xDA,
-    DQT = 0xDB,
-    DNL = 0xDC,
-    DRI = 0xDD,
-    DHP = 0xDE,
-    EXP = 0xDF,
-    APP0 = 0xE0,
-    APP1 = 0xE1,
-    APP2 = 0xE2,
-    APP3 = 0xE3,
-    APP4 = 0xE4,
-    APP5 = 0xE5,
-    APP6 = 0xE6,
-    APP7 = 0xE7,
-    APP8 = 0xE8,
-    APP9 = 0xE9,
-    APP10 = 0xEA,
-    APP11 = 0xEB,
-    APP12 = 0xEC,
-    APP13 = 0xED,
-    APP14 = 0xEE,
-    APP15 = 0xEF,
-    JPG0 = 0xF0,
-    JPG1 = 0xF1,
-    JPG2 = 0xF2,
-    JPG3 = 0xF3,
-    JPG4 = 0xF4,
-    JPG5 = 0xF5,
-    JPG6 = 0xF6,
-    JPG7 = 0xF7,
-    JPG8 = 0xF8,
-    JPG9 = 0xF9,
-    JPG10 = 0xFA,
-    JPG11 = 0xFB,
-    JPG12 = 0xFC,
-    JPG13 = 0xFD,
-    COM = 0xFE,
-    TEM = 0x01,
-    RST0 = 0xD0,
-    RST1 = 0xD1,
-    RST2 = 0xD2,
-    RST3 = 0xD3,
-    RST4 = 0xD4,
-    RST5 = 0xD5,
-    RST6 = 0xD6,
-    RST7 = 0xD7
-};
-
-typedef struct JpegParserContext {
+typedef struct JpegdCtx {
     MppBufSlots              packet_slots;
     MppBufSlots              frame_slots;
-    RK_S32                   frame_slot_index; /* slot index for output */
-    RK_U8                    *recv_buffer;
-    JpegSyntaxParam          *pSyntax;
 
-    RK_U32                   streamLength;   /* input stream length or buffer size */
-    RK_U32                   bufferSize;     /* input stream buffer size */
-    RK_U32                   decImageType;   /* Full image or Thumbnail to be decoded */
+    /* slot index for output */
+    RK_S32                   frame_slot_index;
+    RK_U8                    *recv_buffer;
+
+    /* input stream length or buffer size */
+    RK_U32                   streamLength;
+
+    /* input stream buffer size */
+    RK_U32                   bufferSize;
     MppFrameFormat           output_fmt;
 
     MppPacket                input_packet;
     MppFrame                 output_frame;
-    RK_U32                   minSupportedWidth;
-    RK_U32                   minSupportedHeight;
-    RK_U32                   maxSupportedWidth;
-    RK_U32                   maxSupportedHeight;
-    RK_U32                   maxSupportedPixelAmount;
-    RK_U32                   maxSupportedSliceSize;
-    RK_U32                   extensionsSupported;
 
     RK_S64                   pts;
     RK_U32                   eos;
-    RK_U32                   parser_debug_enable;
     RK_U32                   input_jpeg_count;
-    RK_S32                   copy_flag; /* 0 - no need to copy stream; 1 - need to copy */
-} JpegParserContext;
+
+    /* 0 - no need to copy stream; 1 - need to copy */
+    RK_S32                   copy_flag;
+
+    RK_U8                    *buffer;
+    RK_U32                   buf_size;
+
+    /* current start code */
+    RK_S32                   start_code;
+
+    /* bit read context */
+    BitReadCtx_t             *bit_ctx;
+    JpegdSyntax              *syntax;
+} JpegdCtx;
 
 #endif /* __JPEGD_PARSER_H__ */

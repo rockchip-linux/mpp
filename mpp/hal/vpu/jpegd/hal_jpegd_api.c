@@ -27,56 +27,56 @@
 
 static MPP_RET hal_jpegd_reg_gen (void *hal, HalTaskInfo *task)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.reg_gen (hal, task);
 }
 
 static MPP_RET hal_jpegd_start (void *hal, HalTaskInfo *task)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.start (hal, task);
 }
 
 static MPP_RET hal_jpegd_wait (void *hal, HalTaskInfo *task)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.wait (hal, task);
 }
 
 static MPP_RET hal_jpegd_reset (void *hal)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.reset (hal);
 }
 
 static MPP_RET hal_jpegd_flush (void *hal)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.flush (hal);
 }
 
 static MPP_RET hal_jpegd_control (void *hal, RK_S32 cmd_type, void *param)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.control (hal, cmd_type, param);
 }
 
 static MPP_RET hal_jpegd_deinit (void *hal)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.deinit (hal);
 }
 
 static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
 {
-    JpegHalContext *self = (JpegHalContext *)hal;
+    JpegdHalCtx *self = (JpegdHalCtx *)hal;
     MppHalApi *p_api = NULL;
     VpuHardMode hard_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
     if (NULL == self)
         return MPP_ERR_VALUE;
-    memset(self, 0, sizeof(JpegHalContext));
+    memset(self, 0, sizeof(JpegdHalCtx));
 
     p_api = &self->hal_api;
 
@@ -119,7 +119,7 @@ const MppHalApi hal_api_jpegd = {
     .name = "jpegd",
     .type = MPP_CTX_DEC,
     .coding = MPP_VIDEO_CodingMJPEG,
-    .ctx_size = sizeof(JpegHalContext),
+    .ctx_size = sizeof(JpegdHalCtx),
     .flag = 0,
     .init = hal_jpegd_init,
     .deinit = hal_jpegd_deinit,
