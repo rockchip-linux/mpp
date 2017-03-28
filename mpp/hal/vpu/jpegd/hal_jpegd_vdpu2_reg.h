@@ -19,7 +19,6 @@
 #include "rk_type.h"
 
 #define JPEGD_REG_NUM                         (159)
-#define EXTRA_INFO_MAGIC                      (0x4C4A46)
 
 #define DEC_MODE_JPEG                         (3)
 #define DEC_LITTLE_ENDIAN                     (1)
