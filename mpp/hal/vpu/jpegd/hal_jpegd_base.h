@@ -35,7 +35,19 @@ typedef struct JpegdIocExtInfo_t {
     JpegdIocExtInfoSlot    slots[5];
 } JpegdIocExtInfo;
 
-typedef struct JpegHalContext {
+typedef struct PPInfo_t {
+    /* PP parameters */
+    RK_U8                  pp_enable; /* 0 - disable; 1 - enable */
+    RK_U8                  pp_in_fmt; /* PP input format */
+    RK_U8                  pp_out_fmt;/* PP output format */
+    RK_U8                  dither_enable; /* for PP output RGB565 */
+    RK_U32                 crop_width;
+    RK_U32                 crop_height;
+    RK_U32                 crop_x;
+    RK_U32                 crop_y;
+} PPInfo;
+
+typedef struct JpegdHalCtx {
     MppBufSlots            packet_slots;
     MppBufSlots            frame_slots;
     RK_S32                 vpu_socket;
@@ -51,8 +63,13 @@ typedef struct JpegHalContext {
     RK_U32                 frame_count;
     RK_U32                 output_yuv_count;
 
+    RK_S32                 pkt_fd;    /* input stream's physical address(fd) */
+    RK_S32                 frame_fd;  /* output picture's physical address(fd) */
+
+    PPInfo                 pp_info;
+
     FILE                   *fp_reg_in;
     FILE                   *fp_reg_out;
-} JpegHalContext;
+} JpegdHalCtx;
 
 #endif /* __HAL_JPEGD_COMMON_H__ */

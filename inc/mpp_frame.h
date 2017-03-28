@@ -150,9 +150,9 @@ typedef enum {
  *mpp color format define
  */
 typedef enum {
-    MPP_FMT_YUV420SP        = MPP_FRAME_FMT_YUV,        /* YYYY... UVUVUV...        */
+    MPP_FMT_YUV420SP        = MPP_FRAME_FMT_YUV,        /* YYYY... UV...            */
     MPP_FMT_YUV420SP_10BIT,
-    MPP_FMT_YUV422SP,                                   /* YYYY... UVUVUV...        */
+    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV...          */
     MPP_FMT_YUV422SP_10BIT,                             ///< Not part of ABI
     MPP_FMT_YUV420P,                                    /* YYYY... UUUU... VVVV     */
     MPP_FMT_YUV420SP_VU,                                /* YYYY... VUVUVU...        */
@@ -160,6 +160,10 @@ typedef enum {
     MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU...        */
     MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV...              */
     MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY...              */
+    MPP_FMT_YUV400SP,                                   /* YYYY...                  */
+    MPP_FMT_YUV440SP,                                   /* YYYY... UVUV...          */
+    MPP_FMT_YUV411SP,                                   /* YYYY... UV...            */
+    MPP_FMT_YUV444SP,                                   /* YYYY... UVUVUVUV...      */
     MPP_FMT_YUV_BUTT,
     MPP_FMT_RGB565          = MPP_FRAME_FMT_RGB,        /* 16-bit RGB               */
     MPP_FMT_BGR565,                                     /* 16-bit RGB               */

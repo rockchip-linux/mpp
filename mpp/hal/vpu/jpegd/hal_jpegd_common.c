@@ -34,1006 +34,226 @@
 #include "jpegd_api.h"
 #include "hal_jpegd_common.h"
 
-MPP_RET jpegd_allocate_chroma_out_buffer(JpegSyntaxParam *pSyntax)
+void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
+                                JpegdSyntax*syntax)
 {
-    FUN_TEST("Enter");
-    if (NULL == pSyntax) {
-        JPEGD_ERROR_LOG("NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    if (pSyntax->ppInstance == NULL || (pSyntax->ppInstance != NULL
-                                        && !pSyntax->ppControl.usePipeline)) {
-        if (pSyntax->info.givenOutLuma.vir_addr == NULL) {
-            JPEGD_INFO_LOG("givenOutLuma is NULL");
-
-            /* luma bus address to output */
-            pSyntax->info.outLuma = pSyntax->asicBuff.outLumaBuffer;
-
-            if (pSyntax->image.sizeChroma) {
-                JPEGD_INFO_LOG("sizeChroma:%d", pSyntax->image.sizeChroma);
-                JPEGD_INFO_LOG("sizeLuma:%d, outLumaBuffer.phy_addr:%x",
-                               pSyntax->image.sizeLuma,
-                               pSyntax->asicBuff.outLumaBuffer.phy_addr);
-
-                pSyntax->asicBuff.outChromaBuffer.phy_addr =
-                    pSyntax->asicBuff.outLumaBuffer.phy_addr
-                    + (pSyntax->image.sizeLuma << 10);
-
-                if (pSyntax->info.operationType != JPEGDEC_BASELINE) {
-                    pSyntax->asicBuff.outChromaBuffer2.phy_addr =
-                        pSyntax->asicBuff.outChromaBuffer.phy_addr
-                        + ((pSyntax->image.sizeChroma / 2) << 10);
-                } else {
-                    pSyntax->asicBuff.outChromaBuffer2.phy_addr = 0;
-                }
-
-                // chroma bus address to output
-                pSyntax->info.outChroma = pSyntax->asicBuff.outChromaBuffer;
-                pSyntax->info.outChroma2 = pSyntax->asicBuff.outChromaBuffer2;
-            }
-        } else {
-            JPEGD_INFO_LOG("givenOutLuma is not NULL");
-            pSyntax->asicBuff.outLumaBuffer.vir_addr =
-                pSyntax->info.givenOutLuma.vir_addr;
-            pSyntax->asicBuff.outLumaBuffer.phy_addr =
-                pSyntax->info.givenOutLuma.phy_addr;
-
-            pSyntax->asicBuff.outChromaBuffer.vir_addr =
-                pSyntax->info.givenOutChroma.vir_addr;
-            pSyntax->asicBuff.outChromaBuffer.phy_addr =
-                pSyntax->info.givenOutChroma.phy_addr;
-            pSyntax->asicBuff.outChromaBuffer2.vir_addr =
-                pSyntax->info.givenOutChroma2.vir_addr;
-            pSyntax->asicBuff.outChromaBuffer2.phy_addr =
-                pSyntax->info.givenOutChroma2.phy_addr;
-
-            /* luma bus address to output */
-            pSyntax->info.outLuma = pSyntax->asicBuff.outLumaBuffer;
-
-            if (pSyntax->image.sizeChroma) {
-                // chroma bus address to output
-                pSyntax->info.outChroma = pSyntax->asicBuff.outChromaBuffer;
-                pSyntax->info.outChroma2 = pSyntax->asicBuff.outChromaBuffer2;
-            }
-
-            /* flag to release */
-            pSyntax->info.userAllocMem = 1;
-        }
-
-        JPEGD_INFO_LOG("Luma virtual: %p, phy_addr: %x\n",
-                       pSyntax->asicBuff.outLumaBuffer.vir_addr,
-                       pSyntax->asicBuff.outLumaBuffer.phy_addr);
-        JPEGD_INFO_LOG("Chroma virtual: %p, phy_addr: %x\n",
-                       pSyntax->asicBuff.outChromaBuffer.vir_addr,
-                       pSyntax->asicBuff.outChromaBuffer.phy_addr);
-    }
-    FUN_TEST("Exit");
-    return MPP_OK;
-}
-
-void jpegd_write_tables(JpegSyntaxParam *pSyntax, JpegHalContext *pCtx)
-{
-    FUN_TEST("Enter");
-    ScanInfo         *JPG_SCN = &pSyntax->scan;
-    HuffmanTables    *JPG_VLC = &pSyntax->vlc;
-    QuantTables      *JPG_QTB = &pSyntax->quant;
-    FrameInfo        *JPG_FRM = &pSyntax->frame;
-
-    RK_U32 i, j = 0;
+    jpegd_dbg_func("enter\n");
+    JpegdSyntax *s = syntax;
+    RK_U32 *base = (RK_U32 *)mpp_buffer_get_ptr(ctx->pTableBase);
+    RK_U8 table_tmp[QUANTIZE_TABLE_LENGTH] = {0};
+    RK_U32 idx, table_word = 0, table_value = 0;
     RK_U32 shifter = 32;
-    RK_U32 tableWord = 0;
-    RK_U32 tableValue = 0;
-    RK_U8 tableTmp[64] = { 0 };
-    RK_U32 *pTableBase = NULL;
+    AcTable *ac_ptr0 = NULL, *ac_ptr1 = NULL;
+    DcTable *dc_ptr0 = NULL, *dc_ptr1 = NULL;
+    RK_U32 i, j = 0;
 
-    pTableBase = (RK_U32 *)mpp_buffer_get_ptr(pCtx->pTableBase);
+    /* Quantize tables for all components
+     * length = 64 * 3  (Bytes)
+     */
+    for (j = 0; j < s->qtable_cnt; j++) {
+        idx = s->quant_index[j]; /* quantize table index used by j component */
 
-    /* QP tables for all components */
-    for (j = 0; j < pSyntax->info.amountOfQTables; j++) {
-        if ((JPG_FRM->component[j].Tq) == 0) {
-            for (i = 0; i < 64; i++) {
-                tableTmp[zzOrder[i]] = (RK_U8) JPG_QTB->table0[i];
-            }
+        for (i = 0; i < QUANTIZE_TABLE_LENGTH; i++) {
+            table_tmp[zzOrder[i]] = (RK_U8) s->quant_matrixes[idx][i];
+        }
 
-            /* update shifter */
-            shifter = 32;
+        /* could memcpy be OK?? */
+        for (i = 0; i < QUANTIZE_TABLE_LENGTH; i += 4) {
+            /* transfer to big endian */
+            table_word = (table_tmp[i] << 24) |
+                         (table_tmp[i + 1] << 16) |
+                         (table_tmp[i + 2] << 8) |
+                         table_tmp[i + 3];
+            *base = table_word;
+            base++;
+        }
+    }
 
-            for (i = 0; i < 64; i++) {
-                shifter -= 8;
-
-                if (shifter == 24)
-                    tableWord = (tableTmp[i] << shifter);
-                else
-                    tableWord |= (tableTmp[i] << shifter);
-
-                if (shifter == 0) {
-                    *(pTableBase) = tableWord;
-                    pTableBase++;
-                    shifter = 32;
-                }
-            }
+    /* write AC and DC tables
+     * memory:  AC(Y) - AC(UV) - DC(Y) - DC(UV)
+     * length = 162   + 162    + 12    + 12   (Bytes)
+     */
+    {
+        /* this trick is done because hardware always wants
+         * luma table as ac hardware table 0 */
+        if (s->ac_index[0] == HUFFMAN_TABLE_ID_ZERO) {
+            /* Luma's AC uses Huffman table zero */
+            ac_ptr0 = &(s->ac_table[HUFFMAN_TABLE_ID_ZERO]);
+            ac_ptr1 = &(s->ac_table[HUFFMAN_TABLE_ID_ONE]);
         } else {
-            for (i = 0; i < 64; i++) {
-                tableTmp[zzOrder[i]] = (RK_U8) JPG_QTB->table1[i];
+            ac_ptr0 = &(s->ac_table[HUFFMAN_TABLE_ID_ONE]);
+            ac_ptr1 = &(s->ac_table[HUFFMAN_TABLE_ID_ZERO]);
+        }
+
+        /* write luma AC table */
+        for (i = 0; i < MAX_AC_HUFFMAN_TABLE_LENGTH; i++) {
+            if (i < ac_ptr0->actual_length)
+                table_value = (RK_U8) ac_ptr0->vals[i];
+            else
+                table_value = 0;
+
+            /* transfer to big endian */
+            if (shifter == 32)
+                table_word = (table_value << (shifter - 8));
+            else
+                table_word |= (table_value << (shifter - 8));
+
+            shifter -= 8;
+            if (shifter == 0) {
+                /* write 4 Bytes(32 bit) */
+                *base = table_word;
+                base++;
+                shifter = 32;
             }
+        }
 
-            /* update shifter */
-            shifter = 32;
+        /* write chroma AC table */
+        for (i = 0; i < MAX_AC_HUFFMAN_TABLE_LENGTH; i++) {
+            /* chroma's AC table must be zero for YUV400 */
+            if ((s->yuv_mode != JPEGDEC_YUV400) && (i < ac_ptr1->actual_length))
+                table_value = (RK_U8) ac_ptr1->vals[i];
+            else
+                table_value = 0;
 
-            for (i = 0; i < 64; i++) {
-                shifter -= 8;
+            /* transfer to big endian */
+            if (shifter == 32)
+                table_word = (table_value << (shifter - 8));
+            else
+                table_word |= (table_value << (shifter - 8));
 
-                if (shifter == 24)
-                    tableWord = (tableTmp[i] << shifter);
-                else
-                    tableWord |= (tableTmp[i] << shifter);
+            shifter -= 8;
+            if (shifter == 0) {
+                /* write 4 Bytes(32 bit) */
+                *base = table_word;
+                base++;
+                shifter = 32;
+            }
+        }
 
-                if (shifter == 0) {
-                    *(pTableBase) = tableWord;
-                    pTableBase++;
-                    shifter = 32;
-                }
+        /* this trick is done because hardware always wants
+         * luma table as dc hardware table 0 */
+        if (s->dc_index[0] == HUFFMAN_TABLE_ID_ZERO) {
+            /* Luma's DC uses Huffman table zero */
+            dc_ptr0 = &(s->dc_table[HUFFMAN_TABLE_ID_ZERO]);
+            dc_ptr1 = &(s->dc_table[HUFFMAN_TABLE_ID_ONE]);
+        } else {
+            dc_ptr0 = &(s->dc_table[HUFFMAN_TABLE_ID_ONE]);
+            dc_ptr1 = &(s->dc_table[HUFFMAN_TABLE_ID_ZERO]);
+        }
+
+        /* write luma DC table */
+        for (i = 0; i < MAX_DC_HUFFMAN_TABLE_LENGTH; i++) {
+            if (i < dc_ptr0->actual_length)
+                table_value = (RK_U8) dc_ptr0->vals[i];
+            else
+                table_value = 0;
+
+            /* transfer to big endian */
+            if (shifter == 32)
+                table_word = (table_value << (shifter - 8));
+            else
+                table_word |= (table_value << (shifter - 8));
+
+            shifter -= 8;
+            if (shifter == 0) {
+                /* write 4 Bytes(32 bit) */
+                *base = table_word;
+                base++;
+                shifter = 32;
+            }
+        }
+
+        /* write chroma DC table */
+        for (i = 0; i < MAX_DC_HUFFMAN_TABLE_LENGTH; i++) {
+            /* chroma's DC table must be zero for YUV400 */
+            if ((s->yuv_mode != JPEGDEC_YUV400) && (i < dc_ptr1->actual_length))
+                table_value = (RK_U8) dc_ptr1->vals[i];
+            else
+                table_value = 0;
+
+            /* transfer to big endian */
+            if (shifter == 32)
+                table_word = (table_value << (shifter - 8));
+            else
+                table_word |= (table_value << (shifter - 8));
+
+            shifter -= 8;
+            if (shifter == 0) {
+                /* write 4 Bytes(32 bit) */
+                *base = table_word;
+                base++;
+                shifter = 32;
             }
         }
     }
 
-    /* update shifter */
-    shifter = 32;
-
-    if (pSyntax->info.yCbCrMode != JPEGDEC_YUV400) {
-        /* this trick is done because hw always wants luma table as ac hw table 1 */
-        if (JPG_SCN->Ta[0] == 0) {
-            /* Write AC Table 1 (as specified in HW regs)
-             * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-            JPEGD_VERBOSE_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-            if (JPG_VLC->acTable0.vals) {
-                for (i = 0; i < 162; i++) {
-                    if (i < JPG_VLC->acTable0.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->acTable0.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 162; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            /* Write AC Table 2 */
-            JPEGD_VERBOSE_LOG("INTERNAL: Write tables: AC2 (not-luma)\n");
-            if (JPG_VLC->acTable1.vals) {
-                for (i = 0; i < 162; i++) {
-                    if (i < JPG_VLC->acTable1.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->acTable1.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 162; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-        } else {
-            /* Write AC Table 1 (as specified in HW regs)
-             * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-            if (JPG_VLC->acTable1.vals) {
-                JPEGD_INFO_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-                for (i = 0; i < 162; i++) {
-                    if (i < JPG_VLC->acTable1.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->acTable1.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 162; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            /* Write AC Table 2 */
-            if (JPG_VLC->acTable0.vals) {
-                JPEGD_INFO_LOG("INTERNAL: writeTables: AC2 (not-luma)\n");
-                for (i = 0; i < 162; i++) {
-                    if (i < JPG_VLC->acTable0.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->acTable0.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 162; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-        }
-
-        /* this trick is done because hw always wants luma table as dc hw table 1 */
-        if (JPG_SCN->Td[0] == 0) {
-            if (JPG_VLC->dcTable0.vals) {
-                for (i = 0; i < 12; i++) {
-                    if (i < JPG_VLC->dcTable0.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->dcTable0.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 12; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            if (JPG_VLC->dcTable1.vals) {
-                for (i = 0; i < 12; i++) {
-                    if (i < JPG_VLC->dcTable1.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->dcTable1.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 12; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-        } else {
-            if (JPG_VLC->dcTable1.vals) {
-                for (i = 0; i < 12; i++) {
-                    if (i < JPG_VLC->dcTable1.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->dcTable1.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 12; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            if (JPG_VLC->dcTable0.vals) {
-                for (i = 0; i < 12; i++) {
-                    if (i < JPG_VLC->dcTable0.tableLength) {
-                        tableValue = (RK_U8) JPG_VLC->dcTable0.vals[i];
-                    } else {
-                        tableValue = 0;
-                    }
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                for (i = 0; i < 12; i++) {
-                    tableWord = 0;
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-        }
-    } else { /* YUV400 */
-        if (!pSyntax->info.nonInterleavedScanReady) {
-            /*this trick is done because hw always wants luma table as ac hw table 1 */
-            if (JPG_SCN->Ta[0] == 0) {
-                /* Write AC Table 1 (as specified in HW regs)
-                 * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-                JPEGD_INFO_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-                if (JPG_VLC->acTable0.vals) {
-                    for (i = 0; i < 162; i++) {
-                        if (i < JPG_VLC->acTable0.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->acTable0.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 162; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                /* Write AC Table 2 */
-                JPEGD_INFO_LOG("INTERNAL: Write zero table (YUV400): \n");
-                for (i = 0; i < 162; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                /* Write AC Table 1 (as specified in HW regs)
-                 * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-                if (JPG_VLC->acTable1.vals) {
-                    JPEGD_INFO_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-                    for (i = 0; i < 162; i++) {
-                        if (i < JPG_VLC->acTable1.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->acTable1.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 162; i++) {
-                        tableWord = 0;
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                /* Write AC Table 2 */
-                JPEGD_INFO_LOG("INTERNAL: writeTables: padding zero (YUV400)\n");
-                for (i = 0; i < 162; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            /* this trick is done because hw always wants luma table as dc hw table 1 */
-            if (JPG_SCN->Td[0] == 0) {
-                if (JPG_VLC->dcTable0.vals) {
-                    for (i = 0; i < 12; i++) {
-                        if (i < JPG_VLC->dcTable0.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->dcTable0.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 12; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                for (i = 0; i < 12; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                if (JPG_VLC->dcTable1.vals) {
-                    for (i = 0; i < 12; i++) {
-                        if (i < JPG_VLC->dcTable1.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->dcTable1.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 12; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                for (i = 0; i < 12; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-        } else {
-            /* this trick is done because hw always wants luma table as ac hw table 1 */
-            if (JPG_SCN->Ta[pSyntax->info.componentId] == 0) {
-                /* Write AC Table 1 (as specified in HW regs)
-                 * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-                JPEGD_INFO_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-                if (JPG_VLC->acTable0.vals) {
-                    for (i = 0; i < 162; i++) {
-                        if (i < JPG_VLC->acTable0.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->acTable0.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 162; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                /* Write AC Table 2 */
-                JPEGD_INFO_LOG("INTERNAL: Write zero table (YUV400): \n");
-                for (i = 0; i < 162; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                /* Write AC Table 1 (as specified in HW regs)
-                 * NOTE: Not the same as actable[1] (as specified in JPEG Spec) */
-                if (JPG_VLC->acTable1.vals) {
-                    JPEGD_INFO_LOG("INTERNAL: Write tables: AC1 (luma)\n");
-                    for (i = 0; i < 162; i++) {
-                        if (i < JPG_VLC->acTable1.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->acTable1.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 162; i++) {
-                        tableWord = 0;
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                /* Write AC Table 2 */
-                JPEGD_INFO_LOG("INTERNAL: writeTables: padding zero (YUV400)\n");
-                for (i = 0; i < 162; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-
-            /* this trick is done because hw always wants luma table as dc hw table 1 */
-            if (JPG_SCN->Td[pSyntax->info.componentId] == 0) {
-                if (JPG_VLC->dcTable0.vals) {
-                    for (i = 0; i < 12; i++) {
-                        if (i < JPG_VLC->dcTable0.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->dcTable0.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 12; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                for (i = 0; i < 12; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            } else {
-                if (JPG_VLC->dcTable1.vals) {
-                    for (i = 0; i < 12; i++) {
-                        if (i < JPG_VLC->dcTable1.tableLength) {
-                            tableValue = (RK_U8) JPG_VLC->dcTable1.vals[i];
-                        } else {
-                            tableValue = 0;
-                        }
-
-                        if (shifter == 32)
-                            tableWord = (tableValue << (shifter - 8));
-                        else
-                            tableWord |= (tableValue << (shifter - 8));
-
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                } else {
-                    for (i = 0; i < 12; i++) {
-                        tableWord = 0;
-                        shifter -= 8;
-
-                        if (shifter == 0) {
-                            *(pTableBase) = tableWord;
-                            pTableBase++;
-                            shifter = 32;
-                        }
-                    }
-                }
-
-                for (i = 0; i < 12; i++) {
-                    tableValue = 0;
-
-                    if (shifter == 32)
-                        tableWord = (tableValue << (shifter - 8));
-                    else
-                        tableWord |= (tableValue << (shifter - 8));
-
-                    shifter -= 8;
-
-                    if (shifter == 0) {
-                        *(pTableBase) = tableWord;
-                        pTableBase++;
-                        shifter = 32;
-                    }
-                }
-            }
-        }
-
-    }
-
+    /* four-byte padding zero */
     for (i = 0; i < 4; i++) {
-        tableValue = 0;
+        table_value = 0;
 
         if (shifter == 32)
-            tableWord = (tableValue << (shifter - 8));
+            table_word = (table_value << (shifter - 8));
         else
-            tableWord |= (tableValue << (shifter - 8));
+            table_word |= (table_value << (shifter - 8));
 
         shifter -= 8;
 
         if (shifter == 0) {
-            *(pTableBase) = tableWord;
-            pTableBase++;
+            *base = table_word;
+            base++;
             shifter = 32;
         }
     }
-    FUN_TEST("Exit");
+    jpegd_dbg_func("exit\n");
+    return;
 }
 
-MPP_RET jpegd_set_output_format(JpegHalContext *pCtx, JpegSyntaxParam *pSyntax)
+void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 {
-    FUN_TEST("Enter");
-    MPP_RET ret = MPP_OK;
-    if (NULL == pSyntax || NULL == pCtx) {
-        JPEGD_ERROR_LOG("NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-    PostProcessInfo ppInfo;
-    RK_U32 ppInputFomart = 0;
-    RK_U32 ppScaleW = 640, ppScaleH = 480;
+    jpegd_dbg_func("enter\n");
+    RK_U32 pp_in_fmt = 0;
+    JpegdSyntax *s = syntax;
+    PPInfo *pp_info = &(ctx->pp_info);
 
-    if (pCtx->set_output_fmt_flag
-        && (pCtx->output_fmt != pSyntax->imageInfo.outputFormat)) {
+    if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {
         /* Using pp to convert all format to yuv420sp */
-        switch (pSyntax->imageInfo.outputFormat) {
-        case JPEGDEC_YCbCr400:
-            ppInputFomart = PP_IN_FORMAT_YUV400;
+        switch (s->output_fmt) {
+        case MPP_FMT_YUV400SP:
+            pp_in_fmt = PP_IN_FORMAT_YUV400;
             break;
         case MPP_FMT_YUV420SP:
-            ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
+            pp_in_fmt = PP_IN_FORMAT_YUV420SEMI;
             break;
         case MPP_FMT_YUV422SP:
-            ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
+            pp_in_fmt = PP_IN_FORMAT_YUV422SEMI;
             break;
-        case JPEGDEC_YCbCr440:
-            ppInputFomart = PP_IN_FORMAT_YUV440SEMI;
+        case MPP_FMT_YUV440SP:
+            pp_in_fmt = PP_IN_FORMAT_YUV440SEMI;
             break;
-        case JPEGDEC_YCbCr411_SEMIPLANAR:
-            ppInputFomart = PP_IN_FORMAT_YUV411_SEMI;
+        case MPP_FMT_YUV411SP:
+            pp_in_fmt = PP_IN_FORMAT_YUV411_SEMI;
             break;
-        case JPEGDEC_YCbCr444_SEMIPLANAR:
-            ppInputFomart = PP_IN_FORMAT_YUV444_SEMI;
+        case MPP_FMT_YUV444SP:
+            pp_in_fmt = PP_IN_FORMAT_YUV444_SEMI;
+            break;
+        default:
+            jpegd_dbg_hal("other output format %d\n", s->output_fmt);
             break;
         }
 
-        // set pp info
-        memset(&ppInfo, 0, sizeof(ppInfo));
-        ppInfo.enable = 1;
-        ppInfo.outFomart = PP_OUT_FORMAT_YUV420INTERLAVE;
-        ppScaleW = pSyntax->imageInfo.outputWidth;
-        ppScaleH = pSyntax->imageInfo.outputHeight;
-        if (ppScaleW > 1920) { // || ppScaleH > 1920) {
-            ppScaleW = (ppScaleW + 15) & (~15); //(ppScaleW + 15)/16*16;
-            ppScaleH = (ppScaleH + 15) & (~15);
-        } else {
-            /* pp dest width must be dividable by 8 */
-            ppScaleW = (ppScaleW + 7) & (~7);
-            /*
-            * must be dividable by 2.in pp downscaling,
-            * the output lines always equal (desire lines - 1);
-            */
-            ppScaleH = (ppScaleH + 1) & (~1);
-        }
+        pp_info->pp_enable = 1;
+        pp_info->pp_in_fmt = pp_in_fmt;
+        pp_info->pp_out_fmt = PP_OUT_FORMAT_YUV420INTERLAVE;
 
-        JPEGD_INFO_LOG("Post Process! ppScaleW:%d, ppScaleH:%d",
-                       ppScaleW, ppScaleH);
-        pSyntax->ppInstance = (void *)1;
+        jpegd_dbg_hal("Post Process! pp_in_fmt:%d, pp_out_fmt:%d",
+                      pp_in_fmt, pp_info->pp_out_fmt);
     } else {
         /* keep original output format */
-        pCtx->output_fmt = pSyntax->imageInfo.outputFormat;
-        memset(&ppInfo, 0, sizeof(ppInfo));
-        ppInfo.outFomart = PP_OUT_FORMAT_YUV420INTERLAVE;
-        ppScaleW = pSyntax->imageInfo.outputWidth;
-        ppScaleH = pSyntax->imageInfo.outputHeight;
-
-        ppScaleW = (ppScaleW + 15) & (~15);
-        ppScaleH = (ppScaleH + 15) & (~15);
-
-        switch (pSyntax->imageInfo.outputFormat) {
-        case JPEGDEC_YCbCr400:
-            ppInputFomart = PP_IN_FORMAT_YUV400;
-            break;
-        case MPP_FMT_YUV420SP:
-            ppInputFomart = PP_IN_FORMAT_YUV420SEMI;
-            break;
-        case MPP_FMT_YUV422SP:
-            ppInputFomart = PP_IN_FORMAT_YUV422SEMI;
-            break;
-        case JPEGDEC_YCbCr440:
-            ppInputFomart = PP_IN_FORMAT_YUV440SEMI;
-            break;
-        case JPEGDEC_YCbCr411_SEMIPLANAR:
-            ppInputFomart = PP_IN_FORMAT_YUV411_SEMI;
-            break;
-        case JPEGDEC_YCbCr444_SEMIPLANAR:
-            ppInputFomart = PP_IN_FORMAT_YUV444_SEMI;
-            break;
-        }
-
-        pSyntax->ppInstance = (void *)0;
+        ctx->output_fmt = s->output_fmt;
+        pp_info->pp_enable = 0;
     }
 
-    memcpy(&(pSyntax->ppInfo), &(ppInfo), sizeof(PostProcessInfo));
-    pSyntax->ppScaleW = ppScaleW;
-    pSyntax->ppScaleH = ppScaleH;
-    pSyntax->ppInputFomart = ppInputFomart;
-
-    FUN_TEST("Exit");
-    return  ret;
+    jpegd_dbg_func("exit\n");
+    return;
 }
+

@@ -241,7 +241,6 @@ PARSE_OPINIONS_OUT:
 
 MPP_RET jpegd_test_deinit(jpegdDemoCtx *ctx)
 {
-    FUN_TEST("Enter");
     MppDec *pApi = &(ctx->api);
     if (pApi->parser) {
         parser_deinit(pApi->parser);
@@ -281,13 +280,11 @@ MPP_RET jpegd_test_deinit(jpegdDemoCtx *ctx)
         ctx->pOutFile = NULL;
     }
 
-    FUN_TEST("Exit");
     return MPP_OK;
 }
 
 MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
 {
-    FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
     MppDec *pMppDec = NULL;
     ParserCfg parser_cfg;
@@ -299,11 +296,11 @@ MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
     //demo configure
     ctx->pOutFile = fopen("/data/spurs.yuv", "wb+");
     if (NULL == ctx->pOutFile) {
-        JPEGD_ERROR_LOG("create spurs.yuv failed");
+        mpp_err_f("create spurs.yuv failed");
     }
 
     //malloc buffers for software
-    CHECK_MEM(ctx->strmbuf = mpp_malloc_size(RK_U8, JPEGD_STREAM_BUFF_SIZE));
+    ctx->strmbuf = mpp_malloc_size(RK_U8, JPEGD_STREAM_BUFF_SIZE);
 
     //malloc buffers for hardware
     if (ctx->frmbuf_grp == NULL) {
@@ -325,12 +322,10 @@ MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
     pMppDec = &ctx->api;
     pMppDec->coding = MPP_VIDEO_CodingMJPEG;
 
-    CHECK_FUN(mpp_buf_slot_init(&pMppDec->frame_slots));
-    CHECK_MEM(pMppDec->frame_slots);
+    mpp_buf_slot_init(&pMppDec->frame_slots);
     mpp_buf_slot_setup(pMppDec->frame_slots, 2);
 
-    CHECK_FUN(mpp_buf_slot_init(&pMppDec->packet_slots));
-    CHECK_MEM(pMppDec->packet_slots);
+    mpp_buf_slot_init(&pMppDec->packet_slots);
     mpp_buf_slot_setup(pMppDec->packet_slots, 2);
 
     //parser config
@@ -340,7 +335,7 @@ MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
     parser_cfg.packet_slots = pMppDec->packet_slots;
     parser_cfg.task_count = 2;
     parser_cfg.need_split = 0;
-    CHECK_FUN(parser_init(&pMppDec->parser, &parser_cfg));
+    parser_init(&pMppDec->parser, &parser_cfg);
 
     //hal config
     memset(&hal_cfg, 0, sizeof(hal_cfg));
@@ -360,23 +355,20 @@ MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
     hal_cfg.frame_slots = pMppDec->frame_slots;
     hal_cfg.packet_slots = pMppDec->packet_slots;
     hal_cfg.task_count = parser_cfg.task_count;
-    CHECK_FUN(mpp_hal_init(&pMppDec->hal, &hal_cfg));
+    mpp_hal_init(&pMppDec->hal, &hal_cfg);
     pMppDec->tasks = hal_cfg.tasks;
 
     memset(&ctx->task, 0, sizeof(ctx->task));
     memset(ctx->task.refer, -1, sizeof(ctx->task.refer));
     ctx->task.input = -1;
 
-    FUN_TEST("Exit");
     return MPP_OK;
 __FAILED:
-    FUN_TEST("Exit");
     return ret;
 }
 
 MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
 {
-    FUN_TEST("Enter");
     MPP_RET ret = MPP_OK;
     MppDec *pMppDec = NULL;
     HalDecTask *curtask = NULL;
@@ -420,7 +412,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
         mpp_packet_init(&DemoCtx.pkt, DemoCtx.strmbuf, fileSize);
 
         // 3.parser_prepare
-        CHECK_FUN(parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask)); // jpegd_parser_prepare
+        parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask); // jpegd_parser_prepare
 
         if (-1 == curtask->input) {
             if (MPP_OK == mpp_buf_slot_get_unused(pMppDec->packet_slots, &slot_idx) ) {
@@ -455,7 +447,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
             }
         }
 
-        CHECK_FUN(parser_parse(pMppDec->parser, curtask)); // jpegd_parser_parse
+        parser_parse(pMppDec->parser, curtask); // jpegd_parser_parse
 
         if (curtask->valid) {
             HalTaskInfo task_info;
@@ -492,12 +484,11 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
             void* pOutYUV = NULL;
             pOutYUV = mpp_buffer_get_ptr(DemoCtx.pic_buf);
             if (pOutYUV) {
-                JPEGD_INFO_LOG("pOutYUV:%p", pOutYUV);
-                JpegSyntaxParam *pTmpSyn = (JpegSyntaxParam *)curtask->syntax.data;
-                RK_U32 width = pTmpSyn->frame.hwX;
-                RK_U32 height = pTmpSyn->frame.hwY;
+                JpegdSyntax *syntax = (JpegdSyntax *)curtask->syntax.data;
+                RK_U32 width = syntax->hor_stride;
+                RK_U32 height = syntax->ver_stride;
 
-                JPEGD_INFO_LOG("Output Image: %d*%d", width, height);
+                mpp_log_f("Output Image: %d*%d", width, height);
                 if (DemoCtx.pOutFile) {
                     fwrite(pOutYUV, 1, width * height * 3 / 2, DemoCtx.pOutFile);
                     fflush(DemoCtx.pOutFile);
@@ -523,7 +514,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
         DemoCtx.dec_frm_num ++;
     } while (0);
 
-    CHECK_FUN(mpp_dec_flush(pMppDec));
+    mpp_dec_flush(pMppDec);
 
 __FAILED:
     if (pInFile) {
@@ -532,14 +523,11 @@ __FAILED:
     }
     jpegd_test_deinit(&DemoCtx);
 
-    FUN_TEST("Exit");
     return MPP_OK;
 }
 
 int main(int argc, char **argv)
 {
-    FUN_TEST("Enter");
-
     RK_S32 ret = 0;
     parserDemoCmdCtx demoCmdCtx;
     parserDemoCmdCtx* cmd = NULL;
@@ -565,6 +553,5 @@ int main(int argc, char **argv)
     }
     jpegd_parser_test(cmd);
 
-    FUN_TEST("Exit");
     return MPP_OK;
 }
