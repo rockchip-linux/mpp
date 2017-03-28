@@ -22,6 +22,8 @@
 #include "mpp_common.h"
 #include "mpp_mem.h"
 
+#define EXTRA_INFO_MAGIC                      (0x4C4A46)
+
 typedef struct JpegdIocExtInfoSlot_t {
     RK_U32                 reg_idx;
     RK_U32                 offset;

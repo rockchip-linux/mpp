@@ -994,9 +994,10 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
         }
     }
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)JpegHalCtx->regs;
+    memset(info, 0, sizeof(JpegdIocRegInfo));
+    info->extra_info.magic = EXTRA_INFO_MAGIC;
 
     reg = &info->regs;
-    memset(reg, 0, sizeof(JpegRegSet));
     jpegd_regs_init(reg);
 
     //malloc hw buf
