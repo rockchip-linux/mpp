@@ -326,7 +326,7 @@ MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller)
         buffer_group_add_log(group, buffer, BUF_MMAP, caller);
     }
 
-    if (ret)
+    if (ret && (group->alloc_api && !group->alloc_api->mmap))
         mpp_err_f("buffer %p group %p fd %d map failed caller %s\n",
                   buffer, group, buffer->info.fd, caller);
 
