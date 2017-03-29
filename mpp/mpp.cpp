@@ -284,9 +284,10 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
                 }
             } else
                 mFrames->wait();
+        } else {
+            /* NOTE: this sleep is to avoid user's dead loop */
+            msleep(1);
         }
-        /* NOTE: this sleep is to avoid user's dead loop */
-        msleep(1);
     }
 
     if (mFrames->list_size()) {
