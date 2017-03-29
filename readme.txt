@@ -22,10 +22,10 @@ c. osal header
 d. module header
 
 NOTE:
-1. when run on window pthreadVC2.dll is needed to be copied to system directory.
-2. Current MPP only support new chipset like RK3228/RK3229/RK3399/RK1108.
-   Old chipset like RK29xx/RK30xx/RK31XX/RK3288/RK3368 is not supported due to
-   lack of corresponding hardware register generation module.
+1. when run on windows pthreadVC2.dll is needed to be copied to system directory.
+2. Current MPP fully support chipset RK3228/RK3229/RK3399/RK3328/RV1108.
+   Old chipset like RK29xx/RK30xx/RK31XX/RK3288/RK3368 is partly supported due
+   to lack of some hardware register generation module.
 
 ----                             top
    |
@@ -158,7 +158,7 @@ NOTE:
    |  |
    |  |----- linux               mainline linux kernel
    |  |
-   |  |----- window              microsoft's window
+   |  |----- windows             microsoft's windows
    |  |
    |  |----- test                OASL unit test
    |
