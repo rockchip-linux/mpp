@@ -1,25 +1,35 @@
 #!/bin/bash
 # Run this from within a bash shell
 HOST_IP=`hostname --all-ip-addresses`
-if [ ${HOST_IP} == "10.10.10.65" ] || [ ${HOST_IP} == "10.10.10.67" ]; then
+if [[ ${HOST_IP} == *"10.10.10.65"* ]] || [[ ${HOST_IP} == *"10.10.10.67"* ]];
+then
     ANDROID_NDK=/home/pub/ndk/android-ndk-r10d/
 else
-    ANDROID_NDK=~/work/android/ndk/android-ndk-r10d/
+	ANDROID_SDK=~/programs/android/sdk
+    ANDROID_NDK=${ANDROID_SDK}/ndk-bundle/
 fi
 
-PLATFORM=$ANDROID_NDK/platforms/android-21/arch-arm64
+rm -rf build lib
 
-cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
-      -DCMAKE_BUILD_TYPE=Release                                            \
-      -DANDROID_FORCE_ARM_BUILD=ON                                          \
-      -DANDROID_NDK=${ANDROID_NDK}                                          \
-      -DANDROID_SYSROOT=${PLATFORM}                                         \
-      -DANDROID_ABI="arm64-v8a"                                             \
-      -DANDROID_TOOLCHAIN_NAME="aarch64-linux-android-4.9"                  \
-      -DANDROID_NATIVE_API_LEVEL=android-21                                 \
-      -DANDROID_STL=system                                                  \
-      -DCMAKE_RKPLATFORM_ENABLE=ON                                          \
-      ../../../
+CMAKE_PATH=${ANDROID_SDK}/cmake/3.6.3155560/bin
+
+CMAKE=${CMAKE_PATH}/cmake
+MAKE=make
+ANDROID_PLATFORM="android-24"
+
+${CMAKE} \
+	-DCMAKE_BUILD_TYPE=Release \
+	-H../../../ \
+	-B${PWD}/build \
+    -DANDROID_ABI=arm64-v8a \
+	-DANDROID_ARM_MODE=arm \
+	-DANDROID_PLATFORM=${ANDROID_PLATFORM} \
+	-DANDROID_NDK=${ANDROID_NDK} \
+	-DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK}/build/cmake/android.toolchain.cmake \
+	-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PWD}/lib \
+	-G"Unix Makefiles" \
+	-DCMAKE_MAKE_PROGRAM=${MAKE} \
+	-DANDROID_ALLOW_UNDEFINED_SYMBOLS=TRUE
 
 # ----------------------------------------------------------------------------
 # usefull cmake debug flag
@@ -30,8 +40,11 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
       #--debug-output                                                        \
 
 #cmake --build . --clean-first -- V=1
-cmake --build .
+cmake --build build
 
+#rename
+mv ${PWD}/lib/librockchip_vpu.so ${PWD}/lib/libvpu.so
+mv ${PWD}/lib/librockchip_mpp.so ${PWD}/lib/libmpp.so
 # ----------------------------------------------------------------------------
 # test script
 # ----------------------------------------------------------------------------
