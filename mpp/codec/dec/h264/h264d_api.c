@@ -24,8 +24,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 
-#include "vpu_api.h"
-
 #include "h264d_api.h"
 #include "h264d_global.h"
 #include "h264d_parse.h"
@@ -611,9 +609,9 @@ __FAILED: {
                 mpp_buf_slot_get_prop(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
                 if (mframe) {
                     if (p_err->used_ref_flag) {
-                        mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                        mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
                     } else {
-                        mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                        mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
                     }
                 }
                 mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
@@ -659,9 +657,9 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
         if (mframe) {
             if (ctx->hard_err || task_dec->flags.had_error) {
                 if (task_dec->flags.used_for_ref) {
-                    mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                    mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
                 } else {
-                    mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                    mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
                 }
             }
             H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",

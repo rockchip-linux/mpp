@@ -16,7 +16,7 @@
 
 #define MODULE_TAG "hal_m2vd_reg"
 #include <string.h>
-#include "vpu.h"
+#include "mpp_device.h"
 #include "hal_m2vd_reg.h"
 #include "mpp_log.h"
 #include "mpp_env.h"
@@ -58,7 +58,6 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
     M2VDRegSet *reg = &p->regs;
     FUN_T("FUN_I");
 
-
     //configure
     p->packet_slots = cfg->packet_slots;
     p->frame_slots = cfg->frame_slots;
@@ -68,7 +67,7 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (p->vpu_socket <= 0) {
-        p->vpu_socket = VPUClientInit(VPU_DEC);
+        p->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingMPEG2, 0);
         if (p->vpu_socket <= 0) {
             mpp_err("get vpu_socket(%d) <=0, failed. \n", p->vpu_socket);
             return MPP_ERR_UNKNOW;
@@ -150,11 +149,10 @@ MPP_RET hal_m2vd_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     FUN_T("FUN_I");
     M2VDHalContext *p = (M2VDHalContext *)hal;
-#ifdef RKPLATFORM
-    if (p->vpu_socket >= 0) {
-        VPUClientRelease(p->vpu_socket);
 
-    }
+#ifdef RKPLATFORM
+    if (p->vpu_socket >= 0)
+        mpp_device_deinit(p->vpu_socket);
 #endif
     if (p->qp_table) {
         ret = mpp_buffer_put(p->qp_table);
@@ -256,24 +254,16 @@ MPP_RET hal_m2vd_gen_regs(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM //current strem in frame out config
         mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
         pRegs->VLC_base = mpp_buffer_get_fd(streambuf);
+        pRegs->VLC_base |= (dx->bitstream_offset << 10);
 
-        if (VPUClientGetIOMMUStatus() > 0) {
-            pRegs->VLC_base |= (dx->bitstream_offset << 10);
-        } else {
-            pRegs->VLC_base += dx->bitstream_offset;
-        }
         mpp_buf_slot_get_prop(ctx->frame_slots, dx->CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
 
 
         if ((dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) ||
             (dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_FRAME)) {
-            pRegs->cur_pic_base  = mpp_buffer_get_fd(framebuf); //just index need map
+            pRegs->cur_pic_base = mpp_buffer_get_fd(framebuf); //just index need map
         } else {
-            if (VPUClientGetIOMMUStatus() > 0) {
-                pRegs->cur_pic_base = mpp_buffer_get_fd(framebuf) | (((dx->seq.decode_width + 15) & (~15)) << 10);
-            } else {
-                pRegs->cur_pic_base = mpp_buffer_get_fd(framebuf) + ((dx->seq.decode_width + 15) & (~15));
-            }
+            pRegs->cur_pic_base = mpp_buffer_get_fd(framebuf) | (((dx->seq.decode_width + 15) & (~15)) << 10);
         }
 
         //ref & qtable config
@@ -331,9 +321,9 @@ MPP_RET hal_m2vd_start(void *hal, HalTaskInfo *task)
     M2VDHalContext *ctx = (M2VDHalContext *)hal;
     RK_U32 *p_regs = (RK_U32 *)&ctx->regs;
     FUN_T("FUN_I");
-    ret = VPUClientSendReg(ctx->vpu_socket, p_regs, M2VD_REG_NUM);
+    ret = mpp_device_send_reg(ctx->vpu_socket, p_regs, M2VD_REG_NUM);
     if (ret != 0) {
-        mpp_err("VPUClientSendReg Failed!!!\n");
+        mpp_err("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -348,13 +338,11 @@ MPP_RET hal_m2vd_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
 #ifdef RKPLATFORM
     M2VDRegSet reg_out;
-    VPU_CMD_TYPE cmd = 0;
-    RK_S32 length = 0;
     M2VDHalContext *ctx = (M2VDHalContext *)hal;
+
     FUN_T("FUN_I");
     memset(&reg_out, 0, sizeof(M2VDRegSet));
-    ret = VPUClientWaitResult(ctx->vpu_socket, (RK_U32 *)&reg_out,
-                              M2VD_REG_NUM, &cmd, &length);
+    ret = mpp_device_wait_reg(ctx->vpu_socket, (RK_U32 *)&reg_out, M2VD_REG_NUM);
     if (ctx->fp_reg_out) {
         int k = 0;
         RK_U32 *p_reg = (RK_U32*)&reg_out;
@@ -368,10 +356,10 @@ MPP_RET hal_m2vd_wait(void *hal, HalTaskInfo *task)
             ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
     }
     if (M2VH_DBG_IRQ & m2vh_debug)
-        mpp_log("VPUClientWaitResult return interrupt:%08x", reg_out.interrupt);
+        mpp_log("mpp_device_wait_reg return interrupt:%08x", reg_out.interrupt);
 #endif
     if (ret) {
-        mpp_log("VPUClientWaitResult return error:%d", ret);
+        mpp_log("mpp_device_wait_reg return error:%d", ret);
     }
     (void)hal;
     (void)task;

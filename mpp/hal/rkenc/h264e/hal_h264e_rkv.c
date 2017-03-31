@@ -20,7 +20,7 @@
 #include <math.h>
 #include <limits.h>
 
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
 
@@ -2025,7 +2025,9 @@ static MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
     if (plt->buf) {
         ctx->osd_plt_type = 0;
 #ifdef RKPLATFORM
-        if (MPP_OK != VPUClientSendReg2(ctx->vpu_fd, H264E_IOC_SET_OSD_PLT, sizeof(MppEncOSDPlt), param)) {
+        if (MPP_OK != mpp_device_send_reg_with_id(ctx->vpu_fd,
+                                                  H264E_IOC_SET_OSD_PLT, param,
+                                                  sizeof(MppEncOSDPlt))) {
             h264e_hal_err("set osd plt error");
             return MPP_NOK;
         }
@@ -2097,7 +2099,6 @@ static void h264e_rkv_reference_init( void *dpb,  H264eHalParam *par)
 
 MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
 {
-    VPU_CLIENT_TYPE type = VPU_ENC_RKV;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     H264eRkvDpbCtx *dpb_ctx = NULL;
     h264e_hal_enter();
@@ -2128,22 +2129,12 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     dpb_ctx->i_frame_num = 0;
 
     ctx->vpu_fd = -1;
-    h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client: %d", type);
 #ifdef RKPLATFORM
     if (ctx->vpu_fd <= 0) {
-        ctx->vpu_fd = VPUClientInit(type);
+        ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingAVC, 0);
         if (ctx->vpu_fd <= 0) {
             h264e_hal_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_fd);
             return MPP_ERR_UNKNOW;
-        } else {
-            VPUHwEncConfig_t hwCfg;
-            h264e_hal_dbg(H264E_DBG_DETAIL, "get vpu_socket(%d), success. \n", ctx->vpu_fd);
-            memset(&hwCfg, 0, sizeof(VPUHwEncConfig_t));
-            if (VPUClientGetHwCfg(ctx->vpu_fd, (RK_U32*)&hwCfg, sizeof(hwCfg))) {
-                h264e_hal_err("h264enc # Get HwCfg failed, release vpu\n");
-                VPUClientRelease(ctx->vpu_fd);
-                return MPP_NOK;
-            }
         }
     }
 #endif
@@ -2213,8 +2204,8 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         return MPP_NOK;
     }
 
-    if (VPU_SUCCESS != VPUClientRelease(ctx->vpu_fd)) {
-        h264e_hal_err("VPUClientRelease failed");
+    if (mpp_device_deinit(ctx->vpu_fd)) {
+        h264e_hal_err("mpp_device_deinit failed");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -2902,13 +2893,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     regs->swreg38_bsbb_addr    = syn->output_strm_addr;
-    if (VPUClientGetIOMMUStatus() > 0)
-        /* TODO: stream size relative with syntax */
-        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr
-                                  | (syn->output_strm_limit_size << 10);
-    else
-        regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr
-                                  + (syn->output_strm_limit_size);
+    /* TODO: stream size relative with syntax */
+    regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr | (syn->output_strm_limit_size << 10);
     regs->swreg39_bsbr_addr    = regs->swreg38_bsbb_addr;
     regs->swreg40_bsbw_addr    = regs->swreg38_bsbb_addr;
 
@@ -3192,11 +3178,11 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
     }
 
     h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", length);
-    if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
-        h264e_hal_err("VPUClientSendReg Failed!!!");
+    if (MPP_OK != mpp_device_send_reg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
+        h264e_hal_err("mpp_device_send_reg Failed!!!");
         return  MPP_ERR_VPUHW;
     } else {
-        h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientSendReg successfully!");
+        h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
     }
 #else
     (void)length;
@@ -3264,9 +3250,9 @@ static MPP_RET h264e_rkv_set_feedback(H264eHalContext *ctx, H264eRkvIoctlOutput 
     return MPP_OK;
 }
 
-/* this function must be called after first VPUClientWaitResult,
+/* this function must be called after first mpp_device_wait_reg,
  * since it depend on h264e_feedback structure, and this structure will
- * be filled after VPUClientWaitResult called
+ * be filled after mpp_device_wait_reg called
  */
 static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
 {
@@ -3277,7 +3263,6 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
                     * MPP_ALIGN(prep->height, 16) / 16 / 16;
-    VPU_CMD_TYPE cmd = 0;
     H264eRkvIoctlOutput *reg_out = (H264eRkvIoctlOutput *)ctx->ioctl_output;
     h264e_feedback *fb = &ctx->feedback;
     RK_S32 hw_ret = 0;
@@ -3297,20 +3282,15 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
               ioctl_info->frame_num) >> 2;
 
 #ifdef RKPLATFORM
-    if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
-        h264e_hal_err("VPUClientSendReg Failed!!!");
+    if (mpp_device_send_reg(ctx->vpu_fd, (RK_U32 *)ioctl_info, length)) {
+        h264e_hal_err("mpp_device_send_reg Failed!!!");
         return MPP_ERR_VPUHW;
     } else {
-        h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientSendReg successfully!");
+        h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
     }
 
-    hw_ret = VPUClientWaitResult(ctx->vpu_fd,
-                                 (RK_U32 *)reg_out,
-                                 length, &cmd, NULL);
+    hw_ret = mpp_device_wait_reg(ctx->vpu_fd, (RK_U32 *)reg_out, length);
 #endif
-    if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
-        h264e_hal_err("hardware wait error");
-
     if (hw_ret != MPP_OK) {
         h264e_hal_err("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
@@ -3321,7 +3301,6 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
 
 MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
 {
-    VPU_CMD_TYPE cmd = 0;
     RK_S32 hw_ret = 0;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     H264eRkvIoctlOutput *reg_out = (H264eRkvIoctlOutput *)ctx->ioctl_output;
@@ -3376,19 +3355,12 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         return MPP_NOK;
     }
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult expect length %d\n",
+    h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_wait_reg expect length %d\n",
                   length);
 
-    hw_ret = VPUClientWaitResult(ctx->vpu_fd, (RK_U32 *)reg_out,
-                                 length, &cmd, NULL);
+    hw_ret = mpp_device_wait_reg(ctx->vpu_fd, (RK_U32 *)reg_out, length);
 
-    h264e_hal_dbg(H264E_DBG_DETAIL,
-                  "VPUClientWaitResult: ret %d, cmd %d, len %d\n",
-                  hw_ret, cmd, length);
-
-
-    if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
-        h264e_hal_err("hardware wait error");
+    h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_wait_reg: ret %d\n", hw_ret);
 
     if (hw_ret != MPP_OK) {
         h264e_hal_err("hardware returns error:%d", hw_ret);
@@ -3396,8 +3368,6 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     }
 #else
     (void)hw_ret;
-    (void)length;
-    (void)cmd;
 #endif
 
     h264e_rkv_set_feedback(ctx, reg_out, enc_task);

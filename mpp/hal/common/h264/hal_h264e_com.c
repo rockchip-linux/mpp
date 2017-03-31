@@ -19,7 +19,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "vpu.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
 

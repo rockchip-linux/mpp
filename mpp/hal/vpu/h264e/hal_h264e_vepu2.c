@@ -17,7 +17,7 @@
 #define MODULE_TAG "hal_h264e_vepu2"
 
 #include <string.h>
-#include "vpu.h"
+#include "mpp_device.h"
 
 #include "rk_mpi.h"
 #include "mpp_env.h"
@@ -241,7 +241,6 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     MPP_RET ret = MPP_OK;
-    VPU_CLIENT_TYPE type = VPU_ENC;
 
     h264e_hal_enter();
 
@@ -259,23 +258,12 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 #endif
 
     ctx->vpu_fd = -1;
-    h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client: %d", type);
 
 #ifdef RKPLATFORM
-    ctx->vpu_fd = VPUClientInit(type);
+    ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingAVC, 0);
     if (ctx->vpu_fd <= 0) {
         mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_fd);
         ret = MPP_ERR_UNKNOW;
-    } else {
-        VPUHwEncConfig_t hwCfg;
-        h264e_hal_dbg(H264E_DBG_DETAIL, "get vpu_socket(%d), success. \n", ctx->vpu_fd);
-        memset(&hwCfg, 0, sizeof(VPUHwEncConfig_t));
-        if (VPUClientGetHwCfg(ctx->vpu_fd, (RK_U32*)&hwCfg, sizeof(hwCfg))) {
-            mpp_err("h264enc # Get HwCfg failed, release vpu\n");
-            VPUClientRelease(ctx->vpu_fd);
-            ctx->vpu_fd = -1;
-            ret = MPP_NOK;
-        }
     }
 #endif
     ctx->hw_cfg.qp_prev = ctx->cfg->codec.h264.qp_init;
@@ -331,8 +319,8 @@ MPP_RET hal_h264e_vepu2_deinit(void *hal)
         return MPP_NOK;
     }
 
-    if (VPU_SUCCESS != VPUClientRelease(ctx->vpu_fd)) {
-        mpp_err("VPUClientRelease failed");
+    if (mpp_device_deinit(ctx->vpu_fd)) {
+        mpp_err("mpp_device_deinit failed");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -625,13 +613,10 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 frame_luma_size = mb_h * mb_w * 256;
         RK_S32 recon_luma_addr = mpp_buffer_get_fd(bufs->hw_rec_buf[buf2_idx]);
         RK_S32 ref_luma_addr = mpp_buffer_get_fd(bufs->hw_rec_buf[1 - buf2_idx]);
-        if (VPUClientGetIOMMUStatus() > 0) {
-            recon_chroma_addr = recon_luma_addr | (frame_luma_size << 10);
-            ref_chroma_addr   = ref_luma_addr   | (frame_luma_size << 10);
-        } else {
-            recon_chroma_addr = recon_luma_addr + frame_luma_size;
-            ref_chroma_addr   = ref_luma_addr   + frame_luma_size ;
-        }
+
+        recon_chroma_addr = recon_luma_addr | (frame_luma_size << 10);
+        ref_chroma_addr   = ref_luma_addr   | (frame_luma_size << 10);
+
         H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_REC_LUMA, recon_luma_addr);
         H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_REC_CHROMA, recon_chroma_addr);
         H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_REF_LUMA, ref_luma_addr);
@@ -671,11 +656,11 @@ MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
     if (ctx->vpu_fd > 0) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
         h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
-        if (MPP_OK != VPUClientSendReg(ctx->vpu_fd, p_regs, VEPU2_H264E_NUM_REGS)) {
-            mpp_err("VPUClientSendReg Failed!!!");
+        if (MPP_OK != mpp_device_send_reg(ctx->vpu_fd, p_regs, VEPU2_H264E_NUM_REGS)) {
+            mpp_err("mpp_device_send_reg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
-            h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientSendReg successfully!");
+            h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
         }
     } else {
         mpp_err("invalid vpu socket: %d", ctx->vpu_fd);
@@ -723,16 +708,10 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd > 0) {
-        VPU_CMD_TYPE cmd = 0;
-        RK_S32 length = 0;
-        RK_S32 hw_ret = VPUClientWaitResult(ctx->vpu_fd, (RK_U32 *)reg_out,
-                                            VEPU2_H264E_NUM_REGS, &cmd, &length);
+        RK_S32 hw_ret = mpp_device_wait_reg(ctx->vpu_fd, (RK_U32 *)reg_out,
+                                            VEPU2_H264E_NUM_REGS);
 
-        h264e_hal_dbg(H264E_DBG_DETAIL, "VPUClientWaitResult: ret %d, cmd %d, len %d\n", hw_ret, cmd, length);
-
-
-        if ((VPU_SUCCESS != hw_ret) || (cmd != VPU_SEND_CONFIG_ACK_OK))
-            mpp_err("hardware wait error");
+        h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_wait_reg: ret %d\n", hw_ret);
 
         if (hw_ret != MPP_OK) {
             mpp_err("hardware returns error:%d", hw_ret);

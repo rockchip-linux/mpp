@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "vpu_api.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_buf_slot.h"
@@ -864,17 +863,17 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         //!< discard unpaired
         if (p->mem_malloc_type == Mem_TopOnly || p->mem_malloc_type == Mem_BotOnly) {
             if (p_err->used_ref_flag) {
-                mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
-                mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
         //!<  discard less than first i frame poc
         if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
             if (p_err->used_ref_flag) {
-                mpp_frame_set_errinfo(mframe, VPU_FRAME_ERR_UNKNOW);
+                mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
-                mpp_frame_set_discard(mframe, VPU_FRAME_ERR_UNKNOW);
+                mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);

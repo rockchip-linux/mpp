@@ -1192,7 +1192,7 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
     ret = mpp_hevc_frame_rps(s);
     if (s->miss_ref_flag) {
         if (!IS_IRAP(s)) {
-            mpp_frame_set_errinfo(s->frame, VPU_FRAME_ERR_UNKNOW);
+            mpp_frame_set_errinfo(s->frame, MPP_FRAME_ERR_UNKNOW);
             s->ref->error_flag = 1;
         } else {
             /*when found current I frame have miss refer
@@ -2020,7 +2020,7 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
     }
     // s->miss_ref_flag = 1;
     mpp_buf_slot_get_prop(s->slots, s->ref->slot_index, SLOT_FRAME_PTR, &frame);
-    mpp_frame_set_errinfo(frame, VPU_FRAME_ERR_UNKNOW);
+    mpp_frame_set_errinfo(frame, MPP_FRAME_ERR_UNKNOW);
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
         if (s->DPB[i].slot_index == s->ref->slot_index) {
             s->DPB[i].error_flag = 1;

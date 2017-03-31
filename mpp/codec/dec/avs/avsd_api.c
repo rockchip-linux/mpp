@@ -29,7 +29,6 @@
 #include "mpp_packet_impl.h"
 #include "mpp_buffer_impl.h"
 
-#include "vpu_api.h"
 #include "avsd_syntax.h"
 #include "avsd_api.h"
 #include "avsd_parse.h"

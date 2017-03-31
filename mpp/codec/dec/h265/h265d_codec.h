@@ -28,9 +28,7 @@
 #ifndef __MPP_CODEC_H__
 #define __MPP_CODEC_H__
 
-#include "rk_type.h"
 #include "mpp_common.h"
-#include "vpu_api.h"
 #include "mpp_frame.h"
 #include "mpp_dec.h"
 
@@ -129,8 +127,6 @@ typedef struct H265dContext {
     RK_U8 *extradata;
 
     RK_U32 extradata_size;
-
-    VideoPacket_t *pkt;
 
     /**
      * Pixel format

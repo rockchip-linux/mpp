@@ -1,9 +1,7 @@
 # vim: syntax=cmake
 # ----------------------------------------------------------------------------
-# add libvpu implement
+# add mpp_device implement for hardware register transaction
 # ----------------------------------------------------------------------------
-if(RKPLATFORM)
-add_library(worker_vpu STATIC
-    vpu.c
-    )
+if (RKPLATFORM)
+add_library(mpp_device STATIC mpp_device.c)
 endif(RKPLATFORM)

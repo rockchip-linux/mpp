@@ -17,7 +17,6 @@
 #ifndef __HAL_H264E_H__
 #define __HAL_H264E_H__
 
-#include "vpu.h"
 #include "rk_mpi_cmd.h"
 #include "mpp_packet.h"
 #include "mpp_log.h"

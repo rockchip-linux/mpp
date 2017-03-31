@@ -28,7 +28,7 @@
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
 
-#include "vpu.h"
+#include "mpp_device.h"
 
 #define VPU2_REG_NUM        (184)
 #define EXTRA_INFO_MAGIC    (0x4C4A46)
@@ -92,7 +92,7 @@ MPP_RET hal_jpege_init(void *hal, MppHalCfg *cfg)
     ctx->int_cb = cfg->hal_int_cb;
 
 #ifdef RKPLATFORM
-    ctx->vpu_fd = VPUClientInit(VPU_ENC);
+    ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG, 0);
     if (ctx->vpu_fd < 0) {
         mpp_err_f("failed to open vpu client\n");
         return MPP_NOK;
@@ -122,7 +122,7 @@ MPP_RET hal_jpege_deinit(void *hal)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0) {
-        VPUClientRelease(ctx->vpu_fd);
+        mpp_device_deinit(ctx->vpu_fd);
         ctx->vpu_fd = -1;
     }
 #endif
@@ -405,7 +405,7 @@ MPP_RET hal_jpege_start(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0)
-        ret = VPUClientSendReg(ctx->vpu_fd, (RK_U32 *) & (ctx->ioctl_info), sizeof(ctx->ioctl_info) / sizeof(RK_U32));
+        ret = mpp_device_send_reg(ctx->vpu_fd, (RK_U32 *) & (ctx->ioctl_info), sizeof(ctx->ioctl_info) / sizeof(RK_U32));
 #endif
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
@@ -428,9 +428,7 @@ MPP_RET hal_jpege_wait(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0) {
-        VPU_CMD_TYPE cmd;
-        RK_S32 len;
-        ret = VPUClientWaitResult(ctx->vpu_fd, regs, VPU2_REG_NUM, &cmd, &len);
+        ret = mpp_device_wait_reg(ctx->vpu_fd, regs, VPU2_REG_NUM);
     }
 #endif
     val = regs[109];
