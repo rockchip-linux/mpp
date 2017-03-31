@@ -773,9 +773,10 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
     p_Inp->task_valid = 0;
     if (p_Inp->pkt_eos) {
+        ret = h264d_reset((void *)p_Inp->p_Dec);
         p_Inp->task_eos = 1;
         p_Inp->task_valid = 0;
-        return h264d_reset((void *)p_Inp->p_Dec);
+        return ret;
     }
     VAL_CHECK(ret, (p_Inp->nal_size > 0));
     p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset];

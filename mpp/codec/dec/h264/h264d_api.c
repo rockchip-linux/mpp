@@ -489,13 +489,15 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->in_dts = mpp_packet_get_dts(pkt);
 
     if (mpp_packet_get_eos(pkt)) {
-        p_Inp->pkt_eos     = 1;
-        p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
             h264d_reset(decoder);
-            task->flags.eos = p_Inp->pkt_eos;
+            p_Inp->pkt_eos     = 1;
+            p_Inp->has_get_eos = 1;
+            task->flags.eos    = 1;
             goto __RETURN;
         }
+        p_Inp->pkt_eos     = 1;
+        p_Inp->has_get_eos = 1;
         p_Inp->in_buf      = NULL;
         p_Inp->in_length   = 0;
 
