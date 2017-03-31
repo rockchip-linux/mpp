@@ -1161,33 +1161,22 @@ static MPP_RET h264e_rkv_free_buffers(H264eHalContext *ctx)
         }
     }
 
-
-
-    for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
-        if (buffers->hw_buf_grp[k]) {
-            if (MPP_OK != mpp_buffer_group_put(buffers->hw_buf_grp[k])) {
-                h264e_hal_err("buf group[%d] put failed", k);
-                return MPP_NOK;
-            }
-        }
-    }
-
     h264e_hal_leave();
 
     return MPP_OK;
 }
 
-static MPP_RET h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *syn)
+static MPP_RET h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
 {
     RK_S32 k = 0;
     h264e_hal_rkv_buffers *buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
-    RK_U32 num_mbs_oneframe = (syn->width + 15) / 16 * ((syn->height + 15) / 16);
-    RK_U32 frame_size = ((syn->width + 15) & (~15)) * ((syn->height + 15) & (~15)); //only Y component
+    RK_U32 num_mbs_oneframe = (hw_cfg->width + 15) / 16 * ((hw_cfg->height + 15) / 16);
+    RK_U32 frame_size = ((hw_cfg->width + 15) & (~15)) * ((hw_cfg->height + 15) & (~15)); //only Y component
     H264eRkvDpbCtx *dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
     H264eRkvFrame *frame_buf = dpb_ctx->frame_buf;
     h264e_hal_enter();
 
-    switch ((H264eRkvCsp)syn->input_format) {
+    switch ((H264eRkvCsp)hw_cfg->input_format) {
     case H264E_RKV_CSP_YUV420P:
     case H264E_RKV_CSP_YUV420SP: {
         frame_size = frame_size * 3 / 2;
@@ -1210,72 +1199,72 @@ static MPP_RET h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *syn)
         break;
     }
     default: {
-        h264e_hal_err("unvalid src color space: %d, return early", syn->input_format);
+        h264e_hal_err("invalid src color space: %d, return early", hw_cfg->input_format);
         return MPP_NOK;
     }
     }
 
-    for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
-        if (MPP_OK != mpp_buffer_group_get_internal(&buffers->hw_buf_grp[k], MPP_BUFFER_TYPE_ION)) {
-            h264e_hal_err("buf group[%d] get failed", k);
-            return MPP_ERR_MALLOC;
-        }
-    }
+    if (frame_size > ctx->frame_size) {
 
-    if (syn->preproc_en) {
-        for (k = 0; k < 2; k++) {
-            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_PP], &buffers->hw_pp_buf[k], frame_size)) {
-                h264e_hal_err("hw_pp_buf[%d] get failed", k);
-                return MPP_ERR_MALLOC;
-            } else {
-                h264e_hal_dbg(H264E_DBG_DPB, "hw_pp_buf[%d] %p done, fd %d", k, buffers->hw_pp_buf[k], mpp_buffer_get_fd(buffers->hw_pp_buf[k]));
+        h264e_rkv_free_buffers(ctx);
+
+        if (hw_cfg->preproc_en) {
+            for (k = 0; k < 2; k++) {
+                if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_PP], &buffers->hw_pp_buf[k], frame_size)) {
+                    h264e_hal_err("hw_pp_buf[%d] get failed", k);
+                    return MPP_ERR_MALLOC;
+                } else {
+                    h264e_hal_dbg(H264E_DBG_DPB, "hw_pp_buf[%d] %p done, fd %d", k, buffers->hw_pp_buf[k], mpp_buffer_get_fd(buffers->hw_pp_buf[k]));
+                }
             }
         }
-    }
 
-    for (k = 0; k < 2; k++) {
-        if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_DSP], &buffers->hw_dsp_buf[k], frame_size / 16)) {
-            h264e_hal_err("hw_dsp_buf[%d] get failed", k);
-            return MPP_ERR_MALLOC;
-        } else {
-            h264e_hal_dbg(H264E_DBG_DPB, "hw_dsp_buf[%d] %p done, fd %d", k, buffers->hw_dsp_buf[k], mpp_buffer_get_fd(buffers->hw_dsp_buf[k]));
+        for (k = 0; k < 2; k++) {
+            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_DSP], &buffers->hw_dsp_buf[k], frame_size / 16)) {
+                h264e_hal_err("hw_dsp_buf[%d] get failed", k);
+                return MPP_ERR_MALLOC;
+            } else {
+                h264e_hal_dbg(H264E_DBG_DPB, "hw_dsp_buf[%d] %p done, fd %d", k, buffers->hw_dsp_buf[k], mpp_buffer_get_fd(buffers->hw_dsp_buf[k]));
+            }
         }
-    }
 
 #if 0 //default setting
-    RK_U32 num_mei_oneframe = (syn->width + 255) / 256 * ((syn->height + 15) / 16);
-    for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
-        if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_MEI], &buffers->hw_mei_buf[k], num_mei_oneframe * 16 * 4)) {
-            h264e_hal_err("hw_mei_buf[%d] get failed", k);
-            return MPP_ERR_MALLOC;
-        } else {
-            h264e_hal_dbg(H264E_DBG_DPB, "hw_mei_buf[%d] %p done, fd %d", k, buffers->hw_mei_buf[k], mpp_buffer_get_fd(buffers->hw_mei_buf[k]));
+        RK_U32 num_mei_oneframe = (syn->width + 255) / 256 * ((syn->height + 15) / 16);
+        for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
+            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_MEI], &buffers->hw_mei_buf[k], num_mei_oneframe * 16 * 4)) {
+                h264e_hal_err("hw_mei_buf[%d] get failed", k);
+                return MPP_ERR_MALLOC;
+            } else {
+                h264e_hal_dbg(H264E_DBG_DPB, "hw_mei_buf[%d] %p done, fd %d", k, buffers->hw_mei_buf[k], mpp_buffer_get_fd(buffers->hw_mei_buf[k]));
+            }
         }
-    }
 #endif
 
-    if (syn->roi_en) {
-        for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
-            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_ROI], &buffers->hw_roi_buf[k], num_mbs_oneframe * 1)) {
-                h264e_hal_err("hw_roi_buf[%d] get failed", k);
-                return MPP_ERR_MALLOC;
-            } else {
-                h264e_hal_dbg(H264E_DBG_DPB, "hw_roi_buf[%d] %p done, fd %d", k, buffers->hw_roi_buf[k], mpp_buffer_get_fd(buffers->hw_roi_buf[k]));
+        if (hw_cfg->roi_en) {
+            for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
+                if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_ROI], &buffers->hw_roi_buf[k], num_mbs_oneframe * 1)) {
+                    h264e_hal_err("hw_roi_buf[%d] get failed", k);
+                    return MPP_ERR_MALLOC;
+                } else {
+                    h264e_hal_dbg(H264E_DBG_DPB, "hw_roi_buf[%d] %p done, fd %d", k, buffers->hw_roi_buf[k], mpp_buffer_get_fd(buffers->hw_roi_buf[k]));
+                }
             }
         }
-    }
 
-    {
-        RK_S32 num_buf = MPP_ARRAY_ELEMS(buffers->hw_rec_buf);
-        for (k = 0; k < num_buf; k++) {
-            if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_REC], &buffers->hw_rec_buf[k], frame_size)) {
-                h264e_hal_err("hw_rec_buf[%d] get failed", k);
-                return MPP_ERR_MALLOC;
-            } else {
-                h264e_hal_dbg(H264E_DBG_DPB, "hw_rec_buf[%d] %p done, fd %d", k, buffers->hw_rec_buf[k], mpp_buffer_get_fd(buffers->hw_rec_buf[k]));
+        {
+            RK_S32 num_buf = MPP_ARRAY_ELEMS(buffers->hw_rec_buf);
+            for (k = 0; k < num_buf; k++) {
+                if (MPP_OK != mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_REC], &buffers->hw_rec_buf[k], frame_size)) {
+                    h264e_hal_err("hw_rec_buf[%d] get failed", k);
+                    return MPP_ERR_MALLOC;
+                } else {
+                    h264e_hal_dbg(H264E_DBG_DPB, "hw_rec_buf[%d] %p done, fd %d", k, buffers->hw_rec_buf[k], mpp_buffer_get_fd(buffers->hw_rec_buf[k]));
+                }
+                frame_buf[k].hw_buf = buffers->hw_rec_buf[k];
             }
-            frame_buf[k].hw_buf = buffers->hw_rec_buf[k];
         }
+
+        ctx->frame_size = frame_size;
     }
 
     h264e_hal_leave();
@@ -2099,10 +2088,12 @@ static void h264e_rkv_reference_init( void *dpb,  H264eHalParam *par)
 
 MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
 {
+    RK_U32 k = 0;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     H264eRkvDpbCtx *dpb_ctx = NULL;
-    h264e_hal_enter();
+    h264e_hal_rkv_buffers *buffers = NULL;
 
+    h264e_hal_enter();
 
     ctx->ioctl_input    = mpp_calloc(H264eRkvIoctlInput, 1);
     ctx->ioctl_output   = mpp_calloc(H264eRkvIoctlOutput, 1);
@@ -2139,7 +2130,16 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     }
 #endif
 
+    buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
+    for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
+        if (MPP_OK != mpp_buffer_group_get_internal(&buffers->hw_buf_grp[k], MPP_BUFFER_TYPE_ION)) {
+            h264e_hal_err("buf group[%d] get failed", k);
+            return MPP_ERR_MALLOC;
+        }
+    }
+
     h264e_hal_leave();
+
     return MPP_OK;
 }
 
@@ -2154,7 +2154,19 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
     MPP_FREE(ctx->param_buf);
 
     if (ctx->buffers) {
+        RK_U32 k = 0;
+        h264e_hal_rkv_buffers *buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
+
         h264e_rkv_free_buffers(ctx);
+        for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
+            if (buffers->hw_buf_grp[k]) {
+                if (MPP_OK != mpp_buffer_group_put(buffers->hw_buf_grp[k])) {
+                    h264e_hal_err("buf group[%d] put failed", k);
+                    return MPP_NOK;
+                }
+            }
+        }
+
         MPP_FREE(ctx->buffers);
     }
 
@@ -2738,13 +2750,14 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     HalEncTask *enc_task = &task->enc;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RcSyntax *rc_syn = (RcSyntax *)enc_task->syntax.data;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncPrepCfg *prep = &cfg->prep;
 
     RK_S32 pic_width_align16 = 0;
     RK_S32 pic_height_align16 = 0;
     RK_S32 pic_width_in_blk64 = 0;
     h264e_hal_rkv_buffers *bufs = (h264e_hal_rkv_buffers *)ctx->buffers;
     RK_U32 buf2_idx = ctx->frame_cnt % 2;
-
     MppBuffer mv_info_buf = task->enc.mv_info;
 
     ctx->enc_mode = RKV_H264E_ENC_MODE;
@@ -2766,6 +2779,14 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
                   "frame %d | type %d | start gen regs",
                   ctx->frame_cnt, syn->frame_type);
 
+    if ((prep->change & MPP_ENC_PREP_CFG_CHANGE_INPUT) || (prep->change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)) {
+        if (MPP_OK != h264e_rkv_allocate_buffers(ctx, syn)) {
+            h264e_hal_err("h264e_rkv_allocate_buffers failed, free buffers and return");
+            enc_task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
+            h264e_rkv_free_buffers(ctx);
+            return MPP_ERR_MALLOC;
+        }
+    }
     if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
         extra_info->nal_num = 0;
         h264e_rkv_stream_reset(&extra_info->stream);
@@ -2775,14 +2796,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         rc_syn->bit_target -= extra_info->nal[0].i_payload; // take off SEI size
     }
 
-    if (ctx->frame_cnt == 0) {
-        if (MPP_OK != h264e_rkv_allocate_buffers(ctx, syn)) {
-            h264e_hal_err("h264e_rkv_allocate_buffers failed, free buffers and return");
-            enc_task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
-            h264e_rkv_free_buffers(ctx);
-            return MPP_ERR_MALLOC;
-        }
-    }
 
     if (ctx->enc_mode == 2 || ctx->enc_mode == 3) { //link table mode
         RK_U32 idx = ctx->frame_cnt_gen_ready;
