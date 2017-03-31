@@ -276,8 +276,26 @@ __FAILED:
     return ret;
 }
 
+static MPP_RET h264d_flush_dpb_eos(H264_DecCtx_t *p_Dec)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    INP_CHECK(ret, !p_Dec->p_Vid);
 
+    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1));
+    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
+    if (p_Dec->mvc_valid) {
+        // layer_id == 1
+        FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
+        FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
+    }
 
+    flush_dpb_buf_slot(p_Dec);
+
+__RETURN:
+    return ret = MPP_OK;
+__FAILED:
+    return ret = MPP_NOK;
+}
 /*!
 ***********************************************************************
 * \brief
@@ -490,8 +508,8 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->pkt_eos     = 1;
         p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
-            h264d_reset(decoder);
             task->flags.eos = p_Inp->pkt_eos;
+            h264d_flush_dpb_eos(p_Dec);
             goto __RETURN;
         }
         p_Inp->in_buf      = NULL;
@@ -582,7 +600,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         p_Dec->p_Vid->g_framecnt++;
         ret = update_dpb(p_Dec);
         if (in_task->flags.eos) {
-            h264d_reset(decoder);
+            h264d_flush_dpb_eos(p_Dec);
             goto __RETURN;
         }
         if (ret) {
