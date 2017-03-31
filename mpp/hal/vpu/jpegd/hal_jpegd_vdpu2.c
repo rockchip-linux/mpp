@@ -26,7 +26,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_dec.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_buffer.h"
 #include "mpp_env.h"
 #include "mpp_bitput.h"
@@ -187,11 +187,7 @@ static void jpegd_set_stream_params(JpegSyntaxParam *pSyntax,
                    JPG_STR->pStartOfStream[JPG_STR->streamLength - 2],
                    JPG_STR->pStartOfStream[JPG_STR->streamLength - 1]);
 
-    if (VPUClientGetIOMMUStatus() <= 0) {
-        reg->reg64_rlc_vlc_base = JPG_STR->streamBus + addrTmp;
-    } else {
-        reg->reg64_rlc_vlc_base = JPG_STR->streamBus | (addrTmp << 10);
-    }
+    reg->reg64_rlc_vlc_base = JPG_STR->streamBus | (addrTmp << 10);
     JPEGD_INFO_LOG("reg64_rlc_vlc_base: 0x%08x\n", reg->reg64_rlc_vlc_base);
 
     /* calculate and set stream start bit to hw */
@@ -651,17 +647,12 @@ static MPP_RET jpegd_set_post_processor(JpegHalContext *pCtx,
         break;
     case    PP_OUT_FORMAT_YUV420INTERLAVE: {
         RK_U32 phy_addr = pSyntax->asicBuff.outLumaBuffer.phy_addr;
-        if (VPUClientGetIOMMUStatus() <= 0) {
-            reg->reg22_pp_out_ch_base = (phy_addr + outWidth * outHeight);
+        if (pCtx->set_output_fmt_flag) {
+            /* pp enable */
+            jpegd_set_extra_info(pCtx, outWidth * outHeight);
+            reg->reg22_pp_out_ch_base = phy_addr;
         } else {
-            if (pCtx->set_output_fmt_flag) {
-                /* pp enable */
-                jpegd_set_extra_info(pCtx, outWidth * outHeight);
-                reg->reg22_pp_out_ch_base = phy_addr;
-            } else {
-                reg->reg22_pp_out_ch_base = (phy_addr | ((outWidth * outHeight)
-                                                         << 10));
-            }
+            reg->reg22_pp_out_ch_base = (phy_addr | ((outWidth * outHeight) << 10));
         }
         reg->reg38.sw_pp_out_format = 5;
         JPEGD_INFO_LOG("outWidth:%d, outHeight:%d", outWidth, outHeight);
@@ -953,7 +944,7 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (JpegHalCtx->vpu_socket <= 0) {
-        JpegHalCtx->vpu_socket = VPUClientInit(VPU_DEC);
+        JpegHalCtx->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingMJPEG, 0);
         if (JpegHalCtx->vpu_socket <= 0) {
             JPEGD_ERROR_LOG("get vpu_socket(%d) <= 0, failed. \n",
                             JpegHalCtx->vpu_socket);
@@ -1030,7 +1021,7 @@ MPP_RET hal_jpegd_vdpu2_deinit(void *hal)
 
 #ifdef RKPLATFORM
     if (JpegHalCtx->vpu_socket >= 0) {
-        VPUClientRelease(JpegHalCtx->vpu_socket);
+        mpp_device_deinit(JpegHalCtx->vpu_socket);
     }
 #endif
 
@@ -1095,10 +1086,10 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
 
 #ifdef RKPLATFORM
         if (JpegHalCtx->set_output_fmt_flag && (JpegHalCtx->vpu_socket > 0)) {
-            VPUClientRelease(JpegHalCtx->vpu_socket);
+            mpp_device_deinit(JpegHalCtx->vpu_socket);
             JpegHalCtx->vpu_socket = 0;
 
-            JpegHalCtx->vpu_socket = VPUClientInit(VPU_DEC_PP);
+            JpegHalCtx->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingMJPEG, 1);
             if (JpegHalCtx->vpu_socket <= 0) {
                 JPEGD_ERROR_LOG("get vpu_socket(%d) <= 0, failed. \n",
                                 JpegHalCtx->vpu_socket);
@@ -1152,10 +1143,10 @@ MPP_RET hal_jpegd_vdpu2_start(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     RK_U32 *p_regs = (RK_U32 *)JpegHalCtx->regs;
-    ret = VPUClientSendReg(JpegHalCtx->vpu_socket, p_regs,
-                           sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
+    ret = mpp_device_send_reg(JpegHalCtx->vpu_socket, p_regs,
+                              sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
     if (ret != 0) {
-        JPEGD_ERROR_LOG("VPUClientSendReg Failed!!!\n");
+        JPEGD_ERROR_LOG("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -1175,14 +1166,12 @@ MPP_RET hal_jpegd_vdpu2_wait(void *hal, HalTaskInfo *task)
 
 #ifdef RKPLATFORM
     JpegRegSet *reg_out = NULL;
-    VPU_CMD_TYPE cmd = 0;
-    RK_S32 length = 0;
     RK_U32 errinfo = 1;
     MppFrame tmp = NULL;
     RK_U32 reg[184];
 
-    ret = VPUClientWaitResult(JpegHalCtx->vpu_socket, reg,
-                              sizeof(reg) / sizeof(RK_U32), &cmd, &length);
+    ret = mpp_device_wait_reg(JpegHalCtx->vpu_socket, reg,
+                              sizeof(reg) / sizeof(RK_U32));
 
     reg_out = (JpegRegSet *)reg;
     if (reg_out->reg55_Interrupt.sw_dec_bus_int) {

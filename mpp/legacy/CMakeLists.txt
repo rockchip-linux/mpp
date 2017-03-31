@@ -5,6 +5,7 @@ include_directories(.)
 # add mpp implement
 # ----------------------------------------------------------------------------
 set (MPP_LEGACY_SRC
+    vpu.c
     vpu_api.cpp
     vpu_api_legacy.cpp
     vpu_mem_legacy.c
@@ -25,7 +26,7 @@ set_target_properties(mpp_legacy_shared PROPERTIES C_VISIBILITY_PRESET default)
 set_target_properties(mpp_legacy_shared PROPERTIES CXX_VISIBILITY_PRESET default)
 
 if(RKPLATFORM)
-    target_link_libraries(mpp_legacy_shared worker_vpu dl mpp_shared)
+    target_link_libraries(mpp_legacy_shared dl mpp_shared)
 else()
     target_link_libraries(mpp_legacy_shared mpp_shared)
 endif()

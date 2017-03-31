@@ -22,8 +22,6 @@
 #endif
 #include <string.h>
 
-#include "vpu_api.h"
-
 #include "mpp_env.h"
 #include "mpp_dec.h"
 #include "mpp_hal.h"

@@ -21,7 +21,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 
-#include "vpu.h"
+#include "mpp_device.h"
 #include "hal_vp8d_vdpu1.h"
 #include "hal_vp8d_vdpu1_reg.h"
 
@@ -54,7 +54,7 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
-        ctx->vpu_socket = VPUClientInit(VPU_DEC);
+        ctx->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingVP8, 0);
         if (ctx->vpu_socket <= 0) {
             mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_socket);
 
@@ -116,8 +116,7 @@ MPP_RET hal_vp8d_vdpu1_deinit(void *hal)
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 #ifdef RKPLATFORM
     if (ctx->vpu_socket >= 0) {
-        VPUClientRelease(ctx->vpu_socket);
-
+        mpp_device_deinit(ctx->vpu_socket);
     }
 #endif
     if (ctx->probe_table) {
@@ -265,11 +264,7 @@ hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
     mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     fd =  mpp_buffer_get_fd(streambuf);
     regs->reg27_bitpl_ctrl_base = fd;
-    if (VPUClientGetIOMMUStatus() > 0) {
-        regs->reg27_bitpl_ctrl_base |= (pic_param->stream_start_offset << 10);
-    } else {
-        regs->reg27_bitpl_ctrl_base += pic_param->stream_start_offset;
-    }
+    regs->reg27_bitpl_ctrl_base |= (pic_param->stream_start_offset << 10);
     regs->reg5.sw_strm1_start_bit = pic_param->stream_start_bit;
 #endif
     /* calculate dct partition length here instead */
@@ -293,23 +288,11 @@ hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
         addr = addr & 0xFFFFFFF8;
 #ifdef RKPLATFORM
         if ( i == 0) {
-            if (VPUClientGetIOMMUStatus() > 0) {
-                regs->reg12_input_stream_base = fd | (addr << 10);
-            } else {
-                regs->reg_dct_strm0_base[i] = fd + addr;
-            }
+            regs->reg12_input_stream_base = fd | (addr << 10);
         } else if ( i <= 5) {
-            if (VPUClientGetIOMMUStatus() > 0) {
-                regs->reg_dct_strm0_base[i] = fd | (addr << 10);
-            } else {
-                regs->reg_dct_strm0_base[i] = fd + addr;
-            }
+            regs->reg_dct_strm0_base[i] = fd | (addr << 10);
         } else {
-            if (VPUClientGetIOMMUStatus() > 0) {
-                regs->reg_dct_strm1_base[i - 6] = fd | (addr << 10);
-            } else {
-                regs->reg_dct_strm0_base[i - 6] = fd + addr;
-            }
+            regs->reg_dct_strm1_base[i - 6] = fd | (addr << 10);
         }
 #endif
         switch (i) {
@@ -500,11 +483,7 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
         regs->reg18_golden_ref_base = regs->reg13_cur_pic_base;
     }
 
-    if (VPUClientGetIOMMUStatus() > 0) {
-        regs->reg18_golden_ref_base = regs->reg18_golden_ref_base | (pic_param->ref_frame_sign_bias_golden << 10);
-    } else {
-        regs->reg18_golden_ref_base =  regs->reg18_golden_ref_base + pic_param->ref_frame_sign_bias_golden;
-    }
+    regs->reg18_golden_ref_base = regs->reg18_golden_ref_base | (pic_param->ref_frame_sign_bias_golden << 10);
 
     /* alternate reference */
     if (pic_param->alt_fb_idx.Index7Bits < 0x7f) {
@@ -514,21 +493,11 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
         regs->reg19.alternate_ref_base = regs->reg13_cur_pic_base;
     }
 
-    if (VPUClientGetIOMMUStatus() > 0) {
-        regs->reg19.alternate_ref_base = regs->reg19.alternate_ref_base | (pic_param->ref_frame_sign_bias_altref << 10);
-    } else {
-        regs->reg19.alternate_ref_base =  regs->reg19.alternate_ref_base + pic_param->ref_frame_sign_bias_altref;
-    }
+    regs->reg19.alternate_ref_base = regs->reg19.alternate_ref_base | (pic_param->ref_frame_sign_bias_altref << 10);
 
-    if (VPUClientGetIOMMUStatus() > 0) {
-        regs->reg10_segment_map_base = regs->reg10_segment_map_base |
-                                       ((pic_param->stVP8Segments.segmentation_enabled
-                                         + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
-    } else {
-        regs->reg10_segment_map_base =  regs->reg10_segment_map_base +
-                                        (pic_param->stVP8Segments.segmentation_enabled
-                                         + (pic_param->stVP8Segments.update_mb_segmentation_map << 1));
-    }
+    regs->reg10_segment_map_base = regs->reg10_segment_map_base |
+                                   ((pic_param->stVP8Segments.segmentation_enabled
+                                   + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
 
 #endif
     regs->reg3.sw_pic_inter_e = pic_param->frame_type;
@@ -644,9 +613,9 @@ MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
         vp8h_dbg(VP8H_DBG_REG, "vp8d: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
-    ret = VPUClientSendReg(ctx->vpu_socket, (RK_U32 *)regs, VP8D_REG_NUM);
+    ret = mpp_device_send_reg(ctx->vpu_socket, (RK_U32 *)regs, VP8D_REG_NUM);
     if (ret != 0) {
-        mpp_err("VPUClientSendReg Failed!!!\n");
+        mpp_err("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 
@@ -662,15 +631,12 @@ MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
 #ifdef RKPLATFORM
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
-    VPU_CMD_TYPE cmd = VPU_CMD_BUTT;
     VP8DRegSet_t reg_out;
-    RK_S32 length = 0;
 
     FUN_T("FUN_IN");
     memset(&reg_out, 0, sizeof(VP8DRegSet_t));
 
-    ret = VPUClientWaitResult(ctx->vpu_socket, (RK_U32 *)&reg_out,
-                              VP8D_REG_NUM, &cmd, &length);
+    ret = mpp_device_wait_reg(ctx->vpu_socket, (RK_U32 *)&reg_out, VP8D_REG_NUM);
     FUN_T("FUN_OUT");
 #endif
     (void)hal;

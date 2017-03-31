@@ -38,7 +38,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_dec.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_buffer.h"
 #include "mpp_env.h"
 #include "mpp_bitput.h"
@@ -438,14 +438,10 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_MALLOC;
     }
     reg_cxt->packet_slots = cfg->packet_slots;
-    ///<- VPUClientInit
+    ///<- mpp_device_init
 #ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
-        RK_S32 value = !!access("/dev/rkvdec", F_OK);
-        if (value)
-            reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_HEVC);
-        else
-            reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
+        reg_cxt->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingHEVC, 0);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;
@@ -489,10 +485,10 @@ MPP_RET hal_h265d_deinit(void *hal)
     RK_S32 ret = 0;
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
 
-    ///<- VPUClientInit
+    ///<- mpp_device_init
 #ifdef RKPLATFORM
     if (reg_cxt->vpu_socket >= 0) {
-        VPUClientRelease(reg_cxt->vpu_socket);
+        mpp_device_deinit(reg_cxt->vpu_socket);
 
     }
 #endif
@@ -1306,11 +1302,7 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 #ifdef RKPLATFORM
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
         /* need to config addr */
-        if (VPUClientGetIOMMUStatus() > 0) {
-            addr = fd | (addr << 10);
-        } else {
-            addr += fd;
-        }
+        addr = fd | (addr << 10);
 #endif
         mpp_put_bits(&bp, addr, 32);
         mpp_put_align(&bp, 64, 0xf);
@@ -1506,20 +1498,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
 
-    if (VPUClientGetIOMMUStatus() > 0) {
-        hw_regs->sw_refer_base[0] |= ((hw_regs->sw_ref_valid & 0xf) << 10);
-        hw_regs->sw_refer_base[1] |= (((hw_regs->sw_ref_valid >> 4) & 0xf)
-                                      << 10);
-        hw_regs->sw_refer_base[2] |= (((hw_regs->sw_ref_valid >> 8) & 0xf)
-                                      << 10);
-        hw_regs->sw_refer_base[3] |= (((hw_regs->sw_ref_valid >> 12) & 0x7)
-                                      << 10);
-    } else {
-        hw_regs->sw_refer_base[0] |= (hw_regs->sw_ref_valid & 0xf);
-        hw_regs->sw_refer_base[1] |= ((hw_regs->sw_ref_valid >> 4) & 0xf);
-        hw_regs->sw_refer_base[2] |= ((hw_regs->sw_ref_valid >> 8) & 0xf);
-        hw_regs->sw_refer_base[3] |= ((hw_regs->sw_ref_valid >> 12) & 0x7);
-    }
+    hw_regs->sw_refer_base[0] |= ((hw_regs->sw_ref_valid & 0xf) << 10);
+    hw_regs->sw_refer_base[1] |= (((hw_regs->sw_ref_valid >> 4) & 0xf) << 10);
+    hw_regs->sw_refer_base[2] |= (((hw_regs->sw_ref_valid >> 8) & 0xf) << 10);
+    hw_regs->sw_refer_base[3] |= (((hw_regs->sw_ref_valid >> 12) & 0x7) << 10);
 #endif
     return ret;
 }
@@ -1553,9 +1535,9 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
     // 68 is the nb of uint32_t
-    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78);
+    ret = mpp_device_send_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78);
     if (ret != 0) {
-        mpp_err("RK_HEVC_DEC: ERROR: VPUClientSendReg Failed!!!\n");
+        mpp_err("RK_HEVC_DEC: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -1575,16 +1557,13 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
     RK_U8* p = NULL;
     H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
-    VPU_CMD_TYPE cmd;
-    RK_S32 len;
     if (reg_cxt->fast_mode) {
         hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
     } else {
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
     p = (RK_U8*)hw_regs;
-    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78,
-                              &cmd, &len);
+    ret = mpp_device_wait_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78);
 
     if (hw_regs->sw_interrupt.sw_dec_error_sta
         || hw_regs->sw_interrupt.sw_dec_empty_sta) {

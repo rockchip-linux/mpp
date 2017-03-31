@@ -24,7 +24,7 @@
 
 #include "mpp_common.h"
 #include "mpp_platform.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_hal.h"
 #include "mpp_env.h"
 #include "hal_h264e_api.h"

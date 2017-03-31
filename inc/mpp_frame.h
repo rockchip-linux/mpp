@@ -177,6 +177,11 @@ typedef enum {
     MPP_FMT_BUTT            = MPP_FMT_RGB_BUTT,
 } MppFrameFormat;
 
+typedef enum {
+    MPP_FRAME_ERR_UNKNOW           = 0x0001,
+    MPP_FRAME_ERR_UNSUPPORT        = 0x0002,
+} MPP_FRAME_ERR;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

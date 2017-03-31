@@ -25,11 +25,11 @@ set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
 # ----------------------------------------------------------------------------
 # add hardware worker implement
 # ----------------------------------------------------------------------------
-add_subdirectory(worker/libvpu)
+add_subdirectory(worker/mpp_device)
 add_subdirectory(worker/libv4l2)
 
 if(RKPLATFORM)
-set(RKPLAT_VPU worker_vpu)
+set(RKPLAT_VPU mpp_device)
 endif(RKPLATFORM)
 
 target_link_libraries(mpp_hal

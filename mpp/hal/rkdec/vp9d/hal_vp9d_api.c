@@ -32,7 +32,7 @@
 
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_reg.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_bitput.h"
 #include "vp9d_syntax.h"
 #include "hal_vp9d_table.h"
@@ -128,10 +128,10 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, vp9_ver_align);
 
     reg_cxt->packet_slots = cfg->packet_slots;
-    ///<- VPUClientInit
+    ///<- mpp_device_init
 #ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = VPUClientInit(VPU_DEC_RKV);
+        reg_cxt->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingVP9, 0);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("vp9 reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;
@@ -673,11 +673,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         vp9_hw_regs->swreg16_vp9_segidcur_base = mpp_buffer_get_fd(reg_cxt->segid_last_base);
     }
 
-    if (VPUClientGetIOMMUStatus() > 0) {
-        reg_cxt->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
-    } else {
-        reg_cxt->mv_base_addr =  vp9_hw_regs->swreg7_decout_base + (sw_yuv_virstride << 4);
-    }
+    reg_cxt->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
     if (reg_cxt->pre_mv_base_addr < 0) {
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
@@ -839,9 +835,9 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
 #if 1
-    ret = VPUClientSendReg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
+    ret = mpp_device_send_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
     if (ret != 0) {
-        mpp_err("VP9H_DBG_REG: ERROR: VPUClientSendReg Failed!!!\n");
+        mpp_err("VP9H_DBG_REG: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 #endif
@@ -864,14 +860,12 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
     RK_U32 i;
-    VPU_CMD_TYPE cmd;
-    RK_S32 len;
     VP9_REGS *hw_regs = (VP9_REGS*)reg_cxt->hw_regs;
     RK_U8* p = (RK_U8*)hw_regs;
     MppBuffer framebuf = NULL;
     mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_BUFFER, &framebuf);
 
-    ret = VPUClientWaitResult(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4, &cmd, &len);
+    ret = mpp_device_wait_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
 
     for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
         if (i == 1) {

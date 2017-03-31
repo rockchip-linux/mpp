@@ -27,7 +27,7 @@
 #endif
 
 #include "rk_type.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
@@ -97,7 +97,6 @@ RK_S32 VPUClientGetIOMMUStatus()
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
     MppHalApi *p_api = NULL;
-    VPU_CLIENT_TYPE vpu_client = VPU_DEC_RKV;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     VpuHardMode hard_mode = MODE_NULL;
@@ -138,7 +137,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
         cfg->device_id = HAL_RKVDEC;
-        vpu_client     = VPU_DEC_RKV;
         break;
     case VDPU1_MODE:
         p_api->init    = vdpu1_h264d_init;
@@ -150,7 +148,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = vdpu1_h264d_flush;
         p_api->control = vdpu1_h264d_control;
         cfg->device_id = HAL_VDPU;
-        vpu_client     = VPU_DEC;
         break;
     case VDPU2_MODE:
         p_api->init    = vdpu2_h264d_init;
@@ -162,7 +159,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = vdpu2_h264d_flush;
         p_api->control = vdpu2_h264d_control;
         cfg->device_id = HAL_VDPU;
-        vpu_client     = VPU_DEC;
         break;
     default:
         mpp_err_f("hard mode error, value=%d\n", hard_mode);
@@ -172,10 +168,10 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< callback function to parser module
     p_hal->init_cb = cfg->hal_int_cb;
     mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
-    //!< VPUClientInit
+    //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = VPUClientInit(vpu_client);
+        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVC, 0);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;
@@ -197,7 +193,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
-    (void)vpu_client;
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -217,10 +212,10 @@ MPP_RET hal_h264d_deinit(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
-    //!< VPUClientInit
+    //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket >= 0) {
-        VPUClientRelease(p_hal->vpu_socket);
+        mpp_device_deinit(p_hal->vpu_socket);
     }
 #endif
     if (p_hal->buf_group) {

@@ -23,7 +23,7 @@
 #include <string.h>
 
 #include "rk_type.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
@@ -99,10 +99,10 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
     p_hal->packet_slots = cfg->packet_slots;
     //!< callback function to parser module
     p_hal->init_cb = cfg->hal_int_cb;
-    //!< VPUClientInit
+    //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = VPUClientInit(VPU_DEC_AVS);
+        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVS, 0);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;
@@ -160,10 +160,10 @@ MPP_RET hal_avsd_deinit(void *decoder)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    //!< VPUClientInit
+    //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket >= 0) {
-        VPUClientRelease(p_hal->vpu_socket);
+        mpp_device_deinit(p_hal->vpu_socket);
     }
 #endif
     if (p_hal->mv_buf) {
@@ -228,7 +228,7 @@ MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
         goto __RETURN;
     }
 #ifdef RKPLATFORM
-    if (VPUClientSendReg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS)) {
+    if (mpp_device_send_reg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS)) {
         ret = MPP_ERR_VPUHW;
         mpp_err_f("Avs decoder FlushRegs fail. \n");
     }
@@ -258,15 +258,7 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
         goto __SKIP_HARD;
     }
 #ifdef RKPLATFORM
-    {
-        RK_S32 wait_ret = -1;
-        RK_S32 ret_len = 0;
-        VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-        wait_ret = VPUClientWaitResult(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS, &ret_cmd, &ret_len);
-        (void)wait_ret;
-        (void)ret_len;
-        (void)ret_cmd;
-    }
+    mpp_device_wait_reg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS);
 #endif
 
 __SKIP_HARD:

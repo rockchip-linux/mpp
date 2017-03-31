@@ -26,7 +26,7 @@
 #include "mpp_env.h"
 #include "mpp_buffer.h"
 
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_dec.h"
 #include "h263d_syntax.h"
 #include "hal_h263d_api.h"
@@ -161,7 +161,7 @@ MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg)
     }
 
 #ifdef RKPLATFORM
-    vpu_fd = VPUClientInit(VPU_DEC);
+    vpu_fd = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingH263, 0);
     if (vpu_fd < 0) {
         mpp_err_f("failed to open vpu client\n");
         ret = MPP_ERR_UNKNOW;
@@ -220,7 +220,7 @@ MPP_RET hal_vpu_h263d_deinit(void *hal)
 
 #ifdef RKPLATFORM
     if (ctx->vpu_fd >= 0) {
-        VPUClientRelease(ctx->vpu_fd);
+        mpp_device_deinit(ctx->vpu_fd);
         ctx->vpu_fd = -1;
     }
 #endif
@@ -275,7 +275,7 @@ MPP_RET hal_vpu_h263d_start(void *hal, HalTaskInfo *task)
         }
     }
 
-    ret = VPUClientSendReg(ctx->vpu_fd, regs, reg_count);
+    ret = mpp_device_send_reg(ctx->vpu_fd, regs, reg_count);
 #endif
     (void)hal;
     (void)task;
@@ -290,11 +290,8 @@ MPP_RET hal_vpu_h263d_wait(void *hal, HalTaskInfo *task)
     VpuH263dRegSet_t reg_out;
     RK_U32* regs = (RK_U32 *)&reg_out;
     RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
-    VPU_CMD_TYPE cmd = 0;
-    RK_S32 length = 0;
 
-    ret = VPUClientWaitResult(ctx->vpu_fd, regs, (sizeof(reg_out) / sizeof(RK_U32)),
-                              &cmd, &length);
+    ret = mpp_device_wait_reg(ctx->vpu_fd, regs, (sizeof(reg_out) / sizeof(RK_U32)));
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_GET) {
         RK_U32 i = 0;

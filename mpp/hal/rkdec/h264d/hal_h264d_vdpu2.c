@@ -24,7 +24,7 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
-#include "vpu.h"
+#include "mpp_device.h"
 #include "mpp_common.h"
 #include "mpp_time.h"
 
@@ -794,7 +794,7 @@ MPP_RET vdpu2_h264d_start(void *hal, HalTaskInfo *task)
     p_regs->sw57.inter_dblspeed = 1;
     p_regs->sw57.intra_dblspeed = 1;
 #ifdef RKPLATFORM
-    if (VPUClientSendReg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs,
+    if (mpp_device_send_reg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs,
                          DEC_VDPU_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
         mpp_err("H264 VDPU FlushRegs fail, pid=%d.\n", getpid());
@@ -823,17 +823,12 @@ MPP_RET vdpu2_h264d_wait(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM
     {
         RK_S32 wait_ret = -1;
-        RK_S32 ret_len = 0;
-        VPU_CMD_TYPE ret_cmd = VPU_CMD_BUTT;
-        wait_ret = VPUClientWaitResult(p_hal->vpu_socket,
-                                       (RK_U32 *)p_hal->regs,
-                                       DEC_VDPU_REGISTERS, &ret_cmd, &ret_len);
+        wait_ret = mpp_device_wait_reg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs,
+                                       DEC_VDPU_REGISTERS);
         if (wait_ret) {
             ret = MPP_ERR_VPUHW;
             mpp_err("H264 VDPU wait result fail, pid=%d.\n", getpid());
         }
-        (void)ret_len;
-        (void)ret_cmd;
     }
 #endif
 
