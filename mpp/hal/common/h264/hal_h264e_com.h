@@ -408,13 +408,14 @@ typedef struct H264eHalContext_t {
     void                            *buffers;
     void                            *extra_info;
     void                            *dpb_ctx;
+    void                            *dump_files;
     RK_U32                          frame_cnt_gen_ready;
     RK_U32                          frame_cnt_send_ready;
     RK_U32                          num_frames_to_send;
     RK_U32                          frame_cnt;
-    H264eHalParam                 param;
+    H264eHalParam                   param;
     RK_U32                          enc_mode;
-    void                            *dump_files;
+    RK_U32                          frame_size;
 
     void                            *param_buf;
     MppPacket                       packeted_param;
