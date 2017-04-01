@@ -433,7 +433,7 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
         h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs",
                       VEPU_H264E_VEPU1_NUM_REGS);
         if (MPP_OK != mpp_device_send_reg(ctx->vpu_fd, p_regs,
-                                       VEPU_H264E_VEPU1_NUM_REGS)) {
+                                          VEPU_H264E_VEPU1_NUM_REGS)) {
             mpp_err("mpp_device_send_reg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {

@@ -497,7 +497,7 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
 
     regs->reg10_segment_map_base = regs->reg10_segment_map_base |
                                    ((pic_param->stVP8Segments.segmentation_enabled
-                                   + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
+                                     + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
 
 #endif
     regs->reg3.sw_pic_inter_e = pic_param->frame_type;

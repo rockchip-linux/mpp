@@ -1165,7 +1165,7 @@ MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM
     RK_U32 *p_regs = (RK_U32 *)JpegHalCtx->regs;
     ret = mpp_device_send_reg(JpegHalCtx->vpu_socket, p_regs,
-                           sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
+                              sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
     if (ret != 0) {
         JPEGD_ERROR_LOG("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
