@@ -795,7 +795,7 @@ MPP_RET vdpu2_h264d_start(void *hal, HalTaskInfo *task)
     p_regs->sw57.intra_dblspeed = 1;
 #ifdef RKPLATFORM
     if (mpp_device_send_reg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs,
-                         DEC_VDPU_REGISTERS)) {
+                            DEC_VDPU_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
         mpp_err("H264 VDPU FlushRegs fail, pid=%d.\n", getpid());
     }

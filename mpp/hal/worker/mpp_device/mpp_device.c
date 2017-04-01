@@ -58,7 +58,7 @@ RK_S32 mpp_device_init(MppCtxType coding, MppCodingType type, RK_U32 flag)
 
             if (coding == MPP_CTX_ENC)
                 client_type = VPU_ENC;
-            else /* MPP_CTX_DEC */ {
+            else { /* MPP_CTX_DEC */
                 client_type = VPU_DEC;
                 if (flag & MPP_DEVICE_POSTPROCCESS_ENABLE)
                     client_type = VPU_DEC_PP;
