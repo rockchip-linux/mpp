@@ -1,7 +1,7 @@
 # directory setting
 --recursive
 --exclude=../build
---exclude=../osal/window/pthread
+--exclude=../osal/windows/pthread
 
 # bracket style setting
 --style=linux
