@@ -36,8 +36,10 @@ typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_RK312X,
     ROCKCHIP_SOC_RK3368,
     ROCKCHIP_SOC_RK3399,
-    ROCKCHIP_SOC_RK322X,
-    ROCKCHIP_SOC_RK322XH,
+    ROCKCHIP_SOC_RK3228H,
+    ROCKCHIP_SOC_RK3328,
+    ROCKCHIP_SOC_RK3228,
+    ROCKCHIP_SOC_RK3229,
     ROCKCHIP_SOC_RV1108,
 } RockchipSocType;
 
@@ -55,9 +57,11 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rk3128",  ROCKCHIP_SOC_RK312X,   HAVE_VPU1 | HAVE_HEVC_DEC, },
     { "rk3368",  ROCKCHIP_SOC_RK3368,   HAVE_VPU1 | HAVE_HEVC_DEC, },
     { "rk3399",  ROCKCHIP_SOC_RK3399,   HAVE_VPU2 | HAVE_RKVDEC,   },
-    { "rk3228",  ROCKCHIP_SOC_RK322X,   HAVE_VPU2 | HAVE_RKVDEC,   },
-    { "rk3229",  ROCKCHIP_SOC_RK322X,   HAVE_VPU2 | HAVE_RKVDEC,   },
-    { "rk3228h", ROCKCHIP_SOC_RK322XH,  HAVE_VPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_H265E, },
+    /* 3228h first for string matching */
+    { "rk3228h", ROCKCHIP_SOC_RK3228H,  HAVE_VPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_H265E, },
+    { "rk3328",  ROCKCHIP_SOC_RK3328,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_H265E, },
+    { "rk3228",  ROCKCHIP_SOC_RK3228,   HAVE_VPU2 | HAVE_RKVDEC,   },
+    { "rk3229",  ROCKCHIP_SOC_RK3229,   HAVE_VPU2 | HAVE_RKVDEC,   },
     { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
 };
 
@@ -283,9 +287,9 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
     case ROCKCHIP_SOC_RK3399 :
-    case ROCKCHIP_SOC_RK322X : {
+    case ROCKCHIP_SOC_RK3229 : {
         /*
-         * rk322x/rk3399 have codec:
+         * rk3399/rk3229 have codec:
          * 1 - vpu2
          * 2 - RK H.264/H.265/VP9 4K decoder
          */
@@ -297,11 +301,24 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         else
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
-    case ROCKCHIP_SOC_RK322XH : {
+    case ROCKCHIP_SOC_RK3228 : {
         /*
-         * rk322xh has codec:
+         * rk3228 have codec:
          * 1 - vpu2
-         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 2 - RK H.264/H.265 4K decoder
+         */
+        if (type == MPP_CTX_DEC &&
+            (coding == MPP_VIDEO_CodingAVC ||
+             coding == MPP_VIDEO_CodingHEVC))
+            dev = mpp_find_device(mpp_rkvdec_dev);
+        else
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RK3228H : {
+        /*
+         * rk3228h has codec:
+         * 1 - vpu2
+         * 2 - RK H.264/H.265 4K decoder
          * 3 - avs+ decoder
          * 4 - H.265 encoder
          */
@@ -314,8 +331,28 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
             if (coding == MPP_VIDEO_CodingAVS)
                 dev = mpp_find_device(mpp_avsd_dev);
             else if (coding == MPP_VIDEO_CodingAVC ||
-                     coding == MPP_VIDEO_CodingHEVC ||
-                     coding == MPP_VIDEO_CodingVP9)
+                     coding == MPP_VIDEO_CodingHEVC)
+                dev = mpp_find_device(mpp_rkvdec_dev);
+            else
+                dev = mpp_find_device(mpp_vpu_dev);
+        }
+    } break;
+    case ROCKCHIP_SOC_RK3328 : {
+        /*
+         * rk322xh has codec:
+         * 1 - vpu2
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 4 - H.265 encoder
+         */
+        if (type == MPP_CTX_ENC) {
+            if (coding == MPP_VIDEO_CodingHEVC)
+                dev = mpp_find_device(mpp_h265e_dev);
+            else
+                dev = mpp_find_device(mpp_vepu_dev);
+        } else if (type == MPP_CTX_DEC) {
+            if (coding == MPP_VIDEO_CodingAVC ||
+                coding == MPP_VIDEO_CodingHEVC ||
+                coding == MPP_VIDEO_CodingVP9)
                 dev = mpp_find_device(mpp_rkvdec_dev);
             else
                 dev = mpp_find_device(mpp_vpu_dev);
