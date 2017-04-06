@@ -25,7 +25,7 @@
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
-#define MAX_SOC_NAME_LENGTH     32
+#define MAX_SOC_NAME_LENGTH     64
 
 class MppPlatformService;
 
@@ -162,14 +162,25 @@ MppPlatformService::MppPlatformService()
         soc_name = mpp_malloc_size(char, MAX_SOC_NAME_LENGTH);
         if (soc_name) {
             RK_U32 found_match_soc_name = 0;
+            ssize_t soc_name_len = 0;
 
             snprintf(soc_name, MAX_SOC_NAME_LENGTH, "unknown");
-            if (read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1) > 0) {
+            soc_name_len = read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1);
+            if (soc_name_len > 0) {
+                /* replacing the termination character to space */
+                char *ptr = soc_name;
+
+                while (ptr < soc_name + soc_name_len - 1) {
+                    ptr += strnlen (soc_name, MAX_SOC_NAME_LENGTH);
+                    *ptr = ' ';
+                }
+
+                mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", soc_name);
+
                 for (i = 0; i < MPP_ARRAY_ELEMS(mpp_vpu_version); i++) {
                     if (strstr(soc_name, mpp_vpu_version[i].compatible)) {
                         vcodec_type = mpp_vpu_version[i].vcodec_type;
                         soc_type = mpp_vpu_version[i].soc_type;
-                        mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", soc_name);
                         found_match_soc_name = 1;
                         break;
                     }
