@@ -4,8 +4,12 @@ include_directories(.)
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
+if(RKPLATFORM)
+    set(RKPLAT_VPU_LEGACY vpu.c)
+endif(RKPLATFORM)
+
 set (MPP_LEGACY_SRC
-    vpu.c
+    ${RKPLAT_VPU_LEGACY}
     vpu_api.cpp
     vpu_api_legacy.cpp
     vpu_mem_legacy.c

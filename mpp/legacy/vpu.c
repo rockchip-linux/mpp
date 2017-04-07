@@ -16,16 +16,18 @@
 
 #define MODULE_TAG "vpu"
 
+#include "mpp_env.h"
+#include "mpp_log.h"
+#include "mpp_common.h"
+
+#include "vpu.h"
+
+#ifdef RKPLATFORM
+
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include <unistd.h>
-
-#include "mpp_env.h"
-#include "mpp_log.h"
-
-#include "vpu.h"
 
 #define VPU_IOC_MAGIC                       'l'
 
@@ -232,4 +234,63 @@ RK_S32 VPUClientGetIOMMUStatus()
 {
     return 1;
 }
+#else
+int VPUClientInit(VPU_CLIENT_TYPE type)
+{
+    (void)type;
+    return 0;
+}
+
+RK_S32 VPUClientRelease(int socket)
+{
+    (void)socket;
+    return 0;
+}
+
+RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
+{
+    (void)socket;
+    (void)regs;
+    (void)nregs;
+    return 0;
+}
+
+RK_S32 VPUClientSendReg2(RK_S32 socket, RK_S32 offset, RK_S32 size, void *param)
+{
+    (void)socket;
+    (void)offset;
+    (void)size;
+    (void)param;
+    return 0;
+}
+
+RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE *cmd, RK_S32 *len)
+{
+    (void)socket;
+    (void)regs;
+    (void)nregs;
+    (void)cmd;
+    (void)len;
+    return 0;
+}
+
+RK_S32 VPUClientGetHwCfg(int socket, RK_U32 *cfg, RK_U32 cfg_size)
+{
+    (void)socket;
+    (void)cfg;
+    (void)cfg_size;
+    return 0;
+}
+
+RK_U32 VPUCheckSupportWidth()
+{
+    return 0;
+}
+
+RK_S32 VPUClientGetIOMMUStatus()
+{
+    return 1;
+}
+
+#endif
 
