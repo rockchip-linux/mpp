@@ -159,9 +159,8 @@ MPP_RET mpp_port_poll(MppPort port, MppPollType timeout)
                 wait_ret = cond->wait(queue->lock);
                 mpp_task_dbg_func("port %p block wait done ret %d\n", port, wait_ret);
             } else {
-                RK_S64 time = ((RK_S64)(timeout / 1000) << 32) + (timeout % 1000);
                 mpp_task_dbg_func("port %p timed wait start %d\n", port, timeout);
-                wait_ret = cond->timedwait(queue->lock, time);
+                wait_ret = cond->timedwait(queue->lock, timeout);
                 mpp_task_dbg_func("port %p timed wait done ret %d\n", port, wait_ret);
             }
 
