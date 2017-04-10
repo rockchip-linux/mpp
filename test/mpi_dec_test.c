@@ -69,6 +69,7 @@ typedef struct {
     RK_U32          have_output;
 
     RK_U32          simple;
+    RK_S32          timeout;
 } MpiDecTestCmd;
 
 static OptionInfo mpi_dec_cmd[] = {
@@ -78,6 +79,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"h",               "height",               "the height of input bitstream"},
     {"t",               "type",                 "input stream coding type"},
     {"d",               "debug",                "debug flag"},
+    {"x",               "timeout",              "output timeout interval"},
 };
 
 static int decode_simple(MpiDecLoopData *data)
@@ -109,6 +111,7 @@ static int decode_simple(MpiDecLoopData *data)
         mpp_packet_set_eos(packet);
 
     do {
+        RK_S32 times = 5;
         // send the packet first if packet is not done
         if (!pkt_done) {
             ret = mpi->decode_put_packet(ctx, packet);
@@ -121,7 +124,16 @@ static int decode_simple(MpiDecLoopData *data)
             RK_S32 get_frm = 0;
             RK_U32 frm_eos = 0;
 
+        try_again:
             ret = mpi->decode_get_frame(ctx, &frame);
+            if (MPP_ERR_TIMEOUT == ret) {
+                if (times > 0) {
+                    times--;
+                    msleep(2);
+                    goto try_again;
+                }
+                mpp_err("decode_get_frame failed too much time\n");
+            }
             if (MPP_OK != ret) {
                 mpp_err("decode_get_frame failed ret %d\n", ret);
                 break;
@@ -353,6 +365,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     MpiCmd mpi_cmd      = MPP_CMD_BASE;
     MppParam param      = NULL;
     RK_U32 need_split   = 1;
+    RK_U32 output_block = MPP_POLL_BLOCK;
+    RK_S64 block_timeout = cmd->timeout;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -471,6 +485,22 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     if (MPP_OK != ret) {
         mpp_err("mpi->control failed\n");
         goto MPP_TEST_OUT;
+    }
+
+    if (block_timeout) {
+        param = &output_block;
+        ret = mpi->control(ctx, MPP_SET_OUTPUT_BLOCK, param);
+        if (MPP_OK != ret) {
+            mpp_err("Failed to set blocking mode on MPI (code = %d).\n", ret);
+            goto MPP_TEST_OUT;
+        }
+
+        param = &block_timeout;
+        ret = mpi->control(ctx, MPP_SET_OUTPUT_BLOCK_TIMEOUT, param);
+        if (MPP_OK != ret) {
+            mpp_err("Failed to set blocking mode on MPI (code = %d).\n", ret);
+            goto MPP_TEST_OUT;
+        }
     }
 
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
@@ -654,6 +684,15 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
 
                 if (!next || err) {
                     mpp_err("invalid input coding type\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'x':
+                if (next) {
+                    cmd->timeout = atoi(next);
+                }
+                if (!next || cmd->timeout < 0) {
+                    mpp_err("invalid output timeout interval\n");
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
