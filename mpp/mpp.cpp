@@ -442,7 +442,6 @@ MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
         return MPP_NOK;
 
     MPP_RET ret = MPP_NOK;
-    AutoMutex autoLock(mPortLock);
     MppTaskQueue port = NULL;
 
     switch (type) {
@@ -468,7 +467,6 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
         return MPP_NOK;
 
     MPP_RET ret = MPP_NOK;
-    AutoMutex autoLock(mPortLock);
     MppTaskQueue port = NULL;
 
     switch (type) {
@@ -494,7 +492,6 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
         return MPP_NOK;
 
     MPP_RET ret = MPP_NOK;
-    AutoMutex autoLock(mPortLock);
     MppTaskQueue port = NULL;
 
     switch (type) {

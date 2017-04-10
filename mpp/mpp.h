@@ -103,7 +103,6 @@ public:
     /*
      * Mpp task queue for advance task mode
      */
-    Mutex           mPortLock;
     MppPort         mInputPort;
     MppPort         mOutputPort;
 
