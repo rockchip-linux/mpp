@@ -55,31 +55,31 @@ int main()
     mpp_log("\n");
     mpp_log("start probing decoder device name:\n");
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingAVC, 0);
     mpp_log("H.264 decoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingHEVC);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingHEVC, 0);
     mpp_log("H.265 decoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingMJPEG);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingMJPEG, 0);
     mpp_log("MJPEG decoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingVP9);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingVP9, 0);
     mpp_log("VP9   decoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingAVS);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_DEC, MPP_VIDEO_CodingAVS, 0);
     mpp_log("avs   decoder: %s\n", dev);
 
     mpp_log("\n");
     mpp_log("start probing encoder device name:\n");
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingAVC, 0);
     mpp_log("H.264 encoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingHEVC);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingHEVC, 0);
     mpp_log("H.265 encoder: %s\n", dev);
 
-    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG);
+    dev = mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG, 0);
     mpp_log("MJPEG encoder: %s\n", dev);
 
     mpp_log("mpp platform test done\n");

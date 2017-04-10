@@ -100,6 +100,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     VpuHardMode hard_mode = MODE_NULL;
+    RK_U32 device_flags = 0;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
@@ -109,6 +110,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
 
+    mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
     //!< choose hard mode
     {
         RK_U32 mode = 0;
@@ -118,10 +120,11 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         mpp_assert(vcodec_type & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
         if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
             hard_mode = RKVDEC_MODE;
-        } else if (vcodec_type & HAVE_VPU1) {
-            hard_mode = VDPU1_MODE;
+            /* The AVS decoder will be regard as HAVE_VPU1 */
         } else if (vcodec_type & HAVE_VPU2) {
             hard_mode = VDPU2_MODE;
+        } else if (vcodec_type & HAVE_VPU1) {
+            hard_mode = VDPU1_MODE;
         }
         H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
                   mode, vcodec_type, hard_mode);
@@ -137,6 +140,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
         cfg->device_id = HAL_RKVDEC;
+        device_flags   = HAVE_RKVDEC;
         break;
     case VDPU1_MODE:
         p_api->init    = vdpu1_h264d_init;
@@ -148,6 +152,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = vdpu1_h264d_flush;
         p_api->control = vdpu1_h264d_control;
         cfg->device_id = HAL_VDPU;
+        device_flags   = HAVE_VPU1;
         break;
     case VDPU2_MODE:
         p_api->init    = vdpu2_h264d_init;
@@ -159,6 +164,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = vdpu2_h264d_flush;
         p_api->control = vdpu2_h264d_control;
         cfg->device_id = HAL_VDPU;
+        device_flags   = HAVE_VPU2;
         break;
     default:
         mpp_err_f("hard mode error, value=%d\n", hard_mode);
@@ -167,11 +173,10 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     }
     //!< callback function to parser module
     p_hal->init_cb = cfg->hal_int_cb;
-    mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
     //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVC, 0);
+        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVC, device_flags);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;

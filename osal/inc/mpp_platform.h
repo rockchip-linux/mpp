@@ -28,33 +28,38 @@
 extern "C" {
 #endif
 
+#define DEV_AUTO_DETECT         (0x00000000)
 /*
  * Platform video codec hardware feature
  */
+#define DEV_CODEC_MASK          (0x00FFFFFB)
 /* RK combined codec */
 #define HAVE_VPU1               (0x00000001)
 #define HAVE_VPU2               (0x00000002)
+#define ENABLE_PP               (0x00000004)
 /* RK standalone decoder */
 #define HAVE_HEVC_DEC           (0x00000100)
 #define HAVE_RKVDEC             (0x00000200)
-#define HAVE_AVSDEC             (0x00001000)
+#define HAVE_AVSDEC             (0x00000400)
 /* RK standalone encoder */
 #define HAVE_RKVENC             (0x00010000)
 #define HAVE_VEPU               (0x00020000)
 /* External encoder */
 #define HAVE_H265ENC            (0x01000000)
 
-const char *mpp_get_soc_name(void);
-RK_U32 mpp_get_vcodec_type(void);
-const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
-
 /*
  * Platform image process hardware feature
  */
-#define HAVE_IPP                (0x00000001)
-#define HAVE_RGA                (0x00000002)
-#define HAVE_RGA2               (0x00000004)
-#define HAVE_IEP                (0x00000008)
+#define DEV_PROCESS_MASK        (0xFF000000)
+#define HAVE_IPP                (0x01000000)
+#define HAVE_RGA                (0x02000000)
+#define HAVE_RGA2               (0x04000000)
+#define HAVE_IEP                (0x08000000)
+
+
+const char *mpp_get_soc_name(void);
+RK_U32 mpp_get_vcodec_type(void);
+const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding, RK_U32 flag);
 
 RK_U32 mpp_get_2d_hw_flag(void);
 

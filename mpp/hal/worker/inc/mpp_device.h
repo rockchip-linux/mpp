@@ -24,8 +24,6 @@ extern "C"
 
 #include "rk_mpi.h"
 
-#define MPP_DEVICE_POSTPROCCESS_ENABLE  (0x00000001)
-
 /* mpp service capability description */
 typedef enum MppDevProp_e {
     MPP_DEV_MAX_WIDTH,

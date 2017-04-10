@@ -49,7 +49,7 @@ static RK_U32 mpp_device_debug = 0;
 RK_S32 mpp_device_init(MppCtxType coding, MppCodingType type, RK_U32 flag)
 {
     RK_S32 dev = -1;
-    const char *name = mpp_get_vcodec_dev_name(coding, type);
+    const char *name = mpp_get_vcodec_dev_name(coding, type, flag & DEV_CODEC_MASK);
     if (name) {
         dev = open(name, O_RDWR);
         if (dev > 0) {
@@ -60,7 +60,7 @@ RK_S32 mpp_device_init(MppCtxType coding, MppCodingType type, RK_U32 flag)
                 client_type = VPU_ENC;
             else { /* MPP_CTX_DEC */
                 client_type = VPU_DEC;
-                if (flag & MPP_DEVICE_POSTPROCCESS_ENABLE)
+                if (flag & ENABLE_PP)
                     client_type = VPU_DEC_PP;
             }
             ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
