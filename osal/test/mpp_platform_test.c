@@ -49,7 +49,7 @@ int main()
     if (vcodec_type & HAVE_VEPU)
         mpp_log("found vpu2 encoder\n");
 
-    if (vcodec_type & HAVE_H265E)
+    if (vcodec_type & HAVE_H265ENC)
         mpp_log("found h265 stand-alone encoder\n");
 
     mpp_log("\n");

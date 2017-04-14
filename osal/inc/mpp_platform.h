@@ -42,7 +42,7 @@ extern "C" {
 #define HAVE_RKVENC             (0x00010000)
 #define HAVE_VEPU               (0x00020000)
 /* External encoder */
-#define HAVE_H265E              (0x01000000)
+#define HAVE_H265ENC            (0x01000000)
 
 const char *mpp_get_soc_name(void);
 RK_U32 mpp_get_vcodec_type(void);
