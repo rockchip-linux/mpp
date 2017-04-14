@@ -19,6 +19,9 @@
 #include <string.h>
 #include <math.h>
 #include <limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "mpp_device.h"
 #include "mpp_common.h"
@@ -43,6 +46,8 @@
 
 #define H264E_IOC_CUSTOM_BASE           0x1000
 #define H264E_IOC_SET_OSD_PLT           (H264E_IOC_CUSTOM_BASE + 1)
+
+static RK_U32 fs_size_limit_debug = 0;
 
 static const RK_U32 h264e_h3d_tbl[40] = {
     0x0b080400, 0x1815120f, 0x23201e1b, 0x2c2a2725,
@@ -575,6 +580,35 @@ static void h264e_rkv_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
     (void)hw_buf;
 #endif
 }
+
+static void h264e_rkv_dump_mpp_strm_in(H264eHalContext *ctx, MppBuffer hw_buf)
+{
+    int fp = 0;
+    char path[64];
+
+    RK_U32 strm_size = mpp_buffer_get_size(hw_buf);
+    if (strm_size > fs_size_limit_debug || strm_size == 0)
+        return;
+    snprintf (path, sizeof(path), "/mnt/sdcard/%05d.nv12",
+              ctx->frame_cnt % 256);
+
+    fp = creat (path, S_IWUSR | S_IWGRP | S_IROTH);
+    if (fp > 0) {
+        RK_U32 k = 0;
+        RK_U8 *sw_buf = mpp_buffer_get_ptr(hw_buf);
+
+        h264e_hal_dbg(H264E_DBG_FILE, "dump %d frames strm in below",
+                      ctx->frame_cnt);
+
+        write(fp, sw_buf, strm_size);
+
+        close(fp);
+    } else {
+        h264e_hal_dbg(H264E_DBG_FILE,
+                      "try to dump data to %s, but file is not opened", path);
+    }
+}
+
 
 static void h264e_rkv_frame_push( H264eRkvFrame **list, H264eRkvFrame *frame )
 {
@@ -2095,6 +2129,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     h264e_hal_rkv_buffers *buffers = NULL;
 
     h264e_hal_enter();
+    mpp_env_get_u32("hal_rkv_h264e_fs_size", &fs_size_limit_debug, 0);
 
     ctx->ioctl_input    = mpp_calloc(H264eRkvIoctlInput, 1);
     ctx->ioctl_output   = mpp_calloc(H264eRkvIoctlOutput, 1);
@@ -2834,6 +2869,8 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
                   ctx->frame_cnt_gen_ready, ctx->num_frames_to_send - 1);
 
     memset(regs, 0, sizeof(H264eRkvRegSet));
+
+    h264e_rkv_dump_mpp_strm_in(ctx, enc_task->input);
 
     regs->swreg01.rkvenc_ver      = 0x1;
 
