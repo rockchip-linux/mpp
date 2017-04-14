@@ -60,8 +60,8 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rk3368",  ROCKCHIP_SOC_RK3368,   HAVE_VPU1 | HAVE_HEVC_DEC, },
     { "rk3399",  ROCKCHIP_SOC_RK3399,   HAVE_VPU2 | HAVE_RKVDEC,   },
     /* 3228h first for string matching */
-    { "rk3228h", ROCKCHIP_SOC_RK3228H,  HAVE_VPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_H265E, },
-    { "rk3328",  ROCKCHIP_SOC_RK3328,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_H265E, },
+    { "rk3228h", ROCKCHIP_SOC_RK3228H,  HAVE_VPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_H265ENC, },
+    { "rk3328",  ROCKCHIP_SOC_RK3328,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_H265ENC, },
     { "rk3228",  ROCKCHIP_SOC_RK3228,   HAVE_VPU2 | HAVE_RKVDEC,   },
     { "rk3229",  ROCKCHIP_SOC_RK3229,   HAVE_VPU2 | HAVE_RKVDEC,   },
     { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
@@ -236,9 +236,9 @@ MppPlatformService::MppPlatformService()
 
     /* for rk3228h / rk3328 H.265 encoder */
     if (!mpp_find_device(mpp_h265e_dev))
-        vcodec_type &= ~HAVE_H265E;
+        vcodec_type &= ~HAVE_H265ENC;
     else
-        vcodec_type |= HAVE_H265E;
+        vcodec_type |= HAVE_H265ENC;
     /* for all chip vpu decoder */
     if (!mpp_find_device(mpp_vpu_dev))
         vcodec_type &= ~(HAVE_VPU1 | HAVE_VPU2);
@@ -411,7 +411,7 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         } else if ((vcodec_type & HAVE_RKVENC) && (type == MPP_CTX_ENC) &&
                    (coding == MPP_VIDEO_CodingAVC)) {
             dev = mpp_find_device(mpp_rkvenc_dev);
-        } else if ((vcodec_type & HAVE_H265E) && (type == MPP_CTX_ENC) &&
+        } else if ((vcodec_type & HAVE_H265ENC) && (type == MPP_CTX_ENC) &&
                    (coding == MPP_VIDEO_CodingHEVC)) {
             dev = mpp_find_device(mpp_h265e_dev);
         } else if ((vcodec_type & HAVE_VEPU) && (type == MPP_CTX_ENC) &&
