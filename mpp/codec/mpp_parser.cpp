@@ -77,7 +77,7 @@ typedef struct ParserImpl_t {
     void                *ctx;
 } ParserImpl;
 
-MPP_RET parser_init(Parser *prs, ParserCfg *cfg)
+MPP_RET mpp_parser_init(Parser *prs, ParserCfg *cfg)
 {
     if (NULL == prs || NULL == cfg) {
         mpp_err_f("found NULL input parser %p config %p\n", prs, cfg);
@@ -117,7 +117,7 @@ MPP_RET parser_init(Parser *prs, ParserCfg *cfg)
     return MPP_NOK;
 }
 
-MPP_RET parser_deinit(Parser prs)
+MPP_RET mpp_parser_deinit(Parser prs)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");
@@ -133,7 +133,7 @@ MPP_RET parser_deinit(Parser prs)
     return MPP_OK;
 }
 
-MPP_RET parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task)
+MPP_RET mpp_parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task)
 {
     if (NULL == prs || NULL == pkt) {
         mpp_err_f("found NULL input\n");
@@ -147,7 +147,7 @@ MPP_RET parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task)
     return p->api->prepare(p->ctx, pkt, task);
 }
 
-MPP_RET parser_parse(Parser prs, HalDecTask *task)
+MPP_RET mpp_parser_parse(Parser prs, HalDecTask *task)
 {
     if (NULL == prs || NULL == task) {
         mpp_err_f("found NULL input\n");
@@ -161,7 +161,7 @@ MPP_RET parser_parse(Parser prs, HalDecTask *task)
     return p->api->parse(p->ctx, task);
 }
 
-MPP_RET hal_callback(void *prs, void *err_info)
+MPP_RET mpp_hal_callback(void *prs, void *err_info)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");
@@ -172,7 +172,7 @@ MPP_RET hal_callback(void *prs, void *err_info)
         return MPP_OK;
     return p->api->callback(p->ctx, err_info);
 }
-MPP_RET parser_reset(Parser prs)
+MPP_RET mpp_parser_reset(Parser prs)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");
@@ -186,7 +186,7 @@ MPP_RET parser_reset(Parser prs)
     return p->api->reset(p->ctx);
 }
 
-MPP_RET parser_flush(Parser prs)
+MPP_RET mpp_parser_flush(Parser prs)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");
@@ -200,7 +200,7 @@ MPP_RET parser_flush(Parser prs)
     return p->api->flush(p->ctx);
 }
 
-MPP_RET parser_control(Parser prs, RK_S32 cmd, void *para)
+MPP_RET mpp_parser_control(Parser prs, RK_S32 cmd, void *para)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");

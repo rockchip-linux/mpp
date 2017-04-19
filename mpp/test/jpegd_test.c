@@ -243,7 +243,7 @@ MPP_RET jpegd_test_deinit(jpegdDemoCtx *ctx)
 {
     MppDec *pApi = &(ctx->api);
     if (pApi->parser) {
-        parser_deinit(pApi->parser);
+        mpp_parser_deinit(pApi->parser);
         pApi->parser = NULL;
     }
     if (pApi->hal) {
@@ -335,7 +335,7 @@ MPP_RET jpegd_test_init(parserDemoCmdCtx *cmd, jpegdDemoCtx *ctx)
     parser_cfg.packet_slots = pMppDec->packet_slots;
     parser_cfg.task_count = 2;
     parser_cfg.need_split = 0;
-    parser_init(&pMppDec->parser, &parser_cfg);
+    mpp_parser_init(&pMppDec->parser, &parser_cfg);
 
     //hal config
     memset(&hal_cfg, 0, sizeof(hal_cfg));
@@ -411,8 +411,8 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
         }
         mpp_packet_init(&DemoCtx.pkt, DemoCtx.strmbuf, fileSize);
 
-        // 3.parser_prepare
-        parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask); // jpegd_parser_prepare
+        // 3.mpp_parser_prepare
+        mpp_parser_prepare(pMppDec->parser, DemoCtx.pkt, curtask); // jpegd_parser_prepare
 
         if (-1 == curtask->input) {
             if (MPP_OK == mpp_buf_slot_get_unused(pMppDec->packet_slots, &slot_idx) ) {
@@ -447,7 +447,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
             }
         }
 
-        parser_parse(pMppDec->parser, curtask); // jpegd_parser_parse
+        mpp_parser_parse(pMppDec->parser, curtask); // jpegd_parser_parse
 
         if (curtask->valid) {
             HalTaskInfo task_info;
@@ -479,7 +479,7 @@ MPP_RET jpegd_parser_test(parserDemoCmdCtx *cmd)
             mpp_hal_hw_start(pMppDec->hal, &task_info); // jpegd_hal_start
             mpp_hal_hw_wait(pMppDec->hal, &task_info); // jpegd_hal_wait
 
-            parser_reset(pMppDec->parser); //[TEMP] jpegd_parser_reset
+            mpp_parser_reset(pMppDec->parser); //[TEMP] jpegd_parser_reset
 
             void* pOutYUV = NULL;
             pOutYUV = mpp_buffer_get_ptr(DemoCtx.pic_buf);

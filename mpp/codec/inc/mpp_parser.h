@@ -25,16 +25,16 @@ typedef void* Parser;
 extern "C" {
 #endif
 
-MPP_RET parser_init(Parser *prs, ParserCfg *cfg);
-MPP_RET parser_deinit(Parser prs);
+MPP_RET mpp_parser_init(Parser *prs, ParserCfg *cfg);
+MPP_RET mpp_parser_deinit(Parser prs);
 
-MPP_RET parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task);
-MPP_RET parser_parse(Parser prs, HalDecTask *task);
+MPP_RET mpp_parser_prepare(Parser prs, MppPacket pkt, HalDecTask *task);
+MPP_RET mpp_parser_parse(Parser prs, HalDecTask *task);
 
-MPP_RET parser_reset(Parser prs);
-MPP_RET parser_flush(Parser prs);
-MPP_RET parser_control(Parser prs, RK_S32 cmd, void *para);
-MPP_RET hal_callback(void* prs, void *err_info);
+MPP_RET mpp_parser_reset(Parser prs);
+MPP_RET mpp_parser_flush(Parser prs);
+MPP_RET mpp_parser_control(Parser prs, RK_S32 cmd, void *para);
+MPP_RET mpp_hal_callback(void* prs, void *err_info);
 
 #ifdef __cplusplus
 }

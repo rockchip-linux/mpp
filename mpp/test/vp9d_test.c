@@ -56,7 +56,7 @@ static MPP_RET vp9_decoder_deinit(MppDec *pApi)
         pApi->frame_slots = NULL;
     }
     if (pApi->parser) {
-        parser_deinit(pApi->parser);
+        mpp_parser_deinit(pApi->parser);
         pApi->parser = NULL;
     }
     if (pApi->hal) {
@@ -82,7 +82,7 @@ static MPP_RET vp9_decoder_init(MppDec *pApi)
     parser_cfg.coding = pApi->coding;
     parser_cfg.frame_slots  = pApi->frame_slots;
     parser_cfg.packet_slots = pApi->packet_slots;
-    FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
+    FUN_CHECK(ret = mpp_parser_init(&pApi->parser, &parser_cfg));
 
     // init hal part
     memset(&hal_cfg, 0, sizeof(hal_cfg));
@@ -120,11 +120,11 @@ int main(int argc, char **argv)
     memset(task, 0, sizeof(HalTaskInfo));
     memset(task->dec.refer, -1, sizeof(task->dec.refer));
     //!< prepare
-    FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
+    FUN_CHECK(ret = mpp_parser_prepare(pApi->parser, pkt, &task->dec));
     //!< free packet
     mpp_packet_deinit(&pkt);
     //!< parse
-    FUN_CHECK(ret = parser_parse(pApi->parser, &task->dec));
+    FUN_CHECK(ret = mpp_parser_parse(pApi->parser, &task->dec));
     //!< hal module
     FUN_CHECK(ret = mpp_hal_reg_gen(pApi->hal, task));
     FUN_CHECK(ret = mpp_hal_hw_start(pApi->hal, task));
