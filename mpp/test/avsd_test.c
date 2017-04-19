@@ -101,7 +101,7 @@ static MPP_RET decoder_deinit(AvsdTestCtx_t *pctx)
     MppDec *pApi = &pctx->m_api;
 
     if (pApi->parser) {
-        parser_deinit(pApi->parser);
+        mpp_parser_deinit(pApi->parser);
         pApi->parser = NULL;
     }
     if (pApi->hal) {
@@ -177,7 +177,7 @@ static MPP_RET decoder_init(AvsdTestCtx_t *pctx)
     parser_cfg.frame_slots = pApi->frame_slots;
     parser_cfg.packet_slots = pApi->packet_slots;
     parser_cfg.task_count = 2;
-    FUN_CHECK(ret = parser_init(&pApi->parser, &parser_cfg));
+    FUN_CHECK(ret = mpp_parser_init(&pApi->parser, &parser_cfg));
 
     // init hal part
     memset(&hal_cfg, 0, sizeof(hal_cfg));
@@ -369,7 +369,7 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
             }
         }
         //!< prepare
-        FUN_CHECK(ret = parser_prepare(pApi->parser, pkt, &task->dec));
+        FUN_CHECK(ret = mpp_parser_prepare(pApi->parser, pkt, &task->dec));
         //!< parse
         if (task->dec.valid) {
             MppBufferImpl *buf = NULL;
@@ -389,7 +389,7 @@ static MPP_RET decoder_single_test(AvsdTestCtx_t *pctx)
 
             mpp_buf_slot_set_flag(pApi->packet_slots, task->dec.input, SLOT_CODEC_READY);
             mpp_buf_slot_set_flag(pApi->packet_slots, task->dec.input, SLOT_HAL_INPUT);
-            FUN_CHECK(ret = parser_parse(pApi->parser, &task->dec));
+            FUN_CHECK(ret = mpp_parser_parse(pApi->parser, &task->dec));
 
             AVSD_TEST_LOG(AVSD_TEST_TRACE, "[AVSD_TEST] ---- decoder, read_one_frame Frame_no = %d", inp->dec_no);
             inp->dec_no++;

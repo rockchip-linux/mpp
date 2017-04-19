@@ -175,7 +175,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         parser->lock(THREAD_RESET);
         task->status.curr_task_rdy = 0;
         task_dec->valid = 0;
-        parser_reset(dec->parser);
+        mpp_parser_reset(dec->parser);
         mpp_hal_reset(dec->hal);
         dec->reset_flag = 0;
         if (task->wait.info_change) {
@@ -323,7 +323,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     /*
      * 3. send packet data to parser for prepare
      *
-     *    parser_prepare functioin input / output
+     *    mpp_parser_prepare functioin input / output
      *    input:    input MppPacket data from user
      *    output:   one packet which contains one frame for hardware processing
      *              output information will be stored in task_dec->input_packet
@@ -337,7 +337,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *       of different coding type and find the start and end of one frame. Then
      *       copy data to task_dec->input_packet
      *    2. On need_split mode if one input MppPacket contain multiple frame for
-     *       decoding one parser_prepare call will only frame for task. Then input
+     *       decoding one mpp_parser_prepare call will only frame for task. Then input
      *       MppPacket->pos/length will be updated. The input MppPacket will not be
      *       released until it is totally consumed.
      *    3. On spliting frame if one frame contain multiple slices and these multiple
@@ -352,7 +352,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (mpp_debug & MPP_DBG_PTS)
             mpp_log("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
 
-        parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
+        mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         p_e = mpp_time();
         if (mpp_debug & MPP_DBG_TIMING) {
             diff = (p_e - p_s) / 1000;
@@ -482,7 +482,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.task_parsed_rdy) {
-        parser_parse(dec->parser, task_dec);
+        mpp_parser_parse(dec->parser, task_dec);
         task->status.task_parsed_rdy = 1;
     }
 
@@ -869,7 +869,7 @@ void *mpp_dec_advanced_thread(void *data)
                 MppBuffer input_buffer = mpp_packet_get_buffer(packet);
                 MppBuffer output_buffer = mpp_frame_get_buffer(frame);
 
-                parser_prepare(dec->parser, packet, task_dec);
+                mpp_parser_prepare(dec->parser, packet, task_dec);
 
                 /*
                  * We may find eos in prepare step and there will be no anymore vaild task generated.
@@ -891,9 +891,9 @@ void *mpp_dec_advanced_thread(void *data)
                 mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
                 mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
 
-                ret = parser_parse(dec->parser, task_dec);
+                ret = mpp_parser_parse(dec->parser, task_dec);
                 if (ret != MPP_OK) {
-                    mpp_err_f("something wrong with parser_parse!\n");
+                    mpp_err_f("something wrong with mpp_parser_parse!\n");
                     mpp_frame_set_errinfo(frame, 1); /* 0 - OK; 1 - error */
                     mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
                     goto DEC_OUT;
@@ -1028,12 +1028,12 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
             cb,
         };
 
-        ret = parser_init(&parser, &parser_cfg);
+        ret = mpp_parser_init(&parser, &parser_cfg);
         if (ret) {
             mpp_err_f("could not init parser\n");
             break;
         }
-        cb.callBack = hal_callback;
+        cb.callBack = mpp_hal_callback;
         cb.opaque = parser;
         // then init hal with task count from parser
         MppHalCfg hal_cfg = {
@@ -1084,7 +1084,7 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
     }
 
     if (dec->parser) {
-        parser_deinit(dec->parser);
+        mpp_parser_deinit(dec->parser);
         dec->parser = NULL;
     }
 
@@ -1115,7 +1115,7 @@ MPP_RET mpp_dec_reset(MppDec *dec)
     }
     dec->reset_flag = 1;
 
-    // parser_reset(dec->parser);
+    // mpp_parser_reset(dec->parser);
     //  mpp_hal_reset(dec->hal);
 
     return MPP_OK;
@@ -1128,7 +1128,7 @@ MPP_RET mpp_dec_flush(MppDec *dec)
         return MPP_ERR_NULL_PTR;
     }
 
-    parser_flush(dec->parser);
+    mpp_parser_flush(dec->parser);
     mpp_hal_flush(dec->hal);
 
     return MPP_OK;
@@ -1152,7 +1152,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
-    parser_control(dec->parser, cmd, param);
+    mpp_parser_control(dec->parser, cmd, param);
     mpp_hal_control(dec->hal, cmd, param);
 
     switch (cmd) {
