@@ -147,6 +147,8 @@ MPP_RET mpp_buffer_write_with_caller(MppBuffer buffer, size_t offset, void *data
         return MPP_OK;
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
+    if (offset + size > p->info.size)
+        return MPP_ERR_VALUE;
     if (NULL == p->info.ptr)
         mpp_buffer_mmap(p, caller);
 
