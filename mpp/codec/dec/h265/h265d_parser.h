@@ -53,7 +53,7 @@ extern RK_U32 h265d_debug;
 #define h265d_dbg(flag, fmt, ...) _mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
 
 
-#define MAX_DPB_SIZE 16 // A.4.1
+#define MAX_DPB_SIZE 17 // A.4.1
 #define MAX_REFS 16
 
 /**
