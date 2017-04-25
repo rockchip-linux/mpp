@@ -106,6 +106,7 @@ RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
             sum += p->val[pos];
         }
     } else {
+        /* This case is not used so far, but may be useful in the future */
         mpp_assert(num > denorm);
         RK_S32 acc_num = num;
         RK_S32 acc_denorm = denorm;
@@ -119,8 +120,8 @@ RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
                 pos = p->len - 1;
 
             sum += p->val[pos] * acc_num / acc_denorm;
-            acc_num += num;
-            acc_denorm += denorm;
+            acc_num *= num;
+            acc_denorm *= denorm;
         }
     }
     return DIV(sum, len);
@@ -212,6 +213,11 @@ MPP_RET mpp_rc_deinit(MppRateControl *ctx)
         ctx->intra = NULL;
     }
 
+    if (ctx->inter) {
+        mpp_data_deinit(ctx->inter);
+        ctx->inter = NULL;
+    }
+
     if (ctx->gop_bits) {
         mpp_data_deinit(ctx->gop_bits);
         ctx->gop_bits = NULL;
@@ -275,6 +281,10 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
         if (ctx->intra)
             mpp_data_deinit(ctx->intra);
         mpp_data_init(&ctx->intra, gop);
+
+        if (ctx->inter)
+            mpp_data_deinit(ctx->inter);
+        mpp_data_init(&ctx->inter, ctx->fps_out); /* need test */
 
         if (ctx->gop_bits)
             mpp_data_deinit(ctx->gop_bits);
@@ -408,12 +418,13 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             if (ctx->acc_intra_count) {
                 intra_percent = mpp_data_avg(ctx->intra_percent, 1, 1, 1) / 100.0;
                 ctx->last_intra_percent = intra_percent;
-            }
 
-            if (ctx->acc_intra_count) {
-                ctx->bits_target = (ctx->fps_out * ctx->bits_per_pic + diff_bit) * intra_percent;
-            } else
-                ctx->bits_target = ctx->bits_per_intra - mpp_pid_calc(&ctx->pid_intra);
+                ctx->bits_target = (ctx->fps_out * ctx->bits_per_pic + diff_bit)
+                                   * intra_percent;
+            } else {
+                ctx->bits_target = ctx->bits_per_intra
+                                   - mpp_pid_calc(&ctx->pid_intra);
+            }
         } else {
             if (ctx->pre_frmtype == INTRA_FRAME) {
                 RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_fps);
@@ -447,7 +458,22 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     } break;
     }
 
-    ctx->bits_target = ctx->bits_target > 0 ? ctx->bits_target : 0;
+    /* If target bit is zero, it will exist mosaic in the encoded picture.
+     * In this case, half of the average bit rate of previous P frames  is
+     * assigned to target bit.
+     */
+    if (ctx->bits_target <= 0) {
+        if (ctx->cur_frmtype == INTRA_FRAME) {
+            mpp_rc_dbg_rc("unbelievable case: intra frame target bits is zero!\n");
+        } else {
+            mpp_rc_dbg_rc("inter frame target bits is zero!"
+                          "intra frame %d, inter frame %d, total_cnt %d\n",
+                          ctx->acc_intra_count, ctx->acc_inter_count,
+                          ctx->acc_total_count);
+            ctx->bits_target = mpp_data_avg(ctx->inter, -1, 1, 1) / 2;
+            mpp_rc_dbg_rc("after adjustment, target bits %d\n", ctx->bits_target);
+        }
+    }
 
     rc_syn->bit_target = ctx->bits_target;
 
@@ -485,6 +511,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
                       ctx, bits, ctx->bits_per_inter);
         ctx->acc_inter_count++;
         ctx->acc_inter_bits_in_fps += bits;
+        mpp_data_update(ctx->inter, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_target);
     }
@@ -501,15 +528,6 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         ctx->acc_intra_bits_in_fps = 0;
         ctx->acc_inter_bits_in_fps = 0;
         ctx->last_fps_bits = 0;
-    }
-
-    switch (ctx->gop_mode) {
-    case MPP_GOP_ALL_INTER : {
-    } break;
-    case MPP_GOP_ALL_INTRA : {
-    } break;
-    default : {
-    } break;
     }
 
     ctx->pre_frmtype = ctx->cur_frmtype;

@@ -782,9 +782,6 @@ void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn)
     /* rc cfg */
     if (rc_change) {
         H264E_HAL_SPRINT(str, len, "[rc] ");
-        H264E_HAL_SPRINT(str, len, "rc_mode=%d ", rc->rc_mode);
-        H264E_HAL_SPRINT(str, len, "quality=%d ", rc->quality);
-        H264E_HAL_SPRINT(str, len, "bps=%d:%d:%d ", rc->bps_target, rc->bps_min, rc->bps_max);
         H264E_HAL_SPRINT(str, len, "fps_in=%d:%d:%d ", rc->fps_in_num, rc->fps_in_denorm, rc->fps_in_flex);
         H264E_HAL_SPRINT(str, len, "fps_out=%d:%d:%d ", rc->fps_out_num, rc->fps_out_denorm, rc->fps_out_flex);
         H264E_HAL_SPRINT(str, len, "gop=%d ", rc->gop);
@@ -792,6 +789,9 @@ void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn)
 
     if (rc_syn) {
         H264E_HAL_SPRINT(str, len, "[frm %d] ", ctx->frame_cnt);
+        H264E_HAL_SPRINT(str, len, "rc_mode=%d ", rc->rc_mode);
+        H264E_HAL_SPRINT(str, len, "quality=%d ", rc->quality);
+        H264E_HAL_SPRINT(str, len, "bps=%d:%d:%d ", rc->bps_target, rc->bps_min, rc->bps_max);
         H264E_HAL_SPRINT(str, len, "tgt_bit=%d:%d:%d ", rc_syn->bit_target, rc_syn->bit_min, rc_syn->bit_max);
         H264E_HAL_SPRINT(str, len, "qp=%d:%d:%d ", hw_cfg->qp, hw_cfg->qp_min, hw_cfg->qp_max);
     }
