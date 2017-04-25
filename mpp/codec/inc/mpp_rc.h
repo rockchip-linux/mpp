@@ -150,11 +150,13 @@ typedef struct MppRateControl_s {
 
     /*
      * intra     - intra frame bits record
+     * inter     - inter frame bits record
      * pid_intra - intra frame bits record
      * pid_inter - inter frame bits record
      * pid_gop   - serial frame bits record
      */
     MppData *intra;
+    MppData *inter;
     MppData *gop_bits;
     MppData *intra_percent;
     MppPIDCtx pid_intra;
