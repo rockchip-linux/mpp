@@ -220,6 +220,7 @@ static H264eRkvMbRcMcfg mb_rc_m_cfg[H264E_MB_RC_M_NUM] = {
     {4,         1,           1,      4}, // mode = 2
     {2,         1,           1,      4}, // mode = 3
     {0,         1,           1,      2}, // mode = 4
+    {0,         0,           1,     15}, // mode = 5
 };
 
 static H264eRkvMbRcQcfg mb_rc_q_cfg[MPP_ENC_RC_QUALITY_BUTT] = {
@@ -2296,7 +2297,15 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
     H264eRkvMbRcMcfg m_cfg;
 
     h264e_rkv_set_mb_rc(ctx);
-    m_cfg = mb_rc_m_cfg[mb_rc->mode];
+
+    if (ctx->frame_cnt == 0) {
+        /* first frame, will be discarded.
+         * just for getting real qp for target bits
+         */
+        m_cfg = mb_rc_m_cfg[H264E_MB_RC_WIDE_RANGE];
+    } else {
+        m_cfg = mb_rc_m_cfg[mb_rc->mode];
+    }
 
     /* (VBR) if focus on quality, qp range is limited more precisely */
     if (rc->rc_mode == MPP_ENC_RC_MODE_VBR) {
