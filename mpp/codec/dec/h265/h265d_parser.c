@@ -1182,14 +1182,18 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
 
     s->is_decoded        = 0;
     s->first_nal_type    = s->nal_unit_type;
+    s->miss_ref_flag = 0;
+
+    ret = mpp_hevc_frame_rps(s);
+    if (ret < 0) {
+        mpp_err("Error constructing the frame RPS.\n");
+        goto fail;
+    }
 
     ret = mpp_hevc_set_new_ref(s, &s->frame, s->poc);
-
     if (ret < 0)
         goto fail;
 
-    s->miss_ref_flag = 0;
-    ret = mpp_hevc_frame_rps(s);
     if (s->miss_ref_flag) {
         if (!IS_IRAP(s)) {
             mpp_frame_set_errinfo(s->frame, MPP_FRAME_ERR_UNKNOW);
@@ -1222,10 +1226,6 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
 
     mpp_buf_slot_set_prop(s->slots, s->ref->slot_index, SLOT_FRAME, s->ref->frame);
 
-    if (ret < 0) {
-        mpp_err("Error constructing the frame RPS.\n");
-        goto fail;
-    }
     return 0;
 
 fail:

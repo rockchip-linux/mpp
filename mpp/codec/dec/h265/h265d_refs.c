@@ -217,9 +217,6 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
 {
     HEVCFrame *ref = find_ref_idx(s, poc);
 
-    if (ref == s->ref)
-        return  MPP_ERR_STREAM;
-
     if (!ref) {
         ref = generate_missing_ref(s, poc);
         if (!ref)
@@ -258,8 +255,6 @@ RK_S32 mpp_hevc_frame_rps(HEVCContext *s)
     /* clear the reference flags on all frames except the current one */
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
         HEVCFrame *frame = &s->DPB[i];
-        if (frame == s->ref)
-            continue;
         mark_ref(frame, 0);
     }
 
