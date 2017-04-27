@@ -170,11 +170,11 @@ MppPlatformService::MppPlatformService()
             soc_name_len = read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1);
             if (soc_name_len > 0) {
                 /* replacing the termination character to space */
-                char *ptr = soc_name;
-
-                while (ptr < soc_name + soc_name_len - 1) {
+                for (char *ptr = soc_name;; ptr = soc_name) {
                     ptr += strnlen (soc_name, MAX_SOC_NAME_LENGTH);
                     *ptr = ' ';
+                    if (ptr >= soc_name + soc_name_len - 1)
+                        break;
                 }
 
                 mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", soc_name);
