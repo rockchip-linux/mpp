@@ -845,6 +845,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             syntax->eoi_found = 1;
             jpegd_dbg_marker("still exists %d bytes behind EOI marker\n",
                              buf_end - buf_ptr);
+            goto done;
             break;
         case SOS:
             if ((ret = jpegd_decode_sos(ctx)) != MPP_OK) {
@@ -904,6 +905,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
         mpp_err_f("EOI marker not found!\n");
     }
 
+done:
     if (!syntax->dht_found) {
         jpegd_dbg_marker("sorry, DHT is not found!\n");
         jpegd_setup_default_dht(ctx);
