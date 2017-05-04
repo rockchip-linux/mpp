@@ -179,6 +179,20 @@ void Mpp::clear()
     if (mFrameGroup)
         mpp_buffer_group_set_listener((MppBufferGroupImpl *)mFrameGroup, NULL);
 
+    if (mType == MPP_CTX_ENC) {
+        if (mThreadCodec)
+            mThreadCodec->set_status(MPP_THREAD_STOPPING);
+
+        /*
+         * encode thread may block in dequeue output task
+         * so send sigal to awake it
+         */
+        if (mOutputTaskQueue) {
+            MppPort port = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
+            mpp_port_awake(port);
+        }
+    }
+
     if (mThreadCodec)
         mThreadCodec->stop();
     if (mThreadHal)

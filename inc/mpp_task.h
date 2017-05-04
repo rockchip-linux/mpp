@@ -237,6 +237,7 @@ MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type);
 MPP_RET mpp_port_poll(MppPort port, MppPollType timeout);
 MPP_RET mpp_port_dequeue(MppPort port, MppTask *task);
 MPP_RET mpp_port_enqueue(MppPort port, MppTask task);
+MPP_RET mpp_port_awake(MppPort port);
 
 MPP_RET mpp_task_meta_set_s32(MppTask task, MppMetaKey key, RK_S32 val);
 MPP_RET mpp_task_meta_set_s64(MppTask task, MppMetaKey key, RK_S64 val);

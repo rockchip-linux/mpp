@@ -268,6 +268,27 @@ RET:
     return ret;
 }
 
+MPP_RET mpp_port_awake(MppPort port)
+{
+    if (port == NULL)
+        return MPP_NOK;
+
+    mpp_task_dbg_func("enter port %p\n", port);
+    MppPortImpl *port_impl = (MppPortImpl *)port;
+    MppTaskQueueImpl *queue = port_impl->queue;
+    MppTaskStatusInfo *curr = NULL;
+    if (queue) {
+        AutoMutex auto_lock(queue->lock);
+        curr = &queue->info[port_impl->status_curr];
+        if (curr) {
+            curr->cond->signal();
+        }
+    }
+
+    mpp_task_dbg_func("leave port %p\n", port);
+    return MPP_OK;
+}
+
 MPP_RET mpp_task_queue_init(MppTaskQueue *queue)
 {
     if (NULL == queue) {
