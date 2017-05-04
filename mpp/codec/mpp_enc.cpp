@@ -187,20 +187,28 @@ void *mpp_enc_control_thread(void *data)
             // send finished task to output port
             mpp_port_poll(output, MPP_POLL_BLOCK);
             mpp_port_dequeue(output, &mpp_task);
-            mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
 
-            {
-                RK_S32 is_intra = enc_task->is_intra;
-                RK_U32 flag = mpp_packet_get_flag(packet);
+            /*
+             * mpp_task may be null if output port is awaken by Mpp::clear()
+             */
+            if (mpp_task) {
+                mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
 
-                mpp_task_meta_set_s32(mpp_task, KEY_OUTPUT_INTRA, is_intra);
-                if (is_intra) {
-                    mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
+                {
+                    RK_S32 is_intra = enc_task->is_intra;
+                    RK_U32 flag = mpp_packet_get_flag(packet);
+
+                    mpp_task_meta_set_s32(mpp_task, KEY_OUTPUT_INTRA, is_intra);
+                    if (is_intra) {
+                        mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
+                    }
                 }
-            }
 
-            // setup output task here
-            mpp_port_enqueue(output, mpp_task);
+                // setup output task here
+                mpp_port_enqueue(output, mpp_task);
+            } else {
+                mpp_packet_deinit(&packet);
+            }
             mpp_task = NULL;
             packet = NULL;
             frame = NULL;
