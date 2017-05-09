@@ -243,7 +243,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
 
     init_VUI(&cur_sps->vui_seq_parameters);
     if (cur_sps->vui_parameters_present_flag) {
-        FUN_CHECK(ret = read_VUI(p_bitctx, &cur_sps->vui_seq_parameters));
+        ret = read_VUI(p_bitctx, &cur_sps->vui_seq_parameters);
     }
     cur_sps->Valid = 1;
     (void)p_Dec;
