@@ -360,7 +360,7 @@ static MPP_RET allocator_ion_alloc(void *ctx, MppBufferInfo *info)
 
     info->fd  = fd;
     info->ptr = NULL;
-    info->hnd = (void *)hnd;
+    info->hnd = (void *)(intptr_t)hnd;
 
     ion_dbg_func("leave: ret %d handle %d fd %d\n", ret, hnd, fd);
     return ret;
@@ -377,12 +377,13 @@ static MPP_RET allocator_ion_import(void *ctx, MppBufferInfo *data)
 
     fd_data.fd = data->fd;
     ret = ion_ioctl(p->ion_device, ION_IOC_IMPORT, &fd_data);
-    if (NULL == (void *)fd_data.handle) {
+    if (0 > fd_data.handle) {
         mpp_err_f("fd %d import failed for %s\n", data->fd, strerror(errno));
         goto RET;
     }
 
-    data->hnd = (void *)fd_data.handle;
+    data->hnd = (void *)(intptr_t)fd_data.handle;
+    ret = ion_map_fd(p->ion_device, fd_data.handle, &data->fd);
     data->ptr = NULL;
 RET:
     ion_dbg_func("leave: ret %d handle %d\n", ret, data->hnd);
@@ -408,37 +409,11 @@ static MPP_RET allocator_ion_mmap(void *ctx, MppBufferInfo *data)
     return ret;
 }
 
-static MPP_RET allocator_ion_release(void *ctx, MppBufferInfo *data)
-{
-    ion_dbg_func("enter: ctx %p handle %d fd %d ptr %p size %d\n",
-                 ctx, (intptr_t)data->hnd, data->fd, data->ptr, data->size);
-    allocator_ctx_ion *p = NULL;
-
-    if (NULL == ctx) {
-        mpp_err_f("do not accept NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-    p = (allocator_ctx_ion *)ctx;
-
-    if (data->ptr) {
-        munmap(data->ptr, data->size);
-        data->ptr = NULL;
-    }
-    if (data->hnd) {
-        ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
-        data->hnd = NULL;
-    }
-
-    ion_dbg_func("leave\n");
-
-    return MPP_OK;
-}
-
 static MPP_RET allocator_ion_free(void *ctx, MppBufferInfo *data)
 {
     allocator_ctx_ion *p = NULL;
     if (NULL == ctx) {
-        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        mpp_err_f("do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -450,10 +425,12 @@ static MPP_RET allocator_ion_free(void *ctx, MppBufferInfo *data)
         munmap(data->ptr, data->size);
         data->ptr = NULL;
     }
+
     if (data->fd > 0) {
         close(data->fd);
         data->fd = -1;
     }
+
     if (data->hnd) {
         ion_free(p->ion_device, (ion_user_handle_t)((intptr_t)data->hnd));
         data->hnd = NULL;
@@ -492,7 +469,7 @@ os_allocator allocator_ion = {
     .alloc = allocator_ion_alloc,
     .free = allocator_ion_free,
     .import = allocator_ion_import,
-    .release = allocator_ion_release,
+    .release = allocator_ion_free,
     .mmap = allocator_ion_mmap,
 };
 

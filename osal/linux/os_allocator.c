@@ -18,8 +18,10 @@
 #include "mpp_log.h"
 
 #include "allocator_std.h"
-#include "allocator_drm.h"
 #include "allocator_ion.h"
+#ifdef HAVE_DRM
+#include "allocator_drm.h"
+#endif
 
 /*
  * Linux only support MPP_BUFFER_TYPE_NORMAL so far
