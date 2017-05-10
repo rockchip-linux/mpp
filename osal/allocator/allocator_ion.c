@@ -129,8 +129,13 @@ static int ion_map_fd(int fd, ion_user_handle_t handle, int *map_fd)
 static int ion_mmap(int fd, size_t length, int prot, int flags, off_t offset,
                     void **ptr)
 {
+    static unsigned long pagesize_mask = 0;
     if (ptr == NULL)
         return -EINVAL;
+
+    if (!pagesize_mask)
+        pagesize_mask = sysconf(_SC_PAGESIZE) - 1;
+    offset = (offset + pagesize_mask) & ~pagesize_mask;
 
     *ptr = mmap(NULL, length, prot, flags, fd, offset);
     if (*ptr == MAP_FAILED) {
