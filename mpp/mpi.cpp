@@ -36,37 +36,37 @@ typedef struct {
 
 static MppCodingTypeInfo support_list[] = {
 #if HAVE_MPEG2D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG2,  "dec",  "mpeg2",        },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG2,      "dec",  "mpeg2",        },
 #endif
 #if HAVE_MPEG4D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG4,  "dec",  "mpeg4",        },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMPEG4,      "dec",  "mpeg4",        },
 #endif
 #if HAVE_H263D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingH263,   "dec",  "h.263",        },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingH263,       "dec",  "h.263",        },
 #endif
 #if HAVE_H264D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVC,    "dec",  "h.264/AVC",    },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVC,        "dec",  "h.264/AVC",    },
 #endif
 #if HAVE_H265D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingHEVC,   "dec",  "h.265/HEVC",   },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingHEVC,       "dec",  "h.265/HEVC",   },
 #endif
 #if HAVE_VP8D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP8,    "dec",  "vp8",          },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP8,        "dec",  "vp8",          },
 #endif
 #if HAVE_VP9D
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,    "dec",  "VP9",          },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingVP9,        "dec",  "VP9",          },
 #endif
 #if HAVE_AVSD
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVS,    "dec",  "avs+",         },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingAVSPLUS,    "dec",  "avs+",         },
 #endif
 #if HAVE_JPEGD
-    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMJPEG,  "dec",  "jpeg",         },
+    {   MPP_CTX_DEC,    MPP_VIDEO_CodingMJPEG,      "dec",  "jpeg",         },
 #endif
 #if HAVE_H264E
-    {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,    "enc",  "h.264/AVC",    },
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingAVC,        "enc",  "h.264/AVC",    },
 #endif
 #if HAVE_JPEGE
-    {   MPP_CTX_ENC,    MPP_VIDEO_CodingMJPEG,  "enc",  "jpeg",         },
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingMJPEG,      "enc",  "jpeg",         },
 #endif
 };
 

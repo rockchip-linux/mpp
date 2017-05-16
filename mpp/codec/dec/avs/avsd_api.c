@@ -321,7 +321,7 @@ MPP_RET avsd_callback(void *decoder, void *info)
 */
 const ParserApi api_avsd_parser = {
     "avsd_parse",
-    MPP_VIDEO_CodingAVS,
+    MPP_VIDEO_CodingAVSPLUS,
     sizeof(AvsdCtx_t),
     0,
     avsd_init,

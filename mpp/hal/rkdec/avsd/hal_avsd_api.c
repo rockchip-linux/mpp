@@ -354,7 +354,7 @@ MPP_RET hal_avsd_control(void *decoder, RK_S32 cmd_type, void *param)
 const MppHalApi hal_api_avsd = {
     "avsd_rkdec",
     MPP_CTX_DEC,
-    MPP_VIDEO_CodingAVS,
+    MPP_VIDEO_CodingAVSPLUS,
     sizeof(AvsdHalCtx_t),
     0,
     hal_avsd_init,
