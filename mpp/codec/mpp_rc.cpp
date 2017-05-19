@@ -28,6 +28,7 @@
 #define MPP_RC_DBG_BPS               (0x00000010)
 #define MPP_RC_DBG_RC                (0x00000020)
 #define MPP_RC_DBG_CFG               (0x00000100)
+#define MPP_RC_DBG_RECORD            (0x00001000)
 
 #define mpp_rc_dbg(flag, fmt, ...)   _mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
@@ -197,7 +198,7 @@ MPP_RET mpp_rc_init(MppRateControl **ctx)
         p->gop = -1;
     }
 
-    mpp_env_get_u32("mpp_rc_debug", &mpp_rc_debug, 0);
+    mpp_env_get_u32("mpp_rc_debug", &mpp_rc_debug, 0x1000);
 
     *ctx = p;
     return ret;
@@ -570,6 +571,96 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
     return MPP_OK;
 }
 
+MPP_RET mpp_rc_record_param(struct list_head *head, MppRateControl *ctx,
+                            RcSyntax *rc_syn)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (mpp_rc_debug & MPP_RC_DBG_RECORD) {
+        RecordNode *node = (RecordNode *)mpp_calloc(RecordNode, 1);
+        mpp_assert(node);
+        INIT_LIST_HEAD(&node->list);
+        node->frm_type = ctx->cur_frmtype;
+        node->frm_cnt = ++ctx->frm_cnt;
+        node->bps = ctx->bps_target;
+        node->fps = ctx->fps_out;
+        node->gop = ctx->gop;
+        node->bits_per_pic = ctx->bits_per_pic;
+        node->bits_per_intra = ctx->bits_per_intra;
+        node->bits_per_inter = ctx->bits_per_inter;
+        node->tgt_bits = ctx->bits_target;
+        node->bit_min = ctx->bits_target * ctx->min_rate;
+        node->bit_max = ctx->bits_target * ctx->max_rate;
+        node->acc_intra_bits_in_fps = ctx->acc_intra_bits_in_fps;
+        node->acc_inter_bits_in_fps = ctx->acc_inter_bits_in_fps;
+        node->last_fps_bits = ctx->last_fps_bits;
+        node->last_intra_percent = ctx->last_intra_percent;
+
+        list_add_tail(&node->list, head);
+        rc_syn->rc_head = head;
+    }
+
+    return ret;
+}
+
+MPP_RET mpp_rc_calc_real_bps(struct list_head *head, MppRateControl *ctx,
+                             RK_S32 cur_bits)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (mpp_rc_debug & MPP_RC_DBG_RECORD) {
+        RK_U32 print_flag = 0;
+        ctx->real_bps += cur_bits;
+
+        if ((ctx->acc_intra_count + ctx->acc_inter_count) % ctx->fps_out == 0) {
+            if (ctx->real_bps > ctx->bps_target * 5) /* threshold can be modified */
+                print_flag = 0; /* used to debug only */
+
+            RecordNode *pos, *n;
+            MppLinReg *lin_reg;
+
+            list_for_each_entry_safe(pos, n, head, RecordNode, list) {
+                if (print_flag) {
+                    mpp_log("Start to duplicate RC parameter of frame %d!\n", pos->frm_cnt);
+                    mpp_log("bps %d, real_bps %d\n", pos->bps, ctx->real_bps);
+                    mpp_log("fps %d, gop %d, last_intra_percent %0.3f\n",
+                            pos->fps, pos->gop, pos->last_intra_percent);
+                    mpp_log("bits_per_pic %d, bits_per_intra %d, bits_per_inter %d\n",
+                            pos->bits_per_pic, pos->bits_per_intra, pos->bits_per_inter);
+                    mpp_log("acc_intra_bits_in_fps %d, acc_inter_bits_in_fps %d, last_fps_bits %d\n",
+                            pos->acc_intra_bits_in_fps, pos->acc_inter_bits_in_fps,
+                            pos->last_fps_bits);
+                    mpp_log("qp_sum %d, sse_sum %lld\n", pos->qp_sum, pos->sse_sum);
+                    mpp_log("tgt_bits %d, real_bits %d\n", pos->tgt_bits, pos->real_bits);
+                    mpp_log("set_qp %d, real_qp %d\n", pos->set_qp, pos->real_qp);
+
+                    lin_reg = &pos->lin_reg;
+                    mpp_log("\nStart to duplicate RQ model parameter!\n");
+                    mpp_log("size %d, n %d, i %d\n", lin_reg->size, lin_reg->n, lin_reg->i);
+                    mpp_log("a %f, b %f, c %f\n", lin_reg->a, lin_reg->b, lin_reg->c);
+                    mpp_log("x %p, r %p, y %p\n", lin_reg->x, lin_reg->r, lin_reg->y);
+                    mpp_log("weight_mode %d, wlen %d\n", lin_reg->weight_mode, pos->wlen);
+                    mpp_log("\n\n");
+                }
+
+                /*
+                 * Only @FPS nodes are freed every time, and the node whose frame
+                 * number is (@acc_intra_count + @acc_inter_count) belongs to next
+                 * group, so just free it next time.
+                 */
+                if ((ctx->acc_intra_count + ctx->acc_inter_count) != (RK_S32)pos->frm_cnt) {
+                    list_del_init(&pos->list);
+                    mpp_free(pos);
+                }
+            }
+
+            ctx->real_bps = 0;
+        }
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode)
 {
     if (NULL == ctx) {
@@ -870,4 +961,64 @@ RK_S32 mpp_quadreg_calc(MppLinReg *ctx, RK_S32 x)
 
     return ctx->c + DIV(ctx->b, x) + DIV(ctx->a, x * x);
 }
+
+MPP_RET mpp_rc_param_ops(struct list_head *head, RK_U32 frm_cnt,
+                         RC_PARAM_OPS ops, void *arg)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (mpp_rc_debug & MPP_RC_DBG_RECORD) {
+        RecordNode *pos, *n;
+        RK_U32 found_match = 0;
+
+        list_for_each_entry_safe(pos, n, head, RecordNode, list) {
+            if (frm_cnt == pos->frm_cnt) {
+                found_match = 1;
+                break;
+            }
+        }
+
+        if (!found_match) {
+            mpp_err("frame %d is not found in list_head %p!\n", frm_cnt, head);
+            ret = MPP_NOK;
+        } else {
+            switch (ops) {
+            case RC_RECORD_REAL_BITS : {
+                pos->real_bits = *((RK_U32*)arg);
+            } break;
+            case RC_RECORD_QP_SUM : {
+                pos->qp_sum = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_QP_MIN : {
+                pos->qp_min = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_QP_MAX : {
+                pos->qp_max = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_LIN_REG : {
+                memcpy(&pos->lin_reg, (MppLinReg*)arg, sizeof(MppLinReg));
+            } break;
+            case RC_RECORD_WIN_LEN : {
+                pos->wlen = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_SET_QP : {
+                pos->set_qp = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_REAL_QP : {
+                pos->real_qp = *((RK_S32*)arg);
+            } break;
+            case RC_RECORD_SSE_SUM : {
+                pos->sse_sum = *((RK_S64*)arg);
+            } break;
+            default : {
+                mpp_err("frame %d found invalid operation code %d\n", frm_cnt, ops);
+                ret = MPP_NOK;
+            }
+            }
+        }
+    }
+
+    return ret;
+}
+
 

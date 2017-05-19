@@ -3369,6 +3369,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
                     * MPP_ALIGN(prep->height, 16) / 16 / 16;
     /* for dumping ratecontrol message */
     RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
+    struct list_head *rc_head = rc_syn->rc_head;
+    RK_U32 frame_cnt = ctx->frame_cnt;
 
     h264e_hal_enter();
 
@@ -3423,7 +3425,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     h264e_rkv_set_feedback(ctx, reg_out, enc_task);
 
     /* we need re-encode */
-    if ((ctx->frame_cnt == 1) || (ctx->frame_cnt == 2)) {
+    if ((frame_cnt == 1) || (frame_cnt == 2)) {
         if (fb->hw_status & RKV_H264E_INT_BIT_STREAM_OVERFLOW) {
             RK_S32 new_qp = fb->qp_sum / num_mb + 3;
             h264e_hal_dbg(H264E_DBG_DETAIL,
@@ -3437,7 +3439,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
             h264e_rkv_resend(ctx, 0);
         }
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
-    } else if ((RK_S32)ctx->frame_cnt < rc->fps_out_num / rc->fps_out_denorm &&
+    } else if ((RK_S32)frame_cnt < rc->fps_out_num / rc->fps_out_denorm &&
                rc_syn->type == INTER_P_FRAME &&
                rc_syn->bit_target > fb->out_strm_size * 8 * 1.5) {
         /* re-encode frame if it meets all the conditions below:
@@ -3476,6 +3478,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         RK_S32 prev_sse = 1;
 
         avg_qp = fb->qp_sum * 1.0 / num_mb;
+        RK_S32 real_qp = (RK_S32)avg_qp;
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_REAL_QP, &real_qp);
 
         if (syn->type == INTER_P_FRAME) {
             avg_sse = (RK_S32)sqrt((double)(fb->sse_sum));
@@ -3490,6 +3494,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
                 wlen = wlen * prev_sse / avg_sse;
             else
                 wlen = wlen * avg_sse / prev_sse;
+
+            mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_WIN_LEN, &wlen);
         }
 
         mpp_assert(avg_qp >= 0);
@@ -3527,6 +3533,16 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
             mpp_data_update(ctx->qp_p, avg_qp);
             mpp_data_update(ctx->sse_p, avg_sse);
         }
+
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_REAL_BITS, &result.bits);
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_QP_SUM, &fb->qp_sum);
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_SSE_SUM, &fb->sse_sum);
+
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_QP_MIN, &hw_cfg->qp_min);
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_QP_MAX, &hw_cfg->qp_max);
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_SET_QP, &hw_cfg->qp);
+
+        mpp_rc_param_ops(rc_head, frame_cnt, RC_RECORD_LIN_REG, ctx->inter_qs);
 
         int_cb.callBack(int_cb.opaque, fb);
         h264e_hal_dbg(H264E_DBG_RC, "real qp %0.2f frame_bits %d",

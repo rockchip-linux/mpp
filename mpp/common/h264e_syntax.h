@@ -116,7 +116,6 @@ typedef struct h264e_feedback_t {
     //TODO: add nal size table feedback
 } h264e_feedback;
 
-
 typedef struct h264e_control_extra_info_cfg_t {
     /* common cfg */
     RK_U32 pic_luma_width;
@@ -136,7 +135,6 @@ typedef struct h264e_control_extra_info_cfg_t {
     RK_S32 second_chroma_qp_index_offset;
     RK_S32 pps_id; //TODO: may be removed later, get from sps/pps instead
 } h264e_control_extra_info_cfg;
-
 
 typedef struct h264e_control_extra_info_t {
     RK_U32 size;              // preProcess->lumWidth
