@@ -20,6 +20,7 @@
 #include "rk_mpi.h"
 #include "mpp_err.h"
 #include "mpp_log.h"
+#include "mpp_list.h"
 
 /*
  * mpp rate control contain common caculation methd
@@ -107,6 +108,18 @@ typedef enum MppEncGopMode_e {
     MPP_GOP_MODE_BUTT,
 } MppEncGopMode;
 
+typedef enum RC_PARAM_OPS {
+    RC_RECORD_REAL_BITS,
+    RC_RECORD_QP_SUM,
+    RC_RECORD_QP_MIN,
+    RC_RECORD_QP_MAX,
+    RC_RECORD_SET_QP,
+    RC_RECORD_REAL_QP,
+    RC_RECORD_SSE_SUM,
+    RC_RECORD_LIN_REG,
+    RC_RECORD_WIN_LEN
+} RC_PARAM_OPS;
+
 typedef struct MppRateControl_s {
     /* control parameter from external config */
     RK_S32 fps_num;
@@ -175,6 +188,10 @@ typedef struct MppRateControl_s {
     RK_S32 bits_target;
     float max_rate;
     float min_rate;
+
+    /* start from ONE */
+    RK_U32 frm_cnt;
+    RK_S32 real_bps;
 } MppRateControl;
 
 /*
@@ -185,10 +202,13 @@ typedef struct MppRateControl_s {
  * bit_max      - frame maximum size
  */
 typedef struct RcSyntax_s {
-    ENC_FRAME_TYPE  type;
-    RK_S32          bit_target;
-    RK_S32          bit_max;
-    RK_S32          bit_min;
+    ENC_FRAME_TYPE   type;
+    RK_S32           bit_target;
+    RK_S32           bit_max;
+    RK_S32           bit_min;
+
+    /* head node of rc parameter list */
+    struct list_head *rc_head;
 } RcSyntax;
 
 /*
@@ -201,6 +221,37 @@ typedef struct HalRcResult_s {
     RK_S32          time;
     RK_S32          bits;
 } RcHalResult;
+
+typedef struct RecordNode_t {
+    struct list_head list;
+    ENC_FRAME_TYPE   frm_type;
+    /* @frm_cnt starts from ONE */
+    RK_U32           frm_cnt;
+    RK_U32           bps;
+    RK_U32           fps;
+    RK_S32           gop;
+    RK_S32           bits_per_pic;
+    RK_S32           bits_per_intra;
+    RK_S32           bits_per_inter;
+    RK_U32           tgt_bits;
+    RK_U32           bit_min;
+    RK_U32           bit_max;
+    RK_U32           real_bits;
+    RK_S32           acc_intra_bits_in_fps;
+    RK_S32           acc_inter_bits_in_fps;
+    RK_S32           last_fps_bits;
+    float            last_intra_percent;
+
+    /* hardware result */
+    RK_S32           qp_sum;
+    RK_S64           sse_sum;
+    RK_S32           set_qp;
+    RK_S32           qp_min;
+    RK_S32           qp_max;
+    RK_S32           real_qp;
+    MppLinReg        lin_reg;
+    RK_S32           wlen;
+} RecordNode;
 
 #ifdef __cplusplus
 extern "C" {
@@ -245,6 +296,15 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result);
  * bits[1] - max
  */
 MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn);
+
+MPP_RET mpp_rc_record_param(struct list_head *head, MppRateControl *ctx,
+                            RcSyntax *rc_syn);
+
+MPP_RET mpp_rc_calc_real_bps(struct list_head *head, MppRateControl *ctx,
+                             RK_S32 cur_bits);
+
+MPP_RET mpp_rc_param_ops(struct list_head *head, RK_U32 frm_cnt,
+                         RC_PARAM_OPS ops, void *arg);
 
 MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode);
 MPP_RET mpp_linreg_deinit(MppLinReg *ctx);

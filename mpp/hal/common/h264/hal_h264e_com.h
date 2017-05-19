@@ -421,6 +421,7 @@ typedef struct H264eHalContext_t {
     RK_U32                          frame_cnt_gen_ready;
     RK_U32                          frame_cnt_send_ready;
     RK_U32                          num_frames_to_send;
+    /* @frame_cnt starts from ZERO */
     RK_U32                          frame_cnt;
     H264eHalParam                   param;
     RK_U32                          enc_mode;
