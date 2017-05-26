@@ -55,7 +55,7 @@ MPP_RET hal_h264e_vepu1_init(void *hal, MppHalCfg *cfg)
     h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client: %d", ctx->vpu_fd);
 #ifdef RKPLATFORM
     if (ctx->vpu_fd <= 0) {
-        ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingAVC, 0);
+        ctx->vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
         if (ctx->vpu_fd <= 0) {
             mpp_err("get vpu_fd(%d) <=0, failed. \n", ctx->vpu_fd);
             return MPP_ERR_UNKNOW;

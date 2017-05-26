@@ -46,24 +46,43 @@ typedef struct MppReq_t {
 
 static RK_U32 mpp_device_debug = 0;
 
-RK_S32 mpp_device_init(MppCtxType coding, MppCodingType type, RK_U32 flag)
+
+static RK_S32 mpp_device_get_client_type(MppDevCtx *ctx, MppCtxType coding, MppCodingType type)
+{
+    RK_S32 client_type = -1;
+
+    if (coding == MPP_CTX_ENC)
+        client_type = VPU_ENC;
+    else { /* MPP_CTX_DEC */
+        client_type = VPU_DEC;
+        if (ctx->pp_enable)
+            client_type = VPU_DEC_PP;
+    }
+    (void)ctx;
+    (void)type;
+    (void)coding;
+
+    return client_type;
+}
+
+RK_S32 mpp_device_init(MppDevCtx *ctx, MppCtxType coding, MppCodingType type)
 {
     RK_S32 dev = -1;
-    const char *name = mpp_get_vcodec_dev_name(coding, type);
+    const char *name = NULL;
+
+    ctx->coding = coding;
+    ctx->type = type;
+    if (ctx->platform)
+        name = mpp_get_platform_dev_name(coding, type, ctx->platform);
+    else
+        name = mpp_get_vcodec_dev_name(coding, type);
     if (name) {
         dev = open(name, O_RDWR);
         if (dev > 0) {
-            RK_U32 client_type;
-            int ret;
+            RK_S32 client_type = mpp_device_get_client_type(ctx, coding, type);
+            ctx->client_type = client_type;
 
-            if (coding == MPP_CTX_ENC)
-                client_type = VPU_ENC;
-            else { /* MPP_CTX_DEC */
-                client_type = VPU_DEC;
-                if (flag & MPP_DEVICE_POSTPROCCESS_ENABLE)
-                    client_type = VPU_DEC_PP;
-            }
-            ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
+            RK_S32 ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
             if (ret) {
                 mpp_err_f("ioctl VPU_IOC_SET_CLIENT_TYPE failed ret %d errno %d\n",
                           ret, errno);
@@ -85,21 +104,6 @@ MPP_RET mpp_device_deinit(RK_S32 dev)
         close(dev);
 
     return MPP_OK;
-}
-
-RK_S32 mpp_srv_query(MppDevProp id)
-{
-    RK_S32 ret = -1;
-
-    switch (id) {
-    case MPP_DEV_MMU_ENABLE : {
-        ret = 1;
-    } break;
-    default : {
-    } break;
-    }
-
-    return ret;
 }
 
 MPP_RET mpp_device_send_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
@@ -174,5 +178,25 @@ MPP_RET mpp_device_send_reg_with_id(RK_S32 dev, RK_S32 id, void *param,
     }
 
     return ret;
+}
+
+RK_S32 mpp_device_control(MppDevCtx *ctx, MppDevCmd cmd, void* param)
+{
+    switch (cmd) {
+    case MPP_DEV_GET_MMU_STATUS : {
+        ctx->mmu_status = 1;
+        *((RK_U32 *)param) = ctx->mmu_status;
+    } break;
+    case MPP_DEV_ENABLE_POSTPROCCESS : {
+        ctx->pp_enable = 1;
+    } break;
+    case MPP_DEV_SET_HARD_PLATFORM : {
+        ctx->platform = *((RK_U32 *)param);
+    } break;
+    default : {
+    } break;
+    }
+
+    return 0;
 }
 

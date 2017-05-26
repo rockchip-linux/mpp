@@ -102,7 +102,7 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
     //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVS, 0);
+        p_hal->vpu_socket = mpp_device_init(&p_hal->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingAVS);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;

@@ -100,6 +100,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     VpuHardMode hard_mode = MODE_NULL;
+    RK_U32 hard_platform = 0;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
@@ -118,10 +119,13 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         mpp_assert(vcodec_type & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
         if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
             hard_mode = RKVDEC_MODE;
+            hard_platform = HAVE_RKVDEC;
         } else if (vcodec_type & HAVE_VPU1) {
             hard_mode = VDPU1_MODE;
+            hard_platform = HAVE_VPU1;
         } else if (vcodec_type & HAVE_VPU2) {
             hard_mode = VDPU2_MODE;
+            hard_platform = HAVE_VPU2;
         }
         H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
                   mode, vcodec_type, hard_mode);
@@ -171,7 +175,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVC, 0);
+        mpp_device_control(&p_hal->dev_ctx, MPP_DEV_SET_HARD_PLATFORM, &hard_platform);
+        p_hal->vpu_socket = mpp_device_init(&p_hal->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
         if (p_hal->vpu_socket <= 0) {
             mpp_err("p_hal->vpu_socket <= 0\n");
             ret = MPP_ERR_UNKNOW;

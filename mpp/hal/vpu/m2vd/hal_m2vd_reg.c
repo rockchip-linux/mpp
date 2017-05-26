@@ -67,7 +67,7 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (p->vpu_socket <= 0) {
-        p->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingMPEG2, 0);
+        p->vpu_socket = mpp_device_init(&p->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingMPEG2);
         if (p->vpu_socket <= 0) {
             mpp_err("get vpu_socket(%d) <=0, failed. \n", p->vpu_socket);
             return MPP_ERR_UNKNOW;

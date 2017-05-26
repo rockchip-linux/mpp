@@ -281,6 +281,58 @@ RK_U32 mpp_get_vcodec_type(void)
     return vcodec_type;
 }
 
+RK_U32 mpp_get_2d_hw_flag(void)
+{
+    RK_U32 flag = 0;
+
+#ifdef RKPLATFORM
+    if (!access("/dev/rga", F_OK))
+        flag |= HAVE_RGA;
+
+    if (!access("/dev/iep", F_OK))
+        flag |= HAVE_IEP;
+#endif
+
+    return flag;
+}
+
+const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform)
+{
+    const char *dev = NULL;
+#ifdef RKPLATFORM
+    if ((platform & HAVE_RKVDEC) && (type == MPP_CTX_DEC) &&
+        (coding == MPP_VIDEO_CodingAVC ||
+         coding == MPP_VIDEO_CodingHEVC ||
+         coding == MPP_VIDEO_CodingVP9)) {
+        dev = mpp_find_device(mpp_rkvdec_dev);
+    } else if ((platform & HAVE_HEVC_DEC) && (type == MPP_CTX_DEC) &&
+               (coding == MPP_VIDEO_CodingHEVC)) {
+        dev = mpp_find_device(mpp_hevc_dev);
+    } else if ((platform & HAVE_AVSDEC) && (type == MPP_CTX_DEC) &&
+               (coding == MPP_VIDEO_CodingAVS)) {
+        dev = mpp_find_device(mpp_avsd_dev);
+    } else if ((platform & HAVE_RKVENC) && (type == MPP_CTX_ENC) &&
+               (coding == MPP_VIDEO_CodingAVC)) {
+        dev = mpp_find_device(mpp_rkvenc_dev);
+    } else if ((platform & HAVE_H265ENC) && (type == MPP_CTX_ENC) &&
+               (coding == MPP_VIDEO_CodingHEVC)) {
+        dev = mpp_find_device(mpp_h265e_dev);
+    } else if ((platform & HAVE_VEPU) && (type == MPP_CTX_ENC) &&
+               ((coding == MPP_VIDEO_CodingAVC ||
+                 coding == MPP_VIDEO_CodingMJPEG))) {
+        dev = mpp_find_device(mpp_vepu_dev);
+    } else {
+        dev = mpp_find_device(mpp_vpu_dev);
+    }
+#else
+    (void)type;
+    (void)coding;
+    (void)platform;
+#endif
+
+    return dev;
+}
+
 const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
 {
     const char *dev = NULL;
@@ -397,30 +449,7 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         /* default case for unknown compatible  */
         RK_U32 vcodec_type = mpp_get_vcodec_type();
 
-        if ((vcodec_type & HAVE_RKVDEC) && (type == MPP_CTX_DEC) &&
-            (coding == MPP_VIDEO_CodingAVC ||
-             coding == MPP_VIDEO_CodingHEVC ||
-             coding == MPP_VIDEO_CodingVP9)) {
-            dev = mpp_find_device(mpp_rkvdec_dev);
-        } else if ((vcodec_type & HAVE_HEVC_DEC) && (type == MPP_CTX_DEC) &&
-                   (coding == MPP_VIDEO_CodingHEVC)) {
-            dev = mpp_find_device(mpp_hevc_dev);
-        } else if ((vcodec_type & HAVE_AVSDEC) && (type == MPP_CTX_DEC) &&
-                   (coding == MPP_VIDEO_CodingAVS)) {
-            dev = mpp_find_device(mpp_avsd_dev);
-        } else if ((vcodec_type & HAVE_RKVENC) && (type == MPP_CTX_ENC) &&
-                   (coding == MPP_VIDEO_CodingAVC)) {
-            dev = mpp_find_device(mpp_rkvenc_dev);
-        } else if ((vcodec_type & HAVE_H265ENC) && (type == MPP_CTX_ENC) &&
-                   (coding == MPP_VIDEO_CodingHEVC)) {
-            dev = mpp_find_device(mpp_h265e_dev);
-        } else if ((vcodec_type & HAVE_VEPU) && (type == MPP_CTX_ENC) &&
-                   ((coding == MPP_VIDEO_CodingAVC ||
-                     coding == MPP_VIDEO_CodingMJPEG))) {
-            dev = mpp_find_device(mpp_vepu_dev);
-        } else {
-            dev = mpp_find_device(mpp_vpu_dev);
-        }
+        dev = mpp_get_platform_dev_name(type, coding, vcodec_type);
     } break;
     }
 #else
@@ -430,19 +459,3 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
 
     return dev;
 }
-
-RK_U32 mpp_get_2d_hw_flag(void)
-{
-    RK_U32 flag = 0;
-
-#ifdef RKPLATFORM
-    if (!access("/dev/rga", F_OK))
-        flag |= HAVE_RGA;
-
-    if (!access("/dev/iep", F_OK))
-        flag |= HAVE_IEP;
-#endif
-
-    return flag;
-}
-

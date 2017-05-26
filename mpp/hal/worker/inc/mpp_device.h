@@ -24,32 +24,42 @@ extern "C"
 
 #include "rk_mpi.h"
 
-#define MPP_DEVICE_POSTPROCCESS_ENABLE  (0x00000001)
-
 /* mpp service capability description */
-typedef enum MppDevProp_e {
-    MPP_DEV_MAX_WIDTH,
-    MPP_DEV_MAX_HEIGHT,
-    MPP_DEV_MIN_WIDTH,
-    MPP_DEV_MIN_HEIGHT,
-    MPP_DEV_MMU_ENABLE,
-    MPP_DEV_PROP_BUTT,
-} MppDevProp;
+typedef enum MppDevCmd_e {
+    MPP_DEV_GET_START = 0,
+    MPP_DEV_GET_MAX_WIDTH,
+    MPP_DEV_GET_MAX_HEIGHT,
+    MPP_DEV_GET_MIN_WIDTH,
+    MPP_DEV_GET_MIN_HEIGHT,
+    MPP_DEV_GET_MMU_STATUS,
 
+    MPP_DEV_SET_START = 0x01000000,
+    MPP_DEV_SET_HARD_PLATFORM, // set paltform by user
+    MPP_DEV_ENABLE_POSTPROCCESS,
+
+    MPP_DEV_PROP_BUTT,
+} MppDevCmd;
+
+typedef struct MppDevCtx_t {
+    MppCtxType coding;
+    MppCodingType type;
+    RK_S32 client_type;
+    RK_U32 platform; // platfrom for vcodec to init
+    RK_U32 mmu_status; // 0 disable, 1 enable
+    RK_U32 pp_enable; // postprocess, 0 disable, 1 enable
+
+} MppDevCtx;
 /*
  * hardware device open function
  * coding and type for device name detection
- *
- * flag for postprocess enable
- * MPP_DEVICE_POSTPROCCESS_ENABLE   (0x00000001)
  */
-RK_S32 mpp_device_init(MppCtxType coding, MppCodingType type, RK_U32 flag);
+RK_S32 mpp_device_init(MppDevCtx *ctx, MppCtxType coding, MppCodingType type);
 MPP_RET mpp_device_deinit(RK_S32 dev);
 
 /*
- * Query device capability with property ID.
+ * control function for set or get device property
  */
-RK_S32 mpp_srv_query(MppDevProp id);
+RK_S32 mpp_device_control(MppDevCtx *ctx, MppDevCmd cmd, void *param);
 
 /*
  * register access interface

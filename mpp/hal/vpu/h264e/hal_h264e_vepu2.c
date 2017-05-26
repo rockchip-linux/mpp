@@ -260,7 +260,7 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
     ctx->vpu_fd = -1;
 
 #ifdef RKPLATFORM
-    ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingAVC, 0);
+    ctx->vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
     if (ctx->vpu_fd <= 0) {
         mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_fd);
         ret = MPP_ERR_UNKNOW;

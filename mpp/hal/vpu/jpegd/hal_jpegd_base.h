@@ -21,6 +21,7 @@
 #include "rk_type.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
+#include "mpp_device.h"
 
 #define EXTRA_INFO_MAGIC                      (0x4C4A46)
 
@@ -50,6 +51,7 @@ typedef struct PPInfo_t {
 typedef struct JpegdHalCtx {
     MppBufSlots            packet_slots;
     MppBufSlots            frame_slots;
+    MppDevCtx              dev_ctx;
     RK_S32                 vpu_socket;
     void                   *regs;
     MppBufferGroup         group;

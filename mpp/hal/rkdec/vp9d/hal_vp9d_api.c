@@ -77,6 +77,7 @@ typedef struct hal_vp9_context {
     RK_S32          vpu_socket;
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
+    MppDevCtx       dev_ctx;
     MppBufferGroup group;
     MppBuffer probe_base;
     MppBuffer count_base;
@@ -131,7 +132,7 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     ///<- mpp_device_init
 #ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingVP9, 0);
+        reg_cxt->vpu_socket = mpp_device_init(&reg_cxt->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingVP9);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("vp9 reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;

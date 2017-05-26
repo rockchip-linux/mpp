@@ -72,6 +72,7 @@ typedef struct h265d_reg_context {
     h265d_reg_buf_t g_buf[MAX_GEN_REG];
     RK_U32 fast_mode;
     IOInterruptCB int_cb;
+    MppDevCtx dev_ctx;
     RK_U32 fast_mode_err_found;
     void *scaling_rk;
     void *scaling_qm;
@@ -441,7 +442,7 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     ///<- mpp_device_init
 #ifdef RKPLATFORM
     if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingHEVC, 0);
+        reg_cxt->vpu_socket = mpp_device_init(&reg_cxt->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingHEVC);
         if (reg_cxt->vpu_socket <= 0) {
             mpp_err("reg_cxt->vpu_socket <= 0\n");
             return MPP_ERR_UNKNOW;
