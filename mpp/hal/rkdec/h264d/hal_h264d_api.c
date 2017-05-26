@@ -73,63 +73,23 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
     }
 }
 
-
-/*!
-***********************************************************************
-* \brief
-*    VPUClientGetIOMMUStatus
-***********************************************************************
-*/
-//extern "C"
-#ifndef RKPLATFORM
-RK_S32 VPUClientGetIOMMUStatus()
+static MPP_RET init_hard_platform(H264dHalCtx_t *p_hal, RK_U32 hard_mode)
 {
-    return 0;
-}
-#endif
-/*!
-***********************************************************************
-* \brief
-*    init
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
-{
-    MppHalApi *p_api = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    VpuHardMode hard_mode = MODE_NULL;
     RK_U32 hard_platform = 0;
-
-    INP_CHECK(ret, NULL == p_hal);
-    memset(p_hal, 0, sizeof(H264dHalCtx_t));
-
-    p_api = &p_hal->hal_api;
-
-    p_hal->frame_slots  = cfg->frame_slots;
-    p_hal->packet_slots = cfg->packet_slots;
-
-    //!< choose hard mode
-    {
-        RK_U32 mode = 0;
-        RK_U32 vcodec_type = 0;
-        mpp_env_get_u32("use_mpp_mode", &mode, 0);
-        vcodec_type = mpp_get_vcodec_type();
-        mpp_assert(vcodec_type & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
-        if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
-            hard_mode = RKVDEC_MODE;
-            hard_platform = HAVE_RKVDEC;
-        } else if (vcodec_type & HAVE_VPU1) {
-            hard_mode = VDPU1_MODE;
-            hard_platform = HAVE_VPU1;
-        } else if (vcodec_type & HAVE_VPU2) {
-            hard_mode = VDPU2_MODE;
-            hard_platform = HAVE_VPU2;
-        }
-        H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
-                  mode, vcodec_type, hard_mode);
+    MppHalApi *p_api = &p_hal->hal_api;
+    if ((p_hal->vcodec_type & HAVE_RKVDEC)
+        && (hard_mode != VDPU1_MODE)
+        && (hard_mode != VDPU2_MODE)) {
+        hard_mode = RKVDEC_MODE;
+    } else if (p_hal->vcodec_type & HAVE_VPU1) {
+        hard_mode = VDPU1_MODE;
+    } else if (p_hal->vcodec_type & HAVE_VPU2) {
+        hard_mode = VDPU2_MODE;
     }
+    H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
+              hard_mode, p_hal->vcodec_type, hard_mode);
+    p_hal->hard_mode = hard_mode;
     switch (hard_mode) {
     case RKVDEC_MODE:
         p_api->init    = rkv_h264d_init;
@@ -140,7 +100,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = rkv_h264d_reset;
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
-        cfg->device_id = HAL_RKVDEC;
+        hard_platform  = HAVE_RKVDEC;
         break;
     case VDPU1_MODE:
         p_api->init    = vdpu1_h264d_init;
@@ -151,7 +111,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu1_h264d_reset;
         p_api->flush   = vdpu1_h264d_flush;
         p_api->control = vdpu1_h264d_control;
-        cfg->device_id = HAL_VDPU;
+        hard_platform  = HAVE_VPU1;
         break;
     case VDPU2_MODE:
         p_api->init    = vdpu2_h264d_init;
@@ -162,16 +122,15 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu2_h264d_reset;
         p_api->flush   = vdpu2_h264d_flush;
         p_api->control = vdpu2_h264d_control;
-        cfg->device_id = HAL_VDPU;
+        hard_platform  = HAVE_VPU2;
         break;
     default:
-        mpp_err_f("hard mode error, value=%d\n", hard_mode);
-        mpp_assert(0);
+        mpp_err_f("hard mode error, value=%d\n", p_hal->hard_mode);
+        ret = MPP_NOK;
+        goto __FAILED;
         break;
     }
-    //!< callback function to parser module
-    p_hal->init_cb = cfg->hal_int_cb;
-    mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
+
     //!< mpp_device_init
 #ifdef RKPLATFORM
     if (p_hal->vpu_socket <= 0) {
@@ -184,20 +143,54 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         }
     }
 #endif
+
+    return ret = MPP_OK;
+__FAILED:
+    return ret;
+}
+
+/*!
+***********************************************************************
+* \brief
+*    init
+***********************************************************************
+*/
+//extern "C"
+MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
+{
+    MppHalApi *p_api = NULL;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+
+    INP_CHECK(ret, NULL == p_hal);
+    memset(p_hal, 0, sizeof(H264dHalCtx_t));
+
+    p_api = &p_hal->hal_api;
+
+    p_hal->frame_slots  = cfg->frame_slots;
+    p_hal->packet_slots = cfg->packet_slots;
+
+    //!< callback function to parser module
+    p_hal->init_cb = cfg->hal_int_cb;
+    mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
     //< get buffer group
-    if (p_hal->buf_group == NULL) {
 #ifdef RKPLATFORM
-        mpp_log_f("mpp_buffer_group_get_internal used ion In");
-        FUN_CHECK(ret = mpp_buffer_group_get_internal
-                        (&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
+    FUN_CHECK(ret = mpp_buffer_group_get_internal
+                    (&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
 #else
-        FUN_CHECK(ret = mpp_buffer_group_get_internal
-                        (&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
+    FUN_CHECK(ret = mpp_buffer_group_get_internal
+                    (&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
 #endif
-    }
+    mpp_env_get_u32("use_mpp_mode", &p_hal->hard_mode, RKVDEC_MODE);
+    p_hal->vcodec_type = mpp_get_vcodec_type();
+    mpp_assert(p_hal->vcodec_type & (HAVE_RKVDEC | HAVE_VPU1 | HAVE_VPU2));
+
+    //!< init hard platform
+    FUN_CHECK(ret = init_hard_platform(p_hal, p_hal->hard_mode));
 
     //!< run init funtion
     FUN_CHECK(ret = p_api->init(hal, cfg));
+
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -314,6 +307,12 @@ MPP_RET hal_h264d_control(void *hal, RK_S32 cmd_type, void *param)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
+    if (cmd_type == MPP_DEC_CHANGE_HARD_MODE) {
+        RK_U32 hard_mode = *((RK_U32 *)param);
+        p_hal->hal_api.deinit(hal);
+        init_hard_platform(p_hal, hard_mode);
+        p_hal->hal_api.init(hal, NULL);
+    }
     return p_hal->hal_api.control(hal, cmd_type, param);
 }
 

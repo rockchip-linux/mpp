@@ -128,6 +128,8 @@ typedef struct h264d_hal_ctx_t {
     RK_S32                   vpu_socket;
     IOInterruptCB            init_cb;
     MppDevCtx                dev_ctx;
+    RK_U32                   vcodec_type;
+    RK_U32                   hard_mode;
 } H264dHalCtx_t;
 
 
