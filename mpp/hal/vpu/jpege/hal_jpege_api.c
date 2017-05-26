@@ -53,6 +53,7 @@ typedef struct hal_jpege_ctx_s {
     RK_S32              vpu_fd;
 
     IOInterruptCB       int_cb;
+    MppDevCtx           dev_ctx;
     JpegeBits           bits;
     JpegeIocRegInfo     ioctl_info;
 
@@ -92,7 +93,7 @@ MPP_RET hal_jpege_init(void *hal, MppHalCfg *cfg)
     ctx->int_cb = cfg->hal_int_cb;
 
 #ifdef RKPLATFORM
-    ctx->vpu_fd = mpp_device_init(MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG, 0);
+    ctx->vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG);
     if (ctx->vpu_fd < 0) {
         mpp_err_f("failed to open vpu client\n");
         return MPP_NOK;

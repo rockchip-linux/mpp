@@ -754,8 +754,8 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (JpegHalCtx->vpu_socket <= 0) {
-        JpegHalCtx->vpu_socket = mpp_device_init(MPP_CTX_DEC,
-                                                 MPP_VIDEO_CodingMJPEG, 0);
+        JpegHalCtx->vpu_socket = mpp_device_init(&JpegHalCtx->dev_ctx, MPP_CTX_DEC,
+                                                 MPP_VIDEO_CodingMJPEG);
         if (JpegHalCtx->vpu_socket <= 0) {
             mpp_err_f("get vpu_socket(%d) <= 0, failed. \n",
                       JpegHalCtx->vpu_socket);
@@ -904,9 +904,9 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
         if (JpegHalCtx->set_output_fmt_flag && (JpegHalCtx->vpu_socket > 0)) {
             mpp_device_deinit(JpegHalCtx->vpu_socket);
             JpegHalCtx->vpu_socket = 0;
-
-            JpegHalCtx->vpu_socket = mpp_device_init(MPP_CTX_DEC,
-                                                     MPP_VIDEO_CodingMJPEG, 1);
+            mpp_device_control(&JpegHalCtx->dev_ctx, MPP_DEV_ENABLE_POSTPROCCESS, NULL);
+            JpegHalCtx->vpu_socket = mpp_device_init(&JpegHalCtx->dev_ctx, MPP_CTX_DEC,
+                                                     MPP_VIDEO_CodingMJPEG);
             if (JpegHalCtx->vpu_socket <= 0) {
                 mpp_err_f("get vpu_socket(%d) <= 0, failed. \n",
                           JpegHalCtx->vpu_socket);

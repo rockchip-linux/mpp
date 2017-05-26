@@ -36,6 +36,7 @@ typedef struct h263d_reg_context {
     MppBufSlots         frm_slots;
     MppBufSlots         pkt_slots;
     IOInterruptCB       int_cb;
+    MppDevCtx           dev_ctx;
 
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              vpu_fd;
@@ -161,7 +162,7 @@ MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg)
     }
 
 #ifdef RKPLATFORM
-    vpu_fd = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingH263, 0);
+    vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingH263);
     if (vpu_fd < 0) {
         mpp_err_f("failed to open vpu client\n");
         ret = MPP_ERR_UNKNOW;

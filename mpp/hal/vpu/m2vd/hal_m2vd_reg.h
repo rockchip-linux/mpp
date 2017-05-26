@@ -21,6 +21,7 @@
 #include "hal_task.h"
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
+#include "mpp_device.h"
 #include <stdio.h>
 
 
@@ -309,6 +310,7 @@ typedef struct M2VDHalContext_t {
     MppBuffer qp_table;
     RK_U32 dec_frame_cnt;
     IOInterruptCB int_cb;
+    MppDevCtx dev_ctx;
     FILE *fp_reg_in;
     FILE *fp_reg_out;
 } M2VDHalContext;

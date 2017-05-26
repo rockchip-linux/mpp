@@ -54,7 +54,7 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
     //get vpu socket
 #ifdef RKPLATFORM
     if (ctx->vpu_socket <= 0) {
-        ctx->vpu_socket = mpp_device_init(MPP_CTX_DEC, MPP_VIDEO_CodingVP8, 0);
+        ctx->vpu_socket = mpp_device_init(&ctx->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingVP8);
         if (ctx->vpu_socket <= 0) {
             mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_socket);
 

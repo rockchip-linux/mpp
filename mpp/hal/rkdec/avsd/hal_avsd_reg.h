@@ -17,6 +17,8 @@
 #ifndef __HAL_AVSD_REG_H__
 #define __HAL_AVSD_REG_H__
 
+#include "mpp_device.h"
+
 #include "parser_api.h"
 #include "hal_avsd_api.h"
 #include "avsd_syntax.h"
@@ -97,7 +99,7 @@ typedef struct avsd_hal_ctx_t {
     MppBufSlots              packet_slots;
     MppBufferGroup           buf_group;
     IOInterruptCB            init_cb;
-
+    MppDevCtx                dev_ctx;
     RK_S32                   vpu_socket;
     AvsdSyntax_t             syn;
     RK_U32                  *p_regs;
