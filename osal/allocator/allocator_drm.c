@@ -67,7 +67,7 @@ static int drm_ioctl(int fd, int req, void *arg)
 
 static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
 {
-    static unsigned long pagesize_mask = 0;
+    static RK_U64 pagesize_mask = 0;
 #if !defined(__gnu_linux__)
     func_mmap64 fp_mmap64 = mpp_rt_get_mmap64();
 #endif
@@ -86,7 +86,7 @@ static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
 
     return NULL;
 #else
-    return mmap(NULL, len, prot, flags, fd, offset);
+    return mmap64(NULL, len, prot, flags, fd, offset);
 #endif
 }
 
