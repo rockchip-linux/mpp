@@ -15,6 +15,8 @@
  */
 
 #define MODULE_TAG "mpp_drm"
+/* Enable 64-bit mmap also when compiling for 32 bit */
+#define _FILE_OFFSET_BITS 64
 
 #include <unistd.h>
 #include <string.h>
@@ -67,7 +69,7 @@ static int drm_ioctl(int fd, int req, void *arg)
 
 static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
 {
-    static unsigned long pagesize_mask = 0;
+    static loff_t pagesize_mask = 0;
 #if !defined(__gnu_linux__)
     func_mmap64 fp_mmap64 = mpp_rt_get_mmap64();
 #endif
