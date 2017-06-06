@@ -326,7 +326,7 @@ MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller)
         buffer_group_add_log(group, buffer, BUF_MMAP, caller);
     }
 
-    if (ret)
+    if (ret && (group->alloc_api && !group->alloc_api->mmap))
         mpp_err_f("buffer %p group %p fd %d map failed caller %s\n",
                   buffer, group, buffer->info.fd, caller);
 
@@ -635,7 +635,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
 
 MppBufferGroupImpl *MppBufferService::get_misc_group(MppBufferMode mode, MppBufferType type)
 {
-    if (type == MPP_BUFFER_TYPE_NORMAL)
+    if (type != MPP_BUFFER_TYPE_ION)
         return NULL;
 
     mpp_assert(type == MPP_BUFFER_TYPE_ION);

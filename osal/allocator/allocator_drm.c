@@ -320,7 +320,7 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 static MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data)
 {
     (void)ctx;
-    munmap(data->ptr, data->size);
+    if (data->ptr) munmap(data->ptr, data->size);
     close(data->fd);
     return MPP_OK;
 }
@@ -335,7 +335,7 @@ static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
     }
 
     p = (allocator_ctx_drm *)ctx;
-    munmap(data->ptr, data->size);
+    if (data->ptr) munmap(data->ptr, data->size);
     close(data->fd);
     drm_free(p->drm_device, (RK_U32)((intptr_t)data->hnd));
     return MPP_OK;
