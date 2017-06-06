@@ -5,6 +5,9 @@ INCLUDE(GNUInstallDirs)
 
 find_package(Threads)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
 if (HAVE_DRM)
     add_definitions(-DHAVE_DRM)
     set(DRM_FILES allocator/allocator_drm.c)
@@ -44,8 +47,6 @@ add_library(osal STATIC
     ${MPP_ALLOCATOR}
 )
 
-# force to use pthread here, better to use the system thread library instead.
-target_compile_options(osal PUBLIC ${PTHREAD_CFLAGS})
 target_link_libraries(osal ${CMAKE_THREAD_LIBS_INIT})
 
 target_include_directories(osal PUBLIC
