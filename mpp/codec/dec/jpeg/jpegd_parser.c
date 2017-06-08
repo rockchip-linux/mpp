@@ -1163,7 +1163,8 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
         mpp_slots_set_prop(slots, SLOTS_NUMERATOR, &value);
         value = 1;
         mpp_slots_set_prop(slots, SLOTS_DENOMINATOR, &value);
-        mpp_buf_slot_set_prop(slots, slot_idx, SLOT_FRAME, output);
+        if (mpp_buf_slot_set_prop(slots, slot_idx, SLOT_FRAME, output))
+            return MPP_ERR_VALUE;
         mpp_buf_slot_set_flag(slots, slot_idx, SLOT_CODEC_USE);
         mpp_buf_slot_set_flag(slots, slot_idx, SLOT_HAL_OUTPUT);
     }
@@ -1196,7 +1197,8 @@ static MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
 
     ret = jpegd_decode_frame(JpegCtx);
     if (MPP_OK == ret) {
-        jpegd_allocate_frame(JpegCtx);
+        if (jpegd_allocate_frame(JpegCtx))
+            return MPP_ERR_VALUE;
 
         task->syntax.data = (void *)JpegCtx->syntax;
         task->syntax.number = sizeof(JpegdSyntax);
