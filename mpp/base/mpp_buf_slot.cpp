@@ -787,20 +787,21 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME: {
         MppFrame frame = val;
+        MppFrameImpl *dst = NULL;
+        MppFrameImpl *src = (MppFrameImpl *)frame;
 
         slot_assert(impl, slot->status.not_ready);
         if (NULL == slot->frame)
             mpp_frame_init(&slot->frame);
 
-        MppFrameImpl *src = (MppFrameImpl *)frame;
-        MppFrameImpl *dst = (MppFrameImpl *)slot->frame;
+        dst = (MppFrameImpl *)slot->frame;
         mpp_frame_copy(dst, src);
-        // NOTE: stride from codec need to be change to hal stride
-        //       hor_stride and ver_stride can not be zero
-        //       they are the stride required by codec
-        //       then hal will modify it according to hardware requirement
-        mpp_assert(src->hor_stride);
-        mpp_assert(src->ver_stride);
+
+        /* NOTE: All the strides will be modified in the parser according to
+         * hardware requirement. hor_stride and ver_stride can not be zero.
+         */
+        mpp_assert_return(src->hor_stride, MPP_ERR_VALUE);
+        mpp_assert_return(src->ver_stride, MPP_ERR_VALUE);
         dst->hor_stride = impl->hal_hor_align(src->hor_stride);
         dst->ver_stride = impl->hal_ver_align(src->ver_stride);
         dst->eos = slot->eos;
@@ -831,7 +832,6 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride,
                     dst->fmt);
 #endif
-            // info change found here
         }
     } break;
     case SLOT_BUFFER: {

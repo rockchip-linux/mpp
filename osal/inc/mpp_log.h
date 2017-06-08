@@ -107,6 +107,14 @@
     }                                                                   \
 } while (0)
 
+#define mpp_assert_return(cond, ret) do {                               \
+    if (!(cond)) {                                                      \
+        mpp_err("Assertion %s failed at %s:%d\n",                       \
+               MPP_STRINGS(cond), __FUNCTION__, __LINE__);              \
+        mpp_abort();                                                    \
+        return ret;                                                     \
+    }                                                                   \
+} while (0)
 
 #ifdef __cplusplus
 extern "C" {
