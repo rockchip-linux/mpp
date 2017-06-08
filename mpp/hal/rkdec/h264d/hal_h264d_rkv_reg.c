@@ -43,7 +43,7 @@
 #define RKV_ERROR_INFO_SIZE       (256*144*4)         /* bytes */
 
 typedef struct h264d_rkv_packets_t {
-    RK_U8   spspps[RKV_SPSPPS_SIZE];
+    RK_U8   spspps[32];
     RK_U8   rps[RKV_RPS_SIZE];
     RK_U8   scanlist[RKV_SCALING_LIST_SIZE];
 } H264dRkvPkts_t;
@@ -611,16 +611,17 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     //!< copy datas
     strm_offset = RKV_CABAC_TAB_SIZE;
     for (i = 0; i < 256; i++)   {
-        mpp_buffer_write(p_hal->cabac_buf, (strm_offset + 32 * i), (void *)pkts->spspps, RKV_SPSPPS_SIZE);
+        mpp_buffer_write(p_hal->cabac_buf, (strm_offset + sizeof(pkts->spspps) * i),
+                         (void *)pkts->spspps, sizeof(pkts->spspps));
     }
     p_regs->sw42.pps_base = hw_base + (strm_offset << 10);
     strm_offset += RKV_SPSPPS_SIZE;
 
-    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps, RKV_RPS_SIZE);
+    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->rps, sizeof(pkts->rps));
     p_regs->sw43.rps_base = hw_base + (strm_offset << 10);
 
     strm_offset += RKV_RPS_SIZE;
-    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist, RKV_SCALING_LIST_SIZE);
+    mpp_buffer_write(p_hal->cabac_buf, strm_offset, (void *)pkts->scanlist, sizeof(pkts->scanlist));
 
     strm_offset += RKV_SCALING_LIST_SIZE;
     p_regs->sw75.errorinfo_base = hw_base + (strm_offset << 10);
