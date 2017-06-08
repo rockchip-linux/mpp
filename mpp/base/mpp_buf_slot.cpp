@@ -799,8 +799,8 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         //       hor_stride and ver_stride can not be zero
         //       they are the stride required by codec
         //       then hal will modify it according to hardware requirement
-        mpp_assert(src->hor_stride);
-        mpp_assert(src->ver_stride);
+        mpp_assert_return(src->hor_stride, MPP_ERR_VALUE);
+        mpp_assert_return(src->ver_stride, MPP_ERR_VALUE);
         dst->hor_stride = impl->hal_hor_align(src->hor_stride);
         dst->ver_stride = impl->hal_ver_align(src->ver_stride);
         dst->eos = slot->eos;

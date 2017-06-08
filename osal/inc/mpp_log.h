@@ -106,6 +106,12 @@
     }                                                                   \
 } while (0)
 
+#define mpp_assert_return(cond, ret) do {                               \
+        mpp_assert(cond);                                               \
+        if (!(cond)) {                                                  \
+            return ret;                                                 \
+        }                                                               \
+} while (0)
 
 #ifdef __cplusplus
 extern "C" {
