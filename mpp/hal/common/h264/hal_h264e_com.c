@@ -495,7 +495,7 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     RK_S32 Sw_log2_max_pic_order_cnt_lsb_minus4 = 12;
     RK_S32 i_overscan = 0;
     RK_S32 i_vidformat = 5;
-    RK_S32 b_fullrange = 0;
+    RK_S32 b_fullrange = vui->b_fullrange;
     RK_S32 i_colorprim = 2;
     RK_S32 i_transfer = 2;
     RK_S32 i_colmatrix = -1;
