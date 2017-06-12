@@ -213,9 +213,32 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
         p->idr_request++;
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d]\n", p->set->rc.bps_target,
-                  p->set->rc.bps_min, p->set->rc.bps_max);
-        p->rc_ready = 1;
+        MppEncRcCfg *rc = &p->set->rc;
+
+        if (rc->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
+                    rc->rc_mode);
+            ret = MPP_ERR_VALUE;
+        }
+        if (rc->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
+                    rc->quality);
+            ret = MPP_ERR_VALUE;
+        }
+        if ((rc->bps_target >= 100 * SZ_1M || rc->bps_target <= 1 * SZ_1K) ||
+            (rc->bps_max    >= 100 * SZ_1M || rc->bps_max    <= 1 * SZ_1K) ||
+            (rc->bps_min    >= 100 * SZ_1M || rc->bps_min    <= 1 * SZ_1K)) {
+            mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                    rc->bps_target, rc->bps_min, rc->bps_max);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (!ret) {
+            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d]\n",
+                      rc->bps_target, rc->bps_min, rc->bps_max);
+            p->rc_ready = 1;
+        } else
+            mpp_err_f("failed to accept new rc config\n");
     } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
