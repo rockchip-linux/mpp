@@ -169,6 +169,8 @@ typedef struct MppRateControl_s {
      * non-zero - have rate control
      */
     RK_S32 bits_target;
+    float max_rate;
+    float min_rate;
 } MppRateControl;
 
 /*

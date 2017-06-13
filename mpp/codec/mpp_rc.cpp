@@ -252,6 +252,9 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
         ctx->bps_min = cfg->bps_min;
         ctx->bps_max = cfg->bps_max;
         ctx->bps_target = cfg->bps_target;
+
+        ctx->min_rate = ctx->bps_min * 1.0 / ctx->bps_target;
+        ctx->max_rate = ctx->bps_max * 1.0 / ctx->bps_target;
     }
 
     if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
@@ -476,6 +479,8 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     }
 
     rc_syn->bit_target = ctx->bits_target;
+    rc_syn->bit_min = ctx->bits_target * ctx->min_rate;
+    rc_syn->bit_max = ctx->bits_target * ctx->max_rate;
 
     rc_syn->type = ctx->cur_frmtype;
     if (ctx->cur_frmtype == INTRA_FRAME) {
