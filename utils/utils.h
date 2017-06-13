@@ -37,6 +37,9 @@ extern "C" {
 
 void _show_options(int count, OptionInfo *options);
 void dump_mpp_frame_to_file(MppFrame frame, FILE *fp);
+void calc_frm_checksum(MppFrame frame, RK_U8 *sum);
+void write_checksum(FILE *fp, RK_U8 *sum);
+void read_checksum(FILE *fp, RK_U8 *sum);
 
 #ifdef __cplusplus
 }

@@ -74,3 +74,47 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
     }
 }
 
+void calc_frm_checksum(MppFrame frame, RK_U8 *sum)
+{
+    RK_U32 checksum = 0;
+    RK_U8 xor_mask;
+    RK_U32 y, x;
+
+    RK_U32 width  = mpp_frame_get_width(frame);
+    RK_U32 height = mpp_frame_get_height(frame);
+    RK_U32 stride = mpp_frame_get_hor_stride(frame);
+    RK_U8 *buf = (RK_U8 *)mpp_buffer_get_ptr(mpp_frame_get_buffer(frame));
+
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+            xor_mask = (x & 0xff) ^ (y & 0xff) ^ (x >> 8) ^ (y >> 8);
+            checksum = (checksum + ((buf[y * stride + x] & 0xff) ^ xor_mask)) & 0xffffffff;
+        }
+    }
+
+    sum[0] = (checksum >> 24) & 0xff;
+    sum[1] = (checksum >> 16) & 0xff;
+    sum[2] = (checksum >> 8)  & 0xff;
+    sum[3] =  checksum      & 0xff;
+}
+
+void write_checksum(FILE *fp, RK_U8 *sum)
+{
+    RK_S32 i;
+
+    for (i = 0; i < 16; i++)
+        fprintf(fp, "%02hhx", sum[i]);
+
+    fprintf(fp, "\n");
+}
+
+void read_checksum(FILE *fp, RK_U8 *sum)
+{
+    RK_S32 i;
+
+    for (i = 0; i < 16; i++)
+        fscanf(fp, "%02hhx", sum + i);
+
+    fscanf(fp, "\n");
+}
+
