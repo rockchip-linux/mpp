@@ -3451,13 +3451,19 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         double avg_qp = 0.0;
         RK_S32 avg_sse = 1;
         RK_S32 wlen = 15;
-        RK_S32 prev_sse = 0;
+        RK_S32 prev_sse = 1;
 
         avg_qp = fb->qp_sum * 1.0 / num_mb;
 
         if (syn->type == INTER_P_FRAME) {
             avg_sse = (RK_S32)sqrt((double)(fb->sse_sum));
             prev_sse = mpp_data_avg(ctx->sse_p, 1, 1, 1);
+
+            if (avg_sse < 1)
+                avg_sse = 1;
+            if (prev_sse < 1)
+                prev_sse = 1;
+
             if (avg_sse > prev_sse)
                 wlen = wlen * prev_sse / avg_sse;
             else
