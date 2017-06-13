@@ -2657,15 +2657,15 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     mpp_assert(ctx->sse_p);
 
     /* frame type and rate control setup */
-    h264e_hal_dbg(H264E_DBG_DETAIL,
-                  "RC: qp calc ctx %p qp [%d %d] prev %d target bit %d\n",
+    h264e_hal_dbg(H264E_DBG_RC,
+                  "RC: qp calc ctx %p qp [%d %d] prev %d bit %d [%d %d]\n",
                   ctx->inter_qs, codec->qp_min, codec->qp_max, hw_cfg->qp_prev,
-                  rc_syn->bit_target);
+                  rc_syn->bit_target, rc_syn->bit_min, rc_syn->bit_max);
 
     {
         RK_S32 prev_frame_type = hw_cfg->frame_type;
-        RK_S32 is_cqp = rc->rc_mode ==
-                        MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP;
+        RK_S32 is_cqp = rc->rc_mode == MPP_ENC_RC_MODE_VBR &&
+                        rc->quality == MPP_ENC_RC_QUALITY_CQP;
 
         if (rc_syn->type == INTRA_FRAME) {
             hw_cfg->frame_type = H264E_RKV_FRAME_I;
@@ -2673,8 +2673,17 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
             hw_cfg->frame_num = 0;
 
             if (!is_cqp) {
-                if (ctx->frame_cnt > 0)
-                    hw_cfg->qp = mpp_data_avg(ctx->qp_p, -1, 1, 1) - 3;
+                if (ctx->frame_cnt > 0) {
+                    hw_cfg->qp = mpp_data_avg(ctx->qp_p, -1, 1, 1);
+                    if (hw_cfg->qp >= 42)
+                        hw_cfg->qp -= 4;
+                    else if (hw_cfg->qp >= 36)
+                        hw_cfg->qp -= 3;
+                    else if (hw_cfg->qp >= 30)
+                        hw_cfg->qp -= 2;
+                    else if (hw_cfg->qp >= 24)
+                        hw_cfg->qp -= 1;
+                }
 
                 /*
                  * Previous frame is inter then intra frame can not
@@ -2693,6 +2702,12 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                 hw_cfg->qp = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
                                                     hw_cfg->qp_prev,
                                                     rc_syn->bit_target * 1024 / sse);
+                hw_cfg->qp_min = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
+                                                        hw_cfg->qp_prev,
+                                                        rc_syn->bit_max * 1024 / sse);
+                hw_cfg->qp_max = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
+                                                        hw_cfg->qp_prev,
+                                                        rc_syn->bit_min * 1024 / sse);
 
                 /*
                  * Previous frame is intra then inter frame can not
@@ -2708,6 +2723,9 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp calc ctx %p qp get %d\n",
                   ctx->inter_qs, hw_cfg->qp);
 
+    /* limit QP by qp_step */
+    hw_cfg->qp_min = MPP_MAX(hw_cfg->qp_min, hw_cfg->qp_prev - codec->qp_max_step);
+    hw_cfg->qp_max = MPP_MIN(hw_cfg->qp_max, hw_cfg->qp_prev + codec->qp_max_step);
     hw_cfg->qp = mpp_clip(hw_cfg->qp,
                           hw_cfg->qp_prev - codec->qp_max_step,
                           hw_cfg->qp_prev + codec->qp_max_step);
@@ -2722,8 +2740,10 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     hw_cfg->mad_qp_delta = 0;
     hw_cfg->mad_threshold = 6;
     hw_cfg->keyframe_max_interval = rc->gop ? rc->gop : 1;
-    hw_cfg->qp_min = codec->qp_min;
-    hw_cfg->qp_max = codec->qp_max;
+
+    /* limit QP by codec global config */
+    hw_cfg->qp_min = MPP_MAX(codec->qp_min, hw_cfg->qp_min);
+    hw_cfg->qp_max = MPP_MIN(codec->qp_max, hw_cfg->qp_max);
 
     /* disable mb rate control first */
     hw_cfg->cp_distance_mbs = 0;
