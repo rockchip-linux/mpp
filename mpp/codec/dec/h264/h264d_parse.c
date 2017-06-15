@@ -369,6 +369,7 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
             p_Inp->spspps_offset = 0;
         }
     }
+
     return ret = MPP_OK;
 __FAILED:
     return ret;
@@ -378,52 +379,60 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 nalu_header_bytes  = 0;
-    RK_U32 first_mb_in_slice  = 0;
 
     BitReadCtx_t    *p_bitctx = &p_Cur->bitctx;
-    RK_U32      forbidden_bit = -1;
-    RK_U32  nal_reference_idc = -1;
-    RK_U32 svc_extension_flag = -1;
-
     memset(p_bitctx, 0, sizeof(BitReadCtx_t));
-    mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
-    mpp_set_pre_detection(p_bitctx);
+    {
+        RK_U32      forbidden_bit = -1;
+        RK_U32  nal_reference_idc = -1;
+        RK_U32 svc_extension_flag = -1;
+        mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
+        mpp_set_pre_detection(p_bitctx);
 
-    READ_BITS(p_bitctx, 1, &forbidden_bit);
-    ASSERT(forbidden_bit == 0);
-    READ_BITS(p_bitctx, 2, &nal_reference_idc);
-    READ_BITS(p_bitctx, 5, &p_strm->nalu_type);
+        READ_BITS(p_bitctx, 1, &forbidden_bit);
+        ASSERT(forbidden_bit == 0);
+        READ_BITS(p_bitctx, 2, &nal_reference_idc);
+        READ_BITS(p_bitctx, 5, &p_strm->nalu_type);
 
-    nalu_header_bytes = 1;
-    if ((p_strm->nalu_type == NALU_TYPE_PREFIX) || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-        READ_BITS(p_bitctx, 1, &svc_extension_flag);
-        if (svc_extension_flag) {
-            H264D_WARNNING("svc_extension is not supported.");
-            goto __FAILED;
-        } else {
-            if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
-                p_strm->nalu_type = NALU_TYPE_SLICE;
+        nalu_header_bytes = 1;
+        if ((p_strm->nalu_type == NALU_TYPE_PREFIX) || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
+            READ_BITS(p_bitctx, 1, &svc_extension_flag);
+            if (svc_extension_flag) {
+                H264D_WARNNING("svc_extension is not supported.");
+                goto __FAILED;
+            } else {
+                if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
+                    p_strm->nalu_type = NALU_TYPE_SLICE;
+                }
             }
+            nalu_header_bytes += 3;
         }
-        nalu_header_bytes += 3;
     }
-    //-- parse slice
-    if ( p_strm->nalu_type == NALU_TYPE_SLICE || p_strm->nalu_type == NALU_TYPE_IDR) {
+    if ((p_strm->nalu_len == 1)
+        && (p_strm->nalu_type == NALU_TYPE_SEI
+            || p_strm->nalu_type == NALU_TYPE_SPS
+            || p_strm->nalu_type == NALU_TYPE_PPS
+            || p_strm->nalu_type == NALU_TYPE_AUD)) {
+        if (p_Cur->p_Dec->have_slice_data) {
+            p_Cur->p_Dec->is_new_frame = 1;
+        }
+        p_Cur->p_Dec->have_slice_data = 0;
+    } else if ((p_strm->nalu_len > 1)
+               && (p_strm->nalu_type == NALU_TYPE_SLICE
+                   || p_strm->nalu_type == NALU_TYPE_IDR)) {
+        RK_U32 first_mb_in_slice  = 0;
         mpp_set_bitread_ctx(p_bitctx, (p_strm->nalu_buf + nalu_header_bytes), 4); // reset
         mpp_set_pre_detection(p_bitctx);
         READ_UE(p_bitctx, &first_mb_in_slice);
-        //!< get time stamp
         if (first_mb_in_slice == 0) {
             p_Cur->last_dts = p_Cur->curr_dts;
             p_Cur->last_pts = p_Cur->curr_pts;
             p_Cur->curr_dts = p_Cur->p_Inp->in_dts;
             p_Cur->curr_pts = p_Cur->p_Inp->in_pts;
-            if (!p_Cur->p_Dec->is_first_frame) {
+            if (p_Cur->p_Dec->have_slice_data) {
                 p_Cur->p_Dec->is_new_frame = 1;
-
             }
-            p_Cur->p_Dec->is_first_frame = 0;
-
+            p_Cur->p_Dec->have_slice_data = 1;
         }
     }
 
@@ -515,7 +524,6 @@ MPP_RET close_stream_file(H264dInputCtx_t *p_Inp)
 MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U32 nalu_header_bytes = 0;
 
     H264_DecCtx_t   *p_Dec   = p_Inp->p_Dec;
     H264dCurStream_t *p_strm = &p_Cur->strm;
@@ -546,15 +554,8 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
             }
             p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
-            if (p_strm->nalu_len == 1) {
-                p_strm->nalu_type = p_strm->nalu_buf[0] & 0x1F;
-                nalu_header_bytes += 1;
-                if ((p_strm->nalu_type == NALU_TYPE_PREFIX)
-                    || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-                    nalu_header_bytes += 3;
-                }
-            }
-            if (p_strm->nalu_len == (nalu_header_bytes + 4)) {
+            if ((p_strm->nalu_len == 1)
+                || (p_strm->nalu_len == 5)) {
                 FUN_CHECK(ret = judge_is_new_frame(p_Cur, p_strm));
                 if (p_Cur->p_Dec->is_new_frame) {
                     FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
@@ -784,7 +785,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             p_strm->nalu_len = parse_nal_size(p_Inp->nal_size, p_strm->curdata);
             if (p_strm->nalu_len <= 0 ||  p_strm->nalu_len >= p_Inp->in_length) {
                 p_Cur->p_Dec->is_new_frame = 1;
-                p_Cur->p_Dec->is_first_frame = 1;
+                p_Cur->p_Dec->have_slice_data = 0;
                 pkt_impl->length = 0;
                 p_Inp->in_length = 0;
                 p_strm->nalu_len = 0;
@@ -815,7 +816,7 @@ MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         }
         if (p_Inp->in_length < p_Inp->nal_size) {
             p_Cur->p_Dec->is_new_frame = 1;
-            p_Cur->p_Dec->is_first_frame = 1;
+            p_Cur->p_Dec->have_slice_data = 0;
             pkt_impl->length = 0;
             p_Inp->in_length = 0;
             p_strm->nalu_len = 0;
