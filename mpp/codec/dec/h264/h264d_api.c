@@ -264,7 +264,7 @@ static MPP_RET init_dec_ctx(H264_DecCtx_t *p_Dec)
     p_Dec->spt_decode_mtds = MPP_DEC_BY_FRAME;
     p_Dec->next_state = SliceSTATE_ResetSlice;
     p_Dec->nalu_ret = NALU_NULL;
-    p_Dec->is_first_frame = 1;
+    p_Dec->have_slice_data = 0;
     p_Dec->last_frame_slot_idx = -1;
     memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
 __RETURN:
@@ -422,7 +422,7 @@ MPP_RET h264d_reset(void *decoder)
     //!< reset decoder parameter
     p_Dec->next_state = SliceSTATE_ResetSlice;
     p_Dec->nalu_ret = NALU_NULL;
-    p_Dec->is_first_frame = 1;
+    p_Dec->have_slice_data = 0;
     p_Dec->is_new_frame   = 0;
     p_Dec->is_parser_end  = 0;
     p_Dec->dxva_ctx->strm_offset = 0;

@@ -1132,7 +1132,7 @@ typedef struct h264_dec_ctx_t {
     RK_U32                     spt_decode_mtds;  //!< support decoder methods
     NALU_STATUS                nalu_ret;         //!< current nalu state
     SLICE_STATUS               next_state;       //!< RKV_SLICE_STATUS
-    RK_U8                      is_first_frame;
+    RK_U8                      have_slice_data;
     RK_U8                      is_new_frame;
     RK_U8                      is_parser_end;
     RK_U8                      mvc_valid;
