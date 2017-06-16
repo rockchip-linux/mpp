@@ -462,34 +462,41 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     }
 
     /* If target bit is zero, it will exist mosaic in the encoded picture.
-     * In this case, half of the average bit rate of previous P frames  is
+     * In this case, half of target bit rate of previous P frame  is
      * assigned to target bit.
      */
     if (ctx->bits_target <= 0) {
         if (ctx->cur_frmtype == INTRA_FRAME) {
             mpp_rc_dbg_rc("unbelievable case: intra frame target bits is zero!\n");
+            ctx->bits_target = ctx->prev_intra_target / 2;
         } else {
             mpp_rc_dbg_rc("inter frame target bits is zero!"
                           "intra frame %d, inter frame %d, total_cnt %d\n",
                           ctx->acc_intra_count, ctx->acc_inter_count,
                           ctx->acc_total_count);
-            ctx->bits_target = mpp_data_avg(ctx->inter, -1, 1, 1) / 2;
+            ctx->bits_target = ctx->prev_inter_target / 4;
             mpp_rc_dbg_rc("after adjustment, target bits %d\n", ctx->bits_target);
         }
     }
 
     rc_syn->bit_target = ctx->bits_target;
+
+    /* step 2: calc min and max bits */
     rc_syn->bit_min = ctx->bits_target * ctx->min_rate;
     rc_syn->bit_max = ctx->bits_target * ctx->max_rate;
 
+    /* step 3: save bit target as previous target for next frame */
+    const char *type_str;
     rc_syn->type = ctx->cur_frmtype;
     if (ctx->cur_frmtype == INTRA_FRAME) {
-        mpp_rc_dbg_rc("RC: rc ctx %p intra target bits %d\n", ctx, ctx->bits_target);
+        type_str = "intra";
+        ctx->prev_intra_target = ctx->bits_target;
     } else {
-        mpp_rc_dbg_rc("RC: rc ctx %p inter target bits %d\n", ctx, ctx->bits_target);
+        type_str = "inter";
+        ctx->prev_inter_target = ctx->bits_target;
     }
-
-    /* step 2: calc min and max bits */
+    mpp_rc_dbg_rc("RC: rc ctx %p %s target bits %d\n", ctx, type_str,
+                  ctx->bits_target);
 
     return MPP_OK;
 }
@@ -503,23 +510,31 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
 
     RK_S32 bits = result->bits;
 
+    const char *type_str;
+    RK_S32 bits_target;
     if (result->type == INTRA_FRAME) {
-        mpp_rc_dbg_rc("RC: rc ctx %p intra real bits %d target %d\n",
-                      ctx, bits, ctx->bits_per_intra);
         ctx->acc_intra_count++;
         ctx->acc_intra_bits_in_fps += bits;
         mpp_data_update(ctx->intra, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_intra, bits - ctx->bits_target);
+
+        type_str = "intra";
+        bits_target = ctx->bits_per_intra;
     } else {
-        mpp_rc_dbg_rc("RC: rc ctx %p inter real bits %d target %d\n",
-                      ctx, bits, ctx->bits_per_inter);
         ctx->acc_inter_count++;
         ctx->acc_inter_bits_in_fps += bits;
         mpp_data_update(ctx->inter, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_target);
+
+        type_str = "inter";
+        bits_target = ctx->bits_per_inter;
     }
+
+    mpp_rc_dbg_rc("RC: rc ctx %p %s real bits %d target %d\n",
+                  ctx, type_str, bits, bits_target);
+
     ctx->acc_total_count++;
     ctx->last_fps_bits += bits;
 

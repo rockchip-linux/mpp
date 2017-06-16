@@ -144,6 +144,9 @@ typedef struct MppRateControl_s {
     RK_S32 last_fps_bits;
     float last_intra_percent;
 
+    RK_S32 prev_intra_target;
+    RK_S32 prev_inter_target;
+
     /* runtime status parameter */
     ENC_FRAME_TYPE cur_frmtype;
     ENC_FRAME_TYPE pre_frmtype;
