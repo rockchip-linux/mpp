@@ -412,6 +412,7 @@ MPP_RET hal_h264e_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     H264E_HAL_SET_REG(reg, VEPU_REG_ENCODE_CTRL, val);
 
     ctx->frame_cnt++;
+    hw_cfg->frame_num++;
 
     if (hw_cfg->frame_type == H264E_VPU_FRAME_I)
         hw_cfg->idr_pic_id++;
