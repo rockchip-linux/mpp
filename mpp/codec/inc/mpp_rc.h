@@ -137,6 +137,7 @@ typedef struct MppRateControl_s {
     RK_S32 acc_intra_bits_in_fps;
     RK_S32 acc_inter_bits_in_fps;
     RK_S32 acc_total_bits;
+    RK_U32 time_in_second;
 
     RK_S32 acc_intra_count;
     RK_S32 acc_inter_count;

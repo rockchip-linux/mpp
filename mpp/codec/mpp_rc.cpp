@@ -25,13 +25,15 @@
 #include "mpp_rc.h"
 
 #define MPP_RC_DBG_FUNCTION          (0x00000001)
-#define MPP_RC_DBG_RC                (0x00000010)
+#define MPP_RC_DBG_BPS               (0x00000010)
+#define MPP_RC_DBG_RC                (0x00000020)
 #define MPP_RC_DBG_CFG               (0x00000100)
 
 #define mpp_rc_dbg(flag, fmt, ...)   _mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_rc_dbg_func(fmt, ...)    mpp_rc_dbg_f(MPP_RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define mpp_rc_dbg_bps(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_BPS, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_rc(fmt, ...)      mpp_rc_dbg(MPP_RC_DBG_RC, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_cfg(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_CFG, fmt, ## __VA_ARGS__)
 
@@ -545,9 +547,22 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
             mpp_data_update(ctx->intra_percent,
                             ctx->acc_intra_bits_in_fps * 100 /
                             (ctx->acc_inter_bits_in_fps + ctx->acc_intra_bits_in_fps));
+
+        if (!ctx->time_in_second)
+            mpp_rc_dbg_bps("|--time--|---kbps---|--- I ---|--- P ---|-rate-|\n");
+
+        mpp_rc_dbg_bps("|%8d|%10.2f|%9.2f|%9.2f|%6.2f|\n",
+                       ctx->time_in_second,
+                       (float)ctx->last_fps_bits / 1000.0,
+                       (float)ctx->acc_intra_bits_in_fps / 1000.0,
+                       (float)ctx->acc_inter_bits_in_fps / 1000.0,
+                       (float)ctx->acc_intra_bits_in_fps * 100.0 /
+                       (float)ctx->acc_inter_bits_in_fps);
+
         ctx->acc_intra_bits_in_fps = 0;
         ctx->acc_inter_bits_in_fps = 0;
         ctx->last_fps_bits = 0;
+        ctx->time_in_second++;
     }
 
     ctx->pre_frmtype = ctx->cur_frmtype;
