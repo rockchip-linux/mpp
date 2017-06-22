@@ -38,6 +38,7 @@
 #include "mpp_event_trigger.h"
 
 #define MPI_RC_FILE_NAME_LEN        256
+#define MPI_DEC_STREAM_SIZE         (SZ_1K)
 
 #define MPI_BIT_DEPTH               8
 #define MPI_PIXEL_MAX               ((1 << MPI_BIT_DEPTH) - 1)
@@ -103,10 +104,12 @@ typedef struct {
     MppPacket       dec_pkt_post;
     MppPacket       dec_pkt_pre;
 
-    MppTask         enc_task;
+    MppTask         enc_in_task;
+    MppTask         enc_out_task;
 
     RK_U8           *dec_in_buf_post;
     RK_U8           *dec_in_buf_pre;
+    RK_U32          dec_in_buf_pre_size;
 
     RK_U32          pkt_eos;
     RK_S32          frm_eos;
@@ -123,10 +126,7 @@ static OptionInfo mpi_rc_cmd[] = {
     {"n",               "max frame number",     "max encoding frame number"},
     {"d",               "debug",                "debug flag"},
     {"s",               "stat_file",            "stat output file name"},
-    {
-        "c",               "rc test item",
-        "rc test item flags, one bit each item: roi|force_intra|gop|fps|bps"
-    },
+    {"c",               "rc test item",         "rc test item flags, one bit each item: roi|force_intra|gop|fps|bps" },
     {"g",               "config file",          "read config from a file"},
     {"p",               "enable psnr",          "enable psnr calculate"},
     {"m",               "enable ssim",          "enable ssim calculate"},
@@ -546,18 +546,18 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     }
 
     rc_cfg->change = MPP_ENC_RC_CFG_CHANGE_ALL;
-    rc_cfg->rc_mode = 5;
-    rc_cfg->quality = 0;
+    rc_cfg->rc_mode = MPP_ENC_RC_MODE_VBR;
+    rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
     rc_cfg->bps_target = 2000000;
-    rc_cfg->bps_max = 3000000;
-    rc_cfg->bps_min = 1000000;
+    rc_cfg->bps_max = rc_cfg->bps_target * 3 / 2;
+    rc_cfg->bps_min = rc_cfg->bps_target / 2;
     rc_cfg->fps_in_denorm = 1;
     rc_cfg->fps_out_denorm = 1;
-    rc_cfg->fps_in_num = 20;
-    rc_cfg->fps_out_num = 20;
+    rc_cfg->fps_in_num = 30;
+    rc_cfg->fps_out_num = 30;
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_out_flex = 0;
-    rc_cfg->gop = 20;
+    rc_cfg->gop = 60;
     rc_cfg->skip_cnt = 0;
 
     ret = enc_mpi->control(*enc_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
@@ -568,8 +568,7 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
 
     codec_cfg->coding = type;
     codec_cfg->h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
-                             MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                             MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+                             MPP_ENC_H264_CFG_CHANGE_ENTROPY;
     /*
      * H.264 profile_idc parameter
      * 66  - Baseline profile
@@ -589,23 +588,16 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     codec_cfg->h264.entropy_coding_mode  = 1;
     codec_cfg->h264.cabac_init_idc  = 0;
 
-    if (rc_cfg->rc_mode == 1) {
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR &&
+        rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
         /* constant QP mode qp is fixed */
         codec_cfg->h264.qp_max   = 26;
         codec_cfg->h264.qp_min   = 26;
         codec_cfg->h264.qp_max_step  = 0;
-    } else if (rc_cfg->rc_mode == 5) {
-        /* constant bitrate do not limit qp range */
-        codec_cfg->h264.qp_max   = 48;
-        codec_cfg->h264.qp_min   = 4;
-        codec_cfg->h264.qp_max_step  = 16;
-    } else if (rc_cfg->rc_mode == 3) {
-        /* variable bitrate has qp min limit */
-        codec_cfg->h264.qp_max   = 40;
-        codec_cfg->h264.qp_min   = 12;
-        codec_cfg->h264.qp_max_step  = 8;
+        codec_cfg->h264.qp_init      = 26;
+        codec_cfg->h264.change |= MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
     }
-    codec_cfg->h264.qp_init      = 26;
+
     ret = enc_mpi->control(*enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
@@ -651,16 +643,16 @@ static MPP_RET mpi_rc_enc_encode(MpiRc2TestCtx *ctx, MppFrame frm)
         goto MPP_TEST_OUT;
     }
 
-    ret = enc_mpi->dequeue(ctx->enc_ctx, MPP_PORT_INPUT, &ctx->enc_task);
+    ret = enc_mpi->dequeue(ctx->enc_ctx, MPP_PORT_INPUT, &ctx->enc_in_task);
     if (ret) {
         mpp_err("mpp task input dequeue failed\n");
         goto MPP_TEST_OUT;
     }
 
-    mpp_task_meta_set_frame (ctx->enc_task, KEY_INPUT_FRAME, frm);
-    mpp_task_meta_set_packet(ctx->enc_task, KEY_OUTPUT_PACKET, ctx->enc_pkt);
+    mpp_task_meta_set_frame (ctx->enc_in_task, KEY_INPUT_FRAME, frm);
+    mpp_task_meta_set_packet(ctx->enc_in_task, KEY_OUTPUT_PACKET, ctx->enc_pkt);
 
-    ret = enc_mpi->enqueue(ctx->enc_ctx, MPP_PORT_INPUT, ctx->enc_task);
+    ret = enc_mpi->enqueue(ctx->enc_ctx, MPP_PORT_INPUT, ctx->enc_in_task);
     if (ret) {
         mpp_err("mpp task input enqueue failed\n");
         goto MPP_TEST_OUT;
@@ -680,21 +672,21 @@ static MPP_RET mpi_rc_enc_result(MpiRc2TestCtx *ctx)
         goto MPP_TEST_OUT;
     }
 
-    ret = ctx->enc_mpi->dequeue(ctx->enc_ctx, MPP_PORT_OUTPUT, &ctx->enc_task);
+    ret = ctx->enc_mpi->dequeue(ctx->enc_ctx, MPP_PORT_OUTPUT, &ctx->enc_out_task);
     if (ret) {
         mpp_err("mpp task output dequeue failed\n");
         goto MPP_TEST_OUT;
     }
 
-    if (!ctx->enc_task) {
-        mpp_err("no enc_task available\n");
+    if (!ctx->enc_out_task) {
+        mpp_err("no enc_out_task available\n");
         ret = MPP_NOK;
         goto MPP_TEST_OUT;
     }
 
     MppFrame packet_out = NULL;
 
-    mpp_task_meta_get_packet(ctx->enc_task, KEY_OUTPUT_PACKET, &packet_out);
+    mpp_task_meta_get_packet(ctx->enc_out_task, KEY_OUTPUT_PACKET, &packet_out);
 
     mpp_assert(packet_out == ctx->enc_pkt);
     if (!ctx->enc_pkt) {
@@ -710,8 +702,8 @@ static MPP_RET mpi_rc_post_dec_init(MpiRc2TestCtx *ctx)
 {
     MPP_RET ret = MPP_OK;
     MpiRcTestCmd *cmd = &ctx->cmd;
-    MppCodingType type  = cmd->type;
-    RK_U32 need_split       = 0;
+    MppCodingType type = cmd->type;
+    RK_U32 need_split = 0;
     int block;
 
     // decoder init
@@ -845,7 +837,7 @@ static MPP_RET mpi_rc_pre_dec_init(MpiRc2TestCtx *ctx)
 
     mpi = ctx->dec_mpi_pre;
 
-    ret = mpp_packet_init(&ctx->dec_pkt_pre, ctx->dec_in_buf_pre, 4096);
+    ret = mpp_packet_init(&ctx->dec_pkt_pre, ctx->dec_in_buf_pre, ctx->dec_in_buf_pre_size);
     if (ret) {
         mpp_err("mpp_packet_init failed\n");
         goto MPP_TEST_OUT;
@@ -942,21 +934,21 @@ static MPP_RET mpi_rc_dec_pre_decode(MpiRc2TestCtx *ctx)
     MPP_RET ret = MPP_OK;
     RK_S32 dec_pkt_done = 0;
     MppApi *mpi = ctx->dec_mpi_pre;
-    MppCtx *dec_ctx = &ctx->dec_ctx_pre;
+    MppCtx dec_ctx = ctx->dec_ctx_pre;
 
     MppFrame frm = NULL;
 
     do {
         // send the packet first if packet is not done
         if (!dec_pkt_done) {
-            ret = mpi->decode_put_packet(*dec_ctx, ctx->dec_pkt_pre);
+            ret = mpi->decode_put_packet(dec_ctx, ctx->dec_pkt_pre);
             if (MPP_OK == ret)
                 dec_pkt_done = 1;
         }
 
         // then get all available frame and release
         do {
-            ret = mpi->decode_get_frame(*dec_ctx, &frm);
+            ret = mpi->decode_get_frame(dec_ctx, &frm);
             if (MPP_OK != ret) {
                 mpp_err("decode_get_frame failed ret %d\n", ret);
                 break;
@@ -971,7 +963,7 @@ static MPP_RET mpi_rc_dec_pre_decode(MpiRc2TestCtx *ctx)
 
                 if (mpp_frame_get_info_change(frm)) {
                     mpp_log("decode_get_frame get info changed found\n");
-                    mpi->control(*dec_ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    mpi->control(dec_ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                     mpi_rc_info_change(ctx, frm);
                 } else {
                     void *ptr;
@@ -1011,7 +1003,7 @@ static MPP_RET mpi_rc_dec_pre_decode(MpiRc2TestCtx *ctx)
                         ctx->cmd.ectx->notify(ctx->cmd.ectx);
 
                     ret = ctx->enc_mpi->enqueue(ctx->enc_ctx, MPP_PORT_OUTPUT,
-                                                ctx->enc_task);
+                                                ctx->enc_out_task);
                     if (ret) {
                         mpp_err("mpp task output enqueue failed\n");
                         continue;
@@ -1071,7 +1063,8 @@ static MPP_RET mpi_rc_buffer_init(MpiRc2TestCtx *ctx)
         goto RET;
     }
 
-    ctx->dec_in_buf_pre = mpp_calloc(RK_U8, 4096);
+    ctx->dec_in_buf_pre_size = MPI_DEC_STREAM_SIZE;
+    ctx->dec_in_buf_pre = mpp_calloc(RK_U8, ctx->dec_in_buf_pre_size);
     if (NULL == ctx->dec_in_buf_pre) {
         mpp_err("mpi_dec_test malloc input stream buffer failed\n");
         goto RET;
@@ -1121,9 +1114,9 @@ static MPP_RET mpi_rc_codec(MpiRc2TestCtx *ctx)
 
     while (1) {
         size_t read_size =
-            fread(ctx->dec_in_buf_pre, 1, 4096, ctx->file.fp_input);
+            fread(ctx->dec_in_buf_pre, 1, ctx->dec_in_buf_pre_size, ctx->file.fp_input);
 
-        if (read_size != 4096 || feof(ctx->file.fp_input)) {
+        if (read_size != ctx->dec_in_buf_pre_size || feof(ctx->file.fp_input)) {
             // setup eos flag
             mpp_packet_set_eos(ctx->dec_pkt_pre);
         }
