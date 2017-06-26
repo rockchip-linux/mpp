@@ -882,6 +882,41 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         codec->change = 0;
     }
 
+    if (hw_cfg->qp <= 0) {
+        RK_S32 qp_tbl[2][13] = {
+            {
+                26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936,
+                1472, 0x7fffffff
+            },
+            {42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6}
+        };
+        RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
+        RK_S32 bits_per_pic = axb_div_c(rc->bps_target,
+                                        rc->fps_out_denorm,
+                                        rc->fps_out_num);
+
+        if (pels) {
+            RK_S32 upscale = 8000;
+            if (bits_per_pic > 1000000)
+                hw_cfg->qp = codec->qp_min;
+            else {
+                RK_S32 j = -1;
+
+                pels >>= 8;
+                bits_per_pic >>= 5;
+
+                bits_per_pic *= pels + 250;
+                bits_per_pic /= 350 + (3 * pels) / 4;
+                bits_per_pic = axb_div_c(bits_per_pic, upscale, pels << 6);
+
+                while (qp_tbl[0][++j] < bits_per_pic);
+
+                hw_cfg->qp = qp_tbl[1][j];
+                hw_cfg->qp_prev = hw_cfg->qp;
+            }
+        }
+    }
+
     if (NULL == ctx->intra_qs)
         mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10), 2);
     if (NULL == ctx->inter_qs)
