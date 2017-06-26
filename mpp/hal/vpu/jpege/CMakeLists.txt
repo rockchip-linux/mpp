@@ -7,6 +7,8 @@ set(HAL_JPEGE_HDR
 set(HAL_JPEGE_SRC
     hal_jpege_hdr.c
     hal_jpege_api.c
+    hal_jpege_vepu1.c
+    hal_jpege_vepu2.c
     )
 
 add_library(${HAL_JPEGE} STATIC
