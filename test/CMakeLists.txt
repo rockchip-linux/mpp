@@ -20,12 +20,6 @@ macro(add_mpp_test module)
     endif()
 endmacro()
 
-# mpp_buffer unit test
-add_mpp_test(mpp_buffer)
-
-# mpp_packet unit test
-add_mpp_test(mpp_packet)
-
 # mpi unit test
 add_mpp_test(mpi)
 
