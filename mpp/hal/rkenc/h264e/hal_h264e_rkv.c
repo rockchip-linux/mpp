@@ -2735,8 +2735,6 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                   ctx->inter_qs, hw_cfg->qp,
                   hw_cfg->qp_prev, codec->qp_max_step);
 
-    hw_cfg->qp_prev = hw_cfg->qp;
-
     hw_cfg->mad_qp_delta = 0;
     hw_cfg->mad_threshold = 6;
     hw_cfg->keyframe_max_interval = rc->gop ? rc->gop : 1;
