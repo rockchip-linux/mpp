@@ -226,10 +226,12 @@ typedef struct  H264eOsdCfg_t {
 
 typedef struct H264eRkvRegSet_t {
 
+    /* reg[000] */
     struct {
         RK_U32    rkvenc_ver : 32;        //default : 0x0000_0001
     } swreg01;  //VERSION
 
+    /* reg[001] */
     struct {
         RK_U32    lkt_num : 8;
         RK_U32    rkvenc_cmd : 2;
@@ -238,15 +240,18 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    Reserve : 15;
     } swreg02; //ENC_STRT
 
+    /* reg[002] */
     struct {
         RK_U32    safe_clr : 1;
         RK_U32    reserve : 31;
     } swreg03; //ENC_CLR
 
+    /* reg[003] */
     struct {
         RK_U32    lkt_addr : 32;
     } swreg04;  //LKT_ADDR
 
+    /* reg[004] */
     struct {
         RK_U32    ofe_fnsh : 1;
         RK_U32    lkt_fnsh : 1;
@@ -260,10 +265,12 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 23;
     } swreg05;  //INT_EN
 
+    /* reg[005] */
     struct {
         RK_U32    reserve : 32;
     } swreg06;  //4.5.  INT_MSK
 
+    /* reg[006] */
     struct {
         RK_U32    clr_ofe_fnsh : 1;
         RK_U32    clr_lkt_fnsh : 1;
@@ -277,14 +284,17 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 23;
     } swreg07;  //4.6.  INT_CLR
 
+    /* reg[007] */
     struct {
         RK_U32    reserve : 32;
     } swreg08;  //4.7.  INT_STUS
 
+    /* reg[008 - 011] */
 #if RKV_H264E_ADD_RESERVE_REGS
     RK_U32        reserve_08_09[4];
 #endif
 
+    /* reg[012] */
     struct {
         RK_U32    pic_wd8_m1 : 9;
         RK_U32    reserve0 : 1;
@@ -294,7 +304,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    pic_hfill : 6;
     } swreg09; // ENC_RSL
 
-
+    /* reg[013] */
     struct {
         RK_U32    enc_stnd : 1;
         RK_U32    roi_enc : 1;
@@ -308,6 +318,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    node_int            : 1;
     } swreg10; //ENC_PIC
 
+    /* reg[014] */
     struct {
         RK_U32    ppln_enc_lmt : 4;
         RK_U32    reserve : 4;
@@ -315,6 +326,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve1 : 16;
     } swreg11; //ENC_WDG
 
+    /* reg[015] */
     struct {
         RK_U32    src_bus_ordr : 1;
         RK_U32    cmvw_bus_ordr : 1;
@@ -331,12 +343,14 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 2;
     } swreg12; //DTRNS_MAP
 
+    /* reg[016] */
     struct {
         RK_U32    axi_brsp_cke : 7;
         RK_U32    cime_dspw_orsd : 1;
         RK_U32    reserve : 24;
     } swreg13; // DTRNS_CFG
 
+    /* reg[017] */
     struct {
         RK_U32    src_aswap : 1;
         RK_U32    src_cswap : 1;
@@ -345,6 +359,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 25;
     } swreg14; //SRC_FMT
 
+    /* reg[018] */
     struct {
         RK_U32    wght_b2y : 9;
         RK_U32    wght_g2y : 9;
@@ -352,6 +367,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 5;
     } swreg15; //SRC_UDFY
 
+    /* reg[019] */
     struct {
         RK_U32    wght_b2u : 9;
         RK_U32    wght_g2u : 9;
@@ -359,6 +375,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 5;
     } swreg16; //SRC_UDFU
 
+    /* reg[020] */
     struct {
         RK_U32    wght_b2v : 9;
         RK_U32    wght_g2v : 9;
@@ -366,6 +383,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 5;
     } swreg17; //SRC_UDFV
 
+    /* reg[021] */
     struct {
         RK_U32    ofst_rgb2v : 8;
         RK_U32    ofst_rgb2u : 8;
@@ -373,6 +391,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 11;
     } swreg18; //SRC_UDFO
 
+    /* reg[022] */
     struct {
         RK_U32    src_tfltr : 1;
         RK_U32    src_tfltr_we : 1;
@@ -396,6 +415,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 2;
     } swreg19; // SRC_PROC
 
+    /* reg[023] */
     struct {
         RK_U32    tfltr_thld_y : 15;
         RK_U32    reserve : 1;
@@ -403,10 +423,13 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve1 : 1;
     } swreg20; // SRC_TTHLD
 
+    /* reg[024 - 028] */
     RK_U32        swreg21_scr_stbl[5];    //4.22.   H3D_TBL0~39
 
+    /* reg[029 - 068] */
     RK_U32        swreg22_h3d_tbl[40];    //4.22.   H3D_TBL0~39
 
+    /* reg[069] */
     struct {
         RK_U32    src_ystrid : 14;
         RK_U32    reserve : 2;
@@ -414,24 +437,58 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve1 : 2;
     } swreg23; //SRC_STRID
 
+    /* reg[070] */
     RK_U32  swreg24_adr_srcy;           //swreg24
+
+    /* reg[071] */
     RK_U32  swreg25_adr_srcu;           //swreg25
+
+    /* reg[072] */
     RK_U32  swreg26_adr_srcv;           //swreg26
+
+    /* reg[073] */
     RK_U32  swreg27_fltw_addr;          //swreg27
+
+    /* reg[074] */
     RK_U32  swreg28_fltr_addr;          //swreg28
+
+    /* reg[075] */
     RK_U32  swreg29_ctuc_addr;          //swreg29
+
+    /* reg[076] */
     RK_U32  swreg30_rfpw_addr;          //swreg30
+
+    /* reg[077] */
     RK_U32  swreg31_rfpr_addr;          //swreg31
+
+    /* reg[078] */
     RK_U32  swreg32_cmvw_addr;          //swreg32
+
+    /* reg[079] */
     RK_U32  swreg33_cmvr_addr;          //swreg33
+
+    /* reg[080] */
     RK_U32  swreg34_dspw_addr;          //swreg34
+
+    /* reg[081] */
     RK_U32  swreg35_dspr_addr;          //swreg35
+
+    /* reg[082] */
     RK_U32  swreg36_meiw_addr;          //swreg36
+
+    /* reg[083] */
     RK_U32  swreg37_bsbt_addr;          //swreg37
+
+    /* reg[084] */
     RK_U32  swreg38_bsbb_addr;          //swreg38
+
+    /* reg[085] */
     RK_U32  swreg39_bsbr_addr;          //swreg39
+
+    /* reg[086] */
     RK_U32  swreg40_bsbw_addr;          //swreg40
 
+    /* reg[087] */
     struct {
         RK_U32    sli_cut : 1;
         RK_U32    sli_cut_mode : 1;
@@ -442,11 +499,13 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    sli_cut_cnum : 16;
     } swreg41; //     SLI_SPL
 
+    /* reg[088] */
     struct {
         RK_U32    sli_cut_byte : 18;
         RK_U32    reserve : 14;
     } swreg42; // SLI_SPL_BYTE
 
+    /* reg[089] */
     struct {
         RK_U32    cime_srch_h : 4;
         RK_U32    cime_srch_v : 4;
@@ -456,7 +515,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    dlt_frm_num : 16;
     } swreg43; //ME_RNGE
 
-
+    /* reg[090] */
     struct {
         RK_U32    pmv_mdst_h          : 8;
         RK_U32    pmv_mdst_v          : 8;
@@ -465,6 +524,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve             : 12;
     } swreg44; // ME_CNST
 
+    /* reg[091] */
     struct {
         RK_U32    cime_rama_max : 11;
         RK_U32    cime_rama_h : 5;
@@ -473,6 +533,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 9;
     } swreg45; //ME_RAM
 
+    /* reg[092] */
     struct {
         RK_U32    rc_en : 1;
         RK_U32    rc_mode : 1;
@@ -482,31 +543,37 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    rc_ctu_num : 16;
     } swreg46; //RC_CFG
 
+    /* reg[093] */
     struct {
         RK_S32    bits_error0 : 16;
         RK_S32    bits_error1 : 16;
     } swreg47; //RC_ERP0
 
+    /* reg[094] */
     struct {
         RK_S32    bits_error2 : 16;
         RK_S32    bits_error3 : 16;
     } swreg48; //RC_ERP1
 
+    /* reg[095] */
     struct {
         RK_S32    bits_error4 : 16;
         RK_S32    bits_error5 : 16;
     } swreg49; //RC_ERP2
 
+    /* reg[096] */
     struct {
         RK_S32    bits_error6 : 16;
         RK_S32    bits_error7 : 16;
     } swreg50; //RC_ERP3
 
+    /* reg[097] */
     struct {
         RK_S32    bits_error8 : 16;
         RK_S32    reserve : 16;
     } swreg51; //RC_ERP4
 
+    /* reg[098] */
     struct {
         RK_S32    qp_adjust0 : 5;
         RK_S32    qp_adjust1 : 5;
@@ -517,6 +584,7 @@ typedef struct H264eRkvRegSet_t {
         RK_S32    reserve : 2;
     } swreg52; //     RC_ADJ0
 
+    /* reg[099] */
     struct {
         RK_S32    qp_adjust6 : 5;
         RK_S32    qp_adjust7 : 5;
@@ -524,6 +592,7 @@ typedef struct H264eRkvRegSet_t {
         RK_S32    reserve : 17;
     } swreg53; //     RC_ADJ1
 
+    /* reg[100] */
     struct {
         RK_U32    rc_qp_mod : 2;
         RK_U32    rc_fact0 : 6;
@@ -534,12 +603,13 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    rc_min_qp : 6;
     } swreg54; //RC_QP
 
+    /* reg[101] */
     struct {
         RK_U32    ctu_ebits : 20;
         RK_U32    reserve : 12;
     } swreg55; //RC_TGT
 
-
+    /* reg[102] */
     struct {
         RK_U32    rect_size : 1;
         RK_U32    inter_4x4 : 1;
@@ -550,12 +620,14 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve1            : 19;
     } swreg56; //RDO_CFG
 
+    /* reg[103] */
     struct {
         RK_U32    nal_ref_idc : 2;
         RK_U32    nal_unit_type : 5;
         RK_U32    reserve : 25;
     } swreg57; //     SYNT_NAL
 
+    /* reg[104] */
     struct {
         RK_U32    max_fnum : 4;
         RK_U32    drct_8x8 : 1;
@@ -563,6 +635,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 23;
     } swreg58; //     SYNT_SPS
 
+    /* reg[105] */
     struct {
         RK_U32    etpy_mode : 1;
         RK_U32    trns_8x8 : 1;
@@ -577,6 +650,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 7;
     } swreg59; //  SYNT_PPS
 
+    /* reg[106] */
     struct {
         RK_U32    sli_type : 2;
         RK_U32    pps_id : 8;
@@ -587,11 +661,13 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    frm_num : 16;
     } swreg60; //     SYNT_SLI0
 
+    /* reg[107] */
     struct {
         RK_U32    idr_pid : 16;
         RK_U32    poc_lsb : 16;
     } swreg61; //     SYNT_SLI1
 
+    /* reg[108] */
     struct {
         RK_U32    rodr_pic_idx : 2;
         RK_U32    ref_list0_rodr : 1;
@@ -602,6 +678,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    rodr_pic_num : 16;
     } swreg62; // SYNT_SLI2_RODR
 
+    /* reg[109] */
     struct {
         RK_U32    nopp_flg : 1;
         RK_U32    ltrf_flg : 1;
@@ -612,15 +689,19 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 9;
     } swreg63; //  SYNT_REF_MARK0
 
+    /* reg[110] */
     struct {
         RK_U32    mmco_1 : 3;
         RK_U32    dopn_m1_1 : 16;
         RK_U32    reserve : 13;
     } swreg64; // SYNT_REF_MARK1
 
+    /* reg[111] */
 #if RKV_H264E_ADD_RESERVE_REGS
     RK_U32        reserve_64_65[1];
 #endif
+
+    /* reg[112] */
     struct {
         RK_U32    osd_en : 8;
         RK_U32    osd_inv : 8;
@@ -629,6 +710,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 14;
     } swreg65; //OSD_CFG
 
+    /* reg[113] */
     struct {
         RK_U32    osd_inv_r0 : 4;
         RK_U32    osd_inv_r1 : 4;
@@ -640,35 +722,42 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    osd_inv_r7 : 4;
     } swreg66; //OSD_INV
 
+    /* reg[114 - 115] */
 #if RKV_H264E_ADD_RESERVE_REGS
     RK_U32        reserve_66_67[2];
 #endif
 
+    /* reg[116 - 123] */
     H264eOsdCfg swreg67_osd_pos[8];
 
+    /* reg[124 - 131] */
     RK_U32    swreg68_indx_addr_i[8];      //4.68.  OSD_ADDR0-7
 
+    /* reg[132] */
     struct {
         RK_U32    bs_lgth : 32;
     } swreg69; //ST_BSL
 
+    /* reg[133] */
     struct {
         RK_U32    sse_l32 : 32;
     } swreg70; // ST_SSE_L32
 
+    /* reg[134] */
     struct {
         RK_U32    qp_sum : 22;
         RK_U32    reserve : 2;
         RK_U32    sse_h8 : 8;
     } swreg71; //     ST_SSE_QP
 
+    /* reg[135] */
     struct {
         RK_U32    slice_scnum : 12;
         RK_U32    slice_slnum : 12;
         RK_U32    reserve : 8;
     } swreg72; //ST_SAO
 
-
+    /* reg[136] */
     struct {
         RK_U32    st_enc : 2;
         RK_U32    axiw_cln : 2;
@@ -676,6 +765,7 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 26;
     } swreg73; //     ST_ENC
 
+    /* reg[137] */
     struct {
         RK_U32    fnum_enc : 8;
         RK_U32    fnum_cfg : 8;
@@ -683,10 +773,12 @@ typedef struct H264eRkvRegSet_t {
         RK_U32    reserve : 8;
     } swreg74; //     ST_LKT
 
+    /* reg[138] */
     struct {
         RK_U32    node_addr : 32;
     } swreg75; //ST_NOD
 
+    /* reg[139] */
     struct {
         RK_U32    Bsbw_ovfl : 1;
         RK_U32    reserve : 2;
