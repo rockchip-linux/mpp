@@ -68,7 +68,7 @@ static const char *module_name = MODULE_TAG;
 
 RK_U32 mpp_task_debug = 0;
 
-void setup_mpp_task_name(MppTaskImpl *task)
+static inline void setup_mpp_task_name(MppTaskImpl *task)
 {
     task->name = module_name;
 }
