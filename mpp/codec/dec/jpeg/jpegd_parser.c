@@ -1024,7 +1024,7 @@ jpegd_handle_stream(RK_U8 *src, RK_U32 src_size,
     return ret;
 }
 
-MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -1166,7 +1166,7 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_update_frame(JpegdCtx *ctx)
+static MPP_RET jpegd_update_frame(JpegdCtx *ctx)
 {
     jpegd_dbg_func("enter\n");
 
@@ -1178,7 +1178,7 @@ MPP_RET jpegd_update_frame(JpegdCtx *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
+static MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -1204,7 +1204,7 @@ MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
     return ret;
 }
 
-MPP_RET jpegd_deinit(void *ctx)
+static MPP_RET jpegd_deinit(void *ctx)
 {
     jpegd_dbg_func("enter\n");
     JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
@@ -1245,7 +1245,7 @@ MPP_RET jpegd_deinit(void *ctx)
     return 0;
 }
 
-MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
+static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 {
     jpegd_dbg_func("enter\n");
     JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
@@ -1313,7 +1313,7 @@ MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     return MPP_OK;
 }
 
-MPP_RET jpegd_flush(void *ctx)
+static MPP_RET jpegd_flush(void *ctx)
 {
     jpegd_dbg_func("enter\n");
     JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
@@ -1322,7 +1322,7 @@ MPP_RET jpegd_flush(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_reset(void *ctx)
+static MPP_RET jpegd_reset(void *ctx)
 {
     jpegd_dbg_func("enter\n");
     JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
@@ -1333,7 +1333,7 @@ MPP_RET jpegd_reset(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
+static MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -1355,7 +1355,7 @@ MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
     return ret;
 }
 
-MPP_RET jpegd_callback(void *ctx, void *err_info)
+static MPP_RET jpegd_callback(void *ctx, void *err_info)
 {
     jpegd_dbg_func("enter\n");
     (void) ctx;
@@ -1365,18 +1365,18 @@ MPP_RET jpegd_callback(void *ctx, void *err_info)
 }
 
 const ParserApi api_jpegd_parser = {
-    "jpegd_parse",
-    MPP_VIDEO_CodingMJPEG,
-    sizeof(JpegdCtx),
-    0,
-    jpegd_init,
-    jpegd_deinit,
-    jpegd_prepare,
-    jpegd_parse,
-    jpegd_reset,
-    jpegd_flush,
-    jpegd_control,
-    jpegd_callback,
+    .name = "jpegd_parse",
+    .coding = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(JpegdCtx),
+    .flag = 0,
+    .init = jpegd_init,
+    .deinit = jpegd_deinit,
+    .prepare = jpegd_prepare,
+    .parse = jpegd_parse,
+    .reset = jpegd_reset,
+    .flush = jpegd_flush,
+    .control = jpegd_control,
+    .callback = jpegd_callback,
 };
 
 

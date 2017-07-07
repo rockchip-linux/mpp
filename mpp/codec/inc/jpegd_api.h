@@ -24,16 +24,6 @@ extern "C" {
 
 extern const ParserApi api_jpegd_parser;
 
-
-MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task);
-MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg);
-MPP_RET jpegd_parse(void *ctx, HalDecTask *task);
-MPP_RET jpegd_deinit(void *ctx);
-MPP_RET jpegd_flush(void *ctx);
-MPP_RET jpegd_reset(void *ctx);
-MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param);
-MPP_RET jpegd_callback(void *ctx, void *err_info);
-
 #ifdef  __cplusplus
 }
 #endif
