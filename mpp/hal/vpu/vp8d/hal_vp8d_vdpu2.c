@@ -596,9 +596,8 @@ MPP_RET hal_vp8d_vdpu2_start(void *hal, HalTaskInfo *task)
 
     FUN_T("FUN_IN");
 
-    for (i = 0; i < 159; i++) {
+    for (i = 0; i < VP8D_REG_NUM; i++) {
         vp8h_dbg(VP8H_DBG_REG, "vp8d: regs[%02d]=%08X\n", i, *((RK_U32*)p));
-        // mpp_log("vp8d: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
     ret = mpp_device_send_reg(ctx->vpu_socket, (RK_U32 *)regs, VP8D_REG_NUM);
