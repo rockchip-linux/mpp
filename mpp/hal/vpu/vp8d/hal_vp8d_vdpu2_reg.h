@@ -31,7 +31,7 @@
 #define VP8D_REG_NUM    159
 
 typedef struct  {
-    unsigned long                 ppReg[50];
+    RK_U32 ppReg[50];
     struct {
         RK_U32  sw_dec_out_tiled_e  : 1;
         RK_U32  sw_dec_latency      : 6;
