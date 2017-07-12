@@ -102,7 +102,7 @@ static RK_U32 vp9_ver_align(RK_U32 val)
 
 static RK_U32 vp9_hor_align(RK_U32 val)
 {
-    return MPP_ALIGN(val, 128);
+    return MPP_ALIGN(val, 256) | 256;
 }
 /*!
 ***********************************************************************
