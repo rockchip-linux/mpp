@@ -26,7 +26,7 @@
 
 RK_U32 m2vd_debug = 0x0;
 
-RK_U8 scanOrder[2][64] = {
+static RK_U8 scanOrder[2][64] = {
     {   /* zig-zag */
         0, 1, 8, 16, 9, 2, 3, 10,
         17, 24, 32, 25, 18, 11, 4, 5,
@@ -50,7 +50,7 @@ RK_U8 scanOrder[2][64] = {
     }
 };
 
-RK_U8 intraDefaultQMatrix[64] = {
+static RK_U8 intraDefaultQMatrix[64] = {
     8, 16, 19, 22, 26, 27, 29, 34,
     16, 16, 22, 24, 27, 29, 34, 37,
     19, 22, 26, 27, 29, 34, 34, 38,
@@ -61,8 +61,7 @@ RK_U8 intraDefaultQMatrix[64] = {
     27, 29, 35, 38, 46, 56, 69, 83
 };
 
-
-int frame_period_Table[16] = {
+static int frame_period_Table[16] = {
     1,
     11142,
     10667,
@@ -72,7 +71,6 @@ int frame_period_Table[16] = {
     5120,
     4271,
     4267,
-
     1,
     1,
     1,
@@ -82,12 +80,12 @@ int frame_period_Table[16] = {
     1
 };
 
-static RK_S32 m2vd_get_readbits(BitReadCtx_t *bx)
+static inline RK_S32 m2vd_get_readbits(BitReadCtx_t *bx)
 {
     return bx->used_bits;
 }
 
-static RK_S32 m2vd_get_leftbits(BitReadCtx_t *bx)
+static inline RK_S32 m2vd_get_leftbits(BitReadCtx_t *bx)
 {
     return  (bx->bytes_left_ * 8 + bx->num_remaining_bits_in_curr_byte_);
 }
@@ -107,13 +105,6 @@ static RK_S32 m2vd_show_bits(BitReadCtx_t *bx, RK_U32 bits)
     RK_S32 ret = 0;
     mpp_show_bits(bx, bits, &ret);
     return ret;
-}
-
-
-RK_S32 m2vd_parser_read_one_frame(M2VDParserContext *ctx)
-{
-    (void)ctx;
-    return MPP_OK;
 }
 
 static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
@@ -214,7 +205,6 @@ __FAILED:
     return ret;
 }
 
-
 MPP_RET m2vd_parser_init(void *ctx, ParserCfg *parser_cfg)
 {
     MPP_RET ret = MPP_OK;
@@ -234,7 +224,6 @@ MPP_RET m2vd_parser_init(void *ctx, ParserCfg *parser_cfg)
 __FAILED:
     return ret;
 }
-
 
 MPP_RET m2vd_parser_deinit(void *ctx)
 {
@@ -283,6 +272,7 @@ MPP_RET m2vd_parser_deinit(void *ctx)
     FUN_T("FUN_O");
     return ret;
 }
+
 /*!
 ***********************************************************************
 * \brief
@@ -295,28 +285,25 @@ MPP_RET m2vd_parser_reset(void *ctx)
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     FUN_T("FUN_I");
-    if (p->frame_cur->slot_index != 0xff) {
-#if 0
-        MppBuffer framebuf = NULL;      //current buf may alloc
-        mpp_buf_slot_get_prop(p->frame_slots, p->frame_cur->slot_index, SLOT_BUFFER, &framebuf);
-        mpp_buffer_put(framebuf);
-#endif
-        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index, SLOT_CODEC_USE);
-    }
+    if (p->frame_cur->slot_index != 0xff)
+        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index,
+                              SLOT_CODEC_USE);
 
-    if (p->frame_ref0->slot_index != 0xff ) {
-
+    if (p->frame_ref0->slot_index != 0xff) {
         if (p->frame_ref0->flags) {
-            mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
+            mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
+                                  SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index,
+                                 QUEUE_DISPLAY);
             p->frame_ref0->flags = 0;
         }
-        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_CODEC_USE);
+        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref0->slot_index,
+                              SLOT_CODEC_USE);
     }
 
-    if (p->frame_ref1->slot_index != 0xff) {
-        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_CODEC_USE);
-    }
+    if (p->frame_ref1->slot_index != 0xff)
+        mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index,
+                              SLOT_CODEC_USE);
 
     p->frame_cur->slot_index = 0xff;
     p->frame_ref0->slot_index = 0xff;
@@ -334,30 +321,22 @@ MPP_RET m2vd_parser_reset(void *ctx)
 *   flush
 ***********************************************************************
 */
-MPP_RET  m2vd_parser_flush(void *ctx)
+MPP_RET m2vd_parser_flush(void *ctx)
 {
     MPP_RET ret = MPP_OK;
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     FUN_T("FUN_I");
-    if (p->frame_ref0->slot_index == 0xff) {
-        goto exit;
+
+    if ((p->frame_ref0->slot_index != 0xff) && !p->frame_ref0->flags) {
+        mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
+                              SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index,
+                             QUEUE_DISPLAY);
+        p->frame_ref0->flags = 0;
     }
-    mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
-    mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
-    p->frame_ref0->flags = 0;
-exit:
-#if 0
-    if (p->eos) {
-        if ( p->frame_ref0->slot_index < 0xff) {
-            mpp_buf_slot_set_prop(p->frame_slots, p->frame_ref0->slot_index, SLOT_EOS, &p->eos);
-        } else {
-            if (p->notify_cb.callBack != NULL) {
-                p->notify_cb.callBack(p->notify_cb.opaque, NULL);
-            }
-        }
-    }
-#endif
+
+    FUN_T("FUN_O");
     return ret;
 }
 
@@ -367,7 +346,7 @@ exit:
 *   control/perform
 ***********************************************************************
 */
-MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
+MPP_RET m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
     FUN_T("FUN_I");
@@ -378,7 +357,6 @@ MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
     return ret;
 }
 
-
 /*!
 ***********************************************************************
 * \brief
@@ -386,7 +364,8 @@ MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 ***********************************************************************
 */
 
-MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 *dst_size)
+static MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size,
+                                       RK_U8 *dst, RK_U32 *dst_size)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 val = 0;
@@ -407,7 +386,6 @@ MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size, RK_U8 *dst, RK_U32 
     return ret;
 }
 
-
 MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_OK;
@@ -418,18 +396,13 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     RK_U8 *pos = NULL;
     RK_U8 *buf = NULL;
 
-
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
     len_in = (RK_U32)mpp_packet_get_length(pkt);
 
-    //MppPacketImpl *packet = (MppPacketImpl *)pkt;
-    //uint32_t stream_count = 0;
-
     FUN_T("FUN_I");
     task->valid = 0;
     p->eos = mpp_packet_get_eos(pkt);
-    // mpp_log("len_in = %d",len_in);
     if (len_in > p->max_stream_size) {
         mpp_free(p->bitstream_sw_buf);
         p->bitstream_sw_buf = NULL;
@@ -441,8 +414,6 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         p->max_stream_size = len_in + 1024;
     }
 
-    pos += out_size;
-
     m2vd_parser_split_frame(buf,
                             len_in,
                             p->bitstream_sw_buf,
@@ -452,8 +423,9 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     mpp_packet_set_pos(pkt, pos);
 
     if (out_size == 0 && p->eos) {
-        m2vd_parser_flush(ctx);
+        task->valid = 0;
         task->flags.eos = 1;
+        m2vd_parser_flush(ctx);
         return ret;
     }
 
@@ -486,7 +458,6 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     return ret;
 }
 
-
 /*!
 ***********************************************************************
 * \brief
@@ -509,8 +480,7 @@ static RK_U32 m2vd_search_header(BitReadCtx_t *bx)
     return m2vd_show_bits(bx, 32);
 }
 
-
-int m2vd_decode_seq_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_seq_ext_header(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
     FUN_T("FUN_I");
@@ -536,7 +506,7 @@ int m2vd_decode_seq_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-int m2vd_decode_seqdisp_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_seqdisp_ext_header(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
     ctx->seq_disp_ext_head.video_format      = m2vd_read_bits(bx, 3);
@@ -554,7 +524,7 @@ int m2vd_decode_seqdisp_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-int m2vd_decode_matrix_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_matrix_ext_header(M2VDParserContext *ctx)
 {
     RK_U32  load_intra_quantizer_matrix;
     RK_U32  load_non_intra_quantizer_matrix;
@@ -585,8 +555,7 @@ int m2vd_decode_matrix_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-
-int m2vd_decode_scalable_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_scalable_ext_header(M2VDParserContext *ctx)
 {
     /* ISO/IEC 13818-2 section 6.2.2.5: sequence_scalable_extension() header */
     int layer_id;
@@ -635,8 +604,7 @@ int m2vd_decode_scalable_ext_header(M2VDParserContext *ctx)
         return  M2VD_DEC_OK;
 }
 
-
-int m2vd_decode_picdisp_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_picdisp_ext_header(M2VDParserContext *ctx)
 {
     int i;
     int number_of_frame_center_offsets;
@@ -676,8 +644,7 @@ int m2vd_decode_picdisp_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-
-int m2vd_decode_spatial_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_spatial_ext_header(M2VDParserContext *ctx)
 {
     /* ISO/IEC 13818-2 section 6.2.3.5: picture_spatial_scalable_extension() header */
     int lower_layer_temporal_reference;
@@ -707,13 +674,10 @@ int m2vd_decode_spatial_ext_header(M2VDParserContext *ctx)
     (void)lower_layer_progressive_frame;
     (void)lower_layer_deinterlaced_field_select;
 
-
     return  M2VD_DEC_OK;
 }
 
-
-
-int m2vd_decode_pic_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_pic_ext_header(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
     ctx->pic_code_ext_head.f_code[0][0] = m2vd_read_bits(bx, 4);
@@ -764,14 +728,12 @@ int m2vd_decode_pic_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-
-int m2vd_decode_temp_ext_header(void)
+static inline int m2vd_decode_temp_ext_header(void)
 {
     return  M2VD_DEC_UNSURPORT;
 }
 
-
-int m2vd_decode_copyright_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_copyright_ext_header(M2VDParserContext *ctx)
 {
     int copyright_flag;
     int copyright_identifier;
@@ -807,9 +769,7 @@ int m2vd_decode_copyright_ext_header(M2VDParserContext *ctx)
     return  M2VD_DEC_OK;
 }
 
-
-
-int m2vd_decode_ext_header(M2VDParserContext *ctx)
+static int m2vd_decode_ext_header(M2VDParserContext *ctx)
 {
     RK_U32      code;
     RK_U32      ext_ID;
@@ -894,8 +854,7 @@ static int m2vd_decode_gop_header(M2VDParserContext *ctx)
     return m2vd_decode_ext_header(ctx);
 }
 
-
-int m2vd_decode_seq_header(M2VDParserContext *ctx)
+static int m2vd_decode_seq_header(M2VDParserContext *ctx)
 {
     RK_U32  i;
     BitReadCtx_t *bx = ctx->bitread_ctx;
@@ -935,8 +894,7 @@ int m2vd_decode_seq_header(M2VDParserContext *ctx)
     return m2vd_decode_ext_header(ctx);
 }
 
-
-int m2vd_extra_bit_information(M2VDParserContext *ctx)
+static int m2vd_extra_bit_information(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
     while (m2vd_read_bits(bx, 1)) {
@@ -945,7 +903,7 @@ int m2vd_extra_bit_information(M2VDParserContext *ctx)
     return M2VD_DEC_OK;
 }
 
-int m2vd_decode_pic_header(M2VDParserContext *ctx)
+static int m2vd_decode_pic_header(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
     ctx->pic_head.temporal_reference  = m2vd_read_bits(bx, 10);
@@ -975,9 +933,7 @@ int m2vd_decode_pic_header(M2VDParserContext *ctx)
     return m2vd_decode_ext_header(ctx);
 }
 
-
-
-MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
+static MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
 {
     RK_U32      code;
     int         ret = 0;
@@ -1029,7 +985,7 @@ MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
     return ret;
 }
 
-MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
+static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 {
     RK_U32 pts = (RK_U32)(ctx->pts / 1000);
     if (ctx->resetFlag && ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I) {
@@ -1159,7 +1115,8 @@ MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 
     return MPP_OK;
 }
-MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
+
+static MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
 {
 
     MPP_RET ret = MPP_OK;
@@ -1195,7 +1152,7 @@ MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
     return ret;
 }
 
-MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
+static MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
 {
     MPP_RET ret = MPP_OK;
     FUN_T("FUN_I");
@@ -1332,7 +1289,6 @@ MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
     return ret;
 }
 
-
 MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_OK;
@@ -1354,11 +1310,14 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
     rev = m2vd_decode_head(p);
 
     if (!p->mHeaderDecFlag) {
-        if (p->mExtraHeaderDecFlag && p->pic_head.picture_coding_type == M2VD_CODING_TYPE_I) {
+        if (p->mExtraHeaderDecFlag &&
+            p->pic_head.picture_coding_type == M2VD_CODING_TYPE_I) {
             p->mHeaderDecFlag = 1;
-            mpp_log("[m2v]: use extra data sequence header");
+            if (M2VD_DBG_SEC_HEADER & m2vd_debug)
+                mpp_log("[m2v]: use extra data sequence header");
         } else {
-            mpp_log("[m2v]: !mHeaderDecFlag");
+            if (M2VD_DBG_SEC_HEADER & m2vd_debug)
+                mpp_log("[m2v]: !mHeaderDecFlag");
             goto __FAILED;
         }
     }

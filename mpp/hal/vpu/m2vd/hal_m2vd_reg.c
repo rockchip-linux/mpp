@@ -71,15 +71,12 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
         if (p->vpu_socket <= 0) {
             mpp_err("get vpu_socket(%d) <=0, failed. \n", p->vpu_socket);
             return MPP_ERR_UNKNOW;
-        } else {
-            mpp_log("get vpu_socket(%d), success. \n", p->vpu_socket);
         }
     }
 #endif
     if (p->group == NULL) {
 
 #ifdef RKPLATFORM
-        mpp_err("mpp_buffer_group_get_internal used ion in");
         ret = mpp_buffer_group_get_internal(&p->group, MPP_BUFFER_TYPE_ION);
 #else
         ret = mpp_buffer_group_get_internal(&p->group, MPP_BUFFER_TYPE_NORMAL);

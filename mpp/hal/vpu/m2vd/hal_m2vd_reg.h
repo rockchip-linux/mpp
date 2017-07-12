@@ -260,7 +260,7 @@ typedef struct {
 } Dec_BaseAdd_ch8pix_reg;
 
 typedef struct M2VDRegSet_t {
-    unsigned long                 ppReg[50];
+    RK_U32 ppReg[50];
     Device_config_reg1            config1;
     Dec_control_reg3              stream_buffinfo;
     Dec_Error_concealment_reg     error_position;
