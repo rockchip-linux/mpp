@@ -61,9 +61,7 @@ if(ANDROID)
     add_definitions(-static)
     # in Android pthread is in libc, also need liblog
     target_link_libraries(osal log stdc++ m)
-elseif(UNIX)
-    target_link_libraries(osal -ldl -lrt)
-endif()
+endif(ANDROID)
 
 # unit test
 add_subdirectory(test)
