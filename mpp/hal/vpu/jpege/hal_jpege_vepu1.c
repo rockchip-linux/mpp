@@ -72,7 +72,7 @@ MPP_RET hal_jpege_vepu1_init(void *hal, MppHalCfg *cfg)
     ctx->cfg = cfg->cfg;
     ctx->set = cfg->set;
 
-    ctx->ioctl_info.regs = mpp_malloc(RK_U32, VEPU_JPEGE_VEPU1_NUM_REGS);
+    ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU1_NUM_REGS);
     if (!ctx->ioctl_info.regs) {
         mpp_err_f("failed to malloc vdpu1 regs\n");
         return MPP_NOK;
