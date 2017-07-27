@@ -116,6 +116,7 @@ typedef enum {
     MPP_ENC_GET_EXTRA_INFO,             /* get vps / sps / pps from hal */
     MPP_ENC_SET_SEI_CFG,                /* SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
     MPP_ENC_GET_SEI_DATA,               /* SEI: Supplement Enhancemant Information, parameter is MppPacket */
+    MPP_ENC_PRE_ALLOC_BUFF,             /* allocate buffers before encoding */
     MPP_ENC_CMD_END,
 
     MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
