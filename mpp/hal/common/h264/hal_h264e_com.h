@@ -425,6 +425,7 @@ typedef struct H264eHalContext_t {
     H264eHalParam                   param;
     RK_U32                          enc_mode;
     RK_U32                          frame_size;
+    RK_U32                          alloc_flg;
 
     void                            *param_buf;
     MppPacket                       packeted_param;

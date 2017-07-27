@@ -529,6 +529,10 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         mpp_enc_dbg_ctrl("get sei\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
+    case MPP_ENC_PRE_ALLOC_BUFF : {
+        mpp_enc_dbg_ctrl("pre alloc buff\n");
+        ret = mpp_hal_control(enc->hal, cmd, param);
+    } break;
     default : {
         mpp_log_f("unsupported cmd id %08x param %p\n", cmd, param);
         ret = MPP_NOK;
