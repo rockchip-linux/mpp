@@ -24,7 +24,6 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
-#include "mpp_time.h"
 #include "mpp_common.h"
 #include "mpp_bitput.h"
 

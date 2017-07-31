@@ -26,7 +26,6 @@
 #include "mpp_mem.h"
 #include "mpp_device.h"
 #include "mpp_common.h"
-#include "mpp_time.h"
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"

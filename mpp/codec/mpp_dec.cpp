@@ -88,37 +88,7 @@ static void dec_task_init(DecTask *task)
 
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 }
-#if 0
-static void dec_task_reset(MppDec *dec, DecTask *task)
-{
-    task->hnd = NULL;
-    task->status.val = 0;
-    task->wait.val   = 0;
-    task->status.prev_task_rdy  = 1;
 
-    if (task->hal_pkt_idx_in >= 0) {
-        mpp_buf_slot_clr_flag(dec->frame_slots, task->hal_pkt_idx_in, SLOT_HAL_INPUT);
-        task->hal_pkt_idx_in = -1;
-    }
-
-    if (task->hal_frm_idx_out >= 0) {
-        mpp_buf_slot_clr_flag(dec->frame_slots, task->hal_frm_idx_out, SLOT_HAL_INPUT);
-        task->hal_frm_idx_out = -1;
-    }
-
-    if (task->hal_pkt_buf_in) {
-        mpp_buffer_put(task->hal_pkt_buf_in);
-        task->hal_pkt_buf_in = NULL;
-    }
-
-    if (task->hal_frm_buf_out) {
-        mpp_buffer_put(task->hal_frm_buf_out);
-        task->hal_frm_buf_out = NULL;
-    }
-
-    hal_task_info_init(&task->info, MPP_CTX_DEC);
-}
-#endif
 /*
  * return MPP_OK for not wait
  * return MPP_NOK for wait
@@ -283,9 +253,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
-    size_t stream_size = 0;
     HalDecTask  *task_dec = &task->info.dec;
-
+    MppBuffer hal_buf_in = NULL;
+    MppBuffer hal_buf_out = NULL;
+    size_t stream_size = 0;
+    RK_S32 output = 0;
 
     /*
      * 1. get task handle from hal for parsing one frame
@@ -299,7 +271,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
         }
     }
-
 
     /*
      * 2. get packet for parser preparing
@@ -346,20 +317,12 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.curr_task_rdy) {
-        RK_S64 p_e, p_s, diff;
-        p_s = mpp_time();
-
         if (mpp_debug & MPP_DBG_PTS)
-            mpp_log("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
+            mpp_log("input packet pts %lld\n",
+                    mpp_packet_get_pts(dec->mpp_pkt_in));
 
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
-        p_e = mpp_time();
-        if (mpp_debug & MPP_DBG_TIMING) {
-            diff = (p_e - p_s) / 1000;
-            if (diff > 15) {
-                mpp_log("waring mpp prepare stream consume %lld big than 15ms ", diff);
-            }
-        }
+
         if (0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
             mpp_packet_deinit(&dec->mpp_pkt_in);
             dec->mpp_pkt_in = NULL;
@@ -372,7 +335,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     * So here we try push eos task to hal, hal will push all frame to display then
     * push a eos frame to tell all frame decoded
     */
-    //  mpp_dec_push_display(mpp);
     if (task_dec->flags.eos && !task_dec->valid) {
         mpp_dec_push_eos_task(mpp, task);
         task->hnd = NULL;
@@ -401,7 +363,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     task->hal_pkt_idx_in = task_dec->input;
     stream_size = mpp_packet_get_size(task_dec->input_packet);
 
-    MppBuffer hal_buf_in;
     mpp_buf_slot_get_prop(packet_slots, task->hal_pkt_idx_in, SLOT_BUFFER, &hal_buf_in);
     if (NULL == hal_buf_in) {
         mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
@@ -432,9 +393,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         task->status.dec_pkt_copy_rdy = 1;
     }
 
-    /*
-     * 7. if not fast mode wait previous task done here
-     */
+    /* 7.1 if not fast mode wait previous task done here */
     if (!dec->parser_fast_mode) {
         // wait previous task done
         if (!task->status.prev_task_rdy) {
@@ -452,20 +411,12 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
     }
 
-    /*
-     * 7. look for a unused hardware buffer for output
-     */
+    /* 7.2 look for a unused hardware buffer for output */
     if (mpp->mFrameGroup) {
         task->wait.dec_pic_buf = (mpp_buffer_group_unused(mpp->mFrameGroup) < 1);
         if (task->wait.dec_pic_buf)
-            return MPP_NOK;
+            return MPP_ERR_BUFFER_FULL;
     }
-
-    /*
-     * We may find eos in prepare step and there will be no anymore vaild task generated.
-     * So here we try push all frames to display to avoid eos no notify to display
-     */
-    // mpp_dec_push_display(mpp);
 
     /*
      * 8. send packet data to parser
@@ -503,13 +454,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             mpp->mTaskPutCount++;
             task->hnd = NULL;
             task->status.info_task_gen_rdy = 1;
-            return MPP_NOK;
+            return MPP_ERR_STREAM;
         }
     }
 
     task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
     if (task->wait.info_change) {
-        return MPP_NOK;
+        return MPP_ERR_STREAM;
     } else {
         task->status.info_task_gen_rdy = 0;
         task_dec->flags.info_change = 0;
@@ -517,18 +468,17 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_assert(task->hnd);
     }
 
-
     if (task_dec->output < 0) {
         /*
-         * We may find eos in parser step and there will be no anymore vaild task generated.
-         * So here we try push eos task to hal, hal will push all frame to display then
-         * push a eos frame to tell all frame decoded
+         * We may meet an eos in parser step and there will be no anymore vaild
+         * task generated. So here we try push eos task to hal, hal will push
+         * all frame(s) to display, a frame of them with a eos flag will be
+         * used to inform that all frame have decoded
          */
-        if (task_dec->flags.eos) {
+        if (task_dec->flags.eos)
             mpp_dec_push_eos_task(mpp, task);
-        } else {
+        else
             hal_task_hnd_set_status(task->hnd, TASK_IDLE);
-        }
 
         mpp->mTaskPutCount++;
         task->hnd = NULL;
@@ -542,16 +492,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         return MPP_NOK;
     }
 
-    /*
-     * 5. chekc frame buffer group is internal or external
-     */
+    /* 10. whether the frame buffer group is internal or external */
     if (NULL == mpp->mFrameGroup) {
         mpp_log("mpp_dec use internal frame buffer group\n");
         mpp_buffer_group_get_internal(&mpp->mFrameGroup, MPP_BUFFER_TYPE_ION);
     }
 
     /*
-     * 5. do buffer operation according to usage information
+     * 11. do buffer operation according to usage information
      *
      *    possible case:
      *    a. normal case
@@ -562,8 +510,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *       - need buffer in different side, need to send a info change
      *         frame to hal loop.
      */
-    RK_S32 output = task_dec->output;
-    MppBuffer hal_buf_out;
+    output = task_dec->output;
     mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &hal_buf_out);
     if (NULL == hal_buf_out) {
         size_t size = mpp_buf_slot_get_size(frame_slots);
@@ -578,23 +525,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (task->wait.dec_pic_buf)
         return MPP_NOK;
 
-    // register genertation
+    /* generating registers table */
     mpp_hal_reg_gen(dec->hal, &task->info);
 
-    /*
-     * wait previous register set done
-     */
-    //mpp_hal_hw_wait(dec->hal_ctx, &task_local);
-
-    /*
-     * send current register set to hardware
-     */
-    //mpp_hal_hw_start(dec->hal_ctx, &task_local);
-
+    /* send current register set to hardware */
     mpp_hal_hw_start(dec->hal, &task->info);
 
     /*
-     * 6. send dxva output information and buffer information to hal thread
+     * 12. send dxva output information and buffer information to hal thread
      *    combinate video codec dxva output and buffer information
      */
     hal_task_hnd_set_info(task->hnd, &task->info);
@@ -614,8 +552,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     return MPP_OK;
 }
 
-
-
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
@@ -623,13 +559,6 @@ void *mpp_dec_parser_thread(void *data)
     MppDec    *dec      = mpp->mDec;
     MppBufSlots packet_slots = dec->packet_slots;
 
-    /*
-     * parser thread need to wait at cases below:
-     * 1. no task slot for output
-     * 2. no packet for parsing
-     * 3. info change on progress
-     * 3. no buffer on analyzing output task
-     */
     DecTask task;
     HalDecTask  *task_dec = &task.info.dec;
 
@@ -646,11 +575,17 @@ void *mpp_dec_parser_thread(void *data)
 
         parser->lock();
         if (MPP_THREAD_RUNNING == parser->get_status()) {
+            /*
+             * parser thread need to wait at cases below:
+             * 1. no task slot for output
+             * 2. no packet for parsing
+             * 3. info change on progress
+             * 3. no buffer on analyzing output task
+             */
             if (check_task_wait(dec, &task))
                 parser->wait();
         }
         parser->unlock();
-
 
         if (try_proc_dec_task(mpp, &task))
             continue;
@@ -676,22 +611,12 @@ void *mpp_dec_hal_thread(void *data)
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
 
-    /*
-     * hal thread need to wait at cases below:
-     * 1. no task slot for work
-     */
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
-    RK_S64 cur_deat = 0;
-    RK_U64 dec_no = 0, total_time = 0;
-    RK_S64 p_s, p_e;
 
-    p_s = mpp_time();
     while (MPP_THREAD_RUNNING == hal->get_status()) {
-        /*
-         * hal thread wait for dxva interface intput firt
-         */
+        /* hal thread wait for dxva interface intput first */
         hal->lock();
         if (MPP_THREAD_RUNNING == hal->get_status()) {
             if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task))
@@ -703,16 +628,18 @@ void *mpp_dec_hal_thread(void *data)
             mpp->mTaskGetCount++;
 
             hal_task_hnd_get_info(task, &task_info);
+
             /*
              * check info change flag
-             * if this is a info change frame, only output the mpp_frame for info change.
+             * if this is a frame with that flag, only output an empty
+             * MppFrame without any image data for info change.
              */
-
             if (task_dec->flags.info_change) {
                 MppFrame info_frame = NULL;
                 mpp_dec_flush(dec);
                 mpp_dec_push_display(mpp);
-                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME, &info_frame);
+                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME,
+                                      &info_frame);
                 mpp_assert(info_frame);
                 mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
                 mpp_frame_set_info_change(info_frame, 1);
@@ -726,8 +653,9 @@ void *mpp_dec_hal_thread(void *data)
             }
             /*
              * check eos task
-             * if this task is invalid then eos flag come we will flush display que
-             * then push eos frame to tell all frame decoded
+             * if this task is invalid while eos flag is set, we will
+             * flush display queue then push the eos frame to info that
+             * all frames have decoded.
              */
             if (task_dec->flags.eos && !task_dec->valid) {
                 mpp_dec_push_display(mpp);
@@ -737,13 +665,8 @@ void *mpp_dec_hal_thread(void *data)
                 task = NULL;
                 continue;
             }
+
             mpp_hal_hw_wait(dec->hal, &task_info);
-            p_e = mpp_time();
-            cur_deat = (p_e - p_s);
-            total_time += cur_deat;
-            //mpp_log("[Cal_time] dec_no=%lld, time=%d ms, av_time=%lld ms. \n", dec_no, cur_deat, total_time/(dec_no + 1));
-            dec_no++;
-            p_s = p_e;
             /*
              * when hardware decoding is done:
              * 1. clear decoding flag (mark buffer is ready)
@@ -751,7 +674,8 @@ void *mpp_dec_hal_thread(void *data)
              * 3. add frame to output list
              * repeat 2 and 3 until not frame can be output
              */
-            mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
+            mpp_buf_slot_clr_flag(packet_slots, task_dec->input,
+                                  SLOT_HAL_INPUT);
 
             // TODO: may have risk here
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
@@ -770,18 +694,16 @@ void *mpp_dec_hal_thread(void *data)
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
-            if (task_dec->flags.eos) {
+            if (task_dec->flags.eos)
                 mpp_dec_flush(dec);
-            }
             mpp_dec_push_display(mpp);
             /*
              * check eos task
-             * if this task is valid then eos flag come we will flush display que
-             * then push eos frame to tell all frame decoded
+             * if this task is the last frame we will flush display queue
+             * then push eos frame to inform that all frames have decoded.
              */
-            if (task_dec->flags.eos) {
+            if (task_dec->flags.eos)
                 mpp_put_frame_eos(mpp);
-            }
         }
     }
 
