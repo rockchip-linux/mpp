@@ -101,7 +101,9 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
 
     if (task->wait.task_hnd ||
         task->wait.mpp_pkt_in ||
-        task->wait.prev_task ||
+        /* Re-check */
+        (task->wait.prev_task &&
+         !hal_task_check_empty(dec->tasks, TASK_PROC_DONE)) ||
         task->wait.info_change ||
         task->wait.dec_pic_buf)
         return MPP_NOK;
@@ -606,6 +608,7 @@ void *mpp_dec_hal_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
+    MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
@@ -677,7 +680,11 @@ void *mpp_dec_hal_thread(void *data)
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,
                                   SLOT_HAL_INPUT);
 
-            // TODO: may have risk here
+            /*
+             * TODO: Locking the parser thread will prevent it fetching a
+             * new task. I wish there be a better way here.
+             */
+            parser->lock();
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
             task = NULL;
             if (dec->parser_fast_mode) {
@@ -687,6 +694,7 @@ void *mpp_dec_hal_thread(void *data)
                 }
             }
             mpp->mThreadCodec->signal();
+            parser->unlock();
 
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
