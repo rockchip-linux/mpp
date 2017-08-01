@@ -18,6 +18,7 @@
 #define __MPP_H__
 
 #include "mpp_list.h"
+#include "mpp_queue.h"
 #include "mpp_dec.h"
 #include "mpp_enc.h"
 #include "mpp_task.h"
@@ -78,7 +79,7 @@ public:
     MPP_RET reset();
     MPP_RET control(MpiCmd cmd, MppParam param);
 
-    mpp_list        *mPackets;
+    MppQueue        *mPackets;
     mpp_list        *mFrames;
     mpp_list        *mTasks;
 
