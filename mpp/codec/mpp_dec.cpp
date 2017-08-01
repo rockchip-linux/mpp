@@ -33,7 +33,6 @@ typedef union PaserTaskWait_u {
     RK_U32          val;
     struct {
         RK_U32      task_hnd    : 1;
-        RK_U32      mpp_pkt_in  : 1;
         RK_U32      dec_pkt_idx : 1;
         RK_U32      dec_pkt_buf : 1;
         RK_U32      prev_task   : 1;
@@ -100,7 +99,6 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
     }
 
     if (task->wait.task_hnd ||
-        task->wait.mpp_pkt_in ||
         /* Re-check */
         (task->wait.prev_task &&
          !hal_task_check_empty(dec->tasks, TASK_PROC_DONE)) ||
@@ -278,19 +276,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 2. get packet for parser preparing
      */
     if (!dec->mpp_pkt_in && !task->status.curr_task_rdy) {
-        mpp_list *packets = mpp->mPackets;
-        AutoMutex autoLock(packets->mutex());
-        if (packets->list_size()) {
-            /*
-             * packet will be destroyed outside, here just copy the content
-             */
-            packets->del_at_head(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in));
-            mpp->mPacketGetCount++;
-            task->wait.mpp_pkt_in = 0;
-        } else {
-            task->wait.mpp_pkt_in = 1;
+        MppQueue *packets = mpp->mPackets;
+
+        if (packets->pull(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in)))
             return MPP_NOK;
-        }
+        mpp->mPacketGetCount++;
     }
 
     /*

@@ -80,7 +80,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     mCoding = coding;
     switch (mType) {
     case MPP_CTX_DEC : {
-        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
+        mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
@@ -115,7 +115,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
-        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
+        mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_enc_init(&mEnc, coding);
@@ -263,9 +263,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
             return MPP_NOK;
 
-        mPackets->add_at_tail(&pkt, sizeof(pkt));
+        mPackets->push(&pkt, sizeof(pkt));
         mPacketPutCount++;
-        mThreadCodec->signal();
 
         // when packet has been send clear the length
         mpp_packet_set_length(packet, 0);
