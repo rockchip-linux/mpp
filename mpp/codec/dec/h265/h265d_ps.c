@@ -1038,7 +1038,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
 
     READ_BITS(gb, 4, &vps_id);
 
-    mpp_log("vps_id = 0x%x", vps_id);
+    h265d_dbg(H265D_DBG_VPS, "vps_id = 0x%x", vps_id);
 
     if (vps_id >= MAX_VPS_COUNT) {
         mpp_err( "VPS id out of range: %d\n", vps_id);
