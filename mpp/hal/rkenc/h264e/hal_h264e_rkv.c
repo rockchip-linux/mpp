@@ -2089,7 +2089,8 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         hw_cfg->cabac_init_idc = codec->cabac_init_idc;
         hw_cfg->qp = codec->qp_init;
 
-        hw_cfg->qp_prev = hw_cfg->qp;
+        if (hw_cfg->qp_prev <= 0)
+            hw_cfg->qp_prev = hw_cfg->qp;
     }
 
     /* init qp calculate, if outside doesn't set init qp.
@@ -2212,8 +2213,8 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
 
     /* limit QP by qp_step */
     hw_cfg->qp_min = mpp_clip(hw_cfg->qp_min,
-                              hw_cfg->qp_prev - codec->qp_max_step / 2,
-                              hw_cfg->qp_prev - codec->qp_max_step);
+                              hw_cfg->qp_prev - codec->qp_max_step,
+                              hw_cfg->qp_prev - codec->qp_max_step / 2);
     hw_cfg->qp_max = mpp_clip(hw_cfg->qp_max,
                               hw_cfg->qp_prev + codec->qp_max_step / 2,
                               hw_cfg->qp_prev + codec->qp_max_step);

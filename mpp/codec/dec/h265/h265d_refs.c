@@ -252,7 +252,7 @@ RK_S32 mpp_hevc_frame_rps(HEVCContext *s)
 
     if (!short_rps) {
         rps[0].nb_refs = rps[1].nb_refs = 0;
-            return 0;
+        return 0;
     }
 
     /* clear the reference flags on all frames except the current one */
