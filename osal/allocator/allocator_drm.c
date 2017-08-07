@@ -78,9 +78,8 @@ static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
 
     len = (len + pagesize_mask) & ~pagesize_mask;
 
-    if (offset & 4095) {
+    if (offset & 4095)
         return NULL;
-    }
 
     if (fp_mmap64)
         return fp_mmap64(NULL, len, prot, flags, fd, offset);
@@ -184,9 +183,6 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle)
     dmcb.bpp = 8;
     dmcb.width = (len + align - 1) & (~(align - 1));
     dmcb.height = 1;
-    dmcb.size = dmcb.width * dmcb.bpp;
-
-    drm_dbg(DRM_FUNCTION, "fd %d aligned %d size %lld\n", fd, align, dmcb.size);
 
     if (handle == NULL)
         return -EINVAL;
@@ -194,6 +190,8 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle)
     ret = drm_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &dmcb);
     if (ret < 0)
         return ret;
+
+    drm_dbg(DRM_FUNCTION, "fd %d aligned %d size %lld\n", fd, align, dmcb.size);
     *handle = dmcb.handle;
 
     drm_dbg(DRM_FUNCTION, "get handle %d size %d", *handle, dmcb.size);
@@ -217,7 +215,7 @@ static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
     drm_dbg(DRM_FUNCTION, "enter");
 
     if (NULL == ctx) {
-        mpp_err("os_allocator_open Android do not accept NULL input\n");
+        mpp_err("os_allocator_open does not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -236,7 +234,7 @@ static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
     p = mpp_malloc(allocator_ctx_drm, 1);
     if (NULL == p) {
         close(fd);
-        mpp_err("os_allocator_open Android failed to allocate context\n");
+        mpp_err("os_allocator_open failed to allocate context\n");
         return MPP_ERR_MALLOC;
     } else {
         /*
@@ -258,7 +256,7 @@ static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
     allocator_ctx_drm *p = NULL;
 
     if (NULL == ctx) {
-        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        mpp_err("os_allocator_alloc does not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -295,9 +293,9 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 
     ret = drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
 
-    drm_dbg(DRM_FUNCTION, "get handle %d", (RK_U32)(data->hnd));
+    drm_dbg(DRM_FUNCTION, "get handle %d", (intptr_t)(data->hnd));
 
-    dmmd.handle = (RK_U32)(data->hnd);
+    dmmd.handle = (intptr_t)data->hnd;
 
     ret = drm_ioctl(p->drm_device, DRM_IOCTL_MODE_MAP_DUMB, &dmmd);
     if (ret < 0)
@@ -317,28 +315,23 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
     return ret;
 }
 
-static MPP_RET os_allocator_drm_release(void *ctx, MppBufferInfo *data)
-{
-    (void)ctx;
-    munmap(data->ptr, data->size);
-    close(data->fd);
-    return MPP_OK;
-}
-
 static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
 {
     allocator_ctx_drm *p = NULL;
 
     if (NULL == ctx) {
-        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        drm_dbg(DRM_FUNCTION, "invalid ctx");
         return MPP_ERR_NULL_PTR;
     }
-
     p = (allocator_ctx_drm *)ctx;
-    munmap(data->ptr, data->size);
+
+    if (data->ptr) {
+        munmap(data->ptr, data->size);
+        data->ptr = NULL;
+    }
+
     close(data->fd);
-    drm_free(p->drm_device, (RK_U32)((intptr_t)data->hnd));
-    return MPP_OK;
+    return drm_free(p->drm_device, (RK_U32)((intptr_t)data->hnd));
 }
 
 static MPP_RET os_allocator_drm_close(void *ctx)
@@ -347,7 +340,7 @@ static MPP_RET os_allocator_drm_close(void *ctx)
     allocator_ctx_drm *p;
 
     if (NULL == ctx) {
-        mpp_err("os_allocator_close Android do not accept NULL input\n");
+        mpp_err("os_allocator_close doesn't accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -366,6 +359,6 @@ os_allocator allocator_drm = {
     .alloc = os_allocator_drm_alloc,
     .free = os_allocator_drm_free,
     .import = os_allocator_drm_import,
-    .release = os_allocator_drm_release,
+    .release = os_allocator_drm_free,
     .mmap = NULL,
 };
