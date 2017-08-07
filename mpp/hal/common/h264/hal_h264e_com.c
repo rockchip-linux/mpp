@@ -412,11 +412,17 @@ void h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
         break;
     }
     case MPP_FMT_ARGB8888: {
-        hw_cfg->input_format = H264E_VPU_CSP_NONE;
+        hw_cfg->input_format = H264E_VPU_CSP_ARGB8888;
+        hw_cfg->b_mask_msb = 23;
+        hw_cfg->g_mask_msb = 15;
+        hw_cfg->r_mask_msb = 7;
         break;
     }
     case MPP_FMT_ABGR8888: {
-        hw_cfg->input_format = H264E_VPU_CSP_NONE;
+        hw_cfg->input_format = H264E_VPU_CSP_ARGB8888;
+        hw_cfg->r_mask_msb = 23;
+        hw_cfg->g_mask_msb = 15;
+        hw_cfg->b_mask_msb = 7;
         break;
     }
     default: {

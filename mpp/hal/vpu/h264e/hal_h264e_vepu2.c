@@ -556,12 +556,25 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     val = VEPU_REG_ZERO_MV_FAVOR_D2(10);
     H264E_HAL_SET_REG(reg, VEPU_REG_MVC_RELATE, val);
 
-    val = VEPU_REG_OUTPUT_SWAP32
-          | VEPU_REG_OUTPUT_SWAP16
-          | VEPU_REG_OUTPUT_SWAP8
-          | VEPU_REG_INPUT_SWAP8
-          | VEPU_REG_INPUT_SWAP16
-          | VEPU_REG_INPUT_SWAP32;
+    if (hw_cfg->input_format < H264E_VPU_CSP_RGB565) {
+        val = VEPU_REG_OUTPUT_SWAP32
+              | VEPU_REG_OUTPUT_SWAP16
+              | VEPU_REG_OUTPUT_SWAP8
+              | VEPU_REG_INPUT_SWAP8
+              | VEPU_REG_INPUT_SWAP16
+              | VEPU_REG_INPUT_SWAP32;
+    } else if (hw_cfg->input_format == H264E_VPU_CSP_ARGB8888) {
+        val = VEPU_REG_OUTPUT_SWAP32
+              | VEPU_REG_OUTPUT_SWAP16
+              | VEPU_REG_OUTPUT_SWAP8
+              | VEPU_REG_INPUT_SWAP32;
+    } else {
+        val = VEPU_REG_OUTPUT_SWAP32
+              | VEPU_REG_OUTPUT_SWAP16
+              | VEPU_REG_OUTPUT_SWAP8
+              | VEPU_REG_INPUT_SWAP16
+              | VEPU_REG_INPUT_SWAP32;
+    }
     H264E_HAL_SET_REG(reg, VEPU_REG_DATA_ENDIAN, val);
 
     val = VEPU_REG_PPS_ID(pps->i_id)

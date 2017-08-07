@@ -187,6 +187,7 @@ typedef enum H264VpuCsp_e {
     H264E_VPU_CSP_BGR565    = 5,    // 16-bit RGB
     H264E_VPU_CSP_RGB555    = 6,    // 15-bit RGB
     H264E_VPU_CSP_BGR555    = 7,    // 15-bit RGB
+    H264E_VPU_CSP_ARGB8888  = 7,
     H264E_VPU_CSP_RGB444    = 8,    // 12-bit RGB
     H264E_VPU_CSP_BGR444    = 9,    // 12-bit RGB
     H264E_VPU_CSP_RGB888    = 10,   // 24-bit RGB
