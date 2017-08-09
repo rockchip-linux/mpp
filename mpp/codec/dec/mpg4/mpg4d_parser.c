@@ -23,6 +23,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_packet.h"
+#include "mpp_common.h"
 
 #include "mpp_bitread.h"
 #include "mpg4d_parser.h"
@@ -171,8 +172,8 @@ typedef struct {
     RK_U32          eos;
 
     // spliter parameter
-    RK_S32          pos_frm_start;      // negtive - not found; non-negtive - position of frame start
-    RK_S32          pos_frm_end;        // negtive - not found; non-negtive - position of frame end
+    RK_U32          state;
+    RK_U32          vop_header_found;   // flag: visual object plane header found
 
     // bit read context
     BitReadCtx_t    *bit_ctx;
@@ -180,7 +181,6 @@ typedef struct {
     RK_U32          profile;
     RK_U32          level;
     RK_U32          custorm_version;
-
     // commom buffer for header information
     /*
      * NOTE: We assume that quant matrix only used for current frame decoding
@@ -1074,8 +1074,8 @@ MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
     mpp_buf_slot_setup(frame_slots, 8);
     p->frame_slots      = frame_slots;
     p->use_internal_pts = 0;
-    p->pos_frm_start    = -1;
-    p->pos_frm_end      = -1;
+    p->state            = -1;
+    p->vop_header_found = 0;
     p->bit_ctx          = bit_ctx;
     init_mpg4_header(&p->hdr_curr);
     init_mpg4_header(&p->hdr_ref0);
@@ -1160,8 +1160,10 @@ MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx)
         hdr_ref1->slot_idx = -1;
     }
 
-    p->found_i_vop = 0;
-    p->found_vop   = 0;
+    p->found_i_vop      = 0;
+    p->found_vop        = 0;
+    p->state            = -1;
+    p->vop_header_found = 0;
 
     mpg4d_dbg_func("out\n");
 
@@ -1172,84 +1174,54 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
 {
     MPP_RET ret = MPP_NOK;
     Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
-    RK_U8 *dst_buf = mpp_packet_get_data(dst);
-    size_t dst_len = mpp_packet_get_length(dst);
-    RK_U8 *src_buf = mpp_packet_get_pos(src);
-    RK_S32 src_len = (RK_S32)mpp_packet_get_length(src);
-    RK_S32 pos_frm_start = p->pos_frm_start;
-    RK_S32 pos_frm_end   = p->pos_frm_end;
+    RK_U8 *src_buf = (RK_U8 *)mpp_packet_get_pos(src);
+    RK_U32 src_len = (RK_U32)mpp_packet_get_length(src);
     RK_U32 src_eos = mpp_packet_get_eos(src);
-    RK_S32 src_pos = 0;
-    RK_U32 state = (RK_U32) - 1;
+    RK_U8 *dst_buf = (RK_U8 *)mpp_packet_get_data(dst);
+    RK_U32 dst_len = (RK_U32)mpp_packet_get_length(dst);
+    RK_U32 src_pos = 0;
 
     mpg4d_dbg_func("in\n");
 
-    mpp_assert(src_len);
-
-    if (dst_len) {
-        mpp_assert(dst_len >= 4);
-        state = ((RK_U32)(dst_buf[dst_len - 1]) <<  0) |
-                ((RK_U32)(dst_buf[dst_len - 2]) <<  8) |
-                ((RK_U32)(dst_buf[dst_len - 3]) << 16) |
-                ((RK_U32)(dst_buf[dst_len - 4]) << 24);
-    }
-
-    if (pos_frm_start < 0) {
-        // scan for frame start
-        for (src_pos = 0; src_pos < src_len; src_pos++) {
-            state = (state << 8) | src_buf[src_pos];
-            if (state == MPG4_VOP_STARTCODE) {
-                src_pos++;
-                pos_frm_start = src_pos - 4;
+    // find the began of the vop
+    if (!p->vop_header_found) {
+        // add last startcode to the new frame data
+        if ((dst_len < sizeof(p->state))
+            && ((p->state & 0x00FFFFFF) == 0x000001)) {
+            dst_buf[0] = 0;
+            dst_buf[1] = 0;
+            dst_buf[2] = 1;
+            dst_len = 3;
+        }
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
+            if (p->state == MPG4_VOP_STARTCODE) {
+                p->vop_header_found = 1;
                 break;
             }
         }
     }
-
-    if (pos_frm_start >= 0) {
-        // scan for frame end
-        for (; src_pos < src_len; src_pos++) {
-            state = (state << 8) | src_buf[src_pos];
-
-            if ((state & 0xFFFFFFFF) == MPG4_VOP_STARTCODE) {
-                pos_frm_end = src_pos - 3;
+    // find the end of the vop
+    if (p->vop_header_found) {
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
+            if ((p->state & 0x00FFFFFF) == 0x000001) {
+                dst_len -= 3;
+                p->vop_header_found = 0;
+                ret = MPP_OK; // split complete
                 break;
             }
         }
-        if (src_eos && src_pos == src_len) {
-            pos_frm_end = src_len;
-            mpp_packet_set_eos(dst);
-        }
     }
-
-    //mpp_log("pkt pos: start %d end %d len: left %d in %d\n",
-    //        pos_frm_start, pos_frm_end, dst_len, src_len);
-
-    if (pos_frm_start < 0 || pos_frm_end < 0) {
-        // do not found frame start or do not found frame end, just copy the hold buffer to dst
-        memcpy(dst_buf + dst_len, src_buf, src_len);
-        // update dst buffer length
-        mpp_packet_set_length(dst, dst_len + src_len);
-        // set src buffer pos to end to src buffer
-        mpp_packet_set_pos(src, src_buf + src_len);
-    } else {
-        // found both frame start and frame end - only copy frame
-        memcpy(dst_buf + dst_len, src_buf, pos_frm_end);
-        mpp_packet_set_length(dst, dst_len + pos_frm_end);
-
-        // set src buffer pos to end to src buffer
-        mpp_packet_set_pos(src, src_buf + pos_frm_end);
-        mpp_assert((RK_S32)mpp_packet_get_length(src) == (src_len - pos_frm_end));
-        mpp_packet_set_length(src, src_len - pos_frm_end);
-
-        // return ok indicate the frame is ready and reset frame start/end position
-        ret = MPP_OK;
-        pos_frm_start = -1;
-        pos_frm_end = -1;
+    // the last packet
+    if (src_eos && src_pos >= src_len) {
+        mpp_packet_set_eos(dst);
     }
-
-    p->pos_frm_start = pos_frm_start;
-    p->pos_frm_end   = pos_frm_end;
+    // reset the src and dst
+    mpp_packet_set_length(dst, dst_len);
+    mpp_packet_set_pos(src, src_buf + src_pos);
 
     mpg4d_dbg_func("out\n");
 

@@ -37,6 +37,7 @@ typedef struct {
     RK_S32          task_count;
     RK_U8           *stream;
     size_t          stream_size;
+    size_t          left_length;
     MppPacket       task_pkt;
     RK_S64          task_pts;
     RK_U32          task_eos;
@@ -99,7 +100,7 @@ MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;
     p->parser       = parser;
-
+    p->left_length  = 0;
     return MPP_OK;
 ERR_RET:
     if (task_pkt) {
@@ -145,6 +146,7 @@ MPP_RET mpg4d_reset(void *dec)
     }
 
     Mpg4dCtx *p = (Mpg4dCtx *)dec;
+    p->left_length  = 0;
     return mpp_mpg4_parser_reset(p->parser);
 }
 
@@ -209,6 +211,33 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         mpp_err("failed to malloc task buffer for hardware with size %d\n", length);
         return MPP_ERR_UNKNOW;
     }
+    mpp_packet_set_length(p->task_pkt, p->left_length);
+
+    /*
+    * Check have enough buffer to store stream
+    * NOTE: total length is the left size plus the new incoming
+    *       packet length.
+    */
+    size_t total_length = MPP_ALIGN(p->left_length + length, 16) + 64; // add extra 64 bytes in tails
+
+    if (total_length > p->stream_size) {
+        RK_U8 *dst;
+
+        do {
+            p->stream_size <<= 1;
+        } while (length > p->stream_size);
+
+        dst = mpp_malloc_size(RK_U8, p->stream_size);
+        mpp_assert(dst);
+        // NOTE: copy remaining stream to new buffer
+        if (p->left_length > 0) {
+            memcpy(dst, p->stream, p->left_length);
+        }
+        mpp_free(p->stream);
+        p->stream = dst;
+        mpp_packet_set_data(p->task_pkt, p->stream);
+        mpp_packet_set_size(p->task_pkt, p->stream_size);
+    }
 
     if (!p->need_split) {
         /*
@@ -216,19 +245,6 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
          * Decoder's user will insure each packet is one frame for process
          * Parser will just copy packet to the beginning of stream buffer
          */
-        if (length > p->stream_size) {
-            // NOTE: here we double the buffer length to reduce frequency of realloc
-            do {
-                p->stream_size <<= 1;
-            } while (length > p->stream_size);
-
-            mpp_free(p->stream);
-            p->stream = mpp_malloc_size(RK_U8, p->stream_size);
-            mpp_assert(p->stream);
-            mpp_packet_set_data(p->task_pkt, p->stream);
-            mpp_packet_set_size(p->task_pkt, p->stream_size);
-        }
-
         memcpy(p->stream, pos, length);
         mpp_packet_set_pos(p->task_pkt, p->stream);
         mpp_packet_set_length(p->task_pkt, length);
@@ -246,32 +262,12 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
          * Input packet can be any length and no need to be bound of on frame
          * Parser will do split frame operation to find the beginning and end of one frame
          */
-        /*
-         * NOTE: on split mode total length is the left size plus the new incoming
-         *       packet length.
-         */
-        size_t remain_length = mpp_packet_get_length(p->task_pkt);
-        size_t total_length = remain_length + length;
-        if (total_length > p->stream_size) {
-            RK_U8 *dst;
-            do {
-                p->stream_size <<= 1;
-            } while (length > p->stream_size);
-
-            // NOTE; split mode need to copy remaining stream to new buffer
-            dst = mpp_malloc_size(RK_U8, p->stream_size);
-            mpp_assert(dst);
-
-            memcpy(dst, p->stream, remain_length);
-            mpp_free(p->stream);
-            p->stream = dst;
-            mpp_packet_set_data(p->task_pkt, p->stream);
-            mpp_packet_set_size(p->task_pkt, p->stream_size);
-        }
-
-        // start parser split
         if (MPP_OK == mpp_mpg4_parser_split(p->parser, p->task_pkt, pkt)) {
+            p->left_length = 0;
             task->valid = 1;
+        } else {
+            task->valid = 0;
+            p->left_length = mpp_packet_get_length(p->task_pkt);
         }
         p->task_pts = mpp_packet_get_pts(p->task_pkt);
         p->task_eos = mpp_packet_get_eos(p->task_pkt);
@@ -300,6 +296,7 @@ MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
         task->valid  = 0;
         task->output = -1;
         mpp_packet_set_length(task->input_packet, 0);
+
         return MPP_NOK;
     }
 
