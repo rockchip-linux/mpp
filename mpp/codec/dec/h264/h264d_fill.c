@@ -25,21 +25,21 @@
 
 #include "h264d_fill.h"
 
-
-static const RK_U8 start_code[3] = { 0, 0, 1 };
-
 static MPP_RET realloc_slice_list(H264dDxvaCtx_t *dxva_ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     dxva_ctx->max_slice_size += ADD_SLICE_SIZE;
-    dxva_ctx->slice_long  = mpp_realloc(dxva_ctx->slice_long, DXVA_Slice_H264_Long, dxva_ctx->max_slice_size);
+    dxva_ctx->slice_long = mpp_realloc(dxva_ctx->slice_long,
+                                       DXVA_Slice_H264_Long,
+                                       dxva_ctx->max_slice_size);
     MEM_CHECK(ret, dxva_ctx->slice_long);
 
     return ret = MPP_OK;
 __FAILED:
     return ret;
 }
+
 static MPP_RET fill_slice_stream(H264dDxvaCtx_t *dxva_ctx, H264_Nalu_t *p_nal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;

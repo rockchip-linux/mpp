@@ -408,6 +408,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
         cur_mark->out_flag = 1;
         {
             MppFrame mframe = NULL;
+
             mpp_frame_init(&mframe);
             if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
@@ -429,14 +430,33 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
             mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
             mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
 
+            /* Setting the interlace mode for the picture */
+            switch (p_Vid->structure) {
+            case FRAME:
+                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_FRAME);
+                break;
+            case TOP_FIELD:
+                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
+                                   | MPP_FRAME_FLAG_TOP_FIRST);
+                break;
+            case BOTTOM_FIELD:
+                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
+                                   | MPP_FRAME_FLAG_BOT_FIRST);
+                break;
+            default:
+                H264D_DBG(H264D_DBG_FIELD_PAIRED, "Unknown interlace mode");
+                mpp_assert(0);
+            }
+
             //!< set display parameter
             if (p_Vid->active_sps->vui_parameters_present_flag) {
                 H264_VUI_t *p = &p_Vid->active_sps->vui_seq_parameters;
-                if (p->video_signal_type_present_flag && p->video_full_range_flag) {
+
+                if (p->video_signal_type_present_flag && p->video_full_range_flag)
                     mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_JPEG);
-                } else {
+                else
                     mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_MPEG);
-                }
+
                 if (p->colour_description_present_flag) {
                     mpp_frame_set_color_primaries(mframe, p->colour_primaries);
                     mpp_frame_set_color_trc(mframe, p->transfer_characteristics);
@@ -474,33 +494,6 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
 __FAILED:
     dec_pic->mem_mark = NULL;
     return ret;
-}
-static MPP_RET check_dpb_field_paired(H264_FrameStore_t *p_last, H264_StorePic_t *dec_pic, RK_S32 last_pic_structure)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-#if 0
-    RK_S32 cur_structure = dec_pic->structure;
-    //!< check illegal field paired
-    if (p_last && (cur_structure == TOP_FIELD || cur_structure == BOTTOM_FIELD)) {
-
-        if ((p_last->is_used == 1 && cur_structure == TOP_FIELD)  //!< Top +Top
-            || (p_last->is_used == 2 && cur_structure == BOTTOM_FIELD) //!< Bot + Bot
-            //|| ((!dec_pic->combine_flag) && p_last->is_used == 2 && cur_structure == TOP_FIELD) //!< Bot + Top + not combine
-            || ((!dec_pic->combine_flag) && p_last->is_used == 1 && cur_structure == BOTTOM_FIELD) //!< Top + Bot + not combine
-           ) {
-            H264D_WARNNING("[check_field_paired] (discard) combine_flag=%d, last_used=%d, curr_struct=%d",
-                           dec_pic->combine_flag, p_last->is_used, cur_structure);
-            return ret = MPP_NOK;
-        }
-    }
-    H264D_DBG(H264D_DBG_FIELD_PAIRED, "[check_field_paired] combine_flag=%d, last_used=%d, last_pic_struct=%d, curr_struct=%d",
-              dec_pic->combine_flag, (p_last ? p_last->is_used : -1), last_pic_structure, cur_structure);
-#else
-    (void)p_last;
-    (void)dec_pic;
-    (void)last_pic_structure;
-#endif
-    return ret = MPP_OK;
 }
 
 static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t *dec_pic, H264_SLICE_t *currSlice)
@@ -613,8 +606,8 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->width_after_crop = p_Vid->width_after_crop;
     dec_pic->height_after_crop = p_Vid->height_after_crop;
     dec_pic->combine_flag = get_filed_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
-    FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic)); //!< malloc dpb_memory
-    FUN_CHECK(ret = check_dpb_field_paired(p_Dpb->last_picture, dec_pic, p_Vid->last_pic_structure));
+    /* malloc dpb_memory */
+    FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic));
     FUN_CHECK(ret = check_dpb_discontinuous(p_Vid->last_pic, dec_pic, currSlice));
     dec_pic->mem_malloc_type = Mem_Malloc;
     dec_pic->colmv_no_used_flag = 0;
