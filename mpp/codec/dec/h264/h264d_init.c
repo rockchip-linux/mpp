@@ -376,26 +376,27 @@ __FAILED:
     return ret;
 }
 
-static RK_U32 rkv_len_align_422(RK_U32 val)
+static inline RK_U32 rkv_len_align_422(RK_U32 val)
 {
     return ((5 * MPP_ALIGN(val, 16)) / 2);
 }
 
-static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic)
+static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 {
-    RK_U8 idx = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DpbMark_t *cur_mark = NULL;
-    RK_U32 hor_stride = 0, ver_stride = 0;
     H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
     H264_DpbMark_t *p_mark = p_Vid->p_Dec->dpb_mark;
     RK_S32 structure = dec_pic->structure;
     RK_S32 layer_id = dec_pic->layer_id;
+
     if (!dec_pic->combine_flag) {
-        while (p_mark[idx].out_flag || p_mark[idx].top_used || p_mark[idx].bot_used) {
+        RK_U8 idx = 0;
+        while (p_mark[idx].out_flag || p_mark[idx].top_used
+               || p_mark[idx].bot_used) {
             idx++;
+            ASSERT(MAX_MARK_SIZE > idx);
         }
-        ASSERT(idx <= MAX_MARK_SIZE);
 
         mpp_buf_slot_get_unused(p_Vid->p_Dec->frame_slots, &p_mark[idx].slot_idx);
         if (p_mark[idx].slot_idx < 0) {
@@ -408,6 +409,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
         cur_mark->out_flag = 1;
         {
             MppFrame mframe = NULL;
+            RK_U32 hor_stride, ver_stride;
 
             mpp_frame_init(&mframe);
             if ((YUV420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
@@ -421,17 +423,19 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
                 mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
                 mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             }
-            hor_stride = ((p_Vid->width * p_Vid->bit_depth_luma + 7) & (~7)) / 8;
+            hor_stride = MPP_ALIGN(p_Vid->width * p_Vid->bit_depth_luma, 8) / 8;
             ver_stride = p_Vid->height;
-            mpp_frame_set_hor_stride(mframe, hor_stride);  // before crop
+            /* Before cropping */
+            mpp_frame_set_hor_stride(mframe, hor_stride);
             mpp_frame_set_ver_stride(mframe, ver_stride);
-            mpp_frame_set_width(mframe, p_Vid->width_after_crop);  // after crop
+            /* After cropped */
+            mpp_frame_set_width(mframe, p_Vid->width_after_crop);
             mpp_frame_set_height(mframe, p_Vid->height_after_crop);
             mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
             mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
 
             /* Setting the interlace mode for the picture */
-            switch (p_Vid->structure) {
+            switch (structure) {
             case FRAME:
                 mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_FRAME);
                 break;
@@ -481,8 +485,11 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid,  H264_StorePic_t *dec_pic
     if (structure == FRAME || structure == BOTTOM_FIELD) {
         cur_mark->bot_used += 1;
     }
-    H264D_DBG(H264D_DBG_DPB_MALLIC, "[DPB_malloc] g_framecnt=%d, com_flag=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, struct=%d, lay_id=%d\n",
-              p_Vid->g_framecnt, dec_pic->combine_flag, cur_mark->mark_idx, cur_mark->slot_idx, dec_pic->slice_type, dec_pic->structure, layer_id);
+    H264D_DBG(H264D_DBG_DPB_MALLIC,
+              "[DPB_malloc] g_framecnt=%d, com_flag=%d, mark_idx=%d, slot_idx=%d, slice_type=%d, struct=%d, lay_id=%d\n",
+              p_Vid->g_framecnt, dec_pic->combine_flag, cur_mark->mark_idx,
+              cur_mark->slot_idx, dec_pic->slice_type, dec_pic->structure,
+              layer_id);
 
     p_Vid->p_Dec->in_task->output = cur_mark->slot_idx;
     mpp_buf_slot_set_flag(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_HAL_OUTPUT);
