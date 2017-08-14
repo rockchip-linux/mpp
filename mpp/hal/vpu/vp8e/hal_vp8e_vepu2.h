@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_API_H__
-#define __VP8E_API_H__
+#ifndef __HAL_VP8E_VEPU2_H__
+#define __HAL_VP8E_VEPU2_H__
 
-#include "encoder_codec_api.h"
+#include "hal_vp8e_base.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern const ControlApi api_vp8e_controller;
-
+MPP_RET hal_vp8e_vepu2_init(void *hal, MppHalCfg *cfg);
+MPP_RET hal_vp8e_vepu2_deinit(void *hal);
+MPP_RET hal_vp8e_vepu2_gen_regs(void *hal, HalTaskInfo *task);
+MPP_RET hal_vp8e_vepu2_start(void *hal, HalTaskInfo *task);
+MPP_RET hal_vp8e_vepu2_wait(void *hal, HalTaskInfo *task);
+MPP_RET hal_vp8e_vepu2_reset(void *hal);
+MPP_RET hal_vp8e_vepu2_flush(void *hal);
+MPP_RET hal_vp8e_vepu2_control(void *hal, RK_S32 cmd, void *param);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__VP8E_API_H__*/
+#endif /*__HAL_VP8E_VEPU2_H__*/

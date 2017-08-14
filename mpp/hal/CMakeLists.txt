@@ -41,6 +41,7 @@ target_link_libraries(mpp_hal
                       ${HAL_H264E}
                       ${HAL_JPEGE}
                       ${HAL_H265E}
+                      ${HAL_VP8E}
                       hal_dummy
                       mpp_device
                       )

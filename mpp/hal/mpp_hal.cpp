@@ -36,6 +36,7 @@
 #include "hal_jpegd_api.h"
 #include "hal_jpege_api.h"
 #include "hal_h265e_api.h"
+#include "hal_vp8e_api.h"
 
 // for test and demo
 #include "hal_dummy_dec_api.h"
@@ -80,6 +81,9 @@ static const MppHalApi *hw_apis[] = {
 #endif
 #if HAVE_H265E
     &hal_api_h265e,
+#endif
+#if HAVE_VP8E
+    &hal_api_vp8e,
 #endif
     &hal_api_dummy_dec,
     &hal_api_dummy_enc,

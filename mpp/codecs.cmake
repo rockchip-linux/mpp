@@ -108,3 +108,12 @@ if( ENABLE_H265E )
     set(HAL_H265E hal_h265e)
     add_definitions(-DHAVE_H265E)
 endif()
+
+# vp8 encoder
+option(ENABLE_VP8E "Enable vp8 encoder" ON)
+if( ENABLE_VP8E )
+    set(HAVE_VP8E true)
+    set(CODEC_VP8E codec_vp8e)
+    set(HAL_VP8E hal_vp8e)
+    add_definitions(-DHAVE_VP8E)
+endif()
