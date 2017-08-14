@@ -14,19 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_API_H__
-#define __VP8E_API_H__
+#ifndef __VP8E_RC_H__
+#define __VP8E_RC_H__
 
-#include "encoder_codec_api.h"
+#include "rk_mpi.h"
 
-#ifdef __cplusplus
+#include "vp8e_syntax.h"
+
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_vp8e_controller;
+MPP_RET vp8e_init_rc(Vp8eRc *rc, MppEncCfgSet *cfg);
+MPP_RET vp8e_update_rc_cfg(Vp8eRc *rc, MppEncRcCfg *cfg);
+MPP_RET vp8e_before_pic_rc(Vp8eRc *rc);
+MPP_RET vp8e_after_pic_rc(Vp8eRc *rc, RK_S32 bitcnt);
 
-#ifdef __cplusplus
+#ifdef  __cplusplus
 }
 #endif
 
-#endif /*__VP8E_API_H__*/
+
+#endif //__VP8E_RC_H__

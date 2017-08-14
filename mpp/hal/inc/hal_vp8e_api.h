@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_API_H__
-#define __VP8E_API_H__
+#ifndef __HAL_VP8E_API_H__
+#define __HAL_VP8E_API_H__
 
-#include "encoder_codec_api.h"
+#include "mpp_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_vp8e_controller;
+extern const MppHalApi hal_api_vp8e;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__VP8E_API_H__*/
+#endif /* __HAL_VP8E_API_H__ */

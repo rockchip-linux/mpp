@@ -33,6 +33,10 @@
 
 #define MPP_DIV(a, b)           ((b) ? (a) / (b) : (a))
 
+#define MPP_CLIP3(l, h, v)      ((v) < (l) ? (l) : ((v) > (h) ? (h) : (v)))
+#define MPP_SIGN(a)             ((a) < (0) ? (-1) : (1))
+#define MPP_DIV_SIGN(a, b)      (((a) + (MPP_SIGN(a) * (b)) / 2) / (b))
+
 #define MPP_SWAP(type, a, b)    do {type SWAP_tmp = b; b = a; a = SWAP_tmp;} while(0)
 #define MPP_ARRAY_ELEMS(a)      (sizeof(a) / sizeof((a)[0]))
 #define MPP_ALIGN(x, a)         (((x)+(a)-1)&~((a)-1))

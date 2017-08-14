@@ -14,3 +14,7 @@ if(HAVE_H265E)
 add_subdirectory(h265)
 endif()
 
+if(HAVE_VP8E)
+add_subdirectory(vp8)
+endif()
+
