@@ -25,6 +25,7 @@ add_library(osal STATIC
     mpp_allocator.cpp
     mpp_thread.cpp
     mpp_common.cpp
+    mpp_queue.cpp
     mpp_time.cpp
     mpp_list.cpp
     mpp_mem.cpp
