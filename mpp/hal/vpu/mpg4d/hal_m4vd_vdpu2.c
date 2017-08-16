@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2016 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_vpu_mpg4d"
+#define MODULE_TAG "hal_m4vd_vdpu2"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,65 +30,12 @@
 #include "mpp_dec.h"
 #include "mpg4d_syntax.h"
 #include "hal_mpg4d_api.h"
-#include "hal_mpg4d_reg.h"
+#include "hal_m4vd_com.h"
+#include "hal_m4vd_vdpu2_reg.h"
 
-#define MPEG4_MAX_MV_BUF_SIZE       ((1920/16)*(1088/16)*4*sizeof(RK_U32))
-
-typedef struct mpeg4d_reg_context {
-    MppBufSlots         frm_slots;
-    MppBufSlots         pkt_slots;
-    MppBufferGroup      group;
-    IOInterruptCB       int_cb;
-    MppDevCtx           dev_ctx;
-    // save fd for curr/ref0/ref1 for reg_gen
-    RK_S32              vpu_fd;
-    RK_S32              fd_curr;
-    RK_S32              fd_ref0;
-    RK_S32              fd_ref1;
-    RK_U32              bitstrm_len;
-    // mv info buffer
-    // NOTE: mv buffer fix to 1080p size for convenience
-    MppBuffer           mv_buf;
-    MppBuffer           qp_table;
-
-    VpuMpg4dRegSet_t*   regs;
-} hal_mpg4_ctx;
-
-RK_U32 mpg4d_hal_debug = 0;
-
-static RK_U8 default_intra_matrix[64] = {
-    8, 17, 18, 19, 21, 23, 25, 27,
-    17, 18, 19, 21, 23, 25, 27, 28,
-    20, 21, 22, 23, 24, 26, 28, 30,
-    21, 22, 23, 24, 26, 28, 30, 32,
-    22, 23, 24, 26, 28, 30, 32, 35,
-    23, 24, 26, 28, 30, 32, 35, 38,
-    25, 26, 28, 30, 32, 35, 38, 41,
-    27, 28, 30, 32, 35, 38, 41, 45
-};
-
-static RK_U8 default_inter_matrix[64] = {
-    16, 17, 18, 19, 20, 21, 22, 23,
-    17, 18, 19, 20, 21, 22, 23, 24,
-    18, 19, 20, 21, 22, 23, 24, 25,
-    19, 20, 21, 22, 23, 24, 26, 27,
-    20, 21, 22, 23, 25, 26, 27, 28,
-    21, 22, 23, 24, 26, 27, 28, 30,
-    22, 23, 24, 26, 27, 28, 30, 31,
-    23, 24, 25, 27, 28, 30, 31, 33
-};
-
-static void vpu_mpg4d_get_buffer_by_index(hal_mpg4_ctx *ctx, RK_S32 index, MppBuffer *buffer)
+static void vdpu2_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 {
-    if (index >= 0) {
-        mpp_buf_slot_get_prop(ctx->frm_slots, index, SLOT_BUFFER, buffer);
-        mpp_assert(*buffer);
-    }
-}
-
-static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
-{
-    VpuMpg4dRegSet_t *regs = ctx->regs;
+    M4vdVdpu2Regs_t *regs = ctx->regs;
     DXVA2_DecodeBufferDesc **data = syntax.data;
     DXVA_PicParams_MPEG4_PART2 *pp = NULL;
     DXVA_QmatrixData *qm = NULL;
@@ -152,12 +98,12 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
     **       but not sw_alt_scan_e.
     */
     regs->reg136.sw_alt_scan_flag_e = pp->alternate_vertical_scan_flag;
-    regs->reg52_error_concealment.sw_startmb_x = 0;
-    regs->reg52_error_concealment.sw_startmb_y = 0;
-    regs->reg50_dec_ctrl.sw_filtering_dis = 1;
+    regs->reg52_error_concealment.sw_xdim_mbst = 0;
+    regs->reg52_error_concealment.sw_ydim_mbst = 0;
+    regs->reg50_dec_ctrl.sw_dblk_flt_dis = 1;
     regs->reg136.sw_rounding = pp->vop_rounding_type;
     regs->reg122.sw_intradc_vlc_thr = pp->intra_dc_vlc_thr;
-    regs->reg51_stream_info.sw_init_qp = pp->vop_quant;
+    regs->reg51_stream_info.sw_qp_init_val = pp->vop_quant;
     regs->reg122.sw_sync_markers_en = 1;
 
     {
@@ -189,8 +135,8 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
         RK_U32 trb_per_trd_d1  = ((((RK_S64)(2 * time_bp + 1)) << 27) + 2 * (time_pp - 0)) / (2 * time_pp + 1);
         RK_U32 trb_per_trd_dm1 = ((((RK_S64)(2 * time_bp - 1)) << 27) + 2 * (time_pp - 1)) / (2 * time_pp - 1);
 
-        regs->reg57_enable_ctrl.sw_pic_b_e = 1;
-        regs->reg57_enable_ctrl.sw_pic_inter_e = 1;
+        regs->reg57_enable_ctrl.sw_pic_type_sel1 = 1;
+        regs->reg57_enable_ctrl.sw_pic_type_sel0 = 1;
         regs->reg136.sw_rounding = 0;
         regs->reg131_ref0_base = 1;
 
@@ -216,15 +162,15 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
         regs->reg136.sw_vrz_bit_of_fwd_mv = pp->vop_fcode_forward;
         regs->reg136.sw_hrz_bit_of_bwd_mv = pp->vop_fcode_backward;
         regs->reg136.sw_vrz_bit_of_bwd_mv = pp->vop_fcode_backward;
-        regs->reg57_enable_ctrl.sw_write_mvs_e = 0;
+        regs->reg57_enable_ctrl.sw_dmmv_wr_en = 0;
         regs->reg62_directmv_base = mv_buf_fd;
         regs->reg137.sw_trb_per_trd_d0 = trb_per_trd_d0;
         regs->reg139.sw_trb_per_trd_d1 = trb_per_trd_d1;
         regs->reg138.sw_trb_per_trd_dm1 = trb_per_trd_dm1;
     } break;
     case MPEG4_P_VOP : {
-        regs->reg57_enable_ctrl.sw_pic_b_e = 0;
-        regs->reg57_enable_ctrl.sw_pic_inter_e = 1;
+        regs->reg57_enable_ctrl.sw_pic_type_sel1 = 0;
+        regs->reg57_enable_ctrl.sw_pic_type_sel0 = 1;
 
         if (ctx->fd_ref0 >= 0) {
             regs->reg131_ref0_base = (RK_U32)ctx->fd_ref0;
@@ -238,19 +184,19 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 
         regs->reg136.sw_hrz_bit_of_fwd_mv = pp->vop_fcode_forward;
         regs->reg136.sw_vrz_bit_of_fwd_mv = pp->vop_fcode_forward;
-        regs->reg57_enable_ctrl.sw_write_mvs_e = 1;
+        regs->reg57_enable_ctrl.sw_dmmv_wr_en = 1;
         regs->reg62_directmv_base = mv_buf_fd;
     } break;
     case MPEG4_I_VOP : {
-        regs->reg57_enable_ctrl.sw_pic_b_e = 0;
-        regs->reg57_enable_ctrl.sw_pic_inter_e = 0;
+        regs->reg57_enable_ctrl.sw_pic_type_sel1 = 0;
+        regs->reg57_enable_ctrl.sw_pic_type_sel0 = 0;
 
         regs->reg131_ref0_base = (RK_U32)ctx->fd_curr;
         regs->reg148_ref1_base = (RK_U32)ctx->fd_curr;
         regs->reg134_ref2_base = (RK_U32)ctx->fd_curr;
         regs->reg135_ref3_base = (RK_U32)ctx->fd_curr;
 
-        regs->reg57_enable_ctrl.sw_write_mvs_e = 0;
+        regs->reg57_enable_ctrl.sw_dmmv_wr_en = 0;
         regs->reg62_directmv_base = mv_buf_fd;
 
         regs->reg136.sw_hrz_bit_of_fwd_mv = 1;
@@ -262,8 +208,8 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
     }
 
     if (pp->interlaced) {
-        regs->reg57_enable_ctrl.sw_pic_interlace_e = 1;
-        regs->reg57_enable_ctrl.sw_pic_fieldmode_e = 0;
+        regs->reg57_enable_ctrl.sw_curpic_code_sel = 1;
+        regs->reg57_enable_ctrl.sw_curpic_stru_sel = 0;
         regs->reg120.sw_topfieldfirst_e = pp->top_field_first;
     }
 
@@ -274,10 +220,10 @@ static void vpu_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 
 }
 
-MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
+MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
-    VpuMpg4dRegSet_t *regs = NULL;
+    M4vdVdpu2Regs_t *regs = NULL;
     MppBufferGroup group = NULL;
     MppBuffer mv_buf = NULL;
     MppBuffer qp_table = NULL;
@@ -285,7 +231,6 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
     RK_S32 vpu_fd = -1;
 
     mpp_assert(hal);
-
 
     ret = mpp_buffer_group_get_internal(&group, MPP_BUFFER_TYPE_ION);
     if (ret) {
@@ -305,7 +250,7 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    regs = mpp_calloc(VpuMpg4dRegSet_t, 1);
+    regs = mpp_calloc(M4vdVdpu2Regs_t, 1);
     if (NULL == regs) {
         mpp_err_f("failed to malloc register ret\n");
         ret = MPP_ERR_MALLOC;
@@ -326,18 +271,18 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
      */
     regs->reg54_endian.sw_dec_out_endian = 1;
     regs->reg54_endian.sw_dec_in_endian = 1;
-    regs->reg54_endian.sw_dec_inswap32_e = 1;
-    regs->reg54_endian.sw_dec_outswap32_e = 1;
+    regs->reg54_endian.sw_dec_in_wordsp = 1;
+    regs->reg54_endian.sw_dec_out_wordsp = 1;
     regs->reg54_endian.sw_dec_strswap32_e = 1;
     regs->reg54_endian.sw_dec_strendian_e = 1;
-    regs->reg56_axi_ctrl.sw_dec_max_burst = 16;
-    regs->reg52_error_concealment.sw_apf_threshold = 1;
-    regs->reg57_enable_ctrl.sw_dec_timeout_e = 1;
-    regs->reg57_enable_ctrl.sw_dec_clk_gate_e = 1;
-    regs->reg57_enable_ctrl.sw_dec_e = 1;
-    regs->reg59.sw_pred_bc_tap_0_0 = -1;
-    regs->reg59.sw_pred_bc_tap_0_1 = 3;
-    regs->reg59.sw_pred_bc_tap_0_2 = -6;
+    regs->reg56_axi_ctrl.sw_dec_max_burlen = 16;
+    regs->reg52_error_concealment.sw_adv_pref_thrd = 1;
+    regs->reg57_enable_ctrl.sw_timeout_sts_en = 1;
+    regs->reg57_enable_ctrl.sw_dec_clkgate_en = 1;
+    regs->reg57_enable_ctrl.sw_dec_st_work = 1;
+    regs->reg59.sw_pflt_set0_tap0 = -1;
+    regs->reg59.sw_pflt_set0_tap1    = 3;
+    regs->reg59.sw_pflt_set0_tap2 = -6;
     regs->reg153.sw_pred_bc_tap_0_3 = 20;
 
     ctx->frm_slots  = cfg->frame_slots;
@@ -376,7 +321,7 @@ ERR_RET:
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_deinit(void *hal)
+MPP_RET vdpu2_mpg4d_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -413,7 +358,7 @@ MPP_RET hal_vpu_mpg4d_deinit(void *hal)
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
+MPP_RET vdpu2_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -422,7 +367,7 @@ MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer buf_frm_ref0 = NULL;
     MppBuffer buf_frm_ref1 = NULL;
     MppBuffer buf_pkt = NULL;
-    VpuMpg4dRegSet_t *regs = ctx->regs;
+    M4vdVdpu2Regs_t *regs = ctx->regs;
 
     mpp_assert(task->valid);
     mpp_assert(task->input >= 0);
@@ -443,7 +388,7 @@ MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
     regs->reg64_input_stream_base = mpp_buffer_get_fd(buf_pkt);
 
     /* setup other registers, here will update packet address */
-    vpu_mpg4d_setup_regs_by_syntax(ctx, task->syntax);
+    vdpu2_mpg4d_setup_regs_by_syntax(ctx, task->syntax);
     /* memset tails to zero for stream buffer */
     {
         RK_U8 *ptr = (RK_U8 *)mpp_buffer_get_ptr(buf_pkt);
@@ -454,13 +399,13 @@ MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
+MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
 
 #ifdef RKPLATFORM
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
-    RK_U32 reg_count = (sizeof(*ctx->regs) / sizeof(RK_U32));
+    RK_U32 reg_count = (sizeof(*(M4vdVdpu2Regs_t *)ctx->regs) / sizeof(RK_U32));
     RK_U32* regs = (RK_U32 *)ctx->regs;
 
     if (mpg4d_hal_debug & MPG4D_HAL_DBG_REG_PUT) {
@@ -478,12 +423,12 @@ MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
+MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
 #ifdef RKPLATFORM
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
-    VpuMpg4dRegSet_t reg_out;
+    M4vdVdpu2Regs_t reg_out;
     RK_U32* regs = (RK_U32 *)&reg_out;
     RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
 
@@ -503,14 +448,14 @@ MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_reset(void *hal)
+MPP_RET vdpu2_mpg4d_reset(void *hal)
 {
     MPP_RET ret = MPP_OK;
     (void)hal;
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_flush(void *hal)
+MPP_RET vdpu2_mpg4d_flush(void *hal)
 {
     MPP_RET ret = MPP_OK;
 
@@ -518,7 +463,7 @@ MPP_RET hal_vpu_mpg4d_flush(void *hal)
     return ret;
 }
 
-MPP_RET hal_vpu_mpg4d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET vdpu2_mpg4d_control(void *hal, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
 
@@ -527,20 +472,3 @@ MPP_RET hal_vpu_mpg4d_control(void *hal, RK_S32 cmd_type, void *param)
     (void)param;
     return  ret;
 }
-
-const MppHalApi hal_api_mpg4d = {
-    "mpg4d_vpu",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingMPEG4,
-    sizeof(hal_mpg4_ctx),
-    0,
-    hal_vpu_mpg4d_init,
-    hal_vpu_mpg4d_deinit,
-    hal_vpu_mpg4d_gen_regs,
-    hal_vpu_mpg4d_start,
-    hal_vpu_mpg4d_wait,
-    hal_vpu_mpg4d_reset,
-    hal_vpu_mpg4d_flush,
-    hal_vpu_mpg4d_control,
-};
-
