@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_MPG4D_REG_H__
-#define __HAL_MPG4D_REG_H__
+#ifndef __HAL_M4V_VDPU2_REG_TBL_H__
+#define __HAL_M4V_VDPU2_REG_TBL_H__
 
 #include "rk_type.h"
 
@@ -23,30 +23,30 @@ typedef struct  {
     RK_U32      reg00_49[50];
 
     struct {
-        RK_U32  sw_dec_out_tiled_e  : 1;
+        RK_U32  sw_dec_tiled_msb    : 1;
         RK_U32  sw_dec_latency      : 6;
         RK_U32  sw_pic_fixed_quant  : 1;
-        RK_U32  sw_filtering_dis    : 1;
-        RK_U32  sw_divx_enable      : 1;
-        RK_U32  sw_dec_scmd_dis     : 1;
-        RK_U32  sw_dec_adv_pre_dis  : 1;
-        RK_U32  sw_priority_mode    : 1;
-        RK_U32  sw_refbu2_thr       : 12;
-        RK_U32  sw_refbu2_picid     : 5;
+        RK_U32  sw_dblk_flt_dis     : 1;
+        RK_U32  sw_skip_sel         : 1;
+        RK_U32  sw_dec_ascmd0_dis   : 1;
+        RK_U32  sw_adv_pref_dis     : 1;
+        RK_U32  sw_dec_tiled_lsb    : 1;
+        RK_U32  sw_refbuf_thrd      : 12;
+        RK_U32  sw_refbuf_pid       : 5;
         RK_U32  reserve1            : 2;
     } reg50_dec_ctrl;
 
     struct {
         RK_U32  sw_stream_len       : 24;
         RK_U32  reserve1            : 1;
-        RK_U32  sw_init_qp          : 6;
+        RK_U32  sw_qp_init_val      : 6;
         RK_U32  reserve2            : 1;
     } reg51_stream_info;
 
     struct {
-        RK_U32  sw_startmb_y        : 8;
-        RK_U32  sw_startmb_x        : 9;
-        RK_U32  sw_apf_threshold    : 14;
+        RK_U32  sw_ydim_mbst        : 8;
+        RK_U32  sw_xdim_mbst        : 9;
+        RK_U32  sw_adv_pref_thrd    : 14;
         RK_U32  sw_reserve          : 1;
     } reg52_error_concealment;
 
@@ -55,8 +55,8 @@ typedef struct  {
     struct {
         RK_U32  sw_dec_in_endian    : 1;
         RK_U32  sw_dec_out_endian   : 1;
-        RK_U32  sw_dec_inswap32_e   : 1;
-        RK_U32  sw_dec_outswap32_e  : 1;
+        RK_U32  sw_dec_in_wordsp    : 1;
+        RK_U32  sw_dec_out_wordsp   : 1;
         RK_U32  sw_dec_strswap32_e  : 1;
         RK_U32  sw_dec_strendian_e  : 1;
         RK_U32  reserve3            : 26;
@@ -67,53 +67,53 @@ typedef struct  {
         RK_U32  sw_dec_irq_dis      : 1;
         RK_U32  reserve0            : 2;
         RK_U32  sw_dec_rdy_int      : 1;
-        RK_U32  sw_dec_bus_int      : 1;
-        RK_U32  sw_dec_buf_empty_int: 1;
+        RK_U32  sw_pp_bus_sts       : 1;
+        RK_U32  sw_buf_emt_sts      : 1;
         RK_U32  reserve1            : 1;
-        RK_U32  sw_dec_aso_int      : 1;
-        RK_U32  sw_dec_slice_int    : 1;
-        RK_U32  sw_dec_b_pic_inf    : 1;
+        RK_U32  sw_aso_det_sts      : 1;
+        RK_U32  sw_slice_det_sts    : 1;
+        RK_U32  sw_bslice_det_sts   : 1;
         RK_U32  reserve2            : 1;
-        RK_U32  sw_dec_error_int    : 1;
-        RK_U32  sw_dec_timeout      : 1;
+        RK_U32  sw_error_det_sts    : 1;
+        RK_U32  sw_timeout_det_sts  : 1;
         RK_U32  reserve3            : 18;
     } reg55_Interrupt;
 
     struct {
-        RK_U32  sw_dec_axi_rn_id    : 8;
-        RK_U32  sw_dec_axi_wr_id    : 8;
-        RK_U32  sw_dec_max_burst    : 5;
+        RK_U32  sw_dec_axi_id_rd    : 8;
+        RK_U32  sw_dec_axi_id_wr    : 8;
+        RK_U32  sw_dec_max_burlen   : 5;
         RK_U32  reserve0            : 1;
-        RK_U32  sw_dec_data_disc_e  : 1;
+        RK_U32  sw_dec_data_discd_en: 1;
         RK_U32  reserve1            : 9;
     } reg56_axi_ctrl;
 
     struct {
-        RK_U32  sw_dec_e            : 1;
-        RK_U32  sw_refbu2_buf_e     : 1;
-        RK_U32  sw_dec_out_dis      : 1;
-        RK_U32  reserve             : 1;
-        RK_U32  sw_dec_clk_gate_e   : 1;
-        RK_U32  sw_dec_timeout_e    : 1;
-        RK_U32  sw_picord_count_e   : 1;
-        RK_U32  sw_seq_mbaff_e      : 1;
-        RK_U32  sw_reftopfirst_e    : 1;
-        RK_U32  sw_ref_topfield_e   : 1;
-        RK_U32  sw_write_mvs_e      : 1;
-        RK_U32  sw_sorenson_e       : 1;
-        RK_U32  sw_fwd_interlace_e  : 1;
-        RK_U32  sw_pic_topfield_e   : 1;
-        RK_U32  sw_pic_inter_e      : 1;
-        RK_U32  sw_pic_b_e          : 1;
-        RK_U32  sw_pic_fieldmode_e  : 1;
-        RK_U32  sw_pic_interlace_e  : 1;
-        RK_U32  sw_pjpeg_e          : 1;
-        RK_U32  sw_divx3_e          : 1;
-        RK_U32  sw_rlc_mode_e       : 1;
-        RK_U32  sw_ch_8pix_ileav_e  : 1;
-        RK_U32  sw_start_code_e     : 1;
-        RK_U32  reserve1            : 8;
-        RK_U32  sw_dec_ahb_hlock_e  : 1;
+        RK_U32  sw_dec_st_work         : 1;
+        RK_U32  sw_refpic_buf2_en      : 1;
+        RK_U32  sw_dec_wr_extmem_dis   : 1;
+        RK_U32  reserve                : 1;
+        RK_U32  sw_dec_clkgate_en      : 1;
+        RK_U32  sw_timeout_sts_en      : 1;
+        RK_U32  sw_rd_cnt_tab_en       : 1;
+        RK_U32  sw_sequ_mbaff_en       : 1;
+        RK_U32  sw_first_reftop_en     : 1;
+        RK_U32  sw_reftop_en           : 1;
+        RK_U32  sw_dmmv_wr_en          : 1;
+        RK_U32  sw_sorspa_en           : 1;
+        RK_U32  sw_fwd_refpic_mode_sel : 1;
+        RK_U32  sw_pic_decfield_sel    : 1;
+        RK_U32  sw_pic_type_sel0       : 1;
+        RK_U32  sw_pic_type_sel1       : 1;
+        RK_U32  sw_curpic_stru_sel     : 1;
+        RK_U32  sw_curpic_code_sel     : 1;
+        RK_U32  sw_prog_jpeg_en        : 1;
+        RK_U32  sw_divx3_en            : 1;
+        RK_U32  sw_rlc_mode_en         : 1;
+        RK_U32  sw_addit_ch_fmt_wen    : 1;
+        RK_U32  sw_st_code_exist       : 1;
+        RK_U32  reserve1               : 8;
+        RK_U32  sw_dec_timeout_mode    : 1;
     } reg57_enable_ctrl;
 
     struct {
@@ -123,9 +123,9 @@ typedef struct  {
 
     struct {
         RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_0_2  : 10;
-        RK_U32  sw_pred_bc_tap_0_1  : 10;
-        RK_U32  sw_pred_bc_tap_0_0  : 10;
+        RK_U32  sw_pflt_set0_tap2   : 10;
+        RK_U32  sw_pflt_set0_tap1   : 10;
+        RK_U32  sw_pflt_set0_tap0   : 10;
     } reg59;
 
     RK_U32      reg60_addit_ch_st_base;
@@ -135,45 +135,45 @@ typedef struct  {
     RK_U32      reg64_input_stream_base;
 
     struct {
-        RK_U32  sw_refbu_y_offset   : 9;
-        RK_U32  sw_reserve          : 3;
-        RK_U32  sw_refbu_fparmod_e  : 1;
-        RK_U32  sw_refbu_eval_e     : 1;
-        RK_U32  sw_refbu_picid      : 5;
-        RK_U32  sw_refbu_thr        : 12;
-        RK_U32  sw_refbu_e          : 1;
+        RK_U32  sw_refbuf_y_ofset        : 9;
+        RK_U32  sw_reserve               : 3;
+        RK_U32  sw_refbuf_fildpar_mod_e  : 1;
+        RK_U32  sw_refbuf_idcal_e        : 1;
+        RK_U32  sw_refbuf_picid          : 5;
+        RK_U32  sw_refbu_thr_level       : 12;
+        RK_U32  sw_refbu_e               : 1;
     } reg65_refpicbuf_ctrl;
 
     struct {
-        RK_U32  build_version       : 3;
-        RK_U32  product_IDen        : 1;
-        RK_U32  minor_version       : 8;
-        RK_U32  major_version       : 4;
-        RK_U32  product_numer       : 16;
+        RK_U32  build_ver           : 3;
+        RK_U32  ascii_id_en         : 1;
+        RK_U32  minor_num           : 8;
+        RK_U32  major_num           : 4;
+        RK_U32  prod_id             : 16;
     } reg66_id;
 
     struct {
         RK_U32  sw_reserve          : 25;
-        RK_U32  sw_dec_rtl_rom      : 1;
-        RK_U32  sw_dec_rv_prof      : 2;
-        RK_U32  sw_ref_buff2_exist  : 1;
-        RK_U32  sw_dec_divx_prof    : 1;
-        RK_U32  sw_dec_refbu_ilace  : 1;
-        RK_U32  sw_dec_jpeg_exten   : 1;
+        RK_U32  rom_imp_type        : 1;
+        RK_U32  rv_allow_flag       : 2;
+        RK_U32  refbuf2_allow_flag  : 1;
+        RK_U32  divx_allow_flag     : 1;
+        RK_U32  refbuf_allow_flag   : 1;
+        RK_U32  jpeg_allow_flag     : 1;
     } reg67_synthesis_cfg;
 
     struct {
-        RK_U32  sw_refbu_top_sum    : 16;
-        RK_U32  sw_refbu_bot_sum    : 16;
+        RK_U32  sw_refbuf_sum_bot    : 16;
+        RK_U32  sw_refbuf_sum_top    : 16;
     } reg68_sum_of_partitions;
 
     struct {
-        RK_U32  sw_refbu_intra_sum  : 16;
-        RK_U32  sw_refbu_hit_sum    : 16;
+        RK_U32  sw_luma_sum_intra    : 16;
+        RK_U32  sw_refbuf_sum_hit    : 16;
     } reg69_sum_inf;
 
     struct {
-        RK_U32  sw_refbu_mv_sum     : 22;
+        RK_U32  sw_ycomp_mv_sum     : 22;
         RK_U32  sw_reserve          : 10;
     } reg70_sum_mv;
 
@@ -338,61 +338,60 @@ typedef struct  {
     } reg150;
 
     struct {
-        RK_U32  sw_quant_3          : 11;
-        RK_U32  sw_quant_2          : 11;
-        RK_U32  sw_quant_delta_3    : 5;
-        RK_U32  sw_quant_delta_2    : 5;
+        RK_U32  sw_quant_3           : 11;
+        RK_U32  sw_quant_2           : 11;
+        RK_U32  sw_quant_delta_3     : 5;
+        RK_U32  sw_quant_delta_2     : 5;
     } reg151;
 
     struct {
-        RK_U32  sw_quant_5          : 11;
-        RK_U32  sw_quant_4          : 11;
-        RK_U32  sw_quant_delta_4    : 5;
-        RK_U32  sw_reserve          : 5;
+        RK_U32  sw_quant_5           : 11;
+        RK_U32  sw_quant_4           : 11;
+        RK_U32  sw_quant_delta_4     : 5;
+        RK_U32  sw_reserve           : 5;
     } reg152;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_1_1  : 10;
-        RK_U32  sw_pred_bc_tap_1_0  : 10;
-        RK_U32  sw_pred_bc_tap_0_3  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_1_1   : 10;
+        RK_U32  sw_pred_bc_tap_1_0   : 10;
+        RK_U32  sw_pred_bc_tap_0_3   : 10;
     } reg153;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_2_0  : 10;
-        RK_U32  sw_pred_bc_tap_1_3  : 10;
-        RK_U32  sw_pred_bc_tap_1_2  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_2_0   : 10;
+        RK_U32  sw_pred_bc_tap_1_3   : 10;
+        RK_U32  sw_pred_bc_tap_1_2   : 10;
     } reg154;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_2_3  : 10;
-        RK_U32  sw_pred_bc_tap_2_2  : 10;
-        RK_U32  sw_pred_bc_tap_2_1  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_2_3   : 10;
+        RK_U32  sw_pred_bc_tap_2_2   : 10;
+        RK_U32  sw_pred_bc_tap_2_1   : 10;
     } reg155;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_3_2  : 10;
-        RK_U32  sw_pred_bc_tap_3_1  : 10;
-        RK_U32  sw_pred_bc_tap_3_0  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_3_2   : 10;
+        RK_U32  sw_pred_bc_tap_3_1   : 10;
+        RK_U32  sw_pred_bc_tap_3_0   : 10;
     } reg156;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_4_1  : 10;
-        RK_U32  sw_pred_bc_tap_4_0  : 10;
-        RK_U32  sw_pred_bc_tap_3_3  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_4_1   : 10;
+        RK_U32  sw_pred_bc_tap_4_0   : 10;
+        RK_U32  sw_pred_bc_tap_3_3   : 10;
     } reg157;
 
     struct {
-        RK_U32  reserve             : 2;
-        RK_U32  sw_pred_bc_tap_5_0  : 10;
-        RK_U32  sw_pred_bc_tap_4_3  : 10;
-        RK_U32  sw_pred_bc_tap_4_2  : 10;
+        RK_U32  reserve              : 2;
+        RK_U32  sw_pred_bc_tap_5_0   : 10;
+        RK_U32  sw_pred_bc_tap_4_3   : 10;
+        RK_U32  sw_pred_bc_tap_4_2   : 10;
     } reg158;
-} VpuMpg4dRegSet_t;
+} M4vdVdpu2Regs_t;
 
-#endif
-
+#endif /*__HAL_M4V_VDPU2_REG_TBL_H__*/
