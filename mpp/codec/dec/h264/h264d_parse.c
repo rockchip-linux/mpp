@@ -166,7 +166,8 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     }
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
-    if ((cur_nal->nalu_type == NALU_TYPE_PREFIX) || (cur_nal->nalu_type == NALU_TYPE_SLC_EXT)) {
+    if (cur_nal->nalu_type == NALU_TYPE_PREFIX
+        || cur_nal->nalu_type == NALU_TYPE_SLC_EXT) {
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
             currSlice->mvcExt.valid = 0;
@@ -191,7 +192,10 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         }
         cur_nal->ualu_header_bytes += 3;
     }
-    mpp_set_bitread_ctx(p_bitctx, (cur_nal->sodb_buf + cur_nal->ualu_header_bytes), (cur_nal->sodb_len - cur_nal->ualu_header_bytes)); // reset
+    /* Move forward the bitread offset */
+    mpp_set_bitread_ctx(p_bitctx,
+                        cur_nal->sodb_buf + cur_nal->ualu_header_bytes,
+                        cur_nal->sodb_len - cur_nal->ualu_header_bytes);
     mpp_set_pre_detection(p_bitctx);
     p_Cur->p_Dec->nalu_ret = StartofNalu;
 
@@ -215,14 +219,9 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     case NALU_TYPE_IDR:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         FUN_CHECK(ret = process_slice(currSlice));
-        //if (currSlice->start_mb_nr == 0) {
         currSlice->p_Dec->nalu_ret = StartOfPicture;
-        //} else {
-        //    currSlice->p_Dec->nalu_ret = StartOfSlice;
-        //}
-        if (currSlice->layer_id && currSlice->p_Inp->mvc_disable) {
+        if (currSlice->layer_id && currSlice->p_Inp->mvc_disable)
             currSlice->p_Dec->nalu_ret = MvcDisAble;
-        }
         break;
     case NALU_TYPE_SPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
@@ -240,7 +239,6 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         currSlice->p_Dec->nalu_ret = NALU_SubSPS;
         break;
     case NALU_TYPE_SEI:
-        //FUN_CHECK(ret = process_sei(currSlice));
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SEI");
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
@@ -275,7 +273,8 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     case NALU_TYPE_DPA:
     case NALU_TYPE_DPB:
     case NALU_TYPE_DPC:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_DPA DPB DPC, and not supported.");
+        H264D_DBG(H264D_DBG_PARSE_NALU,
+                  "Found NALU_TYPE_DPA DPB DPC, and not supported.");
         currSlice->p_Dec->nalu_ret = NaluNotSupport;
         break;
     default:

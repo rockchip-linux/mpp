@@ -98,14 +98,13 @@ void fill_scanlist(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm)
 //extern "C"
 void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
 {
-    RK_U32 i = 0, j = 0, num_views = 0;
+    RK_U32 i = 0, j = 0;
     H264_StorePic_t *dec_pic = p_Vid->dec_pic;
     H264_DpbInfo_t *dpb_info = p_Vid->p_Dec->dpb_info;
 
     memset(pp, 0, sizeof(DXVA_PicParams_H264_MVC));
     //!< Configure current picture
     fill_picture_entry(&pp->CurrPic, dec_pic->mem_mark->slot_idx, dec_pic->structure == BOTTOM_FIELD);
-    //mpp_log_f("[DEC_OUT]line=%d, func = fill_picparams, In_cur_slot_idx=%d, Out_cur_slot_idx=%d", __LINE__, dec_pic->mem_mark->slot_idx, pp->CurrPic.Index7Bits);
     //!< Configure the set of references
     pp->UsedForReferenceFlags = 0;
     pp->NonExistingFrameFlags = 0;
@@ -187,14 +186,16 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     pp->deblocking_filter_control_present_flag = p_Vid->active_pps->deblocking_filter_control_present_flag;
     pp->redundant_pic_cnt_present_flag = p_Vid->active_pps->redundant_pic_cnt_present_flag;
     pp->Reserved8BitsB = 0;
-    pp->slice_group_change_rate_minus1 = 0;  //!< XXX not implemented by FFmpeg
-    //pp->SliceGroupMap[810];                //!< XXX not implemented by FFmpeg
+    /* FMO is not implemented and is not implemented by FFmpeg neither */
+    pp->slice_group_change_rate_minus1 = 0;
 
     //!< Following are H.264 MVC Specific parameters
     if (p_Vid->active_subsps) {
+        RK_U16 num_views = 0;
         pp->num_views_minus1 = p_Vid->active_subsps->num_views_minus1;
         num_views = 1 + pp->num_views_minus1;
         ASSERT(num_views <= 16);
+
         for (i = 0; i < num_views; i++) {
             pp->view_id[i] = p_Vid->active_subsps->view_id[i];
             pp->num_anchor_refs_l0[i] = p_Vid->active_subsps->num_anchor_refs_l0[i];
@@ -214,9 +215,9 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
                 pp->non_anchor_ref_l1[i][j] = p_Vid->active_subsps->non_anchor_ref_l1[i][j];
             }
         }
-        for (i = num_views; i < 16; i++) {
+
+        for (i = num_views; i < 16; i++)
             pp->view_id[i] = 0xffff;
-        }
     }
     pp->curr_view_id = dec_pic->view_id;
     pp->anchor_pic_flag = dec_pic->anchor_pic_flag;
