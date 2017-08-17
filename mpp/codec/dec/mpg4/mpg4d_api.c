@@ -52,7 +52,7 @@ typedef struct {
     Mpg4dParser     parser;
 } Mpg4dCtx;
 
-MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
+static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
 {
     Mpg4dParser parser = NULL;
     MppPacket task_pkt = NULL;
@@ -113,7 +113,7 @@ ERR_RET:
     return ret;
 }
 
-MPP_RET mpg4d_deinit(void *dec)
+static MPP_RET mpg4d_deinit(void *dec)
 {
     Mpg4dCtx *p;
     if (NULL == dec) {
@@ -138,7 +138,7 @@ MPP_RET mpg4d_deinit(void *dec)
     return MPP_OK;
 }
 
-MPP_RET mpg4d_reset(void *dec)
+static MPP_RET mpg4d_reset(void *dec)
 {
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
@@ -150,8 +150,7 @@ MPP_RET mpg4d_reset(void *dec)
     return mpp_mpg4_parser_reset(p->parser);
 }
 
-
-MPP_RET mpg4d_flush(void *dec)
+static MPP_RET mpg4d_flush(void *dec)
 {
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
@@ -162,8 +161,7 @@ MPP_RET mpg4d_flush(void *dec)
     return mpp_mpg4_parser_flush(p->parser);
 }
 
-
-MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
+static MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
 {
     Mpg4dCtx *p;
 
@@ -182,7 +180,7 @@ MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
     return MPP_OK;
 }
 
-MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
+static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
 {
     Mpg4dCtx *p;
     RK_U8 *pos;
@@ -202,7 +200,6 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     if (eos && !length) {
         task->valid = 0;
         task->flags.eos = 1;
-        mpp_log("mpeg4d flush eos");
         mpg4d_flush(dec);
         return MPP_OK;
     }
@@ -280,7 +277,7 @@ MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     return MPP_OK;
 }
 
-MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
+static MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
 {
     MPP_RET ret;
     Mpg4dCtx *p;
@@ -310,7 +307,7 @@ MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
     return MPP_OK;
 }
 
-MPP_RET mpg4d_callback(void *dec, void *err_info)
+static MPP_RET mpg4d_callback(void *dec, void *err_info)
 {
     (void)dec;
     (void)err_info;
@@ -318,17 +315,17 @@ MPP_RET mpg4d_callback(void *dec, void *err_info)
 }
 
 const ParserApi api_mpg4d_parser = {
-    "api_mpg4d_parser",
-    MPP_VIDEO_CodingMPEG4,
-    sizeof(Mpg4dCtx),
-    0,
-    mpg4d_init,
-    mpg4d_deinit,
-    mpg4d_prepare,
-    mpg4d_parse,
-    mpg4d_reset,
-    mpg4d_flush,
-    mpg4d_control,
-    mpg4d_callback,
+    .name = "api_mpg4d_parser",
+    .coding = MPP_VIDEO_CodingMPEG4,
+    .ctx_size = sizeof(Mpg4dCtx),
+    .flag = 0,
+    .init = mpg4d_init,
+    .deinit = mpg4d_deinit,
+    .prepare = mpg4d_prepare,
+    .parse = mpg4d_parse,
+    .reset = mpg4d_reset,
+    .flush = mpg4d_flush,
+    .control = mpg4d_control,
+    .callback = mpg4d_callback,
 };
 

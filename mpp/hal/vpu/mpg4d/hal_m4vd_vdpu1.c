@@ -31,6 +31,7 @@
 #include "mpg4d_syntax.h"
 #include "hal_mpg4d_api.h"
 #include "hal_m4vd_com.h"
+#include "hal_m4vd_vdpu1.h"
 #include "hal_m4vd_vdpu1_reg.h"
 
 static void vdpu1_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)

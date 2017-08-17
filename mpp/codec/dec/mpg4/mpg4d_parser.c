@@ -796,7 +796,6 @@ static MPP_RET mpeg4_parse_profile_level(Mpg4dParserImpl *p, BitReadCtx_t *bc)
 {
     READ_BITS(bc, 4, &p->profile);
     READ_BITS(bc, 4, &p->level);
-    mpp_log("mpeg4 stream profile %d level %d\n", p->profile, p->level);
     return MPP_OK;
 
 __BITREAD_ERR:
