@@ -1,41 +1,85 @@
 #
-# Normal rules
+# cache files
 #
-.*
+*~
 *.swp
+*.gc??
 
 #
-# Generated cmake build files
-#
-# linux Makefile
-build/*/*/CMakeCache.txt
-build/*/*/CMakeFiles/
-build/*/*/CTestTestfile.cmake
-build/*/*/Makefile
-build/*/*/cmake_install.cmake
-build/*/*/mpp/
-build/*/*/osal/
-build/*/*/test/
-build/*/*/utils/
-
-#
-# Generated include files
-#
-mpp/version.h
-
-#
-# git files that we don't want to ignore even it they are dot-files
-#
-!.gitignore
-!.mailmap
-
 # gnu global files
+#
 GPATH
 GRTAGS
 GSYMS
 GTAGS
 ID
 
-*.orig
-*~
-\#*#
+#
+# GNU Autotools
+#
+aclocal.m4
+autom4te.cache
+config.h
+config.h.in
+config.h-new
+config.log
+config.status
+config.guess
+config.sub
+config.rpath
+configure
+libtool
+stamp-h
+stamp-h.in
+stamp-h1
+ltmain.sh
+missing
+mkinstalldirs
+compile
+install-sh
+depcomp
+autoregen.sh
+ABOUT-NLS
+/INSTALL
+_stdint.h
+.dirstamp
+/m4
+.deps
+.libs
+*.lo
+*.la
+*.o
+Makefile.in
+Makefile
+/m4
+tmp-orc.c
+*orc.h
+
+#
+# VS
+#
+Build
+*.user
+*.suo
+*.ipch
+*.sdf
+*.opensdf
+*.DS_Store
+
+/test-driver
+*.log
+*.trs
+
+/subprojects
+
+#
+# Building cache
+#
+/build
+/mpp/version.h
+
+#
+# Debian
+#
+/obj-arm-linux-gnueabihf/
+/obj-aarch64-linux-gnu/
