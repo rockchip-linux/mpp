@@ -583,14 +583,15 @@ void *mpp_dec_parser_thread(void *data)
             continue;
 
     }
-    mpp_log("mpp_dec_parser_thread exit");
+
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread is going to exit");
     if (NULL != task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
-    mpp_log("mpp_dec_parser_thread exit ok");
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread exited");
     return NULL;
 }
 
@@ -672,7 +673,7 @@ void *mpp_dec_hal_thread(void *data)
 
             /*
              * TODO: Locking the parser thread will prevent it fetching a
-             * new task. I wish there be a better way here.
+             * new task. I wish there will be a better way here.
              */
             parser->lock();
             hal_task_hnd_set_status(task, TASK_PROC_DONE);
@@ -705,7 +706,7 @@ void *mpp_dec_hal_thread(void *data)
         }
     }
 
-    mpp_log("mpp_dec_hal_thread exit ok");
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_hal_thread exited");
     return NULL;
 }
 
