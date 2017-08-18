@@ -8,9 +8,9 @@ pkg_search_module(PTHREAD pthread)
 
 ADD_DEFINITIONS(-Wmissing-declarations -Wall -Wextra -Wshadow -ffast-math)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -O0 -g3")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -O0 -g3 -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -O0 -g3")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os -std=c++11")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os")
 
 # putting those into config.h would be better
 set(RKPLATFORM "" CACHE BOOL "Enable RK HW CONFIG")
@@ -134,7 +134,7 @@ add_subdirectory(mpp)
 add_subdirectory(test)
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h.cmake"
-"${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h")
+"${CMAKE_CURRENT_SOURCE_DIR}/inc/config.h" @ONLY)
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/rockchip_mpp.pc.cmake"
 "${CMAKE_CURRENT_BINARY_DIR}/rockchip_mpp.pc" @ONLY)
