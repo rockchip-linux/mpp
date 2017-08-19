@@ -1993,26 +1993,27 @@ static MPP_RET h264e_rkv_set_pp_regs(H264eRkvRegSet *regs, H264eHwCfg *syn,
 
 static RK_S32
 h264e_rkv_find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec,
-                       RK_S32 qp_start, RK_S32 bits)
+                       RK_S32 qp_start, RK_S64 bits)
 {
     RK_S32 qp = qp_start;
     RK_S32 qp_best = qp_start;
     RK_S32 qp_min = codec->qp_min;
     RK_S32 qp_max = codec->qp_max;
-    RK_S32 diff_best = INT_MAX;
+    RK_S64 diff_best = INT_MAX;
 
     if (ctx->a == 0 && ctx->b == 0)
         return qp_best;
 
-    h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp est target bit %d\n", bits);
+
+    h264e_hal_dbg(H264E_DBG_DETAIL, "RC: qp est target bit %lld\n", bits);
     if (bits <= 0) {
         qp_best = mpp_clip(qp_best + codec->qp_max_step, qp_min, qp_max);
     } else {
         do {
-            RK_S32 est_bits = mpp_quadreg_calc(ctx, QP2Qstep(qp));
-            RK_S32 diff = est_bits - bits;
+            RK_S64 est_bits = mpp_quadreg_calc(ctx, QP2Qstep(qp));
+            RK_S64 diff = est_bits - bits;
             h264e_hal_dbg(H264E_DBG_DETAIL,
-                          "RC: qp est qp %d qstep %f bit %d diff %d best %d\n",
+                          "RC: qp est qp %d qstep %f bit %lld diff %lld best %lld\n",
                           qp, QP2Qstep(qp), bits, diff, diff_best);
             if (MPP_ABS(diff) < MPP_ABS(diff_best)) {
                 diff_best = MPP_ABS(diff);
@@ -2201,13 +2202,13 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                 RK_S32 sse = mpp_data_avg(ctx->sse_p, 1, 1, 1) + 1;
                 hw_cfg->qp = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
                                                     hw_cfg->qp_prev,
-                                                    rc_syn->bit_target * 1024 / sse);
+                                                    (RK_S64)rc_syn->bit_target * 1024 / sse);
                 hw_cfg->qp_min = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
                                                         hw_cfg->qp_prev,
-                                                        rc_syn->bit_max * 1024 / sse);
+                                                        (RK_S64)rc_syn->bit_max * 1024 / sse);
                 hw_cfg->qp_max = h264e_rkv_find_best_qp(ctx->inter_qs, codec,
                                                         hw_cfg->qp_prev,
-                                                        rc_syn->bit_min * 1024 / sse);
+                                                        (RK_S64)rc_syn->bit_min * 1024 / sse);
 
                 /*
                  * Previous frame is intra then inter frame can not
@@ -2224,15 +2225,20 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                   ctx->inter_qs, hw_cfg->qp);
 
     /* limit QP by qp_step */
-    hw_cfg->qp_min = mpp_clip(hw_cfg->qp_min,
+    if(ctx->frame_cnt > 1){
+        hw_cfg->qp_min = mpp_clip(hw_cfg->qp_min,
+                                  hw_cfg->qp_prev - codec->qp_max_step,
+                                  hw_cfg->qp_prev - codec->qp_max_step / 2);
+        hw_cfg->qp_max = mpp_clip(hw_cfg->qp_max,
+                                  hw_cfg->qp_prev + codec->qp_max_step / 2,
+                                  hw_cfg->qp_prev + codec->qp_max_step);
+        hw_cfg->qp = mpp_clip(hw_cfg->qp,
                               hw_cfg->qp_prev - codec->qp_max_step,
-                              hw_cfg->qp_prev - codec->qp_max_step / 2);
-    hw_cfg->qp_max = mpp_clip(hw_cfg->qp_max,
-                              hw_cfg->qp_prev + codec->qp_max_step / 2,
                               hw_cfg->qp_prev + codec->qp_max_step);
-    hw_cfg->qp = mpp_clip(hw_cfg->qp,
-                          hw_cfg->qp_prev - codec->qp_max_step,
-                          hw_cfg->qp_prev + codec->qp_max_step);
+    }else{
+        hw_cfg->qp_min = codec->qp_min;
+        hw_cfg->qp_max = codec->qp_max;
+    }
 
     h264e_hal_dbg(H264E_DBG_DETAIL,
                   "RC: qp calc ctx %p qp clip %d prev %d step %d\n",
