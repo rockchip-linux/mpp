@@ -312,7 +312,7 @@ void mpp_save_regdata(MppLinReg *ctx, RK_S32 x, RK_S32 r);
 MPP_RET mpp_linreg_update(MppLinReg *ctx);
 MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 wlen);
 RK_S32  mpp_linreg_calc(MppLinReg *ctx, RK_S32 r);
-RK_S32  mpp_quadreg_calc(MppLinReg *ctx, RK_S32 r);
+RK_S64  mpp_quadreg_calc(MppLinReg *ctx, RK_S32 r);
 
 #ifdef __cplusplus
 }

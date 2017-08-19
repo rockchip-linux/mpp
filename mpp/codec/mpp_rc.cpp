@@ -954,7 +954,7 @@ MPP_RET mpp_linreg_update(MppLinReg *ctx)
     return MPP_OK;
 }
 
-RK_S32 mpp_quadreg_calc(MppLinReg *ctx, RK_S32 x)
+RK_S64 mpp_quadreg_calc(MppLinReg *ctx, RK_S32 x)
 {
     if (x <= 0)
         return -1;
