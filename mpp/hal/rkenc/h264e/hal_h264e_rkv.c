@@ -1781,12 +1781,10 @@ static void h264e_rkv_set_mb_rc(H264eHalContext *ctx)
         q = -1;
     }
 
-
     mb_rc->mode = m;
     mb_rc->quality = q;
     h264e_hal_dbg(H264E_DBG_RC, "mbrc mode %d quality %d", mb_rc->mode, mb_rc->quality);
 }
-
 
 static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
                                      H264eHwCfg *syn, RcSyntax *rc_syn)
@@ -1835,8 +1833,10 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
     regs->swreg54.rc_min_qp     = syn->qp_min;
 
     if (regs->swreg46.aqmode_en) {
-        regs->swreg54.rc_max_qp = (RK_U32)MPP_MIN(syn->qp_max, (RK_S32)(syn->qp + m_cfg.qp_range));
-        regs->swreg54.rc_min_qp = (RK_U32)MPP_MAX(syn->qp_min, (RK_S32)(syn->qp - m_cfg.qp_range));
+        regs->swreg54.rc_max_qp = (RK_U32)MPP_MIN(syn->qp_max,
+                                                  (RK_S32)(syn->qp + m_cfg.qp_range * ctx->qp_scale));
+        regs->swreg54.rc_min_qp = (RK_U32)MPP_MAX(syn->qp_min,
+                                                  (RK_S32)(syn->qp - m_cfg.qp_range * ctx->qp_scale));
         if (regs->swreg54.rc_max_qp < regs->swreg54.rc_min_qp)
             MPP_SWAP(RK_U32, regs->swreg54.rc_max_qp, regs->swreg54.rc_min_qp);
     }
@@ -1844,7 +1844,7 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
     if (regs->swreg46.rc_mode) { //checkpoint rc open
         RK_U32 target = mb_target_size * m_cfg.mb_num;
 
-        regs->swreg54.rc_qp_range    = m_cfg.qp_range;
+        regs->swreg54.rc_qp_range    = m_cfg.qp_range * ctx->qp_scale;
         regs->swreg46.rc_ctu_num     = m_cfg.mb_num;
         regs->swreg55.ctu_ebits      = mb_target_size_mul_16;
 
@@ -3176,6 +3176,11 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
             h264e_rkv_free_buffers(ctx);
             return MPP_ERR_MALLOC;
         }
+    } break;
+    case MPP_ENC_SET_QP_RANGE: {
+        RK_U32 scale_min = 1, scale_max = 2;
+        ctx->qp_scale = *((RK_U32 *)param);
+        ctx->qp_scale = mpp_clip(ctx->qp_scale, scale_min, scale_max);
     } break;
     default : {
         h264e_hal_err("unrecognizable cmd type %x", cmd_type);
