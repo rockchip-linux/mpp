@@ -64,7 +64,7 @@ typedef struct {
     struct list_head rc_list;
 } H264eCtx;
 
-MPP_RET h264e_init(void *ctx, ControllerCfg *ctrl_cfg)
+static MPP_RET h264e_init(void *ctx, ControllerCfg *ctrl_cfg)
 {
     MPP_RET ret = MPP_OK;
     H264eCtx *p = (H264eCtx *)ctx;
@@ -124,7 +124,7 @@ MPP_RET h264e_init(void *ctx, ControllerCfg *ctrl_cfg)
     return ret;
 }
 
-MPP_RET h264e_deinit(void *ctx)
+static MPP_RET h264e_deinit(void *ctx)
 {
     H264eCtx *p = (H264eCtx *)ctx;
 
@@ -145,7 +145,7 @@ MPP_RET h264e_deinit(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h264e_encode(void *ctx, HalEncTask *task)
+static MPP_RET h264e_encode(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
     RcSyntax *rc_syn = &p->syntax;
@@ -183,45 +183,19 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-MPP_RET h264e_reset(void *ctx)
+static MPP_RET h264e_reset(void *ctx)
 {
     (void)ctx;
     return MPP_OK;
 }
 
-MPP_RET h264e_flush(void *ctx)
+static MPP_RET h264e_flush(void *ctx)
 {
     (void)ctx;
     return MPP_OK;
 }
 
-
-static const H264Profile h264e_supported_profile[] = {
-    H264_PROFILE_BASELINE,
-    H264_PROFILE_MAIN,
-    H264_PROFILE_HIGH,
-};
-
-static const H264Level h264e_supported_level[] = {
-    H264_LEVEL_1_0,
-    H264_LEVEL_1_b,
-    H264_LEVEL_1_1,
-    H264_LEVEL_1_2,
-    H264_LEVEL_1_3,
-    H264_LEVEL_2_0,
-    H264_LEVEL_2_1,
-    H264_LEVEL_2_2,
-    H264_LEVEL_3_0,
-    H264_LEVEL_3_1,
-    H264_LEVEL_3_2,
-    H264_LEVEL_4_0,
-    H264_LEVEL_4_1,
-    H264_LEVEL_4_2,
-    H264_LEVEL_5_0,
-    H264_LEVEL_5_1,
-};
-
-MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
+static MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
     H264eCtx *p = (H264eCtx *)ctx;
@@ -274,7 +248,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
     return ret;
 }
 
-MPP_RET h264e_callback(void *ctx, void *feedback)
+static MPP_RET h264e_callback(void *ctx, void *feedback)
 {
     H264eCtx *p = (H264eCtx *)ctx;
     h264e_feedback *fb  = (h264e_feedback *)feedback;
@@ -293,15 +267,15 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 ***********************************************************************
 */
 const ControlApi api_h264e_controller = {
-    "h264e_control",
-    MPP_VIDEO_CodingAVC,
-    sizeof(H264eCtx),
-    0,
-    h264e_init,
-    h264e_deinit,
-    h264e_encode,
-    h264e_reset,
-    h264e_flush,
-    h264e_config,
-    h264e_callback,
+    .name = "h264e_control",
+    .coding = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(H264eCtx),
+    .flag = 0,
+    .init = h264e_init,
+    .deinit = h264e_deinit,
+    .encode = h264e_encode,
+    .reset = h264e_reset,
+    .flush = h264e_flush,
+    .config = h264e_config,
+    .callback = h264e_callback,
 };

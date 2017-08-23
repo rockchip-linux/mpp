@@ -25,14 +25,6 @@ extern "C" {
 
 extern const ControlApi api_h264e_controller;
 
-MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg);
-MPP_RET h264e_deinit(void *ctx);
-MPP_RET h264e_encode(void *ctx, HalEncTask *task);
-MPP_RET h264e_reset(void *ctx);
-MPP_RET h264e_flush(void *ctx);
-MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param);
-MPP_RET h264e_callback(void *ctx, void *feedback);
-
 #ifdef  __cplusplus
 }
 #endif

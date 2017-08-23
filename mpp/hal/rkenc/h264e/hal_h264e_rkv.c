@@ -2337,7 +2337,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     H264eHalContext *ctx = (H264eHalContext *)hal;
     H264eRkvRegSet *regs = NULL;
     H264eRkvIoctlRegInfo *ioctl_reg_info = NULL;
-    H264eHwCfg *syn = &ctx->hw_cfg;
     H264eRkvIoctlInput *ioctl_info = (H264eRkvIoctlInput *)ctx->ioctl_input;
     H264eRkvRegSet *reg_list = (H264eRkvRegSet *)ctx->regs;
     H264eRkvDpbCtx *dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
@@ -2363,21 +2362,21 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     enc_task->flags.err = 0;
 
-    h264e_rkv_update_hw_cfg(ctx, &task->enc, syn);
+    h264e_rkv_update_hw_cfg(ctx, &task->enc, hw_cfg);
 
-    pic_width_align16 = (syn->width + 15) & (~15);
-    pic_height_align16 = (syn->height + 15) & (~15);
-    pic_width_in_blk64 = (syn->width + 63) / 64;
+    pic_width_align16 = MPP_ALIGN(hw_cfg->width, 16);
+    pic_height_align16 = MPP_ALIGN(hw_cfg->height, 16);
+    pic_width_in_blk64 = (hw_cfg->width + 63) / 64;
 
     h264e_rkv_adjust_param(ctx); //TODO: future expansion
 
     h264e_hal_dbg(H264E_DBG_SIMPLE,
                   "frame %d | type %d | start gen regs",
-                  ctx->frame_cnt, syn->frame_type);
+                  ctx->frame_cnt, hw_cfg->frame_type);
 
     if ((!ctx->alloc_flg) && ((prep->change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
                               (prep->change & MPP_ENC_PREP_CFG_CHANGE_FORMAT))) {
-        if (MPP_OK != h264e_rkv_allocate_buffers(ctx, syn)) {
+        if (MPP_OK != h264e_rkv_allocate_buffers(ctx, hw_cfg)) {
             h264e_hal_err("h264e_rkv_allocate_buffers failed, free buffers and return\n");
             enc_task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
             h264e_rkv_free_buffers(ctx);
@@ -2413,7 +2412,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         ioctl_reg_info = &ioctl_info->reg_info[0];
     }
 
-    if (MPP_OK != h264e_rkv_reference_frame_set(ctx, syn)) {
+    if (MPP_OK != h264e_rkv_reference_frame_set(ctx, hw_cfg)) {
         h264e_hal_err("h264e_rkv_reference_frame_set failed, multi-ref error");
     }
 
@@ -2441,11 +2440,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg05.tmt_err     = 1;
 
     regs->swreg09.pic_wd8_m1  = pic_width_align16 / 8 - 1;
-    regs->swreg09.pic_wfill   = (syn->width & 0xf)
-                                ? (16 - (syn->width & 0xf)) : 0;
+    regs->swreg09.pic_wfill   = (hw_cfg->width & 0xf)
+                                ? (16 - (hw_cfg->width & 0xf)) : 0;
     regs->swreg09.pic_hd8_m1  = pic_height_align16 / 8 - 1;
-    regs->swreg09.pic_hfill   = (syn->height & 0xf)
-                                ? (16 - (syn->height & 0xf)) : 0;
+    regs->swreg09.pic_hfill   = (hw_cfg->height & 0xf)
+                                ? (16 - (hw_cfg->height & 0xf)) : 0;
 
     regs->swreg10.enc_stnd       = 0; //H264
     regs->swreg10.cur_frm_ref    = 1; //current frame will be refered
@@ -2472,13 +2471,13 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg13.axi_brsp_cke      = 0x7f;
     regs->swreg13.cime_dspw_orsd    = 0x0;
 
-    h264e_rkv_set_pp_regs(regs, syn, &ctx->cfg->prep,
+    h264e_rkv_set_pp_regs(regs, hw_cfg, &ctx->cfg->prep,
                           bufs->hw_pp_buf[buf2_idx], bufs->hw_pp_buf[1 - buf2_idx]);
-    h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, regs);
+    h264e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, hw_cfg, regs);
 
-    regs->swreg24_adr_srcy     = syn->input_luma_addr;
-    regs->swreg25_adr_srcu     = syn->input_cb_addr;
-    regs->swreg26_adr_srcv     = syn->input_cr_addr;
+    regs->swreg24_adr_srcy     = hw_cfg->input_luma_addr;
+    regs->swreg25_adr_srcu     = hw_cfg->input_cb_addr;
+    regs->swreg26_adr_srcv     = hw_cfg->input_cr_addr;
 
     regs->swreg30_rfpw_addr    = mpp_buffer_get_fd(dpb_ctx->fdec->hw_buf);
     if (dpb_ctx->fref[0][0])
@@ -2498,9 +2497,10 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         regs->swreg36_meiw_addr   = 0;
     }
 
-    regs->swreg38_bsbb_addr    = syn->output_strm_addr;
+    regs->swreg38_bsbb_addr    = hw_cfg->output_strm_addr;
     /* TODO: stream size relative with syntax */
-    regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr | (syn->output_strm_limit_size << 10);
+    regs->swreg37_bsbt_addr = regs->swreg38_bsbb_addr
+                              | (hw_cfg->output_strm_limit_size << 10);
     regs->swreg39_bsbr_addr    = regs->swreg38_bsbb_addr;
     regs->swreg40_bsbw_addr    = regs->swreg38_bsbb_addr;
 
@@ -2599,7 +2599,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     else if (pic_width_align16 <= 4096)
         regs->swreg45.cach_l2_tag  = 0x3;
 
-    h264e_rkv_set_rc_regs(ctx, regs, syn, rc_syn);
+    h264e_rkv_set_rc_regs(ctx, regs, hw_cfg, rc_syn);
 
     regs->swreg56.rect_size = (sps->i_profile_idc == H264_PROFILE_BASELINE
                                && sps->i_level_idc <= 30);
@@ -2612,20 +2612,33 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 i_nal_type = 0, i_nal_ref_idc = 0;
 
         /* TODO: extend syn->frame_coding_type definition */
-        if (syn->coding_type == RKVENC_CODING_TYPE_IDR ) {
+        switch (hw_cfg->coding_type) {
+        case RKVENC_CODING_TYPE_IDR:
             /* reset ref pictures */
             i_nal_type    = H264E_NAL_SLICE_IDR;
             i_nal_ref_idc = H264E_NAL_PRIORITY_HIGHEST;
-        } else if (syn->coding_type == RKVENC_CODING_TYPE_I ) {
+            break;
+        case RKVENC_CODING_TYPE_I:
             i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
-        } else if (syn->coding_type == RKVENC_CODING_TYPE_P ) {
+            /*
+             * FIXME Not completely true but for now it is
+             * (as all I/P are kept as ref)
+             */
+            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH;
+            break;
+        case RKVENC_CODING_TYPE_P:
             i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
-        } else if (syn->coding_type == RKVENC_CODING_TYPE_BREF ) {
+            /*
+             * FIXME Not completely true but for now it is
+             * (as all I/P are kept as ref)
+             */
+            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH;
+            break;
+        case RKVENC_CODING_TYPE_BREF:
             i_nal_type    = H264E_NAL_SLICE;
             i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH;
-        } else { /* B frame */
+            break;
+        default:
             i_nal_type    = H264E_NAL_SLICE;
             i_nal_ref_idc = H264E_NAL_PRIORITY_DISPOSABLE;
         }
@@ -2651,11 +2664,11 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg59.wght_pred       = 0x0;
     regs->swreg59.dbf_cp_flg      = 1;
 
-    regs->swreg60.sli_type        = syn->frame_type;
+    regs->swreg60.sli_type        = hw_cfg->frame_type;
     regs->swreg60.pps_id          = pps->i_id;
     regs->swreg60.drct_smvp       = 0x0;
     regs->swreg60.num_ref_ovrd    = 0;
-    regs->swreg60.cbc_init_idc    = syn->cabac_init_idc;
+    regs->swreg60.cbc_init_idc    = hw_cfg->cabac_init_idc;
 
     regs->swreg60.frm_num         = dpb_ctx->i_frame_num;
 
