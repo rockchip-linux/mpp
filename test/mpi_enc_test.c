@@ -188,7 +188,7 @@ static MPP_RET read_yuv_image(RK_U8 *buf, MpiEncTestData *p)
     } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);
-        ret = MPP_NOK;
+        ret = MPP_ERR_VALUE;
     } break;
     }
 
@@ -205,6 +205,7 @@ static MPP_RET fill_yuv_image(RK_U8 *buf, MpiEncTestData *c)
     RK_U32 hor_stride   = c->hor_stride;
     RK_U32 ver_stride   = c->ver_stride;
     MppFrameFormat fmt  = c->fmt;
+
     RK_U32 frame_count  = c->frame_count;
     RK_U8 *buf_y = buf;
     RK_U8 *buf_c = buf + hor_stride * ver_stride;
@@ -745,10 +746,11 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 
         if (p->fp_input) {
             ret = read_yuv_image(buf, p);
-            if (ret != MPP_OK  || feof(p->fp_input)) {
+            if (ret == MPP_NOK  || feof(p->fp_input)) {
                 mpp_log("found last frame. feof %d\n", feof(p->fp_input));
                 p->frm_eos = 1;
-            }
+            } else if (ret == MPP_ERR_VALUE)
+                goto RET;
         } else {
             ret = fill_yuv_image(buf, p);
             if (ret)
