@@ -1089,13 +1089,14 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_FRAME_INFO : {
         MppFrame frame = (MppFrame)param;
 
+        mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
+
         mpp_log("setting default w %4d h %4d h_str %4d v_str %4d\n",
                 mpp_frame_get_width(frame),
                 mpp_frame_get_height(frame),
                 mpp_frame_get_hor_stride(frame),
                 mpp_frame_get_ver_stride(frame));
 
-        mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         RK_S32 *p = (RK_S32 *)param;

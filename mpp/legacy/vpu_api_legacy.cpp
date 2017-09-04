@@ -36,29 +36,6 @@
 
 RK_U32 vpu_api_debug = 0;
 
-static RK_U32 hevc_ver_align_8(RK_U32 val)
-{
-    return MPP_ALIGN(val, 8);
-}
-
-
-static RK_U32 default_align_16(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-#ifdef SOFIA_3GR_LINUX
-static RK_U32 hevc_hor_align_64(RK_U32 val)
-{
-    return MPP_ALIGN(val, 64);
-}
-#else
-static RK_U32 hevc_hor_align_256_odd(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
-#endif
-
 static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
 {
     MppFrameFormat ret = MPP_FMT_BUTT;
@@ -1360,53 +1337,33 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
         RK_S32 ret = -1;
-        RK_U32 ImgWidth = 0;
         VPU_GENERIC *p = (VPU_GENERIC *)param;
         MppFrame frame = NULL;
 
         mpicmd = MPP_DEC_SET_FRAME_INFO;
+
         /**hightest of p->ImgWidth bit show current dec bitdepth
           * 0 - 8bit
           * 1 - 10bit
           **/
-        if (p->ImgWidth & 0x80000000) {
-
-            ImgWidth = ((p->ImgWidth & 0xFFFF) * 10) >> 3;
+        if (p->ImgWidth & 0x80000000)
             p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
-        } else {
-            ImgWidth = (p->ImgWidth & 0xFFFF);
+        else
             p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
-        }
+
         p->ImgWidth = (p->ImgWidth & 0xFFFF);
-        if (ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
-#ifdef SOFIA_3GR_LINUX
-            p->ImgHorStride = hevc_hor_align_64(ImgWidth);
-            p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
-#else
-            p->ImgHorStride = hevc_hor_align_256_odd(ImgWidth);
-            p->ImgVerStride = hevc_ver_align_8(p->ImgHeight);
-#endif
-        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingVP9) {
-            p->ImgHorStride = MPP_ALIGN(ImgWidth, 128);
-            p->ImgVerStride = MPP_ALIGN(p->ImgHeight, 64);
-        } else if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC &&
-                   (p->ImgWidth > 1920 || p->ImgHeight > 1088)) {
-            p->ImgHorStride = hevc_hor_align_256_odd(ImgWidth);
-            p->ImgVerStride = default_align_16(p->ImgHeight);
-        } else {
-            p->ImgHorStride = default_align_16(ImgWidth);
-            p->ImgVerStride = default_align_16(p->ImgHeight);
-        }
 
         mpp_frame_init(&frame);
 
         mpp_frame_set_width(frame, p->ImgWidth);
         mpp_frame_set_height(frame, p->ImgHeight);
-        mpp_frame_set_hor_stride(frame, p->ImgHorStride);
-        mpp_frame_set_ver_stride(frame, p->ImgVerStride);
         mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
 
         ret = mpi->control(mpp_ctx, mpicmd, (MppParam)frame);
+        /* output the parameters used */
+        p->ImgHorStride = mpp_frame_get_hor_stride(frame);
+        p->ImgVerStride = mpp_frame_get_ver_stride(frame);
+        p->BufSize = mpp_frame_get_buf_size(frame);
 
         mpp_frame_deinit(&frame);
         return ret;

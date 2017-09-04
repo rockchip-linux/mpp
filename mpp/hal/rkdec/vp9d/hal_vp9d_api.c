@@ -104,6 +104,7 @@ static RK_U32 vp9_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 256) | 256;
 }
+
 /*!
 ***********************************************************************
 * \brief
@@ -954,9 +955,21 @@ MPP_RET hal_vp9d_flush(void *hal)
 //extern "C"
 MPP_RET hal_vp9d_control(void *hal, RK_S32 cmd_type, void *param)
 {
+    switch ((MpiCmd)cmd_type) {
+    case MPP_DEC_SET_FRAME_INFO: {
+        /* commit buffer stride */
+        RK_U32 width = mpp_frame_get_width((MppFrame)param);
+        RK_U32 height = mpp_frame_get_height((MppFrame)param);
+
+        mpp_frame_set_hor_stride((MppFrame)param, MPP_ALIGN(width, 128));
+        mpp_frame_set_ver_stride((MppFrame)param, MPP_ALIGN(height, 64));
+
+        break;
+    }
+    default:
+        break;
+    }
     (void)hal;
-    (void)cmd_type;
-    (void)param;
 
     return MPP_OK;
 }
