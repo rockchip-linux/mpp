@@ -101,9 +101,6 @@ struct MppFrameImpl_t {
 };
 
 
-size_t  mpp_frame_get_buf_size(const MppFrame frame);
-void    mpp_frame_set_buf_size(MppFrame frame, size_t buf_size);
-
 MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
