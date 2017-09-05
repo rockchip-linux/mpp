@@ -241,6 +241,7 @@ RK_S32 mpp_list::flush()
             count--;
         }
     }
+    mCondition.signal();
     return 0;
 }
 
