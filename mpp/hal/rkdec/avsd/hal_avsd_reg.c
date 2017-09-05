@@ -494,7 +494,8 @@ MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         (p_syn->pp.picCodingType == BFRAME && p_hal->prev_pic_structure)) {
         p_regs->sw41.dir_mv_base = mpp_buffer_get_fd(p_hal->mv_buf);
     } else {
-        RK_U32 offset = (p_syn->pp.horizontalSize * p_syn->pp.verticalSize + 31) >> 5;
+        RK_U32 offset = MPP_ALIGN(p_syn->pp.horizontalSize, 16)
+                        * MPP_ALIGN(p_syn->pp.verticalSize, 16) / 32;
         p_regs->sw41.dir_mv_base = mpp_buffer_get_fd(p_hal->mv_buf) | (offset << 10);
     }
     //!< AVS Plus stuff
