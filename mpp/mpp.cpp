@@ -286,7 +286,6 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     MppFrame first = NULL;
 
     if (0 == mFrames->list_size()) {
-        mThreadCodec->signal();
         if (mOutputBlock == MPP_POLL_BLOCK) {
             if (mOutputBlockTimeout >= 0) {
                 ret = mFrames->wait(mOutputBlockTimeout);
@@ -296,8 +295,9 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
                     else
                         return MPP_NOK;
                 }
-            } else
+            } else {
                 mFrames->wait();
+            }
         } else {
             /* NOTE: this sleep is to avoid user's dead loop */
             msleep(1);
@@ -715,6 +715,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
         ret = mpp_buf_slot_ready(mDec->frame_slots);
+        mThreadCodec->signal();
     } break;
     case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
         if (mCoding == MPP_VIDEO_CodingMPEG2 || mCoding == MPP_VIDEO_CodingMPEG4) {
