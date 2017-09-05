@@ -28,6 +28,8 @@
 #define AVSD_HAL_DBG_WARNNING          (0x00000004)
 #define AVSD_HAL_DBG_TRACE             (0x00000008)
 
+#define AVSD_HAL_DBG_OFFSET            (0x00010000)
+
 extern RK_U32 avsd_hal_debug;
 
 #define AVSD_HAL_DBG(level, fmt, ...)\

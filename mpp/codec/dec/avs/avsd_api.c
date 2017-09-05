@@ -222,16 +222,24 @@ MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     } while (mpp_packet_get_length(pkt) && !task->valid);
 
     if (task->valid) {
-        mpp_packet_set_data(p_dec->task_pkt, p_dec->p_stream->pbuf);
+        //!< bit stream
+        RK_U32 align_len = MPP_ALIGN(p_dec->p_stream->len + 32, 16);
+
+        mpp_assert(p_dec->p_stream->size > align_len);
+        memset(p_dec->p_stream->pbuf + p_dec->p_stream->len,
+               0, align_len - p_dec->p_stream->len);
+
+        p_dec->syn->bitstream_size = align_len;
+        p_dec->syn->bitstream = p_dec->p_stream->pbuf;
+
+        mpp_packet_set_data(p_dec->task_pkt, p_dec->syn->bitstream);
+        mpp_packet_set_length(p_dec->task_pkt, p_dec->syn->bitstream_size);
         mpp_packet_set_size(p_dec->task_pkt, p_dec->p_stream->size);
-        mpp_packet_set_length(p_dec->task_pkt, p_dec->p_stream->len);
 
         mpp_packet_set_pts(p_dec->task_pkt, mpp_packet_get_pts(pkt));
         mpp_packet_set_dts(p_dec->task_pkt, mpp_packet_get_dts(pkt));
         task->input_packet = p_dec->task_pkt;
-        //!< bit stream
-        p_dec->syn->bitstream = p_dec->p_stream->pbuf;
-        p_dec->syn->bitstream_size = MPP_ALIGN(p_dec->p_stream->len, 16);
+
         p_dec->p_stream->len = 0;
         p_dec->p_header->len = 0;
     } else {

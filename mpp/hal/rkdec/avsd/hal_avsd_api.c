@@ -58,11 +58,25 @@ static void explain_input_buffer(AvsdHalCtx_t *p_hal, HalDecTask *task)
 
 static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 {
+    RK_U8 i = 0;
+    RK_U8 *pdata = NULL;
+    MppBuffer mbuffer = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdRegs_t *p_regs = (AvsdRegs_t *)p_hal->p_regs;
 
-    //!< update syntax
+    //!< re-find start code and calculate offset
     p_hal->data_offset = p_regs->sw12.rlc_vlc_base >> 10;
+    mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
+    pdata = (RK_U8 *)mpp_buffer_get_ptr(mbuffer) + p_hal->data_offset;
+    while (i < 8) {
+        if (pdata[i] == 0 && pdata[i + 1] == 0 && pdata[i + 2] == 1) {
+            p_hal->data_offset += i;
+            p_hal->syn.bitstream_size -= i;
+            break;
+        }
+        i++;
+    }
+    AVSD_HAL_DBG(AVSD_HAL_DBG_OFFSET, "frame_no=%d, offset=%d\n", p_hal->frame_no, p_hal->data_offset);
     //!< re-generate register
     memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
     FUN_CHECK(ret = set_defalut_parameters(p_hal));
@@ -119,7 +133,7 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
 #else
         FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
 #endif
-        buf_size = (1920 * 1088) * 2;
+        buf_size = (1920 * 1088) / 16;
         FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->mv_buf, buf_size));
     }
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
@@ -199,6 +213,7 @@ MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
     memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
     explain_input_buffer(p_hal, &task->dec);
     p_hal->data_offset = 0;
+
     FUN_CHECK(ret = set_defalut_parameters(p_hal));
     FUN_CHECK(ret = set_regs_parameters(p_hal, &task->dec));
 
@@ -227,6 +242,8 @@ MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
     if (task->dec.flags.had_error) {
         goto __RETURN;
     }
+
+    p_hal->frame_no++;
 #ifdef RKPLATFORM
     if (mpp_device_send_reg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS)) {
         ret = MPP_ERR_VPUHW;
@@ -279,7 +296,6 @@ __SKIP_HARD:
         repeat_other_field(p_hal, task);
     }
 
-    p_hal->frame_no++;
 __RETURN:
     AVSD_HAL_TRACE("Out.");
 
