@@ -2225,7 +2225,7 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                   ctx->inter_qs, hw_cfg->qp);
 
     /* limit QP by qp_step */
-    if(ctx->frame_cnt > 1){
+    if (ctx->frame_cnt > 1) {
         hw_cfg->qp_min = mpp_clip(hw_cfg->qp_min,
                                   hw_cfg->qp_prev - codec->qp_max_step,
                                   hw_cfg->qp_prev - codec->qp_max_step / 2);
@@ -2235,7 +2235,7 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         hw_cfg->qp = mpp_clip(hw_cfg->qp,
                               hw_cfg->qp_prev - codec->qp_max_step,
                               hw_cfg->qp_prev + codec->qp_max_step);
-    }else{
+    } else {
         hw_cfg->qp_min = codec->qp_min;
         hw_cfg->qp_max = codec->qp_max;
     }
