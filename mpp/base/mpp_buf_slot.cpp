@@ -936,7 +936,7 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
             MppFrameImpl *p = (MppFrameImpl *)impl->info;
             mpp_log("set frame info: w %4d h %4d hor %4d ver %4d\n", p->width, p->height, p->hor_stride, p->ver_stride);
         }
-        impl->buf_size = mpp_frame_get_buf_size(impl->info);
+        mpp_frame_copy((MppFrame)val, impl->info_set);
     } break;
     default : {
     } break;
