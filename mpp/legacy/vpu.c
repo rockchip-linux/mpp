@@ -16,72 +16,24 @@
 
 #define MODULE_TAG "vpu"
 
-#include "mpp_env.h"
-#include "mpp_log.h"
-#include "mpp_common.h"
-#include "mpp_platform.h"
-
-#include "vpu.h"
-
 #ifdef RKPLATFORM
-
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <video/rk_vpu_service.h>
+
 #include <rk_mpi.h>
+#include <mpp_env.h>
+#include <mpp_log.h>
+#include <mpp_common.h>
+#include <mpp_platform.h>
 
-#define VPU_IOC_MAGIC                       'l'
+#include "vpu.h"
 
-#define VPU_IOC_SET_CLIENT_TYPE             _IOW(VPU_IOC_MAGIC, 1, unsigned long)
-#define VPU_IOC_GET_HW_FUSE_STATUS          _IOW(VPU_IOC_MAGIC, 2, unsigned long)
-#define VPU_IOC_SET_REG                     _IOW(VPU_IOC_MAGIC, 3, unsigned long)
-#define VPU_IOC_GET_REG                     _IOW(VPU_IOC_MAGIC, 4, unsigned long)
-
-#define VPU_IOC_SET_CLIENT_TYPE_U32         _IOW(VPU_IOC_MAGIC, 1, unsigned int)
-
-#define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
-
-typedef struct VPUReq {
-    RK_U32 *req;
-    RK_U32  size;
-} VPUReq_t;
+#define VPU_IOC_WRITE(nr, size)    _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
 
 static RK_U32 vpu_debug = 0;
-
-static RK_S32 vpu_api_set_client_type(int dev, RK_S32 client_type)
-{
-    static RK_S32 vpu_api_ioctl_version = -1;
-    RK_S32 ret;
-
-    if (vpu_api_ioctl_version < 0) {
-        ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
-        if (!ret) {
-            vpu_api_ioctl_version = 0;
-        } else {
-            ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE_U32, client_type);
-            if (!ret)
-                vpu_api_ioctl_version = 1;
-        }
-
-        if (ret)
-            mpp_err_f("can not find valid client type ioctl\n");
-
-        mpp_assert(ret == 0);
-    } else {
-        RK_U32 cmd = (vpu_api_ioctl_version == 0) ?
-                     (VPU_IOC_SET_CLIENT_TYPE) :
-                     (VPU_IOC_SET_CLIENT_TYPE_U32);
-
-        ret = ioctl(dev, cmd, client_type);
-    }
-
-    if (ret)
-        mpp_err_f("set client type failed ret %d errno %d\n", ret, errno);
-
-    return ret;
-}
-
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
@@ -129,7 +81,7 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
         return -1;
     }
 
-    ret = vpu_api_set_client_type(fd, type);
+    ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, type);
     if (ret) {
         return -2;
     }
@@ -149,7 +101,7 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
 {
     int fd = socket;
     RK_S32 ret;
-    VPUReq_t req;
+    struct vpu_request req;
 
     if (vpu_debug) {
         RK_U32 i;
@@ -189,7 +141,7 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
 {
     int fd = socket;
     RK_S32 ret;
-    VPUReq_t req;
+    struct vpu_request req;
     (void)len;
 
     nregs *= sizeof(RK_U32);
@@ -219,7 +171,7 @@ RK_S32 VPUClientGetHwCfg(int socket, RK_U32 *cfg, RK_U32 cfg_size)
 {
     int fd = socket;
     RK_S32 ret;
-    VPUReq_t req;
+    struct vpu_request req;
     req.req     = cfg;
     req.size    = cfg_size;
     ret = (RK_S32)ioctl(fd, VPU_IOC_GET_HW_FUSE_STATUS, &req);
