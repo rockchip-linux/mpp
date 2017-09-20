@@ -615,6 +615,7 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
                 return ret;
             }
         }
+        h264e_vpu_set_extra_info(ctx);
         break;
     }
     case MPP_ENC_SET_RC_CFG : {

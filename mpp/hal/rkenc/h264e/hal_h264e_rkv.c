@@ -3101,6 +3101,7 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     }
     case MPP_ENC_SET_PREP_CFG: {
         //LKSTODO: check cfg
+        h264e_vpu_set_extra_info(ctx);
         break;
     }
     case MPP_ENC_SET_RC_CFG: {
@@ -3165,6 +3166,8 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
          */
         dst->change |= change;
         src->change = 0;
+
+        h264e_rkv_set_extra_info(ctx);
     } break;
     case MPP_ENC_PRE_ALLOC_BUFF: {
         /* allocate buffers before encoding, so that we can save some time
