@@ -859,7 +859,11 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
                 return ret;
             }
         }
-    } break;
+
+        /* Update SPS/PPS information */
+        h264e_vpu_set_extra_info(ctx);
+        break;
+    }
     case MPP_ENC_SET_RC_CFG : {
         // TODO: do rate control check here
     } break;
