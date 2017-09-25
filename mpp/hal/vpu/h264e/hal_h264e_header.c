@@ -818,10 +818,6 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
             hw_cfg->width   = prep->width;
             hw_cfg->height  = prep->height;
 
-            // for libvpu, 8-pixel alignment is enough
-            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
-            mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
-
             hw_cfg->hor_stride = prep->hor_stride;
             hw_cfg->ver_stride = prep->ver_stride;
         }
@@ -981,15 +977,45 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     /* slice mode setup */
     hw_cfg->slice_size_mb_rows = 0; //(prep->height + 15) >> 4;
 
-    /* input and preprocess config */
-    {
+    /* input and preprocess config, the offset is at [31:10] */
+    hw_cfg->input_luma_addr = mpp_buffer_get_fd(task->input);
+
+    switch (prep->format) {
+    case MPP_FMT_YUV420SP: {
         RK_U32 offset_uv = hw_cfg->hor_stride * hw_cfg->ver_stride;
-        hw_cfg->input_luma_addr = mpp_buffer_get_fd(task->input);
+
+        mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
+        mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
+
         hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_uv << 10);
-        hw_cfg->input_cr_addr = hw_cfg->input_cb_addr + (offset_uv << 8);
-        hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
-        hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
+        hw_cfg->input_cr_addr = 0;
+        break;
     }
+    case MPP_FMT_YUV420P: {
+        RK_U32 offset_y = hw_cfg->hor_stride * hw_cfg->ver_stride;
+
+        mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
+        mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
+
+        hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_y << 10);
+        hw_cfg->input_cr_addr = hw_cfg->input_cb_addr + (offset_y << 8);
+        break;
+    }
+    case MPP_FMT_YUV422_YUYV:
+    case MPP_FMT_YUV422_UYVY:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR444:
+    case MPP_FMT_RGB888:
+    case MPP_FMT_ABGR8888:
+    case MPP_FMT_BGR101010:
+        hw_cfg->input_cb_addr = 0;
+        hw_cfg->input_cr_addr = 0;
+        break;
+    default:
+        return MPP_ERR_VALUE;
+    }
+    hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
+    hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
 
     /* context update */
     ctx->idr_pic_id = !ctx->idr_pic_id;

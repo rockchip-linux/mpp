@@ -1739,7 +1739,35 @@ h264e_rkv_set_ioctl_extra_info(H264eRkvIoctlExtraInfo *extra_info,
     H264eRkvIoctlExtraInfoElem *info = NULL;
     RK_U32 hor_stride = regs->swreg23.src_ystrid + 1;
     RK_U32 ver_stride = syn->ver_stride ? syn->ver_stride : syn->height;
-    RK_U32 frame_size = hor_stride * ver_stride; // TODO: according to yuv format
+    RK_U32 frame_size = hor_stride * ver_stride;
+    RK_U32 u_offset = 0, v_offset = 0;
+    H264eRkvCsp input_fmt = syn->input_format;
+
+    switch (input_fmt) {
+    case H264E_RKV_CSP_YUV420P: {
+        u_offset = frame_size;
+        v_offset = frame_size * 5 / 4;
+    } break;
+    case H264E_RKV_CSP_YUV420SP:
+    case H264E_RKV_CSP_YUV422SP: {
+        u_offset = frame_size;
+        v_offset = frame_size;
+    } break;
+    case H264E_RKV_CSP_YUV422P: {
+        u_offset = frame_size;
+        v_offset = frame_size * 3 / 2;
+    } break;
+    case H264E_RKV_CSP_YUYV422:
+    case H264E_RKV_CSP_UYVY422: {
+        u_offset = 0;
+        v_offset = 0;
+    } break;
+    default: {
+        h264e_hal_err("unknown color space: %d\n", input_fmt);
+        u_offset = frame_size;
+        v_offset = frame_size * 5 / 4;
+    }
+    }
 
     extra_info->magic = 0;
     extra_info->cnt = 2;
@@ -1747,12 +1775,13 @@ h264e_rkv_set_ioctl_extra_info(H264eRkvIoctlExtraInfo *extra_info,
     /* input cb addr */
     info = &extra_info->elem[0];
     info->reg_idx = 71;
-    info->offset  = frame_size;
+    info->offset  = u_offset;
 
     /* input cr addr */
     info = &extra_info->elem[1];
     info->reg_idx = 72;
-    info->offset  = frame_size * 5 / 4; //TODO: relevant with YUV format
+    info->offset  = v_offset;
+
     return MPP_OK;
 }
 
@@ -2272,12 +2301,11 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     hw_cfg->input_luma_addr = mpp_buffer_get_fd(task->input);
     hw_cfg->input_cb_addr = hw_cfg->input_luma_addr;
     hw_cfg->input_cr_addr = hw_cfg->input_cb_addr;
-    hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
     hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
+    hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
 
     return MPP_OK;
 }
-
 
 MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 {
