@@ -842,7 +842,7 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             if ((set->width < 0 || set->width > 1920) ||
                 (set->height < 0 || set->height > 3840) ||
-                (set->hor_stride < 0 || set->hor_stride > 1920) ||
+                (set->hor_stride < 0 || set->hor_stride > 3840) ||
                 (set->ver_stride < 0 || set->ver_stride > 3840)) {
                 mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
                         set->width, set->height,
