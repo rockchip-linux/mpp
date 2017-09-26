@@ -1551,13 +1551,14 @@ static MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
         return MPP_NOK;
     }
 
-    dst->num_region = num;
-
     if (num) {
+        dst->num_region = num;
         if (src->buf) {
             dst->buf = src->buf;
             memcpy(dst->region, src->region, num * sizeof(MppEncOSDRegion));
         }
+    } else {
+        memset(dst, 0, sizeof(*dst));
     }
 
     h264e_hal_leave();
