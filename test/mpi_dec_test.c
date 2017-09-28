@@ -21,6 +21,8 @@
 #define MODULE_TAG "mpi_dec_test"
 
 #include <string.h>
+#include <errno.h>
+#include <fcntl.h>
 #include "rk_mpi.h"
 
 #include "mpp_log.h"
@@ -29,6 +31,8 @@
 #include "mpp_time.h"
 #include "mpp_common.h"
 
+#include <xf86drm.h>
+#include "drm-utils.h"
 #include "utils.h"
 
 #define MPI_DEC_LOOP_COUNT          4
@@ -58,12 +62,17 @@ typedef struct {
     RK_S32          frame_count;
     RK_S32          frame_num;
     size_t          max_usage;
+
+    int             drm;
+    int             crtc_id, plane_id;
+    unsigned        display_mode;
 } MpiDecLoopData;
 
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
     char            file_config[MAX_FILE_NAME_LENGTH];
+    unsigned        display_mode;
     MppCodingType   type;
     MppFrameFormat  format;
     RK_U32          width;
@@ -94,6 +103,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"d",               "debug",                "debug flag"},
     {"x",               "timeout",              "output timeout interval"},
     {"n",               "frame_number",         "max output frame number"},
+    {"m",               "display_mode",         "0=none 1=DRM"},
 };
 
 static int decode_simple(MpiDecLoopData *data)
@@ -324,6 +334,16 @@ static int decode_simple(MpiDecLoopData *data)
                     mpp_log("decode_get_frame get frame %d\n", data->frame_count);
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
+                    if (data->drm >= 0) {
+                        switch(data->display_mode) {
+                        case 1:
+                            drm_display_frame(frame, data->drm, data->crtc_id, data->plane_id);
+                            break;
+                        default:
+                            mpp_err("unknown display_mode in %s: %d\n", __FUNCTION__, data->display_mode);
+                            return -1;
+                        }
+                    }
                 }
                 frm_eos = mpp_frame_get_eos(frame);
                 mpp_frame_deinit(&frame);
@@ -484,6 +504,10 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     MppPacket packet    = NULL;
     MppFrame  frame     = NULL;
 
+//    // screen output
+//    Display* dpy;
+//    xcb_connection_t* xcb;
+
     MpiCmd mpi_cmd      = MPP_CMD_BASE;
     MppParam param      = NULL;
     RK_U32 need_split   = 1;
@@ -504,6 +528,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
 
     mpp_log("mpi_dec_test start\n");
     memset(&data, 0, sizeof(data));
+    data.drm = -1;
+    data.display_mode = cmd->display_mode;
 
     if (cmd->have_input) {
         data.fp_input = fopen(cmd->file_input, "rb");
@@ -530,6 +556,24 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         data.fp_config = fopen(cmd->file_config, "r");
         if (NULL == data.fp_config) {
             mpp_err("failed to open config file %s\n", cmd->file_config);
+            goto MPP_TEST_OUT;
+        }
+    }
+
+    if (cmd->display_mode == 1) { // plain DRM
+        {
+            const char* devname = "/dev/dri/card0";
+            mpp_log("DRM device is '%s'\n", devname);
+
+            data.drm = open(devname, O_RDWR);
+            if (data.drm < 0) {
+                mpp_err("failed to open '%s': %s\n", devname, strerror(errno));
+                goto MPP_TEST_OUT;
+            }
+        }
+
+        if (drm_init(data.drm, &data.crtc_id, &data.plane_id) < 0) {
+            mpp_err("failed to init drm\n");
             goto MPP_TEST_OUT;
         }
     }
@@ -863,6 +907,18 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'm':
+                if (next) {
+                    cmd->display_mode = atoi(next);
+                    if (cmd->display_mode != 0 && cmd->display_mode != 1) {
+                        mpp_err("display mode is invalid\n");
+                        goto PARSE_OPINIONS_OUT;
+                    }
+                } else {
+                    mpp_err("display mode is missing\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             default:
                 mpp_err("skip invalid opt %c\n", *opt);
                 break;
@@ -884,6 +940,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);
     mpp_log("config file name: %s\n", cmd->file_config);
+    mpp_log("display mode: %d\n", cmd->display_mode);
     mpp_log("simple allocation mode: %d\n", cmd->simple);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);

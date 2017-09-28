@@ -20,6 +20,8 @@ macro(add_mpp_test module)
     endif()
 endmacro()
 
+pkg_search_module(LIBDRM REQUIRED libdrm)
+
 # mpi unit test
 add_mpp_test(mpi)
 
@@ -28,6 +30,11 @@ add_mpp_test(mpp_info)
 
 # mpi decoder unit test
 add_mpp_test(mpi_dec)
+target_sources(mpi_dec_test PUBLIC drm-utils.c)
+target_include_directories(mpi_dec_test PUBLIC
+  ${LIBDRM_INCLUDE_DIRS})
+target_link_libraries(mpi_dec_test
+  ${LIBDRM_LIBRARIES})
 
 # mpi decoder multi-thread input / output unit test
 add_mpp_test(mpi_dec_mt)
