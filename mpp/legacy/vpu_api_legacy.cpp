@@ -1341,16 +1341,26 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         MppFrame frame = NULL;
 
         mpicmd = MPP_DEC_SET_FRAME_INFO;
-
-        /**hightest of p->ImgWidth bit show current dec bitdepth
-          * 0 - 8bit
-          * 1 - 10bit
-          **/
-        if (p->ImgWidth & 0x80000000)
-            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
-        else
-            p->CodecType = (p->ImgWidth & 0x40000000) ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
-
+        if (ctx->extra_cfg.bit_depth
+            || ctx->extra_cfg.yuv_format) {
+            if (ctx->extra_cfg.bit_depth == 10)
+                p->CodecType = (ctx->extra_cfg.yuv_format == 1)
+                               ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
+            else
+                p->CodecType = (ctx->extra_cfg.yuv_format == 1)
+                               ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
+        } else {
+            /**hightest of p->ImgWidth bit show current dec bitdepth
+              * 0 - 8bit
+              * 1 - 10bit
+              **/
+            if (p->ImgWidth & 0x80000000)
+                p->CodecType = (p->ImgWidth & 0x40000000)
+                               ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
+            else
+                p->CodecType = (p->ImgWidth & 0x40000000)
+                               ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
+        }
         p->ImgWidth = (p->ImgWidth & 0xFFFF);
 
         mpp_frame_init(&frame);
