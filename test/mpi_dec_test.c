@@ -884,6 +884,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);
     mpp_log("config file name: %s\n", cmd->file_config);
+    mpp_log("simple allocation mode: %d\n", cmd->simple);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);
     mpp_log("type       : %d\n", cmd->type);
