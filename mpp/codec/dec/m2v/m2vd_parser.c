@@ -178,7 +178,9 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->mExtraHeaderDecFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
-
+    ctx->need_split = cfg->need_split;
+    ctx->left_length = 0;
+    ctx->vop_header_found = 0;
 
     if (M2VD_DBG_DUMP_REG & m2vd_debug) {
         RK_S32 k = 0;
@@ -311,6 +313,9 @@ MPP_RET m2vd_parser_reset(void *ctx)
     p->ref_frame_cnt = 0;
     p->resetFlag = 1;
     p->eos = 0;
+    p->left_length = 0;
+    p->need_split = 0;
+    p->vop_header_found = 0;
     FUN_T("FUN_O");
     return ret;
 }
@@ -386,76 +391,149 @@ static MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size,
     return ret;
 }
 
-MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+MPP_RET mpp_m2vd_parser_split(M2VDParserContext *ctx, MppPacket dst, MppPacket src)
 {
-    MPP_RET ret = MPP_OK;
-    M2VDContext *c = (M2VDContext *)ctx;
-    M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
-    MppPacket input_packet = p->input_packet;
-    RK_U32 out_size = 0, len_in;
-    RK_U8 *pos = NULL;
-    RK_U8 *buf = NULL;
+    MPP_RET ret = MPP_NOK;
+    M2VDParserContext *p = ctx;
+    RK_U8 *src_buf = (RK_U8 *)mpp_packet_get_pos(src);
+    RK_U32 src_len = (RK_U32)mpp_packet_get_length(src);
+    RK_U32 src_eos = mpp_packet_get_eos(src);
+    RK_U8 *dst_buf = (RK_U8 *)mpp_packet_get_data(dst);
+    RK_U32 dst_len = (RK_U32)mpp_packet_get_length(dst);
+    RK_U32 src_pos = 0;
 
-    buf = pos = mpp_packet_get_pos(pkt);
-    p->pts = mpp_packet_get_pts(pkt);
-    len_in = (RK_U32)mpp_packet_get_length(pkt);
-
-    FUN_T("FUN_I");
-    task->valid = 0;
-    p->eos = mpp_packet_get_eos(pkt);
-    if (len_in > p->max_stream_size) {
-        mpp_free(p->bitstream_sw_buf);
-        p->bitstream_sw_buf = NULL;
-        p->bitstream_sw_buf = mpp_malloc(RK_U8, (len_in + 1024));
-        if (NULL == p->bitstream_sw_buf) {
-            mpp_err("m2vd_parser realloc fail");
-            return MPP_ERR_NOMEM;
+    if (!p->vop_header_found) {
+        if ((dst_len < sizeof(p->state)) &&
+            ((p->state & 0x00FFFFFF) == 0x000001)) {
+            dst_buf[0] = 0;
+            dst_buf[1] = 0;
+            dst_buf[2] = 1;
+            dst_len = 3;
         }
-        p->max_stream_size = len_in + 1024;
+
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
+
+            /*
+             * 0x1b3 : sequence header
+             * 0x100 : frame header
+             * we see all 0x1b3 and 0x100 as boundary
+             */
+            if (p->state == SEQUENCE_HEADER_CODE || p->state == PICTURE_START_CODE) {
+                p->vop_header_found = 1;
+                break;
+            }
+        }
     }
 
-    m2vd_parser_split_frame(buf,
-                            len_in,
-                            p->bitstream_sw_buf,
-                            &out_size);
-    pos += out_size;
+    if (p->vop_header_found) {
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
 
-    mpp_packet_set_pos(pkt, pos);
+            if (((p->state & 0x00FFFFFF) == 0x000001) &&
+                (src_buf[src_pos] == (SEQUENCE_HEADER_CODE & 0xFF) ||
+                 src_buf[src_pos] == (PICTURE_START_CODE & 0xFF))) {
+                dst_len -= 3;
+                p->vop_header_found = 0;
+                ret = MPP_OK;
+                break;
+            }
+        }
+    }
 
-    if (out_size == 0 && p->eos) {
+    if (src_eos && src_pos >= src_len) {
+        mpp_packet_set_eos(dst);
+        ret = MPP_OK;
+    }
+
+    mpp_packet_set_length(dst, dst_len);
+    mpp_packet_set_pos(src, src_buf + src_pos);
+
+    return ret;
+}
+
+MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
+{
+    M2VDContext *c = (M2VDContext *)ctx;
+    M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
+    RK_U8 *pos = NULL;
+    size_t length = 0;
+    RK_U32 eos = 0;
+
+    if (ctx == NULL || pkt == NULL || task == NULL) {
+        mpp_err_f("found NULL input ctx %p pkt %p task %p\n", ctx, pkt, task);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    pos = mpp_packet_get_pos(pkt);
+    length = mpp_packet_get_length(pkt);
+    eos = mpp_packet_get_eos(pkt);
+
+    if (eos && !length) {
         task->valid = 0;
         task->flags.eos = 1;
         m2vd_parser_flush(ctx);
-        return ret;
+        return MPP_OK;
     }
 
-    if (M2VD_DBG_SEC_HEADER & m2vd_debug) {
-        mpp_log("p->bitstream_sw_buf = 0x%x", p->bitstream_sw_buf);
-        mpp_log("out_size = 0x%x", out_size);
+    if (p->bitstream_sw_buf == NULL) {
+        mpp_err("failed to malloc task buffer for hardware with size %d\n", length);
+        return MPP_ERR_UNKNOW;
     }
 
-    mpp_packet_set_data(input_packet, p->bitstream_sw_buf);
-    mpp_packet_set_size(input_packet, p->max_stream_size);
-    mpp_packet_set_length(input_packet, out_size);
-    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
-        mpp_packet_set_extra_data(input_packet);
+    mpp_packet_set_length(p->input_packet, p->left_length);
+
+    size_t total_length = MPP_ALIGN(p->left_length + length, 16) + 64;
+
+    if (total_length > p->max_stream_size) {
+        RK_U8 *dst = NULL;
+
+        do {
+            p->max_stream_size <<= 1;
+        } while (total_length > p->max_stream_size);
+
+        dst = mpp_malloc_size(RK_U8, p->max_stream_size);
+        mpp_assert(dst);
+
+        if (p->left_length > 0) {
+            memcpy(dst, p->bitstream_sw_buf, p->left_length);
+        }
+        mpp_free(p->bitstream_sw_buf);
+        p->bitstream_sw_buf = dst;
+
+        mpp_packet_set_data(p->input_packet, p->bitstream_sw_buf);
+        mpp_packet_set_size(p->input_packet, p->max_stream_size);
     }
 
-    task->input_packet = input_packet;
+    if (!p->need_split) {
+        memcpy(p->bitstream_sw_buf, pos, length);
+        mpp_packet_set_pos(p->input_packet, p->bitstream_sw_buf);
+        mpp_packet_set_length(p->input_packet, length);
+        mpp_packet_set_pos(pkt, pos + length);
+        p->pts = mpp_packet_get_pts(pkt);
+        p->eos = mpp_packet_get_eos(pkt);
 
-#if M2VD_DBG_FILE_W
-    if (p->fp_dbg_file[0]) {
-        RK_S32 size = (RK_S32)mpp_packet_get_size(pkt);
-        RK_U8 *data = (RK_U8 *)mpp_packet_get_data(pkt);
-        fwrite(&size, 4, 1, p->fp_dbg_file[0]);
-        fwrite(data, 1, size, p->fp_dbg_file[0]);
-        fflush(p->fp_dbg_file[0]);
+        task->valid = 1;
+    } else {
+        if (MPP_OK == mpp_m2vd_parser_split(p, p->input_packet, pkt)) {
+            p->left_length = 0;
+            task->valid = 1;
+        } else {
+            task->valid = 0;
+            p->left_length = mpp_packet_get_length(p->input_packet);
+        }
+
+        p->pts = mpp_packet_get_pts(p->input_packet);
+        p->eos = mpp_packet_get_eos(p->input_packet);
     }
-#endif
 
-    task->valid = 1;
-    FUN_T("FUN_O");
-    return ret;
+    mpp_packet_set_pts(p->input_packet, p->pts);
+    task->input_packet = p->input_packet;
+    task->flags.eos = p->eos;
+
+    return MPP_OK;
 }
 
 /*!

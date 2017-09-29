@@ -233,6 +233,10 @@ typedef struct M2VDParserContext_t {
     RK_U8           *bitstream_sw_buf;
     RK_U8           *qp_tab_sw_buf;
     RK_U32          max_stream_size;
+    RK_U32          left_length;
+    RK_U32          need_split;
+    RK_U32          state;
+    RK_U32          vop_header_found;
 
     RK_U32          frame_size;
 
