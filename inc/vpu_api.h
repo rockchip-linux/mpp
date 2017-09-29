@@ -211,7 +211,7 @@ typedef enum OMX_RK_VIDEO_CODINGTYPE {
 } OMX_RK_VIDEO_CODINGTYPE;
 
 typedef enum VPU_VIDEO_PIXEL_FMT {
-    VPU_VIDEO_PIXEL_FMT_NV12
+    VPU_VIDEO_PIXEL_FMT_NV12,
 } VPU_VIDEO_PIXEL_FMT;
 
 typedef enum CODEC_TYPE {
@@ -274,7 +274,13 @@ typedef struct EXtraCfg {
     RK_S32 vc1extra_size;
     RK_S32 vp6codeid;
     RK_S32 tsformat;
-    RK_U32 reserved[20];
+    RK_U32 ori_vpu; /* use origin vpu framework */
+    /* below used in decode */
+    RK_U32 mpp_mode;     /* use mpp framework */
+    RK_U32 bit_depth;    /* 8 or 10 bit */
+    RK_U32 yuv_format;   /* 0:420 1:422 2:444 */
+    RK_U32 reserved[16];
+
 } EXtraCfg_t;
 
 /**
