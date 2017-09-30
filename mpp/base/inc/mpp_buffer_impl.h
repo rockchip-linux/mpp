@@ -24,8 +24,9 @@
 #define MPP_BUF_DBG_FUNCTION            (0x00000001)
 #define MPP_BUF_DBG_OPS_RUNTIME         (0x00000002)
 #define MPP_BUF_DBG_OPS_HISTORY         (0x00000004)
-#define MPP_BUF_DBG_CLR_ON_EXIT         (0x00000008)
-#define MPP_BUF_DBG_CHECK_SIZE          (0x00000010)
+#define MPP_BUF_DBG_CLR_ON_EXIT         (0x00000010)
+#define MPP_BUF_DBG_DUMP_ON_EXIT        (0x00000020)
+#define MPP_BUF_DBG_CHECK_SIZE          (0x00000100)
 
 #define mpp_buf_dbg(flag, fmt, ...)     _mpp_dbg(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_buf_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_buffer_debug, flag, fmt, ## __VA_ARGS__)
