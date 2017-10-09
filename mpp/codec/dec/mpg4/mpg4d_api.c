@@ -218,11 +218,10 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     size_t total_length = MPP_ALIGN(p->left_length + length, 16) + 64; // add extra 64 bytes in tails
 
     if (total_length > p->stream_size) {
-        RK_U8 *dst;
-
+        RK_U8 *dst = NULL;
         do {
             p->stream_size <<= 1;
-        } while (length > p->stream_size);
+        } while (total_length > p->stream_size);
 
         dst = mpp_malloc_size(RK_U8, p->stream_size);
         mpp_assert(dst);
