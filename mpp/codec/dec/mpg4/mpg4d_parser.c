@@ -1217,6 +1217,7 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
     // the last packet
     if (src_eos && src_pos >= src_len) {
         mpp_packet_set_eos(dst);
+        ret = MPP_OK;
     }
     // reset the src and dst
     mpp_packet_set_length(dst, dst_len);
