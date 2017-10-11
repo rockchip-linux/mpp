@@ -145,21 +145,26 @@ typedef enum {
 #define MPP_FRAME_FMT_MASK    0x000f0000
 #define MPP_FRAME_FMT_YUV     0x00000000
 #define MPP_FRAME_FMT_RGB     0x00010000
+#define MPP_FRAME_FMT_COMPLEX 0x00020000
 
 /*
  *mpp color format define
  */
 typedef enum {
-    MPP_FMT_YUV420SP        = MPP_FRAME_FMT_YUV,        /* YYYY... UV...            */
+    MPP_FMT_YUV420SP        = MPP_FRAME_FMT_YUV,        /* YYYY... UV... (NV12)     */
+    /*
+     * A rockchip specific pixel format, without gap between pixel aganist
+     * the P010_10LE/P010_10BE
+     */
     MPP_FMT_YUV420SP_10BIT,
-    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV...          */
+    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV... (NV24)   */
     MPP_FMT_YUV422SP_10BIT,                             ///< Not part of ABI
-    MPP_FMT_YUV420P,                                    /* YYYY... UUUU... VVVV     */
-    MPP_FMT_YUV420SP_VU,                                /* YYYY... VUVUVU...        */
-    MPP_FMT_YUV422P,                                    /* YYYY... UUUU... VVVV     */
-    MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU...        */
-    MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV...              */
-    MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY...              */
+    MPP_FMT_YUV420P,                                    /* YYYY... U...V...  (I420) */
+    MPP_FMT_YUV420SP_VU,                                /* YYYY... VUVUVU... (NV21) */
+    MPP_FMT_YUV422P,                                    /* YYYY... UU...VV...(422P) */
+    MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU... (NV42) */
+    MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV... (YUY2)       */
+    MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY... (UYVY)       */
     MPP_FMT_YUV400SP,                                   /* YYYY...                  */
     MPP_FMT_YUV440SP,                                   /* YYYY... UVUV...          */
     MPP_FMT_YUV411SP,                                   /* YYYY... UV...            */
@@ -178,7 +183,11 @@ typedef enum {
     MPP_FMT_ARGB8888,                                   /* 32-bit RGB               */
     MPP_FMT_ABGR8888,                                   /* 32-bit RGB               */
     MPP_FMT_RGB_BUTT,
-    MPP_FMT_BUTT            = MPP_FMT_RGB_BUTT,
+    /* simliar to I420, but Pixels are grouped in macroblocks of 8x4 size  */
+    MPP_FMT_YUV420_8Z4      = MPP_FRAME_FMT_COMPLEX,
+    /* The end of the formats have a complex layout */
+    MPP_FMT_COMPLEX_BUTT,
+    MPP_FMT_BUTT            = MPP_FMT_COMPLEX_BUTT,
 } MppFrameFormat;
 
 typedef enum {
