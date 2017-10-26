@@ -205,7 +205,11 @@ MPP_RET hal_vp9d_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
-
+#ifdef RKPLATFORM
+    if (reg_cxt->vpu_socket >= 0) {
+        mpp_device_deinit(reg_cxt->vpu_socket);
+    }
+#endif
     if (reg_cxt->probe_base) {
         ret = mpp_buffer_put(reg_cxt->probe_base);
         if (MPP_OK != ret) {
