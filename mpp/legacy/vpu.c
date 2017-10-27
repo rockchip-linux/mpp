@@ -37,7 +37,9 @@
 #define VPU_IOC_GET_HW_FUSE_STATUS          _IOW(VPU_IOC_MAGIC, 2, unsigned long)
 #define VPU_IOC_SET_REG                     _IOW(VPU_IOC_MAGIC, 3, unsigned long)
 #define VPU_IOC_GET_REG                     _IOW(VPU_IOC_MAGIC, 4, unsigned long)
-#define VPU_IOC_PROBE_IOMMU_STATUS          _IOR(VPU_IOC_MAGIC, 5, unsigned long)
+
+#define VPU_IOC_SET_CLIENT_TYPE_U32         _IOW(VPU_IOC_MAGIC, 1, unsigned int)
+
 #define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
 
 typedef struct VPUReq {
@@ -46,6 +48,40 @@ typedef struct VPUReq {
 } VPUReq_t;
 
 static RK_U32 vpu_debug = 0;
+
+static RK_S32 vpu_api_set_client_type(int dev, RK_S32 client_type)
+{
+    static RK_S32 vpu_api_ioctl_version = -1;
+    RK_S32 ret;
+
+    if (vpu_api_ioctl_version < 0) {
+        ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
+        if (!ret) {
+            vpu_api_ioctl_version = 0;
+        } else {
+            ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE_U32, client_type);
+            if (!ret)
+                vpu_api_ioctl_version = 1;
+        }
+
+        if (ret)
+            mpp_err_f("can not find valid client type ioctl\n");
+
+        mpp_assert(ret == 0);
+    } else {
+        RK_U32 cmd = (vpu_api_ioctl_version == 0) ?
+                     (VPU_IOC_SET_CLIENT_TYPE) :
+                     (VPU_IOC_SET_CLIENT_TYPE_U32);
+
+        ret = ioctl(dev, cmd, client_type);
+    }
+
+    if (ret)
+        mpp_err_f("set client type failed ret %d errno %d\n", ret, errno);
+
+    return ret;
+}
+
 
 int VPUClientInit(VPU_CLIENT_TYPE type)
 {
@@ -93,10 +129,8 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
         return -1;
     }
 
-    ret = ioctl(fd, VPU_IOC_SET_CLIENT_TYPE, (RK_U32)type);
+    ret = vpu_api_set_client_type(fd, type);
     if (ret) {
-        mpp_err_f("ioctl VPU_IOC_SET_CLIENT_TYPE failed ret %d errno %d\n",
-                  ret, errno);
         return -2;
     }
     return fd;

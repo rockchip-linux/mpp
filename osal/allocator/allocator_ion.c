@@ -261,9 +261,6 @@ typedef struct {
     RK_S32  ion_device;
 } allocator_ctx_ion;
 
-#define VPU_IOC_MAGIC                       'l'
-#define VPU_IOC_PROBE_IOMMU_STATUS          _IOR(VPU_IOC_MAGIC, 5, unsigned long)
-#define VPU_IOC_PROBE_HEAP_STATUS           _IOR(VPU_IOC_MAGIC, 6, unsigned long)
 static const char *dev_ion = "/dev/ion";
 static RK_S32 ion_heap_id = -1;
 static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
