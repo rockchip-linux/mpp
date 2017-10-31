@@ -142,6 +142,8 @@ typedef struct JpegdCtx {
 
     /* 0 - no need to copy stream; 1 - need to copy */
     RK_S32                   copy_flag;
+    /* 0 - just scan parts of markers; 1 - scan all markers */
+    RK_S32                   scan_all_marker;
 
     RK_U8                    *buffer;
     RK_U32                   buf_size;
