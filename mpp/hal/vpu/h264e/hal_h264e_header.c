@@ -1006,13 +1006,16 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR444:
     case MPP_FMT_RGB888:
+    case MPP_FMT_ARGB8888:
     case MPP_FMT_ABGR8888:
     case MPP_FMT_BGR101010:
         hw_cfg->input_cb_addr = 0;
         hw_cfg->input_cr_addr = 0;
         break;
-    default:
+    default: {
+        mpp_err_f("invalid input format %d", prep->format);
         return MPP_ERR_VALUE;
+    }
     }
     hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
     hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
