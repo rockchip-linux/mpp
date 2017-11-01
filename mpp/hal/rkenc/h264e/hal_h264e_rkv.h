@@ -892,9 +892,9 @@ typedef struct H264eRkvIoctlOutput_t {
 
 /* mode cfg */
 typedef struct H264eRkvMbRcMcfg_t {
-    RK_U32 aq_prop; //0~16, 0:only enable aq, 16:only enable checkpoint
+    RK_S32 aq_prop; //0~16, 0:only enable aq, 16:only enable checkpoint
 
-    RK_U32 aq_strength; //0~3
+    double aq_strength; //0~3
 
     RK_U32 mb_num;
     RK_U32 qp_range; //0~15
@@ -905,6 +905,12 @@ typedef struct H264eRkvMbRcQcfg_t {
     RK_U32 qp_min;
     RK_U32 qp_max;
 } H264eRkvMbRcQcfg;
+
+typedef struct H264eRkvMbRcQRcfg_t {
+    RK_U32 qp_min_offset;
+    RK_U32 qp_max_offset;
+    RK_U32 qp_range;
+} H264eRkvMbRcQRcfg;
 
 #define RK_H264E_NUM_REGS     ((RK_S32)(sizeof(H264eRkvRegSet)/4))
 

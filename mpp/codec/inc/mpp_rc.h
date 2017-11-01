@@ -192,6 +192,8 @@ typedef struct MppRateControl_s {
     /* start from ONE */
     RK_U32 frm_cnt;
     RK_S32 real_bps;
+    RK_S32 prev_aq_prop_offset;
+
 } MppRateControl;
 
 /*
@@ -206,6 +208,7 @@ typedef struct RcSyntax_s {
     RK_S32           bit_target;
     RK_S32           bit_max;
     RK_S32           bit_min;
+    RK_S32           aq_prop_offset;
 
     /* head node of rc parameter list */
     struct list_head *rc_head;
