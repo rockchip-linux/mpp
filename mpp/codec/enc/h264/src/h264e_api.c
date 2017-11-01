@@ -165,6 +165,12 @@ MPP_RET h264e_encode(void *ctx, HalEncTask *task)
         p->idr_request--;
 
     mpp_rc_bits_allocation(p->rc, rc_syn);
+    if (rc_syn->bit_target <= 0) {
+        int mb_width = ((cfg->prep.width + 15) & (~15)) >> 4;
+        int mb_height = ((cfg->prep.height + 15) & (~15)) >> 4;
+        /* When there is no bit to allocate set bit_target as total mb count */
+        rc_syn->bit_target = mb_width * mb_height;
+    }
     mpp_rc_record_param(&p->rc_list, p->rc, rc_syn);
 
     task->syntax.data   = &p->syntax;

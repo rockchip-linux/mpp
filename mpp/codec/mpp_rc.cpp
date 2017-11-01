@@ -369,7 +369,7 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
             mpp_env_get_u32("intra_rate", &intra_to_inter_rate, 3);
             ctx->intra_to_inter_rate = intra_to_inter_rate;
             ctx->bits_per_inter = ctx->bits_per_pic;
-            ctx->bits_per_intra = ctx->bps_target * 2 / 3;
+            ctx->bits_per_intra = ctx->bits_per_pic * 3;
             ctx->bits_per_inter -= ctx->bits_per_intra / (ctx->fps_out - 1);
         }
     }
@@ -459,6 +459,20 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
 
                 mpp_rc_dbg_rc("RC: rc ctx %p inter pid diff %d target %d\n",
                               ctx, diff_bit, ctx->bits_target);
+
+                if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 2) {
+                    ctx->prev_aq_prop_offset -= 4;
+                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 3) {
+                    ctx->prev_aq_prop_offset -= 3;
+                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 6) {
+                    ctx->prev_aq_prop_offset -= 2;
+                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 10) {
+                    ctx->prev_aq_prop_offset -= 1;
+                }
+
+                if (ctx->bits_target > ctx->bits_per_inter * 11 / 12 && ctx->prev_aq_prop_offset < 0) {
+                    ctx->prev_aq_prop_offset += 1;
+                }
             }
         }
     } break;
@@ -481,7 +495,8 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             mpp_rc_dbg_rc("after adjustment, target bits %d\n", ctx->bits_target);
         }
     }
-
+    ctx->prev_aq_prop_offset = mpp_clip(ctx->prev_aq_prop_offset, -8, 0);
+    rc_syn->aq_prop_offset = ctx->prev_aq_prop_offset;
     rc_syn->bit_target = ctx->bits_target;
 
     /* step 2: calc min and max bits */
