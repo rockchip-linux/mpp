@@ -926,10 +926,15 @@ typedef struct MppEncVp8Cfg_t {
     RK_S32              qp_max_step;
 } MppEncVp8Cfg;
 
-/*
- * in decoder mode application need to specify the coding type first
- * send a stream header to mpi ctx using parameter data / size
- * and decoder will try to decode the input stream.
+/**
+ * @ingroup rk_mpi
+ * @brief MPP encoder codec configuration parameters
+ * @details The encoder codec configuration parameters are different for each
+ *          compression codings. For example, H.264 encoder can configure
+ *          profile, level, qp, etc. while jpeg encoder can configure qp
+ *          only. The detailed parameters can refer the corresponding data
+ *          structure such as MppEncH264Cfg and MppEncJpegCfg. This data
+ *          structure is associated with MPP_ENC_SET_CODEC_CFG command.
  */
 typedef struct MppEncCodecCfg_t {
     MppCodingType       coding;

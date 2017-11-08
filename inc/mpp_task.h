@@ -94,7 +94,7 @@ typedef enum {
 } MppTaskWorkMode;
 
 /*
- * Mpp port pull type
+ * Mpp port poll type
  *
  * MPP_POLL_BLOCK           - for block poll
  * MPP_POLL_NON_BLOCK       - for non-block poll
