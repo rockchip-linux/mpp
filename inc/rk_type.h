@@ -57,6 +57,9 @@ typedef signed long long int    RK_S64;
 /**
  * @ingroup rk_mpi
  * @brief The type of mpp context
+ * @details This type is used when calling mpp_init(), which including decoder,
+ *          encoder and Image Signal Process(ISP). So far decoder and encoder
+ *          are supported perfectly, and ISP will be supported in the future.
  */
 typedef enum {
     MPP_CTX_DEC,  /**< decoder */
