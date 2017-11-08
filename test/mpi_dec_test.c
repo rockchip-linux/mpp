@@ -86,6 +86,7 @@ static int decode_simple(MpiDecLoopData *data)
 {
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
+    RK_U32 err_info = 0;
     MPP_RET ret = MPP_OK;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
@@ -218,8 +219,13 @@ static int decode_simple(MpiDecLoopData *data)
 
                     mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                 } else {
+                    err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
+                    if (err_info) {
+                        mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
+                                mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
+                    }
                     mpp_log("decode_get_frame get frame %d\n", data->frame_count++);
-                    if (data->fp_output)
+                    if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
                 }
                 frm_eos = mpp_frame_get_eos(frame);
