@@ -204,6 +204,7 @@ typedef struct MppRateControl_s {
  * bit_max      - frame maximum size
  */
 typedef struct RcSyntax_s {
+    MppEncGopMode    gop_mode;
     ENC_FRAME_TYPE   type;
     RK_S32           bit_target;
     RK_S32           bit_max;
