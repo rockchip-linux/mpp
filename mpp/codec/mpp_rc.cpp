@@ -506,6 +506,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
     /* step 3: save bit target as previous target for next frame */
     const char *type_str;
     rc_syn->type = ctx->cur_frmtype;
+    rc_syn->gop_mode = ctx->gop_mode;
     if (ctx->cur_frmtype == INTRA_FRAME) {
         type_str = "intra";
         ctx->prev_intra_target = ctx->bits_target;
