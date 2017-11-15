@@ -606,7 +606,6 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
 
         regs->swreg46.rc_ctu_num     = m_cfg.mb_num;
         regs->swreg55.ctu_ebits      = mb_target_size_mul_16;
-
         regs->swreg47.bits_error0    = (RK_S32)((pow(0.88, 4) - 1) * (double)target);
         regs->swreg47.bits_error1    = (RK_S32)((pow(0.88, 3) - 1) * (double)target);
         regs->swreg48.bits_error2    = (RK_S32)((pow(0.88, 2) - 1) * (double)target);
@@ -1080,8 +1079,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
         h264e_rkv_sei_encode(ctx, rc_syn);
         h264e_rkv_nal_end(extra_info);
-        if (rc_syn->bit_target > extra_info->nal[0].i_payload)
-            rc_syn->bit_target -= extra_info->nal[0].i_payload; // take off SEI size
+#ifdef SEI_ADD_NAL_HEADER
+        h264e_rkv_encapsulate_nals(extra_info);
+#endif
     }
 
     if (ctx->enc_mode == 2 || ctx->enc_mode == 3) { //link table mode
@@ -1444,9 +1444,15 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
     h264e_hal_dbg(H264E_DBG_DETAIL,
                   "memcpy %d frames' regs from reg list to reg info",
                   ioctl_info->frame_num);
-    for (k = 0; k < ioctl_info->frame_num; k++)
+    for (k = 0; k < ioctl_info->frame_num; k++) {
+        RK_U32 i;
+        RK_U32 *regs = (RK_U32*)&reg_list[k];
         memcpy(&ioctl_info->reg_info[k].regs, &reg_list[k],
                sizeof(H264eRkvRegSet));
+        for (i = 0; i < sizeof(H264eRkvRegSet) / 4; i++) {
+            h264e_hal_dbg(H264E_DBG_REG, "set reg[%03d]: %08x\n", i, regs[i]);
+        }
+    }
 
     length = (sizeof(ioctl_info->enc_mode) + sizeof(ioctl_info->frame_num) +
               sizeof(ioctl_info->reg_info[0]) * ioctl_info->frame_num) >> 2;
@@ -1489,7 +1495,8 @@ static MPP_RET h264e_rkv_set_feedback(H264eHalContext *ctx,
     for (k = 0; k < out->frame_num; k++) {
         elem = &out->elem[k];
         fb->qp_sum = elem->swreg71.qp_sum;
-        fb->out_strm_size = elem->swreg69.bs_lgth;
+        fb->out_hw_strm_size =
+            fb->out_strm_size = elem->swreg69.bs_lgth;
         fb->sse_sum = elem->swreg70.sse_l32 +
                       ((RK_S64)(elem->swreg71.sse_h8 & 0xff) << 32);
 
@@ -1675,7 +1682,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         h264e_rkv_set_feedback(ctx, reg_out, enc_task);
     } else if ((RK_S32)frame_cnt < rc->fps_out_num / rc->fps_out_denorm &&
                rc_syn->type == INTER_P_FRAME &&
-               rc_syn->bit_target > fb->out_strm_size * 8 * 1.5) {
+               rc_syn->bit_target > fb->out_hw_strm_size * 8 * 1.5) {
         /* re-encode frame if it meets all the conditions below:
          * 1. gop is the first gop
          * 2. type is p frame
@@ -1735,7 +1742,7 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         mpp_assert(avg_qp >= 0);
         mpp_assert(avg_qp <= 51);
 
-        result.bits = fb->out_strm_size * 8;
+        result.bits = fb->out_hw_strm_size * 8;
         result.type = syn->type;
         fb->result = &result;
 

@@ -29,7 +29,7 @@
 extern RK_U32 h264e_hal_log_mode;
 
 #define H264E_DBG_SIMPLE            0x00000010
-
+#define H264E_DBG_REG               0x00000020
 #define H264E_DBG_FLOW              0x00000100
 
 #define H264E_DBG_DPB               0x00001000

@@ -110,6 +110,7 @@ typedef struct h264e_feedback_t {
     RK_S32 mad_count;
     RK_S32 rlc_count;
     RK_U32 out_strm_size;
+    RK_U32 out_hw_strm_size;
     RK_S64 sse_sum;
 
     /* for VEPU future extansion */
