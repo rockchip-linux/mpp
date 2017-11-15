@@ -773,15 +773,6 @@ void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn)
         H264E_HAL_SPRINT(str, len, "fps_out=%d:%d:%d ", rc->fps_out_num, rc->fps_out_denorm, rc->fps_out_flex);
         H264E_HAL_SPRINT(str, len, "gop=%d ", rc->gop);
     }
-
-    /* frame type is intra */
-    if (rc_syn && (hw_cfg->frame_type == 2)) {
-        H264E_HAL_SPRINT(str, len, "[frm %d] ", ctx->frame_cnt);
-        H264E_HAL_SPRINT(str, len, "rc_mode=%d ", rc->rc_mode);
-        H264E_HAL_SPRINT(str, len, "quality=%d ", rc->quality);
-        H264E_HAL_SPRINT(str, len, "bps=%d:%d:%d ", rc->bps_target, rc->bps_min, rc->bps_max);
-    }
-
     /* record detailed RC parameter
      * Start to write parameter when the first frame is encoded,
      * because we can get all parameter only when it's encoded.
@@ -799,11 +790,6 @@ void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn)
                 H264E_HAL_SPRINT(str, len, "tgt_qp=%d:%d:%d:%d ",
                                  pos->set_qp, pos->real_qp,
                                  pos->qp_min, pos->qp_max);
-
-                /* frame type is intra */
-                if (pos->frm_type == INTRA_FRAME)
-                    H264E_HAL_SPRINT(str, len, "fps=%d gop=%d I=%0.2f ", pos->fps,
-                                     pos->gop, pos->last_intra_percent);
 
                 H264E_HAL_SPRINT(str, len, "per_pic=%d intra=%d inter=%d ",
                                  pos->bits_per_pic,
@@ -823,9 +809,21 @@ void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn)
                 H264E_HAL_SPRINT(str, len, "weight_len=%d wlen=%d ",
                                  lin_reg->weight_mode, pos->wlen);
 
+                /* frame type is intra */
+                if (pos->frm_type == INTRA_FRAME)
+                    H264E_HAL_SPRINT(str, len, "fps=%d gop=%d I=%0.2f ", pos->fps,
+                                     pos->gop, pos->last_intra_percent);
+
                 break;
             }
         }
+    }
+    /* frame type is intra */
+    if (rc_syn && (hw_cfg->frame_type == 2)) {
+        H264E_HAL_SPRINT(str, len, "[frm %d] ", ctx->frame_cnt);
+        H264E_HAL_SPRINT(str, len, "rc_mode=%d ", rc->rc_mode);
+        H264E_HAL_SPRINT(str, len, "quality=%d ", rc->quality);
+        H264E_HAL_SPRINT(str, len, "bps=%d:%d:%d ", rc->bps_target, rc->bps_min, rc->bps_max);
     }
 }
 
