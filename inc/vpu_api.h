@@ -89,9 +89,9 @@ typedef enum VPU_API_CMD {
     VPU_API_USE_FAST_MODE,
     VPU_API_DEC_GET_STREAM_COUNT,
     VPU_API_GET_VPUMEM_USED_COUNT,
-    VPU_API_DEC_GETFORMAT,
+    VPU_API_GET_FRAME_INFO,
     VPU_API_SET_OUTPUT_BLOCK,
-    VPU_API_DEC_GET_EOS_STATUS,
+    VPU_API_GET_EOS_STATUS,
 } VPU_API_CMD;
 
 typedef struct {
@@ -210,10 +210,6 @@ typedef enum OMX_RK_VIDEO_CODINGTYPE {
     OMX_RK_VIDEO_CodingMax = 0x7FFFFFFF
 } OMX_RK_VIDEO_CODINGTYPE;
 
-typedef enum VPU_VIDEO_PIXEL_FMT {
-    VPU_VIDEO_PIXEL_FMT_NV12,
-} VPU_VIDEO_PIXEL_FMT;
-
 typedef enum CODEC_TYPE {
     CODEC_NONE,
     CODEC_DECODER,
@@ -234,18 +230,6 @@ typedef enum VPU_API_ERR {
 
     VPU_API_ERR_BUTT,
 } VPU_API_ERR;
-
-typedef struct DecoderFormat {
-    VPU_VIDEO_PIXEL_FMT format;
-    RK_U32 width;
-    RK_U32 height;
-    RK_U32 stride;
-    RK_U32 frame_size;
-    RK_U32 aligned_width;
-    RK_U32 aligned_height;
-    RK_U32 aligned_stride;
-    RK_U32 aligned_frame_size;
-} DecoderFormat_t;
 
 typedef enum VPU_FRAME_ERR {
     VPU_FRAME_ERR_UNKNOW           = 0x0001,
@@ -280,7 +264,6 @@ typedef struct EXtraCfg {
     RK_U32 bit_depth;    /* 8 or 10 bit */
     RK_U32 yuv_format;   /* 0:420 1:422 2:444 */
     RK_U32 reserved[16];
-
 } EXtraCfg_t;
 
 /**

@@ -330,6 +330,52 @@ VpuApiLegacy::~VpuApiLegacy()
     vpu_api_dbg_func("leave\n");
 }
 
+static RK_S32 init_frame_info(VpuCodecContext *ctx,
+                              MppCtx mpp_ctx, MppApi *mpi, VPU_GENERIC *p)
+{
+    RK_S32 ret = -1;
+    MppFrame frame = NULL;
+
+    if (ctx->extra_cfg.bit_depth
+        || ctx->extra_cfg.yuv_format) {
+        if (ctx->extra_cfg.bit_depth == 10)
+            p->CodecType = (ctx->extra_cfg.yuv_format == 1)
+                           ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
+        else
+            p->CodecType = (ctx->extra_cfg.yuv_format == 1)
+                           ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
+    } else {
+        /**hightest of p->ImgWidth bit show current dec bitdepth
+          * 0 - 8bit
+          * 1 - 10bit
+          **/
+        if (p->ImgWidth & 0x80000000)
+            p->CodecType = (p->ImgWidth & 0x40000000)
+                           ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
+        else
+            p->CodecType = (p->ImgWidth & 0x40000000)
+                           ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
+    }
+    p->ImgWidth = (p->ImgWidth & 0xFFFF);
+
+    mpp_frame_init(&frame);
+
+    mpp_frame_set_width(frame, p->ImgWidth);
+    mpp_frame_set_height(frame, p->ImgHeight);
+    mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
+
+    ret = mpi->control(mpp_ctx, MPP_DEC_SET_FRAME_INFO, (MppParam)frame);
+    /* output the parameters used */
+    p->ImgHorStride = mpp_frame_get_hor_stride(frame);
+    p->ImgVerStride = mpp_frame_get_ver_stride(frame);
+    p->BufSize = mpp_frame_get_buf_size(frame);
+
+    mpp_frame_deinit(&frame);
+
+    return ret;
+}
+
+
 RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_size)
 {
     vpu_api_dbg_func("enter\n");
@@ -389,12 +435,13 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         pkt = NULL;
     }
 
-    VPU_GENERIC vpug;
     vpug.CodecType  = ctx->codecType;
     vpug.ImgWidth   = ctx->width;
     vpug.ImgHeight  = ctx->height;
-    if (MPP_CTX_ENC != type)
-        control(ctx, VPU_API_SET_DEFAULT_WIDTH_HEIGH, &vpug);
+
+    if (MPP_CTX_DEC == type)
+        init_frame_info(ctx, mpp_ctx, mpi, &vpug);
+
     if (extraData != NULL) {
         mpp_packet_init(&pkt, extraData, extra_size);
         mpp_packet_set_extra_data(pkt);
@@ -1195,45 +1242,6 @@ FUNC_RET:
     return ret;
 }
 
-RK_S32 VpuApiLegacy::getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *decoder_format)
-{
-    int32_t ret = 0;
-
-    memset(decoder_format, 0, sizeof(DecoderFormat_t));
-
-    decoder_format->width = ctx->width;
-    decoder_format->height = ctx->height;
-    decoder_format->stride = ctx->width;
-    decoder_format->format = VPU_VIDEO_PIXEL_FMT_NV12;
-    decoder_format->frame_size = (decoder_format->width * decoder_format->height * 3) >> 1;
-
-    switch (ctx->videoCoding) {
-    case OMX_RK_VIDEO_CodingMPEG2:      /**< AKA: H.262 */
-    case OMX_RK_VIDEO_CodingMPEG4:      /**< MPEG-4 */
-    case OMX_RK_VIDEO_CodingAVC:        /**< H.264/AVC */
-    case OMX_RK_VIDEO_CodingVP8:        /**< VP8 */
-    case OMX_RK_VIDEO_CodingH263:
-        decoder_format->aligned_width = (decoder_format->width + 15) & (~15);
-        //printf("decoder_format->aligned_width %d\n", decoder_format->aligned_width);
-        decoder_format->aligned_height = (decoder_format->height + 15) & (~15);
-        decoder_format->aligned_stride = decoder_format->aligned_width;
-        decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
-        break;
-    case OMX_RK_VIDEO_CodingHEVC:        /**< H.265/HEVC */
-        //decoder_format->aligned_width = ((decoder_format->width + 255) & (~255)) | 256;
-        decoder_format->aligned_width = (decoder_format->width + 63) & (~63);
-        decoder_format->aligned_height = (decoder_format->height + 7) & (~7);
-        decoder_format->aligned_stride = decoder_format->aligned_width;
-        decoder_format->aligned_frame_size = (decoder_format->aligned_width * decoder_format->aligned_height * 3) >> 1;
-        break;
-    default:
-        ret = -1;
-        break;
-    }
-
-    return ret;
-}
-
 RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncOut)
 {
     RK_S32 ret = 0;
@@ -1335,49 +1343,6 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_USE_PRESENT_TIME_ORDER: {
         mpicmd = MPP_DEC_SET_INTERNAL_PTS_ENABLE;
     } break;
-    case VPU_API_SET_DEFAULT_WIDTH_HEIGH: {
-        RK_S32 ret = -1;
-        VPU_GENERIC *p = (VPU_GENERIC *)param;
-        MppFrame frame = NULL;
-
-        mpicmd = MPP_DEC_SET_FRAME_INFO;
-        if (ctx->extra_cfg.bit_depth
-            || ctx->extra_cfg.yuv_format) {
-            if (ctx->extra_cfg.bit_depth == 10)
-                p->CodecType = (ctx->extra_cfg.yuv_format == 1)
-                               ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
-            else
-                p->CodecType = (ctx->extra_cfg.yuv_format == 1)
-                               ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
-        } else {
-            /**hightest of p->ImgWidth bit show current dec bitdepth
-              * 0 - 8bit
-              * 1 - 10bit
-              **/
-            if (p->ImgWidth & 0x80000000)
-                p->CodecType = (p->ImgWidth & 0x40000000)
-                               ? MPP_FMT_YUV422SP_10BIT : MPP_FMT_YUV420SP_10BIT;
-            else
-                p->CodecType = (p->ImgWidth & 0x40000000)
-                               ? MPP_FMT_YUV422SP : MPP_FMT_YUV420SP;
-        }
-        p->ImgWidth = (p->ImgWidth & 0xFFFF);
-
-        mpp_frame_init(&frame);
-
-        mpp_frame_set_width(frame, p->ImgWidth);
-        mpp_frame_set_height(frame, p->ImgHeight);
-        mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
-
-        ret = mpi->control(mpp_ctx, mpicmd, (MppParam)frame);
-        /* output the parameters used */
-        p->ImgHorStride = mpp_frame_get_hor_stride(frame);
-        p->ImgVerStride = mpp_frame_get_ver_stride(frame);
-        p->BufSize = mpp_frame_get_buf_size(frame);
-
-        mpp_frame_deinit(&frame);
-        return ret;
-    }
     case VPU_API_SET_INFO_CHANGE: {
         mpicmd = MPP_DEC_SET_INFO_CHANGE_READY;
     } break;
@@ -1390,15 +1355,15 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_GET_VPUMEM_USED_COUNT: {
         mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
     } break;
-    case VPU_API_DEC_GETFORMAT: {
-        mpicmd = MPI_CMD_BUTT;
-        getDecoderFormat(ctx, (DecoderFormat_t *)param);
-    } break;
     case VPU_API_SET_OUTPUT_BLOCK: {
         mpicmd = MPP_SET_OUTPUT_BLOCK;
     } break;
-    case VPU_API_DEC_GET_EOS_STATUS: {
-        *(RK_S32 *)param = mEosSet;
+    case VPU_API_GET_EOS_STATUS: {
+        *((RK_S32 *)param) = mEosSet;
+        mpicmd = MPI_CMD_BUTT;
+    } break;
+    case VPU_API_GET_FRAME_INFO: {
+        *((VPU_GENERIC *)param) = vpug;
         mpicmd = MPI_CMD_BUTT;
     } break;
     default: {
