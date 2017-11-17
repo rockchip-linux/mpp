@@ -64,9 +64,7 @@ public:
     RK_S32 control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param);
 
 private:
-    RK_S32 getDecoderFormat(VpuCodecContext *ctx, DecoderFormat_t *decoder_format);
-
-private:
+    VPU_GENERIC vpug;
     MppCtx mpp_ctx;
     MppApi *mpi;
     RK_U32 init_ok;
