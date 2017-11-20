@@ -452,6 +452,7 @@ MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec)
     p_dec->cur = NULL;
     p_dec->dpb[0] = NULL;
     p_dec->dpb[1] = NULL;
+    p_dec->has_get_eos = 0;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
         memset(&p_dec->mem->save[i], 0, sizeof(AvsdFrame_t));
