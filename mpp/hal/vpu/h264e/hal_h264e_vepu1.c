@@ -684,6 +684,8 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
     }
     case MPP_ENC_SET_OSD_PLT_CFG:
     case MPP_ENC_SET_OSD_DATA_CFG: {
+        mpp_err("hw vpu1 don't support osd cfg.\n");
+        return MPP_NOK;
         break;
     }
     case MPP_ENC_SET_SEI_CFG: {
