@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_API_H__
-#define __HAL_H264E_API_H__
+#ifndef __HAL_H264E_RKV_UTILS_H__
+#define __HAL_H264E_RKV_UTILS_H__
 
-#include "mpp_hal.h"
+#include "hal_h264e_com.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// TODO: add ROI function
+typedef struct h264e_hal_rkv_roi_cfg_t {
+    RK_U8 qp_y          : 6;
+    RK_U8 set_qp_y_en   : 1;
+    RK_U8 forbid_inter  : 1;
+} h264e_hal_rkv_roi_cfg;
 
-extern const MppHalApi hal_api_h264e;
+MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param);
+MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param);
 
-MPP_RET hal_h264e_init    (void *hal, MppHalCfg *cfg);
-MPP_RET hal_h264e_deinit  (void *hal);
-MPP_RET hal_h264e_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET hal_h264e_start   (void *hal, HalTaskInfo *task);
-MPP_RET hal_h264e_wait    (void *hal, HalTaskInfo *task);
-MPP_RET hal_h264e_reset   (void *hal);
-MPP_RET hal_h264e_flush   (void *hal);
-MPP_RET hal_h264e_control (void *hal, RK_S32 cmd_type, void *param);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif /* __HAL_H264E_RKV_UTILS_H__ */
