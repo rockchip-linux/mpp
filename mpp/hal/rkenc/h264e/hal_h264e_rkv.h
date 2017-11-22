@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_RK_H__
-#define __HAL_H264E_RK_H__
+#ifndef __HAL_H264E_RKV_H__
+#define __HAL_H264E_RKV_H__
 
 #include "mpp_buffer.h"
 #include "mpp_hal.h"
 #include "hal_task.h"
+#include "hal_h264e_com.h"
 
 #define RKV_H264E_ENC_MODE                  1 //2/3
 #define RKV_H264E_LINKTABLE_FRAME_NUM       1 //2
@@ -29,8 +30,6 @@
 #else
 #define RKV_H264E_LINKTABLE_EACH_NUM        1
 #endif
-
-//-------------------------------------------------------------------------------
 
 #define RKV_H264E_LINKTABLE_MAX_SIZE        256
 #define RKV_H264E_ADD_RESERVE_REGS          1
@@ -44,8 +43,6 @@
 #define RKV_H264E_INT_BUS_WRITE_ERROR     0x00000040
 #define RKV_H264E_INT_BUS_READ_ERROR      0x00000080
 #define RKV_H264E_INT_TIMEOUT_ERROR       0x00000100
-
-#define RKV_H264E_REF_MAX 16
 
 typedef enum H264eRkvFrameType_t {
     H264E_RKV_FRAME_P = 0,
@@ -63,13 +60,6 @@ typedef enum h264e_hal_rkv_buf_grp_t {
     H264E_HAL_RKV_BUF_GRP_BUTT
 } h264e_hal_rkv_buf_grp;
 
-typedef struct h264e_hal_rkv_roi_cfg_t {
-    RK_U8 qp_y          : 6;
-    RK_U8 set_qp_y_en   : 1;
-    RK_U8 forbit_inter  : 1;
-} h264e_hal_rkv_roi_cfg;
-
-
 typedef struct h264e_hal_rkv_buffers_t {
     MppBufferGroup hw_buf_grp[H264E_HAL_RKV_BUF_GRP_BUTT];
 
@@ -79,143 +69,6 @@ typedef struct h264e_hal_rkv_buffers_t {
     MppBuffer hw_roi_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
     MppBuffer hw_rec_buf[H264E_NUM_REFS + 1]; //extra 1 frame for current recon
 } h264e_hal_rkv_buffers;
-
-typedef enum H264eRkvNalIdx_t {
-    H264E_RKV_NAL_IDX_SPS,
-    H264E_RKV_NAL_IDX_PPS,
-    H264E_RKV_NAL_IDX_SEI,
-    H264E_RKV_NAL_IDX_BUTT,
-} H264eRkvNalIdx;
-
-typedef struct  H264eRkvNal_t {
-    RK_S32 i_ref_idc;  /* nal_priority_e */
-    RK_S32 i_type;     /* nal_unit_type_e */
-    RK_S32 b_long_startcode;
-    RK_S32 i_first_mb; /* If this NAL is a slice, the index of the first MB in the slice. */
-    RK_S32 i_last_mb;  /* If this NAL is a slice, the index of the last MB in the slice. */
-
-    /* Size of payload (including any padding) in bytes. */
-    RK_S32     i_payload;
-    /* If param->b_annexb is set, Annex-B bytestream with startcode.
-    * Otherwise, startcode is replaced with a 4-byte size.
-    * This size is the size used in mp4/similar muxing; it is equal to i_payload-4 */
-    RK_U8 *p_payload;
-
-    /* Size of padding in bytes. */
-    RK_S32 i_padding;
-    RK_S32 sh_head_len;
-} H264eRkvNal;
-
-typedef struct  H264eRkvDumpFiles_t {
-    FILE *fp_mpp_syntax_in;
-    FILE *fp_mpp_reg_in;
-    FILE *fp_mpp_reg_out;
-    FILE *fp_mpp_strm_out;
-    FILE *fp_mpp_feedback;
-    FILE *fp_mpp_extra_ino_cfg;
-} H264eRkvDumpFiles;
-
-typedef struct  H264eRkvStream_t {
-    RK_U8 *p_start;
-    RK_U8 *p;
-    //RK_U8 *p_end;
-
-    RK_U32 cur_bits;
-    RK_S32 i_left;    /* i_count number of available bits */
-
-    //add buf pointer
-    RK_U8 *buf;
-    RK_U8 *buf_plus8;
-    RK_U32 count_bit; // only for debug
-} H264eRkvStream;
-
-typedef struct H264eRkvExtraInfo_t {
-    RK_S32          nal_num;
-    H264eRkvNal     nal[H264E_RKV_NAL_IDX_BUTT];
-    RK_U8           *nal_buf;
-    RK_U8           *sei_buf;
-    RK_U32          sei_change_flg;
-    H264eRkvStream  stream;
-    H264eSps        sps;
-    H264ePps        pps;
-    H264eSei        sei;
-} H264eRkvExtraInfo;
-
-
-typedef struct  H264eRkvFrame_t {
-    MppBuffer   hw_buf;
-    RK_S32      hw_buf_used;
-    RK_S32      i_frame_cnt;     /* Presentation frame number */
-    RK_S32      i_frame_num; /* 7.4.3 frame_num */
-    RK_S32      long_term_flag;
-    RK_S32      reorder_longterm_flag;
-    RK_S32      i_poc;
-    RK_S32      i_delta_poc[2];
-    RK_S32      i_frame_type;
-    RK_S64      i_pts;
-    RK_S64      i_dts;
-    RK_S32      b_kept_as_ref;
-    RK_S32      b_keyframe;
-    RK_S32      b_corrupt;
-    RK_S32      i_reference_count;
-} H264eRkvFrame;
-
-
-typedef struct H264eRkvDpbCtx_t {
-    //H264eRkvFrame *fenc;
-    H264eRkvFrame *fdec;
-    H264eRkvFrame *fref[2][RKV_H264E_REF_MAX + 1];
-    H264eRkvFrame *fref_nearest[2]; //Used for RC
-    struct {
-        /* Unused frames: 0 = fenc, 1 = fdec */
-        H264eRkvFrame **unused;
-
-        /* frames used for reference + sentinels */
-        H264eRkvFrame *reference[RKV_H264E_REF_MAX + 1]; //TODO: remove later
-
-
-        RK_S32 i_last_keyframe;       /* Frame number of the last keyframe */
-        RK_S32 i_last_idr;            /* Frame number of the last IDR (not RP)*/
-        //RK_S64 i_largest_pts;
-        //RK_S64 i_second_largest_pts;
-    } frames;
-
-    H264eRkvFrame    frame_buf[RKV_H264E_REF_MAX + 1];
-
-    RK_S32      i_ref[2];
-    RK_U32      i_nal_type;
-    RK_U32      i_nal_ref_idc;
-
-    RK_S32      i_frame_cnt;     /* Presentation frame number */
-    RK_S32      i_frame_num; /* 7.4.3 frame_num */
-
-    //move from slice header below
-    RK_S32      i_slice_type;
-    RK_S32      i_idr_pic_id;   /* -1 if nal_type != 5 */
-    RK_S32      i_tmp_idr_pic_id;
-    //RK_S32 i_poc;
-    //RK_S32 i_delta_poc[2];
-    //RK_S32 i_redundant_pic_cnt;
-    RK_S32      i_max_ref0;
-    RK_S32      i_max_ref1;
-    RK_S32      b_ref_pic_list_reordering[2];
-    struct {
-        RK_S32 idc;
-        RK_S32 arg;
-    } ref_pic_list_order[2][RKV_H264E_REF_MAX];
-
-    RK_S32 i_mmco_remove_from_end;
-    RK_S32 i_mmco_command_count;
-    struct { /* struct for future expansion */
-        RK_S32 i_difference_of_pic_nums;
-        RK_S32 i_poc;
-        RK_S32 memory_management_control_operation;
-    } mmco[RKV_H264E_REF_MAX];
-
-    RK_S32 i_long_term_reference_flag;
-} H264eRkvDpbCtx;
-
-/* cmodel version r2893 */
 
 typedef struct  H264eOsdCfg_t {
     RK_U32    lt_pos_x : 8;
@@ -438,55 +291,55 @@ typedef struct H264eRkvRegSet_t {
     } swreg23; //SRC_STRID
 
     /* reg[070] */
-    RK_U32  swreg24_adr_srcy;           //swreg24
+    RK_U32  swreg24_adr_srcy;
 
     /* reg[071] */
-    RK_U32  swreg25_adr_srcu;           //swreg25
+    RK_U32  swreg25_adr_srcu;
 
     /* reg[072] */
-    RK_U32  swreg26_adr_srcv;           //swreg26
+    RK_U32  swreg26_adr_srcv;
 
     /* reg[073] */
-    RK_U32  swreg27_fltw_addr;          //swreg27
+    RK_U32  swreg27_fltw_addr;
 
     /* reg[074] */
-    RK_U32  swreg28_fltr_addr;          //swreg28
+    RK_U32  swreg28_fltr_addr;
 
     /* reg[075] */
-    RK_U32  swreg29_ctuc_addr;          //swreg29
+    RK_U32  swreg29_ctuc_addr;
 
     /* reg[076] */
-    RK_U32  swreg30_rfpw_addr;          //swreg30
+    RK_U32  swreg30_rfpw_addr;
 
     /* reg[077] */
-    RK_U32  swreg31_rfpr_addr;          //swreg31
+    RK_U32  swreg31_rfpr_addr;
 
     /* reg[078] */
-    RK_U32  swreg32_cmvw_addr;          //swreg32
+    RK_U32  swreg32_cmvw_addr;
 
     /* reg[079] */
-    RK_U32  swreg33_cmvr_addr;          //swreg33
+    RK_U32  swreg33_cmvr_addr;
 
     /* reg[080] */
-    RK_U32  swreg34_dspw_addr;          //swreg34
+    RK_U32  swreg34_dspw_addr;
 
     /* reg[081] */
-    RK_U32  swreg35_dspr_addr;          //swreg35
+    RK_U32  swreg35_dspr_addr;
 
     /* reg[082] */
-    RK_U32  swreg36_meiw_addr;          //swreg36
+    RK_U32  swreg36_meiw_addr;
 
     /* reg[083] */
-    RK_U32  swreg37_bsbt_addr;          //swreg37
+    RK_U32  swreg37_bsbt_addr;
 
     /* reg[084] */
-    RK_U32  swreg38_bsbb_addr;          //swreg38
+    RK_U32  swreg38_bsbb_addr;
 
     /* reg[085] */
-    RK_U32  swreg39_bsbr_addr;          //swreg39
+    RK_U32  swreg39_bsbr_addr;
 
     /* reg[086] */
-    RK_U32  swreg40_bsbw_addr;          //swreg40
+    RK_U32  swreg40_bsbw_addr;
 
     /* reg[087] */
     struct {
@@ -794,12 +647,12 @@ typedef struct H264eRkvIoctlExtraInfoElem_t {
 typedef struct H264eRkvIoctlExtraInfo_t {
     RK_U32                          magic;
     RK_U32                          cnt;
-    H264eRkvIoctlExtraInfoElem elem[20];
+    H264eRkvIoctlExtraInfoElem      elem[20];
 } H264eRkvIoctlExtraInfo;
 
 typedef struct H264eRkvIoctlRegInfo_t {
-    RK_U32                      reg_num;
-    H264eRkvRegSet           regs;
+    RK_U32                  reg_num;
+    H264eRkvRegSet          regs;
     H264eRkvIoctlExtraInfo  extra_info;
 } H264eRkvIoctlRegInfo;
 
@@ -811,12 +664,10 @@ enc_mode
     3: multi_frame_encode link table update
 */
 typedef struct H264eRkvIoctlInput_t {
-    RK_U32                      enc_mode;
-    RK_U32                      frame_num;
-
+    RK_U32                  enc_mode;
+    RK_U32                  frame_num;
     H264eRkvIoctlRegInfo    reg_info[RKV_H264E_LINKTABLE_MAX_SIZE];
 } H264eRkvIoctlInput;
-
 
 typedef struct H264eRkvIoctlOutputElem_t {
     RK_U32 hw_status;
@@ -886,16 +737,14 @@ typedef struct H264eRkvIoctlOutputElem_t {
 } H264eRkvIoctlOutputElem;
 
 typedef struct H264eRkvIoctlOutput_t {
-    RK_U32                          frame_num;
+    RK_U32                      frame_num;
     H264eRkvIoctlOutputElem     elem[RKV_H264E_LINKTABLE_MAX_SIZE];
 } H264eRkvIoctlOutput;
 
 /* mode cfg */
 typedef struct H264eRkvMbRcMcfg_t {
     RK_S32 aq_prop; //0~16, 0:only enable aq, 16:only enable checkpoint
-
     double aq_strength; //0~3
-
     RK_U32 mb_num;
     RK_U32 qp_range; //0~15
 } H264eRkvMbRcMcfg;
@@ -911,8 +760,6 @@ typedef struct H264eRkvMbRcQRcfg_t {
     RK_U32 qp_max_offset;
     RK_U32 qp_range;
 } H264eRkvMbRcQRcfg;
-
-#define RK_H264E_NUM_REGS     ((RK_S32)(sizeof(H264eRkvRegSet)/4))
 
 MPP_RET hal_h264e_rkv_init    (void *hal, MppHalCfg *cfg);
 MPP_RET hal_h264e_rkv_deinit  (void *hal);
