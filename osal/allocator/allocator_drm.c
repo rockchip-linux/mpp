@@ -16,6 +16,7 @@
 
 #define MODULE_TAG "mpp_drm"
 
+#include <stdint.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -25,6 +26,7 @@
 
 #include <linux/drm.h>
 #include <linux/drm_mode.h>
+#include <drm/rockchip_drm.h>
 
 #include "os_mem.h"
 #include "allocator_drm.h"
@@ -80,7 +82,7 @@ typedef struct {
     RK_S32  drm_device;
 } allocator_ctx_drm;
 
-static const char *dev_drm = "/dev/dri/card0";
+static const char *dev_drm = "/dev/dri/renderD128";
 
 static int drm_ioctl(int fd, int req, void *arg)
 {
@@ -147,36 +149,34 @@ static int drm_fd_to_handle(int fd, int map_fd, RK_U32 *handle, RK_U32 flags)
 static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle)
 {
     int ret;
-    struct drm_mode_create_dumb dmcb;
+    struct drm_rockchip_gem_create gem;
 
     drm_dbg(DRM_FUNCTION, "len %ld aligned %ld\n", len, align);
 
-    memset(&dmcb, 0, sizeof(struct drm_mode_create_dumb));
-    dmcb.bpp = 8;
-    dmcb.width = (len + align - 1) & (~(align - 1));
-    dmcb.height = 1;
+    memset(&gem, 0, sizeof gem);
+    gem.size = (len + align - 1) & (~(align - 1));
 
     if (handle == NULL)
         return -EINVAL;
 
-    ret = drm_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &dmcb);
+    ret = drm_ioctl(fd, DRM_IOCTL_ROCKCHIP_GEM_CREATE, &gem);
     if (ret < 0)
         return ret;
 
-    drm_dbg(DRM_FUNCTION, "fd %d aligned %d size %lld\n", fd, align, dmcb.size);
-    *handle = dmcb.handle;
-
-    drm_dbg(DRM_FUNCTION, "get handle %d size %d", *handle, dmcb.size);
+    *handle = gem.handle;
+    drm_dbg(DRM_FUNCTION, "fd %d get handle %d aligned %d size %lld\n",
+            fd, *handle, align, gem.size);
 
     return ret;
 }
 
 static int drm_free(int fd, RK_U32 handle)
 {
-    struct drm_mode_destroy_dumb data = {
+    struct drm_gem_close data = {
         .handle = handle,
+        .pad = 0
     };
-    return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
+    return drm_ioctl(fd, DRM_IOCTL_GEM_CLOSE, &data);
 }
 
 static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
@@ -256,8 +256,6 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx_drm *p = (allocator_ctx_drm *)ctx;
-    struct drm_mode_map_dumb dmmd;
-    memset(&dmmd, 0, sizeof(dmmd));
 
     drm_dbg(DRM_FUNCTION, "enter");
 
@@ -328,19 +326,19 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
         return MPP_ERR_NULL_PTR;
 
     if (NULL == data->ptr) {
-        struct drm_mode_map_dumb dmmd;
+        struct drm_rockchip_gem_map_off gem_map;
 
-        memset(&dmmd, 0, sizeof(dmmd));
-        dmmd.handle = (RK_U32)(intptr_t)data->hnd;
+        memset(&gem_map, 0, sizeof gem_map);
+        gem_map.handle = (RK_U32)(intptr_t)data->hnd;
 
-        ret = drm_ioctl(p->drm_device, DRM_IOCTL_MODE_MAP_DUMB, &dmmd);
+        ret = drm_ioctl(p->drm_device, DRM_IOCTL_ROCKCHIP_GEM_MAP_OFFSET, &gem_map);
         if (ret) {
-            mpp_err("map_dumb failed: %s\n", strerror(ret));
+            mpp_err("rockchip_gem_map_offset failed: %s\n", strerror(ret));
             return ret;
         }
 
         data->ptr = drm_mmap(NULL, data->size, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, p->drm_device, dmmd.offset);
+                             MAP_SHARED, p->drm_device, gem_map.offset);
         if (data->ptr == MAP_FAILED) {
             mpp_err("mmap failed: %s\n", strerror(errno));
             data->ptr = NULL;
