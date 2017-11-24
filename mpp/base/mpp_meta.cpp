@@ -67,7 +67,10 @@ static MppMetaDef meta_defs[] = {
     {   KEY_OUTPUT_FRAME,      TYPE_FRAME,    },
     {   KEY_INPUT_PACKET,      TYPE_PACKET,   },
     {   KEY_OUTPUT_PACKET,     TYPE_PACKET,   },
-    {   KEY_MOTION_INFO,       TYPE_BUFFER,   },  /* buffer for motion detection */
+    /* buffer for motion detection */
+    {   KEY_MOTION_INFO,       TYPE_BUFFER,   },
+    /* buffer storing the HDR information for current frame*/
+    {   KEY_HDR_INFO,          TYPE_BUFFER,   },
 
     {   KEY_INPUT_BLOCK,       TYPE_S32,      },
     {   KEY_OUTPUT_BLOCK,      TYPE_S32,      },
