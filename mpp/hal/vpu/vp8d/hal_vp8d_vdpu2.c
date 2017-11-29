@@ -270,36 +270,33 @@ static MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx,
     /* calculate dct partition length here instead */
     if (pic_param->decMode == VP8HWD_VP8 && !pic_param->frame_type)
         extraBytesPacked += 7;
-    len = pic_param->streamEndPos + pic_param->frameTagSize - pic_param->dctPartitionOffsets[0];
-    len += ( (1 << pic_param->log2_nbr_of_dct_partitions) - 1) * 3;
+    len = pic_param->streamEndPos + pic_param->frameTagSize
+          - pic_param->dctPartitionOffsets[0];
+    len += ((1 << pic_param->log2_nbr_of_dct_partitions) - 1) * 3;
     len1 = extraBytesPacked + pic_param->dctPartitionOffsets[0];
     len += (len1 & 0x7);
     regs->reg51_stream_info.sw_stream_len = len;
 
-    //mpp_log("offsetToDctParts = %d pic_param->frameTagSize %d pic_param->stream_start_offset = %d extraBytesPacked = %d",
-    //        pic_param->offsetToDctParts,pic_param->frameTagSize ,
-    //      pic_param->stream_start_offset,extraBytesPacked);
-
     len = pic_param->offsetToDctParts + pic_param->frameTagSize -
           (pic_param->stream_start_offset - extraBytesPacked);
-    /* give extra byte of data to negotiate "tight" buffers */
     len++;
 
     regs->reg124.sw_stream1_len = len;
-    regs->reg124.sw_coeffs_part_am = (1 << pic_param->log2_nbr_of_dct_partitions) - 1;
+    regs->reg124.sw_coeffs_part_am =
+        (1 << pic_param->log2_nbr_of_dct_partitions) - 1;
     for (i = 0; i < (RK_U32)(1 << pic_param->log2_nbr_of_dct_partitions); i++) {
         addr = extraBytesPacked + pic_param->dctPartitionOffsets[i];
         byte_offset = addr & 0x7;
         addr = addr & 0xFFFFFFF8;
-#ifdef RKPLATFORM
-        if ( i == 0) {
+
+        if (i == 0) {
             regs->reg64_input_stream_base = fd | (addr << 10);
-        } else if ( i <= 5) {
+        } else if (i <= 5) {
             regs->reg_dct_strm_base[i - 1] = fd | (addr << 10);
         } else {
             regs->reg_dct_strm1_base[i - 6] = fd | (addr << 10);
         }
-#endif
+
         switch (i) {
         case 0:
             regs->reg122.sw_strm_start_bit = byte_offset * 8;
