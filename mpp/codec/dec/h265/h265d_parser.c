@@ -1738,7 +1738,6 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         if (s->eos && !length) {
             task->valid = 0;
             task->flags.eos = 1;
-            mpp_log("hevc flush eos");
             h265d_flush(ctx);
             return ret;
         }
