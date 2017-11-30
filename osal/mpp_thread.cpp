@@ -77,12 +77,14 @@ void MppThread::stop()
     if (MPP_THREAD_UNINITED != mStatus) {
         lock();
         mStatus = MPP_THREAD_STOPPING;
-        mpp_log("MPP_THREAD_STOPPING status set mThread %p", this);
+        thread_dbg(MPP_THREAD_DBG_FUNCTION,
+                   "MPP_THREAD_STOPPING status set mThread %p", this);
         signal();
         unlock();
         void *dummy;
         pthread_join(mThread, &dummy);
-        thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p destroy success\n",
+        thread_dbg(MPP_THREAD_DBG_FUNCTION,
+                   "thread %s %p context %p destroy success\n",
                    mName, mFunction, mContext);
 
         mStatus = MPP_THREAD_UNINITED;

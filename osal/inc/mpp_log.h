@@ -55,6 +55,7 @@
 
 #define MPP_DBG_TIMING                  (0x00000001)
 #define MPP_DBG_PTS                     (0x00000002)
+#define MPP_DBG_INFO                    (0x00000004)
 #define MPP_DBG_PLATFORM                (0x00000010)
 #define MPP_ABORT                       (0x10000000)
 

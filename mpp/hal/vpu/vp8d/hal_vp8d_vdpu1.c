@@ -60,8 +60,6 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
 
             FUN_T("FUN_OUT");
             return MPP_ERR_UNKNOW;
-        } else {
-            mpp_log("get vpu_socket(%d), success. \n", ctx->vpu_socket);
         }
     }
 #endif
@@ -77,7 +75,6 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
 
     if (NULL == ctx->group) {
 #ifdef RKPLATFORM
-        mpp_log("mpp_buffer_group_get_internal used ion in");
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
 #else
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_NORMAL);
