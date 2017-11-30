@@ -161,7 +161,8 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_MB_RC_MORE_BITRATE  3
 #define H264E_MB_RC_ONLY_BITRATE  4
 #define H264E_MB_RC_WIDE_RANGE    5
-#define H264E_MB_RC_M_NUM         6
+#define H264E_MB_RC_ONLY_AQ       6
+#define H264E_MB_RC_M_NUM         7
 
 typedef enum H264eRkvCsp_e {
     H264E_RKV_CSP_BGRA8888,     // 0

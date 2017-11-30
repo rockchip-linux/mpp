@@ -193,6 +193,7 @@ typedef struct MppRateControl_s {
     RK_U32 frm_cnt;
     RK_S32 real_bps;
     RK_S32 prev_aq_prop_offset;
+    RK_S32 quality;
 
 } MppRateControl;
 
