@@ -695,7 +695,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         if (param) {
             mExternalFrameGroup = 1;
             if (mThreadCodec) {
-                ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param, (void *)mThreadCodec);
+                ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param,
+                                                    (void *)mThreadCodec);
                 mThreadCodec->signal();
             } else {
                 /*
@@ -708,8 +709,9 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
                 mpp_err("WARNING: setup buffer group before decoder init\n");
             }
         } else {
+            /* The buffer group should be destroyed before */
             mExternalFrameGroup = 0;
-            ret = mpp_buffer_group_set_listener(NULL, (void *)mThreadCodec);
+            ret = MPP_OK;
         }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
