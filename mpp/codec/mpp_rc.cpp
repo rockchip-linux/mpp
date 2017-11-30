@@ -390,7 +390,7 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
         ctx->acc_inter_bits_in_fps = 0;
         ctx->acc_intra_bits_in_fps = 0;
     }
-
+    ctx->quality = cfg->quality;
     cfg->change = 0;
 
     return MPP_OK;
@@ -460,18 +460,34 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
                 mpp_rc_dbg_rc("RC: rc ctx %p inter pid diff %d target %d\n",
                               ctx, diff_bit, ctx->bits_target);
 
-                if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 2) {
-                    ctx->prev_aq_prop_offset -= 4;
-                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 3) {
-                    ctx->prev_aq_prop_offset -= 3;
-                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 6) {
-                    ctx->prev_aq_prop_offset -= 2;
-                } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 10) {
-                    ctx->prev_aq_prop_offset -= 1;
-                }
-
-                if (ctx->bits_target > ctx->bits_per_inter * 11 / 12 && ctx->prev_aq_prop_offset < 0) {
-                    ctx->prev_aq_prop_offset += 1;
+                if (ctx->quality != MPP_ENC_RC_QUALITY_AQ_ONLY) {
+                    if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 2) {
+                        ctx->prev_aq_prop_offset -= 4;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 3) {
+                        ctx->prev_aq_prop_offset -= 3;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 6) {
+                        ctx->prev_aq_prop_offset -= 2;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 10) {
+                        ctx->prev_aq_prop_offset -= 1;
+                    }
+                    if (ctx->bits_target > (ctx->bits_per_inter * 11 / 12) && ctx->prev_aq_prop_offset < 0) {
+                        ctx->prev_aq_prop_offset += 1;
+                    }
+                } else {
+                    if (ctx->pid_inter.p > ctx->bits_per_inter) {
+                        ctx->prev_aq_prop_offset -= 4;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 2 / 3) {
+                        ctx->prev_aq_prop_offset -= 3;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 2) {
+                        ctx->prev_aq_prop_offset -= 2;
+                    } else if (ctx->pid_inter.p > ctx->bits_per_inter * 1 / 3) {
+                        ctx->prev_aq_prop_offset -= 1;
+                    }
+                    if (ctx->bits_target > ctx->bits_per_inter * 5 / 4) {
+                        ctx->prev_aq_prop_offset += 2 ;
+                    } else if (ctx->bits_target > ctx->bits_per_inter * 8 / 7) {
+                        ctx->prev_aq_prop_offset += 1;
+                    }
                 }
             }
         }
@@ -495,8 +511,15 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             mpp_rc_dbg_rc("after adjustment, target bits %d\n", ctx->bits_target);
         }
     }
-    ctx->prev_aq_prop_offset = mpp_clip(ctx->prev_aq_prop_offset, -8, 0);
-    rc_syn->aq_prop_offset = ctx->prev_aq_prop_offset;
+
+    if (ctx->quality == MPP_ENC_RC_QUALITY_AQ_ONLY) {
+        rc_syn->aq_prop_offset = ctx->prev_aq_prop_offset;
+        ctx->prev_aq_prop_offset = 0;
+    } else {
+        ctx->prev_aq_prop_offset = mpp_clip(ctx->prev_aq_prop_offset, -8, 0);
+        rc_syn->aq_prop_offset = ctx->prev_aq_prop_offset;
+    }
+
     rc_syn->bit_target = ctx->bits_target;
 
     /* step 2: calc min and max bits */

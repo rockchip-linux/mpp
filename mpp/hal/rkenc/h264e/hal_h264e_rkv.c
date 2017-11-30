@@ -52,7 +52,9 @@ static H264eRkvMbRcMcfg mb_rc_m_cfg[H264E_MB_RC_M_NUM] = {
     {8,         2,           1,     10}, // mode = 3
     {8,        1.8,          1,     10}, // mode = 4
     {0,         0,           1,     15}, // mode = 5
+    {16,       2.8,          1,     20}, // mode = 6
 };
+
 
 static H264eRkvMbRcQRcfg mb_rc_qr_cfg[9] = {
     /*qp min offset to qp hdr, qp_range  */
@@ -500,7 +502,9 @@ static void h264e_rkv_set_mb_rc(H264eHalContext *ctx)
     if (rc->rc_mode == MPP_ENC_RC_MODE_VBR) {
         m = H264E_MB_RC_ONLY_QUALITY;
         q = rc->quality;
-        if (q != MPP_ENC_RC_QUALITY_CQP) {
+        if (q == MPP_ENC_RC_QUALITY_AQ_ONLY) {
+            m = H264E_MB_RC_ONLY_AQ;
+        } else if (q != MPP_ENC_RC_QUALITY_CQP) {
             /* better quality for intra frame */
             if (hw->frame_type == H264E_RKV_FRAME_I)
                 q++;
@@ -544,7 +548,17 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
 
     /* (VBR) if focus on quality, qp range is limited more precisely */
     if (rc->rc_mode == MPP_ENC_RC_MODE_VBR) {
-        if (rc->quality == MPP_ENC_RC_QUALITY_CQP) {
+        if (rc->quality == MPP_ENC_RC_QUALITY_AQ_ONLY) {
+            m_cfg = mb_rc_m_cfg[mb_rc->mode];
+            syn->qp = ctx->hw_cfg.qp_prev;
+            if (rc_syn->aq_prop_offset) {
+                syn->qp -= rc_syn->aq_prop_offset;
+                syn->qp = mpp_clip(syn->qp, syn->qp_min, 33);
+                if (syn->qp == 33) {
+                    syn->qp_min = 24;
+                }
+            }
+        } else if (rc->quality == MPP_ENC_RC_QUALITY_CQP) {
             syn->qp_min = syn->qp;
             syn->qp_max = syn->qp;
         } else {
@@ -625,7 +639,6 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
         regs->swreg53.qp_adjust6    =  3;
         regs->swreg53.qp_adjust7    =  4;
         regs->swreg53.qp_adjust8    =  8;
-
     }
     regs->swreg62.sli_beta_ofst     = 0;
     regs->swreg62.sli_alph_ofst     = 0;
@@ -1073,16 +1086,6 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
             return MPP_ERR_MALLOC;
         }
     }
-    if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
-        extra_info->nal_num = 0;
-        h264e_rkv_stream_reset(&extra_info->stream);
-        h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
-        h264e_rkv_sei_encode(ctx, rc_syn);
-        h264e_rkv_nal_end(extra_info);
-#ifdef SEI_ADD_NAL_HEADER
-        h264e_rkv_encapsulate_nals(extra_info);
-#endif
-    }
 
     if (ctx->enc_mode == 2 || ctx->enc_mode == 3) { //link table mode
         RK_U32 idx = ctx->frame_cnt_gen_ready;
@@ -1290,6 +1293,17 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         regs->swreg45.cach_l2_tag  = 0x3;
 
     h264e_rkv_set_rc_regs(ctx, regs, syn, rc_syn);
+
+    if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
+        extra_info->nal_num = 0;
+        h264e_rkv_stream_reset(&extra_info->stream);
+        h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
+        h264e_rkv_sei_encode(ctx, rc_syn);
+        h264e_rkv_nal_end(extra_info);
+#ifdef SEI_ADD_NAL_HEADER
+        h264e_rkv_encapsulate_nals(extra_info);
+#endif
+    }
 
     regs->swreg56.rect_size = (sps->i_profile_idc == H264_PROFILE_BASELINE
                                && sps->i_level_idc <= 30);
@@ -1756,8 +1770,11 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
                              result.bits * 1024 / avg_sse);
             mpp_quadreg_update(ctx->inter_qs, wlen);
         }
-
-        hw_cfg->qp_prev = avg_qp;
+        if (rc->quality == MPP_ENC_RC_QUALITY_AQ_ONLY) {
+            hw_cfg->qp_prev = hw_cfg->qp;
+        } else {
+            hw_cfg->qp_prev = avg_qp;
+        }
 
         if (syn->type == INTER_P_FRAME || syn->gop_mode == MPP_GOP_ALL_INTRA) {
             mpp_data_update(ctx->qp_p, avg_qp);

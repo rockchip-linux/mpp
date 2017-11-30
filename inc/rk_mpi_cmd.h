@@ -65,6 +65,7 @@ typedef enum MppEncRcQuality_t {
     MPP_ENC_RC_QUALITY_BETTER,
     MPP_ENC_RC_QUALITY_BEST,
     MPP_ENC_RC_QUALITY_CQP,
+    MPP_ENC_RC_QUALITY_AQ_ONLY,
     MPP_ENC_RC_QUALITY_BUTT
 } MppEncRcQuality;
 
