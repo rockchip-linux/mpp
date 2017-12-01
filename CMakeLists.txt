@@ -46,6 +46,24 @@ include(CheckFunctionExists)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 
+# setup output library name
+# Linux   default name - rockchip_mpp and rockchip_vpu
+# Android default name - mpp and vpu
+# For historical reason libraries on Android is named as mpp and vpu. But for
+# better naming rule on Linux it should add vendor prefix.
+# So we use this ugly method to avoid massive maintain issue.
+if (NOT MPP_PROJECT_NAME)
+    set(MPP_PROJECT_NAME rockchip_mpp)
+endif()
+set(MPP_STATIC ${MPP_PROJECT_NAME}_static)
+set(MPP_SHARED ${MPP_PROJECT_NAME})
+
+if (NOT VPU_PROJECT_NAME)
+    set(VPU_PROJECT_NAME rockchip_vpu)
+endif()
+set(VPU_STATIC ${VPU_PROJECT_NAME}_static)
+set(VPU_SHARED ${VPU_PROJECT_NAME})
+
 # ----------------------------------------------------------------------------
 # set property to classify library kinds
 # ----------------------------------------------------------------------------
