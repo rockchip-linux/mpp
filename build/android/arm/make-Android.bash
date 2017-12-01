@@ -24,6 +24,9 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
 # ----------------------------------------------------------------------------
 # usefull cmake debug flag
 # ----------------------------------------------------------------------------
+      #-DMPP_NAME="rockchip_mpp"                                             \
+      #-DVPU_NAME="rockchip_vpu"                                             \
+      #-DHAVE_DRM                                                            \
       #-DCMAKE_BUILD_TYPE=Debug                                              \
       #-DCMAKE_VERBOSE_MAKEFILE=true                                         \
       #--trace                                                               \
