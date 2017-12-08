@@ -253,7 +253,14 @@ static int decode_simple(MpiDecLoopData *data)
         if (pkt_done)
             break;
 
-        msleep(50);
+        /*
+         * why sleep here:
+         * mpi->decode_put_packet will failed when packet in internal queue is
+         * full,waiting the package is consumed .Usually hardware decode one
+         * frame which resolution is 1080p needs 2 ms,so here we sleep 3ms
+         * * is enough.
+         */
+        msleep(3);
     } while (1);
 
     return ret;
