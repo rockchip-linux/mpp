@@ -96,6 +96,7 @@ typedef enum {
     MPP_DEC_GET_VPUMEM_USED_COUNT,
     MPP_DEC_SET_VC1_EXTRA_DATA,
     MPP_DEC_SET_OUTPUT_FORMAT,
+    MPP_DEC_SET_DISABLE_ERROR,          /* When set it will disable sw/hw error (H.264 / H.265) */
     MPP_DEC_CMD_END,
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,

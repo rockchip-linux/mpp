@@ -159,7 +159,7 @@ typedef struct H265dContext {
     void *compare_info;
 
     RK_U32 need_split;
-
+    RK_U32 disable_error;
 } H265dContext_t;
 #ifdef  __cplusplus
 extern "C" {

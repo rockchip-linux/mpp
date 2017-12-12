@@ -2000,31 +2000,40 @@ MPP_RET h265d_reset(void *ctx)
 
 MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param)
 {
-    (void)ctx;
-    (void)cmd;
-    (void)param;
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+
+    switch (cmd) {
+    case MPP_DEC_SET_DISABLE_ERROR: {
+        h265dctx->disable_error = *((RK_U32 *)param);
+    }
+    default : {
+    } break;
+    }
+
     return MPP_OK;
 }
 
 MPP_RET h265d_callback(void *ctx, void *err_info)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
-    MppFrame frame = NULL;
-    RK_U32 i = 0;
 
-    if (s->first_nal_type >= 16 && s->first_nal_type <= 23) {
-        mpp_log("IS_IRAP frame found error");
-        s->max_ra = INT_MAX;
-    }
-    // s->miss_ref_flag = 1;
-    mpp_buf_slot_get_prop(s->slots, s->ref->slot_index, SLOT_FRAME_PTR, &frame);
-    mpp_frame_set_errinfo(frame, MPP_FRAME_ERR_UNKNOW);
-    for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
-        if (s->DPB[i].slot_index == s->ref->slot_index) {
-            s->DPB[i].error_flag = 1;
+    if (!h265dctx->disable_error) {
+        HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+        MppFrame frame = NULL;
+        RK_U32 i = 0;
+
+        if (s->first_nal_type >= 16 && s->first_nal_type <= 23) {
+            mpp_log("IS_IRAP frame found error");
+            s->max_ra = INT_MAX;
         }
-
+        // s->miss_ref_flag = 1;
+        mpp_buf_slot_get_prop(s->slots, s->ref->slot_index, SLOT_FRAME_PTR, &frame);
+        mpp_frame_set_errinfo(frame, MPP_FRAME_ERR_UNKNOW);
+        for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
+            if (s->DPB[i].slot_index == s->ref->slot_index) {
+                s->DPB[i].error_flag = 1;
+            }
+        }
     }
     (void) err_info;
 
