@@ -182,6 +182,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     /* NOTE: write header will update qtable */
     write_jpeg_header(bits, syntax, qtable);
 
+    memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU1_NUM_REGS);
     regs[11] = mpp_buffer_get_fd(input);
     regs[12] = mpp_buffer_get_fd(input);
     regs[13] = regs[12];
