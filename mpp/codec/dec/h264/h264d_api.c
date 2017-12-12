@@ -470,11 +470,17 @@ __FAILED:
 MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264_DecCtx_t   *dec = (H264_DecCtx_t *)decoder;
 
     INP_CHECK(ret, !decoder);
+    switch (cmd_type) {
+    case MPP_DEC_SET_DISABLE_ERROR: {
+        dec->disable_error = *((RK_U32 *)param);
+    }
+    default : {
+    } break;
+    }
 
-    (void)cmd_type;
-    (void)param;
 __RETURN:
     return ret = MPP_OK;
 }
@@ -610,7 +616,8 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
-        in_task->flags.had_error = (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
+        in_task->flags.had_error = (!p_Dec->disable_error
+                                    && (p_err->dpb_err_flag | p_err->cur_err_flag)) ? 1 : 0;
     }
 __RETURN:
 

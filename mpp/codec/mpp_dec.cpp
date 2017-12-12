@@ -196,6 +196,10 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
     mpp_list *list = mpp->mFrames;
 
     list->lock();
+    if (mpp->mDec->disable_error) {
+        mpp_frame_set_errinfo(frame, 0);
+        mpp_frame_set_discard(frame, 0);
+    }
     list->add_at_tail(&frame, sizeof(frame));
 
     if (mpp_debug & MPP_DBG_PTS)
@@ -1093,6 +1097,9 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         RK_S32 *p = (RK_S32 *)param;
         *p = mpp_buf_slot_get_used_size(dec->frame_slots);
     } break;
+    case MPP_DEC_SET_DISABLE_ERROR: {
+        dec->disable_error = *((RK_U32 *)param);
+    }
     default : {
     } break;
     }
