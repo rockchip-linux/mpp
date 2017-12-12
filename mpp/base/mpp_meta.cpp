@@ -72,6 +72,7 @@ static MppMetaDef meta_defs[] = {
     /* buffer storing the HDR information for current frame*/
     {   KEY_HDR_INFO,          TYPE_BUFFER,   },
 
+    {   KEY_OUTPUT_INTRA,      TYPE_S32,      },
     {   KEY_INPUT_BLOCK,       TYPE_S32,      },
     {   KEY_OUTPUT_BLOCK,      TYPE_S32,      },
 };
