@@ -16,12 +16,11 @@
 
 #if defined(__gnu_linux__)
 #include "mpp_log.h"
+#include "mpp_runtime.h"
 
 #include "allocator_std.h"
 #include "allocator_ion.h"
-#ifdef HAVE_DRM
 #include "allocator_drm.h"
-#endif
 
 /*
  * Linux only support MPP_BUFFER_TYPE_NORMAL so far
@@ -36,26 +35,24 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
         *api = allocator_std;
     } break;
     case MPP_BUFFER_TYPE_ION : {
-#ifdef RKPLATFORM
-#ifdef HAVE_DRM
-        *api = allocator_drm;
-#else
-        *api = allocator_ion;
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+#if HAVE_DRM
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #endif
-#else
-        *api = allocator_std;
-#endif
+               allocator_std;
     } break;
     case MPP_BUFFER_TYPE_V4L2 : {
         mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
         *api = allocator_std;
     } break;
     case MPP_BUFFER_TYPE_DRM : {
-#ifdef HAVE_DRM
-        *api = allocator_drm;
+#if HAVE_DRM
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #else
-        *api = allocator_std;
+        * api =
 #endif
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+               allocator_std;
     } break;
     default : {
         ret = MPP_NOK;

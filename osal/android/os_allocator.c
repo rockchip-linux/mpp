@@ -18,6 +18,7 @@
 #include "allocator_std.h"
 #include "allocator_ion.h"
 #include "allocator_drm.h"
+#include "mpp_runtime.h"
 
 MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
 {
@@ -27,28 +28,26 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     case MPP_BUFFER_TYPE_NORMAL :
     case MPP_BUFFER_TYPE_V4L2 : {
         *api = allocator_std;
-    }
-    break;
+    } break;
     case MPP_BUFFER_TYPE_ION : {
-#ifdef HAVE_DRM
-        *api = allocator_drm;
-#else
-        *api = allocator_ion;
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+#if HAVE_DRM
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #endif
-    }
-    break;
+               allocator_std;
+    } break;
     case MPP_BUFFER_TYPE_DRM : {
-#ifdef HAVE_DRM
-        *api = allocator_drm;
+#if HAVE_DRM
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #else
-        *api = allocator_std;
+        * api =
 #endif
-    }
-    break;
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+               allocator_std;
+    } break;
     default : {
         ret = MPP_NOK;
-    }
-    break;
+    } break;
     }
     return ret;
 }
