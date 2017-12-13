@@ -380,7 +380,9 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
 
         ret = open_orign_vpu(&s);
         if (!ret && s) {
-            s->extra_cfg.reserved[0] = 1;
+            // for safety
+            s->extra_cfg.ori_vpu = 1;
+            extra_cfg.ori_vpu = 1;
         }
     } else {
         vpu_api_dbg_func("use mpp path\n");
