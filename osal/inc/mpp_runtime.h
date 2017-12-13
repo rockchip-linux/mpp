@@ -17,7 +17,7 @@
 #ifndef __MPP_RUNTIME__
 #define __MPP_RUNTIME__
 
-#include "mpp_common.h"
+#include "rk_mpi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +27,7 @@ extern "C" {
  * Runtime function detection is to support different binary on different
  * runtime environment. This is usefull on product environemnt.
  */
+RK_U32 mpp_rt_allcator_is_valid(MppBufferType type);
 
 #ifdef __cplusplus
 }
