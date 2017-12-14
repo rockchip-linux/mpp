@@ -1,0 +1,249 @@
+mpp (1.4.0-1) stable; urgency=critical
+
+  [ Herman Chen ]
+  * [vp8d]: Remove unused table
+
+  [ timkingh.huang ]
+  * [h264e]: add SSE parameter check
+
+  [ Herman Chen ]
+  * [h264e]: Add qp min/max limit by bps max/min
+
+  [ timkingh.huang ]
+  * [h264e]: limit bit rate on movement scene
+
+  [ leo.ding ]
+  * [h264e]: fix bug: vepu1 h264 encode
+  * [h264d]: fix bug: when judge whether is end of frame
+
+  [ Herman Chen ]
+  * [rc]: Add bps information print
+  * [test]: Fix rc2 test rc_mode error
+
+  [ leo.ding ]
+  * [h264e]: fix bug: vepu h264 encode rate control
+
+  [ Herman Chen ]
+  * [osal]: Change mpp time print to us
+  * [h264e_rkv]: Fix error qp prev update
+
+  [ leo.ding ]
+  * [jpege]: add vepu1 jpeg encode support
+  * [osal]: linux: add -ldl -lct to link relative library
+
+  [ Herman Chen ]
+  * [oasl]: Add lock timing test
+  * [base]: Add mpp/base/test for task en/dequeue demo
+
+  [ Randy Li ]
+  * [jpege]: fix some compiler warnings
+  * [jpegd]: fix the compiler warnings and hide some symbols
+  * [osal]: fixup for a compiler warning
+  * [allocator]: force using drm allocator in Linux platform
+  * [vpu]: use the platform function to open device node
+  * [vp8d]: fix the vdpu2 decoding error
+
+  [ leo.ding ]
+  * [hal_vp9d]: change stride align to 256 odds
+
+  [ Randy Li ]
+  * [m2vd]: a various of fixup
+
+  [ Herman Chen ]
+  * [h264e]: Fix QP stuck error
+
+  [ timkingh.huang ]
+  * [h264e]: record rate control parameter
+  * [h264e]: tidy code
+
+  [ leo.ding ]
+  * [h264e]: fix bps check failed when mpi setup to fix_qp mode
+
+  [ Randy Li ]
+  * [jpege]: fixup mpp device
+  * Revert "[osal]: linux: add -ldl -lct to link relative library"
+
+  [ leo.ding ]
+  * [h265d]: fix bug: when has no short_rps, it should be has no rps
+
+  [ Randy Li ]
+  * [mpp_dec]: remove obsoleted code and format comments
+  * [mpp]: fixup for the deadlock in decoding
+
+  [ ayaka ]
+  * [test]: add timeout poll type sample code
+
+  [ leo.ding ]
+  * [h265d]: fix bug: malloc buffer matching
+
+  [ timkingh.huang ]
+  * [h264e]: fix rate-control bug
+  * [h264e]: allocate buffers before encoding
+
+  [ sliver.chen ]
+  * [h264]: fix xrgb encode bug
+
+  [ sayon.chen ]
+  * [h265d]: hiding the vps_id information
+
+  [ Randy Li ]
+  * [h264d]: add supporting for the interlace mode
+
+  [ leo.ding ]
+  * [mpg4d]: update spit mode in prepare
+
+  [ ZhouJing ]
+  * [m4vd]: add m4v decoder support for vdpu1
+
+  [ Randy Li ]
+  * [mpg4d]: fixup the compiler warnings
+  * .gitignore: ignore those debian generated files
+
+  [ timkingh.huang ]
+  * [h264e]: fix rate control bug
+
+  [ Randy Li ]
+  * [h264d]: move some variables to its scope
+  * [h264d]: handle svc_extension correctly
+
+  [ leo.ding ]
+  * [vpu_api_legacy]: disprese MPP_DEC_SET_FRAME_INFO function to each codec.
+
+  [ Randy Li ]
+  * [mpp]: wake up the parser thread in the correct place
+
+  [ sliver.chen ]
+  * [test]: add README.md for mpi unit test
+  * [test]: modify to avoid encode dead loop
+
+  [ leo.ding ]
+  * [avsd]: fix bugs: when video is field
+  * [mpp_buf_slot]: fix bug: should return the info_set frame back
+  * [avsd]: add dpb error marking
+
+  [ Randy Li ]
+  * [osal]: fixup for build in linux
+  * [mpp]: move header files into header directory
+
+  [ timkingh.huang ]
+  * [h264e]: add command of MPP_ENC_SET_QP_RANGE
+  * [h264e]: Clear OSD data when zero region number
+
+  [ sliver.chen ]
+  * [m2vd]: add m2vd parser mode
+
+  [ leo.ding ]
+  * [mpg4d]: fix hiding bugs when split mode
+
+  [ Herman Chen ]
+  * [base]: Remove misc buffer group creation
+  * [base]: Disable default print on exit
+
+  [ leo.ding ]
+  * [vpu_api]: add vpuCodecContext parameters
+
+  [ Randy Li ]
+  * [mpp_frame]: add complex formats and more comments
+
+  [ leo.ding ]
+  * [vp9d]: fix error: opening device should close, when deinit
+
+  [ Randy Li ]
+  * h264e: add supporting for more input pixel format
+  * [drm]: fix a various of bugs in drm allocator
+  * [drm]: use mmap() in native way for GNU Linux target
+
+  [ timkingh.huang ]
+  * [jpegd]: just scan parts of markers for rv1108
+
+  [ sliver.chen ]
+  * [h264e]: fix h264 xrgb encode bug
+
+  [ Herman Chen ]
+  * [ioctl]: Add compatible patch for different kernel
+
+  [ sayon.chen ]
+  * [rkvenc] modfiy ratecontrol to be more smooth
+
+  [ Randy Li ]
+  * [ion]: file descriptor for the external buffer
+
+  [ Herman Chen ]
+  * [hal_vp9d]: Fix buffer alignment conflict
+
+  [ sliver.chen ]
+  * [test]: add err info check when decode
+  * [osal]: force mpp use drm buffer when HAVE_DRM are defined.
+
+  [ timkingh.huang ]
+  * [h264e]: rate control for all intra stream
+
+  [ Randy Li ]
+  * [osal]: add queue data type
+  * [mpp]: use the blokcing queue on the input
+  * [mpp_list]: release the blocked thread at reset
+
+  [ leo.ding ]
+  * [hal_h264d]: add command for switch hard_mode
+
+  [ Randy Li ]
+  * [mpp]: silent lots of message
+  * [mpp_buf_slot]: return an error code when stride is invalid
+  * [jpegd]: stop the future work when the parser is error
+  * [osal]: add rk3036 platform
+  * [mpp]: rename and update build rules
+  * [legacy]: rename mpp legacy library
+  * [pkgconfig]: offer a sample for pkgconfig
+  * [build]: a simple build rules
+
+ -- Randy Li <randy.li@rock-chips.com>  Tue, 21 Nov 2017 07:35:23 +0000
+
+mpp (1.3.1-1) testing; urgency=medium
+
+  * [allocator]: force using drm allocator in Linux platform
+  * [mpp_buffer]: access the index field of buffer info
+  * [mpi]: decode_put_packet() would return the internal error
+  * [meta]: use fourcc format to store the meta data for those enum types
+  * [drm]: use mmap64() in native way for GNU Linux target
+  * [mpp/hal/vp8d]: rename and add device type info
+  * [mpp/hal/vp8d]: add support for VDPU1
+  * [mpp_frame]: export more functions to MppFrame fields
+  * [h264d]: make H.264 common data and functions together
+  * [h264d]: move the register table into the other file
+  * [test]: fix the align problem in decode_advanced()
+  * [jpegd] rename to its device type
+  * [jpegd]: isolate the common functions
+  * [jpegd]: add support for VDPU1
+
+ -- Randy Li <randy.li@rock-chips.com>  Thu, 09 Mar 2017 09:52:21 +0000
+
+mpp (1.3.0-1) testing; urgency=medium
+
+  * [mpp]: a fixup for wrong place scope symbols
+  * .gitignore: the intial version of gitignore
+  * build: support cross build in debian
+  * mpp: add pkgconfig file
+  * debian: support install for multiarch
+  * debian: add debian build rules
+  * utils: move the header files to common include directories
+  * osal: match system implementation with pre-defined marco
+  * osal: rename the directory of windows implementation
+  * osal: build: update the build system
+  * osal: build: use system default thread library
+  * osal: build: test: do not install unit test
+  * mpp: move header files into header directory
+  * mpp: test: build: rename the mpp library name in unit test
+  * mpp: legacy: rename mpp legacy library as rockchip_vpu
+  * mpp: build: update build rules
+  * build: a simple build rules
+  * mpp: install mpp library to target
+  * build: install development files
+  * build: add pkgconfig support
+
+ -- Randy Li <randy.li@rock-chips.com>  Wed, 08 Feb 2017 08:37:49 +0000
+
+mpp (73f2ee87a7f836daa6d09b3f65e5abd8e1380318-1) unstable; urgency=low
+
+  * The origin version from algorithmn group
+
+ -- Randy Li <randy.li@rock-chips.com>  Sun, 05 Feb 2017 03:14:14 +0000
