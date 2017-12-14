@@ -1340,7 +1340,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
         currPicNum = 2 * currSlice->frame_num + 1;
     }
     picNumLXPred = currPicNum;
-    for (i = 0; modification_of_pic_nums_idc[i] != 3; i++) {
+    for (i = 0; modification_of_pic_nums_idc[i] != 3 && i < MAX_REORDER_TIMES; i++) {
         H264_StorePic_t *tmp = NULL;
         RK_U32 error_flag = 0;
         if (modification_of_pic_nums_idc[i] > 3)
