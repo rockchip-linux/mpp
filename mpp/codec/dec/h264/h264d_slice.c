@@ -253,9 +253,8 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PP
     ret |= (sps->log2_max_pic_order_cnt_lsb_minus4 > 12);
     ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
     ret |= (sps->max_num_ref_frames > 16);
-    ret |= (sps->pic_width_in_mbs_minus1 > 4095);
-    ret |= (sps->pic_height_in_map_units_minus1 > 2303);
-    ret |= (sps->pic_height_in_map_units_minus1 > 2303);
+    ret |= (sps->pic_width_in_mbs_minus1 < 3 || sps->pic_width_in_mbs_minus1 > 255);
+    ret |= (sps->pic_height_in_map_units_minus1 < 3 || sps->pic_height_in_map_units_minus1 > 143);
     if (ret) {
         H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
         goto __FAILED;
