@@ -358,12 +358,9 @@ configure_file(
 # ----------------------------------------------------------------------------
 # Build options
 # ----------------------------------------------------------------------------
-set(CMAKE_INSTALL_PREFIX "")
-set(LIB_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/lib/${SYSPROC}" CACHE STRING "Install location of libraries")
-set(BIN_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/bin" CACHE STRING "Install location of executables")
-set(TEST_INSTALL_DIR "${CMAKE_BINARY_DIR}/test" CACHE STRING "Install location of unit test")
-set(INC_INSTALL_DIR  "${CMAKE_SOURCE_DIR}/out/inc" CACHE STRING "Install location of headers")
-
+find_package(PkgConfig)
+INCLUDE(GNUInstallDirs)
+pkg_search_module(PTHREAD pthread)
 
 # ----------------------------------------------------------------------------
 # Set Warning as Error
@@ -491,6 +488,18 @@ add_subdirectory(test)
 #  install headers
 # ----------------------------------------------------------------------------
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/inc/
-        DESTINATION "${INC_INSTALL_DIR}"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/rockchip"
         FILES_MATCHING PATTERN "*.h"
         )
+
+# ----------------------------------------------------------------------------
+#  pkgconfig
+# ----------------------------------------------------------------------------
+CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/pkgconfig/rockchip_mpp.pc.cmake"
+                "${CMAKE_BINARY_DIR}/rockchip_mpp.pc" @ONLY)
+CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/pkgconfig/rockchip_vpu.pc.cmake"
+                "${CMAKE_BINARY_DIR}/rockchip_vpu.pc" @ONLY)
+install(FILES "${CMAKE_BINARY_DIR}/rockchip_mpp.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+install(FILES "${CMAKE_BINARY_DIR}/rockchip_vpu.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
