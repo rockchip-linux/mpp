@@ -68,6 +68,6 @@ add_subdirectory(legacy)
 add_subdirectory(test)
 
 install(TARGETS ${MPP_STATIC} ${MPP_SHARED}
-        ARCHIVE DESTINATION "${LIB_INSTALL_DIR}"
-        LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
         )

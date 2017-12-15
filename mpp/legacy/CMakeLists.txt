@@ -42,3 +42,8 @@ if(RKPLATFORM)
 else()
     target_link_libraries(${VPU_SHARED} ${MPP_SHARED})
 endif()
+
+install(TARGETS ${VPU_STATIC} ${VPU_SHARED}
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        )
