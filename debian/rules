@@ -26,5 +26,6 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 	-DCMAKE_TOOLCHAIN_FILE=/etc/dpkg-cross/cmake/CMakeCross.txt \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DRKPLATFORM=ON \
-	-DHAVE_DRM=ON
+	-DCMAKE_RKPLATFORM_ENABLE=ON \
+	-DHAVE_DRM=ON \
+	-DARM_MIX_32_64=ON
