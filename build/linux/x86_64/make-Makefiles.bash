@@ -3,5 +3,5 @@
 # x86_64 is for simulation do not enable RK platform
 cmake -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=debug \
-    -DCMAKE_RKPLATFORM_ENABLE=OFF \
+    -DRKPLATFORM=OFF \
     ../../../  && ccmake  ../../../
