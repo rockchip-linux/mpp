@@ -33,6 +33,8 @@ typedef MPP_RET (*BufferOp)(MppAllocator allocator, MppBufferInfo *data);
 typedef enum MppBufOps_e {
     GRP_CREATE,
     GRP_RELEASE,
+    GRP_RESET,
+    GRP_ORPHAN,
     GRP_DESTROY,
 
     GRP_OPS_BUTT    = GRP_DESTROY,
@@ -41,6 +43,7 @@ typedef enum MppBufOps_e {
     BUF_MMAP,
     BUF_REF_INC,
     BUF_REF_DEC,
+    BUF_DISCARD,
     BUF_DESTROY,
     BUF_OPS_BUTT,
 } MppBufOps;
@@ -117,12 +120,16 @@ static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
 static const char *ops2str[BUF_OPS_BUTT] = {
     "grp create ",
     "grp release",
+    "grp reset",
+    "grp orphan",
     "grp destroy",
+
     "buf commit ",
     "buf create ",
     "buf mmap   ",
     "buf ref inc",
     "buf ref dec",
+    "buf discard",
     "buf destroy",
 };
 
@@ -478,10 +485,12 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 
     MPP_BUF_FUNCTION_ENTER();
 
+    buffer_group_add_log(p, NULL, GRP_RESET, NULL);
+
     if (!list_empty(&p->list_used)) {
         MppBufferImpl *pos, *n;
         list_for_each_entry_safe(pos, n, &p->list_used, MppBufferImpl, list_status) {
-            // mpp_buffer_ref_dec(pos);
+            buffer_group_add_log(p, pos, BUF_DISCARD, NULL);
             pos->discard = 1;
         }
     }
@@ -745,6 +754,7 @@ void MppBufferService::put_group(MppBufferGroupImpl *p)
             destroy_group(p);
         } else {
             // otherwise move the group to list_orphan and wait for buffer release
+            buffer_group_add_log(p, NULL, GRP_ORPHAN, __FUNCTION__);
             list_del_init(&p->list_group);
             list_add_tail(&p->list_group, &mListOrphan);
             p->is_orphan = 1;
