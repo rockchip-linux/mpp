@@ -1,3 +1,39 @@
+============== r16 ==============
+
+* ndk_r16
+
+* https://dl.google.com/android/repository/android-ndk-r16-windows-x86.zip
+* https://dl.google.com/android/repository/android-ndk-r16-windows-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r16-darwin-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r16-linux-x86_64.zip
+
+============== r15c ==============
+
+* ndk_r15c (July 2017)
+
+* https://dl.google.com/android/repository/android-ndk-r15c-windows-x86.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-windows-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-darwin-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-linux-x86_64.zip
+
+============== r15b ==============
+
+* ndk_r15b (June 2017)
+
+* https://dl.google.com/android/repository/android-ndk-r15c-windows-x86.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-windows-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-darwin-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r15c-linux-x86_64.zip
+
+============== r14b ==============
+
+* ndk_r14b (Dec 2016)
+
+* https://dl.google.com/android/repository/android-ndk-r14b-windows-x86.zip
+* https://dl.google.com/android/repository/android-ndk-r14b-windows-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r14b-darwin-x86_64.zip
+* https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
+
 ============== r13b ==============
 
 * ndk_r13b (Oct 2016)
