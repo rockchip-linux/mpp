@@ -73,3 +73,68 @@ MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
     h264e_hal_leave();
     return MPP_OK;
 }
+
+MPP_RET h264e_rkv_set_roi_data(H264eHalContext *ctx, void *param)
+{
+    MppEncROICfg *src = (MppEncROICfg *)param;
+    MppEncROICfg *dst = &ctx->roi_data;
+
+    h264e_hal_enter();
+
+    if (src->number && src->regions) {
+        dst->number = src->number;
+        dst->regions = src->regions;
+    } else {
+        memset(dst, 0, sizeof(*dst));
+    }
+
+    h264e_hal_leave();
+    return MPP_OK;
+}
+
+MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base)
+{
+    h264e_hal_enter();
+    RK_U32 ret = MPP_OK, idx = 0, num = 0;
+    RK_U32 init_pos_x, init_pos_y, roi_width, roi_height, mb_width, pos_y;
+    RkvRoiCfg cfg;
+    MppEncROIRegion *region;
+    RK_U8 *ptr = roi_base;
+
+    if(ctx == NULL || roi_base == NULL){
+        mpp_err("NULL pointer ctx %p roi_base %p\n", ctx, roi_base);
+        return MPP_NOK;
+    }
+
+    region = ctx->roi_data.regions;
+    for(num = 0; num < ctx->roi_data.number; num++){
+        init_pos_x = (region->x + 15) / 16;
+        init_pos_y = (region->y + 15) / 16;
+        roi_width = (region->w + 15) / 16;
+        roi_height = (region->h + 15) / 16;
+        mb_width = (ctx->hw_cfg.width + 15) / 16;
+        pos_y = init_pos_y;
+
+        for (idx = 0; idx < roi_width * roi_height; idx++) {
+            if(idx % roi_width == 0)
+                pos_y = init_pos_y + idx / roi_width;
+            ptr = roi_base + (pos_y * mb_width + init_pos_x) + (idx % roi_width);
+
+            if (region->quality) {
+                cfg.qp_y = region->quality;
+                cfg.set_qp_y_en = 1;
+                cfg.forbid_inter = region->intra;
+            } else {
+                cfg.set_qp_y_en = 0;
+                cfg.forbid_inter = 0;
+            }
+
+            memcpy(ptr, &cfg, sizeof(RkvRoiCfg));
+        }
+
+        region++;
+    }
+    h264e_hal_leave();
+
+    return ret;
+}

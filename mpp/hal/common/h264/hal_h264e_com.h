@@ -434,6 +434,7 @@ typedef struct H264eHalContext_t {
 
     H264eOsdPltType                 osd_plt_type; //-1:invalid, 0:user define, 1:default
     MppEncOSDData                   osd_data;
+    MppEncROICfg                    roi_data;
     MppEncSeiMode                   sei_mode;
 
     MppEncCfgSet                    *cfg;
