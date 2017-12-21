@@ -38,6 +38,7 @@
 
 #define MPI_ENC_TEST_SET_IDR_FRAME  0
 #define MPI_ENC_TEST_SET_OSD        0
+#define MPI_ENC_TEST_SET_ROI        1
 
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
@@ -81,6 +82,7 @@ typedef struct {
     MppBuffer md_buf[MPI_ENC_IO_COUNT];
     MppBuffer osd_idx_buf[MPI_ENC_IO_COUNT];
     MppEncOSDPlt osd_plt;
+    MppEncROIRegion roi_region[3]; /* can be more regions */
     MppEncSeiMode sei_mode;
 
     // paramter for resource malloc
@@ -795,6 +797,32 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         ret = mpi->control(ctx, MPP_ENC_SET_OSD_DATA_CFG, &osd_data);
         if (MPP_OK != ret) {
             mpp_err("mpi control enc set osd data failed\n");
+            goto RET;
+        }
+#endif
+
+#if MPI_ENC_TEST_SET_ROI
+        MppEncROIRegion *region = p->roi_region;
+        MppEncROICfg roi_cfg;
+
+        /* calculated in pixels */
+        region->x = region->y = 64;
+        region->w = region->h = 128; /* 16-pixel aligned is better */
+        region->intra = 0;   /* flag of forced intra macroblock */
+        region->quality = 20; /* qp of macroblock */
+
+        region++;
+        region->x = region->y = 256;
+        region->w = region->h = 128; /* 16-pixel aligned is better */
+        region->intra = 1;   /* flag of forced intra macroblock */
+        region->quality = 25; /* qp of macroblock */
+
+        roi_cfg.number = 2;
+        roi_cfg.regions = p->roi_region;
+
+        ret = mpi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_cfg);
+        if (MPP_OK != ret) {
+            mpp_err("mpi control enc set roi data failed\n");
             goto RET;
         }
 #endif

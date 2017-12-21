@@ -521,6 +521,10 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
         mpp_enc_dbg_ctrl("set osd data\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
+    case MPP_ENC_SET_ROI_CFG : {
+        mpp_enc_dbg_ctrl("set roi data\n");
+        ret = mpp_hal_control(enc->hal, cmd, param);
+    } break;
     case MPP_ENC_SET_SEI_CFG : {
         mpp_enc_dbg_ctrl("set sei\n");
         ret = mpp_hal_control(enc->hal, cmd, param);

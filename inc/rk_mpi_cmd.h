@@ -120,6 +120,7 @@ typedef enum {
     MPP_ENC_GET_SEI_DATA,               /* SEI: Supplement Enhancemant Information, parameter is MppPacket */
     MPP_ENC_PRE_ALLOC_BUFF,             /* allocate buffers before encoding */
     MPP_ENC_SET_QP_RANGE,               /* used for adjusting qp range, the parameter can be 1 or 2 */
+    MPP_ENC_SET_ROI_CFG,                /* set MppEncROICfg structure */
     MPP_ENC_CMD_END,
 
     MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
@@ -455,22 +456,30 @@ typedef struct MppEncPrepCfg_t {
     MppEncPrepSharpenCfg sharpen;
 } MppEncPrepCfg;
 
-/*
- * Mpp ROI parameter
- * Region configture define a rectangle as ROI
+/**
+ * @brief Mpp ROI parameter
+ *        Region configure define a rectangle as ROI
+ * @note  x, y, w, h are calculated in pixels, which had better be 16-pixel aligned.
+ *        These parameters MUST retain in memory when encoder is running.
+ *  TODO: Only absolute qp is supported so far, relative qp should be supported
+ *        in the future. Also, the ROI regions can be overlaid with each other,
+ *        so overlay priority should be considered.
  */
 typedef struct MppEncROIRegion_t {
-    RK_U16              x;
-    RK_U16              y;
-    RK_U16              w;
-    RK_U16              h;
-    RK_U16              intra;
-    RK_U16              quality;
+    RK_U16              x;       /**< horizontal position of top left corner */
+    RK_U16              y;       /**< vertical position of top left corner */
+    RK_U16              w;       /**< width of ROI rectangle */
+    RK_U16              h;       /**< height of ROI rectangle */
+    RK_U16              intra;   /**< flag of forced intra macroblock */
+    RK_U16              quality; /**< absolute qp of macroblock */
 } MppEncROIRegion;
 
+/**
+ * @brief MPP encoder's ROI configuration
+ */
 typedef struct MppEncROICfg_t {
-    RK_U32              number;
-    MppEncROIRegion     *regions;
+    RK_U32              number;  /**< ROI rectangle number */
+    MppEncROIRegion     *regions;/**< ROI parameters */
 } MppEncROICfg;
 
 /*

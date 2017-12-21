@@ -19,15 +19,15 @@
 
 #include "hal_h264e_com.h"
 
-// TODO: add ROI function
-typedef struct h264e_hal_rkv_roi_cfg_t {
+typedef struct{
     RK_U8 qp_y          : 6;
     RK_U8 set_qp_y_en   : 1;
     RK_U8 forbid_inter  : 1;
-} h264e_hal_rkv_roi_cfg;
+} RkvRoiCfg;
 
 MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param);
 MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param);
-
+MPP_RET h264e_rkv_set_roi_data(H264eHalContext *ctx, void *param);
+MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base);
 
 #endif /* __HAL_H264E_RKV_UTILS_H__ */

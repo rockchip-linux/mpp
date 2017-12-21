@@ -328,6 +328,7 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->frame_cnt_send_ready = 0;
     ctx->num_frames_to_send = 1;
     ctx->osd_plt_type = H264E_OSD_PLT_TYPE_NONE;
+    ctx->hw_cfg.roi_en = 1;
 
     /* support multi-refs */
     dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
@@ -699,6 +700,24 @@ h264e_rkv_set_osd_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
             if (region[7].inverse)
                 regs->swreg66.osd_inv_r7 = H264E_DEFAULT_OSD_INV_THR;
         }
+    }
+
+    return MPP_OK;
+}
+
+static MPP_RET
+h264e_rkv_set_roi_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
+{
+    MppEncROICfg *cfg = &ctx->roi_data;
+    h264e_hal_rkv_buffers *bufs = (h264e_hal_rkv_buffers *)ctx->buffers;
+    RK_U8 *roi_base;
+
+    if(cfg->number && cfg->regions){
+        regs->swreg10.roi_enc = 1;
+        regs->swreg29_ctuc_addr = mpp_buffer_get_fd(bufs->hw_roi_buf[0]);
+
+        roi_base = (RK_U8 *)mpp_buffer_get_ptr(bufs->hw_roi_buf[0]);
+        rkv_config_roi_area(ctx, roi_base);
     }
 
     return MPP_OK;
@@ -1394,6 +1413,9 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_rkv_set_osd_regs(ctx, regs);
 
+    /* ROI configure */
+    h264e_rkv_set_roi_regs(ctx, regs);
+
     regs->swreg69.bs_lgth    = 0x0;
 
     regs->swreg70.sse_l32    = 0x0;
@@ -1846,6 +1868,10 @@ MPP_RET hal_h264e_rkv_control(void *hal, RK_S32 cmd_type, void *param)
     }
     case MPP_ENC_SET_OSD_DATA_CFG: {
         h264e_rkv_set_osd_data(ctx, param);
+        break;
+    }
+    case MPP_ENC_SET_ROI_CFG : {
+        h264e_rkv_set_roi_data(ctx, param);
         break;
     }
     case MPP_ENC_SET_SEI_CFG: {
