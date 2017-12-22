@@ -22,10 +22,15 @@ c. osal header
 d. module header
 
 NOTE:
-1. when run on windows pthreadVC2.dll is needed to be copied to system directory.
-2. Current MPP fully support chipset RK3228/RK3229/RK3399/RK3328/RV1108.
-   Old chipset like RK29xx/RK30xx/RK31XX/RK3288/RK3368 is partly supported due
-   to lack of some hardware register generation module.
+1. Windows support is NOT maintained any more.
+2. Mpp support all rockchip chipset now including:
+   RK29XX/RK30XX/RK31XX
+   RK3288/RK3368/RK3399
+   RK3228/RK3229/RK3228H/RK3328
+   RV1108/RV1107
+3. Mpp support all format hardware can support except VC1.
+
+More document can be found at http://opensource.rock-chips.com/wiki_Mpp
 
 ----                             top
    |
