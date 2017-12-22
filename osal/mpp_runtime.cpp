@@ -20,7 +20,33 @@
 #include <unistd.h>
 
 #include "mpp_log.h"
+#include "mpp_common.h"
 #include "mpp_runtime.h"
+
+#define MAX_DTS_PATH_LEN        256
+
+static const char *mpp_dts_base = "/proc/device-tree/";
+
+static const char *mpp_vpu_names[] = {
+    "vpu_service",
+    "vpu-service",
+    "vpu",
+    //"hevc_service",
+    //"hevc-service",
+    //"rkvdec",
+    //"rkvenc",
+    //"vpu_combo",
+};
+
+static const char *mpp_vpu_address[] = {
+    "",                 /* old kernel   */
+    "@10108000",        /* rk3036       */
+    "@20020000",        /* rk322x       */
+    "@30000000",        /* rv1108       */
+    "@ff9a0000",        /* rk3288/3366  */
+    "@ff350000",        /* rk322xh/3328 */
+    "@ff650000",        /* rk3399       */
+};
 
 class MppRuntimeService
 {
@@ -71,6 +97,58 @@ MppRuntimeService::MppRuntimeService()
         allocator_valid[MPP_BUFFER_TYPE_DRM] = 1;
         mpp_log("found drm allocator\n");
         close(fd);
+    }
+
+    // If both ion and drm is enabled detect allocator in dts to choose one
+    // TODO: When unify dma fd kernel is completed this part will be removed.
+    if (allocator_valid[MPP_BUFFER_TYPE_ION] &&
+        allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+        /* Detect hardware buffer type is ion or drm */
+        RK_U32 i, j;
+        char path[MAX_DTS_PATH_LEN];
+        RK_U32 path_len = MAX_DTS_PATH_LEN;
+        RK_U32 dts_path_len = snprintf(path, path_len, "%s", mpp_dts_base);
+        char *p = path + dts_path_len;
+        RK_U32 allocator_found = 0;
+
+        path_len -= dts_path_len;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(mpp_vpu_names); i++) {
+            for (j = 0; j < MPP_ARRAY_ELEMS(mpp_vpu_address); j++) {
+                RK_U32 dev_path_len = snprintf(p, path_len, "%s%s",
+                                               mpp_vpu_names[i], mpp_vpu_address[j]);
+                int f_ok = access(path, F_OK);
+                if (f_ok == 0) {
+                    snprintf(p + dev_path_len, path_len - dev_path_len, "/%s", "allocator");
+                    f_ok = access(path, F_OK);
+                    if (f_ok == 0) {
+                        RK_S32 val = 0;
+                        FILE *fp = fopen(path, "rb");
+                        if (fp) {
+                            fread(&val, 1, 4, fp);
+                            // zero for ion non-zero for drm ->
+                            // zero     - disable drm
+                            // non-zero - disable ion
+                            if (val == 0) {
+                                allocator_valid[MPP_BUFFER_TYPE_DRM] = 0;
+                                mpp_log("found ion allocator in dts\n");
+                            } else {
+                                allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
+                                mpp_log("found drm allocator in dts\n");
+                            }
+                            allocator_found = 1;
+                        }
+                    }
+                }
+                if (allocator_found)
+                    break;
+            }
+            if (allocator_found)
+                break;
+        }
+
+        if (!allocator_found)
+            mpp_log("Can NOT found allocator in dts, enable both ion and drm\n");
     }
 }
 
