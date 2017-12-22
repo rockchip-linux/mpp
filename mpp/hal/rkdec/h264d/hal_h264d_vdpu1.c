@@ -799,7 +799,6 @@ MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task)
     FUN_CHECK(ret = vdpu1_set_ref_regs(p_hal, (H264dVdpu1Regs_t *)p_hal->regs));
     FUN_CHECK(ret = vdpu1_set_asic_regs(p_hal,
                                         (H264dVdpu1Regs_t *)p_hal->regs));
-    p_hal->in_task->valid = 0;
 
 __RETURN:
     return ret = MPP_OK;

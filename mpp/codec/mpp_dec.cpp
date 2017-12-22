@@ -210,28 +210,40 @@ static void mpp_put_frame(Mpp *mpp, MppFrame frame)
     list->unlock();
 }
 
-static void mpp_put_frame_eos(Mpp *mpp)
+static void mpp_put_frame_eos(Mpp *mpp, HalDecTaskFlag  flags)
 {
     MppFrame info_frame = NULL;
     mpp_frame_init(&info_frame);
     mpp_assert(NULL == mpp_frame_get_buffer(info_frame));
     mpp_frame_set_eos(info_frame, 1);
+    if (flags.had_error) {
+        if (flags.used_for_ref)
+            mpp_frame_set_errinfo(info_frame, 1);
+        else
+            mpp_frame_set_discard(info_frame, 1);
+    }
     mpp_put_frame((Mpp*)mpp, info_frame);
     return;
 }
 
-static void mpp_dec_push_display(Mpp *mpp)
+static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
 {
-    RK_S32 index;
+    RK_S32 index = -1;
     MppDec *dec = mpp->mDec;
     MppBufSlots frame_slots = dec->frame_slots;
+
     mpp->mThreadHal->lock(THREAD_QUE_DISPLAY);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         MppFrame frame = NULL;
         mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
-        if (!dec->reset_flag) {
+
+        /* deal with current frame */
+        if (flag && mpp_slots_is_empty(frame_slots, QUEUE_DISPLAY))
+            mpp_frame_set_eos(frame, 1);
+
+        if (!dec->reset_flag)
             mpp_put_frame(mpp, frame);
-        } else {
+        else {
             /* release extra ref in slot's MppBuffer */
             MppBuffer buffer = mpp_frame_get_buffer(frame);
             if (buffer)
@@ -635,7 +647,7 @@ void *mpp_dec_hal_thread(void *data)
             if (task_dec->flags.info_change) {
                 MppFrame info_frame = NULL;
                 mpp_dec_flush(dec);
-                mpp_dec_push_display(mpp);
+                mpp_dec_push_display(mpp, 0);
                 mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME,
                                       &info_frame);
                 mpp_assert(info_frame);
@@ -656,8 +668,8 @@ void *mpp_dec_hal_thread(void *data)
              * all frames have decoded.
              */
             if (task_dec->flags.eos && !task_dec->valid) {
-                mpp_dec_push_display(mpp);
-                mpp_put_frame_eos(mpp);
+                mpp_dec_push_display(mpp, 0);
+                mpp_put_frame_eos(mpp, task_dec->flags);
                 hal_task_hnd_set_status(task, TASK_IDLE);
                 mpp->mThreadCodec->signal();
                 task = NULL;
@@ -699,14 +711,7 @@ void *mpp_dec_hal_thread(void *data)
             }
             if (task_dec->flags.eos)
                 mpp_dec_flush(dec);
-            mpp_dec_push_display(mpp);
-            /*
-             * check eos task
-             * if this task is the last frame we will flush display queue
-             * then push eos frame to inform that all frames have decoded.
-             */
-            if (task_dec->flags.eos)
-                mpp_put_frame_eos(mpp);
+            mpp_dec_push_display(mpp, task_dec->flags.eos);
         }
     }
 

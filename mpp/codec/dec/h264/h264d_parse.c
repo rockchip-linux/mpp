@@ -610,20 +610,6 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_Dec->nalu_ret = NALU_NULL;
     p_Inp->task_valid = 0;
 
-    //!< check eos
-    if (p_Inp->pkt_eos) {
-        FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Cur->strm, p_Dec->dxva_ctx));
-        FUN_CHECK(ret = add_empty_nalu(p_strm));
-        p_Dec->p_Inp->task_valid = 1;
-        p_Dec->p_Inp->task_eos = 1;
-        H264D_LOG("----- end of stream ----");
-        goto __RETURN;
-    }
-    //!< check input
-    if (!p_Inp->in_length) {
-        p_Dec->nalu_ret = HaveNoStream;
-        goto __RETURN;
-    }
     while (pkt_impl->length > 0) {
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
@@ -684,10 +670,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
         reset_nalu(p_strm);
         p_strm->startcode_found = 0;
-
     }
-
-__RETURN:
 
     return ret = MPP_OK;
 __FAILED:
