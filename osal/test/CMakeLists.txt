@@ -13,7 +13,7 @@ macro(add_mpp_osal_test module)
     option(${test_tag} "Build osal ${module} unit test" ON)
     if(${test_tag})
         add_executable(${test_name} ${test_name}.c)
-        target_link_libraries(${test_name} osal)
+        target_link_libraries(${test_name} ${MPP_SHARED})
         set_target_properties(${test_name} PROPERTIES FOLDER "osal/test")
         add_test(NAME ${test_name} COMMAND ${test_name})
     endif()
@@ -30,6 +30,9 @@ add_mpp_osal_test(mpp_mem)
 
 # hardware platform feature detection unit test
 add_mpp_osal_test(mpp_platform)
+
+# software runtime feature detection unit test
+add_mpp_osal_test(mpp_runtime)
 
 # thread implement unit test
 add_mpp_osal_test(mpp_thread)

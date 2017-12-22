@@ -11,6 +11,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 if (HAVE_DRM)
     add_definitions(-DHAVE_DRM)
     set(DRM_FILES allocator/allocator_drm.c)
+    message(STATUS "compile with drm support")
+else()
+    message(STATUS "compile without drm support")
 endif()
 
 set(MPP_ALLOCATOR
