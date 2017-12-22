@@ -244,6 +244,7 @@ typedef enum SlotsPropType_e {
 
 typedef RK_U32 (*AlignFunc)(RK_U32 val);
 
+RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type);
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index); //rest slot status when info_change no ok

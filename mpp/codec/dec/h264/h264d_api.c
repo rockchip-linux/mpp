@@ -509,24 +509,21 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->in_pkt = pkt;
     p_Inp->in_pts = mpp_packet_get_pts(pkt);
     p_Inp->in_dts = mpp_packet_get_dts(pkt);
+    p_Inp->in_length = mpp_packet_get_length(pkt);
+    p_Inp->pkt_eos = mpp_packet_get_eos(pkt);
+    p_Inp->in_buf = (RK_U8 *)mpp_packet_get_pos(pkt);
 
-    if (mpp_packet_get_eos(pkt)) {
-        p_Inp->pkt_eos     = 1;
+    if (p_Inp->pkt_eos) {
         p_Inp->has_get_eos = 1;
         if (p_Inp->in_length < 4) {
+            p_Inp->in_buf      = NULL;
+            p_Inp->in_length   = 0;
             task->flags.eos = p_Inp->pkt_eos;
             h264d_flush_dpb_eos(p_Dec);
             goto __RETURN;
         }
-        p_Inp->in_buf      = NULL;
-        p_Inp->in_length   = 0;
-
-
-    } else {
-        p_Inp->in_buf      = (RK_U8 *)mpp_packet_get_pos(pkt);
-        p_Inp->in_length   = mpp_packet_get_length(pkt);
-        p_Inp->pkt_eos     = 0;
     }
+
     if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
         H264D_ERR("[pkt_in_timeUs] input error, stream too large, pts=%lld, eos=%d, len=%d, pkt_no=%d",
                   p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
@@ -607,7 +604,6 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         ret = update_dpb(p_Dec);
         if (in_task->flags.eos) {
             h264d_flush_dpb_eos(p_Dec);
-            goto __RETURN;
         }
         if (ret) {
             goto __FAILED;
@@ -625,6 +621,7 @@ __RETURN:
 
 __FAILED: {
         H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
+        in_task->flags.had_error = 1;
         if (dec_pic) {
             H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
             if (dec_pic->mem_mark

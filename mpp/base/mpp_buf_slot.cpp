@@ -765,6 +765,18 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
     return MPP_OK;
 }
 
+RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return 0;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    AutoMutex auto_lock(impl->lock);
+    return list_empty(&impl->queue[type]) ? 1 : 0;
+}
+
 MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val)
 {
     if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
