@@ -234,6 +234,9 @@ RK_U32 VPUCheckSupportWidth()
     VPUHwDecConfig_t hwCfg;
     int fd = -1;
     fd = open("/dev/vpu_service", O_RDWR);
+    if (fd < 0) {
+        fd = open("/dev/vpu-service", O_RDWR);
+    }
     memset(&hwCfg, 0, sizeof(VPUHwDecConfig_t));
     if (fd >= 0) {
         if (VPUClientGetHwCfg(fd, (RK_U32*)&hwCfg, sizeof(hwCfg))) {
