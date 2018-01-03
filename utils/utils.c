@@ -111,10 +111,16 @@ void write_checksum(FILE *fp, RK_U8 *sum)
 void read_checksum(FILE *fp, RK_U8 *sum)
 {
     RK_S32 i;
+    int ret;
 
-    for (i = 0; i < 16; i++)
-        fscanf(fp, "%02hhx", sum + i);
+    for (i = 0; i < 16; i++) {
+        ret = fscanf(fp, "%02hhx", sum + i);
+        if (ret == EOF) {
+            mpp_err_f("unexpected EOF found\n");
+            break;
+        }
+    }
 
-    fscanf(fp, "\n");
+    ret = fscanf(fp, "\n");
 }
 
