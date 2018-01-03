@@ -32,12 +32,13 @@
 typedef union PaserTaskWait_u {
     RK_U32          val;
     struct {
-        RK_U32      task_hnd    : 1;
-        RK_U32      dec_pkt_idx : 1;
-        RK_U32      dec_pkt_buf : 1;
-        RK_U32      prev_task   : 1;
-        RK_U32      info_change : 1;
-        RK_U32      dec_pic_buf : 1;
+        RK_U32      task_hnd     : 1;
+        RK_U32      dec_pkt_idx  : 1;
+        RK_U32      dec_pkt_buf  : 1;
+        RK_U32      prev_task    : 1;
+        RK_U32      info_change  : 1;
+        RK_U32      dec_pic_buf  : 1;
+        RK_U32      dis_que_full : 1;
     };
 } PaserTaskWait;
 
@@ -417,6 +418,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
                 return MPP_NOK;
             }
         }
+    }
+
+    /* too many frame delay in dispaly queue */
+    if (mpp->mFrames) {
+        task->wait.dis_que_full = (mpp->mFrames->list_size() > 4) ? 1 : 0;
+        if (task->wait.dis_que_full)
+            return MPP_ERR_DISPLAY_FULL;
     }
 
     /* 7.2 look for a unused hardware buffer for output */
