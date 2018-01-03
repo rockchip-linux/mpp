@@ -239,13 +239,16 @@ static RK_S32 h265d_split_frame(void *sc,
         mpp_fetch_timestamp(s, 0);
     }
 
-    if (s->eos) {
+    if (s->eos && !buf_size) {
         *poutbuf      = s->buffer;
         *poutbuf_size = s->index;
         return 0;
     }
 
     next = hevc_find_frame_end(s, buf, buf_size);
+    if (s->eos && buf_size && next == END_NOT_FOUND) {
+        next = buf_size;
+    }
 
     if (mpp_combine_frame(s, next, &buf, &buf_size) < 0) {
         *poutbuf      = NULL;
@@ -1728,6 +1731,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             s->checksum_buf_size = split_size;
             h265d_dbg(H265D_DBG_TIME, "split frame get pts %lld", sc->pts);
             s->pts = sc->pts;
+            s->eos = (s->eos && (mpp_packet_get_length(pkt) < 4)) ? 1 : 0;
         } else {
             return MPP_FAIL_SPLIT_FRAME;
         }
@@ -1801,14 +1805,11 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
-        if (s->eos) {
-            s->task->flags.eos = 1;
-        }
-    } else {
-        if (s->eos) {
-            h265d_flush(ctx);
-            s->task->flags.eos = 1;
-        }
+
+    }
+    if (s->eos) {
+        h265d_flush(ctx);
+        s->task->flags.eos = 1;
     }
     s->nb_frame++;
     if (s->is_decoded) {
