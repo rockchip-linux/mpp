@@ -301,6 +301,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     void  *extradata = NULL;
     RK_S32 extradata_size = 0;
     EXtraCfg_t extra_cfg;
+    memset(&extra_cfg, 0, sizeof(EXtraCfg_t));
 
     vpu_api_dbg_func("enter\n");
 
