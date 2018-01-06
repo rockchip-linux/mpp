@@ -426,14 +426,13 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
 #endif
 
-    reg_cxt->scaling_qm = mpp_malloc(DXVA_Qmatrix_HEVC, 1);
+    reg_cxt->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     if (reg_cxt->scaling_qm == NULL) {
         mpp_err("scaling_org alloc fail");
         return MPP_ERR_MALLOC;
-
     }
 
-    reg_cxt->scaling_rk = mpp_malloc(scalingFactor_t, 1);
+    reg_cxt->scaling_rk = mpp_calloc(scalingFactor_t, 1);
     if (reg_cxt->scaling_rk == NULL) {
         mpp_err("scaling_rk alloc fail");
         return MPP_ERR_MALLOC;
