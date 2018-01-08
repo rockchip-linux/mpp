@@ -19,7 +19,7 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
       -DANDROID_NATIVE_API_LEVEL=android-21                                 \
       -DANDROID_STL=system                                                  \
       -DRKPLATFORM=ON                                                       \
-      -DHAVE_DRM                                                            \
+      -DHAVE_DRM=ON                                                         \
       ../../../
 
 # ----------------------------------------------------------------------------
