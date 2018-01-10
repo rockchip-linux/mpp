@@ -1005,6 +1005,7 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     case MPP_FMT_YUV422_UYVY:
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR444:
+    case MPP_FMT_BGR888:
     case MPP_FMT_RGB888:
     case MPP_FMT_ARGB8888:
     case MPP_FMT_ABGR8888:
