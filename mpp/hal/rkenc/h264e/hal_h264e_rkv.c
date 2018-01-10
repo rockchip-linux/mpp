@@ -1797,6 +1797,8 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
     codec->change = 0;
     prep->change = 0;
     rc->change = 0;
+    ctx->osd_data.buf = NULL;
+    ctx->osd_data.num_region = 0;
 
     h264e_hal_leave();
 
