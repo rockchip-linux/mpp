@@ -396,12 +396,12 @@ endif(MSVC)
 # On window import win32 pthread library
 # ----------------------------------------------------------------------------
 if(MSVC)
-    set(WIN32_PTHREAD_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/osal/windows/pthread/inc")
+    set(WIN32_PTHREAD_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/osal/windows/pthread/inc")
     include_directories(${WIN32_PTHREAD_INCLUDE_DIRS})
     add_library(pthread SHARED IMPORTED)
     message(STATUS "platform X86 ${X86} X64 ${X64}")
-    set(WIN32_PTHREAD_LIB_DIRS "${CMAKE_SOURCE_DIR}/osal/windows/pthread/lib")
-    set(WIN32_PTHREAD_DLL_DIRS "${CMAKE_SOURCE_DIR}/osal/windows/pthread/dll")
+    set(WIN32_PTHREAD_LIB_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/osal/windows/pthread/lib")
+    set(WIN32_PTHREAD_DLL_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/osal/windows/pthread/dll")
     if(X64)
         set(WIN32_ARCH "x64")
     else()
@@ -476,7 +476,7 @@ add_subdirectory(test)
 # ----------------------------------------------------------------------------
 #  install headers
 # ----------------------------------------------------------------------------
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/inc/
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/inc/
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/rockchip"
         FILES_MATCHING PATTERN "*.h"
         )
@@ -484,9 +484,9 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/inc/
 # ----------------------------------------------------------------------------
 #  pkgconfig
 # ----------------------------------------------------------------------------
-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/pkgconfig/rockchip_mpp.pc.cmake"
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/rockchip_mpp.pc.cmake"
                 "${CMAKE_BINARY_DIR}/rockchip_mpp.pc" @ONLY)
-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/pkgconfig/rockchip_vpu.pc.cmake"
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/rockchip_vpu.pc.cmake"
                 "${CMAKE_BINARY_DIR}/rockchip_vpu.pc" @ONLY)
 install(FILES "${CMAKE_BINARY_DIR}/rockchip_mpp.pc"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
