@@ -712,7 +712,7 @@ h264e_rkv_set_roi_regs(H264eHalContext *ctx, H264eRkvRegSet *regs)
     h264e_hal_rkv_buffers *bufs = (h264e_hal_rkv_buffers *)ctx->buffers;
     RK_U8 *roi_base;
 
-    if(cfg->number && cfg->regions){
+    if (cfg->number && cfg->regions) {
         regs->swreg10.roi_enc = 1;
         regs->swreg29_ctuc_addr = mpp_buffer_get_fd(bufs->hw_roi_buf[0]);
 

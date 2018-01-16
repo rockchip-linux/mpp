@@ -934,6 +934,9 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
         ctx->sei_mode = *((MppEncSeiMode *)param);
         break;
     }
+    case MPP_ENC_SET_ROI_CFG: {
+        break;
+    }
     default : {
         mpp_err("unrecognizable cmd type %x", cmd_type);
     } break;

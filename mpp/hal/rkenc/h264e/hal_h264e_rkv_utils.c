@@ -101,13 +101,13 @@ MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base)
     MppEncROIRegion *region;
     RK_U8 *ptr = roi_base;
 
-    if(ctx == NULL || roi_base == NULL){
+    if (ctx == NULL || roi_base == NULL) {
         mpp_err("NULL pointer ctx %p roi_base %p\n", ctx, roi_base);
         return MPP_NOK;
     }
 
     region = ctx->roi_data.regions;
-    for(num = 0; num < ctx->roi_data.number; num++){
+    for (num = 0; num < ctx->roi_data.number; num++) {
         init_pos_x = (region->x + 15) / 16;
         init_pos_y = (region->y + 15) / 16;
         roi_width = (region->w + 15) / 16;
@@ -116,7 +116,7 @@ MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base)
         pos_y = init_pos_y;
 
         for (idx = 0; idx < roi_width * roi_height; idx++) {
-            if(idx % roi_width == 0)
+            if (idx % roi_width == 0)
                 pos_y = init_pos_y + idx / roi_width;
             ptr = roi_base + (pos_y * mb_width + init_pos_x) + (idx % roi_width);
 
