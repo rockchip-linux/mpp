@@ -19,7 +19,7 @@
 
 #include "hal_h264e_com.h"
 
-typedef struct{
+typedef struct {
     RK_U8 qp_y          : 6;
     RK_U8 set_qp_y_en   : 1;
     RK_U8 forbid_inter  : 1;
