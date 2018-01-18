@@ -244,12 +244,9 @@ static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
 
         if (!dec->reset_flag)
             mpp_put_frame(mpp, frame);
-        else {
-            /* release extra ref in slot's MppBuffer */
-            MppBuffer buffer = mpp_frame_get_buffer(frame);
-            if (buffer)
-                mpp_buffer_put(buffer);
-        }
+        else
+            mpp_frame_deinit(&frame);
+
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }
     mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
