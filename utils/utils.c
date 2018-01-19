@@ -74,53 +74,117 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
     }
 }
 
-void calc_frm_checksum(MppFrame frame, RK_U8 *sum)
+void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc)
 {
-    RK_U32 checksum = 0;
-    RK_U8 xor_mask;
-    RK_U32 y, x;
+    RK_U32 i = 0;
+    RK_U8 *dat8 = NULL;
+    RK_U32 *dat32 = NULL;
+    RK_U32 sum = 0, xor = 0;
+
+    /*calc sum */
+    dat8 = dat;
+    for (i = 0; i < len; i++)
+        sum += dat8[i];
+
+    /*calc xor */
+    dat32 = (RK_U32 *)dat;
+    for (i = 0; i < len / 4; i++)
+        xor ^= dat32[i];
+
+    if (len % 4) {
+        RK_U32 val = 0;
+        dat8 = (RK_U8 *)&val;
+        for (i = (len / 4) * 4; i < len; i++)
+            dat8[i] = dat[i];
+        xor ^= val;
+    }
+
+    crc->len = len;
+    crc->sum = sum;
+    crc->xor = xor;
+}
+
+void write_data_crc(FILE *fp, DataCrc *crc)
+{
+    if (fp) {
+        fprintf(fp, "%d, %08x, %08x\n", crc->len, crc->sum, crc->xor);
+        fflush(fp);
+    }
+}
+
+void read_data_crc(FILE *fp, DataCrc *crc)
+{
+    if (fp) {
+        RK_S32 ret = 0;
+        ret = fscanf(fp, "%d, %08x, %08x\n", &crc->len, &crc->sum, &crc->xor);
+        if (ret == EOF)
+            mpp_err_f("unexpected EOF found\n");
+    }
+}
+
+void calc_frm_crc(MppFrame frame, FrmCrc *crc)
+{
+    RK_U32 y = 0, x = 0;
+    RK_U8 *dat8 = NULL;
+    RK_U32 *dat32 = NULL;
+    RK_U32 sum = 0, xor = 0;
 
     RK_U32 width  = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
     RK_U32 stride = mpp_frame_get_hor_stride(frame);
     RK_U8 *buf = (RK_U8 *)mpp_buffer_get_ptr(mpp_frame_get_buffer(frame));
 
+    /* luma */
+    dat8 = buf;
+    for (y = 0; y < height; y++)
+        for (x = 0; x < width; x++)
+            sum += dat8[y * stride + x];
+
     for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-            xor_mask = (x & 0xff) ^ (y & 0xff) ^ (x >> 8) ^ (y >> 8);
-            checksum = (checksum + ((buf[y * stride + x] & 0xff) ^ xor_mask)) & 0xffffffff;
-        }
+        dat32 = (RK_U32 *)&dat8[y * stride];
+        for (x = 0; x < width / 4; x++)
+            xor ^= dat32[x];
     }
+    crc->luma.len = height * width;
+    crc->luma.sum = sum;
+    crc->luma.xor = xor;
 
-    sum[0] = (checksum >> 24) & 0xff;
-    sum[1] = (checksum >> 16) & 0xff;
-    sum[2] = (checksum >> 8)  & 0xff;
-    sum[3] =  checksum      & 0xff;
+    /* chroma */
+    dat8 = buf + height * stride;
+    for (y = 0; y < height / 2; y++)
+        for (x = 0; x < width; x++)
+            sum += dat8[y * stride + x];
+
+    for (y = 0; y < height / 2; y++) {
+        dat32 = (RK_U32 *)&dat8[y * stride];
+        for (x = 0; x < width / 4; x++)
+            xor ^= dat32[x];
+    }
+    crc->chroma.len = height * width / 2;
+    crc->chroma.sum = sum;
+    crc->chroma.xor = xor;
 }
 
-void write_checksum(FILE *fp, RK_U8 *sum)
+void write_frm_crc(FILE *fp, FrmCrc *crc)
 {
-    RK_S32 i;
-
-    for (i = 0; i < 16; i++)
-        fprintf(fp, "%02hhx", sum[i]);
-
-    fprintf(fp, "\n");
+    if (fp) {
+        fprintf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
+                crc->luma.len, crc->luma.sum, crc->luma.xor,
+                crc->chroma.len, crc->chroma.sum, crc->chroma.xor);
+        fflush(fp);
+    }
 }
 
-void read_checksum(FILE *fp, RK_U8 *sum)
+void read_frm_crc(FILE *fp, FrmCrc *crc)
 {
-    RK_S32 i;
-    int ret;
-
-    for (i = 0; i < 16; i++) {
-        ret = fscanf(fp, "%02hhx", sum + i);
-        if (ret == EOF) {
+    if (fp) {
+        RK_S32 ret = 0;
+        ret = fscanf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
+                     &crc->luma.len, &crc->luma.sum, &crc->luma.xor,
+                     &crc->chroma.len, &crc->chroma.sum, &crc->chroma.xor);
+        if (ret == EOF)
             mpp_err_f("unexpected EOF found\n");
-            break;
-        }
     }
-
-    ret = fscanf(fp, "\n");
 }
+
 

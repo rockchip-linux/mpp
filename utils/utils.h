@@ -26,6 +26,18 @@ typedef struct OptionInfo_t {
     const char*     help;
 } OptionInfo;
 
+typedef struct data_crc_t {
+    RK_U32          len;
+    RK_U32          sum;
+    RK_U32          xor;
+} DataCrc;
+
+typedef struct frame_crc_t {
+    DataCrc         luma;
+    DataCrc         chroma;
+} FrmCrc;
+
+
 #define show_options(opt) \
     do { \
         _show_options(sizeof(opt)/sizeof(OptionInfo), opt); \
@@ -37,9 +49,14 @@ extern "C" {
 
 void _show_options(int count, OptionInfo *options);
 void dump_mpp_frame_to_file(MppFrame frame, FILE *fp);
-void calc_frm_checksum(MppFrame frame, RK_U8 *sum);
-void write_checksum(FILE *fp, RK_U8 *sum);
-void read_checksum(FILE *fp, RK_U8 *sum);
+
+void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc);
+void write_data_crc(FILE *fp, DataCrc *crc);
+void read_data_crc(FILE *fp, DataCrc *crc);
+
+void calc_frm_crc(MppFrame frame, FrmCrc *crc);
+void write_frm_crc(FILE *fp, FrmCrc *crc);
+void read_frm_crc(FILE *fp, FrmCrc *crc);
 
 #ifdef __cplusplus
 }
