@@ -802,28 +802,30 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 #endif
 
 #if MPI_ENC_TEST_SET_ROI
-        MppEncROIRegion *region = p->roi_region;
-        MppEncROICfg roi_cfg;
+        if (p->type == MPP_VIDEO_CodingAVC) {
+            MppEncROIRegion *region = p->roi_region;
+            MppEncROICfg roi_cfg;
 
-        /* calculated in pixels */
-        region->x = region->y = 64;
-        region->w = region->h = 128; /* 16-pixel aligned is better */
-        region->intra = 0;   /* flag of forced intra macroblock */
-        region->quality = 20; /* qp of macroblock */
+            /* calculated in pixels */
+            region->x = region->y = 64;
+            region->w = region->h = 128; /* 16-pixel aligned is better */
+            region->intra = 0;   /* flag of forced intra macroblock */
+            region->quality = 20; /* qp of macroblock */
 
-        region++;
-        region->x = region->y = 256;
-        region->w = region->h = 128; /* 16-pixel aligned is better */
-        region->intra = 1;   /* flag of forced intra macroblock */
-        region->quality = 25; /* qp of macroblock */
+            region++;
+            region->x = region->y = 256;
+            region->w = region->h = 128; /* 16-pixel aligned is better */
+            region->intra = 1;   /* flag of forced intra macroblock */
+            region->quality = 25; /* qp of macroblock */
 
-        roi_cfg.number = 2;
-        roi_cfg.regions = p->roi_region;
+            roi_cfg.number = 2;
+            roi_cfg.regions = p->roi_region;
 
-        ret = mpi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_cfg);
-        if (MPP_OK != ret) {
-            mpp_err("mpi control enc set roi data failed\n");
-            goto RET;
+            ret = mpi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_cfg);
+            if (MPP_OK != ret) {
+                mpp_err("mpi control enc set roi data failed\n");
+                goto RET;
+            }
         }
 #endif
 
