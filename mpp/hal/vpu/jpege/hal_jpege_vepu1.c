@@ -167,6 +167,9 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 bitpos;
     RK_S32 bytepos;
     RK_U32 deflt_cfg;
+    RK_U32 r_mask = 0;
+    RK_U32 g_mask = 0;
+    RK_U32 b_mask = 0;
 
     syntax->width   = width;
     syntax->height  = height;
@@ -200,34 +203,61 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
         ((16 & (63)) << 8) |
         ((0  & (1)) << 6) |
         ((0  & (1)) << 5) |
-        ((0  & (1)) << 4) |
+        ((1  & (1)) << 4) |
         ((1  & (1)) << 3) |
         ((1  & (1)) << 1);
 
     switch (fmt) {
     case MPP_FMT_YUV420P : {
         val32 = 0;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV420SP : {
         val32 = 1;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV422_YUYV : {
         val32 = 2;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV422_UYVY : {
         val32 = 3;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_RGB565 : {
         val32 = 4;
+        r_mask = 4;
+        g_mask = 10;
+        b_mask = 15;
     } break;
     case MPP_FMT_RGB444 : {
         val32 = 5;
+        r_mask = 3;
+        g_mask = 7;
+        b_mask = 11;
     } break;
     case MPP_FMT_RGB888 : {
-        val32 = 6;
+        val32 = 7;
+        r_mask = 7;
+        g_mask = 15;
+        b_mask = 23;
+    } break;
+    case MPP_FMT_BGR888 : {
+        val32 = 7;
+        r_mask = 23;
+        g_mask = 15;
+        b_mask = 7;
     } break;
     case MPP_FMT_RGB101010 : {
-        val32 = 7;
+        val32 = 8;
     } break;
     default : {
         mpp_err_f("invalid input format %d\n", fmt);
@@ -352,9 +382,9 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
 
         regs[53] = coeffA | (coeffB << 16);
         regs[54] = coeffC | (coeffE << 16);
-        regs[55] = (0 << 26) |
-                   (0 << 21) |
-                   (0 << 16) | coeffF;
+        regs[55] = ((r_mask & 0x1f) << 26) |
+                   ((g_mask & 0x1f) << 21) |
+                   ((b_mask & 0x1f) << 16) | coeffF;
     }
 
     regs[14] |= 0x001;
@@ -487,7 +517,8 @@ MPP_RET hal_jpege_vepu1_control(void *hal, RK_S32 cmd, void *param)
 
         if (cfg->format != MPP_FMT_YUV420SP &&
             cfg->format != MPP_FMT_YUV420P  &&
-            cfg->format != MPP_FMT_RGB888) {
+            cfg->format != MPP_FMT_RGB888   &&
+            cfg->format != MPP_FMT_BGR888) {
             mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
             ret = MPP_NOK;
         }
