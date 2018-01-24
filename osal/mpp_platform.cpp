@@ -43,6 +43,8 @@ typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_RK3228,
     ROCKCHIP_SOC_RK3229,
     ROCKCHIP_SOC_RV1108,
+    ROCKCHIP_SOC_RK3326,
+    ROCKCHIP_SOC_PX30,
     ROCKCHIP_SOC_BUTT,
 } RockchipSocType;
 
@@ -67,6 +69,8 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rk3228",  ROCKCHIP_SOC_RK3228,   HAVE_VPU2 | HAVE_RKVDEC,   },
     { "rk3229",  ROCKCHIP_SOC_RK3229,   HAVE_VPU2 | HAVE_RKVDEC,   },
     { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
+    { "rk3326",  ROCKCHIP_SOC_RK3326,   HAVE_VPU2 | HAVE_HEVC_DEC, },
+    { "px30",    ROCKCHIP_SOC_RK3326,   HAVE_VPU2 | HAVE_HEVC_DEC, },
 };
 
 /* For vpu1 / vpu2 */
@@ -244,13 +248,6 @@ MppPlatformService::MppPlatformService()
     /* for all chip vpu decoder */
     if (!mpp_find_device(mpp_vpu_dev))
         vcodec_type &= ~(HAVE_VPU1 | HAVE_VPU2);
-    else {
-        /* new chip with rkvdec always uses VPU2 */
-        if (vcodec_type & HAVE_RKVDEC)
-            vcodec_type |= HAVE_VPU2;
-        else
-            vcodec_type |= HAVE_VPU1;
-    }
 
     mpp_dbg(MPP_DBG_PLATFORM, "vcodec type %08x\n", vcodec_type);
 #endif
@@ -349,7 +346,9 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
     } break;
     case ROCKCHIP_SOC_RK3288 :
     case ROCKCHIP_SOC_RK312X :
-    case ROCKCHIP_SOC_RK3368 : {
+    case ROCKCHIP_SOC_RK3368 :
+    case ROCKCHIP_SOC_RK3326 :
+    case ROCKCHIP_SOC_PX30 : {
         /*
          * rk3288/rk312x/rk3368 have codec:
          * 1 - vpu1
