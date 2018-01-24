@@ -95,7 +95,7 @@ void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc)
         RK_U32 val = 0;
         dat8 = (RK_U8 *)&val;
         for (i = (len / 4) * 4; i < len; i++)
-            dat8[i] = dat[i];
+            dat8[i % 4] = dat[i];
         xor ^= val;
     }
 
