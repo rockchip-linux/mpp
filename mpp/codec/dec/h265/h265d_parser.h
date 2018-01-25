@@ -534,16 +534,12 @@ typedef struct DBParams {
 typedef struct HEVCFrame {
     MppFrame   frame;
     RefPicList *refPicList;
-    RefPicListTab **rpl_tab;
     RK_S32 ctb_count;
     RK_S32 poc;
     struct HEVCFrame *collocated_ref;
 
     HEVCWindow window;
 
-    RK_U8 *rpl_tab_buf;
-
-    RK_U8 *rpl_buf;
     /**
      * A sequence counter, so that old frames are output first
      * after a POC reset

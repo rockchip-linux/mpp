@@ -39,9 +39,6 @@ void mpp_hevc_unref_frame(HEVCContext *s, HEVCFrame *frame, int flags)
 
     frame->flags &= ~flags;
     if (!frame->flags) {
-        mpp_free(frame->rpl_buf);
-        mpp_free(frame->rpl_tab_buf);
-        frame->rpl_tab    = NULL;
         frame->refPicList = NULL;
         frame->collocated_ref = NULL;
         if (frame->slot_index <= 0x7f) {
@@ -77,7 +74,6 @@ void mpp_hevc_flush_dpb(HEVCContext *s)
 static HEVCFrame *alloc_frame(HEVCContext *s)
 {
 
-    RK_S32  j;
     RK_U32  i;
     MPP_RET ret = MPP_OK;
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
@@ -98,28 +94,9 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_color_primaries(frame->frame, s->sps->vui.colour_primaries);
         mpp_frame_set_color_trc(frame->frame, s->sps->vui.transfer_characteristic);
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
-
-        frame->rpl_buf = mpp_calloc(RK_U8, s->nb_nals * sizeof(RefPicListTab));
-        if (!frame->rpl_buf) {
-            mpp_err( "rpl_buf malloc fail\n");
-            goto fail;
-        }
-        frame->ctb_count = s->sps->ctb_width * s->sps->ctb_height;
-        frame->rpl_tab_buf = mpp_malloc(RK_U8, frame->ctb_count * sizeof(RefPicListTab));
-        if (!frame->rpl_tab_buf) {
-            mpp_err( "rpl_tab_buf malloc fail\n");
-            goto fail;
-        }
-        frame->rpl_tab  = (RefPicListTab **)frame->rpl_tab_buf;
-        for (j = 0; j < frame->ctb_count; j++)
-            frame->rpl_tab[j] = (RefPicListTab *)frame->rpl_buf;
-
         ret = mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
         mpp_assert(ret == MPP_OK);
         return frame;
-    fail:
-        mpp_hevc_unref_frame(s, frame, ~0);
-        return NULL;
     }
     mpp_err( "Error allocating frame, DPB full.\n");
     return NULL;
