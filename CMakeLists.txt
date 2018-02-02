@@ -73,17 +73,6 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 enable_testing()
 
 # ----------------------------------------------------------------------------
-# add debug define in project
-# ----------------------------------------------------------------------------
-if(NOT $(CMAKE_BUILD_TYPE) MATCHES "Release")
-    option(RK_DEBUG "Enable run-time debug mode(debugging)" ON)
-    if(RK_DEBUG)
-        add_definitions(-DRK_DEBUG)
-        message(STATUS "rk_mpp debug mode is enabled")
-    endif()
-endif()
-
-# ----------------------------------------------------------------------------
 # System architecture detection
 # ----------------------------------------------------------------------------
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSPROC)
@@ -128,14 +117,6 @@ endif(UNIX)
 # ----------------------------------------------------------------------------
 # Compiler detection
 # ----------------------------------------------------------------------------
-if(CMAKE_GENERATOR STREQUAL "Xcode")
-  set(XCODE true)
-endif()
-
-if (APPLE)
-  add_definitions(-DMACOS)
-endif()
-
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CLANG true)
 endif()
@@ -268,8 +249,8 @@ if(${HAVE_SVN})
     message(STATUS "Current svn revision is ${Project_WC_REVISION}")
     set(VERSION_REVISION        ${Project_WC_REVISION})
     set(VERSION_LAST_AUTHOR     ${Project_WC_LAST_CHANGED_AUTHOR})
-    set(VERSION_LAST_DATA       ${Project_WC_LAST_CHANGED_DATE})
-    set(VERSION_ONE_LINE        "${VERSION_REVISION} author: ${VERSION_LAST_AUTHOR} date: ${VERSION_LAST_DATA}")
+    set(VERSION_LAST_DATE       ${Project_WC_LAST_CHANGED_DATE})
+    set(VERSION_ONE_LINE        "${VERSION_REVISION} author: ${VERSION_LAST_AUTHOR} date: ${VERSION_LAST_DATE}")
     set(VERSION_VER_NUM         ${VERSION_REVISION})
 else()
     set(VERSION_REVISION -1)
@@ -283,6 +264,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
     if(GIT_FOUND)
         # get author
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -296,6 +278,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
 
         # get date
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -303,12 +286,13 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
             ERROR_STRIP_TRAILING_WHITESPACE)
 
         if (NOT EXEC_RET)
-            message(STATUS "author: ${EXEC_OUT}")
-            set(VERSION_LAST_DATA ${EXEC_OUT})
+            message(STATUS "date  : ${EXEC_OUT}")
+            set(VERSION_LAST_DATE ${EXEC_OUT})
         endif()
 
         # get version hash
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -321,6 +305,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
 
         # get one line version information
         execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%h author: %an %s"
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
             RESULT_VARIABLE EXEC_RET
@@ -334,6 +319,9 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
         endif()
 
         set(VERSION_VER_NUM -1)
+    else(GIT_FOUND)
+        set(VERSION_ONE_LINE "Missing VCS info")
+        set(VERSION_LAST_AUTHOR "Unknown")
     endif()
 
     # add git hooks
@@ -346,6 +334,9 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
         endif(EXISTS "${PROJECT_SOURCE_DIR}/.git/hooks")
     endif(EXISTS "${PROJECT_SOURCE_DIR}/tools/hooks/")
 
+else(EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    set(VERSION_ONE_LINE "Without VCS info")
+    set(VERSION_LAST_AUTHOR "Unknown")
 endif(EXISTS "${PROJECT_SOURCE_DIR}/.git")
 
 configure_file(
