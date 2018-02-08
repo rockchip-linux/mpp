@@ -24,5 +24,6 @@ fi
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=./arm.linux.cross.cmake \
       -DRKPLATFORM=ON \
+      -DHAVE_DRM=ON \
       -G "Unix Makefiles" \
       ${MPP_TOP}
