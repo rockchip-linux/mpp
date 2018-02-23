@@ -188,6 +188,11 @@ static MPP_RET read_yuv_image(RK_U8 *buf, MpiEncTestData *p)
             }
         }
     } break;
+    case MPP_FMT_ARGB8888 : {
+        for (row = 0; row < height; row++) {
+            read_size = fread(buf_y + row * hor_stride * 4, 1, width * 4, fp);
+        }
+    } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);
         ret = MPP_ERR_VALUE;
@@ -340,7 +345,10 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     }
 
     // update resource parameter
-    p->frame_size   = p->hor_stride * p->ver_stride * 3 / 2;
+    if (p->fmt <= MPP_FMT_YUV_BUTT)
+        p->frame_size = p->hor_stride * p->ver_stride * 3 / 2;
+    else
+        p->frame_size = p->hor_stride * p->ver_stride * 4;
     p->packet_size  = p->width * p->height;
     //NOTE: hor_stride should be 16-MB aligned
     p->mdinfo_size  = (((p->hor_stride + 255) & (~255)) / 16) * (p->ver_stride / 16) * 4;
