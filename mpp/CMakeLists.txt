@@ -3,6 +3,7 @@
 # setup mpp codec config first
 # ----------------------------------------------------------------------------
 include(codecs.cmake)
+include(vproc.cmake)
 
 # ----------------------------------------------------------------------------
 # add include directory

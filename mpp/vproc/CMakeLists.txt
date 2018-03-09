@@ -5,5 +5,5 @@
 # ----------------------------------------------------------------------------
 include_directories(inc)
 
-#add_subdirectory(rga)
+add_subdirectory(rga)
 add_subdirectory(iep)
