@@ -1,0 +1,5 @@
+option(ENABLE_VPROC "Enable video process" ON)
+if( ENABLE_VPROC )
+    set(HAVE_VPROC true)
+    add_definitions(-DHAVE_VPROC)
+endif()
