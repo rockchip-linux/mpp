@@ -44,6 +44,8 @@ static RK_S32 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
         if ((v == 0xff) && (v2 >= 0xc0) && (v2 <= 0xfe) && buf_ptr < buf_end) {
             val = *buf_ptr++;
             goto found;
+        } else if ((v == 0x89) && (v2 == 0x50)) {
+            mpp_log("input img maybe png format,check it\n");
         }
         skipped++;
     }
