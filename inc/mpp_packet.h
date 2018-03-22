@@ -65,6 +65,7 @@ void    mpp_packet_set_flag(MppPacket packet, RK_U32 flag);
 RK_U32  mpp_packet_get_flag(const MppPacket packet);
 
 MPP_RET mpp_packet_set_eos(MppPacket packet);
+MPP_RET mpp_packet_clr_eos(MppPacket packet);
 RK_U32  mpp_packet_get_eos(MppPacket packet);
 MPP_RET mpp_packet_set_extra_data(MppPacket packet);
 

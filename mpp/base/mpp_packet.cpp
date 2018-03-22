@@ -213,6 +213,16 @@ MPP_RET mpp_packet_set_eos(MppPacket packet)
     return MPP_OK;
 }
 
+MPP_RET mpp_packet_clr_eos(MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return MPP_ERR_UNKNOW;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    p->flag &= ~MPP_PACKET_FLAG_EOS;
+    return MPP_OK;
+}
+
 RK_U32 mpp_packet_get_eos(MppPacket packet)
 {
     if (check_is_mpp_packet(packet))
