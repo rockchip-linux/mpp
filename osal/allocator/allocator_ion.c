@@ -38,6 +38,7 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+#include "mpp_thread.h"
 
 static RK_U32 ion_debug = 0;
 
@@ -264,6 +265,7 @@ typedef struct {
 static const char *dev_ion = "/dev/ion";
 static RK_S32 ion_heap_id = -1;
 static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
+static pthread_mutex_t lock;
 
 static MPP_RET allocator_ion_open(void **ctx, size_t alignment)
 {
@@ -296,6 +298,7 @@ static MPP_RET allocator_ion_open(void **ctx, size_t alignment)
          * if there is no vpu_service use default ION_HEAP_TYPE_SYSTEM_CONTIG
          * if there is vpu_service then check the iommu_enable status
          */
+        pthread_mutex_lock(&lock);
         if (ion_heap_id < 0) {
             int detect_result = check_sysfs_iommu();
             const char *heap_name = NULL;
@@ -325,6 +328,7 @@ static MPP_RET allocator_ion_open(void **ctx, size_t alignment)
             }
             mpp_log("using ion heap %s\n", heap_name);
         }
+        pthread_mutex_unlock(&lock);
         p->alignment    = alignment;
         p->ion_device   = fd;
         *ctx = p;
