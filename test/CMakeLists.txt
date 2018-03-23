@@ -26,6 +26,9 @@ add_mpp_test(mpi)
 # mpi decoder unit test
 add_mpp_test(mpi_dec)
 
+# mpi decoder multi-thread input / output unit test
+add_mpp_test(mpi_dec_mt)
+
 # mpi encoder unit test
 add_mpp_test(mpi_enc)
 
