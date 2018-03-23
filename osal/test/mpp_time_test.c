@@ -14,36 +14,29 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "mpp_time_test"
+
 #include "mpp_log.h"
 #include "mpp_time.h"
 
-#if _WIN32
-#include <sys/types.h>
-#include <sys/timeb.h>
-
-RK_S64 mpp_time()
+int main()
 {
-    struct timeb tb;
-    ftime(&tb);
-    return ((RK_S64)tb.time * 1000 + (RK_S64)tb.millitm) * 1000;
+    RK_S64 time_0;
+    RK_S64 time_1;
+
+    mpp_err("mpp time test start\n");
+
+    time_0 = mpp_time();
+
+    msleep(10);
+
+    time_1 = mpp_time();
+
+    mpp_log("time 0 %lld us\n", time_0);
+    mpp_log("time 1 %lld us\n", time_1);
+    mpp_log("diff expected 10 ms real %.2f ms\n", (float)(time_1 - time_0) / 1000);
+
+    mpp_err("mpp time test done\n");
+
+    return 0;
 }
-
-#else
-#include <time.h>
-
-RK_S64 mpp_time()
-{
-    struct timespec time = {0, 0};
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return (RK_S64)time.tv_sec * 1000000 + (RK_S64)time.tv_nsec / 1000;
-}
-
-#endif
-
-void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, char *fmt)
-{
-    RK_S64 diff = end - start;
-    if (diff >= limit)
-        mpp_dbg(MPP_DBG_TIMING, "%s timing %lld us\n", fmt, diff);
-}
-
