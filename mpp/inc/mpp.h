@@ -144,6 +144,9 @@ private:
     RK_U32          mParserNeedSplit;
     RK_U32          mParserInternalPts;     /* for MPEG2/MPEG4 */
 
+    /* backup extra packet for seek */
+    MppPacket       mExtraPacket;
+
     MPP_RET control_mpp(MpiCmd cmd, MppParam param);
     MPP_RET control_osal(MpiCmd cmd, MppParam param);
     MPP_RET control_codec(MpiCmd cmd, MppParam param);

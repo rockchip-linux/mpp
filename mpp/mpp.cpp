@@ -65,7 +65,8 @@ Mpp::Mpp()
       mStatus(0),
       mParserFastMode(0),
       mParserNeedSplit(0),
-      mParserInternalPts(0)
+      mParserInternalPts(0),
+      mExtraPacket(NULL)
 {
 }
 
@@ -228,6 +229,12 @@ void Mpp::clear()
             mEnc = NULL;
         }
     }
+
+    if (mExtraPacket) {
+        mpp_packet_deinit(&mExtraPacket);
+        mExtraPacket = NULL;
+    }
+
     if (mPackets) {
         delete mPackets;
         mPackets = NULL;
@@ -256,8 +263,12 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         return MPP_ERR_INIT;
 
     AutoMutex autoLock(mPackets->mutex());
-    RK_U32 eos = mpp_packet_get_eos(packet);
+    if (mExtraPacket) {
+        mPackets->push(&mExtraPacket, sizeof(mExtraPacket));
+        mExtraPacket = NULL;
+    }
 
+    RK_U32 eos = mpp_packet_get_eos(packet);
     if (mPackets->list_size() < 4 || eos) {
         MppPacket pkt;
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
@@ -588,8 +599,6 @@ MPP_RET Mpp::reset()
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    MppPacket pkt = NULL;
-
     /*
      * On mp4 case extra data of sps/pps will be put at the beginning
      * If these packet was reset before they are send to decoder then
@@ -599,7 +608,18 @@ MPP_RET Mpp::reset()
      */
     mPackets->lock();
     if (mPackets->list_size()) {
+        MppPacket pkt = NULL;
         mPackets->del_at_head(&pkt, sizeof(pkt));
+
+        RK_U32 flags = mpp_packet_get_flag(pkt);
+        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
+            if (mExtraPacket) {
+                mpp_packet_deinit(&mExtraPacket);
+            }
+            mExtraPacket = pkt;
+        } else {
+            mpp_packet_deinit(&pkt);
+        }
     }
     mPackets->flush();
     mPackets->unlock();
@@ -623,17 +643,6 @@ MPP_RET Mpp::reset()
         mpp_enc_reset(mEnc);
     }
     mThreadCodec->unlock(THREAD_RESET);
-
-    if (pkt != NULL) {
-        RK_U32 flags = mpp_packet_get_flag(pkt);
-
-        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
-            put_packet(pkt);
-        }
-        mpp_packet_deinit(&pkt);
-        pkt = NULL;
-    }
-
     return MPP_OK;
 }
 
