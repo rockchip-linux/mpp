@@ -55,6 +55,9 @@ RK_S32 MppQueue::pull(void *data, RK_S32 size)
 
 RK_S32 MppQueue::flush()
 {
+    if (mFlushFlag)
+        return 0;
+
     mFlushFlag = 1;
     sem_post(&mQueuePending);
     return mpp_list::flush();
