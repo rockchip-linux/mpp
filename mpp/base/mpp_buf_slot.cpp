@@ -257,8 +257,6 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_fmt(impl->info_set, fmt);
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
-    mpp_frame_set_buf_size(impl->info_set, size);
-    impl->buf_size = size;
 
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
     MppFrameImpl *frame_impl    = (MppFrameImpl *)frame;
@@ -267,6 +265,10 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     info_set_impl->color_trc        = frame_impl->color_trc;
     info_set_impl->colorspace       = frame_impl->colorspace;
     info_set_impl->chroma_location  = frame_impl->chroma_location;
+
+    info_set_impl->buf_size         = size;
+    frame_impl->buf_size            = size;
+    impl->buf_size = size;
 }
 
 #define dump_slots(...) _dump_slots(__FUNCTION__, ## __VA_ARGS__)
@@ -827,22 +829,23 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          *    only display info change is need
          */
         generate_info_set(impl, frame, 0);
+        dst->buf_size = impl->buf_size;
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
-            impl->info_changed = 1;
-#ifdef RKPLATFORM
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
+
+            impl->info_changed = 1;
             if (old->width || old->height) {
                 mpp_dbg(MPP_DBG_INFO, "info change found\n");
                 mpp_dbg(MPP_DBG_INFO,
-                        "old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                        "old width %4d height %4d stride hor %4d ver %4d fmt %4d size %d\n",
                         old->width, old->height, old->hor_stride,
-                        old->ver_stride, old->fmt);
+                        old->ver_stride, old->fmt, old->buf_size);
             }
             mpp_dbg(MPP_DBG_INFO,
-                    "new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                    "new width %4d height %4d stride hor %4d ver %4d fmt %4d size %d\n",
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride,
-                    dst->fmt);
-#endif
+                    dst->fmt, dst->buf_size);
+
             // info change found here
         }
     } break;
