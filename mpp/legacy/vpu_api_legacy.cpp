@@ -280,6 +280,57 @@ static int is_valid_dma_fd(int fd)
     return ret;
 }
 
+static int copy_align_raw_buffer_to_dest(RK_U8 *dst, RK_U8 *src, RK_U32 width,
+                                         RK_U32 height, MppFrameFormat fmt)
+{
+    int ret = 1;
+    RK_U32 index = 0;
+    RK_U8 *dst_buf = dst;
+    RK_U8 *src_buf = src;
+    RK_U32 row = 0;
+    RK_U32 hor_stride = MPP_ALIGN(width, 16);
+    RK_U32 ver_stride = MPP_ALIGN(height, 16);
+    RK_U8 *dst_u = dst_buf + hor_stride * ver_stride;
+    RK_U8 *dst_v = dst_u + hor_stride * ver_stride / 4;
+    switch (fmt) {
+    case MPP_FMT_YUV420SP : {
+        for (row = 0; row < height; row++) {
+            memcpy(dst_buf + row * hor_stride, src_buf + index, width);
+            index += width;
+        }
+        for (row = 0; row < height / 2; row++) {
+            memcpy(dst_u + row * hor_stride, src_buf + index, width);
+            index += width;
+        }
+    } break;
+    case MPP_FMT_YUV420P : {
+        for (row = 0; row < height; row++) {
+            memcpy(dst_buf + row * hor_stride, src_buf + index, width);
+            index += width;
+        }
+        for (row = 0; row < height / 2; row++) {
+            memcpy(dst_u + row * hor_stride / 2, src_buf + index, width / 2);
+            index += width / 2;
+        }
+        for (row = 0; row < height / 2; row++) {
+            memcpy(dst_v + row * hor_stride / 2, src_buf + index, width / 2);
+            index += width / 2;
+        }
+    } break;
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_ARGB8888 : {
+        for (row = 0; row < height; row++) {
+            memcpy(dst_buf + row * hor_stride * 4, src_buf + row * width * 4, width * 4);
+        }
+    } break;
+    default : {
+        mpp_err("unsupport align fmt:%d now\n", fmt);
+    } break;
+    }
+
+    return ret;
+}
+
 VpuApiLegacy::VpuApiLegacy() :
     mpp_ctx(NULL),
     mpi(NULL),
@@ -1172,10 +1223,23 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_S32 pts          = (RK_S32)aEncInStrm->timeUs;
     RK_S32 fd           = aEncInStrm->bufPhyAddr;
     RK_U32 size         = aEncInStrm->size;
+    RK_U32 align_size   = 0;
 
     /* try import input buffer and output buffer */
     MppFrame frame = NULL;
     MppBuffer buffer = NULL;
+
+    if (format >= MPP_FMT_YUV420SP && format < MPP_FMT_YUV_BUTT) {
+        align_size = hor_stride * ver_stride * 3 / 2;
+    } else if (format >= MPP_FMT_RGB565 && format < MPP_FMT_BGR888) {
+        align_size = hor_stride * ver_stride * 3;
+    } else if (format >= MPP_FMT_RGB101010 && format < MPP_FMT_RGB_BUTT) {
+        align_size = hor_stride * ver_stride * 4;
+    } else {
+        mpp_err_f("unsupport input format:%d\n", format);
+        ret = MPP_NOK;
+        goto FUNC_RET;
+    }
 
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
@@ -1211,12 +1275,12 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
             goto FUNC_RET;
         }
 
-        ret = mpp_buffer_get(memGroup, &buffer, size);
+        ret = mpp_buffer_get(memGroup, &buffer, align_size);
         if (ret) {
             mpp_err_f("allocate input picture buffer failed\n");
             goto FUNC_RET;
         }
-        memcpy((RK_U8*) mpp_buffer_get_ptr(buffer), aEncInStrm->buf, size);
+        copy_align_raw_buffer_to_dest((RK_U8 *)mpp_buffer_get_ptr(buffer), aEncInStrm->buf, width, height, format);
     }
 
     vpu_api_dbg_input("w %d h %d input fd %d size %d flag %d pts %lld\n",
