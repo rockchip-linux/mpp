@@ -305,8 +305,12 @@ void MppMemService::add_node(const char *caller, void *ptr, size_t size)
         mpp_log("mem cnt: %5d total %8d inc size %8d at %s\n",
                 nodes_cnt, total_size, size, caller);
 
-    if (nodes_cnt > nodes_max) {
-        mpp_err("failed to trace more memory node disable trace\n");
+    if (nodes_cnt >= nodes_max) {
+        mpp_err("******************************************************\n");
+        mpp_err("* Reach max limit of mpp_mem counter %5d           *\n", nodes_max);
+        mpp_err("* Increase limit by setup env mpp_mem_node_max or    *\n");
+        mpp_err("* recompile mpp with larger macro MEM_NODE_MAX value *\n");
+        mpp_err("******************************************************\n");
         mpp_abort();
     }
 
