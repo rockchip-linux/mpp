@@ -264,7 +264,7 @@ MppMemService::~MppMemService()
             for (i = 0; i < nodes_max; i++, node++) {
                 if (node->index >= 0) {
                     mpp_log("found idx %8d mem %10p size %d leaked\n",
-                            node->ptr, node->size);
+                            node->index, node->ptr, node->size);
                     nodes_cnt--;
                     add_log(MEM_FREE, __FUNCTION__, node->ptr, NULL,
                             node->size, 0);
