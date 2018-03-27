@@ -563,12 +563,6 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(&decOut, 0, sizeof(DecoderOut_t));
     pOut = &decOut;
 
-    pOut->data = (RK_U8 *)(malloc)(sizeof(VPU_FRAME));
-    if (pOut->data == NULL) {
-        DECODE_ERR_RET(ERROR_MEMORY);
-    }
-    memset(pOut->data, 0, sizeof(VPU_FRAME));
-
     ret = vpu_open_context(&ctx);
     if (ret || (ctx == NULL)) {
         DECODE_ERR_RET(ERROR_MEMORY);
@@ -693,6 +687,9 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
                  ** give you a surprise.
                 */
                 VPUFreeLinear(&frame->vpumem);
+                // NOTE: pOut->data is malloc from vpu_api we need to free it.
+                free(pOut->data);
+                pOut->data = NULL;
                 pOut->size = 0;
             }
         }
