@@ -263,18 +263,18 @@ typedef struct SliceHeader {
     RK_S32 slice_ctb_addr_rs;
 } SliceHeader_t;
 
-static RK_U32 hevc_ver_align_8(RK_U32 val)
+static RK_U32 hevc_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 8);
 }
 
 #ifdef SOFIA_3GR_LINUX
-static RK_U32 hevc_hor_align_64(RK_U32 val)
+static RK_U32 hevc_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
 #else
-static RK_U32 hevc_hor_align_256_odd(RK_U32 val)
+static RK_U32 hevc_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 256) | 256;
 }
@@ -418,13 +418,9 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->slots = cfg->frame_slots;
     reg_cxt->int_cb = cfg->hal_int_cb;
     reg_cxt->fast_mode = cfg->fast_mode;
-#ifdef SOFIA_3GR_LINUX
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_hor_align_64);
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
-#else
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_hor_align_256_odd);
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align_8);
-#endif
+
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, hevc_hor_align);
+    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align);
 
     reg_cxt->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     if (reg_cxt->scaling_qm == NULL) {
@@ -1400,25 +1396,17 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     numCuInWidth   = width / uiMaxCUWidth  + (width % uiMaxCUWidth != 0);
 
-#ifdef SOFIA_3GR_LINUX
     stride_y = (((numCuInWidth * uiMaxCUWidth
-                  * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 63)
-                 & (~63)) >> 3);
+                  * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 7)
+                 & (~7)) >> 3);
     stride_uv = (((numCuInWidth * uiMaxCUHeight
-                   * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 63)
-                  & (~63)) >> 3);
-#else
-    stride_y = ((((numCuInWidth * uiMaxCUWidth
-                   * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 2047)
-                  & (~2047)) | 2048) >> 3);
-    stride_uv = ((((numCuInWidth * uiMaxCUHeight
-                    * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 2047)
-                   & (~2047)) | 2048) >> 3);
-#endif
+                   * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 7)
+                  & (~7)) >> 3);
 
-    virstrid_y    = stride_y * height;
-
-    virstrid_yuv  = virstrid_y + stride_uv * height / 2;
+    stride_y = hevc_hor_align(stride_y);
+    stride_uv = hevc_hor_align(stride_uv);
+    virstrid_y = hevc_ver_align(height) * stride_y;
+    virstrid_yuv  = virstrid_y + stride_uv * hevc_ver_align(height) / 2;
 
     hw_regs->sw_picparameter.sw_slice_num = dxva_cxt->slice_count;
     hw_regs->sw_picparameter.sw_y_hor_virstride
