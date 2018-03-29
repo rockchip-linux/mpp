@@ -193,6 +193,12 @@ static MPP_RET read_yuv_image(RK_U8 *buf, MpiEncTestData *p)
             read_size = fread(buf_y + row * hor_stride * 4, 1, width * 4, fp);
         }
     } break;
+    case MPP_FMT_YUV422_YUYV :
+    case MPP_FMT_YUV422_UYVY : {
+        for (row = 0; row < height; row++) {
+            read_size = fread(buf_y + row * hor_stride, 1, width * 2, fp);
+        }
+    } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);
         ret = MPP_ERR_VALUE;
@@ -256,6 +262,30 @@ static MPP_RET fill_yuv_image(RK_U8 *buf, MpiEncTestData *c)
         for (y = 0; y < height / 2; y++, p += hor_stride / 2) {
             for (x = 0; x < width / 2; x++) {
                 p[x] = 64 + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422_YUYV : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 4 + 0] = x * 2 + 0 + y + frame_count * 3;
+                p[x * 4 + 2] = x * 2 + 1 + y + frame_count * 3;
+                p[x * 4 + 1] = 128 + y + frame_count * 2;
+                p[x * 4 + 3] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422_UYVY : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 4 + 1] = x * 2 + 0 + y + frame_count * 3;
+                p[x * 4 + 3] = x * 2 + 1 + y + frame_count * 3;
+                p[x * 4 + 0] = 128 + y + frame_count * 2;
+                p[x * 4 + 2] = 64  + x + frame_count * 5;
             }
         }
     } break;
@@ -345,9 +375,13 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     }
 
     // update resource parameter
-    if (p->fmt <= MPP_FMT_YUV_BUTT)
+    if (p->fmt <= MPP_FMT_YUV420SP_VU)
         p->frame_size = p->hor_stride * p->ver_stride * 3 / 2;
-    else
+    else if (p->fmt <= MPP_FMT_YUV422_UYVY) {
+        // NOTE: yuyv and uyvy need to double stride
+        p->hor_stride *= 2;
+        p->frame_size = p->hor_stride * p->ver_stride;
+    } else
         p->frame_size = p->hor_stride * p->ver_stride * 4;
     p->packet_size  = p->width * p->height;
     //NOTE: hor_stride should be 16-MB aligned
