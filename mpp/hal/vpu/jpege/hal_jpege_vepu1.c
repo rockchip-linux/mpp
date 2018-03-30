@@ -515,9 +515,11 @@ MPP_RET hal_jpege_vepu1_control(void *hal, RK_S32 cmd, void *param)
             ret = MPP_NOK;
         }
 
-        if (cfg->format != MPP_FMT_YUV420SP &&
-            cfg->format != MPP_FMT_YUV420P  &&
-            cfg->format != MPP_FMT_RGB888   &&
+        if (cfg->format != MPP_FMT_YUV420SP     &&
+            cfg->format != MPP_FMT_YUV420P      &&
+            cfg->format != MPP_FMT_YUV422SP_VU  &&
+            cfg->format != MPP_FMT_YUV422_UYVY  &&
+            cfg->format != MPP_FMT_RGB888       &&
             cfg->format != MPP_FMT_BGR888) {
             mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
             ret = MPP_NOK;
