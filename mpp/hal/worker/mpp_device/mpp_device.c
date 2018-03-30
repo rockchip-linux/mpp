@@ -91,9 +91,8 @@ static RK_S32 mpp_device_get_client_type(MppDevCtx *ctx, MppCtxType coding, MppC
         if (ctx->pp_enable)
             client_type = VPU_DEC_PP;
     }
-    (void)ctx;
-    (void)type;
-    (void)coding;
+
+    (void) type;
 
     return client_type;
 }
@@ -102,6 +101,8 @@ RK_S32 mpp_device_init(MppDevCtx *ctx, MppCtxType coding, MppCodingType type)
 {
     RK_S32 dev = -1;
     const char *name = NULL;
+
+    mpp_env_get_u32("mpp_device_debug", &mpp_device_debug, 0);
 
     ctx->coding = coding;
     ctx->type = type;
