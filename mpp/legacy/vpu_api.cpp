@@ -26,6 +26,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "mpp_platform.h"
 
 #include "vpu_api.h"
 #include "vpu_api_legacy.h"
@@ -340,8 +341,10 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     } else {
         if (s->videoCoding == OMX_RK_VIDEO_CodingAVC
             && s->codecType == CODEC_DECODER && s->width <= 1920
-            && s->height <= 1088 && !s->extra_cfg.mpp_mode) {
+            && s->height <= 1088 && !s->extra_cfg.mpp_mode
+            && !strncmp(mpp_get_soc_name(), "rk3399", 6)) {
             /* H.264 smaller than 1080p use original vpuapi library for better error process */
+            // NOTE: rk3399 need better performance
             use_mpp = 0;
         } else {
             MppCtxType type = (s->codecType == CODEC_DECODER) ? (MPP_CTX_DEC) :
