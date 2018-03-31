@@ -292,7 +292,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    AutoMutex autoLock(mFrames->mutex());
+    AutoMutex autoFrameLock(mFrames->mutex());
     MppFrame first = NULL;
 
     if (0 == mFrames->list_size()) {
@@ -330,7 +330,18 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
                 prev = next;
             }
         }
+    } else {
+        // NOTE: Add signal here is not efficient
+        // This is for fix bug of stucking on decoder parser thread
+        // When decoder parser thread is block by info change and enter waiting.
+        // There is no way to wake up parser thread to continue decoding.
+        // The put_packet only signal sem on may be it better to use sem on info
+        // change too.
+        AutoMutex autoPacketLock(mPackets->mutex());
+        if (mPackets->list_size())
+            mThreadCodec->signal();
     }
+
     *frame = first;
     return MPP_OK;
 }
@@ -703,6 +714,10 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         mFrameGroup = (MppBufferGroup)param;
         if (param) {
             mExternalFrameGroup = 1;
+
+            if (mpp_debug & MPP_DBG_INFO)
+                mpp_log("using external buffer group %p\n", mFrameGroup);
+
             if (mThreadCodec) {
                 ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param,
                                                     (void *)mThreadCodec);
@@ -724,6 +739,9 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
+        if (mpp_debug & MPP_DBG_INFO)
+            mpp_log("set info change ready\n");
+
         ret = mpp_buf_slot_ready(mDec->frame_slots);
         mThreadCodec->signal();
     } break;
