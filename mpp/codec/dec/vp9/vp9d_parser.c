@@ -395,6 +395,7 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     mpp_frame_set_hor_stride(frame->f, ctx->width);
     mpp_frame_set_ver_stride(frame->f, ctx->height);
     mpp_frame_set_errinfo(frame->f, 0);
+    mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
 #if 0
     mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
@@ -684,6 +685,13 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     s->errorres       = mpp_get_bit1(&s->gb);
     vp9d_dbg(VP9D_DBG_HEADER, "error_resilient_mode %d", s->errorres);
     s->use_last_frame_mvs = !s->errorres && !last_invisible;
+    s->got_keyframes += s->keyframe ? 1 : 0;
+    vp9d_dbg(VP9D_DBG_HEADER, "keyframe=%d, intraonly=%d, got_keyframes=%d\n",
+             s->keyframe, s->intraonly, s->got_keyframes);
+    if (!s->got_keyframes) {
+        mpp_err_f("have not got keyframe.\n");
+        return MPP_ERR_STREAM;
+    }
     if (s->keyframe) {
         if (mpp_get_bits(&s->gb, 24) != VP9_SYNCCODE) { // synccode
             mpp_err("Invalid sync code\n");
@@ -1619,20 +1627,25 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
 
     vp9d_parser2_syntax(ctx);
 
-
     task->syntax.data = (void*)&ctx->pic_params;
     task->syntax.number = 1;
     task->valid = 1;
     task->output = s->frames[CUR_FRAME].slot_index;
     task->input_packet = ctx->pkt;
+
     for (i = 0; i < 3; i++) {
         if (s->refs[s->refidx[i]].slot_index < 0x7f) {
+            MppFrame mframe = NULL;
             mpp_buf_slot_set_flag(s->slots, s->refs[s->refidx[i]].slot_index, SLOT_HAL_INPUT);
             task->refer[i] = s->refs[s->refidx[i]].slot_index;
+            mpp_buf_slot_get_prop(s->slots, task->refer[i], SLOT_FRAME_PTR, &mframe);
+            if (mframe)
+                task->flags.had_error |= mpp_frame_get_errinfo(mframe);
         } else {
             task->refer[i] = -1;
         }
     }
+    vp9d_dbg(VP9D_DBG_REF, "ref_errinfo=%d\n", task->flags.had_error);
     if (s->eos) {
         task->flags.eos = 1;
     }
@@ -1641,7 +1654,8 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
         mpp_buf_slot_set_flag(s->slots,  s->frames[CUR_FRAME].slot_index, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(s->slots, s->frames[CUR_FRAME].slot_index, QUEUE_DISPLAY);
     }
-    vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = %d s->frames[CUR_FRAME] = %d", s->refreshrefmask, s->frames[CUR_FRAME].slot_index);
+    vp9d_dbg(VP9D_DBG_REF, "s->refreshrefmask = %d s->frames[CUR_FRAME] = %d",
+             s->refreshrefmask, s->frames[CUR_FRAME].slot_index);
     for (i = 0; i < 3; i++) {
         if (s->refs[s->refidx[i]].ref != NULL) {
             vp9d_dbg(VP9D_DBG_REF, "ref buf select %d", s->refs[s->refidx[i]].slot_index);
@@ -1672,6 +1686,8 @@ MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx)
     VP9Context *s = ctx->priv_data;
     SplitContext_t *ps = (SplitContext_t *)ctx->priv_data2;
     VP9ParseContext *pc = (VP9ParseContext *)ps->priv_data;
+
+    s->got_keyframes = 0;
     for (i = 0; i < 3; i++) {
         if (s->frames[i].ref) {
             vp9_unref_frame(s, &s->frames[i]);

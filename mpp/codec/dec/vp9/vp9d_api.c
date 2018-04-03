@@ -174,7 +174,7 @@ MPP_RET vp9d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     consumed = vp9d_split_frame(ps, &out_data, &out_size, buf, length);
     pos += consumed;
     mpp_packet_set_pos(pkt, pos);
-
+    vp9d_dbg(VP9D_DBG_STRMIN, "pkt_len=%d, pts=%lld\n", length, pts);
     vp9d_get_frame_stream(vp9_ctx, out_data, out_size);
     if (out_size > 0) {
         task->input_packet = vp9_ctx->pkt;
