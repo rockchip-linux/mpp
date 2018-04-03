@@ -200,6 +200,7 @@ vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *param)
 
 #ifdef RKPLATFORM
 static const char *codec_paths[] = {
+    "/vendor/lib/librk_vpuapi.so",
     "/system/lib/librk_vpuapi.so",
     "/system/lib/librk_on2.so",
     "/usr/lib/librk_codec.so",
@@ -228,7 +229,7 @@ public:
                               dlsym(rkapi_hdl, "vpu_open_context");
             rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))
                               dlsym(rkapi_hdl, "vpu_close_context");
-            mpp_log("dlopen vpu lib success\n");
+            mpp_log("dlopen vpu lib %s success\n", codec_paths[i]);
         } else {
             mpp_err("dlopen vpu lib failed\n");
         }
