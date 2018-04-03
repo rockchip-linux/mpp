@@ -34,6 +34,7 @@ extern RK_U32 vp9d_debug;
 #define VP9D_DBG_HEADER   (0x00000002)
 #define VP9D_DBG_REF      (0x00000004)
 #define VP9D_DBG_PORBE    (0x00000008)
+#define VP9D_DBG_STRMIN   (0x00000010)
 
 
 
@@ -139,7 +140,7 @@ typedef struct VP9Context {
     RK_U8 varcompref[2];
     VP9Frame frames[3];
     VP9Frame refs[8];
-
+    RK_U32 got_keyframes;
 
     struct {
         RK_U8 level;

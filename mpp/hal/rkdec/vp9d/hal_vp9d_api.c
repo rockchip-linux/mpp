@@ -868,17 +868,20 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     RK_U32 i;
     VP9_REGS *hw_regs = (VP9_REGS*)reg_cxt->hw_regs;
     RK_U8* p = (RK_U8*)hw_regs;
-    MppBuffer framebuf = NULL;
-    mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_BUFFER, &framebuf);
 
     ret = mpp_device_wait_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
-
     for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
         if (i == 1) {
             vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
             // mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         }
         p += 4;
+    }
+
+    if (task->dec.flags.had_error || !hw_regs->swreg1_int.sw_dec_rdy_sta) {
+        MppFrame mframe = NULL;
+        mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_frame_set_errinfo(mframe, 1);
     }
 
     reg_cxt->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;
