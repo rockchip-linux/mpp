@@ -74,6 +74,9 @@ typedef struct {
     FILE            *fp_input;
     FILE            *fp_output;
     RK_U32          frame_count;
+
+    RK_S64          first_pkt;
+    RK_S64          first_frm;
 } MpiDecCtx;
 
 /* For each instance thread return value */
@@ -136,8 +139,11 @@ static int decode_simple(MpiDecCtx *data)
         // send the packet first if packet is not done
         if (!pkt_done) {
             ret = mpi->decode_put_packet(ctx, packet);
-            if (MPP_OK == ret)
+            if (MPP_OK == ret) {
                 pkt_done = 1;
+                if (!data->first_pkt)
+                    data->first_pkt = mpp_time();
+            }
         }
 
         // then get all available frame and release
@@ -181,6 +187,9 @@ static int decode_simple(MpiDecCtx *data)
 
                     mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                 } else {
+                    if (!data->first_frm)
+                        data->first_frm = mpp_time();
+
                     err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
                     if (err_info) {
                         mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
@@ -755,7 +764,9 @@ int main(int argc, char **argv)
 
     for (i = 0; i < cmd->nthreads; i++) {
         total_rate += ctxs[i].ret.frame_rate;
-        mpp_log("payload %d frame rate: %.2f\n", i, ctxs[i].ret.frame_rate);
+        mpp_log("payload %d frame rate: %.2f first delay %d ms\n", i,
+                ctxs[i].ret.frame_rate,
+                (ctxs[i].ctx.first_frm - ctxs[i].ctx.first_pkt) / 1000);
     }
     mpp_free(ctxs);
     ctxs = NULL;
