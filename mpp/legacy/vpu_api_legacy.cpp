@@ -345,8 +345,6 @@ VpuApiLegacy::VpuApiLegacy() :
     fd_output(-1),
     mEosSet(0)
 {
-    mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
-
     vpu_api_dbg_func("enter\n");
 
     mpp_create(&mpp_ctx, &mpi);
