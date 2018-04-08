@@ -305,7 +305,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     EXtraCfg_t extra_cfg;
     memset(&extra_cfg, 0, sizeof(EXtraCfg_t));
 
-    mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, VPU_API_DBG_FUNCTION);
+    mpp_env_get_u32("vpu_api_debug", &vpu_api_debug, 0);
     vpu_api_dbg_func("enter\n");
 
     mpp_env_get_u32("use_original", &force_original, 0);
