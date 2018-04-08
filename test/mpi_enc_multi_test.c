@@ -128,148 +128,6 @@ static OptionInfo mpi_enc_cmd[] = {
     {"d",               "debug",                "debug flag"},
 };
 
-static MPP_RET read_yuv_image(RK_U8 *buf, MpiEncTestData *p)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 read_size;
-    RK_U32 row = 0;
-    FILE *fp            = p->fp_input;
-    RK_U32 width        = p->width;
-    RK_U32 height       = p->height;
-    RK_U32 hor_stride   = p->hor_stride;
-    RK_U32 ver_stride   = p->ver_stride;
-    MppFrameFormat fmt  = p->fmt;
-    RK_U8 *buf_y = buf;
-    RK_U8 *buf_u = buf_y + hor_stride * ver_stride; // NOTE: diff from gen_yuv_image
-    RK_U8 *buf_v = buf_u + hor_stride * ver_stride / 4; // NOTE: diff from gen_yuv_image
-
-    switch (fmt) {
-    case MPP_FMT_YUV420SP : {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride, 1, width, fp);
-            if (read_size != width) {
-                mpp_err_f("read ori yuv file luma failed");
-                ret  = MPP_NOK;
-                goto err;
-            }
-        }
-
-        for (row = 0; row < height / 2; row++) {
-            read_size = fread(buf_u + row * hor_stride, 1, width, fp);
-            if (read_size != width) {
-                mpp_err_f("read ori yuv file cb failed");
-                ret  = MPP_NOK;
-                goto err;
-            }
-        }
-    } break;
-    case MPP_FMT_YUV420P : {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride, 1, width, fp);
-            if (read_size != width) {
-                mpp_err_f("read ori yuv file luma failed");
-                ret  = MPP_NOK;
-                goto err;
-            }
-        }
-
-        for (row = 0; row < height / 2; row++) {
-            read_size = fread(buf_u + row * hor_stride / 2, 1, width / 2, fp);
-            if (read_size != width / 2) {
-                mpp_err_f("read ori yuv file cb failed");
-                ret  = MPP_NOK;
-                goto err;
-            }
-        }
-
-        for (row = 0; row < height / 2; row++) {
-            read_size = fread(buf_v + row * hor_stride / 2, 1, width / 2, fp);
-            if (read_size != width / 2) {
-                mpp_err_f("read ori yuv file cr failed");
-                ret  = MPP_NOK;
-                goto err;
-            }
-        }
-    } break;
-    case MPP_FMT_ARGB8888 : {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride * 4, 1, width * 4, fp);
-        }
-    } break;
-    default : {
-        mpp_err_f("read image do not support fmt %d\n", fmt);
-        ret = MPP_ERR_VALUE;
-    } break;
-    }
-
-err:
-
-    return ret;
-}
-
-static MPP_RET fill_yuv_image(RK_U8 *buf, MpiEncTestData *c)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 width        = c->width;
-    RK_U32 height       = c->height;
-    RK_U32 hor_stride   = c->hor_stride;
-    RK_U32 ver_stride   = c->ver_stride;
-    MppFrameFormat fmt  = c->fmt;
-
-    RK_U32 frame_count  = c->frame_count;
-    RK_U8 *buf_y = buf;
-    RK_U8 *buf_c = buf + hor_stride * ver_stride;
-    RK_U32 x, y;
-
-    switch (fmt) {
-    case MPP_FMT_YUV420SP : {
-        RK_U8 *p = buf_y;
-
-        for (y = 0; y < height; y++, p += hor_stride) {
-            for (x = 0; x < width; x++) {
-                p[x] = x + y + frame_count * 3;
-            }
-        }
-
-        p = buf_c;
-        for (y = 0; y < height / 2; y++, p += hor_stride) {
-            for (x = 0; x < width / 2; x++) {
-                p[x * 2 + 0] = 128 + y + frame_count * 2;
-                p[x * 2 + 1] = 64  + x + frame_count * 5;
-            }
-        }
-    } break;
-    case MPP_FMT_YUV420P : {
-        RK_U8 *p = buf_y;
-
-        for (y = 0; y < height; y++, p += hor_stride) {
-            for (x = 0; x < width; x++) {
-                p[x] = x + y + frame_count * 3;
-            }
-        }
-
-        p = buf_c;
-        for (y = 0; y < height / 2; y++, p += hor_stride / 2) {
-            for (x = 0; x < width / 2; x++) {
-                p[x] = 128 + y + frame_count * 2;
-            }
-        }
-
-        p = buf_c + hor_stride * ver_stride / 4;
-        for (y = 0; y < height / 2; y++, p += hor_stride / 2) {
-            for (x = 0; x < width / 2; x++) {
-                p[x] = 64 + x + frame_count * 5;
-            }
-        }
-    } break;
-    default : {
-        mpp_err_f("filling function do not support type %d\n", fmt);
-        ret = MPP_NOK;
-    } break;
-    }
-    return ret;
-}
-
 static MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
 {
     RK_U32 k = 0, buf_size = 0;
@@ -760,14 +618,16 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             i = 0;
 
         if (p->fp_input) {
-            ret = read_yuv_image(buf, p);
+            ret = read_yuv_image(buf, p->fp_input, p->width, p->height,
+                                 p->hor_stride, p->ver_stride, p->fmt);
             if (ret == MPP_NOK  || feof(p->fp_input)) {
                 mpp_log("found last frame. feof %d\n", feof(p->fp_input));
                 p->frm_eos = 1;
             } else if (ret == MPP_ERR_VALUE)
                 goto RET;
         } else {
-            ret = fill_yuv_image(buf, p);
+            ret = fill_yuv_image(buf, p->width, p->height, p->hor_stride,
+                                 p->ver_stride, p->fmt, p->frame_count);
             if (ret)
                 goto RET;
         }
