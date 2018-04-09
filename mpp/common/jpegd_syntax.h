@@ -34,8 +34,8 @@
 #define MAX_HUFFMAN_CODE_BIT_LENGTH       (16)      /* The longest code word is 16 bits */
 #define MIN_WIDTH                         (48)      /* 48 Bytes */
 #define MIN_HEIGHT                        (48)      /* 48 Bytes */
-#define MAX_WIDTH                         (4*1024)  /* 4K Bytes */
-#define MAX_HEIGHT                        (4*1024)  /* 4K Bytes */
+#define MAX_WIDTH                         (8*1024)  /* 4K Bytes */
+#define MAX_HEIGHT                        (8*1024)  /* 4K Bytes */
 #define MAX_STREAM_LENGTH                 (MAX_WIDTH * MAX_HEIGHT) /* 16M Bytes */
 #define ZERO_PADDING_LENGTH               (4)       /* 4 Bytes */
 #define JPEGD_BASELINE_TABLE_SIZE         (QUANTIZE_TABLE_LENGTH * 3 \
