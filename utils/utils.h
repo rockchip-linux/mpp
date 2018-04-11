@@ -30,7 +30,7 @@ typedef struct OptionInfo_t {
 typedef struct data_crc_t {
     RK_U32          len;
     RK_U32          sum;
-    RK_U32          xor;
+    RK_U32          vor; // value of the xor
 } DataCrc;
 
 typedef struct frame_crc_t {
