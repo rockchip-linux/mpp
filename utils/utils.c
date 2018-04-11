@@ -101,13 +101,13 @@ void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc)
 
     crc->len = len;
     crc->sum = sum;
-    crc->xor = xor;
+    crc->vor = xor;
 }
 
 void write_data_crc(FILE *fp, DataCrc *crc)
 {
     if (fp) {
-        fprintf(fp, "%d, %08x, %08x\n", crc->len, crc->sum, crc->xor);
+        fprintf(fp, "%d, %08x, %08x\n", crc->len, crc->sum, crc->vor);
         fflush(fp);
     }
 }
@@ -116,7 +116,7 @@ void read_data_crc(FILE *fp, DataCrc *crc)
 {
     if (fp) {
         RK_S32 ret = 0;
-        ret = fscanf(fp, "%d, %08x, %08x\n", &crc->len, &crc->sum, &crc->xor);
+        ret = fscanf(fp, "%d, %08x, %08x\n", &crc->len, &crc->sum, &crc->vor);
         if (ret == EOF)
             mpp_err_f("unexpected EOF found\n");
     }
@@ -147,7 +147,7 @@ void calc_frm_crc(MppFrame frame, FrmCrc *crc)
     }
     crc->luma.len = height * width;
     crc->luma.sum = sum;
-    crc->luma.xor = xor;
+    crc->luma.vor = xor;
 
     /* chroma */
     dat8 = buf + height * stride;
@@ -162,15 +162,15 @@ void calc_frm_crc(MppFrame frame, FrmCrc *crc)
     }
     crc->chroma.len = height * width / 2;
     crc->chroma.sum = sum;
-    crc->chroma.xor = xor;
+    crc->chroma.vor = xor;
 }
 
 void write_frm_crc(FILE *fp, FrmCrc *crc)
 {
     if (fp) {
         fprintf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
-                crc->luma.len, crc->luma.sum, crc->luma.xor,
-                crc->chroma.len, crc->chroma.sum, crc->chroma.xor);
+                crc->luma.len, crc->luma.sum, crc->luma.vor,
+                crc->chroma.len, crc->chroma.sum, crc->chroma.vor);
         fflush(fp);
     }
 }
@@ -180,8 +180,8 @@ void read_frm_crc(FILE *fp, FrmCrc *crc)
     if (fp) {
         RK_S32 ret = 0;
         ret = fscanf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
-                     &crc->luma.len, &crc->luma.sum, &crc->luma.xor,
-                     &crc->chroma.len, &crc->chroma.sum, &crc->chroma.xor);
+                     &crc->luma.len, &crc->luma.sum, &crc->luma.vor,
+                     &crc->chroma.len, &crc->chroma.sum, &crc->chroma.vor);
         if (ret == EOF)
             mpp_err_f("unexpected EOF found\n");
     }
