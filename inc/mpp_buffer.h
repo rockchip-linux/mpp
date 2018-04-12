@@ -144,13 +144,13 @@ typedef enum {
  *
  * normal   : normal malloc buffer for unit test or hardware simulation
  * ion      : use ion device under Android/Linux, MppBuffer will encapsulte ion file handle
- * v4l2     : not used now
+ * ext_dma  : the DMABUF(DMA buffers) come from the application
  * drm      : use the drm device interface for memory management
  */
 typedef enum {
     MPP_BUFFER_TYPE_NORMAL,
     MPP_BUFFER_TYPE_ION,
-    MPP_BUFFER_TYPE_V4L2,
+    MPP_BUFFER_TYPE_EXT_DMA,
     MPP_BUFFER_TYPE_DRM,
     MPP_BUFFER_TYPE_BUTT,
 } MppBufferType;
@@ -158,10 +158,15 @@ typedef enum {
 /*
  * MppBufferInfo variable's meaning is different in different MppBufferType
  *
+ * Common
+ * index - the buffer index used to track buffer in buffer pool
+ * size  - the buffer size
+ *
  * MPP_BUFFER_TYPE_NORMAL
  *
  * ptr  - virtual address of normal malloced buffer
- * fd   - unused and set to -1
+ * fd   - unused and set to -1, the allocator would return its
+ *         internal buffer counter number
  *
  * MPP_BUFFER_TYPE_ION
  *
@@ -169,9 +174,6 @@ typedef enum {
  * hnd  - ion handle in user space
  * fd   - ion buffer file handle for map / unmap
  *
- * MPP_BUFFER_TYPE_V4L2
- *
- * TODO: to be implemented.
  */
 typedef struct MppBufferInfo_t {
     MppBufferType   type;

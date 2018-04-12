@@ -15,9 +15,10 @@
  */
 
 #if defined(__ANDROID__)
-#include "allocator_std.h"
-#include "allocator_ion.h"
 #include "allocator_drm.h"
+#include "allocator_ext_dma.h"
+#include "allocator_ion.h"
+#include "allocator_std.h"
 #include "mpp_runtime.h"
 
 MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
@@ -26,15 +27,16 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
 
     switch (type) {
     case MPP_BUFFER_TYPE_NORMAL :
-    case MPP_BUFFER_TYPE_V4L2 : {
         *api = allocator_std;
-    } break;
     case MPP_BUFFER_TYPE_ION : {
         *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
 #if HAVE_DRM
                (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #endif
                allocator_std;
+    } break;
+    case MPP_BUFFER_TYPE_EXT_DMA: {
+        *api = allocator_ext_dma;
     } break;
     case MPP_BUFFER_TYPE_DRM : {
 #if HAVE_DRM

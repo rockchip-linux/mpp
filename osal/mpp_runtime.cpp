@@ -77,7 +77,6 @@ MppRuntimeService::MppRuntimeService()
 {
     int fd = -1;
     allocator_valid[MPP_BUFFER_TYPE_NORMAL] = 1;
-    allocator_valid[MPP_BUFFER_TYPE_V4L2] = 0;
 
     fd = open("/dev/ion", O_RDWR);
     if (fd < 0) {

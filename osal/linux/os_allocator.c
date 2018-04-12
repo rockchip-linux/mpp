@@ -18,9 +18,10 @@
 #include "mpp_log.h"
 #include "mpp_runtime.h"
 
-#include "allocator_std.h"
-#include "allocator_ion.h"
 #include "allocator_drm.h"
+#include "allocator_ext_dma.h"
+#include "allocator_ion.h"
+#include "allocator_std.h"
 
 /*
  * Linux only support MPP_BUFFER_TYPE_NORMAL so far
@@ -41,9 +42,8 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
 #endif
                allocator_std;
     } break;
-    case MPP_BUFFER_TYPE_V4L2 : {
-        mpp_err("os_allocator_get Linux MPP_BUFFER_TYPE_V4L2 do not implement yet\n");
-        *api = allocator_std;
+    case MPP_BUFFER_TYPE_EXT_DMA: {
+        *api = allocator_ext_dma;
     } break;
     case MPP_BUFFER_TYPE_DRM : {
 #if HAVE_DRM
