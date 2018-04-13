@@ -140,10 +140,12 @@ typedef enum {
 } MppBufferMode;
 
 /*
- * mpp buffer has two types:
+ * the mpp buffer has serval types:
  *
  * normal   : normal malloc buffer for unit test or hardware simulation
  * ion      : use ion device under Android/Linux, MppBuffer will encapsulte ion file handle
+ * v4l2     : not used now
+ * drm      : use the drm device interface for memory management
  */
 typedef enum {
     MPP_BUFFER_TYPE_NORMAL,

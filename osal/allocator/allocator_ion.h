@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _ALLOCATOR_ION_H_
-#define _ALLOCATOR_ION_H_
+
+#ifndef __ALLOCATOR_ION_H__
+#define __ALLOCATOR_ION_H__
 
 #include "os_allocator.h"
 
