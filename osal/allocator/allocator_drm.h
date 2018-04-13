@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ALLOCATOR_DRM_H_
-#define _ALLOCATOR_DRM_H_
+#ifndef __ALLOCATOR_DRM_H__
+#define __ALLOCATOR_DRM_H__
 
 #include "os_allocator.h"
 
