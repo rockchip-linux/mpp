@@ -32,9 +32,11 @@ typedef enum {
     MPP_ERR_VALUE               = -6,
     MPP_ERR_READ_BIT            = -7,
     MPP_ERR_TIMEOUT             = -8,
+    MPP_ERR_PERM                = -9,
 
     MPP_ERR_BASE                = -1000,
 
+    /* The error in stream processing */
     MPP_ERR_LIST_STREAM         = MPP_ERR_BASE - 1,
     MPP_ERR_INIT                = MPP_ERR_BASE - 2,
     MPP_ERR_VPU_CODEC_INIT      = MPP_ERR_BASE - 3,
