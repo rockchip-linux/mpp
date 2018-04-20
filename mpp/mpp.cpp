@@ -38,6 +38,7 @@ Mpp::Mpp()
     : mPackets(NULL),
       mFrames(NULL),
       mTasks(NULL),
+      mTimeStamps(NULL),
       mPacketPutCount(0),
       mPacketGetCount(0),
       mFramePutCount(0),
@@ -84,6 +85,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTasks      = new mpp_list((node_destructor)NULL);
+        mTimeStamps = new MppQueue((node_destructor)mpp_packet_deinit);
 
         MppDecCfg cfg = {
             coding,
@@ -246,6 +248,10 @@ void Mpp::clear()
     if (mTasks) {
         delete mTasks;
         mTasks = NULL;
+    }
+    if (mTimeStamps) {
+        delete mTimeStamps;
+        mTimeStamps = NULL;
     }
     if (mPacketGroup) {
         mpp_buffer_group_put(mPacketGroup);
@@ -769,7 +775,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT:
     case MPP_DEC_SET_OUTPUT_FORMAT:
-    case MPP_DEC_SET_DISABLE_ERROR: {
+    case MPP_DEC_SET_DISABLE_ERROR:
+    case MPP_DEC_SET_PRESENT_TIME_ORDER: {
         ret = mpp_dec_control(mDec, cmd, param);
     }
     default : {

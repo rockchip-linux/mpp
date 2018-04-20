@@ -175,13 +175,14 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
                 mpp_buffer_put(buffer);
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
+        if (dec->use_preset_time_order) {
+            mpp->mTimeStamps->flush();
+        }
         if (task->status.dec_pkt_copy_rdy) {
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
         }
-
-
         task->status.task_parsed_rdy = 0;
         parser->unlock(THREAD_RESET);
         parser->signal(THREAD_RESET);
@@ -224,6 +225,9 @@ static void mpp_put_frame_eos(Mpp *mpp, HalDecTaskFlag  flags)
             mpp_frame_set_discard(info_frame, 1);
     }
     mpp_put_frame((Mpp*)mpp, info_frame);
+    if (mpp->mDec->use_preset_time_order) {
+        mpp->mTimeStamps->flush();
+    }
     return;
 }
 
@@ -241,6 +245,16 @@ static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
         /* deal with current frame */
         if (flag && mpp_slots_is_empty(frame_slots, QUEUE_DISPLAY))
             mpp_frame_set_eos(frame, 1);
+        if (dec->use_preset_time_order) {
+            MppPacket pkt_out = NULL;
+            mpp->mTimeStamps->pull(&pkt_out, sizeof(pkt_out));
+            if (pkt_out) {
+                mpp_frame_set_dts(frame, mpp_packet_get_dts(pkt_out));
+                mpp_frame_set_pts(frame, mpp_packet_get_pts(pkt_out));
+                mpp_packet_deinit(&pkt_out);
+            } else
+                mpp_err_f("pull out packet error.\n");
+        }
 
         if (!dec->reset_flag)
             mpp_put_frame(mpp, frame);
@@ -294,6 +308,15 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
         if (packets->pull(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in)))
             return MPP_NOK;
+        if (dec->use_preset_time_order) {
+            MppPacket pkt_in = NULL;
+            mpp_packet_new(&pkt_in);
+            if (pkt_in) {
+                mpp_packet_set_pts(pkt_in, mpp_packet_get_pts(dec->mpp_pkt_in));
+                mpp_packet_set_dts(pkt_in, mpp_packet_get_dts(dec->mpp_pkt_in));
+                mpp->mTimeStamps->push(&pkt_in, sizeof(pkt_in));
+            }
+        }
         mpp->mPacketGetCount++;
     }
 
@@ -1109,6 +1132,9 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     } break;
     case MPP_DEC_SET_DISABLE_ERROR: {
         dec->disable_error = *((RK_U32 *)param);
+    }
+    case MPP_DEC_SET_PRESENT_TIME_ORDER: {
+        dec->use_preset_time_order = *((RK_U32 *)param);
     }
     default : {
     } break;
