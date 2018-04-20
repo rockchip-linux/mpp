@@ -1403,7 +1403,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_SET_EXT_BUF_GROUP;
     } break;
     case VPU_API_USE_PRESENT_TIME_ORDER: {
-        mpicmd = MPP_DEC_SET_INTERNAL_PTS_ENABLE;
+        mpicmd = MPP_DEC_SET_PRESENT_TIME_ORDER;
     } break;
     case VPU_API_SET_INFO_CHANGE: {
         mpicmd = MPP_DEC_SET_INFO_CHANGE_READY;

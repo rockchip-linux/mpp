@@ -41,7 +41,7 @@ struct MppDec_t {
     RK_U32              parser_fast_mode;
     RK_U32              parser_internal_pts;
     RK_U32              disable_error;
-
+    RK_U32              use_preset_time_order;
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
     void                *mpp;

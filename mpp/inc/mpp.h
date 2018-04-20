@@ -82,7 +82,7 @@ public:
     MppQueue        *mPackets;
     mpp_list        *mFrames;
     mpp_list        *mTasks;
-
+    MppQueue        *mTimeStamps;
     /* counters for debug */
     RK_U32          mPacketPutCount;
     RK_U32          mPacketGetCount;
