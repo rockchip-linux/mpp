@@ -158,7 +158,6 @@ typedef struct Mpg4Hdr_t {
 typedef struct {
     // global paramter
     MppBufSlots     frame_slots;
-    RK_U32          use_internal_pts;
     RK_U32          found_vol;
     RK_U32          found_vop;
     RK_U32          found_i_vop;
@@ -835,12 +834,6 @@ static MPP_RET mpeg4_parse_vop_header(Mpg4dParserImpl *p, BitReadCtx_t *gb)
         mp4Hdr->time_bp = mp4Hdr->time_pp - (RK_S32)(mp4Hdr->last_non_b_time - mp4Hdr->time);
     }
 
-    mp4Hdr->pts = (RK_S64)mp4Hdr->time;
-
-    if (p->use_internal_pts) {
-        p->pts = mp4Hdr->time;
-    }
-
     SKIP_BITS(gb, 1);
 
     READ_BITS(gb, 1, &val);
@@ -1072,7 +1065,6 @@ MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
 
     mpp_buf_slot_setup(frame_slots, 8);
     p->frame_slots      = frame_slots;
-    p->use_internal_pts = 0;
     p->state            = -1;
     p->vop_header_found = 0;
     p->bit_ctx          = bit_ctx;
@@ -1354,8 +1346,7 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
         p->height   = p->hdr_curr.vol.height;
     }
 
-    if (!p->use_internal_pts)
-        p->pts  = mpp_packet_get_pts(pkt);
+    p->pts  = mpp_packet_get_pts(pkt);
 
     ret = (p->found_vol && p->found_vop) ? (MPP_OK) : (MPP_NOK);
 
@@ -1546,16 +1537,5 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_mpg4_parser_set_pts_mode(Mpg4dParser ctx, RK_U32 use_internal_pts)
-{
-    Mpg4dParserImpl *p = (Mpg4dParserImpl *)ctx;
 
-    mpg4d_dbg_func("in\n");
-
-    p->use_internal_pts = use_internal_pts;
-
-    mpg4d_dbg_func("out\n");
-
-    return MPP_OK;
-}
 

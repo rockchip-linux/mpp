@@ -751,13 +751,6 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         ret = mpp_buf_slot_ready(mDec->frame_slots);
         mThreadCodec->signal();
     } break;
-    case MPP_DEC_SET_INTERNAL_PTS_ENABLE: {
-        if (mCoding == MPP_VIDEO_CodingMPEG2 || mCoding == MPP_VIDEO_CodingMPEG4) {
-            ret = mpp_dec_control(mDec, cmd, param);
-        } else {
-            mpp_err("coding %x does not support use internal pts control\n", mCoding);
-        }
-    } break;
     case MPP_DEC_SET_PARSER_SPLIT_MODE: {
         RK_U32 flag = *((RK_U32 *)param);
         mParserNeedSplit = flag;
