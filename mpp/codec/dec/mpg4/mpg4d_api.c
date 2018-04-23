@@ -163,19 +163,11 @@ static MPP_RET mpg4d_flush(void *dec)
 
 static MPP_RET mpg4d_control(void *dec, RK_S32 cmd_type, void *param)
 {
-    Mpg4dCtx *p;
-
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
-
-    p = (Mpg4dCtx *)dec;
-    switch (cmd_type) {
-    case MPP_DEC_SET_INTERNAL_PTS_ENABLE : {
-        mpp_mpg4_parser_set_pts_mode(p->parser, 0);
-    } break;
-    }
+    (void)cmd_type;
     (void)param;
     return MPP_OK;
 }

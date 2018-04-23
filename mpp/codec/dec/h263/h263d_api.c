@@ -163,19 +163,11 @@ MPP_RET h263d_flush(void *dec)
 
 MPP_RET h263d_control(void *dec, RK_S32 cmd_type, void *param)
 {
-    H263dCtx *p;
-
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");
         return MPP_ERR_NULL_PTR;
     }
-
-    p = (H263dCtx *)dec;
-    switch (cmd_type) {
-    case MPP_DEC_SET_INTERNAL_PTS_ENABLE : {
-        mpp_h263_parser_set_pts_mode(p->parser, 0);
-    } break;
-    }
+    (void)cmd_type;
     (void)param;
     return MPP_OK;
 }

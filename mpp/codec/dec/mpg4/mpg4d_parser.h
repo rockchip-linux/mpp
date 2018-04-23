@@ -45,7 +45,6 @@ MPP_RET mpp_mpg4_parser_setup_syntax(Mpg4dParser ctx, MppSyntax *syntax);
 MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output);
 MPP_RET mpp_mpg4_parser_setup_refer(Mpg4dParser ctx, RK_S32 *refer, RK_S32 max_ref);
 MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx);
-MPP_RET mpp_mpg4_parser_set_pts_mode(Mpg4dParser ctx, RK_U32 use_internal_pts);
 
 #ifdef __cplusplus
 }

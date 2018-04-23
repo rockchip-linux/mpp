@@ -89,7 +89,7 @@ typedef enum {
     MPP_DEC_SET_FRAME_INFO,             /* vpu api legacy control for buffer slot dimension init */
     MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
     MPP_DEC_SET_INFO_CHANGE_READY,
-    MPP_DEC_SET_INTERNAL_PTS_ENABLE,
+    MPP_DEC_SET_PRESENT_TIME_ORDER,     /* use input time order for output */
     MPP_DEC_SET_PARSER_SPLIT_MODE,      /* Need to setup before init */
     MPP_DEC_SET_PARSER_FAST_MODE,       /* Need to setup before init */
     MPP_DEC_GET_STREAM_COUNT,
@@ -97,7 +97,6 @@ typedef enum {
     MPP_DEC_SET_VC1_EXTRA_DATA,
     MPP_DEC_SET_OUTPUT_FORMAT,
     MPP_DEC_SET_DISABLE_ERROR,          /* When set it will disable sw/hw error (H.264 / H.265) */
-    MPP_DEC_SET_PRESENT_TIME_ORDER,     /* use input time order for output */
     MPP_DEC_CMD_END,
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,

@@ -223,7 +223,6 @@ MPP_RET mpp_h263_parser_init(H263dParser *ctx, MppBufSlots frame_slots)
 
     mpp_buf_slot_setup(frame_slots, 4);
     p->frame_slots      = frame_slots;
-    p->use_internal_pts = 0;
     p->pos_frm_start    = -1;
     p->pos_frm_end      = -1;
     p->bit_ctx          = bit_ctx;
@@ -429,10 +428,7 @@ MPP_RET mpp_h263_parser_decode(H263dParser ctx, MppPacket pkt)
 
     p->width  = p->hdr_curr.width;
     p->height = p->hdr_curr.height;
-
-    if (!p->use_internal_pts)
-        p->pts  = mpp_packet_get_pts(pkt);
-
+    p->pts  = mpp_packet_get_pts(pkt);
 __BITREAD_ERR:
     h263d_dbg_status("found i_frame %d frame_type %d ret %d\n",
                      p->found_i_vop, p->hdr_curr.pict_type, ret);
@@ -570,10 +566,5 @@ MPP_RET mpp_h263_parser_update_dpb(H263dParser ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_h263_parser_set_pts_mode(H263dParser ctx, RK_U32 use_internal_pts)
-{
-    H263dParserImpl *p = (H263dParserImpl *)ctx;
-    p->use_internal_pts = use_internal_pts;
-    return MPP_OK;
-}
+
 
