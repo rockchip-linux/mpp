@@ -1339,7 +1339,9 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             p_Dpb->poc_interval = 1;
 
         }
-        if (p->idr_flag || (p->poc == 0) || (p_Dpb->last_output_poc == INT_MIN)) {
+        if (p->idr_flag || (p->poc == 0)
+            || (p_Dpb->last_output_poc == INT_MIN)
+            || p_Vid->p_Dec->immediate_out) {
             FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb, fs));
         }
         while ((p_Dpb->last_output_poc > INT_MIN)

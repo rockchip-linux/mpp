@@ -1428,6 +1428,9 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         *((VPU_GENERIC *)param) = vpug;
         mpicmd = MPI_CMD_BUTT;
     } break;
+    case VPU_API_SET_IMMEDIATE_OUT: {
+        mpicmd = MPP_DEC_SET_IMMEDIATE_OUT;
+    } break;
     default: {
     } break;
     }

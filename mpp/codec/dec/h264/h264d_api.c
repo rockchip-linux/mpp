@@ -476,7 +476,10 @@ MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
     switch (cmd_type) {
     case MPP_DEC_SET_DISABLE_ERROR: {
         dec->disable_error = *((RK_U32 *)param);
-    }
+    } break;
+    case MPP_DEC_SET_IMMEDIATE_OUT: {
+        dec->immediate_out = *((RK_U32 *)param);
+    } break;
     default : {
     } break;
     }
