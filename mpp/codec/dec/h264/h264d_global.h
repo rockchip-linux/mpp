@@ -1148,6 +1148,7 @@ typedef struct h264_dec_ctx_t {
     HalDecTask                *in_task;
     RK_S32                     last_frame_slot_idx;
     RK_U32                     disable_error;
+    RK_U32                     immediate_out;
     struct h264_err_ctx_t      errctx;
 } H264_DecCtx_t;
 
