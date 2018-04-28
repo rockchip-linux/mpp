@@ -74,7 +74,6 @@ typedef struct vp9_dec_last_info {
 } vp9_dec_last_info_t;
 
 typedef struct hal_vp9_context {
-    RK_S32          vpu_socket;
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
     MppDevCtx       dev_ctx;
@@ -132,13 +131,18 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- mpp_device_init
 #ifdef RKPLATFORM
-    if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = mpp_device_init(&reg_cxt->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingVP9);
-        if (reg_cxt->vpu_socket <= 0) {
-            mpp_err("vp9 reg_cxt->vpu_socket <= 0\n");
-            return MPP_ERR_UNKNOW;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,              /* type */
+        .coding = MPP_VIDEO_CodingVP9,    /* coding */
+        .platform = 0,                    /* platform */
+        .pp_enable = 0,                   /* pp_enable */
+    };
+    ret = mpp_device_init(&reg_cxt->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
+
 #endif
     if (reg_cxt->group == NULL) {
 
@@ -206,8 +210,11 @@ MPP_RET hal_vp9d_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
 #ifdef RKPLATFORM
-    if (reg_cxt->vpu_socket >= 0) {
-        mpp_device_deinit(reg_cxt->vpu_socket);
+    if (reg_cxt->dev_ctx) {
+        ret = mpp_device_deinit(reg_cxt->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
     if (reg_cxt->probe_base) {
@@ -841,7 +848,7 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
 #if 1
-    ret = mpp_device_send_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
+    ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
     if (ret != 0) {
         mpp_err("VP9H_DBG_REG: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -869,7 +876,8 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     VP9_REGS *hw_regs = (VP9_REGS*)reg_cxt->hw_regs;
     RK_U8* p = (RK_U8*)hw_regs;
 
-    ret = mpp_device_wait_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
+    ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
+
     for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
         if (i == 1) {
             vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));

@@ -66,12 +66,16 @@ MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("m2vh_debug", &m2vh_debug, 0);
     //get vpu socket
 #ifdef RKPLATFORM
-    if (p->vpu_socket <= 0) {
-        p->vpu_socket = mpp_device_init(&p->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingMPEG2);
-        if (p->vpu_socket <= 0) {
-            mpp_err("get vpu_socket(%d) <=0, failed. \n", p->vpu_socket);
-            return MPP_ERR_UNKNOW;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,              /* type */
+        .coding = MPP_VIDEO_CodingMPEG2,  /* coding */
+        .platform = 0,                    /* platform */
+        .pp_enable = 0,                   /* pp_enable */
+    };
+    ret = mpp_device_init(&p->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
 #endif
     if (p->group == NULL) {
@@ -148,8 +152,12 @@ MPP_RET hal_m2vd_deinit(void *hal)
     M2VDHalContext *p = (M2VDHalContext *)hal;
 
 #ifdef RKPLATFORM
-    if (p->vpu_socket >= 0)
-        mpp_device_deinit(p->vpu_socket);
+    if (p->dev_ctx) {
+        ret = mpp_device_deinit(p->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed ret: %d\n", ret);
+        }
+    }
 #endif
     if (p->qp_table) {
         ret = mpp_buffer_put(p->qp_table);
@@ -318,7 +326,7 @@ MPP_RET hal_m2vd_start(void *hal, HalTaskInfo *task)
     M2VDHalContext *ctx = (M2VDHalContext *)hal;
     RK_U32 *p_regs = (RK_U32 *)&ctx->regs;
     FUN_T("FUN_I");
-    ret = mpp_device_send_reg(ctx->vpu_socket, p_regs, M2VD_REG_NUM);
+    ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, M2VD_REG_NUM);
     if (ret != 0) {
         mpp_err("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -339,7 +347,7 @@ MPP_RET hal_m2vd_wait(void *hal, HalTaskInfo *task)
 
     FUN_T("FUN_I");
     memset(&reg_out, 0, sizeof(M2VDRegSet));
-    ret = mpp_device_wait_reg(ctx->vpu_socket, (RK_U32 *)&reg_out, M2VD_REG_NUM);
+    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, M2VD_REG_NUM);
     if (ctx->fp_reg_out) {
         int k = 0;
         RK_U32 *p_reg = (RK_U32*)&reg_out;

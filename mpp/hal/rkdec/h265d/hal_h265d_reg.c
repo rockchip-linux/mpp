@@ -60,7 +60,6 @@ typedef struct h265d_reg_buf {
     void*     hw_regs;
 } h265d_reg_buf_t;
 typedef struct h265d_reg_context {
-    RK_S32 vpu_socket;
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
     MppBufferGroup group;
@@ -436,12 +435,16 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->packet_slots = cfg->packet_slots;
     ///<- mpp_device_init
 #ifdef RKPLATFORM
-    if (reg_cxt->vpu_socket <= 0) {
-        reg_cxt->vpu_socket = mpp_device_init(&reg_cxt->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingHEVC);
-        if (reg_cxt->vpu_socket <= 0) {
-            mpp_err("reg_cxt->vpu_socket <= 0\n");
-            return MPP_ERR_UNKNOW;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,               /* type */
+        .coding = MPP_VIDEO_CodingHEVC,    /* coding */
+        .platform = 0,                     /* platform */
+        .pp_enable = 0,                    /* pp_enable */
+    };
+    ret = mpp_device_init(&reg_cxt->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
 #endif
     if (reg_cxt->group == NULL) {
@@ -479,13 +482,15 @@ MPP_RET hal_h265d_deinit(void *hal)
 {
 
     RK_S32 ret = 0;
-    h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
+    h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
 
     ///<- mpp_device_init
 #ifdef RKPLATFORM
-    if (reg_cxt->vpu_socket >= 0) {
-        mpp_device_deinit(reg_cxt->vpu_socket);
-
+    if (reg_cxt->dev_ctx) {
+        ret = mpp_device_deinit(reg_cxt->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
 
@@ -1523,7 +1528,7 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
     // 68 is the nb of uint32_t
-    ret = mpp_device_send_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78);
+    ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, 78);
     if (ret != 0) {
         mpp_err("RK_HEVC_DEC: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -1551,7 +1556,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
     p = (RK_U8*)hw_regs;
-    ret = mpp_device_wait_reg(reg_cxt->vpu_socket, (RK_U32*)hw_regs, 78);
+    ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, 78);
 
     if (hw_regs->sw_interrupt.sw_dec_error_sta
         || hw_regs->sw_interrupt.sw_dec_empty_sta) {

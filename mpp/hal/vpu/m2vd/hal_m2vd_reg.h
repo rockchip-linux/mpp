@@ -304,7 +304,6 @@ typedef struct M2VDRegSet_t {
 typedef struct M2VDHalContext_t {
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
-    RK_S32      vpu_socket;
     M2VDRegSet  regs;
     MppBufferGroup group;
     MppBuffer qp_table;

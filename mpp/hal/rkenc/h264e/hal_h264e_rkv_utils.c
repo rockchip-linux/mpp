@@ -30,7 +30,7 @@ MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
     if (plt->buf) {
         ctx->osd_plt_type = H264E_OSD_PLT_TYPE_USERDEF;
 #ifdef RKPLATFORM
-        if (MPP_OK != mpp_device_send_reg_with_id(ctx->vpu_fd,
+        if (MPP_OK != mpp_device_send_reg_with_id(ctx->dev_ctx,
                                                   H264E_IOC_SET_OSD_PLT, param,
                                                   sizeof(MppEncOSDPlt))) {
             h264e_hal_err("set osd plt error");

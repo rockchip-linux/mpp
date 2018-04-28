@@ -257,13 +257,17 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
     h264e_vpu_open_dump_files(ctx->dump_files);
 #endif
 
-    ctx->vpu_fd = -1;
-
 #ifdef RKPLATFORM
-    ctx->vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
-    if (ctx->vpu_fd <= 0) {
-        mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_fd);
-        ret = MPP_ERR_UNKNOW;
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_ENC,            /* type */
+        .coding = MPP_VIDEO_CodingAVC,  /* coding */
+        .platform = 0,                  /* platform */
+        .pp_enable = 0,                 /* pp_enable */
+    };
+    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
 #endif
     ctx->hw_cfg.qp_prev = ctx->cfg->codec.h264.qp_init;
@@ -275,6 +279,7 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 
 MPP_RET hal_h264e_vepu2_deinit(void *hal)
 {
+    MPP_RET ret = MPP_OK;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     h264e_hal_enter();
 
@@ -314,19 +319,14 @@ MPP_RET hal_h264e_vepu2_deinit(void *hal)
 #endif
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd <= 0) {
-        mpp_err("invalid vpu socket: %d", ctx->vpu_fd);
-        return MPP_NOK;
-    }
-
-    if (mpp_device_deinit(ctx->vpu_fd)) {
-        mpp_err("mpp_device_deinit failed");
-        return MPP_ERR_VPUHW;
+    ret = mpp_device_deinit(ctx->dev_ctx);
+    if (ret) {
+        mpp_err("mpp_device_deinit failed, ret: %d", ret);
     }
 #endif
 
     h264e_hal_leave();
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
@@ -662,21 +662,23 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
 {
+    MPP_RET ret;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     (void)task;
     h264e_hal_enter();
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd > 0) {
+    if (ctx->dev_ctx) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
         h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
-        if (MPP_OK != mpp_device_send_reg(ctx->vpu_fd, p_regs, VEPU2_H264E_NUM_REGS)) {
+        ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU2_H264E_NUM_REGS);
+        if (ret) {
             mpp_err("mpp_device_send_reg Failed!!!");
-            return MPP_ERR_VPUHW;
+            return ret;
         } else {
             h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
         }
     } else {
-        mpp_err("invalid vpu socket: %d", ctx->vpu_fd);
+        mpp_err("invalid device ctx: %p", ctx->dev_ctx);
         return MPP_NOK;
     }
 #endif
@@ -720,8 +722,8 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
     h264e_hal_enter();
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd > 0) {
-        RK_S32 hw_ret = mpp_device_wait_reg(ctx->vpu_fd, (RK_U32 *)reg_out,
+    if (ctx->dev_ctx) {
+        RK_S32 hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out,
                                             VEPU2_H264E_NUM_REGS);
 
         h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_wait_reg: ret %d\n", hw_ret);
@@ -731,7 +733,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
             return MPP_ERR_VPUHW;
         }
     } else {
-        mpp_err("invalid vpu socket: %d", ctx->vpu_fd);
+        mpp_err("invalid device ctx: %p", ctx->dev_ctx);
         return MPP_NOK;
     }
 #endif

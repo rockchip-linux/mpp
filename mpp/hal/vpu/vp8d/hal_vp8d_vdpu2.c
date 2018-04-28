@@ -53,15 +53,19 @@ MPP_RET hal_vp8d_vdpu2_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("vp8h_debug", &vp8h_debug, 0);
     //get vpu socket
 #ifdef RKPLATFORM
-    if (ctx->vpu_socket <= 0) {
-        ctx->vpu_socket = mpp_device_init(&ctx->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingVP8);
-        if (ctx->vpu_socket <= 0) {
-            mpp_err("get vpu_socket(%d) <=0, failed. \n", ctx->vpu_socket);
-
-            FUN_T("FUN_OUT");
-            return MPP_ERR_UNKNOW;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,              /* type */
+        .coding = MPP_VIDEO_CodingVP8,    /* coding */
+        .platform = 0,                    /* platform */
+        .pp_enable = 0,                   /* pp_enable */
+    };
+    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        FUN_T("FUN_OUT");
+        return ret;
     }
+
 #endif
     if (NULL == ctx->regs) {
         ctx->regs = mpp_calloc_size(void, sizeof(VP8DRegSet_t));
@@ -113,8 +117,11 @@ MPP_RET hal_vp8d_vdpu2_deinit(void *hal)
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_socket >= 0) {
-        mpp_device_deinit(ctx->vpu_socket);
+    if (ctx->dev_ctx) {
+        ret = mpp_device_deinit(ctx->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
     if (ctx->probe_table) {
@@ -594,7 +601,7 @@ MPP_RET hal_vp8d_vdpu2_start(void *hal, HalTaskInfo *task)
         vp8h_dbg(VP8H_DBG_REG, "vp8d: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
-    ret = mpp_device_send_reg(ctx->vpu_socket, (RK_U32 *)regs, VP8D_REG_NUM);
+    ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)regs, VP8D_REG_NUM);
     if (ret != 0) {
         mpp_err("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -616,7 +623,7 @@ MPP_RET hal_vp8d_vdpu2_wait(void *hal, HalTaskInfo *task)
 
     FUN_T("FUN_IN");
     memset(&reg_out, 0, sizeof(VP8DRegSet_t));
-    ret = mpp_device_wait_reg(ctx->vpu_socket, (RK_U32 *)&reg_out, VP8D_REG_NUM);
+    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, VP8D_REG_NUM);
     FUN_T("FUN_OUT");
 #endif
     (void)hal;

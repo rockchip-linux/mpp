@@ -427,9 +427,9 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         } else if (type == MPP_CTX_DEC) {
             if (coding == MPP_VIDEO_CodingAVC ||
                 coding == MPP_VIDEO_CodingHEVC ||
-                coding == MPP_VIDEO_CodingVP9)
+                coding == MPP_VIDEO_CodingVP9) {
                 dev = mpp_find_device(mpp_rkvdec_dev);
-            else
+            } else
                 dev = mpp_find_device(mpp_vpu_dev);
         }
     } break;

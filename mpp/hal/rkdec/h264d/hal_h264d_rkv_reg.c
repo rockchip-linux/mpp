@@ -658,7 +658,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[1] |= 0x00000061;   // run hardware, enable buf_empty_en
 
 #ifdef RKPLATFORM
-    if (mpp_device_send_reg(p_hal->vpu_socket, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
+    if (mpp_device_send_reg(p_hal->dev_ctx, (RK_U32 *)p_regs, DEC_RKV_REGISTERS)) {
         ret =  MPP_ERR_VPUHW;
         H264D_ERR("H264 RKV FlushRegs fail. \n");
     }
@@ -690,7 +690,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 #ifdef RKPLATFORM
     {
         RK_S32 wait_ret = -1;
-        wait_ret = mpp_device_wait_reg(p_hal->vpu_socket, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS);
+        wait_ret = mpp_device_wait_reg(p_hal->dev_ctx, (RK_U32 *)p_hal->regs, DEC_RKV_REGISTERS);
         if (wait_ret) {
             ret =  MPP_ERR_VPUHW;
             H264D_ERR("H264 RKV FlushRegs fail. \n");
