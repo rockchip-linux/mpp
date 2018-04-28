@@ -102,7 +102,6 @@ typedef struct avsd_hal_ctx_t {
     MppBufferGroup           buf_group;
     IOInterruptCB            init_cb;
     MppDevCtx                dev_ctx;
-    RK_S32                   vpu_socket;
     AvsdSyntax_t             syn;
     RK_U32                  *p_regs;
     MppBuffer                mv_buf;

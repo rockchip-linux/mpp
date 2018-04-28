@@ -40,33 +40,35 @@ typedef enum MppDevCmd_e {
     MPP_DEV_PROP_BUTT,
 } MppDevCmd;
 
-typedef struct MppDevCtx_t {
-    MppCtxType coding;
-    MppCodingType type;
-    RK_S32 client_type;
-    RK_U32 platform; // platfrom for vcodec to init
-    RK_U32 mmu_status; // 0 disable, 1 enable
-    RK_U32 pp_enable; // postprocess, 0 disable, 1 enable
+typedef struct MppDevCfg_t {
+    // input
+    MppCtxType      type;
+    MppCodingType   coding;
+    RK_U32          platform;
+    RK_U32          pp_enable;
+} MppDevCfg;
 
-} MppDevCtx;
+
+typedef void*   MppDevCtx;
+
 /*
  * hardware device open function
  * coding and type for device name detection
  */
-RK_S32 mpp_device_init(MppDevCtx *ctx, MppCtxType coding, MppCodingType type);
-MPP_RET mpp_device_deinit(RK_S32 dev);
+MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg);
+MPP_RET mpp_device_deinit(MppDevCtx ctx);
 
 /*
  * control function for set or get device property
  */
-RK_S32 mpp_device_control(MppDevCtx *ctx, MppDevCmd cmd, void *param);
+RK_S32 mpp_device_control(MppDevCtx ctx, MppDevCmd cmd, void *param);
 
 /*
  * register access interface
  */
-MPP_RET mpp_device_send_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs);
-MPP_RET mpp_device_wait_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs);
-MPP_RET mpp_device_send_reg_with_id(RK_S32 dev, RK_S32 id, void *param, RK_S32 size);
+MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
+MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
+MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param, RK_S32 size);
 
 /*
  * New interface

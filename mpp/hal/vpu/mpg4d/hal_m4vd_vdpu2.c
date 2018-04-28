@@ -229,7 +229,6 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
     MppBuffer mv_buf = NULL;
     MppBuffer qp_table = NULL;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
-    RK_S32 vpu_fd = -1;
 
     mpp_assert(hal);
 
@@ -259,10 +258,15 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
     }
 
 #ifdef RKPLATFORM
-    vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingMPEG4);
-    if (vpu_fd < 0) {
-        mpp_err_f("failed to open vpu client\n");
-        ret = MPP_ERR_UNKNOW;
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,              /* type */
+        .coding = MPP_VIDEO_CodingMPEG4,  /* coding */
+        .platform = 0,                    /* platform */
+        .pp_enable = 0,                   /* pp_enable */
+    };
+    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err_f("mpp_device_init failed. ret: %d\n", ret);
         goto ERR_RET;
     }
 #endif
@@ -290,7 +294,6 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
     ctx->pkt_slots  = cfg->packet_slots;
     ctx->int_cb     = cfg->hal_int_cb;
     ctx->group      = group;
-    ctx->vpu_fd     = vpu_fd;
     ctx->mv_buf     = mv_buf;
     ctx->qp_table   = qp_table;
     ctx->regs       = regs;
@@ -350,9 +353,11 @@ MPP_RET vdpu2_mpg4d_deinit(void *hal)
     }
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd >= 0) {
-        mpp_device_deinit(ctx->vpu_fd);
-        ctx->vpu_fd = -1;
+    if (ctx->dev_ctx) {
+        ret = mpp_device_deinit(ctx->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
 
@@ -416,7 +421,7 @@ MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
         }
     }
 
-    ret = mpp_device_send_reg(ctx->vpu_fd, regs, reg_count);
+    ret = mpp_device_send_reg(ctx->dev_ctx, regs, reg_count);
 #endif
     (void)ret;
     (void)hal;
@@ -433,7 +438,7 @@ MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
     RK_U32* regs = (RK_U32 *)&reg_out;
     RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
 
-    ret = mpp_device_wait_reg(ctx->vpu_fd, regs, (sizeof(reg_out) / sizeof(RK_U32)));
+    ret = mpp_device_wait_reg(ctx->dev_ctx, regs, (sizeof(reg_out) / sizeof(RK_U32)));
 
     if (mpg4d_hal_debug & MPG4D_HAL_DBG_REG_GET) {
         RK_U32 i = 0;

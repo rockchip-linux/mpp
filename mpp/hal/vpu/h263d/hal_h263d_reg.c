@@ -39,7 +39,6 @@ typedef struct h263d_reg_context {
     MppDevCtx           dev_ctx;
 
     // save fd for curr/ref0/ref1 for reg_gen
-    RK_S32              vpu_fd;
     RK_S32              fd_curr;
     RK_S32              fd_ref0;
 
@@ -150,7 +149,6 @@ MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_OK;
     VpuH263dRegSet_t *regs = NULL;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    RK_S32 vpu_fd = -1;
 
     mpp_assert(hal);
 
@@ -162,9 +160,15 @@ MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg)
     }
 
 #ifdef RKPLATFORM
-    vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingH263);
-    if (vpu_fd < 0) {
-        mpp_err_f("failed to open vpu client\n");
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,            /* type */
+        .coding = MPP_VIDEO_CodingH263, /* coding */
+        .platform = 0,                  /* platform */
+        .pp_enable = 0,                 /* pp_enable */
+    };
+    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    if (ret != MPP_OK) {
+        mpp_err_f("mpp_device_init failed. ret: %d\n", ret);
         ret = MPP_ERR_UNKNOW;
         goto ERR_RET;
     }
@@ -192,7 +196,6 @@ MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg)
     ctx->frm_slots  = cfg->frame_slots;
     ctx->pkt_slots  = cfg->packet_slots;
     ctx->int_cb     = cfg->hal_int_cb;
-    ctx->vpu_fd     = vpu_fd;
     ctx->regs       = regs;
 
     mpp_env_get_u32("h263d_hal_debug", &h263d_hal_debug, 0);
@@ -220,9 +223,9 @@ MPP_RET hal_vpu_h263d_deinit(void *hal)
     }
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd >= 0) {
-        mpp_device_deinit(ctx->vpu_fd);
-        ctx->vpu_fd = -1;
+    ret = mpp_device_deinit(ctx->dev_ctx);
+    if (MPP_OK != ret) {
+        mpp_err("mpp_device_deinit failed ret: %d\n", ret);
     }
 #endif
 
@@ -276,7 +279,7 @@ MPP_RET hal_vpu_h263d_start(void *hal, HalTaskInfo *task)
         }
     }
 
-    ret = mpp_device_send_reg(ctx->vpu_fd, regs, reg_count);
+    ret = mpp_device_send_reg(ctx->dev_ctx, regs, reg_count);
 #endif
     (void)hal;
     (void)task;
@@ -292,7 +295,7 @@ MPP_RET hal_vpu_h263d_wait(void *hal, HalTaskInfo *task)
     RK_U32* regs = (RK_U32 *)&reg_out;
     RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
 
-    ret = mpp_device_wait_reg(ctx->vpu_fd, regs, (sizeof(reg_out) / sizeof(RK_U32)));
+    ret = mpp_device_wait_reg(ctx->dev_ctx, regs, (sizeof(reg_out) / sizeof(RK_U32)));
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_GET) {
         RK_U32 i = 0;

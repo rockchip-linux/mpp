@@ -27,6 +27,7 @@
 
 #include "mpp_device.h"
 #include "mpp_platform.h"
+#include "mpp_mem.h"
 
 #include "vpu.h"
 
@@ -44,6 +45,17 @@ typedef struct MppReq_t {
     RK_U32 *req;
     RK_U32  size;
 } MppReq;
+
+typedef struct MppDevCtxImpl_t {
+    MppCtxType type;
+    MppCodingType coding;
+    RK_S32 client_type;
+    RK_U32 platform;    // platfrom for vcodec to init
+    RK_U32 mmu_status;  // 0 disable, 1 enable
+    RK_U32 pp_enable;   // postprocess, 0 disable, 1 enable
+    RK_S32 vpu_fd;
+} MppDevCtxImpl;
+
 
 static RK_U32 mpp_device_debug = 0;
 
@@ -80,15 +92,25 @@ static RK_S32 mpp_device_set_client_type(int dev, RK_S32 client_type)
     return ret;
 }
 
-static RK_S32 mpp_device_get_client_type(MppDevCtx *ctx, MppCtxType coding, MppCodingType type)
+static RK_S32 mpp_device_get_client_type(MppDevCtx ctx, MppCtxType type, MppCodingType coding)
 {
     RK_S32 client_type = -1;
+    MppDevCtxImpl *p;
 
-    if (coding == MPP_CTX_ENC)
+    if (NULL == ctx ||
+        (type >= MPP_CTX_BUTT || type < 0) ||
+        (coding >= MPP_VIDEO_CodingMax || coding <= MPP_VIDEO_CodingUnused)) {
+        mpp_err_f("found NULL input ctx %p coding %d type %d\n", ctx, coding, type);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (MppDevCtxImpl *)ctx;
+
+    if (type == MPP_CTX_ENC)
         client_type = VPU_ENC;
     else { /* MPP_CTX_DEC */
         client_type = VPU_DEC;
-        if (ctx->pp_enable)
+        if (p->pp_enable)
             client_type = VPU_DEC_PP;
     }
 
@@ -97,51 +119,91 @@ static RK_S32 mpp_device_get_client_type(MppDevCtx *ctx, MppCtxType coding, MppC
     return client_type;
 }
 
-RK_S32 mpp_device_init(MppDevCtx *ctx, MppCtxType coding, MppCodingType type)
+MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
 {
     RK_S32 dev = -1;
     const char *name = NULL;
+    MppDevCtxImpl *p;
+
+    if (NULL == ctx || NULL == cfg) {
+        mpp_err_f("found NULL input ctx %p cfg %p\n", ctx, cfg);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    *ctx = NULL;
 
     mpp_env_get_u32("mpp_device_debug", &mpp_device_debug, 0);
 
-    ctx->coding = coding;
-    ctx->type = type;
-    if (ctx->platform)
-        name = mpp_get_platform_dev_name(coding, type, ctx->platform);
+    p = mpp_calloc(MppDevCtxImpl, 1);
+    if (NULL == p) {
+        mpp_err_f("malloc failed\n");
+        return MPP_ERR_MALLOC;
+    }
+
+    p->coding = cfg->coding;
+    p->type = cfg->type;
+    p->platform = cfg->platform;
+    p->pp_enable = cfg->pp_enable;
+
+    if (p->platform)
+        name = mpp_get_platform_dev_name(p->type, p->coding, p->platform);
     else
-        name = mpp_get_vcodec_dev_name(coding, type);
+        name = mpp_get_vcodec_dev_name(p->type, p->coding);
     if (name) {
         dev = open(name, O_RDWR);
         if (dev > 0) {
-            RK_S32 client_type = mpp_device_get_client_type(ctx, coding, type);
+            RK_S32 client_type = mpp_device_get_client_type(p, p->type, p->coding);
             RK_S32 ret = mpp_device_set_client_type(dev, client_type);
 
             if (ret) {
                 close(dev);
                 dev = -2;
             }
-            ctx->client_type = client_type;
+            p->client_type = client_type;
         } else
             mpp_err_f("failed to open device %s, errno %d, error msg: %s\n",
                       name, errno, strerror(errno));
     } else
-        mpp_err_f("failed to find device for coding %d type %d\n", coding, type);
+        mpp_err_f("failed to find device for coding %d type %d\n", p->coding, p->type);
 
-    return dev;
-}
-
-MPP_RET mpp_device_deinit(RK_S32 dev)
-{
-    if (dev > 0)
-        close(dev);
+    *ctx = p;
+    p->vpu_fd = dev;
 
     return MPP_OK;
 }
 
-MPP_RET mpp_device_send_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
+MPP_RET mpp_device_deinit(MppDevCtx ctx)
+{
+    MppDevCtxImpl *p;
+
+    if (NULL == ctx) {
+        mpp_err_f("found NULL input ctx %p\n", ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (MppDevCtxImpl *)ctx;
+
+    if (p->vpu_fd > 0) {
+        close(p->vpu_fd);
+    } else {
+        mpp_err_f("invalid negtive file handle,\n");
+    }
+    mpp_free(p);
+    return MPP_OK;
+}
+
+MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 {
     MPP_RET ret;
     MppReq req;
+    MppDevCtxImpl *p;
+
+    if (NULL == ctx || NULL == regs) {
+        mpp_err_f("found NULL input ctx %p regs %p\n", ctx, regs);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (MppDevCtxImpl *)ctx;
 
     if (mpp_device_debug) {
         RK_U32 i;
@@ -154,7 +216,7 @@ MPP_RET mpp_device_send_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
     nregs *= sizeof(RK_U32);
     req.req     = regs;
     req.size    = nregs;
-    ret = (RK_S32)ioctl(dev, VPU_IOC_SET_REG, &req);
+    ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_SET_REG, &req);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
@@ -164,16 +226,23 @@ MPP_RET mpp_device_send_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
     return ret;
 }
 
-MPP_RET mpp_device_wait_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
+MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 {
     MPP_RET ret;
     MppReq req;
+    MppDevCtxImpl *p;
+
+    if (NULL == ctx || NULL == regs) {
+        mpp_err_f("found NULL input ctx %p regs %p\n", ctx, regs);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (MppDevCtxImpl *)ctx;
 
     nregs *= sizeof(RK_U32);
     req.req     = regs;
     req.size    = nregs;
-
-    ret = (RK_S32)ioctl(dev, VPU_IOC_GET_REG, &req);
+    ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_GET_REG, &req);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_GET_REG failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
@@ -192,17 +261,20 @@ MPP_RET mpp_device_wait_reg(RK_S32 dev, RK_U32 *regs, RK_U32 nregs)
     return ret;
 }
 
-MPP_RET mpp_device_send_reg_with_id(RK_S32 dev, RK_S32 id, void *param,
+MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param,
                                     RK_S32 size)
 {
     MPP_RET ret = MPP_NOK;
+    MppDevCtxImpl *p;
 
-    if (param == NULL) {
-        mpp_err_f("input param is NULL");
-        return ret;
+    if (NULL == ctx || NULL == param) {
+        mpp_err_f("found NULL input ctx %p param %p\n", ctx, param);
+        return MPP_ERR_NULL_PTR;
     }
 
-    ret = (RK_S32)ioctl(dev, VPU_IOC_WRITE(id, size), param);
+    p = (MppDevCtxImpl *)ctx;
+
+    ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_WRITE(id, size), param);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_WRITE failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
@@ -212,18 +284,27 @@ MPP_RET mpp_device_send_reg_with_id(RK_S32 dev, RK_S32 id, void *param,
     return ret;
 }
 
-RK_S32 mpp_device_control(MppDevCtx *ctx, MppDevCmd cmd, void* param)
+RK_S32 mpp_device_control(MppDevCtx ctx, MppDevCmd cmd, void* param)
 {
+    MppDevCtxImpl *p;
+
+    if (NULL == ctx || NULL == param) {
+        mpp_err_f("found NULL input ctx %p param %p\n", ctx, param);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (MppDevCtxImpl *)ctx;
+
     switch (cmd) {
     case MPP_DEV_GET_MMU_STATUS : {
-        ctx->mmu_status = 1;
-        *((RK_U32 *)param) = ctx->mmu_status;
+        p->mmu_status = 1;
+        *((RK_U32 *)param) = p->mmu_status;
     } break;
     case MPP_DEV_ENABLE_POSTPROCCESS : {
-        ctx->pp_enable = 1;
+        p->pp_enable = 1;
     } break;
     case MPP_DEV_SET_HARD_PLATFORM : {
-        ctx->platform = *((RK_U32 *)param);
+        p->platform = *((RK_U32 *)param);
     } break;
     default : {
     } break;

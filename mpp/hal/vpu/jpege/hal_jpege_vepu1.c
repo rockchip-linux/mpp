@@ -51,6 +51,7 @@ static const RK_U32 qp_reorder_table[64] = {
 
 MPP_RET hal_jpege_vepu1_init(void *hal, MppHalCfg *cfg)
 {
+    MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
@@ -59,10 +60,16 @@ MPP_RET hal_jpege_vepu1_init(void *hal, MppHalCfg *cfg)
     ctx->int_cb = cfg->hal_int_cb;
 
 #ifdef RKPLATFORM
-    ctx->vpu_fd = mpp_device_init(&ctx->dev_ctx, MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG);
-    if (ctx->vpu_fd < 0) {
-        mpp_err_f("failed to open vpu client\n");
-        return MPP_NOK;
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_ENC,              /* type */
+        .coding = MPP_VIDEO_CodingMJPEG,  /* coding */
+        .platform = 0,                    /* platform */
+        .pp_enable = 0,                   /* pp_enable */
+    };
+    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
 #endif
     jpege_bits_init(&ctx->bits);
@@ -84,6 +91,7 @@ MPP_RET hal_jpege_vepu1_init(void *hal, MppHalCfg *cfg)
 
 MPP_RET hal_jpege_vepu1_deinit(void *hal)
 {
+    MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
@@ -94,15 +102,17 @@ MPP_RET hal_jpege_vepu1_deinit(void *hal)
     }
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd >= 0) {
-        mpp_device_deinit(ctx->vpu_fd);
-        ctx->vpu_fd = -1;
+    if (ctx->dev_ctx) {
+        ret = mpp_device_deinit(ctx->dev_ctx);
+        if (ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
 
     mpp_free(ctx->ioctl_info.regs);
     hal_jpege_dbg_func("leave hal %p\n", hal);
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET hal_jpege_vepu1_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *syntax)
@@ -434,8 +444,8 @@ MPP_RET hal_jpege_vepu1_start(void *hal, HalTaskInfo *task)
     memcpy(cache, ctx->ioctl_info.regs, reg_size);
     memcpy(cache + reg_num, &(ctx->ioctl_info.extra_info), extra_size);
 
-    if (ctx->vpu_fd >= 0) {
-        ret = mpp_device_send_reg(ctx->vpu_fd, cache, reg_num + extra_num);
+    if (ctx->dev_ctx) {
+        ret = mpp_device_send_reg(ctx->dev_ctx, cache, reg_num + extra_num);
     }
 
     mpp_free(cache);
@@ -460,8 +470,8 @@ MPP_RET hal_jpege_vepu1_wait(void *hal, HalTaskInfo *task)
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
 #ifdef RKPLATFORM
-    if (ctx->vpu_fd >= 0) {
-        ret = mpp_device_wait_reg(ctx->vpu_fd, regs, sizeof(jpege_vepu1_reg_set) / sizeof(RK_U32));
+    if (ctx->dev_ctx) {
+        ret = mpp_device_wait_reg(ctx->dev_ctx, regs, sizeof(jpege_vepu1_reg_set) / sizeof(RK_U32));
     }
 #endif
     val = regs[1];

@@ -43,7 +43,6 @@
 typedef struct VP8DHalContext {
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
-    RK_S32      vpu_socket;
     MppDevCtx   dev_ctx;
     void        *regs;
     RK_U8       reg_size;

@@ -125,7 +125,6 @@ typedef struct h264d_hal_ctx_t {
     MppBufSlots              packet_slots;
     MppBufferGroup           buf_group;
     MppBuffer                cabac_buf;
-    RK_S32                   vpu_socket;
     IOInterruptCB            init_cb;
     MppDevCtx                dev_ctx;
 } H264dHalCtx_t;

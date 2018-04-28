@@ -174,14 +174,16 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
     //!< mpp_device_init
 #ifdef RKPLATFORM
-    if (p_hal->vpu_socket <= 0) {
-        mpp_device_control(&p_hal->dev_ctx, MPP_DEV_SET_HARD_PLATFORM, &hard_platform);
-        p_hal->vpu_socket = mpp_device_init(&p_hal->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
-        if (p_hal->vpu_socket <= 0) {
-            mpp_err("p_hal->vpu_socket <= 0\n");
-            ret = MPP_ERR_UNKNOW;
-            goto __FAILED;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,            /* type */
+        .coding = MPP_VIDEO_CodingAVC,  /* coding */
+        .platform = hard_platform,      /* platform */
+        .pp_enable = 0,                 /* pp_enable */
+    };
+    ret = mpp_device_init(&p_hal->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed ret: %d\n", ret);
+        goto __FAILED;
     }
 #endif
     //< get buffer group
@@ -219,8 +221,11 @@ MPP_RET hal_h264d_deinit(void *hal)
     FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
     //!< mpp_device_init
 #ifdef RKPLATFORM
-    if (p_hal->vpu_socket >= 0) {
-        mpp_device_deinit(p_hal->vpu_socket);
+    if (p_hal->dev_ctx) {
+        ret = mpp_device_deinit(p_hal->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
     if (p_hal->buf_group) {

@@ -115,13 +115,16 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
     p_hal->init_cb = cfg->hal_int_cb;
     //!< mpp_device_init
 #ifdef RKPLATFORM
-    if (p_hal->vpu_socket <= 0) {
-        p_hal->vpu_socket = mpp_device_init(&p_hal->dev_ctx, MPP_CTX_DEC, MPP_VIDEO_CodingAVS);
-        if (p_hal->vpu_socket <= 0) {
-            mpp_err("p_hal->vpu_socket <= 0\n");
-            ret = MPP_ERR_UNKNOW;
-            goto __FAILED;
-        }
+    MppDevCfg dev_cfg = {
+        .type = MPP_CTX_DEC,            /* type */
+        .coding = MPP_VIDEO_CodingAVS,  /* coding */
+        .platform = 0,                  /* platform */
+        .pp_enable = 0,                 /* pp_enable */
+    };
+    ret = mpp_device_init(&p_hal->dev_ctx, &dev_cfg);
+    if (ret) {
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        return ret;
     }
 #endif
     //< get buffer group
@@ -176,8 +179,11 @@ MPP_RET hal_avsd_deinit(void *decoder)
 
     //!< mpp_device_init
 #ifdef RKPLATFORM
-    if (p_hal->vpu_socket >= 0) {
-        mpp_device_deinit(p_hal->vpu_socket);
+    if (p_hal->dev_ctx) {
+        ret = mpp_device_deinit(p_hal->dev_ctx);
+        if (MPP_OK != ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 #endif
     if (p_hal->mv_buf) {
@@ -245,7 +251,7 @@ MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
 
     p_hal->frame_no++;
 #ifdef RKPLATFORM
-    if (mpp_device_send_reg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS)) {
+    if (mpp_device_send_reg(p_hal->dev_ctx, p_hal->p_regs, AVSD_REGISTERS)) {
         ret = MPP_ERR_VPUHW;
         mpp_err_f("Avs decoder FlushRegs fail. \n");
     }
@@ -275,7 +281,7 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
         goto __SKIP_HARD;
     }
 #ifdef RKPLATFORM
-    mpp_device_wait_reg(p_hal->vpu_socket, p_hal->p_regs, AVSD_REGISTERS);
+    mpp_device_wait_reg(p_hal->dev_ctx, p_hal->p_regs, AVSD_REGISTERS);
 #endif
 
 __SKIP_HARD:

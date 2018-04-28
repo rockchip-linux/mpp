@@ -408,7 +408,6 @@ typedef struct H264eMbRcCtx_t {
 
 typedef struct H264eHalContext_t {
     MppHalApi                       api;
-    RK_S32                          vpu_fd;
     IOInterruptCB                   int_cb;
     MppDevCtx                       dev_ctx;
     h264e_feedback                  feedback;
