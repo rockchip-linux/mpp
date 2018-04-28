@@ -46,8 +46,6 @@ add_library(${MPP_STATIC} STATIC ${MPP_SRC})
 set_target_properties(${MPP_STATIC} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_STATIC} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${MPP_STATIC} mpp_base mpp_codec mpp_hal)
-set_target_properties(${MPP_STATIC} PROPERTIES C_VISIBILITY_PRESET default)
-set_target_properties(${MPP_STATIC} PROPERTIES CXX_VISIBILITY_PRESET default)
 
 add_library(${MPP_SHARED} SHARED ${MPP_SRC})
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
