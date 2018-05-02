@@ -162,6 +162,7 @@ static MPP_RET h263_parse_picture_header(H263dParserImpl *p, BitReadCtx_t *gb)
     /* time reference */
     READ_BITS(gb, 8, &hdr_curr->TR);
 
+    /* first 5 bit of PTYPE */
     SKIP_BITS(gb, 5);
 
     /* source format */
@@ -173,10 +174,16 @@ static MPP_RET h263_parse_picture_header(H263dParserImpl *p, BitReadCtx_t *gb)
         return MPP_NOK;
     }
 
+    /* picture coding type: 0 - INTRA, 1 - INTER */
     READ_BITS(gb, 1, &val);
     pict_type = val;
 
-    SKIP_BITS(gb, 4);
+    /* last 4 bit for PTYPE: UMV, AP mode, PB frame */
+    READ_BITS(gb, 4, &val);
+    if (val) {
+        mpp_err_f("unsupport PTYPE mode %x\n", val);
+        return MPP_NOK;
+    }
 
     READ_BITS(gb, 5, &val);
     hdr_curr->quant = val;
