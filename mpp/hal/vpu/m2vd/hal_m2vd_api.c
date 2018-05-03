@@ -22,22 +22,18 @@
 #include "hal_m2vd_reg.h"
 
 const MppHalApi hal_api_m2vd = {
-    "m2vd_rkdec",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingMPEG2,
-    sizeof(M2VDHalContext),
-    0,
-    hal_m2vd_init,
-    hal_m2vd_deinit,
-    hal_m2vd_gen_regs,
-    hal_m2vd_start,
-    hal_m2vd_wait,
-    hal_m2vd_reset,
-    hal_m2vd_flush,
-    hal_m2vd_control,
+    .name = "m2vd_rkdec",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingMPEG2,
+    .ctx_size = sizeof(M2VDHalContext),
+    .flag = 0,
+    .init = hal_m2vd_init,
+    .deinit = hal_m2vd_deinit,
+    .reg_gen = hal_m2vd_gen_regs,
+    .start = hal_m2vd_start,
+    .wait = hal_m2vd_wait,
+    .reset = hal_m2vd_reset,
+    .flush = hal_m2vd_flush,
+    .control = hal_m2vd_control,
 };
-
-
-
-
 

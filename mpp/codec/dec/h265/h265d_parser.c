@@ -2044,18 +2044,18 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
 
 
 const ParserApi api_h265d_parser = {
-    "h265d_parse",
-    MPP_VIDEO_CodingHEVC,
-    sizeof(H265dContext_t),
-    0,
-    h265d_init,
-    h265d_deinit,
-    h265d_prepare,
-    h265d_parse,
-    h265d_reset,
-    h265d_flush,
-    h265d_control,
-    h265d_callback,
+    .name = "h265d_parse",
+    .coding = MPP_VIDEO_CodingHEVC,
+    .ctx_size = sizeof(H265dContext_t),
+    .flag = 0,
+    .init = h265d_init,
+    .deinit = h265d_deinit,
+    .prepare = h265d_prepare,
+    .parse = h265d_parse,
+    .reset = h265d_reset,
+    .flush = h265d_flush,
+    .control = h265d_control,
+    .callback = h265d_callback,
 };
 
 

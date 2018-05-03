@@ -28,18 +28,18 @@
 #include "m2vd_codec.h"
 
 const ParserApi api_m2vd_parser = {
-    "m2vd_parse",
-    MPP_VIDEO_CodingMPEG2,
-    sizeof(M2VDContext),
-    0,
-    m2vd_parser_init,
-    m2vd_parser_deinit,
-    m2vd_parser_prepare,
-    m2vd_parser_parse,
-    m2vd_parser_reset,
-    m2vd_parser_flush,
-    m2vd_parser_control,
-    m2vd_parser_callback,
+    .name = "m2vd_parse",
+    .coding = MPP_VIDEO_CodingMPEG2,
+    .ctx_size = sizeof(M2VDContext),
+    .flag = 0,
+    .init = m2vd_parser_init,
+    .deinit = m2vd_parser_deinit,
+    .prepare = m2vd_parser_prepare,
+    .parse = m2vd_parser_parse,
+    .reset = m2vd_parser_reset,
+    .flush = m2vd_parser_flush,
+    .control = m2vd_parser_control,
+    .callback = m2vd_parser_callback,
 };
 
 

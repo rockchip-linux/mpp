@@ -74,18 +74,18 @@ MPP_RET hal_dummy_dec_control(void *hal, RK_S32 cmd_type, void *param)
 }
 
 const MppHalApi hal_api_dummy_dec = {
-    "dummy_hw_dec",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingUnused,
-    0,
-    0,
-    hal_dummy_dec_init,
-    hal_dummy_dec_deinit,
-    hal_dummy_dec_gen_regs,
-    hal_dummy_dec_start,
-    hal_dummy_dec_wait,
-    hal_dummy_dec_reset,
-    hal_dummy_dec_flush,
-    hal_dummy_dec_control,
+    .name = "dummy_hw_dec",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingUnused,
+    .ctx_size = 0,
+    .flag = 0,
+    .init = hal_dummy_dec_init,
+    .deinit = hal_dummy_dec_deinit,
+    .reg_gen = hal_dummy_dec_gen_regs,
+    .start = hal_dummy_dec_start,
+    .wait = hal_dummy_dec_wait,
+    .reset = hal_dummy_dec_reset,
+    .flush = hal_dummy_dec_flush,
+    .control = hal_dummy_dec_control,
 };
 

@@ -991,18 +991,18 @@ MPP_RET hal_vp9d_control(void *hal, RK_S32 cmd_type, void *param)
 
 
 const MppHalApi hal_api_vp9d = {
-    "vp9d_rkdec",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingVP9,
-    sizeof(hal_vp9_context_t),
-    0,
-    hal_vp9d_init,
-    hal_vp9d_deinit,
-    hal_vp9d_gen_regs,
-    hal_vp9d_start,
-    hal_vp9d_wait,
-    hal_vp9d_reset,
-    hal_vp9d_flush,
-    hal_vp9d_control,
+    .name = "vp9d_rkdec",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingVP9,
+    .ctx_size = sizeof(hal_vp9_context_t),
+    .flag = 0,
+    .init = hal_vp9d_init,
+    .deinit = hal_vp9d_deinit,
+    .reg_gen = hal_vp9d_gen_regs,
+    .start = hal_vp9d_start,
+    .wait = hal_vp9d_wait,
+    .reset = hal_vp9d_reset,
+    .flush = hal_vp9d_flush,
+    .control = hal_vp9d_control,
 };
 

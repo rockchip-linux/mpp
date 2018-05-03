@@ -295,17 +295,17 @@ MPP_RET dummy_dec_callback(void *dec, void *err_info)
     return MPP_OK;
 }
 const ParserApi dummy_dec_parser = {
-    "dummy_dec_parser",
-    MPP_VIDEO_CodingUnused,
-    sizeof(DummyDec),
-    0,
-    dummy_dec_init,
-    dummy_dec_deinit,
-    dummy_dec_prepare,
-    dummy_dec_parse,
-    dummy_dec_reset,
-    dummy_dec_flush,
-    dummy_dec_control,
-    dummy_dec_callback,
+    .name = "dummy_dec_parser",
+    .coding = MPP_VIDEO_CodingUnused,
+    .ctx_size = sizeof(DummyDec),
+    .flag = 0,
+    .init = dummy_dec_init,
+    .deinit = dummy_dec_deinit,
+    .prepare = dummy_dec_prepare,
+    .parse = dummy_dec_parse,
+    .reset = dummy_dec_reset,
+    .flush = dummy_dec_flush,
+    .control = dummy_dec_control,
+    .callback = dummy_dec_callback,
 };
 

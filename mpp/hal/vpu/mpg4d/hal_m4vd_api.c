@@ -198,17 +198,19 @@ MPP_RET hal_vpu_mpg4d_control(void *hal, RK_S32 cmd_type, void *param)
 }
 
 const MppHalApi hal_api_mpg4d = {
-    "mpg4d_vpu",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingMPEG4,
-    sizeof(hal_mpg4_ctx),
-    0,
-    hal_vpu_mpg4d_init,
-    hal_vpu_mpg4d_deinit,
-    hal_vpu_mpg4d_gen_regs,
-    hal_vpu_mpg4d_start,
-    hal_vpu_mpg4d_wait,
-    hal_vpu_mpg4d_reset,
-    hal_vpu_mpg4d_flush,
-    hal_vpu_mpg4d_control,
+    .name = "mpg4d_vpu",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingMPEG4,
+    .ctx_size = sizeof(hal_mpg4_ctx),
+    .flag = 0,
+    .init = hal_vpu_mpg4d_init,
+    .deinit = hal_vpu_mpg4d_deinit,
+    .reg_gen = hal_vpu_mpg4d_gen_regs,
+    .start = hal_vpu_mpg4d_start,
+    .wait = hal_vpu_mpg4d_wait,
+    .reset = hal_vpu_mpg4d_reset,
+    .flush = hal_vpu_mpg4d_flush,
+    .control = hal_vpu_mpg4d_control,
 };
+
+
