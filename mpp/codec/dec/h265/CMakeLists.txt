@@ -20,4 +20,3 @@ add_library(${CODEC_H265D} STATIC
 
 set_target_properties(${CODEC_H265D} PROPERTIES FOLDER "mpp/codec")
 target_link_libraries(${CODEC_H265D} mpp_base)
-add_subdirectory(test)
