@@ -539,14 +539,14 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         RK_U8 *pdata = p_Inp->in_buf;
         p_Inp->is_nalff = (p_Inp->in_length > 3) && (pdata[0] && pdata[1]);
         if (p_Inp->is_nalff) {
-            (ret = parse_prepare_extra_header(p_Inp, p_Dec->p_Cur));
+            (ret = parse_prepare_avcC_header(p_Inp, p_Dec->p_Cur));
             goto __RETURN;
         }
     }
     H264D_DBG(H264D_DBG_INPUT, "[pkt_in_timeUs] is_avcC=%d, in_pts=%lld, pkt_eos=%d, len=%d, pkt_no=%d",
               p_Inp->is_nalff, p_Inp->in_pts, p_Inp->pkt_eos, p_Inp->in_length, p_Dec->p_Vid->g_framecnt);
     if (p_Inp->is_nalff) {
-        (ret = parse_prepare_extra_data(p_Inp, p_Dec->p_Cur));
+        (ret = parse_prepare_avcC_data(p_Inp, p_Dec->p_Cur));
         task->valid = p_Inp->task_valid;  //!< prepare valid flag
     } else  {
         fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);

@@ -681,10 +681,10 @@ __FAILED:
 /*!
 ***********************************************************************
 * \brief
-*    main function for parser extra header
+*    main function for parser avcC header
 ***********************************************************************
 */
-MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
+MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
     RK_S32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -746,10 +746,10 @@ __FAILED:
 /*!
 ***********************************************************************
 * \brief
-*    main function for parser extra data
+*    main function for parser avcC data
 ***********************************************************************
 */
-MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
+MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 

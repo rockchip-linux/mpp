@@ -34,8 +34,8 @@ MPP_RET close_stream_file(H264dInputCtx_t *p_Inp);
 MPP_RET parse_loop(H264_DecCtx_t *p_Dec);
 MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
 MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
-MPP_RET parse_prepare_extra_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
-MPP_RET parse_prepare_extra_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
+MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
+MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
 
 #ifdef  __cplusplus
 }
