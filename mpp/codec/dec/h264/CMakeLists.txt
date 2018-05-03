@@ -3,11 +3,9 @@ include_directories(.)
 
 # h264 decoder api
 set(H264D_API
-    ../../inc/h264d_api.h
     )
 
 set(H264D_COMMON
-    ../../../common/h264d_syntax.h
     )
 
 # h264 decoder header
@@ -22,7 +20,6 @@ set(H264D_HDR
     h264d_dpb.h
     h264d_init.h
     h264d_fill.h
-    h264d_rwfile.h
     )
 
 # h264 decoder sourse
@@ -37,7 +34,6 @@ set(H264D_SRC
     h264d_dpb.c
     h264d_init.c
     h264d_fill.c
-    h264d_rwfile.c
     )
 
 
