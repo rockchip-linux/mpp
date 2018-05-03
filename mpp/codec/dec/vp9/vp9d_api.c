@@ -231,17 +231,17 @@ MPP_RET vp9d_callback(void *decoder, void *info)
 */
 
 const ParserApi api_vp9d_parser = {
-    "vp9d_parse",
-    MPP_VIDEO_CodingVP9,
-    sizeof(Vp9CodecContext),
-    0,
-    vp9d_init,
-    vp9d_deinit,
-    vp9d_prepare,
-    vp9d_parse,
-    vp9d_reset,
-    vp9d_flush,
-    vp9d_control,
-    vp9d_callback,
+    .name = "vp9d_parse",
+    .coding = MPP_VIDEO_CodingVP9,
+    .ctx_size = sizeof(Vp9CodecContext),
+    .flag = 0,
+    .init = vp9d_init,
+    .deinit = vp9d_deinit,
+    .prepare = vp9d_prepare,
+    .parse = vp9d_parse,
+    .reset = vp9d_reset,
+    .flush = vp9d_flush,
+    .control = vp9d_control,
+    .callback = vp9d_callback,
 };
 

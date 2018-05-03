@@ -710,17 +710,17 @@ __RETURN:
 */
 
 const ParserApi api_h264d_parser = {
-    "h264d_parse",
-    MPP_VIDEO_CodingAVC,
-    sizeof(H264_DecCtx_t),
-    0,
-    h264d_init,
-    h264d_deinit,
-    h264d_prepare,
-    h264d_parse,
-    h264d_reset,
-    h264d_flush,
-    h264d_control,
-    h264d_callback,
+    .name = "h264d_parse",
+    .coding = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(H264_DecCtx_t),
+    .flag = 0,
+    .init = h264d_init,
+    .deinit = h264d_deinit,
+    .prepare = h264d_prepare,
+    .parse = h264d_parse,
+    .reset = h264d_reset,
+    .flush = h264d_flush,
+    .control = h264d_control,
+    .callback = h264d_callback,
 };
 

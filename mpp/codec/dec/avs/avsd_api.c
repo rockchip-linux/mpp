@@ -327,17 +327,17 @@ MPP_RET avsd_callback(void *decoder, void *info)
 ***********************************************************************
 */
 const ParserApi api_avsd_parser = {
-    "avsd_parse",
-    MPP_VIDEO_CodingAVSPLUS,
-    sizeof(AvsdCtx_t),
-    0,
-    avsd_init,
-    avsd_deinit,
-    avsd_prepare,
-    avsd_parse,
-    avsd_reset,
-    avsd_flush,
-    avsd_control,
-    avsd_callback,
+    .name = "avsd_parse",
+    .coding = MPP_VIDEO_CodingAVSPLUS,
+    .ctx_size = sizeof(AvsdCtx_t),
+    .flag = 0,
+    .init = avsd_init,
+    .deinit = avsd_deinit,
+    .prepare = avsd_prepare,
+    .parse = avsd_parse,
+    .reset = avsd_reset,
+    .flush = avsd_flush,
+    .control = avsd_control,
+    .callback = avsd_callback,
 };
 

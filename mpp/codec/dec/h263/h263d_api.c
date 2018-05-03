@@ -313,17 +313,17 @@ MPP_RET h263d_callback(void *dec, void *err_info)
 }
 
 const ParserApi api_h263d_parser = {
-    "api_h263d_parser",
-    MPP_VIDEO_CodingH263,
-    sizeof(H263dCtx),
-    0,
-    h263d_init,
-    h263d_deinit,
-    h263d_prepare,
-    h263d_parse,
-    h263d_reset,
-    h263d_flush,
-    h263d_control,
-    h263d_callback,
+    .name = "api_h263d_parser",
+    .coding = MPP_VIDEO_CodingH263,
+    .ctx_size = sizeof(H263dCtx),
+    .flag = 0,
+    .init = h263d_init,
+    .deinit = h263d_deinit,
+    .prepare = h263d_prepare,
+    .parse = h263d_parse,
+    .reset = h263d_reset,
+    .flush = h263d_flush,
+    .control = h263d_control,
+    .callback = h263d_callback,
 };
 

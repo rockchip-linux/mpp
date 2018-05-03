@@ -374,18 +374,19 @@ MPP_RET hal_avsd_control(void *decoder, RK_S32 cmd_type, void *param)
 
 
 const MppHalApi hal_api_avsd = {
-    "avsd_rkdec",
-    MPP_CTX_DEC,
-    MPP_VIDEO_CodingAVSPLUS,
-    sizeof(AvsdHalCtx_t),
-    0,
-    hal_avsd_init,
-    hal_avsd_deinit,
-    hal_avsd_gen_regs,
-    hal_avsd_start,
-    hal_avsd_wait,
-    hal_avsd_reset,
-    hal_avsd_flush,
-    hal_avsd_control,
+    .name = "avsd_rkdec",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingAVSPLUS,
+    .ctx_size = sizeof(AvsdHalCtx_t),
+    .flag = 0,
+    .init = hal_avsd_init,
+    .deinit = hal_avsd_deinit,
+    .reg_gen = hal_avsd_gen_regs,
+    .start = hal_avsd_start,
+    .wait = hal_avsd_wait,
+    .reset = hal_avsd_reset,
+    .flush = hal_avsd_flush,
+    .control = hal_avsd_control,
 };
+
 

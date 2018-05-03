@@ -194,19 +194,19 @@ MPP_RET hal_h264e_control(void *hal, RK_S32 cmd_type, void *param)
 
 
 const MppHalApi hal_api_h264e = {
-    "h264e_rkvenc",
-    MPP_CTX_ENC,
-    MPP_VIDEO_CodingAVC,
-    sizeof(H264eHalContext),
-    0,
-    hal_h264e_init,
-    hal_h264e_deinit,
-    hal_h264e_gen_regs,
-    hal_h264e_start,
-    hal_h264e_wait,
-    hal_h264e_reset,
-    hal_h264e_flush,
-    hal_h264e_control,
+    .name = "h264e_rkvenc",
+    .type = MPP_CTX_ENC,
+    .coding = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(H264eHalContext),
+    .flag = 0,
+    .init = hal_h264e_init,
+    .deinit = hal_h264e_deinit,
+    .reg_gen = hal_h264e_gen_regs,
+    .start = hal_h264e_start,
+    .wait = hal_h264e_wait,
+    .reset = hal_h264e_reset,
+    .flush = hal_h264e_flush,
+    .control = hal_h264e_control,
 };
 
 

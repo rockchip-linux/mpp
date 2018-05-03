@@ -74,18 +74,19 @@ MPP_RET hal_dummy_enc_control(void *hal, RK_S32 cmd_type, void *param)
 }
 
 const MppHalApi hal_api_dummy_enc = {
-    "dummy_hw_enc",
-    MPP_CTX_ENC,
-    MPP_VIDEO_CodingUnused,
-    0,
-    0,
-    hal_dummy_enc_init,
-    hal_dummy_enc_deinit,
-    hal_dummy_enc_gen_regs,
-    hal_dummy_enc_start,
-    hal_dummy_enc_wait,
-    hal_dummy_enc_reset,
-    hal_dummy_enc_flush,
-    hal_dummy_enc_control,
+    .name = "dummy_hw_enc",
+    .type = MPP_CTX_ENC,
+    .coding = MPP_VIDEO_CodingUnused,
+    .ctx_size = 0,
+    .flag = 0,
+    .init = hal_dummy_enc_init,
+    .deinit = hal_dummy_enc_deinit,
+    .reg_gen = hal_dummy_enc_gen_regs,
+    .start = hal_dummy_enc_start,
+    .wait = hal_dummy_enc_wait,
+    .reset = hal_dummy_enc_reset,
+    .flush = hal_dummy_enc_flush,
+    .control = hal_dummy_enc_control,
 };
+
 
