@@ -27,7 +27,7 @@ typedef struct {
     size_t alignment;
 } allocator_ctx;
 
-static MPP_RET allocator_ext_dma_open(void **ctx, size_t alignment)
+static MPP_RET allocator_ext_dma_open(void **ctx, MppAllocatorCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx *p = NULL;
@@ -42,7 +42,7 @@ static MPP_RET allocator_ext_dma_open(void **ctx, size_t alignment)
         mpp_err_f("failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
     } else {
-        p->alignment = alignment;
+        p->alignment = cfg->alignment;
     }
 
     *ctx = p;

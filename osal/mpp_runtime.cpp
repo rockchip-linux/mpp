@@ -70,7 +70,8 @@ public:
 
 RK_U32 MppRuntimeService::get_allocator_valid(MppBufferType type)
 {
-    return (type < MPP_BUFFER_TYPE_BUTT) ? allocator_valid[type] : (0);
+    MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
+    return (buffer_type < MPP_BUFFER_TYPE_BUTT) ? allocator_valid[buffer_type] : (0);
 };
 
 MppRuntimeService::MppRuntimeService()

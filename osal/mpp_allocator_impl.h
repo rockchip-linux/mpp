@@ -23,6 +23,7 @@
 typedef struct MppAllocatorImpl_t {
     pthread_mutex_t lock;
     MppBufferType   type;
+    RK_U32          flags;
     size_t          alignment;
     os_allocator    os_api;
     void            *ctx;

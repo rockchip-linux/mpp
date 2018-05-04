@@ -73,6 +73,17 @@ typedef unsigned int drm_context_t;
 typedef unsigned int drm_drawable_t;
 typedef unsigned int drm_magic_t;
 
+enum drm_rockchip_gem_mem_type {
+    /* Physically Continuous memory and used as default. */
+    ROCKCHIP_BO_CONTIG      = 1 << 0,
+    /* cachable mapping. */
+    ROCKCHIP_BO_CACHABLE    = 1 << 1,
+    /* write-combine mapping. */
+    ROCKCHIP_BO_WC          = 1 << 2,
+    ROCKCHIP_BO_SECURE      = 1 << 3,
+    ROCKCHIP_BO_MASK        = ROCKCHIP_BO_CONTIG | ROCKCHIP_BO_CACHABLE | ROCKCHIP_BO_WC
+};
+
 /**
  * Cliprect.
  *

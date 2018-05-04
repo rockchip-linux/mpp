@@ -22,6 +22,12 @@
 
 typedef void *MppAllocator;
 
+typedef struct MppAllocatorCfg_t {
+    // input
+    size_t          alignment;
+    RK_U32          flags;
+} MppAllocatorCfg;
+
 typedef struct MppAllocatorApi_t {
     RK_U32  size;
     RK_U32  version;

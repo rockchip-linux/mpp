@@ -23,6 +23,8 @@
 
 #include "os_allocator.h"
 
+#include <linux/drm.h>
+
 #define MPP_ALLOCATOR_LOCK(p)   pthread_mutex_lock(&(p)->lock);
 #define MPP_ALLOCATOR_UNLOCK(p) pthread_mutex_unlock(&(p)->lock);
 
@@ -118,9 +120,12 @@ static MppAllocatorApi mpp_allocator_api = {
 MPP_RET mpp_allocator_get(MppAllocator *allocator,
                           MppAllocatorApi **api, MppBufferType type)
 {
-    if (NULL == allocator || NULL == api || type >= MPP_BUFFER_TYPE_BUTT) {
+    MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
+    RK_U32 flags = (type & MPP_BUFFER_FLAGS_MASK) >> 16;
+
+    if (NULL == allocator || NULL == api || buffer_type >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("invalid input: allocator %p api %p type %d\n",
-                  allocator, api, type);
+                  allocator, api, buffer_type);
         return MPP_ERR_UNKNOW;
     }
 
@@ -128,14 +133,20 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator,
     if (NULL == p) {
         mpp_err("mpp_allocator_get failed to malloc allocator context\n");
         return MPP_ERR_NULL_PTR;
-    } else
-        p->type = type;
+    } else {
+        p->type = buffer_type;
+        p->flags = flags;
+    }
 
 
-    MPP_RET ret = os_allocator_get(&p->os_api, type);
+    MPP_RET ret = os_allocator_get(&p->os_api, buffer_type);
+
     if (MPP_OK == ret) {
-        p->alignment = SZ_4K;
-        ret = p->os_api.open(&p->ctx, p->alignment);
+        MppAllocatorCfg cfg = {
+            .alignment = SZ_4K,
+            .flags = flags,
+        };
+        ret = p->os_api.open(&p->ctx, &cfg);
     }
     if (MPP_OK == ret) {
         pthread_mutexattr_t attr;
