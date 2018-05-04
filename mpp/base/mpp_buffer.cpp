@@ -34,7 +34,8 @@ MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, Mp
 
     if (p) {
         // if group is specified we need to check the parameter
-        if (p->type != info->type || p->type >= MPP_BUFFER_TYPE_BUTT ||
+        if ((p->type & MPP_BUFFER_TYPE_MASK) != info->type ||
+            (p->type & MPP_BUFFER_TYPE_MASK) >= MPP_BUFFER_TYPE_BUTT ||
             p->mode != MPP_BUFFER_EXTERNAL) {
             mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d\n",
                     p->type, info->type, p->mode);
@@ -259,7 +260,7 @@ MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBuffe
 {
     if (NULL == group ||
         mode >= MPP_BUFFER_MODE_BUTT ||
-        type >= MPP_BUFFER_TYPE_BUTT) {
+        (type & MPP_BUFFER_TYPE_MASK) >= MPP_BUFFER_TYPE_BUTT) {
         mpp_err_f("input invalid group %p mode %d type %d\n",
                   group, mode, type);
         return MPP_ERR_UNKNOW;

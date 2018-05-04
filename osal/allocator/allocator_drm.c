@@ -78,6 +78,7 @@ static inline void *drm_mmap(void *addr, size_t length, int prot, int flags,
 typedef struct {
     RK_U32  alignment;
     RK_S32  drm_device;
+    RK_U32  flags;
 } allocator_ctx_drm;
 
 static const char *dev_drm = "/dev/dri/card0";
@@ -144,7 +145,7 @@ static int drm_fd_to_handle(int fd, int map_fd, RK_U32 *handle, RK_U32 flags)
     return ret;
 }
 
-static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle)
+static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 flags)
 {
     int ret;
     struct drm_mode_create_dumb dmcb;
@@ -155,6 +156,7 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle)
     dmcb.bpp = 8;
     dmcb.width = (len + align - 1) & (~(align - 1));
     dmcb.height = 1;
+    dmcb.flags = flags;
 
     if (handle == NULL)
         return -EINVAL;
@@ -179,7 +181,7 @@ static int drm_free(int fd, RK_U32 handle)
     return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
 }
 
-static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
+static MPP_RET os_allocator_drm_open(void **ctx, MppAllocatorCfg *cfg)
 {
     RK_S32 fd;
     allocator_ctx_drm *p;
@@ -212,7 +214,8 @@ static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment)
         /*
          * default drm use cma, do nothing here
          */
-        p->alignment    = alignment;
+        p->alignment    = cfg->alignment;
+        p->flags        = cfg->flags;
         p->drm_device   = fd;
         *ctx = p;
     }
@@ -235,7 +238,7 @@ static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
     p = (allocator_ctx_drm *)ctx;
     drm_dbg(DRM_FUNCTION, "alignment %d size %d", p->alignment, info->size);
     ret = drm_alloc(p->drm_device, info->size, p->alignment,
-                    (RK_U32 *)&info->hnd);
+                    (RK_U32 *)&info->hnd, p->flags);
     if (ret) {
         mpp_err("os_allocator_drm_alloc drm_alloc failed ret %d\n", ret);
         return ret;

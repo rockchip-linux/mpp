@@ -644,6 +644,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
                                                 MppBufferMode mode, MppBufferType type,
                                                 RK_U32 is_misc)
 {
+    MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
     if (NULL == p) {
         mpp_err("MppBufferService failed to allocate group context\n");
@@ -670,7 +671,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     }
     p->caller   = caller;
     p->mode     = mode;
-    p->type     = type;
+    p->type     = buffer_type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
     p->group_id = id;
     p->clear_on_exit = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
@@ -680,10 +681,10 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     buffer_group_add_log(p, NULL, GRP_CREATE, __FUNCTION__);
 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
-    mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
+    mpp_assert(buffer_type < MPP_BUFFER_TYPE_BUTT);
 
     if (is_misc) {
-        misc[mode][type] = p;
+        misc[mode][buffer_type] = p;
         misc_count++;
     }
 
@@ -692,6 +693,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
 
 MppBufferGroupImpl *MppBufferService::get_misc(MppBufferMode mode, MppBufferType type)
 {
+    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     if (type == MPP_BUFFER_TYPE_NORMAL)
         return NULL;
 
@@ -703,6 +705,7 @@ MppBufferGroupImpl *MppBufferService::get_misc(MppBufferMode mode, MppBufferType
 
 void MppBufferService::set_misc(MppBufferMode mode, MppBufferType type, MppBufferGroupImpl *val)
 {
+    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     if (type == MPP_BUFFER_TYPE_NORMAL)
         return ;
 

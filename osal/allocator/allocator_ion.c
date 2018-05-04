@@ -267,7 +267,7 @@ static RK_S32 ion_heap_id = -1;
 static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
 static pthread_mutex_t lock;
 
-static MPP_RET allocator_ion_open(void **ctx, size_t alignment)
+static MPP_RET allocator_ion_open(void **ctx, MppAllocatorCfg *cfg)
 {
     RK_S32 fd;
     allocator_ctx_ion *p;
@@ -329,7 +329,7 @@ static MPP_RET allocator_ion_open(void **ctx, size_t alignment)
             mpp_log("using ion heap %s\n", heap_name);
         }
         pthread_mutex_unlock(&lock);
-        p->alignment    = alignment;
+        p->alignment    = cfg->alignment;
         p->ion_device   = fd;
         *ctx = p;
     }

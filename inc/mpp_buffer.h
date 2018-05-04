@@ -155,6 +155,27 @@ typedef enum {
     MPP_BUFFER_TYPE_BUTT,
 } MppBufferType;
 
+#define MPP_BUFFER_TYPE_MASK            0x0000FFFF
+
+/*
+ * MPP_BUFFER_FLAGS cooperate with MppBufferType
+ * 16 high bits of MppBufferType are used in flags
+ *
+ * eg:
+ * DRM CMA buffer : MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_CONTIG
+ *                  = 0x00010003
+ * DRM SECURE buffer: MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_SECURE
+ *                  = 0x00080003
+ *
+ * flags originate from drm_rockchip_gem_mem_type
+ */
+
+#define MPP_BUFFER_FLAGS_MASK           0x000f0000      //ROCKCHIP_BO_MASK << 16
+#define MPP_BUFFER_FLAGS_CONTIG         0x00010000      //ROCKCHIP_BO_CONTIG << 16
+#define MPP_BUFFER_FLAGS_CACHABLE       0x00020000      //ROCKCHIP_BO_CACHABLE << 16
+#define MPP_BUFFER_FLAGS_WC             0x00040000      //ROCKCHIP_BO_WC << 16
+#define MPP_BUFFER_FLAGS_SECURE         0x00080000      //ROCKCHIP_BO_SECURE << 16
+
 /*
  * MppBufferInfo variable's meaning is different in different MppBufferType
  *
