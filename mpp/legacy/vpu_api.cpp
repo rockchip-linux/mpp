@@ -230,15 +230,13 @@ public:
             rkvpu_close_cxt = (RK_S32 (*)(VpuCodecContext **ctx))
                               dlsym(rkapi_hdl, "vpu_close_context");
             mpp_log("dlopen vpu lib %s success\n", codec_paths[i]);
-        } else {
-            mpp_err("dlopen vpu lib failed\n");
         }
     }
 
     ~VpulibDlsym() {
         if (rkapi_hdl) {
             dlclose(rkapi_hdl);
-            mpp_log("dlclose vpu lib");
+            rkapi_hdl = NULL;
         }
     }
 };

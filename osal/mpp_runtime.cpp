@@ -125,10 +125,15 @@ MppRuntimeService::MppRuntimeService()
                         RK_S32 val = 0;
                         FILE *fp = fopen(path, "rb");
                         if (fp) {
-                            fread(&val, 1, 4, fp);
+                            size_t len = fread(&val, 1, 4, fp);
                             // zero for ion non-zero for drm ->
                             // zero     - disable drm
                             // non-zero - disable ion
+                            if (len != 4) {
+                                mpp_err("failed to read dts allocator value default 0\n");
+                                val = 0;
+                            }
+
                             if (val == 0) {
                                 allocator_valid[MPP_BUFFER_TYPE_DRM] = 0;
                                 mpp_log("found ion allocator in dts\n");

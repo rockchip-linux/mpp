@@ -23,6 +23,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 
 #include "rga.h"
 #include "rga_api.h"
