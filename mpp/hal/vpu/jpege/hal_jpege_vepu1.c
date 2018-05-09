@@ -115,7 +115,9 @@ MPP_RET hal_jpege_vepu1_deinit(void *hal)
     return ret;
 }
 
-static MPP_RET hal_jpege_vepu1_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax *syntax)
+static MPP_RET hal_jpege_vepu1_set_extra_info(RK_U32 *regs,
+                                              JpegeIocExtInfo *info,
+                                              JpegeSyntax *syntax)
 {
     if (info == NULL || syntax == NULL) {
         mpp_err_f("invalid input parameter!");
@@ -125,29 +127,40 @@ static MPP_RET hal_jpege_vepu1_set_extra_info(JpegeIocExtInfo *info, JpegeSyntax
     MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = syntax->hor_stride;
     RK_U32 ver_stride   = syntax->ver_stride;
-    JpegeIocExtInfoSlot *slot = NULL;
 
-    info->magic = EXTRA_INFO_MAGIC;
-    info->cnt = 2;
+    if (hor_stride * ver_stride * 5 / 4 >= SZ_4M) {
+        JpegeIocExtInfoSlot *slot = NULL;
 
-    if (fmt == MPP_FMT_YUV420P) {
-        slot = &(info->slots[0]);
-        slot->reg_idx = 12;
-        slot->offset = hor_stride * ver_stride;
+        info->magic = EXTRA_INFO_MAGIC;
+        info->cnt = 2;
 
-        slot = &(info->slots[1]);
-        slot->reg_idx = 13;
-        slot->offset = hor_stride * ver_stride * 5 / 4;
-    } else if (fmt == MPP_FMT_YUV420SP) {
-        slot = &(info->slots[0]);
-        slot->reg_idx = 12;
-        slot->offset = hor_stride * ver_stride;
+        if (fmt == MPP_FMT_YUV420P) {
+            slot = &(info->slots[0]);
+            slot->reg_idx = 12;
+            slot->offset = hor_stride * ver_stride;
 
-        slot = &(info->slots[1]);
-        slot->reg_idx = 13;
-        slot->offset = hor_stride * ver_stride;
+            slot = &(info->slots[1]);
+            slot->reg_idx = 13;
+            slot->offset = hor_stride * ver_stride * 5 / 4;
+        } else if (fmt == MPP_FMT_YUV420SP) {
+            slot = &(info->slots[0]);
+            slot->reg_idx = 12;
+            slot->offset = hor_stride * ver_stride;
+
+            slot = &(info->slots[1]);
+            slot->reg_idx = 13;
+            slot->offset = hor_stride * ver_stride;
+        } else {
+            mpp_log_f("other format(%d)\n", fmt);
+        }
     } else {
-        mpp_log_f("other format(%d)\n", fmt);
+        if (fmt == MPP_FMT_YUV420P) {
+            regs[12] += (hor_stride * ver_stride) << 10;
+            regs[13] += (hor_stride * ver_stride * 5 / 4) << 10;
+        } else if (fmt == MPP_FMT_YUV420SP) {
+            regs[12] += (hor_stride * ver_stride) << 10;
+            regs[13] += (hor_stride * ver_stride) << 10;
+        }
     }
 
     return MPP_OK;
@@ -199,8 +212,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     regs[11] = mpp_buffer_get_fd(input);
     regs[12] = mpp_buffer_get_fd(input);
     regs[13] = regs[12];
-
-    hal_jpege_vepu1_set_extra_info(extra_info, syntax);
+    hal_jpege_vepu1_set_extra_info(regs, extra_info, syntax);
 
     bitpos = jpege_bits_get_bitpos(bits);
     bytepos = (bitpos + 7) >> 3;
