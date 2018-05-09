@@ -31,14 +31,7 @@
 
 #include "utils.h"
 
-#include "vpu_api.h"
-
-#define MPI_ENC_IO_COUNT            (4)
 #define MAX_FILE_NAME_LENGTH        256
-
-#define MPI_ENC_TEST_SET_IDR_FRAME  0
-#define MPI_ENC_TEST_SET_OSD        0
-#define MPI_ENC_TEST_SET_ROI        1
 
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
@@ -73,16 +66,7 @@ typedef struct {
     MppEncCodecCfg codec_cfg;
 
     // input / output
-    MppBufferGroup frm_grp;
-    MppBufferGroup pkt_grp;
-    MppFrame  frame;
-    MppPacket packet;
-    MppBuffer frm_buf[MPI_ENC_IO_COUNT];
-    MppBuffer pkt_buf[MPI_ENC_IO_COUNT];
-    MppBuffer md_buf[MPI_ENC_IO_COUNT];
-    MppBuffer osd_idx_buf[MPI_ENC_IO_COUNT];
-    MppEncOSDPlt osd_plt;
-    MppEncROIRegion roi_region[3]; /* can be more regions */
+    MppBuffer frm_buf;
     MppEncSeiMode sei_mode;
 
     // paramter for resource malloc
@@ -98,20 +82,11 @@ typedef struct {
     size_t frame_size;
     /* NOTE: packet buffer may overflow */
     size_t packet_size;
-    /* 32bits for each 16x16 block */
-    size_t mdinfo_size;
-    /* osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes). for general use, 1/8 Y buffer is enough. */
-    size_t osd_idx_size;
-    RK_U32 plt_table[8];
 
     // rate control runtime parameter
     RK_S32 gop;
     RK_S32 fps;
     RK_S32 bps;
-    RK_S32 qp_min;
-    RK_S32 qp_max;
-    RK_S32 qp_step;
-    RK_S32 qp_init;
 } MpiEncTestData;
 
 static OptionInfo mpi_enc_cmd[] = {
@@ -124,41 +99,6 @@ static OptionInfo mpi_enc_cmd[] = {
     {"n",               "max frame number",     "max encoding frame number"},
     {"d",               "debug",                "debug flag"},
 };
-
-static MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
-{
-    RK_U32 k = 0, buf_size = 0;
-    RK_U8 data = 0;
-
-    osd_data->num_region = 8;
-    osd_data->buf = osd_buf;
-    for (k = 0; k < osd_data->num_region; k++) {
-        osd_data->region[k].enable = 1;
-        osd_data->region[k].inverse = frame_cnt & 1;
-        osd_data->region[k].start_mb_x = k * 3;
-        osd_data->region[k].start_mb_y = k * 2;
-        osd_data->region[k].num_mb_x = 2;
-        osd_data->region[k].num_mb_y = 2;
-
-        buf_size = osd_data->region[k].num_mb_x * osd_data->region[k].num_mb_y * 256;
-        osd_data->region[k].buf_offset = k * buf_size;
-
-        data = k;
-        memset((RK_U8 *)mpp_buffer_get_ptr(osd_data->buf) + osd_data->region[k].buf_offset, data, buf_size);
-    }
-
-    return MPP_OK;
-}
-
-static MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table)
-{
-    RK_U32 k = 0;
-    if (osd_plt->buf) {
-        for (k = 0; k < 256; k++)
-            osd_plt->buf[k] = table[k % 8];
-    }
-    return MPP_OK;
-}
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
 {
@@ -184,6 +124,8 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     p->ver_stride   = MPP_ALIGN(cmd->height, 16);
     p->fmt          = cmd->format;
     p->type         = cmd->type;
+    if (cmd->type == MPP_VIDEO_CodingMJPEG)
+        cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
 
     if (cmd->have_input) {
@@ -212,21 +154,6 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     } else
         p->frame_size = p->hor_stride * p->ver_stride * 4;
     p->packet_size  = p->width * p->height;
-    //NOTE: hor_stride should be 16-MB aligned
-    p->mdinfo_size  = (((p->hor_stride + 255) & (~255)) / 16) * (p->ver_stride / 16) * 4;
-    /*
-     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
-     * for general use, 1/8 Y buffer is enough.
-     */
-    p->osd_idx_size  = p->hor_stride * p->ver_stride / 8;
-    p->plt_table[0] = MPP_ENC_OSD_PLT_WHITE;
-    p->plt_table[1] = MPP_ENC_OSD_PLT_YELLOW;
-    p->plt_table[2] = MPP_ENC_OSD_PLT_CYAN;
-    p->plt_table[3] = MPP_ENC_OSD_PLT_GREEN;
-    p->plt_table[4] = MPP_ENC_OSD_PLT_TRANS;
-    p->plt_table[5] = MPP_ENC_OSD_PLT_RED;
-    p->plt_table[6] = MPP_ENC_OSD_PLT_BLUE;
-    p->plt_table[7] = MPP_ENC_OSD_PLT_BLACK;
 
 RET:
     *data = p;
@@ -259,116 +186,6 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
     return MPP_OK;
 }
 
-MPP_RET test_res_init(MpiEncTestData *p)
-{
-    RK_U32 i;
-    MPP_RET ret;
-
-    mpp_assert(p);
-
-    ret = mpp_buffer_group_get_internal(&p->frm_grp, MPP_BUFFER_TYPE_ION);
-    if (ret) {
-        mpp_err("failed to get buffer group for input frame ret %d\n", ret);
-        goto RET;
-    }
-
-    ret = mpp_buffer_group_get_internal(&p->pkt_grp, MPP_BUFFER_TYPE_ION);
-    if (ret) {
-        mpp_err("failed to get buffer group for output packet ret %d\n", ret);
-        goto RET;
-    }
-
-    for (i = 0; i < MPI_ENC_IO_COUNT; i++) {
-        ret = mpp_buffer_get(p->frm_grp, &p->frm_buf[i], p->frame_size);
-        if (ret) {
-            mpp_err("failed to get buffer for input frame ret %d\n", ret);
-            goto RET;
-        }
-
-        ret = mpp_buffer_get(p->frm_grp, &p->osd_idx_buf[i], p->osd_idx_size);
-        if (ret) {
-            mpp_err("failed to get buffer for osd idx buf ret %d\n", ret);
-            goto RET;
-        }
-
-        ret = mpp_buffer_get(p->pkt_grp, &p->pkt_buf[i], p->packet_size);
-        if (ret) {
-            mpp_err("failed to get buffer for input frame ret %d\n", ret);
-            goto RET;
-        }
-
-        ret = mpp_buffer_get(p->pkt_grp, &p->md_buf[i], p->mdinfo_size);
-        if (ret) {
-            mpp_err("failed to get buffer for motion detection info ret %d\n", ret);
-            goto RET;
-        }
-    }
-RET:
-    return ret;
-}
-
-MPP_RET test_res_deinit(MpiEncTestData *p)
-{
-    RK_U32 i;
-
-    mpp_assert(p);
-
-    for (i = 0; i < MPI_ENC_IO_COUNT; i++) {
-        if (p->frm_buf[i]) {
-            mpp_buffer_put(p->frm_buf[i]);
-            p->frm_buf[i] = NULL;
-        }
-
-        if (p->pkt_buf[i]) {
-            mpp_buffer_put(p->pkt_buf[i]);
-            p->pkt_buf[i] = NULL;
-        }
-
-        if (p->md_buf[i]) {
-            mpp_buffer_put(p->md_buf[i]);
-            p->md_buf[i] = NULL;
-        }
-
-        if (p->osd_idx_buf[i]) {
-            mpp_buffer_put(p->osd_idx_buf[i]);
-            p->osd_idx_buf[i] = NULL;
-        }
-    }
-
-    if (p->frm_grp) {
-        mpp_buffer_group_put(p->frm_grp);
-        p->frm_grp = NULL;
-    }
-
-    if (p->pkt_grp) {
-        mpp_buffer_group_put(p->pkt_grp);
-        p->pkt_grp = NULL;
-    }
-
-    return MPP_OK;
-}
-
-MPP_RET test_mpp_init(MpiEncTestData *p)
-{
-    MPP_RET ret;
-
-    if (NULL == p)
-        return MPP_ERR_NULL_PTR;
-
-    ret = mpp_create(&p->ctx, &p->mpi);
-    if (ret) {
-        mpp_err("mpp_create failed ret %d\n", ret);
-        goto RET;
-    }
-
-    ret = mpp_init(p->ctx, MPP_CTX_ENC, p->type);
-    if (ret)
-        mpp_err("mpp_init failed ret %d\n", ret);
-
-RET:
-    return ret;
-}
-
 MPP_RET test_mpp_setup(MpiEncTestData *p)
 {
     MPP_RET ret;
@@ -391,7 +208,6 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     p->fps = 30;
     p->gop = 60;
     p->bps = p->width * p->height / 8 * p->fps;
-    p->qp_init  = (p->type == MPP_VIDEO_CodingMJPEG) ? (10) : (26);
 
     prep_cfg->change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                               MPP_ENC_PREP_CFG_CHANGE_ROTATION |
@@ -455,8 +271,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     case MPP_VIDEO_CodingAVC : {
         codec_cfg->h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
                                  MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                                 MPP_ENC_H264_CFG_CHANGE_TRANS_8x8 |
-                                 MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+                                 MPP_ENC_H264_CFG_CHANGE_TRANS_8x8;
         /*
          * H.264 profile_idc parameter
          * 66  - Baseline profile
@@ -476,36 +291,10 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.entropy_coding_mode  = 1;
         codec_cfg->h264.cabac_init_idc  = 0;
         codec_cfg->h264.transform8x8_mode = 1;
-
-        if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
-            /* constant bitrate do not limit qp range */
-            p->qp_max   = 48;
-            p->qp_min   = 4;
-            p->qp_step  = 16;
-            p->qp_init  = 0;
-        } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
-            if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
-                /* constant QP mode qp is fixed */
-                p->qp_max   = p->qp_init;
-                p->qp_min   = p->qp_init;
-                p->qp_step  = 0;
-            } else {
-                /* variable bitrate has qp min limit */
-                p->qp_max   = 40;
-                p->qp_min   = 12;
-                p->qp_step  = 8;
-                p->qp_init  = 0;
-            }
-        }
-
-        codec_cfg->h264.qp_max      = p->qp_max;
-        codec_cfg->h264.qp_min      = p->qp_min;
-        codec_cfg->h264.qp_max_step = p->qp_step;
-        codec_cfg->h264.qp_init     = p->qp_init;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         codec_cfg->jpeg.change  = MPP_ENC_JPEG_CFG_CHANGE_QP;
-        codec_cfg->jpeg.quant   = p->qp_init;
+        codec_cfg->jpeg.quant   = 10;
     } break;
     case MPP_VIDEO_CodingVP8 :
     case MPP_VIDEO_CodingHEVC :
@@ -527,51 +316,6 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         goto RET;
     }
 
-    /* gen and cfg osd plt */
-    mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
-#if MPI_ENC_TEST_SET_OSD
-    ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt);
-    if (ret) {
-        mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
-        goto RET;
-    }
-#endif
-
-RET:
-    return ret;
-}
-
-/*
- * write header here
- */
-MPP_RET test_mpp_preprare(MpiEncTestData *p)
-{
-    MPP_RET ret;
-    MppApi *mpi;
-    MppCtx ctx;
-    MppPacket packet = NULL;
-
-    if (NULL == p)
-        return MPP_ERR_NULL_PTR;
-
-    mpi = p->mpi;
-    ctx = p->ctx;
-    ret = mpi->control(ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
-    if (ret) {
-        mpp_err("mpi control enc get extra info failed\n");
-        goto RET;
-    }
-
-    /* get and write sps/pps for H.264 */
-    if (packet) {
-        void *ptr   = mpp_packet_get_pos(packet);
-        size_t len  = mpp_packet_get_length(packet);
-
-        if (p->fp_output)
-            fwrite(ptr, 1, len, p->fp_output);
-
-        packet = NULL;
-    }
 RET:
     return ret;
 }
@@ -581,8 +325,6 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
     MPP_RET ret;
     MppApi *mpi;
     MppCtx ctx;
-    MppPacket packet = NULL;
-    RK_S32 i;
 
     if (NULL == p)
         return MPP_ERR_NULL_PTR;
@@ -590,31 +332,30 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
     mpi = p->mpi;
     ctx = p->ctx;
 
-    ret = mpp_frame_init(&p->frame);
-    if (ret) {
-        mpp_err_f("mpp_frame_init failed\n");
-        goto RET;
+    if (p->type == MPP_VIDEO_CodingAVC) {
+        MppPacket packet = NULL;
+        ret = mpi->control(ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
+        if (ret) {
+            mpp_err("mpi control enc get extra info failed\n");
+            goto RET;
+        }
+
+        /* get and write sps/pps for H.264 */
+        if (packet) {
+            void *ptr   = mpp_packet_get_pos(packet);
+            size_t len  = mpp_packet_get_length(packet);
+
+            if (p->fp_output)
+                fwrite(ptr, 1, len, p->fp_output);
+
+            packet = NULL;
+        }
     }
 
-    mpp_frame_set_width(p->frame, p->width);
-    mpp_frame_set_height(p->frame, p->height);
-    mpp_frame_set_hor_stride(p->frame, p->hor_stride);
-    mpp_frame_set_ver_stride(p->frame, p->ver_stride);
-    mpp_frame_set_fmt(p->frame, p->fmt);
-
-    i = 0;
     while (!p->pkt_eos) {
-        MppTask task = NULL;
-        RK_S32 index = i++;
-        MppBuffer frm_buf_in  = p->frm_buf[index];
-        MppBuffer pkt_buf_out = p->pkt_buf[index];
-        MppBuffer md_info_buf = p->md_buf[index];
-        MppBuffer osd_data_buf = p->osd_idx_buf[index];
-        MppEncOSDData osd_data;
-        void *buf = mpp_buffer_get_ptr(frm_buf_in);
-
-        if (i == MPI_ENC_IO_COUNT)
-            i = 0;
+        MppFrame frame = NULL;
+        MppPacket packet = NULL;
+        void *buf = mpp_buffer_get_ptr(p->frm_buf);
 
         if (p->fp_input) {
             ret = read_yuv_image(buf, p->fp_input, p->width, p->height,
@@ -631,126 +372,51 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 goto RET;
         }
 
-        mpp_frame_set_buffer(p->frame, frm_buf_in);
-        mpp_frame_set_eos(p->frame, p->frm_eos);
-
-        mpp_packet_init_with_buffer(&packet, pkt_buf_out);
-
-        ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+        ret = mpp_frame_init(&frame);
         if (ret) {
-            mpp_err("mpp task input poll failed ret %d\n", ret);
+            mpp_err_f("mpp_frame_init failed\n");
             goto RET;
         }
 
-        ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);
-        if (ret || NULL == task) {
-            mpp_err("mpp task input dequeue failed ret %d task %p\n", ret, task);
-            goto RET;
-        }
+        mpp_frame_set_width(frame, p->width);
+        mpp_frame_set_height(frame, p->height);
+        mpp_frame_set_hor_stride(frame, p->hor_stride);
+        mpp_frame_set_ver_stride(frame, p->ver_stride);
+        mpp_frame_set_fmt(frame, p->fmt);
+        mpp_frame_set_buffer(frame, p->frm_buf);
+        mpp_frame_set_eos(frame, p->frm_eos);
 
-        mpp_task_meta_set_frame (task, KEY_INPUT_FRAME,  p->frame);
-        mpp_task_meta_set_packet(task, KEY_OUTPUT_PACKET, packet);
-        mpp_task_meta_set_buffer(task, KEY_MOTION_INFO, md_info_buf);
-
-        /* set idr frame */
-#if MPI_ENC_TEST_SET_IDR_FRAME
-        if (p->frame_count && p->frame_count % (p->gop / 4) == 0) {
-            ret = mpi->control(ctx, MPP_ENC_SET_IDR_FRAME, NULL);
-            if (MPP_OK != ret) {
-                mpp_err("mpi control enc set idr frame failed\n");
-                goto RET;
-            }
-        }
-#endif
-
-        /* gen and cfg osd plt */
-        mpi_enc_gen_osd_data(&osd_data, osd_data_buf, p->frame_count);
-#if MPI_ENC_TEST_SET_OSD
-        ret = mpi->control(ctx, MPP_ENC_SET_OSD_DATA_CFG, &osd_data);
-        if (MPP_OK != ret) {
-            mpp_err("mpi control enc set osd data failed\n");
-            goto RET;
-        }
-#endif
-
-#if MPI_ENC_TEST_SET_ROI
-        if (p->type == MPP_VIDEO_CodingAVC) {
-            MppEncROIRegion *region = p->roi_region;
-            MppEncROICfg roi_cfg;
-
-            /* calculated in pixels */
-            region->x = region->y = 64;
-            region->w = region->h = 128; /* 16-pixel aligned is better */
-            region->intra = 0;   /* flag of forced intra macroblock */
-            region->quality = 20; /* qp of macroblock */
-
-            region++;
-            region->x = region->y = 256;
-            region->w = region->h = 128; /* 16-pixel aligned is better */
-            region->intra = 1;   /* flag of forced intra macroblock */
-            region->quality = 25; /* qp of macroblock */
-
-            roi_cfg.number = 2;
-            roi_cfg.regions = p->roi_region;
-
-            ret = mpi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_cfg);
-            if (MPP_OK != ret) {
-                mpp_err("mpi control enc set roi data failed\n");
-                goto RET;
-            }
-        }
-#endif
-
-        ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
+        ret = mpi->encode_put_frame(ctx, frame);
         if (ret) {
-            mpp_err("mpp task input enqueue failed\n");
+            mpp_err("mpp encode put frame failed\n");
             goto RET;
         }
 
-        ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
+        ret = mpi->encode_get_packet(ctx, &packet);
         if (ret) {
-            mpp_err("mpp task output poll failed ret %d\n", ret);
+            mpp_err("mpp encode get packet failed\n");
             goto RET;
         }
 
-        ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task);
-        if (ret || NULL == task) {
-            mpp_err("mpp task output dequeue failed ret %d task %p\n", ret, task);
-            goto RET;
-        }
+        if (packet) {
+            // write packet to file here
+            void *ptr   = mpp_packet_get_pos(packet);
+            size_t len  = mpp_packet_get_length(packet);
 
-        if (task) {
-            MppFrame packet_out = NULL;
+            p->pkt_eos = mpp_packet_get_eos(packet);
 
-            mpp_task_meta_get_packet(task, KEY_OUTPUT_PACKET, &packet_out);
+            if (p->fp_output)
+                fwrite(ptr, 1, len, p->fp_output);
+            mpp_packet_deinit(&packet);
 
-            mpp_assert(packet_out == packet);
-            if (packet) {
-                // write packet to file here
-                void *ptr   = mpp_packet_get_pos(packet);
-                size_t len  = mpp_packet_get_length(packet);
-
-                p->pkt_eos = mpp_packet_get_eos(packet);
-
-                if (p->fp_output)
-                    fwrite(ptr, 1, len, p->fp_output);
-                mpp_packet_deinit(&packet);
-
-                mpp_log_f("encoded frame %d size %d\n", p->frame_count, len);
-                p->stream_size += len;
-
-                if (p->pkt_eos) {
-                    mpp_log("found last packet\n");
-                    mpp_assert(p->frm_eos);
-                }
-            }
+            mpp_log_f("encoded frame %d size %d\n", p->frame_count, len);
+            p->stream_size += len;
             p->frame_count++;
-        }
 
-        ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
-        if (ret) {
-            mpp_err("mpp task output enqueue failed\n");
-            goto RET;
+            if (p->pkt_eos) {
+                mpp_log("found last packet\n");
+                mpp_assert(p->frm_eos);
+            }
         }
 
         if (p->num_frames && p->frame_count >= p->num_frames) {
@@ -760,24 +426,9 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         if (p->frm_eos && p->pkt_eos)
             break;
     }
-
 RET:
-    if (p->frame) {
-        mpp_frame_deinit(&p->frame);
-        p->frame = NULL;
-    }
 
     return ret;
-}
-
-MPP_RET test_mpp_deinit(MpiEncTestData *p)
-{
-    if (p->ctx) {
-        mpp_destroy(p->ctx);
-        p->ctx = NULL;
-    }
-
-    return MPP_OK;
 }
 
 int mpi_enc_test(MpiEncTestCmd *cmd)
@@ -793,9 +444,9 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = test_res_init(p);
+    ret = mpp_buffer_get(NULL, &p->frm_buf, p->frame_size);
     if (ret) {
-        mpp_err_f("test resource init failed ret %d\n", ret);
+        mpp_err_f("failed to get buffer for input frame ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
@@ -803,21 +454,21 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
             p->width, p->height, p->type);
 
     // encoder demo
-    ret = test_mpp_init(p);
+    ret = mpp_create(&p->ctx, &p->mpi);
     if (ret) {
-        mpp_err_f("test mpp init failed ret %d\n", ret);
+        mpp_err("mpp_create failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_init(p->ctx, MPP_CTX_ENC, p->type);
+    if (ret) {
+        mpp_err("mpp_init failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
     ret = test_mpp_setup(p);
     if (ret) {
         mpp_err_f("test mpp setup failed ret %d\n", ret);
-        goto MPP_TEST_OUT;
-    }
-
-    ret = test_mpp_preprare(p);
-    if (ret) {
-        mpp_err_f("test mpp prepare failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
@@ -834,9 +485,15 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     }
 
 MPP_TEST_OUT:
-    test_mpp_deinit(p);
+    if (p->ctx) {
+        mpp_destroy(p->ctx);
+        p->ctx = NULL;
+    }
 
-    test_res_deinit(p);
+    if (p->frm_buf) {
+        mpp_buffer_put(p->frm_buf);
+        p->frm_buf = NULL;
+    }
 
     if (MPP_OK == ret)
         mpp_log("mpi_enc_test success total frame %d bps %lld\n",
@@ -989,6 +646,7 @@ static void mpi_enc_test_show_options(MpiEncTestCmd* cmd)
     mpp_log("output file name: %s\n", cmd->file_output);
     mpp_log("width      : %d\n", cmd->width);
     mpp_log("height     : %d\n", cmd->height);
+    mpp_log("format     : %d\n", cmd->format);
     mpp_log("type       : %d\n", cmd->type);
     mpp_log("debug flag : %x\n", cmd->debug);
 }
