@@ -92,6 +92,12 @@ static MPP_RET hal_jpege_init(void *hal, MppHalCfg *cfg)
 
     p_api = &ctx->hal_api;
 
+    // NOTE: rk3036 and rk3228 do NOT have jpeg encoder
+    if (NULL == mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingMJPEG)) {
+        mpp_err("SOC %s do NOT support jpeg encoding\n", mpp_get_soc_name());
+        return MPP_ERR_INIT;
+    }
+
     hw_flag = mpp_get_vcodec_type();
     if (hw_flag & HAVE_VPU2)
         hard_mode = VDPU2_MODE;

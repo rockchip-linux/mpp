@@ -341,6 +341,15 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
     RockchipSocType soc_type = MppPlatformService::get_instance()->get_soc_type();
 
     switch (soc_type) {
+    case ROCKCHIP_SOC_RK3036 : {
+        /* rk3036 do NOT have encoder */
+        if (type == MPP_CTX_ENC)
+            dev = NULL;
+        else if (coding == MPP_VIDEO_CodingHEVC && type == MPP_CTX_DEC)
+            dev = mpp_find_device(mpp_hevc_dev);
+        else
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
     case ROCKCHIP_SOC_RK3066 :
     case ROCKCHIP_SOC_RK3188 : {
         /* rk3066/rk3188 have vpu1 only */
@@ -381,11 +390,14 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
          * rk3228 have codec:
          * 1 - vpu2
          * 2 - RK H.264/H.265 4K decoder
+         * NOTE: rk3228 do NOT have jpeg encoder
          */
         if (type == MPP_CTX_DEC &&
             (coding == MPP_VIDEO_CodingAVC ||
              coding == MPP_VIDEO_CodingHEVC))
             dev = mpp_find_device(mpp_rkvdec_dev);
+        else if (type == MPP_CTX_ENC && coding == MPP_VIDEO_CodingMJPEG)
+            dev = NULL;
         else
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
