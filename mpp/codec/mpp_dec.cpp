@@ -143,7 +143,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 
     {
         RK_S32 index;
-        parser->lock(THREAD_RESET);
+        parser->lock(THREAD_CONTROL);
         task->status.curr_task_rdy = 0;
         task_dec->valid = 0;
         mpp_parser_reset(dec->parser);
@@ -184,8 +184,8 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
             task_dec->input = -1;
         }
         task->status.task_parsed_rdy = 0;
-        parser->unlock(THREAD_RESET);
-        parser->signal(THREAD_RESET);
+        parser->unlock(THREAD_CONTROL);
+        parser->signal(THREAD_CONTROL);
     }
 
     dec_task_init(task);
@@ -237,7 +237,7 @@ static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
     MppDec *dec = mpp->mDec;
     MppBufSlots frame_slots = dec->frame_slots;
 
-    mpp->mThreadHal->lock(THREAD_QUE_DISPLAY);
+    mpp->mThreadHal->lock(THREAD_OUTPUT);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         MppFrame frame = NULL;
         mpp_buf_slot_get_prop(frame_slots, index, SLOT_FRAME, &frame);
@@ -263,7 +263,7 @@ static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
 
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }
-    mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
+    mpp->mThreadHal->unlock(THREAD_OUTPUT);
 }
 
 static void mpp_dec_put_task(Mpp *mpp, DecTask *task)

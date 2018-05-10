@@ -645,7 +645,7 @@ MPP_RET Mpp::reset()
     mFrames->flush();
     mFrames->unlock();
 
-    mThreadCodec->lock(THREAD_RESET);
+    mThreadCodec->lock(THREAD_CONTROL);
 
     if (mType == MPP_CTX_DEC) {
         mpp_dec_reset(mDec);
@@ -654,12 +654,12 @@ MPP_RET Mpp::reset()
             mThreadCodec->lock();
             mThreadCodec->signal();
             mThreadCodec->unlock();
-            mThreadCodec->wait(THREAD_RESET);
+            mThreadCodec->wait(THREAD_CONTROL);
         }
     } else {
         mpp_enc_reset(mEnc);
     }
-    mThreadCodec->unlock(THREAD_RESET);
+    mThreadCodec->unlock(THREAD_CONTROL);
     return MPP_OK;
 }
 
