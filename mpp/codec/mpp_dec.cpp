@@ -150,12 +150,12 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         mpp_hal_reset(dec->hal);
         dec->reset_flag = 0;
         if (task->wait.info_change) {
-            mpp_log("reset add info change status");
+            mpp_log("reset add info change status\n");
             mpp_buf_slot_reset(frame_slots, task_dec->output);
 
         }
         if (task->status.task_parsed_rdy) {
-            mpp_log("task no send to hal que must clr current frame hal status");
+            mpp_log("task no send to hal que must clr current frame hal status\n");
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 index = task_dec->refer[i];
@@ -266,13 +266,15 @@ static void mpp_dec_push_display(Mpp *mpp, RK_U32 flag)
     mpp->mThreadHal->unlock(THREAD_QUE_DISPLAY);
 }
 
-static void mpp_dec_push_eos_task(Mpp *mpp, DecTask *task)
+static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
 {
     hal_task_hnd_set_info(task->hnd, &task->info);
     mpp->mThreadHal->lock();
     hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
-    mpp->mThreadHal->unlock();
+    mpp->mTaskPutCount++;
     mpp->mThreadHal->signal();
+    mpp->mThreadHal->unlock();
+    task->hnd = NULL;
 }
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
@@ -364,10 +366,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     * So here we try push eos task to hal, hal will push all frame to display then
     * push a eos frame to tell all frame decoded
     */
-    if (task_dec->flags.eos && !task_dec->valid) {
-        mpp_dec_push_eos_task(mpp, task);
-        task->hnd = NULL;
-    }
+    if (task_dec->flags.eos && !task_dec->valid)
+        mpp_dec_put_task(mpp, task);
 
     if (!task->status.curr_task_rdy)
         return MPP_NOK;
@@ -482,13 +482,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (mpp_buf_slot_is_changed(frame_slots)) {
         if (!task->status.info_task_gen_rdy) {
             task_dec->flags.info_change = 1;
-            hal_task_hnd_set_info(task->hnd, &task->info);
-            mpp->mThreadHal->lock();
-            hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
-            mpp->mThreadHal->unlock();
-            mpp->mThreadHal->signal();
-            mpp->mTaskPutCount++;
-            task->hnd = NULL;
+            mpp_dec_put_task(mpp, task);
             task->status.info_task_gen_rdy = 1;
             return MPP_ERR_STREAM;
         }
@@ -511,13 +505,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
          * all frame(s) to display, a frame of them with a eos flag will be
          * used to inform that all frame have decoded
          */
-        if (task_dec->flags.eos)
-            mpp_dec_push_eos_task(mpp, task);
-        else
+        if (task_dec->flags.eos) {
+            mpp_dec_put_task(mpp, task);
+        } else {
             hal_task_hnd_set_status(task->hnd, TASK_IDLE);
+            task->hnd = NULL;
+        }
 
-        mpp->mTaskPutCount++;
-        task->hnd = NULL;
         if (task->status.dec_pkt_copy_rdy) {
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             task->status.dec_pkt_copy_rdy = 0;
@@ -571,14 +565,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 12. send dxva output information and buffer information to hal thread
      *    combinate video codec dxva output and buffer information
      */
-    hal_task_hnd_set_info(task->hnd, &task->info);
-    mpp->mThreadHal->lock();
-    hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
-    mpp->mThreadHal->unlock();
-    mpp->mThreadHal->signal();
+    mpp_dec_put_task(mpp, task);
 
-    mpp->mTaskPutCount++;
-    task->hnd = NULL;
     task->status.dec_pkt_copy_rdy  = 0;
     task->status.curr_task_rdy  = 0;
     task->status.task_parsed_rdy = 0;
@@ -628,14 +616,14 @@ void *mpp_dec_parser_thread(void *data)
 
     }
 
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread is going to exit");
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread is going to exit\n");
     if (NULL != task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread exited");
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread exited\n");
     return NULL;
 }
 
@@ -743,7 +731,8 @@ void *mpp_dec_hal_thread(void *data)
         }
     }
 
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_hal_thread exited");
+    mpp_assert(mpp->mTaskPutCount == mpp->mTaskGetCount);
+    mpp_dbg(MPP_DBG_INFO, "mpp_dec_hal_thread exited\n");
     return NULL;
 }
 
