@@ -482,21 +482,26 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
             ctx->extradata      = mpp_packet_get_data(pkt);
         }
         pkt = NULL;
-    }
+    } else { /* MPP_CTX_DEC */
+        vpug.CodecType  = ctx->codecType;
+        vpug.ImgWidth   = ctx->width;
+        vpug.ImgHeight  = ctx->height;
 
-    vpug.CodecType  = ctx->codecType;
-    vpug.ImgWidth   = ctx->width;
-    vpug.ImgHeight  = ctx->height;
-
-    if (MPP_CTX_DEC == type)
         init_frame_info(ctx, mpp_ctx, mpi, &vpug);
 
-    if (extraData != NULL) {
-        mpp_packet_init(&pkt, extraData, extra_size);
-        mpp_packet_set_extra_data(pkt);
-        mpi->decode_put_packet(mpp_ctx, pkt);
-        mpp_packet_deinit(&pkt);
+        if (extraData != NULL) {
+            mpp_packet_init(&pkt, extraData, extra_size);
+            mpp_packet_set_extra_data(pkt);
+            mpi->decode_put_packet(mpp_ctx, pkt);
+            mpp_packet_deinit(&pkt);
+        }
+
+        RK_U32 flag = 0;
+        ret = mpi->control(mpp_ctx, MPP_DEC_SET_ENABLE_DEINTERLACE, &flag);
+        if (ret)
+            mpp_err_f("disable mpp deinterlace failed ret %d\n", ret);
     }
+
     init_ok = 1;
 
     vpu_api_dbg_func("leave\n");
@@ -1388,6 +1393,9 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 
     MpiCmd mpicmd = MPI_CMD_BUTT;
     switch (cmd) {
+    case VPU_API_ENABLE_DEINTERLACE : {
+        mpicmd = MPP_DEC_SET_ENABLE_DEINTERLACE;
+    } break;
     case VPU_API_ENC_SETCFG : {
         MppCodingType coding = (MppCodingType)ctx->videoCoding;
 
