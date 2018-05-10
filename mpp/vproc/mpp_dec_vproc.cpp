@@ -38,11 +38,14 @@
 
 #define VPROC_DBG_FUNCTION      (0x00000001)
 #define VPROC_DBG_STATUS        (0x00000002)
+#define VPROC_DBG_RESET         (0x00000004)
 
 #define vproc_dbg_func(fmt, ...)  \
     vproc_dbg_f(VPROC_DBG_FUNCTION, fmt, ## __VA_ARGS__);
 #define vproc_dbg_status(fmt, ...)  \
-    vproc_dbg_f(VPROC_DBG_FUNCTION, fmt, ## __VA_ARGS__);
+    vproc_dbg_f(VPROC_DBG_STATUS, fmt, ## __VA_ARGS__);
+#define vproc_dbg_reset(fmt, ...)  \
+    vproc_dbg_f(VPROC_DBG_RESET, fmt, ## __VA_ARGS__);
 
 RK_U32 vproc_debug = 0;
 
@@ -120,8 +123,10 @@ static void dec_vproc_reset_queue(MppDecVprocCtxImpl *ctx)
     RK_S32 index = -1;
     MPP_RET ret = MPP_OK;
 
+    vproc_dbg_reset("reset start\n");
     dec_vproc_clr_prev(ctx);
 
+    vproc_dbg_reset("reset loop start\n");
     // on reset just return all index
     do {
         ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DEINTERLACE);
@@ -139,10 +144,13 @@ static void dec_vproc_reset_queue(MppDecVprocCtxImpl *ctx)
     } while (ret == MPP_OK);
     mpp_assert(ctx->count == 0);
 
+    vproc_dbg_reset("reset loop done\n");
     thd->lock(THREAD_CONTROL);
     ctx->reset = 0;
+    vproc_dbg_reset("reset signal\n");
     thd->signal(THREAD_CONTROL);
     thd->unlock(THREAD_CONTROL);
+    vproc_dbg_reset("reset done\n");
 }
 
 static void dec_vproc_set_img_fmt(IepImg *img, MppFrame frm)
@@ -500,14 +508,17 @@ MPP_RET dec_vproc_reset(MppDecVprocCtx ctx)
 
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
     if (p->thd) {
+        // wait reset finished
+        p->thd->lock(THREAD_CONTROL);
+
         p->thd->lock();
         p->reset = 1;
         p->thd->signal();
         p->thd->unlock();
 
-        // wait reset finished
-        p->thd->lock(THREAD_CONTROL);
+        vproc_dbg_reset("reset contorl wait\n");
         p->thd->wait(THREAD_CONTROL);
+        vproc_dbg_reset("reset contorl done\n");
         p->thd->unlock(THREAD_CONTROL);
 
         mpp_assert(p->reset == 0);
