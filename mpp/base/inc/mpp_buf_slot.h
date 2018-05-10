@@ -130,7 +130,6 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count);
 RK_U32  mpp_buf_slot_is_changed(MppBufSlots slots);
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
 size_t  mpp_buf_slot_get_size(MppBufSlots slots);
-RK_S32  mpp_buf_slot_get_used_size(MppBufSlots slots);
 /*
  * called by parser
  *
@@ -208,10 +207,10 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
 
 // TODO: can be extended here
 typedef enum SlotQueueType_e {
-    QUEUE_OUTPUT,
-    QUEUE_DISPLAY,
-    QUEUE_DEINTERLACE,
-    QUEUE_COLOR_CONVERT,
+    QUEUE_OUTPUT,           // queue for mpp output to user
+    QUEUE_DISPLAY,          // queue for decoder output display
+    QUEUE_DEINTERLACE,      // queue for deinterlace process
+    QUEUE_COLOR_CONVERT,    // queue for color convertion process
     QUEUE_BUTT,
 } SlotQueueType;
 
@@ -239,15 +238,21 @@ typedef enum SlotsPropType_e {
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
+    SLOTS_POST_PROC,            // post-process enable flag
     SLOTS_PROP_BUTT,
 } SlotsPropType;
 
 typedef RK_U32 (*AlignFunc)(RK_U32 val);
 
 RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type);
+RK_S32  mpp_slots_get_used_count(MppBufSlots slots);
+RK_S32  mpp_slots_get_unused_count(MppBufSlots slots);
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val);
 MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index); //rest slot status when info_change no ok
+
+// special one for generate default frame to slot at index and return pointer
+MPP_RET mpp_buf_slot_default_info(MppBufSlots slots, RK_S32 index, void *val);
 
 #ifdef __cplusplus
 }
