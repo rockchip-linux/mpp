@@ -205,10 +205,12 @@ private:
     Condition       mCondition;
 };
 
+// Thread lock / signal is distinguished by its source
 typedef enum MppThreadSignal_e {
-    THREAD_WORK,
-    THREAD_RESET,
-    THREAD_QUE_DISPLAY,
+    THREAD_WORK,        // for working loop
+    THREAD_INPUT,       // for thread input
+    THREAD_OUTPUT,      // for thread output
+    THREAD_CONTROL,     // for thread async control (reset)
     THREAD_SIGNAL_BUTT,
 } MppThreadSignal;
 
