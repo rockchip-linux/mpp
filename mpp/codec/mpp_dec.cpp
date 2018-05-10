@@ -1117,7 +1117,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         RK_S32 *p = (RK_S32 *)param;
-        *p = mpp_buf_slot_get_used_size(dec->frame_slots);
+        *p = mpp_slots_get_used_count(dec->frame_slots);
     } break;
     case MPP_DEC_SET_DISABLE_ERROR: {
         dec->disable_error = *((RK_U32 *)param);
