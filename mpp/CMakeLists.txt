@@ -14,6 +14,7 @@ include_directories(base/inc)
 include_directories(codec/inc)
 include_directories(hal/inc)
 include_directories(hal/common)
+include_directories(vproc/inc)
 
 # ----------------------------------------------------------------------------
 # add mpp base component
@@ -51,7 +52,7 @@ set(MPP_ABI_VERSION "1")
 add_library(${MPP_STATIC} STATIC ${MPP_SRC})
 set_target_properties(${MPP_STATIC} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_STATIC} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(${MPP_STATIC} mpp_base mpp_codec mpp_hal)
+target_link_libraries(${MPP_STATIC} mpp_base mpp_codec mpp_hal mpp_vproc)
 
 add_library(${MPP_SHARED} SHARED ${MPP_SRC})
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
