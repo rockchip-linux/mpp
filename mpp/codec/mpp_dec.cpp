@@ -1123,7 +1123,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         dec->disable_error = *((RK_U32 *)param);
     } break;
     case MPP_DEC_SET_PRESENT_TIME_ORDER: {
-        dec->use_preset_time_order = *((RK_U32 *)param);
+        dec->use_preset_time_order = (param) ? (*((RK_U32 *)param)) : (1);
     } break;
     default : {
     } break;
