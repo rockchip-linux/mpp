@@ -24,6 +24,8 @@
 #include "mpp_frame.h"
 #include "mpp_env.h"
 
+#define VPU_BITSTREAM_START_CODE (0x42564b52)  /* RKVB, rockchip video bitstream */
+
 RK_U32 m2vd_debug = 0x0;
 
 static RK_U8 scanOrder[2][64] = {
@@ -368,29 +370,6 @@ MPP_RET m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 *   prepare
 ***********************************************************************
 */
-
-static MPP_RET m2vd_parser_split_frame(RK_U8 *src, RK_U32 src_size,
-                                       RK_U8 *dst, RK_U32 *dst_size)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 val = 0;
-    val = *((RK_U32*)src);
-
-#define VPU_BITSTREAM_START_CODE (0x42564b52)  /* RKVB, rockchip video bitstream */
-
-    if (VPU_BITSTREAM_START_CODE == val) { // if input data is rk format styl skip those 32 byte
-        memcpy(dst, src + 32, src_size - 32);
-        *dst_size = src_size - 32;
-    } else {
-        memcpy(dst, src, src_size);
-        *dst_size = src_size;
-    }
-
-    (void)dst;
-
-    return ret;
-}
-
 MPP_RET mpp_m2vd_parser_split(M2VDParserContext *ctx, MppPacket dst, MppPacket src)
 {
     MPP_RET ret = MPP_NOK;
@@ -508,14 +487,18 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     }
 
     if (!p->need_split) {
-        memcpy(p->bitstream_sw_buf, pos, length);
-        mpp_packet_set_pos(p->input_packet, p->bitstream_sw_buf);
-        mpp_packet_set_length(p->input_packet, length);
-        mpp_packet_set_pos(pkt, pos + length);
-        p->pts = mpp_packet_get_pts(pkt);
-        p->eos = mpp_packet_get_eos(pkt);
+        RK_U32 *val = (RK_U32 *)mpp_packet_get_pos(pkt);
+        /* if input data is rk format styl skip those 32 byte */
+        RK_S32 offset = (VPU_BITSTREAM_START_CODE == val[0]) ? 32 : 0;
+        memcpy(p->bitstream_sw_buf, pos + offset, length - offset);
+
+        mpp_packet_set_length(p->input_packet, length - offset);
+        mpp_packet_set_data(p->input_packet, p->bitstream_sw_buf);
+        mpp_packet_set_size(p->input_packet, p->max_stream_size);
+
 
         task->valid = 1;
+        mpp_packet_set_length(pkt, 0);
     } else {
         if (MPP_OK == mpp_m2vd_parser_split(p, p->input_packet, pkt)) {
             p->left_length = 0;
@@ -524,9 +507,12 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             task->valid = 0;
             p->left_length = mpp_packet_get_length(p->input_packet);
         }
-
         p->pts = mpp_packet_get_pts(p->input_packet);
         p->eos = mpp_packet_get_eos(p->input_packet);
+    }
+
+    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+        mpp_packet_set_extra_data(p->input_packet);
     }
 
     mpp_packet_set_pts(p->input_packet, p->pts);
