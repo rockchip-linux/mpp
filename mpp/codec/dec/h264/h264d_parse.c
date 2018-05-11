@@ -769,6 +769,7 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             p_strm->nalu_len = parse_nal_size(p_Inp->nal_size, p_strm->curdata);
             if (p_strm->nalu_len <= 0 ||  p_strm->nalu_len >= p_Inp->in_length) {
                 p_Cur->p_Dec->is_new_frame = 1;
+                p_Cur->p_Dec->have_slice_data = 0;
                 pkt_impl->length = 0;
                 p_Inp->in_length = 0;
                 p_strm->nalu_len = 0;
@@ -778,6 +779,16 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 p_strm->nalu_buf  = NULL;
                 goto __FAILED;
             }
+
+            p_strm->nalu_buf = p_strm->curdata + p_Inp->nal_size;
+            judge_is_new_frame(p_Cur, p_strm);
+            if (p_Cur->p_Dec->is_new_frame) {
+                p_Cur->p_Dec->have_slice_data = 0;
+                p_strm->startcode_found = 1;
+                p_strm->endcode_found = 0;
+                break;
+            }
+
             p_strm->curdata += p_Inp->nal_size;
             p_strm->nalu_offset += p_Inp->nal_size;
             pkt_impl->length -= p_Inp->nal_size;
@@ -800,14 +811,14 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
         if (p_Inp->in_length < p_Inp->nal_size) {
             p_Cur->p_Dec->is_new_frame = 1;
+            p_Cur->p_Dec->have_slice_data = 0;
             pkt_impl->length = 0;
             p_Inp->in_length = 0;
+            p_strm->nalu_len = 0;
             p_strm->nalu_offset = 0;
+            p_strm->startcode_found = 1;
+            p_strm->endcode_found = 0;
             p_strm->nalu_buf  = NULL;
-            break;
-        } else if ((p_strm->nalu_type == NALU_TYPE_SLICE)
-                   || (p_strm->nalu_type == NALU_TYPE_IDR)) {
-            p_Cur->p_Dec->is_new_frame = 1;
             break;
         }
     }
