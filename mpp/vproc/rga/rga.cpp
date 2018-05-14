@@ -346,7 +346,7 @@ MPP_RET rga_dup_field(RgaCtx ctx, MppFrame frame)
     request->src.act_h = height / 2;
 
     request->dst.yrgb_addr = 0;
-    request->dst.uv_addr = (RK_U32)ptr + h_str; // special process here
+    request->dst.uv_addr = (RK_U32)((uintptr_t)ptr) + h_str; // special process here
     request->dst.vir_w = h_str * 2;
     request->dst.vir_h = v_str / 2;
     request->dst.format = (RK_U32)fmt;
