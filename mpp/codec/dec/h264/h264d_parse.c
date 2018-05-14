@@ -738,8 +738,7 @@ MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_strm->nalu_buf = NULL;
     p_strm->startcode_found = 1;
 
-
-    return ret = MPP_OK;
+    ret = MPP_OK;
 __FAILED:
     return ret;
 }
@@ -756,6 +755,7 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     H264dCurStream_t *p_strm = &p_Cur->strm;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
+    p_strm->nalu_buf = NULL;
     p_Inp->task_valid = 0;
     if (p_Inp->pkt_eos) {
         p_Inp->task_eos = 1;
@@ -823,7 +823,7 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_Cur->last_dts = p_Inp->in_dts;
         p_Cur->last_pts = p_Inp->in_pts;
     }
-
+    p_strm->nalu_buf = NULL;
     ret = MPP_OK;
 __FAILED:
     //p_strm->nalu_len = 0;
