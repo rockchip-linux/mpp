@@ -32,4 +32,5 @@ target_link_libraries(mpp_codec
                       ${CODEC_JPEGE}
                       codec_dummy_enc
                       codec_dummy_dec
+                      mpp_vproc
                       mpp_base)
