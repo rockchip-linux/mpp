@@ -956,7 +956,7 @@ MPP_RET mpp_buf_slot_default_info(MppBufSlots slots, RK_S32 index, void *val)
     *frame = slot->frame;
 
     slot_ops_with_log(impl, slot, SLOT_CLR_NOT_READY, NULL);
-    slot_ops_with_log(impl, slot, SLOT_SET_FRAME, NULL);
+    slot_ops_with_log(impl, slot, SLOT_SET_FRAME, slot->frame);
     return MPP_OK;
 }
 
