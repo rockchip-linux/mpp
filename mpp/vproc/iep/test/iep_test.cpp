@@ -551,7 +551,7 @@ int main(int argc, char **argv)
     pthread_join(td, NULL);
 
     if (info.ctx) {
-        iep_deinit(&info.ctx);
+        iep_deinit(info.ctx);
         info.ctx = NULL;
     }
 
