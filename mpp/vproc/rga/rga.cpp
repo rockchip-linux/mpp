@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
