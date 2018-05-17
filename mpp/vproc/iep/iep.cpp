@@ -117,10 +117,7 @@ MPP_RET iep_init(IepCtx *ctx)
     if (fd > 0)
         close(fd);
 
-    if (impl) {
-        mpp_free(impl);
-        impl = NULL;
-    }
+    MPP_FREE(impl);
 
     return MPP_NOK;
 }
@@ -395,6 +392,7 @@ MPP_RET iep_control(IepCtx ctx, IepCmd cmd, void *param)
         mpp_assert(param);
         // NOTE: only update which is used
         memcpy(&msg->dst, param, sizeof(IepImg));
+
         if (iep_debug & IEP_DBG_IMAGE) {
             mpp_log("setup dst\n");
             dump_iep_img((IepImg *)param);
@@ -421,6 +419,22 @@ MPP_RET iep_control(IepCtx ctx, IepCmd cmd, void *param)
             msg->dein_ei_radius     = dei_cfg->dei_ei_radius;
             msg->dein_ei_smooth     = dei_cfg->dei_ei_smooth;
             msg->dein_high_fre_fct  = dei_cfg->dei_high_freq_fct;
+        }
+        switch (msg->dein_mode) {
+        case IEP_DEI_MODE_DISABLE : {
+            msg->dein_mode = IEP_DEI_MODE_BYPASS;
+        } break;
+        case IEP_DEI_MODE_I2O1 :
+        case IEP_DEI_MODE_I4O1 :
+        case IEP_DEI_MODE_I4O2 : {
+            // for avoid hardware error we need to config src1 and dst1
+            if (!msg->src1.mem_addr)
+                memcpy(&msg->src1, &msg->src, sizeof(msg->src));
+            if (!msg->dst1.mem_addr)
+                memcpy(&msg->dst1, &msg->dst, sizeof(msg->dst));
+        } break;
+        default : {
+        } break;
         }
     } break;
     case IEP_CMD_SET_DEI_SRC1 : {
@@ -581,14 +595,13 @@ MPP_RET iep_control(IepCtx ctx, IepCmd cmd, void *param)
         check_msg_image(msg);
 
         int ops_ret = ioctl(impl->fd, IEP_SET_PARAMETER, msg);
-
-        if (ops_ret < 0) {
+        if (ops_ret < 0)
             mpp_err("pid %d ioctl IEP_SET_PARAMETER failure\n", impl->pid);
-        } else {
-            ops_ret = ioctl(impl->fd, IEP_GET_RESULT_SYNC, 0);
-            if (ops_ret)
-                mpp_err("pid %d get result failure\n", impl->pid);
-        }
+
+        // NOTE: force result sync to avoid iep task queue full
+        ops_ret = ioctl(impl->fd, IEP_GET_RESULT_SYNC, 0);
+        if (ops_ret)
+            mpp_err("pid %d get result failure\n", impl->pid);
 
         ret = (MPP_RET)ops_ret;
     } break;

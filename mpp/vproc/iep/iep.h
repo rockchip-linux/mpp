@@ -228,6 +228,9 @@ typedef struct IepMsg_t {
     RK_U8   dein_ei_sel;
     RK_U8   dein_ei_radius;         // when dein_ei_sel=0 will be used
 
+    RK_U8   dil_mtn_tbl_en;
+    RK_U32  dil_mtn_tbl[8];
+
     RK_U8   vir_addr_enable;
 
     void    *base;
