@@ -198,6 +198,7 @@ void Mpp::clear()
 
     if (mThreadCodec)
         mThreadCodec->stop();
+
     if (mThreadHal)
         mThreadHal->stop();
 
@@ -646,21 +647,11 @@ MPP_RET Mpp::reset()
     mFrames->flush();
     mFrames->unlock();
 
-    mThreadCodec->lock(THREAD_CONTROL);
-
     if (mType == MPP_CTX_DEC) {
         mpp_dec_reset(mDec);
-
-        if (mDec->coding != MPP_VIDEO_CodingMJPEG) {
-            mThreadCodec->lock();
-            mThreadCodec->signal();
-            mThreadCodec->unlock();
-            mThreadCodec->wait(THREAD_CONTROL);
-        }
     } else {
         mpp_enc_reset(mEnc);
     }
-    mThreadCodec->unlock(THREAD_CONTROL);
     return MPP_OK;
 }
 
