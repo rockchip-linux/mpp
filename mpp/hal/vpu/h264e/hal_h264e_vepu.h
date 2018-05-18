@@ -34,20 +34,12 @@
 
 #define BIT(n)  (1<<(n))
 
-#define     H264E_CABAC_TABLE_BUF_SIZE (52*2*464)
+#define H264E_CABAC_TABLE_BUF_SIZE          (52*2*464)
 
 typedef enum H264eVpuFrameType_t {
     H264E_VPU_FRAME_P = 0,
     H264E_VPU_FRAME_I = 1
 } H264eVpuFrameType;
-
-typedef struct H264eVpuDumpFiles_t {
-    FILE *fp_mpp_syntax_in;
-    FILE *fp_mpp_reg_in;
-    FILE *fp_mpp_reg_out;
-    FILE *fp_mpp_strm_out;
-    FILE *fp_mpp_feedback;
-} H264eVpuDumpFiles;
 
 /* struct for assemble bitstream */
 typedef struct H264eVpuStream_t {

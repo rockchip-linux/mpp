@@ -35,208 +35,6 @@
 
 static RK_U32 hal_vpu_h264e_debug = 0;
 
-#ifdef H264E_DUMP_DATA_TO_FILE
-static MPP_RET h264e_vpu_open_dump_files(void *dump_files)
-{
-    if (h264e_hal_log_mode & H264E_HAL_LOG_FILE) {
-        char base_path[512];
-        char full_path[512];
-        H264eVpuDumpFiles *files = (H264eVpuDumpFiles *)dump_files;
-        strcpy(base_path, "./");
-
-        sprintf(full_path, "%s%s", base_path, "mpp_syntax_in.txt");
-        files->fp_mpp_syntax_in = fopen(full_path, "wb");
-        if (!files->fp_mpp_syntax_in) {
-            mpp_err("%s open error", full_path);
-            return MPP_ERR_OPEN_FILE;
-        }
-
-        sprintf(full_path, "%s%s", base_path, "mpp_reg_in.txt");
-        files->fp_mpp_reg_in = fopen(full_path, "wb");
-        if (!files->fp_mpp_reg_in) {
-            mpp_err("%s open error", full_path);
-            return MPP_ERR_OPEN_FILE;
-        }
-
-        sprintf(full_path, "%s%s", base_path, "mpp_reg_out.txt");
-        files->fp_mpp_reg_out = fopen(full_path, "wb");
-        if (!files->fp_mpp_reg_out) {
-            mpp_err("%s open error", full_path);
-            return MPP_ERR_OPEN_FILE;
-        }
-
-        sprintf(full_path, "%s%s", base_path, "mpp_feedback.txt");
-        files->fp_mpp_feedback = fopen(full_path, "wb");
-        if (!files->fp_mpp_feedback) {
-            mpp_err("%s open error", full_path);
-            return MPP_ERR_OPEN_FILE;
-        }
-
-        sprintf(full_path, "%s%s", base_path, "mpp_strm_out.bin");
-        files->fp_mpp_strm_out = fopen(full_path, "wb");
-        if (!files->fp_mpp_strm_out) {
-            mpp_err("%s open error", full_path);
-            return MPP_ERR_OPEN_FILE;
-        }
-    }
-
-    return MPP_OK;
-}
-
-
-static MPP_RET h264e_vpu_close_dump_files(void *dump_files)
-{
-    H264eVpuDumpFiles *files = (H264eVpuDumpFiles *)dump_files;
-    H264E_HAL_FCLOSE(files->fp_mpp_syntax_in);
-    H264E_HAL_FCLOSE(files->fp_mpp_reg_in);
-    H264E_HAL_FCLOSE(files->fp_mpp_reg_out);
-    H264E_HAL_FCLOSE(files->fp_mpp_strm_out);
-    H264E_HAL_FCLOSE(files->fp_mpp_feedback);
-    return MPP_OK;
-}
-
-static void h264e_vpu_dump_mpp_syntax_in(H264eHwCfg *syn, H264eHalContext *ctx)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_syntax_in;
-    if (fp) {
-        RK_S32 k = 0;
-        fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
-        fprintf(fp, "%-16d %s\n", syn->frame_type, "frame_coding_type");
-        fprintf(fp, "%-16d %s\n", syn->slice_alpha_offset, "slice_alpha_offset");
-        fprintf(fp, "%-16d %s\n", syn->slice_beta_offset, "slice_beta_offset");
-        fprintf(fp, "%-16d %s\n", syn->filter_disable, "filter_disable");
-        fprintf(fp, "%-16d %s\n", syn->idr_pic_id, "idr_pic_id");
-        fprintf(fp, "%-16d %s\n", syn->frame_num, "frame_num");
-        fprintf(fp, "%-16d %s\n", syn->slice_size_mb_rows, "slice_size_mb_rows");
-        fprintf(fp, "%-16d %s\n", syn->inter4x4_disabled, "h264_inter4x4_disabled");
-        fprintf(fp, "%-16d %s\n", syn->qp, "qp");
-        fprintf(fp, "%-16d %s\n", syn->mad_qp_delta, "mad_qp_delta");
-        fprintf(fp, "%-16d %s\n", syn->mad_threshold, "mad_threshold");
-        fprintf(fp, "%-16d %s\n", syn->qp_min, "qp_min");
-        fprintf(fp, "%-16d %s\n", syn->qp_max, "qp_max");
-        fprintf(fp, "%-16d %s\n", syn->cp_distance_mbs, "cp_distance_mbs");
-        for (k = 0; k < 10; k++)
-            fprintf(fp, "%-16d cp_target[%d]\n", syn->cp_target[k], k);
-        for (k = 0; k < 7; k++)
-            fprintf(fp, "%-16d target_error[%d]\n", syn->target_error[k], k);
-        for (k = 0; k < 7; k++)
-            fprintf(fp, "%-16d delta_qp[%d]\n", syn->delta_qp[k], k);
-        fprintf(fp, "%-16d %s\n", syn->output_strm_limit_size, "output_strm_limit_size");
-        fprintf(fp, "%-16d %s\n", syn->width, "pic_luma_width");
-        fprintf(fp, "%-16d %s\n", syn->height, "pic_luma_height");
-        fprintf(fp, "0x%-14x %s\n", syn->input_luma_addr, "input_luma_addr");
-        fprintf(fp, "0x%-14x %s\n", syn->input_cb_addr, "input_cb_addr");
-        fprintf(fp, "0x%-16x %s\n", syn->input_cr_addr, "input_cr_addr");
-        fprintf(fp, "%-16d %s\n", syn->input_format, "input_image_format");
-
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_a, "color_conversion_coeff_a");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_b, "color_conversion_coeff_b");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_c, "color_conversion_coeff_c");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_e, "color_conversion_coeff_e");
-        fprintf(fp, "%-16d %s\n", syn->color_conversion_coeff_f, "color_conversion_coeff_f");
-
-        fprintf(fp, "\n");
-        fflush(fp);
-    } else {
-        mpp_log("try to dump data to mpp_syntax_in.txt, but file is not opened");
-    }
-}
-
-static void h264e_vpu_dump_mpp_reg_in(H264eHalContext *ctx)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_reg_in;
-    if (fp) {
-        RK_S32 k = 0;
-        RK_U32 *reg = (RK_U32 *)ctx->regs;
-        fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt);
-        for (k = 0; k < VEPU2_H264E_NUM_REGS; k++) {
-            fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
-            //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
-        }
-        fprintf(fp, "\n");
-    } else {
-        mpp_log("try to dump data to mpp_reg_in.txt, but file is not opened");
-    }
-}
-
-static void h264e_vpu_dump_mpp_reg_out(H264eHalContext *ctx)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_reg_out;
-    if (fp) {
-        RK_S32 k = 0;
-        RK_U32 *reg = (RK_U32 *)ctx->regs;
-        fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt - 1);
-        for (k = 0; k < VEPU2_H264E_NUM_REGS; k++) {
-            fprintf(fp, "reg[%03d/%03x]: %08x\n", k, k * 4, reg[k]);
-            //mpp_log("reg[%03d/%03x]: %08x", k, k*4, reg[k]);
-        }
-        fprintf(fp, "\n");
-    } else {
-        mpp_log("try to dump data to mpp_reg_in.txt, but file is not opened");
-    }
-}
-
-static void h264e_vpu_dump_mpp_feedback(H264eHalContext *ctx)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_feedback;
-    if (fp) {
-        RK_S32 k = 0;
-        h264e_feedback *fb = &ctx->feedback;
-        fprintf(fp, "#FRAME %d:\n", ctx->frame_cnt - 1);
-        fprintf(fp, "%-16d %s\n", fb->hw_status, "hw_status");
-        fprintf(fp, "%-16d %s\n", fb->out_strm_size, "out_strm_size");
-        fprintf(fp, "%-16d %s\n", fb->qp_sum, "qp_sum");
-        for (k = 0; k < 10; k++)
-            fprintf(fp, "%-16d cp[%d]\n", fb->cp[k], k);
-        fprintf(fp, "%-16d %s\n", fb->mad_count, "mad_count");
-        fprintf(fp, "%-16d %s\n", fb->rlc_count, "rlc_count");
-
-        fprintf(fp, "\n");
-        fflush(fp);
-    } else {
-        mpp_log("try to dump data to mpp_feedback.txt, but file is not opened");
-    }
-}
-
-static void h264e_vpu_dump_mpp_strm_out_header(H264eHalContext *ctx, MppPacket packet)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    void *ptr   = mpp_packet_get_data(packet);
-    size_t len  = mpp_packet_get_length(packet);
-    FILE *fp = dump_files->fp_mpp_strm_out;
-
-    if (fp) {
-        fwrite(ptr, 1, len, fp);
-        fflush(fp);
-    } else {
-        mpp_log("try to dump strm header to mpp_strm_out.txt, but file is not opened");
-    }
-}
-
-void h264e_vpu_dump_mpp_strm_out(H264eHalContext *ctx, MppBuffer hw_buf)
-{
-    H264eVpuDumpFiles *dump_files = (H264eVpuDumpFiles *)ctx->dump_files;
-    FILE *fp = dump_files->fp_mpp_strm_out;
-    if (fp && hw_buf) {
-        RK_U32 *reg_val = (RK_U32 *)ctx->regs;
-        RK_U32 strm_size = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8;
-
-        RK_U8 *hw_buf_vir_addr = (RK_U8 *)mpp_buffer_get_ptr(hw_buf);
-
-        mpp_log("strm_size: %d", strm_size);
-
-        fwrite(hw_buf_vir_addr, 1, strm_size, fp);
-        fflush(fp);
-    } else {
-        mpp_log("try to dump data to mpp_strm_out.txt, but file is not opened");
-    }
-}
-#endif
-
 MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
@@ -248,14 +46,10 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
     ctx->regs       = mpp_calloc(H264eVpu2RegSet, 1);
     ctx->buffers    = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(H264eVpuExtraInfo, 1);
-    ctx->dump_files = mpp_calloc(H264eVpuDumpFiles, 1);
     ctx->param_buf  = mpp_calloc_size(void,  H264E_EXTRA_INFO_BUF_SIZE);
     mpp_packet_init(&ctx->packeted_param, ctx->param_buf, H264E_EXTRA_INFO_BUF_SIZE);
 
     h264e_vpu_init_extra_info(ctx->extra_info);
-#ifdef H264E_DUMP_DATA_TO_FILE
-    h264e_vpu_open_dump_files(ctx->dump_files);
-#endif
 
 #ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
@@ -311,13 +105,6 @@ MPP_RET hal_h264e_vepu2_deinit(void *hal)
         ctx->inter_qs = NULL;
     }
 
-#ifdef H264E_DUMP_DATA_TO_FILE
-    if (ctx->dump_files) {
-        h264e_vpu_close_dump_files(ctx->dump_files);
-        MPP_FREE(ctx->dump_files);
-    }
-#endif
-
 #ifdef RKPLATFORM
     ret = mpp_device_deinit(ctx->dev_ctx);
     if (ret) {
@@ -352,9 +139,6 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 
     // generate parameter from config
     h264e_vpu_update_hw_cfg(ctx, enc_task, hw_cfg);
-#ifdef H264E_DUMP_DATA_TO_FILE
-    h264e_vpu_dump_mpp_syntax_in(hw_cfg, ctx);
-#endif
 
     // prepare buffer
     if (!ctx->buffer_ready) {
@@ -645,10 +429,6 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
           | VEPU_REG_ENCODE_ENABLE;
     H264E_HAL_SET_REG(reg, VEPU_REG_ENCODE_START, val);
 
-#ifdef H264E_DUMP_DATA_TO_FILE
-    h264e_vpu_dump_mpp_reg_in(ctx);
-#endif
-
     ctx->frame_cnt++;
     hw_cfg->frame_num++;
     if (hw_cfg->frame_type == H264E_VPU_FRAME_I)
@@ -662,30 +442,30 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 
 MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
 {
-    MPP_RET ret;
+    MPP_RET ret = MPP_OK;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     (void)task;
+
     h264e_hal_enter();
 #ifdef RKPLATFORM
     if (ctx->dev_ctx) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
         h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
         ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU2_H264E_NUM_REGS);
-        if (ret) {
-            mpp_err("mpp_device_send_reg Failed!!!");
-            return ret;
-        } else {
-            h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
-        }
+        if (ret)
+            mpp_err("mpp_device_send_reg failed ret %d", ret);
+        else
+            h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg success!");
     } else {
         mpp_err("invalid device ctx: %p", ctx->dev_ctx);
-        return MPP_NOK;
+        ret = MPP_NOK;
     }
-#endif
+#else
     (void)ctx;
+#endif
     h264e_hal_leave();
 
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET h264e_vpu_set_feedback(h264e_feedback *fb, H264eVpu2RegSet *reg)
@@ -699,6 +479,7 @@ static MPP_RET h264e_vpu_set_feedback(h264e_feedback *fb, H264eVpu2RegSet *reg)
     fb->mad_count = (reg_val[VEPU_REG_MB_CTRL / 4] >> 16) & 0xffff;
     fb->rlc_count = reg_val[VEPU_REG_RLC_SUM / 4] & 0x3fffff;
     fb->out_strm_size = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8;
+
     for (i = 0; i < 10; i++) {
         RK_U32 cpt = VEPU_REG_CHECKPOINT_RESULT(reg_val[cpt_idx]);
         if (cpt < cpt_prev)
@@ -739,9 +520,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 #endif
 
     h264e_vpu_set_feedback(fb, reg_out);
-#ifdef H264E_DUMP_DATA_TO_FILE
-    h264e_vpu_dump_mpp_feedback(ctx);
-#endif
+
     task->enc.length = fb->out_strm_size;
     if (int_cb.callBack) {
         RcSyntax *syn = (RcSyntax *)task->enc.syntax.data;
@@ -766,10 +545,6 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
         int_cb.callBack(int_cb.opaque, fb);
     }
 
-#ifdef H264E_DUMP_DATA_TO_FILE
-    h264e_vpu_dump_mpp_reg_out(ctx);
-    h264e_vpu_dump_mpp_strm_out(ctx, task->enc.output);
-#endif
     //h264e_vpu_dump_mpp_strm_out(ctx, NULL);
 
     h264e_hal_leave();
@@ -798,13 +573,13 @@ MPP_RET hal_h264e_vepu2_flush(void *hal)
 MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
+    MPP_RET ret = MPP_OK;
     h264e_hal_enter();
 
     h264e_hal_dbg(H264E_DBG_DETAIL, "h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
-        break;
-    }
+    } break;
     case MPP_ENC_GET_EXTRA_INFO: {
         MppPacket  pkt      = ctx->packeted_param;
         MppPacket *pkt_out  = (MppPacket *)param;
@@ -830,16 +605,10 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
         mpp_packet_set_length(pkt, offset);
 
         *pkt_out = pkt;
-#ifdef H264E_DUMP_DATA_TO_FILE
-        h264e_vpu_dump_mpp_strm_out_header(ctx, pkt);
-#endif
-        break;
-    }
-
+    } break;
     case MPP_ENC_SET_PREP_CFG : {
         MppEncPrepCfg *set = &ctx->set->prep;
         RK_U32 change = set->change;
-        MPP_RET ret = MPP_NOK;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             if ((set->width < 0 || set->width > 1920) ||
@@ -849,7 +618,7 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
                 mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
                         set->width, set->height,
                         set->hor_stride, set->ver_stride);
-                return ret;
+                ret = MPP_NOK;
             }
         }
 
@@ -858,7 +627,7 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
                  set->format >= MPP_FMT_YUV_BUTT) ||
                 set->format >= MPP_FMT_RGB_BUTT) {
                 mpp_err("invalid format %d\n", set->format);
-                return ret;
+                ret = MPP_NOK;
             }
         }
     } break;
@@ -925,25 +694,24 @@ MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
         dst->change |= change;
         src->change = 0;
     } break;
-
     case MPP_ENC_SET_OSD_PLT_CFG:
     case MPP_ENC_SET_OSD_DATA_CFG: {
-        mpp_err("hw vpu2 don't support osd cfg.\n");
-        return MPP_NOK;
-        break;
-    }
+        mpp_err("vepu2 do not support osd cfg\n");
+        ret = MPP_NOK;
+    } break;
     case MPP_ENC_SET_SEI_CFG: {
         ctx->sei_mode = *((MppEncSeiMode *)param);
-        break;
-    }
+    } break;
     case MPP_ENC_SET_ROI_CFG: {
-        break;
-    }
+        mpp_err("vepu2 do not support roi cfg\n");
+        ret = MPP_NOK;
+    } break;
     default : {
         mpp_err("unrecognizable cmd type %x", cmd_type);
+        ret = MPP_NOK;
     } break;
     }
 
     h264e_hal_leave();
-    return MPP_OK;
+    return ret;
 }

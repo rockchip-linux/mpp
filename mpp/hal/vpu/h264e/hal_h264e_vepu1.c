@@ -45,7 +45,6 @@ MPP_RET hal_h264e_vepu1_init(void *hal, MppHalCfg *cfg)
     ctx->regs = mpp_calloc(h264e_vepu1_reg_set, 1);
     ctx->buffers = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(H264eVpuExtraInfo, 1);
-    ctx->dump_files = mpp_calloc(H264eVpuDumpFiles, 1);
     ctx->param_buf  = mpp_calloc_size(void, H264E_EXTRA_INFO_BUF_SIZE);
     mpp_packet_init(&ctx->packeted_param, ctx->param_buf,
                     H264E_EXTRA_INFO_BUF_SIZE);
@@ -437,7 +436,7 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
             mpp_err("mpp_device_send_reg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
-            h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
+            h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg success!");
         }
     } else {
         mpp_err("invalid device ctx: %p", ctx->dev_ctx);
@@ -552,14 +551,14 @@ MPP_RET hal_h264e_vepu1_flush(void *hal)
 
 MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
 {
+    MPP_RET ret = MPP_OK;
     H264eHalContext *ctx = (H264eHalContext *)hal;
     h264e_hal_enter();
 
     h264e_hal_dbg(H264E_DBG_DETAIL, "hal_h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
     case MPP_ENC_SET_EXTRA_INFO: {
-        break;
-    }
+    } break;
     case MPP_ENC_GET_EXTRA_INFO: {
         size_t offset = 0;
         MppPacket  pkt      = ctx->packeted_param;
@@ -584,15 +583,10 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
         mpp_packet_set_length(pkt, offset);
 
         *pkt_out = pkt;
-#ifdef H264E_DUMP_DATA_TO_FILE
-        hal_h264e_vpu_dump_mpp_strm_out_header(ctx, pkt);
-#endif
-        break;
-    }
+    } break;
     case MPP_ENC_SET_PREP_CFG : {
         MppEncPrepCfg *set = &ctx->set->prep;
         RK_U32 change = set->change;
-        MPP_RET ret = MPP_NOK;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             if ((set->width < 0 || set->width > 1920) ||
@@ -602,7 +596,7 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
                 mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
                         set->width, set->height,
                         set->hor_stride, set->ver_stride);
-                return ret;
+                ret = MPP_NOK;
             }
         }
 
@@ -611,15 +605,13 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
                  set->format >= MPP_FMT_YUV_BUTT) ||
                 set->format >= MPP_FMT_RGB_BUTT) {
                 mpp_err("invalid format %d\n", set->format);
-                return ret;
+                ret = MPP_NOK;
             }
         }
-        break;
-    }
+    } break;
     case MPP_ENC_SET_RC_CFG : {
         // TODO: do rate control check here
-        break;
-    }
+    } break;
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncH264Cfg *src = &ctx->set->codec.h264;
         MppEncH264Cfg *dst = &ctx->cfg->codec.h264;
@@ -679,26 +671,25 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
          */
         dst->change |= change;
         src->change = 0;
-        break;
-    }
+    } break;
     case MPP_ENC_SET_OSD_PLT_CFG:
     case MPP_ENC_SET_OSD_DATA_CFG: {
-        mpp_err("hw vpu1 don't support osd cfg.\n");
-        return MPP_NOK;
-        break;
-    }
+        mpp_err("vepu1 do not support osd cfg\n");
+        ret = MPP_NOK;
+    } break;
     case MPP_ENC_SET_SEI_CFG: {
         ctx->sei_mode = *((MppEncSeiMode *)param);
-        break;
-    }
+    } break;
     case MPP_ENC_SET_ROI_CFG: {
-        break;
-    }
+        mpp_err("vepu1 do not support roi cfg\n");
+        ret = MPP_NOK;
+    } break;
     default : {
         mpp_err("unrecognizable cmd type %d", cmd_type);
+        ret = MPP_NOK;
     } break;
     }
 
     h264e_hal_leave();
-    return MPP_OK;
+    return ret;
 }
