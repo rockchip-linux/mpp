@@ -37,6 +37,7 @@ static RK_U32 mpp_dec_debug = 0;
 #define MPP_DEC_DBG_FUNCTION            (0x00000001)
 #define MPP_DEC_DBG_STATUS              (0x00000010)
 #define MPP_DEC_DBG_DETAIL              (0x00000020)
+#define MPP_DEC_DBG_RESET               (0x00000040)
 
 #define mpp_dec_dbg(flag, fmt, ...)     _mpp_dbg(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_dec_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
@@ -44,6 +45,7 @@ static RK_U32 mpp_dec_debug = 0;
 #define dec_dbg_func(fmt, ...)          mpp_dec_dbg_f(MPP_DEC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define dec_dbg_stauts(fmt, ...)        mpp_dec_dbg(MPP_DEC_DBG_STATUS, fmt, ## __VA_ARGS__)
 #define dec_dbg_detail(fmt, ...)        mpp_dec_dbg(MPP_DEC_DBG_DETAIL, fmt, ## __VA_ARGS__)
+#define dec_dbg_reset(fmt, ...)         mpp_dec_dbg(MPP_DEC_DBG_RESET, fmt, ## __VA_ARGS__)
 
 typedef union PaserTaskWait_u {
     RK_U32          val;
@@ -112,9 +114,8 @@ static void dec_task_init(DecTask *task)
  */
 static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
 {
-    if (dec->reset_flag) {
+    if (dec->reset_flag)
         return MPP_OK;
-    }
 
     if (task->wait.task_hnd ||
         /* Re-check */
@@ -130,50 +131,60 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
 
 static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
 {
-    MppThread *parser   = mpp->mThreadCodec;
+    MppThread *hal      = mpp->mThreadHal;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots  = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
     HalDecTask *task_dec = &task->info.dec;
 
-    if (!dec->parser_fast_mode) {
-        if (!task->status.prev_task_rdy) {
-            HalTaskHnd task_prev = NULL;
-            hal_task_get_hnd(tasks, TASK_PROC_DONE, &task_prev);
-            if (task_prev) {
-                task->status.prev_task_rdy  = 1;
-                hal_task_hnd_set_status(task_prev, TASK_IDLE);
-                task_prev = NULL;
-                task->wait.prev_task = 0;
-            } else {
-                msleep(5);
-                task->wait.prev_task = 1;
-                return MPP_NOK;
-            }
-        }
-    } else {
-        if (hal_task_check_empty(tasks, TASK_PROCESSING)) {
-            msleep(5);
-            return MPP_NOK;
-        }
+    dec_dbg_reset("wait hal processing\n");
+    /* wait hal thread reset done here */
+    while (hal_task_check_empty(tasks, TASK_PROCESSING)) {
+        AutoMutex autolock(hal->mutex(THREAD_CONTROL));
+        dec->hal_reset_done = 0;
+        hal->lock();
+        hal->signal();
+        hal->unlock();
+        hal->wait(THREAD_CONTROL);
     }
 
+    dec_dbg_reset("wait hal proc done\n");
+
+    while (hal_task_check_empty(tasks, TASK_PROC_DONE)) {
+        HalTaskHnd tmp = NULL;
+        hal_task_get_hnd(tasks, TASK_PROC_DONE, &tmp);
+        hal_task_hnd_set_status(tmp, TASK_IDLE);
+    }
+
+    dec_dbg_reset("check hal processing empty\n");
+
+    if (hal_task_check_empty(tasks, TASK_PROCESSING)) {
+        mpp_err_f("found task not processed put %d get %d\n",
+                  mpp->mTaskPutCount, mpp->mTaskGetCount);
+        mpp_abort();
+    }
+
+    // do parser reset process
     {
         RK_S32 index;
-        parser->lock(THREAD_CONTROL);
         task->status.curr_task_rdy = 0;
+        task->status.prev_task_rdy = 1;
         task_dec->valid = 0;
         mpp_parser_reset(dec->parser);
         mpp_hal_reset(dec->hal);
-        if (dec->vproc)
+        if (dec->vproc) {
+            dec_dbg_reset("reset vproc start\n");
             dec_vproc_reset(dec->vproc);
-        dec->reset_flag = 0;
-        if (task->wait.info_change) {
-            mpp_log("reset add info change status\n");
-            mpp_buf_slot_reset(frame_slots, task_dec->output);
-
+            dec_dbg_reset("reset vproc done\n");
         }
+
+        // wait hal thread reset ready
+        if (task->wait.info_change) {
+            mpp_log("reset at info change status\n");
+            mpp_buf_slot_reset(frame_slots, task_dec->output);
+        }
+
         if (task->status.task_parsed_rdy) {
             mpp_log("task no send to hal que must clr current frame hal status\n");
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -183,11 +194,13 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
         }
+
         if (dec->mpp_pkt_in) {
             mpp_packet_deinit(&dec->mpp_pkt_in);
             mpp->mPacketGetCount++;
             dec->mpp_pkt_in = NULL;
         }
+
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
             /* release extra ref in slot's MppBuffer */
             MppBuffer buffer = NULL;
@@ -196,17 +209,18 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
                 mpp_buffer_put(buffer);
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
+
         if (dec->use_preset_time_order) {
             mpp->mTimeStamps->flush();
         }
+
         if (task->status.dec_pkt_copy_rdy) {
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
         }
+
         task->status.task_parsed_rdy = 0;
-        parser->unlock(THREAD_CONTROL);
-        parser->signal(THREAD_CONTROL);
     }
 
     dec_task_init(task);
@@ -666,17 +680,12 @@ void *mpp_dec_parser_thread(void *data)
 
     dec_task_init(&task);
 
-    while (MPP_THREAD_RUNNING == parser->get_status()) {
-        /*
-         * wait for stream input
-         */
-        if (dec->reset_flag) {
-            if (reset_dec_task(mpp, &task))
-                continue;
-        }
+    while (1) {
+        {
+            AutoMutex autolock(parser->mutex());
+            if (MPP_THREAD_RUNNING != parser->get_status())
+                break;
 
-        parser->lock();
-        if (MPP_THREAD_RUNNING == parser->get_status()) {
             /*
              * parser thread need to wait at cases below:
              * 1. no task slot for output
@@ -685,11 +694,22 @@ void *mpp_dec_parser_thread(void *data)
              * 3. no buffer on analyzing output task
              */
             dec_dbg_stauts("%p wait status: 0x%08x\n", dec, task.wait.val);
+
             if (check_task_wait(dec, &task))
                 parser->wait();
+
             dec_dbg_stauts("%p done status: 0x%08x\n", dec, task.wait.val);
         }
-        parser->unlock();
+
+        if (dec->reset_flag) {
+            reset_dec_task(mpp, &task);
+
+            AutoMutex autolock(parser->mutex(THREAD_CONTROL));
+            dec->hal_reset_done = 0;
+            dec->reset_flag = 0;
+            parser->signal(THREAD_CONTROL);
+            continue;
+        }
 
         if (try_proc_dec_task(mpp, &task))
             continue;
@@ -711,7 +731,6 @@ void *mpp_dec_hal_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
-    MppThread *parser   = mpp->mThreadCodec;
     MppDec    *dec      = mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
@@ -721,14 +740,26 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
 
-    while (MPP_THREAD_RUNNING == hal->get_status()) {
+    while (1) {
         /* hal thread wait for dxva interface intput first */
-        hal->lock();
-        if (MPP_THREAD_RUNNING == hal->get_status()) {
-            if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task))
+        {
+            AutoMutex work_lock(hal->mutex());
+            if (MPP_THREAD_RUNNING != hal->get_status())
+                break;
+
+            if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
+                // process all task then do reset process
+                if (dec->reset_flag && !dec->hal_reset_done) {
+                    AutoMutex ctrl_lock(hal->mutex(THREAD_CONTROL));
+                    dec->hal_reset_done = 1;
+                    hal->signal(THREAD_CONTROL);
+                    continue;
+                }
+
                 hal->wait();
+                continue;
+            }
         }
-        hal->unlock();
 
         if (task) {
             mpp->mTaskGetCount++;
@@ -783,11 +814,9 @@ void *mpp_dec_hal_thread(void *data)
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,
                                   SLOT_HAL_INPUT);
 
-            parser->lock();
             hal_task_hnd_set_status(task, (dec->parser_fast_mode) ?
                                     (TASK_IDLE) : (TASK_PROC_DONE));
             mpp->mThreadCodec->signal();
-            parser->unlock();
             task = NULL;
 
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
@@ -1144,10 +1173,23 @@ MPP_RET mpp_dec_reset(MppDec *dec)
         mpp_err_f("found NULL input dec %p\n", dec);
         return MPP_ERR_NULL_PTR;
     }
-    dec->reset_flag = 1;
 
-    // mpp_parser_reset(dec->parser);
-    //  mpp_hal_reset(dec->hal);
+    Mpp *mpp = (Mpp *)dec->mpp;
+    MppThread *parser = mpp->mThreadCodec;
+
+    if (dec->coding != MPP_VIDEO_CodingMJPEG) {
+        // set reset flag
+        parser->lock(THREAD_CONTROL);
+        dec->reset_flag = 1;
+
+        // signal parser thread to reset
+        parser->lock();
+        parser->signal();
+        parser->unlock();
+
+        parser->wait(THREAD_CONTROL);
+        parser->unlock(THREAD_CONTROL);
+    }
 
     dec_dbg_func("out\n");
     return MPP_OK;

@@ -35,6 +35,9 @@ struct MppDec_t {
 
     // status flag
     RK_U32              reset_flag;
+    RK_U32              parser_reset_done;
+    RK_U32              hal_reset_done;
+    RK_U32              vproc_reset_done;
 
     // work mode flag
     RK_U32              parser_need_split;
