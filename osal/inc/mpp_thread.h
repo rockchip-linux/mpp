@@ -223,8 +223,9 @@ public:
     MppThread(MppThreadFunc func, void *ctx, const char *name = NULL);
     ~MppThread() {};
 
-    MppThreadStatus get_status();
-    void set_status(MppThreadStatus status);
+    MppThreadStatus get_status(MppThreadSignal id = THREAD_WORK);
+    void set_status(MppThreadStatus status, MppThreadSignal id = THREAD_WORK);
+    void dump_status();
 
     void start();
     void stop();
@@ -241,7 +242,14 @@ public:
 
     void wait(MppThreadSignal id = THREAD_WORK) {
         mpp_assert(id < THREAD_SIGNAL_BUTT);
+        MppThreadStatus status = mStatus[id];
+
+        mStatus[id] = MPP_THREAD_WAITING;
         mMutexCond[id].wait();
+
+        // check the status is not changed then restore status
+        if (mStatus[id] == MPP_THREAD_WAITING)
+            mStatus[id] = status;
     }
 
     void signal(MppThreadSignal id = THREAD_WORK) {
@@ -257,8 +265,8 @@ public:
 private:
     pthread_t       mThread;
     MppMutexCond    mMutexCond[THREAD_SIGNAL_BUTT];
+    MppThreadStatus mStatus[THREAD_SIGNAL_BUTT];
 
-    MppThreadStatus mStatus;
     MppThreadFunc   mFunction;
     char            mName[THREAD_NAME_LEN];
     void            *mContext;
