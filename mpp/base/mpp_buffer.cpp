@@ -297,7 +297,17 @@ RK_S32  mpp_buffer_group_unused(MppBufferGroup group)
     }
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
-    return (p->mode == MPP_BUFFER_INTERNAL ? 1 : p->count_unused);
+    RK_S32 unused = 0;
+
+    if (p->mode == MPP_BUFFER_INTERNAL) {
+        if (p->limit_count)
+            unused = p->limit_count - p->count_used;
+        else
+            unused = 3; /* NOTE: 3 for 1 decoding 2 deinterlace buffer */
+    } else
+        unused = p->count_unused;
+
+    return unused;
 }
 
 MppBufferMode mpp_buffer_group_mode(MppBufferGroup group)
