@@ -29,23 +29,35 @@ static RK_U32 thread_debug = 0;
 #define thread_dbg(flag, fmt, ...)  _mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
 
 MppThread::MppThread(MppThreadFunc func, void *ctx, const char *name)
-    : mStatus(MPP_THREAD_UNINITED),
-      mFunction(func),
+    : mFunction(func),
       mContext(ctx)
 {
+    mStatus[THREAD_WORK]    = MPP_THREAD_UNINITED;
+    mStatus[THREAD_INPUT]   = MPP_THREAD_RUNNING;
+    mStatus[THREAD_OUTPUT]  = MPP_THREAD_RUNNING;
+    mStatus[THREAD_CONTROL] = MPP_THREAD_RUNNING;
+
     if (name)
         strncpy(mName, name, sizeof(mName));
     else
         snprintf(mName, sizeof(mName), "mpp_thread");
 }
 
-MppThreadStatus MppThread::get_status()
+MppThreadStatus MppThread::get_status(MppThreadSignal id)
 {
-    return mStatus;
+    return mStatus[id];
 }
-void MppThread::set_status(MppThreadStatus status)
+
+void MppThread::set_status(MppThreadStatus status, MppThreadSignal id)
 {
-    mStatus = status;
+    mStatus[id] = status;
+}
+
+void MppThread::dump_status()
+{
+    mpp_log("thread %s status: %d %d %d %d\n", mName,
+            mStatus[THREAD_WORK], mStatus[THREAD_INPUT], mStatus[THREAD_OUTPUT],
+            mStatus[THREAD_CONTROL]);
 }
 
 void MppThread::start()
@@ -54,9 +66,9 @@ void MppThread::start()
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-    if (MPP_THREAD_UNINITED == mStatus) {
+    if (MPP_THREAD_UNINITED == get_status()) {
         // NOTE: set status here first to avoid unexpected loop quit racing condition
-        mStatus = MPP_THREAD_RUNNING;
+        set_status(MPP_THREAD_RUNNING);
         if (0 == pthread_create(&mThread, &attr, mFunction, mContext)) {
 #ifndef ARMLINUX
             RK_S32 ret = pthread_setname_np(mThread, mName);
@@ -67,16 +79,16 @@ void MppThread::start()
             thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p create success\n",
                        mName, mFunction, mContext);
         } else
-            mStatus = MPP_THREAD_UNINITED;
+            set_status(MPP_THREAD_UNINITED);
     }
     pthread_attr_destroy(&attr);
 }
 
 void MppThread::stop()
 {
-    if (MPP_THREAD_UNINITED != mStatus) {
+    if (MPP_THREAD_UNINITED != get_status()) {
         lock();
-        mStatus = MPP_THREAD_STOPPING;
+        set_status(MPP_THREAD_STOPPING);
         thread_dbg(MPP_THREAD_DBG_FUNCTION,
                    "MPP_THREAD_STOPPING status set mThread %p", this);
         signal();
@@ -87,7 +99,7 @@ void MppThread::stop()
                    "thread %s %p context %p destroy success\n",
                    mName, mFunction, mContext);
 
-        mStatus = MPP_THREAD_UNINITED;
+        set_status(MPP_THREAD_UNINITED);
     }
 }
 
