@@ -126,6 +126,12 @@ static void dec_vproc_reset_queue(MppDecVprocCtxImpl *ctx)
     do {
         ret = mpp_buf_slot_dequeue(slots, &index, QUEUE_DEINTERLACE);
         if (MPP_OK == ret && index >= 0) {
+            MppFrame frame = NULL;
+
+            mpp_buf_slot_get_prop(slots, index, SLOT_FRAME, &frame);
+            if (frame)
+                mpp_frame_deinit(&frame);
+
             mpp_buf_slot_clr_flag(slots, index, SLOT_QUEUE_USE);
             ctx->count--;
             vproc_dbg_status("reset index %d\n", index);
