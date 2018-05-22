@@ -993,7 +993,7 @@ RK_S32 mpp_slots_get_unused_count(MppBufSlots slots)
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (impl->used_count >= 0) && (impl->used_count <= impl->buf_count));
-    return impl->buf_size - impl->used_count;
+    return impl->buf_count - impl->used_count;
 }
 
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
