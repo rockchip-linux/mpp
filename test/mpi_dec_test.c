@@ -54,7 +54,8 @@ typedef struct {
 
     FILE            *fp_input;
     FILE            *fp_output;
-    RK_U32          frame_count;
+    RK_S32          frame_count;
+    RK_S32          frame_num;
 } MpiDecLoopData;
 
 typedef struct {
@@ -70,6 +71,7 @@ typedef struct {
 
     RK_U32          simple;
     RK_S32          timeout;
+    RK_S32          frame_num;
 } MpiDecTestCmd;
 
 static OptionInfo mpi_dec_cmd[] = {
@@ -80,6 +82,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"t",               "type",                 "input stream coding type"},
     {"d",               "debug",                "debug flag"},
     {"x",               "timeout",              "output timeout interval"},
+    {"n",               "frame_number",         "max output frame number"},
 };
 
 static int decode_simple(MpiDecLoopData *data)
@@ -224,7 +227,8 @@ static int decode_simple(MpiDecLoopData *data)
                         mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
                                 mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
                     }
-                    mpp_log("decode_get_frame get frame %d\n", data->frame_count++);
+                    data->frame_count++;
+                    mpp_log("decode_get_frame get frame %d\n", data->frame_count);
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
                 }
@@ -245,10 +249,21 @@ static int decode_simple(MpiDecLoopData *data)
                 break;
             }
 
+            if (data->frame_num && data->frame_count >= data->frame_num) {
+                data->eos = 1;
+                break;
+            }
+
             if (get_frm)
                 continue;
             break;
         } while (1);
+
+        if (data->frame_num && data->frame_count >= data->frame_num) {
+            data->eos = 1;
+            mpp_log("reach max frame number %d\n", data->frame_count);
+            break;
+        }
 
         if (pkt_done)
             break;
@@ -530,6 +545,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     data.packet_size    = packet_size;
     data.frame          = frame;
     data.frame_count    = 0;
+    data.frame_num      = cmd->frame_num;
 
     if (cmd->simple) {
         while (!data.eos) {
@@ -709,6 +725,15 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'n':
+                if (next) {
+                    cmd->frame_num = atoi(next);
+                }
+                if (!next || cmd->frame_num < 0) {
+                    mpp_err("invalid frame number\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             default:
                 goto PARSE_OPINIONS_OUT;
                 break;
@@ -733,6 +758,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("height     : %4d\n", cmd->height);
     mpp_log("type       : %d\n", cmd->type);
     mpp_log("debug flag : %x\n", cmd->debug);
+    mpp_log("max frames : %d\n", cmd->frame_num);
 }
 
 int main(int argc, char **argv)
