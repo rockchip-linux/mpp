@@ -208,8 +208,6 @@ struct MppBufSlotsImpl_t {
 
     // slot infomation for info change and eos
     RK_U32              eos;
-    // slot infomation for choosing video post-process
-    RK_U32              post_proc;
 
     // buffer parameter, default alignement is 16
     AlignFunc           hal_hor_align;          // default NULL
@@ -275,6 +273,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
     mpp_frame_set_buf_size(impl->info_set, size);
+    mpp_frame_set_buf_size(frame, size);
     impl->buf_size = size;
 
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
@@ -798,6 +797,17 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         MppFrame frame = val;
 
         slot_assert(impl, slot->status.not_ready);
+        /*
+         * we need to detect infomation change here
+         * there are two types of info change:
+         * 1. buffer size change
+         *    this case need to reset buffer group and commit buffer with new size
+         * 2. display info change
+         *    if only width/height/fmt is change and buffer do not need to be reset
+         *    only display info change is need
+         */
+        generate_info_set(impl, frame, 0);
+
         if (NULL == slot->frame)
             mpp_frame_init(&slot->frame);
 
@@ -813,20 +823,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         dst->hor_stride = impl->hal_hor_align(src->hor_stride);
         dst->ver_stride = impl->hal_ver_align(src->ver_stride);
         dst->eos = slot->eos;
-        // if it is a field data record post process flag
-        if (src->mode)
-            impl->post_proc |= 1;
 
-        /*
-         * we need to detect infomation change here
-         * there are two types of info change:
-         * 1. buffer size change
-         *    this case need to reset buffer group and commit buffer with new size
-         * 2. display info change
-         *    if only width/height/fmt is change and buffer do not need to be reset
-         *    only display info change is need
-         */
-        generate_info_set(impl, frame, 0);
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {
             impl->info_changed = 1;
 #ifdef RKPLATFORM
@@ -1041,9 +1038,6 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
         }
         mpp_frame_copy((MppFrame)val, impl->info_set);
     } break;
-    case SLOTS_POST_PROC: {
-        impl->post_proc = value;
-    } break;
     default : {
     } break;
     }
@@ -1076,9 +1070,6 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
         MppFrame frame = (MppFrame)val;
         MppFrame info  = impl->info;
         mpp_frame_copy(frame, info);
-    } break;
-    case SLOTS_POST_PROC: {
-        *((RK_U32 *)val) = impl->post_proc;
     } break;
     default : {
         mpp_err("can not get slots prop type %d\n", type);

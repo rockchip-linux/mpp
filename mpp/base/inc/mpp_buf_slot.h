@@ -238,7 +238,6 @@ typedef enum SlotsPropType_e {
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
-    SLOTS_POST_PROC,            // post-process enable flag
     SLOTS_PROP_BUTT,
 } SlotsPropType;
 
