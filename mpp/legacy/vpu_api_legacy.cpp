@@ -1221,23 +1221,11 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_S32 pts          = (RK_S32)aEncInStrm->timeUs;
     RK_S32 fd           = aEncInStrm->bufPhyAddr;
     RK_U32 size         = aEncInStrm->size;
-    RK_U32 align_size   = 0;
 
     /* try import input buffer and output buffer */
     MppFrame frame = NULL;
-    MppBuffer buffer = NULL;
 
-    if (format >= MPP_FMT_YUV420SP && format < MPP_FMT_YUV_BUTT) {
-        align_size = hor_stride * ver_stride * 3 / 2;
-    } else if (format >= MPP_FMT_RGB565 && format < MPP_FMT_BGR888) {
-        align_size = hor_stride * ver_stride * 3;
-    } else if (format >= MPP_FMT_RGB101010 && format < MPP_FMT_RGB_BUTT) {
-        align_size = hor_stride * ver_stride * 4;
-    } else {
-        mpp_err_f("unsupport input format:%d\n", format);
-        ret = MPP_NOK;
-        goto FUNC_RET;
-    }
+
 
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
@@ -1261,34 +1249,54 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
         inputCommit.type = MPP_BUFFER_TYPE_ION;
         inputCommit.size = size;
         inputCommit.fd = fd;
-
-        ret = mpp_buffer_import(&buffer, &inputCommit);
-        if (ret) {
-            mpp_err_f("import input picture buffer failed\n");
-            goto FUNC_RET;
+        if (size > 0) {
+            MppBuffer buffer = NULL;
+            ret = mpp_buffer_import(&buffer, &inputCommit);
+            if (ret) {
+                mpp_err_f("import input picture buffer failed\n");
+                goto FUNC_RET;
+            }
+            mpp_frame_set_buffer(frame, buffer);
+            mpp_buffer_put(buffer);
+            buffer = NULL;
         }
     } else {
+        RK_U32 align_size   = 0;
+
         if (NULL == aEncInStrm->buf) {
             ret = MPP_ERR_NULL_PTR;
             goto FUNC_RET;
         }
-
-        ret = mpp_buffer_get(memGroup, &buffer, align_size);
-        if (ret) {
-            mpp_err_f("allocate input picture buffer failed\n");
+        if (format >= MPP_FMT_YUV420SP && format < MPP_FMT_YUV_BUTT) {
+            align_size = hor_stride * ver_stride * 3 / 2;
+        } else if (format >= MPP_FMT_RGB565 && format < MPP_FMT_BGR888) {
+            align_size = hor_stride * ver_stride * 3;
+        } else if (format >= MPP_FMT_RGB101010 && format < MPP_FMT_RGB_BUTT) {
+            align_size = hor_stride * ver_stride * 4;
+        } else {
+            mpp_err_f("unsupport input format:%d\n", format);
+            ret = MPP_NOK;
             goto FUNC_RET;
         }
-        copy_align_raw_buffer_to_dest((RK_U8 *)mpp_buffer_get_ptr(buffer), aEncInStrm->buf, width, height, format);
+        if (align_size > 0) {
+            MppBuffer buffer = NULL;
+            ret = mpp_buffer_get(memGroup, &buffer, align_size);
+            if (ret) {
+                mpp_err_f("allocate input picture buffer failed\n");
+                goto FUNC_RET;
+            }
+            copy_align_raw_buffer_to_dest((RK_U8 *)mpp_buffer_get_ptr(buffer),
+                                          aEncInStrm->buf, width, height, format);
+            mpp_frame_set_buffer(frame, buffer);
+            mpp_buffer_put(buffer);
+            buffer = NULL;
+        }
     }
 
     vpu_api_dbg_input("w %d h %d input fd %d size %d flag %d pts %lld\n",
                       width, height, fd, size, aEncInStrm->timeUs, aEncInStrm->nFlags);
 
-    mpp_frame_set_buffer(frame, buffer);
-    mpp_buffer_put(buffer);
-    buffer = NULL;
-
-    if (aEncInStrm->nFlags || aEncInStrm->size == 0) {
+    if (aEncInStrm->nFlags) {
         mpp_log_f("found eos true");
         mpp_frame_set_eos(frame, 1);
     }
@@ -1309,31 +1317,30 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
     RK_S32 ret = 0;
     MppPacket packet = NULL;
     vpu_api_dbg_func("enter\n");
-    (void) ctx;
 
     ret = mpi->encode_get_packet(mpp_ctx, &packet);
     if (ret) {
         mpp_err_f("encode_get_packet failed ret %d\n", ret);
         goto FUNC_RET;
     }
-
     if (packet) {
         RK_U8 *src = (RK_U8 *)mpp_packet_get_data(packet);
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
         RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
-        size_t size = MPP_ALIGN(length + 4, SZ_4K);
-        aEncOut->data = mpp_malloc(RK_U8, size);
 
+        RK_U32 offset = 0;
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC) {
-            // remove first 00 00 00 01
-            length -= 4;
-            memcpy(aEncOut->data, src + 4, length);
-        } else {
-            memcpy(aEncOut->data, src, length);
+            offset = 4;
+            length = (length > offset) ? (length - offset) : 0;
         }
-
+        aEncOut->data = NULL;
+        if (length > 0) {
+            aEncOut->data = mpp_calloc(RK_U8, MPP_ALIGN(length + 16, SZ_4K));
+            if (aEncOut->data)
+                memcpy(aEncOut->data, src + offset, length);
+        }
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
         aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
