@@ -56,6 +56,7 @@ typedef struct {
     FILE            *fp_output;
     RK_S32          frame_count;
     RK_S32          frame_num;
+    size_t          max_usage;
 } MpiDecLoopData;
 
 typedef struct {
@@ -72,6 +73,7 @@ typedef struct {
     RK_U32          simple;
     RK_S32          timeout;
     RK_S32          frame_num;
+    size_t          max_usage;
 } MpiDecTestCmd;
 
 static OptionInfo mpi_dec_cmd[] = {
@@ -149,10 +151,11 @@ static int decode_simple(MpiDecLoopData *data)
                     RK_U32 height = mpp_frame_get_height(frame);
                     RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
+                    RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
                     mpp_log("decode_get_frame get info changed found\n");
-                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d]",
-                            width, height, hor_stride, ver_stride);
+                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
+                            width, height, hor_stride, ver_stride, buf_size);
 
                     /*
                      * NOTE: We can choose decoder's buffer mode here.
@@ -213,14 +216,46 @@ static int decode_simple(MpiDecLoopData *data)
                      * For H.264/H.265 20+ buffers will be enough.
                      * For other codec 10 buffers will be enough.
                      */
-                    ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+
+                    if (NULL == data->frm_grp) {
+                        /* If buffer group is not set create one and limit it */
+                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                        if (ret) {
+                            mpp_err("get mpp buffer group failed ret %d\n", ret);
+                            break;
+                        }
+
+                        /* Set buffer to mpp decoder */
+                        ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
+                        if (ret) {
+                            mpp_err("set buffer group failed ret %d\n", ret);
+                            break;
+                        }
+                    } else {
+                        /* If old buffer group exist clear it */
+                        ret = mpp_buffer_group_clear(data->frm_grp);
+                        if (ret) {
+                            mpp_err("clear buffer group failed ret %d\n", ret);
+                            break;
+                        }
+                    }
+
+                    /* Use limit config to limit buffer count to 24 with buf_size */
+                    ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
                     if (ret) {
-                        mpp_err("get mpp buffer group  failed ret %d\n", ret);
+                        mpp_err("limit buffer group failed ret %d\n", ret);
                         break;
                     }
-                    mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
 
-                    mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    /*
+                     * All buffer group config done. Set info change ready to let
+                     * decoder continue decoding
+                     */
+                    ret = mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    if (ret) {
+                        mpp_err("info change ready failed ret %d\n", ret);
+                        break;
+                    }
                 } else {
                     err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
                     if (err_info) {
@@ -236,6 +271,13 @@ static int decode_simple(MpiDecLoopData *data)
                 mpp_frame_deinit(&frame);
                 frame = NULL;
                 get_frm = 1;
+            }
+
+            // try get runtime frame memory usage
+            {
+                size_t usage = mpp_buffer_group_usage(data->frm_grp);
+                if (usage > data->max_usage)
+                    data->max_usage = usage;
             }
 
             // if last packet is send but last frame is not found continue
@@ -557,6 +599,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         }
     }
 
+    cmd->max_usage = data.max_usage;
+
     ret = mpi->reset(ctx);
     if (MPP_OK != ret) {
         mpp_err("mpi->reset failed\n");
@@ -788,7 +832,7 @@ int main(int argc, char **argv)
 
     ret = mpi_dec_test_decode(cmd);
     if (MPP_OK == ret)
-        mpp_log("test success\n");
+        mpp_log("test success max memory %.2f MB\n", cmd->max_usage / (float)(1 << 20));
     else
         mpp_err("test failed ret %d\n", ret);
 

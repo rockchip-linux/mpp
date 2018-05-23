@@ -172,20 +172,51 @@ static int decode_simple(MpiDecCtx *data)
                     RK_U32 height = mpp_frame_get_height(frame);
                     RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
+                    RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
                     mpp_log("decode_get_frame get info changed found\n");
-                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d]",
-                            width, height, hor_stride, ver_stride);
+                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
+                            width, height, hor_stride, ver_stride, buf_size);
 
-                    ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                    if (NULL == data->frm_grp) {
+                        /* If buffer group is not set create one and limit it */
+                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                        if (ret) {
+                            mpp_err("get mpp buffer group failed ret %d\n", ret);
+                            break;
+                        }
+
+                        /* Set buffer to mpp decoder */
+                        ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
+                        if (ret) {
+                            mpp_err("set buffer group failed ret %d\n", ret);
+                            break;
+                        }
+                    } else {
+                        /* If old buffer group exist clear it */
+                        ret = mpp_buffer_group_clear(data->frm_grp);
+                        if (ret) {
+                            mpp_err("clear buffer group failed ret %d\n", ret);
+                            break;
+                        }
+                    }
+
+                    /* Use limit config to limit buffer count to 24 with buf_size */
+                    ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
                     if (ret) {
-                        mpp_err("get mpp buffer group  failed ret %d\n", ret);
+                        mpp_err("limit buffer group failed ret %d\n", ret);
                         break;
                     }
 
-                    mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
-
-                    mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    /*
+                     * All buffer group config done. Set info change ready to let
+                     * decoder continue decoding
+                     */
+                    ret = mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
+                    if (ret) {
+                        mpp_err("info change ready failed ret %d\n", ret);
+                        break;
+                    }
                 } else {
                     if (!data->first_frm)
                         data->first_frm = mpp_time();
@@ -727,6 +758,7 @@ int main(int argc, char **argv)
     float total_rate = 0.0;
 
     memset((void*)cmd, 0, sizeof(*cmd));
+    cmd->nthreads = 1;
 
     // parse the cmd option
     ret = mpi_dec_multi_test_parse_options(argc, argv, cmd);
