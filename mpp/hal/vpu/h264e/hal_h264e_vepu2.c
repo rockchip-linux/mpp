@@ -67,6 +67,12 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
     ctx->hw_cfg.qp_prev = ctx->cfg->codec.h264.qp_init;
     mpp_env_get_u32("hal_vpu_h264e_debug", &hal_vpu_h264e_debug, 0);
 
+    ret = h264e_vpu_allocate_buffers(ctx);
+    if (ret) {
+        h264e_hal_err("allocate buffers failed\n");
+        h264e_vpu_free_buffers(ctx);
+    }
+
     h264e_hal_leave();
     return ret;
 }
@@ -139,16 +145,10 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 
     // generate parameter from config
     h264e_vpu_update_hw_cfg(ctx, enc_task, hw_cfg);
-
-    // prepare buffer
-    if (!ctx->buffer_ready) {
-        ret = h264e_vpu_allocate_buffers(ctx, hw_cfg);
-        if (ret) {
-            h264e_hal_err("allocate buffers failed\n");
-            h264e_vpu_free_buffers(ctx);
-            return ret;
-        } else
-            ctx->buffer_ready = 1;
+    ret = h264e_vpu_update_buffers(ctx, hw_cfg);
+    if (ret != MPP_OK) {
+        mpp_err_f("update buffers error.\n");
+        return ret;
     }
 
     mb_w = (prep->width  + 15) / 16;

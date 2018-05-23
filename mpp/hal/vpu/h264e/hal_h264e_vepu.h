@@ -67,8 +67,11 @@ typedef struct H264eVpuExtraInfo_t {
 } H264eVpuExtraInfo;
 
 typedef struct h264e_hal_vpu_buffers_t {
-    MppBufferGroup hw_buf_grp;
+    RK_S32 cabac_init_idc;
+    RK_S32 align_width;
+    RK_S32 align_height;
 
+    MppBufferGroup hw_buf_grp;
     MppBuffer hw_rec_buf[2];
     MppBuffer hw_cabac_table_buf;
     MppBuffer hw_nal_size_table_buf;

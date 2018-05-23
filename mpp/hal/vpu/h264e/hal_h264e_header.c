@@ -754,47 +754,31 @@ MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx)
     return ret;
 }
 
-MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *syn)
+MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx)
 {
     MPP_RET ret = MPP_OK;
-    RK_S32 k = 0;
     h264e_hal_vpu_buffers *buffers = (h264e_hal_vpu_buffers *)ctx->buffers;
-    RK_U32 frame_size = ((syn->width + 15) & (~15))
-                        * ((syn->height + 15) & (~15)) * 3 / 2;
-
     h264e_hal_enter();
+
+    // init parameters
+    buffers->cabac_init_idc = 0;
+    buffers->align_width = 0;
+    buffers->align_height = 0;
+
     ret = mpp_buffer_group_get_internal(&buffers->hw_buf_grp,
                                         MPP_BUFFER_TYPE_ION);
     if (ret) {
         mpp_err("buf group get failed ret %d\n", ret);
         return ret;
     }
-
     ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_cabac_table_buf,
                          H264E_CABAC_TABLE_BUF_SIZE);
     if (ret) {
         mpp_err("hw_cabac_table_buf get failed\n");
         return ret;
     }
-
-    ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_nal_size_table_buf,
-                         (sizeof(RK_U32) * (syn->height + 1) + 7) & (~7));
-    if (ret) {
-        mpp_err("hw_nal_size_table_buf get failed\n");
-        return ret;
-    }
-
-    for (k = 0; k < 2; k++) {
-        ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_rec_buf[k],
-                             frame_size + 4096);
-        if (ret) {
-            mpp_err("hw_rec_buf[%d] get failed\n", k);
-            return ret;
-        }
-    }
-
     hal_h264e_vpu_write_cabac_table(buffers->hw_cabac_table_buf,
-                                    syn->cabac_init_idc);
+                                    buffers->cabac_init_idc);
 
     h264e_hal_leave();
     return MPP_OK;
@@ -1025,3 +1009,58 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     ctx->idr_pic_id = !ctx->idr_pic_id;
     return MPP_OK;
 }
+
+MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
+{
+    MPP_RET ret = MPP_OK;
+
+    h264e_hal_vpu_buffers *buffers = (h264e_hal_vpu_buffers *)ctx->buffers;
+    h264e_hal_enter();
+
+    if (hw_cfg->cabac_init_idc != buffers->cabac_init_idc) {
+        hal_h264e_vpu_write_cabac_table(buffers->hw_cabac_table_buf,
+                                        hw_cfg->cabac_init_idc);
+        buffers->cabac_init_idc = hw_cfg->cabac_init_idc;
+    }
+
+    RK_S32 align_width = MPP_ALIGN(hw_cfg->width, 16);
+    RK_S32 align_height = MPP_ALIGN(hw_cfg->height, 16);
+    if ((align_width != buffers->align_width) ||
+        (align_height != buffers->align_height)) {
+        RK_S32 k = 0;
+        // free original buffer
+        if (buffers->hw_nal_size_table_buf) {
+            mpp_buffer_put(buffers->hw_nal_size_table_buf);
+            buffers->hw_nal_size_table_buf = NULL;
+        }
+        for (k = 0; k < 2; k++) {
+            if (buffers->hw_rec_buf[k]) {
+                mpp_buffer_put(buffers->hw_rec_buf[k]);
+                buffers->hw_rec_buf[k] = NULL;
+            }
+        }
+
+        // realloc buffer
+        RK_U32 frame_size = align_width * align_height * 3 / 2;
+        ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_nal_size_table_buf,
+                             (sizeof(RK_U32) * align_height));
+        if (ret) {
+            mpp_err("hw_nal_size_table_buf get failed\n");
+            return ret;
+        }
+        for (k = 0; k < 2; k++) {
+            ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_rec_buf[k],
+                                 frame_size + 4096);
+            if (ret) {
+                mpp_err("hw_rec_buf[%d] get failed\n", k);
+                return ret;
+            }
+        }
+        buffers->align_width = align_width;
+        buffers->align_height = align_height;
+    }
+
+    h264e_hal_leave();
+    return MPP_OK;
+}
+

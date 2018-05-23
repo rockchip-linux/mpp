@@ -441,7 +441,6 @@ typedef struct H264eHalContext_t {
     RK_U32                          idr_pic_id;
     RK_U32                          qp_scale; /* can be 1 or 2 */
 
-    RK_U32                          buffer_ready;
     H264eHwCfg                      hw_cfg;
     MppLinReg                       *inter_qs;
     MppLinReg                       *intra_qs;
