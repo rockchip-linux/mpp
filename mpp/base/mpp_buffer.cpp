@@ -310,6 +310,17 @@ RK_S32  mpp_buffer_group_unused(MppBufferGroup group)
     return unused;
 }
 
+size_t mpp_buffer_group_usage(MppBufferGroup group)
+{
+    if (NULL == group) {
+        mpp_err_f("input invalid group %p\n", group);
+        return MPP_BUFFER_MODE_BUTT;
+    }
+
+    MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
+    return p->usage;
+}
+
 MppBufferMode mpp_buffer_group_mode(MppBufferGroup group)
 {
     if (NULL == group) {
