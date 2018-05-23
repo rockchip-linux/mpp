@@ -317,6 +317,7 @@ MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBuffe
 MPP_RET mpp_buffer_group_put(MppBufferGroup group);
 MPP_RET mpp_buffer_group_clear(MppBufferGroup group);
 RK_S32  mpp_buffer_group_unused(MppBufferGroup group);
+size_t  mpp_buffer_group_usage(MppBufferGroup group);
 MppBufferMode mpp_buffer_group_mode(MppBufferGroup group);
 MppBufferType mpp_buffer_group_type(MppBufferGroup group);
 
