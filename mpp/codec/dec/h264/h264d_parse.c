@@ -171,8 +171,8 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
             currSlice->mvcExt.valid = 0;
-            H264D_WARNNING("svc_extension is not supported.");
-            goto __FAILED;
+            //H264D_WARNNING("svc_extension is not supported.");
+            //goto __FAILED;
         } else { //!< MVC
             currSlice->mvcExt.valid = 1;
             p_Cur->p_Dec->mvc_valid = 1;
