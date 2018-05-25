@@ -1168,6 +1168,7 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
     RK_U8 *src_buf = (RK_U8 *)mpp_packet_get_pos(src);
     RK_U32 src_len = (RK_U32)mpp_packet_get_length(src);
     RK_U32 src_eos = mpp_packet_get_eos(src);
+    RK_S64 src_pts = mpp_packet_get_pts(src);
     RK_U8 *dst_buf = (RK_U8 *)mpp_packet_get_data(dst);
     RK_U32 dst_len = (RK_U32)mpp_packet_get_length(dst);
     RK_U32 src_pos = 0;
@@ -1189,6 +1190,7 @@ MPP_RET mpp_mpg4_parser_split(Mpg4dParser ctx, MppPacket dst, MppPacket src)
             dst_buf[dst_len++] = src_buf[src_pos++];
             if (p->state == MPG4_VOP_STARTCODE) {
                 p->vop_header_found = 1;
+                mpp_packet_set_pts(dst, src_pts);
                 break;
             }
         }
