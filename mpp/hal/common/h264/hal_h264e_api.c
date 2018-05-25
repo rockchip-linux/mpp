@@ -130,7 +130,7 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     ctx->cfg = cfg->cfg;
     ctx->set = cfg->set;
 
-    ctx->sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
+    ctx->sei_mode = 0;
     ctx->qp_scale = 1;
 
     return api->init(hal, cfg);
