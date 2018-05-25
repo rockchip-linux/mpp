@@ -39,8 +39,7 @@ typedef struct {
     size_t          stream_size;
     size_t          left_length;
     MppPacket       task_pkt;
-    RK_S64          task_pts;
-    RK_U32          task_eos;
+    RK_U32          got_eos;
 
     // runtime parameter
     RK_U32          need_split;
@@ -93,7 +92,7 @@ static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
     p->task_count   = cfg->task_count = 2;
-    p->need_split   = cfg->need_split;
+    p->need_split   = 1;//cfg->need_split;
     p->internal_pts = cfg->internal_pts;
     p->notify_cb    = cfg->notify_cb;
     p->stream       = stream;
@@ -147,6 +146,10 @@ static MPP_RET mpg4d_reset(void *dec)
 
     Mpg4dCtx *p = (Mpg4dCtx *)dec;
     p->left_length  = 0;
+    p->got_eos = 0;
+    mpp_packet_set_length(p->task_pkt, 0);
+    mpp_packet_set_flag(p->task_pkt, 0);
+
     return mpp_mpg4_parser_reset(p->parser);
 }
 
@@ -184,15 +187,15 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         return MPP_ERR_NULL_PTR;
     }
 
+    task->valid = 0;
     p = (Mpg4dCtx *)dec;
     pos     = mpp_packet_get_pos(pkt);
     length  = mpp_packet_get_length(pkt);
     eos     = mpp_packet_get_eos(pkt);
 
-    if (eos && !length) {
-        task->valid = 0;
-        task->flags.eos = 1;
-        mpg4d_flush(dec);
+    if (p->got_eos) {
+        mpp_log_f("has got eos packet.\n");
+        mpp_packet_set_length(pkt, 0);
         return MPP_OK;
     }
 
@@ -228,20 +231,25 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     }
 
     if (!p->need_split) {
+        p->got_eos = eos;
+        // NOTE: empty eos packet
+        if (eos && !length) {
+            mpg4d_flush(dec);
+            return MPP_OK;
+        }
         /*
-         * Copy packet mode:
-         * Decoder's user will insure each packet is one frame for process
-         * Parser will just copy packet to the beginning of stream buffer
-         */
+                * Copy packet mode:
+                * Decoder's user will insure each packet is one frame for process
+                * Parser will just copy packet to the beginning of stream buffer
+             */
         memcpy(p->stream, pos, length);
         mpp_packet_set_pos(p->task_pkt, p->stream);
         mpp_packet_set_length(p->task_pkt, length);
+        mpp_packet_set_pts(p->task_pkt, mpp_packet_get_pts(pkt));
         // set input packet length to 0 here
         // indicate that the input packet has been all consumed
         mpp_packet_set_pos(pkt, pos + length);
-        // always use latest pts for current packet
-        p->task_pts = mpp_packet_get_pts(pkt);
-        p->task_eos = mpp_packet_get_eos(pkt);
+        mpp_packet_set_length(pkt, 0);
         /* this step will enable the task and goto parse stage */
         task->valid = 1;
     } else {
@@ -257,13 +265,10 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
             task->valid = 0;
             p->left_length = mpp_packet_get_length(p->task_pkt);
         }
-        p->task_pts = mpp_packet_get_pts(p->task_pkt);
-        p->task_eos = mpp_packet_get_eos(p->task_pkt);
+        p->got_eos = mpp_packet_get_eos(p->task_pkt);
     }
-
-    mpp_packet_set_pts(p->task_pkt, p->task_pts);
     task->input_packet = p->task_pkt;
-    task->flags.eos    = p->task_eos;
+    task->flags.eos    = p->got_eos;
 
     return MPP_OK;
 }
@@ -292,6 +297,12 @@ static MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
     mpp_mpg4_parser_setup_hal_output(p->parser, &task->output);
     mpp_mpg4_parser_setup_refer(p->parser, task->refer, MAX_DEC_REF_NUM);
     mpp_mpg4_parser_update_dpb(p->parser);
+
+    if (p->got_eos) {
+        task->flags.eos = 1;
+        mpg4d_flush(dec);
+        return MPP_OK;
+    }
 
     p->frame_count++;
 
