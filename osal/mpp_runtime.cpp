@@ -76,27 +76,22 @@ RK_U32 MppRuntimeService::get_allocator_valid(MppBufferType type)
 
 MppRuntimeService::MppRuntimeService()
 {
-    int fd = -1;
     allocator_valid[MPP_BUFFER_TYPE_NORMAL] = 1;
 
-    fd = open("/dev/ion", O_RDWR);
-    if (fd < 0) {
+    if (access("/dev/ion", F_OK | R_OK | W_OK)) {
         allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
         mpp_log("NOT found ion allocator\n");
     } else {
         allocator_valid[MPP_BUFFER_TYPE_ION] = 1;
         mpp_log("found ion allocator\n");
-        close(fd);
     }
 
-    fd = open("/dev/dri/card0", O_RDWR);
-    if (fd < 0) {
+    if (access("/dev/dri/card0", F_OK | R_OK | W_OK)) {
         allocator_valid[MPP_BUFFER_TYPE_DRM] = 0;
         mpp_log("NOT found drm allocator\n");
     } else {
         allocator_valid[MPP_BUFFER_TYPE_DRM] = 1;
         mpp_log("found drm allocator\n");
-        close(fd);
     }
 
     // If both ion and drm is enabled detect allocator in dts to choose one
