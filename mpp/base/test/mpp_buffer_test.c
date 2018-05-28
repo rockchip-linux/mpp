@@ -56,7 +56,8 @@ int main()
     memset(commit_buffer, 0, sizeof(commit_buffer));
     memset(normal_buffer, 0, sizeof(normal_buffer));
 
-    ret = mpp_buffer_group_get_external(&group, MPP_BUFFER_TYPE_NORMAL);
+    // create group with external type
+    ret = mpp_buffer_group_get_external(&group, MPP_BUFFER_TYPE_ION);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_buffer_group_get failed\n");
         goto MPP_BUFFER_failed;
@@ -64,17 +65,22 @@ int main()
 
     mpp_log("mpp_buffer_test commit mode with unused status start\n");
 
-    commit.type = MPP_BUFFER_TYPE_NORMAL;
+    commit.type = MPP_BUFFER_TYPE_ION;
     commit.size = size;
 
+    // create misc ion buffer and commit to external group
     for (i = 0; i < count; i++) {
-        commit_ptr[i] = malloc(size);
-        if (NULL == commit_ptr[i]) {
-            mpp_err("mpp_buffer_test malloc failed\n");
+        // can be change to different buffer allocator here
+        ret = mpp_buffer_get(NULL, &normal_buffer[i], size);
+        if (ret || NULL == normal_buffer[i]) {
+            mpp_err("mpp_buffer_test get misc buffer failed ret %d\n", ret);
             goto MPP_BUFFER_failed;
         }
 
-        commit.ptr = commit_ptr[i];
+        // NOTE: setup fd / index in necessary
+        commit.ptr = mpp_buffer_get_ptr(normal_buffer[i]);
+        commit.fd = mpp_buffer_get_fd(normal_buffer[i]);
+        commit.index = i;
 
         ret = mpp_buffer_commit(group, &commit);
         if (MPP_OK != ret) {
@@ -103,9 +109,9 @@ int main()
     }
 
     for (i = 0; i < count; i++) {
-        if (commit_ptr[i]) {
-            free(commit_ptr[i]);
-            commit_ptr[i] = NULL;
+        if (normal_buffer[i]) {
+            mpp_buffer_put(normal_buffer[i]);
+            normal_buffer[i] = NULL;
         }
     }
 
