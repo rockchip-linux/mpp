@@ -467,39 +467,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *    1. dpb slot will be set internally in parser process.
      *    2. parse function need to set valid flag when one frame is ready.
      *    3. if packet size is zero then next packet is needed.
-     *
+     *    4. detect whether output index has MppBuffer and task valid
      */
     if (!task->status.task_parsed_rdy) {
         mpp_parser_parse(dec->parser, task_dec);
         task->status.task_parsed_rdy = 1;
     }
 
-    /*
-     * 9. parse local task and slot to check whether new buffer or info change is needed.
-     *
-     * a. first detect info change from frame slot
-     * b. then detect whether output index has MppBuffer
-     */
-    if (mpp_buf_slot_is_changed(frame_slots)) {
-        if (!task->status.info_task_gen_rdy) {
-            task_dec->flags.info_change = 1;
-            mpp_dec_put_task(mpp, task);
-            task->status.info_task_gen_rdy = 1;
-            return MPP_ERR_STREAM;
-        }
-    }
-
-    task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
-    if (task->wait.info_change) {
-        return MPP_ERR_STREAM;
-    } else {
-        task->status.info_task_gen_rdy = 0;
-        task_dec->flags.info_change = 0;
-        // NOTE: check the task must be ready
-        mpp_assert(task->hnd);
-    }
-
-    if (task_dec->output < 0) {
+    if (task_dec->output < 0 || !task_dec->valid) {
         /*
          * We may meet an eos in parser step and there will be no anymore vaild
          * task generated. So here we try push eos task to hal, hal will push
@@ -521,6 +496,30 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         task->status.task_parsed_rdy = 0;
         hal_task_info_init(&task->info, MPP_CTX_DEC);
         return MPP_NOK;
+    }
+
+    /*
+     * 9. parse local task and slot to check whether new buffer or info change is needed.
+     *
+     * detect info change from frame slot
+     */
+    if (mpp_buf_slot_is_changed(frame_slots)) {
+        if (!task->status.info_task_gen_rdy) {
+            task_dec->flags.info_change = 1;
+            mpp_dec_put_task(mpp, task);
+            task->status.info_task_gen_rdy = 1;
+            return MPP_ERR_STREAM;
+        }
+    }
+
+    task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
+    if (task->wait.info_change) {
+        return MPP_ERR_STREAM;
+    } else {
+        task->status.info_task_gen_rdy = 0;
+        task_dec->flags.info_change = 0;
+        // NOTE: check the task must be ready
+        mpp_assert(task->hnd);
     }
 
     /* 10. whether the frame buffer group is internal or external */
