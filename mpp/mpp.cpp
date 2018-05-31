@@ -624,9 +624,10 @@ MPP_RET Mpp::reset()
      * then restore it on reset end.
      */
     mPackets->lock();
-    if (mPackets->list_size()) {
+    while (mPackets->list_size()) {
         MppPacket pkt = NULL;
         mPackets->del_at_head(&pkt, sizeof(pkt));
+        mPacketGetCount++;
 
         RK_U32 flags = mpp_packet_get_flag(pkt);
         if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
