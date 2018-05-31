@@ -165,6 +165,7 @@ static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
         }
         if (dec->mpp_pkt_in) {
             mpp_packet_deinit(&dec->mpp_pkt_in);
+            mpp->mPacketGetCount++;
             dec->mpp_pkt_in = NULL;
         }
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
