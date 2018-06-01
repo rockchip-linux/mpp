@@ -2,10 +2,17 @@
 # hal h263 reg
 
 set(HAL_H263D_HDR
+    hal_h263d_base.h
+    hal_h263d_vdpu1.h
+    hal_h263d_vdpu2.h
+    hal_h263d_vdpu1_reg.h
+    hal_h263d_vdpu2_reg.h
    )
 
 set(HAL_H263D_SRC
-    hal_h263d_reg.c
+    hal_h263d_api.c
+    hal_h263d_vdpu1.c
+    hal_h263d_vdpu2.c
     )
 
 add_library(hal_h263d STATIC
