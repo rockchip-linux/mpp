@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_REG_H__
-#define __HAL_H263D_REG_H__
+#ifndef __HAL_H263D_VDPU2_REG_H__
+#define __HAL_H263D_VDPU2_REG_H__
 
 #include "rk_type.h"
 
@@ -392,7 +392,8 @@ typedef struct  {
         RK_U32  sw_pred_bc_tap_4_3  : 10;
         RK_U32  sw_pred_bc_tap_4_2  : 10;
     } reg158;
-} VpuH263dRegSet_t;
+} Vpu2H263dRegSet_t;
+
 
 #endif
 
