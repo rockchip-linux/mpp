@@ -193,7 +193,8 @@ void *mpp_enc_control_thread(void *data)
              */
             if (mpp_task) {
                 //set motion info buffer to output task
-                mpp_task_meta_set_buffer(mpp_task, KEY_MOTION_INFO, mv_info);
+                if(mv_info)
+                  mpp_task_meta_set_buffer(mpp_task, KEY_MOTION_INFO, mv_info);
 
                 mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
 
