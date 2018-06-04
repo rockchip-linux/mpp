@@ -33,6 +33,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_platform.h"
+#include "mpp_common.h"
 
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
@@ -109,7 +110,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
-
+    p_hal->fast_mode = cfg->fast_mode;
     //!< choose hard mode
     {
         RK_U32 mode = 0;

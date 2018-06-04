@@ -107,8 +107,6 @@ do{\
 
 typedef struct h264d_hal_ctx_t {
     MppHalApi                hal_api;
-    void                     *regs;
-    void                     *pkts;
 
     DXVA_PicParams_H264_MVC  *pp;
     DXVA_Qmatrix_H264        *qm;
@@ -124,9 +122,11 @@ typedef struct h264d_hal_ctx_t {
     MppBufSlots              frame_slots;
     MppBufSlots              packet_slots;
     MppBufferGroup           buf_group;
-    MppBuffer                cabac_buf;
+
     IOInterruptCB            init_cb;
     MppDevCtx                dev_ctx;
+    void                     *reg_ctx;
+    RK_U32                   fast_mode;
 } H264dHalCtx_t;
 
 

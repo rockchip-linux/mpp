@@ -226,6 +226,22 @@ typedef struct h264d_vdpu_priv_t {
     H264dVdpuRefPicInfo_t  refinfo[3][32]; //!< listP listB0 list1
 } H264dVdpuPriv_t;
 
+typedef struct h264d_vdpu_buf_t {
+    RK_U32 valid;
+    MppBuffer poc;
+    MppBuffer sclst;
+    void *regs;
+} H264dVdpuBuf_t;
+
+typedef struct h264d_vdpu_reg_ctx_t {
+    MppBuffer cabac_buf;
+    H264dVdpuBuf_t reg_buf[3];
+
+    MppBuffer poc_buf;
+    MppBuffer sclst_buf;
+    void *regs;
+} H264dVdpuRegCtx_t;
+
 RK_U32 vdpu_ver_align(RK_U32 val);
 
 RK_U32 vdpu_hor_align(RK_U32 val);
