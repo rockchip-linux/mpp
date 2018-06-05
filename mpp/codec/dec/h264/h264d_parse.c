@@ -203,9 +203,9 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 __BITREAD_ERR:
     p_Cur->p_Dec->nalu_ret = ReadNaluError;
     return ret = p_bitctx->ret;
-__FAILED:
-    p_Cur->p_Dec->nalu_ret = StreamError;
-    return ret;
+//__FAILED:
+//    p_Cur->p_Dec->nalu_ret = StreamError;
+//    return ret;
 }
 
 static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
