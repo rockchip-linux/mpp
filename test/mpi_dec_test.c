@@ -274,7 +274,7 @@ static int decode_simple(MpiDecLoopData *data)
             }
 
             // try get runtime frame memory usage
-            {
+            if (data->frm_grp) {
                 size_t usage = mpp_buffer_group_usage(data->frm_grp);
                 if (usage > data->max_usage)
                     data->max_usage = usage;
