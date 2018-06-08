@@ -123,6 +123,7 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
          !hal_task_check_empty(dec->tasks, TASK_PROC_DONE)) ||
         task->wait.info_change ||
         task->wait.dec_pic_buf ||
+        task->wait.dis_que_full ||
         task->wait.dec_slot_idx)
         return MPP_NOK;
 
