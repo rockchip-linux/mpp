@@ -29,6 +29,7 @@
 
 #include "vpu_api_legacy.h"
 #include "mpp_packet_impl.h"
+#include "mpp_buffer_impl.h"
 #include "mpp_frame.h"
 
 #define MAX_WRITE_HEIGHT        (480)
@@ -215,11 +216,13 @@ RET:
     return ret;
 }
 
-static void vpu_api_dump_yuv(VPU_FRAME *vframe, FILE *fp, RK_U8 *fp_buf, RK_S64 pts)
+static void vpu_api_dump_yuv(VPU_FRAME *vframe, FILE *fp,
+                             MppBuffer buf, RK_U8 *fp_buf, RK_S64 pts)
 {
     //!< Dump yuv
     if (fp && !vframe->ErrorInfo) {
-        RK_U8 *ptr = (RK_U8 *)vframe->vpumem.vir_addr;
+        RK_U8 *ptr = vframe->vpumem.vir_addr ?
+                     (RK_U8 *)vframe->vpumem.vir_addr : (RK_U8 *)mpp_buffer_get_ptr(buf);
 
         if ((vframe->FrameWidth >= 1920) || (vframe->FrameHeight >= 1080)) {
             RK_U32 i = 0, j = 0, step = 0;
@@ -599,7 +602,9 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     }
 
     if (buf) {
-        void* ptr = mpp_buffer_get_ptr(buf);
+        MppBufferImpl *p = (MppBufferImpl*)buf;
+        void *ptr = (p->mode == MPP_BUFFER_INTERNAL) ?
+                    mpp_buffer_get_ptr(buf) : NULL;
         RK_S32 fd = mpp_buffer_get_fd(buf);
 
         vframe->FrameBusAddr[0] = fd;
@@ -823,7 +828,7 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
             MppBuffer buf = mpp_frame_get_buffer(mframe);
 
             setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
-            vpu_api_dump_yuv(vframe, fp, fp_buf, mpp_frame_get_pts(mframe));
+            vpu_api_dump_yuv(vframe, fp, buf, fp_buf, mpp_frame_get_pts(mframe));
 
             aDecOut->size = sizeof(VPU_FRAME);
             aDecOut->timeUs = mpp_frame_get_pts(mframe);
@@ -932,7 +937,7 @@ RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
         MppBuffer buf = mpp_frame_get_buffer(mframe);
 
         setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
-        vpu_api_dump_yuv(vframe, fp, fp_buf, mpp_frame_get_pts(mframe));
+        vpu_api_dump_yuv(vframe, fp, buf, fp_buf, mpp_frame_get_pts(mframe));
 
         aDecOut->size = sizeof(VPU_FRAME);
         aDecOut->timeUs = mpp_frame_get_pts(mframe);
