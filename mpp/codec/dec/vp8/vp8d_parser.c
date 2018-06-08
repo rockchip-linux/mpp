@@ -942,8 +942,8 @@ static MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase,
     p->coeffSkipMode =  vp8hwdDecodeBool128(bit_ctx);
     if (!p->keyFrame) {
         RK_U32  mvProbs;
-
-        p->probMbSkipFalse = vp8hwdReadBits(bit_ctx, 8);
+        if (p->coeffSkipMode)
+            p->probMbSkipFalse = vp8hwdReadBits(bit_ctx, 8);
         p->probIntra = vp8hwdReadBits(bit_ctx, 8);
         p->probRefLast = vp8hwdReadBits(bit_ctx, 8);
         p->probRefGolden = vp8hwdReadBits(bit_ctx, 8);
@@ -969,7 +969,8 @@ static MPP_RET vp8_header_parser(VP8DParserContext_t *p, RK_U8 *pbase,
             }
         }
     } else {
-        p->probMbSkipFalse = vp8hwdReadBits(bit_ctx, 8);
+        if (p->coeffSkipMode)
+            p->probMbSkipFalse = vp8hwdReadBits(bit_ctx, 8);
     }
     if (bit_ctx->strmError) {
         mpp_err_f("paser header stream no enough");
