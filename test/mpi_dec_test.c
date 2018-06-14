@@ -63,6 +63,7 @@ typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
     MppCodingType   type;
+    MppFrameFormat  format;
     RK_U32          width;
     RK_U32          height;
     RK_U32          debug;
@@ -82,6 +83,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"w",               "width",                "the width of input bitstream"},
     {"h",               "height",               "the height of input bitstream"},
     {"t",               "type",                 "input stream coding type"},
+    {"f",               "format",               "output frame format type"},
     {"d",               "debug",                "debug flag"},
     {"x",               "timeout",              "output timeout interval"},
     {"n",               "frame_number",         "max output frame number"},
@@ -394,17 +396,11 @@ static int decode_advanced(MpiDecLoopData *data)
 
         if (frame) {
             /* write frame to file here */
-            MppBuffer buf_out = mpp_frame_get_buffer(frame_out);
+            if (data->fp_output)
+                dump_mpp_frame_to_file(frame, data->fp_output);
 
-            if (buf_out) {
-                void *ptr = mpp_buffer_get_ptr(buf_out);
-                size_t len  = mpp_buffer_get_size(buf_out);
-
-                if (data->fp_output)
-                    fwrite(ptr, 1, len, data->fp_output);
-
-                mpp_log("decoded frame %d size %d\n", data->frame_count, len);
-            }
+            data->frame_count++;
+            mpp_log("decoded frame %d\n", data->frame_count);
 
             if (mpp_frame_get_eos(frame_out))
                 mpp_log("found eos frame\n");
@@ -760,10 +756,21 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'f':
+                if (next) {
+                    cmd->format = (MppFrameFormat)atoi(next);
+                }
+
+                if (!next || err) {
+                    mpp_err("invalid input coding type\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             case 'x':
                 if (next) {
                     cmd->timeout = atoi(next);
                 }
+
                 if (!next || cmd->timeout < 0) {
                     mpp_err("invalid output timeout interval\n");
                     goto PARSE_OPINIONS_OUT;
@@ -773,6 +780,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                 if (next) {
                     cmd->frame_num = atoi(next);
                 }
+
                 if (!next || cmd->frame_num < 0) {
                     mpp_err("invalid frame number\n");
                     goto PARSE_OPINIONS_OUT;
