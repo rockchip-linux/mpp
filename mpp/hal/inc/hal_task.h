@@ -101,6 +101,7 @@ typedef union HalDecTaskFlag_t {
         RK_U32      info_change      : 1;
         RK_U32      had_error        : 1;
         RK_U32      used_for_ref     : 1;
+        RK_U32      wait_done        : 1;
     };
 } HalDecTaskFlag;
 
