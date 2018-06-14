@@ -27,6 +27,7 @@
 #include "mpp_time.h"
 
 #include "mpp_device.h"
+#include "mpp_device_patch.h"
 #include "mpp_platform.h"
 #include "mpp_mem.h"
 
@@ -344,3 +345,20 @@ RK_S32 mpp_device_control(MppDevCtx ctx, MppDevCmd cmd, void* param)
     return 0;
 }
 
+void mpp_device_patch_init(RegExtraInfo *extra)
+{
+    extra->magic = EXTRA_INFO_MAGIC;
+    extra->count = 0;
+}
+
+void mpp_device_patch_add(RK_U32 *reg, RegExtraInfo *extra, RK_U32 reg_idx,
+                          RK_U32 offset)
+{
+    if (offset < SZ_4M) {
+        reg[reg_idx] += (offset << 10);
+    } else {
+        RegPatchInfo *info = &extra->patchs[extra->count++];
+        info->reg_idx = reg_idx;
+        info->offset = offset;
+    }
+}
