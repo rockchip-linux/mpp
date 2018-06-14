@@ -17,11 +17,6 @@
 #ifndef __MPP_DEVICE_H__
 #define __MPP_DEVICE_H__
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "rk_mpi.h"
 
 /* mpp service capability description */
@@ -48,8 +43,12 @@ typedef struct MppDevCfg_t {
     RK_U32          pp_enable;
 } MppDevCfg;
 
-
 typedef void*   MppDevCtx;
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /*
  * hardware device open function
@@ -70,14 +69,8 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param, RK_S32 size);
 
-/*
- * New interface
- */
-
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __MPP_DEVICE_H__ */
-
