@@ -24,6 +24,7 @@
 
 #include "mpp_env.h"
 #include "mpp_log.h"
+#include "mpp_time.h"
 
 #include "mpp_device.h"
 #include "mpp_platform.h"
@@ -46,6 +47,8 @@ typedef struct MppReq_t {
     RK_U32  size;
 } MppReq;
 
+#define MAX_TIME_RECORD                     4
+
 typedef struct MppDevCtxImpl_t {
     MppCtxType type;
     MppCodingType coding;
@@ -54,8 +57,16 @@ typedef struct MppDevCtxImpl_t {
     RK_U32 mmu_status;  // 0 disable, 1 enable
     RK_U32 pp_enable;   // postprocess, 0 disable, 1 enable
     RK_S32 vpu_fd;
+
+    RK_S64 time_start[MAX_TIME_RECORD];
+    RK_S64 time_end[MAX_TIME_RECORD];
+    RK_S32 idx_send;
+    RK_S32 idx_wait;
+    RK_S32 idx_total;
 } MppDevCtxImpl;
 
+#define MPP_DEVICE_DBG_REG                  (0x00000001)
+#define MPP_DEVICE_DBG_TIME                 (0x00000002)
 
 static RK_U32 mpp_device_debug = 0;
 
@@ -205,7 +216,7 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 
     p = (MppDevCtxImpl *)ctx;
 
-    if (mpp_device_debug) {
+    if (mpp_device_debug & MPP_DEVICE_DBG_REG) {
         RK_U32 i;
 
         for (i = 0; i < nregs; i++) {
@@ -216,6 +227,13 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
     nregs *= sizeof(RK_U32);
     req.req     = regs;
     req.size    = nregs;
+
+    if (mpp_device_debug & MPP_DEVICE_DBG_TIME) {
+        p->time_start[p->idx_send++] = mpp_time();
+        if (p->idx_send >= MAX_TIME_RECORD)
+            p->idx_send = 0;
+    }
+
     ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_SET_REG, &req);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n",
@@ -249,7 +267,20 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         ret = errno;
     }
 
-    if (mpp_device_debug) {
+    if (mpp_device_debug & MPP_DEVICE_DBG_TIME) {
+        RK_S32 idx = p->idx_wait;
+        p->time_end[idx] = mpp_time();
+
+        mpp_log("task %d time %.2f ms\n", p->idx_total,
+                (p->time_end[idx] - p->time_start[idx]) / 1000.0);
+
+        p->idx_total++;
+        if (++p->idx_wait >= MAX_TIME_RECORD)
+            p->idx_wait = 0;
+    }
+
+
+    if (mpp_device_debug & MPP_DEVICE_DBG_REG) {
         RK_U32 i;
         nregs >>= 2;
 
