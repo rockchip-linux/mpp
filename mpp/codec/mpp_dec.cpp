@@ -58,6 +58,7 @@ typedef union PaserTaskWait_u {
         RK_U32      dec_pic_buf  : 1;
         RK_U32      dec_slot_idx : 1;
         RK_U32      dis_que_full : 1;
+        RK_U32      dec_all_done : 1;
     };
 } PaserTaskWait;
 
@@ -124,7 +125,8 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
         task->wait.info_change ||
         task->wait.dec_pic_buf ||
         task->wait.dis_que_full ||
-        task->wait.dec_slot_idx)
+        task->wait.dec_slot_idx ||
+        task->wait.dec_all_done)
         return MPP_NOK;
 
     return MPP_OK;
@@ -517,6 +519,12 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
                 return MPP_NOK;
             }
         }
+    } else if (task->wait.dec_all_done) {
+        if (!hal_task_check_empty(dec->tasks, TASK_PROCESSING)) {
+            task->wait.dec_all_done = 0;
+        } else {
+            return MPP_NOK;
+        }
     }
 
     dec_dbg_detail("check prev task pass\n");
@@ -660,6 +668,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      */
     mpp_dec_put_task(mpp, task);
 
+    task->wait.dec_all_done = task_dec->flags.wait_done;
     task->status.dec_pkt_copy_rdy  = 0;
     task->status.curr_task_rdy  = 0;
     task->status.task_parsed_rdy = 0;
@@ -695,7 +704,6 @@ void *mpp_dec_parser_thread(void *data)
              * 3. no buffer on analyzing output task
              */
             dec_dbg_stauts("%p wait status: 0x%08x\n", dec, task.wait.val);
-
             if (check_task_wait(dec, &task))
                 parser->wait();
 
