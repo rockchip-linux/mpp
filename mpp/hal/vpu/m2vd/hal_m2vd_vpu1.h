@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
+ * Copyright 2017 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M2VD_API_H__
-#define __HAL_M2VD_API_H__
+#ifndef __HAL_MV2D_VPU1_H__
+#define __HAL_MV2D_VPU1_H__
 
 #include "mpp_hal.h"
 
@@ -23,19 +23,17 @@
 extern "C" {
 #endif
 
-extern const MppHalApi hal_api_m2vd;
-
-MPP_RET hal_m2vd_init (void *hal, MppHalCfg *cfg);
-MPP_RET hal_m2vd_deinit (void *hal);
-MPP_RET hal_m2vd_gen_regs (void *hal, HalTaskInfo *task);
-MPP_RET hal_m2vd_start (void *hal, HalTaskInfo *task);
-MPP_RET hal_m2vd_wait (void *hal, HalTaskInfo *task);
-MPP_RET hal_m2vd_reset (void *hal);
-MPP_RET hal_m2vd_flush (void *hal);
-MPP_RET hal_m2vd_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_m2vd_vdpu1_init    (void *hal, MppHalCfg *cfg);
+MPP_RET hal_m2vd_vdpu1_deinit  (void *hal);
+MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task);
+MPP_RET hal_m2vd_vdpu1_start   (void *hal, HalTaskInfo *task);
+MPP_RET hal_m2vd_vdpu1_wait    (void *hal, HalTaskInfo *task);
+MPP_RET hal_m2vd_vdpu1_reset   (void *hal);
+MPP_RET hal_m2vd_vdpu1_flush   (void *hal);
+MPP_RET hal_m2vd_vdpu1_control (void *hal, RK_S32 cmd_type, void *param);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__HAL_M2VD_API_H__*/
+#endif /*__HAL_MV2D_VPU1_H__*/

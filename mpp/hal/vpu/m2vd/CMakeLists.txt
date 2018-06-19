@@ -9,13 +9,18 @@ set(HAL_M2VD_API
 
 #hal m2v header
 set(HAL_M2VD_HDR
-   hal_m2vd_reg.h
+   hal_m2vd_base.h
+   hal_m2vd_vdpu1_reg.h
+   hal_m2vd_vdpu2_reg.h
+   hal_m2vd_vpu1.h
+   hal_m2vd_vpu2.h
    )
 
 #hal m2v decoder sourse
 set(HAL_M2VD_SRC
    hal_m2vd_api.c
-   hal_m2vd_reg.c
+   hal_m2vd_vdpu1.c
+   hal_m2vd_vdpu2.c
    )
 
 add_library(${HAL_MPEG2D} STATIC
