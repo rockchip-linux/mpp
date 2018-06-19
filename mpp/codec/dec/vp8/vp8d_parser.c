@@ -316,6 +316,11 @@ MPP_RET vp8d_parser_deinit(void *ctx)
 
     vp8d_unref_allframe(p);
 
+    if (p->input_packet) {
+        mpp_packet_deinit(&p->input_packet);
+        p->input_packet = NULL;
+    }
+
     if ( NULL != p) {
         mpp_free(p);
     }
