@@ -487,7 +487,6 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->h265dctx->pix_fmt             = sps->pix_fmt;
     s->h265dctx->nBitDepth           = sps->bit_depth;
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
-    mpp_buf_slot_setup(s->slots, 25);
 
     if (sps->vui.video_signal_type_present_flag)
         s->h265dctx->color_range = sps->vui.video_full_range_flag ? MPPCOL_RANGE_JPEG
@@ -1969,6 +1968,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     if (MPP_OK != mpp_packet_init(&s->input_packet, (void*)buf, size)) {
         return MPP_ERR_NOMEM;
     }
+    mpp_buf_slot_setup(s->slots, 25);
 #ifdef dump
     fp = fopen("/data/dump1.bin", "wb+");
 #endif
