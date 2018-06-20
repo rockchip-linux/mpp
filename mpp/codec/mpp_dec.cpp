@@ -241,6 +241,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     RK_U32 change = flags.info_change;
     RK_U32 error = flags.had_error;
     RK_U32 refer = flags.used_for_ref;
+    RK_U32 fake_frame = 0;
 
     if (index >= 0) {
         mpp_buf_slot_get_prop(slots, index, SLOT_FRAME_PTR, &frame);
@@ -261,6 +262,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
             mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_READY);
         } else {
             mpp_frame_init(&frame);
+            fake_frame = 1;
             index = 0;
         }
 
@@ -323,6 +325,9 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp->mFramePutCount++;
         list->signal();
         list->unlock();
+
+        if (fake_frame)
+            mpp_frame_deinit(&frame);
     }
 }
 
