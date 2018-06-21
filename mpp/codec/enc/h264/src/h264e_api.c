@@ -138,7 +138,7 @@ MPP_RET h264e_deinit(void *ctx)
     while (!list_empty(del)) {
         tmp = del->next;
         list_del_init(tmp);
-        free(list_entry(tmp, RecordNode, list));
+        mpp_free(list_entry(tmp, RecordNode, list));
     }
 
     h264e_dbg_func("leave\n");
