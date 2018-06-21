@@ -37,7 +37,6 @@
 Mpp::Mpp()
     : mPackets(NULL),
       mFrames(NULL),
-      mTasks(NULL),
       mTimeStamps(NULL),
       mPacketPutCount(0),
       mPacketGetCount(0),
@@ -55,6 +54,7 @@ Mpp::Mpp()
       mInputBlock(MPP_POLL_NON_BLOCK),
       mOutputBlock(MPP_POLL_NON_BLOCK),
       mOutputBlockTimeout(-1),
+      mInputTask(NULL),
       mThreadCodec(NULL),
       mThreadHal(NULL),
       mDec(NULL),
@@ -84,7 +84,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_DEC : {
         mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
-        mTasks      = new mpp_list((node_destructor)NULL);
         mTimeStamps = new MppQueue((node_destructor)mpp_packet_deinit);
 
         MppDecCfg cfg = {
@@ -119,7 +118,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
         mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
-        mTasks      = new mpp_list((node_destructor)NULL);
 
         mpp_enc_init(&mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
@@ -186,6 +184,12 @@ void Mpp::clear()
         if (mThreadCodec)
             mThreadCodec->set_status(MPP_THREAD_STOPPING);
 
+        /* reset dequeued input task to idle status */
+        if (mInputTask) {
+            enqueue(MPP_PORT_INPUT, mInputTask);
+            mInputTask = NULL;
+        }
+
         /*
          * encode thread may block in dequeue output task
          * so send sigal to awake it
@@ -245,10 +249,6 @@ void Mpp::clear()
     if (mFrames) {
         delete mFrames;
         mFrames = NULL;
-    }
-    if (mTasks) {
-        delete mTasks;
-        mTasks = NULL;
     }
     if (mTimeStamps) {
         delete mTimeStamps;
@@ -359,33 +359,34 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
-    MppTask task = NULL;
 
-    /* poll input port for valid task */
-    ret = poll(MPP_PORT_INPUT, mInputBlock);
-    if (ret) {
-        mpp_log_f("poll on set timeout %d ret %d\n", mInputBlock, ret);
-        goto RET;
+    if (mInputTask == NULL) {
+        /* poll input port for valid task */
+        ret = poll(MPP_PORT_INPUT, mInputBlock);
+        if (ret) {
+            mpp_log_f("poll on set timeout %d ret %d\n", mInputBlock, ret);
+            goto RET;
+        }
+
+        /* dequeue task for setup */
+        ret = dequeue(MPP_PORT_INPUT, &mInputTask);
+        if (ret || NULL == mInputTask) {
+            mpp_log_f("dequeue on set ret %d task %p\n", ret, mInputTask);
+            goto RET;
+        }
     }
 
-    /* dequeue task for setup */
-    ret = dequeue(MPP_PORT_INPUT, &task);
-    if (ret || NULL == task) {
-        mpp_log_f("dequeue on set ret %d task %p\n", ret, task);
-        goto RET;
-    }
-
-    mpp_assert(task);
+    mpp_assert(mInputTask);
 
     /* setup task */
-    ret = mpp_task_meta_set_frame(task, KEY_INPUT_FRAME, frame);
+    ret = mpp_task_meta_set_frame(mInputTask, KEY_INPUT_FRAME, frame);
     if (ret) {
         mpp_log_f("set input frame to task ret %d\n", ret);
         goto RET;
     }
 
     /* enqueue valid task to encoder */
-    ret = enqueue(MPP_PORT_INPUT, task);
+    ret = enqueue(MPP_PORT_INPUT, mInputTask);
     if (ret) {
         mpp_log_f("enqueue ret %d\n", ret);
         goto RET;
@@ -399,38 +400,23 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     }
 
     /* get previous enqueued task back */
-    ret = dequeue(MPP_PORT_INPUT, &task);
+    ret = dequeue(MPP_PORT_INPUT, &mInputTask);
     if (ret) {
         mpp_log_f("dequeue on get ret %d\n", ret);
         goto RET;
     }
 
-    if (mInputBlock != MPP_POLL_NON_BLOCK)
-        mpp_assert(task);
+    mpp_assert(mInputTask);
 
     /* clear the enqueued task back */
-    if (task) {
-        ret = mpp_task_meta_get_frame(task, KEY_INPUT_FRAME, &frame);
+    if (mInputTask) {
+        ret = mpp_task_meta_get_frame(mInputTask, KEY_INPUT_FRAME, &frame);
         if (frame) {
             mpp_frame_deinit(&frame);
             frame = NULL;
         }
     }
 
-    /* enqueue empty task back to encoder */
-    ret = enqueue(MPP_PORT_INPUT, task);
-    if (ret) {
-        mpp_log_f("enqueue on get ret %d\n", ret);
-        goto RET;
-    }
-
-    /*
-     * This process can be replaced by simple poll operation
-     * NOTE: But here is a risk that the frame pointer is still in task
-     *       but it is a invalid pointer
-     *       The safer way is to dequeue the task and destroy Mppframe
-     *       with it then enqueue task back to the port
-     */
 RET:
     return ret;
 }

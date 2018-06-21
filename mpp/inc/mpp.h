@@ -81,7 +81,6 @@ public:
 
     MppQueue        *mPackets;
     mpp_list        *mFrames;
-    mpp_list        *mTasks;
     MppQueue        *mTimeStamps;
     /* counters for debug */
     RK_U32          mPacketPutCount;
@@ -113,6 +112,8 @@ public:
     MppPollType     mInputBlock;
     MppPollType     mOutputBlock;
     RK_S64          mOutputBlockTimeout;
+
+    MppTask         mInputTask;
     /*
      * There are two threads for each decoder/encoder: codec thread and hal thread
      *
