@@ -943,12 +943,14 @@ RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
         aDecOut->timeUs = mpp_frame_get_pts(mframe);
         frame_count++;
 
-        if (mpp_frame_get_eos(mframe)) {
+        if (mpp_frame_get_eos(mframe) && !mpp_frame_get_info_change(mframe)) {
             set_eos = 1;
             if (buf == NULL) {
                 aDecOut->size = 0;
                 mEosSet = 1;
                 ret = VPU_API_EOS_STREAM_REACHED;
+            } else {
+                aDecOut->nFlags |= VPU_API_EOS_STREAM_REACHED;
             }
         }
         if (vpu_api_debug & VPU_API_DBG_OUTPUT) {
