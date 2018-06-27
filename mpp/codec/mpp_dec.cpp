@@ -1262,7 +1262,7 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
         dec_dbg_func("used count %d\n", *p);
     } break;
     case MPP_DEC_SET_DISABLE_ERROR: {
-        dec->disable_error = *((RK_U32 *)param);
+        dec->disable_error = (param) ? (*((RK_U32 *)param)) : (1);
         dec_dbg_func("disable error %d\n", dec->disable_error);
     } break;
     case MPP_DEC_SET_PRESENT_TIME_ORDER: {
