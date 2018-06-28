@@ -327,6 +327,11 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         inc_buffer_ref_no_lock(p, caller);
         *buffer = p;
     }
+
+    if (group->listener) {
+        MppThread *thread = (MppThread *)group->listener;
+        thread->signal();
+    }
 RET:
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
