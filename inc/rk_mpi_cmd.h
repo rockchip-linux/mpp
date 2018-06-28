@@ -75,10 +75,18 @@ typedef enum {
 
     MPP_CMD_BASE                        = CMD_MODULE_MPP,
     MPP_ENABLE_DEINTERLACE,
-    MPP_SET_INPUT_BLOCK,
-    MPP_SET_INTPUT_BLOCK_TIMEOUT,
-    MPP_SET_OUTPUT_BLOCK,
-    MPP_SET_OUTPUT_BLOCK_TIMEOUT,
+    MPP_SET_INPUT_BLOCK,                /* deprecated */
+    MPP_SET_INTPUT_BLOCK_TIMEOUT,       /* deprecated */
+    MPP_SET_OUTPUT_BLOCK,               /* deprecated */
+    MPP_SET_OUTPUT_BLOCK_TIMEOUT,       /* deprecated */
+    /*
+     * timeout setup, refer to  MPP_TIMEOUT_XXX
+     * zero     - non block
+     * negative - block with no timeout
+     * positive - timeout in milisecond
+     */
+    MPP_SET_INPUT_TIMEOUT,              /* parameter type RK_S64 */
+    MPP_SET_OUTPUT_TIMEOUT,             /* parameter type RK_S64 */
     MPP_CMD_END,
 
     MPP_CODEC_CMD_BASE                  = CMD_MODULE_CODEC,

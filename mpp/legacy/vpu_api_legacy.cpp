@@ -447,9 +447,9 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         MppPollType block = MPP_POLL_BLOCK;
 
         /* setup input / output block mode */
-        ret = mpi->control(mpp_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block);
+        ret = mpi->control(mpp_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
         if (MPP_OK != ret)
-            mpp_err("mpi->control MPP_SET_INPUT_BLOCK failed\n");
+            mpp_err("mpi->control MPP_SET_INPUT_TIMEOUT failed\n");
 
         if (memGroup == NULL) {
             ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
@@ -1440,7 +1440,19 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         mpicmd = MPP_DEC_GET_VPUMEM_USED_COUNT;
     } break;
     case VPU_API_SET_OUTPUT_BLOCK: {
-        mpicmd = MPP_SET_OUTPUT_BLOCK;
+        mpicmd = MPP_SET_OUTPUT_TIMEOUT;
+        if (param) {
+            RK_S32 timeout = *((RK_S32*)param);
+
+            if (timeout) {
+                if (timeout < 0)
+                    mpp_log("set output mode to block\n");
+                else
+                    mpp_log("set output timeout %d ms\n", timeout);
+            } else {
+                mpp_log("set output mode to non-block\n");
+            }
+        }
     } break;
     case VPU_API_GET_EOS_STATUS: {
         *((RK_S32 *)param) = mEosSet;

@@ -107,7 +107,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
              * If there is frame to return get the frame first
              * But if the output mode is block then we need to send packet first
              */
-            if (!mpp->mOutputBlock || packet_done) {
+            if (!mpp->mOutputTimeout || packet_done) {
                 ret = mpp->get_frame(frame);
                 if (ret || *frame)
                     break;
@@ -118,7 +118,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
                 break;
 
             /*
-             * then send input stream with block mode
+             * then send input stream with timeout mode
              */
             ret = mpp->put_packet(packet);
             if (MPP_OK == ret)
