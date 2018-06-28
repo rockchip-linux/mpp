@@ -431,8 +431,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     MpiCmd mpi_cmd      = MPP_CMD_BASE;
     MppParam param      = NULL;
     RK_U32 need_split   = 1;
-    RK_U32 output_block = MPP_POLL_BLOCK;
-    RK_S64 block_timeout = cmd->timeout;
+    MppPollType timeout = cmd->timeout;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -553,18 +552,15 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
-    if (block_timeout) {
-        param = &output_block;
-        ret = mpi->control(ctx, MPP_SET_OUTPUT_BLOCK, param);
+    // NOTE: timeout value please refer to MppPollType definition
+    //  0   - non-block call (default)
+    // -1   - block call
+    // +val - timeout value in ms
+    if (timeout) {
+        param = &timeout;
+        ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
         if (MPP_OK != ret) {
-            mpp_err("Failed to set blocking mode on MPI (code = %d).\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        param = &block_timeout;
-        ret = mpi->control(ctx, MPP_SET_OUTPUT_BLOCK_TIMEOUT, param);
-        if (MPP_OK != ret) {
-            mpp_err("Failed to set blocking mode on MPI (code = %d).\n", ret);
+            mpp_err("Failed to set output timeout %d ret %d\n", timeout, ret);
             goto MPP_TEST_OUT;
         }
     }

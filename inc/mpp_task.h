@@ -102,8 +102,20 @@ typedef enum {
     MPP_POLL_BUTT       = -2,
     MPP_POLL_BLOCK      = -1,
     MPP_POLL_NON_BLOCK  = 0,
-    MPP_POLL_MAX        = 1000,
+    MPP_POLL_MAX        = 8000,
 } MppPollType;
+
+/*
+ * Mpp timeout define
+ * MPP_TIMEOUT_BLOCK            - for block poll
+ * MPP_TIMEOUT_NON_BLOCK        - for non-block poll
+ * small than MPP_TIMEOUT_MAX   - for poll with timeout in ms
+ * small than MPP_TIMEOUT_BUTT or larger than MPP_TIMEOUT_MAX is invalid value
+ */
+#define MPP_TIMEOUT_BUTT        (-2L)
+#define MPP_TIMEOUT_BLOCK       (-1L)
+#define MPP_TIMEOUT_NON_BLOCK   (0L)
+#define MPP_TIMEOUT_MAX         (8000L)
 
 /*
  * MppTask is descriptor of a task which send to mpp for process

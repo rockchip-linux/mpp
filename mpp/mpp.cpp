@@ -51,9 +51,8 @@ Mpp::Mpp()
       mOutputPort(NULL),
       mInputTaskQueue(NULL),
       mOutputTaskQueue(NULL),
-      mInputBlock(MPP_POLL_NON_BLOCK),
-      mOutputBlock(MPP_POLL_NON_BLOCK),
-      mOutputBlockTimeout(-1),
+      mInputTimeout(MPP_POLL_NON_BLOCK),
+      mOutputTimeout(MPP_POLL_NON_BLOCK),
       mInputTask(NULL),
       mThreadCodec(NULL),
       mThreadHal(NULL),
@@ -294,8 +293,6 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
-    RK_S32 ret;
-
     if (!mInitDone)
         return MPP_ERR_INIT;
 
@@ -303,20 +300,21 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     MppFrame first = NULL;
 
     if (0 == mFrames->list_size()) {
-        if (mOutputBlock == MPP_POLL_BLOCK) {
-            if (mOutputBlockTimeout >= 0) {
-                ret = mFrames->wait(mOutputBlockTimeout);
+        if (mOutputTimeout) {
+            if (mOutputTimeout < 0) {
+                /* block wait */
+                mFrames->wait();
+            } else {
+                RK_S32 ret = mFrames->wait(mOutputTimeout);
                 if (ret) {
                     if (ret == ETIMEDOUT)
                         return MPP_ERR_TIMEOUT;
                     else
                         return MPP_NOK;
                 }
-            } else {
-                mFrames->wait();
             }
         } else {
-            /* NOTE: this sleep is to avoid user's dead loop */
+            /* NOTE: in non-block mode the sleep is to avoid user's dead loop */
             msleep(1);
         }
     }
@@ -362,9 +360,9 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
     if (mInputTask == NULL) {
         /* poll input port for valid task */
-        ret = poll(MPP_PORT_INPUT, mInputBlock);
+        ret = poll(MPP_PORT_INPUT, mInputTimeout);
         if (ret) {
-            mpp_log_f("poll on set timeout %d ret %d\n", mInputBlock, ret);
+            mpp_log_f("poll on set timeout %d ret %d\n", mInputTimeout, ret);
             goto RET;
         }
 
@@ -395,7 +393,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     /* wait enqueued task finished */
     ret = poll(MPP_PORT_INPUT, MPP_POLL_BLOCK);
     if (ret) {
-        mpp_log_f("poll on get timeout %d ret %d\n", mInputBlock, ret);
+        mpp_log_f("poll on get timeout %d ret %d\n", mInputTimeout, ret);
         goto RET;
     }
 
@@ -429,7 +427,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
 
-    ret = poll(MPP_PORT_OUTPUT, mOutputBlock);
+    ret = poll(MPP_PORT_OUTPUT, mOutputTimeout);
     if (ret) {
         // NOTE: Do not treat poll failure as error. Just clear output
         ret = MPP_OK;
@@ -655,17 +653,43 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
     MPP_RET ret = MPP_OK;
 
     switch (cmd) {
-    case MPP_SET_INPUT_BLOCK: {
-        MppPollType block = *((MppPollType *)param);
-        mInputBlock = block;
+    case MPP_SET_INPUT_BLOCK :
+    case MPP_SET_OUTPUT_BLOCK :
+    case MPP_SET_INTPUT_BLOCK_TIMEOUT :
+    case MPP_SET_OUTPUT_BLOCK_TIMEOUT : {
+        MppPollType block = (param) ? *((MppPollType *)param) : MPP_POLL_NON_BLOCK;
+
+        if (block <= MPP_POLL_BUTT || block > MPP_POLL_MAX) {
+            mpp_err("invalid output timeout type %d should be in range [%d, %d]\n",
+                    block, MPP_POLL_BUTT, MPP_POLL_MAX);
+            ret = MPP_ERR_VALUE;
+            break;
+        }
+        if (cmd == MPP_SET_INPUT_BLOCK || cmd == MPP_SET_INTPUT_BLOCK_TIMEOUT)
+            mInputTimeout = block;
+        else
+            mOutputTimeout = block;
+
+        mpp_log("deprecated block control, use timeout control instead\n");
     } break;
-    case MPP_SET_OUTPUT_BLOCK: {
-        MppPollType block = *((MppPollType *)param);
-        mOutputBlock = block;
+
+    case MPP_SET_INPUT_TIMEOUT:
+    case MPP_SET_OUTPUT_TIMEOUT: {
+        MppPollType timeout = (param) ? *((MppPollType *)param) : MPP_POLL_NON_BLOCK;
+
+        if (timeout <= MPP_POLL_BUTT || timeout > MPP_POLL_MAX) {
+            mpp_err("invalid output timeout type %d should be in range [%d, %d]\n",
+                    timeout, MPP_POLL_BUTT, MPP_POLL_MAX);
+            ret = MPP_ERR_VALUE;
+            break;
+        }
+
+        if (cmd == MPP_SET_INPUT_TIMEOUT)
+            mInputTimeout = timeout;
+        else
+            mOutputTimeout = timeout;
     } break;
-    case MPP_SET_OUTPUT_BLOCK_TIMEOUT: {
-        mOutputBlockTimeout = *((RK_S64 *)param);
-    } break;
+
     default : {
         ret = MPP_NOK;
     } break;

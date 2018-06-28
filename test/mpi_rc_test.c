@@ -417,8 +417,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     FILE *fp_stat           = file->fp_stat;
     RK_U8 *dec_in_buf       = NULL;
     RK_U32 need_split       = 0;
-    RK_U32 block_input      = 0;
-    RK_U32 block_output     = 0;
+    MppPollType block       = MPP_POLL_NON_BLOCK;
 
     // base flow context
     MppCtx enc_ctx          = NULL;
@@ -514,16 +513,18 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         mpp_err("dec_mpi->control failed\n");
         goto MPP_TEST_OUT;
     }
-    block_input = 0;
-    block_output = 1;
-    ret = dec_mpi->control(dec_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block_input);
+
+    block = MPP_POLL_NON_BLOCK;
+    ret = dec_mpi->control(dec_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control dec MPP_SET_INPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control dec MPP_SET_INPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
-    ret = dec_mpi->control(dec_ctx, MPP_SET_OUTPUT_BLOCK, (MppParam)&block_output);
+
+    block = MPP_POLL_BLOCK;
+    ret = dec_mpi->control(dec_ctx, MPP_SET_OUTPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control MPP_SET_OUTPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
@@ -552,16 +553,17 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         mpp_err("mpp_create encoder failed\n");
         goto MPP_TEST_OUT;
     }
-    block_input = 0;
-    block_output = 0;
-    ret = enc_mpi->control(enc_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block_input);
+
+    block = MPP_POLL_NON_BLOCK;
+    ret = enc_mpi->control(enc_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("enc_mpi->control MPP_SET_INPUT_BLOCK failed\n");
+        mpp_err("enc_mpi->control MPP_SET_INPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
-    ret = enc_mpi->control(enc_ctx, MPP_SET_OUTPUT_BLOCK, (MppParam)&block_output);
+
+    ret = enc_mpi->control(enc_ctx, MPP_SET_OUTPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("enc_mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        mpp_err("enc_mpi->control MPP_SET_OUTPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 

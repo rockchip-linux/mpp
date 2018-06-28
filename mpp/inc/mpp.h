@@ -109,9 +109,8 @@ public:
     MppTaskQueue    mInputTaskQueue;
     MppTaskQueue    mOutputTaskQueue;
 
-    MppPollType     mInputBlock;
-    MppPollType     mOutputBlock;
-    RK_S64          mOutputBlockTimeout;
+    MppPollType     mInputTimeout;
+    MppPollType     mOutputTimeout;
 
     MppTask         mInputTask;
     /*

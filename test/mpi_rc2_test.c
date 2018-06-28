@@ -508,7 +508,7 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     MppCtx *enc_ctx = &ctx->enc_ctx;
     MppApi *enc_mpi;
     MpiRcTestCmd *cmd = &ctx->cmd;
-    int block;
+    MppPollType block = MPP_POLL_NON_BLOCK;
 
     MppCodingType type = cmd->type;
 
@@ -527,15 +527,14 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
 
     enc_mpi = ctx->enc_mpi;
 
-    block = 0;
-    ret = enc_mpi->control(*enc_ctx, MPP_SET_INPUT_BLOCK, (MppParam)&block);
+    ret = enc_mpi->control(*enc_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("enc_mpi->control MPP_SET_INPUT_BLOCK failed\n");
+        mpp_err("enc_mpi->control MPP_SET_INPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
-    ret = enc_mpi->control(*enc_ctx, MPP_SET_OUTPUT_BLOCK, (MppParam)&block);
+    ret = enc_mpi->control(*enc_ctx, MPP_SET_OUTPUT_TIMEOUT, (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("enc_mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        mpp_err("enc_mpi->control MPP_SET_OUTPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
@@ -704,7 +703,7 @@ static MPP_RET mpi_rc_post_dec_init(MpiRc2TestCtx *ctx)
     MpiRcTestCmd *cmd = &ctx->cmd;
     MppCodingType type = cmd->type;
     RK_U32 need_split = 0;
-    int block;
+    MppPollType block = MPP_POLL_NON_BLOCK;
 
     // decoder init
     ret = mpp_create(&ctx->dec_ctx_post, &ctx->dec_mpi_post);
@@ -727,19 +726,18 @@ static MPP_RET mpi_rc_post_dec_init(MpiRc2TestCtx *ctx)
         mpp_err("dec_mpi->control failed\n");
         goto MPP_TEST_OUT;
     }
-    block = 0;
-    ret = ctx->dec_mpi_post->control(ctx->dec_ctx_post, MPP_SET_INPUT_BLOCK,
+    ret = ctx->dec_mpi_post->control(ctx->dec_ctx_post, MPP_SET_INPUT_TIMEOUT,
                                      (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control dec MPP_SET_INPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control dec MPP_SET_INPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
-    block = 1;
-    ret = ctx->dec_mpi_post->control(ctx->dec_ctx_post, MPP_SET_OUTPUT_BLOCK,
+    block = MPP_POLL_BLOCK;
+    ret = ctx->dec_mpi_post->control(ctx->dec_ctx_post, MPP_SET_OUTPUT_TIMEOUT,
                                      (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control MPP_SET_OUTPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
@@ -825,7 +823,7 @@ static MPP_RET mpi_rc_pre_dec_init(MpiRc2TestCtx *ctx)
     MPP_RET ret = MPP_OK;
     MpiRcTestCmd *cmd   = &ctx->cmd;
     RK_U32 need_split   = 1;
-    RK_S32 block;
+    MppPollType block = MPP_POLL_NON_BLOCK;
     MppApi *mpi = NULL;
 
     // decoder init
@@ -850,18 +848,18 @@ static MPP_RET mpi_rc_pre_dec_init(MpiRc2TestCtx *ctx)
         goto MPP_TEST_OUT;
     }
 
-    block = 0;
-    ret = mpi->control(ctx->dec_ctx_pre, MPP_SET_INPUT_BLOCK, (MppParam)&block);
+    ret = mpi->control(ctx->dec_ctx_pre, MPP_SET_INPUT_TIMEOUT,
+                       (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control dec MPP_SET_INPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control dec MPP_SET_INPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
-    block = 1;
-    ret = mpi->control(ctx->dec_ctx_pre, MPP_SET_OUTPUT_BLOCK,
+    block = MPP_POLL_BLOCK;
+    ret = mpi->control(ctx->dec_ctx_pre, MPP_SET_OUTPUT_TIMEOUT,
                        (MppParam)&block);
     if (MPP_OK != ret) {
-        mpp_err("dec_mpi->control MPP_SET_OUTPUT_BLOCK failed\n");
+        mpp_err("dec_mpi->control MPP_SET_OUTPUT_TIMEOUT failed\n");
         goto MPP_TEST_OUT;
     }
 
