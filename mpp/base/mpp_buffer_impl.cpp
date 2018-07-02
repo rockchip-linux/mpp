@@ -328,10 +328,8 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         *buffer = p;
     }
 
-    if (group->listener) {
-        MppThread *thread = (MppThread *)group->listener;
-        thread->signal();
-    }
+    if (group->callback)
+        group->callback(group->arg, group);
 RET:
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
@@ -402,10 +400,8 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
                 }
             }
             group->count_used--;
-            if (group->listener) {
-                MppThread *thread = (MppThread *)group->listener;
-                thread->signal();
-            }
+            if (group->callback)
+                group->callback(group->arg, group);
         }
     }
 
@@ -513,7 +509,8 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
     return MPP_OK;
 }
 
-MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
+MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
+                                      MppBufCallback callback, void *arg)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
@@ -523,7 +520,8 @@ MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
 
     MPP_BUF_FUNCTION_ENTER();
 
-    p->listener = listener;
+    p->callback = callback;
+    p->arg      = arg;
 
     MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;

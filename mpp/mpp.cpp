@@ -34,6 +34,13 @@
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
+static void mpp_notify_by_buffer_group(void *arg, void *group)
+{
+    Mpp *mpp = (Mpp *)arg;
+
+    mpp->notify((MppBufferGroup) group);
+}
+
 Mpp::Mpp()
     : mPackets(NULL),
       mFrames(NULL),
@@ -81,7 +88,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     mCoding = coding;
     switch (mType) {
     case MPP_CTX_DEC : {
-        mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
+        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTimeStamps = new MppQueue((node_destructor)mpp_packet_deinit);
 
@@ -116,7 +123,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
-        mPackets    = new MppQueue((node_destructor)mpp_packet_deinit);
+        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
 
         mpp_enc_init(&mEnc, coding);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
@@ -177,7 +184,8 @@ void Mpp::clear()
 {
     // MUST: release listener here
     if (mFrameGroup)
-        mpp_buffer_group_set_listener((MppBufferGroupImpl *)mFrameGroup, NULL);
+        mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
+                                      NULL, NULL);
 
     if (mType == MPP_CTX_ENC) {
         if (mThreadCodec)
@@ -270,8 +278,9 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
     AutoMutex autoLock(mPackets->mutex());
     if (mExtraPacket) {
-        mPackets->push(&mExtraPacket, sizeof(mExtraPacket));
+        mPackets->add_at_tail(&mExtraPacket, sizeof(mExtraPacket));
         mExtraPacket = NULL;
+        mPacketPutCount++;
     }
 
     RK_U32 eos = mpp_packet_get_eos(packet);
@@ -280,11 +289,13 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
             return MPP_NOK;
 
-        mPackets->push(&pkt, sizeof(pkt));
+        mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
 
         // when packet has been send clear the length
         mpp_packet_set_length(packet, 0);
+
+        notify(MPP_INPUT_ENQUEUE);
         return MPP_OK;
     }
 
@@ -322,7 +333,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     if (mFrames->list_size()) {
         mFrames->del_at_head(&first, sizeof(frame));
         mFrameGetCount++;
-        mThreadHal->signal();
+        notify(MPP_OUTPUT_DEQUEUE);
 
         if (mMultiFrame) {
             MppFrame prev = first;
@@ -330,7 +341,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
             while (mFrames->list_size()) {
                 mFrames->del_at_head(&next, sizeof(frame));
                 mFrameGetCount++;
-                mThreadHal->signal();
+                notify(MPP_OUTPUT_DEQUEUE);
                 mpp_frame_set_next(prev, next);
                 prev = next;
             }
@@ -344,7 +355,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         // change too.
         AutoMutex autoPacketLock(mPackets->mutex());
         if (mPackets->list_size())
-            mThreadCodec->signal();
+            notify(MPP_INPUT_ENQUEUE);
     }
 
     *frame = first;
@@ -506,8 +517,11 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
     } break;
     }
 
-    if (port)
+    if (port) {
         ret = mpp_port_dequeue(port, task);
+        if (MPP_OK == ret)
+            notify(MPP_OUTPUT_DEQUEUE);
+    }
 
     return ret;
 }
@@ -537,6 +551,7 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
         if (MPP_OK == ret) {
             // if enqueue success wait up thread
             mThreadCodec->signal();
+            notify(MPP_INPUT_ENQUEUE);
         }
         mThreadCodec->unlock();
     }
@@ -735,9 +750,11 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
                 mpp_log("using external buffer group %p\n", mFrameGroup);
 
             if (mThreadCodec) {
-                ret = mpp_buffer_group_set_listener((MppBufferGroupImpl *)param,
-                                                    (void *)mThreadCodec);
-                mThreadCodec->signal();
+                ret = mpp_buffer_group_set_callback((MppBufferGroupImpl *)param,
+                                                    mpp_notify_by_buffer_group,
+                                                    (void *)this);
+
+                notify(MPP_DEC_NOTIFY_EXT_BUF_GRP_READY);
             } else {
                 /*
                  * NOTE: If frame buffer group is configured before decoder init
@@ -759,7 +776,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
             mpp_log("set info change ready\n");
 
         ret = mpp_buf_slot_ready(mDec->frame_slots);
-        mThreadCodec->signal();
+        notify(MPP_DEC_NOTIFY_INFO_CHG_DONE);
     } break;
     case MPP_DEC_SET_PARSER_SPLIT_MODE: {
         RK_U32 flag = *((RK_U32 *)param);
@@ -808,3 +825,34 @@ MPP_RET Mpp::control_isp(MpiCmd cmd, MppParam param)
     return ret;
 }
 
+MPP_RET Mpp::notify(RK_U32 flag)
+{
+    switch (mType) {
+    case MPP_CTX_DEC : {
+        return mpp_dec_notify(mDec, flag);
+    } break;
+    case MPP_CTX_ENC : {
+        return mpp_enc_notify(mEnc, flag);
+    } break;
+    default : {
+        mpp_err("unsupport context type %d\n", mType);
+    } break;
+    }
+    return MPP_NOK;
+}
+
+MPP_RET Mpp::notify(MppBufferGroup group)
+{
+    MPP_RET ret = MPP_NOK;
+
+    switch (mType) {
+    case MPP_CTX_DEC : {
+        if (group == mFrameGroup)
+            ret = notify(MPP_DEC_NOTIFY_BUFFER_VALID);
+    } break;
+    default : {
+    } break;
+    }
+
+    return ret;
+}

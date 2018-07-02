@@ -181,8 +181,6 @@ typedef struct VP8DParserContext {
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
 
-    IOInterruptCB notify_cb;
-
     // FILE *fp_dbg_file[VP8D_DBG_FILE_NUM];
     FILE *fp_dbg_yuv;
 } VP8DParserContext_t;

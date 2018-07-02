@@ -224,7 +224,6 @@ MPP_RET vp8d_parser_init(void *ctx, ParserCfg *parser_cfg)
     }
     p->packet_slots = parser_cfg->packet_slots;
     p->frame_slots = parser_cfg->frame_slots;
-    p->notify_cb = parser_cfg->notify_cb;
 
     mpp_buf_slot_setup(p->frame_slots, 15);
 

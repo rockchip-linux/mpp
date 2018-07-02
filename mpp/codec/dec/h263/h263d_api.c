@@ -45,7 +45,6 @@ typedef struct {
     RK_U32          need_split;
     RK_U32          frame_count;
     RK_U32          internal_pts;
-    IOInterruptCB   notify_cb;
 
     // parser context
     H263dParser     parser;
@@ -94,7 +93,6 @@ MPP_RET h263d_init(void *dec, ParserCfg *cfg)
     p->task_count   = cfg->task_count = 2;
     p->need_split   = cfg->need_split;
     p->internal_pts = cfg->internal_pts;
-    p->notify_cb    = cfg->notify_cb;
     p->stream       = stream;
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;

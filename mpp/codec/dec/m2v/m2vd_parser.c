@@ -124,8 +124,6 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->packet_slots = cfg->packet_slots;
     ctx->frame_slots = cfg->frame_slots;
 
-    ctx->notify_cb = cfg->notify_cb;
-
     mpp_buf_slot_setup(ctx->frame_slots, 16);
 
     ctx->initFlag = 0;
