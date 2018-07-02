@@ -52,7 +52,6 @@ MPP_RET vp9d_init(void *ctx, ParserCfg *init)
     if ((ret = vp9d_parser_init(vp9_ctx, init)) != MPP_OK)
         goto _err_exit;
 
-    vp9_ctx->notify_cb = init->notify_cb;
     if ((ret = vp9d_split_init(vp9_ctx)) != MPP_OK)
         goto _err_exit;
 

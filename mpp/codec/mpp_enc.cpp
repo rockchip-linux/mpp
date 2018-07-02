@@ -266,15 +266,12 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
         }
 
         mpp_buf_slot_setup(packet_slots, task_count);
-        cb.callBack = mpp_enc_notify;
-        cb.opaque = p;
 
         ControllerCfg ctrl_cfg = {
             coding,
             &p->cfg,
             &p->set,
             task_count,
-            cb,
         };
 
         ret = controller_init(&controller, &ctrl_cfg);
@@ -359,11 +356,11 @@ MPP_RET mpp_enc_reset(MppEnc *enc)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_notify(void *ctx, void *info)
+MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag)
 {
     // TODO
-    (void)ctx;
-    (void)info;
+    (void)enc;
+    (void)flag;
     return MPP_OK;
 }
 

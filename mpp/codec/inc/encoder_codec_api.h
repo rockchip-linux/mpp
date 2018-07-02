@@ -40,7 +40,6 @@ typedef struct EncControllerInitCfg_t {
 
     // output
     RK_S32          task_count;
-    IOInterruptCB   notify_cb;
 } ControllerCfg;
 
 /*

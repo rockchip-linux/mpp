@@ -290,7 +290,6 @@ typedef struct M2VDParserContext_t {
 
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
-    IOInterruptCB notify_cb;
     RK_U32  cur_slot_index;
 
     RK_U64 pts;

@@ -23,10 +23,35 @@
 #include "mpp_enc.h"
 #include "mpp_task.h"
 
-#define MPP_DBG_FUNCTION                (0x00000001)
-#define MPP_DBG_PACKET                  (0x00000002)
-#define MPP_DBG_FRAME                   (0x00000004)
-#define MPP_DBG_BUFFER                  (0x00000008)
+#define MPP_DBG_FUNCTION                    (0x00000001)
+#define MPP_DBG_PACKET                      (0x00000002)
+#define MPP_DBG_FRAME                       (0x00000004)
+#define MPP_DBG_BUFFER                      (0x00000008)
+
+/*
+ * mpp notify event flags
+ * When event happens mpp will signal deocder / encoder with different flag.
+ * These event will wake up the codec thread or hal thread
+ */
+#define MPP_INPUT_ENQUEUE                   (0x00000001)
+#define MPP_OUTPUT_DEQUEUE                  (0x00000002)
+#define MPP_RESET                           (0xFFFFFFFF)
+
+/* mpp dec event flags */
+#define MPP_DEC_NOTIFY_PACKET_ENQUEUE       (MPP_INPUT_ENQUEUE)
+#define MPP_DEC_NOTIFY_FRAME_DEQUEUE        (MPP_OUTPUT_DEQUEUE)
+#define MPP_DEC_NOTIFY_EXT_BUF_GRP_READY    (0x00000010)
+#define MPP_DEC_NOTIFY_INFO_CHG_DONE        (0x00000020)
+#define MPP_DEC_NOTIFY_BUFFER_VALID         (0x00000040)
+#define MPP_DEC_NOTIFY_TASK_ALL_DONE        (0x00000080)
+#define MPP_DEC_NOTIFY_TASK_HND_VALID       (0x00000100)
+#define MPP_DEC_NOTIFY_TASK_PREV_DONE       (0x00000200)
+#define MPP_DEC_RESET                       (MPP_RESET)
+
+/* mpp enc event flags */
+#define MPP_ENC_NOTIFY_FRAME_ENQUEUE        (MPP_INPUT_ENQUEUE)
+#define MPP_ENC_NOTIFY_PACKET_DEQUEUE       (MPP_OUTPUT_DEQUEUE)
+#define MPP_ENC_RESET                       (MPP_RESET)
 
 /*
  * mpp hierarchy
@@ -79,7 +104,10 @@ public:
     MPP_RET reset();
     MPP_RET control(MpiCmd cmd, MppParam param);
 
-    MppQueue        *mPackets;
+    MPP_RET notify(RK_U32 flag);
+    MPP_RET notify(MppBufferGroup group);
+
+    mpp_list        *mPackets;
     mpp_list        *mFrames;
     MppQueue        *mTimeStamps;
     /* counters for debug */

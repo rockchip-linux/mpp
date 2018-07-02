@@ -33,13 +33,19 @@ struct MppDec_t {
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
 
-    // status flag
+    // status flags
+    RK_U32              parser_work_count;
+    RK_U32              parser_wait_count;
+    RK_U32              parser_status_flag;
+    RK_U32              parser_notify_flag;
+    RK_U32              hal_notify_flag;
+
     RK_U32              reset_flag;
     RK_U32              parser_reset_done;
     RK_U32              hal_reset_done;
     RK_U32              vproc_reset_done;
 
-    // work mode flag
+    // work mode flags
     RK_U32              parser_need_split;
     RK_U32              parser_fast_mode;
     RK_U32              parser_internal_pts;
@@ -80,7 +86,7 @@ MPP_RET mpp_dec_deinit(MppDec *dec);
 MPP_RET mpp_dec_reset(MppDec *dec);
 MPP_RET mpp_dec_flush(MppDec *dec);
 MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param);
-MPP_RET mpp_dec_notify(void *ctx, void *info);
+MPP_RET mpp_dec_notify(MppDec *dec, RK_U32 flag);
 
 #ifdef __cplusplus
 }

@@ -99,7 +99,6 @@ typedef struct Vp9CodecContext {
     DXVA_PicParams_VP9 pic_params;
     // DXVA_Slice_VPx_Short slice_short;
     RK_S32 eos;
-    IOInterruptCB notify_cb;
 } Vp9CodecContext;
 
 #endif /*__VP9D_CODEC_H__*/

@@ -38,6 +38,7 @@
 
 typedef struct MppBufferImpl_t          MppBufferImpl;
 typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
+typedef void (*MppBufCallback)(void *, void *);
 
 // use index instead of pointer to avoid invalid pointer
 struct MppBufferImpl_t {
@@ -83,7 +84,8 @@ struct MppBufferGroupImpl_t {
     MppAllocatorApi     *alloc_api;
 
     // thread that will be signal on buffer return
-    void                *listener;
+    MppBufCallback      callback;
+    void                *arg;
 
     // buffer force clear mode flag
     RK_U32              clear_on_exit;
@@ -145,7 +147,8 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size);
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller, MppBufferMode mode, MppBufferType type);
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p);
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p);
-MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener);
+MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
+                                      MppBufCallback callback, void *arg);
 // mpp_buffer_group helper function
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
 void mpp_buffer_service_dump();

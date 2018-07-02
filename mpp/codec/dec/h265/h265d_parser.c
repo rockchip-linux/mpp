@@ -1949,7 +1949,6 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     s->slots = parser_cfg->frame_slots;
 
     s->packet_slots = parser_cfg->packet_slots;
-    s->notify_cb = parser_cfg->notify_cb;
 
     if (h265dctx->extradata_size > 0 && h265dctx->extradata) {
         ret = hevc_parser_extradata(s);
