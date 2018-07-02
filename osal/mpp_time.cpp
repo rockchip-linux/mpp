@@ -40,7 +40,7 @@ RK_S64 mpp_time()
 
 #endif
 
-void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, char *fmt)
+void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, const char *fmt)
 {
     RK_S64 diff = end - start;
     if (diff >= limit)

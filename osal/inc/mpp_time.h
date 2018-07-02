@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 RK_S64 mpp_time();
-void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, char *fmt);
+void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, const char *fmt);
 
 #ifdef __cplusplus
 }
