@@ -1059,7 +1059,8 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
         }
     }
 
-    if (s->keyframe || s->errorres || s->intraonly) {
+    if (s->keyframe || s->errorres ||
+        (s->intraonly && s->resetctx == 3)) {
         s->prob_ctx[0].p = s->prob_ctx[1].p = s->prob_ctx[2].p =
                                                   s->prob_ctx[3].p = vp9_default_probs;
         memcpy(s->prob_ctx[0].coef, vp9_default_coef_probs,
@@ -1070,7 +1071,13 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                sizeof(vp9_default_coef_probs));
         memcpy(s->prob_ctx[3].coef, vp9_default_coef_probs,
                sizeof(vp9_default_coef_probs));
+    } else if (s->intraonly && s->resetctx == 2) {
+        s->prob_ctx[c].p = vp9_default_probs;
+        memcpy(s->prob_ctx[c].coef, vp9_default_coef_probs,
+               sizeof(vp9_default_coef_probs));
     }
+    if (s->keyframe || s->errorres || s->intraonly)
+        s->framectxid = c = 0;
 
     // next 16 bits is size of the rest of the header (arith-coded)
     size2 = mpp_get_bits(&s->gb, 16);
