@@ -673,7 +673,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      */
     mpp_dec_put_task(mpp, task);
 
-    task->wait.dec_all_done = task_dec->flags.wait_done;
+    task->wait.dec_all_done = (dec->parser_fast_mode &&
+                               task_dec->flags.wait_done) ? 1 : 0;
     task->status.dec_pkt_copy_rdy  = 0;
     task->status.curr_task_rdy  = 0;
     task->status.task_parsed_rdy = 0;
