@@ -17,10 +17,29 @@
 #ifndef __MPP_DEC_H__
 #define __MPP_DEC_H__
 
+#include "mpp_time.h"
+
 #include "mpp_parser.h"
 #include "mpp_hal.h"
 
 typedef struct MppDec_t MppDec;
+
+// for timing record
+typedef enum MppDecTimingType_e {
+    DEC_PRS_TOTAL,
+    DEC_PRS_WAIT,
+    DEC_PRS_PROC,
+    DEC_PRS_PREPARE,
+    DEC_PRS_PARSE,
+    DEC_HAL_GEN_REG,
+    DEC_HW_START,
+
+    DEC_HAL_TOTAL,
+    DEC_HAL_WAIT,
+    DEC_HAL_PROC,
+    DEC_HW_WAIT,
+    DEC_TIMING_BUTT,
+} MppDecTimingType;
 
 struct MppDec_t {
     MppCodingType       coding;
@@ -52,10 +71,15 @@ struct MppDec_t {
     RK_U32              disable_error;
     RK_U32              use_preset_time_order;
     RK_U32              enable_deinterlace;
+
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
     void                *mpp;
     void                *vproc;
+
+    // statistics data
+    RK_U32              statistics_en;
+    MppTimer            timers[DEC_TIMING_BUTT];
 };
 
 typedef struct {
