@@ -114,7 +114,7 @@ static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
 static const char *type2str[MPP_BUFFER_TYPE_BUTT] = {
     "normal",
     "ion",
-    "v4l2",
+    "dma-buf",
     "drm",
 };
 static const char *ops2str[BUF_OPS_BUTT] = {
