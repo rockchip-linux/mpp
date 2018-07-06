@@ -529,9 +529,10 @@ MPP_RET mpp_buffer_group_set_listener(MppBufferGroupImpl *p, void *listener)
     return MPP_OK;
 }
 
-void mpp_buffer_group_dump(MppBufferGroupImpl *group)
+void mpp_buffer_group_dump(MppBufferGroupImpl *group, const char *caller)
 {
-    mpp_log("\ndumping buffer group %p id %d\n", group, group->group_id);
+    mpp_log("\ndumping buffer group %p id %d from %s\n", group,
+            group->group_id, caller);
     mpp_log("mode %s\n", mode2str[group->mode]);
     mpp_log("type %s\n", type2str[group->type]);
     mpp_log("limit size %d count %d\n", group->limit_size, group->limit_count);
@@ -741,7 +742,7 @@ void MppBufferService::put_group(MppBufferGroupImpl *p)
             mpp_err("mpp_group %p tag %s caller %s mode %s type %s deinit with %d bytes not released\n",
                     p, p->tag, p->caller, mode2str[p->mode], type2str[p->type], p->usage);
 
-            mpp_buffer_group_dump(p);
+            mpp_buffer_group_dump(p, __FUNCTION__);
         }
 
         /* if clear on exit we need to release remaining buffer */
@@ -834,7 +835,7 @@ void MppBufferService::dump_misc_group()
     for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
         for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++) {
             if (misc[i][j])
-                mpp_buffer_group_dump(misc[i][j]);
+                mpp_buffer_group_dump(misc[i][j], __FUNCTION__);
         }
 }
 
