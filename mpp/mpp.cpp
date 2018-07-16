@@ -603,44 +603,52 @@ MPP_RET Mpp::reset()
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    /*
-     * On mp4 case extra data of sps/pps will be put at the beginning
-     * If these packet was reset before they are send to decoder then
-     * decoder can not get these important information to continue decoding
-     * To avoid this case happen we need to save it on reset beginning
-     * then restore it on reset end.
-     */
-    mPackets->lock();
-    while (mPackets->list_size()) {
-        MppPacket pkt = NULL;
-        mPackets->del_at_head(&pkt, sizeof(pkt));
-        mPacketGetCount++;
-
-        RK_U32 flags = mpp_packet_get_flag(pkt);
-        if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
-            if (mExtraPacket) {
-                mpp_packet_deinit(&mExtraPacket);
-            }
-            mExtraPacket = pkt;
-        } else {
-            mpp_packet_deinit(&pkt);
-        }
-    }
-    mPackets->flush();
-    mPackets->unlock();
-
-    mFrames->lock();
-    mFrames->flush();
-    mFrames->unlock();
-
     if (mType == MPP_CTX_DEC) {
+        /*
+         * On mp4 case extra data of sps/pps will be put at the beginning
+         * If these packet was reset before they are send to decoder then
+         * decoder can not get these important information to continue decoding
+         * To avoid this case happen we need to save it on reset beginning
+         * then restore it on reset end.
+         */
+        mPackets->lock();
+        while (mPackets->list_size()) {
+            MppPacket pkt = NULL;
+            mPackets->del_at_head(&pkt, sizeof(pkt));
+            mPacketGetCount++;
+
+            RK_U32 flags = mpp_packet_get_flag(pkt);
+            if (flags & MPP_PACKET_FLAG_EXTRA_DATA) {
+                if (mExtraPacket) {
+                    mpp_packet_deinit(&mExtraPacket);
+                }
+                mExtraPacket = pkt;
+            } else {
+                mpp_packet_deinit(&pkt);
+            }
+        }
+        mPackets->flush();
+        mPackets->unlock();
+
         mpp_dec_reset(mDec);
+
+        mFrames->lock();
+        mFrames->flush();
+        mFrames->unlock();
     } else {
+        mFrames->lock();
+        mFrames->flush();
+        mFrames->unlock();
+
         mpp_enc_reset(mEnc);
+
+        mPackets->lock();
+        mPackets->flush();
+        mPackets->unlock();
     }
+
     return MPP_OK;
 }
-
 
 MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
 {
