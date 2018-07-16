@@ -637,7 +637,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      *    possible case:
      *    a. normal case
-     *       - wait and alloc a normal frame buffer
+     *       - wait and alloc(or fetch) a normal frame buffer
      *    b. field mode case
      *       - two field may reuse a same buffer, no need to alloc
      *    c. info change case
@@ -650,8 +650,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         size_t size = mpp_buf_slot_get_size(frame_slots);
         mpp_buffer_get(mpp->mFrameGroup, &hal_buf_out, size);
         if (hal_buf_out)
-            mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER, hal_buf_out);
-
+            mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER,
+                                  hal_buf_out);
     }
 
     dec_dbg_detail("check output buffer %p\n", hal_buf_out);
