@@ -591,7 +591,7 @@ void MppMemService::dump(const char *caller)
     mpp_log("mpp_mem node count %d:\n", nodes_cnt);
     if (nodes_cnt) {
         for (i = 0; i < nodes_max; i++, node++) {
-            if (!node->index < 0)
+            if (node->index < 0)
                 continue;
 
             mpp_log("mpp_memory index %d caller %-32s size %-8u ptr %p\n",
@@ -603,7 +603,7 @@ void MppMemService::dump(const char *caller)
     mpp_log("mpp_mem free count %d:\n", frees_cnt);
     if (frees_cnt) {
         for (i = 0; i < frees_max; i++, node++) {
-            if (!node->index < 0)
+            if (node->index < 0)
                 continue;
 
             mpp_log("mpp_freed  index %d caller %-32s size %-8u ptr %p\n",
