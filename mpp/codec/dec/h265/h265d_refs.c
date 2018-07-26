@@ -175,14 +175,14 @@ static void mark_ref(HEVCFrame *frame, int flag)
 static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
 {
     HEVCFrame *frame;
-    mpp_log("generate_missing_ref in \n");
+    h265d_dbg(H265D_DBG_REF, "generate_missing_ref in \n");
     frame = alloc_frame(s);
     if (!frame)
         return NULL;
     frame->poc      = poc;
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_READY);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
-    mpp_log("generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
+    h265d_dbg(H265D_DBG_REF, "generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
     frame->sequence = s->seq_decode;
     frame->flags    = 0;
     return frame;
