@@ -39,6 +39,8 @@
 #define HEVC_DECODER_REG_NUM        (48)
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)
 
+#define RKVDEC_HEVC_REGISTERS       (68)
+
 #define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)
 
 extern RK_U32 h265h_debug;
