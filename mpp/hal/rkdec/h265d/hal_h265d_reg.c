@@ -1528,7 +1528,7 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
     }
 #ifdef RKPLATFORM
     // 68 is the nb of uint32_t
-    ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, 78);
+    ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, RKVDEC_HEVC_REGISTERS);
     if (ret != 0) {
         mpp_err("RK_HEVC_DEC: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
@@ -1556,7 +1556,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
     p = (RK_U8*)hw_regs;
-    ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, 78);
+    ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, RKVDEC_HEVC_REGISTERS);
 
     if (hw_regs->sw_interrupt.sw_dec_error_sta
         || hw_regs->sw_interrupt.sw_dec_empty_sta) {
