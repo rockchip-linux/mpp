@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_IMPL_H__
-#define __MPP_IMPL_H__
+#ifndef __MPI_IMPL_H__
+#define __MPI_IMPL_H__
 
 #include "mpp.h"
 
@@ -48,4 +48,4 @@ void get_mpi_debug();
 }
 #endif
 
-#endif /*__MPP_IMPL_H__*/
+#endif /*__MPI_IMPL_H__*/
