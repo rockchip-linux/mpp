@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_IMPL_H__
-#define __MPP_IMPL_H__
+#ifndef __MPP_PACKET_IMPL_H__
+#define __MPP_PACKET_IMPL_H__
 
 #include "mpp_buffer.h"
 
@@ -58,4 +58,4 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
 
-#endif /*__MPP_IMPL_H__*/
+#endif /*__MPP_PACKET_IMPL_H__*/
