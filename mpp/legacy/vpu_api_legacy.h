@@ -24,8 +24,6 @@
 #define OMX_BUFFERFLAG_EOS              0x00000001
 
 #define VPU_API_DBG_FUNCTION            (0x00000001)
-#define VPU_API_DBG_DUMP_YUV            (0x00000002)
-#define VPU_API_DBG_DUMP_LOG            (0x00000004)
 #define VPU_API_DBG_INPUT               (0x00000010)
 #define VPU_API_DBG_OUTPUT              (0x00000020)
 
@@ -70,9 +68,6 @@ private:
     RK_U32 init_ok;
     RK_U32 frame_count;
     RK_U32 set_eos;
-
-    FILE *fp;
-    RK_U8  *fp_buf;
 
     /* encoder parameters */
     MppBufferGroup memGroup;

@@ -37,15 +37,6 @@ struct MpiImpl_t {
     Mpp             *ctx;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern RK_U32 mpi_debug;
-void get_mpi_debug();
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /*__MPI_IMPL_H__*/
