@@ -38,7 +38,7 @@ static char mpp_version_number[]    = MPP_VER_NUM;
 static RK_CHIP_TYPE chip_version(void)
 {
     RK_CHIP_TYPE type = NONE;
-    char *value = NULL;
+    const char *value = NULL;
     RK_S32 ret = mpp_env_get_str("ro.product.board", &value, NULL);
 
     if (0 == ret) {

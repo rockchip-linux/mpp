@@ -57,6 +57,11 @@
 #define MPP_DBG_PTS                     (0x00000002)
 #define MPP_DBG_INFO                    (0x00000004)
 #define MPP_DBG_PLATFORM                (0x00000010)
+
+#define MPP_DBG_DUMP_LOG                (0x00000100)
+#define MPP_DBG_DUMP_IN                 (0x00000200)
+#define MPP_DBG_DUMP_OUT                (0x00000400)
+
 #define MPP_ABORT                       (0x10000000)
 
 /*

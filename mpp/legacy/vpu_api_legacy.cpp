@@ -32,9 +32,6 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_frame.h"
 
-#define MAX_WRITE_HEIGHT        (480)
-#define MAX_WRITE_WIDTH         (960)
-
 RK_U32 vpu_api_debug = 0;
 
 static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
@@ -216,55 +213,6 @@ RET:
     return ret;
 }
 
-static void vpu_api_dump_yuv(VPU_FRAME *vframe, FILE *fp,
-                             MppBuffer buf, RK_U8 *fp_buf, RK_S64 pts)
-{
-    //!< Dump yuv
-    if (fp && !vframe->ErrorInfo) {
-        RK_U8 *ptr = vframe->vpumem.vir_addr ?
-                     (RK_U8 *)vframe->vpumem.vir_addr : (RK_U8 *)mpp_buffer_get_ptr(buf);
-
-        if ((vframe->FrameWidth >= 1920) || (vframe->FrameHeight >= 1080)) {
-            RK_U32 i = 0, j = 0, step = 0;
-            RK_U32 img_w = 0, img_h = 0;
-            RK_U8 *pdes = NULL, *psrc = NULL;
-
-            step = MPP_MAX(vframe->FrameWidth / MAX_WRITE_WIDTH, vframe->FrameHeight / MAX_WRITE_HEIGHT);
-            img_w = vframe->FrameWidth / step;
-            img_h = vframe->FrameHeight / step;
-            pdes = fp_buf;
-            psrc = ptr;
-            for (i = 0; i < img_h; i++) {
-                for (j = 0; j < img_w; j++) {
-                    pdes[j] = psrc[j * step];
-                }
-                pdes += img_w;
-                psrc += step * vframe->FrameWidth;
-            }
-            pdes = fp_buf + img_w * img_h;
-            psrc = (RK_U8 *)ptr + vframe->FrameWidth * vframe->FrameHeight;
-            for (i = 0; i < (img_h / 2); i++) {
-                for (j = 0; j < (img_w / 2); j++) {
-                    pdes[2 * j + 0] = psrc[2 * j * step + 0];
-                    pdes[2 * j + 1] = psrc[2 * j * step + 1];
-                }
-                pdes += img_w;
-                psrc += step * vframe->FrameWidth * ((vframe->ColorType & VPU_OUTPUT_FORMAT_BIT_10) ? 2 : 1);
-            }
-            fwrite(fp_buf, 1, img_w * img_h * 3 / 2, fp);
-            if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
-                mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", pts, img_w, img_h);
-            }
-        } else {
-            fwrite(ptr, 1, vframe->FrameWidth * vframe->FrameHeight * 3 / 2, fp);
-            if (vpu_api_debug & VPU_API_DBG_DUMP_LOG) {
-                mpp_log("[write_out_yuv] timeUs=%lld, FrameWidth=%d, FrameHeight=%d", pts, vframe->FrameWidth, vframe->FrameHeight);
-            }
-        }
-        fflush(fp);
-    }
-}
-
 static int is_valid_dma_fd(int fd)
 {
     int ret = 1;
@@ -340,8 +288,6 @@ VpuApiLegacy::VpuApiLegacy() :
     init_ok(0),
     frame_count(0),
     set_eos(0),
-    fp(NULL),
-    fp_buf(NULL),
     memGroup(NULL),
     format(MPP_FMT_YUV420P),
     fd_input(-1),
@@ -352,11 +298,6 @@ VpuApiLegacy::VpuApiLegacy() :
 
     mpp_create(&mpp_ctx, &mpi);
 
-    if (vpu_api_debug & VPU_API_DBG_DUMP_YUV) {
-        fp = fopen("/sdcard/rk_mpp_dump.yuv", "wb");
-        fp_buf = mpp_malloc(RK_U8, (MAX_WRITE_HEIGHT * MAX_WRITE_WIDTH * 2));
-    }
-
     memset(&enc_cfg, 0, sizeof(enc_cfg));
     vpu_api_dbg_func("leave\n");
 }
@@ -364,14 +305,7 @@ VpuApiLegacy::VpuApiLegacy() :
 VpuApiLegacy::~VpuApiLegacy()
 {
     vpu_api_dbg_func("enter\n");
-    if (fp) {
-        fclose(fp);
-        fp = NULL;
-    }
-    if (fp_buf) {
-        mpp_free(fp_buf);
-        fp_buf = NULL;
-    }
+
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
         memGroup = NULL;
@@ -828,7 +762,6 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
             MppBuffer buf = mpp_frame_get_buffer(mframe);
 
             setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
-            vpu_api_dump_yuv(vframe, fp, buf, fp_buf, mpp_frame_get_pts(mframe));
 
             aDecOut->size = sizeof(VPU_FRAME);
             aDecOut->timeUs = mpp_frame_get_pts(mframe);
@@ -937,7 +870,6 @@ RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
         MppBuffer buf = mpp_frame_get_buffer(mframe);
 
         setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
-        vpu_api_dump_yuv(vframe, fp, buf, fp_buf, mpp_frame_get_pts(mframe));
 
         aDecOut->size = sizeof(VPU_FRAME);
         aDecOut->timeUs = mpp_frame_get_pts(mframe);

@@ -21,6 +21,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
+#include "mpp_impl.h"
 
 #include "mpp.h"
 #include "mpp_dec.h"
@@ -172,6 +173,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     }
 
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+    mpp_dump_init(&mDump, type);
     return MPP_OK;
 }
 
@@ -269,6 +271,7 @@ void Mpp::clear()
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
+    mpp_dump_deinit(&mDump);
 }
 
 MPP_RET Mpp::put_packet(MppPacket packet)
@@ -291,6 +294,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
 
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
+        // dump input packet
+        mpp_dump_packet(&mDump, packet);
 
         // when packet has been send clear the length
         mpp_packet_set_length(packet, 0);
@@ -359,6 +364,10 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     }
 
     *frame = first;
+
+    // dump output
+    mpp_dump_frame(&mDump, first);
+
     return MPP_OK;
 }
 
@@ -393,6 +402,8 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         mpp_log_f("set input frame to task ret %d\n", ret);
         goto RET;
     }
+    // dump input
+    mpp_dump_frame(&mDump, frame);
 
     /* enqueue valid task to encoder */
     ret = enqueue(MPP_PORT_INPUT, mInputTask);
@@ -464,6 +475,9 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     if (mpp_debug & MPP_DBG_PTS)
         mpp_log_f("pts %lld\n", mpp_packet_get_pts(*packet));
+
+    // dump output
+    mpp_dump_packet(&mDump, *packet);
 
     ret = enqueue(MPP_PORT_OUTPUT, task);
     if (ret)

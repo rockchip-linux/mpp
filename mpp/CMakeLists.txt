@@ -42,7 +42,7 @@ add_subdirectory(hal)
 set (MPP_SRC
     mpp_info.cpp
     mpp.cpp
-    mpi_impl.cpp
+    mpp_impl.cpp
     mpi.cpp
     )
 

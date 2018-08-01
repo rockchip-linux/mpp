@@ -22,6 +22,7 @@
 #include "mpp_dec.h"
 #include "mpp_enc.h"
 #include "mpp_task.h"
+#include "mpp_impl.h"
 
 #define MPP_DBG_FUNCTION                    (0x00000001)
 #define MPP_DBG_PACKET                      (0x00000002)
@@ -174,6 +175,9 @@ private:
 
     /* backup extra packet for seek */
     MppPacket       mExtraPacket;
+
+    /* dump info for debug */
+    MppDumpInfo     mDump;
 
     MPP_RET control_mpp(MpiCmd cmd, MppParam param);
     MPP_RET control_osal(MpiCmd cmd, MppParam param);
