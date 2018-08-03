@@ -45,7 +45,7 @@ RK_S32 os_get_env_u32(const char *name, RK_U32 *value, RK_U32 default_value)
     return 0;
 }
 
-RK_S32 os_get_env_str(const char *name, char **value, char *default_value)
+RK_S32 os_get_env_str(const char *name, const char **value, const char *default_value)
 {
     // use unsigned char to avoid warnning
     static unsigned char env_str[2][PROP_VALUE_MAX + 1];
