@@ -408,6 +408,10 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
                 s->decode_getframe = vpu_api_getframe;
                 s->encoder_sendframe = vpu_api_sendframe;
                 s->encoder_getstream = vpu_api_getstream;
+
+                s->extra_cfg.ori_vpu = 0;
+                extra_cfg.ori_vpu = 0;
+
                 ret = 0;
             } else {
                 mpp_err("Vpu api object has not been properly allocated");
