@@ -1,0 +1,6 @@
+#!/bin/bash
+
+W=$1
+H=$2
+SRC=$3
+mplayer $SRC -loop 0 -demuxer rawvideo -fps 25 -rawvideo w=$W:h=$H:size=$(($W*$H*3/2)):format=nv12
