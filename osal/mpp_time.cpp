@@ -78,7 +78,7 @@ MppTimer mpp_timer_get(const char *name)
     MppTimerImpl *impl = mpp_calloc(MppTimerImpl, 1);
     if (impl) {
         impl->check = module_name;
-        snprintf(impl->name, sizeof(impl->name), name);
+        snprintf(impl->name, sizeof(impl->name), name, NULL);
     } else
         mpp_err_f("malloc failed\n");
 
