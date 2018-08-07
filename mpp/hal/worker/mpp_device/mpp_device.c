@@ -109,8 +109,7 @@ static RK_S32 mpp_device_get_client_type(MppDevCtx ctx, MppCtxType type, MppCodi
     RK_S32 client_type = -1;
     MppDevCtxImpl *p;
 
-    if (NULL == ctx ||
-        (type >= MPP_CTX_BUTT || type < 0) ||
+    if (NULL == ctx || type >= MPP_CTX_BUTT ||
         (coding >= MPP_VIDEO_CodingMax || coding <= MPP_VIDEO_CodingUnused)) {
         mpp_err_f("found NULL input ctx %p coding %d type %d\n", ctx, coding, type);
         return MPP_ERR_NULL_PTR;

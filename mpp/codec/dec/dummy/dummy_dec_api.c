@@ -162,7 +162,7 @@ MPP_RET dummy_dec_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     data    = mpp_packet_get_data(pkt);
     length  = mpp_packet_get_length(pkt);
     if (length > p->stream_size) {
-        mpp_realloc(p->stream, RK_U8, length);
+        p->stream = mpp_realloc(p->stream, RK_U8, length);
         mpp_packet_set_data(p->task_pkt, p->stream);
         p->stream_size = length;
     }
