@@ -398,6 +398,7 @@ MPP_RET mpp_m2vd_parser_split(M2VDParserContext *ctx, MppPacket dst, MppPacket s
              * we see all 0x1b3 and 0x100 as boundary
              */
             if (p->state == SEQUENCE_HEADER_CODE || p->state == PICTURE_START_CODE) {
+                p->pts = mpp_packet_get_pts(src);
                 p->vop_header_found = 1;
                 break;
             }
@@ -494,7 +495,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_data(p->input_packet, p->bitstream_sw_buf);
         mpp_packet_set_size(p->input_packet, p->max_stream_size);
 
-
+        p->pts = mpp_packet_get_pts(pkt);
         task->valid = 1;
         mpp_packet_set_length(pkt, 0);
     } else {
@@ -505,14 +506,13 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             task->valid = 0;
             p->left_length = mpp_packet_get_length(p->input_packet);
         }
-        p->pts = mpp_packet_get_pts(p->input_packet);
-        p->eos = mpp_packet_get_eos(p->input_packet);
     }
 
     if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
         mpp_packet_set_extra_data(p->input_packet);
     }
 
+    p->eos = mpp_packet_get_eos(pkt);
     mpp_packet_set_pts(p->input_packet, p->pts);
     task->input_packet = p->input_packet;
     task->flags.eos = p->eos;
