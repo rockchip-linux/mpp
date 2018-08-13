@@ -113,9 +113,9 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     RK_S32 i = 0;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
 
-    CHK_I(ctx);
+    M2VD_CHK_I(ctx);
     memset(ctx, 0, sizeof(*ctx));
 
     ctx->dxva_ctx = mpp_calloc(M2VDDxvaParam, 1);
@@ -201,7 +201,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     }
 
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
 __FAILED:
 
     return ret;
@@ -212,17 +212,17 @@ MPP_RET m2vd_parser_init(void *ctx, ParserCfg *parser_cfg)
     MPP_RET ret = MPP_OK;
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     if (p == NULL) {
-        CHK_M(p = (M2VDParserContext*)mpp_calloc(M2VDParserContext, 1));
+        M2VD_CHK_M(p = (M2VDParserContext*)mpp_calloc(M2VDParserContext, 1));
         c->parse_ctx = p;
     }
 
-    CHK_F(m2vd_parser_init_ctx(p, parser_cfg));
+    M2VD_CHK_F(m2vd_parser_init_ctx(p, parser_cfg));
 
     mpp_env_get_u32("m2vd_debug", &m2vd_debug, 0);
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
 __FAILED:
     return ret;
 }
@@ -234,7 +234,7 @@ MPP_RET m2vd_parser_deinit(void *ctx)
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
 
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
 
     for (k = 0; k < M2VD_DBG_FILE_NUM; k++) {
         M2VD_FCLOSE(p->fp_dbg_file[k]);
@@ -271,7 +271,7 @@ MPP_RET m2vd_parser_deinit(void *ctx)
         mpp_free(p);
     }
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return ret;
 }
 
@@ -286,7 +286,7 @@ MPP_RET m2vd_parser_reset(void *ctx)
     MPP_RET ret = MPP_OK;
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     if (p->frame_cur->slot_index != 0xff)
         mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index,
                               SLOT_CODEC_USE);
@@ -316,7 +316,7 @@ MPP_RET m2vd_parser_reset(void *ctx)
     p->left_length = 0;
     p->need_split = 0;
     p->vop_header_found = 0;
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return ret;
 }
 
@@ -331,7 +331,7 @@ MPP_RET m2vd_parser_flush(void *ctx)
     MPP_RET ret = MPP_OK;
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
 
     if ((p->frame_ref0->slot_index != 0xff) && !p->frame_ref0->flags) {
         mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
@@ -341,7 +341,7 @@ MPP_RET m2vd_parser_flush(void *ctx)
         p->frame_ref0->flags = 0;
     }
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return ret;
 }
 
@@ -354,11 +354,11 @@ MPP_RET m2vd_parser_flush(void *ctx)
 MPP_RET m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     (void)ctx;
     (void)cmd_type;
     (void)param;
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return ret;
 }
 
@@ -545,7 +545,7 @@ static RK_U32 m2vd_search_header(BitReadCtx_t *bx)
 static int m2vd_decode_seq_ext_header(M2VDParserContext *ctx)
 {
     BitReadCtx_t *bx = ctx->bitread_ctx;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     ctx->MPEG2_Flag = 1;
     ctx->seq_ext_head.profile_and_level_indication = m2vd_read_bits(bx, 8);
     ctx->seq_ext_head.progressive_sequence         = m2vd_read_bits(bx, 1);
@@ -564,7 +564,7 @@ static int m2vd_decode_seq_ext_header(M2VDParserContext *ctx)
     ctx->seq_head.bit_rate_value |= (ctx->seq_ext_head.bit_rate_extension << 18);
     ctx->seq_head.vbv_buffer_size += (ctx->seq_ext_head.vbv_buffer_size_extension << 10);
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return  M2VD_DEC_OK;
 }
 
@@ -1001,7 +1001,7 @@ static MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
     int         ret = 0;
     BitReadCtx_t *bx = ctx->bitread_ctx;
 
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     while (1) {
         code = m2vd_search_header(bx);
         if (M2VD_DBG_SEC_HEADER & m2vd_debug) {
@@ -1042,7 +1042,7 @@ static MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
         if (ret)
             break;
     }
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
 
     return ret;
 }
@@ -1183,7 +1183,7 @@ static MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
 {
 
     MPP_RET ret = MPP_OK;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     //push frame
     if ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME) ||
         ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && p->pic_code_ext_head.top_field_first ) ||
@@ -1218,7 +1218,7 @@ static MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
 static MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
 {
     MPP_RET ret = MPP_OK;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     M2VDDxvaParam *dst = p->dxva_ctx;
     M2VDFrameHead *pfw = p->frame_ref1;
     M2VDFrameHead *pbw = p->frame_ref0;
@@ -1348,7 +1348,7 @@ static MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
         mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
         mpp_frame_set_errinfo(frame, error_info);
     }
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
     return ret;
 }
 
@@ -1358,9 +1358,9 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
     int rev = 0;
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
 
-    CHK_I(in_task->valid);
+    M2VD_CHK_I(in_task->valid);
 
     in_task->valid = 0;
 
@@ -1430,7 +1430,7 @@ __FAILED:
         m2vd_parser_flush(ctx);
     }
 
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
 
     return ret;
 }
@@ -1443,10 +1443,10 @@ MPP_RET m2vd_parser_callback(void *ctx, void *errinfo)
     MppFrame frame = NULL;
     (void)errinfo;
 
-    FUN_T("FUN_I");
+    m2vd_dbg_func("FUN_I");
     mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
     mpp_frame_set_errinfo(frame, 1);
-    FUN_T("FUN_O");
+    m2vd_dbg_func("FUN_O");
 
     return ret;
 }
