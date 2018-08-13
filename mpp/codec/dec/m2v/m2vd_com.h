@@ -70,7 +70,7 @@ do {\
 
 
 //check function return
-#define CHK_F(val)                                            \
+#define M2VD_CHK_F(val)                                            \
     do{                                                       \
         if((val) < 0) {                                       \
             ret = (val);                                      \
@@ -80,7 +80,7 @@ do {\
       } while (0)
 
 //check value if is zero or NULL
-#define CHK_V(val, ...)\
+#define M2VD_CHK_V(val, ...)\
     do{ if(!(val)){\
     ret = MPP_ERR_VALUE;\
     M2VD_WARNNING("value error(L%d), val:%d\n", __LINE__, val);\
@@ -88,7 +88,7 @@ do {\
     } } while (0)
 
 //memory malloc check
-#define CHK_M(val, ...)\
+#define M2VD_CHK_M(val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_MALLOC;\
     M2VD_ERR("malloc buffer error(%d), pointer:%p\n", __LINE__, val);\
@@ -96,7 +96,7 @@ do {\
     } } while (0)
 
 //file check
-#define CHK_FILE(val, path, ...)\
+#define M2VD_CHK_FILE(val, path, ...)\
     do{ if(!(val)) {\
             ret = MPP_ERR_OPEN_FILE;\
             M2VD_WARNNING("open file error(line%d): %s\n", __LINE__, path);\
@@ -104,26 +104,19 @@ do {\
     } } while (0)
 
 //!< input check
-#define CHK_I(val, ...)\
+#define M2VD_CHK_I(val, ...)\
     do{ if(!(val)) {\
     ret = MPP_ERR_INIT;\
     M2VD_WARNNING("input empty(%d), val:%d\n", __LINE__, val);\
     goto __FAILED;\
     } } while (0)
 
-#define FUN_T(tag) \
+#define m2vd_dbg_func(tag) \
     do {\
         if (M2VD_DBG_FUNCTION & m2vd_debug)\
             { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
     } while (0)
 
-
-
-#define M2VD_TEST_LOG(level, fmt, ...)\
-do {\
-    if (level & rkv_h264d_test_debug)\
-        { mpp_log(fmt, ## __VA_ARGS__); }\
-} while (0)
 
 
 

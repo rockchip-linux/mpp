@@ -81,14 +81,14 @@
 #define PICTURE_TEMPORAL_SCALABLE_EXTENSION_ID  10
 
 
-typedef enum M2VDPicCodingType_t {
+typedef enum M2VDPicCodingType_e {
     M2VD_CODING_TYPE_I = 1,
     M2VD_CODING_TYPE_P = 2,
     M2VD_CODING_TYPE_B = 3,
     M2VD_CODING_TYPE_D = 4
 } M2VDPicCodingType;
 
-typedef enum M2VDPicStruct_t {
+typedef enum M2VDPicStruct_e {
     M2VD_PIC_STRUCT_TOP_FIELD    = 1,
     M2VD_PIC_STRUCT_BOTTOM_FIELD = 2,
     M2VD_PIC_STRUCT_FRAME        = 3
