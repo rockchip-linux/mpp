@@ -29,7 +29,9 @@
 #include "hal_h264e_com.h"
 #include "hal_h264e_header.h"
 #include "hal_h264e_vpu_tbl.h"
+
 #include "hal_h264e_vepu.h"
+#include "hal_h264e_rc.h"
 #include "hal_h264e_vepu1.h"
 #include "hal_h264e_vepu1_reg_tbl.h"
 
@@ -113,6 +115,16 @@ MPP_RET hal_h264e_vepu1_deinit(void *hal)
     if (ctx->intra_qs) {
         mpp_linreg_deinit(ctx->intra_qs);
         ctx->intra_qs = NULL;
+    }
+
+    if (ctx->mad) {
+        mpp_linreg_deinit(ctx->mad);
+        ctx->mad = NULL;
+    }
+
+    if (ctx->qp_p) {
+        mpp_data_deinit(ctx->qp_p);
+        ctx->qp_p = NULL;
     }
 
 #ifdef RKPLATFORM
@@ -443,8 +455,7 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-static MPP_RET
-hal_h264e_vepu1_set_feedback(h264e_feedback *fb, h264e_vepu1_reg_set *reg)
+static MPP_RET hal_h264e_vepu1_set_feedback(h264e_feedback *fb, h264e_vepu1_reg_set *reg)
 {
     RK_S32 i = 0;
     RK_U32 cpt_prev = 0, overflow = 0;
@@ -455,7 +466,7 @@ hal_h264e_vepu1_set_feedback(h264e_feedback *fb, h264e_vepu1_reg_set *reg)
     fb->mad_count = VEPU_REG_MB_CNT_SET(reg_val[VEPU_REG_MB_CTRL / 4]);
     fb->rlc_count = VEPU_REG_RLC_SUM_OUT(reg_val[VEPU_REG_RLC_CTRL / 4]);
     fb->out_strm_size = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < CHECK_POINTS_MAX; i++) {
         RK_U32 cpt = VEPU_REG_CHECKPOINT_RESULT(reg_val[cpt_idx]);
         if (cpt < cpt_prev)
             overflow += (1 << 21);
@@ -465,14 +476,50 @@ hal_h264e_vepu1_set_feedback(h264e_feedback *fb, h264e_vepu1_reg_set *reg)
 
     return MPP_OK;
 }
+static MPP_RET hal_h264e_vpu1_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S32 dealt_qp)
+{
+
+    RK_U32 *p_regs = (RK_U32 *)ctx->regs;
+    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    RK_U32 val = 0;
+    RK_S32 hw_ret = 0;
+    hw_cfg->qp += dealt_qp;
+    hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_min, hw_cfg->qp_max);
+    val = VEPU_REG_H264_LUMA_INIT_QP(hw_cfg->qp)
+          | VEPU_REG_H264_QP_MAX(hw_cfg->qp_max)
+          | VEPU_REG_H264_QP_MIN(hw_cfg->qp_min)
+          | VEPU_REG_H264_CHKPT_DISTANCE(hw_cfg->cp_distance_mbs);
+
+    H264E_HAL_SET_REG(p_regs, VEPU_REG_QP_VAL, val);
+#ifdef RKPLATFORM
+    hw_ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU_H264E_VEPU1_NUM_REGS);
+    if (hw_ret)
+        mpp_err("mpp_device_send_reg failed ret %d", hw_ret);
+    else
+        h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg success!");
+
+    hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU_H264E_VEPU1_NUM_REGS);
+#endif
+    if (hw_ret != MPP_OK) {
+        h264e_hal_err("hardware returns error:%d", hw_ret);
+        return MPP_ERR_VPUHW;
+    }
+    return MPP_OK;
+}
 
 MPP_RET hal_h264e_vepu1_wait(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
-    h264e_vepu1_reg_set *reg_out = (h264e_vepu1_reg_set *)ctx->regs;
+    h264e_vepu1_reg_set reg_out_tmp;
+    h264e_vepu1_reg_set *reg_out = &reg_out_tmp;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
     MppEncPrepCfg *prep = &ctx->set->prep;
+    RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
+    H264eHwCfg *hw_cfg = &ctx->hw_cfg;
+    RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
+                    * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    memset(reg_out, 0, sizeof(h264e_vepu1_reg_set));
 
     h264e_hal_enter();
 
@@ -495,19 +542,55 @@ MPP_RET hal_h264e_vepu1_wait(void *hal, HalTaskInfo *task)
 
     hal_h264e_vepu1_set_feedback(fb, reg_out);
     task->enc.length = fb->out_strm_size;
+
+    hw_cfg->qp_prev = hw_cfg->qp;
+    if (rc_syn->type == INTER_P_FRAME) {
+        int dealt_qp = 3;
+        int cnt = 3;
+        do {
+            if (hw_cfg->qp < 30) {
+                dealt_qp = 5;
+            } else if (hw_cfg->qp < 42) {
+                dealt_qp = 3;
+            } else {
+                dealt_qp = 2;
+            }
+            if (fb->out_strm_size * 8 >  (RK_U32)rc_syn->bit_target * 3) {
+                hal_h264e_vpu1_resend(hal, (RK_U32 *)reg_out, dealt_qp);
+                hal_h264e_vepu1_set_feedback(fb, reg_out);
+                task->enc.length = fb->out_strm_size;
+                hw_cfg->qp_prev = fb->qp_sum / num_mb;
+                if (cnt-- <= 0) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        } while (1);
+    }
     if (int_cb.callBack) {
         RcSyntax *syn = (RcSyntax *)task->enc.syntax.data;
-        RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
-                        * MPP_ALIGN(prep->height, 16) / 16 / 16;
         RK_S32 avg_qp = fb->qp_sum / num_mb;
         RcHalResult result;
+        RK_S32 i;
 
         mpp_assert(avg_qp >= 0);
         mpp_assert(avg_qp <= 51);
+        avg_qp = hw_cfg->qp;
 
         result.bits = fb->out_strm_size * 8;
         result.type = syn->type;
         fb->result = &result;
+
+        hw_cfg->qpCtrl.nonZeroCnt = fb->rlc_count;
+        hw_cfg->qpCtrl.frameBitCnt = result.bits;
+        if (syn->type == INTER_P_FRAME || syn->gop_mode == MPP_GOP_ALL_INTRA) {
+            mpp_data_update(ctx->qp_p, avg_qp);
+        }
+
+        for (i = 0; i < CHECK_POINTS_MAX; i++) {
+            hw_cfg->qpCtrl.wordCntPrev[i] = fb->cp[i];
+        }
 
         mpp_save_regdata((syn->type == INTRA_FRAME) ?
                          (ctx->intra_qs) :
@@ -516,6 +599,8 @@ MPP_RET hal_h264e_vepu1_wait(void *hal, HalTaskInfo *task)
         mpp_linreg_update((syn->type == INTRA_FRAME) ?
                           (ctx->intra_qs) :
                           (ctx->inter_qs));
+
+        h264e_vpu_mad_threshold(hw_cfg, ctx->mad, fb->mad_count);
 
         int_cb.callBack(int_cb.opaque, fb);
     }

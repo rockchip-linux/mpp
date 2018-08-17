@@ -621,7 +621,7 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
 
     sps->vui.b_timing_info_present = i_timebase_num > 0 && i_timebase_den > 0;
 
-    if ( sps->vui.b_timing_info_present  ) {
+    if (sps->vui.b_timing_info_present ) {
         sps->vui.i_num_units_in_tick = i_timebase_num;
         sps->vui.i_time_scale = i_timebase_den * 2;
         sps->vui.b_fixed_frame_rate = !b_vfr_input;

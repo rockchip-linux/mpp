@@ -20,6 +20,18 @@ typedef enum H264eHwType_t {
     H264E_VPU
 } H264eHwType;
 
+#define CTRL_LEVELS          7  /* DO NOT CHANGE THIS */
+#define CHECK_POINTS_MAX    10  /* DO NOT CHANGE THIS */
+#define RC_TABLE_LENGTH     10  /* DO NOT CHANGE THIS */
+
+typedef struct VepuQpCtrl_s {
+    RK_S32 wordCntPrev[CHECK_POINTS_MAX];  /* Real bit count */
+    RK_S32 checkPointDistance;
+    RK_S32 checkPoints;
+    RK_S32 nonZeroCnt;
+    RK_S32 frameBitCnt;
+} VepuQpCtrl;
+
 /*
  * Overall configuration required by hardware
  * Currently support vepu and rkvenc
@@ -50,17 +62,19 @@ typedef struct H264eHwCfg_t {
     RK_U32 input_cr_addr;
     RK_U32 output_strm_limit_size;
     RK_U32 output_strm_addr;
-
     /*
      * For vpu
      * 0 - inter
      * 1 - intra
-     * 2 - mvc-inter
-     *
-     * For rkvenc
-     * RKVENC_FRAME_TYPE_*
-     */
+     * 2 - mvc-inter*/
+
+    VepuQpCtrl qpCtrl;
+    /*
+    * For rkvenc
+    * RKVENC_FRAME_TYPE_*
+    */
     RK_S32 frame_type;
+    RK_S32 pre_frame_type;
 
     RK_S32 cabac_init_idc;
     RK_S32 frame_num;
@@ -78,6 +92,7 @@ typedef struct H264eHwCfg_t {
     RK_S32 qp_max;
     RK_S32 mad_qp_delta;
     RK_S32 mad_threshold;
+    RK_S32 pre_bit_diff;
 
     /*
      * VEPU MB rate control parameter
@@ -87,7 +102,7 @@ typedef struct H264eHwCfg_t {
      */
     RK_S32 slice_size_mb_rows;
     RK_S32 cp_distance_mbs;
-    RK_S32 cp_target[10];
+    RK_S32 cp_target[CHECK_POINTS_MAX];
     RK_S32 target_error[9]; //for rkv there are 9 levels
     RK_S32 delta_qp[9];
 

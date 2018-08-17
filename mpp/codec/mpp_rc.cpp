@@ -29,6 +29,8 @@
 #define MPP_RC_DBG_RC                (0x00000020)
 #define MPP_RC_DBG_CFG               (0x00000100)
 #define MPP_RC_DBG_RECORD            (0x00001000)
+#define MPP_RC_DBG_VBV               (0x00002000)
+
 
 #define mpp_rc_dbg(flag, fmt, ...)   _mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
@@ -37,6 +39,8 @@
 #define mpp_rc_dbg_bps(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_BPS, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_rc(fmt, ...)      mpp_rc_dbg(MPP_RC_DBG_RC, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_cfg(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_CFG, fmt, ## __VA_ARGS__)
+#define mpp_rc_dbg_vbv(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_VBV, fmt, ## __VA_ARGS__)
+
 
 #define SIGN(a)         ((a) < (0) ? (-1) : (1))
 #define DIV(a, b)       (((a) + (SIGN(a) * (b)) / 2) / (b))
@@ -202,6 +206,132 @@ MPP_RET mpp_rc_init(MppRateControl **ctx)
 
     *ctx = p;
     return ret;
+}
+
+
+RK_S32 mpp_rc_vbv_check(MppVirtualBuffer *vb, RK_S32 timeInc, RK_S32 hrd)
+{
+    RK_S32 drift, target, bitPerPic = vb->bitPerPic;
+    if (hrd) {
+#if RC_CBR_HRD
+        /* In CBR mode, bucket _must not_ underflow. Insert filler when
+         * needed. */
+        vb->bucketFullness -= bitPerPic;
+#else
+        if (vb->bucketFullness >= bitPerPic) {
+            vb->bucketFullness -= bitPerPic;
+        } else {
+            vb->realBitCnt += (bitPerPic - vb->bucketFullness);
+            vb->bucketFullness = 0;
+        }
+#endif
+    }
+
+    /* Saturate realBitCnt, this is to prevent overflows caused by much greater
+       bitrate setting than is really possible to reach */
+    if (vb->realBitCnt > 0x1FFFFFFF)
+        vb->realBitCnt = 0x1FFFFFFF;
+    if (vb->realBitCnt < -0x1FFFFFFF)
+        vb->realBitCnt = -0x1FFFFFFF;
+
+    vb->picTimeInc    += timeInc;
+    vb->virtualBitCnt += axb_div_c(vb->bitRate, timeInc, vb->timeScale);
+    target = vb->virtualBitCnt - vb->realBitCnt;
+
+    /* Saturate target, prevents rc going totally out of control.
+       This situation should never happen. */
+    if (target > 0x1FFFFFFF)
+        target = 0x1FFFFFFF;
+    if (target < -0x1FFFFFFF)
+        target = -0x1FFFFFFF;
+
+    /* picTimeInc must be in range of [0, timeScale) */
+    while (vb->picTimeInc >= vb->timeScale) {
+        vb->picTimeInc    -= vb->timeScale;
+        vb->virtualBitCnt -= vb->bitRate;
+        vb->realBitCnt    -= vb->bitRate;
+    }
+    drift = axb_div_c(vb->bitRate, vb->picTimeInc, vb->timeScale);
+    drift -= vb->virtualBitCnt;
+    vb->virtualBitCnt += drift;
+
+    mpp_rc_dbg_vbv("virtualBitCnt:\t\t%6i  realBitCnt: %i  ",
+                   vb->virtualBitCnt, vb->realBitCnt);
+    mpp_rc_dbg_vbv("target: %i  timeInc: %i\n", target, timeInc);
+    return target;
+}
+
+RK_S32 mpp_rc_vbv_update(MppRateControl *ctx, int bitCnt)
+{
+    MppVirtualBuffer *vb = &ctx->vb;
+    RK_S32 stat;
+    if (ctx->hrd && (bitCnt > (vb->bufferSize - vb->bucketFullness))) {
+        mpp_rc_dbg_vbv("Be: %7i  ", vb->bucketFullness);
+        mpp_rc_dbg_vbv("fillerBits %5i  ", 0);
+        mpp_rc_dbg_vbv("bitCnt %d  spaceLeft %d ",
+                       bitCnt, (vb->bufferSize - vb->bucketFullness));
+        mpp_rc_dbg_vbv("bufSize %d  bucketFullness %d  bitPerPic %d\n",
+                       vb->bufferSize, vb->bucketFullness, vb->bitPerPic);
+        mpp_rc_dbg_vbv("HRD overflow, frame discard\n");
+        return MPP_ERR_BUFFER_FULL;
+    } else {
+        vb->bucketFullness += bitCnt;
+        vb->realBitCnt += bitCnt;
+    }
+    if (!ctx->hrd) {
+        return 0;
+    }
+#if RC_CBR_HRD
+    /* Bits needed to prevent bucket underflow */
+    tmp = vb->bitPerPic - vb->bucketFullness;
+
+    if (tmp > 0) {
+        tmp = (tmp + 7) / 8;
+        vb->bucketFullness += tmp * 8;
+        vb->realBitCnt += tmp * 8;
+    } else {
+        tmp = 0;
+    }
+#endif
+
+    /* Update Buffering Info */
+    stat = vb->bufferSize - vb->bucketFullness;
+
+    return stat;
+}
+
+static void mpp_rc_vbv_init(MppRateControl *ctx, MppEncRcCfg *cfg)
+{
+    RK_S32 tmp = 3 * 8 * ctx->mb_per_frame * 256 / 2;
+    RK_S32 bps = ctx->bps_target;
+    RK_S32 cpbSize = -1;
+    RK_S32 i = 0;
+    /* bits per second */
+    tmp = axb_div_c(tmp, cfg->fps_out_num, cfg->fps_out_denorm);
+    if (bps > (tmp / 2))
+        bps = tmp / 2;
+
+    cpbSize = bps;
+
+    /* Limit minimum CPB size based on average bits per frame */
+    tmp = axb_div_c(bps, cfg->fps_out_denorm, cfg->fps_out_num);
+    cpbSize = MPP_MAX(cpbSize, tmp);
+
+    /* cpbSize must be rounded so it is exactly the size written in stream */
+    tmp = cpbSize;
+    while (4095 < (tmp >> (4 + i++)));
+    cpbSize = (tmp >> (4 + i)) << (4 + i);
+    ctx->vb.bufferSize = cpbSize;
+    ctx->vb.bitRate = ctx->bps_target;
+    ctx->vb.timeScale = cfg->fps_in_num;
+    ctx->vb.unitsInTic = cfg->fps_in_denorm;
+    ctx->vb.windowRem = ctx->window_len;
+    ctx->vb.bitPerPic = ctx->bits_per_pic;
+    if (ctx->hrd) {
+        ctx->vb.bucketFullness = axb_div_c(ctx->vb.bufferSize, 60, 100);
+        ctx->vb.bucketFullness = ctx->vb.bufferSize - ctx->vb.bucketFullness;
+        ctx->vb.bucketFullness += ctx->vb.bitPerPic;
+    }
 }
 
 MPP_RET mpp_rc_deinit(MppRateControl *ctx)
@@ -372,6 +502,7 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
             ctx->bits_per_intra = ctx->bits_per_pic * 3;
             ctx->bits_per_inter -= ctx->bits_per_intra / (ctx->fps_out - 1);
         }
+        mpp_rc_vbv_init(ctx, cfg);
     }
 
     if (ctx->acc_total_count == gop)
@@ -402,7 +533,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
         mpp_log_f("invalid ctx %p rc_syn %p\n", ctx, rc_syn);
         return MPP_ERR_NULL_PTR;
     }
-
+    mpp_rc_vbv_check(&ctx->vb, 1, 1);
     /* step 1: calc target frame bits */
     switch (ctx->gop_mode) {
     case MPP_GOP_ALL_INTER : {
@@ -419,12 +550,18 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             float intra_percent = 0.0;
             RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_fps);
             /* only affected by last gop */
+            ctx->pre_gop_left_bit =  ctx->pid_fps.i - diff_bit;
+            if ( abs(ctx->pre_gop_left_bit) / (ctx->gop - 1) > (ctx->bits_per_pic / 5)) {
+                RK_S32 val = 1;
+                if (ctx->pre_gop_left_bit < 0) {
+                    val = -1;
+                }
+                ctx->pre_gop_left_bit  = val * ctx->bits_per_pic * (ctx->gop - 1) / 5;
+            }
             mpp_pid_reset(&ctx->pid_fps);
-
             if (ctx->acc_intra_count) {
                 intra_percent = mpp_data_avg(ctx->intra_percent, 1, 1, 1) / 100.0;
                 ctx->last_intra_percent = intra_percent;
-
                 ctx->bits_target = (ctx->fps_out * ctx->bits_per_pic + diff_bit)
                                    * intra_percent;
             } else {
@@ -443,7 +580,7 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
                 ctx->bits_per_inter = (ctx->bps_target *
                                        (ctx->gop * 1.0 / ctx->fps_out) -
                                        bits_prev_intra + diff_bit *
-                                       (1 - ctx->last_intra_percent)) /
+                                       (1 - ctx->last_intra_percent) + ctx->pre_gop_left_bit) /
                                       (ctx->gop - 1);
 
                 mpp_rc_dbg_rc("RC: rc ctx %p bits pic %d win %d intra %d inter %d\n",
@@ -456,7 +593,10 @@ MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn)
             } else {
                 RK_S32 diff_bit = mpp_pid_calc(&ctx->pid_inter);
                 ctx->bits_target = ctx->bits_per_inter - diff_bit;
-
+                if (ctx->bits_target > ctx->bits_per_pic * 2) {
+                    ctx->bits_target = 2 * ctx->bits_per_pic;
+                    ctx->pid_inter.i = ctx->pid_inter.i / 2;
+                }
                 mpp_rc_dbg_rc("RC: rc ctx %p inter pid diff %d target %d\n",
                               ctx, diff_bit, ctx->bits_target);
 
@@ -551,7 +691,6 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
     }
 
     RK_S32 bits = result->bits;
-
     const char *type_str;
     RK_S32 bits_target;
     if (result->type == INTRA_FRAME) {
@@ -560,7 +699,6 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         mpp_data_update(ctx->intra, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_intra, bits - ctx->bits_target);
-
         type_str = "intra";
         bits_target = ctx->bits_per_intra;
     } else {
@@ -569,7 +707,6 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         mpp_data_update(ctx->inter, bits);
         mpp_data_update(ctx->gop_bits, bits);
         mpp_pid_update(&ctx->pid_inter, bits - ctx->bits_target);
-
         type_str = "inter";
         bits_target = ctx->bits_per_inter;
     }
@@ -604,7 +741,7 @@ MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result)
         ctx->last_fps_bits = 0;
         ctx->time_in_second++;
     }
-
+    mpp_rc_vbv_update(ctx, bits);
     ctx->pre_frmtype = ctx->cur_frmtype;
 
     return MPP_OK;

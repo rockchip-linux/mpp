@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _HAL_H264E_HEADER_H_
-#define _HAL_H264E_HEADER_H_
+#ifndef _HAL_H264E_RC_H_
+#define _HAL_H264E_RC_H_
 
 #include <stdio.h>
 #include <string.h>
@@ -23,12 +23,11 @@
 #include "rk_mpi.h"
 #include "hal_h264e_com.h"
 
-MPP_RET h264e_vpu_init_extra_info(void *extra_info);
-MPP_RET h264e_vpu_deinit_extra_info(void *extra_info);
-MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx);
+extern const RK_S32 h264_q_step[];
 
-MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx);
-MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx);
-RK_S32 exp_golomb_signed(RK_S32 val);
+MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
+                                H264eHwCfg *hw_cfg);
+MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg);
+MPP_RET h264e_vpu_mad_threshold(H264eHwCfg *hw_cfg, MppLinReg *mad, RK_U32 madCount);
 
 #endif
