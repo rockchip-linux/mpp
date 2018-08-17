@@ -191,9 +191,9 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
         } else {
             /* constant bitrate do not limit qp range */
             codec_cfg->h264.qp_init     = 0;
-            codec_cfg->h264.qp_max      = 48;
-            codec_cfg->h264.qp_min      = 4;
-            codec_cfg->h264.qp_max_step = 16;
+            codec_cfg->h264.qp_max      = 51;
+            codec_cfg->h264.qp_min      = 10;
+            codec_cfg->h264.qp_max_step = 4;
         }
     } break;
     case MPP_VIDEO_CodingMJPEG : {
@@ -1162,7 +1162,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_U32 height       = ctx->height;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
-    RK_S32 pts          = (RK_S32)aEncInStrm->timeUs;
+    RK_S64 pts          = aEncInStrm->timeUs;
     RK_S32 fd           = aEncInStrm->bufPhyAddr;
     RK_U32 size         = aEncInStrm->size;
 
@@ -1237,7 +1237,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
         }
     }
 
-    vpu_api_dbg_input("w %d h %d input fd %d size %d flag %d pts %lld\n",
+    vpu_api_dbg_input("w %d h %d input fd %d size %d pts %lld, flag %d \n",
                       width, height, fd, size, aEncInStrm->timeUs, aEncInStrm->nFlags);
 
     if (aEncInStrm->nFlags) {

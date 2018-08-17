@@ -201,8 +201,8 @@ hal_h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer,
         mpp_assert(value < (1 << number));
         mpp_assert(number < 25);
     }
-
     bits = number + buffer->buffered_bits;
+
     byte_buffer = byte_buffer | ((RK_U32) value << (32 - bits));
 
     while (bits > 7) {
@@ -402,27 +402,41 @@ static MPP_RET hal_h264e_vpu_write_sps(H264eVpuStream *stream,
         hal_h264e_vpu_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_signal_type_present, 1,
                                                   "video_signal_type_present_flag");
+        if (sps->vui.b_signal_type_present) {
+            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_vidformat, 3, "video_format");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.b_fullrange, 1, "video_full_range_flag");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.b_color_description_present, 1,
+                                                      "colour_description_present_flag");
+            if (sps->vui.b_color_description_present) {
+                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_colorprim, 8, "colour_primaries");
+                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_transfer,  8,  "transfer_characteristics");
+                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_colmatrix, 8,  "matrix_coefficients");
+            }
+        }
         hal_h264e_vpu_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_chroma_loc_info_present, 1,
                                                   "chroma_loc_info_present_flag");
+
         hal_h264e_vpu_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_timing_info_present, 1,
                                                   "timing_info_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
-                                                  sps->vui.i_num_units_in_tick >> 16, 16,
-                                                  "num_units_in_tick msb");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
-                                                  sps->vui.i_num_units_in_tick & 0xffff, 16,
-                                                  "num_units_in_tick lsb");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
-                                                  sps->vui.i_time_scale >> 16, 16,
-                                                  "time_scale msb");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
-                                                  sps->vui.i_time_scale & 0xffff, 16,
-                                                  "time_scale lsb");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
-                                                  sps->vui.b_fixed_frame_rate, 1,
-                                                  "fixed_frame_rate_flag");
+        if (sps->vui.b_timing_info_present) {
+            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+                                                      sps->vui.i_num_units_in_tick >> 16, 16,
+                                                      "num_units_in_tick msb");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+                                                      sps->vui.i_num_units_in_tick & 0xffff, 16,
+                                                      "num_units_in_tick lsb");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+                                                      sps->vui.i_time_scale >> 16, 16,
+                                                      "time_scale msb");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+                                                      sps->vui.i_time_scale & 0xffff, 16,
+                                                      "time_scale lsb");
+            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+                                                      sps->vui.b_fixed_frame_rate, 1,
+                                                      "fixed_frame_rate_flag");
+        }
         hal_h264e_vpu_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_nal_hrd_parameters_present, 1,
                                                   "nal_hrd_parameters_present_flag");
@@ -582,39 +596,6 @@ static MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
     }
 
     return MPP_OK;
-}
-
-static RK_S32 find_best_qp(MppLinReg *ctx, MppEncH264Cfg *codec,
-                           RK_S32 qp_start, RK_S32 bits)
-{
-    RK_S32 qp = qp_start;
-    RK_S32 qp_best = qp_start;
-    RK_S32 qp_min = codec->qp_min;
-    RK_S32 qp_max = codec->qp_max;
-    RK_S32 diff_best = INT_MAX;
-
-    if (ctx->a == 0 && ctx->b == 0)
-        return qp_best;
-
-    if (bits <= 0) {
-        qp_best = mpp_clip(qp_best + codec->qp_max_step, qp_min, qp_max);
-    } else {
-        do {
-            RK_S32 est_bits = mpp_quadreg_calc(ctx, h264_q_step[qp]);
-            RK_S32 diff = est_bits - bits;
-            if (MPP_ABS(diff) < MPP_ABS(diff_best)) {
-                diff_best = MPP_ABS(diff);
-                qp_best = qp;
-                if (diff > 0)
-                    qp++;
-                else
-                    qp--;
-            } else
-                break;
-        } while (qp <= qp_max && qp >= qp_min);
-    }
-
-    return qp_best;
 }
 
 MPP_RET h264e_vpu_init_extra_info(void *extra_info)
@@ -784,232 +765,6 @@ MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx)
     return MPP_OK;
 }
 
-MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
-                                H264eHwCfg *hw_cfg)
-{
-    RK_S32 i;
-    MppEncCfgSet *cfg = ctx->cfg;
-    MppEncH264Cfg *codec = &cfg->codec.h264;
-    MppEncPrepCfg *prep = &cfg->prep;
-    MppEncRcCfg *rc = &cfg->rc;
-    RcSyntax *rc_syn = (RcSyntax *)task->syntax.data;
-
-    /* preprocess setup */
-    if (prep->change) {
-        RK_U32 change = prep->change;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-            hw_cfg->width   = prep->width;
-            hw_cfg->height  = prep->height;
-
-            hw_cfg->hor_stride = prep->hor_stride;
-            hw_cfg->ver_stride = prep->ver_stride;
-        }
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
-            hw_cfg->input_format = prep->format;
-            h264e_vpu_set_format(hw_cfg, prep);
-            switch (prep->color) {
-            case MPP_FRAME_SPC_RGB : {
-                /* BT.601 */
-                /* Y  = 0.2989 R + 0.5866 G + 0.1145 B
-                 * Cb = 0.5647 (B - Y) + 128
-                 * Cr = 0.7132 (R - Y) + 128
-                 */
-                hw_cfg->color_conversion_coeff_a = 19589;
-                hw_cfg->color_conversion_coeff_b = 38443;
-                hw_cfg->color_conversion_coeff_c = 7504;
-                hw_cfg->color_conversion_coeff_e = 37008;
-                hw_cfg->color_conversion_coeff_f = 46740;
-            } break;
-            case MPP_FRAME_SPC_BT709 : {
-                /* BT.709 */
-                /* Y  = 0.2126 R + 0.7152 G + 0.0722 B
-                 * Cb = 0.5389 (B - Y) + 128
-                 * Cr = 0.6350 (R - Y) + 128
-                 */
-                hw_cfg->color_conversion_coeff_a = 13933;
-                hw_cfg->color_conversion_coeff_b = 46871;
-                hw_cfg->color_conversion_coeff_c = 4732;
-                hw_cfg->color_conversion_coeff_e = 35317;
-                hw_cfg->color_conversion_coeff_f = 41615;
-            } break;
-            default : {
-                hw_cfg->color_conversion_coeff_a = 19589;
-                hw_cfg->color_conversion_coeff_b = 38443;
-                hw_cfg->color_conversion_coeff_c = 7504;
-                hw_cfg->color_conversion_coeff_e = 37008;
-                hw_cfg->color_conversion_coeff_f = 46740;
-            } break;
-            }
-        }
-
-        prep->change = 0;
-    }
-
-    if (codec->change) {
-        // TODO: setup sps / pps here
-        hw_cfg->idr_pic_id = !ctx->idr_pic_id;
-        hw_cfg->filter_disable = codec->deblock_disable;
-        hw_cfg->slice_alpha_offset = codec->deblock_offset_alpha;
-        hw_cfg->slice_beta_offset = codec->deblock_offset_beta;
-        hw_cfg->inter4x4_disabled = (codec->profile >= 31) ? (1) : (0);
-        hw_cfg->cabac_init_idc = codec->cabac_init_idc;
-        hw_cfg->qp = codec->qp_init;
-
-        hw_cfg->qp_prev = hw_cfg->qp;
-
-        codec->change = 0;
-    }
-
-    if (hw_cfg->qp <= 0) {
-        RK_S32 qp_tbl[2][13] = {
-            {
-                26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936,
-                1472, 0x7fffffff
-            },
-            {42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6}
-        };
-        RK_S32 pels = ctx->cfg->prep.width * ctx->cfg->prep.height;
-        RK_S32 bits_per_pic = axb_div_c(rc->bps_target,
-                                        rc->fps_out_denorm,
-                                        rc->fps_out_num);
-
-        if (pels) {
-            RK_S32 upscale = 8000;
-            if (bits_per_pic > 1000000)
-                hw_cfg->qp = codec->qp_min;
-            else {
-                RK_S32 j = -1;
-
-                pels >>= 8;
-                bits_per_pic >>= 5;
-
-                bits_per_pic *= pels + 250;
-                bits_per_pic /= 350 + (3 * pels) / 4;
-                bits_per_pic = axb_div_c(bits_per_pic, upscale, pels << 6);
-
-                while (qp_tbl[0][++j] < bits_per_pic);
-
-                hw_cfg->qp = qp_tbl[1][j];
-                hw_cfg->qp_prev = hw_cfg->qp;
-            }
-        }
-    }
-
-    if (NULL == ctx->intra_qs)
-        mpp_linreg_init(&ctx->intra_qs, MPP_MIN(rc->gop, 10), 2);
-    if (NULL == ctx->inter_qs)
-        mpp_linreg_init(&ctx->inter_qs, MPP_MIN(rc->gop, 10), 2);
-
-    mpp_assert(ctx->intra_qs);
-    mpp_assert(ctx->inter_qs);
-
-    /* frame type and rate control setup */
-    {
-        RK_S32 prev_coding_type = hw_cfg->frame_type;
-
-        if (rc_syn->type == INTRA_FRAME) {
-            hw_cfg->frame_type = H264E_VPU_FRAME_I;
-            hw_cfg->frame_num = 0;
-
-            hw_cfg->qp = find_best_qp(ctx->intra_qs, codec, hw_cfg->qp_prev,
-                                      rc_syn->bit_target);
-
-            /*
-             * Previous frame is inter then intra frame can not
-             * have a big qp step between these two frames
-             */
-            if (prev_coding_type == 0)
-                hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 4,
-                                      hw_cfg->qp_prev + 4);
-        } else {
-            hw_cfg->frame_type = H264E_VPU_FRAME_P;
-
-            hw_cfg->qp = find_best_qp(ctx->inter_qs, codec, hw_cfg->qp_prev,
-                                      rc_syn->bit_target);
-
-            if (prev_coding_type == 1)
-                hw_cfg->qp = mpp_clip(hw_cfg->qp, hw_cfg->qp_prev - 4,
-                                      hw_cfg->qp_prev + 4);
-        }
-    }
-
-    hw_cfg->qp = mpp_clip(hw_cfg->qp,
-                          hw_cfg->qp_prev - codec->qp_max_step,
-                          hw_cfg->qp_prev + codec->qp_max_step);
-
-    hw_cfg->qp_prev = hw_cfg->qp;
-
-    hw_cfg->mad_qp_delta = 0;
-    hw_cfg->mad_threshold = 6;
-    hw_cfg->keyframe_max_interval = rc->gop;
-    hw_cfg->qp_min = codec->qp_min;
-    hw_cfg->qp_max = codec->qp_max;
-
-    /* disable mb rate control first */
-    hw_cfg->cp_distance_mbs = 0;
-    for (i = 0; i < 10; i++)
-        hw_cfg->cp_target[i] = 0;
-
-    for (i = 0; i < 7; i++)
-        hw_cfg->target_error[i] = 0;
-
-    for (i = 0; i < 7; i++)
-        hw_cfg->delta_qp[i] = 0;
-
-    /* slice mode setup */
-    hw_cfg->slice_size_mb_rows = 0; //(prep->height + 15) >> 4;
-
-    /* input and preprocess config, the offset is at [31:10] */
-    hw_cfg->input_luma_addr = mpp_buffer_get_fd(task->input);
-
-    switch (prep->format) {
-    case MPP_FMT_YUV420SP: {
-        RK_U32 offset_uv = hw_cfg->hor_stride * hw_cfg->ver_stride;
-
-        mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
-        mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
-
-        hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_uv << 10);
-        hw_cfg->input_cr_addr = 0;
-        break;
-    }
-    case MPP_FMT_YUV420P: {
-        RK_U32 offset_y = hw_cfg->hor_stride * hw_cfg->ver_stride;
-
-        mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 8));
-        mpp_assert(prep->ver_stride == MPP_ALIGN(prep->height, 8));
-
-        hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_y << 10);
-        hw_cfg->input_cr_addr = hw_cfg->input_cb_addr + (offset_y << 8);
-        break;
-    }
-    case MPP_FMT_YUV422_YUYV:
-    case MPP_FMT_YUV422_UYVY:
-    case MPP_FMT_RGB565:
-    case MPP_FMT_BGR444:
-    case MPP_FMT_BGR888:
-    case MPP_FMT_RGB888:
-    case MPP_FMT_ARGB8888:
-    case MPP_FMT_ABGR8888:
-    case MPP_FMT_BGR101010:
-        hw_cfg->input_cb_addr = 0;
-        hw_cfg->input_cr_addr = 0;
-        break;
-    default: {
-        mpp_err_f("invalid input format %d", prep->format);
-        return MPP_ERR_VALUE;
-    }
-    }
-    hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
-    hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
-
-    /* context update */
-    ctx->idr_pic_id = !ctx->idr_pic_id;
-    return MPP_OK;
-}
-
 MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
 {
     MPP_RET ret = MPP_OK;
@@ -1063,4 +818,3 @@ MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
     h264e_hal_leave();
     return MPP_OK;
 }
-

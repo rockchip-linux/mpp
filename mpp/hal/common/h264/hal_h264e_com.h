@@ -44,15 +44,6 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_SEI_CHG_SPSPPS        0x00000001
 #define H264E_SEI_CHG_RC            0x00000010
 
-#define H264E_HAL_MASK_2b               (RK_U32)0x00000003
-#define H264E_HAL_MASK_3b               (RK_U32)0x00000007
-#define H264E_HAL_MASK_4b               (RK_U32)0x0000000F
-#define H264E_HAL_MASK_5b               (RK_U32)0x0000001F
-#define H264E_HAL_MASK_6b               (RK_U32)0x0000003F
-#define H264E_HAL_MASK_11b              (RK_U32)0x000007FF
-#define H264E_HAL_MASK_14b              (RK_U32)0x00003FFF
-#define H264E_HAL_MASK_16b              (RK_U32)0x0000FFFF
-
 #define h264e_hal_err(fmt, ...) \
     do {\
         mpp_err_f(fmt, ## __VA_ARGS__);\
@@ -77,15 +68,15 @@ extern RK_U32 h264e_hal_log_mode;
             mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
     } while (0)
 
-#define H264E_HAL_MIN(a,b) ( (a)<(b) ? (a) : (b) )
-#define H264E_HAL_MAX(a,b) ( (a)>(b) ? (a) : (b) )
-#define H264E_HAL_MIN3(a,b,c) H264E_HAL_MIN((a),H264E_HAL_MIN((b),(c)))
-#define H264E_HAL_MAX3(a,b,c) H264E_HAL_MAX((a),H264E_HAL_MAX((b),(c)))
-#define H264E_HAL_MIN4(a,b,c,d) H264E_HAL_MIN((a),H264E_HAL_MIN3((b),(c),(d)))
-#define H264E_HAL_MAX4(a,b,c,d) H264E_HAL_MAX((a),H264E_HAL_MAX3((b),(c),(d)))
+#define H264E_HAL_MIN(a,b)          ( (a)<(b) ? (a) : (b) )
+#define H264E_HAL_MAX(a,b)          ( (a)>(b) ? (a) : (b) )
+#define H264E_HAL_MIN3(a,b,c)       H264E_HAL_MIN((a),H264E_HAL_MIN((b),(c)))
+#define H264E_HAL_MAX3(a,b,c)       H264E_HAL_MAX((a),H264E_HAL_MAX((b),(c)))
+#define H264E_HAL_MIN4(a,b,c,d)     H264E_HAL_MIN((a),H264E_HAL_MIN3((b),(c),(d)))
+#define H264E_HAL_MAX4(a,b,c,d)     H264E_HAL_MAX((a),H264E_HAL_MAX3((b),(c),(d)))
 #define H264E_HAL_CLIP3(v, min, max)  ((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
 
-#define H264E_HAL_FCLOSE(fp)    do{ if(fp) fclose(fp); fp = NULL; } while (0)
+#define H264E_HAL_FCLOSE(fp)        do{ if(fp) fclose(fp); fp = NULL; } while (0)
 
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \
@@ -95,20 +86,20 @@ extern RK_U32 h264e_hal_log_mode;
     } while (0)
 
 
-#define H264E_HAL_VALIDATE_GT(val, name, limit)                    \
-    do {                                                     \
-        if ((val)<=(limit)) {                                 \
-            mpp_err("%s(%d) should > %d", name, val, limit); \
-            return MPP_NOK;                                  \
-        }                                                    \
+#define H264E_HAL_VALIDATE_GT(val, name, limit)             \
+    do {                                                    \
+        if ((val)<=(limit)) {                               \
+            mpp_err("%s(%d) should > %d", name, val, limit);\
+            return MPP_NOK;                                 \
+        }                                                   \
     } while (0)
 
-#define H264E_HAL_VALIDATE_NEQ(val, name, limit)                    \
-    do {                                                     \
-        if((val)==(limit)) {                                 \
+#define H264E_HAL_VALIDATE_NEQ(val, name, limit)            \
+    do {                                                    \
+        if((val)==(limit)) {                                \
             mpp_err("%s(%d) should not = %d", name, val, limit); \
-            return MPP_NOK;                                  \
-        }                                                    \
+            return MPP_NOK;                                 \
+        }                                                   \
     } while (0)
 
 #define H264E_HAL_SPRINT(s, len, ...)  \
@@ -120,62 +111,62 @@ extern RK_U32 h264e_hal_log_mode;
         } \
     } while (0)
 
-#define H264E_UUID_LENGTH                   16
+#define H264E_UUID_LENGTH           16
 
-#define H264E_REF_MAX                       16
+#define H264E_REF_MAX               16
 
-#define H264E_SPSPPS_BUF_SIZE               512  //sps + pps
-#define H264E_SEI_BUF_SIZE                  1024 //unit in byte, may not be large enough in the future
-#define H264E_EXTRA_INFO_BUF_SIZE           (H264E_SPSPPS_BUF_SIZE + H264E_SEI_BUF_SIZE)
+#define H264E_SPSPPS_BUF_SIZE       512  //sps + pps
+#define H264E_SEI_BUF_SIZE          1024 //unit in byte, may not be large enough in the future
+#define H264E_EXTRA_INFO_BUF_SIZE   (H264E_SPSPPS_BUF_SIZE + H264E_SEI_BUF_SIZE)
 
-#define H264E_NUM_REFS               1
-#define H264E_LONGTERM_REF_EN        0
-#define H264E_CQM_FLAT               0
-#define H264E_CQM_JVT                1
-#define H264E_CQM_CUSTOM             2
-#define H264E_B_PYRAMID_NONE         0
-#define H264E_B_PYRAMID_STRICT       1
-#define H264E_B_PYRAMID_NORMAL       2
+#define H264E_NUM_REFS              1
+#define H264E_LONGTERM_REF_EN       0
+#define H264E_CQM_FLAT              0
+#define H264E_CQM_JVT               1
+#define H264E_CQM_CUSTOM            2
+#define H264E_B_PYRAMID_NONE        0
+#define H264E_B_PYRAMID_STRICT      1
+#define H264E_B_PYRAMID_NORMAL      2
 
-#define H264E_CSP2_MASK           0x00ff  /* */
-#define H264E_CSP2_NONE           0x0000  /* Invalid mode     */
-#define H264E_CSP2_I420           0x0001  /* yuv 4:2:0 planar */
-#define H264E_CSP2_YV12           0x0002  /* yvu 4:2:0 planar */
-#define H264E_CSP2_NV12           0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
-#define H264E_CSP2_I422           0x0004  /* yuv 4:2:2 planar */
-#define H264E_CSP2_YV16           0x0005  /* yvu 4:2:2 planar */
-#define H264E_CSP2_NV16           0x0006  /* yuv 4:2:2, with one y plane and one packed u+v */
-#define H264E_CSP2_V210           0x0007  /* 10-bit yuv 4:2:2 packed in 32 */
-#define H264E_CSP2_I444           0x0008  /* yuv 4:4:4 planar */
-#define H264E_CSP2_YV24           0x0009  /* yvu 4:4:4 planar */
-#define H264E_CSP2_BGR            0x000a  /* packed bgr 24bits   */
-#define H264E_CSP2_BGRA           0x000b  /* packed bgr 32bits   */
-#define H264E_CSP2_RGB            0x000c  /* packed rgb 24bits   */
-#define H264E_CSP2_MAX            0x000d  /* end of list */
-#define H264E_CSP2_VFLIP          0x1000  /* the csp is vertically flipped */
-#define H264E_CSP2_HIGH_DEPTH     0x2000  /* the csp has a depth of 16 bits per pixel component */
+#define H264E_CSP2_MASK             0x00ff  /* */
+#define H264E_CSP2_NONE             0x0000  /* Invalid mode     */
+#define H264E_CSP2_I420             0x0001  /* yuv 4:2:0 planar */
+#define H264E_CSP2_YV12             0x0002  /* yvu 4:2:0 planar */
+#define H264E_CSP2_NV12             0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
+#define H264E_CSP2_I422             0x0004  /* yuv 4:2:2 planar */
+#define H264E_CSP2_YV16             0x0005  /* yvu 4:2:2 planar */
+#define H264E_CSP2_NV16             0x0006  /* yuv 4:2:2, with one y plane and one packed u+v */
+#define H264E_CSP2_V210             0x0007  /* 10-bit yuv 4:2:2 packed in 32 */
+#define H264E_CSP2_I444             0x0008  /* yuv 4:4:4 planar */
+#define H264E_CSP2_YV24             0x0009  /* yvu 4:4:4 planar */
+#define H264E_CSP2_BGR              0x000a  /* packed bgr 24bits   */
+#define H264E_CSP2_BGRA             0x000b  /* packed bgr 32bits   */
+#define H264E_CSP2_RGB              0x000c  /* packed rgb 24bits   */
+#define H264E_CSP2_MAX              0x000d  /* end of list */
+#define H264E_CSP2_VFLIP            0x1000  /* the csp is vertically flipped */
+#define H264E_CSP2_HIGH_DEPTH       0x2000  /* the csp has a depth of 16 bits per pixel component */
 
-#define H264E_MB_RC_ONLY_QUALITY  0
-#define H264E_MB_RC_MORE_QUALITY  1
-#define H264E_MB_RC_BALANCE       2
-#define H264E_MB_RC_MORE_BITRATE  3
-#define H264E_MB_RC_ONLY_BITRATE  4
-#define H264E_MB_RC_WIDE_RANGE    5
-#define H264E_MB_RC_ONLY_AQ       6
-#define H264E_MB_RC_M_NUM         7
+#define H264E_MB_RC_ONLY_QUALITY    0
+#define H264E_MB_RC_MORE_QUALITY    1
+#define H264E_MB_RC_BALANCE         2
+#define H264E_MB_RC_MORE_BITRATE    3
+#define H264E_MB_RC_ONLY_BITRATE    4
+#define H264E_MB_RC_WIDE_RANGE      5
+#define H264E_MB_RC_ONLY_AQ         6
+#define H264E_MB_RC_M_NUM           7
 
 typedef enum H264eRkvCsp_e {
-    H264E_RKV_CSP_BGRA8888,     // 0
-    H264E_RKV_CSP_BGR888,       // 1
-    H264E_RKV_CSP_BGR565,       // 2
-    H264E_RKV_CSP_NONE,         // 3
-    H264E_RKV_CSP_YUV422SP,     // 4
-    H264E_RKV_CSP_YUV422P,      // 5
-    H264E_RKV_CSP_YUV420SP,     // 6
-    H264E_RKV_CSP_YUV420P,      // 7
-    H264E_RKV_CSP_YUYV422,      // 8
-    H264E_RKV_CSP_UYVY422,      // 9
-    H264E_RKV_CSP_BUTT,         // 10
+    H264E_RKV_CSP_BGRA8888,         // 0
+    H264E_RKV_CSP_BGR888,           // 1
+    H264E_RKV_CSP_BGR565,           // 2
+    H264E_RKV_CSP_NONE,             // 3
+    H264E_RKV_CSP_YUV422SP,         // 4
+    H264E_RKV_CSP_YUV422P,          // 5
+    H264E_RKV_CSP_YUV420SP,         // 6
+    H264E_RKV_CSP_YUV420P,          // 7
+    H264E_RKV_CSP_YUYV422,          // 8
+    H264E_RKV_CSP_UYVY422,          // 9
+    H264E_RKV_CSP_BUTT,             // 10
 } H264eRkvCsp;
 
 /* transplant from vpu_api.h:EncInputPictureType */
@@ -444,6 +435,7 @@ typedef struct H264eHalContext_t {
     H264eHwCfg                      hw_cfg;
     MppLinReg                       *inter_qs;
     MppLinReg                       *intra_qs;
+    MppLinReg                       *mad;
     MppData                         *qp_p;
     MppData                         *sse_p;
     H264eMbRcCtx                    mb_rc;
