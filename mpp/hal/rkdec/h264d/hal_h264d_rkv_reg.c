@@ -697,7 +697,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     p_regs[65] = 0;
     p_regs[66] = 0;
     p_regs[67] = 0x000000ff;   // disable fpga reset
-    p_regs[44] = 0xffffffff;   // 0xffff_ffff, debug enable
+    p_regs[44] = 0xfffffff7;   // 0xffff_ffff, debug enable
     p_regs[77] = 0xffffffff;   // 0xffff_dfff, debug enable
 
     p_regs[1] |= 0x00000061;   // run hardware, enable buf_empty_en
