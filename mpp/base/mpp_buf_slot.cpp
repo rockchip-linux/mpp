@@ -915,6 +915,8 @@ MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index)
         return MPP_ERR_NULL_PTR;
     }
 
+    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p reset index %d\n", slots, index);
+
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     AutoMutex auto_lock(impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
