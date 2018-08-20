@@ -796,7 +796,8 @@ MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     INP_CHECK(ret, NULL == p_hal);
     p_hal->in_task = &task->dec;
-    if (task->dec.flags.had_error)  {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
         goto __RETURN;
     }
     priv = p_hal->priv;
@@ -845,7 +846,8 @@ MPP_RET vdpu1_h264d_start(void *hal, HalTaskInfo *task)
     H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
     H264dVdpu1Regs_t *p_regs = (H264dVdpu1Regs_t *)reg_ctx->regs;
 
-    if (task->dec.flags.had_error) {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
         goto __RETURN;
     }
 
@@ -884,7 +886,8 @@ MPP_RET vdpu1_h264d_wait(void *hal, HalTaskInfo *task)
     H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
     H264dVdpu1Regs_t *p_regs = (H264dVdpu1Regs_t *)reg_ctx->regs;
 
-    if (task->dec.flags.had_error) {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
         goto __SKIP_HARD;
     }
 #ifdef RKPLATFORM

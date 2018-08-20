@@ -99,8 +99,29 @@ typedef union HalDecTaskFlag_t {
     struct {
         RK_U32      eos              : 1;
         RK_U32      info_change      : 1;
-        RK_U32      had_error        : 1;
+
+        /*
+         * Different error flags for task
+         *
+         * parse_err :
+         * When set it means fatal error happened at parsing stage
+         * This task should not enable hardware just output a empty frame with
+         * error flag.
+         *
+         * ref_err :
+         * When set it means current task is ok but it contains reference frame
+         * with error which will introduce error pixels to this frame.
+         *
+         * used_for_ref :
+         * When set it means this output frame will be used as reference frame
+         * for further decoding. When there is error on decoding this frame
+         * if used_for_ref is set then the frame will set errinfo flag
+         * if used_for_ref is cleared then the frame will set discard flag.
+         */
+        RK_U32      parse_err        : 1;
+        RK_U32      ref_err          : 1;
         RK_U32      used_for_ref     : 1;
+
         RK_U32      wait_done        : 1;
     };
 } HalDecTaskFlag;

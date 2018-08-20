@@ -1046,7 +1046,9 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
         p += 4;
     }
 
-    if (task->dec.flags.had_error || !hw_regs->swreg1_int.sw_dec_rdy_sta) {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err ||
+        !hw_regs->swreg1_int.sw_dec_rdy_sta) {
         MppFrame mframe = NULL;
         mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_frame_set_errinfo(mframe, 1);

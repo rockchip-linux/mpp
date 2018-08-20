@@ -587,67 +587,38 @@ __FAILED:
 MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dErrCtx_t *p_err = NULL;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+    H264dErrCtx_t *p_err = &p_Dec->errctx;
 
-    INP_CHECK(ret, !decoder && !in_task);
-
-    p_err = &p_Dec->errctx;
-
-    in_task->valid = 0; // prepare end flag
+    in_task->valid = 0;
     p_Dec->in_task = in_task;
     p_err->cur_err_flag  = 0;
     p_err->used_ref_flag = 0;
     p_Dec->is_parser_end = 0;
-    FUN_CHECK(ret = parse_loop(p_Dec));
+
+    ret = parse_loop(p_Dec);
+    if (ret) {
+        in_task->flags.parse_err = 1;
+    }
 
     if (p_Dec->is_parser_end) {
         p_Dec->is_parser_end = 0;
         p_Dec->p_Vid->g_framecnt++;
         ret = update_dpb(p_Dec);
+        if (ret) {
+            in_task->flags.ref_err = 1;
+        }
         if (in_task->flags.eos) {
             h264d_flush_dpb_eos(p_Dec);
         }
-        if (ret) {
-            goto __FAILED;
-        }
-        in_task->valid = 1; // register valid flag
+    }
+    in_task->valid = 1;
+    if (!in_task->flags.parse_err) {
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
-        in_task->flags.had_error = (!p_Dec->disable_error
-                                    && (p_err->dpb_err_flag | p_err->cur_err_flag)) ? 1 : 0;
-    }
-__RETURN:
-
-    return ret = MPP_OK;
-
-__FAILED: {
-        H264_StorePic_t *dec_pic = p_Dec->p_Vid->dec_pic;
-        in_task->flags.had_error = 1;
-        if (dec_pic) {
-            H264D_WARNNING("[h264d_parse] h264d_parse failed.\n");
-            if (dec_pic->mem_mark
-                && dec_pic->mem_mark->out_flag
-                && (dec_pic->mem_mark->slot_idx >= 0)) {
-                MppFrame mframe = NULL;
-                mpp_buf_slot_get_prop(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-                if (mframe) {
-                    if (p_err->used_ref_flag) {
-                        mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
-                    } else {
-                        mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
-                    }
-                }
-                mpp_buf_slot_set_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_QUEUE_USE);
-                mpp_buf_slot_enqueue(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, QUEUE_DISPLAY);
-                mpp_buf_slot_clr_flag(p_Dec->frame_slots, dec_pic->mem_mark->slot_idx, SLOT_CODEC_USE);
-            }
-            reset_dpb_mark(dec_pic->mem_mark);
-            dec_pic->mem_mark = NULL;
-            MPP_FREE(dec_pic);
-            p_Dec->p_Vid->dec_pic = NULL;
-        }
+        in_task->flags.ref_err |= (!p_Dec->disable_error
+                                   && (p_err->dpb_err_flag | p_err->cur_err_flag)) ? 1 : 0;
     }
 
     return ret;
@@ -680,7 +651,8 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 
         mpp_buf_slot_get_prop(p_Dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
         if (mframe) {
-            if (ctx->hard_err || task_dec->flags.had_error) {
+            RK_U32 task_err = task_dec->flags.parse_err || task_dec->flags.ref_err;
+            if (ctx->hard_err || task_err) {
                 if (task_dec->flags.used_for_ref) {
                     mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
                 } else {
@@ -688,7 +660,7 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
                 }
             }
             H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
-                      p_Dec->p_Vid->g_framecnt, task_dec->output, task_dec->flags.had_error, ctx->hard_err, task_dec->flags.used_for_ref,
+                      p_Dec->p_Vid->g_framecnt, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
                       mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
 
             if (ctx->device_id == HAL_RKVDEC) {
