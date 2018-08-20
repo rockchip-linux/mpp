@@ -215,7 +215,10 @@ MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
-
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
+        goto __RETURN;
+    }
     memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
     explain_input_buffer(p_hal, &task->dec);
     p_hal->data_offset = 0;
@@ -245,7 +248,8 @@ MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    if (task->dec.flags.had_error) {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
         goto __RETURN;
     }
 
@@ -277,7 +281,8 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    if (task->dec.flags.had_error) {
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
         goto __SKIP_HARD;
     }
 #ifdef RKPLATFORM

@@ -269,7 +269,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     MppFrame frame = NULL;
     RK_U32 eos = flags.eos;
     RK_U32 change = flags.info_change;
-    RK_U32 error = flags.had_error;
+    RK_U32 error = flags.parse_err || flags.ref_err;
     RK_U32 refer = flags.used_for_ref;
     RK_U32 fake_frame = 0;
 
