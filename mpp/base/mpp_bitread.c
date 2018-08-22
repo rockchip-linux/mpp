@@ -233,6 +233,11 @@ MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32 *val)
 */
 RK_U32 mpp_has_more_rbsp_data(BitReadCtx_t *bitctx)
 {
+    // remove tail byte which equal zero
+    while (bitctx->bytes_left_ &&
+           bitctx->data_[bitctx->bytes_left_ - 1] == 0)
+        bitctx->bytes_left_--;
+
     // Make sure we have more bits, if we are at 0 bits in current byte
     // and updating current byte fails, we don't have more data anyway.
     if (bitctx->num_remaining_bits_in_curr_byte_ == 0 && update_curbyte(bitctx))
