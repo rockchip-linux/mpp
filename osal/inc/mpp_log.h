@@ -61,6 +61,7 @@
 #define MPP_DBG_DUMP_LOG                (0x00000100)
 #define MPP_DBG_DUMP_IN                 (0x00000200)
 #define MPP_DBG_DUMP_OUT                (0x00000400)
+#define MPP_DBG_DUMP_CFG                (0x00000800)
 
 #define MPP_ABORT                       (0x10000000)
 

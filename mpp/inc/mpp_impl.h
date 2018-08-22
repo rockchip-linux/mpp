@@ -18,32 +18,26 @@
 #ifndef __MPP_IMPL_H__
 #define __MPP_IMPL_H__
 
-#include <stdio.h>
-
 #include "rk_mpi.h"
-#include "rk_type.h"
-#include "mpp_log.h"
 
-/* dump data */
-typedef struct mpp_dump_info_t {
-    MppCtxType      type;
-
-    FILE            *fp_in;  // write input file
-    FILE            *fp_out; // write output file
-    RK_U8           *fp_buf; // for resample frame
-    RK_U32          dump_width;
-    RK_U32          dump_height;
-} MppDumpInfo;
+typedef void* MppDump;
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_dump_init(MppDumpInfo *info, MppCtxType type);
-MPP_RET mpp_dump_deinit(MppDumpInfo *info);
+MPP_RET mpp_dump_init(MppDump *info);
+MPP_RET mpp_dump_deinit(MppDump *info);
 
-MPP_RET mpp_dump_packet(MppDumpInfo *info, MppPacket pkt);
-MPP_RET mpp_dump_frame(MppDumpInfo *info, MppFrame frame);
+MPP_RET mpp_ops_init(MppDump info, MppCtxType type, MppCodingType coding);
+
+MPP_RET mpp_ops_dec_put_pkt(MppDump info, MppPacket pkt);
+MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame);
+MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame);
+MPP_RET mpp_ops_enc_get_pkt(MppDump info, MppPacket pkt);
+
+MPP_RET mpp_ops_ctrl(MppDump info, MpiCmd cmd);
+MPP_RET mpp_ops_reset(MppDump info);
 
 #ifdef  __cplusplus
 }
