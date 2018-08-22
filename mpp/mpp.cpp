@@ -74,8 +74,11 @@ Mpp::Mpp()
       mParserFastMode(0),
       mParserNeedSplit(0),
       mParserInternalPts(0),
-      mExtraPacket(NULL)
+      mExtraPacket(NULL),
+      mDump(NULL)
 {
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+    mpp_dump_init(&mDump);
 }
 
 MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
@@ -84,6 +87,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_err("unable to create unsupported type %d coding %d\n", type, coding);
         return MPP_NOK;
     }
+
+    mpp_ops_init(mDump, type, coding);
 
     mType = type;
     mCoding = coding;
@@ -172,8 +177,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         clear();
     }
 
-    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
-    mpp_dump_init(&mDump, type);
     return MPP_OK;
 }
 
@@ -271,6 +274,7 @@ void Mpp::clear()
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
+
     mpp_dump_deinit(&mDump);
 }
 
@@ -295,7 +299,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         mPackets->add_at_tail(&pkt, sizeof(pkt));
         mPacketPutCount++;
         // dump input packet
-        mpp_dump_packet(&mDump, packet);
+        mpp_ops_dec_put_pkt(mDump, packet);
 
         // when packet has been send clear the length
         mpp_packet_set_length(packet, 0);
@@ -366,7 +370,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     *frame = first;
 
     // dump output
-    mpp_dump_frame(&mDump, first);
+    mpp_ops_dec_get_frm(mDump, first);
 
     return MPP_OK;
 }
@@ -403,7 +407,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         goto RET;
     }
     // dump input
-    mpp_dump_frame(&mDump, frame);
+    mpp_ops_enc_put_frm(mDump, frame);
 
     /* enqueue valid task to encoder */
     ret = enqueue(MPP_PORT_INPUT, mInputTask);
@@ -477,7 +481,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         mpp_log_f("pts %lld\n", mpp_packet_get_pts(*packet));
 
     // dump output
-    mpp_dump_packet(&mDump, *packet);
+    mpp_ops_enc_get_pkt(mDump, *packet);
 
     ret = enqueue(MPP_PORT_OUTPUT, task);
     if (ret)
@@ -577,6 +581,8 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 {
     MPP_RET ret = MPP_NOK;
 
+    mpp_ops_ctrl(mDump, cmd);
+
     switch (cmd & CMD_MODULE_ID_MASK) {
     case CMD_MODULE_OSAL : {
         ret = control_osal(cmd, param);
@@ -629,6 +635,8 @@ MPP_RET Mpp::reset()
 {
     if (!mInitDone)
         return MPP_ERR_INIT;
+
+    mpp_ops_reset(mDump);
 
     if (mType == MPP_CTX_DEC) {
         /*

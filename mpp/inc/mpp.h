@@ -177,7 +177,7 @@ private:
     MppPacket       mExtraPacket;
 
     /* dump info for debug */
-    MppDumpInfo     mDump;
+    MppDump         mDump;
 
     MPP_RET control_mpp(MpiCmd cmd, MppParam param);
     MPP_RET control_osal(MpiCmd cmd, MppParam param);
