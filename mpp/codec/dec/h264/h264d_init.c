@@ -509,13 +509,12 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
 #if 1
     if (p_last && dec_pic && (dec_pic->slice_type != I_SLICE)) {
         RK_U32 error_flag = 0;
-        RK_U32 wrap_frame_num = 0;
-        if (p_last->used_for_reference && !dec_pic->combine_flag) {
-            wrap_frame_num = (p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num;
-        } else {
-            wrap_frame_num = p_last->frame_num;
-        }
-        error_flag = (wrap_frame_num != dec_pic->frame_num) ? 1 : 0;
+
+        if (dec_pic->frame_num == p_last->frame_num ||
+            dec_pic->frame_num == (p_last->frame_num + 1))
+            error_flag = 0;
+        else
+            error_flag = 1;
         currSlice->p_Dec->errctx.cur_err_flag |= error_flag ? 1 : 0;
 
         H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d",
