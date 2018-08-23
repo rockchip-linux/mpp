@@ -7,4 +7,5 @@ add_library(utils STATIC
     iniparser.c
     dictionary.c
     )
-target_link_libraries(utils osal)
+
+target_link_libraries(utils ${MPP_SHARED})
