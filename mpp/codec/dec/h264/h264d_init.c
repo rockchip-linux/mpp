@@ -511,7 +511,7 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
         RK_U32 error_flag = 0;
 
         if (dec_pic->frame_num == p_last->frame_num ||
-            dec_pic->frame_num == (p_last->frame_num + 1))
+            dec_pic->frame_num == ((p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num))
             error_flag = 0;
         else
             error_flag = 1;
