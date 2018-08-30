@@ -31,6 +31,8 @@
 #define MPP_MIN3(a,b,c)         MPP_MIN(MPP_MIN(a,b),c)
 #define MPP_MIN4(a, b, c, d)    MPP_MIN((a), MPP_MIN3((b), (c), (d)))
 
+#define MPP_DIV(a, b)           ((b) ? (a) / (b) : (a))
+
 #define MPP_SWAP(type, a, b)    do {type SWAP_tmp = b; b = a; a = SWAP_tmp;} while(0)
 #define MPP_ARRAY_ELEMS(a)      (sizeof(a) / sizeof((a)[0]))
 #define MPP_ALIGN(x, a)         (((x)+(a)-1)&~((a)-1))

@@ -132,9 +132,9 @@ static void vdpu2_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax
         RK_U32 time_bp = pp->time_bp;
         RK_U32 time_pp = pp->time_pp;
 
-        RK_U32 trb_per_trd_d0  = ((((RK_S64)(1 * time_bp + 0)) << 27) + 1 * (time_pp - 1)) / time_pp;
-        RK_U32 trb_per_trd_d1  = ((((RK_S64)(2 * time_bp + 1)) << 27) + 2 * (time_pp - 0)) / (2 * time_pp + 1);
-        RK_U32 trb_per_trd_dm1 = ((((RK_S64)(2 * time_bp - 1)) << 27) + 2 * (time_pp - 1)) / (2 * time_pp - 1);
+        RK_U32 trb_per_trd_d0  = MPP_DIV((((RK_S64)(1 * time_bp + 0)) << 27) + 1 * (time_pp - 1), time_pp);
+        RK_U32 trb_per_trd_d1  = MPP_DIV((((RK_S64)(2 * time_bp + 1)) << 27) + 2 * (time_pp - 0), 2 * time_pp + 1);
+        RK_U32 trb_per_trd_dm1 = MPP_DIV((((RK_S64)(2 * time_bp - 1)) << 27) + 2 * (time_pp - 1), 2 * time_pp - 1);
 
         regs->reg57_enable_ctrl.sw_pic_type_sel1 = 1;
         regs->reg57_enable_ctrl.sw_pic_type_sel0 = 1;
