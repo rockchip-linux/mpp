@@ -4,12 +4,8 @@ include_directories(.)
 # ----------------------------------------------------------------------------
 # add mpp implement
 # ----------------------------------------------------------------------------
-if(RKPLATFORM)
-    set(RKPLAT_VPU_LEGACY vpu.c)
-endif(RKPLATFORM)
-
 set (MPP_LEGACY_SRC
-    ${RKPLAT_VPU_LEGACY}
+    vpu.c
     vpu_api.cpp
     vpu_api_legacy.cpp
     vpu_mem_legacy.c
@@ -37,11 +33,7 @@ set_target_properties(${VPU_SHARED} PROPERTIES VERSION ${MPP_VERSION})
 set_target_properties(${VPU_SHARED} PROPERTIES SOVERSION ${MPP_ABI_VERSION})
 endif()
 
-if(RKPLATFORM)
-    target_link_libraries(${VPU_SHARED} dl ${MPP_SHARED})
-else()
-    target_link_libraries(${VPU_SHARED} ${MPP_SHARED})
-endif()
+target_link_libraries(${VPU_SHARED} dl ${MPP_SHARED})
 
 install(TARGETS ${VPU_STATIC} ${VPU_SHARED}
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

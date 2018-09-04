@@ -211,12 +211,12 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool)
 RK_S32 VPUMemJudgeIommu()
 {
     int ret = 0;
-#ifdef RKPLATFORM
+
     if (VPUClientGetIOMMUStatus() > 0) {
         //mpp_err("media.used.iommu");
         ret = 1;
     }
-#endif
+
     return ret;
 }
 

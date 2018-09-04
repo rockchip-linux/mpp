@@ -21,10 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef RKPLATFORM
 #include <dlfcn.h>
 #include <unistd.h>
-#endif
 
 #include "rk_type.h"
 #include "mpp_device.h"
@@ -74,20 +72,6 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
     }
 }
 
-
-/*!
-***********************************************************************
-* \brief
-*    VPUClientGetIOMMUStatus
-***********************************************************************
-*/
-//extern "C"
-#ifndef RKPLATFORM
-RK_S32 VPUClientGetIOMMUStatus()
-{
-    return 0;
-}
-#endif
 /*!
 ***********************************************************************
 * \brief
@@ -172,31 +156,27 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     }
     //!< callback function to parser module
     p_hal->init_cb = cfg->hal_int_cb;
+
     mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_hal_debug, 0);
+
     //!< mpp_device_init
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingAVC,  /* coding */
         .platform = hard_platform,      /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
+
     ret = mpp_device_init(&p_hal->dev_ctx, &dev_cfg);
     if (ret) {
         mpp_err("mpp_device_init failed ret: %d\n", ret);
         goto __FAILED;
     }
-#endif
+
     //< get buffer group
     if (p_hal->buf_group == NULL) {
-#ifdef RKPLATFORM
-        mpp_log_f("mpp_buffer_group_get_internal used ion In");
         FUN_CHECK(ret = mpp_buffer_group_get_internal
                         (&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
-#else
-        FUN_CHECK(ret = mpp_buffer_group_get_internal
-                        (&p_hal->buf_group, MPP_BUFFER_TYPE_NORMAL));
-#endif
     }
 
     //!< run init funtion
@@ -220,15 +200,14 @@ MPP_RET hal_h264d_deinit(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
+
     //!< mpp_device_init
-#ifdef RKPLATFORM
     if (p_hal->dev_ctx) {
         ret = mpp_device_deinit(p_hal->dev_ctx);
-        if (MPP_OK != ret) {
+        if (ret)
             mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
-        }
     }
-#endif
+
     if (p_hal->buf_group) {
         FUN_CHECK(ret = mpp_buffer_group_put(p_hal->buf_group));
     }

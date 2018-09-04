@@ -28,10 +28,6 @@ set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
 add_subdirectory(worker/mpp_device)
 add_subdirectory(worker/libv4l2)
 
-if(RKPLATFORM)
-set(RKPLAT_VPU mpp_device)
-endif(RKPLATFORM)
-
 target_link_libraries(mpp_hal
                       ${HAL_AVSD}
                       ${HAL_H263D}
@@ -45,5 +41,5 @@ target_link_libraries(mpp_hal
                       ${HAL_H264E}
                       ${HAL_JPEGE}
                       hal_dummy
-                      ${RKPLAT_VPU}
+                      mpp_device
                       )

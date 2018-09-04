@@ -126,25 +126,25 @@ static MPP_RET hal_vp9d_alloc_res(hal_vp9_context_t *reg_cxt)
             reg_cxt->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
             ret = mpp_buffer_get(reg_cxt->group,
                                  &reg_cxt->g_buf[i].probe_base, PROBE_SIZE);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
             }
             ret = mpp_buffer_get(reg_cxt->group,
                                  &reg_cxt->g_buf[i].count_base, COUNT_SIZE);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 count_base get buffer failed\n");
                 return ret;
             }
             ret = mpp_buffer_get(reg_cxt->group,
                                  &reg_cxt->g_buf[i].segid_cur_base, MAX_SEGMAP_SIZE);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 segid_cur_base get buffer failed\n");
                 return ret;
             }
             ret = mpp_buffer_get(reg_cxt->group,
                                  &reg_cxt->g_buf[i].segid_last_base, MAX_SEGMAP_SIZE);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 segid_last_base get buffer failed\n");
                 return ret;
             }
@@ -152,22 +152,22 @@ static MPP_RET hal_vp9d_alloc_res(hal_vp9_context_t *reg_cxt)
     } else {
         reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
         ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->probe_base, PROBE_SIZE);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9 probe_base get buffer failed\n");
             return ret;
         }
         ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->count_base, COUNT_SIZE);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9 count_base get buffer failed\n");
             return ret;
         }
         ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->segid_cur_base, MAX_SEGMAP_SIZE);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9 segid_cur_base get buffer failed\n");
             return ret;
         }
         ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->segid_last_base, MAX_SEGMAP_SIZE);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9 segid_last_base get buffer failed\n");
             return ret;
         }
@@ -184,28 +184,28 @@ static MPP_RET hal_vp9d_release_res(hal_vp9_context_t *reg_cxt)
         for (i = 0; i < MAX_GEN_REG; i++) {
             if (reg_cxt->g_buf[i].probe_base) {
                 ret = mpp_buffer_put(reg_cxt->g_buf[i].probe_base);
-                if (MPP_OK != ret) {
+                if (ret) {
                     mpp_err("vp9 probe_base put buffer failed\n");
                     return ret;
                 }
             }
             if (reg_cxt->g_buf[i].count_base) {
                 ret = mpp_buffer_put(reg_cxt->g_buf[i].count_base);
-                if (MPP_OK != ret) {
+                if (ret) {
                     mpp_err("vp9 count_base put buffer failed\n");
                     return ret;
                 }
             }
             if (reg_cxt->g_buf[i].segid_cur_base) {
                 ret = mpp_buffer_put(reg_cxt->g_buf[i].segid_cur_base);
-                if (MPP_OK != ret) {
+                if (ret) {
                     mpp_err("vp9 segid_cur_base put buffer failed\n");
                     return ret;
                 }
             }
             if (reg_cxt->g_buf[i].segid_last_base) {
                 ret = mpp_buffer_put(reg_cxt->g_buf[i].segid_last_base);
-                if (MPP_OK != ret) {
+                if (ret) {
                     mpp_err("vp9 segid_last_base put buffer failed\n");
                     return ret;
                 }
@@ -218,28 +218,28 @@ static MPP_RET hal_vp9d_release_res(hal_vp9_context_t *reg_cxt)
     } else {
         if (reg_cxt->probe_base) {
             ret = mpp_buffer_put(reg_cxt->probe_base);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
             }
         }
         if (reg_cxt->count_base) {
             ret = mpp_buffer_put(reg_cxt->count_base);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 count_base put buffer failed\n");
                 return ret;
             }
         }
         if (reg_cxt->segid_cur_base) {
             ret = mpp_buffer_put(reg_cxt->segid_cur_base);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 segid_cur_base put buffer failed\n");
                 return ret;
             }
         }
         if (reg_cxt->segid_last_base) {
             ret = mpp_buffer_put(reg_cxt->segid_last_base);
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("vp9 segid_last_base put buffer failed\n");
                 return ret;
             }
@@ -279,35 +279,29 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     reg_cxt->packet_slots = cfg->packet_slots;
 
     ///<- mpp_device_init
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingVP9,    /* coding */
         .platform = 0,                    /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
+
     ret = mpp_device_init(&reg_cxt->dev_ctx, &dev_cfg);
     if (ret) {
         mpp_err("mpp_device_init failed. ret: %d\n", ret);
         return ret;
     }
 
-#endif
     if (reg_cxt->group == NULL) {
-
-#ifdef RKPLATFORM
-        mpp_err("mpp_buffer_group_get_internal used ion in");
         ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
-#else
-        ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_NORMAL);
-#endif
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9 mpp_buffer_group_get failed\n");
             return ret;
         }
     }
+
     ret = hal_vp9d_alloc_res(reg_cxt);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("hal_vp9d_alloc_res failed\n");
         return ret;
     }
@@ -337,19 +331,19 @@ MPP_RET hal_vp9d_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
-#ifdef RKPLATFORM
+
     if (reg_cxt->dev_ctx) {
         ret = mpp_device_deinit(reg_cxt->dev_ctx);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
         }
     }
-#endif
+
     hal_vp9d_release_res(reg_cxt);
 
     if (reg_cxt->group) {
         ret = mpp_buffer_group_put(reg_cxt->group);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("vp9d group free buffer failed\n");
             return ret;
         }
@@ -367,18 +361,14 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
     RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
     vp9_prob partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
     vp9_prob uv_mode_prob[INTRA_MODES][INTRA_MODES - 1];
-#ifdef RKPLATFORM
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t*)hal;
     void *probe_ptr = mpp_buffer_get_ptr(reg_cxt->probe_base);
     if (NULL == probe_ptr) {
-
         mpp_err("probe_ptr get ptr error");
         return MPP_ERR_NOMEM;
     }
+
     memset(probe_ptr, 0, 304 * 8);
-#else
-    (void)hal;
-#endif
 
     if (intraFlag) {
         memcpy(partition_probs, vp9_kf_partition_probs, sizeof(partition_probs));
@@ -596,9 +586,9 @@ MPP_RET hal_vp9d_output_probe(void *hal, void *dxva)
         }
         mpp_put_align(&bp, 128, 0);
     }
-#ifdef RKPLATFORM
+
     memcpy(probe_ptr, probe_packet, 304 * 8);
-#endif
+
 #ifdef dump
     if (intraFlag) {
         fwrite(probe_packet, 1, 302 * 8, vp9_fp);
@@ -695,19 +685,15 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 sw_yuv_virstride ;
     RK_U8  ref_idx = 0;
     RK_U32 *reg_ref_base = 0;
+    RK_S32 intraFlag = 0;
+    MppBuffer framebuf = NULL;
+
 #ifdef dump
     char filename[20] = "data/probe";
     char filename1[20] = "data/count";
-#endif
-    RK_S32 intraFlag = 0;
 
-#ifdef RKPLATFORM
-    MppBuffer framebuf = NULL;
-#endif
-#ifdef dump
     if (vp9_fp != NULL) {
         fclose(vp9_fp);
-
     }
     if (vp9_fp1 != NULL) {
         fclose(vp9_fp1);
@@ -775,7 +761,6 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
     vp9_hw_regs->swreg9_yuv_virstride.sw_yuv_virstride = sw_yuv_virstride;
 
-#ifdef RKPLATFORM
     if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
@@ -809,7 +794,6 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
     vp9_hw_regs->swreg52_vp9_refcolmv_base = reg_cxt->pre_mv_base_addr;
-#endif
 
     vp9_hw_regs->swreg10_vp9_cprheader_offset.sw_vp9_cprheader_offset = 0; //no use now.
     reg_ref_base = &vp9_hw_regs->swreg11_vp9_referlast_base;
@@ -824,11 +808,11 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         y_virstride = y_hor_virstride * pic_h[0];
         uv_virstride = uv_hor_virstride * pic_h[1];
         yuv_virstride = y_virstride + uv_virstride;
-#ifdef RKPLATFORM
+
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
             mpp_buf_slot_get_prop(reg_cxt->slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
         }
-#endif
+
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
             switch (i) {
             case 0: {
@@ -861,7 +845,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
                 break;
 
             }
-#ifdef RKPLATFORM
+
             /*0 map to 11*/
             /*1 map to 12*/
             /*2 map to 13*/
@@ -871,7 +855,6 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
                 mpp_log("ref buff address is no valid used out as base slot index 0x%x", pic_param->ref_frame_map[ref_idx].Index7Bits);
                 reg_ref_base[i] = vp9_hw_regs->swreg7_decout_base; //set
             }
-#endif
         } else {
             reg_ref_base[i] = vp9_hw_regs->swreg7_decout_base; //set
         }
@@ -1002,15 +985,12 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
         //mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
-#ifdef RKPLATFORM
-#if 1
+
     ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
-    if (ret != 0) {
+    if (ret) {
         mpp_err("VP9H_DBG_REG: ERROR: mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
-#endif
-#endif
 
     (void)task;
     return ret;
@@ -1025,10 +1005,10 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
     RK_U32 i;
     VP9_REGS *hw_regs = NULL;
+
     if (reg_cxt->fast_mode) {
         hw_regs = (VP9_REGS *)reg_cxt->g_buf[task->dec.reg_index].hw_regs;
     } else {
@@ -1037,13 +1017,12 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 
     ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
 
-    RK_U8 *p = (RK_U8*)hw_regs;
+    RK_U32 *p = (RK_U32*)hw_regs;
     for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
         if (i == 1) {
-            vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
+            vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, p[i]);
             // mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         }
-        p += 4;
     }
 
     if (task->dec.flags.parse_err ||
@@ -1062,9 +1041,7 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
     if (reg_cxt->fast_mode) {
         reg_cxt->g_buf[task->dec.reg_index].use_flag = 0;
     }
-#else
-    (void)hal;
-#endif
+
     (void)task;
     return ret;
 }
