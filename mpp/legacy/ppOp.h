@@ -17,7 +17,6 @@
 #ifndef _PPOP_H_
 #define _PPOP_H_
 
-#ifdef RKPLATFORM
 #include <sys/types.h>
 
 typedef RK_S32     status_t;
@@ -111,6 +110,6 @@ status_t ppOpSync(PP_OP_HANDLE hnd);
 status_t ppOpRelease(PP_OP_HANDLE hnd);
 
 }
-#endif
+
 #endif  // _PPOP_H_
 

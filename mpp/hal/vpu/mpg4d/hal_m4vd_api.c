@@ -19,20 +19,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef RKPLATFORM
 #include <dlfcn.h>
 #include <unistd.h>
-#endif
 
-#include "rk_type.h"
-#include "mpp_device.h"
 #include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_device.h"
 #include "mpp_platform.h"
-
-//#include "dxva_syntax.h"
 
 #include "hal_mpg4d_api.h"
 #include "hal_m4vd_com.h"

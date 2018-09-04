@@ -53,7 +53,6 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 
     h264e_vpu_init_extra_info(ctx->extra_info);
 
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,            /* type */
         .coding = MPP_VIDEO_CodingAVC,  /* coding */
@@ -65,7 +64,7 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
         mpp_err("mpp_device_init failed. ret: %d\n", ret);
         return ret;
     }
-#endif
+
     ctx->hw_cfg.qp_prev = ctx->cfg->codec.h264.qp_init;
     mpp_env_get_u32("hal_vpu_h264e_debug", &hal_vpu_h264e_debug, 0);
 
@@ -123,12 +122,9 @@ MPP_RET hal_h264e_vepu2_deinit(void *hal)
         ctx->mad = NULL;
     }
 
-#ifdef RKPLATFORM
     ret = mpp_device_deinit(ctx->dev_ctx);
-    if (ret) {
+    if (ret)
         mpp_err("mpp_device_deinit failed, ret: %d", ret);
-    }
-#endif
 
     h264e_hal_leave();
     return ret;
@@ -459,7 +455,7 @@ MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
     (void)task;
 
     h264e_hal_enter();
-#ifdef RKPLATFORM
+
     if (ctx->dev_ctx) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs;
         h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
@@ -472,9 +468,7 @@ MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
         mpp_err("invalid device ctx: %p", ctx->dev_ctx);
         ret = MPP_NOK;
     }
-#else
-    (void)ctx;
-#endif
+
     h264e_hal_leave();
 
     return ret;
@@ -518,7 +512,7 @@ static MPP_RET hal_h264e_vpu2_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
           | VEPU_REG_H264_CHKPT_DISTANCE(hw_cfg->cp_distance_mbs);
 
     H264E_HAL_SET_REG(p_regs, VEPU_REG_QP_VAL, val);
-#ifdef RKPLATFORM
+
     hw_ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU2_H264E_NUM_REGS);
     if (hw_ret)
         mpp_err("mpp_device_send_reg failed ret %d", hw_ret);
@@ -526,8 +520,7 @@ static MPP_RET hal_h264e_vpu2_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
         h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg success!");
 
     hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU2_H264E_NUM_REGS);
-#endif
-    if (hw_ret != MPP_OK) {
+    if (hw_ret) {
         h264e_hal_err("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
     }
@@ -549,7 +542,6 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
     memset(reg_out, 0, sizeof(H264eVpu2RegSet));
     h264e_hal_enter();
 
-#ifdef RKPLATFORM
     if (ctx->dev_ctx) {
         RK_S32 hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out,
                                             VEPU2_H264E_NUM_REGS);
@@ -564,7 +556,6 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
         mpp_err("invalid device ctx: %p", ctx->dev_ctx);
         return MPP_NOK;
     }
-#endif
 
     h264e_vpu_set_feedback(fb, reg_out);
 

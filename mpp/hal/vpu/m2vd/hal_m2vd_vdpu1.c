@@ -39,33 +39,29 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
 
     ctx->reg_len = M2VD_VDPU1_REG_NUM;
 
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingMPEG2, /* coding */
         .platform = 0,                  /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
+
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
     if (ret) {
         mpp_err("mpp_device_init failed. ret: %d\n", ret);
         ret = MPP_ERR_UNKNOW;
         goto __ERR_RET;
     }
-#endif
+
     if (ctx->group == NULL) {
-#ifdef RKPLATFORM
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
-#else
-        ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_NORMAL);
-#endif
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("m2v_hal mpp_buffer_group_get failed\n");
             goto __ERR_RET;
         }
     }
     ret = mpp_buffer_get(ctx->group, &ctx->qp_table, M2VD_BUF_SIZE_QPTAB);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("m2v_hal_qtable_base get buffer failed\n");
         goto __ERR_RET;
     }
@@ -95,12 +91,11 @@ MPP_RET hal_m2vd_vdpu1_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *p = (M2vdHalCtx *)hal;
 
-#ifdef RKPLATFORM
     if (p->dev_ctx) {
         mpp_device_deinit(p->dev_ctx);
         p->dev_ctx = NULL;
     }
-#endif
+
     if (p->qp_table) {
         ret = mpp_buffer_put(p->qp_table);
         p->qp_table = NULL;
@@ -113,7 +108,7 @@ MPP_RET hal_m2vd_vdpu1_deinit(void *hal)
     if (p->group) {
         ret = mpp_buffer_group_put(p->group);
         p->group = NULL;
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("m2v_hal group free buffer failed\n");
             return ret;
         }
@@ -159,13 +154,12 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     if (task->dec.valid) {
         void *q_table = NULL;
-#ifdef RKPLATFORM
         MppBuffer streambuf = NULL;
         MppBuffer framebuf = NULL;
-#endif
         M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
         M2VDDxvaParam *dx = (M2VDDxvaParam *)task->dec.syntax.data;
         M2vdVdpu1Reg_t *p_regs = (M2vdVdpu1Reg_t*) ctx->regs;
+
         task->dec.valid = 0;
         q_table = mpp_buffer_get_ptr(ctx->qp_table);
         memcpy(q_table, dx->qp_tab, M2VD_BUF_SIZE_QPTAB);
@@ -220,7 +214,7 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
         p_regs->sw05.intra_vlc_tab = dx->pic_code_ext.intra_vlc_format;
         p_regs->sw05.frame_pred_dct = dx->pic_code_ext.frame_pred_frame_dct;
         p_regs->sw06.init_qp = 1;
-#ifdef RKPLATFORM
+
         mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
         p_regs->sw12.rlc_vlc_base = mpp_buffer_get_fd(streambuf);
         p_regs->sw12.rlc_vlc_base |= (dx->bitstream_offset << 10);
@@ -247,7 +241,7 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
         p_regs->sw17.refer3_base = mpp_buffer_get_fd(framebuf);
 
         p_regs->sw40.qtable_base = mpp_buffer_get_fd(ctx->qp_table);
-#endif
+
         p_regs->sw48.startmb_x = 0;
         p_regs->sw48.startmb_y = 0;
         p_regs->sw03.dec_out_dis = 0;
@@ -266,38 +260,35 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
 MPP_RET hal_m2vd_vdpu1_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
     RK_U32 *p_regs = (RK_U32 *)ctx->regs;
+
     ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, ctx->reg_len);
-    if (ret != 0) {
+    if (ret) {
         mpp_err("mpp_device_send_reg failed.\n");
         return MPP_ERR_VPUHW;
     }
-#endif
-    (void)task;
-    (void)hal;
 
+    (void)task;
     return ret;
 }
 
 MPP_RET hal_m2vd_vdpu1_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     M2vdVdpu1Reg_t reg_out;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
+
     memset(&reg_out, 0, sizeof(M2vdVdpu1Reg_t));
     ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, ctx->reg_len);
     if (reg_out.sw01.dec_error_int | reg_out.sw01.dec_buffer_int) {
         if (ctx->int_cb.callBack)
             ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
     }
-#endif
-    if (ret) {
+
+    if (ret)
         mpp_log("mpp_device_wait_reg return error:%d", ret);
-    }
-    (void)hal;
+
     (void)task;
 
     return ret;

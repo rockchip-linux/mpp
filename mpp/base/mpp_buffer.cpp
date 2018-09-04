@@ -188,12 +188,9 @@ int mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller)
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     int fd = p->info.fd;
-
-#ifdef RKPLATFORM
     mpp_assert(fd >= 0);
     if (fd < 0)
         mpp_err("mpp_buffer_get_fd buffer %p fd %d caller %s\n", buffer, fd, caller);
-#endif
 
     return fd;
 }

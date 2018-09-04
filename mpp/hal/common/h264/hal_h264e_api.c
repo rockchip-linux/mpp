@@ -18,9 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#ifdef RKPLATFORM
 #include <unistd.h>
-#endif
 
 #include "mpp_common.h"
 #include "mpp_platform.h"

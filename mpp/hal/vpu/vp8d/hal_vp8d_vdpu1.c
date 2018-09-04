@@ -51,55 +51,50 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
     ctx->frame_slots = cfg->frame_slots;
 
     mpp_env_get_u32("vp8h_debug", &vp8h_debug, 0);
+
     //get vpu socket
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingVP8,    /* coding */
         .platform = 0,                    /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
+
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
     if (ret) {
         mpp_err("mpp_device_init failed, ret: %d\n", ret);
         FUN_T("FUN_OUT");
         return ret;
     }
-#endif
+
     if (NULL == ctx->regs) {
         ctx->regs = mpp_calloc_size(void, sizeof(VP8DRegSet_t));
         if (NULL == ctx->regs) {
             mpp_err("hal_vp8 reg alloc failed\n");
-
             FUN_T("FUN_OUT");
             return MPP_ERR_NOMEM;
         }
     }
 
     if (NULL == ctx->group) {
-#ifdef RKPLATFORM
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
-#else
-        ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_NORMAL);
-#endif
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("hal_vp8 mpp_buffer_group_get failed\n");
-
             FUN_T("FUN_OUT");
             return ret;
         }
     }
-    ret = mpp_buffer_get(ctx->group, &ctx->probe_table, VP8D_PROB_TABLE_SIZE);
-    if (MPP_OK != ret) {
-        mpp_err("hal_vp8 probe_table get buffer failed\n");
 
+    ret = mpp_buffer_get(ctx->group, &ctx->probe_table, VP8D_PROB_TABLE_SIZE);
+    if (ret) {
+        mpp_err("hal_vp8 probe_table get buffer failed\n");
         FUN_T("FUN_OUT");
         return ret;
     }
 
     ret = mpp_buffer_get(ctx->group, &ctx->seg_map, VP8D_MAX_SEGMAP_SIZE);
 
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("hal_vp8 seg_map get buffer failed\n");
         FUN_T("FUN_OUT");
         return ret;
@@ -111,34 +106,33 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
 MPP_RET hal_vp8d_vdpu1_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
+    VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 
     FUN_T("FUN_IN");
-    VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
-#ifdef RKPLATFORM
     if (ctx->dev_ctx) {
         ret = mpp_device_deinit(ctx->dev_ctx);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
         }
     }
-#endif
+
     if (ctx->probe_table) {
         ret = mpp_buffer_put(ctx->probe_table);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("hal_vp8 probe table put buffer failed\n");
         }
     }
 
     if (ctx->seg_map) {
         ret = mpp_buffer_put(ctx->seg_map);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("hal_vp8 seg map put buffer failed\n");
         }
     }
 
     if (ctx->group) {
         ret = mpp_buffer_group_put(ctx->group);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("hal_vp8 group free buffer failed\n");
         }
     }
@@ -185,10 +179,9 @@ static MPP_RET hal_vp8_init_hwcfg(VP8DHalContext_t *ctx)
     reg->reg3.sw_dec_mode = DEC_MODE_VP8;
 
     reg->reg1_interrupt.sw_dec_irq = 0;
-#ifdef RKPLATFORM
+
     reg->reg10_segment_map_base = mpp_buffer_get_fd(ctx->seg_map);
     reg->reg40_qtable_base = mpp_buffer_get_fd(ctx->probe_table);
-#endif
 
     FUN_T("FUN_OUT");
     return MPP_OK;
@@ -254,23 +247,21 @@ hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
     RK_U32 i = 0, len = 0, len1 = 0;
     RK_U32 extraBytesPacked = 0;
     RK_U32 addr = 0, byte_offset = 0;
-#ifdef RKPLATFORM
     RK_U32 fd = 0;
     MppBuffer streambuf = NULL;
-#endif
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
     DXVA_PicParams_VP8 *pic_param = (DXVA_PicParams_VP8 *)task->dec.syntax.data;
 
 
     FUN_T("FUN_IN");
-#ifdef RKPLATFORM
+
     mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input,
                           SLOT_BUFFER, &streambuf);
     fd =  mpp_buffer_get_fd(streambuf);
     regs->reg27_bitpl_ctrl_base = fd;
     regs->reg27_bitpl_ctrl_base |= (pic_param->stream_start_offset << 10);
     regs->reg5.sw_strm1_start_bit = pic_param->stream_start_bit;
-#endif
+
     /* calculate dct partition length here instead */
     if (pic_param->decMode == VP8HWD_VP8 && !pic_param->frame_type)
         extraBytesPacked += 7;
@@ -437,16 +428,15 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 mb_width = 0, mb_height = 0;
-#ifdef RKPLATFORM
     MppBuffer framebuf = NULL;
     RK_U8 *segmap_ptr = NULL;
     RK_U8 *probe_ptr = NULL;
-#endif
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
     DXVA_PicParams_VP8 *pic_param = (DXVA_PicParams_VP8 *)task->dec.syntax.data;
 
     FUN_T("FUN_IN");
+
     hal_vp8_init_hwcfg(ctx);
     mb_width = (pic_param->width + 15) >> 4;
     mb_height = (pic_param->height + 15) >> 4;
@@ -456,7 +446,6 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
     regs->reg4.sw_pic_mb_w_ext = mb_width >> 9;
     regs->reg4.sw_pic_mb_h_ext = mb_height >> 8;
 
-#ifdef RKPLATFORM
     if (!pic_param->frame_type) {
         segmap_ptr = mpp_buffer_get_ptr(ctx->seg_map);
         if (NULL != segmap_ptr) {
@@ -506,7 +495,6 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
                                    ((pic_param->stVP8Segments.segmentation_enabled
                                      + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
 
-#endif
     regs->reg3.sw_pic_inter_e = pic_param->frame_type;
     regs->reg3.sw_skip_mode = !pic_param->mb_no_coeff_skip;
 
@@ -606,13 +594,10 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
 MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-
-#ifdef RKPLATFORM
     RK_U32 i = 0;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
     RK_U8 *p = ctx->regs;
-
 
     FUN_T("FUN_IN");
 
@@ -620,23 +605,22 @@ MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
         vp8h_dbg(VP8H_DBG_REG, "vp8d: regs[%02d]=%08X\n", i, *((RK_U32*)p));
         p += 4;
     }
+
     ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)regs, VP8D_REG_NUM);
-    if (ret != 0) {
+    if (ret) {
         mpp_err("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;
     }
 
     FUN_T("FUN_OUT");
-#endif
+
     (void)task;
-    (void)hal;
     return ret;
 }
 
 MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
     VP8DRegSet_t reg_out;
 
@@ -645,8 +629,7 @@ MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
 
     ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, VP8D_REG_NUM);
     FUN_T("FUN_OUT");
-#endif
-    (void)hal;
+
     (void)task;
     return ret;
 }

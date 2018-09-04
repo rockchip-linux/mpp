@@ -17,10 +17,8 @@
 #define MODULE_TAG "vpu_api"
 
 #include <string.h>
-#ifdef RKPLATFORM
 #include <dlfcn.h>
 #include <unistd.h>
-#endif
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
@@ -198,7 +196,6 @@ vpu_api_control(VpuCodecContext *ctx, VPU_API_CMD cmdType, void *param)
     return api->control(ctx, cmdType, param);
 }
 
-#ifdef RKPLATFORM
 static const char *codec_paths[] = {
     "/vendor/lib/librk_vpuapi.so",
     "/system/lib/librk_vpuapi.so",
@@ -263,24 +260,6 @@ static RK_S32 close_orign_vpu(VpuCodecContext **ctx)
     }
     return MPP_NOK;
 }
-#else
-RK_S32 check_orign_vpu()
-{
-    return (MPP_NOK);
-}
-
-RK_S32 open_orign_vpu(VpuCodecContext **ctx)
-{
-    (void)ctx;
-    return MPP_NOK;
-}
-
-RK_S32 close_orign_vpu(VpuCodecContext **ctx)
-{
-    (void)ctx;
-    return MPP_NOK;
-}
-#endif
 
 /*
  * old libvpu path will input a NULL pointer in *ctx
@@ -309,14 +288,9 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
     mpp_env_get_u32("use_original", &force_original, 0);
     mpp_env_get_u32("use_mpp_mode", &force_mpp_mode, 0);
 
-#ifdef RKPLATFORM
     /* if there is no original vpuapi library force to mpp path */
     if (check_orign_vpu())
         force_mpp_mode = 1;
-#else
-    /* simulation mode force mpp path */
-    force_mpp_mode = 1;
-#endif
 
     if (force_original) {
         /* force mpp mode here */

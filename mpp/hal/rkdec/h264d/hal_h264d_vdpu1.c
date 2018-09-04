@@ -858,14 +858,12 @@ MPP_RET vdpu1_h264d_start(void *hal, HalTaskInfo *task)
     p_regs->SwReg57.sw_intra_dblspeed = 1;
     p_regs->SwReg57.sw_paral_bus = 1;
 
-#ifdef RKPLATFORM
-    if (mpp_device_send_reg(p_hal->dev_ctx, (RK_U32 *)reg_ctx->regs,
-                            DEC_VDPU1_REGISTERS)) {
+    ret = mpp_device_send_reg(p_hal->dev_ctx, (RK_U32 *)reg_ctx->regs,
+                              DEC_VDPU1_REGISTERS);
+    if (ret) {
         ret =  MPP_ERR_VPUHW;
-        mpp_err_f("H264 VDPU1 FlushRegs fail, pid=%d, hal_frame_no=%d. \n",
-                  getpid());
+        mpp_err_f("H264 VDPU1 FlushRegs fail, pid %d. \n", getpid());
     }
-#endif
 
 __RETURN:
     (void)task;
@@ -890,7 +888,7 @@ MPP_RET vdpu1_h264d_wait(void *hal, HalTaskInfo *task)
         task->dec.flags.ref_err) {
         goto __SKIP_HARD;
     }
-#ifdef RKPLATFORM
+
     {
         RK_S32 wait_ret = -1;
         wait_ret = mpp_device_wait_reg(p_hal->dev_ctx, (RK_U32 *)reg_ctx->regs,
@@ -900,7 +898,6 @@ MPP_RET vdpu1_h264d_wait(void *hal, HalTaskInfo *task)
             mpp_err("H264 VDPU1 wait result fail, pid=%d.\n", getpid());
         }
     }
-#endif
 
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {

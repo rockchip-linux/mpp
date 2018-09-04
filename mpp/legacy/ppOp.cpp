@@ -19,8 +19,6 @@
 #include "vpu.h"
 #include "ppOp.h"
 
-#ifdef RKPLATFORM
-
 namespace android
 {
 
@@ -58,7 +56,6 @@ status_t ppOpRelease(PP_OP_HANDLE hnd)
 }
 
 }
-#endif
 
 #if BUILD_PPOP_TEST
 #define SRC_WIDTH           (1920)//(1920)

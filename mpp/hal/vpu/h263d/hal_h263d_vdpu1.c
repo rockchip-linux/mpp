@@ -133,7 +133,6 @@ MPP_RET hal_vpu1_h263d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingH263, /* coding */
@@ -146,7 +145,6 @@ MPP_RET hal_vpu1_h263d_init(void *hal, MppHalCfg *cfg)
         ret = MPP_ERR_UNKNOW;
         goto ERR_RET;
     }
-#endif
 
     /*
      * basic register configuration setup here
@@ -194,12 +192,9 @@ MPP_RET hal_vpu1_h263d_deinit(void *hal)
         ctx->regs = NULL;
     }
 
-#ifdef RKPLATFORM
     ret = mpp_device_deinit(ctx->dev_ctx);
-    if (MPP_OK != ret) {
+    if (ret)
         mpp_err("mpp_device_deinit failed ret: %d\n", ret);
-    }
-#endif
 
     return ret;
 }
@@ -239,21 +234,20 @@ MPP_RET hal_vpu1_h263d_gen_regs(void *hal,  HalTaskInfo *syn)
 MPP_RET hal_vpu1_h263d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
     RK_U32 reg_count = (sizeof(*(Vpu1H263dRegSet_t*)ctx->regs) / sizeof(RK_U32));
     RK_U32* regs = (RK_U32 *)ctx->regs;
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_PUT) {
         RK_U32 i = 0;
+
         for (i = 0; i < reg_count; i++) {
             mpp_log("reg[%03d]: %08x\n", i, regs[i]);
         }
     }
 
     ret = mpp_device_send_reg(ctx->dev_ctx, regs, reg_count);
-#endif
-    (void)hal;
+
     (void)task;
     return ret;
 }
@@ -261,7 +255,6 @@ MPP_RET hal_vpu1_h263d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_vpu1_h263d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-#ifdef RKPLATFORM
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
     Vpu1H263dRegSet_t reg_out;
     RK_U32* regs = (RK_U32 *)&reg_out;
@@ -276,8 +269,7 @@ MPP_RET hal_vpu1_h263d_wait(void *hal, HalTaskInfo *task)
             mpp_log("reg[%03d]: %08x\n", i, regs[i]);
         }
     }
-#endif
-    (void)hal;
+
     (void)task;
     return ret;
 }

@@ -16,9 +16,7 @@
 
 #define MODULE_TAG "vpu_api_legacy"
 
-#ifdef RKPLATFORM
 #include <fcntl.h>
-#endif
 #include "string.h"
 
 #include "mpp_log.h"
@@ -216,8 +214,6 @@ RET:
 static int is_valid_dma_fd(int fd)
 {
     int ret = 1;
-
-#ifdef RKPLATFORM
     /* detect input file handle */
     int fs_flag = fcntl(fd, F_GETFL, NULL);
     int fd_flag = fcntl(fd, F_GETFD, NULL);
@@ -225,9 +221,7 @@ static int is_valid_dma_fd(int fd)
     if (fs_flag == -1 || fd_flag == -1) {
         ret = 0;
     }
-#else
-    (void) fd;
-#endif
+
     return ret;
 }
 

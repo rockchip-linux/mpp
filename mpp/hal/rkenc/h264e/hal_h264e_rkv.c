@@ -206,7 +206,7 @@ h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
             for (k = 0; k < 2; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_PP],
                                      &buffers->hw_pp_buf[k], frame_size);
-                if (MPP_OK != ret) {
+                if (ret) {
                     h264e_hal_err("hw_pp_buf[%d] get failed", k);
                     return ret;
                 }
@@ -216,7 +216,7 @@ h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
         for (k = 0; k < 2; k++) {
             ret = mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_DSP],
                                  &buffers->hw_dsp_buf[k], frame_size / 16);
-            if (MPP_OK != ret) {
+            if (ret) {
                 h264e_hal_err("hw_dsp_buf[%d] get failed", k);
                 return ret;
             }
@@ -238,7 +238,7 @@ h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
             for (k = 0; k < RKV_H264E_LINKTABLE_FRAME_NUM; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_ROI],
                                      &buffers->hw_roi_buf[k], num_mbs_oneframe * 1);
-                if (MPP_OK != ret) {
+                if (ret) {
                     h264e_hal_err("hw_roi_buf[%d] get failed", k);
                     return ret;
                 }
@@ -250,7 +250,7 @@ h264e_rkv_allocate_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
             for (k = 0; k < num_buf; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H264E_HAL_RKV_BUF_GRP_REC],
                                      &buffers->hw_rec_buf[k], frame_size);
-                if (MPP_OK != ret) {
+                if (ret) {
                     h264e_hal_err("hw_rec_buf[%d] get failed", k);
                     return ret;
                 }
@@ -336,7 +336,6 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
     dpb_ctx->i_frame_cnt = 0;
     dpb_ctx->i_frame_num = 0;
 
-#ifdef RKPLATFORM
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,            /* type */
         .coding = MPP_VIDEO_CodingAVC,  /* coding */
@@ -348,7 +347,6 @@ MPP_RET hal_h264e_rkv_init(void *hal, MppHalCfg *cfg)
         h264e_hal_err("mpp_device_init failed. ret: %d\n", ret);
         return ret;
     }
-#endif
 
     buffers = (h264e_hal_rkv_buffers *)ctx->buffers;
     for (k = 0; k < H264E_HAL_RKV_BUF_GRP_BUTT; k++) {
@@ -426,14 +424,11 @@ MPP_RET hal_h264e_rkv_deinit(void *hal)
         ctx->inter_qs = NULL;
     }
 
-#ifdef RKPLATFORM
     if (ctx->dev_ctx) {
         ret = mpp_device_deinit(ctx->dev_ctx);
-        if (MPP_OK != ret) {
+        if (ret)
             h264e_hal_err("mpp_device_deinit failed. ret: %d\n", ret);
-        }
     }
-#endif
 
     h264e_hal_leave();
     return MPP_OK;
@@ -1496,19 +1491,13 @@ MPP_RET hal_h264e_rkv_start(void *hal, HalTaskInfo *task)
 
     ctx->frame_cnt_send_ready ++;
 
-    (void)task;
-
-#ifdef RKPLATFORM
     h264e_hal_dbg(H264E_DBG_DETAIL, "vpu client is sending %d regs", length);
-    if (MPP_OK != mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)ioctl_info, length)) {
+    if (mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)ioctl_info, length)) {
         h264e_hal_err("mpp_device_send_reg Failed!!!");
         return  MPP_ERR_VPUHW;
     } else {
         h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_send_reg successfully!");
     }
-#else
-    (void)length;
-#endif
 
     h264e_hal_leave();
 
@@ -1605,8 +1594,8 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
               sizeof(ioctl_info->reg_info[0]) *
               ioctl_info->frame_num) >> 2;
 
-#ifdef RKPLATFORM
-    if (mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)ioctl_info, length)) {
+    hw_ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)ioctl_info, length);
+    if (hw_ret) {
         h264e_hal_err("mpp_device_send_reg Failed!!!");
         return MPP_ERR_VPUHW;
     } else {
@@ -1614,8 +1603,7 @@ static MPP_RET h264e_rkv_resend(H264eHalContext *ctx, RK_S32 mb_rc)
     }
 
     hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, length);
-#endif
-    if (hw_ret != MPP_OK) {
+    if (hw_ret) {
         h264e_hal_err("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
     }
@@ -1674,7 +1662,6 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         }
     }
 
-#ifdef RKPLATFORM
     h264e_hal_dbg(H264E_DBG_DETAIL, "mpp_device_wait_reg expect length %d\n",
                   length);
 
@@ -1686,9 +1673,6 @@ MPP_RET hal_h264e_rkv_wait(void *hal, HalTaskInfo *task)
         h264e_hal_err("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
     }
-#else
-    (void)hw_ret;
-#endif
 
     h264e_rkv_set_feedback(ctx, reg_out, enc_task);
 
