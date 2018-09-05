@@ -370,6 +370,24 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         else
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
+    case ROCKCHIP_SOC_RK3128H : {
+        /*
+         * rk3128H have codec:
+         * 1 - vpu2
+         * 2 - RK H.264/H.265 1080p@60fps decoder
+         * NOTE: rk3128H do NOT have jpeg encoder
+         */
+        if (type == MPP_CTX_DEC &&
+            (coding == MPP_VIDEO_CodingAVC ||
+             coding == MPP_VIDEO_CodingHEVC))
+            dev = mpp_find_device(mpp_rkvdec_dev);
+        else if (type == MPP_CTX_ENC && coding == MPP_VIDEO_CodingMJPEG)
+            dev = NULL;
+        else if (type == MPP_CTX_DEC && coding == MPP_VIDEO_CodingVP9)
+            dev = NULL;
+        else
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
     case ROCKCHIP_SOC_RK3399 :
     case ROCKCHIP_SOC_RK3229 : {
         /*
