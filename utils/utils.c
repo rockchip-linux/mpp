@@ -56,6 +56,18 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
     base = (RK_U8 *)mpp_buffer_get_ptr(buffer);
 
     switch (fmt) {
+    case MPP_FMT_YUV422SP : {
+        RK_U32 i;
+        RK_U8 *base_y = base;
+        RK_U8 *base_c = base + h_stride * v_stride;
+
+        for (i = 0; i < height; i++, base_y += h_stride) {
+            fwrite(base_y, 1, width, fp);
+        }
+        for (i = 0; i < height; i++, base_c += h_stride) {
+            fwrite(base_c, 1, width, fp);
+        }
+    } break;
     case MPP_FMT_YUV420SP : {
         RK_U32 i;
         RK_U8 *base_y = base;
