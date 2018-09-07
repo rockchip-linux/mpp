@@ -1401,7 +1401,11 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref, R
     for (i = 0; i < MAX_REF_SIZE; i++) {
         if (pref[i].valid) {
             MppFrame mframe = NULL;
-            RK_U32 slot_idx = p_Dec->dpb_info[pref[i].dpb_idx].slot_index;
+            RK_S32 slot_idx = p_Dec->dpb_info[pref[i].dpb_idx].slot_index;
+            if (slot_idx < 0) {
+                dpb_error_flag |= 1;
+                break;
+            }
             mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
             if (mframe) {
                 if (i < active_refs) {
