@@ -30,6 +30,7 @@ target_link_libraries(mpp_codec
                       ${CODEC_JPEGD}
                       ${CODEC_H264E}
                       ${CODEC_JPEGE}
+                      ${CODEC_H265E}
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_vproc

@@ -102,7 +102,8 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
     RK_S32 gop      = (cfg->intraPicRate) ? (cfg->intraPicRate) : (fps_out);
     RK_S32 qp_init  = (coding == MPP_VIDEO_CodingAVC) ? (26) :
                       (coding == MPP_VIDEO_CodingMJPEG) ? (10) :
-                      (coding == MPP_VIDEO_CodingVP8) ? (56) : (0);
+                      (coding == MPP_VIDEO_CodingVP8) ? (56) :
+                      (coding == MPP_VIDEO_CodingHEVC) ? (26) : (0);
     RK_S32 qp       = (cfg->qp) ? (cfg->qp) : (qp_init);
     RK_S32 profile  = cfg->profileIdc;
     RK_S32 level    = cfg->levelIdc;
@@ -198,8 +199,11 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
         codec_cfg->jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
         codec_cfg->jpeg.quant = qp;
     } break;
+    case MPP_VIDEO_CodingHEVC : {
+        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE;
+        codec_cfg->h265.intra_qp = qp;
+    } break;
     case MPP_VIDEO_CodingVP8 :
-    case MPP_VIDEO_CodingHEVC :
     default : {
         mpp_err_f("support encoder coding type %d\n", coding);
     } break;
@@ -1390,6 +1394,18 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_SET_IMMEDIATE_OUT: {
         mpicmd = MPP_DEC_SET_IMMEDIATE_OUT;
+    } break;
+    case VPU_API_ENC_SET_VEPU22_CFG: {
+        mpicmd = MPP_ENC_SET_CODEC_CFG;
+    } break;
+    case VPU_API_ENC_GET_VEPU22_CFG: {
+        mpicmd = MPP_ENC_GET_CODEC_CFG;
+    } break;
+    case VPU_API_ENC_SET_VEPU22_CTU_QP: {
+        mpicmd = MPP_ENC_SET_CTU_QP;
+    } break;
+    case VPU_API_ENC_SET_VEPU22_ROI: {
+        mpicmd = MPP_ENC_SET_ROI_CFG;
     } break;
     default: {
     } break;
