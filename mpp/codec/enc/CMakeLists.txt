@@ -10,3 +10,7 @@ if(HAVE_JPEGE)
 add_subdirectory(jpeg)
 endif()
 
+if(HAVE_H265E)
+add_subdirectory(h265)
+endif()
+

@@ -296,8 +296,12 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->jpeg.change  = MPP_ENC_JPEG_CFG_CHANGE_QP;
         codec_cfg->jpeg.quant   = 10;
     } break;
-    case MPP_VIDEO_CodingVP8 :
-    case MPP_VIDEO_CodingHEVC :
+    case MPP_VIDEO_CodingVP8 : {
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE;
+        codec_cfg->h265.intra_qp = 26;
+    } break;
     default : {
         mpp_err_f("support encoder coding type %d\n", codec_cfg->coding);
     } break;

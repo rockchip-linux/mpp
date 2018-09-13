@@ -71,6 +71,9 @@ static MppCodingTypeInfo support_list[] = {
 #if HAVE_JPEGE
     {   MPP_CTX_ENC,    MPP_VIDEO_CodingMJPEG,      "enc",  "jpeg",         },
 #endif
+#if HAVE_H265E
+    {   MPP_CTX_ENC,    MPP_VIDEO_CodingHEVC,       "enc",  "h265",         },
+#endif
 };
 
 #define check_mpp_ctx(ctx)  _check_mpp_ctx(ctx, __FUNCTION__)
