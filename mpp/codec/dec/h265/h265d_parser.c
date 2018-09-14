@@ -1256,20 +1256,6 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
     s->nuh_layer_id = ret;
     h265d_dbg(H265D_DBG_GLOBAL, "s->nal_unit_type = %d,len = %d \n", s->nal_unit_type, length);
-    //mpp_log("s->nal_unit_type = %d,len = %d \n", s->nal_unit_type, length);
-#if 0
-    if (fp != NULL) {
-        if (s->nal_unit_type >= 32 && s->nal_unit_type <= 34) {
-            RK_U32 nal_1 = 0x01000000;
-            fwrite(&nal_1, 1, 4, fp);
-            fwrite(nal, 1, length, fp);
-        }
-    }
-    if (s->nb_frame > 1088 && (s->nal_unit_type >= 16 && s->nal_unit_type <= 21)) {
-        start_write = 1;
-        mpp_log("start %d", s->nb_frame);
-    }
-#endif
 
     switch (s->nal_unit_type) {
     case NAL_VPS:
@@ -1298,7 +1284,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
         ret = mpp_hevc_decode_nal_sei(s);
         if (ret < 0) {
             mpp_err("mpp_hevc_decode_nal_sei error ret = %d", ret);
-            goto fail;
+            //goto fail;
         }
         break;
     case NAL_TRAIL_R:
@@ -1317,13 +1303,6 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     case NAL_RADL_R:
     case NAL_RASL_N:
     case NAL_RASL_R:
-#if 0
-        if (fp != NULL && (s->nb_frame < 1200) && start_write) {
-            RK_U32 nal_1 = 0x01000000;
-            fwrite(&nal_1, 1, 4, fp);
-            fwrite(nal, 1, length, fp);
-        }
-#endif
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header in");
         ret = hls_slice_header(s);
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header out");
@@ -1398,9 +1377,8 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
     return 0;
 fail:
-    // if (s->h265dctx->err_recognition & AV_EF_EXPLODE)
-    //   return ret;
-    return 0;
+
+    return ret;
 }
 
 
@@ -1692,7 +1670,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     void *pos = NULL;
     RK_S32 length = 0;
 
-    //task->valid = 0;
+    task->valid = 0;
     s->eos = mpp_packet_get_eos(pkt);
     if (sc != NULL) {
         sc->eos = s->eos;
@@ -1787,6 +1765,7 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = h265dctx->priv_data;
 
+    task->valid = 0;
     s->got_frame = 0;
     s->task = task;
     s->ref = NULL;
@@ -2016,6 +1995,7 @@ MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param)
 MPP_RET h265d_callback(void *ctx, void *err_info)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HalDecTask *task_dec = (HalDecTask *)err_info;
 
     if (!h265dctx->disable_error) {
         HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
@@ -2027,10 +2007,10 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
             s->max_ra = INT_MAX;
         }
         // s->miss_ref_flag = 1;
-        mpp_buf_slot_get_prop(s->slots, s->ref->slot_index, SLOT_FRAME_PTR, &frame);
+        mpp_buf_slot_get_prop(s->slots, task_dec->output, SLOT_FRAME_PTR, &frame);
         mpp_frame_set_errinfo(frame, MPP_FRAME_ERR_UNKNOW);
         for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
-            if (s->DPB[i].slot_index == s->ref->slot_index) {
+            if (s->DPB[i].slot_index == task_dec->output) {
                 s->DPB[i].error_flag = 1;
             }
         }

@@ -1545,7 +1545,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
         || hw_regs->sw_interrupt.sw_dec_empty_sta) {
         if (!reg_cxt->fast_mode) {
             if (reg_cxt->int_cb.callBack)
-                reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, NULL);
+                reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, &task->dec);
         } else {
             MppFrame mframe = NULL;
             mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output,
