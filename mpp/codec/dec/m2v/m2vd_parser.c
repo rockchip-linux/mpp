@@ -82,6 +82,25 @@ static int frame_period_Table[16] = {
     1
 };
 
+static const MppFrameRational mpeg2_aspect[16] = {
+    {0, 1},
+    {1, 1},
+    {4, 3},
+    {16, 9},
+    {221, 100},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+    {0, 1},
+};
+
 static inline RK_S32 m2vd_get_readbits(BitReadCtx_t *bx)
 {
     return bx->used_bits;
@@ -1163,6 +1182,9 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                     frametype |= MPP_FRAME_FLAG_BOT_FIRST;
             }
             mpp_frame_set_mode(ctx->frame_cur->f, frametype);
+
+            if (ctx->seq_head.aspect_ratio_information >= 0 && ctx->seq_head.aspect_ratio_information < 16)
+                mpp_frame_set_sar(ctx->frame_cur->f, mpeg2_aspect[ctx->seq_head.aspect_ratio_information]);
 
             mpp_buf_slot_get_unused(ctx->frame_slots, &ctx->frame_cur->slot_index);
             mpp_buf_slot_set_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME, ctx->frame_cur->f);

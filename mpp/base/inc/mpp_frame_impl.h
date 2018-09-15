@@ -88,6 +88,8 @@ struct MppFrameImpl_t {
 
     MppFrameFormat fmt;
 
+    MppFrameRational sar;
+
     /*
      * buffer information
      * NOTE: buf_size only access internally
