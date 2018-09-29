@@ -44,6 +44,7 @@ typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_RK3326,
     ROCKCHIP_SOC_RK3128H,
     ROCKCHIP_SOC_PX30,
+    ROCKCHIP_SOC_RK1808,
     ROCKCHIP_SOC_BUTT,
 } RockchipSocType;
 
@@ -71,6 +72,7 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
     { "rk3326",  ROCKCHIP_SOC_RK3326,   HAVE_VPU2 | HAVE_HEVC_DEC, },
     { "px30",    ROCKCHIP_SOC_RK3326,   HAVE_VPU2 | HAVE_HEVC_DEC, },
+    { "rk1808",  ROCKCHIP_SOC_RK1808,   HAVE_VPU2, },
 };
 
 /* For vpu1 / vpu2 */
