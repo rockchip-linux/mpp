@@ -272,6 +272,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_fmt(impl->info_set, fmt);
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
+    mpp_frame_set_time_scale(impl->info_set, mpp_frame_get_time_scale(frame));
+    mpp_frame_set_num_units_in_tick(impl->info_set, mpp_frame_get_num_units_in_tick(frame));
     mpp_frame_set_buf_size(impl->info_set, size);
     mpp_frame_set_buf_size(frame, size);
     impl->buf_size = size;

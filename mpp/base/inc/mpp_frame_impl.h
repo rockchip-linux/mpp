@@ -98,6 +98,12 @@ struct MppFrameImpl_t {
      * pointer for multiple frame output at one time
      */
     MppFrameImpl    *next;
+
+    /*
+     * timing information
+     */
+    RK_U32  time_scale;
+    RK_U32  num_units_in_tick;
 };
 
 

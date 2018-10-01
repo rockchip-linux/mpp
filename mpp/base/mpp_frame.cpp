@@ -144,6 +144,8 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
         (f0->height             == f1->height) &&
         (f0->hor_stride         == f1->hor_stride) &&
         (f0->ver_stride         == f1->ver_stride) &&
+        (f0->time_scale         == f1->time_scale) &&
+        (f0->num_units_in_tick  == f1->num_units_in_tick) &&
         (f0->fmt                == f1->fmt) &&
         (f0->buf_size           == f1->buf_size)) {
         return MPP_OK;
@@ -170,6 +172,8 @@ MPP_FRAME_ACCESSORS(RK_U32, width)
 MPP_FRAME_ACCESSORS(RK_U32, height)
 MPP_FRAME_ACCESSORS(RK_U32, hor_stride)
 MPP_FRAME_ACCESSORS(RK_U32, ver_stride)
+MPP_FRAME_ACCESSORS(RK_U32, time_scale)
+MPP_FRAME_ACCESSORS(RK_U32, num_units_in_tick)
 MPP_FRAME_ACCESSORS(RK_U32, mode)
 MPP_FRAME_ACCESSORS(RK_U32, discard)
 MPP_FRAME_ACCESSORS(RK_U32, viewid)
