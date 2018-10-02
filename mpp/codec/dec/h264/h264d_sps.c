@@ -103,10 +103,8 @@ static MPP_RET read_VUI(BitReadCtx_t *p_bitctx, H264_VUI_t *vui)
     }
     READ_ONEBIT(p_bitctx, &vui->timing_info_present_flag);
     if (vui->timing_info_present_flag) {
-        READ_BITS(p_bitctx, 16, &vui->num_units_in_tick); //!< num_units_in_tick(high 16bit)
-        READ_BITS(p_bitctx, 16, &vui->num_units_in_tick); //!< num_units_in_tick(low  16bit)
-        READ_BITS(p_bitctx, 16, &vui->time_scale); //!< time_scale(high 16bit)
-        READ_BITS(p_bitctx, 16, &vui->time_scale); //!< time_scale(low  16bit)
+        READ_BITS_LONG(p_bitctx, 32, &vui->num_units_in_tick);
+        READ_BITS_LONG(p_bitctx, 32, &vui->time_scale);
         READ_ONEBIT(p_bitctx, &vui->fixed_frame_rate_flag);
     }
     READ_ONEBIT(p_bitctx, &vui->nal_hrd_parameters_present_flag);
