@@ -1452,11 +1452,6 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 
     READ_UE(gb, &sps->width);
     READ_UE(gb, &sps->height);
-#if 0
-    if ((ret = av_image_check_size(sps->width,
-                                   sps->height, 0, s->h265dctx)) < 0)
-        goto err;
-#endif
 
     READ_ONEBIT(gb, &value);
 
@@ -1945,6 +1940,18 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     READ_ONEBIT(gb, &pps->transquant_bypass_enable_flag);
     READ_ONEBIT(gb, &pps->tiles_enabled_flag);
     READ_ONEBIT(gb, &pps->entropy_coding_sync_enabled_flag);
+
+    // check support solution
+    {
+        RK_S32 max_supt_width = MAX_WIDTH;
+        RK_S32 max_supt_height = pps->tiles_enabled_flag ? MAX_HEIGHT : MAX_WIDTH;
+
+        if (sps->width > max_supt_width || sps->height > max_supt_height) {
+            mpp_err("cannot support %dx%d, max solution %dx%d\n",
+                    sps->width, sps->height, max_supt_width, max_supt_height);
+            goto err;
+        }
+    }
 
     if (pps->tiles_enabled_flag) {
         READ_UE(gb, &pps->num_tile_columns);
