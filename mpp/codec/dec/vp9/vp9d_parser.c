@@ -161,11 +161,11 @@ RK_S32 vp9d_split_frame(SplitContext_t *ctx,
 #define case_n(a, rd) \
             case a: \
                 while (n_frames--) { \
-                    RK_S32 sz = rd; \
+                    RK_U32 sz = rd; \
                     idx += a; \
-                    if (sz > size) { \
+                    if (sz == 0 || sz > size) { \
                         s->n_frames = 0; \
-                        *out_size = size; \
+                        *out_size = size > full_size ? full_size : size; \
                         *out_data = data; \
                         mpp_err("Superframe packet size too big: %u > %d\n", \
                                sz, size); \
