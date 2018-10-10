@@ -163,7 +163,7 @@ RK_S32 vp9d_split_frame(SplitContext_t *ctx,
                 while (n_frames--) { \
                     RK_U32 sz = rd; \
                     idx += a; \
-                    if (sz == 0 || sz > size) { \
+                    if (sz == 0 || sz > (RK_U32)size) { \
                         s->n_frames = 0; \
                         *out_size = size > full_size ? full_size : size; \
                         *out_data = data; \
