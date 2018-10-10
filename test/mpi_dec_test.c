@@ -100,14 +100,25 @@ static int decode_simple(MpiDecLoopData *data)
     char   *buf = data->buf;
     MppPacket packet = data->packet;
     MppFrame  frame  = NULL;
-    size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
+    size_t read_size = 0;
 
-    if (read_size != data->packet_size || feof(data->fp_input)) {
-        mpp_log("found last packet\n");
+    do {
+        read_size = fread(buf, 1, data->packet_size, data->fp_input);
 
-        // setup eos flag
-        data->eos = pkt_eos = 1;
-    }
+        if (read_size != data->packet_size || feof(data->fp_input)) {
+            if (data->frame_num < 0) {
+                clearerr(data->fp_input);
+                rewind(data->fp_input);
+                data->eos = pkt_eos = 0;
+                mpp_log("loop again\n");
+            } else {
+                // setup eos flag
+                data->eos = pkt_eos = 1;
+                mpp_log("found last packet\n");
+                break;
+            }
+        }
+    } while (!read_size);
 
     // write data to packet
     mpp_packet_write(packet, 0, buf, read_size);
@@ -293,7 +304,7 @@ static int decode_simple(MpiDecLoopData *data)
                 break;
             }
 
-            if (data->frame_num && data->frame_count >= data->frame_num) {
+            if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
                 data->eos = 1;
                 break;
             }
@@ -303,7 +314,7 @@ static int decode_simple(MpiDecLoopData *data)
             break;
         } while (1);
 
-        if (data->frame_num && data->frame_count >= data->frame_num) {
+        if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
             data->eos = 1;
             mpp_log("reach max frame number %d\n", data->frame_count);
             break;
@@ -775,9 +786,9 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
             case 'n':
                 if (next) {
                     cmd->frame_num = atoi(next);
-                }
-
-                if (!next || cmd->frame_num < 0) {
+                    if (cmd->frame_num < 0)
+                        mpp_log("infinite loop decoding mode\n");
+                } else {
                     mpp_err("invalid frame number\n");
                     goto PARSE_OPINIONS_OUT;
                 }
