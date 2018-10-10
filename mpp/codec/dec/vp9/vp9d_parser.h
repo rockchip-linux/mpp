@@ -234,23 +234,6 @@ typedef struct VP9Context {
     RK_U8 left_comp_ctx[8];
     RK_U8 left_ref_ctx[8];
     RK_U8 left_filter_ctx[8];
-    RK_U8 *above_partition_ctx;
-    RK_U8 *above_mode_ctx;
-    // FIXME maybe merge some of the below in a flags field?
-    RK_U8 *above_y_nnz_ctx;
-    RK_U8 *above_uv_nnz_ctx[2];
-    RK_U8 *above_skip_ctx; // 1bit
-    RK_U8 *above_txfm_ctx; // 2bit
-    RK_U8 *above_segpred_ctx; // 1bit
-    RK_U8 *above_intra_ctx; // 1bit
-    RK_U8 *above_comp_ctx; // 1bit
-    RK_U8 *above_ref_ctx; // 2bit
-    RK_U8 *above_filter_ctx;
-    Vpxmv (*above_mv_ctx)[2];
-
-    // whole-frame cache
-    RK_U8 *intra_pred_data[3];
-    struct VP9Filter *lflvl;
 
     // block reconstruction intermediates
     RK_S32 block_alloc_using_2pass;

@@ -377,7 +377,6 @@ MPP_RET vp9d_parser_deinit(Vp9CodecContext *vp9_ctx)
 {
     VP9Context *s = vp9_ctx->priv_data;
     vp9_frame_free(s);
-    mpp_free(s->intra_pred_data[0]);
     mpp_free(s->c_b);
     s->c_b_size = 0;
     MPP_FREE(vp9_ctx->priv_data);
@@ -426,63 +425,6 @@ static RK_S32 get_sbits_inv(BitReadCtx_t *gb, RK_S32 n)
 __BITREAD_ERR:
     return MPP_ERR_STREAM;
 }
-
-static RK_S32 update_size(Vp9CodecContext *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
-{
-    VP9Context *s = ctx->priv_data;
-    RK_U8 *p;
-    RK_S32 bytesperpixel = s->bytesperpixel;
-
-    //av_assert0(w > 0 && h > 0);
-
-    if (s->intra_pred_data[0] && w == ctx->width && h == ctx->height && ctx->pix_fmt == fmt)
-        return 0;
-
-    ctx->width   = w;
-    ctx->height  = h;
-    ctx->pix_fmt = fmt;
-    s->sb_cols   = (w + 63) >> 6;
-    s->sb_rows   = (h + 63) >> 6;
-    s->cols      = (w + 7) >> 3;
-    s->rows      = (h + 7) >> 3;
-
-#define assign(var, type, n) var = (type) p; p += s->sb_cols * (n) * sizeof(*var)
-    mpp_free(s->intra_pred_data[0]);
-    // FIXME we slightly over-allocate here for subsampled chroma, but a little
-    // bit of padding shouldn't affect performance...
-    p = mpp_malloc(RK_U8, s->sb_cols * (128 + 192 * bytesperpixel +
-                                        sizeof(*s->lflvl) +
-                                        16 * sizeof(*s->above_mv_ctx)));
-    if (!p)
-        return MPP_ERR_NOMEM;
-    assign(s->intra_pred_data[0],  RK_U8 *,             64 * bytesperpixel);
-    assign(s->intra_pred_data[1],  RK_U8 *,             64 * bytesperpixel);
-    assign(s->intra_pred_data[2],  RK_U8 *,             64 * bytesperpixel);
-    assign(s->above_y_nnz_ctx,     RK_U8 *,             16);
-    assign(s->above_mode_ctx,      RK_U8 *,             16);
-    assign(s->above_mv_ctx,        Vpxmv(*)[2],          16);
-    assign(s->above_uv_nnz_ctx[0], RK_U8 *,             16);
-    assign(s->above_uv_nnz_ctx[1], RK_U8 *,             16);
-    assign(s->above_partition_ctx, RK_U8 *,              8);
-    assign(s->above_skip_ctx,      RK_U8 *,              8);
-    assign(s->above_txfm_ctx,      RK_U8 *,              8);
-    assign(s->above_segpred_ctx,   RK_U8 *,              8);
-    assign(s->above_intra_ctx,     RK_U8 *,              8);
-    assign(s->above_comp_ctx,      RK_U8 *,              8);
-    assign(s->above_ref_ctx,       RK_U8 *,              8);
-    assign(s->above_filter_ctx,    RK_U8 *,              8);
-    assign(s->lflvl,               struct VP9Filter *,     1);
-#undef assign
-
-    // these will be re-allocated a little later
-
-    if (s->bpp != s->last_bpp) {
-        s->last_bpp = s->bpp;
-    }
-
-    return 0;
-}
-
 
 static RK_S32 inv_recenter_nonneg(RK_S32 v, RK_S32 m)
 {
@@ -641,7 +583,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                                    const RK_U8 *data, RK_S32 size, RK_S32 *refo)
 {
     VP9Context *s = ctx->priv_data;
-    RK_S32 c, i, j, k, l, m, n, max, size2, res, sharp;
+    RK_S32 c, i, j, k, l, m, n, max, size2, sharp;
     RK_U32 w, h;
     RK_S32 fmt = ctx->pix_fmt;
     RK_S32 last_invisible;
@@ -1019,12 +961,6 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
             memset(s->segmentation.feat[i].lflvl, lflvl,
                    sizeof(s->segmentation.feat[i].lflvl));
         }
-    }
-
-    /* tiling info */
-    if ((res = update_size(ctx, w, h, fmt)) < 0) {
-        mpp_err("Failed to initialize decoder for %dx%d @ %d\n", w, h, fmt);
-        return res;
     }
 
     for (s->tiling.log2_tile_cols = 0;
