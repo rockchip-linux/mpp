@@ -891,7 +891,7 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
 
     if (syn->dec.valid) {
         syn->dec.valid = 0;
-        jpegd_setup_output_fmt(JpegHalCtx, syntax);
+        jpegd_setup_output_fmt(JpegHalCtx, syntax, syn->dec.output);
 
         if (JpegHalCtx->set_output_fmt_flag && (NULL != JpegHalCtx->dev_ctx)) {
             mpp_device_deinit(JpegHalCtx->dev_ctx);

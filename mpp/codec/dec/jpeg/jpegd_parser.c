@@ -1142,6 +1142,9 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
         case JPEGDEC_YUV422: {
             fmt = MPP_FMT_YUV422SP;
         } break;
+        case JPEGDEC_YUV444: {
+            fmt = MPP_FMT_YUV444SP;
+        } break;
         default : {
             fmt = MPP_FMT_YUV420SP;
         } break;
