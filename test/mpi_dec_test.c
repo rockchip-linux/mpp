@@ -54,6 +54,7 @@ typedef struct {
 
     FILE            *fp_input;
     FILE            *fp_output;
+    FILE            *fp_config;
     RK_S32          frame_count;
     RK_S32          frame_num;
     size_t          max_usage;
@@ -62,6 +63,7 @@ typedef struct {
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
+    char            file_config[MAX_FILE_NAME_LENGTH];
     MppCodingType   type;
     MppFrameFormat  format;
     RK_U32          width;
@@ -70,16 +72,21 @@ typedef struct {
 
     RK_U32          have_input;
     RK_U32          have_output;
+    RK_U32          have_config;
 
     RK_U32          simple;
     RK_S32          timeout;
     RK_S32          frame_num;
+    size_t          pkt_size;
+
+    // report information
     size_t          max_usage;
 } MpiDecTestCmd;
 
 static OptionInfo mpi_dec_cmd[] = {
     {"i",               "input_file",           "input bitstream file"},
     {"o",               "output_file",          "output bitstream file, "},
+    {"c",               "ops_file",             "input operation config file"},
     {"w",               "width",                "the width of input bitstream"},
     {"h",               "height",               "the height of input bitstream"},
     {"t",               "type",                 "input stream coding type"},
@@ -101,14 +108,52 @@ static int decode_simple(MpiDecLoopData *data)
     MppPacket packet = data->packet;
     MppFrame  frame  = NULL;
     size_t read_size = 0;
+    size_t packet_size = data->packet_size;
 
     do {
-        read_size = fread(buf, 1, data->packet_size, data->fp_input);
+        if (data->fp_config) {
+            char line[MAX_FILE_NAME_LENGTH];
+            char *ptr = NULL;
 
-        if (read_size != data->packet_size || feof(data->fp_input)) {
+            do {
+                ptr = fgets(line, MAX_FILE_NAME_LENGTH, data->fp_config);
+                if (ptr) {
+                    OpsLine info;
+                    RK_S32 cnt = parse_config_line(line, &info);
+
+                    // parser for packet message
+                    if (cnt >= 3 && 0 == strncmp("pkt", info.cmd, sizeof(info.cmd))) {
+                        packet_size = info.value2;
+                        break;
+                    }
+
+                    // parser for reset message at the end
+                    if (0 == strncmp("rst", info.cmd, 3)) {
+                        mpp_log("get reset cmd\n");
+                        packet_size = 0;
+                        break;
+                    }
+                } else {
+                    mpp_log("get end of cfg file\n");
+                    packet_size = 0;
+                    break;
+                }
+            } while (1);
+        }
+
+        // when packet size is valid read the input binary file
+        if (packet_size)
+            read_size = fread(buf, 1, packet_size, data->fp_input);
+
+        if (!packet_size || read_size != packet_size || feof(data->fp_input)) {
+            mpp_log("get error and check frame_num\n");
             if (data->frame_num < 0) {
                 clearerr(data->fp_input);
                 rewind(data->fp_input);
+                if (data->fp_config) {
+                    clearerr(data->fp_config);
+                    rewind(data->fp_config);
+                }
                 data->eos = pkt_eos = 0;
                 mpp_log("loop again\n");
             } else {
@@ -451,7 +496,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
 
     // resources
     char *buf           = NULL;
-    size_t packet_size  = MPI_DEC_STREAM_SIZE;
+    size_t packet_size  = cmd->pkt_size;
     MppBuffer pkt_buf   = NULL;
     MppBuffer frm_buf   = NULL;
 
@@ -477,6 +522,14 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         data.fp_output = fopen(cmd->file_output, "w+b");
         if (NULL == data.fp_output) {
             mpp_err("failed to open output file %s\n", cmd->file_output);
+            goto MPP_TEST_OUT;
+        }
+    }
+
+    if (cmd->have_config) {
+        data.fp_config = fopen(cmd->file_config, "r");
+        if (NULL == data.fp_config) {
+            mpp_err("failed to open config file %s\n", cmd->file_config);
             goto MPP_TEST_OUT;
         }
     }
@@ -728,6 +781,19 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'c':
+                if (next) {
+                    strncpy(cmd->file_config, next, MAX_FILE_NAME_LENGTH);
+                    cmd->file_config[strlen(next)] = '\0';
+                    cmd->have_config = 1;
+
+                    // enlarge packet buffer size for large input stream case
+                    cmd->pkt_size = SZ_1M;
+                } else {
+                    mpp_log("output file is invalid\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             case 'd':
                 if (next) {
                     cmd->debug = atoi(next);;
@@ -817,6 +883,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("cmd parse result:\n");
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);
+    mpp_log("config file name: %s\n", cmd->file_config);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);
     mpp_log("type       : %d\n", cmd->type);
@@ -832,6 +899,7 @@ int main(int argc, char **argv)
 
     memset((void*)cmd, 0, sizeof(*cmd));
     cmd->format = MPP_FMT_BUTT;
+    cmd->pkt_size = MPI_DEC_STREAM_SIZE;
 
     // parse the cmd option
     ret = mpi_dec_test_parse_options(argc, argv, cmd);

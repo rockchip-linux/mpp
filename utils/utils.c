@@ -385,3 +385,12 @@ MPP_RET fill_yuv_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
     }
     return ret;
 }
+
+RK_S32 parse_config_line(const char *str, OpsLine *info)
+{
+    RK_S32 cnt = sscanf(str, "%*[^,],%d,%[^,],%llu,%llu\n",
+                        &info->index, info->cmd,
+                        &info->value1, &info->value2);
+
+    return cnt;
+}
