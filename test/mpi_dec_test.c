@@ -522,7 +522,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
          * YUV422 buffer is 2 times of w*h.
          * So create larger buffer with 2 times w*h.
          */
-        ret = mpp_buffer_get(data.frm_grp, &frm_buf, hor_stride * ver_stride * 2);
+        ret = mpp_buffer_get(data.frm_grp, &frm_buf, hor_stride * ver_stride * 4);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
@@ -597,6 +597,10 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             decode_simple(&data);
         }
     } else {
+        /* NOTE: change output format before jpeg decoding */
+        if (cmd->format < MPP_FMT_BUTT)
+            ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
+
         while (!data.eos) {
             decode_advanced(&data);
         }
@@ -827,6 +831,7 @@ int main(int argc, char **argv)
     MpiDecTestCmd* cmd = &cmd_ctx;
 
     memset((void*)cmd, 0, sizeof(*cmd));
+    cmd->format = MPP_FMT_BUTT;
 
     // parse the cmd option
     ret = mpi_dec_test_parse_options(argc, argv, cmd);
