@@ -46,6 +46,7 @@ static const RK_U8 zzOrder[64] = {
 void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
                                 JpegdSyntax*syntax);
 
-void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax);
+void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax,
+                            RK_S32 output);
 
 #endif /* __HAL_JPEGD_COMMON_H__ */

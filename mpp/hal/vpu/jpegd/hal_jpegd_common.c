@@ -208,12 +208,12 @@ void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
     return;
 }
 
-void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax)
+void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 {
     jpegd_dbg_func("enter\n");
     RK_U32 pp_in_fmt = 0;
-    JpegdSyntax *s = syntax;
     PPInfo *pp_info = &(ctx->pp_info);
+    MppFrame frm = NULL;
 
     if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {
         /* Using pp to convert all format to yuv420sp */
@@ -252,6 +252,10 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         ctx->output_fmt = s->output_fmt;
         pp_info->pp_enable = 0;
     }
+
+    mpp_buf_slot_get_prop(ctx->frame_slots, output,
+                          SLOT_FRAME_PTR, &frm);
+    mpp_frame_set_fmt(frm, ctx->output_fmt);
 
     jpegd_dbg_func("exit\n");
     return;
