@@ -18,6 +18,7 @@
 #define __UTILS_H__
 
 #include <stdio.h>
+
 #include "mpp_err.h"
 #include "mpp_frame.h"
 
@@ -65,6 +66,15 @@ MPP_RET read_yuv_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
 MPP_RET fill_yuv_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
                        RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt,
                        RK_U32 frame_count);
+
+typedef struct OpsLine_t {
+    RK_U32      index;
+    char        cmd[8];
+    RK_U64      value1;
+    RK_U64      value2;
+} OpsLine;
+
+RK_S32 parse_config_line(const char *str, OpsLine *info);
 
 #ifdef __cplusplus
 }
