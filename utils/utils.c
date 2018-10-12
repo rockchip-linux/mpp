@@ -18,6 +18,7 @@
 
 #include <string.h>
 
+#include "mpp_mem.h"
 #include "mpp_log.h"
 #include "utils.h"
 
@@ -79,6 +80,30 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         for (i = 0; i < height / 2; i++, base_c += h_stride) {
             fwrite(base_c, 1, width, fp);
         }
+    } break;
+    case MPP_FMT_YUV444SP : {
+        /* YUV444SP -> YUV444P for better display */
+        RK_U32 i, j;
+        RK_U8 *base_y = base;
+        RK_U8 *base_c = base + h_stride * v_stride;
+        RK_U8 *tmp = mpp_malloc(RK_U8, h_stride * height * 2);
+        RK_U8 *tmp_u = tmp;
+        RK_U8 *tmp_v = tmp + width * height;
+
+        for (i = 0; i < height; i++, base_y += h_stride)
+            fwrite(base_y, 1, width, fp);
+
+        for (i = 0; i < height; i++, base_c += h_stride * 2) {
+            for (j = 0; j < width; j++) {
+                tmp_u[j] = base_c[2 * j + 0];
+                tmp_v[j] = base_c[2 * j + 1];
+            }
+            tmp_u += width;
+            tmp_v += width;
+        }
+
+        fwrite(tmp, 1, width * height * 2, fp);
+        mpp_free(tmp);
     } break;
     default : {
         mpp_err("not supported format %d\n", fmt);
