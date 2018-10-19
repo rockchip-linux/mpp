@@ -393,6 +393,25 @@ static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
     task->hnd = NULL;
 }
 
+static void reset_hal_thread(Mpp *mpp)
+{
+    MppDec    *dec = mpp->mDec;
+    MppBufSlots frame_slots = dec->frame_slots;
+    HalDecTaskFlag flag;
+    RK_S32 index = -1;
+
+    /* when hal thread reset output all frames */
+    flag.val = 0;
+    mpp_dec_flush(dec);
+
+    mpp->mThreadHal->lock(THREAD_OUTPUT);
+    while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
+        mpp_dec_put_frame(mpp, index, flag);
+        mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
+    }
+    mpp->mThreadHal->unlock(THREAD_OUTPUT);
+}
+
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
     MppDec *dec = mpp->mDec;
@@ -823,6 +842,8 @@ void *mpp_dec_hal_thread(void *data)
                 // process all task then do reset process
                 if (dec->reset_flag && !dec->hal_reset_done) {
                     AutoMutex ctrl_lock(hal->mutex(THREAD_CONTROL));
+
+                    reset_hal_thread(mpp);
                     dec->hal_reset_done = 1;
                     hal->signal(THREAD_CONTROL);
                     continue;
