@@ -492,9 +492,11 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
     MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
     RK_S32 i;
     for (i = 0; i < impl->buf_count; i++, slot++) {
-        if (slot->status.on_used)
-            dump_slots(impl);
         mpp_assert(!slot->status.on_used);
+        if (slot->status.on_used) {
+            dump_slots(impl);
+            mpp_buf_slot_reset(impl, i);
+        }
     }
     impl->used_count = 0;
 
