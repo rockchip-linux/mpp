@@ -486,11 +486,16 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
 
 static void clear_slots_impl(MppBufSlotsImpl *impl)
 {
-    for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
-        mpp_assert(list_empty(&impl->queue[i]));
-    }
     MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
     RK_S32 i;
+
+    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(impl->queue); i++) {
+        if (!list_empty(&impl->queue[i]))
+            dump_slots(impl);
+
+        mpp_assert(list_empty(&impl->queue[i]));
+    }
+
     for (i = 0; i < impl->buf_count; i++, slot++) {
         mpp_assert(!slot->status.on_used);
         if (slot->status.on_used) {
@@ -498,6 +503,7 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
             mpp_buf_slot_reset(impl, i);
         }
     }
+
     impl->used_count = 0;
 
     if (impl->info)
