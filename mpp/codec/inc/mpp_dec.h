@@ -18,6 +18,7 @@
 #define __MPP_DEC_H__
 
 #include "mpp_time.h"
+#include "mpp_list.h"
 
 #include "mpp_parser.h"
 #include "mpp_hal.h"
@@ -59,10 +60,21 @@ struct MppDec_t {
     RK_U32              parser_notify_flag;
     RK_U32              hal_notify_flag;
 
+    // reset process:
+    // 1. mpp_dec set reset flag and signal parser
+    // 2. mpp_dec wait on parser_reset sem
+    // 3. parser wait hal reset done
+    // 4. hal wait vproc reset done
+    // 5. vproc do reset and signal hal
+    // 6. hal do reset and signal parser
+    // 7. parser do reset and signal mpp_dec
+    // 8. mpp_dec reset done
     RK_U32              reset_flag;
-    RK_U32              parser_reset_done;
+
+    RK_U32              hal_reset_post;
     RK_U32              hal_reset_done;
-    RK_U32              vproc_reset_done;
+    sem_t               parser_reset;
+    sem_t               hal_reset;
 
     // work mode flags
     RK_U32              parser_need_split;

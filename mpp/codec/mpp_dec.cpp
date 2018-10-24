@@ -160,33 +160,25 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
     return ret;
 }
 
-static RK_U32 reset_dec_task(Mpp *mpp, DecTask *task)
+static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 {
-    MppThread *hal      = mpp->mThreadHal;
-    MppDec    *dec      = mpp->mDec;
+    MppDec *dec = mpp->mDec;
+    MppThread *hal = mpp->mThreadHal;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots  = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
     HalDecTask *task_dec = &task->info.dec;
 
     dec_dbg_reset("wait hal processing\n");
-    /* wait hal thread reset done here */
-    while (hal_task_check_empty(tasks, TASK_PROCESSING)) {
-        AutoMutex autolock(hal->mutex(THREAD_CONTROL));
-        dec->hal_reset_done = 0;
-        hal->lock();
-        hal->signal();
-        hal->unlock();
-        hal->wait(THREAD_CONTROL);
-    }
+
+    hal->lock();
+    dec->hal_reset_post++;
+    hal->signal();
+    hal->unlock();
+
+    sem_wait(&dec->hal_reset);
 
     dec_dbg_reset("wait hal proc done\n");
-
-    while (hal_task_check_empty(tasks, TASK_PROC_DONE)) {
-        HalTaskHnd tmp = NULL;
-        hal_task_get_hnd(tasks, TASK_PROC_DONE, &tmp);
-        hal_task_hnd_set_status(tmp, TASK_IDLE);
-    }
     mpp_dec_notify(dec, MPP_DEC_NOTIFY_TASK_HND_VALID);
 
     dec_dbg_reset("check hal processing empty\n");
@@ -787,12 +779,11 @@ void *mpp_dec_parser_thread(void *data)
         }
 
         if (dec->reset_flag) {
-            reset_dec_task(mpp, &task);
+            reset_parser_thread(mpp, &task);
 
             AutoMutex autolock(parser->mutex(THREAD_CONTROL));
-            dec->hal_reset_done = 0;
             dec->reset_flag = 0;
-            parser->signal(THREAD_CONTROL);
+            sem_post(&dec->parser_reset);
             continue;
         }
 
@@ -840,12 +831,10 @@ void *mpp_dec_hal_thread(void *data)
 
             if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
                 // process all task then do reset process
-                if (dec->reset_flag && !dec->hal_reset_done) {
-                    AutoMutex ctrl_lock(hal->mutex(THREAD_CONTROL));
-
+                if (dec->hal_reset_post != dec->hal_reset_done) {
                     reset_hal_thread(mpp);
-                    dec->hal_reset_done = 1;
-                    hal->signal(THREAD_CONTROL);
+                    dec->hal_reset_done++;
+                    sem_post(&dec->hal_reset);
                     continue;
                 }
 
@@ -1255,6 +1244,9 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
             mpp_timer_enable(p->timers[i], p->statistics_en);
         }
 
+        sem_init(&p->parser_reset, 0, 0);
+        sem_init(&p->hal_reset, 0, 0);
+
         *dec = p;
         dec_dbg_func("%p out\n", p);
         return MPP_OK;
@@ -1323,6 +1315,9 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
         dec->packet_slots = NULL;
     }
 
+    sem_destroy(&dec->parser_reset);
+    sem_destroy(&dec->hal_reset);
+
     mpp_free(dec);
     dec_dbg_func("%p out\n", dec);
     return MPP_OK;
@@ -1343,12 +1338,10 @@ MPP_RET mpp_dec_reset(MppDec *dec)
         // set reset flag
         parser->lock(THREAD_CONTROL);
         dec->reset_flag = 1;
-
         // signal parser thread to reset
         mpp_dec_notify(dec, MPP_DEC_RESET);
-
-        parser->wait(THREAD_CONTROL);
         parser->unlock(THREAD_CONTROL);
+        sem_wait(&dec->parser_reset);
     }
 
     dec_dbg_func("%p out\n", dec);
