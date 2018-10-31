@@ -1242,6 +1242,41 @@ __FAILED:
     return ret;
 }
 
+static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
+{
+    MPP_RET ret = MPP_NOK;
+    H264_FrameStore_t *fs = p_Dpb->fs[p_Dpb->used_size - 1];
+
+    if (fs->is_used == 3) {
+        RK_S32 min_poc = 0, min_pos = 0;
+        RK_S32 poc_inc = fs->poc - p_Dpb->last_output_poc;
+        H264dErrCtx_t *p_err = &p_Dpb->p_Vid->p_Dec->errctx;
+
+        if ((p_Dpb->last_output_poc > INT_MIN) && abs(poc_inc) & 0x1) {
+            p_Dpb->poc_interval = 1;
+        }
+
+        if (p_Dpb->p_Vid->p_Dec->immediate_out ||
+            (p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
+            FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
+        } else {
+            while ((p_Dpb->last_output_poc > INT_MIN)
+                   && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
+                if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
+                    FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
+                } else {
+                    break;
+                }
+            }
+            while (!remove_unused_frame_from_dpb(p_Dpb));
+        }
+    }
+
+    return MPP_OK;
+__FAILED:
+    return ret;
+}
+
 /*!
 ***********************************************************************
 * \brief
@@ -1252,7 +1287,6 @@ __FAILED:
 MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264_FrameStore_t *fs = NULL;
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
 
     VAL_CHECK(ret, NULL != p);  //!< if frame, check for new store
@@ -1279,8 +1313,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             FUN_CHECK(ret = direct_output(p_Vid, p_Dpb, p));  //!< output frame
         } else {
             FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->last_picture, p, 1));  //!< field_dpb_combine
-            update_ref_list(p_Dpb);
-            update_ltref_list(p_Dpb);
+            scan_dpb_output(p_Dpb, p);
         }
         p_Dpb->last_picture = NULL;
         goto __RETURN;
@@ -1329,32 +1362,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 
     p_Dpb->used_size++;
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] p_Dpb->used_size=%d", p_Dpb->used_size);
-#if 1
-    fs = p_Dpb->fs[p_Dpb->used_size - 1];
-    if (fs->is_used == 3) {
-        RK_S32 min_poc = 0, min_pos = 0;
-        RK_S32 poc_inc = fs->poc - p_Dpb->last_output_poc;
-
-        if ((p_Dpb->last_output_poc > INT_MIN) && abs(poc_inc) & 0x1) {
-            p_Dpb->poc_interval = 1;
-
-        }
-        if (p->idr_flag || (p->poc == 0)
-            || (p_Dpb->last_output_poc == INT_MIN)
-            || p_Vid->p_Dec->immediate_out) {
-            FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb, fs));
-        }
-        while ((p_Dpb->last_output_poc > INT_MIN)
-               && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
-            if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
-                FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
-            } else {
-                break;
-            }
-        }
-        while (!remove_unused_frame_from_dpb(p_Dpb));
-    }
-#endif
+    scan_dpb_output(p_Dpb, p);
     update_ref_list(p_Dpb);
     update_ltref_list(p_Dpb);
 
