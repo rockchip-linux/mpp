@@ -572,12 +572,12 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
             } else {
                 dealt_qp = 2;
             }
-            if (fb->out_strm_size * 8 >  (RK_U32)rc_syn->bit_target * 3) {
+            if ((fb->out_strm_size * 8 >  (RK_U32)rc_syn->bit_target * 3) && (hw_cfg->qp < hw_cfg->qp_max)) {
                 hal_h264e_vpu2_resend(hal, (RK_U32 *)reg_out, dealt_qp);
                 h264e_vpu_set_feedback(fb, reg_out);
                 task->enc.length = fb->out_strm_size;
                 hw_cfg->qp_prev = fb->qp_sum / num_mb;
-                if (cnt-- <= 0) {
+                if ((cnt-- <= 0) || (hw_cfg->qp == hw_cfg->qp_max)) {
                     break;
                 }
             } else {
