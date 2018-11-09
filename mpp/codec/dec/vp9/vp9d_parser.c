@@ -426,6 +426,33 @@ __BITREAD_ERR:
     return MPP_ERR_STREAM;
 }
 
+static RK_S32 update_size(Vp9CodecContext *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
+{
+    VP9Context *s = ctx->priv_data;
+    RK_U8 *p;
+    RK_S32 bytesperpixel = s->bytesperpixel;
+
+    //av_assert0(w > 0 && h > 0);
+
+    if (w == ctx->width && h == ctx->height && ctx->pix_fmt == fmt)
+        return 0;
+
+    ctx->width   = w;
+    ctx->height  = h;
+    ctx->pix_fmt = fmt;
+    s->sb_cols   = (w + 63) >> 6;
+    s->sb_rows   = (h + 63) >> 6;
+    s->cols      = (w + 7) >> 3;
+    s->rows      = (h + 7) >> 3;
+
+    // these will be re-allocated a little later
+    if (s->bpp != s->last_bpp) {
+        s->last_bpp = s->bpp;
+    }
+
+    return 0;
+}
+
 static RK_S32 inv_recenter_nonneg(RK_S32 v, RK_S32 m)
 {
     return v > 2 * m ? v : v & 1 ? m - ((v + 1) >> 1) : m + (v >> 1);
@@ -583,7 +610,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                                    const RK_U8 *data, RK_S32 size, RK_S32 *refo)
 {
     VP9Context *s = ctx->priv_data;
-    RK_S32 c, i, j, k, l, m, n, max, size2, sharp;
+    RK_S32 c, i, j, k, l, m, n, max, size2, res, sharp;
     RK_U32 w, h;
     RK_S32 fmt = ctx->pix_fmt;
     RK_S32 last_invisible;
@@ -961,6 +988,12 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
             memset(s->segmentation.feat[i].lflvl, lflvl,
                    sizeof(s->segmentation.feat[i].lflvl));
         }
+    }
+
+    /* tiling info */
+    if ((res = update_size(ctx, w, h, fmt)) < 0) {
+        mpp_err("Failed to initialize decoder for %dx%d @ %d\n", w, h, fmt);
+        return res;
     }
 
     for (s->tiling.log2_tile_cols = 0;
