@@ -169,7 +169,8 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
     MppBufSlots packet_slots = dec->packet_slots;
     HalDecTask *task_dec = &task->info.dec;
 
-    dec_dbg_reset("wait hal processing\n");
+    dec_dbg_reset("reset: parser reset start\n");
+    dec_dbg_reset("reset: parser wait hal proc reset start\n");
 
     hal->lock();
     dec->hal_reset_post++;
@@ -178,16 +179,15 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 
     sem_wait(&dec->hal_reset);
 
-    dec_dbg_reset("wait hal proc done\n");
-    mpp_dec_notify(dec, MPP_DEC_NOTIFY_TASK_HND_VALID);
-
-    dec_dbg_reset("check hal processing empty\n");
+    dec_dbg_reset("reset: parser check hal proc task empty start\n");
 
     if (hal_task_check_empty(tasks, TASK_PROCESSING)) {
         mpp_err_f("found task not processed put %d get %d\n",
                   mpp->mTaskPutCount, mpp->mTaskGetCount);
         mpp_abort();
     }
+
+    dec_dbg_reset("reset: parser check hal proc task empty done\n");
 
     // do parser reset process
     {
@@ -198,9 +198,9 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
         mpp_parser_reset(dec->parser);
         mpp_hal_reset(dec->hal);
         if (dec->vproc) {
-            dec_dbg_reset("reset vproc start\n");
+            dec_dbg_reset("reset: vproc reset start\n");
             dec_vproc_reset(dec->vproc);
-            dec_dbg_reset("reset vproc done\n");
+            dec_dbg_reset("reset: vproc reset done\n");
         }
 
         // wait hal thread reset ready
@@ -249,6 +249,8 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
     }
 
     dec_task_init(task);
+
+    dec_dbg_reset("reset: parser reset all done\n");
 
     return MPP_OK;
 }
@@ -387,10 +389,12 @@ static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
 
 static void reset_hal_thread(Mpp *mpp)
 {
-    MppDec    *dec = mpp->mDec;
+    MppDec *dec = mpp->mDec;
+    HalTaskGroup tasks = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     HalDecTaskFlag flag;
     RK_S32 index = -1;
+    HalTaskHnd  task = NULL;
 
     /* when hal thread reset output all frames */
     flag.val = 0;
@@ -401,6 +405,15 @@ static void reset_hal_thread(Mpp *mpp)
         mpp_dec_put_frame(mpp, index, flag);
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }
+
+    // Need to set processed task to idle status
+    while (MPP_OK == hal_task_get_hnd(tasks, TASK_PROC_DONE, &task)) {
+        if (task) {
+            hal_task_hnd_set_status(task, TASK_IDLE);
+            task = NULL;
+        }
+    }
+
     mpp->mThreadHal->unlock(THREAD_OUTPUT);
 }
 
@@ -585,7 +598,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
     }
 
-    dec_dbg_detail("check prev task pass\n");
+    dec_dbg_detail("detail: check prev task pass\n");
 
     /* too many frame delay in dispaly queue */
     if (mpp->mFrames) {
@@ -593,7 +606,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (task->wait.dis_que_full)
             return MPP_ERR_DISPLAY_FULL;
     }
-    dec_dbg_detail("check mframes pass\n");
+    dec_dbg_detail("detail: check mframes pass\n");
 
     /* 7.3 wait for a unused slot index for decoder parse operation */
     task->wait.dec_slot_idx = (mpp_slots_get_unused_count(frame_slots)) ? (0) : (1);
@@ -644,7 +657,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         hal_task_info_init(&task->info, MPP_CTX_DEC);
         return MPP_NOK;
     }
-    dec_dbg_detail("check output index pass\n");
+    dec_dbg_detail("detail: check output index pass\n");
 
     /*
      * 9. parse local task and slot to check whether new buffer or info change is needed.
@@ -685,7 +698,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (task->wait.dec_pic_buf)
             return MPP_ERR_BUFFER_FULL;
     }
-    dec_dbg_detail("check frame group count pass\n");
+    dec_dbg_detail("detail: check frame group count pass\n");
 
     /*
      * 11. do buffer operation according to usage information
@@ -709,7 +722,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
                                   hal_buf_out);
     }
 
-    dec_dbg_detail("check output buffer %p\n", hal_buf_out);
+    dec_dbg_detail("detail: check output buffer %p\n", hal_buf_out);
 
     task->hal_frm_buf_out = hal_buf_out;
     task->wait.dec_pic_buf = (NULL == hal_buf_out);
@@ -740,6 +753,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     task->status.task_parsed_rdy = 0;
     task->status.prev_task_rdy   = 0;
     hal_task_info_init(&task->info, MPP_CTX_DEC);
+
+    dec_dbg_detail("detail: one task ready\n");
 
     return MPP_OK;
 }
@@ -832,7 +847,9 @@ void *mpp_dec_hal_thread(void *data)
             if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
                 // process all task then do reset process
                 if (dec->hal_reset_post != dec->hal_reset_done) {
+                    dec_dbg_reset("reset: hal reset start\n");
                     reset_hal_thread(mpp);
+                    dec_dbg_reset("reset: hal reset done\n");
                     dec->hal_reset_done++;
                     sem_post(&dec->hal_reset);
                     continue;
