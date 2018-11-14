@@ -429,10 +429,6 @@ __BITREAD_ERR:
 static RK_S32 update_size(Vp9CodecContext *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
 {
     VP9Context *s = ctx->priv_data;
-    RK_U8 *p;
-    RK_S32 bytesperpixel = s->bytesperpixel;
-
-    //av_assert0(w > 0 && h > 0);
 
     if (w == ctx->width && h == ctx->height && ctx->pix_fmt == fmt)
         return 0;
