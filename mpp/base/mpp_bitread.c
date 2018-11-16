@@ -89,14 +89,18 @@ MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
 MPP_RET mpp_read_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out)
 {
     RK_S32 val = 0, val1 = 0;
+
+    if (num_bits < 32)
+        return mpp_read_bits(bitctx, num_bits, (RK_S32 *)out);
+
     if (mpp_read_bits(bitctx, 16, &val)) {
         return  MPP_ERR_READ_BIT;
     }
     if (mpp_read_bits(bitctx, (num_bits - 16), &val1)) {
         return  MPP_ERR_READ_BIT;
     }
-    val = val << 16;
-    *out = (RK_U32)(val | val1);
+
+    *out = (RK_U32)((val << 16) | val1);
 
     return MPP_OK;
 }
@@ -148,11 +152,11 @@ MPP_RET mpp_show_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     BitReadCtx_t tmp_ctx = *bitctx;
-    if (num_bits <= 31)
-        ret = mpp_read_bits(bitctx, num_bits, out);
+
+    if (num_bits < 32)
+        ret = mpp_read_bits(&tmp_ctx, num_bits, out);
     else
-        ret = mpp_read_longbits(bitctx, num_bits, (RK_U32*)out);
-    memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
+        ret = mpp_read_longbits(&tmp_ctx, num_bits, (RK_U32 *)out);
 
     return ret;
 }
@@ -167,8 +171,7 @@ MPP_RET mpp_show_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_U32 *out)
     MPP_RET ret = MPP_ERR_UNKNOW;
     BitReadCtx_t tmp_ctx = *bitctx;
 
-    ret = mpp_read_longbits(bitctx, num_bits, out);
-    memcpy(bitctx, &tmp_ctx, sizeof(BitReadCtx_t));
+    ret = mpp_read_longbits(&tmp_ctx, num_bits, out);
 
     return ret;
 }
