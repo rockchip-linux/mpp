@@ -58,16 +58,28 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
     switch (fmt) {
     case MPP_FMT_YUV422SP : {
-        RK_U32 i;
+        /* YUV422SP -> YUV422P for better display */
+        RK_U32 i, j;
         RK_U8 *base_y = base;
         RK_U8 *base_c = base + h_stride * v_stride;
+        RK_U8 *tmp = mpp_malloc(RK_U8, h_stride * height * 2);
+        RK_U8 *tmp_u = tmp;
+        RK_U8 *tmp_v = tmp + width * height / 2;
 
-        for (i = 0; i < height; i++, base_y += h_stride) {
+        for (i = 0; i < height; i++, base_y += h_stride)
             fwrite(base_y, 1, width, fp);
-        }
+
         for (i = 0; i < height; i++, base_c += h_stride) {
-            fwrite(base_c, 1, width, fp);
+            for (j = 0; j < width / 2; j++) {
+                tmp_u[j] = base_c[2 * j + 0];
+                tmp_v[j] = base_c[2 * j + 1];
+            }
+            tmp_u += width / 2;
+            tmp_v += width / 2;
         }
+
+        fwrite(tmp, 1, width * height, fp);
+        mpp_free(tmp);
     } break;
     case MPP_FMT_YUV420SP : {
         RK_U32 i;
