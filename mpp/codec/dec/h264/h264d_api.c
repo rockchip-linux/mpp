@@ -595,6 +595,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     p_err->cur_err_flag  = 0;
     p_err->used_ref_flag = 0;
     p_Dec->is_parser_end = 0;
+    memset(&p_Dec->p_Cur->sei, 0, sizeof(p_Dec->p_Cur->sei));
 
     ret = parse_loop(p_Dec);
     if (ret) {

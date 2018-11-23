@@ -240,6 +240,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         break;
     case NALU_TYPE_SEI:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SEI");
+        ret = process_sei(currSlice);
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
     case NALU_TYPE_SLC_EXT:
