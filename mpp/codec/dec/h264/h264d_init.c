@@ -452,6 +452,20 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 mpp_assert(0);
             }
 
+            if ((p_Vid->active_sps->vui_parameters_present_flag &&
+                 p_Vid->active_sps->vui_seq_parameters.pic_struct_present_flag &&
+                 p_Vid->p_Cur->sei.type == SEI_PIC_TIMING) ||
+                p_Vid->p_Cur->sei.pic_timing.pic_struct != 0) {
+                if (p_Vid->p_Cur->sei.pic_timing.pic_struct == 3 ||
+                    p_Vid->p_Cur->sei.pic_timing.pic_struct == 5)
+                    mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
+                                       | MPP_FRAME_FLAG_TOP_FIRST);
+                if (p_Vid->p_Cur->sei.pic_timing.pic_struct == 4 ||
+                    p_Vid->p_Cur->sei.pic_timing.pic_struct == 6)
+                    mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
+                                       | MPP_FRAME_FLAG_BOT_FIRST);
+            }
+
             //!< set display parameter
             if (p_Vid->active_sps->vui_parameters_present_flag) {
                 H264_VUI_t *p = &p_Vid->active_sps->vui_seq_parameters;

@@ -745,6 +745,28 @@ typedef struct {
     RK_S32 *max_dec_frame_buffering;
 } MVC_scalability_info_t;
 
+typedef struct h264_sei_pic_timing_t {
+    RK_S32 cpb_removal_delay;
+    RK_S32 dpb_output_delay;
+    RK_S32 pic_struct;
+    RK_S32 clock_timestamp_flag[3];
+    RK_S32 clock_timestamp[3];
+    RK_S32 ct_type[3];
+    RK_S32 nuit_field_based_flag[3];
+    RK_S32 counting_type[3];
+    RK_S32 full_timestamp_flag[3];
+    RK_S32 discontinuity_flag[3];
+    RK_S32 cnt_dropped_flag[3];
+    RK_S32 n_frames[3];
+    RK_S32 seconds_flag[3];
+    RK_S32 seconds_value[3];
+    RK_S32 minutes_flag[3];
+    RK_S32 minutes_value[3];
+    RK_S32 hours_flag[3];
+    RK_S32 hours_value[3];
+    RK_S32 time_offset[3];
+} H264_SEI_PIC_TIMING_t;
+
 //!< SEI struct
 typedef struct h264_sei_t {
     RK_S32 type;
@@ -765,6 +787,8 @@ typedef struct h264_sei_t {
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
     RK_S32  seq_parameter_set_id;
+
+    H264_SEI_PIC_TIMING_t pic_timing;
 
     struct h264_dec_ctx_t *p_Dec;
 } H264_SEI_t;

@@ -27,6 +27,9 @@
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
 
+#define MAX_CPB      240000 /* for level 5.1 */
+#define MAX_BR       240000 /* for level 5.1 */
+
 static void reset_cur_sps_data(H264_SPS_t *cur_sps)
 {
     memset(cur_sps, 0, sizeof(H264_SPS_t));
@@ -45,18 +48,21 @@ static MPP_RET read_hrd_parameters(BitReadCtx_t *p_bitctx, H264_HRD_t *hrd)
 {
     RK_U32 SchedSelIdx = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-
     READ_UE(p_bitctx, &hrd->cpb_cnt_minus1);
+    hrd->cpb_cnt_minus1 += 1;
     READ_BITS(p_bitctx, 4, &hrd->bit_rate_scale);
     READ_BITS(p_bitctx, 4, &hrd->cpb_size_scale);
-    for (SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++) {
+    for (SchedSelIdx = 0; SchedSelIdx < hrd->cpb_cnt_minus1; SchedSelIdx++) {
         READ_UE(p_bitctx, &hrd->bit_rate_value_minus1[SchedSelIdx]);
         READ_UE(p_bitctx, &hrd->cpb_size_value_minus1[SchedSelIdx]);
         READ_ONEBIT(p_bitctx, &hrd->cbr_flag[SchedSelIdx]);
     }
     READ_BITS(p_bitctx, 5, &hrd->initial_cpb_removal_delay_length_minus1);
+    hrd->initial_cpb_removal_delay_length_minus1 += 1;
     READ_BITS(p_bitctx, 5, &hrd->cpb_removal_delay_length_minus1);
+    hrd->cpb_removal_delay_length_minus1 += 1;
     READ_BITS(p_bitctx, 5, &hrd->dpb_output_delay_length_minus1);
+    hrd->dpb_output_delay_length_minus1 += 1;
     READ_BITS(p_bitctx, 5, &hrd->time_offset_length);
 
     return ret = MPP_OK;
@@ -110,10 +116,33 @@ static MPP_RET read_VUI(BitReadCtx_t *p_bitctx, H264_VUI_t *vui)
     READ_ONEBIT(p_bitctx, &vui->nal_hrd_parameters_present_flag);
     if (vui->nal_hrd_parameters_present_flag) {
         FUN_CHECK(ret = read_hrd_parameters(p_bitctx, &vui->nal_hrd_parameters));
+    } else {
+        vui->nal_hrd_parameters.cpb_cnt_minus1 = 1;
+        /* MaxBR and MaxCPB should be the values correspondig to the levelIdc
+         * in the SPS containing these VUI parameters. However, these values
+         * are not used anywhere and maximum for any level will be used here */
+        vui->nal_hrd_parameters.bit_rate_value_minus1[0] = 1000 * MAX_BR + 1;
+        vui->nal_hrd_parameters.cpb_size_value_minus1[0] = 1000 * MAX_CPB + 1;
+        vui->nal_hrd_parameters.initial_cpb_removal_delay_length_minus1 = 24;
+        vui->nal_hrd_parameters.cpb_removal_delay_length_minus1         = 24;
+        vui->nal_hrd_parameters.dpb_output_delay_length_minus1          = 24;
+        vui->nal_hrd_parameters.time_offset_length                      = 24;
     }
+
     READ_ONEBIT(p_bitctx, &vui->vcl_hrd_parameters_present_flag);
     if (vui->vcl_hrd_parameters_present_flag) {
         FUN_CHECK(ret = read_hrd_parameters(p_bitctx, &vui->vcl_hrd_parameters));
+    } else {
+        vui->vcl_hrd_parameters.cpb_cnt_minus1 = 0;
+        /* MaxBR and MaxCPB should be the values correspondig to the levelIdc
+         * in the SPS containing these VUI parameters. However, these values
+         * are not used anywhere and maximum for any level will be used here */
+        vui->vcl_hrd_parameters.bit_rate_value_minus1[0] = 1000 * MAX_BR + 1;
+        vui->vcl_hrd_parameters.cpb_size_value_minus1[0] = 1000 * MAX_CPB + 1;
+        vui->vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1 = 24;
+        vui->vcl_hrd_parameters.cpb_removal_delay_length_minus1         = 24;
+        vui->vcl_hrd_parameters.dpb_output_delay_length_minus1          = 24;
+        vui->vcl_hrd_parameters.time_offset_length                      = 24;
     }
     if (vui->nal_hrd_parameters_present_flag || vui->vcl_hrd_parameters_present_flag) {
         READ_ONEBIT(p_bitctx, &vui->low_delay_hrd_flag);
