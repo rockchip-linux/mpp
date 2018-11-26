@@ -1179,8 +1179,12 @@ static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
 
 static RK_S32 hevc_frame_start(HEVCContext *s)
 {
-
     int ret;
+
+    if (s->ref) {
+        mpp_log_f("found two frame in one packet do nothing!\n");
+        return 0;
+    }
 
     s->is_decoded        = 0;
     s->first_nal_type    = s->nal_unit_type;
@@ -1773,10 +1777,11 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     ret    = parser_nal_units(s);
     if (ret < 0) {
         if (ret ==  MPP_ERR_STREAM) {
-            mpp_log("current stream is no right skip it");
+            mpp_log("current stream is no right skip it %p\n", s->ref);
             ret = 0;
         }
-        return ret;
+        // return ret;
+        task->flags.parse_err = 1;
     }
     h265d_dbg(H265D_DBG_GLOBAL, "decode poc = %d", s->poc);
     if (s->ref) {
@@ -1784,7 +1789,6 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
-
     }
     if (s->eos) {
         h265d_flush(ctx);
