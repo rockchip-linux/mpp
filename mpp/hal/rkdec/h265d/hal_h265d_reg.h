@@ -35,6 +35,7 @@
 #define H265H_DBG_PPS               (0x00000004)
 #define H265H_DBG_REG               (0x00000008)
 #define H265H_DBG_FAST_ERR          (0x00000010)
+#define H265H_DBG_TASK_ERR          (0x00000020)
 
 #define HEVC_DECODER_REG_NUM        (48)
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)

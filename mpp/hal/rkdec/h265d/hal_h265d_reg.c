@@ -1331,6 +1331,12 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
 
+    if (syn->dec.flags.parse_err ||
+        syn->dec.flags.ref_err) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
+        return MPP_OK;
+    }
+
     h265d_dxva2_picture_context_t *dxva_cxt =
         (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     h265d_reg_context_t *reg_cxt = ( h265d_reg_context_t *)hal;
@@ -1493,6 +1499,13 @@ MPP_RET hal_h265d_start(void *hal, HalTaskInfo *task)
     RK_S32 index =  task->dec.reg_index;
 
     RK_S32 i;
+
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
+        return MPP_OK;
+    }
+
     if (reg_cxt->fast_mode) {
         p = (RK_U8*)reg_cxt->g_buf[index].hw_regs;
         hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
@@ -1532,6 +1545,12 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
     H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
 
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
+        goto ERR_PROC;
+    }
+
     if (reg_cxt->fast_mode) {
         hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
     } else {
@@ -1541,8 +1560,11 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
     p = (RK_U8*)hw_regs;
 
     ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, RKVDEC_HEVC_REGISTERS);
-    if (hw_regs->sw_interrupt.sw_dec_error_sta
-        || hw_regs->sw_interrupt.sw_dec_empty_sta) {
+ERR_PROC:
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err ||
+        hw_regs->sw_interrupt.sw_dec_error_sta ||
+        hw_regs->sw_interrupt.sw_dec_empty_sta) {
         if (!reg_cxt->fast_mode) {
             if (reg_cxt->int_cb.callBack)
                 reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, &task->dec);
@@ -1554,7 +1576,6 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
                 reg_cxt->fast_mode_err_found = 1;
                 mpp_frame_set_errinfo(mframe, 1);
             }
-
         }
     } else {
         if (reg_cxt->fast_mode && reg_cxt->fast_mode_err_found) {
