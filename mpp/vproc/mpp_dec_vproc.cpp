@@ -397,7 +397,11 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, void *mpp)
     } else {
         p->dei_cfg.dei_mode = IEP_DEI_MODE_I2O1;
         p->dei_cfg.dei_field_order = IEP_DEI_FLD_ORDER_BOT_FIRST;
-        p->dei_cfg.dei_high_freq_en = 1;
+        /*
+         * We need to turn off this switch to prevent some areas
+         * of the video from flickering.
+         */
+        p->dei_cfg.dei_high_freq_en = 0;
         p->dei_cfg.dei_high_freq_fct = 64;
         p->dei_cfg.dei_ei_mode = 0;
         p->dei_cfg.dei_ei_smooth = 1;
