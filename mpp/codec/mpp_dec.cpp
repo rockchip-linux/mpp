@@ -666,8 +666,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      */
     if (mpp_buf_slot_is_changed(frame_slots)) {
         if (!task->status.info_task_gen_rdy) {
+            RK_U32 eos = task_dec->flags.eos;
+
+            // NOTE: info change should not go with eos flag
             task_dec->flags.info_change = 1;
+            task_dec->flags.eos = 0;
             mpp_dec_put_task(mpp, task);
+            task_dec->flags.eos = eos;
+
             task->status.info_task_gen_rdy = 1;
             return MPP_ERR_STREAM;
         }
