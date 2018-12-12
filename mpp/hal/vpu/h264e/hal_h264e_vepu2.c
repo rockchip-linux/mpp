@@ -222,10 +222,10 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
           VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b);
     H264E_HAL_SET_REG(reg, VEPU_REG_ENC_OVER_FILL_STRM_OFFSET, val);
 
-
+    // When offset is zero row length should be total 16 aligned width
     val = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
           | VEPU_REG_IN_IMG_LUMA_OFFSET(0)
-          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(prep->width);
+          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(mb_w * 16);
     H264E_HAL_SET_REG(reg, VEPU_REG_INPUT_LUMA_INFO, val);
 
     val = VEPU_REG_CHECKPOINT_CHECK1(hw_cfg->cp_target[0])
