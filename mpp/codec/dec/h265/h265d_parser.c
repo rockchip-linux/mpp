@@ -504,11 +504,11 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->vps = (HEVCVPS*) s->vps_list[s->sps->vps_id];
 
     if (s->vps->vps_timing_info_present_flag) {
-        num = s->vps->vps_num_units_in_tick;
-        den = s->vps->vps_time_scale;
+        num = 2 * s->vps->vps_time_scale;
+        den = s->vps->vps_num_units_in_tick;
     } else if (sps->vui.vui_timing_info_present_flag) {
-        num = sps->vui.vui_num_units_in_tick;
-        den = sps->vui.vui_time_scale;
+        num = 2 * sps->vui.vui_time_scale;
+        den = sps->vui.vui_num_units_in_tick;
     }
 
     if (num != 0 && den != 0) {
