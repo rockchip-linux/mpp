@@ -22,6 +22,7 @@
 #include "mpp_common.h"
 #include "mpp_device.h"
 #include "mpp_hal.h"
+#include "rga_api.h"
 
 extern RK_U32 hal_h265e_debug ;
 
@@ -65,6 +66,14 @@ typedef struct hal_h265e_ctx {
      */
     MppBuffer       ctu;
 
+    /*
+     * the ion buffer's fd of preprocess
+     * The IP of H265 Encoder need stride of luma and chroma align 16
+     * If the input fomrat is  YU12 or YV12, and their stride of input buffer is not align 32(only align 16),
+     * this means the stride of chroma is align 8, so we need translate input format to nv12.
+     */
+    MppBuffer       pre_buf;
+
     void           *en_info;
     RK_U32          option;
     RK_U32          user_cfg;
@@ -76,6 +85,8 @@ typedef struct hal_h265e_ctx {
     MppEncCfgSet    *set;
 
     RK_U32          init;
+
+    RgaCtx          rga_ctx;
     /*
      * write yuv data(only for debug)
      */
