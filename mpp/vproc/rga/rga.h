@@ -51,9 +51,9 @@ typedef enum RgaFormat_e {
 } RgaFormat;
 
 typedef struct RgaImg_t {
-    RK_U32      yrgb_addr;       /* yrgb    addr         */
-    RK_U32      uv_addr;         /* cb/cr   addr         */
-    RK_U32      v_addr;          /* cr      addr         */
+    RK_ULONG    yrgb_addr;       /* yrgb    addr         */
+    RK_ULONG    uv_addr;         /* cb/cr   addr         */
+    RK_ULONG    v_addr;          /* cr      addr         */
     RK_U32      format;          // definition by RgaFormat
 
     RK_U16      act_w;           // width
@@ -108,7 +108,7 @@ typedef struct RgaFading_t {
 
 typedef struct RgaMmu_t {
     RK_U8       mmu_en;
-    RK_U32      base_addr;
+    RK_ULONG    base_addr;
     RK_U32      mmu_flag;
 } RgaMmu;
 
@@ -120,8 +120,8 @@ typedef struct RgaRequest_t {
     RgaImg      dst;
     RgaImg      pat;
 
-    RK_U32      rop_mask_addr;      /* rop4 mask addr */
-    RK_U32      LUT_addr;           /* LUT addr */
+    RK_ULONG    rop_mask_addr;      /* rop4 mask addr */
+    RK_ULONG    LUT_addr;           /* LUT addr */
 
     RgaRect     clip;               /* dst clip window default value is dst_vir */
     /* value from [0, w-1] / [0, h-1]*/

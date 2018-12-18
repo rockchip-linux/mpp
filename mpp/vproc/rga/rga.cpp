@@ -49,13 +49,31 @@ typedef struct RgaCtxImpl_t {
     RgaReq request;
 } RgaCtxImpl;
 
+static int is_yuv_format(int fmt)
+{
+    if (fmt >= RGA_FMT_YCbCr_422_SP && fmt <= RGA_FMT_YCrCb_420_P) {
+        return 1;
+    }
+
+    return -1;
+}
+
+static int is_rgb_format(int fmt)
+{
+    if (fmt >= RGA_FMT_RGBA_8888 && fmt <= RGA_FMT_BGR_888) {
+        return 1;
+    }
+
+    return -1;
+}
+
 static RgaFormat rga_fmt_map(MppFrameFormat fmt)
 {
     RgaFormat ret;
 
     switch (fmt) {
     case MPP_FMT_YUV420P:
-        ret = RGA_FMT_YCrCb_420_P;
+        ret = RGA_FMT_YCbCr_420_P;
         break;
     case MPP_FMT_YUV420SP:
         ret = RGA_FMT_YCbCr_420_SP;
@@ -177,6 +195,30 @@ static MPP_RET config_rga_image(RgaImg *img, MppFrame frame)
     return MPP_OK;
 }
 
+static MPP_RET config_rga_yuv2rgb_mode(RgaCtx ctx)
+{
+    RgaCtxImpl *impl = (RgaCtxImpl *)ctx;
+    RgaReq *request = &impl->request;
+
+    /*
+     * yuv2rgb_mode only set when translate yuv to rgb, or rga to yuv.
+     * If format of input and output are both yuv or rga, set yuv2rgb_mode to 0.
+     */
+    int src_format = request->src.format;
+    int dst_format = request->dst.format;
+
+    request->yuv2rgb_mode = 0;
+    if (is_yuv_format(src_format) && is_rgb_format(dst_format)) {
+        /* Special config for yuv to rgb */
+        request->yuv2rgb_mode |= 0x1 << 0;
+    } else if (is_rgb_format(src_format) && is_yuv_format(dst_format)) {
+        /* Special config for rgb to yuv */
+        request->yuv2rgb_mode = (2 << 4);
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET rga_control(RgaCtx ctx, RgaCmd cmd, void *param)
 {
     if (NULL == ctx) {
@@ -193,10 +235,6 @@ MPP_RET rga_control(RgaCtx ctx, RgaCmd cmd, void *param)
     switch (cmd) {
     case RGA_CMD_INIT : {
         memset(request, 0, sizeof(*request));
-
-        // config default yuv2rgb mode and mmu mode flag
-        request->yuv2rgb_mode = (2 << 4);
-
         request->mmu_info.mmu_en = 1;
         request->mmu_info.mmu_flag = 1;
         request->mmu_info.mmu_flag = ((2 & 0x3) << 4) | 1;
@@ -230,6 +268,7 @@ MPP_RET rga_control(RgaCtx ctx, RgaCmd cmd, void *param)
         request->clip.ymax = height - 1;
     } break;
     case RGA_CMD_RUN_SYNC : {
+        config_rga_yuv2rgb_mode(ctx);
         ret = rga_ioctl(impl);
     } break;
     default : {
@@ -298,7 +337,8 @@ MPP_RET rga_copy(RgaCtx ctx, MppFrame src, MppFrame dst)
     request->clip.ymax = dst_h - 1;
     request->dst.act_w = dst_w;
     request->dst.act_h = dst_h;
-    request->yuv2rgb_mode = (2 << 4);
+
+    config_rga_yuv2rgb_mode(ctx);
 
     request->mmu_info.mmu_en = 1;
     request->mmu_info.mmu_flag = 1;
