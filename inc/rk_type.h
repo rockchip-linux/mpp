@@ -24,11 +24,13 @@
 typedef unsigned char           RK_U8;
 typedef unsigned short          RK_U16;
 typedef unsigned int            RK_U32;
+typedef unsigned long           RK_ULONG;
 typedef unsigned __int64        RK_U64;
 
 typedef signed char             RK_S8;
 typedef signed short            RK_S16;
 typedef signed int              RK_S32;
+typedef signed long             RK_LONG;
 typedef signed __int64          RK_S64;
 
 #else
@@ -36,12 +38,14 @@ typedef signed __int64          RK_S64;
 typedef unsigned char           RK_U8;
 typedef unsigned short          RK_U16;
 typedef unsigned int            RK_U32;
+typedef unsigned long           RK_ULONG;
 typedef unsigned long long int  RK_U64;
 
 
 typedef signed char             RK_S8;
 typedef signed short            RK_S16;
 typedef signed int              RK_S32;
+typedef signed long             RK_LONG;
 typedef signed long long int    RK_S64;
 
 #endif
