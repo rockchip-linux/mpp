@@ -119,6 +119,41 @@ static MPP_RET vepu22_check_ctu_parameter(HalH265eCtx* ctx)
 }
 #endif
 
+MPP_RET vepu22_need_pre_process(void *hal)
+{
+    HalH265eCtx* ctx = (HalH265eCtx*)hal;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    int h_stride = prep->hor_stride;
+
+    /*
+     * the stride of luma and chroma must align 16,
+     * so if input format is NV12 or NV21, no need to process,
+     * and if the input format is YU12 or YV12, and the stride of
+     * input is align 32(stride of luma is align 32, stride of chroma is align 16),
+     * there is no need to proces also.
+     *
+     * return MPP_NOK means need pre process(fomrat translate)
+     * return MPP_OK means need do nothing
+     */
+    if ((prep->format == MPP_FMT_YUV420SP) || (prep->format == MPP_FMT_YUV420SP_VU)) {
+        return MPP_OK;
+    } else if (h_stride == MPP_ALIGN(prep->hor_stride, 32)) {
+        return MPP_OK;
+    }
+
+    RgaCtx rga = ctx->rga_ctx;
+    if (rga == NULL) {
+        MPP_RET ret = rga_init(&rga);
+        if (ret) {
+            mpp_err("init rga context failed %d\n", ret);
+        } else {
+            ctx->rga_ctx = rga;
+        }
+    }
+
+    return ctx->rga_ctx ? MPP_NOK : MPP_OK;
+}
+
 static RK_U8 vepu22_get_endian(int endian)
 {
     switch (endian) {
@@ -421,8 +456,7 @@ static MPP_RET vepu22_force_frame_type(H265E_PIC_TYPE type, EncInfo* info)
         return MPP_NOK;
     }
 
-    if (type < H265E_PIC_TYPE_I ||
-        type > H265E_PIC_TYPE_CRA ||
+    if (type > H265E_PIC_TYPE_CRA ||
         type == H265E_PIC_TYPE_B) {
         mpp_err_f("error: type = %d not support\n");
         return MPP_NOK;
@@ -476,23 +510,36 @@ static MPP_RET vepu22_set_roi_region(HalH265eCtx *ctx)
     return MPP_OK;
 }
 
-static RK_S32 vepu22_get_yuv_format(RK_S32 format)
+static RK_U8 vepu22_get_yuv_format(HalH265eCtx* ctx)
 {
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppFrameFormat format = prep->format;
+    RK_U8 output_format = H265E_SRC_YUV_420_YV12;
     switch (format) {
     case MPP_FMT_YUV420SP:
-        return H265E_SRC_YUV_420_NV12;
+        output_format = H265E_SRC_YUV_420_NV12;
+        break;
 
     case MPP_FMT_YUV420P:
-        return H265E_SRC_YUV_420_YU12;
+        output_format = H265E_SRC_YUV_420_YU12;
+        if (vepu22_need_pre_process(ctx) != MPP_OK) {
+            output_format = H265E_SRC_YUV_420_NV12;
+        }
+        break;
 
     case MPP_FMT_YUV420SP_VU:
-        return H265E_SRC_YUV_420_NV21;
+        output_format = H265E_SRC_YUV_420_NV21;
+        break;
 
     default:
-        return H265E_SRC_YUV_420_YV12;
+        output_format = H265E_SRC_YUV_420_YV12;
+        if (vepu22_need_pre_process(ctx) != MPP_OK) {
+            output_format = H265E_SRC_YUV_420_NV12;
+        }
+        break;
     }
 
-    return H265E_SRC_YUV_420_YV12;
+    return output_format;
 }
 
 static MPP_RET vepu22_check_roi_parameter(void *cfg)
@@ -1176,9 +1223,9 @@ static MPP_RET vepu22_set_prep_cfg(HalH265eCtx* ctx)
 
     hw_cfg->width = prep->width;
     hw_cfg->height = prep->height;
-    hw_cfg->width_stride = MPP_ALIGN(prep->hor_stride, 16);// 32
-    hw_cfg->height_stride = prep->height;
-    hw_cfg->src_format = vepu22_get_yuv_format(prep->format);
+    hw_cfg->width_stride = prep->hor_stride;
+    hw_cfg->height_stride = prep->ver_stride;
+    hw_cfg->src_format = vepu22_get_yuv_format(ctx);
     hal_h265e_dbg_input("width = %d,height = %d",
                         hw_cfg->width, hw_cfg->height);
     hal_h265e_dbg_input("width_stride = %d,height_stride = %d",
@@ -1477,7 +1524,7 @@ static MPP_RET vepu22_set_gop_cfg(HalH265eCtx* ctx)
 
 static MPP_RET vepu22_dump_cfg(HalH265eCtx* ctx)
 {
-    HalH265eCfg* hw_cfg = (HalH265eCfg*)&ctx->hw_cfg;
+    HalH265eCfg* hw_cfg = (HalH265eCfg*)ctx->hw_cfg;
     hal_h265e_dbg_func("enter\n");
 
     hal_h265e_dbg_input("profile = %d,level = %d,tier = %d\n",
@@ -1488,7 +1535,7 @@ static MPP_RET vepu22_dump_cfg(HalH265eCtx* ctx)
                         hw_cfg->width_stride, hw_cfg->height_stride);
     hal_h265e_dbg_input("bit_depth = %d,src_format = %d,src_endian = %d\n",
                         hw_cfg->bit_depth, hw_cfg->src_format, hw_cfg->src_endian );
-    hal_h265e_dbg_input("bs_endian = %d,src_format = %d\n",
+    hal_h265e_dbg_input("bs_endian = %d,fb_endian = %d\n",
                         hw_cfg->bs_endian, hw_cfg->fb_endian);
     hal_h265e_dbg_input("frame_rate = %d,frame_skip = %d\n",
                         hw_cfg->frame_rate, hw_cfg->frame_skip);
@@ -1567,6 +1614,104 @@ static MPP_RET vepu22_dump_cfg(HalH265eCtx* ctx)
     return MPP_OK;
 }
 
+MPP_RET vepu22_pre_process(void *hal, HalTaskInfo *task)
+{
+    RK_S32 ret = MPP_NOK;
+
+    HalH265eCtx* ctx = (HalH265eCtx*)hal;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    HalEncTask *info = &task->enc;
+
+    int h_stride = prep->hor_stride;
+    int v_stride = prep->ver_stride;
+    int size = h_stride * v_stride * 3 / 2;
+    int width = prep->width;
+    int height = prep->height;
+
+    MppBuffer src_buf = info->input;
+    MppBuffer dst_buf = NULL;
+    MppFrame src_frm = NULL;
+    MppFrame dst_frm = NULL;
+
+    // check need pre prcoess?
+    if (vepu22_need_pre_process(hal) == MPP_OK) {
+        return MPP_NOK;
+    }
+
+    if (ctx->pre_buf == NULL) {
+        mpp_assert(size);
+        mpp_buffer_get(ctx->buf_grp, &ctx->pre_buf, size);
+        hal_h265e_dbg_func("mpp_buffer_get,ctx = %p size = %d,pre fd = %d", ctx,  \
+                           size, mpp_buffer_get_fd(ctx->pre_buf));
+    }
+    mpp_assert(ctx->pre_buf != NULL);
+    dst_buf = ctx->pre_buf;
+
+    RgaCtx rga = ctx->rga_ctx;
+    mpp_assert(rga != NULL);
+    ret = mpp_frame_init(&src_frm);
+    if (ret) {
+        mpp_err("failed to init src frame\n");
+        goto END;
+    }
+
+    ret = mpp_frame_init(&dst_frm);
+    if (ret) {
+        mpp_err("failed to init dst frame\n");
+        goto END;
+    }
+
+    mpp_frame_set_buffer(src_frm, src_buf);
+    mpp_frame_set_width(src_frm, width);
+    mpp_frame_set_height(src_frm, height);
+    mpp_frame_set_hor_stride(src_frm, h_stride);
+    mpp_frame_set_ver_stride(src_frm, v_stride);
+    mpp_frame_set_fmt(src_frm, prep->format);
+
+    mpp_frame_set_buffer(dst_frm, dst_buf);
+    mpp_frame_set_width(dst_frm, width);
+    mpp_frame_set_height(dst_frm, height);
+    mpp_frame_set_hor_stride(dst_frm, h_stride);
+    mpp_frame_set_ver_stride(dst_frm, v_stride);
+    mpp_frame_set_fmt(dst_frm, MPP_FMT_YUV420SP);
+
+    ret = rga_control(rga, RGA_CMD_INIT, NULL);
+    if (ret) {
+        mpp_err("rga cmd init failed %d\n", ret);
+        goto END;
+    }
+
+    ret = rga_control(rga, RGA_CMD_SET_SRC, src_frm);
+    if (ret) {
+        mpp_err("rga cmd setup source failed %d\n", ret);
+        goto END;
+    }
+
+    ret = rga_control(rga, RGA_CMD_SET_DST, dst_frm);
+    if (ret) {
+        mpp_err("rga cmd setup destination failed %d\n", ret);
+        goto END;
+    }
+
+    ret = rga_control(rga, RGA_CMD_RUN_SYNC, NULL);
+    if (ret) {
+        mpp_err("rga cmd process copy failed %d\n", ret);
+        goto END;
+    }
+
+    ret = MPP_OK;
+END:
+    if (src_frm) {
+        mpp_frame_deinit(&src_frm);
+    }
+
+    if (dst_frm) {
+        mpp_frame_deinit(&dst_frm);
+    }
+
+    hal_h265e_dbg_func("format convert:src YUV: %d -----> dst YUV: %d", prep->format, MPP_FMT_YUV420SP);
+    return ret;
+}
 
 static MPP_RET vepu22_set_cfg(HalH265eCtx* ctx)
 {
@@ -1629,6 +1774,7 @@ MPP_RET hal_h265e_vepu22_init(void *hal, MppHalCfg *cfg)
     ctx->buf_grp = NULL;
     ctx->roi = NULL;
     ctx->ctu = NULL;
+    ctx->pre_buf = NULL;
 
     /* pointer to cfg define in controller*/
     ctx->cfg = cfg->cfg;
@@ -1636,6 +1782,7 @@ MPP_RET hal_h265e_vepu22_init(void *hal, MppHalCfg *cfg)
     ctx->int_cb = cfg->hal_int_cb;
     ctx->option = H265E_SET_CFG_INIT;
     ctx->init = 0;
+    ctx->rga_ctx = NULL;
 
     ctx->hw_cfg = mpp_calloc_size(void, sizeof(HalH265eCfg));
     if (ctx->hw_cfg == NULL) {
@@ -1708,6 +1855,11 @@ FAIL:
         ctx->ctu = NULL;
     }
 
+    if (ctx->pre_buf != NULL) {
+        mpp_buffer_put(ctx->pre_buf);
+        ctx->pre_buf = NULL;
+    }
+
     if (ctx->buf_grp != NULL) {
         mpp_buffer_group_put(ctx->buf_grp);
         ctx->buf_grp = NULL;
@@ -1721,6 +1873,11 @@ FAIL:
     if (ctx->mOutFile != NULL) {
         fclose(ctx->mOutFile);
         ctx->mOutFile = NULL;
+    }
+
+    if (ctx->rga_ctx != NULL) {
+        rga_deinit(ctx->rga_ctx);
+        ctx->rga_ctx = NULL;
     }
 
     return MPP_NOK;
@@ -1752,6 +1909,10 @@ MPP_RET hal_h265e_vepu22_deinit(void *hal)
         ctx->ctu = NULL;
     }
 
+    if (ctx->pre_buf != NULL) {
+        mpp_buffer_put(ctx->pre_buf);
+        ctx->pre_buf = NULL;
+    }
     if (ctx->buf_grp != NULL) {
         mpp_buffer_group_put(ctx->buf_grp);
         ctx->buf_grp = NULL;
@@ -1760,6 +1921,11 @@ MPP_RET hal_h265e_vepu22_deinit(void *hal)
     if (ctx->dev_ctx) {
         mpp_device_deinit(ctx->dev_ctx);
         ctx->dev_ctx = NULL;
+    }
+
+    if (ctx->rga_ctx != NULL) {
+        rga_deinit(ctx->rga_ctx);
+        ctx->rga_ctx = NULL;
     }
 
     if (ctx->mInFile != NULL) {
@@ -1791,6 +1957,9 @@ MPP_RET hal_h265e_vepu22_gen_regs(void *hal, HalTaskInfo *task)
     hal_h265e_dbg_func("enter hal %p\n", hal);
     memset(en_info, 0, sizeof(EncInfo));
 
+    if (vepu22_pre_process(hal, task) == MPP_OK) {
+        input = ctx->pre_buf;
+    }
     en_info->src_addr = mpp_buffer_get_fd(input);
     en_info->src_size = mpp_buffer_get_size(input);
     if (ctx->mInFile != NULL) {
