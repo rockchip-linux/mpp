@@ -107,7 +107,7 @@ static MPP_RET vepu22_check_ctu_parameter(HalH265eCtx* ctx)
 {
     hal_h265e_dbg_func("enter\n");
 
-    HalH265eCfg* cfg = &ctx->hw_cfg;
+    HalH265eCfg* cfg = (HalH265eCfg*)ctx->hw_cfg;
     // rc_enbale and ctu'qp can't both open
     if (cfg->rc_enable && cfg->ctu.ctu_qp_enable) {
         mpp_err_f("error: rc_mode and ctu qp enale can't both open,close ctu qp enable\n");
@@ -1220,17 +1220,22 @@ static MPP_RET vepu22_set_prep_cfg(HalH265eCtx* ctx)
 
     HalH265eCfg *hw_cfg = (HalH265eCfg *)ctx->hw_cfg;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
-
-    hw_cfg->width = prep->width;
-    hw_cfg->height = prep->height;
-    hw_cfg->width_stride = prep->hor_stride;
-    hw_cfg->height_stride = prep->ver_stride;
-    hw_cfg->src_format = vepu22_get_yuv_format(ctx);
-    hal_h265e_dbg_input("width = %d,height = %d",
-                        hw_cfg->width, hw_cfg->height);
-    hal_h265e_dbg_input("width_stride = %d,height_stride = %d",
-                        hw_cfg->width_stride, hw_cfg->height_stride);
-    hal_h265e_dbg_input("src_format = %d", hw_cfg->src_format);
+    /*
+     * don't allow change width,height and format of input
+     * if want to change these, must close h265 encoder and reopen it
+     */
+    if (!ctx->init) {
+        hw_cfg->width = prep->width;
+        hw_cfg->height = prep->height;
+        hw_cfg->width_stride = prep->hor_stride;
+        hw_cfg->height_stride = prep->ver_stride;
+        hw_cfg->src_format = vepu22_get_yuv_format(ctx);
+        hal_h265e_dbg_input("width = %d,height = %d",
+                            hw_cfg->width, hw_cfg->height);
+        hal_h265e_dbg_input("width_stride = %d,height_stride = %d",
+                            hw_cfg->width_stride, hw_cfg->height_stride);
+        hal_h265e_dbg_input("src_format = %d", hw_cfg->src_format);
+    }
 
     hal_h265e_dbg_func("leave\n");
     return MPP_OK;
@@ -1250,7 +1255,7 @@ static MPP_RET vepu22_check_rc_cfg_change(HalH265eCtx* ctx, MppEncRcCfg* set)
     hal_h265e_dbg_input("fps_out_num = %d,fps_out_denorm = %d\n",
                         set->fps_out_num, set->fps_out_denorm);
     hal_h265e_dbg_input("gop = %d,skip_cnt = %d\n", set->gop, set->skip_cnt);
-    if (ctx->init == 0) {
+    if (!ctx->init) {
         set->change = MPP_ENC_RC_CFG_CHANGE_ALL;
         ctx->option |= H265E_SET_RC_CFG;
         hal_h265e_dbg_input("init = 0, cfg all");
@@ -1264,8 +1269,13 @@ static MPP_RET vepu22_set_rc_cfg(HalH265eCtx* ctx)
 {
     hal_h265e_dbg_func("enter\n");
 
-    HalH265eCfg *cfg = (HalH265eCfg*)&ctx->hw_cfg;
+    HalH265eCfg *cfg = (HalH265eCfg*)ctx->hw_cfg;
     MppEncRcCfg *rc = &ctx->set->rc;
+    RK_U32  change = rc->change;
+    // config parameters of rc if first open
+    if (!ctx->init) {
+        change = MPP_ENC_RC_CFG_CHANGE_ALL;
+    }
 
     hal_h265e_dbg_input("rc_mode = %d,quality = %d,bps_target = %d\n",
                         rc->rc_mode, rc->quality, rc->bps_target);
@@ -1278,7 +1288,7 @@ static MPP_RET vepu22_set_rc_cfg(HalH265eCtx* ctx)
     hal_h265e_dbg_input("gop = %d,skip_cnt = %d\n", rc->gop, rc->skip_cnt);
 
     /* the first time to set rc cfg*/
-    if (rc->change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+    if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
         hal_h265e_dbg_input("FPS change\n");
         cfg->frame_rate = rc->fps_out_num / rc->fps_out_denorm;
         cfg->time_scale = cfg->frame_rate * cfg->num_units_in_tick;
@@ -1286,10 +1296,10 @@ static MPP_RET vepu22_set_rc_cfg(HalH265eCtx* ctx)
         cfg->cfg_option |= H265E_PARAM_CHANEGED_COMMON;
     }
 
-    int rc_change = ((rc->change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-                     || (rc->change & MPP_ENC_RC_CFG_CHANGE_BPS));
+    int rc_change = ((change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
+                     || (change & MPP_ENC_RC_CFG_CHANGE_BPS));
     if (rc_change) {
-        hal_h265e_dbg_input("rc change = %d\n", rc->change);
+        hal_h265e_dbg_input("rc change = 0x%x\n", change);
         cfg->rc_enable = 0;
         switch (rc->rc_mode) {
         case MPP_ENC_RC_MODE_VBR:
@@ -1335,7 +1345,7 @@ static MPP_RET vepu22_check_code_cfg_change(HalH265eCtx* ctx, MppEncH265Cfg* set
     }
     hal_h265e_dbg_func("enter");
     MppEncH265Cfg* cfg = &ctx->cfg->codec.h265;
-    if (ctx->init == 0) {
+    if (!ctx->init) {
         ctx->option |= H265E_SET_CODEC_CFG;
         if (set->change & MPP_ENC_H265_CFG_INTRA_QP_CHANGE) {
             cfg->intra_qp = set->intra_qp;
@@ -1389,8 +1399,12 @@ static MPP_RET vepu22_check_code_cfg_change(HalH265eCtx* ctx, MppEncH265Cfg* set
 static MPP_RET vepu22_set_codec_cfg(HalH265eCtx* ctx)
 {
     MppEncH265Cfg* codec = &ctx->cfg->codec.h265;
-    HalH265eCfg* cfg = (HalH265eCfg*)&ctx->hw_cfg;
+    HalH265eCfg* cfg = (HalH265eCfg*)ctx->hw_cfg;
     RK_U32 change = codec->change;
+    // config parameters of rc if first open
+    if (!ctx->init) {
+        change = MPP_ENC_H265_CFG_CHANGE_ALL;
+    }
 
     hal_h265e_dbg_func("enter change = %d", codec->change);
     hal_h265e_dbg_input("hw_cfg->intra_qp = %d,const_intra_pred = %d",
@@ -1476,7 +1490,7 @@ static MPP_RET vepu22_set_gop_cfg(HalH265eCtx* ctx)
                         rc->gop, codec->const_intra_pred);
     hal_h265e_dbg_input("intra_qp = %d,gop_delta_qp = %d\n",
                         codec->intra_qp, codec->gop_delta_qp);
-    if ((rc->change & MPP_ENC_RC_CFG_CHANGE_GOP) ||
+    if (!ctx->init || (rc->change & MPP_ENC_RC_CFG_CHANGE_GOP) ||
         (codec->change & MPP_ENC_H265_CFG_INTRA_QP_CHANGE)) {
         hw_cfg->cfg_mask |= (H265E_CFG_INTRA_PARAM_CHANGE | H265E_CFG_GOP_PARAM_CHANGE);
         hal_h265e_dbg_input("%d,hw_cfg->cfg_mask = %d\n", __LINE__, hw_cfg->cfg_mask);
