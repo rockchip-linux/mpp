@@ -515,6 +515,7 @@ MPP_RET hal_jpege_vepu2_control(void *hal, RK_S32 cmd, void *param)
         if (cfg->format != MPP_FMT_YUV420SP     &&
             cfg->format != MPP_FMT_YUV420P      &&
             cfg->format != MPP_FMT_YUV422SP_VU  &&
+            cfg->format != MPP_FMT_YUV422_YUYV  &&
             cfg->format != MPP_FMT_YUV422_UYVY  &&
             cfg->format != MPP_FMT_RGB888       &&
             cfg->format != MPP_FMT_BGR888) {
