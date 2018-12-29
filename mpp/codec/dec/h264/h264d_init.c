@@ -1955,6 +1955,20 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
         ASSERT(currSlice->layer_id == 1);
         FUN_CHECK(ret = idr_memory_management(p_Vid->p_Dpb_layer[currSlice->layer_id], p_Vid->dec_pic));
     }
+
+    // if cur pic i frame poc & frame_num <= last pic, flush dpb.
+    if (p_Vid->last_pic != NULL && p_Vid->dec_pic->poc != 0) {
+        if (p_Vid->last_pic->frame_num >= p_Vid->dec_pic->frame_num
+            && p_Vid->last_pic->poc >= p_Vid->dec_pic->poc
+            && p_Vid->dec_pic->slice_type == I_SLICE
+            && p_Vid->dec_pic->structure == 3) {
+            if (currSlice->layer_id == 0) {
+                FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[0], 1));
+            } else {
+                FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1], 2));
+            }
+        }
+    }
     update_ref_list(p_Vid->p_Dpb_layer[currSlice->layer_id]);
     update_ltref_list(p_Vid->p_Dpb_layer[currSlice->layer_id]);
     update_pic_num(currSlice);
