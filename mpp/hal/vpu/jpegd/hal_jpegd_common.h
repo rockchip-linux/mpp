@@ -43,6 +43,8 @@ static const RK_U8 zzOrder[64] = {
     58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
 };
 
+RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length);
+
 void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
                                 JpegdSyntax*syntax);
 

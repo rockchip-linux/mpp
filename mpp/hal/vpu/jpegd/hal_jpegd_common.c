@@ -34,6 +34,35 @@
 #include "jpegd_api.h"
 #include "hal_jpegd_common.h"
 
+RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length)
+{
+    RK_U8 *p = mpp_buffer_get_ptr(stream);
+    RK_U8 *end = p + length;
+
+    if (end[-1] == 0xD9 && end[-2] == 0xFF) {
+        end -= 2;
+
+        do {
+            if (end[-1] == 0xFF) {
+                end--;
+                length--;
+                continue;
+            }
+            if (end[-1] == 0x00 && end [-2] == 0xFF) {
+                end -= 2;
+                length -= 2;
+                continue;
+            }
+            break;
+        } while (1);
+
+        end[0] = 0xff;
+        end[1] = 0xD9;
+    }
+
+    return length;
+}
+
 void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
                                 JpegdSyntax*syntax)
 {
