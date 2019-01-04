@@ -324,6 +324,11 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
                 info_change, error, discard, mpp_frame_get_pts(frame));
     }
 
+    if (NULL == buf || fd < 0) {
+        mpp_err("failed to dump frame\n");
+        return MPP_NOK;
+    }
+
     dump_frame(p->fp_out, frame, p->fp_buf, p->dump_width, p->dump_height);
 
     if (p->debug & MPP_DBG_DUMP_LOG) {
