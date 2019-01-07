@@ -1307,6 +1307,10 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     case NAL_RADL_R:
     case NAL_RASL_N:
     case NAL_RASL_R:
+        if(s->task == NULL){
+            s->extra_has_frame = 1;
+            break;
+        }
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header in");
         ret = hls_slice_header(s);
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header out");
@@ -1690,10 +1694,14 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
         h265dctx->extradata_size = length;
         h265dctx->extradata = buf;
+        s->extra_has_frame = 0;
+        s->task = NULL;
         hevc_parser_extradata(s);
-        pos = buf + length;
-        mpp_packet_set_pos(pkt, pos);
-        return MPP_OK;
+        if(!s->extra_has_frame){
+            pos = buf + length;
+            mpp_packet_set_pos(pkt, pos);
+            return MPP_OK;
+        }
     }
 
     if (h265dctx->need_split && !s->is_nalff) {
