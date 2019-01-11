@@ -1305,7 +1305,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     case NAL_RADL_R:
     case NAL_RASL_N:
     case NAL_RASL_R:
-        if(s->task == NULL){
+        if (s->task == NULL) {
             s->extra_has_frame = 1;
             break;
         }
@@ -1695,7 +1695,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         s->extra_has_frame = 0;
         s->task = NULL;
         hevc_parser_extradata(s);
-        if(!s->extra_has_frame){
+        if (!s->extra_has_frame) {
             pos = buf + length;
             mpp_packet_set_pos(pkt, pos);
             return MPP_OK;
