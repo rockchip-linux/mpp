@@ -328,10 +328,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
 
         gb = &gb_cxt;
 
-        READ_ONEBIT(gb, &value);
-
-        if ( value != 0)
-            return  MPP_ERR_STREAM;
+        READ_ONEBIT(gb, &value); /*this bit should be zero*/
 
         READ_BITS(gb, 6, &nal_type);
 

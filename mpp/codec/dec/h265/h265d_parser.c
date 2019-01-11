@@ -1099,9 +1099,7 @@ static RK_S32 hls_nal_unit(HEVCContext *s)
     BitReadCtx_t*gb = &s->HEVClc->gb;
     RK_S32 value = 0;
 
-    READ_ONEBIT(gb, &value);
-    if ( value != 0)
-        return  MPP_ERR_STREAM;
+    READ_ONEBIT(gb, &value); /*this bit should be zero*/
 
     READ_BITS(gb, 6, &s->nal_unit_type);
 
