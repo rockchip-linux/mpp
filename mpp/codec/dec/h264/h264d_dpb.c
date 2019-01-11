@@ -1271,7 +1271,7 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             while (!remove_unused_frame_from_dpb(p_Dpb));
         }
     }
-
+    (void )p;
     return MPP_OK;
 __FAILED:
     return ret;
