@@ -772,7 +772,7 @@ MPP_RET vdpu1_h264d_deinit(void *hal)
     RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     for (i = 0; i < loop; i++) {
         MPP_FREE(reg_ctx->reg_buf[i].regs);
-        MPP_FREE(reg_ctx->reg_buf[i].buf);
+        mpp_buffer_put(reg_ctx->reg_buf[i].buf);
     }
     MPP_FREE(p_hal->reg_ctx);
     MPP_FREE(p_hal->priv);
