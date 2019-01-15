@@ -1080,10 +1080,10 @@ void *mpp_dec_advanced_thread(void *data)
                         mpp_buf_slot_ready(frame_slots);
                     }
 
-                    if (slot_size != buffer_size) {
-                        mpp_err_f("slot size %d is not equal to buffer size %d\n",
+                    if (slot_size > buffer_size) {
+                        mpp_err_f("required buffer size %d is larger than input buffer size %d\n",
                                   slot_size, buffer_size);
-                        mpp_assert(slot_size == buffer_size);
+                        mpp_assert(slot_size <= buffer_size);
                     }
                 }
 

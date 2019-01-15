@@ -15,7 +15,8 @@
  */
 #ifndef __HAL_JPEGD_VDPU1_REG_TABLE_H__
 #define __HAL_JPEGD_VDPU1_REG_TABLE_H__
-#include "rk_type.h"
+
+#include "mpp_device_patch.h"
 
 #define JPEGD_REG_NUM                       (101)
 
@@ -607,7 +608,7 @@ typedef struct JpegdIocRegInfo_t {
 
     /* vepu_reg_num - vdpu_reg_num */
     RK_U32                 regs_diff[164 - JPEGD_REG_NUM];
-    JpegdIocExtInfo        extra_info;
+    RegExtraInfo           extra_info;
 } JpegdIocRegInfo;
 
 #endif

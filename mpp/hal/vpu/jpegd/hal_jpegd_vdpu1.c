@@ -243,33 +243,6 @@ jpegd_set_chroma_table_id(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return;
 }
 
-static MPP_RET jpegd_set_extra_info(JpegdHalCtx *ctx, RK_U32 offset)
-{
-    jpegd_dbg_func("enter\n");
-    if (NULL == ctx) {
-        mpp_err_f("NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    JpegdIocRegInfo *reg_info = (JpegdIocRegInfo *)ctx->regs;
-    JpegdIocExtInfo *info = &(reg_info->extra_info);
-    JpegdIocExtInfoSlot *slot = NULL;
-    info->cnt = 1;
-
-    slot = &(info->slots[0]);
-    slot->offset = offset;
-
-    if (ctx->pp_info.pp_enable) {
-        /* pp enable */
-        slot->reg_idx = 67;
-    } else {
-        slot->reg_idx = 14;
-    }
-
-    jpegd_dbg_func("exit\n");
-    return MPP_OK;
-}
-
 static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 {
     jpegd_dbg_func("enter\n");
@@ -568,17 +541,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         post->reg85_ctrl.sw_pp_out_format = 3;
         break;
     case PP_OUT_FORMAT_YUV420INTERLAVE: {
-        RK_U32 phy_addr = ctx->frame_fd;
-
-        if (ctx->pp_info.pp_enable) {
-            /* pp enable */
-            jpegd_set_extra_info(ctx, out_width * out_height);
-            post->reg67_pp_out_ch_base = phy_addr;
-        }
-
         post->reg85_ctrl.sw_pp_out_format = 5;
-        jpegd_dbg_hal("outLumaBuffer:%x, ch reg67:%x", phy_addr,
-                      post->reg67_pp_out_ch_base);
     }
     break;
     default:
@@ -619,6 +582,38 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 
     post->reg60_interrupt.sw_pp_pipeline_e = ctx->pp_info.pp_enable;
 
+    if (ctx->pp_info.pp_enable) {
+        post->reg60_interrupt.sw_pp_pipeline_e = 1;
+        regs->reg3.sw_dec_out_dis = 1;
+
+        regs->reg13_cur_pic_base = 0;
+        regs->reg14_sw_jpg_ch_out_base = 0;
+
+        post->reg66_pp_out_lu_base = ctx->frame_fd;
+        post->reg67_pp_out_ch_base = ctx->frame_fd;
+
+        mpp_device_patch_add((RK_U32 *)regs, &info->extra_info, 67,
+                             s->hor_stride * s->ver_stride);
+
+        jpegd_dbg_hal("output_frame_fd:%x, reg67:%x", ctx->frame_fd,
+                      post->reg67_pp_out_ch_base);
+    } else {
+        // output without pp
+        post->reg60_interrupt.sw_pp_pipeline_e = 0;
+        regs->reg3.sw_dec_out_dis = 0;
+
+        post->reg66_pp_out_lu_base = 0;
+        post->reg67_pp_out_ch_base = 0;
+
+        regs->reg13_cur_pic_base = ctx->frame_fd;
+        regs->reg14_sw_jpg_ch_out_base = ctx->frame_fd;
+
+        mpp_device_patch_add((RK_U32 *)regs, &info->extra_info, 14,
+                             s->hor_stride * s->ver_stride);
+        jpegd_dbg_hal("output_frame_fd:%x, reg14:%x", ctx->frame_fd,
+                      regs->reg14_sw_jpg_ch_out_base);
+    }
+
     jpegd_dbg_func("exit\n");
     return 0;
 }
@@ -657,7 +652,6 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)ctx->regs;
     JpegRegSet *reg = &info->regs;
     JpegdSyntax *s = syntax;
-    RK_U32 chroma_offset = 0;
 
     /* Enable jpeg mode */
     reg->reg1_interrupt.sw_dec_e = 1;
@@ -732,20 +726,6 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg5.sw_sync_marker_e = 0;
     }
 
-    if (ctx->pp_info.pp_enable) {
-        reg->reg3.sw_dec_out_dis = 1;
-
-        /* set output address to zero, because of pp */
-        reg->reg13_cur_pic_base = 0;
-        reg->reg14_sw_jpg_ch_out_base = 0;
-    } else {
-        reg->reg13_cur_pic_base = ctx->frame_fd;
-        reg->reg14_sw_jpg_ch_out_base = ctx->frame_fd;
-
-        chroma_offset = s->hor_stride * s->ver_stride;
-        jpegd_set_extra_info(ctx, chroma_offset);
-    }
-
     jpegd_dbg_func("exit\n");
     return MPP_OK;
 }
@@ -793,7 +773,7 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     }
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)JpegHalCtx->regs;
     memset(info, 0, sizeof(JpegdIocRegInfo));
-    info->extra_info.magic = EXTRA_INFO_MAGIC;
+    mpp_device_patch_init(&info->extra_info);
 
     reg = &info->regs;
     jpegd_regs_init(reg);
