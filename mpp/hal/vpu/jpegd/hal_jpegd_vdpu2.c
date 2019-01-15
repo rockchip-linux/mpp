@@ -38,29 +38,6 @@
 
 extern RK_U32 jpegd_debug;
 
-static MPP_RET jpegd_set_extra_info(JpegdHalCtx *ctx, RK_U32 offset)
-{
-    jpegd_dbg_func("enter\n");
-
-    JpegdIocRegInfo *reg_info = (JpegdIocRegInfo *)ctx->regs;
-    JpegdIocExtInfo *info = &(reg_info->extra_info);
-    JpegdIocExtInfoSlot *slot = NULL;
-    info->cnt = 1;
-
-    slot = &(info->slots[0]);
-    slot->offset = offset;
-
-    if (ctx->pp_info.pp_enable) {
-        /* pp enable */
-        slot->reg_idx = 22;
-    } else {
-        slot->reg_idx = 131;
-    }
-
-    jpegd_dbg_func("exit\n");
-    return MPP_OK;
-}
-
 static void jpegd_write_code_word_number(JpegdHalCtx *ctx,
                                          JpegdSyntax *syntax)
 {
@@ -275,7 +252,6 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)ctx->regs;
     JpegRegSet *reg = &(info->regs);
     JpegdSyntax *s = syntax;
-    RK_U32 chroma_offset = 0;
 
     reg->reg50_dec_ctrl.sw_filtering_dis = 1;
     reg->reg53_dec_mode = DEC_MODE_JPEG;
@@ -344,20 +320,6 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg123.sw_pjpeg_rest_freq = s->restart_interval;
     } else {
         reg->reg122.sw_sync_marker_e = 0;
-    }
-
-    if (ctx->pp_info.pp_enable) {
-        reg->reg57_enable_ctrl.sw_dec_out_dis = 1;
-
-        /* set output address to zero, because of pp */
-        reg->reg63_dec_out_base = 0;
-        reg->reg131_jpg_ch_out_base = 0;
-    } else {
-        reg->reg63_dec_out_base = ctx->frame_fd;
-        reg->reg131_jpg_ch_out_base = ctx->frame_fd;
-
-        chroma_offset = s->hor_stride * s->ver_stride;
-        jpegd_set_extra_info(ctx, chroma_offset);
     }
 
     jpegd_dbg_func("exit\n");
@@ -436,7 +398,6 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     reg->reg39.sw_display_width = out_width;
     reg->reg35.sw_pp_out_width = out_width;
     reg->reg35.sw_pp_out_height = out_height;
-    reg->reg21_pp_out_lu_base = ctx->frame_fd;
 
     switch (in_color) {
     case    PP_IN_FORMAT_YUV422INTERLAVE:
@@ -652,17 +613,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg38.sw_pp_out_format = 3;
         break;
     case    PP_OUT_FORMAT_YUV420INTERLAVE: {
-        RK_S32 phy_addr = ctx->frame_fd;
-
-        if (ctx->pp_info.pp_enable) {
-            /* pp enable */
-            jpegd_set_extra_info(ctx, out_width * out_height);
-            reg->reg22_pp_out_ch_base = phy_addr;
-        }
-
         reg->reg38.sw_pp_out_format = 5;
-        jpegd_dbg_hal("output_frame_fd:%x, reg22:%x", phy_addr,
-                      reg->reg22_pp_out_ch_base);
     }
     break;
     default:
@@ -701,6 +652,39 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg4.sw_ver_scale_mode = 0;
 
     reg->reg41.sw_pp_pipeline_e = ctx->pp_info.pp_enable;
+
+    if (ctx->pp_info.pp_enable) {
+        reg->reg41.sw_pp_pipeline_e = 1;
+        reg->reg57_enable_ctrl.sw_dec_out_dis = 1;
+
+        reg->reg63_dec_out_base = 0;
+        reg->reg131_jpg_ch_out_base = 0;
+
+        reg->reg21_pp_out_lu_base = ctx->frame_fd;
+        reg->reg22_pp_out_ch_base = ctx->frame_fd;
+
+        mpp_device_patch_add((RK_U32 *)reg, &info->extra_info, 22,
+                             s->hor_stride * s->ver_stride);
+
+        jpegd_dbg_hal("output_frame_fd:%x, reg22:%x", ctx->frame_fd,
+                      reg->reg22_pp_out_ch_base);
+    } else {
+        // output without pp
+        reg->reg41.sw_pp_pipeline_e = 0;
+        reg->reg57_enable_ctrl.sw_dec_out_dis = 0;
+
+        reg->reg21_pp_out_lu_base = 0;
+        reg->reg22_pp_out_ch_base = 0;
+
+        reg->reg63_dec_out_base = ctx->frame_fd;
+        reg->reg131_jpg_ch_out_base = ctx->frame_fd;
+
+        mpp_device_patch_add((RK_U32 *)reg, &info->extra_info, 131,
+                             s->hor_stride * s->ver_stride);
+
+        jpegd_dbg_hal("output_frame_fd:%x, reg131:%x", ctx->frame_fd,
+                      reg->reg131_jpg_ch_out_base);
+    }
 
     jpegd_dbg_func("exit\n");
     return MPP_OK;
@@ -776,7 +760,7 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_NOMEM;
     }
     memset(info, 0, sizeof(JpegdIocRegInfo));
-    info->extra_info.magic = EXTRA_INFO_MAGIC;
+    mpp_device_patch_init(&info->extra_info);
     JpegHalCtx->regs = (void *)info;
 
     reg = &(info->regs);
