@@ -453,22 +453,28 @@ MPP_RET hal_jpege_vepu2_wait(void *hal, HalTaskInfo *task)
     RK_U32 *regs = ctx->ioctl_info.regs;
     JpegeFeedback feedback;
     RK_U32 val;
+    RK_U32 sw_bit;
+    RK_U32 hw_bit;
     (void)task;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
-
 
     if (ctx->dev_ctx)
         ret = mpp_device_wait_reg(ctx->dev_ctx, regs, sizeof(jpege_vepu2_reg_set) / sizeof(RK_U32));
 
     val = regs[109];
-    hal_jpege_dbg_output("hw_status %x\n", val);
+    hal_jpege_dbg_output("hw_status %08x\n", val);
     feedback.hw_status = val & 0x70;
     val = regs[53];
-    feedback.stream_length = jpege_bits_get_bitpos(bits) / 8 + val / 8;
+
+    sw_bit = jpege_bits_get_bitpos(bits);
+    hw_bit = val;
+
+    // NOTE: hardware will return 64 bit access byte count
+    feedback.stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
     task->enc.length = feedback.stream_length;
-    hal_jpege_dbg_output("stream length: sw %d hw %d total %d\n",
-                         jpege_bits_get_bitpos(bits) / 8, val / 8, feedback.stream_length);
+    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d\n",
+                         sw_bit, hw_bit, feedback.stream_length);
 
     ctx->int_cb.callBack(ctx->int_cb.opaque, &feedback);
 
