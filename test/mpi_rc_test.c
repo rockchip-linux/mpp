@@ -713,18 +713,18 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
             i = 0;
 
         if (fp_input) {
-            ret = read_yuv_image(buf, fp_input,
-                                 prep_cfg->width, prep_cfg->height,
-                                 prep_cfg->hor_stride, prep_cfg->ver_stride,
-                                 prep_cfg->format);
+            ret = read_image(buf, fp_input,
+                             prep_cfg->width, prep_cfg->height,
+                             prep_cfg->hor_stride, prep_cfg->ver_stride,
+                             prep_cfg->format);
             if (MPP_OK != ret || feof(fp_input)) {
                 mpp_log("found last frame\n");
                 frm_eos = 1;
             }
         } else {
-            ret = fill_yuv_image(buf, prep_cfg->width, prep_cfg->height,
-                                 prep_cfg->hor_stride, prep_cfg->ver_stride,
-                                 prep_cfg->format, frame_count);
+            ret = fill_image(buf, prep_cfg->width, prep_cfg->height,
+                             prep_cfg->hor_stride, prep_cfg->ver_stride,
+                             prep_cfg->format, frame_count);
             if (ret)
                 goto MPP_TEST_OUT;
         }

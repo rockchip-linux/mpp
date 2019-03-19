@@ -261,8 +261,8 @@ void read_frm_crc(FILE *fp, FrmCrc *crc)
     }
 }
 
-MPP_RET read_yuv_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
-                       RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt)
+MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
+                   RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 read_size;
@@ -341,9 +341,9 @@ err:
     return ret;
 }
 
-MPP_RET fill_yuv_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
-                       RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt,
-                       RK_U32 frame_count)
+MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
+                   RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt,
+                   RK_U32 frame_count)
 {
     MPP_RET ret = MPP_OK;
     RK_U8 *buf_y = buf;
@@ -400,6 +400,21 @@ MPP_RET fill_yuv_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
                 p[x * 4 + 3] = x * 2 + 1 + y + frame_count * 3;
                 p[x * 4 + 0] = 128 + y + frame_count * 2;
                 p[x * 4 + 2] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 :
+    case MPP_FMT_ARGB8888 : {
+        RK_U8 *p = buf_y;
+        RK_U32 pix_w = (fmt == MPP_FMT_ARGB8888 || fmt == MPP_FMT_ABGR8888) ? 4 : 4;
+
+        for (y = 0; y < height; y++, p += hor_stride * pix_w) {
+            for (x = 0; x < width; x++) {
+                p[x * 4 + 0] = x * 3 + 0 + y + frame_count * 3;
+                p[x * 4 + 1] = x * 3 + 1 + y + frame_count * 3;
+                p[x * 4 + 2] = x * 3 + 2 + y + frame_count * 3;
+                p[x * 4 + 3] = 0;
             }
         }
     } break;
