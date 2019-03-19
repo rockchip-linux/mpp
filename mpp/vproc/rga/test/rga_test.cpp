@@ -225,15 +225,15 @@ int main(int argc, char **argv)
 
     ptr = mpp_buffer_get_ptr(src_buf);
     if (cmd.have_input) {
-        ret = read_yuv_image((RK_U8 *)ptr, fin, cmd.src_w, cmd.src_h,
-                             cmd.src_w, cmd.src_h, cmd.dst_fmt);
+        ret = read_image((RK_U8 *)ptr, fin, cmd.src_w, cmd.src_h,
+                         cmd.src_w, cmd.src_h, cmd.dst_fmt);
         if (ret) {
             mpp_err("failed to read input file ret:%d\n", ret);
             goto END;
         }
     } else {
-        ret = fill_yuv_image((RK_U8 *)ptr, cmd.src_w, cmd.src_h,
-                             cmd.src_w, cmd.src_h, cmd.src_fmt, frame_count);
+        ret = fill_image((RK_U8 *)ptr, cmd.src_w, cmd.src_h,
+                         cmd.src_w, cmd.src_h, cmd.src_fmt, frame_count);
         if (ret) {
             mpp_err("failed to fill input buffer ret:%d\n", ret);
             goto END;

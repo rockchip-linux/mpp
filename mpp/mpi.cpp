@@ -547,3 +547,44 @@ void mpp_show_support_format()
     }
 }
 
+typedef struct {
+    MppFrameFormat  format;
+    const char      *name;
+} MppFrameFormatInfo;
+
+static MppFrameFormatInfo color_list[] = {
+    { MPP_FMT_YUV420SP,         "YUV420SP,      NV12"   },
+    { MPP_FMT_YUV420SP_10BIT,   "YUV420SP-10bit"        },
+    { MPP_FMT_YUV422SP,         "YUV422SP,      NV24"   },
+    { MPP_FMT_YUV422SP_10BIT,   "YUV422SP-10bit"        },
+    { MPP_FMT_YUV420P,          "YUV420P,       I420"   },
+    { MPP_FMT_YUV420SP_VU,      "YUV420SP,      NV21"   },
+    { MPP_FMT_YUV422P,          "YUV422P,       422P"   },
+    { MPP_FMT_YUV422SP_VU,      "YUV422SP,      NV42"   },
+    { MPP_FMT_YUV422_YUYV,      "YUV422-YUYV,   YUY2"   },
+    { MPP_FMT_YUV422_UYVY,      "YUV422-UYVY,   UYVY"   },
+    { MPP_FMT_YUV400,           "YUV400-Y8,     Y800"   },
+
+    { MPP_FMT_RGB565,           "RGB565"                },
+    { MPP_FMT_BGR565,           "BGR565"                },
+    { MPP_FMT_RGB555,           "RGB555"                },
+    { MPP_FMT_BGR555,           "BGR555"                },
+    { MPP_FMT_RGB888,           "RGB888"                },
+    { MPP_FMT_BGR888,           "BGR888"                },
+
+    { MPP_FMT_ARGB8888,         "ARGB8888"              },
+    { MPP_FMT_ABGR8888,         "ABGR8888"              },
+};
+
+void mpp_show_color_format()
+{
+    RK_U32 i = 0;
+
+    mpp_log("mpp color support list:");
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(color_list); i++) {
+        MppFrameFormatInfo *info = &color_list[i];
+        mpp_log("color: id %-5d 0x%05x %s\n",
+                info->format, info->format, info->name);
+    }
+}
