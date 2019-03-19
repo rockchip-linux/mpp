@@ -271,8 +271,14 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_buf_slot_get_prop(slots, index, SLOT_FRAME_PTR, &frame);
         if (mpp_frame_get_mode(frame) && dec->enable_deinterlace &&
             NULL == dec->vproc) {
-            dec_vproc_init(&dec->vproc, mpp);
-            dec_vproc_start(dec->vproc);
+            MPP_RET ret = dec_vproc_init(&dec->vproc, mpp);
+            if (ret) {
+                // When iep is failed to open disable deinterlace function to
+                // avoid noisy log.
+                dec->enable_deinterlace = 0;
+                dec->vproc = NULL;
+            } else
+                dec_vproc_start(dec->vproc);
         }
     } else {
         // when post-process is needed and eos without slot index case
