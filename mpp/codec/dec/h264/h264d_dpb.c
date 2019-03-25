@@ -133,6 +133,10 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
         size = size_vui;
     }
 
+    if (size == 0) {
+        H264D_WARNNING("warnning: DPB size is 0, level(%d), pic_size(%d)", active_sps->level_idc, pic_size);
+    }
+
     return size;
 }
 
@@ -1721,8 +1725,7 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     if (p_Dpb->init_done) {
         free_dpb(p_Dpb);
     }
-    VAL_CHECK(ret, p_Dpb->size = getDpbSize(p_Vid, active_sps));
-    p_Dpb->size = MPP_MAX(1, p_Dpb->size);
+    p_Dpb->size = MPP_MAX(1, getDpbSize(p_Vid, active_sps));
     p_Dpb->num_ref_frames = active_sps->max_num_ref_frames;
     if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
         H264D_WARNNING("DPB size at specified level is smaller than reference frames");
