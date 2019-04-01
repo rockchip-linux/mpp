@@ -47,6 +47,7 @@
 #define MPP_DEC_NOTIFY_TASK_ALL_DONE        (0x00000080)
 #define MPP_DEC_NOTIFY_TASK_HND_VALID       (0x00000100)
 #define MPP_DEC_NOTIFY_TASK_PREV_DONE       (0x00000200)
+#define MPP_DEC_NOTIFY_BUFFER_MATCH         (0x00000400)
 #define MPP_DEC_RESET                       (MPP_RESET)
 
 /* mpp enc event flags */
