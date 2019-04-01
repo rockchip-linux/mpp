@@ -53,24 +53,24 @@ static RK_U32 mpp_dec_debug = 0;
 typedef union PaserTaskWait_u {
     RK_U32          val;
     struct {
-        RK_U32      dec_pkt_in   : 1;   // 0x0001 MPP_DEC_NOTIFY_PACKET_ENQUEUE
-        RK_U32      dis_que_full : 1;   // 0x0002 MPP_DEC_NOTIFY_FRAME_DEQUEUE
-        RK_U32      reserv0004   : 1;   // 0x0004
-        RK_U32      reserv0008   : 1;   // 0x0008
+        RK_U32      dec_pkt_in      : 1;   // 0x0001 MPP_DEC_NOTIFY_PACKET_ENQUEUE
+        RK_U32      dis_que_full    : 1;   // 0x0002 MPP_DEC_NOTIFY_FRAME_DEQUEUE
+        RK_U32      reserv0004      : 1;   // 0x0004
+        RK_U32      reserv0008      : 1;   // 0x0008
 
-        RK_U32      ext_buf_grp  : 1;   // 0x0010 MPP_DEC_NOTIFY_EXT_BUF_GRP_READY
-        RK_U32      info_change  : 1;   // 0x0020 MPP_DEC_NOTIFY_INFO_CHG_DONE
-        RK_U32      dec_pic_buf  : 1;   // 0x0040 MPP_DEC_NOTIFY_BUFFER_VALID
-        RK_U32      dec_all_done : 1;   // 0x0080 MPP_DEC_NOTIFY_TASK_ALL_DONE
+        RK_U32      ext_buf_grp     : 1;   // 0x0010 MPP_DEC_NOTIFY_EXT_BUF_GRP_READY
+        RK_U32      info_change     : 1;   // 0x0020 MPP_DEC_NOTIFY_INFO_CHG_DONE
+        RK_U32      dec_pic_unusd   : 1;   // 0x0040 MPP_DEC_NOTIFY_BUFFER_VALID
+        RK_U32      dec_all_done    : 1;   // 0x0080 MPP_DEC_NOTIFY_TASK_ALL_DONE
 
-        RK_U32      task_hnd     : 1;   // 0x0100 MPP_DEC_NOTIFY_TASK_HND_VALID
-        RK_U32      prev_task    : 1;   // 0x0200 MPP_DEC_NOTIFY_TASK_PREV_DONE
-        RK_U32      reserv0400   : 1;   // 0x0400
-        RK_U32      reserv0800   : 1;   // 0x0800
+        RK_U32      task_hnd        : 1;   // 0x0100 MPP_DEC_NOTIFY_TASK_HND_VALID
+        RK_U32      prev_task       : 1;   // 0x0200 MPP_DEC_NOTIFY_TASK_PREV_DONE
+        RK_U32      dec_pic_match   : 1;   // 0x0400 MPP_DEC_NOTIFY_BUFFER_MATCH
+        RK_U32      reserv0800      : 1;   // 0x0800
 
-        RK_U32      dec_pkt_idx  : 1;   // 0x1000
-        RK_U32      dec_pkt_buf  : 1;   // 0x2000
-        RK_U32      dec_slot_idx : 1;   // 0x4000
+        RK_U32      dec_pkt_idx     : 1;   // 0x1000
+        RK_U32      dec_pkt_buf     : 1;   // 0x2000
+        RK_U32      dec_slot_idx    : 1;   // 0x4000
     };
 } PaserTaskWait;
 
@@ -706,8 +706,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         RK_S32 unused = mpp_buffer_group_unused(mpp->mFrameGroup);
 
         // NOTE: When dec post-process is enabled reserve 2 buffer for it.
-        task->wait.dec_pic_buf = (dec->vproc) ? (unused < 3) : (unused < 1);
-        if (task->wait.dec_pic_buf)
+        task->wait.dec_pic_unusd = (dec->vproc) ? (unused < 3) : (unused < 1);
+        if (task->wait.dec_pic_unusd)
             return MPP_ERR_BUFFER_FULL;
     }
     dec_dbg_detail("detail: check frame group count pass\n");
@@ -737,8 +737,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     dec_dbg_detail("detail: check output buffer %p\n", hal_buf_out);
 
     task->hal_frm_buf_out = hal_buf_out;
-    task->wait.dec_pic_buf = (NULL == hal_buf_out);
-    if (task->wait.dec_pic_buf)
+    task->wait.dec_pic_match = (NULL == hal_buf_out);
+    if (task->wait.dec_pic_match)
         return MPP_NOK;
 
     /* generating registers table */
