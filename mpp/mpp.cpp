@@ -798,8 +798,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
             mpp_log("set info change ready\n");
 
         ret = mpp_buf_slot_ready(mDec->frame_slots);
-        notify(MPP_DEC_NOTIFY_INFO_CHG_DONE);
-        notify(MPP_DEC_NOTIFY_BUFFER_MATCH);
+        notify(MPP_DEC_NOTIFY_INFO_CHG_DONE | MPP_DEC_NOTIFY_BUFFER_MATCH);
     } break;
     case MPP_DEC_SET_PARSER_SPLIT_MODE: {
         RK_U32 flag = *((RK_U32 *)param);
