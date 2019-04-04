@@ -364,7 +364,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         if (p->fp_input) {
             ret = read_yuv_image(buf, p->fp_input, p->width, p->height,
                                  p->hor_stride, p->ver_stride, p->fmt);
-            if (ret == MPP_NOK  || feof(p->fp_input)) {
+            if (ret == MPP_NOK || feof(p->fp_input)) {
                 mpp_log("found last frame. feof %d\n", feof(p->fp_input));
                 p->frm_eos = 1;
             } else if (ret == MPP_ERR_VALUE)
@@ -387,8 +387,12 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         mpp_frame_set_hor_stride(frame, p->hor_stride);
         mpp_frame_set_ver_stride(frame, p->ver_stride);
         mpp_frame_set_fmt(frame, p->fmt);
-        mpp_frame_set_buffer(frame, p->frm_buf);
         mpp_frame_set_eos(frame, p->frm_eos);
+
+        if (p->fp_input && feof(p->fp_input))
+            mpp_frame_set_buffer(frame, NULL);
+        else
+            mpp_frame_set_buffer(frame, p->frm_buf);
 
         ret = mpi->encode_put_frame(ctx, frame);
         if (ret) {
