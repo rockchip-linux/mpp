@@ -1167,8 +1167,6 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     /* try import input buffer and output buffer */
     MppFrame frame = NULL;
 
-
-
     ret = mpp_frame_init(&frame);
     if (MPP_OK != ret) {
         mpp_err_f("mpp_frame_init failed\n");
@@ -1180,6 +1178,18 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     mpp_frame_set_hor_stride(frame, hor_stride);
     mpp_frame_set_ver_stride(frame, ver_stride);
     mpp_frame_set_pts(frame, pts);
+
+    if (aEncInStrm->nFlags) {
+        mpp_log_f("found eos true\n");
+        mpp_frame_set_eos(frame, 1);
+    }
+
+    if (size <= 0) {
+        mpp_frame_set_buffer(frame, NULL);
+        if (!aEncInStrm->nFlags)
+            mpp_err_f("found empty frame without eos flag set!\n");
+        goto PUT_FRAME;
+    }
 
     if (fd_input < 0) {
         fd_input = is_valid_dma_fd(fd);
@@ -1235,13 +1245,10 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
         }
     }
 
+PUT_FRAME:
+
     vpu_api_dbg_input("w %d h %d input fd %d size %d pts %lld, flag %d \n",
                       width, height, fd, size, aEncInStrm->timeUs, aEncInStrm->nFlags);
-
-    if (aEncInStrm->nFlags) {
-        mpp_log_f("found eos true");
-        mpp_frame_set_eos(frame, 1);
-    }
 
     ret = mpi->encode_put_frame(mpp_ctx, frame);
     if (ret)
@@ -1293,7 +1300,7 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
         mpp_packet_deinit(&packet);
     } else {
         aEncOut->size = 0;
-        vpu_api_dbg_output("encode_get_packet get NULL packet\n");
+        vpu_api_dbg_output("get NULL packet, eos %d\n", mEosSet);
         if (mEosSet)
             ret = -1;
     }
