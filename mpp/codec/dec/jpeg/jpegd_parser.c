@@ -764,7 +764,7 @@ static MPP_RET jpegd_setup_default_dht(JpegdCtx *ctx)
             tmp_len += dc_ptr->bits[i] = bits_tmp[i];
         }
 
-        ac_ptr->actual_length = tmp_len;  /* set the table length */
+        dc_ptr->actual_length = tmp_len;  /* set the table length */
         for (i = 0; i < tmp_len; i++) {
             /* read in the HUFFVALs */
             dc_ptr->vals[i] = val_tmp[i];
