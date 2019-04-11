@@ -726,6 +726,8 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg5.sw_sync_marker_e = 0;
     }
 
+    jpegd_setup_pp(ctx, syntax);
+
     jpegd_dbg_func("exit\n");
     return MPP_OK;
 }
@@ -918,8 +920,6 @@ MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
         mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, syn->dec.output,
                               SLOT_BUFFER, &outputBuf);
         JpegHalCtx->frame_fd = mpp_buffer_get_fd(outputBuf);
-
-        jpegd_setup_pp(JpegHalCtx, syntax);
 
         ret = jpegd_gen_regs(JpegHalCtx, syntax);
         if (ret != MPP_OK) {

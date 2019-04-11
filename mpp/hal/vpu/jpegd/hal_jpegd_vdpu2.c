@@ -244,88 +244,6 @@ jpegd_set_stream_offset(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return;
 }
 
-static
-MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
-{
-    MPP_RET ret = MPP_OK;
-    jpegd_dbg_func("enter\n");
-    JpegdIocRegInfo *info = (JpegdIocRegInfo *)ctx->regs;
-    JpegRegSet *reg = &(info->regs);
-    JpegdSyntax *s = syntax;
-
-    reg->reg50_dec_ctrl.sw_filtering_dis = 1;
-    reg->reg53_dec_mode = DEC_MODE_JPEG;
-
-    reg->reg57_enable_ctrl.sw_dec_e = 1;  /* Enable jpeg mode */
-    reg->reg57_enable_ctrl.sw_pjpeg_e = 0;
-    reg->reg57_enable_ctrl.sw_dec_out_dis = 0;
-    reg->reg57_enable_ctrl.sw_rlc_mode_e = 0;
-
-    /* frame size, round up the number of mbs */
-    reg->reg120.sw_pic_mb_h_ext = ((((s->ver_stride) >> (4)) & 0x700) >> 8);
-    reg->reg120.sw_pic_mb_w_ext = ((((s->hor_stride) >> (4)) & 0xE00) >> 9);
-    reg->reg120.sw_pic_mb_width = ((s->hor_stride) >> (4)) & 0x1FF;
-    reg->reg120.sw_pic_mb_hight_p = ((s->ver_stride) >> (4)) & 0x0FF;
-
-    reg->reg121.sw_pjpeg_fildown_e = s->fill_bottom;
-    /* Set spectral selection start coefficient */
-    reg->reg121.sw_pjpeg_ss = s->scan_start;
-    /* Set spectral selection end coefficient */
-    reg->reg121.sw_pjpeg_se = s->scan_end;
-    /* Set the point transform used in the preceding scan */
-    reg->reg121.sw_pjpeg_ah = s->prev_shift;
-    /* Set the point transform value */
-    reg->reg121.sw_pjpeg_al = s->point_transform;
-
-    reg->reg122.sw_jpeg_qtables = s->qtable_cnt;
-    reg->reg122.sw_jpeg_mode = s->yuv_mode;
-    reg->reg122.sw_jpeg_filright_e = s->fill_right;
-
-    reg->reg148.sw_slice_h = 0;
-    /* Set bit 21 of reg148 to 1, notifying hardware to decode jpeg
-     * including DRI segment
-     */
-    reg->reg148.sw_syn_marker_e = 1;
-
-    /* tell hardware that height is 8-pixel aligned,
-     * but not 16-pixel aligned
-     */
-    if ((s->height % 16) &&
-        (s->yuv_mode == JPEGDEC_YUV422 ||
-         s->yuv_mode == JPEGDEC_YUV444 ||
-         s->yuv_mode == JPEGDEC_YUV411)) {
-        reg->reg148.sw_jpeg_height8_flag = 1;
-    }
-
-    /* write VLC code word number to register */
-    jpegd_write_code_word_number(ctx, s);
-
-    /* Create AC/DC/QP tables for hardware */
-    jpegd_write_qp_ac_dc_table(ctx, s);
-
-    /* Select which tables the chromas use */
-    jpegd_set_chroma_table_id(ctx, s);
-
-    /* write table base */
-    reg->reg61_qtable_base = mpp_buffer_get_fd(ctx->pTableBase);
-
-    /* set up stream position for HW decode */
-    jpegd_set_stream_offset(ctx, s);
-
-    /* set restart interval */
-    if (s->restart_interval) {
-        reg->reg122.sw_sync_marker_e = 1;
-        /* If exists DRI segment, bit 0 to bit 15 of reg123 is set
-         * to restart interval */
-        reg->reg123.sw_pjpeg_rest_freq = s->restart_interval;
-    } else {
-        reg->reg122.sw_sync_marker_e = 0;
-    }
-
-    jpegd_dbg_func("exit\n");
-    return ret;
-}
-
 static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 {
     jpegd_dbg_func("enter\n");
@@ -690,6 +608,90 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return MPP_OK;
 }
 
+static
+MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
+{
+    MPP_RET ret = MPP_OK;
+    jpegd_dbg_func("enter\n");
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)ctx->regs;
+    JpegRegSet *reg = &(info->regs);
+    JpegdSyntax *s = syntax;
+
+    reg->reg50_dec_ctrl.sw_filtering_dis = 1;
+    reg->reg53_dec_mode = DEC_MODE_JPEG;
+
+    reg->reg57_enable_ctrl.sw_dec_e = 1;  /* Enable jpeg mode */
+    reg->reg57_enable_ctrl.sw_pjpeg_e = 0;
+    reg->reg57_enable_ctrl.sw_dec_out_dis = 0;
+    reg->reg57_enable_ctrl.sw_rlc_mode_e = 0;
+
+    /* frame size, round up the number of mbs */
+    reg->reg120.sw_pic_mb_h_ext = ((((s->ver_stride) >> (4)) & 0x700) >> 8);
+    reg->reg120.sw_pic_mb_w_ext = ((((s->hor_stride) >> (4)) & 0xE00) >> 9);
+    reg->reg120.sw_pic_mb_width = ((s->hor_stride) >> (4)) & 0x1FF;
+    reg->reg120.sw_pic_mb_hight_p = ((s->ver_stride) >> (4)) & 0x0FF;
+
+    reg->reg121.sw_pjpeg_fildown_e = s->fill_bottom;
+    /* Set spectral selection start coefficient */
+    reg->reg121.sw_pjpeg_ss = s->scan_start;
+    /* Set spectral selection end coefficient */
+    reg->reg121.sw_pjpeg_se = s->scan_end;
+    /* Set the point transform used in the preceding scan */
+    reg->reg121.sw_pjpeg_ah = s->prev_shift;
+    /* Set the point transform value */
+    reg->reg121.sw_pjpeg_al = s->point_transform;
+
+    reg->reg122.sw_jpeg_qtables = s->qtable_cnt;
+    reg->reg122.sw_jpeg_mode = s->yuv_mode;
+    reg->reg122.sw_jpeg_filright_e = s->fill_right;
+
+    reg->reg148.sw_slice_h = 0;
+    /* Set bit 21 of reg148 to 1, notifying hardware to decode jpeg
+     * including DRI segment
+     */
+    reg->reg148.sw_syn_marker_e = 1;
+
+    /* tell hardware that height is 8-pixel aligned,
+     * but not 16-pixel aligned
+     */
+    if ((s->height % 16) &&
+        (s->yuv_mode == JPEGDEC_YUV422 ||
+         s->yuv_mode == JPEGDEC_YUV444 ||
+         s->yuv_mode == JPEGDEC_YUV411)) {
+        reg->reg148.sw_jpeg_height8_flag = 1;
+    }
+
+    /* write VLC code word number to register */
+    jpegd_write_code_word_number(ctx, s);
+
+    /* Create AC/DC/QP tables for hardware */
+    jpegd_write_qp_ac_dc_table(ctx, s);
+
+    /* Select which tables the chromas use */
+    jpegd_set_chroma_table_id(ctx, s);
+
+    /* write table base */
+    reg->reg61_qtable_base = mpp_buffer_get_fd(ctx->pTableBase);
+
+    /* set up stream position for HW decode */
+    jpegd_set_stream_offset(ctx, s);
+
+    /* set restart interval */
+    if (s->restart_interval) {
+        reg->reg122.sw_sync_marker_e = 1;
+        /* If exists DRI segment, bit 0 to bit 15 of reg123 is set
+         * to restart interval */
+        reg->reg123.sw_pjpeg_rest_freq = s->restart_interval;
+    } else {
+        reg->reg122.sw_sync_marker_e = 0;
+    }
+
+    jpegd_setup_pp(ctx, syntax);
+
+    jpegd_dbg_func("exit\n");
+    return ret;
+}
+
 static MPP_RET jpegd_regs_init(JpegRegSet *reg)
 {
     jpegd_dbg_func("enter\n");
@@ -904,8 +906,6 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
         mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, syn->dec.output,
                               SLOT_BUFFER, &outputBuf);
         JpegHalCtx->frame_fd = mpp_buffer_get_fd(outputBuf);
-
-        jpegd_setup_pp(JpegHalCtx, syntax);
 
         ret = jpegd_gen_regs(JpegHalCtx, syntax);
         if (ret != MPP_OK) {
