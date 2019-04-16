@@ -122,8 +122,6 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     ref->i_long_term_en = H264E_LONGTERM_REF_EN;
     ref->hw_longterm_mode = 0;
     ref->i_long_term_internal = 0;
-    ref->i_frame_packing = -1;
-
 
     ctx->cfg = cfg->cfg;
     ctx->set = cfg->set;

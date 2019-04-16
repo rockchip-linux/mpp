@@ -360,7 +360,6 @@ typedef struct H264eRefParam_t {
     RK_S32         hw_longterm_mode;
     RK_S32         i_dpb_size;         /* Force a DPB size larger than that implied by B-frames and reference frames.
                                         * Useful in combination with interactive error resilience. */
-    RK_S32         i_frame_packing;
 } H264eRefParam;
 
 typedef struct H264eHalParam_t {
