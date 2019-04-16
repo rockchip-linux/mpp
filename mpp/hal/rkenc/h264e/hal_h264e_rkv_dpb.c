@@ -175,14 +175,9 @@ static void h264e_rkv_reference_reset(H264eRkvDpbCtx *dpb_ctx)
 }
 
 static RK_S32
-h264e_rkv_reference_distance(H264eRefParam *ref_cfg,
-                             H264eRkvDpbCtx *dpb_ctx, H264eRkvFrame *frame )
+h264e_rkv_reference_distance(H264eRkvDpbCtx *dpb_ctx, H264eRkvFrame *frame )
 {
-    if ( ref_cfg->i_frame_packing == 5 )
-        return abs((dpb_ctx->fdec->i_frame_cnt & ~1) - (frame->i_frame_cnt & ~1)) +
-               ((dpb_ctx->fdec->i_frame_cnt & 1) != (frame->i_frame_cnt & 1));
-    else
-        return abs(dpb_ctx->fdec->i_frame_cnt - frame->i_frame_cnt);
+    return abs(dpb_ctx->fdec->i_frame_cnt - frame->i_frame_cnt);
 }
 
 static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
@@ -254,8 +249,8 @@ static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
                 if ( list ? dpb_ctx->fref[list][i + 1]->i_poc < dpb_ctx->fref_nearest[list]->i_poc
                      : dpb_ctx->fref[list][i + 1]->i_poc > dpb_ctx->fref_nearest[list]->i_poc )
                     dpb_ctx->fref_nearest[list] = dpb_ctx->fref[list][i + 1];
-                if ( h264e_rkv_reference_distance( ref_cfg, dpb_ctx, dpb_ctx->fref[list][i]   ) >
-                     h264e_rkv_reference_distance( ref_cfg, dpb_ctx, dpb_ctx->fref[list][i + 1] ) ) {
+                if ( h264e_rkv_reference_distance(dpb_ctx, dpb_ctx->fref[list][i]   ) >
+                     h264e_rkv_reference_distance(dpb_ctx, dpb_ctx->fref[list][i + 1] ) ) {
                     MPP_SWAP( H264eRkvFrame *, dpb_ctx->fref[list][i], dpb_ctx->fref[list][i + 1] );
                     b_ok = 0;
                     break;

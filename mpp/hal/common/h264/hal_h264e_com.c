@@ -450,7 +450,6 @@ static void h264e_set_ref(H264eRefParam *ref)
     ref->i_long_term_en = H264E_LONGTERM_REF_EN;
     ref->hw_longterm_mode = 0;
     ref->i_long_term_internal = 0;
-    ref->i_frame_packing = -1;
 }
 
 void h264e_set_param(H264eHalParam *p, RK_S32 hw_type)
