@@ -17,13 +17,13 @@
 #define MODULE_TAG "hal_h264e_vepu1"
 #include <string.h>
 
-#include "mpp_device.h"
-
-#include "mpp_rc.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
+
+#include "mpp_rc.h"
+#include "mpp_device.h"
 
 #include "hal_h264e_com.h"
 #include "hal_h264e_header.h"
