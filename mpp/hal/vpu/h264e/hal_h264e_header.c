@@ -377,20 +377,30 @@ MPP_RET h264e_vpu_init_extra_info(void *extra_info)
         0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77
     };
     H264eVpuExtraInfo *info = (H264eVpuExtraInfo *)extra_info;
-    H264eStream *sps_stream = &info->sps_stream;
-    H264eStream *pps_stream = &info->pps_stream;
-    H264eStream *sei_stream = &info->sei_stream;
+    MPP_RET ret = MPP_OK;
+    RK_S32 size = 128;
+    RK_U8 *p = mpp_calloc_size(RK_U8, size);
 
-    if (MPP_OK != h264e_stream_init(sps_stream, 128)) {
+    // sps buffer 128Bytes
+    ret = h264e_stream_init(&info->sps_stream, p, size);
+    if (ret) {
         mpp_err("sps stream sw buf init failed");
         return MPP_NOK;
     }
-    if (MPP_OK != h264e_stream_init(pps_stream, 128)) {
+
+    // pps buffer 128Bytes
+    p = mpp_calloc_size(RK_U8, size);
+    ret = h264e_stream_init(&info->pps_stream, p, size);
+    if (ret) {
         mpp_err("pps stream sw buf init failed");
         return MPP_NOK;
     }
-    if (MPP_OK != h264e_stream_init
-        (sei_stream, H264E_SEI_BUF_SIZE)) {
+
+    // sei buffer 1024Bytes
+    size = H264E_SEI_BUF_SIZE;
+    p = mpp_calloc_size(RK_U8, size);
+    ret = h264e_stream_init(&info->sei_stream, p, size);
+    if (ret) {
         mpp_err("sei stream sw buf init failed");
         return MPP_NOK;
     }
