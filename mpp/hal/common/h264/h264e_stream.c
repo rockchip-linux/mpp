@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include "mpp_log.h"
 #include "mpp_mem.h"
 
 #include "h264e_stream.h"
 
-void hal_h264e_vpu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
+void h264e_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
 {
     RK_U32 i = 0;
     RK_S32 words = size_bytes / 4;
@@ -57,7 +54,7 @@ void hal_h264e_vpu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
     }
 }
 
-MPP_RET hal_h264e_vpu_stream_buffer_status(H264eVpuStream *stream)
+MPP_RET h264e_stream_status(H264eStream *stream)
 {
     if (stream->byte_cnt + 5 > stream->size) {
         stream->overflow = 1;
@@ -67,7 +64,7 @@ MPP_RET hal_h264e_vpu_stream_buffer_status(H264eVpuStream *stream)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_stream_buffer_reset(H264eVpuStream *strmbuf)
+MPP_RET h264e_stream_reset(H264eStream *strmbuf)
 {
     strmbuf->stream = strmbuf->buffer;
     strmbuf->byte_cnt = 0;
@@ -80,7 +77,7 @@ MPP_RET hal_h264e_vpu_stream_buffer_reset(H264eVpuStream *strmbuf)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vpu_stream_buffer_init(H264eVpuStream *strmbuf, RK_S32 size)
+MPP_RET h264e_stream_init(H264eStream *strmbuf, RK_S32 size)
 {
     strmbuf->buffer = mpp_calloc(RK_U8, size);
 
@@ -97,7 +94,7 @@ MPP_RET hal_h264e_vpu_stream_buffer_init(H264eVpuStream *strmbuf, RK_S32 size)
     strmbuf->zero_bytes = 0;
     strmbuf->emul_cnt = 0;
 
-    if (MPP_OK != hal_h264e_vpu_stream_buffer_status(strmbuf)) {
+    if (MPP_OK != h264e_stream_status(strmbuf)) {
         mpp_err("stream buffer is overflow, while init");
         return MPP_NOK;
     }
@@ -105,16 +102,15 @@ MPP_RET hal_h264e_vpu_stream_buffer_init(H264eVpuStream *strmbuf, RK_S32 size)
     return MPP_OK;
 }
 
-void hal_h264e_vpu_stream_put_bits(H264eVpuStream *buffer,
-                                   RK_S32 value, RK_S32 number,
-                                   const char *name)
+void h264e_stream_put_bits(H264eStream *buffer, RK_S32 value, RK_S32 number,
+                           const char *name)
 {
     RK_S32 bits;
     RK_U32 byte_buffer = buffer->byte_buffer;
     RK_U8*stream = buffer->stream;
     (void)name;
 
-    if (hal_h264e_vpu_stream_buffer_status(buffer) != 0)
+    if (h264e_stream_status(buffer) != 0)
         return;
 
     mpp_assert(value < (1 << number)); //opposite to 'BUG_ON' in kernel
@@ -140,9 +136,9 @@ void hal_h264e_vpu_stream_put_bits(H264eVpuStream *buffer,
     return;
 }
 
-void hal_h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer,
-                                               RK_S32 value, RK_S32 number,
-                                               const char *name)
+void h264e_stream_put_bits_with_detect(H264eStream * buffer,
+                                       RK_S32 value, RK_S32 number,
+                                       const char *name)
 {
     RK_S32 bits;
     RK_U8 *stream = buffer->stream;
@@ -161,7 +157,7 @@ void hal_h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer,
         RK_S32 zeroBytes = buffer->zero_bytes;
         RK_S32 byteCnt = buffer->byte_cnt;
 
-        if (hal_h264e_vpu_stream_buffer_status(buffer) != MPP_OK)
+        if (h264e_stream_status(buffer) != MPP_OK)
             return;
 
         *stream = (RK_U8) (byte_buffer >> 24);
@@ -192,17 +188,17 @@ void hal_h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer,
     buffer->byte_buffer = byte_buffer;
 }
 
-void hal_h264e_vpu_rbsp_trailing_bits(H264eVpuStream * stream)
+void h264e_stream_trailing_bits(H264eStream * stream)
 {
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, 1, 1,
+    h264e_stream_put_bits_with_detect(stream, 1, 1,
                                               "rbsp_stop_one_bit");
     if (stream->buffered_bits > 0)
-        hal_h264e_vpu_stream_put_bits_with_detect(stream, 0,
+        h264e_stream_put_bits_with_detect(stream, 0,
                                                   8 - stream->buffered_bits,
                                                   "bsp_alignment_zero_bit(s)");
 }
 
-void hal_h264e_vpu_write_ue(H264eVpuStream *fifo, RK_U32 val, const char *name)
+void h264e_stream_write_ue(H264eStream *fifo, RK_U32 val, const char *name)
 {
     RK_U32 num_bits = 0;
 
@@ -216,26 +212,26 @@ void hal_h264e_vpu_write_ue(H264eVpuStream *fifo, RK_U32 val, const char *name)
 
         if (tmp > 24) {
             tmp -= 24;
-            hal_h264e_vpu_stream_put_bits_with_detect(fifo, 0, 24, name);
+            h264e_stream_put_bits_with_detect(fifo, 0, 24, name);
         }
 
-        hal_h264e_vpu_stream_put_bits_with_detect(fifo, 0, tmp, name);
+        h264e_stream_put_bits_with_detect(fifo, 0, tmp, name);
 
         if (num_bits > 24) {
             num_bits -= 24;
-            hal_h264e_vpu_stream_put_bits_with_detect(fifo, val >> num_bits,
+            h264e_stream_put_bits_with_detect(fifo, val >> num_bits,
                                                       24, name);
             val = val >> num_bits;
         }
 
-        hal_h264e_vpu_stream_put_bits_with_detect(fifo, val, num_bits, name);
+        h264e_stream_put_bits_with_detect(fifo, val, num_bits, name);
     } else {
-        hal_h264e_vpu_stream_put_bits_with_detect(fifo, val,
+        h264e_stream_put_bits_with_detect(fifo, val,
                                                   2 * num_bits - 1, name);
     }
 }
 
-void hal_h264e_vpu_write_se(H264eVpuStream *fifo, RK_S32 val, const char *name)
+void h264e_stream_write_se(H264eStream *fifo, RK_S32 val, const char *name)
 {
     RK_U32 tmp;
 
@@ -244,5 +240,20 @@ void hal_h264e_vpu_write_se(H264eVpuStream *fifo, RK_S32 val, const char *name)
     else
         tmp = (RK_U32)(-2 * val);
 
-    hal_h264e_vpu_write_ue(fifo, tmp, name);
+    h264e_stream_write_ue(fifo, tmp, name);
+}
+
+RK_S32 exp_golomb_signed(RK_S32 val)
+{
+    RK_S32 tmp = 0;
+
+    if (val > 0)
+        val = 2 * val;
+    else
+        val = -2 * val + 1;
+
+    while (val >> ++tmp)
+        ;
+
+    return tmp * 2 - 1;
 }

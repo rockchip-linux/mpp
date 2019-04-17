@@ -43,9 +43,9 @@ typedef enum H264eVpuFrameType_t {
 } H264eVpuFrameType;
 
 typedef struct H264eVpuExtraInfo_t {
-    H264eVpuStream sps_stream;
-    H264eVpuStream pps_stream;
-    H264eVpuStream sei_stream;
+    H264eStream sps_stream;
+    H264eStream pps_stream;
+    H264eStream sei_stream;
     H264eSps sps;
     H264ePps pps;
     H264eSei sei;

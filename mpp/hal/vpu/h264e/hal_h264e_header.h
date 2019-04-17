@@ -29,6 +29,5 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx);
 
 MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx);
 MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx);
-RK_S32 exp_golomb_signed(RK_S32 val);
 
 #endif

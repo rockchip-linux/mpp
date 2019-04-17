@@ -32,21 +32,20 @@ typedef struct H264eVpuStream_t {
     RK_U32 zero_bytes; /* Amount of consecutive zero bytes */
     RK_S32 overflow;    /* This will signal a buffer overflow */
     RK_U32 emul_cnt; /* Counter for emulation_3_byte, needed in SEI */
-} H264eVpuStream;
+} H264eStream;
 
-void hal_h264e_vpu_swap_endian(RK_U32 *buf, RK_S32 size_bytes);
-MPP_RET hal_h264e_vpu_stream_buffer_status(H264eVpuStream *stream);
-MPP_RET hal_h264e_vpu_stream_buffer_reset(H264eVpuStream *strmbuf);
-MPP_RET hal_h264e_vpu_stream_buffer_init(H264eVpuStream *strmbuf, RK_S32 size);
-void hal_h264e_vpu_stream_put_bits(H264eVpuStream *buffer,
-                                   RK_S32 value, RK_S32 number,
-                                   const char *name);
-void hal_h264e_vpu_stream_put_bits_with_detect(H264eVpuStream * buffer,
-                                               RK_S32 value, RK_S32 number,
-                                               const char *name);
-void hal_h264e_vpu_rbsp_trailing_bits(H264eVpuStream * stream);
-void hal_h264e_vpu_write_ue(H264eVpuStream *fifo, RK_U32 val, const char *name);
-void hal_h264e_vpu_write_se(H264eVpuStream *fifo, RK_S32 val, const char *name);
+void h264e_swap_endian(RK_U32 *buf, RK_S32 size_bytes);
+MPP_RET h264e_stream_status(H264eStream *stream);
+MPP_RET h264e_stream_reset(H264eStream *strmbuf);
+MPP_RET h264e_stream_init(H264eStream *strmbuf, RK_S32 size);
+void h264e_stream_put_bits(H264eStream *buffer, RK_S32 value, RK_S32 number,
+                           const char *name);
+void h264e_stream_put_bits_with_detect(H264eStream * buffer,
+                                       RK_S32 value, RK_S32 number,
+                                       const char *name);
+void h264e_stream_trailing_bits(H264eStream * stream);
+void h264e_stream_write_ue(H264eStream *fifo, RK_U32 val, const char *name);
+void h264e_stream_write_se(H264eStream *fifo, RK_S32 val, const char *name);
 
 RK_S32 exp_golomb_signed(RK_S32 val);
 
