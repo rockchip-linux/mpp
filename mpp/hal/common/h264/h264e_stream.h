@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_PUTBIT_H__
-#define __H264E_PUTBIT_H__
+#ifndef __H264E_STREAM_H__
+#define __H264E_STREAM_H__
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -26,7 +26,6 @@ typedef struct H264eVpuStream_t {
     RK_U8 *stream; /* Pointer to next byte of stream */
     RK_U32 size;   /* Byte size of stream buffer */
     RK_U32 byte_cnt;    /* Byte counter */
-    RK_U32 bit_cnt; /* Bit counter */
     RK_U32 byte_buffer; /* Byte buffer */
     RK_U32 buffered_bits;   /* Amount of bits in byte buffer, [0-7] */
     RK_U32 zero_bytes; /* Amount of consecutive zero bytes */
@@ -37,7 +36,7 @@ typedef struct H264eVpuStream_t {
 void h264e_swap_endian(RK_U32 *buf, RK_S32 size_bytes);
 MPP_RET h264e_stream_status(H264eStream *stream);
 MPP_RET h264e_stream_reset(H264eStream *strmbuf);
-MPP_RET h264e_stream_init(H264eStream *strmbuf, RK_S32 size);
+MPP_RET h264e_stream_init(H264eStream *strmbuf, void *p, RK_S32 size);
 void h264e_stream_put_bits(H264eStream *buffer, RK_S32 value, RK_S32 number,
                            const char *name);
 void h264e_stream_put_bits_with_detect(H264eStream * buffer,
@@ -49,4 +48,4 @@ void h264e_stream_write_se(H264eStream *fifo, RK_S32 val, const char *name);
 
 RK_S32 exp_golomb_signed(RK_S32 val);
 
-#endif /* __H264E_PUTBIT_H__ */
+#endif /* __H264E_STREAM_H__ */

@@ -77,15 +77,10 @@ MPP_RET h264e_stream_reset(H264eStream *strmbuf)
     return MPP_OK;
 }
 
-MPP_RET h264e_stream_init(H264eStream *strmbuf, RK_S32 size)
+MPP_RET h264e_stream_init(H264eStream *strmbuf, void *p, RK_S32 size)
 {
-    strmbuf->buffer = mpp_calloc(RK_U8, size);
-
-    if (strmbuf->buffer == NULL) {
-        mpp_err("allocate stream buffer failed\n");
-        return MPP_NOK;
-    }
-    strmbuf->stream = strmbuf->buffer;
+    strmbuf->buffer = p;
+    strmbuf->stream = p;
     strmbuf->size = size;
     strmbuf->byte_cnt = 0;
     strmbuf->overflow = 0;
@@ -94,7 +89,7 @@ MPP_RET h264e_stream_init(H264eStream *strmbuf, RK_S32 size)
     strmbuf->zero_bytes = 0;
     strmbuf->emul_cnt = 0;
 
-    if (MPP_OK != h264e_stream_status(strmbuf)) {
+    if (h264e_stream_status(strmbuf)) {
         mpp_err("stream buffer is overflow, while init");
         return MPP_NOK;
     }
