@@ -128,7 +128,9 @@ static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
     h264e_stream_write_ue(stream, sps->i_log2_max_frame_num - 4,
                           "log2_max_frame_num_minus4");
 
-    h264e_stream_write_ue(stream, sps->i_poc_type, "pic_order_cnt_type"); //68 16
+    h264e_stream_write_ue(stream, sps->i_poc_type, "pic_order_cnt_type");
+    if (sps->i_poc_type == 0)
+        h264e_stream_write_ue(stream, sps->i_log2_max_poc_lsb - 4, "log2_max_pic_order_cnt_lsb_minus4");
 
     h264e_stream_write_ue(stream, sps->i_num_ref_frames,
                           "num_ref_frames");

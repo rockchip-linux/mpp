@@ -32,11 +32,13 @@ extern RK_U32 hal_h264e_debug;
 #define H264E_DBG_FLOW              0x00000100
 
 #define H264E_DBG_DPB               0x00001000
-#define H264E_DBG_HEADER            0x00002000
-#define H264E_DBG_SEI               0x00004000
-#define H264E_DBG_RC                0x00008000
+#define H264E_DBG_SLICE             0x00002000
+#define H264E_DBG_MMCO              0x00004000
+#define H264E_DBG_HEADER            0x00008000
+#define H264E_DBG_SEI               0x00040000
+#define H264E_DBG_RC                0x00080000
 
-#define H264E_DBG_DETAIL            0x00010000
+#define H264E_DBG_DETAIL            0x00100000
 
 #define H264E_DBG_FILE              0x00100000
 
@@ -76,7 +78,10 @@ extern RK_U32 hal_h264e_debug;
 
 #define h264e_dpb_dbg(fmt, ...)     h264e_hal_dbg(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
 #define h264e_dpb_dbg_f(fmt, ...)   h264e_hal_dbg_f(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
-
+#define h264e_dpb_slice(fmt, ...)   h264e_hal_dbg(H264E_DBG_SLICE, fmt, ## __VA_ARGS__)
+#define h264e_dpb_slice_f(fmt, ...) h264e_hal_dbg_f(H264E_DBG_SLICE, fmt, ## __VA_ARGS__)
+#define h264e_dpb_mmco(fmt, ...)    h264e_hal_dbg(H264E_DBG_MMCO, fmt, ## __VA_ARGS__)
+#define h264e_dpb_mmco_f(fmt, ...)  h264e_hal_dbg_f(H264E_DBG_MMCO, fmt, ## __VA_ARGS__)
 
 #define H264E_HAL_MIN(a,b)          ( (a)<(b) ? (a) : (b) )
 #define H264E_HAL_MAX(a,b)          ( (a)>(b) ? (a) : (b) )
