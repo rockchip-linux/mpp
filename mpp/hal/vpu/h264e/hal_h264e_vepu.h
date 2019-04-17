@@ -18,6 +18,7 @@
 #define __HAL_H264E_VEPU_H__
 
 #include "hal_h264e_com.h"
+#include "h264e_stream.h"
 
 #define HAL_VPU_H264E_DBG_FUNCTION          (0x00000001)
 #define HAL_VPU_H264E_DBG_QP                (0x00000010)
@@ -40,20 +41,6 @@ typedef enum H264eVpuFrameType_t {
     H264E_VPU_FRAME_P = 0,
     H264E_VPU_FRAME_I = 1
 } H264eVpuFrameType;
-
-/* struct for assemble bitstream */
-typedef struct H264eVpuStream_t {
-    RK_U8 *buffer; /* point to first byte of stream */
-    RK_U8 *stream; /* Pointer to next byte of stream */
-    RK_U32 size;   /* Byte size of stream buffer */
-    RK_U32 byte_cnt;    /* Byte counter */
-    RK_U32 bit_cnt; /* Bit counter */
-    RK_U32 byte_buffer; /* Byte buffer */
-    RK_U32 buffered_bits;   /* Amount of bits in byte buffer, [0-7] */
-    RK_U32 zero_bytes; /* Amount of consecutive zero bytes */
-    RK_S32 overflow;    /* This will signal a buffer overflow */
-    RK_U32 emul_cnt; /* Counter for emulation_3_byte, needed in SEI */
-} H264eVpuStream;
 
 typedef struct H264eVpuExtraInfo_t {
     H264eVpuStream sps_stream;
