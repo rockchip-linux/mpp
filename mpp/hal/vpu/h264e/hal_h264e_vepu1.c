@@ -639,9 +639,9 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
         MppPacket *pkt_out  = (MppPacket *)param;
 
         H264eVpuExtraInfo *src = (H264eVpuExtraInfo *)ctx->extra_info;
-        H264eVpuStream *sps_stream = &src->sps_stream;
-        H264eVpuStream *pps_stream = &src->pps_stream;
-        H264eVpuStream *sei_stream = &src->sei_stream;
+        H264eStream *sps_stream = &src->sps_stream;
+        H264eStream *pps_stream = &src->pps_stream;
+        H264eStream *sei_stream = &src->sei_stream;
 
         h264e_vpu_set_extra_info(ctx);
 

@@ -64,261 +64,261 @@ static void hal_h264e_vpu_write_cabac_table(MppBuffer hw_cabac_tab_buf,
             }
         }
     }
-    hal_h264e_vpu_swap_endian((RK_U32 *)table, H264E_CABAC_TABLE_BUF_SIZE);
+    h264e_swap_endian((RK_U32 *)table, H264E_CABAC_TABLE_BUF_SIZE);
     mpp_buffer_write(hw_cabac_tab_buf, 0, table, H264E_CABAC_TABLE_BUF_SIZE);
 
     h264e_hal_leave();
 }
 
-static MPP_RET h264e_vpu_nal_start(H264eVpuStream * stream,
+static MPP_RET h264e_vpu_nal_start(H264eStream * stream,
                                    RK_S32 nalRefIdc,
                                    H264eNalUnitType nalUnitType)
 {
-    hal_h264e_vpu_stream_put_bits(stream, 0, 8, "leadin_zero_8bits");
-    hal_h264e_vpu_stream_put_bits(stream, 0, 8, "start_code_prefix");
-    hal_h264e_vpu_stream_put_bits(stream, 0, 8, "start_code_prefix");
-    hal_h264e_vpu_stream_put_bits(stream, 1, 8, "start_code_prefix");
-    hal_h264e_vpu_stream_put_bits(stream, 0, 1, "forbidden_zero_bit");
-    hal_h264e_vpu_stream_put_bits(stream, nalRefIdc, 2, "nal_ref_idc");
-    hal_h264e_vpu_stream_put_bits(stream, (RK_S32)nalUnitType, 5,
+    h264e_stream_put_bits(stream, 0, 8, "leadin_zero_8bits");
+    h264e_stream_put_bits(stream, 0, 8, "start_code_prefix");
+    h264e_stream_put_bits(stream, 0, 8, "start_code_prefix");
+    h264e_stream_put_bits(stream, 1, 8, "start_code_prefix");
+    h264e_stream_put_bits(stream, 0, 1, "forbidden_zero_bit");
+    h264e_stream_put_bits(stream, nalRefIdc, 2, "nal_ref_idc");
+    h264e_stream_put_bits(stream, (RK_S32)nalUnitType, 5,
                                   "nal_unit_type");
     stream->zero_bytes = 0; /* we start new counter for zero bytes */
 
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vpu_write_sps(H264eVpuStream *stream,
+static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
                                        H264eSps *sps)
 {
     h264e_hal_enter();
 
     h264e_vpu_nal_start(stream, 1, H264E_NAL_SPS);
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->i_profile_idc, 8,
+    h264e_stream_put_bits_with_detect(stream, sps->i_profile_idc, 8,
                                               "profile_idc"); //FIXED: 77, 42
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->b_constraint_set0, 1,
+    h264e_stream_put_bits_with_detect(stream, sps->b_constraint_set0, 1,
                                               "constraint_set0_flag"); //E0
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->b_constraint_set1, 1,
+    h264e_stream_put_bits_with_detect(stream, sps->b_constraint_set1, 1,
                                               "constraint_set1_flag");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->b_constraint_set2, 1,
+    h264e_stream_put_bits_with_detect(stream, sps->b_constraint_set2, 1,
                                               "constraint_set2_flag");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->b_constraint_set3, 1,
+    h264e_stream_put_bits_with_detect(stream, sps->b_constraint_set3, 1,
                                               "constraint_set3_flag");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, 0, 4,
+    h264e_stream_put_bits_with_detect(stream, 0, 4,
                                               "reserved_zero_4bits");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->i_level_idc, 8,
+    h264e_stream_put_bits_with_detect(stream, sps->i_level_idc, 8,
                                               "level_idc"); //28
 
-    hal_h264e_vpu_write_ue(stream, sps->i_id, "seq_parameter_set_id"); //8D
+    h264e_stream_write_ue(stream, sps->i_id, "seq_parameter_set_id"); //8D
 
     if (sps->i_profile_idc >= 100) { //High profile
-        hal_h264e_vpu_write_ue(stream, sps->i_chroma_format_idc,
+        h264e_stream_write_ue(stream, sps->i_chroma_format_idc,
                                "chroma_format_idc");
-        hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8,
+        h264e_stream_write_ue(stream, H264_BIT_DEPTH - 8,
                                "bit_depth_luma_minus8");
-        hal_h264e_vpu_write_ue(stream, H264_BIT_DEPTH - 8,
+        h264e_stream_write_ue(stream, H264_BIT_DEPTH - 8,
                                "bit_depth_chroma_minus8");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->b_qpprime_y_zero_transform_bypass,
                                                   1, "qpprime_y_zero_transform_bypass_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream, 0, 1,
+        h264e_stream_put_bits_with_detect(stream, 0, 1,
                                                   "seq_scaling_matrix_present_flag");
     }
 
-    hal_h264e_vpu_write_ue(stream, sps->i_log2_max_frame_num - 4,
+    h264e_stream_write_ue(stream, sps->i_log2_max_frame_num - 4,
                            "log2_max_frame_num_minus4");
 
-    hal_h264e_vpu_write_ue(stream, sps->i_poc_type, "pic_order_cnt_type"); //68 16
+    h264e_stream_write_ue(stream, sps->i_poc_type, "pic_order_cnt_type"); //68 16
 
-    hal_h264e_vpu_write_ue(stream, sps->i_num_ref_frames,
+    h264e_stream_write_ue(stream, sps->i_num_ref_frames,
                            "num_ref_frames");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               sps->b_gaps_in_frame_num_value_allowed, 1,
                                               "gaps_in_frame_num_value_allowed_flag");
 
-    hal_h264e_vpu_write_ue(stream, sps->i_mb_width - 1,
+    h264e_stream_write_ue(stream, sps->i_mb_width - 1,
                            "pic_width_in_mbs_minus1");
 
-    hal_h264e_vpu_write_ue(stream, sps->i_mb_height - 1,
+    h264e_stream_write_ue(stream, sps->i_mb_height - 1,
                            "pic_height_in_map_units_minus1"); //09 64
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               sps->b_frame_mbs_only, 1, "frame_mbs_only_flag");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               sps->b_direct8x8_inference, 1, "direct_8x8_inference_flag");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               sps->b_crop, 1, "frame_cropping_flag");
     if (sps->b_crop) {
-        hal_h264e_vpu_write_ue(stream, sps->crop.i_left / 2,
+        h264e_stream_write_ue(stream, sps->crop.i_left / 2,
                                "frame_crop_left_offset");
-        hal_h264e_vpu_write_ue(stream, sps->crop.i_right / 2,
+        h264e_stream_write_ue(stream, sps->crop.i_right / 2,
                                "frame_crop_right_offset");
-        hal_h264e_vpu_write_ue(stream, sps->crop.i_top / 2,
+        h264e_stream_write_ue(stream, sps->crop.i_top / 2,
                                "frame_crop_top_offset");
-        hal_h264e_vpu_write_ue(stream, sps->crop.i_bottom / 2,
+        h264e_stream_write_ue(stream, sps->crop.i_bottom / 2,
                                "frame_crop_bottom_offset");
     }
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.b_vui, 1,
+    h264e_stream_put_bits_with_detect(stream, sps->vui.b_vui, 1,
                                               "vui_parameters_present_flag");
     if (sps->vui.b_vui) {
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_aspect_ratio_info_present, 1,
                                                   "aspect_ratio_info_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_overscan_info_present, 1,
                                                   "overscan_info_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_signal_type_present, 1,
                                                   "video_signal_type_present_flag");
         if (sps->vui.b_signal_type_present) {
-            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_vidformat, 3, "video_format");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.b_fullrange, 1, "video_full_range_flag");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.b_color_description_present, 1,
+            h264e_stream_put_bits_with_detect(stream, sps->vui.i_vidformat, 3, "video_format");
+            h264e_stream_put_bits_with_detect(stream, sps->vui.b_fullrange, 1, "video_full_range_flag");
+            h264e_stream_put_bits_with_detect(stream, sps->vui.b_color_description_present, 1,
                                                       "colour_description_present_flag");
             if (sps->vui.b_color_description_present) {
-                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_colorprim, 8, "colour_primaries");
-                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_transfer,  8,  "transfer_characteristics");
-                hal_h264e_vpu_stream_put_bits_with_detect(stream, sps->vui.i_colmatrix, 8,  "matrix_coefficients");
+                h264e_stream_put_bits_with_detect(stream, sps->vui.i_colorprim, 8, "colour_primaries");
+                h264e_stream_put_bits_with_detect(stream, sps->vui.i_transfer,  8,  "transfer_characteristics");
+                h264e_stream_put_bits_with_detect(stream, sps->vui.i_colmatrix, 8,  "matrix_coefficients");
             }
         }
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_chroma_loc_info_present, 1,
                                                   "chroma_loc_info_present_flag");
 
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_timing_info_present, 1,
                                                   "timing_info_present_flag");
         if (sps->vui.b_timing_info_present) {
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.i_num_units_in_tick >> 16, 16,
                                                       "num_units_in_tick msb");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.i_num_units_in_tick & 0xffff, 16,
                                                       "num_units_in_tick lsb");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.i_time_scale >> 16, 16,
                                                       "time_scale msb");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.i_time_scale & 0xffff, 16,
                                                       "time_scale lsb");
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.b_fixed_frame_rate, 1,
                                                       "fixed_frame_rate_flag");
         }
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_nal_hrd_parameters_present, 1,
                                                   "nal_hrd_parameters_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_vcl_hrd_parameters_present, 1,
                                                   "vcl_hrd_parameters_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_pic_struct_present, 1,
                                                   "pic_struct_present_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   sps->vui.b_bitstream_restriction, 1,
                                                   "bit_stream_restriction_flag");
         if (sps->vui.b_bitstream_restriction) {
-            hal_h264e_vpu_stream_put_bits_with_detect(stream,
+            h264e_stream_put_bits_with_detect(stream,
                                                       sps->vui.b_motion_vectors_over_pic_boundaries, 1,
                                                       "motion_vectors_over_pic_boundaries");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_max_bytes_per_pic_denom,
                                    "max_bytes_per_pic_denom");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_max_bits_per_mb_denom,
                                    "max_bits_per_mb_denom");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_log2_max_mv_length_horizontal,
                                    "log2_mv_length_horizontal");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_log2_max_mv_length_vertical,
                                    "log2_mv_length_vertical");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_num_reorder_frames,
                                    "num_reorder_frames");
-            hal_h264e_vpu_write_ue(stream,
+            h264e_stream_write_ue(stream,
                                    sps->vui.i_max_dec_frame_buffering,
                                    "max_dec_frame_buffering");
         }
     }
 
-    hal_h264e_vpu_rbsp_trailing_bits(stream);
+    h264e_stream_trailing_bits(stream);
 
     h264e_hal_leave();
 
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vpu_write_pps(H264eVpuStream *stream,
+static MPP_RET hal_h264e_vpu_write_pps(H264eStream *stream,
                                        H264ePps *pps)
 {
     h264e_hal_enter();
 
     h264e_vpu_nal_start(stream, 1, H264E_NAL_PPS);
 
-    hal_h264e_vpu_write_ue(stream, pps->i_id, "pic_parameter_set_id");
-    hal_h264e_vpu_write_ue(stream, pps->i_sps_id, "seq_parameter_set_id");
+    h264e_stream_write_ue(stream, pps->i_id, "pic_parameter_set_id");
+    h264e_stream_write_ue(stream, pps->i_sps_id, "seq_parameter_set_id");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, pps->b_cabac, 1,
+    h264e_stream_put_bits_with_detect(stream, pps->b_cabac, 1,
                                               "entropy_coding_mode_flag");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, pps->b_pic_order, 1,
+    h264e_stream_put_bits_with_detect(stream, pps->b_pic_order, 1,
                                               "pic_order_present_flag");
 
-    hal_h264e_vpu_write_ue(stream, pps->i_num_slice_groups - 1,
+    h264e_stream_write_ue(stream, pps->i_num_slice_groups - 1,
                            "num_slice_groups_minus1");
-    hal_h264e_vpu_write_ue(stream, pps->i_num_ref_idx_l0_default_active - 1,
+    h264e_stream_write_ue(stream, pps->i_num_ref_idx_l0_default_active - 1,
                            "num_ref_idx_l0_active_minus1");
-    hal_h264e_vpu_write_ue(stream, pps->i_num_ref_idx_l1_default_active - 1,
+    h264e_stream_write_ue(stream, pps->i_num_ref_idx_l1_default_active - 1,
                            "num_ref_idx_l1_active_minus1");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, pps->b_weighted_pred, 1,
+    h264e_stream_put_bits_with_detect(stream, pps->b_weighted_pred, 1,
                                               "weighted_pred_flag");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               pps->i_weighted_bipred_idc, 2,
                                               "weighted_bipred_idc");
 
-    hal_h264e_vpu_write_se(stream, pps->i_pic_init_qp - 26,
+    h264e_stream_write_se(stream, pps->i_pic_init_qp - 26,
                            "pic_init_qp_minus26");
-    hal_h264e_vpu_write_se(stream, pps->i_pic_init_qs - 26,
+    h264e_stream_write_se(stream, pps->i_pic_init_qs - 26,
                            "pic_init_qs_minus26");
-    hal_h264e_vpu_write_se(stream, pps->i_chroma_qp_index_offset,
+    h264e_stream_write_se(stream, pps->i_chroma_qp_index_offset,
                            "chroma_qp_index_offset");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               pps->b_deblocking_filter_control, 1,
                                               "deblocking_filter_control_present_flag");
-    hal_h264e_vpu_stream_put_bits_with_detect(stream,
+    h264e_stream_put_bits_with_detect(stream,
                                               pps->b_constrained_intra_pred, 1,
                                               "constrained_intra_pred_flag");
 
-    hal_h264e_vpu_stream_put_bits_with_detect(stream, pps->b_redundant_pic_cnt,
+    h264e_stream_put_bits_with_detect(stream, pps->b_redundant_pic_cnt,
                                               1, "redundant_pic_cnt_present_flag");
 
     if (pps->b_transform_8x8_mode) {
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   pps->b_transform_8x8_mode, 1,
                                                   "transform_8x8_mode_flag");
-        hal_h264e_vpu_stream_put_bits_with_detect(stream,
+        h264e_stream_put_bits_with_detect(stream,
                                                   pps->b_cqm_preset, 1,
                                                   "pic_scaling_matrix_present_flag");
-        hal_h264e_vpu_write_se(stream,
+        h264e_stream_write_se(stream,
                                pps->i_chroma_qp_index_offset,
                                "chroma_qp_index_offset");
     }
 
-    hal_h264e_vpu_rbsp_trailing_bits(stream);
+    h264e_stream_trailing_bits(stream);
 
     h264e_hal_leave();
 
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vpu_write_sei(H264eVpuStream *s, RK_U8 *payload,
+static MPP_RET hal_h264e_vpu_write_sei(H264eStream *s, RK_U8 *payload,
                                        RK_S32 payload_size, RK_S32 payload_type)
 {
     RK_S32 i = 0;
@@ -328,22 +328,22 @@ static MPP_RET hal_h264e_vpu_write_sei(H264eVpuStream *s, RK_U8 *payload,
     h264e_vpu_nal_start(s, H264E_NAL_PRIORITY_DISPOSABLE, H264E_NAL_SEI);
 
     for (i = 0; i <= payload_type - 255; i += 255)
-        hal_h264e_vpu_stream_put_bits_with_detect(s, 0xff, 8,
+        h264e_stream_put_bits_with_detect(s, 0xff, 8,
                                                   "sei_payload_type_ff_byte");
-    hal_h264e_vpu_stream_put_bits_with_detect(s, payload_type - i, 8,
+    h264e_stream_put_bits_with_detect(s, payload_type - i, 8,
                                               "sei_last_payload_type_byte");
 
     for (i = 0; i <= payload_size - 255; i += 255)
-        hal_h264e_vpu_stream_put_bits_with_detect(s, 0xff, 8,
+        h264e_stream_put_bits_with_detect(s, 0xff, 8,
                                                   "sei_payload_size_ff_byte");
-    hal_h264e_vpu_stream_put_bits_with_detect(s, payload_size - i, 8,
+    h264e_stream_put_bits_with_detect(s, payload_size - i, 8,
                                               "sei_last_payload_size_byte");
 
     for (i = 0; i < payload_size; i++)
-        hal_h264e_vpu_stream_put_bits_with_detect(s, (RK_U32)payload[i], 8,
+        h264e_stream_put_bits_with_detect(s, (RK_U32)payload[i], 8,
                                                   "sei_payload_data");
 
-    hal_h264e_vpu_rbsp_trailing_bits(s);
+    h264e_stream_trailing_bits(s);
 
     h264e_hal_leave();
 
@@ -354,7 +354,7 @@ static MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
 {
     H264eVpuExtraInfo *info =
         (H264eVpuExtraInfo *)ctx->extra_info;
-    H264eVpuStream *sei_stream = &info->sei_stream;
+    H264eStream *sei_stream = &info->sei_stream;
     char *str = (char *)info->sei_buf;
     RK_S32 str_len = 0;
 
@@ -378,19 +378,19 @@ MPP_RET h264e_vpu_init_extra_info(void *extra_info)
         0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77
     };
     H264eVpuExtraInfo *info = (H264eVpuExtraInfo *)extra_info;
-    H264eVpuStream *sps_stream = &info->sps_stream;
-    H264eVpuStream *pps_stream = &info->pps_stream;
-    H264eVpuStream *sei_stream = &info->sei_stream;
+    H264eStream *sps_stream = &info->sps_stream;
+    H264eStream *pps_stream = &info->pps_stream;
+    H264eStream *sei_stream = &info->sei_stream;
 
-    if (MPP_OK != hal_h264e_vpu_stream_buffer_init(sps_stream, 128)) {
+    if (MPP_OK != h264e_stream_init(sps_stream, 128)) {
         mpp_err("sps stream sw buf init failed");
         return MPP_NOK;
     }
-    if (MPP_OK != hal_h264e_vpu_stream_buffer_init(pps_stream, 128)) {
+    if (MPP_OK != h264e_stream_init(pps_stream, 128)) {
         mpp_err("pps stream sw buf init failed");
         return MPP_NOK;
     }
-    if (MPP_OK != hal_h264e_vpu_stream_buffer_init
+    if (MPP_OK != h264e_stream_init
         (sei_stream, H264E_SEI_BUF_SIZE)) {
         mpp_err("sei stream sw buf init failed");
         return MPP_NOK;
@@ -404,9 +404,9 @@ MPP_RET h264e_vpu_init_extra_info(void *extra_info)
 MPP_RET h264e_vpu_deinit_extra_info(void *extra_info)
 {
     H264eVpuExtraInfo *info = (H264eVpuExtraInfo *)extra_info;
-    H264eVpuStream *sps_stream = &info->sps_stream;
-    H264eVpuStream *pps_stream = &info->pps_stream;
-    H264eVpuStream *sei_stream = &info->sei_stream;
+    H264eStream *sps_stream = &info->sps_stream;
+    H264eStream *pps_stream = &info->pps_stream;
+    H264eStream *sei_stream = &info->sei_stream;
 
     MPP_FREE(sps_stream->buffer);
     MPP_FREE(pps_stream->buffer);
@@ -420,15 +420,15 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx)
 {
     H264eVpuExtraInfo *info =
         (H264eVpuExtraInfo *)ctx->extra_info;
-    H264eVpuStream *sps_stream = &info->sps_stream;
-    H264eVpuStream *pps_stream = &info->pps_stream;
+    H264eStream *sps_stream = &info->sps_stream;
+    H264eStream *pps_stream = &info->pps_stream;
     H264eSps *sps = &info->sps;
     H264ePps *pps = &info->pps;
 
     h264e_hal_enter();
 
-    hal_h264e_vpu_stream_buffer_reset(sps_stream);
-    hal_h264e_vpu_stream_buffer_reset(pps_stream);
+    h264e_stream_reset(sps_stream);
+    h264e_stream_reset(pps_stream);
 
     h264e_set_sps(ctx, sps);
     h264e_set_pps(ctx, pps, sps);
@@ -446,21 +446,6 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx)
     h264e_hal_leave();
 
     return MPP_OK;
-}
-
-RK_S32 exp_golomb_signed(RK_S32 val)
-{
-    RK_S32 tmp = 0;
-
-    if (val > 0)
-        val = 2 * val;
-    else
-        val = -2 * val + 1;
-
-    while (val >> ++tmp)
-        ;
-
-    return tmp * 2 - 1;
 }
 
 MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx)
