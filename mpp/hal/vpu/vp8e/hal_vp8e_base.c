@@ -450,7 +450,7 @@ static MPP_RET set_new_frame(void *hal)
 
     if (hw_cfg->first_free_bit != 0) {
         RK_U32 val;
-        RK_U8 *pTmp = (RK_U8 *)((size_t)(ctx->bitbuf[1].data) & (RK_U32)(~0x07));
+        RK_U8 *pTmp = (RK_U8 *)((size_t)(ctx->bitbuf[1].data) & (~0x07));
 
         for (val = 6; val >= hw_cfg->first_free_bit / 8; val--) {
             pTmp[val] = 0;
