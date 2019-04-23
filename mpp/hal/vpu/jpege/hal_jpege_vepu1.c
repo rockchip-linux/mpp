@@ -176,8 +176,8 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 width        = prep->width;
     RK_U32 height       = prep->height;
     MppFrameFormat fmt  = prep->format;
-    RK_U32 hor_stride   = MPP_ALIGN(width,  16);
-    RK_U32 ver_stride   = MPP_ALIGN(height, 16);
+    RK_U32 hor_stride   = prep->hor_stride;
+    RK_U32 ver_stride   = prep->ver_stride;
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
     JpegeIocExtInfo *extra_info = &(ctx->ioctl_info.extra_info);
@@ -191,6 +191,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 r_mask = 0;
     RK_U32 g_mask = 0;
     RK_U32 b_mask = 0;
+    RK_U32 x_fill = 0;
 
     syntax->width   = width;
     syntax->height  = height;
@@ -198,6 +199,10 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     syntax->ver_stride = prep->ver_stride;
     syntax->format  = fmt;
     syntax->quality = codec->jpeg.quant;
+
+    x_fill = (hor_stride - width) / 4;
+    if (x_fill > 3)
+        mpp_err_f("right fill is illegal, hor_stride = %d, width = %d\n", hor_stride, width);
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
@@ -314,7 +319,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     regs[15] = (0 << 29) |
                (0 << 26) |
                (hor_stride << 12) |
-               (((hor_stride - width) << 4) << 10) |
+               (x_fill << 10) |
                ((ver_stride - height) << 6) |
                (val32 << 2) | (0);
 
