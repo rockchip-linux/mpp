@@ -41,6 +41,8 @@
 #include "mpp_thread.h"
 
 static RK_U32 ion_debug = 0;
+static pthread_once_t once = PTHREAD_ONCE_INIT;
+static pthread_mutex_t scandir_lock;
 
 #define ION_FUNCTION                (0x00000001)
 #define ION_DEVICE                  (0x00000002)
@@ -159,6 +161,15 @@ static int _compare_name(const struct dirent *dir)
     return 0;
 }
 
+static void scandir_lock_init(void)
+{
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&scandir_lock, &attr);
+    pthread_mutexattr_destroy(&attr);
+}
+
 /*
  * directory search function:
  * search directory with dir_name on path.
@@ -175,6 +186,8 @@ static RK_S32 find_dir_in_path(char *path, const char *dir_name,
     RK_S32 new_path_len = 0;
     RK_S32 n;
 
+    pthread_once(&once, scandir_lock_init);
+    pthread_mutex_lock(&scandir_lock);
     search_name = dir_name;
     n = scandir(path, &dir, _compare_name, alphasort);
     if (n <= 0) {
@@ -189,6 +202,7 @@ static RK_S32 find_dir_in_path(char *path, const char *dir_name,
         free(dir);
     }
     search_name = NULL;
+    pthread_mutex_unlock(&scandir_lock);
     return new_path_len;
 }
 
