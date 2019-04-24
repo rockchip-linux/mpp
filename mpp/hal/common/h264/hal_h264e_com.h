@@ -26,7 +26,7 @@
 
 #include "h264e_syntax.h"
 
-extern RK_U32 h264e_hal_log_mode;
+extern RK_U32 hal_h264e_debug;
 
 #define H264E_DBG_SIMPLE            0x00000010
 #define H264E_DBG_REG               0x00000020
@@ -51,22 +51,33 @@ extern RK_U32 h264e_hal_log_mode;
 
 #define h264e_hal_dbg(type, fmt, ...) \
     do {\
-        if (h264e_hal_log_mode & type)\
+        if (hal_h264e_debug & type)\
             mpp_log(fmt, ## __VA_ARGS__);\
+    } while (0)
+
+#define h264e_hal_dbg_f(type, fmt, ...) \
+    do {\
+        if (hal_h264e_debug & type)\
+            mpp_log_f(fmt, ## __VA_ARGS__);\
     } while (0)
 
 
 #define h264e_hal_enter() \
     do {\
-        if (h264e_hal_log_mode & H264E_DBG_FLOW)\
+        if (hal_h264e_debug & H264E_DBG_FLOW)\
             mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
     } while (0)
 
 #define h264e_hal_leave() \
     do {\
-        if (h264e_hal_log_mode & H264E_DBG_FLOW)\
+        if (hal_h264e_debug & H264E_DBG_FLOW)\
             mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
     } while (0)
+
+
+#define h264e_dpb_dbg(fmt, ...)     h264e_hal_dbg(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
+#define h264e_dpb_dbg_f(fmt, ...)   h264e_hal_dbg_f(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
+
 
 #define H264E_HAL_MIN(a,b)          ( (a)<(b) ? (a) : (b) )
 #define H264E_HAL_MAX(a,b)          ( (a)>(b) ? (a) : (b) )
@@ -81,25 +92,8 @@ extern RK_U32 h264e_hal_log_mode;
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \
         reg[(addr)>>2] = (RK_U32)(val);                                      \
-        if (h264e_hal_log_mode & 0/*H264E_HAL_LOG_INFO*/)                              \
+        if (hal_h264e_debug & 0/*H264E_HAL_LOG_INFO*/)                              \
             mpp_log("line(%d) set reg[%03d/%03x]: %08x", __LINE__, (addr)>>2, addr, val); \
-    } while (0)
-
-
-#define H264E_HAL_VALIDATE_GT(val, name, limit)             \
-    do {                                                    \
-        if ((val)<=(limit)) {                               \
-            mpp_err("%s(%d) should > %d", name, val, limit);\
-            return MPP_NOK;                                 \
-        }                                                   \
-    } while (0)
-
-#define H264E_HAL_VALIDATE_NEQ(val, name, limit)            \
-    do {                                                    \
-        if((val)==(limit)) {                                \
-            mpp_err("%s(%d) should not = %d", name, val, limit); \
-            return MPP_NOK;                                 \
-        }                                                   \
     } while (0)
 
 #define H264E_HAL_SPRINT(s, len, ...)  \

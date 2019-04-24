@@ -31,7 +31,7 @@
 #include "hal_h264e_rkv.h"
 #include "hal_h264e_vepu1.h"
 
-RK_U32 h264e_hal_log_mode = 0;
+RK_U32 hal_h264e_debug = 0;
 
 MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
 {
@@ -44,7 +44,7 @@ MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_U32 vcodec_type = 0;
 
-    mpp_env_get_u32("h264e_hal_debug", &h264e_hal_log_mode, 0x00000001);
+    mpp_env_get_u32("hal_h264e_debug", &hal_h264e_debug, 0x00000001);
 
     vcodec_type = mpp_get_vcodec_type();
     if (vcodec_type & HAVE_RKVENC) {
