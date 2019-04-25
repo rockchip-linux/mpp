@@ -1501,21 +1501,19 @@ MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         //!< free all stored pictures
         for (i = 0; i < p_Dpb->used_size; i++) {
             //!< reset all reference settings
-            free_frame_store(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
-            p_Dpb->fs[i] = alloc_frame_store();
-            MEM_CHECK(ret, p_Dpb->fs[i]);
+            unmark_for_reference(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
+            // NOTE: when clearing no output frame we need to remove it first
+            // with p_mark->out_flag is false to insure the CODEC_USE flag in
+            // mpp_buf_slot is clear. Then set is_output flag to true to avoid
+            // real output this frame to display queue.
+            FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, i));
+            p_Dpb->fs[i]->is_output = 1;
         }
-        for (i = 0; i < p_Dpb->ref_frames_in_buffer; i++) {
-            p_Dpb->fs_ref[i] = NULL;
-        }
-        for (i = 0; i < p_Dpb->ltref_frames_in_buffer; i++) {
-            p_Dpb->fs_ltref[i] = NULL;
-        }
-        p_Dpb->used_size = 0;
-    } else {
-        type = (p->layer_id == 0) ? 1 : 2;
-        FUN_CHECK(ret = flush_dpb(p_Dpb, type));
     }
+
+    type = (p->layer_id == 0) ? 1 : 2;
+    FUN_CHECK(ret = flush_dpb(p_Dpb, type));
+
     p_Dpb->last_picture = NULL;
 
     update_ref_list(p_Dpb);
