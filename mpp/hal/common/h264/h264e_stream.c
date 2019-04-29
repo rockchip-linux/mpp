@@ -191,11 +191,11 @@ void h264e_stream_put_bits_with_detect(H264eStream * buffer,
 void h264e_stream_trailing_bits(H264eStream * stream)
 {
     h264e_stream_put_bits_with_detect(stream, 1, 1,
-                                              "rbsp_stop_one_bit");
+                                      "rbsp_stop_one_bit");
     if (stream->buffered_bits > 0)
         h264e_stream_put_bits_with_detect(stream, 0,
-                                                  8 - stream->buffered_bits,
-                                                  "bsp_alignment_zero_bit(s)");
+                                          8 - stream->buffered_bits,
+                                          "bsp_alignment_zero_bit(s)");
 }
 
 void h264e_stream_write_ue(H264eStream *fifo, RK_U32 val, const char *name)
@@ -220,14 +220,14 @@ void h264e_stream_write_ue(H264eStream *fifo, RK_U32 val, const char *name)
         if (num_bits > 24) {
             num_bits -= 24;
             h264e_stream_put_bits_with_detect(fifo, val >> num_bits,
-                                                      24, name);
+                                              24, name);
             val = val >> num_bits;
         }
 
         h264e_stream_put_bits_with_detect(fifo, val, num_bits, name);
     } else {
         h264e_stream_put_bits_with_detect(fifo, val,
-                                                  2 * num_bits - 1, name);
+                                          2 * num_bits - 1, name);
     }
 }
 
