@@ -265,8 +265,8 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         mpp_put_bits(&bp, -1, 8);   //!< profile_idc
         mpp_put_bits(&bp, -1, 1);   //!< constraint_set3_flag
         mpp_put_bits(&bp, pp->chroma_format_idc, 2);
-        mpp_put_bits(&bp, (pp->bit_depth_luma_minus8 + 8), 3);
-        mpp_put_bits(&bp, (pp->bit_depth_chroma_minus8 + 8), 3);
+        mpp_put_bits(&bp, pp->bit_depth_luma_minus8, 3);
+        mpp_put_bits(&bp, pp->bit_depth_chroma_minus8, 3);
         mpp_put_bits(&bp, 0, 1);   //!< qpprime_y_zero_transform_bypass_flag
         mpp_put_bits(&bp, pp->log2_max_frame_num_minus4, 4);
         mpp_put_bits(&bp, pp->num_ref_frames, 5);
