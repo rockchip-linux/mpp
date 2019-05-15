@@ -35,6 +35,8 @@
 #include "h264d_fill.h"
 
 #define  HEAD_SYNTAX_MAX_SIZE        (12800)
+#define NALU_TYPE_NORMAL_LENGTH      (1)
+#define NALU_TYPE_EXT_LENGTH         (5)
 
 static const RK_U8 g_start_precode[3] = {0, 0, 1};
 
@@ -134,7 +136,6 @@ static void reset_nalu(H264dCurStream_t *p_strm)
 
 static void find_prefix_code(RK_U8 *p_data, H264dCurStream_t *p_strm)
 {
-    p_strm->prefixdata = (p_strm->prefixdata << 8) | (*p_data);
     if ((p_strm->prefixdata & 0x00FFFFFF) == 0x00000001) {
         if (p_strm->startcode_found) {
             p_strm->endcode_found = 1;
@@ -549,13 +550,14 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     while (pkt_impl->length > 0) {
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
+        p_strm->prefixdata = (p_strm->prefixdata << 8) | (*p_strm->curdata);
         if (p_strm->startcode_found) {
             if (p_strm->nalu_len >= p_strm->nalu_max_size) {
                 FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
             }
             p_strm->nalu_buf[p_strm->nalu_len++] = *p_strm->curdata;
-            if ((p_strm->nalu_len == 1)
-                || (p_strm->nalu_len == 5)) {
+            if ((p_strm->nalu_len == NALU_TYPE_NORMAL_LENGTH)
+                || (p_strm->nalu_len == NALU_TYPE_EXT_LENGTH)) {
                 FUN_CHECK(ret = judge_is_new_frame(p_Cur, p_strm));
                 if (p_Cur->p_Dec->is_new_frame) {
                     FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
@@ -616,6 +618,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     while (pkt_impl->length > 0) {
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
+        p_strm->prefixdata = (p_strm->prefixdata << 8) | (*p_strm->curdata);
         if (p_strm->startcode_found) {
             if (p_strm->nalu_len >= p_strm->nalu_max_size) {
                 FUN_CHECK(ret = realloc_buffer(&p_strm->nalu_buf, &p_strm->nalu_max_size, NALU_BUF_ADD_SIZE));
