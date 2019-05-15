@@ -970,7 +970,7 @@ typedef struct h264d_curstrm_t {
     RK_U32    head_max_size;
     RK_U8     *head_buf;       //!< store header data, sps/pps/slice header
 
-    RK_U64    prefixdata;
+    RK_U32    prefixdata;
     RK_U8     startcode_found;
     RK_U8     endcode_found;
 
