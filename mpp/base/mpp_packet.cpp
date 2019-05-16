@@ -114,6 +114,7 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         /* if source packet has buffer just create a new reference to buffer */
         memcpy(pkt, src_impl, sizeof(*src_impl));
         mpp_buffer_inc_ref(src_impl->buffer);
+        *packet = pkt;
         return MPP_OK;
     }
 
