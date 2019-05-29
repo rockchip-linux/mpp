@@ -368,7 +368,17 @@ static void mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
     MppBufSlots frame_slots = dec->frame_slots;
     RK_U32 eos = flags.eos;
     HalDecTaskFlag tmp = flags;
+
     tmp.eos = 0;
+    /**
+     * After info_change is encountered by parser thread, HalDecTaskFlag will
+     * have this flag set. Although mpp_dec_flush is called there may be some
+     * frames still remaining in display queue and waiting to be output. So
+     * these frames shouldn't have info_change set since their resolution and
+     * bit depth are the same as before. What's more, the info_change flag has
+     * nothing to do with frames being output.
+     */
+    tmp.info_change = 0;
 
     mpp->mThreadHal->lock(THREAD_OUTPUT);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
