@@ -247,7 +247,7 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
     if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {
         /* Using pp to convert all format to yuv420sp */
         switch (s->output_fmt) {
-        case MPP_FMT_YUV400SP:
+        case MPP_FMT_YUV400:
             pp_in_fmt = PP_IN_FORMAT_YUV400;
             break;
         case MPP_FMT_YUV420SP:

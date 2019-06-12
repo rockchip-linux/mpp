@@ -132,6 +132,16 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         fwrite(tmp, 1, width * height * 2, fp);
         mpp_free(tmp);
     } break;
+    case MPP_FMT_YUV400: {
+        RK_U32 i;
+        RK_U8 *base_y = base;
+        RK_U8 *tmp = mpp_malloc(RK_U8, h_stride * height);
+
+        for (i = 0; i < height; i++, base_y += h_stride)
+            fwrite(base_y, 1, width, fp);
+
+        mpp_free(tmp);
+    } break;
     default : {
         mpp_err("not supported format %d\n", fmt);
     } break;

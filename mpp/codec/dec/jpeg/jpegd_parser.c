@@ -144,7 +144,7 @@ static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
     } else if (s->nb_components == 1) {
         if ((s->h_count[0] == 1) || (s->v_count[0] == 1)) {
             s->yuv_mode = JPEGDEC_YUV400;
-            s->output_fmt = MPP_FMT_YUV400SP;
+            s->output_fmt = MPP_FMT_YUV400;
 
             /* check if fill needed */
             if ((s->width & 0xf) && ((s->width & 0xf) <= 8)) {
@@ -1144,6 +1144,9 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
         } break;
         case JPEGDEC_YUV444: {
             fmt = MPP_FMT_YUV444SP;
+        } break;
+        case JPEGDEC_YUV400: {
+            fmt = MPP_FMT_YUV400;
         } break;
         default : {
             fmt = MPP_FMT_YUV420SP;
