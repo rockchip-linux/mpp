@@ -758,6 +758,9 @@ MPP_RET hal_h264e_vepu1_control(void *hal, RK_S32 cmd_type, void *param)
         mpp_err("vepu1 do not support roi cfg\n");
         ret = MPP_NOK;
     } break;
+    case MPP_ENC_PRE_ALLOC_BUFF:
+        // vepu do not support prealloc buff, ignore cmd
+        break;
     default : {
         mpp_err("unrecognizable cmd type %d", cmd_type);
         ret = MPP_NOK;
