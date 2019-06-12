@@ -165,7 +165,7 @@ typedef enum {
     MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU... (NV42) */
     MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV... (YUY2)       */
     MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY... (UYVY)       */
-    MPP_FMT_YUV400SP,                                   /* YYYY...                  */
+    MPP_FMT_YUV400,                                     /* YYYY...                  */
     MPP_FMT_YUV440SP,                                   /* YYYY... UVUV...          */
     MPP_FMT_YUV411SP,                                   /* YYYY... UV...            */
     MPP_FMT_YUV444SP,                                   /* YYYY... UVUVUVUV...      */
