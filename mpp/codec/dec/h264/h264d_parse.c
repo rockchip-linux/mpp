@@ -135,6 +135,8 @@ static void reset_nalu(H264dCurStream_t *p_strm)
 
 static void find_prefix_code(RK_U8 *p_data, H264dCurStream_t *p_strm)
 {
+    (void)p_data;
+
     if ((p_strm->prefixdata & 0x00FFFFFF) == 0x00000001) {
         if (p_strm->startcode_found) {
             p_strm->endcode_found = 1;
