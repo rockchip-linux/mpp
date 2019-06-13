@@ -20,7 +20,6 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_packet.h"
 
 #include "mpp_bitread.h"
 #include "h263d_parser.h"

@@ -24,7 +24,7 @@
 #include "rk_mpi.h"
 #include "mpp_log.h"
 #include "mpp_env.h"
-
+#include "mpp_common.h"
 
 #define MPI_DEC_LOOP_COUNT          4
 #define MPI_ENC_LOOP_COUNT          4

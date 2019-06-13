@@ -16,17 +16,17 @@
 */
 #ifndef __VP9D_PARSER_H__
 #define __VP9D_PARSER_H__
+
 #include <stdlib.h>
-#include "rk_type.h"
+
+#include "mpp_mem.h"
+#include "mpp_bitread.h"
+#include "mpp_dec.h"
+
 #include "vpx_rac.h"
 #include "vp9.h"
 #include "vp9data.h"
-#include "mpp_packet.h"
 #include "vp9d_syntax.h"
-#include "mpp_bitread.h"
-#include "mpp_frame.h"
-#include "mpp_mem.h"
-#include "mpp_dec.h"
 
 extern RK_U32 vp9d_debug;
 

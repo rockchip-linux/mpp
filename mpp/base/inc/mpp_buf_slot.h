@@ -17,7 +17,6 @@
 #ifndef __MPP_BUF_SLOT_H__
 #define __MPP_BUF_SLOT_H__
 
-#include "rk_type.h"
 #include "mpp_frame.h"
 
 /*

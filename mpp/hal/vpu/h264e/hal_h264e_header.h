@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rk_mpi.h"
 #include "hal_h264e_com.h"
 
 MPP_RET h264e_vpu_init_extra_info(void *extra_info);

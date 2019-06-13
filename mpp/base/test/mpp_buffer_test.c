@@ -23,6 +23,7 @@
 #endif
 #include "mpp_log.h"
 #include "mpp_env.h"
+#include "mpp_common.h"
 #include "mpp_buffer.h"
 #include "mpp_allocator.h"
 

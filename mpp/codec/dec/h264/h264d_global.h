@@ -29,7 +29,6 @@
 #include "h264d_syntax.h"
 
 
-
 #define H264D_DBG_ERROR             (0x00000001)
 #define H264D_DBG_ASSERT            (0x00000002)
 #define H264D_DBG_WARNNING          (0x00000004)

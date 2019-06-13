@@ -17,9 +17,10 @@
 #ifndef _VPU_API_LEGACY_H_
 #define _VPU_API_LEGACY_H_
 
+#include <stdio.h>
+
 #include "vpu_api.h"
 #include "rk_mpi.h"
-#include <stdio.h>
 
 #define OMX_BUFFERFLAG_EOS              0x00000001
 

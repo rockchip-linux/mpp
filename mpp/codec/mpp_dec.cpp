@@ -22,10 +22,8 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_time.h"
-#include "mpp_common.h"
 
 #include "mpp.h"
-#include "mpp_frame.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"

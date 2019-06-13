@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rk_mpi.h"
 #include "hal_h264e_com.h"
 
 extern const RK_S32 h264_q_step[];

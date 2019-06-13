@@ -18,12 +18,10 @@
 
 #include <string.h>
 
-#include "rk_mpi.h"
-
 #include "mpp_log.h"
 #include "mpp_mem.h"
+
 #include "mpi_impl.h"
-#include "mpp.h"
 #include "mpp_info.h"
 #include "mpp_common.h"
 #include "mpp_env.h"

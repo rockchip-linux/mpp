@@ -20,8 +20,6 @@
 
 #include "mpp_mem.h"
 #include "mpp_list.h"
-#include "mpp_frame.h"
-#include "mpp_packet.h"
 #include "mpp_common.h"
 
 #include "mpp_meta.h"

@@ -20,9 +20,6 @@
 #include <stdint.h>
 #include "rk_type.h"
 
-#include "mpp_frame.h"
-#include "mpp_packet.h"
-
 #define FOURCC_META(a, b, c, d) ((RK_U32)(a) << 24  | \
                                 ((RK_U32)(b) << 16) | \
                                 ((RK_U32)(c) << 8)  | \
@@ -92,9 +89,10 @@ typedef enum MppMetaKey_e {
     KEY_RC_MODE                 = FOURCC_META('r', 'c', 'm', 'o'),
 } MppMetaKey;
 
-typedef void* MppMeta;
-
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
+
+#include "mpp_frame.h"
+#include "mpp_packet.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -20,7 +20,6 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_packet.h"
 #include "mpp_packet_impl.h"
 
 static const char *module_name = MODULE_TAG;

@@ -19,8 +19,6 @@
 
 #include "mpp_buffer.h"
 
-typedef void* MppFrame;
-
 /*
  * bit definition for mode flag in MppFrame
  */
@@ -262,7 +260,6 @@ MppFrameChromaLocation mpp_frame_get_chroma_location(const MppFrame frame);
 void    mpp_frame_set_chroma_location(MppFrame frame, MppFrameChromaLocation chroma_location);
 MppFrameFormat mpp_frame_get_fmt(MppFrame frame);
 void    mpp_frame_set_fmt(MppFrame frame, MppFrameFormat fmt);
-
 
 /*
  * HDR parameter

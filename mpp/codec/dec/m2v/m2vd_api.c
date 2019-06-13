@@ -17,11 +17,11 @@
 #define MODULE_TAG "m2vd_api"
 
 #include <string.h>
+
 #include "mpp_env.h"
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_packet_impl.h"
 
 #include "m2vd_api.h"
 #include "m2vd_parser.h"
@@ -41,7 +41,3 @@ const ParserApi api_m2vd_parser = {
     .control = m2vd_parser_control,
     .callback = m2vd_parser_callback,
 };
-
-
-
-

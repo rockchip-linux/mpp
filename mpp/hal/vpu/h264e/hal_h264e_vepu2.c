@@ -19,7 +19,6 @@
 #include <string.h>
 #include "mpp_device.h"
 
-#include "rk_mpi.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_frame.h"

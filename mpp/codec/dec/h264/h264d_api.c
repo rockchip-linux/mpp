@@ -20,9 +20,8 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
 #include "mpp_mem.h"
+#include "mpp_packet_impl.h"
 
 #include "h264d_api.h"
 #include "h264d_global.h"

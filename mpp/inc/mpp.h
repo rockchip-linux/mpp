@@ -17,11 +17,10 @@
 #ifndef __MPP_H__
 #define __MPP_H__
 
-#include "mpp_list.h"
 #include "mpp_queue.h"
+
 #include "mpp_dec.h"
 #include "mpp_enc.h"
-#include "mpp_task.h"
 #include "mpp_impl.h"
 
 #define MPP_DBG_FUNCTION                    (0x00000001)

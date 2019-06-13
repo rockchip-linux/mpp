@@ -17,8 +17,6 @@
 #ifndef __MPP_ENC_H__
 #define __MPP_ENC_H__
 
-#include "rk_mpi.h"
-
 #include "mpp_thread.h"
 #include "mpp_controller.h"
 #include "mpp_hal.h"
