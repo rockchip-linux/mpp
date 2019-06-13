@@ -54,6 +54,37 @@ typedef signed long long int    RK_S64;
 #define MODULE_TAG              NULL
 #endif
 
+/*
+ * All external interface object list here.
+ * The interface object is defined as void * for expandability
+ * The cross include between these objects will introduce extra
+ * compiling difficulty. So we move them together in this header.
+ *
+ * Object interface header list:
+ *
+ * MppCtx           - rk_mpi.h
+ * MppParam         - rk_mpi.h
+ *
+ * MppFrame         - mpp_frame.h
+ * MppPacket        - mpp_packet.h
+ *
+ * MppBuffer        - mpp_buffer.h
+ * MppBufferGroup   - mpp_buffer.h
+ *
+ * MppTask          - mpp_task.h
+ * MppMeta          - mpp_meta.h
+ */
 
+typedef void* MppCtx;
+typedef void* MppParam;
+
+typedef void* MppFrame;
+typedef void* MppPacket;
+
+typedef void* MppBuffer;
+typedef void* MppBufferGroup;
+
+typedef void* MppTask;
+typedef void* MppMeta;
 
 #endif /*__RK_TYPE_H__*/

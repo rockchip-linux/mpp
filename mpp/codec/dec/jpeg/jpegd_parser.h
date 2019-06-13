@@ -18,16 +18,13 @@
 #ifndef __JPEGD_PARSER_H__
 #define __JPEGD_PARSER_H__
 
-#include "mpp_bitread.h"
-#include "mpp_common.h"
-#include "mpp_frame.h"
-#include "limits.h"
+#include <limits.h>
 #include <string.h>
-#include <mpp_mem.h>
-#include "mpp_dec.h"
-#include "mpp_buf_slot.h"
-#include "mpp_packet.h"
+
+#include "mpp_mem.h"
 #include "mpp_bitread.h"
+
+#include "mpp_dec.h"
 
 #include "jpegd_syntax.h"
 

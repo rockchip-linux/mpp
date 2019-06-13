@@ -18,6 +18,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
 #include "mpp_allocator.h"
 #include "mpp_allocator_impl.h"
 

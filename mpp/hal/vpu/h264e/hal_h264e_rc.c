@@ -18,7 +18,6 @@
 #include <string.h>
 #include <limits.h>
 
-#include "rk_mpi.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
 

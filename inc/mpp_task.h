@@ -208,7 +208,6 @@ typedef enum {
  * task_enqueue(ctx, PORT_OUTPUT, task);
  */
 /* NOTE: use index rather then handle to descripbe task */
-typedef void* MppTask;
 typedef void* MppPort;
 typedef void* MppTaskQueue;
 

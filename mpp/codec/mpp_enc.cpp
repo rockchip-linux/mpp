@@ -21,12 +21,10 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_common.h"
+
+#include "mpp_packet_impl.h"
 
 #include "mpp.h"
-#include "mpp_frame_impl.h"
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
 #include "hal_h264e_api.h"
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)

@@ -21,7 +21,6 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
-#include "mpp_packet.h"
 
 #include "dummy_dec_api.h"
 

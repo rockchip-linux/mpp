@@ -17,7 +17,7 @@
 #ifndef __MPP_RUNTIME__
 #define __MPP_RUNTIME__
 
-#include "rk_mpi.h"
+#include "mpp_buffer.h"
 
 #ifdef __cplusplus
 extern "C" {

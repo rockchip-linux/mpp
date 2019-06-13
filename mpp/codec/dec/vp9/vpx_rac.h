@@ -24,8 +24,9 @@
 #define VPX_RAC_H
 
 #include <stdint.h>
-#include "mpp_common.h"
 #include <stdlib.h>
+
+#include "mpp_common.h"
 
 #define DECLARE_ALIGNED(n,t,v)      t v
 
@@ -55,4 +56,5 @@ int vpx_rac_get_prob_branchy(VpxRangeCoder *c, int prob);
 // rounding is different than vpx_rac_get, is vpx_rac_get wrong?
 int vpx_rac_get(VpxRangeCoder *c);
 int vpx_rac_get_uint(VpxRangeCoder *c, int bits);
+
 #endif /* VPX_RAC_H */

@@ -19,8 +19,6 @@
 
 #include "parser_api.h"
 
-
-
 typedef enum mpp_decmtd_type {
     MPP_DEC_NULL     = 0,
     MPP_DEC_BY_SLICE = 0x1,

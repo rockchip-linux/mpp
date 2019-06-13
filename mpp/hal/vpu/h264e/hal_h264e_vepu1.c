@@ -18,7 +18,6 @@
 #include <string.h>
 
 #include "mpp_device.h"
-#include "rk_mpi.h"
 
 #include "mpp_rc.h"
 #include "mpp_env.h"

@@ -27,14 +27,11 @@
 #ifndef __M2VD_PARSER_H__
 #define __M2VD_PARSER_H__
 
-#include "mpp_common.h"
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-#include "mpp_frame.h"
-#include "mpp_packet.h"
-
 #include "mpp_dec.h"
+
 #include "m2vd_syntax.h"
 #include "m2vd_com.h"
 

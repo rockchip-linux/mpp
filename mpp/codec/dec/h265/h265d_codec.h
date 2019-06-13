@@ -28,8 +28,6 @@
 #ifndef __MPP_CODEC_H__
 #define __MPP_CODEC_H__
 
-#include "mpp_common.h"
-#include "mpp_frame.h"
 #include "mpp_dec.h"
 
 enum MppColorSpace {
@@ -166,9 +164,7 @@ extern "C" {
 #endif
 
 RK_S32 h265d_parser2_syntax(void *ctx);
-
 RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index);
-
 
 #ifdef  __cplusplus
 }

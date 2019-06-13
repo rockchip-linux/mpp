@@ -17,8 +17,8 @@
 #ifndef __RK_MPI_H__
 #define __RK_MPI_H__
 
-#include "mpp_task.h"
 #include "rk_mpi_cmd.h"
+#include "mpp_task.h"
 
 /**
  * @addtogroup rk_mpi
@@ -74,13 +74,10 @@ typedef enum {
     MPP_VIDEO_CodingMax = 0x7FFFFFFF
 } MppCodingType;
 
-typedef void* MppCtx;
-typedef void* MppParam;
-
 /*
  * in decoder mode application need to specify the coding type first
  * send a stream header to mpi ctx using parameter data / size
- * and decoder will try to decode the
+ * and decoder will try to decode the input stream.
  */
 typedef struct MppEncCodecCfg_t {
     MppCodingType       coding;

@@ -16,13 +16,12 @@
 */
 #ifndef __VP9D_CODEC_H__
 #define __VP9D_CODEC_H__
+
 #include <stdlib.h>
-#include "rk_type.h"
-#include "mpp_packet.h"
-#include "vp9d_syntax.h"
-#include "mpp_frame.h"
-#include "mpp_mem.h"
+
 #include "hal_task.h"
+
+#include "vp9d_syntax.h"
 
 typedef struct VP9ParseContext {
     RK_S32 n_frames; // 1-8

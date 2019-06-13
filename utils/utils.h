@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 
-#include "mpp_err.h"
 #include "mpp_frame.h"
 
 typedef struct OptionInfo_t {

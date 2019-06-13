@@ -15,14 +15,14 @@
  */
 
 #define MODULE_TAG "m2vd_parser"
+
 #include <string.h>
+
+#include "mpp_env.h"
+#include "mpp_packet_impl.h"
 
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"
-
-#include "mpp_packet_impl.h"
-#include "mpp_frame.h"
-#include "mpp_env.h"
 
 #define VPU_BITSTREAM_START_CODE (0x42564b52)  /* RKVB, rockchip video bitstream */
 

@@ -17,9 +17,10 @@
 #ifndef __MPP_LOG_H__
 #define __MPP_LOG_H__
 
-#include "rk_type.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "rk_type.h"
 
 /*
  * mpp runtime log system usage:

@@ -15,17 +15,20 @@
 * limitations under the License.
 */
 #include <stdlib.h>
-#include "mpp_packet.h"
-#include "mpp_packet_impl.h"
+
+#include <string.h>
+
+#include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
+#include "mpp_bitread.h"
+#include "mpp_packet_impl.h"
+
 #include "vp9data.h"
 #include "vp9d_codec.h"
 #include "vp9d_parser.h"
-#include "mpp_common.h"
-#include "mpp_bitread.h"
-#include "mpp_env.h"
-#include "string.h"
+
 /**
  * Clip a signed integer into the -(2^p),(2^p-1) range.
  * @param  a value to clip

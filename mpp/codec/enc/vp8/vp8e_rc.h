@@ -17,8 +17,6 @@
 #ifndef __VP8E_RC_H__
 #define __VP8E_RC_H__
 
-#include "rk_mpi.h"
-
 #include "vp8e_syntax.h"
 
 #ifdef  __cplusplus

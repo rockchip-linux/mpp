@@ -17,19 +17,11 @@
 #ifndef __AVSD_PARSE_H__
 #define __AVSD_PARSE_H__
 
-
-#include "rk_type.h"
 #include "parser_api.h"
-
-#include "mpp_err.h"
-#include "mpp_packet.h"
-#include "mpp_buf_slot.h"
 #include "mpp_bitread.h"
 
 #include "avsd_syntax.h"
-#include "hal_task.h"
 #include "avsd_api.h"
-
 
 #define AVSD_DBG_ERROR             (0x00000001)
 #define AVSD_DBG_ASSERT            (0x00000002)

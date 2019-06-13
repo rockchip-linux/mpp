@@ -17,7 +17,6 @@
 #ifndef __MPP_PLATFORM__
 #define __MPP_PLATFORM__
 
-#include "rk_type.h"
 #include "rk_mpi.h"
 
 /*

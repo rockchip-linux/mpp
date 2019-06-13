@@ -17,7 +17,6 @@
 #ifndef __CONTROL_API_H__
 #define __CONTROL_API_H__
 
-#include "rk_mpi.h"
 #include "mpp_buf_slot.h"
 #include "hal_task.h"
 

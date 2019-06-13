@@ -17,8 +17,6 @@
 #ifndef __H265E_SYNTAX_H__
 #define __H265E_SYNTAX_H__
 
-#include "mpp_frame.h"
-
 typedef struct H265eSyntax_t {
     RK_S32          idr_request;
 //   RK_S32          eos;
