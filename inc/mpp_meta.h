@@ -73,20 +73,8 @@ typedef enum MppMetaKey_e {
     KEY_INPUT_IDR_REQ           = FOURCC_META('i', 'i', 'd', 'r'),   /* input idr frame request flag */
     KEY_OUTPUT_INTRA            = FOURCC_META('o', 'i', 'd', 'r'),   /* output intra frame indicator */
 
-    /* flow control key */
-    KEY_WIDTH                   = FOURCC_META('w', 'd', 't', 'h'),
-    KEY_HEIGHT                  = FOURCC_META('h', 'g', 'h', 't'),
-    KEY_BITRATE                 = FOURCC_META('b', 'p', 's', ' '),
-    KEY_BITRATE_UP              = FOURCC_META('b', 'p', 's', 'u'),
-    KEY_BITRATE_LOW             = FOURCC_META('b', 'p', 's', 'l'),
-    KEY_INPUT_FPS               = FOURCC_META('i', 'f', 'p', 's'),
-    KEY_OUTPUT_FPS              = FOURCC_META('o', 'f', 'p', 's'),
-    KEY_GOP                     = FOURCC_META('g', 'o', 'p', ' '),
-    KEY_QP                      = FOURCC_META('q', 'p', ' ', ' '),
-    KEY_QP_MIN                  = FOURCC_META('q', 'm', 'i', 'n'),
-    KEY_QP_MAX                  = FOURCC_META('q', 'm', 'a', 'x'),
-    KEY_QP_DIFF_RANGE           = FOURCC_META('q', 'd', 'i', 'f'),
-    KEY_RC_MODE                 = FOURCC_META('r', 'c', 'm', 'o'),
+    /* mpp_frame / mpp_packet meta data info key */
+    KEY_TEMPORAL_ID             = FOURCC_META('t', 'l', 'i', 'd'),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)

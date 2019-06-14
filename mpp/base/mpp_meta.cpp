@@ -73,6 +73,7 @@ static MppMetaDef meta_defs[] = {
     {   KEY_OUTPUT_INTRA,      TYPE_S32,      },
     {   KEY_INPUT_BLOCK,       TYPE_S32,      },
     {   KEY_OUTPUT_BLOCK,      TYPE_S32,      },
+    {   KEY_TEMPORAL_ID,       TYPE_S32,      },
 };
 
 class MppMetaService
