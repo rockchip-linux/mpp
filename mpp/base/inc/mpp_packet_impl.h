@@ -48,6 +48,7 @@ typedef struct MppPacketImpl_t {
     RK_U32      flag;
 
     MppBuffer   buffer;
+    MppMeta     meta;
 } MppPacketImpl;
 
 /*

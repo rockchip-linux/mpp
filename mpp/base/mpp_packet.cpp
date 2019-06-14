@@ -51,6 +51,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
         return MPP_ERR_NULL_PTR;
     }
     setup_mpp_packet_name(p);
+
     return MPP_OK;
 }
 
@@ -70,7 +71,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     p->data = p->pos    = data;
     p->size = p->length = size;
 
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer)
@@ -161,9 +162,11 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     if (p->buffer)
         mpp_buffer_put(p->buffer);
 
-    if (p->flag & MPP_PACKET_FLAG_INTERNAL) {
+    if (p->flag & MPP_PACKET_FLAG_INTERNAL)
         mpp_free(p->data);
-    }
+
+    if (p->meta)
+        mpp_meta_put(p->meta);
 
     mpp_free(p);
     *packet = NULL;
@@ -276,6 +279,18 @@ MppBuffer mpp_packet_get_buffer(const MppPacket packet)
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
     return p->buffer;
+}
+
+MppMeta mpp_packet_get_meta(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return NULL;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    if (NULL == p->meta)
+        mpp_meta_get(&p->meta);
+
+    return p->meta;
 }
 
 MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
