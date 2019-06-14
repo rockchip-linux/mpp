@@ -18,6 +18,7 @@
 #define __MPP_FRAME_H__
 
 #include "mpp_buffer.h"
+#include "mpp_meta.h"
 
 /*
  * bit definition for mode flag in MppFrame
@@ -244,6 +245,11 @@ void    mpp_frame_set_info_change(MppFrame frame, RK_U32 info_change);
  */
 MppBuffer mpp_frame_get_buffer(const MppFrame frame);
 void    mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer);
+
+/*
+ * meta data parameter
+ */
+MppMeta mpp_frame_get_meta(const MppFrame frame);
 
 /*
  * color related parameter

@@ -65,9 +65,12 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBuffer buffer = mpp_frame_get_buffer(*frame);
-    if (buffer)
-        mpp_buffer_put(buffer);
+    MppFrameImpl *p = (MppFrameImpl *)*frame;
+    if (p->buffer)
+        mpp_buffer_put(p->buffer);
+
+    if (p->meta)
+        mpp_meta_put(p->meta);
 
     mpp_free(*frame);
     *frame = NULL;
@@ -117,6 +120,18 @@ void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
 
         p->buffer = buffer;
     }
+}
+
+MppMeta mpp_frame_get_meta(MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return NULL;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    if (NULL == p->meta)
+        mpp_meta_get(&p->meta);
+
+    return p->meta;
 }
 
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
