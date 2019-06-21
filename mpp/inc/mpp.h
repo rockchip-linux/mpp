@@ -18,6 +18,7 @@
 #define __MPP_H__
 
 #include "mpp_queue.h"
+#include "mpp_task_impl.h"
 
 #include "mpp_dec.h"
 #include "mpp_enc.h"

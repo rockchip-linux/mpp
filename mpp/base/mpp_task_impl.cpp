@@ -122,7 +122,7 @@ static MPP_RET mpp_port_deinit(MppPort port)
     return MPP_OK;
 }
 
-MPP_RET mpp_port_poll(MppPort port, MppPollType timeout)
+MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
 {
     MppPortImpl *port_impl = (MppPortImpl *)port;
     MppTaskQueueImpl *queue = port_impl->queue;
@@ -131,7 +131,7 @@ MPP_RET mpp_port_poll(MppPort port, MppPollType timeout)
     MppTaskStatusInfo *curr = NULL;
     MPP_RET ret = MPP_NOK;
 
-    mpp_task_dbg_func("enter port %p timeout %d\n", port, timeout);
+    mpp_task_dbg_func("caller %s enter port %p timeout %d\n", caller, port, timeout);
     if (!queue->ready) {
         mpp_err("try to query when %s queue is not ready\n",
                 (port_impl->type == MPP_PORT_INPUT) ?
@@ -172,11 +172,11 @@ MPP_RET mpp_port_poll(MppPort port, MppPollType timeout)
         }
     }
 RET:
-    mpp_task_dbg_func("leave port %p ret %d\n", port, ret);
+    mpp_task_dbg_func("caller %s leave port %p ret %d\n", caller, port, ret);
     return ret;
 }
 
-MPP_RET mpp_port_dequeue(MppPort port, MppTask *task)
+MPP_RET _mpp_port_dequeue(const char *caller, MppPort port, MppTask *task)
 {
     MppPortImpl *port_impl = (MppPortImpl *)port;
     MppTaskQueueImpl *queue = port_impl->queue;
@@ -188,7 +188,7 @@ MPP_RET mpp_port_dequeue(MppPort port, MppTask *task)
     AutoMutex auto_lock(queue->lock);
     MPP_RET ret = MPP_NOK;
 
-    mpp_task_dbg_func("enter port %p\n", port);
+    mpp_task_dbg_func("caller %s enter port %p\n", caller, port);
 
     if (!queue->ready) {
         mpp_err("try to dequeue when %s queue is not ready\n",
@@ -199,6 +199,9 @@ MPP_RET mpp_port_dequeue(MppPort port, MppTask *task)
 
     curr = &queue->info[port_impl->status_curr];
     next = &queue->info[port_impl->next_on_dequeue];
+
+    mpp_task_dbg_func("move  port %p task %p %d -> %d\n", port, task,
+                      port_impl->status_curr, port_impl->next_on_dequeue);
 
     *task = NULL;
     if (curr->count == 0) {
@@ -221,12 +224,12 @@ MPP_RET mpp_port_dequeue(MppPort port, MppTask *task)
     *task = p;
     ret = MPP_OK;
 RET:
-    mpp_task_dbg_func("leave port %p ret %d\n", port, ret);
+    mpp_task_dbg_func("caller %s leave port %p task %p ret %d\n", caller, port, *task, ret);
 
     return ret;
 }
 
-MPP_RET mpp_port_enqueue(MppPort port, MppTask task)
+MPP_RET _mpp_port_enqueue(const char *caller, MppPort port, MppTask task)
 {
     MppTaskImpl *task_impl = (MppTaskImpl *)task;
     MppPortImpl *port_impl = (MppPortImpl *)port;
@@ -237,7 +240,7 @@ MPP_RET mpp_port_enqueue(MppPort port, MppTask task)
     AutoMutex auto_lock(queue->lock);
     MPP_RET ret = MPP_NOK;
 
-    mpp_task_dbg_func("enter port %p\n", port);
+    mpp_task_dbg_func("caller %s enter port %p task %p\n", caller, port, task);
 
     if (!queue->ready) {
         mpp_err("try to enqueue when %s queue is not ready\n",
@@ -254,6 +257,9 @@ MPP_RET mpp_port_enqueue(MppPort port, MppTask task)
     curr = &queue->info[task_impl->status];
     next = &queue->info[port_impl->next_on_enqueue];
 
+    mpp_task_dbg_func("move  port %p task %p %d -> %d\n", port, task,
+                      task_impl->status, port_impl->next_on_enqueue);
+
     list_del_init(&task_impl->list);
     curr->count--;
     list_add_tail(&task_impl->list, &next->list);
@@ -264,17 +270,17 @@ MPP_RET mpp_port_enqueue(MppPort port, MppTask task)
     mpp_task_dbg_func("signal port %p\n", next);
     ret = MPP_OK;
 RET:
-    mpp_task_dbg_func("leave port %p ret %d\n", port, ret);
+    mpp_task_dbg_func("caller %s leave port %p task %p ret %d\n", caller, port, task, ret);
 
     return ret;
 }
 
-MPP_RET mpp_port_awake(MppPort port)
+MPP_RET _mpp_port_awake(const char *caller, MppPort port)
 {
     if (port == NULL)
         return MPP_NOK;
 
-    mpp_task_dbg_func("enter port %p\n", port);
+    mpp_task_dbg_func("caller %s enter port %p\n", caller, port);
     MppPortImpl *port_impl = (MppPortImpl *)port;
     MppTaskQueueImpl *queue = port_impl->queue;
     MppTaskStatusInfo *curr = NULL;
@@ -286,7 +292,7 @@ MPP_RET mpp_port_awake(MppPort port)
         }
     }
 
-    mpp_task_dbg_func("leave port %p\n", port);
+    mpp_task_dbg_func("caller %s leave port %p\n", caller, port);
     return MPP_OK;
 }
 
