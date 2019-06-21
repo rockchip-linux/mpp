@@ -20,43 +20,8 @@
 
 #include "mpp_mem.h"
 #include "mpp_list.h"
-#include "mpp_common.h"
 
-#include "mpp_meta.h"
-
-typedef struct MppMetaDef_t {
-    MppMetaKey          key;
-    MppMetaType         type;
-} MppMetaDef;
-
-typedef struct MppMetaImpl_t {
-    char                tag[MPP_TAG_SIZE];
-    const char          *caller;
-    RK_S32              meta_id;
-
-    struct list_head    list_meta;
-    struct list_head    list_node;
-    RK_S32              node_count;
-} MppMetaImpl;
-
-typedef union MppMetaVal_u {
-    RK_S32          val_s32;
-    RK_S64          val_s64;
-    void            *val_ptr;
-    MppFrame        frame;
-    MppPacket       packet;
-    MppBuffer       buffer;
-} MppMetaVal;
-
-typedef struct MppMetaNode_t {
-    struct list_head    list_meta;
-    struct list_head    list_node;
-    MppMetaImpl         *meta;
-    RK_S32              node_id;
-
-    RK_S32              type_id;
-    MppMetaVal          val;
-} MppMetaNode;
+#include "mpp_meta_impl.h"
 
 static MppMetaDef meta_defs[] = {
     /* categorized by type */
@@ -116,6 +81,7 @@ public:
     MppMetaNode  *get_node(MppMetaImpl *meta, RK_S32 index);
     void          put_node(MppMetaNode *node);
     MppMetaNode  *find_node(MppMetaImpl *meta, RK_S32 index);
+    MppMetaNode  *next_node(MppMetaImpl *meta);
 };
 
 MppMetaService::MppMetaService()
@@ -210,6 +176,20 @@ MppMetaNode *MppMetaService::find_node(MppMetaImpl *meta, RK_S32 type_id)
     return node;
 }
 
+MppMetaNode *MppMetaService::next_node(MppMetaImpl *meta)
+{
+    MppMetaNode *node = NULL;
+    if (meta->node_count) {
+        node = list_entry(meta->list_node.next, MppMetaNode, list_meta);
+
+        list_del_init(&node->list_meta);
+        list_del_init(&node->list_node);
+        meta->node_count--;
+        node_count--;
+    }
+    return node;
+}
+
 MppMetaNode *MppMetaService::get_node(MppMetaImpl *meta, RK_S32 type_id)
 {
     MppMetaNode *node = find_node(meta, type_id);
@@ -286,6 +266,33 @@ MPP_RET mpp_meta_put(MppMeta meta)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     service->put_meta(impl);
     return MPP_OK;
+}
+
+RK_S32 mpp_meta_size(MppMeta meta)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return -1;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+
+    return impl->node_count;
+}
+
+MppMetaNode *mpp_meta_next_node(MppMeta meta)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return NULL;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaService *service = MppMetaService::get_instance();
+    AutoMutex auto_lock(service->get_lock());
+    MppMetaNode *node = service->next_node(impl);
+
+    return node;
 }
 
 static MPP_RET set_val_by_key(MppMetaImpl *meta, MppMetaKey key, MppMetaType type, MppMetaVal *val)
