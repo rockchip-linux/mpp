@@ -678,6 +678,9 @@ typedef struct HEVCContext {
     RK_U32    got_frame;
     RK_U32    extra_has_frame;
 
+    MppFrameMasteringDisplayMetadata mastering_display;
+    MppFrameContentLightMetadata content_light;
+
     MppBufSlots slots;
 
     MppBufSlots packet_slots;

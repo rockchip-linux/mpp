@@ -95,6 +95,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_color_primaries(frame->frame, s->sps->vui.colour_primaries);
         mpp_frame_set_color_trc(frame->frame, s->sps->vui.transfer_characteristic);
         mpp_frame_set_colorspace(frame->frame, s->h265dctx->colorspace);
+        mpp_frame_set_mastering_display(frame->frame, s->mastering_display);
+        mpp_frame_set_content_light(frame->frame, s->content_light);
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
         ret = mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
         mpp_assert(ret == MPP_OK);

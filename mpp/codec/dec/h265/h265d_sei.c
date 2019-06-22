@@ -154,17 +154,34 @@ static RK_S32 mastering_display_colour_volume(HEVCContext *s)
     BitReadCtx_t *gb = &s->HEVClc->gb;
     for (i = 0; i < 3; i++) {
         READ_BITS(gb, 16, &value);
+        s->mastering_display.display_primaries[i][0] = value;
         READ_BITS(gb, 16, &value);
+        s->mastering_display.display_primaries[i][1] = value;
     }
     READ_BITS(gb, 16, &value);
+    s->mastering_display.white_point[0] = value;
     READ_BITS(gb, 16, &value);
+    s->mastering_display.white_point[1] = value;
     mpp_read_longbits(gb, 32, &lum);
+    s->mastering_display.max_luminance = lum;
     mpp_read_longbits(gb, 32, &lum);
+    s->mastering_display.min_luminance = lum;
 
     return 0;
 
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
+}
+
+static RK_S32 content_light_info(HEVCContext *s)
+{
+    RK_U32 value = 0;
+    BitReadCtx_t *gb = &s->HEVClc->gb;
+    mpp_read_longbits(gb, 16, &value);
+    s->content_light.MaxCLL = value;
+    mpp_read_longbits(gb, 16, &value);
+    s->content_light.MaxFALL = value;
+    return 0;
 }
 
 static RK_S32 colour_remapping_info(HEVCContext *s)
@@ -343,6 +360,10 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
         } else if (payload_type == 137) {
             h265d_dbg(H265D_DBG_SEI, "mastering_display_colour_volume in\n");
             mastering_display_colour_volume(s);
+            return 1;
+        } else if (payload_type == 144) {
+            h265d_dbg(H265D_DBG_SEI, "content_light_info in\n");
+            content_light_info(s);
             return 1;
         } else if (payload_type == 143) {
             h265d_dbg(H265D_DBG_SEI, "colour_remapping_info in\n");

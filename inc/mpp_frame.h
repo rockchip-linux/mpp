@@ -199,6 +199,18 @@ typedef struct MppFrameRational {
     RK_S32 den; ///< Denominator
 } MppFrameRational;
 
+typedef struct MppFrameMasteringDisplayMetadata {
+    RK_U16 display_primaries[3][2];
+    RK_U16 white_point[2];
+    RK_U32 max_luminance;
+    RK_U32 min_luminance;
+} MppFrameMasteringDisplayMetadata;
+
+typedef struct MppFrameContentLightMetadata {
+    RK_U16 MaxCLL;
+    RK_U16 MaxFALL;
+} MppFrameContentLightMetadata;
+
 typedef enum {
     MPP_FRAME_ERR_UNKNOW           = 0x0001,
     MPP_FRAME_ERR_UNSUPPORT        = 0x0002,
@@ -278,6 +290,10 @@ MppFrameFormat mpp_frame_get_fmt(MppFrame frame);
 void    mpp_frame_set_fmt(MppFrame frame, MppFrameFormat fmt);
 MppFrameRational mpp_frame_get_sar(const MppFrame frame);
 void    mpp_frame_set_sar(MppFrame frame, MppFrameRational sar);
+MppFrameMasteringDisplayMetadata mpp_frame_get_mastering_display(const MppFrame frame);
+void    mpp_frame_set_mastering_display(MppFrame frame, MppFrameMasteringDisplayMetadata mastering_display);
+MppFrameContentLightMetadata mpp_frame_get_content_light(const MppFrame frame);
+void    mpp_frame_set_content_light(MppFrame frame, MppFrameContentLightMetadata content_light);
 
 /*
  * HDR parameter
