@@ -89,6 +89,8 @@ struct MppFrameImpl_t {
     MppFrameFormat fmt;
 
     MppFrameRational sar;
+    MppFrameMasteringDisplayMetadata mastering_display;
+    MppFrameContentLightMetadata content_light;
 
     /*
      * buffer information
