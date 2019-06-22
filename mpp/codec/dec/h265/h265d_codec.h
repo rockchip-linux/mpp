@@ -31,15 +31,17 @@
 #include "mpp_dec.h"
 
 enum MppColorSpace {
-    MPPCOL_SPC_RGB         = 0,
-    MPPCOL_SPC_BT709       = 1, ///< also ITU-R BT1361 / IEC 61966-2-4 xvYCC709 / SMPTE RP177 Annex B
-    MPPCOL_SPC_UNSPECIFIED = 2,
-    MPPCOL_SPC_FCC         = 4,
-    MPPCOL_SPC_BT470BG     = 5, ///< also ITU-R BT601-6 625 / ITU-R BT1358 625 / ITU-R BT1700 625 PAL & SECAM / IEC 61966-2-4 xvYCC601
-    MPPCOL_SPC_SMPTE170M   = 6, ///< also ITU-R BT601-6 525 / ITU-R BT1358 525 / ITU-R BT1700 NTSC / functionally identical to above
-    MPPCOL_SPC_SMPTE240M   = 7,
-    MPPCOL_SPC_YCOCG       = 8, ///< Used by Dirac / VC-2 and H.264 FRext, see ITU-T SG16
-    MPPCOL_SPC_NB             , ///< Not part of ABI
+    MPPCOL_SPC_RGB          = 0,
+    MPPCOL_SPC_BT709        = 1,    ///< also ITU-R BT1361 / IEC 61966-2-4 xvYCC709 / SMPTE RP177 Annex B
+    MPPCOL_SPC_UNSPECIFIED  = 2,
+    MPPCOL_SPC_FCC          = 4,
+    MPPCOL_SPC_BT470BG      = 5,    ///< also ITU-R BT601-6 625 / ITU-R BT1358 625 / ITU-R BT1700 625 PAL & SECAM / IEC 61966-2-4 xvYCC601
+    MPPCOL_SPC_SMPTE170M    = 6,    ///< also ITU-R BT601-6 525 / ITU-R BT1358 525 / ITU-R BT1700 NTSC / functionally identical to above
+    MPPCOL_SPC_SMPTE240M    = 7,
+    MPPCOL_SPC_YCOCG        = 8,    ///< Used by Dirac / VC-2 and H.264 FRext, see ITU-T SG16
+    MPPCOL_SPC_BT2020_NCL   = 9,    ///< ITU-R BT2020 non-constant luminance system
+    MPPCOL_SPC_BT2020_CL    = 10,   ///< ITU-R BT2020 constant luminance system
+    MPPCOL_SPC_NB             ,     ///< Not part of ABI
 };
 
 enum MppColorRange {
