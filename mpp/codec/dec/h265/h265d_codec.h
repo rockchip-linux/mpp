@@ -122,6 +122,11 @@ typedef struct H265dContext {
     **/
     RK_S32 coded_width, coded_height;
 
+    /**
+     * framerate
+    **/
+    RK_U32 framerate_den, framerate_num;
+
     RK_U8 *extradata;
 
     RK_U32 extradata_size;

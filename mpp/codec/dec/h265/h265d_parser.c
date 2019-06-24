@@ -504,19 +504,16 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->vps = (HEVCVPS*) s->vps_list[s->sps->vps_id];
 
     if (s->vps->vps_timing_info_present_flag) {
-        num = s->vps->vps_num_units_in_tick;
-        den = s->vps->vps_time_scale;
+        num = 2 * s->vps->vps_time_scale;
+        den = s->vps->vps_num_units_in_tick;
     } else if (sps->vui.vui_timing_info_present_flag) {
-        num = sps->vui.vui_num_units_in_tick;
-        den = sps->vui.vui_time_scale;
+        num = 2 * sps->vui.vui_time_scale;
+        den = sps->vui.vui_num_units_in_tick;
     }
 
-    if (num != 0 && den != 0) {
-        // s->h265dctx->time_base.num = num;
-        // s->h265dctx->time_base.den = den;
-        // av_reduce(&s->h265dctx->time_base.num, &s->h265dctx->time_base.den,
-        //        num, den, 1 << 30);
-    }
+    // 0 if no timings
+    s->h265dctx->framerate_num = num;
+    s->h265dctx->framerate_den = den;
 
     return 0;
 

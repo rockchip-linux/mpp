@@ -484,6 +484,15 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     mpp_frame_set_color_trc(mframe, MPP_FRAME_PRI_UNSPECIFIED);
                     mpp_frame_set_colorspace(mframe, MPP_FRAME_SPC_UNSPECIFIED);
                 }
+
+                if (p->timing_info_present_flag) {
+                    mpp_frame_set_time_scale(mframe, p->time_scale);
+                    mpp_frame_set_num_units_in_tick(mframe, p->num_units_in_tick);
+                } else {
+                    // unspecified
+                    mpp_frame_set_time_scale(mframe, 0);
+                    mpp_frame_set_num_units_in_tick(mframe, 0);
+                }
             }
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
             mpp_frame_deinit(&mframe);
