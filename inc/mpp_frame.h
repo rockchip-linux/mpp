@@ -158,12 +158,12 @@ typedef enum {
      * the P010_10LE/P010_10BE
      */
     MPP_FMT_YUV420SP_10BIT,
-    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV... (NV24)   */
+    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV... (NV16)   */
     MPP_FMT_YUV422SP_10BIT,                             ///< Not part of ABI
     MPP_FMT_YUV420P,                                    /* YYYY... U...V...  (I420) */
     MPP_FMT_YUV420SP_VU,                                /* YYYY... VUVUVU... (NV21) */
     MPP_FMT_YUV422P,                                    /* YYYY... UU...VV...(422P) */
-    MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU... (NV42) */
+    MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU... (NV61) */
     MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV... (YUY2)       */
     MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY... (UYVY)       */
     MPP_FMT_YUV400,                                     /* YYYY...                  */
