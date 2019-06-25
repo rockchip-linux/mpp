@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
+#include "rk_mpi_cmd.h"
+
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"

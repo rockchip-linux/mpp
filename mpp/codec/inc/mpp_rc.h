@@ -17,7 +17,7 @@
 #ifndef __MPP_RC__
 #define __MPP_RC__
 
-#include "rk_mpi.h"
+#include "rk_venc_cmd.h"
 
 #include "mpp_log.h"
 #include "mpp_list.h"

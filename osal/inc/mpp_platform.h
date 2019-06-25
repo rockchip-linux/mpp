@@ -17,7 +17,7 @@
 #ifndef __MPP_PLATFORM__
 #define __MPP_PLATFORM__
 
-#include "rk_mpi.h"
+#include "rk_type.h"
 
 /*
  * Platform flag detection is for rockchip hardware platform detection

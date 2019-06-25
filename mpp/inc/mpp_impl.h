@@ -18,7 +18,8 @@
 #ifndef __MPP_IMPL_H__
 #define __MPP_IMPL_H__
 
-#include "rk_mpi.h"
+#include "rk_type.h"
+#include "mpp_err.h"
 
 typedef void* MppDump;
 

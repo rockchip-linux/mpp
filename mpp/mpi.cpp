@@ -18,6 +18,8 @@
 
 #include <string.h>
 
+#include "rk_mpi.h"
+
 #include "mpp_log.h"
 #include "mpp_mem.h"
 
