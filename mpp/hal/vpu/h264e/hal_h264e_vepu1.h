@@ -17,7 +17,7 @@
 #ifndef __HAL_H264E_VEPU1_H__
 #define __HAL_H264E_VEPU1_H__
 
-#include "rk_mpi.h"
+#include "mpp_hal.h"
 
 MPP_RET hal_h264e_vepu1_init    (void *hal, MppHalCfg *cfg);
 MPP_RET hal_h264e_vepu1_deinit  (void *hal);

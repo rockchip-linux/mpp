@@ -17,7 +17,8 @@
 #ifndef __MPP_DEVICE_H__
 #define __MPP_DEVICE_H__
 
-#include "rk_mpi.h"
+#include "rk_type.h"
+#include "mpp_err.h"
 
 /* mpp service capability description */
 typedef enum MppDevCmd_e {
