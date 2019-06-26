@@ -20,28 +20,29 @@
 #include "mpp_frame.h"
 
 /*
- * Configure of encoder is separated into four parts.
+ * Configure of encoder is very complicated. So we divide configures into
+ * four parts:
  *
  * 1. Rate control parameter
  *    This is quality and bitrate request from user.
- *    For controller only
  *
  * 2. Data source MppFrame parameter
  *    This is data source buffer information.
- *    For both controller and hal
+ *    Now it is PreP config
+ *    PreP  : Encoder Preprocess configuration
  *
  * 3. Video codec infomation
  *    This is user custormized stream information.
- *    For hal only
- *
- * 4. Extra parameter
  *    including:
- *    PreP  : encoder Preprocess configuration
+ *    H.264 / H.265 / vp8 / mjpeg
+ *
+ * 4. Misc parameter
+ *    including:
+ *    Split : Slice split configuration
+ *    GopRef: Reference gop configuration
  *    ROI   : Region Of Interest
  *    OSD   : On Screen Display
  *    MD    : Motion Detection
- *    extra : SEI for h.264 / Exif for mjpeg
- *    For hal only
  *
  * The module transcation flow is as follows:
  *
@@ -360,86 +361,6 @@ typedef struct MppEncPrepCfg_t {
     MppEncPrepSharpenCfg sharpen;
 } MppEncPrepCfg;
 
-/**
- * @brief Mpp ROI parameter
- *        Region configure define a rectangle as ROI
- * @note  x, y, w, h are calculated in pixels, which had better be 16-pixel aligned.
- *        These parameters MUST retain in memory when encoder is running.
- *  TODO: Only absolute qp is supported so far, relative qp should be supported
- *        in the future. Also, the ROI regions can be overlaid with each other,
- *        so overlay priority should be considered.
- */
-typedef struct MppEncROIRegion_t {
-    RK_U16              x;       /**< horizontal position of top left corner */
-    RK_U16              y;       /**< vertical position of top left corner */
-    RK_U16              w;       /**< width of ROI rectangle */
-    RK_U16              h;       /**< height of ROI rectangle */
-    RK_U16              intra;   /**< flag of forced intra macroblock */
-    RK_U16              quality; /**< absolute qp of macroblock */
-} MppEncROIRegion;
-
-/**
- * @brief MPP encoder's ROI configuration
- */
-typedef struct MppEncROICfg_t {
-    RK_U32              number;  /**< ROI rectangle number */
-    MppEncROIRegion     *regions;/**< ROI parameters */
-} MppEncROICfg;
-
-/*
- * Mpp OSD parameter
- *
- * Mpp OSD support total 8 regions
- * Mpp OSD support 256-color palette two mode palette:
- * 1. Configurable OSD palette
- *    When palette is set.
- * 2. fixed OSD palette
- *    When palette is NULL.
- *
- * if MppEncOSDPlt.buf != NULL , palette includes maximun 256 levels,
- * every level composed of 32 bits defined below:
- * Y     : 8 bits
- * U     : 8 bits
- * V     : 8 bits
- * alpha : 8 bits
- */
-#define MPP_ENC_OSD_PLT_WHITE           ((255<<24)|(128<<16)|(128<<8)|235)
-#define MPP_ENC_OSD_PLT_YELLOW          ((255<<24)|(146<<16)|( 16<<8 )|210)
-#define MPP_ENC_OSD_PLT_CYAN            ((255<<24)|( 16<<16 )|(166<<8)|170)
-#define MPP_ENC_OSD_PLT_GREEN           ((255<<24)|( 34<<16 )|( 54<<8 )|145)
-#define MPP_ENC_OSD_PLT_TRANS           ((  0<<24)|(222<<16)|(202<<8)|106)
-#define MPP_ENC_OSD_PLT_RED             ((255<<24)|(240<<16)|( 90<<8 )|81)
-#define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)|41)
-#define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)|16)
-
-typedef struct MppEncOSDPlt_t {
-    RK_U32 buf[256];
-} MppEncOSDPlt;
-
-/* position info is unit in 16 pixels(one MB), and
- * x-directon range in pixels = (rd_pos_x - lt_pos_x + 1) * 16;
- * y-directon range in pixels = (rd_pos_y - lt_pos_y + 1) * 16;
- */
-typedef struct MppEncOSDRegion_t {
-    RK_U32    enable;
-    RK_U32    inverse;
-    RK_U32    start_mb_x;
-    RK_U32    start_mb_y;
-    RK_U32    num_mb_x;
-    RK_U32    num_mb_y;
-    RK_U32    buf_offset;
-} MppEncOSDRegion;
-
-
-/* if num_region > 0 && region==NULL
- * use old osd data
- */
-typedef struct MppEncOSDData_t {
-    MppBuffer       buf;
-    RK_U32          num_region;
-    MppEncOSDRegion region[8];
-} MppEncOSDData;
-
 /*
  * Mpp Motion Detection parameter
  *
@@ -598,6 +519,33 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_REF             = (1 << 30),
     MPP_ENC_H264_CFG_CHANGE_ALL             = (0xFFFFFFFF),
 } MppEncH264CfgChange;
+
+typedef struct MppEncH264IntraPred_t {
+    RK_S32  constrained_intra_pred_mode;
+} MppEncH264IntraPred;
+
+typedef struct MppEncH264InterPred_t {
+    RK_S32  reserve;
+} MppEncH264InterPred;
+
+typedef struct MppEncH264Trans_t {
+    RK_S32  trans_mode;
+    RK_S32  scaling_list_enable;
+    RK_S8   inter_scaling_list_8x8[64];
+    RK_S8   intra_scaling_list_8x8[64];
+    RK_S8   chroma_qp_offset;;
+} MppEncH264Trans;
+
+typedef struct MppEncH264Entropy_t {
+    RK_S32  entropy_coding_mode;
+    RK_S32  cabac_init_idc;
+} MppEncH264Entropy;
+
+typedef struct MppEncH264Dblk_t {
+    RK_S32  deblock_disable;
+    RK_S32  deblock_offset_alpha;
+    RK_S32  deblock_offset_beta;
+} MppEncH264Dblk;
 
 typedef struct MppEncH264Cfg_t {
     RK_U32              change;
@@ -883,57 +831,6 @@ typedef struct MppEncVp8Cfg_t {
     RK_S32              quant;
 } MppEncVp8Cfg;
 
-typedef enum MppEncRefMode_e {
-    GopRefModeRockchip,
-    GopRefModeHisilicon,
-    GopRefModeButt,
-} MppEncRefMode;
-
-#define MAX_GOP_REF_LEN         16
-#define GOP_REF_SIZE            (MAX_GOP_REF_LEN+1)
-
-typedef struct MppGopRefInfo_t {
-    RK_S32 temporal_id;
-    RK_S32 ref_idx;
-    RK_S32 is_non_ref;
-    RK_S32 is_lt_ref;
-    RK_S32 lt_idx;
-} MppGopRefInfo;
-
-typedef struct MppEncRefCfg_t {
-    RK_U32 change;
-
-    /*
-     * Enable flag for gop reference configuration
-     * 0 - Default reference mode I P P P ...
-     * 1 - Customized reference configuration
-     */
-    RK_U32 ref_cfg_enable;
-
-    /*
-     * config mode for gop reference configuration
-     * 0 - Rockchip config mode
-     * 1 - Hisilicon config  mode
-     */
-    RK_U32 ref_cfg_mode;
-
-    union {
-        // Rockchip mode
-        struct {
-            RK_U32 ref_gop_len;
-            MppGopRefInfo ref_info[GOP_REF_SIZE];
-        };
-
-        // Hisilicon mode
-        struct {
-            RK_U32 hi_gop_mode;
-            RK_U32 hi_base;
-            RK_U32 hi_enhance;
-            RK_U32 hi_enable_pred;
-        };
-    };
-} MppEncRefCfg;
-
 /*
  * in decoder mode application need to specify the coding type first
  * send a stream header to mpi ctx using parameter data / size
@@ -951,11 +848,167 @@ typedef struct MppEncCodecCfg_t {
     };
 } MppEncCodecCfg;
 
+typedef struct MppEncSliceSplit_t {
+    RK_S32  split_en;
+    RK_S32  split_mode;
+    RK_S32  slice_size;
+} MppEncSliceSplit;
+
+typedef enum MppEncRefMode_e {
+    GopRefModeRockchip,
+    GopRefModeHisilicon,
+    GopRefModeButt,
+} MppEncRefMode;
+
+#define MAX_GOP_REF_LEN         16
+#define GOP_REF_SIZE            (MAX_GOP_REF_LEN+1)
+
+typedef struct MppGopRefInfo_t {
+    RK_S32 temporal_id;
+    RK_S32 ref_idx;
+    RK_S32 is_non_ref;
+    RK_S32 is_lt_ref;
+    RK_S32 lt_idx;
+} MppGopRefInfo;
+
+typedef struct MppEncGopRef_t {
+    RK_U32 change;
+
+    /*
+     * Enable flag for gop reference configuration
+     * 0 - Default reference mode I P P P ...
+     * 1 - Customized reference configuration
+     */
+    RK_U32 gop_cfg_enable;
+
+    /*
+     * config mode for gop reference configuration
+     * 0 - Rockchip config mode
+     * 1 - Hisilicon config  mode
+     */
+    RK_U32 gop_cfg_mode;
+
+    union {
+        // Rockchip mode
+        struct {
+            RK_U32 ref_gop_len;
+            MppGopRefInfo gop_info[GOP_REF_SIZE];
+        };
+
+        // Hisilicon mode
+        struct {
+            RK_U32 hi_gop_mode;
+            RK_U32 hi_base;
+            RK_U32 hi_enhance;
+            RK_U32 hi_enable_pred;
+        };
+    };
+} MppEncGopRef;
+
+/**
+ * @brief Mpp ROI parameter
+ *        Region configure define a rectangle as ROI
+ * @note  x, y, w, h are calculated in pixels, which had better be 16-pixel aligned.
+ *        These parameters MUST retain in memory when encoder is running.
+ *  TODO: Only absolute qp is supported so far, relative qp should be supported
+ *        in the future. Also, the ROI regions can be overlaid with each other,
+ *        so overlay priority should be considered.
+ */
+typedef struct MppEncROIRegion_t {
+    RK_U16              x;       /**< horizontal position of top left corner */
+    RK_U16              y;       /**< vertical position of top left corner */
+    RK_U16              w;       /**< width of ROI rectangle */
+    RK_U16              h;       /**< height of ROI rectangle */
+    RK_U16              intra;   /**< flag of forced intra macroblock */
+    RK_U16              quality; /**< absolute qp of macroblock */
+} MppEncROIRegion;
+
+/**
+ * @brief MPP encoder's ROI configuration
+ */
+typedef struct MppEncROICfg_t {
+    RK_U32              number;  /**< ROI rectangle number */
+    MppEncROIRegion     *regions;/**< ROI parameters */
+} MppEncROICfg;
+
+/*
+ * Mpp OSD parameter
+ *
+ * Mpp OSD support total 8 regions
+ * Mpp OSD support 256-color palette two mode palette:
+ * 1. Configurable OSD palette
+ *    When palette is set.
+ * 2. fixed OSD palette
+ *    When palette is NULL.
+ *
+ * if MppEncOSDPlt.buf != NULL , palette includes maximun 256 levels,
+ * every level composed of 32 bits defined below:
+ * Y     : 8 bits
+ * U     : 8 bits
+ * V     : 8 bits
+ * alpha : 8 bits
+ */
+#define MPP_ENC_OSD_PLT_WHITE           ((255<<24)|(128<<16)|(128<<8)|235)
+#define MPP_ENC_OSD_PLT_YELLOW          ((255<<24)|(146<<16)|( 16<<8 )|210)
+#define MPP_ENC_OSD_PLT_CYAN            ((255<<24)|( 16<<16 )|(166<<8)|170)
+#define MPP_ENC_OSD_PLT_GREEN           ((255<<24)|( 34<<16 )|( 54<<8 )|145)
+#define MPP_ENC_OSD_PLT_TRANS           ((  0<<24)|(222<<16)|(202<<8)|106)
+#define MPP_ENC_OSD_PLT_RED             ((255<<24)|(240<<16)|( 90<<8 )|81)
+#define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)|41)
+#define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)|16)
+
+typedef struct MppEncOSDPlt_t {
+    RK_U32 buf[256];
+} MppEncOSDPlt;
+
+/* position info is unit in 16 pixels(one MB), and
+ * x-directon range in pixels = (rd_pos_x - lt_pos_x + 1) * 16;
+ * y-directon range in pixels = (rd_pos_y - lt_pos_y + 1) * 16;
+ */
+typedef struct MppEncOSDRegion_t {
+    RK_U32    enable;
+    RK_U32    inverse;
+    RK_U32    start_mb_x;
+    RK_U32    start_mb_y;
+    RK_U32    num_mb_x;
+    RK_U32    num_mb_y;
+    RK_U32    buf_offset;
+} MppEncOSDRegion;
+
+/* if num_region > 0 && region==NULL
+ * use old osd data
+ */
+typedef struct MppEncOSDData_t {
+    MppBuffer       buf;
+    RK_U32          num_region;
+    MppEncOSDRegion region[8];
+} MppEncOSDData;
+
+typedef struct MppEncMiscCfg_t {
+    MppEncSliceSplit    split;
+    MppEncGopRef        gop_ref;
+    MppEncROICfg        roi;
+    MppEncOSDData       osd_data;
+    MppEncOSDPlt        osd_plt;
+} MppEncMiscCfg;
+
+/*
+ * MppEncCfgSet shows the relationship between different configuration
+ * Due to the huge amount of configurable parameters we need to setup
+ * only minimum amount of necessary parameters.
+ *
+ * For normal user rc and prep config are enough.
+ */
 typedef struct MppEncCfgSet_t {
+    // esential config
     MppEncPrepCfg       prep;
     MppEncRcCfg         rc;
+
+    // codec detail config
     MppEncCodecCfg      codec;
-    MppEncRefCfg        ref;
+
+    // misc extra config
+    MppEncMiscCfg       misc;
 } MppEncCfgSet;
 
 #endif /*__RK_VENC_CMD_H__*/
