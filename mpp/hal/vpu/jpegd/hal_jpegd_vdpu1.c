@@ -692,7 +692,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     reg->reg5.sw_sync_marker_e = 1;
 
     /* tell hardware that height is 8-pixel aligned, but not 16-pixel aligned */
-    if ((s->height % 16) &&
+    if ((s->height % 16) && ((s->height % 16) <= 8) &&
         (s->yuv_mode == JPEGDEC_YUV422 ||
          s->yuv_mode == JPEGDEC_YUV444 ||
          s->yuv_mode == JPEGDEC_YUV411)) {
