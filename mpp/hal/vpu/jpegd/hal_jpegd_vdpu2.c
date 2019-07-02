@@ -654,7 +654,7 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     /* tell hardware that height is 8-pixel aligned,
      * but not 16-pixel aligned
      */
-    if ((s->height % 16) &&
+    if ((s->height % 16) && ((s->height % 16) <= 8) &&
         (s->yuv_mode == JPEGDEC_YUV422 ||
          s->yuv_mode == JPEGDEC_YUV444 ||
          s->yuv_mode == JPEGDEC_YUV411)) {
