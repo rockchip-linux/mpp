@@ -747,7 +747,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0 };
+        IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
         m_ctx.device_id = HAL_RKVDEC;
         if (p_regs->sw01.dec_error_sta
             || (!p_regs->sw01.dec_rdy_sta)

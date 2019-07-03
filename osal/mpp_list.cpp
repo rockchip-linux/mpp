@@ -139,11 +139,6 @@ static inline void mpp_list_del_init(mpp_list_node *node)
     list_node_init(node);
 }
 
-static inline int list_is_last(const mpp_list_node *list, const mpp_list_node *head)
-{
-    return list->next == head;
-}
-
 static inline void _list_del_node_no_lock(mpp_list_node *node, void *data, RK_S32 size)
 {
     mpp_list_del_init(node);

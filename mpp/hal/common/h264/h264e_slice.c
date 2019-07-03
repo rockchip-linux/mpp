@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "h264e_slice"
 
+#include <string.h>
+
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
