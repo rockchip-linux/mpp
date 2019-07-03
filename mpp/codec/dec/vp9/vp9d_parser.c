@@ -96,16 +96,6 @@ const RK_U32 vpx_inverse[257] = {
     16777216
 };
 
-static const RK_U8 bwh_tab[2][N_BS_SIZES][2] = {
-    {
-        { 16, 16 }, { 16, 8 }, { 8, 16 }, { 8, 8 }, { 8, 4 }, { 4, 8 },
-        { 4, 4 }, { 4, 2 }, { 2, 4 }, { 2, 2 }, { 2, 1 }, { 1, 2 }, { 1, 1 },
-    }, {
-        { 8, 8 }, { 8, 4 }, { 4, 8 }, { 4, 4 }, { 4, 2 }, { 2, 4 },
-        { 2, 2 }, { 2, 1 }, { 1, 2 }, { 1, 1 }, { 1, 1 }, { 1, 1 }, { 1, 1 },
-    }
-};
-
 static void split_parse_frame(SplitContext_t *ctx, RK_U8 *buf, RK_S32 size)
 {
     VP9ParseContext *s = (VP9ParseContext *)ctx->priv_data;

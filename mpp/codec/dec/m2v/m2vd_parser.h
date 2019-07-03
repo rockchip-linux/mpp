@@ -262,8 +262,8 @@ typedef struct M2VDParserContext_t {
     RK_U32          pretime_temporal;
     RK_U32          max_temporal_reference;
     RK_U32          PreChangeTime_index;
-    RK_U32          frame_period;
-    RK_U32          preframe_period;
+    RK_S32          frame_period;
+    RK_S32          preframe_period;
     RK_U32          maxFrame_inGOP;
     RK_U32          ref_frame_cnt;
     long long       top_first_cnt;

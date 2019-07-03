@@ -995,25 +995,26 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 
         if (!sh.dependent_slice_segment_flag &&
             sh.slice_type != I_SLICE) {
+            RK_U32 nb_list = I_SLICE - sh.slice_type;
+
             hal_h265d_slice_rpl(dxva, &sh, &ref);
             lowdelay_flag[slice_idx]  =  1;
-            if (ref.refPicList) {
-                RK_U32 nb_list = I_SLICE - sh.slice_type;
-                for (j = 0; j < nb_list; j++) {
-                    for (i = 0; i < ref.refPicList[j].nb_refs; i++) {
-                        RK_U8 index = 0;
-                        index = ref.refPicList[j].dpb_index[i];
-                        // mpp_err("slice_idx = %d index = %d,j = %d i = %d",slice_idx,index,j,i);
-                        if (index != 0xff) {
-                            rps_pic_info[slice_idx][j][i].dbp_index = index;
-                            rps_pic_info[slice_idx][j][i].is_long_term
-                                = dxva_cxt->pp.RefPicList[index].AssociatedFlag;
-                            if (dxva_cxt->pp.PicOrderCntValList[index] > dxva_cxt->pp.CurrPicOrderCntVal)
-                                lowdelay_flag[slice_idx] = 0;
-                        }
+
+            for (j = 0; j < nb_list; j++) {
+                for (i = 0; i < ref.refPicList[j].nb_refs; i++) {
+                    RK_U8 index = 0;
+                    index = ref.refPicList[j].dpb_index[i];
+                    // mpp_err("slice_idx = %d index = %d,j = %d i = %d",slice_idx,index,j,i);
+                    if (index != 0xff) {
+                        rps_pic_info[slice_idx][j][i].dbp_index = index;
+                        rps_pic_info[slice_idx][j][i].is_long_term
+                            = dxva_cxt->pp.RefPicList[index].AssociatedFlag;
+                        if (dxva_cxt->pp.PicOrderCntValList[index] > dxva_cxt->pp.CurrPicOrderCntVal)
+                            lowdelay_flag[slice_idx] = 0;
                     }
                 }
             }
+
             if (sh.slice_type == I_SLICE)
                 slice_nb_rps_poc[slice_idx] = 0;
             else

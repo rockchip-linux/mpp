@@ -1081,7 +1081,8 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         (ctx->frame_cur->slot_index == 0xff)) {
         RK_S64 Time = 0;
         if (ctx->PreGetFrameTime != pts) {
-            RK_U32 tmp_frame_period;
+            RK_S32 tmp_frame_period;
+
             if (ctx->GroupFrameCnt) {
                 ctx->GroupFrameCnt = ctx->GroupFrameCnt + ctx->pic_head.temporal_reference;
             } else if (ctx->pic_head.temporal_reference == (RK_S32)ctx->PreChangeTime_index)
@@ -1105,7 +1106,8 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 
             if ((pts > ctx->PreGetFrameTime) && (ctx->GroupFrameCnt > 0)) {
                 tmp_frame_period = (tmp_frame_period * 256) / ctx->GroupFrameCnt;
-                if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) && (abs(ctx->frame_period - tmp_frame_period) > 128)) {
+                if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) &&
+                    (abs(ctx->frame_period - tmp_frame_period) > 128)) {
                     if (abs(ctx->preframe_period - tmp_frame_period) > 128)
                         ctx->preframe_period = tmp_frame_period;
                     else

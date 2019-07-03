@@ -278,7 +278,7 @@ typedef struct {
 
 static const char *dev_ion = "/dev/ion";
 static RK_S32 ion_heap_id = -1;
-static RK_U32 ion_heap_mask = ION_HEAP_SYSTEM_MASK;
+static RK_U32 ion_heap_mask = (1 << ION_HEAP_TYPE_SYSTEM);
 static pthread_mutex_t lock;
 
 static MPP_RET allocator_ion_open(void **ctx, MppAllocatorCfg *cfg)

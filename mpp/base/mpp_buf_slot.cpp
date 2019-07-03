@@ -152,12 +152,6 @@ static const MppBufSlotOps set_val_op[SLOT_PROP_BUTT] = {
     SLOT_SET_BUFFER,
 };
 
-static const MppBufSlotOps clr_val_op[SLOT_PROP_BUTT] = {
-    SLOT_CLR_EOS,
-    SLOT_CLR_FRAME,
-    SLOT_CLR_BUFFER,
-};
-
 typedef union SlotStatus_u {
     RK_U32 val;
     struct {

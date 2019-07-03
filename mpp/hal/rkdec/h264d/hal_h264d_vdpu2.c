@@ -864,7 +864,7 @@ MPP_RET vdpu2_h264d_wait(void *hal, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0 };
+        IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
         m_ctx.device_id = HAL_VDPU;
         if (!p_regs->sw55.dec_rdy_sts) {
             m_ctx.hard_err = 1;

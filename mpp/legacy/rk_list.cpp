@@ -129,11 +129,6 @@ static inline void rk_list_del_init(rk_list_node *node)
     list_node_init(node);
 }
 
-static inline int list_is_last(const rk_list_node *list, const rk_list_node *head)
-{
-    return list->next == head;
-}
-
 static inline void _list_del_node_no_lock(rk_list_node *node, void *data, RK_S32 size)
 {
     rk_list_del_init(node);

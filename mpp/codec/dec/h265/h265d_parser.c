@@ -489,15 +489,15 @@ static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
 
     if (sps->vui.video_signal_type_present_flag)
-        s->h265dctx->color_range = sps->vui.video_full_range_flag ? MPPCOL_RANGE_JPEG
-                                   : MPPCOL_RANGE_MPEG;
+        s->h265dctx->color_range = sps->vui.video_full_range_flag ?
+                                   MPP_FRAME_RANGE_JPEG : MPP_FRAME_RANGE_MPEG;
     else
-        s->h265dctx->color_range = MPPCOL_RANGE_MPEG;
+        s->h265dctx->color_range = MPP_FRAME_RANGE_MPEG;
 
     if (sps->vui.colour_description_present_flag) {
         s->h265dctx->colorspace      = sps->vui.matrix_coeffs;
     } else {
-        s->h265dctx->colorspace      = MPPCOL_SPC_UNSPECIFIED;
+        s->h265dctx->colorspace      = MPP_FRAME_SPC_UNSPECIFIED;
     }
 
     s->sps = sps;

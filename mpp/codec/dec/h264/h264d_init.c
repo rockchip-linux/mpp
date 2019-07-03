@@ -481,7 +481,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     mpp_frame_set_colorspace(mframe, p->matrix_coefficients);
                 } else {
                     mpp_frame_set_color_primaries(mframe, MPP_FRAME_PRI_UNSPECIFIED);
-                    mpp_frame_set_color_trc(mframe, MPP_FRAME_PRI_UNSPECIFIED);
+                    mpp_frame_set_color_trc(mframe, MPP_FRAME_TRC_UNSPECIFIED);
                     mpp_frame_set_colorspace(mframe, MPP_FRAME_SPC_UNSPECIFIED);
                 }
             }
