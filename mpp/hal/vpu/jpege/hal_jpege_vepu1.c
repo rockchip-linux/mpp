@@ -176,8 +176,8 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 width        = prep->width;
     RK_U32 height       = prep->height;
     MppFrameFormat fmt  = prep->format;
-    RK_U32 hor_stride   = prep->hor_stride;
-    RK_U32 ver_stride   = prep->ver_stride;
+    RK_U32 hor_stride   = MPP_ALIGN(width, 16);
+    RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
     JpegeIocExtInfo *extra_info = &(ctx->ioctl_info.extra_info);
@@ -199,6 +199,12 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     syntax->ver_stride = prep->ver_stride;
     syntax->format  = fmt;
     syntax->quality = codec->jpeg.quant;
+
+    //hor_stride must be align with 8, and ver_stride mus align with 2
+    if ((prep->hor_stride & 0x7) || (prep->ver_stride & 0x1)) {
+        mpp_err_f("illegal resolution, hor_stride = %d, ver_stride = %d, width = %d, height = %d\n",
+                  prep->hor_stride, prep->ver_stride, prep->width, prep->height);
+    }
 
     x_fill = (hor_stride - width) / 4;
     if (x_fill > 3)
@@ -318,7 +324,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
 
     regs[15] = (0 << 29) |
                (0 << 26) |
-               (hor_stride << 12) |
+               (prep->hor_stride << 12) |
                (x_fill << 10) |
                ((ver_stride - height) << 6) |
                (val32 << 2) | (0);
