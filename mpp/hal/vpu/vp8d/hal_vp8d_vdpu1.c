@@ -316,7 +316,7 @@ hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx, HalTaskInfo *task)
             regs->reg11.sw_dct_start_bit_6 = byte_offset * 8;
             break;
         case 7:
-            regs->reg11.sw_dct_start_bit_6 = byte_offset * 8;
+            regs->reg11.sw_dct_start_bit_7 = byte_offset * 8;
             break;
         default:
             break;
