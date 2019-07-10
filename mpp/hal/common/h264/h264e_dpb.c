@@ -307,6 +307,7 @@ MPP_RET h264e_dpb_setup_hier(H264eDpb *dpb, MppEncHierCfg *cfg)
     // update gop hierarchy reference status and each frame counter
     RK_S32 i;
     MppEncFrmRefInfo *info;
+    MppEncFrmRefInfo *base;
 
     memset(dpb->ref_inf, 0, sizeof(dpb->ref_inf));
     memset(dpb->ref_sta, 0, sizeof(dpb->ref_sta));
@@ -317,6 +318,7 @@ MPP_RET h264e_dpb_setup_hier(H264eDpb *dpb, MppEncHierCfg *cfg)
     dpb->max_lt_idx = 0;
 
     mpp_enc_get_hier_info(&info, cfg);
+    base = info;
 
     for (i = 0; i < cfg->length + 1; i++, info++) {
         RK_S32 ref_idx = info->ref_gop_idx;
@@ -353,7 +355,7 @@ MPP_RET h264e_dpb_setup_hier(H264eDpb *dpb, MppEncHierCfg *cfg)
                         ref_idx, dpb->ref_sta[ref_idx], dpb->ref_cnt[ref_idx]);
     }
 
-    mpp_enc_put_hier_info(info);
+    mpp_enc_put_hier_info(base);
 
     if (hal_h264e_debug & H264E_DBG_DPB)
         h264e_dpb_dump_hier(dpb);
