@@ -907,6 +907,8 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
                              start_code);
             break;
         }
+
+        buf_ptr = ctx->bit_ctx->data_;
     }
 
     if (!syntax->eoi_found) {
