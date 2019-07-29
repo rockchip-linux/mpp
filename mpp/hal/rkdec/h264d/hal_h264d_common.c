@@ -259,3 +259,72 @@ MPP_RET adjust_input(H264dVdpuPriv_t *priv,
 
     return ret = MPP_OK;
 }
+
+RK_S32 compare_p(const void *a, const void *b)
+{
+    RK_S32 val = 0;
+    H264dRefsList_t *p0 = (H264dRefsList_t *)a;
+    H264dRefsList_t *p1 = (H264dRefsList_t *)b;
+
+    if (p0->lt_flag && p1->lt_flag) { // inc
+        val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
+    } else if (!p0->lt_flag && p1->lt_flag) { // dec
+        val = 1;
+    } else if (p0->lt_flag && !p1->lt_flag) { // inc
+        val = -1;
+    } else if (!p0->lt_flag && !p1->lt_flag) { // dec
+        val = (p0->ref_picnum < p1->ref_picnum) ? 1 : -1;
+    }
+
+    return val;
+}
+
+RK_S32 compare_b0(const void *a, const void *b)
+{
+    RK_S32 val = 0;
+    H264dRefsList_t *p0 = (H264dRefsList_t *)a;
+    H264dRefsList_t *p1 = (H264dRefsList_t *)b;
+
+    if (p0->lt_flag && p1->lt_flag) { // inc
+        val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
+    } else if (!p0->lt_flag && p1->lt_flag) { // dec
+        val = 1;
+    } else if (p0->lt_flag && !p1->lt_flag) { // inc
+        val = -1;
+    } else if (!p0->lt_flag && !p1->lt_flag) {
+        if (MPP_MAX(p0->ref_poc, p1->ref_poc) < p0->cur_poc) { // dec
+            val = (p0->ref_poc < p1->ref_poc) ? 1 : -1;
+        } else if (MPP_MIN(p0->ref_poc, p1->ref_poc) > p0->cur_poc) { // inc
+            val = (p0->ref_poc > p1->ref_poc) ? 1 : -1;
+        } else {
+            val = (p0->ref_poc > p1->ref_poc) ? 1 : -1; // inc
+        }
+    }
+
+    return val;
+}
+
+RK_S32 compare_b1(const void *a, const void *b)
+{
+    RK_S32 val = 0;
+    H264dRefsList_t *p0 = (H264dRefsList_t *)a;
+    H264dRefsList_t *p1 = (H264dRefsList_t *)b;
+
+    if (p0->lt_flag && p1->lt_flag) { // inc
+        val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
+    } else if (!p0->lt_flag && p1->lt_flag) {
+        val = 1;
+    } else if (p0->lt_flag && !p1->lt_flag) {
+        val = -1;
+    } else if (!p0->lt_flag && !p1->lt_flag) {
+        if (MPP_MIN(p0->ref_poc, p1->ref_poc) > p0->cur_poc) { // inc
+            val = (p0->ref_poc > p1->ref_poc) ? 1 : -1;
+        } else if (MPP_MAX(p0->ref_poc, p1->ref_poc) < p0->cur_poc) { // dec
+            val = (p0->ref_poc < p1->ref_poc) ? 1 : -1;
+        } else {
+            val = (p0->ref_poc < p1->ref_poc) ? 1 : -1; // dec
+        }
+    }
+
+    return val;
+}

@@ -236,6 +236,15 @@ typedef struct h264d_vdpu_buf_t {
     void *regs;
 } H264dVdpuBuf_t;
 
+typedef struct h264d_refs_list_t {
+    RK_S32 idx;
+    RK_S32 cur_poc;
+
+    RK_S32 lt_flag;
+    RK_S32 ref_poc;
+    RK_S32 ref_picnum;
+} H264dRefsList_t;
+
 typedef struct h264d_vdpu_reg_ctx_t {
     H264dVdpuBuf_t reg_buf[3];
 
@@ -253,5 +262,11 @@ RK_U32 vdpu_hor_align(RK_U32 val);
 MPP_RET adjust_input(H264dVdpuPriv_t *priv,
                      DXVA_Slice_H264_Long *p_long,
                      DXVA_PicParams_H264_MVC  *pp);
+
+RK_S32 compare_p(const void *a, const void *b);
+
+RK_S32 compare_b0(const void *a, const void *b);
+
+RK_S32 compare_b1(const void *a, const void *b);
 
 #endif

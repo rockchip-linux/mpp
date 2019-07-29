@@ -487,45 +487,48 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 
 static MPP_RET set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
 {
-    RK_U32 i = 0, j = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
+    RK_U32 i = 0;
+    RK_U32 num_refs = 0;
+    H264dRefsList_t m_lists[3][16];
+    DXVA_PicParams_H264_MVC  *pp = p_hal->pp;
 
-    //!< list0 list1 listP
-    for (j = 0; j < 3; j++) {
-        for (i = 0; i < 16; i++) {
-            RK_U16 val = 0;
-            if (p_hal->pp->field_pic_flag) { //!< field
-                RK_U32 nn = 0;
-                nn = p_hal->pp->CurrPic.AssociatedFlag ? (2 * i + 1) : (2 * i);
-                if (p_long->RefPicList[j][nn].bPicEntry == 0xff) {
-                    val = vdpu_value_list[i];
-                } else {
-                    val = p_long->RefPicList[j][nn].Index7Bits;
-                }
-            } else { //!< frame
-                if (p_long->RefPicList[j][i].bPicEntry == 0xff) {
-                    val = vdpu_value_list[i];
-                } else {
-                    val = p_long->RefPicList[j][i].Index7Bits;
-                }
+    // init list
+    memset(m_lists, 0, sizeof(m_lists));
+    for (i = 0; i < 16; i++) {
+        m_lists[0][i].idx = i;
+        m_lists[0][i].cur_poc = pp->CurrPic.AssociatedFlag
+                                ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
+        RK_U32 ref_flag = pp->UsedForReferenceFlags >> (2 * i) & 0x3;
+        if (ref_flag) {
+            num_refs++;
+            m_lists[0][i].lt_flag = pp->RefFrameList[i].AssociatedFlag;
+            if (m_lists[0][i].lt_flag) {
+                m_lists[0][i].ref_picnum = pp->LongTermPicNumList[i];
+            } else {
+                m_lists[0][i].ref_picnum = pp->FrameNumList[i];
             }
-            switch (j) {
-            case 0:
-                set_refer_pic_list_p(p_regs, i, val);
-                break;
-            case 1:
-                set_refer_pic_list_b0(p_regs, i, val);
 
-                break;
-            case 2:
-                set_refer_pic_list_b1(p_regs, i, val);
-
-                break;
-            default:
-                break;
+            if (ref_flag == 3) {
+                m_lists[0][i].ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0], pp->FieldOrderCntList[i][1]);
+            } else if (ref_flag & 0x1) {
+                m_lists[0][i].ref_poc = pp->FieldOrderCntList[i][0];
+            } else if (ref_flag & 0x2) {
+                m_lists[0][i].ref_poc = pp->FieldOrderCntList[i][1];
             }
         }
+    }
+    memcpy(m_lists[1], m_lists[0], sizeof(m_lists[0]));
+    memcpy(m_lists[2], m_lists[0], sizeof(m_lists[0]));
+    qsort(m_lists[0], num_refs, sizeof(m_lists[0][0]), compare_p);
+    qsort(m_lists[1], num_refs, sizeof(m_lists[1][0]), compare_b0);
+    qsort(m_lists[2], num_refs, sizeof(m_lists[2][0]), compare_b1);
+
+    //!< list0 list1 listP
+    for (i = 0; i < 16; i++) {
+        set_refer_pic_list_p(p_regs, i, m_lists[0][i].idx);
+        set_refer_pic_list_b0(p_regs, i, m_lists[1][i].idx);
+        set_refer_pic_list_b1(p_regs, i, m_lists[2][i].idx);
     }
 
     return ret = MPP_OK;
