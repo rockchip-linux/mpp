@@ -46,7 +46,7 @@ struct HalTaskGroupImpl_t {
     RK_U32              count[TASK_BUTT];
 };
 
-MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count)
 {
     if (NULL == group) {
         mpp_err_f("found invalid input group %p count %d\n", group, count);
@@ -74,7 +74,6 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count)
             break;;
         }
 
-        p->type  = type;
         p->task_count = count;
         p->lock  = lock;
         p->tasks = tasks;

@@ -22,10 +22,11 @@
 
 #define MAX_DEC_REF_NUM     17
 
+typedef void* HalTaskHnd;
+typedef void* HalTaskGroup;
+
 typedef enum HalTaskStatus_e {
     TASK_IDLE,
-    TASK_PREPARE,
-    TASK_WAIT_PROC,
     TASK_PROCESSING,
     TASK_PROC_DONE,
     TASK_BUTT,
@@ -179,16 +180,13 @@ typedef struct HalEncTask_t {
 
 } HalEncTask;
 
-
 typedef struct HalTask_u {
+    HalTaskHnd      hnd;
     union {
         HalDecTask  dec;
         HalEncTask  enc;
     };
 } HalTaskInfo;
-
-typedef void* HalTaskHnd;
-typedef void* HalTaskGroup;
 
 #ifdef __cplusplus
 extern "C" {
@@ -200,7 +198,7 @@ extern "C" {
  * NOTE: use mpp_list to implement
  *       the count means the max task waiting for process
  */
-MPP_RET hal_task_group_init(HalTaskGroup *group, MppCtxType type, RK_S32 count);
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*

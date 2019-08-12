@@ -136,7 +136,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
                 break;
             }
 
-            ret = hal_task_group_init(&p->tasks, p->type, p->task_count);
+            ret = hal_task_group_init(&p->tasks, p->task_count);
             if (ret) {
                 mpp_err_f("hal_task_group_init failed ret %d\n", ret);
                 break;
