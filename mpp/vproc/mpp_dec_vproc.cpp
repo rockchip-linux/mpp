@@ -22,6 +22,8 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
+#include "mpp.h"
+
 #include "mpp_frame_impl.h"
 #include "mpp_dec_vproc.h"
 #include "iep_api.h"
@@ -51,6 +53,7 @@ RK_U32 vproc_debug = 0;
 
 typedef struct MppDecVprocCtxImpl_t {
     Mpp                 *mpp;
+    HalTaskGroup        task_group;
     MppBufSlots         slots;
 
     MppThread           *thd;
@@ -380,6 +383,13 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, void *mpp)
     p->mpp = (Mpp *)mpp;
     p->slots = p->mpp->mDec->frame_slots;
     p->thd = new MppThread(dec_vproc_thread, p, "mpp_dec_vproc");
+    ret = hal_task_group_init(&p->task_group, 4);
+    if (ret) {
+        mpp_err_f("create task group failed\n");
+        delete p->thd;
+        MPP_FREE(p);
+        return MPP_ERR_MALLOC;
+    }
     ret = iep_init(&p->iep_ctx);
     if (!p->thd || ret) {
         mpp_err("failed to create context\n");
@@ -436,6 +446,11 @@ MPP_RET dec_vproc_deinit(MppDecVprocCtx ctx)
     if (p->iep_ctx) {
         iep_deinit(p->iep_ctx);
         p->iep_ctx = NULL;
+    }
+
+    if (p->task_group) {
+        hal_task_group_deinit(p->task_group);
+        p->task_group = NULL;
     }
 
     mpp_free(p);

@@ -17,10 +17,11 @@
 #ifndef __MPP_DEC_VPROC_H__
 #define __MPP_DEC_VPROC_H__
 
+#include "hal_task.h"
+
 typedef void* MppDecVprocCtx;
 
 #ifdef __cplusplus
-#include "mpp.h"
 
 extern "C" {
 #endif
