@@ -131,6 +131,15 @@ typedef struct HalEncTaskFlag_t {
     RK_U32 err;
 } HalEncTaskFlag;
 
+typedef union HalDecVprocTaskFlag_t {
+    RK_U32          val;
+
+    struct {
+        RK_U32      eos              : 1;
+        RK_U32      info_change      : 1;
+    };
+} HalDecVprocTaskFlag;
+
 typedef struct HalDecTask_t {
     // set by parser to signal that it is valid
     RK_U32          valid;
@@ -180,11 +189,19 @@ typedef struct HalEncTask_t {
 
 } HalEncTask;
 
+typedef struct HalDecVprocTask_t {
+    // input slot index for post-process
+    HalDecVprocTaskFlag     flags;
+
+    RK_S32                  input;
+} HalDecVprocTask;
+
 typedef struct HalTask_u {
-    HalTaskHnd      hnd;
+    HalTaskHnd              hnd;
     union {
-        HalDecTask  dec;
-        HalEncTask  enc;
+        HalDecTask          dec;
+        HalEncTask          enc;
+        HalDecVprocTask     dec_vproc;
     };
 } HalTaskInfo;
 

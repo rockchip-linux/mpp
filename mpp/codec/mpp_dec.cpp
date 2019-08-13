@@ -269,14 +269,17 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_buf_slot_get_prop(slots, index, SLOT_FRAME_PTR, &frame);
         if (mpp_frame_get_mode(frame) && dec->enable_deinterlace &&
             NULL == dec->vproc) {
-            MPP_RET ret = dec_vproc_init(&dec->vproc, mpp);
+            MppDecVprocCfg cfg = { mpp, NULL };
+            MPP_RET ret = dec_vproc_init(&dec->vproc, &cfg);
             if (ret) {
                 // When iep is failed to open disable deinterlace function to
                 // avoid noisy log.
                 dec->enable_deinterlace = 0;
                 dec->vproc = NULL;
-            } else
+            } else {
+                dec->vproc_tasks = cfg.task_group;
                 dec_vproc_start(dec->vproc);
+            }
         }
     } else {
         // when post-process is needed and eos without slot index case
@@ -285,9 +288,24 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_assert(!change);
 
         if (dec->vproc) {
-            mpp_buf_slot_get_unused(slots, &index);
-            mpp_buf_slot_default_info(slots, index, &frame);
-            mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_READY);
+            HalTaskGroup group = dec->vproc_tasks;
+            HalTaskHnd hnd = NULL;
+            HalTaskInfo task;
+            HalDecVprocTask *vproc_task = &task.dec_vproc;
+
+            MPP_RET ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
+
+            mpp_assert(ret == MPP_OK);
+
+            vproc_task->flags.val = 0;
+            vproc_task->flags.eos = eos;
+            vproc_task->input = index;
+
+            hal_task_hnd_set_info(hnd, &task);
+            hal_task_hnd_set_status(hnd, TASK_PROCESSING);
+            dec_vproc_signal(dec->vproc);
+
+            return ;
         } else {
             mpp_frame_init(&frame);
             fake_frame = 1;
@@ -305,10 +323,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_frame_set_discard(frame, 0);
     }
 
-    if (change) {
-        /* NOTE: Set codec ready here for dequeue/enqueue */
-        mpp_buf_slot_set_flag(slots, index, SLOT_CODEC_READY);
-    } else {
+    if (!change) {
         if (dec->use_preset_time_order) {
             MppPacket pkt = NULL;
             mpp->mTimeStamps->pull(&pkt, sizeof(pkt));
@@ -334,8 +349,33 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     }
 
     if (dec->vproc) {
-        mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
-        mpp_buf_slot_enqueue(slots, index, QUEUE_DEINTERLACE);
+        HalTaskGroup group = dec->vproc_tasks;
+        HalTaskHnd hnd = NULL;
+        HalTaskInfo task;
+        HalDecVprocTask *vproc_task = &task.dec_vproc;
+        MPP_RET ret = MPP_OK;
+
+        do {
+            ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
+            if (ret) {
+                msleep(10);
+            }
+        } while (ret);
+
+        mpp_assert(ret == MPP_OK);
+
+        vproc_task->flags.eos = eos;
+        vproc_task->flags.info_change = change;
+        vproc_task->input = index;
+
+        if (!change) {
+            mpp_buf_slot_set_flag(slots, index, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(slots, index, QUEUE_DEINTERLACE);
+        }
+
+        hal_task_hnd_set_info(hnd, &task);
+        hal_task_hnd_set_status(hnd, TASK_PROCESSING);
+
         dec_vproc_signal(dec->vproc);
     } else {
         // direct output -> copy a new MppFrame and output

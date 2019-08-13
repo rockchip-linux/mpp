@@ -52,6 +52,7 @@ struct MppDec_t {
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
     HalTaskGroup        tasks;
+    HalTaskGroup        vproc_tasks;
 
     // status flags
     RK_U32              parser_work_count;

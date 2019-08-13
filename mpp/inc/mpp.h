@@ -154,6 +154,7 @@ public:
      */
     MppThread       *mThreadCodec;
     MppThread       *mThreadHal;
+    MppThread       *mThreadVproc;
 
     MppDec          *mDec;
     MppEnc          *mEnc;
