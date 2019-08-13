@@ -168,7 +168,8 @@ static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
     return ret;
 }
 
-static inline RK_U16 jpegd_read_len(BitReadCtx_t *gb) {
+static inline RK_U16 jpegd_read_len(BitReadCtx_t *gb)
+{
     RK_U8 lh, ll;
     READ_BITS(gb, 8, &lh);
     READ_BITS(gb, 8, &ll);

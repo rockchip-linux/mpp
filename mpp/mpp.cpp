@@ -67,6 +67,7 @@ Mpp::Mpp()
       mInputTask(NULL),
       mThreadCodec(NULL),
       mThreadHal(NULL),
+      mThreadVproc(NULL),
       mDec(NULL),
       mEnc(NULL),
       mType(MPP_CTX_BUTT),
