@@ -47,6 +47,10 @@ public:
     RK_S32 del_at_head(void *data, RK_S32 size);
     RK_S32 del_at_tail(void *data, RK_S32 size);
 
+    // direct fifo operation
+    RK_S32 fifo_wr(void *data, RK_S32 size);
+    RK_S32 fifo_rd(void *data, RK_S32 *size);
+
     // for status check
     RK_S32 list_is_empty();
     RK_S32 list_size();

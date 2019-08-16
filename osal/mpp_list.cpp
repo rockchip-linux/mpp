@@ -167,6 +167,64 @@ RK_S32 mpp_list::del_at_tail(void *data, RK_S32 size)
     return ret;
 }
 
+static mpp_list_node* create_list_with_size(void *data, RK_S32 size, RK_U32 key)
+{
+    mpp_list_node *node = (mpp_list_node*)malloc(sizeof(mpp_list_node) +
+                                                 sizeof(size) + size);
+    if (node) {
+        RK_S32 *dst = (RK_S32 *)(node + 1);
+        list_node_init_with_key_and_size(node, key, size);
+        *dst++ = size;
+        memcpy(dst, data, size);
+    } else {
+        LIST_ERROR("failed to allocate list node");
+    }
+    return node;
+}
+
+RK_S32 mpp_list::fifo_wr(void *data, RK_S32 size)
+{
+    RK_S32 ret = -EINVAL;
+    if (head) {
+        mpp_list_node *node = create_list_with_size(data, size, 0);
+        if (node) {
+            mpp_list_add_tail(node, head);
+            count++;
+            ret = 0;
+        } else {
+            ret = -ENOMEM;
+        }
+    }
+    return ret;
+}
+
+static void release_list_with_size(mpp_list_node* node, void *data, RK_S32 *size)
+{
+    RK_S32 *src = (RK_S32*)(node + 1);
+    RK_S32 data_size = *src++;
+
+    *size = data_size;
+
+    if (data)
+        memcpy(data, src, data_size);
+
+    free(node);
+}
+
+RK_S32 mpp_list::fifo_rd(void *data, RK_S32 *size)
+{
+    RK_S32 ret = -EINVAL;
+    if (head && count) {
+        mpp_list_node *node = head->next;
+
+        mpp_list_del_init(node);
+        release_list_with_size(node, data, size);
+        count--;
+        ret = 0;
+    }
+    return ret;
+}
+
 RK_S32 mpp_list::list_is_empty()
 {
     RK_S32 ret = (count == 0);
