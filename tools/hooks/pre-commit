@@ -11,7 +11,7 @@ cd $script_dir
 
 cd $cur_dir
 
-git diff > $out_file
+git status -s | grep "^MM " > $out_file
 
 if [ -s $out_file ]
 then {
