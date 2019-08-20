@@ -38,8 +38,8 @@ static pthread_mutex_t mutex_0;
 static pthread_mutex_t mutex_1;
 static pthread_cond_t cond_0;
 static pthread_cond_t cond_1;
-static RK_S32 flag_0 = 1;
-static RK_S32 flag_1 = 1;
+static volatile RK_S32 flag_0 = 1;
+static volatile RK_S32 flag_1 = 1;
 
 void *thread_test(void *pdata)
 {
@@ -58,7 +58,7 @@ void* mutex_performance_test_loop_0(void *arg)
         thread_dbg("0 %5d lock\n", i);
         pthread_mutex_lock(&mutex_0);
 
-        thread_dbg("0 %5d wait\n", i);
+        thread_dbg("0 %5d wait flag %d\n", i, flag_0);
         if (flag_0) {
             pthread_cond_wait(&cond_0, &mutex_0);
         }
@@ -81,13 +81,11 @@ void *mutex_performance_test_loop_1(void *arg)
 {
     RK_S32 i = 0;
 
-    flag_0 = 0;
-
     for (i = 0; i < MAX_LOCK_LOOP; i++) {
         thread_dbg("1 %5d lock\n", i);
         pthread_mutex_lock(&mutex_1);
 
-        thread_dbg("1 %5d wait\n", i);
+        thread_dbg("1 %5d wait flag %d\n", i, flag_1);
         if (flag_1) {
             pthread_cond_wait(&cond_1, &mutex_1);
         }
@@ -177,6 +175,7 @@ int main()
 
     time_start = mpp_time();
     pthread_create(&threads[0], &attr, mutex_performance_test_loop_0, NULL);
+    flag_0 = 0;
     pthread_create(&threads[1], &attr, mutex_performance_test_loop_1, NULL);
 
     pthread_join(threads[0], &dummy);
