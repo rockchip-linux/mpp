@@ -8,9 +8,11 @@ else
 fi
 
 PLATFORM=$ANDROID_NDK/platforms/android-21/arch-arm
+MAKE_PROGRAM=`which make`
 
 cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
       -DCMAKE_BUILD_TYPE=Release                                            \
+      -DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}                                  \
       -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
       -DANDROID_SYSROOT=${PLATFORM}                                         \

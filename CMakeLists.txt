@@ -13,10 +13,6 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif()
 message(STATUS "cmake version ${CMAKE_VERSION}")
-if(NOT CMAKE_VERSION VERSION_LESS "2.8.12.20131121")
-    cmake_policy(SET CMP0025 OLD) # report Apple's Clang as just Clang
-    cmake_policy(SET CMP0042 OLD) # do not require MACOSX_RPATH
-endif()
 
 # Search packages for host system instead of packages for target system
 # in case of cross compilation these macro should be defined by toolchain file
