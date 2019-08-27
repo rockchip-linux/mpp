@@ -227,6 +227,19 @@ typedef struct h264_nalu_t {
 
 } H264_Nalu_t;
 
+typedef struct h264_nalu_svc_ext_t {
+    RK_U32    valid;
+    RK_U32    idr_flag;
+    RK_U32    priority_id;
+    RK_U32    no_inter_layer_pred_flag;
+    RK_U32    dependency_id;
+    RK_U32    quality_id;
+    RK_U32    temporal_id;
+    RK_U32    use_ref_base_pic_flag;
+    RK_U32    discardable_flag;
+    RK_U32    output_flag;
+} H264_NaluSvcExt_t;
+
 typedef struct h264_nalu_mvc_ext_t {
     RK_U32    valid;
     RK_U32    non_idr_flag;
@@ -793,6 +806,7 @@ typedef struct h264_sei_t {
 
 //!< SLICE
 typedef struct h264_slice_t {
+    struct h264_nalu_svc_ext_t svcExt;
     struct h264_nalu_mvc_ext_t mvcExt;
     //--- slice property;
     RK_S32       layer_id;
@@ -1157,8 +1171,8 @@ typedef struct h264_dec_ctx_t {
     RK_U8                      have_slice_data;
     RK_U8                      is_new_frame;
     RK_U8                      is_parser_end;
+    RK_U8                      svc_valid;
     RK_U8                      mvc_valid;
-
     //!< add
     MppBufSlots                frame_slots;   //!< corresponding to dpb_mark
     MppBufSlots                packet_slots;
