@@ -172,9 +172,22 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         || cur_nal->nalu_type == NALU_TYPE_SLC_EXT) {
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
-            currSlice->mvcExt.valid = 0;
-            //H264D_WARNNING("svc_extension is not supported.");
-            //goto __FAILED;
+            currSlice->svcExt.valid =  1;
+            p_Cur->p_Dec->svc_valid = 1;
+            READ_ONEBIT(p_bitctx,     &currSlice->svcExt.idr_flag);
+            READ_BITS(p_bitctx,    6, &currSlice->svcExt.priority_id);
+            READ_ONEBIT(p_bitctx,     &currSlice->svcExt.no_inter_layer_pred_flag);
+            READ_BITS(p_bitctx,    3, &currSlice->svcExt.dependency_id);
+            READ_BITS(p_bitctx,    4, &currSlice->svcExt.quality_id);
+            READ_BITS(p_bitctx,    3, &currSlice->svcExt.temporal_id);
+            READ_ONEBIT(p_bitctx,     &currSlice->svcExt.use_ref_base_pic_flag);
+            READ_ONEBIT(p_bitctx,     &currSlice->svcExt.discardable_flag);
+            READ_ONEBIT(p_bitctx,     &currSlice->svcExt.output_flag);
+
+            ASSERT(currSlice->svcExt.no_inter_layer_pred_flag == 1);
+            ASSERT(currSlice->svcExt.dependency_id == 0);
+            ASSERT(currSlice->svcExt.quality_id == 0);
+            ASSERT(currSlice->svcExt.use_ref_base_pic_flag == 0);
         } else { //!< MVC
             currSlice->mvcExt.valid = 1;
             p_Cur->p_Dec->mvc_valid = 1;
@@ -205,9 +218,6 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
 __BITREAD_ERR:
     p_Cur->p_Dec->nalu_ret = ReadNaluError;
     return ret = p_bitctx->ret;
-//__FAILED:
-//    p_Cur->p_Dec->nalu_ret = StreamError;
-//    return ret;
 }
 
 static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
@@ -387,7 +397,6 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     {
         RK_U32      forbidden_bit = -1;
         RK_U32  nal_reference_idc = -1;
-        RK_U32 svc_extension_flag = -1;
         mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
         mpp_set_pre_detection(p_bitctx);
 
@@ -397,15 +406,10 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
         READ_BITS(p_bitctx, 5, &p_strm->nalu_type);
 
         nalu_header_bytes = 1;
-        if ((p_strm->nalu_type == NALU_TYPE_PREFIX) || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-            READ_BITS(p_bitctx, 1, &svc_extension_flag);
-            if (svc_extension_flag) {
-                H264D_WARNNING("svc_extension is not supported.");
-                goto __FAILED;
-            } else {
-                if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
-                    p_strm->nalu_type = NALU_TYPE_SLICE;
-                }
+        if ((p_strm->nalu_type == NALU_TYPE_PREFIX)
+            || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
+            if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
+                p_strm->nalu_type = NALU_TYPE_SLICE;
             }
             nalu_header_bytes += 3;
         }
@@ -441,8 +445,6 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
     return ret = MPP_OK;
 __BITREAD_ERR:
     return ret = p_bitctx->ret;
-__FAILED:
-    return ret;
 }
 
 #define  MAX_ES_FILE_SIZE  (100*1024*1024)
