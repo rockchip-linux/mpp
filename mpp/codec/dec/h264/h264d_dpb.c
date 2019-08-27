@@ -109,8 +109,7 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
         size = 70778880;
         break;
     default:
-        H264D_ERR("dpb_size error.");
-        return size = 0;
+        size = 0;
         break;
     }
     size /= pic_size;
@@ -135,6 +134,7 @@ static RK_S32 getDpbSize(H264dVideoCtx_t *p_Vid, H264_SPS_t *active_sps)
 
     if (size == 0) {
         H264D_WARNNING("warnning: DPB size is 0, level(%d), pic_size(%d)", active_sps->level_idc, pic_size);
+        size = active_sps->max_num_ref_frames;
     }
 
     return size;
