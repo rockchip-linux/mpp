@@ -132,50 +132,85 @@ static FILE *try_env_file(const char *env, const char *path, pid_t tid)
     return fp;
 }
 
-static void dump_frame(FILE *fp, MppFrame frame, RK_U8 *tmp, RK_U32 w, RK_U32 h)
+static RK_U8 fetch_data(RK_U32 fmt, RK_U8 *line, RK_U32 num)
 {
-    RK_U32 width = mpp_frame_get_hor_stride(frame);
-    RK_U32 height = mpp_frame_get_ver_stride(frame);
-    MppBuffer buf = mpp_frame_get_buffer(frame);
-    RK_U8 *p = (RK_U8 *) mpp_buffer_get_ptr(buf);
+    RK_U32 offset = 0;
+    RK_U32 value = 0;
 
-    if (width > w || height > h) {
-        RK_U32 i = 0, j = 0, step = 0;
-        RK_U32 img_w = 0, img_h = 0;
-        RK_U8 *pdes = NULL, *psrc = NULL;
+    if (fmt == MPP_FMT_YUV420SP_10BIT) {
+        offset = (num * 2) & 7;
+        value = (line[num * 10 / 8] >> offset) |
+                (line[num * 10 / 8 + 1] << (8 - offset));
 
-        step = MPP_MAX((width + w - 1) / w,
-                       (height + h - 1) / h);
-        img_w = width / step;
-        img_h = height / step;
-        pdes = tmp;
-        psrc = p;
-        for (i = 0; i < img_h; i++) {
-            for (j = 0; j < img_w; j++) {
-                pdes[j] = psrc[j * step];
-            }
-            pdes += img_w;
-            psrc += step * width;
-        }
-        pdes = tmp + img_w * img_h;
-        psrc = (RK_U8 *)p + width * height;
-        for (i = 0; i < (img_h / 2); i++) {
-            for (j = 0; j < (img_w / 2); j++) {
-                pdes[2 * j + 0] = psrc[2 * j * step + 0];
-                pdes[2 * j + 1] = psrc[2 * j * step + 1];
-            }
-            pdes += img_w;
-            psrc += step * width;
-        }
-
-        fwrite(tmp, 1, img_w * img_h * 3 / 2, fp);
-
-        width = img_w;
-        height = img_h;
-    } else {
-        fwrite(p, 1, width * height * 3 / 2, fp);
+        value = (value & 0x3ff) >> 2;
+    } else if (fmt == MPP_FMT_YUV420SP) {
+        value = line[num];
     }
 
+    return RK_U8(value);
+}
+
+static void dump_frame(FILE *fp, MppFrame frame, RK_U8 *tmp, RK_U32 w, RK_U32 h)
+{
+    RK_U32 i = 0, j = 0;
+    RK_U32 fmt = mpp_frame_get_fmt(frame);
+    RK_U32 width = mpp_frame_get_width(frame);
+    RK_U32 height = mpp_frame_get_height(frame);
+    RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
+    RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
+    RK_U8 *p_buf = (RK_U8 *) mpp_buffer_get_ptr(mpp_frame_get_buffer(frame));
+
+    RK_U8 *psrc = p_buf;
+    RK_U8 *pdes = tmp;
+
+    if (hor_stride > w || ver_stride > h) {
+        RK_U32 step = MPP_MAX((hor_stride + w - 1) / w,
+                              (ver_stride + h - 1) / h);
+        RK_U32 img_w = width / step;
+        RK_U32 img_h = height / step;
+
+        img_w -= img_w & 0x1;
+        img_h -= img_h & 0x1;
+        for (i = 0; i < img_h; i++) {
+            for (j = 0; j < img_w; j++)
+                pdes[j] = fetch_data(fmt, psrc, j * step);
+            pdes += img_w;
+            psrc += step * hor_stride;
+        }
+        psrc = p_buf + hor_stride * ver_stride;
+        pdes = tmp + img_w * img_h;
+        for (i = 0; i < (img_h / 2); i++) {
+            for (j = 0; j < (img_w / 2); j++) {
+                pdes[2 * j + 0] = fetch_data(fmt, psrc, 2 * j * step + 0);
+                pdes[2 * j + 1] = fetch_data(fmt, psrc, 2 * j * step + 1);
+            }
+            pdes += img_w;
+            psrc += step * hor_stride;
+        }
+        width = img_w;
+        height = img_h;
+    } else if (fmt == MPP_FMT_YUV420SP_10BIT) {
+        for (i = 0; i < height; i++) {
+            for (j = 0; j < width; j++)
+                pdes[j] = fetch_data(fmt, psrc, j);
+            pdes += width;
+            psrc += hor_stride;
+        }
+        psrc = p_buf + hor_stride * ver_stride;
+        pdes = tmp + width * height;
+        for (i = 0; i < height / 2; i++) {
+            for (j = 0; j < width; j++)
+                pdes[j] = fetch_data(fmt, psrc, j);
+            pdes += width;
+            psrc += hor_stride;
+        }
+    } else {
+        tmp = p_buf;
+        width = hor_stride;
+        height = ver_stride;
+    }
+    mpp_log("dump_yuv: [%d:%d] pts %lld\n", width, height, mpp_frame_get_pts(frame));
+    fwrite(tmp, 1, width * height * 3 / 2, fp);
     fflush(fp);
 }
 
@@ -338,7 +373,7 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
         RK_U32 width = mpp_frame_get_hor_stride(frame);
         RK_U32 height = mpp_frame_get_ver_stride(frame);
 
-        mpp_log("dump_yuv: [%d:%d] pts %lld", width, height, pts);
+        mpp_log("yuv_info: [%d:%d] pts %lld", width, height, pts);
     }
 
     return MPP_OK;
@@ -359,7 +394,7 @@ MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame)
         RK_U32 width = mpp_frame_get_hor_stride(frame);
         RK_U32 height = mpp_frame_get_ver_stride(frame);
 
-        mpp_log("dump_yuv: [%d:%d] pts %lld", width, height, pts);
+        mpp_log("yuv_info: [%d:%d] pts %lld", width, height, pts);
     }
 
     return MPP_OK;
