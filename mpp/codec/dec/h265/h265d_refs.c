@@ -85,7 +85,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         h265d_dbg(H265D_DBG_GLOBAL, "width = %d height = %d", s->h265dctx->width, s->h265dctx->height);
         mpp_frame_set_width(frame->frame, s->h265dctx->width);
         mpp_frame_set_height(frame->frame, s->h265dctx->height);
-        mpp_frame_set_hor_stride(frame->frame, (s->h265dctx->coded_width * s->h265dctx->nBitDepth) >> 3);
+        mpp_frame_set_hor_stride(frame->frame,
+                                 (MPP_ALIGN(s->h265dctx->coded_width, 64) * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
         mpp_frame_set_errinfo(frame->frame, 0);

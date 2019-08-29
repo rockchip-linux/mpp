@@ -1319,11 +1319,11 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
 MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 {
-    RK_U32 uiMaxCUWidth, uiMaxCUHeight;
-    RK_U32 log2_min_cb_size;
-    RK_S32 width, height, numCuInWidth;
-    RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
     RK_S32 i = 0;
+    RK_S32 log2_min_cb_size;
+    RK_S32 width, height;
+    RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
+
 
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
@@ -1384,25 +1384,15 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (H265d_REGS_t*)reg_cxt->hw_regs;
     memset(hw_regs, 0, sizeof(H265d_REGS_t));
 
-    uiMaxCUWidth = 1 << (dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size
-                         + dxva_cxt->pp.log2_min_luma_coding_block_size_minus3
-                         + 3);
-    uiMaxCUHeight = uiMaxCUWidth;
-
     log2_min_cb_size = dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3;
 
     width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
-
     height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
 
-    numCuInWidth   = width / uiMaxCUWidth  + (width % uiMaxCUWidth != 0);
-
-    stride_y = (((numCuInWidth * uiMaxCUWidth
-                  * (dxva_cxt->pp.bit_depth_luma_minus8 + 8) + 7)
-                 & (~7)) >> 3);
-    stride_uv = (((numCuInWidth * uiMaxCUHeight
-                   * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8) + 7)
-                  & (~7)) >> 3);
+    stride_y = ((MPP_ALIGN(width, 64)
+                 * (dxva_cxt->pp.bit_depth_luma_minus8 + 8)) >> 3);
+    stride_uv = ((MPP_ALIGN(width, 64)
+                  * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8)) >> 3);
 
     stride_y = hevc_hor_align(stride_y);
     stride_uv = hevc_hor_align(stride_uv);
@@ -1410,14 +1400,10 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     virstrid_yuv  = virstrid_y + stride_uv * hevc_ver_align(height) / 2;
 
     hw_regs->sw_picparameter.sw_slice_num = dxva_cxt->slice_count;
-    hw_regs->sw_picparameter.sw_y_hor_virstride
-        = stride_y >> 4;
-    hw_regs->sw_picparameter.sw_uv_hor_virstride
-        = stride_uv >> 4;
-    hw_regs->sw_y_virstride
-        = virstrid_y >> 4;
-    hw_regs->sw_yuv_virstride
-        = virstrid_yuv >> 4;
+    hw_regs->sw_picparameter.sw_y_hor_virstride = stride_y >> 4;
+    hw_regs->sw_picparameter.sw_uv_hor_virstride = stride_uv >> 4;
+    hw_regs->sw_y_virstride = virstrid_y >> 4;
+    hw_regs->sw_yuv_virstride = virstrid_yuv >> 4;
 
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);
