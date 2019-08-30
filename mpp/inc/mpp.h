@@ -36,6 +36,8 @@
  */
 #define MPP_INPUT_ENQUEUE                   (0x00000001)
 #define MPP_OUTPUT_DEQUEUE                  (0x00000002)
+#define MPP_INPUT_DEQUEUE                   (0x00000004)
+#define MPP_OUTPUT_ENQUEUE                  (0x00000008)
 #define MPP_RESET                           (0xFFFFFFFF)
 
 /* mpp dec event flags */
@@ -53,6 +55,8 @@
 /* mpp enc event flags */
 #define MPP_ENC_NOTIFY_FRAME_ENQUEUE        (MPP_INPUT_ENQUEUE)
 #define MPP_ENC_NOTIFY_PACKET_DEQUEUE       (MPP_OUTPUT_DEQUEUE)
+#define MPP_ENC_NOTIFY_FRAME_DEQUEUE        (MPP_INPUT_DEQUEUE)
+#define MPP_ENC_NOTIFY_PACKET_ENQUEUE       (MPP_OUTPUT_ENQUEUE)
 #define MPP_ENC_RESET                       (MPP_RESET)
 
 /*

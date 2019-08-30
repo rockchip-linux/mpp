@@ -251,7 +251,7 @@ MPP_RET _mpp_port_enqueue(const char *caller, MppPort port, MppTask task)
 
     check_mpp_task_name(task);
 
-    mpp_assert(task_impl->queue  == (MppTaskQueue *)queue);
+    mpp_assert(task_impl->queue  == (MppTaskQueue)queue);
     mpp_assert(task_impl->status == port_impl->next_on_dequeue);
 
     curr = &queue->info[task_impl->status];
@@ -395,7 +395,7 @@ MPP_RET mpp_task_queue_setup(MppTaskQueue queue, RK_S32 task_count)
         setup_mpp_task_name(&tasks[i]);
         INIT_LIST_HEAD(&tasks[i].list);
         tasks[i].index  = i;
-        tasks[i].queue  = (MppTaskQueue *)queue;
+        tasks[i].queue  = queue;
         tasks[i].status = MPP_INPUT_PORT;
         mpp_meta_get(&tasks[i].meta);
 

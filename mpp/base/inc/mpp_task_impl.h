@@ -65,7 +65,7 @@ typedef enum MppTaskStatus_e {
 typedef struct MppTaskImpl_t {
     const char          *name;
     struct list_head    list;
-    MppTaskQueue        *queue;
+    MppTaskQueue        queue;
     RK_S32              index;
     MppTaskStatus       status;
 
