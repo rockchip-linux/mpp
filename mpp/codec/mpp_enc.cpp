@@ -29,14 +29,60 @@
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)
 #define MPP_ENC_DBG_CONTROL             (0x00000002)
+#define MPP_ENC_DBG_STATUS              (0x00000010)
+#define MPP_ENC_DBG_DETAIL              (0x00000020)
+#define MPP_ENC_DBG_RESET               (0x00000040)
+#define MPP_ENC_DBG_NOTIFY              (0x00000080)
 
 RK_U32 mpp_enc_debug = 0;
 
 #define mpp_enc_dbg(flag, fmt, ...)     _mpp_dbg(mpp_enc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_enc_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_enc_debug, flag, fmt, ## __VA_ARGS__)
 
-#define mpp_enc_dbg_func(fmt, ...)      mpp_enc_dbg_f(MPP_ENC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
-#define mpp_enc_dbg_ctrl(fmt, ...)      mpp_enc_dbg_f(MPP_ENC_DBG_CONTROL, fmt, ## __VA_ARGS__)
+#define enc_dbg_func(fmt, ...)          mpp_enc_dbg_f(MPP_ENC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define enc_dbg_ctrl(fmt, ...)          mpp_enc_dbg_f(MPP_ENC_DBG_CONTROL, fmt, ## __VA_ARGS__)
+#define enc_dbg_status(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_STATUS, fmt, ## __VA_ARGS__)
+#define enc_dbg_detail(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_DETAIL, fmt, ## __VA_ARGS__)
+#define enc_dbg_notify(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_NOTIFY, fmt, ## __VA_ARGS__)
+
+typedef union EncTaskWait_u {
+    RK_U32          val;
+    struct {
+        RK_U32      enc_frm_in      : 1;   // 0x0001 MPP_ENC_NOTIFY_FRAME_ENQUEUE
+        RK_U32      reserv0002      : 1;   // 0x0002
+        RK_U32      reserv0004      : 1;   // 0x0004
+        RK_U32      enc_pkt_out     : 1;   // 0x0008 MPP_ENC_NOTIFY_PACKET_ENQUEUE
+
+        RK_U32      reserv0010      : 1;   // 0x0010
+        RK_U32      reserv0020      : 1;   // 0x0020
+        RK_U32      reserv0040      : 1;   // 0x0040
+        RK_U32      reserv0080      : 1;   // 0x0080
+
+        RK_U32      reserv0100      : 1;   // 0x0100
+        RK_U32      reserv0200      : 1;   // 0x0200
+        RK_U32      reserv0400      : 1;   // 0x0400
+        RK_U32      reserv0800      : 1;   // 0x0800
+
+        RK_U32      reserv1000      : 1;   // 0x1000
+        RK_U32      reserv2000      : 1;   // 0x2000
+        RK_U32      reserv4000      : 1;   // 0x4000
+        RK_U32      reserv8000      : 1;   // 0x8000
+    };
+} EncTaskWait;
+
+typedef union EncTaskStatus_u {
+    RK_U32          val;
+    struct {
+        RK_U32      task_in_rdy     : 1;
+        RK_U32      task_out_rdy    : 1;
+    };
+} EncTaskStatus;
+
+typedef struct EncTask_t {
+    EncTaskStatus   status;
+    EncTaskWait     wait;
+    HalTaskInfo     info;
+} EncTask;
 
 static void reset_hal_enc_task(HalEncTask *task)
 {
@@ -78,143 +124,226 @@ static MPP_RET release_task_in_port(MppPort port)
     return ret;
 }
 
+static MPP_RET check_enc_task_wait(MppEnc *enc, EncTask *task)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 notify = enc->notify_flag;
+    RK_U32 last_wait = enc->status_flag;
+    RK_U32 curr_wait = task->wait.val;
+    RK_U32 wait_chg  = last_wait & (~curr_wait);
+
+    do {
+        if (enc->reset_flag)
+            break;
+
+        // NOTE: When condition is not fulfilled check nofify flag again
+        if (!curr_wait || (curr_wait & notify))
+            break;
+
+        ret = MPP_NOK;
+    } while (0);
+
+    enc_dbg_status("%p %08x -> %08x [%08x] notify %08x -> %s\n", enc,
+                   last_wait, curr_wait, wait_chg, notify, (ret) ? ("wait") : ("work"));
+
+    enc->status_flag = task->wait.val;
+    enc->notify_flag = 0;
+
+    if (ret) {
+        enc->wait_count++;
+    } else {
+        enc->work_count++;
+    }
+
+    return ret;
+}
+
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppEnc *enc = mpp->mEnc;
     MppThread *thd_enc  = mpp->mThreadCodec;
-    HalTaskInfo task_info;
-    HalEncTask *enc_task = &task_info.enc;
+    EncTask task;
+    HalTaskInfo *task_info = &task.info;
+    HalEncTask *hal_task = &task_info->enc;
     MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
     MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
-    MppTask mpp_task = NULL;
+    MppTask task_in = NULL;
+    MppTask task_out = NULL;
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
     MppPacket packet = NULL;
     MppBuffer mv_info = NULL;
 
-    memset(&task_info, 0, sizeof(HalTaskInfo));
+    memset(&task, 0, sizeof(task));
 
-    while (MPP_THREAD_RUNNING == thd_enc->get_status()) {
-        thd_enc->lock();
-        ret = mpp_port_dequeue(input, &mpp_task);
-        if (ret || NULL == mpp_task) {
-            thd_enc->wait();
+    while (1) {
+        {
+            AutoMutex autolock(thd_enc->mutex());
+            if (MPP_THREAD_RUNNING != thd_enc->get_status())
+                break;
+
+            if (check_enc_task_wait(enc, &task))
+                thd_enc->wait();
         }
-        thd_enc->unlock();
 
-        if (mpp_task != NULL) {
-            mpp_task_meta_get_frame (mpp_task, KEY_INPUT_FRAME,  &frame);
-            mpp_task_meta_get_packet(mpp_task, KEY_OUTPUT_PACKET, &packet);
-            mpp_task_meta_get_buffer(mpp_task, KEY_MOTION_INFO, &mv_info);
+        if (enc->reset_flag) {
+            {
+                AutoMutex autolock(thd_enc->mutex());
+                enc->status_flag = 0;
+            }
 
-            if (NULL == frame) {
-                mpp_port_enqueue(input, mpp_task);
+            AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
+            enc->reset_flag = 0;
+            sem_post(&enc->enc_reset);
+            continue;
+        }
+
+        // 1. check task in
+        if (!task.status.task_in_rdy) {
+            ret = mpp_port_poll(input, MPP_POLL_NON_BLOCK);
+            if (ret) {
+                task.wait.enc_frm_in = 1;
                 continue;
             }
 
-            reset_hal_enc_task(enc_task);
-
-            if (mpp_frame_get_buffer(frame)) {
-                /*
-                 * if there is available buffer in the input frame do encoding
-                 */
-                if (NULL == packet) {
-                    RK_U32 width  = enc->cfg.prep.width;
-                    RK_U32 height = enc->cfg.prep.height;
-                    RK_U32 size = width * height;
-                    MppBuffer buffer = NULL;
-
-                    mpp_assert(size);
-                    mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
-                    mpp_packet_init_with_buffer(&packet, buffer);
-                    mpp_buffer_put(buffer);
-                }
-                mpp_assert(packet);
-
-                mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
-
-                enc_task->input  = mpp_frame_get_buffer(frame);
-                enc_task->output = mpp_packet_get_buffer(packet);
-                enc_task->mv_info = mv_info;
-
-                {
-                    AutoMutex auto_lock(&enc->lock);
-                    ret = controller_encode(mpp->mEnc->controller, enc_task);
-                    if (ret) {
-                        mpp_err("mpp %p controller_encode failed return %d", mpp, ret);
-                        goto TASK_END;
-                    }
-                }
-                ret = mpp_hal_reg_gen((mpp->mEnc->hal), &task_info);
-                if (ret) {
-                    mpp_err("mpp %p hal_reg_gen failed return %d", mpp, ret);
-                    goto TASK_END;
-                }
-                ret = mpp_hal_hw_start((mpp->mEnc->hal), &task_info);
-                if (ret) {
-                    mpp_err("mpp %p hal_hw_start failed return %d", mpp, ret);
-                    goto TASK_END;
-                }
-                ret = mpp_hal_hw_wait((mpp->mEnc->hal), &task_info);
-                if (ret) {
-                    mpp_err("mpp %p hal_hw_wait failed return %d", mpp, ret);
-                    goto TASK_END;
-                }
-            TASK_END:
-                mpp_packet_set_length(packet, task_info.enc.length);
-            } else {
-                /*
-                 * else init a empty packet for output
-                 */
-                mpp_packet_new(&packet);
-            }
-
-            if (mpp_frame_get_eos(frame))
-                mpp_packet_set_eos(packet);
-
-            /*
-             * first clear output packet
-             * then enqueue task back to input port
-             * final user will release the mpp_frame they had input
-             */
-            mpp_task_meta_set_frame(mpp_task, KEY_INPUT_FRAME, frame);
-            mpp_port_enqueue(input, mpp_task);
-            mpp_task = NULL;
-
-            // send finished task to output port
-            mpp_port_poll(output, MPP_POLL_BLOCK);
-            mpp_port_dequeue(output, &mpp_task);
-
-            /*
-             * mpp_task may be null if output port is awaken by Mpp::clear()
-             */
-            if (mpp_task) {
-                //set motion info buffer to output task
-                if (mv_info)
-                    mpp_task_meta_set_buffer(mpp_task, KEY_MOTION_INFO, mv_info);
-
-                mpp_task_meta_set_packet(mpp_task, KEY_OUTPUT_PACKET, packet);
-
-                {
-                    RK_S32 is_intra = enc_task->is_intra;
-                    RK_U32 flag = mpp_packet_get_flag(packet);
-
-                    mpp_task_meta_set_s32(mpp_task, KEY_OUTPUT_INTRA, is_intra);
-                    if (is_intra) {
-                        mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
-                    }
-                }
-
-                // setup output task here
-                mpp_port_enqueue(output, mpp_task);
-            } else {
-                mpp_packet_deinit(&packet);
-            }
-            mpp_task = NULL;
-            packet = NULL;
-            frame = NULL;
+            task.status.task_in_rdy = 1;
+            task.wait.enc_frm_in = 0;
         }
+        enc_dbg_detail("task in ready\n");
+
+        // 2. get task out
+        if (!task.status.task_out_rdy) {
+            ret = mpp_port_poll(output, MPP_POLL_NON_BLOCK);
+            if (ret) {
+                task.wait.enc_pkt_out = 1;
+                continue;
+            }
+
+            task.status.task_out_rdy = 1;
+            task.wait.enc_pkt_out = 0;
+        }
+        enc_dbg_detail("task out ready\n");
+
+        ret = mpp_port_dequeue(input, &task_in);
+        mpp_assert(task_in);
+
+        mpp_task_meta_get_frame (task_in, KEY_INPUT_FRAME,  &frame);
+        mpp_task_meta_get_packet(task_in, KEY_OUTPUT_PACKET, &packet);
+        mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &mv_info);
+
+        if (NULL == frame) {
+            mpp_port_enqueue(input, task_in);
+            continue;
+        }
+
+        reset_hal_enc_task(hal_task);
+
+        if (mpp_frame_get_buffer(frame)) {
+            /*
+             * if there is available buffer in the input frame do encoding
+             */
+            if (NULL == packet) {
+                RK_U32 width  = enc->cfg.prep.width;
+                RK_U32 height = enc->cfg.prep.height;
+                RK_U32 size = width * height;
+                MppBuffer buffer = NULL;
+
+                mpp_assert(size);
+                mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
+                mpp_packet_init_with_buffer(&packet, buffer);
+                mpp_buffer_put(buffer);
+            }
+            mpp_assert(packet);
+
+            mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
+
+            hal_task->input  = mpp_frame_get_buffer(frame);
+            hal_task->output = mpp_packet_get_buffer(packet);
+            hal_task->mv_info = mv_info;
+
+            {
+                AutoMutex auto_lock(&enc->lock);
+                ret = controller_encode(mpp->mEnc->controller, hal_task);
+                if (ret) {
+                    mpp_err("mpp %p controller_encode failed return %d", mpp, ret);
+                    goto TASK_END;
+                }
+            }
+
+            enc_dbg_detail("mpp_hal_reg_gen  hal %p task %p\n", mpp->mEnc->hal, task_info);
+            ret = mpp_hal_reg_gen((mpp->mEnc->hal), task_info);
+            if (ret) {
+                mpp_err("mpp %p hal_reg_gen failed return %d", mpp, ret);
+                goto TASK_END;
+            }
+            enc_dbg_detail("mpp_hal_hw_start hal %p task %p\n", mpp->mEnc->hal, task_info);
+            ret = mpp_hal_hw_start((mpp->mEnc->hal), task_info);
+            if (ret) {
+                mpp_err("mpp %p hal_hw_start failed return %d", mpp, ret);
+                goto TASK_END;
+            }
+            enc_dbg_detail("mpp_hal_hw_wait  hal %p task %p\n", mpp->mEnc->hal, task_info);
+            ret = mpp_hal_hw_wait((mpp->mEnc->hal), task_info);
+            if (ret) {
+                mpp_err("mpp %p hal_hw_wait failed return %d", mpp, ret);
+                goto TASK_END;
+            }
+        TASK_END:
+            mpp_packet_set_length(packet, hal_task->length);
+        } else {
+            /*
+             * else init a empty packet for output
+             */
+            mpp_packet_new(&packet);
+        }
+
+        if (mpp_frame_get_eos(frame))
+            mpp_packet_set_eos(packet);
+
+        /*
+         * first clear output packet
+         * then enqueue task back to input port
+         * final user will release the mpp_frame they had input
+         */
+        mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
+        mpp_port_enqueue(input, task_in);
+
+        // send finished task to output port
+        ret = mpp_port_dequeue(output, &task_out);
+
+        /*
+         * task_in may be null if output port is awaken by Mpp::clear()
+         */
+        if (task_out) {
+            //set motion info buffer to output task
+            if (mv_info)
+                mpp_task_meta_set_buffer(task_out, KEY_MOTION_INFO, mv_info);
+
+            mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
+
+            {
+                RK_S32 is_intra = hal_task->is_intra;
+                RK_U32 flag = mpp_packet_get_flag(packet);
+
+                mpp_task_meta_set_s32(task_out, KEY_OUTPUT_INTRA, is_intra);
+                if (is_intra) {
+                    mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
+                }
+            }
+
+            // setup output task here
+            mpp_port_enqueue(output, task_out);
+        } else {
+            mpp_packet_deinit(&packet);
+        }
+
+        task_in = NULL;
+        task_out = NULL;
+        packet = NULL;
+        frame = NULL;
+
+        task.status.val = 0;
     }
 
     // clear remain task in output port
@@ -224,9 +353,10 @@ void *mpp_enc_control_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
+MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg)
 {
     MPP_RET ret;
+    MppCodingType coding = cfg->coding;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
     Controller controller = NULL;
@@ -304,9 +434,13 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding)
         p->coding       = coding;
         p->controller   = controller;
         p->hal          = hal;
+        p->mpp          = cfg->mpp;
         p->tasks        = hal_cfg.tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
+
+        sem_init(&p->enc_reset, 0, 0);
+
         *enc = p;
         return MPP_OK;
     } while (0);
@@ -343,22 +477,53 @@ MPP_RET mpp_enc_deinit(MppEnc *enc)
         enc->packet_slots = NULL;
     }
 
+    sem_destroy(&enc->enc_reset);
+
     mpp_free(enc);
     return MPP_OK;
 }
 
 MPP_RET mpp_enc_reset(MppEnc *enc)
 {
-    AutoMutex auto_lock(&enc->lock);
+    enc_dbg_func("%p in\n", enc);
+    if (NULL == enc) {
+        mpp_err_f("found NULL input enc\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    Mpp *mpp = (Mpp *)enc->mpp;
+    MppThread *thd = mpp->mThreadCodec;
+
+    thd->lock(THREAD_CONTROL);
+    enc->reset_flag = 1;
+    mpp_enc_notify(enc, MPP_ENC_RESET);
+    thd->unlock(THREAD_CONTROL);
+    sem_wait(&enc->enc_reset);
+    mpp_assert(enc->reset_flag == 0);
 
     return MPP_OK;
 }
 
 MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag)
 {
-    // TODO
-    (void)enc;
-    (void)flag;
+    enc_dbg_func("%p in flag %08x\n", enc, flag);
+    Mpp *mpp = (Mpp *)enc->mpp;
+    MppThread *thd  = mpp->mThreadCodec;
+
+    thd->lock();
+    {
+        RK_U32 old_flag = enc->notify_flag;
+
+        enc->notify_flag |= flag;
+        if ((old_flag != enc->notify_flag) &&
+            (enc->notify_flag & enc->status_flag)) {
+            enc_dbg_notify("%p status %08x notify %08x signal\n", enc,
+                           enc->status_flag, enc->notify_flag);
+            thd->signal();
+        }
+    }
+    thd->unlock();
+    enc_dbg_func("%p out\n", enc);
     return MPP_OK;
 }
 
@@ -374,7 +539,7 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_ALL_CFG : {
-        mpp_enc_dbg_ctrl("set all config\n");
+        enc_dbg_ctrl("set all config\n");
         memcpy(&enc->set, param, sizeof(enc->set));
 
         ret = controller_config(enc->controller, MPP_ENC_SET_RC_CFG, param);
@@ -393,11 +558,11 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     case MPP_ENC_GET_ALL_CFG : {
         MppEncCfgSet *p = (MppEncCfgSet *)param;
 
-        mpp_enc_dbg_ctrl("get all config\n");
+        enc_dbg_ctrl("get all config\n");
         memcpy(p, &enc->cfg, sizeof(*p));
     } break;
     case MPP_ENC_SET_PREP_CFG : {
-        mpp_enc_dbg_ctrl("set prep config\n");
+        enc_dbg_ctrl("set prep config\n");
         memcpy(&enc->set.prep, param, sizeof(enc->set.prep));
 
         ret = mpp_hal_control(enc->hal, cmd, param);
@@ -407,11 +572,11 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     case MPP_ENC_GET_PREP_CFG : {
         MppEncPrepCfg *p = (MppEncPrepCfg *)param;
 
-        mpp_enc_dbg_ctrl("get prep config\n");
+        enc_dbg_ctrl("get prep config\n");
         memcpy(p, &enc->cfg.prep, sizeof(*p));
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        mpp_enc_dbg_ctrl("set rc config\n");
+        enc_dbg_ctrl("set rc config\n");
         memcpy(&enc->set.rc, param, sizeof(enc->set.rc));
 
         ret = controller_config(enc->controller, cmd, param);
@@ -424,11 +589,11 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     case MPP_ENC_GET_RC_CFG : {
         MppEncRcCfg *p = (MppEncRcCfg *)param;
 
-        mpp_enc_dbg_ctrl("get rc config\n");
+        enc_dbg_ctrl("get rc config\n");
         memcpy(p, &enc->cfg.rc, sizeof(*p));
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
-        mpp_enc_dbg_ctrl("set codec config\n");
+        enc_dbg_ctrl("set codec config\n");
         memcpy(&enc->set.codec, param, sizeof(enc->set.codec));
 
         ret = mpp_hal_control(enc->hal, cmd, param);
@@ -437,48 +602,48 @@ MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
     case MPP_ENC_GET_CODEC_CFG : {
         MppEncCodecCfg *p = (MppEncCodecCfg *)param;
 
-        mpp_enc_dbg_ctrl("get codec config\n");
+        enc_dbg_ctrl("get codec config\n");
         memcpy(p, &enc->cfg.codec, sizeof(*p));
     } break;
 
     case MPP_ENC_SET_IDR_FRAME : {
-        mpp_enc_dbg_ctrl("idr request\n");
+        enc_dbg_ctrl("idr request\n");
         ret = controller_config(enc->controller, SET_IDR_FRAME, param);
     } break;
     case MPP_ENC_GET_EXTRA_INFO : {
-        mpp_enc_dbg_ctrl("get extra info\n");
+        enc_dbg_ctrl("get extra info\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
-        mpp_enc_dbg_ctrl("set osd plt\n");
+        enc_dbg_ctrl("set osd plt\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_OSD_DATA_CFG : {
-        mpp_enc_dbg_ctrl("set osd data\n");
+        enc_dbg_ctrl("set osd data\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_ROI_CFG : {
-        mpp_enc_dbg_ctrl("set roi data\n");
+        enc_dbg_ctrl("set roi data\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_SEI_CFG : {
-        mpp_enc_dbg_ctrl("set sei\n");
+        enc_dbg_ctrl("set sei\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_GET_SEI_DATA : {
-        mpp_enc_dbg_ctrl("get sei\n");
+        enc_dbg_ctrl("get sei\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_PRE_ALLOC_BUFF : {
-        mpp_enc_dbg_ctrl("pre alloc buff\n");
+        enc_dbg_ctrl("pre alloc buff\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_QP_RANGE : {
-        mpp_enc_dbg_ctrl("set qp range\n");
+        enc_dbg_ctrl("set qp range\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     case MPP_ENC_SET_CTU_QP: {
-        mpp_enc_dbg_ctrl("set ctu qp\n");
+        enc_dbg_ctrl("set ctu qp\n");
         ret = mpp_hal_control(enc->hal, cmd, param);
     } break;
     default : {

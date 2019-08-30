@@ -135,7 +135,11 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)NULL);
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
 
-        mpp_enc_init(&mEnc, coding);
+        MppEncCfg cfg = {
+            coding,
+            this,
+        };
+        mpp_enc_init(&mEnc, &cfg);
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
         //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
@@ -195,26 +199,6 @@ void Mpp::clear()
     if (mFrameGroup)
         mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
                                       NULL, NULL);
-
-    if (mType == MPP_CTX_ENC) {
-        if (mThreadCodec)
-            mThreadCodec->set_status(MPP_THREAD_STOPPING);
-
-        /* reset dequeued input task to idle status */
-        if (mInputTask) {
-            enqueue(MPP_PORT_INPUT, mInputTask);
-            mInputTask = NULL;
-        }
-
-        /*
-         * encode thread may block in dequeue output task
-         * so send sigal to awake it
-         */
-        if (mOutputTaskQueue) {
-            MppPort port = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
-            mpp_port_awake(port);
-        }
-    }
 
     if (mThreadCodec)
         mThreadCodec->stop();
@@ -527,13 +511,16 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
+    RK_U32 notify_flag = 0;
 
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mInputPort;
+        notify_flag = MPP_INPUT_DEQUEUE;
     } break;
     case MPP_PORT_OUTPUT : {
         port = mOutputPort;
+        notify_flag = MPP_OUTPUT_DEQUEUE;
     } break;
     default : {
     } break;
@@ -542,7 +529,7 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
     if (port) {
         ret = mpp_port_dequeue(port, task);
         if (MPP_OK == ret)
-            notify(MPP_OUTPUT_DEQUEUE);
+            notify(notify_flag);
     }
 
     return ret;
@@ -555,13 +542,16 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
 
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
+    RK_U32 notify_flag = 0;
 
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mInputPort;
+        notify_flag = MPP_INPUT_ENQUEUE;
     } break;
     case MPP_PORT_OUTPUT : {
         port = mOutputPort;
+        notify_flag = MPP_OUTPUT_ENQUEUE;
     } break;
     default : {
     } break;
@@ -573,7 +563,7 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
         if (MPP_OK == ret) {
             // if enqueue success wait up thread
             mThreadCodec->signal();
-            notify(MPP_INPUT_ENQUEUE);
+            notify(notify_flag);
         }
         mThreadCodec->unlock();
     }

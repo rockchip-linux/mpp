@@ -155,6 +155,7 @@ struct MppEnc_t {
     MppCodingType       coding;
     Controller          controller;
     MppHal              hal;
+    void                *mpp;
 
     // common resource
     MppBufSlots         frame_slots;
@@ -164,11 +165,22 @@ struct MppEnc_t {
     // internal status and protection
     Mutex               lock;
     RK_U32              reset_flag;
+    sem_t               enc_reset;
+
+    RK_U32              wait_count;
+    RK_U32              work_count;
+    RK_U32              status_flag;
+    RK_U32              notify_flag;
 
     /* Encoder configure set */
     MppEncCfgSet        cfg;
     MppEncCfgSet        set;
 };
+
+typedef struct {
+    MppCodingType       coding;
+    void                *mpp;
+} MppEncCfg;
 
 #ifdef __cplusplus
 extern "C" {
@@ -180,7 +192,7 @@ extern "C" {
 void *mpp_enc_control_thread(void *data);
 void *mpp_enc_hal_thread(void *data);
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppCodingType coding);
+MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg);
 MPP_RET mpp_enc_deinit(MppEnc *enc);
 MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag);
