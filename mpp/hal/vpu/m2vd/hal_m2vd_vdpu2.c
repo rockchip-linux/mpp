@@ -207,6 +207,8 @@ MPP_RET hal_m2vd_vdpu2_gen_regs(void *hal, HalTaskInfo *task)
 
         hal_m2vd_vdpu2_init_hwcfg(ctx);
 
+        p_regs->sw136.mv_accuracy_fwd = 1;
+        p_regs->sw136.mv_accuracy_bwd = 1;
         if (dx->seq_ext_head_dec_flag) {
             p_regs->sw53.sw_dec_mode = 5;
             p_regs->sw136.fcode_fwd_hor = dx->pic.full_pel_forward_vector;
