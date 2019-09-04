@@ -166,6 +166,8 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
 
         hal_m2vd_vdpu1_init_hwcfg(ctx);
 
+        p_regs->sw18.mv_accuracy_fwd = 1;
+        p_regs->sw18.mv_accuracy_bwd = 1;
         if (dx->seq_ext_head_dec_flag) {
             p_regs->sw03.dec_mode = 5;
             p_regs->sw18.fcode_fwd_hor = dx->pic.full_pel_forward_vector;
@@ -174,9 +176,9 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
             p_regs->sw18.fcode_bwd_ver = dx->pic.backward_f_code;
         } else {
             p_regs->sw03.dec_mode = 6;
-            p_regs->sw18.fcode_fwd_hor = dx->pic.full_pel_forward_vector;
+            p_regs->sw18.fcode_fwd_hor = dx->pic.forward_f_code;
             p_regs->sw18.fcode_fwd_ver = dx->pic.forward_f_code;
-            p_regs->sw18.fcode_bwd_hor = dx->pic.full_pel_backward_vector;
+            p_regs->sw18.fcode_bwd_hor = dx->pic.backward_f_code;
             p_regs->sw18.fcode_bwd_ver = dx->pic.backward_f_code;
             if (dx->pic.full_pel_forward_vector)
                 p_regs->sw18.mv_accuracy_fwd = 0;
@@ -186,7 +188,7 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
 
         p_regs->sw04.pic_mb_width = (dx->seq.decode_width + 15) >> 4;
         p_regs->sw04.pic_mb_height_p = (dx->seq.decode_height + 15) >> 4;
-        p_regs->sw03.pic_interlace_e = 1 - dx->pic.backward_f_code;
+        p_regs->sw03.pic_interlace_e = 1 - dx->seq_ext.progressive_sequence;
         if (dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_FRAME)
             p_regs->sw03.pic_fieldmode_e = 0;
         else {
