@@ -75,6 +75,7 @@ typedef enum MppMetaKey_e {
 
     /* mpp_frame / mpp_packet meta data info key */
     KEY_TEMPORAL_ID             = FOURCC_META('t', 'l', 'i', 'd'),
+    KEY_LONG_REF_IDX            = FOURCC_META('l', 't', 'i', 'd'),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
