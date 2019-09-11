@@ -174,10 +174,12 @@ typedef struct HalEncTask_t {
     MppSyntax       syntax;
 
     // current tesk output stream buffer
+    MppPacket       packet;
     MppBuffer       output;
     RK_U32          length;
 
     // current tesk input slot buffer
+    MppPacket       frame;
     MppBuffer       input;
 
     // current mv info output buffer

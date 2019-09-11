@@ -258,7 +258,9 @@ void *mpp_enc_control_thread(void *data)
 
             mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
 
+            hal_task->frame  = frame;
             hal_task->input  = mpp_frame_get_buffer(frame);
+            hal_task->packet = packet;
             hal_task->output = mpp_packet_get_buffer(packet);
             hal_task->mv_info = mv_info;
 
