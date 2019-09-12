@@ -80,6 +80,7 @@ public:
 
     MppMetaImpl  *get_meta(const char *tag, const char *caller);
     void          put_meta(MppMetaImpl *meta);
+    void          inc_ref(MppMetaImpl *meta);
 
     MppMetaNode  *get_node(MppMetaImpl *meta, RK_S32 index);
     void          put_node(MppMetaNode *node);
@@ -141,6 +142,7 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
         impl->meta_id = meta_id++;
         INIT_LIST_HEAD(&impl->list_meta);
         INIT_LIST_HEAD(&impl->list_node);
+        impl->ref_count = 1;
         impl->node_count = 0;
 
         list_add_tail(&impl->list_meta, &mlist_meta);
@@ -153,6 +155,13 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
 
 void MppMetaService::put_meta(MppMetaImpl *meta)
 {
+    mpp_assert(meta->ref_count);
+    if (meta->ref_count)
+        meta->ref_count--;
+
+    if (meta->ref_count)
+        return;
+
     while (!list_empty(&meta->list_node)) {
         MppMetaNode *node = list_entry(meta->list_node.next, MppMetaNode, list_meta);
         put_node(node);
@@ -161,6 +170,12 @@ void MppMetaService::put_meta(MppMetaImpl *meta)
     list_del_init(&meta->list_meta);
     meta_count--;
     mpp_free(meta);
+}
+
+void MppMetaService::inc_ref(MppMetaImpl *meta)
+{
+    mpp_assert(meta->ref_count);
+    meta->ref_count++;
 }
 
 MppMetaNode *MppMetaService::find_node(MppMetaImpl *meta, RK_S32 type_id)
@@ -268,6 +283,20 @@ MPP_RET mpp_meta_put(MppMeta meta)
     AutoMutex auto_lock(service->get_lock());
     MppMetaImpl *impl = (MppMetaImpl *)meta;
     service->put_meta(impl);
+    return MPP_OK;
+}
+
+MPP_RET mpp_meta_inc_ref(MppMeta meta)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaService *service = MppMetaService::get_instance();
+    AutoMutex auto_lock(service->get_lock());
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    service->inc_ref(impl);
     return MPP_OK;
 }
 
