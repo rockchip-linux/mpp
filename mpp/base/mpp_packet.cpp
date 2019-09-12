@@ -21,6 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_packet_impl.h"
+#include "mpp_meta_impl.h"
 
 static const char *module_name = MODULE_TAG;
 
@@ -138,6 +139,10 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     p->data = p->pos = pos;
     p->size = p->length = length;
     p->flag |= MPP_PACKET_FLAG_INTERNAL;
+
+    if (src_impl->meta)
+        mpp_meta_inc_ref(src_impl->meta);
+
     if (length) {
         memcpy(pos, src_impl->pos, length);
         /*
