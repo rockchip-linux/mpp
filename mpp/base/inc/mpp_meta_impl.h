@@ -19,6 +19,7 @@
 
 #include "mpp_common.h"
 
+#include "mpp_list.h"
 #include "mpp_meta.h"
 
 typedef struct MppMetaDef_t {
@@ -30,6 +31,7 @@ typedef struct MppMetaImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
     RK_S32              meta_id;
+    RK_S32              ref_count;
 
     struct list_head    list_meta;
     struct list_head    list_node;
@@ -60,6 +62,7 @@ extern "C" {
 #endif
 
 RK_S32 mpp_meta_size(MppMeta meta);
+MPP_RET mpp_meta_inc_ref(MppMeta meta);
 MppMetaNode *mpp_meta_next_node(MppMeta meta);
 
 #ifdef __cplusplus
