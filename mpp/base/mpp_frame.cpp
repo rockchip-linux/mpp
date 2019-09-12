@@ -21,6 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_frame_impl.h"
+#include "mpp_meta_impl.h"
 
 static const char *module_name = MODULE_TAG;
 
@@ -142,6 +143,10 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
     }
 
     memcpy(dst, src, sizeof(MppFrameImpl));
+    MppFrameImpl *p = (MppFrameImpl *)src;
+    if (p->meta)
+        mpp_meta_inc_ref(p->meta);
+
     return MPP_OK;
 }
 
