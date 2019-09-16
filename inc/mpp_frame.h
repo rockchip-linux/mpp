@@ -272,6 +272,7 @@ void    mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer);
  * meta data parameter
  */
 MppMeta mpp_frame_get_meta(const MppFrame frame);
+void    mpp_frame_set_meta(MppFrame frame, MppMeta meta);
 
 /*
  * color related parameter

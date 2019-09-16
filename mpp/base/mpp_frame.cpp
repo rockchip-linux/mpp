@@ -135,6 +135,20 @@ MppMeta mpp_frame_get_meta(MppFrame frame)
     return p->meta;
 }
 
+void mpp_frame_set_meta(MppFrame frame, MppMeta meta)
+{
+    if (check_is_mpp_frame(frame))
+        return ;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    if (p->meta) {
+        mpp_meta_put(p->meta);
+        p->meta = NULL;
+    }
+
+    p->meta = meta;
+}
+
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 {
     if (NULL == dst || check_is_mpp_frame(src)) {
