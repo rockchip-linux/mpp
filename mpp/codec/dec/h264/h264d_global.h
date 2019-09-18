@@ -508,6 +508,22 @@ typedef struct h264_mvc_vui_t {
     RK_S8   time_offset_length;
 } H264_mvcVUI_t;
 
+//!< PREFIX
+
+typedef struct h264_prefix_t {
+    RK_S32    Valid;                  // indicates the prefix set is valid
+    // nal svc syntax
+    RK_S32    store_ref_base_pic_flag;                            // u(1)
+    // svc base pic marking
+    RK_S32    adaptive_ref_base_pic_marking_mode_flag;
+    RK_S32    memory_management_base_control_operation;
+    RK_S32    difference_of_base_pic_nums_minus1;
+    RK_S32    long_term_base_pic_num;
+
+    RK_S32    additional_prefix_nal_unit_extension_flag;          // u(1)
+    RK_S32    additional_prefix_nal_unit_extension_data_flag;     // u(1)
+} H264_PREFIX_t;
+
 //!< SPS
 #define MAXnum_ref_frames_in_POC_cycle  256
 
@@ -995,6 +1011,7 @@ typedef struct h264d_cur_ctx_t {
     struct h264_sps_t        sps;
     struct h264_subsps_t     subsps;
     struct h264_pps_t        pps;
+    struct h264_prefix_t     prefix;
     struct h264_sei_t        sei;
     struct h264_nalu_t       nalu;
     struct bitread_ctx_t     bitctx; //!< for control bit_read

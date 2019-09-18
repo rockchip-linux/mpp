@@ -261,7 +261,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         break;
     case NALU_TYPE_PREFIX:
         H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_PREFIX.");
-        currSlice->p_Dec->nalu_ret = SkipNALU;
+        process_prefix(currSlice);
         break;
     case NALU_TYPE_AUD:
         H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_AUD.");
@@ -418,7 +418,8 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
         && (p_strm->nalu_type == NALU_TYPE_SEI
             || p_strm->nalu_type == NALU_TYPE_SPS
             || p_strm->nalu_type == NALU_TYPE_PPS
-            || p_strm->nalu_type == NALU_TYPE_AUD)) {
+            || p_strm->nalu_type == NALU_TYPE_AUD
+            || p_strm->nalu_type == NALU_TYPE_PREFIX)) {
         if (p_Cur->p_Dec->have_slice_data) {
             p_Cur->p_Dec->is_new_frame = 1;
         }
