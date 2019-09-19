@@ -22,7 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
-#include "mpp.h"
+#include "mpp_dec_impl.h"
 
 #include "mpp_frame_impl.h"
 #include "mpp_dec_vproc.h"
@@ -191,7 +191,7 @@ static void *dec_vproc_thread(void *data)
     HalTaskGroup tasks = ctx->task_group;
     MppThread *thd = ctx->thd;
     Mpp *mpp = ctx->mpp;
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppBufSlots slots = dec->frame_slots;
     IepImg img;
 
@@ -375,7 +375,7 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     }
 
     p->mpp = (Mpp *)cfg->mpp;
-    p->slots = p->mpp->mDec->frame_slots;
+    p->slots = ((MppDecImpl *)p->mpp->mDec)->frame_slots;
     p->thd = new MppThread(dec_vproc_thread, p, "mpp_dec_vproc");
     ret = hal_task_group_init(&p->task_group, 4);
     if (ret) {

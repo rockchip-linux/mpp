@@ -160,7 +160,7 @@ public:
     MppThread       *mThreadHal;
     MppThread       *mThreadVproc;
 
-    MppDec          *mDec;
+    MppDec          mDec;
     MppEnc          *mEnc;
 
 private:
