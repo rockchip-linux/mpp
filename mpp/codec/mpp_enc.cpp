@@ -25,6 +25,7 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
+#include "mpp_enc_impl.h"
 #include "hal_h264e_api.h"
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)
@@ -124,7 +125,7 @@ static MPP_RET release_task_in_port(MppPort port)
     return ret;
 }
 
-static MPP_RET check_enc_task_wait(MppEnc *enc, EncTask *task)
+static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 notify = enc->notify_flag;
@@ -161,7 +162,8 @@ static MPP_RET check_enc_task_wait(MppEnc *enc, EncTask *task)
 void *mpp_enc_control_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppEnc *enc = mpp->mEnc;
+    MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
+    MppHal hal = enc->hal;
     MppThread *thd_enc  = mpp->mThreadCodec;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
@@ -266,27 +268,27 @@ void *mpp_enc_control_thread(void *data)
 
             {
                 AutoMutex auto_lock(&enc->lock);
-                ret = controller_encode(mpp->mEnc->controller, hal_task);
+                ret = controller_encode(enc->controller, hal_task);
                 if (ret) {
                     mpp_err("mpp %p controller_encode failed return %d", mpp, ret);
                     goto TASK_END;
                 }
             }
 
-            enc_dbg_detail("mpp_hal_reg_gen  hal %p task %p\n", mpp->mEnc->hal, task_info);
-            ret = mpp_hal_reg_gen((mpp->mEnc->hal), task_info);
+            enc_dbg_detail("mpp_hal_reg_gen  hal %p task %p\n", hal, task_info);
+            ret = mpp_hal_reg_gen(hal, task_info);
             if (ret) {
                 mpp_err("mpp %p hal_reg_gen failed return %d", mpp, ret);
                 goto TASK_END;
             }
-            enc_dbg_detail("mpp_hal_hw_start hal %p task %p\n", mpp->mEnc->hal, task_info);
-            ret = mpp_hal_hw_start((mpp->mEnc->hal), task_info);
+            enc_dbg_detail("mpp_hal_hw_start hal %p task %p\n", hal, task_info);
+            ret = mpp_hal_hw_start(hal, task_info);
             if (ret) {
                 mpp_err("mpp %p hal_hw_start failed return %d", mpp, ret);
                 goto TASK_END;
             }
-            enc_dbg_detail("mpp_hal_hw_wait  hal %p task %p\n", mpp->mEnc->hal, task_info);
-            ret = mpp_hal_hw_wait((mpp->mEnc->hal), task_info);
+            enc_dbg_detail("mpp_hal_hw_wait  hal %p task %p\n", hal, task_info);
+            ret = mpp_hal_hw_wait(hal, task_info);
             if (ret) {
                 mpp_err("mpp %p hal_hw_wait failed return %d", mpp, ret);
                 goto TASK_END;
@@ -355,7 +357,7 @@ void *mpp_enc_control_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg)
+MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
 {
     MPP_RET ret;
     MppCodingType coding = cfg->coding;
@@ -363,7 +365,7 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg)
     MppBufSlots packet_slots = NULL;
     Controller controller = NULL;
     MppHal hal = NULL;
-    MppEnc *p = NULL;
+    MppEncImpl *p = NULL;
     RK_S32 task_count = 2;
     IOInterruptCB cb = {NULL, NULL};
 
@@ -376,7 +378,7 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg)
 
     *enc = NULL;
 
-    p = mpp_calloc(MppEnc, 1);
+    p = mpp_calloc(MppEncImpl, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_MALLOC;
@@ -452,8 +454,10 @@ MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg)
 
 }
 
-MPP_RET mpp_enc_deinit(MppEnc *enc)
+MPP_RET mpp_enc_deinit(MppEnc ctx)
 {
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
     if (NULL == enc) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
@@ -485,8 +489,10 @@ MPP_RET mpp_enc_deinit(MppEnc *enc)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_reset(MppEnc *enc)
+MPP_RET mpp_enc_reset(MppEnc ctx)
 {
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
     enc_dbg_func("%p in\n", enc);
     if (NULL == enc) {
         mpp_err_f("found NULL input enc\n");
@@ -506,8 +512,10 @@ MPP_RET mpp_enc_reset(MppEnc *enc)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag)
+MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
 {
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
     enc_dbg_func("%p in flag %08x\n", enc, flag);
     Mpp *mpp = (Mpp *)enc->mpp;
     MppThread *thd  = mpp->mThreadCodec;
@@ -529,8 +537,10 @@ MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param)
+MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
 {
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
     if (NULL == enc || (NULL == param && cmd != MPP_ENC_SET_IDR_FRAME)) {
         mpp_err_f("found NULL input enc %p cmd %x param %d\n", enc, cmd, param);
         return MPP_ERR_NULL_PTR;

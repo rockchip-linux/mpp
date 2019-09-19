@@ -17,9 +17,9 @@
 #ifndef __MPP_ENC_H__
 #define __MPP_ENC_H__
 
-#include "mpp_thread.h"
-#include "mpp_controller.h"
-#include "mpp_hal.h"
+#include "rk_type.h"
+#include "mpp_err.h"
+#include "rk_mpi_cmd.h"
 
 /*
  * Configure of encoder is separated into four parts.
@@ -149,33 +149,7 @@
  *   +                          +                 +                       +
  */
 
-typedef struct MppEnc_t MppEnc;
-
-struct MppEnc_t {
-    MppCodingType       coding;
-    Controller          controller;
-    MppHal              hal;
-    void                *mpp;
-
-    // common resource
-    MppBufSlots         frame_slots;
-    MppBufSlots         packet_slots;
-    HalTaskGroup        tasks;
-
-    // internal status and protection
-    Mutex               lock;
-    RK_U32              reset_flag;
-    sem_t               enc_reset;
-
-    RK_U32              wait_count;
-    RK_U32              work_count;
-    RK_U32              status_flag;
-    RK_U32              notify_flag;
-
-    /* Encoder configure set */
-    MppEncCfgSet        cfg;
-    MppEncCfgSet        set;
-};
+typedef void* MppEnc;
 
 typedef struct {
     MppCodingType       coding;
@@ -192,11 +166,11 @@ extern "C" {
 void *mpp_enc_control_thread(void *data);
 void *mpp_enc_hal_thread(void *data);
 
-MPP_RET mpp_enc_init(MppEnc **enc, MppEncCfg *cfg);
-MPP_RET mpp_enc_deinit(MppEnc *enc);
-MPP_RET mpp_enc_control(MppEnc *enc, MpiCmd cmd, void *param);
-MPP_RET mpp_enc_notify(MppEnc *enc, RK_U32 flag);
-MPP_RET mpp_enc_reset(MppEnc *enc);
+MPP_RET mpp_enc_init(MppEnc *ctx, MppEncCfg *cfg);
+MPP_RET mpp_enc_deinit(MppEnc ctx);
+MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param);
+MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag);
+MPP_RET mpp_enc_reset(MppEnc ctx);
 
 /*
  * preprocess config and rate-control config is common config then they will

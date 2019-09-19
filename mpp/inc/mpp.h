@@ -161,7 +161,7 @@ public:
     MppThread       *mThreadVproc;
 
     MppDec          mDec;
-    MppEnc          *mEnc;
+    MppEnc          mEnc;
 
 private:
     void clear();
