@@ -47,8 +47,8 @@ typedef struct MppDecImpl_t {
     MppHal              hal;
 
     // worker thread
-    MppThread           *mThreadCodec;
-    MppThread           *mThreadHal;
+    MppThread           *thread_parser;
+    MppThread           *thread_hal;
 
     // common resource
     MppBufSlots         frame_slots;

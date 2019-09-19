@@ -160,12 +160,6 @@ typedef struct {
 extern "C" {
 #endif
 
-/*
- * main thread for all encoder. This thread will connect encoder / hal / mpp
- */
-void *mpp_enc_control_thread(void *data);
-void *mpp_enc_hal_thread(void *data);
-
 MPP_RET mpp_enc_init(MppEnc *ctx, MppEncCfg *cfg);
 MPP_RET mpp_enc_deinit(MppEnc ctx);
 
@@ -175,15 +169,6 @@ MPP_RET mpp_enc_stop(MppEnc ctx);
 MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag);
 MPP_RET mpp_enc_reset(MppEnc ctx);
-
-/*
- * preprocess config and rate-control config is common config then they will
- * be done in mpp_enc layer
- *
- * codec related config will be set in each hal component
- */
-void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src);
-void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src);
 
 #ifdef __cplusplus
 }

@@ -147,18 +147,6 @@ public:
     MppPollType     mOutputTimeout;
 
     MppTask         mInputTask;
-    /*
-     * There are two threads for each decoder/encoder: codec thread and hal thread
-     *
-     * codec thread generate protocol syntax structure and send to hardware
-     * hal thread wait hardware return and do corresponding process
-     *
-     * Two threads work parallelly so that all decoder/encoder will share this
-     * acceleration mechanism
-     */
-    MppThread       *mThreadCodec;
-    MppThread       *mThreadHal;
-    MppThread       *mThreadVproc;
 
     MppDec          mDec;
     MppEnc          mEnc;

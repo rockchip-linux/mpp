@@ -33,8 +33,6 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
-#include "mpp_dec_impl.h"
-#include "mpp_enc_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
@@ -66,9 +64,6 @@ Mpp::Mpp()
       mInputTimeout(MPP_POLL_NON_BLOCK),
       mOutputTimeout(MPP_POLL_NON_BLOCK),
       mInputTask(NULL),
-      mThreadCodec(NULL),
-      mThreadHal(NULL),
-      mThreadVproc(NULL),
       mDec(NULL),
       mEnc(NULL),
       mType(MPP_CTX_BUTT),
@@ -132,9 +127,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_dec_init(&mDec, &cfg);
         mpp_dec_start(mDec);
 
-        mThreadCodec = ((MppDecImpl *)mDec)->mThreadCodec;
-        mThreadHal  = ((MppDecImpl *)mDec)->mThreadHal;
-
         mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
@@ -159,8 +151,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
         mpp_enc_init(&mEnc, &cfg);
         mpp_enc_start(mEnc);
-
-        mThreadCodec = ((MppEncImpl *)mEnc)->mThreadCodec;
 
         mInitDone = 1;
     } break;
@@ -191,13 +181,17 @@ void Mpp::clear()
                                       NULL, NULL);
 
     if (mType == MPP_CTX_DEC) {
-        mpp_dec_stop(mDec);
-        mThreadCodec = NULL;
-        mThreadHal = NULL;
+        if (mDec) {
+            mpp_dec_stop(mDec);
+            mpp_dec_deinit(mDec);
+            mDec = NULL;
+        }
     } else {
-        mpp_enc_stop(mEnc);
-        mThreadCodec = NULL;
-        mThreadHal = NULL;
+        if (mEnc) {
+            mpp_enc_stop(mEnc);
+            mpp_enc_deinit(mEnc);
+            mEnc = NULL;
+        }
     }
 
     if (mInputTaskQueue) {
@@ -211,16 +205,6 @@ void Mpp::clear()
 
     mInputPort = NULL;
     mOutputPort = NULL;
-
-    if (mDec || mEnc) {
-        if (mType == MPP_CTX_DEC) {
-            mpp_dec_deinit(mDec);
-            mDec = NULL;
-        } else {
-            mpp_enc_deinit(mEnc);
-            mEnc = NULL;
-        }
-    }
 
     if (mExtraPacket) {
         mpp_packet_deinit(&mExtraPacket);
@@ -543,14 +527,10 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
     }
 
     if (port) {
-        mThreadCodec->lock();
         ret = mpp_port_enqueue(port, task);
-        if (MPP_OK == ret) {
-            // if enqueue success wait up thread
-            mThreadCodec->signal();
+        // if enqueue success wait up thread
+        if (MPP_OK == ret)
             notify(notify_flag);
-        }
-        mThreadCodec->unlock();
     }
 
     return ret;
