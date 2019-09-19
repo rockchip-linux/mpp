@@ -46,10 +46,6 @@ MPP_RET mpp_dec_flush(MppDec ctx);
 MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag);
 
-void *mpp_dec_parser_thread(void *data);
-void *mpp_dec_hal_thread(void *data);
-void *mpp_dec_advanced_thread(void *data);
-
 #ifdef __cplusplus
 }
 #endif

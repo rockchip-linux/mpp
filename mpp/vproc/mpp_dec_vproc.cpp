@@ -415,9 +415,6 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
 
         p->prev_idx = -1;
         p->prev_frm = NULL;
-
-        // set to mpp for cross communication
-        p->mpp->mThreadVproc = p->thd;
     }
 
     *ctx = p;

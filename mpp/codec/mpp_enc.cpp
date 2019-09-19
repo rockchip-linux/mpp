@@ -25,7 +25,8 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
-#include "mpp_enc_impl.h"
+#include "mpp_controller.h"
+#include "mpp_hal.h"
 #include "hal_h264e_api.h"
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)
@@ -45,6 +46,34 @@ RK_U32 mpp_enc_debug = 0;
 #define enc_dbg_status(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_STATUS, fmt, ## __VA_ARGS__)
 #define enc_dbg_detail(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_DETAIL, fmt, ## __VA_ARGS__)
 #define enc_dbg_notify(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_NOTIFY, fmt, ## __VA_ARGS__)
+
+typedef struct MppEncImpl_t {
+    MppCodingType       coding;
+    Controller          controller;
+    MppHal              hal;
+
+    MppThread           *thread_enc;
+    void                *mpp;
+
+    // common resource
+    MppBufSlots         frame_slots;
+    MppBufSlots         packet_slots;
+    HalTaskGroup        tasks;
+
+    // internal status and protection
+    Mutex               lock;
+    RK_U32              reset_flag;
+    sem_t               enc_reset;
+
+    RK_U32              wait_count;
+    RK_U32              work_count;
+    RK_U32              status_flag;
+    RK_U32              notify_flag;
+
+    /* Encoder configure set */
+    MppEncCfgSet        cfg;
+    MppEncCfgSet        set;
+} MppEncImpl;
 
 typedef union EncTaskWait_u {
     RK_U32          val;
@@ -164,7 +193,7 @@ void *mpp_enc_control_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MppHal hal = enc->hal;
-    MppThread *thd_enc  = enc->mThreadCodec;
+    MppThread *thd_enc  = enc->thread_enc;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
     HalEncTask *hal_task = &task_info->enc;
@@ -495,9 +524,9 @@ MPP_RET mpp_enc_start(MppEnc ctx)
 
     enc_dbg_func("%p in\n", enc);
 
-    enc->mThreadCodec = new MppThread(mpp_enc_control_thread,
-                                      enc->mpp, "mpp_enc_ctrl");
-    enc->mThreadCodec->start();
+    enc->thread_enc = new MppThread(mpp_enc_control_thread,
+                                    enc->mpp, "mpp_enc_ctrl");
+    enc->thread_enc->start();
 
     enc_dbg_func("%p out\n", enc);
 
@@ -511,19 +540,10 @@ MPP_RET mpp_enc_stop(MppEnc ctx)
 
     enc_dbg_func("%p in\n", enc);
 
-    if (enc->mThreadCodec)
-        enc->mThreadCodec->stop();
-
-    if (enc->mThreadHal)
-        enc->mThreadHal->stop();
-
-    if (enc->mThreadCodec) {
-        delete enc->mThreadCodec;
-        enc->mThreadCodec = NULL;
-    }
-    if (enc->mThreadHal) {
-        delete enc->mThreadHal;
-        enc->mThreadHal = NULL;
+    if (enc->thread_enc) {
+        enc->thread_enc->stop();
+        delete enc->thread_enc;
+        enc->thread_enc = NULL;
     }
 
     enc_dbg_func("%p out\n", enc);
@@ -541,7 +561,7 @@ MPP_RET mpp_enc_reset(MppEnc ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppThread *thd = enc->mThreadCodec;
+    MppThread *thd = enc->thread_enc;
 
     thd->lock(THREAD_CONTROL);
     enc->reset_flag = 1;
@@ -558,7 +578,7 @@ MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
     enc_dbg_func("%p in flag %08x\n", enc, flag);
-    MppThread *thd  = enc->mThreadCodec;
+    MppThread *thd  = enc->thread_enc;
 
     thd->lock();
     {
@@ -576,6 +596,15 @@ MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
     enc_dbg_func("%p out\n", enc);
     return MPP_OK;
 }
+
+/*
+ * preprocess config and rate-control config is common config then they will
+ * be done in mpp_enc layer
+ *
+ * codec related config will be set in each hal component
+ */
+void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src);
+void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src);
 
 MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
 {
