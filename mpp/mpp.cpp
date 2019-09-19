@@ -34,6 +34,7 @@
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_dec_impl.h"
+#include "mpp_enc_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
@@ -155,11 +156,11 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             coding,
             this,
         };
-        mpp_enc_init(&mEnc, &cfg);
-        mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
-        //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
-        mThreadCodec->start();
+        mpp_enc_init(&mEnc, &cfg);
+        mpp_enc_start(mEnc);
+
+        mThreadCodec = ((MppEncImpl *)mEnc)->mThreadCodec;
 
         mInitDone = 1;
     } break;
@@ -193,20 +194,9 @@ void Mpp::clear()
         mpp_dec_stop(mDec);
         mThreadCodec = NULL;
         mThreadHal = NULL;
-    }
-
-    if (mThreadCodec)
-        mThreadCodec->stop();
-
-    if (mThreadHal)
-        mThreadHal->stop();
-
-    if (mThreadCodec) {
-        delete mThreadCodec;
+    } else {
+        mpp_enc_stop(mEnc);
         mThreadCodec = NULL;
-    }
-    if (mThreadHal) {
-        delete mThreadHal;
         mThreadHal = NULL;
     }
 
@@ -760,7 +750,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
             if (mpp_debug & MPP_DBG_INFO)
                 mpp_log("using external buffer group %p\n", mFrameGroup);
 
-            if (mThreadCodec) {
+            if (mInitDone) {
                 ret = mpp_buffer_group_set_callback((MppBufferGroupImpl *)param,
                                                     mpp_notify_by_buffer_group,
                                                     (void *)this);

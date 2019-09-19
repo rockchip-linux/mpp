@@ -25,6 +25,10 @@ typedef struct MppEncImpl_t {
     MppCodingType       coding;
     Controller          controller;
     MppHal              hal;
+
+    MppThread           *mThreadCodec;
+    MppThread           *mThreadHal;
+
     void                *mpp;
 
     // common resource

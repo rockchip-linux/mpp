@@ -164,7 +164,7 @@ void *mpp_enc_control_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MppHal hal = enc->hal;
-    MppThread *thd_enc  = mpp->mThreadCodec;
+    MppThread *thd_enc  = enc->mThreadCodec;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
     HalEncTask *hal_task = &task_info->enc;
@@ -489,6 +489,48 @@ MPP_RET mpp_enc_deinit(MppEnc ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_enc_start(MppEnc ctx)
+{
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
+    enc_dbg_func("%p in\n", enc);
+
+    enc->mThreadCodec = new MppThread(mpp_enc_control_thread,
+                                      enc->mpp, "mpp_enc_ctrl");
+    enc->mThreadCodec->start();
+
+    enc_dbg_func("%p out\n", enc);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_stop(MppEnc ctx)
+{
+    MPP_RET ret = MPP_OK;
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
+    enc_dbg_func("%p in\n", enc);
+
+    if (enc->mThreadCodec)
+        enc->mThreadCodec->stop();
+
+    if (enc->mThreadHal)
+        enc->mThreadHal->stop();
+
+    if (enc->mThreadCodec) {
+        delete enc->mThreadCodec;
+        enc->mThreadCodec = NULL;
+    }
+    if (enc->mThreadHal) {
+        delete enc->mThreadHal;
+        enc->mThreadHal = NULL;
+    }
+
+    enc_dbg_func("%p out\n", enc);
+    return ret;
+
+}
+
 MPP_RET mpp_enc_reset(MppEnc ctx)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
@@ -499,8 +541,7 @@ MPP_RET mpp_enc_reset(MppEnc ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    Mpp *mpp = (Mpp *)enc->mpp;
-    MppThread *thd = mpp->mThreadCodec;
+    MppThread *thd = enc->mThreadCodec;
 
     thd->lock(THREAD_CONTROL);
     enc->reset_flag = 1;
@@ -517,8 +558,7 @@ MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
     enc_dbg_func("%p in flag %08x\n", enc, flag);
-    Mpp *mpp = (Mpp *)enc->mpp;
-    MppThread *thd  = mpp->mThreadCodec;
+    MppThread *thd  = enc->mThreadCodec;
 
     thd->lock();
     {
