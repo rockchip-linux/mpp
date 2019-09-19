@@ -162,7 +162,7 @@ static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
 static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 {
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
-    MppThread *hal = mpp->mThreadHal;
+    MppThread *hal = dec->mThreadHal;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots  = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
@@ -419,7 +419,7 @@ static void mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
      */
     tmp.info_change = 0;
 
-    mpp->mThreadHal->lock(THREAD_OUTPUT);
+    dec->mThreadHal->lock(THREAD_OUTPUT);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         /* deal with current frame */
         if (eos && mpp_slots_is_empty(frame_slots, QUEUE_DISPLAY))
@@ -428,17 +428,19 @@ static void mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
         mpp_dec_put_frame(mpp, index, tmp);
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
     }
-    mpp->mThreadHal->unlock(THREAD_OUTPUT);
+    dec->mThreadHal->unlock(THREAD_OUTPUT);
 }
 
 static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
 {
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
+
     hal_task_hnd_set_info(task->hnd, &task->info);
-    mpp->mThreadHal->lock();
+    dec->mThreadHal->lock();
     hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
     mpp->mTaskPutCount++;
-    mpp->mThreadHal->signal();
-    mpp->mThreadHal->unlock();
+    dec->mThreadHal->signal();
+    dec->mThreadHal->unlock();
     task->hnd = NULL;
 }
 
@@ -455,7 +457,7 @@ static void reset_hal_thread(Mpp *mpp)
     flag.val = 0;
     mpp_dec_flush(dec);
 
-    mpp->mThreadHal->lock(THREAD_OUTPUT);
+    dec->mThreadHal->lock(THREAD_OUTPUT);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         mpp_dec_put_frame(mpp, index, flag);
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
@@ -469,7 +471,7 @@ static void reset_hal_thread(Mpp *mpp)
         }
     }
 
-    mpp->mThreadHal->unlock(THREAD_OUTPUT);
+    dec->mThreadHal->unlock(THREAD_OUTPUT);
 }
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
@@ -823,8 +825,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *parser   = mpp->mThreadCodec;
-    MppDecImpl *dec     = (MppDecImpl *)mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
+    MppThread *parser = dec->mThreadCodec;
     MppBufSlots packet_slots = dec->packet_slots;
 
     DecTask task;
@@ -886,9 +888,9 @@ void *mpp_dec_parser_thread(void *data)
 void *mpp_dec_hal_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppThread *hal      = mpp->mThreadHal;
-    MppDecImpl *dec     = (MppDecImpl *)mpp->mDec;
-    HalTaskGroup tasks  = dec->tasks;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
+    MppThread *hal = dec->mThreadHal;
+    HalTaskGroup tasks = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
 
@@ -1055,7 +1057,7 @@ void *mpp_dec_advanced_thread(void *data)
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
-    MppThread *thd_dec  = mpp->mThreadCodec;
+    MppThread *thd_dec  = dec->mThreadCodec;
     DecTask task;   /* decoder task */
     DecTask *pTask = &task;
     dec_task_init(pTask);
@@ -1230,8 +1232,8 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
     MppDecImpl *p = NULL;
     IOInterruptCB cb = {NULL, NULL};
 
-    dec_dbg_func("in\n");
     mpp_env_get_u32("mpp_dec_debug", &mpp_dec_debug, 0);
+    dec_dbg_func("in\n");
 
     if (NULL == dec || NULL == cfg) {
         mpp_err_f("invalid input dec %p cfg %p\n", dec, cfg);
@@ -1402,6 +1404,57 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_dec_start(MppDec ctx)
+{
+    MPP_RET ret = MPP_OK;
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
+    dec_dbg_func("%p in\n", dec);
+
+    if (dec->coding != MPP_VIDEO_CodingMJPEG) {
+        dec->mThreadCodec = new MppThread(mpp_dec_parser_thread,
+                                          dec->mpp, "mpp_dec_parser");
+        dec->mThreadHal = new MppThread(mpp_dec_hal_thread,
+                                        dec->mpp, "mpp_dec_hal");
+
+        dec->mThreadCodec->start();
+        dec->mThreadHal->start();
+    } else {
+        dec->mThreadCodec = new MppThread(mpp_dec_advanced_thread,
+                                          dec->mpp, "mpp_dec_parser");
+        dec->mThreadCodec->start();
+    }
+
+    dec_dbg_func("%p out\n", dec);
+    return ret;
+}
+
+MPP_RET mpp_dec_stop(MppDec ctx)
+{
+    MPP_RET ret = MPP_OK;
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
+    dec_dbg_func("%p in\n", dec);
+
+    if (dec->mThreadCodec)
+        dec->mThreadCodec->stop();
+
+    if (dec->mThreadHal)
+        dec->mThreadHal->stop();
+
+    if (dec->mThreadCodec) {
+        delete dec->mThreadCodec;
+        dec->mThreadCodec = NULL;
+    }
+    if (dec->mThreadHal) {
+        delete dec->mThreadHal;
+        dec->mThreadHal = NULL;
+    }
+
+    dec_dbg_func("%p out\n", dec);
+    return ret;
+}
+
 MPP_RET mpp_dec_reset(MppDec ctx)
 {
     MppDecImpl *dec = (MppDecImpl *)ctx;
@@ -1412,8 +1465,7 @@ MPP_RET mpp_dec_reset(MppDec ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    Mpp *mpp = (Mpp *)dec->mpp;
-    MppThread *parser = mpp->mThreadCodec;
+    MppThread *parser = dec->mThreadCodec;
 
     if (dec->coding != MPP_VIDEO_CodingMJPEG) {
         // set reset flag
@@ -1449,8 +1501,7 @@ MPP_RET mpp_dec_flush(MppDec ctx)
 MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag)
 {
     MppDecImpl *dec = (MppDecImpl *)ctx;
-    Mpp *mpp = (Mpp *)dec->mpp;
-    MppThread *thd_dec  = mpp->mThreadCodec;
+    MppThread *thd_dec  = dec->mThreadCodec;
 
     dec_dbg_func("%p in flag %08x\n", dec, flag);
 

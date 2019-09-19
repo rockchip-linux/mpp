@@ -28,10 +28,12 @@
 
 #include "mpp.h"
 #include "mpp_hal.h"
+
 #include "mpp_task_impl.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
+#include "mpp_dec_impl.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
@@ -100,19 +102,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTimeStamps = new MppQueue((node_destructor)mpp_packet_deinit);
 
-        MppDecCfg cfg = {
-            coding,
-            mParserFastMode,
-            mParserNeedSplit,
-            mParserInternalPts,
-            this,
-        };
-        mpp_dec_init(&mDec, &cfg);
-
         if (mCoding != MPP_VIDEO_CodingMJPEG) {
-            mThreadCodec = new MppThread(mpp_dec_parser_thread, this, "mpp_dec_parser");
-            mThreadHal  = new MppThread(mpp_dec_hal_thread, this, "mpp_dec_hal");
-
             mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
             mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
 
@@ -121,17 +111,45 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             mpp_task_queue_setup(mInputTaskQueue, 4);
             mpp_task_queue_setup(mOutputTaskQueue, 4);
         } else {
-            mThreadCodec = new MppThread(mpp_dec_advanced_thread, this, "mpp_dec_parser");
-
             mpp_task_queue_init(&mInputTaskQueue);
             mpp_task_queue_init(&mOutputTaskQueue);
             mpp_task_queue_setup(mInputTaskQueue, 1);
             mpp_task_queue_setup(mOutputTaskQueue, 1);
         }
+
+        mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
+        mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
+
+        MppDecCfg cfg = {
+            coding,
+            mParserFastMode,
+            mParserNeedSplit,
+            mParserInternalPts,
+            this,
+        };
+
+        mpp_dec_init(&mDec, &cfg);
+        mpp_dec_start(mDec);
+
+        mThreadCodec = ((MppDecImpl *)mDec)->mThreadCodec;
+        mThreadHal  = ((MppDecImpl *)mDec)->mThreadHal;
+
+        mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
+
+        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+
+        mpp_task_queue_init(&mInputTaskQueue);
+        mpp_task_queue_init(&mOutputTaskQueue);
+        mpp_task_queue_setup(mInputTaskQueue, 1);
+        mpp_task_queue_setup(mOutputTaskQueue, 1);
+
+        mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
+        mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
         MppEncCfg cfg = {
             coding,
@@ -141,44 +159,17 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mThreadCodec = new MppThread(mpp_enc_control_thread, this, "mpp_enc_ctrl");
         //mThreadHal  = new MppThread(mpp_enc_hal_thread, this, "mpp_enc_hal");
 
-        mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
+        mThreadCodec->start();
 
-        mpp_task_queue_init(&mInputTaskQueue);
-        mpp_task_queue_init(&mOutputTaskQueue);
-        mpp_task_queue_setup(mInputTaskQueue, 1);
-        mpp_task_queue_setup(mOutputTaskQueue, 1);
+        mInitDone = 1;
     } break;
     default : {
         mpp_err("Mpp error type %d\n", mType);
     } break;
     }
 
-    mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
-    mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
-    if (mCoding == MPP_VIDEO_CodingMJPEG &&
-        mFrames && mPackets &&
-        (mDec) &&
-        mThreadCodec/* &&
-        mPacketGroup*/) {
-        mThreadCodec->start();
-        mInitDone = 1;
-    } else if (mFrames && mPackets &&
-               (mDec) &&
-               mThreadCodec && mThreadHal &&
-               mPacketGroup) {
-        mThreadCodec->start();
-        mThreadHal->start();
-        mInitDone = 1;
-    } else if (mFrames && mPackets &&
-               (mEnc) &&
-               mThreadCodec/* && mThreadHal */ &&
-               mPacketGroup) {
-        mThreadCodec->start();
-        //mThreadHal->start();  // TODO
-        mInitDone = 1;
-    } else {
+    if (!mInitDone) {
         mpp_err("error found on mpp initialization\n");
         clear();
     }
@@ -197,6 +188,12 @@ void Mpp::clear()
     if (mFrameGroup)
         mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
                                       NULL, NULL);
+
+    if (mType == MPP_CTX_DEC) {
+        mpp_dec_stop(mDec);
+        mThreadCodec = NULL;
+        mThreadHal = NULL;
+    }
 
     if (mThreadCodec)
         mThreadCodec->stop();
