@@ -24,6 +24,7 @@
 #include "mpp_time.h"
 
 #include "mpp.h"
+#include "mpp_dec_impl.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
@@ -123,7 +124,7 @@ static void dec_task_init(DecTask *task)
  * return MPP_OK for not wait
  * return MPP_NOK for wait
  */
-static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
+static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 notify = dec->parser_notify_flag;
@@ -160,7 +161,7 @@ static MPP_RET check_task_wait(MppDec *dec, DecTask *task)
 
 static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 {
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppThread *hal = mpp->mThreadHal;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots  = dec->frame_slots;
@@ -256,7 +257,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 /* Overall mpp_dec output frame function */
 static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
 {
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppBufSlots slots = dec->frame_slots;
     MppFrame frame = NULL;
     RK_U32 eos = flags.eos;
@@ -318,7 +319,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     mpp_assert(index >= 0);
     mpp_assert(frame);
 
-    if (mpp->mDec->disable_error) {
+    if (dec->disable_error) {
         mpp_frame_set_errinfo(frame, 0);
         mpp_frame_set_discard(frame, 0);
     }
@@ -402,7 +403,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
 static void mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
 {
     RK_S32 index = -1;
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppBufSlots frame_slots = dec->frame_slots;
     RK_U32 eos = flags.eos;
     HalDecTaskFlag tmp = flags;
@@ -443,7 +444,7 @@ static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
 
 static void reset_hal_thread(Mpp *mpp)
 {
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     HalTaskGroup tasks = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     HalDecTaskFlag flag;
@@ -473,7 +474,7 @@ static void reset_hal_thread(Mpp *mpp)
 
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
-    MppDec *dec = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
@@ -823,7 +824,7 @@ void *mpp_dec_parser_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *parser   = mpp->mThreadCodec;
-    MppDec    *dec      = mpp->mDec;
+    MppDecImpl *dec     = (MppDecImpl *)mpp->mDec;
     MppBufSlots packet_slots = dec->packet_slots;
 
     DecTask task;
@@ -886,7 +887,7 @@ void *mpp_dec_hal_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppThread *hal      = mpp->mThreadHal;
-    MppDec    *dec      = mpp->mDec;
+    MppDecImpl *dec     = (MppDecImpl *)mpp->mDec;
     HalTaskGroup tasks  = dec->tasks;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
@@ -1051,7 +1052,7 @@ static MPP_RET dec_release_task_in_port(MppPort port)
 void *mpp_dec_advanced_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
-    MppDec *dec      = mpp->mDec;
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
     MppThread *thd_dec  = mpp->mThreadCodec;
@@ -1216,7 +1217,7 @@ static const char *timing_str[DEC_TIMING_BUTT] = {
     "hw wait   ",
 };
 
-MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
+MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
 {
     RK_S32 i;
     MPP_RET ret;
@@ -1226,7 +1227,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
     Parser parser = NULL;
     MppHal hal = NULL;
     RK_S32 hal_task_count = 0;
-    MppDec *p = NULL;
+    MppDecImpl *p = NULL;
     IOInterruptCB cb = {NULL, NULL};
 
     dec_dbg_func("in\n");
@@ -1239,7 +1240,7 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
 
     *dec = NULL;
 
-    p = mpp_calloc(MppDec, 1);
+    p = mpp_calloc(MppDecImpl, 1);
     if (NULL == p) {
         mpp_err_f("failed to malloc context\n");
         return MPP_ERR_MALLOC;
@@ -1333,9 +1334,10 @@ MPP_RET mpp_dec_init(MppDec **dec, MppDecCfg *cfg)
     return MPP_NOK;
 }
 
-MPP_RET mpp_dec_deinit(MppDec *dec)
+MPP_RET mpp_dec_deinit(MppDec ctx)
 {
     RK_S32 i;
+    MppDecImpl *dec = (MppDecImpl *)ctx;
 
     dec_dbg_func("%p in\n", dec);
     if (NULL == dec) {
@@ -1400,8 +1402,10 @@ MPP_RET mpp_dec_deinit(MppDec *dec)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_reset(MppDec *dec)
+MPP_RET mpp_dec_reset(MppDec ctx)
 {
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
     dec_dbg_func("%p in\n", dec);
     if (NULL == dec) {
         mpp_err_f("found NULL input dec %p\n", dec);
@@ -1425,8 +1429,10 @@ MPP_RET mpp_dec_reset(MppDec *dec)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_flush(MppDec *dec)
+MPP_RET mpp_dec_flush(MppDec ctx)
 {
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
     dec_dbg_func("%p in\n", dec);
     if (NULL == dec) {
         mpp_err_f("found NULL input dec %p\n", dec);
@@ -1440,11 +1446,13 @@ MPP_RET mpp_dec_flush(MppDec *dec)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_notify(MppDec *dec, RK_U32 flag)
+MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag)
 {
-    dec_dbg_func("%p in flag %08x\n", dec, flag);
+    MppDecImpl *dec = (MppDecImpl *)ctx;
     Mpp *mpp = (Mpp *)dec->mpp;
     MppThread *thd_dec  = mpp->mThreadCodec;
+
+    dec_dbg_func("%p in flag %08x\n", dec, flag);
 
     thd_dec->lock();
     {
@@ -1463,8 +1471,11 @@ MPP_RET mpp_dec_notify(MppDec *dec, RK_U32 flag)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
+MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
 {
+    MPP_RET ret = MPP_OK;
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
     dec_dbg_func("%p in %08x %p\n", dec, cmd, param);
     if (NULL == dec) {
         mpp_err_f("found NULL input dec %p\n", dec);
@@ -1485,6 +1496,9 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
                 mpp_frame_get_hor_stride(frame),
                 mpp_frame_get_ver_stride(frame));
 
+    } break;
+    case MPP_DEC_SET_INFO_CHANGE_READY: {
+        ret = mpp_buf_slot_ready(dec->frame_slots);
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT: {
         RK_S32 *p = (RK_S32 *)param;
@@ -1508,5 +1522,5 @@ MPP_RET mpp_dec_control(MppDec *dec, MpiCmd cmd, void *param)
     }
 
     dec_dbg_func("%p out\n", dec);
-    return MPP_OK;
+    return ret;
 }
