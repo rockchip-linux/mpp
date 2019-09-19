@@ -16,6 +16,7 @@
  */
 #ifndef _HAL_VP9D_TABLE_H_
 #define _HAL_VP9D_TABLE_H_
+
 #include "rk_type.h"
 
 typedef RK_U8 vp9_prob;

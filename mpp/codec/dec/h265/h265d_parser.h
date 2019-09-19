@@ -33,9 +33,10 @@
 #include <string.h>
 
 #include "mpp_mem.h"
-#include "mpp_dec.h"
 #include "mpp_bitread.h"
+#include "mpp_buf_slot.h"
 
+#include "hal_task.h"
 #include "h265d_codec.h"
 
 extern RK_U32 h265d_debug;

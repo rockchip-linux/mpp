@@ -18,9 +18,8 @@
 #define __HAL_JPEGD_BASE_H__
 
 #include <stdio.h>
-#include "rk_type.h"
-#include "mpp_common.h"
-#include "mpp_mem.h"
+
+#include "mpp_hal.h"
 #include "mpp_device.h"
 
 #define EXTRA_INFO_MAGIC                      (0x4C4A46)

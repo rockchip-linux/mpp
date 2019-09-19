@@ -21,8 +21,7 @@
 #include "mpp_bitread.h"
 #include "mpp_mem.h"
 
-#include "mpp_dec.h"
-
+#include "parser_api.h"
 #include "vp8d_syntax.h"
 #include "vp8d_data.h"
 

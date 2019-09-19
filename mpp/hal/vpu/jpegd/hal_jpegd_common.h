@@ -16,6 +16,7 @@
  */
 #ifndef __HAL_JPEGD_COMMON_H__
 #define __HAL_JPEGD_COMMON_H__
+
 #include "hal_jpegd_base.h"
 
 #define BRIGHTNESS                                  4    /* -128 ~ 127 */

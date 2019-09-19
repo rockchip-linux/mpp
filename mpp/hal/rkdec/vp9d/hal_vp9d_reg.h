@@ -27,14 +27,14 @@
 
 #ifndef __HAL_VP9D_REG_H__
 #define __HAL_VP9D_REG_H__
-#include "rk_type.h"
+
 #include "mpp_log.h"
 
 extern RK_U32 vp9h_debug;
+
 #define VP9H_DBG_FUNCTION          (0x00000001)
 #define VP9H_DBG_PAR               (0x00000002)
 #define VP9H_DBG_REG               (0x00000004)
-
 
 #define vp9h_dbg(flag, fmt, ...) _mpp_dbg(vp9h_debug, flag, fmt, ## __VA_ARGS__)
 

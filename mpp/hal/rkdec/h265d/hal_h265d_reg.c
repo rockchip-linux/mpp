@@ -30,18 +30,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "hal_h265d_reg.h"
-#include "mpp_buffer.h"
+#include "mpp_env.h"
 #include "mpp_log.h"
-#include "mpp_err.h"
-#include "cabac.h"
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
-#include "mpp_dec.h"
-#include "mpp_device.h"
-#include "mpp_buffer.h"
-#include "mpp_env.h"
 #include "mpp_bitput.h"
+
+#include "mpp_device.h"
+#include "cabac.h"
+#include "hal_h265d_reg.h"
 #include "hal_h265d_api.h"
 #include "h265d_syntax.h"
 

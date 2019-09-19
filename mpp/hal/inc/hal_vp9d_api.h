@@ -19,11 +19,7 @@
 #ifndef __HAL_VP9D_API_H__
 #define __HAL_VP9D_API_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
 #include "mpp_hal.h"
-
-
 
 #ifdef __cplusplus
 extern "C" {

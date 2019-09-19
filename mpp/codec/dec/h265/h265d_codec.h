@@ -28,7 +28,7 @@
 #ifndef __MPP_CODEC_H__
 #define __MPP_CODEC_H__
 
-#include "mpp_dec.h"
+#include "mpp_frame.h"
 
 typedef struct MppRational {
     RK_S32 num; ///< numerator

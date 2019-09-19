@@ -22,18 +22,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rk_type.h"
-#include "mpp_log.h"
-#include "mpp_err.h"
-#include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_log.h"
+#include "mpp_mem.h"
 #include "mpp_common.h"
-#include "mpp_dec.h"
+#include "mpp_bitput.h"
 
+#include "mpp_device.h"
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_reg.h"
-#include "mpp_device.h"
-#include "mpp_bitput.h"
 #include "vp9d_syntax.h"
 #include "hal_vp9d_table.h"
 
