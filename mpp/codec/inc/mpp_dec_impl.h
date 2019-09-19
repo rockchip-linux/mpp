@@ -46,6 +46,10 @@ typedef struct MppDecImpl_t {
     Parser              parser;
     MppHal              hal;
 
+    // worker thread
+    MppThread           *mThreadCodec;
+    MppThread           *mThreadHal;
+
     // common resource
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
