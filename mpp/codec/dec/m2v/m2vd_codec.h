@@ -18,7 +18,6 @@
 #define __M2VD_CODEC_H__
 
 #include "mpp_common.h"
-#include "mpp_dec.h"
 
 typedef struct M2VDContext_t {
     void        *parse_ctx;

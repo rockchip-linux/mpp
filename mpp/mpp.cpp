@@ -27,8 +27,6 @@
 #include "mpp_impl.h"
 
 #include "mpp.h"
-#include "mpp_dec.h"
-#include "mpp_enc.h"
 #include "mpp_hal.h"
 #include "mpp_task_impl.h"
 #include "mpp_buffer_impl.h"

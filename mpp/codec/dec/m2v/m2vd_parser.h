@@ -30,8 +30,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-#include "mpp_dec.h"
-
+#include "parser_api.h"
 #include "m2vd_syntax.h"
 #include "m2vd_com.h"
 

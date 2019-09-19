@@ -24,8 +24,6 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-#include "mpp_dec.h"
-
 #include "jpegd_syntax.h"
 
 #define JPEG_IDENTIFIER(a, b, c, d) \
