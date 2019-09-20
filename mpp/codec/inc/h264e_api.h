@@ -17,21 +17,13 @@
 #ifndef __H264E_API_H__
 #define __H264E_API_H__
 
-#include "encoder_codec_api.h"
+#include "enc_impl_api.h"
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_h264e_controller;
-
-MPP_RET h264e_init(void *ctx, ControllerCfg *ctrlCfg);
-MPP_RET h264e_deinit(void *ctx);
-MPP_RET h264e_encode(void *ctx, HalEncTask *task);
-MPP_RET h264e_reset(void *ctx);
-MPP_RET h264e_flush(void *ctx);
-MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param);
-MPP_RET h264e_callback(void *ctx, void *feedback);
+extern const EncImplApi api_h264e_controller;
 
 #ifdef  __cplusplus
 }

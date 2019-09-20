@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_CONTROLLER_API_H__
-#define __ENCODER_CONTROLLER_API_H__
+#ifndef __MPP_ENC_IMPL_H__
+#define __MPP_ENC_IMPL_H__
 
-#include "encoder_codec_api.h"
+#include "enc_impl_api.h"
 
 typedef void* Controller;
 
@@ -25,7 +25,7 @@ typedef void* Controller;
 extern "C" {
 #endif
 
-MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg);
+MPP_RET controller_init(Controller *ctrl, EncImplCfg *cfg);
 MPP_RET controller_deinit(Controller ctrl);
 MPP_RET controller_encode(Controller ctrl, HalEncTask *task);
 MPP_RET controller_config(Controller ctrl, RK_S32 cmd, void *para);
@@ -35,4 +35,4 @@ MPP_RET hal_enc_callback(void* ctrl, void *err_info);
 }
 #endif
 
-#endif /*__ENCODER_CONTROLLER_API_H__*/
+#endif /*__MPP_ENC_IMPL_H__*/

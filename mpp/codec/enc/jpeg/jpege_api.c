@@ -63,7 +63,7 @@ static MPP_RET jpege_callback(void *ctx, void *feedback)
     return MPP_OK;
 }
 
-static MPP_RET jpege_init(void *ctx, ControllerCfg *cfg)
+static MPP_RET jpege_init(void *ctx, EncImplCfg *cfg)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
 
@@ -121,7 +121,7 @@ static MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
     return ret;
 }
 
-const ControlApi api_jpege_controller = {
+const EncImplApi api_jpege_controller = {
     .name = "jpege_control",
     .coding = MPP_VIDEO_CodingMJPEG,
     .ctx_size = sizeof(JpegeCtx),

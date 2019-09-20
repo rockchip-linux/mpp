@@ -17,13 +17,13 @@
 #ifndef __H265E_API_H__
 #define __H265E_API_H__
 
-#include "encoder_codec_api.h"
+#include "enc_impl_api.h"
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_h265e_controller;
+extern const EncImplApi api_h265e_controller;
 
 #ifdef  __cplusplus
 }

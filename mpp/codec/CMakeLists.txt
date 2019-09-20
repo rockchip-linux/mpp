@@ -5,7 +5,7 @@
 # ----------------------------------------------------------------------------
 add_library(mpp_codec STATIC
     mpp_enc.cpp
-    mpp_controller.cpp
+    mpp_enc_impl.cpp
     mpp_dec.cpp
     mpp_parser.cpp
     )
