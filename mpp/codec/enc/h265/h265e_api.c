@@ -50,7 +50,7 @@ typedef struct {
     H265eFeedback feedback;
 } H265eCtx;
 
-MPP_RET h265e_init(void *ctx, ControllerCfg *ctrlCfg)
+MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MppEncCodecCfg *codec = NULL;
@@ -160,7 +160,7 @@ MPP_RET h265e_config(void *ctx, RK_S32 cmd, void *param)
     (void)param;
     h265e_dbg_func("enter ctx %p, cmd = %d\n", ctx, cmd);
     switch (cmd) {
-    case SET_IDR_FRAME : {
+    case MPP_ENC_SET_IDR_FRAME : {
         p->syntax.idr_request++;
     } break;
     case MPP_ENC_SET_RC_CFG : {
@@ -197,7 +197,7 @@ MPP_RET h265e_callback(void *ctx, void *feedback)
     return MPP_OK;
 }
 
-const ControlApi api_h265e_controller = {
+const EncImplApi api_h265e_controller = {
     "h265e_control",
     MPP_VIDEO_CodingHEVC,
     sizeof(H265eCtx),

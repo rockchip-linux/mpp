@@ -17,13 +17,13 @@
 #ifndef __VP8E_API_H__
 #define __VP8E_API_H__
 
-#include "encoder_codec_api.h"
+#include "enc_impl_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_vp8e_controller;
+extern const EncImplApi api_vp8e_controller;
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,7 @@
 #include "h264e_codec.h"
 #include "h264e_syntax.h"
 
-#include "mpp_controller.h"
+#include "mpp_enc_impl.h"
 
 #define H264E_DBG_FUNCTION          (0x00000001)
 
@@ -64,7 +64,7 @@ typedef struct {
     struct list_head rc_list;
 } H264eCtx;
 
-MPP_RET h264e_init(void *ctx, ControllerCfg *ctrl_cfg)
+MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
 {
     MPP_RET ret = MPP_OK;
     H264eCtx *p = (H264eCtx *)ctx;
@@ -203,7 +203,7 @@ MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
     switch (cmd) {
-    case SET_IDR_FRAME : {
+    case MPP_ENC_SET_IDR_FRAME: {
         p->idr_request++;
     } break;
     case MPP_ENC_SET_RC_CFG : {
@@ -267,7 +267,7 @@ MPP_RET h264e_callback(void *ctx, void *feedback)
 *   api struct interface
 ***********************************************************************
 */
-const ControlApi api_h264e_controller = {
+const EncImplApi api_h264e_controller = {
     "h264e_control",
     MPP_VIDEO_CodingAVC,
     sizeof(H264eCtx),

@@ -14,24 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef __CONTROL_API_H__
-#define __CONTROL_API_H__
+#ifndef __ENC_IMPL_API_H__
+#define __ENC_IMPL_API_H__
 
-#include "mpp_buf_slot.h"
 #include "hal_task.h"
-
-// config cmd
-typedef enum EncCfgCmd_t {
-    CHK_ENC_CFG,
-    SET_ENC_CFG,
-    SET_ENC_RC_CFG,
-    SET_IDR_FRAME,
-} EncCfgCmd;
 
 /*
  * the reset wait for extension
  */
-typedef struct EncControllerInitCfg_t {
+typedef struct EncImplCfg_t {
     // input
     MppCodingType   coding;
     MppEncCfgSet    *cfg;
@@ -39,10 +30,10 @@ typedef struct EncControllerInitCfg_t {
 
     // output
     RK_S32          task_count;
-} ControllerCfg;
+} EncImplCfg;
 
 /*
- * ControlApi is the data structure provided from different encoders
+ * EncImplApi is the data structure provided from different encoders
  *
  * They will be static register to mpp_enc for scaning
  * name     - encoder name
@@ -52,18 +43,18 @@ typedef struct EncControllerInitCfg_t {
  *
  * init     - encoder initialization function
  * deinit   - encoder de-initialization function
- * encoder    - encoder main working function, mpp_dec will input packet and get output syntax
+ * encode   - encoder main working function
  * reset    - encoder reset function
  * flush    - encoder output all frames
  * control  - encoder configure function
  */
-typedef struct ControlApi_t {
+typedef struct EncImplApi_t {
     char            *name;
     MppCodingType   coding;
     RK_U32          ctx_size;
     RK_U32          flag;
 
-    MPP_RET (*init)(void *ctx, ControllerCfg *ctrlCfg);
+    MPP_RET (*init)(void *ctx, EncImplCfg *ctrlCfg);
     MPP_RET (*deinit)(void *ctx);
 
     MPP_RET (*encode)(void *ctx, HalEncTask *task);
@@ -72,6 +63,6 @@ typedef struct ControlApi_t {
     MPP_RET (*flush)(void *ctx);
     MPP_RET (*config)(void *ctx, RK_S32 cmd, void *param);
     MPP_RET (*callback)(void *ctx, void *feedback);
-} ControlApi;
+} EncImplApi;
 
-#endif /*__CONTROL_API_H__*/
+#endif /*__ENC_IMPL_API_H__*/

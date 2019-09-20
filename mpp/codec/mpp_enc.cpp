@@ -25,7 +25,7 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
-#include "mpp_controller.h"
+#include "mpp_enc_impl.h"
 #include "mpp_hal.h"
 #include "hal_h264e_api.h"
 
@@ -428,7 +428,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
 
         mpp_buf_slot_setup(packet_slots, task_count);
 
-        ControllerCfg ctrl_cfg = {
+        EncImplCfg ctrl_cfg = {
             coding,
             &p->cfg,
             &p->set,
@@ -689,7 +689,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
 
     case MPP_ENC_SET_IDR_FRAME : {
         enc_dbg_ctrl("idr request\n");
-        ret = controller_config(enc->controller, SET_IDR_FRAME, param);
+        ret = controller_config(enc->controller, cmd, param);
     } break;
     case MPP_ENC_GET_EXTRA_INFO : {
         enc_dbg_ctrl("get extra info\n");

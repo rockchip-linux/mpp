@@ -23,7 +23,6 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_rc.h"
-#include "mpp_controller.h"
 
 #include "vp8e_api.h"
 #include "vp8e_rc.h"
@@ -50,7 +49,7 @@ typedef struct {
 
 } Vp8eCtx;
 
-MPP_RET vp8e_init(void *ctx, ControllerCfg *ctrl_cfg)
+MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
 {
     MPP_RET ret = MPP_OK;
     Vp8eCtx *p = (Vp8eCtx *)ctx;
@@ -219,7 +218,7 @@ MPP_RET vp8e_callback(void *ctx, void *feedback)
     return MPP_OK;
 }
 
-const ControlApi api_vp8e_controller = {
+const EncImplApi api_vp8e_controller = {
     "vp8e_control",
     MPP_VIDEO_CodingVP8,
     sizeof(Vp8eCtx),

@@ -17,13 +17,13 @@
 #ifndef __JPEGE_API_H__
 #define __JPEGE_API_H__
 
-#include "encoder_codec_api.h"
+#include "enc_impl_api.h"
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-extern const ControlApi api_jpege_controller;
+extern const EncImplApi api_jpege_controller;
 
 #ifdef  __cplusplus
 }

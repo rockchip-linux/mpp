@@ -24,12 +24,12 @@
 #include "jpege_api.h"
 #include "h265e_api.h"
 #include "vp8e_api.h"
-#include "mpp_controller.h"
+#include "mpp_enc_impl.h"
 
 /*
  * all encoder controller static register here
  */
-static const ControlApi *controllers[] = {
+static const EncImplApi *controllers[] = {
 #if HAVE_H264E
     &api_h264e_controller,
 #endif
@@ -45,8 +45,8 @@ static const ControlApi *controllers[] = {
 };
 
 typedef struct ControllerImpl_t {
-    ControllerCfg       cfg;
-    const ControlApi    *api;
+    EncImplCfg       cfg;
+    const EncImplApi    *api;
     void                *ctx;
 } ControllerImpl;
 
@@ -64,7 +64,7 @@ MPP_RET controller_encode(Controller ctrl, HalEncTask *task)
     return p->api->encode(p->ctx, task);
 }
 
-MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg)
+MPP_RET controller_init(Controller *ctrl, EncImplCfg *cfg)
 {
     if (NULL == ctrl || NULL == cfg) {
         mpp_err_f("found NULL input controller %p config %p\n", ctrl, cfg);
@@ -75,7 +75,7 @@ MPP_RET controller_init(Controller *ctrl, ControllerCfg *cfg)
 
     RK_U32 i;
     for (i = 0; i < MPP_ARRAY_ELEMS(controllers); i++) {
-        const ControlApi *api = controllers[i];
+        const EncImplApi *api = controllers[i];
         if (cfg->coding == api->coding) {
             ControllerImpl *p = mpp_calloc(ControllerImpl, 1);
             void *ctx = mpp_calloc_size(void, api->ctx_size);
