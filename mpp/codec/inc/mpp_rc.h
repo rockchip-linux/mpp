@@ -113,7 +113,7 @@ typedef enum ENC_FRAME_TYPE_E {
  * That is user setting -> target bit -> qstep.
  *
  * This struct will be used in both controller and hal.
- * Controller provide step 1 and step 2. Hal provide step 3.
+ * EncImpl provide step 1 and step 2. Hal provide step 3.
  *
  */
 typedef enum MppEncGopMode_e {

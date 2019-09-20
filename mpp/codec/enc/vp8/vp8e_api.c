@@ -225,10 +225,16 @@ const EncImplApi api_vp8e_controller = {
     0,
     vp8e_init,
     vp8e_deinit,
+    vp8e_config,
+    NULL,
+    NULL,
+    NULL,
     vp8e_encode,
+    NULL,
+    NULL,
+    NULL,
     vp8e_reset,
     vp8e_flush,
-    vp8e_config,
     vp8e_callback,
 };
 

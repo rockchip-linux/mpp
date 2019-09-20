@@ -45,26 +45,27 @@ static const EncImplApi *controllers[] = {
 };
 
 typedef struct ControllerImpl_t {
-    EncImplCfg       cfg;
+    EncImplCfg          cfg;
     const EncImplApi    *api;
     void                *ctx;
 } ControllerImpl;
 
-MPP_RET controller_encode(Controller ctrl, HalEncTask *task)
+MPP_RET enc_impl_proc_hal(EncImpl ctrl, HalEncTask *task)
 {
     if (NULL == ctrl || NULL == task) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
+    MPP_RET ret = MPP_OK;
     ControllerImpl *p = (ControllerImpl *)ctrl;
-    if (!p->api->encode)
-        return MPP_OK;
+    if (p->api->proc_hal)
+        ret = p->api->proc_hal(p->ctx, task);
 
-    return p->api->encode(p->ctx, task);
+    return ret;
 }
 
-MPP_RET controller_init(Controller *ctrl, EncImplCfg *cfg)
+MPP_RET enc_impl_init(EncImpl *ctrl, EncImplCfg *cfg)
 {
     if (NULL == ctrl || NULL == cfg) {
         mpp_err_f("found NULL input controller %p config %p\n", ctrl, cfg);
@@ -104,7 +105,7 @@ MPP_RET controller_init(Controller *ctrl, EncImplCfg *cfg)
     return MPP_NOK;
 }
 
-MPP_RET controller_deinit(Controller ctrl)
+MPP_RET enc_impl_deinit(EncImpl ctrl)
 {
     if (NULL == ctrl) {
         mpp_err_f("found NULL input\n");
@@ -126,22 +127,26 @@ MPP_RET hal_enc_callback(void *ctrl, void *err_info)
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
+
+    MPP_RET ret = MPP_OK;
     ControllerImpl *p = (ControllerImpl *)ctrl;
-    if (!p->api->callback)
-        return MPP_OK;
-    return p->api->callback(p->ctx, err_info);
+    if (p->api->callback)
+        ret = p->api->callback(p->ctx, err_info);
+
+    return ret;
 }
 
-MPP_RET controller_config(Controller ctrl, RK_S32 cmd, void *para)
+MPP_RET enc_impl_proc_cfg(EncImpl ctrl, RK_S32 cmd, void *para)
 {
     if (NULL == ctrl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
+    MPP_RET ret = MPP_OK;
     ControllerImpl *p = (ControllerImpl *)ctrl;
-    if (!p->api->config)
-        return MPP_OK;
+    if (p->api->proc_cfg)
+        ret = p->api->proc_cfg(p->ctx, cmd, para);
 
-    return p->api->config(p->ctx, cmd, para);
+    return ret;
 }
