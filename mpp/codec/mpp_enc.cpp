@@ -49,7 +49,7 @@ RK_U32 mpp_enc_debug = 0;
 
 typedef struct MppEncImpl_t {
     MppCodingType       coding;
-    EncImpl          controller;
+    EncImpl             impl;
     MppHal              hal;
 
     MppThread           *thread_enc;
@@ -297,7 +297,7 @@ void *mpp_enc_control_thread(void *data)
 
             {
                 AutoMutex auto_lock(&enc->lock);
-                ret = enc_impl_proc_hal(enc->controller, hal_task);
+                ret = enc_impl_proc_hal(enc->impl, hal_task);
                 if (ret) {
                     mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
                     goto TASK_END;
@@ -392,7 +392,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
     MppCodingType coding = cfg->coding;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
-    EncImpl controller = NULL;
+    EncImpl impl = NULL;
     MppHal hal = NULL;
     MppEncImpl *p = NULL;
     RK_S32 task_count = 2;
@@ -435,14 +435,14 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
             task_count,
         };
 
-        ret = enc_impl_init(&controller, &ctrl_cfg);
+        ret = enc_impl_init(&impl, &ctrl_cfg);
         if (ret) {
-            mpp_err_f("could not init controller\n");
+            mpp_err_f("could not init impl\n");
             break;
         }
         cb.callBack = hal_enc_callback;
-        cb.opaque = controller;
-        // then init hal with task count from controller
+        cb.opaque = impl;
+        // then init hal with task count from impl
         MppHalCfg hal_cfg = {
             MPP_CTX_ENC,
             coding,
@@ -465,7 +465,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
         }
 
         p->coding       = coding;
-        p->controller   = controller;
+        p->impl         = impl;
         p->hal          = hal;
         p->mpp          = cfg->mpp;
         p->tasks        = hal_cfg.tasks;
@@ -492,9 +492,9 @@ MPP_RET mpp_enc_deinit(MppEnc ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    if (enc->controller) {
-        enc_impl_deinit(enc->controller);
-        enc->controller = NULL;
+    if (enc->impl) {
+        enc_impl_deinit(enc->impl);
+        enc->impl = NULL;
     }
 
     if (enc->hal) {
@@ -623,7 +623,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
         enc_dbg_ctrl("set all config\n");
         memcpy(&enc->set, param, sizeof(enc->set));
 
-        ret = enc_impl_proc_cfg(enc->controller, MPP_ENC_SET_RC_CFG, param);
+        ret = enc_impl_proc_cfg(enc->impl, MPP_ENC_SET_RC_CFG, param);
         if (!ret)
             ret = mpp_hal_control(enc->hal, MPP_ENC_SET_RC_CFG, &enc->set.rc);
 
@@ -660,7 +660,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
         enc_dbg_ctrl("set rc config\n");
         memcpy(&enc->set.rc, param, sizeof(enc->set.rc));
 
-        ret = enc_impl_proc_cfg(enc->controller, cmd, param);
+        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
         if (!ret)
             ret = mpp_hal_control(enc->hal, cmd, param);
 
@@ -689,7 +689,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
 
     case MPP_ENC_SET_IDR_FRAME : {
         enc_dbg_ctrl("idr request\n");
-        ret = enc_impl_proc_cfg(enc->controller, cmd, param);
+        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
     } break;
     case MPP_ENC_GET_EXTRA_INFO : {
         enc_dbg_ctrl("get extra info\n");

@@ -29,7 +29,7 @@
 #include "h264e_codec.h"
 #include "h264e_syntax.h"
 
-#include "mpp_enc_impl.h"
+#include "enc_impl_api.h"
 
 #define H264E_DBG_FUNCTION          (0x00000001)
 
