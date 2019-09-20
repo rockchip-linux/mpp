@@ -48,12 +48,12 @@
  * The module transcation flow is as follows:
  *
  *                 +                      +
- *     User        |      Mpi/Mpp         |         Controller
+ *     User        |      Mpi/Mpp         |         EncImpl
  *                 |                      |            Hal
  *                 |                      |
  * +----------+    |    +---------+       |       +------------+
  * |          |    |    |         +-----RcCfg----->            |
- * |  RcCfg   +--------->         |       |       | Controller |
+ * |  RcCfg   +--------->         |       |       | EncImpl |
  * |          |    |    |         |   +-Frame----->            |
  * +----------+    |    |         |   |   |       +---+-----^--+
  *                 |    |         |   |   |           |     |

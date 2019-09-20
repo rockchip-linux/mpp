@@ -57,11 +57,19 @@ typedef struct EncImplApi_t {
     MPP_RET (*init)(void *ctx, EncImplCfg *ctrlCfg);
     MPP_RET (*deinit)(void *ctx);
 
-    MPP_RET (*encode)(void *ctx, HalEncTask *task);
+    MPP_RET (*proc_cfg)(void *ctx, RK_S32 cmd, void *param);
+    MPP_RET (*gen_hdr)(void *ctx, MppPacket pkt);
+
+    MPP_RET (*proc_dpb)(void *ctx);
+    MPP_RET (*proc_rc)(void *ctx);
+    MPP_RET (*proc_hal)(void *ctx, HalEncTask *task);
+
+    MPP_RET (*update_dpb)(void *ctx);
+    MPP_RET (*update_hal)(void *ctx, HalEncTask *task);
+    MPP_RET (*update_rc)(void *ctx);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
-    MPP_RET (*config)(void *ctx, RK_S32 cmd, void *param);
     MPP_RET (*callback)(void *ctx, void *feedback);
 } EncImplApi;
 

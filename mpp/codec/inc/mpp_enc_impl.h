@@ -19,16 +19,26 @@
 
 #include "enc_impl_api.h"
 
-typedef void* Controller;
+typedef void* EncImpl;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET controller_init(Controller *ctrl, EncImplCfg *cfg);
-MPP_RET controller_deinit(Controller ctrl);
-MPP_RET controller_encode(Controller ctrl, HalEncTask *task);
-MPP_RET controller_config(Controller ctrl, RK_S32 cmd, void *para);
+MPP_RET enc_impl_init(EncImpl *ctrl, EncImplCfg *cfg);
+MPP_RET enc_impl_deinit(EncImpl ctrl);
+
+MPP_RET enc_impl_proc_cfg(EncImpl ctrl, RK_S32 cmd, void *para);
+MPP_RET enc_impl_gen_hdr(EncImpl ctrl, MppPacket pkt);
+
+MPP_RET enc_impl_proc_dpb(EncImpl ctrl);
+MPP_RET enc_impl_proc_rc(EncImpl ctrl);
+MPP_RET enc_impl_proc_hal(EncImpl ctrl, HalEncTask *task);
+
+MPP_RET enc_impl_update_dpb(EncImpl ctrl);
+MPP_RET enc_impl_update_hal(EncImpl ctrl, HalEncTask *task);
+MPP_RET enc_impl_update_rc(EncImpl ctrl);
+
 MPP_RET hal_enc_callback(void* ctrl, void *err_info);
 
 #ifdef __cplusplus
