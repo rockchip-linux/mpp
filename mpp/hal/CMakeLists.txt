@@ -9,7 +9,6 @@ add_subdirectory(vpu)
 add_subdirectory(rkdec)
 add_subdirectory(rkenc)
 add_subdirectory(dummy)
-add_subdirectory(rkdec/avsd)
 add_subdirectory(common)
 
 # ----------------------------------------------------------------------------
