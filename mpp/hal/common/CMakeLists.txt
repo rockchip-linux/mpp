@@ -8,3 +8,4 @@ add_library(hal_common STATIC
 set_target_properties(hal_common PROPERTIES FOLDER "mpp/hal/common")
 
 add_subdirectory(h264)
+add_subdirectory(h265)
