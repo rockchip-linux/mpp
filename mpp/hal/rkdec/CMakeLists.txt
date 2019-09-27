@@ -1,5 +1,9 @@
 # vim: syntax=cmake
 
+if( HAVE_AVSD )
+    add_subdirectory(avsd)
+endif()
+
 if( HAVE_H264D )
     add_subdirectory(h264d)
 endif()
