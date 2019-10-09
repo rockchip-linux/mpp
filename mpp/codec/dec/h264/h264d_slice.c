@@ -33,7 +33,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
     RK_S32 modification_of_pic_nums_idc = 0;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
 
-    if ((currSlice->slice_type % 5) != I_SLICE && (currSlice->slice_type % 5) != SI_SLICE) {
+    if ((currSlice->slice_type % 5) != H264_I_SLICE && (currSlice->slice_type % 5) != H264_SI_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_0]);
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
             RK_U32 size = currSlice->num_ref_idx_active[LIST_0] + 1;
@@ -59,7 +59,7 @@ static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
             } while (modification_of_pic_nums_idc != 3);
         }
     }
-    if (currSlice->slice_type % 5 == B_SLICE) {
+    if (currSlice->slice_type % 5 == H264_B_SLICE) {
         READ_ONEBIT(p_bitctx, &currSlice->ref_pic_list_reordering_flag[LIST_1]);
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
             RK_U32 size = currSlice->num_ref_idx_active[LIST_1] + 1;
@@ -122,7 +122,7 @@ static MPP_RET pred_weight_table(H264_SLICE_t *currSlice)
         }
     }
 
-    if ((currSlice->slice_type == B_SLICE) && currSlice->p_Vid->active_pps->weighted_bipred_idc == 1) {
+    if ((currSlice->slice_type == H264_B_SLICE) && currSlice->p_Vid->active_pps->weighted_bipred_idc == 1) {
         for (i = 0; i < currSlice->num_ref_idx_active[LIST_1]; i++) {
             READ_ONEBIT(p_bitctx, &temp); //!< luma_weight_flag_l1
             if (temp) {
@@ -214,13 +214,13 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     H264_Nalu_t    *cur_nalu = &currSlice->p_Cur->nalu;
 
     //--- init slice syntax
-    currSlice->idr_flag = ((cur_nalu->nalu_type == NALU_TYPE_IDR)
+    currSlice->idr_flag = ((cur_nalu->nalu_type == H264_NALU_TYPE_IDR)
                            || (currSlice->mvcExt.valid && !currSlice->mvcExt.non_idr_flag));
     currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
     //!< set ref flag and dpb error flag
     {
         p_Vid->p_Dec->errctx.used_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
-        if (currSlice->slice_type == I_SLICE) {
+        if (currSlice->slice_type == H264_I_SLICE) {
             p_Vid->p_Dec->errctx.dpb_err_flag = 0;
         }
     }
@@ -473,7 +473,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
             READ_UE(p_bitctx, &currSlice->redundant_pic_cnt);
         }
 
-        if (currSlice->slice_type == B_SLICE) {
+        if (currSlice->slice_type == H264_B_SLICE) {
             READ_ONEBIT(p_bitctx, &currSlice->direct_spatial_mv_pred_flag);
         } else {
             currSlice->direct_spatial_mv_pred_flag = 0;
@@ -481,25 +481,25 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
         currSlice->num_ref_idx_active[LIST_0] = currSlice->p_Vid->active_pps->num_ref_idx_l0_default_active_minus1 + 1;
         currSlice->num_ref_idx_active[LIST_1] = currSlice->p_Vid->active_pps->num_ref_idx_l1_default_active_minus1 + 1;
 
-        if (currSlice->slice_type == P_SLICE
-            || currSlice->slice_type == SP_SLICE || currSlice->slice_type == B_SLICE) {
+        if (currSlice->slice_type == H264_P_SLICE
+            || currSlice->slice_type == H264_SP_SLICE || currSlice->slice_type == H264_B_SLICE) {
             READ_ONEBIT(p_bitctx, &currSlice->num_ref_idx_override_flag);
             if (currSlice->num_ref_idx_override_flag) {
                 READ_UE(p_bitctx, &currSlice->num_ref_idx_active[LIST_0]);
                 currSlice->num_ref_idx_active[LIST_0] += 1;
-                if (currSlice->slice_type == B_SLICE) {
+                if (currSlice->slice_type == H264_B_SLICE) {
                     READ_UE(p_bitctx, &currSlice->num_ref_idx_active[LIST_1]);
                     currSlice->num_ref_idx_active[LIST_1] += 1;
                 }
             }
         }
-        if (currSlice->slice_type != B_SLICE) {
+        if (currSlice->slice_type != H264_B_SLICE) {
             currSlice->num_ref_idx_active[LIST_1] = 0;
         }
         FUN_CHECK(ret = ref_pic_list_mvc_modification(currSlice));
         if ((currSlice->p_Vid->active_pps->weighted_pred_flag
-             && (currSlice->slice_type == P_SLICE || currSlice->slice_type == SP_SLICE))
-            || (currSlice->p_Vid->active_pps->weighted_bipred_idc == 1 && (currSlice->slice_type == B_SLICE))) {
+             && (currSlice->slice_type == H264_P_SLICE || currSlice->slice_type == H264_SP_SLICE))
+            || (currSlice->p_Vid->active_pps->weighted_bipred_idc == 1 && (currSlice->slice_type == H264_B_SLICE))) {
             FUN_CHECK(ret = pred_weight_table(currSlice));
         }
         currSlice->drpm_used_bitlen = 0;

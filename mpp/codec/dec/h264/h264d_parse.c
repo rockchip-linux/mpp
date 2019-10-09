@@ -128,7 +128,7 @@ static void reset_nalu(H264dCurStream_t *p_strm)
     if (p_strm->endcode_found) {
         p_strm->startcode_found = p_strm->endcode_found;
         p_strm->nalu_len = 0;
-        p_strm->nalu_type = NALU_TYPE_NULL;
+        p_strm->nalu_type = H264_NALU_TYPE_NULL;
         p_strm->endcode_found = 0;
     }
 }
@@ -168,8 +168,8 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     }
     cur_nal->ualu_header_bytes = 1;
     currSlice->svc_extension_flag = -1; //!< initialize to -1
-    if (cur_nal->nalu_type == NALU_TYPE_PREFIX
-        || cur_nal->nalu_type == NALU_TYPE_SLC_EXT) {
+    if (cur_nal->nalu_type == H264_NALU_TYPE_PREFIX
+        || cur_nal->nalu_type == H264_NALU_TYPE_SLC_EXT) {
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
             currSlice->svcExt.valid =  1;
@@ -199,10 +199,10 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
             READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.inter_view_flag);
             READ_ONEBIT(p_bitctx,     &currSlice->mvcExt.reserved_one_bit);
             ASSERT(currSlice->mvcExt.reserved_one_bit == 1);
-            currSlice->mvcExt.iPrefixNALU = (cur_nal->nalu_type == NALU_TYPE_PREFIX) ? 1 : 0;
-            //!< combine NALU_TYPE_SLC_EXT into NALU_TYPE_SLICE
-            if (cur_nal->nalu_type == NALU_TYPE_SLC_EXT) {
-                cur_nal->nalu_type = NALU_TYPE_SLICE;
+            currSlice->mvcExt.iPrefixNALU = (cur_nal->nalu_type == H264_NALU_TYPE_PREFIX) ? 1 : 0;
+            //!< combine H264_NALU_TYPE_SLC_EXT into H264_NALU_TYPE_SLICE
+            if (cur_nal->nalu_type == H264_NALU_TYPE_SLC_EXT) {
+                cur_nal->nalu_type = H264_NALU_TYPE_SLICE;
             }
         }
         cur_nal->ualu_header_bytes += 3;
@@ -227,67 +227,67 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     FUN_CHECK(ret = parser_nalu_header(currSlice));
     //!< nalu_parse
     switch (currSlice->p_Cur->nalu.nalu_type) {
-    case NALU_TYPE_SLICE:
-    case NALU_TYPE_IDR:
+    case H264_NALU_TYPE_SLICE:
+    case H264_NALU_TYPE_IDR:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         FUN_CHECK(ret = process_slice(currSlice));
         currSlice->p_Dec->nalu_ret = StartOfPicture;
         if (currSlice->layer_id && currSlice->p_Inp->mvc_disable)
             currSlice->p_Dec->nalu_ret = MvcDisAble;
         break;
-    case NALU_TYPE_SPS:
+    case H264_NALU_TYPE_SPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
         FUN_CHECK(ret = process_sps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_SPS;
         break;
-    case NALU_TYPE_PPS:
+    case H264_NALU_TYPE_PPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=PPS");
         FUN_CHECK(ret = process_pps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_PPS;
         break;
-    case NALU_TYPE_SUB_SPS:
+    case H264_NALU_TYPE_SUB_SPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SUB_SPS");
         FUN_CHECK(ret = process_subsps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_SubSPS;
         break;
-    case NALU_TYPE_SEI:
+    case H264_NALU_TYPE_SEI:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SEI");
         ret = process_sei(currSlice);
         currSlice->p_Dec->nalu_ret = NALU_SEI;
         break;
-    case NALU_TYPE_SLC_EXT:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_SLC_EXT.");
+    case H264_NALU_TYPE_SLC_EXT:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_SLC_EXT.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_PREFIX:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_PREFIX.");
+    case H264_NALU_TYPE_PREFIX:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_PREFIX.");
         process_prefix(currSlice);
         break;
-    case NALU_TYPE_AUD:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_AUD.");
+    case H264_NALU_TYPE_AUD:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_AUD.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_EOSEQ:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_EOSEQ.");
+    case H264_NALU_TYPE_EOSEQ:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_EOSEQ.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_EOSTREAM:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_EOSTREAM.");
+    case H264_NALU_TYPE_EOSTREAM:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_EOSTREAM.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_FILL:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_FILL.");
+    case H264_NALU_TYPE_FILL:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_FILL.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_VDRD:
-        H264D_DBG(H264D_DBG_PARSE_NALU, "Found NALU_TYPE_VDRD.");
+    case H264_NALU_TYPE_VDRD:
+        H264D_DBG(H264D_DBG_PARSE_NALU, "Found H264_NALU_TYPE_VDRD.");
         currSlice->p_Dec->nalu_ret = SkipNALU;
         break;
-    case NALU_TYPE_DPA:
-    case NALU_TYPE_DPB:
-    case NALU_TYPE_DPC:
+    case H264_NALU_TYPE_DPA:
+    case H264_NALU_TYPE_DPB:
+    case H264_NALU_TYPE_DPC:
         H264D_DBG(H264D_DBG_PARSE_NALU,
-                  "Found NALU_TYPE_DPA DPB DPC, and not supported.");
+                  "Found H264_NALU_TYPE_DPA DPB DPC, and not supported.");
         currSlice->p_Dec->nalu_ret = NaluNotSupport;
         break;
     default:
@@ -328,14 +328,14 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
     RK_U8 *p_des = NULL;
 
     //!< fill head buffer
-    if (   (p_strm->nalu_type == NALU_TYPE_SLICE)
-           || (p_strm->nalu_type == NALU_TYPE_IDR)
-           || (p_strm->nalu_type == NALU_TYPE_SPS)
-           || (p_strm->nalu_type == NALU_TYPE_PPS)
-           || (p_strm->nalu_type == NALU_TYPE_SUB_SPS)
-           || (p_strm->nalu_type == NALU_TYPE_SEI)
-           || (p_strm->nalu_type == NALU_TYPE_PREFIX)
-           || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
+    if (   (p_strm->nalu_type == H264_NALU_TYPE_SLICE)
+           || (p_strm->nalu_type == H264_NALU_TYPE_IDR)
+           || (p_strm->nalu_type == H264_NALU_TYPE_SPS)
+           || (p_strm->nalu_type == H264_NALU_TYPE_PPS)
+           || (p_strm->nalu_type == H264_NALU_TYPE_SUB_SPS)
+           || (p_strm->nalu_type == H264_NALU_TYPE_SEI)
+           || (p_strm->nalu_type == H264_NALU_TYPE_PREFIX)
+           || (p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT)) {
 
         RK_U32 head_size = MPP_MIN(HEAD_SYNTAX_MAX_SIZE, p_strm->nalu_len);
         RK_U32 add_size = head_size + sizeof(H264dNaluHead_t);
@@ -350,8 +350,8 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
         memcpy(p_des + sizeof(H264dNaluHead_t), p_strm->nalu_buf, head_size);
         p_strm->head_offset += add_size;
     }    //!< fill sodb buffer
-    if ((p_strm->nalu_type == NALU_TYPE_SLICE)
-        || (p_strm->nalu_type == NALU_TYPE_IDR)) {
+    if ((p_strm->nalu_type == H264_NALU_TYPE_SLICE)
+        || (p_strm->nalu_type == H264_NALU_TYPE_IDR)) {
 
         RK_U32 add_size = p_strm->nalu_len + sizeof(g_start_precode);
 
@@ -366,8 +366,8 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
     }
     if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
         H264dInputCtx_t *p_Inp = p_Cur->p_Inp;
-        if ((p_strm->nalu_type == NALU_TYPE_SPS)
-            || (p_strm->nalu_type == NALU_TYPE_PPS)) {
+        if ((p_strm->nalu_type == H264_NALU_TYPE_SPS)
+            || (p_strm->nalu_type == H264_NALU_TYPE_PPS)) {
             if (p_Inp->spspps_update_flag) {
                 p_des = &p_Inp->spspps_buf[p_Inp->spspps_offset];
                 memcpy(p_des, g_start_precode, sizeof(g_start_precode));
@@ -375,8 +375,8 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
                 p_Inp->spspps_offset += p_strm->nalu_len + sizeof(g_start_precode);
                 p_Inp->spspps_len = p_Inp->spspps_offset;
             }
-        } else if ((p_strm->nalu_type == NALU_TYPE_SLICE)
-                   || (p_strm->nalu_type == NALU_TYPE_IDR)) {
+        } else if ((p_strm->nalu_type == H264_NALU_TYPE_SLICE)
+                   || (p_strm->nalu_type == H264_NALU_TYPE_IDR)) {
             p_Cur->p_Inp->spspps_update_flag = 1;
             p_Inp->spspps_offset = 0;
         }
@@ -406,27 +406,27 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
         READ_BITS(p_bitctx, 5, &p_strm->nalu_type);
 
         nalu_header_bytes = 1;
-        if ((p_strm->nalu_type == NALU_TYPE_PREFIX)
-            || (p_strm->nalu_type == NALU_TYPE_SLC_EXT)) {
-            if (p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
-                p_strm->nalu_type = NALU_TYPE_SLICE;
+        if ((p_strm->nalu_type == H264_NALU_TYPE_PREFIX)
+            || (p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT)) {
+            if (p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT) {
+                p_strm->nalu_type = H264_NALU_TYPE_SLICE;
             }
             nalu_header_bytes += 3;
         }
     }
     if ((p_strm->nalu_len == 1)
-        && (p_strm->nalu_type == NALU_TYPE_SEI
-            || p_strm->nalu_type == NALU_TYPE_SPS
-            || p_strm->nalu_type == NALU_TYPE_PPS
-            || p_strm->nalu_type == NALU_TYPE_AUD
-            || p_strm->nalu_type == NALU_TYPE_PREFIX)) {
+        && (p_strm->nalu_type == H264_NALU_TYPE_SEI
+            || p_strm->nalu_type == H264_NALU_TYPE_SPS
+            || p_strm->nalu_type == H264_NALU_TYPE_PPS
+            || p_strm->nalu_type == H264_NALU_TYPE_AUD
+            || p_strm->nalu_type == H264_NALU_TYPE_PREFIX)) {
         if (p_Cur->p_Dec->have_slice_data) {
             p_Cur->p_Dec->is_new_frame = 1;
         }
         p_Cur->p_Dec->have_slice_data = 0;
     } else if ((p_strm->nalu_len > 1)
-               && (p_strm->nalu_type == NALU_TYPE_SLICE
-                   || p_strm->nalu_type == NALU_TYPE_IDR)) {
+               && (p_strm->nalu_type == H264_NALU_TYPE_SLICE
+                   || p_strm->nalu_type == H264_NALU_TYPE_IDR)) {
         RK_U32 first_mb_in_slice  = 0;
         mpp_set_bitread_ctx(p_bitctx, (p_strm->nalu_buf + nalu_header_bytes), 4); // reset
         mpp_set_pre_detection(p_bitctx);
@@ -631,8 +631,8 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
             if (p_strm->nalu_len == 1) {
                 p_strm->nalu_type = p_strm->nalu_buf[0] & 0x1F;
 
-                if (p_strm->nalu_type == NALU_TYPE_SLICE
-                    || p_strm->nalu_type == NALU_TYPE_IDR || p_strm->nalu_type == NALU_TYPE_SLC_EXT) {
+                if (p_strm->nalu_type == H264_NALU_TYPE_SLICE
+                    || p_strm->nalu_type == H264_NALU_TYPE_IDR || p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT) {
                     p_strm->nalu_len += (RK_U32)pkt_impl->length;
                     if (p_strm->nalu_len >= p_strm->nalu_max_size) {
                         RK_U32 add_size =  pkt_impl->length + 1 - p_strm->nalu_max_size;
@@ -722,7 +722,7 @@ MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->nalu_len = U16_AT(pdata);
         pdata += 2;
         extrasize -= 2;
-        p_strm->nalu_type = NALU_TYPE_SPS;
+        p_strm->nalu_type = H264_NALU_TYPE_SPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
         pdata += p_strm->nalu_len;
@@ -736,7 +736,7 @@ MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_strm->nalu_len = U16_AT(pdata);
         pdata += 2;
         extrasize -= 2;
-        p_strm->nalu_type = NALU_TYPE_PPS;
+        p_strm->nalu_type = H264_NALU_TYPE_PPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
         pdata += p_strm->nalu_len;

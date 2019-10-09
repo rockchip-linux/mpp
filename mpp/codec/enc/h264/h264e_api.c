@@ -26,7 +26,6 @@
 #include "mpp_rc.h"
 
 #include "h264e_api.h"
-#include "h264e_codec.h"
 #include "h264e_syntax.h"
 
 #include "enc_impl_api.h"

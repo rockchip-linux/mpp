@@ -83,7 +83,7 @@ void fill_scanlist(H264dVideoCtx_t *p_Vid, DXVA_Qmatrix_H264 *qm)
             qm->bScalingLists4x4[i][j] = p_Vid->qmatrix[i][j];
         }
     }
-    for (i = 6; i < ((p_Vid->active_sps->chroma_format_idc != YUV444) ? 8 : 12); ++i) {
+    for (i = 6; i < ((p_Vid->active_sps->chroma_format_idc != H264_CHROMA_444) ? 8 : 12); ++i) {
         for (j = 0; j < H264ScalingList8x8Length; j++) {
             qm->bScalingLists8x8[i - 6][j] = p_Vid->qmatrix[i][j];
         }

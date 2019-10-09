@@ -71,7 +71,7 @@ static void hal_h264e_vpu_write_cabac_table(MppBuffer hw_cabac_tab_buf,
 
 static MPP_RET h264e_vpu_nal_start(H264eStream * stream,
                                    RK_S32 nalRefIdc,
-                                   H264eNalUnitType nalUnitType)
+                                   H264NaluType nalUnitType)
 {
     h264e_stream_put_bits(stream, 0, 8, "leadin_zero_8bits");
     h264e_stream_put_bits(stream, 0, 8, "start_code_prefix");
@@ -91,7 +91,7 @@ static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
 {
     h264e_hal_enter();
 
-    h264e_vpu_nal_start(stream, 1, H264E_NAL_SPS);
+    h264e_vpu_nal_start(stream, 1, H264_NALU_TYPE_SPS);
 
     h264e_stream_put_bits_with_detect(stream, sps->i_profile_idc, 8,
                                       "profile_idc"); //FIXED: 77, 42
@@ -260,7 +260,7 @@ static MPP_RET hal_h264e_vpu_write_pps(H264eStream *stream,
 {
     h264e_hal_enter();
 
-    h264e_vpu_nal_start(stream, 1, H264E_NAL_PPS);
+    h264e_vpu_nal_start(stream, 1, H264_NALU_TYPE_PPS);
 
     h264e_stream_write_ue(stream, pps->i_id, "pic_parameter_set_id");
     h264e_stream_write_ue(stream, pps->i_sps_id, "seq_parameter_set_id");
@@ -326,7 +326,7 @@ static MPP_RET hal_h264e_vpu_write_sei(H264eStream *s, RK_U8 *payload,
 
     h264e_hal_enter();
 
-    h264e_vpu_nal_start(s, H264E_NAL_PRIORITY_DISPOSABLE, H264E_NAL_SEI);
+    h264e_vpu_nal_start(s, H264_NALU_PRIORITY_DISPOSABLE, H264_NALU_TYPE_SEI);
 
     for (i = 0; i <= payload_type - 255; i += 255)
         h264e_stream_put_bits_with_detect(s, 0xff, 8,
@@ -366,7 +366,7 @@ static MPP_RET h264e_vpu_sei_encode(H264eHalContext *ctx)
         return MPP_NOK;
     } else {
         hal_h264e_vpu_write_sei(sei_stream, (RK_U8 *)str, str_len,
-                                H264E_SEI_USER_DATA_UNREGISTERED);
+                                H264_SEI_USER_DATA_UNREGISTERED);
     }
 
     return MPP_OK;

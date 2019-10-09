@@ -24,7 +24,6 @@
 #include "mpp_common.h"
 #include "mpp_mem.h"
 
-#include "h264_syntax.h"
 #include "hal_h264e_rkv.h"
 #include "hal_h264e_rkv_dpb.h"
 #include "hal_h264e_rkv_stream.h"
@@ -1313,7 +1312,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
     if (ctx->sei_mode != MPP_ENC_SEI_MODE_DISABLE) {
         extra_info->nal_num = 0;
         h264e_rkv_stream_reset(&extra_info->stream);
-        h264e_rkv_nal_start(extra_info, H264E_NAL_SEI, H264E_NAL_PRIORITY_DISPOSABLE);
+        h264e_rkv_nal_start(extra_info, H264_NALU_TYPE_SEI, H264_NALU_PRIORITY_DISPOSABLE);
         h264e_rkv_sei_encode(ctx, rc_syn);
         h264e_rkv_nal_end(extra_info);
 #ifdef SEI_ADD_NAL_HEADER
@@ -1334,23 +1333,23 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
         /* TODO: extend syn->frame_coding_type definition */
         if (syn->coding_type == RKVENC_CODING_TYPE_IDR ) {
             /* reset ref pictures */
-            i_nal_type    = H264E_NAL_SLICE_IDR;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGHEST;
+            i_nal_type    = H264_NALU_TYPE_IDR;
+            i_nal_ref_idc = H264_NALU_PRIORITY_HIGHEST;
         } else if (syn->coding_type == RKVENC_CODING_TYPE_I ) {
-            i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
+            i_nal_type    = H264_NALU_TYPE_SLICE;
+            i_nal_ref_idc = H264_NALU_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         } else if (syn->coding_type == RKVENC_CODING_TYPE_P ) {
-            i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
+            i_nal_type    = H264_NALU_TYPE_SLICE;
+            i_nal_ref_idc = H264_NALU_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         } else if (syn->coding_type == RKVENC_CODING_TYPE_BREF ) {
-            i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_HIGH;
+            i_nal_type    = H264_NALU_TYPE_SLICE;
+            i_nal_ref_idc = H264_NALU_PRIORITY_HIGH;
         } else { /* B frame */
-            i_nal_type    = H264E_NAL_SLICE;
-            i_nal_ref_idc = H264E_NAL_PRIORITY_DISPOSABLE;
+            i_nal_type    = H264_NALU_TYPE_SLICE;
+            i_nal_ref_idc = H264_NALU_PRIORITY_DISPOSABLE;
         }
         if (sps->keyframe_max_interval == 1)
-            i_nal_ref_idc = H264E_NAL_PRIORITY_LOW;
+            i_nal_ref_idc = H264_NALU_PRIORITY_LOW;
 
         regs->swreg57.nal_ref_idc      = i_nal_ref_idc;
         regs->swreg57.nal_unit_type    = i_nal_type;
@@ -1438,7 +1437,7 @@ MPP_RET hal_h264e_rkv_gen_regs(void *hal, HalTaskInfo *task)
 
     h264e_rkv_reference_frame_update(ctx);
     dpb_ctx->i_frame_cnt++;
-    if (dpb_ctx->i_nal_ref_idc != H264E_NAL_PRIORITY_DISPOSABLE)
+    if (dpb_ctx->i_nal_ref_idc != H264_NALU_PRIORITY_DISPOSABLE)
         dpb_ctx->i_frame_num ++;
 
     ctx->frame_cnt_gen_ready++;

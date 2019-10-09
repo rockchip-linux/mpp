@@ -105,7 +105,7 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
         }
     }
 
-    if (slice->entropy_coding_mode && slice->slice_type != H264E_HAL_SLICE_TYPE_I) {
+    if (slice->entropy_coding_mode && slice->slice_type != H264_I_SLICE) {
         ret |= mpp_read_ue(&bit, &slice->cabac_init_idc);
         RD_LOG(bit, "cabac_init_idc", slice->cabac_init_idc);
     }
@@ -338,7 +338,7 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
         }
     }
 
-    if (slice->entropy_coding_mode && slice->slice_type != H264E_HAL_SLICE_TYPE_I) {
+    if (slice->entropy_coding_mode && slice->slice_type != H264_I_SLICE) {
         h264e_stream_write_ue(s, slice->cabac_init_idc, "cabac_init_idc");
         WR_LOG("cabac_init_idc", slice->cabac_init_idc);
     }

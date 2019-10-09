@@ -113,7 +113,7 @@ typedef struct H264eHwCfg_t {
     RK_S32 roi_en;
     RK_S32 osd_mode; //0: disable osd, 1:palette type 0(congfigurable mode), 2:palette type 1(fixed mode).
     RK_S32 preproc_en;
-    RK_S32 coding_type;      /* SliceType: P_SLICE = 0 I_SLICE = 2 */
+    RK_S32 coding_type;      /* SliceType: H264_P_SLICE = 0 H264_I_SLICE = 2 */
 } H264eHwCfg;
 
 typedef struct h264e_feedback_t {
