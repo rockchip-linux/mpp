@@ -162,13 +162,6 @@ typedef enum H264VpuCsp_e {
     H264E_VPU_CSP_BUTT,
 } H264eVpuCsp;
 
-typedef enum H264eChromaFmt_e {
-    H264E_CHROMA_400 = 0,
-    H264E_CHROMA_420 = 1,
-    H264E_CHROMA_422 = 2,
-    H264E_CHROMA_444 = 3,
-} H264eChromaFmt;
-
 typedef enum H264eCqm4_e {
     H264E_CQM_4IY = 0,
     H264E_CQM_4PY = 1,
@@ -183,11 +176,11 @@ typedef enum H264eCqm8_e {
     H264E_CQM_8PC = 3,
 } H264eCqm8;
 
-typedef enum H264eSliceType_e {
-    H264E_HAL_SLICE_TYPE_P  = 0,
-    H264E_HAL_SLICE_TYPE_B  = 1,
-    H264E_HAL_SLICE_TYPE_I  = 2,
-} H264eSliceType;
+typedef enum H264eOsdPltType_e {
+    H264E_OSD_PLT_TYPE_NONE     = -1,
+    H264E_OSD_PLT_TYPE_USERDEF  = 0,
+    H264E_OSD_PLT_TYPE_DEFAULT  = 1,
+} H264eOsdPltType;
 
 typedef struct H264eSps_e {
     RK_S32 i_id;
@@ -262,39 +255,6 @@ typedef struct H264ePps_t {
     const RK_U8 *scaling_list[8]; /* could be 12, but we don't allow separate Cb/Cr lists */
 } H264ePps;
 
-typedef enum H264eSeiPayloadType_t {
-    H264E_SEI_BUFFERING_PERIOD       = 0,
-    H264E_SEI_PIC_TIMING             = 1,
-    H264E_SEI_PAN_SCAN_RECT          = 2,
-    H264E_SEI_FILLER                 = 3,
-    H264E_SEI_USER_DATA_REGISTERED   = 4,
-    H264E_SEI_USER_DATA_UNREGISTERED = 5,
-    H264E_SEI_RECOVERY_POINT         = 6,
-    H264E_SEI_DEC_REF_PIC_MARKING    = 7,
-    H264E_SEI_FRAME_PACKING          = 45,
-} H264eSeiPayloadType;
-
-typedef enum H264eNalUnitType_t {
-    H264E_NAL_UNKNOWN     = 0,
-    H264E_NAL_SLICE       = 1,
-    H264E_NAL_SLICE_DPA   = 2,
-    H264E_NAL_SLICE_DPB   = 3,
-    H264E_NAL_SLICE_DPC   = 4,
-    H264E_NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
-    H264E_NAL_SEI         = 6,    /* ref_idc == 0 */
-    H264E_NAL_SPS         = 7,
-    H264E_NAL_PPS         = 8,
-    H264E_NAL_AUD         = 9,
-    H264E_NAL_FILLER      = 12,
-    /* ref_idc == 0 for 6,9,10,11,12 */
-} H264eNalUnitType;
-
-typedef enum H264eNalPriority_t {
-    H264E_NAL_PRIORITY_DISPOSABLE = 0,
-    H264E_NAL_PRIORITY_LOW        = 1,
-    H264E_NAL_PRIORITY_HIGH       = 2,
-    H264E_NAL_PRIORITY_HIGHEST    = 3,
-} H264eNalPriority;
 typedef struct H264eVuiParam_t {
     /* they will be reduced to be 0 < x <= 65535 and prime */
     RK_S32         i_sar_height;

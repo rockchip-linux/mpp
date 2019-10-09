@@ -506,7 +506,7 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     sps->i_id = 0;
     sps->i_mb_width = ( prep->width + 15 ) / 16;
     sps->i_mb_height = ( prep->height + 15 ) / 16;
-    sps->i_chroma_format_idc = H264E_CHROMA_420; // for rkv and vpu, only support YUV420
+    sps->i_chroma_format_idc = H264_CHROMA_420; // for rkv and vpu, only support H264_CHROMA_420
 
     sps->b_qpprime_y_zero_transform_bypass = 0; //param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     sps->i_profile_idc = codec->profile;
@@ -611,7 +611,7 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
 
     /* FIXME: not sufficient for interlaced video */
     sps->vui.b_chroma_loc_info_present = i_chroma_loc > 0 && i_chroma_loc <= 5 &&
-                                         sps->i_chroma_format_idc == H264E_CHROMA_420;
+                                         sps->i_chroma_format_idc == H264_CHROMA_420;
     if ( sps->vui.b_chroma_loc_info_present  ) {
         sps->vui.i_chroma_loc_top = i_chroma_loc;
         sps->vui.i_chroma_loc_bottom = i_chroma_loc;

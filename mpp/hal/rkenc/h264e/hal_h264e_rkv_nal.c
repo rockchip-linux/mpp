@@ -19,7 +19,6 @@
 #include "mpp_common.h"
 #include "mpp_mem.h"
 
-#include "h264_syntax.h"
 #include "hal_h264e_rkv_nal.h"
 
 static void h264e_rkv_nals_init(H264eRkvExtraInfo *out)
@@ -105,8 +104,8 @@ static MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
 
     for (i = 0; i < nal_num; i++) {
         nal[i].b_long_startcode = !i ||
-                                  nal[i].i_type == H264E_NAL_SPS ||
-                                  nal[i].i_type == H264E_NAL_PPS ||
+                                  nal[i].i_type == H264_NALU_TYPE_SPS ||
+                                  nal[i].i_type == H264_NALU_TYPE_PPS ||
                                   i_avcintra_class;
         h264e_rkv_nal_encode(nal_buffer, &nal[i]);
         nal_buffer += nal[i].i_payload;
@@ -169,7 +168,7 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx, RcSyntax *rc_syn)
         return MPP_NOK;
     } else {
         h264e_rkv_sei_write(&info->stream, (RK_U8 *)str, str_len,
-                            H264E_SEI_USER_DATA_UNREGISTERED);
+                            H264_SEI_USER_DATA_UNREGISTERED);
     }
 
     return MPP_OK;
@@ -195,7 +194,7 @@ static MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
 
     if (sps->i_profile_idc >= H264_PROFILE_HIGH) {
         h264e_rkv_stream_write_ue_with_log(s, sps->i_chroma_format_idc, "chroma_format_idc");
-        if (sps->i_chroma_format_idc == H264E_CHROMA_444)
+        if (sps->i_chroma_format_idc == H264_CHROMA_444)
             h264e_rkv_stream_write1_with_log(s, 0, "separate_colour_plane_flag");
         h264e_rkv_stream_write_ue_with_log(s, H264_BIT_DEPTH - 8, "bit_depth_luma_minus8");
         h264e_rkv_stream_write_ue_with_log(s, H264_BIT_DEPTH - 8, "bit_depth_chroma_minus8");
@@ -218,8 +217,8 @@ static MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
 
     h264e_rkv_stream_write1_with_log(s, sps->b_crop, "frame_cropping_flag");
     if (sps->b_crop) {
-        RK_S32 h_shift = sps->i_chroma_format_idc == H264E_CHROMA_420 || sps->i_chroma_format_idc == H264E_CHROMA_422;
-        RK_S32 v_shift = sps->i_chroma_format_idc == H264E_CHROMA_420;
+        RK_S32 h_shift = sps->i_chroma_format_idc == H264_CHROMA_420 || sps->i_chroma_format_idc == H264_CHROMA_422;
+        RK_S32 v_shift = sps->i_chroma_format_idc == H264_CHROMA_420;
         h264e_rkv_stream_write_ue_with_log(s, sps->crop.i_left >> h_shift, "frame_crop_left_offset");
         h264e_rkv_stream_write_ue_with_log(s, sps->crop.i_right >> h_shift, "frame_crop_right_offset");
         h264e_rkv_stream_write_ue_with_log(s, sps->crop.i_top >> v_shift, "frame_crop_top_offset");
@@ -399,7 +398,7 @@ static MPP_RET h264e_rkv_pps_write(H264ePps *pps, H264eSps *sps, H264eRkvStream 
             h264e_rkv_scaling_list_write( s, pps, H264E_CQM_4PC );
             h264e_rkv_stream_write1_with_log( s, 0, "scaling_list_end_flag"); // Cr = Cb TODO:replaced with real name
             if ( pps->b_transform_8x8_mode ) {
-                if ( sps->i_chroma_format_idc == H264E_CHROMA_444 ) {
+                if ( sps->i_chroma_format_idc == H264_CHROMA_444 ) {
                     h264e_rkv_scaling_list_write( s, pps, H264E_CQM_8IY + 4 );
                     h264e_rkv_scaling_list_write( s, pps, H264E_CQM_8IC + 4 );
                     h264e_rkv_stream_write1_with_log( s, 0, "scaling_list_end_flag" ); // Cr = Cb TODO:replaced with real name
@@ -499,12 +498,12 @@ MPP_RET h264e_rkv_set_extra_info(H264eHalContext *ctx)
     info->nal_num = 0;
     h264e_rkv_stream_reset(&info->stream);
 
-    h264e_rkv_nal_start(info, H264E_NAL_SPS, H264E_NAL_PRIORITY_HIGHEST);
+    h264e_rkv_nal_start(info, H264_NALU_TYPE_SPS, H264_NALU_PRIORITY_HIGHEST);
     h264e_set_sps(ctx, sps);
     h264e_rkv_sps_write(sps, &info->stream);
     h264e_rkv_nal_end(info);
 
-    h264e_rkv_nal_start(info, H264E_NAL_PPS, H264E_NAL_PRIORITY_HIGHEST);
+    h264e_rkv_nal_start(info, H264_NALU_TYPE_PPS, H264_NALU_PRIORITY_HIGHEST);
     h264e_set_pps(ctx, pps, sps);
     h264e_rkv_pps_write(pps, sps, &info->stream);
     h264e_rkv_nal_end(info);

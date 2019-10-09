@@ -24,8 +24,8 @@
 #include "mpp_log.h"
 #include "mpp_bitread.h"
 
-#include "h264d_api.h"
 #include "h264d_syntax.h"
+#include "h264d_api.h"
 
 
 #define H264D_DBG_ERROR             (0x00000001)
@@ -145,13 +145,6 @@ enum {
 } ScalingListLength;
 
 typedef enum {
-    YUV400 = 0,     //!< Monochrome
-    YUV420 = 1,     //!< 4:2:0
-    YUV422 = 2,     //!< 4:2:2
-    YUV444 = 3      //!< 4:4:4
-} ColorFormat;
-
-typedef enum {
     STRUCT_NULL  = 0,
     TOP_FIELD    = 0x1,
     BOTTOM_FIELD = 0x2,
@@ -185,15 +178,6 @@ typedef enum {
 } CodingType;
 
 typedef enum {
-    P_SLICE = 0,
-    B_SLICE = 1,
-    I_SLICE = 2,
-    SP_SLICE = 3,
-    SI_SLICE = 4,
-    NUM_SLICE_TYPES = 5
-} SliceType;
-
-typedef enum {
     LIST_0 = 0,
     LIST_1 = 1,
     BI_PRED = 2,
@@ -206,8 +190,8 @@ typedef struct h264_nalu_t {
     RK_S32         startcodeprefix_len;   //!< 4 for parameter sets and first slice in picture, 3 for everything else (suggested)
     RK_U32         sodb_len;              //!< Length of the NAL unit (Excluding the start code, which does not belong to the NALU)
     RK_S32         forbidden_bit;         //!< should be always FALSE
-    Nalu_type       nalu_type;         //!< NALU_TYPE_xxxx
-    NalRefIdc_type  nal_reference_idc;     //!< NALU_PRIORITY_xxxx
+    H264NaluType   nalu_type;             //!< NALU_TYPE_xxxx
+    H264NalRefIdcType   nal_reference_idc;     //!< NALU_PRIORITY_xxxx
     RK_U8          *sodb_buf;             //!< Data of the NAL unit (Excluding the start code, which does not belong to the NALU)
     RK_U16          lost_packets;          //!< true, if packet loss is detected, used in RTPNALU
     //---- MVC extension
@@ -667,58 +651,6 @@ typedef struct h264_pps_t {
     RK_U32   scaleing_list_address;
 
 } H264_PPS_t;
-
-//!< SEI
-typedef enum {
-    SEI_BUFFERING_PERIOD = 0,
-    SEI_PIC_TIMING,
-    SEI_PAN_SCAN_RECT,
-    SEI_FILLER_PAYLOAD,
-    SEI_USER_DATA_REGISTERED_ITU_T_T35,
-    SEI_USER_DATA_UNREGISTERED,
-    SEI_RECOVERY_POINT,
-    SEI_DEC_REF_PIC_MARKING_REPETITION,
-    SEI_SPARE_PIC,
-    SEI_SCENE_INFO,
-    SEI_SUB_SEQ_INFO,
-    SEI_SUB_SEQ_LAYER_CHARACTERISTICS,
-    SEI_SUB_SEQ_CHARACTERISTICS,
-    SEI_FULL_FRAME_FREEZE,
-    SEI_FULL_FRAME_FREEZE_RELEASE,
-    SEI_FULL_FRAME_SNAPSHOT,
-    SEI_PROGRESSIVE_REFINEMENT_SEGMENT_START,
-    SEI_PROGRESSIVE_REFINEMENT_SEGMENT_END,
-    SEI_MOTION_CONSTRAINED_SLICE_GROUP_SET,
-    SEI_FILM_GRAIN_CHARACTERISTICS,
-    SEI_DEBLOCKING_FILTER_DISPLAY_PREFERENCE,
-    SEI_STEREO_VIDEO_INFO,
-    SEI_POST_FILTER_HINTS,
-    SEI_TONE_MAPPING,
-    SEI_SCALABILITY_INFO,
-    SEI_SUB_PIC_SCALABLE_LAYER,
-    SEI_NON_REQUIRED_LAYER_REP,
-    SEI_PRIORITY_LAYER_INFO,
-    SEI_LAYERS_NOT_PRESENT,
-    SEI_LAYER_DEPENDENCY_CHANGE,
-    SEI_SCALABLE_NESTING,
-    SEI_BASE_LAYER_TEMPORAL_HRD,
-    SEI_QUALITY_LAYER_INTEGRITY_CHECK,
-    SEI_REDUNDANT_PIC_PROPERTY,
-    SEI_TL0_DEP_REP_INDEX,
-    SEI_TL_SWITCHING_POINT,
-    SEI_PARALLEL_DECODING_INFO,
-    SEI_MVC_SCALABLE_NESTING,
-    SEI_VIEW_SCALABILITY_INFO,
-    SEI_MULTIVIEW_SCENE_INFO,
-    SEI_MULTIVIEW_ACQUISITION_INFO,
-    SEI_NON_REQUIRED_VIEW_COMPONENT,
-    SEI_VIEW_DEPENDENCY_CHANGE,
-    SEI_OPERATION_POINTS_NOT_PRESENT,
-    SEI_BASE_VIEW_TEMPORAL_HRD,
-    SEI_FRAME_PACKING_ARRANGEMENT,
-
-    SEI_MAX_ELEMENTS  //!< number of maximum syntax elements
-} RKV_H264SEI_Type;
 
 //!< MVC_scalable_nesting
 typedef struct {

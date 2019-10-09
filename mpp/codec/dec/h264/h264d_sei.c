@@ -225,17 +225,17 @@ static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_S
 
     H264D_DBG(H264D_DBG_SEI, "[SEI_info] type=%d size: %d\n", sei_msg->type, sei_msg->payload_size);
     switch (sei_msg->type) {
-    case  SEI_BUFFERING_PERIOD: {
+    case  H264_SEI_BUFFERING_PERIOD: {
         FUN_CHECK(ret = interpret_buffering_period_info(p_bitctx, sei_msg, p_Vid->active_sps->vui_seq_parameters));
     }
     break;
-    case  SEI_PIC_TIMING: {
+    case  H264_SEI_PIC_TIMING: {
         interpret_picture_timing_info(p_bitctx,
                                       sei_msg,
                                       p_Vid->active_sps->vui_seq_parameters);
     }
     break;
-    case  SEI_USER_DATA_UNREGISTERED:
+    case  H264_SEI_USER_DATA_UNREGISTERED:
         break;
     default: {
         interpret_reserved_info(sei_msg->payload_size, p_bitctx, sei_msg);
@@ -283,7 +283,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         //--- read sei info
         FUN_CHECK(ret = parserSEI(currSlice, p_bitctx, sei_msg, p_bitctx->data_));
         //--- set offset to read next sei nal
-        if (SEI_MVC_SCALABLE_NESTING == sei_msg->type) {
+        if (H264_SEI_MVC_SCALABLE_NESTING == sei_msg->type) {
             sei_msg->payload_size = ((p_bitctx->used_bits + 0x07) >> 3);
         }
 

@@ -17,7 +17,7 @@
 #ifndef __HAL_H264E_RKV_STREAM_H__
 #define __HAL_H264E_RKV_STREAM_H__
 
-#include "h264_syntax.h"
+#include "rk_type.h"
 
 typedef struct  H264eRkvStream_t {
     RK_U8 *p_start;

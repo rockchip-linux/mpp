@@ -22,7 +22,6 @@
 #include "mpp_mem.h"
 
 #include "h264d_global.h"
-#include "h264_syntax.h"
 #include "h264d_sps.h"
 #include "h264d_scalist.h"
 #include "h264d_dpb.h"
@@ -391,10 +390,10 @@ static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
     p_Vid->bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
     p_Vid->bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
 
-    if (p_Vid->yuv_format == YUV420) {
+    if (p_Vid->yuv_format == H264_CHROMA_420) {
         p_Vid->width_cr = (p_Vid->width >> 1);
         p_Vid->height_cr = (p_Vid->height >> 1);
-    } else if (p_Vid->yuv_format == YUV422) {
+    } else if (p_Vid->yuv_format == H264_CHROMA_422) {
         p_Vid->width_cr = (p_Vid->width >> 1);
         p_Vid->height_cr = p_Vid->height;
     }
