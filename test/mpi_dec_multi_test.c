@@ -720,7 +720,7 @@ static RK_S32 mpi_dec_multi_test_parse_options(int argc, char **argv, MpiDecTest
                     goto PARSE_OPINIONS_OUT;
                 }
             default:
-                goto PARSE_OPINIONS_OUT;
+                mpp_err("skip invalid opt %c\n", *opt);
                 break;
             }
 
