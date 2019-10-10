@@ -166,6 +166,8 @@ if(GCC)
     add_definitions(-Wno-multichar)
     # add PIC flag
     add_definitions(-fPIC)
+    # disable exception for C++
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
 endif(GCC)
 
 # ----------------------------------------------------------------------------
