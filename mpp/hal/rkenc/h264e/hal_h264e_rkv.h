@@ -21,28 +21,9 @@
 #include "mpp_hal.h"
 #include "hal_task.h"
 #include "hal_h264e_com.h"
+#include "rkv_enc_def.h"
 
-#define RKV_H264E_ENC_MODE                  1 //2/3
-#define RKV_H264E_LINKTABLE_FRAME_NUM       1 //2
-
-#if RKV_H264E_ENC_MODE == 2
-#define RKV_H264E_LINKTABLE_EACH_NUM        RKV_H264E_LINKTABLE_FRAME_NUM
-#else
-#define RKV_H264E_LINKTABLE_EACH_NUM        1
-#endif
-
-#define RKV_H264E_LINKTABLE_MAX_SIZE        256
 #define RKV_H264E_ADD_RESERVE_REGS          1
-
-#define RKV_H264E_INT_ONE_FRAME_FINISH    0x00000001
-#define RKV_H264E_INT_LINKTABLE_FINISH    0x00000002
-#define RKV_H264E_INT_SAFE_CLEAR_FINISH   0x00000004
-#define RKV_H264E_INT_ONE_SLICE_FINISH    0x00000008
-#define RKV_H264E_INT_BIT_STREAM_OVERFLOW 0x00000010
-#define RKV_H264E_INT_BUS_WRITE_FULL      0x00000020
-#define RKV_H264E_INT_BUS_WRITE_ERROR     0x00000040
-#define RKV_H264E_INT_BUS_READ_ERROR      0x00000080
-#define RKV_H264E_INT_TIMEOUT_ERROR       0x00000100
 
 typedef enum H264eRkvFrameType_t {
     H264E_RKV_FRAME_P = 0,
@@ -50,23 +31,15 @@ typedef enum H264eRkvFrameType_t {
     H264E_RKV_FRAME_I = 2
 } H264eRkvFrameType;
 
-typedef enum h264e_hal_rkv_buf_grp_t {
-    H264E_HAL_RKV_BUF_GRP_PP,
-    H264E_HAL_RKV_BUF_GRP_DSP,
-    H264E_HAL_RKV_BUF_GRP_MEI,
-    H264E_HAL_RKV_BUF_GRP_CMV,
-    H264E_HAL_RKV_BUF_GRP_ROI,
-    H264E_HAL_RKV_BUF_GRP_REC,
-    H264E_HAL_RKV_BUF_GRP_BUTT
-} h264e_hal_rkv_buf_grp;
+
 
 typedef struct h264e_hal_rkv_buffers_t {
-    MppBufferGroup hw_buf_grp[H264E_HAL_RKV_BUF_GRP_BUTT];
+    MppBufferGroup hw_buf_grp[ENC_HAL_RKV_BUF_GRP_BUTT];
 
     MppBuffer hw_pp_buf[2];
     MppBuffer hw_dsp_buf[2]; //down scale picture
-    MppBuffer hw_mei_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
-    MppBuffer hw_roi_buf[RKV_H264E_LINKTABLE_FRAME_NUM];
+    MppBuffer hw_mei_buf[RKVE_LINKTABLE_FRAME_NUM];
+    MppBuffer hw_roi_buf[RKVE_LINKTABLE_FRAME_NUM];
     MppBuffer hw_rec_buf[H264E_NUM_REFS + 1]; //extra 1 frame for current recon
 } h264e_hal_rkv_buffers;
 
@@ -666,7 +639,7 @@ enc_mode
 typedef struct H264eRkvIoctlInput_t {
     RK_U32                  enc_mode;
     RK_U32                  frame_num;
-    H264eRkvIoctlRegInfo    reg_info[RKV_H264E_LINKTABLE_MAX_SIZE];
+    H264eRkvIoctlRegInfo    reg_info[RKVE_LINKTABLE_MAX_SIZE];
 } H264eRkvIoctlInput;
 
 typedef struct H264eRkvIoctlOutputElem_t {
@@ -738,7 +711,7 @@ typedef struct H264eRkvIoctlOutputElem_t {
 
 typedef struct H264eRkvIoctlOutput_t {
     RK_U32                      frame_num;
-    H264eRkvIoctlOutputElem     elem[RKV_H264E_LINKTABLE_MAX_SIZE];
+    H264eRkvIoctlOutputElem     elem[RKVE_LINKTABLE_MAX_SIZE];
 } H264eRkvIoctlOutput;
 
 /* mode cfg */

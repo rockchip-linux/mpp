@@ -21,22 +21,22 @@
 
 #include "mpp_common.h"
 #include "mpp_mem.h"
-
+#include "rkv_enc_def.h"
 #include "hal_h264e_com.h"
 
-static const RK_S32 h264e_rkv_csp_idx_map[H264E_RKV_CSP_BUTT] = {
-    H264E_CSP2_BGRA, H264E_CSP2_BGR,  H264E_CSP2_RGB,
-    H264E_CSP2_NONE, H264E_CSP2_NV16, H264E_CSP2_I422,
-    H264E_CSP2_NV12, H264E_CSP2_I420, H264E_CSP2_NONE,
-    H264E_CSP2_NONE
+static const RK_S32 h264e_rkv_csp_idx_map[RKVE_CSP_BUTT] = {
+    RKVE_CSP2_BGRA, RKVE_CSP2_BGR,  RKVE_CSP2_RGB,
+    RKVE_CSP2_NONE, RKVE_CSP2_NV16, RKVE_CSP2_I422,
+    RKVE_CSP2_NV12, RKVE_CSP2_I420, RKVE_CSP2_NONE,
+    RKVE_CSP2_NONE
 };
 
 static const RK_S32 h264e_vpu_csp_idx_map[H264E_VPU_CSP_BUTT] = {
-    H264E_CSP2_I420, H264E_CSP2_NV12, H264E_CSP2_NONE,
-    H264E_CSP2_NONE, H264E_CSP2_RGB, H264E_CSP2_BGR,
-    H264E_CSP2_RGB, H264E_CSP2_BGR, H264E_CSP2_RGB,
-    H264E_CSP2_BGR, H264E_CSP2_RGB, H264E_CSP2_BGR,
-    H264E_CSP2_RGB, H264E_CSP2_BGR,
+    RKVE_CSP2_I420, RKVE_CSP2_NV12, RKVE_CSP2_NONE,
+    RKVE_CSP2_NONE, RKVE_CSP2_RGB, RKVE_CSP2_BGR,
+    RKVE_CSP2_RGB, RKVE_CSP2_BGR, RKVE_CSP2_RGB,
+    RKVE_CSP2_BGR, RKVE_CSP2_RGB, RKVE_CSP2_BGR,
+    RKVE_CSP2_RGB, RKVE_CSP2_BGR,
 };
 
 /* default quant matrices */
@@ -132,140 +132,140 @@ void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
     MppFrameFormat format = (MppFrameFormat)prep_cfg->format;
     switch (format) {
     case MPP_FMT_YUV420P: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV420P;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV420P;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV420SP: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV420SP;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV420SP;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV420SP_10BIT: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV420SP_VU: { //TODO: to be confirmed
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV420SP;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV420SP;
         hw_cfg->uv_rb_swap = 1;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422P: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV422P;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV422P;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422SP: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV422SP;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV422SP;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422SP_10BIT: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422SP_VU: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUV422SP;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUV422SP;
         hw_cfg->uv_rb_swap = 1;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422_YUYV: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_YUYV422;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_YUYV422;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_YUV422_UYVY: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_UYVY422;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_UYVY422;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_RGB565: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGR565;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGR565;
         hw_cfg->uv_rb_swap = 1;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_BGR565: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGR565;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGR565;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_RGB555: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_BGR555: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_RGB444: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_BGR444: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_RGB888: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGR888;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGR888;
         hw_cfg->uv_rb_swap = 1;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_BGR888: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGR888;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGR888;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_RGB101010: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_BGR101010: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
         break;
     }
     case MPP_FMT_ARGB8888: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGRA8888;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGRA8888;
         hw_cfg->uv_rb_swap = 1;
         hw_cfg->alpha_swap = 1;
         break;
     }
     case MPP_FMT_ABGR8888: {
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_BGRA8888;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_BGRA8888;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 1;
         break;
     }
     default: {
         h264e_hal_err("unvalid src color space: %d", format);
-        hw_cfg->input_format = (RK_U32)H264E_RKV_CSP_NONE;
+        hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
     }
@@ -420,10 +420,10 @@ static RK_S32 h264e_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
 
     if (hw_cfg->hw_type == H264E_RKV) {
         h264e_rkv_set_format(hw_cfg, prep_cfg);
-        csp = h264e_rkv_csp_idx_map[hw_cfg->input_format] & H264E_CSP2_MASK;
+        csp = h264e_rkv_csp_idx_map[hw_cfg->input_format] & RKVE_CSP2_MASK;
     } else {
         h264e_vpu_set_format(hw_cfg, prep_cfg);
-        csp = h264e_vpu_csp_idx_map[hw_cfg->input_format] & H264E_CSP2_MASK;
+        csp = h264e_vpu_csp_idx_map[hw_cfg->input_format] & RKVE_CSP2_MASK;
     }
 
     return csp;
@@ -444,7 +444,7 @@ static void h264e_set_vui(H264eVuiParam *vui)
 
 static void h264e_set_ref(H264eRefParam *ref)
 {
-    ref->i_frame_reference = H264E_NUM_REFS;
+    ref->i_frame_reference = 8;
     ref->i_dpb_size = H264E_NUM_REFS;
     ref->i_ref_pos = 1;
     ref->i_long_term_en = H264E_LONGTERM_REF_EN;
@@ -590,13 +590,13 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     sps->vui.b_signal_type_present = 0;
     sps->vui.i_vidformat = ( i_vidformat >= 0 && i_vidformat <= 5 ? i_vidformat : 5 );
     sps->vui.b_fullrange = ( b_fullrange >= 0 && b_fullrange <= 1 ? b_fullrange :
-                             ( csp >= H264E_CSP2_BGR ? 1 : 0 ) );
+                             ( csp >= RKVE_CSP2_BGR ? 1 : 0 ) );
     sps->vui.b_color_description_present = 0;
 
     sps->vui.i_colorprim = ( i_colorprim >= 0 && i_colorprim <=  9 ? i_colorprim : 2 );
     sps->vui.i_transfer  = ( i_transfer  >= 0 && i_transfer  <= 15 ? i_transfer  : 2 );
     sps->vui.i_colmatrix = ( i_colmatrix >= 0 && i_colmatrix <= 10 ? i_colmatrix :
-                             ( csp >= H264E_CSP2_BGR ? 0 : 2 ) );
+                             ( csp >= RKVE_CSP2_BGR ? 0 : 2 ) );
     if ( sps->vui.i_colorprim != 2 ||
          sps->vui.i_transfer  != 2 ||
          sps->vui.i_colmatrix != 2 ) {

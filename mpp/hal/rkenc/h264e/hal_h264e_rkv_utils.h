@@ -19,12 +19,6 @@
 
 #include "hal_h264e_com.h"
 
-typedef struct {
-    RK_U8 qp_y          : 6;
-    RK_U8 set_qp_y_en   : 1;
-    RK_U8 forbid_inter  : 1;
-} RkvRoiCfg;
-
 MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param);
 MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param);
 MPP_RET h264e_rkv_set_roi_data(H264eHalContext *ctx, void *param);

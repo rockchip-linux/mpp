@@ -126,32 +126,6 @@ extern RK_U32 hal_h264e_debug;
 #define H264E_B_PYRAMID_STRICT      1
 #define H264E_B_PYRAMID_NORMAL      2
 
-#define H264E_CSP2_MASK             0x00ff  /* */
-#define H264E_CSP2_NONE             0x0000  /* Invalid mode     */
-#define H264E_CSP2_I420             0x0001  /* yuv 4:2:0 planar */
-#define H264E_CSP2_YV12             0x0002  /* yvu 4:2:0 planar */
-#define H264E_CSP2_NV12             0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
-#define H264E_CSP2_I422             0x0004  /* yuv 4:2:2 planar */
-#define H264E_CSP2_YV16             0x0005  /* yvu 4:2:2 planar */
-#define H264E_CSP2_NV16             0x0006  /* yuv 4:2:2, with one y plane and one packed u+v */
-#define H264E_CSP2_V210             0x0007  /* 10-bit yuv 4:2:2 packed in 32 */
-#define H264E_CSP2_I444             0x0008  /* yuv 4:4:4 planar */
-#define H264E_CSP2_YV24             0x0009  /* yvu 4:4:4 planar */
-#define H264E_CSP2_BGR              0x000a  /* packed bgr 24bits   */
-#define H264E_CSP2_BGRA             0x000b  /* packed bgr 32bits   */
-#define H264E_CSP2_RGB              0x000c  /* packed rgb 24bits   */
-#define H264E_CSP2_MAX              0x000d  /* end of list */
-#define H264E_CSP2_VFLIP            0x1000  /* the csp is vertically flipped */
-#define H264E_CSP2_HIGH_DEPTH       0x2000  /* the csp has a depth of 16 bits per pixel component */
-
-#define H264E_MB_RC_ONLY_QUALITY    0
-#define H264E_MB_RC_MORE_QUALITY    1
-#define H264E_MB_RC_BALANCE         2
-#define H264E_MB_RC_MORE_BITRATE    3
-#define H264E_MB_RC_ONLY_BITRATE    4
-#define H264E_MB_RC_WIDE_RANGE      5
-#define H264E_MB_RC_ONLY_AQ         6
-#define H264E_MB_RC_M_NUM           7
 
 typedef enum H264eRkvCsp_e {
     H264E_RKV_CSP_BGRA8888,         // 0
@@ -214,12 +188,6 @@ typedef enum H264eSliceType_e {
     H264E_HAL_SLICE_TYPE_B  = 1,
     H264E_HAL_SLICE_TYPE_I  = 2,
 } H264eSliceType;
-
-typedef enum H264eOsdPltType_e {
-    H264E_OSD_PLT_TYPE_NONE     = -1,
-    H264E_OSD_PLT_TYPE_USERDEF  = 0,
-    H264E_OSD_PLT_TYPE_DEFAULT  = 1,
-} H264eOsdPltType;
 
 typedef struct H264eSps_e {
     RK_S32 i_id;
@@ -327,7 +295,6 @@ typedef enum H264eNalPriority_t {
     H264E_NAL_PRIORITY_HIGH       = 2,
     H264E_NAL_PRIORITY_HIGHEST    = 3,
 } H264eNalPriority;
-
 typedef struct H264eVuiParam_t {
     /* they will be reduced to be 0 < x <= 65535 and prime */
     RK_S32         i_sar_height;
@@ -419,7 +386,7 @@ typedef struct H264eHalContext_t {
     void                            *param_buf;
     MppPacket                       packeted_param;
 
-    H264eOsdPltType                 osd_plt_type; //-1:invalid, 0:user define, 1:default
+    RK_S32                          osd_plt_type; //-1:invalid, 0:user define, 1:default
     MppEncOSDData                   osd_data;
     MppEncROICfg                    roi_data;
     MppEncSeiMode                   sei_mode;
