@@ -1,5 +1,6 @@
 # vim: syntax=cmake
 include_directories(.)
+include_directories(../../rkenc/common/)
 include_directories(../../rkenc/h264e/)
 include_directories(../../vpu/h264e/)
 

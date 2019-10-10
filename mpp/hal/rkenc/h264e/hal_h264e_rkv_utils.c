@@ -18,9 +18,8 @@
 
 #include "mpp_device.h"
 #include "hal_h264e_rkv_utils.h"
+#include "rkv_enc_def.h"
 
-#define H264E_IOC_CUSTOM_BASE           0x1000
-#define H264E_IOC_SET_OSD_PLT           (H264E_IOC_CUSTOM_BASE + 1)
 
 MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
 {
@@ -29,15 +28,15 @@ MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
 
     if (plt->buf) {
         MPP_RET ret = mpp_device_send_reg_with_id(ctx->dev_ctx,
-                                                  H264E_IOC_SET_OSD_PLT,
+                                                  RKVE_IOC_SET_OSD_PLT,
                                                   param, sizeof(MppEncOSDPlt));
-        ctx->osd_plt_type = H264E_OSD_PLT_TYPE_USERDEF;
+        ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_USERDEF;
         if (ret) {
             h264e_hal_err("set osd plt error");
             return MPP_NOK;
         }
     } else {
-        ctx->osd_plt_type = H264E_OSD_PLT_TYPE_DEFAULT;
+        ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_DEFAULT;
     }
 
     h264e_hal_leave();
@@ -51,7 +50,7 @@ MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
     RK_U32 num = src->num_region;
 
     h264e_hal_enter();
-    if (ctx->osd_plt_type == H264E_OSD_PLT_TYPE_NONE)
+    if (ctx->osd_plt_type == RKVE_OSD_PLT_TYPE_NONE)
         mpp_err("warning: plt type is invalid\n");
 
     if (num > 8) {

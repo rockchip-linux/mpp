@@ -1,5 +1,6 @@
 # vim: syntax=cmake
 include_directories(.)
+include_directories(../common/)
 include_directories(../../common/h264/)
 
 # hal h264 header
