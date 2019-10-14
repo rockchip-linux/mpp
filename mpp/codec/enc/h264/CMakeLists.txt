@@ -14,6 +14,7 @@ set(H264E_HDR
 
 # h264 encoder sourse
 set(H264E_SRC
+    h264e_sps.c
     h264e_api.c
     )
 
