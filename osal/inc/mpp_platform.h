@@ -23,10 +23,6 @@
  * Platform flag detection is for rockchip hardware platform detection
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * Platform video codec hardware feature
  */
@@ -43,13 +39,24 @@ extern "C" {
 /* External encoder */
 #define HAVE_H265ENC            (0x01000000)
 
-/*
- * Platform image process hardware feature
- */
+/* Platform image process hardware feature */
 #define HAVE_IPP                (0x00000001)
 #define HAVE_RGA                (0x00000002)
 #define HAVE_RGA2               (0x00000004)
 #define HAVE_IEP                (0x00000008)
+
+/* Hal device id */
+typedef enum MppDeviceId_e {
+    DEV_VDPU,                   //!< vpu combined decoder
+    DEV_VEPU,                   //!< vpu combined encoder
+    DEV_RKVDEC,                 //!< rockchip h264 h265 vp9 combined decoder
+    DEV_RKVENC,                 //!< rockchip h264 h265 combined encoder
+    DEV_ID_BUTT,
+} MppDeviceId;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 const char *mpp_get_soc_name(void);
 RK_U32 mpp_get_vcodec_type(void);
