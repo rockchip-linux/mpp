@@ -1016,7 +1016,7 @@ MPP_RET hal_jpegd_vdpu2_flush(void *hal)
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu2_control(void *hal, RK_S32 cmd_type,
+MPP_RET hal_jpegd_vdpu2_control(void *hal, MpiCmd cmd_type,
                                 void *param)
 {
     jpegd_dbg_func("enter\n");

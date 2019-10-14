@@ -1083,7 +1083,7 @@ MPP_RET hal_vp9d_flush(void *hal)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vp9d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_vp9d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO: {

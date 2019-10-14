@@ -812,7 +812,7 @@ __RETURN:
 ***********************************************************************
 */
 //extern "C"
-MPP_RET rkv_h264d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET rkv_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;

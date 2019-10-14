@@ -476,7 +476,7 @@ MPP_RET hal_vp8e_vepu2_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_vp8e_vepu2_control(void *hal, RK_S32 cmd, void *param)
+MPP_RET hal_vp8e_vepu2_control(void *hal, MpiCmd cmd, void *param)
 {
     (void)hal;
     (void)cmd;

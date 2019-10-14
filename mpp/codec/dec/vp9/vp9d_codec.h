@@ -17,8 +17,7 @@
 #ifndef __VP9D_CODEC_H__
 #define __VP9D_CODEC_H__
 
-#include <stdlib.h>
-
+#include "mpp_frame.h"
 #include "hal_task.h"
 
 #include "vp9d_syntax.h"

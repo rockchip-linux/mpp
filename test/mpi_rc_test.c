@@ -456,10 +456,12 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     RK_U64 stream_size_1s = 0;
 
     // runtime config
-    MppEncCfgSet cfg;
-    MppEncRcCfg *rc_cfg = &cfg.rc;
-    MppEncPrepCfg *prep_cfg = &cfg.prep;
-    MppEncCodecCfg *codec_cfg = &cfg.codec;
+    MppEncRcCfg rc;
+    MppEncPrepCfg prep;
+    MppEncCodecCfg codec;
+    MppEncRcCfg *rc_cfg = &rc;
+    MppEncPrepCfg *prep_cfg = &prep;
+    MppEncCodecCfg *codec_cfg = &codec;
     RK_S32 fps = 20;
 
     mpp_log_f("test start width %d height %d codingtype %d\n", width, height, type);

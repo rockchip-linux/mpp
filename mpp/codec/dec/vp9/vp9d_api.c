@@ -127,24 +127,6 @@ MPP_RET  vp9d_flush(void *ctx)
 /*!
 ***********************************************************************
 * \brief
-*   control/perform
-***********************************************************************
-*/
-MPP_RET  vp9d_control(void *ctx, RK_S32 cmd_type, void *param)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    (void)ctx;
-    (void)cmd_type;
-    (void)param;
-
-    return ret = MPP_OK;
-}
-
-
-/*!
-***********************************************************************
-* \brief
 *   prepare
 ***********************************************************************
 */
@@ -240,7 +222,7 @@ const ParserApi api_vp9d_parser = {
     .parse = vp9d_parse,
     .reset = vp9d_reset,
     .flush = vp9d_flush,
-    .control = vp9d_control,
+    .control = NULL,
     .callback = vp9d_callback,
 };
 

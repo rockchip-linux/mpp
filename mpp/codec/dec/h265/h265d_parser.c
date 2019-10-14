@@ -27,12 +27,13 @@
 
 #define MODULE_TAG "H265D_PARSER"
 
-#include "mpp_bitread.h"
-#include "h265d_parser.h"
-#include "mpp_mem.h"
 #include "mpp_env.h"
-#include "h265d_syntax.h"
+#include "mpp_mem.h"
+#include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
+
+#include "h265d_parser.h"
+#include "h265d_syntax.h"
 #include "h265d_api.h"
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
@@ -1988,7 +1989,7 @@ MPP_RET h265d_reset(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param)
+MPP_RET h265d_control(void *ctx, MpiCmd cmd, void *param)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
 

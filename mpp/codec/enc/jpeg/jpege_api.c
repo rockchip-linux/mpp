@@ -112,7 +112,7 @@ static MPP_RET jpege_flush(void *ctx)
     return MPP_OK;
 }
 
-static MPP_RET jpege_config(void *ctx, RK_S32 cmd, void *param)
+static MPP_RET jpege_config(void *ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
 

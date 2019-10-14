@@ -112,7 +112,7 @@ MPP_RET hal_h265e_flush(void *hal)
     return ctx->hal_api.flush(hal);
 }
 
-MPP_RET hal_h265e_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h265e_control(void *hal, MpiCmd cmd_type, void *param)
 {
     HalH265eCtx* ctx = (HalH265eCtx*)hal;
     return ctx->hal_api.control(hal, cmd_type, param);

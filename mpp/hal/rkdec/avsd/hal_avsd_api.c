@@ -33,8 +33,10 @@
 #include "hal_avsd_api.h"
 #include "hal_avsd_reg.h"
 
-
 RK_U32 avsd_hal_debug = 0;
+
+MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task);
+MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task);
 
 static RK_U32 avsd_ver_align(RK_U32 val)
 {
@@ -332,42 +334,6 @@ MPP_RET hal_avsd_reset(void *decoder)
 
     return ret = MPP_OK;
 }
-/*!
-***********************************************************************
-* \brief
-*    flush
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_avsd_flush(void *decoder)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    AVSD_HAL_TRACE("In.");
-
-    (void)decoder;
-    return ret = MPP_OK;
-}
-/*!
-***********************************************************************
-* \brief
-*    control
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_avsd_control(void *decoder, RK_S32 cmd_type, void *param)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    AVSD_HAL_TRACE("In.");
-
-    (void)decoder;
-    (void)cmd_type;
-    (void)param;
-
-    return ret = MPP_OK;
-}
-
 
 const MppHalApi hal_api_avsd = {
     .name = "avsd_rkdec",
@@ -381,6 +347,6 @@ const MppHalApi hal_api_avsd = {
     .start = hal_avsd_start,
     .wait = hal_avsd_wait,
     .reset = hal_avsd_reset,
-    .flush = hal_avsd_flush,
-    .control = hal_avsd_control,
+    .flush = NULL,
+    .control = NULL,
 };

@@ -19,25 +19,13 @@
 #ifndef __HAL_AVSD_API_H__
 #define __HAL_AVSD_API_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
 #include "mpp_hal.h"
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern const MppHalApi hal_api_avsd;
-
-MPP_RET hal_avsd_init    (void *decoder, MppHalCfg *cfg);
-MPP_RET hal_avsd_deinit  (void *decoder);
-MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_start   (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_wait    (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_reset   (void *decoder);
-MPP_RET hal_avsd_flush   (void *decoder);
-MPP_RET hal_avsd_control (void *decoder, RK_S32 cmd_type, void *param);
 
 #ifdef __cplusplus
 }

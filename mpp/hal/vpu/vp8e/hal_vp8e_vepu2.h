@@ -29,7 +29,7 @@ MPP_RET hal_vp8e_vepu2_start(void *hal, HalTaskInfo *task);
 MPP_RET hal_vp8e_vepu2_wait(void *hal, HalTaskInfo *task);
 MPP_RET hal_vp8e_vepu2_reset(void *hal);
 MPP_RET hal_vp8e_vepu2_flush(void *hal);
-MPP_RET hal_vp8e_vepu2_control(void *hal, RK_S32 cmd, void *param);
+MPP_RET hal_vp8e_vepu2_control(void *hal, MpiCmd cmd, void *param);
 #ifdef __cplusplus
 }
 #endif

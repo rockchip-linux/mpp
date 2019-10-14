@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGE_VEPU2_H
-#define __HAL_JPEGE_VEPU2_H
+#ifndef __HAL_JPEGE_VEPU2_H__
+#define __HAL_JPEGE_VEPU2_H__
+
 #include "rk_type.h"
 
 MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg);
@@ -26,6 +27,6 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task);
 MPP_RET hal_jpege_vepu2_wait(void *hal, HalTaskInfo *task);
 MPP_RET hal_jpege_vepu2_reset(void *hal);
 MPP_RET hal_jpege_vepu2_flush(void *hal);
-MPP_RET hal_jpege_vepu2_control(void *hal, RK_S32 cmd, void *param);
+MPP_RET hal_jpege_vepu2_control(void *hal, MpiCmd cmd, void *param);
 
 #endif

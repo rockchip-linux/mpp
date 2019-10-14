@@ -295,7 +295,7 @@ MPP_RET hal_h264d_flush(void *hal)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_h264d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 

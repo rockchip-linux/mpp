@@ -66,7 +66,7 @@ static MPP_RET hal_jpege_flush(void *hal)
     return ctx->hal_api.flush(ctx);
 }
 
-static MPP_RET hal_jpege_control(void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_jpege_control(void *hal, MpiCmd cmd_type, void *param)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     return ctx->hal_api.control(ctx, cmd_type, param);

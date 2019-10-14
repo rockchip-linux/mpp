@@ -30,7 +30,7 @@ MPP_RET hal_m2vd_vdpu1_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_m2vd_vdpu1_wait    (void *hal, HalTaskInfo *task);
 MPP_RET hal_m2vd_vdpu1_reset   (void *hal);
 MPP_RET hal_m2vd_vdpu1_flush   (void *hal);
-MPP_RET hal_m2vd_vdpu1_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_m2vd_vdpu1_control (void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }

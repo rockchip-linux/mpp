@@ -30,7 +30,7 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task);
 MPP_RET h265d_deinit(void *ctx);
 MPP_RET h265d_flush(void *ctx);
 MPP_RET h265d_reset(void *ctx);
-MPP_RET h265d_control(void *ctx, RK_S32 cmd, void *param);
+MPP_RET h265d_control(void *ctx, MpiCmd cmd, void *param);
 MPP_RET h265d_callback(void *ctx, void *err_info);
 RK_S32 mpp_hevc_split_frame(void *sc,
                             const RK_U8 **poutbuf, RK_S32 *poutbuf_size,

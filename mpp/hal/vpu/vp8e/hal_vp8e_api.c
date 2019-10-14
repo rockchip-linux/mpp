@@ -68,7 +68,7 @@ static MPP_RET hal_vp8e_flush(void *hal)
     return ctx->hal_api.flush(ctx);
 }
 
-static MPP_RET hal_vp8e_control(void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_vp8e_control(void *hal, MpiCmd cmd_type, void *param)
 {
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 

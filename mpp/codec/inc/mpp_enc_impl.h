@@ -28,7 +28,7 @@ extern "C" {
 MPP_RET enc_impl_init(EncImpl *ctrl, EncImplCfg *cfg);
 MPP_RET enc_impl_deinit(EncImpl ctrl);
 
-MPP_RET enc_impl_proc_cfg(EncImpl ctrl, RK_S32 cmd, void *para);
+MPP_RET enc_impl_proc_cfg(EncImpl ctrl, MpiCmd cmd, void *para);
 MPP_RET enc_impl_gen_hdr(EncImpl ctrl, MppPacket pkt);
 
 MPP_RET enc_impl_proc_dpb(EncImpl ctrl);

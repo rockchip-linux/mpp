@@ -125,7 +125,7 @@ MPP_RET dummy_dec_flush(void *dec)
 }
 
 
-MPP_RET dummy_dec_control(void *dec, RK_S32 cmd_type, void *param)
+MPP_RET dummy_dec_control(void *dec, MpiCmd cmd_type, void *param)
 {
     if (NULL == dec) {
         mpp_err_f("found NULL intput\n");

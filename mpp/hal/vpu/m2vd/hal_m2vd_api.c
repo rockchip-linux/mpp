@@ -58,7 +58,7 @@ static MPP_RET hal_m2vd_flush (void *hal)
     return self->hal_api.flush(hal);
 }
 
-static MPP_RET hal_m2vd_control (void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_m2vd_control (void *hal, MpiCmd cmd_type, void *param)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
     return self->hal_api.control(hal, cmd_type, param);

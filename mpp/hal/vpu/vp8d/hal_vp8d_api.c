@@ -27,43 +27,71 @@
 static MPP_RET hal_vp8d_reg_gen (void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.reg_gen (hal, task);
+
+    if (!self->hal_api.reg_gen)
+        return MPP_OK;
+
+    return self->hal_api.reg_gen(hal, task);
 }
 
 static MPP_RET hal_vp8d_start (void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.start (hal, task);
+
+    if (!self->hal_api.start)
+        return MPP_OK;
+
+    return self->hal_api.start(hal, task);
 }
 
 static MPP_RET hal_vp8d_wait (void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.wait (hal, task);
+
+    if (!self->hal_api.wait)
+        return MPP_OK;
+
+    return self->hal_api.wait(hal, task);
 }
 
 static MPP_RET hal_vp8d_reset (void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.reset (hal);
+
+    if (!self->hal_api.reset)
+        return MPP_OK;
+
+    return self->hal_api.reset(hal);;
 }
 
 static MPP_RET hal_vp8d_flush (void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.flush (hal);
+
+    if (!self->hal_api.flush)
+        return MPP_OK;
+
+    return self->hal_api.flush(hal);
 }
 
-static MPP_RET hal_vp8d_control (void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_vp8d_control (void *hal, MpiCmd cmd_type, void *param)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.control (hal, cmd_type, param);
+
+    if (!self->hal_api.control)
+        return MPP_OK;
+
+    return self->hal_api.control(hal, cmd_type, param);
 }
 
 static MPP_RET hal_vp8d_deinit (void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    return self->hal_api.deinit (hal);
+
+    if (!self->hal_api.deinit)
+        return MPP_OK;
+
+    return self->hal_api.deinit(hal);
 }
 
 static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
@@ -92,9 +120,9 @@ static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_vp8d_vdpu2_gen_regs;
         p_api->start = hal_vp8d_vdpu2_start;
         p_api->wait = hal_vp8d_vdpu2_wait;
-        p_api->reset = hal_vp8d_vdpu2_reset;
-        p_api->flush = hal_vp8d_vdpu2_flush;
-        p_api->control = hal_vp8d_vdpu2_control;
+        p_api->reset = NULL;
+        p_api->flush = NULL;
+        p_api->control = NULL;
         break;
     case VDPU1_MODE:
         p_api->init = hal_vp8d_vdpu1_init;
@@ -102,9 +130,9 @@ static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_vp8d_vdpu1_gen_regs;
         p_api->start = hal_vp8d_vdpu1_start;
         p_api->wait = hal_vp8d_vdpu1_wait;
-        p_api->reset = hal_vp8d_vdpu1_reset;
-        p_api->flush = hal_vp8d_vdpu1_flush;
-        p_api->control = hal_vp8d_vdpu1_control;
+        p_api->reset = NULL;
+        p_api->flush = NULL;
+        p_api->control = NULL;
         break;
     default:
         return MPP_ERR_INIT;

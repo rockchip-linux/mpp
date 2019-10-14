@@ -368,7 +368,7 @@ MPP_RET vp8d_parser_flush(void *ctx)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET vp8d_parser_control(void *ctx, RK_S32 cmd_type, void *param)
+MPP_RET vp8d_parser_control(void *ctx, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
 

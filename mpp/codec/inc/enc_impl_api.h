@@ -17,7 +17,11 @@
 #ifndef __ENC_IMPL_API_H__
 #define __ENC_IMPL_API_H__
 
+#include "rk_mpi_cmd.h"
+
+#include "mpp_platform.h"
 #include "hal_task.h"
+#include "mpp_enc_cfg.h"
 
 /*
  * the reset wait for extension
@@ -57,7 +61,7 @@ typedef struct EncImplApi_t {
     MPP_RET (*init)(void *ctx, EncImplCfg *ctrlCfg);
     MPP_RET (*deinit)(void *ctx);
 
-    MPP_RET (*proc_cfg)(void *ctx, RK_S32 cmd, void *param);
+    MPP_RET (*proc_cfg)(void *ctx, MpiCmd cmd, void *param);
     MPP_RET (*gen_hdr)(void *ctx, MppPacket pkt);
 
     MPP_RET (*proc_dpb)(void *ctx);

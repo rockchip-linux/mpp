@@ -31,7 +31,7 @@ MPP_RET  vp9d_init   (void *decoder, ParserCfg *cfg);
 MPP_RET  vp9d_deinit (void *decoder);
 MPP_RET  vp9d_reset  (void *decoder);
 MPP_RET  vp9d_flush  (void *decoder);
-MPP_RET  vp9d_control(void *decoder, RK_S32 cmd_type, void *param);
+MPP_RET  vp9d_control(void *decoder, MpiCmd cmd_type, void *param);
 MPP_RET  vp9d_prepare(void *decoder, MppPacket pkt, HalDecTask *task);
 MPP_RET  vp9d_parse  (void *decoder, HalDecTask *task);
 MPP_RET  vp9d_callback(void *decoder, void *info);

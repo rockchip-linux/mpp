@@ -633,35 +633,3 @@ MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
     (void)task;
     return ret;
 }
-
-MPP_RET hal_vp8d_vdpu1_reset(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-
-    FUN_T("FUN_IN");
-    (void)hal;
-    FUN_T("FUN_OUT");
-    return ret;
-}
-
-MPP_RET hal_vp8d_vdpu1_flush(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-
-    FUN_T("FUN_IN");
-    (void)hal;
-    FUN_T("FUN_OUT");
-    return ret;
-}
-
-MPP_RET hal_vp8d_vdpu1_control(void *hal, RK_S32 cmd_type, void *param)
-{
-    MPP_RET ret = MPP_OK;
-
-    FUN_T("FUN_IN");
-    (void)hal;
-    (void)cmd_type;
-    (void)param;
-    FUN_T("FUN_OUT");
-    return ret;
-}

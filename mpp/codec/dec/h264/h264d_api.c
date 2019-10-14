@@ -467,7 +467,7 @@ __FAILED:
 *   control/perform
 ***********************************************************************
 */
-MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param)
+MPP_RET  h264d_control(void *decoder, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t   *dec = (H264_DecCtx_t *)decoder;

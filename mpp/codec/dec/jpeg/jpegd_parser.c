@@ -17,9 +17,9 @@
 
 #define MODULE_TAG "jpegd_parser"
 
-#include "mpp_bitread.h"
-#include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_mem.h"
+#include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
 
 #include "jpegd_api.h"
@@ -1347,7 +1347,7 @@ static MPP_RET jpegd_reset(void *ctx)
     return MPP_OK;
 }
 
-static MPP_RET jpegd_control(void *ctx, RK_S32 cmd, void *param)
+static MPP_RET jpegd_control(void *ctx, MpiCmd cmd, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;

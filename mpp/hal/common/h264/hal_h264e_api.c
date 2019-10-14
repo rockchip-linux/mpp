@@ -180,7 +180,7 @@ MPP_RET hal_h264e_flush(void *hal)
     return api->flush(hal);
 }
 
-MPP_RET hal_h264e_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h264e_control(void *hal, MpiCmd cmd_type, void *param)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     MppHalApi *api = &ctx->api;

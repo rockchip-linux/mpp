@@ -310,7 +310,7 @@ MPP_RET hal_m2vd_vdpu1_flush(void *hal)
     return ret;
 }
 
-MPP_RET hal_m2vd_vdpu1_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_m2vd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
     (void)hal;

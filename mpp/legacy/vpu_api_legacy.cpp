@@ -90,10 +90,12 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
                                    EncParameter_t *cfg)
 {
     MPP_RET ret = MPP_OK;
-    MppEncCfgSet set;
-    MppEncCodecCfg *codec_cfg = &set.codec;
-    MppEncPrepCfg *prep_cfg = &set.prep;
-    MppEncRcCfg *rc_cfg = &set.rc;
+    MppEncCodecCfg codec;
+    MppEncPrepCfg prep;
+    MppEncRcCfg rc;
+    MppEncCodecCfg *codec_cfg = &codec;
+    MppEncPrepCfg *prep_cfg = &prep;
+    MppEncRcCfg *rc_cfg = &rc;
     RK_S32 width    = cfg->width;
     RK_S32 height   = cfg->height;
     RK_S32 bps      = cfg->bitRate;

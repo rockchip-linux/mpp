@@ -2112,7 +2112,7 @@ MPP_RET hal_h265e_vepu22_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_h265e_vepu22_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h265e_vepu22_control(void *hal, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = 0;
@@ -2169,6 +2169,10 @@ MPP_RET hal_h265e_vepu22_control(void *hal, RK_S32 cmd_type, void *param)
     case MPP_ENC_SET_ROI_CFG: {
         hal_h265e_dbg_input("MPP_ENC_SET_ROI_CFG\n");
         ret = vepu22_set_roi(ctx, param);
+        break;
+    }
+
+    default : {
         break;
     }
     }
