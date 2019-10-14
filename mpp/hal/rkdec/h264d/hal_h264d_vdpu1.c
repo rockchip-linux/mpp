@@ -904,7 +904,7 @@ MPP_RET vdpu1_h264d_wait(void *hal, HalTaskInfo *task)
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {
         IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
-        m_ctx.device_id = HAL_VDPU;
+        m_ctx.device_id = DEV_VDPU;
         if (!p_regs->SwReg01.sw_dec_rdy_int) {
             m_ctx.hard_err = 1;
         }

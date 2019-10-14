@@ -125,7 +125,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = rkv_h264d_reset;
         p_api->flush   = rkv_h264d_flush;
         p_api->control = rkv_h264d_control;
-        cfg->device_id = HAL_RKVDEC;
+        cfg->device_id = DEV_RKVDEC;
         break;
     case VDPU1_MODE:
         p_api->init    = vdpu1_h264d_init;
@@ -136,7 +136,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu1_h264d_reset;
         p_api->flush   = vdpu1_h264d_flush;
         p_api->control = vdpu1_h264d_control;
-        cfg->device_id = HAL_VDPU;
+        cfg->device_id = DEV_VDPU;
         break;
     case VDPU2_MODE:
         p_api->init    = vdpu2_h264d_init;
@@ -147,7 +147,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->reset   = vdpu2_h264d_reset;
         p_api->flush   = vdpu2_h264d_flush;
         p_api->control = vdpu2_h264d_control;
-        cfg->device_id = HAL_VDPU;
+        cfg->device_id = DEV_VDPU;
         break;
     default:
         mpp_err_f("hard mode error, value=%d\n", hard_mode);
