@@ -21,6 +21,7 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_platform.h"
 #include "mpp_packet_impl.h"
 
 #include "h264d_api.h"
@@ -630,12 +631,6 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
 *   callback
 ***********************************************************************
 */
-typedef enum MppHalHardType_e {
-    HAL_VDPU,           //!< vpu combined decoder
-    HAL_VEPU,           //!< vpu combined encoder
-    HAL_RKVDEC,         //!< rock-chip h264 h265 vp9 combined decoder
-    HAL_DEVICE_BUTT,
-} HalDeviceId;
 MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -663,9 +658,9 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
                       p_Dec->p_Vid->g_framecnt, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
                       mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
 
-            if (ctx->device_id == HAL_RKVDEC) {
+            if (ctx->device_id == DEV_RKVDEC) {
                 H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] sw[01]=%08x, sw[45]=%08x, sw[76]=%08x\n", p_regs[1], p_regs[45], p_regs[76]);
-            } else if (ctx->device_id == HAL_VDPU) {
+            } else if (ctx->device_id == DEV_VDPU) {
 
             }
         }

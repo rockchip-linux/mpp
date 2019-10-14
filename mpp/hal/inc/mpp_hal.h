@@ -17,23 +17,15 @@
 #ifndef __MPP_HAL_H__
 #define __MPP_HAL_H__
 
-#include "hal_task.h"
 #include "mpp_buf_slot.h"
+#include "mpp_platform.h"
+#include "hal_task.h"
 
 typedef enum MppHalType_e {
     HAL_MODE_LIBVPU,
     HAL_MODE_V4L2,
     HAL_MODE_BUTT,
 } HalWorkMode;
-
-
-typedef enum MppHalHardType_e {
-    HAL_VDPU,           //!< vpu combined decoder
-    HAL_VEPU,           //!< vpu combined encoder
-    HAL_RKVDEC,         //!< rock-chip h264 h265 vp9 combined decoder
-    HAL_RKVENC,         //!< rock-chip h264 h265 combined encoder
-    HAL_DEVICE_BUTT,
-} HalDeviceId;
 
 typedef enum vpu_hard_mode_e {
     MODE_NULL   = 0,
@@ -52,7 +44,7 @@ typedef struct MppHalCfg_t {
     MppCtxType      type;
     MppCodingType   coding;
     HalWorkMode     work_mode;
-    HalDeviceId     device_id;
+    MppDeviceId     device_id;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
     // for encoder

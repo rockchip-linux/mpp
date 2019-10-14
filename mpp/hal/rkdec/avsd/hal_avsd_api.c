@@ -283,7 +283,7 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {
         IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
-        m_ctx.device_id = HAL_VDPU;
+        m_ctx.device_id = DEV_VDPU;
         if (!((AvsdRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int) {
             m_ctx.hard_err = 1;
         }

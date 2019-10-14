@@ -447,7 +447,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
             MPP_CTX_ENC,
             coding,
             HAL_MODE_LIBVPU,
-            HAL_VEPU,
+            DEV_VEPU,
             frame_slots,
             packet_slots,
             &p->cfg,
