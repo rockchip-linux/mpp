@@ -25,6 +25,9 @@
 #define MAXSPS                      32
 #define MAXPPS                      256
 
+//!< aspect ratio explicitly specified as width:height
+#define H264_EXTENDED_SAR           255
+
 //!< values for nal_ref_idc
 typedef enum H264NalRefIdcType_e {
     H264_NALU_PRIORITY_DISPOSABLE   = 0,
@@ -49,22 +52,26 @@ typedef enum h264e_profile_t {
 
 //!< AVC Level IDC definitions
 typedef enum {
-    H264_LEVEL_1_0                  = 10,
-    H264_LEVEL_1_b                  = 99,
-    H264_LEVEL_1_1                  = 11,
-    H264_LEVEL_1_2                  = 12,
-    H264_LEVEL_1_3                  = 13,
-    H264_LEVEL_2_0                  = 20,
-    H264_LEVEL_2_1                  = 21,
-    H264_LEVEL_2_2                  = 22,
-    H264_LEVEL_3_0                  = 30,
-    H264_LEVEL_3_1                  = 31,
-    H264_LEVEL_3_2                  = 32,
-    H264_LEVEL_4_0                  = 40,
-    H264_LEVEL_4_1                  = 41,
-    H264_LEVEL_4_2                  = 42,
-    H264_LEVEL_5_0                  = 50,
-    H264_LEVEL_5_1                  = 51,
+    H264_LEVEL_1_0                  = 10,   //!< qcif@15fps
+    H264_LEVEL_1_b                  = 99,   //!< qcif@15fps
+    H264_LEVEL_1_1                  = 11,   //!< cif@7.5fps
+    H264_LEVEL_1_2                  = 12,   //!< cif@15fps
+    H264_LEVEL_1_3                  = 13,   //!< cif@30fps
+    H264_LEVEL_2_0                  = 20,   //!< cif@30fps
+    H264_LEVEL_2_1                  = 21,   //!< half-D1@@25fps
+    H264_LEVEL_2_2                  = 22,   //!< D1@12.5fps
+    H264_LEVEL_3_0                  = 30,   //!< D1@25fps
+    H264_LEVEL_3_1                  = 31,   //!< 720p@30fps
+    H264_LEVEL_3_2                  = 32,   //!< 720p@60fps
+    H264_LEVEL_4_0                  = 40,   //!< 1080p@30fps
+    H264_LEVEL_4_1                  = 41,   //!< 1080p@30fps
+    H264_LEVEL_4_2                  = 42,   //!< 1080p@60fps
+    H264_LEVEL_5_0                  = 50,   //!< 3K@30fps
+    H264_LEVEL_5_1                  = 51,   //!< 4K@30fps
+    H264_LEVEL_5_2                  = 52,   //!< 4K@60fps
+    H264_LEVEL_6_0                  = 60,   //!< 8K@30fps
+    H264_LEVEL_6_1                  = 61,   //!< 8K@60fps
+    H264_LEVEL_6_2                  = 62,   //!< 8K@120fps
 } H264Level;
 
 //!< values for nalu_type
