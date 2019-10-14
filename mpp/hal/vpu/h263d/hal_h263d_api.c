@@ -66,7 +66,7 @@ static MPP_RET hal_h263d_flush(void *hal)
     return ctx->hal_api.flush(hal);
 }
 
-static MPP_RET hal_h263d_control(void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_h263d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
     return ctx->hal_api.control(hal, cmd_type, param);

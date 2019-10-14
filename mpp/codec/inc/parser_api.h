@@ -17,6 +17,7 @@
 #ifndef __PARSER_API_H__
 #define __PARSER_API_H__
 
+#include "rk_mpi_cmd.h"
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "hal_task.h"
@@ -70,7 +71,7 @@ typedef struct ParserApi_t {
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
-    MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
+    MPP_RET (*control)(void *ctx, MpiCmd cmd, void *param);
     MPP_RET (*callback)(void *ctx, void *err_info);
 } ParserApi;
 

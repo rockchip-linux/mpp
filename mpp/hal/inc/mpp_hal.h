@@ -17,9 +17,13 @@
 #ifndef __MPP_HAL_H__
 #define __MPP_HAL_H__
 
+#include "rk_mpi_cmd.h"
+
 #include "mpp_buf_slot.h"
 #include "mpp_platform.h"
+
 #include "hal_task.h"
+#include "mpp_enc_cfg.h"
 
 typedef enum MppHalType_e {
     HAL_MODE_LIBVPU,
@@ -35,7 +39,6 @@ typedef enum vpu_hard_mode_e {
     RKVENC_MODE = 0x05,
     MODE_BUTT,
 } VpuHardMode;
-
 
 typedef void*   MppHalCtx;
 
@@ -77,7 +80,7 @@ typedef struct MppHalApi_t {
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
-    MPP_RET (*control)(void *ctx, RK_S32 cmd, void *param);
+    MPP_RET (*control)(void *ctx, MpiCmd cmd, void *param);
 } MppHalApi;
 
 typedef void* MppHal;
@@ -95,7 +98,7 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task);
 
 MPP_RET mpp_hal_reset(MppHal ctx);
 MPP_RET mpp_hal_flush(MppHal ctx);
-MPP_RET mpp_hal_control(MppHal ctx, RK_S32 cmd, void *param);
+MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param);
 
 #ifdef __cplusplus
 }

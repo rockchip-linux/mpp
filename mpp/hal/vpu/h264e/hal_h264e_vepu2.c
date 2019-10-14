@@ -648,7 +648,7 @@ MPP_RET hal_h264e_vepu2_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_h264e_vepu2_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_h264e_vepu2_control(void *hal, MpiCmd cmd_type, void *param)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
     MPP_RET ret = MPP_OK;

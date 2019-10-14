@@ -38,7 +38,7 @@ MPP_RET hal_h264d_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264d_wait    (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264d_reset   (void *hal);
 MPP_RET hal_h264d_flush   (void *hal);
-MPP_RET hal_h264d_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_h264d_control (void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }

@@ -186,7 +186,7 @@ MPP_RET  vp8d_parser_init   (void *ctx, ParserCfg *cfg);
 MPP_RET  vp8d_parser_deinit (void *ctx);
 MPP_RET  vp8d_parser_reset  (void *ctx);
 MPP_RET  vp8d_parser_flush  (void *ctx);
-MPP_RET  vp8d_parser_control(void *ctx, RK_S32 cmd_type, void *param);
+MPP_RET  vp8d_parser_control(void *ctx, MpiCmd cmd_type, void *param);
 MPP_RET  vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task);
 MPP_RET  vp8d_parser_parse  (void *ctx, HalDecTask *task);
 MPP_RET  vp8d_parser_callback(void *ctx, void *hal_info);

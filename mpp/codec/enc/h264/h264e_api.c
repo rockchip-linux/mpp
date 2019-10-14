@@ -194,7 +194,7 @@ MPP_RET h264e_flush(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h264e_config(void *ctx, RK_S32 cmd, void *param)
+MPP_RET h264e_config(void *ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
     H264eCtx *p = (H264eCtx *)ctx;

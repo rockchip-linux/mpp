@@ -185,7 +185,7 @@ MPP_RET hal_vpu_mpg4d_flush(void *hal)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_vpu_mpg4d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 

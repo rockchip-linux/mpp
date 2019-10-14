@@ -37,7 +37,7 @@ MPP_RET  h264d_init   (void *decoder, ParserCfg *cfg);
 MPP_RET  h264d_deinit (void *decoder);
 MPP_RET  h264d_reset  (void *decoder);
 MPP_RET  h264d_flush  (void *decoder);
-MPP_RET  h264d_control(void *decoder, RK_S32 cmd_type, void *param);
+MPP_RET  h264d_control(void *decoder, MpiCmd cmd_type, void *param);
 MPP_RET  h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task);
 MPP_RET  h264d_parse  (void *decoder, HalDecTask *task);
 MPP_RET  h264d_callback(void *decoder, void *err_info);

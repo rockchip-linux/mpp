@@ -18,8 +18,6 @@
 #ifndef __HAL_H263D_API_H__
 #define __HAL_H263D_API_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
 #include "mpp_hal.h"
 
 #define H263D_HAL_DBG_REG_PUT       (0x00000001)
@@ -32,15 +30,6 @@ extern "C" {
 extern RK_U32 h263d_hal_debug;
 
 extern const MppHalApi hal_api_h263d;
-
-MPP_RET hal_vpu_h263d_init(void *hal, MppHalCfg *cfg);
-MPP_RET hal_vpu_h263d_gen_regs(void *hal,  HalTaskInfo *syn);
-MPP_RET hal_vpu_h263d_deinit(void *hal);
-MPP_RET hal_vpu_h263d_start(void *hal, HalTaskInfo *task);
-MPP_RET hal_vpu_h263d_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_vpu_h263d_reset(void *hal);
-MPP_RET hal_vpu_h263d_flush(void *hal);
-MPP_RET hal_vpu_h263d_control(void *hal, RK_S32 cmd_type, void *param);
 
 #ifdef __cplusplus
 }

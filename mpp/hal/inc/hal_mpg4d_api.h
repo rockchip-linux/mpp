@@ -50,7 +50,7 @@ MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task);
 MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task);
 MPP_RET hal_vpu_mpg4d_reset(void *hal);
 MPP_RET hal_vpu_mpg4d_flush(void *hal);
-MPP_RET hal_vpu_mpg4d_control(void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_vpu_mpg4d_control(void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }

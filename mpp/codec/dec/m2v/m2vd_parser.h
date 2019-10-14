@@ -298,7 +298,7 @@ MPP_RET  m2vd_parser_init   (void *ctx, ParserCfg *cfg);
 MPP_RET  m2vd_parser_deinit (void *ctx);
 MPP_RET  m2vd_parser_reset  (void *ctx);
 MPP_RET  m2vd_parser_flush  (void *ctx);
-MPP_RET  m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param);
+MPP_RET  m2vd_parser_control(void *ctx, MpiCmd cmd_type, void *param);
 MPP_RET  m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task);
 MPP_RET  m2vd_parser_parse  (void *ctx, HalDecTask *task);
 MPP_RET  m2vd_parser_callback(void *ctx, void *err_info);

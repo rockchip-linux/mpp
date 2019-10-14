@@ -182,7 +182,7 @@ MPP_RET vp8e_flush(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET vp8e_config(void *ctx, RK_S32 cmd, void *param)
+MPP_RET vp8e_config(void *ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
     Vp8eCtx *p = (Vp8eCtx *)ctx;

@@ -55,7 +55,7 @@ static MPP_RET hal_jpegd_flush (void *hal)
     return self->hal_api.flush (hal);
 }
 
-static MPP_RET hal_jpegd_control (void *hal, RK_S32 cmd_type, void *param)
+static MPP_RET hal_jpegd_control (void *hal, MpiCmd cmd_type, void *param)
 {
     JpegdHalCtx *self = (JpegdHalCtx *)hal;
     return self->hal_api.control (hal, cmd_type, param);

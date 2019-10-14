@@ -65,7 +65,7 @@ MPP_RET hal_dummy_enc_flush(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_dummy_enc_control(void *hal, RK_S32 cmd_type, void *param)
+MPP_RET hal_dummy_enc_control(void *hal, MpiCmd cmd_type, void *param)
 {
     (void)hal;
     (void)cmd_type;

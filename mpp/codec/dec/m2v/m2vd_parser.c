@@ -370,7 +370,7 @@ MPP_RET m2vd_parser_flush(void *ctx)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET m2vd_parser_control(void *ctx, RK_S32 cmd_type, void *param)
+MPP_RET m2vd_parser_control(void *ctx, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
     m2vd_dbg_func("FUN_I");

@@ -984,31 +984,4 @@ typedef struct MppEncOSDData_t {
     MppEncOSDRegion region[8];
 } MppEncOSDData;
 
-typedef struct MppEncMiscCfg_t {
-    MppEncSliceSplit    split;
-    MppEncGopRef        gop_ref;
-    MppEncROICfg        roi;
-    MppEncOSDData       osd_data;
-    MppEncOSDPlt        osd_plt;
-} MppEncMiscCfg;
-
-/*
- * MppEncCfgSet shows the relationship between different configuration
- * Due to the huge amount of configurable parameters we need to setup
- * only minimum amount of necessary parameters.
- *
- * For normal user rc and prep config are enough.
- */
-typedef struct MppEncCfgSet_t {
-    // esential config
-    MppEncPrepCfg       prep;
-    MppEncRcCfg         rc;
-
-    // codec detail config
-    MppEncCodecCfg      codec;
-
-    // misc extra config
-    MppEncMiscCfg       misc;
-} MppEncCfgSet;
-
 #endif /*__RK_VENC_CMD_H__*/

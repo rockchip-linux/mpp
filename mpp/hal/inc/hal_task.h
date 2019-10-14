@@ -18,7 +18,8 @@
 #ifndef __HAL_TASK__
 #define __HAL_TASK__
 
-#include "rk_mpi_cmd.h"
+#include "rk_type.h"
+#include "mpp_err.h"
 
 #define MAX_DEC_REF_NUM     17
 

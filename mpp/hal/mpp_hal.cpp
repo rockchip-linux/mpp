@@ -230,7 +230,7 @@ MPP_RET mpp_hal_flush(MppHal ctx)
     return p->api->flush(p->ctx);
 }
 
-MPP_RET mpp_hal_control(MppHal ctx, RK_S32 cmd, void *param)
+MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param)
 {
     if (NULL == ctx) {
         mpp_err_f("found NULL input\n");

@@ -200,7 +200,7 @@ MPP_RET mpp_parser_flush(Parser prs)
     return p->api->flush(p->ctx);
 }
 
-MPP_RET mpp_parser_control(Parser prs, RK_S32 cmd, void *para)
+MPP_RET mpp_parser_control(Parser prs, MpiCmd cmd, void *para)
 {
     if (NULL == prs) {
         mpp_err_f("found NULL input\n");

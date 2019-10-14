@@ -106,7 +106,7 @@ MPP_RET enc_impl_deinit(EncImpl impl)
     return MPP_OK;
 }
 
-MPP_RET enc_impl_proc_cfg(EncImpl impl, RK_S32 cmd, void *para)
+MPP_RET enc_impl_proc_cfg(EncImpl impl, MpiCmd cmd, void *para)
 {
     if (NULL == impl) {
         mpp_err_f("found NULL input\n");

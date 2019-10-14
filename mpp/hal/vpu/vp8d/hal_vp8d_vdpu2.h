@@ -16,6 +16,7 @@
 
 #ifndef __HAL_VP8D_VDPU2_H__
 #define __HAL_VP8D_VDPU2_H__
+
 #include "hal_vp8d_base.h"
 
 MPP_RET hal_vp8d_vdpu2_init    (void *hal, MppHalCfg *cfg);
@@ -23,8 +24,5 @@ MPP_RET hal_vp8d_vdpu2_deinit  (void *hal);
 MPP_RET hal_vp8d_vdpu2_gen_regs(void *hal, HalTaskInfo *task);
 MPP_RET hal_vp8d_vdpu2_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_vp8d_vdpu2_wait    (void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_vdpu2_reset   (void *hal);
-MPP_RET hal_vp8d_vdpu2_flush   (void *hal);
-MPP_RET hal_vp8d_vdpu2_control (void *hal, RK_S32 cmd_type, void *param);
 
 #endif

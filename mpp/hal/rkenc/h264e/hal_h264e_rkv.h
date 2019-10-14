@@ -741,6 +741,6 @@ MPP_RET hal_h264e_rkv_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264e_rkv_wait    (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264e_rkv_reset   (void *hal);
 MPP_RET hal_h264e_rkv_flush   (void *hal);
-MPP_RET hal_h264e_rkv_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_h264e_rkv_control (void *hal, MpiCmd cmd_type, void *param);
 
 #endif

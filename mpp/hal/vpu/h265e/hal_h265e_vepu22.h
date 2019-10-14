@@ -31,7 +31,7 @@ MPP_RET hal_h265e_vepu22_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_h265e_vepu22_wait    (void *hal, HalTaskInfo *task);
 MPP_RET hal_h265e_vepu22_reset   (void *hal);
 MPP_RET hal_h265e_vepu22_flush   (void *hal);
-MPP_RET hal_h265e_vepu22_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_h265e_vepu22_control (void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }

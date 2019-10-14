@@ -153,7 +153,7 @@ MPP_RET h265e_flush(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265e_config(void *ctx, RK_S32 cmd, void *param)
+MPP_RET h265e_config(void *ctx, MpiCmd cmd, void *param)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MPP_RET ret = MPP_NOK;

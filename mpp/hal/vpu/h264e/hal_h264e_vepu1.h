@@ -26,6 +26,6 @@ MPP_RET hal_h264e_vepu1_start   (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264e_vepu1_wait    (void *hal, HalTaskInfo *task);
 MPP_RET hal_h264e_vepu1_reset   (void *hal);
 MPP_RET hal_h264e_vepu1_flush   (void *hal);
-MPP_RET hal_h264e_vepu1_control (void *hal, RK_S32 cmd_type, void *param);
+MPP_RET hal_h264e_vepu1_control (void *hal, MpiCmd cmd_type, void *param);
 
 #endif
