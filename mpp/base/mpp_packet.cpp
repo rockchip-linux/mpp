@@ -255,7 +255,14 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
     if (check_is_mpp_packet(packet))
         return MPP_ERR_UNKNOW;
 
+    void *data = packet->data;
+    size_t size = packet->size;
+
     memset(packet, 0, sizeof(*packet));
+
+    packet->data = data;
+    packet->pos  = data;
+    packet->size = size;
     setup_mpp_packet_name(packet);
     return MPP_OK;
 }
