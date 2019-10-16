@@ -165,4 +165,16 @@ typedef enum H264SeiType_e {
     H264_SEI_MAX_ELEMENTS  //!< number of maximum syntax elements
 } H264SeiType;
 
+typedef enum H264ScalingListType_e {
+    H264_INTRA_4x4_Y,
+    H264_INTRA_4x4_U,
+    H264_INTRA_4x4_V,
+    H264_INTER_4x4_Y,
+    H264_INTER_4x4_U,
+    H264_INTER_4x4_V,
+    H264_INTRA_8x8_Y,
+    H264_INTER_8x8_Y,
+    H264_SCALING_MATRIX_TYPE_BUTT,
+} H264ScalingMatrixType;
+
 #endif /*__H264_SYNTAX_H__*/

@@ -602,6 +602,13 @@ typedef struct MppEncH264Cfg_t {
     RK_S32              constrained_intra_pred_mode;
 
     /*
+     * 0 : flat scaling list
+     * 1 : default scaling list for all cases
+     * 2 : customized scaling list (not supported)
+     */
+    RK_S32              scaling_list_mode;
+
+    /*
      * chroma qp offset (-12 - 12)
      */
     RK_S32              chroma_cb_qp_offset;
