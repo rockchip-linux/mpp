@@ -51,6 +51,9 @@ typedef struct MppPacketImpl_t {
     MppMeta     meta;
 } MppPacketImpl;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /*
  * mpp_packet_reset is only used internelly and should NOT be used outside
  */
@@ -58,5 +61,9 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__MPP_PACKET_IMPL_H__*/
