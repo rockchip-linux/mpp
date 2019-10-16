@@ -50,7 +50,7 @@ static RK_U32 mpp_rc_debug = 0;
 MPP_RET mpp_data_init(MppData **data, RK_S32 size)
 {
     if (NULL == data || size <= 0) {
-        mpp_err_f("invalid data %data size %d\n", data, size);
+        mpp_err_f("invalid data %p size %d\n", data, size);
         return MPP_ERR_NULL_PTR;
     }
 
