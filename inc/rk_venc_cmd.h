@@ -862,6 +862,7 @@ typedef enum MppEncRefMode_e {
 
 #define MAX_GOP_REF_LEN         16
 #define GOP_REF_SIZE            (MAX_GOP_REF_LEN+1)
+#define MAX_TEMPORAL_LAYER      4
 
 typedef struct MppGopRefInfo_t {
     RK_S32 temporal_id;
@@ -882,28 +883,36 @@ typedef struct MppEncGopRef_t {
     RK_U32 gop_cfg_enable;
 
     /*
-     * config mode for gop reference configuration
-     * 0 - Rockchip config mode
-     * 1 - Hisilicon config  mode
+     * Long-term reference frame interval is used for error recovery
+     *
+     * When lt_ref_interval is zero the long-term frame mode is indicated by
+     * gop_info configuration.
+     * When lt_ref_interval is non-zero (usually 2~3 second interval) then
+     * the long-term reference can be used for error recovery.
      */
-    RK_U32 gop_cfg_mode;
+    RK_S32 lt_ref_interval;
 
-    union {
-        // Rockchip mode
-        struct {
-            RK_U32 ref_gop_len;
-            MppGopRefInfo gop_info[GOP_REF_SIZE];
-        };
+    /*
+     * Max long-term reference frame index plus 1 indicated the max number of
+     * long-term reference frame.
+     *
+     * When zero there is no long-term refernce frame.
+     * When larger than zero the max long-term reference frame index is
+     * max_lt_ref_cnt - 1.
+     * The max long-term reference frame index should NOT larger than
+     * max_num_ref_frames in sps and should NOT over the limit in gop_info.
+     */
+    RK_S32 max_lt_ref_cnt;
 
-        // Hisilicon mode
-        struct {
-            RK_U32 hi_gop_mode;
-            RK_U32 hi_base;
-            RK_U32 hi_enhance;
-            RK_U32 hi_enable_pred;
-        };
-    };
+    /* Reference frame gop (vgop) config */
+    RK_S32 ref_gop_len;
+    MppGopRefInfo gop_info[GOP_REF_SIZE];
+
+    /* temporal layer rate control config (max 4 layer) */
+    RK_S32 layer_rc_enable;
+    RK_S32 layer_weight[MAX_TEMPORAL_LAYER];
 } MppEncGopRef;
+
 
 /**
  * @brief Mpp ROI parameter
