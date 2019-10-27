@@ -79,6 +79,7 @@ typedef struct VP8Frame {
     MppFrame f;
     RK_S32 slot_index;
     RK_S8 ref_count;
+    RK_U8 invisible;
 } VP8Frame;
 
 
