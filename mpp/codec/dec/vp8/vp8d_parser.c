@@ -254,9 +254,18 @@ static void vp8d_unref_frame(VP8DParserContext_t *p, VP8Frame *frame)
         FUN_T("FUN_OUT");
         return;
     }
+
     frame->ref_count--;
-    if (!frame->ref_count && frame->slot_index < 0x7f) {
-        mpp_buf_slot_clr_flag(p->frame_slots, frame->slot_index, SLOT_CODEC_USE);
+    if (!frame->ref_count) {
+        if (frame->slot_index < 0x7f) {
+            MppBuffer framebuf = NULL;
+            if (frame->invisible) {
+                mpp_buf_slot_get_prop(p->frame_slots, frame->slot_index, SLOT_BUFFER, &framebuf);
+                mpp_buffer_put(framebuf);
+                frame->invisible = 0;
+            }
+            mpp_buf_slot_clr_flag(p->frame_slots, frame->slot_index, SLOT_CODEC_USE);
+        }
         frame->slot_index = 0xff;
         mpp_free(frame->f);
         mpp_free(frame);
@@ -603,6 +612,7 @@ static MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
             }
         }
         p->frame_out->slot_index = 0xff;
+        p->frame_out->invisible = !p->showFrame;
     }
 
     if (p->frame_out->slot_index == 0xff) {
