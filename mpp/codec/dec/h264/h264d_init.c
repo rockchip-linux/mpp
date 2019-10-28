@@ -521,7 +521,8 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 #if 1
-    if (p_last && dec_pic && (dec_pic->slice_type != H264_I_SLICE)) {
+    if (p_last && dec_pic && (dec_pic->slice_type != H264_I_SLICE)
+        && (currSlice->p_Cur->sps.gaps_in_frame_num_value_allowed_flag == 0)) {
         RK_U32 error_flag = 0;
 
         if (dec_pic->frame_num == p_last->frame_num ||
