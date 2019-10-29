@@ -960,28 +960,6 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
         *dst_size = src_size;
     }
 
-    /* NOTE: hardware bug, need to remove tailing FF 00 before FF D9 end flag */
-    if (end[-1] == 0xD9 && end[-2] == 0xFF) {
-        end -= 2;
-
-        do {
-            if (end[-1] == 0xFF) {
-                end--;
-                continue;
-            }
-            if (end[-1] == 0x00 && end [-2] == 0xFF) {
-                jpegd_dbg_parser("remove tailing FF 00 before FF D9 end flag.");
-                end -= 2;
-                continue;
-            }
-            break;
-        } while (1);
-
-
-        end[0] = 0xff;
-        end[1] = 0xD9;
-    }
-
     jpegd_dbg_func("exit\n");
     return ret;
 }
@@ -999,27 +977,6 @@ jpegd_handle_stream(RK_U8 *src, RK_U32 src_size,
     RK_U8 *end;
     *dst_size = 0;  /* no need to copy */
     end = src + src_size;
-
-    /* NOTE: hardware bug, need to remove tailing FF 00 before FF D9 end flag */
-    if (end[-1] == 0xD9 && end[-2] == 0xFF) {
-        end -= 2;
-
-        do {
-            if (end[-1] == 0xFF) {
-                end--;
-                continue;
-            }
-            if (end[-1] == 0x00 && end [-2] == 0xFF) {
-                jpegd_dbg_parser("remove tailing FF 00 before FF D9 end flag.");
-                end -= 2;
-                continue;
-            }
-            break;
-        } while (1);
-
-        end[0] = 0xff;
-        end[1] = 0xD9;
-    }
 
     jpegd_dbg_func("exit\n");
     return ret;
