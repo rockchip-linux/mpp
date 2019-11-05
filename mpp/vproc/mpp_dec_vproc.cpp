@@ -398,6 +398,11 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
             p->iep_ctx = NULL;
         }
 
+        if (p->task_group) {
+            hal_task_group_deinit(p->task_group);
+            p->task_group = NULL;
+        }
+
         MPP_FREE(p);
     } else {
         p->dei_cfg.dei_mode = IEP_DEI_MODE_I2O1;
