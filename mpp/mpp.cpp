@@ -829,7 +829,8 @@ MPP_RET Mpp::notify(MppBufferGroup group)
     switch (mType) {
     case MPP_CTX_DEC : {
         if (group == mFrameGroup)
-            ret = notify(MPP_DEC_NOTIFY_BUFFER_VALID);
+            ret = notify(MPP_DEC_NOTIFY_BUFFER_VALID |
+                         MPP_DEC_NOTIFY_BUFFER_MATCH);
     } break;
     default : {
     } break;
