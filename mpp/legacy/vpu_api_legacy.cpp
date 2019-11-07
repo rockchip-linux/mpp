@@ -463,8 +463,11 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     MppBuffer buf = mpp_frame_get_buffer(mframe);
     RK_U64 pts  = mpp_frame_get_pts(mframe);
     RK_U32 mode = mpp_frame_get_mode(mframe);
+
+    MppFrameColorRange colorRan = mpp_frame_get_color_range(mframe);
     MppFrameColorTransferCharacteristic colorTrc = mpp_frame_get_color_trc(mframe);
     MppFrameColorPrimaries colorPri = mpp_frame_get_color_primaries(mframe);
+    MppFrameColorSpace colorSpa = mpp_frame_get_colorspace(mframe);
 
     if (buf)
         mpp_buffer_inc_ref(buf);
@@ -473,6 +476,12 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     vframe->DisplayHeight = mpp_frame_get_height(mframe);
     vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
     vframe->FrameHeight = mpp_frame_get_ver_stride(mframe);
+
+    vframe->ColorRange = (colorRan == MPP_FRAME_RANGE_JPEG);
+    vframe->ColorPrimaries = colorPri;
+    vframe->ColorTransfer = colorTrc;
+    vframe->ColorCoeffs = colorSpa;
+
     if (mode == MPP_FRAME_FLAG_FRAME)
         vframe->FrameType = 0;
     else {

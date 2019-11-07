@@ -140,7 +140,22 @@ typedef struct tVPU_FRAME {
     RK_U32              employ_cnt;
     VPUMemLinear_t      vpumem;
     struct tVPU_FRAME  *next_frame;
-    RK_U32              Res[4];
+    union {
+        struct {
+            RK_U32      Res0[2];
+            struct {
+                RK_U32      ColorPrimaries : 8;
+                RK_U32      ColorTransfer  : 8;
+                RK_U32      ColorCoeffs    : 8;
+                RK_U32      ColorRange     : 1;
+                RK_U32      Res1           : 7;
+            };
+
+            RK_U32      Res2;
+        };
+
+        RK_U32          Res[4];
+    };
 } VPU_FRAME;
 
 typedef struct VideoPacket {
