@@ -222,24 +222,24 @@ MPP_RET h264e_vpu_mb_rc_cfg(H264eHalContext *ctx, RcSyntax *rc_syn, H264eHwCfg *
     }
 
     hw_cfg->target_error[0] = -tmp * 3;
-    hw_cfg->delta_qp[0] = -3;
+    hw_cfg->delta_qp[0] = 3;
     hw_cfg->target_error[1] = -tmp * 2;
-    hw_cfg->delta_qp[1] = -2;
+    hw_cfg->delta_qp[1] = 2;
     hw_cfg->target_error[2] = -tmp * 1;
-    hw_cfg->delta_qp[2] = -1;
+    hw_cfg->delta_qp[2] = 1;
     hw_cfg->target_error[3] = tmp * 1;
     hw_cfg->delta_qp[3] = 0;
     hw_cfg->target_error[4] = tmp * 2;
-    hw_cfg->delta_qp[4] = 1;
+    hw_cfg->delta_qp[4] = -1;
     hw_cfg->target_error[5] = tmp * 3;
-    hw_cfg->delta_qp[5] = 2;
+    hw_cfg->delta_qp[5] = -2;
     hw_cfg->target_error[6] = tmp * 4;
-    hw_cfg->delta_qp[6] = 3;
+    hw_cfg->delta_qp[6] = -3;
 
     for (i = 0; i < CTRL_LEVELS; i++) {
-        tmp =  hw_cfg->cp_target[i];
+        tmp =  hw_cfg->target_error[i];
         tmp = mpp_clip(tmp / 4, -32768, 32767);
-        hw_cfg->cp_target[i] = tmp;
+        hw_cfg->target_error[i] = tmp;
     }
     hw_cfg->cp_distance_mbs = hw_cfg->qpCtrl.checkPointDistance;
     return 0;
