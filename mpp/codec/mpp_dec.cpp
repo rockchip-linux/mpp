@@ -997,7 +997,9 @@ void *mpp_dec_hal_thread(void *data)
 
             task = NULL;
 
-            mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+            if (task_dec->output >= 0)
+                mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 RK_S32 index = task_dec->refer[i];
                 if (index >= 0)
