@@ -1167,6 +1167,10 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
 
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding VUI\n");
 
+    vui->colour_primaries = MPP_FRAME_PRI_UNSPECIFIED;
+    vui->transfer_characteristic = MPP_FRAME_TRC_UNSPECIFIED;
+    vui->matrix_coeffs = MPP_FRAME_SPC_UNSPECIFIED;
+
     READ_ONEBIT(gb, &sar_present);
     if (sar_present) {
         RK_U8 sar_idx = 0;
