@@ -72,7 +72,7 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
     p->data = p->pos    = data;
     p->size = p->length = size;
 
-    return ret;
+    return MPP_OK;
 }
 
 MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer)
@@ -111,45 +111,46 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
     if (ret)
         return ret;
 
-    if (src_impl->buffer) {
-        /* if source packet has buffer just create a new reference to buffer */
-        memcpy(pkt, src_impl, sizeof(*src_impl));
-        mpp_buffer_inc_ref(src_impl->buffer);
-        *packet = pkt;
-        return MPP_OK;
-    }
+    /* copy the source data */
+    memcpy(pkt, src_impl, sizeof(*src_impl));
 
-    /*
-     * NOTE: only copy valid data
-     */
-    size_t length = mpp_packet_get_length(src);
-    /*
-     * due to parser may be read 32 bit interface so we must alloc more size then real size
-     * to avoid read carsh
-     */
-    void *pos = mpp_malloc_size(void, length + 256);
-    if (NULL == pos) {
-        mpp_err_f("malloc failed, size %d\n", length);
-        mpp_packet_deinit(&pkt);
-        return MPP_ERR_MALLOC;
-    }
-
-    MppPacketImpl *p = (MppPacketImpl *)pkt;
-    memcpy(p, src_impl, sizeof(*src_impl));
-    p->data = p->pos = pos;
-    p->size = p->length = length;
-    p->flag |= MPP_PACKET_FLAG_INTERNAL;
-
+    /* increase reference of meta data */
     if (src_impl->meta)
         mpp_meta_inc_ref(src_impl->meta);
 
-    if (length) {
-        memcpy(pos, src_impl->pos, length);
+    if (src_impl->buffer) {
+        /* if source packet has buffer just create a new reference to buffer */
+        mpp_buffer_inc_ref(src_impl->buffer);
+    } else {
         /*
-         * clean more alloc byte to zero
-        */
-        memset((RK_U8*)pos + length, 0, 256);
+         * NOTE: only copy valid data
+         */
+        size_t length = mpp_packet_get_length(src);
+        /*
+         * due to parser may be read 32 bit interface so we must alloc more size
+         * then real size to avoid read carsh
+         */
+        void *pos = mpp_malloc_size(void, length + 256);
+        if (NULL == pos) {
+            mpp_err_f("malloc failed, size %d\n", length);
+            mpp_packet_deinit(&pkt);
+            return MPP_ERR_MALLOC;
+        }
+
+        MppPacketImpl *p = (MppPacketImpl *)pkt;
+        p->data = p->pos = pos;
+        p->size = p->length = length;
+        p->flag |= MPP_PACKET_FLAG_INTERNAL;
+
+        if (length) {
+            memcpy(pos, src_impl->pos, length);
+            /*
+             * clean more alloc byte to zero
+             */
+            memset((RK_U8*)pos + length, 0, 256);
+        }
     }
+
     *packet = pkt;
     return MPP_OK;
 }
