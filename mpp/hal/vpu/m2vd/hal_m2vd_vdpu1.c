@@ -40,10 +40,10 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
     ctx->reg_len = M2VD_VDPU1_REG_NUM;
 
     MppDevCfg dev_cfg = {
-        .type = MPP_CTX_DEC,            /* type */
+        .type = MPP_CTX_DEC,             /* type */
         .coding = MPP_VIDEO_CodingMPEG2, /* coding */
-        .platform = 0,                  /* platform */
-        .pp_enable = 0,                 /* pp_enable */
+        .platform = HAVE_VDPU1,          /* platform */
+        .pp_enable = 0,                  /* pp_enable */
     };
 
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);

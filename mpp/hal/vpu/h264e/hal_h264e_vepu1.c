@@ -55,7 +55,7 @@ MPP_RET hal_h264e_vepu1_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,            /* type */
         .coding = MPP_VIDEO_CodingAVC,  /* coding */
-        .platform = 0,                  /* platform */
+        .platform = HAVE_VEPU1,         /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
 

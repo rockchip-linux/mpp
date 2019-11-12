@@ -305,7 +305,7 @@ MPP_RET hal_vp8e_vepu1_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,            /* type */
         .coding = MPP_VIDEO_CodingVP8,  /* coding */
-        .platform = 0,                  /* platform */
+        .platform = HAVE_VEPU1,         /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);

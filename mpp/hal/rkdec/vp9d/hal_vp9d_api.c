@@ -279,7 +279,7 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingVP9,    /* coding */
-        .platform = 0,                    /* platform */
+        .platform = HAVE_RKVDEC,          /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
 

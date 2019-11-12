@@ -47,14 +47,7 @@ MPP_RET hal_h265e_init(void *hal, MppHalCfg *cfg)
     memset(ctx, 0, sizeof(HalH265eCtx));
     p_api = &ctx->hal_api;
 
-    // NOTE: rk3036 and rk3228 do NOT have jpeg encoder
-    if (NULL == mpp_get_vcodec_dev_name(MPP_CTX_ENC, MPP_VIDEO_CodingHEVC)) {
-        mpp_err("SOC %s do NOT support h265 encoding\n", mpp_get_soc_name());
-        ret = MPP_ERR_INIT;
-        goto FAIL;
-    }
-
-    if (!(mpp_get_vcodec_type() & HAVE_H265ENC)) {
+    if (!(mpp_get_vcodec_type() & HAVE_VEPU22)) {
         mpp_err("cannot find hardware.\n");
         ret = MPP_ERR_INIT;
         goto FAIL;

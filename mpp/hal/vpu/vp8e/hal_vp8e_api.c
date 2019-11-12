@@ -97,9 +97,9 @@ static MPP_RET hal_vp8e_init(void *hal, MppHalCfg *cfg)
     p_api = &ctx->hal_api;
     {
         RK_U32 hw_flag = mpp_get_vcodec_type();
-        if (hw_flag & HAVE_VPU2)
+        if (hw_flag & HAVE_VEPU2)
             hard_mode = VDPU2_MODE;
-        else if (hw_flag & HAVE_VPU1)
+        else if (hw_flag & HAVE_VEPU1)
             hard_mode = VDPU1_MODE;
         else {
             mpp_err_f("Failed to init due to unsupported hard mode, hw_flag = %d\n", hw_flag);

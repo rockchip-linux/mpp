@@ -81,9 +81,9 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
     p_api = &self->hal_api;
 
     hw_flag = mpp_get_vcodec_type();
-    if (hw_flag & HAVE_VPU2)
+    if (hw_flag & HAVE_VDPU2)
         hard_mode = VDPU2_MODE;
-    if (hw_flag & HAVE_VPU1)
+    if (hw_flag & HAVE_VDPU1)
         hard_mode = VDPU1_MODE;
 
     switch (hard_mode) {
