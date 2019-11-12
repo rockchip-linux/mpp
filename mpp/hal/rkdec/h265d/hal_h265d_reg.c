@@ -404,6 +404,8 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
 {
 
     RK_S32 ret = 0;
+    RK_U32 vcodec_type = 0;
+    RK_U32 platform = 0;
     h265d_reg_context_t *reg_cxt = (h265d_reg_context_t *)hal;
 
     if (NULL == reg_cxt) {
@@ -430,12 +432,13 @@ MPP_RET hal_h265d_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_MALLOC;
     }
     reg_cxt->packet_slots = cfg->packet_slots;
-
+    vcodec_type = mpp_get_vcodec_type();
+    platform = (vcodec_type & HAVE_HEVC_DEC) ? HAVE_HEVC_DEC : HAVE_RKVDEC;
     ///<- mpp_device_init
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,               /* type */
         .coding = MPP_VIDEO_CodingHEVC,    /* coding */
-        .platform = 0,                     /* platform */
+        .platform = platform,              /* platform */
         .pp_enable = 0,                    /* pp_enable */
     };
 

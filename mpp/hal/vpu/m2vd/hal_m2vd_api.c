@@ -86,9 +86,9 @@ static MPP_RET hal_m2vd_init (void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("m2vh_debug", &m2vh_debug, 0);
 
     hw_flag = mpp_get_vcodec_type();
-    if (hw_flag & HAVE_VPU1)
+    if (hw_flag & HAVE_VDPU1)
         hard_mode = VDPU1_MODE;
-    if (hw_flag & HAVE_VPU2)
+    if (hw_flag & HAVE_VDPU2)
         hard_mode = VDPU2_MODE;
 
     switch (hard_mode) {

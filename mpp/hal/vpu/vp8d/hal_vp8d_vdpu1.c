@@ -56,7 +56,7 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingVP8,    /* coding */
-        .platform = 0,                    /* platform */
+        .platform = HAVE_VDPU1,           /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
 

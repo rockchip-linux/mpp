@@ -748,7 +748,7 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingMJPEG,  /* coding */
-        .platform = 0,                    /* platform */
+        .platform = HAVE_VDPU1,           /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
     ret = mpp_device_init(&JpegHalCtx->dev_ctx, &dev_cfg);
@@ -892,7 +892,7 @@ MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
             MppDevCfg dev_cfg = {
                 .type = MPP_CTX_DEC,              /* type */
                 .coding = MPP_VIDEO_CodingMJPEG,  /* coding */
-                .platform = 0,                    /* platform */
+                .platform = HAVE_VDPU1,           /* platform */
                 .pp_enable = 1,                   /* pp_enable */
             };
             ret = mpp_device_init(&JpegHalCtx->dev_ctx, &dev_cfg);

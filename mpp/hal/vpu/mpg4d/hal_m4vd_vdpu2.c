@@ -258,7 +258,7 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,              /* type */
         .coding = MPP_VIDEO_CodingMPEG4,  /* coding */
-        .platform = 0,                    /* platform */
+        .platform = HAVE_VDPU2,           /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
 

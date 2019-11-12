@@ -136,7 +136,7 @@ MPP_RET hal_vpu1_h263d_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingH263, /* coding */
-        .platform = 0,                  /* platform */
+        .platform = HAVE_VDPU1,         /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);

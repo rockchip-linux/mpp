@@ -94,6 +94,15 @@ MppRuntimeService::MppRuntimeService()
         mpp_log("found drm allocator\n");
     }
 
+    if ((!access("/dev/mpp_service", F_OK | R_OK | W_OK)) &&
+        allocator_valid[MPP_BUFFER_TYPE_ION] &&
+        allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+        allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
+
+        mpp_log("use drm allocator for mpp_service\n");
+        return;
+    }
+
     // If both ion and drm is enabled detect allocator in dts to choose one
     // TODO: When unify dma fd kernel is completed this part will be removed.
     if (allocator_valid[MPP_BUFFER_TYPE_ION] &&

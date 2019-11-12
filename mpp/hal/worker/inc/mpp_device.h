@@ -20,6 +20,14 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
+/* define flags for mpp_request */
+
+#define MPP_FLAGS_MULTI_MSG         (0x00000001)
+#define MPP_FLAGS_LAST_MSG          (0x00000002)
+#define MPP_FLAGS_REG_FD_NO_TRANS   (0x00000004)
+#define MPP_FLAGS_SCL_FD_NO_TRANS   (0x00000008)
+#define MPP_FLAGS_SECURE_MODE       (0x00010000)
+
 /* mpp service capability description */
 typedef enum MppDevCmd_e {
     MPP_DEV_GET_START = 0,
@@ -35,6 +43,33 @@ typedef enum MppDevCmd_e {
 
     MPP_DEV_PROP_BUTT,
 } MppDevCmd;
+
+enum MPP_DEV_COMMAND_TYPE {
+    MPP_CMD_QUERY_BASE              = 0,
+    MPP_CMD_PROBE_HW_SUPPORT        = MPP_CMD_QUERY_BASE + 0,
+    MPP_CMD_PROBE_IOMMU_STATUS      = MPP_CMD_QUERY_BASE + 1,
+
+    MPP_CMD_INIT_BASE = 0x100,
+    MPP_CMD_INIT_CLIENT_TYPE        = MPP_CMD_INIT_BASE + 0,
+    MPP_CMD_INIT_DRIVER_DATA        = MPP_CMD_INIT_BASE + 1,
+    MPP_CMD_INIT_TRANS_TABLE        = MPP_CMD_INIT_BASE + 2,
+
+    MPP_CMD_SEND_BASE               = 0x200,
+    MPP_CMD_SET_REG                 = MPP_CMD_SEND_BASE + 0,
+    MPP_CMD_SET_VEPU22_CFG          = MPP_CMD_SEND_BASE + 1,
+    MPP_CMD_SET_RKVENC_OSD_PLT      = MPP_CMD_SEND_BASE + 2,
+    MPP_CMD_SET_RKVENC_L2_REG       = MPP_CMD_SEND_BASE + 3,
+    MPP_CMD_SET_REG_ADDR_OFFSET     = MPP_CMD_SEND_BASE + 4,
+
+    MPP_CMD_POLL_BASE               = 0x300,
+    MPP_CMD_GET_REG                 = MPP_CMD_POLL_BASE + 0,
+
+    MPP_CMD_CONTROL_BASE            = 0x400,
+    MPP_CMD_RESET_SESSION           = MPP_CMD_CONTROL_BASE + 0,
+    MPP_CMD_TRANS_FD_TO_IOVA        = MPP_CMD_CONTROL_BASE + 1,
+
+    MPP_CMD_BUTT,
+};
 
 typedef struct MppDevCfg_t {
     // input

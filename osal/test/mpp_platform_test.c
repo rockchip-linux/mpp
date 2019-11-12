@@ -28,10 +28,10 @@ int main()
     mpp_log("\n");
     mpp_log("chip vcodec type %08x\n", vcodec_type);
 
-    if (vcodec_type & HAVE_VPU1)
+    if (vcodec_type & (HAVE_VDPU1 | HAVE_VEPU1))
         mpp_log("found vpu1 codec\n");
 
-    if (vcodec_type & HAVE_VPU2)
+    if (vcodec_type & (HAVE_VDPU2 | HAVE_VEPU2))
         mpp_log("found vpu2 codec\n");
 
     if (vcodec_type & HAVE_HEVC_DEC)
@@ -46,10 +46,10 @@ int main()
     if (vcodec_type & HAVE_RKVENC)
         mpp_log("found rkvenc encoder\n");
 
-    if (vcodec_type & HAVE_VEPU)
+    if (vcodec_type & HAVE_VEPU2)
         mpp_log("found vpu2 encoder\n");
 
-    if (vcodec_type & HAVE_H265ENC)
+    if (vcodec_type & HAVE_VEPU22)
         mpp_log("found h265 stand-alone encoder\n");
 
     mpp_log("\n");

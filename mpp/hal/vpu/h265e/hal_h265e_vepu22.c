@@ -1837,7 +1837,7 @@ MPP_RET hal_h265e_vepu22_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,             /* type */
         .coding = MPP_VIDEO_CodingHEVC,  /* coding */
-        .platform = 0,                   /* platform */
+        .platform = HAVE_VEPU22,         /* platform */
         .pp_enable = 0,                  /* pp_enable */
     };
 

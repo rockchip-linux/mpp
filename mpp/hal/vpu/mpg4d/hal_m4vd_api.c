@@ -58,11 +58,11 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
     p_api = &p_hal->hal_api;
 
     hw_flag = mpp_get_vcodec_type();
-    mpp_assert(hw_flag & (HAVE_VPU2 | HAVE_VPU1));
+    mpp_assert(hw_flag & (HAVE_VDPU2 | HAVE_VDPU1));
 
-    if (hw_flag & HAVE_VPU2)
+    if (hw_flag & HAVE_VDPU2)
         hard_mode = VDPU2_MODE;
-    if (hw_flag & HAVE_VPU1)
+    if (hw_flag & HAVE_VDPU1)
         hard_mode = VDPU1_MODE;
 
     switch (hard_mode) {

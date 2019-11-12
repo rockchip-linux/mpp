@@ -120,7 +120,7 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingAVS,  /* coding */
-        .platform = 0,                  /* platform */
+        .platform = HAVE_AVSDEC,        /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
     ret = mpp_device_init(&p_hal->dev_ctx, &dev_cfg);
