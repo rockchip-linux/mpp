@@ -364,8 +364,8 @@ typedef struct  {
     struct {
         RK_U32  sw_quant_5        : 11;
         RK_U32  sw_quant_4        : 11;
-        RK_U32  sw_quant_delta_4   : 5;
         RK_U32  sw_resver         : 5;
+        RK_U32  sw_quant_delta_4  : 5;
     } reg152;
 
     struct {
