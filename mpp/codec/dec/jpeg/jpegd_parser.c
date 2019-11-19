@@ -927,10 +927,8 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
         mpp_err_f("NULL pointer or wrong src_size(%d)", src_size);
         return MPP_ERR_NULL_PTR;
     }
-    RK_U8 *end;
     RK_U8 *tmp;
     RK_U32 str_size = (src_size + 255) & (~255);
-    end = dst + src_size;
 
     if (src[6] == 0x41 && src[7] == 0x56 && src[8] == 0x49 && src[9] == 0x31) {
         //distinguish 310 from 210 camera
@@ -974,9 +972,7 @@ jpegd_handle_stream(RK_U8 *src, RK_U32 src_size,
         mpp_err_f("NULL pointer or wrong src_size(%d)", src_size);
         return MPP_ERR_NULL_PTR;
     }
-    RK_U8 *end;
     *dst_size = 0;  /* no need to copy */
-    end = src + src_size;
 
     jpegd_dbg_func("exit\n");
     return ret;
