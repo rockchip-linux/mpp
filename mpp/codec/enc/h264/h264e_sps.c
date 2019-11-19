@@ -21,6 +21,7 @@
 #include "mpp_common.h"
 
 #include "mpp_bitwrite.h"
+#include "h264e_debug.h"
 #include "h264e_sps.h"
 
 typedef struct H264eLevelInfo_t {
