@@ -16,6 +16,8 @@ set(H264E_HDR
 set(H264E_SRC
     h264e_sps.c
     h264e_pps.c
+    h264e_dpb.c
+    h264e_slice.c
     h264e_api.c
     )
 

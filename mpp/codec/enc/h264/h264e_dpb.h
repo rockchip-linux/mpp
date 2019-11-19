@@ -17,10 +17,7 @@
 #ifndef __H264E_DPB_H__
 #define __H264E_DPB_H__
 
-#include "mpp_buffer.h"
-
-#include "mpp_enc_refs.h"
-#include "h264e_slice.h"
+#include "h264e_sps.h"
 
 /*
  * H.264 encoder dpb structure info
@@ -38,58 +35,43 @@
  *
  */
 
-#define H264E_REF_MAX               16
-#define H264E_MAX_BUF_CNT           2
+#define MAX_GOP_SIZE                8
+#define MAX_GOP_FMT_CNT             (MAX_GOP_SIZE+1)
+#define MAX_GOP_FMT_SIZE            5
+#define MAX_GOP_FMT_BUF_STUFF       16
+#define MAX_GOP_FMT_BUF_SIZE        (MAX_GOP_FMT_CNT * MAX_GOP_FMT_SIZE + MAX_GOP_FMT_BUF_STUFF)
+
+#define H264E_ST_GOP_FLAG           (0x00000001)
+#define H264E_ST_GOP_WITH_LT_REF    (0x00000002)
+#define H264E_LT_GOP_FLAG           (0x00000010)
 
 #define REF_BY_RECN(idx)            (0x00000001 << idx)
 #define REF_BY_REFR(idx)            (0x00000001 << idx)
 
-typedef struct  H264eDpb_t          H264eDpb;
-typedef struct  H264eDpbFrm_t       H264eDpbFrm;
-typedef struct  H264eFrmBuf_t       H264eFrmBuf;
-typedef struct  H264eFrmBufGrp_t    H264eFrmBufGrp;
+typedef struct H264eDpbFrmCfg_t {
+    /* request current frame to be IDR frame */
+    RK_S32              force_idr;
 
-/*
- * Split reference frame configure to two parts
- * The first part is slice depended info like poc / frame_num, and frame
- * type and flags.
- * The other part is gop structure depended info like gop index, ref_status
- * and ref_frm_index. This part is inited from dpb gop hierarchy info.
- */
-typedef struct H264eDpbFrmInfo_t {
-    /*
-     * 0 - inter frame
-     * 1 - intra frame
-     */
-    RK_U32              is_intra    : 1;
+    /* request current frame to be a software all PSkip frame */
+    RK_S32              force_pskip;
 
     /*
-     * Valid when is_intra is true
-     * 0 - normal intra frame
-     * 1 - IDR frame
+     * request current frame to be mark as a long-reference frame
+     * -1   - not forced to be marked as long-term reference frame
      */
-    RK_U32              is_idr      : 1;
+    RK_S32              force_lt_idx;
 
     /*
-     * 0 - mark as reference frame
-     * 1 - mark as non-refernce frame
+     * request current frame use long-term reference frame as its reference frame
+     * -1   - not forced to use long-term reference frame as reference frame
      */
-    RK_U32              is_non_ref  : 1;
-
-    /*
-     * Valid when is_non_ref is false
-     * 0 - mark as short-term reference frame
-     * 1 - mark as long-term refernce frame
-     */
-    RK_U32              is_lt_ref   : 1;
-    RK_U32              stuff       : 28;
-
-} H264eDpbFrmInfo;
+    RK_S32              force_ref_lt_idx;
+} H264eDpbFrmCfg;
 
 typedef struct  H264eDpbFrm_t {
-    H264eDpb            *dpb;
+    RK_S32              slot_idx;
     // frame index in frames
-    RK_S32              frm_cnt;
+    RK_S32              seq_idx;
     // gop index in one gop structure
     RK_S32              gop_idx;
     RK_S32              gop_cnt;
@@ -121,17 +103,10 @@ typedef struct  H264eDpbFrm_t {
     RK_S32              ref_dist;
 
     /* frame status */
-    MppEncFrmStatus     info;
-    /* flag for marking process */
-    RK_S32              marked_unref;
+    EncFrmStatus        status;
 
-    /*
-     * ENC_FRAME_TYPE in mpp_rc.h
-     * 0 - INTER_P_FRAME
-     * 1 - INTER_B_FRAME
-     * 2 - INTRA_FRAME
-     */
-    RK_S32              frame_type;
+    /* H264_I_SLICE / H264_P_SLICE */
+    H264SliceType       frame_type;
     /* frame number from H264eSlice */
     RK_S32              frame_num;
     RK_S32              lt_idx;
@@ -139,32 +114,7 @@ typedef struct  H264eDpbFrm_t {
     RK_S32              poc;
     /* pts from input MppFrame */
     RK_S64              pts;
-
-    H264eFrmBuf         *buf;
 } H264eDpbFrm;
-
-typedef struct H264eFrmBuf_t {
-    RK_U32              is_used;
-    // buf0 for normal pixel buffer
-    // buf1 for scaled buffer
-    MppBuffer           buf[H264E_MAX_BUF_CNT];
-} H264eFrmBuf;
-
-typedef struct H264eFrmBufGrp_t {
-    MppBufferGroup      group;
-    // buffer count for each frame buffers
-    RK_U32              count;
-    // buffer size for each buffer in frame buffers
-    RK_U32              size[H264E_MAX_BUF_CNT];
-    // frame buffer set
-    H264eFrmBuf         bufs[H264E_REF_MAX];
-} H264eFrmBufGrp;
-
-typedef struct H264eDpbCfg_t {
-    RK_S32              ref_frm_num;
-    RK_S32              log2_max_frm_num;
-    RK_S32              log2_max_poc_lsb;
-} H264eDpbCfg;
 
 /*
  * dpb frame arrangement
@@ -177,7 +127,8 @@ typedef struct H264eDpbCfg_t {
  * next frame encoding.
  */
 typedef struct H264eDpb_t {
-    H264eDpbCfg         cfg;
+    H264eReorderInfo    *reorder;
+    H264eMarkingInfo    *marking;
 
     /*
      * ref_frm_num  - max reference frame number
@@ -190,37 +141,50 @@ typedef struct H264eDpb_t {
     RK_S32              max_frm_num;
     RK_S32              max_poc_lsb;
 
-    // status and count for one gop structure
-    RK_S32              seq_cnt;
-    RK_S32              seq_idx;
-    RK_S32              gop_len;
-    RK_S32              gop_cnt;
-    RK_S32              gop_idx;
+    /*
+     * dpb mode
+     * 0 - Default two frame swap mode. Only use refr and recn frame
+     * 1 - Dpb with user hierarchy mode
+     */
+    RK_S32              mode;
 
-    RK_S32              curr_frm_num;
-    RK_S32              next_frm_num;
+    // overall frame counter
+    RK_S32              seq_idx;
+
+    // status and count for one gop structure
+    // idr_gop  - for intra / IDR frame group of picture
+    // st_gop   - for short-term reference group of picture in TSVC mode
+    // lt_gop   - for long-term reference group of picture in SVC mode
+    RK_S32              idr_gop_len;
+    RK_S32              idr_gop_cnt;
+    RK_S32              idr_gop_idx;
+
+    RK_S32              st_gop_len;
+    RK_S32              st_gop_cnt;
+    RK_S32              st_gop_idx;
+
+    RK_S32              lt_gop_len;
+    RK_S32              lt_gop_cnt;
+    RK_S32              lt_gop_idx;
+
+    RK_S32              poc_lsb;
+    RK_S32              last_frm_num;
+    RK_S32              lt_ref_idx;
 
     // slot counter
     RK_S32              total_cnt;
-    RK_S32              max_st_cnt;
-    RK_S32              max_lt_cnt;
-    RK_S32              curr_idx;
 
     // for reference frame list generation
     RK_S32              dpb_size;
     RK_S32              st_size;
     RK_S32              lt_size;
     H264eDpbFrm         *curr;
-    H264eDpbFrm         *list[H264E_REF_MAX];
-    H264eDpbFrm         *stref[H264E_REF_MAX];
-    H264eDpbFrm         *ltref[H264E_REF_MAX];
-    RK_S32              need_reorder;
+    H264eDpbFrm         *refr;
+    H264eDpbFrm         *list[H264E_MAX_REFS_CNT];
+    H264eDpbFrm         *stref[H264E_MAX_REFS_CNT];
+    H264eDpbFrm         *ltref[H264E_MAX_REFS_CNT];
     RK_S32              curr_max_lt_idx;
     RK_S32              next_max_lt_idx;
-
-    // for mmco unreferece marking process
-    RK_U32              unref_cnt;
-    H264eDpbFrm         *unref[H264E_REF_MAX];
 
     /*
      * ref_inf bit info:
@@ -229,35 +193,50 @@ typedef struct H264eDpb_t {
      * bit 2 - non-ref flag
      * bit 3 - long-term flag
      */
-    MppEncFrmStatus     ref_inf[MAX_GOP_FMT_CNT];
+    EncFrmStatus        ref_inf[MAX_GOP_FMT_CNT];
     RK_U32              ref_sta[MAX_GOP_FMT_CNT];
     RK_U32              ref_cnt[MAX_GOP_FMT_CNT];
     RK_S32              ref_dist[MAX_GOP_FMT_CNT];
 
-    // buffer management
-    H264eFrmBufGrp      buf_grp;
-
     // frame storage
-    H264eDpbFrm         *frames;
+    H264eDpbFrm         frames[H264E_MAX_REFS_CNT + 1];
 } H264eDpb;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET h264e_dpb_init(H264eDpb **dpb, H264eDpbCfg *cfg);
+MPP_RET h264e_dpb_init(H264eDpb *dpb, H264eReorderInfo *reorder, H264eMarkingInfo *marking);
 MPP_RET h264e_dpb_deinit(H264eDpb *dpb);
 
-MPP_RET h264e_dpb_setup_buf_size(H264eDpb *dpb, RK_U32 size[], RK_U32 count);
-MPP_RET h264e_dpb_setup_hier(H264eDpb *dpb, MppEncHierCfg *cfg);
+/* copy function is for dpb backup and restore */
+MPP_RET h264e_dpb_copy(H264eDpb *dst, H264eDpb *src);
 
-H264eDpbFrm *h264e_dpb_get_curr(H264eDpb *dpb, RK_S32 new_seq);
-H264eDpbFrm *h264e_dpb_get_refr(H264eDpbFrm *frm);
+/*
+ * Setup gop group config using MppEncCfgSet and SynH264eSps
+ * This config function will be called on the following cases:
+ *
+ * 1. sps reference number changed which will change totol dpb slot count
+ * 2. gop size changed which will change the max frame number and max poc lsb
+ * 3. gop ref relation changed will change tsvc / vgop setup
+ */
+MPP_RET h264e_dpb_set_cfg(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps);
+
+/*
+ * Setup current frame config using flags
+ * This config function will be called before each frame is encoded:
+ *
+ * idr      - current frame is force to IDR or not
+ * lt_ref   - current frame is marked as longterm reference
+ */
+MPP_RET h264e_dpb_set_curr(H264eDpb *dpb, H264eDpbFrmCfg *cfg);
+
+/*
+ * Setup current frame and reference frame
+ */
 void h264e_dpb_build_list(H264eDpb *dpb);
 void h264e_dpb_build_marking(H264eDpb *dpb);
 void h264e_dpb_curr_ready(H264eDpb *dpb);
-
-MppBuffer h264e_dpb_frm_get_buf(H264eDpbFrm *frm, RK_S32 index);
 
 #define h264e_dpb_dump_frms(dpb) h264e_dpb_dump_frm(dpb, __FUNCTION__)
 

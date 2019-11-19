@@ -11,8 +11,6 @@ set(HAL_H264E_HDR
 
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
-    h264e_dpb.c
-    h264e_slice.c
     h264e_stream.c
     hal_h264e_com.c
     hal_h264e_api.c
