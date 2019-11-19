@@ -136,7 +136,22 @@ MPP_RET enc_impl_gen_hdr(EncImpl impl, MppPacket pkt)
     return ret;
 }
 
-MPP_RET enc_impl_proc_dpb(EncImpl impl)
+MPP_RET enc_impl_start(EncImpl impl)
+{
+    if (NULL == impl) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MPP_RET ret = MPP_OK;
+    EncImplCtx *p = (EncImplCtx *)impl;
+    if (p->api->start)
+        ret = p->api->start(p->ctx);
+
+    return ret;
+}
+
+MPP_RET enc_impl_proc_dpb(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl) {
         mpp_err_f("found NULL input\n");
@@ -146,12 +161,12 @@ MPP_RET enc_impl_proc_dpb(EncImpl impl)
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
     if (p->api->proc_dpb)
-        ret = p->api->proc_dpb(p->ctx);
+        ret = p->api->proc_dpb(p->ctx, task);
 
     return ret;
 }
 
-MPP_RET enc_impl_proc_rc(EncImpl impl)
+MPP_RET enc_impl_proc_rc(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl) {
         mpp_err_f("found NULL input\n");
@@ -161,7 +176,7 @@ MPP_RET enc_impl_proc_rc(EncImpl impl)
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
     if (p->api->proc_rc)
-        ret = p->api->proc_rc(p->ctx);
+        ret = p->api->proc_rc(p->ctx, task);
 
     return ret;
 }
@@ -181,21 +196,6 @@ MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task)
     return ret;
 }
 
-MPP_RET enc_impl_update_dpb(EncImpl impl)
-{
-    if (NULL == impl) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MPP_RET ret = MPP_OK;
-    EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->update_dpb)
-        ret = p->api->update_dpb(p->ctx);
-
-    return ret;
-}
-
 MPP_RET enc_impl_update_hal(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl || NULL == task) {
@@ -211,7 +211,7 @@ MPP_RET enc_impl_update_hal(EncImpl impl, HalEncTask *task)
     return ret;
 }
 
-MPP_RET enc_impl_update_rc(EncImpl impl)
+MPP_RET enc_impl_update_rc(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl) {
         mpp_err_f("found NULL input\n");
@@ -221,7 +221,7 @@ MPP_RET enc_impl_update_rc(EncImpl impl)
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
     if (p->api->update_rc)
-        ret = p->api->update_rc(p->ctx);
+        ret = p->api->update_rc(p->ctx, task);
 
     return ret;
 }

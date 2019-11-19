@@ -173,6 +173,7 @@ typedef struct HalEncTask_t {
 
     // current tesk protocol syntax information
     MppSyntax       syntax;
+    MppSyntax       hal_ret;
 
     // current tesk output stream buffer
     MppPacket       packet;

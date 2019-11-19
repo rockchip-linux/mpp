@@ -430,6 +430,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
 
         EncImplCfg ctrl_cfg = {
             coding,
+            DEV_VEPU,
             &p->cfg,
             &p->set,
             task_count,
