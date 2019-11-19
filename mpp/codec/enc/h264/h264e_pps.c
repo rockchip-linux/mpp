@@ -19,6 +19,7 @@
 #include "mpp_common.h"
 
 #include "mpp_bitwrite.h"
+#include "h264e_debug.h"
 #include "h264e_pps.h"
 
 static void write_scaling_list(MppWriteCtx *bit, RK_S32 mode)
