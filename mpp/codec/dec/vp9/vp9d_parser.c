@@ -870,7 +870,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                      s->uvdc_qdelta == 0 && s->uvac_qdelta == 0;
 
     /* segmentation header info */
-
+    s->segmentation.update_map = 0;
     s->segmentation.ignore_refmap = 0;
     if ((s->segmentation.enabled = mpp_get_bit1(&s->gb))) {
         vp9d_dbg(VP9D_DBG_HEADER, "segmentation_enabled 1");
