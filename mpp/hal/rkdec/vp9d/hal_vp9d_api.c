@@ -758,19 +758,12 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->swreg8_y_virstride.sw_y_virstride = sw_y_virstride;
     vp9_hw_regs->swreg9_yuv_virstride.sw_yuv_virstride = sw_yuv_virstride;
 
-    if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
+    if (!pic_param->intra_only && pic_param->frame_type &&
+        !pic_param->error_resilient_mode && reg_cxt->ls_info.last_show_frame) {
         reg_cxt->pre_mv_base_addr = reg_cxt->mv_base_addr;
     }
 
-    if (!(pic_param->stVP9Segments.enabled && !pic_param->stVP9Segments.update_map)) {
-        if (!pic_param->intra_only && pic_param->frame_type && !pic_param->error_resilient_mode) {
-            if (reg_cxt->last_segid_flag) {
-                reg_cxt->last_segid_flag = 0;
-            } else {
-                reg_cxt->last_segid_flag = 1;
-            }
-        }
-    }
+
     mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_BUFFER, &framebuf);
     vp9_hw_regs->swreg7_decout_base =  mpp_buffer_get_fd(framebuf);
     vp9_hw_regs->swreg4_strm_rlc_base = mpp_buffer_get_fd(streambuf);
@@ -784,6 +777,10 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     } else {
         vp9_hw_regs->swreg15_vp9_segidlast_base = mpp_buffer_get_fd(reg_cxt->segid_cur_base);
         vp9_hw_regs->swreg16_vp9_segidcur_base = mpp_buffer_get_fd(reg_cxt->segid_last_base);
+    }
+
+    if (pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) {
+           reg_cxt->last_segid_flag = !reg_cxt->last_segid_flag;
     }
 
     reg_cxt->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
@@ -935,7 +932,9 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
         reg_cxt->ls_info.feature_data[i][3] = pic_param->stVP9Segments.feature_data[i][3];
         reg_cxt->ls_info.feature_mask[i]  = pic_param->stVP9Segments.feature_mask[i];
     }
-    reg_cxt->ls_info.segmentation_enable_flag_last = pic_param->stVP9Segments.enabled;
+    if (!reg_cxt->ls_info.segmentation_enable_flag_last)
+        reg_cxt->ls_info.segmentation_enable_flag_last = pic_param->stVP9Segments.enabled;
+
     reg_cxt->ls_info.last_show_frame = pic_param->show_frame;
     reg_cxt->ls_info.last_width = pic_param->width;
     reg_cxt->ls_info.last_height = pic_param->height;
