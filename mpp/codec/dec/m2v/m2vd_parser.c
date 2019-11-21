@@ -352,7 +352,7 @@ MPP_RET m2vd_parser_flush(void *ctx)
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     m2vd_dbg_func("FUN_I");
 
-    if ((p->frame_ref0->slot_index != 0xff) && !p->frame_ref0->flags) {
+    if ((p->frame_ref0->slot_index != 0xff) && p->frame_ref0->flags) {
         mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
                               SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index,
