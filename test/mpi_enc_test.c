@@ -406,6 +406,8 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             goto RET;
         }
 
+        mpp_assert(packet);
+
         if (packet) {
             // write packet to file here
             void *ptr   = mpp_packet_get_pos(packet);
@@ -443,6 +445,7 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
 {
     MPP_RET ret = MPP_OK;
     MpiEncTestData *p = NULL;
+    MppPollType timeout = MPP_POLL_BLOCK;
 
     mpp_log("mpi_enc_test start\n");
 
@@ -465,6 +468,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
     ret = mpp_create(&p->ctx, &p->mpi);
     if (ret) {
         mpp_err("mpp_create failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = p->mpi->control(p->ctx, MPP_SET_OUTPUT_TIMEOUT, &timeout);
+    if (MPP_OK != ret) {
+        mpp_err("mpi control set output timeout %d ret %d\n", timeout, ret);
         goto MPP_TEST_OUT;
     }
 
