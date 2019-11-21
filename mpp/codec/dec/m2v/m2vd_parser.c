@@ -1068,7 +1068,7 @@ static MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
 
 static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 {
-    RK_U64 pts = (RK_U64)(ctx->pts / 1000);
+    RK_U64 pts = ctx->pts;
     if (ctx->resetFlag && ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I) {
         mpp_log("[m2v]: resetFlag[%d] && picture_coding_type[%d] != I_TYPE", ctx->resetFlag, ctx->pic_head.picture_coding_type);
         return MPP_NOK;
@@ -1172,7 +1172,7 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             mpp_frame_set_hor_stride(ctx->frame_cur->f, ctx->display_width);
             mpp_frame_set_ver_stride(ctx->frame_cur->f, ctx->display_height);
             mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
-            mpp_frame_set_pts(ctx->frame_cur->f, Time * 1000);
+            mpp_frame_set_pts(ctx->frame_cur->f, Time);
             ctx->frame_cur->flags = M2V_OUT_FLAG;
             if (ctx->seq_ext_head.progressive_sequence) {
                 frametype = MPP_FRAME_FLAG_FRAME;
