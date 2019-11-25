@@ -66,6 +66,7 @@ typedef struct {
     int             drm;
     int             crtc_id, plane_id;
     unsigned        display_mode;
+    int             display_pause;
 } MpiDecLoopData;
 
 typedef struct {
@@ -73,6 +74,7 @@ typedef struct {
     char            file_output[MAX_FILE_NAME_LENGTH];
     char            file_config[MAX_FILE_NAME_LENGTH];
     unsigned        display_mode;
+    int             display_pause;
     MppCodingType   type;
     MppFrameFormat  format;
     RK_U32          width;
@@ -104,6 +106,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"x",               "timeout",              "output timeout interval"},
     {"n",               "frame_number",         "max output frame number"},
     {"m",               "display_mode",         "0=none 1=DRM"},
+    {"p",               "display_pause",        "microseconds to sleep between frames"},
 };
 
 static int decode_simple(MpiDecLoopData *data)
@@ -343,6 +346,8 @@ static int decode_simple(MpiDecLoopData *data)
                             mpp_err("unknown display_mode in %s: %d\n", __FUNCTION__, data->display_mode);
                             return -1;
                         }
+                        if (data->display_pause)
+                            usleep(data->display_pause);
                     }
                 }
                 frm_eos = mpp_frame_get_eos(frame);
@@ -576,6 +581,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             mpp_err("failed to init drm\n");
             goto MPP_TEST_OUT;
         }
+
+        data.display_pause = cmd->display_pause;
     }
 
     if (cmd->simple) {
@@ -919,6 +926,18 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'p':
+                if (next) {
+                    cmd->display_pause = atoi(next);
+                    if (cmd->display_pause < 0) {
+                        mpp_err("display pause is invalid\n");
+                        goto PARSE_OPINIONS_OUT;
+                    }
+                } else {
+                    mpp_err("display pause is missing\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             default:
                 mpp_err("skip invalid opt %c\n", *opt);
                 break;
@@ -941,6 +960,7 @@ static void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
     mpp_log("output file name: %s\n", cmd->file_output);
     mpp_log("config file name: %s\n", cmd->file_config);
     mpp_log("display mode: %d\n", cmd->display_mode);
+    mpp_log("display pause: %d usec\n", cmd->display_pause);
     mpp_log("simple allocation mode: %d\n", cmd->simple);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);
