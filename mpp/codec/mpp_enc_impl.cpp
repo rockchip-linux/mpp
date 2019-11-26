@@ -21,6 +21,7 @@
 #include "mpp_common.h"
 
 #include "h264e_api.h"
+#include "h264e_api_v2.h"
 #include "jpege_api.h"
 #include "h265e_api.h"
 #include "vp8e_api.h"
@@ -44,6 +45,12 @@ static const EncImplApi *controllers[] = {
 #endif
 };
 
+static const EncImplApi *enc_apis[] = {
+#if HAVE_H264E
+    &api_h264e,
+#endif
+};
+
 typedef struct EncImplCtx_t {
     EncImplCfg          cfg;
     const EncImplApi    *api;
@@ -60,8 +67,20 @@ MPP_RET enc_impl_init(EncImpl *impl, EncImplCfg *cfg)
     *impl = NULL;
 
     RK_U32 i;
-    for (i = 0; i < MPP_ARRAY_ELEMS(controllers); i++) {
-        const EncImplApi *api = controllers[i];
+    RK_U32 api_cnt = 0;
+    const EncImplApi **apis = NULL;
+
+    if (cfg->task_count < 0) {
+        apis = enc_apis;
+        api_cnt = MPP_ARRAY_ELEMS(enc_apis);
+    } else {
+        apis = controllers;
+        api_cnt = MPP_ARRAY_ELEMS(controllers);
+    }
+
+    for (i = 0; i < api_cnt; i++) {
+        const EncImplApi *api = apis[i];
+
         if (cfg->coding == api->coding) {
             EncImplCtx *p = mpp_calloc(EncImplCtx, 1);
             void *ctx = mpp_calloc_size(void, api->ctx_size);

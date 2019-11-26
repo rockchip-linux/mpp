@@ -152,6 +152,8 @@ public:
     MppDec          mDec;
     MppEnc          mEnc;
 
+    RK_U32          mEncVersion;
+
 private:
     void clear();
 
