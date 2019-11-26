@@ -65,8 +65,9 @@ MPP_RET enc_impl_init(EncImpl *impl, EncImplCfg *cfg)
         if (cfg->coding == api->coding) {
             EncImplCtx *p = mpp_calloc(EncImplCtx, 1);
             void *ctx = mpp_calloc_size(void, api->ctx_size);
+
             if (NULL == ctx || NULL == p) {
-                mpp_err_f("failed to alloc parser context\n");
+                mpp_err_f("failed to alloc encoder context\n");
                 mpp_free(p);
                 mpp_free(ctx);
                 return MPP_ERR_MALLOC;

@@ -14,34 +14,32 @@
  * limitations under the License.
  */
 
-#define  MODULE_TAG "mpp_enc"
+#define  MODULE_TAG "mpp_enc_v2"
 
-#include "string.h"
+#include <string.h>
 
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
 
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
 #include "mpp_enc_debug.h"
 #include "mpp_enc_impl.h"
-#include "mpp_hal.h"
-#include "hal_h264e_api.h"
+#include "mpp_enc_hal.h"
+#include "hal_h264e_api_v2.h"
+
+RK_U32 mpp_enc_debug = 0;
 
 typedef struct MppEncImpl_t {
     MppCodingType       coding;
     EncImpl             impl;
-    MppHal              hal;
+    MppEncHal           enc_hal;
 
     MppThread           *thread_enc;
     void                *mpp;
-
-    // common resource
-    MppBufSlots         frame_slots;
-    MppBufSlots         packet_slots;
-    HalTaskGroup        tasks;
 
     // internal status and protection
     Mutex               lock;
@@ -56,6 +54,18 @@ typedef struct MppEncImpl_t {
     /* Encoder configure set */
     MppEncCfgSet        cfg;
     MppEncCfgSet        set;
+
+    /* control process */
+    MpiCmd              cmd;
+    void                *param;
+    sem_t               enc_ctrl;
+
+    // legacy support for MPP_ENC_GET_EXTRA_INFO
+    MppPacket           hdr_pkt;
+
+    RK_U32              cmd_send;
+    RK_U32              cmd_recv;
+    RK_U32              hdr_need_updated;
 } MppEncImpl;
 
 typedef union EncTaskWait_u {
@@ -149,6 +159,10 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
         if (enc->reset_flag)
             break;
 
+        // NOTE: User control should always be processed
+        if (notify & MPP_ENC_CONTROL)
+            break;
+
         // NOTE: When condition is not fulfilled check nofify flag again
         if (!curr_wait || (curr_wait & notify))
             break;
@@ -171,11 +185,19 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
-void *mpp_enc_control_thread(void *data)
+#define RUN_ENC_HAL_FUNC(func, hal, task, mpp, ret)             \
+    ret = func(hal, task);                                      \
+    if (ret) {                                                  \
+        mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
+        goto TASK_END;                                          \
+    }
+
+void *mpp_enc_thread(void *data)
 {
     Mpp *mpp = (Mpp*)data;
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
-    MppHal hal = enc->hal;
+    EncImpl impl = enc->impl;
+    MppEncHal hal = enc->enc_hal;
     MppThread *thd_enc  = enc->thread_enc;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
@@ -199,6 +221,48 @@ void *mpp_enc_control_thread(void *data)
 
             if (check_enc_task_wait(enc, &task))
                 thd_enc->wait();
+        }
+
+        // process control first
+        if (enc->cmd_send != enc->cmd_recv) {
+            if (enc->cmd == MPP_ENC_GET_HDR_SYNC ||
+                enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
+                MppPacket pkt = NULL;
+
+                /*
+                 * NOTE: get stream header should use user's MppPacket
+                 * If we provide internal MppPacket to external user
+                 * we do not known when the buffer usage is finished.
+                 * So encoder always write its header to external buffer
+                 * which is provided by user.
+                 */
+                if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
+                    mpp_err("Please use MPP_ENC_GET_HDR_SYNC instead of unsafe MPP_ENC_GET_EXTRA_INFO\n");
+
+                    if (NULL == enc->hdr_pkt) {
+                        size_t size = SZ_1K;
+                        void *ptr = mpp_calloc_size(void, size);
+
+                        mpp_packet_init(&enc->hdr_pkt, ptr, size);
+                    }
+                    pkt = enc->hdr_pkt;
+                    *(MppPacket *)enc->param = pkt;
+                } else
+                    pkt = (MppPacket)enc->param;
+
+                enc_impl_gen_hdr(impl, pkt);
+
+                enc->hdr_need_updated = 0;
+            } else {
+                enc_impl_proc_cfg(impl, enc->cmd, enc->param);
+                if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
+                    MPP_ENC_SET_PREP_CFG == enc->cmd)
+                    enc->hdr_need_updated = 1;
+            }
+
+            sem_post(&enc->enc_ctrl);
+            enc->cmd_recv++;
+            continue;
         }
 
         if (enc->reset_flag) {
@@ -253,6 +317,11 @@ void *mpp_enc_control_thread(void *data)
 
         reset_hal_enc_task(hal_task);
 
+        if (enc->hdr_need_updated) {
+            enc_impl_gen_hdr(impl, NULL);
+            enc->hdr_need_updated = 0;
+        }
+
         if (mpp_frame_get_buffer(frame)) {
             /*
              * if there is available buffer in the input frame do encoding
@@ -278,33 +347,48 @@ void *mpp_enc_control_thread(void *data)
             hal_task->output = mpp_packet_get_buffer(packet);
             hal_task->mv_info = mv_info;
 
-            {
-                AutoMutex auto_lock(&enc->lock);
-                ret = enc_impl_proc_hal(enc->impl, hal_task);
-                if (ret) {
-                    mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
-                    goto TASK_END;
-                }
+            ret = enc_impl_start(impl);
+            if (ret) {
+                enc_dbg_detail("mpp %p enc_impl_start drop one frame", mpp);
+                goto TASK_END;
             }
 
-            enc_dbg_detail("mpp_hal_reg_gen  hal %p task %p\n", hal, task_info);
-            ret = mpp_hal_reg_gen(hal, task_info);
+            ret = enc_impl_proc_dpb(impl, hal_task);
             if (ret) {
-                mpp_err("mpp %p hal_reg_gen failed return %d", mpp, ret);
+                mpp_err("mpp %p enc_impl_proc_dpb failed return %d", mpp, ret);
                 goto TASK_END;
             }
-            enc_dbg_detail("mpp_hal_hw_start hal %p task %p\n", hal, task_info);
-            ret = mpp_hal_hw_start(hal, task_info);
+
+            ret = enc_impl_proc_rc(impl, hal_task);
             if (ret) {
-                mpp_err("mpp %p hal_hw_start failed return %d", mpp, ret);
+                mpp_err("mpp %p enc_impl_proc_rc failed return %d", mpp, ret);
                 goto TASK_END;
             }
-            enc_dbg_detail("mpp_hal_hw_wait  hal %p task %p\n", hal, task_info);
-            ret = mpp_hal_hw_wait(hal, task_info);
+
+            ret = enc_impl_proc_hal(impl, hal_task);
             if (ret) {
-                mpp_err("mpp %p hal_hw_wait failed return %d", mpp, ret);
+                mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
                 goto TASK_END;
             }
+
+            RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
+            RUN_ENC_HAL_FUNC(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
+            RUN_ENC_HAL_FUNC(mpp_enc_hal_start, hal, hal_task, mpp, ret);
+            RUN_ENC_HAL_FUNC(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+            RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
+
+            ret = enc_impl_update_hal(impl, hal_task);
+            if (ret) {
+                mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
+                goto TASK_END;
+            }
+
+            ret = enc_impl_update_rc(impl, hal_task);
+            if (ret) {
+                mpp_err("mpp %p enc_impl_proc_rc failed return %d", mpp, ret);
+                goto TASK_END;
+            }
+
         TASK_END:
             mpp_packet_set_length(packet, hal_task->length);
         } else {
@@ -369,17 +453,12 @@ void *mpp_enc_control_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
+MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
 {
     MPP_RET ret;
     MppCodingType coding = cfg->coding;
-    MppBufSlots frame_slots = NULL;
-    MppBufSlots packet_slots = NULL;
     EncImpl impl = NULL;
-    MppHal hal = NULL;
     MppEncImpl *p = NULL;
-    RK_S32 task_count = 2;
-    IOInterruptCB cb = {NULL, NULL};
 
     mpp_env_get_u32("mpp_enc_debug", &mpp_enc_debug, 0);
 
@@ -396,78 +475,56 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    do {
-        ret = mpp_buf_slot_init(&frame_slots);
-        if (ret) {
-            mpp_err_f("could not init frame buffer slot\n");
-            break;
-        }
+    // H.264 encoder use mpp_enc_hal path
+    // create hal first
+    MppEncHal enc_hal = NULL;
+    MppEncHalCfg enc_hal_cfg = {
+        coding,
+        &p->cfg,
+        &p->set,
+        HAL_MODE_LIBVPU,
+        DEV_VEPU,
+    };
+    // then create enc_impl
+    EncImplCfg ctrl_cfg = {
+        coding,
+        DEV_VEPU,
+        &p->cfg,
+        &p->set,
+        2,
+    };
 
-        ret = mpp_buf_slot_init(&packet_slots);
-        if (ret) {
-            mpp_err_f("could not init packet buffer slot\n");
-            break;
-        }
+    ret = mpp_enc_hal_init(&enc_hal, &enc_hal_cfg);
+    if (ret) {
+        mpp_err_f("could not init enc hal\n");
+        goto ERR_RET;
+    }
 
-        mpp_buf_slot_setup(packet_slots, task_count);
+    ctrl_cfg.dev_id = enc_hal_cfg.device_id;
+    ctrl_cfg.task_count = -1;
 
-        EncImplCfg ctrl_cfg = {
-            coding,
-            DEV_VEPU,
-            &p->cfg,
-            &p->set,
-            task_count,
-        };
+    ret = enc_impl_init(&impl, &ctrl_cfg);
+    if (ret) {
+        mpp_err_f("could not init impl\n");
+        goto ERR_RET;
+    }
 
-        ret = enc_impl_init(&impl, &ctrl_cfg);
-        if (ret) {
-            mpp_err_f("could not init impl\n");
-            break;
-        }
-        cb.callBack = hal_enc_callback;
-        cb.opaque = impl;
-        // then init hal with task count from impl
-        MppHalCfg hal_cfg = {
-            MPP_CTX_ENC,
-            coding,
-            HAL_MODE_LIBVPU,
-            DEV_VEPU,
-            frame_slots,
-            packet_slots,
-            &p->cfg,
-            &p->set,
-            NULL,
-            1/*ctrl_cfg.task_count*/,  // TODO
-            0,
-            cb,
-        };
+    p->coding   = coding;
+    p->impl     = impl;
+    p->enc_hal  = enc_hal;
+    p->mpp      = cfg->mpp;
 
-        ret = mpp_hal_init(&hal, &hal_cfg);
-        if (ret) {
-            mpp_err_f("could not init hal\n");
-            break;
-        }
+    sem_init(&p->enc_reset, 0, 0);
+    sem_init(&p->enc_ctrl, 0, 0);
 
-        p->coding       = coding;
-        p->impl         = impl;
-        p->hal          = hal;
-        p->mpp          = cfg->mpp;
-        p->tasks        = hal_cfg.tasks;
-        p->frame_slots  = frame_slots;
-        p->packet_slots = packet_slots;
-
-        sem_init(&p->enc_reset, 0, 0);
-
-        *enc = p;
-        return MPP_OK;
-    } while (0);
-
-    mpp_enc_deinit(p);
-    return MPP_NOK;
-
+    *enc = p;
+    return ret;
+ERR_RET:
+    mpp_enc_deinit_v2(p);
+    return ret;
 }
 
-MPP_RET mpp_enc_deinit(MppEnc ctx)
+MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
@@ -481,35 +538,29 @@ MPP_RET mpp_enc_deinit(MppEnc ctx)
         enc->impl = NULL;
     }
 
-    if (enc->hal) {
-        mpp_hal_deinit(enc->hal);
-        enc->hal = NULL;
+    if (enc->enc_hal) {
+        mpp_enc_hal_deinit(enc->enc_hal);
+        enc->enc_hal = NULL;
     }
 
-    if (enc->frame_slots) {
-        mpp_buf_slot_deinit(enc->frame_slots);
-        enc->frame_slots = NULL;
-    }
-
-    if (enc->packet_slots) {
-        mpp_buf_slot_deinit(enc->packet_slots);
-        enc->packet_slots = NULL;
-    }
+    if (enc->hdr_pkt)
+        mpp_packet_deinit(&enc->hdr_pkt);
 
     sem_destroy(&enc->enc_reset);
+    sem_destroy(&enc->enc_ctrl);
 
     mpp_free(enc);
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_start(MppEnc ctx)
+MPP_RET mpp_enc_start_v2(MppEnc ctx)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
     enc_dbg_func("%p in\n", enc);
 
-    enc->thread_enc = new MppThread(mpp_enc_control_thread,
-                                    enc->mpp, "mpp_enc_ctrl");
+    enc->thread_enc = new MppThread(mpp_enc_thread,
+                                    enc->mpp, "mpp_enc");
     enc->thread_enc->start();
 
     enc_dbg_func("%p out\n", enc);
@@ -517,7 +568,7 @@ MPP_RET mpp_enc_start(MppEnc ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_stop(MppEnc ctx)
+MPP_RET mpp_enc_stop_v2(MppEnc ctx)
 {
     MPP_RET ret = MPP_OK;
     MppEncImpl *enc = (MppEncImpl *)ctx;
@@ -535,7 +586,7 @@ MPP_RET mpp_enc_stop(MppEnc ctx)
 
 }
 
-MPP_RET mpp_enc_reset(MppEnc ctx)
+MPP_RET mpp_enc_reset_v2(MppEnc ctx)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
@@ -549,7 +600,7 @@ MPP_RET mpp_enc_reset(MppEnc ctx)
 
     thd->lock(THREAD_CONTROL);
     enc->reset_flag = 1;
-    mpp_enc_notify(enc, MPP_ENC_RESET);
+    mpp_enc_notify_v2(enc, MPP_ENC_RESET);
     thd->unlock(THREAD_CONTROL);
     sem_wait(&enc->enc_reset);
     mpp_assert(enc->reset_flag == 0);
@@ -557,7 +608,7 @@ MPP_RET mpp_enc_reset(MppEnc ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
+MPP_RET mpp_enc_notify_v2(MppEnc ctx, RK_U32 flag)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
@@ -565,7 +616,12 @@ MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
     MppThread *thd  = enc->thread_enc;
 
     thd->lock();
-    {
+    if (flag == MPP_ENC_CONTROL) {
+        enc->notify_flag |= flag;
+        enc_dbg_notify("%p status %08x notify control signal\n", enc,
+                       enc->status_flag);
+        thd->signal();
+    } else {
         RK_U32 old_flag = enc->notify_flag;
 
         enc->notify_flag |= flag;
@@ -587,10 +643,7 @@ MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag)
  *
  * codec related config will be set in each hal component
  */
-void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src);
-void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src);
-
-MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
+MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
@@ -602,206 +655,32 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
     MPP_RET ret = MPP_OK;
     AutoMutex auto_lock(&enc->lock);
 
+    enc_dbg_ctrl("sending cmd %d param %p\n", cmd, param);
+
     switch (cmd) {
-    case MPP_ENC_SET_ALL_CFG : {
-        enc_dbg_ctrl("set all config\n");
-        memcpy(&enc->set, param, sizeof(enc->set));
-
-        ret = enc_impl_proc_cfg(enc->impl, MPP_ENC_SET_RC_CFG, param);
-        if (!ret)
-            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_RC_CFG, &enc->set.rc);
-
-        if (!ret)
-            mpp_enc_update_rc_cfg(&enc->cfg.rc, &enc->set.rc);
-
-        if (!ret)
-            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_PREP_CFG, &enc->set.prep);
-
-        if (!ret)
-            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_CODEC_CFG, &enc->set.codec);
-    } break;
     case MPP_ENC_GET_ALL_CFG : {
-        MppEncCfgSet *p = (MppEncCfgSet *)param;
-
         enc_dbg_ctrl("get all config\n");
-        memcpy(p, &enc->cfg, sizeof(*p));
-    } break;
-    case MPP_ENC_SET_PREP_CFG : {
-        enc_dbg_ctrl("set prep config\n");
-        memcpy(&enc->set.prep, param, sizeof(enc->set.prep));
-
-        ret = mpp_hal_control(enc->hal, cmd, param);
-        if (!ret)
-            mpp_enc_update_prep_cfg(&enc->cfg.prep, &enc->set.prep);
+        memcpy(param, &enc->cfg, sizeof(enc->cfg));
     } break;
     case MPP_ENC_GET_PREP_CFG : {
-        MppEncPrepCfg *p = (MppEncPrepCfg *)param;
-
         enc_dbg_ctrl("get prep config\n");
-        memcpy(p, &enc->cfg.prep, sizeof(*p));
-    } break;
-    case MPP_ENC_SET_RC_CFG : {
-        enc_dbg_ctrl("set rc config\n");
-        memcpy(&enc->set.rc, param, sizeof(enc->set.rc));
-
-        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
-        if (!ret)
-            ret = mpp_hal_control(enc->hal, cmd, param);
-
-        if (!ret)
-            mpp_enc_update_rc_cfg(&enc->cfg.rc, &enc->set.rc);
+        memcpy(param, &enc->cfg.prep, sizeof(enc->cfg.prep));
     } break;
     case MPP_ENC_GET_RC_CFG : {
-        MppEncRcCfg *p = (MppEncRcCfg *)param;
-
         enc_dbg_ctrl("get rc config\n");
-        memcpy(p, &enc->cfg.rc, sizeof(*p));
-    } break;
-    case MPP_ENC_SET_CODEC_CFG : {
-        enc_dbg_ctrl("set codec config\n");
-        memcpy(&enc->set.codec, param, sizeof(enc->set.codec));
-
-        ret = mpp_hal_control(enc->hal, cmd, param);
-        /* NOTE: codec information will be update by encoder hal */
-    } break;
-    case MPP_ENC_GET_CODEC_CFG : {
-        MppEncCodecCfg *p = (MppEncCodecCfg *)param;
-
-        enc_dbg_ctrl("get codec config\n");
-        memcpy(p, &enc->cfg.codec, sizeof(*p));
-    } break;
-
-    case MPP_ENC_SET_IDR_FRAME : {
-        enc_dbg_ctrl("idr request\n");
-        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
-    } break;
-    case MPP_ENC_GET_EXTRA_INFO : {
-        enc_dbg_ctrl("get extra info\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_OSD_PLT_CFG : {
-        enc_dbg_ctrl("set osd plt\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_OSD_DATA_CFG : {
-        enc_dbg_ctrl("set osd data\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_ROI_CFG : {
-        enc_dbg_ctrl("set roi data\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_SEI_CFG : {
-        enc_dbg_ctrl("set sei\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_GET_SEI_DATA : {
-        enc_dbg_ctrl("get sei\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_PRE_ALLOC_BUFF : {
-        enc_dbg_ctrl("pre alloc buff\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_QP_RANGE : {
-        enc_dbg_ctrl("set qp range\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
-    } break;
-    case MPP_ENC_SET_CTU_QP: {
-        enc_dbg_ctrl("set ctu qp\n");
-        ret = mpp_hal_control(enc->hal, cmd, param);
+        memcpy(param, &enc->cfg.rc, sizeof(enc->cfg.rc));
     } break;
     default : {
-        mpp_log_f("unsupported cmd id %08x param %p\n", cmd, param);
-        ret = MPP_NOK;
+        // Cmd which is not get configure will handle by enc_impl
+        enc->cmd    = cmd;
+        enc->param  = param;
+
+        enc->cmd_send++;
+        mpp_enc_notify_v2(ctx, MPP_ENC_CONTROL);
+        sem_wait(&enc->enc_ctrl);
     } break;
     }
 
+    enc_dbg_ctrl("sending cmd %d done\n", cmd);
     return ret;
 }
-
-void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
-{
-    RK_U32 change = src->change;
-
-    if (change) {
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
-            dst->format = src->format;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-            dst->rotation = src->rotation;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
-            dst->mirroring = src->mirroring;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
-            dst->denoise = src->denoise;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
-            dst->sharpen = src->sharpen;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-                dst->width = src->height;
-                dst->height = src->width;
-            } else {
-                dst->width = src->width;
-                dst->height = src->height;
-            }
-            dst->hor_stride = src->hor_stride;
-            dst->ver_stride = src->ver_stride;
-        }
-
-        /*
-         * NOTE: use OR here for avoiding overwrite on multiple config
-         * When next encoding is trigger the change flag will be clear
-         */
-        dst->change |= change;
-        src->change = 0;
-    }
-}
-
-void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
-{
-    RK_U32 change = src->change;
-    if (change) {
-        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-            dst->rc_mode = src->rc_mode;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-            dst->quality = src->quality;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-            dst->bps_target = src->bps_target;
-            dst->bps_max = src->bps_max;
-            dst->bps_min = src->bps_min;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-            dst->fps_in_flex = src->fps_in_flex;
-            dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denorm = src->fps_in_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-            dst->fps_out_flex = src->fps_out_flex;
-            dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denorm = src->fps_out_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-            dst->gop = src->gop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-            dst->skip_cnt = src->skip_cnt;
-
-        /*
-         * NOTE: use OR here for avoiding overwrite on multiple config
-         * When next encoding is trigger the change flag will be clear
-         */
-        dst->change |= change;
-        src->change = 0;
-    }
-}
-
