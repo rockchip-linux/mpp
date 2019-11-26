@@ -57,6 +57,7 @@
 #define MPP_ENC_NOTIFY_PACKET_DEQUEUE       (MPP_OUTPUT_DEQUEUE)
 #define MPP_ENC_NOTIFY_FRAME_DEQUEUE        (MPP_INPUT_DEQUEUE)
 #define MPP_ENC_NOTIFY_PACKET_ENQUEUE       (MPP_OUTPUT_ENQUEUE)
+#define MPP_ENC_CONTROL                     (0x00000010)
 #define MPP_ENC_RESET                       (MPP_RESET)
 
 /*

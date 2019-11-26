@@ -170,6 +170,16 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag);
 MPP_RET mpp_enc_reset(MppEnc ctx);
 
+MPP_RET mpp_enc_init_v2(MppEnc *ctx, MppEncCfg *cfg);
+MPP_RET mpp_enc_deinit_v2(MppEnc ctx);
+
+MPP_RET mpp_enc_start_v2(MppEnc ctx);
+MPP_RET mpp_enc_stop_v2(MppEnc ctx);
+
+MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param);
+MPP_RET mpp_enc_notify_v2(MppEnc ctx, RK_U32 flag);
+MPP_RET mpp_enc_reset_v2(MppEnc ctx);
+
 #ifdef __cplusplus
 }
 #endif
