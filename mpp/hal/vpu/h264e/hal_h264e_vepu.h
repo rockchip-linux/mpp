@@ -33,8 +33,6 @@
 #define hal_vpu_h264e_dbg_qp(fmt, ...)      \
     hal_vpu_h264e_dbg(HAL_VPU_H264E_DBG_QP, fmt, ## __VA_ARGS__)
 
-#define BIT(n)  (1<<(n))
-
 #define H264E_CABAC_TABLE_BUF_SIZE          (52*2*464)
 
 typedef enum H264eVpuFrameType_t {

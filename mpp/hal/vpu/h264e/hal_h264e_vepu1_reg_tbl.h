@@ -17,7 +17,9 @@
 #ifndef __HAL_H264E_VEPU1_REG_TBL_H__
 #define __HAL_H264E_VEPU1_REG_TBL_H__
 
-#include "hal_h264e_vepu.h"
+#include "rk_type.h"
+
+#define BIT(n)  (1<<(n))
 
 /* RK3288 Encoder registers. */
 #define VEPU_REG_INTERRUPT          0x004
