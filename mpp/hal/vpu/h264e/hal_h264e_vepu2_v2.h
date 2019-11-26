@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_API_H__
-#define __HAL_H264E_API_H__
+#ifndef __HAL_H264E_VEPU2_H__
+#define __HAL_H264E_VEPU2_H__
 
-#include "mpp_hal.h"
+#include "mpp_enc_hal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern const MppHalApi hal_api_h264e;
-
-#ifdef __cplusplus
-}
-#endif
+extern const MppEncHalApi hal_h264e_vepu2;
 
 #endif

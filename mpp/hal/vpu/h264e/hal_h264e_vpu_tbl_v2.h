@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_API_H__
-#define __HAL_H264E_API_H__
+#ifndef __HAL_H264E_VPU_TBL_H__
+#define __HAL_H264E_VPU_TBL_H__
 
-#include "mpp_hal.h"
+#include "rk_type.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define H264E_CABAC_TABLE_BUF_SIZE  (52*2*464)
 
-extern const MppHalApi hal_api_h264e;
-
-#ifdef __cplusplus
-}
-#endif
+/* H.264 motion estimation parameters */
+extern const RK_U32 h264_prev_mode_favor[52];
+/* sqrt(2^((qp-12)/3))*8 */
+extern const RK_U32 h264_diff_mv_penalty[52];
+/* 31*sqrt(2^((qp-12)/3))/4 */
+extern const RK_U32 h264_diff_mv_penalty4p[52];
+extern const RK_U32 h264_intra16_favor[52];
+extern const RK_U32 h264_inter_favor[52];
+extern const RK_U32 h264_skip_sad_penalty[52];
+extern const RK_S32 h264_context_init_intra[460][2];
+extern const RK_S32 h264_context_init[3][460][2];
 
 #endif
