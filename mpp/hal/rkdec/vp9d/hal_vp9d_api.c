@@ -780,7 +780,7 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     if (pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) {
-           reg_cxt->last_segid_flag = !reg_cxt->last_segid_flag;
+        reg_cxt->last_segid_flag = !reg_cxt->last_segid_flag;
     }
 
     reg_cxt->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
