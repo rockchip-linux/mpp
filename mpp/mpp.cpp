@@ -66,6 +66,7 @@ Mpp::Mpp()
       mInputTask(NULL),
       mDec(NULL),
       mEnc(NULL),
+      mEncVersion(0),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
@@ -149,8 +150,15 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             this,
         };
 
-        mpp_enc_init(&mEnc, &cfg);
-        mpp_enc_start(mEnc);
+        mpp_env_get_u32("enc_version", &mEncVersion, 0);
+
+        if (mEncVersion) {
+            mpp_enc_init_v2(&mEnc, &cfg);
+            mpp_enc_start_v2(mEnc);
+        } else {
+            mpp_enc_init(&mEnc, &cfg);
+            mpp_enc_start(mEnc);
+        }
 
         mInitDone = 1;
     } break;
@@ -188,8 +196,13 @@ void Mpp::clear()
         }
     } else {
         if (mEnc) {
-            mpp_enc_stop(mEnc);
-            mpp_enc_deinit(mEnc);
+            if (mEncVersion) {
+                mpp_enc_stop_v2(mEnc);
+                mpp_enc_deinit_v2(mEnc);
+            } else {
+                mpp_enc_stop(mEnc);
+                mpp_enc_deinit(mEnc);
+            }
             mEnc = NULL;
         }
     }
@@ -634,7 +647,11 @@ MPP_RET Mpp::reset()
         mFrames->flush();
         mFrames->unlock();
 
-        mpp_enc_reset(mEnc);
+        if (mEncVersion) {
+            mpp_enc_reset_v2(mEnc);
+        } else {
+            mpp_enc_reset(mEnc);
+        }
 
         mPackets->lock();
         mPackets->flush();
@@ -791,7 +808,11 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
 MPP_RET Mpp::control_enc(MpiCmd cmd, MppParam param)
 {
     mpp_assert(mEnc);
-    return mpp_enc_control(mEnc, cmd, param);
+    if (mEncVersion) {
+        return mpp_enc_control_v2(mEnc, cmd, param);
+    } else {
+        return mpp_enc_control(mEnc, cmd, param);
+    }
 }
 
 MPP_RET Mpp::control_isp(MpiCmd cmd, MppParam param)
@@ -813,7 +834,11 @@ MPP_RET Mpp::notify(RK_U32 flag)
         return mpp_dec_notify(mDec, flag);
     } break;
     case MPP_CTX_ENC : {
-        return mpp_enc_notify(mEnc, flag);
+        if (mEncVersion) {
+            return mpp_enc_notify_v2(mEnc, flag);
+        } else {
+            return mpp_enc_notify(mEnc, flag);
+        }
     } break;
     default : {
         mpp_err("unsupport context type %d\n", mType);
