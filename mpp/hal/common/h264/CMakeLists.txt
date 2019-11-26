@@ -13,6 +13,7 @@ set(HAL_H264E_HDR
 set(HAL_H264E_SRC
     h264e_stream.c
     hal_h264e_com.c
+    hal_h264e_api_v2.c
     hal_h264e_api.c
     )
 
