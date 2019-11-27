@@ -18,7 +18,7 @@
 #define __H264E_SYNTAX_NEW_H__
 
 #include "h264_syntax.h"
-#include "mpp_rc_api.h"
+#include "rc_api.h"
 
 typedef enum H264eSyntaxType_e {
     H264E_SYN_CFG,
@@ -311,7 +311,7 @@ typedef struct H264eFrmInfo_s {
     RK_S32              refr_idx;
 
     // current frame rate control and dpb status info
-    MppRcHalCfg         rc_cfg;
+    RcHalCfg            rc_cfg;
     EncFrmStatus        status;
 
     RK_S32              usage[H264E_MAX_REFS_CNT + 1];
