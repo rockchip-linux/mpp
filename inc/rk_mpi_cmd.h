@@ -109,8 +109,8 @@ typedef enum {
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPlt */
     MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
     MPP_ENC_GET_OSD_CFG,
-    MPP_ENC_SET_EXTRA_INFO,
-    MPP_ENC_GET_EXTRA_INFO,             /* get vps / sps / pps from hal */
+    MPP_ENC_GET_HDR_SYNC,               /* get vps / sps / pps which has better sync behavior parameter is MppPacket */
+    MPP_ENC_GET_EXTRA_INFO,             /* deprecated */
     MPP_ENC_SET_SEI_CFG,                /* SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
     MPP_ENC_GET_SEI_DATA,               /* SEI: Supplement Enhancemant Information, parameter is MppPacket */
     MPP_ENC_PRE_ALLOC_BUFF,             /* allocate buffers before encoding */
