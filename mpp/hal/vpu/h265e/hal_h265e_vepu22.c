@@ -2122,8 +2122,8 @@ MPP_RET hal_h265e_vepu22_control(void *hal, MpiCmd cmd_type, void *param)
 
     hal_h265e_dbg_func("enter hal %p,cmd = %d\n", hal, cmd_type);
     switch (cmd_type) {
-    case MPP_ENC_SET_EXTRA_INFO: {
-        hal_h265e_dbg_input("MPP_ENC_SET_EXTRA_INFO\n");
+    case MPP_ENC_GET_HDR_SYNC: {
+        hal_h265e_dbg_input("MPP_ENC_GET_HDR_SYNC\n");
         break;
     }
 

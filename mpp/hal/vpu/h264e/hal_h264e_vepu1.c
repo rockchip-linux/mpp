@@ -630,7 +630,7 @@ MPP_RET hal_h264e_vepu1_control(void *hal, MpiCmd cmd_type, void *param)
 
     h264e_hal_dbg(H264E_DBG_DETAIL, "hal_h264e_vpu_control cmd 0x%x, info %p", cmd_type, param);
     switch (cmd_type) {
-    case MPP_ENC_SET_EXTRA_INFO: {
+    case MPP_ENC_GET_HDR_SYNC: {
     } break;
     case MPP_ENC_GET_EXTRA_INFO: {
         size_t offset = 0;
