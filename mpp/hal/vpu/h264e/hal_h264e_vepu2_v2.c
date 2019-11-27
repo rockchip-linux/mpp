@@ -71,7 +71,7 @@ typedef struct HalH264eVepu2Ctx_t {
     RK_U8                   *dst_buf;
 
     /* syntax for output to enc_impl */
-    MppRcHalCfg             hal_rc_cfg;
+    RcHalCfg                hal_rc_cfg;
 
     /* vepu2 macroblock ratecontrol context */
     HalH264eVepuMbRcCtx     rc_ctx;
