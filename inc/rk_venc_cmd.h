@@ -879,6 +879,19 @@ typedef struct MppGopRefInfo_t {
     RK_S32 lt_idx;
 } MppGopRefInfo;
 
+typedef enum MppEncGopRefChange_e {
+    /* change on gop_cfg_enable flag */
+    MPP_ENC_GOPREF_ENABLE                   = (1 << 0),
+    /* change on lt_ref_interval and max_lt_ref_cnt for long-term reference loop */
+    MPP_ENC_GOPREF_LT_LOOP                  = (1 << 1),
+    /* change on ref_gop_len and gop_info for short-term reference gop config */
+    MPP_ENC_GOPREF_ST_GOP                   = (1 << 2),
+    /* change on layer_rc_enable and layer_weight for layer rate control config */
+    MPP_ENC_GOPREF_LAYER_RC                 = (1 << 3),
+
+    MPP_ENC_GOPREF_CHANGE_ALL               = (0xFFFFFFFF),
+} MppEncGopRefChange;
+
 typedef struct MppEncGopRef_t {
     RK_U32 change;
 
