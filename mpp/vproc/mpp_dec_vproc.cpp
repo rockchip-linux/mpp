@@ -276,10 +276,15 @@ static void *dec_vproc_thread(void *data)
                 if (ret)
                     mpp_log_f("IEP_CMD_INIT failed %d\n", ret);
 
+                IepCap_t *cap = NULL;
+                ret = iep_control(ctx->iep_ctx, IEP_CMD_QUERY_CAP, &cap);
+                if (ret)
+                    mpp_log_f("IEP_CMD_QUERY_CAP failed %d\n", ret);
+
                 // setup destination IepImg with new buffer
                 // NOTE: when deinterlace is enabled parser thread will reserve
                 //       more buffer than normal case
-                if (ctx->prev_frm) {
+                if (ctx->prev_frm && cap && cap->i4_deinterlace_supported) {
                     // 4 in 2 out case
                     vproc_dbg_status("4 field in and 2 frame out\n");
                     RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm);
