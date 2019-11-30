@@ -173,6 +173,21 @@ typedef struct SynH264ePps_t {
     RK_S32      use_default_scaling_matrix[H264_SCALING_MATRIX_TYPE_BUTT];
 } SynH264ePps;
 
+typedef struct H264ePrefixNal_t {
+    RK_S32      nal_ref_idc;
+
+    /* svc extension header */
+    RK_S32      idr_flag;
+    RK_S32      priority_id;
+    RK_S32      no_inter_layer_pred_flag;
+    RK_S32      dependency_id;
+    RK_S32      quality_id;
+    RK_S32      temporal_id;
+    RK_S32      use_ref_base_pic_flag;
+    RK_S32      discardable_flag;
+    RK_S32      output_flag;
+} H264ePrefixNal;
+
 /*
  * For H.264 encoder slice header process.
  * Remove some syntax that encoder not supported.
