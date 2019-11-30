@@ -187,6 +187,7 @@ typedef struct HalEncTask_t {
     MppBuffer       mv_info;
 
     RK_U32          is_intra;
+    RK_S32          temporal_id;
 
     HalEncTaskFlag  flags;
 
