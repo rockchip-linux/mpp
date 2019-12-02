@@ -1,71 +1,23 @@
 #!/bin/bash
-# Run this from within a bash shell
-MAKE_PROGRAM=`which make`
 
-ANDROID_NDK="No ndk path found. You should add your ndk path"
-TOOLCHAIN_FILE="no toolchain file found, Please fix ndk path"
+BUILD_TYPE="Release"
+ANDROID_ABI="arm64-v8a"
 
-FOUND_NDK=
+#Specify Android NDK path if needed
+#ANDROID_NDK=
 
-# Search r10d ndk
-# NOTE: r10d ndk do not have toolchain file
-if [ ! ${FOUND_NDK} ]; then
-    NDK_R10D_PATHS=(
-    /home/pub/ndk/android-ndk-r10d/
-    ~/work/android/ndk/android-ndk-r10d/
-    )
+#Specify cmake if needed
+#CMAKE_PROGRAM=
 
-    for NDK_PATH in ${NDK_R10D_PATHS[@]};
-    do
-        if [ -d ${NDK_PATH} ]; then
-            echo "found r10d ndk ${NDK_PATH}"
-            FOUND_NDK=true
+source ../env_setup.sh
 
-            ANDROID_NDK=${NDK_PATH}
-            TOOLCHAIN_FILE=../android.toolchain.cmake
-            NATIVE_API_LEVEL="android-21"
-            TOOLCHAIN_NAME="aarch64-linux-android-4.9"
-        fi
-    done
-fi
-
-# Search r16b ndk
-# NOTE: r16b use ndk toolchain file
-if [ ! ${FOUND_NDK} ]; then
-    NDK_R16B_PATHS=(
-    /home/pub/ndk/android-ndk-r16b/
-    ~/work/android/ndk/android-ndk-r16b/
-    )
-
-    for NDK_PATH in ${NDK_R16B_PATHS[@]};
-    do
-        if [ -d ${NDK_PATH} ]; then
-            echo "found r16 ndk ${NDK_PATH}"
-            FOUND_NDK=true
-
-            ANDROID_NDK=${NDK_PATH}
-            TOOLCHAIN_FILE=${ANDROID_NDK}/build/cmake/android.toolchain.cmake
-            NATIVE_API_LEVEL="android-27"
-            TOOLCHAIN_NAME="aarch64-linux-android-4.9"
-        fi
-    done
-fi
-
-if [ ! ${FOUND_NDK} ]; then
-    echo ${ANDROID_NDK}
-    echo ${TOOLCHAIN_FILE}
-    exit
-fi
-
-PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm64
-
-cmake -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                              \
-      -DCMAKE_BUILD_TYPE=Release                                            \
+${CMAKE_PROGRAM} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                   \
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE}                                      \
       -DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}                                  \
       -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
       -DANDROID_SYSROOT=${PLATFORM}                                         \
-      -DANDROID_ABI="arm64-v8a"                                             \
+      -DANDROID_ABI=${ANDROID_ABI}                                          \
       -DANDROID_TOOLCHAIN_NAME=${TOOLCHAIN_NAME}                            \
       -DANDROID_NATIVE_API_LEVEL=${NATIVE_API_LEVEL}                        \
       -DANDROID_STL=system                                                  \
@@ -74,7 +26,11 @@ cmake -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                              \
       -DHAVE_DRM=ON                                                         \
       ../../../
 
-cmake --build .
+if [ "${CMAKE_PARALLEL_ENABLE}" = "0" ]; then
+    ${CMAKE_PROGRAM} --build .
+else
+    ${CMAKE_PROGRAM} --build . -j
+fi
 
 # ----------------------------------------------------------------------------
 # usefull cmake debug flag
