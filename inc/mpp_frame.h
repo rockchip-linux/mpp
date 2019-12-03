@@ -41,6 +41,10 @@
 // for multiview stream
 #define MPP_FRAME_FLAG_VIEW_ID_MASK     (0x000000f0)
 
+#define MPP_FRAME_FLAG_IEP_DEI_MASK     (0x00000f00)
+#define MPP_FRAME_FLAG_IEP_DEI_I2O1     (0x00000100)
+#define MPP_FRAME_FLAG_IEP_DEI_I4O2     (0x00000200)
+#define MPP_FRAME_FLAG_IEP_DEI_I4O1     (0x00000300)
 
 /*
  * MPEG vs JPEG YUV range.
