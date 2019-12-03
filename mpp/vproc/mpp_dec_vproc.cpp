@@ -313,6 +313,9 @@ static void *dec_vproc_thread(void *data)
 
                     ctx->dei_cfg.dei_mode = IEP_DEI_MODE_I4O2;
 
+                    mode = mode | MPP_FRAME_FLAG_IEP_DEI_I4O2;
+                    mpp_frame_set_mode(frm, mode);
+
                     // start hardware
                     dec_vproc_start_dei(ctx, mode);
 
@@ -338,6 +341,8 @@ static void *dec_vproc_thread(void *data)
                     dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DST);
 
                     ctx->dei_cfg.dei_mode = IEP_DEI_MODE_I2O1;
+                    mode = mode | MPP_FRAME_FLAG_IEP_DEI_I2O1;
+                    mpp_frame_set_mode(frm, mode);
 
                     // start hardware
                     dec_vproc_start_dei(ctx, mode);
