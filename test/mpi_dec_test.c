@@ -105,7 +105,7 @@ static OptionInfo mpi_dec_cmd[] = {
     {"d",               "debug",                "debug flag"},
     {"x",               "timeout",              "output timeout interval"},
     {"n",               "frame_number",         "max output frame number"},
-    {"m",               "display_mode",         "0=none 1=DRM"},
+    {"m",               "display_mode",         "0=none 1=DRM 2=RGA+DRM"},
     {"p",               "display_pause",        "microseconds to sleep between frames"},
 };
 
@@ -338,9 +338,12 @@ static int decode_simple(MpiDecLoopData *data)
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
                     if (data->drm >= 0) {
-                        switch(data->display_mode) {
+                        switch (data->display_mode) {
                         case 1:
                             drm_display_frame(frame, data->drm, data->crtc_id, data->plane_id);
+                            break;
+                        case 2:
+                            drm_rga_display_frame(frame, data->drm, data->crtc_id, data->plane_id);
                             break;
                         default:
                             mpp_err("unknown display_mode in %s: %d\n", __FUNCTION__, data->display_mode);
@@ -565,7 +568,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         }
     }
 
-    if (cmd->display_mode == 1) { // plain DRM
+    if (cmd->display_mode == 1 || cmd->display_mode == 2) { // plain DRM
         {
             const char* devname = "/dev/dri/card0";
             mpp_log("DRM device is '%s'\n", devname);
@@ -583,6 +586,14 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         }
 
         data.display_pause = cmd->display_pause;
+
+        if (cmd->display_mode == 2) {
+            int ret;
+            if ((ret = c_RkRgaInit ()) < 0) {
+                mpp_err("RkRgaInit failed: %s\n", strerror(-ret));
+                goto MPP_TEST_OUT;
+            }
+        }
     }
 
     if (cmd->simple) {
@@ -917,7 +928,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
             case 'm':
                 if (next) {
                     cmd->display_mode = atoi(next);
-                    if (cmd->display_mode != 0 && cmd->display_mode != 1) {
+                    if (cmd->display_mode > 2) {
                         mpp_err("display mode is invalid\n");
                         goto PARSE_OPINIONS_OUT;
                     }

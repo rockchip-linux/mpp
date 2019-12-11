@@ -12,8 +12,12 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "mpp_log.h"
+
+#include <rga/rga.h>
+#include <rga/RgaApi.h>
 
 static void do_drm_display_frame(int fd, unsigned width, unsigned height, uint32_t pixel_format,
                                  unsigned hstride, unsigned vstride,
@@ -260,6 +264,68 @@ void drm_display_frame(MppFrame frame, int drm, int crtc_id, int plane_id)
                          drm, crtc_id, plane_id);
 }
 
+void drm_rga_display_frame(MppFrame frame, int drm, int crtc_id, int plane_id)
+{
+    MppBuffer frame_buf = mpp_frame_get_buffer(frame);
+    if (!frame_buf) {
+        mpp_err("mpp_frame_get_buffer failed\n");
+        return;
+    }
+
+    unsigned width = mpp_frame_get_width(frame);
+    unsigned height = mpp_frame_get_height(frame);
+    unsigned hstride = mpp_frame_get_hor_stride(frame);
+    unsigned vstride = mpp_frame_get_ver_stride(frame);
+
+    rga_info_t src_info = { 0 };
+    rga_info_t dst_info = { 0 };
+    bo_t bo_dst = { 0 };
+
+    // src frame
+
+    src_info.fd = mpp_buffer_get_fd(frame_buf);
+    src_info.mmuFlag = 1;
+    rga_set_rect(&src_info.rect,
+                 0, 0, width, height,
+                 hstride, vstride,
+                 RK_FORMAT_YCbCr_420_SP); // NV12
+
+    // dst frame
+
+    int ret = c_RkRgaGetAllocBuffer(&bo_dst, width, height, 32);
+    if (ret < 0) {
+        mpp_err("RkRgaGetAllocBuffer failed: %s\n", strerror(-ret));
+        return;
+    }
+
+    ret = c_RkRgaGetBufferFd(&bo_dst, &dst_info.fd);
+    if (ret < 0) {
+        mpp_err("RkRgaGetBufferFd failed: %d, %s\n", ret, strerror(errno));
+        return;
+    }
+
+    dst_info.mmuFlag = 1;
+
+    rga_set_rect(&dst_info.rect,
+                 0, 0, width, height,
+                 width, height, // FIXME ?
+                 RK_FORMAT_BGRA_8888);
+
+    // do convert colorspace
+    struct timeval tpend1, tpend2;
+    gettimeofday(&tpend1, NULL);
+    ret = c_RkRgaBlit(&src_info, &dst_info, NULL);
+    gettimeofday(&tpend2, NULL);
+    if (ret < 0) {
+        mpp_err("RkRgaBlit failed: %s\n", strerror(-ret));
+        return;
+    }
+    long usec1 = 1000 * 1000 * (tpend2.tv_sec - tpend1.tv_sec) + (tpend2.tv_usec - tpend1.tv_usec);
+    mpp_log("RGA conv cost_time=%ld us\n", usec1);
+
+    do_drm_display_frame(dst_info.fd, width, height, DRM_FORMAT_XRGB8888, bo_dst.pitch, 0,
+                         drm, crtc_id, plane_id);
+}
 
 static void do_drm_display_frame(int fd, unsigned width, unsigned height, uint32_t pixel_format,
                                  unsigned hstride, unsigned vstride,
@@ -276,6 +342,7 @@ static void do_drm_display_frame(int fd, unsigned width, unsigned height, uint32
     uint32_t pitches[4] = {0};
     uint32_t offsets[4] = {0};
     switch (pixel_format) {
+        // YUV semi-planar
     case DRM_FORMAT_NV12:
         bo_handles[0] = gem_handle;
         bo_handles[1] = gem_handle;
@@ -283,8 +350,19 @@ static void do_drm_display_frame(int fd, unsigned width, unsigned height, uint32
         pitches[1] = hstride;
         offsets[1] = hstride * vstride;
         break;
+        // RGB little-endian
+    case DRM_FORMAT_XRGB8888:
+        bo_handles[0] = gem_handle;
+        pitches[0] = hstride;
+        break;
+        // RGB big-endian
+    case DRM_FORMAT_BGRX8888:
+    case DRM_FORMAT_BGRA8888:
+        mpp_err("do_drm_display_frame: pixel format will not work: 0x%x\n", pixel_format);
+        return;
+        //
     default:
-        mpp_err("do_drm_display_frame: unsupported pixel format 0x%x\n", pixel_format);
+        mpp_err("do_drm_display_frame: pixel format not supported (yet?): 0x%x\n", pixel_format);
         return;
     }
 

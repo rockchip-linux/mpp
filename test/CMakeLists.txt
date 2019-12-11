@@ -34,7 +34,7 @@ target_sources(mpi_dec_test PUBLIC drm-utils.c)
 target_include_directories(mpi_dec_test PUBLIC
   ${LIBDRM_INCLUDE_DIRS})
 target_link_libraries(mpi_dec_test
-  ${LIBDRM_LIBRARIES})
+  ${LIBDRM_LIBRARIES} rga)
 
 # mpi decoder multi-thread input / output unit test
 add_mpp_test(mpi_dec_mt)
