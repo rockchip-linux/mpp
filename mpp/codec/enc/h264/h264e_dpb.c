@@ -866,7 +866,7 @@ void h264e_dpb_build_marking(H264eDpb *dpb)
 
     if (frm->status.is_idr) {
         marking->idr_flag = 1;
-        marking->no_output_of_prior_pics = 1;
+        marking->no_output_of_prior_pics = 0;
         marking->long_term_reference_flag = frm->status.is_lt_ref;
         goto DONE;
     }

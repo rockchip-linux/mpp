@@ -52,6 +52,8 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size);
 RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit,
                         RK_S32 src_size);
 
+RK_S32 h264e_slice_write_prefix_nal_unit_svc(H264ePrefixNal *nal, void *p, RK_S32 size);
+
 #ifdef __cplusplus
 }
 #endif

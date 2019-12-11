@@ -43,12 +43,17 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
 {
     MppEncH264Cfg *h264 = &cfg->codec.h264;
 
+    slice->max_num_ref_frames = sps->num_ref_frames;
     slice->log2_max_frame_num = sps->log2_max_frame_num_minus4 + 4;
     slice->log2_max_poc_lsb = sps->log2_max_poc_lsb_minus4 + 4;
     slice->entropy_coding_mode = h264->entropy_coding_mode;
+    slice->pic_order_cnt_type = sps->pic_order_cnt_type;
 
-    slice->nal_reference_idc = H264_NALU_PRIORITY_HIGH;;
-    slice->nalu_type = H264_NALU_TYPE_IDR;
+    slice->nal_reference_idc = (frm->status.is_non_ref) ?
+                               (H264_NALU_PRIORITY_DISPOSABLE) :
+                               (H264_NALU_PRIORITY_LOW);
+    slice->nalu_type = (frm->status.is_idr) ?
+                       (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
 
     slice->first_mb_in_slice = 0;
     slice->slice_type = (frm->status.is_idr) ? (H264_I_SLICE) : (H264_P_SLICE);
@@ -72,6 +77,11 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
 
     slice->pic_order_cnt_lsb = frm->poc;
     slice->num_ref_idx_active = 1;
+    slice->no_output_of_prior_pics = 0;
+    if (slice->idr_flag)
+        slice->long_term_reference_flag = frm->status.is_lt_ref;
+    else
+        slice->long_term_reference_flag = 0;
 
     return MPP_OK;
 }
@@ -127,7 +137,7 @@ MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op)
 MPP_RET h264e_marking_init(H264eMarkingInfo *marking)
 {
     marking->idr_flag = 0;
-    marking->no_output_of_prior_pics = 1;
+    marking->no_output_of_prior_pics = 0;
     marking->long_term_reference_flag = 0;
     marking->adaptive_ref_pic_buffering = 0;
     marking->size = MAX_H264E_MMCO_CNT;
@@ -196,9 +206,13 @@ void write_marking(MppWriteCtx *s, H264eMarkingInfo *marking)
     if (marking->idr_flag) {
         /* no_output_of_prior_pics_flag */
         mpp_writer_put_bits(s, marking->no_output_of_prior_pics, 1);
+        h264e_dbg_slice("used bit %2d no_output_of_prior_pics_flag %d\n",
+                        mpp_writer_bits(s), marking->no_output_of_prior_pics);
 
         /* long_term_reference_flag */
         mpp_writer_put_bits(s, marking->long_term_reference_flag, 1);
+        h264e_dbg_slice("used bit %2d long_term_reference_flag %d\n",
+                        mpp_writer_bits(s), marking->long_term_reference_flag);
 
         // clear long_term_reference_flag flag
         marking->long_term_reference_flag = 0;
@@ -208,58 +222,77 @@ void write_marking(MppWriteCtx *s, H264eMarkingInfo *marking)
         if (!h264e_marking_is_empty(marking)) {
             /* adaptive_ref_pic_marking_mode_flag */
             mpp_writer_put_bits(s, 1, 1);
+            h264e_dbg_slice("used bit %2d adaptive_ref_pic_marking_mode_flag 1\n",
+                            mpp_writer_bits(s));
 
-            while (marking->count) {
+            while (!h264e_marking_is_empty(marking)) {
                 H264eMmco mmco;
 
                 h264e_marking_rd_op(marking, &mmco);
 
                 /* memory_management_control_operation */
                 mpp_writer_put_ue(s, mmco.mmco);
+                h264e_dbg_slice("used bit %2d memory_management_control_operation %d\n",
+                                mpp_writer_bits(s), mmco.mmco);
 
                 switch (mmco.mmco) {
                 case 1 : {
                     /* difference_of_pic_nums_minus1 */
                     mpp_writer_put_ue(s, mmco.difference_of_pic_nums_minus1);
+                    h264e_dbg_slice("used bit %2d difference_of_pic_nums_minus1 %d\n",
+                                    mpp_writer_bits(s), mmco.difference_of_pic_nums_minus1);
                 } break;
                 case 2 : {
                     /* long_term_pic_num */
                     mpp_writer_put_ue(s, mmco.long_term_pic_num );
+                    h264e_dbg_slice("used bit %2d long_term_pic_num %d\n",
+                                    mpp_writer_bits(s), mmco.long_term_pic_num);
                 } break;
                 case 3 : {
                     /* difference_of_pic_nums_minus1 */
                     mpp_writer_put_ue(s, mmco.difference_of_pic_nums_minus1);
+                    h264e_dbg_slice("used bit %2d difference_of_pic_nums_minus1 %d\n",
+                                    mpp_writer_bits(s), mmco.difference_of_pic_nums_minus1);
 
                     /* long_term_frame_idx */
                     mpp_writer_put_ue(s, mmco.long_term_frame_idx );
+                    h264e_dbg_slice("used bit %2d long_term_frame_idx %d\n",
+                                    mpp_writer_bits(s), mmco.long_term_frame_idx);
                 } break;
                 case 4 : {
                     /* max_long_term_frame_idx_plus1 */
                     mpp_writer_put_ue(s, mmco.max_long_term_frame_idx_plus1);
+                    h264e_dbg_slice("used bit %2d max_long_term_frame_idx_plus1 %d\n",
+                                    mpp_writer_bits(s), mmco.max_long_term_frame_idx_plus1);
                 } break;
                 case 5 : {
                 } break;
                 case 6 : {
                     /* long_term_frame_idx */
                     mpp_writer_put_ue(s, mmco.long_term_frame_idx);
+                    h264e_dbg_slice("used bit %2d long_term_frame_idx %d\n",
+                                    mpp_writer_bits(s), mmco.long_term_frame_idx);
                 } break;
                 default : {
                     mpp_err_f("invalid mmco %d\n", mmco.mmco);
                 } break;
                 }
-
-                marking->count--;
             }
 
             /* memory_management_control_operation */
             mpp_writer_put_ue(s, 0);
+            h264e_dbg_slice("used bit %2d memory_management_control_operation 0\n",
+                            mpp_writer_bits(s));
         } else {
             /* adaptive_ref_pic_marking_mode_flag */
             mpp_writer_put_bits(s, 0, 1);
+            h264e_dbg_slice("used bit %2d adaptive_ref_pic_marking_mode_flag 0\n",
+                            mpp_writer_bits(s));
         }
     }
 }
 
+/* vepu read slice */
 RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
 {
     BitReadCtx_t bit;
@@ -271,83 +304,204 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
 
     /* start_code */
     ret |= mpp_read_longbits(&bit, 32, (RK_U32 *)&val);
+    h264e_dbg_slice("used bit %2d start_code %x\n",
+                    bit.used_bits, val);
 
     /* forbidden_zero_bit */
     ret |= mpp_read_bits(&bit, 1, &val);
+    h264e_dbg_slice("used bit %2d forbidden_zero_bit %x\n",
+                    bit.used_bits, val);
 
     /* nal_ref_idc */
     ret |= mpp_read_bits(&bit, 2, &slice->nal_reference_idc);
+    h264e_dbg_slice("used bit %2d nal_reference_idc %d\n",
+                    bit.used_bits, slice->nal_reference_idc);
 
     /* nal_unit_type */
     ret |= mpp_read_bits(&bit, 5, &slice->nalu_type);
+    h264e_dbg_slice("used bit %2d nal_unit_type %d\n",
+                    bit.used_bits, slice->nalu_type);
 
     /* first_mb_nr */
     ret = mpp_read_ue(&bit, &slice->first_mb_in_slice);
+    h264e_dbg_slice("used bit %2d first_mb_in_slice %d\n",
+                    bit.used_bits, slice->first_mb_in_slice);
 
     /* slice_type */
     ret |= mpp_read_ue(&bit, &slice->slice_type);
+    h264e_dbg_slice("used bit %2d slice_type %d\n",
+                    bit.used_bits, slice->slice_type);
 
     /* pic_parameter_set_id */
     ret |= mpp_read_ue(&bit, &slice->pic_parameter_set_id);
+    h264e_dbg_slice("used bit %2d pic_parameter_set_id %d\n",
+                    bit.used_bits, slice->pic_parameter_set_id);
 
     /* frame_num */
     /* NOTE: vpu hardware fix 16 bit frame_num */
-    ret |= mpp_read_bits(&bit, 16, &slice->frame_num);
+    ret |= mpp_read_bits(&bit, slice->log2_max_frame_num, &slice->frame_num);
+    h264e_dbg_slice("used bit %2d frame_num %d\n",
+                    bit.used_bits, slice->frame_num);
 
     slice->idr_flag = (slice->nalu_type == 5);
     if (slice->idr_flag) {
         /* idr_pic_id */
         ret |= mpp_read_ue(&bit, &slice->idr_pic_id);
+        h264e_dbg_slice("used bit %2d idr_pic_id %d\n",
+                        bit.used_bits, slice->idr_pic_id);
     }
 
-    // pic_order_cnt_type here
-    // vpu hardware is always zero. Just ignore
+    /* pic_order_cnt_type */
+    if (slice->pic_order_cnt_type == 0) {
+        /* pic_order_cnt_lsb */
+        ret |= mpp_read_bits(&bit, slice->log2_max_poc_lsb,
+                             (RK_S32 *)&slice->pic_order_cnt_lsb);
+        h264e_dbg_slice("used bit %2d pic_order_cnt_lsb %d\n",
+                        bit.used_bits, slice->pic_order_cnt_lsb);
+    }
 
     // NOTE: Only P slice has num_ref_idx_override flag and ref_pic_list_modification flag
-    if (slice->slice_type == 0) {
+    if (slice->slice_type == H264_P_SLICE) {
         /* num_ref_idx_override */
         ret |= mpp_read_bits(&bit, 1, &slice->num_ref_idx_override);
+        h264e_dbg_slice("used bit %2d num_ref_idx_override %d\n",
+                        bit.used_bits, slice->num_ref_idx_override);
 
+        mpp_assert(slice->num_ref_idx_override == 0);
+
+        // NOTE: vpu hardware is always zero
         /* ref_pic_list_modification_flag */
         ret |= mpp_read_bits(&bit, 1, &slice->ref_pic_list_modification_flag);
-    }
+        h264e_dbg_slice("used bit %2d ref_pic_list_modification_flag %d\n",
+                        bit.used_bits, slice->ref_pic_list_modification_flag);
 
-    // NOTE: vpu hardware is always zero
-    slice->ref_pic_list_modification_flag = 0;
+        if (slice->ref_pic_list_modification_flag) {
+            RK_U32 modification_of_pic_nums_idc = 0;
+
+            do {
+                /* modification_of_pic_nums_idc */
+                ret |= mpp_read_ue(&bit, &modification_of_pic_nums_idc);
+                h264e_dbg_slice("used bit %2d modification_of_pic_nums_idc %d\n",
+                                bit.used_bits, modification_of_pic_nums_idc);
+
+                switch (modification_of_pic_nums_idc) {
+                case 0 :
+                case 1 : {
+                    /* abs_diff_pic_num_minus1 */
+                    RK_U32 abs_diff_pic_num_minus1 = 0;
+
+                    ret |= mpp_read_ue(&bit, &abs_diff_pic_num_minus1);
+                    h264e_dbg_slice("used bit %2d abs_diff_pic_num_minus1 %d\n",
+                                    bit.used_bits, abs_diff_pic_num_minus1);
+                } break;
+                case 2 : {
+                    /* long_term_pic_idx */
+                    RK_U32 long_term_pic_idx = 0;
+
+                    ret |= mpp_read_ue(&bit, &long_term_pic_idx);
+                    h264e_dbg_slice("used bit %2d long_term_pic_idx %d\n",
+                                    bit.used_bits, long_term_pic_idx);
+                } break;
+                case 3 : {
+                } break;
+                default : {
+                    mpp_err_f("invalid modification_of_pic_nums_idc %d\n",
+                              modification_of_pic_nums_idc);
+                } break;
+                }
+            } while (modification_of_pic_nums_idc != 3);
+        }
+    }
 
     if (slice->nal_reference_idc) {
         if (slice->idr_flag) {
             /* no_output_of_prior_pics */
             ret |= mpp_read_bits(&bit, 1, &slice->no_output_of_prior_pics);
+            h264e_dbg_slice("used bit %2d no_output_of_prior_pics %d\n",
+                            bit.used_bits, slice->no_output_of_prior_pics);
 
             /* long_term_reference_flag */
             ret |= mpp_read_bits(&bit, 1, &slice->long_term_reference_flag);
+            h264e_dbg_slice("used bit %2d long_term_reference_flag %d\n",
+                            bit.used_bits, slice->long_term_reference_flag);
         } else {
             /* adaptive_ref_pic_buffering */
             ret |= mpp_read_bits(&bit, 1, &slice->adaptive_ref_pic_buffering);
+            h264e_dbg_slice("used bit %2d adaptive_ref_pic_buffering %d\n",
+                            bit.used_bits, slice->adaptive_ref_pic_buffering);
 
-            mpp_assert(slice->adaptive_ref_pic_buffering == 0);
+            if (slice->adaptive_ref_pic_buffering) {
+                RK_U32 mmco;
+
+                do {
+                    ret |= mpp_read_ue(&bit, &mmco);
+                    h264e_dbg_slice("used bit %2d memory_management_control_operation %d\n",
+                                    bit.used_bits, mmco);
+
+                    if (mmco == 1 || mmco == 3) {
+                        RK_U32 difference_of_pic_nums_minus1;
+
+                        ret |= mpp_read_ue(&bit, &difference_of_pic_nums_minus1);
+                        h264e_dbg_slice("used bit %2d difference_of_pic_nums_minus1 %d\n",
+                                        bit.used_bits, difference_of_pic_nums_minus1);
+                    }
+
+                    if (mmco == 2) {
+                        RK_U32 long_term_pic_num;
+
+                        ret |= mpp_read_ue(&bit, &long_term_pic_num);
+                        h264e_dbg_slice("used bit %2d long_term_pic_num %d\n",
+                                        bit.used_bits, long_term_pic_num);
+                    }
+
+                    if (mmco == 3 || mmco == 6) {
+                        RK_U32 long_term_frame_idx;
+
+                        ret |= mpp_read_ue(&bit, &long_term_frame_idx);
+                        h264e_dbg_slice("used bit %2d long_term_frame_idx %d\n",
+                                        bit.used_bits, long_term_frame_idx);
+                    }
+
+                    if (mmco == 4) {
+                        RK_U32 max_long_term_frame_idx_plus1;
+
+                        ret |= mpp_read_ue(&bit, &max_long_term_frame_idx_plus1);
+                        h264e_dbg_slice("used bit %2d max_long_term_frame_idx_plus1 %d\n",
+                                        bit.used_bits, max_long_term_frame_idx_plus1);
+                    }
+                } while (mmco);
+            }
         }
     }
 
     if (slice->entropy_coding_mode && slice->slice_type != H264_I_SLICE) {
         /* cabac_init_idc */
         ret |= mpp_read_ue(&bit, &slice->cabac_init_idc);
+        h264e_dbg_slice("used bit %2d cabac_init_idc %d\n",
+                        bit.used_bits, slice->cabac_init_idc);
     }
 
     /* qp_delta */
     ret |= mpp_read_se(&bit, &slice->qp_delta);
+    h264e_dbg_slice("used bit %2d qp_delta %d\n",
+                    bit.used_bits, slice->qp_delta);
 
     /* disable_deblocking_filter_idc */
     ret |= mpp_read_ue(&bit, &slice->disable_deblocking_filter_idc);
+    h264e_dbg_slice("used bit %2d disable_deblocking_filter_idc %d\n",
+                    bit.used_bits, slice->disable_deblocking_filter_idc);
 
     /* slice_alpha_c0_offset_div2 */
     ret |= mpp_read_se(&bit, &slice->slice_alpha_c0_offset_div2);
+    h264e_dbg_slice("used bit %2d slice_alpha_c0_offset_div2 %d\n",
+                    bit.used_bits, slice->slice_alpha_c0_offset_div2);
 
     /* slice_beta_offset_div2 */
     ret |= mpp_read_se(&bit, &slice->slice_beta_offset_div2);
+    h264e_dbg_slice("used bit %2d slice_beta_offset_div2 %d\n",
+                    bit.used_bits, slice->slice_beta_offset_div2);
 
-    h264e_dbg_slice("non-aligned   used bit %d\n", bit.used_bits);
+    h264e_dbg_slice("used bit %2d non-aligned length\n", bit.used_bits);
 
     if (slice->entropy_coding_mode) {
         if (bit.num_remaining_bits_in_curr_byte_) {
@@ -355,11 +509,13 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
 
             /* cabac_aligned_bit */
             ret |= mpp_read_bits(&bit, tmp, &val);
+            h264e_dbg_slice("used bit %2d cabac_aligned_bit %x\n",
+                            bit.used_bits, val);
         }
     }
     bit_cnt = bit.used_bits;
 
-    h264e_dbg_slice("total aligned used bit %d\n", bit_cnt);
+    h264e_dbg_slice("used bit %2d total aligned length\n", bit.used_bits);
 
     return bit_cnt;
 }
@@ -372,7 +528,7 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
     RK_S32 bitCnt = 0;
     H264eMarkingInfo *marking = slice->marking;
     H264eRplmo rplmo;
-    MPP_RET ret;
+    MPP_RET ret = MPP_OK;
 
     mpp_writer_init(s, p, size);
 
@@ -382,30 +538,49 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
     /* start_code_prefix 00 00 00 01 */
     mpp_writer_put_raw_bits(s, 0, 24);
     mpp_writer_put_raw_bits(s, 1, 8);
+    h264e_dbg_slice("used bit %2d start_code_prefix\n",
+                    mpp_writer_bits(s));
+
     /* forbidden_zero_bit */
     mpp_writer_put_raw_bits(s, 0, 1);
+    h264e_dbg_slice("used bit %2d forbidden_zero_bit\n",
+                    mpp_writer_bits(s));
 
     /* nal_reference_idc */
     mpp_writer_put_raw_bits(s, slice->nal_reference_idc, 2);
+    h264e_dbg_slice("used bit %2d nal_reference_idc %d\n",
+                    mpp_writer_bits(s), slice->nal_reference_idc);
     /* nalu_type */
     mpp_writer_put_raw_bits(s, slice->nalu_type, 5);
+    h264e_dbg_slice("used bit %2d nalu_type %d\n",
+                    mpp_writer_bits(s), slice->nalu_type);
 
     /* slice header */
     /* start_mb_nr */
     mpp_writer_put_ue(s, slice->first_mb_in_slice);
+    h264e_dbg_slice("used bit %2d first_mb_in_slice %d\n",
+                    mpp_writer_bits(s), slice->first_mb_in_slice);
 
     /* slice_type */
     mpp_writer_put_ue(s, slice->slice_type);
+    h264e_dbg_slice("used bit %2d slice_type %d\n",
+                    mpp_writer_bits(s), slice->slice_type);
 
     /* pic_parameter_set_id */
     mpp_writer_put_ue(s, slice->pic_parameter_set_id);
+    h264e_dbg_slice("used bit %2d pic_parameter_set_id %d\n",
+                    mpp_writer_bits(s), slice->pic_parameter_set_id);
 
     /* frame_num */
     mpp_writer_put_bits(s, slice->frame_num, 16);
+    h264e_dbg_slice("used bit %2d frame_num %d\n",
+                    mpp_writer_bits(s), slice->frame_num);
 
     if (slice->nalu_type == 5) {
         /* idr_pic_id */
         mpp_writer_put_ue(s, slice->idr_pic_id);
+        h264e_dbg_slice("used bit %2d idr_pic_id %d\n",
+                        mpp_writer_bits(s), slice->idr_pic_id);
         marking->idr_flag = 1;
     } else
         marking->idr_flag = 0;
@@ -415,104 +590,133 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
         RK_S32 pic_order_cnt_lsb = slice->pic_order_cnt_lsb;
         RK_S32 max_poc_lsb = (1 << slice->log2_max_poc_lsb) - 1;
 
-
         if (pic_order_cnt_lsb >= max_poc_lsb)
             pic_order_cnt_lsb -= max_poc_lsb;
 
         /* pic_order_cnt_lsb */
-        mpp_writer_put_bits(s, pic_order_cnt_lsb, 16);
+        mpp_writer_put_bits(s, pic_order_cnt_lsb, slice->log2_max_poc_lsb);
+        h264e_dbg_slice("used bit %2d pic_order_cnt_lsb %d\n",
+                        mpp_writer_bits(s), pic_order_cnt_lsb);
     }
 
-    /* read reorder and check */
-    ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
+    /* num_ref_idx_override */
+    slice->ref_pic_list_modification_flag = 0;
 
-    if (slice->slice_type == H264_P_SLICE && !ret) {
-        /* num_ref_idx_override */
+    if (slice->slice_type == H264_P_SLICE) {
+        mpp_assert(slice->num_ref_idx_override == 0);
+
         mpp_writer_put_bits(s, slice->num_ref_idx_override, 1);
+        h264e_dbg_slice("used bit %2d num_ref_idx_override %d\n",
+                        mpp_writer_bits(s), slice->num_ref_idx_override);
 
-        /* ref_pic_list_reordering */
-        mpp_writer_put_bits(s, 1, 1);
 
-        slice->ref_pic_list_modification_flag = 1;
-    } else
-        slice->ref_pic_list_modification_flag = 0;
+        /* read reorder and check */
+        ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
 
-    if (slice->slice_type == H264_I_SLICE)
-        mpp_assert(slice->ref_pic_list_modification_flag == 0);
+        /* ref_pic_list_modification_flag */
+        mpp_writer_put_bits(s, (ret == MPP_OK), 1);
+        h264e_dbg_slice("used bit %2d ref_pic_list_modification_flag 1\n",
+                        mpp_writer_bits(s));
 
-    if (slice->ref_pic_list_modification_flag) {
-        mpp_assert(ret == MPP_OK);
-        /* modification_of_pic_nums_idc */
-        mpp_writer_put_ue(s, rplmo.modification_of_pic_nums_idc);
+        if (ret == MPP_OK) {
+            slice->ref_pic_list_modification_flag = 1;
 
-        switch (rplmo.modification_of_pic_nums_idc) {
-        case 0 :
-        case 1 : {
-            /* abs_diff_pic_num_minus1 */
-            mpp_writer_put_ue(s, rplmo.abs_diff_pic_num_minus1);
-        } break;
-        case 2 : {
-            /* long_term_pic_idx */
-            mpp_writer_put_ue(s, rplmo.long_term_pic_idx);
-        } break;
-        default : {
-            mpp_err_f("invalid modification_of_pic_nums_idc %d\n",
-                      rplmo.modification_of_pic_nums_idc);
-        } break;
+            /* modification_of_pic_nums_idc */
+            mpp_writer_put_ue(s, rplmo.modification_of_pic_nums_idc);
+            h264e_dbg_slice("used bit %2d modification_of_pic_nums_idc %d\n",
+                            mpp_writer_bits(s),
+                            rplmo.modification_of_pic_nums_idc);
+
+            switch (rplmo.modification_of_pic_nums_idc) {
+            case 0 :
+            case 1 : {
+                /* abs_diff_pic_num_minus1 */
+                mpp_writer_put_ue(s, rplmo.abs_diff_pic_num_minus1);
+                h264e_dbg_slice("used bit %2d abs_diff_pic_num_minus1 %d\n",
+                                mpp_writer_bits(s),
+                                rplmo.abs_diff_pic_num_minus1);
+            } break;
+            case 2 : {
+                /* long_term_pic_idx */
+                mpp_writer_put_ue(s, rplmo.long_term_pic_idx);
+                h264e_dbg_slice("used bit %2d long_term_pic_idx %d\n",
+                                mpp_writer_bits(s),
+                                rplmo.long_term_pic_idx);
+            } break;
+            default : {
+                mpp_err_f("invalid modification_of_pic_nums_idc %d\n",
+                          rplmo.modification_of_pic_nums_idc);
+            } break;
+            }
+
+            /* modification_of_pic_nums_idc */
+            mpp_writer_put_ue(s, 3);
+            h264e_dbg_slice("used bit %2d modification_of_pic_nums_idc 3\n",
+                            mpp_writer_bits(s));
+
         }
-
-        /* modification_of_pic_nums_idc */
-        mpp_writer_put_ue(s, 3);
     }
 
     // NOTE: ignore nal ref idc here
     h264e_dbg_mmco("nal_reference_idc %d idr_flag %d\n",
                    slice->nal_reference_idc, slice->idr_flag);
 
-    if (slice->nal_reference_idc)
+    if (slice->nal_reference_idc) {
+        h264e_dbg_slice("get marking %p\n", marking);
         write_marking(s, marking);
+    }
 
     if (slice->entropy_coding_mode && slice->slice_type != H264_I_SLICE) {
         /* cabac_init_idc */
         mpp_writer_put_ue(s, slice->cabac_init_idc);
+        h264e_dbg_slice("used bit %2d cabac_init_idc %d\n",
+                        mpp_writer_bits(s), slice->cabac_init_idc);
     }
 
     /* qp_delta */
     mpp_writer_put_se(s, slice->qp_delta);
+    h264e_dbg_slice("used bit %2d qp_delta %d\n",
+                    mpp_writer_bits(s), slice->qp_delta);
 
     /* disable_deblocking_filter_idc */
-    mpp_writer_put_ue(s, 0);
+    mpp_writer_put_ue(s, slice->disable_deblocking_filter_idc);
+    h264e_dbg_slice("used bit %2d disable_deblocking_filter_idc %d\n",
+                    mpp_writer_bits(s), slice->disable_deblocking_filter_idc);
 
     /* slice_alpha_c0_offset_div2 */
-    mpp_writer_put_se(s, 0);
+    mpp_writer_put_se(s, slice->slice_alpha_c0_offset_div2);
+    h264e_dbg_slice("used bit %2d slice_alpha_c0_offset_div2 %d\n",
+                    mpp_writer_bits(s), slice->slice_alpha_c0_offset_div2);
 
     /* slice_beta_offset_div2 */
-    mpp_writer_put_se(s, 0);
+    mpp_writer_put_se(s, slice->slice_beta_offset_div2);
+    h264e_dbg_slice("used bit %2d slice_beta_offset_div2 %d\n",
+                    mpp_writer_bits(s), slice->slice_beta_offset_div2);
+
+    /* cabac_alignment_one_bit */
+    if (slice->entropy_coding_mode) {
+        mpp_writer_align_one(s);
+        h264e_dbg_slice("used bit %2d align_bit 1\n",
+                        mpp_writer_bits(s));
+    }
 
     bitCnt = s->buffered_bits + s->byte_cnt * 8;
-
-    if (s->buffered_bits) {
-        // NOTE: only have aligned bit on cabac mode but cavlc also need to write byte cache to memory
-        RK_S32 left = (8 - s->buffered_bits);
-        for (i = 0; i < left; i++) {
-            /* align_bit */
-            mpp_writer_put_bits(s, 1, 1);
-        }
-    }
 
     // update on cabac mode
     if (slice->entropy_coding_mode)
         bitCnt = s->buffered_bits + s->byte_cnt * 8;
 
-    RK_S32 pos = 0;
-    char log[256];
+    if (h264e_debug & H264E_DBG_SLICE) {
+        RK_S32 pos = 0;
+        char log[256];
 
-    pos = sprintf(log + pos, "sw stream: ");
-    for (i = 0; i < 16; i ++) {
-        pos += sprintf(log + pos, "%02x ", tmp[i]);
+        pos = sprintf(log + pos, "sw stream: ");
+        for (i = 0; i < 16; i ++) {
+            pos += sprintf(log + pos, "%02x ", tmp[i]);
+        }
+        pos += sprintf(log + pos, "\n");
+        h264e_dbg_slice(log);
     }
-    pos += sprintf(log + pos, "\n");
-    h264e_dbg_slice(log);
 
     return bitCnt;
 }
@@ -631,4 +835,77 @@ RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit, 
     frame_no++;
 
     return diff_len;
+}
+
+RK_S32 h264e_slice_write_prefix_nal_unit_svc(H264ePrefixNal *prefix, void *p, RK_S32 size)
+{
+    MppWriteCtx stream;
+    MppWriteCtx *s = &stream;
+    RK_S32 bitCnt = 0;
+
+    mpp_writer_init(s, p, size);
+
+    /* nal header */
+    /* start_code_prefix 00 00 00 01 */
+    mpp_writer_put_raw_bits(s, 0, 24);
+    mpp_writer_put_raw_bits(s, 1, 8);
+
+    /* forbidden_zero_bit */
+    mpp_writer_put_raw_bits(s, 0, 1);
+
+    /* nal_reference_idc */
+    mpp_writer_put_raw_bits(s, prefix->nal_ref_idc, 2);
+
+    /* nalu_type */
+    mpp_writer_put_raw_bits(s, 14, 5);
+
+    /* svc_extension_flag */
+    mpp_writer_put_raw_bits(s, 1, 1);
+
+    /* nal_unit_header_svc_extension */
+    /* idr_flag */
+    mpp_writer_put_raw_bits(s, prefix->idr_flag, 1);
+
+    /* priority_id */
+    mpp_writer_put_raw_bits(s, prefix->priority_id , 6);
+
+    /* no_inter_layer_pred_flag */
+    mpp_writer_put_raw_bits(s, prefix->no_inter_layer_pred_flag , 1);
+
+    /* dependency_id */
+    mpp_writer_put_raw_bits(s, prefix->dependency_id, 3);
+
+    /* quality_id */
+    mpp_writer_put_raw_bits(s, prefix->quality_id, 4);
+
+    /* temporal_id */
+    mpp_writer_put_raw_bits(s, prefix->temporal_id, 3);
+
+    /* use_ref_base_pic_flag */
+    mpp_writer_put_raw_bits(s, prefix->use_ref_base_pic_flag, 1);
+
+    /* discardable_flag */
+    mpp_writer_put_raw_bits(s, prefix->discardable_flag, 1);
+
+    /* output_flag */
+    mpp_writer_put_raw_bits(s, prefix->output_flag, 1);
+
+    /* reserved_three_2bits */
+    mpp_writer_put_raw_bits(s, 3, 2);
+
+    /* prefix_nal_unit_svc */
+    if (prefix->nal_ref_idc) {
+        /* store_ref_base_pic_flag */
+        mpp_writer_put_raw_bits(s, 0, 1);
+
+        /* additional_prefix_nal_unit_extension_flag */
+        mpp_writer_put_raw_bits(s, 0, 1);
+    }
+
+    /* rbsp_trailing_bits */
+    mpp_writer_trailing(s);
+
+    bitCnt = s->buffered_bits + s->byte_cnt * 8;
+
+    return bitCnt;
 }
