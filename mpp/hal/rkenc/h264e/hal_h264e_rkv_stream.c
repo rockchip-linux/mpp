@@ -80,7 +80,7 @@ MPP_RET h264e_rkv_stream_deinit(H264eRkvStream *s)
 MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
 {
     RK_S32 offset = 0;
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     offset = (size_t)(s->buf_plus8) & 3;
     s->p = s->p_start;
@@ -90,7 +90,7 @@ MPP_RET h264e_rkv_stream_reset(H264eRkvStream *s)
     s->cur_bits >>= (4 - offset) * 8;
     s->count_bit = 0;
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
@@ -114,7 +114,7 @@ MPP_RET h264e_rkv_stream_write_with_log(H264eRkvStream *s,
 {
     RK_U32 i_bits = val;
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write bits name %s, count %d, val %d",
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "write bits name %s, count %d, val %d",
                   name, i_count, val);
 
     s->count_bit += i_count;
@@ -142,7 +142,7 @@ MPP_RET h264e_rkv_stream_write1_with_log(H264eRkvStream *s,
 {
     RK_U32 i_bit = val;
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write 1 bit name %s, val %d", name, val);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "write 1 bit name %s, val %d", name, val);
 
     s->count_bit += 1;
     s->cur_bits <<= 1;
@@ -166,7 +166,7 @@ MPP_RET h264e_rkv_stream_write_ue_with_log(H264eRkvStream *s,
     RK_S32 size = 0;
     RK_S32 tmp = ++val;
 
-    h264e_hal_dbg(H264E_DBG_HEADER,
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER,
                   "write UE bits name %s, val %d (2 steps below are real writting)",
                   name, val);
     if (tmp >= 0x10000) {

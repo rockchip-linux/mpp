@@ -24,74 +24,13 @@
 #include "mpp_device.h"
 
 #include "h264e_syntax.h"
+#include "hal_h264e_debug.h"
 
-extern RK_U32 hal_h264e_debug;
+#define HAL_H264E_DBG_RKV_DPB           0x00001000
+#define HAL_H264E_DBG_RKV_HEADER        0x00008000
+#define HAL_H264E_DBG_RKV_RC            0x00080000
 
-#define H264E_DBG_SIMPLE            0x00000010
-#define H264E_DBG_REG               0x00000020
-#define H264E_DBG_FLOW              0x00000100
-
-#define H264E_DBG_DPB               0x00001000
-#define H264E_DBG_SLICE             0x00002000
-#define H264E_DBG_MMCO              0x00004000
-#define H264E_DBG_HEADER            0x00008000
-#define H264E_DBG_SEI               0x00040000
-#define H264E_DBG_RC                0x00080000
-
-#define H264E_DBG_DETAIL            0x00100000
-
-#define H264E_DBG_FILE              0x00100000
-
-#define H264E_SEI_CHG_SPSPPS        0x00000001
-#define H264E_SEI_CHG_RC            0x00000010
-
-#define h264e_hal_err(fmt, ...) \
-    do {\
-        mpp_err_f(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_dbg(type, fmt, ...) \
-    do {\
-        if (hal_h264e_debug & type)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h264e_hal_dbg_f(type, fmt, ...) \
-    do {\
-        if (hal_h264e_debug & type)\
-            mpp_log_f(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-
-#define h264e_hal_enter() \
-    do {\
-        if (hal_h264e_debug & H264E_DBG_FLOW)\
-            mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
-    } while (0)
-
-#define h264e_hal_leave() \
-    do {\
-        if (hal_h264e_debug & H264E_DBG_FLOW)\
-            mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
-    } while (0)
-
-
-#define h264e_dpb_dbg(fmt, ...)     h264e_hal_dbg(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
-#define h264e_dpb_dbg_f(fmt, ...)   h264e_hal_dbg_f(H264E_DBG_DPB, fmt, ## __VA_ARGS__)
-#define h264e_dpb_slice(fmt, ...)   h264e_hal_dbg(H264E_DBG_SLICE, fmt, ## __VA_ARGS__)
-#define h264e_dpb_slice_f(fmt, ...) h264e_hal_dbg_f(H264E_DBG_SLICE, fmt, ## __VA_ARGS__)
-#define h264e_dpb_mmco(fmt, ...)    h264e_hal_dbg(H264E_DBG_MMCO, fmt, ## __VA_ARGS__)
-#define h264e_dpb_mmco_f(fmt, ...)  h264e_hal_dbg_f(H264E_DBG_MMCO, fmt, ## __VA_ARGS__)
-
-#define H264E_HAL_MIN(a,b)          ( (a)<(b) ? (a) : (b) )
-#define H264E_HAL_MAX(a,b)          ( (a)>(b) ? (a) : (b) )
-#define H264E_HAL_MIN3(a,b,c)       H264E_HAL_MIN((a),H264E_HAL_MIN((b),(c)))
-#define H264E_HAL_MAX3(a,b,c)       H264E_HAL_MAX((a),H264E_HAL_MAX((b),(c)))
-#define H264E_HAL_MIN4(a,b,c,d)     H264E_HAL_MIN((a),H264E_HAL_MIN3((b),(c),(d)))
-#define H264E_HAL_MAX4(a,b,c,d)     H264E_HAL_MAX((a),H264E_HAL_MAX3((b),(c),(d)))
-#define H264E_HAL_CLIP3(v, min, max)  ((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
-
-#define H264E_HAL_FCLOSE(fp)        do{ if(fp) fclose(fp); fp = NULL; } while (0)
+#define H264E_HAL_CLIP3(v, min, max)    ((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
 
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \

@@ -24,7 +24,7 @@
 MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
 {
     MppEncOSDPlt *plt = (MppEncOSDPlt *)param;
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     if (plt->buf) {
         MPP_RET ret = mpp_device_send_reg_with_id(ctx->dev_ctx,
@@ -32,14 +32,14 @@ MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
                                                   param, sizeof(MppEncOSDPlt));
         ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_USERDEF;
         if (ret) {
-            h264e_hal_err("set osd plt error");
+            mpp_err_f("set osd plt error");
             return MPP_NOK;
         }
     } else {
         ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_DEFAULT;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
@@ -49,12 +49,12 @@ MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
     MppEncOSDData *dst = &ctx->osd_data;
     RK_U32 num = src->num_region;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
     if (ctx->osd_plt_type == RKVE_OSD_PLT_TYPE_NONE)
         mpp_err("warning: plt type is invalid\n");
 
     if (num > 8) {
-        h264e_hal_err("number of region %d exceed maxinum 8");
+        mpp_err_f("number of region %d exceed maxinum 8");
         return MPP_NOK;
     }
 
@@ -68,7 +68,7 @@ MPP_RET h264e_rkv_set_osd_data(H264eHalContext *ctx, void *param)
         memset(dst, 0, sizeof(*dst));
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
@@ -77,7 +77,7 @@ MPP_RET h264e_rkv_set_roi_data(H264eHalContext *ctx, void *param)
     MppEncROICfg *src = (MppEncROICfg *)param;
     MppEncROICfg *dst = &ctx->roi_data;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     if (src->number && src->regions) {
         dst->number = src->number;
@@ -86,13 +86,13 @@ MPP_RET h264e_rkv_set_roi_data(H264eHalContext *ctx, void *param)
         memset(dst, 0, sizeof(*dst));
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
 MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
     RK_U32 ret = MPP_OK, idx = 0, num = 0;
     RK_U32 init_pos_x, init_pos_y, roi_width, roi_height, mb_width, pos_y;
     RkvRoiCfg cfg;
@@ -132,7 +132,7 @@ MPP_RET rkv_config_roi_area(H264eHalContext *ctx, RK_U8 *roi_base)
 
         region++;
     }
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return ret;
 }

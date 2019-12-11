@@ -92,7 +92,7 @@ static MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
     RK_S32 nal_num = out->nal_num;
     H264eRkvNal *nal = out->nal;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     for (i = 0; i < nal_num; i++)
         nal_size += nal[i].i_payload;
@@ -111,10 +111,10 @@ static MPP_RET h264e_rkv_encapsulate_nals(H264eRkvExtraInfo *out)
         nal_buffer += nal[i].i_payload;
     }
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "nals total size: %d bytes",
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "nals total size: %d bytes",
                   nal_buffer - out->nal_buf);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -125,7 +125,7 @@ h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload,
 {
     RK_S32 i = 0;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     s->count_bit = 0;
     h264e_rkv_stream_realign(s);
@@ -149,7 +149,7 @@ h264e_rkv_sei_write(H264eRkvStream *s, RK_U8 *payload,
     h264e_rkv_stream_rbsp_trailing(s);
     h264e_rkv_stream_flush(s);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -163,8 +163,8 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx, RcSyntax *rc_syn)
     h264e_sei_pack2str(str + H264E_UUID_LENGTH, ctx, rc_syn);
     str_len = strlen(str) + 1;
     if (str_len > H264E_SEI_BUF_SIZE) {
-        h264e_hal_err("SEI actual string length %d exceed malloced size %d",
-                      str_len, H264E_SEI_BUF_SIZE);
+        mpp_err_f("SEI actual string length %d exceed malloced size %d",
+                  str_len, H264E_SEI_BUF_SIZE);
         return MPP_NOK;
     } else {
         h264e_rkv_sei_write(&info->stream, (RK_U8 *)str, str_len,
@@ -176,7 +176,7 @@ MPP_RET h264e_rkv_sei_encode(H264eHalContext *ctx, RcSyntax *rc_syn)
 
 static MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     s->count_bit = 0;
     h264e_rkv_stream_realign(s);
@@ -317,9 +317,9 @@ static MPP_RET h264e_rkv_sps_write(H264eSps *sps, H264eRkvStream *s)
     h264e_rkv_stream_rbsp_trailing(s);
     h264e_rkv_stream_flush(s);
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write pure sps head size: %d bits", s->count_bit);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "write pure sps head size: %d bits", s->count_bit);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -362,7 +362,7 @@ static void h264e_rkv_scaling_list_write( H264eRkvStream *s,
 
 static MPP_RET h264e_rkv_pps_write(H264ePps *pps, H264eSps *sps, H264eRkvStream *s)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     s->count_bit = 0;
     h264e_rkv_stream_realign( s );
@@ -417,9 +417,9 @@ static MPP_RET h264e_rkv_pps_write(H264ePps *pps, H264eSps *sps, H264eRkvStream 
     h264e_rkv_stream_rbsp_trailing( s );
     h264e_rkv_stream_flush( s );
 
-    h264e_hal_dbg(H264E_DBG_HEADER, "write pure pps size: %d bits", s->count_bit);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "write pure pps size: %d bits", s->count_bit);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -493,7 +493,7 @@ MPP_RET h264e_rkv_set_extra_info(H264eHalContext *ctx)
     H264eSps *sps = &info->sps;
     H264ePps *pps = &info->pps;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     info->nal_num = 0;
     h264e_rkv_stream_reset(&info->stream);
@@ -510,7 +510,7 @@ MPP_RET h264e_rkv_set_extra_info(H264eHalContext *ctx)
 
     h264e_rkv_encapsulate_nals(info);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -523,7 +523,7 @@ MPP_RET h264e_rkv_get_extra_info(H264eHalContext *ctx, MppPacket *pkt_out)
     H264eRkvExtraInfo *src = (H264eRkvExtraInfo *)ctx->extra_info;
 
     for (k = 0; k < src->nal_num; k++) {
-        h264e_hal_dbg(H264E_DBG_HEADER, "get extra info nal type %d, size %d bytes",
+        hal_h264e_dbg(HAL_H264E_DBG_RKV_HEADER, "get extra info nal type %d, size %d bytes",
                       src->nal[k].i_type, src->nal[k].i_payload);
         mpp_packet_write(pkt, offset, src->nal[k].p_payload, src->nal[k].i_payload);
         offset += src->nal[k].i_payload;

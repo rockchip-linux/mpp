@@ -264,7 +264,7 @@ void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg)
         break;
     }
     default: {
-        h264e_hal_err("unvalid src color space: %d", format);
+        mpp_err_f("unvalid src color space: %d", format);
         hw_cfg->input_format = (RK_U32)RKVE_CSP_NONE;
         hw_cfg->uv_rb_swap = 0;
         hw_cfg->alpha_swap = 0;
@@ -526,8 +526,8 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     /* extra slot with pyramid so that we don't have to override the
      * order of forgetting old pictures */
     sps->vui.i_max_dec_frame_buffering =
-        sps->i_num_ref_frames = H264E_HAL_MIN(H264E_REF_MAX, H264E_HAL_MAX4(i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
-                                                                            i_bframe_pyramid ? 4 : 1, i_dpb_size)); //TODO: multi refs
+        sps->i_num_ref_frames = MPP_MIN(H264E_REF_MAX, MPP_MAX4(i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
+                                                                i_bframe_pyramid ? 4 : 1, i_dpb_size)); //TODO: multi refs
     sps->i_num_ref_frames -= i_bframe_pyramid == H264E_B_PYRAMID_STRICT; //TODO: multi refs
     sps->keyframe_max_interval = rc->gop;
     if (sps->keyframe_max_interval == 1) {
@@ -539,8 +539,8 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     max_frame_num = sps->vui.i_max_dec_frame_buffering * (!!i_bframe_pyramid + 1) + 1;
     /* Intra refresh cannot write a recovery time greater than max frame num-1 */
     if (b_intra_refresh ) {
-        RK_S32 time_to_recovery = H264E_HAL_MIN( sps->i_mb_width - 1, sps->keyframe_max_interval) + i_bframe - 1;
-        max_frame_num = H264E_HAL_MAX( max_frame_num, time_to_recovery + 1 );
+        RK_S32 time_to_recovery = MPP_MIN( sps->i_mb_width - 1, sps->keyframe_max_interval) + i_bframe - 1;
+        max_frame_num = MPP_MAX( max_frame_num, time_to_recovery + 1 );
     }
 
     sps->i_log2_max_frame_num = Log2MaxFrameNum;//fix by gsl  org 16, at least 4
@@ -639,7 +639,7 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
         sps->vui.i_max_bits_per_mb_denom = 0;
         sps->vui.i_log2_max_mv_length_horizontal =
             sps->vui.i_log2_max_mv_length_vertical =
-                (RK_S32)log2f((float)H264E_HAL_MAX(1, analyse_mv_range * 4 - 1))
+                (RK_S32)log2f((float)MPP_MAX(1, analyse_mv_range * 4 - 1))
                 + 1;
     }
 
@@ -710,10 +710,10 @@ MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps)
         break;
     case H264E_CQM_CUSTOM:
         /* match the transposed DCT & zigzag */
-        h264e_hal_err("CQM_CUSTOM mode is not supported now");
+        mpp_err_f("CQM_CUSTOM mode is not supported now");
         return MPP_NOK;
     default:
-        h264e_hal_err("invalid cqm_preset mode %d", b_cqm_preset);
+        mpp_err_f("invalid cqm_preset mode %d", b_cqm_preset);
         return MPP_NOK;
     }
 
