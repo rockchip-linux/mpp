@@ -36,7 +36,7 @@ static void hal_h264e_vpu_write_cabac_table(MppBuffer hw_cabac_tab_buf,
 
     RK_U8 table[H264E_CABAC_TABLE_BUF_SIZE] = {0};
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     for (qp = 0; qp < 52; qp++) { /* All QP values */
         for (j = 0; j < 2; j++) { /* Intra/Inter */
@@ -66,7 +66,7 @@ static void hal_h264e_vpu_write_cabac_table(MppBuffer hw_cabac_tab_buf,
     h264e_swap_endian((RK_U32 *)table, H264E_CABAC_TABLE_BUF_SIZE);
     mpp_buffer_write(hw_cabac_tab_buf, 0, table, H264E_CABAC_TABLE_BUF_SIZE);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 }
 
 static MPP_RET h264e_vpu_nal_start(H264eStream * stream,
@@ -89,7 +89,7 @@ static MPP_RET h264e_vpu_nal_start(H264eStream * stream,
 static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
                                        H264eSps *sps)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     h264e_vpu_nal_start(stream, 1, H264_NALU_TYPE_SPS);
 
@@ -250,7 +250,7 @@ static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
 
     h264e_stream_trailing_bits(stream);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -258,7 +258,7 @@ static MPP_RET hal_h264e_vpu_write_sps(H264eStream *stream,
 static MPP_RET hal_h264e_vpu_write_pps(H264eStream *stream,
                                        H264ePps *pps)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     h264e_vpu_nal_start(stream, 1, H264_NALU_TYPE_PPS);
 
@@ -314,7 +314,7 @@ static MPP_RET hal_h264e_vpu_write_pps(H264eStream *stream,
 
     h264e_stream_trailing_bits(stream);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -324,7 +324,7 @@ static MPP_RET hal_h264e_vpu_write_sei(H264eStream *s, RK_U8 *payload,
 {
     RK_S32 i = 0;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     h264e_vpu_nal_start(s, H264_NALU_PRIORITY_DISPOSABLE, H264_NALU_TYPE_SEI);
 
@@ -346,7 +346,7 @@ static MPP_RET hal_h264e_vpu_write_sei(H264eStream *s, RK_U8 *payload,
 
     h264e_stream_trailing_bits(s);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -436,7 +436,7 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx)
     H264eSps *sps = &info->sps;
     H264ePps *pps = &info->pps;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     h264e_stream_reset(sps_stream);
     h264e_stream_reset(pps_stream);
@@ -449,12 +449,11 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx)
 
     if (ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_SEQ
         || ctx->sei_mode == MPP_ENC_SEI_MODE_ONE_FRAME) {
-        info->sei_change_flg |= H264E_SEI_CHG_SPSPPS;
         h264e_vpu_sei_encode(ctx);
     }
 
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
@@ -464,7 +463,7 @@ MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx)
     MPP_RET ret = MPP_OK;
     RK_S32 k = 0;
     h264e_hal_vpu_buffers *p = (h264e_hal_vpu_buffers *)ctx->buffers;
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     if (p->hw_cabac_table_buf) {
         ret = mpp_buffer_put(p->hw_cabac_table_buf);
@@ -500,7 +499,7 @@ MPP_RET h264e_vpu_free_buffers(H264eHalContext *ctx)
         p->hw_buf_grp = NULL;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return ret;
 }
 
@@ -508,7 +507,7 @@ MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx)
 {
     MPP_RET ret = MPP_OK;
     h264e_hal_vpu_buffers *buffers = (h264e_hal_vpu_buffers *)ctx->buffers;
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     // init parameters
     buffers->cabac_init_idc = 0;
@@ -530,7 +529,7 @@ MPP_RET h264e_vpu_allocate_buffers(H264eHalContext *ctx)
     hal_h264e_vpu_write_cabac_table(buffers->hw_cabac_table_buf,
                                     buffers->cabac_init_idc);
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
@@ -539,7 +538,7 @@ MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
     MPP_RET ret = MPP_OK;
 
     h264e_hal_vpu_buffers *buffers = (h264e_hal_vpu_buffers *)ctx->buffers;
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     if (hw_cfg->cabac_init_idc != buffers->cabac_init_idc) {
         hal_h264e_vpu_write_cabac_table(buffers->hw_cabac_table_buf,
@@ -584,6 +583,6 @@ MPP_RET h264e_vpu_update_buffers(H264eHalContext *ctx, H264eHwCfg *hw_cfg)
         buffers->align_height = align_height;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }

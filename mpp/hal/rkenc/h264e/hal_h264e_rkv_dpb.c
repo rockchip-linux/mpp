@@ -25,7 +25,7 @@ static H264eRkvFrame *h264e_rkv_frame_new(H264eRkvDpbCtx *dpb_ctx)
     H264eRkvFrame *frame_buf = dpb_ctx->frame_buf;
     RK_S32 num_buf = MPP_ARRAY_ELEMS(dpb_ctx->frame_buf);
     H264eRkvFrame *new_frame = NULL;
-    h264e_hal_enter();
+    hal_h264e_enter();
     for (k = 0; k < num_buf; k++) {
         if (!frame_buf[k].hw_buf_used) {
             new_frame = &frame_buf[k];
@@ -35,11 +35,11 @@ static H264eRkvFrame *h264e_rkv_frame_new(H264eRkvDpbCtx *dpb_ctx)
     }
 
     if (!new_frame) {
-        h264e_hal_err("!new_frame, new_frame get failed");
+        mpp_err_f("!new_frame, new_frame get failed");
         return NULL;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return new_frame;
 }
 
@@ -49,19 +49,19 @@ void h264e_rkv_frame_push(H264eRkvFrame **list, H264eRkvFrame *frame)
     RK_S32 i = 0;
     while ( list[i] ) i++;
     list[i] = frame;
-    h264e_hal_dbg(H264E_DBG_DPB, "frame push list[%d] %p", i, frame);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "frame push list[%d] %p", i, frame);
 
 }
 
 static void h264e_rkv_frame_push_unused(H264eRkvDpbCtx *dpb_ctx,
                                         H264eRkvFrame *frame)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
     mpp_assert( frame->i_reference_count > 0 );
     frame->i_reference_count--;
     if ( frame->i_reference_count == 0 )
         h264e_rkv_frame_push( dpb_ctx->frames.unused, frame );
-    h264e_hal_leave();
+    hal_h264e_leave();
 }
 
 static H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
@@ -72,7 +72,7 @@ static H264eRkvFrame *h264e_rkv_frame_pop( H264eRkvFrame **list )
     while ( list[i + 1] ) i++;
     frame = list[i];
     list[i] = NULL;
-    h264e_hal_dbg(H264E_DBG_DPB, "frame pop list[%d] %p", i, frame);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "frame pop list[%d] %p", i, frame);
     return frame;
 }
 
@@ -83,7 +83,7 @@ H264eRkvFrame *h264e_rkv_frame_pop_unused( H264eHalContext *ctx)
 
     H264eRkvDpbCtx *dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
     if ( dpb_ctx->frames.unused[0] )
         frame = h264e_rkv_frame_pop( dpb_ctx->frames.unused );
     else {
@@ -91,7 +91,7 @@ H264eRkvFrame *h264e_rkv_frame_pop_unused( H264eHalContext *ctx)
     }
 
     if ( !frame ) {
-        h264e_hal_err("!frame, return NULL");
+        mpp_err_f("!frame, return NULL");
         return NULL;
     }
     frame->i_reference_count = 1;
@@ -100,7 +100,7 @@ H264eRkvFrame *h264e_rkv_frame_pop_unused( H264eHalContext *ctx)
     frame->long_term_flag = 0;
     frame->reorder_longterm_flag = 0;
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return frame;
 }
@@ -112,7 +112,7 @@ static H264eRkvFrame *h264e_rkv_frame_shift( H264eRkvFrame **list )
     for ( i = 0; list[i]; i++ )
         list[i] = list[i + 1];
     mpp_assert(frame);
-    h264e_hal_dbg(H264E_DBG_DPB, "frame shift list[0] %p", frame);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "frame shift list[0] %p", frame);
     return frame;
 }
 
@@ -124,9 +124,9 @@ static MPP_RET h264e_rkv_reference_update( H264eHalContext *ctx)
     H264eRkvDpbCtx *dpb_ctx = (H264eRkvDpbCtx *)ctx->dpb_ctx;
     H264eRefParam *ref_cfg = &ctx->param.ref;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
     if ( !dpb_ctx->fdec->b_kept_as_ref ) {
-        h264e_hal_err("!dpb_ctx->fdec->b_kept_as_ref, return early");
+        mpp_err_f("!dpb_ctx->fdec->b_kept_as_ref, return early");
         return MPP_OK;
     }
 
@@ -141,7 +141,7 @@ static MPP_RET h264e_rkv_reference_update( H264eHalContext *ctx)
     }
 
     /* move frame in the buffer */
-    h264e_hal_dbg(H264E_DBG_DPB, "try to push dpb_ctx->fdec %p, poc %d",
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "try to push dpb_ctx->fdec %p, poc %d",
                   dpb_ctx->fdec, dpb_ctx->fdec->i_poc);
     h264e_rkv_frame_push( dpb_ctx->frames.reference, dpb_ctx->fdec );
     if ( ref_cfg->i_long_term_en ) {
@@ -160,17 +160,17 @@ static MPP_RET h264e_rkv_reference_update( H264eHalContext *ctx)
             h264e_rkv_frame_push_unused(dpb_ctx, h264e_rkv_frame_shift(dpb_ctx->frames.reference));
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
 static void h264e_rkv_reference_reset(H264eRkvDpbCtx *dpb_ctx)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
     while (dpb_ctx->frames.reference[0])
         h264e_rkv_frame_push_unused(dpb_ctx, h264e_rkv_frame_pop(dpb_ctx->frames.reference));
     dpb_ctx->fdec->i_poc = 0;
-    h264e_hal_leave();
+    hal_h264e_leave();
 }
 
 static RK_S32
@@ -190,7 +190,7 @@ static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
     H264eRkvFrame *fdec = dpb_ctx->fdec;
     RK_S32 i_poc = fdec->i_poc;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
     /* build ref list 0/1 */
     dpb_ctx->i_ref[0] = 0;
     dpb_ctx->i_ref[1] = 0;
@@ -202,11 +202,11 @@ static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
         if (ref_cfg->i_long_term_en && ref_cfg->hw_longterm_mode &&
             ((dpb_ctx->fdec->i_frame_cnt % ref_cfg->i_long_term_internal) == 0))
             fdec->long_term_flag = 1;
-        h264e_hal_dbg(H264E_DBG_DPB, "dpb_ctx->i_slice_type == SLICE_TYPE_I, return");
+        hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "dpb_ctx->i_slice_type == SLICE_TYPE_I, return");
         return;
     }
 
-    h264e_hal_dbg(H264E_DBG_DPB, "fdec->i_poc: %d", fdec->i_poc);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "fdec->i_poc: %d", fdec->i_poc);
     for ( i = 0; dpb_ctx->frames.reference[i]; i++ ) {
         if ( dpb_ctx->frames.reference[i]->b_corrupt )
             continue;
@@ -216,8 +216,8 @@ static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
             dpb_ctx->fref[1][dpb_ctx->i_ref[1]++] = dpb_ctx->frames.reference[i];
     }
 
-    h264e_hal_dbg(H264E_DBG_DPB, "dpb_ctx->i_ref[0]: %d", dpb_ctx->i_ref[0]);
-    h264e_hal_dbg(H264E_DBG_DPB, "dpb_ctx->i_ref[1]: %d", dpb_ctx->i_ref[1]);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "dpb_ctx->i_ref[0]: %d", dpb_ctx->i_ref[0]);
+    hal_h264e_dbg(HAL_H264E_DBG_RKV_DPB, "dpb_ctx->i_ref[1]: %d", dpb_ctx->i_ref[1]);
 
     if ( dpb_ctx->i_mmco_remove_from_end ) {
         /* Order ref0 for MMCO remove */
@@ -360,25 +360,25 @@ static void h264e_rkv_reference_build_list(H264eHalContext *ctx)
             dpb_ctx->i_mmco_command_count = 0;
     }
 
-    dpb_ctx->i_ref[1] = H264E_HAL_MIN( dpb_ctx->i_ref[1], dpb_ctx->i_max_ref1 );
-    dpb_ctx->i_ref[0] = H264E_HAL_MIN( dpb_ctx->i_ref[0], dpb_ctx->i_max_ref0 );
-    dpb_ctx->i_ref[0] = H264E_HAL_MIN( dpb_ctx->i_ref[0], ref_cfg->i_frame_reference ); // if reconfig() has lowered the limit
+    dpb_ctx->i_ref[1] = MPP_MIN( dpb_ctx->i_ref[1], dpb_ctx->i_max_ref1 );
+    dpb_ctx->i_ref[0] = MPP_MIN( dpb_ctx->i_ref[0], dpb_ctx->i_max_ref0 );
+    dpb_ctx->i_ref[0] = MPP_MIN( dpb_ctx->i_ref[0], ref_cfg->i_frame_reference ); // if reconfig() has lowered the limit
 
     /* EXP: add duplicates */
     mpp_assert( dpb_ctx->i_ref[0] + dpb_ctx->i_ref[1] <= H264E_REF_MAX );
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 }
 
 MPP_RET h264e_rkv_reference_frame_update( H264eHalContext *ctx)
 {
-    h264e_hal_enter();
+    hal_h264e_enter();
     if (MPP_OK != h264e_rkv_reference_update(ctx)) {
-        h264e_hal_err("reference update failed, return now");
+        mpp_err_f("reference update failed, return now");
         return MPP_NOK;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
     return MPP_OK;
 }
 
@@ -392,17 +392,17 @@ h264e_rkv_reference_frame_set( H264eHalContext *ctx, H264eHwCfg *syn)
     H264eSps *sps = &extra_info->sps;
     H264eRefParam *ref_cfg = &ctx->param.ref;
 
-    h264e_hal_enter();
+    hal_h264e_enter();
 
     dpb_ctx->fdec = h264e_rkv_frame_pop_unused(ctx);
     if ( !dpb_ctx->fdec ) {
-        h264e_hal_err("!dpb_ctx->fdec, current recon buf get failed");
+        mpp_err_f("!dpb_ctx->fdec, current recon buf get failed");
         return MPP_NOK;
     }
 
     dpb_ctx->i_max_ref0 = ref_cfg->i_frame_reference;
-    dpb_ctx->i_max_ref1 = H264E_HAL_MIN(sps->vui.i_num_reorder_frames,
-                                        ref_cfg->i_frame_reference);
+    dpb_ctx->i_max_ref1 = MPP_MIN(sps->vui.i_num_reorder_frames,
+                                  ref_cfg->i_frame_reference);
 
     if (syn->coding_type == RKVENC_CODING_TYPE_IDR) {
         dpb_ctx->i_frame_num = 0;
@@ -413,7 +413,7 @@ h264e_rkv_reference_frame_set( H264eHalContext *ctx, H264eHwCfg *syn)
     dpb_ctx->fdec->i_frame_num = dpb_ctx->i_frame_num;
     dpb_ctx->fdec->i_frame_type = syn->coding_type;
     dpb_ctx->fdec->i_poc = 2 * (dpb_ctx->fdec->i_frame_cnt -
-                                H264E_HAL_MAX(dpb_ctx->frames.i_last_idr, 0));
+                                MPP_MAX(dpb_ctx->frames.i_last_idr, 0));
 
     if ( !RKVENC_IS_TYPE_I( dpb_ctx->fdec->i_frame_type ) ) {
         RK_S32 valid_refs_left = 0;
@@ -507,7 +507,7 @@ h264e_rkv_reference_frame_set( H264eHalContext *ctx, H264eHwCfg *syn)
         dpb_ctx->i_idr_pic_id = -1;
     }
 
-    h264e_hal_leave();
+    hal_h264e_leave();
 
     return MPP_OK;
 }
