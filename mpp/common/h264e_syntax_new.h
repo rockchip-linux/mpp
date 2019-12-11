@@ -260,6 +260,7 @@ typedef struct H264eSlice_t {
     RK_U32      entropy_coding_mode;
     RK_S32      log2_max_frame_num;
     RK_S32      log2_max_poc_lsb;
+    RK_S32      pic_order_cnt_type;
 
     /* Nal parameters */
     RK_S32      nal_reference_idc;
@@ -286,7 +287,7 @@ typedef struct H264eSlice_t {
     RK_U32      idr_pic_id;
     RK_U32      next_idr_pic_id;
     /* for poc mode 0 */
-    RK_S32      pic_order_cnt_lsb;
+    RK_U32      pic_order_cnt_lsb;
     RK_S32      num_ref_idx_active;
     /* idr mmco flag */
     RK_S32      no_output_of_prior_pics;
