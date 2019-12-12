@@ -285,6 +285,9 @@ void drm_rga_display_frame(MppFrame frame, int drm, int crtc_id, int plane_id)
 
     src_info.fd = mpp_buffer_get_fd(frame_buf);
     src_info.mmuFlag = 1;
+
+    mpp_log("rga_set_rect(src, +0+0, %ux%u, %u, %u, fmt=0x%x)",
+            width, height, hstride, vstride, RK_FORMAT_YCbCr_420_SP);
     rga_set_rect(&src_info.rect,
                  0, 0, width, height,
                  hstride, vstride,
@@ -297,15 +300,20 @@ void drm_rga_display_frame(MppFrame frame, int drm, int crtc_id, int plane_id)
         mpp_err("RkRgaGetAllocBuffer failed: %s\n", strerror(-ret));
         return;
     }
+    mpp_log("bo: fd=%d, ptr=%p, size=%d off=%d pitch=%d, hnd=%u\n",
+            bo_dst.fd, bo_dst.ptr, bo_dst.size, bo_dst.offset, bo_dst.pitch, bo_dst.handle);
 
     ret = c_RkRgaGetBufferFd(&bo_dst, &dst_info.fd);
     if (ret < 0) {
         mpp_err("RkRgaGetBufferFd failed: %d, %s\n", ret, strerror(errno));
         return;
     }
+    mpp_log("dst.fd=%d\n", dst_info.fd);
 
     dst_info.mmuFlag = 1;
 
+    mpp_log("rga_set_rect(dst, +0+0, %ux%u, %u, %u, fmt=0x%x)",
+            width, height, width, height, RK_FORMAT_BGRA_8888);
     rga_set_rect(&dst_info.rect,
                  0, 0, width, height,
                  width, height, // FIXME ?
