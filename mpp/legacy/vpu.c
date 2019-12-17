@@ -29,6 +29,11 @@
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
+#define VPU_EXTRA_INFO_SIZE                 12
+#define VPU_EXTRA_INFO_MAGIC                (0x4C4A46)
+#define VPU_MPP_FLAGS_MULTI_MSG             (0x00000001)
+#define VPU_MPP_FLAGS_LAST_MSG              (0x00000002)
+
 #define VPU_IOC_MAGIC                       'l'
 
 #define VPU_IOC_SET_CLIENT_TYPE             _IOW(VPU_IOC_MAGIC, 1, unsigned long)
@@ -40,38 +45,96 @@
 
 #define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
 
+/* Use 'v' as magic number */
+#define MPP_IOC_MAGIC                       'v'
+#define MPP_IOC_CFG_V1                      _IOW(MPP_IOC_MAGIC, 1, unsigned int)
+
+#if __SIZEOF_POINTER__ == 4
+#define REQ_DATA_PTR(ptr) ((RK_U32)ptr)
+#elif __SIZEOF_POINTER__ == 8
+#define REQ_DATA_PTR(ptr) ((RK_U64)ptr)
+#endif
+
 typedef struct VPUReq {
     RK_U32 *req;
     RK_U32  size;
 } VPUReq_t;
 
+typedef struct mppReqV1_t {
+    RK_U32 cmd;
+    RK_U32 flag;
+    RK_U32 size;
+    RK_U32 offset;
+    RK_U64 data_ptr;
+} MppReqV1;
+
+typedef struct RegPatchSlotInfo_t {
+    RK_U32          reg_idx;
+    RK_U32          offset;
+} RegPatchInfo;
+
+typedef struct RegExtraInfo_t {
+    RK_U32          magic;      // Fix magic value 0x4C4A46
+    RK_U32          count;      // valid patch info count
+    RegPatchInfo    patchs[5];
+} RegExtraInfo;
+
 static RK_U32 vpu_debug = 0;
+
+/* 0 original version,  > 1 for others version */
+static RK_S32 ioctl_version = 0;
 
 static RK_S32 vpu_api_set_client_type(int dev, RK_S32 client_type)
 {
     static RK_S32 vpu_api_ioctl_version = -1;
     RK_S32 ret;
 
-    if (vpu_api_ioctl_version < 0) {
-        ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
-        if (!ret) {
-            vpu_api_ioctl_version = 0;
-        } else {
-            ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE_U32, client_type);
-            if (!ret)
-                vpu_api_ioctl_version = 1;
+    if (ioctl_version > 0) {
+        MppReqV1 mpp_req;
+        RK_U32 vcodec_type;
+        RK_U32 client_data;
+
+        vcodec_type = mpp_get_vcodec_type();
+
+        switch (client_type) {
+        case VPU_ENC:
+            if (vcodec_type & HAVE_VDPU1)
+                client_data = VPU_CLIENT_VEPU1;
+            else if (vcodec_type & HAVE_VDPU2)
+                client_data = VPU_CLIENT_VEPU2;
+            break;
+        default:
+            break;
         }
 
-        if (ret)
-            mpp_err_f("can not find valid client type ioctl\n");
-
-        mpp_assert(ret == 0);
+        mpp_req.cmd = MPP_DEV_CMD_INIT_CLIENT_TYPE;
+        mpp_req.flag = 0;
+        mpp_req.size = sizeof(client_data);
+        mpp_req.offset = 0;
+        mpp_req.data_ptr = REQ_DATA_PTR(&client_data);
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
     } else {
-        RK_U32 cmd = (vpu_api_ioctl_version == 0) ?
-                     (VPU_IOC_SET_CLIENT_TYPE) :
-                     (VPU_IOC_SET_CLIENT_TYPE_U32);
+        if (vpu_api_ioctl_version < 0) {
+            ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE, client_type);
+            if (!ret) {
+                vpu_api_ioctl_version = 0;
+            } else {
+                ret = ioctl(dev, VPU_IOC_SET_CLIENT_TYPE_U32, client_type);
+                if (!ret)
+                    vpu_api_ioctl_version = 1;
+            }
 
-        ret = ioctl(dev, cmd, client_type);
+            if (ret)
+                mpp_err_f("can not find valid client type ioctl\n");
+
+            mpp_assert(ret == 0);
+        } else {
+            RK_U32 cmd = (vpu_api_ioctl_version == 0) ?
+                         (VPU_IOC_SET_CLIENT_TYPE) :
+                         (VPU_IOC_SET_CLIENT_TYPE_U32);
+
+            ret = ioctl(dev, cmd, client_type);
+        }
     }
 
     if (ret)
@@ -116,10 +179,12 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
         break;
     }
 
-    path = mpp_get_vcodec_dev_name (ctx_type, coding);
+    path = mpp_get_vcodec_dev_name(ctx_type, coding);
     fd = open(path, O_RDWR);
 
     mpp_env_get_u32("vpu_debug", &vpu_debug, 0);
+
+    ioctl_version = mpp_get_ioctl_version();
 
     if (fd == -1) {
         mpp_err_f("failed to open %s, errno = %d, error msg: %s\n",
@@ -131,6 +196,7 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     if (ret) {
         return -2;
     }
+
     return fd;
 }
 
@@ -157,10 +223,52 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
         }
     }
 
-    nregs *= sizeof(RK_U32);
-    req.req     = regs;
-    req.size    = nregs;
-    ret = (RK_S32)ioctl(fd, VPU_IOC_SET_REG, &req);
+    if (ioctl_version > 0) {
+        MppReqV1 reqs[3];
+        RK_U32 reg_size = nregs;
+
+        RegExtraInfo *extra_info = (RegExtraInfo*)(regs + (nregs - 12));
+
+        reqs[0].cmd = MPP_DEV_CMD_SET_REG_WRITE;
+        reqs[0].flag = 0;
+        reqs[0].offset = 0;
+        reqs[0].size =  reg_size * sizeof(RK_U32);
+        reqs[0].data_ptr = REQ_DATA_PTR((void*)regs);
+        reqs[0].flag |= VPU_MPP_FLAGS_MULTI_MSG;
+
+        reqs[1].cmd = MPP_DEV_CMD_SET_REG_READ;
+        reqs[1].flag = 0;
+        reqs[1].offset = 0;
+        reqs[1].size =  reg_size * sizeof(RK_U32);
+        reqs[1].data_ptr = REQ_DATA_PTR((void*)regs);
+
+        if (extra_info && extra_info->magic == VPU_EXTRA_INFO_MAGIC) {
+            reg_size = nregs - VPU_EXTRA_INFO_SIZE;
+            reqs[2].cmd = MPP_DEV_CMD_SET_REG_ADDR_OFFSET;
+            reqs[2].flag = 0;
+            reqs[2].offset = 0;
+            reqs[2].size = extra_info->count * sizeof(extra_info->patchs[0]);
+            reqs[2].data_ptr = REQ_DATA_PTR((void *)&extra_info->patchs[0]);
+
+            reqs[0].size =  reg_size * sizeof(RK_U32);
+            reqs[1].size =  reg_size * sizeof(RK_U32);
+            reqs[1].flag |= VPU_MPP_FLAGS_MULTI_MSG;
+            reqs[2].flag |= VPU_MPP_FLAGS_LAST_MSG;
+            ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &reqs);
+        } else {
+            MppReqV1 reqs_tmp[2];
+            reqs[1].flag |= VPU_MPP_FLAGS_LAST_MSG;
+            memcpy(reqs_tmp, reqs, sizeof(MppReqV1) * 2);
+            ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &reqs_tmp);
+        }
+
+    } else {
+        nregs *= sizeof(RK_U32);
+        req.req     = regs;
+        req.size    = nregs;
+        ret = (RK_S32)ioctl(fd, VPU_IOC_SET_REG, &req);
+    }
+
     if (ret)
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n", ret, errno, strerror(errno));
 
@@ -190,11 +298,31 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
     VPUReq_t req;
     (void)len;
 
-    nregs *= sizeof(RK_U32);
-    req.req     = regs;
-    req.size    = nregs;
+    if (ioctl_version > 0) {
+        MppReqV1 mpp_req;
+        RK_U32 reg_size = nregs;
+        RegExtraInfo *extra_info = (RegExtraInfo*)(regs + (nregs - 12));
 
-    ret = (RK_S32)ioctl(fd, VPU_IOC_GET_REG, &req);
+        if (extra_info && extra_info->magic == VPU_EXTRA_INFO_MAGIC) {
+            reg_size -= 2;
+        } else {
+            reg_size -= VPU_EXTRA_INFO_SIZE;
+        }
+
+        mpp_req.cmd = MPP_DEV_CMD_POLL_HW_FINISH;
+        mpp_req.flag = 0;
+        mpp_req.offset = 0;
+        mpp_req.size =  reg_size * sizeof(RK_U32);
+        mpp_req.data_ptr = REQ_DATA_PTR((void*)regs);
+        ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
+    } else {
+        nregs *= sizeof(RK_U32);
+        req.req     = regs;
+        req.size    = nregs;
+
+        ret = (RK_S32)ioctl(fd, VPU_IOC_GET_REG, &req);
+    }
+
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_GET_REG failed ret %d errno %d %s\n", ret, errno, strerror(errno));
         *cmd = VPU_SEND_CONFIG_ACK_FAIL;
@@ -203,7 +331,6 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
 
     if (vpu_debug) {
         RK_U32 i;
-        nregs >>= 2;
 
         for (i = 0; i < nregs; i++) {
             mpp_log("get reg[%03d]: %08x\n", i, regs[i]);
