@@ -20,6 +20,7 @@
 #include "mpp_log.h"
 
 #define RC_DBG_FUNCTION             (0x00000001)
+#define RC_DBG_API_IMPL             (0x00000002)
 #define RC_DBG_FPS                  (0x00000010)
 #define RC_DBG_BPS                  (0x00000020)
 #define RC_DBG_RC                   (0x00000030)
@@ -31,6 +32,7 @@
 #define rc_dbg_f(flag, fmt, ...)    _mpp_dbg_f(rc_debug, flag, fmt, ## __VA_ARGS__)
 
 #define rc_dbg_func(fmt, ...)       rc_dbg_f(RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define rc_dbg_impl(fmt, ...)       rc_dbg_f(RC_DBG_API_IMPL, fmt, ## __VA_ARGS__)
 #define rc_dbg_fps(fmt, ...)        rc_dbg(RC_DBG_FPS, fmt, ## __VA_ARGS__)
 #define rc_dbg_bps(fmt, ...)        rc_dbg(RC_DBG_BPS, fmt, ## __VA_ARGS__)
 #define rc_dbg_rc(fmt, ...)         rc_dbg(RC_DBG_RC, fmt, ## __VA_ARGS__)
