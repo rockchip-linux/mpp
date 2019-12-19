@@ -18,6 +18,8 @@ add_subdirectory(dec)
 
 add_subdirectory(enc)
 
+add_subdirectory(rc)
+
 target_link_libraries(mpp_codec
                       ${CODEC_AVSD}
                       ${CODEC_H263D}
