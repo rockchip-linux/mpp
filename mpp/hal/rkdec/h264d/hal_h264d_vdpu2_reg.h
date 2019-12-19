@@ -446,7 +446,7 @@ typedef struct {
         RK_U32 reverse0 : 6;
         RK_U32 max_refidx0 : 5;
         RK_U32 max_refidx1 : 5;
-        RK_U32 pps_id : 5;
+        RK_U32 pps_id : 8;
     } sw114;
     struct {
         RK_U32 fieldpic_flag_exist : 1;
