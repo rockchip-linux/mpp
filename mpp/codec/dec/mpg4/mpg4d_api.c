@@ -25,6 +25,7 @@
 
 #include "mpg4d_api.h"
 #include "mpg4d_parser.h"
+#include "mpp_packet_impl.h"
 
 #define MPG4D_INIT_STREAM_SIZE      SZ_64K
 
@@ -226,7 +227,8 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_size(p->task_pkt, p->stream_size);
     }
 
-    if (!p->need_split) {
+    if (!p->need_split ||
+        (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA)) {
         p->got_eos = eos;
         // NOTE: empty eos packet
         if (eos && !length) {
@@ -234,10 +236,10 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
             return MPP_OK;
         }
         /*
-                * Copy packet mode:
-                * Decoder's user will insure each packet is one frame for process
-                * Parser will just copy packet to the beginning of stream buffer
-             */
+         * Copy packet mode:
+         * Decoder's user will insure each packet is one frame for process
+         * Parser will just copy packet to the beginning of stream buffer
+         */
         memcpy(p->stream, pos, length);
         mpp_packet_set_pos(p->task_pkt, p->stream);
         mpp_packet_set_length(p->task_pkt, length);
