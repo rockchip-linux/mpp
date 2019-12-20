@@ -185,11 +185,18 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
+#define RUN_ENC_IMPL_FUNC(func, hal, task, mpp, ret)             \
+    ret = func(hal, task);                                      \
+    if (ret) {                                                  \
+        mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
+        goto TASK_ERR;                                          \
+    }
+
 #define RUN_ENC_HAL_FUNC(func, hal, task, mpp, ret)             \
     ret = func(hal, task);                                      \
     if (ret) {                                                  \
         mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
-        goto TASK_END;                                          \
+        goto TASK_ERR;                                          \
     }
 
 void *mpp_enc_thread(void *data)
@@ -209,7 +216,7 @@ void *mpp_enc_thread(void *data)
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
     MppPacket packet = NULL;
-    MppBuffer mv_info = NULL;
+    MppBuffer frm_buf = NULL;
 
     memset(&task, 0, sizeof(task));
 
@@ -303,17 +310,27 @@ void *mpp_enc_thread(void *data)
         }
         enc_dbg_detail("task out ready\n");
 
+        // get tasks from both input and output
         ret = mpp_port_dequeue(input, &task_in);
         mpp_assert(task_in);
 
+        ret = mpp_port_dequeue(output, &task_out);
+        mpp_assert(task_out);
+
+        /*
+         * frame will be return to input.
+         * packet will be sent to output.
+         */
         mpp_task_meta_get_frame (task_in, KEY_INPUT_FRAME,  &frame);
         mpp_task_meta_get_packet(task_in, KEY_OUTPUT_PACKET, &packet);
-        mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &mv_info);
 
-        if (NULL == frame) {
-            mpp_port_enqueue(input, task_in);
-            continue;
-        }
+        /* If there is no input frame just return empty packet task */
+        if (NULL == frame)
+            goto TASK_RETURN;
+
+        frm_buf = mpp_frame_get_buffer(frame);
+        if (NULL == frm_buf)
+            goto TASK_RETURN;
 
         reset_hal_enc_task(hal_task);
 
@@ -322,121 +339,95 @@ void *mpp_enc_thread(void *data)
             enc->hdr_need_updated = 0;
         }
 
-        if (mpp_frame_get_buffer(frame)) {
-            /*
-             * if there is available buffer in the input frame do encoding
-             */
-            if (NULL == packet) {
-                RK_U32 width  = enc->cfg.prep.width;
-                RK_U32 height = enc->cfg.prep.height;
-                RK_U32 size = width * height;
-                MppBuffer buffer = NULL;
+        /*
+         * if there is available buffer in the input frame do encoding
+         */
+        if (NULL == packet) {
+            RK_U32 width  = enc->cfg.prep.width;
+            RK_U32 height = enc->cfg.prep.height;
+            RK_U32 size = width * height;
+            MppBuffer buffer = NULL;
 
-                mpp_assert(size);
-                mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
-                mpp_packet_init_with_buffer(&packet, buffer);
-                mpp_buffer_put(buffer);
-            }
-            mpp_assert(packet);
+            mpp_assert(size);
+            mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
+            mpp_packet_init_with_buffer(&packet, buffer);
+            mpp_buffer_put(buffer);
+        }
+        mpp_assert(packet);
 
-            mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
+        mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
 
-            hal_task->frame  = frame;
-            hal_task->input  = mpp_frame_get_buffer(frame);
-            hal_task->packet = packet;
-            hal_task->output = mpp_packet_get_buffer(packet);
-            hal_task->mv_info = mv_info;
+        hal_task->frame  = frame;
+        hal_task->input  = mpp_frame_get_buffer(frame);
+        hal_task->packet = packet;
+        hal_task->output = mpp_packet_get_buffer(packet);
+        mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &hal_task->mv_info);
 
-            ret = enc_impl_start(impl, hal_task);
-            if (ret) {
-                enc_dbg_detail("mpp %p enc_impl_start drop one frame", mpp);
-                goto TASK_END;
-            }
-
-            ret = enc_impl_proc_dpb(impl, hal_task);
-            if (ret) {
-                mpp_err("mpp %p enc_impl_proc_dpb failed return %d", mpp, ret);
-                goto TASK_END;
-            }
-
-            ret = enc_impl_proc_rc(impl, hal_task);
-            if (ret) {
-                mpp_err("mpp %p enc_impl_proc_rc failed return %d", mpp, ret);
-                goto TASK_END;
-            }
-
-            ret = enc_impl_proc_hal(impl, hal_task);
-            if (ret) {
-                mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
-                goto TASK_END;
-            }
-
-            RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
-            RUN_ENC_HAL_FUNC(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
-            RUN_ENC_HAL_FUNC(mpp_enc_hal_start, hal, hal_task, mpp, ret);
-            RUN_ENC_HAL_FUNC(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
-            RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
-
-            ret = enc_impl_update_hal(impl, hal_task);
-            if (ret) {
-                mpp_err("mpp %p enc_impl_proc_hal failed return %d", mpp, ret);
-                goto TASK_END;
-            }
-
-            ret = enc_impl_update_rc(impl, hal_task);
-            if (ret) {
-                mpp_err("mpp %p enc_impl_proc_rc failed return %d", mpp, ret);
-                goto TASK_END;
-            }
-
-        TASK_END:
-            mpp_packet_set_length(packet, hal_task->length);
-        } else {
-            /*
-             * else init a empty packet for output
-             */
-            mpp_packet_new(&packet);
+        RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
+        /* Invalid task for frame rate drop is returned as error task */
+        if (!hal_task->valid) {
+            hal_task->length = 0;
+            goto TASK_ERR;
         }
 
-        if (mpp_frame_get_eos(frame))
-            mpp_packet_set_eos(packet);
+    TASK_REENCODE:
+        RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+        RUN_ENC_IMPL_FUNC(enc_impl_proc_rc, impl, hal_task, mpp, ret);
+        RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);
 
-        /*
-         * first clear output packet
-         * then enqueue task back to input port
-         * final user will release the mpp_frame they had input
-         */
-        mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
-        mpp_port_enqueue(input, task_in);
+        RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
+        RUN_ENC_HAL_FUNC(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
+        RUN_ENC_HAL_FUNC(mpp_enc_hal_start, hal, hal_task, mpp, ret);
+        RUN_ENC_HAL_FUNC(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+        RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
 
-        // send finished task to output port
-        ret = mpp_port_dequeue(output, &task_out);
+        RUN_ENC_IMPL_FUNC(enc_impl_update_hal, impl, hal_task, mpp, ret);
+        RUN_ENC_IMPL_FUNC(enc_impl_update_rc, impl, hal_task, mpp, ret);
+
+        /* If task needs reencode restart from proc_dpb */
+        if (hal_task->reencode) {
+            mpp_log_f("reencode time %d\n");
+            goto TASK_REENCODE;
+        }
+
+    TASK_ERR:
+        mpp_packet_set_length(packet, hal_task->length);
 
         /*
          * task_in may be null if output port is awaken by Mpp::clear()
          */
-        if (task_out) {
-            //set motion info buffer to output task
-            if (mv_info)
-                mpp_task_meta_set_buffer(task_out, KEY_MOTION_INFO, mv_info);
+        if (hal_task->mv_info)
+            mpp_task_meta_set_buffer(task_out, KEY_MOTION_INFO, hal_task->mv_info);
 
-            mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
+        {
+            RK_S32 is_intra = hal_task->is_intra;
+            RK_U32 flag = mpp_packet_get_flag(packet);
 
-            {
-                RK_S32 is_intra = hal_task->is_intra;
-                RK_U32 flag = mpp_packet_get_flag(packet);
-
-                mpp_task_meta_set_s32(task_out, KEY_OUTPUT_INTRA, is_intra);
-                if (is_intra) {
-                    mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
-                }
+            mpp_task_meta_set_s32(task_out, KEY_OUTPUT_INTRA, is_intra);
+            if (is_intra) {
+                mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
             }
-
-            // setup output task here
-            mpp_port_enqueue(output, task_out);
-        } else {
-            mpp_packet_deinit(&packet);
         }
+
+    TASK_RETURN:
+        /*
+         * First return output packet.
+         * Then enqueue task back to input port.
+         * Final user will release the mpp_frame they had input.
+         */
+        if (NULL == packet)
+            mpp_packet_new(&packet);
+
+        if (frame && mpp_frame_get_eos(frame))
+            mpp_packet_set_eos(packet);
+        else
+            mpp_packet_clr_eos(packet);
+
+        mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
+        mpp_port_enqueue(output, task_out);
+
+        mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
+        mpp_port_enqueue(input, task_in);
 
         task_in = NULL;
         task_out = NULL;

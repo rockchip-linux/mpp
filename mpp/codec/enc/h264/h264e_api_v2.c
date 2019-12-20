@@ -523,19 +523,18 @@ static MPP_RET h264e_start(void *ctx, HalEncTask *task)
      * Determine current frame which should be encoded or not according to
      * input and output frame rate.
      */
-    RK_S32 drop = rc_frm_check_drop(p->rc_ctx);
-    if (drop)
-        mpp_log_f("drop one frame\n");
+    task->valid = !rc_frm_check_drop(p->rc_ctx);
+    if (!task->valid)
+        mpp_log_f("drop one frame by fps\n");
 
     /*
      * Step 3: Backup dpb for reencode
      */
     h264e_dpb_copy(&p->dpb_bak, &p->dpb);
 
-    (void)task;
     h264e_dbg_func("leave\n");
 
-    return (drop) ? (MPP_NOK) : (MPP_OK);
+    return MPP_OK;
 }
 
 static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
