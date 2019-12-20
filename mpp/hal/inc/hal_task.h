@@ -170,6 +170,7 @@ typedef struct HalDecTask_t {
 
 typedef struct HalEncTask_t {
     RK_U32          valid;
+    RK_U32          reencode;
 
     // current tesk protocol syntax information
     MppSyntax       syntax;
@@ -191,7 +192,6 @@ typedef struct HalEncTask_t {
     RK_S32          temporal_id;
 
     HalEncTaskFlag  flags;
-
 } HalEncTask;
 
 typedef struct HalDecVprocTask_t {
