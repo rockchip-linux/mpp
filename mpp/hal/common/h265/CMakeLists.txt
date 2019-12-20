@@ -1,5 +1,7 @@
 # vim: syntax=cmake
 include_directories(.)
+include_directories(../../rkenc/h265e/)
+include_directories(../../rkenc/common/)
 include_directories(../../vpu/h265e/)
 
 # hal h265 header
@@ -9,6 +11,7 @@ set(HAL_H265E_HDR
 # hal h265 encoder sourse
 set(HAL_H265E_SRC
     hal_h265e_api.c
+    hal_h265e_api_v2.c
     )
 
 add_library(hal_h265e STATIC
@@ -18,4 +21,4 @@ add_library(hal_h265e STATIC
 
 set_target_properties(hal_h265e PROPERTIES FOLDER "mpp/hal")
 
-target_link_libraries(hal_h265e hal_h265e_vpu mpp_base)
+target_link_libraries(hal_h265e hal_h265e_rkv hal_h265e_vpu mpp_base)
