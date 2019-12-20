@@ -25,10 +25,14 @@
 #include "mpp_frame_impl.h"
 
 #include "hal_h264e_api_v2.h"
+#include "hal_h265e_api_v2.h"
 
 static const MppEncHalApi *hw_enc_apis[] = {
 #if HAVE_H264E
     &hal_api_h264e_v2,
+#endif
+#if HAVE_H265E
+    &hal_api_h265e_v2,
 #endif
 };
 
