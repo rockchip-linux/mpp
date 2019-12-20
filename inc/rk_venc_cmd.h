@@ -165,6 +165,7 @@ typedef enum MppEncRcCfgChange_e {
 typedef enum MppEncRcMode_t {
     MPP_ENC_RC_MODE_VBR,
     MPP_ENC_RC_MODE_CBR,
+    MPP_ENC_RC_MODE_FIXQP,
     MPP_ENC_RC_MODE_BUTT
 } MppEncRcMode;
 
@@ -273,6 +274,11 @@ typedef struct MppEncRcCfg_t {
      * 0 - frame skip is not allow
      */
     RK_S32  skip_cnt;
+
+    /*
+     * stat_times   - the time of bitrate statistics
+     */
+    RK_S32  stat_times;
 } MppEncRcCfg;
 
 /*
@@ -676,15 +682,15 @@ typedef struct MppEncH264Cfg_t {
 
 #define H265E_MAX_ROI_NUMBER  64
 typedef struct H265eRect_t {
-    RK_S32 left;
-    RK_S32 right;
-    RK_S32 top;
-    RK_S32 bottom;
+    RK_S32              left;
+    RK_S32              right;
+    RK_S32              top;
+    RK_S32              bottom;
 } H265eRect;
 
 typedef struct H265eRoi_Region_t {
-    RK_U8 level;
-    H265eRect rect;
+    RK_U8               level;
+    H265eRect           rect;
 } H265eRoiRegion;
 
 /*
@@ -695,44 +701,44 @@ typedef struct MppEncH265RoiCfg_t {
      * the value is defined by H265eCtuMethod
      */
 
-    RK_U8 method;
+    RK_U8               method;
     /*
      * the number of roi,the value must less than H265E_MAX_ROI_NUMBER
      */
-    RK_S32 num;
+    RK_S32              num;
 
     /* delat qp using in roi region*/
-    RK_U32 delta_qp;
+    RK_U32              delta_qp;
 
     /* roi region */
-    H265eRoiRegion region[H265E_MAX_ROI_NUMBER];
+    H265eRoiRegion      region[H265E_MAX_ROI_NUMBER];
 } MppEncH265RoiCfg;
 
 typedef struct H265eCtuQp_t {
     /* the qp value using in ctu region */
-    RK_U32 qp;
+    RK_U32              qp;
 
     /*
      * define the ctu region
      * method = H265E_METHOD_CUT_SIZE, the value of rect is in ctu size
      * method = H264E_METHOD_COORDINATE,the value of rect is in coordinates
      */
-    H265eRect rect;
+    H265eRect           rect;
 } H265eCtu;
 
 typedef struct H265eCtuRegion_t {
     /*
      * the value is defined by H265eCtuMethod
      */
-    RK_U8 method;
+    RK_U8               method;
 
     /*
      * the number of ctu,the value must less than H265E_MAX_ROI_NUMBER
      */
-    RK_S32 num;
+    RK_S32              num;
 
     /* ctu region */
-    H265eCtu ctu[H265E_MAX_ROI_NUMBER];
+    H265eCtu            ctu[H265E_MAX_ROI_NUMBER];
 } MppEncH265CtuCfg;
 
 /*
@@ -763,19 +769,91 @@ typedef struct MppEncH265SeiCfg_t {
 
 typedef enum MppEncH265CfgChange_e {
     /* change on stream type */
-    MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE  = (1 << 0),
-    MPP_ENC_H265_CFG_INTRA_QP_CHANGE             = (1 << 1),
-    MPP_ENC_H265_CFG_FRAME_RATE_CHANGE           = (1 << 2),
-    MPP_ENC_H265_CFG_BITRATE_CHANGE              = (1 << 3),
-    MPP_ENC_H265_CFG_GOP_SIZE                    = (1 << 4),
-    MPP_ENC_H265_CFG_RC_QP_CHANGE                = (1 << 5),
-    MPP_ENC_H265_CFG_INTRA_REFRESH_CHANGE        = (1 << 6),
-    MPP_ENC_H265_CFG_INDEPEND_SLICE_CHANGE       = (1 << 7),
-    MPP_ENC_H265_CFG_DEPEND_SLICE_CHANGE         = (1 << 8),
-    MPP_ENC_H265_CFG_CTU_CHANGE                  = (1 << 9),
-    MPP_ENC_H265_CFG_ROI_CHANGE                  = (1 << 10),
-    MPP_ENC_H265_CFG_CHANGE_ALL                  = (0xFFFFFFFF),
+    MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE = (1 << 0),
+    MPP_ENC_H265_CFG_INTRA_QP_CHANGE            = (1 << 1),
+    MPP_ENC_H265_CFG_FRAME_RATE_CHANGE          = (1 << 2),
+    MPP_ENC_H265_CFG_BITRATE_CHANGE             = (1 << 3),
+    MPP_ENC_H265_CFG_GOP_SIZE                   = (1 << 4),
+    MPP_ENC_H265_CFG_RC_QP_CHANGE               = (1 << 5),
+    MPP_ENC_H265_CFG_INTRA_REFRESH_CHANGE       = (1 << 6),
+    MPP_ENC_H265_CFG_INDEPEND_SLICE_CHANGE      = (1 << 7),
+    MPP_ENC_H265_CFG_DEPEND_SLICE_CHANGE        = (1 << 8),
+    MPP_ENC_H265_CFG_CTU_CHANGE                 = (1 << 9),
+    MPP_ENC_H265_CFG_ROI_CHANGE                 = (1 << 10),
+    MPP_ENC_H265_CFG_CU_CHANGE                  = (1 << 11),
+    MPP_ENC_H265_CFG_DBLK_CHANGE                = (1 << 12),
+    MPP_ENC_H265_CFG_SAO_CHANGE                 = (1 << 13),
+    MPP_ENC_H265_CFG_TRANS_CHANGE               = (1 << 14),
+    MPP_ENC_H265_CFG_SLICE_CHANGE               = (1 << 15),
+    MPP_ENC_H265_CFG_ENTROPY_CHANGE             = (1 << 16),
+    MPP_ENC_H265_CFG_MERGE_CHANGE               = (1 << 17),
+    MPP_ENC_H265_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncH265CfgChange;
+
+typedef struct MppEncH265SliceCfg_t {
+    /* default value: 0, means no slice split*/
+    RK_U32  split_enable;
+
+    /* 0: by bits number; 1: by lcu line number*/
+    RK_U32  split_mode;
+
+    /*
+     * when splitmode is 0, this value presents bits number,
+     * when splitmode is 1, this value presents lcu line number
+     */
+    RK_U32  slice_size;
+    RK_U32  loop_filter_across_slices_enabled_flag;
+} MppEncH265SliceCfg;
+
+typedef struct MppEncH265CuCfg_t {
+    RK_U32  cu32x32_en;                             /*default: 1 */
+    RK_U32  cu16x16_en;                             /*default: 1 */
+    RK_U32  cu8x8_en;                               /*default: 1 */
+    RK_U32  cu4x4_en;                               /*default: 1 */
+
+    // intra pred
+    RK_U32  constrained_intra_pred_flag;            /*default: 0 */
+    RK_U32  strong_intra_smoothing_enabled_flag;    /*INTRA_SMOOTH*/
+    RK_U32  pcm_enabled_flag;                       /*default: 0, enable ipcm*/
+    RK_U32  pcm_loop_filter_disabled_flag;
+
+    // inter pred
+    RK_U32  max_num_merge_cand;
+} MppEncH265CuCfg;
+
+typedef struct MppEncH265RefCfg_t {
+    RK_U32  num_lt_ref_pic;                         /*default: 0*/
+} MppEncH265RefCfg;
+
+
+typedef struct MppEncH265DblkCfg_t {
+    RK_U32  slice_deblocking_filter_disabled_flag;  /* default value: 0. {0,1} */
+    RK_S32  slice_beta_offset_div2;                 /* default value: 0. [-6,+6] */
+    RK_S32  slice_tc_offset_div2;                   /* default value: 0. [-6,+6] */
+} MppEncH265DblkCfg_t;
+
+typedef struct MppEncH265SaoCfg_t {
+    RK_U32  slice_sao_luma_flag;
+    RK_U32  slice_sao_chroma_flag;
+} MppEncH265SaoCfg;
+
+typedef struct MppEncH265TransCfg_t {
+    RK_U32  transquant_bypass_enabled_flag;
+    RK_U32  transform_skip_enabled_flag;
+    RK_U32  defalut_ScalingList_enable;             /* default: 0 */
+    RK_U32  cb_qp_offset;
+    RK_U32  cr_qp_offset;
+} MppEncH265TransCfg;
+
+typedef struct MppEncH265MergeCfg_t {
+    RK_U32  fivm_max_mrg_cnd;
+    RK_U32  merge_up_flag;
+    RK_U32  merge_left_flag;
+} MppEncH265MergesCfg;
+
+typedef struct MppEncH265EntropyCfg_t {
+    RK_U32  cabac_init_flag;                        /* default: 0 */
+} MppEncH265EntropyCfg;
 
 typedef struct MppEncH265Cfg_t {
     RK_U32              change;
@@ -784,19 +862,32 @@ typedef struct MppEncH265Cfg_t {
     RK_S32              profile;
     RK_S32              level;
     RK_S32              tier;
-    RK_S32              const_intra_pred;           /* constraint intra prediction flag */
+
+    /* constraint intra prediction flag */
+    RK_S32              const_intra_pred;
     RK_S32              ctu_size;
+    RK_S32              max_cu_size;
     RK_S32              tmvp_enable;
+    RK_S32              amp_enable;
     RK_S32              wpp_enable;
     RK_S32              merge_range;
     RK_S32              sao_enable;
+    RK_U32              num_ref;
 
     /* quality config */
     RK_S32              max_qp;
     RK_S32              min_qp;
+    RK_S32              max_i_qp;
+    RK_S32              min_i_qp;
+    RK_S32              ip_qp_delta;
     RK_S32              max_delta_qp;
     RK_S32              intra_qp;
     RK_S32              gop_delta_qp;
+    RK_S32              qp_init;
+    RK_S32              qp_max_step;
+    RK_U8               qpmax_map[8];
+    RK_U8               qpmin_map[8];
+    RK_S32              qpmap_mode;
 
     /* intra fresh config */
     RK_S32              intra_refresh_mode;
@@ -807,6 +898,15 @@ typedef struct MppEncH265Cfg_t {
     RK_S32              independ_slice_arg;
     RK_S32              depend_slice_mode;
     RK_S32              depend_slice_arg;
+
+    MppEncH265CuCfg      cu_cfg;
+    MppEncH265SliceCfg   slice_cfg;
+    MppEncH265EntropyCfg entropy_cfg;
+    MppEncH265TransCfg   trans_cfg;
+    MppEncH265SaoCfg     sao_cfg;
+    MppEncH265DblkCfg_t  dblk_cfg;
+    MppEncH265RefCfg     ref_cfg;
+    MppEncH265MergesCfg  merge_cfg;
 
     /* extra info */
     MppEncH265VuiCfg    vui;
@@ -944,20 +1044,23 @@ typedef struct MppEncGopRef_t {
  *        so overlay priority should be considered.
  */
 typedef struct MppEncROIRegion_t {
-    RK_U16              x;       /**< horizontal position of top left corner */
-    RK_U16              y;       /**< vertical position of top left corner */
-    RK_U16              w;       /**< width of ROI rectangle */
-    RK_U16              h;       /**< height of ROI rectangle */
-    RK_U16              intra;   /**< flag of forced intra macroblock */
-    RK_U16              quality; /**< absolute qp of macroblock */
+    RK_U16              x;              /**< horizontal position of top left corner */
+    RK_U16              y;              /**< vertical position of top left corner */
+    RK_U16              w;              /**< width of ROI rectangle */
+    RK_U16              h;              /**< height of ROI rectangle */
+    RK_U16              intra;          /**< flag of forced intra macroblock */
+    RK_U16              quality;        /**<  qp of macroblock */
+    RK_U16              qp_area_idx;    /**< qp min max area select*/
+    RK_U8               area_map_en;    /**< enable area map */
+    RK_U8               abs_qp_en;      /**< absolute qp enable flag*/
 } MppEncROIRegion;
 
 /**
  * @brief MPP encoder's ROI configuration
  */
 typedef struct MppEncROICfg_t {
-    RK_U32              number;  /**< ROI rectangle number */
-    MppEncROIRegion     *regions;/**< ROI parameters */
+    RK_U32              number;        /**< ROI rectangle number */
+    MppEncROIRegion     *regions;      /**< ROI parameters */
 } MppEncROICfg;
 
 /*
