@@ -516,7 +516,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
     cfg->max_reencode_times = 1;
 }
 
-static MPP_RET h264e_start(void *ctx)
+static MPP_RET h264e_start(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
     MppEncCfgSet *cfg = p->cfg;
@@ -556,6 +556,9 @@ static MPP_RET h264e_start(void *ctx)
      * Step 3: Backup dpb for reencode
      */
     h264e_dpb_copy(&p->dpb_bak, &p->dpb);
+
+    (void)task;
+    h264e_dbg_func("leave\n");
 
     return (drop) ? (MPP_NOK) : (MPP_OK);
 }

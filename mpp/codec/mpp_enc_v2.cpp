@@ -347,7 +347,7 @@ void *mpp_enc_thread(void *data)
             hal_task->output = mpp_packet_get_buffer(packet);
             hal_task->mv_info = mv_info;
 
-            ret = enc_impl_start(impl);
+            ret = enc_impl_start(impl, hal_task);
             if (ret) {
                 enc_dbg_detail("mpp %p enc_impl_start drop one frame", mpp);
                 goto TASK_END;
