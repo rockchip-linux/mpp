@@ -24,6 +24,7 @@
 #include "h264e_api_v2.h"
 #include "jpege_api.h"
 #include "h265e_api.h"
+#include "h265e_api_v2.h"
 #include "vp8e_api.h"
 #include "mpp_enc_impl.h"
 
@@ -48,6 +49,9 @@ static const EncImplApi *controllers[] = {
 static const EncImplApi *enc_apis[] = {
 #if HAVE_H264E
     &api_h264e,
+#endif
+#if HAVE_H265E
+    &api_h265e,
 #endif
 };
 
