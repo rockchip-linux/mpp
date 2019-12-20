@@ -30,6 +30,7 @@
 
 #include "mpp_device.h"
 #include "mpp_device_patch.h"
+#include "mpp_device_msg.h"
 #include "mpp_platform.h"
 
 #include "vpu.h"
@@ -47,6 +48,7 @@
 /* Use 'v' as magic number */
 #define MPP_IOC_MAGIC                       'v'
 #define MPP_IOC_CFG_V1                      _IOW(MPP_IOC_MAGIC, 1, unsigned int)
+#define MAX_REQ_NUM                         16
 
 typedef struct MppReq_t {
     RK_U32 *req;
@@ -67,17 +69,25 @@ typedef struct MppDevCtxImpl_t {
     MppCtxType type;
     MppCodingType coding;
     RK_S32 client_type;
-    RK_U32 platform;    // platfrom for vcodec to init
-    RK_U32 mmu_status;  // 0 disable, 1 enable
-    RK_U32 pp_enable;   // postprocess, 0 disable, 1 enable
+    RK_U32 platform;        // platfrom for vcodec to init
+    RK_U32 mmu_status;      // 0 disable, 1 enable
+    RK_U32 pp_enable;       // postprocess, 0 disable, 1 enable
     RK_S32 vpu_fd;
-    RK_S32 ioctl_version;  // 0 original version,  > 1 for others version
 
     RK_S64 time_start[MAX_TIME_RECORD];
     RK_S64 time_end[MAX_TIME_RECORD];
     RK_S32 idx_send;
     RK_S32 idx_wait;
     RK_S32 idx_total;
+
+    /*
+     * 0 - vcodec_service SEG_REG / GET_REG ioctl set
+     * 1 - mpp_service MPP_IOC_CFG_V1 ioctl set
+     */
+    RK_S32 ioctl_version;
+
+    RK_S32 req_cnt;
+    MppReqV1 reqs[MAX_REQ_NUM];
 } MppDevCtxImpl;
 
 #define MPP_DEVICE_DBG_REG                  (0x00000001)
@@ -103,14 +113,15 @@ static RK_U32 mpp_probe_hw_support(RK_S32 dev)
     mpp_req.size = 0;
     mpp_req.offset = 0;
     mpp_req.data_ptr = REQ_DATA_PTR(&flag);
+
     ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
     if (ret) {
-        mpp_err_f("probe error.\n");
+        mpp_err_f("probe hw support error %s.\n", errno);
         flag = 0;
     } else {
         mpp_refresh_vcodec_type(flag);
         if (mpp_device_debug & MPP_DEVICE_DBG_HW_SUPPORT)
-            mpp_log_f("vcodec_support=%08x\n", flag);
+            mpp_log_f("vcodec_support %08x\n", flag);
     }
 
     return flag;
@@ -228,7 +239,7 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
             RK_S32 client_type;
             RK_S32 ret;
 
-            /* if ioctl_version=1, query hw supprot*/
+            /* if ioctl_version is 1, query hw supprot*/
             if (p->ioctl_version > 0)
                 mpp_probe_hw_support(dev);
 
@@ -271,6 +282,79 @@ MPP_RET mpp_device_deinit(MppDevCtx ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
+{
+    MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;
+
+    if (NULL == p) {
+        mpp_err_f("found NULL input ctx %p\n", ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (p->ioctl_version <= 0) {
+        mpp_err_f("ctx %p can't add request without /dev/mpp_service\n", ctx);
+        return MPP_ERR_PERM;
+    }
+
+    if (p->req_cnt >= MAX_REQ_NUM) {
+        mpp_err_f("ctx %p request count %d overfow\n", ctx, p->req_cnt);
+        return MPP_ERR_VALUE;
+    }
+
+    if (!p->req_cnt)
+        memset(p->reqs, 0, sizeof(p->reqs));
+
+    MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+
+    mpp_req->cmd = req->cmd;
+    mpp_req->flag = req->flag;
+    mpp_req->size =  req->size;
+    mpp_req->offset = req->offset;
+    mpp_req->data_ptr = REQ_DATA_PTR(req->data);
+    p->req_cnt++;
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_device_send_request(MppDevCtx ctx)
+{
+    MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;;
+
+    if (NULL == p) {
+        mpp_err_f("found NULL input ctx %p\n", ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (p->ioctl_version <= 0) {
+        mpp_err_f("ctx %p can't add request without /dev/mpp_service\n", ctx);
+        return MPP_ERR_PERM;
+    }
+
+    if (p->req_cnt <= 0 || p->req_cnt > MAX_REQ_NUM) {
+        mpp_err_f("ctx %p invalid request count %d\n", ctx, p->req_cnt);
+        return MPP_ERR_VALUE;
+    }
+
+    /* setup flag for multi message request */
+    if (p->req_cnt > 1) {
+        RK_S32 i;
+
+        for (i = 0; i < p->req_cnt; i++)
+            p->reqs[i].flag |= MPP_FLAGS_MULTI_MSG;
+
+        p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG;
+    }
+
+    MPP_RET ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, &p->reqs[0]);
+    if (ret) {
+        mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
+                  ret, errno, strerror(errno));
+        ret = errno;
+    }
+
+    p->req_cnt = 0;
+    return ret;
+}
 MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 {
     MPP_RET ret;
