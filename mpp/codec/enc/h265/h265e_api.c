@@ -50,7 +50,7 @@ typedef struct {
     H265eFeedback feedback;
 } H265eCtx;
 
-MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
+static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MppEncCodecCfg *codec = NULL;
@@ -90,7 +90,7 @@ MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     return MPP_OK;
 }
 
-MPP_RET h265e_deinit(void *ctx)
+static MPP_RET h265e_deinit(void *ctx)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     if (p == NULL) {
@@ -104,7 +104,7 @@ MPP_RET h265e_deinit(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265e_encode(void *ctx, HalEncTask *task)
+static MPP_RET h265e_encode(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSyntax* syntax = NULL;
@@ -125,7 +125,7 @@ MPP_RET h265e_encode(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-MPP_RET h265e_reset(void *ctx)
+static MPP_RET h265e_reset(void *ctx)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     if (p == NULL) {
@@ -139,7 +139,7 @@ MPP_RET h265e_reset(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265e_flush(void *ctx)
+static MPP_RET h265e_flush(void *ctx)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     if (p == NULL) {
@@ -153,7 +153,7 @@ MPP_RET h265e_flush(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265e_config(void *ctx, MpiCmd cmd, void *param)
+static MPP_RET h265e_config(void *ctx, MpiCmd cmd, void *param)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MPP_RET ret = MPP_NOK;
