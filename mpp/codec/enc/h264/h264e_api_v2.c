@@ -23,7 +23,6 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
-#include "mpp_rc.h"
 #include "mpp_packet_impl.h"
 
 #include "h264e_debug.h"
@@ -69,23 +68,14 @@ typedef struct {
     size_t              hdr_len;
 
     /* rate control config */
-    MppRateControl      *rc;
     RcCtx               rc_ctx;
-    /* parameter to and from hal */
-    RcHalCfg            hal_rc_cfg;
 
     /* output to hal */
     RK_S32              syn_num;
     H264eSyntaxDesc     syntax[H264E_SYN_BUTT];
 
-    /*
-     * input from hal
-     * TODO: on link table mode there will be multiple result
-     */
-    RcHalResult         result;
-
-    /* used to record rc parameter */
-    struct list_head    rc_list;
+    /* input from hal */
+    RcHalCfg            hal_rc_cfg;
 } H264eCtx;
 
 static void init_h264e_cfg_set(MppEncCfgSet *cfg)
@@ -180,10 +170,6 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
 
     init_h264e_cfg_set(p->cfg);
 
-    ret = mpp_rc_init(&p->rc);
-
-    INIT_LIST_HEAD(&p->rc_list);
-
     mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 
     h264e_dbg_func("leave\n");
@@ -196,20 +182,9 @@ static MPP_RET h264e_deinit(void *ctx)
 
     h264e_dbg_func("enter\n");
 
-    if (p->rc)
-        mpp_rc_deinit(p->rc);
-
     if (p->rc_ctx) {
         rc_deinit(p->rc_ctx);
         p->rc_ctx = NULL;
-    }
-
-    struct list_head *del = &p->rc_list;
-    struct list_head *tmp;
-    while (!list_empty(del)) {
-        tmp = del->next;
-        list_del_init(tmp);
-        mpp_free(list_entry(tmp, RecordNode, list));
     }
 
     if (p->hdr_pkt)
@@ -673,13 +648,11 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 static MPP_RET h264e_update_hal(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
+    RcHalCfg *rc_hal_cfg = task->hal_ret.data;
 
     h264e_dbg_func("enter\n");
 
-    task->syntax.data   = &p->rc_syn;
-    task->syntax.number = 1;
-    task->valid = 1;
-    task->is_intra = (p->rc->cur_frmtype == INTRA_FRAME) ? (1) : (0);
+    p->hal_rc_cfg = *rc_hal_cfg;
 
     h264e_dbg_func("leave\n");
 
@@ -689,13 +662,12 @@ static MPP_RET h264e_update_hal(void *ctx, HalEncTask *task)
 static MPP_RET h264e_update_rc(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
-    RcHalCfg *rc_hal_cfg = NULL;
 
     h264e_dbg_func("enter\n");
 
-    rc_hal_cfg = task->hal_ret.data;
-    rc_frm_end(p->rc_ctx, rc_hal_cfg);
+    rc_frm_end(p->rc_ctx, &p->hal_rc_cfg);
 
+    (void)task;
     h264e_dbg_func("leave\n");
 
     return MPP_OK;
@@ -716,18 +688,6 @@ static MPP_RET h264e_flush(void *ctx)
 
     h264e_dbg_func("enter\n");
     h264e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-static MPP_RET h264e_callback(void *ctx, void *feedback)
-{
-    H264eCtx *p = (H264eCtx *)ctx;
-    h264e_feedback *fb  = (h264e_feedback *)feedback;
-
-    p->result = *fb->result;
-    mpp_rc_update_hw_result(p->rc, fb->result);
-    mpp_rc_calc_real_bps(&p->rc_list, p->rc, fb->result->bits);
-
     return MPP_OK;
 }
 
@@ -754,5 +714,5 @@ const EncImplApi api_h264e = {
     h264e_update_rc,
     h264e_reset,
     h264e_flush,
-    h264e_callback,
+    NULL,
 };
