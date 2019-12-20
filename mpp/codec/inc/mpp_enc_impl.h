@@ -31,7 +31,7 @@ MPP_RET enc_impl_deinit(EncImpl ctrl);
 MPP_RET enc_impl_proc_cfg(EncImpl ctrl, MpiCmd cmd, void *para);
 MPP_RET enc_impl_gen_hdr(EncImpl ctrl, MppPacket pkt);
 
-MPP_RET enc_impl_start(EncImpl ctrl);
+MPP_RET enc_impl_start(EncImpl ctrl, HalEncTask *task);
 MPP_RET enc_impl_proc_dpb(EncImpl ctrl, HalEncTask *task);
 MPP_RET enc_impl_proc_rc(EncImpl ctrl, HalEncTask *task);
 MPP_RET enc_impl_proc_hal(EncImpl ctrl, HalEncTask *task);

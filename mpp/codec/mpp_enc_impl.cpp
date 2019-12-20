@@ -156,7 +156,7 @@ MPP_RET enc_impl_gen_hdr(EncImpl impl, MppPacket pkt)
     return ret;
 }
 
-MPP_RET enc_impl_start(EncImpl impl)
+MPP_RET enc_impl_start(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl) {
         mpp_err_f("found NULL input\n");
@@ -166,7 +166,7 @@ MPP_RET enc_impl_start(EncImpl impl)
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
     if (p->api->start)
-        ret = p->api->start(p->ctx);
+        ret = p->api->start(p->ctx, task);
 
     return ret;
 }
