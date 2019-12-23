@@ -156,11 +156,16 @@ typedef struct RcHalCfg_s {
     RK_S32      quality_target;
     RK_S32      quality_max;
     RK_S32      quality_min;
-    RK_S32      quality_real;
+    RK_S32      quality_real;        /*scale 64 */
+
+    RK_S32      inter_lv8_prop;     /*scale 256 */
+    RK_S32      intra_lv4_prop;     /*scale 256 */
+    RK_S32      sse;
+    RK_S32      madi;
+    RK_S32      madp;               /*scale 256 */
 
     RK_S32      next_i_ratio;
     RK_S32      next_ratio;
-    RK_S32      ratio;
     RK_S32      need_reenc;
 } RcHalCfg;
 
