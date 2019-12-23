@@ -233,6 +233,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
         }
 
         if (dec->use_preset_time_order) {
+            AutoMutex autoLock(mpp->mTimeStamps->mutex());
             mpp->mTimeStamps->flush();
         }
 
@@ -327,8 +328,11 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     if (!change) {
         if (dec->use_preset_time_order) {
             MppPacket pkt = NULL;
-            mpp->mTimeStamps->pull(&pkt, sizeof(pkt));
-            if (pkt) {
+            mpp_list *ts = mpp->mTimeStamps;
+
+            AutoMutex autoLock(ts->mutex());
+            if (ts->list_size()) {
+                ts->del_at_head(&pkt, sizeof(pkt));
                 mpp_frame_set_dts(frame, mpp_packet_get_dts(pkt));
                 mpp_frame_set_pts(frame, mpp_packet_get_pts(pkt));
                 mpp_packet_deinit(&pkt);
@@ -346,7 +350,6 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
             else
                 mpp_frame_set_discard(frame, 1);
         }
-        mpp->mTimeStamps->flush();
     }
 
     if (dec->vproc) {
@@ -517,11 +520,14 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
         if (dec->use_preset_time_order) {
             MppPacket pkt_in = NULL;
+            mpp_list *ts = mpp->mTimeStamps;
+
+            AutoMutex autoLock(ts->mutex());
             mpp_packet_new(&pkt_in);
             if (pkt_in) {
                 mpp_packet_set_pts(pkt_in, mpp_packet_get_pts(dec->mpp_pkt_in));
                 mpp_packet_set_dts(pkt_in, mpp_packet_get_dts(dec->mpp_pkt_in));
-                mpp->mTimeStamps->push(&pkt_in, sizeof(pkt_in));
+                ts->add_at_tail(&pkt_in, sizeof(pkt_in));
             }
         }
     }
