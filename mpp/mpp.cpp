@@ -97,7 +97,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_DEC : {
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
-        mTimeStamps = new MppQueue((node_destructor)mpp_packet_deinit);
+        mTimeStamps = new mpp_list((node_destructor)mpp_packet_deinit);
 
         if (mCoding != MPP_VIDEO_CodingMJPEG) {
             mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
