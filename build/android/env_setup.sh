@@ -39,7 +39,9 @@ if [ -z $CMAKE_PROGRAM ]; then
     CMAKE_PROGRAM=`which cmake`
 fi
 
-CMAKE_VERSION=$(${CMAKE_PROGRAM} --version | grep "version" | cut -d " " -f 3 | cut -d "." -f 1-2)
+CMAKE_VERSION=$(${CMAKE_PROGRAM} --version | grep "version" | cut -d " " -f 3)
+CMAKE_MAJOR_VERSION=`echo ${CMAKE_VERSION} | cut -d "." -f 1`
+CMAKE_MINOR_VERSION=`echo ${CMAKE_VERSION} | cut -d "." -f 2`
 
 if [ -z ${CMAKE_VERSION} ]; then
     echo -e "\e[1;31m cmake in ${CMAKE_PROGRAM} is invalid, please check!\e[0m"
@@ -48,7 +50,7 @@ else
     echo "Found cmake in ${CMAKE_PROGRAM}, version: ${CMAKE_VERSION}"
 fi
 
-if [ $(echo "$CMAKE_VERSION >= 3.12" | bc) = 1 ]; then
+if [ ${CMAKE_MAJOR_VERSION} -ge 3 ] && [ ${CMAKE_MINOR_VERSION} -ge 12 ]; then
     CMAKE_PARALLEL_ENABLE=1
     echo "use cmake parallel build."
 fi
