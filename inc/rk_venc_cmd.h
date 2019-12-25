@@ -1116,4 +1116,10 @@ typedef struct MppEncOSDData_t {
     MppEncOSDRegion region[8];
 } MppEncOSDData;
 
+typedef struct MppEncUserData_t {
+    RK_U32 len;
+    void   *pdata;
+} MppEncUserData;
+
+
 #endif /*__RK_VENC_CMD_H__*/

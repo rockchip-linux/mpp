@@ -78,6 +78,7 @@ typedef enum MppMetaKey_e {
     KEY_LONG_REF_IDX            = FOURCC_META('l', 't', 'i', 'd'),
     KEY_ROI_DATA                = FOURCC_META('r', 'o', 'i', ' '),
     KEY_OSD_DATA                = FOURCC_META('o', 's', 'd', ' '),
+    KEY_USER_DATA               = FOURCC_META('u', 's', 'r', 'd'),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
