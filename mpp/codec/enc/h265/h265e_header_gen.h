@@ -28,6 +28,33 @@ typedef enum H265eNalIdx_t {
     H265E_NAL_IDX_BUTT,
 } H265eNalIdx;
 
+typedef enum H265SeiType_e {
+    H265_SEI_BUFFERING_PERIOD                       = 0,
+    H265_SEI_PICTURE_TIMING                         = 1,
+    H265_SEI_PAN_SCAN_RECT                          = 2,
+    H265_SEI_FILLER_PAYLOAD                         = 3,
+    H265_SEI_USER_DATA_REGISTERED_ITU_T_T35         = 4,
+    H265_SEI_USER_DATA_UNREGISTERED                 = 5,
+    H265_SEI_RECOVERY_POINT                         = 6,
+    H265_SEI_SCENE_INFO                             = 9,
+    H265_SEI_FULL_FRAME_SNAPSHOT                    = 15,
+    H265_SEI_PROGRESSIVE_REFINEMENT_SEGMENT_START   = 16,
+    H265_SEI_PROGRESSIVE_REFINEMENT_SEGMENT_END     = 17,
+    H265_SEI_FILM_GRAIN_CHARACTERISTICS             = 19,
+    H265_SEI_POST_FILTER_HINT                       = 22,
+    H265_SEI_TONE_MAPPING_INFO                      = 23,
+    H265_SEI_FRAME_PACKING                          = 45,
+    H265_SEI_DISPLAY_ORIENTATION                    = 47,
+    H265_SEI_SOP_DESCRIPTION                        = 128,
+    H265_SEI_ACTIVE_PARAMETER_SETS                  = 129,
+    H265_SEI_DECODING_UNIT_INFO                     = 130,
+    H265_SEI_TEMPORAL_LEVEL0_INDEX                  = 131,
+    H265_SEI_DECODED_PICTURE_HASH                   = 132,
+    H265_SEI_SCALABLE_NESTING                       = 133,
+    H265_SEI_REGION_REFRESH_INFO                    = 134,
+    H265_SEI_MAX_ELEMENTS = 255, //!< number of maximum syntax elements
+} H265SeiType;
+
 typedef struct  H265eNal_t {
     RK_S32 i_ref_idc;  /* nal_priority_e */
     RK_S32 i_type;     /* nal_unit_type_e */
@@ -67,6 +94,9 @@ void h265e_rkv_nal_start(H265eExtraInfo *out, RK_S32 i_type,
                          RK_S32 i_ref_idc);
 
 void h265e_nal_end(H265eExtraInfo *out);
+
+MPP_RET h265e_insert_user_data(void *dst, void *play_load,
+                               RK_S32 play_size);
 
 MPP_RET h265e_set_extra_info(H265eCtx *ctx);
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out);

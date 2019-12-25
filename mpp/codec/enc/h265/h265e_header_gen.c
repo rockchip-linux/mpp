@@ -124,28 +124,28 @@ static MPP_RET h265e_encapsulate_nals(H265eExtraInfo *out)
     return MPP_OK;
 }
 
-#if 0
-static MPP_RET
-h265e_rkv_sei_write(H265eRkvStream *s, RK_U8 *payload,
-                    RK_S32 payload_size, RK_S32 payload_type)
+static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 *payload,
+                               RK_S32 payload_size, RK_S32 payload_type)
 {
     RK_S32 i = 0;
 
-    h265e_hal_enter();
+    h265e_dbg_func("enter\n");
 
     h265e_stream_realign(s);
 
     for (i = 0; i <= payload_type - 255; i += 255)
         h265e_stream_write_with_log(s, 8, 0xff,
                                     "sei_payload_type_ff_byte");
+
     h265e_stream_write_with_log(s, 8, payload_type - i,
                                 "sei_last_payload_type_byte");
 
     for (i = 0; i <= payload_size - 255; i += 255)
         h265e_stream_write_with_log(s, 8, 0xff,
                                     "sei_payload_size_ff_byte");
-    h265e_stream_write_with_log( s, 8, payload_size - i,
-                                 "sei_last_payload_size_byte");
+
+    h265e_stream_write_with_log(s, 8, payload_size - i,
+                                "sei_last_payload_size_byte");
 
     for (i = 0; i < payload_size; i++)
         h265e_stream_write_with_log(s, 8, (RK_U32)payload[i],
@@ -154,10 +154,12 @@ h265e_rkv_sei_write(H265eRkvStream *s, RK_U8 *payload,
     h265e_stream_rbsp_trailing(s);
     h265e_stream_flush(s);
 
-    h265e_hal_leave();
+    h265e_dbg_func("leave\n");
 
     return MPP_OK;
 }
+
+#if 0
 MPP_RET h265e_sei_encode(H265eCtx *ctx, RcSyntax *rc_syn)
 {
     H265eExtraInfo *info = (H265eExtraInfo *)ctx->extra_info;
@@ -654,14 +656,42 @@ MPP_RET h265e_set_extra_info(H265eCtx *ctx)
     return MPP_OK;
 }
 
+MPP_RET h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
+{
+    H265eNal sei_nal;
+    H265eStream stream;
+
+    h265e_dbg_func("enter\n");
+
+    h265e_stream_init(&stream);
+    memset(&sei_nal, 0 , sizeof(H265eNal));
+
+    sei_nal.i_type = NAL_SEI_PREFIX;
+    sei_nal.p_payload = &stream.buf[stream.enc_stream.byte_cnt];
+
+    h265e_sei_write(&stream, play_load, play_size, H265_SEI_USER_DATA_UNREGISTERED);
+
+    RK_U8 *end = &stream.buf[stream.enc_stream.byte_cnt];
+    sei_nal.i_payload = (RK_S32)(end - sei_nal.p_payload);
+
+    h265e_nal_encode(dst, &sei_nal);
+
+    h265e_stream_deinit(&stream);
+
+    h265e_dbg_func("leave\n");
+    return MPP_OK;
+}
+
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out)
 {
     RK_S32 k = 0;
     size_t offset = 0;
-    h265e_dbg_func("enter\n");
-    if (pkt_out == NULL) {
+
+    if (pkt_out == NULL)
         return MPP_NOK;
-    }
+
+    h265e_dbg_func("enter\n");
+
     H265eExtraInfo *src = (H265eExtraInfo *)ctx->extra_info;
 
     for (k = 0; k < src->nal_num; k++) {
@@ -671,6 +701,7 @@ MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out)
         offset += src->nal[k].i_payload;
     }
     mpp_packet_set_length(pkt_out, offset);
+
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }
