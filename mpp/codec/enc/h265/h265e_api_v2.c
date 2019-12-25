@@ -485,9 +485,22 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 
 static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
 {
-    h265e_dbg_func("enter\n");
     (void)ctx;
-    (void) task;
+    MppFrame frame = task->frame;
+    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
+    MppMeta meta = mpp_frame_get_meta(frame);
+    MppEncUserData *user_data = NULL;
+
+    h265e_dbg_func("enter\n");
+
+    if (!task->length || NULL == out_ptr)
+        return MPP_OK;
+
+    out_ptr = out_ptr + task->length;
+    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+    if (user_data && user_data->len)
+        h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
+
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }
