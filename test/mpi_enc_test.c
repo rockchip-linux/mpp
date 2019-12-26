@@ -39,10 +39,14 @@ typedef struct {
     MppCodingType   type;
     RK_U32          width;
     RK_U32          height;
+    RK_U32          hor_stride;
+    RK_U32          ver_stride;
     MppFrameFormat  format;
     RK_U32          debug;
     RK_U32          num_frames;
-
+    RK_S32          gop_mode;
+    RK_U32          target_bps;
+    RK_U32          fps_out;
     RK_U32          have_input;
     RK_U32          have_output;
 } MpiEncTestCmd;
@@ -88,6 +92,8 @@ typedef struct {
     RK_S32 gop;
     RK_S32 fps;
     RK_S32 bps;
+    RK_S32 gop_mode;
+    MppEncGopRef ref;
 } MpiEncTestData;
 
 static OptionInfo mpi_enc_cmd[] = {
@@ -98,7 +104,10 @@ static OptionInfo mpi_enc_cmd[] = {
     {"f",               "format",               "the format of input picture"},
     {"t",               "type",                 "output stream coding type"},
     {"n",               "max frame number",     "max encoding frame number"},
+    {"g",               "gop_mode",             "gop reference mode"},
     {"d",               "debug",                "debug flag"},
+    {"b",               "target bps",           "set tareget bps"},
+    {"r",               "output frame rate",    "set output frame rate"},
 };
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
@@ -121,13 +130,17 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     // get paramter from cmd
     p->width        = cmd->width;
     p->height       = cmd->height;
-    p->hor_stride   = MPP_ALIGN(cmd->width, 16);
-    p->ver_stride   = MPP_ALIGN(cmd->height, 16);
+    p->hor_stride   = (cmd->hor_stride) ? (cmd->hor_stride) :
+                      (MPP_ALIGN(cmd->width, 16));
+    p->ver_stride   = (cmd->ver_stride) ? (cmd->ver_stride) :
+                      (MPP_ALIGN(cmd->height, 16));
     p->fmt          = cmd->format;
     p->type         = cmd->type;
+    p->bps          = cmd->target_bps;
     if (cmd->type == MPP_VIDEO_CodingMJPEG)
         cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
+    p->gop_mode     =  cmd->gop_mode;
 
     if (cmd->have_input) {
         p->fp_input = fopen(cmd->file_input, "rb");
@@ -146,16 +159,27 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
     }
 
     // update resource parameter
-    if (p->fmt <= MPP_FMT_YUV420SP_VU)
-        p->frame_size = p->hor_stride * p->ver_stride * 3 / 2;
-    else if (p->fmt <= MPP_FMT_YUV422_UYVY) {
-        // NOTE: yuyv and uyvy need to double stride
-        p->hor_stride *= 2;
-        p->frame_size = p->hor_stride * p->ver_stride;
-    } else
-        p->frame_size = p->hor_stride * p->ver_stride * 4;
-    p->packet_size  = p->width * p->height;
+    switch (p->fmt) {
+    case MPP_FMT_YUV420SP:
+    case MPP_FMT_YUV420P: {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 3 / 2;
+    } break;
 
+    case MPP_FMT_YUV422_YUYV :
+    case MPP_FMT_YUV422_YVYU :
+    case MPP_FMT_YUV422_UYVY :
+    case MPP_FMT_YUV422_VYUY :
+    case MPP_FMT_YUV422P:
+    case MPP_FMT_YUV422SP:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565: {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 2;
+    } break;
+
+    default: {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 4;
+    } break;
+    }
 RET:
     *data = p;
     return ret;
@@ -187,6 +211,167 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
     return MPP_OK;
 }
 
+static void setup_gop_ref(MppEncGopRef *ref, RK_S32 gop_mode)
+{
+    // rockchip tsvc config
+    MppGopRefInfo *gop = &ref->gop_info[0];
+
+    mpp_log("gop_mode %d", gop_mode);
+
+    ref->change = 1;
+    ref->gop_cfg_enable = 1;
+
+    // default no LTR
+    ref->lt_ref_interval = 0;
+    ref->max_lt_ref_cnt = 0;
+
+    if (gop_mode == 3) {
+        // tsvc4
+        //      /-> P1      /-> P3        /-> P5      /-> P7
+        //     /           /             /           /
+        //    //--------> P2            //--------> P6
+        //   //                        //
+        //  ///---------------------> P4
+        // ///
+        // P0 ------------------------------------------------> P8
+        ref->ref_gop_len    = 8;
+        ref->layer_weight[0] = 800;
+        ref->layer_weight[1] = 400;
+        ref->layer_weight[2] = 400;
+        ref->layer_weight[3] = 400;
+
+        gop[0].temporal_id  = 0;
+        gop[0].ref_idx      = 0;
+        gop[0].is_non_ref   = 0;
+        gop[0].is_lt_ref    = 1;
+        gop[0].lt_idx       = 0;
+
+        gop[1].temporal_id  = 3;
+        gop[1].ref_idx      = 0;
+        gop[1].is_non_ref   = 1;
+        gop[1].is_lt_ref    = 0;
+        gop[1].lt_idx       = 0;
+
+        gop[2].temporal_id  = 2;
+        gop[2].ref_idx      = 0;
+        gop[2].is_non_ref   = 0;
+        gop[2].is_lt_ref    = 0;
+        gop[2].lt_idx       = 0;
+
+        gop[3].temporal_id  = 3;
+        gop[3].ref_idx      = 2;
+        gop[3].is_non_ref   = 1;
+        gop[3].is_lt_ref    = 0;
+        gop[3].lt_idx       = 0;
+
+        gop[4].temporal_id  = 1;
+        gop[4].ref_idx      = 0;
+        gop[4].is_non_ref   = 0;
+        gop[4].is_lt_ref    = 1;
+        gop[4].lt_idx       = 1;
+
+        gop[5].temporal_id  = 3;
+        gop[5].ref_idx      = 4;
+        gop[5].is_non_ref   = 1;
+        gop[5].is_lt_ref    = 0;
+        gop[5].lt_idx       = 0;
+
+        gop[6].temporal_id  = 2;
+        gop[6].ref_idx      = 4;
+        gop[6].is_non_ref   = 0;
+        gop[6].is_lt_ref    = 0;
+        gop[6].lt_idx       = 0;
+
+        gop[7].temporal_id  = 3;
+        gop[7].ref_idx      = 6;
+        gop[7].is_non_ref   = 1;
+        gop[7].is_lt_ref    = 0;
+        gop[7].lt_idx       = 0;
+
+        gop[8].temporal_id  = 0;
+        gop[8].ref_idx      = 0;
+        gop[8].is_non_ref   = 0;
+        gop[8].is_lt_ref    = 1;
+        gop[8].lt_idx       = 0;
+
+        ref->max_lt_ref_cnt = 2;
+    } else if (gop_mode == 2) {
+        // tsvc3
+        //     /-> P1      /-> P3
+        //    /           /
+        //   //--------> P2
+        //  //
+        // P0/---------------------> P4
+        ref->ref_gop_len    = 4;
+        ref->layer_weight[0] = 1000;
+        ref->layer_weight[1] = 500;
+        ref->layer_weight[2] = 500;
+        ref->layer_weight[3] = 0;
+
+        gop[0].temporal_id  = 0;
+        gop[0].ref_idx      = 0;
+        gop[0].is_non_ref   = 0;
+        gop[0].is_lt_ref    = 0;
+        gop[0].lt_idx       = 0;
+
+        gop[1].temporal_id  = 2;
+        gop[1].ref_idx      = 0;
+        gop[1].is_non_ref   = 1;
+        gop[1].is_lt_ref    = 0;
+        gop[1].lt_idx       = 0;
+
+        gop[2].temporal_id  = 1;
+        gop[2].ref_idx      = 0;
+        gop[2].is_non_ref   = 0;
+        gop[2].is_lt_ref    = 0;
+        gop[2].lt_idx       = 0;
+
+        gop[3].temporal_id  = 2;
+        gop[3].ref_idx      = 2;
+        gop[3].is_non_ref   = 1;
+        gop[3].is_lt_ref    = 0;
+        gop[3].lt_idx       = 0;
+
+        gop[4].temporal_id  = 0;
+        gop[4].ref_idx      = 0;
+        gop[4].is_non_ref   = 0;
+        gop[4].is_lt_ref    = 0;
+        gop[4].lt_idx       = 0;
+
+        // set to lt_ref interval with looping LTR idx
+        ref->lt_ref_interval = 10;
+        ref->max_lt_ref_cnt = 3;
+    } else if (gop_mode == 1) {
+        // tsvc2
+        //   /-> P1
+        //  /
+        // P0--------> P2
+        ref->ref_gop_len    = 2;
+        ref->layer_weight[0] = 1400;
+        ref->layer_weight[1] = 600;
+        ref->layer_weight[2] = 0;
+        ref->layer_weight[3] = 0;
+
+        gop[0].temporal_id  = 0;
+        gop[0].ref_idx      = 0;
+        gop[0].is_non_ref   = 0;
+        gop[0].is_lt_ref    = 0;
+        gop[0].lt_idx       = 0;
+
+        gop[1].temporal_id  = 1;
+        gop[1].ref_idx      = 0;
+        gop[1].is_non_ref   = 1;
+        gop[1].is_lt_ref    = 0;
+        gop[1].lt_idx       = 0;
+
+        gop[2].temporal_id  = 0;
+        gop[2].ref_idx      = 0;
+        gop[2].is_non_ref   = 0;
+        gop[2].is_lt_ref    = 0;
+        gop[2].lt_idx       = 0;
+    }
+}
+
 MPP_RET test_mpp_setup(MpiEncTestData *p)
 {
     MPP_RET ret;
@@ -210,7 +395,9 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     /* setup default parameter */
     p->fps = 30;
     p->gop = 60;
-    p->bps = p->width * p->height / 8 * p->fps;
+
+    if (!p->bps)
+        p->bps = p->width * p->height / 8 * p->fps;
 
     prep_cfg->change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                               MPP_ENC_PREP_CFG_CHANGE_ROTATION |
@@ -300,13 +487,27 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     case MPP_VIDEO_CodingVP8 : {
     } break;
     case MPP_VIDEO_CodingHEVC : {
-        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE;
-        codec_cfg->h265.intra_qp = 26;
+        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE | MPP_ENC_H265_CFG_RC_QP_CHANGE;
+        if (rc_cfg->rc_mode != MPP_ENC_RC_MODE_FIXQP)
+            codec_cfg->h265.qp_init = -1;
+        else
+            codec_cfg->h265.qp_init = 26;
+        codec_cfg->h265.max_i_qp = 46;
+        codec_cfg->h265.min_i_qp = 24;
+        codec_cfg->h265.max_qp = 51;
+        codec_cfg->h265.min_qp = 10;
+        if (0) {
+            codec_cfg->h265.change |= MPP_ENC_H265_CFG_SLICE_CHANGE;
+            codec_cfg->h265.slice_cfg.split_enable = 1;
+            codec_cfg->h265.slice_cfg.split_mode = 1;
+            codec_cfg->h265.slice_cfg.slice_size = 10;
+        }
     } break;
     default : {
         mpp_err_f("support encoder coding type %d\n", codec_cfg->coding);
     } break;
     }
+
     ret = mpi->control(ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
@@ -339,6 +540,19 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     if (ret) {
         mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
         goto RET;
+    }
+
+    if (p->gop_mode && p->gop_mode < 4) {
+        setup_gop_ref(&p->ref, p->gop_mode);
+
+        mpp_log_f("MPP_ENC_SET_GOPREF start gop mode %d\n", p->gop_mode);
+
+        ret = mpi->control(ctx, MPP_ENC_SET_GOPREF, &p->ref);
+        mpp_log_f("MPP_ENC_SET_GOPREF done ret %d\n", ret);
+        if (ret) {
+            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+            goto RET;
+        }
     }
 
 RET:
@@ -410,6 +624,23 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         mpp_frame_set_fmt(frame, p->fmt);
         mpp_frame_set_eos(frame, p->frm_eos);
 
+        if (p->ref.max_lt_ref_cnt) {
+            // force idr as reference every 15 frames
+            //RK_S32 quotient = p->frame_count / 15;
+            RK_S32 remainder = p->frame_count % 15;
+
+            if (p->frame_count && remainder == 0) {
+                MppMeta meta = mpp_frame_get_meta(frame);
+                static RK_S32 lt_ref_idx = 0;
+
+                mpp_log("force lt_ref %d\n", lt_ref_idx);
+                mpp_meta_set_s32(meta, KEY_LONG_REF_IDX, lt_ref_idx);
+                lt_ref_idx++;
+                if (lt_ref_idx >= p->ref.max_lt_ref_cnt)
+                    lt_ref_idx = 0;
+            } else
+                mpp_frame_set_meta(frame, NULL);
+        }
         if (p->fp_input && feof(p->fp_input))
             mpp_frame_set_buffer(frame, NULL);
         else
@@ -442,6 +673,13 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             // write packet to file here
             void *ptr   = mpp_packet_get_pos(packet);
             size_t len  = mpp_packet_get_length(packet);
+            MppMeta meta = mpp_packet_get_meta(packet);
+            RK_S32 temporal_id = 0;
+
+            ret = mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id);
+            if (ret == MPP_OK)
+                mpp_log_f("get temporal id %d\n", temporal_id);
+            ret = MPP_OK;
 
             p->pkt_eos = mpp_packet_get_eos(packet);
 
@@ -641,6 +879,22 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'u':
+                if (next) {
+                    cmd->hor_stride = atoi(next);
+                } else {
+                    mpp_err("invalid input width\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'v':
+                if (next) {
+                    cmd->ver_stride = atoi(next);
+                } else {
+                    mpp_log("input height is invalid\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             case 'f':
                 if (next) {
                     cmd->format = (MppFrameFormat)atoi(next);
@@ -672,6 +926,30 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* c
                     goto PARSE_OPINIONS_OUT;
                 }
                 break;
+            case 'g':
+                if (next) {
+                    cmd->gop_mode = atoi(next);
+                } else {
+                    mpp_err("invalid gop mode\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'b':
+                if (next) {
+                    cmd->target_bps = atoi(next);
+                } else {
+                    mpp_err("invalid bit rate\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
+            case 'r':
+                if (next) {
+                    cmd->fps_out = atoi(next);
+                } else {
+                    mpp_err("invalid output frame rate\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+                break;
             default:
                 mpp_err("skip invalid opt %c\n", *opt);
                 break;
@@ -687,6 +965,85 @@ PARSE_OPINIONS_OUT:
     return err;
 }
 
+void get_extension(const char *file_name, char *extension)
+{
+    size_t length = strlen(file_name);
+    size_t i = length - 1;
+
+    while (i) {
+        if (file_name[i] == '.') {
+            strcpy(extension, file_name + i + 1);
+            return ;
+        }
+        i--;
+    }
+
+    extension[0] = '\0';
+}
+
+void check_input_format(const char *name, MpiEncTestCmd* cmd)
+{
+    char ext[50];
+
+    if (name == NULL) {
+        return;
+    }
+
+    get_extension(name, ext);
+
+    mpp_log("input file %s ext %s\n", name, ext);
+
+    if (!strcmp(ext, "YUV420p")) {
+        mpp_log("found YUV420p");
+        cmd->format = MPP_FMT_YUV420P;
+    } else if (!strcmp(ext, "YUV420sp")) {
+        mpp_log("found YUV420sp");
+        cmd->format = MPP_FMT_YUV420SP;
+    } else if (!strcmp(ext, "YUV422p")) {
+        mpp_log("found YUV422p");
+        cmd->format = MPP_FMT_YUV422P;
+    } else if (!strcmp(ext, "YUV422sp")) {
+        mpp_log("found YUV422sp");
+        cmd->format = MPP_FMT_YUV422SP;
+    } else if (!strcmp(ext, "YUV422uyvy")) {
+        mpp_log("found YUV422uyvy");
+        cmd->format = MPP_FMT_YUV422_UYVY;
+    } else if (!strcmp(ext, "YUV422vyuy")) {
+        mpp_log("found YUV422vyuy");
+        cmd->format = MPP_FMT_YUV422_VYUY;
+    } else if (!strcmp(ext, "YUV422yuyv")) {
+        mpp_log("found YUV422yuyv");
+        cmd->format = MPP_FMT_YUV422_YUYV;
+    } else if (!strcmp(ext, "YUV422yvyu")) {
+        mpp_log("found YUV422yvyu");
+        cmd->format = MPP_FMT_YUV422_YVYU;
+    } else if (!strcmp(ext, "ABGR8888")) {
+        mpp_log("found ABGR8888");
+        cmd->format = MPP_FMT_ABGR8888;
+    } else if (!strcmp(ext, "ARGB8888")) {
+        mpp_log("found ARGB8888");
+        cmd->format = MPP_FMT_ARGB8888;
+    } else if (!strcmp(ext, "BGR565")) {
+        mpp_log("found BGR565");
+        cmd->format = MPP_FMT_BGR565;
+    } else if (!strcmp(ext, "BGR888")) {
+        mpp_log("found BGR888");
+        cmd->format = MPP_FMT_BGR888;
+    } else if (!strcmp(ext, "BGRA8888")) {
+        mpp_log("found BGRA8888");
+        cmd->format = MPP_FMT_BGRA8888;
+    } else if (!strcmp(ext, "RGB565")) {
+        mpp_log("found RGB565");
+        cmd->format = MPP_FMT_RGB565;
+    } else if (!strcmp(ext, "RGB888")) {
+        mpp_log("found RGB888");
+        cmd->format = MPP_FMT_RGB888;
+    } else if (!strcmp(ext, "RGBA8888")) {
+        mpp_log("found RGBA8888");
+        cmd->format = MPP_FMT_RGBA8888;
+    }
+    return;
+}
 static void mpi_enc_test_show_options(MpiEncTestCmd* cmd)
 {
     mpp_log("cmd parse result:\n");
@@ -721,7 +1078,7 @@ int main(int argc, char **argv)
     mpi_enc_test_show_options(cmd);
 
     mpp_env_set_u32("mpi_debug", cmd->debug);
-
+    check_input_format(cmd->file_input, cmd);
     ret = mpi_enc_test(cmd);
 
     mpp_env_set_u32("mpi_debug", 0x0);
