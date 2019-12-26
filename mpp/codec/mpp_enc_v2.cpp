@@ -471,8 +471,8 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
     MppEncHal enc_hal = NULL;
     MppEncHalCfg enc_hal_cfg = {
         coding,
-        &p->cfg,
         &p->set,
+        &p->cfg,
         HAL_MODE_LIBVPU,
         DEV_VEPU,
     };
