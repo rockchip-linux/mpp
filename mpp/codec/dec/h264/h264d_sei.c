@@ -155,11 +155,13 @@ static MPP_RET interpret_buffering_period_info(
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
-    READ_UE(p_bitctx, &sei_msg->seq_parameter_set_id);
+    RK_S32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
+    READ_UE(p_bitctx, &seq_parameter_set_id);
 
-    if (sei_msg->seq_parameter_set_id > 31) {
+    if (seq_parameter_set_id > 31) {
         goto __BITREAD_ERR;
     }
+    sei_msg->seq_parameter_set_id = seq_parameter_set_id;
 
     if (vui_seq_parameters.nal_hrd_parameters_present_flag) {
         for (i = 0; i < vui_seq_parameters.vcl_hrd_parameters.cpb_cnt_minus1; i++) {
