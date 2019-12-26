@@ -239,7 +239,7 @@ static void h265_set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
     cfg->fps.fps_out_num    = rc->fps_out_num;
     cfg->fps.fps_out_denorm = rc->fps_out_denorm;
     cfg->igop               = rc->gop;
-    cfg->max_i_bit_prop     = 100;
+    cfg->max_i_bit_prop     = 20;
 
     cfg->bps_target     = rc->bps_target;
     cfg->bps_max        = rc->bps_max;
@@ -566,7 +566,7 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         MppEncCodecCfg *cfg = (MppEncCodecCfg *)param;
         MppEncH265Cfg *src = &p->set->codec.h265;
         MppEncH265Cfg *dst = &p->cfg->codec.h265;
-        RK_U32 change = src->change;
+        RK_U32 change = cfg->h265.change;
 
         memcpy(src, &cfg->h265, sizeof(MppEncH265Cfg));
 
