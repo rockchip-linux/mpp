@@ -1081,7 +1081,7 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         (ctx->frame_cur->slot_index == 0xff)) {
         RK_S64 Time = 0;
         if (ctx->PreGetFrameTime != pts) {
-            RK_S32 tmp_frame_period;
+            RK_S64 tmp_frame_period;
 
             if (ctx->GroupFrameCnt) {
                 ctx->GroupFrameCnt = ctx->GroupFrameCnt + ctx->pic_head.temporal_reference;
