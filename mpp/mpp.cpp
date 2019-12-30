@@ -61,8 +61,8 @@ Mpp::Mpp()
       mOutputPort(NULL),
       mInputTaskQueue(NULL),
       mOutputTaskQueue(NULL),
-      mInputTimeout(MPP_POLL_NON_BLOCK),
-      mOutputTimeout(MPP_POLL_NON_BLOCK),
+      mInputTimeout(MPP_POLL_BUTT),
+      mOutputTimeout(MPP_POLL_BUTT),
       mInputTask(NULL),
       mDec(NULL),
       mEnc(NULL),
@@ -99,6 +99,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
         mTimeStamps = new mpp_list((node_destructor)mpp_packet_deinit);
 
+        if (mInputTimeout == MPP_POLL_BUTT)
+            mInputTimeout = MPP_POLL_NON_BLOCK;
+
+        if (mOutputTimeout == MPP_POLL_BUTT)
+            mOutputTimeout = MPP_POLL_NON_BLOCK;
+
         if (mCoding != MPP_VIDEO_CodingMJPEG) {
             mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
             mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
@@ -133,6 +139,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_ENC : {
         mFrames     = new mpp_list((node_destructor)NULL);
         mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
+
+        if (mInputTimeout == MPP_POLL_BUTT)
+            mInputTimeout = MPP_POLL_BLOCK;
+
+        if (mOutputTimeout == MPP_POLL_BUTT)
+            mOutputTimeout = MPP_POLL_NON_BLOCK;
 
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
@@ -387,7 +399,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     }
 
     /* wait enqueued task finished */
-    ret = poll(MPP_PORT_INPUT, MPP_POLL_BLOCK);
+    ret = poll(MPP_PORT_INPUT, mInputTimeout);
     if (ret) {
         mpp_log_f("poll on get timeout %d ret %d\n", mInputTimeout, ret);
         goto RET;

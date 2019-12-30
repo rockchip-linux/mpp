@@ -30,6 +30,8 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_frame.h"
 
+#define VPU_API_ENC_INPUT_TIMEOUT 100
+
 RK_U32 vpu_api_debug = 0;
 
 static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
@@ -378,7 +380,22 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
     if (CODEC_DECODER == ctx->codecType) {
         type = MPP_CTX_DEC;
     } else if (CODEC_ENCODER == ctx->codecType) {
-        MppPollType block = MPP_POLL_BLOCK;
+        type = MPP_CTX_ENC;
+    } else {
+        mpp_err("found invalid codec type %d\n", ctx->codecType);
+        return MPP_ERR_VPU_CODEC_INIT;
+    }
+
+    ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
+    if (ret) {
+        mpp_err_f(" init error. \n");
+        return ret;
+    }
+
+    if (MPP_CTX_ENC == type) {
+        EncParameter_t *param = (EncParameter_t*)ctx->private_data;
+        MppCodingType coding = (MppCodingType)ctx->videoCoding;
+        MppPollType block = (MppPollType)VPU_API_ENC_INPUT_TIMEOUT;
 
         /* setup input / output block mode */
         ret = mpi->control(mpp_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
@@ -393,20 +410,6 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
             }
         }
 
-        type = MPP_CTX_ENC;
-    } else {
-        return MPP_ERR_VPU_CODEC_INIT;
-    }
-
-    ret = mpp_init(mpp_ctx, type, (MppCodingType)ctx->videoCoding);
-    if (ret) {
-        mpp_err_f(" init error. \n");
-        return ret;
-    }
-
-    if (MPP_CTX_ENC == type) {
-        EncParameter_t *param = (EncParameter_t*)ctx->private_data;
-        MppCodingType coding = (MppCodingType)ctx->videoCoding;
         format = vpu_pic_type_remap_to_mpp((EncInputPictureType)param->format);
 
         memcpy(&enc_cfg, param, sizeof(enc_cfg));
@@ -1264,8 +1267,8 @@ PUT_FRAME:
     ret = mpi->encode_put_frame(mpp_ctx, frame);
     if (ret)
         mpp_err_f("encode_put_frame ret %d\n", ret);
-
-    aEncInStrm->size = 0;
+    else
+        aEncInStrm->size = 0;
 FUNC_RET:
 
     vpu_api_dbg_func("leave ret %d\n", ret);
