@@ -116,7 +116,7 @@ static RK_U32 mpp_probe_hw_support(RK_S32 dev)
 
     ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
     if (ret) {
-        mpp_err_f("probe hw support error %s.\n", errno);
+        mpp_err_f("probe hw support error %s.\n", strerror(errno));
         flag = 0;
     } else {
         mpp_refresh_vcodec_type(flag);
