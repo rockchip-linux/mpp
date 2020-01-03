@@ -101,7 +101,9 @@ typedef struct H265eRkvRegSet_t {
         RK_U32    rkvenc_cmd : 2;
         RK_U32    reserve : 6;
         RK_U32    enc_cke : 1;
-        RK_U32    Reserve : 15;
+        RK_U32    resetn_hw_en : 1;
+        RK_U32    enc_done_tmvp_en : 1;
+        RK_U32    Reserve : 13;
     } enc_strt;
 
     /* 0x8 - ENC_CLR */
@@ -118,32 +120,41 @@ typedef struct H265eRkvRegSet_t {
 
     /* 0x10 - swreg05, INT_EN */
     struct {
-        RK_U32    ofe_fnsh : 1;
-        RK_U32    lkt_fnsh : 1;
-        RK_U32    clr_fnsh : 1;
-        RK_U32    ose_fnsh : 1;
-        RK_U32    bs_ovflr : 1;
-        RK_U32    brsp_ful : 1;
-        RK_U32    brsp_err : 1;
-        RK_U32    rrsp_err : 1;
-        RK_U32    tmt_err : 1;
+        RK_U32    enc_done_en  : 1;
+        RK_U32    lkt_done_en  : 1;
+        RK_U32    sclr_done_en : 1;
+        RK_U32    slc_done_en  : 1;
+        RK_U32    bsf_ovflw_en : 1;
+        RK_U32    brsp_ostd_en : 1;
+        RK_U32    wbus_err_en  : 1;
+        RK_U32    rbus_err_en  : 1;
+        RK_U32    wdg_en       : 1;
         RK_U32    reserve : 23;
     } int_en;
 
     struct {
-        RK_U32    reserve : 32;
+        RK_U32    enc_done_msk  : 1;
+        RK_U32    lkt_done_msk  : 1;
+        RK_U32    sclr_done_msk : 1;
+        RK_U32    slc_done_msk  : 1;
+        RK_U32    bsf_folw_msk  : 1;
+        RK_U32    brsp_otsd_msk : 1;
+        RK_U32    wbus_err_msk  : 1;
+        RK_U32    rbus_err_msk  : 1;
+        RK_U32    wdg_msk       : 1;
+        RK_U32    reserved      : 23;;
     } int_msk;  //swreg06, INT_MSK
 
     struct {
-        RK_U32    clr_ofe_fnsh : 1;
-        RK_U32    clr_lkt_fnsh : 1;
-        RK_U32    clr_clr_fnsh : 1;
-        RK_U32    clr_ose_fnsh : 1;
-        RK_U32    clr_bs_ovflr : 1;
-        RK_U32    clr_brsp_ful : 1;
-        RK_U32    clr_brsp_err : 1;
-        RK_U32    clr_rrsp_err : 1;
-        RK_U32    clr_tmt_err  : 1;
+        RK_U32    enc_done_clr  : 1;
+        RK_U32    lkt_done_clr  : 1;
+        RK_U32    sclr_done_clr : 1;
+        RK_U32    slc_done_clr  : 1;
+        RK_U32    bsf_folw_clr  : 1;
+        RK_U32    brsp_otsd_clr : 1;
+        RK_U32    wbus_err_clr : 1;
+        RK_U32    rbus_err_clr : 1;
+        RK_U32    wdg_msk  : 1;
         RK_U32    reserved     : 23;
     } int_clr;  //swreg07, INT_CLR
 
@@ -167,11 +178,11 @@ typedef struct H265eRkvRegSet_t {
     /* 0x34 - ENC_PIC */
     struct {
         RK_U32    enc_stnd     : 1;
-        RK_U32    roi_enc      : 1;
+        RK_U32    roi_en       : 1;
         RK_U32    cur_frm_ref  : 1;
         RK_U32    mei_stor     : 1;
         RK_U32    bs_scp       : 1;
-        RK_U32    lamb_mod_sel : 1;
+        RK_U32    rdo_wgt_sel  : 1;
         RK_U32    reserved     : 2;
         RK_U32    pic_qp       : 6;
         RK_U32    tot_poc_num  : 5;
@@ -182,9 +193,9 @@ typedef struct H265eRkvRegSet_t {
     } enc_pic; //swreg10
 
     struct {
-        RK_U32    ppln_enc_lmt : 4;
+        RK_U32    vs_load_thd : 4;
         RK_U32    reserve : 4;
-        RK_U32    rfp_load_thrd : 8;
+        RK_U32    rfp_load_thd : 8;
         RK_U32    reserve1 : 16;
     } enc_wdg; //swreg11, ENC_WDG
 
@@ -198,9 +209,9 @@ typedef struct H265eRkvRegSet_t {
         RK_U32    meiw_bus_edin : 4;
         RK_U32    bsw_bus_edin  : 3;
         RK_U32    lktr_bus_edin : 4;
-        RK_U32    ctur_bus_edin : 4;
+        RK_U32    roir_bus_edin : 4;
         RK_U32    lktw_bus_edin : 4;
-        RK_U32    pp_burst_size : 1;
+        RK_U32    afbc_bsize : 1;
         RK_U32    reserved      : 4;
     } dtrns_map; //swreg12
 
@@ -212,10 +223,10 @@ typedef struct H265eRkvRegSet_t {
 
     /* 0x44 - SRC_FMT */
     struct {
-        RK_U32    src_aswap : 1;
-        RK_U32    src_cswap : 1;
+        RK_U32    alpha_swap : 1;
+        RK_U32    rbuv_swap : 1;
         RK_U32    src_cfmt : 4;
-        RK_U32    range : 1;
+        RK_U32    src_range : 1;
         RK_U32    reserve : 25;
     } src_fmt;
 
@@ -245,9 +256,9 @@ typedef struct H265eRkvRegSet_t {
 
     /* 0x54 - SRC_UDFO */
     struct {
-        RK_U32    ofst_rgb2v : 8;
-        RK_U32    ofst_rgb2u : 8;
-        RK_U32    ofst_rgb2y : 5;
+        RK_U32    ofst_v : 8;
+        RK_U32    ofst_u : 8;
+        RK_U32    ofst_y : 5;
         RK_U32    reserve : 11;
     } src_udfo;
 
@@ -257,7 +268,7 @@ typedef struct H265eRkvRegSet_t {
         RK_U32    src_mirr  : 1;
         RK_U32    src_rot   : 2;
         RK_U32    txa_en    : 1;
-        RK_U32    fbd_en    : 1;
+        RK_U32    afbcd_en  : 1;
         RK_U32    reserved1 : 1;
     } src_proc;
 
@@ -421,9 +432,7 @@ typedef struct H265eRkvRegSet_t {
     /* 0xc8 - RC_CFG */
     struct {
         RK_U32    rc_en      : 1;
-        RK_U32    aqmode_en  : 1;
-        RK_U32    qp_mode    : 1;
-        RK_U32    reserved   : 13;
+        RK_U32    reserved   : 15;
         RK_U32    rc_ctu_num : 16;
     } rc_cfg;
 
@@ -462,41 +471,41 @@ typedef struct H265eRkvRegSet_t {
 
     /* 0xdc-0xfc swreg47, */
     struct {
-        RK_S32    bits_error0;
+        RK_S32    bits_thd0;
     } rc_erp0; //RC_ERP0
 
     struct {
-        RK_S32    bits_error1;
+        RK_S32    bits_thd1;
     } rc_erp1; //swreg48, RC_ERP1
 
     struct {
-        RK_S32    bits_error2;
+        RK_S32    bits_thd2;
     } rc_erp2; //swreg49, RC_ERP2
 
     struct {
-        RK_S32    bits_error3;
+        RK_S32    bits_thd3;
     } rc_erp3; //swreg50, RC_ERP3
 
     struct {
-        RK_S32    bits_error4;
+        RK_S32    bits_thd4;
     } rc_erp4; //swreg51, RC_ERP4
 
     /* 0xec-0xf8 */
     struct {
-        RK_S32 bits_error5;
+        RK_S32 bits_thd5;
     } rc_erp5;
 
     struct {
-        RK_S32 bits_error6;
+        RK_S32 bits_thd6;
     } rc_erp6;
 
     struct {
-        RK_S32 bits_error7;
+        RK_S32 bits_thd7;
     } rc_erp7;
 
     /* 0xfc - RC_ERP8 */
     struct {
-        RK_S32 bits_error8;
+        RK_S32 bits_thd8;
     } rc_erp8;
 
     /* 0x100 - QPMAP0 */
@@ -553,7 +562,7 @@ typedef struct H265eRkvRegSet_t {
     RK_U32 adr_srcy_hevc; /* 0x118 */
     RK_U32 adr_srcu_hevc;
     RK_U32 adr_srcv_hevc;
-    RK_U32 ctuc_addr_hevc;
+    RK_U32 roi_addr_hevc;
     RK_U32 rfpw_h_addr_hevc;
     RK_U32 rfpw_b_addr_hevc;
     RK_U32 rfpr_h_addr_hevc;
@@ -570,18 +579,18 @@ typedef struct H265eRkvRegSet_t {
 
     /* 0x15c - swreg41, SLI_SPL */
     struct {
-        RK_U32    sli_cut : 1;
-        RK_U32    sli_cut_mode : 1;
-        RK_U32    sli_cut_bmod : 1;
+        RK_U32    sli_splt : 1;
+        RK_U32    sli_splt_mode : 1;
+        RK_U32    sli_splt_cpst : 1;
         RK_U32    sli_max_num_m1 : 10;
-        RK_U32    sli_out_mode : 1;
+        RK_U32    sli_flsh : 1;
         RK_U32    reserve : 2;
-        RK_U32    sli_cut_cnum_m1 : 16;
+        RK_U32    sli_splt_cnum_m1 : 16;
     } sli_spl;
 
     /* 0x160 - swreg42, SLI_SPL_BYTE */
     struct {
-        RK_U32    sli_cut_byte : 18;
+        RK_U32    sli_splt_byte : 18;
         RK_U32    reserve : 14;
     } sli_spl_byte;
 

@@ -116,16 +116,18 @@ static void fill_slice_parameters( const H265eCtx *h,
 {
     MppEncH265Cfg *codec = &h->cfg->codec.h265;
     H265eSlice  *slice = h->slice;
-    sp->sli_cut_bmod = 1;
+    memset(sp, 0, sizeof(H265eSlicParams));
     if (codec->slice_cfg.split_enable) {
-        sp->sli_cut = 1;
+        sp->sli_splt_cpst = 1;
+        sp->sli_splt = 1;
+        sp->sli_splt_mode = codec->slice_cfg.split_mode;
         if (codec->slice_cfg.split_mode) {
-            sp->sli_cut_cnum_m1 =  codec->slice_cfg.slice_size;
+            sp->sli_splt_cnum_m1 =  codec->slice_cfg.slice_size;
         } else {
-            sp->sli_cut_byte =  codec->slice_cfg.slice_size;
+            sp->sli_splt_byte =  codec->slice_cfg.slice_size;
         }
         sp->sli_max_num_m1 = 50;
-        sp->sli_out_mode = 1;
+        sp->sli_flsh = 1;
     }
 
 
@@ -153,6 +155,7 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->dpdnt_sli_seg_flg   = 0;
     sp->sli_pps_id          = slice->m_pps->m_PPSId;
     sp->no_out_pri_pic      = slice->no_output_of_prior_pics_flag;
+    sp->tot_poc_num         = slice->tot_poc_num;
 
 
     sp->sli_tc_ofst_div2 = slice->m_deblockingFilterTcOffsetDiv2;
@@ -347,15 +350,15 @@ RK_S32 fill_rc_parameters(H265eCtx *h, RcParams *rp)
     RK_U32 i;
     RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / frms->mb_per_frame;
     RK_U32 ctu_target_bits;
-    RK_S32 negative_bits_error, positive_bits_error;
+    RK_S32 negative_bits_thd, positive_bits_thd;
     memset(rp, 0, sizeof(RcParams));
     if (ctu_target_bits_mul_16 >= 0x100000) {
         ctu_target_bits_mul_16 = 0x50000;
     }
 
     ctu_target_bits = (ctu_target_bits_mul_16 * frms->mb_wid) >> 4;
-    negative_bits_error = 0 - ctu_target_bits / 4;
-    positive_bits_error = ctu_target_bits / 4;
+    negative_bits_thd = 0 - ctu_target_bits / 4;
+    positive_bits_thd = ctu_target_bits / 4;
 
     if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
         rp->pic_qp = h265->qp_init;
@@ -365,8 +368,6 @@ RK_S32 fill_rc_parameters(H265eCtx *h, RcParams *rp)
     }
 
     rp->rc_en = 1;
-    rp->aqmode_en = 1;
-    rp->qp_mode = 1;
     rp->rc_qp_range = 2;
 
     rp->pic_qp = frms->start_qp;
@@ -382,16 +383,16 @@ RK_S32 fill_rc_parameters(H265eCtx *h, RcParams *rp)
     rp->rc_ctu_num = frms->mb_wid;
 
     rp->ctu_ebits = ctu_target_bits_mul_16;
-    rp->bit_error[0] = negative_bits_error;
-    rp->bit_error[1] = positive_bits_error;
-    rp->bit_error[2] = positive_bits_error;
+    rp->bits_thd[0] = negative_bits_thd;
+    rp->bits_thd[1] = positive_bits_thd;
+    rp->bits_thd[2] = positive_bits_thd;
 
-    rp->bit_error[3] = positive_bits_error;
-    rp->bit_error[4] = positive_bits_error;
-    rp->bit_error[5] = positive_bits_error;
-    rp->bit_error[6] = positive_bits_error;
-    rp->bit_error[7] = positive_bits_error;
-    rp->bit_error[8] = positive_bits_error;
+    rp->bits_thd[3] = positive_bits_thd;
+    rp->bits_thd[4] = positive_bits_thd;
+    rp->bits_thd[5] = positive_bits_thd;
+    rp->bits_thd[6] = positive_bits_thd;
+    rp->bits_thd[7] = positive_bits_thd;
+    rp->bits_thd[8] = positive_bits_thd;
 
     rp->qp_adjust[0] = -1;
     rp->qp_adjust[1] = 0;
@@ -406,7 +407,7 @@ RK_S32 fill_rc_parameters(H265eCtx *h, RcParams *rp)
         rp->qpmax_area[i] = h265->qpmax_map[i];
         rp->qpmin_area[i] = h265->qpmin_map[i];
     }
-    rp->qp_mode = h265->qpmap_mode;
+    rp->qpmap_mode = h265->qpmap_mode;
     return  0;
 }
 

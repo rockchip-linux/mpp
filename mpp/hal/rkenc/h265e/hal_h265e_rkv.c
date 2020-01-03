@@ -368,12 +368,13 @@ MPP_RET hal_h265e_rkv_init(void *hal, MppEncHalCfg *cfg)
     ctx->frame_cnt_send_ready = 0;
     ctx->num_frames_to_send = 1;
     ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_NONE;
+    ctx->enc_mode = RKV_ENC_MODE;
 
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,            /* type */
         .coding = MPP_VIDEO_CodingHEVC,  /* coding */
-        .platform = 0,                  /* platform */
-        .pp_enable = 0,                 /* pp_enable */
+        .platform = HAVE_RKVENC,         /* platform */
+        .pp_enable = 0,                  /* pp_enable */
     };
 
 #ifdef H265EHW_EN
@@ -597,8 +598,8 @@ h265e_rkv_set_roi_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *regs)
     }
 
     if (cfg->number && cfg->regions) {
-        regs->enc_pic.roi_enc = 1;
-        regs->ctuc_addr_hevc = mpp_buffer_get_fd(bufs->hw_roi_buf[0]);
+        regs->enc_pic.roi_en = 1;
+        regs->roi_addr_hevc = mpp_buffer_get_fd(bufs->hw_roi_buf[0]);
         roi_base = (RK_U8 *)mpp_buffer_get_ptr(bufs->hw_roi_buf[0]);
         mpp_log("config roi");
         h265e_config_roi_area(ctx, roi_base);
@@ -610,8 +611,6 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvRegSet *regs, H265eSyntax_new *syn)
 {
     regs->enc_pic.pic_qp        = syn->rp.pic_qp;
     regs->rc_cfg.rc_en         = syn->rp.rc_en;
-    regs->rc_cfg.qp_mode       = syn->rp.qp_mode;
-    regs->rc_cfg.aqmode_en     = syn->rp.aqmode_en;
     regs->synt_sli1.sli_qp      = syn->rp.pic_qp;
 
     regs->rc_cfg.rc_ctu_num    = syn->rp.rc_ctu_num;
@@ -620,15 +619,15 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvRegSet *regs, H265eSyntax_new *syn)
     regs->rc_qp.rc_min_qp     = syn->rp.rc_min_qp;
     regs->rc_tgt.ctu_ebits    = syn->rp.ctu_ebits;
 
-    regs->rc_erp0.bits_error0    = syn->rp.bit_error[0];
-    regs->rc_erp1.bits_error1    = syn->rp.bit_error[1];
-    regs->rc_erp2.bits_error2    = syn->rp.bit_error[2];
-    regs->rc_erp3.bits_error3    = syn->rp.bit_error[3];
-    regs->rc_erp4.bits_error4    = syn->rp.bit_error[4];
-    regs->rc_erp5.bits_error5    = syn->rp.bit_error[5];
-    regs->rc_erp6.bits_error6    = syn->rp.bit_error[6];
-    regs->rc_erp7.bits_error7    = syn->rp.bit_error[7];
-    regs->rc_erp8.bits_error8    = syn->rp.bit_error[8];
+    regs->rc_erp0.bits_thd0    = syn->rp.bits_thd[0];
+    regs->rc_erp1.bits_thd1    = syn->rp.bits_thd[1];
+    regs->rc_erp2.bits_thd2    = syn->rp.bits_thd[2];
+    regs->rc_erp3.bits_thd3    = syn->rp.bits_thd[3];
+    regs->rc_erp4.bits_thd4    = syn->rp.bits_thd[4];
+    regs->rc_erp5.bits_thd5    = syn->rp.bits_thd[5];
+    regs->rc_erp6.bits_thd6    = syn->rp.bits_thd[6];
+    regs->rc_erp7.bits_thd7    = syn->rp.bits_thd[7];
+    regs->rc_erp8.bits_thd8    = syn->rp.bits_thd[8];
 
     regs->rc_adj0.qp_adjust0    = syn->rp.qp_adjust[0];
     regs->rc_adj0.qp_adjust1    = syn->rp.qp_adjust[1];
@@ -656,7 +655,7 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvRegSet *regs, H265eSyntax_new *syn)
     regs->qpmap2.qpmax_area6 = syn->rp.qpmax_area[6];
     regs->qpmap2.qpmin_area7 = syn->rp.qpmin_area[7];
     regs->qpmap3.qpmax_area7 = syn->rp.qpmax_area[7];
-    regs->qpmap3.qpmap_mode  = syn->rp.qp_mode;
+    regs->qpmap3.qpmap_mode  = syn->rp.qpmap_mode;
 
     return MPP_OK;
 }
@@ -729,6 +728,7 @@ static void h265e_rkv_set_slice_regs(H265eSyntax_new *syn, H265eRkvRegSet *regs)
     regs->synt_sli0.sli_sao_chrm_flg    = syn->sp.sli_sao_chrm_flg;
     regs->synt_sli0.sli_sao_luma_flg    = syn->sp.sli_sao_luma_flg;
     regs->synt_sli0.sli_tmprl_mvp_en    = syn->sp.sli_tmprl_mvp_en;
+    regs->enc_pic.tot_poc_num           = syn->sp.tot_poc_num;
 
     regs->synt_sli0.pic_out_flg         = syn->sp.pic_out_flg;
     regs->synt_sli0.sli_type            = syn->sp.slice_type;
@@ -832,19 +832,19 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(H265eRkvRegSet));
     regs->enc_strt.lkt_num = 0;
     regs->enc_strt.rkvenc_cmd = ctx->enc_mode;
-    regs->enc_strt.enc_cke = 0;
+    regs->enc_strt.enc_cke = 1;
     regs->enc_clr.safe_clr = 0x0;
 
-    regs->lkt_addr.lkt_addr = 0x10000000;
-    regs->int_en.ofe_fnsh    = 1;
-    regs->int_en.lkt_fnsh    = 1;
-    regs->int_en.clr_fnsh    = 1;
-    regs->int_en.ose_fnsh    = 1;
-    regs->int_en.bs_ovflr    = 1;
-    regs->int_en.brsp_ful    = 1;
-    regs->int_en.brsp_err    = 1;
-    regs->int_en.rrsp_err    = 1;
-    regs->int_en.tmt_err     = 1;
+    regs->lkt_addr.lkt_addr     = 0x0;
+    regs->int_en.enc_done_en    = 1;
+    regs->int_en.lkt_done_en    = 1;
+    regs->int_en.sclr_done_en    = 1;
+    regs->int_en.slc_done_en    = 1;
+    regs->int_en.bsf_ovflw_en    = 1;
+    regs->int_en.brsp_ostd_en    = 1;
+    regs->int_en.wbus_err_en    = 1;
+    regs->int_en.rbus_err_en    = 1;
+    regs->int_en.wdg_en         = 1;
 
     regs->enc_rsl.pic_wd8_m1  = pic_width_align8 / 8 - 1;
     regs->enc_rsl.pic_wfill   = (syn->pp.pic_width & 0x7)
@@ -860,13 +860,15 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->enc_pic.log2_ctu_num = ceil(log2((double)pic_wd64 * pic_h64));
 
     if (syn->rp.frame_type == INTRA_FRAME) {
-        regs->enc_pic.lamb_mod_sel = 0;
+        regs->enc_pic.rdo_wgt_sel = 0;
     } else {
-        regs->enc_pic.lamb_mod_sel = 1;
+        regs->enc_pic.rdo_wgt_sel = 1;
     }
 
-    regs->enc_wdg.ppln_enc_lmt     = 0;
-    regs->enc_wdg.rfp_load_thrd    = 0;
+    regs->enc_wdg.vs_load_thd     = 0;
+    regs->enc_wdg.rfp_load_thd    = 0;
+
+    regs->dtrns_cfg.cime_dspw_orsd = (syn->rp.frame_type == INTER_P_FRAME);
 
     regs->dtrns_map.src_bus_ordr     = 0x0;
     regs->dtrns_map.cmvw_bus_ordr    = 0x0;
@@ -876,8 +878,9 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->dtrns_map.meiw_bus_edin    = 0x0;
     regs->dtrns_map.bsw_bus_edin     = 0x7;
     regs->dtrns_map.lktr_bus_edin    = 0x0;
-    regs->dtrns_map.ctur_bus_edin    = 0x0;
+    regs->dtrns_map.roir_bus_edin    = 0x0;
     regs->dtrns_map.lktw_bus_edin    = 0x0;
+    regs->dtrns_map.afbc_bsize    = 0x1;
 
     regs->dtrns_cfg.axi_brsp_cke      = 0x0;
     regs->dtrns_cfg.cime_dspw_orsd    = 0x0;
@@ -886,7 +889,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->src_proc.src_mirr = 0;
     regs->src_proc.src_rot = 0;
     regs->src_proc.txa_en  = 1;
-    regs->src_proc.fbd_en  = 0;
+    regs->src_proc.afbcd_en  = 0;
 
     h265e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, (RkveCsp)ctx->input_fmt);
 
@@ -920,13 +923,13 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->bsbr_addr_hevc    = regs->bsbb_addr_hevc;
     regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc;
 
-    regs->sli_spl.sli_cut_bmod     = syn->sp.sli_cut_bmod;
-    regs->sli_spl.sli_cut          = syn->sp.sli_cut;
-    regs->sli_spl.sli_cut_mode     = syn->sp.sli_cut_mode;
+    regs->sli_spl.sli_splt_mode     = syn->sp.sli_splt_mode;
+    regs->sli_spl.sli_splt_cpst     = syn->sp.sli_splt_cpst;
+    regs->sli_spl.sli_splt          = syn->sp.sli_splt;
+    regs->sli_spl.sli_flsh         = syn->sp.sli_flsh;
     regs->sli_spl.sli_max_num_m1   = syn->sp.sli_max_num_m1;
-    regs->sli_spl.sli_out_mode     = syn->sp.sli_out_mode;
-    regs->sli_spl.sli_cut_cnum_m1  = syn->sp.sli_cut_cnum_m1;
-    regs->sli_spl_byte.sli_cut_byte = syn->sp.sli_cut_byte;
+    regs->sli_spl.sli_splt_cnum_m1  = syn->sp.sli_splt_cnum_m1;
+    regs->sli_spl_byte.sli_splt_byte = syn->sp.sli_splt_byte;
 
     {
         RK_U32 cime_w = 11, cime_h = 7;
@@ -1160,7 +1163,7 @@ static MPP_RET h265e_rkv_set_feedback(H265eRkvHalContext *ctx,
     RK_S32 mb4_num = (mb8_num << 2);
     (void)enc_task;
 
-    for (k = 0; k < out->frame_num; k++) {
+    for (k = 0; k < ctx->num_frames_to_send; k++) {
         elem = &out->elem[k];
         fb->qp_sum = elem->st_sse_qp.qp_sum;
         fb->out_hw_strm_size =
@@ -1364,7 +1367,7 @@ MPP_RET hal_h265e_rkv_ret_task(void *hal, HalEncTask *task)
 
     enc_task->length = fb->out_strm_size;
     enc_task->hal_ret.data = ctx->rc_hal_cfg;
-    enc_task->hal_ret.number = reg_out->frame_num;
+    enc_task->hal_ret.number = ctx->num_frames_to_send;
 
     h265e_hal_dbg(H265E_DBG_DETAIL, "output stream size %d\n",
                   fb->out_strm_size);

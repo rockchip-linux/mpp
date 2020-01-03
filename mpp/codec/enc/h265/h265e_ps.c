@@ -263,7 +263,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_SPSId = 0;
     pps->m_picInitQPMinus26 = 0;
     pps->m_useDQP = 0;
-    if (rc->quality != MPP_ENC_RC_QUALITY_CQP) {
+    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
         pps->m_useDQP = 1;
         pps->m_maxCuDQPDepth = 0;
         pps->m_minCuDQPSize = (sps->m_maxCUSize >> pps->m_maxCuDQPDepth);
