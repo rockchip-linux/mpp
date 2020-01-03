@@ -817,8 +817,6 @@ typedef struct MppEncH265CuCfg_t {
     RK_U32  pcm_enabled_flag;                       /*default: 0, enable ipcm*/
     RK_U32  pcm_loop_filter_disabled_flag;
 
-    // inter pred
-    RK_U32  max_num_merge_cand;
 } MppEncH265CuCfg;
 
 typedef struct MppEncH265RefCfg_t {
@@ -846,7 +844,7 @@ typedef struct MppEncH265TransCfg_t {
 } MppEncH265TransCfg;
 
 typedef struct MppEncH265MergeCfg_t {
-    RK_U32  fivm_max_mrg_cnd;
+    RK_U32  max_mrg_cnd;
     RK_U32  merge_up_flag;
     RK_U32  merge_left_flag;
 } MppEncH265MergesCfg;

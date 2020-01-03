@@ -715,7 +715,7 @@ static void h265e_rkv_set_slice_regs(H265eSyntax_new *syn, H265eRkvRegSet *regs)
     regs->synt_sli1.sli_dblk_fltr_dis     = syn->sp.sli_dblk_fltr_dis;
     regs->synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
     regs->synt_sli1.sli_cb_qp_ofst        = syn->sp.sli_cb_qp_ofst;
-    regs->synt_sli1.fivm_max_mrg_cnd      = syn->sp.fivm_max_mrg_cnd;
+    regs->synt_sli1.max_mrg_cnd           = syn->sp.max_mrg_cnd;
 
     regs->synt_sli1.col_ref_idx           = syn->sp.col_ref_idx;
     regs->synt_sli1.col_frm_l0_flg        = syn->sp.col_frm_l0_flg;
