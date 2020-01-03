@@ -299,13 +299,15 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
         pic_h64 = (p->cfg->prep.height + 63) / 64;
 
         if (NULL == p->dpb) {
-            RK_U32 size[2] = {0};
+            RK_U32 size[3] = {0};
             RK_S32 fbc_header_len;
             fbc_header_len = (pic_wd64 * pic_h64) << 6;
             size[0] = fbc_header_len + ((pic_wd64 * pic_h64) << 12) * 2; //fbc_h + fbc_b
             size[1] = (pic_wd64 * pic_h64 << 8);
+            size[2] = (pic_wd64 * pic_h64 * 16 * 4);
             h265e_dpb_init(&p->dpb, &p->dpbcfg);
-            h265e_dpb_setup_buf_size(p->dpb, &size[0], 2);
+            h265e_dpb_setup_buf_size(p->dpb, &size[0], 3);
+
         }
         if (rc->gop < 0) {
             p->dpb->idr_gap = 10000;
@@ -351,13 +353,15 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     pic_h64 = (p->cfg->prep.height + 63) / 64;
 
     if (NULL == p->dpb) {
-        RK_U32 size[2] = {0};
+        RK_U32 size[3] = {0};
         RK_S32 fbc_header_len;
         fbc_header_len = (pic_wd64 * pic_h64) << 6;
         size[0] = fbc_header_len + ((pic_wd64 * pic_h64) << 12) * 2; //fbc_h + fbc_b
         size[1] = (pic_wd64 * pic_h64 << 8);
+        size[2] = (pic_wd64 * pic_h64 * 16 * 4);
         h265e_dpb_init(&p->dpb, &p->dpbcfg);
-        h265e_dpb_setup_buf_size(p->dpb, &size[0], 2);
+        h265e_dpb_setup_buf_size(p->dpb, &size[0], 3);
+
     }
 
     if (p->idr_request) {

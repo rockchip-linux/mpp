@@ -873,10 +873,11 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->rfpw_h_addr_hevc  = syn->sp.recon_pic.bPicEntry[0];
     regs->rfpw_b_addr_hevc  = ((fbc_header_len << 10) | regs->rfpw_h_addr_hevc);
     regs->dspw_addr_hevc = syn->sp.recon_pic.bPicEntry[1];
-
+    regs->cmvw_addr_hevc  = syn->sp.recon_pic.bPicEntry[2];
     regs->rfpr_h_addr_hevc = syn->sp.ref_pic.bPicEntry[0];
     regs->rfpr_b_addr_hevc = (fbc_header_len << 10 | regs->rfpr_h_addr_hevc);
-    regs->dspr_addr_hevc = syn->sp.ref_pic.bPicEntry[1];;
+    regs->dspr_addr_hevc = syn->sp.ref_pic.bPicEntry[1];
+    regs->cmvr_addr_hevc = syn->sp.ref_pic.bPicEntry[2];
 
     if (mv_info_buf) {
         regs->enc_pic.mei_stor    = 1;

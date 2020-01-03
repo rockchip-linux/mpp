@@ -19,7 +19,7 @@
 #include "mpp_rc.h"
 
 typedef struct H265PicEntry_t {
-    RK_U8 bPicEntry[2];
+    RK_U8 bPicEntry[3];
 } H265ePicEntry;
 
 typedef struct H265ePicParams_t {
