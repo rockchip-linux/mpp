@@ -118,10 +118,10 @@ typedef struct H265ePicParams_t {
 typedef struct H265eSlicParams_t {
     union {
         struct {
-            RK_U32 sli_cut               : 1;
-            RK_U32 sli_cut_mode          : 1;
-            RK_U32 sli_cut_bmod          : 1;
-            RK_U32 sli_out_mode          : 1;
+            RK_U32 sli_splt               : 1;
+            RK_U32 sli_splt_mode          : 1;
+            RK_U32 sli_splt_cpst          : 1;
+            RK_U32 sli_flsh               : 1;
             RK_U32 cbc_init_flg          : 1;
             RK_U32 mvd_l1_zero_flg       : 1;
             RK_U32 merge_up_flag         : 1;
@@ -175,7 +175,7 @@ typedef struct H265eSlicParams_t {
     RK_U16 sli_hdr_ext_len;
     RK_U16 poc_lsb_lt0;
     RK_U16 sli_max_num_m1;
-    RK_U16 sli_cut_cnum_m1;
+    RK_U16 sli_splt_cnum_m1;
     RK_U16 dlt_poc_msb_cycl0;
     RK_U16 dlt_poc_s0_m10;
     RK_U16 dlt_poc_s0_m11;
@@ -185,13 +185,12 @@ typedef struct H265eSlicParams_t {
     RK_U16 poc_lsb_lt2;
     RK_U16 dlt_poc_msb_cycl1;
     RK_U16 dlt_poc_msb_cycl2;
-    RK_U32 sli_cut_byte;
+    RK_U32 sli_splt_byte;
+    RK_U32 tot_poc_num;
 } H265eSlicParams;
 
 typedef struct RcParams_t {
     RK_U8 rc_en;
-    RK_U8 aqmode_en;
-    RK_U8 qp_mode;
     RK_U8 pic_qp;
     RK_U8 frame_type;
     RK_U8 coding_type;
@@ -200,7 +199,7 @@ typedef struct RcParams_t {
     RK_U8 rc_min_qp;
     RK_U16 rc_ctu_num;
     RK_U32 ctu_ebits;
-    RK_S32 bit_error[9];
+    RK_S32 bits_thd[9];
     RK_S8  qp_adjust[9];
     RK_U8  qpmax_area[8];
     RK_U8  qpmin_area[8];
