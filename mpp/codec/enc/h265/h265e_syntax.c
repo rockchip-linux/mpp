@@ -27,7 +27,7 @@ static void fill_picture_parameters(const H265eCtx *h,
 {
     const H265ePps *pps = (H265ePps *)&h->pps;
     const H265eSps *sps = (H265eSps *)&h->sps;
-
+    MppEncCfgSet *cfg = h->cfg;
     memset(pp, 0, sizeof(H265ePicParams));
 
     pp->pic_width  = h->cfg->prep.width;
@@ -37,6 +37,7 @@ static void fill_picture_parameters(const H265eCtx *h,
     pp->pps_id = h->slice->m_ppsId;
     pp->sps_id = pps->m_SPSId;
     pp->vps_id = sps->m_VPSId;
+    pp->mpp_format = cfg->prep.format;
 
     pp->wFormatAndSequenceInfoFlags = (sps->m_chromaFormatIdc               <<  0) |
                                       (sps->m_colorPlaneFlag                <<  2) |

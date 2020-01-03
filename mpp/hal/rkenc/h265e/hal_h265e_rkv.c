@@ -661,6 +661,35 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvRegSet *regs, H265eSyntax_new *syn)
     return MPP_OK;
 }
 
+static MPP_RET h265e_rkv_set_pp_regs(H265eRkvRegSet *regs, MppEncPrepCfg *prep_cfg)
+{
+    RK_S32 stridey = 0;
+    RK_S32 stridec = 0;
+
+    regs->src_proc.src_rot = prep_cfg->rotation;
+
+    if (prep_cfg->hor_stride) {
+        stridey = prep_cfg->hor_stride;
+    } else {
+        stridey = prep_cfg->width ;
+        if (regs->src_fmt.src_cfmt == RKVE_CSP_BGRA8888 )
+            stridey = (stridey + 1) * 4;
+        else if (regs->src_fmt.src_cfmt == RKVE_CSP_BGR888 )
+            stridey = (stridey + 1) * 3;
+        else if ( regs->src_fmt.src_cfmt == RKVE_CSP_BGR565
+                  || regs->src_fmt.src_cfmt == RKVE_CSP_YUYV422
+                  || regs->src_fmt.src_cfmt == RKVE_CSP_UYVY422 )
+            stridey = (stridey + 1) * 2;
+    }
+    stridec = (regs->src_fmt.src_cfmt == RKVE_CSP_YUV422SP
+               || regs->src_fmt.src_cfmt == RKVE_CSP_YUV420SP)
+              ? stridey : stridey / 2;
+
+    regs->src_strid.src_ystrid    = stridey;
+    regs->src_strid.src_cstrid    = stridec;
+    return MPP_OK;
+}
+
 static void h265e_rkv_set_slice_regs(H265eSyntax_new *syn, H265eRkvRegSet *regs)
 {
     regs->synt_sps.smpl_adpt_ofst_en    = syn->pp.sample_adaptive_offset_enabled_flag;//slice->m_sps->m_bUseSAO;
@@ -858,8 +887,6 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->src_proc.src_rot = 0;
     regs->src_proc.txa_en  = 1;
     regs->src_proc.fbd_en  = 0;
-    regs->src_strid.src_ystrid = syn->pp.hor_stride;
-    regs->src_strid.src_cstrid = syn->pp.hor_stride / 2;
 
     h265e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, (RkveCsp)ctx->input_fmt);
 
@@ -1024,8 +1051,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
         }
         regs->synt_nal.nal_unit_type    = i_nal_type;
     }
-
-
+    h265e_rkv_set_pp_regs(regs, &ctx->cfg->prep);
     h265e_rkv_set_rc_regs(regs, syn);
     h265e_rkv_set_slice_regs(syn, regs);
 
