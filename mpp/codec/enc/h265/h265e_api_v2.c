@@ -121,7 +121,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->sao_cfg.slice_sao_luma_flag = 0;
     h265->dblk_cfg.slice_deblocking_filter_disabled_flag = 0;
     h265->cu_cfg.strong_intra_smoothing_enabled_flag = 1;
-    h265->merge_cfg.fivm_max_mrg_cnd = 2;
+    h265->merge_cfg.max_mrg_cnd = 2;
     h265->merge_cfg.merge_left_flag = 1;
     h265->merge_cfg.merge_up_flag = 1;
 

@@ -260,7 +260,7 @@ void h265e_slice_init(void *ctx, H265eSlice *slice)
     }
     slice->m_saoEnabledFlag = codec->sao_cfg.slice_sao_luma_flag;
     slice->m_saoEnabledFlagChroma = codec->sao_cfg.slice_sao_chroma_flag;
-    slice->m_maxNumMergeCand = codec->merge_cfg.fivm_max_mrg_cnd;
+    slice->m_maxNumMergeCand = codec->merge_cfg.max_mrg_cnd;
     slice->m_cabacInitFlag = codec->entropy_cfg.cabac_init_flag;
     slice->m_picOutputFlag = 1;
     slice->m_ppsId = pps->m_PPSId;

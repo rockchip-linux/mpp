@@ -158,7 +158,7 @@ typedef struct H265eSlicParams_t {
     RK_S8 sli_beta_ofst_div2;
     RK_S8 sli_cb_qp_ofst;
     RK_U8 sli_qp;
-    RK_U8 fivm_max_mrg_cnd;
+    RK_U8 max_mrg_cnd;
     RK_U8 lst_entry_l0;
     RK_U8 num_refidx_l1_act;
     RK_U8 num_refidx_l0_act;

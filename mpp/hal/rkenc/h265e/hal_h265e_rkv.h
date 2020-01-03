@@ -716,7 +716,7 @@ typedef struct H265eRkvRegSet_t {
         RK_U32    dblk_fltr_ovrd_flg        : 1;
         RK_S32    sli_cb_qp_ofst             : 5;
         RK_U32    sli_qp                         : 6;
-        RK_U32    fivm_max_mrg_cnd    : 3;
+        RK_U32    max_mrg_cnd                : 3;
         RK_U32    col_ref_idx                 : 1;
         RK_U32    col_frm_l0_flg            : 1;
         RK_U32    lst_entry_l0                : 4;

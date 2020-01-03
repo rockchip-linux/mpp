@@ -161,7 +161,7 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->dblk_fltr_ovrd_flg = slice->m_deblockingFilterOverrideFlag;
     sp->sli_cb_qp_ofst = slice->m_sliceQpDeltaCb;
     sp->sli_qp = slice->m_sliceQp;
-    sp->fivm_max_mrg_cnd = slice->m_maxNumMergeCand;
+    sp->max_mrg_cnd = slice->m_maxNumMergeCand;
 
     sp->col_ref_idx = 0;
     sp->col_frm_l0_flg = slice->m_colFromL0Flag;
