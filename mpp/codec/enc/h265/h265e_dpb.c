@@ -710,7 +710,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
     RK_S32 nLongTermRefPicRealPoc[MAX_NUM_LONG_TERM_REF_PIC_POC];
     RK_U32 isMsbValid[MAX_NUM_LONG_TERM_REF_PIC_POC];
     RK_U32 isShortTermValid[MAX_REFS];
-    memset(isShortTermValid, 1, MAX_REFS);
+    memset(isShortTermValid, 1, sizeof(RK_U32)*MAX_REFS);
     RK_S32 nShortTerm = 0;
 
     h265e_dbg_func("enter\n");
@@ -831,7 +831,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
             for (idx = m_pRPS->num_negative_pic; idx < MAX_REFS; idx++) {
                 m_pRPS->delta_poc[idx] = 0;
             }
-            memset(isShortTermValid, 0, MAX_REFS);
+            memset(isShortTermValid, 0, sizeof(RK_U32)*MAX_REFS);
             nShortTerm = m_pRPS->num_negative_pic + m_pRPS->num_positive_pic;
             for (i = last_index; i >= 0; i++) {
 
@@ -853,8 +853,8 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
                     m_pRPS->num_negative_pic++;
                 }
             }
-            memset(isShortTermValid, 1, MAX_REFS);
-            memset(isMsbValid, 0, MAX_NUM_LONG_TERM_REF_PIC_POC);
+            memset(isShortTermValid, 1, sizeof(RK_U32)*MAX_REFS);
+            memset(isMsbValid, 0, sizeof(RK_U32)*MAX_NUM_LONG_TERM_REF_PIC_POC);
         }
         m_pRPS->m_interRPSPrediction = 0;
 
@@ -973,7 +973,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
             for (idx = rps->num_negative_pic; idx < MAX_REFS; idx++) {
                 rps->delta_poc[idx] = 0;
             }
-            memset(isShortTermValid, 0, MAX_REFS);
+            memset(isShortTermValid, 0, sizeof(RK_U32)*MAX_REFS);
             nShortTerm = rps->num_negative_pic + rps->num_positive_pic;
 
             for (i = 0; i < MAX_REFS; i++) {
@@ -996,8 +996,8 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
                     rps->num_negative_pic++;
                 }
             }
-            memset(isShortTermValid, 1, MAX_REFS);
-            memset(isMsbValid, 0, MAX_NUM_LONG_TERM_REF_PIC_POC);
+            memset(isShortTermValid, 1, sizeof(RK_U32)*MAX_REFS);
+            memset(isMsbValid, 0, sizeof(RK_U32)*MAX_NUM_LONG_TERM_REF_PIC_POC);
             rps->m_interRPSPrediction = 0;
             nShortTerm = rps->num_negative_pic + rps->num_positive_pic;
 

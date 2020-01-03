@@ -38,7 +38,7 @@
  *
  */
 
-#define H265E_MAX_BUF_CNT   2
+#define H265E_MAX_BUF_CNT   8
 #define H265_MAX_GOP        64          ///< max. value of hierarchical GOP size
 #define H265_MAX_GOP_CNT    (H265_MAX_GOP + 1)
 
