@@ -22,10 +22,10 @@
 #include "mpp_rc.h"
 
 #include "h265e_syntax.h"
+#include "h265e_syntax_new.h"
 #include "h265e_dpb.h"
 #include "enc_impl_api.h"
 #include "rc_api.h"
-#include "rc.h"
 
 #define H265E_DBG_FUNCTION          (0x00000001)
 #define H265E_DBG_INPUT             (0x00000010)
@@ -55,36 +55,6 @@ extern RK_U32 h265e_debug;
 #define h265e_dbg_dpb(fmt, ...)     h265e_dbg(H265E_DBG_DPB, fmt, ## __VA_ARGS__)
 #define h265e_dbg_slice(fmt, ...)   h265e_dbg(H265E_DBG_SLICE, fmt, ## __VA_ARGS__)
 
-/*
- * Split reference frame configure to two parts
- * The first part is slice depended info like poc / frame_num, and frame
- * type and flags.
- * The other part is gop structure depended info like gop index, ref_status
- * and ref_frm_index. This part is inited from dpb gop hierarchy info.
- */
-typedef struct H265eFrmInfo_s {
-    RK_S32              seq_idx;
-
-    RK_S32              curr_idx;
-    RK_S32              refr_idx;
-
-    // current frame rate control and dpb status info
-    RK_S32              mb_per_frame;
-    RK_S32              mb_raw;
-    RK_S32              mb_wid;
-    RK_S32              frame_type;
-    RK_S32              last_frame_type;
-    RK_S32              cur_scale_qp;
-    RK_S32              pre_i_qp;
-    RK_S32              pre_p_qp;
-    RK_S32              start_qp;
-
-    RcHalCfg            rc_cfg;
-    EncFrmStatus        status;
-
-    RK_S32              usage[MAX_REFS + 1];
-} H265eFrmInfo;
-
 typedef struct H265eCtx_t {
     MppEncCfgSet        *cfg;
     MppEncCfgSet        *set;
@@ -107,7 +77,7 @@ typedef struct H265eCtx_t {
     void                *extra_info;
     void                *param_buf;
     MppPacket           packeted_param;
-    H265eSyntax         syntax;
+    H265eSyntax_new     syntax;
     H265eFeedback       feedback;
     struct list_head    rc_list;
 } H265eCtx;
