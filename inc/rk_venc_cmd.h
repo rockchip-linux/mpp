@@ -883,6 +883,7 @@ typedef struct MppEncH265Cfg_t {
     RK_S32              gop_delta_qp;
     RK_S32              qp_init;
     RK_S32              qp_max_step;
+    RK_S32              raw_dealt_qp;
     RK_U8               qpmax_map[8];
     RK_U8               qpmin_map[8];
     RK_S32              qpmap_mode;
