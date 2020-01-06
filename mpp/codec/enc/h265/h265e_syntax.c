@@ -340,74 +340,10 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
 }
 
 
-RK_S32 fill_rc_parameters(H265eCtx *h, RcParams *rp)
+RK_S32 fill_frm_info(H265eCtx *h, H265eFrmInfo *syn_frms)
 {
     H265eFrmInfo *frms = &h->frms;
-    MppEncRcCfg *rc = &h->cfg->rc;
-    RcHalCfg    *rc_cfg = &frms->rc_cfg;
-    MppEncCodecCfg *codec = &h->cfg->codec;
-    MppEncH265Cfg *h265 = &codec->h265;
-    RK_U32 i;
-    RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / frms->mb_per_frame;
-    RK_U32 ctu_target_bits;
-    RK_S32 negative_bits_thd, positive_bits_thd;
-    memset(rp, 0, sizeof(RcParams));
-    if (ctu_target_bits_mul_16 >= 0x100000) {
-        ctu_target_bits_mul_16 = 0x50000;
-    }
-
-    ctu_target_bits = (ctu_target_bits_mul_16 * frms->mb_wid) >> 4;
-    negative_bits_thd = 0 - ctu_target_bits / 4;
-    positive_bits_thd = ctu_target_bits / 4;
-
-    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-        rp->pic_qp = h265->qp_init;
-        rp->rc_max_qp = h265->qp_init;
-        rp->rc_min_qp = h265->qp_init;
-        return 0;
-    }
-
-    rp->rc_en = 1;
-    rp->rc_qp_range = 2;
-
-    rp->pic_qp = frms->start_qp;
-
-    if (frms->status.is_intra) {
-        rp->rc_max_qp = h265->max_i_qp;
-        rp->rc_min_qp = h265->min_i_qp;
-    } else {
-        rp->rc_max_qp = h265->max_qp;
-        rp->rc_min_qp = h265->min_qp;
-    }
-    rp->frame_type = frms->status.is_intra ? 2 : 0;
-    rp->rc_ctu_num = frms->mb_wid;
-
-    rp->ctu_ebits = ctu_target_bits_mul_16;
-    rp->bits_thd[0] = negative_bits_thd;
-    rp->bits_thd[1] = positive_bits_thd;
-    rp->bits_thd[2] = positive_bits_thd;
-
-    rp->bits_thd[3] = positive_bits_thd;
-    rp->bits_thd[4] = positive_bits_thd;
-    rp->bits_thd[5] = positive_bits_thd;
-    rp->bits_thd[6] = positive_bits_thd;
-    rp->bits_thd[7] = positive_bits_thd;
-    rp->bits_thd[8] = positive_bits_thd;
-
-    rp->qp_adjust[0] = -1;
-    rp->qp_adjust[1] = 0;
-    rp->qp_adjust[2] = 0;
-    rp->qp_adjust[3] = 0;
-    rp->qp_adjust[4] = 0;
-    rp->qp_adjust[5] = 0;
-    rp->qp_adjust[6] = 0;
-    rp->qp_adjust[7] = 0;
-    rp->qp_adjust[8] = 1;
-    for ( i = 0; i < 8; i++) {
-        rp->qpmax_area[i] = h265->qpmax_map[i];
-        rp->qpmin_area[i] = h265->qpmin_map[i];
-    }
-    rp->qpmap_mode = h265->qpmap_mode;
+    memcpy(syn_frms, frms, sizeof(*frms));
     return  0;
 }
 
@@ -418,7 +354,7 @@ RK_S32 h265e_syntax_fill(void *ctx)
     fill_picture_parameters(h, &syn->pp);
     fill_slice_parameters(h, &syn->sp);
     fill_ref_parameters(h, &syn->sp);
-    fill_rc_parameters(h, &syn->rp);
+    fill_frm_info(h, &syn->frms);
     syn->ud.plt_data = NULL;
     if (h->plt_flag) {
         syn->ud.plt_data = (void*)&h->cfg->osd_plt;

@@ -17,6 +17,8 @@
 #ifndef __H265E_SYNTAX_NEW_H__
 #define __H265E_SYNTAX_NEW_H__
 #include "mpp_rc.h"
+#include "h265_syntax.h"
+#include "rc.h"
 
 typedef struct H265PicEntry_t {
     RK_U8 bPicEntry[3];
@@ -188,24 +190,31 @@ typedef struct H265eSlicParams_t {
     RK_U32 sli_splt_byte;
     RK_U32 tot_poc_num;
 } H265eSlicParams;
+/*
+ * Split reference frame configure to two parts
+ * The first part is slice depended info like poc / frame_num, and frame
+ * type and flags.
+ * The other part is gop structure depended info like gop index, ref_status
+ * and ref_frm_index. This part is inited from dpb gop hierarchy info.
+ */
 
-typedef struct RcParams_t {
-    RK_U8 rc_en;
-    RK_U8 pic_qp;
-    RK_U8 frame_type;
-    RK_U8 coding_type;
-    RK_U8 rc_qp_range;
-    RK_U8 rc_max_qp;
-    RK_U8 rc_min_qp;
-    RK_U16 rc_ctu_num;
-    RK_U32 ctu_ebits;
-    RK_S32 bits_thd[9];
-    RK_S8  qp_adjust[9];
-    RK_U8  qpmax_area[8];
-    RK_U8  qpmin_area[8];
-    RK_U8  qpmap_mode;
-    RK_U32 bit_target;
-} RcParams;
+typedef struct H265eFrmInfo_s {
+    RK_S32              seq_idx;
+
+    RK_S32              curr_idx;
+    RK_S32              refr_idx;
+
+    // current frame rate control and dpb status info
+    RK_S32              mb_per_frame;
+    RK_S32              mb_raw;
+    RK_S32              mb_wid;
+    RK_S32              frame_type;
+    RK_S32              last_frame_type;
+
+    RcHalCfg            rc_cfg;
+    EncFrmStatus        status;
+    RK_S32              usage[MAX_REFS + 1];
+} H265eFrmInfo;
 
 typedef struct UserDatas_t {
     void *plt_data;
@@ -215,8 +224,8 @@ typedef struct H265eSyntax_new_t {
     RK_S32          idr_request;
     H265ePicParams  pp;
     H265eSlicParams sp;
-    RcParams        rp;
     UserDatas       ud;
+    H265eFrmInfo    frms;
 } H265eSyntax_new;
 
 #ifdef __cplusplus

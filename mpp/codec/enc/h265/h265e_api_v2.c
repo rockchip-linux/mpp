@@ -31,28 +31,6 @@
 
 extern RK_U32 h265e_debug;
 
-static RK_U32 mb_num[12] = {
-    0x0,    0xc8,   0x2bc,  0x4b0,
-    0x7d0,  0xfa0,  0x1f40, 0x3e80,
-    0x4e20, 0x4e20, 0x4e20, 0x4e20,
-};
-
-static RK_U32 tab_bit[12] = {
-    0xEC4, 0xDF2, 0xC4E, 0xB7C, 0xAAA, 0xEC4, 0x834, 0x690, 0x834, 0x834, 0x834, 0x834,
-};
-
-static RK_U8 qp_table[96] = {
-    0xF,  0xF,  0xF, 0xF,   0xF,  0x10, 0x12, 0x14, 0x15, 0x16, 0x17,
-    0x18, 0x19, 0x19, 0x1A, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E,
-    0x1E, 0x1F, 0x1F, 0x20, 0x20, 0x21, 0x21, 0x21, 0x22, 0x22, 0x22,
-    0x22, 0x23, 0x23, 0x23, 0x24, 0x24, 0x24, 0x24, 0x24, 0x25, 0x25,
-    0x25, 0x25, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27,
-    0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29,
-    0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B,
-    0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C,
-    0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D,
-};
-
 static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 {
     H265eCtx *p = (H265eCtx *)ctx;
@@ -94,6 +72,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->max_i_qp = 51;
     h265->min_i_qp = 10;
     h265->ip_qp_delta = 3;
+    h265->raw_dealt_qp = 2;
     h265->max_delta_qp = 10;
     h265->const_intra_pred = 0;
     h265->gop_delta_qp = 0;
@@ -394,21 +373,6 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
-{
-    RK_S32 cnt = 0, index, i;
-
-    for (i = 0; i < 11; i++) {
-        if (mb_num[i] > total_mb)
-            break;
-        cnt++;
-    }
-    index = (total_mb * tab_bit[cnt] - 300) / target_bit; //
-    index = mpp_clip(index, 4, 95);
-
-    return qp_table[index];
-}
-
 static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
 {
     (void)task;
@@ -425,39 +389,6 @@ static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
 
     rc_frm_start(p->rc_ctx, &frms->rc_cfg, &frms->status);
 
-    if (frms->seq_idx == 0 && frms->status.is_intra) {
-        if (h265->qp_init == -1) {
-            frms->start_qp = cal_first_i_start_qp(frms->rc_cfg.bit_target, frms->mb_per_frame << 4);
-            frms->cur_scale_qp = (frms->start_qp  + h265->ip_qp_delta) << 6;
-        } else {
-
-            frms->start_qp = h265->qp_init;
-            frms->cur_scale_qp = (frms->start_qp + h265->ip_qp_delta) << 6;
-        }
-
-        frms->pre_i_qp = frms->cur_scale_qp >> 6;
-        frms->pre_p_qp = frms->cur_scale_qp >> 6;
-        frms->frame_type = INTRA_FRAME;
-    } else {
-        RK_S32 qp_scale = frms->cur_scale_qp + frms->rc_cfg.next_ratio;
-        RK_S32 start_qp = 0;
-
-        if (frms->status.is_intra) {
-            frms->frame_type = INTRA_FRAME;
-            qp_scale = mpp_clip(qp_scale, (h265->min_i_qp << 6), (h265->max_i_qp << 6));
-            start_qp = ((frms->pre_i_qp + ((qp_scale + frms->rc_cfg.next_i_ratio) >> 6)) >> 1);
-
-            start_qp = mpp_clip(start_qp, h265->min_i_qp, h265->max_i_qp);
-            frms->pre_i_qp = start_qp;
-            frms->start_qp = start_qp;
-            frms->cur_scale_qp = qp_scale;
-        } else {
-            frms->frame_type = INTER_P_FRAME;
-            qp_scale = mpp_clip(qp_scale, (h265->min_qp << 6), (h265->max_qp << 6));
-            frms->cur_scale_qp = qp_scale;
-            frms->start_qp = qp_scale >> 6;
-        }
-    }
     p->frms.status.reencode = 0;
 
     h265e_dbg_func("leave\n");
@@ -523,10 +454,7 @@ static MPP_RET h265e_update_rc(void *ctx, HalEncTask *task)
 
     if (rc_hal_cfg->need_reenc) {
         p->frms.status.reencode = 1;
-    } else {
-        p->frms.last_frame_type = p->frms.frame_type;
     }
-
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }
