@@ -22,19 +22,6 @@
 #include "mpp_hal.h"
 #include "mpp_device.h"
 
-#define EXTRA_INFO_MAGIC                      (0x4C4A46)
-
-typedef struct JpegdIocExtInfoSlot_t {
-    RK_U32                 reg_idx;
-    RK_U32                 offset;
-} JpegdIocExtInfoSlot;
-
-typedef struct JpegdIocExtInfo_t {
-    RK_U32                 magic; /* tell kernel that it is extra info */
-    RK_U32                 cnt;
-    JpegdIocExtInfoSlot    slots[5];
-} JpegdIocExtInfo;
-
 typedef struct PPInfo_t {
     /* PP parameters */
     RK_U8                  pp_enable; /* 0 - disable; 1 - enable */

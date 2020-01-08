@@ -17,8 +17,7 @@
 #ifndef __MPP_DEVICE_H__
 #define __MPP_DEVICE_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "mpp_device_patch.h"
 
 /* define flags for mpp_request */
 #define MPP_FLAGS_MULTI_MSG         (0x00000001)
@@ -56,14 +55,12 @@ typedef enum MppDevCmdType_e {
     MPP_CMD_INIT_TRANS_TABLE        = MPP_CMD_INIT_BASE + 2,
 
     MPP_CMD_SEND_BASE               = 0x200,
-    MPP_CMD_SET_REG                 = MPP_CMD_SEND_BASE + 0,
-    MPP_CMD_SET_VEPU22_CFG          = MPP_CMD_SEND_BASE + 1,
-    MPP_CMD_SET_RKVENC_OSD_PLT      = MPP_CMD_SEND_BASE + 2,
-    MPP_CMD_SET_RKVENC_L2_REG       = MPP_CMD_SEND_BASE + 3,
-    MPP_CMD_SET_REG_ADDR_OFFSET     = MPP_CMD_SEND_BASE + 4,
+    MPP_CMD_SET_REG_WRITE           = MPP_CMD_SEND_BASE + 0,
+    MPP_CMD_SET_REG_READ            = MPP_CMD_SEND_BASE + 1,
+    MPP_CMD_SET_REG_ADDR_OFFSET     = MPP_CMD_SEND_BASE + 2,
 
     MPP_CMD_POLL_BASE               = 0x300,
-    MPP_CMD_GET_REG                 = MPP_CMD_POLL_BASE + 0,
+    MPP_CMD_POLL_HW_FINISH          = MPP_CMD_POLL_BASE + 0,
 
     MPP_CMD_CONTROL_BASE            = 0x400,
     MPP_CMD_RESET_SESSION           = MPP_CMD_CONTROL_BASE + 0,
@@ -102,6 +99,7 @@ RK_S32 mpp_device_control(MppDevCtx ctx, MppDevCmd cmd, void *param);
 /*
  * register access interface
  */
+MPP_RET mpp_device_send_extra_info(MppDevCtx ctx, RegExtraInfo *info);
 MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param, RK_S32 size);

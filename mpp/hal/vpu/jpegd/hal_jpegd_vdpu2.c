@@ -916,13 +916,26 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
 
 MPP_RET hal_jpegd_vdpu2_start(void *hal, HalTaskInfo *task)
 {
-    jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
-    RK_U32 *p_regs = (RK_U32 *)JpegHalCtx->regs;
+    RK_U32 *regs = (RK_U32 *)JpegHalCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)regs;
+    RK_U32 nregs = sizeof(JpegdIocRegInfo) / sizeof(RK_U32);
 
-    ret = mpp_device_send_reg(JpegHalCtx->dev_ctx, p_regs,
-                              sizeof(JpegdIocRegInfo) / sizeof(RK_U32));
+    jpegd_dbg_func("enter\n");
+
+    if (mpp_get_ioctl_version()) {
+        ret = mpp_device_send_extra_info(JpegHalCtx->dev_ctx, &info->extra_info);
+        if (ret)
+            return MPP_ERR_VPUHW;
+
+        nregs = sizeof(JpegRegSet) / sizeof(RK_U32);
+    } else {
+        if (!mpp_device_patch_is_valid(&info->extra_info))
+            nregs -= sizeof(RegExtraInfo) / sizeof(RK_U32);
+    }
+
+    ret = mpp_device_send_reg(JpegHalCtx->dev_ctx, regs, nregs);
     if (ret) {
         mpp_err_f("mpp_device_send_reg Failed!!!\n");
         return MPP_ERR_VPUHW;

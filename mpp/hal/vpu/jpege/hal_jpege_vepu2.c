@@ -111,47 +111,29 @@ MPP_RET hal_jpege_vepu2_deinit(void *hal)
 }
 
 static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
-                                              JpegeIocExtInfo *info,
+                                              RegExtraInfo *info,
                                               JpegeSyntax *syntax)
 {
     MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = syntax->hor_stride;
     RK_U32 ver_stride   = syntax->ver_stride;
 
-    if (hor_stride * ver_stride * 5 / 4 >= SZ_4M) {
-        JpegeIocExtInfoSlot *slot = NULL;
+    mpp_device_patch_init(info);
 
-        info->magic = EXTRA_INFO_MAGIC;
-        info->cnt = 2;
-
-        if (fmt == MPP_FMT_YUV420P) {
-            slot = &(info->slots[0]);
-            slot->reg_idx = 49;
-            slot->offset = hor_stride * ver_stride;
-
-            slot = &(info->slots[1]);
-            slot->reg_idx = 50;
-            slot->offset = hor_stride * ver_stride * 5 / 4;
-        } else if (fmt == MPP_FMT_YUV420SP) {
-            slot = &(info->slots[0]);
-            slot->reg_idx = 49;
-            slot->offset = hor_stride * ver_stride;
-
-            slot = &(info->slots[1]);
-            slot->reg_idx = 50;
-            slot->offset = hor_stride * ver_stride;
-        } else {
-            mpp_log_f("other format(%d)\n", fmt);
-        }
-    } else {
-        if (fmt == MPP_FMT_YUV420P) {
-            regs[49] += (hor_stride * ver_stride) << 10;
-            regs[50] += (hor_stride * ver_stride * 5 / 4) << 10;
-        } else if (fmt == MPP_FMT_YUV420SP) {
-            regs[49] += (hor_stride * ver_stride) << 10;
-            regs[50] += (hor_stride * ver_stride) << 10;
-        }
+    switch (fmt) {
+    case MPP_FMT_YUV420P : {
+        mpp_device_patch_add(regs, info, 49, hor_stride * ver_stride);
+        mpp_device_patch_add(regs, info, 50, hor_stride * ver_stride * 5 / 4);
+    } break;
+    case MPP_FMT_YUV420SP : {
+        mpp_device_patch_add(regs, info, 49, hor_stride * ver_stride);
+        mpp_device_patch_add(regs, info, 50, hor_stride * ver_stride);
+    } break;
+    default : {
+        mpp_log_f("other format(%d)\n", fmt);
+    } break;
     }
+
     return MPP_OK;
 }
 
@@ -171,7 +153,7 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
-    JpegeIocExtInfo *extra_info = &(ctx->ioctl_info.extra_info);
+    RegExtraInfo *extra_info = &(ctx->ioctl_info.extra_info);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
     const RK_U8 *qtable[2];
@@ -427,12 +409,23 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     RK_U32 *cache = NULL;
     RK_U32 reg_size = sizeof(jpege_vepu2_reg_set);
-    RK_U32 extra_size = (ctx->ioctl_info.extra_info.cnt) ?
-                        (sizeof(JpegeIocExtInfo)) : (0);
+    RK_U32 extra_size = (ctx->ioctl_info.extra_info.count) ?
+                        (sizeof(RegExtraInfo)) : (0);
     RK_U32 reg_num = reg_size / sizeof(RK_U32);
     RK_U32 extra_num = extra_size / sizeof(RK_U32);
+    RegExtraInfo *info = &ctx->ioctl_info.extra_info;
+    RK_U32 nregs = reg_num;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
+
+    if (mpp_get_ioctl_version()) {
+        ret = mpp_device_send_extra_info(ctx->dev_ctx, info);
+        if (ret)
+            return MPP_ERR_VPUHW;
+    } else {
+        if (mpp_device_patch_is_valid(info))
+            nregs += extra_num;
+    }
 
     cache = mpp_malloc(RK_U32, reg_num + extra_num);
     if (!cache) {
@@ -444,7 +437,7 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
     memcpy(cache + reg_num, &(ctx->ioctl_info.extra_info), extra_size);
 
     if (ctx->dev_ctx) {
-        ret = mpp_device_send_reg(ctx->dev_ctx, cache, reg_num + extra_num);
+        ret = mpp_device_send_reg(ctx->dev_ctx, cache, nregs);
     }
 
     mpp_free(cache);

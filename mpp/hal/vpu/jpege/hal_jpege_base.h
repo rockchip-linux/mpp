@@ -4,8 +4,6 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 
-#define EXTRA_INFO_MAGIC    (0x4C4A46)
-
 #define HAL_JPEGE_DBG_FUNCTION          (0x00000001)
 #define HAL_JPEGE_DBG_INPUT             (0x00000010)
 #define HAL_JPEGE_DBG_OUTPUT            (0x00000020)
@@ -17,20 +15,9 @@
 #define hal_jpege_dbg_input(fmt, ...)   hal_jpege_dbg(HAL_JPEGE_DBG_INPUT, fmt, ## __VA_ARGS__)
 #define hal_jpege_dbg_output(fmt, ...)  hal_jpege_dbg(HAL_JPEGE_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
-typedef struct JpegeIocExtInfoSlot_t {
-    RK_U32       reg_idx;
-    RK_U32       offset;
-} JpegeIocExtInfoSlot;
-
-typedef struct JpegeIocExtInfo_t {
-    RK_U32              magic; /* tell kernel that it is extra info */
-    RK_U32              cnt;
-    JpegeIocExtInfoSlot slots[5];
-} JpegeIocExtInfo;
-
 typedef struct JpegeIocRegInfo_t {
-    RK_U32               *regs;
-    JpegeIocExtInfo     extra_info;
+    RK_U32              *regs;
+    RegExtraInfo        extra_info;
 } JpegeIocRegInfo;
 
 typedef struct hal_jpege_ctx_s {

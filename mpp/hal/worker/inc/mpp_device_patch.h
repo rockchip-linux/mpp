@@ -17,8 +17,7 @@
 #define __MPP_DEVICE_PATCH_H__
 
 #include "rk_type.h"
-
-#define EXTRA_INFO_MAGIC    (0x4C4A46)
+#include "mpp_err.h"
 
 typedef struct RegPatchSlotInfo_t {
     RK_U32          reg_idx;
@@ -49,6 +48,8 @@ void mpp_device_patch_init(RegExtraInfo *extra);
  */
 void mpp_device_patch_add(RK_U32 *reg, RegExtraInfo *extra, RK_U32 reg_idx,
                           RK_U32 offset);
+
+RK_S32 mpp_device_patch_is_valid(RegExtraInfo *extra);
 
 #ifdef __cplusplus
 }
