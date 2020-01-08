@@ -378,16 +378,16 @@ static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
     (void)task;
     H265eCtx *p = (H265eCtx *)ctx;
     H265eFrmInfo *frms = &p->frms;
-    MppEncCodecCfg *codec = &p->cfg->codec;
-    MppEncH265Cfg *h265 = &codec->h265;
+    MppEncRcCfg *rc = &p->cfg->rc;
 
     h265e_dbg_func("enter\n");
     if (!p->rc_ready) {
         mpp_err_f("not initialize encoding\n");
         return MPP_NOK;
     }
-
-    rc_frm_start(p->rc_ctx, &frms->rc_cfg, &frms->status);
+    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        rc_frm_start(p->rc_ctx, &frms->rc_cfg, &frms->status);
+    }
 
     p->frms.status.reencode = 0;
 
@@ -398,7 +398,7 @@ static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    H265eSyntax* syntax = NULL;
+    H265eSyntax_new *syntax = NULL;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -443,17 +443,17 @@ static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
 static MPP_RET h265e_update_rc(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-
+    MppEncRcCfg *rc = &p->cfg->rc;
     RcHalCfg *rc_hal_cfg = NULL;
 
     h265e_dbg_func("enter\n");
 
     rc_hal_cfg = (RcHalCfg *)task->hal_ret.data;
-
-    rc_frm_end(p->rc_ctx, rc_hal_cfg);
-
-    if (rc_hal_cfg->need_reenc) {
-        p->frms.status.reencode = 1;
+    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        rc_frm_end(p->rc_ctx, rc_hal_cfg);
+        if (rc_hal_cfg->need_reenc) {
+            p->frms.status.reencode = 1;
+        }
     }
     h265e_dbg_func("leave\n");
     return MPP_OK;
