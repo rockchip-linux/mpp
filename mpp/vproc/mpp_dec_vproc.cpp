@@ -58,6 +58,7 @@ typedef struct MppDecVprocCtxImpl_t {
 
     MppThread           *thd;
     RK_U32              reset;
+    sem_t               reset_sem;
 
     IepCtx              iep_ctx;
     IepCmdParamDeiCfg   dei_cfg;
@@ -114,21 +115,6 @@ static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
 
     ctx->prev_idx = -1;
     ctx->prev_frm = NULL;
-}
-
-static void dec_vproc_reset_queue(MppDecVprocCtxImpl *ctx)
-{
-    MppThread *thd = ctx->thd;
-
-    vproc_dbg_reset("reset start\n");
-    dec_vproc_clr_prev(ctx);
-
-    thd->lock(THREAD_CONTROL);
-    ctx->reset = 0;
-    vproc_dbg_reset("reset signal\n");
-    thd->signal(THREAD_CONTROL);
-    thd->unlock(THREAD_CONTROL);
-    vproc_dbg_reset("reset done\n");
 }
 
 static void dec_vproc_set_img_fmt(IepImg *img, MppFrame frm)
@@ -211,16 +197,26 @@ static void *dec_vproc_thread(void *data)
                 break;
 
             if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
-                // process all task then do reset process
-                thd->lock(THREAD_CONTROL);
-                if (ctx->reset)
-                    dec_vproc_reset_queue(ctx);
-                thd->unlock(THREAD_CONTROL);
+                {
+                    AutoMutex autolock_reset(thd->mutex(THREAD_CONTROL));
+                    if (ctx->reset) {
+                        vproc_dbg_reset("reset start\n");
+                        dec_vproc_clr_prev(ctx);
+
+                        ctx->reset = 0;
+                        sem_post(&ctx->reset_sem);
+                        vproc_dbg_reset("reset done\n");
+                        continue;
+                    }
+                }
 
                 thd->wait();
                 continue;
             }
         }
+        // process all task then do reset process
+        thd->lock(THREAD_CONTROL);
+        thd->unlock(THREAD_CONTROL);
 
         if (task) {
             ret = hal_task_hnd_get_info(task, &task_info);
@@ -387,6 +383,7 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     p->mpp = (Mpp *)cfg->mpp;
     p->slots = ((MppDecImpl *)p->mpp->mDec)->frame_slots;
     p->thd = new MppThread(dec_vproc_thread, p, "mpp_dec_vproc");
+    sem_init(&p->reset_sem, 0, 0);
     ret = hal_task_group_init(&p->task_group, 4);
     if (ret) {
         mpp_err_f("create task group failed\n");
@@ -463,6 +460,7 @@ MPP_RET dec_vproc_deinit(MppDecVprocCtx ctx)
         p->task_group = NULL;
     }
 
+    sem_destroy(&p->reset_sem);
     mpp_free(p);
 
     vproc_dbg_func("out\n");
@@ -536,18 +534,20 @@ MPP_RET dec_vproc_reset(MppDecVprocCtx ctx)
 
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
     if (p->thd) {
-        // wait reset finished
-        p->thd->lock(THREAD_CONTROL);
+        MppThread *thd = p->thd;
 
-        p->thd->lock();
+        vproc_dbg_reset("reset contorl start\n");
+        // wait reset finished
+        thd->lock();
+        thd->lock(THREAD_CONTROL);
         p->reset = 1;
-        p->thd->signal();
-        p->thd->unlock();
+        thd->unlock(THREAD_CONTROL);
+        thd->signal();
+        thd->unlock();
 
         vproc_dbg_reset("reset contorl wait\n");
-        p->thd->wait(THREAD_CONTROL);
+        sem_wait(&p->reset_sem);
         vproc_dbg_reset("reset contorl done\n");
-        p->thd->unlock(THREAD_CONTROL);
 
         mpp_assert(p->reset == 0);
     }
