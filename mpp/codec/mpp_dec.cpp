@@ -216,6 +216,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
             }
+            task->status.task_parsed_rdy = 0;
         }
 
         if (dec->mpp_pkt_in) {
@@ -881,7 +882,7 @@ void *mpp_dec_parser_thread(void *data)
     mpp_timer_pause(dec->timers[DEC_PRS_TOTAL]);
 
     mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread is going to exit\n");
-    if (NULL != task.hnd && task_dec->valid) {
+    if (task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
@@ -962,7 +963,8 @@ void *mpp_dec_hal_thread(void *data)
              * flush display queue then push the eos frame to info that
              * all frames have decoded.
              */
-            if (task_dec->flags.eos && !task_dec->valid) {
+            if (task_dec->flags.eos &&
+                (!task_dec->valid || task_dec->output < 0)) {
                 mpp_dec_push_display(mpp, task_dec->flags);
                 /*
                  * Use -1 as invalid buffer slot index.
