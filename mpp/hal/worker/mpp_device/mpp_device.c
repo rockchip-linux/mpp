@@ -29,11 +29,12 @@
 #include "mpp_common.h"
 
 #include "mpp_device.h"
-#include "mpp_device_patch.h"
 #include "mpp_device_msg.h"
 #include "mpp_platform.h"
 
 #include "vpu.h"
+
+#define EXTRA_INFO_MAGIC                    (0x4C4A46)
 
 #define VPU_IOC_MAGIC                       'l'
 
@@ -90,9 +91,22 @@ typedef struct MppDevCtxImpl_t {
     MppReqV1 reqs[MAX_REQ_NUM];
 } MppDevCtxImpl;
 
-#define MPP_DEVICE_DBG_REG                  (0x00000001)
-#define MPP_DEVICE_DBG_TIME                 (0x00000002)
-#define MPP_DEVICE_DBG_HW_SUPPORT           (0x00000004)
+#define MPP_DEVICE_DBG_FUNC                 (0x00000001)
+#define MPP_DEVICE_DBG_DETAIL               (0x00000002)
+#define MPP_DEVICE_DBG_HW_SUPPORT           (0x00000008)
+
+#define MPP_DEVICE_DBG_REG                  (0x00000010)
+#define MPP_DEVICE_DBG_TIME                 (0x00000020)
+
+#define mpp_dev_dbg(flag, fmt, ...)         _mpp_dbg(mpp_device_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_dev_dbg_f(flag, fmt, ...)       _mpp_dbg_f(mpp_device_debug, flag, fmt, ## __VA_ARGS__)
+
+#define mpp_dev_dbg_func(fmt, ...)          mpp_dev_dbg_f(MPP_DEVICE_DBG_FUNC, fmt, ## __VA_ARGS__)
+#define mpp_dev_dbg_detail(fmt, ...)        mpp_dev_dbg_f(MPP_DEVICE_DBG_DETAIL, fmt, ## __VA_ARGS__)
+#define mpp_dev_dbg_hw_cap(fmt, ...)        mpp_dev_dbg(MPP_DEVICE_DBG_HW_SUPPORT, fmt, ## __VA_ARGS__)
+
+#define mpp_dev_dbg_reg(fmt, ...)           mpp_dev_dbg(MPP_DEVICE_DBG_REG, fmt, ## __VA_ARGS__)
+#define mpp_dev_dbg_time(fmt, ...)          mpp_dev_dbg(MPP_DEVICE_DBG_TIME, fmt, ## __VA_ARGS__)
 
 #if __SIZEOF_POINTER__ == 4
 #define REQ_DATA_PTR(ptr) ((RK_U32)ptr)
@@ -120,8 +134,7 @@ static RK_U32 mpp_probe_hw_support(RK_S32 dev)
         flag = 0;
     } else {
         mpp_refresh_vcodec_type(flag);
-        if (mpp_device_debug & MPP_DEVICE_DBG_HW_SUPPORT)
-            mpp_log_f("vcodec_support %08x\n", flag);
+        mpp_dev_dbg_hw_cap("vcodec_support %08x\n", flag);
     }
 
     return flag;
@@ -213,6 +226,9 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
         return MPP_ERR_NULL_PTR;
     }
 
+    mpp_dev_dbg_func("enter %p coding %d type %d platform %x\n",
+                     ctx, cfg->coding, cfg->type, cfg->platform);
+
     *ctx = NULL;
 
     mpp_env_get_u32("mpp_device_debug", &mpp_device_debug, 0);
@@ -259,6 +275,7 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
     *ctx = p;
     p->vpu_fd = dev;
 
+    mpp_dev_dbg_func("leave %p\n", dev);
     return MPP_OK;
 }
 
@@ -271,6 +288,8 @@ MPP_RET mpp_device_deinit(MppDevCtx ctx)
         return MPP_ERR_NULL_PTR;
     }
 
+    mpp_dev_dbg_func("enter %p\n", ctx);
+
     p = (MppDevCtxImpl *)ctx;
 
     if (p->vpu_fd > 0) {
@@ -279,12 +298,16 @@ MPP_RET mpp_device_deinit(MppDevCtx ctx)
         mpp_err_f("invalid negtive file handle,\n");
     }
     mpp_free(p);
+
+    mpp_dev_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
 
 MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
 {
     MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;
+
+    mpp_dev_dbg_func("enter %p req %p\n", ctx, req);
 
     if (NULL == p) {
         mpp_err_f("found NULL input ctx %p\n", ctx);
@@ -313,12 +336,19 @@ MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
     mpp_req->data_ptr = REQ_DATA_PTR(req->data);
     p->req_cnt++;
 
+    mpp_dev_dbg_detail("enter %p cnt %d cmd %08x flag %x size %3x offset %08x data %p\n",
+                       ctx, p->req_cnt, req->cmd, req->flag,
+                       req->size, req->offset, req->data);
+
+    mpp_dev_dbg_func("leave %p req %p\n", ctx, req);
     return MPP_OK;
 }
 
 MPP_RET mpp_device_send_request(MppDevCtx ctx)
 {
     MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;;
+
+    mpp_dev_dbg_func("enter %p\n", ctx);
 
     if (NULL == p) {
         mpp_err_f("found NULL input ctx %p\n", ctx);
@@ -341,9 +371,10 @@ MPP_RET mpp_device_send_request(MppDevCtx ctx)
 
         for (i = 0; i < p->req_cnt; i++)
             p->reqs[i].flag |= MPP_FLAGS_MULTI_MSG;
-
-        p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG;
     }
+    p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG;
+
+    mpp_dev_dbg_detail("enter %p cnt %d\n", ctx, p->req_cnt);
 
     MPP_RET ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, &p->reqs[0]);
     if (ret) {
@@ -353,12 +384,57 @@ MPP_RET mpp_device_send_request(MppDevCtx ctx)
     }
 
     p->req_cnt = 0;
+
+    mpp_dev_dbg_func("leave %p\n", ctx);
     return ret;
 }
+
+MPP_RET mpp_device_send_extra_info(MppDevCtx ctx, RegExtraInfo *info)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (NULL == ctx || NULL == info) {
+        mpp_err_f("found NULL input ctx %p size %d\n", ctx, info);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    mpp_dev_dbg_func("enter %p info %p\n", ctx, info);
+
+    /* 1. When extra info is invalid do NOT send */
+    if (info->magic != EXTRA_INFO_MAGIC || !info->count)
+        return ret;
+
+    MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;
+
+    /* 2. When on old kernel do NOT send */
+    if (p->ioctl_version == IOCTL_VCODEC_SERVICE)
+        return ret;
+
+    if (p->ioctl_version == IOCTL_MPP_SERVICE_V1) {
+        MppDevReqV1 dev_req;
+
+        memset(&dev_req, 0, sizeof(dev_req));
+        dev_req.cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
+        dev_req.flag = 0;
+        dev_req.offset = 0;
+        dev_req.size = info->count * sizeof(info->patchs[0]);
+        dev_req.data = (void *)&info->patchs[0];
+        ret = mpp_device_add_request(ctx, &dev_req);
+        if (ret)
+            mpp_err_f("mpp_device_send_extra_info failed ret %d\n", ret);
+    }
+
+    mpp_dev_dbg_func("leave %p ret %d\n", ctx, ret);
+
+    return ret;
+}
+
 MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 {
-    MPP_RET ret;
+    int ret = 0;
     MppDevCtxImpl *p;
+
+    mpp_dev_dbg_func("enter %p reg %p nregs %d\n", ctx, regs, nregs);
 
     if (NULL == ctx || NULL == regs) {
         mpp_err_f("found NULL input ctx %p regs %p\n", ctx, regs);
@@ -382,14 +458,25 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
     }
 
     if (p->ioctl_version > 0) {
-        MppReqV1 mpp_req;
+        MppDevReqV1 dev_req;
 
-        mpp_req.cmd = MPP_CMD_SET_REG;
-        mpp_req.flag = 0;
-        mpp_req.size =  nregs * sizeof(RK_U32);
-        mpp_req.offset = 0;
-        mpp_req.data_ptr = REQ_DATA_PTR(regs);
-        ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, &mpp_req);
+        memset(&dev_req, 0, sizeof(dev_req));
+        dev_req.cmd = MPP_CMD_SET_REG_WRITE;
+        dev_req.flag = 0;
+        dev_req.offset = 0;
+        dev_req.size = nregs * sizeof(RK_U32);
+        dev_req.data = (void*)regs;
+        mpp_device_add_request(ctx, &dev_req);
+
+        memset(&dev_req, 0, sizeof(dev_req));
+        dev_req.cmd = MPP_CMD_SET_REG_READ;
+        dev_req.flag = 0;
+        dev_req.offset = 0;
+        dev_req.size = nregs * sizeof(RK_U32);
+        dev_req.data = (void*)regs;
+        mpp_device_add_request(ctx, &dev_req);
+
+        mpp_device_send_request(ctx);
     } else {
         MppReq req;
 
@@ -397,20 +484,24 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         req.size    = nregs * sizeof(RK_U32);
         ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_SET_REG, &req);
     }
+
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
         ret = errno;
     }
 
-    return ret;
+    mpp_dev_dbg_func("leave %p ret %d\n", ctx, ret);
+    return (ret ? MPP_NOK : MPP_OK);
 }
 
 MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 {
-    MPP_RET ret;
+    int ret = 0;
     MppReq req;
     MppDevCtxImpl *p;
+
+    mpp_dev_dbg_func("enter %p regs %p nregs %d\n", ctx, regs, nregs);
 
     if (NULL == ctx || NULL == regs) {
         mpp_err_f("found NULL input ctx %p regs %p\n", ctx, regs);
@@ -420,15 +511,14 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
     p = (MppDevCtxImpl *)ctx;
 
     if (p->ioctl_version > 0) {
-        MppReqV1 mpp_req;
+        MppDevReqV1 dev_req;
 
-        mpp_req.cmd = MPP_CMD_GET_REG;
-        mpp_req.flag = 0;
-        mpp_req.size =  nregs * sizeof(RK_U32);
-        mpp_req.offset = 0;
-        mpp_req.data_ptr = REQ_DATA_PTR(regs);
-        ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, &mpp_req);
+        memset(&dev_req, 0, sizeof(dev_req));
+        dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
+        mpp_device_add_request(ctx, &dev_req);
+        mpp_device_send_request(ctx);
     } else {
+        memset(&req, 0, sizeof(req));
         req.req     = regs;
         req.size    =  nregs * sizeof(RK_U32);
         ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_GET_REG, &req);
@@ -455,37 +545,8 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         }
     }
 
-    return ret;
-}
-
-#define RKVE_IOC_CUSTOM_BASE           0x1000
-#define RKVE_IOC_SET_OSD_PLT           (RKVE_IOC_CUSTOM_BASE + 1)
-#define RKVE_IOC_SET_L2_REG            (RKVE_IOC_CUSTOM_BASE + 2)
-#define H265E_SET_PARAMETER            (RKVE_IOC_CUSTOM_BASE + 6)
-#define H265E_GET_HEADER               (RKVE_IOC_CUSTOM_BASE + 7)
-#define H265E_RESET                    (RKVE_IOC_CUSTOM_BASE + 8)
-
-static RK_S32 mpp_change_cmd_id(RK_S32 id)
-{
-    RK_S32 ret_id = 0;
-    switch (id) {
-    case RKVE_IOC_SET_OSD_PLT:
-        ret_id = MPP_CMD_SET_RKVENC_OSD_PLT;
-        break;
-    case RKVE_IOC_SET_L2_REG:
-        ret_id = MPP_CMD_SET_RKVENC_L2_REG;
-        break;
-    case H265E_SET_PARAMETER:
-        ret_id = MPP_CMD_SET_VEPU22_CFG;
-        break;
-    case H265E_GET_HEADER:
-    case H265E_RESET:
-    default:
-        mpp_err_f("unknow cmd %d\n", id);
-        break;
-    }
-
-    return ret_id;
+    mpp_dev_dbg_func("leave %p ret %d\n", ctx, ret);
+    return (ret ? MPP_NOK : MPP_OK);
 }
 
 MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param,
@@ -493,6 +554,8 @@ MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param,
 {
     MPP_RET ret = MPP_NOK;
     MppDevCtxImpl *p;
+
+    mpp_dev_dbg_func("enter %p id %d param %p size %d\n", ctx, id, param, size);
 
     if (NULL == ctx || NULL == param) {
         mpp_err_f("found NULL input ctx %p param %p\n", ctx, param);
@@ -502,14 +565,8 @@ MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param,
     p = (MppDevCtxImpl *)ctx;
 
     if (p->ioctl_version > 0) {
-        MppReqV1 mpp_req;
-
-        mpp_req.cmd =  (id > RKVE_IOC_CUSTOM_BASE) ? mpp_change_cmd_id(id) : id;
-        mpp_req.flag = 0;
-        mpp_req.size = size;
-        mpp_req.offset = 0;
-        mpp_req.data_ptr = REQ_DATA_PTR(param);
-        ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, &mpp_req);
+        mpp_err("not support now\n");
+        return MPP_ERR_UNKNOW;
     } else {
         ret = (RK_S32)ioctl(p->vpu_fd, VPU_IOC_WRITE(id, size), param);
     }
@@ -519,6 +576,8 @@ MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param,
                   ret, errno, strerror(errno));
         ret = errno;
     }
+
+    mpp_dev_dbg_func("leave %p ret %d\n", ctx, ret);
 
     return ret;
 }
@@ -558,14 +617,19 @@ void mpp_device_patch_init(RegExtraInfo *extra)
     extra->count = 0;
 }
 
-void mpp_device_patch_add(RK_U32 *reg, RegExtraInfo *extra, RK_U32 reg_idx,
-                          RK_U32 offset)
+void mpp_device_patch_add(RK_U32 *reg, RegExtraInfo *extra, RK_U32 reg_idx, RK_U32 offset)
 {
     if (offset < SZ_4M) {
         reg[reg_idx] += (offset << 10);
-    } else {
-        RegPatchInfo *info = &extra->patchs[extra->count++];
-        info->reg_idx = reg_idx;
-        info->offset = offset;
+        return ;
     }
+
+    RegPatchInfo *info = &extra->patchs[extra->count++];
+    info->reg_idx = reg_idx;
+    info->offset = offset;
+}
+
+RK_S32 mpp_device_patch_is_valid(RegExtraInfo *extra)
+{
+    return extra->magic == EXTRA_INFO_MAGIC && extra->count;
 }

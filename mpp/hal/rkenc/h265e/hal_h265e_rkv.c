@@ -373,9 +373,9 @@ static void h265e_rkv_set_l2_regs(H265eRkvHalContext *ctx, H265eRkvL2RegSet *reg
     memcpy(&regs->aq_qp_dlt0, aq_qp_dealt_default, sizeof(aq_qp_dealt_default));
 
 #ifdef H265EHW_EN
-    req.cmd = MPP_CMD_SET_RKVENC_L2_REG;
+    req.cmd = MPP_CMD_SET_REG_WRITE;
     req.flag = 0;
-    req.offset = 0;
+    req.offset = 0x10004;
     req.size = sizeof(H265eRkvL2RegSet);
     req.data = (void*)regs;
     mpp_device_add_request(ctx->dev_ctx, &req);
@@ -1190,6 +1190,7 @@ MPP_RET hal_h265e_rkv_start(void *hal, HalEncTask *task)
     H265eRkvRegSet *reg_list = (H265eRkvRegSet *)ctx->regs;
     RK_U32 length = 0, k = 0;
     H265eRkvIoctlInput *ioctl_info = (H265eRkvIoctlInput *)ctx->ioctl_input;
+    H265eRkvIoctlOutput *reg_out = (H265eRkvIoctlOutput *)ctx->ioctl_output;
     HalEncTask *enc_task = task;
 
     h265e_hal_enter();
@@ -1214,27 +1215,47 @@ MPP_RET hal_h265e_rkv_start(void *hal, HalEncTask *task)
         RK_U32 i;
         MppDevReqV1 req;
         RK_U32 *regs = (RK_U32*)&reg_list[k];
+        H265eRkvIoctlExtraInfo *extra_info = NULL;
 
         memcpy(&ioctl_info->reg_info[k].regs, &reg_list[k],
                sizeof(H265eRkvRegSet));
 #ifdef H265EHW_EN
+        memset(&req, 0, sizeof(req));
         req.flag = 0;
         if (ctx->enc_mode == 2) {
             req.flag |= MPP_FLAGS_LINK_MODE_FIX;
         } else if (ctx->enc_mode == 3) {
             req.flag |= MPP_FLAGS_LINK_MODE_UPDATE;
         }
-        req.cmd = MPP_CMD_SET_REG;
+        /* set input info */
+        req.cmd = MPP_CMD_SET_REG_WRITE;
         req.size = sizeof(H265eRkvRegSet);
         req.offset = 0;
         req.data = &ioctl_info->reg_info[k].regs;
         mpp_device_add_request(ctx->dev_ctx, &req);
 
+        extra_info = &ioctl_info->reg_info[k].extra_info;
         req.flag = 0;
         req.cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
-        req.size = sizeof(H265eRkvRegSet);
+        req.size = extra_info->cnt * sizeof(extra_info->elem[0]);
         req.offset = 0;
-        req.data = &ioctl_info->reg_info[k].extra_info;
+        req.data = extra_info->elem;
+        mpp_device_add_request(ctx->dev_ctx, &req);
+
+        /* set output request */
+        memset(&req, 0, sizeof(req));
+        req.flag = 0;
+        req.cmd = MPP_CMD_SET_REG_READ;
+        req.size = sizeof(RK_U32);
+        req.data = &reg_out->elem[k].hw_status;
+        req.offset = 0x1c;
+        mpp_device_add_request(ctx->dev_ctx, &req);
+        memset(&req, 0, sizeof(req));
+        req.flag = 0;
+        req.cmd = MPP_CMD_SET_REG_READ;
+        req.size = sizeof(H265eRkvIoctlOutputElem) - 4;
+        req.data = &reg_out->elem[k].st_bsl;
+        req.offset = 0x210;
         mpp_device_add_request(ctx->dev_ctx, &req);
 #endif
         for (i = 0; i < sizeof(H265eRkvRegSet) / 4; i++) {
@@ -1353,7 +1374,6 @@ static MPP_RET h265e_rkv_set_feedback(H265eRkvHalContext *ctx,
 MPP_RET hal_h265e_rkv_wait(void *hal, HalEncTask *task)
 {
     RK_S32 hw_ret = 0;
-    RK_U32 i;
     H265eRkvHalContext *ctx = (H265eRkvHalContext *)hal;
     H265eRkvIoctlOutput *reg_out = (H265eRkvIoctlOutput *)ctx->ioctl_output;
     RK_S32 length = (sizeof(reg_out->frame_num)
@@ -1395,19 +1415,11 @@ MPP_RET hal_h265e_rkv_wait(void *hal, HalEncTask *task)
                   length);
 
 #ifdef H265EHW_EN
-    for (i = 0; i < reg_out->frame_num; i++) {
+    {
         MppDevReqV1 req;
-        req.flag = 0;
-        req.cmd = MPP_CMD_GET_REG;
-        req.size = sizeof(RK_U32);
-        req.data = &reg_out->elem[i].hw_status;
-        req.offset = 0x1c;
-        mpp_device_add_request(ctx->dev_ctx, &req);
-        req.flag = 0;
-        req.cmd = MPP_CMD_GET_REG;
-        req.size = sizeof(H265eRkvIoctlOutputElem) - 4;
-        req.data = &reg_out->elem[i].st_bsl;
-        req.offset = 0x210;
+
+        memset(&req, 0, sizeof(req));
+        req.cmd = MPP_CMD_POLL_HW_FINISH;
         mpp_device_add_request(ctx->dev_ctx, &req);
     }
     mpp_device_send_request(ctx->dev_ctx);
@@ -1459,7 +1471,7 @@ MPP_RET hal_h265e_rkv_get_task(void *hal, HalEncTask *task)
         ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_USERDEF;
 #ifdef H265EHW_EN
         MppDevReqV1 req;
-        req.cmd = MPP_CMD_SET_RKVENC_OSD_PLT;
+        req.cmd = MPP_CMD_SET_REG_WRITE;
         req.flag = 0;
         req.offset = 0;
         req.size = sizeof(MppEncOSDPlt);
