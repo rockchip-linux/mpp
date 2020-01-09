@@ -49,9 +49,9 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
     slice->entropy_coding_mode = h264->entropy_coding_mode;
     slice->pic_order_cnt_type = sps->pic_order_cnt_type;
 
-    slice->nal_reference_idc = (frm->status.is_non_ref) ?
-                               (H264_NALU_PRIORITY_DISPOSABLE) :
-                               (H264_NALU_PRIORITY_LOW);
+    slice->nal_reference_idc = (frm->status.is_non_ref) ? (H264_NALU_PRIORITY_DISPOSABLE) :
+                               (slice->idr_flag) ? (H264_NALU_PRIORITY_HIGHEST) :
+                               (H264_NALU_PRIORITY_HIGH);
     slice->nalu_type = (frm->status.is_idr) ?
                        (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
 
