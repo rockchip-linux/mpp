@@ -18,5 +18,5 @@ add_library(hal_h265e_rkv STATIC
             ${HAL_H265E_SRC}
             )
 
-target_link_libraries(hal_h265e_rkv hal_h265e)
+target_link_libraries(hal_h265e_rkv hal_h265e hal_common)
 set_target_properties(hal_h265e_rkv PROPERTIES FOLDER "mpp/hal")
