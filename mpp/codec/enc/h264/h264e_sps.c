@@ -77,7 +77,7 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     // default sps
     // profile baseline
     sps->profile_idc = h264->profile;
-    sps->constraint_set0 = 1;
+    sps->constraint_set0 = 0;
     sps->constraint_set1 = 0;
     sps->constraint_set2 = 0;
     sps->constraint_set3 = 0;
