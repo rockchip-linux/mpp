@@ -71,6 +71,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->min_qp = 10;
     h265->max_i_qp = 51;
     h265->min_i_qp = 10;
+    h265->qpmap_mode = 1;
     h265->ip_qp_delta = 3;
     h265->raw_dealt_qp = 2;
     h265->max_delta_qp = 10;
@@ -270,6 +271,7 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 
         p->rc_ready = 1;
         rc->change = 0;
+        ref->change = 0;
     }
 
     if (codec->change) {
@@ -303,7 +305,8 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
      * input and output frame rate.
      */
 
-    task->valid = !rc_frm_check_drop(p->rc_ctx);
+    if (p->rc_ctx)
+        task->valid = !rc_frm_check_drop(p->rc_ctx);
     if (!task->valid)
         mpp_log_f("drop one frame\n");
 
@@ -501,19 +504,16 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         h265e_get_extra_info(p, pkt_out);
     } break;
     case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *src = &p->set->prep;
+        MppEncPrepCfg *src = (MppEncPrepCfg *)param;
         MppEncPrepCfg *dst = &p->cfg->prep;
 
-        memcpy(src, param, sizeof(MppEncPrepCfg));
         memcpy(dst, src, sizeof(MppEncPrepCfg));
     } break;
     case MPP_ENC_SET_CODEC_CFG: {
         MppEncCodecCfg *cfg = (MppEncCodecCfg *)param;
-        MppEncH265Cfg *src = &p->set->codec.h265;
+        MppEncH265Cfg *src = &cfg->h265;
         MppEncH265Cfg *dst = &p->cfg->codec.h265;
         RK_U32 change = cfg->h265.change;
-
-        memcpy(src, &cfg->h265, sizeof(MppEncH265Cfg));
 
         // TODO: do codec check first
         if (change & MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE) {
@@ -558,7 +558,6 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
          * When next encoding is trigger the change flag will be clear
          */
         dst->change |= change;
-        src->change = 0;
     } break;
     case MPP_ENC_SET_RC_CFG : {
         MppEncRcCfg *src = (MppEncRcCfg *)param;
@@ -635,6 +634,12 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_SEI_CFG: {
 
+    } break;
+
+    case MPP_ENC_SET_GOPREF: {
+        MppEncGopRef *ref = (MppEncGopRef *)param;
+        MppEncCfgSet *cfg = p->cfg;
+        memcpy(&cfg->gop_ref, ref , sizeof(*ref));
     } break;
 
     default:
