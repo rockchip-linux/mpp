@@ -221,6 +221,8 @@ MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg)
 
     RK_S32 i = 0;
     RK_S32 st_gop_len   = ref->ref_gop_len;
+    dpb_cfg->nLongTerm = 1;
+    dpb_cfg->vgop_size = st_gop_len;
     for (i = 0; i < st_gop_len + 1; i++) {
         MppGopRefInfo *info = &ref->gop_info[i];
         RK_S32 is_non_ref   = info->is_non_ref;
