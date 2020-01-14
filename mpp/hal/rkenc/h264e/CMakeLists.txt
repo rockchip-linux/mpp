@@ -1,7 +1,10 @@
 # vim: syntax=cmake
 include_directories(.)
+# hal/common for hal_bufs module
 include_directories(../common/)
 include_directories(../../common/h264/)
+# mpp/codec/enc/h264 for h264 syntax
+include_directories(../../../codec/enc/h264/)
 
 # hal h264 header
 set(HAL_H264E_HDR
