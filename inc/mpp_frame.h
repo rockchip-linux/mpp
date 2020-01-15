@@ -152,6 +152,9 @@ typedef enum {
 #define MPP_FRAME_FMT_RGB     0x00010000
 #define MPP_FRAME_FMT_COMPLEX 0x00020000
 
+#define MPP_FRAME_FMT_IS_YUV(fmt)   ((fmt >= MPP_FRAME_FMT_YUV && fmt < MPP_FMT_YUV_BUTT))
+#define MPP_FRAME_FMT_IS_RGB(fmt)   ((fmt >= MPP_FRAME_FMT_RGB && fmt < MPP_FMT_RGB_BUTT))
+
 /*
  *mpp color format define
  */
