@@ -51,8 +51,6 @@ typedef struct  H265eSlice_e  H265eSlice;
 
 
 typedef struct  H265eDpb_t          H265eDpb;
-typedef struct  H265eFrmBuf_t       H265eFrmBuf;
-typedef struct  H265eFrmBufGrp_t    H265eFrmBufGrp;
 
 /*
  * Split reference frame configure to two parts
@@ -65,6 +63,7 @@ typedef struct  H265eFrmBufGrp_t    H265eFrmBufGrp;
 typedef struct  H265eDpbFrm_t {
     H265eDpb            *dpb;
 
+    RK_S32              slot_idx;
     RK_S32              seq_idx;
     RK_S32              gop_idx;
     RK_S32              gop_cnt;
@@ -84,25 +83,7 @@ typedef struct  H265eDpbFrm_t {
     RK_S64              dts;
 
     RK_U32              is_key_frame;
-    H265eFrmBuf         *buf;
 } H265eDpbFrm;
-
-typedef struct H265eFrmBuf_t {
-    RK_U32              is_used;
-    // buf0 for normal pixel buffer
-    // buf1 for scaled buffer
-    MppBuffer           buf[H265E_MAX_BUF_CNT];
-} H265eFrmBuf;
-
-typedef struct H265eFrmBufGrp_t {
-    MppBufferGroup      group;
-    // buffer count for each frame buffers
-    RK_U32              count;
-    // buffer size for each buffer in frame buffers
-    RK_U32              size[H265E_MAX_BUF_CNT];
-    // frame buffer set
-    H265eFrmBuf         bufs[MAX_REFS];
-} H265eFrmBufGrp;
 
 typedef struct H265eRpsList_e {
     RK_S32 lt_num;
@@ -170,6 +151,7 @@ typedef struct H265eDpbCfg_t {
  */
 typedef struct H265eDpb_t {
     H265eDpbCfg        *cfg;
+
     RK_S32             seq_idx;
     RK_S32             gop_idx;
     // status and count for one gop structure
@@ -189,10 +171,7 @@ typedef struct H265eDpb_t {
 
     H265eRpsList        RpsList;
     H265eDpbFrm         *curr;
-    // buffer management
-    H265eFrmBufGrp      buf_grp;
-    // frame storage
-    H265eDpbFrm         *frame_list;
+    H265eDpbFrm         frame_list[MAX_REFS + 1];
 } H265eDpb;
 
 #ifdef __cplusplus
@@ -207,7 +186,6 @@ MPP_RET h265e_dpb_setup_buf_size(H265eDpb *dpb, RK_U32 size[], RK_U32 count);
 MPP_RET h265e_dpb_get_curr(H265eDpb *dpb);
 H265eDpbFrm *h265e_dpb_get_refr(H265eDpbFrm *frm);
 void h265e_dpb_build_list(H265eDpb *dpb);
-MPP_RET h265e_dpb_setup_buf_size(H265eDpb *dpb, RK_U32 size[], RK_U32 count);
 MppBuffer h265e_dpb_frm_get_buf(H265eDpbFrm *frm, RK_S32 index);
 MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg);
 

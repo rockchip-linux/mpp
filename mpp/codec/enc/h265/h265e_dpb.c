@@ -59,7 +59,7 @@ void h265e_gop_init(H265eRpsList *RpsList, H265eDpbCfg *cfg, int poc_cur)
     h265e_dbg_func("leave\n");
 }
 
-void h265e_dbp_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_pRps)
+void h265e_dpb_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_pRps)
 {
     RK_S32 i;
     RK_S32 poc_cur_list = RpsList->poc_cur_list;
@@ -182,33 +182,6 @@ void h265e_dbp_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_p
     h265e_dbg_func("leave\n");
 }
 
-
-H265eFrmBuf *h265e_dpb_frm_buf_get(H265eFrmBufGrp *grp)
-{
-    RK_U32 i;
-
-    h265e_dbg_func("enter\n");
-    for (i = 0; i < MAX_REFS; i++) {
-        if (!grp->bufs[i].is_used) {
-            grp->bufs[i].is_used = 1;
-            return &grp->bufs[i];
-        }
-    }
-    mpp_err_f("failed to get buffer for dpb frame\n");
-    return NULL;
-}
-
-MPP_RET h265e_dpb_frm_buf_put(H265eFrmBufGrp *grp, H265eFrmBuf *buf)
-{
-    h265e_dbg_func("enter\n");
-    mpp_assert(buf->is_used);
-    buf->is_used = 0;
-    (void)grp;
-    h265e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-
 MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg)
 {
     MppEncGopRef *ref = &cfg->gop_ref;
@@ -245,27 +218,15 @@ MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg)
 /* get buffer at init */
 MPP_RET h265e_dpb_init_curr(H265eDpb *dpb, H265eDpbFrm *frm)
 {
-    H265eFrmBufGrp *buf_grp = &dpb->buf_grp;
-
     h265e_dbg_func("enter\n");
     mpp_assert(!frm->on_used);
 
     frm->dpb = dpb;
 
-    if (!frm->buf) {
-        RK_U32 i;
-        H265eFrmBuf *buf = h265e_dpb_frm_buf_get(buf_grp);
-
-        for (i = 0; i < buf_grp->count; i++) {
-            mpp_buffer_get(buf_grp->group, &buf->buf[i], buf_grp->size[i]);
-            mpp_assert(buf->buf[i]);
-        }
-
-        frm->buf = buf;
-    }
     if (!frm->slice) {
         frm->slice = mpp_calloc(H265eSlice, 1);
     }
+
     frm->inited = 1;
     frm->on_used = 1;
     frm->seq_idx = dpb->seq_idx;
@@ -280,10 +241,10 @@ MPP_RET h265e_dpb_get_curr(H265eDpb *dpb)
     RK_U32 i;
 
     h265e_dbg_func("enter\n");
-    for (i = 0; i < MAX_REFS; i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         if (!dpb->frame_list[i].on_used) {
             dpb->curr = &dpb->frame_list[i];
-            h265e_dbg_dpb("get free dpb index %d", i);
+            h265e_dbg_dpb("get free dpb slot_index %d", dpb->curr->slot_idx);
             break;
         }
     }
@@ -292,74 +253,21 @@ MPP_RET h265e_dpb_get_curr(H265eDpb *dpb)
     return MPP_OK;
 }
 
-MPP_RET h265e_dpb_setup_buf_size(H265eDpb *dpb, RK_U32 size[], RK_U32 count)
-{
-    RK_U32 i;
-    H265eFrmBufGrp *buf_grp = &dpb->buf_grp;
-
-    h265e_dbg_func("enter\n");
-
-    if (count > MAX_REFS) {
-        mpp_err_f("invalid count %d\n", count);
-        return MPP_NOK;
-    }
-
-    for (i = 0; i < count; i++) {
-        buf_grp->size[i] = size[i];
-        h265e_dbg_dpb("size[%d] %d\n", i, size[i]);
-    }
-    buf_grp->count = count;
-    h265e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-
-
 /* put buffer at deinit */
 MPP_RET h265e_dpb_frm_deinit(H265eDpbFrm *frm)
 {
-    RK_U32 i;
-    H265eDpb *dpb = frm->dpb;
-    H265eFrmBufGrp *buf_grp = &dpb->buf_grp;
-    H265eFrmBuf *buf = frm->buf;
-
-    h265e_dbg_func("enter\n");
-    for (i = 0; i < buf_grp->count; i++) {
-        mpp_assert(buf->buf[i]);
-        mpp_buffer_put(buf->buf[i]);
-        buf->buf[i] = NULL;
-    }
-
-    h265e_dpb_frm_buf_put(buf_grp, buf);
 
     MPP_FREE(frm->slice);
-
     frm->inited = 0;
-
     h265e_dbg_func("leave\n");
     return MPP_OK;
-}
-
-MppBuffer h265e_dpb_frm_get_buf(H265eDpbFrm *frm, RK_S32 index)
-{
-    H265eFrmBuf *buf = frm->buf;
-
-    if (NULL == buf)
-        return NULL;
-
-    h265e_dbg_func("enter\n");
-    mpp_assert(buf->is_used);
-    mpp_assert(index >= 0 && index < H265E_MAX_BUF_CNT);
-    mpp_assert(buf->buf[index]);
-    h265e_dbg_func("leave\n");
-    return buf->buf[index];
 }
 
 MPP_RET h265e_dpb_init(H265eDpb **dpb, H265eDpbCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     H265eDpb *p = NULL;
-    RK_S32 i;
+    RK_U32 i;
 
     h265e_dbg_func("enter\n");
     if (NULL == dpb || NULL == cfg) {
@@ -375,13 +283,11 @@ MPP_RET h265e_dpb_init(H265eDpb **dpb, H265eDpbCfg *cfg)
         return MPP_ERR_VALUE;
     }
 
-    p = mpp_calloc_size(H265eDpb, sizeof(H265eDpb) +
-                        MAX_REFS * sizeof(H265eDpbFrm));
+    p = mpp_calloc_size(H265eDpb, sizeof(H265eDpb));
 
     if (NULL == p)
         return MPP_ERR_MALLOC;
 
-    p->frame_list = (H265eDpbFrm *)(p + 1);
     p->last_idr = 0;
     p->poc_cra = 0;
     p->max_ref_l0 = cfg->maxNumReferences;
@@ -394,14 +300,15 @@ MPP_RET h265e_dpb_init(H265eDpb **dpb, H265eDpbCfg *cfg)
 
     rps_list->lt_num = 0;
     rps_list->st_num = 0;
-    for (i = 0; i < RPSLIST_MAX; i++) {
-        rps_list->poc[i] = 0;
-    }
+
+    memset(rps_list->poc, 0, sizeof(rps_list->poc));
 
     rps_list->m_RefPicListModification = mpp_calloc(H265eRefPicListModification, 1);
-    h265e_dbg_dpb("size of H265eRefPicListModification %d", sizeof(H265eRefPicListModification));
-    ret = mpp_buffer_group_get_internal(&p->buf_grp.group, MPP_BUFFER_TYPE_ION);
-    mpp_assert(p->buf_grp.group);
+
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(p->frame_list); i++)
+        p->frame_list[i].slot_idx = i;
+
     mpp_assert(dpb);
     *dpb = p;
     h265e_dbg_func("leave\n");
@@ -410,17 +317,15 @@ MPP_RET h265e_dpb_init(H265eDpb **dpb, H265eDpbCfg *cfg)
 
 MPP_RET h265e_dpb_deinit(H265eDpb *dpb)
 {
-    RK_S32 i;
+    RK_U32 i;
+
     h265e_dbg_func("enter\n");
-    for (i = 0; i < MAX_REFS; i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         if (dpb->frame_list[i].inited)
             h265e_dpb_frm_deinit(&dpb->frame_list[i]);
     }
 
     MPP_FREE(dpb->RpsList.m_RefPicListModification);
-
-    if (dpb->buf_grp.group)
-        mpp_buffer_group_put(dpb->buf_grp.group);
 
     MPP_FREE(dpb);
 
@@ -507,11 +412,11 @@ void h265e_dpb_apply_rps(H265eDpb *dpb, H265eReferencePictureSet *rps, int curPo
     H265eDpbFrm *outPic = NULL;
     RK_S32 i, isReference;
     // loop through all pictures in the reference picture buffer
-    RK_S32 index = 0;
+    RK_U32 index = 0;
     H265eDpbFrm *frame_list = &dpb->frame_list[0];
 
     h265e_dbg_func("enter\n");
-    for (index = 0; index < MAX_REFS; index++) {
+    for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
         outPic = &frame_list[index];
         if (!outPic->inited || !outPic->slice->is_referenced) {
             continue;
@@ -559,6 +464,7 @@ void h265e_dpb_apply_rps(H265eDpb *dpb, H265eReferencePictureSet *rps, int curPo
 void h265e_dpb_dec_refresh_marking(H265eDpb *dpb, RK_S32 poc_cur, enum NALUnitType nalUnitType)
 {
     RK_U32 index = 0;
+
     h265e_dbg_func("enter\n");
     if (nalUnitType == NAL_BLA_W_LP
         || nalUnitType == NAL_BLA_W_RADL
@@ -567,7 +473,7 @@ void h265e_dpb_dec_refresh_marking(H265eDpb *dpb, RK_S32 poc_cur, enum NALUnitTy
         || nalUnitType == NAL_IDR_N_LP) { // IDR or BLA picture
         // mark all pictures as not used for reference
         H265eDpbFrm *frame_List = &dpb->frame_list[0];
-        for (index = 0; index < MAX_REFS; index++) {
+        for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
             H265eDpbFrm *frame = &frame_List[index];
             if (frame->inited && (frame->poc != poc_cur)) {
                 frame->slice->is_referenced = 0;
@@ -587,7 +493,7 @@ void h265e_dpb_dec_refresh_marking(H265eDpb *dpb, RK_S32 poc_cur, enum NALUnitTy
     } else { // CRA or No DR
         if (dpb->refresh_pending == 1 && poc_cur > dpb->poc_cra) { // CRA reference marking pending
             H265eDpbFrm *frame_list = &dpb->frame_list[0];
-            for (index = 0; index < MAX_REFS; index++) {
+            for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
 
                 H265eDpbFrm *frame = &frame_list[index];
                 if (frame->inited && frame->poc != poc_cur && frame->poc != dpb->poc_cra) {
@@ -951,7 +857,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
 
         h265e_dpb_apply_rps(dpb, slice->m_rps, curPoc);
         h265e_dpb_arrange_lt_rps(dpb, slice);
-        h265e_dbp_set_ref_list(RpsList, m_pRPS);
+        h265e_dpb_set_ref_list(RpsList, m_pRPS);
         memcpy(&slice->m_RefPicListModification, RpsList->m_RefPicListModification,
                sizeof(H265eRefPicListModification));
     } else {
@@ -978,7 +884,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
             memset(isShortTermValid, 0, sizeof(RK_U32)*MAX_REFS);
             nShortTerm = rps->num_negative_pic + rps->num_positive_pic;
 
-            for (i = 0; i < MAX_REFS; i++) {
+            for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
                 rpcPic = &dpb->frame_list[i];
                 if (rpcPic->on_used && !rpcPic->is_long_term && rpcPic->slice->is_referenced
                     && rpcPic->poc != curPoc) {
@@ -1091,7 +997,7 @@ void h265e_dpb_compute_rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, RK_U
         } else {
             RK_U32 poci = 0, numNeg = 0, numPos = 0;
             RK_S32 dealtIdx = -1;
-            for (i = 0; i < MAX_REFS; i++) {
+            for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
                 H265eDpbFrm *rpcPic = &dpb->frame_list[i];
                 h265e_dbg_dpb("rpcPic->inited = %d maxDecPicBuffer %d", rpcPic->inited, maxDecPicBuffer);
                 if (rpcPic->inited && poci < maxDecPicBuffer - 1) {

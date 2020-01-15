@@ -141,7 +141,7 @@ static RK_U8 hal_hevc_diag_scan8x8_y[64] = {
 };
 
 typedef struct slice_ref_map {
-    RK_U8 dbp_index;
+    RK_U8 dpb_index;
     RK_U8 is_long_term;
 } slice_ref_map_t;
 
@@ -1006,7 +1006,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                     index = ref.refPicList[j].dpb_index[i];
                     // mpp_err("slice_idx = %d index = %d,j = %d i = %d",slice_idx,index,j,i);
                     if (index != 0xff) {
-                        rps_pic_info[slice_idx][j][i].dbp_index = index;
+                        rps_pic_info[slice_idx][j][i].dpb_index = index;
                         rps_pic_info[slice_idx][j][i].is_long_term
                             = dxva_cxt->pp.RefPicList[index].AssociatedFlag;
                         if (dxva_cxt->pp.PicOrderCntValList[index] > dxva_cxt->pp.CurrPicOrderCntVal)
@@ -1036,7 +1036,7 @@ static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                     if (j == 1 && i == 4) {
                         mpp_put_align (&bp, 64, 0xf);
                     }
-                    mpp_put_bits(&bp, rps_pic_info[k][j][i].dbp_index,    4);
+                    mpp_put_bits(&bp, rps_pic_info[k][j][i].dpb_index,    4);
                 }
             }
             mpp_put_bits(&bp, lowdelay_flag      [k], 1);
