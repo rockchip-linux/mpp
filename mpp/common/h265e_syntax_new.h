@@ -21,7 +21,7 @@
 #include "rc.h"
 
 typedef struct H265PicEntry_t {
-    RK_U8 bPicEntry[3];
+    RK_U8 slot_idx;
 } H265ePicEntry;
 
 typedef struct H265ePicParams_t {

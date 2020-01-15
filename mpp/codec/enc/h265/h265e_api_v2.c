@@ -275,19 +275,9 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
     }
 
     if (codec->change) {
-        RK_S32 pic_wd64, pic_h64;
-        pic_wd64 = (p->cfg->prep.width + 63) / 64;
-        pic_h64 = (p->cfg->prep.height + 63) / 64;
-
         if (NULL == p->dpb) {
-            RK_U32 size[3] = {0};
-            RK_S32 fbc_header_len;
-            fbc_header_len = (pic_wd64 * pic_h64) << 6;
-            size[0] = fbc_header_len + ((pic_wd64 * pic_h64) << 12) * 2; //fbc_h + fbc_b
-            size[1] = (pic_wd64 * pic_h64 << 8);
-            size[2] = (pic_wd64 * pic_h64 * 16 * 4);
+
             h265e_dpb_init(&p->dpb, &p->dpbcfg);
-            h265e_dpb_setup_buf_size(p->dpb, &size[0], 3);
 
         }
         if (rc->gop < 0) {
@@ -327,22 +317,17 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     H265eDpbCfg *dpb_cfg = &p->dpbcfg;
     H265eFrmInfo *frms = &p->frms;
     MppMeta meta = mpp_frame_get_meta(frame);
-    RK_S32 pic_wd64, pic_h64;
+    RK_S32 mb_wd64, mb_h64;
 
     h265e_dbg_func("enter\n");
 
-    pic_wd64 = (p->cfg->prep.width + 63) / 64;
-    pic_h64 = (p->cfg->prep.height + 63) / 64;
+    mb_wd64 = (p->cfg->prep.width + 63) / 64;
+    mb_h64 = (p->cfg->prep.height + 63) / 64;
 
     if (NULL == p->dpb) {
-        RK_U32 size[3] = {0};
-        RK_S32 fbc_header_len;
-        fbc_header_len = (pic_wd64 * pic_h64) << 6;
-        size[0] = fbc_header_len + ((pic_wd64 * pic_h64) << 12) * 2; //fbc_h + fbc_b
-        size[1] = (pic_wd64 * pic_h64 << 8);
-        size[2] = (pic_wd64 * pic_h64 * 16 * 4);
+
         h265e_dpb_init(&p->dpb, &p->dpbcfg);
-        h265e_dpb_setup_buf_size(p->dpb, &size[0], 3);
+
 
     }
 
@@ -368,9 +353,9 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     frms->seq_idx = p->dpb->curr->seq_idx;
     frms->status = p->dpb->curr->status;
 
-    frms->mb_per_frame = pic_wd64 * pic_h64;
-    frms->mb_raw = pic_wd64;
-    frms->mb_wid = pic_h64;
+    frms->mb_per_frame = mb_wd64 * mb_h64;
+    frms->mb_raw = mb_h64;
+    frms->mb_wid = mb_wd64 ;
 
     h265e_dbg_func("leave\n");
     return MPP_OK;

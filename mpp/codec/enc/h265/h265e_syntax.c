@@ -323,18 +323,12 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
         }
     }
 
-    sp->recon_pic.bPicEntry[0] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[0]);
-    sp->recon_pic.bPicEntry[1] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[1]);
-    sp->recon_pic.bPicEntry[2] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[2]);
+    sp->recon_pic.slot_idx = h->dpb->curr->slot_idx;
     ref_frame = slice->m_refPicList[0][0];
     if (ref_frame != NULL) {
-        sp->ref_pic.bPicEntry[0] = mpp_buffer_get_fd(ref_frame->buf->buf[0]);
-        sp->ref_pic.bPicEntry[1] = mpp_buffer_get_fd(ref_frame->buf->buf[1]);
-        sp->ref_pic.bPicEntry[2] = mpp_buffer_get_fd(ref_frame->buf->buf[2]);
+        sp->ref_pic.slot_idx = ref_frame->slot_idx;
     } else {
-        sp->ref_pic.bPicEntry[0] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[0]);
-        sp->ref_pic.bPicEntry[1] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[1]);
-        sp->ref_pic.bPicEntry[2] = mpp_buffer_get_fd(h->dpb->curr->buf->buf[2]);
+        sp->ref_pic.slot_idx = h->dpb->curr->slot_idx;
     }
     return  0;
 }

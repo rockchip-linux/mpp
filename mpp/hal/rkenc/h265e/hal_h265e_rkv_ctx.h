@@ -22,6 +22,7 @@
 #include "mpp_mem.h"
 #include "rkv_enc_def.h"
 #include "mpp_enc_hal.h"
+#include "hal_bufs.h"
 
 typedef struct h265e_feedback_t {
     RK_U32 hw_status; /* 0:corret, 1:error */
@@ -43,7 +44,7 @@ typedef struct h265e_feedback_t {
 } h265e_feedback;
 
 typedef struct H265eRkvHalContext_t {
-    MppEncHalApi           api;
+    MppEncHalApi        api;
     IOInterruptCB       int_cb;
     MppDevCtx           dev_ctx;
     void                *regs;
@@ -83,6 +84,7 @@ typedef struct H265eRkvHalContext_t {
     RK_U8               *dst_buf;
     RK_S32              buf_size;
     RK_U32              frame_num;
+    HalBufs             dpb_bufs;
 } H265eRkvHalContext;
 
 #endif

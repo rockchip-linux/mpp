@@ -193,10 +193,8 @@ typedef struct H265eRkvRegSet_t {
     } enc_pic; //swreg10
 
     struct {
-        RK_U32    vs_load_thd : 4;
-        RK_U32    reserve : 4;
+        RK_U32    vs_load_thd : 24;
         RK_U32    rfp_load_thd : 8;
-        RK_U32    reserve1 : 16;
     } enc_wdg; //swreg11, ENC_WDG
 
     /* 0x3c - DTRNS_MAP */
@@ -432,7 +430,9 @@ typedef struct H265eRkvRegSet_t {
     /* 0xc8 - RC_CFG */
     struct {
         RK_U32    rc_en      : 1;
-        RK_U32    reserved   : 15;
+        RK_U32    aqmode_en  : 1;
+        RK_U32    qp_mode    : 1;
+        RK_U32    reserved   : 13;
         RK_U32    rc_ctu_num : 16;
     } rc_cfg;
 
