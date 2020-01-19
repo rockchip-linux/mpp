@@ -149,6 +149,7 @@ private:
     MppPlatformService(const MppPlatformService &);
     MppPlatformService &operator=(const MppPlatformService &);
 
+    MppIoctlVersion ioctl_version;
     char            *soc_name;
     RockchipSocType soc_type;
     RK_U32          vcodec_type;
@@ -160,15 +161,17 @@ public:
         return &instance;
     }
 
+    MppIoctlVersion get_ioctl_version(void) { return ioctl_version; };
     const char      *get_soc_name() { return soc_name; };
     RockchipSocType get_soc_type() { return soc_type; };
     RK_U32          get_vcodec_type() { return vcodec_type; };
-    void            refresh_vcodec_type(RK_U32 val) { vcodec_type = val; };
+    void            set_vcodec_type(RK_U32 val) { vcodec_type = val; };
     RK_U32          get_vcodec_capability() { return vcodec_capability; };
 };
 
 MppPlatformService::MppPlatformService()
-    : soc_name(NULL),
+    : ioctl_version(IOCTL_VCODEC_SERVICE),
+      soc_name(NULL),
       vcodec_type(0),
       vcodec_capability(0)
 {
@@ -222,6 +225,7 @@ MppPlatformService::MppPlatformService()
 
     /* if /dev/mpp_service not double check */
     if (mpp_find_device(mpp_service_dev)) {
+        ioctl_version = IOCTL_MPP_SERVICE_V1;
         mpp_dbg(MPP_DBG_PLATFORM, "/dev/mpp_service not double check device\n");
         goto __return;
     }
@@ -280,6 +284,11 @@ MppPlatformService::~MppPlatformService()
     MPP_FREE(soc_name);
 }
 
+MppIoctlVersion mpp_get_ioctl_version(void)
+{
+    return MppPlatformService::get_instance()->get_ioctl_version();
+}
+
 const char *mpp_get_soc_name(void)
 {
     static const char *soc_name = NULL;
@@ -314,27 +323,17 @@ RK_U32 mpp_get_2d_hw_flag(void)
     return flag;
 }
 
-RK_U32 mpp_get_ioctl_version(void)
-{
-    RK_U32 flag = 0;
-
-    flag = mpp_find_device(mpp_service_dev) ? 1 : 0;
-
-    return flag;
-}
-
 RK_U32 mpp_refresh_vcodec_type(RK_U32 vcodec_type)
 {
-    MppPlatformService::get_instance()->refresh_vcodec_type(vcodec_type);
+    MppPlatformService::get_instance()->set_vcodec_type(vcodec_type);
 
     return 0;
 }
 
 const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform)
 {
-    const char *dev = NULL;
-
-    if ((dev = mpp_find_device(mpp_service_dev)) != NULL) {
+    const char *dev = mpp_find_device(mpp_service_dev);
+    if (dev) {
         mpp_log("got the %s\n", dev);
     } else if ((platform & HAVE_RKVDEC) && (type == MPP_CTX_DEC) &&
                (coding == MPP_VIDEO_CodingAVC ||
