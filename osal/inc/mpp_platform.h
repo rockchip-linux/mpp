@@ -22,6 +22,11 @@
 /*
  * Platform flag detection is for rockchip hardware platform detection
  */
+typedef enum MppIoctlVersion_e {
+    IOCTL_VCODEC_SERVICE,
+    IOCTL_MPP_SERVICE_V1,
+    IOCTL_VERSION_BUTT,
+} MppIoctlVersion;
 
 /*
  * Platform video codec hardware feature
@@ -45,27 +50,27 @@ typedef enum {
 } VPU_CLIENT2_TYPE;
 
 /* RK combined codec */
-#define HAVE_VDPU1        (1 << VPU_CLIENT_VDPU1)       /* 0x00000001 */
-#define HAVE_VDPU2        (1 << VPU_CLIENT_VDPU2)       /* 0x00000002 */
-#define HAVE_VDPU1_PP     (1 << VPU_CLIENT_VDPU1_PP)    /* 0x00000004 */
-#define HAVE_VDPU2_PP     (1 << VPU_CLIENT_VDPU2_PP)    /* 0x00000008 */
+#define HAVE_VDPU1          (1 << VPU_CLIENT_VDPU1)         /* 0x00000001 */
+#define HAVE_VDPU2          (1 << VPU_CLIENT_VDPU2)         /* 0x00000002 */
+#define HAVE_VDPU1_PP       (1 << VPU_CLIENT_VDPU1_PP)      /* 0x00000004 */
+#define HAVE_VDPU2_PP       (1 << VPU_CLIENT_VDPU2_PP)      /* 0x00000008 */
 /* RK standalone decoder */
-#define HAVE_HEVC_DEC     (1 << VPU_CLIENT_HEVC_DEC)    /* 0x00000100 */
-#define HAVE_RKVDEC       (1 << VPU_CLIENT_RKVDEC)      /* 0x00000200 */
-#define HAVE_AVSDEC       (1 << VPU_CLIENT_AVSPLUS_DEC) /* 0x00001000 */
+#define HAVE_HEVC_DEC       (1 << VPU_CLIENT_HEVC_DEC)      /* 0x00000100 */
+#define HAVE_RKVDEC         (1 << VPU_CLIENT_RKVDEC)        /* 0x00000200 */
+#define HAVE_AVSDEC         (1 << VPU_CLIENT_AVSPLUS_DEC)   /* 0x00001000 */
 /* RK standalone encoder */
-#define HAVE_RKVENC       (1 << VPU_CLIENT_RKVENC)      /* 0x00010000 */
-#define HAVE_VEPU1        (1 << VPU_CLIENT_VEPU1)       /* 0x00020000 */
-#define HAVE_VEPU2        (1 << VPU_CLIENT_VEPU2)       /* 0x00040000 */
-#define HAVE_VEPU2_LITE   (1 << VPU_CLIENT_VEPU2_LITE)  /* 0x00080000 */
+#define HAVE_RKVENC         (1 << VPU_CLIENT_RKVENC)        /* 0x00010000 */
+#define HAVE_VEPU1          (1 << VPU_CLIENT_VEPU1)         /* 0x00020000 */
+#define HAVE_VEPU2          (1 << VPU_CLIENT_VEPU2)         /* 0x00040000 */
+#define HAVE_VEPU2_LITE     (1 << VPU_CLIENT_VEPU2_LITE)    /* 0x00080000 */
 /* External encoder */
-#define HAVE_VEPU22       (1 << VPU_CLIENT_VEPU22)      /* 0x01000000 */
+#define HAVE_VEPU22         (1 << VPU_CLIENT_VEPU22)        /* 0x01000000 */
 
 /* Platform image process hardware feature */
-#define HAVE_IPP                (0x00000001)
-#define HAVE_RGA                (0x00000002)
-#define HAVE_RGA2               (0x00000004)
-#define HAVE_IEP                (0x00000008)
+#define HAVE_IPP            (0x00000001)
+#define HAVE_RGA            (0x00000002)
+#define HAVE_RGA2           (0x00000004)
+#define HAVE_IEP            (0x00000008)
 
 /* Hal device id */
 typedef enum MppDeviceId_e {
@@ -80,10 +85,10 @@ typedef enum MppDeviceId_e {
 extern "C" {
 #endif
 
+MppIoctlVersion mpp_get_ioctl_version(void);
 const char *mpp_get_soc_name(void);
 RK_U32 mpp_get_vcodec_type(void);
 RK_U32 mpp_get_2d_hw_flag(void);
-RK_U32 mpp_get_ioctl_version(void);
 RK_U32 mpp_refresh_vcodec_type(RK_U32 vcodec_type);
 const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform);
 const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
