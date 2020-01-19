@@ -548,8 +548,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     p->fps_count        = p->fps_threshold;
 
     // if not constant
-    p->mb_bit_rc_enable = !(rc->rc_mode == MPP_ENC_RC_MODE_VBR &&
-                            rc->quality == MPP_ENC_RC_QUALITY_CQP);
+    p->mb_bit_rc_enable = rc->rc_mode != MPP_ENC_RC_MODE_FIXQP;
 
     // init first frame QP
     if (p->bits_per_pic > 1000000)

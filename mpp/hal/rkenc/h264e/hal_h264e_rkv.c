@@ -500,7 +500,7 @@ static void h264e_rkv_set_mb_rc(H264eHalContext *ctx)
         q = rc->quality;
         if (q == MPP_ENC_RC_QUALITY_AQ_ONLY) {
             m = RKVE_MB_RC_ONLY_AQ;
-        } else if (q != MPP_ENC_RC_QUALITY_CQP) {
+        } else {
             /* better quality for intra frame */
             if (hw->frame_type == H264E_RKV_FRAME_I)
                 q++;
@@ -543,7 +543,10 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
     }
 
     /* (VBR) if focus on quality, qp range is limited more precisely */
-    if (rc->rc_mode == MPP_ENC_RC_MODE_VBR) {
+    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        syn->qp_min = syn->qp;
+        syn->qp_max = syn->qp;
+    } else if (rc->rc_mode == MPP_ENC_RC_MODE_VBR) {
         if (rc->quality == MPP_ENC_RC_QUALITY_AQ_ONLY) {
             m_cfg = mb_rc_m_cfg[mb_rc->mode];
             syn->qp = ctx->hw_cfg.qp_prev;
@@ -554,9 +557,6 @@ static MPP_RET h264e_rkv_set_rc_regs(H264eHalContext *ctx, H264eRkvRegSet *regs,
                     syn->qp_min = 24;
                 }
             }
-        } else if (rc->quality == MPP_ENC_RC_QUALITY_CQP) {
-            syn->qp_min = syn->qp;
-            syn->qp_max = syn->qp;
         } else {
             H264eRkvMbRcQcfg q_cfg = mb_rc_q_cfg[mb_rc->quality];
             syn->qp_min = q_cfg.qp_min;
@@ -941,8 +941,7 @@ h264e_rkv_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     /* frame type and rate control setup */
     {
         RK_S32 prev_frame_type = hw_cfg->frame_type;
-        RK_S32 is_cqp = rc->rc_mode == MPP_ENC_RC_MODE_VBR &&
-                        rc->quality == MPP_ENC_RC_QUALITY_CQP;
+        RK_S32 is_cqp = rc->rc_mode == MPP_ENC_RC_MODE_FIXQP;
 
         if (rc_syn->type == INTRA_FRAME && rc_syn->gop_mode != MPP_GOP_ALL_INTRA) {
             hw_cfg->frame_type = H264E_RKV_FRAME_I;

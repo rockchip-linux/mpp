@@ -640,24 +640,22 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     codec_cfg->h264.cabac_init_idc  = 0;
 
     codec_cfg->h264.qp_init = 0;
-    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        /* constant QP mode qp is fixed */
+        codec_cfg->h264.qp_init  = 26;
+        codec_cfg->h264.qp_max   = 26;
+        codec_cfg->h264.qp_min   = 26;
+        codec_cfg->h264.qp_max_step  = 0;
+    } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
         /* constant bitrate do not limit qp range */
         codec_cfg->h264.qp_max   = 48;
         codec_cfg->h264.qp_min   = 4;
         codec_cfg->h264.qp_max_step  = 16;
     } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
-        if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
-            /* constant QP mode qp is fixed */
-            codec_cfg->h264.qp_init  = 26;
-            codec_cfg->h264.qp_max   = 26;
-            codec_cfg->h264.qp_min   = 26;
-            codec_cfg->h264.qp_max_step  = 0;
-        } else {
-            /* variable bitrate has qp min limit */
-            codec_cfg->h264.qp_max   = 40;
-            codec_cfg->h264.qp_min   = 12;
-            codec_cfg->h264.qp_max_step  = 8;
-        }
+        /* variable bitrate has qp min limit */
+        codec_cfg->h264.qp_max   = 40;
+        codec_cfg->h264.qp_min   = 12;
+        codec_cfg->h264.qp_max_step  = 8;
     }
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {

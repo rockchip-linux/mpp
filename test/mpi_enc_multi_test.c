@@ -411,23 +411,21 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
     rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
 
-    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        /* constant QP does not have bps */
+        rc_cfg->bps_target   = -1;
+        rc_cfg->bps_max      = -1;
+        rc_cfg->bps_min      = -1;
+    } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
         /* constant bitrate has very small bps range of 1/16 bps */
         rc_cfg->bps_target   = p->bps;
         rc_cfg->bps_max      = p->bps * 17 / 16;
         rc_cfg->bps_min      = p->bps * 15 / 16;
     } else if (rc_cfg->rc_mode ==  MPP_ENC_RC_MODE_VBR) {
-        if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
-            /* constant QP does not have bps */
-            rc_cfg->bps_target   = -1;
-            rc_cfg->bps_max      = -1;
-            rc_cfg->bps_min      = -1;
-        } else {
-            /* variable bitrate has large bps range */
-            rc_cfg->bps_target   = p->bps;
-            rc_cfg->bps_max      = p->bps * 17 / 16;
-            rc_cfg->bps_min      = p->bps * 1 / 16;
-        }
+        /* variable bitrate has large bps range */
+        rc_cfg->bps_target   = p->bps;
+        rc_cfg->bps_max      = p->bps * 17 / 16;
+        rc_cfg->bps_min      = p->bps * 1 / 16;
     }
 
     /* fix input / output frame rate */
@@ -476,25 +474,23 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.cabac_init_idc  = 0;
         codec_cfg->h264.transform8x8_mode = 1;
 
-        if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
+        if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+            /* constant QP mode qp is fixed */
+            p->qp_max   = p->qp_init;
+            p->qp_min   = p->qp_init;
+            p->qp_step  = 0;
+        } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
             /* constant bitrate do not limit qp range */
             p->qp_max   = 48;
             p->qp_min   = 4;
             p->qp_step  = 16;
             p->qp_init  = 0;
         } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
-            if (rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
-                /* constant QP mode qp is fixed */
-                p->qp_max   = p->qp_init;
-                p->qp_min   = p->qp_init;
-                p->qp_step  = 0;
-            } else {
-                /* variable bitrate has qp min limit */
-                p->qp_max   = 40;
-                p->qp_min   = 12;
-                p->qp_step  = 8;
-                p->qp_init  = 0;
-            }
+            /* variable bitrate has qp min limit */
+            p->qp_max   = 40;
+            p->qp_min   = 12;
+            p->qp_step  = 8;
+            p->qp_init  = 0;
         }
 
         codec_cfg->h264.qp_max      = p->qp_max;

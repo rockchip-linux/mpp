@@ -49,6 +49,7 @@ typedef enum RcMode_e {
     RC_AVBR,
     RC_CVBR,
     RC_QVBR,
+    RC_FIXQP,
     RC_LEARNING,
     RC_MODE_BUTT,
 } RcMode;

@@ -686,7 +686,7 @@ MPP_RET rc_model_v2_start(void *ctx, RcHalCfg *cfg, EncFrmStatus *frm)
 
     cfg->need_reenc = 0;
 
-    if (frm->reencode) {
+    if (frm->reencode || p->usr_cfg.mode == RC_FIXQP) {
         return MPP_OK;
     }
     if (frm->is_intra) {
@@ -722,6 +722,9 @@ MPP_RET rc_model_v2_end(void *ctx, RcHalCfg *cfg)
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
 
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+    if (p->usr_cfg.mode == RC_FIXQP) {
+        return MPP_OK;
+    }
 
     if (check_re_enc(p, cfg)) {
         if (p->usr_cfg.mode == RC_CBR) {
