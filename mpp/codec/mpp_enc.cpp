@@ -604,12 +604,17 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_ALL_CFG : {
+        MppEncRcCfg *rc = &enc->set.rc;
+
         enc_dbg_ctrl("set all config\n");
         memcpy(&enc->set, param, sizeof(enc->set));
 
-        ret = enc_impl_proc_cfg(enc->impl, MPP_ENC_SET_RC_CFG, param);
+        if (rc->rc_mode == MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP)
+            rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+
+        ret = enc_impl_proc_cfg(enc->impl, MPP_ENC_SET_RC_CFG, rc);
         if (!ret)
-            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_RC_CFG, &enc->set.rc);
+            ret = mpp_hal_control(enc->hal, MPP_ENC_SET_RC_CFG, rc);
 
         if (!ret)
             mpp_enc_update_rc_cfg(&enc->cfg.rc, &enc->set.rc);
@@ -641,12 +646,17 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
         memcpy(p, &enc->cfg.prep, sizeof(*p));
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        enc_dbg_ctrl("set rc config\n");
-        memcpy(&enc->set.rc, param, sizeof(enc->set.rc));
+        MppEncRcCfg *rc = &enc->set.rc;
 
-        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
+        enc_dbg_ctrl("set rc config\n");
+        memcpy(rc, param, sizeof(*rc));
+
+        if (rc->rc_mode == MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP)
+            rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+
+        ret = enc_impl_proc_cfg(enc->impl, cmd, rc);
         if (!ret)
-            ret = mpp_hal_control(enc->hal, cmd, param);
+            ret = mpp_hal_control(enc->hal, cmd, rc);
 
         if (!ret)
             mpp_enc_update_rc_cfg(&enc->cfg.rc, &enc->set.rc);

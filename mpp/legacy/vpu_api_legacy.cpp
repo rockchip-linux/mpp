@@ -141,8 +141,8 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
     rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
     if (rc_mode == 0) {
         /* 0 - constant qp mode: fixed qp */
-        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_VBR;
-        rc_cfg->quality     = MPP_ENC_RC_QUALITY_CQP;
+        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_FIXQP;
+        rc_cfg->quality     = MPP_ENC_RC_QUALITY_MEDIUM;
         rc_cfg->bps_target  = -1;
         rc_cfg->bps_max     = -1;
         rc_cfg->bps_min     = -1;

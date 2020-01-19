@@ -309,8 +309,7 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
                         dst->quality);
                 ret = MPP_ERR_VALUE;
             }
-            if (dst->rc_mode != MPP_ENC_RC_MODE_VBR ||
-                dst->quality != MPP_ENC_RC_QUALITY_CQP) {
+            if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
                 if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
                     (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
                     (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {

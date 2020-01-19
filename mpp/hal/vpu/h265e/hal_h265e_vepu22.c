@@ -1302,18 +1302,17 @@ static MPP_RET vepu22_set_rc_cfg(HalH265eCtx* ctx)
         hal_h265e_dbg_input("rc change = 0x%x\n", change);
         cfg->rc_enable = 0;
         switch (rc->rc_mode) {
+        case MPP_ENC_RC_MODE_FIXQP:
+            cfg->rc_enable = 0;
+            cfg->bit_rate = 0;
+            cfg->trans_rate = 0;
+            break;
         case MPP_ENC_RC_MODE_VBR:
             // if rc_mode is VBR and quality == MPP_ENC_RC_QUALITY_CQP, this mode is const QP
-            if (rc->quality == MPP_ENC_RC_QUALITY_CQP) {
-                cfg->rc_enable = 0; // fix qp
-                cfg->bit_rate = 0;
-                cfg->trans_rate = 0;
-            } else {
-                cfg->rc_enable = 1;
-                cfg->bit_rate = rc->bps_target;
-                // set trans_rate larger than bit_rate
-                cfg->trans_rate = cfg->bit_rate + 10000;
-            }
+            cfg->rc_enable = 1;
+            cfg->bit_rate = rc->bps_target;
+            // set trans_rate larger than bit_rate
+            cfg->trans_rate = cfg->bit_rate + 10000;
             break;
         case MPP_ENC_RC_MODE_CBR:
             cfg->rc_enable = 1;

@@ -384,8 +384,7 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
     hw_cfg->qp_min = codec->qp_min;
     hw_cfg->qp_max = codec->qp_max;
 
-    if (rc->rc_mode == MPP_ENC_RC_MODE_VBR &&
-        rc->quality == MPP_ENC_RC_QUALITY_CQP) {
+    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
         hw_cfg->qp = codec->qp_init;
     } else {
         /* enable mb rate control*/

@@ -587,8 +587,7 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     codec_cfg->h264.entropy_coding_mode  = 1;
     codec_cfg->h264.cabac_init_idc  = 0;
 
-    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR &&
-        rc_cfg->quality == MPP_ENC_RC_QUALITY_CQP) {
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
         /* constant QP mode qp is fixed */
         codec_cfg->h264.qp_max   = 26;
         codec_cfg->h264.qp_min   = 26;

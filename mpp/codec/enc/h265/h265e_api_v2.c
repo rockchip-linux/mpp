@@ -168,7 +168,8 @@ static MPP_RET h265e_deinit(void *ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    rc_deinit(p->rc_ctx);
+    if (p->rc_ctx)
+        rc_deinit(p->rc_ctx);
 
     h265e_deinit_extra_info(p->extra_info);
 
@@ -206,6 +207,9 @@ static void h265_set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
     } break;
     case MPP_ENC_RC_MODE_VBR : {
         cfg->mode = RC_VBR;
+    } break;
+    case MPP_ENC_RC_MODE_FIXQP: {
+        cfg->mode = RC_FIXQP;
     } break;
     default : {
         cfg->mode = RC_AVBR;
@@ -369,7 +373,7 @@ static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
     MppEncRcCfg *rc = &p->cfg->rc;
 
     h265e_dbg_func("enter\n");
-    if (!p->rc_ready) {
+    if (!p->rc_ready && rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
         mpp_err_f("not initialize encoding\n");
         return MPP_NOK;
     }
@@ -593,8 +597,7 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
                         dst->quality);
                 ret = MPP_ERR_VALUE;
             }
-            if (dst->rc_mode != MPP_ENC_RC_MODE_VBR ||
-                dst->quality != MPP_ENC_RC_QUALITY_CQP) {
+            if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
                 if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
                     (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
                     (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
