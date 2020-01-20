@@ -31,6 +31,7 @@
 #include "hal_h265e_rkv.h"
 #include "hal_h265e_rkv_ctx.h"
 #include "rc_api.h"
+#include "vepu541_common.h"
 
 #define H265E_DBG_SIMPLE            0x00000010
 #define H265E_DBG_REG               0x00000020
@@ -196,140 +197,39 @@ static MPP_RET h265e_rkv_free_buffers(H265eRkvHalContext *ctx)
     return MPP_OK;
 }
 
-RK_U32 convert_format(MppFrameFormat format)
-{
-    RK_U32 input_format;
-    switch (format) {
-    case MPP_FMT_YUV420P: {
-        input_format = (RK_U32)RKVE_CSP_YUV420P;
-        break;
-    }
-    case MPP_FMT_YUV420SP: {
-        input_format = (RK_U32)RKVE_CSP_YUV420SP;
-        break;
-    }
-    case MPP_FMT_YUV420SP_10BIT: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_YUV420SP_VU: { //TODO: to be confirmed
-        input_format = (RK_U32)RKVE_CSP_YUV420SP;
-        break;
-    }
-    case MPP_FMT_YUV422P: {
-        input_format = (RK_U32)RKVE_CSP_YUV422P;
-        break;
-    }
-    case MPP_FMT_YUV422SP: {
-        input_format = (RK_U32)RKVE_CSP_YUV422SP;
-        break;
-    }
-    case MPP_FMT_YUV422SP_10BIT: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_YUV422SP_VU: {
-        input_format = (RK_U32)RKVE_CSP_YUV422SP;
-        break;
-    }
-    case MPP_FMT_YUV422_YUYV: {
-        input_format = (RK_U32)RKVE_CSP_YUYV422;
-        break;
-    }
-    case MPP_FMT_YUV422_UYVY: {
-        input_format = (RK_U32)RKVE_CSP_UYVY422;
-        break;
-    }
-    case MPP_FMT_RGB565: {
-        input_format = (RK_U32)RKVE_CSP_BGR565;
-        break;
-    }
-    case MPP_FMT_BGR565: {
-        input_format = (RK_U32)RKVE_CSP_BGR565;
-        break;
-    }
-    case MPP_FMT_RGB555: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_BGR555: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_RGB444: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_BGR444: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_RGB888: {
-        input_format = (RK_U32)RKVE_CSP_BGR888;
-        break;
-    }
-    case MPP_FMT_BGR888: {
-        input_format = (RK_U32)RKVE_CSP_BGR888;
-        break;
-    }
-    case MPP_FMT_RGB101010: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_BGR101010: {
-        input_format = (RK_U32)RKVE_CSP_NONE;
-        break;
-    }
-    case MPP_FMT_ARGB8888: {
-        input_format = (RK_U32)RKVE_CSP_BGRA8888;
-        break;
-    }
-    case MPP_FMT_ABGR8888: {
-        input_format = (RK_U32)RKVE_CSP_BGRA8888;
-        break;
-    }
-    default: {
-        h265e_hal_err("unvalid src color space: %d", format);
-        input_format = (RK_U32)RKVE_CSP_NONE;
-    }
-    }
-    return input_format;
-}
-
 static MPP_RET h265e_rkv_allocate_buffers(H265eRkvHalContext *ctx, H265eSyntax_new *syn)
 {
     RK_S32 k = 0;
     MPP_RET ret = MPP_OK;
     h265e_hal_rkv_buffers *buffers = (h265e_hal_rkv_buffers *)ctx->buffers;
-    RK_U32 num_mbs_oneframe;
+    VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
     RK_U32 frame_size;
-    RkveCsp input_fmt = RKVE_CSP_YUV420P;
+    Vepu541Fmt input_fmt = VEPU541_FMT_YUV420P;
     h265e_hal_enter();
     RK_S32 mb_wd64, mb_h64;
 
     mb_wd64 = (syn->pp.pic_width + 63) / 64;
     mb_h64 = (syn->pp.pic_height + 63) / 64;
-    num_mbs_oneframe = (syn->pp.pic_width + 15) / 16 * ((syn->pp.pic_height + 15) / 16);
-    frame_size = MPP_ALIGN(syn->pp.pic_width, 16) * MPP_ALIGN(syn->pp.pic_height, 16);
 
-    input_fmt = convert_format(syn->pp.mpp_format);
-    ctx->input_fmt = input_fmt;
+    frame_size = MPP_ALIGN(syn->pp.pic_width, 16) * MPP_ALIGN(syn->pp.pic_height, 16);
+    vepu541_set_fmt(fmt, &ctx->cfg->prep);
+    input_fmt = (Vepu541Fmt)fmt->format;
     switch (input_fmt) {
-    case RKVE_CSP_YUV420P:
-    case RKVE_CSP_YUV420SP: {
+    case VEPU541_FMT_YUV420P:
+    case VEPU541_FMT_YUV420SP: {
         frame_size = frame_size * 3 / 2;
     } break;
-    case RKVE_CSP_YUV422P:
-    case RKVE_CSP_YUV422SP:
-    case RKVE_CSP_YUYV422:
-    case RKVE_CSP_UYVY422:
-    case RKVE_CSP_BGR565: {
+    case VEPU541_FMT_YUV422P:
+    case VEPU541_FMT_YUV422SP:
+    case VEPU541_FMT_YUYV422:
+    case VEPU541_FMT_UYVY422:
+    case VEPU541_FMT_BGR565: {
         frame_size *= 2;
     } break;
-    case RKVE_CSP_BGR888: {
+    case VEPU541_FMT_BGR888: {
         frame_size *= 3;
     } break;
-    case RKVE_CSP_BGRA8888: {
+    case VEPU541_FMT_BGRA8888: {
         frame_size *= 4;
     } break;
     default: {
@@ -342,6 +242,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eRkvHalContext *ctx, H265eSyntax_n
         size_t size[3] = {0};
         RK_S32 fbc_header_len;
         h265e_rkv_free_buffers(ctx);
+        MPP_FREE(ctx->roi_buf);
         hal_bufs_deinit(ctx->dpb_bufs);
         hal_bufs_init(&ctx->dpb_bufs);
         fbc_header_len = (mb_wd64 * mb_h64) << 6;
@@ -352,13 +253,14 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eRkvHalContext *ctx, H265eSyntax_n
         if (1) {
             for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[ENC_HAL_RKV_BUF_GRP_ROI],
-                                     &buffers->hw_roi_buf[k], num_mbs_oneframe * 1);
+                                     &buffers->hw_roi_buf[k], vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
                 if (ret) {
                     h265e_hal_err("hw_roi_buf[%d] get failed", k);
                     return ret;
                 }
             }
         }
+        ctx->roi_buf = mpp_malloc(RK_U8, vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
         ctx->frame_size = frame_size;
     }
     h265e_hal_leave();
@@ -414,6 +316,7 @@ MPP_RET hal_h265e_rkv_init(void *hal, MppEncHalCfg *cfg)
     ctx->l2_regs        = mpp_calloc(H265eRkvL2RegSet, RKVE_LINKTABLE_FRAME_NUM);
     ctx->rc_hal_cfg     = mpp_calloc(RcHalCfg, RKVE_LINKTABLE_FRAME_NUM);
     ctx->buffers        = mpp_calloc(h265e_hal_rkv_buffers, RKVE_LINKTABLE_FRAME_NUM);
+    ctx->input_fmt      = mpp_calloc(VepuFmtCfg, 1);
     ctx->set            = cfg->set;
     ctx->cfg            = cfg->cfg;
     hal_bufs_init(&ctx->dpb_bufs);
@@ -464,6 +367,8 @@ MPP_RET hal_h265e_rkv_deinit(void *hal)
     MPP_FREE(ctx->ioctl_input);
     MPP_FREE(ctx->ioctl_output);
     MPP_FREE(ctx->rc_hal_cfg);
+    MPP_FREE(ctx->input_fmt);
+    MPP_FREE(ctx->roi_buf);
     hal_bufs_deinit(ctx->dpb_bufs);
 
     if (ctx->buffers) {
@@ -492,7 +397,7 @@ MPP_RET hal_h265e_rkv_deinit(void *hal)
 
 static MPP_RET
 h265e_rkv_set_ioctl_extra_info(H265eRkvIoctlExtraInfo *extra_info,
-                               H265eSyntax_new *syn, RkveCsp input_fmt)
+                               H265eSyntax_new *syn, Vepu541Fmt input_fmt)
 {
     H265eRkvIoctlExtraInfoElem *info = NULL;
     RK_U32 hor_stride = syn->pp.hor_stride;
@@ -501,21 +406,21 @@ h265e_rkv_set_ioctl_extra_info(H265eRkvIoctlExtraInfo *extra_info,
     RK_U32 u_offset = 0, v_offset = 0;
 
     switch (input_fmt) {
-    case RKVE_CSP_YUV420P: {
+    case VEPU541_FMT_YUV420P: {
         u_offset = frame_size;
         v_offset = frame_size * 5 / 4;
     } break;
-    case RKVE_CSP_YUV420SP:
-    case RKVE_CSP_YUV422SP: {
+    case VEPU541_FMT_YUV420SP:
+    case VEPU541_FMT_YUV422SP: {
         u_offset = frame_size;
         v_offset = frame_size;
     } break;
-    case RKVE_CSP_YUV422P: {
+    case VEPU541_FMT_YUV422P: {
         u_offset = frame_size;
         v_offset = frame_size * 3 / 2;
     } break;
-    case RKVE_CSP_YUYV422:
-    case RKVE_CSP_UYVY422: {
+    case VEPU541_FMT_YUYV422:
+    case VEPU541_FMT_UYVY422: {
         u_offset = 0;
         v_offset = 0;
     } break;
@@ -604,43 +509,33 @@ static MPP_RET h265e_rkv_set_osd_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *r
     return MPP_OK;
 }
 
-MPP_RET h265e_config_roi_area(H265eRkvHalContext *ctx, RK_U8 *roi_base)
+MPP_RET vepu541_h265_set_roi(void *dst_buf, void *src_buf, RK_S32 w, RK_S32 h)
 {
-    h265e_hal_enter();
-    RK_U32 ret = MPP_OK, idx = 0, num = 0;
-    RK_U32 init_pos_x, init_pos_y, roi_width, roi_height, mb_width, pos_y;
-    RkvRoiCfg_v2 cfg;
-    MppEncROIRegion *region;
-    RK_U8 *ptr = roi_base;
+    Vepu541RoiCfg *src = (Vepu541RoiCfg *)src_buf;
+    Vepu541RoiCfg *dst = (Vepu541RoiCfg *)dst_buf;
+    RK_S32 mb_w = MPP_ALIGN(w, 64) / 64;
+    RK_S32 mb_h = MPP_ALIGN(h, 64) / 64;
+    RK_S32 ctu_line = mb_w;
+    RK_S32 i, j, cu16cnt;
 
-    if (ctx == NULL || roi_base == NULL) {
-        mpp_err("NULL pointer ctx %p roi_base %p\n", ctx, roi_base);
-        return MPP_NOK;
-    }
-    region = ctx->roi_data->regions;
-    for (num = 0; num < ctx->roi_data->number; num++) {
-        init_pos_x = (region->x + 15) / 16;
-        init_pos_y = (region->y + 15) / 16;
-        roi_width = (region->w + 15) / 16;
-        roi_height = (region->h + 15) / 16;
-        mb_width = (ctx->cfg->prep.width + 15) / 16;
-        pos_y = init_pos_y;
-
-        for (idx = 0; idx < roi_width * roi_height; idx++) {
-            if (idx % roi_width == 0)
-                pos_y = init_pos_y + idx / roi_width;
-            ptr = roi_base + (pos_y * mb_width + init_pos_x) + (idx % roi_width);
-            cfg.qp_area_idx = region->qp_area_idx;
-            cfg.area_map = region->area_map_en;
-            cfg.qp_y = region->quality;
-            cfg.set_qp_y = region->abs_qp_en;
-            cfg.forbid_inter = region->intra;
-            memcpy(ptr, &cfg, sizeof(RkvRoiCfg_v2));
+    for (j = 0; j < mb_h; j++) {
+        for ( i = 0; i < mb_w; i++) {
+            RK_S32 ctu_addr = j * ctu_line + i;
+            RK_S32 cu16_num_line = ctu_line * 4;
+            for ( cu16cnt = 0; cu16cnt < 16; cu16cnt++) {
+                RK_S32 cu16_x;
+                RK_S32 cu16_y;
+                RK_S32 cu16_addr_in_frame;
+                cu16_x = cu16cnt & 3;
+                cu16_y = cu16cnt / 4;
+                cu16_x += i * 4;
+                cu16_y += j * 4;
+                cu16_addr_in_frame = cu16_x + cu16_y * cu16_num_line;
+                dst[ctu_addr * 16 + cu16cnt] = src[cu16_addr_in_frame];
+            }
         }
-        region++;
     }
-    h265e_hal_leave();
-    return ret;
+    return MPP_OK;
 }
 
 static MPP_RET
@@ -648,7 +543,10 @@ h265e_rkv_set_roi_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *regs)
 {
     MppEncROICfg *cfg = (MppEncROICfg*)ctx->roi_data;
     h265e_hal_rkv_buffers *bufs = (h265e_hal_rkv_buffers *)ctx->buffers;
+    RK_U32 h =  ctx->cfg->prep.height;
+    RK_U32 w = ctx->cfg->prep.width;
     RK_U8 *roi_base;
+
     if (!cfg) {
         return MPP_OK;
     }
@@ -657,8 +555,8 @@ h265e_rkv_set_roi_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *regs)
         regs->enc_pic.roi_en = 1;
         regs->roi_addr_hevc = mpp_buffer_get_fd(bufs->hw_roi_buf[0]);
         roi_base = (RK_U8 *)mpp_buffer_get_ptr(bufs->hw_roi_buf[0]);
-        mpp_log("config roi");
-        h265e_config_roi_area(ctx, roi_base);
+        vepu541_set_roi(ctx->roi_buf, cfg, w, h);
+        vepu541_h265_set_roi(roi_base, ctx->roi_buf, w, h);
     }
     return MPP_OK;
 }
@@ -677,14 +575,22 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *re
 
     if (frms->seq_idx == 0 && frms->status.is_intra) {
         if (h265->qp_init == -1) {
-            ctx->start_qp = cal_first_i_start_qp(frms->rc_cfg.bit_target, frms->mb_per_frame << 4);
-            ctx->cur_scale_qp = (ctx->start_qp  + h265->ip_qp_delta) << 6;
+            if (frms->rc_cfg.bit_target) {
+                ctx->start_qp = cal_first_i_start_qp(frms->rc_cfg.bit_target, frms->mb_per_frame << 4);
+                ctx->cur_scale_qp = (ctx->start_qp  + h265->ip_qp_delta) << 6;
+            } else {
+                mpp_log("fix qp case but init qp no set");
+                h265->qp_init = 26;
+                ctx->start_qp = 26;
+                ctx->cur_scale_qp = (ctx->start_qp  + h265->ip_qp_delta) << 6;
+            }
         } else {
 
             ctx->start_qp = h265->qp_init;
             ctx->cur_scale_qp = (ctx->start_qp + h265->ip_qp_delta) << 6;
         }
 
+        ctx->cur_scale_qp = mpp_clip(ctx->cur_scale_qp, (h265->min_qp << 6), (h265->max_qp << 6));
         ctx->pre_i_qp = ctx->cur_scale_qp >> 6;
         ctx->pre_p_qp = ctx->cur_scale_qp >> 6;
     } else {
@@ -727,6 +633,8 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *re
             rc_max_qp = h265->max_qp;
             rc_min_qp = h265->min_qp;
         }
+
+        ctx->start_qp = mpp_clip(ctx->start_qp, rc_min_qp, rc_max_qp);
 
         regs->enc_pic.pic_qp      = ctx->start_qp;
         regs->synt_sli1.sli_qp    = ctx->start_qp;
@@ -787,28 +695,32 @@ static MPP_RET h265e_rkv_set_rc_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *re
     return MPP_OK;
 }
 
-static MPP_RET h265e_rkv_set_pp_regs(H265eRkvRegSet *regs, MppEncPrepCfg *prep_cfg)
+static MPP_RET h265e_rkv_set_pp_regs(H265eRkvRegSet *regs, VepuFmtCfg *fmt, MppEncPrepCfg *prep_cfg)
 {
     RK_S32 stridey = 0;
     RK_S32 stridec = 0;
-
+    regs->src_fmt.src_cfmt = fmt->format;
+    regs->src_fmt.alpha_swap = fmt->alpha_swap;
+    regs->src_fmt.rbuv_swap = fmt->rbuv_swap;
+    regs->src_fmt.src_range = fmt->src_range;
     regs->src_proc.src_rot = prep_cfg->rotation;
 
     if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
         stridey = prep_cfg->width ;
-        if (regs->src_fmt.src_cfmt == RKVE_CSP_BGRA8888 )
+        if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
             stridey = (stridey + 1) * 4;
-        else if (regs->src_fmt.src_cfmt == RKVE_CSP_BGR888 )
+        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
             stridey = (stridey + 1) * 3;
-        else if ( regs->src_fmt.src_cfmt == RKVE_CSP_BGR565
-                  || regs->src_fmt.src_cfmt == RKVE_CSP_YUYV422
-                  || regs->src_fmt.src_cfmt == RKVE_CSP_UYVY422 )
+        else if ( regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565
+                  || regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422
+                  || regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422 )
             stridey = (stridey + 1) * 2;
     }
-    stridec = (regs->src_fmt.src_cfmt == RKVE_CSP_YUV422SP
-               || regs->src_fmt.src_cfmt == RKVE_CSP_YUV420SP)
+
+    stridec = (regs->src_fmt.src_cfmt == VEPU541_FMT_YUV422SP
+               || regs->src_fmt.src_cfmt == VEPU541_FMT_YUV420SP)
               ? stridey : stridey / 2;
 
     regs->src_strid.src_ystrid    = stridey;
@@ -927,6 +839,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 pic_wd64, pic_h64, fbc_header_len;
     HalBuf *recon_buf, *ref_buf;
+    VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
 
     h265e_hal_enter();
     pic_width_align8 = (syn->pp.pic_width + 7) & (~7);
@@ -1015,13 +928,12 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->dtrns_cfg.axi_brsp_cke      = 0x0;
     regs->dtrns_cfg.cime_dspw_orsd    = 0x0;
 
-    regs->src_fmt.src_cfmt = ctx->input_fmt;
     regs->src_proc.src_mirr = 0;
     regs->src_proc.src_rot = 0;
     regs->src_proc.txa_en  = 1;
     regs->src_proc.afbcd_en  = 0;
 
-    h265e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, (RkveCsp)ctx->input_fmt);
+    h265e_rkv_set_ioctl_extra_info(&ioctl_reg_info->extra_info, syn, (Vepu541Fmt)fmt->format);
 
     regs->klut_ofst.chrm_kult_ofst = 0;
     memcpy(&regs->klut_wgt0, &klut_weight[0], sizeof(klut_weight));
@@ -1178,7 +1090,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
         }
         regs->synt_nal.nal_unit_type    = i_nal_type;
     }
-    h265e_rkv_set_pp_regs(regs, &ctx->cfg->prep);
+    h265e_rkv_set_pp_regs(regs, fmt, &ctx->cfg->prep);
 
     h265e_rkv_set_rc_regs(ctx, regs, syn);
 
@@ -1368,6 +1280,8 @@ static MPP_RET h265e_rkv_set_feedback(H265eRkvHalContext *ctx,
 
         hal_cfg[k].madi = fb->st_madi;
         hal_cfg[k].madp = fb->st_madp;
+
+        hal_cfg[k].bit_real = fb->out_hw_strm_size * 8;
         if (mb64_num > 0) {
             hal_cfg[k].intra_lv4_prop  = ((fb->st_lvl4_intra_num + (fb->st_lvl8_intra_num << 2) +
                                            (fb->st_lvl16_intra_num << 4) +
