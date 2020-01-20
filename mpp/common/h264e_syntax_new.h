@@ -29,6 +29,7 @@ typedef enum H264eSyntaxType_e {
     H264E_SYN_FRAME,
     H264E_SYN_RC,
     H264E_SYN_ROI,
+    H264E_SYN_OSD_PLT,
     H264E_SYN_OSD,
     H264E_SYN_RC_RET,
     H264E_SYN_BUTT,
