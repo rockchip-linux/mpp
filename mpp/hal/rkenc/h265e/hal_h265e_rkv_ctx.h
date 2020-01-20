@@ -72,6 +72,7 @@ typedef struct H265eRkvHalContext_t {
     RK_S32              osd_plt_type;
     MppEncOSDData       *osd_data;
     MppEncROICfg        *roi_data;
+    void                *roi_buf;
     MppEncCfgSet        *set;
     MppEncCfgSet        *cfg;
 
@@ -79,7 +80,7 @@ typedef struct H265eRkvHalContext_t {
     RK_U32              frame_size;
     RK_U32              alloc_flg;
     RK_S32              hdr_status;
-    RkveCsp             input_fmt;
+    void                *input_fmt;
     RK_U8               *src_buf;
     RK_U8               *dst_buf;
     RK_S32              buf_size;
