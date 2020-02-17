@@ -245,10 +245,10 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eRkvHalContext *ctx, H265eSyntax_n
         MPP_FREE(ctx->roi_buf);
         hal_bufs_deinit(ctx->dpb_bufs);
         hal_bufs_init(&ctx->dpb_bufs);
-        fbc_header_len = (mb_wd64 * mb_h64) << 6;
+        fbc_header_len = MPP_ALIGN(((mb_wd64 * mb_h64) << 6), SZ_8K);
         size[0] = fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 2; //fbc_h + fbc_b
         size[1] = (mb_wd64 * mb_h64 << 8);
-        size[2] = (mb_wd64 * mb_h64 * 16 * 4 + 128);
+        size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256);
         hal_bufs_setup(ctx->dpb_bufs, 17, 3, size);
         if (1) {
             for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
@@ -351,7 +351,7 @@ MPP_RET hal_h265e_rkv_init(void *hal, MppEncHalCfg *cfg)
             return MPP_ERR_MALLOC;
         }
     }
-
+    ctx->frame_type = INTRA_FRAME;
     h265e_rkv_set_l2_regs(ctx, (H265eRkvL2RegSet*)ctx->l2_regs);
     h265e_hal_leave();
     return ret;
@@ -705,23 +705,38 @@ static MPP_RET h265e_rkv_set_pp_regs(H265eRkvRegSet *regs, VepuFmtCfg *fmt, MppE
     regs->src_fmt.src_range = fmt->src_range;
     regs->src_proc.src_rot = prep_cfg->rotation;
 
-    if (prep_cfg->hor_stride) {
-        stridey = prep_cfg->hor_stride;
-    } else {
-        stridey = prep_cfg->width ;
-        if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
-            stridey = (stridey + 1) * 4;
-        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
-            stridey = (stridey + 1) * 3;
-        else if ( regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565
-                  || regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422
-                  || regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422 )
-            stridey = (stridey + 1) * 2;
-    }
+    stridey = prep_cfg->hor_stride ? prep_cfg->hor_stride : prep_cfg->width;
 
-    stridec = (regs->src_fmt.src_cfmt == VEPU541_FMT_YUV422SP
-               || regs->src_fmt.src_cfmt == VEPU541_FMT_YUV420SP)
-              ? stridey : stridey / 2;
+    if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
+        stridey = stridey * 4;
+    else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
+        stridey = stridey * 3;
+    else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
+             regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
+             regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
+        stridey = stridey * 2;
+
+    stridec = (regs->src_fmt.src_cfmt == VEPU541_FMT_YUV422SP ||
+               regs->src_fmt.src_cfmt == VEPU541_FMT_YUV420SP) ?
+              stridey : stridey / 2;
+
+    if (regs->src_fmt.src_cfmt < VEPU541_FMT_NONE) {
+        regs->src_udfy.wght_r2y = 66;
+        regs->src_udfy.wght_g2y = 129;
+        regs->src_udfy.wght_b2y = 25;
+
+        regs->src_udfu.wght_r2u = -38;
+        regs->src_udfu.wght_g2u = -74;
+        regs->src_udfu.wght_b2u = 112;
+
+        regs->src_udfv.wght_r2v = 112;
+        regs->src_udfv.wght_g2v = -94;
+        regs->src_udfv.wght_b2v = -18;
+
+        regs->src_udfo.ofst_y = 16;
+        regs->src_udfo.ofst_u = 128;
+        regs->src_udfo.ofst_v = 128;
+    }
 
     regs->src_strid.src_ystrid    = stridey;
     regs->src_strid.src_cstrid    = stridec;
@@ -847,7 +862,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     pic_wd64 = (syn->pp.pic_width + 63) / 64;
     pic_h64 = (syn->pp.pic_height + 63) / 64;
 
-    fbc_header_len = (pic_wd64 * pic_h64) << 6;
+    fbc_header_len =  MPP_ALIGN(((pic_wd64 * pic_h64) << 6), SZ_8K);
     h265e_hal_dbg(H265E_DBG_SIMPLE,
                   "frame %d | type %d | start gen regs",
                   ctx->frame_cnt, ctx->frame_type);
@@ -1028,6 +1043,15 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
     regs->me_cnst.mv_limit      = 0;
     regs->me_cnst.mv_num        = 2;
 
+    if (syn->pp.sps_temporal_mvp_enabled_flag &&
+        (ctx->frame_type != INTRA_FRAME)) {
+        if (ctx->last_frame_type == INTRA_FRAME) {
+            regs->me_cnst.colmv_load    = 0;
+        } else {
+            regs->me_cnst.colmv_load    = 1;
+        }
+        regs->me_cnst.colmv_store   = 1;
+    }
 
     if (syn->pp.pic_width > 2688) {
         regs->me_ram.cime_rama_h = 12;
@@ -1385,7 +1409,7 @@ MPP_RET hal_h265e_rkv_get_task(void *hal, HalEncTask *task)
         }
         ctx->alloc_flg = 1;
     }
-
+    ctx->last_frame_type = ctx->frame_type;
     if (frms->status.is_intra) {
         ctx->frame_type = INTRA_FRAME;
     } else {

@@ -66,6 +66,7 @@ typedef struct H265eRkvHalContext_t {
     RK_S32              pre_p_qp;
     RK_S32              start_qp;
     RK_S32              frame_type;
+    RK_S32              last_frame_type;
 
     /* @frame_cnt starts from ZERO */
     RK_U32              frame_cnt;
