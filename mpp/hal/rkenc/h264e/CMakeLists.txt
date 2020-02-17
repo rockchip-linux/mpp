@@ -17,6 +17,7 @@ set(HAL_H264E_HDR
 
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
+    hal_h264e_vepu541.c
     hal_h264e_rkv.c
     hal_h264e_rkv_dpb.c
     hal_h264e_rkv_stream.c
@@ -29,5 +30,5 @@ add_library(hal_h264e_rkv STATIC
             ${HAL_H264E_SRC}
             )
 
-target_link_libraries(hal_h264e_rkv hal_h264e hal_common)
+target_link_libraries(hal_h264e_rkv hal_vepu541_common hal_h264e hal_common)
 set_target_properties(hal_h264e_rkv PROPERTIES FOLDER "mpp/hal")
