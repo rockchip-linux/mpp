@@ -41,6 +41,8 @@ typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_RK3228,
     ROCKCHIP_SOC_RK3229,
     ROCKCHIP_SOC_RV1108,
+    ROCKCHIP_SOC_RV1109,
+    ROCKCHIP_SOC_RV1126,
     ROCKCHIP_SOC_RK3326,
     ROCKCHIP_SOC_RK3128H,
     ROCKCHIP_SOC_PX30,
@@ -70,6 +72,8 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rk3228",  ROCKCHIP_SOC_RK3228,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC,   },
     { "rk3229",  ROCKCHIP_SOC_RK3229,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC,   },
     { "rv1108",  ROCKCHIP_SOC_RV1108,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
+    { "rv1109",  ROCKCHIP_SOC_RV1109,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
+    { "rv1126",  ROCKCHIP_SOC_RV1126,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC, },
     { "rk3326",  ROCKCHIP_SOC_RK3326,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_HEVC_DEC, },
     { "px30",    ROCKCHIP_SOC_RK3326,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_HEVC_DEC, },
     { "rk1808",  ROCKCHIP_SOC_RK1808,   HAVE_VDPU2 | HAVE_VEPU2, },
@@ -496,6 +500,22 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
          * 3 - RK H.264 4K encoder
          */
         if (coding == MPP_VIDEO_CodingAVC) {
+            if (type == MPP_CTX_ENC)
+                dev = mpp_find_device(mpp_rkvenc_dev);
+            else
+                dev = mpp_find_device(mpp_rkvdec_dev);
+        } else if (coding == MPP_VIDEO_CodingMJPEG)
+            dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RV1109 :
+    case ROCKCHIP_SOC_RV1126 : {
+        /*
+         * rv1108 has codec:
+         * 1 - vpu2 for jpeg encoder and decoder
+         * 2 - RK H.264/H.265 4K decoder
+         * 3 - RK H.264/H.265 4K encoder
+         */
+        if (coding == MPP_VIDEO_CodingAVC || coding == MPP_VIDEO_CodingHEVC) {
             if (type == MPP_CTX_ENC)
                 dev = mpp_find_device(mpp_rkvenc_dev);
             else
