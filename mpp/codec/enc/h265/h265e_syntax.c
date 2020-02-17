@@ -62,6 +62,8 @@ static void fill_picture_parameters(const H265eCtx *h,
     pp->num_short_term_ref_pic_sets              = sps->m_RPSList.m_numberOfReferencePictureSets;
     pp->num_long_term_ref_pics_sps               = sps->m_numLongTermRefPicSPS;
 
+    pp->sample_adaptive_offset_enabled_flag      = sps->m_bUseSAO;
+
     pp->num_ref_idx_l0_default_active_minus1     = pps->m_numRefIdxL0DefaultActive - 1;
     pp->num_ref_idx_l1_default_active_minus1     = pps->m_numRefIdxL1DefaultActive - 1;
     pp->init_qp_minus26                          = pps->m_picInitQPMinus26;
@@ -122,9 +124,9 @@ static void fill_slice_parameters( const H265eCtx *h,
         sp->sli_splt = 1;
         sp->sli_splt_mode = codec->slice_cfg.split_mode;
         if (codec->slice_cfg.split_mode) {
-            sp->sli_splt_cnum_m1 =  codec->slice_cfg.slice_size;
+            sp->sli_splt_cnum_m1 = codec->slice_cfg.slice_size - 1;
         } else {
-            sp->sli_splt_byte =  codec->slice_cfg.slice_size;
+            sp->sli_splt_byte = codec->slice_cfg.slice_size;
         }
         sp->sli_max_num_m1 = 50;
         sp->sli_flsh = 1;
@@ -169,8 +171,6 @@ static void fill_slice_parameters( const H265eCtx *h,
 
     sp->col_ref_idx = 0;
     sp->col_frm_l0_flg = slice->m_colFromL0Flag;
-    sp->merge_left_flag = codec->merge_cfg.merge_left_flag;
-    sp->merge_up_flag = codec->merge_cfg.merge_up_flag;
     sp->sli_poc_lsb = (slice->poc - slice->last_idr + (1 << slice->m_sps->m_bitsForPOC)) %
                       (1 << slice->m_sps->m_bitsForPOC);
     sp->sli_hdr_ext_len = slice->slice_header_extension_length;
