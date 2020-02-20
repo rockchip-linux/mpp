@@ -319,15 +319,30 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
             }
         }
     } break;
-    case MPP_FMT_ARGB8888 : {
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888:
+    case MPP_FMT_BGRA8888:
+    case MPP_FMT_RGBA8888: {
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride * 4, 1, width * 4, fp);
         }
     } break;
+    case MPP_FMT_YUV422P:
+    case MPP_FMT_YUV422SP:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565:
     case MPP_FMT_YUV422_YUYV :
-    case MPP_FMT_YUV422_UYVY : {
+    case MPP_FMT_YUV422_YVYU :
+    case MPP_FMT_YUV422_UYVY :
+    case MPP_FMT_YUV422_VYUY : {
         for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride, 1, width * 2, fp);
+            read_size = fread(buf_y + row * hor_stride * 2, 1, width * 2, fp);
+        }
+    } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888: {
+        for (row = 0; row < height; row++) {
+            read_size = fread(buf_y + row * hor_stride * 3, 1, width * 3, fp);
         }
     } break;
     default : {
