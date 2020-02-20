@@ -146,9 +146,9 @@ RK_S32 rc_frm_check_drop(RcCtx ctx)
     mpp_assert(cfg->fps_out_denorm == 1);
     mpp_assert(cfg->fps_in_num >= cfg->fps_out_num);
 
-    // frame counter is inited to rate_in to encode first frame
+    // frame counter is inited to (rate_in - rate_out)  to encode first frame
     if (frm_cnt < 0)
-        frm_cnt = rate_in;
+        frm_cnt = rate_in - rate_out;
 
     frm_cnt += rate_out;
 
