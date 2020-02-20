@@ -71,7 +71,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     RK_S32 i_timebase_den = rc->fps_out_num / rc->fps_out_denorm;
     RK_U8  convertToBit[MAX_CU_SIZE + 1];
     RK_U32 maxCUDepth, minCUDepth, addCUDepth;
-    RK_S32 pad[2];
+    RK_S32 pad[2] = {0};
     RK_S32 minCUSize, log2MinCUSize;
     RK_S32 tuQTMinLog2Size = 2, tuQTMaxLog2Size;
 
@@ -100,7 +100,6 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         RK_U32 padsize = 0;
         RK_U32 rem = prep->width % minCUDepth;
         padsize = minCUDepth - rem;
-        prep->width += padsize;
         pad[0] = padsize; //pad width
 
         /* set the confirmation window offsets  */
@@ -112,7 +111,6 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         RK_U32 padsize = 0;
         RK_U32 rem = prep->height % minCUDepth;
         padsize = minCUDepth - rem;
-        prep->height += padsize;
         pad[1] = padsize; //pad height
 
         /* set the confirmation window offsets  */
@@ -126,8 +124,8 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_VPSId = 0;
     sps->m_chromaFormatIdc = 0x1; //RKVE_CSP2_I420;
     sps->m_maxTLayers = 1;
-    sps->m_picWidthInLumaSamples = prep->width;
-    sps->m_picHeightInLumaSamples = prep->height;
+    sps->m_picWidthInLumaSamples = prep->width + pad[0];
+    sps->m_picHeightInLumaSamples = prep->height + pad[1];
     sps->m_log2MinCodingBlockSize = 0;
     sps->m_log2DiffMaxMinCodingBlockSize = 0 ;
     sps->m_maxCUSize = codec->max_cu_size;
