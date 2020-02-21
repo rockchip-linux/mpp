@@ -241,7 +241,7 @@ static VepuFmtCfg vepu541_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     {   /* MPP_FMT_ARGB8888 */
         .format     = VEPU541_FMT_BGRA8888,
         .alpha_swap = 0,
-        .rbuv_swap  = 1,
+        .rbuv_swap  = 0,
         .src_range  = 0,
         .weight     = zeros,
         .offset     = zeros,
@@ -249,7 +249,7 @@ static VepuFmtCfg vepu541_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     {   /* MPP_FMT_ABGR8888 */
         .format     = VEPU541_FMT_BGRA8888,
         .alpha_swap = 0,
-        .rbuv_swap  = 0,
+        .rbuv_swap  = 1,
         .src_range  = 0,
         .weight     = zeros,
         .offset     = zeros,
