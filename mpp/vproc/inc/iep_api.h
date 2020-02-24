@@ -20,70 +20,7 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
-typedef enum IepCmd_e {
-    IEP_CMD_INIT,                           // reset msg to all zero
-    IEP_CMD_SET_SRC,                        // config source image info
-    IEP_CMD_SET_DST,                        // config destination image info
-
-    // deinterlace command
-    IEP_CMD_SET_DEI_CFG         = 0x0100,   // config deinterlace configure
-    IEP_CMD_SET_DEI_SRC1,                   // config deinterlace extra source
-    IEP_CMD_SET_DEI_DST1,                   // config deinterlace extra destination
-
-    // color enhancement command
-    IEP_CMD_SET_YUV_ENHANCE     = 0x0200,   // config YUV enhancement parameter
-    IEP_CMD_SET_RGB_ENHANCE,                // config RGB enhancement parameter
-
-    // scale algorithm command
-    IEP_CMD_SET_SCALE           = 0x0300,   // config scale algorithm
-
-    // color convert command
-    IEP_CMD_SET_COLOR_CONVERT   = 0x0400,   // config color convert parameter
-
-    // hardware trigger command
-    IEP_CMD_RUN_SYNC            = 0x1000,   // start sync mode process
-    IEP_CMD_RUN_ASYNC,                      // start async mode process
-
-    // hardware capability query command
-    IEP_CMD_QUERY_CAP           = 0x8000,   // query iep capability
-} IepCmd;
-
-typedef enum IepFormat_e {
-    IEP_FORMAT_RGB_BASE     = 0x0,
-    IEP_FORMAT_ARGB_8888    = IEP_FORMAT_RGB_BASE,
-    IEP_FORMAT_ABGR_8888    = 0x1,
-    IEP_FORMAT_RGBA_8888    = 0x2,
-    IEP_FORMAT_BGRA_8888    = 0x3,
-    IEP_FORMAT_RGB_565      = 0x4,
-    IEP_FORMAT_BGR_565      = 0x5,
-    IEP_FORMAT_RGB_BUTT,
-
-    IEP_FORMAT_YUV_BASE     = 0x10,
-    IEP_FORMAT_YCbCr_422_SP = IEP_FORMAT_YUV_BASE,
-    IEP_FORMAT_YCbCr_422_P  = 0x11,
-    IEP_FORMAT_YCbCr_420_SP = 0x12,
-    IEP_FORMAT_YCbCr_420_P  = 0x13,
-    IEP_FORMAT_YCrCb_422_SP = 0x14,
-    IEP_FORMAT_YCrCb_422_P  = 0x15, // same as IEP_FORMAT_YCbCr_422_P
-    IEP_FORMAT_YCrCb_420_SP = 0x16,
-    IEP_FORMAT_YCrCb_420_P  = 0x17, // same as IEP_FORMAT_YCbCr_420_P
-    IEP_FORMAT_YUV_BUTT,
-} IepFormat;
-
-// iep image for external user
-typedef struct IegImg_t {
-    RK_U16  act_w;          // act_width
-    RK_U16  act_h;          // act_height
-    RK_S16  x_off;          // x offset for the vir,word unit
-    RK_S16  y_off;          // y offset for the vir,word unit
-
-    RK_U16  vir_w;          // unit in byte
-    RK_U16  vir_h;          // unit in byte
-    RK_U32  format;         // IepFormat
-    RK_U32  mem_addr;       // base address fd
-    RK_U32  uv_addr;        // chroma address fd + (offset << 10)
-    RK_U32  v_addr;
-} IepImg;
+#include "iep_common.h"
 
 /*
  * IepCmdParamSetSrc is parameter for:
@@ -233,6 +170,9 @@ extern "C" {
 MPP_RET iep_init(IepCtx *ctx);
 MPP_RET iep_deinit(IepCtx ctx);
 MPP_RET iep_control(IepCtx ctx, IepCmd cmd, void *param);
+
+iep_com_ctx* rockchip_iep_api_alloc_ctx(void);
+void rockchip_iep_api_release_ctx(iep_com_ctx *com_ctx);
 
 #ifdef __cplusplus
 }

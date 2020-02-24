@@ -619,3 +619,33 @@ MPP_RET iep_control(IepCtx ctx, IepCmd cmd, void *param)
 
     return ret;
 }
+
+static iep_com_ops iep_ops = {
+    .init = iep_init,
+    .deinit = iep_deinit,
+    .control = iep_control,
+};
+
+iep_com_ctx* rockchip_iep_api_alloc_ctx(void)
+{
+    iep_com_ctx *com_ctx = (iep_com_ctx *)calloc(sizeof(*com_ctx), 1);
+    void *iep_ctx = calloc(sizeof(sizeof(void*)), 1);
+
+    mpp_assert(com_ctx && iep_ctx);
+
+    com_ctx->ops = &iep_ops;
+    com_ctx->priv = iep_ctx;
+
+    return com_ctx;
+}
+
+void rockchip_iep_api_release_ctx(iep_com_ctx *com_ctx)
+{
+    if (com_ctx->priv) {
+        free(com_ctx->priv);
+        com_ctx->priv = NULL;
+    }
+
+    free(com_ctx);
+}
+
