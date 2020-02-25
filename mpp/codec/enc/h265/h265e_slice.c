@@ -228,7 +228,7 @@ void h265e_slice_init(void *ctx, H265eSlice *slice)
 
     slice->m_cabacInitFlag = 0;
     slice->m_numEntryPointOffsets = 0;
-    slice->m_enableTMVPFlag = 0;
+    slice->m_enableTMVPFlag = sps->m_TMVPFlagsPresent;
     slice->m_picOutputFlag = 1;
     p->dpb->curr->is_key_frame = 0;
     if (!p->dpb->curr->seq_idx || p->dpbcfg.force_idr) {
