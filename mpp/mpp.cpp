@@ -44,6 +44,18 @@ static void mpp_notify_by_buffer_group(void *arg, void *group)
     mpp->notify((MppBufferGroup) group);
 }
 
+static void *list_wraper_packet(void *arg)
+{
+    mpp_packet_deinit((MppPacket *)arg);
+    return NULL;
+}
+
+static void *list_wraper_frame(void *arg)
+{
+    mpp_frame_deinit((MppFrame *)arg);
+    return NULL;
+}
+
 Mpp::Mpp()
     : mPackets(NULL),
       mFrames(NULL),
@@ -95,9 +107,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     mCoding = coding;
     switch (mType) {
     case MPP_CTX_DEC : {
-        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
-        mFrames     = new mpp_list((node_destructor)mpp_frame_deinit);
-        mTimeStamps = new mpp_list((node_destructor)mpp_packet_deinit);
+        mPackets    = new mpp_list(list_wraper_packet);
+        mFrames     = new mpp_list(list_wraper_frame);
+        mTimeStamps = new mpp_list(list_wraper_packet);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_NON_BLOCK;
@@ -137,8 +149,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
-        mFrames     = new mpp_list((node_destructor)NULL);
-        mPackets    = new mpp_list((node_destructor)mpp_packet_deinit);
+        mFrames     = new mpp_list(NULL);
+        mPackets    = new mpp_list(list_wraper_packet);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_BLOCK;
