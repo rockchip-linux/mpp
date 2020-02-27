@@ -23,6 +23,7 @@
 #include "mpp_common.h"
 
 #include "vepu541_common.h"
+#include "mpp_device_msg.h"
 
 static const RK_S32 zeros[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -444,10 +445,30 @@ typedef struct Vepu541OsdReg_t {
     RK_U32  osd_addr[8];
 } Vepu541OsdReg;
 
-MPP_RET vepu541_set_osd_region(void *reg_base, MppEncOSDData *osd, Vepu541OsdPltType type)
+typedef enum Vepu541OsdPltType_e {
+    VEPU541_OSD_PLT_TYPE_USERDEF    = 0,
+    VEPU541_OSD_PLT_TYPE_DEFAULT    = 1,
+} Vepu541OsdPltType;
+
+MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
+                               MppEncOSDData *osd, MppEncOSDPlt *plt)
 {
     RK_U8 *base = (RK_U8 *)reg_base + VEPU541_OSD_CFG_OFFSET;
+    Vepu541OsdPltType type = VEPU541_OSD_PLT_TYPE_DEFAULT;
     Vepu541OsdReg *regs = (Vepu541OsdReg *)base;
+
+    if (plt) {
+        MppDevReqV1 req;
+
+        req.cmd = MPP_CMD_SET_REG_WRITE;
+        req.flag = 0;
+        req.offset = VEPU541_REG_BASE_OSD_PLT;
+        req.size = sizeof(MppEncOSDPlt);
+        req.data = plt;
+        mpp_device_add_request(dev, &req);
+
+        type = VEPU541_OSD_PLT_TYPE_USERDEF;
+    }
 
     if (NULL == osd || osd->num_region == 0 || NULL == osd->buf) {
         regs->reg112.osd_e = 0;

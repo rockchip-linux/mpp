@@ -17,9 +17,12 @@
 #define __VEPU541_COMMON_H__
 
 #include "rk_venc_cmd.h"
+#include "mpp_device.h"
 
-#define VEPU541_REG_BASE_L2         0x00010004
+#define VEPU541_REG_BASE_HW_STATUS  0x0000001C
+#define VEPU541_REG_BASE_STATISTICS 0x00000210
 #define VEPU541_REG_BASE_OSD_PLT    0x00000400
+#define VEPU541_REG_BASE_L2         0x00010004
 
 typedef enum Vepu541Fmt_e {
     VEPU541_FMT_BGRA8888,   // 0
@@ -34,11 +37,6 @@ typedef enum Vepu541Fmt_e {
     VEPU541_FMT_UYVY422,    // 9
     VEPU541_FMT_BUTT,       // 10
 } Vepu541Fmt;
-
-typedef enum Vepu541OsdPltType_e {
-    VEPU541_OSD_PLT_TYPE_USERDEF    = 0,
-    VEPU541_OSD_PLT_TYPE_DEFAULT    = 1,
-} Vepu541OsdPltType;
 
 typedef struct VepuFmtCfg_t {
     Vepu541Fmt      format;
@@ -140,8 +138,8 @@ MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppEncPrepCfg *prep);
 RK_S32  vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h);
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h);
 
-MPP_RET vepu541_set_osd_region(void *reg_base, MppEncOSDData *osd, Vepu541OsdPltType type);
-
+MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
+                               MppEncOSDData *osd, MppEncOSDPlt *plt);
 
 #ifdef __cplusplus
 }
