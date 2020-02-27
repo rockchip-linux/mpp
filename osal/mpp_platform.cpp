@@ -357,7 +357,11 @@ const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_
                  coding == MPP_VIDEO_CodingMJPEG))) {
         dev = mpp_find_device(mpp_vepu_dev);
     } else {
-        dev = mpp_find_device(mpp_vpu_dev);
+        if (type == MPP_CTX_ENC)
+            dev = mpp_find_device(mpp_vepu_dev);
+
+        if (dev == NULL)
+            dev = mpp_find_device(mpp_vpu_dev);
     }
 
     return dev;
