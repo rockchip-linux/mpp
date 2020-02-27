@@ -495,6 +495,28 @@ int iniparser_getint(const dictionary * d, const char * key, int notfound)
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief    Get the string associated to a key, convert to a double
+  @param    d Dictionary to search
+  @param    key Key string to look for
+  @param    notfound Value to return in case of error
+  @return   double
+
+  This function queries a dictionary for a key. A key as read from an
+  ini file is given as "section:key". If the key cannot be found,
+  the notfound value is returned.
+ */
+/*--------------------------------------------------------------------------*/
+double iniparser_getdouble(const dictionary * d, const char * key, double notfound)
+{
+    const char * str ;
+
+    str = iniparser_getstring(d, key, INI_INVALID_KEY);
+    if (str == INI_INVALID_KEY) return notfound ;
+    return atof(str);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief    Get the string associated to a key, convert to a boolean
   @param    d Dictionary to search
   @param    key Key string to look for
@@ -696,7 +718,7 @@ dictionary * iniparser_load(const char * ininame)
     char line    [ASCIILINESZ + 1] ;
     char section [ASCIILINESZ + 1] ;
     char key     [ASCIILINESZ + 1] ;
-    char tmp     [(ASCIILINESZ * 2) + 1] ;
+    char tmp     [(ASCIILINESZ * 2) + 2] ;
     char val     [ASCIILINESZ + 1] ;
 
     int  last = 0 ;
