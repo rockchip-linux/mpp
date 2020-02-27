@@ -107,7 +107,7 @@ typedef struct {
     RK_U16 reserved        : 3;      /* reserved */
     RK_U16 qp_area_idx     : 3;      /* roi range index */
     RK_U16 area_map        : 1;      /* roi en */
-    RK_S16 qp_y            : 7;       /*qp_value ,  absolute qp or relative qp*/
+    RK_S16 qp_y            : 7;      /* qp_value,  absolute qp or relative qp*/
     RK_U16 set_qp_y        : 1;
 } RkvRoiCfg_v2;
 
