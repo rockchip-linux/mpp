@@ -251,7 +251,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
         ctx->i_sumbits = mpp_data_sum_v2(ctx->i_bit);
         rc_dbg_rc("ctx->i_sumbits %d ctx->p_sumbits %d", ctx->i_sumbits, ctx->p_sumbits);
         ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
-        mpp_log(" ctx->i_scale %d", ctx->i_scale);
+        rc_dbg_rc("ctx->i_scale %d", ctx->i_scale);
     } break;
 
     case INTER_P_FRAME: {
