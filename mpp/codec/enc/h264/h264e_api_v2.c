@@ -455,7 +455,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
     cfg->fps.fps_out_flex   = rc->fps_out_flex;
     cfg->fps.fps_out_num    = rc->fps_out_num;
     cfg->fps.fps_out_denorm = rc->fps_out_denorm;
-    cfg->igop           = rc->gop;
+    cfg->igop               = rc->gop;
 
     mpp_log_f("fps_in_flex    %d\n", cfg->fps.fps_in_flex);
     mpp_log_f("fps_in_num     %d\n", cfg->fps.fps_in_num);

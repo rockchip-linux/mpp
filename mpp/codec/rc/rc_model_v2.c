@@ -146,6 +146,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         ctx->usr_cfg.stat_times = stat_times;
     }
 
+    if (ctx->usr_cfg.max_i_bit_prop <= 0)
+        ctx->usr_cfg.max_i_bit_prop = 20;
+
     rc_dbg_rc("gop_len %d ctx->usr_cfg.stat_times %d \n", gop_len, ctx->usr_cfg.stat_times);
     stat_len = fps->fps_in_num * ctx->usr_cfg.stat_times;
     if (ctx->usr_cfg.mode == RC_CBR) {
@@ -154,7 +157,11 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         target_bps = ctx->usr_cfg.bps_max;
     }
 
-    gop_bits = gop_len * target_bps * fps->fps_out_denorm;
+    if (gop_len >= 1)
+        gop_bits = gop_len * target_bps * fps->fps_out_denorm;
+    else
+        gop_bits = fps->fps_in_num * target_bps * fps->fps_out_denorm;
+
     ctx->gop_total_bits = gop_bits / fps->fps_out_num;
     mpp_log("gop_total_bits = %lld, gop_len %d fps->fps_out_denorm %d, fps->fps_out_num %d",  ctx->gop_total_bits, gop_len,
             fps->fps_out_denorm, fps->fps_out_num);
@@ -267,9 +274,11 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, RcHalCfg *cfg)
     RK_U32 gop_len = ctx->usr_cfg.igop;
     RK_S64 total_bits = ctx->gop_total_bits;
     RK_S32 ins_bps = mpp_data_sum_v2(ctx->stat_bits) / ctx->usr_cfg.stat_times;
-    rc_dbg_func("enter %p\n", ctx);
-    rc_dbg_rc("ctx->frame_type %d", ctx->frame_type);
     RK_S32 i_scale = ctx->i_scale;
+
+    rc_dbg_func("enter %p\n", ctx);
+    rc_dbg_rc("frame_type %d max_i_prop %d i_scale %d total_bits %lld\n",
+              ctx->frame_type, max_i_prop, i_scale, total_bits);
 
     if (ctx->frame_type == INTRA_FRAME) {
         i_scale = mpp_clip(i_scale, 16, max_i_prop);
@@ -289,7 +298,7 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, RcHalCfg *cfg)
 
 MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx)
 {
-    RK_S32 max_i_prop = ctx->usr_cfg.min_i_bit_prop * 16;
+    RK_S32 max_i_prop = ctx->usr_cfg.max_i_bit_prop * 16;
     RK_S32 gop_len    = ctx->usr_cfg.igop;
     RK_S32 bits_alloc = ctx->gop_total_bits * max_i_prop / (max_i_prop + 16 * (gop_len - 1));
     RK_S32 pre_qp     = ctx->pre_i_qp;
@@ -329,7 +338,7 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     RK_S32 idx1, idx2;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio, wl_ratio;
     RK_S32 flag = 0;
-    RK_S32 fluc_l = 1;
+    RK_S32 fluc_l = 3;
 
     rc_dbg_func("enter %p\n", ctx);
     rc_dbg_rc("ins_bps %d pre_ins_bps %d, pre_target_bits %d pre_real_bits %d",
@@ -338,7 +347,7 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     mpp_assert(target_bps > 0);
 
     if (pre_target_bits > pre_real_bits)
-        bit_diff_ratio = 48 * (pre_real_bits - pre_target_bits) / pre_target_bits;
+        bit_diff_ratio = 52 * (pre_real_bits - pre_target_bits) / pre_target_bits;
     else
         bit_diff_ratio = 64 * (pre_real_bits - pre_target_bits) / pre_target_bits;
 
@@ -347,26 +356,24 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
 
     idx1 = mpp_clip(idx1, 0, 64);
     idx2 = mpp_clip(idx2, 0, 64);
-    ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
+    ins_ratio = tab_lnx[idx1] - tab_lnx[idx2]; // %3
 
     rc_dbg_rc("bit_diff_ratio %d ins_ratio = %d", bit_diff_ratio, ins_ratio);
 
-    if (ins_bps <= pre_ins_bps || pre_ins_bps <= target_bps - ((target_bps + 15) >> 4)) {
-        if (ins_bps >= pre_ins_bps || pre_ins_bps >= target_bps + ((target_bps + 15) >> 4)) {
-            if (bit_diff_ratio < -128) {
-                bit_diff_ratio = -128;
-                flag = 1;
-            } else {
-                if (bit_diff_ratio > 256) {
-                    bit_diff_ratio = 256;
-                }
-                ins_ratio = 0;
-            }
-        } else {
-            ins_ratio = 4 * ins_ratio;
-        }
-    } else {
+    if (ins_bps > pre_ins_bps && target_bps - pre_ins_bps < (target_bps >> 4)) { // %6
         ins_ratio = 6 * ins_ratio;
+    } else if ( ins_bps < pre_ins_bps && pre_ins_bps - target_bps < (target_bps >> 4)) {
+        ins_ratio = 4 * ins_ratio;
+    } else {
+        if (bit_diff_ratio < -128) {
+            bit_diff_ratio = -128;
+            flag = 1;
+        } else {
+            if (bit_diff_ratio > 256) {
+                bit_diff_ratio = 256;
+            }
+            ins_ratio = 0;
+        }
     }
 
     if (bit_diff_ratio < -128) {
@@ -374,13 +381,8 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     }
 
     if (!flag) {
-        if (ins_ratio < -128) {
-            ins_ratio = bit_diff_ratio - 128;
-        } else if (ins_ratio > 256) {
-            ins_ratio = bit_diff_ratio + 256;
-        } else {
-            ins_ratio = bit_diff_ratio + ins_ratio;
-        }
+        ins_ratio = mpp_clip(ins_ratio, -128, 256);
+        ins_ratio = bit_diff_ratio + ins_ratio;
     }
 
     rc_dbg_rc("ins_bps  %d,target_bps %d ctx->stat_watl %d stat_watl_thrd %d", ins_bps, target_bps, ctx->stat_watl, ctx->stat_watl_thrd >> 3);
@@ -388,23 +390,9 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     wl_ratio = 4 * (ctx->stat_watl - (ctx->stat_watl_thrd >> 3)) * fluc_l / (ctx->stat_watl_thrd >> 3);
 
     rc_dbg_rc("bps_ratio = %d wl_ratio %d", bps_ratio, wl_ratio);
-    if (bps_ratio >= 32)
-        bps_ratio = 32;
-
-    if (wl_ratio >= 16)
-        wl_ratio = 16;
-
-    if (bps_ratio < -32)
-        bps_ratio = ins_ratio - 32;
-    else
-        bps_ratio = bps_ratio + ins_ratio;
-
-    if (wl_ratio < -16)
-        wl_ratio = bps_ratio - 16;
-    else
-        wl_ratio = bps_ratio + wl_ratio;
-
-    ctx->next_ratio = wl_ratio;
+    bps_ratio = mpp_clip(bps_ratio, -32, 32);
+    wl_ratio  = mpp_clip(wl_ratio, -16, 16);
+    ctx->next_ratio = ins_ratio + bps_ratio + wl_ratio;
     rc_dbg_rc("get  next_ratio %d", wl_ratio);
 
     rc_dbg_func("leave %p\n", ctx);
@@ -462,32 +450,11 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, RcHalCfg *cfg)
             ins_ratio = 0;
         }
     }
-    if (bit_diff_ratio >= 256)
-        bit_diff_ratio = 256;
 
-    if (bps_ratio >= 32)
-        bps_ratio = 32;
-
-    if (wl_ratio >= 32)
-        wl_ratio = 32;
-
-    if (bit_diff_ratio < -128)
-        ins_ratio = ins_ratio - 128;
-    else
-        ins_ratio = ins_ratio + bit_diff_ratio;
-
-    if (bps_ratio < -32)
-        ins_ratio = ins_ratio - 32;
-    else
-        ins_ratio = ins_ratio + bps_ratio;
-
-    if (wl_ratio < -32)
-        wl_ratio = ins_ratio - 32;
-    else
-        wl_ratio = ins_ratio + wl_ratio;
-
-    ctx->next_ratio = wl_ratio;
-
+    bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
+    bps_ratio = mpp_clip(bps_ratio, -32, 32);
+    wl_ratio  = mpp_clip(wl_ratio, -32, 32);
+    ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio + wl_ratio;
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -573,23 +540,10 @@ MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, RcHalCfg *cfg)
     }
 
     bps_ratio = 96 * (ins_bps - bps_change) / bps_change;
+    bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
+    bps_ratio = mpp_clip(bps_ratio, -32, 32);
 
-    if (bit_diff_ratio >= 256)
-        bit_diff_ratio = 256;
-    if (bps_ratio >= 32)
-        bps_ratio = 32;
-
-    if (bit_diff_ratio < -128)
-        ins_ratio = ins_ratio - 128;
-    else
-        ins_ratio = bit_diff_ratio + ins_ratio;
-
-    if (bps_ratio < -32)
-        ins_ratio = ins_ratio - 32;
-    else
-        ins_ratio = ins_ratio + bps_ratio;
-
-    ctx->next_ratio = ins_ratio;
+    ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio;
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
