@@ -292,7 +292,7 @@ static void h265e_rkv_set_l2_regs(H265eRkvHalContext *ctx, H265eRkvL2RegSet *reg
 #ifdef H265EHW_EN
     req.cmd = MPP_CMD_SET_REG_WRITE;
     req.flag = 0;
-    req.offset = 0x10004;
+    req.offset = VEPU541_REG_BASE_L2;
     req.size = sizeof(H265eRkvL2RegSet);
     req.data = (void*)regs;
     mpp_device_add_request(ctx->dev_ctx, &req);
@@ -443,68 +443,6 @@ h265e_rkv_set_ioctl_extra_info(H265eRkvIoctlExtraInfo *extra_info,
     info = &extra_info->elem[1];
     info->reg_idx = 72;
     info->offset  = v_offset;
-
-    return MPP_OK;
-}
-
-static MPP_RET h265e_rkv_set_osd_regs(H265eRkvHalContext *ctx, H265eRkvRegSet *regs)
-{
-
-#define ENC_DEFAULT_OSD_INV_THR 15 //TODO: open interface later
-    MppEncOSDData *osd_data = ctx->osd_data;
-    if (!osd_data) {
-        return MPP_OK;
-    }
-    mpp_log("set_osd_regs xxxxxx ");
-    if ( osd_data->num_region && osd_data->buf) { // enable OSD
-
-        RK_U32 num = osd_data->num_region;
-        RK_S32 buf_fd = mpp_buffer_get_fd(osd_data->buf);
-
-        if (buf_fd >= 0) {
-            RK_U32 k = 0;
-            MppEncOSDRegion *region = osd_data->region;
-
-            regs->osd_cfg.osd_clk_sel    = 1;
-            regs->osd_cfg.osd_plt_type   = ctx->osd_plt_type == RKVE_OSD_PLT_TYPE_NONE ?
-                                           RKVE_OSD_PLT_TYPE_DEFAULT :
-                                           ctx->osd_plt_type;
-
-            for (k = 0; k < num; k++) {
-                regs->osd_cfg.osd_en |= region[k].enable << k;
-                regs->osd_cfg.osd_inv |= region[k].inverse << k;
-
-                if (region[k].enable) {
-                    regs->osd_pos[k].lt_pos_x = region[k].start_mb_x;
-                    regs->osd_pos[k].lt_pos_y = region[k].start_mb_y;
-                    regs->osd_pos[k].rd_pos_x =
-                        region[k].start_mb_x + region[k].num_mb_x - 1;
-                    regs->osd_pos[k].rd_pos_y =
-                        region[k].start_mb_y + region[k].num_mb_y - 1;
-
-                    regs->osd_addr[k] =
-                        buf_fd | (region[k].buf_offset << 10);
-                }
-            }
-
-            if (region[0].inverse)
-                regs->osd_inv.osd_inv_r0 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[1].inverse)
-                regs->osd_inv.osd_inv_r1 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[2].inverse)
-                regs->osd_inv.osd_inv_r2 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[3].inverse)
-                regs->osd_inv.osd_inv_r3 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[4].inverse)
-                regs->osd_inv.osd_inv_r4 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[5].inverse)
-                regs->osd_inv.osd_inv_r5 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[6].inverse)
-                regs->osd_inv.osd_inv_r6 = ENC_DEFAULT_OSD_INV_THR;
-            if (region[7].inverse)
-                regs->osd_inv.osd_inv_r7 = ENC_DEFAULT_OSD_INV_THR;
-        }
-    }
 
     return MPP_OK;
 }
@@ -1122,7 +1060,7 @@ MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task)
 
     h265e_rkv_set_ref_regs(syn, regs);
 
-    h265e_rkv_set_osd_regs(ctx, regs);
+    vepu541_set_osd_region(regs, ctx->dev_ctx, ctx->osd_data, syn->ud.plt_data);
     /* ROI configure */
     h265e_rkv_set_roi_regs(ctx, regs);
 
@@ -1202,14 +1140,14 @@ MPP_RET hal_h265e_rkv_start(void *hal, HalEncTask *task)
         req.cmd = MPP_CMD_SET_REG_READ;
         req.size = sizeof(RK_U32);
         req.data = &reg_out->elem[k].hw_status;
-        req.offset = 0x1c;
+        req.offset = VEPU541_REG_BASE_HW_STATUS;
         mpp_device_add_request(ctx->dev_ctx, &req);
         memset(&req, 0, sizeof(req));
         req.flag = 0;
         req.cmd = MPP_CMD_SET_REG_READ;
         req.size = sizeof(H265eRkvIoctlOutputElem) - 4;
         req.data = &reg_out->elem[k].st_bsl;
-        req.offset = 0x210;
+        req.offset = VEPU541_REG_BASE_STATISTICS;
         mpp_device_add_request(ctx->dev_ctx, &req);
 #endif
         for (i = 0; i < sizeof(H265eRkvRegSet) / 4; i++) {
@@ -1419,22 +1357,8 @@ MPP_RET hal_h265e_rkv_get_task(void *hal, HalEncTask *task)
     ctx->roi_data = NULL;
     ctx->osd_data = NULL;
     mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void**)&ctx->roi_data);
-    mpp_log("meta = %p, roi_data %p", meta, ctx->roi_data);
     mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void**)&ctx->osd_data);
-    mpp_log("meta = %p, osd_data %p", meta, ctx->osd_data);
-    if (syn->ud.plt_data) {
-        mpp_log("config osd plt");
-        ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_USERDEF;
-#ifdef H265EHW_EN
-        MppDevReqV1 req;
-        req.cmd = MPP_CMD_SET_REG_WRITE;
-        req.flag = 0;
-        req.offset = 0;
-        req.size = sizeof(MppEncOSDPlt);
-        req.data = (void*)syn->ud.plt_data;
-        mpp_device_add_request(ctx->dev_ctx, &req);
-#endif
-    }
+
     h265e_hal_leave();
     return MPP_OK;
 }

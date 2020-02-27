@@ -1046,7 +1046,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_output(regs, task->output);
     setup_vepu541_split(regs, &cfg->split);
     setup_vepu541_me(regs, sps, slice);
-    vepu541_set_osd_region(regs, ctx->osd_data, ctx->plt_type);
+    vepu541_set_osd_region(regs, ctx->dev_ctx, ctx->osd_data, ctx->osd_plt);
     setup_vepu541_l2(&ctx->regs_l2_set, slice);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
@@ -1084,7 +1084,7 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     /* write L2 registers */
     req.cmd = MPP_CMD_SET_REG_WRITE;
     req.flag = 0;
-    req.offset = 0x10004;
+    req.offset = VEPU541_REG_BASE_L2;
     req.size = sizeof(Vepu541H264eRegL2Set);
     req.data = &ctx->regs_l2_set;
     mpp_device_add_request(ctx->dev_ctx, &req);
@@ -1104,7 +1104,7 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.cmd = MPP_CMD_SET_REG_READ;
     req.size = sizeof(RK_U32);
     req.data = &ctx->regs_ret.hw_status;
-    req.offset = 0x1c;
+    req.offset = VEPU541_REG_BASE_HW_STATUS;
     mpp_device_add_request(ctx->dev_ctx, &req);
 
     memset(&req, 0, sizeof(req));
@@ -1112,7 +1112,7 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.cmd = MPP_CMD_SET_REG_READ;
     req.size = sizeof(ctx->regs_ret) - 4;
     req.data = &ctx->regs_ret.st_bsl;
-    req.offset = 0x210;
+    req.offset = VEPU541_REG_BASE_STATISTICS;
     mpp_device_add_request(ctx->dev_ctx, &req);
     /* send request to hardware */
     mpp_device_send_request(ctx->dev_ctx);
