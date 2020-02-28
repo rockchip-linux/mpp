@@ -353,7 +353,8 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
         cfg.force_intra = region->intra;
         cfg.reserved    = 0;
         cfg.qp_area_idx = region->qp_area_idx;
-        cfg.qp_area_en  = region->area_map_en;
+        // NOTE: When roi is enabled the qp_area_en should be one.
+        cfg.qp_area_en  = 1; // region->area_map_en;
         cfg.qp_adj      = region->quality;
         cfg.qp_adj_mode = region->abs_qp_en;
 
