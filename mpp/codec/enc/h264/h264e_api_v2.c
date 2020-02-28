@@ -388,8 +388,12 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_SEI_CFG : {
     } break;
-    case MPP_ENC_SET_IDR_FRAME: {
+    case MPP_ENC_SET_IDR_FRAME : {
         p->idr_request++;
+    } break;
+    case MPP_ENC_SET_OSD_PLT_CFG : {
+    } break;
+    case MPP_ENC_SET_OSD_DATA_CFG : {
     } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");

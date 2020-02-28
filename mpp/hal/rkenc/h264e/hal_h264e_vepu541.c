@@ -66,7 +66,7 @@ typedef struct HalH264eVepu541Ctx_t {
     RcHalCfg                hal_rc_cfg;
 
     /* roi */
-    MppEncROICfg            *roi;
+    MppEncROICfg            *roi_data;
     MppBufferGroup          roi_grp;
     MppBuffer               roi_buf;
     RK_S32                  roi_buf_size;
@@ -202,7 +202,7 @@ static RK_U32 update_vepu541_syntax(HalH264eVepu541Ctx *ctx, MppSyntax *syntax)
         } break;
         case H264E_SYN_ROI : {
             hal_h264e_dbg_detail("update roi");
-            ctx->roi = desc->p;
+            ctx->roi_data = desc->p;
         } break;
         default : {
             mpp_log_f("invalid syntax type %d\n", desc->type);
@@ -252,6 +252,13 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
             ctx->thumb_buf_size = thumb_buf_size;
         }
     }
+
+    ctx->roi_data = NULL;
+    ctx->osd_data = NULL;
+
+    MppMeta meta = mpp_frame_get_meta(task->frame);
+    mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_data);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -603,12 +610,12 @@ static void setup_vepu541_orig(Vepu541H264eRegSet *regs, MppFrame frm)
 
 static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
 {
-    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncROICfg *roi = ctx->roi_data;
     RK_U32 w = ctx->sps->pic_width_in_mbs * 16;
     RK_U32 h = ctx->sps->pic_height_in_mbs * 16;
 
     /* roi setup */
-    if (cfg->roi.number && cfg->roi.regions) {
+    if (roi && roi->number && roi->regions) {
         RK_S32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
 
         if (!ctx->roi_buf || roi_buf_size != ctx->roi_buf_size) {
@@ -637,7 +644,7 @@ static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
         regs->reg013.roi_enc = 1;
         regs->reg073.roi_addr = fd;
 
-        vepu541_set_roi(buf, &cfg->roi, w, h);
+        vepu541_set_roi(buf, roi, w, h);
     } else {
         regs->reg013.roi_enc = 0;
         regs->reg073.roi_addr = 0;
