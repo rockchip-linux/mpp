@@ -17,15 +17,21 @@
 #define MODULE_TAG "mpp_info_test"
 
 #include "mpp_log.h"
+#include "mpp_env.h"
 #include "mpp_info.h"
 
 int main()
 {
-    mpp_log("mpp revision is %d\n", mpp_info_get_revision());
-    mpp_log("mpp info all:\n%s\n", mpp_info_get(INFO_ALL));
-    mpp_log("mpp info revision: %s\n", mpp_info_get(INFO_REVISION));
-    mpp_log("mpp info date    : %s\n", mpp_info_get(INFO_DATE));
-    mpp_log("mpp info author  : %s\n", mpp_info_get(INFO_AUTHOR));
+    mpp_env_set_u32("mpp_show_history", 0);
+
+    mpp_log("normal version log:\n");
+    show_mpp_version();
+
+    mpp_env_set_u32("mpp_show_history", 1);
+    mpp_log("history version log:\n");
+
+    show_mpp_version();
+    mpp_env_set_u32("mpp_show_history", 0);
 
     return 0;
 }

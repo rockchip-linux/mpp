@@ -17,11 +17,17 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
-#define	MPP_VERSION             "@VERSION_REVISION@"
-#define	MPP_AUTHOR              "@VERSION_LAST_AUTHOR@"
-#define	MPP_DATE                "@VERSION_LAST_DATA@"
-#define	MPP_ONE_LINE            "@VERSION_ONE_LINE@"
-#define	MPP_VER_NUM             "@VERSION_VER_NUM@"
+#define	MPP_VERSION             @VERSION_INFO@
+#define	MPP_VER_HIST_CNT        @VERSION_CNT@
+#define	MPP_VER_HIST_0          @VERSION_HISTORY_0@
+#define	MPP_VER_HIST_1          @VERSION_HISTORY_1@
+#define	MPP_VER_HIST_2          @VERSION_HISTORY_2@
+#define	MPP_VER_HIST_3          @VERSION_HISTORY_3@
+#define	MPP_VER_HIST_4          @VERSION_HISTORY_4@
+#define	MPP_VER_HIST_5          @VERSION_HISTORY_5@
+#define	MPP_VER_HIST_6          @VERSION_HISTORY_6@
+#define	MPP_VER_HIST_7          @VERSION_HISTORY_7@
+#define	MPP_VER_HIST_8          @VERSION_HISTORY_8@
+#define	MPP_VER_HIST_9          @VERSION_HISTORY_9@
 
 #endif /*__VERSION_H__*/
-

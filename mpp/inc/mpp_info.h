@@ -17,31 +17,11 @@
 #ifndef __MPP_INFO_H__
 #define __MPP_INFO_H__
 
-typedef enum RK_CHIP_TYPE {
-    NONE,
-    RK29,
-    RK30,
-    RK31,
-
-    RK_CHIP_NUM = 0x100,
-} RK_CHIP_TYPE;
-
-typedef enum MPP_INFO_TYPE {
-    INFO_ALL,
-    INFO_REVISION,
-    INFO_DATE,
-    INFO_AUTHOR,
-
-    INFO_BUTT,
-} MPP_INFO_TYPE;
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-RK_CHIP_TYPE get_chip_type();
-const char *mpp_info_get(MPP_INFO_TYPE type);
-int mpp_info_get_revision();
+void show_mpp_version(void);
 
 #ifdef __cplusplus
 }

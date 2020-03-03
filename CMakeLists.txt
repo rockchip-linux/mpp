@@ -171,37 +171,22 @@ if(GCC)
 endif(GCC)
 
 # ----------------------------------------------------------------------------
-# Create svn version information
-# ----------------------------------------------------------------------------
-set(HAVE_SVN 0)
-if(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
-    find_host_package(Subversion)
-    if(Subversion_FOUND)
-        set(HAVE_SVN true)
-    endif(Subversion_FOUND)
-endif(EXISTS "${PROJECT_SOURCE_DIR}/.svn/")
-
-if(${HAVE_SVN})
-    Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
-
-    message(STATUS "Current svn revision is ${Project_WC_REVISION}")
-    set(VERSION_REVISION        ${Project_WC_REVISION})
-    set(VERSION_LAST_AUTHOR     ${Project_WC_LAST_CHANGED_AUTHOR})
-    set(VERSION_LAST_DATE       ${Project_WC_LAST_CHANGED_DATE})
-    set(VERSION_ONE_LINE        "${VERSION_REVISION} author: ${VERSION_LAST_AUTHOR} date: ${VERSION_LAST_DATE}")
-    set(VERSION_VER_NUM         ${VERSION_REVISION})
-else()
-    set(VERSION_REVISION -1)
-endif()
-
-# ----------------------------------------------------------------------------
 # Create git version information
 # ----------------------------------------------------------------------------
+set(VERSION_CNT         0)
+set(VERSION_MAX_CNT     10)
+set(VERSION_INFO        "\"unknown mpp version for missing VCS info\"")
+foreach (CNT RANGE ${VERSION_MAX_CNT})
+    set(VERSION_HISTORY_${CNT} "NULL")
+endforeach(CNT)
+
 if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
     find_host_package(Git)
     if(GIT_FOUND)
-        # get author
-        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%an
+        # get current version info
+        set(GIT_LOG_FORMAT "%h author: %<|(30)%an %cd %s")
+
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --oneline --date=short --pretty=format:${GIT_LOG_FORMAT}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
@@ -210,12 +195,19 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
             ERROR_STRIP_TRAILING_WHITESPACE)
 
         if (NOT EXEC_RET)
-            message(STATUS "author: ${EXEC_OUT}")
-            set(VERSION_LAST_AUTHOR ${EXEC_OUT})
+            set(VERSION_INFO ${EXEC_OUT})
+            message(STATUS "current version:")
+            message(STATUS "${VERSION_INFO}")
+            set(VERSION_INFO "\"${VERSION_INFO}\"")
+        else()
+            message(STATUS "git ret ${EXEC_RET}")
+            message(STATUS "${EXEC_ERROR}")
         endif()
 
-        # get date
-        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad
+        set(GIT_LOG_FORMAT "%h author: %<|(30)%an %cd %s %d")
+
+        # get history version information
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -${VERSION_MAX_CNT} --oneline --date=short --pretty=format:${GIT_LOG_FORMAT}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE EXEC_OUT
             ERROR_VARIABLE EXEC_ERROR
@@ -224,42 +216,23 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
             ERROR_STRIP_TRAILING_WHITESPACE)
 
         if (NOT EXEC_RET)
-            message(STATUS "date  : ${EXEC_OUT}")
-            set(VERSION_LAST_DATE ${EXEC_OUT})
+            set(VERSION_HISTORY ${EXEC_OUT})
+            string(REPLACE "\n" ";" VERSION_HISTORY ${VERSION_HISTORY})
+
+            list(LENGTH VERSION_HISTORY VERSION_CNT)
+            message(STATUS "${VERSION_CNT} git history:")
+
+            # setup logs
+            set(CNT 0)
+            foreach(VERSION_LOG ${VERSION_HISTORY})
+                message(STATUS ${VERSION_LOG})
+                set(VERSION_HISTORY_${CNT} "\"${VERSION_LOG}\"")
+                math(EXPR CNT "${CNT}+1")
+            endforeach(VERSION_LOG)
+        else()
+            message(STATUS "git ret ${EXEC_RET}")
+            message(STATUS "${EXEC_ERROR}")
         endif()
-
-        # get version hash
-        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            OUTPUT_VARIABLE EXEC_OUT
-            ERROR_VARIABLE EXEC_ERROR
-            RESULT_VARIABLE EXEC_RET
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_STRIP_TRAILING_WHITESPACE)
-
-        if (NOT EXEC_RET)
-            set(VERSION_REVISION ${EXEC_OUT})
-        endif()
-
-        # get one line version information
-        execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%h author: %an %s"
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            OUTPUT_VARIABLE EXEC_OUT
-            ERROR_VARIABLE EXEC_ERROR
-            RESULT_VARIABLE EXEC_RET
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_STRIP_TRAILING_WHITESPACE)
-
-        if (NOT EXEC_RET)
-            message(STATUS "git version: ${EXEC_OUT}")
-            set(VERSION_ONE_LINE ${EXEC_OUT})
-            string(REPLACE "\"" "" VERSION_ONE_LINE ${VERSION_ONE_LINE})
-        endif()
-
-        set(VERSION_VER_NUM -1)
-    else(GIT_FOUND)
-        set(VERSION_ONE_LINE "Missing VCS info")
-        set(VERSION_LAST_AUTHOR "Unknown")
     endif()
 
     # add git hooks
@@ -271,10 +244,6 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
             message(STATUS "Install git hooks done")
         endif(EXISTS "${PROJECT_SOURCE_DIR}/.git/hooks")
     endif(EXISTS "${PROJECT_SOURCE_DIR}/tools/hooks/")
-
-else(EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    set(VERSION_ONE_LINE "Without VCS info")
-    set(VERSION_LAST_AUTHOR "Unknown")
 endif(EXISTS "${PROJECT_SOURCE_DIR}/.git")
 
 configure_file(
