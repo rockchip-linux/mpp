@@ -29,75 +29,33 @@
  * To avoid string | grep author getting multiple results
  * use commit to replace author
  */
-static char mpp_version_revision[]  = MPP_VERSION;
-static char mpp_version_commit[]    = MPP_AUTHOR;
-static char mpp_version_date[]      = MPP_DATE;
-static char mpp_version_one_line[]  = MPP_ONE_LINE;
-static char mpp_version_number[]    = MPP_VER_NUM;
+static const char mpp_version[] = MPP_VERSION;
+static const RK_S32 mpp_history_cnt = MPP_VER_HIST_CNT;
+static const char *mpp_history[]  = {
+    MPP_VER_HIST_0,
+    MPP_VER_HIST_1,
+    MPP_VER_HIST_2,
+    MPP_VER_HIST_3,
+    MPP_VER_HIST_4,
+    MPP_VER_HIST_5,
+    MPP_VER_HIST_6,
+    MPP_VER_HIST_7,
+    MPP_VER_HIST_8,
+    MPP_VER_HIST_9,
+};
 
-static RK_CHIP_TYPE chip_version(void)
+void show_mpp_version(void)
 {
-    RK_CHIP_TYPE type = NONE;
-    const char *value = NULL;
-    RK_S32 ret = mpp_env_get_str("ro.product.board", &value, NULL);
+    RK_U32 show_history = 0;
 
-    if (0 == ret) {
-        if (strstr(value, "rk29")) {
-            mpp_log("rk29 board found in board property");
-            type = RK29;
-        } else if (strstr(value, "rk30")) {
-            mpp_log("rk30 board found in board property");
-            type = RK30;
-        }
-    }
-    if (NONE == type) {
-        ret = mpp_env_get_str("ro.board.platform", &value, NULL);
-        if (0 == ret) {
-            if (strstr(value, "rk29")) {
-                mpp_log("rk29 board found in platform property");
-                type = RK29;
-            } else if (strstr(value, "rk30")) {
-                mpp_log("rk30 board found in platform property");
-                type = RK30;
-            }
-        }
-    }
+    mpp_env_get_u32("mpp_show_history", &show_history, 0);
 
-    if (NONE == type) {
-        mpp_log("can not found matched chip type");
-    }
-    return type;
+    if (show_history) {
+        RK_S32 i;
+
+        mpp_log("mpp version history %d:\n", mpp_history_cnt);
+        for (i = 0; i < mpp_history_cnt; i++)
+            mpp_log("%s\n", mpp_history[i]);
+    } else
+        mpp_log("mpp version: %s\n", mpp_version);
 }
-
-const char *mpp_info_get(MPP_INFO_TYPE type)
-{
-    switch (type) {
-    case INFO_ALL : {
-        return mpp_version_one_line;
-    } break;
-    case INFO_REVISION : {
-        return mpp_version_revision;
-    } break;
-    case INFO_DATE : {
-        return mpp_version_date;
-    } break;
-    case INFO_AUTHOR : {
-        return mpp_version_commit;
-    } break;
-    default : {
-        mpp_err_f("invalid info type %d\n", type);
-    } break;
-    }
-    return NULL;
-}
-
-RK_CHIP_TYPE get_chip_type()
-{
-    return chip_version();
-}
-
-int mpp_info_get_revision()
-{
-    return atoi(mpp_version_number);
-}
-

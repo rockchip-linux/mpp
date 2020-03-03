@@ -455,14 +455,14 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
             break;
         }
 
-        mpp_api.version = mpp_info_get_revision();
+        mpp_api.version = 0;
         p->api      = &mpp_api;
         p->check    = p;
         *ctx = p;
         *mpi = p->api;
     } while (0);
 
-    mpp_log("mpp version: %s\n", mpp_info_get(INFO_ALL));
+    show_mpp_version();
 
     mpi_dbg_func("leave ret %d ctx %p mpi %p\n", ret, *ctx, *mpi);
     return ret;
