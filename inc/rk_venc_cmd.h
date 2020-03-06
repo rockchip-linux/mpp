@@ -954,10 +954,40 @@ typedef struct MppEncCodecCfg_t {
     };
 } MppEncCodecCfg;
 
+typedef enum MppEncSliceSplit_e {
+    /* change on quant parameter */
+    MPP_ENC_SPLIT_CFG_CHANGE_MODE           = (1 << 0),
+    MPP_ENC_SPLIT_CFG_CHANGE_ARG            = (1 << 1),
+    MPP_ENC_SPLIT_CFG_CHANGE_ALL            = (0xFFFFFFFF),
+} MppEncSliceSplitChange;
+
+typedef enum MppEncSplitMode_e {
+    MPP_ENC_SPLIT_NONE,
+    MPP_ENC_SPLIT_BY_BYTE,
+    MPP_ENC_SPLIT_BY_CTU,
+} MppEncSplitMode;
+
 typedef struct MppEncSliceSplit_t {
-    RK_S32  split_en;
-    RK_S32  split_mode;
-    RK_S32  slice_size;
+    RK_U32  change;
+
+    /*
+     * slice split mode
+     *
+     * MPP_ENC_SPLIT_NONE    - No slice is split
+     * MPP_ENC_SPLIT_BY_BYTE - Slice is split by byte number
+     * MPP_ENC_SPLIT_BY_CTU  - Slice is split by macroblock / ctu number
+     */
+    RK_U32  split_mode;
+
+    /*
+     * slice split size parameter
+     *
+     * When split by byte number this value is the max byte number for each
+     * slice.
+     * When split by macroblock / ctu number this value is the MB/CTU number
+     * for each slice.
+     */
+    RK_U32  split_arg;
 } MppEncSliceSplit;
 
 typedef enum MppEncRefMode_e {

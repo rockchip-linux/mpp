@@ -395,6 +395,21 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_OSD_DATA_CFG : {
     } break;
+    case MPP_ENC_SET_SPLIT : {
+        MppEncSliceSplit *src = (MppEncSliceSplit *)param;
+        MppEncSliceSplit *dst = &p->cfg->split;
+        RK_U32 change = src->change;
+
+        if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
+            dst->split_mode = src->split_mode;
+            dst->split_arg = src->split_arg;
+        }
+
+        if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
+            dst->split_arg = src->split_arg;
+
+        dst->change |= change;
+    } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
         ret = MPP_NOK;
