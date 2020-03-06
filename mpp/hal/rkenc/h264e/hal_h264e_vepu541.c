@@ -704,7 +704,8 @@ static void setup_vepu541_output(Vepu541H264eRegSet *regs, MppBuffer out)
 
 static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
 {
-    if (!cfg->split_en) {
+    switch (cfg->split_mode) {
+    case MPP_ENC_SPLIT_NONE : {
         regs->reg087.sli_splt = 0;
         regs->reg087.sli_splt_mode = 0;
         regs->reg087.sli_splt_cpst = 0;
@@ -713,30 +714,36 @@ static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
         regs->reg087.sli_splt_cnum_m1 = 0;
 
         regs->reg088.sli_splt_byte = 0;
-        /* */
         regs->reg013.slen_fifo = 0;
-
-        return ;
-    }
-
-    regs->reg087.sli_splt = 0;
-    regs->reg087.sli_splt_mode = cfg->split_mode ? 1 : 0;
-    regs->reg087.sli_splt_cpst = 0;
-    regs->reg087.sli_max_num_m1 = 100;
-    regs->reg087.sli_flsh = 1;
-
-    if (cfg->split_mode) {
-        regs->reg087.sli_splt_mode = 1;
-        regs->reg087.sli_splt_cnum_m1 = cfg->slice_size;
-        regs->reg088.sli_splt_byte = 0;
-    } else {
-        regs->reg087.sli_splt_mode = 1;
+    } break;
+    case MPP_ENC_SPLIT_BY_BYTE : {
+        regs->reg087.sli_splt = 1;
+        regs->reg087.sli_splt_mode = 0;
+        regs->reg087.sli_splt_cpst = 0;
+        regs->reg087.sli_max_num_m1 = 500;
+        regs->reg087.sli_flsh = 1;
         regs->reg087.sli_splt_cnum_m1 = 0;
-        regs->reg088.sli_splt_byte = cfg->slice_size;
+
+        regs->reg088.sli_splt_byte = cfg->split_arg;
+        regs->reg013.slen_fifo = 0;
+    } break;
+    case MPP_ENC_SPLIT_BY_CTU : {
+        regs->reg087.sli_splt = 1;
+        regs->reg087.sli_splt_mode = 1;
+        regs->reg087.sli_splt_cpst = 0;
+        regs->reg087.sli_max_num_m1 = 500;
+        regs->reg087.sli_flsh = 1;
+        regs->reg087.sli_splt_cnum_m1 = cfg->split_arg - 1;
+
+        regs->reg088.sli_splt_byte = 0;
+        regs->reg013.slen_fifo = 0;
+    } break;
+    default : {
+        mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
+    } break;
     }
 
-    /* NOTE when use slice split mode slen fifo should be enabled */
-    regs->reg013.slen_fifo = 1;
+    cfg->change = 0;
 }
 
 static void setup_vepu541_me(Vepu541H264eRegSet *regs, SynH264eSps *sps,

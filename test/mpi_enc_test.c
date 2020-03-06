@@ -64,6 +64,7 @@ typedef struct {
     MppEncPrepCfg prep_cfg;
     MppEncRcCfg rc_cfg;
     MppEncCodecCfg codec_cfg;
+    MppEncSliceSplit split_cfg;
 
     // input / output
     MppBuffer frm_buf;
@@ -194,6 +195,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     MppEncCodecCfg *codec_cfg;
     MppEncPrepCfg *prep_cfg;
     MppEncRcCfg *rc_cfg;
+    MppEncSliceSplit *split_cfg;
 
     if (NULL == p)
         return MPP_ERR_NULL_PTR;
@@ -203,6 +205,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     codec_cfg = &p->codec_cfg;
     prep_cfg = &p->prep_cfg;
     rc_cfg = &p->rc_cfg;
+    split_cfg = &p->split_cfg;
 
     /* setup default parameter */
     p->fps = 30;
@@ -308,6 +311,26 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     if (ret) {
         mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
         goto RET;
+    }
+
+    RK_U32 split_mode = 0;
+    RK_U32 split_arg = 0;
+
+    mpp_env_get_u32("split_mode", &split_mode, MPP_ENC_SPLIT_NONE);
+    mpp_env_get_u32("split_arg", &split_arg, 0);
+
+    if (split_mode) {
+        split_cfg->change = MPP_ENC_SPLIT_CFG_CHANGE_ALL;
+        split_cfg->split_mode = split_mode;
+        split_cfg->split_arg = split_arg;
+
+        mpp_log("split_mode %d split_arg %d\n", split_mode, split_arg);
+
+        ret = mpi->control(ctx, MPP_ENC_SET_SPLIT, split_cfg);
+        if (ret) {
+            mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
+            goto RET;
+        }
     }
 
     /* optional */
