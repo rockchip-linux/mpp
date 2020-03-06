@@ -309,8 +309,28 @@ static MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
 
 static MPP_RET mpg4d_callback(void *dec, void *err_info)
 {
-    (void)dec;
-    (void)err_info;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    Mpg4dCtx *p_Dec = (Mpg4dCtx *)dec;
+    IOCallbackCtx *ctx = (IOCallbackCtx *)err_info;
+
+    if (NULL == dec || NULL == err_info) {
+        mpp_err_f("found NULL input dec %p err_info %p\n", dec, err_info);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppFrame mframe = NULL;
+    HalDecTask *task_dec = (HalDecTask *)ctx->task;
+
+    mpp_buf_slot_get_prop(p_Dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
+    if (mframe) {
+        RK_U32 task_err = task_dec->flags.parse_err || task_dec->flags.ref_err;
+        if (ctx->hard_err || task_err) {
+            mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
+            mpp_log_f("[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
+                      p_Dec->frame_count, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
+                      mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+        }
+    }
     return MPP_OK;
 }
 

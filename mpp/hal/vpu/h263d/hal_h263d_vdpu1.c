@@ -146,25 +146,6 @@ MPP_RET hal_vpu1_h263d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    /*
-     * basic register configuration setup here
-     */
-    regs->SwReg02.sw_dec_out_endian = 1;
-    regs->SwReg02.sw_dec_in_endian = 1;
-    regs->SwReg02.sw_dec_inswap32_e = 1;
-    regs->SwReg02.sw_dec_outswap32_e = 1;
-    regs->SwReg02.sw_dec_strswap32_e = 1;
-    regs->SwReg02.sw_dec_strendian_e = 1;
-    regs->SwReg02.sw_dec_max_burst = 16;
-    regs->SwReg55.sw_apf_threshold = 1;
-    regs->SwReg02.sw_dec_timeout_e = 1;
-    regs->SwReg02.sw_dec_clk_gate_e = 1;
-    regs->SwReg01.sw_dec_en = 1;
-    regs->SwReg49.sw_pred_bc_tap_0_0 = -1;
-    regs->SwReg49.sw_pred_bc_tap_0_1 = 3;
-    regs->SwReg49.sw_pred_bc_tap_0_2 = -6;
-    regs->SwReg34.sw_pred_bc_tap_0_3 = 20;
-
     ctx->frm_slots  = cfg->frame_slots;
     ctx->pkt_slots  = cfg->packet_slots;
     ctx->int_cb     = cfg->hal_int_cb;
@@ -213,6 +194,27 @@ MPP_RET hal_vpu1_h263d_gen_regs(void *hal,  HalTaskInfo *syn)
     mpp_assert(task->input >= 0);
     mpp_assert(task->output >= 0);
 
+    memset(regs, 0, sizeof(Vpu1H263dRegSet_t));
+
+    /*
+     * basic register configuration setup here
+     */
+    regs->SwReg02.sw_dec_out_endian = 1;
+    regs->SwReg02.sw_dec_in_endian = 1;
+    regs->SwReg02.sw_dec_inswap32_e = 1;
+    regs->SwReg02.sw_dec_outswap32_e = 1;
+    regs->SwReg02.sw_dec_strswap32_e = 1;
+    regs->SwReg02.sw_dec_strendian_e = 1;
+    regs->SwReg02.sw_dec_max_burst = 16;
+    regs->SwReg55.sw_apf_threshold = 1;
+    regs->SwReg02.sw_dec_timeout_e = 1;
+    regs->SwReg02.sw_dec_clk_gate_e = 1;
+    regs->SwReg01.sw_dec_en = 1;
+    regs->SwReg49.sw_pred_bc_tap_0_0 = -1;
+    regs->SwReg49.sw_pred_bc_tap_0_1 = 3;
+    regs->SwReg49.sw_pred_bc_tap_0_2 = -6;
+    regs->SwReg34.sw_pred_bc_tap_0_3 = 20;
+
     /* setup buffer for input / output / reference */
     mpp_buf_slot_get_prop(ctx->pkt_slots, task->input, SLOT_BUFFER, &buf_pkt);
     mpp_assert(buf_pkt);
@@ -256,11 +258,11 @@ MPP_RET hal_vpu1_h263d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    Vpu1H263dRegSet_t reg_out;
-    RK_U32* regs = (RK_U32 *)&reg_out;
-    RK_U32 reg_count = (sizeof(reg_out) / sizeof(RK_U32));
+    Vpu1H263dRegSet_t *reg_out = (Vpu1H263dRegSet_t *)ctx->regs;
+    RK_U32* regs = (RK_U32 *)reg_out;
+    RK_U32 reg_count = (sizeof(*(Vpu1H263dRegSet_t*)ctx->regs) / sizeof(RK_U32));
 
-    ret = mpp_device_wait_reg(ctx->dev_ctx, regs, (sizeof(reg_out) / sizeof(RK_U32)));
+    ret = mpp_device_wait_reg(ctx->dev_ctx, regs, reg_count);
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_GET) {
         RK_U32 i = 0;

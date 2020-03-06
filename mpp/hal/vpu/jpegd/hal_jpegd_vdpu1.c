@@ -969,10 +969,19 @@ MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
     JpegRegSet *reg_out = NULL;
     RK_U32 errinfo = 1;
     MppFrame tmp = NULL;
-    RK_U32 reg[164];   /* kernel will return 164 registers */
+    RK_U32 *reg = (RK_U32 *)JpegHalCtx->regs;
+    JpegdIocRegInfo *info = (JpegdIocRegInfo *)reg;
+    RK_U32 nregs = sizeof(JpegdIocRegInfo) / sizeof(RK_U32);
 
-    ret = mpp_device_wait_reg(JpegHalCtx->dev_ctx, reg,
-                              sizeof(reg) / sizeof(RK_U32));
+    if (mpp_get_ioctl_version()) {
+        nregs = sizeof(JpegRegSet) / sizeof(RK_U32);
+    } else {
+        if (!mpp_device_patch_is_valid(&info->extra_info))
+            nregs -= sizeof(RegExtraInfo) / sizeof(RK_U32);
+    }
+
+    ret = mpp_device_wait_reg(JpegHalCtx->dev_ctx, reg, nregs);
+
     reg_out = (JpegRegSet *)reg;
     if (reg_out->reg1_interrupt.sw_dec_bus_int) {
         mpp_err_f("IRQ BUS ERROR!");
@@ -1025,6 +1034,8 @@ MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
             JpegHalCtx->output_yuv_count++;
         }
     }
+
+    memset(&reg_out->reg1_interrupt, 0, sizeof(RK_U32));
 
     jpegd_dbg_func("exit\n");
     return ret;

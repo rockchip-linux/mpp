@@ -1547,6 +1547,7 @@ MPP_RET hal_h265d_wait(void *hal, HalTaskInfo *task)
     p = (RK_U8*)hw_regs;
 
     ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, RKVDEC_HEVC_REGISTERS);
+
 ERR_PROC:
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
