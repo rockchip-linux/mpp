@@ -579,33 +579,42 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps)
 
 }
 
-static void setup_vepu541_orig(Vepu541H264eRegSet *regs, MppFrame frm)
+static void setup_vepu541_orig(Vepu541H264eRegSet *regs, RegExtraInfo *info,
+                               MppDevCtx dev, MppFrame frm)
 {
     MppBuffer buf = mpp_frame_get_buffer(frm);
     MppFrameFormat fmt = mpp_frame_get_fmt(frm);
     RK_S32 hor_stride = mpp_frame_get_hor_stride(frm);
     RK_S32 ver_stride = mpp_frame_get_ver_stride(frm);
     RK_S32 fd = mpp_buffer_get_fd(buf);
+    RK_U32 offset[2] = {0};
 
     regs->reg070.adr_src0 = fd;
     regs->reg071.adr_src1 = fd;
     regs->reg072.adr_src2 = fd;
 
+    // Use new request to send the offset info
+
     // TODO: default YUV420 first
     if (MPP_FRAME_FMT_IS_YUV(fmt)) {
         if (fmt == MPP_FMT_YUV420SP || fmt == MPP_FMT_YUV422SP) {
-            regs->reg071.adr_src1 += (hor_stride * ver_stride) << 10;
-            regs->reg072.adr_src2 += (hor_stride * ver_stride) << 10;
+            offset[0] = hor_stride * ver_stride;
+            offset[1] = hor_stride * ver_stride;
         } else if (fmt == MPP_FMT_YUV420P) {
-            regs->reg071.adr_src1 += (hor_stride * ver_stride) << 10;
-            regs->reg072.adr_src2 += (hor_stride * ver_stride * 5 / 4) << 10;
+            offset[0] = hor_stride * ver_stride;
+            offset[1] = hor_stride * ver_stride * 5 / 4;
         } else if (fmt == MPP_FMT_YUV422P) {
-            regs->reg071.adr_src1 += (hor_stride * ver_stride) << 10;
-            regs->reg072.adr_src2 += (hor_stride * ver_stride * 3 / 2) << 10;
+            offset[0] = hor_stride * ver_stride;
+            offset[1] = hor_stride * ver_stride * 3 / 2;
         } else {
             mpp_err_f("unsupported yuv format %x\n", fmt);
         }
     }
+
+    mpp_device_patch_init(info);
+    mpp_device_patch_add((RK_U32 *)regs, info, 71, offset[0]);
+    mpp_device_patch_add((RK_U32 *)regs, info, 72, offset[1]);
+    mpp_device_send_extra_info(dev, info);
 }
 
 static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
@@ -1036,14 +1045,13 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
 
     /* register setup */
     memset(regs, 0, sizeof(*regs));
-    mpp_device_patch_init(&ctx->dev_patch);
 
     setup_vepu541_normal(regs);
     setup_vepu541_prep(regs, &ctx->cfg->prep);
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
     setup_vepu541_rc_base(regs, sps);
-    setup_vepu541_orig(regs, task->frame);
+    setup_vepu541_orig(regs, ctx->dev_ctx, &ctx->dev_patch, task->frame);
     setup_vepu541_roi(regs, ctx);
     setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,
                             ctx->pixel_buf_fbc_hdr_size);
