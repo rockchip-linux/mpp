@@ -343,13 +343,12 @@ MPP_RET hal_m2vd_vdpu2_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    M2vdVdpu2Reg reg_out;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
+    M2vdVdpu2Reg* reg_out = (M2vdVdpu2Reg * )ctx->regs;
 
     m2vh_dbg_func("FUN_I");
 
-    memset(&reg_out, 0, sizeof(M2vdVdpu2Reg));
-    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, ctx->reg_len);
+    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)ctx->regs, ctx->reg_len);
     if (ctx->fp_reg_out) {
         int k = 0;
         RK_U32 *p_reg = (RK_U32*)&reg_out;
@@ -358,13 +357,13 @@ MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
             fprintf(ctx->fp_reg_out, "[(D)%03d, (X)%03x]  %08x\n", k, k, p_reg[k]);
         fflush(ctx->fp_reg_out);
     }
-    if (reg_out.sw55.dec_error_int | reg_out.sw55.dec_buffer_int) {
+    if (reg_out->sw55.dec_error_int | reg_out->sw55.dec_buffer_int) {
         if (ctx->int_cb.callBack)
             ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
     }
 
     if (M2VH_DBG_IRQ & m2vh_debug)
-        mpp_log("mpp_device_wait_reg return interrupt:%08x", reg_out.sw55);
+        mpp_log("mpp_device_wait_reg return interrupt:%08x", reg_out->sw55);
 
     if (ret) {
         mpp_log("mpp_device_wait_reg return error:%d", ret);

@@ -269,7 +269,7 @@ typedef struct {
         RK_U32 reserve0           : 18;
     } SwReg55;
 
-    RK_U32 SwReg56_100[46];
+    RK_U32 SwReg56_100[45];
 } Vpu1H263dRegSet_t;
 
 #endif /*__HAL_H263_VDPU1_REG_TBL_H__*/

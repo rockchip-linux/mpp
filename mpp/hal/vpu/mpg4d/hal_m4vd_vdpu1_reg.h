@@ -270,7 +270,7 @@ typedef struct {
         RK_U32 reserve0           : 18;
     } SwReg55;
 
-    RK_U32 SwReg56_100[46];
+    RK_U32 SwReg56_100[45];
 } M4vdVdpu1Regs_t;
 
 #endif /*__HAL_M4V_VDPU1_REG_TBL_H__*/
