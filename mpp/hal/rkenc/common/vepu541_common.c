@@ -274,11 +274,12 @@ static VepuFmtCfg vepu541_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     },
 };
 
-MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppEncPrepCfg *prep)
+MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppFrameFormat format)
 {
-    MppFrameFormat format = prep->format;
     VepuFmtCfg *fmt = NULL;
     MPP_RET ret = MPP_OK;
+
+    format &= MPP_FRAME_FMT_MASK;
 
     if (MPP_FRAME_FMT_IS_YUV(format)) {
         fmt = &vepu541_yuv_cfg[format - MPP_FRAME_FMT_YUV];

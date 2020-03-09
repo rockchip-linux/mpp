@@ -25,6 +25,7 @@
 #include "mpp_device.h"
 #include "mpp_device_msg.h"
 #include "mpp_device_patch.h"
+#include "mpp_frame_impl.h"
 #include "mpp_rc.h"
 
 #include "hal_h264e_debug.h"
@@ -326,7 +327,8 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs)
 static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
 {
     VepuFmtCfg cfg;
-    MPP_RET ret = vepu541_set_fmt(&cfg, prep);
+    MppFrameFormat fmt = prep->format;
+    MPP_RET ret = vepu541_set_fmt(&cfg, fmt);
     RK_U32 hw_fmt = cfg.format;
     RK_S32 y_stride;
     RK_S32 c_stride;
@@ -397,16 +399,22 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
         regs->reg021.csc_ofst_v     = cfg.offset[2];
     }
 
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        regs->reg022.afbcd_en   = 1;
+        regs->reg069.src_strd0  = MPP_ALIGN(prep->width, 16);
+        regs->reg069.src_strd1  = MPP_ALIGN(prep->width, 16);
+    } else {
+        regs->reg022.afbcd_en   = 0;
+        regs->reg069.src_strd0  = y_stride;
+        regs->reg069.src_strd1  = c_stride;
+    }
+
     regs->reg022.src_mirr       = prep->mirroring > 0;
     regs->reg022.src_rot        = prep->rotation;
     regs->reg022.txa_en         = 1;
-    regs->reg022.afbcd_en       = 0;
 
     regs->reg068.pic_ofst_y     = 0;
     regs->reg068.pic_ofst_x     = 0;
-
-    regs->reg069.src_strd0      = y_stride;
-    regs->reg069.src_strd1      = c_stride;
 
     hal_h264e_dbg_func("leave\n");
 
@@ -628,8 +636,10 @@ static void setup_vepu541_orig(Vepu541H264eRegSet *regs, RegExtraInfo *info,
     regs->reg071.adr_src1 = fd;
     regs->reg072.adr_src2 = fd;
 
-    // Use new request to send the offset info
-    if (MPP_FRAME_FMT_IS_YUV(fmt)) {
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        offset[0] = mpp_frame_get_fbc_offset(frm);;
+        offset[1] = 0;
+    } else if (MPP_FRAME_FMT_IS_YUV(fmt)) {
         if (fmt == MPP_FMT_YUV420SP || fmt == MPP_FMT_YUV422SP) {
             offset[0] = hor_stride * ver_stride;
             offset[1] = hor_stride * ver_stride;

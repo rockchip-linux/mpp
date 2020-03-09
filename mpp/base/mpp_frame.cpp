@@ -20,6 +20,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
 #include "mpp_frame_impl.h"
 #include "mpp_meta_impl.h"
 
@@ -183,6 +184,28 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
         return MPP_OK;
     }
     return MPP_NOK;
+}
+
+RK_U32 mpp_frame_get_fbc_offset(MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return 0;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    if (MPP_FRAME_FMT_IS_FBC(p->fmt) && !p->fbc_offset)
+        p->fbc_offset = MPP_ALIGN(MPP_ALIGN(p->width, 16) *
+                                  MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+
+    return p->fbc_offset;
+}
+
+RK_U32 mpp_frame_get_fbc_stride(MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return 0;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    return MPP_ALIGN(p->width, 16);
 }
 
 /*

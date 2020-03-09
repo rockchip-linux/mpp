@@ -20,11 +20,12 @@
 #include <math.h>
 #include <limits.h>
 
+#include "mpp_env.h"
+#include "mpp_mem.h"
+#include "mpp_common.h"
 #include "mpp_device.h"
 #include "mpp_device_msg.h"
-#include "mpp_common.h"
-#include "mpp_mem.h"
-#include "mpp_env.h"
+#include "mpp_frame_impl.h"
 
 #include "h265e_syntax_new.h"
 #include "hal_h265e_api.h"
@@ -235,7 +236,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
     mb_h64 = (syn->pp.pic_height + 63) / 64;
 
     frame_size = MPP_ALIGN(syn->pp.pic_width, 16) * MPP_ALIGN(syn->pp.pic_height, 16);
-    vepu541_set_fmt(fmt, &ctx->cfg->prep);
+    vepu541_set_fmt(fmt, ctx->cfg->prep.format);
     input_fmt = (Vepu541Fmt)fmt->format;
     switch (input_fmt) {
     case VEPU541_FMT_YUV420P:
@@ -432,30 +433,35 @@ vepu541_h265_set_patch_info(H265eV541IoctlExtraInfo *extra_info,
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
 
-    switch (input_fmt) {
-    case VEPU541_FMT_YUV420P: {
-        u_offset = frame_size;
-        v_offset = frame_size * 5 / 4;
-    } break;
-    case VEPU541_FMT_YUV420SP:
-    case VEPU541_FMT_YUV422SP: {
-        u_offset = frame_size;
-        v_offset = frame_size;
-    } break;
-    case VEPU541_FMT_YUV422P: {
-        u_offset = frame_size;
-        v_offset = frame_size * 3 / 2;
-    } break;
-    case VEPU541_FMT_YUYV422:
-    case VEPU541_FMT_UYVY422: {
-        u_offset = 0;
+    if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(task->frame))) {
+        u_offset = mpp_frame_get_fbc_offset(task->frame);;
         v_offset = 0;
-    } break;
-    default: {
-        h265e_hal_err("unknown color space: %d\n", input_fmt);
-        u_offset = frame_size;
-        v_offset = frame_size * 5 / 4;
-    }
+    } else {
+        switch (input_fmt) {
+        case VEPU541_FMT_YUV420P: {
+            u_offset = frame_size;
+            v_offset = frame_size * 5 / 4;
+        } break;
+        case VEPU541_FMT_YUV420SP:
+        case VEPU541_FMT_YUV422SP: {
+            u_offset = frame_size;
+            v_offset = frame_size;
+        } break;
+        case VEPU541_FMT_YUV422P: {
+            u_offset = frame_size;
+            v_offset = frame_size * 3 / 2;
+        } break;
+        case VEPU541_FMT_YUYV422:
+        case VEPU541_FMT_UYVY422: {
+            u_offset = 0;
+            v_offset = 0;
+        } break;
+        default: {
+            h265e_hal_err("unknown color space: %d\n", input_fmt);
+            u_offset = frame_size;
+            v_offset = frame_size * 5 / 4;
+        }
+        }
     }
 
     extra_info->magic = 0;
@@ -971,7 +977,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->klut_ofst.chrm_kult_ofst = 0;
     memcpy(&regs->klut_wgt0, &klut_weight[0], sizeof(klut_weight));
 
-    regs->adr_srcy_hevc     =  mpp_buffer_get_fd(enc_task->input);
+    regs->adr_srcy_hevc     = mpp_buffer_get_fd(enc_task->input);
     regs->adr_srcu_hevc     = regs->adr_srcy_hevc;
     regs->adr_srcv_hevc     = regs->adr_srcy_hevc;
 

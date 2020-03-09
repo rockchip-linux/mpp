@@ -132,7 +132,7 @@ typedef struct Vepu541OsdCfg_t {
 extern "C" {
 #endif
 
-MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppEncPrepCfg *prep);
+MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppFrameFormat format);
 
 /*
  * roi function
