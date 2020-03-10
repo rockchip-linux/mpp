@@ -266,6 +266,7 @@ typedef struct H264eHalContext_t {
     MppDevCtx                       dev_ctx;
     h264e_feedback                  feedback;
     void                            *regs;
+    void                            *regs_tmp;
     void                            *ioctl_input;
     void                            *ioctl_output;
     void                            *buffers;

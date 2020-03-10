@@ -45,6 +45,7 @@ MPP_RET hal_h264e_vepu2_init(void *hal, MppHalCfg *cfg)
 
     ctx->int_cb     = cfg->hal_int_cb;
     ctx->regs       = mpp_calloc(H264eVpu2RegSet, 1);
+    ctx->regs_tmp   = mpp_calloc(H264eVpu2RegSet, 1);
     ctx->buffers    = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(H264eVpuExtraInfo, 1);
     ctx->param_buf  = mpp_calloc_size(void,  H264E_EXTRA_INFO_BUF_SIZE);
@@ -162,6 +163,7 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     mb_h = (prep->height + 15) / 16;
 
     memset(reg, 0, sizeof(H264eVpu2RegSet));
+    memset(ctx->regs_tmp, 0, sizeof(H264eVpu2RegSet));
 
     hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "frame %d generate regs now", ctx->frame_cnt);
 
@@ -455,8 +457,11 @@ MPP_RET hal_h264e_vepu2_start(void *hal, HalTaskInfo *task)
 
     hal_h264e_enter();
 
+    memcpy(ctx->regs_tmp, ctx->regs, sizeof(H264eVpu2RegSet));
+
     if (ctx->dev_ctx) {
-        RK_U32 *p_regs = (RK_U32 *)ctx->regs;
+
+        RK_U32 *p_regs = (RK_U32 *)ctx->regs_tmp;
         hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
         ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU2_H264E_NUM_REGS);
         if (ret)
@@ -512,7 +517,8 @@ static MPP_RET hal_h264e_vpu2_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
 
     H264E_HAL_SET_REG(p_regs, VEPU_REG_QP_VAL, val);
 
-    hw_ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU2_H264E_NUM_REGS);
+    memcpy(reg_out, ctx->regs, sizeof(H264eVpu2RegSet));
+    hw_ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU2_H264E_NUM_REGS);
     if (hw_ret)
         mpp_err("mpp_device_send_reg failed ret %d", hw_ret);
     else
@@ -529,8 +535,7 @@ static MPP_RET hal_h264e_vpu2_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
 MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
-    H264eVpu2RegSet reg_out_tmp;
-    H264eVpu2RegSet *reg_out = &reg_out_tmp;
+    H264eVpu2RegSet *reg_out = ctx->regs_tmp;
     MppEncPrepCfg *prep = &ctx->set->prep;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
