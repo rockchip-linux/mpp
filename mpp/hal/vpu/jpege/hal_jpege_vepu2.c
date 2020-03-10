@@ -407,7 +407,6 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    RK_U32 *cache = NULL;
     RK_U32 reg_size = sizeof(jpege_vepu2_reg_set);
     RK_U32 extra_size = (ctx->ioctl_info.extra_info.count) ?
                         (sizeof(RegExtraInfo)) : (0);
@@ -422,25 +421,26 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
         ret = mpp_device_send_extra_info(ctx->dev_ctx, info);
         if (ret)
             return MPP_ERR_VPUHW;
+        ret = mpp_device_send_reg(ctx->dev_ctx, ctx->ioctl_info.regs, nregs);
     } else {
-        if (mpp_device_patch_is_valid(info))
+        RK_U32 *cache = NULL;
+        if (mpp_device_patch_is_valid(info)) {
             nregs += extra_num;
+            cache = mpp_malloc(RK_U32, reg_num + extra_num);
+
+            if (!cache) {
+                mpp_err_f("failed to malloc reg cache\n");
+                return MPP_NOK;
+            }
+
+            memcpy(cache, ctx->ioctl_info.regs, reg_size);
+            memcpy(cache + reg_num, &(ctx->ioctl_info.extra_info), extra_size);
+            ret = mpp_device_send_reg(ctx->dev_ctx, cache, nregs);
+            mpp_free(cache);
+        } else {
+            ret = mpp_device_send_reg(ctx->dev_ctx, ctx->ioctl_info.regs, nregs);
+        }
     }
-
-    cache = mpp_malloc(RK_U32, reg_num + extra_num);
-    if (!cache) {
-        mpp_err_f("failed to malloc reg cache\n");
-        return MPP_NOK;
-    }
-
-    memcpy(cache, ctx->ioctl_info.regs, reg_size);
-    memcpy(cache + reg_num, &(ctx->ioctl_info.extra_info), extra_size);
-
-    if (ctx->dev_ctx) {
-        ret = mpp_device_send_reg(ctx->dev_ctx, cache, nregs);
-    }
-
-    mpp_free(cache);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     (void)ctx;
