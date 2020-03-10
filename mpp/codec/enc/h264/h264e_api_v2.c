@@ -363,6 +363,10 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         }
         if (change & MPP_ENC_H264_CFG_CHANGE_LONG_TERM)
             dst->use_longterm = src->use_longterm;
+
+        if (change & MPP_ENC_H264_CFG_CHANGE_SCALING_LIST)
+            dst->scaling_list_mode = src->scaling_list_mode;
+
         if (change & MPP_ENC_H264_CFG_CHANGE_QP_LIMIT) {
             dst->qp_init = src->qp_init;
             dst->qp_max = src->qp_max;
