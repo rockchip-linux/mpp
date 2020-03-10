@@ -35,41 +35,18 @@
 #define RKV_H265E_LINKTABLE_MAX_SIZE        256
 #define RKV_H265E_ADD_RESERVE_REGS          1
 
-#define RKV_H265E_INT_ONE_FRAME_FINISH    0x00000001
-#define RKV_H265E_INT_LINKTABLE_FINISH    0x00000002
-#define RKV_H265E_INT_SAFE_CLEAR_FINISH   0x00000004
-#define RKV_H265E_INT_ONE_SLICE_FINISH    0x00000008
-#define RKV_H265E_INT_BIT_STREAM_OVERFLOW 0x00000010
-#define RKV_H265E_INT_BUS_WRITE_FULL      0x00000020
-#define RKV_H265E_INT_BUS_WRITE_ERROR     0x00000040
-#define RKV_H265E_INT_BUS_READ_ERROR      0x00000080
-#define RKV_H265E_INT_TIMEOUT_ERROR       0x00000100
+typedef enum H265e_v541_buf_grp_t {
+    H265E_V541_BUF_GRP_MEI,
+    H265E_V541_BUF_GRP_ROI,
+    H265E_V541_BUF_GRP_BUTT
+} H265e_v541_buf_grp;
 
-typedef enum H265eRkvFrameType_t {
-    H265E_RKV_FRAME_P = 0,
-    H265E_RKV_FRAME_B = 1,
-    H265E_RKV_FRAME_I = 2
-} H265eRkvFrameType;
+typedef struct H265e_v541_buffers_t {
+    MppBufferGroup hw_buf_grp[H265E_V541_BUF_GRP_BUTT];
 
-typedef enum H265e_hal_rkv_buf_grp_t {
-    H265E_HAL_RKV_BUF_GRP_PP,
-    H265E_HAL_RKV_BUF_GRP_DSP,
-    H265E_HAL_RKV_BUF_GRP_MEI,
-    H265E_HAL_RKV_BUF_GRP_CMV,
-    H265E_HAL_RKV_BUF_GRP_ROI,
-    H265E_HAL_RKV_BUF_GRP_REC,
-    H265E_HAL_RKV_BUF_GRP_BUTT
-} H265e_hal_rkv_buf_grp;
-
-typedef struct H265e_hal_rkv_buffers_t {
-    MppBufferGroup hw_buf_grp[H265E_HAL_RKV_BUF_GRP_BUTT];
-
-    MppBuffer hw_pp_buf[2];
-    MppBuffer hw_dsp_buf[2]; //down scale picture
     MppBuffer hw_mei_buf[RKV_H265E_LINKTABLE_FRAME_NUM];
     MppBuffer hw_roi_buf[RKV_H265E_LINKTABLE_FRAME_NUM];
-    MppBuffer hw_rec_buf[MAX_REFS + 1]; //extra 1 frame for current recon
-} h265e_hal_rkv_buffers;
+} h265e_v541_buffers;
 
 /* OSD position */
 typedef struct {
@@ -87,7 +64,7 @@ typedef struct {
     RK_U32     alpha : 8;
 } OsdPlt;
 
-typedef struct H265eRkvRegSet_t {
+typedef struct H265eV541RegSet_t {
 
     /* reg[000] */
     /* 0x0 - VERSION, swreg01 */
@@ -897,9 +874,9 @@ typedef struct H265eRkvRegSet_t {
     RK_U32 st_madi;
     RK_U32 st_mb_num; /* used for MADI calculation */
 
-} H265eRkvRegSet;
+} H265eV541RegSet;
 
-typedef struct H265eRkvL2RegSet_t {
+typedef struct H265eV541L2RegSet_t {
     /* L2 Register: 0x4 */
     struct {
         RK_U32 lvl32_intra_cst_thd0 : 12;
@@ -1179,24 +1156,24 @@ typedef struct H265eRkvL2RegSet_t {
         RK_S32 qp_delta15 : 6;
         RK_S32 reserved3  : 2;
     } aq_qp_dlt3;
-} H265eRkvL2RegSet;
+} H265eV541L2RegSet;
 
-typedef struct H265eRkvIoctlExtraInfoElem_t {
+typedef struct H265eV541IoctlExtraInfoElem_t {
     RK_U32 reg_idx;
     RK_U32 offset;
-} H265eRkvIoctlExtraInfoElem;
+} H265eV541IoctlExtraInfoElem;
 
-typedef struct H265eRkvIoctlExtraInfo_t {
+typedef struct H265eV541IoctlExtraInfo_t {
     RK_U32                          magic;
     RK_U32                          cnt;
-    H265eRkvIoctlExtraInfoElem      elem[20];
-} H265eRkvIoctlExtraInfo;
+    H265eV541IoctlExtraInfoElem      elem[20];
+} H265eV541IoctlExtraInfo;
 
-typedef struct H265eRkvIoctlRegInfo_t {
+typedef struct H265eV541IoctlRegInfo_t {
     RK_U32                  reg_num;
-    H265eRkvRegSet          regs;
-    H265eRkvIoctlExtraInfo  extra_info;
-} H265eRkvIoctlRegInfo;
+    H265eV541RegSet          regs;
+    H265eV541IoctlExtraInfo  extra_info;
+} H265eV541IoctlRegInfo;
 
 /*
 enc_mode
@@ -1208,10 +1185,10 @@ enc_mode
 typedef struct H265eRkvIoctlInput_t {
     RK_U32                  enc_mode;
     RK_U32                  frame_num;
-    H265eRkvIoctlRegInfo    reg_info[RKV_H265E_LINKTABLE_MAX_SIZE];
-} H265eRkvIoctlInput;
+    H265eV541IoctlRegInfo    reg_info[RKV_H265E_LINKTABLE_MAX_SIZE];
+} H265eV541IoctlInput;
 
-typedef struct H265eRkvIoctlOutputElem_t {
+typedef struct H265eV541IoctlOutputElem_t {
     RK_U32 hw_status;
 
     struct {
@@ -1301,39 +1278,11 @@ typedef struct H265eRkvIoctlOutputElem_t {
     RK_U32 st_ctu_num; /* used for MADP calculation */
     RK_U32 st_madi;
     RK_U32 st_mb_num; /* used for MADI calculation */
-} H265eRkvIoctlOutputElem;
+} H265eV541IoctlOutputElem;
 
-typedef struct H265eRkvIoctlOutput_t {
+typedef struct H265eV541IoctlOutput_t {
     RK_U32                      frame_num;
-    H265eRkvIoctlOutputElem     elem[RKV_H265E_LINKTABLE_MAX_SIZE];
-} H265eRkvIoctlOutput;
-
-/* mode cfg */
-typedef struct H265eRkvMbRcMcfg_t {
-    RK_S32 aq_prop; //0~16, 0:only enable aq, 16:only enable checkpoint
-    double aq_strength; //0~3
-    RK_U32 mb_num;
-    RK_U32 qp_range; //0~15
-} H265eRkvMbRcMcfg;
-
-/* quality cfg */
-typedef struct H265eRkvMbRcQcfg_t {
-    RK_U32 qp_min;
-    RK_U32 qp_max;
-} H265eRkvMbRcQcfg;
-
-typedef struct H265eRkvMbRcQRcfg_t {
-    RK_U32 qp_min_offset;
-    RK_U32 qp_max_offset;
-    RK_U32 qp_range;
-} H265eRkvMbRcQRcfg;
-
-MPP_RET hal_h265e_rkv_init    (void *hal, MppEncHalCfg *cfg);
-MPP_RET hal_h265e_rkv_deinit  (void *hal);
-MPP_RET hal_h265e_rkv_gen_regs(void *hal, HalEncTask *task);
-MPP_RET hal_h265e_rkv_start   (void *hal, HalEncTask *task);
-MPP_RET hal_h265e_rkv_wait    (void *hal, HalEncTask *task);
-MPP_RET hal_h265e_rkv_get_task (void *hal, HalEncTask *task);
-MPP_RET hal_h265e_rkv_ret_task(void *hal, HalEncTask *task);
+    H265eV541IoctlOutputElem     elem[RKV_H265E_LINKTABLE_MAX_SIZE];
+} H265eV541IoctlOutput;
 
 #endif
