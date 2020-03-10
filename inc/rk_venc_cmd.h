@@ -510,6 +510,8 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_DEBLOCKING      = (1 << 7),
     /* change on use_longterm */
     MPP_ENC_H264_CFG_CHANGE_LONG_TERM       = (1 << 8),
+    /* change on scaling_list_mode */
+    MPP_ENC_H264_CFG_CHANGE_SCALING_LIST    = (1 << 9),
 
     /* change on max_qp / min_qp / max_qp_step */
     MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
