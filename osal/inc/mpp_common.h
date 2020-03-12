@@ -148,11 +148,14 @@
 #define fseeko                  fseeko64
 #else
 #include <unistd.h>
+#include <stddef.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #define mkdir(x)                mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
+#define container_of(ptr, type, member) \
+    ((type *)((char *)(ptr) - offsetof(type, member)))
 
 #define __RETURN                __Return
 #define __FAILED                __failed
