@@ -185,6 +185,47 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
+static void mpp_enc_proc_cfg(MppEncImpl *enc)
+{
+    switch (enc->cmd) {
+    case MPP_ENC_GET_HDR_SYNC :
+    case MPP_ENC_GET_EXTRA_INFO : {
+        MppPacket pkt = NULL;
+
+        /*
+         * NOTE: get stream header should use user's MppPacket
+         * If we provide internal MppPacket to external user
+         * we do not known when the buffer usage is finished.
+         * So encoder always write its header to external buffer
+         * which is provided by user.
+         */
+        if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
+            mpp_err("Please use MPP_ENC_GET_HDR_SYNC instead of unsafe MPP_ENC_GET_EXTRA_INFO\n");
+
+            if (NULL == enc->hdr_pkt) {
+                size_t size = SZ_1K;
+                void *ptr = mpp_calloc_size(void, size);
+
+                mpp_packet_init(&enc->hdr_pkt, ptr, size);
+            }
+            pkt = enc->hdr_pkt;
+            *(MppPacket *)enc->param = pkt;
+        } else
+            pkt = (MppPacket)enc->param;
+
+        enc_impl_gen_hdr(enc->impl, pkt);
+
+        enc->hdr_need_updated = 0;
+    } break;
+    default : {
+        enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
+        if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
+            MPP_ENC_SET_PREP_CFG == enc->cmd)
+            enc->hdr_need_updated = 1;
+    } break;
+    }
+}
+
 #define RUN_ENC_IMPL_FUNC(func, hal, task, mpp, ret)             \
     ret = func(hal, task);                                      \
     if (ret) {                                                  \
@@ -216,7 +257,6 @@ void *mpp_enc_thread(void *data)
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
     MppPacket packet = NULL;
-    MppBuffer frm_buf = NULL;
 
     memset(&task, 0, sizeof(task));
 
@@ -232,41 +272,7 @@ void *mpp_enc_thread(void *data)
 
         // process control first
         if (enc->cmd_send != enc->cmd_recv) {
-            if (enc->cmd == MPP_ENC_GET_HDR_SYNC ||
-                enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
-                MppPacket pkt = NULL;
-
-                /*
-                 * NOTE: get stream header should use user's MppPacket
-                 * If we provide internal MppPacket to external user
-                 * we do not known when the buffer usage is finished.
-                 * So encoder always write its header to external buffer
-                 * which is provided by user.
-                 */
-                if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
-                    mpp_err("Please use MPP_ENC_GET_HDR_SYNC instead of unsafe MPP_ENC_GET_EXTRA_INFO\n");
-
-                    if (NULL == enc->hdr_pkt) {
-                        size_t size = SZ_1K;
-                        void *ptr = mpp_calloc_size(void, size);
-
-                        mpp_packet_init(&enc->hdr_pkt, ptr, size);
-                    }
-                    pkt = enc->hdr_pkt;
-                    *(MppPacket *)enc->param = pkt;
-                } else
-                    pkt = (MppPacket)enc->param;
-
-                enc_impl_gen_hdr(impl, pkt);
-
-                enc->hdr_need_updated = 0;
-            } else {
-                enc_impl_proc_cfg(impl, enc->cmd, enc->param);
-                if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
-                    MPP_ENC_SET_PREP_CFG == enc->cmd)
-                    enc->hdr_need_updated = 1;
-            }
-
+            mpp_enc_proc_cfg(enc);
             sem_post(&enc->enc_ctrl);
             enc->cmd_recv++;
             continue;
@@ -328,8 +334,7 @@ void *mpp_enc_thread(void *data)
         if (NULL == frame)
             goto TASK_RETURN;
 
-        frm_buf = mpp_frame_get_buffer(frame);
-        if (NULL == frm_buf)
+        if (NULL == mpp_frame_get_buffer(frame))
             goto TASK_RETURN;
 
         reset_hal_enc_task(hal_task);
