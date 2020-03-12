@@ -63,15 +63,11 @@ typedef struct HalH264eVepu2Ctx_t {
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
-    RcSyntax                *rc_syn;
 
     /* special TSVC stream header fixup */
     size_t                  buf_size;
     RK_U8                   *src_buf;
     RK_U8                   *dst_buf;
-
-    /* syntax for output to enc_impl */
-    RcHalCfg                hal_rc_cfg;
 
     /* vepu2 macroblock ratecontrol context */
     HalH264eVepuMbRcCtx     rc_ctx;
@@ -183,7 +179,6 @@ static RK_U32 update_vepu2_syntax(HalH264eVepu2Ctx *ctx, MppSyntax *syntax)
         } break;
         case H264E_SYN_RC : {
             hal_h264e_dbg_detail("update rc");
-            ctx->rc_syn = desc->p;
         } break;
         case H264E_SYN_ROI :
         case H264E_SYN_OSD :
@@ -229,19 +224,12 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
 
     MppBuffer recn = h264e_vepu_buf_get_frame_buffer(hw_bufs, frms->curr_idx);
     MppBuffer refr = h264e_vepu_buf_get_frame_buffer(hw_bufs, frms->refr_idx);
-    EncFrmStatus info = frms->status;
     size_t yuv_size = hw_bufs->yuv_size;
 
     hw_addr->recn[0] = mpp_buffer_get_fd(recn);
     hw_addr->refr[0] = mpp_buffer_get_fd(refr);
     hw_addr->recn[1] = hw_addr->recn[0] + (yuv_size << 10);
     hw_addr->refr[1] = hw_addr->refr[0] + (yuv_size << 10);
-
-    // update input rc cfg
-    ctx->hal_rc_cfg = frms->rc_cfg;
-
-    // prepare mb rc config
-    h264e_vepu_mbrc_prepare(ctx->rc_ctx, ctx->rc_syn, &info, &ctx->hw_mbrc);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -289,6 +277,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     HalH264eVepuPrep *hw_prep = &ctx->hw_prep;
     HalH264eVepuAddr *hw_addr = &ctx->hw_addr;
     HalH264eVepuMbRc *hw_mbrc = &ctx->hw_mbrc;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
+    EncFrmStatus *frm = &task->rc_task->frm;
     SynH264eSps *sps = ctx->sps;
     SynH264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
@@ -300,14 +290,19 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 val = 0;
     RK_S32 i = 0;
 
-    // TODO: Fix QP here for debug
-    hw_mbrc->qp_init = 26;
-    hw_mbrc->qp_max = 26;
-    hw_mbrc->qp_min = 26;
+    hw_mbrc->qp_init = rc_info->quality_target;
+    hw_mbrc->qp_max = rc_info->quality_max;
+    hw_mbrc->qp_min = rc_info->quality_min;
+
+    hal_h264e_dbg_rc("qp [%d : %d : %d]\n", rc_info->quality_min,
+                     rc_info->quality_target, rc_info->quality_max);
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    hal_h264e_dbg_detail("frame %d generate regs now", ctx->frms->seq_idx);
+    hal_h264e_dbg_detail("frame %d generate regs now", frm->seq_idx);
+
+    // prepare mb rc config
+    h264e_vepu_mbrc_prepare(ctx->rc_ctx, &ctx->hw_mbrc, task->rc_task, ctx->cfg);
 
     /* setup output address with offset */
     first_free_bit = setup_output_packet(reg, task->output, offset);
@@ -800,6 +795,7 @@ static MPP_RET hal_h264e_vepu2_wait_v2(void *hal, HalEncTask *task)
 static MPP_RET hal_h264e_vepu2_ret_task_v2(void *hal, HalEncTask *task)
 {
     HalH264eVepu2Ctx *ctx = (HalH264eVepu2Ctx *)hal;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
     RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
     RK_U32 mbs = mb_w * mb_h;
@@ -808,10 +804,12 @@ static MPP_RET hal_h264e_vepu2_ret_task_v2(void *hal, HalEncTask *task)
 
     task->length += ctx->hw_mbrc.out_strm_size;
 
-    ctx->hal_rc_cfg.bit_real = task->length;
-    ctx->hal_rc_cfg.quality_real = ctx->hw_mbrc.qp_sum / mbs;
+    rc_info->bit_real = task->length * 8;
+    rc_info->quality_real = ctx->hw_mbrc.qp_sum / mbs;
 
-    task->hal_ret.data   = &ctx->hal_rc_cfg;
+    hal_h264e_dbg_rc("real bit %d quality %d\n", rc_info->bit_real, rc_info->quality_real);
+
+    task->hal_ret.data   = rc_info;
     task->hal_ret.number = 1;
 
     hal_h264e_dbg_func("leave %p\n", hal);

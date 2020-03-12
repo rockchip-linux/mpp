@@ -65,6 +65,9 @@ typedef struct HalH264eVepuMbRcImpl_t {
 
     /* estimated first I frame qp */
     RK_S32          qp_init_est;
+
+    RK_S32          frame_type;
+    RK_S32          pre_frame_type;
 } HalH264eVepuMbRcImpl;
 
 static void vepu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
@@ -506,18 +509,9 @@ MPP_RET h264e_vepu_mbrc_deinit(HalH264eVepuMbRcCtx ctx)
     return MPP_OK;
 }
 
-static RK_S32 qp_tbl[2][13] = {
-    {
-        26, 36, 48, 63, 85, 110, 152, 208, 313, 427, 936,
-        1472, 0x7fffffff
-    },
-    {42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6}
-};
-
 MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
 {
     HalH264eVepuMbRcImpl *p = (HalH264eVepuMbRcImpl *)ctx;
-    MppEncH264Cfg *codec = &cfg->codec.h264;
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
 
@@ -550,25 +544,6 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     // if not constant
     p->mb_bit_rc_enable = rc->rc_mode != MPP_ENC_RC_MODE_FIXQP;
 
-    // init first frame QP
-    if (p->bits_per_pic > 1000000)
-        p->qp_init_est = codec->qp_min;
-    else {
-        RK_S32 upscale = 8000;
-        RK_S32 i = -1;
-        RK_S32 bits_per_pic = p->bits_per_pic;
-        RK_S32 mbs = p->mbs;
-
-        bits_per_pic >>= 5;
-
-        bits_per_pic *= mbs + 250;
-        bits_per_pic /= 350 + (3 * mbs) / 4;
-        bits_per_pic = axb_div_c(bits_per_pic, upscale, mbs << 6);
-
-        while (qp_tbl[0][++i] < bits_per_pic);
-
-        p->qp_init_est = qp_tbl[1][i];
-    }
     hal_h264e_dbg_rc("estimated init qp %d\n", p->qp_init_est);
 
     // init first frame mad parameter
@@ -584,49 +559,113 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
         p->check_point_distance = 0;
     }
 
+    p->frame_type = INTRA_FRAME;
+    p->pre_frame_type = INTRA_FRAME;
+
     hal_h264e_dbg_rc("leave\n");
     return MPP_OK;
 }
 
-MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, RcSyntax *rc,
-                                EncFrmStatus *info, HalH264eVepuMbRc *mbrc)
+#define WORD_CNT_MAX    65535
+
+MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
+                                EncRcTask *rc_task, MppEncCfgSet *cfg)
 {
     HalH264eVepuMbRcImpl *p = (HalH264eVepuMbRcImpl *)ctx;
-    RK_S32 target_bits = rc->bit_target;
-    RK_S32 target_step = target_bits / (p->check_point_count + 1);
-    RK_S32 target_sum = 0;
-    RK_S32 tmp;
+    EncFrmStatus *frm = &rc_task->frm;
+    EncRcTaskInfo *info = &rc_task->info;
+    MppEncH264Cfg *codec = &cfg->codec.h264;
+
     RK_S32 i;
+    const RK_S32 sscale = 256;
+    RK_S32 scaler, srcPrm;
+    RK_S32 tmp, nonZeroTarget;
+    RK_S32 coeffCntMax = p->mbs * 24 * 16;
 
-    mpp_assert(target_step >= 0);
-    (void) info;
+    if (!p->mb_bit_rc_enable) {
+        if (codec->qp_init == -1) {
+            mpp_log("fix qp case but qp no set default qp = 26");
+            mbrc->qp_init = 26;
+        } else {
+            mbrc->qp_init = codec->qp_init;
+        }
 
-    for (i = 0; i < VEPU_CHECK_POINTS_MAX; i++) {
-        target_sum += target_step;
-        mbrc->cp_target[i] = mpp_clip(target_sum / 32, -32768, 32767);
+        mbrc->qp_min = mbrc->qp_init;
+        mbrc->qp_max = mbrc->qp_init;
+        return MPP_OK;
     }
 
-    tmp = target_step / 8;
+    p->pre_frame_type = p->frame_type;
+    p->frame_type = (frm->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
+
+    mbrc->qp_init = info->quality_target;
+    mbrc->qp_min = codec->qp_min;
+    mbrc->qp_max = codec->qp_max;
+
+    if (mbrc->rlc_count == 0) {
+        mbrc->rlc_count = 1;
+    }
+
+    srcPrm = axb_div_c(mbrc->out_strm_size * 8, 256, mbrc->rlc_count);
+    /* Disable Mb Rc for Intra Slices, because coeffTarget will be wrong */
+    if (frm->is_intra || srcPrm == 0)
+        return 0;
+
+    /* Required zero cnt */
+    nonZeroTarget = axb_div_c(info->bit_target, 256, srcPrm);
+    nonZeroTarget = MPP_MIN(coeffCntMax, MPP_MAX(0, nonZeroTarget));
+    nonZeroTarget = MPP_MIN(0x7FFFFFFFU / 1024U, (RK_U32)nonZeroTarget);
+
+    if (nonZeroTarget > 0) {
+        scaler = axb_div_c(nonZeroTarget, sscale, (RK_S32) p->mbs);
+    } else {
+        return 0;
+    }
+
+    if ((p->frame_type != p->pre_frame_type) || (mbrc->rlc_count == 0)) {
+        for (i = 0; i < VEPU_CHECK_POINTS_MAX; i++) {
+            tmp = (scaler * (p->check_point_distance * (i + 1) + 1)) / sscale;
+            tmp = MPP_MIN(WORD_CNT_MAX, tmp / 32 + 1);
+            if (tmp < 0) tmp = WORD_CNT_MAX;    /* Detect overflow */
+            mbrc->cp_target[i] = tmp; /* div32 for regs */
+        }
+
+        tmp = axb_div_c(p->bits_per_pic, 256, srcPrm);
+    } else {
+        for (i = 0; i < VEPU_CHECK_POINTS_MAX; i++) {
+            tmp = (RK_S32) (mbrc->cp_usage[i] * scaler) / sscale;
+            tmp = MPP_MIN(WORD_CNT_MAX, tmp / 32 + 1);
+            if (tmp < 0) tmp = WORD_CNT_MAX;    /* Detect overflow */
+            mbrc->cp_target[i] = tmp; /* div32 for regs */
+        }
+        tmp = axb_div_c(p->bits_per_pic, 256, srcPrm);
+    }
 
     mbrc->cp_error[0] = -tmp * 3;
-    mbrc->cp_delta_qp[0] = -3;
+    mbrc->cp_delta_qp[0] = 3;
     mbrc->cp_error[1] = -tmp * 2;
-    mbrc->cp_delta_qp[1] = -2;
+    mbrc->cp_delta_qp[1] = 2;
     mbrc->cp_error[2] = -tmp * 1;
-    mbrc->cp_delta_qp[2] = -1;
+    mbrc->cp_delta_qp[2] = 1;
     mbrc->cp_error[3] = tmp * 1;
     mbrc->cp_delta_qp[3] = 0;
     mbrc->cp_error[4] = tmp * 2;
-    mbrc->cp_delta_qp[4] = 1;
+    mbrc->cp_delta_qp[4] = -1;
     mbrc->cp_error[5] = tmp * 3;
-    mbrc->cp_delta_qp[5] = 2;
+    mbrc->cp_delta_qp[5] = -2;
     mbrc->cp_error[6] = tmp * 4;
-    mbrc->cp_delta_qp[6] = 3;
+    mbrc->cp_delta_qp[6] = -3;
+
+    for (i = 0; i < CTRL_LEVELS; i++) {
+        tmp = mbrc->cp_error[i];
+        tmp = mpp_clip(tmp / 4, -32768, 32767);
+        mbrc->cp_error[i] = tmp;
+    }
 
     mbrc->mad_qp_change = 2;
     mbrc->mad_threshold = 2;
-
     mbrc->cp_distance_mbs = p->check_point_distance;
+
     return MPP_OK;
 }
 

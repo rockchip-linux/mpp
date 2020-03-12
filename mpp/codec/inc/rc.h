@@ -19,7 +19,7 @@
 
 #include "mpp_err.h"
 
-#include "rc_api.h"
+#include "mpp_rc_api.h"
 
 /*
  * Mpp rate control principle
@@ -62,8 +62,6 @@ typedef void* RcCtx;
 extern "C" {
 #endif
 
-MPP_RET rc_api_register(const RcImplApi *api);
-
 MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name);
 MPP_RET rc_deinit(RcCtx ctx);
 
@@ -71,17 +69,14 @@ MPP_RET rc_deinit(RcCtx ctx);
 MPP_RET rc_update_usr_cfg(RcCtx ctx, RcCfg *cfg);
 
 /* Frame rate convertion */
-RK_S32  rc_frm_check_drop(RcCtx ctx);
-
-/* Frame type decision */
-RK_S32  rc_frm_check_type(RcCtx ctx);
+MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task);
 
 /* Frame level rate and quality control */
-MPP_RET rc_frm_start(RcCtx ctx, RcHalCfg *cfg, EncFrmStatus *frm);
-MPP_RET rc_frm_end(RcCtx ctx, RcHalCfg *cfg);
+MPP_RET rc_frm_start(RcCtx ctx, EncRcTask *task);
+MPP_RET rc_frm_end(RcCtx ctx, EncRcTask *task);
 
-MPP_RET rc_hal_start(RcCtx ctx, RcHalCfg *cfg, EncFrmStatus *frm);
-MPP_RET rc_hal_end(RcCtx ctx, RcHalCfg *cfg, EncFrmStatus *frm);
+MPP_RET rc_hal_start(RcCtx ctx, EncRcTask *task);
+MPP_RET rc_hal_end(RcCtx ctx, EncRcTask *task);
 
 #ifdef __cplusplus
 }

@@ -190,21 +190,6 @@ MPP_RET enc_impl_proc_dpb(EncImpl impl, HalEncTask *task)
     return ret;
 }
 
-MPP_RET enc_impl_proc_rc(EncImpl impl, HalEncTask *task)
-{
-    if (NULL == impl) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MPP_RET ret = MPP_OK;
-    EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->proc_rc)
-        ret = p->api->proc_rc(p->ctx, task);
-
-    return ret;
-}
-
 MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl || NULL == task) {
@@ -231,21 +216,6 @@ MPP_RET enc_impl_update_hal(EncImpl impl, HalEncTask *task)
     EncImplCtx *p = (EncImplCtx *)impl;
     if (p->api->update_hal)
         ret = p->api->update_hal(p->ctx, task);
-
-    return ret;
-}
-
-MPP_RET enc_impl_update_rc(EncImpl impl, HalEncTask *task)
-{
-    if (NULL == impl) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MPP_RET ret = MPP_OK;
-    EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->update_rc)
-        ret = p->api->update_rc(p->ctx, task);
 
     return ret;
 }

@@ -16,7 +16,7 @@
 #ifndef __RC_MODEL_V2_H__
 #define __RC_MODEL_V2_H__
 
-#include "rc_api.h"
+#include "mpp_rc_api.h"
 
 #ifdef  __cplusplus
 extern "C" {

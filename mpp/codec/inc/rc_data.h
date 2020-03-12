@@ -17,6 +17,7 @@
 #ifndef __RC_DATA_H__
 #define __RC_DATA_H__
 
+#include "mpp_rc_defs.h"
 #include "rc_hal.h"
 
 typedef enum RcDataIndexType_e {
@@ -28,49 +29,6 @@ typedef enum RcDataIndexType_e {
 
 #define RC_FRM_TYPE_I           0
 #define RC_FRM_TYPE_P           1
-
-typedef struct EncFrmStatus_t {
-    /*
-     * 0 - inter frame
-     * 1 - intra frame
-     */
-    RK_U32          is_intra    : 1;
-
-    /*
-     * Valid when is_intra is true
-     * 0 - normal intra frame
-     * 1 - IDR frame
-     */
-    RK_U32          is_idr      : 1;
-
-    /*
-     * 0 - mark as reference frame
-     * 1 - mark as non-refernce frame
-     */
-    RK_U32          is_non_ref  : 1;
-
-    /*
-     * Valid when is_non_ref is false
-     * 0 - mark as short-term reference frame
-     * 1 - mark as long-term refernce frame
-     */
-    RK_U32          is_lt_ref   : 1;
-    RK_U32          lt_idx      : 4;
-    RK_U32          temporal_id : 4;
-
-    /*
-     * distance between current frame and reference frame
-     */
-    RK_S32          ref_dist    : 16;
-
-    /*
-     * reencode flag and force pskip flag
-     */
-    RK_U32          reencode    : 1;
-    RK_U32          force_pskip : 1;
-
-    RK_U32          stuff       : 2;
-} EncFrmStatus;
 
 /*
  * base_cnt  - rate control base data storage number

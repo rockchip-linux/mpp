@@ -45,11 +45,6 @@ RK_U32 rc_debug = 0;
 
 const static char default_rc_api[] = "default";
 
-MPP_RET rc_api_register(const RcImplApi *api)
-{
-    return RcImplApiService::get_instance()->api_add(api);
-}
-
 MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name)
 {
     MPP_RET ret = MPP_NOK;
@@ -62,7 +57,7 @@ MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name)
 
     rc_dbg_func("enter type %x name %s\n", type, name);
 
-    const RcImplApi *api = RcImplApiService::get_instance()->api_get(type, name);
+    RcImplApi *api = RcImplApiService::get_instance()->api_get(type, name);
 
     mpp_assert(api);
 
@@ -122,66 +117,96 @@ MPP_RET rc_update_usr_cfg(RcCtx ctx, RcCfg *cfg)
     p->cfg = *cfg;
     p->fps = cfg->fps;
 
-    if (api && api->init && p->ctx) {
+    if (api && api->init && p->ctx)
         api->init(p->ctx, &p->cfg);
-    }
 
     rc_dbg_func("leave %p\n", ctx);
 
     return ret;
 }
 
-RK_S32 rc_frm_check_drop(RcCtx ctx)
+MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task)
 {
     MppRcImpl *p = (MppRcImpl *)ctx;
-    RcFpsCfg *cfg = &p->fps;
-    RK_S32 frm_cnt  = p->frm_cnt;
-    RK_S32 rate_in  = cfg->fps_in_num * cfg->fps_out_denorm;
-    RK_S32 rate_out = cfg->fps_out_num * cfg->fps_in_denorm;
-    RK_S32 drop = 0;
+    const RcImplApi *api = p->api;
+    MPP_RET ret = MPP_OK;
 
     rc_dbg_func("enter %p\n", ctx);
 
-    mpp_assert(cfg->fps_in_denorm >= 1);
-    mpp_assert(cfg->fps_out_denorm >= 1);
-    mpp_assert(rate_in >= rate_out);
+    if (api && api->check_drop && p->ctx && task) {
+        ret = api->check_drop(p->ctx, task);
+        return ret;
+    } else {
+        RcFpsCfg *cfg = &p->fps;
+        RK_S32 frm_cnt  = p->frm_cnt;
+        RK_S32 rate_in  = cfg->fps_in_num * cfg->fps_out_denorm;
+        RK_S32 rate_out = cfg->fps_out_num * cfg->fps_in_denorm;
+        RK_S32 drop = 0;
 
-    // frame counter is inited to (rate_in - rate_out)  to encode first frame
-    if (frm_cnt < 0)
-        frm_cnt = rate_in - rate_out;
+        mpp_assert(cfg->fps_in_denorm >= 1);
+        mpp_assert(cfg->fps_out_denorm >= 1);
+        mpp_assert(rate_in >= rate_out);
 
-    frm_cnt += rate_out;
+        // frame counter is inited to (rate_in - rate_out)  to encode first frame
+        if (frm_cnt < 0)
+            frm_cnt = rate_in - rate_out;
 
-    if (frm_cnt < rate_in)
-        drop = 1;
-    else
-        frm_cnt -= rate_in;
+        frm_cnt += rate_out;
 
-    p->frm_cnt = frm_cnt;
+        if (frm_cnt < rate_in)
+            drop = 1;
+        else
+            frm_cnt -= rate_in;
 
-    rc_dbg_func("leave %p drop %d\n", ctx, drop);
+        p->frm_cnt = frm_cnt;
+        task->frm.drop = drop;
+    }
 
-    return drop;
+    rc_dbg_func("leave %p drop %d\n", ctx, task->frm.drop);
+
+    return ret;
 }
 
-MPP_RET rc_frm_start(RcCtx ctx, RcHalCfg *cfg, EncFrmStatus *frm)
+MPP_RET rc_frm_start(RcCtx ctx, EncRcTask *task)
 {
     MppRcImpl *p = (MppRcImpl *)ctx;
     const RcImplApi *api = p->api;
 
-    if (!api || !api->start || !p->ctx)
+    if (!api || !api->frm_start || !p->ctx || !task)
         return MPP_OK;
 
-    return api->start(p->ctx, cfg, frm);
+    return api->frm_start(p->ctx, task);
 }
 
-MPP_RET rc_frm_end(RcCtx ctx, RcHalCfg *cfg)
+MPP_RET rc_frm_end(RcCtx ctx, EncRcTask *task)
 {
     MppRcImpl *p = (MppRcImpl *)ctx;
     const RcImplApi *api = p->api;
 
-    if (!api || !api->end || !p->ctx)
+    if (!api || !api->frm_end || !p->ctx || !task)
         return MPP_OK;
 
-    return api->end(p->ctx, cfg);
+    return api->frm_end(p->ctx, task);
+}
+
+MPP_RET rc_hal_start(RcCtx ctx, EncRcTask *task)
+{
+    MppRcImpl *p = (MppRcImpl *)ctx;
+    const RcImplApi *api = p->api;
+
+    if (!api || !api->hal_start || !p->ctx || !task)
+        return MPP_OK;
+
+    return api->hal_start(p->ctx, task);
+}
+
+MPP_RET rc_hal_end(RcCtx ctx, EncRcTask *task)
+{
+    MppRcImpl *p = (MppRcImpl *)ctx;
+    const RcImplApi *api = p->api;
+
+    if (!api || !api->hal_end || !p->ctx || !task)
+        return MPP_OK;
+
+    return api->hal_end(p->ctx, task);
 }
