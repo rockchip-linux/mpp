@@ -29,7 +29,6 @@
 #include "h265e_syntax_new.h"
 #include "hal_h265e_api.h"
 #include "hal_h265e_vepu541.h"
-#include "rc_api.h"
 #include "vepu541_common.h"
 #include "rkv_enc_def.h"
 #include "mpp_enc_hal.h"
@@ -77,11 +76,6 @@ typedef struct H265eV541HalContext_t {
     RK_U32              frame_cnt_send_ready;
     RK_U32              num_frames_to_send;
 
-    /*qp decision*/
-    RK_S32              cur_scale_qp;
-    RK_S32              pre_i_qp;
-    RK_S32              pre_p_qp;
-    RK_S32              start_qp;
     RK_S32              frame_type;
     RK_S32              last_frame_type;
 
@@ -199,44 +193,6 @@ RK_U32 lamd_modb_qp[52] = {
     0x00112000, 0x00160000, 0x001c0000, 0x00224000, 0x002c0000, 0x00380000, 0x00448000, 0x00580000,
     0x00700000, 0x00890000, 0x00b00000, 0x00e00000
 };
-
-static RK_U32 mb_num[12] = {
-    0x0,    0xc8,   0x2bc,  0x4b0,
-    0x7d0,  0xfa0,  0x1f40, 0x3e80,
-    0x4e20, 0x4e20, 0x4e20, 0x4e20,
-};
-
-static RK_U32 tab_bit[12] = {
-    0xEC4, 0xDF2, 0xC4E, 0xB7C, 0xAAA, 0xEC4, 0x834, 0x690, 0x834, 0x834, 0x834, 0x834,
-};
-
-static RK_U8 qp_table[96] = {
-    0xF,  0xF,  0xF, 0xF,   0xF,  0x10, 0x12, 0x14, 0x15, 0x16, 0x17,
-    0x18, 0x19, 0x19, 0x1A, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E,
-    0x1E, 0x1F, 0x1F, 0x20, 0x20, 0x21, 0x21, 0x21, 0x22, 0x22, 0x22,
-    0x22, 0x23, 0x23, 0x23, 0x24, 0x24, 0x24, 0x24, 0x24, 0x25, 0x25,
-    0x25, 0x25, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27,
-    0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29,
-    0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B,
-    0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C,
-    0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D,
-};
-
-static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
-{
-    RK_S32 cnt = 0, index, i;
-
-    for (i = 0; i < 11; i++) {
-        if (mb_num[i] > total_mb)
-            break;
-        cnt++;
-    }
-    index = (total_mb * tab_bit[cnt] - 300) / target_bit; //
-    index = mpp_clip(index, 4, 95);
-
-    return qp_table[index];
-}
-
 
 static MPP_RET vepu541_h265_free_buffers(H265eV541HalContext *ctx)
 {
@@ -382,7 +338,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->ioctl_output   = mpp_calloc(H265eV541IoctlOutput, 1);
     ctx->regs           = mpp_calloc(H265eV541RegSet, RKVE_LINKTABLE_FRAME_NUM);
     ctx->l2_regs        = mpp_calloc(H265eV541L2RegSet, RKVE_LINKTABLE_FRAME_NUM);
-    ctx->rc_hal_cfg     = mpp_calloc(RcHalCfg, RKVE_LINKTABLE_FRAME_NUM);
+    ctx->rc_hal_cfg     = mpp_calloc(EncRcTaskInfo, RKVE_LINKTABLE_FRAME_NUM);
     ctx->buffers        = mpp_calloc(h265e_v541_buffers, RKVE_LINKTABLE_FRAME_NUM);
     ctx->input_fmt      = mpp_calloc(VepuFmtCfg, 1);
     ctx->set            = cfg->set;
@@ -567,56 +523,19 @@ vepu541_h265_set_roi_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs)
     return MPP_OK;
 }
 
-static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs, H265eSyntax_new *syn)
+static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs, HalEncTask *task)
 {
+    H265eSyntax_new *syn = (H265eSyntax_new *)task->syntax.data;
     H265eFrmInfo *frms = &syn->frms;
+    EncRcTaskInfo *rc_cfg = &task->rc_task->info;
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncRcCfg *rc = &cfg->rc;
-    RcHalCfg    *rc_cfg = &frms->rc_cfg;
     MppEncCodecCfg *codec = &cfg->codec;
     MppEncH265Cfg *h265 = &codec->h265;
     RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / frms->mb_per_frame;
     RK_U32 ctu_target_bits;
     RK_S32 negative_bits_thd, positive_bits_thd;
 
-    if (frms->seq_idx == 0 && frms->status.is_intra) {
-        if (h265->qp_init == -1) {
-            if (frms->rc_cfg.bit_target) {
-                ctx->start_qp = cal_first_i_start_qp(frms->rc_cfg.bit_target, frms->mb_per_frame << 4);
-                ctx->cur_scale_qp = (ctx->start_qp  + h265->ip_qp_delta) << 6;
-            } else {
-                mpp_log("fix qp case but init qp no set");
-                h265->qp_init = 26;
-                ctx->start_qp = 26;
-                ctx->cur_scale_qp = (ctx->start_qp  + h265->ip_qp_delta) << 6;
-            }
-        } else {
-
-            ctx->start_qp = h265->qp_init;
-            ctx->cur_scale_qp = (ctx->start_qp + h265->ip_qp_delta) << 6;
-        }
-
-        ctx->cur_scale_qp = mpp_clip(ctx->cur_scale_qp, (h265->min_qp << 6), (h265->max_qp << 6));
-        ctx->pre_i_qp = ctx->cur_scale_qp >> 6;
-        ctx->pre_p_qp = ctx->cur_scale_qp >> 6;
-    } else {
-        RK_S32 qp_scale = ctx->cur_scale_qp + frms->rc_cfg.next_ratio;
-        RK_S32 start_qp = 0;
-
-        if (frms->status.is_intra) {
-            qp_scale = mpp_clip(qp_scale, (h265->min_i_qp << 6), (h265->max_i_qp << 6));
-            start_qp = ((ctx->pre_i_qp + ((qp_scale + frms->rc_cfg.next_i_ratio) >> 6)) >> 1);
-
-            start_qp = mpp_clip(start_qp, h265->min_i_qp, h265->max_i_qp);
-            ctx->pre_i_qp = start_qp;
-            ctx->start_qp = start_qp;
-            ctx->cur_scale_qp = qp_scale;
-        } else {
-            qp_scale = mpp_clip(qp_scale, (h265->min_qp << 6), (h265->max_qp << 6));
-            ctx->cur_scale_qp = qp_scale;
-            ctx->start_qp = qp_scale >> 6;
-        }
-    }
     if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
         regs->enc_pic.pic_qp      = h265->qp_init;
         regs->synt_sli1.sli_qp    = h265->qp_init;
@@ -624,7 +543,6 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_qp.rc_max_qp     = h265->qp_init;
         regs->rc_qp.rc_min_qp     = h265->qp_init;
     } else {
-        RK_S32 rc_max_qp, rc_min_qp;
         if (ctu_target_bits_mul_16 >= 0x100000) {
             ctu_target_bits_mul_16 = 0x50000;
         }
@@ -632,26 +550,16 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         negative_bits_thd = 0 - ctu_target_bits / 4;
         positive_bits_thd = ctu_target_bits / 4;
 
-        if (frms->status.is_intra) {
-            rc_max_qp = h265->max_i_qp;
-            rc_min_qp = h265->min_i_qp;
-        } else {
-            rc_max_qp = h265->max_qp;
-            rc_min_qp = h265->min_qp;
-        }
-
-        ctx->start_qp = mpp_clip(ctx->start_qp, rc_min_qp, rc_max_qp);
-
-        regs->enc_pic.pic_qp      = ctx->start_qp;
-        regs->synt_sli1.sli_qp    = ctx->start_qp;
+        regs->enc_pic.pic_qp      = rc_cfg->quality_target;
+        regs->synt_sli1.sli_qp    = rc_cfg->quality_target;
         regs->rc_cfg.rc_en        = 1;
         regs->rc_cfg.aqmode_en    = 1;
         regs->rc_cfg.qp_mode      = 1;
 
         regs->rc_cfg.rc_ctu_num   = frms->mb_wid;
         regs->rc_qp.rc_qp_range   =  h265->raw_dealt_qp;
-        regs->rc_qp.rc_max_qp     = rc_max_qp;
-        regs->rc_qp.rc_min_qp     = rc_min_qp;
+        regs->rc_qp.rc_max_qp     = rc_cfg->quality_max;
+        regs->rc_qp.rc_min_qp     = rc_cfg->quality_min;
         regs->rc_tgt.ctu_ebits    = ctu_target_bits_mul_16;
 
         regs->rc_erp0.bits_thd0    = negative_bits_thd;
@@ -674,8 +582,8 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_adj1.qp_adjust7    = 0;
         regs->rc_adj1.qp_adjust8    = 1;
 
-        regs->qpmap0.qpmin_area0 = rc_min_qp;
-        regs->qpmap0.qpmax_area0 = rc_max_qp;
+        regs->qpmap0.qpmin_area0 = h265->qpmin_map[0];
+        regs->qpmap0.qpmax_area0 = h265->qpmax_map[0];
         regs->qpmap0.qpmin_area1 = h265->qpmin_map[1];
         regs->qpmap0.qpmax_area1 = h265->qpmax_map[1];
         regs->qpmap0.qpmin_area2 = h265->qpmin_map[2];
@@ -949,7 +857,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
     H265eV541RegSet *regs = NULL;
     H265eV541IoctlRegInfo *ioctl_reg_info = NULL;
-    RcHalCfg *hal_cfg = (RcHalCfg *)ctx->rc_hal_cfg;
+    EncRcTaskInfo *hal_cfg = (EncRcTaskInfo *)ctx->rc_hal_cfg;
     H265eV541IoctlInput *ioctl_info = (H265eV541IoctlInput *)ctx->ioctl_input;
     H265eV541RegSet *reg_list = (H265eV541RegSet *)ctx->regs;
     MppBuffer mv_info_buf = enc_task->mv_info;
@@ -1127,7 +1035,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     }
     vepu541_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep);
 
-    vepu541_h265_set_rc_regs(ctx, regs, syn);
+    vepu541_h265_set_rc_regs(ctx, regs, task);
 
     vepu541_h265_set_slice_regs(syn, regs);
 
@@ -1137,7 +1045,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     /* ROI configure */
     vepu541_h265_set_roi_regs(ctx, regs);
 
-    memcpy(&hal_cfg[ctx->frame_cnt_gen_ready], task->hal_ret.data, sizeof(RcHalCfg));
+    memcpy(&hal_cfg[ctx->frame_cnt_gen_ready], &task->rc_task->info, sizeof(EncRcTaskInfo));
 
     ctx->frame_cnt_gen_ready++;
 
@@ -1248,15 +1156,15 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
 {
     RK_U32 k = 0;
     H265eV541IoctlOutputElem *elem = NULL;
-    RcHalCfg *hal_cfg = (RcHalCfg *)ctx->rc_hal_cfg;
+    EncRcTaskInfo *hal_cfg = (EncRcTaskInfo *)ctx->rc_hal_cfg;
+    EncRcTaskInfo *hal_rc_ret = (EncRcTaskInfo *)&enc_task->rc_task->info;
     vepu541_h265_fbk *fb = &ctx->feedback;
     h265e_hal_enter();
     MppEncCfgSet    *cfg = ctx->cfg;
     RK_S32 mb64_num = ((cfg->prep.width + 63) / 64) * ((cfg->prep.height + 63) / 64);
-    RK_S32 mb8_num = (mb64_num << 6);
-    RK_S32 mb4_num = (mb8_num << 2);
+    // RK_S32 mb8_num = (mb64_num << 6);
+    // RK_S32 mb4_num = (mb8_num << 2);
     (void)enc_task;
-
     for (k = 0; k < ctx->num_frames_to_send; k++) {
         elem = &out->elem[k];
         fb->qp_sum = elem->st_sse_qp.qp_sum;
@@ -1313,22 +1221,22 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
         fb->st_lvl4_intra_num  = elem->st_lvl4_intra_num;
         memcpy(&fb->st_cu_num_qp[0], &elem->st_cu_num_qp[0], sizeof(elem->st_cu_num_qp));
 
-        hal_cfg[k].madi = fb->st_madi;
-        hal_cfg[k].madp = fb->st_madp;
-
-        hal_cfg[k].bit_real = fb->out_hw_strm_size * 8;
+        hal_cfg[k].madi = hal_rc_ret->madi = fb->st_madi;
+        hal_cfg[k].madp = hal_rc_ret->madp = fb->st_madp;
+        hal_cfg[k].bit_real = hal_rc_ret->bit_real = fb->out_hw_strm_size * 8;
         if (mb64_num > 0) {
-            hal_cfg[k].intra_lv4_prop  = ((fb->st_lvl4_intra_num + (fb->st_lvl8_intra_num << 2) +
+
+            /*hal_cfg[k].intra_lv4_prop  = ((fb->st_lvl4_intra_num + (fb->st_lvl8_intra_num << 2) +
                                            (fb->st_lvl16_intra_num << 4) +
                                            (fb->st_lvl32_intra_num << 6)) << 8) / mb4_num;
 
             hal_cfg[k].inter_lv8_prop = ((fb->st_lvl8_inter_num + (fb->st_lvl16_inter_num << 2) +
                                           (fb->st_lvl32_inter_num << 4) +
-                                          (fb->st_lvl64_inter_num << 6)) << 8) / mb8_num;
+                                          (fb->st_lvl64_inter_num << 6)) << 8) / mb8_num;*/
 
-            hal_cfg[k].quality_real = (fb->qp_sum << 6) / mb64_num;
-
-            hal_cfg[k].sse          = fb->sse_sum / mb64_num;
+            hal_cfg[k].quality_real = fb->qp_sum / mb64_num;
+            hal_rc_ret->bit_real    = hal_cfg[k].quality_real;
+            // hal_cfg[k].sse          = fb->sse_sum / mb64_num;
         }
     }
 
@@ -1408,7 +1316,7 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     H265eSyntax_new *syn = (H265eSyntax_new *)task->syntax.data;
     MppFrame frame = task->frame;
     MppMeta meta = mpp_frame_get_meta(frame);
-    H265eFrmInfo *frms = &syn->frms;
+    EncFrmStatus  *frm_status = &task->rc_task->frm;
 
     h265e_hal_enter();
     if ((!ctx->alloc_flg)) {
@@ -1421,7 +1329,7 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         ctx->alloc_flg = 1;
     }
     ctx->last_frame_type = ctx->frame_type;
-    if (frms->status.is_intra) {
+    if (frm_status->is_intra) {
         ctx->frame_type = INTRA_FRAME;
     } else {
         ctx->frame_type = INTER_P_FRAME;

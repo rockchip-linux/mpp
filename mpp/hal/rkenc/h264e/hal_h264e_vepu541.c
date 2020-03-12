@@ -63,7 +63,7 @@ typedef struct HalH264eVepu541Ctx_t {
     RcSyntax                *rc_syn;
 
     /* syntax for output to enc_impl */
-    RcHalCfg                hal_rc_cfg;
+    EncRcTaskInfo                hal_rc_cfg;
 
     /* roi */
     MppEncROICfg            *roi_data;
@@ -428,7 +428,6 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg013.cur_frm_ref    = slice->nal_reference_idc > 0;
     regs->reg013.bs_scp         = 1;
     regs->reg013.lamb_mod_sel   = (slice->slice_type == H264_I_SLICE) ? 0 : 1;
-    regs->reg013.pic_qp         = pps->pic_init_qp + slice->qp_delta;
     regs->reg013.atr_thd_sel    = 0;
     regs->reg013.node_int       = 0;
 
@@ -534,13 +533,18 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps)
+static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
+                                  EncRcTask *rc_task)
 {
-    RK_U32 qp_min = 9;
-    RK_U32 qp_max = 51;
+    EncRcTaskInfo *rc_info = &rc_task->info;
+    RK_U32 qp_target = rc_info->quality_target;
+    RK_U32 qp_min = rc_info->quality_max;
+    RK_U32 qp_max = rc_info->quality_min;
     RK_U32 qpmap_mode = 1;
 
     hal_h264e_dbg_func("enter\n");
+
+    regs->reg013.pic_qp         = qp_target;
 
     regs->reg050.rc_en          = 0;
     regs->reg050.aq_en          = 0;
@@ -1100,7 +1104,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_prep(regs, &ctx->cfg->prep);
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
-    setup_vepu541_rc_base(regs, sps);
+    setup_vepu541_rc_base(regs, sps, task->rc_task);
     setup_vepu541_orig(regs, ctx->dev_ctx, &ctx->dev_patch, task->frame);
     setup_vepu541_roi(regs, ctx);
     setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,

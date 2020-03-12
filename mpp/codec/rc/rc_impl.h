@@ -18,7 +18,11 @@
 #define __RC_IMPL_H__
 
 #include "mpp_list.h"
-#include "rc_api.h"
+#include "mpp_rc_api.h"
+
+#define MAX_RC_API_COUNT        32
+
+#ifdef __cplusplus
 
 class RcImplApiService
 {
@@ -44,8 +48,22 @@ public:
         return &lock;
     }
 
-    MPP_RET             api_add(const RcImplApi *api);
-    const RcImplApi     *api_get(MppCodingType type, const char *name);
+    MPP_RET     api_add(const RcImplApi *api);
+    RcImplApi   *api_get(MppCodingType type, const char *name);
+
+    MPP_RET     api_get_all(RcApiBrief *brief, RK_S32 *count, RK_S32 max_count);
+    MPP_RET     api_get_by_type(RcApiBrief *brief, RK_S32 *count,
+                                RK_S32 max_count, MppCodingType type);
 };
+
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __RC_IMPL_H__ */

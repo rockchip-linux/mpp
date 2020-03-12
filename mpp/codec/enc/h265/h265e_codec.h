@@ -25,7 +25,6 @@
 #include "h265e_syntax_new.h"
 #include "h265e_dpb.h"
 #include "enc_impl_api.h"
-#include "rc_api.h"
 
 #define H265E_DBG_FUNCTION          (0x00000001)
 #define H265E_DBG_INPUT             (0x00000010)
@@ -60,7 +59,6 @@ typedef struct H265eCtx_t {
     MppEncCfgSet        *set;
     MppDeviceId         dev_id;
     MppRateControl      *rc;
-    RcCtx               rc_ctx;
     RK_U32              rc_ready;
     RK_S32              idr_request;
 

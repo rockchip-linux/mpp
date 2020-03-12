@@ -73,9 +73,6 @@ typedef struct {
     /* output to hal */
     RK_S32              syn_num;
     H264eSyntaxDesc     syntax[H264E_SYN_BUTT];
-
-    /* input from hal */
-    RcHalCfg            hal_rc_cfg;
 } H264eCtx;
 
 static void init_h264e_cfg_set(MppEncCfgSet *cfg)
@@ -181,11 +178,6 @@ static MPP_RET h264e_deinit(void *ctx)
     H264eCtx *p = (H264eCtx *)ctx;
 
     h264e_dbg_func("enter\n");
-
-    if (p->rc_ctx) {
-        rc_deinit(p->rc_ctx);
-        p->rc_ctx = NULL;
-    }
 
     if (p->hdr_pkt)
         mpp_packet_deinit(&p->hdr_pkt);
@@ -447,10 +439,7 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     p->hdr_len = mpp_packet_get_length(p->hdr_pkt);
 
     if (pkt) {
-        void *dst = mpp_packet_get_data(pkt);
-        void *src = p->hdr_buf;
-
-        memcpy(dst, src, p->hdr_len);
+        mpp_packet_write(pkt, 0, p->hdr_buf, p->hdr_len);
         mpp_packet_set_length(pkt, p->hdr_len);
     }
 
@@ -458,103 +447,17 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     return MPP_OK;
 }
 
-static void set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
-{
-    switch (rc->rc_mode) {
-    case MPP_ENC_RC_MODE_CBR : {
-        cfg->mode = RC_CBR;
-    } break;
-    case MPP_ENC_RC_MODE_VBR : {
-        cfg->mode = RC_VBR;
-    } break;
-    default : {
-        cfg->mode = RC_AVBR;
-    } break;
-    }
-
-    cfg->fps.fps_in_flex    = rc->fps_in_flex;
-    cfg->fps.fps_in_num     = rc->fps_in_num;
-    cfg->fps.fps_in_denorm  = rc->fps_in_denorm;
-    cfg->fps.fps_out_flex   = rc->fps_out_flex;
-    cfg->fps.fps_out_num    = rc->fps_out_num;
-    cfg->fps.fps_out_denorm = rc->fps_out_denorm;
-    cfg->igop               = rc->gop;
-
-    mpp_log_f("fps_in_flex    %d\n", cfg->fps.fps_in_flex);
-    mpp_log_f("fps_in_num     %d\n", cfg->fps.fps_in_num);
-    mpp_log_f("fps_in_denorm  %d\n", cfg->fps.fps_in_denorm);
-    mpp_log_f("fps_out_flex   %d\n", cfg->fps.fps_out_flex);
-    mpp_log_f("fps_out_num    %d\n", cfg->fps.fps_out_num);
-    mpp_log_f("fps_out_denorm %d\n", cfg->fps.fps_out_denorm);
-
-    cfg->bps_target     = rc->bps_target;
-    cfg->bps_max        = rc->bps_max;
-    cfg->bps_min        = rc->bps_min;
-    cfg->stat_times     = 1;
-
-    if (ref->gop_cfg_enable)
-        cfg->vgop       = ref->ref_gop_len;
-    else
-        cfg->vgop       = 0;
-
-    if (ref->layer_rc_enable) {
-        RK_S32 i;
-
-        for (i = 0; i < MAX_TEMPORAL_LAYER; i++) {
-            cfg->layer_bit_prop[i] = ref->layer_weight[i];
-        }
-    } else {
-        cfg->layer_bit_prop[0] = 256;
-        cfg->layer_bit_prop[1] = 0;
-        cfg->layer_bit_prop[2] = 0;
-        cfg->layer_bit_prop[3] = 0;
-    }
-
-    cfg->max_reencode_times = 1;
-}
-
 static MPP_RET h264e_start(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
-    MppEncCfgSet *cfg = p->cfg;
-    MppEncGopRef *ref = &cfg->gop_ref;
-    MppEncRcCfg *rc = &cfg->rc;
 
     h264e_dbg_func("enter\n");
 
-    /* Step 1: Check and update config */
-    if (rc->change || ref->change) {
-        if (p->rc_ctx) {
-            rc_deinit(p->rc_ctx);
-            p->rc_ctx = NULL;
-        }
-
-        RcCfg rc_cfg;
-
-        set_rc_cfg(&rc_cfg, rc, ref);
-
-        rc_init(&p->rc_ctx, MPP_VIDEO_CodingAVC, NULL);
-        mpp_assert(p->rc_ctx);
-
-        rc_update_usr_cfg(p->rc_ctx, &rc_cfg);
-    }
-
-    /*
-     * Step 2: Fps conversion
-     *
-     * Determine current frame which should be encoded or not according to
-     * input and output frame rate.
-     */
-    task->valid = !rc_frm_check_drop(p->rc_ctx);
-    if (!task->valid)
-        mpp_log_f("drop one frame by fps\n");
-
-    /*
-     * Step 3: Backup dpb for reencode
-     */
+    /* Backup dpb for reencode */
     h264e_dpb_copy(&p->dpb_bak, &p->dpb);
 
     h264e_dbg_func("leave\n");
+    (void) task;
 
     return MPP_OK;
 }
@@ -565,6 +468,7 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
     H264eDpb *dpb = &p->dpb;
     H264eFrmInfo *frms = &p->frms;
     H264eDpbFrmCfg frm_cfg;
+    EncFrmStatus *frm = &task->rc_task->frm;
     MppFrame frame = task->frame;
     MppMeta meta = mpp_frame_get_meta(frame);
     RK_S32 i;
@@ -597,7 +501,11 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
     frms->seq_idx = dpb->curr->seq_idx;
     frms->curr_idx = dpb->curr->slot_idx;
     frms->refr_idx = (dpb->refr) ? dpb->refr->slot_idx : frms->curr_idx;
-    frms->status = dpb->curr->status;
+
+    // update frame status for rc module
+    *frm = dpb->curr->status;
+    frm->seq_idx = dpb->curr->seq_idx;
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(frms->usage); i++)
         frms->usage[i] = dpb->frames[i].on_used;
 
@@ -616,27 +524,6 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
      * handle the case that previous encoding is not done.
      */
 
-    h264e_dbg_func("leave\n");
-
-    return MPP_OK;
-}
-
-static MPP_RET h264e_proc_rc(void *ctx, HalEncTask *task)
-{
-    H264eCtx *p = (H264eCtx *)ctx;
-    H264eFrmInfo *frms = &p->frms;
-    MppEncCfgSet *cfg = p->cfg;
-    MppEncGopRef *ref = &cfg->gop_ref;
-    MppEncRcCfg *rc = &cfg->rc;
-
-    h264e_dbg_func("enter\n");
-
-    rc_frm_start(p->rc_ctx, &frms->rc_cfg, &frms->status);
-
-    rc->change = 0;
-    ref->change = 0;
-
-    (void)task;
     h264e_dbg_func("leave\n");
 
     return MPP_OK;
@@ -668,47 +555,13 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 
 static MPP_RET h264e_update_hal(void *ctx, HalEncTask *task)
 {
-    H264eCtx *p = (H264eCtx *)ctx;
-    RcHalCfg *rc_hal_cfg = task->hal_ret.data;
+    (void) ctx;
+    (void) task;
 
     h264e_dbg_func("enter\n");
 
-    p->hal_rc_cfg = *rc_hal_cfg;
-
     h264e_dbg_func("leave\n");
 
-    return MPP_OK;
-}
-
-static MPP_RET h264e_update_rc(void *ctx, HalEncTask *task)
-{
-    H264eCtx *p = (H264eCtx *)ctx;
-
-    h264e_dbg_func("enter\n");
-
-    rc_frm_end(p->rc_ctx, &p->hal_rc_cfg);
-
-    (void)task;
-    h264e_dbg_func("leave\n");
-
-    return MPP_OK;
-}
-
-static MPP_RET h264e_reset(void *ctx)
-{
-    (void)ctx;
-
-    h264e_dbg_func("enter\n");
-    h264e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-static MPP_RET h264e_flush(void *ctx)
-{
-    (void)ctx;
-
-    h264e_dbg_func("enter\n");
-    h264e_dbg_func("leave\n");
     return MPP_OK;
 }
 
@@ -729,11 +582,9 @@ const EncImplApi api_h264e = {
     h264e_gen_hdr,
     h264e_start,
     h264e_proc_dpb,
-    h264e_proc_rc,
     h264e_proc_hal,
     h264e_update_hal,
-    h264e_update_rc,
-    h264e_reset,
-    h264e_flush,
+    NULL,
+    NULL,
     NULL,
 };

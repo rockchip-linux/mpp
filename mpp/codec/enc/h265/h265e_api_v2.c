@@ -168,9 +168,6 @@ static MPP_RET h265e_deinit(void *ctx)
         return MPP_ERR_NULL_PTR;
     }
 
-    if (p->rc_ctx)
-        rc_deinit(p->rc_ctx);
-
     h265e_deinit_extra_info(p->extra_info);
 
     MPP_FREE(p->extra_info);
@@ -199,90 +196,16 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
     return MPP_OK;
 }
 
-static void h265_set_rc_cfg(RcCfg *cfg, MppEncRcCfg *rc, MppEncGopRef *ref)
-{
-    switch (rc->rc_mode) {
-    case MPP_ENC_RC_MODE_CBR : {
-        cfg->mode = RC_CBR;
-    } break;
-    case MPP_ENC_RC_MODE_VBR : {
-        cfg->mode = RC_VBR;
-    } break;
-    case MPP_ENC_RC_MODE_FIXQP: {
-        cfg->mode = RC_FIXQP;
-    } break;
-    default : {
-        cfg->mode = RC_AVBR;
-    } break;
-    }
-
-    cfg->fps.fps_in_flex    = rc->fps_in_flex;
-    cfg->fps.fps_in_num     = rc->fps_in_num;
-    cfg->fps.fps_in_denorm  = rc->fps_in_denorm;
-    cfg->fps.fps_out_flex   = rc->fps_out_flex;
-    cfg->fps.fps_out_num    = rc->fps_out_num;
-    cfg->fps.fps_out_denorm = rc->fps_out_denorm;
-    cfg->igop               = rc->gop;
-    cfg->max_i_bit_prop     = 20;
-
-    cfg->bps_target     = rc->bps_target;
-    cfg->bps_max        = rc->bps_max;
-    cfg->bps_min        = rc->bps_min;
-
-    cfg->vgop = (ref->gop_cfg_enable) ? ref->ref_gop_len : 0;
-
-    if (ref->layer_rc_enable) {
-        RK_S32 i;
-
-        for (i = 0; i < MAX_TEMPORAL_LAYER; i++) {
-            cfg->layer_bit_prop[i] = ref->layer_weight[i];
-        }
-    } else {
-        cfg->layer_bit_prop[0] = 256;
-        cfg->layer_bit_prop[1] = 0;
-        cfg->layer_bit_prop[2] = 0;
-        cfg->layer_bit_prop[3] = 0;
-    }
-    cfg->stat_times     = rc->stat_times;
-    cfg->max_reencode_times = 1;
-}
-
-
 static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MppEncCfgSet *cfg = p->cfg;
-    MppEncGopRef *ref = &cfg->gop_ref;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncCodecCfg *codec = &p->cfg->codec;
-
     h265e_dbg_func("enter\n");
-
-    /* Step 1: Check and update config */
-    if (rc->change || ref->change) {
-        if (p->rc_ctx) {
-            rc_deinit(p->rc_ctx);
-            p->rc_ctx = NULL;
-        }
-
-        RcCfg rc_cfg;
-
-        h265_set_rc_cfg(&rc_cfg, rc, ref);
-
-        rc_init(&p->rc_ctx, MPP_VIDEO_CodingHEVC, NULL);
-        mpp_assert(p->rc_ctx);
-        rc_update_usr_cfg(p->rc_ctx, &rc_cfg);
-
-        p->rc_ready = 1;
-        rc->change = 0;
-        ref->change = 0;
-    }
-
     if (codec->change) {
         if (NULL == p->dpb) {
-
             h265e_dpb_init(&p->dpb, &p->dpbcfg);
-
         }
         if (rc->gop < 0) {
             p->dpb->idr_gap = 10000;
@@ -299,8 +222,6 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
      * input and output frame rate.
      */
 
-    if (p->rc_ctx)
-        task->valid = !rc_frm_check_drop(p->rc_ctx);
     if (!task->valid)
         mpp_log_f("drop one frame\n");
 
@@ -320,6 +241,7 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     MppFrame frame = task->frame;
     H265eDpbCfg *dpb_cfg = &p->dpbcfg;
     H265eFrmInfo *frms = &p->frms;
+    EncRcTask    *rc_task = task->rc_task;
     MppMeta meta = mpp_frame_get_meta(frame);
     RK_S32 mb_wd64, mb_h64;
 
@@ -329,10 +251,7 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     mb_h64 = (p->cfg->prep.height + 63) / 64;
 
     if (NULL == p->dpb) {
-
         h265e_dpb_init(&p->dpb, &p->dpbcfg);
-
-
     }
 
     if (p->idr_request) {
@@ -354,34 +273,12 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     h265e_slice_init(ctx, p->slice);
     h265e_dpb_build_list(p->dpb);
 
-    frms->seq_idx = p->dpb->curr->seq_idx;
-    frms->status = p->dpb->curr->status;
+    p->dpb->curr->status.seq_idx = p->dpb->curr->seq_idx;
+    rc_task->frm  = p->dpb->curr->status;
 
     frms->mb_per_frame = mb_wd64 * mb_h64;
     frms->mb_raw = mb_h64;
     frms->mb_wid = mb_wd64 ;
-
-    h265e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-static MPP_RET h265e_proc_rc(void *ctx, HalEncTask *task)
-{
-    (void)task;
-    H265eCtx *p = (H265eCtx *)ctx;
-    H265eFrmInfo *frms = &p->frms;
-    MppEncRcCfg *rc = &p->cfg->rc;
-
-    h265e_dbg_func("enter\n");
-    if (!p->rc_ready && rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-        mpp_err_f("not initialize encoding\n");
-        return MPP_NOK;
-    }
-    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-        rc_frm_start(p->rc_ctx, &frms->rc_cfg, &frms->status);
-    }
-
-    p->frms.status.reencode = 0;
 
     h265e_dbg_func("leave\n");
     return MPP_OK;
@@ -402,10 +299,6 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
     h265e_syntax_fill(ctx);
     task->valid = 1;
     task->syntax.data = syntax;
-
-    task->hal_ret.data = &p->frms.rc_cfg;
-    task->hal_ret.number = 1;
-
     h265e_dbg_func("leave ctx %p \n", ctx);
     return MPP_OK;
 }
@@ -428,25 +321,6 @@ static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
     if (user_data && user_data->len)
         h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
 
-    h265e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-static MPP_RET h265e_update_rc(void *ctx, HalEncTask *task)
-{
-    H265eCtx *p = (H265eCtx *)ctx;
-    MppEncRcCfg *rc = &p->cfg->rc;
-    RcHalCfg *rc_hal_cfg = NULL;
-
-    h265e_dbg_func("enter\n");
-
-    rc_hal_cfg = (RcHalCfg *)task->hal_ret.data;
-    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-        rc_frm_end(p->rc_ctx, rc_hal_cfg);
-        if (rc_hal_cfg->need_reenc) {
-            p->frms.status.reencode = 1;
-        }
-    }
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }
@@ -651,10 +525,8 @@ const EncImplApi api_h265e = {
     h265e_gen_hdr,
     h265e_start,
     h265e_proc_dpb,
-    h265e_proc_rc,
     h265e_proc_hal,
     h265e_update_hal,
-    h265e_update_rc,
     h265e_reset,
     h265e_flush,
     NULL,

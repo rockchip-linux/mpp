@@ -211,8 +211,6 @@ typedef struct H265eFrmInfo_s {
     RK_S32              frame_type;
     RK_S32              last_frame_type;
 
-    RcHalCfg            rc_cfg;
-    EncFrmStatus        status;
     RK_S32              usage[MAX_REFS + 1];
 } H265eFrmInfo;
 

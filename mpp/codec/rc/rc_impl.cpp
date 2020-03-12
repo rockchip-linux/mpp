@@ -37,8 +37,21 @@ typedef struct RcImplApiNode_t {
     struct list_head    list;
     char                name[32];
     MppCodingType       type;
+    RcApiBrief          brief;
     RcImplApi           api;
 } RcImplApiNode;
+
+static void set_node_api(RcImplApiNode *node, const RcImplApi *api)
+{
+    node->api = *api;
+    node->type = api->type;
+
+    strncpy(node->name, api->name, sizeof(node->name) - 1);
+    node->api.name = api->name;
+
+    node->brief.type = api->type;
+    node->brief.name = api->name;
+}
 
 RcImplApiService::RcImplApiService()
 {
@@ -75,29 +88,38 @@ MPP_RET RcImplApiService::api_add(const RcImplApi *api)
         return MPP_NOK;
     }
 
-    RcImplApiNode *node = mpp_malloc(RcImplApiNode, 1);
-    if (NULL == node) {
-        mpp_err_f("failed to create api node\n");
-        return MPP_NOK;
+    /* search for same node for replacement */
+    RcImplApiNode *node = NULL;
+    RcImplApi *node_api = api_get(api->type, api->name);
+
+    if (NULL == node_api) {
+        node = mpp_malloc(RcImplApiNode, 1);
+        if (NULL == node) {
+            mpp_err_f("failed to create api node\n");
+            return MPP_NOK;
+        }
+
+        INIT_LIST_HEAD(&node->list);
+        list_add_tail(&node->list, &mApis);
+
+        mApiCount++;
+        rc_dbg_impl("rc impl %s type %x is added\n", api->name, api->type);
+    } else {
+        node = container_of(node_api, RcImplApiNode, api);
+        rc_dbg_impl("rc impl %s type %x is updated\n", api->name, api->type);
     }
 
-    INIT_LIST_HEAD(&node->list);
-    node->api = *api;
-    node->type = api->type;
-    strncpy(node->name, api->name, sizeof(node->name) - 1);
-    node->api.name = api->name;
-
-    rc_dbg_impl("rc impl %s type %x is added\n", api->name, api->type);
-
-    list_add_tail(&node->list, &mApis);
-    mApiCount++;
+    set_node_api(node, api);
 
     return MPP_OK;
 }
 
-const RcImplApi *RcImplApiService::api_get(MppCodingType type, const char *name)
+RcImplApi *RcImplApiService::api_get(MppCodingType type, const char *name)
 {
     AutoMutex auto_lock(get_lock());
+
+    if (!mApiCount)
+        return NULL;
 
     if (name) {
         RcImplApiNode *pos, *n;
@@ -106,12 +128,99 @@ const RcImplApi *RcImplApiService::api_get(MppCodingType type, const char *name)
             if (type == pos->type &&
                 !strncmp(name, pos->name, sizeof(pos->name) - 1)) {
                 rc_dbg_impl("rc impl %s is selected\n", pos->name);
-                return (const RcImplApi *)&pos->api;
+                return &pos->api;
             }
         }
     }
 
-    mpp_err_f("failed to find rc impl %s\n", name);
+    rc_dbg_impl("failed to find rc impl %s type %x\n", name, type);
 
     return NULL;
+}
+
+MPP_RET RcImplApiService::api_get_all(RcApiBrief *brief, RK_S32 *count, RK_S32 max_count)
+{
+    RK_S32 cnt = 0;
+    RcImplApiNode *pos, *n;
+
+    AutoMutex auto_lock(get_lock());
+
+    list_for_each_entry_safe(pos, n, &mApis, RcImplApiNode, list) {
+        if (cnt >= max_count)
+            break;
+
+        brief[cnt++] = pos->brief;
+    }
+
+    *count = cnt;
+
+    return MPP_OK;
+}
+
+MPP_RET RcImplApiService::api_get_by_type(RcApiBrief *brief, RK_S32 *count,
+                                          RK_S32 max_count, MppCodingType type)
+{
+    RK_S32 cnt = 0;
+    RcImplApiNode *pos, *n;
+
+    AutoMutex auto_lock(get_lock());
+
+    list_for_each_entry_safe(pos, n, &mApis, RcImplApiNode, list) {
+        if (cnt >= max_count)
+            break;
+
+        if (pos->type != type)
+            continue;
+
+        brief[cnt++] = pos->brief;
+    }
+
+    *count = cnt;
+
+    return MPP_OK;
+}
+
+MPP_RET rc_api_add(const RcImplApi *api)
+{
+    return RcImplApiService::get_instance()->api_add(api);
+}
+
+MPP_RET rc_brief_get_all(RcApiQueryAll *query)
+{
+    if (NULL == query) {
+        mpp_err_f("invalide NULL query input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    RcApiBrief *brief = query->brief;
+    RK_S32 *count = &query->count;
+    RK_S32 max_count = query->max_count;
+
+    if (NULL == brief || max_count <= 0) {
+        mpp_err_f("invalide brief buffer %p max count %d\n", brief, max_count);
+        return MPP_NOK;
+    }
+
+    return RcImplApiService::get_instance()->api_get_all(brief, count, max_count);
+}
+
+MPP_RET rc_brief_get_by_type(RcApiQueryType *query)
+{
+    if (NULL == query) {
+        mpp_err_f("invalide NULL query input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    RcApiBrief *brief = query->brief;
+    RK_S32 *count = &query->count;
+    RK_S32 max_count = query->max_count;
+    MppCodingType type = query->type;
+
+    if (NULL == brief || max_count <= 0) {
+        mpp_err_f("invalide brief buffer %p max count %d type %x\n",
+                  brief, max_count, type);
+        return MPP_NOK;
+    }
+
+    return RcImplApiService::get_instance()->api_get_by_type(brief, count, max_count, type);
 }

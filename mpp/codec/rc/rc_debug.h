@@ -33,9 +33,9 @@
 
 #define rc_dbg_func(fmt, ...)       rc_dbg_f(RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define rc_dbg_impl(fmt, ...)       rc_dbg_f(RC_DBG_API_IMPL, fmt, ## __VA_ARGS__)
-#define rc_dbg_fps(fmt, ...)        rc_dbg(RC_DBG_FPS, fmt, ## __VA_ARGS__)
-#define rc_dbg_bps(fmt, ...)        rc_dbg(RC_DBG_BPS, fmt, ## __VA_ARGS__)
-#define rc_dbg_rc(fmt, ...)         rc_dbg(RC_DBG_RC, fmt, ## __VA_ARGS__)
+#define rc_dbg_fps(fmt, ...)        rc_dbg_f(RC_DBG_FPS, fmt, ## __VA_ARGS__)
+#define rc_dbg_bps(fmt, ...)        rc_dbg_f(RC_DBG_BPS, fmt, ## __VA_ARGS__)
+#define rc_dbg_rc(fmt, ...)         rc_dbg_f(RC_DBG_RC, fmt, ## __VA_ARGS__)
 #define rc_dbg_cfg(fmt, ...)        rc_dbg(RC_DBG_CFG, fmt, ## __VA_ARGS__)
 #define rc_dbg_vbv(fmt, ...)        rc_dbg(RC_DBG_VBV, fmt, ## __VA_ARGS__)
 

@@ -67,11 +67,9 @@ typedef struct EncImplApi_t {
 
     MPP_RET (*start)(void *ctx, HalEncTask *task);
     MPP_RET (*proc_dpb)(void *ctx, HalEncTask *task);
-    MPP_RET (*proc_rc)(void *ctx, HalEncTask *task);
     MPP_RET (*proc_hal)(void *ctx, HalEncTask *task);
 
     MPP_RET (*update_hal)(void *ctx, HalEncTask *task);
-    MPP_RET (*update_rc)(void *ctx, HalEncTask *task);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);

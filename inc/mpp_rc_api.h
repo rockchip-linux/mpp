@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __RC_API_H__
-#define __RC_API_H__
+#ifndef __MPP_RC_API_H__
+#define __MPP_RC_API_H__
 
-#include "mpp_enc_cfg.h"
+#include "mpp_err.h"
+#include "mpp_rc_defs.h"
 
 /*
  * Mpp rate control has three parts:
@@ -92,6 +93,10 @@ typedef struct RcFpsCfg_t {
  * It will be updated on rc/prep/gopref config changed.
  */
 typedef struct RcCfg_s {
+    /* encode image size */
+    RK_S32      width;
+    RK_S32      height;
+
     /* Use rc_mode to find different api */
     RcMode      mode;
 
@@ -115,6 +120,7 @@ typedef struct RcCfg_s {
     RK_S32      layer_bit_prop[4];
 
     /* quality parameter */
+    RK_S32      init_quality;
     RK_S32      max_quality;
     RK_S32      min_quality;
     RK_S32      max_i_quality;
@@ -141,38 +147,7 @@ typedef struct RcCfg_s {
 } RcCfg;
 
 /*
- * Bit and quality of each frame for each frame encoding
- *
- * Quality is not equal to qp.
- * Different codec and hardware will translate it to different meaning.
- */
-typedef struct RcHalCfg_s {
-    RK_S32      seq_idx;
-
-    RK_S32      bit_target;
-    RK_S32      bit_max;
-    RK_S32      bit_min;
-    RK_S32      bit_real;
-
-    RK_S32      quality_target;
-    RK_S32      quality_max;
-    RK_S32      quality_min;
-    RK_S32      quality_real;        /*scale 64 */
-
-    RK_S32      inter_lv8_prop;     /*scale 256 */
-    RK_S32      intra_lv4_prop;     /*scale 256 */
-    RK_S32      sse;
-    RK_S32      madi;
-    RK_S32      madp;               /*scale 256 */
-
-    RK_S32      next_i_ratio;
-    RK_S32      next_ratio;
-    RK_S32      need_reenc;
-} RcHalCfg;
-
-/*
- * Different rate control strategy like CBR/VBR/AVBR/QVBR/CVBR will be
- * implemented by different api structure
+ * Different rate control strategy will be implemented by different API config
  */
 typedef struct RcImplApi_t {
     char            *name;
@@ -182,14 +157,64 @@ typedef struct RcImplApi_t {
     MPP_RET         (*init)(void *ctx, RcCfg *cfg);
     MPP_RET         (*deinit)(void *ctx);
 
+    MPP_RET         (*check_drop)(void *ctx, EncRcTask *task);
+
     /*
-     * start - frame level rate control start.
-     *         The RcHalCfg will be output to hal for hardware to implement.
-     * end   - frame level rate control end
-     *         The RcHalCfg is returned for real quality and bitrate.
+     * frm_start -  frame level rate control frm_start.
+     *              The EncRcTaskInfo will be output to hal for hardware to implement.
+     * frm_end   -  frame level rate control frm_end.
+     *              The EncRcTaskInfo is returned for real quality and bitrate.
      */
-    MPP_RET         (*start)(void *ctx, RcHalCfg *cfg, EncFrmStatus *frm);
-    MPP_RET         (*end)(void *ctx, RcHalCfg *cfg);
+    MPP_RET         (*frm_start)(void *ctx, EncRcTask *task);
+    MPP_RET         (*frm_end)(void *ctx, EncRcTask *task);
+
+    /*
+     * hal_start -  hardware level rate control start.
+     *              The EncRcTaskInfo will be output to hal for hardware to implement.
+     * hal_end   -  hardware level rate control end.
+     *              The EncRcTaskInfo is returned for real quality and bitrate.
+     */
+    MPP_RET         (*hal_start)(void *ctx, EncRcTask *task);
+    MPP_RET         (*hal_end)(void *ctx, EncRcTask *task);
 } RcImplApi;
 
-#endif /* __RC_API_H__ */
+/*
+ * structures for RC API register and query
+ */
+typedef struct RcApiBrief_t {
+    const char      *name;
+    MppCodingType   type;
+} RcApiBrief;
+
+typedef struct RcApiQueryAll_t {
+    /* input param for query */
+    RcApiBrief      *brief;
+    RK_S32          max_count;
+
+    /* output query count */
+    RK_S32          count;
+} RcApiQueryAll;
+
+typedef struct RcApiQueryType_t {
+    /* input param for query */
+    RcApiBrief      *brief;
+    RK_S32          max_count;
+    MppCodingType   type;
+
+    /* output query count */
+    RK_S32          count;
+} RcApiQueryType;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MPP_RET rc_api_add(const RcImplApi *api);
+MPP_RET rc_brief_get_all(RcApiQueryAll *query);
+MPP_RET rc_brief_get_by_type(RcApiQueryType *query);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __MPP_RC_API_H__ */

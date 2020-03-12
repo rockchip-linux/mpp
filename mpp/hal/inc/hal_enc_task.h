@@ -19,6 +19,7 @@
 #define __HAL_ENC_TASK__
 
 #include "hal_task_defs.h"
+#include "mpp_rc_defs.h"
 
 #define HAL_ENC_TASK_ERR_INIT         0x00000001
 #define HAL_ENC_TASK_ERR_ALLOC        0x00000010
@@ -28,12 +29,14 @@
 #define HAL_ENC_TASK_ERR_WAIT         0x00100000
 
 typedef struct HalEncTaskFlag_t {
-    RK_U32 err;
+    RK_U32          err;
 } HalEncTaskFlag;
 
 typedef struct HalEncTask_t {
     RK_U32          valid;
-    RK_U32          reencode;
+
+    // rate control data channel
+    EncRcTask       *rc_task;
 
     // current tesk protocol syntax information
     MppSyntax       syntax;

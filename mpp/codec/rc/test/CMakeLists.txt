@@ -21,3 +21,6 @@ endmacro()
 
 # mpp rc unit test
 add_mpp_rc_test(rc_base)
+
+# mpp rc api test
+add_mpp_rc_test(rc_api)

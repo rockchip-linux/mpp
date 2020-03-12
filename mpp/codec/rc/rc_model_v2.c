@@ -48,51 +48,55 @@ RK_S32 tab_lnx[64] = {
 };
 
 typedef struct RcModelV2Ctx_t {
-    RcCfg        usr_cfg;
-    RcHalCfg     hal_cfg;
+    RcCfg           usr_cfg;
+    EncRcTaskInfo   hal_cfg;
 
-    RK_U32       frame_type;
-    RK_U32       last_frame_type;
-    RK_S64       gop_total_bits;
-    RK_U32       bit_per_frame;
+    RK_U32          frame_type;
+    RK_U32          last_frame_type;
+    RK_S64          gop_total_bits;
+    RK_U32          bit_per_frame;
 
-    MppDataV2    *i_bit;
-    RK_U32       i_sumbits;
-    RK_U32       i_scale;
+    MppDataV2       *i_bit;
+    RK_U32          i_sumbits;
+    RK_U32          i_scale;
 
-    MppDataV2    *idr_bit;
-    RK_U32       idr_sumbits;
-    RK_U32       idr_scale;
+    MppDataV2       *idr_bit;
+    RK_U32          idr_sumbits;
+    RK_U32          idr_scale;
 
-    MppDataV2    *p_bit;
-    RK_U32       p_sumbits;
-    RK_U32       p_scale;
+    MppDataV2       *p_bit;
+    RK_U32          p_sumbits;
+    RK_U32          p_scale;
 
-    MppDataV2    *pre_p_bit;
+    MppDataV2       *pre_p_bit;
 
-    RK_S32       target_bps;
-    RK_S32       pre_target_bits;
-    RK_S32       pre_real_bits;
-    RK_S32       frm_bits_thr;
-    RK_S32       ins_bps;
-    RK_S32       last_inst_bps;
-    RK_U32       water_level_thr;
+    RK_S32          target_bps;
+    RK_S32          pre_target_bits;
+    RK_S32          pre_real_bits;
+    RK_S32          frm_bits_thr;
+    RK_S32          ins_bps;
+    RK_S32          last_inst_bps;
+    RK_U32          water_level_thr;
 
-    MppDataV2    *stat_bits;
-    MppDataV2    *stat_rate;
-    RK_S32       stat_watl_thrd;
-    RK_S32       stat_watl;
-    RK_S32       stat_last_watl;
+    MppDataV2       *stat_bits;
+    MppDataV2       *stat_rate;
+    RK_S32          stat_watl_thrd;
+    RK_S32          stat_watl;
+    RK_S32          stat_last_watl;
 
-    RK_S32       next_i_ratio;      // scale 64
-    RK_S32       next_ratio;        // scale 64
-    RK_S32       pre_i_qp;
-    RK_S32       pre_p_qp;
-    RK_S32       scale_qp;          // scale 64
-    MppDataV2    *means_qp;
+    RK_S32          next_i_ratio;      // scale 64
+    RK_S32          next_ratio;        // scale 64
+    RK_S32          pre_i_qp;
+    RK_S32          pre_p_qp;
+    RK_S32          scale_qp;          // scale 64
+    MppDataV2       *means_qp;
 
-    RK_U32       frm_num;
-    RK_S32       reenc_cnt;
+    /*qp decision*/
+    RK_S32          cur_scale_qp;
+    RK_S32          start_qp;
+    RK_S32          prev_quality;
+
+    RK_S32          reenc_cnt;
 } RcModelV2Ctx;
 
 MPP_RET bits_model_deinit(RcModelV2Ctx *ctx)
@@ -149,7 +153,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     if (ctx->usr_cfg.max_i_bit_prop <= 0)
         ctx->usr_cfg.max_i_bit_prop = 20;
 
-    rc_dbg_rc("gop_len %d ctx->usr_cfg.stat_times %d \n", gop_len, ctx->usr_cfg.stat_times);
     stat_len = fps->fps_in_num * ctx->usr_cfg.stat_times;
     if (ctx->usr_cfg.mode == RC_CBR) {
         target_bps = ctx->usr_cfg.bps_target;
@@ -163,8 +166,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         gop_bits = fps->fps_in_num * target_bps * fps->fps_out_denorm;
 
     ctx->gop_total_bits = gop_bits / fps->fps_out_num;
-    mpp_log("gop_total_bits = %lld, gop_len %d fps->fps_out_denorm %d, fps->fps_out_num %d",  ctx->gop_total_bits, gop_len,
-            fps->fps_out_denorm, fps->fps_out_num);
 
     bits_model_deinit(ctx);
     mpp_data_init_v2(&ctx->i_bit, I_WINDOW_LEN);
@@ -206,7 +207,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->stat_watl_thrd = total_stat_bits;
     ctx->stat_watl = total_stat_bits >> 3;
 
-    mpp_log("bit_per_frame = %d",  ctx->bit_per_frame);
+    rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
+              ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,
+              ctx->usr_cfg.stat_times);
 
     if (gop_len <= 1)
         p_bit = ctx->gop_total_bits * 16;
@@ -220,7 +223,8 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     mpp_data_reset_v2(ctx->i_bit, p_bit * ctx->i_scale / 16);
 
     ctx->i_sumbits = 2 * p_bit * ctx->i_scale / 16;
-    rc_dbg_rc("ctx->p_sumbits %d,ctx->i_sumbits %d", ctx->p_sumbits, ctx->i_sumbits);
+
+    rc_dbg_rc("p_sumbits %d i_sumbits %d\n", ctx->p_sumbits, ctx->i_sumbits);
 
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
@@ -231,6 +235,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
     RK_S32 water_level = 0, last_water_level;
 
     rc_dbg_func("enter %p\n", ctx);
+
     mpp_data_update_v2(ctx->stat_rate, real_bit != 0);
     mpp_data_update_v2(ctx->stat_bits, real_bit);
     last_water_level = ctx->stat_last_watl;
@@ -249,9 +254,9 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
     case INTRA_FRAME: {
         mpp_data_update_v2(ctx->i_bit, real_bit);
         ctx->i_sumbits = mpp_data_sum_v2(ctx->i_bit);
-        rc_dbg_rc("ctx->i_sumbits %d ctx->p_sumbits %d", ctx->i_sumbits, ctx->p_sumbits);
         ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
-        rc_dbg_rc("ctx->i_scale %d", ctx->i_scale);
+        rc_dbg_rc("i_sumbits %d p_sumbits %d i_scale %d\n",
+                  ctx->i_sumbits, ctx->p_sumbits, ctx->i_scale);
     } break;
 
     case INTER_P_FRAME: {
@@ -268,7 +273,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
     return MPP_OK;
 }
 
-MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, RcHalCfg *cfg)
+MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_U32 max_i_prop = ctx->usr_cfg.max_i_bit_prop * 16;
     RK_U32 gop_len = ctx->usr_cfg.igop;
@@ -399,7 +404,7 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
-MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, RcHalCfg *cfg)
+MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
@@ -510,7 +515,7 @@ MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
-MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, RcHalCfg *cfg)
+MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
@@ -557,7 +562,7 @@ MPP_RET bits_mode_reset(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
-MPP_RET check_re_enc(RcModelV2Ctx *ctx, RcHalCfg *cfg)
+MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 frame_type = ctx->frame_type;
     RK_S32 i_flag = 0;
@@ -633,47 +638,181 @@ MPP_RET rc_model_v2_deinit(void *ctx)
     return MPP_OK;
 }
 
-MPP_RET rc_model_v2_start(void *ctx, RcHalCfg *cfg, EncFrmStatus *frm)
+MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
 {
-    rc_dbg_func("enter %p\n", ctx);
     RcModelV2Ctx *p = (RcModelV2Ctx*)ctx;
+    EncFrmStatus *frm = &task->frm;
+    EncRcTaskInfo *info = &task->info;
 
-    cfg->need_reenc = 0;
+    rc_dbg_func("enter %p\n", ctx);
+
 
     if (frm->reencode || p->usr_cfg.mode == RC_FIXQP) {
+        frm->reencode = 0;
         return MPP_OK;
     }
-    if (frm->is_intra) {
-        p->frame_type = INTRA_FRAME;
-    } else {
-        p->frame_type = INTER_P_FRAME;
-    }
 
-    bits_model_alloc(p, cfg);
+    p->frame_type = (frm->is_intra) ? (INTRA_FRAME) : (INTER_P_FRAME);
 
-    rc_dbg_rc("cfg->bit_target = %d", cfg->bit_target);
-    cfg->next_ratio = 0;
+    /* bitrate allocation */
+    bits_model_alloc(p, info);
+
+    p->next_ratio = 0;
     if (p->last_frame_type == INTRA_FRAME) {
         calc_next_i_ratio(p);
-        cfg->next_i_ratio = p->next_i_ratio;
     }
-    if (p->frm_num) {
+
+    if (frm->seq_idx) {
         if (p->usr_cfg.mode == RC_CBR) {
             calc_cbr_ratio(p);
         } else {
             calc_vbr_ratio(p);
         }
     }
-    cfg->next_ratio = p->next_ratio;
-    p->frm_num++;
+
+    /* quality determination */
+    if (!frm->seq_idx)
+        info->quality_target = -1;
+
+    info->quality_max = p->usr_cfg.max_quality;
+    info->quality_min = p->usr_cfg.min_quality;
+
+    rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
+    rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
+    rc_dbg_rc("quality [%d : %d : %d]\n", info->quality_min, info->quality_target, info->quality_max);
+
     p->reenc_cnt = 0;
+
+    rc_dbg_func("leave %p\n", ctx);
+
+    return MPP_OK;
+}
+
+static RK_U32 mb_num[12] = {
+    0,      200,    700,    1200,
+    2000,   4000,   8000,   16000,
+    20000,  20000,  20000,  20000,
+};
+
+static RK_U32 tab_bit[12] = {
+    0xEC4,  0xDF2,  0xC4E,  0xB7C,
+    0xAAA,  0xEC4,  0x834,  0x690,
+    0x834,  0x834,  0x834,  0x834,
+};
+
+static RK_U8 qp_table[96] = {
+    0xF,  0xF,  0xF,  0xF,  0xF,  0x10, 0x12, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x19, 0x1A, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E,
+    0x1E, 0x1F, 0x1F, 0x20, 0x20, 0x21, 0x21, 0x21, 0x22, 0x22, 0x22,
+    0x22, 0x23, 0x23, 0x23, 0x24, 0x24, 0x24, 0x24, 0x24, 0x25, 0x25,
+    0x25, 0x25, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27,
+    0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29,
+    0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B,
+    0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C,
+    0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D,
+};
+
+static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
+{
+    RK_S32 cnt = 0;
+    RK_S32 index;
+    RK_S32 i;
+
+    for (i = 0; i < 11; i++) {
+        if (mb_num[i] > total_mb)
+            break;
+        cnt++;
+    }
+    index = (total_mb * tab_bit[cnt] - 300) / target_bit; //
+    index = mpp_clip(index, 4, 95);
+
+    return qp_table[index];
+}
+
+MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
+{
+    RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
+    EncFrmStatus *frm = &task->frm;
+    EncRcTaskInfo *info = &task->info;
+    RK_S32 mb_w = MPP_ALIGN(p->usr_cfg.width, 16) / 16;
+    RK_S32 mb_h = MPP_ALIGN(p->usr_cfg.height, 16) / 16;
+    RK_S32 bit_min = info->bit_min;
+    RK_S32 bit_max = info->bit_max;
+    RK_S32 bit_target = info->bit_target;
+    RK_S32 quality_min = info->quality_min;
+    RK_S32 quality_max = info->quality_max;
+    RK_S32 quality_target = info->quality_target;
+
+    rc_dbg_func("enter p %p task %p\n", p, task);
+
+    rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
+
+    /* setup quality parameters */
+    if (!frm->seq_idx && frm->is_intra) {
+        if (info->quality_target < 0) {
+            if (info->bit_target) {
+                p->start_qp = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
+                p->cur_scale_qp = (p->start_qp) << 6;
+            } else {
+                mpp_log("fix qp case but init qp no set");
+                info->quality_target = 26;
+                p->start_qp = 26;
+                p->cur_scale_qp = (p->start_qp) << 6;
+            }
+        } else {
+            p->start_qp = info->quality_target;
+            p->cur_scale_qp = (p->start_qp) << 6;
+        }
+
+        p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
+        p->pre_i_qp = p->cur_scale_qp >> 6;
+        p->pre_p_qp = p->cur_scale_qp >> 6;
+    } else {
+        RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
+        RK_S32 start_qp = 0;
+
+        if (frm->is_intra) {
+            //qp_scale = mpp_clip(qp_scale, (h265->min_i_qp << 6), (h265->max_i_qp << 6));
+            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
+
+            start_qp = ((p->pre_i_qp + ((qp_scale + p->next_i_ratio) >> 6)) >> 1);
+
+            start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
+            p->pre_i_qp = start_qp;
+            p->start_qp = start_qp;
+            p->cur_scale_qp = qp_scale;
+        } else {
+            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
+            p->cur_scale_qp = qp_scale;
+            p->start_qp = qp_scale >> 6;
+        }
+    }
+
+    info->quality_target = p->start_qp;
+
+    rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
+              bit_min, bit_target, bit_max,
+              info->bit_min, info->bit_target, info->bit_max);
+    rc_dbg_rc("quality [%d : %d : %d] -> [%d : %d : %d]\n",
+              quality_min, quality_target, quality_max,
+              info->quality_min, info->quality_target, info->quality_max);
+
+    rc_dbg_func("leave %p\n", p);
+    return MPP_OK;
+}
+
+MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task)
+{
+    rc_dbg_func("enter ctx %p task %p\n", ctx, task);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
 
-MPP_RET rc_model_v2_end(void *ctx, RcHalCfg *cfg)
+MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
+    EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
+    EncFrmStatus *frm = &task->frm;
 
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
     if (p->usr_cfg.mode == RC_FIXQP) {
@@ -689,8 +828,8 @@ MPP_RET rc_model_v2_end(void *ctx, RcHalCfg *cfg)
 
         if (p->next_ratio != 0) {
             p->reenc_cnt++;
-            cfg->next_ratio = p->next_ratio;
-            cfg->need_reenc = 1;
+            frm->reencode = 1;
+            frm->reencode_times++;
         }
     } else {
         rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
@@ -711,8 +850,11 @@ const RcImplApi default_h264e = {
     sizeof(RcModelV2Ctx),
     rc_model_v2_init,
     rc_model_v2_deinit,
+    NULL,
     rc_model_v2_start,
     rc_model_v2_end,
+    rc_model_v2_hal_start,
+    rc_model_v2_hal_end,
 };
 
 const RcImplApi default_h265e = {
@@ -721,6 +863,9 @@ const RcImplApi default_h265e = {
     sizeof(RcModelV2Ctx),
     rc_model_v2_init,
     rc_model_v2_deinit,
+    NULL,
     rc_model_v2_start,
     rc_model_v2_end,
+    rc_model_v2_hal_start,
+    rc_model_v2_hal_end,
 };

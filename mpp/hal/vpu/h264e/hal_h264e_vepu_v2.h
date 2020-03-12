@@ -184,8 +184,8 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet *cfg);
  *
  * Then output the HalH264eVepuMbRc for register generation
  */
-MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, RcSyntax *rc,
-                                EncFrmStatus *info, HalH264eVepuMbRc *mbrc);
+MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
+                                EncRcTask *rc_task, MppEncCfgSet *cfg);
 MPP_RET h264e_vepu_mbrc_update(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc);
 
 #ifdef __cplusplus
