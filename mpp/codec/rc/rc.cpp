@@ -142,9 +142,9 @@ RK_S32 rc_frm_check_drop(RcCtx ctx)
 
     rc_dbg_func("enter %p\n", ctx);
 
-    mpp_assert(cfg->fps_in_denorm == 1);
-    mpp_assert(cfg->fps_out_denorm == 1);
-    mpp_assert(cfg->fps_in_num >= cfg->fps_out_num);
+    mpp_assert(cfg->fps_in_denorm >= 1);
+    mpp_assert(cfg->fps_out_denorm >= 1);
+    mpp_assert(rate_in >= rate_out);
 
     // frame counter is inited to (rate_in - rate_out)  to encode first frame
     if (frm_cnt < 0)
