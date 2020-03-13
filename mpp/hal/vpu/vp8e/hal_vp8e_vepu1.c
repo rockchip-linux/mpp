@@ -326,7 +326,7 @@ MPP_RET hal_vp8e_vepu1_deinit(void *hal)
 
     hal_vp8e_buf_free(ctx);
 
-    ret = mpp_device_deinit(&ctx->dev_ctx);
+    ret = mpp_device_deinit(ctx->dev_ctx);
 
     if (ret) {
         mpp_err("mpp_device_deinit failed ret: %d\n", ret);
