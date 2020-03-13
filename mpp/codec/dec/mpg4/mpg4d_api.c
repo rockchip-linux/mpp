@@ -309,7 +309,6 @@ static MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
 
 static MPP_RET mpg4d_callback(void *dec, void *err_info)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
     Mpg4dCtx *p_Dec = (Mpg4dCtx *)dec;
     IOCallbackCtx *ctx = (IOCallbackCtx *)err_info;
 
