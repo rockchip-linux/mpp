@@ -538,7 +538,6 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 
     if (mpp_device_debug & MPP_DEVICE_DBG_REG) {
         RK_U32 i;
-        nregs >>= 2;
 
         for (i = 0; i < nregs; i++) {
             mpp_log("get reg[%03d]: %08x\n", i, regs[i]);
