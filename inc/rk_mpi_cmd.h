@@ -37,7 +37,7 @@
 /* separate encoder control command to different segment */
 #define CMD_CFG_ID_MASK                 (0x0000FF00)
 #define CMD_ENC_CFG_ALL                 (0x00000000)
-#define CMD_ENC_CFG_RC                  (0x00000100)
+#define CMD_ENC_CFG_RC_API              (0x00000100)
 #define CMD_ENC_CFG_FRM                 (0x00000200)
 #define CMD_ENC_CFG_PREP                (0x00000300)
 #define CMD_ENC_CFG_CODEC               (0x00001000)
@@ -118,9 +118,33 @@ typedef enum {
     MPP_ENC_SET_ROI_CFG,                /* set MppEncROICfg structure */
     MPP_ENC_SET_CTU_QP,                 /* for H265 Encoder,set CTU's size and QP */
 
-    MPP_ENC_CFG_RC                      = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_RC,
-    MPP_ENC_SET_RC,                     /* set MppEncRcCfg structure */
-    MPP_ENC_GET_RC,                     /* get MppEncRcCfg structure */
+    /* User define rate control stategy API control */
+    MPP_ENC_CFG_RC_API                  = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_RC_API,
+    /*
+     * Get RcApiQueryAll structure
+     * Get all available rate control stategy string and count
+     */
+    MPP_ENC_GET_RC_API_ALL              = MPP_ENC_CFG_RC_API + 1,
+    /*
+     * Get RcApiQueryType structure
+     * Get available rate control stategy string with certain type
+     */
+    MPP_ENC_GET_RC_API_BY_TYPE          = MPP_ENC_CFG_RC_API + 2,
+    /*
+     * Set RcImplApi structure
+     * Add new or update rate control stategy function pointers
+     */
+    MPP_ENC_SET_RC_API_CFG              = MPP_ENC_CFG_RC_API + 3,
+    /*
+     * Get RcApiBrief structure
+     * Get current used rate control stategy brief information (type and name)
+     */
+    MPP_ENC_GET_RC_API_CURRENT          = MPP_ENC_CFG_RC_API + 4,
+    /*
+     * Set RcApiBrief structure
+     * Set current used rate control stategy brief information (type and name)
+     */
+    MPP_ENC_SET_RC_API_CURRENT          = MPP_ENC_CFG_RC_API + 5,
 
     MPP_ENC_CFG_FRM                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_FRM,
     MPP_ENC_SET_FRM,                    /* set MppFrame structure */
