@@ -339,11 +339,6 @@ void *mpp_enc_thread(void *data)
 
         reset_hal_enc_task(hal_task);
 
-        if (enc->hdr_need_updated) {
-            enc_impl_gen_hdr(impl, NULL);
-            enc->hdr_need_updated = 0;
-        }
-
         /*
          * if there is available buffer in the input frame do encoding
          */
@@ -356,16 +351,25 @@ void *mpp_enc_thread(void *data)
             mpp_assert(size);
             mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
             mpp_packet_init_with_buffer(&packet, buffer);
+            /* NOTE: clear length for output */
+            mpp_packet_set_length(packet, 0);
             mpp_buffer_put(buffer);
         }
+
         mpp_assert(packet);
 
         mpp_packet_set_pts(packet, mpp_frame_get_pts(frame));
+
+        if (enc->hdr_need_updated) {
+            enc_impl_gen_hdr(impl, packet);
+            enc->hdr_need_updated = 0;
+        }
 
         hal_task->frame  = frame;
         hal_task->input  = mpp_frame_get_buffer(frame);
         hal_task->packet = packet;
         hal_task->output = mpp_packet_get_buffer(packet);
+        hal_task->length = mpp_packet_get_length(packet);
         mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &hal_task->mv_info);
 
         RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);

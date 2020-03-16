@@ -248,6 +248,39 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 
+static RK_S32 setup_output_packet(RK_U32 *reg, MppBuffer buf, RK_U32 offset)
+{
+    RK_U32 offset8 = offset & (~0xf);
+    RK_S32 fd = mpp_buffer_get_fd(buf);
+    RK_U32 hdr_rem_msb = 0;
+    RK_U32 hdr_rem_lsb = 0;
+    RK_U32 limit = 0;
+
+    if (offset) {
+        RK_U8 *buf32 = (RK_U8 *)mpp_buffer_get_ptr(buf) + offset8;
+
+        hdr_rem_msb = MPP_RB32(buf32);
+        hdr_rem_lsb = MPP_RB32(buf32 + 4);
+    }
+
+    hal_h264e_dbg_detail("offset %d offset8 %d\n", offset, offset8);
+    H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_OUTPUT_STREAM, fd + (offset8 << 10));
+
+    /* output buffer size is 64 bit address then 8 multiple size */
+    limit = mpp_buffer_get_size(buf);
+    limit -= offset8;
+    limit >>= 3;
+    limit &= ~7;
+    H264E_HAL_SET_REG(reg, VEPU_REG_STR_BUF_LIMIT, limit);
+
+    hal_h264e_dbg_detail("msb %08x lsb %08x", hdr_rem_msb, hdr_rem_lsb);
+
+    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_MSB, hdr_rem_msb);
+    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_LSB, hdr_rem_lsb);
+
+    return (offset - offset8) * 8;
+}
+
 static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 {
     //MPP_RET ret = MPP_OK;
@@ -262,6 +295,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 *reg = ctx->regs_set.val;
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
     RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
+    RK_U32 offset = mpp_packet_get_length(task->packet);
+    RK_U32 first_free_bit = 0;
     RK_U32 val = 0;
     RK_S32 i = 0;
 
@@ -274,11 +309,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_detail("frame %d generate regs now", ctx->frms->seq_idx);
 
-    /* output buffer size is 64 bit address then 8 multiple size */
-    val = mpp_buffer_get_size(task->output);
-    val >>= 3;
-    val &= ~7;
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_BUF_LIMIT, val);
+    /* setup output address with offset */
+    first_free_bit = setup_output_packet(reg, task->output, offset);
 
     /*
      * The hardware needs only the value for luma plane, because
@@ -290,8 +322,6 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
           | VEPU_REG_INTRA_AREA_LEFT(mb_w)
           | VEPU_REG_INTRA_AREA_RIGHT(mb_w);
     H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_AREA_CTRL, val);
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_MSB, 0);
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_LSB, 0);
 
     val = VEPU_REG_AXI_CTRL_READ_ID(0);
     val |= VEPU_REG_AXI_CTRL_WRITE_ID(0);
@@ -325,7 +355,7 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 overfill_b = (hw_prep->src_h & 0x0f) ?
                         (16 - (hw_prep->src_h & 0x0f)) : 0;
 
-    val = VEPU_REG_STREAM_START_OFFSET(0) | /* first_free_bit */
+    val = VEPU_REG_STREAM_START_OFFSET(first_free_bit) |
           VEPU_REG_SKIP_MACROBLOCK_PENALTY(skip_penalty) |
           VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(overfill_r) |
           VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b);
@@ -522,8 +552,6 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_LUMA, hw_addr->orig[0]);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CB, hw_addr->orig[1]);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CR, hw_addr->orig[2]);
-    H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_OUTPUT_STREAM,
-                      mpp_buffer_get_fd(task->output));
 
     MppBuffer nal_size_table = h264e_vepu_buf_get_nal_size_table(hw_bufs);
     RK_S32 nal_size_table_fd = nal_size_table ? mpp_buffer_get_fd(nal_size_table) : 0;
@@ -778,7 +806,7 @@ static MPP_RET hal_h264e_vepu2_ret_task_v2(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    task->length = ctx->hw_mbrc.out_strm_size;
+    task->length += ctx->hw_mbrc.out_strm_size;
 
     ctx->hal_rc_cfg.bit_real = task->length;
     ctx->hal_rc_cfg.quality_real = ctx->hw_mbrc.qp_sum / mbs;

@@ -452,6 +452,7 @@ MPP_RET h264e_vpu_set_extra_info(H264eHalContext *ctx)
         h264e_vpu_sei_encode(ctx);
     }
 
+    ctx->header_ready = 1;
 
     hal_h264e_leave();
 

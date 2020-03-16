@@ -266,6 +266,8 @@ void *mpp_enc_control_thread(void *data)
                 mpp_assert(size);
                 mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
                 mpp_packet_init_with_buffer(&packet, buffer);
+                /* NOTE: clear length for output */
+                mpp_packet_set_length(packet, 0);
                 mpp_buffer_put(buffer);
             }
             mpp_assert(packet);
