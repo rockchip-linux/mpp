@@ -24,6 +24,7 @@
 #include "hal_h264e_com.h"
 #include "hal_h264e_vepu.h"
 #include "hal_h264e_rc.h"
+#include "hal_h264e_header.h"
 #include "hal_h264e_vpu_tbl.h"
 
 const RK_S32 h264_q_step[] = {
@@ -448,8 +449,60 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
         return MPP_ERR_VALUE;
     }
     }
-    hw_cfg->output_strm_addr = mpp_buffer_get_fd(task->output);
+
+    MppPacket pkt = task->packet;
+
+    if (hw_cfg->frame_type == H264E_VPU_FRAME_I) {
+        /* At I frame write sps / pps */
+        if (!ctx->header_ready)
+            h264e_vpu_set_extra_info(ctx);
+
+        if (!ctx->header_outputted) {
+            H264eVpuExtraInfo *src = (H264eVpuExtraInfo *)ctx->extra_info;
+            H264eStream *sps_stream = &src->sps_stream;
+            H264eStream *pps_stream = &src->pps_stream;
+            H264eStream *sei_stream = &src->sei_stream;
+            size_t offset = 0;
+
+            mpp_packet_write(pkt, offset, sps_stream->buffer, sps_stream->byte_cnt);
+            offset += sps_stream->byte_cnt;
+
+            mpp_packet_write(pkt, offset, pps_stream->buffer, pps_stream->byte_cnt);
+            offset += pps_stream->byte_cnt;
+
+            mpp_packet_write(pkt, offset, sei_stream->buffer, sei_stream->byte_cnt);
+            offset += sei_stream->byte_cnt;
+
+            mpp_packet_set_length(pkt, offset);
+        }
+    }
+
+    MppBuffer output = task->output;
+    RK_U32 offset = mpp_packet_get_length(pkt);
+    RK_U32 offset8 = offset & (~0xf);
+    RK_U32 hdr_rem_msb = 0;
+    RK_U32 hdr_rem_lsb = 0;
+    RK_U32 limit = 0;
+
+    if (offset) {
+        if (offset) {
+            RK_U8 *buf32 = (RK_U8 *)mpp_buffer_get_ptr(output) + offset8;
+
+            hdr_rem_msb = MPP_RB32(buf32);
+            hdr_rem_lsb = MPP_RB32(buf32 + 4);
+        }
+    }
+    hw_cfg->output_strm_addr = mpp_buffer_get_fd(output) + (offset8 << 10);
+
+    limit = mpp_buffer_get_size(output);
+    limit -= offset8;
+    limit >>= 3;
+    limit &= ~7;
     hw_cfg->output_strm_limit_size = mpp_buffer_get_size(task->output);
+
+    hw_cfg->first_free_bit = (offset - offset8) * 8;
+    hw_cfg->hdr_rem_msb = hdr_rem_msb;
+    hw_cfg->hdr_rem_lsb = hdr_rem_lsb;
 
     /* context update */
     ctx->idr_pic_id = !ctx->idr_pic_id;

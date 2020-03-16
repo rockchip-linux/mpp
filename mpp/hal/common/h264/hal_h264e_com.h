@@ -285,6 +285,8 @@ typedef struct H264eHalContext_t {
 
     void                            *param_buf;
     MppPacket                       packeted_param;
+    RK_U32                          header_ready;
+    RK_U32                          header_outputted;
 
     RK_S32                          osd_plt_type; //-1:invalid, 0:user define, 1:default
     MppEncOSDData                   osd_data;

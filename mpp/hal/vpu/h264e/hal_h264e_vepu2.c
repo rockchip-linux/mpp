@@ -183,8 +183,8 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
           | VEPU_REG_INTRA_AREA_LEFT(mb_w)
           | VEPU_REG_INTRA_AREA_RIGHT(mb_w);
     H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_AREA_CTRL, val); //FIXED
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_MSB, 0);
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_LSB, 0);
+    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_MSB, hw_cfg->hdr_rem_msb);
+    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_LSB, hw_cfg->hdr_rem_lsb);
 
 
     val = VEPU_REG_AXI_CTRL_READ_ID(0);
@@ -217,7 +217,7 @@ MPP_RET hal_h264e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
         overfill_r = (16 - (prep->width & 0x0f) ) / 4;
     if (prep->height & 0x0f)
         overfill_b = 16 - (prep->height & 0x0f);
-    val = VEPU_REG_STREAM_START_OFFSET(0) | /* first_free_bit */
+    val = VEPU_REG_STREAM_START_OFFSET(hw_cfg->first_free_bit) |
           VEPU_REG_SKIP_MACROBLOCK_PENALTY(skip_penalty) |
           VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(overfill_r) |
           VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b);
@@ -542,6 +542,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
     RcSyntax *rc_syn = (RcSyntax *)task->enc.syntax.data;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16) / 16 / 16;
+    RK_U32 header_len = mpp_packet_get_length(task->enc.packet);
 
     memset(reg_out, 0, sizeof(H264eVpu2RegSet));
     hal_h264e_enter();
@@ -563,7 +564,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 
     h264e_vpu_set_feedback(fb, reg_out);
 
-    task->enc.length = fb->out_strm_size;
+    task->enc.length = header_len + fb->out_strm_size;
     hw_cfg->qp_prev = hw_cfg->qp;
     if (rc_syn->type == INTER_P_FRAME) {
         int dealt_qp = 3;
@@ -579,7 +580,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
             if ((fb->out_strm_size * 8 >  (RK_U32)rc_syn->bit_target * 3) && (hw_cfg->qp < hw_cfg->qp_max)) {
                 hal_h264e_vpu2_resend(hal, (RK_U32 *)reg_out, dealt_qp);
                 h264e_vpu_set_feedback(fb, reg_out);
-                task->enc.length = fb->out_strm_size;
+                task->enc.length = header_len + fb->out_strm_size;
                 hw_cfg->qp_prev = fb->qp_sum / num_mb;
                 if ((cnt-- <= 0) || (hw_cfg->qp == hw_cfg->qp_max)) {
                     break;
@@ -601,7 +602,7 @@ MPP_RET hal_h264e_vepu2_wait(void *hal, HalTaskInfo *task)
 
         avg_qp = hw_cfg->qp;
 
-        result.bits = fb->out_strm_size * 8;
+        result.bits = (header_len + fb->out_strm_size) * 8;
         result.type = syn->type;
         fb->result = &result;
         hw_cfg->qpCtrl.nonZeroCnt = fb->rlc_count;
@@ -686,6 +687,8 @@ MPP_RET hal_h264e_vepu2_control(void *hal, MpiCmd cmd_type, void *param)
         offset += sei_stream->byte_cnt;
 
         mpp_packet_set_length(pkt, offset);
+
+        ctx->header_outputted = 1;
 
         *pkt_out = pkt;
     } break;

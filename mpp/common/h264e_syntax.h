@@ -78,6 +78,10 @@ typedef struct H264eHwCfg_t {
     RK_U32 input_cr_addr;
     RK_U32 output_strm_limit_size;
     RK_U32 output_strm_addr;
+    RK_U32 first_free_bit;
+    RK_U32 hdr_rem_msb;
+    RK_U32 hdr_rem_lsb;
+
     /*
      * For vpu
      * 0 - inter
