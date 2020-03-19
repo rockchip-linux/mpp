@@ -693,7 +693,9 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
-    RK_U32 *p_regs = (RK_U32 *)reg_ctx->regs;
+    RK_U32 *p_regs = p_hal->fast_mode ?
+                     (RK_U32 *)reg_ctx->reg_buf[task->dec.reg_index].regs :
+                     (RK_U32 *)reg_ctx->regs;
 
     p_regs[64] = 0;
     p_regs[65] = 0;
@@ -729,7 +731,9 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
-    H264dRkvRegs_t *p_regs = reg_ctx->regs;
+    H264dRkvRegs_t *p_regs = p_hal->fast_mode ?
+                             reg_ctx->reg_buf[task->dec.reg_index].regs :
+                             reg_ctx->regs;
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {

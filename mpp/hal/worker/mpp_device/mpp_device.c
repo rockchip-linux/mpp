@@ -389,6 +389,35 @@ MPP_RET mpp_device_send_request(MppDevCtx ctx)
     return ret;
 }
 
+MPP_RET mpp_device_send_single_request(MppDevCtx ctx, MppDevReqV1 *req)
+{
+    MPP_RET ret = MPP_OK;
+
+    MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;
+
+    mpp_dev_dbg_func("enter %p req %p\n", ctx, req);
+
+    if (NULL == p) {
+        mpp_err_f("found NULL input ctx %p\n", ctx);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (p->ioctl_version <= 0) {
+        mpp_err_f("ctx %p can't add request without /dev/mpp_service\n", ctx);
+        return MPP_ERR_PERM;
+    }
+
+    ret = (RK_S32)ioctl(p->vpu_fd, MPP_IOC_CFG_V1, req);
+    if (ret) {
+        mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
+                  ret, errno, strerror(errno));
+        ret = errno;
+    }
+
+    mpp_dev_dbg_func("leave %p\n", ctx);
+    return ret;
+}
+
 MPP_RET mpp_device_send_extra_info(MppDevCtx ctx, RegExtraInfo *info)
 {
     MPP_RET ret = MPP_OK;
@@ -515,8 +544,8 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
 
         memset(&dev_req, 0, sizeof(dev_req));
         dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
-        mpp_device_add_request(ctx, &dev_req);
-        mpp_device_send_request(ctx);
+        dev_req.flag |= MPP_FLAGS_LAST_MSG;
+        mpp_device_send_single_request(ctx, &dev_req);
     } else {
         memset(&req, 0, sizeof(req));
         req.req     = regs;

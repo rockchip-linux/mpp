@@ -812,7 +812,9 @@ MPP_RET vdpu2_h264d_start(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal  = (H264dHalCtx_t *)hal;
     H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
-    H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)reg_ctx->regs;
+    H264dVdpuRegs_t *p_regs = p_hal->fast_mode ?
+                              (H264dVdpuRegs_t *)reg_ctx->reg_buf[task->dec.reg_index].regs :
+                              (H264dVdpuRegs_t *)reg_ctx->regs;
     RK_U32 w = p_regs->sw110.pic_mb_w * 16;
     RK_U32 h = p_regs->sw110.pic_mb_h * 16;
     RK_U32 cache_en = 1;
@@ -857,7 +859,9 @@ MPP_RET vdpu2_h264d_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
     H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
-    H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)reg_ctx->regs;
+    H264dVdpuRegs_t *p_regs = (H264dVdpuRegs_t *)(p_hal->fast_mode ?
+                                                  reg_ctx->reg_buf[task->dec.reg_index].regs :
+                                                  reg_ctx->regs);
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
