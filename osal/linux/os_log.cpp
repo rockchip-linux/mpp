@@ -17,22 +17,47 @@
 #if defined(__gnu_linux__)
 #include <stdio.h>
 #include <stdarg.h>
+#include <syslog.h>
+
 #include "os_log.h"
 
 #define LINE_SZ 1024
+
+class SyslogWrapper
+{
+private:
+    // avoid any unwanted function
+    SyslogWrapper(const SyslogWrapper &);
+    SyslogWrapper &operator=(const SyslogWrapper &);
+public:
+    SyslogWrapper();
+    ~SyslogWrapper();
+};
+
+static SyslogWrapper syslog_wrapper;
+
+SyslogWrapper::SyslogWrapper()
+{
+    openlog("mpp", LOG_PID | LOG_CONS | LOG_PERROR, LOG_USER);
+}
+
+SyslogWrapper::~SyslogWrapper()
+{
+    closelog();
+}
 
 void os_log(const char* tag, const char* msg, va_list list)
 {
     char line[LINE_SZ] = {0};
     snprintf(line, sizeof(line), "%s: %s", tag, msg);
-    vfprintf(stdout, line, list);
+    vsyslog(LOG_INFO, line, list);
 }
 
 void os_err(const char* tag, const char* msg, va_list list)
 {
     char line[LINE_SZ] = {0};
     snprintf(line, sizeof(line), "%s: %s", tag, msg);
-    vfprintf(stderr, line, list);
+    vsyslog(LOG_ERR, line, list);
 }
 
 #endif
