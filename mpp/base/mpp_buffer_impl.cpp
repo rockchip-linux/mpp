@@ -446,6 +446,30 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
     return buffer;
 }
 
+RK_U32 mpp_buffer_to_addr(MppBuffer buffer, size_t offset)
+{
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    if (NULL == impl) {
+        mpp_err_f("NULL buffer convert to zero address\n");
+        return 0;
+    }
+
+    if (impl->info.fd >= (1 << 10)) {
+        mpp_err_f("buffer fd %d is too large\n");
+        return 0;
+    }
+
+    if (impl->offset + offset >= SZ_4M) {
+        mpp_err_f("offset %d + %d is larger than 4M use extra info to send offset\n");
+        return 0;
+    }
+
+    RK_U32 addr = impl->info.fd + ((impl->offset + offset) << 10);
+
+    return addr;
+}
+
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller,
                               MppBufferMode mode, MppBufferType type)
 {

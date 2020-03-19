@@ -235,6 +235,30 @@ MPP_RET mpp_buffer_set_index_with_caller(MppBuffer buffer, int index,
     return MPP_OK;
 }
 
+size_t  mpp_buffer_get_offset_with_caller(MppBuffer buffer, const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err_f("invalid NULL input\n");
+        return -1;
+    }
+
+    MppBufferImpl *p = (MppBufferImpl*)buffer;
+    (void)caller;
+    return p->offset;
+}
+
+MPP_RET mpp_buffer_set_offset_with_caller(MppBuffer buffer, size_t offset, const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err_f("invalid NULL input\n");
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppBufferImpl *p = (MppBufferImpl*)buffer;
+    p->offset = offset;
+    (void)caller;
+    return MPP_OK;
+}
 
 MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, const char *caller)
 {
