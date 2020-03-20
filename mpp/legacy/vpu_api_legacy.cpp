@@ -1269,7 +1269,10 @@ PUT_FRAME:
         mpp_err_f("encode_put_frame ret %d\n", ret);
     else
         aEncInStrm->size = 0;
+
 FUNC_RET:
+    if (frame)
+        mpp_frame_deinit(&frame);
 
     vpu_api_dbg_func("leave ret %d\n", ret);
     return ret;
