@@ -426,15 +426,6 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
     mpp_assert(mInputTask);
 
-    /* clear the enqueued task back */
-    if (mInputTask) {
-        ret = mpp_task_meta_get_frame(mInputTask, KEY_INPUT_FRAME, &frame);
-        if (frame) {
-            mpp_frame_deinit(&frame);
-            frame = NULL;
-        }
-    }
-
 RET:
     return ret;
 }

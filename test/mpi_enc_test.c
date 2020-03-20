@@ -415,11 +415,20 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
+        /*
+         * NOTE: in non-block mode the frame can be resent.
+         * The default input timeout mode is block.
+         *
+         * User should release the input frame to meet the requirements of
+         * resource creator must be the resource destroyer.
+         */
         ret = mpi->encode_put_frame(ctx, frame);
         if (ret) {
             mpp_err("mpp encode put frame failed\n");
+            mpp_frame_deinit(&frame);
             goto RET;
         }
+        mpp_frame_deinit(&frame);
 
         ret = mpi->encode_get_packet(ctx, &packet);
         if (ret) {
