@@ -174,12 +174,18 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             this,
         };
 
-        mpp_env_get_u32("enc_version", &mEncVersion, 0);
+        /* H.264 and H.265 check encoder path version */
+        if (mCoding == MPP_VIDEO_CodingAVC || mCoding == MPP_VIDEO_CodingHEVC)
+            mpp_env_get_u32("enc_version", &mEncVersion, 0);
 
         if (mEncVersion) {
-            mpp_enc_init_v2(&mEnc, &cfg);
-            mpp_enc_start_v2(mEnc);
-        } else {
+            if (MPP_OK == mpp_enc_init_v2(&mEnc, &cfg)) {
+                mpp_enc_start_v2(mEnc);
+            } else
+                mEncVersion = 0;
+        }
+
+        if (mEncVersion == 0) {
             mpp_enc_init(&mEnc, &cfg);
             mpp_enc_start(mEnc);
         }
