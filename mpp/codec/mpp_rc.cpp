@@ -472,6 +472,8 @@ MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 for
     RK_S32 gop = ctx->gop;
     RK_S32 avg = ctx->bits_per_pic;
 
+    mpp_assert(gop >= 0);
+
     if (clear_acc) {
         if (gop == 0) {
             /* only one intra then all inter */
