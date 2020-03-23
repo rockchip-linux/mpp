@@ -420,12 +420,9 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RK_S32 target_bps = ctx->target_bps;
     RK_S32 water_level = 0;
     RK_S32 idx1, idx2;
-    RK_S32 i_flag = 0;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio, wl_ratio;
 
     rc_dbg_func("enter %p\n", ctx);
-
-    i_flag = (ctx->frame_type == INTRA_FRAME);
 
     if (real_bit + ctx->stat_watl > ctx->stat_watl_thrd)
         water_level = ctx->stat_watl_thrd - ctx->bit_per_frame;
@@ -454,7 +451,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
         ins_ratio = 6 * ins_ratio;
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
     } else {
-        if (i_flag) {
+        if (ctx->frame_type == INTRA_FRAME) {
             ins_ratio = 3 * ins_ratio;
             ins_ratio = mpp_clip(ins_ratio, -192, 256);
         } else {
@@ -850,11 +847,11 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
     } else {
         rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
         bits_model_update(p, cfg->bit_real);
-        p->pre_target_bits = cfg->bit_target;
-        p->pre_real_bits = cfg->bit_real;
         p->last_inst_bps = p->ins_bps;
         p->last_frame_type = p->frame_type;
     }
+    p->pre_target_bits = cfg->bit_target;
+    p->pre_real_bits = cfg->bit_real;
 
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;

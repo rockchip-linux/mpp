@@ -724,6 +724,7 @@ void *mpp_enc_thread(void *data)
 
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+
         if (frm->reencode) {
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             goto TASK_REENCODE;
@@ -844,7 +845,8 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
     p->enc_hal  = enc_hal;
     p->mpp      = cfg->mpp;
 
-    {   // create header packet storage
+    {
+        // create header packet storage
         size_t size = SZ_1K;
         void *ptr = mpp_calloc_size(void, size);
 
