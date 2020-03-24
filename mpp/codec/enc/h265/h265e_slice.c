@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "h265e_api_v2"
+#define MODULE_TAG "h265e_slice"
 
 #include <string.h>
 
@@ -64,7 +64,6 @@ H265eDpbFrm* get_lt_ref_pic(H265eDpbFrm *frame_list, H265eSlice *slice, int poc,
                 } else {
                     stPic = frame;
                 }
-                break;
             }
         }
 
@@ -89,10 +88,8 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice)
     if (slice->m_sliceType == I_SLICE) {
         memset(slice->m_refPicList, 0, sizeof(slice->m_refPicList));
         memset(slice->m_numRefIdx,  0, sizeof(slice->m_numRefIdx));
-        mpp_log("I frame no rps list set");
         return;
     }
-
     for (i = 0; i < rps->num_negative_pic; i++) {
         if (rps->m_used[i]) {
             refPic = get_ref_pic(frame_list, slice->poc + rps->delta_poc[i]);
@@ -118,6 +115,10 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice)
         if (rps->m_used[i]) {
             refPic = get_lt_ref_pic(frame_list, slice, rps->m_RealPoc[i], rps->check_lt_msb[i]);
             refPic->is_long_term = 1;
+            /*due to only one ref if num_negative_pic > 0 set lt not used*/
+            /* if (rps->num_negative_pic > 0) {
+                 rps->m_used[i] = 0;
+             }*/
             refPicSetLtCurr[numPocLtCurr] = refPic;
             numPocLtCurr++;
         }

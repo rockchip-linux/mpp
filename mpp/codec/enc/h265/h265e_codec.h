@@ -31,6 +31,9 @@
 #define H265E_DBG_OUTPUT            (0x00000020)
 #define H265E_DBG_PS                (0x00000040)
 #define H265E_DBG_DPB               (0x00000080)
+#define H265E_DBG_DPB_REF           (0x000000c0)
+
+
 #define H265E_DBG_SLICE             (0x00000100)
 #define H265E_DBG_HEADER            (0x00000200)
 #define H265E_DBG_API               (0x00000400)
@@ -53,6 +56,7 @@ extern RK_U32 h265e_debug;
 #define h265e_dbg_ps(fmt, ...)      h265e_dbg(H265E_DBG_PS, fmt, ## __VA_ARGS__)
 #define h265e_dbg_dpb(fmt, ...)     h265e_dbg(H265E_DBG_DPB, fmt, ## __VA_ARGS__)
 #define h265e_dbg_slice(fmt, ...)   h265e_dbg(H265E_DBG_SLICE, fmt, ## __VA_ARGS__)
+#define h265e_dbg_dpb_ref(fmt, ...)  h265e_dbg(H265E_DBG_DPB_REF, fmt, ## __VA_ARGS__)
 
 typedef struct H265eCtx_t {
     MppEncCfgSet        *cfg;
@@ -68,7 +72,7 @@ typedef struct H265eCtx_t {
     H265eSlice          *slice;
     H265eDpbCfg         dpbcfg;
     H265eDpb            *dpb;
-    H265eDpb            *dpb_bak;
+    H265eDpb            dpb_bak;
     H265eFrmInfo        frms;
     RK_U32              plt_flag;
 

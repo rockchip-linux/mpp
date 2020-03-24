@@ -115,6 +115,7 @@ typedef struct H265eDpbCfg_t {
     RK_S32  nLongTerm;
     RK_S32  gop_len;
     RK_S32  vgop_size;
+    RK_S32  vi_gop_len;
 
     RK_S32  nDeltaPocIdx[30];
 
@@ -157,6 +158,7 @@ typedef struct H265eDpb_t {
     // status and count for one gop structure
     // idr_gop  - for intra / IDR frame group of picture
     RK_S32             idr_gop_len;
+    RK_S32             vi_gop_len;
     RK_S32             idr_gop_cnt;
     RK_S32             idr_gop_idx;
 
@@ -188,6 +190,8 @@ H265eDpbFrm *h265e_dpb_get_refr(H265eDpbFrm *frm);
 void h265e_dpb_build_list(H265eDpb *dpb);
 MppBuffer h265e_dpb_frm_get_buf(H265eDpbFrm *frm, RK_S32 index);
 MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg);
+MPP_RET h265e_dpb_bakup(H265eDpb *dpb, H265eDpb *dpb_bak);
+MPP_RET h265e_dpb_recover(H265eDpb *dpb, H265eDpb *dpb_bak);
 
 #define h265e_dpb_dump_frms(dpb) h265e_dpb_dump_frm(dpb, __FUNCTION__)
 

@@ -39,7 +39,7 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     vps->m_hrdOpSetIdx = NULL;
     vps->m_cprmsPresentFlag = NULL;
     for (i = 0; i < MAX_SUB_LAYERS; i++) {
-        vps->m_numReorderPics[i] =  1;
+        vps->m_numReorderPics[i] =  0;
         vps->m_maxDecPicBuffering[i] = MPP_MIN(MAX_REFS, MPP_MAX((vps->m_numReorderPics[i] + 3), codec->num_ref) + vps->m_numReorderPics[i]);
         vps->m_maxLatencyIncrease[i] = 0;
     }
@@ -184,7 +184,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_bPCMFilterDisableFlag = 0;
     sps->m_scalingListEnabledFlag = codec->trans_cfg.defalut_ScalingList_enable == 0 ? 0 : 1;
 
-    sps->m_bitsForPOC = 4;
+    sps->m_bitsForPOC = 16;
     sps->m_numLongTermRefPicSPS = 0;
     sps->m_maxTrSize = 32;
     sps->m_bLongTermRefsPresent = 0;
