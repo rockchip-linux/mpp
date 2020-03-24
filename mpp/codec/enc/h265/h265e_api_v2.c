@@ -268,6 +268,7 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     if (h265->ref_cfg.num_lt_ref_pic > 0)
         p->dpb->is_long_term = 1;
 
+    h265e_dpb_bakup(p->dpb, &p->dpb_bak);
     h265e_dpb_get_curr(p->dpb);
     p->slice = p->dpb->curr->slice;
     h265e_slice_init(ctx, p->slice);
@@ -497,6 +498,12 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     case MPP_ENC_SET_SEI_CFG: {
 
     } break;
+
+    case MPP_ENC_SET_OSD_PLT_CFG: {
+        memcpy((void*)&p->cfg->osd_plt, param, sizeof(MppEncOSDPlt));
+        p->plt_flag = 1;
+        break;
+    }
 
     case MPP_ENC_SET_GOPREF: {
         MppEncGopRef *ref = (MppEncGopRef *)param;
