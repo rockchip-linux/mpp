@@ -23,7 +23,7 @@
 
 int main()
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    MPP_RET ret = MPP_OK;
     MppDataV2 *data_2 = NULL;
     MppDataV2 *data_5 = NULL;
     MppDataV2 *data_8 = NULL;
