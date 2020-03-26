@@ -357,7 +357,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
     mpi = p->mpi;
     ctx = p->ctx;
 
-    if (p->type == MPP_VIDEO_CodingAVC) {
+    if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         MppPacket packet = NULL;
         ret = mpi->control(ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
         if (ret) {
