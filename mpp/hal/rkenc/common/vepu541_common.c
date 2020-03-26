@@ -493,7 +493,7 @@ MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
 
     regs->reg112.osd_e = 0;
     regs->reg112.osd_inv_e = 0;
-    regs->reg112.osd_plt_cks = 0;
+    regs->reg112.osd_plt_cks = 1;
     regs->reg112.osd_plt_typ = type;
 
     for (k = 0; k < num; k++, tmp++) {
