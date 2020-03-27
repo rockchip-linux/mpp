@@ -63,7 +63,7 @@ typedef struct HalH264eVepu541Ctx_t {
     RcSyntax                *rc_syn;
 
     /* syntax for output to enc_impl */
-    EncRcTaskInfo                hal_rc_cfg;
+    EncRcTaskInfo           hal_rc_cfg;
 
     /* roi */
     MppEncROICfg            *roi_data;
@@ -723,8 +723,9 @@ static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, H264eFrmInfo *frms
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_output(Vepu541H264eRegSet *regs, MppBuffer out)
+static void setup_vepu541_output(Vepu541H264eRegSet *regs, MppPacket pkt, MppBuffer out)
 {
+    RK_U32 offset = mpp_packet_get_length(pkt);
     size_t size = mpp_buffer_get_size(out);
     RK_S32 fd = mpp_buffer_get_fd(out);
 
@@ -733,7 +734,7 @@ static void setup_vepu541_output(Vepu541H264eRegSet *regs, MppBuffer out)
     regs->reg083.bsbt_addr = fd + (size << 10);
     regs->reg084.bsbb_addr = fd;
     regs->reg085.bsbr_addr = fd;
-    regs->reg086.adr_bsbs  = fd;
+    regs->reg086.adr_bsbs  = fd + (offset << 10);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1112,7 +1113,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
 
     regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
 
-    setup_vepu541_output(regs, task->output);
+    setup_vepu541_output(regs, task->packet, task->output);
     setup_vepu541_split(regs, &cfg->split);
     setup_vepu541_me(regs, sps, slice);
     vepu541_set_osd_region(regs, ctx->dev_ctx, ctx->osd_data, ctx->osd_plt);
@@ -1196,8 +1197,6 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     MppDevReqV1 req;
 
-    (void) task;
-
     hal_h264e_dbg_func("enter %p\n", hal);
 
     memset(&req, 0, sizeof(req));
@@ -1206,7 +1205,7 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
 
     mpp_device_send_request(ctx->dev_ctx);
 
-    task->length = ctx->regs_ret.st_bsl.bs_lgth;
+    task->length += ctx->regs_ret.st_bsl.bs_lgth;
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
