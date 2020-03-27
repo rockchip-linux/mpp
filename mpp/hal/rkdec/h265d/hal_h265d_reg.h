@@ -58,7 +58,11 @@ typedef struct RKV_HEVC_REG_END {
 } rkv_reg_end;
 
 typedef struct V345_HEVC_REG_END {
-    RK_U32 reserve[56];
+    struct hevc_mvc0 {
+        RK_U32    refp_layer_same_with_cur : 16  ;
+        RK_U32    reserve           : 16  ;
+    } reg064_mvc0;
+    RK_U32 reserve[55];
 } v345_reg_end;
 
 typedef struct {
