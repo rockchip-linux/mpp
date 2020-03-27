@@ -1236,7 +1236,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
                                           (fb->st_lvl64_inter_num << 6)) << 8) / mb8_num;*/
 
             hal_cfg[k].quality_real = fb->qp_sum / mb64_num;
-            hal_rc_ret->bit_real    = hal_cfg[k].quality_real;
+            hal_rc_ret->quality_real = hal_cfg[k].quality_real;
             // hal_cfg[k].sse          = fb->sse_sum / mb64_num;
         }
     }
