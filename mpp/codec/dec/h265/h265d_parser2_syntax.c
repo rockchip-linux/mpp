@@ -160,6 +160,28 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->log2_parallel_merge_level_minus2 = pps->log2_parallel_merge_level - 2;
     pp->CurrPicOrderCntVal               = h->poc;
 
+    for (i = 0; i < 32; i++) {
+        pp->sps_lt_rps[i].lt_ref_pic_poc_lsb = sps->lt_ref_pic_poc_lsb_sps[i];
+        pp->sps_lt_rps[i].used_by_curr_pic_lt_flag = sps->used_by_curr_pic_lt_sps_flag[i];
+    }
+
+    for (i = 0; i < 64; i++) {
+        if (i < sps->nb_st_rps) {
+            pp->sps_st_rps[i].num_negative_pics = sps->st_rps[i].num_negative_pics;
+            pp->sps_st_rps[i].num_positive_pics = sps->st_rps[i].num_delta_pocs - sps->st_rps[i].num_negative_pics;
+
+            for (j = 0; j < pp->sps_st_rps[i].num_negative_pics; j++) {
+                pp->sps_st_rps[i].delta_poc_s0[j] = sps->st_rps[i].delta_poc[j];
+                pp->sps_st_rps[i].s0_used_flag[j] = sps->st_rps[i].used[j];
+            }
+
+            for ( j = 0; j < (RK_U32)sps->st_rps[i].num_delta_pocs; j++) {
+                pp->sps_st_rps[i].delta_poc_s1[j] = sps->st_rps[i].delta_poc[j];
+                pp->sps_st_rps[i].s1_used_flag[j] = sps->st_rps[i].used[j];
+            }
+        }
+    }
+
     nb_rps_used = 0;
     for (i = 0; i < NB_RPS_TYPE; i++) {
         for (j = 0; j < (RK_U32)h->rps[i].nb_refs; j++) {

@@ -46,7 +46,7 @@
 #ifdef dump
 static FILE *fp = NULL;
 #endif
-
+#define HW_RPS
 #define MAX_GEN_REG 3
 RK_U32 h265h_debug = 0;
 typedef struct h265d_reg_buf {
@@ -744,6 +744,61 @@ static int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *r
     }
     return 0;
 }
+
+#ifdef HW_RPS
+static RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf)
+{
+    BitputCtx_t bp;
+    RK_S32 fifo_len = 400;
+    RK_S32 i = 0, j = 0;
+    h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    mpp_set_bitput_ctx(&bp, (RK_U64*)rps_buf, fifo_len);
+    for (i = 0; i < 32; i ++) {
+        mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].lt_ref_pic_poc_lsb, 16);
+        mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].used_by_curr_pic_lt_flag, 1);
+        mpp_put_bits(&bp, 0,     15);
+    }
+
+    for (i = 0; i < 64; i++) {
+        if (i < dxva_cxt->pp.num_short_term_ref_pic_sets) {
+
+            mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].num_negative_pics, 4);
+            mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].num_positive_pics, 4);
+            for ( j = 0; j <  dxva_cxt->pp.sps_st_rps[i].num_negative_pics; j++) {
+
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].delta_poc_s0[j], 16);
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].s0_used_flag[j], 1);
+            }
+
+            for (j = 0; j <  dxva_cxt->pp.sps_st_rps[i].num_positive_pics; j++) {
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].delta_poc_s1[j], 16);
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].s1_used_flag[j], 1);
+
+            }
+
+            for ( j = dxva_cxt->pp.sps_st_rps[i].num_negative_pics + dxva_cxt->pp.sps_st_rps[i].num_positive_pics; j < 15; j++) {
+                mpp_put_bits(&bp, 0, 16);
+                mpp_put_bits(&bp, 0, 1);
+            }
+
+        } else {
+            mpp_put_bits(&bp, 0, 4);
+            mpp_put_bits(&bp, 0, 4);
+            for ( j = 0; j < 15; j++) {
+                mpp_put_bits(&bp, 0, 16);
+                mpp_put_bits(&bp, 0, 1);
+            }
+        }
+        mpp_put_align(&bp, 64, 0);
+        mpp_put_bits(&bp,  0, 64);
+    }
+    RK_U32 *tmp = (RK_U32 *)rps_buf;
+    for (i = 0; i < 400 * 8 / 4; i++) {
+        h265h_dbg(H265H_DBG_RPS, "rps[%3d] = 0x%08x\n", i, tmp[i]);
+    }
+    return 0;
+}
+#endif
 
 static RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 {
@@ -1675,8 +1730,14 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
         dxva_cxt->bitstream = mpp_buffer_get_ptr(streambuf);
     }
     if (reg_cxt->is_v345) {
+#ifdef HW_RPS
+        hw_regs->sw_sysctrl.sw_wait_reset_en = 1;
+        hw_regs->v345_reg_ends.reg064_mvc0.refp_layer_same_with_cur = 0xffff;
+        hal_h265d_slice_hw_rps(syn->dec.syntax.data, rps_ptr);
+#else
         hw_regs->sw_sysctrl.sw_h26x_rps_mode = 1;
         hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
+#endif
     } else {
         hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
     }
