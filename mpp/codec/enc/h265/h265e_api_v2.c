@@ -289,7 +289,18 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSyntax_new *syntax = NULL;
-
+    MppFrame frame = task->frame;
+    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
+    RK_U32 offset = mpp_packet_get_length(task->packet);
+    RK_U32 sei_size = 0;
+    MppMeta meta = mpp_frame_get_meta(frame);
+    MppEncUserData *user_data = NULL;
+    out_ptr = out_ptr + offset;
+    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+    if (user_data && user_data->len) {
+        sei_size =  h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
+        mpp_packet_set_length(task->packet, sei_size + offset);
+    }
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
         return MPP_ERR_NULL_PTR;
@@ -307,21 +318,16 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
 {
     (void)ctx;
-    MppFrame frame = task->frame;
-    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
-    MppMeta meta = mpp_frame_get_meta(frame);
-    MppEncUserData *user_data = NULL;
-
+    RK_U32 offset = mpp_packet_get_length(task->packet);
     h265e_dbg_func("enter\n");
 
-    if (!task->length || NULL == out_ptr)
+    if (!task->length )
         return MPP_OK;
 
-    out_ptr = out_ptr + task->length;
-    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
-    if (user_data && user_data->len)
-        h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
+    task->length += offset;
 
+    h265e_dbg_func("leave\n");
+    return MPP_OK;
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }

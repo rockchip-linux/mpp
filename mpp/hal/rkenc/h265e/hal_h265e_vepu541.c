@@ -864,6 +864,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 pic_wd64, pic_h64, fbc_header_len;
     HalBuf *recon_buf, *ref_buf;
+    RK_U32 offset = mpp_packet_get_length(task->packet);
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
 
     h265e_hal_enter();
@@ -991,7 +992,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     /* TODO: stream size relative with syntax */
     regs->bsbt_addr_hevc    = regs->bsbb_addr_hevc | (mpp_buffer_get_size(enc_task->output) << 10);
     regs->bsbr_addr_hevc    = regs->bsbb_addr_hevc;
-    regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc;
+    regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc | (offset << 10);
 
     regs->sli_spl.sli_splt_mode     = syn->sp.sli_splt_mode;
     regs->sli_spl.sli_splt_cpst     = syn->sp.sli_splt_cpst;
