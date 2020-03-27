@@ -1106,7 +1106,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
     setup_vepu541_rc_base(regs, sps, task->rc_task);
-    setup_vepu541_orig(regs, ctx->dev_ctx, &ctx->dev_patch, task->frame);
+    setup_vepu541_orig(regs, &ctx->dev_patch, ctx->dev_ctx, task->frame);
     setup_vepu541_roi(regs, ctx);
     setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,
                             ctx->pixel_buf_fbc_hdr_size);
