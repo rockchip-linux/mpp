@@ -41,10 +41,25 @@
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)
 
 #define RKVDEC_HEVC_REGISTERS       (68)
+#define V345_HEVC_REGISTERS         (108)
 
 #define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)
 
 extern RK_U32 h265h_debug;
+
+typedef struct RKV_HEVC_REG_END {
+    RK_U32        reg_not_use0[RKVDEC_REG_PERF_CYCLE_INDEX - HEVC_DECODER_REG_NUM];
+    RK_U32        performance_cycle; //65
+    RK_U32        axi_ddr_rdata;
+    RK_U32        axi_ddr_wdata;
+    RK_U32        fpgadebug_reset;
+    RK_U32        reserve[9];
+    RK_U32        extern_error_en;
+} rkv_reg_end;
+
+typedef struct V345_HEVC_REG_END {
+    RK_U32 reserve[56];
+} v345_reg_end;
 
 typedef struct {
     struct swreg_id {
@@ -87,11 +102,19 @@ typedef struct {
         RK_U32    sw_out_endian       : 1  ;
         RK_U32    sw_out_swap32_e     : 1  ;
         RK_U32    sw_out_cbcr_swap    : 1  ;
-        RK_U32    reserve             : 1  ;
+        RK_U32    sw_error_info_en    : 1  ;
         RK_U32    sw_rlc_mode_direct_write : 1;
         RK_U32    sw_rlc_mode         : 1  ;
         RK_U32    sw_strm_start_bit   : 7  ;
-    } sw_sysctrl; ///<- zrh: do nothing in C Model
+        RK_U32    sw_inter_error_prc_mode : 1;
+        RK_U32    sw_dec_mode         : 2  ;
+        RK_U32    sw_info_collect_en  : 1  ;
+        RK_U32    sw_wait_reset_en    : 1  ;
+        RK_U32    sw_h26x_rps_mode    : 1  ;
+        RK_U32    reserve2            : 5  ;
+        RK_U32    sw_colmv_mode       : 1  ;
+        RK_U32    sw_head_prior_high_en : 1;
+    } sw_sysctrl;
 
     struct swreg_pic {
         RK_U32    sw_y_hor_virstride  : 9 ;
@@ -130,18 +153,11 @@ typedef struct {
     } sao_ctu_position;
 
     RK_U32        sw_ref_valid;   //this is not same with hardware
-    RK_U32        sw_refframe_index[15];
-
-    RK_U32 reg_not_use0[RKVDEC_REG_PERF_CYCLE_INDEX - HEVC_DECODER_REG_NUM];
-
-    RK_U32        performance_cycle;
-    RK_U32        axi_ddr_rdata;
-    RK_U32        axi_ddr_wdata;
-    RK_U32        fpgadebug_reset;
-    RK_U32        reserve[9];
-
-    RK_U32 extern_error_en;
-
+    RK_U32        sw_refframe_index[15];  //48
+    union {
+        rkv_reg_end rkv_reg_ends;
+        v345_reg_end v345_reg_ends;
+    };
 } H265d_REGS_t;
 
 #endif
