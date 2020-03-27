@@ -47,7 +47,7 @@ typedef enum MppDevCmd_e {
 typedef enum MppDevCmdType_e {
     MPP_CMD_QUERY_BASE              = 0,
     MPP_CMD_PROBE_HW_SUPPORT        = MPP_CMD_QUERY_BASE + 0,
-    MPP_CMD_PROBE_IOMMU_STATUS      = MPP_CMD_QUERY_BASE + 1,
+    MPP_CMD_QUERY_HW_ID             = MPP_CMD_QUERY_BASE + 1,
 
     MPP_CMD_INIT_BASE               = 0x100,
     MPP_CMD_INIT_CLIENT_TYPE        = MPP_CMD_INIT_BASE + 0,
@@ -75,6 +75,7 @@ typedef struct MppDevCfg_t {
     MppCodingType   coding;
     RK_U32          platform;
     RK_U32          pp_enable;
+    RK_U32          hw_id;
 } MppDevCfg;
 
 typedef void*   MppDevCtx;
