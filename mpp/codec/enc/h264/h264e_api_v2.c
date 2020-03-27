@@ -29,6 +29,7 @@
 #include "h264e_syntax.h"
 #include "h264e_sps.h"
 #include "h264e_pps.h"
+#include "h264e_sei.h"
 #include "h264e_dpb.h"
 #include "h264e_slice.h"
 #include "h264e_api.h"
@@ -532,8 +533,15 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
+    MppMeta meta = mpp_frame_get_meta(task->frame);
+    MppEncUserData *user_data = NULL;
 
     h264e_dbg_func("enter\n");
+
+    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+    if (user_data && user_data->len)
+        h264e_sei_to_packet(user_data->pdata, user_data->len,
+                            H264_SEI_USER_DATA_UNREGISTERED, task->output);
 
     p->syn_num = 0;
     h264e_add_syntax(p, H264E_SYN_CFG, p->cfg);
