@@ -539,9 +539,14 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     h264e_dbg_func("enter\n");
 
     mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
-    if (user_data && user_data->len)
-        h264e_sei_to_packet(user_data->pdata, user_data->len,
-                            H264_SEI_USER_DATA_UNREGISTERED, task->output);
+    if (user_data) {
+        if (user_data->pdata && user_data->len)
+            h264e_sei_to_packet(user_data->pdata, user_data->len,
+                                H264_SEI_USER_DATA_UNREGISTERED, task->packet);
+        else
+            mpp_err_f("failed to insert user data %p len %d\n",
+                      user_data->pdata, user_data->len);
+    }
 
     p->syn_num = 0;
     h264e_add_syntax(p, H264E_SYN_CFG, p->cfg);
