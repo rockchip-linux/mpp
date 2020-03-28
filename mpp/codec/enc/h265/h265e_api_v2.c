@@ -510,6 +510,19 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         p->plt_flag = 1;
         break;
     }
+    case MPP_ENC_SET_SPLIT : {
+        MppEncSliceSplit *src = (MppEncSliceSplit *)param;
+        MppEncH265SliceCfg *slice_cfg = &p->cfg->codec.h265.slice_cfg;
+        if (src->split_mode > MPP_ENC_SPLIT_NONE) {
+            slice_cfg->split_enable = 1;
+            slice_cfg->split_mode = 0;
+            if (src->split_mode == MPP_ENC_SPLIT_BY_CTU)
+                slice_cfg->split_mode = 1;
+            slice_cfg->slice_size =  src->split_arg;
+        } else {
+            slice_cfg->split_enable = 0;
+        }
+    } break;
 
     case MPP_ENC_SET_GOPREF: {
         MppEncGopRef *ref = (MppEncGopRef *)param;
