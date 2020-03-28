@@ -294,9 +294,6 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     hw_mbrc->qp_max = rc_info->quality_max;
     hw_mbrc->qp_min = rc_info->quality_min;
 
-    hal_h264e_dbg_rc("qp [%d : %d : %d]\n", rc_info->quality_min,
-                     rc_info->quality_target, rc_info->quality_max);
-
     hal_h264e_dbg_func("enter %p\n", hal);
 
     hal_h264e_dbg_detail("frame %d generate regs now", frm->seq_idx);

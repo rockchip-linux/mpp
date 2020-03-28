@@ -515,7 +515,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
 
-    hal_h264e_dbg_rc("enter\n");
+    hal_h264e_dbg_func("enter\n");
 
     // get necessary parameter from config
     p->width    = prep->width;
@@ -562,7 +562,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     p->frame_type = INTRA_FRAME;
     p->pre_frame_type = INTRA_FRAME;
 
-    hal_h264e_dbg_rc("leave\n");
+    hal_h264e_dbg_func("leave\n");
     return MPP_OK;
 }
 
@@ -675,7 +675,7 @@ MPP_RET h264e_vepu_mbrc_update(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc)
     (void) p;
     (void) mbrc;
 
-    hal_h264e_dbg_rc("enter\n");
-    hal_h264e_dbg_rc("leave\n");
+    hal_h264e_dbg_func("enter\n");
+    hal_h264e_dbg_func("leave\n");
     return MPP_OK;
 }

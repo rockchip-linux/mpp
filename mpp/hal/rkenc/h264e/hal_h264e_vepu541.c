@@ -537,27 +537,44 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
                                   EncRcTask *rc_task)
 {
     EncRcTaskInfo *rc_info = &rc_task->info;
+    RK_S32 mb_w = sps->pic_width_in_mbs;
+    RK_S32 mb_h = sps->pic_height_in_mbs;
     RK_U32 qp_target = rc_info->quality_target;
-    RK_U32 qp_min = rc_info->quality_max;
-    RK_U32 qp_max = rc_info->quality_min;
+    RK_U32 qp_min = rc_info->quality_min;
+    RK_U32 qp_max = rc_info->quality_max;
     RK_U32 qpmap_mode = 1;
+    RK_S32 mb_target_bits_mul_16 = (rc_info->bit_target << 4) / (mb_w * mb_h);
+    RK_S32 mb_target_bits;
+    RK_S32 negative_bits_thd;
+    RK_S32 positive_bits_thd;
+
+    hal_h264e_dbg_rc("bittarget %d qp [%d %d %d]\n", rc_info->bit_target,
+                     qp_min, qp_target, qp_max);
+
+    if (mb_target_bits_mul_16 >= 0x100000) {
+        mb_target_bits_mul_16 = 0x50000;
+    }
+
+    mb_target_bits = (mb_target_bits_mul_16 * mb_w) >> 4;
+    negative_bits_thd = 0 - mb_target_bits / 4;
+    positive_bits_thd = mb_target_bits / 4;
 
     hal_h264e_dbg_func("enter\n");
 
     regs->reg013.pic_qp         = qp_target;
 
-    regs->reg050.rc_en          = 0;
-    regs->reg050.aq_en          = 0;
+    regs->reg050.rc_en          = 1;
+    regs->reg050.aq_en          = 1;
     regs->reg050.aq_mode        = 0;
-    regs->reg050.rc_ctu_num     = sps->pic_width_in_mbs;
+    regs->reg050.rc_ctu_num     = mb_w;
 
-    regs->reg051.rc_qp_range    = 0;
+    regs->reg051.rc_qp_range    = 1;
     regs->reg051.rc_max_qp      = qp_max;
     regs->reg051.rc_min_qp      = qp_min;
 
-    regs->reg052.ctu_ebit       = 0;
+    regs->reg052.ctu_ebit       = mb_target_bits_mul_16;
 
-    regs->reg053.qp_adj0        = 0;
+    regs->reg053.qp_adj0        = -1;
     regs->reg053.qp_adj1        = 0;
     regs->reg053.qp_adj2        = 0;
     regs->reg053.qp_adj3        = 0;
@@ -565,17 +582,17 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg054.qp_adj5        = 0;
     regs->reg054.qp_adj6        = 0;
     regs->reg054.qp_adj7        = 0;
-    regs->reg054.qp_adj8        = 0;
+    regs->reg054.qp_adj8        = 1;
 
-    regs->reg055_063.rc_dthd[0] = 0;
-    regs->reg055_063.rc_dthd[1] = 0;
-    regs->reg055_063.rc_dthd[2] = 0;
-    regs->reg055_063.rc_dthd[3] = 0;
-    regs->reg055_063.rc_dthd[4] = 0;
-    regs->reg055_063.rc_dthd[5] = 0;
-    regs->reg055_063.rc_dthd[6] = 0;
-    regs->reg055_063.rc_dthd[7] = 0;
-    regs->reg055_063.rc_dthd[8] = 0;
+    regs->reg055_063.rc_dthd[0] = negative_bits_thd;
+    regs->reg055_063.rc_dthd[1] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[2] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[3] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[4] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[5] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[6] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[7] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[8] = positive_bits_thd;
 
     regs->reg064.qpmin_area0    = 21;
     regs->reg064.qpmax_area0    = 50;
@@ -1215,14 +1232,18 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
 static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
     RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
     RK_U32 mbs = mb_w * mb_h;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    ctx->hal_rc_cfg.bit_real = task->length;
-    ctx->hal_rc_cfg.quality_real = mbs;
+    rc_info->bit_real = task->length * 8;
+    rc_info->quality_real = ctx->regs_ret.st_sse_qp.qp_sum * 16 / mbs;
+
+    ctx->hal_rc_cfg.bit_real = rc_info->bit_real;
+    ctx->hal_rc_cfg.quality_real = rc_info->quality_real;
 
     task->hal_ret.data   = &ctx->hal_rc_cfg;
     task->hal_ret.number = 1;
