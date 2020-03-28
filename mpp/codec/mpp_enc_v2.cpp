@@ -640,13 +640,18 @@ void *mpp_enc_thread(void *data)
 
     TASK_REENCODE:
         // 14. restore and process dpb
-        enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
-        RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+        if (!frm->reencode || frm->re_dpb_proc) {
+            enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
+            RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+        }
 
-        enc_dbg_detail("task %d rc frame start\n", frm->seq_idx);
-        RUN_ENC_RC_FUNC(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
-        if (frm->re_dpb_proc)
-            goto TASK_REENCODE;
+        if (!frm->reencode) {
+            enc_dbg_detail("task %d rc frame start\n", frm->seq_idx);
+            RUN_ENC_RC_FUNC(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
+            if (frm->re_dpb_proc)
+                goto TASK_REENCODE;
+        }
+        frm->reencode = 0;
 
         enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
         RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);

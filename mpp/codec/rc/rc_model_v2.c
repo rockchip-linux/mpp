@@ -665,11 +665,8 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
 
     rc_dbg_func("enter %p\n", ctx);
 
-
-    if (frm->reencode || p->usr_cfg.mode == RC_FIXQP) {
-        frm->reencode = 0;
+    if (p->usr_cfg.mode == RC_FIXQP)
         return MPP_OK;
-    }
 
     p->frame_type = (frm->is_intra) ? (INTRA_FRAME) : (INTER_P_FRAME);
 
