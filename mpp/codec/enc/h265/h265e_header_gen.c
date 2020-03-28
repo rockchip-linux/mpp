@@ -127,32 +127,45 @@ static MPP_RET h265e_encapsulate_nals(H265eExtraInfo *out)
 static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 *payload,
                                RK_S32 payload_size, RK_S32 payload_type)
 {
-    RK_S32 i = 0;
+#define H265E_UUID_LENGTH 16
 
+    static const RK_U8 h265e_sei_uuid[H265E_UUID_LENGTH] = {
+        0x63, 0xfc, 0x6a, 0x3c, 0xd8, 0x5c, 0x44, 0x1e,
+        0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77
+    };
+
+    RK_S32 i = 0;
+    RK_S32 data_len = payload_size;
     h265e_dbg_func("enter\n");
 
     h265e_stream_realign(s);
 
+    payload_size += H265E_UUID_LENGTH;
+
     for (i = 0; i <= payload_type - 255; i += 255)
-        h265e_stream_write_with_log(s, 8, 0xff,
+        h265e_stream_write_with_log(s, 0xff, 8,
                                     "sei_payload_type_ff_byte");
 
-    h265e_stream_write_with_log(s, 8, payload_type - i,
+    h265e_stream_write_with_log(s, payload_type - i, 8,
                                 "sei_last_payload_type_byte");
 
     for (i = 0; i <= payload_size - 255; i += 255)
-        h265e_stream_write_with_log(s, 8, 0xff,
+        h265e_stream_write_with_log(s, 0xff, 8,
                                     "sei_payload_size_ff_byte");
 
-    h265e_stream_write_with_log(s, 8, payload_size - i,
+    h265e_stream_write_with_log(s,  payload_size - i, 8,
                                 "sei_last_payload_size_byte");
 
-    for (i = 0; i < payload_size; i++)
-        h265e_stream_write_with_log(s, 8, (RK_U32)payload[i],
+    for (i = 0; i < H265E_UUID_LENGTH; i++) {
+        h265e_stream_write_with_log(s, h265e_sei_uuid[i], 8,
+                                    "sei_uuid_byte");
+    }
+
+    for (i = 0; i < data_len; i++)
+        h265e_stream_write_with_log(s, (RK_U32)payload[i], 8,
                                     "sei_payload_data");
 
     h265e_stream_rbsp_trailing(s);
-    h265e_stream_flush(s);
 
     h265e_dbg_func("leave\n");
 
@@ -656,7 +669,7 @@ MPP_RET h265e_set_extra_info(H265eCtx *ctx)
     return MPP_OK;
 }
 
-MPP_RET h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
+RK_U32 h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
 {
     H265eNal sei_nal;
     H265eStream stream;
@@ -679,7 +692,7 @@ MPP_RET h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
     h265e_stream_deinit(&stream);
 
     h265e_dbg_func("leave\n");
-    return MPP_OK;
+    return sei_nal.i_payload;
 }
 
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out)
