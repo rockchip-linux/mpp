@@ -247,6 +247,11 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 
     h265e_dbg_func("enter\n");
 
+    if (rc_task->frm.reencode) {
+
+        return MPP_OK;
+    }
+
     mb_wd64 = (p->cfg->prep.width + 63) / 64;
     mb_h64 = (p->cfg->prep.height + 63) / 64;
 

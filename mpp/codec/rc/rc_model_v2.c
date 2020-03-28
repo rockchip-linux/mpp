@@ -76,8 +76,10 @@ typedef struct RcModelV2Ctx_t {
     RK_S32          frm_bits_thr;
     RK_S32          ins_bps;
     RK_S32          last_inst_bps;
-    RK_U32          water_level_thr;
 
+    /*super frame thr*/
+    RK_U32          super_ifrm_bits_thr;
+    RK_U32          super_pfrm_bits_thr;
     MppDataV2       *stat_bits;
     MppDataV2       *stat_rate;
     RK_S32          stat_watl_thrd;
@@ -150,8 +152,12 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         ctx->usr_cfg.stat_times = stat_times;
     }
 
-    if (ctx->usr_cfg.max_i_bit_prop <= 0)
+    if (ctx->usr_cfg.max_i_bit_prop <= 0) {
         ctx->usr_cfg.max_i_bit_prop = 20;
+    }
+
+    ctx->super_ifrm_bits_thr = -1;
+    ctx->super_pfrm_bits_thr = -1;
 
     stat_len = fps->fps_in_num * ctx->usr_cfg.stat_times;
     if (ctx->usr_cfg.mode == RC_CBR) {
@@ -443,7 +449,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
 
     bps_ratio = 96 * (ins_bps - target_bps) / target_bps;
-    wl_ratio = 32 * (water_level - (ctx->water_level_thr >> 3)) / (ctx->water_level_thr >> 3);
+    wl_ratio = 32 * (water_level - (ctx->stat_watl_thrd >> 3)) / (ctx->stat_watl_thrd >> 3);
     if (last_ins_bps < ins_bps && target_bps != last_ins_bps) {
         ins_ratio = 6 * ins_ratio;
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
@@ -460,6 +466,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
     wl_ratio  = mpp_clip(wl_ratio, -32, 32);
     ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio + wl_ratio;
+    rc_dbg_rc("cbr reenc next ratio %d", ctx->next_ratio);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -549,6 +556,7 @@ MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
 
     ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio;
+    rc_dbg_rc("vbr reenc next ratio %d", ctx->next_ratio);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -562,55 +570,66 @@ MPP_RET bits_mode_reset(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
+MPP_RET check_super_frame(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
+{
+    MPP_RET ret = MPP_OK;
+    RK_S32 frame_type = ctx->frame_type;
+    RK_U32 bits_thr = 0;
+    if (frame_type == INTRA_FRAME) {
+        bits_thr = ctx->super_ifrm_bits_thr;
+    } else {
+        bits_thr = ctx->super_pfrm_bits_thr;
+    }
+    if ((RK_U32)cfg->bit_real >= bits_thr) {
+        ret = MPP_NOK;
+    }
+    return ret;
+}
+
 MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 frame_type = ctx->frame_type;
-    RK_S32 i_flag = 0;
-    RK_S32 big_flag = 0;
+    RK_S32 bit_thr = 0;
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
     RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
     RK_S32 target_bps;
-    RK_S32 flag1 = 0;
-    RK_S32 flag2 = 0;
+    RK_S32 ret = MPP_OK;
 
     rc_dbg_func("enter %p\n", ctx);
-
-    if (ctx->usr_cfg.mode == RC_CBR)
-        target_bps = ctx->usr_cfg.bps_target;
-    else
-        target_bps = ctx->usr_cfg.bps_max;
-
     if (ctx->reenc_cnt >= ctx->usr_cfg.max_reencode_times) {
-        return 0;
+        return MPP_OK;
     }
 
-    i_flag = (frame_type == INTRA_FRAME);
-    if (!i_flag && cfg->bit_real > 3 * cfg->bit_target) {
-        big_flag = 1;
+    switch (frame_type) {
+    case INTRA_FRAME:
+        bit_thr = 3 * cfg->bit_target;
+        break;
+    case INTER_P_FRAME:
+        bit_thr = 3 * cfg->bit_target / 2;
+        break;
+    default:
+        break;
     }
-
-    if (i_flag && cfg->bit_real > 3 * cfg->bit_target / 2) {
-        big_flag = 1;
-    }
-
-    if (ctx->usr_cfg.mode == RC_CBR) {
-        flag1 = target_bps / 20 < ins_bps - last_ins_bps;
-        if (target_bps + target_bps / 10 < ins_bps ||
-            target_bps - target_bps / 10 > ins_bps) {
-            flag2 = 1;
+    if (cfg->bit_real > bit_thr) {
+        if (ctx->usr_cfg.mode == RC_CBR) {
+            target_bps = ctx->usr_cfg.bps_target;
+            if (target_bps / 20 < ins_bps - last_ins_bps &&
+                (target_bps + target_bps / 10 < ins_bps
+                 || target_bps - target_bps / 10 > ins_bps)) {
+                ret =  MPP_NOK;
+            }
+        } else {
+            target_bps = ctx->usr_cfg.bps_max;
+            if ((target_bps - (target_bps >> 3) < ins_bps) &&
+                (target_bps / 20  < ins_bps - last_ins_bps)) {
+                ret =  MPP_NOK;
+            }
         }
-    } else {
-        flag1 = target_bps - (target_bps >> 3) < ins_bps;
-        flag2 = target_bps / 20  < ins_bps - last_ins_bps;
     }
-
-    if (!(big_flag && flag1 && flag2)) {
-        return 0;
-    }
-
     rc_dbg_func("leave %p\n", ctx);
-    return 1;
+    return ret;
+
 }
 
 
