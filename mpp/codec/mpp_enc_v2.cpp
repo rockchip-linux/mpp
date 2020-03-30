@@ -75,16 +75,18 @@ typedef struct MppEncImpl_t {
     MppEncCfgSet        set;
 
     /* control process */
+    RK_U32              cmd_send;
+    RK_U32              cmd_recv;
     MpiCmd              cmd;
     void                *param;
+    MPP_RET             *cmd_ret;
     sem_t               enc_ctrl;
 
     // legacy support for MPP_ENC_GET_EXTRA_INFO
     MppPacket           hdr_pkt;
-
-    RK_U32              cmd_send;
-    RK_U32              cmd_recv;
-    RK_U32              hdr_need_updated;
+    RK_U32              hdr_len;
+    RK_U32              hdr_ready;
+    MppEncHeaderMode    hdr_mode;
 } MppEncImpl;
 
 typedef union EncTaskWait_u {
@@ -120,6 +122,7 @@ typedef union EncTaskStatus_u {
         RK_U32      task_out_rdy        : 1;
 
         RK_U32      rc_check_frm_drop   : 1;    // rc  stage
+        RK_U32      enc_add_header      : 1;    // write header before encoding
         RK_U32      enc_backup          : 1;    // enc stage
         RK_U32      enc_restore         : 1;    // reenc flow start point
         RK_U32      enc_proc_dpb        : 1;    // enc stage
@@ -235,8 +238,6 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     switch (enc->cmd) {
     case MPP_ENC_GET_HDR_SYNC :
     case MPP_ENC_GET_EXTRA_INFO : {
-        MppPacket pkt = NULL;
-
         /*
          * NOTE: get stream header should use user's MppPacket
          * If we provide internal MppPacket to external user
@@ -244,23 +245,20 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
          * So encoder always write its header to external buffer
          * which is provided by user.
          */
+        if (!enc->hdr_ready) {
+            enc_impl_gen_hdr(enc->impl, enc->hdr_pkt);
+            enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
+            enc->hdr_ready = 1;
+        }
+
         if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
             mpp_err("Please use MPP_ENC_GET_HDR_SYNC instead of unsafe MPP_ENC_GET_EXTRA_INFO\n");
+            mpp_err("NOTE: MPP_ENC_GET_HDR_SYNC needs MppPacket input\n");
 
-            if (NULL == enc->hdr_pkt) {
-                size_t size = SZ_1K;
-                void *ptr = mpp_calloc_size(void, size);
-
-                mpp_packet_init(&enc->hdr_pkt, ptr, size);
-            }
-            pkt = enc->hdr_pkt;
-            *(MppPacket *)enc->param = pkt;
-        } else
-            pkt = (MppPacket)enc->param;
-
-        enc_impl_gen_hdr(enc->impl, pkt);
-
-        enc->hdr_need_updated = 0;
+            *(MppPacket *)enc->param = enc->hdr_pkt;
+        } else {
+            mpp_packet_copy((MppPacket)enc->param, enc->hdr_pkt);
+        }
     } break;
     case MPP_ENC_GET_RC_API_ALL : {
         RcApiQueryAll *query = (RcApiQueryAll *)enc->param;
@@ -290,11 +288,28 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         enc->rc_status.rc_api_user_cfg = 1;
         enc->rc_status.rc_api_updated = 1;
     } break;
+    case MPP_ENC_SET_HEADER_MODE : {
+        if (enc->param) {
+            MppEncHeaderMode mode = *((MppEncHeaderMode *)enc->param);
+
+            if (mode < MPP_ENC_HEADER_MODE_BUTT) {
+                enc->hdr_mode = mode;
+                enc_dbg_ctrl("header mode set to %d\n", mode);
+            } else {
+                mpp_err_f("invalid header mode %d\n", mode);
+                *enc->cmd_ret = MPP_NOK;
+            }
+        } else {
+            mpp_err_f("invalid NULL ptr on setting header mode\n");
+            *enc->cmd_ret = MPP_NOK;
+        }
+    } break;
     default : {
         enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
         if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
-            MPP_ENC_SET_PREP_CFG == enc->cmd)
-            enc->hdr_need_updated = 1;
+            MPP_ENC_SET_PREP_CFG == enc->cmd) {
+            enc->hdr_ready = 0;
+        }
     } break;
     }
 }
@@ -610,23 +625,34 @@ void *mpp_enc_thread(void *data)
 
         // 11. check frame drop by frame rate conversion
         RUN_ENC_RC_FUNC(rc_frm_check_drop, enc->rc_ctx, rc_task, mpp, ret);
+        task.status.rc_check_frm_drop = 1;
         enc_dbg_detail("task %d drop %d\n", frm->seq_idx, frm->drop);
+
+        // when the frame should be dropped just return empty packet
         if (frm->drop) {
             hal_task->valid = 0;
             hal_task->length = 0;
             goto TASK_DONE;
         }
+
+        // start encoder task process here
         hal_task->valid = 1;
 
         // 12. generate header before hardware stream
-        if (enc->hdr_need_updated) {
-            enc_impl_gen_hdr(impl, packet);
-            enc->hdr_need_updated = 0;
+        if (!enc->hdr_ready) {
+            enc_impl_gen_hdr(impl, enc->hdr_pkt);
+            enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
+            enc->hdr_ready = 1;
 
+            hal_task->header_length = enc->hdr_len;
             enc_dbg_detail("task %d update header length %d\n",
-                           frm->seq_idx, mpp_packet_get_length(packet));
+                           frm->seq_idx, hal_task->header_length);
+
+            mpp_packet_copy(packet, enc->hdr_pkt);
+            task.status.enc_add_header = 1;
         }
 
+        // 13. setup input frame and output packet
         hal_task->frame  = frame;
         hal_task->input  = mpp_frame_get_buffer(frame);
         hal_task->packet = packet;
@@ -634,22 +660,38 @@ void *mpp_enc_thread(void *data)
         hal_task->length = mpp_packet_get_length(packet);
         mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &hal_task->mv_info);
 
-        // 13. backup dpb
+        // 14. backup dpb
         enc_dbg_detail("task %d enc start\n", frm->seq_idx);
+        task.status.enc_backup = 1;
         RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
 
     TASK_REENCODE:
-        // 14. restore and process dpb
-        if (!frm->reencode || frm->re_dpb_proc) {
-            enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
-            RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
-        }
-
+        // 15. restore and process dpb
         if (!frm->reencode) {
+            if (!frm->re_dpb_proc) {
+                enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
+                RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+            }
+
             enc_dbg_detail("task %d rc frame start\n", frm->seq_idx);
             RUN_ENC_RC_FUNC(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
+            task.status.enc_proc_dpb = 1;
             if (frm->re_dpb_proc)
                 goto TASK_REENCODE;
+
+            // 16. generate header before hardware stream
+            if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
+                frm->is_intra && !task.status.enc_add_header) {
+
+                enc_dbg_detail("task %d IDR header length %d\n",
+                               frm->seq_idx, enc->hdr_len);
+
+                mpp_packet_copy(packet, enc->hdr_pkt);
+                task.status.enc_add_header = 1;
+
+                hal_task->header_length = enc->hdr_len;
+                hal_task->length += enc->hdr_len;
+            }
         }
         frm->reencode = 0;
 
@@ -683,7 +725,7 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
         if (frm->reencode) {
-            mpp_log_f("reencode time %d\n", frm->reencode_times);
+            enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             goto TASK_REENCODE;
         }
 
@@ -801,6 +843,13 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
     p->impl     = impl;
     p->enc_hal  = enc_hal;
     p->mpp      = cfg->mpp;
+
+    {   // create header packet storage
+        size_t size = SZ_1K;
+        void *ptr = mpp_calloc_size(void, size);
+
+        mpp_packet_init(&p->hdr_pkt, ptr, size);
+    }
 
     /* NOTE: setup configure coding for check */
     p->cfg.codec.coding = coding;
@@ -944,8 +993,8 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_RET ret = MPP_OK;
     AutoMutex auto_lock(&enc->lock);
+    MPP_RET ret = MPP_OK;
 
     enc_dbg_ctrl("sending cmd %d param %p\n", cmd, param);
 
@@ -962,10 +1011,15 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         enc_dbg_ctrl("get rc config\n");
         memcpy(param, &enc->cfg.rc, sizeof(enc->cfg.rc));
     } break;
+    case MPP_ENC_GET_HEADER_MODE : {
+        enc_dbg_ctrl("get header mode\n");
+        memcpy(param, &enc->hdr_mode, sizeof(enc->hdr_mode));
+    } break;
     default : {
         // Cmd which is not get configure will handle by enc_impl
-        enc->cmd    = cmd;
-        enc->param  = param;
+        enc->cmd = cmd;
+        enc->param = param;
+        enc->cmd_ret = &ret;
 
         enc->cmd_send++;
         mpp_enc_notify_v2(ctx, MPP_ENC_CONTROL);

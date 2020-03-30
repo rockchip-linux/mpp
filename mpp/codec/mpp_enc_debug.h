@@ -25,6 +25,7 @@
 #define MPP_ENC_DBG_DETAIL              (0x00000020)
 #define MPP_ENC_DBG_RESET               (0x00000040)
 #define MPP_ENC_DBG_NOTIFY              (0x00000080)
+#define MPP_ENC_DBG_REENC               (0x00000100)
 
 #define mpp_enc_dbg(flag, fmt, ...)     _mpp_dbg(mpp_enc_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_enc_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_enc_debug, flag, fmt, ## __VA_ARGS__)
@@ -34,6 +35,7 @@
 #define enc_dbg_status(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_STATUS, fmt, ## __VA_ARGS__)
 #define enc_dbg_detail(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_DETAIL, fmt, ## __VA_ARGS__)
 #define enc_dbg_notify(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_NOTIFY, fmt, ## __VA_ARGS__)
+#define enc_dbg_reenc(fmt, ...)         mpp_enc_dbg_f(MPP_ENC_DBG_REENC, fmt, ## __VA_ARGS__)
 
 extern RK_U32 mpp_enc_debug;
 

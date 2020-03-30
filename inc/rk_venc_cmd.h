@@ -394,14 +394,13 @@ typedef struct MppEncMDBlkInfo_t {
     RK_S32              mvy     : 8;    /* bit 24~31 - signed vertical mv */
 } MppEncMDBlkInfo;
 
-/*
- * Mpp video codec related configuration
- */
-typedef struct MppEncHwCfg_t {
-    RK_U32              change;
-    RK_S32              me_search_range_x;
-    RK_S32              me_search_range_y;
-} MppEncHwCfg;
+typedef enum MppEncHeaderMode_t {
+    /* default mode: attach vps/sps/pps only on first frame */
+    MPP_ENC_HEADER_MODE_DEFAULT,
+    /* IDR mode: attach vps/sps/pps on each IDR frame */
+    MPP_ENC_HEADER_MODE_EACH_IDR,
+    MPP_ENC_HEADER_MODE_BUTT,
+} MppEncHeaderMode;
 
 typedef enum MppEncSeiMode_t {
     MPP_ENC_SEI_MODE_DISABLE,                /* default mode, SEI writing is disabled */
