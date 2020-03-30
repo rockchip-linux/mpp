@@ -164,6 +164,8 @@ typedef enum {
     MPP_ENC_CFG_MJPEG                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_MJPEG,
 
     MPP_ENC_CFG_MISC                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_MISC,
+    MPP_ENC_SET_HEADER_MODE,            /* set MppEncHeaderMode */
+    MPP_ENC_GET_HEADER_MODE,            /* get MppEncHeaderMode */
 
     MPP_ENC_CFG_SPLIT                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_SPLIT,
     MPP_ENC_SET_SPLIT,                  /* set MppEncSliceSplit structure */
