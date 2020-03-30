@@ -230,7 +230,7 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
         RK_S32 pixel_buf_fbc_hdr_size = MPP_ALIGN(aligned_w * aligned_h / 64, SZ_8K);
         RK_S32 pixel_buf_fbc_bdy_size = aligned_w * aligned_h * 2;
         RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
-        RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_w / 64 * 256, SZ_8K);
+        RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
 
         if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
             (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
