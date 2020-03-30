@@ -338,6 +338,22 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
     return MPP_OK;
 }
 
+MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
+{
+    if (check_is_mpp_packet(dst) || check_is_mpp_packet(src)) {
+        mpp_err_f("invalid input: dst %p src %p\n", dst, src);
+        return MPP_ERR_UNKNOW;
+    }
+
+    void *dst_buf = mpp_packet_get_pos(dst);
+    void *src_buf = mpp_packet_get_pos(src);
+    size_t size = mpp_packet_get_length(src);
+
+    memcpy(dst_buf, src_buf, size);
+    mpp_packet_set_length(dst, size);
+    return MPP_OK;
+}
+
 /*
  * object access function macro
  */
