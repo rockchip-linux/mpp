@@ -58,6 +58,7 @@ extern "C" {
  * mpp_packet_reset is only used internelly and should NOT be used outside
  */
 MPP_RET mpp_packet_reset(MppPacketImpl *packet);
+MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
