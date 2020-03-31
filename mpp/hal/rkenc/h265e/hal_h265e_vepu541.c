@@ -1355,7 +1355,8 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
 
     vepu541_h265_set_feedback(ctx, reg_out, enc_task);
 
-    enc_task->length = fb->out_strm_size;
+    enc_task->hw_length = fb->out_strm_size;
+    enc_task->length += fb->out_strm_size;
     enc_task->hal_ret.data = ctx->rc_hal_cfg;
     enc_task->hal_ret.number = ctx->num_frames_to_send;
 

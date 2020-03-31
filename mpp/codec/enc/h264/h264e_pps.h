@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 MPP_RET h264e_pps_update(SynH264ePps *pps, MppEncCfgSet *cfg);
-MPP_RET h264e_pps_to_packet(SynH264ePps *pps, MppPacket packet);
+MPP_RET h264e_pps_to_packet(SynH264ePps *pps, MppPacket packet, RK_S32 *len);
 MPP_RET h264e_pps_dump(SynH264ePps *pps);
 
 #ifdef __cplusplus

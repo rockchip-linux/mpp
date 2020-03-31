@@ -42,12 +42,27 @@ typedef struct HalEncTask_t {
     MppSyntax       syntax;
     MppSyntax       hal_ret;
 
-    // current tesk output stream buffer
+    /*
+     * Current tesk output stream buffer
+     *
+     * Usage and flow of changing task length and packet length
+     *
+     * 1. length is runtime updated for each stage.
+     *    header_length / sei_length / hw_length are for recording.
+     *
+     * 2. When writing vps/sps/pps encoder should update length.
+     *    Then length will be kept before next stage is done.
+     *    For example when vps/sps/pps were inserted and slice data need
+     *    reencoding the hal should update length at the final loop.
+     *
+     * 3. length in task and length in packet should be updated at the same
+     *    time. Encoder flow need to check these two length between stages.
+     */
     MppPacket       packet;
     MppBuffer       output;
-    RK_U32          header_length;
-    RK_U32          sei_length;
-    RK_U32          hw_length;
+    RK_S32          header_length;
+    RK_S32          sei_length;
+    RK_S32          hw_length;
     RK_U32          length;
 
     // current tesk input slot buffer

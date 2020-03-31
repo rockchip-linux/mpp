@@ -72,7 +72,6 @@ typedef struct HalH264eVepu541Ctx_t {
     RK_S32                  roi_buf_size;
 
     /* osd */
-    RK_U32                  plt_type;
     MppEncOSDPlt            *osd_plt;
     MppEncOSDData           *osd_data;
 
@@ -1219,10 +1218,9 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
     memset(&req, 0, sizeof(req));
     req.cmd = MPP_CMD_POLL_HW_FINISH;
     mpp_device_add_request(ctx->dev_ctx, &req);
-
     mpp_device_send_request(ctx->dev_ctx);
 
-    task->length += ctx->regs_ret.st_bsl.bs_lgth;
+    task->hw_length += ctx->regs_ret.st_bsl.bs_lgth;
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -1239,7 +1237,11 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    rc_info->bit_real = task->length * 8;
+    // update total hardware length
+    task->length += task->hw_length;
+
+    // setup bit length for rate control
+    rc_info->bit_real = task->hw_length * 8;
     rc_info->quality_real = ctx->regs_ret.st_sse_qp.qp_sum * 16 / mbs;
 
     ctx->hal_rc_cfg.bit_real = rc_info->bit_real;
