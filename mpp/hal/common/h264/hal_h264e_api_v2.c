@@ -29,6 +29,7 @@
 #include "hal_h264e_debug.h"
 #include "h264e_syntax.h"
 #include "hal_h264e_api_v2.h"
+#include "hal_h264e_vepu1_v2.h"
 #include "hal_h264e_vepu2_v2.h"
 #include "hal_h264e_vepu541.h"
 
@@ -57,8 +58,8 @@ static MPP_RET hal_h264e_init(void *hal, MppEncHalCfg *cfg)
         api = &hal_h264e_vepu2;
         dev = DEV_VEPU;
     } else if (vcodec_type & HAVE_VEPU1) {
-        //api = &hal_h264e_vepu1;
-        //dev = DEV_VEPU;
+        api = &hal_h264e_vepu1;
+        dev = DEV_VEPU;
     } else {
         mpp_err("vcodec type %08x can not find H.264 encoder device\n",
                 vcodec_type);

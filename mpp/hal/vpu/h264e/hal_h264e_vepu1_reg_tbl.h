@@ -222,10 +222,10 @@
 #define VEPU_REG_DMV_Q_PIXEL_PENALTY_TBL(i) (0x200 + ((i) * 0x4))
 #define     VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(x, i)    (x << i * 8)
 
-#define     VEPU_H264E_VEPU1_NUM_REGS  164
+#define     VEPU1_H264E_NUM_REGS        164
 
-typedef struct h264e_vepu1_reg_set_t {
-    RK_U32 val[VEPU_H264E_VEPU1_NUM_REGS];
-} h264e_vepu1_reg_set;
+typedef struct H264eVpu1RegSet_t {
+    RK_U32 val[VEPU1_H264E_NUM_REGS];
+} H264eVpu1RegSet;
 
 #endif
