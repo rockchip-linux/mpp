@@ -334,23 +334,15 @@ void *mpp_enc_control_thread(void *data)
          * task_in may be null if output port is awaken by Mpp::clear()
          */
         if (task_out) {
-            //set motion info buffer to output task
+            MppMeta meta = mpp_packet_get_meta(packet);
+
             if (mv_info)
-                mpp_task_meta_set_buffer(task_out, KEY_MOTION_INFO, mv_info);
+                mpp_meta_set_buffer(meta, KEY_MOTION_INFO, mv_info);
 
-            mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
-
-            {
-                RK_S32 is_intra = hal_task->is_intra;
-                RK_U32 flag = mpp_packet_get_flag(packet);
-
-                mpp_task_meta_set_s32(task_out, KEY_OUTPUT_INTRA, is_intra);
-                if (is_intra) {
-                    mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
-                }
-            }
+            mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, hal_task->is_intra);
 
             // setup output task here
+            mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
             mpp_port_enqueue(output, task_out);
         } else {
             mpp_packet_deinit(&packet);

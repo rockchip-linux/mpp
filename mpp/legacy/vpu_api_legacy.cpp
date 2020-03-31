@@ -1113,8 +1113,9 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     if (packet) {
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
-        RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
+        MppMeta meta = mpp_packet_get_meta(packet);
+        RK_S32 is_intra = 0;
 
         if (!fd_output) {
             RK_U8 *src = (RK_U8 *)mpp_packet_get_data(packet);
@@ -1131,9 +1132,11 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
             }
         }
 
+        mpp_meta_get_s32(meta, KEY_OUTPUT_INTRA, &is_intra);
+
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
-        aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
+        aEncOut->keyFrame = is_intra;
 
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
@@ -1293,8 +1296,9 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
         RK_U8 *src = (RK_U8 *)mpp_packet_get_data(packet);
         RK_U32 eos = mpp_packet_get_eos(packet);
         RK_S64 pts = mpp_packet_get_pts(packet);
-        RK_U32 flag = mpp_packet_get_flag(packet);
         size_t length = mpp_packet_get_length(packet);
+        MppMeta meta = mpp_packet_get_meta(packet);
+        RK_S32 is_intra = 0;
 
         RK_U32 offset = 0;
         if (ctx->videoCoding == OMX_RK_VIDEO_CodingAVC) {
@@ -1307,9 +1311,13 @@ RK_S32 VpuApiLegacy::encoder_getstream(VpuCodecContext *ctx, EncoderOut_t *aEncO
             if (aEncOut->data)
                 memcpy(aEncOut->data, src + offset, length);
         }
+
+        mpp_meta_get_s32(meta, KEY_OUTPUT_INTRA, &is_intra);
+
         aEncOut->size = (RK_S32)length;
         aEncOut->timeUs = pts;
-        aEncOut->keyFrame = (flag & MPP_PACKET_FLAG_INTRA) ? (1) : (0);
+        aEncOut->keyFrame = is_intra;
+
         vpu_api_dbg_output("get packet %p size %d pts %lld keyframe %d eos %d\n",
                            packet, length, pts, aEncOut->keyFrame, eos);
 
