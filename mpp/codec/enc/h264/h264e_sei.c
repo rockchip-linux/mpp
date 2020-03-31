@@ -31,7 +31,8 @@ static RK_U8 mpp_h264e_uuid[16] = {
     0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77,
 };
 
-MPP_RET h264e_sei_to_packet(void *data, RK_S32 size, RK_S32 type, MppPacket packet)
+MPP_RET h264e_sei_to_packet(void *data, RK_S32 size, RK_S32 type,
+                            MppPacket packet, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *pkt_base = mpp_packet_get_data(packet);
@@ -46,6 +47,9 @@ MPP_RET h264e_sei_to_packet(void *data, RK_S32 size, RK_S32 type, MppPacket pack
     RK_S32 payload_size = size + uuid_size;
     RK_S32 sei_size = 0;
     RK_S32 i;
+
+    h264e_dbg_sei("write sei to pkt [%p:%u] [%p:%u]\n", pkt_base, pkt_size,
+                  pos, length);
 
     mpp_writer_init(bit, dst, buf_size);
 
@@ -84,8 +88,13 @@ MPP_RET h264e_sei_to_packet(void *data, RK_S32 size, RK_S32 type, MppPacket pack
     mpp_writer_trailing(bit);
 
     sei_size = mpp_writer_bytes(bit);
+    if (len)
+        *len = sei_size;
 
     mpp_packet_set_length(packet, length + sei_size);
+
+    h264e_dbg_sei("sei data length %d pkt len %d -> %d\n", sei_size,
+                  length, length + sei_size);
 
     return MPP_OK;
 }

@@ -67,6 +67,9 @@ typedef struct {
     void                *hdr_buf;
     size_t              hdr_size;
     size_t              hdr_len;
+    RK_S32              sps_len;
+    RK_S32              pps_len;
+    RK_S32              sei_len;
 
     /* rate control config */
     RcCtx               rc_ctx;
@@ -434,9 +437,8 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
 
     mpp_packet_reset(p->hdr_pkt);
 
-    h264e_sps_to_packet(&p->sps, p->hdr_pkt);
-    h264e_pps_to_packet(&p->pps, p->hdr_pkt);
-
+    h264e_sps_to_packet(&p->sps, p->hdr_pkt, &p->sps_len);
+    h264e_pps_to_packet(&p->pps, p->hdr_pkt, &p->pps_len);
     p->hdr_len = mpp_packet_get_length(p->hdr_pkt);
 
     if (pkt) {
@@ -540,10 +542,13 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 
     mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
     if (user_data) {
-        if (user_data->pdata && user_data->len)
+        if (user_data->pdata && user_data->len) {
             h264e_sei_to_packet(user_data->pdata, user_data->len,
-                                H264_SEI_USER_DATA_UNREGISTERED, task->packet);
-        else
+                                H264_SEI_USER_DATA_UNREGISTERED,
+                                task->packet, &p->sei_len);
+            task->sei_length = p->sei_len;
+            task->length += p->sei_len;
+        } else
             mpp_err_f("failed to insert user data %p len %d\n",
                       user_data->pdata, user_data->len);
     }

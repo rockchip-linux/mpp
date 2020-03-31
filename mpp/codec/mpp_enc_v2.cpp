@@ -644,13 +644,16 @@ void *mpp_enc_thread(void *data)
             enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
             enc->hdr_ready = 1;
 
-            hal_task->header_length = enc->hdr_len;
             enc_dbg_detail("task %d update header length %d\n",
-                           frm->seq_idx, hal_task->header_length);
+                           frm->seq_idx, enc->hdr_len);
 
-            mpp_packet_copy(packet, enc->hdr_pkt);
+            mpp_packet_append(packet, enc->hdr_pkt);
+            hal_task->header_length = enc->hdr_len;
+            hal_task->length += enc->hdr_len;
             task.status.enc_add_header = 1;
         }
+
+        mpp_assert(hal_task->length == mpp_packet_get_length(packet));
 
         // 13. setup input frame and output packet
         hal_task->frame  = frame;
@@ -686,7 +689,7 @@ void *mpp_enc_thread(void *data)
                 enc_dbg_detail("task %d IDR header length %d\n",
                                frm->seq_idx, enc->hdr_len);
 
-                mpp_packet_copy(packet, enc->hdr_pkt);
+                mpp_packet_append(packet, enc->hdr_pkt);
                 task.status.enc_add_header = 1;
 
                 hal_task->header_length = enc->hdr_len;
@@ -695,8 +698,14 @@ void *mpp_enc_thread(void *data)
         }
         frm->reencode = 0;
 
+        // check for header adding
+        mpp_assert(hal_task->length == mpp_packet_get_length(packet));
+
         enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
         RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);
+
+        // check for user data adding
+        mpp_assert(hal_task->length == mpp_packet_get_length(packet));
 
         enc_dbg_detail("task %d hal get task\n", frm->seq_idx);
         RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
@@ -719,9 +728,6 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
         RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
 
-        enc_dbg_detail("task %d enc update hal\n", frm->seq_idx);
-        RUN_ENC_IMPL_FUNC(enc_impl_update_hal, impl, hal_task, mpp, ret);
-
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
@@ -729,6 +735,9 @@ void *mpp_enc_thread(void *data)
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             goto TASK_REENCODE;
         }
+
+        enc_dbg_detail("task %d enc update hal\n", frm->seq_idx);
+        RUN_ENC_IMPL_FUNC(enc_impl_update_hal, impl, hal_task, mpp, ret);
 
     TASK_DONE:
         /* setup output packet and meta data */

@@ -300,6 +300,8 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
     if (user_data && user_data->len) {
         sei_size =  h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
         mpp_packet_set_length(task->packet, sei_size + offset);
+        task->sei_length = sei_size;
+        task->length += sei_size;
     }
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -317,17 +319,10 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 
 static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
 {
-    (void)ctx;
-    RK_U32 offset = mpp_packet_get_length(task->packet);
+    (void) ctx;
+    (void) task;
     h265e_dbg_func("enter\n");
 
-    if (!task->length )
-        return MPP_OK;
-
-    task->length += offset;
-
-    h265e_dbg_func("leave\n");
-    return MPP_OK;
     h265e_dbg_func("leave\n");
     return MPP_OK;
 }
