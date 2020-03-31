@@ -731,22 +731,16 @@ void *mpp_enc_thread(void *data)
         }
 
     TASK_DONE:
+        /* setup output packet and meta data */
         mpp_packet_set_length(packet, hal_task->length);
 
-        /*
-         * task_in may be null if output port is awaken by Mpp::clear()
-         */
-        if (hal_task->mv_info)
-            mpp_task_meta_set_buffer(task_out, KEY_MOTION_INFO, hal_task->mv_info);
-
         {
-            RK_S32 is_intra = hal_task->is_intra;
-            RK_U32 flag = mpp_packet_get_flag(packet);
+            MppMeta meta = mpp_packet_get_meta(packet);
 
-            mpp_task_meta_set_s32(task_out, KEY_OUTPUT_INTRA, is_intra);
-            if (is_intra) {
-                mpp_packet_set_flag(packet, flag | MPP_PACKET_FLAG_INTRA);
-            }
+            if (hal_task->mv_info)
+                mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->mv_info);
+
+            mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
         }
 
     TASK_RETURN:
