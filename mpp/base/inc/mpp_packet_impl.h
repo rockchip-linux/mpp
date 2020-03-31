@@ -58,6 +58,7 @@ extern "C" {
  */
 MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src);
+MPP_RET mpp_packet_append(MppPacket dst, MppPacket src);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
