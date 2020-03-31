@@ -345,12 +345,27 @@ MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
         return MPP_ERR_UNKNOW;
     }
 
-    void *dst_buf = mpp_packet_get_pos(dst);
-    void *src_buf = mpp_packet_get_pos(src);
-    size_t size = mpp_packet_get_length(src);
+    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
 
-    memcpy(dst_buf, src_buf, size);
-    mpp_packet_set_length(dst, size);
+    memcpy(dst_impl->pos, src_impl->pos, src_impl->length);
+    dst_impl->length = src_impl->length;
+    return MPP_OK;
+}
+
+MPP_RET mpp_packet_append(MppPacket dst, MppPacket src)
+{
+    if (check_is_mpp_packet(dst) || check_is_mpp_packet(src)) {
+        mpp_err_f("invalid input: dst %p src %p\n", dst, src);
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
+
+    memcpy((RK_U8 *)dst_impl->pos + dst_impl->length, src_impl->pos,
+           src_impl->length);
+    dst_impl->length += src_impl->length;
     return MPP_OK;
 }
 
