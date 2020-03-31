@@ -43,8 +43,8 @@ MPP_RET hal_h264e_vepu1_init(void *hal, MppHalCfg *cfg)
     hal_h264e_enter();
 
     ctx->int_cb = cfg->hal_int_cb;
-    ctx->regs = mpp_calloc(h264e_vepu1_reg_set, 1);
-    ctx->regs_tmp = mpp_calloc(h264e_vepu1_reg_set, 1);
+    ctx->regs = mpp_calloc(H264eVpu1RegSet, 1);
+    ctx->regs_tmp = mpp_calloc(H264eVpu1RegSet, 1);
     ctx->buffers = mpp_calloc(h264e_hal_vpu_buffers, 1);
     ctx->extra_info = mpp_calloc(H264eVpuExtraInfo, 1);
     ctx->param_buf  = mpp_calloc_size(void, H264E_EXTRA_INFO_BUF_SIZE);
@@ -165,8 +165,8 @@ MPP_RET hal_h264e_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     mbs_in_row = (prep->width + 15) / 16;
     mbs_in_col = (prep->height + 15) / 16;
 
-    memset(reg, 0, sizeof(h264e_vepu1_reg_set));
-    memset(ctx->regs_tmp, 0, sizeof(h264e_vepu1_reg_set));
+    memset(reg, 0, sizeof(H264eVpu1RegSet));
+    memset(ctx->regs_tmp, 0, sizeof(H264eVpu1RegSet));
 
     hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "frame %d generate regs now", ctx->frame_cnt);
 
@@ -432,14 +432,14 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
     (void)task;
     hal_h264e_enter();
 
-    memcpy(ctx->regs_tmp, ctx->regs, sizeof(h264e_vepu1_reg_set));
+    memcpy(ctx->regs_tmp, ctx->regs, sizeof(H264eVpu1RegSet));
 
     if (ctx->dev_ctx) {
         RK_U32 *p_regs = (RK_U32 *)ctx->regs_tmp;
         hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "vpu client is sending %d regs",
-                      VEPU_H264E_VEPU1_NUM_REGS);
+                      VEPU1_H264E_NUM_REGS);
         if (MPP_OK != mpp_device_send_reg(ctx->dev_ctx, p_regs,
-                                          VEPU_H264E_VEPU1_NUM_REGS)) {
+                                          VEPU1_H264E_NUM_REGS)) {
             mpp_err("mpp_device_send_reg Failed!!!");
             return MPP_ERR_VPUHW;
         } else {
@@ -455,7 +455,7 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-static MPP_RET hal_h264e_vepu1_set_feedback(h264e_feedback *fb, h264e_vepu1_reg_set *reg)
+static MPP_RET hal_h264e_vepu1_set_feedback(h264e_feedback *fb, H264eVpu1RegSet *reg)
 {
     RK_S32 i = 0;
     RK_U32 cpt_prev = 0, overflow = 0;
@@ -492,14 +492,14 @@ static MPP_RET hal_h264e_vpu1_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
 
     H264E_HAL_SET_REG(p_regs, VEPU_REG_QP_VAL, val);
 
-    memcpy(reg_out, ctx->regs, sizeof(h264e_vepu1_reg_set));
-    hw_ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU_H264E_VEPU1_NUM_REGS);
+    memcpy(reg_out, ctx->regs, sizeof(H264eVpu1RegSet));
+    hw_ret = mpp_device_send_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU1_H264E_NUM_REGS);
     if (hw_ret)
         mpp_err("mpp_device_send_reg failed ret %d", hw_ret);
     else
         hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "mpp_device_send_reg success!");
 
-    hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU_H264E_VEPU1_NUM_REGS);
+    hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VEPU1_H264E_NUM_REGS);
     if (hw_ret) {
         mpp_err_f("hardware returns error:%d", hw_ret);
         return MPP_ERR_VPUHW;
@@ -511,7 +511,7 @@ static MPP_RET hal_h264e_vpu1_resend(H264eHalContext *ctx, RK_U32 *reg_out, RK_S
 MPP_RET hal_h264e_vepu1_wait(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
-    h264e_vepu1_reg_set *reg_out = ctx->regs_tmp;
+    H264eVpu1RegSet *reg_out = ctx->regs_tmp;
     IOInterruptCB int_cb = ctx->int_cb;
     h264e_feedback *fb = &ctx->feedback;
     MppEncPrepCfg *prep = &ctx->set->prep;
@@ -519,13 +519,13 @@ MPP_RET hal_h264e_vepu1_wait(void *hal, HalTaskInfo *task)
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_S32 num_mb = MPP_ALIGN(prep->width, 16)
                     * MPP_ALIGN(prep->height, 16) / 16 / 16;
-    memset(reg_out, 0, sizeof(h264e_vepu1_reg_set));
+    memset(reg_out, 0, sizeof(H264eVpu1RegSet));
 
     hal_h264e_enter();
 
     if (ctx->dev_ctx) {
         RK_S32 hw_ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out,
-                                            VEPU_H264E_VEPU1_NUM_REGS);
+                                            VEPU1_H264E_NUM_REGS);
 
         hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "mpp_device_wait_reg: ret %d\n", hw_ret);
 
