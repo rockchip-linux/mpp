@@ -733,6 +733,8 @@ void *mpp_enc_thread(void *data)
 
         if (frm->reencode) {
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
+            hal_task->length -= hal_task->hw_length;
+            hal_task->hw_length = 0;
             goto TASK_REENCODE;
         }
 
