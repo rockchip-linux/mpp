@@ -164,7 +164,11 @@ typedef struct H265eV541RegSet_t {
         RK_U32    pic_qp       : 6;
         RK_U32    tot_poc_num  : 5;
         RK_U32    log2_ctu_num : 4;
-        RK_U32    reserve1     : 7;
+        RK_U32    atr_thd_sel  : 1;
+        RK_U32    dchs_rxid    : 2;
+        RK_U32    dchs_txid    : 2;
+        RK_U32    dchs_rxe     : 1;
+        RK_U32    satd_byps_en : 1;
         RK_U32    slen_fifo    : 1;
         RK_U32    node_int     : 1;
     } enc_pic; //swreg10
