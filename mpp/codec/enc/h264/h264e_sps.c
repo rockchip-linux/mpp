@@ -148,6 +148,7 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     // baseline disable 8x8
     sps->direct8x8_inference = h264->transform8x8_mode;
     if (crop_right || crop_bottom) {
+        sps->cropping = 1;
         sps->crop.left = 0;
         sps->crop.right = crop_right;
         sps->crop.top = 0;
