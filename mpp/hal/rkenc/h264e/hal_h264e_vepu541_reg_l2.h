@@ -19,6 +19,54 @@
 
 #include "rk_type.h"
 
+/*
+ * L2CFG_ADDR
+ * Address offset: 0x3F0 Access type: read and write
+ * Level2 configuration address
+ */
+/*
+ * L2CFG_WDATA
+ * Address offset: 0x3F4 Access type: read and write
+ * L2 configuration write data
+ */
+/*
+ * L2 configuration write data.
+ *
+ * Single access:
+ * write address to VEPU_L2CFG_ADDR then write data to VEPU_L2CFG_WDATA.
+ *
+ * Burst access:
+ * write the start address to VEPU_L2CFG_ADDR then write datas
+ * (to VEPU_L2CFG_WDATA) consecutively.
+ * Address will be auto increased after write VEPU_L2CFG_WDATA,
+ * no need to configure VEPU_L2CFG_ADDR.
+ */
+
+/*
+ * L2CFG_RDATA
+ * Address offset: 0x3F8 Access type: read and write
+ * L2 configuration read data
+ */
+struct {
+    /*
+     * L2 configuration read data.
+     *
+     * Single access:
+     * write address to VEPU_L2CFG_ADDR then read data from VEPU_L2CFG_RDATA.
+     *
+     * Burst access:
+     * write the start address to VEPU_L2CFG_ADDR then read datas
+     * (from VEPU_L2CFG_RDATA) consecutively.
+     * Address will be auto increased after read VEPU_L2CFG_RDATA,
+     * no need to configure VEPU_L2CFG_ADDR.
+     */
+    RK_U32  l2cfg_rdata;
+} reg254;
+
+/* reg gap 255 */
+RK_U32 reg_255;
+
+
 typedef struct Vepu541H264eRegL2Set_t {
     /*
      * IPRD_TTHDY4_0_H264 ~ IPRD_TTHDY4_1_H264

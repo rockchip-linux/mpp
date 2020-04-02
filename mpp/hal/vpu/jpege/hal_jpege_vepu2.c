@@ -538,7 +538,6 @@ MPP_RET hal_jpege_vepu2_control(void *hal, MpiCmd cmd, void *param)
     case MPP_ENC_SET_IDR_FRAME:
     case MPP_ENC_SET_OSD_PLT_CFG:
     case MPP_ENC_SET_OSD_DATA_CFG:
-    case MPP_ENC_GET_OSD_CFG:
     case MPP_ENC_GET_HDR_SYNC:
     case MPP_ENC_GET_EXTRA_INFO:
     case MPP_ENC_GET_SEI_DATA:

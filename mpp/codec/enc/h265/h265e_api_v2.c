@@ -500,11 +500,6 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 
     } break;
 
-    case MPP_ENC_SET_OSD_PLT_CFG: {
-        memcpy((void*)&p->cfg->osd_plt, param, sizeof(MppEncOSDPlt));
-        p->plt_flag = 1;
-        break;
-    }
     case MPP_ENC_SET_SPLIT : {
         MppEncSliceSplit *src = (MppEncSliceSplit *)param;
         MppEncH265SliceCfg *slice_cfg = &p->cfg->codec.h265.slice_cfg;

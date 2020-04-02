@@ -81,8 +81,7 @@ typedef struct H265eV541HalContext_t {
 
     /* @frame_cnt starts from ZERO */
     RK_U32              frame_cnt;
-    RK_S32              osd_plt_type;
-    MppEncOSDData       *osd_data;
+    Vepu541OsdCfg       osd_cfg;
     MppEncROICfg        *roi_data;
     void                *roi_buf;
     MppEncCfgSet        *set;
@@ -349,7 +348,6 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->frame_cnt_gen_ready = 0;
     ctx->frame_cnt_send_ready = 0;
     ctx->num_frames_to_send = 1;
-    ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_NONE;
     ctx->enc_mode = RKV_ENC_MODE;
 
     MppDevCfg dev_cfg = {
@@ -375,6 +373,12 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
             return MPP_ERR_MALLOC;
         }
     }
+
+    ctx->osd_cfg.reg_base = ctx->regs;
+    ctx->osd_cfg.dev = ctx->dev_ctx;
+    ctx->osd_cfg.plt_cfg = &ctx->cfg->plt_cfg;
+    ctx->osd_cfg.osd_data = NULL;
+
     ctx->frame_type = INTRA_FRAME;
     vepu541_h265_set_l2_regs(ctx, (H265eV541L2RegSet*)ctx->l2_regs);
     h265e_hal_leave();
@@ -1042,7 +1046,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 
     vepu541_h265_set_ref_regs(syn, regs);
 
-    vepu541_set_osd_region(regs, ctx->dev_ctx, ctx->osd_data, syn->ud.plt_data);
+    vepu541_set_osd(&ctx->osd_cfg);
     /* ROI configure */
     vepu541_h265_set_roi_regs(ctx, regs);
 
@@ -1336,10 +1340,8 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         ctx->frame_type = INTER_P_FRAME;
     }
 
-    ctx->roi_data = NULL;
-    ctx->osd_data = NULL;
-    mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void**)&ctx->roi_data);
-    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void**)&ctx->osd_data);
+    mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
 
     h265e_hal_leave();
     return MPP_OK;

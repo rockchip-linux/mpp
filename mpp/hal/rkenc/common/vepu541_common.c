@@ -24,6 +24,7 @@
 
 #include "vepu541_common.h"
 #include "mpp_device_msg.h"
+#include "mpp_buffer_impl.h"
 
 static const RK_S32 zeros[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -378,6 +379,11 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
 #define VEPU541_OSD_CFG_OFFSET          0x01C0
 #define VEPU541_OSD_PLT_OFFSET          0x0400
 
+typedef enum Vepu541OsdPltType_e {
+    VEPU541_OSD_PLT_TYPE_USERDEF    = 0,
+    VEPU541_OSD_PLT_TYPE_DEFAULT    = 1,
+} Vepu541OsdPltType;
+
 typedef struct Vepu541OsdReg_t {
     /*
      * OSD_CFG
@@ -446,39 +452,35 @@ typedef struct Vepu541OsdReg_t {
     RK_U32  osd_addr[8];
 } Vepu541OsdReg;
 
-typedef enum Vepu541OsdPltType_e {
-    VEPU541_OSD_PLT_TYPE_USERDEF    = 0,
-    VEPU541_OSD_PLT_TYPE_DEFAULT    = 1,
-} Vepu541OsdPltType;
-
-MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
-                               MppEncOSDData *osd, MppEncOSDPlt *plt)
+MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
 {
-    RK_U8 *base = (RK_U8 *)reg_base + VEPU541_OSD_CFG_OFFSET;
-    Vepu541OsdPltType type = VEPU541_OSD_PLT_TYPE_DEFAULT;
-    Vepu541OsdReg *regs = (Vepu541OsdReg *)base;
+    Vepu541OsdReg *regs = (Vepu541OsdReg *)(cfg->reg_base + (size_t)VEPU541_OSD_CFG_OFFSET);
+    MppDevCtx dev = cfg->dev;
+    MppEncOSDPltCfg *plt_cfg = cfg->plt_cfg;
+    MppEncOSDData *osd = cfg->osd_data;
 
-    if (plt) {
+    if (plt_cfg->type == MPP_ENC_OSD_PLT_TYPE_USERDEF) {
         MppDevReqV1 req;
 
         req.cmd = MPP_CMD_SET_REG_WRITE;
         req.flag = 0;
         req.offset = VEPU541_REG_BASE_OSD_PLT;
         req.size = sizeof(MppEncOSDPlt);
-        req.data = plt;
+        req.data = plt_cfg->plt;
         mpp_device_add_request(dev, &req);
 
-        type = VEPU541_OSD_PLT_TYPE_USERDEF;
-    }
-
-    if (NULL == osd || osd->num_region == 0 || NULL == osd->buf) {
-        regs->reg112.osd_e = 0;
-        regs->reg112.osd_inv_e = 0;
+        regs->reg112.osd_plt_cks = 1;
+        regs->reg112.osd_plt_typ = VEPU541_OSD_PLT_TYPE_USERDEF;
+    } else {
         regs->reg112.osd_plt_cks = 0;
-        regs->reg112.osd_plt_typ = type;
-
-        return MPP_OK;
+        regs->reg112.osd_plt_typ = VEPU541_OSD_PLT_TYPE_DEFAULT;
     }
+
+    regs->reg112.osd_e = 0;
+    regs->reg112.osd_inv_e = 0;
+
+    if (NULL == osd || osd->num_region == 0 || NULL == osd->buf)
+        return MPP_OK;
 
     RK_S32 fd = mpp_buffer_get_fd(osd->buf);
     if (fd < 0) {
@@ -490,11 +492,6 @@ MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
     RK_U32 k = 0;
     MppEncOSDRegion *region = osd->region;
     MppEncOSDRegion *tmp = region;
-
-    regs->reg112.osd_e = 0;
-    regs->reg112.osd_inv_e = 0;
-    regs->reg112.osd_plt_cks = 1;
-    regs->reg112.osd_plt_typ = type;
 
     for (k = 0; k < num; k++, tmp++) {
         regs->reg112.osd_e      |= tmp->enable << k;
@@ -508,7 +505,7 @@ MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
             pos->osd_rb_x = tmp->start_mb_x + tmp->num_mb_x - 1;
             pos->osd_rb_y = tmp->start_mb_y + tmp->num_mb_y - 1;
 
-            regs->osd_addr[k] = fd | (tmp->buf_offset << 10);
+            regs->osd_addr[k] = mpp_buffer_to_addr(osd->buf, tmp->buf_offset);
         }
     }
 
