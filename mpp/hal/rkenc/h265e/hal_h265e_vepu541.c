@@ -557,7 +557,7 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_cfg.qp_mode      = 1;
 
         regs->rc_cfg.rc_ctu_num   = frms->mb_wid;
-        regs->rc_qp.rc_qp_range   =  h265->raw_dealt_qp;
+        regs->rc_qp.rc_qp_range   = h265->raw_dealt_qp;
         regs->rc_qp.rc_max_qp     = rc_cfg->quality_max;
         regs->rc_qp.rc_min_qp     = rc_cfg->quality_min;
         regs->rc_tgt.ctu_ebits    = ctu_target_bits_mul_16;

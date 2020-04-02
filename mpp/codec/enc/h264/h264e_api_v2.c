@@ -96,7 +96,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg)
     h264->level = H264_LEVEL_3_1;
     h264->qp_init = 26;
     h264->qp_max = 48;
-    h264->qp_min = 16;
+    h264->qp_min = 8;
     h264->qp_max_step = 8;
 
     /*

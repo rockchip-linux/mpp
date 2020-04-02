@@ -374,7 +374,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
-    cfg->stat_times = 1;
+    cfg->stat_times = 3;
 
     cfg->vgop = (ref->gop_cfg_enable) ? (ref->ref_gop_len) : (0);
 
