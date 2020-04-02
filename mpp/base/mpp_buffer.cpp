@@ -26,7 +26,7 @@ MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, Mp
                                    const char *tag, const char *caller)
 {
     if (NULL == info) {
-        mpp_err("mpp_buffer_commit input null info\n", info);
+        mpp_err("mpp_buffer_commit invalid input: info NULL from %s\n", caller);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -37,8 +37,8 @@ MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, Mp
         if ((p->type & MPP_BUFFER_TYPE_MASK) != info->type ||
             (p->type & MPP_BUFFER_TYPE_MASK) >= MPP_BUFFER_TYPE_BUTT ||
             p->mode != MPP_BUFFER_EXTERNAL) {
-            mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d\n",
-                    p->type, info->type, p->mode);
+            mpp_err("mpp_buffer_commit invalid type found group %d info %d group mode %d from %s\n",
+                    p->type, info->type, p->mode, caller);
             return MPP_ERR_UNKNOW;
         }
     } else {
@@ -63,8 +63,8 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
                                 const char *tag, const char *caller)
 {
     if (NULL == buffer || 0 == size) {
-        mpp_err("mpp_buffer_get invalid input: group %p buffer %p size %u\n",
-                group, buffer, size);
+        mpp_err("mpp_buffer_get invalid input: group %p buffer %p size %u from %s\n",
+                group, buffer, size, caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -98,7 +98,7 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
 MPP_RET mpp_buffer_put_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err("mpp_buffer_put invalid input: buffer %p\n", buffer);
+        mpp_err("mpp_buffer_put invalid input: buffer NULL from %s\n", caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -108,7 +108,7 @@ MPP_RET mpp_buffer_put_with_caller(MppBuffer buffer, const char *caller)
 MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err("mpp_buffer_inc_ref invalid input: buffer %p\n", buffer);
+        mpp_err("mpp_buffer_inc_ref invalid input: buffer NULL from %s\n", caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -118,7 +118,8 @@ MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller)
 MPP_RET mpp_buffer_read_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller)
 {
     if (NULL == buffer || NULL == data) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+        mpp_err("mpp_buffer_read invalid input: buffer %p data %p from %s\n",
+                buffer, data, caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -140,7 +141,8 @@ MPP_RET mpp_buffer_read_with_caller(MppBuffer buffer, size_t offset, void *data,
 MPP_RET mpp_buffer_write_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller)
 {
     if (NULL == buffer || NULL == data) {
-        mpp_err_f("invalid input: buffer %p data %p\n", buffer, data);
+        mpp_err("mpp_buffer_write invalid input: buffer %p data %p from %s\n",
+                buffer, data, caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -164,7 +166,7 @@ MPP_RET mpp_buffer_write_with_caller(MppBuffer buffer, size_t offset, void *data
 void *mpp_buffer_get_ptr_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_get_ptr invalid NULL input from %s\n", caller);
         return NULL;
     }
 
@@ -174,7 +176,7 @@ void *mpp_buffer_get_ptr_with_caller(MppBuffer buffer, const char *caller)
 
     mpp_assert(p->info.ptr != NULL);
     if (NULL == p->info.ptr)
-        mpp_err("mpp_buffer_get_ptr buffer %p ret NULL caller\n", buffer, caller);
+        mpp_err("mpp_buffer_get_ptr buffer %p ret NULL from %s\n", buffer, caller);
 
     return p->info.ptr;
 }
@@ -182,7 +184,7 @@ void *mpp_buffer_get_ptr_with_caller(MppBuffer buffer, const char *caller)
 int mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_get_fd invalid NULL input from %s\n", caller);
         return -1;
     }
 
@@ -190,7 +192,7 @@ int mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller)
     int fd = p->info.fd;
     mpp_assert(fd >= 0);
     if (fd < 0)
-        mpp_err("mpp_buffer_get_fd buffer %p fd %d caller %s\n", buffer, fd, caller);
+        mpp_err("mpp_buffer_get_fd buffer %p fd %d from %s\n", buffer, fd, caller);
 
     return fd;
 }
@@ -198,13 +200,13 @@ int mpp_buffer_get_fd_with_caller(MppBuffer buffer, const char *caller)
 size_t mpp_buffer_get_size_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_get_size invalid NULL input from %s\n", caller);
         return 0;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     if (p->info.size == 0)
-        mpp_err("mpp_buffer_get_size buffer %p ret zero size caller %s\n", buffer, caller);
+        mpp_err("mpp_buffer_get_size buffer %p ret zero size from %s\n", buffer, caller);
 
     return p->info.size;
 }
@@ -212,12 +214,11 @@ size_t mpp_buffer_get_size_with_caller(MppBuffer buffer, const char *caller)
 int mpp_buffer_get_index_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_get_index invalid NULL input from %s\n", caller);
         return -1;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
-    (void)caller;
     return p->info.index;
 }
 
@@ -225,45 +226,43 @@ MPP_RET mpp_buffer_set_index_with_caller(MppBuffer buffer, int index,
                                          const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_set_index invalid NULL input from %s\n", caller);
         return MPP_ERR_UNKNOW;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     p->info.index = index;
-    (void)caller;
     return MPP_OK;
 }
 
 size_t  mpp_buffer_get_offset_with_caller(MppBuffer buffer, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_get_offset invalid NULL input from %s\n", caller);
         return -1;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
-    (void)caller;
     return p->offset;
 }
 
 MPP_RET mpp_buffer_set_offset_with_caller(MppBuffer buffer, size_t offset, const char *caller)
 {
     if (NULL == buffer) {
-        mpp_err_f("invalid NULL input\n");
+        mpp_err("mpp_buffer_set_offset invalid NULL input from %s\n", caller);
         return MPP_ERR_UNKNOW;
     }
 
     MppBufferImpl *p = (MppBufferImpl*)buffer;
     p->offset = offset;
-    (void)caller;
     return MPP_OK;
 }
 
 MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, const char *caller)
 {
     if (NULL == buffer || NULL == info) {
-        mpp_err_f("invalid input: buffer %p info %p\n", buffer, info);
+        mpp_err("mpp_buffer_info_get invalid input buffer %p info %p from %s\n",
+                buffer, info, caller);
         return MPP_ERR_UNKNOW;
     }
 
@@ -282,8 +281,8 @@ MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBuffe
     if (NULL == group ||
         mode >= MPP_BUFFER_MODE_BUTT ||
         (type & MPP_BUFFER_TYPE_MASK) >= MPP_BUFFER_TYPE_BUTT) {
-        mpp_err_f("input invalid group %p mode %d type %d\n",
-                  group, mode, type);
+        mpp_err_f("input invalid group %p mode %d type %d from %s\n",
+                  group, mode, type, caller);
         return MPP_ERR_UNKNOW;
     }
 
