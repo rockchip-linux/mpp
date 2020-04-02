@@ -26,10 +26,11 @@ MPP_RET h264e_rkv_set_osd_plt(H264eHalContext *ctx, void *param)
     MppEncOSDPlt *plt = (MppEncOSDPlt *)param;
     hal_h264e_enter();
 
-    if (plt->buf) {
+    if (plt->data) {
         MPP_RET ret = mpp_device_send_reg_with_id(ctx->dev_ctx,
                                                   RKVE_IOC_SET_OSD_PLT,
-                                                  param, sizeof(MppEncOSDPlt));
+                                                  plt->data,
+                                                  sizeof(MppEncOSDPlt));
         ctx->osd_plt_type = RKVE_OSD_PLT_TYPE_USERDEF;
         if (ret) {
             mpp_err_f("set osd plt error");

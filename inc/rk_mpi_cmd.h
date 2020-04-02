@@ -106,9 +106,9 @@ typedef enum {
     MPP_ENC_GET_CODEC_CFG,              /* get MppEncCodecCfg structure */
     /* runtime encoder setup control */
     MPP_ENC_SET_IDR_FRAME,              /* next frame will be encoded as intra frame */
-    MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPlt */
-    MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
-    MPP_ENC_GET_OSD_CFG,
+    MPP_ENC_SET_OSD_LEGACY_0,           /* deprecated */
+    MPP_ENC_SET_OSD_LEGACY_1,           /* deprecated */
+    MPP_ENC_SET_OSD_LEGACY_2,           /* deprecated */
     MPP_ENC_GET_HDR_SYNC,               /* get vps / sps / pps which has better sync behavior parameter is MppPacket */
     MPP_ENC_GET_EXTRA_INFO,             /* deprecated */
     MPP_ENC_SET_SEI_CFG,                /* SEI: Supplement Enhancemant Information, parameter is MppSeiMode */
@@ -173,6 +173,12 @@ typedef enum {
 
     MPP_ENC_CFG_GOPREF                  = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_GOPREF,
     MPP_ENC_SET_GOPREF,                 /* set MppEncGopRef structure */
+
+    MPP_ENC_CFG_OSD                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_OSD,
+    MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPltCfg */
+    MPP_ENC_GET_OSD_PLT_CFG,            /* get OSD palette, parameter should be pointer to MppEncOSDPltCfg */
+    MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
+    MPP_ENC_GET_OSD_DATA_CFG,           /* get OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
 
     MPP_ENC_CMD_END,
 

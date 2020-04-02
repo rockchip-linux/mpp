@@ -222,7 +222,6 @@ typedef struct H265eSyntax_new_t {
     RK_S32          idr_request;
     H265ePicParams  pp;
     H265eSlicParams sp;
-    UserDatas       ud;
     H265eFrmInfo    frms;
 } H265eSyntax_new;
 

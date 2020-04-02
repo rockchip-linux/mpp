@@ -72,8 +72,7 @@ typedef struct HalH264eVepu541Ctx_t {
     RK_S32                  roi_buf_size;
 
     /* osd */
-    MppEncOSDPlt            *osd_plt;
-    MppEncOSDData           *osd_data;
+    Vepu541OsdCfg           osd_cfg;
 
     /* register */
     Vepu541H264eRegSet      regs_set;
@@ -150,6 +149,11 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
         goto DONE;
     }
 
+    p->osd_cfg.reg_base = &p->regs_set;
+    p->osd_cfg.dev = p->dev_ctx;
+    p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
+    p->osd_cfg.osd_data = NULL;
+
 DONE:
     if (ret)
         hal_h264e_vepu541_deinit(hal);
@@ -190,14 +194,6 @@ static RK_U32 update_vepu541_syntax(HalH264eVepu541Ctx *ctx, MppSyntax *syntax)
         case H264E_SYN_RC : {
             hal_h264e_dbg_detail("update rc");
             ctx->rc_syn = desc->p;
-        } break;
-        case H264E_SYN_OSD_PLT : {
-            hal_h264e_dbg_detail("update osd plt");
-            ctx->osd_plt = desc->p;
-        } break;
-        case H264E_SYN_OSD : {
-            hal_h264e_dbg_detail("update osd data");
-            ctx->osd_data = desc->p;
         } break;
         case H264E_SYN_ROI : {
             hal_h264e_dbg_detail("update roi");
@@ -253,11 +249,10 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
     }
 
     ctx->roi_data = NULL;
-    ctx->osd_data = NULL;
 
     MppMeta meta = mpp_frame_get_meta(task->frame);
     mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
-    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_data);
+    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -1132,7 +1127,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_output(regs, task->packet, task->output);
     setup_vepu541_split(regs, &cfg->split);
     setup_vepu541_me(regs, sps, slice);
-    vepu541_set_osd_region(regs, ctx->dev_ctx, ctx->osd_data, ctx->osd_plt);
+    vepu541_set_osd(&ctx->osd_cfg);
     setup_vepu541_l2(&ctx->regs_l2_set, slice);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);

@@ -31,6 +31,7 @@
 #include "mpp_common.h"
 
 #include "utils.h"
+#include "mpi_enc_utils.h"
 
 #include "vpu_api.h"
 
@@ -90,6 +91,7 @@ typedef struct {
     MppBuffer       pkt_buf[MPI_ENC_IO_COUNT];
     MppBuffer       md_buf[MPI_ENC_IO_COUNT];
     MppBuffer       osd_idx_buf[MPI_ENC_IO_COUNT];
+    MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
     MppEncOSDData   osd_data;
     MppEncROIRegion roi_region[3]; /* can be more regions */
@@ -135,41 +137,6 @@ static OptionInfo mpi_enc_cmd[] = {
     {"n",               "max frame number",     "max encoding frame number"},
     {"d",               "debug",                "debug flag"},
 };
-
-static MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
-{
-    RK_U32 k = 0, buf_size = 0;
-    RK_U8 data = 0;
-
-    osd_data->num_region = 8;
-    osd_data->buf = osd_buf;
-    for (k = 0; k < osd_data->num_region; k++) {
-        osd_data->region[k].enable = 1;
-        osd_data->region[k].inverse = frame_cnt & 1;
-        osd_data->region[k].start_mb_x = k * 3;
-        osd_data->region[k].start_mb_y = k * 2;
-        osd_data->region[k].num_mb_x = 2;
-        osd_data->region[k].num_mb_y = 2;
-
-        buf_size = osd_data->region[k].num_mb_x * osd_data->region[k].num_mb_y * 256;
-        osd_data->region[k].buf_offset = k * buf_size;
-
-        data = k;
-        memset((RK_U8 *)mpp_buffer_get_ptr(osd_data->buf) + osd_data->region[k].buf_offset, data, buf_size);
-    }
-
-    return MPP_OK;
-}
-
-static MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table)
-{
-    RK_U32 k = 0;
-    if (osd_plt->buf) {
-        for (k = 0; k < 256; k++)
-            osd_plt->buf[k] = table[k % 8];
-    }
-    return MPP_OK;
-}
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
 {
@@ -546,8 +513,11 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
 
     /* gen and cfg osd plt */
     mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
+    p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
+    p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
+    p->osd_plt_cfg.plt = &p->osd_plt;
 #if MPI_ENC_TEST_SET_OSD
-    ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt);
+    ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
     if (ret) {
         mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
         goto RET;

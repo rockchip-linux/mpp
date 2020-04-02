@@ -120,6 +120,13 @@ typedef struct Vepu541OsdPltColor_t {
     RK_U32  alpha                   : 8;
 } Vepu541OsdPltColor;
 
+typedef struct Vepu541OsdCfg_t {
+    void                *reg_base;
+    MppDevCtx           dev;
+    MppEncOSDPltCfg     *plt_cfg;
+    MppEncOSDData       *osd_data;
+} Vepu541OsdCfg;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -138,8 +145,7 @@ MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppEncPrepCfg *prep);
 RK_S32  vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h);
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h);
 
-MPP_RET vepu541_set_osd_region(void *reg_base, MppDevCtx dev,
-                               MppEncOSDData *osd, MppEncOSDPlt *plt);
+MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg);
 
 #ifdef __cplusplus
 }

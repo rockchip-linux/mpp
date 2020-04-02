@@ -1111,45 +1111,73 @@ typedef struct MppEncROICfg_t {
  * alpha : 8 bits
  */
 #define MPP_ENC_OSD_PLT_WHITE           ((255<<24)|(128<<16)|(128<<8)|235)
-#define MPP_ENC_OSD_PLT_YELLOW          ((255<<24)|(146<<16)|( 16<<8 )|210)
-#define MPP_ENC_OSD_PLT_CYAN            ((255<<24)|( 16<<16 )|(166<<8)|170)
-#define MPP_ENC_OSD_PLT_GREEN           ((255<<24)|( 34<<16 )|( 54<<8 )|145)
+#define MPP_ENC_OSD_PLT_YELLOW          ((255<<24)|(146<<16)|( 16<<8)|210)
+#define MPP_ENC_OSD_PLT_CYAN            ((255<<24)|( 16<<16)|(166<<8)|170)
+#define MPP_ENC_OSD_PLT_GREEN           ((255<<24)|( 34<<16)|( 54<<8)|145)
 #define MPP_ENC_OSD_PLT_TRANS           ((  0<<24)|(222<<16)|(202<<8)|106)
-#define MPP_ENC_OSD_PLT_RED             ((255<<24)|(240<<16)|( 90<<8 )|81)
-#define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)|41)
-#define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)|16)
+#define MPP_ENC_OSD_PLT_RED             ((255<<24)|(240<<16)|( 90<<8)| 81)
+#define MPP_ENC_OSD_PLT_BLUE            ((255<<24)|(110<<16)|(240<<8)| 41)
+#define MPP_ENC_OSD_PLT_BLACK           ((255<<24)|(128<<16)|(128<<8)| 16)
+
+typedef enum MppEncOSDPltType_e {
+    MPP_ENC_OSD_PLT_TYPE_DEFAULT,
+    MPP_ENC_OSD_PLT_TYPE_USERDEF,
+    MPP_ENC_OSD_PLT_TYPE_BUTT,
+} MppEncOSDPltType;
+
+/* OSD palette value define */
+typedef union MppEncOSDPltVal_u {
+    struct {
+        RK_U32          y       : 8;
+        RK_U32          u       : 8;
+        RK_U32          v       : 8;
+        RK_U32          alpha   : 8;
+    };
+    RK_U32              val;
+} MppEncOSDPltVal;
 
 typedef struct MppEncOSDPlt_t {
-    RK_U32 buf[256];
+    MppEncOSDPltVal     data[256];
 } MppEncOSDPlt;
+
+typedef enum MppEncOSDPltCfgChange_e {
+    MPP_ENC_OSD_PLT_CFG_CHANGE_MODE     = (1 << 0),     /* change osd plt type */
+    MPP_ENC_OSD_PLT_CFG_CHANGE_PLT_VAL  = (1 << 1),     /* change osd plt table value */
+    MPP_ENC_OSD_PLT_CFG_CHANGE_ALL      = (0xFFFFFFFF),
+} MppEncOSDPltCfgChange;
+
+typedef struct MppEncOSDPltCfg_t {
+    RK_U32              change;
+    MppEncOSDPltType    type;
+    MppEncOSDPlt        *plt;
+} MppEncOSDPltCfg;
 
 /* position info is unit in 16 pixels(one MB), and
  * x-directon range in pixels = (rd_pos_x - lt_pos_x + 1) * 16;
  * y-directon range in pixels = (rd_pos_y - lt_pos_y + 1) * 16;
  */
 typedef struct MppEncOSDRegion_t {
-    RK_U32    enable;
-    RK_U32    inverse;
-    RK_U32    start_mb_x;
-    RK_U32    start_mb_y;
-    RK_U32    num_mb_x;
-    RK_U32    num_mb_y;
-    RK_U32    buf_offset;
+    RK_U32              enable;
+    RK_U32              inverse;
+    RK_U32              start_mb_x;
+    RK_U32              start_mb_y;
+    RK_U32              num_mb_x;
+    RK_U32              num_mb_y;
+    RK_U32              buf_offset;
 } MppEncOSDRegion;
 
 /* if num_region > 0 && region==NULL
  * use old osd data
  */
 typedef struct MppEncOSDData_t {
-    MppBuffer       buf;
-    RK_U32          num_region;
-    MppEncOSDRegion region[8];
+    MppBuffer           buf;
+    RK_U32              num_region;
+    MppEncOSDRegion     region[8];
 } MppEncOSDData;
 
 typedef struct MppEncUserData_t {
     RK_U32 len;
     void   *pdata;
 } MppEncUserData;
-
 
 #endif /*__RK_VENC_CMD_H__*/

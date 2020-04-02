@@ -304,6 +304,35 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
             *enc->cmd_ret = MPP_NOK;
         }
     } break;
+    case MPP_ENC_SET_OSD_PLT_CFG : {
+        MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)enc->param;
+        MppEncOSDPltCfg *dst = &enc->cfg.plt_cfg;
+        RK_U32 change = src->change;
+
+        if (change) {
+            RK_S32 cfg_err = 0;
+
+            if (change & MPP_ENC_OSD_PLT_CFG_CHANGE_MODE) {
+                if (src->type >= MPP_ENC_OSD_PLT_TYPE_BUTT) {
+                    mpp_err_f("invalid osd plt type %d\n", src->type);
+                    cfg_err |= MPP_ENC_OSD_PLT_CFG_CHANGE_MODE;
+                } else
+                    dst->type = src->type;
+            }
+
+            if (change & MPP_ENC_OSD_PLT_CFG_CHANGE_PLT_VAL) {
+                if (src->plt == NULL) {
+                    mpp_err_f("invalid osd plt NULL pointer\n");
+                    cfg_err |= MPP_ENC_OSD_PLT_CFG_CHANGE_PLT_VAL;
+                } else {
+                    memcpy(dst->plt, src->plt, sizeof(MppEncOSDPlt));
+                }
+            }
+
+            dst->change = cfg_err ? 0 : change;
+            enc_dbg_ctrl("plt type %d data %p\n", dst->type, src->plt);
+        }
+    } break;
     default : {
         enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
         if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
@@ -861,6 +890,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
     /* NOTE: setup configure coding for check */
     p->cfg.codec.coding = coding;
     p->set.codec.coding = coding;
+    p->cfg.plt_cfg.plt = &p->cfg.plt_data;
 
     sem_init(&p->enc_reset, 0, 0);
     sem_init(&p->enc_ctrl, 0, 0);
@@ -1021,6 +1051,10 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     case MPP_ENC_GET_HEADER_MODE : {
         enc_dbg_ctrl("get header mode\n");
         memcpy(param, &enc->hdr_mode, sizeof(enc->hdr_mode));
+    } break;
+    case MPP_ENC_GET_OSD_PLT_CFG : {
+        enc_dbg_ctrl("get osd plt cfg\n");
+        memcpy(param, &enc->cfg.plt_cfg, sizeof(enc->cfg.plt_cfg));
     } break;
     default : {
         // Cmd which is not get configure will handle by enc_impl

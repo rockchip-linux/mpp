@@ -38,8 +38,8 @@ typedef struct MppEncCfgSet_t {
     MppEncSliceSplit    split;
     MppEncGopRef        gop_ref;
     MppEncROICfg        roi;
-    MppEncOSDData       osd_data;
-    MppEncOSDPlt        osd_plt;
+    MppEncOSDPltCfg     plt_cfg;
+    MppEncOSDPlt        plt_data;
 } MppEncCfgSet;
 
 #endif /*__MPP_ENC_H__*/

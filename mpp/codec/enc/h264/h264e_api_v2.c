@@ -391,8 +391,6 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     case MPP_ENC_SET_IDR_FRAME : {
         p->idr_request++;
     } break;
-    case MPP_ENC_SET_OSD_PLT_CFG : {
-    } break;
     case MPP_ENC_SET_OSD_DATA_CFG : {
     } break;
     case MPP_ENC_SET_SPLIT : {

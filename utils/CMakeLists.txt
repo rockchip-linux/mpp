@@ -3,6 +3,7 @@
 # add libvpu implement
 # ----------------------------------------------------------------------------
 add_library(utils STATIC
+    mpi_enc_utils.c
     utils.c
     iniparser.c
     dictionary.c

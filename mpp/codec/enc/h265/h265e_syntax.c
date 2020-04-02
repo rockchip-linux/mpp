@@ -349,10 +349,5 @@ RK_S32 h265e_syntax_fill(void *ctx)
     fill_slice_parameters(h, &syn->sp);
     fill_ref_parameters(h, &syn->sp);
     fill_frm_info(h, &syn->frms);
-    syn->ud.plt_data = NULL;
-    if (h->plt_flag) {
-        syn->ud.plt_data = (void*)&h->cfg->osd_plt;
-        h->plt_flag = 0;
-    }
     return 0;
 }

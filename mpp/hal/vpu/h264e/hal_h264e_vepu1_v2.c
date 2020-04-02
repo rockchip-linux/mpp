@@ -181,7 +181,6 @@ static RK_U32 update_vepu1_syntax(HalH264eVepu1Ctx *ctx, MppSyntax *syntax)
             hal_h264e_dbg_detail("update rc");
         } break;
         case H264E_SYN_ROI :
-        case H264E_SYN_OSD :
         default : {
             mpp_log_f("invalid syntax type %d\n", desc->type);
         } break;

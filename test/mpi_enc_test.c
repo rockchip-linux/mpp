@@ -30,6 +30,7 @@
 #include "mpp_common.h"
 
 #include "utils.h"
+#include "mpi_enc_utils.h"
 
 #define MAX_FILE_NAME_LENGTH        256
 
@@ -69,10 +70,15 @@ typedef struct {
     MppEncRcCfg rc_cfg;
     MppEncCodecCfg codec_cfg;
     MppEncSliceSplit split_cfg;
+    MppEncOSDPltCfg osd_plt_cfg;
+    MppEncOSDPlt    osd_plt;
+    MppEncOSDData   osd_data;
 
     // input / output
     MppBuffer frm_buf;
     MppEncSeiMode sei_mode;
+    MppEncHeaderMode header_mode;
+    MppBuffer osd_idx_buf;
 
     // paramter for resource malloc
     RK_U32 width;
@@ -87,6 +93,17 @@ typedef struct {
     size_t frame_size;
     /* NOTE: packet buffer may overflow */
     size_t packet_size;
+    /*
+     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
+     * for general use, 1/8 Y buffer is enough.
+     */
+    size_t osd_idx_size;
+    RK_U32 plt_table[8];
+
+    RK_U32 osd_enable;
+    RK_U32 osd_mode;
+    RK_U32 split_mode;
+    RK_U32 split_arg;
 
     // rate control runtime parameter
     RK_S32 gop;
@@ -180,6 +197,21 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
         p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 4;
     } break;
     }
+
+    /*
+     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
+     * for general use, 1/8 Y buffer is enough.
+     */
+    p->osd_idx_size  = p->hor_stride * p->ver_stride / 8;
+    p->plt_table[0] = MPP_ENC_OSD_PLT_RED;
+    p->plt_table[1] = MPP_ENC_OSD_PLT_YELLOW;
+    p->plt_table[2] = MPP_ENC_OSD_PLT_BLUE;
+    p->plt_table[3] = MPP_ENC_OSD_PLT_GREEN;
+    p->plt_table[4] = MPP_ENC_OSD_PLT_CYAN;
+    p->plt_table[5] = MPP_ENC_OSD_PLT_TRANS;
+    p->plt_table[6] = MPP_ENC_OSD_PLT_BLACK;
+    p->plt_table[7] = MPP_ENC_OSD_PLT_WHITE;
+
 RET:
     *data = p;
     return ret;
@@ -514,18 +546,18 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         goto RET;
     }
 
-    RK_U32 split_mode = 0;
-    RK_U32 split_arg = 0;
+    p->split_mode = 0;
+    p->split_arg = 0;
 
-    mpp_env_get_u32("split_mode", &split_mode, MPP_ENC_SPLIT_NONE);
-    mpp_env_get_u32("split_arg", &split_arg, 0);
+    mpp_env_get_u32("split_mode", &p->split_mode, MPP_ENC_SPLIT_NONE);
+    mpp_env_get_u32("split_arg", &p->split_arg, 0);
 
-    if (split_mode) {
+    if (p->split_mode) {
         split_cfg->change = MPP_ENC_SPLIT_CFG_CHANGE_ALL;
-        split_cfg->split_mode = split_mode;
-        split_cfg->split_arg = split_arg;
+        split_cfg->split_mode = p->split_mode;
+        split_cfg->split_arg = p->split_arg;
 
-        mpp_log("split_mode %d split_arg %d\n", split_mode, split_arg);
+        mpp_log("split_mode %d split_arg %d\n", p->split_mode, p->split_arg);
 
         ret = mpi->control(ctx, MPP_ENC_SET_SPLIT, split_cfg);
         if (ret) {
@@ -555,13 +587,42 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         }
     }
 
+    if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
+        p->header_mode = MPP_ENC_HEADER_MODE_EACH_IDR;
+        ret = mpi->control(ctx, MPP_ENC_SET_HEADER_MODE, &p->header_mode);
+        if (ret) {
+            mpp_err("mpi control enc set header mode failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    p->osd_enable = 0;
+    p->osd_mode = 0;
+
+    mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
+    mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
+
+    if (p->osd_enable) {
+        /* gen and cfg osd plt */
+        mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
+        p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
+        p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
+        p->osd_plt_cfg.plt = &p->osd_plt;
+
+        ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
+        if (ret) {
+            mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
 RET:
     return ret;
 }
 
 MPP_RET test_mpp_run(MpiEncTestData *p)
 {
-    MPP_RET ret;
+    MPP_RET ret = MPP_OK;
     MppApi *mpi;
     MppCtx ctx;
 
@@ -646,6 +707,25 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
+        MppEncUserData user_data;
+        char *str = "Hello world hahahaha lalalala\n";
+
+        {
+            MppMeta meta = mpp_frame_get_meta(frame);
+
+            if ((p->frame_count & 2) == 0) {
+                user_data.pdata = str;
+                user_data.len = strlen(str) + 1;
+                mpp_meta_set_ptr(meta, KEY_USER_DATA, &user_data);
+            }
+
+            if (p->osd_enable) {
+                /* gen and cfg osd plt */
+                mpi_enc_gen_osd_data(&p->osd_data, p->osd_idx_buf, p->frame_count);
+                mpp_meta_set_ptr(meta, KEY_OSD_DATA, (void*)&p->osd_data);
+            }
+        }
+
         /*
          * NOTE: in non-block mode the frame can be resent.
          * The default input timeout mode is block.
@@ -729,6 +809,12 @@ int mpi_enc_test(MpiEncTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
+    ret = mpp_buffer_get(NULL, &p->osd_idx_buf, p->osd_idx_size);
+    if (ret) {
+        mpp_err_f("failed to get buffer for input osd index ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
     mpp_log("mpi_enc_test encoder test start w %d h %d type %d\n",
             p->width, p->height, p->type);
 
@@ -778,6 +864,11 @@ MPP_TEST_OUT:
     if (p->frm_buf) {
         mpp_buffer_put(p->frm_buf);
         p->frm_buf = NULL;
+    }
+
+    if (p->osd_idx_buf) {
+        mpp_buffer_put(p->osd_idx_buf);
+        p->osd_idx_buf = NULL;
     }
 
     if (MPP_OK == ret)
