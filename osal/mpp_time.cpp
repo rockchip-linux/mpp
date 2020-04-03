@@ -51,7 +51,7 @@ void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, const char *fmt)
         mpp_dbg(MPP_DBG_TIMING, "%s timing %lld us\n", fmt, diff);
 }
 
-typedef struct MppTimerImpl_t {
+typedef struct MppClockImpl_t {
     const char *check;
     char    name[16];
     RK_U32  enable;
@@ -59,23 +59,23 @@ typedef struct MppTimerImpl_t {
     RK_S64  time;
     RK_S64  sum;
     RK_S64  count;
-} MppTimerImpl;
+} MppClockImpl;
 
 static const char *module_name = MODULE_TAG;
 
-MPP_RET check_is_mpp_timer(void *timer)
+MPP_RET check_is_mpp_clock(void *clock)
 {
-    if (timer && ((MppTimerImpl*)timer)->check == module_name)
+    if (clock && ((MppClockImpl*)clock)->check == module_name)
         return MPP_OK;
 
-    mpp_err_f("pointer %p failed on check\n", timer);
+    mpp_err_f("pointer %p failed on check\n", clock);
     mpp_abort();
     return MPP_NOK;
 }
 
-MppTimer mpp_timer_get(const char *name)
+MppClock mpp_clock_get(const char *name)
 {
-    MppTimerImpl *impl = mpp_calloc(MppTimerImpl, 1);
+    MppClockImpl *impl = mpp_calloc(MppClockImpl, 1);
     if (impl) {
         impl->check = module_name;
         snprintf(impl->name, sizeof(impl->name), name, NULL);
@@ -85,34 +85,34 @@ MppTimer mpp_timer_get(const char *name)
     return impl;
 }
 
-void mpp_timer_put(MppTimer timer)
+void mpp_clock_put(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return ;
     }
 
-    mpp_free(timer);
+    mpp_free(clock);
 }
 
-void mpp_timer_enable(MppTimer timer, RK_U32 enable)
+void mpp_clock_enable(MppClock clock, RK_U32 enable)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
     } else {
-        MppTimerImpl *p = (MppTimerImpl *)timer;
+        MppClockImpl *p = (MppClockImpl *)clock;
         p->enable = (enable) ? (1) : (0);
     }
 }
 
-RK_S64 mpp_timer_start(MppTimer timer)
+RK_S64 mpp_clock_start(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return 0;
     }
 
-    MppTimerImpl *p = (MppTimerImpl *)timer;
+    MppClockImpl *p = (MppClockImpl *)clock;
 
     if (!p->enable)
         return 0;
@@ -122,14 +122,14 @@ RK_S64 mpp_timer_start(MppTimer timer)
     return p->base;
 }
 
-RK_S64 mpp_timer_pause(MppTimer timer)
+RK_S64 mpp_clock_pause(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return 0;
     }
 
-    MppTimerImpl *p = (MppTimerImpl *)timer;
+    MppClockImpl *p = (MppClockImpl *)clock;
 
     if (!p->enable)
         return 0;
@@ -145,12 +145,12 @@ RK_S64 mpp_timer_pause(MppTimer timer)
     return p->time - p->base;
 }
 
-RK_S64 mpp_timer_reset(MppTimer timer)
+RK_S64 mpp_clock_reset(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
     } else {
-        MppTimerImpl *p = (MppTimerImpl *)timer;
+        MppClockImpl *p = (MppClockImpl *)clock;
 
         p->base = 0;
         p->time = 0;
@@ -161,35 +161,35 @@ RK_S64 mpp_timer_reset(MppTimer timer)
     return 0;
 }
 
-RK_S64 mpp_timer_get_sum(MppTimer timer)
+RK_S64 mpp_clock_get_sum(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return 0;
     }
 
-    MppTimerImpl *p = (MppTimerImpl *)timer;
+    MppClockImpl *p = (MppClockImpl *)clock;
     return (p->enable) ? (p->sum) : (0);
 }
 
-RK_S64 mpp_timer_get_count(MppTimer timer)
+RK_S64 mpp_clock_get_count(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return 0;
     }
 
-    MppTimerImpl *p = (MppTimerImpl *)timer;
+    MppClockImpl *p = (MppClockImpl *)clock;
     return (p->enable) ? (p->count) : (0);
 }
 
-const char *mpp_timer_get_name(MppTimer timer)
+const char *mpp_clock_get_name(MppClock clock)
 {
-    if (NULL == timer || check_is_mpp_timer(timer)) {
-        mpp_err_f("invalid timer %p\n", timer);
+    if (NULL == clock || check_is_mpp_clock(clock)) {
+        mpp_err_f("invalid clock %p\n", clock);
         return NULL;
     }
 
-    MppTimerImpl *p = (MppTimerImpl *)timer;
+    MppClockImpl *p = (MppClockImpl *)clock;
     return p->name;
 }
