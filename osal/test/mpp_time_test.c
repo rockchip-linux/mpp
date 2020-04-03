@@ -23,7 +23,7 @@ int main()
 {
     RK_S64 time_0;
     RK_S64 time_1;
-    MppTimer timer;
+    MppClock clock;
     RK_S32 i;
 
     mpp_log("mpp time test start\n");
@@ -40,40 +40,40 @@ int main()
 
     mpp_log("mpp time test done\n");
 
-    mpp_log("mpp timer test start\n");
+    mpp_log("mpp clock test start\n");
 
-    timer = mpp_timer_get("timer loop test");
+    clock = mpp_clock_get("clock loop test");
 
-    mpp_timer_enable(timer, 1);
+    mpp_clock_enable(clock, 1);
 
     for (i = 0; i < 1000; i++) {
-        mpp_timer_start(timer);
+        mpp_clock_start(clock);
         msleep(2);
-        mpp_timer_pause(timer);
+        mpp_clock_pause(clock);
     }
 
-    mpp_log("loop 1000 times timer 2ms start/pause operation:\n");
-    mpp_log("total   time  %8.3f ms\n", mpp_timer_get_sum(timer) / 1000.0);
+    mpp_log("loop 1000 times clock 2ms start/pause operation:\n");
+    mpp_log("total   time  %8.3f ms\n", mpp_clock_get_sum(clock) / 1000.0);
     mpp_log("average time  %8.3f ms\n",
-            mpp_timer_get_sum(timer) / mpp_timer_get_count(timer) / 1000.0);
+            mpp_clock_get_sum(clock) / mpp_clock_get_count(clock) / 1000.0);
 
-    mpp_timer_reset(timer);
+    mpp_clock_reset(clock);
 
     for (i = 0; i < 10000; i++) {
-        mpp_timer_start(timer);
+        mpp_clock_start(clock);
         mpp_time();
-        mpp_timer_pause(timer);
+        mpp_clock_pause(clock);
     }
 
     mpp_log("mpp_time cost %.3f ms\n",
-            mpp_timer_get_sum(timer) / mpp_timer_get_count(timer) / 1000.0);
+            mpp_clock_get_sum(clock) / mpp_clock_get_count(clock) / 1000.0);
 
-    mpp_timer_reset(timer);
-    mpp_timer_start(timer);
+    mpp_clock_reset(clock);
+    mpp_clock_start(clock);
     msleep(20);
-    time_0 = mpp_timer_pause(timer);
+    time_0 = mpp_clock_pause(clock);
     msleep(20);
-    time_1 = mpp_timer_pause(timer);
+    time_1 = mpp_clock_pause(clock);
 
     mpp_log("mpp_time pause 0 at %.3f ms pause 1 at %.3f ms\n",
             time_0 / 1000.0, time_1 / 1000.0);

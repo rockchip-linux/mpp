@@ -30,7 +30,7 @@
 #define msleep(x)               usleep((x)*1000)
 #endif
 
-typedef void* MppTimer;
+typedef void* MppClock;
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,34 +40,34 @@ RK_S64 mpp_time();
 void mpp_time_diff(RK_S64 start, RK_S64 end, RK_S64 limit, const char *fmt);
 
 /*
- * Timer create / destroy / enable / disable function
- * Note when timer is create it is default disabled user need to call enable
- * fucntion with enable = 1 to enable the timer.
- * User can use enable function with enable = 0 to disable the timer.
+ * Clock create / destroy / enable / disable function
+ * Note when clock is create it is default disabled user need to call enable
+ * fucntion with enable = 1 to enable the clock.
+ * User can use enable function with enable = 0 to disable the clock.
  */
-MppTimer mpp_timer_get(const char *name);
-void mpp_timer_put(MppTimer timer);
-void mpp_timer_enable(MppTimer timer, RK_U32 enable);
+MppClock mpp_clock_get(const char *name);
+void mpp_clock_put(MppClock clock);
+void mpp_clock_enable(MppClock clock, RK_U32 enable);
 
 /*
- * Timer basic operation function:
- * start : let timer start timing counter
- * pause : let timer pause and return the diff to start time
- * reset : let timer counter to all zero
+ * Clock basic operation function:
+ * start : let clock start timing counter
+ * pause : let clock pause and return the diff to start time
+ * reset : let clock counter to all zero
  */
-RK_S64 mpp_timer_start(MppTimer timer);
-RK_S64 mpp_timer_pause(MppTimer timer);
-RK_S64 mpp_timer_reset(MppTimer timer);
+RK_S64 mpp_clock_start(MppClock clock);
+RK_S64 mpp_clock_pause(MppClock clock);
+RK_S64 mpp_clock_reset(MppClock clock);
 
 /*
- * These timer helper function can only be call when timer is paused:
- * mpp_timer_get_sum    - Return timer sum up total value
- * mpp_timer_get_count  - Return timer sum up counter value
- * mpp_timer_get_name   - Return timer name
+ * These clock helper function can only be call when clock is paused:
+ * mpp_clock_get_sum    - Return clock sum up total value
+ * mpp_clock_get_count  - Return clock sum up counter value
+ * mpp_clock_get_name   - Return clock name
  */
-RK_S64 mpp_timer_get_sum(MppTimer timer);
-RK_S64 mpp_timer_get_count(MppTimer timer);
-const char *mpp_timer_get_name(MppTimer timer);
+RK_S64 mpp_clock_get_sum(MppClock clock);
+RK_S64 mpp_clock_get_count(MppClock clock);
+const char *mpp_clock_get_name(MppClock clock);
 
 #ifdef __cplusplus
 }

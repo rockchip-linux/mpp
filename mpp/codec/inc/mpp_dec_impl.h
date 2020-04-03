@@ -94,7 +94,7 @@ typedef struct MppDecImpl_t {
 
     // statistics data
     RK_U32              statistics_en;
-    MppTimer            timers[DEC_TIMING_BUTT];
+    MppClock            clocks[DEC_TIMING_BUTT];
 } MppDecImpl;
 
 #ifdef __cplusplus
