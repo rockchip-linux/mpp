@@ -18,8 +18,7 @@
 #define __MPP_TIME_H__
 
 #include "rk_type.h"
-
-// TODO: add usleep function on windows
+#include "mpp_thread.h"
 
 #if defined(_WIN32) && !defined(__MINGW32CE__)
 #include <windows.h>
@@ -31,6 +30,7 @@
 #endif
 
 typedef void* MppClock;
+typedef void* MppTimer;
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,6 +68,27 @@ RK_S64 mpp_clock_reset(MppClock clock);
 RK_S64 mpp_clock_get_sum(MppClock clock);
 RK_S64 mpp_clock_get_count(MppClock clock);
 const char *mpp_clock_get_name(MppClock clock);
+
+/*
+ * MppTimer is for timer with callback function
+ * It will provide the ability to repeat doing something until it is
+ * disalble or put.
+ *
+ * Timer work flow:
+ *
+ * 1. mpp_timer_get
+ * 2. mpp_timer_set_callback
+ * 3. mpp_timer_set_timing(initial, interval)
+ * 4. mpp_timer_set_enable(initial, 1)
+ *    ... running ...
+ * 5. mpp_timer_set_enable(initial, 0)
+ * 6. mpp_timer_put
+ */
+MppTimer mpp_timer_get(const char *name);
+void mpp_timer_set_callback(MppTimer timer, MppThreadFunc func, void *ctx);
+void mpp_timer_set_timing(MppTimer timer, RK_S32 initial, RK_S32 interval);
+void mpp_timer_set_enable(MppTimer timer, RK_S32 enable);
+void mpp_timer_put(MppTimer timer);
 
 #ifdef __cplusplus
 }
