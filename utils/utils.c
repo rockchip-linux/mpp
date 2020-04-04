@@ -449,3 +449,101 @@ RK_S32 parse_config_line(const char *str, OpsLine *info)
 
     return cnt;
 }
+
+static void get_extension(const char *file_name, char *extension)
+{
+    size_t length = strlen(file_name);
+    size_t i = length - 1;
+
+    while (i) {
+        if (file_name[i] == '.') {
+            strcpy(extension, file_name + i + 1);
+            return ;
+        }
+        i--;
+    }
+
+    extension[0] = '\0';
+}
+
+MPP_RET name_to_frame_format(const char *name, MppFrameFormat *fmt)
+{
+    MPP_RET ret = MPP_OK;
+    char ext[50];
+
+    get_extension(name, ext);
+
+    if (!strcmp(ext, "YUV420p")) {
+        mpp_log("found YUV420p");
+        *fmt = MPP_FMT_YUV420P;
+    } else if (!strcmp(ext, "YUV420sp")) {
+        mpp_log("found YUV420sp");
+        *fmt = MPP_FMT_YUV420SP;
+    } else if (!strcmp(ext, "YUV422p")) {
+        mpp_log("found YUV422p");
+        *fmt = MPP_FMT_YUV422P;
+    } else if (!strcmp(ext, "YUV422sp")) {
+        mpp_log("found YUV422sp");
+        *fmt = MPP_FMT_YUV422SP;
+    } else if (!strcmp(ext, "YUV422uyvy")) {
+        mpp_log("found YUV422uyvy");
+        *fmt = MPP_FMT_YUV422_UYVY;
+    } else if (!strcmp(ext, "YUV422vyuy")) {
+        mpp_log("found YUV422vyuy");
+        *fmt = MPP_FMT_YUV422_VYUY;
+    } else if (!strcmp(ext, "YUV422yuyv")) {
+        mpp_log("found YUV422yuyv");
+        *fmt = MPP_FMT_YUV422_YUYV;
+    } else if (!strcmp(ext, "YUV422yvyu")) {
+        mpp_log("found YUV422yvyu");
+        *fmt = MPP_FMT_YUV422_YVYU;
+    } else if (!strcmp(ext, "ABGR8888")) {
+        mpp_log("found ABGR8888");
+        *fmt = MPP_FMT_ABGR8888;
+    } else if (!strcmp(ext, "ARGB8888")) {
+        mpp_log("found ARGB8888");
+        *fmt = MPP_FMT_ARGB8888;
+    } else if (!strcmp(ext, "BGR565")) {
+        mpp_log("found BGR565");
+        *fmt = MPP_FMT_BGR565;
+    } else if (!strcmp(ext, "BGR888")) {
+        mpp_log("found BGR888");
+        *fmt = MPP_FMT_BGR888;
+    } else if (!strcmp(ext, "BGRA8888")) {
+        mpp_log("found BGRA8888");
+        *fmt = MPP_FMT_BGRA8888;
+    } else if (!strcmp(ext, "RGB565")) {
+        mpp_log("found RGB565");
+        *fmt = MPP_FMT_RGB565;
+    } else if (!strcmp(ext, "RGB888")) {
+        mpp_log("found RGB888");
+        *fmt = MPP_FMT_RGB888;
+    } else if (!strcmp(ext, "RGBA8888")) {
+        mpp_log("found RGBA8888");
+        *fmt = MPP_FMT_RGBA8888;
+    } else {
+        ret = MPP_NOK;
+    }
+
+    return ret;
+}
+
+MPP_RET name_to_coding_type(const char *name, MppCodingType *coding)
+{
+    MPP_RET ret = MPP_OK;
+    char ext[50];
+
+    get_extension(name, ext);
+
+    if (!strcmp(ext, "264") || !strcmp(ext, "h264")) {
+        *coding = MPP_VIDEO_CodingAVC;
+    } else if (!strcmp(ext, "265") || !strcmp(ext, "h265")) {
+        *coding = MPP_VIDEO_CodingHEVC;
+    } else if (!strcmp(ext, "jpeg") || !strcmp(ext, "mjpeg") || !strcmp(ext, "jpg")) {
+        *coding = MPP_VIDEO_CodingMJPEG;
+    } else {
+        ret = MPP_NOK;
+    }
+
+    return ret;
+}

@@ -127,17 +127,6 @@ typedef struct {
     RK_S32 qp_init;
 } MpiEncTestData;
 
-static OptionInfo mpi_enc_cmd[] = {
-    {"i",               "input_file",           "input bitstream file"},
-    {"o",               "output_file",          "output bitstream file, "},
-    {"w",               "width",                "the width of input picture"},
-    {"h",               "height",               "the height of input picture"},
-    {"f",               "format",               "the format of input picture"},
-    {"t",               "type",                 "output stream coding type"},
-    {"n",               "max frame number",     "max encoding frame number"},
-    {"d",               "debug",                "debug flag"},
-};
-
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
 {
     MpiEncTestData *p = NULL;
@@ -851,14 +840,6 @@ MPP_TEST_OUT:
     test_ctx_deinit(&p);
 
     return rate;
-}
-
-
-static void mpi_enc_test_help()
-{
-    mpp_log("usage: mpi_enc_test [options]\n");
-    show_options(mpi_enc_cmd);
-    mpp_show_support_format();
 }
 
 static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* cmd)

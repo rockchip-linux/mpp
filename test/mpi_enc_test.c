@@ -32,26 +32,6 @@
 #include "utils.h"
 #include "mpi_enc_utils.h"
 
-#define MAX_FILE_NAME_LENGTH        256
-
-typedef struct {
-    char            file_input[MAX_FILE_NAME_LENGTH];
-    char            file_output[MAX_FILE_NAME_LENGTH];
-    MppCodingType   type;
-    RK_U32          width;
-    RK_U32          height;
-    RK_U32          hor_stride;
-    RK_U32          ver_stride;
-    MppFrameFormat  format;
-    RK_U32          debug;
-    RK_U32          num_frames;
-    RK_S32          gop_mode;
-    RK_U32          target_bps;
-    RK_U32          fps_out;
-    RK_U32          have_input;
-    RK_U32          have_output;
-} MpiEncTestCmd;
-
 typedef struct {
     // global flow control flag
     RK_U32 frm_eos;
@@ -113,21 +93,7 @@ typedef struct {
     MppEncGopRef ref;
 } MpiEncTestData;
 
-static OptionInfo mpi_enc_cmd[] = {
-    {"i",               "input_file",           "input bitstream file"},
-    {"o",               "output_file",          "output bitstream file, "},
-    {"w",               "width",                "the width of input picture"},
-    {"h",               "height",               "the height of input picture"},
-    {"f",               "format",               "the format of input picture"},
-    {"t",               "type",                 "output stream coding type"},
-    {"n",               "max frame number",     "max encoding frame number"},
-    {"g",               "gop_mode",             "gop reference mode"},
-    {"d",               "debug",                "debug flag"},
-    {"b",               "target bps",           "set tareget bps"},
-    {"r",               "output frame rate",    "set output frame rate"},
-};
-
-MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
+MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
 {
     MpiEncTestData *p = NULL;
     MPP_RET ret = MPP_OK;
@@ -153,13 +119,13 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
                       (MPP_ALIGN(cmd->height, 16));
     p->fmt          = cmd->format;
     p->type         = cmd->type;
-    p->bps          = cmd->target_bps;
+    p->bps          = cmd->bps_target;
     if (cmd->type == MPP_VIDEO_CodingMJPEG)
         cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
     p->gop_mode     =  cmd->gop_mode;
 
-    if (cmd->have_input) {
+    if (cmd->file_input) {
         p->fp_input = fopen(cmd->file_input, "rb");
         if (NULL == p->fp_input) {
             mpp_err("failed to open input file %s\n", cmd->file_input);
@@ -167,7 +133,7 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestCmd *cmd)
         }
     }
 
-    if (cmd->have_output) {
+    if (cmd->file_output) {
         p->fp_output = fopen(cmd->file_output, "w+b");
         if (NULL == p->fp_output) {
             mpp_err("failed to open output file %s\n", cmd->file_output);
@@ -789,7 +755,7 @@ RET:
     return ret;
 }
 
-int mpi_enc_test(MpiEncTestCmd *cmd)
+int mpi_enc_test(MpiEncTestArgs *cmd)
 {
     MPP_RET ret = MPP_OK;
     MpiEncTestData *p = NULL;
@@ -882,297 +848,28 @@ MPP_TEST_OUT:
     return ret;
 }
 
-
-static void mpi_enc_test_help()
-{
-    mpp_log("usage: mpi_enc_test [options]\n");
-    show_options(mpi_enc_cmd);
-    mpp_show_support_format();
-    mpp_show_color_format();
-}
-
-static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiEncTestCmd* cmd)
-{
-    const char *opt;
-    const char *next;
-    RK_S32 optindex = 1;
-    RK_S32 handleoptions = 1;
-    RK_S32 err = MPP_NOK;
-
-    if ((argc < 2) || (cmd == NULL)) {
-        err = 1;
-        return err;
-    }
-
-    /* parse options */
-    while (optindex < argc) {
-        opt  = (const char*)argv[optindex++];
-        next = (const char*)argv[optindex];
-
-        if (handleoptions && opt[0] == '-' && opt[1] != '\0') {
-            if (opt[1] == '-') {
-                if (opt[2] != '\0') {
-                    opt++;
-                } else {
-                    handleoptions = 0;
-                    continue;
-                }
-            }
-
-            opt++;
-
-            switch (*opt) {
-            case 'i':
-                if (next) {
-                    strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH);
-                    cmd->file_input[strlen(next)] = '\0';
-                    cmd->have_input = 1;
-                } else {
-                    mpp_err("input file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'o':
-                if (next) {
-                    strncpy(cmd->file_output, next, MAX_FILE_NAME_LENGTH);
-                    cmd->file_output[strlen(next)] = '\0';
-                    cmd->have_output = 1;
-                } else {
-                    mpp_log("output file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'd':
-                if (next) {
-                    cmd->debug = atoi(next);;
-                } else {
-                    mpp_err("invalid debug flag\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'w':
-                if (next) {
-                    cmd->width = atoi(next);
-                } else {
-                    mpp_err("invalid input width\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'h':
-                if ((*(opt + 1) != '\0') && !strncmp(opt, "help", 4)) {
-                    mpi_enc_test_help();
-                    err = 1;
-                    goto PARSE_OPINIONS_OUT;
-                } else if (next) {
-                    cmd->height = atoi(next);
-                } else {
-                    mpp_log("input height is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'u':
-                if (next) {
-                    cmd->hor_stride = atoi(next);
-                } else {
-                    mpp_err("invalid input width\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'v':
-                if (next) {
-                    cmd->ver_stride = atoi(next);
-                } else {
-                    mpp_log("input height is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'f':
-                if (next) {
-                    cmd->format = (MppFrameFormat)atoi(next);
-                    err = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
-                           cmd->format >= MPP_FMT_RGB_BUTT);
-                }
-
-                if (!next || err) {
-                    mpp_err("invalid input format %d\n", cmd->format);
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 't':
-                if (next) {
-                    cmd->type = (MppCodingType)atoi(next);
-                    err = mpp_check_support_format(MPP_CTX_ENC, cmd->type);
-                }
-
-                if (!next || err) {
-                    mpp_err("invalid input coding type\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'n':
-                if (next) {
-                    cmd->num_frames = atoi(next);
-                } else {
-                    mpp_err("invalid input max number of frames\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'g':
-                if (next) {
-                    cmd->gop_mode = atoi(next);
-                } else {
-                    mpp_err("invalid gop mode\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'b':
-                if (next) {
-                    cmd->target_bps = atoi(next);
-                } else {
-                    mpp_err("invalid bit rate\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            case 'r':
-                if (next) {
-                    cmd->fps_out = atoi(next);
-                } else {
-                    mpp_err("invalid output frame rate\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-                break;
-            default:
-                mpp_err("skip invalid opt %c\n", *opt);
-                break;
-            }
-
-            optindex++;
-        }
-    }
-
-    err = 0;
-
-PARSE_OPINIONS_OUT:
-    return err;
-}
-
-void get_extension(const char *file_name, char *extension)
-{
-    size_t length = strlen(file_name);
-    size_t i = length - 1;
-
-    while (i) {
-        if (file_name[i] == '.') {
-            strcpy(extension, file_name + i + 1);
-            return ;
-        }
-        i--;
-    }
-
-    extension[0] = '\0';
-}
-
-void check_input_format(const char *name, MpiEncTestCmd* cmd)
-{
-    char ext[50];
-
-    if (name == NULL) {
-        return;
-    }
-
-    get_extension(name, ext);
-
-    mpp_log("input file %s ext %s\n", name, ext);
-
-    if (!strcmp(ext, "YUV420p")) {
-        mpp_log("found YUV420p");
-        cmd->format = MPP_FMT_YUV420P;
-    } else if (!strcmp(ext, "YUV420sp")) {
-        mpp_log("found YUV420sp");
-        cmd->format = MPP_FMT_YUV420SP;
-    } else if (!strcmp(ext, "YUV422p")) {
-        mpp_log("found YUV422p");
-        cmd->format = MPP_FMT_YUV422P;
-    } else if (!strcmp(ext, "YUV422sp")) {
-        mpp_log("found YUV422sp");
-        cmd->format = MPP_FMT_YUV422SP;
-    } else if (!strcmp(ext, "YUV422uyvy")) {
-        mpp_log("found YUV422uyvy");
-        cmd->format = MPP_FMT_YUV422_UYVY;
-    } else if (!strcmp(ext, "YUV422vyuy")) {
-        mpp_log("found YUV422vyuy");
-        cmd->format = MPP_FMT_YUV422_VYUY;
-    } else if (!strcmp(ext, "YUV422yuyv")) {
-        mpp_log("found YUV422yuyv");
-        cmd->format = MPP_FMT_YUV422_YUYV;
-    } else if (!strcmp(ext, "YUV422yvyu")) {
-        mpp_log("found YUV422yvyu");
-        cmd->format = MPP_FMT_YUV422_YVYU;
-    } else if (!strcmp(ext, "ABGR8888")) {
-        mpp_log("found ABGR8888");
-        cmd->format = MPP_FMT_ABGR8888;
-    } else if (!strcmp(ext, "ARGB8888")) {
-        mpp_log("found ARGB8888");
-        cmd->format = MPP_FMT_ARGB8888;
-    } else if (!strcmp(ext, "BGR565")) {
-        mpp_log("found BGR565");
-        cmd->format = MPP_FMT_BGR565;
-    } else if (!strcmp(ext, "BGR888")) {
-        mpp_log("found BGR888");
-        cmd->format = MPP_FMT_BGR888;
-    } else if (!strcmp(ext, "BGRA8888")) {
-        mpp_log("found BGRA8888");
-        cmd->format = MPP_FMT_BGRA8888;
-    } else if (!strcmp(ext, "RGB565")) {
-        mpp_log("found RGB565");
-        cmd->format = MPP_FMT_RGB565;
-    } else if (!strcmp(ext, "RGB888")) {
-        mpp_log("found RGB888");
-        cmd->format = MPP_FMT_RGB888;
-    } else if (!strcmp(ext, "RGBA8888")) {
-        mpp_log("found RGBA8888");
-        cmd->format = MPP_FMT_RGBA8888;
-    }
-    return;
-}
-static void mpi_enc_test_show_options(MpiEncTestCmd* cmd)
-{
-    mpp_log("cmd parse result:\n");
-    mpp_log("input  file name: %s\n", cmd->file_input);
-    mpp_log("output file name: %s\n", cmd->file_output);
-    mpp_log("width      : %d\n", cmd->width);
-    mpp_log("height     : %d\n", cmd->height);
-    mpp_log("format     : %d\n", cmd->format);
-    mpp_log("type       : %d\n", cmd->type);
-    mpp_log("debug flag : %x\n", cmd->debug);
-}
-
 int main(int argc, char **argv)
 {
-    RK_S32 ret = 0;
-    MpiEncTestCmd  cmd_ctx;
-    MpiEncTestCmd* cmd = &cmd_ctx;
+    RK_S32 ret = MPP_NOK;
+    MpiEncTestArgs* cmd = mpi_enc_test_cmd_get();
 
     memset((void*)cmd, 0, sizeof(*cmd));
 
     // parse the cmd option
-    ret = mpi_enc_test_parse_options(argc, argv, cmd);
-    if (ret) {
-        if (ret < 0) {
-            mpp_err("mpi_enc_test_parse_options: input parameter invalid\n");
-        }
+    if (argc > 1)
+        ret = mpi_enc_test_cmd_update_by_args(cmd, argc, argv);
 
+    if (ret) {
         mpi_enc_test_help();
         return ret;
     }
 
-    mpi_enc_test_show_options(cmd);
+    mpi_enc_test_cmd_show_opt(cmd);
 
-    mpp_env_set_u32("mpi_debug", cmd->debug);
-    check_input_format(cmd->file_input, cmd);
     ret = mpi_enc_test(cmd);
 
-    mpp_env_set_u32("mpi_debug", 0x0);
+    mpi_enc_test_cmd_put(cmd);
+
     return ret;
 }
 
