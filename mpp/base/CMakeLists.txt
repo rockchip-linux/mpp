@@ -15,6 +15,7 @@ add_library(mpp_base STATIC
     mpp_bitwrite.c
     mpp_bitread.c
     mpp_bitput.c
+    mpp_2str.c
     )
 
 set_target_properties(mpp_base PROPERTIES FOLDER "mpp/base")
