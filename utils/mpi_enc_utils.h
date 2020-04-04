@@ -21,12 +21,43 @@
 
 #include "rk_venc_cmd.h"
 
+typedef struct MpiEncTestArgs_t {
+    char                *file_input;
+    char                *file_output;
+    MppCodingType       type;
+    MppFrameFormat      format;
+    RK_S32              num_frames;
+    RK_S32              loop_cnt;
+
+    RK_S32              width;
+    RK_S32              height;
+    RK_S32              hor_stride;
+    RK_S32              ver_stride;
+
+    RK_S32              bps_target;
+    RK_S32              fps_in;
+    RK_S32              fps_out;
+
+    RK_S32              gop_mode;
+
+    MppEncHeaderMode    header_mode;
+
+    MppEncSliceSplit    split;
+} MpiEncTestArgs;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt);
 MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table);
+
+MpiEncTestArgs *mpi_enc_test_cmd_get(void);
+MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **argv);
+MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd);
+
+MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd);
+void mpi_enc_test_help(void);
 
 #ifdef __cplusplus
 }
