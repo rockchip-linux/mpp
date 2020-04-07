@@ -366,8 +366,6 @@ typedef struct hal_vp8e_ctx_s {
     RK_U32           buffer_ready;
     RK_U64           frame_cnt;
     RK_U8            key_frm_next;
-    RK_U32           gop_len;
-    RK_U32           bit_rate;
     Vp8FrmType       frame_type;
 
     RK_U32           mb_per_frame;

@@ -981,9 +981,6 @@ static MPP_RET set_parameter(void *hal)
     ctx->mb_per_row = width / 16;
     ctx->mb_per_col = width / 16;
 
-    ctx->gop_len = ctx->cfg->rc.gop;
-    ctx->bit_rate = ctx->cfg->rc.bps_target;
-
     sps->pic_width_in_pixel    = width;
     sps->pic_height_in_pixel   = height;
     sps->pic_width_in_mbs      = width / 16;

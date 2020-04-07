@@ -287,7 +287,6 @@ MPP_RET hal_vp8e_vepu2_init(void *hal, MppHalCfg *cfg)
     }
     ctx->buffer_ready = 0;
     ctx->frame_cnt = 0;
-    ctx->gop_len = 0;
     ctx->frame_type = VP8E_FRM_KEY;
     ctx->prev_frame_lost = 0;
     ctx->frame_size = 0;
@@ -444,7 +443,7 @@ MPP_RET hal_vp8e_vepu2_wait(void *hal, HalTaskInfo *task)
 
     RcHalResult result;
     ctx->frame_cnt++;
-    if (ctx->frame_cnt % ctx->gop_len == 0) {
+    if (ctx->frame_cnt % ctx->rc->gop_len == 0) {
         ctx->frame_type = VP8E_FRM_KEY;
         result.type = INTRA_FRAME;
     } else {
