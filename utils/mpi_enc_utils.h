@@ -29,6 +29,7 @@ typedef struct MpiEncTestArgs_t {
     dictionary          *cfg_ini;
 
     MppCodingType       type;
+    MppCodingType       type_src;       /* for file source input */
     MppFrameFormat      format;
     RK_S32              frame_num;
     RK_S32              loop_cnt;
@@ -63,6 +64,8 @@ typedef struct MpiEncTestArgs_t {
     /* -v f runtime fps log flag */
     RK_U32              trace_fps;
     FpsCalc             fps;
+    RK_U32              psnr_en;
+    RK_U32              ssim_en;
 } MpiEncTestArgs;
 
 #ifdef __cplusplus
@@ -88,7 +91,6 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
 MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd);
 
 MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd);
-void mpi_enc_test_help(void);
 
 #ifdef __cplusplus
 }
