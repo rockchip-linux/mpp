@@ -109,6 +109,9 @@ RK_S32 mpi_enc_opt_i(void *ctx, const char *next)
             cmd->file_input = mpp_calloc(char, len + 1);
             strcpy(cmd->file_input, next);
             name_to_frame_format(cmd->file_input, &cmd->format);
+
+            if (cmd->type_src == MPP_VIDEO_CodingUnused)
+                name_to_coding_type(cmd->file_input, &cmd->type_src);
         }
 
         return 1;
@@ -237,6 +240,23 @@ RK_S32 mpi_enc_opt_t(void *ctx, const char *next)
     mpp_err("invalid input coding type %d\n", type);
     return 0;
 }
+
+RK_S32 mpi_enc_opt_tsrc(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppCodingType type = MPP_VIDEO_CodingUnused;
+
+    if (next) {
+        type = (MppCodingType)atoi(next);
+        if (!mpp_check_support_format(MPP_CTX_DEC, type))
+            cmd->type_src = type;
+        return 1;
+    }
+
+    mpp_err("invalid input coding type %d\n", type);
+    return 0;
+}
+
 
 RK_S32 mpi_enc_opt_n(void *ctx, const char *next)
 {
@@ -414,6 +434,7 @@ static MppOptInfo enc_opts[] = {
     {"vstride", "ver_stride",           "the vertical stride of input picture",     mpi_enc_opt_vstride},
     {"f",       "format",               "the format of input picture",              mpi_enc_opt_f},
     {"t",       "type",                 "output stream coding type",                mpi_enc_opt_t},
+    {"tsrc",    "source type",          "input file source coding type",            mpi_enc_opt_tsrc},
     {"n",       "max frame number",     "max encoding frame number",                mpi_enc_opt_n},
     {"g",       "gop reference mode",   "gop_mode:gop_len:vi_len",                  mpi_enc_opt_g},
     {"bps",     "bps target:min:max",   "set tareget/min/max bps and rc_mode",      mpi_enc_opt_bps},
@@ -492,7 +513,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
 
     mpp_opt_init(&opts);
     /* should change node count when option increases */
-    mpp_opt_setup(opts, cmd, 50, enc_opt_cnt);
+    mpp_opt_setup(opts, cmd, 57, enc_opt_cnt);
 
     for (i = 0; i < enc_opt_cnt; i++)
         mpp_opt_add(opts, &enc_opts[i]);
@@ -513,12 +534,15 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
     if (!cmd->ver_stride)
         cmd->ver_stride = cmd->height;
 
-    if (cmd->width <= 0 || cmd->height <= 0 ||
-        cmd->hor_stride <= 0 || cmd->ver_stride <= 0) {
-        mpp_err("invalid w:h [%d:%d] stride [%d:%d]\n",
-                cmd->width, cmd->height, cmd->hor_stride, cmd->ver_stride);
-        ret = MPP_NOK;
+    if (cmd->type_src == MPP_VIDEO_CodingUnused) {
+        if (cmd->width <= 0 || cmd->height <= 0 ||
+            cmd->hor_stride <= 0 || cmd->ver_stride <= 0) {
+            mpp_err("invalid w:h [%d:%d] stride [%d:%d]\n",
+                    cmd->width, cmd->height, cmd->hor_stride, cmd->ver_stride);
+            ret = MPP_NOK;
+        }
     }
+
     if (cmd->trace_fps) {
         fps_calc_init(&cmd->fps);
         mpp_assert(cmd->fps);
@@ -899,21 +923,6 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
     return MPP_OK;
 }
 
-static OptionInfo mpi_enc_cmd[] = {
-    {"i",               "input_file",           "input bitstream file"},
-    {"o",               "output_file",          "output bitstream file, "},
-    {"w",               "width",                "the width of input picture"},
-    {"h",               "height",               "the height of input picture"},
-    {"f",               "format",               "the format of input picture"},
-    {"t",               "type",                 "output stream coding type"},
-    {"n",               "max frame number",     "max encoding frame number"},
-    {"g",               "gop_mode",             "gop reference mode"},
-    {"d",               "debug",                "debug flag"},
-    {"b",               "bps target:min:max",   "set tareget bps"},
-    {"r",               "in/output fps",        "set input and output frame rate"},
-    {"l",               "loop count",           "loop encoding times for each frame"},
-};
-
 MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
 {
     mpp_log("cmd parse result:\n");
@@ -925,12 +934,4 @@ MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
     mpp_log("type       : %d\n", cmd->type);
 
     return MPP_OK;
-}
-
-void mpi_enc_test_help(void)
-{
-    mpp_log("usage: mpi_enc_test [options]\n");
-    show_options(mpi_enc_cmd);
-    mpp_show_support_format();
-    mpp_show_color_format();
 }
