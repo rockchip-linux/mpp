@@ -129,11 +129,9 @@ MPP_RET vp8e_deinit(void *ctx)
     Vp8eCtx *p = (Vp8eCtx *)ctx;
 
     vp8e_rc_dbg_func("enter\n");
-    if (p) {
-        if (p->rc)
-            mpp_free(p->rc);
-        mpp_free(p);
-    }
+
+    if (p->rc)
+        mpp_free(p->rc);
 
     vp8e_rc_dbg_func("leave\n");
     return MPP_OK;
