@@ -123,6 +123,7 @@ typedef struct Vepu541OsdPltColor_t {
 typedef struct Vepu541OsdCfg_t {
     void                *reg_base;
     MppDevCtx           dev;
+    RegExtraInfo        extra;
     MppEncOSDPltCfg     *plt_cfg;
     MppEncOSDData       *osd_data;
 } Vepu541OsdCfg;
