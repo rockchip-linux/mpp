@@ -1048,6 +1048,10 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         enc_dbg_ctrl("get rc config\n");
         memcpy(param, &enc->cfg.rc, sizeof(enc->cfg.rc));
     } break;
+    case MPP_ENC_GET_CODEC_CFG : {
+        enc_dbg_ctrl("get codec config\n");
+        memcpy(param, &enc->cfg.codec, sizeof(enc->cfg.codec));
+    } break;
     case MPP_ENC_GET_HEADER_MODE : {
         enc_dbg_ctrl("get header mode\n");
         memcpy(param, &enc->hdr_mode, sizeof(enc->hdr_mode));
