@@ -376,6 +376,7 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
 
 //TODO: open interface later
 #define ENC_DEFAULT_OSD_INV_THR         15
+#define VEPU541_OSD_ADDR_IDX_BASE       124
 #define VEPU541_OSD_CFG_OFFSET          0x01C0
 #define VEPU541_OSD_PLT_OFFSET          0x0400
 
@@ -482,32 +483,50 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
     if (NULL == osd || osd->num_region == 0 || NULL == osd->buf)
         return MPP_OK;
 
-    RK_S32 fd = mpp_buffer_get_fd(osd->buf);
+    MppBuffer buf = osd->buf;
+    RK_S32 fd = mpp_buffer_get_fd(buf);
     if (fd < 0) {
         mpp_err_f("invalid osd buffer fd %d\n", fd);
         return MPP_NOK;
     }
 
+    size_t buf_size = mpp_buffer_get_size(buf);
     RK_U32 num = osd->num_region;
     RK_U32 k = 0;
     MppEncOSDRegion *region = osd->region;
     MppEncOSDRegion *tmp = region;
 
+    mpp_device_patch_init(&cfg->extra);
+
     for (k = 0; k < num; k++, tmp++) {
         regs->reg112.osd_e      |= tmp->enable << k;
         regs->reg112.osd_inv_e  |= tmp->inverse << k;
 
-        if (tmp->enable) {
+        if (tmp->enable && tmp->num_mb_x && tmp->num_mb_y) {
             Vepu541OsdPos *pos = &regs->osd_pos[k];
+            size_t blk_len = tmp->num_mb_x * tmp->num_mb_y * 256;
 
             pos->osd_lt_x = tmp->start_mb_x;
             pos->osd_lt_y = tmp->start_mb_y;
             pos->osd_rb_x = tmp->start_mb_x + tmp->num_mb_x - 1;
             pos->osd_rb_y = tmp->start_mb_y + tmp->num_mb_y - 1;
 
-            regs->osd_addr[k] = mpp_buffer_to_addr(osd->buf, tmp->buf_offset);
+            regs->osd_addr[k] = fd;
+            mpp_device_patch_add(cfg->reg_base, &cfg->extra,
+                                 VEPU541_OSD_ADDR_IDX_BASE + k,
+                                 tmp->buf_offset);
+
+            /* There should be enough buffer and offset should be 16B aligned */
+            if (buf_size < tmp->buf_offset + blk_len ||
+                (tmp->buf_offset & 0xf)) {
+                mpp_err_f("invalid osd cfg: %d x:y:w:h:off %d:%d:%d:%x\n",
+                          k, tmp->start_mb_x, tmp->start_mb_y,
+                          tmp->num_mb_x, tmp->num_mb_y, tmp->buf_offset);
+            }
         }
     }
+
+    mpp_device_send_extra_info(dev, &cfg->extra);
 
     if (region[0].inverse)
         regs->reg113.osd_ithd_r0 = ENC_DEFAULT_OSD_INV_THR;
