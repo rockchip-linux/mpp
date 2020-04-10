@@ -20,6 +20,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_common.h"
 #include "utils.h"
 
 void _show_options(int count, OptionInfo *options)
@@ -271,6 +272,48 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     RK_U8 *buf_u = buf_y + hor_stride * ver_stride; // NOTE: diff from gen_yuv_image
     RK_U8 *buf_v = buf_u + hor_stride * ver_stride / 4; // NOTE: diff from gen_yuv_image
 
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        RK_U32 align_w = MPP_ALIGN(width, 16);
+        RK_U32 align_h = MPP_ALIGN(height, 16);
+        RK_U32 header_size = MPP_ALIGN(align_w * align_h / 16, SZ_4K);
+
+        /* read fbc header first */
+        read_size = fread(buf, 1, header_size, fp);
+        if (read_size != header_size) {
+            mpp_err_f("read fbc file header failed %d vs %d\n",
+                      read_size, header_size);
+            ret  = MPP_NOK;
+            goto err;
+        }
+        buf += header_size;
+
+        switch (fmt & MPP_FRAME_FMT_MASK) {
+        case MPP_FMT_YUV420SP : {
+            read_size = fread(buf, 1, align_w * align_h * 3 / 2, fp);
+            if (read_size != align_w * align_h * 3 / 2) {
+                mpp_err_f("read 420sp fbc file payload failed %d vs %d\n",
+                          read_size, align_w * align_h * 3 / 2);
+                ret  = MPP_NOK;
+                goto err;
+            }
+        } break;
+        case MPP_FMT_YUV422SP : {
+            read_size = fread(buf, 1, align_w * align_h * 2, fp);
+            if (read_size != align_w * align_h * 2) {
+                mpp_err_f("read 422sp fbc file payload failed %d vs %d\n",
+                          read_size, align_w * align_h * 2);
+                ret  = MPP_NOK;
+                goto err;
+            }
+        } break;
+        default : {
+            mpp_err_f("not supported fbc format %x\n", fmt);
+        } break;
+        }
+
+        return MPP_OK;
+    }
+
     switch (fmt) {
     case MPP_FMT_YUV420SP : {
         for (row = 0; row < height; row++) {
@@ -521,6 +564,9 @@ MPP_RET name_to_frame_format(const char *name, MppFrameFormat *fmt)
     } else if (!strcmp(ext, "RGBA8888")) {
         mpp_log("found RGBA8888");
         *fmt = MPP_FMT_RGBA8888;
+    } else if (!strcmp(ext, "fbc")) {
+        mpp_log("found fbc");
+        *fmt = MPP_FMT_YUV420SP | MPP_FRAME_FBC_AFBC_V1;
     } else {
         ret = MPP_NOK;
     }

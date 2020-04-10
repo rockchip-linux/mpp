@@ -70,6 +70,7 @@ typedef struct {
     RK_U32 num_frames;
 
     // resources
+    size_t header_size;
     size_t frame_size;
     /* NOTE: packet buffer may overflow */
     size_t packet_size;
@@ -142,7 +143,7 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     }
 
     // update resource parameter
-    switch (p->fmt) {
+    switch (p->fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP:
     case MPP_FMT_YUV420P: {
         p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 3 / 2;
@@ -163,6 +164,11 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
         p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 4;
     } break;
     }
+
+    if (MPP_FRAME_FMT_IS_FBC(p->fmt))
+        p->header_size = MPP_ALIGN(MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+    else
+        p->header_size = 0;
 
     /*
      * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
@@ -489,7 +495,6 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         mpp_frame_set_ver_stride(frame, p->ver_stride);
         mpp_frame_set_fmt(frame, p->fmt);
         mpp_frame_set_eos(frame, p->frm_eos);
-
         if (p->ref.max_lt_ref_cnt) {
             // force idr as reference every 15 frames
             //RK_S32 quotient = p->frame_count / 15;
@@ -608,7 +613,7 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = mpp_buffer_get(NULL, &p->frm_buf, p->frame_size);
+    ret = mpp_buffer_get(NULL, &p->frm_buf, p->frame_size + p->header_size);
     if (ret) {
         mpp_err_f("failed to get buffer for input frame ret %d\n", ret);
         goto MPP_TEST_OUT;
