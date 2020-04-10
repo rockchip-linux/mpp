@@ -620,6 +620,7 @@ void *mpp_enc_thread(void *data)
         reset_enc_rc_task(rc_task);
         hal_task->rc_task = rc_task;
         frm->seq_idx = task.seq_idx++;
+        rc_task->frame = frame;
 
         enc_dbg_detail("task seq idx %d start\n", frm->seq_idx);
 
