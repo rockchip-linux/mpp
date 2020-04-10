@@ -138,6 +138,7 @@ typedef struct EncRcCommonInfo_t {
 typedef struct EncRcTask_s {
     EncFrmStatus    frm;
     EncRcTaskInfo   info;
+    MppFrame        frame;
 } EncRcTask;
 
 #endif /* __RC_DEFS_H__ */
