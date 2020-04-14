@@ -16,6 +16,7 @@
 
 #define MODULE_TAG "utils"
 
+#include <ctype.h>
 #include <string.h>
 
 #include "mpp_mem.h"
@@ -496,99 +497,106 @@ RK_S32 parse_config_line(const char *str, OpsLine *info)
 static void get_extension(const char *file_name, char *extension)
 {
     size_t length = strlen(file_name);
-    size_t i = length - 1;
+    size_t ext_len = 0;
+    size_t i = 0;
+    const char *p = file_name + length - 1;
 
-    while (i) {
-        if (file_name[i] == '.') {
-            strcpy(extension, file_name + i + 1);
+    while (p >= file_name) {
+        if (p[0] == '.') {
+            for (i = 0; i < ext_len; i++)
+                extension[i] = tolower(p[i + 1]);
+
+            extension[i] = '\0';
             return ;
         }
-        i--;
+        ext_len++;
+        p--;
     }
 
     extension[0] = '\0';
 }
 
+typedef struct Ext2FrmFmt_t {
+    const char      *ext_name;
+    MppFrameFormat  format;
+} Ext2FrmFmt;
+
+Ext2FrmFmt map_ext_to_frm_fmt[] = {
+    {   "yuv420p",              MPP_FMT_YUV420P,                            },
+    {   "yuv420sp",             MPP_FMT_YUV420SP,                           },
+    {   "yuv422p",              MPP_FMT_YUV422P,                            },
+    {   "yuv422sp",             MPP_FMT_YUV422SP,                           },
+    {   "yuv422uyvy",           MPP_FMT_YUV422_UYVY,                        },
+    {   "yuv422vyuy",           MPP_FMT_YUV422_VYUY,                        },
+    {   "yuv422yuyv",           MPP_FMT_YUV422_YUYV,                        },
+    {   "yuv422yvyu",           MPP_FMT_YUV422_YVYU,                        },
+
+    {   "abgr8888",             MPP_FMT_ABGR8888,                           },
+    {   "argb8888",             MPP_FMT_ARGB8888,                           },
+    {   "bgr565",               MPP_FMT_BGR565,                             },
+    {   "bgr888",               MPP_FMT_BGR888,                             },
+    {   "bgra8888",             MPP_FMT_BGRA8888,                           },
+    {   "rgb565",               MPP_FMT_RGB565,                             },
+    {   "rgb888",               MPP_FMT_RGB888,                             },
+    {   "rgba8888",             MPP_FMT_RGBA8888,                           },
+
+    {   "fbc",                  MPP_FMT_YUV420SP | MPP_FRAME_FBC_AFBC_V1,   },
+};
+
 MPP_RET name_to_frame_format(const char *name, MppFrameFormat *fmt)
 {
-    MPP_RET ret = MPP_OK;
+    RK_U32 i;
+    MPP_RET ret = MPP_NOK;
     char ext[50];
 
     get_extension(name, ext);
 
-    if (!strcmp(ext, "YUV420p")) {
-        mpp_log("found YUV420p");
-        *fmt = MPP_FMT_YUV420P;
-    } else if (!strcmp(ext, "YUV420sp")) {
-        mpp_log("found YUV420sp");
-        *fmt = MPP_FMT_YUV420SP;
-    } else if (!strcmp(ext, "YUV422p")) {
-        mpp_log("found YUV422p");
-        *fmt = MPP_FMT_YUV422P;
-    } else if (!strcmp(ext, "YUV422sp")) {
-        mpp_log("found YUV422sp");
-        *fmt = MPP_FMT_YUV422SP;
-    } else if (!strcmp(ext, "YUV422uyvy")) {
-        mpp_log("found YUV422uyvy");
-        *fmt = MPP_FMT_YUV422_UYVY;
-    } else if (!strcmp(ext, "YUV422vyuy")) {
-        mpp_log("found YUV422vyuy");
-        *fmt = MPP_FMT_YUV422_VYUY;
-    } else if (!strcmp(ext, "YUV422yuyv")) {
-        mpp_log("found YUV422yuyv");
-        *fmt = MPP_FMT_YUV422_YUYV;
-    } else if (!strcmp(ext, "YUV422yvyu")) {
-        mpp_log("found YUV422yvyu");
-        *fmt = MPP_FMT_YUV422_YVYU;
-    } else if (!strcmp(ext, "ABGR8888")) {
-        mpp_log("found ABGR8888");
-        *fmt = MPP_FMT_ABGR8888;
-    } else if (!strcmp(ext, "ARGB8888")) {
-        mpp_log("found ARGB8888");
-        *fmt = MPP_FMT_ARGB8888;
-    } else if (!strcmp(ext, "BGR565")) {
-        mpp_log("found BGR565");
-        *fmt = MPP_FMT_BGR565;
-    } else if (!strcmp(ext, "BGR888")) {
-        mpp_log("found BGR888");
-        *fmt = MPP_FMT_BGR888;
-    } else if (!strcmp(ext, "BGRA8888")) {
-        mpp_log("found BGRA8888");
-        *fmt = MPP_FMT_BGRA8888;
-    } else if (!strcmp(ext, "RGB565")) {
-        mpp_log("found RGB565");
-        *fmt = MPP_FMT_RGB565;
-    } else if (!strcmp(ext, "RGB888")) {
-        mpp_log("found RGB888");
-        *fmt = MPP_FMT_RGB888;
-    } else if (!strcmp(ext, "RGBA8888")) {
-        mpp_log("found RGBA8888");
-        *fmt = MPP_FMT_RGBA8888;
-    } else if (!strcmp(ext, "fbc")) {
-        mpp_log("found fbc");
-        *fmt = MPP_FMT_YUV420SP | MPP_FRAME_FBC_AFBC_V1;
-    } else {
-        ret = MPP_NOK;
+    for (i = 0; i < MPP_ARRAY_ELEMS(map_ext_to_frm_fmt); i++) {
+        Ext2FrmFmt *info = &map_ext_to_frm_fmt[i];
+
+        if (!strcmp(ext, info->ext_name)) {
+            *fmt = info->format;
+            ret = MPP_OK;
+        }
     }
 
     return ret;
 }
 
+typedef struct Ext2Coding_t {
+    const char      *ext_name;
+    MppCodingType   coding;
+} Ext2Coding;
+
+Ext2Coding map_ext_to_coding[] = {
+    {   "h264",             MPP_VIDEO_CodingAVC,    },
+    {   "264",              MPP_VIDEO_CodingAVC,    },
+    {   "avc",              MPP_VIDEO_CodingAVC,    },
+
+    {   "h265",             MPP_VIDEO_CodingHEVC,   },
+    {   "265",              MPP_VIDEO_CodingHEVC,   },
+    {   "hevc",             MPP_VIDEO_CodingHEVC,   },
+
+    {   "jpg",              MPP_VIDEO_CodingMJPEG,  },
+    {   "jpeg",             MPP_VIDEO_CodingMJPEG,  },
+    {   "mjpeg",            MPP_VIDEO_CodingMJPEG,  },
+};
+
 MPP_RET name_to_coding_type(const char *name, MppCodingType *coding)
 {
-    MPP_RET ret = MPP_OK;
+    RK_U32 i;
+    MPP_RET ret = MPP_NOK;
     char ext[50];
 
     get_extension(name, ext);
 
-    if (!strcmp(ext, "264") || !strcmp(ext, "h264")) {
-        *coding = MPP_VIDEO_CodingAVC;
-    } else if (!strcmp(ext, "265") || !strcmp(ext, "h265")) {
-        *coding = MPP_VIDEO_CodingHEVC;
-    } else if (!strcmp(ext, "jpeg") || !strcmp(ext, "mjpeg") || !strcmp(ext, "jpg")) {
-        *coding = MPP_VIDEO_CodingMJPEG;
-    } else {
-        ret = MPP_NOK;
+    for (i = 0; i < MPP_ARRAY_ELEMS(map_ext_to_coding); i++) {
+        Ext2Coding *info = &map_ext_to_coding[i];
+
+        if (!strcmp(ext, info->ext_name)) {
+            *coding = info->coding;
+            ret = MPP_OK;
+        }
     }
 
     return ret;
