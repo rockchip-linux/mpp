@@ -176,7 +176,43 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                 break;
             case 'r':
                 if (next) {
-                    cmd->fps_out = atoi(next);
+                    RK_S32 num = sscanf(next, "%d:%d:%d/%d:%d:%d",
+                                        &cmd->fps_in_num, &cmd->fps_in_den, &cmd->fps_in_flex,
+                                        &cmd->fps_out_num, &cmd->fps_out_den, &cmd->fps_out_flex);
+                    switch(num) {
+                        case 1:
+                            cmd->fps_out_num = cmd->fps_in_num;
+                            cmd->fps_out_den = cmd->fps_in_den = 1;
+                            cmd->fps_out_flex = cmd->fps_in_flex = 0;
+                            break;
+                        case 2:
+                            cmd->fps_out_num = cmd->fps_in_num;
+                            cmd->fps_out_den = cmd->fps_in_den;
+                            cmd->fps_out_flex = cmd->fps_in_flex = 0;
+                            break;
+                        case 3:
+                            cmd->fps_out_num = cmd->fps_in_num;
+                            cmd->fps_out_den = cmd->fps_in_den;
+                            cmd->fps_out_flex = cmd->fps_in_flex;
+                            break;
+                        case 4:
+                            cmd->fps_out_den = 1;
+                            cmd->fps_out_flex = 0;
+                            break;
+                        case 5:
+                            cmd->fps_out_flex = 0;
+                            break;
+                        case 6:
+                            break;
+                        default:
+                            mpp_err("invalid in/out frame rate,"
+                                " use \"-r numerator:denominator:flex\""
+                                " for set the input to the same fps as the output, such as 50:1:1\n"
+                                " or \"-r numerator:denominator/flex-numerator:denominator:flex\""
+                                " for set input and output separately, such as 40:1:1/30:1:0\n");
+                            goto PARSE_OPINIONS_OUT;
+                            break;
+                    }
                 } else {
                     mpp_err("invalid output frame rate\n");
                     goto PARSE_OPINIONS_OUT;
@@ -454,7 +490,7 @@ static OptionInfo mpi_enc_cmd[] = {
     {"g",               "gop_mode",             "gop reference mode"},
     {"d",               "debug",                "debug flag"},
     {"b",               "target bps",           "set tareget bps"},
-    {"r",               "output frame rate",    "set output frame rate"},
+    {"r",               "in/output fps",        "set input and output frame rate"},
     {"l",               "loop count",           "loop encoding times for each frame"},
 };
 
