@@ -35,8 +35,12 @@ typedef struct MpiEncTestArgs_t {
     RK_S32              ver_stride;
 
     RK_S32              bps_target;
-    RK_S32              fps_in;
-    RK_S32              fps_out;
+    RK_S32              fps_in_flex;
+    RK_S32              fps_in_num;
+    RK_S32              fps_in_den;
+    RK_S32              fps_out_flex;
+    RK_S32              fps_out_num;
+    RK_S32              fps_out_den;
 
     RK_S32              gop_mode;
 

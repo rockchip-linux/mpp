@@ -88,7 +88,12 @@ typedef struct {
 
     // rate control runtime parameter
     RK_S32 gop;
-    RK_S32 fps;
+    RK_S32 fps_in_flex;
+    RK_S32 fps_in_den;
+    RK_S32 fps_in_num;
+    RK_S32 fps_out_flex;
+    RK_S32 fps_out_den;
+    RK_S32 fps_out_num;
     RK_S32 bps;
     RK_S32 gop_mode;
     MppEncGopRef ref;
@@ -125,6 +130,12 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
         cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
     p->gop_mode     =  cmd->gop_mode;
+    p->fps_in_flex = cmd->fps_in_flex;
+    p->fps_in_den = cmd->fps_in_den;
+    p->fps_in_num = cmd->fps_in_num;
+    p->fps_out_flex = cmd->fps_out_flex;
+    p->fps_out_den = cmd->fps_out_den;
+    p->fps_out_num = cmd->fps_out_num;
 
     if (cmd->file_input) {
         p->fp_input = fopen(cmd->file_input, "rb");
@@ -236,11 +247,18 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     split_cfg = &p->split_cfg;
 
     /* setup default parameter */
-    p->fps = 30;
+    if (p->fps_in_den == 0)
+        p->fps_in_den = 1;
+    if (p->fps_in_num == 0)
+        p->fps_in_num = 30;
+    if (p->fps_out_den == 0)
+        p->fps_out_den = 1;
+    if (p->fps_out_num == 0)
+        p->fps_out_num = 30;
     p->gop = 60;
 
     if (!p->bps)
-        p->bps = p->width * p->height / 8 * p->fps;
+        p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
     prep_cfg->change        = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                               MPP_ENC_PREP_CFG_CHANGE_ROTATION |
@@ -279,12 +297,12 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     }
 
     /* fix input / output frame rate */
-    rc_cfg->fps_in_flex      = 0;
-    rc_cfg->fps_in_num       = p->fps;
-    rc_cfg->fps_in_denorm    = 1;
-    rc_cfg->fps_out_flex     = 0;
-    rc_cfg->fps_out_num      = p->fps;
-    rc_cfg->fps_out_denorm   = 1;
+    rc_cfg->fps_in_flex      = p->fps_in_flex;
+    rc_cfg->fps_in_num       = p->fps_in_num;
+    rc_cfg->fps_in_denorm    = p->fps_in_den;
+    rc_cfg->fps_out_flex     = p->fps_out_flex;
+    rc_cfg->fps_out_num      = p->fps_out_num;
+    rc_cfg->fps_out_denorm   = p->fps_out_den;
 
     rc_cfg->gop              = p->gop;
     rc_cfg->skip_cnt         = 0;
@@ -683,7 +701,8 @@ MPP_TEST_OUT:
 
     if (MPP_OK == ret)
         mpp_log("mpi_enc_test success total frame %d bps %lld\n",
-                p->frame_count, (RK_U64)((p->stream_size * 8 * p->fps) / p->frame_count));
+                p->frame_count,
+                (RK_U64)((p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frame_count));
     else
         mpp_err("mpi_enc_test failed ret %d\n", ret);
 
