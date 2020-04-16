@@ -27,7 +27,7 @@
 static MPP_RET interpret_picture_timing_info(
     BitReadCtx_t *p_bitctx,
     H264_SEI_t *sei_msg,
-    H264_VUI_t vui_seq_parameters)
+    H264dVideoCtx_t *p_videoctx)
 {
     RK_S32 cpb_removal_delay_length = 0;
     RK_S32 dpb_output_delay_length = 0;
@@ -36,24 +36,26 @@ static MPP_RET interpret_picture_timing_info(
     RK_U32 i = 0;
     H264_SEI_PIC_TIMING_t *pic_timing = NULL;
     RK_U32 num_clock_ts[9] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
+    struct h264_vui_t *vui_seq_parameters = NULL;
 
+    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id].vui_seq_parameters);
     pic_timing = &(sei_msg->pic_timing);
 
-    if (vui_seq_parameters.nal_hrd_parameters_present_flag) {
+    if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
         cpb_removal_delay_length =
-            vui_seq_parameters.nal_hrd_parameters.cpb_removal_delay_length_minus1;
+            vui_seq_parameters->nal_hrd_parameters.cpb_removal_delay_length_minus1;
         dpb_output_delay_length =
-            vui_seq_parameters.nal_hrd_parameters.dpb_output_delay_length_minus1;
+            vui_seq_parameters->nal_hrd_parameters.dpb_output_delay_length_minus1;
         time_offset_length =
-            vui_seq_parameters.nal_hrd_parameters.time_offset_length;
+            vui_seq_parameters->nal_hrd_parameters.time_offset_length;
         cpb_dpb_delays_present_flag = 1;
-    } else if (vui_seq_parameters.vcl_hrd_parameters_present_flag) {
+    } else if (vui_seq_parameters->vcl_hrd_parameters_present_flag) {
         cpb_removal_delay_length =
-            vui_seq_parameters.vcl_hrd_parameters.cpb_removal_delay_length_minus1;
+            vui_seq_parameters->vcl_hrd_parameters.cpb_removal_delay_length_minus1;
         dpb_output_delay_length =
-            vui_seq_parameters.vcl_hrd_parameters.dpb_output_delay_length_minus1;
+            vui_seq_parameters->vcl_hrd_parameters.dpb_output_delay_length_minus1;
         time_offset_length =
-            vui_seq_parameters.vcl_hrd_parameters.time_offset_length;
+            vui_seq_parameters->vcl_hrd_parameters.time_offset_length;
         cpb_dpb_delays_present_flag = 1;
     }
 
@@ -62,7 +64,7 @@ static MPP_RET interpret_picture_timing_info(
         READ_BITS(p_bitctx, dpb_output_delay_length, &pic_timing->dpb_output_delay);
     }
 
-    if (vui_seq_parameters.pic_struct_present_flag) {
+    if (vui_seq_parameters->pic_struct_present_flag) {
         READ_BITS(p_bitctx, 4, &pic_timing->pic_struct);
         if (pic_timing->pic_struct > 8 || pic_timing->pic_struct < 0) {
             goto __BITREAD_ERR;
@@ -151,34 +153,37 @@ __BITREAD_ERR:
 static MPP_RET interpret_buffering_period_info(
     BitReadCtx_t *p_bitctx,
     H264_SEI_t *sei_msg,
-    H264_VUI_t vui_seq_parameters)
+    H264dVideoCtx_t *p_videoctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
     RK_S32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
+    struct h264_vui_t *vui_seq_parameters = NULL;
+
     READ_UE(p_bitctx, &seq_parameter_set_id);
 
     if (seq_parameter_set_id > 31) {
         goto __BITREAD_ERR;
     }
-    sei_msg->seq_parameter_set_id = seq_parameter_set_id;
 
-    if (vui_seq_parameters.nal_hrd_parameters_present_flag) {
-        for (i = 0; i < vui_seq_parameters.vcl_hrd_parameters.cpb_cnt_minus1; i++) {
+    sei_msg->seq_parameter_set_id = seq_parameter_set_id;
+    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id].vui_seq_parameters);
+
+    if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
+        for (i = 0; i < vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
             SKIP_BITS(p_bitctx,
-                      vui_seq_parameters.nal_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
+                      vui_seq_parameters->nal_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
             SKIP_BITS(p_bitctx,
-                      vui_seq_parameters.nal_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay_offset
+                      vui_seq_parameters->nal_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay_offset
         }
     }
 
-
-    if (vui_seq_parameters.vcl_hrd_parameters_present_flag) {
-        for (i = 0; i < vui_seq_parameters.vcl_hrd_parameters.cpb_cnt_minus1; i++) {
+    if (vui_seq_parameters->vcl_hrd_parameters_present_flag) {
+        for (i = 0; i < vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
             SKIP_BITS(p_bitctx,
-                      vui_seq_parameters.vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
+                      vui_seq_parameters->vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
             SKIP_BITS(p_bitctx,
-                      vui_seq_parameters.vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay_offset
+                      vui_seq_parameters->vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay_offset
         }
     }
 
@@ -206,12 +211,14 @@ __BITREAD_ERR:
 
 static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg, RK_U8 *msg)
 {
+    (void)msg;
+
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t  *p_Vid = cur_slice->p_Vid;
+
+#if 0
     H264_SPS_t *sps = NULL;
     H264_subSPS_t *subset_sps = NULL;
-
-    (void)msg;
 
     if (sei_msg->mvc_scalable_nesting_flag) {
         p_Vid->active_mvc_sps_flag = 1;
@@ -224,20 +231,19 @@ static MPP_RET parserSEI(H264_SLICE_t *cur_slice, BitReadCtx_t *p_bitctx, H264_S
     }
     p_Vid->exit_picture_flag = 1;
     FUN_CHECK(ret = activate_sps(p_Vid, sps, subset_sps));
+#endif
 
     H264D_DBG(H264D_DBG_SEI, "[SEI_info] type=%d size: %d\n", sei_msg->type, sei_msg->payload_size);
     switch (sei_msg->type) {
-    case  H264_SEI_BUFFERING_PERIOD: {
-        FUN_CHECK(ret = interpret_buffering_period_info(p_bitctx, sei_msg, p_Vid->active_sps->vui_seq_parameters));
+    case H264_SEI_BUFFERING_PERIOD: {
+        FUN_CHECK(ret = interpret_buffering_period_info(p_bitctx, sei_msg, p_Vid));
     }
     break;
-    case  H264_SEI_PIC_TIMING: {
-        interpret_picture_timing_info(p_bitctx,
-                                      sei_msg,
-                                      p_Vid->active_sps->vui_seq_parameters);
+    case H264_SEI_PIC_TIMING: {
+        FUN_CHECK(interpret_picture_timing_info(p_bitctx, sei_msg, p_Vid));
     }
     break;
-    case  H264_SEI_USER_DATA_UNREGISTERED:
+    case H264_SEI_USER_DATA_UNREGISTERED:
         break;
     default: {
         interpret_reserved_info(sei_msg->payload_size, p_bitctx, sei_msg);
