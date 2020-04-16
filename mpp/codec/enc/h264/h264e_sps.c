@@ -159,6 +159,11 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     }
 
     memset(vui, 0, sizeof(*vui));
+    vui->vui_present = 1;
+    vui->timing_info_present = 1;
+    vui->time_scale = rc->fps_out_num * 2;
+    vui->num_units_in_tick = rc->fps_out_denorm;
+    vui->fixed_frame_rate = !rc->fps_out_flex;
 
     return MPP_OK;
 }
