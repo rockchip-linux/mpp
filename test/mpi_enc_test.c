@@ -31,6 +31,7 @@
 
 #include "utils.h"
 #include "mpi_enc_utils.h"
+#include "camera_source.h"
 
 typedef struct {
     // global flow control flag
@@ -75,6 +76,7 @@ typedef struct {
     MppCodingType type;
     RK_S32 num_frames;
     RK_S32 loop_times;
+    CamSource *cam_ctx;
 
     // resources
     size_t header_size;
@@ -160,10 +162,18 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     p->fps_out_num  = cmd->fps_out_num;
 
     if (cmd->file_input) {
-        p->fp_input = fopen(cmd->file_input, "rb");
-        if (NULL == p->fp_input) {
-            mpp_err("failed to open input file %s\n", cmd->file_input);
-            mpp_err("create default yuv image for test\n");
+        if (!strncmp(cmd->file_input, "/dev/video", 10)) {
+            mpp_log("open camera device");
+            p->cam_ctx = camera_source_init(cmd->file_input, 4, p->width, p->height, p->fmt);
+            mpp_log("new framecap ok");
+            if (p->cam_ctx == NULL)
+                mpp_err("open %s fail", cmd->file_input);
+        } else {
+            p->fp_input = fopen(cmd->file_input, "rb");
+            if (NULL == p->fp_input) {
+                mpp_err("failed to open input file %s\n", cmd->file_input);
+                mpp_err("create default yuv image for test\n");
+            }
         }
     }
 
@@ -234,9 +244,12 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
         mpp_err_f("invalid input data %p\n", data);
         return MPP_ERR_NULL_PTR;
     }
-
     p = *data;
     if (p) {
+        if (p->cam_ctx) {
+            camera_source_deinit(p->cam_ctx);
+            p->cam_ctx = NULL;
+        }
         if (p->fp_input) {
             fclose(p->fp_input);
             p->fp_input = NULL;
@@ -248,7 +261,6 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
         MPP_FREE(p);
         *data = NULL;
     }
-
     return MPP_OK;
 }
 
@@ -693,6 +705,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
     MPP_RET ret = MPP_OK;
     MppApi *mpi;
     MppCtx ctx;
+    RK_U32 cap_num = 0;
 
     if (NULL == p)
         return MPP_ERR_NULL_PTR;
@@ -728,12 +741,13 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 
         mpp_packet_deinit(&packet);
     }
-
     while (!p->pkt_eos) {
         MppMeta meta = NULL;
         MppFrame frame = NULL;
         MppPacket packet = NULL;
         void *buf = mpp_buffer_get_ptr(p->frm_buf);
+        RK_S32 cam_frm_idx = -1;
+        MppBuffer cam_buf = NULL;
 
         if (p->fp_input) {
             ret = read_image(buf, p->fp_input, p->width, p->height,
@@ -752,10 +766,24 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             } else if (ret == MPP_ERR_VALUE)
                 goto RET;
         } else {
-            ret = fill_image(buf, p->width, p->height, p->hor_stride,
-                             p->ver_stride, p->fmt, p->frame_count);
-            if (ret)
-                goto RET;
+            if (p->cam_ctx == NULL) {
+                ret = fill_image(buf, p->width, p->height, p->hor_stride,
+                                 p->ver_stride, p->fmt, p->frame_count);
+                if (ret)
+                    goto RET;
+            } else {
+                cam_frm_idx = camera_source_get_frame(p->cam_ctx);
+                mpp_assert(cam_frm_idx >= 0);
+
+                /* skip unstable frames */
+                if (cap_num++ < 50) {
+                    camera_source_put_frame(p->cam_ctx, cam_frm_idx);
+                    continue;
+                }
+
+                cam_buf = camera_frame_to_buf(p->cam_ctx, cam_frm_idx);
+                mpp_assert(cam_buf);
+            }
         }
 
         ret = mpp_frame_init(&frame);
@@ -773,6 +801,8 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 
         if (p->fp_input && feof(p->fp_input))
             mpp_frame_set_buffer(frame, NULL);
+        else if (cam_buf)
+            mpp_frame_set_buffer(frame, cam_buf);
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
@@ -897,15 +927,18 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             }
         }
 
+        if (cam_frm_idx >= 0)
+            camera_source_put_frame(p->cam_ctx, cam_frm_idx);
+
         if (p->num_frames > 0 && p->frame_count >= p->num_frames) {
             mpp_log("%p encode max %d frames", ctx, p->frame_count);
             break;
         }
+
         if (p->frm_eos && p->pkt_eos)
             break;
     }
 RET:
-
     return ret;
 }
 
