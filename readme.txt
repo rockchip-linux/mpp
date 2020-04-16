@@ -31,7 +31,7 @@ NOTE:
 3. Mpp support all format hardware can support except VC1.
 4. you can get demo about mpp applied to linux and android.
      Liunx : https://github.com/WainDing/mpp_linux_cpp
-     Android : https://github.com/c-xh/MediaCodecDecodeMulti_h264
+     Android : https://github.com/c-xh/RKMediaCodecDemo
 
 More document can be found at http://opensource.rock-chips.com/wiki_Mpp
 
