@@ -94,5 +94,26 @@ void mpp_timer_put(MppTimer timer);
 }
 #endif
 
-#endif /*__MPP_TIME_H__*/
+#ifdef __cplusplus
+class AutoTiming
+{
+public:
+    AutoTiming(const char *name = __FUNCTION__);
+    ~AutoTiming();
+private:
+    const char  *mName;
+    RK_S64      mStart;
+    RK_S64      mEnd;
 
+    AutoTiming(const AutoTiming &);
+    AutoTiming &operator = (const AutoTiming&);
+};
+
+#endif
+
+#define AUTO_TIMER_STRING(name, cnt)        name ## cnt
+#define AUTO_TIMER_NAME_STRING(name, cnt)   AUTO_TIMER_STRING(name, cnt)
+#define AUTO_TIMER_NAME(name)               AUTO_TIMER_NAME_STRING(name, __COUNTER__)
+#define AUTO_TIMING()                       AutoTiming AUTO_TIMER_NAME(auto_timing)(__FUNCTION__)
+
+#endif /*__MPP_TIME_H__*/
