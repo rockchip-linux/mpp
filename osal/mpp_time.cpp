@@ -427,3 +427,15 @@ void mpp_timer_put(MppTimer timer)
         impl = NULL;
     }
 }
+
+AutoTiming::AutoTiming(const char *name)
+{
+    mStart = mpp_time();
+    mName = name;
+}
+
+AutoTiming::~AutoTiming()
+{
+    mEnd = mpp_time();
+    mpp_log("%s timing %lld us\n", mName, mEnd - mStart);
+}
