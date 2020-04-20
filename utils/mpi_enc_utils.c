@@ -63,7 +63,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
             opt++;
 
             switch (*opt) {
-            case 'i':
+            case 'i' : {
                 if (next) {
                     size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
                     if (len) {
@@ -75,8 +75,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     mpp_err("input file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'o':
+            } break;
+            case 'o' : {
                 if (next) {
                     size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
                     if (len) {
@@ -88,8 +88,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     mpp_log("output file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'w':
+            } break;
+            case 'w' : {
                 if (next) {
                     cmd->width = atoi(next);
                     if (!cmd->hor_stride)
@@ -98,8 +98,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     mpp_err("invalid input width\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'h':
+            } break;
+            case 'h' : {
                 if (!next)
                     goto PARSE_OPINIONS_OUT;
 
@@ -110,24 +110,24 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     if (!cmd->ver_stride)
                         cmd->ver_stride = cmd->height;
                 }
-                break;
-            case 'u':
+            } break;
+            case 'u' : {
                 if (next) {
                     cmd->hor_stride = atoi(next);
                 } else {
                     mpp_err("invalid input width\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'v':
+            } break;
+            case 'v' : {
                 if (next) {
                     cmd->ver_stride = atoi(next);
                 } else {
                     mpp_log("input height is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'f':
+            } break;
+            case 'f' : {
                 if (next) {
                     cmd->format = (MppFrameFormat)atoi(next);
                     ret = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
@@ -138,8 +138,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     mpp_err("invalid input format %d\n", cmd->format);
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 't':
+            } break;
+            case 't' : {
                 if (next) {
                     cmd->type = (MppCodingType)atoi(next);
                     ret = mpp_check_support_format(MPP_CTX_ENC, cmd->type);
@@ -149,86 +149,86 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     mpp_err("invalid input coding type\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'n':
+            } break;
+            case 'n' : {
                 if (next) {
                     cmd->num_frames = atoi(next);
                 } else {
                     mpp_err("invalid input max number of frames\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'g':
+            } break;
+            case 'g' : {
                 if (next) {
                     cmd->gop_mode = atoi(next);
                 } else {
                     mpp_err("invalid gop mode\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'b':
+            } break;
+            case 'b' : {
                 if (next) {
                     cmd->bps_target = atoi(next);
                 } else {
                     mpp_err("invalid bit rate\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'r':
+            } break;
+            case 'r' : {
                 if (next) {
                     RK_S32 num = sscanf(next, "%d:%d:%d/%d:%d:%d",
                                         &cmd->fps_in_num, &cmd->fps_in_den, &cmd->fps_in_flex,
                                         &cmd->fps_out_num, &cmd->fps_out_den, &cmd->fps_out_flex);
-                    switch(num) {
-                        case 1:
-                            cmd->fps_out_num = cmd->fps_in_num;
-                            cmd->fps_out_den = cmd->fps_in_den = 1;
-                            cmd->fps_out_flex = cmd->fps_in_flex = 0;
-                            break;
-                        case 2:
-                            cmd->fps_out_num = cmd->fps_in_num;
-                            cmd->fps_out_den = cmd->fps_in_den;
-                            cmd->fps_out_flex = cmd->fps_in_flex = 0;
-                            break;
-                        case 3:
-                            cmd->fps_out_num = cmd->fps_in_num;
-                            cmd->fps_out_den = cmd->fps_in_den;
-                            cmd->fps_out_flex = cmd->fps_in_flex;
-                            break;
-                        case 4:
-                            cmd->fps_out_den = 1;
-                            cmd->fps_out_flex = 0;
-                            break;
-                        case 5:
-                            cmd->fps_out_flex = 0;
-                            break;
-                        case 6:
-                            break;
-                        default:
-                            mpp_err("invalid in/out frame rate,"
+                    switch (num) {
+                    case 1 : {
+                        cmd->fps_out_num = cmd->fps_in_num;
+                        cmd->fps_out_den = cmd->fps_in_den = 1;
+                        cmd->fps_out_flex = cmd->fps_in_flex = 0;
+                    } break;
+                    case 2 : {
+                        cmd->fps_out_num = cmd->fps_in_num;
+                        cmd->fps_out_den = cmd->fps_in_den;
+                        cmd->fps_out_flex = cmd->fps_in_flex = 0;
+                    } break;
+                    case 3 : {
+                        cmd->fps_out_num = cmd->fps_in_num;
+                        cmd->fps_out_den = cmd->fps_in_den;
+                        cmd->fps_out_flex = cmd->fps_in_flex;
+                    } break;
+                    case 4 : {
+                        cmd->fps_out_den = 1;
+                        cmd->fps_out_flex = 0;
+                    } break;
+                    case 5 : {
+                        cmd->fps_out_flex = 0;
+                    } break;
+                    case 6 : {
+                    } break;
+                    default : {
+                        mpp_err("invalid in/out frame rate,"
                                 " use \"-r numerator:denominator:flex\""
                                 " for set the input to the same fps as the output, such as 50:1:1\n"
                                 " or \"-r numerator:denominator/flex-numerator:denominator:flex\""
                                 " for set input and output separately, such as 40:1:1/30:1:0\n");
-                            goto PARSE_OPINIONS_OUT;
-                            break;
+                        goto PARSE_OPINIONS_OUT;
+                    } break;
                     }
                 } else {
                     mpp_err("invalid output frame rate\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'l':
+            } break;
+            case 'l' : {
                 if (next) {
                     cmd->loop_cnt = atoi(next);
                 } else {
                     mpp_err("invalid loop count\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            default:
+            } break;
+            default : {
                 mpp_err("skip invalid opt %c\n", *opt);
-                break;
+            } break;
             }
 
             optindex++;
