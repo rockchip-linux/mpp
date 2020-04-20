@@ -1401,7 +1401,7 @@ void h265e_dpb_build_list(H265eDpb *dpb)
     }
 
     if (dpb->cfg->vgop_size > 2) {
-        RK_U32 index = dpb->curr->gop_idx;
+        RK_U32 index = dpb->curr->gop_idx % dpb->cfg->vgop_size;
         dpb->curr->status.temporal_id = dpb->cfg->ref_inf[index].temporal_id;
     }
     h265e_dbg_func("leave\n");
