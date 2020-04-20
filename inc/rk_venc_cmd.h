@@ -1069,9 +1069,8 @@ typedef struct MppEncGopRef_t {
  *        Region configure define a rectangle as ROI
  * @note  x, y, w, h are calculated in pixels, which had better be 16-pixel aligned.
  *        These parameters MUST retain in memory when encoder is running.
- *  TODO: Only absolute qp is supported so far, relative qp should be supported
- *        in the future. Also, the ROI regions can be overlaid with each other,
- *        so overlay priority should be considered.
+ *        Both absolute qp and relative qp are supported in vepu541.
+ *        Only absolute qp is supported in rv1108
  */
 typedef struct MppEncROIRegion_t {
     RK_U16              x;              /**< horizontal position of top left corner */
@@ -1079,7 +1078,7 @@ typedef struct MppEncROIRegion_t {
     RK_U16              w;              /**< width of ROI rectangle */
     RK_U16              h;              /**< height of ROI rectangle */
     RK_U16              intra;          /**< flag of forced intra macroblock */
-    RK_U16              quality;        /**<  qp of macroblock */
+    RK_S16              quality;        /**< absolute / relative qp of macroblock */
     RK_U16              qp_area_idx;    /**< qp min max area select*/
     RK_U8               area_map_en;    /**< enable area map */
     RK_U8               abs_qp_en;      /**< absolute qp enable flag*/
