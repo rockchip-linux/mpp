@@ -719,6 +719,7 @@ static RK_S32 mpi_dec_multi_test_parse_options(int argc, char **argv, MpiDecTest
                     mpp_err("invalid nthreads\n");
                     goto PARSE_OPINIONS_OUT;
                 }
+                break;
             default:
                 mpp_err("skip invalid opt %c\n", *opt);
                 break;
