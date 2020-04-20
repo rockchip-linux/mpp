@@ -165,6 +165,8 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
         break;
     case VPU_DEC_RKV:
         type = VPU_DEC;
+        ctx_type  = MPP_CTX_DEC;
+        break;
     case VPU_DEC:
     case VPU_DEC_PP:
     case VPU_PP:
