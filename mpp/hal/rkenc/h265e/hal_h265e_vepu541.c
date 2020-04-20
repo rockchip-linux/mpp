@@ -665,8 +665,14 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
         regs->src_udfo.ofst_v = 128;
     }
 
-    regs->src_strid.src_ystrid    = stridey;
-    regs->src_strid.src_cstrid    = stridec;
+    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
+        regs->src_strid.src_ystrid  = MPP_ALIGN(prep_cfg->width, 16);
+        regs->src_strid.src_cstrid  = MPP_ALIGN(prep_cfg->width, 16);
+    } else {
+        regs->src_strid.src_ystrid  = stridey;
+        regs->src_strid.src_cstrid  = stridec;
+    }
+
     return MPP_OK;
 }
 
@@ -911,35 +917,35 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     }
 
     memset(regs, 0, sizeof(H265eV541RegSet));
-    regs->enc_strt.lkt_num = 0;
-    regs->enc_strt.rkvenc_cmd = ctx->enc_mode;
-    regs->enc_strt.enc_cke = 1;
-    regs->enc_clr.safe_clr = 0x0;
+    regs->enc_strt.lkt_num      = 0;
+    regs->enc_strt.rkvenc_cmd   = ctx->enc_mode;
+    regs->enc_strt.enc_cke      = 1;
+    regs->enc_clr.safe_clr      = 0x0;
 
     regs->lkt_addr.lkt_addr     = 0x0;
     regs->int_en.enc_done_en    = 1;
     regs->int_en.lkt_done_en    = 1;
-    regs->int_en.sclr_done_en    = 1;
+    regs->int_en.sclr_done_en   = 1;
     regs->int_en.slc_done_en    = 1;
-    regs->int_en.bsf_ovflw_en    = 1;
-    regs->int_en.brsp_ostd_en    = 1;
+    regs->int_en.bsf_ovflw_en   = 1;
+    regs->int_en.brsp_ostd_en   = 1;
     regs->int_en.wbus_err_en    = 1;
     regs->int_en.rbus_err_en    = 1;
     regs->int_en.wdg_en         = 1;
     regs->enc_wdg.vs_load_thd   = 0x1ffff;
 
-    regs->enc_rsl.pic_wd8_m1  = pic_width_align8 / 8 - 1;
-    regs->enc_rsl.pic_wfill   = (syn->pp.pic_width & 0x7)
-                                ? (8 - (syn->pp.pic_width & 0x7)) : 0;
-    regs->enc_rsl.pic_hd8_m1  = pic_height_align8 / 8 - 1;
-    regs->enc_rsl.pic_hfill   = (syn->pp.pic_height & 0x7)
-                                ? (8 - (syn->pp.pic_height & 0x7)) : 0;
+    regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
+    regs->enc_rsl.pic_wfill     = (syn->pp.pic_width & 0x7)
+                                  ? (8 - (syn->pp.pic_width & 0x7)) : 0;
+    regs->enc_rsl.pic_hd8_m1    = pic_height_align8 / 8 - 1;
+    regs->enc_rsl.pic_hfill     = (syn->pp.pic_height & 0x7)
+                                  ? (8 - (syn->pp.pic_height & 0x7)) : 0;
 
-    regs->enc_pic.enc_stnd       = 1; //H265
-    regs->enc_pic.cur_frm_ref    = 1; //current frame will be refered
-    regs->enc_pic.bs_scp         = 1;
-    regs->enc_pic.node_int       = 0;
-    regs->enc_pic.log2_ctu_num = ceil(log2((double)pic_wd64 * pic_h64));
+    regs->enc_pic.enc_stnd      = 1; //H265
+    regs->enc_pic.cur_frm_ref   = 1; //current frame will be refered
+    regs->enc_pic.bs_scp        = 1;
+    regs->enc_pic.node_int      = 0;
+    regs->enc_pic.log2_ctu_num  = ceil(log2((double)pic_wd64 * pic_h64));
 
     if (ctx->frame_type == INTRA_FRAME) {
         regs->enc_pic.rdo_wgt_sel = 0;
@@ -947,30 +953,30 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         regs->enc_pic.rdo_wgt_sel = 1;
     }
 
-    regs->enc_wdg.vs_load_thd     = 0;
-    regs->enc_wdg.rfp_load_thd    = 0;
+    regs->enc_wdg.vs_load_thd       = 0;
+    regs->enc_wdg.rfp_load_thd      = 0;
 
-    regs->dtrns_cfg.cime_dspw_orsd = (ctx->frame_type == INTER_P_FRAME);
+    regs->dtrns_cfg.cime_dspw_orsd  = (ctx->frame_type == INTER_P_FRAME);
 
-    regs->dtrns_map.src_bus_ordr     = 0x0;
-    regs->dtrns_map.cmvw_bus_ordr    = 0x0;
-    regs->dtrns_map.dspw_bus_ordr    = 0x0;
-    regs->dtrns_map.rfpw_bus_ordr    = 0x0;
-    regs->dtrns_map.src_bus_edin     = 0x0;
-    regs->dtrns_map.meiw_bus_edin    = 0x0;
-    regs->dtrns_map.bsw_bus_edin     = 0x7;
-    regs->dtrns_map.lktr_bus_edin    = 0x0;
-    regs->dtrns_map.roir_bus_edin    = 0x0;
-    regs->dtrns_map.lktw_bus_edin    = 0x0;
-    regs->dtrns_map.afbc_bsize    = 0x1;
+    regs->dtrns_map.src_bus_ordr    = 0x0;
+    regs->dtrns_map.cmvw_bus_ordr   = 0x0;
+    regs->dtrns_map.dspw_bus_ordr   = 0x0;
+    regs->dtrns_map.rfpw_bus_ordr   = 0x0;
+    regs->dtrns_map.src_bus_edin    = 0x0;
+    regs->dtrns_map.meiw_bus_edin   = 0x0;
+    regs->dtrns_map.bsw_bus_edin    = 0x7;
+    regs->dtrns_map.lktr_bus_edin   = 0x0;
+    regs->dtrns_map.roir_bus_edin   = 0x0;
+    regs->dtrns_map.lktw_bus_edin   = 0x0;
+    regs->dtrns_map.afbc_bsize      = 0x1;
 
-    regs->dtrns_cfg.axi_brsp_cke      = 0x0;
-    regs->dtrns_cfg.cime_dspw_orsd    = 0x0;
+    regs->dtrns_cfg.axi_brsp_cke    = 0x0;
+    regs->dtrns_cfg.cime_dspw_orsd  = 0x0;
 
     regs->src_proc.src_mirr = 0;
-    regs->src_proc.src_rot = 0;
-    regs->src_proc.txa_en  = 1;
-    regs->src_proc.afbcd_en  = 0;
+    regs->src_proc.src_rot  = 0;
+    regs->src_proc.txa_en   = 1;
+    regs->src_proc.afbcd_en = (MPP_FRAME_FMT_IS_FBC(syn->pp.mpp_format)) ? 1 : 0;
 
     vepu541_h265_set_patch_info(&ioctl_reg_info->extra_info, syn, (Vepu541Fmt)fmt->format, task);
 

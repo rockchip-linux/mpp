@@ -31,7 +31,7 @@ typedef struct H265ePicParams_t {
     RK_U16      ver_stride;
     RK_U16      pic_ofsty;
     RK_U16      pic_oftx;
-    RK_U16      mpp_format;
+    RK_U32      mpp_format;
     union {
         struct {
             RK_U16  chroma_format_idc                       : 2;
