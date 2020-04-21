@@ -577,7 +577,9 @@ static MPP_RET hal_h264e_vepu2_start_v2(void *hal, HalEncTask *task)
     hal_h264e_dbg_func("enter %p\n", hal);
 
     if (ctx->dev_ctx) {
-        RK_U32 *regs = ctx->regs_set.val;
+        RK_U32 *regs = ctx->regs_get.val;
+
+        memcpy(&ctx->regs_get, &ctx->regs_set, sizeof(ctx->regs_get));
 
         hal_h264e_dbg_detail("vpu client is sending %d regs", VEPU2_H264E_NUM_REGS);
         ret = mpp_device_send_reg(ctx->dev_ctx, regs, VEPU2_H264E_NUM_REGS);
