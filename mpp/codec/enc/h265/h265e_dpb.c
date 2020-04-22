@@ -386,6 +386,9 @@ MPP_RET h265e_dpb_deinit(H265eDpb *dpb)
 {
     RK_U32 i;
 
+    if (NULL == dpb)
+        return MPP_OK;
+
     h265e_dbg_func("enter\n");
     for (i = 0; i < MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         if (dpb->frame_list[i].inited)
@@ -402,7 +405,6 @@ MPP_RET h265e_dpb_deinit(H265eDpb *dpb)
 
 enum NALUnitType getNalUnitType(H265eDpb *dpb, int curPOC)
 {
-
     h265e_dbg_func("enter\n");
     if (curPOC == 0) {
         return NAL_IDR_W_RADL;
