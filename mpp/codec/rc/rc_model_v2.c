@@ -589,11 +589,13 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RK_S32 bit_thr = 0;
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (last_ins_bps * stat_time - ctx->stat_bits->val[ctx->stat_bits->size - 1]
+                      + cfg->bit_real) / stat_time;
     RK_S32 target_bps;
     RK_S32 ret = MPP_OK;
 
     rc_dbg_func("enter %p\n", ctx);
+    rc_dbg_rc("reenc check target_bps %d last_ins_bps %d ins_bps %d", ctx->usr_cfg.bps_target, last_ins_bps, ins_bps);
     if (ctx->reenc_cnt >= ctx->usr_cfg.max_reencode_times) {
         return MPP_OK;
     }
@@ -686,9 +688,13 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     /* quality determination */
     if (!frm->seq_idx)
         info->quality_target = -1;
-
-    info->quality_max = p->usr_cfg.max_quality;
-    info->quality_min = p->usr_cfg.min_quality;
+    if (frm->is_intra) {
+        info->quality_max = p->usr_cfg.max_i_quality;
+        info->quality_min = p->usr_cfg.min_i_quality;
+    } else {
+        info->quality_max = p->usr_cfg.max_quality;
+        info->quality_min = p->usr_cfg.min_quality;
+    }
 
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
     rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
