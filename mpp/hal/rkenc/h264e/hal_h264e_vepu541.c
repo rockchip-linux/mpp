@@ -336,10 +336,10 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     hal_h264e_dbg_func("enter\n");
 
     /* reg012 ENC_RSL */
-    regs->reg012.pic_wd8_m1 = MPP_ALIGN(prep->width, 8) / 8 - 1;
-    regs->reg012.pic_wfill  = prep->width & 0x7;
-    regs->reg012.pic_hd8_m1 = MPP_ALIGN(prep->height, 8) / 8 - 1;
-    regs->reg012.pic_hfill  = prep->height & 0x7;
+    regs->reg012.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
+    regs->reg012.pic_wfill  = prep->width & 0xf;
+    regs->reg012.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
+    regs->reg012.pic_hfill  = prep->height & 0xf;
 
     /* reg022 SRC_PROC */
     regs->reg017.src_cfmt   = hw_fmt;
