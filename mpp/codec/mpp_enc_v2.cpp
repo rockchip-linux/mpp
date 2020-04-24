@@ -629,9 +629,10 @@ void *mpp_enc_thread(void *data)
          * if there is available buffer in the input frame do encoding
          */
         if (NULL == packet) {
+            /* NOTE: set buffer w * h * 1.5 to avoid buffer overflow */
             RK_U32 width  = enc->cfg.prep.width;
             RK_U32 height = enc->cfg.prep.height;
-            RK_U32 size = width * height;
+            RK_U32 size = MPP_ALIGN(width, 16) * MPP_ALIGN(height, 16) * 3 / 2;
             MppBuffer buffer = NULL;
 
             mpp_assert(size);
