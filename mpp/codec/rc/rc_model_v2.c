@@ -160,7 +160,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->super_pfrm_bits_thr = -1;
 
     stat_len = fps->fps_in_num * ctx->usr_cfg.stat_times;
-    if (ctx->usr_cfg.mode == RC_CBR) {
+    if ( ctx->usr_cfg.mode == RC_FIXQP) {
+        return MPP_OK;
+    } else if (ctx->usr_cfg.mode == RC_CBR) {
         target_bps = ctx->usr_cfg.bps_target;
     } else {
         target_bps = ctx->usr_cfg.bps_max;
@@ -664,8 +666,12 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
 
     rc_dbg_func("enter %p\n", ctx);
 
-    if (p->usr_cfg.mode == RC_FIXQP)
+    if (p->usr_cfg.mode == RC_FIXQP) {
+        info->quality_max = p->usr_cfg.init_quality;
+        info->quality_min = p->usr_cfg.init_quality;
+        info->quality_target = p->usr_cfg.init_quality;
         return MPP_OK;
+    }
 
     p->frame_type = (frm->is_intra) ? (INTRA_FRAME) : (INTER_P_FRAME);
 
@@ -762,6 +768,9 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
     RK_S32 quality_max = info->quality_max;
     RK_S32 quality_target = info->quality_target;
 
+    if (p->usr_cfg.mode == RC_FIXQP) {
+        return MPP_OK;
+    }
     rc_dbg_func("enter p %p task %p\n", p, task);
 
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
