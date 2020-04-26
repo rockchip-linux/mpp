@@ -19,6 +19,8 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
+#define MPX_PATCH_NUM       16
+
 typedef struct RegPatchSlotInfo_t {
     RK_U32          reg_idx;
     RK_U32          offset;
@@ -27,7 +29,7 @@ typedef struct RegPatchSlotInfo_t {
 typedef struct RegExtraInfo_t {
     RK_U32          magic;      // Fix magic value 0x4C4A46
     RK_U32          count;      // valid patch info count
-    RegPatchInfo    patchs[5];
+    RegPatchInfo    patchs[MPX_PATCH_NUM];
 } RegExtraInfo;
 
 #ifdef __cplusplus
