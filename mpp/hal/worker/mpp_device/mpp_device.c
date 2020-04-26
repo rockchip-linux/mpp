@@ -678,6 +678,13 @@ void mpp_device_patch_add(RK_U32 *reg, RegExtraInfo *extra, RK_U32 reg_idx, RK_U
         return ;
     }
 
+    if (extra->count >= MPX_PATCH_NUM) {
+        mpp_err_f("too much %d patch count larger than %d\n",
+                  extra->count, MPX_PATCH_NUM);
+
+        return ;
+    }
+
     RegPatchInfo *info = &extra->patchs[extra->count++];
     info->reg_idx = reg_idx;
     info->offset = offset;

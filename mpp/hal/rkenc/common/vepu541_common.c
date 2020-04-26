@@ -484,6 +484,13 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
     if (NULL == osd || osd->num_region == 0 || NULL == osd->buf)
         return MPP_OK;
 
+    if (osd->num_region > 8) {
+        mpp_err_f("do NOT support more than 8 regions invalid num %d\n",
+                  osd->num_region);
+        mpp_assert(osd->num_region <= 8);
+        return MPP_NOK;
+    }
+
     MppBuffer buf = osd->buf;
     RK_S32 fd = mpp_buffer_get_fd(buf);
     if (fd < 0) {
