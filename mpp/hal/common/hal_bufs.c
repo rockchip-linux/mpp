@@ -158,13 +158,13 @@ MPP_RET hal_bufs_setup(HalBufs bufs, RK_S32 max_cnt, RK_S32 size_cnt, size_t siz
     RK_S32 elem_size = 0;
     RK_S32 impl_size = 0;
 
-    if (NULL == bufs) {
-        mpp_err_f("invalid NULL input\n");
+    if (NULL == bufs || NULL == sizes) {
+        mpp_err_f("invalid NULL input bufs %p sizes %p\n", bufs, sizes);
         return MPP_ERR_NULL_PTR;
     }
 
-    if (max_cnt < 0 || max_cnt > MAX_HAL_BUFS_CNT ||
-        size_cnt < 0 || size_cnt > MAX_HAL_BUFS_SIZE_CNT) {
+    if (max_cnt <= 0 || max_cnt > MAX_HAL_BUFS_CNT ||
+        size_cnt <= 0 || size_cnt > MAX_HAL_BUFS_SIZE_CNT) {
         mpp_err_f("invalid max cnt %d size cnt %d\n", max_cnt, size_cnt);
         return MPP_ERR_VALUE;
     }
