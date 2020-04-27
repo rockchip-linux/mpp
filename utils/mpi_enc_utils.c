@@ -330,8 +330,8 @@ MPP_RET mpi_enc_gen_gop_ref(MppEncGopRef *ref, RK_S32 gop_mode)
         gop[4].temporal_id  = 1;
         gop[4].ref_idx      = 0;
         gop[4].is_non_ref   = 0;
-        gop[4].is_lt_ref    = 1;
-        gop[4].lt_idx       = 1;
+        gop[4].is_lt_ref    = 0;
+        gop[4].lt_idx       = 0;
 
         gop[5].temporal_id  = 3;
         gop[5].ref_idx      = 4;
@@ -357,7 +357,7 @@ MPP_RET mpi_enc_gen_gop_ref(MppEncGopRef *ref, RK_S32 gop_mode)
         gop[8].is_lt_ref    = 1;
         gop[8].lt_idx       = 0;
 
-        ref->max_lt_ref_cnt = 2;
+        ref->max_lt_ref_cnt = 1;
     } else if (gop_mode == 2) {
         // tsvc3
         //     /-> P1      /-> P3
