@@ -23,7 +23,7 @@
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
-#define MAX_SOC_NAME_LENGTH     64
+#define MAX_SOC_NAME_LENGTH     128
 
 class MppPlatformService;
 
@@ -195,9 +195,10 @@ MppPlatformService::MppPlatformService()
             snprintf(soc_name, MAX_SOC_NAME_LENGTH, "unknown");
             soc_name_len = read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1);
             if (soc_name_len > 0) {
+                soc_name[soc_name_len] = '\0';
                 /* replacing the termination character to space */
                 for (char *ptr = soc_name;; ptr = soc_name) {
-                    ptr += strnlen (soc_name, MAX_SOC_NAME_LENGTH);
+                    ptr += strnlen(soc_name, MAX_SOC_NAME_LENGTH);
                     if (ptr >= soc_name + soc_name_len - 1)
                         break;
                     *ptr = ' ';

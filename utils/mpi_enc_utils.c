@@ -68,7 +68,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
                     if (len) {
                         cmd->file_input = mpp_calloc(char, len + 1);
-                        strncpy(cmd->file_input, next, len);
+                        strcpy(cmd->file_input, next);
                         name_to_frame_format(cmd->file_input, &cmd->format);
                     }
                 } else {
@@ -81,7 +81,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
                     if (len) {
                         cmd->file_output = mpp_calloc(char, len + 1);
-                        strncpy(cmd->file_output, next, len);
+                        strcpy(cmd->file_output, next);
                         name_to_coding_type(cmd->file_output, &cmd->type);
                     }
                 } else {
