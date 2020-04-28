@@ -570,7 +570,7 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg050.aq_mode        = 0;
     regs->reg050.rc_ctu_num     = mb_w;
 
-    regs->reg051.rc_qp_range    = 1;
+    regs->reg051.rc_qp_range    = 2;
     regs->reg051.rc_max_qp      = qp_max;
     regs->reg051.rc_min_qp      = qp_min;
 
