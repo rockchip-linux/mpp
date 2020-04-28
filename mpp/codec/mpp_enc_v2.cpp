@@ -470,6 +470,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_min    = rc->bps_min;
     cfg->stat_times = 3;
 
+    cfg->i_quality_delta = 0;
     cfg->vgop = 0;
 
     /* quality configure */
@@ -482,6 +483,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->min_quality = h264->qp_min;
         cfg->max_i_quality = h264->qp_max;
         cfg->min_i_quality = h264->qp_min;
+        cfg->i_quality_delta = 3;
     } break;
     case MPP_VIDEO_CodingHEVC : {
         MppEncH265Cfg *h265 = &codec->h265;
@@ -491,6 +493,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->min_quality = h265->min_qp;
         cfg->max_i_quality = h265->max_i_qp;
         cfg->min_i_quality = h265->min_i_qp;
+        cfg->i_quality_delta = h265->ip_qp_delta;
     } break;
     case MPP_VIDEO_CodingVP8 : {
     } break;

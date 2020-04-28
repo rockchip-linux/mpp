@@ -47,6 +47,10 @@ RK_S32 tab_lnx[64] = {
     196,  202,  208,  214,  220,  226,  232,  237,
 };
 
+static const RK_S8 max_ip_qp_dealt[8] = {
+    7, 7, 7, 7, 6, 4, 3, 2
+};
+
 typedef struct RcModelV2Ctx_t {
     RcCfg           usr_cfg;
     EncRcTaskInfo   hal_cfg;
@@ -69,6 +73,7 @@ typedef struct RcModelV2Ctx_t {
     RK_U32          p_scale;
 
     MppDataV2       *pre_p_bit;
+    MppDataV2       *madi;
 
     RK_S32          target_bps;
     RK_S32          pre_target_bits;
@@ -118,6 +123,10 @@ MPP_RET bits_model_deinit(RcModelV2Ctx *ctx)
     if (ctx->pre_p_bit != NULL) {
         mpp_data_deinit_v2(ctx->pre_p_bit);
         ctx->pre_p_bit = NULL;
+        if (ctx->madi != NULL) {
+            mpp_data_deinit_v2(ctx->madi);
+            ctx->madi = NULL;
+        }
     }
 
     if (ctx->stat_rate != NULL) {
@@ -193,6 +202,11 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         mpp_err("pre_p_bit init fail");
         return -1;
     }
+    mpp_data_init_v2(&ctx->madi, P_WINDOW2_LEN);
+    if (ctx->madi == NULL) {
+        mpp_err("madi init fail");
+        return -1;
+    }
     mpp_data_init_v2(&ctx->stat_rate, fps->fps_in_num);
     if (ctx->stat_rate == NULL) {
         mpp_err("stat_rate init fail fps_in_num %d", fps->fps_in_num);
@@ -238,7 +252,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
-MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
+MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
 {
     RK_S32 water_level = 0, last_water_level;
 
@@ -269,6 +283,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit)
 
     case INTER_P_FRAME: {
         mpp_data_update_v2(ctx->p_bit, real_bit);
+        mpp_data_update_v2(ctx->madi,  madi);
         ctx->p_sumbits = mpp_data_sum_v2(ctx->p_bit);
         ctx->p_scale = 16;
     } break;
@@ -782,6 +797,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
     /* setup quality parameters */
     if (!frm->seq_idx && frm->is_intra) {
+        RK_S32 dealt_qp = p->usr_cfg.i_quality_delta;
         if (info->quality_target < 0) {
             if (info->bit_target) {
                 p->start_qp = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
@@ -797,13 +813,22 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             p->cur_scale_qp = (p->start_qp) << 6;
         }
 
+        if (p->reenc_cnt > 0 && p->usr_cfg.i_quality_delta) {
+            RK_U8 index = info->madi / 4;
+            index = mpp_clip(index, 0, 7);
+            dealt_qp = max_ip_qp_dealt[index];
+            if (dealt_qp > p->usr_cfg.i_quality_delta ) {
+                dealt_qp = p->usr_cfg.i_quality_delta;
+            }
+        }
+        p->start_qp -= dealt_qp;
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
         p->pre_i_qp = p->cur_scale_qp >> 6;
         p->pre_p_qp = p->cur_scale_qp >> 6;
     } else {
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
-
+        RK_S32 dealt_qp = 0;
         if (frm->is_intra) {
             //qp_scale = mpp_clip(qp_scale, (h265->min_i_qp << 6), (h265->max_i_qp << 6));
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
@@ -814,6 +839,18 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             p->pre_i_qp = start_qp;
             p->start_qp = start_qp;
             p->cur_scale_qp = qp_scale;
+
+            if ( p->usr_cfg.i_quality_delta) {
+                RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
+                index = mpp_clip(index, 0, 7);
+                dealt_qp = max_ip_qp_dealt[index];
+                if (dealt_qp > p->usr_cfg.i_quality_delta ) {
+                    dealt_qp = p->usr_cfg.i_quality_delta;
+                }
+            }
+            if (p->usr_cfg.i_quality_delta) {
+                p->start_qp -= dealt_qp;
+            }
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
@@ -821,6 +858,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         }
     }
 
+    p->start_qp = mpp_clip( p->start_qp, info->quality_min, info->quality_max);
     info->quality_target = p->start_qp;
 
     rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
@@ -866,7 +904,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
         }
     } else {
         rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
-        bits_model_update(p, cfg->bit_real);
+        bits_model_update(p, cfg->bit_real, cfg->madi);
         p->last_inst_bps = p->ins_bps;
         p->last_frame_type = p->frame_type;
     }
