@@ -59,3 +59,8 @@ void show_mpp_version(void)
     } else
         mpp_log("mpp version: %s\n", mpp_version);
 }
+
+const char *get_mpp_version(void)
+{
+    return mpp_version;
+}

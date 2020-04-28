@@ -22,6 +22,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 void show_mpp_version(void);
+const char *get_mpp_version(void);
 
 #ifdef __cplusplus
 }
