@@ -482,11 +482,11 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     } else {
         regs->reg109.nopp_flg       = 0;
         regs->reg109.ltrf_flg       = 0;
-        regs->reg109.arpm_flg       = 1;
+        regs->reg109.arpm_flg       = 0;
         regs->reg109.mmco4_pre      = 0;
-        regs->reg109.mmco_type0     = 1;
+        regs->reg109.mmco_type0     = 0;
         regs->reg109.mmco_parm0     = 0;
-        regs->reg109.mmco_type1     = 1;
+        regs->reg109.mmco_type1     = 0;
         regs->reg110.mmco_parm1     = 0;
         regs->reg109.mmco_type2     = 0;
         regs->reg110.mmco_parm2     = 0;
