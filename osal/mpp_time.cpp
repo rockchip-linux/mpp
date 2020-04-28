@@ -264,7 +264,8 @@ static void *mpp_timer_thread(void *ctx)
         if (fd_cnt && (events.events & EPOLLIN) && (events.data.fd == timer_fd)) {
             RK_U64 exp = 0;
 
-            read(timer_fd, &exp, sizeof(exp));
+            ssize_t cnt = read(timer_fd, &exp, sizeof(exp));
+            mpp_assert(cnt == sizeof(exp));
             impl->func(impl->ctx);
         }
     }
@@ -308,7 +309,7 @@ MppTimer mpp_timer_get(const char *name)
         impl->initial  = 1000;
         impl->interval = 1000;
         impl->check = timer_name;
-        snprintf(impl->name, sizeof(impl->name) - 1, name, NULL);
+        snprintf(impl->name, sizeof(impl->name), name, NULL);
 
         return impl;
     } while (0);

@@ -585,7 +585,7 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
     AutoMutex auto_lock(MppBufferService::get_lock());
     MppBufferGroupImpl *misc = MppBufferService::get_instance()->get_misc(mode, type);
     if (NULL == misc) {
-        char tag[16];
+        char tag[32];
         RK_S32 offset = 0;
 
         offset += snprintf(tag + offset, sizeof(tag) - offset, "misc");

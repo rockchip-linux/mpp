@@ -206,13 +206,15 @@ static RK_S32 find_dir_in_path(char *path, const char *dir_name,
     return new_path_len;
 }
 
+#define MAX_PATH_NAME_SIZE  256
+
 static RK_S32 check_sysfs_iommu()
 {
     RK_U32 i = 0;
     RK_U32 dts_info_found = 0;
     RK_U32 ion_info_found = 0;
     RK_S32 ret = ION_DETECT_IOMMU_DISABLE;
-    char path[256];
+    char path[MAX_PATH_NAME_SIZE];
     static char *dts_devices[] = {
         "vpu_service",
         "hevc_service",
