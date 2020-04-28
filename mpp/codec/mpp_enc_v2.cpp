@@ -233,6 +233,27 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
+static RK_S32 check_resend_hdr(MpiCmd cmd, void *param)
+{
+    if (cmd == MPP_ENC_SET_CODEC_CFG ||
+        cmd == MPP_ENC_SET_PREP_CFG ||
+        cmd == MPP_ENC_SET_IDR_FRAME)
+        return 1;
+
+    if (cmd == MPP_ENC_SET_RC_CFG) {
+        RK_U32 change = *(RK_U32 *)param;
+        RK_U32 check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                            MPP_ENC_RC_CFG_CHANGE_FPS_IN |
+                            MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
+                            MPP_ENC_RC_CFG_CHANGE_GOP;
+
+        if (change & check_flag)
+            return 1;
+    }
+
+    return 0;
+}
+
 static void mpp_enc_proc_cfg(MppEncImpl *enc)
 {
     switch (enc->cmd) {
@@ -335,10 +356,8 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     } break;
     default : {
         enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
-        if (MPP_ENC_SET_CODEC_CFG == enc->cmd ||
-            MPP_ENC_SET_PREP_CFG == enc->cmd) {
+        if (check_resend_hdr(enc->cmd, enc->param))
             enc->hdr_ready = 0;
-        }
     } break;
     }
 }
@@ -457,18 +476,14 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 
     cfg->max_reencode_times = 1;
 
-    mpp_log_f("mode: %s\n", name_of_rc_mode[cfg->mode]);
-
-    mpp_log_f("bps: [%d : %d : %d]\n",
-              rc->bps_min, rc->bps_target, rc->bps_max);
-
-    mpp_log_f("fps: %s [%d/%d] -> %s [%d/%d]\n",
-              cfg->fps.fps_in_flex ? "flex" : "fix",
-              cfg->fps.fps_in_num, cfg->fps.fps_in_denorm,
-              cfg->fps.fps_out_flex ? "flex" : "fix",
-              cfg->fps.fps_out_num, cfg->fps.fps_out_denorm);
-
-    mpp_log_f("gop: i [%d] v [%d]\n", cfg->igop, cfg->vgop);
+    mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
+            name_of_rc_mode[cfg->mode],
+            rc->bps_min, rc->bps_target, rc->bps_max,
+            cfg->fps.fps_in_flex ? "flex" : "fix",
+            cfg->fps.fps_in_num, cfg->fps.fps_in_denorm,
+            cfg->fps.fps_out_flex ? "flex" : "fix",
+            cfg->fps.fps_out_num, cfg->fps.fps_out_denorm,
+            cfg->igop, cfg->vgop);
 }
 
 void *mpp_enc_thread(void *data)
