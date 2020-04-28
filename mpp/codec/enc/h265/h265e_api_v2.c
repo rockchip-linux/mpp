@@ -184,12 +184,19 @@ static MPP_RET h265e_deinit(void *ctx)
 static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 {
     H265eCtx *p = (H265eCtx *)ctx;
+    MppEncCfgSet *cfg = p->cfg;
+    MppEncRcCfg *rc = &cfg->rc;
 
     h265e_dbg_func("enter ctx %p\n", ctx);
 
     h265e_dpb_set_cfg(&p->dpbcfg, p->cfg);
     h265e_set_extra_info(p);
     h265e_get_extra_info(p, pkt);
+
+    if (NULL == p->dpb)
+        h265e_dpb_init(&p->dpb, &p->dpbcfg);
+
+    p->dpb->idr_gap = (rc->gop < 0) ? 10000 : rc->gop;
 
     h265e_dbg_func("leave ctx %p\n", ctx);
 
@@ -199,21 +206,8 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    MppEncCfgSet *cfg = p->cfg;
-    MppEncRcCfg *rc = &cfg->rc;
-    MppEncCodecCfg *codec = &p->cfg->codec;
+    (void) p;
     h265e_dbg_func("enter\n");
-    if (codec->change) {
-        if (NULL == p->dpb) {
-            h265e_dpb_init(&p->dpb, &p->dpbcfg);
-        }
-        if (rc->gop < 0) {
-            p->dpb->idr_gap = 10000;
-        } else {
-            p->dpb->idr_gap = rc->gop;
-        }
-        codec->change = 0;
-    }
 
     /*
      * Step 2: Fps conversion
@@ -229,6 +223,7 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
      * Step 3: Backup dpb for reencode
      */
     //h265e_dpb_copy(&p->dpb_bak, p->dpb);
+    h265e_dbg_func("leave\n");
 
     return MPP_OK;
 }
@@ -249,10 +244,6 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 
     mb_wd64 = (p->cfg->prep.width + 63) / 64;
     mb_h64 = (p->cfg->prep.height + 63) / 64;
-
-    if (NULL == p->dpb) {
-        h265e_dpb_init(&p->dpb, &p->dpbcfg);
-    }
 
     if (p->idr_request) {
         dpb_cfg->force_idr = 1;
