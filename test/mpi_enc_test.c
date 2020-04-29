@@ -86,6 +86,8 @@ typedef struct {
     RK_U32 split_mode;
     RK_U32 split_arg;
 
+    RK_U32 user_data_enable;
+
     // rate control runtime parameter
     RK_S32 gop;
     RK_S32 fps_in_flex;
@@ -425,9 +427,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         }
     }
 
-    p->osd_enable = 0;
-    p->osd_mode = 0;
-
+    /* setup test mode by env */
     mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
     mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
 
@@ -444,6 +444,8 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
             goto RET;
         }
     }
+
+    mpp_env_get_u32("osd_enable", &p->user_data_enable, 0);
 
 RET:
     return ret;
@@ -535,16 +537,18 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
-        MppEncUserData user_data;
-        char *str = "Hello world hahahaha lalalala\n";
-
-        {
+        if (p->osd_enable || p->user_data_enable) {
             MppMeta meta = mpp_frame_get_meta(frame);
 
-            if ((p->frame_count & 2) == 0) {
-                user_data.pdata = str;
-                user_data.len = strlen(str) + 1;
-                mpp_meta_set_ptr(meta, KEY_USER_DATA, &user_data);
+            if (p->user_data_enable) {
+                MppEncUserData user_data;
+                char *str = "this is user data\n";
+
+                if ((p->frame_count & 10) == 0) {
+                    user_data.pdata = str;
+                    user_data.len = strlen(str) + 1;
+                    mpp_meta_set_ptr(meta, KEY_USER_DATA, &user_data);
+                }
             }
 
             if (p->osd_enable) {
