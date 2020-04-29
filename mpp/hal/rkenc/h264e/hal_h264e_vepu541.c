@@ -113,6 +113,16 @@ static MPP_RET hal_h264e_vepu541_deinit(void *hal)
         p->dev_ctx = NULL;
     }
 
+    if (p->roi_buf) {
+        mpp_buffer_put(p->roi_buf);
+        p->roi_buf = NULL;
+    }
+
+    if (p->roi_grp) {
+        mpp_buffer_group_put(p->roi_grp);
+        p->roi_grp = NULL;
+    }
+
     if (p->hw_recn) {
         hal_bufs_deinit(p->hw_recn);
         p->hw_recn = NULL;
@@ -596,25 +606,25 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg055_063.rc_dthd[7] = positive_bits_thd;
     regs->reg055_063.rc_dthd[8] = positive_bits_thd;
 
-    regs->reg064.qpmin_area0    = 21;
-    regs->reg064.qpmax_area0    = 50;
-    regs->reg064.qpmin_area1    = 20;
-    regs->reg064.qpmax_area1    = 50;
-    regs->reg064.qpmin_area2    = 20;
+    regs->reg064.qpmin_area0    = 1;
+    regs->reg064.qpmax_area0    = 51;
+    regs->reg064.qpmin_area1    = 1;
+    regs->reg064.qpmax_area1    = 51;
+    regs->reg064.qpmin_area2    = 1;
 
-    regs->reg065.qpmax_area2    = 50;
-    regs->reg065.qpmin_area3    = 20;
-    regs->reg065.qpmax_area3    = 50;
-    regs->reg065.qpmin_area4    = 20;
-    regs->reg065.qpmax_area4    = 50;
+    regs->reg065.qpmax_area2    = 51;
+    regs->reg065.qpmin_area3    = 1;
+    regs->reg065.qpmax_area3    = 51;
+    regs->reg065.qpmin_area4    = 1;
+    regs->reg065.qpmax_area4    = 51;
 
-    regs->reg066.qpmin_area5    = 20;
-    regs->reg066.qpmax_area5    = 50;
-    regs->reg066.qpmin_area6    = 20;
-    regs->reg066.qpmax_area6    = 50;
-    regs->reg066.qpmin_area7    = 20;
+    regs->reg066.qpmin_area5    = 1;
+    regs->reg066.qpmax_area5    = 51;
+    regs->reg066.qpmin_area6    = 1;
+    regs->reg066.qpmax_area6    = 51;
+    regs->reg066.qpmin_area7    = 1;
 
-    regs->reg067.qpmax_area7    = 49;
+    regs->reg067.qpmax_area7    = 51;
     regs->reg067.qpmap_mode     = qpmap_mode;
 
     hal_h264e_dbg_func("leave\n");
