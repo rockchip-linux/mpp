@@ -53,6 +53,8 @@ typedef struct {
     MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
     MppEncOSDData   osd_data;
+    MppEncROIRegion roi_region[3];
+    MppEncROICfg    roi_cfg;
 
     // input / output
     MppBuffer frm_buf;
@@ -87,6 +89,7 @@ typedef struct {
     RK_U32 split_arg;
 
     RK_U32 user_data_enable;
+    RK_U32 roi_enable;
 
     // rate control runtime parameter
     RK_S32 gop;
@@ -446,6 +449,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     }
 
     mpp_env_get_u32("osd_enable", &p->user_data_enable, 0);
+    mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
 
 RET:
     return ret;
@@ -537,7 +541,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
-        if (p->osd_enable || p->user_data_enable) {
+        if (p->osd_enable || p->user_data_enable || p->roi_enable) {
             MppMeta meta = mpp_frame_get_meta(frame);
 
             if (p->user_data_enable) {
@@ -555,6 +559,35 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 /* gen and cfg osd plt */
                 mpi_enc_gen_osd_data(&p->osd_data, p->osd_idx_buf, p->frame_count);
                 mpp_meta_set_ptr(meta, KEY_OSD_DATA, (void*)&p->osd_data);
+            }
+
+            if (p->roi_enable) {
+                MppEncROIRegion *region = p->roi_region;
+
+                /* calculated in pixels */
+                region->x = 304;
+                region->y = 480;
+                region->w = 1344;
+                region->h = 600;
+                region->intra = 0;              /* flag of forced intra macroblock */
+                region->quality = 24;           /* qp of macroblock */
+                region->abs_qp_en = 1;
+                region->area_map_en = 1;
+                region->qp_area_idx = 0;
+
+                region++;
+                region->x = region->y = 16;
+                region->w = region->h = 64;    /* 16-pixel aligned is better */
+                region->intra = 1;              /* flag of forced intra macroblock */
+                region->quality = 10;           /* qp of macroblock */
+                region->abs_qp_en = 1;
+                region->area_map_en = 1;
+                region->qp_area_idx = 1;
+
+                p->roi_cfg.number = 2;
+                p->roi_cfg.regions = p->roi_region;
+
+                mpp_meta_set_ptr(meta, KEY_ROI_DATA, (void*)&p->roi_cfg); // new way for roi
             }
         }
 
