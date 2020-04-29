@@ -24,6 +24,8 @@
 #define VEPU541_REG_BASE_OSD_PLT    0x00000400
 #define VEPU541_REG_BASE_L2         0x00010004
 
+#define VEPU541_MAX_ROI_NUM         8
+
 typedef enum Vepu541Fmt_e {
     VEPU541_FMT_BGRA8888,   // 0
     VEPU541_FMT_BGR888,     // 1

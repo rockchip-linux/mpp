@@ -319,12 +319,49 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
     RK_S32 stride_h = MPP_ALIGN(mb_w, 4);
     RK_S32 stride_v = MPP_ALIGN(mb_h, 4);
     Vepu541RoiCfg cfg;
+    MPP_RET ret = MPP_NOK;
     RK_S32 i;
 
-    mpp_assert(buf);
-    mpp_assert(roi);
-    mpp_assert(w);
-    mpp_assert(h);
+    if (NULL == buf || NULL == roi) {
+        mpp_err_f("invalid buf %p roi %p\n", buf, roi);
+        goto DONE;
+    }
+
+    if (w <= 0 || h <= 0) {
+        mpp_err_f("invalid size [%d:%d]\n", w, h);
+        goto DONE;
+    }
+
+    if (roi->number > VEPU541_MAX_ROI_NUM) {
+        mpp_err_f("invalid region number %d\n", buf, roi->number);
+        goto DONE;
+    }
+
+    /* check region config */
+    ret = MPP_OK;
+    for (i = 0; i < (RK_S32)roi->number; i++, region++) {
+        if (region->x + region->w > w || region->y + region->h > h)
+            ret = MPP_NOK;
+
+        if (region->intra > 1 || region->qp_area_idx >= VEPU541_MAX_ROI_NUM ||
+            region->area_map_en > 1 || region->abs_qp_en > 1)
+            ret = MPP_NOK;
+
+        if ((region->abs_qp_en && region->quality > 51) ||
+            (!region->abs_qp_en && (region->quality > 51 || region->quality < -51)))
+            ret = MPP_NOK;
+
+        if (ret) {
+            mpp_err_f("region %d invalid param:\n", i);
+            mpp_err_f("position [%d:%d:%d:%d] vs [%d:%d]\n",
+                      region->x, region->y, region->w, region->h, w, h);
+            mpp_err_f("force intra %d qp area index %d\n",
+                      region->intra, region->qp_area_idx);
+            mpp_err_f("abs qp mode %d value %d\n",
+                      region->abs_qp_en, region->quality);
+            goto DONE;
+        }
+    }
 
     cfg.force_intra = 0;
     cfg.reserved    = 0;
@@ -337,6 +374,7 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
     for (i = 0; i < stride_h * stride_v; i++, ptr++)
         memcpy(ptr, &cfg, sizeof(cfg));
 
+    region = roi->regions;
     /* step 2. setup region for top to bottom */
     for (i = 0; i < (RK_S32)roi->number; i++, region++) {
         RK_S32 roi_width  = (region->w + 15) / 16;
@@ -372,7 +410,8 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
         }
     }
 
-    return MPP_OK;
+DONE:
+    return ret;
 }
 
 //TODO: open interface later
