@@ -595,22 +595,22 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_adj1.qp_adjust7    = 0;
         regs->rc_adj1.qp_adjust8    = 1;
 
-        regs->qpmap0.qpmin_area0 = 1;
-        regs->qpmap0.qpmax_area0 = 51;
-        regs->qpmap0.qpmin_area1 = 1;
-        regs->qpmap0.qpmax_area1 = 51;
-        regs->qpmap0.qpmin_area2 = 1;
-        regs->qpmap1.qpmax_area2 = 51;
-        regs->qpmap1.qpmin_area3 = 1;
-        regs->qpmap1.qpmax_area3 = 51;
-        regs->qpmap1.qpmin_area4 = 1;
-        regs->qpmap1.qpmax_area4 = 51;
-        regs->qpmap2.qpmin_area5 = 1;
-        regs->qpmap2.qpmax_area5 = 51;
-        regs->qpmap2.qpmin_area6 = 1;
-        regs->qpmap2.qpmax_area6 = 51;
-        regs->qpmap2.qpmin_area7 = 1;
-        regs->qpmap3.qpmax_area7 = 51;
+        regs->qpmap0.qpmin_area0 = h265->qpmin_map[0] > 0 ? h265->qpmin_map[0] : rc_cfg->quality_min;
+        regs->qpmap0.qpmax_area0 = h265->qpmax_map[0] > 0 ? h265->qpmax_map[0] : rc_cfg->quality_max;
+        regs->qpmap0.qpmin_area1 = h265->qpmin_map[1] > 0 ? h265->qpmin_map[1] : rc_cfg->quality_min;
+        regs->qpmap0.qpmax_area1 = h265->qpmax_map[1] > 0 ? h265->qpmax_map[1] : rc_cfg->quality_max;
+        regs->qpmap0.qpmin_area2 = h265->qpmin_map[2] > 0 ? h265->qpmin_map[2] : rc_cfg->quality_min;;
+        regs->qpmap1.qpmax_area2 = h265->qpmax_map[2] > 0 ? h265->qpmax_map[2] : rc_cfg->quality_max;
+        regs->qpmap1.qpmin_area3 = h265->qpmin_map[3] > 0 ? h265->qpmin_map[3] : rc_cfg->quality_min;;
+        regs->qpmap1.qpmax_area3 = h265->qpmax_map[3] > 0 ? h265->qpmax_map[3] : rc_cfg->quality_max;
+        regs->qpmap1.qpmin_area4 = h265->qpmin_map[4] > 0 ? h265->qpmin_map[4] : rc_cfg->quality_min;;
+        regs->qpmap1.qpmax_area4 = h265->qpmax_map[4] > 0 ? h265->qpmax_map[4] : rc_cfg->quality_max;
+        regs->qpmap2.qpmin_area5 = h265->qpmin_map[5] > 0 ? h265->qpmin_map[5] : rc_cfg->quality_min;;
+        regs->qpmap2.qpmax_area5 = h265->qpmax_map[5] > 0 ? h265->qpmax_map[5] : rc_cfg->quality_max;
+        regs->qpmap2.qpmin_area6 = h265->qpmin_map[6] > 0 ? h265->qpmin_map[6] : rc_cfg->quality_min;;
+        regs->qpmap2.qpmax_area6 = h265->qpmax_map[6] > 0 ? h265->qpmax_map[6] : rc_cfg->quality_max;
+        regs->qpmap2.qpmin_area7 = h265->qpmin_map[7] > 0 ? h265->qpmin_map[7] : rc_cfg->quality_min;;
+        regs->qpmap3.qpmax_area7 = h265->qpmax_map[7] > 0 ? h265->qpmax_map[7] : rc_cfg->quality_max;
         regs->qpmap3.qpmap_mode  = h265->qpmap_mode;
     }
     if (ctx->frame_type == INTRA_FRAME) {
@@ -1355,9 +1355,10 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     } else {
         ctx->frame_type = INTER_P_FRAME;
     }
-
-    mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
-    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
+    if (!frm_status->reencode) {
+        mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+        mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
+    }
 
     h265e_hal_leave();
     return MPP_OK;
