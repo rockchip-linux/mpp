@@ -226,7 +226,7 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     RK_U32 updated = update_vepu541_syntax(ctx, &task->syntax);
     MppEncPrepCfg *prep = &ctx->cfg->prep;
-
+    EncFrmStatus  *frm_status = &task->rc_task->frm;
     hal_h264e_dbg_func("enter %p\n", hal);
 
     if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG)) {
@@ -259,12 +259,12 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
         }
     }
 
-    ctx->roi_data = NULL;
+    if (!frm_status->reencode) {
+        MppMeta meta = mpp_frame_get_meta(task->frame);
 
-    MppMeta meta = mpp_frame_get_meta(task->frame);
-    mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
-    mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
-
+        mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+        mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
+    }
     hal_h264e_dbg_func("leave %p\n", hal);
 
     return MPP_OK;
@@ -606,25 +606,25 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg055_063.rc_dthd[7] = positive_bits_thd;
     regs->reg055_063.rc_dthd[8] = positive_bits_thd;
 
-    regs->reg064.qpmin_area0    = 1;
-    regs->reg064.qpmax_area0    = 51;
-    regs->reg064.qpmin_area1    = 1;
-    regs->reg064.qpmax_area1    = 51;
-    regs->reg064.qpmin_area2    = 1;
+    regs->reg064.qpmin_area0    = qp_min;
+    regs->reg064.qpmax_area0    = qp_max;
+    regs->reg064.qpmin_area1    = qp_min;
+    regs->reg064.qpmax_area1    = qp_max;
+    regs->reg064.qpmin_area2    = qp_min;
 
-    regs->reg065.qpmax_area2    = 51;
-    regs->reg065.qpmin_area3    = 1;
-    regs->reg065.qpmax_area3    = 51;
-    regs->reg065.qpmin_area4    = 1;
-    regs->reg065.qpmax_area4    = 51;
+    regs->reg065.qpmax_area2    = qp_max;
+    regs->reg065.qpmin_area3    = qp_min;
+    regs->reg065.qpmax_area3    = qp_max;
+    regs->reg065.qpmin_area4    = qp_min;
+    regs->reg065.qpmax_area4    = qp_max;
 
-    regs->reg066.qpmin_area5    = 1;
-    regs->reg066.qpmax_area5    = 51;
-    regs->reg066.qpmin_area6    = 1;
-    regs->reg066.qpmax_area6    = 51;
-    regs->reg066.qpmin_area7    = 1;
+    regs->reg066.qpmin_area5    = qp_min;
+    regs->reg066.qpmax_area5    = qp_max;
+    regs->reg066.qpmin_area6    = qp_min;
+    regs->reg066.qpmax_area6    = qp_max;
+    regs->reg066.qpmin_area7    = qp_min;
 
-    regs->reg067.qpmax_area7    = 51;
+    regs->reg067.qpmax_area7    = qp_max;
     regs->reg067.qpmap_mode     = qpmap_mode;
 
     hal_h264e_dbg_func("leave\n");
