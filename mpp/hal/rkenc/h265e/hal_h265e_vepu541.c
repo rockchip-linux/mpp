@@ -1183,9 +1183,10 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
     h265e_hal_enter();
     MppEncCfgSet    *cfg = ctx->cfg;
     RK_S32 mb64_num = ((cfg->prep.width + 63) / 64) * ((cfg->prep.height + 63) / 64);
-    // RK_S32 mb8_num = (mb64_num << 6);
+    RK_S32 mb8_num = (mb64_num << 6);
     // RK_S32 mb4_num = (mb8_num << 2);
     (void)enc_task;
+
     for (k = 0; k < ctx->num_frames_to_send; k++) {
         elem = &out->elem[k];
         fb->qp_sum = elem->st_sse_qp.qp_sum;
@@ -1245,8 +1246,8 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
         hal_cfg[k].madi = hal_rc_ret->madi = fb->st_madi;
         hal_cfg[k].madp = hal_rc_ret->madp = fb->st_madp;
         hal_cfg[k].bit_real = hal_rc_ret->bit_real = fb->out_hw_strm_size * 8;
-        if (mb64_num > 0) {
 
+        if (mb64_num > 0) {
             /*hal_cfg[k].intra_lv4_prop  = ((fb->st_lvl4_intra_num + (fb->st_lvl8_intra_num << 2) +
                                            (fb->st_lvl16_intra_num << 4) +
                                            (fb->st_lvl32_intra_num << 6)) << 8) / mb4_num;
@@ -1255,7 +1256,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
                                           (fb->st_lvl32_inter_num << 4) +
                                           (fb->st_lvl64_inter_num << 6)) << 8) / mb8_num;*/
 
-            hal_cfg[k].quality_real = fb->qp_sum / mb64_num;
+            hal_cfg[k].quality_real = fb->qp_sum / mb8_num;
             hal_rc_ret->quality_real = hal_cfg[k].quality_real;
             // hal_cfg[k].sse          = fb->sse_sum / mb64_num;
         }

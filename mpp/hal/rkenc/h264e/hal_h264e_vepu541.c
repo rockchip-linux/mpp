@@ -1292,7 +1292,7 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
 
     // setup bit length for rate control
     rc_info->bit_real = task->hw_length * 8;
-    rc_info->quality_real = ctx->regs_ret.st_sse_qp.qp_sum * 16 / mbs;
+    rc_info->quality_real = ctx->regs_ret.st_sse_qp.qp_sum / mbs;
     rc_info->madi = (!ctx->regs_ret.st_mb_num) ? 0 :
                     ctx->regs_ret.st_madi /  ctx->regs_ret.st_mb_num;
     rc_info->madp = (!ctx->regs_ret.st_ctu_num) ? 0 :
