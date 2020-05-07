@@ -294,12 +294,13 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
 static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV541L2RegSet *regs)
 {
     MppDevReqV1 req;
+
     memcpy(&regs->lvl32_intra_CST_THD0, lvl32_intra_cst_thd, sizeof(lvl32_intra_cst_thd));
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
     memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
     memcpy(&regs->lvl16_intra_CST_WGT0, lvl16_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
-    regs->rdo_quant.quant_f_bias_I = 171;
-    regs->rdo_quant.quant_f_bias_P = 85;
+    regs->rdo_quant.quant_f_bias_I = 341;
+    regs->rdo_quant.quant_f_bias_P = 171;
     memcpy(&regs->atr_thd0, atr_thd, sizeof(atr_thd));
     memcpy(&regs->lvl16_atr_wgt, lvl16_4_atr_wgt, sizeof(lvl16_4_atr_wgt));
     memcpy(&regs->atf_thd0, atf_thd, sizeof(atf_thd));
