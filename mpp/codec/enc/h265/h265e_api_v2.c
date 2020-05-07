@@ -402,6 +402,10 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             memcpy(&dst->merge_cfg, &src->merge_cfg, sizeof(src->merge_cfg));
         }
 
+        if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
+            memcpy(&dst->vui, &src->vui, sizeof(src->vui));
+        }
+
         if (change & MPP_ENC_H265_CFG_RC_QP_CHANGE) {
             dst->qp_init = src->qp_init;
             dst->max_qp = src->max_qp;
