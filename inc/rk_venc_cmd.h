@@ -788,6 +788,7 @@ typedef enum MppEncH265CfgChange_e {
     MPP_ENC_H265_CFG_SLICE_CHANGE               = (1 << 15),
     MPP_ENC_H265_CFG_ENTROPY_CHANGE             = (1 << 16),
     MPP_ENC_H265_CFG_MERGE_CHANGE               = (1 << 17),
+    MPP_ENC_H265_CFG_CHANGE_VUI                 = (1 << 18),
     MPP_ENC_H265_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncH265CfgChange;
 

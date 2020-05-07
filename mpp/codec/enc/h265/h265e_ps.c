@@ -239,6 +239,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         }
         if (vui->full_range) {
             sps->vui.m_videoFullRangeFlag = 1;
+            sps->vui.m_videoSignalTypePresentFlag = 1;
         }
         sps->vui.m_timingInfo.m_timingInfoPresentFlag = 1;
         sps->vui.m_timingInfo.m_numUnitsInTick = i_timebase_num;
