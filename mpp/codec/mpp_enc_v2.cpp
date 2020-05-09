@@ -35,6 +35,17 @@
 
 RK_U32 mpp_enc_debug = 0;
 
+typedef union MppEncHeaderStatus_u {
+    RK_U32 val;
+    struct {
+        RK_U32          ready           : 1;
+
+        RK_U32          added_by_ctrl   : 1;
+        RK_U32          added_by_mode   : 1;
+        RK_U32          added_by_change : 1;
+    };
+} MppEncHeaderStatus;
+
 typedef struct RcApiStatus_t {
     RK_U32              rc_api_inited   : 1;
     RK_U32              rc_api_user_cfg : 1;
@@ -85,7 +96,7 @@ typedef struct MppEncImpl_t {
     // legacy support for MPP_ENC_GET_EXTRA_INFO
     MppPacket           hdr_pkt;
     RK_U32              hdr_len;
-    RK_U32              hdr_ready;
+    MppEncHeaderStatus  hdr_status;
     MppEncHeaderMode    hdr_mode;
 } MppEncImpl;
 
@@ -122,7 +133,6 @@ typedef union EncTaskStatus_u {
         RK_U32      task_out_rdy        : 1;
 
         RK_U32      rc_check_frm_drop   : 1;    // rc  stage
-        RK_U32      enc_add_header      : 1;    // write header before encoding
         RK_U32      enc_backup          : 1;    // enc stage
         RK_U32      enc_restore         : 1;    // reenc flow start point
         RK_U32      enc_proc_dpb        : 1;    // enc stage
@@ -266,10 +276,10 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
          * So encoder always write its header to external buffer
          * which is provided by user.
          */
-        if (!enc->hdr_ready) {
+        if (!enc->hdr_status.ready) {
             enc_impl_gen_hdr(enc->impl, enc->hdr_pkt);
             enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
-            enc->hdr_ready = 1;
+            enc->hdr_status.ready = 1;
         }
 
         if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
@@ -280,6 +290,8 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         } else {
             mpp_packet_copy((MppPacket)enc->param, enc->hdr_pkt);
         }
+
+        enc->hdr_status.added_by_ctrl = 1;
     } break;
     case MPP_ENC_GET_RC_API_ALL : {
         RcApiQueryAll *query = (RcApiQueryAll *)enc->param;
@@ -357,7 +369,7 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     default : {
         enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
         if (check_resend_hdr(enc->cmd, enc->param))
-            enc->hdr_ready = 0;
+            enc->hdr_status.val = 0;
     } break;
     }
 }
@@ -691,10 +703,10 @@ void *mpp_enc_thread(void *data)
         hal_task->valid = 1;
 
         // 12. generate header before hardware stream
-        if (!enc->hdr_ready) {
+        if (!enc->hdr_status.ready) {
             enc_impl_gen_hdr(impl, enc->hdr_pkt);
             enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
-            enc->hdr_ready = 1;
+            enc->hdr_status.ready = 1;
 
             enc_dbg_detail("task %d update header length %d\n",
                            frm->seq_idx, enc->hdr_len);
@@ -702,7 +714,7 @@ void *mpp_enc_thread(void *data)
             mpp_packet_append(packet, enc->hdr_pkt);
             hal_task->header_length = enc->hdr_len;
             hal_task->length += enc->hdr_len;
-            task.status.enc_add_header = 1;
+            enc->hdr_status.added_by_change = 1;
         }
 
         mpp_assert(hal_task->length == mpp_packet_get_length(packet));
@@ -736,16 +748,18 @@ void *mpp_enc_thread(void *data)
 
             // 16. generate header before hardware stream
             if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
-                frm->is_intra && !task.status.enc_add_header) {
-
+                frm->is_intra &&
+                !enc->hdr_status.added_by_change &&
+                !enc->hdr_status.added_by_ctrl &&
+                !enc->hdr_status.added_by_mode) {
                 enc_dbg_detail("task %d IDR header length %d\n",
                                frm->seq_idx, enc->hdr_len);
 
                 mpp_packet_append(packet, enc->hdr_pkt);
-                task.status.enc_add_header = 1;
 
                 hal_task->header_length = enc->hdr_len;
                 hal_task->length += enc->hdr_len;
+                enc->hdr_status.added_by_mode = 1;
             }
         }
         frm->reencode = 0;
@@ -832,6 +846,8 @@ void *mpp_enc_thread(void *data)
         frame = NULL;
 
         task.status.val = 0;
+        enc->hdr_status.val = 0;
+        enc->hdr_status.ready = 1;
     }
 
     // clear remain task in output port
