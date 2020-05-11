@@ -30,3 +30,6 @@ add_mpp_base_test(mpp_packet)
 
 # mpp_bitwriter unit test
 add_mpp_base_test(mpp_bit)
+
+# mpp_trie unit test
+add_mpp_base_test(mpp_trie)
