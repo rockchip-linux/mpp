@@ -857,7 +857,7 @@ void *mpp_enc_thread(void *data)
     return NULL;
 }
 
-MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncCfg *cfg)
+MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
 {
     MPP_RET ret;
     MppCodingType coding = cfg->coding;

@@ -169,7 +169,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
         mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
-        MppEncCfg cfg = {
+        MppEncInitCfg cfg = {
             coding,
             this,
         };
