@@ -151,16 +151,16 @@
 
 typedef void* MppEnc;
 
-typedef struct {
+typedef struct MppEncInitCfg_t {
     MppCodingType       coding;
     void                *mpp;
-} MppEncCfg;
+} MppEncInitCfg;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_enc_init(MppEnc *ctx, MppEncCfg *cfg);
+MPP_RET mpp_enc_init(MppEnc *ctx, MppEncInitCfg *cfg);
 MPP_RET mpp_enc_deinit(MppEnc ctx);
 
 MPP_RET mpp_enc_start(MppEnc ctx);
@@ -170,7 +170,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify(MppEnc ctx, RK_U32 flag);
 MPP_RET mpp_enc_reset(MppEnc ctx);
 
-MPP_RET mpp_enc_init_v2(MppEnc *ctx, MppEncCfg *cfg);
+MPP_RET mpp_enc_init_v2(MppEnc *ctx, MppEncInitCfg *cfg);
 MPP_RET mpp_enc_deinit_v2(MppEnc ctx);
 
 MPP_RET mpp_enc_start_v2(MppEnc ctx);
