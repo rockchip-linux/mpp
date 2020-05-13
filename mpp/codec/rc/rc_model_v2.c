@@ -667,6 +667,11 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     rc_dbg_func("enter %p\n", ctx);
 
     if (p->usr_cfg.mode == RC_FIXQP) {
+        if (p->usr_cfg.init_quality <= 0) {
+            mpp_log("invalid fix %d qp found set default qp 26\n",
+                    p->usr_cfg.init_quality);
+            p->usr_cfg.init_quality = 26;
+        }
         info->quality_max = p->usr_cfg.init_quality;
         info->quality_min = p->usr_cfg.init_quality;
         info->quality_target = p->usr_cfg.init_quality;
