@@ -96,8 +96,8 @@ typedef enum {
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
     /* basic encoder setup control */
-    MPP_ENC_SET_ALL_CFG,                /* set MppEncCfgSet structure */
-    MPP_ENC_GET_ALL_CFG,                /* get MppEncCfgSet structure */
+    MPP_ENC_SET_CFG,                    /* set MppEncCfgSet structure */
+    MPP_ENC_GET_CFG,                    /* get MppEncCfgSet structure */
     MPP_ENC_SET_PREP_CFG,               /* set MppEncPrepCfg structure */
     MPP_ENC_GET_PREP_CFG,               /* get MppEncPrepCfg structure */
     MPP_ENC_SET_RC_CFG,                 /* set MppEncRcCfg structure */

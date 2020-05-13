@@ -200,7 +200,7 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
     switch (cmd) {
-    case MPP_ENC_SET_ALL_CFG : {
+    case MPP_ENC_SET_CFG : {
     } break;
     case MPP_ENC_SET_PREP_CFG : {
         MppEncPrepCfg *src = (MppEncPrepCfg *)param;

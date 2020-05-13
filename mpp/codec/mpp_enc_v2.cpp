@@ -1075,7 +1075,7 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     enc_dbg_ctrl("sending cmd %d param %p\n", cmd, param);
 
     switch (cmd) {
-    case MPP_ENC_GET_ALL_CFG : {
+    case MPP_ENC_GET_CFG : {
         enc_dbg_ctrl("get all config\n");
         memcpy(param, &enc->cfg, sizeof(enc->cfg));
     } break;
