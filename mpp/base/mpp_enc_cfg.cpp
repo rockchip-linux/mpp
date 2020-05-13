@@ -116,7 +116,7 @@ static const char *cfg_func_names[] = {
     MPP_RET set_##base##_##name(MppEncCfgSet *cfg, in_type name) \
     { \
         mpp_enc_cfg_dbg_func("enter\n"); \
-        if (cfg->field0.field1 != (in_type)name) { \
+        if (cfg->field0.field1 != (in_type)name || SET_##func_type == SET_PTR) { \
             cfg->field0.field1 = (in_type)name; \
             cfg->field0.change |= flag; \
         } \
@@ -171,6 +171,8 @@ static const char *cfg_func_names[] = {
     ENTRY(prep, color,          S32, MppFrameColorSpace,MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, color) \
     ENTRY(prep, rotation,       S32, MppEncRotationCfg, MPP_ENC_PREP_CFG_CHANGE_ROTATION,       prep, rotation) \
     ENTRY(prep, mirroring,      S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_MIRRORING,      prep, mirroring) \
+    /* codec coding config */ \
+    ENTRY(codec, type,          S32, MppCodingType,     0,                                      codec, coding) \
     /* h264 config */ \
     ENTRY(h264, stream_type,    S32, RK_S32,            MPP_ENC_H264_CFG_STREAM_TYPE,           codec.h264, stream_type) \
     ENTRY(h264, profile,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_PROFILE,        codec.h264, profile) \

@@ -21,6 +21,7 @@
 
 #include "vpu_api.h"
 #include "rk_mpi.h"
+#include "rk_venc_cfg.h"
 
 #define OMX_BUFFERFLAG_EOS              0x00000001
 
@@ -79,7 +80,8 @@ private:
 
     RK_U32 mEosSet;
 
-    EncParameter_t enc_cfg;
+    EncParameter_t enc_param;
+    MppEncCfg enc_cfg;
 };
 
 #endif /*_VPU_API_H_*/

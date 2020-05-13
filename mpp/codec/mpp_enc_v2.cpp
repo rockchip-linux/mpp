@@ -27,6 +27,7 @@
 
 #include "mpp.h"
 #include "mpp_enc_debug.h"
+#include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
 #include "mpp_enc_hal.h"
 #include "hal_h264e_api_v2.h"
@@ -1076,8 +1077,10 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_GET_CFG : {
+        MppEncCfgImpl *p = (MppEncCfgImpl *)param;
+
         enc_dbg_ctrl("get all config\n");
-        memcpy(param, &enc->cfg, sizeof(enc->cfg));
+        memcpy(&p->cfg, &enc->cfg, sizeof(enc->cfg));
     } break;
     case MPP_ENC_GET_PREP_CFG : {
         enc_dbg_ctrl("get prep config\n");

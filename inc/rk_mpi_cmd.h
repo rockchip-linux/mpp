@@ -96,14 +96,14 @@ typedef enum {
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
     /* basic encoder setup control */
-    MPP_ENC_SET_CFG,                    /* set MppEncCfgSet structure */
-    MPP_ENC_GET_CFG,                    /* get MppEncCfgSet structure */
-    MPP_ENC_SET_PREP_CFG,               /* set MppEncPrepCfg structure */
-    MPP_ENC_GET_PREP_CFG,               /* get MppEncPrepCfg structure */
-    MPP_ENC_SET_RC_CFG,                 /* set MppEncRcCfg structure */
-    MPP_ENC_GET_RC_CFG,                 /* get MppEncRcCfg structure */
-    MPP_ENC_SET_CODEC_CFG,              /* set MppEncCodecCfg structure */
-    MPP_ENC_GET_CODEC_CFG,              /* get MppEncCodecCfg structure */
+    MPP_ENC_SET_CFG,                    /* set MppEncCfg structure */
+    MPP_ENC_GET_CFG,                    /* get MppEncCfg structure */
+    MPP_ENC_SET_PREP_CFG,               /* deprecated set MppEncPrepCfg structure, use MPP_ENC_SET_CFG instead */
+    MPP_ENC_GET_PREP_CFG,               /* deprecated get MppEncPrepCfg structure, use MPP_ENC_GET_CFG instead */
+    MPP_ENC_SET_RC_CFG,                 /* deprecated set MppEncRcCfg structure, use MPP_ENC_SET_CFG instead */
+    MPP_ENC_GET_RC_CFG,                 /* deprecated get MppEncRcCfg structure, use MPP_ENC_GET_CFG instead */
+    MPP_ENC_SET_CODEC_CFG,              /* deprecated set MppEncCodecCfg structure, use MPP_ENC_SET_CFG instead */
+    MPP_ENC_GET_CODEC_CFG,              /* deprecated get MppEncCodecCfg structure, use MPP_ENC_GET_CFG instead */
     /* runtime encoder setup control */
     MPP_ENC_SET_IDR_FRAME,              /* next frame will be encoded as intra frame */
     MPP_ENC_SET_OSD_LEGACY_0,           /* deprecated */

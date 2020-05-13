@@ -26,6 +26,7 @@
 #include "jpege_debug.h"
 #include "jpege_api.h"
 #include "jpege_syntax.h"
+#include "mpp_enc_cfg_impl.h"
 
 typedef struct {
     MppEncCfgSet    *cfg;
@@ -66,6 +67,177 @@ static MPP_RET jpege_deinit_v2(void *ctx)
     return MPP_OK;
 }
 
+static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    mpp_assert(change);
+    if (change) {
+        MppEncPrepCfg bak = *dst;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
+            dst->format = src->format;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
+            dst->rotation = src->rotation;
+
+        /* jpeg encoder do not have mirring / denoise feature */
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+                dst->width = src->height;
+                dst->height = src->width;
+            } else {
+                dst->width = src->width;
+                dst->height = src->height;
+            }
+            dst->hor_stride = src->hor_stride;
+            dst->ver_stride = src->ver_stride;
+        }
+
+        if (dst->width < 16 && dst->width > 8192) {
+            mpp_err_f("invalid width %d is not in range [16..8192]\n", dst->width);
+            ret = MPP_NOK;
+        }
+
+        if (dst->height < 16 && dst->height > 8192) {
+            mpp_err_f("invalid height %d is not in range [16..8192]\n", dst->height);
+            ret = MPP_NOK;
+        }
+
+        if (dst->format != MPP_FMT_YUV420SP     &&
+            dst->format != MPP_FMT_YUV420P      &&
+            dst->format != MPP_FMT_YUV422SP_VU  &&
+            dst->format != MPP_FMT_YUV422_YUYV  &&
+            dst->format != MPP_FMT_YUV422_UYVY  &&
+            dst->format != MPP_FMT_RGB888       &&
+            dst->format != MPP_FMT_BGR888) {
+            mpp_err_f("invalid format %d is not supportted\n", dst->format);
+            ret = MPP_NOK;
+        }
+
+        dst->change |= change;
+
+        // parameter checking
+        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (ret) {
+            mpp_err_f("failed to accept new prep config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
+                      dst->width, dst->height,
+                      dst->hor_stride, dst->ver_stride);
+        }
+    }
+
+    return ret;
+}
+
+static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncRcCfg bak = *dst;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
+            dst->rc_mode = src->rc_mode;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
+            dst->bps_target = src->bps_target;
+            dst->bps_max = src->bps_max;
+            dst->bps_min = src->bps_min;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
+            dst->fps_in_flex = src->fps_in_flex;
+            dst->fps_in_num = src->fps_in_num;
+            dst->fps_in_denorm = src->fps_in_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+            dst->fps_out_flex = src->fps_out_flex;
+            dst->fps_out_num = src->fps_out_num;
+            dst->fps_out_denorm = src->fps_out_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
+            dst->gop = src->gop;
+
+        // parameter checking
+        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
+                    src->rc_mode);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
+                    dst->quality);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
+                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
+                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
+                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                        dst->bps_target, dst->bps_min, dst->bps_max);
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
+        dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new rc config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                      dst->bps_target, dst->bps_min, dst->bps_max,
+                      dst->fps_in_num, dst->fps_out_num, dst->gop);
+        }
+    }
+
+    return ret;
+}
+
+static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncJpegCfg bak = *dst;
+
+        if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
+            dst->quant = src->quant;
+        }
+
+        if (dst->quant < 0 || dst->quant > 10) {
+            mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
+            dst->quant = 8;
+        }
+
+        if (ret) {
+            mpp_err_f("failed to accept new rc config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_CODEC_CFG jpeg quant set to %d\n", dst->quant);
+            dst->change = src->change;
+        }
+
+        dst->change = src->change;
+    }
+
+    return ret;
+}
+
 static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
@@ -76,168 +248,31 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        MppEncCfgSet *src = &impl->cfg;
+
+        if (src->prep.change) {
+            ret |= jpege_proc_prep_cfg(&cfg->prep, &src->prep);
+            src->prep.change = 0;
+        }
+        if (src->rc.change) {
+            ret |= jpege_proc_rc_cfg(&cfg->rc, &src->rc);
+            src->rc.change = 0;
+        }
+        if (src->codec.jpeg.change) {
+            ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg);
+            src->codec.jpeg.change = 0;
+        }
     } break;
     case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *src = (MppEncPrepCfg *)param;
-        RK_U32 change = src->change;
-
-        if (change) {
-            MppEncPrepCfg *dst = &cfg->prep;
-            MppEncPrepCfg bak = *dst;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
-                dst->format = src->format;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-                if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-                    dst->width = src->height;
-                    dst->height = src->width;
-                } else {
-                    dst->width = src->width;
-                    dst->height = src->height;
-                }
-                dst->hor_stride = src->hor_stride;
-                dst->ver_stride = src->ver_stride;
-            }
-
-            if (dst->width < 16 && dst->width > 8192) {
-                mpp_err_f("invalid width %d is not in range [16..8192]\n", dst->width);
-                ret = MPP_NOK;
-            }
-
-            if (dst->height < 16 && dst->height > 8192) {
-                mpp_err_f("invalid height %d is not in range [16..8192]\n", dst->height);
-                ret = MPP_NOK;
-            }
-
-            if (dst->format != MPP_FMT_YUV420SP     &&
-                dst->format != MPP_FMT_YUV420P      &&
-                dst->format != MPP_FMT_YUV422SP_VU  &&
-                dst->format != MPP_FMT_YUV422_YUYV  &&
-                dst->format != MPP_FMT_YUV422_UYVY  &&
-                dst->format != MPP_FMT_RGB888       &&
-                dst->format != MPP_FMT_BGR888) {
-                mpp_err_f("invalid format %d is not supportted\n", dst->format);
-                ret = MPP_NOK;
-            }
-
-            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-                mpp_err_f("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                          dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-                ret = MPP_ERR_VALUE;
-            }
-
-            if (ret) {
-                mpp_err_f("failed to accept new prep config\n");
-                *dst = bak;
-            } else {
-                mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
-                          dst->width, dst->height,
-                          dst->hor_stride, dst->ver_stride);
-
-                dst->change = src->change;
-            }
-        }
+        ret = jpege_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        MppEncRcCfg *src = (MppEncRcCfg *)param;
-        RK_U32 change = src->change;
-
-        if (change) {
-            MppEncRcCfg *dst = &cfg->rc;
-            MppEncRcCfg bak = *dst;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-                dst->rc_mode = src->rc_mode;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-                dst->quality = src->quality;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-                dst->bps_target = src->bps_target;
-                dst->bps_max = src->bps_max;
-                dst->bps_min = src->bps_min;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-                dst->fps_in_flex = src->fps_in_flex;
-                dst->fps_in_num = src->fps_in_num;
-                dst->fps_in_denorm = src->fps_in_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-                dst->fps_out_flex = src->fps_out_flex;
-                dst->fps_out_num = src->fps_out_num;
-                dst->fps_out_denorm = src->fps_out_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-                dst->gop = src->gop;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-                dst->skip_cnt = src->skip_cnt;
-
-            // parameter checking
-            if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-                mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                        src->rc_mode);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-                mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                        dst->quality);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-                if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                    (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                    (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                    mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                            dst->bps_target, dst->bps_min, dst->bps_max);
-                    ret = MPP_ERR_VALUE;
-                }
-            }
-
-            dst->change |= change;
-
-            if (ret) {
-                mpp_err_f("failed to accept new rc config\n");
-                *dst = bak;
-            } else {
-                mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                          dst->bps_target, dst->bps_min, dst->bps_max,
-                          dst->fps_in_num, dst->fps_out_num, dst->gop);
-            }
-        }
+        ret = jpege_proc_rc_cfg(&cfg->rc, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-        MppEncJpegCfg *src = &codec->jpeg;
-        RK_U32 change = src->change;
-
-        if (change) {
-            MppEncJpegCfg *dst = &cfg->codec.jpeg;
-            MppEncJpegCfg bak = *dst;
-
-            if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
-                dst->quant = src->quant;
-            }
-
-            if (dst->quant < 0 || dst->quant > 10) {
-                mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
-                dst->quant = 8;
-            }
-
-            if (ret) {
-                mpp_err_f("failed to accept new rc config\n");
-                *dst = bak;
-            } else {
-                mpp_log_f("MPP_ENC_SET_CODEC_CFG jpeg quant set to %d\n", dst->quant);
-                dst->change = src->change;
-            }
-
-            dst->change = src->change;
-        }
+        ret = jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &codec->jpeg);
     } break;
     case MPP_ENC_SET_IDR_FRAME :
     case MPP_ENC_SET_OSD_PLT_CFG :
