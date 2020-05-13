@@ -599,7 +599,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
     AutoMutex auto_lock(&enc->lock);
 
     switch (cmd) {
-    case MPP_ENC_SET_ALL_CFG : {
+    case MPP_ENC_SET_CFG : {
         MppEncRcCfg *rc = &enc->set.rc;
 
         enc_dbg_ctrl("set all config\n");
@@ -621,7 +621,7 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
         if (!ret)
             ret = mpp_hal_control(enc->hal, MPP_ENC_SET_CODEC_CFG, &enc->set.codec);
     } break;
-    case MPP_ENC_GET_ALL_CFG : {
+    case MPP_ENC_GET_CFG : {
         MppEncCfgSet *p = (MppEncCfgSet *)param;
 
         enc_dbg_ctrl("get all config\n");
