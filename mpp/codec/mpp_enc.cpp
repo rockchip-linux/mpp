@@ -27,6 +27,7 @@
 
 #include "mpp.h"
 #include "mpp_enc_debug.h"
+#include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
 #include "mpp_hal.h"
 #include "hal_h264e_api.h"
@@ -601,9 +602,10 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
         MppEncRcCfg *rc = &enc->set.rc;
+        MppEncCfgImpl *cfg = (MppEncCfgImpl *)param;
 
         enc_dbg_ctrl("set all config\n");
-        memcpy(&enc->set, param, sizeof(enc->set));
+        memcpy(&enc->set, &cfg->cfg, sizeof(enc->set));
 
         if (rc->rc_mode == MPP_ENC_RC_MODE_VBR && rc->quality == MPP_ENC_RC_QUALITY_CQP)
             rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
@@ -622,10 +624,10 @@ MPP_RET mpp_enc_control(MppEnc ctx, MpiCmd cmd, void *param)
             ret = mpp_hal_control(enc->hal, MPP_ENC_SET_CODEC_CFG, &enc->set.codec);
     } break;
     case MPP_ENC_GET_CFG : {
-        MppEncCfgSet *p = (MppEncCfgSet *)param;
+        MppEncCfgImpl *p = (MppEncCfgImpl *)param;
 
         enc_dbg_ctrl("get all config\n");
-        memcpy(p, &enc->cfg, sizeof(*p));
+        memcpy(&p->cfg, &enc->cfg, sizeof(enc->cfg));
     } break;
     case MPP_ENC_SET_PREP_CFG : {
         enc_dbg_ctrl("set prep config\n");

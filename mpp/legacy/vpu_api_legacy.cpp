@@ -87,17 +87,11 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
     return ret;
 }
 
-static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
+static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cfg,
                                    MppCodingType coding, MppFrameFormat fmt,
                                    EncParameter_t *cfg)
 {
     MPP_RET ret = MPP_OK;
-    MppEncCodecCfg codec;
-    MppEncPrepCfg prep;
-    MppEncRcCfg rc;
-    MppEncCodecCfg *codec_cfg = &codec;
-    MppEncPrepCfg *prep_cfg = &prep;
-    MppEncRcCfg *rc_cfg = &rc;
     RK_S32 width    = cfg->width;
     RK_S32 height   = cfg->height;
     RK_S32 bps      = cfg->bitRate;
@@ -124,6 +118,57 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
     mpp_assert(width);
     mpp_assert(height);
     mpp_assert(qp);
+
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:width", width);
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:height", height);
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", MPP_ALIGN(width, 16));
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:ver_stride", MPP_ALIGN(height, 16));
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:format", fmt);
+
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:rc_mode", rc_mode ? MPP_ENC_RC_MODE_CBR : MPP_ENC_RC_MODE_FIXQP);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_target", bps);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_max", bps * 17 / 16);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_min", bps * 17 / 16);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_flex", 0);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_num", fps_in);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_denorm", 1);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_flex", 0);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_num", fps_out);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_denorm", 1);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:gop", gop);
+
+    mpp_enc_cfg_set_s32(enc_cfg, "codec:type", coding);
+    switch (coding) {
+    case MPP_VIDEO_CodingAVC : {
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:profile", profile);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:level", level);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_en", cabac_en);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_idc", 0);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_init", rc_mode ? 0 : qp);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min", rc_mode ? 10 : qp);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max", rc_mode ? 51 : qp);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_step", rc_mode ? 4 : 0);
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        mpp_enc_cfg_set_s32(enc_cfg, "jpeg:quant", qp);
+    } break;
+    default : {
+        mpp_err_f("support encoder coding type %d\n", coding);
+    } break;
+    }
+
+    ret = mpi->control(mpp_ctx, MPP_ENC_SET_CFG, enc_cfg);
+    if (ret) {
+        mpp_err("setup enc config failed ret %d\n", ret);
+        goto RET;
+    }
+#if 0
+    MppEncCodecCfg codec;
+    MppEncPrepCfg prep;
+    MppEncRcCfg rc;
+    MppEncCodecCfg *codec_cfg = &codec;
+    MppEncPrepCfg *prep_cfg = &prep;
+    MppEncRcCfg *rc_cfg = &rc;
 
     prep_cfg->change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                            MPP_ENC_PREP_CFG_CHANGE_FORMAT;
@@ -215,6 +260,7 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi,
     ret = mpi->control(mpp_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret)
         mpp_err("setup codec config failed ret %d\n", ret);
+#endif
 RET:
     return ret;
 }
@@ -294,13 +340,14 @@ VpuApiLegacy::VpuApiLegacy() :
     format(MPP_FMT_YUV420P),
     fd_input(-1),
     fd_output(-1),
-    mEosSet(0)
+    mEosSet(0),
+    enc_cfg(NULL)
 {
     vpu_api_dbg_func("enter\n");
 
     mpp_create(&mpp_ctx, &mpi);
 
-    memset(&enc_cfg, 0, sizeof(enc_cfg));
+    memset(&enc_param, 0, sizeof(enc_param));
     vpu_api_dbg_func("leave\n");
 }
 
@@ -308,12 +355,17 @@ VpuApiLegacy::~VpuApiLegacy()
 {
     vpu_api_dbg_func("enter\n");
 
+    mpp_destroy(mpp_ctx);
+
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
         memGroup = NULL;
     }
 
-    mpp_destroy(mpp_ctx);
+    if (enc_cfg) {
+        mpp_enc_cfg_deinit(enc_cfg);
+        enc_cfg = NULL;
+    }
 
     vpu_api_dbg_func("leave\n");
 }
@@ -404,16 +456,24 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         if (memGroup == NULL) {
             ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
-            if (MPP_OK != ret) {
-                mpp_err("memGroup mpp_buffer_group_get failed\n");
+            if (ret) {
+                mpp_err("memGroup mpp_buffer_group_get failed %d\n", ret);
                 return ret;
             }
         }
 
+        ret = mpp_enc_cfg_init(&enc_cfg);
+        if (ret) {
+            mpp_err("mpp_enc_cfg_init failed %d\n", ret);
+            mpp_buffer_group_put(memGroup);
+            memGroup = NULL;
+            return ret;
+        }
+
         format = vpu_pic_type_remap_to_mpp((EncInputPictureType)param->format);
 
-        memcpy(&enc_cfg, param, sizeof(enc_cfg));
-        vpu_api_set_enc_cfg(mpp_ctx, mpi, coding, format, param);
+        memcpy(&enc_param, param, sizeof(enc_param));
+        vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, param);
 
         mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
 
@@ -1368,11 +1428,11 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_ENC_SETCFG : {
         MppCodingType coding = (MppCodingType)ctx->videoCoding;
 
-        memcpy(&enc_cfg, param, sizeof(enc_cfg));
-        return vpu_api_set_enc_cfg(mpp_ctx, mpi, coding, format, &enc_cfg);
+        memcpy(&enc_param, param, sizeof(enc_param));
+        return vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, &enc_param);
     } break;
     case VPU_API_ENC_GETCFG : {
-        memcpy(param, &enc_cfg, sizeof(enc_cfg));
+        memcpy(param, &enc_param, sizeof(enc_param));
         return 0;
     } break;
     case VPU_API_ENC_SETFORMAT : {

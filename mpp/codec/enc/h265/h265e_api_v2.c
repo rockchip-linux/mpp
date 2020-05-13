@@ -19,6 +19,10 @@
 #include <string.h>
 
 #include "mpp_env.h"
+#include "mpp_mem.h"
+
+#include "rc.h"
+#include "mpp_enc_cfg_impl.h"
 
 #include "h265e_api.h"
 #include "h265e_slice.h"
@@ -26,8 +30,6 @@
 #include "h265e_syntax_new.h"
 #include "h265e_ps.h"
 #include "h265e_header_gen.h"
-#include "mpp_mem.h"
-#include "rc.h"
 
 extern RK_U32 h265e_debug;
 
@@ -342,14 +344,183 @@ static MPP_RET h265e_flush(void *ctx)
     return MPP_OK;
 }
 
+static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
+{
+    memcpy(dst, src, sizeof(MppEncPrepCfg));
+    return MPP_OK;
+}
+
+static MPP_RET h265e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncRcCfg bak = *dst;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
+            dst->rc_mode = src->rc_mode;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
+            dst->quality = src->quality;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
+            dst->bps_target = src->bps_target;
+            dst->bps_max = src->bps_max;
+            dst->bps_min = src->bps_min;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
+            dst->fps_in_flex = src->fps_in_flex;
+            dst->fps_in_num = src->fps_in_num;
+            dst->fps_in_denorm = src->fps_in_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+            dst->fps_out_flex = src->fps_out_flex;
+            dst->fps_out_num = src->fps_out_num;
+            dst->fps_out_denorm = src->fps_out_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
+            dst->gop = src->gop;
+
+        // parameter checking
+        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
+                    src->rc_mode);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
+                    dst->quality);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
+                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
+                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
+                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                        dst->bps_target, dst->bps_min, dst->bps_max);
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
+        dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new rc config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                      dst->bps_target, dst->bps_min, dst->bps_max,
+                      dst->fps_in_num, dst->fps_out_num, dst->gop);
+        }
+    }
+
+    return ret;
+}
+
+static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
+{
+    RK_U32 change = src->change;
+
+    // TODO: do codec check first
+    if (change & MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE) {
+        dst->profile = src->profile;
+        dst->level = src->level;
+    }
+
+    if (change & MPP_ENC_H265_CFG_CU_CHANGE) {
+        memcpy(&dst->cu_cfg, &src->cu_cfg, sizeof(src->cu_cfg));
+    }
+    if (change & MPP_ENC_H265_CFG_DBLK_CHANGE) {
+        memcpy(&dst->dblk_cfg, &src->dblk_cfg, sizeof(src->dblk_cfg));
+    }
+    if (change & MPP_ENC_H265_CFG_SAO_CHANGE) {
+        memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
+    }
+    if (change & MPP_ENC_H265_CFG_TRANS_CHANGE) {
+        memcpy(&dst->trans_cfg, &src->trans_cfg, sizeof(src->trans_cfg));
+    }
+
+    if (change & MPP_ENC_H265_CFG_SLICE_CHANGE) {
+        memcpy(&dst->slice_cfg, &src->slice_cfg, sizeof(src->slice_cfg));
+    }
+
+    if (change & MPP_ENC_H265_CFG_ENTROPY_CHANGE) {
+        memcpy(&dst->entropy_cfg, &src->entropy_cfg, sizeof(src->entropy_cfg));
+    }
+
+    if (change & MPP_ENC_H265_CFG_MERGE_CHANGE) {
+        memcpy(&dst->merge_cfg, &src->merge_cfg, sizeof(src->merge_cfg));
+    }
+
+    if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
+        memcpy(&dst->vui, &src->vui, sizeof(src->vui));
+    }
+
+    if (change & MPP_ENC_H265_CFG_RC_QP_CHANGE) {
+        dst->qp_init = src->qp_init;
+        dst->max_qp = src->max_qp;
+        dst->min_qp = src->min_qp;
+        dst->max_i_qp = src->max_i_qp;
+        dst->min_i_qp = src->min_i_qp;
+    }
+    /*
+     * NOTE: use OR here for avoiding overwrite on multiple config
+     * When next encoding is trigger the change flag will be clear
+     */
+    dst->change |= change;
+
+    return MPP_OK;
+}
+
+static MPP_RET h265e_proc_split_cfg(MppEncH265SliceCfg *dst, MppEncSliceSplit *src)
+{
+    if (src->split_mode > MPP_ENC_SPLIT_NONE) {
+        dst->split_enable = 1;
+        dst->split_mode = 0;
+        if (src->split_mode == MPP_ENC_SPLIT_BY_CTU)
+            dst->split_mode = 1;
+        dst->slice_size =  src->split_arg;
+    } else {
+        dst->split_enable = 0;
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 {
     H265eCtx *p = (H265eCtx *)ctx;
+    MppEncCfgSet *cfg = p->cfg;
     MPP_RET ret = MPP_OK;
 
     h265e_dbg_func("enter ctx %p cmd %08x\n", ctx, cmd);
 
     switch (cmd) {
+    case MPP_ENC_SET_CFG : {
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        MppEncCfgSet *src = &impl->cfg;
+
+        if (src->prep.change) {
+            ret |= h265e_proc_prep_cfg(&cfg->prep, &src->prep);
+            src->prep.change = 0;
+        }
+        if (src->rc.change) {
+            ret |= h265e_proc_rc_cfg(&cfg->rc, &src->rc);
+            src->rc.change = 0;
+        }
+        if (src->codec.h265.change) {
+            ret |= h265e_proc_h265_cfg(&cfg->codec.h265, &src->codec.h265);
+            src->codec.h265.change = 0;
+        }
+        if (src->split.change) {
+            ret |= h265e_proc_split_cfg(&cfg->codec.h265.slice_cfg, &src->split);
+            src->split.change = 0;
+        }
+    } break;
     case MPP_ENC_SET_IDR_FRAME : {
         p->syntax.idr_request = 1;
         p->idr_request = 1;
@@ -360,144 +531,22 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         h265e_get_extra_info(p, pkt_out);
     } break;
     case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *src = (MppEncPrepCfg *)param;
-        MppEncPrepCfg *dst = &p->cfg->prep;
-
-        memcpy(dst, src, sizeof(MppEncPrepCfg));
+        ret = h265e_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG: {
-        MppEncCodecCfg *cfg = (MppEncCodecCfg *)param;
-        MppEncH265Cfg *src = &cfg->h265;
-        MppEncH265Cfg *dst = &p->cfg->codec.h265;
-        RK_U32 change = cfg->h265.change;
+        MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
 
-        // TODO: do codec check first
-        if (change & MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE) {
-            dst->profile = src->profile;
-            dst->level = src->level;
-        }
-
-        if (change & MPP_ENC_H265_CFG_CU_CHANGE) {
-            memcpy(&dst->cu_cfg, &src->cu_cfg, sizeof(src->cu_cfg));
-        }
-        if (change & MPP_ENC_H265_CFG_DBLK_CHANGE) {
-            memcpy(&dst->dblk_cfg, &src->dblk_cfg, sizeof(src->dblk_cfg));
-        }
-        if (change & MPP_ENC_H265_CFG_SAO_CHANGE) {
-            memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
-        }
-        if (change & MPP_ENC_H265_CFG_TRANS_CHANGE) {
-            memcpy(&dst->trans_cfg, &src->trans_cfg, sizeof(src->trans_cfg));
-        }
-
-        if (change & MPP_ENC_H265_CFG_SLICE_CHANGE) {
-            memcpy(&dst->slice_cfg, &src->slice_cfg, sizeof(src->slice_cfg));
-        }
-
-        if (change & MPP_ENC_H265_CFG_ENTROPY_CHANGE) {
-            memcpy(&dst->entropy_cfg, &src->entropy_cfg, sizeof(src->entropy_cfg));
-        }
-
-        if (change & MPP_ENC_H265_CFG_MERGE_CHANGE) {
-            memcpy(&dst->merge_cfg, &src->merge_cfg, sizeof(src->merge_cfg));
-        }
-
-        if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
-            memcpy(&dst->vui, &src->vui, sizeof(src->vui));
-        }
-
-        if (change & MPP_ENC_H265_CFG_RC_QP_CHANGE) {
-            dst->qp_init = src->qp_init;
-            dst->max_qp = src->max_qp;
-            dst->min_qp = src->min_qp;
-            dst->max_i_qp = src->max_i_qp;
-            dst->min_i_qp = src->min_i_qp;
-        }
-        /*
-         * NOTE: use OR here for avoiding overwrite on multiple config
-         * When next encoding is trigger the change flag will be clear
-         */
-        dst->change |= change;
+        ret = h265e_proc_h265_cfg(&cfg->codec.h265, &codec->h265);
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        MppEncRcCfg *src = (MppEncRcCfg *)param;
-        RK_U32 change = src->change;
-
-        if (change) {
-            MppEncRcCfg *dst = &p->cfg->rc;
-            MppEncRcCfg bak = p->cfg->rc;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-                dst->rc_mode = src->rc_mode;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-                dst->quality = src->quality;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-                dst->bps_target = src->bps_target;
-                dst->bps_max = src->bps_max;
-                dst->bps_min = src->bps_min;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-                dst->fps_in_flex = src->fps_in_flex;
-                dst->fps_in_num = src->fps_in_num;
-                dst->fps_in_denorm = src->fps_in_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-                dst->fps_out_flex = src->fps_out_flex;
-                dst->fps_out_num = src->fps_out_num;
-                dst->fps_out_denorm = src->fps_out_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-                dst->gop = src->gop;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-                dst->skip_cnt = src->skip_cnt;
-
-            // parameter checking
-            if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-                mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                        src->rc_mode);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-                mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                        dst->quality);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-                if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                    (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                    (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                    mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                            dst->bps_target, dst->bps_min, dst->bps_max);
-                    ret = MPP_ERR_VALUE;
-                }
-            }
-
-            dst->change |= change;
-
-            if (ret) {
-                mpp_err_f("failed to accept new rc config\n");
-                *dst = bak;
-                break;
-            }
-
-            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                      dst->bps_target, dst->bps_min, dst->bps_max,
-                      dst->fps_in_num, dst->fps_out_num, dst->gop);
-        }
+        ret = h265e_proc_rc_cfg(&cfg->rc, param);
     } break;
     case MPP_ENC_SET_SEI_CFG: {
-
     } break;
-
     case MPP_ENC_SET_SPLIT : {
         MppEncSliceSplit *src = (MppEncSliceSplit *)param;
-        MppEncH265SliceCfg *slice_cfg = &p->cfg->codec.h265.slice_cfg;
+        MppEncH265SliceCfg *slice_cfg = &cfg->codec.h265.slice_cfg;
+
         if (src->split_mode > MPP_ENC_SPLIT_NONE) {
             slice_cfg->split_enable = 1;
             slice_cfg->split_mode = 0;
@@ -508,13 +557,10 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             slice_cfg->split_enable = 0;
         }
     } break;
-
     case MPP_ENC_SET_GOPREF: {
         MppEncGopRef *ref = (MppEncGopRef *)param;
-        MppEncCfgSet *cfg = p->cfg;
         memcpy(&cfg->gop_ref, ref , sizeof(*ref));
     } break;
-
     default:
         mpp_err("No correspond %08x found, and can not config!\n", cmd);
         ret = MPP_NOK;

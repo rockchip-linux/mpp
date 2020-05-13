@@ -36,6 +36,7 @@
 #include "rc.h"
 
 #include "enc_impl_api.h"
+#include "mpp_enc_cfg_impl.h"
 
 RK_U32 h264e_debug = 0;
 
@@ -192,221 +193,263 @@ static MPP_RET h264e_deinit(void *ctx)
     return MPP_OK;
 }
 
+static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    mpp_assert(change);
+    if (change) {
+        MppEncPrepCfg bak = *dst;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
+            dst->format = src->format;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
+            dst->rotation = src->rotation;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
+            dst->mirroring = src->mirroring;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
+            dst->denoise = src->denoise;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
+            dst->sharpen = src->sharpen;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+                dst->width = src->height;
+                dst->height = src->width;
+            } else {
+                dst->width = src->width;
+                dst->height = src->height;
+            }
+            dst->hor_stride = src->hor_stride;
+            dst->ver_stride = src->ver_stride;
+        }
+
+        dst->change |= change;
+
+        // parameter checking
+        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (ret) {
+            mpp_err_f("failed to accept new prep config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
+                      dst->width, dst->height,
+                      dst->hor_stride, dst->ver_stride);
+        }
+    }
+
+    return ret;
+}
+
+static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncRcCfg bak = *dst;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
+            dst->rc_mode = src->rc_mode;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
+            dst->quality = src->quality;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
+            dst->bps_target = src->bps_target;
+            dst->bps_max = src->bps_max;
+            dst->bps_min = src->bps_min;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
+            dst->fps_in_flex = src->fps_in_flex;
+            dst->fps_in_num = src->fps_in_num;
+            dst->fps_in_denorm = src->fps_in_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+            dst->fps_out_flex = src->fps_out_flex;
+            dst->fps_out_num = src->fps_out_num;
+            dst->fps_out_denorm = src->fps_out_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
+            dst->gop = src->gop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
+            dst->skip_cnt = src->skip_cnt;
+
+        // parameter checking
+        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
+                    src->rc_mode);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
+                    dst->quality);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
+                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
+                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
+                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                        dst->bps_target, dst->bps_min, dst->bps_max);
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
+        dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new rc config\n");
+            *dst = bak;
+        } else {
+            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                      dst->bps_target, dst->bps_min, dst->bps_max,
+                      dst->fps_in_num, dst->fps_out_num, dst->gop);
+        }
+    }
+
+    return ret;
+}
+
+static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    // TODO: do codec check first
+    if (change & MPP_ENC_H264_CFG_STREAM_TYPE)
+        dst->stream_type = src->stream_type;
+    if (change & MPP_ENC_H264_CFG_CHANGE_PROFILE) {
+        dst->profile = src->profile;
+        dst->level = src->level;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) {
+        dst->entropy_coding_mode = src->entropy_coding_mode;
+        dst->cabac_init_idc = src->cabac_init_idc;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_TRANS_8x8)
+        dst->transform8x8_mode = src->transform8x8_mode;
+    if (change & MPP_ENC_H264_CFG_CHANGE_CONST_INTRA)
+        dst->constrained_intra_pred_mode = src->constrained_intra_pred_mode;
+    if (change & MPP_ENC_H264_CFG_CHANGE_CHROMA_QP) {
+        dst->chroma_cb_qp_offset = src->chroma_cb_qp_offset;
+        dst->chroma_cr_qp_offset = src->chroma_cr_qp_offset;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_DEBLOCKING) {
+        dst->deblock_disable = src->deblock_disable;
+        dst->deblock_offset_alpha = src->deblock_offset_alpha;
+        dst->deblock_offset_beta = src->deblock_offset_beta;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_LONG_TERM)
+        dst->use_longterm = src->use_longterm;
+
+    if (change & MPP_ENC_H264_CFG_CHANGE_SCALING_LIST)
+        dst->scaling_list_mode = src->scaling_list_mode;
+
+    if (change & MPP_ENC_H264_CFG_CHANGE_QP_LIMIT) {
+        dst->qp_init = src->qp_init;
+        dst->qp_max = src->qp_max;
+        dst->qp_min = src->qp_min;
+        dst->qp_max_step = src->qp_max_step;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH) {
+        dst->intra_refresh_mode = src->intra_refresh_mode;
+        dst->intra_refresh_arg = src->intra_refresh_arg;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_SLICE_MODE) {
+        dst->slice_mode = src->slice_mode;
+        dst->slice_arg = src->slice_arg;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
+        dst->vui = src->vui;
+    }
+    if (change & MPP_ENC_H264_CFG_CHANGE_SEI) {
+        dst->sei = src->sei;
+    }
+
+    dst->change |= change;
+    return ret;
+}
+
+static MPP_RET h264e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
+        dst->split_mode = src->split_mode;
+        dst->split_arg = src->split_arg;
+    }
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
+        dst->split_arg = src->split_arg;
+
+    dst->change |= change;
+
+    return ret;
+}
+
 static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
     H264eCtx *p = (H264eCtx *)ctx;
+    MppEncCfgSet *cfg = p->cfg;
 
     h264e_dbg_func("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        MppEncCfgSet *src = &impl->cfg;
+
+        if (src->prep.change) {
+            ret |= h264e_proc_prep_cfg(&cfg->prep, &src->prep);
+            src->prep.change = 0;
+        }
+        if (src->rc.change) {
+            ret |= h264e_proc_rc_cfg(&cfg->rc, &src->rc);
+            src->rc.change = 0;
+        }
+        if (src->codec.h264.change) {
+            ret |= h264e_proc_h264_cfg(&cfg->codec.h264, &src->codec.h264);
+            src->codec.h264.change = 0;
+        }
+        if (src->split.change) {
+            ret |= h264e_proc_split_cfg(&cfg->split, &src->split);
+            src->split.change = 0;
+        }
     } break;
     case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *src = (MppEncPrepCfg *)param;
-        RK_U32 change = src->change;
-
-        mpp_assert(change);
-        if (change) {
-            MppEncPrepCfg *dst = &p->cfg->prep;
-            MppEncPrepCfg bak = p->cfg->prep;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
-                dst->format = src->format;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-                dst->rotation = src->rotation;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
-                dst->mirroring = src->mirroring;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
-                dst->denoise = src->denoise;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
-                dst->sharpen = src->sharpen;
-
-            if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-                if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-                    dst->width = src->height;
-                    dst->height = src->width;
-                } else {
-                    dst->width = src->width;
-                    dst->height = src->height;
-                }
-                dst->hor_stride = src->hor_stride;
-                dst->ver_stride = src->ver_stride;
-            }
-
-            dst->change |= change;
-
-            // parameter checking
-            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-                ret = MPP_ERR_VALUE;
-            }
-
-            if (ret) {
-                mpp_err_f("failed to accept new prep config\n");
-                *dst = bak;
-                break;
-            }
-            mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
-                      dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-        }
+        ret = h264e_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        MppEncRcCfg *src = (MppEncRcCfg *)param;
-        RK_U32 change = src->change;
-
-        if (change) {
-            MppEncRcCfg *dst = &p->cfg->rc;
-            MppEncRcCfg bak = p->cfg->rc;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-                dst->rc_mode = src->rc_mode;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-                dst->quality = src->quality;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-                dst->bps_target = src->bps_target;
-                dst->bps_max = src->bps_max;
-                dst->bps_min = src->bps_min;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-                dst->fps_in_flex = src->fps_in_flex;
-                dst->fps_in_num = src->fps_in_num;
-                dst->fps_in_denorm = src->fps_in_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-                dst->fps_out_flex = src->fps_out_flex;
-                dst->fps_out_num = src->fps_out_num;
-                dst->fps_out_denorm = src->fps_out_denorm;
-            }
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-                dst->gop = src->gop;
-
-            if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-                dst->skip_cnt = src->skip_cnt;
-
-            // parameter checking
-            if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-                mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                        src->rc_mode);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-                mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                        dst->quality);
-                ret = MPP_ERR_VALUE;
-            }
-            if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-                if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                    (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                    (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                    mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                            dst->bps_target, dst->bps_min, dst->bps_max);
-                    ret = MPP_ERR_VALUE;
-                }
-            }
-
-            dst->change |= change;
-
-            if (ret) {
-                mpp_err_f("failed to accept new rc config\n");
-                *dst = bak;
-                break;
-            }
-
-            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                      dst->bps_target, dst->bps_min, dst->bps_max,
-                      dst->fps_in_num, dst->fps_out_num, dst->gop);
-        }
+        ret = h264e_proc_rc_cfg(&cfg->rc, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
-        MppEncH264Cfg *src = &((MppEncCodecCfg *)param)->h264;
-        MppEncH264Cfg *dst = &p->cfg->codec.h264;
-        RK_U32 change = src->change;
-
-        // TODO: do codec check first
-        if (change & MPP_ENC_H264_CFG_STREAM_TYPE)
-            dst->stream_type = src->stream_type;
-        if (change & MPP_ENC_H264_CFG_CHANGE_PROFILE) {
-            dst->profile = src->profile;
-            dst->level = src->level;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) {
-            dst->entropy_coding_mode = src->entropy_coding_mode;
-            dst->cabac_init_idc = src->cabac_init_idc;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_TRANS_8x8)
-            dst->transform8x8_mode = src->transform8x8_mode;
-        if (change & MPP_ENC_H264_CFG_CHANGE_CONST_INTRA)
-            dst->constrained_intra_pred_mode = src->constrained_intra_pred_mode;
-        if (change & MPP_ENC_H264_CFG_CHANGE_CHROMA_QP) {
-            dst->chroma_cb_qp_offset = src->chroma_cb_qp_offset;
-            dst->chroma_cr_qp_offset = src->chroma_cr_qp_offset;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_DEBLOCKING) {
-            dst->deblock_disable = src->deblock_disable;
-            dst->deblock_offset_alpha = src->deblock_offset_alpha;
-            dst->deblock_offset_beta = src->deblock_offset_beta;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_LONG_TERM)
-            dst->use_longterm = src->use_longterm;
-
-        if (change & MPP_ENC_H264_CFG_CHANGE_SCALING_LIST)
-            dst->scaling_list_mode = src->scaling_list_mode;
-
-        if (change & MPP_ENC_H264_CFG_CHANGE_QP_LIMIT) {
-            dst->qp_init = src->qp_init;
-            dst->qp_max = src->qp_max;
-            dst->qp_min = src->qp_min;
-            dst->qp_max_step = src->qp_max_step;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH) {
-            dst->intra_refresh_mode = src->intra_refresh_mode;
-            dst->intra_refresh_arg = src->intra_refresh_arg;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_SLICE_MODE) {
-            dst->slice_mode = src->slice_mode;
-            dst->slice_arg = src->slice_arg;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
-            dst->vui = src->vui;
-        }
-        if (change & MPP_ENC_H264_CFG_CHANGE_SEI) {
-            dst->sei = src->sei;
-        }
-
-        dst->change |= change;
+        MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
+        ret = h264e_proc_h264_cfg(&cfg->codec.h264, &codec->h264);
     } break;
     case MPP_ENC_SET_SEI_CFG : {
     } break;
     case MPP_ENC_SET_IDR_FRAME : {
         p->idr_request++;
     } break;
-    case MPP_ENC_SET_OSD_DATA_CFG : {
-    } break;
     case MPP_ENC_SET_SPLIT : {
-        MppEncSliceSplit *src = (MppEncSliceSplit *)param;
-        MppEncSliceSplit *dst = &p->cfg->split;
-        RK_U32 change = src->change;
-
-        if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
-            dst->split_mode = src->split_mode;
-            dst->split_arg = src->split_arg;
-        }
-
-        if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
-            dst->split_arg = src->split_arg;
-
-        dst->change |= change;
+        ret = h264e_proc_split_cfg(&cfg->split, param);
     } break;
     default:
         mpp_err("No correspond cmd found, and can not config!");
