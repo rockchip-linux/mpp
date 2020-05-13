@@ -116,8 +116,10 @@ static const char *cfg_func_names[] = {
     MPP_RET set_##base##_##name(MppEncCfgSet *cfg, in_type name) \
     { \
         mpp_enc_cfg_dbg_func("enter\n"); \
-        cfg->field0.field1 = (in_type)name; \
-        cfg->field0.change |= flag; \
+        if (cfg->field0.field1 != (in_type)name) { \
+            cfg->field0.field1 = (in_type)name; \
+            cfg->field0.change |= flag; \
+        } \
         return MPP_OK; \
     } \
     MPP_RET get_##base##_##name(MppEncCfgSet *cfg, in_type *name) \
