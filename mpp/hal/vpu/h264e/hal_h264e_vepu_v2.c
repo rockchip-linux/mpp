@@ -582,25 +582,15 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
     RK_S32 tmp, nonZeroTarget;
     RK_S32 coeffCntMax = p->mbs * 24 * 16;
 
-    if (!p->mb_bit_rc_enable) {
-        if (codec->qp_init == -1) {
-            mpp_log("fix qp case but qp no set default qp = 26");
-            mbrc->qp_init = 26;
-        } else {
-            mbrc->qp_init = codec->qp_init;
-        }
-
-        mbrc->qp_min = mbrc->qp_init;
-        mbrc->qp_max = mbrc->qp_init;
-        return MPP_OK;
-    }
-
-    p->pre_frame_type = p->frame_type;
-    p->frame_type = (frm->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
-
     mbrc->qp_init = info->quality_target;
     mbrc->qp_min = codec->qp_min;
     mbrc->qp_max = codec->qp_max;
+
+    if (!p->mb_bit_rc_enable)
+        return MPP_OK;
+
+    p->pre_frame_type = p->frame_type;
+    p->frame_type = (frm->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
 
     if (mbrc->rlc_count == 0) {
         mbrc->rlc_count = 1;
