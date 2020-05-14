@@ -312,7 +312,7 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
     rc_cfg->fps_out_denorm   = p->fps_out_den;
 
     rc_cfg->gop              = p->gop;
-    rc_cfg->skip_cnt         = 0;
+    rc_cfg->max_reenc_times  = 1;
 
     mpp_log("mpi_enc_test bps %d fps %d gop %d\n",
             rc_cfg->bps_target, rc_cfg->fps_out_num, rc_cfg->gop);

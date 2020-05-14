@@ -135,7 +135,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg)
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
-    rc_cfg->skip_cnt = 0;
+    rc_cfg->max_reenc_times = 1;
 }
 
 static void h264e_add_syntax(H264eCtx *ctx, H264eSyntaxType type, void *p)
@@ -286,8 +286,8 @@ static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
             dst->gop = src->gop;
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-            dst->skip_cnt = src->skip_cnt;
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
+            dst->max_reenc_times = src->max_reenc_times;
 
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {

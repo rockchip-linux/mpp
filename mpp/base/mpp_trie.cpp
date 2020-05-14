@@ -39,7 +39,7 @@
 
 /* ascii 32 is ' ', char after space is valid data */
 #define MAX_NEXT                        (128 - 32)
-#define DEFAULT_NODE_COUNT              800
+#define DEFAULT_NODE_COUNT              900
 #define DEFAULT_INFO_COUNT              80
 
 /* spatial optimized tire tree */

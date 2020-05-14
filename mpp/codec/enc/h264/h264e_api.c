@@ -99,7 +99,7 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
-    rc_cfg->skip_cnt = 0;
+    rc_cfg->max_reenc_times = 1;
 
     p->cfg = ctrl_cfg->cfg;
     p->set = ctrl_cfg->set;

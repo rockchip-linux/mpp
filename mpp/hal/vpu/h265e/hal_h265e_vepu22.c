@@ -1254,7 +1254,7 @@ static MPP_RET vepu22_check_rc_cfg_change(HalH265eCtx* ctx, MppEncRcCfg* set)
                         set->fps_in_num, set->fps_in_denorm);
     hal_h265e_dbg_input("fps_out_num = %d,fps_out_denorm = %d\n",
                         set->fps_out_num, set->fps_out_denorm);
-    hal_h265e_dbg_input("gop = %d,skip_cnt = %d\n", set->gop, set->skip_cnt);
+    hal_h265e_dbg_input("gop = %d, max_reenc_cnt = %d\n", set->gop, set->max_reenc_times);
     if (!ctx->init) {
         set->change = MPP_ENC_RC_CFG_CHANGE_ALL;
         ctx->option |= H265E_SET_RC_CFG;
@@ -1285,7 +1285,7 @@ static MPP_RET vepu22_set_rc_cfg(HalH265eCtx* ctx)
                         rc->fps_in_num, rc->fps_in_denorm);
     hal_h265e_dbg_input("fps_out_num = %d,fps_out_denorm = %d\n",
                         rc->fps_out_num, rc->fps_out_denorm);
-    hal_h265e_dbg_input("gop = %d,skip_cnt = %d\n", rc->gop, rc->skip_cnt);
+    hal_h265e_dbg_input("gop = %d, max_reenc_cnt = %d\n", rc->gop, rc->max_reenc_times);
 
     /* the first time to set rc cfg*/
     if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
