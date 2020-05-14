@@ -2,6 +2,7 @@
 include_directories(.)
 
 add_library(${CODEC_JPEGE} STATIC
+    jpege_api_v2.c
     jpege_api.c
     )
 

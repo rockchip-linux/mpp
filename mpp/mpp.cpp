@@ -175,7 +175,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         };
 
         /* H.264 and H.265 check encoder path version */
-        if (mCoding == MPP_VIDEO_CodingAVC || mCoding == MPP_VIDEO_CodingHEVC)
+        if (mCoding == MPP_VIDEO_CodingAVC ||
+            mCoding == MPP_VIDEO_CodingHEVC ||
+            mCoding == MPP_VIDEO_CodingMJPEG)
             mpp_env_get_u32("enc_version", &mEncVersion, 1);
 
         if (mEncVersion) {

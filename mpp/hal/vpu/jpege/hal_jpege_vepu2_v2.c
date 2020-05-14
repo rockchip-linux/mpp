@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_jpege_vepu2"
+#define MODULE_TAG "hal_jpege_vepu2_2"
 
 #include <string.h>
 
@@ -25,7 +25,7 @@
 #include "mpp_device.h"
 #include "mpp_platform.h"
 
-#include "mpp_hal.h"
+#include "mpp_enc_hal.h"
 
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api.h"
@@ -46,15 +46,13 @@ static const RK_U32 qp_reorder_table[64] = {
     6, 14, 22, 30,  7, 15, 23, 31, 38, 46, 54, 62, 39, 47, 55, 63
 };
 
-MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
+MPP_RET hal_jpege_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
-
-    ctx->int_cb = cfg->hal_int_cb;
 
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,              /* type */
@@ -74,7 +72,6 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
 
     memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
     ctx->cfg = cfg->cfg;
-    ctx->set = cfg->set;
 
     ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU2_NUM_REGS);
     if (!ctx->ioctl_info.regs) {
@@ -86,7 +83,7 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_deinit(void *hal)
+MPP_RET hal_jpege_vepu2_deinit_v2(void *hal)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
@@ -105,6 +102,15 @@ MPP_RET hal_jpege_vepu2_deinit(void *hal)
     mpp_free(ctx->ioctl_info.regs);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
+    return MPP_OK;
+}
+
+MPP_RET hal_jpege_vepu2_get_task_v2(void *hal, HalEncTask *task)
+{
+    HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+
+    memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
     return MPP_OK;
 }
 
@@ -135,18 +141,15 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
+MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    HalEncTask *info = &task->enc;
-    MppBuffer input  = info->input;
-    MppBuffer output = info->output;
-    JpegeSyntax *syntax = &ctx->syntax;
-    MppEncPrepCfg *prep = &ctx->cfg->prep;
-    MppEncCodecCfg *codec = &ctx->cfg->codec;
-    RK_U32 width        = prep->width;
-    RK_U32 height       = prep->height;
-    MppFrameFormat fmt  = prep->format;
+    MppBuffer input  = task->input;
+    MppBuffer output = task->output;
+    JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+    RK_U32 width        = syntax->width;
+    RK_U32 height       = syntax->height;
+    MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = MPP_ALIGN(width, 16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
@@ -163,17 +166,11 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 b_mask = 0;
     RK_U32 x_fill = 0;
 
-    syntax->width   = width;
-    syntax->height  = height;
-    syntax->hor_stride = prep->hor_stride;
-    syntax->ver_stride = prep->ver_stride;
-    syntax->format  = fmt;
-    syntax->quality = codec->jpeg.quant;
-
     //hor_stride must be align with 8, and ver_stride mus align with 2
-    if ((prep->hor_stride & 0x7) || (prep->ver_stride & 0x1)) {
-        mpp_err_f("illegal resolution, hor_stride = %d, ver_stride = %d, width = %d, height = %d\n",
-                  prep->hor_stride, prep->ver_stride, prep->width, prep->height);
+    if ((syntax->hor_stride & 0x7) || (syntax->ver_stride & 0x1)) {
+        mpp_err_f("illegal resolution, hor_stride %d, ver_stride %d, width %d, height %d\n",
+                  syntax->hor_stride, syntax->ver_stride,
+                  syntax->width, syntax->height);
     }
 
     x_fill = (hor_stride - width) / 4;
@@ -235,7 +232,7 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     regs[60] = (((bytepos & 7) * 8) << 16) |
                (x_fill << 4) |
                (ver_stride - height);
-    regs[61] = prep->hor_stride;
+    regs[61] = syntax->hor_stride;
 
     switch (fmt) {
     case MPP_FMT_YUV420P : {
@@ -401,7 +398,7 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
+MPP_RET hal_jpege_vepu2_start_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
@@ -447,17 +444,16 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_jpege_vepu2_wait(void *hal, HalTaskInfo *task)
+MPP_RET hal_jpege_vepu2_wait_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeBits bits = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
-    JpegeFeedback feedback;
+    JpegeFeedback *feedback = &ctx->feedback;
     RK_U32 val;
     RK_U32 sw_bit;
     RK_U32 hw_bit;
-    (void)task;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
@@ -466,105 +462,42 @@ MPP_RET hal_jpege_vepu2_wait(void *hal, HalTaskInfo *task)
 
     val = regs[109];
     hal_jpege_dbg_output("hw_status %08x\n", val);
-    feedback.hw_status = val & 0x70;
+    feedback->hw_status = val & 0x70;
     val = regs[53];
 
     sw_bit = jpege_bits_get_bitpos(bits);
     hw_bit = val;
 
     // NOTE: hardware will return 64 bit access byte count
-    feedback.stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
-    task->enc.length = feedback.stream_length;
+    feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
+    task->length = feedback->stream_length;
     hal_jpege_dbg_output("stream bit: sw %d hw %d total %d\n",
-                         sw_bit, hw_bit, feedback.stream_length);
-
-    ctx->int_cb.callBack(ctx->int_cb.opaque, &feedback);
+                         sw_bit, hw_bit, feedback->stream_length);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;
 }
 
-MPP_RET hal_jpege_vepu2_reset(void *hal)
+MPP_RET hal_jpege_vepu2_ret_task_v2(void *hal, HalEncTask *task)
 {
-    hal_jpege_dbg_func("enter hal %p\n", hal);
+    HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
-    hal_jpege_dbg_func("leave hal %p\n", hal);
+    task->hal_ret.data = &ctx->feedback;
+    task->hal_ret.number = 1;
+
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_flush(void *hal)
-{
-    hal_jpege_dbg_func("enter hal %p\n", hal);
-
-    hal_jpege_dbg_func("leave hal %p\n", hal);
-    return MPP_OK;
-}
-
-MPP_RET hal_jpege_vepu2_control(void *hal, MpiCmd cmd, void *param)
-{
-    (void)hal;
-    MPP_RET ret = MPP_OK;
-
-    hal_jpege_dbg_func("enter hal %p cmd %x param %p\n", hal, cmd, param);
-
-    switch (cmd) {
-    case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *cfg = (MppEncPrepCfg *)param;
-        if (cfg->width < 16 && cfg->width > 8192) {
-            mpp_err("jpege: invalid width %d is not in range [16..8192]\n", cfg->width);
-            ret = MPP_NOK;
-        }
-
-        if (cfg->height < 16 && cfg->height > 8192) {
-            mpp_err("jpege: invalid height %d is not in range [16..8192]\n", cfg->height);
-            ret = MPP_NOK;
-        }
-
-        if (cfg->format != MPP_FMT_YUV420SP     &&
-            cfg->format != MPP_FMT_YUV420P      &&
-            cfg->format != MPP_FMT_YUV422SP_VU  &&
-            cfg->format != MPP_FMT_YUV422_YUYV  &&
-            cfg->format != MPP_FMT_YUV422_UYVY  &&
-            cfg->format != MPP_FMT_RGB888       &&
-            cfg->format != MPP_FMT_BGR888) {
-            mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
-            ret = MPP_NOK;
-        }
-    } break;
-    case MPP_ENC_GET_PREP_CFG:
-    case MPP_ENC_GET_CODEC_CFG:
-    case MPP_ENC_SET_IDR_FRAME:
-    case MPP_ENC_SET_OSD_PLT_CFG:
-    case MPP_ENC_SET_OSD_DATA_CFG:
-    case MPP_ENC_GET_HDR_SYNC:
-    case MPP_ENC_GET_EXTRA_INFO:
-    case MPP_ENC_GET_SEI_DATA:
-    case MPP_ENC_SET_SEI_CFG:
-    case MPP_ENC_SET_RC_CFG : {
-    } break;
-    case MPP_ENC_SET_CODEC_CFG : {
-        HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-        MppEncJpegCfg *src = &ctx->set->codec.jpeg;
-        MppEncJpegCfg *dst = &ctx->cfg->codec.jpeg;
-        RK_U32 change = src->change;
-
-        if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
-            if (src->quant < 0 || src->quant > 10) {
-                mpp_err("jpege: invalid quality level %d is not in range [0..10] set to default 8\n");
-                src->quant = 8;
-            }
-            dst->quant = src->quant;
-        }
-
-        dst->change = 0;
-        src->change = 0;
-    } break;
-    default:
-        mpp_err("No correspond cmd(%08x) found, and can not config!", cmd);
-        ret = MPP_NOK;
-        break;
-    }
-
-    hal_jpege_dbg_func("leave hal %p\n", hal);
-    return ret;
-}
+const MppEncHalApi hal_jpege_vepu2 = {
+    .name       = "hal_jpege_vepu2",
+    .coding     = MPP_VIDEO_CodingMJPEG,
+    .ctx_size   = sizeof(HalJpegeCtx),
+    .flag       = 0,
+    .init       = hal_jpege_vepu2_init_v2,
+    .deinit     = hal_jpege_vepu2_deinit_v2,
+    .get_task   = hal_jpege_vepu2_get_task_v2,
+    .gen_regs   = hal_jpege_vepu2_gen_regs_v2,
+    .start      = hal_jpege_vepu2_start_v2,
+    .wait       = hal_jpege_vepu2_wait_v2,
+    .ret_task   = hal_jpege_vepu2_ret_task_v2,
+};

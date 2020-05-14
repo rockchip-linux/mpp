@@ -6,6 +6,9 @@ set(HAL_JPEGE_HDR
 
 set(HAL_JPEGE_SRC
     hal_jpege_hdr.c
+    hal_jpege_api_v2.c
+    hal_jpege_vepu1_v2.c
+    hal_jpege_vepu2_v2.c
     hal_jpege_api.c
     hal_jpege_vepu1.c
     hal_jpege_vepu2.c

@@ -30,6 +30,7 @@
 const RcImplApi *rc_apis[] = {
     &default_h264e,
     &default_h265e,
+    &default_jpege,
 };
 
 // use class to register RcImplApi

@@ -24,7 +24,6 @@
 
 #include "mpp_hal.h"
 
-#include "jpege_syntax.h"
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
 #include "hal_jpege_base.h"
@@ -33,8 +32,6 @@
 
 #include "mpp_device.h"
 #include "mpp_platform.h"
-
-RK_U32 hal_jpege_debug = 0;
 
 static MPP_RET hal_jpege_gen_regs(void *hal, HalTaskInfo *task)
 {

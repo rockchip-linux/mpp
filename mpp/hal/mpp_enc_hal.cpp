@@ -26,6 +26,7 @@
 
 #include "hal_h264e_api_v2.h"
 #include "hal_h265e_api_v2.h"
+#include "hal_jpege_api_v2.h"
 
 static const MppEncHalApi *hw_enc_apis[] = {
 #if HAVE_H264E
@@ -33,6 +34,9 @@ static const MppEncHalApi *hw_enc_apis[] = {
 #endif
 #if HAVE_H265E
     &hal_api_h265e_v2,
+#endif
+#if HAVE_JPEGE
+    &hal_api_jpege_v2,
 #endif
 };
 
