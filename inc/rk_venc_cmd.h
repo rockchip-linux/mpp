@@ -158,7 +158,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_FPS_IN        = (1 << 5),     /* change on fps in  flex / numerator / denorminator */
     MPP_ENC_RC_CFG_CHANGE_FPS_OUT       = (1 << 6),     /* change on fps out flex / numerator / denorminator */
     MPP_ENC_RC_CFG_CHANGE_GOP           = (1 << 7),
-    MPP_ENC_RC_CFG_CHANGE_SKIP_CNT      = (1 << 8),
+    MPP_ENC_RC_CFG_CHANGE_MAX_REENC     = (1 << 8),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -270,10 +270,11 @@ typedef struct MppEncRcCfg_t {
     RK_S32  gop;
 
     /*
-     * skip_cnt - max continuous frame skip count
-     * 0 - frame skip is not allow
+     * max_reenc_times - max reencode time for one frame
+     * 0 - reencode is not allowed
+     * 1~3 max reencode time is limited to 3
      */
-    RK_S32  skip_cnt;
+    RK_U32  max_reenc_times;
 
     /*
      * stat_times   - the time of bitrate statistics

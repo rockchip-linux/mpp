@@ -151,7 +151,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
-    rc_cfg->skip_cnt = 0;
+    rc_cfg->max_reenc_times = 1;
 
     INIT_LIST_HEAD(&p->rc_list);
 
@@ -467,6 +467,7 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         dst->max_i_qp = src->max_i_qp;
         dst->min_i_qp = src->min_i_qp;
     }
+
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
      * When next encoding is trigger the change flag will be clear

@@ -487,7 +487,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->layer_bit_prop[3] = 0;
     }
 
-    cfg->max_reencode_times = 1;
+    cfg->max_reencode_times = rc->max_reenc_times;
 
     mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
             name_of_rc_mode[cfg->mode],
@@ -798,11 +798,14 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
-        if (frm->reencode) {
+        if (frm->reencode_times < rc_cfg->max_reenc_times && frm->reencode) {
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             hal_task->length -= hal_task->hw_length;
             hal_task->hw_length = 0;
             goto TASK_REENCODE;
+        } else {
+            frm->reencode = 0;
+            frm->reencode_times = 0;
         }
 
         enc_dbg_detail("task %d enc update hal\n", frm->seq_idx);

@@ -801,8 +801,8 @@ void mpp_enc_update_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
             dst->gop = src->gop;
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_SKIP_CNT)
-            dst->skip_cnt = src->skip_cnt;
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
+            dst->max_reenc_times = src->max_reenc_times;
 
         /*
          * NOTE: use OR here for avoiding overwrite on multiple config

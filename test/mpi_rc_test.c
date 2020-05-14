@@ -594,7 +594,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_out_flex = 0;
     rc_cfg->gop = fps;
-    rc_cfg->skip_cnt = 0;
+    rc_cfg->max_reenc_times = 1;
 
     ret = enc_mpi->control(enc_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
     if (ret) {

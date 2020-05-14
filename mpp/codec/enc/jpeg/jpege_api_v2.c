@@ -168,8 +168,8 @@ static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             dst->fps_out_denorm = src->fps_out_denorm;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-            dst->gop = src->gop;
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
+            dst->max_reenc_times = src->max_reenc_times;
 
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {

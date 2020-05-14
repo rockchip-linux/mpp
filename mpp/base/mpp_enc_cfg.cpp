@@ -162,6 +162,7 @@ static const char *cfg_func_names[] = {
     ENTRY(rc,   fps_out_num,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_num) \
     ENTRY(rc,   fps_out_denorm, S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denorm) \
     ENTRY(rc,   gop,            S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_GOP,              rc, gop) \
+    ENTRY(rc,   max_reenc_times,U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_MAX_REENC,        rc, max_reenc_times) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
