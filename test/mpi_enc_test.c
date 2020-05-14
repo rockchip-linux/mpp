@@ -46,6 +46,8 @@ typedef struct {
     // base flow context
     MppCtx ctx;
     MppApi *mpi;
+    RK_U32 use_legacy_cfg;
+    MppEncCfg cfg;
     MppEncPrepCfg prep_cfg;
     MppEncRcCfg rc_cfg;
     MppEncCodecCfg codec_cfg;
@@ -231,7 +233,7 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
     return MPP_OK;
 }
 
-MPP_RET test_mpp_setup(MpiEncTestData *p)
+MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
 {
     MPP_RET ret;
     MppApi *mpi;
@@ -398,6 +400,188 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
             mpp_err("mpi control enc set codec cfg failed ret %d\n", ret);
             goto RET;
         }
+    }
+
+    /* optional */
+    p->sei_mode = MPP_ENC_SEI_MODE_ONE_FRAME;
+    ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
+    if (ret) {
+        mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+        goto RET;
+    }
+
+    if (p->gop_mode && p->gop_mode < 4) {
+        mpi_enc_gen_gop_ref(&p->ref, p->gop_mode);
+
+        mpp_log_f("MPP_ENC_SET_GOPREF start gop mode %d\n", p->gop_mode);
+
+        ret = mpi->control(ctx, MPP_ENC_SET_GOPREF, &p->ref);
+        mpp_log_f("MPP_ENC_SET_GOPREF done ret %d\n", ret);
+        if (ret) {
+            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
+        p->header_mode = MPP_ENC_HEADER_MODE_EACH_IDR;
+        ret = mpi->control(ctx, MPP_ENC_SET_HEADER_MODE, &p->header_mode);
+        if (ret) {
+            mpp_err("mpi control enc set header mode failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    /* setup test mode by env */
+    mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
+    mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
+
+    if (p->osd_enable) {
+        /* gen and cfg osd plt */
+        mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
+        p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
+        p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
+        p->osd_plt_cfg.plt = &p->osd_plt;
+
+        ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
+        if (ret) {
+            mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    mpp_env_get_u32("osd_enable", &p->user_data_enable, 0);
+    mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
+
+RET:
+    return ret;
+}
+
+MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
+{
+    MPP_RET ret;
+    MppApi *mpi;
+    MppCtx ctx;
+    MppEncCfg cfg;
+    MppEncRcMode rc_mode = MPP_ENC_RC_MODE_CBR;
+
+    if (NULL == p)
+        return MPP_ERR_NULL_PTR;
+
+    mpi = p->mpi;
+    ctx = p->ctx;
+    cfg = p->cfg;
+
+    /* setup default parameter */
+    if (p->fps_in_den == 0)
+        p->fps_in_den = 1;
+    if (p->fps_in_num == 0)
+        p->fps_in_num = 30;
+    if (p->fps_out_den == 0)
+        p->fps_out_den = 1;
+    if (p->fps_out_num == 0)
+        p->fps_out_num = 30;
+    p->gop = 60;
+
+    if (!p->bps)
+        p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
+
+
+    mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
+    mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
+    mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
+    mpp_enc_cfg_set_s32(cfg, "prep:ver_stride", p->ver_stride);
+    mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
+
+    mpp_enc_cfg_set_s32(cfg, "rc:rc_mode", rc_mode);
+
+    switch (rc_mode) {
+    case MPP_ENC_RC_MODE_FIXQP : {
+        /* do not set bps on fix qp mode */
+    } break;
+    case MPP_ENC_RC_MODE_CBR : {
+        /* CBR mode has narrow bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps * 15 / 16);
+    } break;
+    case MPP_ENC_RC_MODE_VBR : {
+        /* CBR mode has wide bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps * 1 / 16);
+    } break;
+    default : {
+        mpp_err_f("unsupport encoder rc mode %d\n", rc_mode);
+    } break;
+    }
+
+    /* fix input / output frame rate */
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", p->fps_in_flex);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_num", p->fps_in_num);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denorm", p->fps_in_den);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_flex", p->fps_out_flex);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_num", p->fps_out_num);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denorm", p->fps_out_den);
+    mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop);
+
+    /* setup codec  */
+    mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
+    switch (p->type) {
+    case MPP_VIDEO_CodingAVC : {
+        /*
+         * H.264 profile_idc parameter
+         * 66  - Baseline profile
+         * 77  - Main profile
+         * 100 - High profile
+         */
+        mpp_enc_cfg_set_s32(cfg, "h264:profile", 100);
+        /*
+         * H.264 level_idc parameter
+         * 10 / 11 / 12 / 13    - qcif@15fps / cif@7.5fps / cif@15fps / cif@30fps
+         * 20 / 21 / 22         - cif@30fps / half-D1@@25fps / D1@12.5fps
+         * 30 / 31 / 32         - D1@25fps / 720p@30fps / 720p@60fps
+         * 40 / 41 / 42         - 1080p@30fps / 1080p@30fps / 1080p@60fps
+         * 50 / 51 / 52         - 4K@30fps
+         */
+        mpp_enc_cfg_set_s32(cfg, "h264:level", 40);
+        mpp_enc_cfg_set_s32(cfg, "h264:cabac_en", 1);
+        mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
+        mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        mpp_enc_cfg_set_s32(cfg, "jpeg:quant", 10);
+    } break;
+    case MPP_VIDEO_CodingVP8 : {
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_init", rc_mode == MPP_ENC_RC_MODE_FIXQP ? -1 : 26);
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_max", 51);
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_min", 10);
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_max_i", 46);
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_min_i", 24);
+    } break;
+    default : {
+        mpp_err_f("unsupport encoder coding type %d\n", p->type);
+    } break;
+    }
+
+    p->split_mode = 0;
+    p->split_arg = 0;
+
+    mpp_env_get_u32("split_mode", &p->split_mode, MPP_ENC_SPLIT_NONE);
+    mpp_env_get_u32("split_arg", &p->split_arg, 0);
+
+    if (p->split_mode) {
+        mpp_log("split_mode %d split_arg %d\n", p->split_mode, p->split_arg);
+        mpp_enc_cfg_set_s32(cfg, "split:split_mode", p->split_mode);
+        mpp_enc_cfg_set_s32(cfg, "split:split_arg", p->split_arg);
+    }
+
+    ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);
+    if (ret) {
+        mpp_err("mpi control enc set cfg failed ret %d\n", ret);
+        goto RET;
     }
 
     /* optional */
@@ -702,7 +886,16 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = test_mpp_setup(p);
+    ret = mpp_enc_cfg_init(&p->cfg);
+    if (ret) {
+        mpp_err_f("mpp_enc_cfg_init failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    if (p->use_legacy_cfg)
+        ret = test_mpp_setup_legacy(p);
+    else
+        ret = test_mpp_enc_cfg_setup(p);
     if (ret) {
         mpp_err_f("test mpp setup failed ret %d\n", ret);
         goto MPP_TEST_OUT;
@@ -724,6 +917,11 @@ MPP_TEST_OUT:
     if (p->ctx) {
         mpp_destroy(p->ctx);
         p->ctx = NULL;
+    }
+
+    if (p->cfg) {
+        mpp_enc_cfg_deinit(p->cfg);
+        p->cfg = NULL;
     }
 
     if (p->frm_buf) {

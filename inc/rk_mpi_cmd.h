@@ -192,5 +192,6 @@ typedef enum {
 } MpiCmd;
 
 #include "rk_venc_cmd.h"
+#include "rk_venc_cfg.h"
 
 #endif /*__RK_MPI_CMD_H__*/
