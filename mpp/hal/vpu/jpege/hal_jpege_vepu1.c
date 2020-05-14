@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "HAL_JPEGE_VDPU1"
+#define MODULE_TAG "hal_jpege_vepu1"
 
 #include <string.h>
 
@@ -22,19 +22,16 @@
 #include "mpp_log.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
+#include "mpp_device.h"
+#include "mpp_platform.h"
 
 #include "mpp_hal.h"
 
-#include "jpege_syntax.h"
+#include "hal_jpege_debug.h"
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
 #include "hal_jpege_base.h"
 #include "hal_jpege_vepu1.h"
-
-#include "mpp_device.h"
-#include "mpp_platform.h"
-
-#include "rk_type.h"
 
 #define VEPU_JPEGE_VEPU1_NUM_REGS 164
 

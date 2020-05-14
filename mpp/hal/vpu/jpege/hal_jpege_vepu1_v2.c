@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_jpege_vepu2"
+#define MODULE_TAG "hal_jpege_vepu1_2"
 
 #include <string.h>
 
@@ -25,19 +25,19 @@
 #include "mpp_device.h"
 #include "mpp_platform.h"
 
-#include "mpp_hal.h"
+#include "mpp_enc_hal.h"
 
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
-#include "hal_jpege_vepu2.h"
 #include "hal_jpege_base.h"
+#include "hal_jpege_vepu1.h"
 
-#define VEPU_JPEGE_VEPU2_NUM_REGS   184
+#define VEPU_JPEGE_VEPU1_NUM_REGS 164
 
-typedef struct jpege_vepu2_reg_set_t {
-    RK_U32  val[VEPU_JPEGE_VEPU2_NUM_REGS];
-} jpege_vepu2_reg_set;
+typedef struct jpege_vepu1_reg_set_t {
+    RK_U32  val[VEPU_JPEGE_VEPU1_NUM_REGS];
+} jpege_vepu1_reg_set;
 
 static const RK_U32 qp_reorder_table[64] = {
     0,  8, 16, 24,  1,  9, 17, 25, 32, 40, 48, 56, 33, 41, 49, 57,
@@ -46,7 +46,7 @@ static const RK_U32 qp_reorder_table[64] = {
     6, 14, 22, 30,  7, 15, 23, 31, 38, 46, 54, 62, 39, 47, 55, 63
 };
 
-MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_jpege_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
@@ -54,18 +54,16 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
-    ctx->int_cb = cfg->hal_int_cb;
-
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_ENC,              /* type */
         .coding = MPP_VIDEO_CodingMJPEG,  /* coding */
-        .platform = HAVE_VEPU2,           /* platform */
+        .platform = HAVE_VEPU1,           /* platform */
         .pp_enable = 0,                   /* pp_enable */
     };
 
     ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
     if (ret) {
-        mpp_err_f("failed to open vpu client\n");
+        mpp_err("mpp_device_init failed. ret: %d\n", ret);
         return ret;
     }
 
@@ -74,11 +72,10 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
 
     memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
     ctx->cfg = cfg->cfg;
-    ctx->set = cfg->set;
 
-    ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU2_NUM_REGS);
+    ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU1_NUM_REGS);
     if (!ctx->ioctl_info.regs) {
-        mpp_err_f("failed to malloc vdpu2 regs\n");
+        mpp_err_f("failed to malloc vdpu1 regs\n");
         return MPP_NOK;
     }
 
@@ -86,8 +83,9 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppHalCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_deinit(void *hal)
+static MPP_RET hal_jpege_vepu1_deinit_v2(void *hal)
 {
+    MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
@@ -98,20 +96,35 @@ MPP_RET hal_jpege_vepu2_deinit(void *hal)
     }
 
     if (ctx->dev_ctx) {
-        mpp_device_deinit(ctx->dev_ctx);
-        ctx->dev_ctx = NULL;
+        ret = mpp_device_deinit(ctx->dev_ctx);
+        if (ret) {
+            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+        }
     }
 
     mpp_free(ctx->ioctl_info.regs);
-
     hal_jpege_dbg_func("leave hal %p\n", hal);
+    return ret;
+}
+
+static MPP_RET hal_jpege_vepu1_get_task_v2(void *hal, HalEncTask *task)
+{
+    HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+
+    memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
     return MPP_OK;
 }
 
-static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
+static MPP_RET hal_jpege_vepu1_set_extra_info(RK_U32 *regs,
                                               RegExtraInfo *info,
                                               JpegeSyntax *syntax)
 {
+    if (info == NULL || syntax == NULL) {
+        mpp_err_f("invalid input parameter!");
+        return MPP_NOK;
+    }
+
     MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = syntax->hor_stride;
     RK_U32 ver_stride   = syntax->ver_stride;
@@ -120,12 +133,12 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
 
     switch (fmt) {
     case MPP_FMT_YUV420P : {
-        mpp_device_patch_add(regs, info, 49, hor_stride * ver_stride);
-        mpp_device_patch_add(regs, info, 50, hor_stride * ver_stride * 5 / 4);
+        mpp_device_patch_add(regs, info, 12, hor_stride * ver_stride);
+        mpp_device_patch_add(regs, info, 13, hor_stride * ver_stride * 5 / 4);
     } break;
     case MPP_FMT_YUV420SP : {
-        mpp_device_patch_add(regs, info, 49, hor_stride * ver_stride);
-        mpp_device_patch_add(regs, info, 50, hor_stride * ver_stride);
+        mpp_device_patch_add(regs, info, 12, hor_stride * ver_stride);
+        mpp_device_patch_add(regs, info, 13, hor_stride * ver_stride);
     } break;
     default : {
         mpp_log_f("other format(%d)\n", fmt);
@@ -135,18 +148,15 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    HalEncTask *info = &task->enc;
-    MppBuffer input  = info->input;
-    MppBuffer output = info->output;
+    MppBuffer input  = task->input;
+    MppBuffer output = task->output;
     JpegeSyntax *syntax = &ctx->syntax;
-    MppEncPrepCfg *prep = &ctx->cfg->prep;
-    MppEncCodecCfg *codec = &ctx->cfg->codec;
-    RK_U32 width        = prep->width;
-    RK_U32 height       = prep->height;
-    MppFrameFormat fmt  = prep->format;
+    RK_U32 width        = syntax->width;
+    RK_U32 height       = syntax->height;
+    MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = MPP_ALIGN(width, 16);
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
@@ -158,22 +168,17 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 val32;
     RK_S32 bitpos;
     RK_S32 bytepos;
+    RK_U32 deflt_cfg;
     RK_U32 r_mask = 0;
     RK_U32 g_mask = 0;
     RK_U32 b_mask = 0;
     RK_U32 x_fill = 0;
 
-    syntax->width   = width;
-    syntax->height  = height;
-    syntax->hor_stride = prep->hor_stride;
-    syntax->ver_stride = prep->ver_stride;
-    syntax->format  = fmt;
-    syntax->quality = codec->jpeg.quant;
-
     //hor_stride must be align with 8, and ver_stride mus align with 2
-    if ((prep->hor_stride & 0x7) || (prep->ver_stride & 0x1)) {
-        mpp_err_f("illegal resolution, hor_stride = %d, ver_stride = %d, width = %d, height = %d\n",
-                  prep->hor_stride, prep->ver_stride, prep->width, prep->height);
+    if ((syntax->hor_stride & 0x7) || (syntax->ver_stride & 0x1)) {
+        mpp_err_f("illegal resolution, hor_stride %d, ver_stride %d, width %d, height %d\n",
+                  syntax->hor_stride, syntax->ver_stride,
+                  syntax->width, syntax->height);
     }
 
     x_fill = (hor_stride - width) / 4;
@@ -187,84 +192,63 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     /* NOTE: write header will update qtable */
     write_jpeg_header(bits, syntax, qtable);
 
-    memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU2_NUM_REGS);
-    // input address setup
-    regs[48] = mpp_buffer_get_fd(input);
-    regs[49] = mpp_buffer_get_fd(input);
-    regs[50] = regs[49];
-    hal_jpege_vepu2_set_extra_info(regs, extra_info, syntax);
+    memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU1_NUM_REGS);
+    regs[11] = mpp_buffer_get_fd(input);
+    regs[12] = mpp_buffer_get_fd(input);
+    regs[13] = regs[12];
+    hal_jpege_vepu1_set_extra_info(regs, extra_info, syntax);
 
-    // output address setup
     bitpos = jpege_bits_get_bitpos(bits);
     bytepos = (bitpos + 7) >> 3;
     buf = jpege_bits_get_buf(bits);
-    {
-        RK_S32 left_byte = bytepos & 0x7;
-        RK_U8 *tmp = buf + (bytepos & (~0x7));
 
-        // clear the rest bytes in 64bit
-        if (left_byte) {
-            RK_U32 i;
-
-            for (i = left_byte; i < 8; i++)
-                tmp[i] = 0;
-        }
-
-        val32 = (tmp[0] << 24) |
-                (tmp[1] << 16) |
-                (tmp[2] <<  8) |
-                (tmp[3] <<  0);
-
-        regs[51] = val32;
-
-        if (left_byte > 4) {
-            val32 = (tmp[4] << 24) |
-                    (tmp[5] << 16) |
-                    (tmp[6] <<  8);
-        } else
-            val32 = 0;
-
-        regs[52] = val32;
-    }
-
-    regs[53] = size - bytepos;
-
-    // bus config
-    regs[54] = 16 << 8;
-
-    regs[60] = (((bytepos & 7) * 8) << 16) |
-               (x_fill << 4) |
-               (ver_stride - height);
-    regs[61] = prep->hor_stride;
+    deflt_cfg =
+        ((0  & (255)) << 24) |
+        ((0  & (255)) << 16) |
+        ((1  & (1)) << 15) |
+        ((16 & (63)) << 8) |
+        ((0  & (1)) << 6) |
+        ((0  & (1)) << 5) |
+        ((1  & (1)) << 4) |
+        ((1  & (1)) << 3) |
+        ((1  & (1)) << 1);
 
     switch (fmt) {
     case MPP_FMT_YUV420P : {
         val32 = 0;
-        r_mask = g_mask = b_mask = 0;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV420SP : {
         val32 = 1;
-        r_mask = g_mask = b_mask = 0;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV422_YUYV : {
         val32 = 2;
-        r_mask = g_mask = b_mask = 0;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_YUV422_UYVY : {
         val32 = 3;
-        r_mask = g_mask = b_mask = 0;
+        r_mask = 0;
+        g_mask = 0;
+        b_mask = 0;
     } break;
     case MPP_FMT_RGB565 : {
         val32 = 4;
-        r_mask = 15;
+        r_mask = 4;
         g_mask = 10;
-        b_mask = 4;
+        b_mask = 15;
     } break;
     case MPP_FMT_RGB444 : {
-        val32 = 6;
-        r_mask = 11;
+        val32 = 5;
+        r_mask = 3;
         g_mask = 7;
-        b_mask = 3;
+        b_mask = 11;
     } break;
     case MPP_FMT_RGB888 : {
         val32 = 7;
@@ -280,20 +264,78 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     } break;
     case MPP_FMT_RGB101010 : {
         val32 = 8;
-        r_mask = 29;
-        g_mask = 19;
-        b_mask = 9;
     } break;
     default : {
         mpp_err_f("invalid input format %d\n", fmt);
         val32 = 0;
     } break;
     }
-    regs[74] = val32 << 4;
 
-    regs[77] = mpp_buffer_get_fd(output) + (bytepos << 10);
+    if (val32 < 4) {
+        regs[2] = deflt_cfg |
+                  ((1 & (1)) << 14) |
+                  ((1 & (1)) << 2) |
+                  (1 & (1));
+    } else if (val32 < 7) {
+        regs[2] = deflt_cfg |
+                  ((1 & (1)) << 14) |
+                  ((0 & (1)) << 2) |
+                  (0 & (1));
+    } else {
+        regs[2] = deflt_cfg |
+                  ((0 & (1)) << 14) |
+                  ((0 & (1)) << 2) |
+                  (0 & (1));
+    }
 
-    /* 95 - 97 color conversion parameter */
+    regs[5] = mpp_buffer_get_fd(output) + (bytepos << 10);
+
+    regs[14] = (1 << 31) |
+               (0 << 30) |
+               (0 << 29) |
+               ((hor_stride >> 4) << 19) |
+               ((ver_stride >> 4) << 10) |
+               (1 << 3) | (2 << 1);
+
+    regs[15] = (0 << 29) |
+               (0 << 26) |
+               (syntax->hor_stride << 12) |
+               (x_fill << 10) |
+               ((ver_stride - height) << 6) |
+               (val32 << 2) | (0);
+
+    {
+        RK_S32 left_byte = bytepos & 0x7;
+        RK_U8 *tmp = buf + (bytepos & (~0x7));
+
+        if (left_byte) {
+            RK_U32 i;
+
+            for (i = left_byte; i < 8; i++)
+                tmp[i] = 0;
+        }
+
+        val32 = (tmp[0] << 24) |
+                (tmp[1] << 16) |
+                (tmp[2] <<  8) |
+                (tmp[3] <<  0);
+
+        regs[22] = val32;
+
+        if (left_byte > 4) {
+            val32 = (tmp[4] << 24) |
+                    (tmp[5] << 16) |
+                    (tmp[6] <<  8);
+        } else
+            val32 = 0;
+
+        regs[23] = val32;
+    }
+
+    regs[24] = size - bytepos;
+
+    regs[37] = ((bytepos & 7) * 8) << 23;
+
     {
         RK_U32 coeffA;
         RK_U32 coeffB;
@@ -344,53 +386,28 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
         } break;
         }
 
-        regs[95] = coeffA | (coeffB << 16);
-        regs[96] = coeffC | (coeffE << 16);
-        regs[97] = coeffF;
+        regs[53] = coeffA | (coeffB << 16);
+        regs[54] = coeffC | (coeffE << 16);
+        regs[55] = ((r_mask & 0x1f) << 26) |
+                   ((g_mask & 0x1f) << 21) |
+                   ((b_mask & 0x1f) << 16) | coeffF;
     }
 
-    /* TODO: 98 RGB bit mask */
-    regs[98] = (r_mask & 0x1f) << 16 |
-               (g_mask & 0x1f) << 8  |
-               (b_mask & 0x1f);
+    regs[14] |= 0x001;
 
-    regs[103] = (hor_stride >> 4) << 8  |
-                (ver_stride >> 4) << 20 |
-                (1 << 6) |  /* intra coding  */
-                (2 << 4) |  /* format jpeg   */
-                1;          /* encoder start */
-
-    /* input byte swap configure */
-    regs[105] = 7 << 26;
-    if (fmt < MPP_FMT_RGB565) {
-        // YUV format
-        regs[105] |= (7 << 29);
-    } else if (fmt < MPP_FMT_RGB888) {
-        // 16bit RGB
-        regs[105] |= (2 << 29);
-    } else {
-        // 32bit RGB
-        regs[105] |= (0 << 29);
-    }
-
-    /* encoder interrupt */
-    regs[109] = 1 << 12 |   /* clock gating */
-                1 << 10;    /* enable timeout interrupt */
-
-    /* 0 ~ 31 quantization tables */
     {
         RK_S32 i;
 
         for (i = 0; i < 16; i++) {
             /* qtable need to reorder in particular order */
-            regs[i] = qtable[0][qp_reorder_table[i * 4 + 0]] << 24 |
-                      qtable[0][qp_reorder_table[i * 4 + 1]] << 16 |
-                      qtable[0][qp_reorder_table[i * 4 + 2]] << 8 |
-                      qtable[0][qp_reorder_table[i * 4 + 3]];
+            regs[i + 64] = qtable[0][qp_reorder_table[i * 4 + 0]] << 24 |
+                           qtable[0][qp_reorder_table[i * 4 + 1]] << 16 |
+                           qtable[0][qp_reorder_table[i * 4 + 2]] << 8 |
+                           qtable[0][qp_reorder_table[i * 4 + 3]];
         }
         for (i = 0; i < 16; i++) {
             /* qtable need to reorder in particular order */
-            regs[i + 16] = qtable[1][qp_reorder_table[i * 4 + 0]] << 24 |
+            regs[i + 80] = qtable[1][qp_reorder_table[i * 4 + 0]] << 24 |
                            qtable[1][qp_reorder_table[i * 4 + 1]] << 16 |
                            qtable[1][qp_reorder_table[i * 4 + 2]] << 8 |
                            qtable[1][qp_reorder_table[i * 4 + 3]];
@@ -401,11 +418,11 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalTaskInfo *task)
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpege_vepu1_start_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    RK_U32 reg_size = sizeof(jpege_vepu2_reg_set);
+    RK_U32 reg_size = sizeof(jpege_vepu1_reg_set);
     RK_U32 extra_size = (ctx->ioctl_info.extra_info.count) ?
                         (sizeof(RegExtraInfo)) : (0);
     RK_U32 reg_num = reg_size / sizeof(RK_U32);
@@ -417,8 +434,10 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
 
     if (mpp_get_ioctl_version()) {
         ret = mpp_device_send_extra_info(ctx->dev_ctx, info);
+
         if (ret)
             return MPP_ERR_VPUHW;
+
         ret = mpp_device_send_reg(ctx->dev_ctx, ctx->ioctl_info.regs, nregs);
     } else {
         RK_U32 *cache = NULL;
@@ -440,131 +459,67 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalTaskInfo *task)
         }
     }
 
+
     hal_jpege_dbg_func("leave hal %p\n", hal);
     (void)ctx;
     (void)task;
-
     return ret;
 }
 
-MPP_RET hal_jpege_vepu2_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpege_vepu1_wait_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeBits bits = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
-    JpegeFeedback feedback;
+    JpegeFeedback *feedback = &ctx->feedback;
     RK_U32 val;
     RK_U32 sw_bit;
     RK_U32 hw_bit;
-    (void)task;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
     if (ctx->dev_ctx)
-        ret = mpp_device_wait_reg(ctx->dev_ctx, regs, sizeof(jpege_vepu2_reg_set) / sizeof(RK_U32));
+        ret = mpp_device_wait_reg(ctx->dev_ctx, regs, sizeof(jpege_vepu1_reg_set) / sizeof(RK_U32));
 
-    val = regs[109];
+    val = regs[1];
     hal_jpege_dbg_output("hw_status %08x\n", val);
-    feedback.hw_status = val & 0x70;
-    val = regs[53];
+    feedback->hw_status = val & 0x70;
+    val = regs[24];
 
     sw_bit = jpege_bits_get_bitpos(bits);
     hw_bit = val;
 
     // NOTE: hardware will return 64 bit access byte count
-    feedback.stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
-    task->enc.length = feedback.stream_length;
+    feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
+    task->length = feedback->stream_length;
     hal_jpege_dbg_output("stream bit: sw %d hw %d total %d\n",
-                         sw_bit, hw_bit, feedback.stream_length);
-
-    ctx->int_cb.callBack(ctx->int_cb.opaque, &feedback);
+                         sw_bit, hw_bit, feedback->stream_length);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;
 }
 
-MPP_RET hal_jpege_vepu2_reset(void *hal)
+static MPP_RET hal_jpege_vepu1_ret_task_v2(void *hal, HalEncTask *task)
 {
-    hal_jpege_dbg_func("enter hal %p\n", hal);
+    HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
-    hal_jpege_dbg_func("leave hal %p\n", hal);
+    task->hal_ret.data = &ctx->feedback;
+    task->hal_ret.number = 1;
+
     return MPP_OK;
 }
 
-MPP_RET hal_jpege_vepu2_flush(void *hal)
-{
-    hal_jpege_dbg_func("enter hal %p\n", hal);
-
-    hal_jpege_dbg_func("leave hal %p\n", hal);
-    return MPP_OK;
-}
-
-MPP_RET hal_jpege_vepu2_control(void *hal, MpiCmd cmd, void *param)
-{
-    (void)hal;
-    MPP_RET ret = MPP_OK;
-
-    hal_jpege_dbg_func("enter hal %p cmd %x param %p\n", hal, cmd, param);
-
-    switch (cmd) {
-    case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *cfg = (MppEncPrepCfg *)param;
-        if (cfg->width < 16 && cfg->width > 8192) {
-            mpp_err("jpege: invalid width %d is not in range [16..8192]\n", cfg->width);
-            ret = MPP_NOK;
-        }
-
-        if (cfg->height < 16 && cfg->height > 8192) {
-            mpp_err("jpege: invalid height %d is not in range [16..8192]\n", cfg->height);
-            ret = MPP_NOK;
-        }
-
-        if (cfg->format != MPP_FMT_YUV420SP     &&
-            cfg->format != MPP_FMT_YUV420P      &&
-            cfg->format != MPP_FMT_YUV422SP_VU  &&
-            cfg->format != MPP_FMT_YUV422_YUYV  &&
-            cfg->format != MPP_FMT_YUV422_UYVY  &&
-            cfg->format != MPP_FMT_RGB888       &&
-            cfg->format != MPP_FMT_BGR888) {
-            mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
-            ret = MPP_NOK;
-        }
-    } break;
-    case MPP_ENC_GET_PREP_CFG:
-    case MPP_ENC_GET_CODEC_CFG:
-    case MPP_ENC_SET_IDR_FRAME:
-    case MPP_ENC_SET_OSD_PLT_CFG:
-    case MPP_ENC_SET_OSD_DATA_CFG:
-    case MPP_ENC_GET_HDR_SYNC:
-    case MPP_ENC_GET_EXTRA_INFO:
-    case MPP_ENC_GET_SEI_DATA:
-    case MPP_ENC_SET_SEI_CFG:
-    case MPP_ENC_SET_RC_CFG : {
-    } break;
-    case MPP_ENC_SET_CODEC_CFG : {
-        HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-        MppEncJpegCfg *src = &ctx->set->codec.jpeg;
-        MppEncJpegCfg *dst = &ctx->cfg->codec.jpeg;
-        RK_U32 change = src->change;
-
-        if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
-            if (src->quant < 0 || src->quant > 10) {
-                mpp_err("jpege: invalid quality level %d is not in range [0..10] set to default 8\n");
-                src->quant = 8;
-            }
-            dst->quant = src->quant;
-        }
-
-        dst->change = 0;
-        src->change = 0;
-    } break;
-    default:
-        mpp_err("No correspond cmd(%08x) found, and can not config!", cmd);
-        ret = MPP_NOK;
-        break;
-    }
-
-    hal_jpege_dbg_func("leave hal %p\n", hal);
-    return ret;
-}
+const MppEncHalApi hal_jpege_vepu1 = {
+    .name       = "hal_jpege_vepu1",
+    .coding     = MPP_VIDEO_CodingMJPEG,
+    .ctx_size   = sizeof(HalJpegeCtx),
+    .flag       = 0,
+    .init       = hal_jpege_vepu1_init_v2,
+    .deinit     = hal_jpege_vepu1_deinit_v2,
+    .get_task   = hal_jpege_vepu1_get_task_v2,
+    .gen_regs   = hal_jpege_vepu1_gen_regs_v2,
+    .start      = hal_jpege_vepu1_start_v2,
+    .wait       = hal_jpege_vepu1_wait_v2,
+    .ret_task   = hal_jpege_vepu1_ret_task_v2,
+};

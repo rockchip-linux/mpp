@@ -902,3 +902,16 @@ const RcImplApi default_h265e = {
     rc_model_v2_hal_start,
     rc_model_v2_hal_end,
 };
+
+const RcImplApi default_jpege = {
+    "default",
+    MPP_VIDEO_CodingMJPEG,
+    sizeof(RcModelV2Ctx),
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+};
