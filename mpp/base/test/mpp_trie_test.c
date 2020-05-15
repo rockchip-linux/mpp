@@ -89,4 +89,6 @@ int main()
     }
 
     mpp_trie_deinit(ac);
+
+    return 0;
 }

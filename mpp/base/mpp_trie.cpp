@@ -39,7 +39,8 @@
 
 /* ascii 32 is ' ', char after space is valid data */
 #define MAX_NEXT                        (128 - 32)
-#define DEFAULT_NODE_COUNT              512
+#define DEFAULT_NODE_COUNT              800
+#define DEFAULT_INFO_COUNT              80
 
 /* spatial optimized tire tree */
 typedef struct MppAcNode_t {
@@ -112,7 +113,7 @@ MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count)
         }
     }
 
-    p->info_count = 256;
+    p->info_count = DEFAULT_INFO_COUNT;
     p->info = mpp_calloc(const char **, p->info_count);
     if (NULL == p->info) {
         mpp_err_f("failed to alloc %d storage\n", p->info_count);
