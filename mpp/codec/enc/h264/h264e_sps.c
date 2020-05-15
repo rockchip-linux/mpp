@@ -164,6 +164,11 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     vui->time_scale = rc->fps_out_num * 2;
     vui->num_units_in_tick = rc->fps_out_denorm;
     vui->fixed_frame_rate = !rc->fps_out_flex;
+    vui->vidformat = MPP_FRAME_VIDEO_FMT_UNSPECIFIED;
+    if (prep->range == MPP_FRAME_RANGE_JPEG) {
+        vui->signal_type_present = 1;
+        vui->fullrange = 1;
+    }
 
     return MPP_OK;
 }

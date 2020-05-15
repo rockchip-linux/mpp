@@ -56,6 +56,17 @@ typedef enum {
     MPP_FRAME_RANGE_NB,                 ///< Not part of ABI
 } MppFrameColorRange;
 
+typedef enum {
+    MPP_FRAME_VIDEO_FMT_COMPONEMT   = 0,
+    MPP_FRAME_VIDEO_FMT_PAL         = 1,
+    MPP_FRAME_VIDEO_FMT_NTSC        = 2,
+    MPP_FRAME_VIDEO_FMT_SECAM       = 3,
+    MPP_FRAME_VIDEO_FMT_MAC         = 4,
+    MPP_FRAME_VIDEO_FMT_UNSPECIFIED = 5,
+    MPP_FRAME_VIDEO_FMT_RESERVED0   = 6,
+    MPP_FRAME_VIDEO_FMT_RESERVED1   = 7,
+} MppFrameVideoFormat;
+
 /*
  * Chromaticity coordinates of the source primaries.
  */

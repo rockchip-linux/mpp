@@ -211,8 +211,11 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         sps->vui.m_overscanInfoPresentFlag = 0;
         sps->vui.m_overscanAppropriateFlag = 0;
         sps->vui.m_videoSignalTypePresentFlag = 0;
-        sps->vui.m_videoFormat = 5;
-        sps->vui.m_videoFullRangeFlag = 0;
+        sps->vui.m_videoFormat = MPP_FRAME_VIDEO_FMT_UNSPECIFIED;
+        if (prep->range == MPP_FRAME_RANGE_JPEG) {
+            sps->vui.m_videoFullRangeFlag = 1;
+            sps->vui.m_videoSignalTypePresentFlag = 1;
+        }
         sps->vui.m_colourDescriptionPresentFlag = 0;
         sps->vui.m_colourPrimaries = 2;
         sps->vui.m_transferCharacteristics = 2;
@@ -236,10 +239,6 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         if (vui->vui_aspect_ratio) {
             sps->vui.m_aspectRatioInfoPresentFlag = !!vui->vui_aspect_ratio;
             sps->vui.m_aspectRatioIdc = vui->vui_aspect_ratio;
-        }
-        if (vui->full_range) {
-            sps->vui.m_videoFullRangeFlag = 1;
-            sps->vui.m_videoSignalTypePresentFlag = 1;
         }
         sps->vui.m_timingInfo.m_timingInfoPresentFlag = 1;
         sps->vui.m_timingInfo.m_numUnitsInTick = i_timebase_num;
