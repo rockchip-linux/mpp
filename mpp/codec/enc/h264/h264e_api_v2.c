@@ -202,8 +202,11 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     if (change) {
         MppEncPrepCfg bak = *dst;
 
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
             dst->format = src->format;
+            dst->color = src->color;
+            dst->range = src->range;
+        }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
             dst->rotation = src->rotation;

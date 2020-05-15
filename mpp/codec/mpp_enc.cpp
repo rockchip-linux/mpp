@@ -734,8 +734,11 @@ void mpp_enc_update_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
     if (change) {
 
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
             dst->format = src->format;
+            dst->color = src->color;
+            dst->range = src->range;
+        }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
             dst->rotation = src->rotation;

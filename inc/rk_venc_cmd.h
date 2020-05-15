@@ -349,6 +349,7 @@ typedef struct MppEncPrepCfg_t {
      */
     MppFrameFormat      format;
     MppFrameColorSpace  color;
+    MppFrameColorRange  range;
 
     MppEncRotationCfg   rotation;
 
