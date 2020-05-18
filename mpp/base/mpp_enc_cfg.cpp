@@ -130,24 +130,17 @@ static const char *cfg_func_names[] = {
     }
 
 #define EXPAND_AS_API(base, name, func_type, in_type, flag, field0, field1) \
-    static MppEncCfgApi api_set_##base##_##name = \
+    static MppEncCfgApi api_##base##_##name = \
     { \
         #base":"#name, \
         SET_##func_type, \
-        (void *)set_##base##_##name, \
-    }; \
-    static MppEncCfgApi api_get_##base##_##name = \
-    { \
-        #base":"#name, \
         GET_##func_type, \
+        (void *)set_##base##_##name, \
         (void *)get_##base##_##name, \
     };
 
-#define EXPAND_AS_SET_ARRAY(base, name, func_type, in_type, flag, field0, field1) \
-    &api_set_##base##_##name,
-
-#define EXPAND_AS_GET_ARRAY(base, name, func_type, in_type, flag, field0, field1) \
-    &api_get_##base##_##name,
+#define EXPAND_AS_ARRAY(base, name, func_type, in_type, flag, field0, field1) \
+    &api_##base##_##name,
 
 #define ENTRY_TABLE(ENTRY)  \
     /* rc config */ \
@@ -220,12 +213,8 @@ static const char *cfg_func_names[] = {
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
 
-MppEncCfgApi *set_cfg_apis[] = {
-    ENTRY_TABLE(EXPAND_AS_SET_ARRAY)
-};
-
-MppEncCfgApi *get_cfg_apis[] = {
-    ENTRY_TABLE(EXPAND_AS_GET_ARRAY)
+static MppEncCfgApi *cfg_apis[] = {
+    ENTRY_TABLE(EXPAND_AS_ARRAY)
 };
 
 class MppEncCfgService
@@ -236,8 +225,7 @@ private:
     MppEncCfgService(const MppEncCfgService &);
     MppEncCfgService &operator=(const MppEncCfgService &);
 
-    MppTrie mSetCfg;
-    MppTrie mGetCfg;
+    MppTrie mCfgApi;
 
 public:
     static MppEncCfgService *get() {
@@ -248,47 +236,33 @@ public:
         return &instance;
     }
 
-    MppTrie get_api_set() { return mSetCfg; };
-    MppTrie get_api_get() { return mGetCfg; };
+    MppTrie get_api() { return mCfgApi; };
 };
 
 MppEncCfgService::MppEncCfgService() :
-    mSetCfg(NULL),
-    mGetCfg(NULL)
+    mCfgApi(NULL)
 {
     MPP_RET ret;
     RK_U32 i;
 
-    ret = mpp_trie_init(&mSetCfg, 600);
+    ret = mpp_trie_init(&mCfgApi, 600);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
     } else {
-        for (i = 0; i < MPP_ARRAY_ELEMS(set_cfg_apis); i++)
-            mpp_trie_add_info(mSetCfg, &set_cfg_apis[i]->name);
-    }
-
-    ret = mpp_trie_init(&mGetCfg, 600);
-    if (ret) {
-        mpp_err_f("failed to init enc cfg get trie\n");
-    } else {
-        for (i = 0; i < MPP_ARRAY_ELEMS(get_cfg_apis); i++)
-            mpp_trie_add_info(mGetCfg, &get_cfg_apis[i]->name);
+        for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
+            mpp_trie_add_info(mCfgApi, &cfg_apis[i]->name);
     }
 
     mpp_log_f("create config %d node %d info\n",
-              mpp_trie_get_node_count(mSetCfg),
-              mpp_trie_get_info_count(mSetCfg));
+              mpp_trie_get_node_count(mCfgApi),
+              mpp_trie_get_info_count(mCfgApi));
 }
 
 MppEncCfgService::~MppEncCfgService()
 {
-    if (mSetCfg) {
-        mpp_trie_deinit(mSetCfg);
-        mSetCfg = NULL;
-    }
-    if (mGetCfg) {
-        mpp_trie_deinit(mGetCfg);
-        mGetCfg = NULL;
+    if (mCfgApi) {
+        mpp_trie_deinit(mCfgApi);
+        mCfgApi = NULL;
     }
 }
 
@@ -309,8 +283,7 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     }
 
     p->size = sizeof(*p);
-    p->set = MppEncCfgService::get()->get_api_set();
-    p->get = MppEncCfgService::get()->get_api_get();
+    p->api = MppEncCfgService::get()->get_api();
 
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
@@ -339,15 +312,15 @@ MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
             return MPP_ERR_NULL_PTR; \
         } \
         MppEncCfgImpl *p = (MppEncCfgImpl *)cfg; \
-        const char **info = mpp_trie_get_info(p->set, name); \
+        const char **info = mpp_trie_get_info(p->api, name); \
         if (NULL == info) { \
             mpp_err_f("failed to set %s to %d\n", name, val); \
             return MPP_NOK; \
         } \
         MppEncCfgApi *api = (MppEncCfgApi *)info; \
-        mpp_assert(api->type == func_enum); \
-        mpp_enc_cfg_dbg_set("name %s type %s\n", api->name, cfg_func_names[api->type]); \
-        MPP_RET ret = ((func_type)api->api)(&p->cfg, val); \
+        mpp_assert(api->type_set == func_enum); \
+        mpp_enc_cfg_dbg_set("name %s type %s\n", api->name, cfg_func_names[api->type_set]); \
+        MPP_RET ret = ((func_type)api->api_set)(&p->cfg, val); \
         return ret; \
     }
 
@@ -365,15 +338,15 @@ ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_ptr, void *, SET_PTR, CfgSetPtr);
             return MPP_ERR_NULL_PTR; \
         } \
         MppEncCfgImpl *p = (MppEncCfgImpl *)cfg; \
-        const char **info = mpp_trie_get_info(p->get, name); \
+        const char **info = mpp_trie_get_info(p->api, name); \
         if (NULL == info) { \
             mpp_err_f("failed to set %s to %d\n", name, val); \
             return MPP_NOK; \
         } \
         MppEncCfgApi *api = (MppEncCfgApi *)info; \
-        mpp_assert(api->type == func_enum); \
-        mpp_enc_cfg_dbg_get("name %s type %s\n", api->name, cfg_func_names[api->type]); \
-        MPP_RET ret = ((func_type)api->api)(&p->cfg, val); \
+        mpp_assert(api->type_get == func_enum); \
+        mpp_enc_cfg_dbg_get("name %s type %s\n", api->name, cfg_func_names[api->type_get]); \
+        MPP_RET ret = ((func_type)api->api_get)(&p->cfg, val); \
         return ret; \
     }
 
@@ -389,9 +362,10 @@ void mpp_enc_cfg_show(void)
 
     mpp_log_f("dumping valid configure string start:\n");
 
-    for (i = 0; i < MPP_ARRAY_ELEMS(set_cfg_apis); i++)
-        mpp_log_f("name %s type %s\n", set_cfg_apis[i]->name,
-                  cfg_func_names[set_cfg_apis[i]->type]);
+    for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
+        mpp_log_f("name %s type %s %s\n", cfg_apis[i]->name,
+                  cfg_func_names[cfg_apis[i]->type_set],
+                  cfg_func_names[cfg_apis[i]->type_get]);
 
     mpp_log_f("dumping valid configure string done:\n");
 }

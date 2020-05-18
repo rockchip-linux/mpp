@@ -22,8 +22,7 @@
 
 typedef struct MppEncCfgImpl_t {
     RK_S32              size;
-    MppTrie             set;
-    MppTrie             get;
+    MppTrie             api;
     MppEncCfgSet        cfg;
 } MppEncCfgImpl;
 

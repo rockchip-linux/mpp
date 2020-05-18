@@ -168,6 +168,10 @@ if(GCC)
     add_definitions(-fPIC)
     # disable exception for C++
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+    # for libary linking
+    set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)
+    set(END_WHOLE_ARCHIVE -Wl,--no-whole-archive)
 endif(GCC)
 
 # ----------------------------------------------------------------------------
