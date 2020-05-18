@@ -19,7 +19,7 @@ set(VPU_ABI_VERSION "1")
 
 add_library(${VPU_STATIC} STATIC ${MPP_LEGACY_SRC})
 set_target_properties(${VPU_STATIC} PROPERTIES FOLDER "mpp/legacy")
-target_link_libraries(${VPU_STATIC} ${MPP_STATIC})
+target_link_libraries(${VPU_STATIC} ${MPP_SHARED})
 
 add_library(${VPU_SHARED} SHARED ${MPP_LEGACY_SRC})
 set_target_properties(${VPU_SHARED} PROPERTIES FOLDER "mpp/legacy")

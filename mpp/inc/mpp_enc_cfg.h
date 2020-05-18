@@ -47,8 +47,10 @@ typedef struct MppEncCfgSet_t {
  */
 typedef struct MppEncCfgApi_t {
     const char          *name;
-    RK_S32              type;
-    void                *api;
+    RK_S32              type_set;
+    RK_S32              type_get;
+    void                *api_set;
+    void                *api_get;
 } MppEncCfgApi;
 
 #endif /*__MPP_ENC_CFG_H__*/
