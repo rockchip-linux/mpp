@@ -216,7 +216,7 @@ public:
         RK_U32 i;
 
         for (i = 0; i < MPP_ARRAY_ELEMS(codec_paths); i++) {
-            rkapi_hdl = dlopen(codec_paths[i], RTLD_LAZY);
+            rkapi_hdl = dlopen(codec_paths[i], RTLD_LAZY | RTLD_GLOBAL);
             if (rkapi_hdl)
                 break;
         }

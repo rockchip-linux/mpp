@@ -10,4 +10,4 @@ add_library(hal_h265e_vpu STATIC
     )
 
 set_target_properties(hal_h265e_vpu PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(hal_h265e_vpu hal_h265e mpp_base)
+target_link_libraries(hal_h265e_vpu vproc_rga hal_h265e mpp_base)
