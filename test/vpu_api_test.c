@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #include "mpp_log.h"
 #include "mpp_time.h"
@@ -27,8 +28,6 @@
 #include "utils.h"
 
 #define FOR_TEST_ENCODE 1
-
-static RK_U32 VPU_API_DEMO_DEBUG_DISABLE = 0;
 
 #define BSWAP32(x) \
     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
@@ -62,7 +61,6 @@ typedef struct VpuApiDemoCmdContext {
     char    output_file[200];
     RK_U8   have_input;
     RK_U8   have_output;
-    RK_U8   disable_debug;
     RK_U32  record_frames;
     RK_S64  record_start_ms;
 } VpuApiDemoCmdContext_t;
@@ -81,8 +79,15 @@ static OptionInfo vpuApiCmd[] = {
     { "coding",  "coding_type", "encoding type of the bitstream" },
     { "vframes", "number",      "set the number of video frames to record" },
     { "ss",      "time_off",    "set the start time offset, use Ms as the unit." },
-    { "d",       "disable",     "disable the debug output info." },
 };
+
+static void *vpuapi_hdl = NULL;
+static VpuCodecContext_t *ctx;
+RK_S32 (*vpuapi_open_ctx)(VpuCodecContext_t **ctx);
+RK_S32 (*vpuapi_close_ctx)(VpuCodecContext_t **ctx);
+RK_S32 (*vpuapi_mem_link)(VPUMemLinear_t *p);
+RK_S32 (*vpuapi_mem_free)(VPUMemLinear_t *p);
+
 
 static void show_usage()
 {
@@ -150,9 +155,6 @@ static RK_S32 parse_options(int argc, char **argv, VpuApiDemoCmdContext_t *cmdCx
                     ret = -1;
                     goto PARSE_OPINIONS_OUT;
                 }
-            case 'd':
-                cmdCxt->disable_debug = 1;
-                break;
             case 'w':
                 if (argv[optindex]) {
                     cmdCxt->width = atoi(argv[optindex]);
@@ -240,9 +242,10 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
 {
     FILE *pInFile = NULL;
     FILE *pOutFile = NULL;
-    struct VpuCodecContext *ctx = NULL;
     RK_S32 nal = 0x00000001;
-    RK_S32 fileSize, ret, size;
+    RK_S32 fileSize;
+    RK_S32 ret = 0;
+    RK_S32 size;
     RK_U32 readOneFrameSize = 0;
     EncoderOut_t    enc_out_yuv;
     EncoderOut_t *enc_out = NULL;
@@ -320,7 +323,7 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
         ENCODE_ERR_RET(ERROR_MEMORY);
     }
 
-    ret = vpu_open_context(&ctx);
+    ret = vpuapi_open_ctx(&ctx);
     if (ret || (ctx == NULL)) {
         ENCODE_ERR_RET(ERROR_MEMORY);
     }
@@ -348,8 +351,8 @@ static RK_S32 vpu_encode_demo(VpuApiDemoCmdContext_t *cmd)
     enc_param->enableCabac  = 1;
     enc_param->cabacInitIdc = 0;
     enc_param->intraPicRate = 30;
-    enc_param->profileIdc = 66;
-    enc_param->levelIdc = 40;
+    enc_param->profileIdc   = 100;
+    enc_param->levelIdc     = 40;
 
     if ((ret = ctx->init(ctx, NULL, 0)) != 0) {
         mpp_log("init vpu api context fail, ret: 0x%X\n", ret);
@@ -472,7 +475,7 @@ ENCODE_OUT:
             free(ctx->private_data);
             ctx->private_data = NULL;
         }
-        vpu_close_context(&ctx);
+        vpuapi_close_ctx(&ctx);
         ctx = NULL;
     }
     if (pInFile) {
@@ -497,7 +500,6 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
 {
     FILE *pInFile = NULL;
     FILE *pOutFile = NULL;
-    struct VpuCodecContext *ctx = NULL;
     RK_S32 fileSize = 0, pkt_size = 0;
     RK_S32 ret = 0;
     RK_U32 frame_count = 0;
@@ -563,7 +565,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
     memset(&decOut, 0, sizeof(DecoderOut_t));
     pOut = &decOut;
 
-    ret = vpu_open_context(&ctx);
+    ret = vpuapi_open_ctx(&ctx);
     if (ret || (ctx == NULL)) {
         DECODE_ERR_RET(ERROR_MEMORY);
     }
@@ -669,7 +671,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
             */
             if ((pOut->size) && (pOut->data)) {
                 frame = (VPU_FRAME *)(pOut->data);
-                VPUMemLink(&frame->vpumem);
+                vpuapi_mem_link(&frame->vpumem);
                 wAlign16 = ((frame->DisplayWidth + 15) & (~15));
                 hAlign16 = ((frame->DisplayHeight + 15) & (~15));
                 frameSize = wAlign16 * hAlign16 * 3 / 2;
@@ -686,7 +688,7 @@ static RK_S32 vpu_decode_demo(VpuApiDemoCmdContext_t *cmd)
                  ** remember use VPUFreeLinear to free, other wise memory leak will
                  ** give you a surprise.
                 */
-                VPUFreeLinear(&frame->vpumem);
+                vpuapi_mem_free(&frame->vpumem);
                 // NOTE: pOut->data is malloc from vpu_api we need to free it.
                 free(pOut->data);
                 pOut->data = NULL;
@@ -711,7 +713,7 @@ DECODE_OUT:
         pExtra = NULL;
     }
     if (ctx) {
-        vpu_close_context(&ctx);
+        vpuapi_close_ctx(&ctx);
         ctx = NULL;
     }
     if (pInFile) {
@@ -731,20 +733,44 @@ DECODE_OUT:
     return ret;
 }
 
-
+/* vpu_api is only on Android platform */
 int main(int argc, char **argv)
 {
     RK_S32 ret = 0;
     VpuApiDemoCmdContext_t demoCmdCtx;
     VpuApiDemoCmdContext_t *cmd = NULL;
-    VPU_API_DEMO_DEBUG_DISABLE = 0;
 
     mpp_log("/*******  vpu api demo in *******/\n");
     if (argc == 1) {
         show_usage();
-        mpp_log("vpu api demo complete directly\n");
         return 0;
     }
+
+    /* open library for access */
+    vpuapi_hdl = dlopen("libvpu.so", RTLD_LAZY | RTLD_GLOBAL);
+    if (NULL == vpuapi_hdl) {
+        mpp_log("failed to open libvpu.so\n");
+        ret = -1;
+        goto DEMO_OUT;
+    }
+
+    vpuapi_open_ctx = (RK_S32 (*)(VpuCodecContext_t **ctx))dlsym(vpuapi_hdl, "vpu_open_context");
+    vpuapi_close_ctx = (RK_S32 (*)(VpuCodecContext_t **ctx))dlsym(vpuapi_hdl, "vpu_close_context");
+    vpuapi_mem_link = (RK_S32 (*)(VPUMemLinear_t * p))dlsym(vpuapi_hdl, "VPUMemLink");
+    vpuapi_mem_free = (RK_S32 (*)(VPUMemLinear_t * p))dlsym(vpuapi_hdl, "VPUFreeLinear");
+
+    if (NULL == vpuapi_open_ctx || NULL == vpuapi_close_ctx ||
+        NULL == vpuapi_mem_link || NULL == vpuapi_mem_free) {
+        mpp_log("failed to open vpu_open_context %p vpu_close_context %p\n",
+                vpuapi_open_ctx, vpuapi_close_ctx);
+        mpp_log("failed to open VPUMemLink %p VPUFreeLinear %p\n",
+                vpuapi_mem_link, vpuapi_mem_free);
+        ret = -1;
+        goto DEMO_OUT;
+    }
+
+    mpp_log("get vpuapi handle %p vpu_open_context %p vpu_close_context %p\n",
+            vpuapi_hdl, vpuapi_open_ctx, vpuapi_close_ctx);
 
     cmd = &demoCmdCtx;
     memset(cmd, 0, sizeof(VpuApiDemoCmdContext_t));
@@ -759,26 +785,25 @@ int main(int argc, char **argv)
         DEMO_ERR_RET(ERROR_INVALID_PARAM);
     }
 
-    if (cmd->disable_debug) {
-        VPU_API_DEMO_DEBUG_DISABLE = 1;
-    }
-
     switch (cmd->codec_type) {
-    case CODEC_DECODER:
+    case CODEC_DECODER : {
         ret = vpu_decode_demo(cmd);
-        break;
-    case CODEC_ENCODER:
+    } break;
+    case CODEC_ENCODER : {
         ret = vpu_encode_demo(cmd);
-        break;
-
-    default:
+    } break;
+    default : {
         ret = ERROR_INVALID_PARAM;
-        break;
+    } break;
     }
 
 DEMO_OUT:
     if (ret) {
         mpp_log("vpu api demo fail, err: %d\n", ret);
+        if (vpuapi_hdl) {
+            dlclose(vpuapi_hdl);
+            vpuapi_hdl = NULL;
+        }
     } else {
         mpp_log("vpu api demo complete OK.\n");
     }

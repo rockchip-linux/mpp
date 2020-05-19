@@ -9,4 +9,4 @@ add_library(utils STATIC
     dictionary.c
     )
 
-target_link_libraries(utils ${MPP_SHARED})
+target_link_libraries(utils mpp_base)

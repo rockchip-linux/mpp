@@ -475,7 +475,7 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         memcpy(&enc_param, param, sizeof(enc_param));
         vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, param);
 
-        mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
+        ret = mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
 
         if (pkt) {
             ctx->extradata_size = (RK_S32)mpp_packet_get_length(pkt);
