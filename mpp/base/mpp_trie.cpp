@@ -106,7 +106,7 @@ MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count)
 
     p->node_count = node_count ? node_count : DEFAULT_NODE_COUNT;
     if (p->node_count) {
-        p->nodes = mpp_malloc(MppTrieNode, p->node_count);
+        p->nodes = mpp_calloc(MppTrieNode, p->node_count);
         if (NULL == p->nodes) {
             mpp_err_f("create %d nodes failed\n", p->node_count);
             goto DONE;
@@ -175,16 +175,16 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     MppTrieNode *node = NULL;
     const char *s = *info;
     RK_S32 len = strnlen(s, SZ_1K);
-    RK_S32 next = 0;
+    RK_S16 next = 0;
     RK_S16 idx = 0;
     RK_S32 i;
 
     trie_dbg_set("trie %p add info %s len %d\n", trie, s, len);
 
     for (i = 0; i < len && s[i]; i++) {
-        RK_S32 key = s[i];
-        RK_S32 key0 = (key >> 0) & 0xf;
-        RK_S32 key1 = (key >> 4) & 0xf;
+        RK_U32 key = s[i];
+        RK_S16 key0 = (key >> 4) & 0xf;
+        RK_S16 key1 = (key >> 0) & 0xf;
 
         node = p->nodes + idx;
         next = node->next[key0];
@@ -244,15 +244,15 @@ const char **mpp_trie_get_info(MppTrie trie, const char *name)
     MppTrieNode *node = nodes;
     const char *s = name;
     RK_S32 len = strlen(name);
-    RK_S32 idx = 0;
+    RK_S16 idx = 0;
     RK_S32 i;
 
     trie_dbg_get("trie %p search %s len %2d start\n", trie, name, len);
 
     for (i = 0; i < len; i++, s++) {
-        RK_S32 key = s[0];
-        RK_S32 key0 = (key >> 0) & 0xf;
-        RK_S32 key1 = (key >> 4) & 0xf;
+        RK_U32 key = s[0];
+        RK_S16 key0 = (key >> 4) & 0xf;
+        RK_S16 key1 = (key >> 0) & 0xf;
 
         idx = node->next[key0];
 
