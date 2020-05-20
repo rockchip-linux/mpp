@@ -199,11 +199,15 @@ void *mpp_enc_control_thread(void *data)
             if (MPP_THREAD_RUNNING != thd_enc->get_status())
                 break;
 
-            if (check_enc_task_wait(enc, &task))
+            if (check_enc_task_wait(enc, &task)) {
+                enc_dbg_detail("wait start\n");
                 thd_enc->wait();
+            }
         }
+        enc_dbg_detail("work start\n");
 
         if (enc->reset_flag) {
+            enc_dbg_detail("reset start\n");
             {
                 AutoMutex autolock(thd_enc->mutex());
                 enc->status_flag = 0;
@@ -212,6 +216,7 @@ void *mpp_enc_control_thread(void *data)
             AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
             enc->reset_flag = 0;
             sem_post(&enc->enc_reset);
+            enc_dbg_detail("reset done\n");
             continue;
         }
 
@@ -322,13 +327,14 @@ void *mpp_enc_control_thread(void *data)
         if (mpp_frame_get_eos(frame))
             mpp_packet_set_eos(packet);
 
+        enc_dbg_detail("pakcet ready len %d\n", mpp_packet_get_length(packet));
+
         /*
          * first clear output packet
          * then enqueue task back to input port
          * final user will release the mpp_frame they had input
          */
         mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
-        mpp_port_enqueue(input, task_in);
 
         // send finished task to output port
         ret = mpp_port_dequeue(output, &task_out);
@@ -350,6 +356,9 @@ void *mpp_enc_control_thread(void *data)
         } else {
             mpp_packet_deinit(&packet);
         }
+        mpp_port_enqueue(input, task_in);
+
+        enc_dbg_detail("all done\n");
 
         task_in = NULL;
         task_out = NULL;
