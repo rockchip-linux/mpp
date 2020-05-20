@@ -493,7 +493,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_enc_cfg_set_s32(cfg, "prep:ver_stride", p->ver_stride);
     mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
 
-    mpp_enc_cfg_set_s32(cfg, "rc:rc_mode", rc_mode);
+    mpp_enc_cfg_set_s32(cfg, "rc:mode", rc_mode);
 
     switch (rc_mode) {
     case MPP_ENC_RC_MODE_FIXQP : {
@@ -574,8 +574,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
 
     if (p->split_mode) {
         mpp_log("split_mode %d split_arg %d\n", p->split_mode, p->split_arg);
-        mpp_enc_cfg_set_s32(cfg, "split:split_mode", p->split_mode);
-        mpp_enc_cfg_set_s32(cfg, "split:split_arg", p->split_arg);
+        mpp_enc_cfg_set_s32(cfg, "split:mode", p->split_mode);
+        mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
     }
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);

@@ -125,7 +125,7 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     mpp_enc_cfg_set_s32(enc_cfg, "prep:ver_stride", MPP_ALIGN(height, 16));
     mpp_enc_cfg_set_s32(enc_cfg, "prep:format", fmt);
 
-    mpp_enc_cfg_set_s32(enc_cfg, "rc:rc_mode", rc_mode ? MPP_ENC_RC_MODE_CBR : MPP_ENC_RC_MODE_FIXQP);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:mode", rc_mode ? MPP_ENC_RC_MODE_CBR : MPP_ENC_RC_MODE_FIXQP);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_target", bps);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_max", bps * 17 / 16);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_min", bps * 17 / 16);

@@ -43,40 +43,42 @@ void *print_opt(void *ctx)
     return NULL;
 }
 
-TestAction test_acts[] = {
-    { "rc:rc_mode",     &test_acts[0],  print_opt},
-    { "rc:bps_target",  &test_acts[1],  print_opt},
-    { "rc:bps_max",     &test_acts[2],  print_opt},
-    { "rc:bps_min",     &test_acts[3],  print_opt},
+TestAction test_info[] = {
+    { "rc:mode",        &test_info[0],  print_opt},
+    { "rc:bps_target",  &test_info[1],  print_opt},
+    { "rc:bps_max",     &test_info[2],  print_opt},
+    { "rc:bps_min",     &test_info[3],  print_opt},
 };
 
 const char *test_str[] = {
-    "rc:rc_mode",
+    "rc:mode",
     "rc:bps_target",
     "rc:bps_max",
 };
 
 int main()
 {
-    MppTrie ac = NULL;
+    MppTrie trie = NULL;
     void *info = NULL;
     RK_U32 i;
     RK_S64 end = 0;
     RK_S64 start = 0;
+    RK_S32 info_cnt = MPP_ARRAY_ELEMS(test_info);
+    RK_S32 node_cnt = 100;
 
-    mpp_trie_init(&ac, 100);
+    mpp_trie_init(&trie, node_cnt, info_cnt);
 
     start = mpp_time();
-    mpp_trie_add_info(ac, &test_acts[0].name);
-    mpp_trie_add_info(ac, &test_acts[1].name);
-    mpp_trie_add_info(ac, &test_acts[2].name);
-    mpp_trie_add_info(ac, &test_acts[3].name);
+    mpp_trie_add_info(trie, &test_info[0].name);
+    mpp_trie_add_info(trie, &test_info[1].name);
+    mpp_trie_add_info(trie, &test_info[2].name);
+    mpp_trie_add_info(trie, &test_info[3].name);
     end = mpp_time();
     mpp_log("add act time %lld us\n", end - start);
 
     for (i = 0; i < MPP_ARRAY_ELEMS(test_str); i++) {
         start = mpp_time();
-        info = mpp_trie_get_info(ac, test_str[i]);
+        info = mpp_trie_get_info(trie, test_str[i]);
         end = mpp_time();
         if (info) {
             TestAction *act = (TestAction *)info;
@@ -88,7 +90,7 @@ int main()
         }
     }
 
-    mpp_trie_deinit(ac);
+    mpp_trie_deinit(trie);
 
     return 0;
 }

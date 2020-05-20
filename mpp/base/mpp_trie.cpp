@@ -88,7 +88,7 @@ static RK_S32 trie_get_node(MppTrieImpl *trie)
     return idx;
 }
 
-MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count)
+MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count, RK_S32 info_count)
 {
     if (NULL == trie) {
         mpp_err_f("invalid NULL input trie automation\n");
@@ -113,7 +113,7 @@ MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count)
         }
     }
 
-    p->info_count = DEFAULT_INFO_COUNT;
+    p->info_count = info_count ? info_count : DEFAULT_INFO_COUNT;
     p->info = mpp_calloc(const char **, p->info_count);
     if (NULL == p->info) {
         mpp_err_f("failed to alloc %d storage\n", p->info_count);
@@ -175,16 +175,16 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     MppTrieNode *node = NULL;
     const char *s = *info;
     RK_S32 len = strnlen(s, SZ_1K);
-    RK_S16 next = 0;
-    RK_S16 idx = 0;
+    RK_S32 next = 0;
+    RK_S32 idx = 0;
     RK_S32 i;
 
     trie_dbg_set("trie %p add info %s len %d\n", trie, s, len);
 
     for (i = 0; i < len && s[i]; i++) {
         RK_U32 key = s[i];
-        RK_S16 key0 = (key >> 4) & 0xf;
-        RK_S16 key1 = (key >> 0) & 0xf;
+        RK_S32 key0 = (key >> 4) & 0xf;
+        RK_S32 key1 = (key >> 0) & 0xf;
 
         node = p->nodes + idx;
         next = node->next[key0];
@@ -250,32 +250,15 @@ const char **mpp_trie_get_info(MppTrie trie, const char *name)
     trie_dbg_get("trie %p search %s len %2d start\n", trie, name, len);
 
     for (i = 0; i < len; i++, s++) {
-        RK_U32 key = s[0];
-        RK_S16 key0 = (key >> 4) & 0xf;
-        RK_S16 key1 = (key >> 0) & 0xf;
-
-        idx = node->next[key0];
-
-        trie_dbg_get("trie %p search %s pos %2d %c:%03d:key0:%2d -> %d\n",
-                     trie, name, i, s[0], key, key0, idx);
-
-        if (idx == 0) {
-            trie_dbg_get("trie %p search %s pos %2d %c:%03d:key0:%2d failed\n",
-                         trie, name, i, s[0], key, key0, idx);
+        idx = node->next[(s[0] >> 4) & 0xf];
+        if (!idx)
             break;
-        }
 
         node = &nodes[idx];
-        idx = node->next[key1];
 
-        trie_dbg_get("trie %p search %s pos %2d %c:%03d:key1:%2d\n",
-                     trie, name, i, s[0], key, key1);
-
-        if (idx == 0) {
-            trie_dbg_get("trie %p search %s pos %2d %c:%03d:key1:%2d failed\n",
-                         trie, name, i, s[0], key, key1, idx);
+        idx = node->next[(s[0] >> 0) & 0xf];
+        if (!idx)
             break;
-        }
 
         node = &nodes[idx];
     }

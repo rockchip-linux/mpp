@@ -26,7 +26,7 @@ typedef void* MppTrie;
 extern "C" {
 #endif
 
-MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count);
+MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count, RK_S32 info_count);
 MPP_RET mpp_trie_deinit(MppTrie trie);
 
 MPP_RET mpp_trie_add_info(MppTrie trie, const char **info);
