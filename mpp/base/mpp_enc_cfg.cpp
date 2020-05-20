@@ -142,9 +142,12 @@ static const char *cfg_func_names[] = {
 #define EXPAND_AS_ARRAY(base, name, func_type, in_type, flag, field0, field1) \
     &api_##base##_##name,
 
+#define EXPAND_AS_STRLEN(base, name, func_type, in_type, flag, field0, field1) \
+    const_strlen( #base":"#name ) +
+
 #define ENTRY_TABLE(ENTRY)  \
     /* rc config */ \
-    ENTRY(rc,   rc_mode,        S32, MppEncRcMode,      MPP_ENC_RC_CFG_CHANGE_RC_MODE,          rc, rc_mode) \
+    ENTRY(rc,   mode,           S32, MppEncRcMode,      MPP_ENC_RC_CFG_CHANGE_RC_MODE,          rc, rc_mode) \
     ENTRY(rc,   bps_target,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_target) \
     ENTRY(rc,   bps_max,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_max) \
     ENTRY(rc,   bps_min,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_min) \
@@ -207,8 +210,8 @@ static const char *cfg_func_names[] = {
     /* jpeg config */ \
     ENTRY(jpeg, quant,          S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QP,             codec.jpeg, quant) \
     /* split config */ \
-    ENTRY(split, split_mode,    U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
-    ENTRY(split, split_arg,     U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg)
+    ENTRY(split, mode,          U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
+    ENTRY(split, arg,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg)
 
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
@@ -216,6 +219,13 @@ ENTRY_TABLE(EXPAND_AS_API)
 static MppEncCfgApi *cfg_apis[] = {
     ENTRY_TABLE(EXPAND_AS_ARRAY)
 };
+
+RK_S32 const_strlen(const char* str)
+{
+    return *str ? 1 + const_strlen(str + 1) : 0;
+}
+
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) + 0;
 
 class MppEncCfgService
 {
@@ -243,19 +253,23 @@ MppEncCfgService::MppEncCfgService() :
     mCfgApi(NULL)
 {
     MPP_RET ret;
-    RK_U32 i;
+    RK_S32 i;
+    RK_S32 api_cnt = MPP_ARRAY_ELEMS(cfg_apis);
 
-    ret = mpp_trie_init(&mCfgApi, 600);
+    /*
+     * NOTE: The node_len is not the real node count should be allocated
+     * The max node count should be stream lengthg * 2 if each word is different.
+     */
+    ret = mpp_trie_init(&mCfgApi, node_len, api_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
     } else {
-        for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
+        for (i = 0; i < api_cnt; i++)
             mpp_trie_add_info(mCfgApi, &cfg_apis[i]->name);
     }
 
-    mpp_log_f("create config %d node %d info\n",
-              mpp_trie_get_node_count(mCfgApi),
-              mpp_trie_get_info_count(mCfgApi));
+    mpp_log_f("create info %d with node %d -> %d info\n",
+              api_cnt, node_len, mpp_trie_get_node_count(mCfgApi));
 }
 
 MppEncCfgService::~MppEncCfgService()
@@ -318,7 +332,11 @@ MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
             return MPP_NOK; \
         } \
         MppEncCfgApi *api = (MppEncCfgApi *)info; \
-        mpp_assert(api->type_set == func_enum); \
+        if (api->type_set != func_enum) { \
+            mpp_err_f("%s expect %s input NOT %s\n", api->name, \
+                      cfg_func_names[api->type_set], \
+                      cfg_func_names[func_enum]); \
+        } \
         mpp_enc_cfg_dbg_set("name %s type %s\n", api->name, cfg_func_names[api->type_set]); \
         MPP_RET ret = ((func_type)api->api_set)(&p->cfg, val); \
         return ret; \
@@ -344,7 +362,11 @@ ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_ptr, void *, SET_PTR, CfgSetPtr);
             return MPP_NOK; \
         } \
         MppEncCfgApi *api = (MppEncCfgApi *)info; \
-        mpp_assert(api->type_get == func_enum); \
+        if (api->type_get != func_enum) { \
+            mpp_err_f("%s expect %s input not %s\n", api->name, \
+                      cfg_func_names[api->type_get], \
+                      cfg_func_names[func_enum]); \
+        } \
         mpp_enc_cfg_dbg_get("name %s type %s\n", api->name, cfg_func_names[api->type_get]); \
         MPP_RET ret = ((func_type)api->api_get)(&p->cfg, val); \
         return ret; \

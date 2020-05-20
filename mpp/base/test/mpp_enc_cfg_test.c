@@ -18,6 +18,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 
 #include "rk_venc_cfg.h"
@@ -27,6 +28,8 @@ int main()
 {
     MPP_RET ret = MPP_OK;
     MppEncCfg cfg;
+    RK_S64 end = 0;
+    RK_S64 start = 0;
 
     mpp_enc_cfg_show();
 
@@ -46,9 +49,13 @@ int main()
     mpp_log("before set: rc mode %d bps_target %d\n",
             impl->cfg.rc.rc_mode, impl->cfg.rc.bps_target);
 
-    ret = mpp_enc_cfg_set_s32(cfg, "rc:rc_mode", rc_mode);
+    start = mpp_time();
+    ret = mpp_enc_cfg_set_u32(cfg, "rc:mode", rc_mode);
+    ret = mpp_enc_cfg_set_s32(cfg, "rc:mode", rc_mode);
     ret = mpp_enc_cfg_set_s32(cfg, "rc:bps", 400000);
     ret = mpp_enc_cfg_set_s32(cfg, "rc:bps_target", bps_target);
+    end = mpp_time();
+    mpp_log("set s32 time %lld us\n", end - start);
 
     mpp_log("after  set: rc mode %d bps_target %d\n",
             impl->cfg.rc.rc_mode, impl->cfg.rc.bps_target);
@@ -58,7 +65,7 @@ int main()
 
     mpp_log("before get: rc mode %d bps_target %d\n", rc_mode, bps_target);
 
-    ret = mpp_enc_cfg_get_s32(cfg, "rc:rc_mode", &rc_mode);
+    ret = mpp_enc_cfg_get_s32(cfg, "rc:mode", &rc_mode);
     ret = mpp_enc_cfg_get_s32(cfg, "rc:bps_target", &bps_target);
 
     mpp_log("after  get: rc mode %d bps_target %d\n", rc_mode, bps_target);
