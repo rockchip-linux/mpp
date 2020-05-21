@@ -418,6 +418,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         goto RET;
     }
 
+    mInputTask = NULL;
     /* wait enqueued task finished */
     ret = poll(MPP_PORT_INPUT, mInputTimeout);
     if (ret) {
