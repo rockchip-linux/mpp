@@ -429,6 +429,8 @@ MPP_RET hal_h264e_vepu1_gen_regs(void *hal, HalTaskInfo *task)
 MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
 {
     H264eHalContext *ctx = (H264eHalContext *)hal;
+    MPP_RET ret = MPP_OK;
+
     (void)task;
     hal_h264e_enter();
 
@@ -438,21 +440,19 @@ MPP_RET hal_h264e_vepu1_start(void *hal, HalTaskInfo *task)
         RK_U32 *p_regs = (RK_U32 *)ctx->regs_tmp;
         hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "vpu client is sending %d regs",
                       VEPU1_H264E_NUM_REGS);
-        if (MPP_OK != mpp_device_send_reg(ctx->dev_ctx, p_regs,
-                                          VEPU1_H264E_NUM_REGS)) {
+        ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, VEPU1_H264E_NUM_REGS);
+        if (ret) {
             mpp_err("mpp_device_send_reg Failed!!!");
-            return MPP_ERR_VPUHW;
         } else {
             hal_h264e_dbg(HAL_H264E_DBG_DETAIL, "mpp_device_send_reg success!");
         }
     } else {
         mpp_err("invalid device ctx: %p", ctx->dev_ctx);
-        return MPP_NOK;
     }
 
     hal_h264e_leave();
 
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET hal_h264e_vepu1_set_feedback(h264e_feedback *fb, H264eVpu1RegSet *reg)
