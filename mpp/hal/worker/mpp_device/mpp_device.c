@@ -531,7 +531,7 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         dev_req.data = (void*)regs;
         mpp_device_add_request(ctx, &dev_req);
 
-        mpp_device_send_request(ctx);
+        ret = mpp_device_send_request(ctx);
     } else {
         MppReq req;
 
@@ -571,7 +571,7 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         memset(&dev_req, 0, sizeof(dev_req));
         dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
         dev_req.flag |= MPP_FLAGS_LAST_MSG;
-        mpp_device_send_single_request(ctx, &dev_req);
+        ret = mpp_device_send_single_request(ctx, &dev_req);
     } else {
         memset(&req, 0, sizeof(req));
         req.req     = regs;
