@@ -237,7 +237,7 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
 
 static RK_S32 setup_output_packet(RK_U32 *reg, MppBuffer buf, RK_U32 offset)
 {
-    RK_U32 offset8 = offset & (~0xf);
+    RK_U32 offset8 = offset & (~0x7);
     RK_S32 fd = mpp_buffer_get_fd(buf);
     RK_U32 hdr_rem_msb = 0;
     RK_U32 hdr_rem_lsb = 0;
@@ -302,6 +302,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 
     /* setup output address with offset */
     first_free_bit = setup_output_packet(reg, task->output, offset);
+    /* set extra byte for header */
+    hw_mbrc->out_strm_size = first_free_bit / 8;
 
     /*
      * The hardware needs only the value for luma plane, because
@@ -603,10 +605,11 @@ static void h264e_vepu2_get_mbrc(HalH264eVepuMbRc *mb_rc, H264eVpu2RegSet *reg)
     RK_U32 cpt_prev = 0;
     RK_U32 overflow = 0;
     RK_U32 cpt_idx = VEPU_REG_CHECKPOINT(0) / 4;
+    RK_U32 base = mb_rc->out_strm_size;
     RK_U32 *reg_val = reg->val;
 
     mb_rc->hw_status        = reg_val[VEPU_REG_INTERRUPT / 4];
-    mb_rc->out_strm_size    = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8;
+    mb_rc->out_strm_size    = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8 - base;
     mb_rc->qp_sum           = ((reg_val[VEPU_REG_QP_SUM_DIV2 / 4] >> 11) & 0x001fffff) * 2;
     mb_rc->less_mad_count   = (reg_val[VEPU_REG_MB_CTRL / 4] >> 16) & 0xffff;
     mb_rc->rlc_count        = reg_val[VEPU_REG_RLC_SUM / 4] & 0x3fffff;
