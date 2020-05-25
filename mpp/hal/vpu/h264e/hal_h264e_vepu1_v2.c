@@ -760,6 +760,7 @@ static MPP_RET hal_h264e_vepu1_wait_v2(void *hal, HalEncTask *task)
 
         hw_mbrc->out_strm_size = len;
     }
+    task->hw_length += ctx->hw_mbrc.out_strm_size;
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -776,9 +777,9 @@ static MPP_RET hal_h264e_vepu1_ret_task_v2(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    task->length += ctx->hw_mbrc.out_strm_size;
+    task->length += task->hw_length;
 
-    rc_info->bit_real = task->length * 8;
+    rc_info->bit_real = task->hw_length * 8;
     rc_info->quality_real = ctx->hw_mbrc.qp_sum / mbs;
 
     hal_h264e_dbg_rc("real bit %d quality %d\n", rc_info->bit_real, rc_info->quality_real);
