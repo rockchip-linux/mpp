@@ -142,7 +142,7 @@ if ((val) < 0) {\
 enum {
     H264ScalingList4x4Length = 16,
     H264ScalingList8x8Length = 64,
-} ScalingListLength;
+} extern ScalingListLength;
 
 typedef enum {
     STRUCT_NULL  = 0,
