@@ -139,7 +139,7 @@ if ((val) < 0) {\
 
 //!< PPS parameters
 #define MAXnum_slice_groups_minus1  8
-enum {
+typedef enum {
     H264ScalingList4x4Length = 16,
     H264ScalingList8x8Length = 64,
 } ScalingListLength;

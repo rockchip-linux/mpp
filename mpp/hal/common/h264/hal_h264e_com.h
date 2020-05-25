@@ -311,9 +311,9 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps);
 MPP_RET h264e_set_pps(H264eHalContext *ctx, H264ePps *pps, H264eSps *sps);
 void h264e_set_param(H264eHalParam *p, RK_S32 hw_type);
 
-const RK_U8 * const h264e_cqm_jvt[8];
-const RK_U8 h264e_zigzag_scan4[2][16];
-const RK_U8 h264e_zigzag_scan8[2][64];
+extern const RK_U8 * const h264e_cqm_jvt[8];
+extern const RK_U8 h264e_zigzag_scan4[2][16];
+extern const RK_U8 h264e_zigzag_scan8[2][64];
 void h264e_rkv_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
 void h264e_vpu_set_format(H264eHwCfg *hw_cfg, MppEncPrepCfg *prep_cfg);
 void h264e_sei_pack2str(char *str, H264eHalContext *ctx, RcSyntax *rc_syn);
