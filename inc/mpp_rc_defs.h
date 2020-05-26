@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RC_DEFS_H__
-#define __RC_DEFS_H__
+#ifndef __MPP_RC_DEFS_H__
+#define __MPP_RC_DEFS_H__
 
 #include "rk_type.h"
 
@@ -141,4 +141,4 @@ typedef struct EncRcTask_s {
     MppFrame        frame;
 } EncRcTask;
 
-#endif /* __RC_DEFS_H__ */
+#endif /* __MPP_RC_DEFS_H__ */

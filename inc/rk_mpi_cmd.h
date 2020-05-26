@@ -50,7 +50,7 @@
 
 #define CMD_ENC_CFG_MISC                (0x00008000)
 #define CMD_ENC_CFG_SPLIT               (0x00008100)
-#define CMD_ENC_CFG_GOPREF              (0x00008200)
+#define CMD_ENC_CFG_REF                 (0x00008200)
 #define CMD_ENC_CFG_ROI                 (0x00008300)
 #define CMD_ENC_CFG_OSD                 (0x00008400)
 
@@ -171,8 +171,8 @@ typedef enum {
     MPP_ENC_SET_SPLIT,                  /* set MppEncSliceSplit structure */
     MPP_ENC_GET_SPLIT,                  /* get MppEncSliceSplit structure */
 
-    MPP_ENC_CFG_GOPREF                  = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_GOPREF,
-    MPP_ENC_SET_GOPREF,                 /* set MppEncGopRef structure */
+    MPP_ENC_CFG_REF                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_REF,
+    MPP_ENC_SET_REF_CFG,                /* set MppEncRefCfg structure */
 
     MPP_ENC_CFG_OSD                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_OSD,
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPltCfg */
@@ -193,5 +193,6 @@ typedef enum {
 
 #include "rk_venc_cmd.h"
 #include "rk_venc_cfg.h"
+#include "rk_venc_ref.h"
 
 #endif /*__RK_MPI_CMD_H__*/
