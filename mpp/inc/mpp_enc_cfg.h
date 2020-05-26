@@ -18,6 +18,7 @@
 #define __MPP_ENC_CFG_H__
 
 #include "rk_venc_cmd.h"
+#include "rk_venc_ref.h"
 #include "rc_data.h"
 
 /*
@@ -36,6 +37,7 @@ typedef struct MppEncCfgSet_t {
     MppEncCodecCfg      codec;
 
     MppEncSliceSplit    split;
+    MppEncRefCfg        ref_cfg;
     MppEncROICfg        roi;
     MppEncOSDPltCfg     plt_cfg;
     MppEncOSDPlt        plt_data;

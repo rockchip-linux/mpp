@@ -17,7 +17,9 @@
 #ifndef __MPP_RC_DEFS_H__
 #define __MPP_RC_DEFS_H__
 
-#include "rk_type.h"
+#include "rk_venc_ref.h"
+
+#define MAX_CPB_REFS                    (8)
 
 /*
  * EncFrmStatus controls record the encoding frame status and also control
@@ -29,85 +31,105 @@
  *     16 ~ 31 reference frame status
  * bit 32 ~ 63 encoding flow control
  */
-typedef struct EncFrmStatus_t {
-    /*
-     * bit  0 ~ 31  frame status
-     */
-    /*
-     * 0 - inter frame
-     * 1 - intra frame
-     */
-    RK_U32          is_intra        : 1;
+typedef union EncFrmStatus_u {
+    struct {
+        /*
+         * bit  0 ~ 31  frame status
+         */
+        /* status flag */
+        RK_U32          valid           : 1;
+        RK_U32          reserved0       : 3;
 
-    /*
-     * Valid when is_intra is true
-     * 0 - normal intra frame
-     * 1 - IDR frame
-     */
-    RK_U32          is_idr          : 1;
+        /* reference status flag */
+        /*
+         * 0 - inter frame
+         * 1 - intra frame
+         */
+        RK_U32          is_intra        : 1;
 
-    /*
-     * 0 - mark as reference frame
-     * 1 - mark as non-refernce frame
-     */
-    RK_U32          is_non_ref      : 1;
+        /*
+         * Valid when is_intra is true
+         * 0 - normal intra frame
+         * 1 - IDR frame
+         */
+        RK_U32          is_idr          : 1;
 
-    /*
-     * Valid when is_non_ref is false
-     * 0 - mark as short-term reference frame
-     * 1 - mark as long-term refernce frame
-     */
-    RK_U32          is_lt_ref       : 1;
+        /*
+         * 0 - mark as reference frame
+         * 1 - mark as non-refernce frame
+         */
+        RK_U32          is_non_ref      : 1;
 
-    RK_U32          reserved0       : 4;
+        /*
+         * Valid when is_non_ref is false
+         * 0 - mark as short-term reference frame
+         * 1 - mark as long-term refernce frame
+         */
+        RK_U32          is_lt_ref       : 1;
 
-    /* bit 8 - 15 */
-    RK_U32          lt_idx          : 4;
-    RK_U32          temporal_id     : 4;
+        /* bit 8 - 15 */
+        RK_U32          lt_idx          : 4;
+        RK_U32          temporal_id     : 4;
 
-    /* distance between current frame and reference frame */
-    RK_S32          ref_dist        : 16;
+        /* distance between current frame and reference frame */
+        MppEncRefMode   ref_mode        : 6;
+        RK_S32          ref_arg         : 8;
+        RK_S32          ref_dist        : 2;
 
-    /*
-     * bit 32 ~ 63  encoder flow control flags
-     */
-    /*
-     * 0 - normal frame encoding
-     * 1 - current frame will be dropped
-     */
-    RK_U32          drop            : 1;
+        /*
+         * bit 32 ~ 63  encoder flow control flags
+         */
+        /*
+         * 0 - normal frame encoding
+         * 1 - current frame will be dropped
+         */
+        RK_U32          drop            : 1;
 
-    /*
-     * 0 - rate control module does not change frame type parameter
-     * 1 - rate control module changes frame type parameter reencode is needed
-     *     to reprocess the dpb process. Also this means dpb module will follow
-     *     the frame status parameter provided by rate control module.
-     */
-    RK_U32          re_dpb_proc     : 1;
+        /*
+         * 0 - rate control module does not change frame type parameter
+         * 1 - rate control module changes frame type parameter reencode is needed
+         *     to reprocess the dpb process. Also this means dpb module will follow
+         *     the frame status parameter provided by rate control module.
+         */
+        RK_U32          re_dpb_proc     : 1;
 
-    /*
-     * 0 - current frame encoding is in normal flow
-     * 1 - current frame encoding is in reencode flow
-     */
-    RK_U32          reencode        : 1;
+        /*
+         * 0 - current frame encoding is in normal flow
+         * 1 - current frame encoding is in reencode flow
+         */
+        RK_U32          reencode        : 1;
 
-    /*
-     * When true current frame size is super large then the frame should be reencoded.
-     */
-    RK_U32          super_frame     : 1;
+        /*
+         * When true current frame size is super large then the frame should be reencoded.
+         */
+        RK_U32          super_frame     : 1;
 
-    /*
-     * When true currnet frame is force to encoded as software skip frame
-     */
-    RK_U32          force_pskip     : 1;
-    RK_U32          reserved1       : 3;
+        /*
+         * When true currnet frame is force to encoded as software skip frame
+         */
+        RK_U32          force_pskip     : 1;
+        RK_U32          reserved1       : 3;
 
-    /* reencode times */
-    RK_U32          reencode_times  : 8;
+        /* reencode times */
+        RK_U32          reencode_times  : 8;
 
-    /* sequential index for each frame */
-    RK_U32          seq_idx         : 16;
+        /* sequential index for each frame */
+        RK_U32          seq_idx         : 16;
+    };
+    RK_U64 val;
 } EncFrmStatus;
+
+typedef struct EncCpbStatus_t {
+    RK_S32              seq_idx;
+
+    EncFrmStatus        curr;
+    EncFrmStatus        refr;
+
+    /* initial cpb status for current frame encoding */
+    EncFrmStatus        init[MAX_CPB_REFS];
+    /* final cpb status after current frame encoding */
+    EncFrmStatus        final[MAX_CPB_REFS];
+} EncCpbStatus;
 
 /*
  * communication channel between rc / hal / hardware
@@ -136,6 +158,7 @@ typedef struct EncRcCommonInfo_t {
 } EncRcTaskInfo;
 
 typedef struct EncRcTask_s {
+    EncCpbStatus    cpb;
     EncFrmStatus    frm;
     EncRcTaskInfo   info;
     MppFrame        frame;
