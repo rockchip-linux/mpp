@@ -392,7 +392,7 @@ extern "C" {
 
 void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice);
 void h265e_slice_set_ref_poc_list(H265eSlice *slice);
-void h265e_slice_init(void *ctx, H265eSlice *slice);
+void h265e_slice_init(void *ctx, H265eSlice *slice, EncFrmStatus curr);
 
 #ifdef __cplusplus
 }

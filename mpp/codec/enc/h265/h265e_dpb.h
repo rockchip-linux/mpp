@@ -88,19 +88,11 @@ typedef struct  H265eDpbFrm_t {
 typedef struct H265eRpsList_e {
     RK_S32 lt_num;
     RK_S32 st_num;
-    RK_S32 vgop_size;
     RK_S32 gop_len;
     RK_S32 poc_cur_list;
 
     RK_S32 poc[RPSLIST_MAX];
-#if 0
-    RK_S32 SliceType[RPSLIST_MAX];
-    RK_S32 DeltaPocIdx[RPSLIST_MAX];
-    RK_S32 IsLongTerm[RPSLIST_MAX];
-    RK_S32 IsShortTerm[RPSLIST_MAX];
-    RK_S32 GopFirstFrmFlg[RPSLIST_MAX];
-    RK_U32 m_bRefenced[RPSLIST_MAX];
-#endif
+
     RK_S32 delta_poc_idx[H265_MAX_GOP];
 
     RK_U32 used_by_cur[MAX_REFS];
@@ -110,12 +102,8 @@ typedef struct H265eRpsList_e {
 
 typedef struct H265eDpbCfg_t {
     RK_S32  maxNumReferences;
-    RK_S32  bBPyramid;
     RK_S32  bOpenGOP;
-    RK_S32  nLongTerm;
     RK_S32  gop_len;
-    RK_S32  vgop_size;
-    RK_S32  vi_gop_len;
 
     RK_S32  nDeltaPocIdx[30];
 
@@ -156,16 +144,10 @@ typedef struct H265eDpb_t {
     RK_S32             seq_idx;
     RK_S32             gop_idx;
     // status and count for one gop structure
-    // idr_gop  - for intra / IDR frame group of picture
-    RK_S32             idr_gop_len;
-    RK_S32             vi_gop_len;
-    RK_S32             idr_gop_cnt;
-    RK_S32             idr_gop_idx;
 
     RK_S32              last_idr;
     RK_S32              poc_cra;
     RK_U32              refresh_pending;
-    RK_U32              is_long_term;
     RK_S32              max_ref_l0;
     RK_S32              max_ref_l1;
     RK_S32              is_open_gop;
@@ -187,7 +169,7 @@ MPP_RET h265e_dpb_deinit(H265eDpb *dpb);
 MPP_RET h265e_dpb_setup_buf_size(H265eDpb *dpb, RK_U32 size[], RK_U32 count);
 MPP_RET h265e_dpb_get_curr(H265eDpb *dpb);
 H265eDpbFrm *h265e_dpb_get_refr(H265eDpbFrm *frm);
-void h265e_dpb_build_list(H265eDpb *dpb);
+void h265e_dpb_build_list(H265eDpb *dpb, EncCpbStatus *cpb);
 MppBuffer h265e_dpb_frm_get_buf(H265eDpbFrm *frm, RK_S32 index);
 MPP_RET h265e_dpb_bakup(H265eDpb *dpb, H265eDpb *dpb_bak);
 MPP_RET h265e_dpb_recover(H265eDpb *dpb, H265eDpb *dpb_bak);

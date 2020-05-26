@@ -108,11 +108,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->merge_cfg.merge_up_flag = 1;
 
     dpb_cfg->maxNumReferences = 1;
-    dpb_cfg->bBPyramid = 0;
     dpb_cfg->bOpenGOP = 0;
-    dpb_cfg->nLongTerm = 0;
-    dpb_cfg->gop_len = 60;
-    dpb_cfg->vgop_size = 1;
     memset(dpb_cfg->nDeltaPocIdx, -1, sizeof(dpb_cfg->nDeltaPocIdx));
     dpb_cfg->tot_poc_num = dpb_cfg->maxNumReferences;
 
@@ -232,43 +228,23 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    MppEncCodecCfg *codec = &p->cfg->codec;
-    MppEncH265Cfg *h265 = &codec->h265;
-    MppFrame frame = task->frame;
-    H265eDpbCfg *dpb_cfg = &p->dpbcfg;
     H265eFrmInfo *frms = &p->frms;
     EncRcTask    *rc_task = task->rc_task;
-    MppMeta meta = mpp_frame_get_meta(frame);
+    EncCpbStatus *cpb = &task->rc_task->cpb;
+
     RK_S32 mb_wd64, mb_h64;
 
     h265e_dbg_func("enter\n");
-
     mb_wd64 = (p->cfg->prep.width + 63) / 64;
     mb_h64 = (p->cfg->prep.height + 63) / 64;
-
-    if (p->idr_request) {
-        dpb_cfg->force_idr = 1;
-        p->idr_request = 0;
-    } else
-        dpb_cfg->force_idr = 0;
-
-    dpb_cfg->force_pskip = 0;
-    dpb_cfg->force_lt_idx = -1;
-    dpb_cfg->force_ref_lt_idx = -1;
-    mpp_meta_get_s32(meta, KEY_LONG_REF_IDX, &dpb_cfg->force_ref_lt_idx);
-
-    if (h265->ref_cfg.num_lt_ref_pic > 0)
-        p->dpb->is_long_term = 1;
 
     h265e_dpb_bakup(p->dpb, &p->dpb_bak);
     h265e_dpb_get_curr(p->dpb);
     p->slice = p->dpb->curr->slice;
-    h265e_slice_init(ctx, p->slice);
-    h265e_dpb_build_list(p->dpb);
+    h265e_slice_init(ctx, p->slice, cpb->curr);
+    h265e_dpb_build_list(p->dpb, cpb);
 
-    p->dpb->curr->status.seq_idx = p->dpb->curr->seq_idx;
     rc_task->frm  = p->dpb->curr->status;
-
     frms->mb_per_frame = mb_wd64 * mb_h64;
     frms->mb_raw = mb_h64;
     frms->mb_wid = mb_wd64 ;

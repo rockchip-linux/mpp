@@ -66,6 +66,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppEncRcCfg *rc = &ctx->cfg->rc;
+    MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     MppEncH265VuiCfg *vui = &codec->vui;
     RK_S32 i_timebase_num = 1;
     RK_S32 i_timebase_den = rc->fps_out_num / rc->fps_out_denorm;
@@ -74,6 +75,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     RK_S32 pad[2] = {0};
     RK_S32 minCUSize, log2MinCUSize;
     RK_S32 tuQTMinLog2Size = 2, tuQTMaxLog2Size;
+    MppEncCpbInfo *cpb_info = NULL;
 
     memset(convertToBit, -1, sizeof(convertToBit));
     c = 0;
@@ -81,6 +83,9 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         convertToBit[i] = c;
         c++;
     }
+
+    if (ref_cfg)
+        cpb_info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
 
     maxCUDepth = (uint32_t)convertToBit[codec->max_cu_size];
 
@@ -190,12 +195,8 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_bLongTermRefsPresent = 0;
     sps->m_TMVPFlagsPresent = codec->tmvp_enable;
     sps->m_useStrongIntraSmoothing = codec->cu_cfg.strong_intra_smoothing_enabled_flag;
-    if (codec->ref_cfg.num_lt_ref_pic > 0 || ctx->dpbcfg.nLongTerm) {
-        h265e_dbg_ps("ctx->dpbcfg.nLongTerm = %d", ctx->dpbcfg.nLongTerm);
-        if (codec->ref_cfg.num_lt_ref_pic == 0) {
-            codec->ref_cfg.num_lt_ref_pic = 1;
-        }
-        sps->m_numLongTermRefPicSPS = codec->ref_cfg.num_lt_ref_pic;
+    if (cpb_info && cpb_info->max_lt_cnt) {
+        sps->m_numLongTermRefPicSPS = cpb_info->max_lt_cnt;
         sps->m_bLongTermRefsPresent = 1;
         sps->m_TMVPFlagsPresent = 0;
         codec->tmvp_enable = 0;
@@ -306,10 +307,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         pps->m_deblockingFilterTcOffsetDiv2 = 0;
     }
 
-    if (ctx->dpbcfg.vgop_size > 1) {
-        pps->m_listsModificationPresentFlag = 1;
-    }
-
+    pps->m_listsModificationPresentFlag = 1;
     pps->m_log2ParallelMergeLevelMinus2 = 0;
     pps->m_numRefIdxL0DefaultActive = 1;
     pps->m_numRefIdxL1DefaultActive = 1;

@@ -34,6 +34,7 @@
 #include "rkv_enc_def.h"
 #include "mpp_enc_hal.h"
 #include "hal_bufs.h"
+#include "mpp_enc_ref.h"
 
 #define H265E_DBG_SIMPLE            0x00000010
 #define H265E_DBG_REG               0x00000020
@@ -265,6 +266,13 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
     if (frame_size > ctx->frame_size) {
         size_t size[3] = {0};
         RK_S32 fbc_header_len;
+        MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
+        RK_S32 max_cnt = 2;
+        if (ref_cfg) {
+            MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+            max_cnt = MPP_MAX(max_cnt, info->dpb_size + 1);
+        }
+
         vepu541_h265_free_buffers(ctx);
         MPP_FREE(ctx->roi_buf);
         hal_bufs_deinit(ctx->dpb_bufs);
@@ -273,7 +281,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         size[0] = fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 2; //fbc_h + fbc_b
         size[1] = (mb_wd64 * mb_h64 << 8);
         size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256);
-        hal_bufs_setup(ctx->dpb_bufs, 17, 3, size);
+        hal_bufs_setup(ctx->dpb_bufs, max_cnt, 3, size);
         if (1) {
             for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V541_BUF_GRP_ROI],
