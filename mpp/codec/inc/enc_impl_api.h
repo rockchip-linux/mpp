@@ -22,6 +22,7 @@
 #include "mpp_platform.h"
 #include "hal_task.h"
 #include "mpp_enc_cfg.h"
+#include "mpp_enc_refs.h"
 
 /*
  * the reset wait for extension
@@ -32,6 +33,7 @@ typedef struct EncImplCfg_t {
     MppDeviceId     dev_id;
     MppEncCfgSet    *cfg;
     MppEncCfgSet    *set;
+    MppEncRefs      refs;
 
     // output
     RK_S32          task_count;

@@ -20,6 +20,7 @@
 
 #include "mpp_common.h"
 
+#include "mpp_enc_ref.h"
 #include "mpp_bitwrite.h"
 #include "h264e_debug.h"
 #include "h264e_sps.h"
@@ -63,6 +64,8 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncH264Cfg *h264 = &cfg->codec.h264;
+    MppEncRefCfg ref = cfg->ref_cfg;
+    MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref);
     RK_S32 gop = rc->gop;
     RK_S32 width = prep->width;
     RK_S32 height = prep->height;
@@ -124,12 +127,14 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
         sps->pic_order_cnt_type = 2;
         sps->log2_max_frame_num_minus4 = 12;
     }
+    // NOTE: when tsvc mode enabled poc type should be zero.
+    if (info->dpb_size > 1) {
+        sps->pic_order_cnt_type = 0;
+        sps->log2_max_frame_num_minus4 = 12;
+    }
 
     // max one reference frame
-    sps->num_ref_frames = 1;
-    // on tsvc mode we need more reference frame
-    if (h264->svc)
-        sps->num_ref_frames = 8;
+    sps->num_ref_frames = info->dpb_size;
 
     sps->gaps_in_frame_num_value_allowed = 0;
 
@@ -162,11 +167,16 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
         vui->signal_type_present = 1;
         vui->fullrange = 1;
     }
+    if (info->dpb_size > 1) {
+        vui->bitstream_restriction = 1;
+        vui->motion_vectors_over_pic_boundaries = 1;
+        vui->max_dec_frame_buffering = info->dpb_size;
+    }
 
     return MPP_OK;
 }
 
-RK_S32 h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
+MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *data = mpp_packet_get_data(packet);

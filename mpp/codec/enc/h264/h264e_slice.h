@@ -43,6 +43,7 @@ MPP_RET h264e_reorder_wr_op(H264eReorderInfo *info, H264eRplmo *op);
 MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op);
 
 /* mmco context for dpb */
+RK_S32 h264e_marking_is_empty(H264eMarkingInfo *info);
 MPP_RET h264e_marking_wr_op(H264eMarkingInfo *info, H264eMmco *op);
 MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
 

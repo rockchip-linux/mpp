@@ -422,6 +422,7 @@ MPP_RET mpp_enc_init(MppEnc *enc, MppEncInitCfg *cfg)
             DEV_VEPU,
             &p->cfg,
             &p->set,
+            NULL,
             task_count,
         };
 
