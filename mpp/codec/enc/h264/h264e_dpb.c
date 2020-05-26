@@ -152,7 +152,6 @@ MPP_RET h264e_dpb_copy(H264eDpb *dst, H264eDpb *src)
 MPP_RET h264e_dpb_set_cfg(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps)
 {
     MPP_RET ret = MPP_OK;
-    RK_S32 i;
 
     h264e_dbg_dpb("enter %p\n", dpb);
 
@@ -190,128 +189,35 @@ MPP_RET h264e_dpb_set_cfg(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps)
     dpb->idr_gop_idx = 0;
     dpb->idr_gop_len = cfg->rc.gop;
 
-    /* 3. setup gop ref hierarchy (vgop) */
-    MppEncGopRef *ref = &cfg->gop_ref;
-
     dpb->mode = 0;
-    if (!ref->gop_cfg_enable) {
-        /* set default dpb info */
-        EncFrmStatus *info = &dpb->ref_inf[0];
+    /* set default dpb info */
+    EncFrmStatus *info = &dpb->ref_inf[0];
 
-        info[0].is_intra = 1;
-        info[0].is_idr = 1;
-        info[0].is_non_ref = 0;
-        info[0].is_lt_ref = 0;
-        info[0].lt_idx = -1;
-        info[0].temporal_id = 0;
-        info[0].ref_dist = -1;
+    info[0].is_intra = 1;
+    info[0].is_idr = 1;
+    info[0].is_non_ref = 0;
+    info[0].is_lt_ref = 0;
+    info[0].lt_idx = -1;
+    info[0].temporal_id = 0;
+    info[0].ref_dist = -1;
 
-        info[1].is_intra = 0;
-        info[1].is_idr = 0;
-        info[1].is_non_ref = 0;
-        info[1].is_lt_ref = 0;
-        info[1].lt_idx = -1;
-        info[1].temporal_id = 0;
-        info[1].ref_dist = -1;
+    info[1].is_intra = 0;
+    info[1].is_idr = 0;
+    info[1].is_non_ref = 0;
+    info[1].is_lt_ref = 0;
+    info[1].lt_idx = -1;
+    info[1].temporal_id = 0;
+    info[1].ref_dist = -1;
 
-        dpb->ref_cnt[0] = 2;
-        dpb->ref_cnt[1] = 2;
+    dpb->ref_cnt[0] = 2;
+    dpb->ref_cnt[1] = 2;
 
-        dpb->ref_dist[0] = -1;
-        dpb->ref_dist[1] = -1;
+    dpb->ref_dist[0] = -1;
+    dpb->ref_dist[1] = -1;
 
-        dpb->st_gop_len = 1;
-        dpb->lt_gop_len = 0;
+    dpb->st_gop_len = 1;
+    dpb->lt_gop_len = 0;
 
-        goto GOP_CFG_DONE;
-    }
-
-    memset(dpb->ref_inf, 0, sizeof(dpb->ref_inf));
-    memset(dpb->ref_sta, 0, sizeof(dpb->ref_sta));
-    memset(dpb->ref_cnt, 0, sizeof(dpb->ref_cnt));
-    memset(dpb->ref_dist, 0, sizeof(dpb->ref_dist));
-
-    RK_S32 st_gop_len   = ref->ref_gop_len;
-    RK_S32 lt_gop_len   = ref->lt_ref_interval;
-    RK_S32 max_layer_id = 0;
-
-    dpb->st_gop_len = st_gop_len;
-    dpb->lt_gop_len = lt_gop_len;
-    if (ref->max_lt_ref_cnt)
-        dpb->max_lt_idx = ref->max_lt_ref_cnt - 1;
-    else
-        dpb->max_lt_idx = 0;
-
-    h264e_dbg_dpb("st_gop_len %d lt_gop_len %d max_lt_idx_plus_1 %d\n",
-                  dpb->st_gop_len, dpb->lt_gop_len,
-                  dpb->max_lt_idx);
-
-    if (st_gop_len)
-        dpb->mode |= H264E_ST_GOP_FLAG;
-
-    if (lt_gop_len) {
-        dpb->mode |= H264E_LT_GOP_FLAG;
-        mpp_assert(ref->max_lt_ref_cnt > 0);
-    }
-
-    RK_S32 max_lt_ref_idx = -1;
-
-    for (i = 0; i < st_gop_len + 1; i++) {
-        MppGopRefInfo *info = &ref->gop_info[i];
-        RK_S32 is_non_ref   = info->is_non_ref;
-        RK_S32 is_lt_ref    = info->is_lt_ref;
-        RK_S32 temporal_id  = info->temporal_id;
-        RK_S32 lt_idx       = info->lt_idx;
-        RK_S32 ref_idx      = info->ref_idx;
-
-        dpb->ref_inf[i].is_intra = (i == 0) ? (1) : (0);
-        dpb->ref_inf[i].is_idr = dpb->ref_inf[i].is_intra;
-        dpb->ref_inf[i].is_non_ref = is_non_ref;
-        dpb->ref_inf[i].is_lt_ref = is_lt_ref;
-        dpb->ref_inf[i].lt_idx = lt_idx;
-        dpb->ref_inf[i].temporal_id = temporal_id;
-        dpb->ref_inf[i].ref_dist = ref_idx - i;
-        dpb->ref_dist[i] = ref_idx - i;
-
-        if (!is_non_ref) {
-            dpb->ref_sta[i] |= REF_BY_RECN(i);
-            dpb->ref_cnt[i]++;
-        }
-
-        if (max_layer_id < temporal_id)
-            max_layer_id = temporal_id;
-
-        if (is_lt_ref) {
-            if (lt_idx > max_lt_ref_idx) {
-                max_lt_ref_idx = lt_idx;
-                h264e_dbg_dpb("curr %d update lt_idx to %d\n",
-                              i, max_lt_ref_idx);
-
-                if (max_lt_ref_idx > dpb->max_lt_idx) {
-                    mpp_err("mismatch max_lt_ref_idx_p1 %d vs %d\n",
-                            max_lt_ref_idx, dpb->max_lt_idx);
-                }
-            }
-
-            dpb->mode |= H264E_ST_GOP_WITH_LT_REF;
-
-            if (lt_gop_len)
-                mpp_err_f("Can NOT use both lt_ref_interval and gop_info lt_ref at the same time!\n ");
-        }
-
-        // update the reference frame status and counter only once
-        if (ref_idx == i)
-            continue;
-
-        mpp_assert(!dpb->ref_inf[ref_idx].is_non_ref);
-        dpb->ref_sta[ref_idx] |= REF_BY_REFR(i);
-        dpb->ref_cnt[ref_idx]++;
-
-        h264e_dbg_dpb("refr %d ref_status 0x%03x count %d\n",
-                      ref_idx, dpb->ref_sta[ref_idx], dpb->ref_cnt[ref_idx]);
-    }
-
-GOP_CFG_DONE:
     h264e_dbg_dpb("leave %p\n", dpb);
 
     return ret;

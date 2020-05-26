@@ -103,7 +103,6 @@ typedef struct {
     RK_S32 fps_out_num;
     RK_S32 bps;
     RK_S32 gop_mode;
-    MppEncGopRef ref;
 } MpiEncTestData;
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
@@ -410,19 +409,6 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
         goto RET;
     }
 
-    if (p->gop_mode && p->gop_mode < 4) {
-        mpi_enc_gen_gop_ref(&p->ref, p->gop_mode);
-
-        mpp_log_f("MPP_ENC_SET_GOPREF start gop mode %d\n", p->gop_mode);
-
-        ret = mpi->control(ctx, MPP_ENC_SET_GOPREF, &p->ref);
-        mpp_log_f("MPP_ENC_SET_GOPREF done ret %d\n", ret);
-        if (ret) {
-            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
-            goto RET;
-        }
-    }
-
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         p->header_mode = MPP_ENC_HEADER_MODE_EACH_IDR;
         ret = mpi->control(ctx, MPP_ENC_SET_HEADER_MODE, &p->header_mode);
@@ -592,19 +578,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         goto RET;
     }
 
-    if (p->gop_mode && p->gop_mode < 4) {
-        mpi_enc_gen_gop_ref(&p->ref, p->gop_mode);
-
-        mpp_log_f("MPP_ENC_SET_GOPREF start gop mode %d\n", p->gop_mode);
-
-        ret = mpi->control(ctx, MPP_ENC_SET_GOPREF, &p->ref);
-        mpp_log_f("MPP_ENC_SET_GOPREF done ret %d\n", ret);
-        if (ret) {
-            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
-            goto RET;
-        }
-    }
-
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         p->header_mode = MPP_ENC_HEADER_MODE_EACH_IDR;
         ret = mpi->control(ctx, MPP_ENC_SET_HEADER_MODE, &p->header_mode);
@@ -703,23 +676,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         mpp_frame_set_ver_stride(frame, p->ver_stride);
         mpp_frame_set_fmt(frame, p->fmt);
         mpp_frame_set_eos(frame, p->frm_eos);
-        if (p->ref.max_lt_ref_cnt) {
-            // force idr as reference every 15 frames
-            //RK_S32 quotient = p->frame_count / 15;
-            RK_S32 remainder = p->frame_count % 15;
 
-            if (p->frame_count && remainder == 0) {
-                MppMeta meta = mpp_frame_get_meta(frame);
-                static RK_S32 lt_ref_idx = 0;
-
-                mpp_log("force lt_ref %d\n", lt_ref_idx);
-                mpp_meta_set_s32(meta, KEY_LONG_REF_IDX, lt_ref_idx);
-                lt_ref_idx++;
-                if (lt_ref_idx >= p->ref.max_lt_ref_cnt)
-                    lt_ref_idx = 0;
-            } else
-                mpp_frame_set_meta(frame, NULL);
-        }
         if (p->fp_input && feof(p->fp_input))
             mpp_frame_set_buffer(frame, NULL);
         else

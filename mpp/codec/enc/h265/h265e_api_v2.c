@@ -191,7 +191,6 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 
     h265e_dbg_func("enter ctx %p\n", ctx);
 
-    h265e_dpb_set_cfg(&p->dpbcfg, p->cfg);
     h265e_set_extra_info(p);
     h265e_get_extra_info(p, pkt);
 
@@ -557,10 +556,6 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         } else {
             slice_cfg->split_enable = 0;
         }
-    } break;
-    case MPP_ENC_SET_GOPREF: {
-        MppEncGopRef *ref = (MppEncGopRef *)param;
-        memcpy(&cfg->gop_ref, ref , sizeof(*ref));
     } break;
     default:
         mpp_err("No correspond %08x found, and can not config!\n", cmd);

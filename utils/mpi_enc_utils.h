@@ -53,7 +53,6 @@ typedef struct MpiEncTestArgs_t {
 extern "C" {
 #endif
 
-MPP_RET mpi_enc_gen_gop_ref(MppEncGopRef *ref, RK_S32 gop_mode);
 MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt);
 MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table);
 

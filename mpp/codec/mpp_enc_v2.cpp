@@ -408,7 +408,6 @@ static const char *name_of_rc_mode[] = {
 static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 {
     MppEncRcCfg *rc = &cfg_set->rc;
-    MppEncGopRef *ref = &cfg_set->gop_ref;
     MppEncPrepCfg *prep = &cfg_set->prep;
     MppEncCodecCfg *codec = &cfg_set->codec;
 
@@ -443,7 +442,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_min    = rc->bps_min;
     cfg->stat_times = 3;
 
-    cfg->vgop = (ref->gop_cfg_enable) ? (ref->ref_gop_len) : (0);
+    cfg->vgop = 0;
 
     /* quality configure */
     switch (codec->coding) {
@@ -474,18 +473,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     } break;
     }
 
-    if (ref->layer_rc_enable) {
-        RK_S32 i;
-
-        for (i = 0; i < MAX_TEMPORAL_LAYER; i++) {
-            cfg->layer_bit_prop[i] = ref->layer_weight[i];
-        }
-    } else {
-        cfg->layer_bit_prop[0] = 256;
-        cfg->layer_bit_prop[1] = 0;
-        cfg->layer_bit_prop[2] = 0;
-        cfg->layer_bit_prop[3] = 0;
-    }
+    cfg->layer_bit_prop[0] = 256;
+    cfg->layer_bit_prop[1] = 0;
+    cfg->layer_bit_prop[2] = 0;
+    cfg->layer_bit_prop[3] = 0;
 
     cfg->max_reencode_times = rc->max_reenc_times;
 
@@ -508,7 +499,6 @@ void *mpp_enc_thread(void *data)
     MppThread *thd_enc  = enc->thread_enc;
     MppEncCfgSet *cfg = &enc->cfg;
     MppEncRcCfg *rc_cfg = &cfg->rc;
-    MppEncGopRef *ref_cfg = &cfg->gop_ref;
     MppEncPrepCfg *prep_cfg = &cfg->prep;
     EncRcTask *rc_task = &enc->rc_task;
     EncFrmStatus *frm = &rc_task->frm;
@@ -635,7 +625,7 @@ void *mpp_enc_thread(void *data)
             goto TASK_RETURN;
 
         // 7. check and update rate control config
-        if (rc_cfg->change || ref_cfg->change || prep_cfg->change) {
+        if (rc_cfg->change || prep_cfg->change) {
             RcCfg usr_cfg;
 
             enc_dbg_detail("rc update cfg start\n");
@@ -643,7 +633,6 @@ void *mpp_enc_thread(void *data)
             set_rc_cfg(&usr_cfg, cfg);
             ret = rc_update_usr_cfg(enc->rc_ctx, &usr_cfg);
             rc_cfg->change = 0;
-            ref_cfg->change = 0;
             prep_cfg->change = 0;
 
             enc_dbg_detail("rc update cfg done\n");

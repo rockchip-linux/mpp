@@ -63,7 +63,6 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncH264Cfg *h264 = &cfg->codec.h264;
-    MppEncGopRef *ref = &cfg->gop_ref;
     RK_S32 gop = rc->gop;
     RK_S32 width = prep->width;
     RK_S32 height = prep->height;
@@ -123,12 +122,6 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     if (dev == DEV_VEPU) {
         // VEPU hardware default poc_type is 2
         sps->pic_order_cnt_type = 2;
-        sps->log2_max_frame_num_minus4 = 12;
-    }
-
-    // NOTE: when tsvc mode enabled poc type should be zero.
-    if (ref->gop_cfg_enable) {
-        sps->pic_order_cnt_type = 0;
         sps->log2_max_frame_num_minus4 = 12;
     }
 
