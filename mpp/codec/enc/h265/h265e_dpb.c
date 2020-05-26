@@ -232,41 +232,6 @@ void h265e_dpb_samrt_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSe
     h265e_dbg_func("leave\n");
 }
 
-
-MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg)
-{
-    MppEncGopRef *ref = &cfg->gop_ref;
-
-    /*setup gop ref hierarchy (vgop) */
-    if (!ref->gop_cfg_enable) {
-        dpb_cfg->vgop_size = 1;
-        return MPP_OK;
-    }
-
-    RK_S32 i = 0;
-    RK_S32 st_gop_len   = ref->ref_gop_len;
-    dpb_cfg->nLongTerm = 1;
-    dpb_cfg->vgop_size = st_gop_len;
-    dpb_cfg->vi_gop_len = 0;
-    for (i = 0; i < st_gop_len + 1; i++) {
-        MppGopRefInfo *info = &ref->gop_info[i];
-        RK_S32 is_non_ref   = info->is_non_ref;
-        RK_S32 is_lt_ref    = info->is_lt_ref;
-        RK_S32 temporal_id  = info->temporal_id;
-        RK_S32 lt_idx       = info->lt_idx;
-        RK_S32 ref_idx      = info->ref_idx;
-
-        dpb_cfg->ref_inf[i].is_intra = (i == 0) ? (1) : (0);
-        dpb_cfg->ref_inf[i].is_non_ref = is_non_ref;
-        dpb_cfg->ref_inf[i].is_lt_ref = is_lt_ref;
-        dpb_cfg->ref_inf[i].lt_idx = lt_idx;
-        dpb_cfg->ref_inf[i].temporal_id = temporal_id;
-        dpb_cfg->ref_inf[i].ref_dist = ref_idx - i;
-        dpb_cfg->nDeltaPocIdx[i] = ref_idx - i;
-    }
-    return MPP_OK;
-}
-
 /* get buffer at init */
 MPP_RET h265e_dpb_init_curr(H265eDpb *dpb, H265eDpbFrm *frm)
 {

@@ -189,7 +189,6 @@ MPP_RET h265e_dpb_get_curr(H265eDpb *dpb);
 H265eDpbFrm *h265e_dpb_get_refr(H265eDpbFrm *frm);
 void h265e_dpb_build_list(H265eDpb *dpb);
 MppBuffer h265e_dpb_frm_get_buf(H265eDpbFrm *frm, RK_S32 index);
-MPP_RET h265e_dpb_set_cfg(H265eDpbCfg *dpb_cfg, MppEncCfgSet* cfg);
 MPP_RET h265e_dpb_bakup(H265eDpb *dpb, H265eDpb *dpb_bak);
 MPP_RET h265e_dpb_recover(H265eDpb *dpb, H265eDpb *dpb_bak);
 
