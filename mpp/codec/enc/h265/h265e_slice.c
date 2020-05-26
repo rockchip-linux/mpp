@@ -203,7 +203,7 @@ void h265e_slice_set_ref_poc_list(H265eSlice *slice)
     h265e_dbg_func("leave\n");
 }
 
-void h265e_slice_init(void *ctx, H265eSlice *slice)
+void h265e_slice_init(void *ctx, H265eSlice *slice, EncFrmStatus curr)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     H265eVps *vps = &p->vps;
@@ -232,22 +232,17 @@ void h265e_slice_init(void *ctx, H265eSlice *slice)
     slice->m_enableTMVPFlag = sps->m_TMVPFlagsPresent;
     slice->m_picOutputFlag = 1;
     p->dpb->curr->is_key_frame = 0;
-    if (!p->dpb->curr->seq_idx || p->dpbcfg.force_idr) {
+    if (curr.is_idr) {
         slice->m_sliceType = I_SLICE;
         p->dpb->curr->is_key_frame = 1;
-        p->dpbcfg.force_idr = 0;
         p->dpb->curr->status.is_intra = 1;
         p->dpb->gop_idx = 0;
-    } else if (p->dpb->gop_idx % p->dpb->idr_gap) {
+    } else {
         slice->m_sliceType = P_SLICE;
         p->dpb->curr->status.is_intra = 0;
-    } else {
-        slice->m_sliceType = I_SLICE;
-        p->dpb->curr->is_key_frame = 1;
-        p->dpb->curr->status.is_intra = 1;
-        p->dpb->gop_idx = 0;
     }
 
+    p->dpb->curr->status.val = curr.val;
 
     if (slice->m_sliceType  != B_SLICE)
         slice->is_referenced = 1;
@@ -274,9 +269,9 @@ void h265e_slice_init(void *ctx, H265eSlice *slice)
     p->dpb->curr->gop_idx =  p->dpb->gop_idx++;
     p->dpb->curr->poc = slice->poc;
 
-    if (slice->poc % p->dpb->idr_gap == 0 && p->dpb->is_long_term) {
+    if (curr.is_lt_ref)
         p->dpb->curr->is_long_term = 1;
-    }
+
     h265e_dbg_slice("slice->m_sliceType = %d slice->is_referenced = %d \n",
                     slice->m_sliceType, slice->is_referenced);
     h265e_dbg_func("leave\n");
