@@ -225,8 +225,10 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     RK_U32 updated = update_vepu541_syntax(ctx, &task->syntax);
-    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncPrepCfg *prep = &cfg->prep;
     EncFrmStatus  *frm_status = &task->rc_task->frm;
+
     hal_h264e_dbg_func("enter %p\n", hal);
 
     if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG)) {
@@ -242,8 +244,14 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
             (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
             (ctx->pixel_buf_size != pixel_buf_size) ||
             (ctx->thumb_buf_size != thumb_buf_size)) {
+            MppEncRefCfg ref_cfg = cfg->ref_cfg;
             size_t sizes[2];
-            RK_S32 max_cnt = ctx->sps->num_ref_frames + 1;
+            RK_S32 max_cnt = 2;
+
+            if (ref_cfg) {
+                MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+                max_cnt = MPP_MAX(max_cnt, info->dpb_size + 1);
+            }
 
             /* pixel buffer */
             sizes[0] = pixel_buf_size;
@@ -471,43 +479,175 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg107.idr_pic_id     = (slice->slice_type == H264_I_SLICE) ? slice->idr_pic_id : (RK_U32)(-1);
     regs->reg107.poc_lsb        = slice->pic_order_cnt_lsb;
 
-    // TODO: reorder implement
-    regs->reg108.ref_list0_rodr = 0; //slice->ref_pic_list_modification_flag;
-    regs->reg108.rodr_pic_idx   = 0;
+
     regs->reg108.dis_dblk_idc   = slice->disable_deblocking_filter_idc;
     regs->reg108.sli_alph_ofst  = slice->slice_alpha_c0_offset_div2;
-    regs->reg108.rodr_pic_num   = 0;
 
-    if (slice->slice_type == H264_I_SLICE) {
-        regs->reg109.nopp_flg       = slice->no_output_of_prior_pics;
-        regs->reg109.ltrf_flg       = slice->long_term_reference_flag;
-        regs->reg109.arpm_flg       = 0;
-        regs->reg109.mmco4_pre      = 0;
-        regs->reg109.mmco_type0     = 0;
-        regs->reg109.mmco_parm0     = 0;
-        regs->reg109.mmco_type1     = 0;
-        regs->reg110.mmco_parm1     = 0;
-        regs->reg109.mmco_type2     = 0;
-        regs->reg110.mmco_parm2     = 0;
-    } else {
-        regs->reg109.nopp_flg       = 0;
-        regs->reg109.ltrf_flg       = 0;
-        regs->reg109.arpm_flg       = 0;
-        regs->reg109.mmco4_pre      = 0;
-        regs->reg109.mmco_type0     = 0;
-        regs->reg109.mmco_parm0     = 0;
-        regs->reg109.mmco_type1     = 0;
-        regs->reg110.mmco_parm1     = 0;
-        regs->reg109.mmco_type2     = 0;
-        regs->reg110.mmco_parm2     = 0;
+    {   /* reorder process */
+        H264eRplmo rplmo;
+        MPP_RET ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
+
+        if (MPP_OK == ret) {
+            regs->reg108.ref_list0_rodr = 1;
+            regs->reg108.rodr_pic_idx   = rplmo.modification_of_pic_nums_idc;
+
+            switch (rplmo.modification_of_pic_nums_idc) {
+            case 0 :
+            case 1 : {
+                regs->reg108.rodr_pic_num   = rplmo.abs_diff_pic_num_minus1;
+            } break;
+            case 2 : {
+                regs->reg108.rodr_pic_num   = rplmo.long_term_pic_idx;
+            } break;
+            default : {
+                mpp_err_f("invalid modification_of_pic_nums_idc %d\n",
+                          rplmo.modification_of_pic_nums_idc);
+            } break;
+            }
+        } else {
+            // slice->ref_pic_list_modification_flag;
+            regs->reg108.ref_list0_rodr = 0;
+            regs->reg108.rodr_pic_idx   = 0;
+            regs->reg108.rodr_pic_num   = 0;
+        }
     }
 
+    /* clear all mmco arg first */
+    regs->reg109.nopp_flg               = 0;
+    regs->reg109.ltrf_flg               = 0;
+    regs->reg109.arpm_flg               = 0;
+    regs->reg109.mmco4_pre              = 0;
+    regs->reg109.mmco_type0             = 0;
+    regs->reg109.mmco_parm0             = 0;
+    regs->reg109.mmco_type1             = 0;
+    regs->reg110.mmco_parm1             = 0;
+    regs->reg109.mmco_type2             = 0;
+    regs->reg110.mmco_parm2             = 0;
     regs->reg114.long_term_frame_idx0   = 0;
     regs->reg114.long_term_frame_idx1   = 0;
     regs->reg114.long_term_frame_idx2   = 0;
 
-    regs->reg115.dlt_poc_s0_m12 = 0;
-    regs->reg115.dlt_poc_s0_m13 = 0;
+    /* only update used parameter */
+    if (slice->slice_type == H264_I_SLICE) {
+        regs->reg109.nopp_flg       = slice->no_output_of_prior_pics;
+        regs->reg109.ltrf_flg       = slice->long_term_reference_flag;
+    } else {
+        if (!h264e_marking_is_empty(slice->marking)) {
+            H264eMmco mmco;
+
+            regs->reg109.arpm_flg       = 1;
+
+            /* max 3 mmco */
+            do {
+                RK_S32 type = 0;
+                RK_S32 param_0 = 0;
+                RK_S32 param_1 = 0;
+
+                h264e_marking_rd_op(slice->marking, &mmco);
+                type = mmco.mmco;
+                switch (type) {
+                case 1 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                } break;
+                case 2 : {
+                    param_0 = mmco.long_term_pic_num;
+                } break;
+                case 3 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                    param_1 = mmco.long_term_frame_idx;
+                } break;
+                case 4 : {
+                    param_0 = mmco.max_long_term_frame_idx_plus1;
+                } break;
+                case 5 : {
+                } break;
+                case 6 : {
+                    param_0 = mmco.long_term_frame_idx;
+                } break;
+                default : {
+                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    type = 0;
+                } break;
+                }
+
+                regs->reg109.mmco_type0 = type;
+                regs->reg109.mmco_parm0 = param_0;
+                regs->reg114.long_term_frame_idx0 = param_1;
+
+                if (h264e_marking_is_empty(slice->marking))
+                    break;
+
+                h264e_marking_rd_op(slice->marking, &mmco);
+                type = mmco.mmco;
+                param_0 = 0;
+                param_1 = 0;
+                switch (type) {
+                case 1 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                } break;
+                case 2 : {
+                    param_0 = mmco.long_term_pic_num;
+                } break;
+                case 3 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                    param_1 = mmco.long_term_frame_idx;
+                } break;
+                case 4 : {
+                    param_0 = mmco.max_long_term_frame_idx_plus1;
+                } break;
+                case 5 : {
+                } break;
+                case 6 : {
+                    param_0 = mmco.long_term_frame_idx;
+                } break;
+                default : {
+                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    type = 0;
+                } break;
+                }
+
+                regs->reg109.mmco_type1 = type;
+                regs->reg110.mmco_parm1 = param_0;
+                regs->reg114.long_term_frame_idx1 = param_1;
+
+                if (h264e_marking_is_empty(slice->marking))
+                    break;
+
+                h264e_marking_rd_op(slice->marking, &mmco);
+                type = mmco.mmco;
+                param_0 = 0;
+                param_1 = 0;
+                switch (type) {
+                case 1 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                } break;
+                case 2 : {
+                    param_0 = mmco.long_term_pic_num;
+                } break;
+                case 3 : {
+                    param_0 = mmco.difference_of_pic_nums_minus1;
+                    param_1 = mmco.long_term_frame_idx;
+                } break;
+                case 4 : {
+                    param_0 = mmco.max_long_term_frame_idx_plus1;
+                } break;
+                case 5 : {
+                } break;
+                case 6 : {
+                    param_0 = mmco.long_term_frame_idx;
+                } break;
+                default : {
+                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    type = 0;
+                } break;
+                }
+
+                regs->reg109.mmco_type2 = type;
+                regs->reg110.mmco_parm2 = param_0;
+                regs->reg114.long_term_frame_idx2 = param_1;
+            } while (0);
+        }
+    }
 
     hal_h264e_dbg_func("leave\n");
 }

@@ -1724,14 +1724,9 @@ typedef struct Vepu541H264eRegSet_t {
     /*
      * SYNT_REFM3
      * Address offset: 0x01CC Access type: read and write
-     * Reference frame mark3 for H.264
+     * Reference frame mark3 for HEVC
      */
-    struct {
-        /* delta_poc_s0_minus1[2] */
-        RK_U32  dlt_poc_s0_m12          : 16;
-        /* delta_poc_s0_minus1[3] */
-        RK_U32  dlt_poc_s0_m13          : 16;
-    } reg115;
+    RK_U32 reg115;
 
     /*
      * OSD_POS
