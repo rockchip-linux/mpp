@@ -42,6 +42,7 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
                           SynH264eSps *sps, H264eDpbFrm *frm)
 {
     MppEncH264Cfg *h264 = &cfg->codec.h264;
+    RK_S32 is_idr = frm->status.is_idr;
 
     slice->max_num_ref_frames = sps->num_ref_frames;
     slice->log2_max_frame_num = sps->log2_max_frame_num_minus4 + 4;
@@ -52,11 +53,10 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
     slice->nal_reference_idc = (frm->status.is_non_ref) ? (H264_NALU_PRIORITY_DISPOSABLE) :
                                (slice->idr_flag) ? (H264_NALU_PRIORITY_HIGHEST) :
                                (H264_NALU_PRIORITY_HIGH);
-    slice->nalu_type = (frm->status.is_idr) ?
-                       (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
+    slice->nalu_type = (is_idr) ? (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
 
     slice->first_mb_in_slice = 0;
-    slice->slice_type = (frm->status.is_idr) ? (H264_I_SLICE) : (H264_P_SLICE);
+    slice->slice_type = (is_idr) ? (H264_I_SLICE) : (H264_P_SLICE);
     slice->pic_parameter_set_id = 0;
     slice->frame_num = frm->frame_num;
     slice->num_ref_idx_override = 0;
@@ -66,7 +66,7 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
     slice->slice_alpha_c0_offset_div2 = h264->deblock_offset_alpha;
     slice->slice_beta_offset_div2 = h264->deblock_offset_beta;
 
-    slice->idr_flag = frm->status.is_idr;
+    slice->idr_flag = is_idr;
 
     if (slice->idr_flag) {
         slice->idr_pic_id = slice->next_idr_pic_id;

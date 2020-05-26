@@ -24,6 +24,7 @@
 #include "mpp_common.h"
 
 #include "mpp_packet_impl.h"
+#include "mpp_enc_refs.h"
 
 #include "h264e_debug.h"
 #include "h264e_syntax.h"
@@ -44,6 +45,7 @@ typedef struct {
     /* config from mpp_enc */
     MppDeviceId         dev_id;
     MppEncCfgSet        *cfg;
+    MppEncRefs          refs;
     RK_U32              idr_request;
 
     /* H.264 high level syntax */
@@ -162,6 +164,7 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
     mpp_assert(p->hdr_pkt);
 
     p->cfg = ctrl_cfg->cfg;
+    p->refs = ctrl_cfg->refs;
     p->idr_request = 0;
 
     h264e_reorder_init(&p->reorder);
@@ -477,7 +480,7 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     /*
      * NOTE: When sps/pps is update we need to update dpb and slice info
      */
-    h264e_dpb_set_cfg(&p->dpb, p->cfg, &p->sps);
+    h264e_dpb_setup(&p->dpb, p->cfg, &p->sps);
 
     mpp_packet_reset(p->hdr_pkt);
 
@@ -500,11 +503,9 @@ static MPP_RET h264e_start(void *ctx, HalEncTask *task)
 
     h264e_dbg_func("enter\n");
 
-    /* Backup dpb for reencode */
-    h264e_dpb_copy(&p->dpb_bak, &p->dpb);
-
     h264e_dbg_func("leave\n");
     (void) task;
+    (void) p;
 
     return MPP_OK;
 }
@@ -514,53 +515,35 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
     H264eCtx *p = (H264eCtx *)ctx;
     H264eDpb *dpb = &p->dpb;
     H264eFrmInfo *frms = &p->frms;
-    H264eDpbFrmCfg frm_cfg;
+    EncCpbStatus *cpb = &task->rc_task->cpb;
     EncFrmStatus *frm = &task->rc_task->frm;
-    MppFrame frame = task->frame;
-    MppMeta meta = mpp_frame_get_meta(frame);
+    H264eDpbFrm *curr = NULL;
+    H264eDpbFrm *refr = NULL;
     RK_S32 i;
 
     h264e_dbg_func("enter\n");
 
-    /*
-     * Step 4: Determine current frame type, reference info and temporal id
-     *
-     * This part is a complete dpb management for current frame.
-     * NOTE: reencode may use force pskip flag to change the dpb behave.
-     */
-    if (p->idr_request) {
-        frm_cfg.force_idr = 1;
-        p->idr_request--;
-    } else
-        frm_cfg.force_idr = 0;
-
-    frm_cfg.force_pskip = 0;
-    frm_cfg.force_lt_idx = -1;
-    frm_cfg.force_ref_lt_idx = -1;
-    mpp_meta_get_s32(meta, KEY_LONG_REF_IDX, &frm_cfg.force_ref_lt_idx);
-
     // update dpb
-    h264e_dpb_set_curr(dpb, &frm_cfg);
-    h264e_dpb_build_list(dpb);
-    h264e_dpb_build_marking(dpb);
+    h264e_dpb_proc(dpb, cpb);
 
-    // update frame usage
-    frms->seq_idx = dpb->curr->seq_idx;
-    frms->curr_idx = dpb->curr->slot_idx;
-    frms->refr_idx = (dpb->refr) ? dpb->refr->slot_idx : frms->curr_idx;
-
-    // update frame status for rc module
-    *frm = dpb->curr->status;
-    frm->seq_idx = dpb->curr->seq_idx;
-
-    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(frms->usage); i++)
-        frms->usage[i] = dpb->frames[i].on_used;
+    curr = dpb->curr;
+    refr = dpb->refr;
 
     // update slice info
     h264e_slice_update(&p->slice, p->cfg, &p->sps, dpb->curr);
 
+    // update frame usage
+    frms->seq_idx = curr->seq_idx;
+    frms->curr_idx = curr->slot_idx;
+    frms->refr_idx = (refr) ? refr->slot_idx : curr->slot_idx;
+
+    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(frms->usage); i++)
+        frms->usage[i] = dpb->frames[i].on_used;
+
     // update dpb to after encoding status
-    h264e_dpb_curr_ready(dpb);
+    h264e_dpb_check(dpb, cpb);
+
+    frm->val = curr->status.val;
 
     /*
      * Step 5: Wait previous frame bit/quality result
