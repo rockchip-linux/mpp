@@ -102,7 +102,7 @@ typedef struct {
     RK_S32 fps_out_den;
     RK_S32 fps_out_num;
     RK_S32 bps;
-    RK_S32 gop_mode;
+    RK_U32 gop_mode;
 } MpiEncTestData;
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
@@ -135,13 +135,13 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     if (cmd->type == MPP_VIDEO_CodingMJPEG)
         cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
-    p->gop_mode     =  cmd->gop_mode;
-    p->fps_in_flex = cmd->fps_in_flex;
-    p->fps_in_den = cmd->fps_in_den;
-    p->fps_in_num = cmd->fps_in_num;
+    p->gop_mode     = cmd->gop_mode;
+    p->fps_in_flex  = cmd->fps_in_flex;
+    p->fps_in_den   = cmd->fps_in_den;
+    p->fps_in_num   = cmd->fps_in_num;
     p->fps_out_flex = cmd->fps_out_flex;
-    p->fps_out_den = cmd->fps_out_den;
-    p->fps_out_num = cmd->fps_out_num;
+    p->fps_out_den  = cmd->fps_out_den;
+    p->fps_out_num  = cmd->fps_out_num;
 
     if (cmd->file_input) {
         p->fp_input = fopen(cmd->file_input, "rb");
@@ -418,6 +418,22 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
         }
     }
 
+    RK_U32 gop_mode = 0;
+
+    mpp_env_get_u32("gop_mode", &gop_mode, 0);
+    if (p->gop_mode || gop_mode) {
+        MppEncRefCfg ref;
+
+        mpp_enc_ref_cfg_init(&ref);
+        mpi_enc_gen_ref_cfg(ref);
+        ret = mpi->control(ctx, MPP_ENC_SET_REF_CFG, ref);
+        if (ret) {
+            mpp_err("mpi control enc set ref cfg failed ret %d\n", ret);
+            goto RET;
+        }
+        mpp_enc_ref_cfg_deinit(&ref);
+    }
+
     /* setup test mode by env */
     mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
     mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
@@ -585,6 +601,22 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
             mpp_err("mpi control enc set header mode failed ret %d\n", ret);
             goto RET;
         }
+    }
+
+    RK_U32 gop_mode = 0;
+
+    mpp_env_get_u32("gop_mode", &gop_mode, 0);
+    if (p->gop_mode || gop_mode) {
+        MppEncRefCfg ref;
+
+        mpp_enc_ref_cfg_init(&ref);
+        mpi_enc_gen_ref_cfg(ref);
+        ret = mpi->control(ctx, MPP_ENC_SET_REF_CFG, ref);
+        if (ret) {
+            mpp_err("mpi control enc set ref cfg failed ret %d\n", ret);
+            goto RET;
+        }
+        mpp_enc_ref_cfg_deinit(&ref);
     }
 
     /* setup test mode by env */
