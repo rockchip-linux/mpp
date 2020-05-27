@@ -247,7 +247,7 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
-static RK_S32 check_resend_hdr(MpiCmd cmd, void *param)
+static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 {
     if (cmd == MPP_ENC_SET_CODEC_CFG ||
         cmd == MPP_ENC_SET_PREP_CFG ||
@@ -260,6 +260,53 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param)
                             MPP_ENC_RC_CFG_CHANGE_FPS_IN |
                             MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
                             MPP_ENC_RC_CFG_CHANGE_GOP;
+
+        if (change & check_flag)
+            return 1;
+    }
+
+    if (cmd == MPP_ENC_SET_CFG) {
+        RK_U32 change = cfg->prep.change;
+        RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                            MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+
+        if (change & check_flag)
+            return 1;
+
+        change = cfg->rc.change;
+        check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                     MPP_ENC_RC_CFG_CHANGE_FPS_IN |
+                     MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
+                     MPP_ENC_RC_CFG_CHANGE_GOP;
+
+        if (change & check_flag)
+            return 1;
+    }
+
+    return 0;
+}
+
+static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
+{
+    if (cmd == MPP_ENC_SET_RC_CFG ||
+        cmd == MPP_ENC_SET_PREP_CFG ||
+        cmd == MPP_ENC_SET_REF_CFG) {
+        return 1;
+    }
+
+    if (cmd == MPP_ENC_SET_CFG) {
+        RK_U32 change = cfg->prep.change;
+        RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                            MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+
+        if (change & check_flag)
+            return 1;
+
+        change = cfg->rc.change;
+        check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                     MPP_ENC_RC_CFG_CHANGE_FPS_IN |
+                     MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
+                     MPP_ENC_RC_CFG_CHANGE_GOP;
 
         if (change & check_flag)
             return 1;
@@ -365,6 +412,7 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
             mpp_err_f("failed to set ref cfg ret %d\n", ret);
             *enc->cmd_ret = ret;
         }
+        enc->hdr_status.val = 0;
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
         MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)enc->param;
@@ -397,10 +445,13 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     } break;
     default : {
         enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
-        if (check_resend_hdr(enc->cmd, enc->param))
-            enc->hdr_status.val = 0;
     } break;
     }
+
+    if (check_resend_hdr(enc->cmd, enc->param, &enc->cfg))
+        enc->hdr_status.val = 0;
+    if (check_rc_cfg_update(enc->cmd, &enc->cfg))
+        enc->rc_status.rc_api_user_cfg = 1;
 }
 
 #define RUN_ENC_IMPL_FUNC(func, impl, task, mpp, ret)           \
@@ -528,7 +579,6 @@ void *mpp_enc_thread(void *data)
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
     MppThread *thd_enc  = enc->thread_enc;
-    MppEncRefs refs = enc->refs;
     MppEncCfgSet *cfg = &enc->cfg;
     MppEncRcCfg *rc_cfg = &cfg->rc;
     MppEncPrepCfg *prep_cfg = &cfg->prep;
@@ -658,17 +708,19 @@ void *mpp_enc_thread(void *data)
             goto TASK_RETURN;
 
         // 7. check and update rate control config
-        if (rc_cfg->change || prep_cfg->change) {
+        if (enc->rc_status.rc_api_user_cfg) {
             RcCfg usr_cfg;
 
             enc_dbg_detail("rc update cfg start\n");
 
+            memset(&usr_cfg, 0 , sizeof(usr_cfg));
             set_rc_cfg(&usr_cfg, cfg);
             ret = rc_update_usr_cfg(enc->rc_ctx, &usr_cfg);
             rc_cfg->change = 0;
             prep_cfg->change = 0;
 
             enc_dbg_detail("rc update cfg done\n");
+            enc->rc_status.rc_api_user_cfg = 0;
         }
 
         // 8. all task ready start encoding one frame
@@ -755,14 +807,14 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d enc start\n", frm->seq_idx);
         task.status.enc_backup = 1;
         RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
-        mpp_enc_refs_stash(refs);
+        mpp_enc_refs_stash(enc->refs);
 
     TASK_REENCODE:
         // 15. restore and process dpb
         if (!frm->reencode) {
             if (!frm->re_dpb_proc) {
                 enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
-                mpp_enc_refs_get_cpb(refs, cpb);
+                mpp_enc_refs_get_cpb(enc->refs, cpb);
 
                 enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
                 RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
@@ -842,7 +894,7 @@ void *mpp_enc_thread(void *data)
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
         if (frm->reencode_times < rc_cfg->max_reenc_times && frm->reencode) {
-            mpp_enc_refs_rollback(refs);
+            mpp_enc_refs_rollback(enc->refs);
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             hal_task->length -= hal_task->hw_length;
             hal_task->hw_length = 0;

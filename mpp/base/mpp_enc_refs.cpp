@@ -195,6 +195,9 @@ MPP_RET mpp_enc_refs_set_cfg(MppEncRefs refs, MppEncRefCfg ref_cfg)
 
     p->ref_cfg = cfg;
 
+    /* clear cpb on setup new cfg */
+    memset(cpb, 0, sizeof(*cpb));
+
     if (cfg->lt_cfg_cnt) {
         RK_S32 i;
 
