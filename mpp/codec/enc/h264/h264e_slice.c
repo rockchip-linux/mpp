@@ -135,42 +135,38 @@ MPP_RET h264e_marking_init(H264eMarkingInfo *marking)
     marking->long_term_reference_flag = 0;
     marking->adaptive_ref_pic_buffering = 0;
     marking->size = MAX_H264E_MMCO_CNT;
-    marking->pos_wr = 0;
-    marking->pos_rd = marking->size;
-    marking->count = 0;
+    marking->wr_cnt = 0;
+    marking->rd_cnt = 0;
 
     return MPP_OK;
 }
 
 RK_S32 h264e_marking_is_empty(H264eMarkingInfo *info)
 {
-    return (info->pos_rd - info->pos_wr == info->size ||
-            info->pos_wr - info->pos_rd == info->size) ? (1) : (0);
+    return info->rd_cnt >= info->wr_cnt;
 }
 
-RK_S32 h264e_marking_is_full(H264eMarkingInfo *info)
+MPP_RET h264e_marking_wr_rewind(H264eMarkingInfo *marking)
 {
-    return (info->pos_rd == info->pos_wr) ? (1) : (0);
+    marking->wr_cnt = 0;
+    return MPP_OK;
+}
+
+MPP_RET h264e_marking_rd_rewind(H264eMarkingInfo *marking)
+{
+    marking->rd_cnt = 0;
+    return MPP_OK;
 }
 
 MPP_RET h264e_marking_wr_op(H264eMarkingInfo *info, H264eMmco *op)
 {
-    if (h264e_marking_is_full(info))
+    if (info->wr_cnt >= info->size) {
+        mpp_err_f("write too many mmco op %d vs %d\n",
+                  info->wr_cnt, info->size);
         return MPP_NOK;
+    }
 
-    RK_S32 pos_wr = info->pos_wr;
-
-    if (pos_wr >= info->size)
-        pos_wr -= info->size;
-
-    info->ops[pos_wr] = *op;
-
-    info->pos_wr++;
-    if (info->pos_wr >= info->size * 2)
-        info->pos_wr = 0;
-
-    info->count++;
-
+    info->ops[info->wr_cnt++] = *op;
     return MPP_OK;
 }
 
@@ -179,19 +175,7 @@ MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op)
     if (h264e_marking_is_empty(info))
         return MPP_NOK;
 
-    RK_S32 pos_rd = info->pos_rd;
-
-    if (pos_rd >= info->size)
-        pos_rd -= info->size;
-
-    *op = info->ops[pos_rd];
-
-    info->pos_rd++;
-    if (info->pos_rd >= info->size * 2)
-        info->pos_rd = 0;
-
-    info->count--;
-
+    *op = info->ops[info->rd_cnt++];
     return MPP_OK;
 }
 
@@ -211,19 +195,19 @@ void write_marking(MppWriteCtx *s, H264eMarkingInfo *marking)
         // clear long_term_reference_flag flag
         marking->long_term_reference_flag = 0;
     } else {
-        h264e_dbg_mmco("mmco count %d\n", marking->count);
+        h264e_dbg_mmco("mmco count %d\n", marking->wr_cnt);
+
+        h264e_marking_rd_rewind(marking);
 
         if (!h264e_marking_is_empty(marking)) {
+            H264eMmco mmco;
+
             /* adaptive_ref_pic_marking_mode_flag */
             mpp_writer_put_bits(s, 1, 1);
             h264e_dbg_slice("used bit %2d adaptive_ref_pic_marking_mode_flag 1\n",
                             mpp_writer_bits(s));
 
-            while (!h264e_marking_is_empty(marking)) {
-                H264eMmco mmco;
-
-                h264e_marking_rd_op(marking, &mmco);
-
+            while (MPP_OK == h264e_marking_rd_op(marking, &mmco)) {
                 /* memory_management_control_operation */
                 mpp_writer_put_ue(s, mmco.mmco);
                 h264e_dbg_slice("used bit %2d memory_management_control_operation %d\n",

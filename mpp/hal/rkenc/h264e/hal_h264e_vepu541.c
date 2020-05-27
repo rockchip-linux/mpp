@@ -528,6 +528,8 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg114.long_term_frame_idx1   = 0;
     regs->reg114.long_term_frame_idx2   = 0;
 
+    h264e_marking_rd_rewind(slice->marking);
+
     /* only update used parameter */
     if (slice->slice_type == H264_I_SLICE) {
         regs->reg109.nopp_flg       = slice->no_output_of_prior_pics;
