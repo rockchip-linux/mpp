@@ -289,6 +289,9 @@ void h264e_dpb_build_list(H264eDpb *dpb, EncCpbStatus *cpb)
     if (h264e_debug & H264E_DBG_LIST)
         h264e_dpb_dump_list(dpb);
 
+    /* generate syntax */
+    h264e_reorder_wr_rewind(dpb->reorder);
+
     if (dpb->st_size + dpb->lt_size) {
         H264eDpbFrm *curr = dpb->curr;
         H264eDpbFrm *refr = dpb->refr;
