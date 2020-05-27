@@ -26,6 +26,7 @@
 
 #define HAL_H264E_DBG_BUFFER            (0x00000010)
 #define HAL_H264E_DBG_REGS              (0x00000020)
+#define HAL_H264E_DBG_AMEND             (0x00000040)
 
 #define HAL_H264E_DBG_RC                (0x00000100)
 
@@ -38,6 +39,7 @@
 
 #define hal_h264e_dbg_buffer(fmt, ...)  hal_h264e_dbg_f(HAL_H264E_DBG_BUFFER, fmt, ## __VA_ARGS__)
 #define hal_h264e_dbg_regs(fmt, ...)    hal_h264e_dbg_f(HAL_H264E_DBG_REGS, fmt, ## __VA_ARGS__)
+#define hal_h264e_dbg_amend(fmt, ...)   hal_h264e_dbg_f(HAL_H264E_DBG_AMEND, fmt, ## __VA_ARGS__)
 
 #define hal_h264e_dbg_rc(fmt, ...)      hal_h264e_dbg_f(HAL_H264E_DBG_RC, fmt, ## __VA_ARGS__)
 

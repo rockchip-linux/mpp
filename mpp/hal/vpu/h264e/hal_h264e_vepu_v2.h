@@ -149,6 +149,25 @@ typedef struct HalH264eVepuMbRc_t {
 
 typedef void *HalH264eVepuMbRcCtx;
 
+typedef struct HalH264eVepuStreamAmend_t {
+    RK_S32          enable;
+    H264eSlice      *slice;
+    RK_S32          max_tid;
+    RK_S32          temporal_id;
+    RK_S32          slice_enabled;
+    RK_S32          is_first_slice;
+    RK_S32          is_last_slice;
+
+    RK_U8           *src_buf;
+    RK_U8           *dst_buf;
+    RK_S32          buf_size;
+
+    MppPacket       packet;
+    RK_S32          buf_base;
+    RK_S32          old_length;
+    RK_S32          new_length;
+} HalH264eVepuStreamAmend;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -187,6 +206,13 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet *cfg);
 MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
                                 EncRcTask *rc_task, MppEncCfgSet *cfg);
 MPP_RET h264e_vepu_mbrc_update(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc);
+
+MPP_RET h264e_vepu_stream_amend_init(HalH264eVepuStreamAmend *ctx);
+MPP_RET h264e_vepu_stream_amend_deinit(HalH264eVepuStreamAmend *ctx);
+MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
+                                       MppPacket packet, MppEncCfgSet *cfg,
+                                       H264eSlice *slice, EncFrmStatus *frm);
+MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx);
 
 #ifdef __cplusplus
 }
