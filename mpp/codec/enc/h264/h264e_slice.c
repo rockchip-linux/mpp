@@ -89,48 +89,42 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
 MPP_RET h264e_reorder_init(H264eReorderInfo *reorder)
 {
     reorder->size = H264E_MAX_REFS_CNT;
-    reorder->pos_wr = 0;
-    reorder->pos_rd = reorder->size;
+    reorder->rd_cnt = 0;
+    reorder->wr_cnt = 0;
 
+    return MPP_OK;
+}
+
+MPP_RET h264e_reorder_wr_rewind(H264eReorderInfo *info)
+{
+    info->wr_cnt = 0;
+    return MPP_OK;
+}
+
+MPP_RET h264e_reorder_rd_rewind(H264eReorderInfo *info)
+{
+    info->rd_cnt = 0;
     return MPP_OK;
 }
 
 MPP_RET h264e_reorder_wr_op(H264eReorderInfo *info, H264eRplmo *op)
 {
-    if (info->pos_rd == info->pos_wr)
+    if (info->wr_cnt >= info->size) {
+        mpp_err_f("write too many reorder op %d vs %d\n",
+                  info->wr_cnt, info->size);
         return MPP_NOK;
+    }
 
-    RK_S32 pos_wr = info->pos_wr;
-
-    if (pos_wr >= info->size)
-        pos_wr -= info->size;
-
-    info->ops[pos_wr] = *op;
-
-    info->pos_wr++;
-    if (info->pos_wr >= info->size * 2)
-        info->pos_wr = 0;
-
+    info->ops[info->wr_cnt++] = *op;
     return MPP_OK;
 }
 
 MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op)
 {
-    if (info->pos_rd - info->pos_wr == info->size ||
-        info->pos_wr - info->pos_rd == info->size)
+    if (info->rd_cnt >= info->wr_cnt)
         return MPP_NOK;
 
-    RK_S32 pos_rd = info->pos_rd;
-
-    if (pos_rd >= info->size)
-        pos_rd -= info->size;
-
-    *op = info->ops[pos_rd];
-
-    info->pos_rd++;
-    if (info->pos_rd >= info->size * 2)
-        info->pos_rd = 0;
-
+    *op = info->ops[info->rd_cnt++];
     return MPP_OK;
 }
 
@@ -601,6 +595,8 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
 
     /* num_ref_idx_override */
     slice->ref_pic_list_modification_flag = 0;
+
+    h264e_reorder_rd_rewind(slice->reorder);
 
     if (slice->slice_type == H264_P_SLICE) {
         mpp_assert(slice->num_ref_idx_override == 0);

@@ -26,8 +26,20 @@
 extern "C" {
 #endif
 
+/*
+ * reorder context for both dpb and slice
+ */
 MPP_RET h264e_reorder_init(H264eReorderInfo *reorder);
+MPP_RET h264e_reorder_wr_rewind(H264eReorderInfo *info);
+MPP_RET h264e_reorder_rd_rewind(H264eReorderInfo *info);
+MPP_RET h264e_reorder_wr_op(H264eReorderInfo *info, H264eRplmo *op);
+MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op);
+
+/* mmco context for both dpb and slice */
 MPP_RET h264e_marking_init(H264eMarkingInfo *marking);
+RK_S32 h264e_marking_is_empty(H264eMarkingInfo *info);
+MPP_RET h264e_marking_wr_op(H264eMarkingInfo *info, H264eMmco *op);
+MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
 
 /*
  * h264e_slice_update is called only on cfg is update.
@@ -37,15 +49,6 @@ void h264e_slice_init(H264eSlice *slice, H264eReorderInfo *reorder,
                       H264eMarkingInfo *marking);
 RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
                           SynH264eSps *sps, H264eDpbFrm *frm);
-
-/* reorder context for dpb */
-MPP_RET h264e_reorder_wr_op(H264eReorderInfo *info, H264eRplmo *op);
-MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op);
-
-/* mmco context for dpb */
-RK_S32 h264e_marking_is_empty(H264eMarkingInfo *info);
-MPP_RET h264e_marking_wr_op(H264eMarkingInfo *info, H264eMmco *op);
-MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
 
 
 RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size);

@@ -208,8 +208,8 @@ typedef struct H264eRplmo_t {
 } H264eRplmo;
 
 typedef struct H264eReorderInfo_t {
-    RK_S32      pos_rd;
-    RK_S32      pos_wr;
+    RK_S32      rd_cnt;
+    RK_S32      wr_cnt;
     RK_S32      size;
     H264eRplmo  ops[H264E_MAX_REFS_CNT];
 } H264eReorderInfo;

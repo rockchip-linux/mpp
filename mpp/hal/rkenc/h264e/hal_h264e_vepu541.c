@@ -483,6 +483,7 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     regs->reg108.dis_dblk_idc   = slice->disable_deblocking_filter_idc;
     regs->reg108.sli_alph_ofst  = slice->slice_alpha_c0_offset_div2;
 
+    h264e_reorder_rd_rewind(slice->reorder);
     {   /* reorder process */
         H264eRplmo rplmo;
         MPP_RET ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
