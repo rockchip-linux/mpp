@@ -38,6 +38,8 @@ MPP_RET h264e_reorder_rd_op(H264eReorderInfo *info, H264eRplmo *op);
 /* mmco context for both dpb and slice */
 MPP_RET h264e_marking_init(H264eMarkingInfo *marking);
 RK_S32 h264e_marking_is_empty(H264eMarkingInfo *info);
+MPP_RET h264e_marking_wr_rewind(H264eMarkingInfo *marking);
+MPP_RET h264e_marking_rd_rewind(H264eMarkingInfo *marking);
 MPP_RET h264e_marking_wr_op(H264eMarkingInfo *info, H264eMmco *op);
 MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
 

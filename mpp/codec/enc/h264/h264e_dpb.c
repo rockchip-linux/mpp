@@ -344,6 +344,8 @@ void h264e_dpb_build_marking(H264eDpb *dpb)
 
     h264e_dbg_dpb("enter %p\n", dpb);
 
+    h264e_marking_wr_rewind(marking);
+
     // refernce frame can not mark itself as unreferenced.
     if (frm->status.is_idr) {
         marking->idr_flag = 1;

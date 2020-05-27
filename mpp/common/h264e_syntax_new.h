@@ -246,9 +246,8 @@ typedef struct H264eMarkingInfo_t {
     RK_S32      long_term_reference_flag;
     /* non-idr marking flag */
     RK_S32      adaptive_ref_pic_buffering;
-    RK_S32      pos_rd;
-    RK_S32      pos_wr;
-    RK_S32      count;
+    RK_S32      rd_cnt;
+    RK_S32      wr_cnt;
     RK_S32      size;
     H264eMmco   ops[MAX_H264E_MMCO_CNT];
 } H264eMarkingInfo;
