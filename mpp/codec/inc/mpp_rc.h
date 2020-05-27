@@ -98,9 +98,10 @@ typedef struct MppVirtualBuffer_s {
 
 
 typedef enum ENC_FRAME_TYPE_E {
-    INTER_P_FRAME = 0,
-    INTER_B_FRAME = 1,
-    INTRA_FRAME   = 2
+    INTER_P_FRAME   = 0,
+    INTER_B_FRAME   = 1,
+    INTRA_FRAME     = 2,
+    INTER_VI_FRAME  = 3,
 } ENC_FRAME_TYPE;
 
 /*

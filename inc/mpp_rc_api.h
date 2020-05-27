@@ -55,6 +55,11 @@ typedef enum RcMode_e {
     RC_MODE_BUTT,
 } RcMode;
 
+typedef enum GopMode_e {
+    NORMAL_P,
+    SMART_P,
+} GopMode;
+
 /*
  * frame rate parameters have great effect on rate control
  *
@@ -102,6 +107,7 @@ typedef struct RcCfg_s {
 
     RcFpsCfg    fps;
 
+    GopMode     gop_mode;
     /* I frame gop len */
     RK_S32      igop;
     /* visual gop len */
@@ -126,6 +132,7 @@ typedef struct RcCfg_s {
     RK_S32      max_i_quality;
     RK_S32      min_i_quality;
     RK_S32      i_quality_delta;
+    RK_S32      vi_quality_delta;
     /* layer quality proportion */
     RK_S32      layer_quality_delta[4];
 
