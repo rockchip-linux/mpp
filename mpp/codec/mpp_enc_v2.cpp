@@ -596,6 +596,8 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     MppEncRcCfg *rc = &cfg_set->rc;
     MppEncPrepCfg *prep = &cfg_set->prep;
     MppEncCodecCfg *codec = &cfg_set->codec;
+    MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
+    MppEncCpbInfo *info = &ref->cpb_info;
 
     cfg->width = prep->width;
     cfg->height = prep->height;
@@ -627,9 +629,6 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
     cfg->stat_times = 3;
-
-    cfg->i_quality_delta = 0;
-    cfg->vgop = 0;
 
     /* quality configure */
     switch (codec->coding) {
@@ -668,6 +667,16 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->layer_bit_prop[3] = 0;
 
     cfg->max_reencode_times = rc->max_reenc_times;
+
+    if (info->st_gop) {
+        cfg->vgop = info->st_gop;
+        if (cfg->vgop >= rc->fps_out_num / rc->fps_out_denorm &&
+            cfg->vgop < cfg->igop ) {
+            cfg->gop_mode = SMART_P;
+            if (!cfg->vi_quality_delta)
+                cfg->vi_quality_delta = 2;
+        }
+    }
 
     mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
             name_of_rc_mode[cfg->mode],
