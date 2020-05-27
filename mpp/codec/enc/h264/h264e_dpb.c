@@ -109,10 +109,12 @@ MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps)
 
     h264e_dbg_dpb("enter %p\n", dpb);
 
-    /* 1. setup reference frame number */
     RK_S32 ref_frm_num = sps->num_ref_frames;
     RK_S32 log2_max_frm_num = sps->log2_max_frame_num_minus4 + 4;
     RK_S32 log2_max_poc_lsb = sps->log2_max_poc_lsb_minus4 + 4;
+
+    /* NOTE: new configure needs to clear dpb first */
+    h264e_dpb_init(dpb, dpb->reorder, dpb->marking);
 
     memcpy(&dpb->info, info, sizeof(dpb->info));
     dpb->dpb_size = info->dpb_size;
