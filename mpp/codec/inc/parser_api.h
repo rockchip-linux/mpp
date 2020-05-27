@@ -37,6 +37,7 @@ typedef struct DecParserInitCfg_t {
     // output
     RK_S32          task_count;
     RK_U32          need_split;
+    RK_U32          immediate_out;
     RK_U32          internal_pts;
 } ParserCfg;
 

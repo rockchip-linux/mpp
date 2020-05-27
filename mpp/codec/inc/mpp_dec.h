@@ -28,6 +28,7 @@ typedef struct {
     RK_U32              fast_mode;
     RK_U32              need_split;
     RK_U32              internal_pts;
+    RK_U32              immedaite_out;
     void                *mpp;
 } MppDecCfg;
 

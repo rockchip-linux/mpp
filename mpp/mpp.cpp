@@ -87,6 +87,7 @@ Mpp::Mpp()
       mParserFastMode(0),
       mParserNeedSplit(0),
       mParserInternalPts(0),
+      mImmediateOut(0),
       mExtraPacket(NULL),
       mDump(NULL)
 {
@@ -140,6 +141,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             mParserFastMode,
             mParserNeedSplit,
             mParserInternalPts,
+            mImmediateOut,
             this,
         };
 
@@ -815,11 +817,16 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         *((RK_S32 *)param) = mPackets->list_size();
         ret = MPP_OK;
     } break;
+    case MPP_DEC_SET_IMMEDIATE_OUT: {
+        mImmediateOut = *((RK_U32 *)param);
+        ret = MPP_OK;
+        if (mDec)
+            ret = mpp_dec_control(mDec, cmd, param);
+    } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT:
     case MPP_DEC_SET_OUTPUT_FORMAT:
     case MPP_DEC_SET_DISABLE_ERROR:
     case MPP_DEC_SET_PRESENT_TIME_ORDER:
-    case MPP_DEC_SET_IMMEDIATE_OUT:
     case MPP_DEC_SET_ENABLE_DEINTERLACE: {
         ret = mpp_dec_control(mDec, cmd, param);
     }

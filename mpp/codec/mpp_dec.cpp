@@ -1300,6 +1300,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
             packet_slots,
             hal_task_count,
             cfg->need_split,
+            cfg->immedaite_out,
             cfg->internal_pts,
         };
 
