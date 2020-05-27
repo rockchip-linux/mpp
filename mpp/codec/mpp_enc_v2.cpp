@@ -1129,8 +1129,13 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
 
-    if (NULL == enc || (NULL == param && cmd != MPP_ENC_SET_IDR_FRAME)) {
-        mpp_err_f("found NULL input enc %p cmd %x param %d\n", enc, cmd, param);
+    if (NULL == enc) {
+        mpp_err_f("found NULL enc\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (NULL == param && cmd != MPP_ENC_SET_IDR_FRAME && cmd != MPP_ENC_SET_REF_CFG) {
+        mpp_err_f("found NULL param enc %p cmd %x\n", enc, cmd);
         return MPP_ERR_NULL_PTR;
     }
 
