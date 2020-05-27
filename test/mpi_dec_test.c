@@ -766,6 +766,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                     strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH);
                     cmd->file_input[strlen(next)] = '\0';
                     cmd->have_input = 1;
+                    name_to_coding_type(cmd->file_input, &cmd->type);
                 } else {
                     mpp_err("input file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
