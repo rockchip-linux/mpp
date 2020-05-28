@@ -59,6 +59,7 @@ typedef struct RcModelV2Ctx_t {
     RK_U32          last_frame_type;
     RK_S64          gop_total_bits;
     RK_U32          bit_per_frame;
+    RK_U32          first_frm_flg;
 
     MppDataV2       *i_bit;
     RK_U32          i_sumbits;
@@ -167,6 +168,8 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
 
     ctx->super_ifrm_bits_thr = -1;
     ctx->super_pfrm_bits_thr = -1;
+
+    ctx->first_frm_flg = 1;
 
     stat_len = fps->fps_in_num * ctx->usr_cfg.stat_times;
     if ( ctx->usr_cfg.mode == RC_FIXQP) {
@@ -796,7 +799,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
 
     /* setup quality parameters */
-    if (!frm->seq_idx && frm->is_intra) {
+    if (p->first_frm_flg && frm->is_intra) {
         RK_S32 dealt_qp = p->usr_cfg.i_quality_delta;
         if (info->quality_target < 0) {
             if (info->bit_target) {
@@ -825,6 +828,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
         p->pre_i_qp = p->cur_scale_qp >> 6;
         p->pre_p_qp = p->cur_scale_qp >> 6;
+        p->first_frm_flg = 0;
     } else {
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
