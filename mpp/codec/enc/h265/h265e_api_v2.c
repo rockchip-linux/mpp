@@ -41,7 +41,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     MppEncRcCfg *rc_cfg = &ctrlCfg->cfg->rc;
     MppEncPrepCfg *prep = &ctrlCfg->cfg->prep;
     MppEncH265Cfg *h265 = NULL;
-    H265eDpbCfg *dpb_cfg = NULL;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -67,7 +66,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     /* set defualt value of codec */
     codec = &p->cfg->codec;
     h265 = &codec->h265;
-    dpb_cfg = &p->dpbcfg;
     h265->intra_qp = 26;
     h265->max_qp = 51;
     h265->min_qp = 10;
@@ -106,11 +104,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->merge_cfg.max_mrg_cnd = 2;
     h265->merge_cfg.merge_left_flag = 1;
     h265->merge_cfg.merge_up_flag = 1;
-
-    dpb_cfg->maxNumReferences = 1;
-    dpb_cfg->bOpenGOP = 0;
-    memset(dpb_cfg->nDeltaPocIdx, -1, sizeof(dpb_cfg->nDeltaPocIdx));
-    dpb_cfg->tot_poc_num = dpb_cfg->maxNumReferences;
 
     /*
      * default prep:
@@ -182,8 +175,6 @@ static MPP_RET h265e_deinit(void *ctx)
 static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    MppEncCfgSet *cfg = p->cfg;
-    MppEncRcCfg *rc = &cfg->rc;
 
     h265e_dbg_func("enter ctx %p\n", ctx);
 
@@ -191,9 +182,7 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
     h265e_get_extra_info(p, pkt);
 
     if (NULL == p->dpb)
-        h265e_dpb_init(&p->dpb, &p->dpbcfg);
-
-    p->dpb->idr_gap = (rc->gop < 0) ? 10000 : rc->gop;
+        h265e_dpb_init(&p->dpb);
 
     h265e_dbg_func("leave ctx %p\n", ctx);
 
@@ -228,15 +217,9 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    H265eFrmInfo *frms = &p->frms;
     EncRcTask    *rc_task = task->rc_task;
     EncCpbStatus *cpb = &task->rc_task->cpb;
-
-    RK_S32 mb_wd64, mb_h64;
-
     h265e_dbg_func("enter\n");
-    mb_wd64 = (p->cfg->prep.width + 63) / 64;
-    mb_h64 = (p->cfg->prep.height + 63) / 64;
 
     h265e_dpb_bakup(p->dpb, &p->dpb_bak);
     h265e_dpb_get_curr(p->dpb);
@@ -245,9 +228,6 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     h265e_dpb_build_list(p->dpb, cpb);
 
     rc_task->frm  = p->dpb->curr->status;
-    frms->mb_per_frame = mb_wd64 * mb_h64;
-    frms->mb_raw = mb_h64;
-    frms->mb_wid = mb_wd64 ;
 
     h265e_dbg_func("leave\n");
     return MPP_OK;
@@ -441,6 +421,7 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         dst->min_qp = src->min_qp;
         dst->max_i_qp = src->max_i_qp;
         dst->min_i_qp = src->min_i_qp;
+        dst->ip_qp_delta = src->ip_qp_delta;
     }
 
     /*

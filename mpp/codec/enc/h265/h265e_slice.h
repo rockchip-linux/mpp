@@ -318,6 +318,7 @@ typedef struct H265eSlice_e {
     RK_S32         m_ppsId;                ///< picture parameter set ID
     RK_U32         m_picOutputFlag;        ///< pic_output_flag
     RK_S32         poc;
+    RK_S32         gop_idx;
     RK_S32         last_idr;
 
     H265eReferencePictureSet *m_rps;
