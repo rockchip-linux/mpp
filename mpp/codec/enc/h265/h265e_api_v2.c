@@ -497,10 +497,6 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             src->split.change = 0;
         }
     } break;
-    case MPP_ENC_SET_IDR_FRAME : {
-        p->syntax.idr_request = 1;
-        p->idr_request = 1;
-    } break;
     case MPP_ENC_GET_EXTRA_INFO: {
         MppPacket pkt_out = (MppPacket )param;
         h265e_set_extra_info(p);

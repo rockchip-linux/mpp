@@ -62,6 +62,7 @@ typedef struct MppEncImpl_t {
 
     /* cpb parameters */
     MppEncRefs          refs;
+    MppEncRefFrmUsrCfg  frm_cfg;
 
     /*
      * Rate control plugin parameters
@@ -250,8 +251,7 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
 static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 {
     if (cmd == MPP_ENC_SET_CODEC_CFG ||
-        cmd == MPP_ENC_SET_PREP_CFG ||
-        cmd == MPP_ENC_SET_IDR_FRAME)
+        cmd == MPP_ENC_SET_PREP_CFG)
         return 1;
 
     if (cmd == MPP_ENC_SET_RC_CFG) {
@@ -803,6 +803,12 @@ void *mpp_enc_thread(void *data)
         hal_task->length = mpp_packet_get_length(packet);
         mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &hal_task->mv_info);
 
+        // 15. setup user_cfg to dpb
+        if (enc->frm_cfg.force_flag) {
+            mpp_enc_refs_set_usr_cfg(enc->refs, &enc->frm_cfg);
+            enc->frm_cfg.force_flag = 0;
+        }
+
         // 14. backup dpb
         enc_dbg_detail("task %d enc start\n", frm->seq_idx);
         task.status.enc_backup = 1;
@@ -1214,6 +1220,11 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     case MPP_ENC_GET_CODEC_CFG : {
         enc_dbg_ctrl("get codec config\n");
         memcpy(param, &enc->cfg.codec, sizeof(enc->cfg.codec));
+    } break;
+    case MPP_ENC_SET_IDR_FRAME : {
+        enc_dbg_ctrl("set idr frame\n");
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+        enc->frm_cfg.force_idr++;
     } break;
     case MPP_ENC_GET_HEADER_MODE : {
         enc_dbg_ctrl("get header mode\n");

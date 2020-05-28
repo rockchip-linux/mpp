@@ -601,7 +601,6 @@ MPP_RET mpp_enc_refs_set_usr_cfg(MppEncRefs refs, MppEncRefFrmUsrCfg *cfg)
 
     MppEncRefsImpl *p = (MppEncRefsImpl *)refs;
     memcpy(&p->usr_cfg, cfg, sizeof(p->usr_cfg));
-    p->usr_cfg_updated = 1;
 
     enc_refs_dbg_func("leave %p\n", refs);
     return MPP_OK;
@@ -637,18 +636,30 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     MppEncRefCfgImpl *cfg = p->ref_cfg;
     EncVirtualCpb *cpb = &p->cpb;
     MppEncRefStFrmCfg *st_cfg = &cfg->st_cfg[cpb->st_cfg_pos];
+    MppEncRefFrmUsrCfg *usr_cfg = &p->usr_cfg;
     EncFrmStatus *frm = &status->curr;
     EncFrmStatus *ref = &status->refr;
     RefsCnt *lt_cfg = cpb->lt_cnter;
     RK_S32 set_to_lt = 0;
+    RK_S32 cleanup_cpb = 0;
     RK_S32 i;
 
-    /* step 1. check igop from cfg_set */
+    /* step 1. check igop from cfg_set and force idr for usr_cfg */
     if (cfg_set->rc.gop != p->igop) {
         p->igop = cfg_set->rc.gop;
-        cleanup_cpb_refs(cpb);
-    } if (p->igop && cpb->seq_idx >= p->igop) {
-        /* update seq_idx for igop loop */
+        cleanup_cpb = 1;
+    }
+
+    if (p->igop && cpb->seq_idx >= p->igop)
+        cleanup_cpb = 1;
+
+    if (usr_cfg->force_flag & ENC_FORCE_IDR) {
+        usr_cfg->force_flag &= (~ENC_FORCE_IDR);
+        cleanup_cpb = 1;
+    }
+
+    if (cleanup_cpb) {
+        /* update seq_idx for igop loop and force idr */
         cleanup_cpb_refs(cpb);
     }
 
