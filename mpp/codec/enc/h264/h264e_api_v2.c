@@ -451,9 +451,6 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_SEI_CFG : {
     } break;
-    case MPP_ENC_SET_IDR_FRAME : {
-        p->idr_request++;
-    } break;
     case MPP_ENC_SET_SPLIT : {
         ret = h264e_proc_split_cfg(&cfg->split, param);
     } break;
