@@ -333,14 +333,6 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
     return  0;
 }
 
-
-RK_S32 fill_frm_info(H265eCtx *h, H265eFrmInfo *syn_frms)
-{
-    H265eFrmInfo *frms = &h->frms;
-    memcpy(syn_frms, frms, sizeof(*frms));
-    return  0;
-}
-
 RK_S32 h265e_syntax_fill(void *ctx)
 {
     H265eCtx *h = (H265eCtx *)ctx;
@@ -348,6 +340,5 @@ RK_S32 h265e_syntax_fill(void *ctx)
     fill_picture_parameters(h, &syn->pp);
     fill_slice_parameters(h, &syn->sp);
     fill_ref_parameters(h, &syn->sp);
-    fill_frm_info(h, &syn->frms);
     return 0;
 }

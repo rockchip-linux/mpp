@@ -266,9 +266,9 @@ void h265e_slice_init(void *ctx, H265eSlice *slice, EncFrmStatus curr)
     }
 
     slice->poc = p->dpb->curr->seq_idx;
+    slice->gop_idx = p->dpb->gop_idx;
     p->dpb->curr->gop_idx =  p->dpb->gop_idx++;
     p->dpb->curr->poc = slice->poc;
-
     if (curr.is_lt_ref)
         p->dpb->curr->is_long_term = 1;
 

@@ -198,22 +198,6 @@ typedef struct H265eSlicParams_t {
  * and ref_frm_index. This part is inited from dpb gop hierarchy info.
  */
 
-typedef struct H265eFrmInfo_s {
-    RK_S32              seq_idx;
-
-    RK_S32              curr_idx;
-    RK_S32              refr_idx;
-
-    // current frame rate control and dpb status info
-    RK_S32              mb_per_frame;
-    RK_S32              mb_raw;
-    RK_S32              mb_wid;
-    RK_S32              frame_type;
-    RK_S32              last_frame_type;
-
-    RK_S32              usage[MAX_REFS + 1];
-} H265eFrmInfo;
-
 typedef struct UserDatas_t {
     void *plt_data;
 } UserDatas;
@@ -222,7 +206,6 @@ typedef struct H265eSyntax_new_t {
     RK_S32          idr_request;
     H265ePicParams  pp;
     H265eSlicParams sp;
-    H265eFrmInfo    frms;
 } H265eSyntax_new;
 
 #ifdef __cplusplus

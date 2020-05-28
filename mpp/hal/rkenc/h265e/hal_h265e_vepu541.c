@@ -548,13 +548,16 @@ vepu541_h265_set_roi_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs)
 static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs, HalEncTask *task)
 {
     H265eSyntax_new *syn = (H265eSyntax_new *)task->syntax.data;
-    H265eFrmInfo *frms = &syn->frms;
     EncRcTaskInfo *rc_cfg = &task->rc_task->info;
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncCodecCfg *codec = &cfg->codec;
     MppEncH265Cfg *h265 = &codec->h265;
-    RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / frms->mb_per_frame;
+    RK_S32 mb_wd64, mb_h64;
+    mb_wd64 = (syn->pp.pic_width + 63) / 64;
+    mb_h64 = (syn->pp.pic_height + 63) / 64;
+
+    RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / (mb_wd64 * mb_h64);
     RK_U32 ctu_target_bits;
     RK_S32 negative_bits_thd, positive_bits_thd;
 
@@ -568,7 +571,7 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         if (ctu_target_bits_mul_16 >= 0x100000) {
             ctu_target_bits_mul_16 = 0x50000;
         }
-        ctu_target_bits = (ctu_target_bits_mul_16 * frms->mb_wid) >> 4;
+        ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd64) >> 4;
         negative_bits_thd = 0 - ctu_target_bits / 4;
         positive_bits_thd = ctu_target_bits / 4;
 
@@ -578,7 +581,7 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_cfg.aqmode_en    = 1;
         regs->rc_cfg.qp_mode      = 1;
 
-        regs->rc_cfg.rc_ctu_num   = frms->mb_wid;
+        regs->rc_cfg.rc_ctu_num   = mb_wd64;
         regs->rc_qp.rc_qp_range   = h265->raw_dealt_qp;
         regs->rc_qp.rc_max_qp     = rc_cfg->quality_max;
         regs->rc_qp.rc_min_qp     = rc_cfg->quality_min;

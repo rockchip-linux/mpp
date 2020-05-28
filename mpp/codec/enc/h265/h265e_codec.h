@@ -70,10 +70,8 @@ typedef struct H265eCtx_t {
     H265eSps            sps;
     H265ePps            pps;
     H265eSlice          *slice;
-    H265eDpbCfg         dpbcfg;
     H265eDpb            *dpb;
     H265eDpb            dpb_bak;
-    H265eFrmInfo        frms;
     RK_U32              plt_flag;
 
     void                *extra_info;
