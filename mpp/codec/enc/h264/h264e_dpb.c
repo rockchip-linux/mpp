@@ -119,8 +119,8 @@ MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps)
     memcpy(&dpb->info, info, sizeof(dpb->info));
     dpb->dpb_size = info->dpb_size;
     dpb->total_cnt = info->dpb_size + 1;
-    dpb->max_frm_num = (1 << log2_max_frm_num) - 1;
-    dpb->max_poc_lsb = (1 << log2_max_poc_lsb) - 1;
+    dpb->max_frm_num = 1 << log2_max_frm_num;
+    dpb->max_poc_lsb = 1 << log2_max_poc_lsb;
     dpb->poc_msb = (1 << log2_max_poc_lsb);
 
     h264e_dbg_dpb("max  ref frm num %d total slot %d\n",
