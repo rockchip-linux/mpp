@@ -158,6 +158,7 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->pps_beta_offset_div2             = pps->beta_offset / 2;
     pp->pps_tc_offset_div2               = pps->tc_offset / 2;
     pp->log2_parallel_merge_level_minus2 = pps->log2_parallel_merge_level - 2;
+    pp->slice_segment_header_extension_present_flag = pps->slice_header_extension_present_flag;
     pp->CurrPicOrderCntVal               = h->poc;
 
     for (i = 0; i < 32; i++) {
