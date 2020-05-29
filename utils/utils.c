@@ -320,7 +320,6 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride, 1, width, fp);
             if (read_size != width) {
-                mpp_err_f("read ori yuv file luma failed");
                 ret  = MPP_NOK;
                 goto err;
             }
@@ -329,7 +328,6 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         for (row = 0; row < height / 2; row++) {
             read_size = fread(buf_u + row * hor_stride, 1, width, fp);
             if (read_size != width) {
-                mpp_err_f("read ori yuv file cb failed");
                 ret  = MPP_NOK;
                 goto err;
             }
@@ -339,7 +337,6 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride, 1, width, fp);
             if (read_size != width) {
-                mpp_err_f("read ori yuv file luma failed");
                 ret  = MPP_NOK;
                 goto err;
             }
@@ -348,7 +345,6 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         for (row = 0; row < height / 2; row++) {
             read_size = fread(buf_u + row * hor_stride / 2, 1, width / 2, fp);
             if (read_size != width / 2) {
-                mpp_err_f("read ori yuv file cb failed");
                 ret  = MPP_NOK;
                 goto err;
             }
@@ -357,7 +353,6 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         for (row = 0; row < height / 2; row++) {
             read_size = fread(buf_v + row * hor_stride / 2, 1, width / 2, fp);
             if (read_size != width / 2) {
-                mpp_err_f("read ori yuv file cr failed");
                 ret  = MPP_NOK;
                 goto err;
             }

@@ -36,7 +36,7 @@ typedef struct {
     // global flow control flag
     RK_U32 frm_eos;
     RK_U32 pkt_eos;
-    RK_U32 frame_count;
+    RK_S32 frame_count;
     RK_U64 stream_size;
 
     // src and dst
@@ -71,7 +71,8 @@ typedef struct {
     RK_U32 ver_stride;
     MppFrameFormat fmt;
     MppCodingType type;
-    RK_U32 num_frames;
+    RK_S32 num_frames;
+    RK_S32 loop_times;
 
     // resources
     size_t header_size;
@@ -685,8 +686,16 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             ret = read_image(buf, p->fp_input, p->width, p->height,
                              p->hor_stride, p->ver_stride, p->fmt);
             if (ret == MPP_NOK || feof(p->fp_input)) {
-                mpp_log("found last frame. feof %d\n", feof(p->fp_input));
                 p->frm_eos = 1;
+
+                if (p->num_frames < 0 || p->frame_count < p->num_frames) {
+                    clearerr(p->fp_input);
+                    rewind(p->fp_input);
+                    p->frm_eos = 0;
+                    mpp_log("loop times %d\n", ++p->loop_times);
+                    continue;
+                }
+                mpp_log("found last frame. feof %d\n", feof(p->fp_input));
             } else if (ret == MPP_ERR_VALUE)
                 goto RET;
         } else {
@@ -815,7 +824,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             }
         }
 
-        if (p->num_frames && p->frame_count >= p->num_frames) {
+        if (p->num_frames > 0 && p->frame_count >= p->num_frames) {
             mpp_log_f("encode max %d frames", p->frame_count);
             break;
         }
