@@ -2065,6 +2065,13 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         ret =  MPP_ERR_STREAM;
         goto err;
     }
+    READ_ONEBIT(gb, &pps->slice_header_extension_present_flag);
+    READ_ONEBIT(gb, &pps->pps_extension_flag);
+    h265d_dbg(H265D_DBG_PPS, "pps_extension_flag %d", pps->pps_extension_flag);
+    if (pps->pps_extension_flag) {
+        READ_ONEBIT(gb, &pps->pps_range_extensions_flag);
+        SKIP_BITS(gb, 7); // pps_extension_7bits
+    }
 
     if (s->h265dctx->compare_info != NULL) {
         CurrentFameInf_t *info = (CurrentFameInf_t *)s->h265dctx->compare_info;

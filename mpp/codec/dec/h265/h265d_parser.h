@@ -329,6 +329,7 @@ typedef struct HEVCPPS {
     RK_U8 slice_header_extension_present_flag;
 
     RK_U8 pps_extension_flag;
+    RK_U8 pps_range_extensions_flag;
     RK_U8 pps_extension_data_flag;
     // Inferred parameters
     RK_U32 *column_width;  ///< ColumnWidth
