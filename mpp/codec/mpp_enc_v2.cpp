@@ -304,6 +304,7 @@ static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
 
         change = cfg->rc.change;
         check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                     MPP_ENC_RC_CFG_CHANGE_BPS |
                      MPP_ENC_RC_CFG_CHANGE_FPS_IN |
                      MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
                      MPP_ENC_RC_CFG_CHANGE_GOP;
