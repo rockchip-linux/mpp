@@ -660,6 +660,49 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
     return MPP_OK;
 }
 
+MPP_RET h264e_vepu_slice_split_cfg(H264eSlice *slice, HalH264eVepuMbRc *mbrc,
+                                   EncRcTask *rc_task, MppEncCfgSet *cfg)
+{
+    MppEncSliceSplit *split = &cfg->split;
+    EncRcTaskInfo *info = &rc_task->info;
+    RK_U32 slice_mb_rows = 0;
+
+    hal_h264e_dbg_func("enter\n");
+
+    switch (split->split_mode) {
+    case MPP_ENC_SPLIT_NONE : {
+        mbrc->slice_size_mb_rows = 0;
+    } break;
+    case MPP_ENC_SPLIT_BY_BYTE : {
+        RK_U32 mb_per_col = (cfg->prep.height + 15) / 16;
+        mpp_assert(split->split_arg > 0);
+        RK_U32 slice_num = info->bit_target / (split->split_arg * 8);
+
+        if (slice_num <= 0)
+            slice_num = 4;
+
+        slice_mb_rows = (mb_per_col + slice_num - 1) / slice_num;
+        mbrc->slice_size_mb_rows = mpp_clip(slice_mb_rows, 2, 127);
+    } break;
+    case MPP_ENC_SPLIT_BY_CTU : {
+        mpp_assert(split->split_arg > 0);
+        RK_U32 mb_per_line = (cfg->prep.width + 15) / 16;
+
+        slice_mb_rows = split->split_arg / mb_per_line;
+        mbrc->slice_size_mb_rows = mpp_clip(slice_mb_rows, 2, 127);
+    } break;
+    default : {
+        mpp_log_f("invalide slice split mode %d\n", split->split_mode);
+    } break;
+    }
+
+    slice->is_multi_slice = (mbrc->slice_size_mb_rows > 0);
+    split->change = 0;
+
+    hal_h264e_dbg_func("leave\n");
+    return MPP_OK;
+}
+
 MPP_RET h264e_vepu_mbrc_update(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc)
 {
     HalH264eVepuMbRcImpl *p = (HalH264eVepuMbRcImpl *)ctx;
@@ -788,7 +831,6 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx)
 
     {
         RK_S32 more_buf = 0;
-
         while (len > ctx->buf_size - 16) {
             ctx->buf_size *= 2;
             more_buf = 1;

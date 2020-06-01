@@ -192,6 +192,9 @@ MPP_RET h264e_vepu_mbrc_init(HalH264eVepuMbRcCtx *ctx, HalH264eVepuMbRc *mbrc);
 MPP_RET h264e_vepu_mbrc_deinit(HalH264eVepuMbRcCtx ctx);
 
 MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet *cfg);
+MPP_RET h264e_vepu_slice_split_cfg(H264eSlice *slice, HalH264eVepuMbRc *mbrc,
+                                   EncRcTask *rc_task, MppEncCfgSet *set_cfg);
+
 /*
  * generate hardware MB rc config by:
  * 1 - HalH264eVepuMbRcCtx ctx
