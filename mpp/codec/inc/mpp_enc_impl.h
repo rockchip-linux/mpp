@@ -35,7 +35,7 @@ MPP_RET enc_impl_start(EncImpl ctrl, HalEncTask *task);
 MPP_RET enc_impl_proc_dpb(EncImpl ctrl, HalEncTask *task);
 MPP_RET enc_impl_proc_hal(EncImpl ctrl, HalEncTask *task);
 
-MPP_RET enc_impl_update_hal(EncImpl ctrl, HalEncTask *task);
+MPP_RET enc_impl_add_prefix(EncImpl ctrl, HalEncTask *task);
 
 MPP_RET hal_enc_callback(void* ctrl, void *err_info);
 

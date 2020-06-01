@@ -20,6 +20,7 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_info.h"
 
 #include "rc.h"
 #include "mpp_enc_cfg_impl.h"
@@ -237,20 +238,7 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSyntax_new *syntax = NULL;
-    MppFrame frame = task->frame;
-    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
-    RK_U32 offset = mpp_packet_get_length(task->packet);
-    RK_U32 sei_size = 0;
-    MppMeta meta = mpp_frame_get_meta(frame);
-    MppEncUserData *user_data = NULL;
-    out_ptr = out_ptr + offset;
-    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
-    if (user_data && user_data->len) {
-        sei_size =  h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
-        mpp_packet_set_length(task->packet, sei_size + offset);
-        task->sei_length = sei_size;
-        task->length += sei_size;
-    }
+
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
         return MPP_ERR_NULL_PTR;
@@ -265,37 +253,45 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET h265e_update_hal(void *ctx, HalEncTask *task)
+static MPP_RET h265e_add_sei(void *ctx, HalEncTask *task)
 {
     (void) ctx;
-    (void) task;
+    MppFrame frame = task->frame;
+    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
+    RK_U32 offset = mpp_packet_get_length(task->packet);
+    EncRcTask *rc_task = task->rc_task;
+    EncFrmStatus *frm = &rc_task->frm;
+    RK_U32 sei_size = 0;
+    MppMeta meta = mpp_frame_get_meta(frame);
+    MppEncUserData *user_data = NULL;
+
     h265e_dbg_func("enter\n");
 
+    task->sei_length = 0;
+
+    out_ptr = out_ptr + offset;
+    if (frm->is_idr) {
+        const char *version = get_mpp_version();
+        RK_S32 len = strlen(version);
+
+        sei_size = h265e_insert_user_data(out_ptr, (void *)version, len);
+
+        mpp_packet_set_length(task->packet, sei_size + offset);
+        task->sei_length += sei_size;
+        task->length += sei_size;
+        offset += sei_size;
+    }
+
+    out_ptr = out_ptr + offset;
+    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+    if (user_data && user_data->len) {
+        sei_size =  h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
+        mpp_packet_set_length(task->packet, sei_size + offset);
+        task->sei_length += sei_size;
+        task->length += sei_size;
+    }
+
     h265e_dbg_func("leave\n");
-    return MPP_OK;
-}
-
-static MPP_RET h265e_reset(void *ctx)
-{
-    if (ctx == NULL) {
-        mpp_err_f("invalid NULL ctx\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    h265e_dbg_func("enter ctx %p\n", ctx);
-    h265e_dbg_func("leave ctx %p\n", ctx);
-    return MPP_OK;
-}
-
-static MPP_RET h265e_flush(void *ctx)
-{
-    if (ctx == NULL) {
-        mpp_err_f("invalid NULL ctx\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    h265e_dbg_func("enter ctx %p\n", ctx);
-    h265e_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
 }
 
@@ -532,8 +528,8 @@ const EncImplApi api_h265e = {
     h265e_start,
     h265e_proc_dpb,
     h265e_proc_hal,
-    h265e_update_hal,
-    h265e_reset,
-    h265e_flush,
+    h265e_add_sei,
+    NULL,
+    NULL,
     NULL,
 };
