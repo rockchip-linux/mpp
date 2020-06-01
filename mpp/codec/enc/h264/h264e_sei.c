@@ -31,14 +31,14 @@ static RK_U8 mpp_h264e_uuid[16] = {
     0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77,
 };
 
-MPP_RET h264e_sei_to_packet(void *data, RK_S32 size, RK_S32 type,
+MPP_RET h264e_sei_to_packet(const void *data, RK_S32 size, RK_S32 type,
                             MppPacket packet, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *pkt_base = mpp_packet_get_data(packet);
     size_t pkt_size = mpp_packet_get_size(packet);
     size_t length = mpp_packet_get_length(packet);
-    RK_U8 *src = (RK_U8 *)data;
+    const RK_U8 *src = (RK_U8 *)data;
     void *dst = pos + length;
     RK_S32 buf_size = (pkt_base + pkt_size) - (pos + length);
     MppWriteCtx bit_ctx;

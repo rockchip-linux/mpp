@@ -866,14 +866,17 @@ void *mpp_enc_thread(void *data)
                       hal_task->length, mpp_packet_get_length(packet));
         }
 
-        enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
-        RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);
+        /* 17. Add all prefix info before encoding */
+        RUN_ENC_IMPL_FUNC(enc_impl_add_prefix, impl, hal_task, mpp, ret);
 
         // check for user data adding
         if (hal_task->length != mpp_packet_get_length(packet)) {
             mpp_err_f("user data adding check failed: task length is not match to packet length %d vs %d\n",
                       hal_task->length, mpp_packet_get_length(packet));
         }
+
+        enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
+        RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);
 
         enc_dbg_detail("task %d hal get task\n", frm->seq_idx);
         RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
@@ -909,10 +912,6 @@ void *mpp_enc_thread(void *data)
             frm->reencode = 0;
             frm->reencode_times = 0;
         }
-
-        enc_dbg_detail("task %d enc update hal\n", frm->seq_idx);
-        RUN_ENC_IMPL_FUNC(enc_impl_update_hal, impl, hal_task, mpp, ret);
-
     TASK_DONE:
         /* setup output packet and meta data */
         mpp_packet_set_length(packet, hal_task->length);

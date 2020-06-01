@@ -209,7 +209,7 @@ MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task)
     return ret;
 }
 
-MPP_RET enc_impl_update_hal(EncImpl impl, HalEncTask *task)
+MPP_RET enc_impl_add_prefix(EncImpl impl, HalEncTask *task)
 {
     if (NULL == impl || NULL == task) {
         mpp_err_f("found NULL input\n");
@@ -218,8 +218,8 @@ MPP_RET enc_impl_update_hal(EncImpl impl, HalEncTask *task)
 
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->update_hal)
-        ret = p->api->update_hal(p->ctx, task);
+    if (p->api->add_prefix)
+        ret = p->api->add_prefix(p->ctx, task);
 
     return ret;
 }
