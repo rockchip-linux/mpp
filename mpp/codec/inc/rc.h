@@ -62,7 +62,7 @@ typedef void* RcCtx;
 extern "C" {
 #endif
 
-MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name);
+MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name);
 MPP_RET rc_deinit(RcCtx ctx);
 
 /* update rc control  */

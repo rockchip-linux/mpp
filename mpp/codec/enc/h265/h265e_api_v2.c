@@ -20,7 +20,6 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
-#include "mpp_info.h"
 
 #include "rc.h"
 #include "mpp_enc_cfg_impl.h"
@@ -253,45 +252,19 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET h265e_add_sei(void *ctx, HalEncTask *task)
+static MPP_RET h265e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
+                             const void *data, RK_S32 size)
 {
-    (void) ctx;
-    MppFrame frame = task->frame;
-    RK_U8 *out_ptr = mpp_buffer_get_ptr(task->output);
-    RK_U32 offset = mpp_packet_get_length(task->packet);
-    EncRcTask *rc_task = task->rc_task;
-    EncFrmStatus *frm = &rc_task->frm;
-    RK_U32 sei_size = 0;
-    MppMeta meta = mpp_frame_get_meta(frame);
-    MppEncUserData *user_data = NULL;
+    RK_U8 *ptr = mpp_packet_get_pos(pkt);
+    RK_U32 offset = mpp_packet_get_length(pkt);
+    RK_U32 new_length = 0;
 
-    h265e_dbg_func("enter\n");
+    ptr += offset;
+    new_length = h265e_data_to_sei(ptr, uuid, data, size);
+    *length = new_length;
 
-    task->sei_length = 0;
+    mpp_packet_set_length(pkt, offset + new_length);
 
-    out_ptr = out_ptr + offset;
-    if (frm->is_idr) {
-        const char *version = get_mpp_version();
-        RK_S32 len = strlen(version);
-
-        sei_size = h265e_insert_user_data(out_ptr, (void *)version, len);
-
-        mpp_packet_set_length(task->packet, sei_size + offset);
-        task->sei_length += sei_size;
-        task->length += sei_size;
-        offset += sei_size;
-    }
-
-    out_ptr = out_ptr + offset;
-    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
-    if (user_data && user_data->len) {
-        sei_size =  h265e_insert_user_data(out_ptr, user_data->pdata, user_data->len);
-        mpp_packet_set_length(task->packet, sei_size + offset);
-        task->sei_length += sei_size;
-        task->length += sei_size;
-    }
-
-    h265e_dbg_func("leave\n");
     return MPP_OK;
 }
 
@@ -352,6 +325,13 @@ static MPP_RET h265e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                 (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
                 (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
                 mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                        dst->bps_target, dst->bps_min, dst->bps_max);
+                ret = MPP_ERR_VALUE;
+            }
+
+            if ((dst->bps_target > dst->bps_max || dst->bps_target < dst->bps_min) ||
+                (dst->bps_max    < dst->bps_min)) {
+                mpp_err("invalid bit rate config %d [%d:%d] for size relationship\n",
                         dst->bps_target, dst->bps_min, dst->bps_max);
                 ret = MPP_ERR_VALUE;
             }

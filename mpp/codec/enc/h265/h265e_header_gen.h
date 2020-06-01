@@ -95,8 +95,7 @@ void h265e_rkv_nal_start(H265eExtraInfo *out, RK_S32 i_type,
 
 void h265e_nal_end(H265eExtraInfo *out);
 
-RK_U32 h265e_insert_user_data(void *dst, void *play_load,
-                              RK_S32 play_size);
+RK_U32 h265e_data_to_sei(void *dst, RK_U8 uuid[16], const void *payload, RK_S32 size);
 
 MPP_RET h265e_set_extra_info(H265eCtx *ctx);
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out);

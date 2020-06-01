@@ -209,17 +209,22 @@ MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task)
     return ret;
 }
 
-MPP_RET enc_impl_add_prefix(EncImpl impl, HalEncTask *task)
+MPP_RET enc_impl_add_prefix(EncImpl impl, MppPacket pkt, RK_S32 *length,
+                            RK_U8 uuid[16], const void *data, RK_S32 size)
 {
-    if (NULL == impl || NULL == task) {
+    if (NULL == pkt || NULL == data) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
+
+    if (NULL == p->api->add_prefix)
+        return ret;
+
     if (p->api->add_prefix)
-        ret = p->api->add_prefix(p->ctx, task);
+        ret = p->api->add_prefix(pkt, length, uuid, data, size);
 
     return ret;
 }

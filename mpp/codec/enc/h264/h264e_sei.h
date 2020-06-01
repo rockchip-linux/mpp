@@ -23,8 +23,8 @@
 extern "C" {
 #endif
 
-MPP_RET h264e_sei_to_packet(const void *data, RK_S32 size, RK_S32 type,
-                            MppPacket packet, RK_S32 *len);
+MPP_RET h264e_sei_to_packet(MppPacket packet, RK_S32 *len, RK_S32 type,
+                            RK_U8 uuid[16], const void *data, RK_S32 size);
 
 #ifdef __cplusplus
 }
