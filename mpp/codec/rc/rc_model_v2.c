@@ -166,6 +166,11 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         ctx->usr_cfg.max_i_bit_prop = 20;
     }
 
+    if (!gop_len) {
+        mpp_log("infinte gop, set default for rc bit calc\n");
+        ctx->usr_cfg.igop = gop_len = 300;
+    }
+
     ctx->super_ifrm_bits_thr = -1;
     ctx->super_pfrm_bits_thr = -1;
 
@@ -320,7 +325,11 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     }
 
     rc_dbg_rc("i_scale  %d, total_bits %lld", i_scale, total_bits);
-    cfg->bit_target = total_bits / (i_scale + 16 * (gop_len - 1));
+    if (gop_len > 1) {
+        cfg->bit_target = total_bits / (i_scale + 16 * (gop_len - 1));
+    } else {
+        cfg->bit_target = total_bits / i_scale;
+    }
     ctx->ins_bps = ins_bps;
 
     rc_dbg_func("leave %p\n", ctx);
@@ -331,10 +340,15 @@ MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx)
 {
     RK_S32 max_i_prop = ctx->usr_cfg.max_i_bit_prop * 16;
     RK_S32 gop_len    = ctx->usr_cfg.igop;
-    RK_S32 bits_alloc = ctx->gop_total_bits * max_i_prop / (max_i_prop + 16 * (gop_len - 1));
     RK_S32 pre_qp     = ctx->pre_i_qp;
+    RK_S32 bits_alloc;
 
     rc_dbg_func("enter %p\n", ctx);
+    if (gop_len > 1) {
+        bits_alloc = ctx->gop_total_bits * max_i_prop / (max_i_prop + 16 * (gop_len - 1));
+    } else {
+        bits_alloc = ctx->gop_total_bits * max_i_prop / max_i_prop;
+    }
 
     if (ctx->pre_real_bits > bits_alloc || ctx->next_i_ratio) {
         RK_S32 ratio = ((ctx->pre_real_bits - bits_alloc) << 8) / bits_alloc;
