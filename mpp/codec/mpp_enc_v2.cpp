@@ -17,10 +17,12 @@
 #define  MODULE_TAG "mpp_enc_v2"
 
 #include <string.h>
+#include <stdarg.h>
 
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_info.h"
 #include "mpp_common.h"
 
 #include "mpp_packet_impl.h"
@@ -50,9 +52,8 @@ typedef union MppEncHeaderStatus_u {
 
 typedef struct RcApiStatus_t {
     RK_U32              rc_api_inited   : 1;
-    RK_U32              rc_api_user_cfg : 1;
     RK_U32              rc_api_updated  : 1;
-    RK_U32              rc_cfg_updated  : 1;
+    RK_U32              rc_api_user_cfg : 1;
 } RcApiStatus;
 
 typedef struct MppEncImpl_t {
@@ -103,6 +104,14 @@ typedef struct MppEncImpl_t {
     RK_U32              hdr_len;
     MppEncHeaderStatus  hdr_status;
     MppEncHeaderMode    hdr_mode;
+
+    /* information for debug prefix */
+    const char          *version_info;
+    RK_S32              version_length;
+    char                *rc_cfg_info;
+    RK_S32              rc_cfg_pos;
+    RK_S32              rc_cfg_length;
+    RK_S32              rc_cfg_size;
 } MppEncImpl;
 
 typedef union EncTaskWait_u {
@@ -164,6 +173,21 @@ typedef struct EncTask_t {
     EncFrmStatus    frm;
     HalTaskInfo     info;
 } EncTask;
+
+static RK_U8 uuid_version[16] = {
+    0x3d, 0x07, 0x6d, 0x45, 0x73, 0x0f, 0x41, 0xa8,
+    0xb1, 0xc4, 0x25, 0xd7, 0x97, 0x6b, 0xf1, 0xac,
+};
+
+static RK_U8 uuid_rc_cfg[16] = {
+    0xd7, 0xdc, 0x03, 0xc3, 0xc5, 0x6f, 0x40, 0xe0,
+    0x8e, 0xa9, 0x17, 0x1a, 0xd2, 0xef, 0x5e, 0x23,
+};
+
+static RK_U8 uuid_usr_data[16] = {
+    0xfe, 0x39, 0xac, 0x4c, 0x4a, 0x8e, 0x4b, 0x4b,
+    0x85, 0xd9, 0xb2, 0xa2, 0x4f, 0xa1, 0x19, 0x5b,
+};
 
 static void reset_hal_enc_task(HalEncTask *task)
 {
@@ -485,6 +509,24 @@ static const char *name_of_rc_mode[] = {
     "fixqp",
 };
 
+static void update_rc_cfg_log(MppEncImpl *impl, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    RK_S32 size = impl->rc_cfg_size;
+    RK_S32 length = impl->rc_cfg_length;
+    char *base = impl->rc_cfg_info + length;
+
+    length += vsnprintf(base, size - length, fmt, args);
+    if (length >= size)
+        mpp_log_f("rc cfg log is full\n");
+
+    impl->rc_cfg_length = length;
+
+    va_end(args);
+}
+
 static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 {
     MppEncRcCfg *rc = &cfg_set->rc;
@@ -646,7 +688,7 @@ void *mpp_enc_thread(void *data)
             }
 
             /* NOTE: default name is NULL */
-            ret = rc_init(&enc->rc_ctx, enc->coding, brief->name);
+            ret = rc_init(&enc->rc_ctx, enc->coding, &brief->name);
             if (ret)
                 mpp_err("enc %p fail to init rc %s\n", enc, brief->name);
             else
@@ -654,6 +696,10 @@ void *mpp_enc_thread(void *data)
 
             enc_dbg_detail("rc init %p name %s ret %d\n", enc->rc_ctx, brief->name, ret);
             enc->rc_status.rc_api_updated = 0;
+
+            enc->rc_cfg_length = 0;
+            update_rc_cfg_log(enc, "%s:", brief->name);
+            enc->rc_cfg_pos = enc->rc_cfg_length;
         }
 
         // 4. check input task
@@ -722,6 +768,16 @@ void *mpp_enc_thread(void *data)
 
             enc_dbg_detail("rc update cfg done\n");
             enc->rc_status.rc_api_user_cfg = 0;
+
+            enc->rc_cfg_length = enc->rc_cfg_pos;
+            update_rc_cfg_log(enc, "%s-b:%d[%d:%d]-g:%d-q:%d:[%d:%d]:[%d:%d]:%d\n",
+                              name_of_rc_mode[usr_cfg.mode],
+                              usr_cfg.bps_target,
+                              usr_cfg.bps_min, usr_cfg.bps_max, usr_cfg.igop,
+                              usr_cfg.init_quality,
+                              usr_cfg.min_quality, usr_cfg.max_quality,
+                              usr_cfg.min_i_quality, usr_cfg.max_i_quality,
+                              usr_cfg.i_quality_delta);
         }
 
         // 8. all task ready start encoding one frame
@@ -868,7 +924,43 @@ void *mpp_enc_thread(void *data)
         }
 
         /* 17. Add all prefix info before encoding */
-        RUN_ENC_IMPL_FUNC(enc_impl_add_prefix, impl, hal_task, mpp, ret);
+        if (frm->is_idr) {
+            RK_S32 length = 0;
+
+            enc_impl_add_prefix(impl, packet, &length, uuid_version,
+                                enc->version_info, enc->version_length);
+
+            hal_task->sei_length += length;
+            hal_task->length += length;
+
+            length = 0;
+            enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
+                                enc->rc_cfg_info, enc->rc_cfg_length);
+
+            hal_task->sei_length += length;
+            hal_task->length += length;
+        }
+
+        {
+            MppEncUserData *user_data = NULL;
+            MppMeta meta = mpp_frame_get_meta(frame);
+
+            mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+
+            if (user_data) {
+                if (user_data->pdata && user_data->len) {
+                    RK_S32 length = 0;
+
+                    enc_impl_add_prefix(impl, packet, &length, uuid_usr_data,
+                                        user_data->pdata, user_data->len);
+
+                    hal_task->sei_length += length;
+                    hal_task->length += length;
+                } else
+                    mpp_err_f("failed to insert user data %p len %d\n",
+                              user_data->pdata, user_data->len);
+            }
+        }
 
         // check for user data adding
         if (hal_task->length != mpp_packet_get_length(packet)) {
@@ -1028,6 +1120,10 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     p->impl     = impl;
     p->enc_hal  = enc_hal;
     p->mpp      = cfg->mpp;
+    p->version_info = get_mpp_version();
+    p->version_length = strlen(p->version_info);
+    p->rc_cfg_size = SZ_1K;
+    p->rc_cfg_info = mpp_calloc_size(char, p->rc_cfg_size);
 
     {
         // create header packet storage
@@ -1085,6 +1181,10 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
         mpp_enc_refs_deinit(&enc->refs);
         enc->refs = NULL;
     }
+
+    MPP_FREE(enc->rc_cfg_info);
+    enc->rc_cfg_size = 0;
+    enc->rc_cfg_length = 0;
 
     sem_destroy(&enc->enc_reset);
     sem_destroy(&enc->enc_ctrl);

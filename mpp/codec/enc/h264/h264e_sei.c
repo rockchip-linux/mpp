@@ -26,13 +26,8 @@
 #include "h264_syntax.h"
 #include "h264e_sei.h"
 
-static RK_U8 mpp_h264e_uuid[16] = {
-    0x63, 0xfc, 0x6a, 0x3c, 0xd8, 0x5c, 0x44, 0x1e,
-    0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77,
-};
-
-MPP_RET h264e_sei_to_packet(const void *data, RK_S32 size, RK_S32 type,
-                            MppPacket packet, RK_S32 *len)
+MPP_RET h264e_sei_to_packet(MppPacket packet, RK_S32 *len, RK_S32 type,
+                            RK_U8 uuid[16], const void *data, RK_S32 size)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *pkt_base = mpp_packet_get_data(packet);
@@ -43,7 +38,7 @@ MPP_RET h264e_sei_to_packet(const void *data, RK_S32 size, RK_S32 type,
     RK_S32 buf_size = (pkt_base + pkt_size) - (pos + length);
     MppWriteCtx bit_ctx;
     MppWriteCtx *bit = &bit_ctx;
-    RK_S32 uuid_size = sizeof(mpp_h264e_uuid);
+    RK_S32 uuid_size = 16;
     RK_S32 payload_size = size + uuid_size;
     RK_S32 sei_size = 0;
     RK_S32 i;
@@ -79,7 +74,7 @@ MPP_RET h264e_sei_to_packet(const void *data, RK_S32 size, RK_S32 type,
 
     /* uuid_iso_iec_11578 */
     for (i = 0; i < uuid_size; i++)
-        mpp_writer_put_bits(bit, mpp_h264e_uuid[i], 8);
+        mpp_writer_put_bits(bit, uuid[i], 8);
 
     /* sei_payload_data */
     for (i = 0; i < size; i++)

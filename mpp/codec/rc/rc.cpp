@@ -45,15 +45,18 @@ RK_U32 rc_debug = 0;
 
 const static char default_rc_api[] = "default";
 
-MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name)
+MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name)
 {
     MPP_RET ret = MPP_NOK;
     MppRcImpl *p = NULL;
+    const char *name = NULL;
 
     mpp_env_get_u32("rc_debug", &rc_debug, 0);
 
-    if (NULL == name)
+    if (NULL == request_name || NULL == *request_name)
         name = default_rc_api;
+    else
+        name = *request_name;
 
     rc_dbg_func("enter type %x name %s\n", type, name);
 
@@ -80,6 +83,8 @@ MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char *name)
     }
 
     *ctx = p;
+    if (request_name)
+        *request_name = name;
 
     rc_dbg_func("leave %p\n", p);
 

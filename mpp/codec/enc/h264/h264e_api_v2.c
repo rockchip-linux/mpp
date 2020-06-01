@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_info.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
@@ -581,46 +580,11 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET h264e_add_sei(void *ctx, HalEncTask *task)
+MPP_RET h264e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
+                      const void *data, RK_S32 size)
 {
-    H264eCtx *p = (H264eCtx *)ctx;
-    MppMeta meta = mpp_frame_get_meta(task->frame);
-    EncRcTask *rc_task = task->rc_task;
-    EncFrmStatus *frm = &rc_task->frm;
-    MppEncUserData *user_data = NULL;
-
-    h264e_dbg_func("enter\n");
-
-    task->sei_length = 0;
-
-    if (frm->is_idr) {
-        const char *version = get_mpp_version();
-        RK_S32 len = strlen(version);
-        RK_S32 version_len = 0;
-
-        h264e_sei_to_packet(version, len,
-                            H264_SEI_USER_DATA_UNREGISTERED,
-                            task->packet, &version_len);
-        task->sei_length += version_len;
-        task->length += version_len;
-    }
-
-    mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
-    if (user_data) {
-        if (user_data->pdata && user_data->len) {
-            h264e_sei_to_packet(user_data->pdata, user_data->len,
-                                H264_SEI_USER_DATA_UNREGISTERED,
-                                task->packet, &p->sei_len);
-            task->sei_length += p->sei_len;
-            task->length += p->sei_len;
-        } else
-            mpp_err_f("failed to insert user data %p len %d\n",
-                      user_data->pdata, user_data->len);
-    }
-
-    h264e_dbg_func("leave\n");
-
-    return MPP_OK;
+    return h264e_sei_to_packet(pkt, length, H264_SEI_USER_DATA_UNREGISTERED,
+                               uuid, data, size);
 }
 
 /*!

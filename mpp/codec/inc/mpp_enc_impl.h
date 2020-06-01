@@ -25,19 +25,20 @@ typedef void* EncImpl;
 extern "C" {
 #endif
 
-MPP_RET enc_impl_init(EncImpl *ctrl, EncImplCfg *cfg);
-MPP_RET enc_impl_deinit(EncImpl ctrl);
+MPP_RET enc_impl_init(EncImpl *impl, EncImplCfg *cfg);
+MPP_RET enc_impl_deinit(EncImpl impl);
 
-MPP_RET enc_impl_proc_cfg(EncImpl ctrl, MpiCmd cmd, void *para);
-MPP_RET enc_impl_gen_hdr(EncImpl ctrl, MppPacket pkt);
+MPP_RET enc_impl_proc_cfg(EncImpl impl, MpiCmd cmd, void *para);
+MPP_RET enc_impl_gen_hdr(EncImpl impl, MppPacket pkt);
 
-MPP_RET enc_impl_start(EncImpl ctrl, HalEncTask *task);
-MPP_RET enc_impl_proc_dpb(EncImpl ctrl, HalEncTask *task);
-MPP_RET enc_impl_proc_hal(EncImpl ctrl, HalEncTask *task);
+MPP_RET enc_impl_start(EncImpl impl, HalEncTask *task);
+MPP_RET enc_impl_proc_dpb(EncImpl impl, HalEncTask *task);
+MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task);
 
-MPP_RET enc_impl_add_prefix(EncImpl ctrl, HalEncTask *task);
+MPP_RET enc_impl_add_prefix(EncImpl impl, MppPacket pkt, RK_S32 *length,
+                            RK_U8 uuid[16], const void *data, RK_S32 size);
 
-MPP_RET hal_enc_callback(void* ctrl, void *err_info);
+MPP_RET hal_enc_callback(void* impl, void *err_info);
 
 #ifdef __cplusplus
 }

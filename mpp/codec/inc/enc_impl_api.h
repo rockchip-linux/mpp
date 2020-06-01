@@ -72,7 +72,8 @@ typedef struct EncImplApi_t {
     MPP_RET (*proc_dpb)(void *ctx, HalEncTask *task);
     MPP_RET (*proc_hal)(void *ctx, HalEncTask *task);
 
-    MPP_RET (*add_prefix)(void *ctx, HalEncTask *task);
+    MPP_RET (*add_prefix)(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
+                          const void *data, RK_S32 size);
 
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);

@@ -124,23 +124,18 @@ static MPP_RET h265e_encapsulate_nals(H265eExtraInfo *out)
     return MPP_OK;
 }
 
-static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 *payload,
+static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 uuid[16], const RK_U8 *payload,
                                RK_S32 payload_size, RK_S32 payload_type)
 {
-#define H265E_UUID_LENGTH 16
-
-    static const RK_U8 h265e_sei_uuid[H265E_UUID_LENGTH] = {
-        0x63, 0xfc, 0x6a, 0x3c, 0xd8, 0x5c, 0x44, 0x1e,
-        0x87, 0xfb, 0x3f, 0xab, 0xec, 0xb3, 0xb6, 0x77
-    };
-
     RK_S32 i = 0;
+    RK_S32 uuid_len = H265E_UUID_LENGTH;
     RK_S32 data_len = payload_size;
+
     h265e_dbg_func("enter\n");
 
     h265e_stream_realign(s);
 
-    payload_size += H265E_UUID_LENGTH;
+    payload_size += uuid_len;
 
     for (i = 0; i <= payload_type - 255; i += 255)
         h265e_stream_write_with_log(s, 0xff, 8,
@@ -156,8 +151,8 @@ static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 *payload,
     h265e_stream_write_with_log(s,  payload_size - i, 8,
                                 "sei_last_payload_size_byte");
 
-    for (i = 0; i < H265E_UUID_LENGTH; i++) {
-        h265e_stream_write_with_log(s, h265e_sei_uuid[i], 8,
+    for (i = 0; i < uuid_len; i++) {
+        h265e_stream_write_with_log(s, uuid[i], 8,
                                     "sei_uuid_byte");
     }
 
@@ -669,7 +664,7 @@ MPP_RET h265e_set_extra_info(H265eCtx *ctx)
     return MPP_OK;
 }
 
-RK_U32 h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
+RK_U32 h265e_data_to_sei(void *dst, RK_U8 uuid[16], const void *payload, RK_S32 size)
 {
     H265eNal sei_nal;
     H265eStream stream;
@@ -682,7 +677,7 @@ RK_U32 h265e_insert_user_data(void *dst, void *play_load, RK_S32 play_size)
     sei_nal.i_type = NAL_SEI_PREFIX;
     sei_nal.p_payload = &stream.buf[stream.enc_stream.byte_cnt];
 
-    h265e_sei_write(&stream, play_load, play_size, H265_SEI_USER_DATA_UNREGISTERED);
+    h265e_sei_write(&stream, uuid, payload, size, H265_SEI_USER_DATA_UNREGISTERED);
 
     RK_U8 *end = &stream.buf[stream.enc_stream.byte_cnt];
     sei_nal.i_payload = (RK_S32)(end - sei_nal.p_payload);
