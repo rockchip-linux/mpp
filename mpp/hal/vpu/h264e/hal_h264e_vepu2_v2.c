@@ -65,9 +65,7 @@ typedef struct HalH264eVepu2Ctx_t {
     H264eMarkingInfo        *marking;
 
     /* special TSVC stream header fixup */
-    size_t                  buf_size;
-    RK_U8                   *src_buf;
-    RK_U8                   *dst_buf;
+    HalH264eVepuStreamAmend amend;
 
     /* vepu2 macroblock ratecontrol context */
     HalH264eVepuMbRcCtx     rc_ctx;
@@ -94,8 +92,7 @@ static MPP_RET hal_h264e_vepu2_deinit_v2(void *hal)
         p->rc_ctx = NULL;
     }
 
-    MPP_FREE(p->src_buf);
-    MPP_FREE(p->dst_buf);
+    h264e_vepu_stream_amend_deinit(&p->amend);
 
     hal_h264e_dbg_func("leave %p\n", p);
 
@@ -136,9 +133,7 @@ static MPP_RET hal_h264e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
     }
 
     /* create buffer to TSVC stream */
-    p->buf_size = SZ_128K;
-    p->src_buf = mpp_calloc(RK_U8, p->buf_size);
-    p->dst_buf = mpp_calloc(RK_U8, p->buf_size);
+    h264e_vepu_stream_amend_init(&p->amend);
 
 DONE:
     if (ret)
@@ -229,6 +224,9 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
     hw_addr->refr[0] = mpp_buffer_get_fd(refr);
     hw_addr->recn[1] = hw_addr->recn[0] + (yuv_size << 10);
     hw_addr->refr[1] = hw_addr->refr[0] + (yuv_size << 10);
+
+    h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
+                                   ctx->slice, &task->rc_task->frm);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -652,6 +650,16 @@ static MPP_RET hal_h264e_vepu2_wait_v2(void *hal, HalEncTask *task)
 
     h264e_vepu2_get_mbrc(hw_mbrc, &ctx->regs_get);
     h264e_vepu_mbrc_update(ctx->rc_ctx, hw_mbrc);
+
+    {
+        HalH264eVepuStreamAmend *amend = &ctx->amend;
+        if (amend->enable) {
+            amend->old_length = hw_mbrc->out_strm_size;
+            h264e_vepu_stream_amend_proc(amend);
+            ctx->hw_mbrc.out_strm_size = amend->new_length;
+        }
+    }
+
     task->hw_length += ctx->hw_mbrc.out_strm_size;
 
     hal_h264e_dbg_func("leave %p\n", hal);
