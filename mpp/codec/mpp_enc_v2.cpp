@@ -473,8 +473,10 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     } break;
     }
 
-    if (check_resend_hdr(enc->cmd, enc->param, &enc->cfg))
+    if (check_resend_hdr(enc->cmd, enc->param, &enc->cfg)) {
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->hdr_status.val = 0;
+    }
     if (check_rc_cfg_update(enc->cmd, &enc->cfg))
         enc->rc_status.rc_api_user_cfg = 1;
 }
