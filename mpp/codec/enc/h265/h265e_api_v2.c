@@ -270,7 +270,68 @@ static MPP_RET h265e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
 
 static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 {
-    memcpy(dst, src, sizeof(MppEncPrepCfg));
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    mpp_assert(change);
+
+    MppEncPrepCfg bak = *dst;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
+        dst->format = src->format;
+        dst->color = src->color;
+        dst->range = src->range;
+    }
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
+        dst->rotation = src->rotation;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
+        dst->mirroring = src->mirroring;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
+        dst->denoise = src->denoise;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
+        dst->sharpen = src->sharpen;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+            dst->width = src->height;
+            dst->height = src->width;
+        } else {
+            dst->width = src->width;
+            dst->height = src->height;
+        }
+        dst->hor_stride = src->hor_stride;
+        dst->ver_stride = src->ver_stride;
+    }
+
+    dst->change |= change;
+
+    // parameter checking
+    if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+        if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
+            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+            ret = MPP_ERR_VALUE;
+        }
+    } else {
+        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+            ret = MPP_ERR_VALUE;
+        }
+    }
+
+    if (ret) {
+        mpp_err_f("failed to accept new prep config\n");
+        *dst = bak;
+    } else {
+        mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
+                  dst->width, dst->height,
+                  dst->hor_stride, dst->ver_stride);
+    }
     return MPP_OK;
 }
 

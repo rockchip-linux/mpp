@@ -232,7 +232,7 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
     hal_h264e_dbg_func("enter %p\n", hal);
 
     if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG)) {
-        RK_S32 alignment = 16;
+        RK_S32 alignment = 64;
         RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment);
         RK_S32 aligned_h = MPP_ALIGN(prep->height, alignment);
         RK_S32 pixel_buf_fbc_hdr_size = MPP_ALIGN(aligned_w * aligned_h / 64, SZ_8K);

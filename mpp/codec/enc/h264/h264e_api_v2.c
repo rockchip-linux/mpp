@@ -238,10 +238,18 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
         dst->change |= change;
 
         // parameter checking
-        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-            ret = MPP_ERR_VALUE;
+        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+            if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
+        } else {
+            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
         }
 
         if (ret) {
