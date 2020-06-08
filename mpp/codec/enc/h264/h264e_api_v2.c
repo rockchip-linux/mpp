@@ -101,6 +101,9 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
     h264->qp_init = 26;
     h264->qp_max = 48;
     h264->qp_min = 8;
+    /* default max/min intra qp is not set */
+    h264->qp_max_i = 0;
+    h264->qp_min_i = 0;
     h264->qp_max_step = 8;
 
     switch (dev_id) {
@@ -433,10 +436,14 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         ((dst->qp_init != src->qp_init) ||
          (dst->qp_max != src->qp_max) ||
          (dst->qp_min != src->qp_min) ||
+         (dst->qp_max_i != src->qp_max_i) ||
+         (dst->qp_min_i != src->qp_min_i) ||
          (dst->qp_max_step != src->qp_max_step))) {
         dst->qp_init = src->qp_init;
         dst->qp_max = src->qp_max;
         dst->qp_min = src->qp_min;
+        dst->qp_max_i = src->qp_max_i ? src->qp_max_i : src->qp_max;
+        dst->qp_min_i = src->qp_min_i ? src->qp_min_i : src->qp_min;
         dst->qp_max_step = src->qp_max_step;
         dst->change |= MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
     }

@@ -631,13 +631,17 @@ typedef struct MppEncH264Cfg_t {
 
     /*
      * quality config
-     * qp_max       - 8 ~ 51
-     * qp_min       - 0 ~ 48
+     * qp_max       - 8  ~ 51
+     * qp_max_i     - 10 ~ 40
+     * qp_min       - 8  ~ 48
+     * qp_min_i     - 10 ~ 40
      * qp_max_step  - max delta qp step between two frames
      */
     RK_S32              qp_init;
-    RK_S32              qp_max;
-    RK_S32              qp_min;
+    RK_S16              qp_max;
+    RK_S16              qp_max_i;
+    RK_S16              qp_min;
+    RK_S16              qp_min_i;
     RK_S32              qp_max_step;
 
     /*

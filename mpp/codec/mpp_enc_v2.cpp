@@ -682,8 +682,8 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->init_quality = h264->qp_init;
         cfg->max_quality = h264->qp_max;
         cfg->min_quality = h264->qp_min;
-        cfg->max_i_quality = h264->qp_max;
-        cfg->min_i_quality = h264->qp_min;
+        cfg->max_i_quality = h264->qp_max_i ? h264->qp_max_i : h264->qp_max;
+        cfg->min_i_quality = h264->qp_min_i ? h264->qp_min_i : h264->qp_min;
         cfg->i_quality_delta = 3;
     } break;
     case MPP_VIDEO_CodingHEVC : {
