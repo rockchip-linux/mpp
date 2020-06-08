@@ -337,12 +337,43 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
     return 0;
 }
 
+static RK_S32 check_codec_to_rc_cfg_update(MppEncCodecCfg *codec)
+{
+    MppCodingType coding = codec->coding;
+
+    switch (coding) {
+    case MPP_VIDEO_CodingAVC : {
+        MppEncH264Cfg *h264 = &codec->h264;
+        if (h264->change | MPP_ENC_H264_CFG_CHANGE_QP_LIMIT)
+            return 1;
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        MppEncH265Cfg *h265 = &codec->h265;
+        if (h265->change | MPP_ENC_H265_CFG_RC_QP_CHANGE)
+            return 1;
+    } break;
+    case MPP_VIDEO_CodingVP8 : {
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+    } break;
+    default : {
+    } break;
+    }
+
+    return 0;
+}
+
 static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
 {
     if (cmd == MPP_ENC_SET_RC_CFG ||
         cmd == MPP_ENC_SET_PREP_CFG ||
         cmd == MPP_ENC_SET_REF_CFG) {
         return 1;
+    }
+
+    if (cmd == MPP_ENC_SET_CODEC_CFG) {
+        if (check_codec_to_rc_cfg_update(&cfg->codec))
+            return 1;
     }
 
     if (cmd == MPP_ENC_SET_CFG) {
@@ -361,6 +392,9 @@ static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
                      MPP_ENC_RC_CFG_CHANGE_GOP;
 
         if (change & check_flag)
+            return 1;
+
+        if (check_codec_to_rc_cfg_update(&cfg->codec))
             return 1;
     }
 
