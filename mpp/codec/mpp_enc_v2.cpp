@@ -272,6 +272,31 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     return ret;
 }
 
+static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
+{
+    MppCodingType coding = codec->coding;
+    switch (coding) {
+    case MPP_VIDEO_CodingAVC : {
+        MppEncH264Cfg *h264 = &codec->h264;
+        if (h264->change & (~MPP_ENC_H264_CFG_CHANGE_QP_LIMIT))
+            return 1;
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        MppEncH265Cfg *h265 = &codec->h265;
+        if (h265->change & (~MPP_ENC_H265_CFG_RC_QP_CHANGE))
+            return 1;
+    }
+    break;
+    case MPP_VIDEO_CodingVP8 : {
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+    } break;
+    default : {
+    } break;
+    }
+    return 0;
+}
+
 static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 {
     if (cmd == MPP_ENC_SET_CODEC_CFG ||
@@ -305,8 +330,10 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 
         if (change & check_flag)
             return 1;
+        if (check_codec_to_resend_hdr(&cfg->codec)) {
+            return 1;
+        }
     }
-
     return 0;
 }
 
