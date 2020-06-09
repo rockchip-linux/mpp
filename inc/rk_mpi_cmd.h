@@ -38,15 +38,6 @@
 #define CMD_CFG_ID_MASK                 (0x0000FF00)
 #define CMD_ENC_CFG_ALL                 (0x00000000)
 #define CMD_ENC_CFG_RC_API              (0x00000100)
-#define CMD_ENC_CFG_FRM                 (0x00000200)
-#define CMD_ENC_CFG_PREP                (0x00000300)
-#define CMD_ENC_CFG_CODEC               (0x00001000)
-#define CMD_ENC_CFG_H264                (0x00001000)
-#define CMD_ENC_CFG_H265                (0x00001800)
-#define CMD_ENC_CFG_VP8                 (0x00002000)
-#define CMD_ENC_CFG_VP9                 (0x00002800)
-#define CMD_ENC_CFG_AV1                 (0x00003000)
-#define CMD_ENC_CFG_MJPEG               (0x00004000)
 
 #define CMD_ENC_CFG_MISC                (0x00008000)
 #define CMD_ENC_CFG_SPLIT               (0x00008100)
@@ -146,23 +137,6 @@ typedef enum {
      */
     MPP_ENC_SET_RC_API_CURRENT          = MPP_ENC_CFG_RC_API + 5,
 
-    MPP_ENC_CFG_FRM                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_FRM,
-    MPP_ENC_SET_FRM,                    /* set MppFrame structure */
-    MPP_ENC_GET_FRM,                    /* get MppFrame structure */
-
-
-    MPP_ENC_CFG_PREP                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_PREP,
-    MPP_ENC_SET_PREP,                   /* set MppEncPrepCfg structure */
-    MPP_ENC_GET_PREP,                   /* get MppEncPrepCfg structure */
-
-    MPP_ENC_CFG_H264                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_H264,
-
-    MPP_ENC_CFG_H265                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_H265,
-
-    MPP_ENC_CFG_VP8                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_VP8,
-
-    MPP_ENC_CFG_MJPEG                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_MJPEG,
-
     MPP_ENC_CFG_MISC                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_MISC,
     MPP_ENC_SET_HEADER_MODE,            /* set MppEncHeaderMode */
     MPP_ENC_GET_HEADER_MODE,            /* get MppEncHeaderMode */
@@ -178,7 +152,6 @@ typedef enum {
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_GET_OSD_PLT_CFG,            /* get OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
-    MPP_ENC_GET_OSD_DATA_CFG,           /* get OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
 
     MPP_ENC_CMD_END,
 
