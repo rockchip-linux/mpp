@@ -307,8 +307,8 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV541L2RegSet
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
     memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
     memcpy(&regs->lvl16_intra_CST_WGT0, lvl16_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
-    regs->rdo_quant.quant_f_bias_I = 512;
-    regs->rdo_quant.quant_f_bias_P = 512;
+    regs->rdo_quant.quant_f_bias_I = 256;
+    regs->rdo_quant.quant_f_bias_P = 256;
     memcpy(&regs->atr_thd0, atr_thd, sizeof(atr_thd));
     memcpy(&regs->lvl16_atr_wgt, lvl16_4_atr_wgt, sizeof(lvl16_4_atr_wgt));
     memcpy(&regs->atf_thd0, atf_thd, sizeof(atf_thd));
