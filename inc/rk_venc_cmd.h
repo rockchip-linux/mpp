@@ -486,20 +486,6 @@ typedef struct MppEncH264VuiCfg_t {
     /* FIXME to complete */
 } MppEncH264VuiCfg;
 
-typedef struct MppEncH264RefCfg_t {
-    RK_S32         i_frame_reference;  /* Maximum number of reference frames */
-    RK_S32         i_ref_pos;
-    RK_S32         i_long_term_en;
-    RK_S32         i_long_term_internal;
-    RK_S32         hw_longterm_mode;
-    RK_S32         i_dpb_size;         /* Force a DPB size larger than that implied by B-frames and reference frames.
-                                        * Useful in combination with interactive error resilience. */
-} MppEncH264RefCfg;
-
-typedef struct MppEncH264SeiCfg_t {
-    RK_U32              change;
-} MppEncH264SeiCfg;
-
 typedef enum MppEncH264CfgChange_e {
     /* change on stream type */
     MPP_ENC_H264_CFG_STREAM_TYPE            = (1 << 0),
@@ -530,38 +516,8 @@ typedef enum MppEncH264CfgChange_e {
 
     /* change on vui */
     MPP_ENC_H264_CFG_CHANGE_VUI             = (1 << 28),
-    /* change on sei */
-    MPP_ENC_H264_CFG_CHANGE_SEI             = (1 << 29),
-    MPP_ENC_H264_CFG_CHANGE_REF             = (1 << 30),
     MPP_ENC_H264_CFG_CHANGE_ALL             = (0xFFFFFFFF),
 } MppEncH264CfgChange;
-
-typedef struct MppEncH264IntraPred_t {
-    RK_S32  constrained_intra_pred_mode;
-} MppEncH264IntraPred;
-
-typedef struct MppEncH264InterPred_t {
-    RK_S32  reserve;
-} MppEncH264InterPred;
-
-typedef struct MppEncH264Trans_t {
-    RK_S32  trans_mode;
-    RK_S32  scaling_list_enable;
-    RK_S8   inter_scaling_list_8x8[64];
-    RK_S8   intra_scaling_list_8x8[64];
-    RK_S8   chroma_qp_offset;;
-} MppEncH264Trans;
-
-typedef struct MppEncH264Entropy_t {
-    RK_S32  entropy_coding_mode;
-    RK_S32  cabac_init_idc;
-} MppEncH264Entropy;
-
-typedef struct MppEncH264Dblk_t {
-    RK_S32  deblock_disable;
-    RK_S32  deblock_offset_alpha;
-    RK_S32  deblock_offset_beta;
-} MppEncH264Dblk;
 
 typedef struct MppEncH264Cfg_t {
     RK_U32              change;
@@ -685,12 +641,10 @@ typedef struct MppEncH264Cfg_t {
 
     /* extra info */
     MppEncH264VuiCfg    vui;
-    MppEncH264SeiCfg    sei;
-    MppEncH264RefCfg    ref;
 } MppEncH264Cfg;
 
-
 #define H265E_MAX_ROI_NUMBER  64
+
 typedef struct H265eRect_t {
     RK_S32              left;
     RK_S32              right;

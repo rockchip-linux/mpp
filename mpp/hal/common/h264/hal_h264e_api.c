@@ -40,7 +40,6 @@ static MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     MppEncCodecCfg *codec = &cfg->cfg->codec;
     MppEncH264Cfg *h264 = &codec->h264;
     MppEncH264VuiCfg *vui = &h264->vui;
-    MppEncH264RefCfg *ref = &h264->ref;
     H264eHwCfg *hw_cfg = &ctx->hw_cfg;
     RK_U32 vcodec_type = 0;
 
@@ -112,16 +111,8 @@ static MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     h264->slice_mode = 0;
     h264->slice_arg = 0;
     h264->vui.change = 0;
-    h264->sei.change = 0;
 
-    vui->b_vui          = 1;
-
-    ref->i_frame_reference = H264E_NUM_REFS;
-    ref->i_dpb_size = H264E_NUM_REFS;
-    ref->i_ref_pos = 1;
-    ref->i_long_term_en = H264E_LONGTERM_REF_EN;
-    ref->hw_longterm_mode = 0;
-    ref->i_long_term_internal = 0;
+    vui->b_vui = 1;
 
     ctx->cfg = cfg->cfg;
     ctx->set = cfg->set;

@@ -738,9 +738,6 @@ MPP_RET hal_h264e_vepu1_control(void *hal, MpiCmd cmd_type, void *param)
         if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
             dst->vui = src->vui;
         }
-        if (change & MPP_ENC_H264_CFG_CHANGE_SEI) {
-            dst->sei = src->sei;
-        }
 
         /*
          * NOTE: use OR here for avoiding overwrite on multiple config
