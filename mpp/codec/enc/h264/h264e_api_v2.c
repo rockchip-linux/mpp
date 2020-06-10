@@ -391,9 +391,6 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
     if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
         dst->vui = src->vui;
     }
-    if (change & MPP_ENC_H264_CFG_CHANGE_SEI) {
-        dst->sei = src->sei;
-    }
 
     dst->change |= change;
     return ret;

@@ -470,7 +470,6 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncH264VuiCfg *vui = &codec->vui;
-    MppEncH264RefCfg *ref = &codec->ref;
     RK_S32 max_frame_num = 0;
 
     /* default settings */
@@ -499,8 +498,8 @@ MPP_RET h264e_set_sps(H264eHalContext *ctx, H264eSps *sps)
     RK_S32 b_pic_struct = 0;
     RK_S32 analyse_mv_range = 128; //TODO: relative to level_idc, transplant x264_validate_levels.
     RK_S32 csp = 0;
-    RK_S32 i_dpb_size = ref->i_dpb_size;
-    RK_S32 i_frame_reference = ref->i_frame_reference;
+    RK_S32 i_dpb_size = 1;
+    RK_S32 i_frame_reference = 1;
 
     csp = h264e_set_format(hw_cfg, prep);
     sps->i_id = 0;
