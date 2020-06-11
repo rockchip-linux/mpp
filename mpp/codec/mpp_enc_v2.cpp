@@ -1245,6 +1245,11 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
         enc->refs = NULL;
     }
 
+    if (enc->rc_ctx) {
+        rc_deinit(enc->rc_ctx);
+        enc->rc_ctx = NULL;
+    }
+
     MPP_FREE(enc->rc_cfg_info);
     enc->rc_cfg_size = 0;
     enc->rc_cfg_length = 0;
