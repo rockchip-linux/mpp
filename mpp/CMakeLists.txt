@@ -52,7 +52,7 @@ set(MPP_ABI_VERSION "1")
 add_library(${MPP_SHARED} SHARED ${MPP_SRC})
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_SHARED} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(${MPP_SHARED} mpp_codec mpp_hal mpp_vproc
+target_link_libraries(${MPP_SHARED} mpp_codec mpp_hal mpp_vproc ${ASAN_LIB}
                       ${BEGIN_WHOLE_ARCHIVE} mpp_base ${END_WHOLE_ARCHIVE})
 set_target_properties(${MPP_SHARED} PROPERTIES C_VISIBILITY_PRESET default)
 set_target_properties(${MPP_SHARED} PROPERTIES CXX_VISIBILITY_PRESET default)

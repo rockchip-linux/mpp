@@ -34,6 +34,7 @@ set_target_properties(${VPU_SHARED} PROPERTIES SOVERSION ${MPP_ABI_VERSION})
 endif()
 
 # force dynamic link
-target_link_libraries(${VPU_SHARED} -Wl,-Bdynamic dl lib${MPP_SHARED}.so)
+target_link_libraries(${VPU_SHARED} ${ASAN_LIB}
+                      -Wl,-Bdynamic dl lib${MPP_SHARED}.so)
 
 install(TARGETS ${VPU_SHARED} LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
