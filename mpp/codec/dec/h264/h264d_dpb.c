@@ -1497,17 +1497,15 @@ MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     RK_U32 i = 0;
     RK_S32 type = -1;
     MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dErrCtx_t *p_err = &p_Dpb->p_Vid->p_Dec->errctx;
 
     if (p->no_output_of_prior_pics_flag) {
         //!< free all stored pictures
         for (i = 0; i < p_Dpb->used_size; i++) {
             //!< reset all reference settings
-            unmark_for_reference(p_Dpb->p_Vid->p_Dec, p_Dpb->fs[i]);
-            // NOTE: when clearing no output frame we need to remove it first
-            // with p_mark->out_flag is false to insure the CODEC_USE flag in
-            // mpp_buf_slot is clear. Then set is_output flag to true to avoid
-            // real output this frame to display queue.
-            FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, i));
+            //Set is_output flag to true to avoid real output this frame to
+            //display queue. These frames will be mark as unused and remove from
+            //dpb at flush_dpb
             p_Dpb->fs[i]->is_output = 1;
         }
     }
@@ -1520,6 +1518,7 @@ MPP_RET idr_memory_management(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     update_ref_list(p_Dpb);
     update_ltref_list(p_Dpb);
     p_Dpb->last_output_poc = INT_MIN;
+    p_err->i_slice_no = 1;
 
     if (p->long_term_reference_flag) {
         p_Dpb->max_long_term_pic_idx = 0;
