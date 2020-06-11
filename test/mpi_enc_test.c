@@ -957,13 +957,14 @@ int main(int argc, char **argv)
 
     if (ret) {
         mpi_enc_test_help();
-        return ret;
+        goto DONE;
     }
 
     mpi_enc_test_cmd_show_opt(cmd);
 
     ret = mpi_enc_test(cmd);
 
+DONE:
     mpi_enc_test_cmd_put(cmd);
 
     return ret;
