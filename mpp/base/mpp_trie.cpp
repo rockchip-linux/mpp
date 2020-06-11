@@ -142,7 +142,11 @@ MPP_RET mpp_trie_deinit(MppTrie trie)
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_FREE(trie);
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+
+    MPP_FREE(p->nodes);
+    MPP_FREE(p->info);
+    MPP_FREE(p);
 
     return MPP_OK;
 }
