@@ -101,6 +101,7 @@ typedef struct MppEncImpl_t {
 
     // legacy support for MPP_ENC_GET_EXTRA_INFO
     MppPacket           hdr_pkt;
+    void                *hdr_buf;
     RK_U32              hdr_len;
     MppEncHeaderStatus  hdr_status;
     MppEncHeaderMode    hdr_mode;
@@ -1191,9 +1192,9 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     {
         // create header packet storage
         size_t size = SZ_1K;
-        void *ptr = mpp_calloc_size(void, size);
+        p->hdr_buf = mpp_calloc_size(void, size);
 
-        mpp_packet_init(&p->hdr_pkt, ptr, size);
+        mpp_packet_init(&p->hdr_pkt, p->hdr_buf, size);
     }
 
     /* NOTE: setup configure coding for check */
@@ -1234,6 +1235,8 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
 
     if (enc->hdr_pkt)
         mpp_packet_deinit(&enc->hdr_pkt);
+
+    MPP_FREE(enc->hdr_buf);
 
     if (enc->cfg.ref_cfg) {
         mpp_enc_ref_cfg_deinit(&enc->cfg.ref_cfg);
