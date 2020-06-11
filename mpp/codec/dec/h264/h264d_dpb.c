@@ -1194,11 +1194,11 @@ static MPP_RET direct_output(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, H264_
         //!< we have a frame (or complementary field pair), so output it directly
         FUN_CHECK(ret = flush_direct_output(p_Vid));
         write_picture(p, p_Vid);
+        p_Dpb->last_output_poc = p->poc;
         free_storable_picture(p_Vid->p_Dec, p);
         p_Dpb->last_picture = NULL;
         p_Vid->out_buffer.is_used = 0;
         p_Vid->out_buffer.is_directout = 0;
-        p_Dpb->last_output_poc = p->poc;
         goto __RETURN;
     }
 
