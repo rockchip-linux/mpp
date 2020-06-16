@@ -37,6 +37,7 @@
 #define     VEPU_REG_AXI_CTRL_READ_ID(x)        (((x) & 0xff) << 16)
 #define     VEPU_REG_OUTPUT_SWAP16              BIT(15)
 #define     VEPU_REG_INPUT_SWAP16               BIT(14)
+#define     VEPU_REG_INPUT_SWAP16_(x)            (((x) & 1) << 14)
 #define     VEPU_REG_AXI_CTRL_BURST_LEN(x)      (((x) & 0x3f) << 8)
 #define     VEPU_REG_AXI_CTRL_BURST_DISABLE     BIT(7)
 #define     VEPU_REG_AXI_CTRL_INCREMENT_MODE    BIT(6)
@@ -44,8 +45,10 @@
 #define     VEPU_REG_CLK_GATING_EN              BIT(4)
 #define     VEPU_REG_OUTPUT_SWAP32              BIT(3)
 #define     VEPU_REG_INPUT_SWAP32               BIT(2)
+#define     VEPU_REG_INPUT_SWAP32_(x)            (((x) & 1) << 2)
 #define     VEPU_REG_OUTPUT_SWAP8               BIT(1)
 #define     VEPU_REG_INPUT_SWAP8                BIT(0)
+#define     VEPU_REG_INPUT_SWAP8_(x)             ((x) & 1)
 
 #define VEPU_REG_ADDR_OUTPUT_STREAM     0x014
 #define VEPU_REG_ADDR_OUTPUT_CTRL       0x018

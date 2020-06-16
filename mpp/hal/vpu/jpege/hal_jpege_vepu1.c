@@ -27,6 +27,8 @@
 
 #include "mpp_hal.h"
 
+#include "vepu_common.h"
+
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
@@ -166,10 +168,8 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 bitpos;
     RK_S32 bytepos;
     RK_U32 deflt_cfg;
-    RK_U32 r_mask = 0;
-    RK_U32 g_mask = 0;
-    RK_U32 b_mask = 0;
     RK_U32 x_fill = 0;
+    VepuFormatCfg fmt_cfg;
 
     syntax->width   = width;
     syntax->height  = height;
@@ -213,82 +213,13 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
         ((0  & (1)) << 6) |
         ((0  & (1)) << 5) |
         ((1  & (1)) << 4) |
-        ((1  & (1)) << 3) |
+        ((0  & (1)) << 3) |
         ((1  & (1)) << 1);
 
-    switch (fmt) {
-    case MPP_FMT_YUV420P : {
-        val32 = 0;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV420SP : {
-        val32 = 1;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV422_YUYV : {
-        val32 = 2;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV422_UYVY : {
-        val32 = 3;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_RGB565 : {
-        val32 = 4;
-        r_mask = 4;
-        g_mask = 10;
-        b_mask = 15;
-    } break;
-    case MPP_FMT_RGB444 : {
-        val32 = 5;
-        r_mask = 3;
-        g_mask = 7;
-        b_mask = 11;
-    } break;
-    case MPP_FMT_RGB888 : {
-        val32 = 7;
-        r_mask = 7;
-        g_mask = 15;
-        b_mask = 23;
-    } break;
-    case MPP_FMT_BGR888 : {
-        val32 = 7;
-        r_mask = 23;
-        g_mask = 15;
-        b_mask = 7;
-    } break;
-    case MPP_FMT_RGB101010 : {
-        val32 = 8;
-    } break;
-    default : {
-        mpp_err_f("invalid input format %d\n", fmt);
-        val32 = 0;
-    } break;
-    }
-
-    if (val32 < 4) {
-        regs[2] = deflt_cfg |
-                  ((1 & (1)) << 14) |
-                  ((1 & (1)) << 2) |
-                  (1 & (1));
-    } else if (val32 < 7) {
-        regs[2] = deflt_cfg |
-                  ((1 & (1)) << 14) |
-                  ((0 & (1)) << 2) |
-                  (0 & (1));
-    } else {
-        regs[2] = deflt_cfg |
-                  ((0 & (1)) << 14) |
-                  ((0 & (1)) << 2) |
-                  (0 & (1));
+    if (!get_vepu_fmt(&fmt_cfg, fmt)) {
+        regs[2] = deflt_cfg | (fmt_cfg.swap_8_in & 1) |
+                  (fmt_cfg.swap_32_in & 1) << 2 |
+                  (fmt_cfg.swap_16_in & 1) << 14;
     }
 
     regs[5] = mpp_buffer_get_fd(output) + (bytepos << 10);
@@ -305,7 +236,7 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
                (prep->hor_stride << 12) |
                (x_fill << 10) |
                ((ver_stride - height) << 6) |
-               (val32 << 2) | (0);
+               (fmt_cfg.format << 2) | (0);
 
     {
         RK_S32 left_byte = bytepos & 0x7;
@@ -391,9 +322,9 @@ MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalTaskInfo *task)
 
         regs[53] = coeffA | (coeffB << 16);
         regs[54] = coeffC | (coeffE << 16);
-        regs[55] = ((r_mask & 0x1f) << 26) |
-                   ((g_mask & 0x1f) << 21) |
-                   ((b_mask & 0x1f) << 16) | coeffF;
+        regs[55] = ((fmt_cfg.b_mask & 0x1f) << 26) |
+                   ((fmt_cfg.g_mask & 0x1f) << 21) |
+                   ((fmt_cfg.r_mask & 0x1f) << 16) | coeffF;
     }
 
     regs[14] |= 0x001;
@@ -532,6 +463,7 @@ MPP_RET hal_jpege_vepu1_control(void *hal, MpiCmd cmd, void *param)
     switch (cmd) {
     case MPP_ENC_SET_PREP_CFG : {
         MppEncPrepCfg *cfg = (MppEncPrepCfg *)param;
+        MppFrameFormat fmt = cfg->format & MPP_FRAME_FMT_MASK;
         if (cfg->width < 16 && cfg->width > 8192) {
             mpp_err("jpege: invalid width %d is not in range [16..8192]\n", cfg->width);
             ret = MPP_NOK;
@@ -542,13 +474,14 @@ MPP_RET hal_jpege_vepu1_control(void *hal, MpiCmd cmd, void *param)
             ret = MPP_NOK;
         }
 
-        if (cfg->format != MPP_FMT_YUV420SP     &&
-            cfg->format != MPP_FMT_YUV420P      &&
-            cfg->format != MPP_FMT_YUV422SP_VU  &&
-            cfg->format != MPP_FMT_YUV422_YUYV  &&
-            cfg->format != MPP_FMT_YUV422_UYVY  &&
-            cfg->format != MPP_FMT_RGB888       &&
-            cfg->format != MPP_FMT_BGR888) {
+        if ((fmt != MPP_FMT_YUV420SP    &&
+             fmt != MPP_FMT_YUV420P     &&
+             fmt != MPP_FMT_YUV422SP_VU &&
+             fmt != MPP_FMT_YUV422_YUYV &&
+             fmt != MPP_FMT_YUV422_UYVY &&
+             fmt < MPP_FRAME_FMT_RGB)   ||
+            fmt == MPP_FMT_RGB888       ||
+            fmt == MPP_FMT_BGR888) {
             mpp_err("jpege: invalid format %d is not supportted\n", cfg->format);
             ret = MPP_NOK;
         }

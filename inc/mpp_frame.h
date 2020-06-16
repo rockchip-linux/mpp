@@ -168,6 +168,8 @@ typedef enum {
 #define MPP_FRAME_FBC_NONE          (0x00000000)
 #define MPP_FRAME_FBC_AFBC_V1       (0x00100000)
 
+#define MPP_FRAME_FMT_LE_MASK       (0x01000000)
+
 #define MPP_FRAME_FMT_IS_YUV(fmt)   (((fmt & MPP_FRAME_FMT_COLOR_MASK) == MPP_FRAME_FMT_YUV) && \
                                      ((fmt & MPP_FRAME_FMT_MASK) < MPP_FMT_YUV_BUTT))
 #define MPP_FRAME_FMT_IS_RGB(fmt)   (((fmt & MPP_FRAME_FMT_COLOR_MASK) == MPP_FRAME_FMT_RGB) && \
@@ -178,6 +180,7 @@ typedef enum {
  */
 #define MPP_FRAME_FMT_IS_FBC(fmt)   (fmt & MPP_FRAME_FBC_MASK)
 
+#define MPP_FRAME_FMT_IS_LE(fmt)    ((fmt & MPP_FRAME_FMT_LE_MASK) == MPP_FRAME_FMT_LE_MASK)
 
 /* mpp color format index definition */
 typedef enum {

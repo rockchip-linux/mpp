@@ -274,8 +274,11 @@
 #define     VEPU_REG_MB_CNT_SET(x)          (((x) & 0xffff) << 0)
 #define VEPU_REG_DATA_ENDIAN            0x1a4
 #define     VEPU_REG_INPUT_SWAP8            BIT(31)
+#define     VEPU_REG_INPUT_SWAP8_(x)         (((x) & 1) << 31)
 #define     VEPU_REG_INPUT_SWAP16           BIT(30)
+#define     VEPU_REG_INPUT_SWAP16_(x)        (((x) & 1) << 30)
 #define     VEPU_REG_INPUT_SWAP32           BIT(29)
+#define     VEPU_REG_INPUT_SWAP32_(x)        (((x) & 1) << 29)
 #define     VEPU_REG_OUTPUT_SWAP8           BIT(28)
 #define     VEPU_REG_OUTPUT_SWAP16          BIT(27)
 #define     VEPU_REG_OUTPUT_SWAP32          BIT(26)

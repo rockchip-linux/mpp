@@ -342,7 +342,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         return MPP_OK;
     }
 
-    switch (fmt) {
+    switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride, 1, width, fp);
@@ -386,15 +386,21 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         }
     } break;
     case MPP_FMT_ARGB8888 :
-    case MPP_FMT_ABGR8888:
-    case MPP_FMT_BGRA8888:
-    case MPP_FMT_RGBA8888: {
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 :
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 4, fp);
     } break;
-    case MPP_FMT_YUV422P:
-    case MPP_FMT_YUV422SP:
-    case MPP_FMT_RGB565:
-    case MPP_FMT_BGR565:
+    case MPP_FMT_YUV422P :
+    case MPP_FMT_YUV422SP :
+    case MPP_FMT_BGR444 :
+    case MPP_FMT_RGB444 :
+    case MPP_FMT_RGB555 :
+    case MPP_FMT_BGR555 :
+    case MPP_FMT_RGB565 :
+    case MPP_FMT_BGR565 :
     case MPP_FMT_YUV422_YUYV :
     case MPP_FMT_YUV422_YVYU :
     case MPP_FMT_YUV422_UYVY :
@@ -402,7 +408,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 2, fp);
     } break;
     case MPP_FMT_RGB888 :
-    case MPP_FMT_BGR888: {
+    case MPP_FMT_BGR888 : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 3, fp);
     } break;
     default : {

@@ -27,6 +27,8 @@
 
 #include "mpp_enc_hal.h"
 
+#include "vepu_common.h"
+
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api.h"
 #include "hal_jpege_hdr.h"
@@ -170,10 +172,8 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     RK_S32 bitpos;
     RK_S32 bytepos;
     RK_U32 deflt_cfg;
-    RK_U32 r_mask = 0;
-    RK_U32 g_mask = 0;
-    RK_U32 b_mask = 0;
     RK_U32 x_fill = 0;
+    VepuFormatCfg fmt_cfg;
 
     //hor_stride must be align with 8, and ver_stride mus align with 2
     if ((syntax->hor_stride & 0x7) || (syntax->ver_stride & 0x1)) {
@@ -216,79 +216,10 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
         ((1  & (1)) << 3) |
         ((1  & (1)) << 1);
 
-    switch (fmt) {
-    case MPP_FMT_YUV420P : {
-        val32 = 0;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV420SP : {
-        val32 = 1;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV422_YUYV : {
-        val32 = 2;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_YUV422_UYVY : {
-        val32 = 3;
-        r_mask = 0;
-        g_mask = 0;
-        b_mask = 0;
-    } break;
-    case MPP_FMT_RGB565 : {
-        val32 = 4;
-        r_mask = 4;
-        g_mask = 10;
-        b_mask = 15;
-    } break;
-    case MPP_FMT_RGB444 : {
-        val32 = 5;
-        r_mask = 3;
-        g_mask = 7;
-        b_mask = 11;
-    } break;
-    case MPP_FMT_RGB888 : {
-        val32 = 7;
-        r_mask = 7;
-        g_mask = 15;
-        b_mask = 23;
-    } break;
-    case MPP_FMT_BGR888 : {
-        val32 = 7;
-        r_mask = 23;
-        g_mask = 15;
-        b_mask = 7;
-    } break;
-    case MPP_FMT_RGB101010 : {
-        val32 = 8;
-    } break;
-    default : {
-        mpp_err_f("invalid input format %d\n", fmt);
-        val32 = 0;
-    } break;
-    }
-
-    if (val32 < 4) {
-        regs[2] = deflt_cfg |
-                  ((1 & (1)) << 14) |
-                  ((1 & (1)) << 2) |
-                  (1 & (1));
-    } else if (val32 < 7) {
-        regs[2] = deflt_cfg |
-                  ((1 & (1)) << 14) |
-                  ((0 & (1)) << 2) |
-                  (0 & (1));
-    } else {
-        regs[2] = deflt_cfg |
-                  ((0 & (1)) << 14) |
-                  ((0 & (1)) << 2) |
-                  (0 & (1));
+    if (!get_vepu_fmt(&fmt_cfg, fmt)) {
+        regs[2] = deflt_cfg | (fmt_cfg.swap_8_in & 1) |
+                  (fmt_cfg.swap_32_in & 1) << 2 |
+                  (fmt_cfg.swap_16_in & 1) << 14;
     }
 
     regs[5] = mpp_buffer_get_fd(output) + (bytepos << 10);
@@ -302,10 +233,10 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
 
     regs[15] = (0 << 29) |
                (0 << 26) |
-               (syntax->hor_stride << 12) |
+               (MPP_ALIGN(width, 8) << 12) |
                (x_fill << 10) |
                ((ver_stride - height) << 6) |
-               (val32 << 2) | (0);
+               (fmt_cfg.format << 2) | (0);
 
     {
         RK_S32 left_byte = bytepos & 0x7;
@@ -391,9 +322,9 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
 
         regs[53] = coeffA | (coeffB << 16);
         regs[54] = coeffC | (coeffE << 16);
-        regs[55] = ((r_mask & 0x1f) << 26) |
-                   ((g_mask & 0x1f) << 21) |
-                   ((b_mask & 0x1f) << 16) | coeffF;
+        regs[55] = ((fmt_cfg.b_mask & 0x1f) << 26) |
+                   ((fmt_cfg.g_mask & 0x1f) << 21) |
+                   ((fmt_cfg.r_mask & 0x1f) << 16) | coeffF;
     }
 
     regs[14] |= 0x001;

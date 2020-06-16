@@ -2,6 +2,7 @@
 include_directories(.)
 include_directories(../../common/h264/)
 include_directories(../../../codec/enc/h264/)
+include_directories(../common/)
 
 # hal h264 header
 set(HAL_H264E_HDR
@@ -25,5 +26,5 @@ add_library(hal_h264e_vpu STATIC
             ${HAL_H264E_SRC}
            )
 
-target_link_libraries(hal_h264e_vpu hal_h264e ${CODEC_H264E})
+target_link_libraries(hal_h264e_vpu hal_h264e hal_vepu_common ${CODEC_H264E})
 set_target_properties(hal_h264e_vpu PROPERTIES FOLDER "mpp/hal")

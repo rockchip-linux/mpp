@@ -21,6 +21,8 @@
 #include "mpp_common.h"
 #include "mpp_buffer.h"
 
+#include "vepu_common.h"
+
 #include "h264e_slice.h"
 #include "hal_h264e_debug.h"
 #include "hal_h264e_com.h"
@@ -301,41 +303,11 @@ static H264eVpuCsp fmt_to_vepu_csp_yuv[MPP_FMT_YUV_BUTT] = {
     H264E_VPU_CSP_NONE,         // MPP_FMT_YUV444SP         /* YYYY... UVUVUVUV...      */
 };
 
-static H264eVpuCsp fmt_to_vepu_csp_rgb[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
-    H264E_VPU_CSP_RGB565,       // MPP_FMT_RGB565           /* 16-bit RGB               */
-    H264E_VPU_CSP_RGB565,       // MPP_FMT_BGR565           /* 16-bit RGB               */
-    H264E_VPU_CSP_RGB555,       // MPP_FMT_RGB555           /* 15-bit RGB               */
-    H264E_VPU_CSP_RGB555,       // MPP_FMT_BGR555           /* 15-bit RGB               */
-    H264E_VPU_CSP_RGB444,       // MPP_FMT_RGB444           /* 12-bit RGB               */
-    H264E_VPU_CSP_RGB444,       // MPP_FMT_BGR444           /* 12-bit RGB               */
-    H264E_VPU_CSP_RGB888,       // MPP_FMT_RGB888           /* 24-bit RGB               */
-    H264E_VPU_CSP_RGB888,       // MPP_FMT_BGR888           /* 24-bit RGB               */
-    H264E_VPU_CSP_RGB101010,    // MPP_FMT_RGB101010        /* 30-bit RGB               */
-    H264E_VPU_CSP_RGB101010,    // MPP_FMT_BGR101010        /* 30-bit RGB               */
-    H264E_VPU_CSP_ARGB8888,     // MPP_FMT_ARGB8888         /* 32-bit RGB               */
-    H264E_VPU_CSP_ARGB8888,     // MPP_FMT_ABGR8888         /* 32-bit RGB               */
-};
-
-static RK_S32 fmt_to_vepu_mask_msb[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB][3] = {
-    //   R   G   B              // mask msb position
-    {   15, 10,  4, },          // MPP_FMT_RGB565           /* 16-bit RGB               */
-    {    4, 10, 15, },          // MPP_FMT_BGR565           /* 16-bit RGB               */
-    {   14,  9,  4, },          // MPP_FMT_RGB555           /* 15-bit RGB               */
-    {    4,  9, 14, },          // MPP_FMT_BGR555           /* 15-bit RGB               */
-    {   11,  7,  3, },          // MPP_FMT_RGB444           /* 12-bit RGB               */
-    {    3,  7, 11, },          // MPP_FMT_BGR444           /* 12-bit RGB               */
-    {   23, 15,  7, },          // MPP_FMT_RGB888           /* 24-bit RGB               */
-    {    7, 15, 23, },          // MPP_FMT_BGR888           /* 24-bit RGB               */
-    {   29, 19,  9, },          // MPP_FMT_RGB101010        /* 30-bit RGB               */
-    {    9, 19, 29, },          // MPP_FMT_BGR101010        /* 30-bit RGB               */
-    {   23, 15,  7, },          // MPP_FMT_ARGB8888         /* 32-bit RGB               */
-    {    7, 15, 23, },          // MPP_FMT_ABGR8888         /* 32-bit RGB               */
-};
-
 MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     MppFrameFormat format = cfg->format;
+    VepuFormatCfg fmt_cfg;
 
     hal_h264e_dbg_buffer("enter\n");
 
@@ -343,16 +315,24 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     prep->src_w = cfg->width;
     prep->src_h = cfg->height;
 
+    if (!get_vepu_fmt(&fmt_cfg, format)) {
+        prep->r_mask_msb = fmt_cfg.r_mask;
+        prep->g_mask_msb = fmt_cfg.g_mask;
+        prep->b_mask_msb = fmt_cfg.b_mask;
+        prep->swap_8_in  = fmt_cfg.swap_8_in;
+        prep->swap_16_in = fmt_cfg.swap_16_in;
+        prep->swap_32_in = fmt_cfg.swap_32_in;
+        prep->src_fmt    = fmt_cfg.format;
+    } else {
+        prep->src_fmt = H264E_VPU_CSP_NONE;
+    }
+
     if (format < MPP_FRAME_FMT_RGB) {
         // YUV case
-        prep->src_fmt = fmt_to_vepu_csp_yuv[format];
         if (prep->src_fmt == H264E_VPU_CSP_NONE) {
             mpp_err("vepu do not support input frame format %d\n", format);
             ret = MPP_NOK;
         }
-        prep->r_mask_msb = 0;
-        prep->g_mask_msb = 0;
-        prep->b_mask_msb = 0;
 
         prep->color_conversion_coeff_a = 0;
         prep->color_conversion_coeff_b = 0;
@@ -360,19 +340,11 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
         prep->color_conversion_coeff_e = 0;
         prep->color_conversion_coeff_f = 0;
     } else {
-        // RGB case
-        RK_S32 rgb_idx = format - MPP_FRAME_FMT_RGB;
 
-        mpp_assert(rgb_idx < MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB);
-
-        prep->src_fmt = fmt_to_vepu_csp_rgb[rgb_idx];
         if (prep->src_fmt == H264E_VPU_CSP_NONE) {
             mpp_err("vepu do not support input frame format %d\n", format);
             ret = MPP_NOK;
         }
-        prep->r_mask_msb = fmt_to_vepu_mask_msb[rgb_idx][0];
-        prep->g_mask_msb = fmt_to_vepu_mask_msb[rgb_idx][1];
-        prep->b_mask_msb = fmt_to_vepu_mask_msb[rgb_idx][2];
 
         switch (cfg->color) {
         case MPP_FRAME_SPC_RGB : {
@@ -415,7 +387,7 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     prep->offset_cb = 0;
     prep->offset_cr = 0;
 
-    switch (format) {
+    switch (format & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
         prep->offset_cb = hor_stride * ver_stride;
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
@@ -445,6 +417,10 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
                       cfg->hor_stride, cfg->width);
     } break;
     case MPP_FMT_RGB565 :
+    case MPP_FMT_BGR565 :
+    case MPP_FMT_RGB555 :
+    case MPP_FMT_BGR555 :
+    case MPP_FMT_RGB444 :
     case MPP_FMT_BGR444 : {
         prep->size_y = hor_stride * 2 * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
@@ -453,10 +429,11 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
             mpp_log_f("vepu only support matched 16bit pixel horizontal stride %d vs width %d\n",
                       cfg->hor_stride, cfg->width);
     } break;
-    case MPP_FMT_BGR888 :
-    case MPP_FMT_RGB888 :
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
+    case MPP_FMT_RGBA8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGB101010 :
     case MPP_FMT_BGR101010 : {
         prep->size_y = hor_stride * 4 * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;

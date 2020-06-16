@@ -32,7 +32,7 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
 {
     RK_S32 stride = 0;
 
-    switch (fmt) {
+    switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP :
     case MPP_FMT_YUV420P : {
         stride = MPP_ALIGN(width, 16);
@@ -41,6 +41,10 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
     case MPP_FMT_YUV422SP:
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR565:
+    case MPP_FMT_RGB555:
+    case MPP_FMT_BGR555:
+    case MPP_FMT_RGB444:
+    case MPP_FMT_BGR444:
     case MPP_FMT_YUV422_YUYV :
     case MPP_FMT_YUV422_YVYU :
     case MPP_FMT_YUV422_UYVY :
@@ -178,8 +182,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                         /* decimal value, use atoi */
                         cmd->format = (MppFrameFormat)atoi(next);
                     }
-                    ret = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
-                           cmd->format >= MPP_FMT_RGB_BUTT);
+                    ret = (!MPP_FRAME_FMT_IS_LE(cmd->format)) && ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
+                                                                  cmd->format >= MPP_FMT_RGB_BUTT);
                 }
 
                 if (!next || ret) {
