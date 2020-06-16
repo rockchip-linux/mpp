@@ -108,6 +108,7 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = src->change;
+    MppFrameFormat fmt = dst->format & MPP_FRAME_FMT_MASK;
 
     mpp_assert(change);
     if (change) {
@@ -143,13 +144,14 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             ret = MPP_NOK;
         }
 
-        if (dst->format != MPP_FMT_YUV420SP     &&
-            dst->format != MPP_FMT_YUV420P      &&
-            dst->format != MPP_FMT_YUV422SP_VU  &&
-            dst->format != MPP_FMT_YUV422_YUYV  &&
-            dst->format != MPP_FMT_YUV422_UYVY  &&
-            dst->format != MPP_FMT_RGB888       &&
-            dst->format != MPP_FMT_BGR888) {
+        if ((fmt != MPP_FMT_YUV420SP    &&
+             fmt != MPP_FMT_YUV420P     &&
+             fmt != MPP_FMT_YUV422SP_VU &&
+             fmt != MPP_FMT_YUV422_YUYV &&
+             fmt != MPP_FMT_YUV422_UYVY &&
+             fmt < MPP_FRAME_FMT_RGB)   ||
+            fmt == MPP_FMT_RGB888       ||
+            fmt == MPP_FMT_BGR888) {
             mpp_err_f("invalid format %d is not supportted\n", dst->format);
             ret = MPP_NOK;
         }

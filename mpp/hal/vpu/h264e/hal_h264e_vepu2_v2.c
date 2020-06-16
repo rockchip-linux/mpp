@@ -489,25 +489,12 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     val = VEPU_REG_ZERO_MV_FAVOR_D2(10);
     H264E_HAL_SET_REG(reg, VEPU_REG_MVC_RELATE, val);
 
-    if (hw_prep->src_fmt < H264E_VPU_CSP_RGB565) {
-        val = VEPU_REG_OUTPUT_SWAP32
-              | VEPU_REG_OUTPUT_SWAP16
-              | VEPU_REG_OUTPUT_SWAP8
-              | VEPU_REG_INPUT_SWAP8
-              | VEPU_REG_INPUT_SWAP16
-              | VEPU_REG_INPUT_SWAP32;
-    } else if (hw_prep->src_fmt == H264E_VPU_CSP_ARGB8888) {
-        val = VEPU_REG_OUTPUT_SWAP32
-              | VEPU_REG_OUTPUT_SWAP16
-              | VEPU_REG_OUTPUT_SWAP8
-              | VEPU_REG_INPUT_SWAP32;
-    } else {
-        val = VEPU_REG_OUTPUT_SWAP32
-              | VEPU_REG_OUTPUT_SWAP16
-              | VEPU_REG_OUTPUT_SWAP8
-              | VEPU_REG_INPUT_SWAP16
-              | VEPU_REG_INPUT_SWAP32;
-    }
+    val = VEPU_REG_OUTPUT_SWAP32
+          | VEPU_REG_OUTPUT_SWAP16
+          | VEPU_REG_OUTPUT_SWAP8
+          | VEPU_REG_INPUT_SWAP8_(hw_prep->swap_8_in)
+          | VEPU_REG_INPUT_SWAP16_(hw_prep->swap_16_in)
+          | VEPU_REG_INPUT_SWAP32_(hw_prep->swap_32_in);
     H264E_HAL_SET_REG(reg, VEPU_REG_DATA_ENDIAN, val);
 
     val = VEPU_REG_PPS_ID(pps->pps_id)

@@ -1,6 +1,8 @@
 # vim: syntax=cmake
 # hal jpeg reg
 
+include_directories(../common/)
+
 set(HAL_JPEGE_HDR
     )
 
@@ -20,4 +22,4 @@ add_library(${HAL_JPEGE} STATIC
     )
 
 set_target_properties(${HAL_JPEGE} PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(${HAL_JPEGE} mpp_base)
+target_link_libraries(${HAL_JPEGE} hal_vepu_common mpp_base)

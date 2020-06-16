@@ -26,6 +26,7 @@
 #include "mpp_rc.h"
 
 #include "mpp_enc_hal.h"
+#include "vepu_common.h"
 #include "h264e_debug.h"
 #include "h264e_syntax_new.h"
 #include "h264e_slice.h"
@@ -324,12 +325,12 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     val = VEPU_REG_AXI_CTRL_WRITE_ID(0)
           | VEPU_REG_AXI_CTRL_READ_ID(0)
           | VEPU_REG_OUTPUT_SWAP16
-          | VEPU_REG_INPUT_SWAP16
+          | VEPU_REG_INPUT_SWAP16_(hw_prep->swap_16_in)
           | VEPU_REG_AXI_CTRL_BURST_LEN(16)
           | VEPU_REG_OUTPUT_SWAP32
-          | VEPU_REG_INPUT_SWAP32
+          | VEPU_REG_INPUT_SWAP32_(hw_prep->swap_32_in)
           | VEPU_REG_OUTPUT_SWAP8
-          | VEPU_REG_INPUT_SWAP8;
+          | VEPU_REG_INPUT_SWAP8_(hw_prep->swap_8_in);
     H264E_HAL_SET_REG(reg, VEPU_REG_AXI_CTRL, val);
 
     val = VEPU_REG_MAD_QP_ADJUSTMENT (hw_mbrc->mad_qp_change)
