@@ -270,7 +270,7 @@ MPP_RET mpp_enc_ref_cfg_check(MppEncRefCfg ref)
             }
 
             /* constrain on head and tail frame */
-            if (pos == 0 || (pos == lt_cfg_cnt - 1)) {
+            if (pos == 0 || (pos == st_cfg_cnt - 1)) {
                 if (cfg->is_non_ref) {
                     mpp_err_f("ref cfg %p st cfg %d with invalid non-ref frame on head/tail frame\n",
                               ref, pos);
