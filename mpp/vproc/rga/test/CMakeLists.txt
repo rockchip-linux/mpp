@@ -3,7 +3,7 @@
 # mpp/vproc/rga built-in unit test case
 # ----------------------------------------------------------------------------
 # rga unit test
-option(RGA_TEST "Build base rga unit test" ON)
+option(RGA_TEST "Build base rga unit test" ${BUILD_TEST})
 add_executable(rga_test rga_test.cpp)
 target_link_libraries(rga_test ${MPP_SHARED} utils)
 set_target_properties(rga_test PROPERTIES FOLDER "mpp/vproc/rga")

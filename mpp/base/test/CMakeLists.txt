@@ -10,7 +10,7 @@ macro(add_mpp_base_test module)
     #message(STATUS "test_name : ${test_name}")
     #message(STATUS "test_tag  : ${test_tag}")
 
-    option(${test_tag} "Build base ${module} unit test" ON)
+    option(${test_tag} "Build base ${module} unit test" ${BUILD_TEST})
     if(${test_tag})
         add_executable(${test_name} ${test_name}.c)
         target_link_libraries(${test_name} ${MPP_SHARED})
