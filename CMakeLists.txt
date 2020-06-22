@@ -61,7 +61,7 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 # ----------------------------------------------------------------------------
 # enable test in this project
 # ----------------------------------------------------------------------------
-enable_testing()
+option(BUILD_TEST "enable test binary building)" ON)
 
 # ----------------------------------------------------------------------------
 # System architecture detection

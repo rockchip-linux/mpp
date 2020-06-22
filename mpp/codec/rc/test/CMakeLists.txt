@@ -10,7 +10,7 @@ macro(add_mpp_rc_test module)
     set(test_name ${module}_test)
     string(TOUPPER ${test_name} test_tag)
 
-    option(${test_tag} "Build rc ${module} unit test" ON)
+    option(${test_tag} "Build rc ${module} unit test" ${BUILD_TEST})
     if(${test_tag})
         add_executable(${test_name} ${test_name}.c)
         target_link_libraries(${test_name} enc_rc mpp_base ${ASAN_LIB})
