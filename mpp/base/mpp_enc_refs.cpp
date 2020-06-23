@@ -112,19 +112,19 @@ RK_U32 enc_refs_debug = 0;
 void _dump_frm(EncFrmStatus *frm, const char *func, RK_S32 line)
 {
     if (frm->is_non_ref) {
-        enc_refs_dbg_frm("%s:%d frm %d %s tid %d non-ref [%x:%d]\n",
-                         func, line, frm->seq_idx,
+        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d non-ref -> [%x:%d]\n",
+                         func, line, frm->valid, frm->seq_idx,
                          frm->is_intra ? "intra" : "inter",
                          frm->temporal_id, frm->ref_mode, frm->ref_arg);
     } else if (frm->is_lt_ref) {
-        enc_refs_dbg_frm("%s:%d frm %d %s tid %d lt-ref  [%x:%d] lt_idx %d\n",
-                         func, line, frm->seq_idx,
+        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d lt-ref  -> [%x:%d] lt_idx %d\n",
+                         func, line, frm->valid, frm->seq_idx,
                          frm->is_intra ? "intra" : "inter",
                          frm->temporal_id, frm->ref_mode, frm->ref_arg,
                          frm->lt_idx);
     } else {
-        enc_refs_dbg_frm("%s:%d frm %d %s tid %d st-ref  [%x:%d]\n",
-                         func, line, frm->seq_idx,
+        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d st-ref  -> [%x:%d]\n",
+                         func, line, frm->valid, frm->seq_idx,
                          frm->is_intra ? "intra" : "inter",
                          frm->temporal_id, frm->ref_mode, frm->ref_arg);
     }
@@ -325,8 +325,8 @@ static EncFrmStatus *get_ref_from_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
                               ref->is_lt_ref ? "lt" : "st",
                               ref->is_lt_ref ? ref->lt_idx : 0);
         else
-            mpp_err_f("frm %d found ref %d but it is invalid\n",
-                      frm->seq_idx, ref->seq_idx);
+            mpp_err_f("frm %d found mode %d arg %d -> ref %d but it is invalid\n",
+                      frm->seq_idx, ref_mode, ref_arg, ref->seq_idx);
     } else {
         ref = NULL;
     }
@@ -444,6 +444,7 @@ static void store_ref_to_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
 
     if (frm->is_lt_ref) {
         cpb->lt_idx_refs[lt_idx].val = frm->val;
+        cpb->st_tid_refs[tid].val = frm->val;
         cpb->mode_refs[REF_TO_PREV_REF_FRM].val = frm->val;
         cpb->mode_refs[REF_TO_PREV_LT_REF].val = frm->val;
 
@@ -480,9 +481,8 @@ static void store_ref_to_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
         cpb->mode_refs[REF_TO_PREV_REF_FRM].val = frm->val;
         cpb->mode_refs[REF_TO_PREV_ST_REF].val = frm->val;
 
-
         for (i = MAX_CPB_ST_FRM - 1; i > 0; i--)
-            cpb->cpb_refs[i - 1].val = cpb->cpb_refs[i].val;
+            cpb->cpb_refs[i].val = cpb->cpb_refs[i - 1].val;
 
         cpb->cpb_refs[0].val = frm->val;
 
@@ -539,11 +539,10 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
             RK_S32 i;
 
             for (i = 0; i < lt_cfg_cnt; i++, lt_cfg++) {
-                if (lt_cfg->delay_cnt)
+                if (lt_cfg->delay_cnt) {
                     lt_cfg->delay_cnt--;
-
-                if (lt_cfg->delay_cnt)
                     continue;
+                }
 
                 if (!set_to_lt) {
                     if (!lt_cfg->cnt) {
@@ -686,11 +685,10 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
 
     /* step 3. updated by lt_cfg */
     for (i = 0; i < cfg->lt_cfg_cnt; i++, lt_cfg++) {
-        if (lt_cfg->delay_cnt)
+        if (lt_cfg->delay_cnt) {
             lt_cfg->delay_cnt--;
-
-        if (lt_cfg->delay_cnt)
             continue;
+        }
 
         if (!set_to_lt) {
             if (!lt_cfg->cnt) {
