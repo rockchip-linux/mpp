@@ -95,7 +95,7 @@ typedef struct {
     RK_U32 roi_enable;
 
     // rate control runtime parameter
-    RK_S32 gop;
+
     RK_S32 fps_in_flex;
     RK_S32 fps_in_den;
     RK_S32 fps_in_num;
@@ -103,7 +103,12 @@ typedef struct {
     RK_S32 fps_out_den;
     RK_S32 fps_out_num;
     RK_S32 bps;
-    RK_U32 gop_mode;
+    RK_S32 bps_max;
+    RK_S32 bps_min;
+    RK_S32 rc_mode;
+    RK_S32 gop_mode;
+    RK_S32 gop_len;
+    RK_S32 vi_len;
 } MpiEncTestData;
 
 MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
@@ -133,10 +138,17 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     p->fmt          = cmd->format;
     p->type         = cmd->type;
     p->bps          = cmd->bps_target;
+    p->bps_min      = cmd->bps_min;
+    p->bps_max      = cmd->bps_max;
+    p->rc_mode      = cmd->rc_mode;
+
     if (cmd->type == MPP_VIDEO_CodingMJPEG)
         cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
     p->gop_mode     = cmd->gop_mode;
+    p->gop_len      = cmd->gop_len;
+    p->vi_len       = cmd->vi_len;
+
     p->fps_in_flex  = cmd->fps_in_flex;
     p->fps_in_den   = cmd->fps_in_den;
     p->fps_in_num   = cmd->fps_in_num;
@@ -266,7 +278,7 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
         p->fps_out_den = 1;
     if (p->fps_out_num == 0)
         p->fps_out_num = 30;
-    p->gop = 60;
+
 
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
@@ -287,7 +299,7 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
     }
 
     rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
-    rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
+    rc_cfg->rc_mode = p->rc_mode;
     rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
 
     if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
@@ -298,13 +310,13 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
     } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
         /* constant bitrate has very small bps range of 1/16 bps */
         rc_cfg->bps_target   = p->bps;
-        rc_cfg->bps_max      = p->bps * 17 / 16;
-        rc_cfg->bps_min      = p->bps * 15 / 16;
-    } else if (rc_cfg->rc_mode ==  MPP_ENC_RC_MODE_VBR) {
+        rc_cfg->bps_max      = p->bps_max ? p->bps_max : p->bps * 17 / 16;
+        rc_cfg->bps_min      = p->bps_min ? p->bps_min : p->bps * 15 / 16;
+    } else {
         /* variable bitrate has large bps range */
         rc_cfg->bps_target   = p->bps;
-        rc_cfg->bps_max      = p->bps * 17 / 16;
-        rc_cfg->bps_min      = p->bps * 1 / 16;
+        rc_cfg->bps_max      = p->bps_max ? p->bps_max : p->bps * 17 / 16;
+        rc_cfg->bps_min      = p->bps_min ? p->bps_min : p->bps * 1 / 16;
     }
 
     /* fix input / output frame rate */
@@ -315,8 +327,8 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
     rc_cfg->fps_out_num      = p->fps_out_num;
     rc_cfg->fps_out_denorm   = p->fps_out_den;
 
-    rc_cfg->gop              = p->gop;
     rc_cfg->max_reenc_times  = 1;
+    rc_cfg->gop              = p->gop_len ? p->gop_len : p->fps_out_num * 2;
 
     mpp_log("%p mpi_enc_test bps %d fps %d gop %d\n", ctx,
             rc_cfg->bps_target, rc_cfg->fps_out_num, rc_cfg->gop);
@@ -488,7 +500,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         p->fps_out_den = 1;
     if (p->fps_out_num == 0)
         p->fps_out_num = 30;
-    p->gop = 60;
 
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
@@ -500,7 +511,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_enc_cfg_set_s32(cfg, "prep:ver_stride", p->ver_stride);
     mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
 
-    mpp_enc_cfg_set_s32(cfg, "rc:mode", rc_mode);
+    mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
 
     switch (rc_mode) {
     case MPP_ENC_RC_MODE_FIXQP : {
@@ -509,14 +520,14 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     case MPP_ENC_RC_MODE_CBR : {
         /* CBR mode has narrow bound */
         mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps * 15 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
     } break;
     case MPP_ENC_RC_MODE_VBR : {
         /* CBR mode has wide bound */
         mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps * 1 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 1 / 16);
     } break;
     default : {
         mpp_err_f("unsupport encoder rc mode %d\n", rc_mode);
@@ -530,7 +541,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_flex", p->fps_out_flex);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_num", p->fps_out_num);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denorm", p->fps_out_den);
-    mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop);
+    mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop_len ? p->gop_len : p->fps_out_num * 2);
 
     /* setup codec  */
     mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
@@ -629,7 +640,12 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         MppEncRefCfg ref;
 
         mpp_enc_ref_cfg_init(&ref);
-        mpi_enc_gen_ref_cfg(ref, gop_mode);
+
+        if (p->gop_mode < 4)
+            mpi_enc_gen_ref_cfg(ref, gop_mode);
+        else
+            mpi_enc_gen_smart_gop_ref_cfg(ref, p->gop_len, p->vi_len);
+
         ret = mpi->control(ctx, MPP_ENC_SET_REF_CFG, ref);
         if (ret) {
             mpp_err("mpi control enc set ref cfg failed ret %d\n", ret);
