@@ -211,18 +211,28 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                 }
             } break;
             case 'g' : {
-                if (next) {
-                    cmd->gop_mode = atoi(next);
-                } else {
-                    mpp_err("invalid gop mode\n");
+                RK_S32 cnt = 0;
+
+                if (next)
+                    cnt = sscanf(next, "%d:%d:%d",
+                                 &cmd->gop_mode, &cmd->gop_len, &cmd->vi_len);
+
+                if (!cnt) {
+                    mpp_err("invalid gop mode use -g gop_mode:gop_len:vi_len\n");
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
             case 'b' : {
-                if (next) {
-                    cmd->bps_target = atoi(next);
-                } else {
-                    mpp_err("invalid bit rate\n");
+                RK_S32 cnt = 0;
+
+                if (next)
+                    cnt = sscanf(next, "%d:%d:%d:%d",
+                                 &cmd->bps_target, &cmd->bps_min, &cmd->bps_max,
+                                 &cmd->rc_mode);
+
+                if (!cnt) {
+                    mpp_err("invalid bit rate usage -b bps_target:bps_min:bps_max:rc_mode\n");
+                    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
@@ -278,6 +288,19 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
+            case 'x': {
+                if (next) {
+                    size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+                    if (len) {
+                        cmd->file_cfg = mpp_calloc(char, len + 1);
+                        strncpy(cmd->file_cfg, next, len);
+                        cmd->cfg_ini = iniparser_load(cmd->file_cfg);
+                    }
+                } else {
+                    mpp_err("input file is invalid\n");
+                    goto PARSE_OPINIONS_OUT;
+                }
+            } break;
             default : {
                 mpp_err("skip invalid opt %c\n", *opt);
             } break;
@@ -316,8 +339,14 @@ MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
     if (NULL == cmd)
         return MPP_OK;
 
+    if (cmd->cfg_ini) {
+        iniparser_freedict(cmd->cfg_ini);
+        cmd->cfg_ini = NULL;
+    }
+
     MPP_FREE(cmd->file_input);
     MPP_FREE(cmd->file_output);
+    MPP_FREE(cmd->file_cfg);
     MPP_FREE(cmd);
 
     return MPP_OK;
@@ -501,6 +530,56 @@ MPP_RET mpi_enc_gen_ref_cfg(MppEncRefCfg ref, RK_S32 gop_mode)
     return ret;
 }
 
+MPP_RET mpi_enc_gen_smart_gop_ref_cfg(MppEncRefCfg ref, RK_S32 gop_len, RK_S32 vi_len)
+{
+    MppEncRefLtFrmCfg lt_ref[4];
+    MppEncRefStFrmCfg st_ref[16];
+    RK_S32 lt_cnt = 1;
+    RK_S32 st_cnt = 8;
+    MPP_RET ret = MPP_OK;
+
+    memset(&lt_ref, 0, sizeof(lt_ref));
+    memset(&st_ref, 0, sizeof(st_ref));
+
+    ret = mpp_enc_ref_cfg_set_cfg_cnt(ref, lt_cnt, st_cnt);
+
+    /* set 8 frame lt-ref gap */
+    lt_ref[0].lt_idx        = 0;
+    lt_ref[0].temporal_id   = 0;
+    lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
+    lt_ref[0].lt_gap        = gop_len;
+    lt_ref[0].lt_delay      = 0;
+
+    ret = mpp_enc_ref_cfg_add_lt_cfg(ref, 1, lt_ref);
+
+    /* st 0 layer 0 - ref */
+    st_ref[0].is_non_ref    = 0;
+    st_ref[0].temporal_id   = 0;
+    st_ref[0].ref_mode      = REF_TO_PREV_INTRA;
+    st_ref[0].ref_arg       = 0;
+    st_ref[0].repeat        = 0;
+
+    /* st 1 layer 3 - non-ref */
+    st_ref[1].is_non_ref    = 0;
+    st_ref[1].temporal_id   = 1;
+    st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
+    st_ref[1].ref_arg       = 0;
+    st_ref[1].repeat        = vi_len - 2;
+
+    st_ref[2].is_non_ref    = 0;
+    st_ref[2].temporal_id   = 0;
+    st_ref[2].ref_mode      = REF_TO_PREV_INTRA;
+    st_ref[2].ref_arg       = 0;
+    st_ref[2].repeat        = 0;
+
+    ret = mpp_enc_ref_cfg_add_st_cfg(ref, 3, st_ref);
+
+    /* check and get dpb size */
+    ret = mpp_enc_ref_cfg_check(ref);
+
+    return ret;
+}
+
 MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
 {
     RK_U32 k = 0;
@@ -553,7 +632,7 @@ static OptionInfo mpi_enc_cmd[] = {
     {"n",               "max frame number",     "max encoding frame number"},
     {"g",               "gop_mode",             "gop reference mode"},
     {"d",               "debug",                "debug flag"},
-    {"b",               "target bps",           "set tareget bps"},
+    {"b",               "bps target:min:max",   "set tareget bps"},
     {"r",               "in/output fps",        "set input and output frame rate"},
     {"l",               "loop count",           "loop encoding times for each frame"},
 };
