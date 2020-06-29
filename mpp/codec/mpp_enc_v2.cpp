@@ -546,21 +546,21 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
 #define RUN_ENC_IMPL_FUNC(func, impl, task, mpp, ret)           \
     ret = func(impl, task);                                     \
     if (ret) {                                                  \
-        mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
+        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
         goto TASK_DONE;                                         \
     }
 
 #define RUN_ENC_RC_FUNC(func, ctx, task, mpp, ret)              \
     ret = func(ctx, task);                                      \
     if (ret) {                                                  \
-        mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
+        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
         goto TASK_DONE;                                         \
     }
 
 #define RUN_ENC_HAL_FUNC(func, hal, task, mpp, ret)             \
     ret = func(hal, task);                                      \
     if (ret) {                                                  \
-        mpp_err("mpp %p ##func failed return %d", mpp, ret);    \
+        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
         goto TASK_DONE;                                         \
     }
 
