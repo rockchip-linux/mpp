@@ -551,6 +551,20 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_en", 1);
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
+
+        if (rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 20);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 16);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 16);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 20);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 20);
+        } else {
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 26);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 51);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 10);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 46);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 24);
+        }
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         mpp_enc_cfg_set_s32(cfg, "jpeg:quant", 10);
