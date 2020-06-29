@@ -296,7 +296,7 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     hal_h264e_dbg_detail("frame %d generate regs now", frm->seq_idx);
 
     // prepare mb rc config
-    h264e_vepu_mbrc_prepare(ctx->rc_ctx, &ctx->hw_mbrc, task->rc_task, ctx->cfg);
+    h264e_vepu_mbrc_prepare(ctx->rc_ctx, &ctx->hw_mbrc, task->rc_task);
 
     h264e_vepu_slice_split_cfg(ctx->slice, &ctx->hw_mbrc, task->rc_task, ctx->cfg);
 

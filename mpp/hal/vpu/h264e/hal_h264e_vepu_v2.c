@@ -570,12 +570,11 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
 #define WORD_CNT_MAX    65535
 
 MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
-                                EncRcTask *rc_task, MppEncCfgSet *cfg)
+                                EncRcTask *rc_task)
 {
     HalH264eVepuMbRcImpl *p = (HalH264eVepuMbRcImpl *)ctx;
     EncFrmStatus *frm = &rc_task->frm;
     EncRcTaskInfo *info = &rc_task->info;
-    MppEncH264Cfg *codec = &cfg->codec.h264;
 
     RK_S32 i;
     const RK_S32 sscale = 256;
@@ -584,8 +583,8 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
     RK_S32 coeffCntMax = p->mbs * 24 * 16;
 
     mbrc->qp_init = info->quality_target;
-    mbrc->qp_min = codec->qp_min;
-    mbrc->qp_max = codec->qp_max;
+    mbrc->qp_min = info->quality_min;
+    mbrc->qp_max = info->quality_max;
 
     if (!p->mb_bit_rc_enable)
         return MPP_OK;
