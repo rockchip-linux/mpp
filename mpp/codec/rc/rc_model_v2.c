@@ -784,18 +784,40 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     RcModelV2Ctx *p = (RcModelV2Ctx*)ctx;
     EncFrmStatus *frm = &task->frm;
     EncRcTaskInfo *info = &task->info;
+    RcCfg *cfg = &p->usr_cfg;
 
     rc_dbg_func("enter %p\n", ctx);
 
-    if (p->usr_cfg.mode == RC_FIXQP) {
-        if (p->usr_cfg.init_quality <= 0) {
+    if (cfg->mode == RC_FIXQP) {
+        if (cfg->init_quality <= 0) {
             mpp_log("invalid fix %d qp found set default qp 26\n",
-                    p->usr_cfg.init_quality);
-            p->usr_cfg.init_quality = 26;
+                    cfg->init_quality);
+            cfg->init_quality = 26;
         }
-        info->quality_max = p->usr_cfg.init_quality;
-        info->quality_min = p->usr_cfg.init_quality;
-        info->quality_target = p->usr_cfg.init_quality;
+
+        if (cfg->max_quality <= 0)
+            cfg->max_quality = cfg->init_quality;
+        if (cfg->min_quality <= 0)
+            cfg->min_quality = cfg->init_quality;
+        if (cfg->max_i_quality <= 0)
+            cfg->max_i_quality = cfg->max_quality;
+        if (cfg->min_i_quality <= 0)
+            cfg->min_i_quality = cfg->min_quality;
+
+        if (frm->is_intra) {
+            info->quality_max = cfg->max_i_quality;
+            info->quality_min = cfg->min_i_quality;
+            info->quality_target = cfg->min_i_quality;
+        } else {
+            info->quality_max = cfg->max_quality;
+            info->quality_min = cfg->min_quality;
+            info->quality_target = cfg->min_quality;
+        }
+
+        rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
+        rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
+        rc_dbg_rc("quality [%d : %d : %d]\n", info->quality_min, info->quality_target, info->quality_max);
+
         return MPP_OK;
     }
 
@@ -814,7 +836,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     }
 
     if (!p->first_frm_flg) {
-        if (p->usr_cfg.mode == RC_CBR) {
+        if (cfg->mode == RC_CBR) {
             calc_cbr_ratio(p);
         } else {
             calc_vbr_ratio(p);
@@ -825,11 +847,11 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     if (p->first_frm_flg)
         info->quality_target = -1;
     if (frm->is_intra) {
-        info->quality_max = p->usr_cfg.max_i_quality;
-        info->quality_min = p->usr_cfg.min_i_quality;
+        info->quality_max = cfg->max_i_quality;
+        info->quality_min = cfg->min_i_quality;
     } else {
-        info->quality_max = p->usr_cfg.max_quality;
-        info->quality_min = p->usr_cfg.min_quality;
+        info->quality_max = cfg->max_quality;
+        info->quality_min = cfg->min_quality;
     }
 
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
