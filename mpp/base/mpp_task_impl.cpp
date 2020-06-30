@@ -28,11 +28,13 @@
 #define MAX_TASK_COUNT      8
 
 #define MPP_TASK_DBG_FUNCTION       (0x00000001)
+#define MPP_TASK_DBG_FLOW           (0x00000002)
 
 #define mpp_task_dbg(flag, fmt, ...)     _mpp_dbg(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
 #define mpp_task_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_task_dbg_func(fmt, ...)      mpp_task_dbg_f(MPP_TASK_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define mpp_task_dbg_flow(fmt, ...)      mpp_task_dbg(MPP_TASK_DBG_FLOW, fmt, ## __VA_ARGS__)
 
 typedef struct MppTaskStatusInfo_t {
     struct list_head    list;
@@ -42,6 +44,8 @@ typedef struct MppTaskStatusInfo_t {
 } MppTaskStatusInfo;
 
 typedef struct MppTaskQueueImpl_t {
+    char                name[32];
+    void                *mpp;
     Mutex               *lock;
     RK_S32              task_count;
     RK_S32              ready;          // flag for deinit
@@ -66,6 +70,19 @@ typedef struct MppPortImpl_t {
 } MppPortImpl;
 
 static const char *module_name = MODULE_TAG;
+static const char *port_type_str[] = {
+    "input",
+    "output",
+    "NULL",
+};
+
+static const char *task_status_str[] = {
+    "input_port",
+    "input_hold",
+    "output_port",
+    "output_hold",
+    "NULL",
+};
 
 RK_U32 mpp_task_debug = 0;
 
@@ -131,11 +148,10 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
     MppTaskStatusInfo *curr = NULL;
     MPP_RET ret = MPP_NOK;
 
-    mpp_task_dbg_func("caller %s enter port %p timeout %d\n", caller, port, timeout);
+    mpp_task_dbg_func("enter port %p\n", port);
     if (!queue->ready) {
         mpp_err("try to query when %s queue is not ready\n",
-                (port_impl->type == MPP_PORT_INPUT) ?
-                ("input") : ("output"));
+                port_type_str[port_impl->type]);
         goto RET;
     }
 
@@ -143,6 +159,10 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
     if (curr->count) {
         mpp_assert(!list_empty(&curr->list));
         ret = MPP_OK;
+        mpp_task_dbg_flow("mpp %p %s from %s poll %s port timeout %d count %d\n",
+                          queue->mpp, queue->name, caller,
+                          port_type_str[port_impl->type],
+                          timeout, curr->count);
     } else {
         mpp_assert(list_empty(&curr->list));
 
@@ -154,15 +174,17 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
         if (timeout != MPP_POLL_NON_BLOCK) {
             mpp_assert(curr->cond);
             Condition *cond = curr->cond;
-            RK_S32 wait_ret = 0;
+
             if (timeout == MPP_POLL_BLOCK) {
-                mpp_task_dbg_func("port %p block wait start\n", port);
-                wait_ret = cond->wait(queue->lock);
-                mpp_task_dbg_func("port %p block wait done ret %d\n", port, wait_ret);
+                mpp_task_dbg_flow("mpp %p %s from %s poll %s port block wait start\n",
+                                  queue->mpp, queue->name, caller,
+                                  port_type_str[port_impl->type]);
+                cond->wait(queue->lock);
             } else {
-                mpp_task_dbg_func("port %p timed wait start %d\n", port, timeout);
-                wait_ret = cond->timedwait(queue->lock, timeout);
-                mpp_task_dbg_func("port %p timed wait done ret %d\n", port, wait_ret);
+                mpp_task_dbg_flow("mpp %p %s from %s poll %s port %d timeout wait start\n",
+                                  queue->mpp, queue->name, caller,
+                                  port_type_str[port_impl->type], timeout);
+                cond->timedwait(queue->lock, timeout);
             }
 
             if (curr->count) {
@@ -170,9 +192,13 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
                 ret = MPP_OK;
             }
         }
+
+        mpp_task_dbg_flow("mpp %p %s from %s poll %s port timeout %d ret %d\n",
+                          queue->mpp, queue->name, caller,
+                          port_type_str[port_impl->type], ret);
     }
 RET:
-    mpp_task_dbg_func("caller %s leave port %p ret %d\n", caller, port, ret);
+    mpp_task_dbg_func("leave\n");
     return ret;
 }
 
@@ -192,20 +218,21 @@ MPP_RET _mpp_port_dequeue(const char *caller, MppPort port, MppTask *task)
 
     if (!queue->ready) {
         mpp_err("try to dequeue when %s queue is not ready\n",
-                (port_impl->type == MPP_PORT_INPUT) ?
-                ("input") : ("output"));
+                port_type_str[port_impl->type]);
         goto RET;
     }
 
     curr = &queue->info[port_impl->status_curr];
     next = &queue->info[port_impl->next_on_dequeue];
 
-    mpp_task_dbg_func("move  port %p task %p %d -> %d\n", port, task,
-                      port_impl->status_curr, port_impl->next_on_dequeue);
-
     *task = NULL;
     if (curr->count == 0) {
         mpp_assert(list_empty(&curr->list));
+        mpp_task_dbg_flow("mpp %p %s from %s dequeue %s port task %s -> %s failed\n",
+                          queue->mpp, queue->name, caller,
+                          port_type_str[port_impl->type],
+                          task_status_str[port_impl->status_curr],
+                          task_status_str[port_impl->next_on_dequeue]);
         goto RET;
     }
 
@@ -220,6 +247,12 @@ MPP_RET _mpp_port_dequeue(const char *caller, MppPort port, MppTask *task)
     list_add_tail(&task_impl->list, &next->list);
     next->count++;
     task_impl->status = next->status;
+
+    mpp_task_dbg_flow("mpp %p %s from %s dequeue %s port task %p %s -> %s done\n",
+                      queue->mpp, queue->name, caller,
+                      port_type_str[port_impl->type], task_impl,
+                      task_status_str[port_impl->status_curr],
+                      task_status_str[port_impl->next_on_dequeue]);
 
     *task = p;
     ret = MPP_OK;
@@ -244,8 +277,7 @@ MPP_RET _mpp_port_enqueue(const char *caller, MppPort port, MppTask task)
 
     if (!queue->ready) {
         mpp_err("try to enqueue when %s queue is not ready\n",
-                (port_impl->type == MPP_PORT_INPUT) ?
-                ("input") : ("output"));
+                port_type_str[port_impl->type]);
         goto RET;
     }
 
@@ -257,14 +289,17 @@ MPP_RET _mpp_port_enqueue(const char *caller, MppPort port, MppTask task)
     curr = &queue->info[task_impl->status];
     next = &queue->info[port_impl->next_on_enqueue];
 
-    mpp_task_dbg_func("move  port %p task %p %d -> %d\n", port, task,
-                      task_impl->status, port_impl->next_on_enqueue);
-
     list_del_init(&task_impl->list);
     curr->count--;
     list_add_tail(&task_impl->list, &next->list);
     next->count++;
     task_impl->status = next->status;
+
+    mpp_task_dbg_flow("mpp %p %s from %s enqueue %s port task %p %s -> %s done\n",
+                      queue->mpp, queue->name, caller,
+                      port_type_str[port_impl->type], task_impl,
+                      task_status_str[port_impl->next_on_dequeue],
+                      task_status_str[port_impl->next_on_enqueue]);
 
     next->cond->signal();
     mpp_task_dbg_func("signal port %p\n", next);
@@ -296,7 +331,7 @@ MPP_RET _mpp_port_awake(const char *caller, MppPort port)
     return MPP_OK;
 }
 
-MPP_RET mpp_task_queue_init(MppTaskQueue *queue)
+MPP_RET mpp_task_queue_init(MppTaskQueue *queue, void *mpp, const char *name)
 {
     if (NULL == queue) {
         mpp_err_f("invalid NULL input\n");
@@ -353,6 +388,12 @@ MPP_RET mpp_task_queue_init(MppTaskQueue *queue)
         mpp_port_deinit(p->input);
         goto RET;
     }
+
+    p->mpp = mpp;
+    if (name)
+        strncpy(p->name, name, sizeof(p->name) - 1);
+    else
+        strncpy(p->name, "none", sizeof(p->name) - 1);
 
     ret = MPP_OK;
 RET:

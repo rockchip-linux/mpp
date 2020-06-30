@@ -106,6 +106,10 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
     mType = type;
     mCoding = coding;
+
+    mpp_task_queue_init(&mInputTaskQueue, this, "input");
+    mpp_task_queue_init(&mOutputTaskQueue, this, "output");
+
     switch (mType) {
     case MPP_CTX_DEC : {
         mPackets    = new mpp_list(list_wraper_packet);
@@ -122,13 +126,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
             mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
 
-            mpp_task_queue_init(&mInputTaskQueue);
-            mpp_task_queue_init(&mOutputTaskQueue);
             mpp_task_queue_setup(mInputTaskQueue, 4);
             mpp_task_queue_setup(mOutputTaskQueue, 4);
         } else {
-            mpp_task_queue_init(&mInputTaskQueue);
-            mpp_task_queue_init(&mOutputTaskQueue);
             mpp_task_queue_setup(mInputTaskQueue, 1);
             mpp_task_queue_setup(mOutputTaskQueue, 1);
         }
@@ -163,8 +163,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION);
         mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
 
-        mpp_task_queue_init(&mInputTaskQueue);
-        mpp_task_queue_init(&mOutputTaskQueue);
         mpp_task_queue_setup(mInputTaskQueue, 1);
         mpp_task_queue_setup(mOutputTaskQueue, 1);
 

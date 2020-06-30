@@ -204,8 +204,8 @@ int main()
 
     mpp_log("mpp task test start\n");
 
-    mpp_task_queue_init(&input);
-    mpp_task_queue_init(&output);
+    mpp_task_queue_init(&input, NULL, "test_input");
+    mpp_task_queue_init(&output, NULL, "test_output");
     mpp_task_queue_setup(input, 4);
     mpp_task_queue_setup(output, 4);
 
