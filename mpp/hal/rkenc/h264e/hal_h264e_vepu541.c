@@ -337,7 +337,7 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs)
 
     /* reg016 DTRNS_CFG */
     regs->reg016.axi_brsp_cke       = 0;
-    regs->reg016.dspr_otsd          = 0;
+    regs->reg016.dspr_otsd          = 1;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1064,8 +1064,6 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, SynH264eSps *sps,
         regs->reg091.cach_l2_map = 0x3;
     else
         regs->reg091.cach_l2_map = 0x0;
-
-    regs->reg091.cach_l2_map = 0x0;
 
     hal_h264e_dbg_func("leave\n");
 }
