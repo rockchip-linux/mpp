@@ -680,6 +680,8 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
                         mpp_writer_bits(s));
     }
 
+    mpp_writer_flush(s);
+
     bitCnt = s->buffered_bits + s->byte_cnt * 8;
 
     // update on cabac mode

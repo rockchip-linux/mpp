@@ -95,6 +95,20 @@ void mpp_writer_put_raw_bits(MppWriteCtx *ctx, RK_S32 val, RK_S32 len)
     return;
 }
 
+void mpp_writer_flush(MppWriteCtx *ctx)
+{
+    RK_U32 byte_buffer = ctx->byte_buffer;
+    RK_U8*stream = ctx->stream;
+
+    if (mpp_writer_status(ctx))
+        return;
+
+    if (ctx->buffered_bits)
+        *stream = (RK_U8)(byte_buffer >> 24);
+
+    return;
+}
+
 void mpp_writer_put_bits(MppWriteCtx * ctx, RK_S32 val, RK_S32 len)
 {
     RK_S32 bits;
