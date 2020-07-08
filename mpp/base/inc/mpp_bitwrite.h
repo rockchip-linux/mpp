@@ -40,6 +40,8 @@ MPP_RET mpp_writer_reset(MppWriteCtx *ctx);
 
 /* check overflow status */
 MPP_RET mpp_writer_status(MppWriteCtx *ctx);
+/* write bit in last byte to memory */
+void mpp_writer_flush(MppWriteCtx *ctx);
 
 /* write raw bit without emulation prevention 0x03 byte */
 void mpp_writer_put_raw_bits(MppWriteCtx *ctx, RK_S32 val, RK_S32 len);
