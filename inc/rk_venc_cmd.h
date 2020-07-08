@@ -511,8 +511,14 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
     /* change on intra_refresh_mode / intra_refresh_arg */
     MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH   = (1 << 17),
-    /* change on slice_mode / slice_arg */
-    MPP_ENC_H264_CFG_CHANGE_SLICE_MODE      = (1 << 18),
+    /* change on max long-term reference frame count */
+    MPP_ENC_H264_CFG_CHANGE_MAX_LTR         = (1 << 18),
+    /* change on max temporal id */
+    MPP_ENC_H264_CFG_CHANGE_MAX_TID         = (1 << 19),
+    /* change on adding prefix nal */
+    MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX      = (1 << 20),
+    /* change on base layer priority id */
+    MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID  = (1 << 21),
 
     /* change on vui */
     MPP_ENC_H264_CFG_CHANGE_VUI             = (1 << 28),
@@ -635,9 +641,11 @@ typedef struct MppEncH264Cfg_t {
     RK_S32              intra_refresh_mode;
     RK_S32              intra_refresh_arg;
 
-    /* slice mode config */
-    RK_S32              slice_mode;
-    RK_S32              slice_arg;
+    /* extra mode config */
+    RK_S16              max_ltr_frames;
+    RK_S16              max_tid;
+    RK_S16              prefix_mode;
+    RK_S16              base_layer_pid;
 
     /* extra info */
     MppEncH264VuiCfg    vui;

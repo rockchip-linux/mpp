@@ -384,10 +384,6 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->intra_refresh_mode = src->intra_refresh_mode;
         dst->intra_refresh_arg = src->intra_refresh_arg;
     }
-    if (change & MPP_ENC_H264_CFG_CHANGE_SLICE_MODE) {
-        dst->slice_mode = src->slice_mode;
-        dst->slice_arg = src->slice_arg;
-    }
     if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
         dst->vui = src->vui;
     }
