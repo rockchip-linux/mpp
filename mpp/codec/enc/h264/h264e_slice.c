@@ -745,19 +745,20 @@ RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit, 
     RK_U8 *psrc = src + src_byte;
     RK_U8 *pdst = dst + dst_byte;
 
-    RK_U16 tmp16a, tmp16b, tmp16c, last_tmp;
+    RK_U16 tmp16a, tmp16b, tmp16c, last_tmp, dst_mask;
     RK_U8 tmp0, tmp1;
-    RK_U32 loop = src_len;
+    RK_U32 loop = src_len + (src_bit_r > 0);
     RK_U32 i = 0;
     RK_U32 src_zero_cnt = 0;
     RK_U32 dst_zero_cnt = 0;
     RK_U32 dst_len = 0;
 
-    if (h264e_debug & H264E_DBG_SLICE)
-        mpp_log("bit [%d %d] [%d %d] loop %d\n", src_bit, dst_bit,
-                src_bit_r, dst_bit_r, loop);
+    last_tmp = (RK_U16)pdst[0];
+    dst_mask = 0xFFFF << (8 - dst_bit_r);
 
-    last_tmp = pdst[0] >> (8 - dst_bit_r) << (8 - dst_bit_r);
+    h264e_dbg_slice("bit [%d %d] [%d %d] [%d %d] loop %d mask %04x last %04x\n",
+                    src_bit, dst_bit, src_byte, dst_byte,
+                    src_bit_r, dst_bit_r, loop, dst_mask, last_tmp);
 
     for (i = 0; i < loop; i++) {
         if (psrc[0] == 0) {
@@ -792,7 +793,7 @@ RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit, 
         }
 
         if (dst_bit_r)
-            tmp16c = tmp16b >> dst_bit_r | (last_tmp >> (8 - dst_bit_r) <<  (16 - dst_bit_r));
+            tmp16c = tmp16b >> dst_bit_r | ((last_tmp << 8) & dst_mask);
         else
             tmp16c = tmp16b;
 
@@ -901,10 +902,10 @@ RK_S32 h264e_slice_write_prefix_nal_unit_svc(H264ePrefixNal *prefix, void *p, RK
 
         /* additional_prefix_nal_unit_extension_flag */
         mpp_writer_put_raw_bits(s, 0, 1);
-    }
 
-    /* rbsp_trailing_bits */
-    mpp_writer_trailing(s);
+        /* rbsp_trailing_bits */
+        mpp_writer_trailing(s);
+    }
 
     bitCnt = s->buffered_bits + s->byte_cnt * 8;
 
