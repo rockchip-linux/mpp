@@ -108,8 +108,10 @@ static MPP_RET hal_h264e_init(void *hal, MppHalCfg *cfg)
     h264->qp_max_step = 8;
     h264->intra_refresh_mode = 0;
     h264->intra_refresh_arg = 0;
-    h264->slice_mode = 0;
-    h264->slice_arg = 0;
+    h264->max_ltr_frames = 0;
+    h264->max_tid = 0;
+    h264->prefix_mode = 0;
+    h264->base_layer_pid = 0;
     h264->vui.change = 0;
 
     vui->b_vui = 1;
