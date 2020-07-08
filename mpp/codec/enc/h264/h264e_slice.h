@@ -52,7 +52,6 @@ void h264e_slice_init(H264eSlice *slice, H264eReorderInfo *reorder,
 RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
                           SynH264eSps *sps, H264eDpbFrm *frm);
 
-
 RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size);
 RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size);
 RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit,

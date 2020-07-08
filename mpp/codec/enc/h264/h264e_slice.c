@@ -51,7 +51,7 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
     slice->pic_order_cnt_type = sps->pic_order_cnt_type;
 
     slice->nal_reference_idc = (frm->status.is_non_ref) ? (H264_NALU_PRIORITY_DISPOSABLE) :
-                               (slice->idr_flag) ? (H264_NALU_PRIORITY_HIGHEST) :
+                               (is_idr) ? (H264_NALU_PRIORITY_HIGHEST) :
                                (H264_NALU_PRIORITY_HIGH);
     slice->nalu_type = (is_idr) ? (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
 
@@ -495,6 +495,20 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
 
     h264e_dbg_slice("used bit %2d total aligned length\n", bit.used_bits);
 
+    if (h264e_debug & H264E_DBG_SLICE) {
+        RK_S32 pos = 0;
+        RK_S32 i;
+        char log[256];
+        RK_U8 *tmp = (RK_U8 *)p;
+
+        pos = sprintf(log + pos, "hw stream: ");
+        for (i = 0; i < 16; i++) {
+            pos += sprintf(log + pos, "%02x ", tmp[i]);
+        }
+        pos += sprintf(log + pos, "\n");
+        h264e_dbg_slice(log);
+    }
+
     return bit_cnt;
 }
 
@@ -564,7 +578,7 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
         marking->idr_flag = 0;
 
     // Force to use poc type 0 here
-    {
+    if (slice->pic_order_cnt_type == 0) {
         RK_S32 pic_order_cnt_lsb = slice->pic_order_cnt_lsb;
         RK_S32 max_poc_lsb = (1 << slice->log2_max_poc_lsb) - 1;
 
@@ -575,6 +589,8 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
         mpp_writer_put_bits(s, pic_order_cnt_lsb, slice->log2_max_poc_lsb);
         h264e_dbg_slice("used bit %2d pic_order_cnt_lsb %d\n",
                         mpp_writer_bits(s), pic_order_cnt_lsb);
+    } else {
+        mpp_assert(slice->pic_order_cnt_type == 2);
     }
 
     /* num_ref_idx_override */
@@ -594,13 +610,12 @@ RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size)
         ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
 
         /* ref_pic_list_modification_flag */
-        mpp_writer_put_bits(s, (ret == MPP_OK), 1);
-        h264e_dbg_slice("used bit %2d ref_pic_list_modification_flag 1\n",
-                        mpp_writer_bits(s));
+        slice->ref_pic_list_modification_flag = (ret == MPP_OK);
+        mpp_writer_put_bits(s, slice->ref_pic_list_modification_flag, 1);
+        h264e_dbg_slice("used bit %2d ref_pic_list_modification_flag %d\n",
+                        mpp_writer_bits(s), slice->ref_pic_list_modification_flag);
 
-        if (ret == MPP_OK) {
-            slice->ref_pic_list_modification_flag = 1;
-
+        if (slice->ref_pic_list_modification_flag) {
             /* modification_of_pic_nums_idc */
             mpp_writer_put_ue(s, rplmo.modification_of_pic_nums_idc);
             h264e_dbg_slice("used bit %2d modification_of_pic_nums_idc %d\n",
@@ -718,6 +733,10 @@ RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit, 
         // direct copy
         if (h264e_debug & H264E_DBG_SLICE)
             mpp_log_f("direct copy %p -> %p %d\n", src, dst, src_len);
+
+        h264e_dbg_slice("bit [%d %d] [%d %d] [%d %d] len %d\n",
+                        src_bit, dst_bit, src_byte, dst_byte,
+                        src_bit_r, dst_bit_r, src_len);
 
         memcpy(dst + dst_byte, src + src_byte, src_len);
         return diff_len;
