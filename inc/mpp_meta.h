@@ -82,6 +82,14 @@ typedef enum MppMetaKey_e {
 
     /* input motion list for smart p rate control */
     KEY_MV_LIST                 = FOURCC_META('m', 'v', 'l', 't'),
+
+    /* frame long-term reference frame operation */
+    KEY_ENC_MARK_LTR            = FOURCC_META('m', 'l', 't', 'r'),
+    KEY_ENC_USE_LTR             = FOURCC_META('u', 'l', 't', 'r'),
+
+    /* MLVEC specified encoder feature  */
+    KEY_ENC_FRAME_QP            = FOURCC_META('f', 'r', 'm', 'q'),
+    KEY_ENC_BASE_LAYER_PID      = FOURCC_META('b', 'p', 'i', 'd'),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
