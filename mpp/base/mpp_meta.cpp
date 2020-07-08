@@ -26,27 +26,32 @@
 static MppMetaDef meta_defs[] = {
     /* categorized by type */
     /* data flow type */
-    {   KEY_INPUT_FRAME,       TYPE_FRAME,    },
-    {   KEY_OUTPUT_FRAME,      TYPE_FRAME,    },
-    {   KEY_INPUT_PACKET,      TYPE_PACKET,   },
-    {   KEY_OUTPUT_PACKET,     TYPE_PACKET,   },
+    {   KEY_INPUT_FRAME,        TYPE_FRAME,     },
+    {   KEY_OUTPUT_FRAME,       TYPE_FRAME,     },
+    {   KEY_INPUT_PACKET,       TYPE_PACKET,    },
+    {   KEY_OUTPUT_PACKET,      TYPE_PACKET,    },
     /* buffer for motion detection */
-    {   KEY_MOTION_INFO,       TYPE_BUFFER,   },
+    {   KEY_MOTION_INFO,        TYPE_BUFFER,    },
     /* buffer storing the HDR information for current frame*/
-    {   KEY_HDR_INFO,          TYPE_BUFFER,   },
+    {   KEY_HDR_INFO,           TYPE_BUFFER,    },
 
-    {   KEY_OUTPUT_INTRA,      TYPE_S32,      },
-    {   KEY_INPUT_BLOCK,       TYPE_S32,      },
-    {   KEY_OUTPUT_BLOCK,      TYPE_S32,      },
+    {   KEY_OUTPUT_INTRA,       TYPE_S32,       },
+    {   KEY_INPUT_BLOCK,        TYPE_S32,       },
+    {   KEY_OUTPUT_BLOCK,       TYPE_S32,       },
 
     /* extra information for tsvc */
-    {   KEY_TEMPORAL_ID,       TYPE_S32,      },
-    {   KEY_LONG_REF_IDX,      TYPE_S32,      },
+    {   KEY_TEMPORAL_ID,        TYPE_S32,       },
+    {   KEY_LONG_REF_IDX,       TYPE_S32,       },
 
-    {   KEY_ROI_DATA,          TYPE_PTR,      },
-    {   KEY_OSD_DATA,          TYPE_PTR,      },
-    {   KEY_USER_DATA,         TYPE_PTR,      },
-    {   KEY_MV_LIST,           TYPE_PTR,      },
+    {   KEY_ROI_DATA,           TYPE_PTR,       },
+    {   KEY_OSD_DATA,           TYPE_PTR,       },
+    {   KEY_USER_DATA,          TYPE_PTR,       },
+    {   KEY_MV_LIST,            TYPE_PTR,       },
+
+    {   KEY_ENC_MARK_LTR,       TYPE_S32,       },
+    {   KEY_ENC_USE_LTR,        TYPE_S32,       },
+    {   KEY_ENC_FRAME_QP,       TYPE_S32,       },
+    {   KEY_ENC_BASE_LAYER_PID, TYPE_S32,       },
 };
 
 class MppMetaService
