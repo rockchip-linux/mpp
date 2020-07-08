@@ -2,6 +2,7 @@
 --recursive
 --exclude=../build
 --exclude=../osal/windows/pthread
+--exclude=../osal/linux/drm.h
 
 # bracket style setting
 --style=linux
