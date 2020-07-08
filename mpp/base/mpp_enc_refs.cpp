@@ -385,6 +385,7 @@ static void save_cpb_status(EncVirtualCpb *cpb, EncFrmStatus *refs)
 {
     EncFrmStatus *ref = &cpb->cpb_refs[MAX_CPB_ST_FRM];
     MppEncCpbInfo *info = &cpb->info;
+    RK_S32 dpb_size = info->dpb_size;
     RK_S32 lt_ref_cnt = 0;
     RK_S32 st_ref_cnt = 0;
     RK_S32 ref_cnt = 0;
@@ -406,17 +407,24 @@ static void save_cpb_status(EncVirtualCpb *cpb, EncFrmStatus *refs)
 
     ref = &cpb->cpb_refs[0];
     /* save st ref */
-    for (i = 0; i < info->max_st_cnt; i++, ref++) {
-        if (!ref->valid || ref->is_non_ref || ref->is_lt_ref)
-            continue;
+    if (ref_cnt < dpb_size) {
+        RK_S32 max_st_cnt = info->max_st_cnt;
 
-        mpp_assert(!ref->is_non_ref);
-        mpp_assert(!ref->is_lt_ref);
-        mpp_assert(ref->temporal_id >= 0);
+        if (max_st_cnt < dpb_size - ref_cnt)
+            max_st_cnt = dpb_size - ref_cnt;
 
-        enc_refs_dbg_flow("save st ref %d to slot %d\n", ref->seq_idx, ref_cnt);
-        refs[ref_cnt++].val = ref->val;
-        st_ref_cnt++;
+        for (i = 0; i < max_st_cnt; i++, ref++) {
+            if (!ref->valid || ref->is_non_ref || ref->is_lt_ref)
+                continue;
+
+            mpp_assert(!ref->is_non_ref);
+            mpp_assert(!ref->is_lt_ref);
+            mpp_assert(ref->temporal_id >= 0);
+
+            enc_refs_dbg_flow("save st ref %d to slot %d\n", ref->seq_idx, ref_cnt);
+            refs[ref_cnt++].val = ref->val;
+            st_ref_cnt++;
+        }
     }
 
     enc_refs_dbg_flow("save ref total %d lt %d st %d\n", ref_cnt, lt_ref_cnt, st_ref_cnt);
