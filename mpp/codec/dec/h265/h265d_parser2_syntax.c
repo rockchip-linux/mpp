@@ -287,6 +287,11 @@ static void fill_slice_short(DXVA_Slice_HEVC_Short *slice,
     slice->wBadSliceChopping     = 0;
 }
 
+static void init_slice_cut_param(DXVA_Slice_HEVC_Cut_Param *slice)
+{
+    memset(slice, 0, sizeof(*slice));
+}
+
 RK_S32 h265d_parser2_syntax(void *ctx)
 {
 
@@ -364,6 +369,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
         memcpy(current, h->nals[i].data, h->nals[i].size);
         // mpp_log("h->nals[%d].size = %d", i, h->nals[i].size);
         fill_slice_short(&ctx_pic->slice_short[count], position, h->nals[i].size);
+        init_slice_cut_param(&ctx_pic->slice_cut_param[count]);
         current += h->nals[i].size;
         position += h->nals[i].size;
         count++;

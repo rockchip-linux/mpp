@@ -1509,7 +1509,8 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.pps_tc_offset_div2                          , 4);
     mpp_put_bits(&bp, dxva_cxt->pp.lists_modification_present_flag             , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.log2_parallel_merge_level_minus2 + 2        , 3);
-    mpp_put_bits(&bp, dxva_cxt->pp.slice_segment_header_extension_present_flag , 1);
+    /*slice_segment_header_extension_present_flag need set 0 */
+    mpp_put_bits(&bp, 0                                                        , 1);
     mpp_put_bits(&bp, 0                                                        , 3);
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_columns_minus1 + 1, 5);
     mpp_put_bits(&bp, dxva_cxt->pp.num_tile_rows_minus1 + 1 , 5 );
@@ -1616,6 +1617,53 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
     MPP_FREE(pps_packet);
     return 0;
+}
+
+static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
+{
+    h265d_dxva2_picture_context_t *dxva_cxt =
+        (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
+    RK_U8 *ptr = (RK_U8*)mpp_buffer_get_ptr(streambuf);
+    RK_U8 bit_left = 0;
+    RK_U16 start_byte, end_byte, i = 0;
+    RK_U32 stream_size = dxva_cxt->bitstream_size;
+    RK_U8 *buf = NULL;
+    RK_U8 *temp = NULL;
+
+    for (i = 0; i < dxva_cxt->slice_count; i++) {
+        if (dxva_cxt->slice_cut_param[i].is_enable) {
+
+            bit_left = 8 - (dxva_cxt->slice_cut_param[i].start_bit & 0x7);
+            start_byte = dxva_cxt->slice_cut_param[i].start_bit >> 3;
+            end_byte = (dxva_cxt->slice_cut_param[i].end_bit + 7) >> 3;
+            buf = ptr + dxva_cxt->slice_short[i].BSNALunitDataLocation;
+            stream_size -= dxva_cxt->slice_short[i].BSNALunitDataLocation;
+            temp = buf + start_byte;
+
+            h265h_dbg(H265H_DBG_FUNCTION, "start bit %d start byte[%d] 0x%x end bit %d end byte[%d] 0x%x\n",
+                      dxva_cxt->slice_cut_param[i].start_bit, start_byte, buf[start_byte],
+                      dxva_cxt->slice_cut_param[i].end_bit, end_byte, buf[end_byte]);
+            if (bit_left < 8) {
+                *temp = (*temp >> bit_left) << bit_left;
+                *temp |= 1 << (bit_left - 1);
+            } else {
+                *temp = 0x80;
+            }
+            if ((dxva_cxt->slice_cut_param[i].end_bit & 0x7) == 0 && buf[end_byte] == 0x80)
+                end_byte += 1;
+
+            h265h_dbg(H265H_DBG_FUNCTION, "i %d location %d count %d SliceBytesInBuffer %d bitstream_size %d\n",
+                      i, dxva_cxt->slice_short[i].BSNALunitDataLocation, dxva_cxt->slice_count,
+                      dxva_cxt->slice_short[i].SliceBytesInBuffer, dxva_cxt->bitstream_size);
+
+            memcpy(buf + start_byte + 1, buf + end_byte, stream_size - end_byte);
+
+            stream_size -= dxva_cxt->slice_short[i].SliceBytesInBuffer;
+            dxva_cxt->slice_short[i].SliceBytesInBuffer -= (end_byte - start_byte - 1);
+            dxva_cxt->bitstream_size -= (end_byte - start_byte - 1);
+            ptr += dxva_cxt->slice_short[i].SliceBytesInBuffer;
+        }
+    }
 }
 
 MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
@@ -1726,6 +1774,9 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     mpp_buf_slot_get_prop(reg_cxt->packet_slots, syn->dec.input, SLOT_BUFFER,
                           &streambuf);
+    if (dxva_cxt->pp.slice_segment_header_extension_present_flag && !reg_cxt->is_v345) {
+        update_stream_buffer(streambuf, syn);
+    }
     if ( dxva_cxt->bitstream == NULL) {
         dxva_cxt->bitstream = mpp_buffer_get_ptr(streambuf);
     }
