@@ -1048,14 +1048,18 @@ static RK_S32 hls_slice_header(HEVCContext *s)
             }
         }
     }
-#if 0
     if (s->pps->slice_header_extension_present_flag) {
+        //if slice_header_extension_present_flag is 1, we should cut the extension data.
         RK_U32 length = 0;
+
+        s->start_bit = gb->used_bits;
         READ_UE(gb, &length);
-        for (i = 0; (RK_U32)i < length; i++)
+        for (i = 0; (RK_U32)i < length; i++) {
             SKIP_BITS(gb, 8);  // slice_header_extension_data_byte
+        }
+        s->end_bit = gb->used_bits;
     }
-#endif
+
     // Inferred parameters
     sh->slice_qp = 26U + s->pps->pic_init_qp_minus26 + sh->slice_qp_delta;
     if (sh->slice_qp > 51 ||
@@ -1313,6 +1317,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header in");
         ret = hls_slice_header(s);
         h265d_dbg(H265D_DBG_FUNCTION, "hls_slice_header out");
+
         if (ret < 0) {
             mpp_err("hls_slice_header error ret = %d", ret);
             return ret;
@@ -1581,12 +1586,44 @@ fail:
     return ret;
 
 }
+
 static RK_S32 parser_nal_units(HEVCContext *s)
 {
     /* parse the NAL units */
-    RK_S32 i, ret = 0;
+    RK_S32 i, ret = 0, slice_cnt = 0;
+
     for (i = 0; i < s->nb_nals; i++) {
         ret = parser_nal_unit(s, s->nals[i].data, s->nals[i].size);
+        /* update slice data if slice_header_extension_present_flag is 1*/
+        if (s->nal_unit_type < 32) {
+            switch (s->nal_unit_type) {
+            case NAL_TRAIL_R:
+            case NAL_TRAIL_N:
+            case NAL_TSA_N:
+            case NAL_TSA_R:
+            case NAL_STSA_N:
+            case NAL_STSA_R:
+            case NAL_BLA_W_LP:
+            case NAL_BLA_W_RADL:
+            case NAL_BLA_N_LP:
+            case NAL_IDR_W_RADL:
+            case NAL_IDR_N_LP:
+            case NAL_CRA_NUT:
+            case NAL_RADL_N:
+            case NAL_RADL_R:
+            case NAL_RASL_N:
+            case NAL_RASL_R:
+                if (s->pps->slice_header_extension_present_flag) {
+                    h265d_dxva2_picture_context_t *temp = (h265d_dxva2_picture_context_t *)s->hal_pic_private;
+                    temp->slice_cut_param[slice_cnt].start_bit = s->start_bit;
+                    temp->slice_cut_param[slice_cnt].end_bit = s->end_bit;
+                    temp->slice_cut_param[slice_cnt].is_enable = 1;
+                    break;
+                }
+            default: break;
+            }
+            slice_cnt++;
+        }
         if (ret < 0) {
             mpp_err("Error parsing NAL unit #%d,error ret = 0xd.\n", i, ret);
             goto fail;
@@ -2032,8 +2069,6 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
     return MPP_OK;
 }
 
-
-
 const ParserApi api_h265d_parser = {
     .name = "h265d_parse",
     .coding = MPP_VIDEO_CodingHEVC,
@@ -2048,5 +2083,4 @@ const ParserApi api_h265d_parser = {
     .control = h265d_control,
     .callback = h265d_callback,
 };
-
 

@@ -595,6 +595,9 @@ typedef struct HEVCContext {
     RK_U8  has_get_eos;
     RK_U8  miss_ref_flag;
     IOInterruptCB notify_cb;
+    /*temporary storage for slice_cut_param*/
+    RK_U32  start_bit;
+    RK_U32  end_bit;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,

@@ -198,6 +198,13 @@ typedef struct _DXVA_Slice_HEVC_Short {
     USHORT  wBadSliceChopping;
 } DXVA_Slice_HEVC_Short, *LPDXVA_Slice_HEVC_Short;
 
+/* just use in the case of pps->slice_header_extension_present_flag is 1 */
+typedef struct _DXVA_Slice_HEVC_Cut_Param {
+    UINT    start_bit;
+    UINT    end_bit;
+    USHORT  is_enable;
+} DXVA_Slice_HEVC_Cut_Param, *LPDXVA_Slice_HEVC_Cut_Param;
+
 typedef struct h265d_dxva2_picture_context {
     DXVA_PicParams_HEVC   pp;
     DXVA_Qmatrix_HEVC     qm;
@@ -205,6 +212,7 @@ typedef struct h265d_dxva2_picture_context {
     DXVA_Slice_HEVC_Short slice_short[MAX_SLICES];
     const UCHAR         *bitstream;
     UINT32              bitstream_size;
+    DXVA_Slice_HEVC_Cut_Param slice_cut_param[MAX_SLICES];
 } h265d_dxva2_picture_context_t;
 
 #endif /*__H265D_SYNTAX__*/
