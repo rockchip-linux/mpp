@@ -23,3 +23,8 @@ Package: librockchip-vpu0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Media Process Platform
+
+Package: rockchip-mpp-demos
+Architecture: any
+Depends: librockchip-mpp1 (= ${binary:Version}), librockchip-vpu0 (= ${binary:Version}), ${misc:Depends}
+Description: Media Process Platform Demos
