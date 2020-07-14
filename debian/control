@@ -23,10 +23,3 @@ Package: librockchip-vpu0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Media Process Platform
-
-Package: librockchip-mpp-static
-Architecture: any
-Depends: ${misc:Depends}
-Description: Media Process Platform
-
-
