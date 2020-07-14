@@ -39,6 +39,7 @@ enum {
     SOS = 0xFFDA,   /* Start of Scan                     */
     EOI = 0xFFD9,   /* End of Image                      */
     APP0 = 0xFFE0,  /* APP0 Marker                       */
+    APP7 = 0xFFE7,  /* APP7 Marker                       */
     COM = 0xFFFE    /* Comment marker                    */
 };
 
@@ -591,8 +592,6 @@ void jpege_bits_setup(JpegeBits ctx, RK_U8 *buf, RK_S32 size)
     impl->bitCnt = 0;
     impl->byteBuffer = 0;
     impl->bufferedBits = 0;
-    buf[0] = 0;
-    buf[1] = 0;
 }
 
 void jpege_bits_put(JpegeBits ctx, RK_U32 value, RK_S32 number)
@@ -627,6 +626,26 @@ void jpege_bits_put(JpegeBits ctx, RK_U32 value, RK_S32 number)
     impl->bufferedBits = (RK_U8) bits;
 }
 
+void jpege_seek_bits(JpegeBits ctx, RK_S32 len)
+{
+    JpegeBitsImpl *impl = (JpegeBitsImpl*)ctx;
+    RK_U32 bits = len;
+    RK_U8 *stream = impl->stream;
+
+    mpp_assert(bits < impl->size);
+
+    while (bits > 7) {
+        stream++;
+        impl->byteCnt++;
+        bits -= 8;
+    }
+
+    impl->stream = stream;
+    impl->bitCnt += len;
+    impl->byteBuffer = (RK_U32)stream[0];
+    impl->bufferedBits = (RK_U8) bits;
+}
+
 void jpege_bits_align_byte(JpegeBits ctx)
 {
     JpegeBitsImpl *impl = (JpegeBitsImpl *)ctx;
@@ -651,48 +670,6 @@ RK_S32 jpege_bits_get_bytepos(JpegeBits ctx)
 {
     JpegeBitsImpl *impl = (JpegeBitsImpl *)ctx;
     return impl->byteCnt;
-}
-
-static void write_jpeg_app0_header(JpegeBits *bits, JpegeSyntax *syntax)
-{
-    /* APP0 */
-    jpege_bits_put(bits, APP0, 16);
-
-    /* Length */
-    jpege_bits_put(bits, 0x0010, 16);
-
-    /* "JFIF" ID */
-    /* Ident1 */
-    jpege_bits_put(bits, 0x4A46, 16);
-    /* Ident2 */
-    jpege_bits_put(bits, 0x4946, 16);
-    /* Ident3 */
-    jpege_bits_put(bits, 0x00, 8);
-    /* Version */
-    jpege_bits_put(bits, 0x0102, 16);
-
-    if (syntax->density_x && syntax->density_y) {
-        /* Units */
-        jpege_bits_put(bits, syntax->units_type, 8);
-        /* Xdensity */
-        jpege_bits_put(bits, syntax->density_x, 16);
-        /* Ydensity */
-        jpege_bits_put(bits, syntax->density_y, 16);
-    } else {
-        /* Units */
-        jpege_bits_put(bits, 0, 8);
-        /* Xdensity */
-        jpege_bits_put(bits, 1, 16);
-        /* Ydensity */
-        jpege_bits_put(bits, 1, 16);
-    }
-
-    /* XThumbnail */
-    jpege_bits_put(bits, 0x00, 8);
-    /* YThumbnail */
-    jpege_bits_put(bits, 0x00, 8);
-
-    /* Do NOT write thumbnail */
 }
 
 static void write_jpeg_comment_header(JpegeBits *bits, JpegeSyntax *syntax)
@@ -912,12 +889,6 @@ static void write_jpeg_sos_header(JpegeBits *bits)
 
 MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qtables[2])
 {
-    /* SOI */
-    jpege_bits_put(bits, SOI, 16);
-
-    /* APP0 header */
-    write_jpeg_app0_header(bits, syntax);
-
     /* Com header */
     if (syntax->comment_length)
         write_jpeg_comment_header(bits, syntax);

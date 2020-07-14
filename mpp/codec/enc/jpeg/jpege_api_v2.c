@@ -27,6 +27,7 @@
 #include "jpege_api.h"
 #include "jpege_syntax.h"
 #include "mpp_enc_cfg_impl.h"
+#include "mpp_bitwrite.h"
 
 typedef struct {
     MppEncCfgSet    *cfg;
@@ -290,6 +291,64 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     return ret;
 }
 
+static MPP_RET jpege_start(void *ctx, HalEncTask *task)
+{
+    JpegeCtx *p = (JpegeCtx *)ctx;
+    JpegeSyntax syntax = p->syntax;
+    MppPacket pkt = task->packet;
+    RK_U8 *ptr = mpp_packet_get_pos(pkt);
+    size_t buf_size = mpp_packet_get_size(pkt);
+    RK_S32 size = 0;
+    MppWriteCtx bit_ctx;
+    MppWriteCtx *bits = &bit_ctx;
+
+    mpp_writer_init(bits, ptr, buf_size);
+
+    /* add SOI and APP0 data */
+    /* SOI */
+    mpp_writer_put_raw_bits(bits, 0xFFD8, 16);
+    /* APP0 */
+    mpp_writer_put_raw_bits(bits, 0xFFE0, 16);
+    /* length */
+    mpp_writer_put_raw_bits(bits, 0x0010, 16);
+    /* "JFIF" ID */
+    /* Ident1 */
+    mpp_writer_put_raw_bits(bits, 0x4A46, 16);
+    /* Ident2 */
+    mpp_writer_put_raw_bits(bits, 0x4946, 16);
+    /* Ident3 */
+    mpp_writer_put_raw_bits(bits, 0x00, 8);
+    /* Version */
+    mpp_writer_put_raw_bits(bits, 0x0102, 16);
+
+    if (syntax.density_x && syntax.density_y) {
+        /* Units */
+        mpp_writer_put_raw_bits(bits, syntax.units_type, 8);
+        /* Xdensity */
+        mpp_writer_put_raw_bits(bits, syntax.density_x, 16);
+        /* Ydensity */
+        mpp_writer_put_raw_bits(bits, syntax.density_y, 16);
+    } else {
+        /* Units */
+        mpp_writer_put_raw_bits(bits, 0, 8);
+        /* Xdensity */
+        mpp_writer_put_raw_bits(bits, 0, 8);
+        mpp_writer_put_raw_bits(bits, 1, 8);
+        /* Ydensity */
+        mpp_writer_put_raw_bits(bits, 1, 16);
+    }
+    /* XThumbnail */
+    mpp_writer_put_raw_bits(bits, 0x00, 8);
+    /* YThumbnail */
+    mpp_writer_put_raw_bits(bits, 0x00, 8);
+    /* Do NOT write thumbnail */
+    size = mpp_writer_bytes(bits);
+    mpp_packet_set_length(pkt, size);
+    task->length += size;
+
+    return MPP_OK;
+}
+
 static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
@@ -317,6 +376,34 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
+static MPP_RET jpege_add_Prefix(MppPacket pkt, RK_S32 *len, RK_U8 uuid[16],
+                                const void *data, RK_S32 size)
+{
+    RK_U8 *ptr = mpp_packet_get_pos(pkt);
+    size_t length = mpp_packet_get_length(pkt);
+    size_t buf_size = mpp_packet_get_size(pkt);
+    MppWriteCtx bit_ctx;
+    MppWriteCtx *bits = &bit_ctx;
+    const RK_U8 *user_data = data;
+    RK_S32 i = 0, app_size = 0;
+
+    mpp_writer_init(bits, ptr + length, buf_size - length);
+    /* add user data to APP7 */
+    mpp_writer_put_raw_bits(bits, 0xFFE7, 16);
+    /* length */
+    mpp_writer_put_raw_bits(bits, size + 2, 16);
+    /* data */
+    for (i = 0; i < size; i++)
+        mpp_writer_put_raw_bits(bits, user_data[i], 8);
+
+    app_size = mpp_writer_bytes(bits);
+    *len = app_size;
+    length += app_size;
+    mpp_packet_set_length(pkt, length);
+    (void)uuid;
+    return MPP_OK;
+}
+
 const EncImplApi api_jpege = {
     .name       = "jpege_control",
     .coding     = MPP_VIDEO_CodingMJPEG,
@@ -326,10 +413,10 @@ const EncImplApi api_jpege = {
     .deinit     = jpege_deinit_v2,
     .proc_cfg   = jpege_proc_cfg,
     .gen_hdr    = NULL,
-    .start      = NULL,
+    .start      = jpege_start,
     .proc_dpb   = NULL,
     .proc_hal   = jpege_proc_hal,
-    .add_prefix = NULL,
+    .add_prefix = jpege_add_Prefix,
     .reset      = NULL,
     .flush      = NULL,
     .callback   = NULL,
