@@ -164,6 +164,7 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     RegExtraInfo *extra_info = &(ctx->ioctl_info.extra_info);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
+    size_t length = mpp_packet_get_length(task->packet);
     const RK_U8 *qtable[2];
     RK_U32 val32;
     RK_S32 bitpos;
@@ -189,6 +190,8 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
 
     /* write header to output buffer */
     jpege_bits_setup(bits, buf, (RK_U32)size);
+    /* seek length bytes data */
+    jpege_seek_bits(bits, length << 3);
     /* NOTE: write header will update qtable */
     write_jpeg_header(bits, syntax, qtable);
 

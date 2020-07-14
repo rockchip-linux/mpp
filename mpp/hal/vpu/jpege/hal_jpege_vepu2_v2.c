@@ -155,6 +155,7 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
     RegExtraInfo *extra_info = &(ctx->ioctl_info.extra_info);
+    size_t length = mpp_packet_get_length(task->packet);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
     const RK_U8 *qtable[2];
@@ -181,6 +182,8 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 
     /* write header to output buffer */
     jpege_bits_setup(bits, buf, (RK_U32)size);
+    /* seek length bytes data */
+    jpege_seek_bits(bits, length << 3);
     /* NOTE: write header will update qtable */
     write_jpeg_header(bits, syntax, qtable);
 
