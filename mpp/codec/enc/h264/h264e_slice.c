@@ -191,9 +191,6 @@ void write_marking(MppWriteCtx *s, H264eMarkingInfo *marking)
         mpp_writer_put_bits(s, marking->long_term_reference_flag, 1);
         h264e_dbg_slice("used bit %2d long_term_reference_flag %d\n",
                         mpp_writer_bits(s), marking->long_term_reference_flag);
-
-        // clear long_term_reference_flag flag
-        marking->long_term_reference_flag = 0;
     } else {
         h264e_dbg_mmco("mmco count %d\n", marking->wr_cnt);
 
@@ -906,6 +903,8 @@ RK_S32 h264e_slice_write_prefix_nal_unit_svc(H264ePrefixNal *prefix, void *p, RK
         /* rbsp_trailing_bits */
         mpp_writer_trailing(s);
     }
+
+    mpp_writer_flush(s);
 
     bitCnt = s->buffered_bits + s->byte_cnt * 8;
 
