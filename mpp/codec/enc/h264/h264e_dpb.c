@@ -357,6 +357,7 @@ void h264e_dpb_build_marking(H264eDpb *dpb)
     }
 
     marking->idr_flag = 0;
+    marking->long_term_reference_flag = 0;
     marking->adaptive_ref_pic_buffering = 0;
 
     h264e_dbg_dpb("frm %d ref %d lt %d T%d\n",
@@ -415,6 +416,8 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
             frames[i].status.valid = 0;
         }
         dpb->used_size = 0;
+        dpb->curr_max_lt_idx = 0;
+        dpb->next_max_lt_idx = 0;
     }
 
     if (h264e_debug & H264E_DBG_DPB)
