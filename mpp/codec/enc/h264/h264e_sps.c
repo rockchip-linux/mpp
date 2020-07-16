@@ -167,11 +167,11 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
         vui->signal_type_present = 1;
         vui->fullrange = 1;
     }
-    if (info->dpb_size > 1) {
-        vui->bitstream_restriction = 1;
-        vui->motion_vectors_over_pic_boundaries = 1;
-        vui->max_dec_frame_buffering = info->dpb_size;
-    }
+    vui->bitstream_restriction = 1;
+    vui->motion_vectors_over_pic_boundaries = 1;
+    vui->log2_max_mv_length_horizontal = 16;
+    vui->log2_max_mv_length_vertical = 16;
+    vui->max_dec_frame_buffering = info->dpb_size;
 
     return MPP_OK;
 }
