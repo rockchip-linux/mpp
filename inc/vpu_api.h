@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VPU_API_LEGACY_H__
-#define __VPU_API_LEGACY_H__
+#ifndef __VPU_API_H__
+#define __VPU_API_H__
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -93,6 +93,9 @@ typedef enum VPU_API_CMD {
     VPU_API_SET_OUTPUT_BLOCK,
     VPU_API_GET_EOS_STATUS,
 
+    /* get sps/pps header */
+    VPU_API_GET_EXTRA_INFO = 0x200,
+
     VPU_API_SET_IMMEDIATE_OUT = 0x1000,
     VPU_API_ENC_VEPU22_START = 0x2000,
     VPU_API_ENC_SET_VEPU22_CFG,
@@ -100,6 +103,13 @@ typedef enum VPU_API_CMD {
     VPU_API_ENC_SET_VEPU22_CTU_QP,
     VPU_API_ENC_SET_VEPU22_ROI,
 
+    /* mlvec dynamic configure */
+    VPU_API_ENC_MLVEC_CFG = 0x4000,
+    VPU_API_ENC_SET_MAX_TID,
+    VPU_API_ENC_SET_MARK_LTR,
+    VPU_API_ENC_SET_USE_LTR,
+    VPU_API_ENC_SET_FRAME_QP,
+    VPU_API_ENC_SET_BASE_LAYER_PID,
 } VPU_API_CMD;
 
 typedef struct {
@@ -456,4 +466,4 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool);
 }
 #endif
 
-#endif /*__VPU_API_LEGACY_H__*/
+#endif /*__VPU_API_H__*/

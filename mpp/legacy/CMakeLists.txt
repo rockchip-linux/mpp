@@ -8,6 +8,7 @@ set (MPP_LEGACY_SRC
     vpu.c
     vpu_api.cpp
     vpu_api_legacy.cpp
+    vpu_api_mlvec.cpp
     vpu_mem_legacy.c
     rk_list.cpp
     ppOp.cpp
