@@ -465,6 +465,12 @@ vepu541_h265_set_patch_info(H265eV541IoctlExtraInfo *extra_info,
             u_offset = 0;
             v_offset = 0;
         } break;
+        case VEPU541_FMT_BGR565:
+        case VEPU541_FMT_BGR888:
+        case VEPU541_FMT_BGRA8888: {
+            u_offset = 0;
+            v_offset = 0;
+        } break;
         default: {
             h265e_hal_err("unknown color space: %d\n", input_fmt);
             u_offset = frame_size;
@@ -562,11 +568,11 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
     RK_S32 negative_bits_thd, positive_bits_thd;
 
     if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-        regs->enc_pic.pic_qp      = h265->qp_init;
-        regs->synt_sli1.sli_qp    = h265->qp_init;
+        regs->enc_pic.pic_qp      = rc_cfg->quality_target;
+        regs->synt_sli1.sli_qp    = rc_cfg->quality_target;
 
-        regs->rc_qp.rc_max_qp     = h265->qp_init;
-        regs->rc_qp.rc_min_qp     = h265->qp_init;
+        regs->rc_qp.rc_max_qp     = rc_cfg->quality_target;
+        regs->rc_qp.rc_min_qp     = rc_cfg->quality_target;
     } else {
         if (ctu_target_bits_mul_16 >= 0x100000) {
             ctu_target_bits_mul_16 = 0x50000;
