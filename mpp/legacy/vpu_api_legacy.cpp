@@ -162,105 +162,6 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
         mpp_err("setup enc config failed ret %d\n", ret);
         goto RET;
     }
-#if 0
-    MppEncCodecCfg codec;
-    MppEncPrepCfg prep;
-    MppEncRcCfg rc;
-    MppEncCodecCfg *codec_cfg = &codec;
-    MppEncPrepCfg *prep_cfg = &prep;
-    MppEncRcCfg *rc_cfg = &rc;
-
-    prep_cfg->change     = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                           MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-    prep_cfg->width      = width;
-    prep_cfg->height     = height;
-    prep_cfg->hor_stride = MPP_ALIGN(width, 16);
-    prep_cfg->ver_stride = MPP_ALIGN(height, 16);
-    prep_cfg->format     = fmt;
-    ret = mpi->control(mpp_ctx, MPP_ENC_SET_PREP_CFG, prep_cfg);
-    if (ret) {
-        mpp_err("setup preprocess config failed ret %d\n", ret);
-        goto RET;
-    }
-
-    rc_cfg->change  = MPP_ENC_RC_CFG_CHANGE_ALL;
-    if (rc_mode == 0) {
-        /* 0 - constant qp mode: fixed qp */
-        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_FIXQP;
-        rc_cfg->quality     = MPP_ENC_RC_QUALITY_MEDIUM;
-        rc_cfg->bps_target  = bps;
-        rc_cfg->bps_max     = bps * 17 / 16;
-        rc_cfg->bps_min     = bps * 15 / 16;
-    } else if (rc_mode == 1) {
-        /* 1 - constant bitrate: small bps range */
-        rc_cfg->rc_mode     = MPP_ENC_RC_MODE_CBR;
-        rc_cfg->quality     = MPP_ENC_RC_QUALITY_MEDIUM;
-        rc_cfg->bps_target  = bps;
-        rc_cfg->bps_max     = bps * 17 / 16;
-        rc_cfg->bps_min     = bps * 15 / 16;
-    } else {
-        mpp_err("invalid vpu rc mode %d\n", rc_mode);
-    }
-
-    /* fix input / output frame rate */
-    rc_cfg->fps_in_flex     = 0;
-    rc_cfg->fps_in_num      = fps_in;
-    rc_cfg->fps_in_denorm   = 1;
-    rc_cfg->fps_out_flex    = 0;
-    rc_cfg->fps_out_num     = fps_out;
-    rc_cfg->fps_out_denorm  = 1;
-    rc_cfg->gop             = gop;
-    rc_cfg->skip_cnt        = 0;
-    ret = mpi->control(mpp_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
-    if (ret) {
-        mpp_err("setup rate control config failed ret %d\n", ret);
-        goto RET;
-    }
-
-    codec_cfg->coding = coding;
-    switch (coding) {
-    case MPP_VIDEO_CodingAVC : {
-        codec_cfg->h264.change = MPP_ENC_H264_CFG_STREAM_TYPE |
-                                 MPP_ENC_H264_CFG_CHANGE_PROFILE |
-                                 MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                                 MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
-        codec_cfg->h264.stream_type = 1;
-        codec_cfg->h264.profile  = profile;
-        codec_cfg->h264.level    = level;
-        codec_cfg->h264.entropy_coding_mode  = cabac_en;
-        codec_cfg->h264.cabac_init_idc  = 0;
-
-        if (rc_mode == 0) {
-            /* constant QP mode qp is fixed */
-            codec_cfg->h264.qp_init     = qp;
-            codec_cfg->h264.qp_max      = qp;
-            codec_cfg->h264.qp_min      = qp;
-            codec_cfg->h264.qp_max_step = 0;
-        } else {
-            /* constant bitrate do not limit qp range */
-            codec_cfg->h264.qp_init     = 0;
-            codec_cfg->h264.qp_max      = 51;
-            codec_cfg->h264.qp_min      = 10;
-            codec_cfg->h264.qp_max_step = 4;
-        }
-    } break;
-    case MPP_VIDEO_CodingMJPEG : {
-        codec_cfg->jpeg.change = MPP_ENC_JPEG_CFG_CHANGE_QP;
-        codec_cfg->jpeg.quant = qp;
-    } break;
-    case MPP_VIDEO_CodingHEVC : {
-        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE;
-        codec_cfg->h265.intra_qp = qp;
-    } break;
-    case MPP_VIDEO_CodingVP8 :
-    default : {
-        mpp_err_f("support encoder coding type %d\n", coding);
-    } break;
-    }
-    ret = mpi->control(mpp_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
-    if (ret)
-        mpp_err("setup codec config failed ret %d\n", ret);
-#endif
 RET:
     return ret;
 }
@@ -348,6 +249,10 @@ VpuApiLegacy::VpuApiLegacy() :
     mpp_create(&mpp_ctx, &mpi);
 
     memset(&enc_param, 0, sizeof(enc_param));
+
+    mlvec = NULL;
+    memset(&mlvec_dy_cfg, 0, sizeof(mlvec_dy_cfg));
+
     vpu_api_dbg_func("leave\n");
 }
 
@@ -365,6 +270,11 @@ VpuApiLegacy::~VpuApiLegacy()
     if (enc_cfg) {
         mpp_enc_cfg_deinit(enc_cfg);
         enc_cfg = NULL;
+    }
+
+    if (mlvec) {
+        vpu_api_mlvec_deinit(mlvec);
+        mlvec = NULL;
     }
 
     vpu_api_dbg_func("leave\n");
@@ -422,7 +332,6 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
     MPP_RET ret = MPP_OK;
     MppCtxType type;
-    MppPacket pkt = NULL;
 
     if (mpp_ctx == NULL || mpi == NULL) {
         mpp_err("found invalid context input");
@@ -473,15 +382,29 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         format = vpu_pic_type_remap_to_mpp((EncInputPictureType)param->format);
 
         memcpy(&enc_param, param, sizeof(enc_param));
+
+        if (MPP_OK == vpu_api_mlvec_check_cfg(param)) {
+            if (NULL == mlvec) {
+                vpu_api_mlvec_init(&mlvec);
+                vpu_api_mlvec_setup(mlvec, mpp_ctx, mpi, enc_cfg);
+            }
+        }
+
+        if (mlvec)
+            vpu_api_mlvec_set_st_cfg(mlvec, (VpuApiMlvecStaticCfg *)param);
+
         vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, param);
 
-        ret = mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
+        if (ctx->extradata) {
+            MppPacket pkt = NULL;
 
-        if (pkt) {
-            ctx->extradata_size = (RK_S32)mpp_packet_get_length(pkt);
-            ctx->extradata      = mpp_packet_get_data(pkt);
+            ret = mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
+            if (pkt) {
+                ctx->extradata_size = (RK_S32)mpp_packet_get_length(pkt);
+                ctx->extradata      = mpp_packet_get_data(pkt);
+            }
+            pkt = NULL;
         }
-        pkt = NULL;
     } else { /* MPP_CTX_DEC */
         vpug.CodecType  = ctx->codecType;
         vpug.ImgWidth   = ctx->width;
@@ -490,6 +413,8 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         init_frame_info(ctx, mpp_ctx, mpi, &vpug);
 
         if (extraData != NULL) {
+            MppPacket pkt = NULL;
+
             mpp_packet_init(&pkt, extraData, extra_size);
             mpp_packet_set_extra_data(pkt);
             mpi->decode_put_packet(mpp_ctx, pkt);
@@ -1327,6 +1252,11 @@ PUT_FRAME:
 
     vpu_api_dbg_input("w %d h %d input fd %d size %d pts %lld, flag %d \n",
                       width, height, fd, size, aEncInStrm->timeUs, aEncInStrm->nFlags);
+    if (mlvec) {
+        MppMeta meta = mpp_frame_get_meta(frame);
+
+        vpu_api_mlvec_set_dy_cfg(mlvec, &mlvec_dy_cfg, meta);
+    }
 
     ret = mpi->encode_put_frame(mpp_ctx, frame);
     if (ret)
@@ -1499,6 +1429,75 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_ENC_SET_VEPU22_ROI: {
         mpicmd = MPP_ENC_SET_ROI_CFG;
+    } break;
+    case VPU_API_ENC_SET_MAX_TID: {
+        RK_S32 max_tid = *(RK_S32 *)param;
+
+        vpu_api_dbg_ctrl("VPU_API_ENC_SET_MAX_TID %d\n", max_tid);
+        mlvec_dy_cfg.max_tid = max_tid;
+        mlvec_dy_cfg.updated |= VPU_API_ENC_MAX_TID_UPDATED;
+
+        if (mlvec)
+            vpu_api_mlvec_set_dy_max_tid(mlvec, max_tid);
+
+        return 0;
+    } break;
+    case VPU_API_ENC_SET_MARK_LTR: {
+        RK_S32 mark_ltr = *(RK_S32 *)param;
+
+        vpu_api_dbg_ctrl("VPU_API_ENC_SET_MARK_LTR %d\n", mark_ltr);
+
+        mlvec_dy_cfg.mark_ltr = mark_ltr;
+        if (mark_ltr >= 0)
+            mlvec_dy_cfg.updated |= VPU_API_ENC_MARK_LTR_UPDATED;
+
+        return 0;
+    } break;
+    case VPU_API_ENC_SET_USE_LTR: {
+        RK_S32 use_ltr = *(RK_S32 *)param;
+
+        vpu_api_dbg_ctrl("VPU_API_ENC_SET_USE_LTR %d\n", use_ltr);
+
+        mlvec_dy_cfg.use_ltr = use_ltr;
+        mlvec_dy_cfg.updated |= VPU_API_ENC_USE_LTR_UPDATED;
+
+        return 0;
+    } break;
+    case VPU_API_ENC_SET_FRAME_QP: {
+        RK_S32 frame_qp = *(RK_S32 *)param;
+
+        vpu_api_dbg_ctrl("VPU_API_ENC_SET_FRAME_QP %d\n", frame_qp);
+
+        mlvec_dy_cfg.frame_qp = frame_qp;
+        mlvec_dy_cfg.updated |= VPU_API_ENC_FRAME_QP_UPDATED;
+
+        return 0;
+    } break;
+    case VPU_API_ENC_SET_BASE_LAYER_PID: {
+        RK_S32 base_layer_pid = *(RK_S32 *)param;
+
+        vpu_api_dbg_ctrl("VPU_API_ENC_SET_BASE_LAYER_PID %d\n", base_layer_pid);
+
+        mlvec_dy_cfg.base_layer_pid = base_layer_pid;
+        mlvec_dy_cfg.updated |= VPU_API_ENC_BASE_PID_UPDATED;
+
+        return 0;
+    } break;
+    case VPU_API_GET_EXTRA_INFO: {
+        EncoderOut_t *out = (EncoderOut_t *)param;
+        MppPacket pkt = NULL;
+
+        vpu_api_dbg_ctrl("VPU_API_GET_EXTRA_INFO\n");
+
+        mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
+        if (pkt) {
+            RK_S32 length = mpp_packet_get_length(pkt);
+            void *src = mpp_packet_get_data(pkt);
+
+            memcpy(out->data, src, length);
+            out->size = length;
+        }
+        return 0;
     } break;
     default: {
     } break;

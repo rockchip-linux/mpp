@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _VPU_API_LEGACY_H_
-#define _VPU_API_LEGACY_H_
+#ifndef __VPU_API_LEGACY_H__
+#define __VPU_API_LEGACY_H__
 
 #include <stdio.h>
 
@@ -23,11 +23,14 @@
 #include "rk_mpi.h"
 #include "rk_venc_cfg.h"
 
+#include "vpu_api_mlvec.h"
+
 #define OMX_BUFFERFLAG_EOS              0x00000001
 
 #define VPU_API_DBG_FUNCTION            (0x00000001)
 #define VPU_API_DBG_INPUT               (0x00000010)
 #define VPU_API_DBG_OUTPUT              (0x00000020)
+#define VPU_API_DBG_CONTROL             (0x00000040)
 
 #define vpu_api_dbg(flag, fmt, ...)     _mpp_dbg(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
 #define vpu_api_dbg_f(flag, fmt, ...)   _mpp_dbg_f(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
@@ -35,6 +38,7 @@
 #define vpu_api_dbg_func(fmt, ...)      vpu_api_dbg_f(VPU_API_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define vpu_api_dbg_input(fmt, ...)     vpu_api_dbg_f(VPU_API_DBG_INPUT, fmt, ## __VA_ARGS__)
 #define vpu_api_dbg_output(fmt, ...)    vpu_api_dbg_f(VPU_API_DBG_OUTPUT, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg_ctrl(fmt, ...)      vpu_api_dbg_f(VPU_API_DBG_CONTROL, fmt, ## __VA_ARGS__)
 
 extern RK_U32 vpu_api_debug;
 
@@ -82,7 +86,10 @@ private:
 
     EncParameter_t enc_param;
     MppEncCfg enc_cfg;
+
+    /* for mlvec */
+    VpuApiMlvec mlvec;
+    VpuApiMlvecDynamicCfg mlvec_dy_cfg;
 };
 
-#endif /*_VPU_API_H_*/
-
+#endif /*__VPU_API_LEGACY_H__*/
