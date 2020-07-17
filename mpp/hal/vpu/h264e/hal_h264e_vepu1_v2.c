@@ -63,6 +63,7 @@ typedef struct HalH264eVepu1Ctx_t {
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
+    H264ePrefixNal          *prefix;
 
     /* special TSVC stream header fixup */
     HalH264eVepuStreamAmend amend;
@@ -175,7 +176,7 @@ static RK_U32 update_vepu1_syntax(HalH264eVepu1Ctx *ctx, MppSyntax *syntax)
         case H264E_SYN_RC : {
             hal_h264e_dbg_detail("update rc");
         } break;
-        case H264E_SYN_ROI :
+        case H264E_SYN_PREFIX :
         default : {
             mpp_log_f("invalid syntax type %d\n", desc->type);
         } break;
@@ -226,7 +227,7 @@ static MPP_RET hal_h264e_vepu1_get_task_v2(void *hal, HalEncTask *task)
     hw_addr->refr[1] = hw_addr->refr[0] + (yuv_size << 10);
 
     h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
-                                   ctx->slice, &task->rc_task->frm);
+                                   ctx->slice, ctx->prefix);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -303,7 +304,9 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     /* setup output address with offset */
     first_free_bit = setup_output_packet(reg, task->output, offset);
     /* set extra byte for header */
-    hw_mbrc->out_strm_size = first_free_bit / 8;
+    hw_mbrc->hdr_strm_size = offset;
+    hw_mbrc->hdr_free_size = first_free_bit / 8;
+    hw_mbrc->out_strm_size = 0;
 
     /*
      * The hardware needs only the value for luma plane, because
@@ -578,11 +581,10 @@ static void h264e_vepu1_get_mbrc(HalH264eVepuMbRc *mb_rc, H264eVpu1RegSet *reg)
     RK_U32 cpt_prev = 0;
     RK_U32 overflow = 0;
     RK_U32 cpt_idx = VEPU_REG_CHECKPOINT(0) / 4;
-    RK_U32 base = mb_rc->out_strm_size;
     RK_U32 *reg_val = reg->val;
 
     mb_rc->hw_status        = reg_val[VEPU_REG_INTERRUPT / 4];
-    mb_rc->out_strm_size    = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8 - base;
+    mb_rc->out_strm_size    = reg_val[VEPU_REG_STR_BUF_LIMIT / 4] / 8 - mb_rc->hdr_free_size;
     mb_rc->qp_sum           = VEPU_REG_QP_SUM(reg_val[VEPU_REG_MAD_CTRL / 4]);
     mb_rc->less_mad_count   = VEPU_REG_MB_CNT_SET(reg_val[VEPU_REG_MB_CTRL / 4]);
     mb_rc->rlc_count        = VEPU_REG_RLC_SUM_OUT(reg_val[VEPU_REG_RLC_CTRL / 4]);

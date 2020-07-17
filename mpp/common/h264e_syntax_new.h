@@ -28,7 +28,7 @@ typedef enum H264eSyntaxType_e {
     H264E_SYN_SLICE,
     H264E_SYN_FRAME,
     H264E_SYN_RC,
-    H264E_SYN_ROI,
+    H264E_SYN_PREFIX,
     H264E_SYN_RC_RET,
     H264E_SYN_BUTT,
 } H264eSyntaxType;
@@ -296,8 +296,6 @@ typedef struct H264eSlice_t {
 
     /* for multi-slice writing */
     RK_S32      is_multi_slice;
-    RK_S32      is_first;
-    RK_S32      is_last;
 } H264eSlice;
 
 /*

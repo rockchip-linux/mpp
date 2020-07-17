@@ -73,6 +73,7 @@ typedef struct {
     RK_S32              sps_len;
     RK_S32              pps_len;
     RK_S32              sei_len;
+    H264ePrefixNal      prefix;
 
     /* rate control config */
     RcCtx               rc_ctx;
@@ -543,15 +544,6 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
 
     frm->val = curr->status.val;
 
-    /*
-     * Step 5: Wait previous frame bit/quality result
-     *
-     * On normal case encoder will wait previous encoding done and get feedback
-     * from hardware then start the new frame encoding.
-     * But for asynchronous process rate control module should be able to
-     * handle the case that previous encoding is not done.
-     */
-
     h264e_dbg_func("leave\n");
 
     return MPP_OK;
@@ -560,6 +552,7 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
+    MppEncH264Cfg *h264 = &p->cfg->codec.h264;
 
     h264e_dbg_func("enter\n");
 
@@ -571,10 +564,45 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     h264e_add_syntax(p, H264E_SYN_FRAME, &p->frms);
     h264e_add_syntax(p, H264E_SYN_RC, &p->rc_syn);
 
+    /* check max temporal layer id */
+    {
+        MppEncCpbInfo *cpb_info = mpp_enc_ref_cfg_get_cpb_info(p->cfg->ref_cfg);
+        RK_S32 cpb_max_tid = cpb_info->max_st_tid;
+        RK_S32 cfg_max_tid = h264->max_tid;
+
+        if (cpb_max_tid != cfg_max_tid) {
+            mpp_log("max tid is update to match cpb %d -> %d\n",
+                    cfg_max_tid, cpb_max_tid);
+            h264->max_tid = cpb_max_tid;
+        }
+    }
+
+    /* NOTE: prefix nal is added after SEI packet and before hw_stream */
+    if (h264->prefix_mode || h264->max_tid) {
+        H264ePrefixNal *prefix = &p->prefix;
+        H264eSlice *slice = &p->slice;
+        EncFrmStatus *frm = &task->rc_task->frm;
+
+        prefix->idr_flag = slice->idr_flag;
+        prefix->nal_ref_idc = slice->nal_reference_idc;
+        prefix->priority_id = h264->base_layer_pid + frm->temporal_id;
+        prefix->no_inter_layer_pred_flag = 1;
+        prefix->dependency_id = 0;
+        prefix->quality_id = 0;
+        prefix->temporal_id = frm->temporal_id;
+        prefix->use_ref_base_pic_flag = 0;
+        prefix->discardable_flag = 0;
+        prefix->output_flag = 1;
+
+        h264e_add_syntax(p, H264E_SYN_PREFIX, &p->prefix);
+    } else
+        h264e_add_syntax(p, H264E_SYN_PREFIX, NULL);
+
     task->valid = 1;
     task->syntax.data   = &p->syntax[0];
     task->syntax.number = p->syn_num;
     task->is_intra = p->slice.idr_flag;
+    h264->change = 0;
 
     h264e_dbg_func("leave\n");
 
