@@ -133,6 +133,8 @@ typedef struct HalH264eVepuMbRc_t {
      * qp_sum           QP Sum div2 output
      * rlc_count        RLC codeword count div4 output max 255*255*384/4
      */
+    RK_U32          hdr_strm_size;
+    RK_U32          hdr_free_size;
     RK_U32          out_strm_size;
     RK_S32          qp_sum;
     RK_S32          rlc_count;
@@ -152,11 +154,8 @@ typedef void *HalH264eVepuMbRcCtx;
 typedef struct HalH264eVepuStreamAmend_t {
     RK_S32          enable;
     H264eSlice      *slice;
-    RK_S32          max_tid;
-    RK_S32          temporal_id;
+    H264ePrefixNal  *prefix;
     RK_S32          slice_enabled;
-    RK_S32          is_first_slice;
-    RK_S32          is_last_slice;
 
     RK_U8           *src_buf;
     RK_U8           *dst_buf;
@@ -214,7 +213,7 @@ MPP_RET h264e_vepu_stream_amend_init(HalH264eVepuStreamAmend *ctx);
 MPP_RET h264e_vepu_stream_amend_deinit(HalH264eVepuStreamAmend *ctx);
 MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
                                        MppPacket packet, MppEncCfgSet *cfg,
-                                       H264eSlice *slice, EncFrmStatus *frm);
+                                       H264eSlice *slice, H264ePrefixNal *prefix);
 MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx);
 
 #ifdef __cplusplus
