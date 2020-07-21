@@ -673,8 +673,8 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
         mbrc->cp_error[i] = tmp;
     }
 
-    mbrc->mad_qp_change = 2;
-    mbrc->mad_threshold = 2;
+    mbrc->mad_qp_change = 0;
+    mbrc->mad_threshold = 0;
     mbrc->cp_distance_mbs = p->check_point_distance;
 
     return MPP_OK;
@@ -708,7 +708,7 @@ MPP_RET h264e_vepu_slice_split_cfg(H264eSlice *slice, HalH264eVepuMbRc *mbrc,
         mpp_assert(split->split_arg > 0);
         RK_U32 mb_per_line = (cfg->prep.width + 15) / 16;
 
-        slice_mb_rows = split->split_arg / mb_per_line;
+        slice_mb_rows = (split->split_arg + mb_per_line - 1) / mb_per_line;
         mbrc->slice_size_mb_rows = mpp_clip(slice_mb_rows, 2, 127);
     } break;
     default : {
@@ -974,6 +974,47 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx)
     } while (1);
 
     ctx->new_length = final_len;
+
+    return MPP_OK;
+}
+
+MPP_RET h264e_vepu_stream_amend_sync_ref_idc(HalH264eVepuStreamAmend *ctx)
+{
+    H264eSlice *slice = ctx->slice;
+    MppPacket pkt = ctx->packet;
+    RK_S32 base = ctx->buf_base;
+    RK_S32 len = ctx->old_length;
+    RK_U8 *p = mpp_packet_get_pos(pkt) + base;
+    RK_U8 val = p[4];
+    RK_S32 hw_nal_ref_idc = (val >> 5) & 0x3;
+    RK_S32 sw_nal_ref_idc = slice->nal_reference_idc;
+
+    if (hw_nal_ref_idc == sw_nal_ref_idc)
+        return MPP_OK;
+
+    /* fix nal_ref_idc in all slice */
+    if (!slice->is_multi_slice) {
+        /* single slice do NOT scan */
+        val = val & (~0x60);
+        val |= (sw_nal_ref_idc << 5) & 0x60;
+        p[4] = val;
+        return MPP_OK;
+    }
+
+    /* multi-slice fix each nal_ref_idc */
+    do {
+        RK_U32 nal_len = get_next_nal(p, &len);
+
+        val = p[4];
+        val = val & (~0x60);
+        val |= (sw_nal_ref_idc << 5) & 0x60;
+        p[4] = val;
+
+        if (len == 0)
+            break;
+
+        p += nal_len;
+    } while (1);
 
     return MPP_OK;
 }
