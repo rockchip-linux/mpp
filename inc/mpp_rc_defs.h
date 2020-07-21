@@ -131,6 +131,14 @@ typedef struct EncCpbStatus_t {
     EncFrmStatus        final[MAX_CPB_REFS];
 } EncCpbStatus;
 
+#define ENC_RC_FORCE_QP                 (0x00000001)
+
+typedef struct EncRcForceCfg_t {
+    RK_U32              force_flag;
+    RK_S32              force_qp;
+    RK_U32              reserve[6];
+} EncRcForceCfg;
+
 /*
  * communication channel between rc / hal / hardware
  *
@@ -161,6 +169,7 @@ typedef struct EncRcTask_s {
     EncCpbStatus    cpb;
     EncFrmStatus    frm;
     EncRcTaskInfo   info;
+    EncRcForceCfg   force;
     MppFrame        frame;
 } EncRcTask;
 
