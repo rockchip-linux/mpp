@@ -79,6 +79,7 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
 /*
  * meta data access interface
  */
+RK_S32  mpp_packet_has_meta(const MppPacket packet);
 MppMeta mpp_packet_get_meta(const MppPacket packet);
 
 #ifdef __cplusplus

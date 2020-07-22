@@ -294,6 +294,16 @@ MppBuffer mpp_packet_get_buffer(const MppPacket packet)
     return p->buffer;
 }
 
+RK_S32 mpp_packet_has_meta(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return 0;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    return (NULL != p->meta);
+}
+
 MppMeta mpp_packet_get_meta(const MppPacket packet)
 {
     if (check_is_mpp_packet(packet))
