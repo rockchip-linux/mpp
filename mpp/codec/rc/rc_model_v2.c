@@ -720,7 +720,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         calc_next_i_ratio(p);
     }
 
-    if (frm->seq_idx) {
+    if (!p->first_frm_flg) {
         if (p->usr_cfg.mode == RC_CBR) {
             calc_cbr_ratio(p);
         } else {
@@ -729,7 +729,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     }
 
     /* quality determination */
-    if (!frm->seq_idx)
+    if (p->first_frm_flg)
         info->quality_target = -1;
     if (frm->is_intra) {
         info->quality_max = p->usr_cfg.max_i_quality;
@@ -750,28 +750,28 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     return MPP_OK;
 }
 
-static RK_U32 mb_num[12] = {
+static RK_U32 mb_num[9] = {
     0,      200,    700,    1200,
     2000,   4000,   8000,   16000,
-    20000,  20000,  20000,  20000,
+    20000
 };
 
-static RK_U32 tab_bit[12] = {
-    0xEC4,  0xDF2,  0xC4E,  0xB7C,
-    0xAAA,  0xEC4,  0x834,  0x690,
-    0x834,  0x834,  0x834,  0x834,
+static RK_U32 tab_bit[9] = {
+    3780,  3570,  3150,  2940,
+    2730,  3780,  2100,  1680,
+    2100
 };
 
-static RK_U8 qp_table[96] = {
-    0xF,  0xF,  0xF,  0xF,  0xF,  0x10, 0x12, 0x14, 0x15, 0x16, 0x17,
-    0x18, 0x19, 0x19, 0x1A, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E,
-    0x1E, 0x1F, 0x1F, 0x20, 0x20, 0x21, 0x21, 0x21, 0x22, 0x22, 0x22,
-    0x22, 0x23, 0x23, 0x23, 0x24, 0x24, 0x24, 0x24, 0x24, 0x25, 0x25,
-    0x25, 0x25, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27,
-    0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29,
-    0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B,
-    0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C,
-    0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D,
+static RK_U8 qscale2qp[96] = {
+    15,  15,  15,  15,  15,  16, 18, 20, 21, 22, 23,
+    24,  25,  25,  26,  27,  28, 28, 29, 29, 30, 30,
+    30,  31,  31,  32,  32,  33, 33, 33, 34, 34, 34,
+    34,  35,  35,  35,  36,  36, 36, 36, 36, 37, 37,
+    37,  37,  38,  38,  38,  38, 38, 39, 39, 39, 39,
+    39,  39,  40,  40,  40,  40, 41, 41, 41, 41, 41,
+    41,  41,  42,  42,  42,  42, 42, 42, 42, 42, 43,
+    43,  43,  43,  43,  43,  43, 43, 44, 44, 44, 44,
+    44,  44,  44,  44,  45,  45, 45, 45,
 };
 
 static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
@@ -780,15 +780,16 @@ static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
     RK_S32 index;
     RK_S32 i;
 
-    for (i = 0; i < 11; i++) {
+    for (i = 0; i < 8; i++) {
         if (mb_num[i] > total_mb)
             break;
         cnt++;
     }
-    index = (total_mb * tab_bit[cnt] - 300) / target_bit; //
+
+    index = (total_mb * tab_bit[cnt] - 350) / target_bit; // qscale
     index = mpp_clip(index, 4, 95);
 
-    return qp_table[index];
+    return qscale2qp[index];
 }
 
 MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
