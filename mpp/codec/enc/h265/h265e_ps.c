@@ -22,12 +22,46 @@
 #include "mpp_common.h"
 
 #include "h265e_ps.h"
+#define MAX_UINT        0xFFFFFFFFU
+
+typedef struct H265levelspec_t {
+    RK_U32 maxLumaSamples;
+    RK_U32 maxLumaSamplesPerSecond;
+    RK_U32 maxBitrateMain;
+    RK_U32 maxBitrateHigh;
+    RK_U32 maxCpbSizeMain;
+    RK_U32 maxCpbSizeHigh;
+    RK_U32 minCompressionRatio;
+    RK_S32 levelEnum;
+    const char* name;
+    RK_S32 levelIdc;
+} H265levelspec;
+
+H265levelspec levels[] = {
+    { 36864,    552960,     128,      MAX_UINT, 350,    MAX_UINT, 2, H265_LEVEL1,   "1",   10 },
+    { 122880,   3686400,    1500,     MAX_UINT, 1500,   MAX_UINT, 2, H265_LEVEL2,   "2",   20 },
+    { 245760,   7372800,    3000,     MAX_UINT, 3000,   MAX_UINT, 2, H265_LEVEL2_1, "2.1", 21 },
+    { 552960,   16588800,   6000,     MAX_UINT, 6000,   MAX_UINT, 2, H265_LEVEL3,   "3",   30 },
+    { 983040,   33177600,   10000,    MAX_UINT, 10000,  MAX_UINT, 2, H265_LEVEL3_1, "3.1", 31 },
+    { 2228224,  66846720,   12000,    30000,    12000,  30000,    4, H265_LEVEL4,   "4",   40 },
+    { 2228224,  133693440,  20000,    50000,    20000,  50000,    4, H265_LEVEL4_1, "4.1", 41 },
+    { 8912896,  267386880,  25000,    100000,   25000,  100000,   6, H265_LEVEL5,   "5",   50 },
+    { 8912896,  534773760,  40000,    160000,   40000,  160000,   8, H265_LEVEL5_1, "5.1", 51 },
+    { 8912896,  1069547520, 60000,    240000,   60000,  240000,   8, H265_LEVEL5_2, "5.2", 52 },
+    { 35651584, 1069547520, 60000,    240000,   60000,  240000,   8, H265_LEVEL6,   "6",   60 },
+    { 35651584, 2139095040, 120000,   480000,   120000, 480000,   8, H265_LEVEL6_1, "6.1", 61 },
+    { 35651584, 4278190080U, 240000,  800000,   240000, 800000,   6, H265_LEVEL6_2, "6.2", 62 },
+    { MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, 1, H265_LEVEL8_5, "8.5", 85 },
+};
 
 MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
 {
     RK_S32 i;
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
     ProfileTierLevel *profileTierLevel = &vps->m_ptl.m_generalPTL;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    RK_U32 maxlumas = prep->width * prep->height;
+    RK_S32 level_idc = H265_LEVEL_NONE;
 
     vps->m_VPSId = 0;
     vps->m_maxTLayers = 1;
@@ -46,8 +80,19 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     memset(profileTierLevel->m_profileCompatibilityFlag, 0, sizeof(profileTierLevel->m_profileCompatibilityFlag));
     memset(vps->m_ptl.m_subLayerProfilePresentFlag, 0, sizeof(vps->m_ptl.m_subLayerProfilePresentFlag));
     memset(vps->m_ptl.m_subLayerLevelPresentFlag,   0, sizeof(vps->m_ptl.m_subLayerLevelPresentFlag));
+    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(levels); i++) {
+        if (levels[i].maxLumaSamples >= maxlumas) {
+            level_idc = levels[i].levelEnum;
+            break;
+        }
+    }
+
     profileTierLevel->m_profileSpace = 0;
-    profileTierLevel->m_levelIdc = codec->level;
+    if (codec->level < level_idc) {
+        profileTierLevel->m_levelIdc = level_idc;
+    } else {
+        profileTierLevel->m_levelIdc = codec->level;
+    }
     profileTierLevel->m_tierFlag = codec->tier ? 1 : 0;
     profileTierLevel->m_profileIdc = codec->profile;
 
