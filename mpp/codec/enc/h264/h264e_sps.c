@@ -74,27 +74,36 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     RK_S32 crop_right = MPP_ALIGN(width, 16) - width;
     RK_S32 crop_bottom = MPP_ALIGN(height, 16) - height;
     /* default 720p */
-    H264Level level_idc = H264_LEVEL_3_1;
+    H264Level level_idc = h264->level;
 
     // default sps
     // profile baseline
     sps->profile_idc = h264->profile;
-    sps->constraint_set0 = 0;
-    sps->constraint_set1 = 0;
+    sps->constraint_set0 = 1;
+    sps->constraint_set1 = 1;
     sps->constraint_set2 = 0;
     sps->constraint_set3 = 0;
     sps->constraint_set4 = 0;
     sps->constraint_set5 = 0;
 
     // level_idc is connected with frame size
-    RK_S32 mbs = (aligned_w * aligned_h) >> 8;
-    RK_S32 i;
+    {
+        RK_S32 mbs = (aligned_w * aligned_h) >> 8;
+        RK_S32 i;
+        RK_S32 min_level = 10;
 
-    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(level_infos); i++) {
-        if (level_infos[i].max_MBs >= mbs) {
-            level_idc = level_infos[i].level;
-            mpp_log("set level to %s\n", level_infos[i].name);
-            break;
+        for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(level_infos); i++) {
+            if (level_infos[i].max_MBs >= mbs) {
+                min_level = level_infos[i].level;
+
+                if (min_level > (RK_S32)level_idc &&
+                    min_level != H264_LEVEL_1_b) {
+                    level_idc = min_level;
+                    mpp_log("set level to %s\n", level_infos[i].name);
+                }
+
+                break;
+            }
         }
     }
     sps->level_idc = level_idc;
