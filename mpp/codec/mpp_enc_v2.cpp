@@ -701,6 +701,7 @@ void *mpp_enc_thread(void *data)
     EncRcTask *rc_task = &enc->rc_task;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
+    MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
     HalEncTask *hal_task = &task_info->enc;
@@ -857,6 +858,7 @@ void *mpp_enc_thread(void *data)
         reset_hal_enc_task(hal_task);
         reset_enc_rc_task(rc_task);
         hal_task->rc_task = rc_task;
+        hal_task->frm_cfg = frm_cfg;
         frm->seq_idx = task.seq_idx++;
         rc_task->frame = frame;
 
