@@ -124,6 +124,16 @@ void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
     }
 }
 
+RK_S32 mpp_frame_has_meta(const MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return 0;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    return (NULL != p->meta);
+}
+
 MppMeta mpp_frame_get_meta(MppFrame frame)
 {
     if (check_is_mpp_frame(frame))

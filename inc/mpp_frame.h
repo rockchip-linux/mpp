@@ -302,6 +302,7 @@ void    mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer);
 /*
  * meta data parameter
  */
+RK_S32  mpp_frame_has_meta(const MppFrame frame);
 MppMeta mpp_frame_get_meta(const MppFrame frame);
 void    mpp_frame_set_meta(MppFrame frame, MppMeta meta);
 
