@@ -1195,6 +1195,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         p->hdr_buf = mpp_calloc_size(void, size);
 
         mpp_packet_init(&p->hdr_pkt, p->hdr_buf, size);
+        mpp_packet_set_length(p->hdr_pkt, 0);
     }
 
     /* NOTE: setup configure coding for check */
