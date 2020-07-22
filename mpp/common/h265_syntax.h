@@ -170,4 +170,22 @@ typedef enum SliceType_t {
     I_SLICE = 2,
 } SliceType;
 
+typedef enum {
+    H265_LEVEL_NONE = 0,
+    H265_LEVEL1 = 30,
+    H265_LEVEL2 = 60,
+    H265_LEVEL2_1 = 63,
+    H265_LEVEL3 = 90,
+    H265_LEVEL3_1 = 93,
+    H265_LEVEL4 = 120,
+    H265_LEVEL4_1 = 123,
+    H265_LEVEL5 = 150,
+    H265_LEVEL5_1 = 153,
+    H265_LEVEL5_2 = 156,
+    H265_LEVEL6 = 180,
+    H265_LEVEL6_1 = 183,
+    H265_LEVEL6_2 = 186,
+    H265_LEVEL8_5 = 255,
+} H265Level;
+
 #endif
