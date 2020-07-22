@@ -22,6 +22,7 @@
 #include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "mpp_mem.h"
 
 #include "jpege_debug.h"
 #include "jpege_api.h"
@@ -33,6 +34,33 @@ typedef struct {
     MppEncCfgSet    *cfg;
     JpegeSyntax     syntax;
 } JpegeCtx;
+
+#define QUANTIZE_TABLE_SIZE 64
+
+/*
+ *  from RFC435 spec.
+ */
+static const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    16, 11, 10, 16, 24, 40, 51, 61,
+    12, 12, 14, 19, 26, 58, 60, 55,
+    14, 13, 16, 24, 40, 57, 69, 56,
+    14, 17, 22, 29, 51, 87, 80, 62,
+    18, 22, 37, 56, 68, 109, 103, 77,
+    24, 35, 55, 64, 81, 104, 113, 92,
+    49, 64, 78, 87, 103, 121, 120, 101,
+    72, 92, 95, 98, 112, 100, 103, 99
+};
+
+static const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    17, 18, 24, 47, 99, 99, 99, 99,
+    18, 21, 26, 66, 99, 99, 99, 99,
+    24, 26, 56, 99, 99, 99, 99, 99,
+    47, 66, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99
+};
 
 RK_U32 jpege_debug = 0;
 
@@ -63,7 +91,15 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
 
 static MPP_RET jpege_deinit_v2(void *ctx)
 {
+    JpegeCtx *p = (JpegeCtx *)ctx;
+    MppEncJpegCfg *jpeg_cfg = &p->cfg->codec.jpeg;
+
     jpege_dbg_func("enter ctx %p\n", ctx);
+
+    MPP_FREE(jpeg_cfg->qtable_y);
+    MPP_FREE(jpeg_cfg->qtable_u);
+    MPP_FREE(jpeg_cfg->qtable_v);
+
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
 }
@@ -208,6 +244,43 @@ static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
     return ret;
 }
 
+/* gen quantizer table by q_factor according to RFC435 spec. */
+static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_U32 *factor)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U8 q = *factor;
+    RK_U32 i;
+    RK_U8 *qtable_y = NULL;
+    RK_U8 *qtable_c = NULL;
+
+    if (!cfg->qtable_y)
+        cfg->qtable_y = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+    if (!cfg->qtable_u)
+        cfg->qtable_u = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+
+    if (NULL == cfg->qtable_y || NULL == cfg->qtable_u) {
+        mpp_err_f("qtable is null, malloc err");
+        return MPP_ERR_MALLOC;
+    }
+    qtable_y = cfg->qtable_y;
+    qtable_c = cfg->qtable_u;
+
+    if (q < 50)
+        q = 5000 / (*factor);
+    else
+        q = 200 - (*factor << 1);
+
+    for (i = 0; i < QUANTIZE_TABLE_SIZE; i++) {
+        RK_S16 lq = (jpege_luma_quantizer[i] * q + 50) / 100;
+        RK_S16 cq = (jpege_chroma_quantizer[i] * q + 50) / 100;
+
+        /* Limit the quantizers to 1 <= q <= 255 */
+        qtable_y[i] = MPP_CLIP3(1, 255, lq);
+        qtable_c[i] = MPP_CLIP3(1, 255, cq);
+    }
+    return ret;
+}
+
 static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
 {
     MPP_RET ret = MPP_OK;
@@ -219,6 +292,52 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
         if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
             dst->quant = src->quant;
         }
+        if (change & MPP_ENC_JPEG_CFG_CHANGE_QFACTOR) {
+            if (src->q_factor < 1 || src->q_factor > 99) {
+                mpp_err_f("q_factor out of range, default set 90\n");
+                src->q_factor = 90;
+            }
+            if (dst->q_factor != src->q_factor)
+                ret = jpege_gen_qt_by_qfactor(dst, &src->q_factor);
+
+            dst->q_factor = src->q_factor;
+
+        } else if (change & MPP_ENC_JPEG_CFG_CHANGE_QTABLE) {
+            if (src->qtable_y && src->qtable_u && src->qtable_v) {
+                if (NULL == dst->qtable_y)
+                    dst->qtable_y = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+                if (NULL == dst->qtable_u)
+                    dst->qtable_u = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+
+                if (NULL == dst->qtable_y || NULL == dst->qtable_u) {
+                    mpp_err_f("qtable is null, malloc err\n");
+                    return MPP_ERR_MALLOC;
+                }
+                /* check table value */
+                if (src->qtable_u != src->qtable_v) {
+                    RK_U32 i;
+
+                    for (i = 0; i < QUANTIZE_TABLE_SIZE; i++) {
+                        if (src->qtable_u[i] != src->qtable_v[i]) {
+                            RK_U32 j;
+
+                            jpege_dbg_input("qtable_u and qtable_v are different, use qtable_u\n");
+                            for (j = 0; j < QUANTIZE_TABLE_SIZE; j++)
+                                jpege_dbg_input("qtable_u[%d] %d qtable_v[%d] %d\n",
+                                                j, src->qtable_u[j], j, src->qtable_v[j]);
+                            break;
+                        }
+                    }
+                }
+                /* default use one chroma qtable, select qtable_u */
+                memcpy(dst->qtable_y, src->qtable_y, QUANTIZE_TABLE_SIZE);
+                memcpy(dst->qtable_u, src->qtable_u, QUANTIZE_TABLE_SIZE);
+            } else {
+                mpp_err_f("invalid qtable y %p u %p v %p\n",
+                          src->qtable_y, src->qtable_u, src->qtable_v);
+                ret = MPP_ERR_NULL_PTR;
+            }
+        }
 
         if (dst->quant < 0 || dst->quant > 10) {
             mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
@@ -229,12 +348,31 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
             mpp_err_f("failed to accept new rc config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_CODEC_CFG jpeg quant set to %d\n", dst->quant);
+            mpp_log_f("MPP_ENC_SET_CODEC_CFG change 0x%x jpeg quant %d q_factor %d\n",
+                      change, dst->quant, dst->q_factor);
             dst->change = src->change;
         }
 
         dst->change = src->change;
     }
+
+    return ret;
+}
+
+static MPP_RET jpege_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
+        dst->split_mode = src->split_mode;
+        dst->split_arg = src->split_arg;
+    }
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
+        dst->split_arg = src->split_arg;
+
+    dst->change |= change;
 
     return ret;
 }
@@ -263,6 +401,10 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         if (src->codec.jpeg.change) {
             ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg);
             src->codec.jpeg.change = 0;
+        }
+        if (src->split.change) {
+            ret |= jpege_proc_split_cfg(&cfg->split, &src->split);
+            src->split.change = 0;
         }
     } break;
     case MPP_ENC_SET_PREP_CFG : {
@@ -366,6 +508,8 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->format      = prep->format;
     syntax->color       = prep->color;
     syntax->quality     = codec->jpeg.quant;
+    syntax->qtable_y    = codec->jpeg.qtable_y;
+    syntax->qtable_c    = codec->jpeg.qtable_u;
 
     task->valid = 1;
     task->is_intra = 1;

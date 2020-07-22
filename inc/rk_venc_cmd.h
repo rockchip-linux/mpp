@@ -894,12 +894,18 @@ typedef struct MppEncH265Cfg_t {
 typedef enum MppEncJpegCfgChange_e {
     /* change on quant parameter */
     MPP_ENC_JPEG_CFG_CHANGE_QP              = (1 << 0),
+    MPP_ENC_JPEG_CFG_CHANGE_QTABLE          = (1 << 1),
+    MPP_ENC_JPEG_CFG_CHANGE_QFACTOR         = (1 << 2),
     MPP_ENC_JPEG_CFG_CHANGE_ALL             = (0xFFFFFFFF),
 } MppEncJpegCfgChange;
 
 typedef struct MppEncJpegCfg_t {
     RK_U32              change;
     RK_S32              quant;
+    RK_U32              q_factor;
+    RK_U8               *qtable_y;
+    RK_U8               *qtable_u;
+    RK_U8               *qtable_v;
 } MppEncJpegCfg;
 
 /*
