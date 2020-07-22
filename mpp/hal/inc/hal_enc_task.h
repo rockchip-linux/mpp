@@ -20,6 +20,7 @@
 
 #include "hal_task_defs.h"
 #include "mpp_rc_defs.h"
+#include "mpp_enc_refs.h"
 
 #define HAL_ENC_TASK_ERR_INIT         0x00000001
 #define HAL_ENC_TASK_ERR_ALLOC        0x00000010
@@ -37,6 +38,9 @@ typedef struct HalEncTask_t {
 
     // rate control data channel
     EncRcTask       *rc_task;
+
+    // cpb reference force config
+    MppEncRefFrmUsrCfg  *frm_cfg;
 
     // current tesk protocol syntax information
     MppSyntax       syntax;
