@@ -1037,7 +1037,6 @@ void *mpp_enc_thread(void *data)
                 enc->hdr_status.added_by_mode = 1;
             }
         }
-        frm->reencode = 0;
 
         // check for header adding
         if (hal_task->length != mpp_packet_get_length(packet)) {
@@ -1046,44 +1045,46 @@ void *mpp_enc_thread(void *data)
         }
 
         /* 17. Add all prefix info before encoding */
-        if (frm->is_idr) {
-            RK_S32 length = 0;
+        if (!frm->reencode) {
+            if (frm->is_idr) {
+                RK_S32 length = 0;
 
-            enc_impl_add_prefix(impl, packet, &length, uuid_version,
-                                enc->version_info, enc->version_length);
+                enc_impl_add_prefix(impl, packet, &length, uuid_version,
+                                    enc->version_info, enc->version_length);
 
-            hal_task->sei_length += length;
-            hal_task->length += length;
+                hal_task->sei_length += length;
+                hal_task->length += length;
 
-            length = 0;
-            enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
-                                enc->rc_cfg_info, enc->rc_cfg_length);
+                length = 0;
+                enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
+                                    enc->rc_cfg_info, enc->rc_cfg_length);
 
-            hal_task->sei_length += length;
-            hal_task->length += length;
-        }
+                hal_task->sei_length += length;
+                hal_task->length += length;
+            }
 
-        if (mpp_frame_has_meta(frame)) {
-            MppMeta frm_meta = mpp_frame_get_meta(frame);
-            MppEncUserData *user_data = NULL;
+            if (mpp_frame_has_meta(frame)) {
+                MppMeta frm_meta = mpp_frame_get_meta(frame);
+                MppEncUserData *user_data = NULL;
 
-            mpp_meta_get_ptr(frm_meta, KEY_USER_DATA, (void**)&user_data);
+                mpp_meta_get_ptr(frm_meta, KEY_USER_DATA, (void**)&user_data);
 
-            if (user_data) {
-                if (user_data->pdata && user_data->len) {
-                    RK_S32 length = 0;
+                if (user_data) {
+                    if (user_data->pdata && user_data->len) {
+                        RK_S32 length = 0;
 
-                    enc_impl_add_prefix(impl, packet, &length, uuid_usr_data,
-                                        user_data->pdata, user_data->len);
+                        enc_impl_add_prefix(impl, packet, &length, uuid_usr_data,
+                                            user_data->pdata, user_data->len);
 
-                    hal_task->sei_length += length;
-                    hal_task->length += length;
-                } else
-                    mpp_err_f("failed to insert user data %p len %d\n",
-                              user_data->pdata, user_data->len);
+                        hal_task->sei_length += length;
+                        hal_task->length += length;
+                    } else
+                        mpp_err_f("failed to insert user data %p len %d\n",
+                                  user_data->pdata, user_data->len);
+                }
             }
         }
-
+        frm->reencode = 0;
         // check for user data adding
         if (hal_task->length != mpp_packet_get_length(packet)) {
             mpp_err_f("user data adding check failed: task length is not match to packet length %d vs %d\n",
@@ -1118,10 +1119,11 @@ void *mpp_enc_thread(void *data)
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
         if (frm->reencode_times < rc_cfg->max_reenc_times && frm->reencode) {
-            mpp_enc_refs_rollback(enc->refs);
+            //mpp_enc_refs_rollback(enc->refs);
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
             hal_task->length -= hal_task->hw_length;
             hal_task->hw_length = 0;
+            frm->reencode_times++;
             goto TASK_REENCODE;
         } else {
             frm->reencode = 0;
