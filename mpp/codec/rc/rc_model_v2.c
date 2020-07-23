@@ -1048,9 +1048,10 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
         if (p->next_ratio != 0) {
             p->reenc_cnt++;
             frm->reencode = 1;
-            frm->reencode_times++;
         }
-    } else {
+    }
+
+    if (!frm->reencode) {
         rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
         bits_model_update(p, cfg->bit_real, cfg->madi);
         p->last_inst_bps = p->ins_bps;
