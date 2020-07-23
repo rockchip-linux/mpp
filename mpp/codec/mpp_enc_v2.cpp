@@ -675,6 +675,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     case MPP_ENC_RC_MODE_VBR : {
         cfg->mode = RC_VBR;
     } break;
+    case MPP_ENC_RC_MODE_AVBR : {
+        cfg->mode = RC_AVBR;
+    } break;
     case MPP_ENC_RC_MODE_FIXQP: {
         cfg->mode = RC_FIXQP;
     } break;

@@ -168,6 +168,7 @@ typedef enum MppEncRcMode_e {
     MPP_ENC_RC_MODE_VBR,
     MPP_ENC_RC_MODE_CBR,
     MPP_ENC_RC_MODE_FIXQP,
+    MPP_ENC_RC_MODE_AVBR,
     MPP_ENC_RC_MODE_BUTT
 } MppEncRcMode;
 
