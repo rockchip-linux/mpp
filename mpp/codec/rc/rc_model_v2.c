@@ -91,9 +91,9 @@ typedef struct RcModelV2Ctx_t {
     RK_U32          super_pfrm_bits_thr;
     MppDataV2       *stat_bits;
     MppDataV2       *stat_rate;
-    RK_S32          stat_watl_thrd;
+    RK_S32          watl_thrd;
     RK_S32          stat_watl;
-    RK_S32          stat_last_watl;
+    RK_S32          watl_base;
 
     RK_S32          next_i_ratio;      // scale 64
     RK_S32          next_ratio;        // scale 64
@@ -131,10 +131,6 @@ MPP_RET bits_model_deinit(RcModelV2Ctx *ctx)
     if (ctx->pre_p_bit != NULL) {
         mpp_data_deinit_v2(ctx->pre_p_bit);
         ctx->pre_p_bit = NULL;
-        if (ctx->madi != NULL) {
-            mpp_data_deinit_v2(ctx->madi);
-            ctx->madi = NULL;
-        }
     }
 
     if (ctx->madi != NULL) {
@@ -209,7 +205,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     RK_U32 stat_times = ctx->usr_cfg.stat_times;
     RK_U32 stat_len;
     RK_U32 target_bps;
-    RK_U32 total_stat_bits;
 
     rc_dbg_func("enter %p\n", ctx);
 
@@ -296,13 +291,13 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         return -1;
     }
 
-    total_stat_bits =  stat_times * target_bps;
     ctx->target_bps = target_bps;
     ctx->bit_per_frame = target_bps / fps->fps_in_num;
-    mpp_data_reset_v2(ctx->stat_bits, ctx->bit_per_frame);
-    ctx->stat_watl_thrd = total_stat_bits;
-    ctx->stat_watl = total_stat_bits >> 3;
+    ctx->watl_thrd = 3 * target_bps;;
+    ctx->stat_watl = ctx->watl_thrd  >> 3;
+    ctx->watl_base = ctx->stat_watl;
 
+    mpp_data_reset_v2(ctx->stat_bits, ctx->bit_per_frame);
     rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
               ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,
               ctx->usr_cfg.stat_times);
@@ -314,24 +309,22 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
 
 MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
 {
-    RK_S32 water_level = 0, last_water_level;
+    RK_S32 water_level = 0;
 
     rc_dbg_func("enter %p\n", ctx);
 
     mpp_data_update_v2(ctx->stat_rate, real_bit != 0);
     mpp_data_update_v2(ctx->stat_bits, real_bit);
-    last_water_level = ctx->stat_last_watl;
-    if (real_bit + ctx->stat_watl > ctx->stat_watl_thrd)
-        water_level = ctx->stat_watl_thrd - ctx->bit_per_frame;
+
+    if (real_bit + ctx->stat_watl > ctx->watl_thrd)
+        water_level = ctx->watl_thrd - ctx->bit_per_frame;
     else
         water_level = real_bit + ctx->stat_watl - ctx->bit_per_frame;
 
-    if (last_water_level < water_level) {
-        last_water_level = water_level;
+    if (water_level < 0) {
+        water_level = 0;
     }
-
-    ctx->stat_watl = last_water_level;
-    rc_dbg_rc("ctx->stat_watl = %d", ctx->stat_watl);
+    ctx->stat_watl = water_level;
     switch (ctx->frame_type) {
     case INTRA_FRAME: {
         mpp_data_update_v2(ctx->i_bit, real_bit);
@@ -475,8 +468,9 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     RK_S32 fluc_l = 3;
 
     rc_dbg_func("enter %p\n", ctx);
-    rc_dbg_rc("ins_bps %d pre_ins_bps %d, pre_target_bits %d pre_real_bits %d",
-              ins_bps, pre_ins_bps, pre_target_bits, pre_real_bits);
+    rc_dbg_bps("%10s|%10s|%10s|%10s|%10s|%8s", "r_bits", "t_bits", "ins_bps", "p_ins_bps", "target_bps", "watl");
+    rc_dbg_bps("%10d %10d %10d %10d %10d %8d", pre_real_bits, pre_target_bits, ins_bps, pre_ins_bps, target_bps, ctx->stat_watl);
+
 
     mpp_assert(target_bps > 0);
 
@@ -485,14 +479,17 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
     else
         bit_diff_ratio = 64 * (pre_real_bits - pre_target_bits) / pre_target_bits;
 
-    idx1 = ins_bps / (target_bps >> 5);
-    idx2 = pre_ins_bps / (target_bps >> 5);
+    idx1 = (ins_bps << 5) / target_bps;
+    idx2 = (pre_ins_bps << 5) / target_bps;
 
     idx1 = mpp_clip(idx1, 0, 64);
     idx2 = mpp_clip(idx2, 0, 64);
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2]; // %3
 
-    rc_dbg_rc("bit_diff_ratio %d ins_ratio = %d", bit_diff_ratio, ins_ratio);
+
+    /*ins_bps is increase and pre_ins > target_bps*15/16 will raise up ins_ratio to decrease bit
+     *ins_bps is decresase and pre_ins < target_bps*17/16 will decrease ins_ratio to increase bit
+     */
 
     if (ins_bps > pre_ins_bps && target_bps - pre_ins_bps < (target_bps >> 4)) { // %6
         ins_ratio = 6 * ins_ratio;
@@ -500,35 +497,32 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
         ins_ratio = 4 * ins_ratio;
     } else {
         if (bit_diff_ratio < -128) {
-            bit_diff_ratio = -128;
+            ins_ratio = -128;
             flag = 1;
         } else {
-            if (bit_diff_ratio > 256) {
-                bit_diff_ratio = 256;
-            }
             ins_ratio = 0;
         }
     }
 
-    if (bit_diff_ratio < -128) {
-        bit_diff_ratio = -128;
-    }
+    bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
 
     if (!flag) {
         ins_ratio = mpp_clip(ins_ratio, -128, 256);
         ins_ratio = bit_diff_ratio + ins_ratio;
     }
 
-    rc_dbg_rc("ins_bps  %d,target_bps %d ctx->stat_watl %d stat_watl_thrd %d", ins_bps, target_bps, ctx->stat_watl, ctx->stat_watl_thrd >> 3);
     bps_ratio = (ins_bps - target_bps) * fluc_l / (target_bps >> 4);
-    wl_ratio = 4 * (ctx->stat_watl - (ctx->stat_watl_thrd >> 3)) * fluc_l / (ctx->stat_watl_thrd >> 3);
+    wl_ratio = 4 * (ctx->stat_watl - ctx->watl_base) * fluc_l / ctx->watl_base;
 
-    rc_dbg_rc("bps_ratio = %d wl_ratio %d", bps_ratio, wl_ratio);
+
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
-    wl_ratio  = mpp_clip(wl_ratio, -16, 16);
+    wl_ratio  = mpp_clip(wl_ratio, -16, 32);
     ctx->next_ratio = ins_ratio + bps_ratio + wl_ratio;
-    rc_dbg_rc("get  next_ratio %d", wl_ratio);
 
+    rc_dbg_qp("%10s|%10s|%10s|%10s|%10s|%10s", "diff_ratio", "ins_ratio", "bps_ratio",
+              "wl_ratio", "next_ratio", "cur_qp_s");
+    rc_dbg_qp("%10d %10d %10d %10d %10d|%10d", bit_diff_ratio, ins_ratio - bit_diff_ratio,
+              bps_ratio, wl_ratio, ctx->next_ratio, ctx->cur_scale_qp);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -547,13 +541,13 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 
     rc_dbg_func("enter %p\n", ctx);
 
-    if (real_bit + ctx->stat_watl > ctx->stat_watl_thrd)
-        water_level = ctx->stat_watl_thrd - ctx->bit_per_frame;
+    if (real_bit + ctx->stat_watl > ctx->watl_thrd)
+        water_level = ctx->watl_thrd - ctx->bit_per_frame;
     else
-        water_level = real_bit + ctx->stat_watl_thrd - ctx->bit_per_frame;
+        water_level = real_bit + ctx->stat_watl - ctx->bit_per_frame;
 
-    if (water_level < ctx->stat_last_watl) {
-        water_level = ctx->stat_last_watl;
+    if (water_level < 0) {
+        water_level = 0;
     }
 
     if (target_bit > real_bit)
@@ -569,7 +563,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
 
     bps_ratio = 96 * (ins_bps - target_bps) / target_bps;
-    wl_ratio = 32 * (water_level - (ctx->stat_watl_thrd >> 3)) / (ctx->stat_watl_thrd >> 3);
+    wl_ratio = 32 * (water_level - ctx->watl_base) /  ctx->watl_base;
     if (last_ins_bps < ins_bps && target_bps != last_ins_bps) {
         ins_ratio = 6 * ins_ratio;
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
@@ -617,6 +611,12 @@ MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx)
     idx1 = mpp_clip(idx1, 0, 64);
     idx2 = mpp_clip(idx2, 0, 64);
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
+
+    rc_dbg_bps("%10s|%10s|%10s|%10s|%10s|%10s", "r_bits", "t_bits", "ins_bps", "p_ins_bps",
+               "bps_ch", "max_bps");
+    rc_dbg_bps("%10d %10d %10d %10d %10d %10d", pre_real_bits, pre_target_bits, ins_bps,
+               pre_ins_bps, bps_change, max_bps_target);
+
     if (ins_bps <= bps_change || (ins_bps > bps_change && ins_bps <= pre_ins_bps)) {
         flag = ins_bps < pre_ins_bps;
         if (bps_change <= pre_ins_bps)
@@ -636,8 +636,11 @@ MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx)
         bit_diff_ratio = mpp_clip(bit_diff_ratio, -16, 32);
         ins_ratio = mpp_clip(ins_ratio, -16, 32);
     }
+
     ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio;
 
+    rc_dbg_qp("%10s|%10s|%10s|%10s|%10s", "diff_ratio", "ins_ratio", "bps_ratio", "next_ratio", "cur_qp_s");
+    rc_dbg_qp("%10d %10d %10d %10d|%10d", bit_diff_ratio, ins_ratio, bps_ratio, ctx->next_ratio, ctx->cur_scale_qp);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
