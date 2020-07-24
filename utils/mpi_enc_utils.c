@@ -23,9 +23,47 @@
 
 #include "rk_mpi.h"
 #include "utils.h"
+#include "mpp_common.h"
 #include "mpi_enc_utils.h"
 
 #define MAX_FILE_NAME_LENGTH        256
+
+RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
+{
+    RK_S32 stride = 0;
+
+    switch (fmt) {
+    case MPP_FMT_YUV420SP :
+    case MPP_FMT_YUV420P : {
+        stride = MPP_ALIGN(width, 16);
+    } break;
+    case MPP_FMT_YUV422P:
+    case MPP_FMT_YUV422SP:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565:
+    case MPP_FMT_YUV422_YUYV :
+    case MPP_FMT_YUV422_YVYU :
+    case MPP_FMT_YUV422_UYVY :
+    case MPP_FMT_YUV422_VYUY : {
+        stride = MPP_ALIGN(width * 2, 16);
+    } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 : {
+        stride = width * 3;
+    } break;
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888:
+    case MPP_FMT_BGRA8888:
+    case MPP_FMT_RGBA8888: {
+        stride = width * 4;
+    } break;
+    default : {
+        mpp_err_f("do not support type %d\n", fmt);
+    } break;
+    }
+
+    return stride;
+}
 
 MpiEncTestArgs *mpi_enc_test_cmd_get(void)
 {
@@ -92,8 +130,6 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
             case 'w' : {
                 if (next) {
                     cmd->width = atoi(next);
-                    if (!cmd->hor_stride)
-                        cmd->hor_stride = cmd->width;
                 } else {
                     mpp_err("invalid input width\n");
                     goto PARSE_OPINIONS_OUT;
@@ -107,8 +143,6 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                     goto PARSE_OPINIONS_OUT;
                 } else if (next) {
                     cmd->height = atoi(next);
-                    if (!cmd->ver_stride)
-                        cmd->ver_stride = cmd->height;
                 }
             } break;
             case 'u' : {
@@ -256,6 +290,12 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
         mpp_err("invalid type %d\n", cmd->type);
         ret = MPP_NOK;
     }
+
+    if (!cmd->hor_stride)
+        cmd->hor_stride = mpi_enc_width_default_stride(cmd->width, cmd->format);
+    if (!cmd->ver_stride)
+        cmd->ver_stride = cmd->height;
+
     if (cmd->width <= 0 || cmd->height <= 0 ||
         cmd->hor_stride <= 0 || cmd->ver_stride <= 0) {
         mpp_err("invalid w:h [%d:%d] stride [%d:%d]\n",

@@ -263,6 +263,33 @@ void read_frm_crc(FILE *fp, FrmCrc *crc)
     }
 }
 
+static MPP_RET read_with_pixel_width(RK_U8 *buf, RK_S32 width, RK_S32 height,
+                                     RK_S32 hor_stride, RK_S32 pix_w, FILE *fp)
+{
+    RK_S32 row;
+    MPP_RET ret = MPP_OK;
+
+    if (hor_stride < width * pix_w) {
+        mpp_err_f("invalid %dbit color config: hor_stride %d is smaller then width %d multiply by 4\n",
+                  8 * pix_w, hor_stride, width, pix_w);
+        mpp_err_f("width  should be defined by pixel count\n");
+        mpp_err_f("stride should be defined by byte count\n");
+
+        hor_stride = width * pix_w;
+    }
+
+    for (row = 0; row < height; row++) {
+        RK_S32 read_size = fread(buf + row * hor_stride, 1, width * pix_w, fp);
+        if (read_size != width * pix_w) {
+            mpp_err_f("read file failed expect %d vs %d\n",
+                      width * pix_w, read_size);
+            ret = MPP_NOK;
+        }
+    }
+
+    return ret;
+}
+
 MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
                    RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt)
 {
@@ -362,9 +389,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     case MPP_FMT_ABGR8888:
     case MPP_FMT_BGRA8888:
     case MPP_FMT_RGBA8888: {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride * 4, 1, width * 4, fp);
-        }
+        ret = read_with_pixel_width(buf_y, width, height, hor_stride, 4, fp);
     } break;
     case MPP_FMT_YUV422P:
     case MPP_FMT_YUV422SP:
@@ -374,15 +399,11 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     case MPP_FMT_YUV422_YVYU :
     case MPP_FMT_YUV422_UYVY :
     case MPP_FMT_YUV422_VYUY : {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride * 2, 1, width * 2, fp);
-        }
+        ret = read_with_pixel_width(buf_y, width, height, hor_stride, 2, fp);
     } break;
     case MPP_FMT_RGB888 :
     case MPP_FMT_BGR888: {
-        for (row = 0; row < height; row++) {
-            read_size = fread(buf_y + row * hor_stride * 3, 1, width * 3, fp);
-        }
+        ret = read_with_pixel_width(buf_y, width, height, hor_stride, 3, fp);
     } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);
@@ -462,7 +483,16 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
         RK_U8 *p = buf_y;
         RK_U32 pix_w = 3;
 
-        for (y = 0; y < height; y++, p += hor_stride * pix_w) {
+        if (hor_stride < width * pix_w) {
+            mpp_err_f("invalid %dbit color config: hor_stride %d is smaller then width %d multiply by 4\n",
+                      8 * pix_w, hor_stride, width, pix_w);
+            mpp_err_f("width  should be defined by pixel count\n");
+            mpp_err_f("stride should be defined by byte count\n");
+
+            hor_stride = width * pix_w;
+        }
+
+        for (y = 0; y < height; y++, p += hor_stride) {
             for (x = 0, i = 0; x < width * pix_w; x += pix_w, i++) {
                 p[x + 0] = i + y + frame_count * 3;
                 p[x + 1] = 128 + i + frame_count * 2;
@@ -477,7 +507,16 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
         RK_U8 *p = buf_y;
         RK_U32 pix_w = 4;
 
-        for (y = 0; y < height; y++, p += hor_stride * pix_w) {
+        if (hor_stride < width * pix_w) {
+            mpp_err_f("invalid %dbit color config: hor_stride %d is smaller then width %d multiply by 4\n",
+                      8 * pix_w, hor_stride, width, pix_w);
+            mpp_err_f("width  should be defined by pixel count\n");
+            mpp_err_f("stride should be defined by byte count\n");
+
+            hor_stride = width * pix_w;
+        }
+
+        for (y = 0; y < height; y++, p += hor_stride) {
             for (x = 0, i = 0; x < width * pix_w; x += pix_w, i++) {
                 p[x + 0] = i + y + frame_count * 3;
                 p[x + 1] = 128 + i + frame_count * 2;
