@@ -731,6 +731,7 @@ static MPP_RET mpi_rc_codec(MpiRcTestCtx *ctx)
         mpp_frame_set_eos(frame_in, frm_eos);
 
         mpp_packet_init_with_buffer(&packet, pkt_buf_out);
+        mpp_packet_set_length(packet, 0);
 
         ret = enc_mpi->poll(enc_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
         if (ret) {
