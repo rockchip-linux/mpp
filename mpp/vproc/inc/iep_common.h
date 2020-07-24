@@ -110,6 +110,7 @@ typedef struct iep_com_ctx_t {
 struct dev_compatible {
     const char *compatible;
     iep_com_ctx* (*get)(void);
+    void (*put)(iep_com_ctx *ctx);
     int ver;
 };
 

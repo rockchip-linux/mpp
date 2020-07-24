@@ -455,6 +455,7 @@ static iep_com_ops iep2_ops = {
     .init = iep2_init,
     .deinit = iep2_deinit,
     .control = iep2_control,
+    .release = NULL,
 };
 
 iep_com_ctx* rockchip_iep2_api_alloc_ctx(void)

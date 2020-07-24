@@ -26,7 +26,7 @@
 
 #include "iep2_api.h"
 
-void iep2_sort(uint32_t bin[], int map[], int size)
+void iep2_sort(uint32_t bin[], uint32_t map[], int size)
 {
     int i, m, n;
     uint32_t *dat = malloc(size * sizeof(uint32_t));
@@ -62,7 +62,7 @@ static int iep2_osd_check(int8_t *mv, int w, int sx, int ex, int sy, int ey,
 {
     /* (28 + 27) * 4 + 1 */
     uint32_t hist[221];
-    int map[221];
+    uint32_t map[221];
     int total = (ey - sy + 1) * (ex - sx + 1);
     int non_zero = 0;
     int domin = 0;
@@ -73,7 +73,7 @@ static int iep2_osd_check(int8_t *mv, int w, int sx, int ex, int sy, int ey,
     for (i = sy; i <= ey; ++i) {
         for (j = sx; j <= ex; ++j) {
             int8_t v = mv[i * w + j];
-            int idx = v + 28 * 4;
+            uint32_t idx = v + 28 * 4;
 
             if (idx >= MPP_ARRAY_ELEMS(hist)) {
                 mpp_log("invalid mv at (%d, %d)\n", j, i);
@@ -90,7 +90,7 @@ static int iep2_osd_check(int8_t *mv, int w, int sx, int ex, int sy, int ey,
     domin = hist[map[0]];
     if (map[0] + 1 < MPP_ARRAY_ELEMS(hist))
         domin += hist[map[0] + 1];
-    if (map[0] - 1 >= 0)
+    if (map[0] >= 1)
         domin += hist[map[0] - 1];
 
     printf("total tiles in current osd: %d, non-zero %d\n",
