@@ -23,7 +23,8 @@
 #define RC_DBG_API_IMPL             (0x00000002)
 #define RC_DBG_FPS                  (0x00000010)
 #define RC_DBG_BPS                  (0x00000020)
-#define RC_DBG_RC                   (0x00000030)
+#define RC_DBG_RC                   (0x00000040)
+#define RC_DBG_QP                   (0x00000080)
 #define RC_DBG_CFG                  (0x00000100)
 #define RC_DBG_RECORD               (0x00001000)
 #define RC_DBG_VBV                  (0x00002000)
@@ -36,6 +37,8 @@
 #define rc_dbg_fps(fmt, ...)        rc_dbg_f(RC_DBG_FPS, fmt, ## __VA_ARGS__)
 #define rc_dbg_bps(fmt, ...)        rc_dbg_f(RC_DBG_BPS, fmt, ## __VA_ARGS__)
 #define rc_dbg_rc(fmt, ...)         rc_dbg_f(RC_DBG_RC, fmt, ## __VA_ARGS__)
+#define rc_dbg_qp(fmt, ...)         rc_dbg_f(RC_DBG_QP, fmt, ## __VA_ARGS__)
+
 #define rc_dbg_cfg(fmt, ...)        rc_dbg(RC_DBG_CFG, fmt, ## __VA_ARGS__)
 #define rc_dbg_vbv(fmt, ...)        rc_dbg(RC_DBG_VBV, fmt, ## __VA_ARGS__)
 
