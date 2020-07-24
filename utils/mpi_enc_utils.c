@@ -129,7 +129,21 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
             } break;
             case 'f' : {
                 if (next) {
-                    cmd->format = (MppFrameFormat)atoi(next);
+                    if (strstr(next, "x") || strstr(next, "X")) {
+                        /* hex value with 0x prefix, use sscanf */
+                        sscanf(next, "0x%x", &cmd->format);
+                    } else if (strstr(next, "a") || strstr(next, "A") ||
+                               strstr(next, "b") || strstr(next, "B") ||
+                               strstr(next, "c") || strstr(next, "C") ||
+                               strstr(next, "d") || strstr(next, "D") ||
+                               strstr(next, "e") || strstr(next, "E") ||
+                               strstr(next, "f") || strstr(next, "F")) {
+                        /* hex value without 0x prefix, use sscanf */
+                        sscanf(next, "%x", &cmd->format);
+                    } else {
+                        /* decimal value, use atoi */
+                        cmd->format = (MppFrameFormat)atoi(next);
+                    }
                     ret = ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
                            cmd->format >= MPP_FMT_RGB_BUTT);
                 }
