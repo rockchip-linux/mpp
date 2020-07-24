@@ -634,6 +634,7 @@ static MPP_RET mpi_rc_enc_encode(MpiRc2TestCtx *ctx, MppFrame frm)
     MppApi *enc_mpi = ctx->enc_mpi;
 
     mpp_packet_init_with_buffer(&ctx->enc_pkt, pkt_buf_out);
+    mpp_packet_set_length(ctx->enc_pkt, 0);
 
     ret = enc_mpi->poll(ctx->enc_ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
     if (ret) {

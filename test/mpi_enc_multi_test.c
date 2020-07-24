@@ -614,6 +614,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         mpp_frame_set_eos(p->frame, p->frm_eos);
 
         mpp_packet_init_with_buffer(&packet, pkt_buf_out);
+        mpp_packet_set_length(packet, 0);
 
         ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
         if (ret) {
