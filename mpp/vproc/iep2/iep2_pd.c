@@ -79,7 +79,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
     int ff00b = (ctx->output.dect_ff_cur_bcnt << 5) / bdiff;
     int nz = ctx->output.dect_ff_nz + 1;
     int f = ctx->output.dect_ff_comb_f;
-    int i, j;
+    size_t i, j;
 
     pd_inf->spatial[idx] = RKMIN(ff00t, ff00b);
     pd_inf->temporal[idx] = (tcnt < 32) | ((bcnt < 32) << 1);
@@ -109,8 +109,8 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
             pd_inf->fcoeff[4]);
 
     if (pd_inf->pdtype != PD_TYPES_UNKNOWN && pd_inf->step != -1) {
-        int i = (int)pd_inf->pdtype;
-        int type = pd_table[i][(pd_inf->step + 1) % 5];
+        int n = (int)pd_inf->pdtype;
+        int type = pd_table[n][(pd_inf->step + 1) % 5];
 
         if ((type == PD_TS && !(tcnt < 32)) ||
             (type == PD_BS && !(bcnt < 32))) {
@@ -208,7 +208,7 @@ int iep2_pd_get_output(struct iep2_pd_info *pd_inf)
     case PD_TYPES_2_3_3_2:
         switch (step) {
         case 2:
-            PD_COMP_FLAG_NON;
+            flag = PD_COMP_FLAG_NON;
             break;
         }
         break;

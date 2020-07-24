@@ -26,11 +26,13 @@ struct dev_compatible dev_comp[] = {
     {
         .compatible = "/dev/iep",
         .get = rockchip_iep_api_alloc_ctx,
+        .put = rockchip_iep_api_release_ctx,
         .ver = 1,
     },
     {
         .compatible = "/dev/mpp_service",
         .get = rockchip_iep2_api_alloc_ctx,
+        .put = rockchip_iep2_api_release_ctx,
         .ver = 2,
     },
 };
@@ -46,6 +48,8 @@ iep_com_ctx* get_iep_ctx()
             ctx->ver = dev_comp[i].ver;
             mpp_log("device %s select in vproc\n", dev_comp[i].compatible);
 
+            ctx->ops->release = dev_comp[i].put;
+
             return ctx;
         }
     }
@@ -55,6 +59,7 @@ iep_com_ctx* get_iep_ctx()
 
 void put_iep_ctx(iep_com_ctx *ictx)
 {
-    ictx->ops->release(ictx);
+    if (ictx->ops->release)
+        ictx->ops->release(ictx);
 }
 
