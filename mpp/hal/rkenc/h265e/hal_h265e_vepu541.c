@@ -1356,7 +1356,6 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
     H265eSyntax_new *syn = (H265eSyntax_new *)task->syntax.data;
     MppFrame frame = task->frame;
-    MppMeta meta = mpp_frame_get_meta(frame);
     EncFrmStatus  *frm_status = &task->rc_task->frm;
 
     h265e_hal_enter();
@@ -1375,7 +1374,8 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     } else {
         ctx->frame_type = INTER_P_FRAME;
     }
-    if (!frm_status->reencode) {
+    if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
+        MppMeta meta = mpp_frame_get_meta(frame);
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
     }

@@ -646,13 +646,16 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask *task)
     EncRcTaskInfo *info = &task->info;
     RcFpsCfg *fps = &p->usr_cfg.fps;
     RK_U32 md_ctu_cnt = 0;
-    MppMeta meta = mpp_frame_get_meta(task->frame);
     void *ptr = NULL;
 
     if (frm->reencode)
         return MPP_OK;
 
-    mpp_meta_get_ptr(meta, KEY_MV_LIST, &ptr);
+    if (mpp_frame_has_meta(task->frame)) {
+        MppMeta meta = mpp_frame_get_meta(task->frame);
+
+        mpp_meta_get_ptr(meta, KEY_MV_LIST, &ptr);
+    }
 
     md_ctu_cnt = cal_mv_info(ptr);
 
