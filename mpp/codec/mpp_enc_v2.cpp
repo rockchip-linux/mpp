@@ -1042,11 +1042,11 @@ void *mpp_enc_thread(void *data)
             hal_task->length += length;
         }
 
-        {
+        if (mpp_frame_has_meta(frame)) {
+            MppMeta frm_meta = mpp_frame_get_meta(frame);
             MppEncUserData *user_data = NULL;
-            MppMeta meta = mpp_frame_get_meta(frame);
 
-            mpp_meta_get_ptr(meta, KEY_USER_DATA, (void**)&user_data);
+            mpp_meta_get_ptr(frm_meta, KEY_USER_DATA, (void**)&user_data);
 
             if (user_data) {
                 if (user_data->pdata && user_data->len) {

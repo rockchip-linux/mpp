@@ -268,7 +268,7 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
         }
     }
 
-    if (!frm_status->reencode) {
+    if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
         MppMeta meta = mpp_frame_get_meta(task->frame);
 
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
