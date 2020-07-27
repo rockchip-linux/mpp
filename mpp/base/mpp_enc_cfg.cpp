@@ -28,11 +28,14 @@
 #include "mpp_enc_cfg_impl.h"
 
 #define MPP_ENC_CFG_DBG_FUNC            (0x00000001)
-#define MPP_ENC_CFG_DBG_SET             (0x00000002)
-#define MPP_ENC_CFG_DBG_GET             (0x00000004)
+#define MPP_ENC_CFG_DBG_INFO            (0x00000002)
+#define MPP_ENC_CFG_DBG_SET             (0x00000004)
+#define MPP_ENC_CFG_DBG_GET             (0x00000008)
 
 #define mpp_enc_cfg_dbg(flag, fmt, ...) _mpp_dbg_f(mpp_enc_cfg_debug, flag, fmt, ## __VA_ARGS__)
+
 #define mpp_enc_cfg_dbg_func(fmt, ...)  mpp_enc_cfg_dbg(MPP_ENC_CFG_DBG_FUNC, fmt, ## __VA_ARGS__)
+#define mpp_enc_cfg_dbg_info(fmt, ...)  mpp_enc_cfg_dbg(MPP_ENC_CFG_DBG_INFO, fmt, ## __VA_ARGS__)
 #define mpp_enc_cfg_dbg_set(fmt, ...)   mpp_enc_cfg_dbg(MPP_ENC_CFG_DBG_SET, fmt, ## __VA_ARGS__)
 #define mpp_enc_cfg_dbg_get(fmt, ...)   mpp_enc_cfg_dbg(MPP_ENC_CFG_DBG_GET, fmt, ## __VA_ARGS__)
 
@@ -272,8 +275,9 @@ MppEncCfgService::MppEncCfgService() :
             mpp_trie_add_info(mCfgApi, &cfg_apis[i]->name);
     }
 
-    mpp_log_f("create info %d with node %d -> %d info\n",
-              api_cnt, node_len, mpp_trie_get_node_count(mCfgApi));
+    if (node_len < mpp_trie_get_node_count(mCfgApi))
+        mpp_err_f("create info %d with not enough node %d -> %d info\n",
+                  api_cnt, node_len, mpp_trie_get_node_count(mCfgApi));
 }
 
 MppEncCfgService::~MppEncCfgService()
@@ -386,12 +390,16 @@ void mpp_enc_cfg_show(void)
 {
     RK_U32 i;
 
-    mpp_log_f("dumping valid configure string start:\n");
+    mpp_log_f("dumping valid configure string start\n");
 
     for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
         mpp_log_f("name %s type %s %s\n", cfg_apis[i]->name,
                   cfg_func_names[cfg_apis[i]->type_set],
                   cfg_func_names[cfg_apis[i]->type_get]);
 
-    mpp_log_f("dumping valid configure string done:\n");
+    mpp_log_f("dumping valid configure string done\n");
+
+    mpp_log_f("total api count %d with node %d -> %d info\n",
+              MPP_ARRAY_ELEMS(cfg_apis), node_len,
+              mpp_trie_get_node_count(MppEncCfgService::get()->get_api()));
 }

@@ -298,44 +298,70 @@ static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
     return 0;
 }
 
+static const char *resend_reason[] = {
+    "unchanged",
+    "codec/prep cfg change",
+    "rc cfg change rc_mode/fps/gop",
+    "set cfg change input/format ",
+    "set cfg change rc_mode/fps/gop",
+    "set cfg change codec",
+};
+
 static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 {
-    if (cmd == MPP_ENC_SET_CODEC_CFG ||
-        cmd == MPP_ENC_SET_PREP_CFG)
-        return 1;
+    RK_S32 resend = 0;
 
-    if (cmd == MPP_ENC_SET_RC_CFG) {
-        RK_U32 change = *(RK_U32 *)param;
-        RK_U32 check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                            MPP_ENC_RC_CFG_CHANGE_FPS_IN |
-                            MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
-                            MPP_ENC_RC_CFG_CHANGE_GOP;
-
-        if (change & check_flag)
-            return 1;
-    }
-
-    if (cmd == MPP_ENC_SET_CFG) {
-        RK_U32 change = cfg->prep.change;
-        RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                            MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-
-        if (change & check_flag)
-            return 1;
-
-        change = cfg->rc.change;
-        check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                     MPP_ENC_RC_CFG_CHANGE_FPS_IN |
-                     MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
-                     MPP_ENC_RC_CFG_CHANGE_GOP;
-
-        if (change & check_flag)
-            return 1;
-        if (check_codec_to_resend_hdr(&cfg->codec)) {
-            return 1;
+    do {
+        if (cmd == MPP_ENC_SET_CODEC_CFG ||
+            cmd == MPP_ENC_SET_PREP_CFG) {
+            resend = 1;
+            break;
         }
-    }
-    return 0;
+
+        if (cmd == MPP_ENC_SET_RC_CFG) {
+            RK_U32 change = *(RK_U32 *)param;
+            RK_U32 check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                                MPP_ENC_RC_CFG_CHANGE_FPS_IN |
+                                MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
+                                MPP_ENC_RC_CFG_CHANGE_GOP;
+
+            if (change & check_flag) {
+                resend = 2;
+                break;
+            }
+        }
+
+        if (cmd == MPP_ENC_SET_CFG) {
+            RK_U32 change = cfg->prep.change;
+            RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
+                                MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+
+            if (change & check_flag) {
+                resend = 3;
+                break;
+            }
+
+            change = cfg->rc.change;
+            check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
+                         MPP_ENC_RC_CFG_CHANGE_FPS_IN |
+                         MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
+                         MPP_ENC_RC_CFG_CHANGE_GOP;
+
+            if (change & check_flag) {
+                resend = 4;
+                break;
+            }
+            if (check_codec_to_resend_hdr(&cfg->codec)) {
+                resend = 5;
+                break;
+            }
+        }
+    } while (0);
+
+    if (resend)
+        mpp_log("send header for %s\n", resend_reason[resend]);
+
+    return resend;
 }
 
 static RK_S32 check_codec_to_rc_cfg_update(MppEncCodecCfg *codec)

@@ -77,7 +77,8 @@ MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name)
             p->ctx = rc_ctx;
             p->api = api;
             p->frm_cnt = -1;
-            mpp_err_f("using rc impl %s\n", api->name);
+            if (request_name && *request_name)
+                mpp_log("using rc impl %s\n", api->name);
             ret = MPP_OK;
         }
     }
