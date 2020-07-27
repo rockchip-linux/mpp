@@ -257,9 +257,9 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             mpp_err_f("failed to accept new prep config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
-                      dst->width, dst->height,
-                      dst->hor_stride, dst->ver_stride);
+            mpp_log("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
+                    dst->width, dst->height,
+                    dst->hor_stride, dst->ver_stride);
         }
     }
 
@@ -331,9 +331,9 @@ static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             mpp_err_f("failed to accept new rc config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                      dst->bps_target, dst->bps_min, dst->bps_max,
-                      dst->fps_in_num, dst->fps_out_num, dst->gop);
+            mpp_log("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                    dst->bps_target, dst->bps_min, dst->bps_max,
+                    dst->fps_in_num, dst->fps_out_num, dst->gop);
         }
     }
 
