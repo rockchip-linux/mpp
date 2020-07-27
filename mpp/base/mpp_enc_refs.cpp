@@ -111,23 +111,62 @@ RK_U32 enc_refs_debug = 0;
 
 void _dump_frm(EncFrmStatus *frm, const char *func, RK_S32 line)
 {
+    if (!frm->valid)
+        return ;
+
     if (frm->is_non_ref) {
-        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d non-ref -> [%x:%d]\n",
-                         func, line, frm->valid, frm->seq_idx,
-                         frm->is_intra ? "intra" : "inter",
-                         frm->temporal_id, frm->ref_mode, frm->ref_arg);
+        mpp_log("%s:%d valid %d frm %d %s tid %d non-ref -> [%x:%d]\n",
+                func, line, frm->valid, frm->seq_idx,
+                frm->is_intra ? "intra" : "inter",
+                frm->temporal_id, frm->ref_mode, frm->ref_arg);
     } else if (frm->is_lt_ref) {
-        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d lt-ref  -> [%x:%d] lt_idx %d\n",
-                         func, line, frm->valid, frm->seq_idx,
-                         frm->is_intra ? "intra" : "inter",
-                         frm->temporal_id, frm->ref_mode, frm->ref_arg,
-                         frm->lt_idx);
+        mpp_log("%s:%d valid %d frm %d %s tid %d lt-ref  -> [%x:%d] lt_idx %d\n",
+                func, line, frm->valid, frm->seq_idx,
+                frm->is_intra ? "intra" : "inter",
+                frm->temporal_id, frm->ref_mode, frm->ref_arg,
+                frm->lt_idx);
     } else {
-        enc_refs_dbg_frm("%s:%d valid %d frm %d %s tid %d st-ref  -> [%x:%d]\n",
-                         func, line, frm->valid, frm->seq_idx,
-                         frm->is_intra ? "intra" : "inter",
-                         frm->temporal_id, frm->ref_mode, frm->ref_arg);
+        mpp_log("%s:%d valid %d frm %d %s tid %d st-ref  -> [%x:%d]\n",
+                func, line, frm->valid, frm->seq_idx,
+                frm->is_intra ? "intra" : "inter",
+                frm->temporal_id, frm->ref_mode, frm->ref_arg);
     }
+}
+
+#define dump_cpb(cpb)   _dump_cpb(cpb, __FUNCTION__, __LINE__)
+
+void _dump_cpb(EncVirtualCpb *cpb, const char *func, RK_S32 line)
+{
+    MppEncCpbInfo *info = &cpb->info;
+    RK_S32 i;
+
+    mpp_log("%s:%d cpb %p status:\n", func, line, cpb);
+    mpp_log("cpb info: dpb_size %d max_lt/st cnt [%d:%d] \n",
+            info->dpb_size, info->max_lt_cnt, info->max_st_cnt);
+    mpp_log("cpb info: max_lt_idx %d max_st_tid %d\n",
+            info->max_lt_idx, info->max_st_tid);
+    mpp_log("cpb info: lt_gop %d st_gop %d\n",
+            info->lt_gop, info->st_gop);
+
+    mpp_log("cpb cpb_refs:\n");
+    for (i = 0; i < MAX_CPB_FRM; i++)
+        dump_frm(&cpb->cpb_refs[i]);
+
+    mpp_log("cpb mode_refs:\n");
+    for (i = 0; i < MAX_CPB_FRM; i++)
+        dump_frm(&cpb->mode_refs[i]);
+
+    mpp_log("cpb st_tid_refs:\n");
+    for (i = 0; i < MAX_CPB_TID_FRM; i++)
+        dump_frm(&cpb->st_tid_refs[i]);
+
+    mpp_log("cpb lt_idx_refs:\n");
+    for (i = 0; i < MAX_CPB_LT_IDX; i++)
+        dump_frm(&cpb->lt_idx_refs[i]);
+
+    mpp_log("cpb runtime: frm_idx %d seq_idx %d seq_cnt %d st_cfg [%d:%d]\n",
+            cpb->frm_idx, cpb->seq_idx, cpb->seq_cnt,
+            cpb->st_cfg_pos, cpb->st_cfg_repeat_pos);
 }
 
 MPP_RET mpp_enc_refs_init(MppEncRefs *refs, MppEncCfgSet *cfg)
@@ -268,7 +307,9 @@ static void set_st_cfg_to_frm(EncFrmStatus *frm, RK_S32 seq_idx,
     frm->temporal_id = st_cfg->temporal_id;
     frm->ref_mode = st_cfg->ref_mode;
     frm->ref_arg = st_cfg->ref_arg;
-    dump_frm(frm);
+
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FRM)
+        dump_frm(frm);
 }
 
 static void set_lt_cfg_to_frm(EncFrmStatus *frm, RefsCnt *lt_cfg)
@@ -282,7 +323,9 @@ static void set_lt_cfg_to_frm(EncFrmStatus *frm, RefsCnt *lt_cfg)
         frm->ref_mode = lt_cfg->ref_mode;
         frm->ref_arg = lt_cfg->ref_arg;
     }
-    dump_frm(frm);
+
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FRM)
+        dump_frm(frm);
 }
 
 static EncFrmStatus *get_ref_from_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
@@ -376,6 +419,7 @@ static RK_S32 check_ref_cpb_pos(EncVirtualCpb *cpb, EncFrmStatus *frm)
     if (!found) {
         mpp_err_f("frm %d can NOT be found in st refs!!\n", seq_idx);
         pos = -1;
+        dump_cpb(cpb);
     }
 
     return pos;
@@ -428,8 +472,9 @@ static void save_cpb_status(EncVirtualCpb *cpb, EncFrmStatus *refs)
     }
 
     enc_refs_dbg_flow("save ref total %d lt %d st %d\n", ref_cnt, lt_ref_cnt, st_ref_cnt);
-    for (i = 0; i < ref_cnt; i++)
-        dump_frm(&refs[i]);
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FLOW)
+        for (i = 0; i < ref_cnt; i++)
+            dump_frm(&refs[i]);
 }
 
 static void store_ref_to_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
@@ -498,10 +543,11 @@ static void store_ref_to_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
     }
 
     enc_refs_dbg_flow("dumping cpb refs status start\n");
-    for (i = 0; i < MAX_CPB_FRM; i++) {
-        if (cpb->cpb_refs[i].valid)
-            dump_frm(&cpb->cpb_refs[i]);
-    }
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FLOW)
+        for (i = 0; i < MAX_CPB_FRM; i++)
+            if (cpb->cpb_refs[i].valid)
+                dump_frm(&cpb->cpb_refs[i]);
+
     enc_refs_dbg_flow("dumping cpb refs status done\n");
 }
 
@@ -722,6 +768,13 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         ref->val = ref_found->val;
     } else
         ref->val = 0;
+
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FRM) {
+        mpp_log_f("frm status:\n");
+        dump_frm(frm);
+        mpp_log_f("ref status:\n");
+        dump_frm(ref);
+    }
 
     /* step 5. generate cpb init */
     memset(status->init, 0, sizeof(status->init));
