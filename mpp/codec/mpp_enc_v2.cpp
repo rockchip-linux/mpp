@@ -339,7 +339,8 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         if (cmd == MPP_ENC_SET_CFG) {
             RK_U32 change = cfg->prep.change;
             RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                                MPP_ENC_PREP_CFG_CHANGE_FORMAT;
+                                MPP_ENC_PREP_CFG_CHANGE_FORMAT |
+                                MPP_ENC_PREP_CFG_CHANGE_ROTATION;
 
             if (change & check_flag) {
                 resend = 3;
