@@ -295,7 +295,8 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
         dst->sharpen = src->sharpen;
 
-    if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+    if ((change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
+        (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
         if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
             dst->width = src->height;
             dst->height = src->width;
@@ -322,6 +323,12 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
                     dst->width, dst->height, dst->hor_stride, dst->ver_stride);
             ret = MPP_ERR_VALUE;
         }
+    }
+
+    if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation)) {
+        mpp_err("invalid cfg fbc data no support mirror %d or rotaion",
+                dst->mirroring, dst->rotation);
+        ret = MPP_ERR_VALUE;
     }
 
     if (ret) {
