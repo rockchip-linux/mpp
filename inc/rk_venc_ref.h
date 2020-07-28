@@ -226,6 +226,12 @@ MPP_RET mpp_enc_ref_cfg_add_lt_cfg(MppEncRefCfg ref, RK_S32 cnt, MppEncRefLtFrmC
 MPP_RET mpp_enc_ref_cfg_add_st_cfg(MppEncRefCfg ref, RK_S32 cnt, MppEncRefStFrmCfg *frm);
 MPP_RET mpp_enc_ref_cfg_check(MppEncRefCfg ref);
 
+/*
+ * A new reference configure will restart a new gop and clear cpb by default.
+ * The keep cpb function will let encoder keeps the current cpb status and do NOT
+ * reset all the reference frame in cpb.
+ */
+MPP_RET mpp_enc_ref_cfg_set_keep_cpb(MppEncRefCfg ref, RK_S32 keep);
 MPP_RET mpp_enc_ref_cfg_get_preset(MppEncRefPreset *preset);
 MPP_RET mpp_enc_ref_cfg_show(MppEncRefCfg ref);
 

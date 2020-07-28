@@ -276,10 +276,15 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
 static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
 {
     MppCodingType coding = codec->coding;
+    RK_U32 skip_flag = 0;
+
     switch (coding) {
     case MPP_VIDEO_CodingAVC : {
         MppEncH264Cfg *h264 = &codec->h264;
-        if (h264->change & (~MPP_ENC_H264_CFG_CHANGE_QP_LIMIT))
+
+        skip_flag = MPP_ENC_H264_CFG_CHANGE_QP_LIMIT | MPP_ENC_H264_CFG_CHANGE_MAX_TID;
+
+        if (h264->change & (~skip_flag))
             return 1;
     } break;
     case MPP_VIDEO_CodingHEVC : {
@@ -428,6 +433,15 @@ static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
     return 0;
 }
 
+static RK_S32 check_rc_gop_update(MpiCmd cmd, MppEncCfgSet *cfg)
+{
+    if (((cmd == MPP_ENC_SET_RC_CFG) || (cmd == MPP_ENC_SET_CFG)) &&
+        (cfg->rc.change & MPP_ENC_RC_CFG_CHANGE_GOP))
+        return 1;
+
+    return 0;
+}
+
 static void mpp_enc_proc_cfg(MppEncImpl *enc)
 {
     switch (enc->cmd) {
@@ -525,7 +539,9 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
             mpp_err_f("failed to set ref cfg ret %d\n", ret);
             *enc->cmd_ret = ret;
         }
-        enc->hdr_status.val = 0;
+
+        if (mpp_enc_refs_update_hdr(enc->refs))
+            enc->hdr_status.val = 0;
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
         MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)enc->param;
@@ -567,6 +583,8 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
     }
     if (check_rc_cfg_update(enc->cmd, &enc->cfg))
         enc->rc_status.rc_api_user_cfg = 1;
+    if (check_rc_gop_update(enc->cmd, &enc->cfg))
+        mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
 }
 
 #define RUN_ENC_IMPL_FUNC(func, impl, task, mpp, ret)           \
@@ -961,17 +979,19 @@ void *mpp_enc_thread(void *data)
         hal_task->length = mpp_packet_get_length(packet);
         mpp_task_meta_get_buffer(task_in, KEY_MOTION_INFO, &hal_task->mv_info);
 
-        // 15. setup user_cfg to dpb
-        if (enc->frm_cfg.force_flag) {
-            mpp_enc_refs_set_usr_cfg(enc->refs, &enc->frm_cfg);
-            enc->frm_cfg.force_flag = 0;
+        /* 14. check frm_meta data force key in input frame and start one frame */
+        enc_dbg_detail("task %d enc start\n", frm->seq_idx);
+        RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
+
+        // 14. setup user_cfg to dpb
+        if (frm_cfg->force_flag) {
+            mpp_enc_refs_set_usr_cfg(enc->refs, frm_cfg);
+            frm_cfg->force_flag = 0;
         }
 
-        // 14. backup dpb
-        enc_dbg_detail("task %d enc start\n", frm->seq_idx);
-        task.status.enc_backup = 1;
-        RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
+        // 15. backup dpb
         mpp_enc_refs_stash(enc->refs);
+        task.status.enc_backup = 1;
 
     TASK_REENCODE:
         // 15. restore and process dpb
@@ -1181,7 +1201,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    ret = mpp_enc_refs_init(&p->refs, &p->cfg);
+    ret = mpp_enc_refs_init(&p->refs);
     if (ret) {
         mpp_err_f("could not init enc refs\n");
         goto ERR_RET;

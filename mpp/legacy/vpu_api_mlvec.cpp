@@ -463,6 +463,7 @@ MPP_RET vpu_api_mlvec_set_dy_max_tid(VpuApiMlvec ctx, RK_S32 max_tid)
         ret = mpp_enc_ref_cfg_set_cfg_cnt(ref, lt_cfg_cnt, st_cfg_cnt);
         ret = mpp_enc_ref_cfg_add_lt_cfg(ref, lt_cfg_cnt, lt_ref);
         ret = mpp_enc_ref_cfg_add_st_cfg(ref, st_cfg_cnt, st_ref);
+        ret = mpp_enc_ref_cfg_set_keep_cpb(ref, 1);
         ret = mpp_enc_ref_cfg_check(ref);
 
         ret = mpi->control(mpp_ctx, MPP_ENC_SET_REF_CFG, ref);

@@ -40,6 +40,7 @@ typedef struct MppEncRefCfgImpl_t {
     RK_U32              debug;
 
     /* config from user */
+    RK_S32              keep_cpb;
     RK_S32              max_lt_cfg;
     RK_S32              max_st_cfg;
     RK_S32              lt_cfg_cnt;
