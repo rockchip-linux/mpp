@@ -83,7 +83,7 @@ typedef struct {
     H264eSyntaxDesc     syntax[H264E_SYN_BUTT];
 } H264eCtx;
 
-static void init_h264e_cfg_set(MppEncCfgSet *cfg)
+static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
 {
     MppEncRcCfg *rc_cfg = &cfg->rc;
     MppEncPrepCfg *prep = &cfg->prep;
@@ -102,6 +102,24 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg)
     h264->qp_max = 48;
     h264->qp_min = 8;
     h264->qp_max_step = 8;
+
+    switch (dev_id) {
+    case DEV_VEPU : {
+        h264->poc_type = 2;
+        h264->log2_max_poc_lsb = 12;
+        h264->log2_max_frame_num = 12;
+    } break;
+    case DEV_RKVENC : {
+        h264->poc_type = 0;
+        h264->log2_max_poc_lsb = 12;
+        h264->log2_max_frame_num = 12;
+    } break;
+    default : {
+        h264->poc_type = 0;
+        h264->log2_max_poc_lsb = 12;
+        h264->log2_max_frame_num = 12;
+    } break;
+    }
 
     /*
      * default prep:
@@ -174,7 +192,7 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
     h264e_dpb_init(&p->dpb, &p->reorder, &p->marking);
     h264e_slice_init(&p->slice, &p->reorder, &p->marking);
 
-    init_h264e_cfg_set(p->cfg);
+    init_h264e_cfg_set(p->cfg, p->dev_id);
 
     mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 
@@ -354,6 +372,21 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->level = src->level;
         dst->change |= MPP_ENC_H264_CFG_CHANGE_PROFILE;
     }
+    if ((change & MPP_ENC_H264_CFG_CHANGE_POC_TYPE) &&
+        (dst->poc_type != src->poc_type)) {
+        dst->poc_type = src->poc_type;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_POC_TYPE;
+    }
+    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB) &&
+        (dst->log2_max_poc_lsb != src->log2_max_poc_lsb)) {
+        dst->log2_max_poc_lsb = src->log2_max_poc_lsb;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB;
+    }
+    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM) &&
+        (dst->log2_max_frame_num != src->log2_max_frame_num)) {
+        dst->log2_max_frame_num = src->log2_max_frame_num;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM;
+    }
     if ((change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) &&
         ((dst->entropy_coding_mode != src->entropy_coding_mode) ||
          (dst->cabac_init_idc != src->cabac_init_idc))) {
@@ -525,7 +558,7 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
 
     h264e_dbg_func("enter\n");
 
-    h264e_sps_update(&p->sps, p->cfg, p->dev_id);
+    h264e_sps_update(&p->sps, p->cfg);
     h264e_pps_update(&p->pps, p->cfg);
 
     /*
