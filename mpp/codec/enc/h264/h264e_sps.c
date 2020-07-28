@@ -58,7 +58,7 @@ H264eLevelInfo level_infos[] = {
     {   H264_LEVEL_6_2, 16711680,   139264,     696320,  800000, "6.2" },
 };
 
-MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
+MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
 {
     SynH264eVui *vui = &sps->vui;
     MppEncPrepCfg *prep = &cfg->prep;
@@ -112,6 +112,10 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     sps->chroma_format_idc = H264_CHROMA_420;
 
     // set max frame number and poc lsb according to gop size
+    sps->pic_order_cnt_type = h264->poc_type;
+    sps->log2_max_poc_lsb_minus4 = h264->log2_max_poc_lsb;
+    sps->log2_max_frame_num_minus4 = h264->log2_max_frame_num;
+
     mpp_assert(gop >= 0);
     if (gop == 0) {
         // only one I then all P frame
@@ -124,22 +128,14 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev)
     } else {
         // normal case
         RK_S32 log2_gop = mpp_log2(gop);
+        RK_S32 log2_frm_num = (log2_gop <= 4) ? (0) : (log2_gop - 4);
+        RK_S32 log2_poc_lsb = (log2_gop <= 3) ? (0) : (log2_gop - 3);
 
-        sps->log2_max_frame_num_minus4 = (log2_gop <= 4) ? (0) : (log2_gop - 4);
-        sps->log2_max_poc_lsb_minus4   = (log2_gop <= 3) ? (0) : (log2_gop - 3);
-    }
+        if (sps->log2_max_frame_num_minus4 < log2_frm_num)
+            sps->log2_max_frame_num_minus4 = log2_frm_num;
 
-    // default poc_type 0
-    sps->pic_order_cnt_type = 0;
-    if (dev == DEV_VEPU) {
-        // VEPU hardware default poc_type is 2
-        sps->pic_order_cnt_type = 2;
-        sps->log2_max_frame_num_minus4 = 12;
-    }
-    // NOTE: when tsvc mode enabled poc type should be zero.
-    if (info->dpb_size > 1) {
-        sps->pic_order_cnt_type = 0;
-        sps->log2_max_frame_num_minus4 = 12;
+        if (sps->log2_max_poc_lsb_minus4 < log2_poc_lsb)
+            sps->log2_max_poc_lsb_minus4 = log2_poc_lsb;
     }
 
     // max one reference frame

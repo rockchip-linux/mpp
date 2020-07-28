@@ -506,6 +506,12 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_LONG_TERM       = (1 << 8),
     /* change on scaling_list_mode */
     MPP_ENC_H264_CFG_CHANGE_SCALING_LIST    = (1 << 9),
+    /* change on poc type */
+    MPP_ENC_H264_CFG_CHANGE_POC_TYPE        = (1 << 10),
+    /* change on log2 max poc lsb minus 4 */
+    MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB     = (1 << 11),
+    /* change on log2 max frame number minus 4 */
+    MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM     = (1 << 12),
 
     /* change on max_qp / min_qp / max_qp_step */
     MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
@@ -535,8 +541,19 @@ typedef struct MppEncH264Cfg_t {
      */
     RK_S32              stream_type;
 
-    /* H.264 codec syntax config */
-    RK_S32              svc;                        /* 0 - avc 1 - svc */
+    /*
+     * H.264 codec syntax config
+     * svc                  - deprecated, reserved for compile compatibility
+     *
+     * do NOT setup the three option below unless you are familiar with encoder detail
+     * poc_type             - picture order count type 0 ~ 2
+     * log2_max_poc_lsb     - used in sps with poc_type 0,
+     * log2_max_frame_num   - used in sps
+     */
+    RK_U8               svc;
+    RK_U8               poc_type;
+    RK_U8               log2_max_poc_lsb;
+    RK_U8               log2_max_frame_num;
 
     /*
      * H.264 profile_idc parameter

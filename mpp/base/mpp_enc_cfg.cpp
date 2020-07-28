@@ -178,6 +178,9 @@ static const char *cfg_func_names[] = {
     ENTRY(h264, stream_type,    S32, RK_S32,            MPP_ENC_H264_CFG_STREAM_TYPE,           codec.h264, stream_type) \
     ENTRY(h264, profile,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_PROFILE,        codec.h264, profile) \
     ENTRY(h264, level,          S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_PROFILE,        codec.h264, level) \
+    ENTRY(h264, poc_type,       U32, RK_U32,            MPP_ENC_H264_CFG_CHANGE_POC_TYPE,       codec.h264, poc_type) \
+    ENTRY(h264, log2_max_poc_lsb,   U32, RK_U32,        MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB,    codec.h264, log2_max_poc_lsb) \
+    ENTRY(h264, log2_max_frm_num,   U32, RK_U32,        MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM,    codec.h264, log2_max_frame_num) \
     ENTRY(h264, cabac_en,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_ENTROPY,        codec.h264, entropy_coding_mode) \
     ENTRY(h264, cabac_idc,      S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_ENTROPY,        codec.h264, cabac_init_idc) \
     ENTRY(h264, trans8x8,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_TRANS_8x8,      codec.h264, transform8x8_mode) \
@@ -236,7 +239,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 23;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 21;
 
 class MppEncCfgService
 {

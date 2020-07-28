@@ -17,8 +17,6 @@
 #ifndef __H264E_SPS_H__
 #define __H264E_SPS_H__
 
-#include "mpp_platform.h"
-
 #include "mpp_packet.h"
 #include "mpp_enc_cfg.h"
 
@@ -28,7 +26,7 @@
 extern "C" {
 #endif
 
-MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg, MppDeviceId dev);
+MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg);
 MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len);
 MPP_RET h264e_sps_dump(SynH264eSps *sps);
 
