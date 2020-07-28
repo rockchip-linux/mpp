@@ -313,7 +313,7 @@ MPP_RET mpp_enc_ref_cfg_check(MppEncRefCfg ref)
         cpb_info->lt_gop     = lt_dryrun_length;
         cpb_info->st_gop     = st_dryrun_length - 1;
 
-        ret = mpp_enc_refs_init(&refs, NULL);
+        ret = mpp_enc_refs_init(&refs);
         ready = (ret) ? 0 : (ready);
         ret = mpp_enc_refs_set_cfg(refs, ref);
         ready = (ret) ? 0 : (ready);
@@ -332,6 +332,17 @@ MPP_RET mpp_enc_ref_cfg_check(MppEncRefCfg ref)
     p->ready = ready;
 
     return ready ? MPP_OK : MPP_NOK;
+}
+
+MPP_RET mpp_enc_ref_cfg_set_keep_cpb(MppEncRefCfg ref, RK_S32 keep)
+{
+    if (check_is_mpp_enc_ref_cfg(ref))
+        return MPP_ERR_VALUE;
+
+    MppEncRefCfgImpl *p = (MppEncRefCfgImpl *)ref;
+    p->keep_cpb = keep;
+
+    return MPP_OK;
 }
 
 MPP_RET mpp_enc_ref_cfg_show(MppEncRefCfg ref)
@@ -412,6 +423,7 @@ static const MppEncRefCfgImpl default_ref_cfg = {
     .name               = module_name,
     .ready              = 1,
     .debug              = 0,
+    .keep_cpb           = 0,
     .max_lt_cfg         = 0,
     .max_st_cfg         = 1,
     .lt_cfg_cnt         = 0,
