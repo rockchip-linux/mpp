@@ -314,7 +314,7 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
     rc_cfg->gop              = p->gop;
     rc_cfg->max_reenc_times  = 1;
 
-    mpp_log("mpi_enc_test bps %d fps %d gop %d\n",
+    mpp_log("%p mpi_enc_test bps %d fps %d gop %d\n", ctx,
             rc_cfg->bps_target, rc_cfg->fps_out_num, rc_cfg->gop);
     ret = mpi->control(ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
     if (ret) {
@@ -393,7 +393,7 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
         split_cfg->split_mode = p->split_mode;
         split_cfg->split_arg = p->split_arg;
 
-        mpp_log("split_mode %d split_arg %d\n", p->split_mode, p->split_arg);
+        mpp_log("%p split_mode %d split_arg %d\n", ctx, p->split_mode, p->split_arg);
 
         ret = mpi->control(ctx, MPP_ENC_SET_SPLIT, split_cfg);
         if (ret) {
@@ -576,7 +576,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_env_get_u32("split_arg", &p->split_arg, 0);
 
     if (p->split_mode) {
-        mpp_log("split_mode %d split_arg %d\n", p->split_mode, p->split_arg);
+        mpp_log("%p split_mode %d split_arg %d\n", ctx, p->split_mode, p->split_arg);
         mpp_enc_cfg_set_s32(cfg, "split:mode", p->split_mode);
         mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
     }
@@ -692,10 +692,10 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                     clearerr(p->fp_input);
                     rewind(p->fp_input);
                     p->frm_eos = 0;
-                    mpp_log("loop times %d\n", ++p->loop_times);
+                    mpp_log("%p loop times %d\n", ctx, ++p->loop_times);
                     continue;
                 }
-                mpp_log("found last frame. feof %d\n", feof(p->fp_input));
+                mpp_log("%p found last frame. feof %d\n", ctx, feof(p->fp_input));
             } else if (ret == MPP_ERR_VALUE)
                 goto RET;
         } else {
@@ -800,32 +800,48 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             // write packet to file here
             void *ptr   = mpp_packet_get_pos(packet);
             size_t len  = mpp_packet_get_length(packet);
-            MppMeta meta = mpp_packet_get_meta(packet);
-            RK_S32 temporal_id = 0;
-
-            ret = mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id);
-            if (ret == MPP_OK)
-                mpp_log_f("get temporal id %d\n", temporal_id);
-            ret = MPP_OK;
+            char log_buf[256];
+            RK_S32 log_size = sizeof(log_buf) - 1;
+            RK_S32 log_len = 0;
 
             p->pkt_eos = mpp_packet_get_eos(packet);
 
             if (p->fp_output)
                 fwrite(ptr, 1, len, p->fp_output);
+
+            log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                "encoded frame %-4d size %-7d",
+                                p->frame_count, len);
+
+            if (mpp_packet_has_meta(packet)) {
+                MppMeta meta = mpp_packet_get_meta(packet);
+                RK_S32 temporal_id = 0;
+                RK_S32 lt_idx = -1;
+
+                if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        " tid %d", temporal_id);
+
+                if (MPP_OK == mpp_meta_get_s32(meta, KEY_LONG_REF_IDX, &lt_idx))
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        " lt %d", lt_idx);
+            }
+
+            mpp_log("%p %s\n", ctx, log_buf);
+
             mpp_packet_deinit(&packet);
 
-            mpp_log_f("encoded frame %d size %d\n", p->frame_count, len);
             p->stream_size += len;
             p->frame_count++;
 
             if (p->pkt_eos) {
-                mpp_log("found last packet\n");
+                mpp_log("%p found last packet\n", ctx);
                 mpp_assert(p->frm_eos);
             }
         }
 
         if (p->num_frames > 0 && p->frame_count >= p->num_frames) {
-            mpp_log_f("encode max %d frames", p->frame_count);
+            mpp_log("%p encode max %d frames", ctx, p->frame_count);
             break;
         }
         if (p->frm_eos && p->pkt_eos)
@@ -862,15 +878,15 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    mpp_log("mpi_enc_test encoder test start w %d h %d type %d\n",
-            p->width, p->height, p->type);
-
     // encoder demo
     ret = mpp_create(&p->ctx, &p->mpi);
     if (ret) {
         mpp_err("mpp_create failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
+
+    mpp_log("%p mpi_enc_test encoder test start w %d h %d type %d\n",
+            p->ctx, p->width, p->height, p->type);
 
     ret = p->mpi->control(p->ctx, MPP_SET_OUTPUT_TIMEOUT, &timeout);
     if (MPP_OK != ret) {
@@ -912,6 +928,13 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
     }
 
 MPP_TEST_OUT:
+    if (MPP_OK == ret)
+        mpp_log("%p mpi_enc_test success total frame %d bps %lld\n",
+                p->ctx, p->frame_count,
+                (RK_U64)((p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frame_count));
+    else
+        mpp_err("%p mpi_enc_test failed ret %d\n", p->ctx, ret);
+
     if (p->ctx) {
         mpp_destroy(p->ctx);
         p->ctx = NULL;
@@ -931,13 +954,6 @@ MPP_TEST_OUT:
         mpp_buffer_put(p->osd_idx_buf);
         p->osd_idx_buf = NULL;
     }
-
-    if (MPP_OK == ret)
-        mpp_log("mpi_enc_test success total frame %d bps %lld\n",
-                p->frame_count,
-                (RK_U64)((p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frame_count));
-    else
-        mpp_err("mpi_enc_test failed ret %d\n", ret);
 
     test_ctx_deinit(&p);
 
