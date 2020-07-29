@@ -452,6 +452,15 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 mpp_assert(0);
             }
 
+            if (p_Dec->svc_valid) {
+                struct h264_slice_t *slice = &p_Dec->p_Cur->slice;
+                struct h264_nalu_svc_ext_t *svcExt = &slice->svcExt;
+                MppMeta meta = mpp_frame_get_meta(mframe);
+
+                mpp_assert(svcExt->valid);
+                mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, svcExt->temporal_id);
+            }
+
             if ((p_Vid->active_sps->vui_parameters_present_flag &&
                  p_Vid->active_sps->vui_seq_parameters.pic_struct_present_flag &&
                  p_Vid->p_Cur->sei.type == H264_SEI_PIC_TIMING) ||
