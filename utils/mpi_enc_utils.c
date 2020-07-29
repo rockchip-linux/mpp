@@ -319,88 +319,180 @@ MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
     return MPP_OK;
 }
 
-MPP_RET mpi_enc_gen_ref_cfg(MppEncRefCfg ref)
+MPP_RET mpi_enc_gen_ref_cfg(MppEncRefCfg ref, RK_S32 gop_mode)
 {
     MppEncRefLtFrmCfg lt_ref[4];
     MppEncRefStFrmCfg st_ref[16];
-    RK_S32 lt_cnt = 1;
-    RK_S32 st_cnt = 9;
+    RK_S32 lt_cnt = 0;
+    RK_S32 st_cnt = 0;
     MPP_RET ret = MPP_OK;
 
     memset(&lt_ref, 0, sizeof(lt_ref));
     memset(&st_ref, 0, sizeof(st_ref));
 
-    ret = mpp_enc_ref_cfg_set_cfg_cnt(ref, lt_cnt, st_cnt);
+    switch (gop_mode) {
+    case 3 : {
+        // tsvc4
+        //      /-> P1      /-> P3        /-> P5      /-> P7
+        //     /           /             /           /
+        //    //--------> P2            //--------> P6
+        //   //                        //
+        //  ///---------------------> P4
+        // ///
+        // P0 ------------------------------------------------> P8
+        lt_cnt = 1;
 
-    /* set 8 frame lt-ref gap */
-    lt_ref[0].lt_idx        = 0;
-    lt_ref[0].temporal_id   = 0;
-    lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
-    lt_ref[0].lt_gap        = 8;
-    lt_ref[0].lt_delay      = 0;
+        /* set 8 frame lt-ref gap */
+        lt_ref[0].lt_idx        = 0;
+        lt_ref[0].temporal_id   = 0;
+        lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
+        lt_ref[0].lt_gap        = 8;
+        lt_ref[0].lt_delay      = 0;
 
-    ret = mpp_enc_ref_cfg_add_lt_cfg(ref, 1, lt_ref);
+        st_cnt = 9;
+        /* set tsvc4 st-ref struct */
+        /* st 0 layer 0 - ref */
+        st_ref[0].is_non_ref    = 0;
+        st_ref[0].temporal_id   = 0;
+        st_ref[0].ref_mode      = REF_TO_TEMPORAL_LAYER;
+        st_ref[0].ref_arg       = 0;
+        st_ref[0].repeat        = 0;
+        /* st 1 layer 3 - non-ref */
+        st_ref[1].is_non_ref    = 1;
+        st_ref[1].temporal_id   = 3;
+        st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[1].ref_arg       = 0;
+        st_ref[1].repeat        = 0;
+        /* st 2 layer 2 - ref */
+        st_ref[2].is_non_ref    = 0;
+        st_ref[2].temporal_id   = 2;
+        st_ref[2].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[2].ref_arg       = 0;
+        st_ref[2].repeat        = 0;
+        /* st 3 layer 3 - non-ref */
+        st_ref[3].is_non_ref    = 1;
+        st_ref[3].temporal_id   = 3;
+        st_ref[3].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[3].ref_arg       = 0;
+        st_ref[3].repeat        = 0;
+        /* st 4 layer 1 - ref */
+        st_ref[4].is_non_ref    = 0;
+        st_ref[4].temporal_id   = 1;
+        st_ref[4].ref_mode      = REF_TO_PREV_LT_REF;
+        st_ref[4].ref_arg       = 0;
+        st_ref[4].repeat        = 0;
+        /* st 5 layer 3 - non-ref */
+        st_ref[5].is_non_ref    = 1;
+        st_ref[5].temporal_id   = 3;
+        st_ref[5].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[5].ref_arg       = 0;
+        st_ref[5].repeat        = 0;
+        /* st 6 layer 2 - ref */
+        st_ref[6].is_non_ref    = 0;
+        st_ref[6].temporal_id   = 2;
+        st_ref[6].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[6].ref_arg       = 0;
+        st_ref[6].repeat        = 0;
+        /* st 7 layer 3 - non-ref */
+        st_ref[7].is_non_ref    = 1;
+        st_ref[7].temporal_id   = 3;
+        st_ref[7].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[7].ref_arg       = 0;
+        st_ref[7].repeat        = 0;
+        /* st 8 layer 0 - ref */
+        st_ref[8].is_non_ref    = 0;
+        st_ref[8].temporal_id   = 0;
+        st_ref[8].ref_mode      = REF_TO_TEMPORAL_LAYER;
+        st_ref[8].ref_arg       = 0;
+        st_ref[8].repeat        = 0;
+    } break;
+    case 2 : {
+        // tsvc3
+        //     /-> P1      /-> P3
+        //    /           /
+        //   //--------> P2
+        //  //
+        // P0/---------------------> P4
+        lt_cnt = 0;
 
-    /* set tsvc4 st-ref struct */
-    /* st 0 layer 0 - ref */
-    st_ref[0].is_non_ref    = 0;
-    st_ref[0].temporal_id   = 0;
-    st_ref[0].ref_mode      = REF_TO_TEMPORAL_LAYER;
-    st_ref[0].ref_arg       = 0;
-    st_ref[0].repeat        = 0;
-    /* st 1 layer 3 - non-ref */
-    st_ref[1].is_non_ref    = 1;
-    st_ref[1].temporal_id   = 3;
-    st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[1].ref_arg       = 0;
-    st_ref[1].repeat        = 0;
-    /* st 2 layer 2 - ref */
-    st_ref[2].is_non_ref    = 0;
-    st_ref[2].temporal_id   = 2;
-    st_ref[2].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[2].ref_arg       = 0;
-    st_ref[2].repeat        = 0;
-    /* st 3 layer 3 - non-ref */
-    st_ref[3].is_non_ref    = 1;
-    st_ref[3].temporal_id   = 3;
-    st_ref[3].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[3].ref_arg       = 0;
-    st_ref[3].repeat        = 0;
-    /* st 4 layer 1 - ref */
-    st_ref[4].is_non_ref    = 0;
-    st_ref[4].temporal_id   = 1;
-    st_ref[4].ref_mode      = REF_TO_PREV_LT_REF;
-    st_ref[4].ref_arg       = 0;
-    st_ref[4].repeat        = 0;
-    /* st 5 layer 3 - non-ref */
-    st_ref[5].is_non_ref    = 1;
-    st_ref[5].temporal_id   = 3;
-    st_ref[5].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[5].ref_arg       = 0;
-    st_ref[5].repeat        = 0;
-    /* st 6 layer 2 - ref */
-    st_ref[6].is_non_ref    = 0;
-    st_ref[6].temporal_id   = 2;
-    st_ref[6].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[6].ref_arg       = 0;
-    st_ref[6].repeat        = 0;
-    /* st 7 layer 3 - non-ref */
-    st_ref[7].is_non_ref    = 1;
-    st_ref[7].temporal_id   = 3;
-    st_ref[7].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[7].ref_arg       = 0;
-    st_ref[7].repeat        = 0;
-    /* st 8 layer 0 - ref */
-    st_ref[8].is_non_ref    = 0;
-    st_ref[8].temporal_id   = 0;
-    st_ref[8].ref_mode      = REF_TO_TEMPORAL_LAYER;
-    st_ref[8].ref_arg       = 0;
-    st_ref[8].repeat        = 0;
+        st_cnt = 5;
+        /* set tsvc4 st-ref struct */
+        /* st 0 layer 0 - ref */
+        st_ref[0].is_non_ref    = 0;
+        st_ref[0].temporal_id   = 0;
+        st_ref[0].ref_mode      = REF_TO_TEMPORAL_LAYER;
+        st_ref[0].ref_arg       = 0;
+        st_ref[0].repeat        = 0;
+        /* st 1 layer 2 - non-ref */
+        st_ref[1].is_non_ref    = 1;
+        st_ref[1].temporal_id   = 2;
+        st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[1].ref_arg       = 0;
+        st_ref[1].repeat        = 0;
+        /* st 2 layer 1 - ref */
+        st_ref[2].is_non_ref    = 0;
+        st_ref[2].temporal_id   = 1;
+        st_ref[2].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[2].ref_arg       = 0;
+        st_ref[2].repeat        = 0;
+        /* st 3 layer 2 - non-ref */
+        st_ref[3].is_non_ref    = 1;
+        st_ref[3].temporal_id   = 2;
+        st_ref[3].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[3].ref_arg       = 0;
+        st_ref[3].repeat        = 0;
+        /* st 4 layer 0 - ref */
+        st_ref[4].is_non_ref    = 0;
+        st_ref[4].temporal_id   = 0;
+        st_ref[4].ref_mode      = REF_TO_TEMPORAL_LAYER;
+        st_ref[4].ref_arg       = 0;
+        st_ref[4].repeat        = 0;
+    } break;
+    case 1 : {
+        // tsvc2
+        //   /-> P1
+        //  /
+        // P0--------> P2
+        lt_cnt = 0;
 
-    ret = mpp_enc_ref_cfg_add_st_cfg(ref, 9, st_ref);
+        st_cnt = 3;
+        /* set tsvc4 st-ref struct */
+        /* st 0 layer 0 - ref */
+        st_ref[0].is_non_ref    = 0;
+        st_ref[0].temporal_id   = 0;
+        st_ref[0].ref_mode      = REF_TO_TEMPORAL_LAYER;
+        st_ref[0].ref_arg       = 0;
+        st_ref[0].repeat        = 0;
+        /* st 1 layer 2 - non-ref */
+        st_ref[1].is_non_ref    = 1;
+        st_ref[1].temporal_id   = 1;
+        st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[1].ref_arg       = 0;
+        st_ref[1].repeat        = 0;
+        /* st 2 layer 1 - ref */
+        st_ref[2].is_non_ref    = 0;
+        st_ref[2].temporal_id   = 0;
+        st_ref[2].ref_mode      = REF_TO_PREV_REF_FRM;
+        st_ref[2].ref_arg       = 0;
+        st_ref[2].repeat        = 0;
+    } break;
+    default : {
+        mpp_err_f("unsupport gop mode %d\n", gop_mode);
+    } break;
+    }
 
-    /* check and get dpb size */
-    ret = mpp_enc_ref_cfg_check(ref);
+    if (lt_cnt || st_cnt) {
+        ret = mpp_enc_ref_cfg_set_cfg_cnt(ref, lt_cnt, st_cnt);
+
+        if (lt_cnt)
+            ret = mpp_enc_ref_cfg_add_lt_cfg(ref, lt_cnt, lt_ref);
+
+        if (st_cnt)
+            ret = mpp_enc_ref_cfg_add_st_cfg(ref, st_cnt, st_ref);
+
+        /* check and get dpb size */
+        ret = mpp_enc_ref_cfg_check(ref);
+    }
 
     return ret;
 }

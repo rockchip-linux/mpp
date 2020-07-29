@@ -419,14 +419,14 @@ MPP_RET test_mpp_setup_legacy(MpiEncTestData *p)
         }
     }
 
-    RK_U32 gop_mode = 0;
+    RK_U32 gop_mode = p->gop_mode;
 
-    mpp_env_get_u32("gop_mode", &gop_mode, 0);
-    if (p->gop_mode || gop_mode) {
+    mpp_env_get_u32("gop_mode", &gop_mode, gop_mode);
+    if (gop_mode) {
         MppEncRefCfg ref;
 
         mpp_enc_ref_cfg_init(&ref);
-        mpi_enc_gen_ref_cfg(ref);
+        mpi_enc_gen_ref_cfg(ref, gop_mode);
         ret = mpi->control(ctx, MPP_ENC_SET_REF_CFG, ref);
         if (ret) {
             mpp_err("mpi control enc set ref cfg failed ret %d\n", ret);
@@ -604,14 +604,14 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         }
     }
 
-    RK_U32 gop_mode = 0;
+    RK_U32 gop_mode = p->gop_mode;
 
-    mpp_env_get_u32("gop_mode", &gop_mode, 0);
-    if (p->gop_mode || gop_mode) {
+    mpp_env_get_u32("gop_mode", &gop_mode, gop_mode);
+    if (gop_mode) {
         MppEncRefCfg ref;
 
         mpp_enc_ref_cfg_init(&ref);
-        mpi_enc_gen_ref_cfg(ref);
+        mpi_enc_gen_ref_cfg(ref, gop_mode);
         ret = mpi->control(ctx, MPP_ENC_SET_REF_CFG, ref);
         if (ret) {
             mpp_err("mpi control enc set ref cfg failed ret %d\n", ret);
