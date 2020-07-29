@@ -100,7 +100,6 @@ static int decode_simple(MpiDecLoopData *data)
 {
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
-    RK_U32 err_info = 0;
     MPP_RET ret = MPP_OK;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
@@ -129,12 +128,12 @@ static int decode_simple(MpiDecLoopData *data)
 
                     // parser for reset message at the end
                     if (0 == strncmp("rst", info.cmd, 3)) {
-                        mpp_log("get reset cmd\n");
+                        mpp_log("%p get reset cmd\n", ctx);
                         packet_size = 0;
                         break;
                     }
                 } else {
-                    mpp_log("get end of cfg file\n");
+                    mpp_log("%p get end of cfg file\n", ctx);
                     packet_size = 0;
                     break;
                 }
@@ -146,7 +145,7 @@ static int decode_simple(MpiDecLoopData *data)
             read_size = fread(buf, 1, packet_size, data->fp_input);
 
         if (!packet_size || read_size != packet_size || feof(data->fp_input)) {
-            mpp_log("get error and check frame_num\n");
+            mpp_log("%p get error and check frame_num\n", ctx);
             if (data->frame_num < 0) {
                 clearerr(data->fp_input);
                 rewind(data->fp_input);
@@ -155,11 +154,11 @@ static int decode_simple(MpiDecLoopData *data)
                     rewind(data->fp_config);
                 }
                 data->eos = pkt_eos = 0;
-                mpp_log("loop again\n");
+                mpp_log("%p loop again\n", ctx);
             } else {
                 // setup eos flag
                 data->eos = pkt_eos = 1;
-                mpp_log("found last packet\n");
+                mpp_log("%p found last packet\n", ctx);
                 break;
             }
         }
@@ -196,10 +195,10 @@ static int decode_simple(MpiDecLoopData *data)
                     msleep(2);
                     goto try_again;
                 }
-                mpp_err("decode_get_frame failed too much time\n");
+                mpp_err("%p decode_get_frame failed too much time\n", ctx);
             }
             if (MPP_OK != ret) {
-                mpp_err("decode_get_frame failed ret %d\n", ret);
+                mpp_err("%p decode_get_frame failed ret %d\n", ret, ctx);
                 break;
             }
 
@@ -211,9 +210,9 @@ static int decode_simple(MpiDecLoopData *data)
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                     RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
-                    mpp_log("decode_get_frame get info changed found\n");
-                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
-                            width, height, hor_stride, ver_stride, buf_size);
+                    mpp_log("%p decode_get_frame get info changed found\n", ctx);
+                    mpp_log("%p decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
+                            ctx, width, height, hor_stride, ver_stride, buf_size);
 
                     /*
                      * NOTE: We can choose decoder's buffer mode here.
@@ -279,21 +278,21 @@ static int decode_simple(MpiDecLoopData *data)
                         /* If buffer group is not set create one and limit it */
                         ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
                         if (ret) {
-                            mpp_err("get mpp buffer group failed ret %d\n", ret);
+                            mpp_err("%p get mpp buffer group failed ret %d\n", ctx, ret);
                             break;
                         }
 
                         /* Set buffer to mpp decoder */
                         ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
                         if (ret) {
-                            mpp_err("set buffer group failed ret %d\n", ret);
+                            mpp_err("%p set buffer group failed ret %d\n", ctx, ret);
                             break;
                         }
                     } else {
                         /* If old buffer group exist clear it */
                         ret = mpp_buffer_group_clear(data->frm_grp);
                         if (ret) {
-                            mpp_err("clear buffer group failed ret %d\n", ret);
+                            mpp_err("%p clear buffer group failed ret %d\n", ctx, ret);
                             break;
                         }
                     }
@@ -301,7 +300,7 @@ static int decode_simple(MpiDecLoopData *data)
                     /* Use limit config to limit buffer count to 24 with buf_size */
                     ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
                     if (ret) {
-                        mpp_err("limit buffer group failed ret %d\n", ret);
+                        mpp_err("%p limit buffer group failed ret %d\n", ctx, ret);
                         break;
                     }
 
@@ -311,17 +310,36 @@ static int decode_simple(MpiDecLoopData *data)
                      */
                     ret = mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
                     if (ret) {
-                        mpp_err("info change ready failed ret %d\n", ret);
+                        mpp_err("%p info change ready failed ret %d\n", ctx, ret);
                         break;
                     }
                 } else {
-                    err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
-                    if (err_info) {
-                        mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
-                                mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
+                    char log_buf[256];
+                    RK_S32 log_size = sizeof(log_buf) - 1;
+                    RK_S32 log_len = 0;
+                    RK_U32 err_info = mpp_frame_get_errinfo(frame);
+                    RK_U32 discard = mpp_frame_get_discard(frame);
+
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        "decode get frame %d", data->frame_count);
+
+                    if (mpp_frame_has_meta(frame)) {
+                        MppMeta meta = mpp_frame_get_meta(frame);
+                        RK_S32 temporal_id = 0;
+
+                        mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id);
+
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " tid %d", temporal_id);
                     }
+
+                    if (err_info || discard) {
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " err %x discard %x", err_info, discard);
+                    }
+                    mpp_log("%p %s\n", ctx, log_buf);
+
                     data->frame_count++;
-                    mpp_log("decode_get_frame get frame %d\n", data->frame_count);
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
                 }
@@ -345,7 +363,7 @@ static int decode_simple(MpiDecLoopData *data)
             }
 
             if (frm_eos) {
-                mpp_log("found last frame\n");
+                mpp_log("%p found last packet\n", ctx);
                 break;
             }
 
@@ -361,7 +379,7 @@ static int decode_simple(MpiDecLoopData *data)
 
         if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
             data->eos = 1;
-            mpp_log("reach max frame number %d\n", data->frame_count);
+            mpp_log("%p reach max frame number %d\n", ctx, data->frame_count);
             break;
         }
 
@@ -394,7 +412,7 @@ static int decode_advanced(MpiDecLoopData *data)
     size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
 
     if (read_size != data->packet_size || feof(data->fp_input)) {
-        mpp_log("found last packet\n");
+        mpp_log("%p found last packet\n", ctx);
 
         // setup eos flag
         data->eos = pkt_eos = 1;
@@ -409,13 +427,13 @@ static int decode_advanced(MpiDecLoopData *data)
 
     ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
     if (ret) {
-        mpp_err("mpp input poll failed\n");
+        mpp_err("%p mpp input poll failed\n", ctx);
         return ret;
     }
 
     ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
     if (ret) {
-        mpp_err("mpp task input dequeue failed\n");
+        mpp_err("%p mpp task input dequeue failed\n", ctx);
         return ret;
     }
 
@@ -426,20 +444,20 @@ static int decode_advanced(MpiDecLoopData *data)
 
     ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);  /* input queue */
     if (ret) {
-        mpp_err("mpp task input enqueue failed\n");
+        mpp_err("%p mpp task input enqueue failed\n", ctx);
         return ret;
     }
 
     /* poll and wait here */
     ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
     if (ret) {
-        mpp_err("mpp output poll failed\n");
+        mpp_err("%p mpp output poll failed\n", ctx);
         return ret;
     }
 
     ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task); /* output queue */
     if (ret) {
-        mpp_err("mpp task output dequeue failed\n");
+        mpp_err("%p mpp task output dequeue failed\n", ctx);
         return ret;
     }
 
@@ -455,17 +473,17 @@ static int decode_advanced(MpiDecLoopData *data)
             if (data->fp_output)
                 dump_mpp_frame_to_file(frame, data->fp_output);
 
+            mpp_log("%p decoded frame %d\n", ctx, data->frame_count);
             data->frame_count++;
-            mpp_log("decoded frame %d\n", data->frame_count);
 
             if (mpp_frame_get_eos(frame_out))
-                mpp_log("found eos frame\n");
+                mpp_log("%p found eos frame\n", ctx);
         }
 
         /* output queue */
         ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
         if (ret)
-            mpp_err("mpp task output enqueue failed\n");
+            mpp_err("%p mpp task output enqueue failed\n", ctx);
     }
 
     return ret;
@@ -597,7 +615,6 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         mpp_frame_set_buffer(frame, frm_buf);
     }
 
-    mpp_log("mpi_dec_test decoder test start w %d h %d type %d\n", width, height, type);
 
     // decoder demo
     ret = mpp_create(&ctx, &mpi);
@@ -607,12 +624,15 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
+    mpp_log("%p mpi_dec_test decoder test start w %d h %d type %d\n",
+            ctx, width, height, type);
+
     // NOTE: decoder split mode need to be set before init
     mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
     param = &need_split;
     ret = mpi->control(ctx, mpi_cmd, param);
     if (MPP_OK != ret) {
-        mpp_err("mpi->control failed\n");
+        mpp_err("%p mpi->control failed\n", ctx);
         goto MPP_TEST_OUT;
     }
 
@@ -624,14 +644,15 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         param = &timeout;
         ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
         if (MPP_OK != ret) {
-            mpp_err("Failed to set output timeout %d ret %d\n", timeout, ret);
+            mpp_err("%p failed to set output timeout %d ret %d\n",
+                    ctx, timeout, ret);
             goto MPP_TEST_OUT;
         }
     }
 
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
     if (MPP_OK != ret) {
-        mpp_err("mpp_init failed\n");
+        mpp_err("%p mpp_init failed\n", ctx);
         goto MPP_TEST_OUT;
     }
 
@@ -663,7 +684,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
 
     ret = mpi->reset(ctx);
     if (MPP_OK != ret) {
-        mpp_err("mpi->reset failed\n");
+        mpp_err("%p mpi->reset failed\n", ctx);
         goto MPP_TEST_OUT;
     }
 
