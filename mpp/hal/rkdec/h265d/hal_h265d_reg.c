@@ -1680,6 +1680,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 aglin_offset = 0;
     RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
+    RK_U32  sw_ref_valid = 0;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -1810,7 +1811,6 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
 
     ///find s->rps_model[i] position, and set register
-    hw_regs->sw_ref_valid = 0;
 
     hw_regs->cabac_error_en = 0xfdfffffd;
     hw_regs->rkv_reg_ends.extern_error_en = 0x30000000;
@@ -1829,16 +1829,16 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
             } else {
                 hw_regs->sw_refer_base[i] = valid_ref;
             }
-            hw_regs->sw_ref_valid          |=   (1 << i);
+            sw_ref_valid          |=   (1 << i);
         } else {
             hw_regs->sw_refer_base[i] = hw_regs->sw_decout_base;
         }
     }
 
-    hw_regs->sw_refer_base[0] |= ((hw_regs->sw_ref_valid & 0xf) << 10);
-    hw_regs->sw_refer_base[1] |= (((hw_regs->sw_ref_valid >> 4) & 0xf) << 10);
-    hw_regs->sw_refer_base[2] |= (((hw_regs->sw_ref_valid >> 8) & 0xf) << 10);
-    hw_regs->sw_refer_base[3] |= (((hw_regs->sw_ref_valid >> 12) & 0x7) << 10);
+    hw_regs->sw_refer_base[0] |= ((sw_ref_valid & 0xf) << 10);
+    hw_regs->sw_refer_base[1] |= (((sw_ref_valid >> 4) & 0xf) << 10);
+    hw_regs->sw_refer_base[2] |= (((sw_ref_valid >> 8) & 0xf) << 10);
+    hw_regs->sw_refer_base[3] |= (((sw_ref_valid >> 12) & 0x7) << 10);
 
     return ret;
 }

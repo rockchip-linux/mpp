@@ -48,7 +48,6 @@
 extern RK_U32 h265h_debug;
 
 typedef struct RKV_HEVC_REG_END {
-    RK_U32        reg_not_use0[RKVDEC_REG_PERF_CYCLE_INDEX - HEVC_DECODER_REG_NUM];
     RK_U32        performance_cycle; //65
     RK_U32        axi_ddr_rdata;
     RK_U32        axi_ddr_wdata;
@@ -156,8 +155,7 @@ typedef struct {
         RK_U32   reversed1                     : 6;
     } sao_ctu_position;
 
-    RK_U32        sw_ref_valid;   //this is not same with hardware
-    RK_U32        sw_refframe_index[15];  //48
+    RK_U32        reg_not_use0[RKVDEC_REG_PERF_CYCLE_INDEX - HEVC_DECODER_REG_NUM];
     union {
         rkv_reg_end rkv_reg_ends;
         v345_reg_end v345_reg_ends;
