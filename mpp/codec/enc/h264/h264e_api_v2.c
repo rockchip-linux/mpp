@@ -711,6 +711,8 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
         H264ePrefixNal *prefix = &p->prefix;
         H264eSlice *slice = &p->slice;
         EncFrmStatus *frm = &task->rc_task->frm;
+        MppPacket packet = task->packet;
+        MppMeta meta = mpp_packet_get_meta(packet);
 
         prefix->idr_flag = slice->idr_flag;
         prefix->nal_ref_idc = slice->nal_reference_idc;
@@ -724,6 +726,9 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
         prefix->output_flag = 1;
 
         h264e_add_syntax(p, H264E_SYN_PREFIX, &p->prefix);
+        mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, frm->temporal_id);
+        if (!frm->is_non_ref && frm->is_lt_ref)
+            mpp_meta_set_s32(meta, KEY_LONG_REF_IDX, frm->lt_idx);
     } else
         h264e_add_syntax(p, H264E_SYN_PREFIX, NULL);
 
