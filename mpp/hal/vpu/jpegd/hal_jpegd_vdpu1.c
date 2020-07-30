@@ -615,6 +615,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 static MPP_RET jpegd_regs_init(JpegRegSet *reg)
 {
     jpegd_dbg_func("enter\n");
+    memset(reg, 0, sizeof(JpegRegSet));
     reg->reg2_dec_ctrl.sw_dec_out_tiled_e = 0;
     reg->reg2_dec_ctrl.sw_dec_scmd_dis = DEC_VDPU1_SCMD_DISABLE;
     reg->reg2_dec_ctrl.sw_dec_latency = DEC_VDPU1_LATENCY_COMPENSATION;
@@ -646,6 +647,8 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)ctx->regs;
     JpegRegSet *reg = &info->regs;
     JpegdSyntax *s = syntax;
+
+    jpegd_regs_init(reg);
 
     /* Enable jpeg mode */
     reg->reg1_interrupt.sw_dec_e = 1;
@@ -731,7 +734,6 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
-    JpegRegSet *reg = NULL;
     if (NULL == JpegHalCtx) {
         JpegHalCtx = (JpegdHalCtx *)mpp_calloc(JpegdHalCtx, 1);
         if (NULL == JpegHalCtx) {
@@ -770,9 +772,6 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)JpegHalCtx->regs;
     memset(info, 0, sizeof(JpegdIocRegInfo));
     mpp_device_patch_init(&info->extra_info);
-
-    reg = &info->regs;
-    jpegd_regs_init(reg);
 
     //malloc hw buf
     if (JpegHalCtx->group == NULL) {
