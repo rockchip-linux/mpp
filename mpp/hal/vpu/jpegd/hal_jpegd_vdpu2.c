@@ -32,6 +32,35 @@
 
 extern RK_U32 jpegd_debug;
 
+static MPP_RET jpegd_regs_init(JpegRegSet *reg)
+{
+    jpegd_dbg_func("enter\n");
+    memset(reg, 0, sizeof(JpegRegSet));
+    reg->reg50_dec_ctrl.sw_dec_out_tiled_e = 0;
+    reg->reg50_dec_ctrl.sw_dec_scmd_dis = DEC_SCMD_DISABLE;
+    reg->reg50_dec_ctrl.sw_dec_latency = DEC_LATENCY_COMPENSATION;
+
+    reg->reg54_endian.sw_dec_in_endian = DEC_BIG_ENDIAN;
+    reg->reg54_endian.sw_dec_out_endian = DEC_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_strendian_e = DEC_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_outswap32_e = DEC_LITTLE_ENDIAN;
+    reg->reg54_endian.sw_dec_inswap32_e = 1;
+    reg->reg54_endian.sw_dec_strswap32_e = 1;
+
+    reg->reg55_Interrupt.sw_dec_irq_dis = 0;
+
+    reg->reg56_axi_ctrl.sw_dec_axi_rn_id = 0xff;
+    reg->reg56_axi_ctrl.sw_dec_axi_wr_id = 0;
+    reg->reg56_axi_ctrl.sw_dec_max_burst = DEC_BUS_BURST_LENGTH_16;
+    reg->reg56_axi_ctrl.sw_dec_data_disc_e = DEC_DATA_DISCARD_ENABLE;
+
+    reg->reg57_enable_ctrl.sw_dec_timeout_e = 1;
+    reg->reg57_enable_ctrl.sw_dec_clk_gate_e = 1;
+
+    jpegd_dbg_func("exit\n");
+    return MPP_OK;
+}
+
 static void jpegd_write_code_word_number(JpegdHalCtx *ctx,
                                          JpegdSyntax *syntax)
 {
@@ -611,6 +640,8 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     JpegRegSet *reg = &(info->regs);
     JpegdSyntax *s = syntax;
 
+    jpegd_regs_init(reg);
+
     reg->reg50_dec_ctrl.sw_filtering_dis = 1;
     reg->reg53_dec_mode = DEC_MODE_JPEG;
 
@@ -686,34 +717,6 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return ret;
 }
 
-static MPP_RET jpegd_regs_init(JpegRegSet *reg)
-{
-    jpegd_dbg_func("enter\n");
-    reg->reg50_dec_ctrl.sw_dec_out_tiled_e = 0;
-    reg->reg50_dec_ctrl.sw_dec_scmd_dis = DEC_SCMD_DISABLE;
-    reg->reg50_dec_ctrl.sw_dec_latency = DEC_LATENCY_COMPENSATION;
-
-    reg->reg54_endian.sw_dec_in_endian = DEC_BIG_ENDIAN;
-    reg->reg54_endian.sw_dec_out_endian = DEC_LITTLE_ENDIAN;
-    reg->reg54_endian.sw_dec_strendian_e = DEC_LITTLE_ENDIAN;
-    reg->reg54_endian.sw_dec_outswap32_e = DEC_LITTLE_ENDIAN;
-    reg->reg54_endian.sw_dec_inswap32_e = 1;
-    reg->reg54_endian.sw_dec_strswap32_e = 1;
-
-    reg->reg55_Interrupt.sw_dec_irq_dis = 0;
-
-    reg->reg56_axi_ctrl.sw_dec_axi_rn_id = 0xff;
-    reg->reg56_axi_ctrl.sw_dec_axi_wr_id = 0;
-    reg->reg56_axi_ctrl.sw_dec_max_burst = DEC_BUS_BURST_LENGTH_16;
-    reg->reg56_axi_ctrl.sw_dec_data_disc_e = DEC_DATA_DISCARD_ENABLE;
-
-    reg->reg57_enable_ctrl.sw_dec_timeout_e = 1;
-    reg->reg57_enable_ctrl.sw_dec_clk_gate_e = 1;
-
-    jpegd_dbg_func("exit\n");
-    return MPP_OK;
-}
-
 MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
 {
     jpegd_dbg_func("enter\n");
@@ -749,7 +752,6 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
 
     //init regs
     JpegdIocRegInfo *info = NULL;
-    JpegRegSet *reg = NULL;
     info = mpp_calloc(JpegdIocRegInfo, 1);
     if (info == NULL) {
         mpp_err_f("allocate jpegd ioctl info failed\n");
@@ -758,9 +760,6 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
     memset(info, 0, sizeof(JpegdIocRegInfo));
     mpp_device_patch_init(&info->extra_info);
     JpegHalCtx->regs = (void *)info;
-
-    reg = &(info->regs);
-    jpegd_regs_init(reg);
 
     //malloc hw buf
     if (JpegHalCtx->group == NULL) {
