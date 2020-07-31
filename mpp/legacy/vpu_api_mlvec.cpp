@@ -55,6 +55,8 @@ MPP_RET vpu_api_mlvec_init(VpuApiMlvec *ctx)
         mpp_err_f("failed to create MLVEC context\n");
 
     mpp_assert(sizeof(VpuApiMlvecStaticCfg) == sizeof(EncParameter_t));
+    /* default disable frame_qp setup */
+    impl->dy_cfg.frame_qp = -1;
 
     *ctx = impl;
 
