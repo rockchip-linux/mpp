@@ -642,7 +642,8 @@ typedef struct MppEncH264Cfg_t {
     RK_S16              qp_max_i;
     RK_S16              qp_min;
     RK_S16              qp_min_i;
-    RK_S32              qp_max_step;
+    RK_S16              qp_max_step;
+    RK_S16              qp_delta_ip;
 
     /*
      * intra fresh config
