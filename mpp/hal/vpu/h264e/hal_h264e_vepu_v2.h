@@ -40,6 +40,8 @@ typedef struct HalH264eVepuInput_t {
     RK_U32          offset_cb;
     RK_U32          offset_cr;
 
+    RK_U16          stride_workaround;
+
     RK_U8           r_mask_msb;
     RK_U8           g_mask_msb;
     RK_U8           b_mask_msb;
