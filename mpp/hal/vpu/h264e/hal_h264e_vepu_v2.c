@@ -286,23 +286,6 @@ MppBuffer h264e_vepu_buf_get_frame_buffer(HalH264eVepuBufs *bufs, RK_S32 index)
     return buf;
 }
 
-static H264eVpuCsp fmt_to_vepu_csp_yuv[MPP_FMT_YUV_BUTT] = {
-    H264E_VPU_CSP_YUV420SP,     // MPP_FMT_YUV420SP         /* YYYY... UV... (NV12)     */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV420SP_10BIT   ///< Not part of ABI
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV422SP         /* YYYY... UVUV... (NV16)   */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV422SP_10BIT   ///< Not part of ABI
-    H264E_VPU_CSP_YUV420P,      // MPP_FMT_YUV420P          /* YYYY... U...V...  (I420) */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV420SP_VU      /* YYYY... VUVUVU... (NV21) */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV422P          /* YYYY... UU...VV...(422P) */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV422SP_VU      /* YYYY... VUVUVU... (NV61) */
-    H264E_VPU_CSP_YUYV422,      // MPP_FMT_YUV422_YUYV      /* YUYVYUYV... (YUY2)       */
-    H264E_VPU_CSP_UYVY422,      // MPP_FMT_YUV422_UYVY      /* UYVYUYVY... (UYVY)       */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV400           /* YYYY...                  */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV440SP         /* YYYY... UVUV...          */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV411SP         /* YYYY... UV...            */
-    H264E_VPU_CSP_NONE,         // MPP_FMT_YUV444SP         /* YYYY... UVUVUVUV...      */
-};
-
 MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
