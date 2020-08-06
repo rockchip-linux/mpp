@@ -122,13 +122,13 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     mpp_enc_cfg_set_s32(enc_cfg, "prep:width", width);
     mpp_enc_cfg_set_s32(enc_cfg, "prep:height", height);
     mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", MPP_ALIGN(width, 16));
-    mpp_enc_cfg_set_s32(enc_cfg, "prep:ver_stride", MPP_ALIGN(height, 16));
+    mpp_enc_cfg_set_s32(enc_cfg, "prep:ver_stride", MPP_ALIGN(height, 8));
     mpp_enc_cfg_set_s32(enc_cfg, "prep:format", fmt);
 
-    mpp_enc_cfg_set_s32(enc_cfg, "rc:mode", rc_mode ? MPP_ENC_RC_MODE_CBR : MPP_ENC_RC_MODE_FIXQP);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:mode", rc_mode ? MPP_ENC_RC_MODE_CBR : MPP_ENC_RC_MODE_VBR);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_target", bps);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_max", bps * 17 / 16);
-    mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_min", bps * 15 / 16);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_min", rc_mode ? bps * 15 / 16 : bps * 1 / 16);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_flex", 0);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_num", fps_in);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_denorm", 1);
@@ -144,10 +144,13 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
         mpp_enc_cfg_set_s32(enc_cfg, "h264:level", level);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_en", cabac_en);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_idc", 0);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_init", rc_mode ? 0 : qp);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min", rc_mode ? 10 : qp);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max", rc_mode ? 51 : qp);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_step", rc_mode ? 4 : 0);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_init", -1);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min", 10);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max", 51);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min_i", 10);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max_i", 51);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_step", 4);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_delta_ip", 3);
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         mpp_enc_cfg_set_s32(enc_cfg, "jpeg:quant", qp);
@@ -1162,7 +1165,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     RK_U32 width        = ctx->width;
     RK_U32 height       = ctx->height;
     RK_U32 hor_stride   = MPP_ALIGN(width,  16);
-    RK_U32 ver_stride   = MPP_ALIGN(height, 16);
+    RK_U32 ver_stride   = MPP_ALIGN(height, 8);
     RK_S64 pts          = aEncInStrm->timeUs;
     RK_S32 fd           = aEncInStrm->bufPhyAddr;
     RK_U32 size         = aEncInStrm->size;
@@ -1223,11 +1226,11 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
             goto FUNC_RET;
         }
         if (format >= MPP_FMT_YUV420SP && format < MPP_FMT_YUV_BUTT) {
-            align_size = hor_stride * ver_stride * 3 / 2;
+            align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 3 / 2;
         } else if (format >= MPP_FMT_RGB565 && format < MPP_FMT_BGR888) {
-            align_size = hor_stride * ver_stride * 3;
+            align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 3;
         } else if (format >= MPP_FMT_RGB101010 && format < MPP_FMT_RGB_BUTT) {
-            align_size = hor_stride * ver_stride * 4;
+            align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 4;
         } else {
             mpp_err_f("unsupport input format:%d\n", format);
             ret = MPP_NOK;
