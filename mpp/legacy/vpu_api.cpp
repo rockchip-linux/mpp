@@ -319,7 +319,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         if (s->videoCoding == OMX_RK_VIDEO_CodingAVC
             && s->codecType == CODEC_DECODER && s->width <= 1920
             && s->height <= 1088 && !s->extra_cfg.mpp_mode
-            && strncmp(mpp_get_soc_name(), "rk3399", 6)) {
+            && !strstr(mpp_get_soc_name(), "rk3399")) {
             /* H.264 smaller than 1080p use original vpuapi library for better error process */
             // NOTE: rk3399 need better performance
             use_mpp = 0;
