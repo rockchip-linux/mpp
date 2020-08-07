@@ -109,7 +109,7 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     RK_S32 rc_mode  = cfg->rc_mode;
 
     mpp_log("setup encoder rate control config:\n");
-    mpp_log("width %4d height %4d format %d\n", width, height, fmt);
+    mpp_log("width %4d height %4d format %d:%x\n", width, height, cfg->format, fmt);
     mpp_log("rc_mode %s qp %d bps %d\n", (rc_mode) ? ("CBR") : ("CQP"), qp, bps);
     mpp_log("fps in %d fps out %d gop %d\n", fps_in, fps_out, gop);
     mpp_log("setup encoder stream feature config:\n");
