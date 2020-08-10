@@ -338,17 +338,24 @@ static MPP_RET jpegd_decode_dqt(JpegdCtx *ctx)
             syntax->quant_matrixes[index][i] = value;
         }
 
-        /* debug code */
-        jpegd_dbg_table("\n******Start to print quantize table %d******",
-                        index);
         if (jpegd_debug & JPEGD_DBG_TABLE) {
-            for (i = 0; i < QUANTIZE_TABLE_LENGTH; i++) {
-                if (i % 8 == 0)
-                    printf("\n");
-                printf("0x%02x,", syntax->quant_matrixes[index][i]);
+            /* debug code */
+            mpp_log("******Start to print quantize table %d******\n", index);
+
+            for (i = 0; i < QUANTIZE_TABLE_LENGTH; i += 8) {
+                mpp_log("%2d~%2d 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
+                        i, i + 7,
+                        syntax->quant_matrixes[index][i + 0],
+                        syntax->quant_matrixes[index][i + 1],
+                        syntax->quant_matrixes[index][i + 2],
+                        syntax->quant_matrixes[index][i + 3],
+                        syntax->quant_matrixes[index][i + 4],
+                        syntax->quant_matrixes[index][i + 5],
+                        syntax->quant_matrixes[index][i + 7],
+                        syntax->quant_matrixes[index][i + 7]);
             }
+            mpp_log("******Quantize table %d End******\n", index);
         }
-        jpegd_dbg_table("\n******Quantize table %d End******\n\n", index);
 
         // XXX FIXME fine-tune, and perhaps add dc too
         syntax->qscale[index] = MPP_MAX(syntax->quant_matrixes[index][1],
@@ -619,29 +626,29 @@ static MPP_RET jpegd_setup_default_dht(JpegdCtx *ctx)
     JpegdSyntax *s = ctx->syntax;
     AcTable *ac_ptr = NULL;
     DcTable *dc_ptr = NULL;
-    RK_U8 *bits_tmp = NULL;
-    RK_U8 *val_tmp = NULL;
+    const RK_U8 *bits_tmp = NULL;
+    const RK_U8 *val_tmp = NULL;
     RK_U32 tmp_len = 0;
     RK_U32 i,  k;
 
     /* Set up the standard Huffman tables (cf. JPEG standard section K.3)
      * IMPORTANT: these are only valid for 8-bit data precision!
      */
-    static RK_U8 bits_dc_luminance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
+    static const RK_U8 bits_dc_luminance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
     {  0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 };
 
     /* luminance and chrominance all use it */
-    static RK_U8 val_dc[MAX_DC_HUFFMAN_TABLE_LENGTH] =
+    static const RK_U8 val_dc[MAX_DC_HUFFMAN_TABLE_LENGTH] =
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 
-    static RK_U8 bits_dc_chrominance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
+    static const RK_U8 bits_dc_chrominance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
     { 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 };
 
-    static RK_U8 bits_ac_luminance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
+    static const RK_U8 bits_ac_luminance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
     { 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7d };
 
     /* 162 Bytes */
-    static RK_U8 val_ac_luminance[MAX_AC_HUFFMAN_TABLE_LENGTH] = {
+    static const RK_U8 val_ac_luminance[MAX_AC_HUFFMAN_TABLE_LENGTH] = {
         0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
         0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
         0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
@@ -665,10 +672,10 @@ static MPP_RET jpegd_setup_default_dht(JpegdCtx *ctx)
         0xf9, 0xfa
     };
 
-    static RK_U8 bits_ac_chrominance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
+    static const RK_U8 bits_ac_chrominance[MAX_HUFFMAN_CODE_BIT_LENGTH] =
     { 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77 };
 
-    static RK_U8 val_ac_chrominance[MAX_AC_HUFFMAN_TABLE_LENGTH] = {
+    static const RK_U8 val_ac_chrominance[MAX_AC_HUFFMAN_TABLE_LENGTH] = {
         0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
         0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
         0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
@@ -692,14 +699,14 @@ static MPP_RET jpegd_setup_default_dht(JpegdCtx *ctx)
         0xf9, 0xfa
     };
 
-    RK_U8 *bits_table[4] = {
+    const RK_U8 *bits_table[4] = {
         bits_ac_luminance,
         bits_ac_chrominance,
         bits_dc_luminance,
         bits_dc_chrominance
     };
 
-    RK_U8 *val_table[4] = {
+    const RK_U8 *val_table[4] = {
         val_ac_luminance,
         val_ac_chrominance,
         val_dc,
