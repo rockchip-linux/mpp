@@ -419,7 +419,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
             || p_strm->nalu_type == H264_NALU_TYPE_SPS
             || p_strm->nalu_type == H264_NALU_TYPE_PPS
             || p_strm->nalu_type == H264_NALU_TYPE_AUD
-            || p_strm->nalu_type == H264_NALU_TYPE_PREFIX)) {
+            /*|| p_strm->nalu_type == H264_NALU_TYPE_PREFIX*/)) { // prefix may insert in slices of one frame
         if (p_Cur->p_Dec->have_slice_data) {
             p_Cur->p_Dec->is_new_frame = 1;
         }
