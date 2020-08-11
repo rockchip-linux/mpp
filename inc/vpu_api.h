@@ -97,6 +97,8 @@ typedef enum VPU_API_CMD {
     VPU_API_GET_EXTRA_INFO = 0x200,
 
     VPU_API_SET_IMMEDIATE_OUT = 0x1000,
+    VPU_API_SET_PARSER_SPLIT_MODE,          /* NOTE: should control before init */
+
     VPU_API_ENC_VEPU22_START = 0x2000,
     VPU_API_ENC_SET_VEPU22_CFG,
     VPU_API_ENC_GET_VEPU22_CFG,
