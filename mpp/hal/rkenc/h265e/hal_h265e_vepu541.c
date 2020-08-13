@@ -579,7 +579,7 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
             ctu_target_bits_mul_16 = 0x50000;
         }
         ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd64) >> 4;
-        negative_bits_thd = 0 - ctu_target_bits / 4;
+        negative_bits_thd = 0 - ctu_target_bits / 5;
         positive_bits_thd = ctu_target_bits / 4;
 
         regs->enc_pic.pic_qp      = rc_cfg->quality_target;
@@ -589,7 +589,13 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_cfg.qp_mode      = 1;
 
         regs->rc_cfg.rc_ctu_num   = mb_wd64;
-        regs->rc_qp.rc_qp_range   = h265->raw_dealt_qp;
+
+        if (ctx->frame_type == INTRA_FRAME) {
+            regs->rc_qp.rc_qp_range = 2;
+        } else {
+            regs->rc_qp.rc_qp_range = h265->raw_dealt_qp;
+        }
+
         regs->rc_qp.rc_max_qp     = rc_cfg->quality_max;
         regs->rc_qp.rc_min_qp     = rc_cfg->quality_min;
         regs->rc_tgt.ctu_ebits    = ctu_target_bits_mul_16;
