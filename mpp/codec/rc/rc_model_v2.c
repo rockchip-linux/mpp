@@ -16,6 +16,8 @@
 
 #define MODULE_TAG "rc_model_v2"
 
+#include <math.h>
+
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
@@ -24,12 +26,11 @@
 #include "rc_model_v2.h"
 #include "string.h"
 
-
 #define I_WINDOW_LEN 2
 #define P_WINDOW1_LEN 5
 #define P_WINDOW2_LEN 8
 
-RK_S32 max_i_delta_qp[51] = {
+static const RK_S32 max_i_delta_qp[51] = {
     640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640,
     576, 576, 512, 512, 448, 448, 384, 384, 320, 320, 320, 256, 256, 256,
     192, 192, 192, 192, 192, 128, 128, 128, 128, 128, 128, 64,  64,  64,
@@ -214,8 +215,11 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     }
 
     if (ctx->usr_cfg.max_i_bit_prop <= 0) {
-        ctx->usr_cfg.max_i_bit_prop = 20;
+        ctx->usr_cfg.max_i_bit_prop = 10;
+    } else if (ctx->usr_cfg.max_i_bit_prop > 100) {
+        ctx->usr_cfg.max_i_bit_prop = 100;
     }
+    rc_dbg_rc("max_i_bit_prop  %d",  ctx->usr_cfg.max_i_bit_prop);
 
     if (!gop_len) {
         mpp_log("infinte gop, set default for rc bit calc\n");
@@ -293,7 +297,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
 
     ctx->target_bps = target_bps;
     ctx->bit_per_frame = target_bps / fps->fps_in_num;
-    ctx->watl_thrd = 3 * target_bps;;
+    ctx->watl_thrd = 3 * target_bps;
     ctx->stat_watl = ctx->watl_thrd  >> 3;
     ctx->watl_base = ctx->stat_watl;
 
@@ -365,6 +369,9 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RK_S32 vi_scale = ctx->vi_scale;
     RK_S32 alloc_bits = 0;
 
+    ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
+    i_scale = ctx->i_scale;
+
     rc_dbg_func("enter %p\n", ctx);
     rc_dbg_rc("frame_type %d max_i_prop %d i_scale %d total_bits %lld\n",
               ctx->frame_type, max_i_prop, i_scale, total_bits);
@@ -378,16 +385,16 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
         }
         switch (ctx->frame_type) {
         case INTRA_FRAME: {
-            i_scale = mpp_clip(i_scale, 16, max_i_prop);
+            i_scale = mpp_clip(i_scale, 16, 16000);
             total_bits = total_bits * i_scale;
         } break;
 
         case INTER_P_FRAME: {
-            i_scale = mpp_clip(i_scale, 16, 16000);
+            i_scale = mpp_clip(i_scale, 16, max_i_prop);
             total_bits = total_bits * 16;
         } break;
         case INTER_VI_FRAME: {
-            i_scale = mpp_clip(i_scale, 16, 16000);
+            i_scale = mpp_clip(i_scale, 16, max_i_prop);
             total_bits = total_bits * vi_scale;
         } break;
         default:
@@ -397,12 +404,16 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     } else {
         switch (ctx->frame_type) {
         case INTRA_FRAME: {
-            i_scale = mpp_clip(i_scale, 16, max_i_prop);
+            if (ctx->usr_cfg.mode == RC_CBR)
+                i_scale = mpp_clip(i_scale, 16, 800);
+            else
+                i_scale = mpp_clip(i_scale, 16, 16000);
+
             total_bits = total_bits * i_scale;
         } break;
 
         case INTER_P_FRAME: {
-            i_scale = mpp_clip(i_scale, 16, 16000);
+            i_scale = mpp_clip(i_scale, 16, max_i_prop);
             total_bits = total_bits * 16;
         } break;
         default:
@@ -469,7 +480,7 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
 
     rc_dbg_func("enter %p\n", ctx);
     rc_dbg_bps("%10s|%10s|%10s|%10s|%10s|%8s", "r_bits", "t_bits", "ins_bps", "p_ins_bps", "target_bps", "watl");
-    rc_dbg_bps("%10d %10d %10d %10d %10d %8d", pre_real_bits, pre_target_bits, ins_bps, pre_ins_bps, target_bps, ctx->stat_watl);
+    rc_dbg_bps("%10d %10d %10d %10d %10d %8d", pre_real_bits, pre_target_bits, ins_bps, pre_ins_bps, target_bps, ctx->stat_watl >> 10);
 
 
     mpp_assert(target_bps > 0);
@@ -513,8 +524,6 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
 
     bps_ratio = (ins_bps - target_bps) * fluc_l / (target_bps >> 4);
     wl_ratio = 4 * (ctx->stat_watl - ctx->watl_base) * fluc_l / ctx->watl_base;
-
-
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
     wl_ratio  = mpp_clip(wl_ratio, -16, 32);
     ctx->next_ratio = ins_ratio + bps_ratio + wl_ratio;
@@ -530,14 +539,16 @@ MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx)
 MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
-    RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 pre_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
+    RK_S32 ins_bps = (pre_ins_bps * stat_time - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
     RK_S32 real_bit = cfg->bit_real;
     RK_S32 target_bit = cfg->bit_target;
     RK_S32 target_bps = ctx->target_bps;
     RK_S32 water_level = 0;
     RK_S32 idx1, idx2;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio, wl_ratio;
+    RK_S32 mb_w = MPP_ALIGN(ctx->usr_cfg.width, 16) / 16;
+    RK_S32 mb_h = MPP_ALIGN(ctx->usr_cfg.height, 16) / 16;
 
     rc_dbg_func("enter %p\n", ctx);
 
@@ -556,7 +567,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
         bit_diff_ratio = 48 * (real_bit - target_bit) / real_bit;
 
     idx1 = ins_bps / (target_bps >> 5);
-    idx2 = last_ins_bps / (target_bps >> 5);
+    idx2 = pre_ins_bps / (target_bps >> 5);
 
     idx1 = mpp_clip(idx1, 0, 64);
     idx2 = mpp_clip(idx2, 0, 64);
@@ -564,7 +575,7 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 
     bps_ratio = 96 * (ins_bps - target_bps) / target_bps;
     wl_ratio = 32 * (water_level - ctx->watl_base) /  ctx->watl_base;
-    if (last_ins_bps < ins_bps && target_bps != last_ins_bps) {
+    if (pre_ins_bps < ins_bps && target_bps != pre_ins_bps) {
         ins_ratio = 6 * ins_ratio;
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
     } else {
@@ -580,7 +591,16 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
     wl_ratio  = mpp_clip(wl_ratio, -32, 32);
     ctx->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio + wl_ratio;
-    rc_dbg_rc("cbr reenc next ratio %d", ctx->next_ratio);
+    if (ctx->frame_type  == INTRA_FRAME && (cfg->madi > 0)) {
+        RK_U32 tar_bpp = target_bit / (mb_w * mb_h);
+        float lnb_t = log(tar_bpp);
+        float c = 6.7204, a = -0.1435, b = 0.0438;
+        float start_qp = (ctx->cur_scale_qp >> 6);
+        int qp_c = ((lnb_t - cfg->madi * b - c) / a + 14);
+        if (qp_c > start_qp)
+            ctx->next_ratio  = (qp_c << 6) - ctx->cur_scale_qp;
+    }
+    rc_dbg_rc("cbr target_bit %d real_bit %d reenc next ratio %d", target_bit, real_bit, ctx->next_ratio);
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -648,14 +668,15 @@ MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx)
 MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
-    RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 pre_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
+    RK_S32 ins_bps = (pre_ins_bps * stat_time - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
     RK_S32 bps_change = ctx->target_bps;
     RK_S32 max_bps_target = ctx->usr_cfg.bps_max;
     RK_S32 real_bit = cfg->bit_real;
     RK_S32 target_bit = cfg->bit_target;
     RK_S32 idx1, idx2;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio;
+
     rc_dbg_func("enter %p\n", ctx);
 
     if (target_bit <= real_bit)
@@ -664,10 +685,10 @@ MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
         bit_diff_ratio = 32 * (real_bit - target_bit) / real_bit;
 
     idx1 = ins_bps / (max_bps_target >> 5);
-    idx2 =  last_ins_bps / (max_bps_target >> 5);
+    idx2 = pre_ins_bps / (max_bps_target >> 5);
     idx1 = mpp_clip(idx1, 0, 64);
     idx2 = mpp_clip(idx2, 0, 64);
-    if (last_ins_bps < ins_bps && bps_change < ins_bps) {
+    if (pre_ins_bps < ins_bps && bps_change < ins_bps) {
         ins_ratio = 6 * (tab_lnx[idx1] - tab_lnx[idx2]);
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
     } else {
@@ -728,10 +749,10 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 
     switch (frame_type) {
     case INTRA_FRAME:
-        bit_thr = 3 * cfg->bit_target;
+        bit_thr = 3 * cfg->bit_target / 2;
         break;
     case INTER_P_FRAME:
-        bit_thr = 3 * cfg->bit_target / 2;
+        bit_thr = 3 * cfg->bit_target;
         break;
     default:
         break;
@@ -942,7 +963,6 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
     /* setup quality parameters */
     if (p->first_frm_flg && frm->is_intra) {
-        RK_S32 dealt_qp = p->usr_cfg.i_quality_delta;
         if (info->quality_target < 0) {
             if (info->bit_target) {
                 p->start_qp = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
@@ -958,25 +978,21 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             p->cur_scale_qp = (p->start_qp) << 6;
         }
 
-        if (p->reenc_cnt > 0 && p->usr_cfg.i_quality_delta) {
-            RK_U8 index = info->madi / 4;
-            index = mpp_clip(index, 0, 7);
-            dealt_qp = max_ip_qp_dealt[index];
-            if (dealt_qp > p->usr_cfg.i_quality_delta ) {
-                dealt_qp = p->usr_cfg.i_quality_delta;
-            }
+        if (p->reenc_cnt > 0) {
+            p->cur_scale_qp += p->next_ratio;
+            p->start_qp = p->cur_scale_qp >> 6;
+            rc_dbg_rc("p->start_qp = %d, p->cur_scale_qp %d,p->next_ratio %d ", p->start_qp, p->cur_scale_qp, p->next_ratio);
+        } else {
+            p->start_qp -= p->usr_cfg.i_quality_delta;
         }
-        p->start_qp -= dealt_qp;
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
         p->pre_i_qp = p->cur_scale_qp >> 6;
         p->pre_p_qp = p->cur_scale_qp >> 6;
-        p->first_frm_flg = 0;
     } else {
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
         RK_S32 dealt_qp = 0;
         if (frm->is_intra) {
-            //qp_scale = mpp_clip(qp_scale, (h265->min_i_qp << 6), (h265->max_i_qp << 6));
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
 
             start_qp = ((p->pre_i_qp + ((qp_scale + p->next_i_ratio) >> 6)) >> 1);
@@ -986,7 +1002,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             p->start_qp = start_qp;
             p->cur_scale_qp = qp_scale;
 
-            if ( p->usr_cfg.i_quality_delta) {
+            if (p->usr_cfg.i_quality_delta && !p->reenc_cnt) {
                 RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
                 index = mpp_clip(index, 0, 7);
                 dealt_qp = max_ip_qp_dealt[index];
@@ -1058,6 +1074,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
         rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
         bits_model_update(p, cfg->bit_real, cfg->madi);
         p->last_inst_bps = p->ins_bps;
+        p->first_frm_flg = 0;
         p->last_frame_type = p->frame_type;
     }
     p->pre_target_bits = cfg->bit_target;
