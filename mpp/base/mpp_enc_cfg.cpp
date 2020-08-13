@@ -398,16 +398,16 @@ void mpp_enc_cfg_show(void)
 {
     RK_U32 i;
 
-    mpp_log_f("dumping valid configure string start\n");
+    mpp_log("dumping valid configure string start\n");
 
     for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
-        mpp_log_f("name %s type %s %s\n", cfg_apis[i]->name,
-                  cfg_func_names[cfg_apis[i]->type_set],
-                  cfg_func_names[cfg_apis[i]->type_get]);
+        mpp_log("%-25s type set:%s get:%s\n", cfg_apis[i]->name,
+                cfg_func_names[cfg_apis[i]->type_set],
+                cfg_func_names[cfg_apis[i]->type_get]);
 
-    mpp_log_f("dumping valid configure string done\n");
+    mpp_log("dumping valid configure string done\n");
 
-    mpp_log_f("total api count %d with node %d -> %d info\n",
-              MPP_ARRAY_ELEMS(cfg_apis), node_len,
-              mpp_trie_get_node_count(MppEncCfgService::get()->get_api()));
+    mpp_log("total api count %d with node %d -> %d info\n",
+            MPP_ARRAY_ELEMS(cfg_apis), node_len,
+            mpp_trie_get_node_count(MppEncCfgService::get()->get_api()));
 }
