@@ -73,7 +73,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->min_i_qp = 10;
     h265->qpmap_mode = 1;
     h265->ip_qp_delta = 3;
-    h265->raw_dealt_qp = 2;
+    h265->raw_dealt_qp = 4;
     h265->max_delta_qp = 10;
     h265->const_intra_pred = 0;
     h265->gop_delta_qp = 0;
