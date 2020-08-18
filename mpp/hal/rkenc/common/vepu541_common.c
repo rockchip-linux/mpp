@@ -327,6 +327,17 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
         goto DONE;
     }
 
+    cfg.force_intra = 0;
+    cfg.reserved    = 0;
+    cfg.qp_area_idx = 0;
+    cfg.qp_area_en  = 1;
+    cfg.qp_adj      = 0;
+    cfg.qp_adj_mode = 0;
+
+    /* step 1. reset all the config */
+    for (i = 0; i < stride_h * stride_v; i++, ptr++)
+        memcpy(ptr, &cfg, sizeof(cfg));
+
     if (w <= 0 || h <= 0) {
         mpp_err_f("invalid size [%d:%d]\n", w, h);
         goto DONE;
@@ -362,17 +373,6 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
             goto DONE;
         }
     }
-
-    cfg.force_intra = 0;
-    cfg.reserved    = 0;
-    cfg.qp_area_idx = 0;
-    cfg.qp_area_en  = 1;
-    cfg.qp_adj      = 0;
-    cfg.qp_adj_mode = 0;
-
-    /* step 1. reset all the config */
-    for (i = 0; i < stride_h * stride_v; i++, ptr++)
-        memcpy(ptr, &cfg, sizeof(cfg));
 
     region = roi->regions;
     /* step 2. setup region for top to bottom */
