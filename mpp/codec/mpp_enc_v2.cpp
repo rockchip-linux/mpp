@@ -316,6 +316,10 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 {
     RK_S32 resend = 0;
 
+    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG ||
+        cfg->codec.coding == MPP_VIDEO_CodingVP8)
+        return 0;
+
     do {
         if (cmd == MPP_ENC_SET_CODEC_CFG ||
             cmd == MPP_ENC_SET_PREP_CFG) {
@@ -723,14 +727,17 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         }
     }
 
-    mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
-            name_of_rc_mode[cfg->mode],
-            rc->bps_min, rc->bps_target, rc->bps_max,
-            cfg->fps.fps_in_flex ? "flex" : "fix",
-            cfg->fps.fps_in_num, cfg->fps.fps_in_denorm,
-            cfg->fps.fps_out_flex ? "flex" : "fix",
-            cfg->fps.fps_out_num, cfg->fps.fps_out_denorm,
-            cfg->igop, cfg->vgop);
+    if (codec->coding == MPP_VIDEO_CodingAVC ||
+        codec->coding == MPP_VIDEO_CodingHEVC) {
+        mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
+                name_of_rc_mode[cfg->mode],
+                rc->bps_min, rc->bps_target, rc->bps_max,
+                cfg->fps.fps_in_flex ? "flex" : "fix",
+                cfg->fps.fps_in_num, cfg->fps.fps_in_denorm,
+                cfg->fps.fps_out_flex ? "flex" : "fix",
+                cfg->fps.fps_out_num, cfg->fps.fps_out_denorm,
+                cfg->igop, cfg->vgop);
+    }
 }
 
 void *mpp_enc_thread(void *data)

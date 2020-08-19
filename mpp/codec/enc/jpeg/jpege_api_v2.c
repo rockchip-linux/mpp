@@ -169,9 +169,9 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             mpp_err_f("failed to accept new prep config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
-                      dst->width, dst->height,
-                      dst->hor_stride, dst->ver_stride);
+            jpege_dbg_ctrl("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
+                           dst->width, dst->height,
+                           dst->hor_stride, dst->ver_stride);
         }
     }
 
@@ -237,9 +237,9 @@ static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             mpp_err_f("failed to accept new rc config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                      dst->bps_target, dst->bps_min, dst->bps_max,
-                      dst->fps_in_num, dst->fps_out_num, dst->gop);
+            jpege_dbg_ctrl("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                           dst->bps_target, dst->bps_min, dst->bps_max,
+                           dst->fps_in_num, dst->fps_out_num, dst->gop);
         }
     }
 
@@ -350,8 +350,8 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
             mpp_err_f("failed to accept new rc config\n");
             *dst = bak;
         } else {
-            mpp_log_f("MPP_ENC_SET_CODEC_CFG change 0x%x jpeg quant %d q_factor %d\n",
-                      change, dst->quant, dst->q_factor);
+            jpege_dbg_ctrl("MPP_ENC_SET_CODEC_CFG change 0x%x jpeg quant %d q_factor %d\n",
+                           change, dst->quant, dst->q_factor);
             dst->change = src->change;
         }
 
