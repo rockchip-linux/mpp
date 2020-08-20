@@ -105,6 +105,7 @@ typedef struct MppEncImpl_t {
     RK_U32              hdr_len;
     MppEncHeaderStatus  hdr_status;
     MppEncHeaderMode    hdr_mode;
+    MppEncSeiMode       sei_mode;
 
     /* information for debug prefix */
     const char          *version_info;
@@ -513,6 +514,22 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
                 enc_dbg_ctrl("header mode set to %d\n", mode);
             } else {
                 mpp_err_f("invalid header mode %d\n", mode);
+                *enc->cmd_ret = MPP_NOK;
+            }
+        } else {
+            mpp_err_f("invalid NULL ptr on setting header mode\n");
+            *enc->cmd_ret = MPP_NOK;
+        }
+    } break;
+    case MPP_ENC_SET_SEI_CFG : {
+        if (enc->param) {
+            MppEncSeiMode mode = *((MppEncSeiMode *)enc->param);
+
+            if (mode <= MPP_ENC_SEI_MODE_ONE_FRAME) {
+                enc->sei_mode = mode;
+                enc_dbg_ctrl("sei mode set to %d\n", mode);
+            } else {
+                mpp_err_f("invalid sei mode %d\n", mode);
                 *enc->cmd_ret = MPP_NOK;
             }
         } else {
@@ -1053,7 +1070,7 @@ void *mpp_enc_thread(void *data)
 
         /* 17. Add all prefix info before encoding */
         if (!frm->reencode) {
-            if (frm->is_idr) {
+            if (frm->is_idr && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
                 RK_S32 length = 0;
 
                 enc_impl_add_prefix(impl, packet, &length, uuid_version,
@@ -1252,6 +1269,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     p->impl     = impl;
     p->enc_hal  = enc_hal;
     p->mpp      = cfg->mpp;
+    p->sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
     p->version_info = get_mpp_version();
     p->version_length = strlen(p->version_info);
     p->rc_cfg_size = SZ_1K;
