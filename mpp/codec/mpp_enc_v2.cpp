@@ -1091,7 +1091,7 @@ void *mpp_enc_thread(void *data)
                 }
             }
         }
-        frm->reencode = 0;
+
         // check for user data adding
         if (hal_task->length != mpp_packet_get_length(packet)) {
             mpp_err_f("user data adding check failed: task length is not match to packet length %d vs %d\n",
@@ -1122,6 +1122,7 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
         RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
 
+        frm->reencode = 0;
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
