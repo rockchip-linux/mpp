@@ -25,7 +25,6 @@
 #include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_packet_impl.h"
-#include "mpp_buffer_impl.h"
 
 #include "avsd_syntax.h"
 #include "avsd_api.h"
