@@ -247,7 +247,7 @@ static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
 }
 
 /* gen quantizer table by q_factor according to RFC435 spec. */
-static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_U32 *factor)
+static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
 {
     MPP_RET ret = MPP_OK;
     RK_U8 q = *factor;
@@ -293,17 +293,31 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
 
         if (change & MPP_ENC_JPEG_CFG_CHANGE_QP) {
             dst->quant = src->quant;
-        }
-        if (change & MPP_ENC_JPEG_CFG_CHANGE_QFACTOR) {
+            if (dst->quant < 0 || dst->quant > 10) {
+                mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
+                dst->quant = 8;
+            }
+        } else if (change & MPP_ENC_JPEG_CFG_CHANGE_QFACTOR) {
             if (src->q_factor < 1 || src->q_factor > 99) {
-                mpp_err_f("q_factor out of range, default set 90\n");
-                src->q_factor = 90;
+                mpp_err_f("q_factor out of range, default set 80\n");
+                src->q_factor = 80;
             }
             if (dst->q_factor != src->q_factor)
                 ret = jpege_gen_qt_by_qfactor(dst, &src->q_factor);
 
             dst->q_factor = src->q_factor;
-
+            if (src->qf_min < 1 || src->qf_min > 99) {
+                mpp_err_f("qf_min out of range, default set 1\n");
+                src->qf_min = 1;
+            }
+            dst->qf_min = src->qf_min;
+            if (src->qf_max < 1 || src->qf_max > 99) {
+                mpp_err_f("qf_max out of range, default set 99\n");
+                src->qf_max = 99;
+            }
+            dst->qf_max = src->qf_max;
+            jpege_dbg_input("q_factor %d, qf_min %d, qf_max %d\n",
+                            dst->q_factor, dst->qf_min, dst->qf_max);
         } else if (change & MPP_ENC_JPEG_CFG_CHANGE_QTABLE) {
             if (src->qtable_y && src->qtable_u && src->qtable_v) {
                 if (NULL == dst->qtable_y)
@@ -339,11 +353,6 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
                           src->qtable_y, src->qtable_u, src->qtable_v);
                 ret = MPP_ERR_NULL_PTR;
             }
-        }
-
-        if (dst->quant < 0 || dst->quant > 10) {
-            mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
-            dst->quant = 8;
         }
 
         if (ret) {
@@ -510,6 +519,9 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->format      = prep->format;
     syntax->color       = prep->color;
     syntax->quality     = codec->jpeg.quant;
+    syntax->q_factor    = codec->jpeg.q_factor;
+    syntax->qf_min      = codec->jpeg.qf_min;
+    syntax->qf_max      = codec->jpeg.qf_max;
     syntax->qtable_y    = codec->jpeg.qtable_y;
     syntax->qtable_c    = codec->jpeg.qtable_u;
 

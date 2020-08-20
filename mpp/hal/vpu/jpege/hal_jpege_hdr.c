@@ -894,15 +894,19 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
         write_jpeg_comment_header(bits, syntax);
 
     /* Quant header */
-    if (syntax->qtable_y)
-        qtables[0] = syntax->qtable_y;
-    else
-        qtables[0] = qtable_y[syntax->quality];
+    if (!qtables[0]) {
+        if (syntax->qtable_y)
+            qtables[0] = syntax->qtable_y;
+        else
+            qtables[0] = qtable_y[syntax->quality];
+    }
 
-    if (syntax->qtable_c)
-        qtables[1] = syntax->qtable_c;
-    else
-        qtables[1] = qtable_c[syntax->quality];
+    if (!qtables[1]) {
+        if (syntax->qtable_c)
+            qtables[1] = syntax->qtable_c;
+        else
+            qtables[1] = qtable_c[syntax->quality];
+    }
 
     write_jpeg_dqt_header(bits, qtables);
 

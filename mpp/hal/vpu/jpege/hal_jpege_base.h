@@ -26,6 +26,14 @@ typedef struct JpegeIocRegInfo_t {
     RegExtraInfo        extra_info;
 } JpegeIocRegInfo;
 
+typedef struct HalJpegeRc_t {
+    /* For quantization table */
+    RK_S32              q_factor;
+    RK_U8               *qtable_y;
+    RK_U8               *qtable_c;
+    RK_S32              last_quality;
+} HalJpegeRc;
+
 typedef struct hal_jpege_ctx_s {
     IOInterruptCB       int_cb;
     MppDevCtx           dev_ctx;
@@ -38,6 +46,7 @@ typedef struct hal_jpege_ctx_s {
     JpegeFeedback       feedback;
 
     MppHalApi           hal_api;
+    HalJpegeRc          hal_rc;
 } HalJpegeCtx;
 
 #endif /* __HAL_JPEGE_BASE_H__ */
