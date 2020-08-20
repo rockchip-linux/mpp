@@ -24,7 +24,6 @@
 
 #include "vepu541_common.h"
 #include "mpp_device_msg.h"
-#include "mpp_buffer_impl.h"
 
 static const RK_S32 zeros[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
