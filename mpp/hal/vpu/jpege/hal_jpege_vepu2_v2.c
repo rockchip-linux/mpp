@@ -73,6 +73,7 @@ MPP_RET hal_jpege_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
     mpp_assert(ctx->bits);
 
     memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
+    memset(&ctx->hal_rc, 0, sizeof(ctx->hal_rc));
     ctx->cfg = cfg->cfg;
 
     ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU2_NUM_REGS);
@@ -111,8 +112,26 @@ MPP_RET hal_jpege_vepu2_get_task_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+    hal_jpege_dbg_func("enter hal %p\n", hal);
 
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
+    /* Set rc paramters */
+    hal_jpege_dbg_input("rc_mode=%d\n", ctx->cfg->rc.rc_mode);
+    if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        if (!ctx->hal_rc.q_factor) {
+            task->rc_task->info.quality_target = syntax->q_factor ? (100 - syntax->q_factor) : 80;
+            task->rc_task->info.quality_min = 100 - syntax->qf_max;
+            task->rc_task->info.quality_max = 100 - syntax->qf_min;
+            task->rc_task->frm.is_intra = 1;
+        } else {
+            task->rc_task->info.quality_target = ctx->hal_rc.last_quality;
+            task->rc_task->info.quality_min = 100 - syntax->qf_max;
+            task->rc_task->info.quality_max = 100 - syntax->qf_min;
+        }
+    }
+
+    hal_jpege_dbg_func("leave hal %p\n", hal);
+
     return MPP_OK;
 }
 
@@ -143,6 +162,73 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
     return MPP_OK;
 }
 
+#define QUANTIZE_TABLE_SIZE 64
+/*
+ *  from RFC435 spec.
+ */
+static const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    16, 11, 10, 16, 24, 40, 51, 61,
+    12, 12, 14, 19, 26, 58, 60, 55,
+    14, 13, 16, 24, 40, 57, 69, 56,
+    14, 17, 22, 29, 51, 87, 80, 62,
+    18, 22, 37, 56, 68, 109, 103, 77,
+    24, 35, 55, 64, 81, 104, 113, 92,
+    49, 64, 78, 87, 103, 121, 120, 101,
+    72, 92, 95, 98, 112, 100, 103, 99
+};
+
+static const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    17, 18, 24, 47, 99, 99, 99, 99,
+    18, 21, 26, 66, 99, 99, 99, 99,
+    24, 26, 56, 99, 99, 99, 99, 99,
+    47, 66, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99
+};
+
+static MPP_RET hal_jpege_vepu2_rc(HalJpegeCtx *ctx, HalEncTask *task)
+{
+    HalJpegeRc *hal_rc = &ctx->hal_rc;
+    EncRcTaskInfo *rc_info = (EncRcTaskInfo *)&task->rc_task->info;
+
+    if (rc_info->quality_target != hal_rc->last_quality) {
+        RK_U32 i = 0;
+        RK_S32 q = 0;
+
+        hal_rc->q_factor = 100 - rc_info->quality_target;
+        hal_jpege_dbg_input("use qfactor=%d, rc_info->quality_target=%d\n", hal_rc->q_factor, rc_info->quality_target);
+
+        if (!hal_rc->qtable_y)
+            hal_rc->qtable_y = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+        if (!hal_rc->qtable_c)
+            hal_rc->qtable_c = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+        if (NULL == hal_rc->qtable_y || NULL == hal_rc->qtable_c) {
+            mpp_err_f("qtable is null, malloc err\n");
+            return MPP_ERR_MALLOC;
+        }
+
+        q = hal_rc->q_factor;
+        if (q < 50)
+            q = 5000 / q;
+        else
+            q = 200 - (q << 1);
+
+        for (i = 0; i < QUANTIZE_TABLE_SIZE; i++) {
+            RK_S16 lq = (jpege_luma_quantizer[i] * q + 50) / 100;
+            RK_S16 cq = (jpege_chroma_quantizer[i] * q + 50) / 100;
+
+            /* Limit the quantizers to 1 <= q <= 255 */
+            hal_rc->qtable_y[i] = MPP_CLIP3(1, 255, lq);
+            hal_rc->qtable_c[i] = MPP_CLIP3(1, 255, cq);
+        }
+    }
+
+    return MPP_OK;
+}
+
+
 MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
@@ -160,7 +246,7 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     size_t length = mpp_packet_get_length(task->packet);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
-    const RK_U8 *qtable[2];
+    const RK_U8 *qtable[2] = {NULL};
     RK_U32 val32;
     RK_S32 bitpos;
     RK_S32 bytepos;
@@ -185,6 +271,14 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     /* seek length bytes data */
     jpege_seek_bits(bits, length << 3);
     /* NOTE: write header will update qtable */
+    if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        hal_jpege_vepu2_rc(ctx, task);
+        qtable[0] = ctx->hal_rc.qtable_y;
+        qtable[1] = ctx->hal_rc.qtable_c;
+    } else {
+        qtable[0] = NULL;
+        qtable[1] = NULL;
+    }
     write_jpeg_header(bits, syntax, qtable);
 
     memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU2_NUM_REGS);
@@ -423,6 +517,8 @@ MPP_RET hal_jpege_vepu2_ret_task_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
+    ctx->hal_rc.last_quality = task->rc_task->info.quality_target;
+    task->rc_task->info.bit_real = ctx->feedback.stream_length * 8;
     task->hal_ret.data = &ctx->feedback;
     task->hal_ret.number = 1;
 

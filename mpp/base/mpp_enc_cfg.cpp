@@ -223,7 +223,9 @@ static const char *cfg_func_names[] = {
     ENTRY(jpeg, qtable_y,       PTR, RK_U8*,            MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_y) \
     ENTRY(jpeg, qtable_u,       PTR, RK_U8*,            MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_u) \
     ENTRY(jpeg, qtable_v,       PTR, RK_U8*,            MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_v) \
-    ENTRY(jpeg, q_factor,       U32, RK_U32,            MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, q_factor) \
+    ENTRY(jpeg, q_factor,       S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, q_factor) \
+    ENTRY(jpeg, qf_max,         S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, qf_max) \
+    ENTRY(jpeg, qf_min,         S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, qf_min) \
     /* split config */ \
     ENTRY(split, mode,          U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
     ENTRY(split, arg,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg)
@@ -240,7 +242,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 22;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 31;
 
 class MppEncCfgService
 {

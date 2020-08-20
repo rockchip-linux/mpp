@@ -924,7 +924,19 @@ typedef enum MppEncJpegCfgChange_e {
 typedef struct MppEncJpegCfg_t {
     RK_U32              change;
     RK_S32              quant;
-    RK_U32              q_factor;
+    /*
+     * quality factor config
+     *
+     * q_factor     - 1  ~ 99
+     * qf_max       - 1  ~ 99
+     * qf_min       - 1  ~ 99
+     * qtable_y: qtable for luma
+     * qtable_u: qtable for chroma
+     * qtable_v: default equal qtable_u
+     */
+    RK_S32              q_factor;
+    RK_S32              qf_max;
+    RK_S32              qf_min;
     RK_U8               *qtable_y;
     RK_U8               *qtable_u;
     RK_U8               *qtable_v;
