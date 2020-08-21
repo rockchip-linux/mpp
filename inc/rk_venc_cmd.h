@@ -163,14 +163,14 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
-typedef enum MppEncRcMode_t {
+typedef enum MppEncRcMode_e {
     MPP_ENC_RC_MODE_VBR,
     MPP_ENC_RC_MODE_CBR,
     MPP_ENC_RC_MODE_FIXQP,
     MPP_ENC_RC_MODE_BUTT
 } MppEncRcMode;
 
-typedef enum MppEncRcQuality_t {
+typedef enum MppEncRcQuality_e {
     MPP_ENC_RC_QUALITY_WORST,
     MPP_ENC_RC_QUALITY_WORSE,
     MPP_ENC_RC_QUALITY_MEDIUM,
@@ -327,7 +327,7 @@ typedef struct {
  * 2 - 180 degree
  * 3 - 270 degree
  */
-typedef enum MppEncRotationCfg_t {
+typedef enum MppEncRotationCfg_e {
     MPP_ENC_ROT_0,
     MPP_ENC_ROT_90,
     MPP_ENC_ROT_180,
@@ -403,7 +403,7 @@ typedef struct MppEncMDBlkInfo_t {
     RK_S32              mvy     : 8;    /* bit 24~31 - signed vertical mv */
 } MppEncMDBlkInfo;
 
-typedef enum MppEncHeaderMode_t {
+typedef enum MppEncHeaderMode_e {
     /* default mode: attach vps/sps/pps only on first frame */
     MPP_ENC_HEADER_MODE_DEFAULT,
     /* IDR mode: attach vps/sps/pps on each IDR frame */
@@ -411,7 +411,7 @@ typedef enum MppEncHeaderMode_t {
     MPP_ENC_HEADER_MODE_BUTT,
 } MppEncHeaderMode;
 
-typedef enum MppEncSeiMode_t {
+typedef enum MppEncSeiMode_e {
     MPP_ENC_SEI_MODE_DISABLE,                /* default mode, SEI writing is disabled */
     MPP_ENC_SEI_MODE_ONE_SEQ,                /* one sequence has only one SEI */
     MPP_ENC_SEI_MODE_ONE_FRAME               /* one frame may have one SEI, if SEI info has changed */
