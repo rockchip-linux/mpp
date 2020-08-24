@@ -1053,20 +1053,22 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
     EncFrmStatus *frm = &task->frm;
 
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
-    if (p->usr_cfg.mode == RC_FIXQP) {
-        return MPP_OK;
-    }
 
-    if (check_re_enc(p, cfg)) {
-        if (p->usr_cfg.mode == RC_CBR) {
-            reenc_calc_cbr_ratio(p, cfg);
-        } else {
-            reenc_calc_vbr_ratio(p, cfg);
-        }
+    if (p->usr_cfg.mode == RC_FIXQP)
+        goto DONE;
 
-        if (p->next_ratio != 0) {
-            p->reenc_cnt++;
-            frm->reencode = 1;
+    if (!(task->force.force_flag & ENC_RC_FORCE_QP)) {
+        if (check_re_enc(p, cfg)) {
+            if (p->usr_cfg.mode == RC_CBR) {
+                reenc_calc_cbr_ratio(p, cfg);
+            } else {
+                reenc_calc_vbr_ratio(p, cfg);
+            }
+
+            if (p->next_ratio != 0) {
+                p->reenc_cnt++;
+                frm->reencode = 1;
+            }
         }
     }
 
@@ -1077,9 +1079,11 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
         p->first_frm_flg = 0;
         p->last_frame_type = p->frame_type;
     }
+
     p->pre_target_bits = cfg->bit_target;
     p->pre_real_bits = cfg->bit_real;
 
+DONE:
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
