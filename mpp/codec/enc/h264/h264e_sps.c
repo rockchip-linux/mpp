@@ -123,8 +123,8 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
         sps->log2_max_poc_lsb_minus4 = 12;
     } else if (gop == 1) {
         // all I frame
-        sps->log2_max_frame_num_minus4 = 0;
-        sps->log2_max_poc_lsb_minus4 = 0;
+        sps->log2_max_frame_num_minus4 = 12;
+        sps->log2_max_poc_lsb_minus4 = 12;
     } else {
         // normal case
         RK_S32 log2_gop = mpp_log2(gop);
