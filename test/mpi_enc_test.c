@@ -482,7 +482,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     MppApi *mpi;
     MppCtx ctx;
     MppEncCfg cfg;
-    MppEncRcMode rc_mode = MPP_ENC_RC_MODE_CBR;
 
     if (NULL == p)
         return MPP_ERR_NULL_PTR;
@@ -513,7 +512,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
 
     mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
 
-    switch (rc_mode) {
+    switch (p->rc_mode) {
     case MPP_ENC_RC_MODE_FIXQP : {
         /* do not set bps on fix qp mode */
     } break;
@@ -530,7 +529,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 1 / 16);
     } break;
     default : {
-        mpp_err_f("unsupport encoder rc mode %d\n", rc_mode);
+        mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
     } break;
     }
 
@@ -567,7 +566,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
 
-        if (rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        if (p->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
             mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 20);
             mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 16);
             mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 16);
@@ -587,7 +586,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     case MPP_VIDEO_CodingVP8 : {
     } break;
     case MPP_VIDEO_CodingHEVC : {
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_init", rc_mode == MPP_ENC_RC_MODE_FIXQP ? -1 : 26);
+        mpp_enc_cfg_set_s32(cfg, "h265:qp_init", p->rc_mode == MPP_ENC_RC_MODE_FIXQP ? -1 : 26);
         mpp_enc_cfg_set_s32(cfg, "h265:qp_max", 51);
         mpp_enc_cfg_set_s32(cfg, "h265:qp_min", 10);
         mpp_enc_cfg_set_s32(cfg, "h265:qp_max_i", 46);
