@@ -365,25 +365,33 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     }
 
     /* NOTE: vepu only support 8bit encoding and stride must match with width align to 16 */
-    RK_S32 hor_stride = MPP_ALIGN(cfg->width, 16);
+    RK_S32 hor_stride = cfg->hor_stride;
     RK_S32 ver_stride = cfg->ver_stride;
+
     prep->offset_cb = 0;
     prep->offset_cr = 0;
+    prep->hor_stride = hor_stride;
 
     switch (format & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
-        if (cfg->hor_stride != MPP_ALIGN(cfg->width, 16))
-            mpp_log_f("vepu only support 16byte aligned YUV420SP horizontal stride %d vs width %d\n",
-                      cfg->hor_stride, cfg->width);
+        if (!prep->stride_workaround &&
+            hor_stride != MPP_ALIGN(hor_stride, 8)) {
+            mpp_log_f("vepu only support 8byte aligned YUV420SP horizontal stride %d vs width %d\n",
+                      hor_stride, cfg->width);
+            prep->stride_workaround = 1;
+        }
 
         prep->offset_cb = hor_stride * ver_stride;
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = hor_stride / 2 * MPP_ALIGN(prep->src_h / 2, 8);
     } break;
     case MPP_FMT_YUV420P : {
-        if (cfg->hor_stride != MPP_ALIGN(cfg->width, 16))
+        if (!prep->stride_workaround &&
+            hor_stride != MPP_ALIGN(hor_stride, 16)) {
             mpp_log_f("vepu only support 16byte aligned YUV420P horizontal stride %d vs width %d\n",
-                      cfg->hor_stride, cfg->width);
+                      hor_stride, cfg->width);
+            prep->stride_workaround = 1;
+        }
 
         prep->offset_cb = hor_stride * ver_stride;
         prep->offset_cr = prep->offset_cb + ((hor_stride * ver_stride) / 4);
@@ -392,14 +400,17 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     } break;
     case MPP_FMT_YUV422_YUYV :
     case MPP_FMT_YUV422_UYVY : {
-        if (cfg->hor_stride != (MPP_ALIGN(cfg->width, 16) * 2) && !prep->stride_workaround) {
-            mpp_log_f("vepu only support 16 pixel aligned YUV422 horizontal stride %d vs width %d\n",
-                      cfg->hor_stride, cfg->width);
+        if (!prep->stride_workaround &&
+            ((hor_stride != MPP_ALIGN(hor_stride, 8 * 2)) ||
+             (hor_stride < cfg->width * 2))) {
+            mpp_log_f("vepu only support 16bit pixel aligned YUV422 horizontal stride %d vs width %d\n",
+                      hor_stride, cfg->width);
             prep->stride_workaround = 1;
         }
 
-        prep->size_y = hor_stride * 2 * MPP_ALIGN(prep->src_h, 16);
+        prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
+        prep->hor_stride = hor_stride / 2;
     } break;
     case MPP_FMT_RGB565 :
     case MPP_FMT_BGR565 :
@@ -407,14 +418,17 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     case MPP_FMT_BGR555 :
     case MPP_FMT_RGB444 :
     case MPP_FMT_BGR444 : {
-        if ((cfg->hor_stride != cfg->width * 2) && !prep->stride_workaround) {
+        if (!prep->stride_workaround &&
+            ((hor_stride != MPP_ALIGN(hor_stride, 8 * 2)) ||
+             (hor_stride < cfg->width * 2))) {
             mpp_log_f("vepu only support matched 16bit pixel horizontal stride %d vs width %d\n",
-                      cfg->hor_stride, cfg->width);
+                      hor_stride, cfg->width);
             prep->stride_workaround = 1;
         }
 
-        prep->size_y = hor_stride * 2 * MPP_ALIGN(prep->src_h, 16);
+        prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
+        prep->hor_stride = hor_stride / 2;
     } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
@@ -422,14 +436,17 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     case MPP_FMT_BGRA8888 :
     case MPP_FMT_RGB101010 :
     case MPP_FMT_BGR101010 : {
-        if ((cfg->hor_stride != cfg->width * 4) && !prep->stride_workaround) {
+        if (!prep->stride_workaround &&
+            ((hor_stride == MPP_ALIGN(hor_stride, 8 * 4)) ||
+             (hor_stride < cfg->width * 4))) {
             mpp_log_f("vepu only support matched 32bit pixel horizontal stride %d vs width %d\n",
-                      cfg->hor_stride, cfg->width);
+                      hor_stride, cfg->width);
             prep->stride_workaround = 1;
         }
 
-        prep->size_y = hor_stride * 4 * MPP_ALIGN(prep->src_h, 16);
+        prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
+        prep->hor_stride = hor_stride / 4;
     } break;
     default: {
         mpp_err_f("invalid format %d", format);
@@ -455,16 +472,16 @@ MPP_RET h264e_vepu_prep_get_addr(HalH264eVepuPrep *prep, MppBuffer buffer,
     (*addr)[2] = fd + (prep->offset_cr << 10);
 
     if (size < prep->size_y)
-        mpp_err("warnning: input buffer size 0x%x is smaller then required size 0x%x",
+        mpp_err("warnning: input buffer size 0x%x is smaller than required size 0x%x",
                 size, prep->size_y);
 
     if (prep->size_c && (prep->offset_cb || prep->offset_cr)) {
         if (prep->offset_cb && (size < prep->offset_cb + prep->size_c))
-            mpp_err("warnning: input buffer size 0x%x is smaller then cb requirement 0x%x + 0x%x",
+            mpp_err("warnning: input buffer size 0x%x is smaller than cb requirement 0x%x + 0x%x",
                     size, prep->offset_cb, prep->size_c);
 
         if (prep->offset_cr && (size < prep->offset_cr + prep->size_c))
-            mpp_err("warnning: input buffer size 0x%x is smaller then cb requirement 0x%x + 0x%x",
+            mpp_err("warnning: input buffer size 0x%x is smaller than cb requirement 0x%x + 0x%x",
                     size, prep->offset_cr, prep->size_c);
     }
 

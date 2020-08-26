@@ -348,8 +348,10 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 scaler = MPP_MAX(1, 200 / (mb_w + mb_h));
 
     RK_U32 skip_penalty = MPP_MIN(255, h264_skip_sad_penalty[hw_mbrc->qp_init] * scaler);
+
     RK_U32 overfill_r = (hw_prep->src_w & 0x0f) ?
                         ((16 - (hw_prep->src_w & 0x0f)) / 4) : 0;
+
     RK_U32 overfill_b = (hw_prep->src_h & 0x0f) ?
                         (16 - (hw_prep->src_h & 0x0f)) : 0;
 
@@ -362,7 +364,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     // When offset is zero row length should be total 16 aligned width
     val = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
           | VEPU_REG_IN_IMG_LUMA_OFFSET(0)
-          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(mb_w * 16);
+          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(hw_prep->hor_stride);
+
     H264E_HAL_SET_REG(reg, VEPU_REG_INPUT_LUMA_INFO, val);
 
     val = VEPU_REG_CHECKPOINT_CHECK1(hw_mbrc->cp_target[0])

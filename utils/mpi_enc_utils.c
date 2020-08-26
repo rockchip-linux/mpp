@@ -33,8 +33,11 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
     RK_S32 stride = 0;
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
-    case MPP_FMT_YUV420SP :
+    case MPP_FMT_YUV420SP : {
+        stride = MPP_ALIGN(width, 8);
+    } break;
     case MPP_FMT_YUV420P : {
+        /* NOTE: 420P need to align to 16 so chroma can align to 8 */
         stride = MPP_ALIGN(width, 16);
     } break;
     case MPP_FMT_YUV422P:
@@ -49,17 +52,20 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
     case MPP_FMT_YUV422_YVYU :
     case MPP_FMT_YUV422_UYVY :
     case MPP_FMT_YUV422_VYUY : {
-        stride = MPP_ALIGN(width * 2, 16);
+        /* NOTE: for vepu limitation */
+        stride = MPP_ALIGN(width, 8) * 2;
     } break;
     case MPP_FMT_RGB888 :
     case MPP_FMT_BGR888 : {
-        stride = width * 3;
+        /* NOTE: for vepu limitation */
+        stride = MPP_ALIGN(width, 8) * 3;
     } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888:
     case MPP_FMT_BGRA8888:
     case MPP_FMT_RGBA8888: {
-        stride = width * 4;
+        /* NOTE: for vepu limitation */
+        stride = MPP_ALIGN(width, 8) * 4;
     } break;
     default : {
         mpp_err_f("do not support type %d\n", fmt);
