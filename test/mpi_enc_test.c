@@ -141,10 +141,11 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     p->bps_min      = cmd->bps_min;
     p->bps_max      = cmd->bps_max;
     p->rc_mode      = cmd->rc_mode;
-
-    if (cmd->type == MPP_VIDEO_CodingMJPEG)
-        cmd->num_frames = 1;
     p->num_frames   = cmd->num_frames;
+    if (cmd->type == MPP_VIDEO_CodingMJPEG && p->num_frames == 0) {
+        mpp_log("jpege default encode only one frame. Use -n [num] for rc case\n");
+        p->num_frames   = 1;
+    }
     p->gop_mode     = cmd->gop_mode;
     p->gop_len      = cmd->gop_len;
     p->vi_len       = cmd->vi_len;
@@ -581,7 +582,9 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         }
     } break;
     case MPP_VIDEO_CodingMJPEG : {
-        mpp_enc_cfg_set_s32(cfg, "jpeg:quant", 10);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", 80);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", 99);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", 1);
     } break;
     case MPP_VIDEO_CodingVP8 : {
     } break;
