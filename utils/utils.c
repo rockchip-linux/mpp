@@ -527,7 +527,7 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
                 p[x + 0] = i + y + frame_count * 3;
                 p[x + 1] = 128 + i + frame_count * 2;
                 p[x + 2] = 64  + i + frame_count * 5;
-                p[x + 3] = 0;
+                p[x + 3] = i + y / 2 + frame_count * 3;
             }
         }
     } break;

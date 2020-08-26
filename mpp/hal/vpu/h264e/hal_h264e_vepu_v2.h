@@ -34,6 +34,8 @@ typedef struct HalH264eVepuInput_t {
     RK_S32          src_fmt;
     RK_S32          src_w;
     RK_S32          src_h;
+    RK_S32          hor_stride;
+
     size_t          size_y;
     size_t          size_c;
 

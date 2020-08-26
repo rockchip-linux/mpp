@@ -408,7 +408,7 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                 mpp_log_f("warning: 16 aligned picture height %d and vertical stride %d do NOT matched\n",
                           aligned_h, prep->ver_stride);
 
-            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 16));
+            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->hor_stride , 8));
         }
 
         hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_uv << 10);
@@ -425,7 +425,7 @@ MPP_RET h264e_vpu_update_hw_cfg(H264eHalContext *ctx, HalEncTask *task,
                 mpp_log_f("warning: 16 aligned picture height %d and vertical stride %d do NOT matched\n",
                           aligned_h, prep->ver_stride);
 
-            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->width, 16));
+            mpp_assert(prep->hor_stride == MPP_ALIGN(prep->hor_stride , 8));
         }
 
         hw_cfg->input_cb_addr = hw_cfg->input_luma_addr + (offset_y << 10);
