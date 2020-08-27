@@ -200,7 +200,7 @@ void bits_frm_init(RcModelV2Ctx *ctx)
 
 MPP_RET bits_model_init(RcModelV2Ctx *ctx)
 {
-    RK_U32 gop_len = ctx->usr_cfg.igop;
+    RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_S64 gop_bits = 0;
     RK_U32 stat_times = ctx->usr_cfg.stat_times;
@@ -221,9 +221,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     }
     rc_dbg_rc("max_i_bit_prop  %d",  ctx->usr_cfg.max_i_bit_prop);
 
-    if (!gop_len) {
+    if (!gop_len || gop_len > 500) {
         mpp_log("infinte gop, set default for rc bit calc\n");
-        ctx->usr_cfg.igop = gop_len = 300;
+        ctx->usr_cfg.igop = gop_len = 500;
     }
 
     ctx->super_ifrm_bits_thr = -1;
@@ -362,7 +362,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
 MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_U32 max_i_prop = ctx->usr_cfg.max_i_bit_prop * 16;
-    RK_U32 gop_len = ctx->usr_cfg.igop;
+    RK_S32 gop_len = ctx->usr_cfg.igop;
     RK_S64 total_bits = ctx->gop_total_bits;
     RK_S32 ins_bps = mpp_data_sum_v2(ctx->stat_bits) / ctx->usr_cfg.stat_times;
     RK_S32 i_scale = ctx->i_scale;
