@@ -241,9 +241,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     }
 
     if (gop_len >= 1)
-        gop_bits = gop_len * target_bps * fps->fps_out_denorm;
+        gop_bits = (RK_S64)gop_len * target_bps * fps->fps_out_denorm;
     else
-        gop_bits = fps->fps_in_num * target_bps * fps->fps_out_denorm;
+        gop_bits = (RK_S64)fps->fps_in_num * target_bps * fps->fps_out_denorm;
 
     ctx->gop_total_bits = gop_bits / fps->fps_out_num;
 
