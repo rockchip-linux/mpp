@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "hal_vp8e_vepu2"
+#define MODULE_TAG "hal_vp8e_vepu2_v2"
 
 #include <string.h>
 
 #include "mpp_mem.h"
-
+#include "mpp_common.h"
+#include "mpp_enc_hal.h"
 #include "hal_vp8e_base.h"
 #include "hal_vp8e_vepu2.h"
 #include "hal_vp8e_vepu2_reg.h"
@@ -269,7 +270,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_vp8e_vepu2_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_vp8e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
@@ -278,13 +279,15 @@ MPP_RET hal_vp8e_vepu2_init(void *hal, MppHalCfg *cfg)
     ctx->cfg = cfg->cfg;
     ctx->set = cfg->set;
 
-    ctx->int_cb = cfg->hal_int_cb;
+    //ctx->int_cb = cfg->hal_int_cb;
 
     ctx->buffers = mpp_calloc(Vp8eVpuBuf, 1);
     if (ctx->buffers == NULL) {
         mpp_err("failed to malloc buffers");
         return MPP_ERR_NOMEM;
     }
+    //memset(ctx->buffers, 0, sizeof(Vp8eVpuBuf));
+
     ctx->buffer_ready = 0;
     ctx->frame_cnt = 0;
     ctx->frame_type = VP8E_FRM_KEY;
@@ -320,7 +323,7 @@ MPP_RET hal_vp8e_vepu2_init(void *hal, MppHalCfg *cfg)
     return ret;
 }
 
-MPP_RET hal_vp8e_vepu2_deinit(void *hal)
+static MPP_RET hal_vp8e_vepu2_deinit_v2(void *hal)
 {
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
@@ -341,15 +344,17 @@ MPP_RET hal_vp8e_vepu2_deinit(void *hal)
     return ret;
 }
 
-MPP_RET hal_vp8e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 
+    ctx->rc->qp_hdr = MPP_CLIP3(0, 127, task->rc_task->info.quality_target);
+
     if (!ctx->buffer_ready) {
         ret = hal_vp8e_setup(hal);
         if (ret) {
-            hal_vp8e_vepu2_deinit(hal);
+            hal_vp8e_vepu2_deinit_v2(hal);
             mpp_err("failed to init hal vp8e\n");
         } else {
             ctx->buffer_ready = 1;
@@ -358,13 +363,13 @@ MPP_RET hal_vp8e_vepu2_gen_regs(void *hal, HalTaskInfo *task)
 
     memset(ctx->stream_size, 0, sizeof(ctx->stream_size));
 
-    hal_vp8e_enc_strm_code(ctx, &task->enc);
+    hal_vp8e_enc_strm_code(ctx, task);
     vp8e_vpu_frame_start(ctx);
 
     return MPP_OK;
 }
 
-MPP_RET hal_vp8e_vepu2_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8e_vepu2_start_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
@@ -411,13 +416,12 @@ static void vp8e_update_hw_cfg(void *hal)
     hw_cfg->split_penalty[3] = -1;
 }
 
-MPP_RET hal_vp8e_vepu2_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8e_vepu2_wait_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 
     Vp8eFeedback *fb = &ctx->feedback;
-    IOInterruptCB int_cb = ctx->int_cb;
     Vp8eVepu2Reg_t *regs = (Vp8eVepu2Reg_t *) ctx->regs;
 
     if (NULL == ctx->dev_ctx) {
@@ -439,85 +443,61 @@ MPP_RET hal_vp8e_vepu2_wait(void *hal, HalTaskInfo *task)
     else if (regs->sw109.val & HW_STATUS_BUFFER_FULL)
         ctx->bitbuf[1].size = 0;
 
-    hal_vp8e_update_buffers(ctx, &task->enc);
+    hal_vp8e_update_buffers(ctx, task);
 
-    RcHalResult result;
     ctx->frame_cnt++;
-    if (ctx->frame_cnt % ctx->rc->gop_len == 0) {
+    if (ctx->frame_cnt % ctx->cfg->rc.gop == 0) {
         ctx->frame_type = VP8E_FRM_KEY;
-        result.type = INTRA_FRAME;
     } else {
         ctx->frame_type = VP8E_FRM_P;
-        result.type = INTER_P_FRAME;
     }
-
-    result.bits = ctx->frame_size * 8;
-
-    if (int_cb.callBack) {
-        fb->result = &result;
-        int_cb.callBack(int_cb.opaque, fb);
-    }
-
+    task->rc_task->info.bit_real = ctx->frame_size << 3;
+    task->hw_length = task->length;
     return ret;
 }
 
-MPP_RET hal_vp8e_vepu2_reset(void *hal)
-{
-    (void)hal;
-
-    return MPP_OK;
-}
-
-MPP_RET hal_vp8e_vepu2_flush(void *hal)
-{
-    (void)hal;
-
-    return MPP_OK;
-}
-
-MPP_RET hal_vp8e_vepu2_control(void *hal, MpiCmd cmd, void *param)
+static MPP_RET hal_vp8e_vepu2_get_task_v2(void *hal, HalEncTask *task)
 {
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
-    MPP_RET ret = MPP_OK;
+    Vp8eSyntax* syntax = (Vp8eSyntax*)task->syntax.data;
+    //ctx->cfg = syntax->cfg;
+    RK_U32 i;
 
-    vp8e_hal_dbg(VP8E_DBG_HAL_FUNCTION, "vp8e_vpu_control cmd 0x%x, info %p", cmd, param);
-    switch (cmd) {
-    case MPP_ENC_SET_PREP_CFG : {
-        MppEncPrepCfg *dst = &ctx->cfg->prep;
-        MppEncPrepCfg *src = (MppEncPrepCfg*)param;
-        RK_U32 change = src->change;
-
-        vp8e_hal_dbg(VP8E_DBG_HAL_FUNCTION, "change 0x%x w %d h %d", change, src->width, src->height);
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-            if ((src->width < 0 || src->width > 1920) ||
-                (src->height < 0 || src->height > 3840) ||
-                (src->hor_stride < 0 || src->hor_stride > 3840) ||
-                (src->ver_stride < 0 || src->ver_stride > 3840)) {
-                mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
-                        src->width, src->height,
-                        src->hor_stride, src->ver_stride);
-                ret = MPP_NOK;
-            }
-            dst->width = src->width;
-            dst->height = src->height;
-            dst->ver_stride = src->ver_stride;
-            dst->hor_stride = src->hor_stride;
+    for (i = 0; i < task->syntax.number; i++) {
+        if (syntax[i].type == VP8E_SYN_CFG) {
+            ctx->cfg = (MppEncCfgSet*)syntax[i].data;
         }
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
-            if ((src->format < MPP_FRAME_FMT_RGB &&
-                 src->format >= MPP_FMT_YUV_BUTT) ||
-                src->format >= MPP_FMT_RGB_BUTT) {
-                mpp_err("invalid format %d\n", src->format);
-                ret = MPP_NOK;
-            }
-            dst->format = src->format;
+        if (syntax[i].type == VP8E_SYN_RC) {
+            ctx->rc = (Vp8eRc*) syntax[i].data;
         }
-        dst->change |= src->change;
-    } break;
-    default:
-        break;
     }
-    return ret;
+
+    if (task->rc_task->info.quality_target < 0) {
+        task->rc_task->frm.is_intra = 1;
+    } else {
+        task->rc_task->frm.is_intra = ctx->frame_type == VP8E_FRM_P ? 0 : 1;
+    }
+
+    return MPP_OK;
 }
+
+static MPP_RET hal_vp8e_vepu2_ret_task_v2(void *hal, HalEncTask *task)
+{
+    (void)hal;
+    (void)task;
+    return MPP_OK;
+}
+
+const MppEncHalApi hal_vp8e_vepu2 = {
+    .name       = "hal_vp8e_vepu2",
+    .coding     = MPP_VIDEO_CodingVP8,
+    .ctx_size   = sizeof(HalVp8eCtx),
+    .flag       = 0,
+    .init       = hal_vp8e_vepu2_init_v2,
+    .deinit     = hal_vp8e_vepu2_deinit_v2,
+    .get_task   = hal_vp8e_vepu2_get_task_v2,
+    .gen_regs   = hal_vp8e_vepu2_gen_regs_v2,
+    .start      = hal_vp8e_vepu2_start_v2,
+    .wait       = hal_vp8e_vepu2_wait_v2,
+    .ret_task   = hal_vp8e_vepu2_ret_task_v2,
+};

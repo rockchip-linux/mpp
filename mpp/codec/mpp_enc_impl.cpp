@@ -27,6 +27,7 @@
 #include "h265e_api.h"
 #include "h265e_api_v2.h"
 #include "vp8e_api.h"
+#include "vp8e_api_v2.h"
 #include "mpp_enc_impl.h"
 
 /*
@@ -56,6 +57,9 @@ static const EncImplApi *enc_apis[] = {
 #endif
 #if HAVE_JPEGE
     &api_jpege,
+#endif
+#if HAVE_VP8E
+    &api_vp8e,
 #endif
 };
 

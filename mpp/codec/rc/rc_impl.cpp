@@ -32,6 +32,7 @@ const RcImplApi *rc_apis[] = {
     &default_h264e,
     &default_h265e,
     &default_jpege,
+    &default_vp8e,
     &smt_h264e,
     &smt_h265e,
 };

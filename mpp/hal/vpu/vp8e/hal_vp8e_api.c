@@ -30,8 +30,6 @@
 #include "hal_vp8e_vepu2.h"
 #include "hal_vp8e_debug.h"
 
-RK_U32 vp8e_hal_debug = 0;
-
 static MPP_RET hal_vp8e_gen_regs(void *hal, HalTaskInfo *task)
 {
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;

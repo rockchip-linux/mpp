@@ -224,6 +224,13 @@ static const char *cfg_func_names[] = {
     ENTRY(h265, qp_min_i,       S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, min_i_qp) \
     ENTRY(h265, qp_step,        S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, qp_max_step) \
     ENTRY(h265, qp_delta_ip,    S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, ip_qp_delta) \
+    /* vp8 config */ \
+    ENTRY(vp8, qp_init,         S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_init) \
+    ENTRY(vp8, qp_max,          S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max) \
+    ENTRY(vp8, qp_min,          S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_min) \
+    ENTRY(vp8, qp_max_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_i) \
+    ENTRY(vp8, qp_min_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_min_i) \
+    ENTRY(vp8, qp_step,         S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_step) \
     /* jpeg config */ \
     ENTRY(jpeg, quant,          S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QP,             codec.jpeg, quant) \
     ENTRY(jpeg, qtable_y,       PTR, RK_U8*,            MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_y) \
@@ -248,7 +255,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 53;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 74;
 
 class MppEncCfgService
 {
