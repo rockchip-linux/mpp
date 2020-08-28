@@ -719,6 +719,13 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->i_quality_delta = h265->ip_qp_delta;
     } break;
     case MPP_VIDEO_CodingVP8 : {
+        MppEncVp8Cfg *vp8 = &codec->vp8;
+
+        cfg->init_quality   = vp8->qp_init;
+        cfg->max_quality    = vp8->qp_max;
+        cfg->min_quality    = vp8->qp_min;
+        cfg->max_i_quality  = vp8->qp_max_i ? vp8->qp_max_i : vp8->qp_max;
+        cfg->min_i_quality  = vp8->qp_min_i ? vp8->qp_min_i : vp8->qp_min;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         MppEncJpegCfg *jpeg = &codec->jpeg;

@@ -985,9 +985,21 @@ typedef struct MppEncJpegCfg_t {
 /*
  * vp8 configurable parameter
  */
+typedef enum MppEncVP8CfgChange_e {
+    MPP_ENC_VP8_CFG_CHANGE_QP              = (1 << 0),
+    MPP_ENC_VP8_CFG_CHANGE_ALL             = (0xFFFFFFFF),
+} MppEncVP8CfgChange;
+
 typedef struct MppEncVp8Cfg_t {
     RK_U32              change;
     RK_S32              quant;
+
+    RK_S32              qp_init;
+    RK_S32              qp_max;
+    RK_S32              qp_max_i;
+    RK_S32              qp_min;
+    RK_S32              qp_min_i;
+    RK_S32              qp_max_step;
 } MppEncVp8Cfg;
 
 /*

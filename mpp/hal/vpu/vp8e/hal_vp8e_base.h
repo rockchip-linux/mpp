@@ -377,8 +377,8 @@ typedef struct hal_vp8e_ctx_s {
 extern "C" {
 #endif
 
-MPP_RET hal_vp8e_update_buffers(void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8e_enc_strm_code(void *hal, HalTaskInfo *info);
+MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task);
+MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *info);
 MPP_RET hal_vp8e_init_qp_table(void *hal);
 MPP_RET hal_vp8e_setup(void *hal);
 MPP_RET hal_vp8e_buf_free(void *hal);

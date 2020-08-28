@@ -9,6 +9,7 @@ set(VP8E_HDR
     vp8e_rc.h)
 set(VP8E_SRC
     vp8e_api.c
+    vp8e_api_v2.c
     vp8e_rc.c)
 
 add_library(codec_vp8e STATIC

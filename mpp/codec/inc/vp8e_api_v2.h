@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Rockchip Electronics Co. LTD
+ * Copyright 2015 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RC_MODEL_V2_H__
-#define __RC_MODEL_V2_H__
 
-#include "mpp_rc_api.h"
+#ifndef __VP8E_API_V2_H__
+#define __VP8E_API_V2_H__
 
-#ifdef  __cplusplus
+#include "enc_impl_api.h"
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const RcImplApi default_h264e;
-extern const RcImplApi default_h265e;
-extern const RcImplApi default_jpege;
-extern const RcImplApi default_vp8e;
+extern const EncImplApi api_vp8e;
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* __RC_MODEL_V2_H__ */
+#endif /*__VP8E_API_H__*/

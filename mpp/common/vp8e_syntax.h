@@ -18,7 +18,7 @@
 #define __VP8E_SYNTAX_H__
 
 #include "rk_type.h"
-
+#include "mpp_enc_cfg.h"
 typedef struct {
     RK_S32  a1;
     RK_S32  a2;
@@ -43,7 +43,6 @@ typedef struct vp8e_feedback_t {
     RK_U32 out_strm_size;
     RK_U32 out_hw_strm_size;
     RK_S64 sse_sum;
-
 } Vp8eFeedback;
 
 typedef struct vp8e_virture_buffer_t {
@@ -100,4 +99,13 @@ typedef struct {
     Vp8eVirBuf virbuf;
 } Vp8eRc;
 
+typedef enum Vp8eSyntaxType_e {
+    VP8E_SYN_CFG,
+    VP8E_SYN_RC,
+} Vp8eSyntaxType;
+
+typedef struct {
+    Vp8eSyntaxType type;
+    void *data;
+} Vp8eSyntax;
 #endif /*__VP8E_SYNTAX_H__*/

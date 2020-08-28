@@ -1389,7 +1389,7 @@ __ERR_RET:
     return ret;
 }
 
-MPP_RET hal_vp8e_enc_strm_code(void *hal, HalTaskInfo *task)
+MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
 {
     HalVp8eCtx  *ctx  = (HalVp8eCtx *)hal;
     Vp8eHwCfg *hw_cfg = &ctx->hw_cfg;
@@ -1406,7 +1406,7 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalTaskInfo *task)
     }
 
     {
-        HalEncTask *enc_task = &task->enc;
+        HalEncTask *enc_task = task;
         RK_U32 hor_stride = MPP_ALIGN(prep->width, 16);
         RK_U32 ver_stride = MPP_ALIGN(prep->height, 16);
         RK_U32 offset_uv  = hor_stride * ver_stride;
@@ -1546,7 +1546,7 @@ MPP_RET hal_vp8e_init_qp_table(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_vp8e_update_buffers(void *hal, HalTaskInfo *task)
+MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
 {
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 
@@ -1587,7 +1587,7 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalTaskInfo *task)
 
     update_picbuf(&ctx->picbuf);
     {
-        HalEncTask *enc_task = &task->enc;
+        HalEncTask *enc_task = task;
         RK_U8 *p_out = mpp_buffer_get_ptr(enc_task->output);
 
         if (ctx->frame_cnt == 0) {
