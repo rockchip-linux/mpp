@@ -58,7 +58,7 @@ extern RK_S32 const intra4_mode_tree_penalty_tbl[];
 
 extern RK_S32 const intra16_mode_tree_penalty_tbl[];
 
-const RK_S32 inter_level_tbl[128];
+extern const RK_S32 inter_level_tbl[128];
 
 extern RK_S32 const offset_tbl[];
 
