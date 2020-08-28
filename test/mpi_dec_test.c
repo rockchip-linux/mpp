@@ -784,8 +784,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
             switch (*opt) {
             case 'i':
                 if (next) {
-                    strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH);
-                    cmd->file_input[strlen(next)] = '\0';
+                    strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_input = 1;
                     name_to_coding_type(cmd->file_input, &cmd->type);
                 } else {
@@ -795,8 +794,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                 break;
             case 'o':
                 if (next) {
-                    strncpy(cmd->file_output, next, MAX_FILE_NAME_LENGTH);
-                    cmd->file_output[strlen(next)] = '\0';
+                    strncpy(cmd->file_output, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_output = 1;
                 } else {
                     mpp_log("output file is invalid\n");
@@ -805,8 +803,7 @@ static RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* c
                 break;
             case 'c':
                 if (next) {
-                    strncpy(cmd->file_config, next, MAX_FILE_NAME_LENGTH);
-                    cmd->file_config[strlen(next)] = '\0';
+                    strncpy(cmd->file_config, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_config = 1;
 
                     // enlarge packet buffer size for large input stream case

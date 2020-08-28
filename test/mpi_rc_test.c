@@ -1005,8 +1005,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiRcTestCmd* cm
             switch (*opt) {
             case 'i':
                 if (next) {
-                    strncpy(cmd->file_input, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_input[strlen(next)] = '\0';
+                    strncpy(cmd->file_input, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_input = 1;
                 } else {
                     mpp_err("input file is invalid\n");
@@ -1015,8 +1014,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiRcTestCmd* cm
                 break;
             case 'o':
                 if (next) {
-                    strncpy(cmd->file_enc_out, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_enc_out[strlen(next)] = '\0';
+                    strncpy(cmd->file_enc_out, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_enc_out = 1;
                 } else {
                     mpp_log("output file is invalid\n");
@@ -1084,8 +1082,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiRcTestCmd* cm
                 break;
             case 'y':
                 if (next) {
-                    strncpy(cmd->file_dec_out, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_dec_out[strlen(next)] = '\0';
+                    strncpy(cmd->file_dec_out, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_dec_out = 1;
                 } else {
                     mpp_log("dec output file is invalid\n");
@@ -1094,8 +1091,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv, MpiRcTestCmd* cm
                 break;
             case 's':
                 if (next) {
-                    strncpy(cmd->file_stat, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_stat[strlen(next)] = '\0';
+                    strncpy(cmd->file_stat, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_stat_out = 1;
                 } else {
                     mpp_log("stat file is invalid\n");
