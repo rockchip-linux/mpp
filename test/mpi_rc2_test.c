@@ -1214,8 +1214,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv,
             switch (*opt) {
             case 'i':
                 if (next) {
-                    strncpy(cmd->file_input, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_input[strlen(next)] = '\0';
+                    strncpy(cmd->file_input, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_input = 1;
                 } else {
                     mpp_err("input file is invalid\n");
@@ -1224,8 +1223,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv,
                 break;
             case 'o':
                 if (next) {
-                    strncpy(cmd->file_enc_out, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_enc_out[strlen(next)] = '\0';
+                    strncpy(cmd->file_enc_out, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_enc_out = 1;
                 } else {
                     mpp_log("output file is invalid\n");
@@ -1261,8 +1259,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv,
                 break;
             case 's':
                 if (next) {
-                    strncpy(cmd->file_stat, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_stat[strlen(next)] = '\0';
+                    strncpy(cmd->file_stat, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_stat_out = 1;
                 } else {
                     mpp_log("stat file is invalid\n");
@@ -1271,8 +1268,7 @@ static RK_S32 mpi_enc_test_parse_options(int argc, char **argv,
                 break;
             case 'g':
                 if (next) {
-                    strncpy(cmd->file_config, next, MPI_RC_FILE_NAME_LEN);
-                    cmd->file_config[strlen(next)] = '\0';
+                    strncpy(cmd->file_config, next, MPI_RC_FILE_NAME_LEN - 1);
                     cmd->have_config_file = 1;
                 }
                 break;
