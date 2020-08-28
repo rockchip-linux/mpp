@@ -398,7 +398,7 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
 
         vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, param);
 
-        if (ctx->extradata) {
+        if (!mlvec) {
             MppPacket pkt = NULL;
 
             ret = mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
