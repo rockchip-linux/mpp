@@ -31,6 +31,7 @@
 
 typedef void* MppClock;
 typedef void* MppTimer;
+typedef void* MppStopwatch;
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,6 +90,24 @@ void mpp_timer_set_callback(MppTimer timer, MppThreadFunc func, void *ctx);
 void mpp_timer_set_timing(MppTimer timer, RK_S32 initial, RK_S32 interval);
 void mpp_timer_set_enable(MppTimer timer, RK_S32 enable);
 void mpp_timer_put(MppTimer timer);
+
+/*
+ * MppStopwatch is for timer to record event and time
+ *
+ * Stopwatch work flow:
+ *
+ * 1. mpp_stopwatch_get
+ * 2. mpp_stopwatch_setup(max_count, show_on_exit)
+ * 3. mpp_stopwatch_record(event)
+ *    ... running ...
+ * 4. mpp_stopwatch_record(event)
+ * 5. mpp_stopwatch_put (show events and time)
+ */
+MppStopwatch mpp_stopwatch_get(const char *name);
+void mpp_stopwatch_set_show_on_exit(MppStopwatch stopwatch, RK_S32 show_on_exit);
+void mpp_stopwatch_record(MppStopwatch stopwatch, const char *event);
+void mpp_stopwatch_put(MppStopwatch timer);
+RK_S64 mpp_stopwatch_elapsed_time(MppStopwatch stopwatch);
 
 #ifdef __cplusplus
 }

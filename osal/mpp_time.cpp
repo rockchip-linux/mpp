@@ -439,3 +439,142 @@ AutoTiming::~AutoTiming()
     mEnd = mpp_time();
     mpp_log("%s timing %lld us\n", mName, mEnd - mStart);
 }
+
+#define STOPWATCH_TRACE_STR_LEN 64
+
+typedef struct MppStopwatchNode_t {
+    char                event[STOPWATCH_TRACE_STR_LEN];
+    RK_S64              time;
+} MppStopwatchNode;
+
+typedef struct MppStopwatchImpl_t {
+    const char          *check;
+    char                name[STOPWATCH_TRACE_STR_LEN];
+
+    RK_S32              max_count;
+    RK_S32              filled_count;
+    RK_S32              show_on_exit;
+    RK_S32              log_len;
+    RK_S64              time_elipsed;
+
+    MppStopwatchNode    *nodes;
+} MppStopwatchImpl;
+
+static const char *stopwatch_name = "mpp_stopwatch";
+
+MPP_RET check_is_mpp_stopwatch(void *stopwatch)
+{
+    if (stopwatch && ((MppStopwatchImpl*)stopwatch)->check == stopwatch_name)
+        return MPP_OK;
+
+    mpp_err_f("pointer %p failed on check\n", stopwatch);
+    mpp_abort();
+    return MPP_NOK;
+}
+
+MppStopwatch mpp_stopwatch_get(const char *name)
+{
+    MppStopwatchImpl *impl = mpp_calloc(MppStopwatchImpl, 1);
+    MppStopwatchNode *nodes = mpp_calloc(MppStopwatchNode, 8);
+
+    if (impl && nodes) {
+        impl->check = stopwatch_name;
+        snprintf(impl->name, sizeof(impl->name) - 1, name, NULL);
+        impl->nodes = nodes;
+        impl->max_count = 8;
+    } else {
+        mpp_err_f("malloc failed\n");
+        MPP_FREE(impl);
+        MPP_FREE(nodes);
+    }
+
+    return impl;
+}
+
+void mpp_stopwatch_set_show_on_exit(MppStopwatch stopwatch, RK_S32 show_on_exit)
+{
+    if (NULL == stopwatch || check_is_mpp_stopwatch(stopwatch)) {
+        mpp_err_f("invalid stopwatch %p\n", stopwatch);
+        return ;
+    }
+
+    MppStopwatchImpl *impl = (MppStopwatchImpl *)stopwatch;
+    impl->show_on_exit = show_on_exit;
+}
+
+void mpp_stopwatch_record(MppStopwatch stopwatch, const char *event)
+{
+    if (NULL == stopwatch || check_is_mpp_stopwatch(stopwatch)) {
+        mpp_err_f("invalid stopwatch %p\n", stopwatch);
+        return ;
+    }
+
+    MppStopwatchImpl *impl = (MppStopwatchImpl *)stopwatch;
+    if (impl->filled_count >= impl->max_count) {
+        RK_S32 max_count = impl->max_count * 2;
+        MppStopwatchNode *nodes = mpp_realloc(impl->nodes, MppStopwatchNode,
+                                              max_count);
+        if (nodes) {
+            impl->nodes = nodes;
+            impl->max_count = max_count;
+        }
+    }
+
+    if (impl->filled_count < impl->max_count) {
+        MppStopwatchNode *node = impl->nodes + impl->filled_count;
+
+        node->time = mpp_time();
+        if (event) {
+            RK_S32 len = snprintf(node->event, sizeof(node->event) - 1,
+                                  "%s", event);
+            if (len > impl->log_len)
+                impl->log_len = len;
+        }
+        impl->filled_count++;
+    }
+}
+
+void mpp_stopwatch_put(MppStopwatch stopwatch)
+{
+    if (NULL == stopwatch || check_is_mpp_stopwatch(stopwatch)) {
+        mpp_err_f("invalid stopwatch %p\n", stopwatch);
+        return ;
+    }
+
+    MppStopwatchImpl *impl = (MppStopwatchImpl *)stopwatch;
+    if (impl->show_on_exit && impl->nodes && impl->filled_count) {
+        MppStopwatchNode *node = impl->nodes;
+        RK_S64 last_time = node->time;
+        RK_S32 i;
+        char fmt[32];
+
+        snprintf(fmt, sizeof(fmt) - 1, "%%s %%-%ds: %%6.2f\n", impl->log_len);
+        node++;
+
+        for (i = 1; i < impl->filled_count; i++) {
+            mpp_log(fmt, impl->name, node->event,
+                    (float)(node->time - last_time) / 1000);
+            last_time = node->time;
+            node++;
+        }
+    }
+    MPP_FREE(impl->nodes);
+    MPP_FREE(impl);
+}
+
+RK_S64 mpp_stopwatch_elapsed_time(MppStopwatch stopwatch)
+{
+    if (NULL == stopwatch || check_is_mpp_stopwatch(stopwatch)) {
+        mpp_err_f("invalid stopwatch %p\n", stopwatch);
+        return 0;
+    }
+
+    MppStopwatchImpl *impl = (MppStopwatchImpl *)stopwatch;
+    if (impl->filled_count < 2)
+        return 0;
+
+    RK_S64 base_time = impl->nodes[0].time;
+    RK_S64 curr_time = impl->nodes[impl->filled_count - 1].time;
+    RK_S64 elapsed_time = curr_time - base_time;
+    return elapsed_time;
+}
