@@ -1150,6 +1150,8 @@ void *mpp_enc_thread(void *data)
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
+        enc_dbg_detail("task %d reenc %d times %d\n", frm->seq_idx, frm->reencode, frm->reencode_times);
+
         if (frm->reencode_times < rc_cfg->max_reenc_times && frm->reencode) {
             //mpp_enc_refs_rollback(enc->refs);
             enc_dbg_reenc("reencode time %d\n", frm->reencode_times);
@@ -1188,8 +1190,12 @@ void *mpp_enc_thread(void *data)
         else
             mpp_packet_clr_eos(packet);
 
+        enc_dbg_detail("task %d enqueue packet pts %lld\n", frm->seq_idx, mpp_packet_get_pts(packet));
+
         mpp_task_meta_set_packet(task_out, KEY_OUTPUT_PACKET, packet);
         mpp_port_enqueue(output, task_out);
+
+        enc_dbg_detail("task %d enqueue frame pts %lld\n", frm->seq_idx, mpp_frame_get_pts(frame));
 
         mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
         mpp_port_enqueue(input, task_in);
