@@ -360,11 +360,17 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         EncParameter_t *param = (EncParameter_t*)ctx->private_data;
         MppCodingType coding = (MppCodingType)ctx->videoCoding;
         MppPollType block = (MppPollType)VPU_API_ENC_INPUT_TIMEOUT;
+        MppEncSeiMode sei_mode = MPP_ENC_SEI_MODE_DISABLE;
 
         /* setup input / output block mode */
         ret = mpi->control(mpp_ctx, MPP_SET_INPUT_TIMEOUT, (MppParam)&block);
         if (MPP_OK != ret)
-            mpp_err("mpi->control MPP_SET_INPUT_TIMEOUT failed\n");
+            mpp_err("mpi control MPP_SET_INPUT_TIMEOUT failed\n");
+
+        /* disable sei by default */
+        ret = mpi->control(mpp_ctx, MPP_ENC_SET_SEI_CFG, &sei_mode);
+        if (ret)
+            mpp_err("mpi control MPP_ENC_SET_SEI_CFG failed ret %d\n", ret);
 
         if (memGroup == NULL) {
             ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_ION);
