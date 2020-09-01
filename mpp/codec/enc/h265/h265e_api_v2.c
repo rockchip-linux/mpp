@@ -128,7 +128,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
      * gop 60
      */
     rc_cfg->change = 0;
-    rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
     rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
     rc_cfg->bps_target = 2000 * 1000;
     rc_cfg->bps_max = rc_cfg->bps_target * 5 / 4;
