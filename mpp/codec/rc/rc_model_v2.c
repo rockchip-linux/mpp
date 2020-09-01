@@ -239,6 +239,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     } else {
         target_bps = ctx->usr_cfg.bps_max;
     }
+    ctx->target_bps = ctx->usr_cfg.bps_target;
 
     if (gop_len >= 1)
         gop_bits = (RK_S64)gop_len * target_bps * fps->fps_out_denorm;
@@ -295,7 +296,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         return -1;
     }
 
-    ctx->target_bps = target_bps;
     ctx->bit_per_frame = target_bps / fps->fps_in_num;
     ctx->watl_thrd = 3 * target_bps;
     ctx->stat_watl = ctx->watl_thrd  >> 3;
