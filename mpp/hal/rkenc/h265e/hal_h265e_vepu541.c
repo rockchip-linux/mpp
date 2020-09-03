@@ -334,7 +334,6 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV541L2RegSet
     return;
 }
 
-
 MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
 {
     RK_U32 k = 0;
@@ -957,7 +956,6 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->int_en.wbus_err_en    = 1;
     regs->int_en.rbus_err_en    = 1;
     regs->int_en.wdg_en         = 1;
-    regs->enc_wdg.vs_load_thd   = 0x1ffff;
 
     regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
     regs->enc_rsl.pic_wfill     = (syn->pp.pic_width & 0x7)
@@ -972,14 +970,10 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->enc_pic.node_int      = 0;
     regs->enc_pic.log2_ctu_num  = ceil(log2((double)pic_wd64 * pic_h64));
 
-    if (ctx->frame_type == INTRA_FRAME) {
-        regs->enc_pic.rdo_wgt_sel = 0;
-    } else {
-        regs->enc_pic.rdo_wgt_sel = 1;
-    }
+    regs->enc_pic.rdo_wgt_sel   = (ctx->frame_type == INTRA_FRAME) ? 0 : 1;
 
-    regs->enc_wdg.vs_load_thd       = 0;
-    regs->enc_wdg.rfp_load_thd      = 0;
+    regs->enc_wdg.vs_load_thd   = 0x1ffff;
+    regs->enc_wdg.rfp_load_thd  = 0xff;
 
     regs->dtrns_cfg.cime_dspw_orsd  = (ctx->frame_type == INTER_P_FRAME);
 
@@ -1169,6 +1163,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
         req.data = &reg_out->elem[k].hw_status;
         req.offset = VEPU541_REG_BASE_HW_STATUS;
         mpp_device_add_request(ctx->dev_ctx, &req);
+
         memset(&req, 0, sizeof(req));
         req.flag = 0;
         req.cmd = MPP_CMD_SET_REG_READ;
@@ -1200,53 +1195,55 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
 static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
                                          H265eV541IoctlOutput *out, HalEncTask *enc_task)
 {
-    RK_U32 k = 0;
-    H265eV541IoctlOutputElem *elem = NULL;
     EncRcTaskInfo *hal_cfg = (EncRcTaskInfo *)ctx->rc_hal_cfg;
     EncRcTaskInfo *hal_rc_ret = (EncRcTaskInfo *)&enc_task->rc_task->info;
     vepu541_h265_fbk *fb = &ctx->feedback;
-    h265e_hal_enter();
     MppEncCfgSet    *cfg = ctx->cfg;
     RK_S32 mb64_num = ((cfg->prep.width + 63) / 64) * ((cfg->prep.height + 63) / 64);
     RK_S32 mb8_num = (mb64_num << 6);
     // RK_S32 mb4_num = (mb8_num << 2);
     (void)enc_task;
+    RK_U32 k = 0;
+
+    h265e_hal_enter();
 
     for (k = 0; k < ctx->num_frames_to_send; k++) {
-        elem = &out->elem[k];
+        H265eV541IoctlOutputElem *elem = &out->elem[k];
+        RK_U32 hw_status = elem->hw_status;
+
         fb->qp_sum = elem->st_sse_qp.qp_sum;
         fb->out_hw_strm_size =
             fb->out_strm_size = elem->st_bsl.bs_lgth;
         fb->sse_sum = elem->st_sse_l32.sse_l32 +
                       ((RK_S64)(elem->st_sse_qp.sse_h8 & 0xff) << 32);
 
-        fb->hw_status = elem->hw_status;
-        h265e_hal_dbg(H265E_DBG_DETAIL, "hw_status: 0x%08x", elem->hw_status);
-        if (elem->hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
+        fb->hw_status = hw_status;
+        h265e_hal_dbg(H265E_DBG_DETAIL, "hw_status: 0x%08x", hw_status);
+        if (hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
             h265e_hal_err("RKV_ENC_INT_LINKTABLE_FINISH");
 
-        if (elem->hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
+        if (hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
             h265e_hal_dbg(H265E_DBG_DETAIL, "RKV_ENC_INT_ONE_FRAME_FINISH");
 
-        if (elem->hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
+        if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
             h265e_hal_err("RKV_ENC_INT_ONE_SLICE_FINISH");
 
-        if (elem->hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
+        if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
             h265e_hal_err("RKV_ENC_INT_SAFE_CLEAR_FINISH");
 
-        if (elem->hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
+        if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
             h265e_hal_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
 
-        if (elem->hw_status & RKV_ENC_INT_BUS_WRITE_FULL)
+        if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL)
             h265e_hal_err("RKV_ENC_INT_BUS_WRITE_FULL");
 
-        if (elem->hw_status & RKV_ENC_INT_BUS_WRITE_ERROR)
+        if (hw_status & RKV_ENC_INT_BUS_WRITE_ERROR)
             h265e_hal_err("RKV_ENC_INT_BUS_WRITE_ERROR");
 
-        if (elem->hw_status & RKV_ENC_INT_BUS_READ_ERROR)
+        if (hw_status & RKV_ENC_INT_BUS_READ_ERROR)
             h265e_hal_err("RKV_ENC_INT_BUS_READ_ERROR");
 
-        if (elem->hw_status & RKV_ENC_INT_TIMEOUT_ERROR)
+        if (hw_status & RKV_ENC_INT_TIMEOUT_ERROR)
             h265e_hal_err("RKV_ENC_INT_TIMEOUT_ERROR");
         if (elem->st_mb_num) {
             fb->st_madi = elem->st_madi / elem->st_mb_num;
