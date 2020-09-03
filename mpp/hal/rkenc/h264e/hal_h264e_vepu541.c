@@ -321,8 +321,8 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs)
     /* reg006 INT_CLR is not set */
     /* reg007 INT_STA is read only */
     /* reg008 ~ reg0011 gap */
-    regs->reg014.vs_load_thd        = 0;
-    regs->reg014.rfp_load_thrd      = 0;
+    regs->reg014.vs_load_thd        = 0x1ffff;
+    regs->reg014.rfp_load_thrd      = 0xff;
 
     /* reg015 DTRNS_MAP */
     regs->reg015.cmvw_bus_ordr      = 0;

@@ -1170,13 +1170,13 @@ typedef struct H265eV541IoctlExtraInfoElem_t {
 typedef struct H265eV541IoctlExtraInfo_t {
     RK_U32                          magic;
     RK_U32                          cnt;
-    H265eV541IoctlExtraInfoElem      elem[20];
+    H265eV541IoctlExtraInfoElem     elem[20];
 } H265eV541IoctlExtraInfo;
 
 typedef struct H265eV541IoctlRegInfo_t {
     RK_U32                  reg_num;
-    H265eV541RegSet          regs;
-    H265eV541IoctlExtraInfo  extra_info;
+    H265eV541RegSet         regs;
+    H265eV541IoctlExtraInfo extra_info;
 } H265eV541IoctlRegInfo;
 
 /*
@@ -1189,7 +1189,7 @@ enc_mode
 typedef struct H265eRkvIoctlInput_t {
     RK_U32                  enc_mode;
     RK_U32                  frame_num;
-    H265eV541IoctlRegInfo    reg_info[RKV_H265E_LINKTABLE_MAX_SIZE];
+    H265eV541IoctlRegInfo   reg_info[RKV_H265E_LINKTABLE_MAX_SIZE];
 } H265eV541IoctlInput;
 
 typedef struct H265eV541IoctlOutputElem_t {
@@ -1286,7 +1286,7 @@ typedef struct H265eV541IoctlOutputElem_t {
 
 typedef struct H265eV541IoctlOutput_t {
     RK_U32                      frame_num;
-    H265eV541IoctlOutputElem     elem[RKV_H265E_LINKTABLE_MAX_SIZE];
+    H265eV541IoctlOutputElem    elem[RKV_H265E_LINKTABLE_MAX_SIZE];
 } H265eV541IoctlOutput;
 
 #endif
