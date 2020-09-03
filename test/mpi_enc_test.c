@@ -59,7 +59,9 @@ typedef struct {
     MppEncROICfg    roi_cfg;
 
     // input / output
+    MppBufferGroup buf_grp;
     MppBuffer frm_buf;
+    MppBuffer pkt_buf;
     MppEncSeiMode sei_mode;
     MppEncHeaderMode header_mode;
     MppBuffer osd_idx_buf;
@@ -714,6 +716,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
     }
 
     while (!p->pkt_eos) {
+        MppMeta meta = NULL;
         MppFrame frame = NULL;
         MppPacket packet = NULL;
         void *buf = mpp_buffer_get_ptr(p->frm_buf);
@@ -759,9 +762,13 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         else
             mpp_frame_set_buffer(frame, p->frm_buf);
 
-        if (p->osd_enable || p->user_data_enable || p->roi_enable) {
-            MppMeta meta = mpp_frame_get_meta(frame);
+        meta = mpp_frame_get_meta(frame);
+        mpp_packet_init_with_buffer(&packet, p->pkt_buf);
+        /* NOTE: It is important to clear output packet length!! */
+        mpp_packet_set_length(packet, 0);
+        mpp_meta_set_packet(meta, KEY_OUTPUT_PACKET, packet);
 
+        if (p->osd_enable || p->user_data_enable || p->roi_enable) {
             if (p->user_data_enable) {
                 MppEncUserData user_data;
                 char *str = "this is user data\n";
@@ -850,7 +857,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                                 p->frame_count, len);
 
             if (mpp_packet_has_meta(packet)) {
-                MppMeta meta = mpp_packet_get_meta(packet);
+                meta = mpp_packet_get_meta(packet);
                 RK_S32 temporal_id = 0;
                 RK_S32 lt_idx = -1;
 
@@ -902,13 +909,25 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = mpp_buffer_get(NULL, &p->frm_buf, p->frame_size + p->header_size);
+    ret = mpp_buffer_group_get_internal(&p->buf_grp, MPP_BUFFER_TYPE_DRM);
+    if (ret) {
+        mpp_err_f("failed to get mpp buffer group ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_buffer_get(p->buf_grp, &p->frm_buf, p->frame_size + p->header_size);
     if (ret) {
         mpp_err_f("failed to get buffer for input frame ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
-    ret = mpp_buffer_get(NULL, &p->osd_idx_buf, p->osd_idx_size);
+    ret = mpp_buffer_get(p->buf_grp, &p->pkt_buf, p->frame_size);
+    if (ret) {
+        mpp_err_f("failed to get buffer for output packet ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpp_buffer_get(p->buf_grp, &p->osd_idx_buf, p->osd_idx_size);
     if (ret) {
         mpp_err_f("failed to get buffer for input osd index ret %d\n", ret);
         goto MPP_TEST_OUT;
@@ -986,9 +1005,19 @@ MPP_TEST_OUT:
         p->frm_buf = NULL;
     }
 
+    if (p->pkt_buf) {
+        mpp_buffer_put(p->pkt_buf);
+        p->pkt_buf = NULL;
+    }
+
     if (p->osd_idx_buf) {
         mpp_buffer_put(p->osd_idx_buf);
         p->osd_idx_buf = NULL;
+    }
+
+    if (p->buf_grp) {
+        mpp_buffer_group_put(p->buf_grp);
+        p->buf_grp = NULL;
     }
 
     test_ctx_deinit(&p);
