@@ -1629,6 +1629,7 @@ static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
     RK_U32 stream_size = dxva_cxt->bitstream_size;
     RK_U8 *buf = NULL;
     RK_U8 *temp = NULL;
+    RK_U32 cut_byte = 0, cut_byte_acc = 0;
 
     for (i = 0; i < dxva_cxt->slice_count; i++) {
         if (dxva_cxt->slice_cut_param[i].is_enable) {
@@ -1636,8 +1637,7 @@ static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
             bit_left = 8 - (dxva_cxt->slice_cut_param[i].start_bit & 0x7);
             start_byte = dxva_cxt->slice_cut_param[i].start_bit >> 3;
             end_byte = (dxva_cxt->slice_cut_param[i].end_bit + 7) >> 3;
-            buf = ptr + dxva_cxt->slice_short[i].BSNALunitDataLocation;
-            stream_size -= dxva_cxt->slice_short[i].BSNALunitDataLocation;
+            buf = ptr + (dxva_cxt->slice_short[i].BSNALunitDataLocation - cut_byte_acc);
             temp = buf + start_byte;
 
             h265h_dbg(H265H_DBG_FUNCTION, "start bit %d start byte[%d] 0x%x end bit %d end byte[%d] 0x%x\n",
@@ -1656,12 +1656,13 @@ static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
                       i, dxva_cxt->slice_short[i].BSNALunitDataLocation, dxva_cxt->slice_count,
                       dxva_cxt->slice_short[i].SliceBytesInBuffer, dxva_cxt->bitstream_size);
 
-            memcpy(buf + start_byte + 1, buf + end_byte, stream_size - end_byte);
+            memcpy(buf + start_byte + 1, buf + end_byte,
+                   stream_size - dxva_cxt->slice_short[i].BSNALunitDataLocation - end_byte);
 
-            stream_size -= dxva_cxt->slice_short[i].SliceBytesInBuffer;
-            dxva_cxt->slice_short[i].SliceBytesInBuffer -= (end_byte - start_byte - 1);
-            dxva_cxt->bitstream_size -= (end_byte - start_byte - 1);
-            ptr += dxva_cxt->slice_short[i].SliceBytesInBuffer;
+            cut_byte = end_byte - start_byte - 1;
+            dxva_cxt->slice_short[i].SliceBytesInBuffer -= cut_byte;
+            dxva_cxt->bitstream_size -= cut_byte;
+            cut_byte_acc += cut_byte;
         }
     }
 }
@@ -1775,9 +1776,7 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
 
     mpp_buf_slot_get_prop(reg_cxt->packet_slots, syn->dec.input, SLOT_BUFFER,
                           &streambuf);
-    if (dxva_cxt->pp.slice_segment_header_extension_present_flag && !reg_cxt->is_v345) {
-        update_stream_buffer(streambuf, syn);
-    }
+
     if ( dxva_cxt->bitstream == NULL) {
         dxva_cxt->bitstream = mpp_buffer_get_ptr(streambuf);
     }
@@ -1793,6 +1792,11 @@ MPP_RET hal_h265d_gen_regs(void *hal,  HalTaskInfo *syn)
     } else {
         hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
     }
+
+    if (dxva_cxt->pp.slice_segment_header_extension_present_flag && !reg_cxt->is_v345) {
+        update_stream_buffer(streambuf, syn);
+    }
+
     hw_regs->sw_cabactbl_base   =  mpp_buffer_get_fd(reg_cxt->cabac_table_data);
     hw_regs->sw_pps_base        =  mpp_buffer_get_fd(reg_cxt->pps_data);
     hw_regs->sw_rps_base        =  mpp_buffer_get_fd(reg_cxt->rps_data);
