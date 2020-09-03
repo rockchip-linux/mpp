@@ -408,6 +408,21 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         mpp_log_f("set input frame to task ret %d\n", ret);
         goto RET;
     }
+
+    if (mpp_frame_has_meta(frame)) {
+        MppMeta meta = mpp_frame_get_meta(frame);
+        MppPacket packet = NULL;
+
+        mpp_meta_get_packet(meta, KEY_OUTPUT_PACKET, &packet);
+        if (packet) {
+            ret = mpp_task_meta_set_packet(mInputTask, KEY_OUTPUT_PACKET, packet);
+            if (ret) {
+                mpp_log_f("set output packet to task ret %d\n", ret);
+                goto RET;
+            }
+        }
+    }
+
     // dump input
     mpp_ops_enc_put_frm(mDump, frame);
 
