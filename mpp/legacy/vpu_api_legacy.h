@@ -86,6 +86,9 @@ private:
 
     EncParameter_t enc_param;
     MppEncCfg enc_cfg;
+    MppPacket enc_hdr_pkt;
+    void *enc_hdr_buf;
+    RK_S32 enc_hdr_buf_size;
 
     /* for mlvec */
     VpuApiMlvec mlvec;

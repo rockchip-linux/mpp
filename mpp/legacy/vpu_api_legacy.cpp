@@ -246,7 +246,10 @@ VpuApiLegacy::VpuApiLegacy() :
     fd_input(-1),
     fd_output(-1),
     mEosSet(0),
-    enc_cfg(NULL)
+    enc_cfg(NULL),
+    enc_hdr_pkt(NULL),
+    enc_hdr_buf(NULL),
+    enc_hdr_buf_size(0)
 {
     vpu_api_dbg_func("enter\n");
 
@@ -280,6 +283,13 @@ VpuApiLegacy::~VpuApiLegacy()
         vpu_api_mlvec_deinit(mlvec);
         mlvec = NULL;
     }
+
+    if (enc_hdr_pkt) {
+        mpp_packet_deinit(&enc_hdr_pkt);
+        enc_hdr_pkt = NULL;
+    }
+    MPP_FREE(enc_hdr_buf);
+    enc_hdr_buf_size = 0;
 
     vpu_api_dbg_func("leave\n");
 }
@@ -406,14 +416,22 @@ RK_S32 VpuApiLegacy::init(VpuCodecContext *ctx, RK_U8 *extraData, RK_U32 extra_s
         vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, param);
 
         if (!mlvec) {
-            MppPacket pkt = NULL;
+            if (NULL == enc_hdr_pkt) {
+                if (NULL == enc_hdr_buf) {
+                    enc_hdr_buf_size = SZ_1K;
+                    enc_hdr_buf = mpp_calloc_size(RK_U8, enc_hdr_buf_size);
+                }
 
-            ret = mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
-            if (pkt) {
-                ctx->extradata_size = (RK_S32)mpp_packet_get_length(pkt);
-                ctx->extradata      = mpp_packet_get_data(pkt);
+                if (enc_hdr_buf)
+                    mpp_packet_init(&enc_hdr_pkt, enc_hdr_buf, enc_hdr_buf_size);
             }
-            pkt = NULL;
+
+            mpp_assert(enc_hdr_pkt);
+            if (enc_hdr_pkt) {
+                ret = mpi->control(mpp_ctx, MPP_ENC_GET_HDR_SYNC, enc_hdr_pkt);
+                ctx->extradata_size = mpp_packet_get_length(enc_hdr_pkt);
+                ctx->extradata      = mpp_packet_get_data(enc_hdr_pkt);
+            }
         }
     } else { /* MPP_CTX_DEC */
         vpug.CodecType  = ctx->codecType;
@@ -1495,14 +1513,25 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_GET_EXTRA_INFO: {
         EncoderOut_t *out = (EncoderOut_t *)param;
-        MppPacket pkt = NULL;
 
         vpu_api_dbg_ctrl("VPU_API_GET_EXTRA_INFO\n");
 
-        mpi->control(mpp_ctx, MPP_ENC_GET_EXTRA_INFO, &pkt);
-        if (pkt) {
-            RK_S32 length = mpp_packet_get_length(pkt);
-            void *src = mpp_packet_get_data(pkt);
+        if (NULL == enc_hdr_pkt) {
+            if (NULL == enc_hdr_buf) {
+                enc_hdr_buf_size = SZ_1K;
+                enc_hdr_buf = mpp_calloc_size(RK_U8, enc_hdr_buf_size);
+            }
+
+            if (enc_hdr_buf)
+                mpp_packet_init(&enc_hdr_pkt, enc_hdr_buf, enc_hdr_buf_size);
+        }
+
+        mpp_assert(enc_hdr_pkt);
+        if (enc_hdr_pkt) {
+            mpi->control(mpp_ctx, MPP_ENC_GET_HDR_SYNC, enc_hdr_pkt);
+
+            RK_S32 length = mpp_packet_get_length(enc_hdr_pkt);
+            void *src = mpp_packet_get_data(enc_hdr_pkt);
 
             memcpy(out->data, src, length);
             out->size = length;
