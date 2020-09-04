@@ -697,22 +697,31 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         MppPacket packet = NULL;
-        ret = mpi->control(ctx, MPP_ENC_GET_EXTRA_INFO, &packet);
+
+        /*
+         * Can use packet with normal malloc buffer as input not pkt_buf.
+         * Please refer to vpu_api_legacy.cpp for normal buffer case.
+         * Using pkt_buf buffer here is just for simplifing demo.
+         */
+        mpp_packet_init_with_buffer(&packet, p->pkt_buf);
+        /* NOTE: It is important to clear output packet length!! */
+        mpp_packet_set_length(packet, 0);
+
+        ret = mpi->control(ctx, MPP_ENC_GET_HDR_SYNC, packet);
         if (ret) {
             mpp_err("mpi control enc get extra info failed\n");
             goto RET;
-        }
+        } else {
+            /* get and write sps/pps for H.264 */
 
-        /* get and write sps/pps for H.264 */
-        if (packet) {
             void *ptr   = mpp_packet_get_pos(packet);
             size_t len  = mpp_packet_get_length(packet);
 
             if (p->fp_output)
                 fwrite(ptr, 1, len, p->fp_output);
-
-            packet = NULL;
         }
+
+        mpp_packet_deinit(&packet);
     }
 
     while (!p->pkt_eos) {
