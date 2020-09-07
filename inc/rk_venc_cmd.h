@@ -301,6 +301,12 @@ typedef enum MppEncPrepCfgChange_e {
     /* enhancement parameter */
     MPP_ENC_PREP_CFG_CHANGE_DENOISE     = (1 << 8),     /* change on denoise */
     MPP_ENC_PREP_CFG_CHANGE_SHARPEN     = (1 << 9),     /* change on denoise */
+    /* color related parameter */
+    MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE = (1 << 16),    /* change on color range */
+    MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE = (1 << 17),    /* change on color range */
+    MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME = (1 << 18),    /* change on color primaries */
+    MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC   = (1 << 19),    /* change on color transfer  */
+
     MPP_ENC_PREP_CFG_CHANGE_ALL         = (0xFFFFFFFF),
 } MppEncPrepCfgChange;
 
@@ -356,6 +362,8 @@ typedef struct MppEncPrepCfg_t {
      */
     MppFrameFormat      format;
     MppFrameColorSpace  color;
+    MppFrameColorPrimaries colorprim;
+    MppFrameColorTransferCharacteristic colortrc;
     MppFrameColorRange  range;
 
     MppEncRotationCfg   rotation;

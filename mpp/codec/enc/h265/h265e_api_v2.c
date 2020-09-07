@@ -276,11 +276,20 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
     MppEncPrepCfg bak = *dst;
 
-    if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
+    if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
         dst->format = src->format;
-        dst->color = src->color;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE)
         dst->range = src->range;
-    }
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE)
+        dst->color = src->color;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME)
+        dst->colorprim = src->colorprim;
+
+    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC)
+        dst->colortrc = src->colortrc;
 
     if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
         dst->rotation = src->rotation;
@@ -327,6 +336,15 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation)) {
         mpp_err("invalid cfg fbc data no support mirror %d or rotaion",
                 dst->mirroring, dst->rotation);
+        ret = MPP_ERR_VALUE;
+    }
+
+    if (dst->range >= MPP_FRAME_RANGE_NB ||
+        dst->color >= MPP_FRAME_SPC_NB ||
+        dst->colorprim >= MPP_FRAME_PRI_NB ||
+        dst->colortrc >= MPP_FRAME_TRC_NB) {
+        mpp_err("invalid color range %d colorspace %d primaries %d transfer characteristic %d\n",
+                dst->range, dst->color, dst->colorprim, dst->colortrc);
         ret = MPP_ERR_VALUE;
     }
 
