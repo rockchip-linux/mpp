@@ -168,10 +168,25 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
     vui->num_units_in_tick = rc->fps_out_denorm;
     vui->fixed_frame_rate = !rc->fps_out_flex;
     vui->vidformat = MPP_FRAME_VIDEO_FMT_UNSPECIFIED;
+
     if (prep->range == MPP_FRAME_RANGE_JPEG) {
         vui->signal_type_present = 1;
         vui->fullrange = 1;
     }
+
+    if ((prep->colorprim <= AVCOL_PRI_JEDEC_P22 &&
+         prep->colorprim != MPP_FRAME_PRI_UNSPECIFIED) ||
+        (prep->colortrc <= MPP_FRAME_TRC_ARIB_STD_B67 &&
+         prep->colortrc != MPP_FRAME_TRC_UNSPECIFIED) ||
+        (prep->color <= MPP_FRAME_SPC_ICTCP &&
+         prep->color != MPP_FRAME_SPC_UNSPECIFIED)) {
+        vui->signal_type_present = 1;
+        vui->color_description_present = 1;
+        vui->colorprim = prep->colorprim;
+        vui->colortrc = prep->colortrc;
+        vui->colmatrix = prep->color;
+    }
+
     vui->bitstream_restriction = 1;
     vui->motion_vectors_over_pic_boundaries = 1;
     vui->log2_max_mv_length_horizontal = 16;
@@ -315,7 +330,7 @@ MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
                 /* colour_primaries */
                 mpp_writer_put_bits(bit, vui->colorprim, 8);
                 /* transfer_characteristics */
-                mpp_writer_put_bits(bit, vui->transfer, 8);
+                mpp_writer_put_bits(bit, vui->colortrc, 8);
                 /* matrix_coefficients */
                 mpp_writer_put_bits(bit, vui->colmatrix, 8);
             }

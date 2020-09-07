@@ -262,10 +262,20 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
             sps->vui.m_videoFullRangeFlag = 1;
             sps->vui.m_videoSignalTypePresentFlag = 1;
         }
-        sps->vui.m_colourDescriptionPresentFlag = 0;
-        sps->vui.m_colourPrimaries = 2;
-        sps->vui.m_transferCharacteristics = 2;
-        sps->vui.m_matrixCoefficients = 2;
+
+        if ((prep->colorprim <= AVCOL_PRI_JEDEC_P22 &&
+             prep->colorprim != MPP_FRAME_PRI_UNSPECIFIED) ||
+            (prep->colortrc <= MPP_FRAME_TRC_ARIB_STD_B67 &&
+             prep->colortrc != MPP_FRAME_TRC_UNSPECIFIED) ||
+            (prep->color <= MPP_FRAME_SPC_ICTCP &&
+             prep->color != MPP_FRAME_SPC_UNSPECIFIED)) {
+            sps->vui.m_videoSignalTypePresentFlag = 1;
+            sps->vui.m_colourDescriptionPresentFlag = 1;
+            sps->vui.m_colourPrimaries = prep->colorprim;
+            sps->vui.m_transferCharacteristics = prep->colortrc;
+            sps->vui.m_matrixCoefficients = prep->color;
+        }
+
         sps->vui.m_chromaLocInfoPresentFlag = 0;
         sps->vui.m_chromaSampleLocTypeTopField = 0;
         sps->vui.m_chromaSampleLocTypeBottomField = 0;

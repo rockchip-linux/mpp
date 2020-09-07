@@ -168,8 +168,11 @@ static const char *cfg_func_names[] = {
     ENTRY(prep, hor_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, hor_stride) \
     ENTRY(prep, ver_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, ver_stride) \
     ENTRY(prep, format,         S32, MppFrameFormat,    MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, format) \
-    ENTRY(prep, color,          S32, MppFrameColorSpace,MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, color) \
-    ENTRY(prep, range,          S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, range) \
+    ENTRY(prep, colorspace,     S32, MppFrameColorSpace,MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE,    prep, color) \
+    ENTRY(prep, colorprim,      S32, MppFrameColorPrimaries, MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME, prep, colorprim) \
+    ENTRY(prep, colortrc,       S32, MppFrameColorTransferCharacteristic, MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC, prep, colortrc) \
+    ENTRY(prep, colorrange,     S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
+    ENTRY(prep, range,          S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
     ENTRY(prep, rotation,       S32, MppEncRotationCfg, MPP_ENC_PREP_CFG_CHANGE_ROTATION,       prep, rotation) \
     ENTRY(prep, mirroring,      S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_MIRRORING,      prep, mirroring) \
     /* codec coding config */ \
@@ -242,7 +245,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 31;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 47;
 
 class MppEncCfgService
 {
@@ -298,6 +301,13 @@ MppEncCfgService::~MppEncCfgService()
     }
 }
 
+static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
+{
+    cfg->prep.color = MPP_FRAME_SPC_UNSPECIFIED;
+    cfg->prep.colorprim = MPP_FRAME_PRI_UNSPECIFIED;
+    cfg->prep.colortrc = MPP_FRAME_TRC_UNSPECIFIED;
+}
+
 MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
 {
     MppEncCfgImpl *p = NULL;
@@ -316,6 +326,7 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
 
     p->size = sizeof(*p);
     p->api = MppEncCfgService::get()->get_api();
+    mpp_enc_cfg_set_default(&p->cfg);
 
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 

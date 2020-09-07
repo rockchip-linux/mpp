@@ -56,7 +56,7 @@ typedef struct SynH264eVui_t {
     RK_S32      fullrange;
     RK_S32      color_description_present;
     RK_S32      colorprim;
-    RK_S32      transfer;
+    RK_S32      colortrc;
     RK_S32      colmatrix;
 
     RK_S32      chroma_loc_info_present;

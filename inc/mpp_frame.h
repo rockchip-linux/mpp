@@ -85,6 +85,7 @@ typedef enum {
     MPP_FRAME_PRI_SMPTEST428_1  = 10,   ///< SMPTE ST 428-1 (CIE 1931 XYZ)
     MPP_FRAME_PRI_SMPTE431      = 11,   ///< SMPTE ST 431-2 (2011) / DCI P3
     MPP_FRAME_PRI_SMPTE432      = 12,   ///< SMPTE ST 432-1 (2010) / P3 D65 / Display P3
+    AVCOL_PRI_JEDEC_P22         = 22,   ///< JEDEC P22 phosphors
     MPP_FRAME_PRI_NB,                   ///< Not part of ABI
 } MppFrameColorPrimaries;
 
@@ -129,6 +130,10 @@ typedef enum {
     MPP_FRAME_SPC_YCOCG       = 8,      ///< Used by Dirac / VC-2 and H.264 FRext, see ITU-T SG16
     MPP_FRAME_SPC_BT2020_NCL  = 9,      ///< ITU-R BT2020 non-constant luminance system
     MPP_FRAME_SPC_BT2020_CL   = 10,     ///< ITU-R BT2020 constant luminance system
+    MPP_FRAME_SPC_SMPTE2085   = 11,     ///< SMPTE 2085, Y'D'zD'x
+    MPP_FRAME_SPC_CHROMA_DERIVED_NCL = 12,  ///< Chromaticity-derived non-constant luminance system
+    MPP_FRAME_SPC_CHROMA_DERIVED_CL = 13,   ///< Chromaticity-derived constant luminance system
+    MPP_FRAME_SPC_ICTCP       = 14,     ///< ITU-R BT.2100-0, ICtCp
     MPP_FRAME_SPC_NB,                   ///< Not part of ABI
 } MppFrameColorSpace;
 
