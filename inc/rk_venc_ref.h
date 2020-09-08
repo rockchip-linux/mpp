@@ -65,7 +65,7 @@
 /* max 4 temporal layer */
 #define MPP_ENC_MAX_TEMPORAL_LAYER_NUM      4
 /* max 4 long-term reference frame */
-#define MPP_ENC_MAX_LT_REF_NUM              4
+#define MPP_ENC_MAX_LT_REF_NUM              16
 
 /*
  * Group Of Picture (GOP) config is separated into three parts:
