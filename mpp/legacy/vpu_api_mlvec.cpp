@@ -247,7 +247,7 @@ MPP_RET vpu_api_mlvec_set_dy_max_tid(VpuApiMlvec ctx, RK_S32 max_tid)
     mpp_assert(mpi);
     mpp_assert(enc_cfg);
 
-    MppEncRefLtFrmCfg lt_ref[4];
+    MppEncRefLtFrmCfg lt_ref[16];
     MppEncRefStFrmCfg st_ref[16];
     RK_S32 lt_cfg_cnt = 0;
     RK_S32 st_cfg_cnt = 0;
@@ -400,57 +400,18 @@ MPP_RET vpu_api_mlvec_set_dy_max_tid(VpuApiMlvec ctx, RK_S32 max_tid)
     } break;
     }
 
-    switch (ltr_frames) {
-    case 0 : {
-    } break;
-    case 1 : {
-        lt_ref[0].lt_idx        = 0;
-        lt_ref[0].temporal_id   = 0;
-        lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[0].lt_gap        = 0;
-        lt_ref[0].lt_delay      = 0;
+    if (ltr_frames) {
+        RK_S32 i;
 
-        lt_cfg_cnt = 1;
-    } break;
-    case 2 : {
-        lt_ref[0].lt_idx        = 0;
-        lt_ref[0].temporal_id   = 0;
-        lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[0].lt_gap        = 0;
-        lt_ref[0].lt_delay      = 0;
-
-        lt_ref[1].lt_idx        = 1;
-        lt_ref[1].temporal_id   = 0;
-        lt_ref[1].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[1].lt_gap        = 0;
-        lt_ref[1].lt_delay      = tid0_loop;
-
-        lt_cfg_cnt = 2;
-    } break;
-    case 3 : {
-        lt_ref[0].lt_idx        = 0;
-        lt_ref[0].temporal_id   = 0;
-        lt_ref[0].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[0].lt_gap        = 0;
-        lt_ref[0].lt_delay      = 0;
-
-        lt_ref[1].lt_idx        = 1;
-        lt_ref[1].temporal_id   = 0;
-        lt_ref[1].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[1].lt_gap        = 0;
-        lt_ref[1].lt_delay      = tid0_loop;
-
-        lt_ref[2].lt_idx        = 2;
-        lt_ref[2].temporal_id   = 0;
-        lt_ref[2].ref_mode      = REF_TO_PREV_LT_REF;
-        lt_ref[2].lt_gap        = 0;
-        lt_ref[2].lt_delay      = tid0_loop * 2;
-
-        lt_cfg_cnt = 3;
-    } break;
-    default : {
-        mpp_err("invalid max LTR frame count %d\n", ltr_frames);
-    } break;
+        lt_cfg_cnt = ltr_frames;
+        mpp_assert(ltr_frames <= MPP_ENC_MAX_LT_REF_NUM);
+        for (i = 0; i < ltr_frames; i++) {
+            lt_ref[i].lt_idx        = i;
+            lt_ref[i].temporal_id   = 0;
+            lt_ref[i].ref_mode      = REF_TO_PREV_LT_REF;
+            lt_ref[i].lt_gap        = 0;
+            lt_ref[i].lt_delay      = tid0_loop * i;
+        }
     }
 
     if (lt_cfg_cnt)
