@@ -300,45 +300,6 @@ void mpp_pid_set_param(MppPIDCtx *p, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d
 void mpp_pid_update(MppPIDCtx *p, RK_S32 val);
 RK_S32 mpp_pid_calc(MppPIDCtx *ctx);
 
-MPP_RET mpp_rc_init(MppRateControl **ctx);
-MPP_RET mpp_rc_deinit(MppRateControl *ctx);
-
-/*
- * Translate MppEncRcCfg struct to internal bitrate setting
- * Called in mpp_control function.
- * If parameter changed mark flag and let encoder recalculate bit allocation.
- */
-MPP_RET mpp_rc_update_user_cfg(MppRateControl *ctx, MppEncRcCfg *cfg, RK_S32 force_idr);
-
-/*
- * When one frame is encoded hal will call this function to update paramter
- * from hardware. Hardware will update bits / qp_sum / mad or sse data
- *
- * Then rate control will update the linear regression model
- */
-MPP_RET mpp_rc_update_hw_result(MppRateControl *ctx, RcHalResult *result);
-
-/*
- * Use bps/fps config generate bit allocation setting
- * Called in controller loop when parameter changed or get a encoder result.
- * This function will calculation next frames target bits according to current
- * bit rate status.
- *
- * bits[0] - target
- * bits[1] - min
- * bits[1] - max
- */
-MPP_RET mpp_rc_bits_allocation(MppRateControl *ctx, RcSyntax *rc_syn);
-
-MPP_RET mpp_rc_record_param(struct list_head *head, MppRateControl *ctx,
-                            RcSyntax *rc_syn);
-
-MPP_RET mpp_rc_calc_real_bps(struct list_head *head, MppRateControl *ctx,
-                             RK_S32 cur_bits);
-
-MPP_RET mpp_rc_param_ops(struct list_head *head, RK_U32 frm_cnt,
-                         RC_PARAM_OPS ops, void *arg);
-
 MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode);
 MPP_RET mpp_linreg_deinit(MppLinReg *ctx);
 void mpp_save_regdata(MppLinReg *ctx, RK_S32 x, RK_S32 r);

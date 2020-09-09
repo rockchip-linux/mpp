@@ -27,7 +27,6 @@
 #include "mpp_platform.h"
 
 //#include "hal_vp8e_base.h"
-#include "hal_vp8e_vepu1.h"
 #include "hal_vp8e_vepu2_v2.h"
 #include "hal_vp8e_vepu1_v2.h"
 #include "hal_vp8e_debug.h"

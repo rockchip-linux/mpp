@@ -18,8 +18,15 @@
 #define __HAL_H264E_VEPU_V2_H__
 
 #include "mpp_enc_cfg.h"
-#include "h264e_syntax_new.h"
+#include "h264e_syntax.h"
 #include "mpp_rc.h"
+
+#define H264E_HAL_SET_REG(reg, addr, val)                                    \
+    do {                                                                     \
+        reg[(addr)>>2] = (RK_U32)(val);                                      \
+        if (hal_h264e_debug & 0/*H264E_HAL_LOG_INFO*/)                              \
+            mpp_log("line(%d) set reg[%03d/%03x]: %08x", __LINE__, (addr)>>2, addr, val); \
+    } while (0)
 
 typedef enum H264eVpuFrameType_t {
     H264E_VPU_FRAME_P = 0,
@@ -177,6 +184,8 @@ typedef struct HalH264eVepuStreamAmend_t {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+RK_S32 exp_golomb_signed(RK_S32 val);
 
 /* buffer management function */
 MPP_RET h264e_vepu_buf_init(HalH264eVepuBufs *bufs);

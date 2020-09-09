@@ -20,13 +20,10 @@
 #include "mpp_log.h"
 #include "mpp_common.h"
 
-#include "h264e_api.h"
 #include "h264e_api_v2.h"
-#include "jpege_api.h"
 #include "jpege_api_v2.h"
 #include "h265e_api.h"
 #include "h265e_api_v2.h"
-#include "vp8e_api.h"
 #include "vp8e_api_v2.h"
 #include "mpp_enc_impl.h"
 
@@ -34,17 +31,8 @@
  * all encoder controller static register here
  */
 static const EncImplApi *controllers[] = {
-#if HAVE_H264E
-    &api_h264e_controller,
-#endif
-#if HAVE_JPEGE
-    &api_jpege_controller,
-#endif
 #if HAVE_H265E
     &api_h265e_controller,
-#endif
-#if HAVE_VP8E
-    &api_vp8e_controller,
 #endif
 };
 

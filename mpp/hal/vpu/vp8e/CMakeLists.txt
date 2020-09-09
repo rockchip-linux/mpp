@@ -6,22 +6,17 @@ set(HAL_VP8E_HDR
     hal_vp8e_entropy.h
     hal_vp8e_putbit.h
     hal_vp8e_base.h
-    hal_vp8e_vepu1.h
-    hal_vp8e_vepu2.h
     hal_vp8e_vepu1_reg.h
     hal_vp8e_vepu2_reg.h
     )
 
 set(HAL_VP8E_SRC
-    hal_vp8e_api.c
     hal_vp8e_api_v2.c
     hal_vp8e_putbit.c
     hal_vp8e_table.c
     hal_vp8e_entropy.c
     hal_vp8e_base.c
-    hal_vp8e_vepu1.c
     hal_vp8e_vepu1_v2.c
-    hal_vp8e_vepu2.c
     hal_vp8e_vepu2_v2.c
     )
 

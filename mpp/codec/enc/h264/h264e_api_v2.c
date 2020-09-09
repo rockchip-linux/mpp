@@ -33,8 +33,9 @@
 #include "h264e_sei.h"
 #include "h264e_dpb.h"
 #include "h264e_slice.h"
-#include "h264e_api.h"
+#include "h264e_api_v2.h"
 #include "rc.h"
+#include "mpp_rc.h"
 
 #include "enc_impl_api.h"
 #include "mpp_enc_cfg_impl.h"

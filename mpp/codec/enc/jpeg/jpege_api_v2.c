@@ -25,7 +25,7 @@
 #include "mpp_mem.h"
 
 #include "jpege_debug.h"
-#include "jpege_api.h"
+#include "jpege_api_v2.h"
 #include "jpege_syntax.h"
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_bitwrite.h"

@@ -25,7 +25,6 @@
 
 #include "h264e_slice.h"
 #include "hal_h264e_debug.h"
-#include "hal_h264e_com.h"
 #include "hal_h264e_vepu_v2.h"
 #include "hal_h264e_vpu_tbl_v2.h"
 
@@ -72,6 +71,21 @@ typedef struct HalH264eVepuMbRcImpl_t {
     RK_S32          frame_type;
     RK_S32          pre_frame_type;
 } HalH264eVepuMbRcImpl;
+
+RK_S32 exp_golomb_signed(RK_S32 val)
+{
+    RK_S32 tmp = 0;
+
+    if (val > 0)
+        val = 2 * val;
+    else
+        val = -2 * val + 1;
+
+    while (val >> ++tmp)
+        ;
+
+    return tmp * 2 - 1;
+}
 
 static void vepu_swap_endian(RK_U32 *buf, RK_S32 size_bytes)
 {
@@ -127,8 +141,7 @@ static void vepu_write_cabac_table(MppBuffer buf, RK_S32 cabac_init_idc)
                 RK_S32 m = (RK_S32)(*context)[i][0];
                 RK_S32 n = (RK_S32)(*context)[i][1];
 
-                RK_S32 pre_ctx_state = H264E_HAL_CLIP3(((m * (RK_S32)qp) >> 4)
-                                                       + n, 1, 126);
+                RK_S32 pre_ctx_state = MPP_CLIP3(1, 126, ((m * (RK_S32)qp) >> 4) + n);
 
                 if (pre_ctx_state <= 63)
                     table[qp * 464 * 2 + j * 464 + i] =
@@ -307,12 +320,12 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
         prep->swap_32_in = fmt_cfg.swap_32_in;
         prep->src_fmt    = fmt_cfg.format;
     } else {
-        prep->src_fmt = H264E_VPU_CSP_NONE;
+        prep->src_fmt = VEPU_FMT_BUTT;
     }
 
     if (format < MPP_FRAME_FMT_RGB) {
         // YUV case
-        if (prep->src_fmt == H264E_VPU_CSP_NONE) {
+        if (prep->src_fmt == VEPU_FMT_BUTT) {
             mpp_err("vepu do not support input frame format %d\n", format);
             ret = MPP_NOK;
         }
@@ -324,7 +337,7 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
         prep->color_conversion_coeff_f = 0;
     } else {
 
-        if (prep->src_fmt == H264E_VPU_CSP_NONE) {
+        if (prep->src_fmt == VEPU_FMT_BUTT) {
             mpp_err("vepu do not support input frame format %d\n", format);
             ret = MPP_NOK;
         }
@@ -557,7 +570,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
 
     // init check point position
     if (p->mb_bit_rc_enable) {
-        p->check_point_count = MPP_MIN(p->mb_h - 1, CHECK_POINTS_MAX);
+        p->check_point_count = MPP_MIN(p->mb_h - 1, VEPU_CHECK_POINTS_MAX);
         p->check_point_distance = p->mbs / (p->check_point_count + 1);
     } else {
         p->check_point_count = 0;
@@ -650,7 +663,7 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
     mbrc->cp_error[6] = tmp * 4;
     mbrc->cp_delta_qp[6] = -3;
 
-    for (i = 0; i < CTRL_LEVELS; i++) {
+    for (i = 0; i < VEPU_CTRL_LEVELS; i++) {
         tmp = mbrc->cp_error[i];
         tmp = mpp_clip(tmp / 4, -32768, 32767);
         mbrc->cp_error[i] = tmp;

@@ -20,7 +20,7 @@
 #include "mpp_packet.h"
 #include "mpp_enc_cfg.h"
 
-#include "h264e_syntax_new.h"
+#include "h264e_syntax.h"
 
 #ifdef __cplusplus
 extern "C" {

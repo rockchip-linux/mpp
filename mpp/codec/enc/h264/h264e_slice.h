@@ -19,7 +19,7 @@
 
 #include "mpp_enc_cfg.h"
 
-#include "h264e_syntax_new.h"
+#include "h264e_syntax.h"
 #include "h264e_dpb.h"
 
 #ifdef  __cplusplus

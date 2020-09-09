@@ -26,7 +26,6 @@
 
 #include "hal_h263d_api.h"
 #include "hal_h264d_api.h"
-#include "hal_h264e_api.h"
 #include "hal_h265d_api.h"
 #include "hal_vp8d_api.h"
 #include "hal_vp9d_api.h"
@@ -34,9 +33,7 @@
 #include "hal_m2vd_api.h"
 #include "hal_mpg4d_api.h"
 #include "hal_jpegd_api.h"
-#include "hal_jpege_api.h"
 #include "hal_h265e_api.h"
-#include "hal_vp8e_api.h"
 
 // for test and demo
 #include "hal_dummy_dec_api.h"
@@ -73,17 +70,8 @@ static const MppHalApi *hw_apis[] = {
 #if HAVE_JPEGD
     &hal_api_jpegd,
 #endif
-#if HAVE_H264E
-    &hal_api_h264e,
-#endif
-#if HAVE_JPEGE
-    &hal_api_jpege,
-#endif
 #if HAVE_H265E
     &hal_api_h265e,
-#endif
-#if HAVE_VP8E
-    &hal_api_vp8e,
 #endif
     &hal_api_dummy_dec,
     &hal_api_dummy_enc,

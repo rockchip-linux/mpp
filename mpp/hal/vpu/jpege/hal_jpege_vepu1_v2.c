@@ -30,10 +30,9 @@
 #include "vepu_common.h"
 
 #include "hal_jpege_debug.h"
-#include "hal_jpege_api.h"
+#include "hal_jpege_api_v2.h"
 #include "hal_jpege_hdr.h"
 #include "hal_jpege_base.h"
-#include "hal_jpege_vepu1.h"
 
 #define VEPU_JPEGE_VEPU1_NUM_REGS 164
 

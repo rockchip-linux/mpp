@@ -29,9 +29,8 @@
 #include "mpp_rc.h"
 
 #include "hal_h264e_debug.h"
-#include "h264e_syntax_new.h"
+#include "h264e_syntax.h"
 #include "h264e_slice.h"
-#include "h264e_stream.h"
 
 #include "hal_bufs.h"
 #include "hal_h264e_vepu541.h"
