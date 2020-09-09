@@ -162,6 +162,9 @@ static const char *cfg_func_names[] = {
     ENTRY(rc,   fps_out_denorm, S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denorm) \
     ENTRY(rc,   gop,            S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_GOP,              rc, gop) \
     ENTRY(rc,   max_reenc_times,U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_MAX_REENC,        rc, max_reenc_times) \
+    ENTRY(rc,   drop_mode,      U32, MppEncRcDropFrmMode, MPP_ENC_RC_CFG_CHANGE_DROP_FRM,       rc, drop_mode) \
+    ENTRY(rc,   drop_thd,       U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_DROP_FRM,         rc, drop_threshold) \
+    ENTRY(rc,   drop_gap,       U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_DROP_FRM,         rc, drop_gap) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
@@ -245,7 +248,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 47;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 53;
 
 class MppEncCfgService
 {
