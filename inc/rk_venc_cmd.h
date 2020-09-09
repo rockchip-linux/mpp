@@ -160,6 +160,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_GOP           = (1 << 7),
     MPP_ENC_RC_CFG_CHANGE_SKIP_CNT      = (1 << 8),
     MPP_ENC_RC_CFG_CHANGE_MAX_REENC     = (1 << 9),
+    MPP_ENC_RC_CFG_CHANGE_DROP_FRM      = (1 << 10),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -180,6 +181,13 @@ typedef enum MppEncRcQuality_e {
     MPP_ENC_RC_QUALITY_AQ_ONLY,
     MPP_ENC_RC_QUALITY_BUTT
 } MppEncRcQuality;
+
+typedef enum MppEncRcDropFrmMode_e {
+    MPP_ENC_RC_DROP_FRM_DISABLED,
+    MPP_ENC_RC_DROP_FRM_NORMAL,
+    MPP_ENC_RC_DROP_FRM_PSKIP,
+    MPP_ENC_RC_DROP_FRM_BUTT
+} MppEncRcDropFrmMode;
 
 typedef struct MppEncRcCfg_t {
     RK_U32  change;
@@ -287,6 +295,30 @@ typedef struct MppEncRcCfg_t {
      * stat_times   - the time of bitrate statistics
      */
     RK_S32  stat_times;
+
+    /*
+     * drop frame parameters
+     * used on bitrate is far over the max bitrate
+     *
+     * drop_mode
+     *
+     * MPP_ENC_RC_DROP_FRM_DISABLED
+     * - do not drop frame when bitrate overflow.
+     * MPP_ENC_RC_DROP_FRM_NORMAL
+     * - do not encode the dropped frame when bitrate overflow.
+     * MPP_ENC_RC_DROP_FRM_PSKIP
+     * - encode a all skip frame when bitrate overflow.
+     *
+     * drop_threshold
+     *
+     * The percentage threshold over max_bitrate for trigger frame drop.
+     *
+     * drop_gap
+     * The max continuous frame drop number
+     */
+    MppEncRcDropFrmMode drop_mode;
+    RK_U32  drop_threshold;
+    RK_U32  drop_gap;
 } MppEncRcCfg;
 
 /*
