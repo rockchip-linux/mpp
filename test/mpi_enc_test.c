@@ -589,6 +589,11 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", 1);
     } break;
     case MPP_VIDEO_CodingVP8 : {
+        mpp_enc_cfg_set_s32(cfg, "vp8:qp_init", 40);
+        mpp_enc_cfg_set_s32(cfg, "vp8:qp_max",  127);
+        mpp_enc_cfg_set_s32(cfg, "vp8:qp_min",  0);
+        mpp_enc_cfg_set_s32(cfg, "vp8:qp_max_i", 127);
+        mpp_enc_cfg_set_s32(cfg, "vp8:qp_min_i", 0);
     } break;
     case MPP_VIDEO_CodingHEVC : {
         mpp_enc_cfg_set_s32(cfg, "h265:qp_init", p->rc_mode == MPP_ENC_RC_MODE_FIXQP ? -1 : 26);
