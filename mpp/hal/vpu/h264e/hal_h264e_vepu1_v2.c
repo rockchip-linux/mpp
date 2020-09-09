@@ -26,13 +26,11 @@
 #include "mpp_rc.h"
 
 #include "mpp_enc_hal.h"
-#include "vepu_common.h"
 #include "h264e_debug.h"
-#include "h264e_syntax_new.h"
+#include "h264e_syntax.h"
 #include "h264e_slice.h"
-#include "h264e_stream.h"
 
-#include "hal_h264e_com.h"
+#include "hal_h264e_debug.h"
 #include "hal_h264e_vpu_tbl.h"
 #include "hal_h264e_vepu_v2.h"
 
@@ -593,7 +591,7 @@ static void h264e_vepu1_get_mbrc(HalH264eVepuMbRc *mb_rc, H264eVpu1RegSet *reg)
     mb_rc->less_mad_count   = VEPU_REG_MB_CNT_SET(reg_val[VEPU_REG_MB_CTRL / 4]);
     mb_rc->rlc_count        = VEPU_REG_RLC_SUM_OUT(reg_val[VEPU_REG_RLC_CTRL / 4]);
 
-    for (i = 0; i < CHECK_POINTS_MAX; i++) {
+    for (i = 0; i < VEPU_CHECK_POINTS_MAX; i++) {
         RK_U32 cpt = VEPU_REG_CHECKPOINT_RESULT(reg_val[cpt_idx]);
 
         if (cpt < cpt_prev)

@@ -22,7 +22,7 @@
 #include "mpp_common.h"
 #include "mpp_enc_hal.h"
 #include "hal_vp8e_base.h"
-#include "hal_vp8e_vepu2.h"
+#include "hal_vp8e_vepu2_v2.h"
 #include "hal_vp8e_vepu2_reg.h"
 
 #include "mpp_rc.h"

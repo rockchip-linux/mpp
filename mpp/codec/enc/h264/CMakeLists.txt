@@ -4,7 +4,6 @@ include_directories(include)
 
 # h264 encoder api
 set(H264E_API
-    h264e_api.c
     h264e_api_v2.c
     )
 set(H264E_COMMON
