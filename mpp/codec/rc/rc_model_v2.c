@@ -1065,7 +1065,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
                 reenc_calc_vbr_ratio(p, cfg);
             }
 
-            if (p->next_ratio != 0) {
+            if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
                 p->reenc_cnt++;
                 frm->reencode = 1;
             }
