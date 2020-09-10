@@ -18,6 +18,7 @@
 #define __RK_VENC_CMD_H__
 
 #include "mpp_frame.h"
+#include "rk_venc_rc.h"
 
 /*
  * Configure of encoder is very complicated. So we divide configures into
@@ -164,14 +165,6 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
-typedef enum MppEncRcMode_e {
-    MPP_ENC_RC_MODE_VBR,
-    MPP_ENC_RC_MODE_CBR,
-    MPP_ENC_RC_MODE_FIXQP,
-    MPP_ENC_RC_MODE_AVBR,
-    MPP_ENC_RC_MODE_BUTT
-} MppEncRcMode;
-
 typedef enum MppEncRcQuality_e {
     MPP_ENC_RC_QUALITY_WORST,
     MPP_ENC_RC_QUALITY_WORSE,
@@ -182,13 +175,6 @@ typedef enum MppEncRcQuality_e {
     MPP_ENC_RC_QUALITY_AQ_ONLY,
     MPP_ENC_RC_QUALITY_BUTT
 } MppEncRcQuality;
-
-typedef enum MppEncRcDropFrmMode_e {
-    MPP_ENC_RC_DROP_FRM_DISABLED,
-    MPP_ENC_RC_DROP_FRM_NORMAL,
-    MPP_ENC_RC_DROP_FRM_PSKIP,
-    MPP_ENC_RC_DROP_FRM_BUTT
-} MppEncRcDropFrmMode;
 
 typedef struct MppEncRcCfg_t {
     RK_U32  change;
