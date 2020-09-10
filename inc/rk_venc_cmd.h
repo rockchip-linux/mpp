@@ -465,67 +465,6 @@ typedef enum MppEncSeiMode_e {
 /*
  * H.264 configurable parameter
  */
-typedef struct MppEncH264VuiCfg_t {
-    RK_U32 change;
-
-    RK_U32 b_vui;
-
-    RK_S32 b_aspect_ratio_info_present;
-    RK_S32 i_sar_width;
-    RK_S32 i_sar_height;
-
-    RK_S32 b_overscan_info_present;
-    RK_S32 b_overscan_info;
-
-    RK_S32 b_signal_type_present;
-    RK_S32 i_vidformat;
-    RK_S32 b_fullrange;
-    RK_S32 b_color_description_present;
-    RK_S32 i_colorprim;
-    RK_S32 i_transfer;
-    RK_S32 i_colmatrix;
-
-    RK_S32 b_chroma_loc_info_present;
-    RK_S32 i_chroma_loc_top;
-    RK_S32 i_chroma_loc_bottom;
-
-    RK_S32 b_timing_info_present;
-    RK_U32 i_num_units_in_tick;
-    RK_U32 i_time_scale;
-    RK_S32 b_fixed_frame_rate;
-
-    RK_S32 b_nal_hrd_parameters_present;
-    RK_S32 b_vcl_hrd_parameters_present;
-
-    struct {
-        RK_S32 i_cpb_cnt;
-        RK_S32 i_bit_rate_scale;
-        RK_S32 i_cpb_size_scale;
-        RK_S32 i_bit_rate_value;
-        RK_S32 i_cpb_size_value;
-        RK_S32 i_bit_rate_unscaled;
-        RK_S32 i_cpb_size_unscaled;
-        RK_S32 b_cbr_hrd;
-
-        RK_S32 i_initial_cpb_removal_delay_length;
-        RK_S32 i_cpb_removal_delay_length;
-        RK_S32 i_dpb_output_delay_length;
-        RK_S32 i_time_offset_length;
-    } hrd;
-
-    RK_S32 b_pic_struct_present;
-    RK_S32 b_bitstream_restriction;
-    RK_S32 b_motion_vectors_over_pic_boundaries;
-    RK_S32 i_max_bytes_per_pic_denom;
-    RK_S32 i_max_bits_per_mb_denom;
-    RK_S32 i_log2_max_mv_length_horizontal;
-    RK_S32 i_log2_max_mv_length_vertical;
-    RK_S32 i_num_reorder_frames;
-    RK_S32 i_max_dec_frame_buffering;
-
-    /* FIXME to complete */
-} MppEncH264VuiCfg;
-
 typedef enum MppEncH264CfgChange_e {
     /* change on stream type */
     MPP_ENC_H264_CFG_STREAM_TYPE            = (1 << 0),
@@ -708,9 +647,6 @@ typedef struct MppEncH264Cfg_t {
     RK_S16              max_tid;
     RK_S16              prefix_mode;
     RK_S16              base_layer_pid;
-
-    /* extra info */
-    MppEncH264VuiCfg    vui;
 } MppEncH264Cfg;
 
 #define H265E_MAX_ROI_NUMBER  64
@@ -795,11 +731,6 @@ typedef struct MppEncH265VuiCfg_t {
     RK_S32              full_range;
     RK_S32              time_scale;
 } MppEncH265VuiCfg;
-
-typedef struct MppEncH265SeiCfg_t {
-    RK_U32              change;
-} MppEncH265SeiCfg;
-
 
 typedef enum MppEncH265CfgChange_e {
     /* change on stream type */
@@ -944,7 +875,6 @@ typedef struct MppEncH265Cfg_t {
 
     /* extra info */
     MppEncH265VuiCfg    vui;
-    MppEncH265SeiCfg    sei;
 
     MppEncH265CtuCfg    ctu;
     MppEncH265RoiCfg    roi;
