@@ -750,6 +750,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->layer_bit_prop[3] = 0;
 
     cfg->max_reencode_times = rc->max_reenc_times;
+    cfg->drop_mode = rc->drop_mode;
+    cfg->drop_thd = rc->drop_threshold;
+    cfg->drop_gap = rc->drop_gap;
 
     if (info->st_gop) {
         cfg->vgop = info->st_gop;

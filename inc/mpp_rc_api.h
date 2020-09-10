@@ -18,6 +18,7 @@
 #define __MPP_RC_API_H__
 
 #include "mpp_err.h"
+#include "rk_venc_rc.h"
 #include "mpp_rc_defs.h"
 
 /*
@@ -151,6 +152,10 @@ typedef struct RcCfg_s {
      */
     RK_S32      vbr_hi_prop;
     RK_S32      vbr_lo_prop;
+
+    MppEncRcDropFrmMode drop_mode;
+    RK_U32      drop_thd;
+    RK_U32      drop_gap;
 } RcCfg;
 
 /*
