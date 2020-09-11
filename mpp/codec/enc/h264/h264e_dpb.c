@@ -428,8 +428,10 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
      */
     for (i = 0; i < MAX_CPB_REFS; i++) {
         dpb->map[i] = find_cpb_frame(frames, dpb->total_cnt, &init[i]);
-        if (dpb->map[i])
+        if (dpb->map[i]) {
+            dpb->map[i]->on_used = 1;
             used_size++;
+        }
     }
 
     mpp_assert(dpb->used_size == used_size);
@@ -458,8 +460,11 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
         h264e_dbg_dpb("slot %2d check in cpb init valid %d\n", i, valid);
 
         if (valid) {
-            mpp_assert(p->on_used);
-            mpp_assert(p->status.valid);
+            if (!p->on_used || !p->status.valid) {
+                mpp_assert(p->on_used);
+                mpp_assert(p->status.valid);
+                h264e_dpb_dump_frms(dpb);
+            }
             continue;
         }
 
