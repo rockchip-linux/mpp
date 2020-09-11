@@ -46,8 +46,7 @@ typedef struct {
     MppEncCfgSet    *cfg;
     MppEncCfgSet    *set;
 
-    H265eSyntax syntax;
-    H265eFeedback feedback;
+    H265eSyntax     syntax;
 } H265eCtx;
 
 static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
@@ -125,34 +124,6 @@ static MPP_RET h265e_encode(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET h265e_reset(void *ctx)
-{
-    H265eCtx *p = (H265eCtx *)ctx;
-    if (p == NULL) {
-        mpp_err_f("error: p == NULL");
-        return MPP_NOK;
-    }
-
-    h265e_dbg_func("enter ctx %p\n", ctx);
-    h265e_dbg_func("leave ctx %p\n", ctx);
-    (void)ctx;
-    return MPP_OK;
-}
-
-static MPP_RET h265e_flush(void *ctx)
-{
-    H265eCtx *p = (H265eCtx *)ctx;
-    if (p == NULL) {
-        mpp_err_f("error: p == NULL");
-        return MPP_NOK;
-    }
-
-    h265e_dbg_func("enter ctx %p\n", ctx);
-    h265e_dbg_func("leave ctx %p\n", ctx);
-    (void)ctx;
-    return MPP_OK;
-}
-
 static MPP_RET h265e_config(void *ctx, MpiCmd cmd, void *param)
 {
     H265eCtx *p = (H265eCtx *)ctx;
@@ -175,28 +146,6 @@ static MPP_RET h265e_config(void *ctx, MpiCmd cmd, void *param)
     return ret;
 }
 
-MPP_RET h265e_callback(void *ctx, void *feedback)
-{
-    H265eCtx *p = (H265eCtx *)ctx;
-    H265eFeedback *result = NULL;
-    H265eFeedback *back = (H265eFeedback*)feedback;
-    if (p == NULL || feedback == NULL) {
-        mpp_err_f("error: p == NULL");
-        return MPP_NOK;
-    }
-
-    result = &p->feedback;
-    h265e_dbg_func("enter ctx %p\n", ctx);
-    memcpy(result, back, sizeof(H265eFeedback));
-    h265e_dbg_func("***********************h265 encoder result************************\n");
-    h265e_dbg_func("status  size  pic_cnt  pic_type  poc  src_idx  gop_idx  avg_qp\n");
-    h265e_dbg_func("[%4d] [%6d] [%4d] [%4d] [%4d] [%4d] [%4d] [%4d]\n", result->status, result->bs_size,
-                   result->enc_pic_cnt, result->pic_type, result->poc, result->src_idx, result->gop_idx, result->avg_ctu_qp);
-    h265e_dbg_func("******************************************************************\n");
-    h265e_dbg_func("leave ctx %p\n", ctx);
-    return MPP_OK;
-}
-
 const EncImplApi api_h265e_controller = {
     "h265e_control",
     MPP_VIDEO_CodingHEVC,
@@ -210,7 +159,5 @@ const EncImplApi api_h265e_controller = {
     NULL,
     h265e_encode,
     NULL,
-    h265e_reset,
-    h265e_flush,
-    h265e_callback,
+    NULL,
 };

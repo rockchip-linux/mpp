@@ -575,7 +575,5 @@ const EncImplApi api_jpege = {
     .proc_dpb   = NULL,
     .proc_hal   = jpege_proc_hal,
     .add_prefix = jpege_add_Prefix,
-    .reset      = NULL,
-    .flush      = NULL,
-    .callback   = NULL,
+    .sw_enc     = NULL,
 };

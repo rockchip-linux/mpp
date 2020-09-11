@@ -75,9 +75,7 @@ typedef struct EncImplApi_t {
     MPP_RET (*add_prefix)(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
                           const void *data, RK_S32 size);
 
-    MPP_RET (*reset)(void *ctx);
-    MPP_RET (*flush)(void *ctx);
-    MPP_RET (*callback)(void *ctx, void *feedback);
+    MPP_RET (*sw_enc)(void *ctx, HalEncTask *task);
 } EncImplApi;
 
 #endif /*__ENC_IMPL_API_H__*/

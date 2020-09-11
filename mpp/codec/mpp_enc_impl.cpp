@@ -221,17 +221,17 @@ MPP_RET enc_impl_add_prefix(EncImpl impl, MppPacket pkt, RK_S32 *length,
     return ret;
 }
 
-MPP_RET hal_enc_callback(void *impl, void *err_info)
+MPP_RET enc_impl_sw_enc(EncImpl impl, HalEncTask *task)
 {
-    if (NULL == impl) {
+    if (NULL == impl || NULL == task) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->callback)
-        ret = p->api->callback(p->ctx, err_info);
+    if (p->api->sw_enc)
+        ret = p->api->sw_enc(p->ctx, task);
 
     return ret;
 }
