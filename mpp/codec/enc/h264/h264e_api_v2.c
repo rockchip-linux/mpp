@@ -799,6 +799,4 @@ const EncImplApi api_h264e = {
     h264e_proc_hal,
     h264e_add_sei,
     NULL,
-    NULL,
-    NULL,
 };

@@ -595,6 +595,4 @@ const EncImplApi api_h265e = {
     h265e_proc_hal,
     h265e_add_sei,
     NULL,
-    NULL,
-    NULL,
 };

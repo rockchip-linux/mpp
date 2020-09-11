@@ -144,20 +144,6 @@ static MPP_RET vp8e_start(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET vp8e_reset(void *ctx)
-{
-    (void)ctx;
-
-    return MPP_OK;
-}
-
-static MPP_RET vp8e_flush(void *ctx)
-{
-    Vp8eCtx *p = (Vp8eCtx *)ctx;
-    (void)p;
-
-    return MPP_OK;
-}
 static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 {
     MPP_RET ret = MPP_OK;
@@ -380,7 +366,5 @@ const EncImplApi api_vp8e = {
     .proc_dpb   = NULL,
     .proc_hal   = vp8e_proc_hal,
     .add_prefix = NULL,
-    .reset      = vp8e_reset,
-    .flush      = vp8e_flush,
-    .callback   = NULL,
+    .sw_enc     = NULL,
 };

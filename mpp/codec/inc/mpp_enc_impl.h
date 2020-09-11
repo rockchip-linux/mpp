@@ -38,7 +38,7 @@ MPP_RET enc_impl_proc_hal(EncImpl impl, HalEncTask *task);
 MPP_RET enc_impl_add_prefix(EncImpl impl, MppPacket pkt, RK_S32 *length,
                             RK_U8 uuid[16], const void *data, RK_S32 size);
 
-MPP_RET hal_enc_callback(void* impl, void *err_info);
+MPP_RET enc_impl_sw_enc(EncImpl impl, HalEncTask *task);
 
 #ifdef __cplusplus
 }
