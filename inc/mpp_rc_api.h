@@ -170,6 +170,7 @@ typedef struct RcImplApi_t {
     MPP_RET         (*deinit)(void *ctx);
 
     MPP_RET         (*check_drop)(void *ctx, EncRcTask *task);
+    MPP_RET         (*check_reenc)(void *ctx, EncRcTask *task);
 
     /*
      * frm_start -  frame level rate control frm_start.

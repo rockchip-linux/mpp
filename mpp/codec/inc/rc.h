@@ -70,6 +70,8 @@ MPP_RET rc_update_usr_cfg(RcCtx ctx, RcCfg *cfg);
 
 /* Frame rate convertion */
 MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task);
+/* Frame reenc check */
+MPP_RET rc_frm_check_reenc(RcCtx ctx, EncRcTask *task);
 
 /* Frame level rate and quality control */
 MPP_RET rc_frm_start(RcCtx ctx, EncRcTask *task);

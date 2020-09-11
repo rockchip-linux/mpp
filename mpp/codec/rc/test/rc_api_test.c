@@ -34,12 +34,14 @@ const RcImplApi test_h264_api = {
     NULL,
     NULL,
     NULL,
+    NULL,
 };
 
 const RcImplApi test_h265_api = {
     "test_h265e_rc",
     MPP_VIDEO_CodingHEVC,
     0,
+    NULL,
     NULL,
     NULL,
     NULL,
