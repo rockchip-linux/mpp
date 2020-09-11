@@ -91,7 +91,7 @@ typedef struct H265eV541HalContext_t {
 
     RK_U32              enc_mode;
     RK_U32              frame_size;
-    RK_U32              alloc_flg;
+    RK_S32              max_buf_cnt;
     RK_S32              hdr_status;
     void                *input_fmt;
     RK_U8               *src_buf;
@@ -231,8 +231,12 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
     RK_U32 frame_size;
     Vepu541Fmt input_fmt = VEPU541_FMT_YUV420P;
-    h265e_hal_enter();
     RK_S32 mb_wd64, mb_h64;
+    MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
+    RK_S32 old_max_cnt = ctx->max_buf_cnt;
+    RK_S32 new_max_cnt = 2;
+
+    h265e_hal_enter();
 
     mb_wd64 = (syn->pp.pic_width + 63) / 64;
     mb_h64 = (syn->pp.pic_height + 63) / 64;
@@ -264,25 +268,30 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
     }
     }
 
-    if (frame_size > ctx->frame_size) {
+    if (ref_cfg) {
+        MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+        new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
+    }
+
+    if (frame_size > ctx->frame_size || new_max_cnt > old_max_cnt) {
         size_t size[3] = {0};
         RK_S32 fbc_header_len;
-        MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
-        RK_S32 max_cnt = 2;
-        if (ref_cfg) {
-            MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
-            max_cnt = MPP_MAX(max_cnt, info->dpb_size + 1);
-        }
 
         vepu541_h265_free_buffers(ctx);
         MPP_FREE(ctx->roi_buf);
         hal_bufs_deinit(ctx->dpb_bufs);
         hal_bufs_init(&ctx->dpb_bufs);
+
         fbc_header_len = MPP_ALIGN(((mb_wd64 * mb_h64) << 6), SZ_8K);
         size[0] = fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 2; //fbc_h + fbc_b
         size[1] = (mb_wd64 * mb_h64 << 8);
         size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256);
-        hal_bufs_setup(ctx->dpb_bufs, max_cnt, 3, size);
+        new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
+
+        h265e_hal_dbg(H265E_DBG_DETAIL, "frame size %d -> %d max count %d -> %d\n",
+                      ctx->frame_size, frame_size, old_max_cnt, new_max_cnt);
+
+        hal_bufs_setup(ctx->dpb_bufs, new_max_cnt, 3, size);
         if (1) {
             for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V541_BUF_GRP_ROI],
@@ -295,6 +304,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         }
         ctx->roi_buf = mpp_malloc(RK_U8, vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
         ctx->frame_size = frame_size;
+        ctx->max_buf_cnt = new_max_cnt;
     }
     h265e_hal_leave();
     return ret;
@@ -1362,15 +1372,14 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     EncFrmStatus  *frm_status = &task->rc_task->frm;
 
     h265e_hal_enter();
-    if ((!ctx->alloc_flg)) {
-        if (MPP_OK != h265e_rkv_allocate_buffers(ctx, syn)) {
-            h265e_hal_err("h265e_rkv_allocate_buffers failed, free buffers and return\n");
-            task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
-            vepu541_h265_free_buffers(ctx);
-            return MPP_ERR_MALLOC;
-        }
-        ctx->alloc_flg = 1;
+
+    if (h265e_rkv_allocate_buffers(ctx, syn)) {
+        h265e_hal_err("h265e_rkv_allocate_buffers failed, free buffers and return\n");
+        task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
+        vepu541_h265_free_buffers(ctx);
+        return MPP_ERR_MALLOC;
     }
+
     ctx->last_frame_type = ctx->frame_type;
     if (frm_status->is_intra) {
         ctx->frame_type = INTRA_FRAME;

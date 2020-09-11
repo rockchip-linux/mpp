@@ -51,6 +51,7 @@ typedef struct HalH264eVepu541Ctx_t {
     RK_S32                  pixel_buf_fbc_bdy_size;
     RK_S32                  pixel_buf_size;
     RK_S32                  thumb_buf_size;
+    RK_S32                  max_buf_cnt;
 
     /* syntax for input from enc_impl */
     RK_U32                  updated;
@@ -239,31 +240,39 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
         RK_S32 pixel_buf_fbc_bdy_size = aligned_w * aligned_h * 2;
         RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
         RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
+        RK_S32 old_max_cnt = ctx->max_buf_cnt;
+        RK_S32 new_max_cnt = 2;
+        MppEncRefCfg ref_cfg = cfg->ref_cfg;
+        if (ref_cfg) {
+            MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+            if (new_max_cnt < MPP_MAX(new_max_cnt, info->dpb_size + 1))
+                new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
+        }
 
         if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
             (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
             (ctx->pixel_buf_size != pixel_buf_size) ||
-            (ctx->thumb_buf_size != thumb_buf_size)) {
-            MppEncRefCfg ref_cfg = cfg->ref_cfg;
+            (ctx->thumb_buf_size != thumb_buf_size) ||
+            (new_max_cnt > old_max_cnt)) {
             size_t sizes[2];
-            RK_S32 max_cnt = 2;
 
-            if (ref_cfg) {
-                MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
-                max_cnt = MPP_MAX(max_cnt, info->dpb_size + 1);
-            }
+            hal_h264e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
+                                 ctx->pixel_buf_size, pixel_buf_size,
+                                 old_max_cnt, new_max_cnt);
 
             /* pixel buffer */
             sizes[0] = pixel_buf_size;
             /* thumb buffer */
             sizes[1] = thumb_buf_size;
+            new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
 
-            hal_bufs_setup(ctx->hw_recn, max_cnt, 2, sizes);
+            hal_bufs_setup(ctx->hw_recn, new_max_cnt, 2, sizes);
 
             ctx->pixel_buf_fbc_hdr_size = pixel_buf_fbc_hdr_size;
             ctx->pixel_buf_fbc_bdy_size = pixel_buf_fbc_bdy_size;
             ctx->pixel_buf_size = pixel_buf_size;
             ctx->thumb_buf_size = thumb_buf_size;
+            ctx->max_buf_cnt = new_max_cnt;
         }
     }
 
