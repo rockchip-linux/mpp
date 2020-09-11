@@ -173,6 +173,17 @@ MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task)
     return ret;
 }
 
+MPP_RET rc_frm_check_reenc(RcCtx ctx, EncRcTask *task)
+{
+    MppRcImpl *p = (MppRcImpl *)ctx;
+    const RcImplApi *api = p->api;
+
+    if (!api || !api->check_reenc || !p->ctx || !task)
+        return MPP_OK;
+
+    return api->check_reenc(p->ctx, task);
+}
+
 MPP_RET rc_frm_start(RcCtx ctx, EncRcTask *task)
 {
     MppRcImpl *p = (MppRcImpl *)ctx;

@@ -1320,47 +1320,58 @@ MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task)
     return MPP_OK;
 }
 
-MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
+MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
     EncFrmStatus *frm = &task->frm;
 
+    frm->reencode = 0;
+
+    if ((p->usr_cfg.mode == RC_FIXQP) ||
+        (task->force.force_flag & ENC_RC_FORCE_QP))
+        return MPP_OK;
+
+    if (check_re_enc(p, cfg)) {
+        if (p->usr_cfg.mode == RC_CBR) {
+            reenc_calc_cbr_ratio(p, cfg);
+        } else {
+            reenc_calc_vbr_ratio(p, cfg);
+        }
+
+        if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
+            p->reenc_cnt++;
+            frm->reencode = 1;
+        }
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
+{
+    RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
+    EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
+
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+    rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
 
     if (p->usr_cfg.mode == RC_FIXQP)
         goto DONE;
 
-    if (!(task->force.force_flag & ENC_RC_FORCE_QP)) {
-        if (check_re_enc(p, cfg)) {
-            if (p->usr_cfg.mode == RC_CBR) {
-                reenc_calc_cbr_ratio(p, cfg);
-            } else {
-                reenc_calc_vbr_ratio(p, cfg);
-            }
+    p->last_inst_bps = p->ins_bps;
+    p->first_frm_flg = 0;
 
-            if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
-                p->reenc_cnt++;
-                frm->reencode = 1;
-            }
-        }
+    bits_model_update(p, cfg->bit_real, cfg->madi);
+
+    if (p->usr_cfg.mode == RC_AVBR) {
+        moving_judge_update(p, cfg);
+        bit_statics_update(p, cfg->bit_real);
     }
-
-    if (!frm->reencode) {
-        rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
-        p->last_inst_bps = p->ins_bps;
-        p->first_frm_flg = 0;
-        bits_model_update(p, cfg->bit_real, cfg->madi);
-        if (p->usr_cfg.mode == RC_AVBR) {
-            moving_judge_update(p, cfg);
-            bit_statics_update(p, cfg->bit_real);
-        }
-        p->last_frame_type = p->frame_type;
-        p->pre_mean_qp = cfg->quality_real;
-        p->scale_qp = p->cur_scale_qp;
-        p->prev_md_prop = 0;
-    }
-
+    p->last_frame_type = p->frame_type;
+    p->pre_mean_qp = cfg->quality_real;
+    p->scale_qp = p->cur_scale_qp;
+    p->prev_md_prop = 0;
     p->pre_target_bits = cfg->bit_target;
     p->pre_real_bits = cfg->bit_real;
 
@@ -1376,6 +1387,7 @@ const RcImplApi default_h264e = {
     rc_model_v2_init,
     rc_model_v2_deinit,
     NULL,
+    rc_model_v2_check_reenc,
     rc_model_v2_start,
     rc_model_v2_end,
     rc_model_v2_hal_start,
@@ -1389,6 +1401,7 @@ const RcImplApi default_h265e = {
     rc_model_v2_init,
     rc_model_v2_deinit,
     NULL,
+    rc_model_v2_check_reenc,
     rc_model_v2_start,
     rc_model_v2_end,
     rc_model_v2_hal_start,
@@ -1402,6 +1415,7 @@ const RcImplApi default_jpege = {
     rc_model_v2_init,
     rc_model_v2_deinit,
     NULL,
+    rc_model_v2_check_reenc,
     rc_model_v2_start,
     rc_model_v2_end,
     rc_model_v2_hal_start,
@@ -1546,6 +1560,7 @@ const RcImplApi default_vp8e = {
     rc_model_v2_init,
     rc_model_v2_deinit,
     NULL,
+    rc_model_v2_check_reenc,
     rc_model_v2_start,
     rc_model_v2_end,
     rc_model_v2_vp8_hal_start,

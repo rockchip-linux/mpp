@@ -986,7 +986,7 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask *task)
     return MPP_OK;
 }
 
-MPP_RET rc_model_v2_smt_end(void *ctx, EncRcTask *task)
+MPP_RET rc_model_v2_smt_check_reenc(void *ctx, EncRcTask *task)
 {
     RcModelV2SmtCtx *p = (RcModelV2SmtCtx *)ctx;
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
@@ -999,51 +999,62 @@ MPP_RET rc_model_v2_smt_end(void *ctx, EncRcTask *task)
         } else {
             reenc_calc_vbr_ratio_smt(p, cfg);
         }
-    } else {
-        MppFrame frame = task->frame;
-        RK_S32 width = mpp_frame_get_width(frame);
-        RK_S32 height = mpp_frame_get_height(frame);
-        RK_S32 bit_real = cfg->bit_real;
-        RK_S32 madi = cfg->madi;
-        RK_S32 cu64_num = (MPP_ALIGN(width, 64) / 64 * MPP_ALIGN(height, 64) / 64) ;
-        RK_U64 sse_dat = cfg->madp * cu64_num;
-        RK_U32 qp_sum;
-        double avg_qp = 0.0;
-        RK_S32 avg_sse = 1;
-
-        if (p->codec_type == 1)
-            qp_sum = cfg->quality_real / 64; // 265
-        else
-            qp_sum = cfg->quality_real / 16; // 264
-
-        avg_qp = qp_sum;
-        avg_sse = (RK_S32)sqrt((double)(sse_dat));
-        p->qp_preavg = (RK_S32)(avg_qp + 0.5);
-        if (p->frame_type == INTER_P_FRAME) {
-            if (madi >= MAD_THDI) {
-                avg_qp = p->qp_out;
-            }
-        }
-
-        if (p->frame_type == INTER_P_FRAME || p->gop_mode == MPP_GOP_ALL_INTRA) {
-            mpp_data_update(p->qp_p, avg_qp);
-            mpp_data_update(p->sse_p, avg_sse);
-        } else {
-            p->intra_preqp = p->qp_out;
-            p->intra_presse = avg_sse;
-            p->intra_premadi = madi;
-            p->intra_prerealbit = bit_real;
-        }
-
-        p->st_madi = cfg->madi;
-        rc_dbg_rc("bits_mode_update real_bit %d", bit_real);
-        bits_model_update_smt(p, bit_real);
-        p->pre_target_bits = cfg->bit_target;
-        p->pre_real_bits = bit_real;
-        p->qp_prev_out = p->qp_out;
-        p->last_inst_bps = p->ins_bps;
-        p->last_frame_type = p->frame_type;
     }
+
+    rc_dbg_func("leave %p\n", ctx);
+    return MPP_OK;
+}
+
+MPP_RET rc_model_v2_smt_end(void *ctx, EncRcTask *task)
+{
+    RcModelV2SmtCtx *p = (RcModelV2SmtCtx *)ctx;
+    EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
+
+    rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+
+    MppFrame frame = task->frame;
+    RK_S32 width = mpp_frame_get_width(frame);
+    RK_S32 height = mpp_frame_get_height(frame);
+    RK_S32 bit_real = cfg->bit_real;
+    RK_S32 madi = cfg->madi;
+    RK_S32 cu64_num = (MPP_ALIGN(width, 64) / 64 * MPP_ALIGN(height, 64) / 64) ;
+    RK_U64 sse_dat = cfg->madp * cu64_num;
+    RK_U32 qp_sum;
+    double avg_qp = 0.0;
+    RK_S32 avg_sse = 1;
+
+    if (p->codec_type == 1)
+        qp_sum = cfg->quality_real / 64; // 265
+    else
+        qp_sum = cfg->quality_real / 16; // 264
+
+    avg_qp = qp_sum;
+    avg_sse = (RK_S32)sqrt((double)(sse_dat));
+    p->qp_preavg = (RK_S32)(avg_qp + 0.5);
+    if (p->frame_type == INTER_P_FRAME) {
+        if (madi >= MAD_THDI) {
+            avg_qp = p->qp_out;
+        }
+    }
+
+    if (p->frame_type == INTER_P_FRAME || p->gop_mode == MPP_GOP_ALL_INTRA) {
+        mpp_data_update(p->qp_p, avg_qp);
+        mpp_data_update(p->sse_p, avg_sse);
+    } else {
+        p->intra_preqp = p->qp_out;
+        p->intra_presse = avg_sse;
+        p->intra_premadi = madi;
+        p->intra_prerealbit = bit_real;
+    }
+
+    p->st_madi = cfg->madi;
+    rc_dbg_rc("bits_mode_update real_bit %d", bit_real);
+    bits_model_update_smt(p, bit_real);
+    p->pre_target_bits = cfg->bit_target;
+    p->pre_real_bits = bit_real;
+    p->qp_prev_out = p->qp_out;
+    p->last_inst_bps = p->ins_bps;
+    p->last_frame_type = p->frame_type;
 
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
@@ -1071,6 +1082,7 @@ const RcImplApi smt_h264e = {
     rc_model_v2_smt_h264_init,
     rc_model_v2_smt_deinit,
     NULL,
+    rc_model_v2_smt_check_reenc,
     rc_model_v2_smt_start,
     rc_model_v2_smt_end,
     rc_model_v2_smt_hal_start,
@@ -1084,6 +1096,7 @@ const RcImplApi smt_h265e = {
     rc_model_v2_smt_h265_init,
     rc_model_v2_smt_deinit,
     NULL,
+    rc_model_v2_smt_check_reenc,
     rc_model_v2_smt_start,
     rc_model_v2_smt_end,
     rc_model_v2_smt_hal_start,
