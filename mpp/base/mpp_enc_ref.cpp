@@ -269,6 +269,12 @@ MPP_RET mpp_enc_ref_cfg_check(MppEncRefCfg ref)
                 ready = 0;
             }
 
+            if (cfg->repeat < 0) {
+                mpp_err_f("ref cfg %p st cfg %d with negative repeat %d set to zero\n",
+                          ref, pos, cfg->repeat);
+                cfg->repeat = 0;
+            }
+
             /* constrain on head and tail frame */
             if (pos == 0 || (pos == st_cfg_cnt - 1)) {
                 if (cfg->is_non_ref) {
