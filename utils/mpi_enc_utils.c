@@ -542,6 +542,7 @@ MPP_RET mpi_enc_gen_smart_gop_ref_cfg(MppEncRefCfg ref, RK_S32 gop_len, RK_S32 v
     MppEncRefStFrmCfg st_ref[16];
     RK_S32 lt_cnt = 1;
     RK_S32 st_cnt = 8;
+    RK_S32 pos = 0;
     MPP_RET ret = MPP_OK;
 
     memset(&lt_ref, 0, sizeof(lt_ref));
@@ -559,26 +560,31 @@ MPP_RET mpi_enc_gen_smart_gop_ref_cfg(MppEncRefCfg ref, RK_S32 gop_len, RK_S32 v
     ret = mpp_enc_ref_cfg_add_lt_cfg(ref, 1, lt_ref);
 
     /* st 0 layer 0 - ref */
-    st_ref[0].is_non_ref    = 0;
-    st_ref[0].temporal_id   = 0;
-    st_ref[0].ref_mode      = REF_TO_PREV_INTRA;
-    st_ref[0].ref_arg       = 0;
-    st_ref[0].repeat        = 0;
+    st_ref[pos].is_non_ref  = 0;
+    st_ref[pos].temporal_id = 0;
+    st_ref[pos].ref_mode    = REF_TO_PREV_INTRA;
+    st_ref[pos].ref_arg     = 0;
+    st_ref[pos].repeat      = 0;
+    pos++;
 
-    /* st 1 layer 3 - non-ref */
-    st_ref[1].is_non_ref    = 0;
-    st_ref[1].temporal_id   = 1;
-    st_ref[1].ref_mode      = REF_TO_PREV_REF_FRM;
-    st_ref[1].ref_arg       = 0;
-    st_ref[1].repeat        = vi_len - 2;
+    /* st 1 layer 1 - non-ref */
+    if (vi_len > 1) {
+        st_ref[pos].is_non_ref  = 0;
+        st_ref[pos].temporal_id = 1;
+        st_ref[pos].ref_mode    = REF_TO_PREV_REF_FRM;
+        st_ref[pos].ref_arg     = 0;
+        st_ref[pos].repeat      = vi_len - 2;
+        pos++;
+    }
 
-    st_ref[2].is_non_ref    = 0;
-    st_ref[2].temporal_id   = 0;
-    st_ref[2].ref_mode      = REF_TO_PREV_INTRA;
-    st_ref[2].ref_arg       = 0;
-    st_ref[2].repeat        = 0;
+    st_ref[pos].is_non_ref  = 0;
+    st_ref[pos].temporal_id = 0;
+    st_ref[pos].ref_mode    = REF_TO_PREV_INTRA;
+    st_ref[pos].ref_arg     = 0;
+    st_ref[pos].repeat      = 0;
+    pos++;
 
-    ret = mpp_enc_ref_cfg_add_st_cfg(ref, 3, st_ref);
+    ret = mpp_enc_ref_cfg_add_st_cfg(ref, pos, st_ref);
 
     /* check and get dpb size */
     ret = mpp_enc_ref_cfg_check(ref);
