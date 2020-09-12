@@ -140,6 +140,9 @@ typedef struct RcModelV2Ctx_t {
     RK_S32          prev_md_prop;
 
     RK_S32          reenc_cnt;
+    RK_U32          drop_cnt;
+    RK_S32          on_drop;
+    RK_S32          on_pskip;
 } RcModelV2Ctx;
 
 MPP_RET bits_model_deinit(RcModelV2Ctx *ctx)
@@ -996,6 +999,7 @@ MPP_RET check_super_frame(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 
 MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
+    RcCfg *usr_cfg = &ctx->usr_cfg;
     RK_S32 frame_type = ctx->frame_type;
     RK_S32 bit_thr = 0;
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
@@ -1008,9 +1012,18 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     rc_dbg_func("enter %p\n", ctx);
     rc_dbg_rc("reenc check target_bps %d last_ins_bps %d ins_bps %d", ctx->usr_cfg.bps_target, last_ins_bps, ins_bps);
 
-    if (ctx->reenc_cnt >= ctx->usr_cfg.max_reencode_times) {
+    if (ctx->reenc_cnt >= ctx->usr_cfg.max_reencode_times)
         return MPP_OK;
+
+    rc_dbg_drop("drop mode %d frame_type %d\n", usr_cfg->drop_mode, frame_type);
+
+    if (usr_cfg->drop_mode && frame_type == INTER_P_FRAME) {
+        bit_thr = (RK_S32)(ctx->usr_cfg.bps_max * (100 + usr_cfg->drop_thd) / (float)100);
+        rc_dbg_drop("drop mode %d check max_bps %d bit_thr %d ins_bps %d",
+                    usr_cfg->drop_mode, ctx->usr_cfg.bps_target, bit_thr, ins_bps);
+        return (ins_bps > bit_thr) ? MPP_NOK : MPP_OK;
     }
+
     switch (frame_type) {
     case INTRA_FRAME:
         bit_thr = 3 * cfg->bit_target / 2;
@@ -1021,6 +1034,7 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     default:
         break;
     }
+
     if (cfg->bit_real > bit_thr) {
         if (ctx->usr_cfg.mode == RC_CBR) {
             target_bps = ctx->usr_cfg.bps_target;
@@ -1037,9 +1051,9 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
             }
         }
     }
-    rc_dbg_func("leave %p\n", ctx);
-    return ret;
 
+    rc_dbg_func("leave %p ret %d\n", ctx, ret);
+    return ret;
 }
 
 
@@ -1114,7 +1128,6 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     if (frm->ref_mode == REF_TO_PREV_INTRA) {
         p->frame_type = INTER_VI_FRAME;
     }
-
 
     p->next_ratio = 0;
     if (p->last_frame_type == INTRA_FRAME) {
@@ -1325,23 +1338,57 @@ MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task)
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
     EncFrmStatus *frm = &task->frm;
+    RcCfg *usr_cfg = &p->usr_cfg;
+
+    rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
 
     frm->reencode = 0;
 
-    if ((p->usr_cfg.mode == RC_FIXQP) ||
-        (task->force.force_flag & ENC_RC_FORCE_QP))
+    if ((usr_cfg->mode == RC_FIXQP) ||
+        (task->force.force_flag & ENC_RC_FORCE_QP) ||
+        p->on_drop || p->on_pskip)
         return MPP_OK;
 
     if (check_re_enc(p, cfg)) {
-        if (p->usr_cfg.mode == RC_CBR) {
-            reenc_calc_cbr_ratio(p, cfg);
-        } else {
-            reenc_calc_vbr_ratio(p, cfg);
-        }
+        MppEncRcDropFrmMode drop_mode = usr_cfg->drop_mode;
 
-        if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
-            p->reenc_cnt++;
+        if (frm->is_intra)
+            drop_mode = MPP_ENC_RC_DROP_FRM_DISABLED;
+
+        if (usr_cfg->drop_gap && p->drop_cnt >= usr_cfg->drop_gap)
+            drop_mode = MPP_ENC_RC_DROP_FRM_DISABLED;
+
+        rc_dbg_drop("reenc drop_mode %d drop_cnt %d\n", drop_mode, p->drop_cnt);
+
+        switch (drop_mode) {
+        case MPP_ENC_RC_DROP_FRM_NORMAL : {
+            frm->drop = 1;
             frm->reencode = 1;
+            p->on_drop = 1;
+            p->drop_cnt++;
+            rc_dbg_drop("drop\n");
+        } break;
+        case MPP_ENC_RC_DROP_FRM_PSKIP : {
+            frm->force_pskip = 1;
+            frm->reencode = 1;
+            p->on_pskip = 1;
+            p->drop_cnt++;
+            rc_dbg_drop("force_pskip\n");
+        } break;
+        case MPP_ENC_RC_DROP_FRM_DISABLED :
+        default : {
+            if (usr_cfg->mode == RC_CBR) {
+                reenc_calc_cbr_ratio(p, cfg);
+            } else {
+                reenc_calc_vbr_ratio(p, cfg);
+            }
+
+            if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
+                p->reenc_cnt++;
+                frm->reencode = 1;
+            }
+            p->drop_cnt = 0;
+        } break;
         }
     }
 
@@ -1354,6 +1401,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
 
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+
     rc_dbg_rc("bits_mode_update real_bit %d", cfg->bit_real);
 
     if (p->usr_cfg.mode == RC_FIXQP)
@@ -1363,17 +1411,20 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
     p->first_frm_flg = 0;
 
     bits_model_update(p, cfg->bit_real, cfg->madi);
-
     if (p->usr_cfg.mode == RC_AVBR) {
         moving_judge_update(p, cfg);
         bit_statics_update(p, cfg->bit_real);
     }
+
     p->last_frame_type = p->frame_type;
     p->pre_mean_qp = cfg->quality_real;
     p->scale_qp = p->cur_scale_qp;
     p->prev_md_prop = 0;
     p->pre_target_bits = cfg->bit_target;
     p->pre_real_bits = cfg->bit_real;
+
+    p->on_drop = 0;
+    p->on_pskip = 0;
 
 DONE:
     rc_dbg_func("leave %p\n", ctx);
