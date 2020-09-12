@@ -185,7 +185,7 @@ endif(GCC)
 # Create git version information
 # ----------------------------------------------------------------------------
 set(VERSION_CNT         0)
-set(VERSION_MAX_CNT     10)
+set(VERSION_MAX_CNT     9)
 set(VERSION_INFO        "\"unknown mpp version for missing VCS info\"")
 foreach (CNT RANGE ${VERSION_MAX_CNT})
     set(VERSION_HISTORY_${CNT} "NULL")
@@ -219,33 +219,26 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
         set(GIT_LOG_FORMAT "%h author: %<|(30)%an %cd %s %d")
 
         # get history version information
-        execute_process(COMMAND ${GIT_EXECUTABLE} log -${VERSION_MAX_CNT} --oneline --date=short --pretty=format:${GIT_LOG_FORMAT}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            OUTPUT_VARIABLE EXEC_OUT
-            ERROR_VARIABLE EXEC_ERROR
-            RESULT_VARIABLE EXEC_RET
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_STRIP_TRAILING_WHITESPACE)
+        # setup logs
+        message(STATUS "git version history:")
+        foreach (CNT RANGE ${VERSION_MAX_CNT})
+            execute_process(COMMAND ${GIT_EXECUTABLE} log HEAD~${CNT} -1 --oneline --date=short --pretty=format:${GIT_LOG_FORMAT}
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                OUTPUT_VARIABLE EXEC_OUT
+                ERROR_VARIABLE EXEC_ERROR
+                RESULT_VARIABLE EXEC_RET
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_STRIP_TRAILING_WHITESPACE)
 
-        if (NOT EXEC_RET)
-            set(VERSION_HISTORY ${EXEC_OUT})
-            string(REPLACE "\n" ";" VERSION_HISTORY ${VERSION_HISTORY})
-
-            list(LENGTH VERSION_HISTORY VERSION_CNT)
-            message(STATUS "${VERSION_CNT} git history:")
-
-            # setup logs
-            set(CNT 0)
-            foreach(VERSION_LOG ${VERSION_HISTORY})
-                message(STATUS ${VERSION_LOG})
+            if (NOT EXEC_RET)
+                set(VERSION_LOG ${EXEC_OUT})
                 string(REPLACE "\"" "\\\"" VERSION_LOG ${VERSION_LOG})
+                message(STATUS ${VERSION_LOG})
                 set(VERSION_HISTORY_${CNT} "\"${VERSION_LOG}\"")
-                math(EXPR CNT "${CNT}+1")
-            endforeach(VERSION_LOG)
-        else()
-            message(STATUS "git ret ${EXEC_RET}")
-            message(STATUS "${EXEC_ERROR}")
-        endif()
+                math(EXPR VERSION_CNT "${VERSION_CNT}+1")
+            endif()
+        endforeach(CNT)
+        message(STATUS "total ${VERSION_CNT} git version recorded")
     endif()
 
     # add git hooks
