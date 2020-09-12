@@ -833,6 +833,12 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         usr_cfg->force_flag &= ~ENC_FORCE_REF_MODE;
     }
 
+    if (usr_cfg->force_flag & ENC_FORCE_PSKIP) {
+        frm->is_non_ref = 1;
+
+        usr_cfg->force_flag &= ~ENC_FORCE_PSKIP;
+    }
+
     /* update st_cfg for st_cfg loop */
     cpb->st_cfg_repeat_pos++;
     if (cpb->st_cfg_repeat_pos > st_cfg->repeat) {

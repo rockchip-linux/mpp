@@ -401,6 +401,12 @@ static MPP_RET h265e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
             dst->max_reenc_times = src->max_reenc_times;
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_DROP_FRM) {
+            dst->drop_mode = src->drop_mode;
+            dst->drop_threshold = src->drop_threshold;
+            dst->drop_gap = src->drop_gap;
+        }
+
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
             dst->max_i_prop = src->max_i_prop;
 
