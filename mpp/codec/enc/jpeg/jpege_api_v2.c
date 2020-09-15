@@ -222,10 +222,10 @@ static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             ret = MPP_ERR_VALUE;
         }
         if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+            if ((dst->bps_target >= 500 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
+                (dst->bps_max    >= 500 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
+                (dst->bps_min    >= 500 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
+                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~500M\n",
                         dst->bps_target, dst->bps_min, dst->bps_max);
                 ret = MPP_ERR_VALUE;
             }
