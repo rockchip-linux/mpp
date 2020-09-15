@@ -89,18 +89,6 @@ MPP_RET h265e_dpb_init_curr(H265eDpb *dpb, H265eDpbFrm *frm)
     return MPP_OK;
 }
 
-MPP_RET h265e_dpb_bakup(H265eDpb *dpb, H265eDpb *dpb_bak)
-{
-    memcpy(dpb_bak, dpb, sizeof(H265eDpb));
-    return MPP_OK;
-}
-
-MPP_RET h265e_dpb_recover(H265eDpb *dpb, H265eDpb *dpb_bak)
-{
-    memcpy(dpb, dpb_bak, sizeof(H265eDpb));
-    return MPP_OK;
-}
-
 MPP_RET h265e_dpb_get_curr(H265eDpb *dpb)
 {
     RK_U32 i;
@@ -190,7 +178,7 @@ MPP_RET h265e_dpb_deinit(H265eDpb *dpb)
     return MPP_OK;
 }
 
-enum NALUnitType getNalUnitType(H265eDpb *dpb, int curPOC)
+enum NALUnitType get_nal_unit_type(H265eDpb *dpb, int curPOC)
 {
     h265e_dbg_func("enter\n");
     if (curPOC == 0) {
@@ -463,6 +451,31 @@ void h265e_dpb_arrange_lt_rps(H265eDpb *dpb, H265eSlice *slice)
     h265e_dbg_func("leave\n");
 }
 
+static H265eDpbFrm *h265e_find_cpb_in_dpb(H265eDpbFrm *frms, RK_S32 cnt, EncFrmStatus *frm)
+{
+    RK_S32 seq_idx = frm->seq_idx;
+    RK_S32 i;
+
+    if (!frm->valid)
+        return NULL;
+
+    h265e_dbg_dpb("frm %d start finding slot \n", frm->seq_idx);
+    for (i = 0; i < cnt; i++) {
+        if (!frms[i].inited) {
+            continue;
+        }
+        EncFrmStatus *p = &frms[i].status;
+
+        if (p->valid && p->seq_idx == seq_idx) {
+            h265e_dbg_dpb("frm %d match slot %d valid %d\n",
+                          p->seq_idx, i, p->valid);
+            return &frms[i];
+        }
+    }
+    mpp_err_f("can not find match frm %d\n", seq_idx);
+    return NULL;
+}
+
 static H265eDpbFrm *h265e_find_cpb_frame(H265eDpbFrm *frms, RK_S32 cnt, EncFrmStatus *frm)
 {
     RK_S32 seq_idx = frm->seq_idx;
@@ -508,6 +521,7 @@ static MPP_RET h265e_check_frame_cpb(H265eDpbFrm *frm, RK_S32 cnt, EncFrmStatus 
         if (!frms[i].valid) {
             continue;
         }
+
         if (frms[i].seq_idx == seq_idx) {
             ret =  MPP_OK;
         }
@@ -561,24 +575,25 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
                       i, frm->seq_idx, frm->valid, frm->is_non_ref, frm->is_lt_ref);
 
         p = h265e_find_cpb_frame(dpb->frame_list, MAX_REFS, frm);
-
-        if (!frm->is_lt_ref) {
-            p->status.val = frm->val;
-            rps->delta_poc[idx_rps] = p->poc - curPoc;
-            rps->m_used[idx_rps] = 1;
-            idx_rps++;
-            st_size++;
-            h265e_dbg_dpb("found st %d st_size %d %p deat_poc %d\n", i, st_size,
-                          frm,  rps->delta_poc[idx_rps - 1]);
-        } else {
-            nLongTermRefPicPoc[lt_size] = p->gop_idx;
-            nLongTermRefPicRealPoc[lt_size] = p->poc;
-            nLongTermDealtPoc[lt_size] = p->poc - curPoc;
-            isMsbValid[lt_size] = p->gop_idx >= (RK_S32)(1 << p->slice->m_sps->m_bitsForPOC);
-            p->status.val = frm->val;
-            h265e_dbg_dpb("found lt %d lt_size %d %p dealt poc %d\n", i, lt_size,
-                          frm, nLongTermDealtPoc[lt_size]);
-            lt_size++;
+        if (p) {
+            if (!frm->is_lt_ref) {
+                p->status.val = frm->val;
+                rps->delta_poc[idx_rps] = p->poc - curPoc;
+                rps->m_used[idx_rps] = 1;
+                idx_rps++;
+                st_size++;
+                h265e_dbg_dpb("found st %d st_size %d %p deat_poc %d\n", i, st_size,
+                              frm,  rps->delta_poc[idx_rps - 1]);
+            } else {
+                nLongTermRefPicPoc[lt_size] = p->gop_idx;
+                nLongTermRefPicRealPoc[lt_size] = p->poc;
+                nLongTermDealtPoc[lt_size] = p->poc - curPoc;
+                isMsbValid[lt_size] = p->gop_idx >= (RK_S32)(1 << p->slice->m_sps->m_bitsForPOC);
+                p->status.val = frm->val;
+                h265e_dbg_dpb("found lt %d lt_size %d %p dealt poc %d\n", i, lt_size,
+                              frm, nLongTermDealtPoc[lt_size]);
+                lt_size++;
+            }
         }
     }
     sort_delta_poc(rps);
@@ -624,8 +639,21 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
 
 void h265e_dpb_free_unsed(H265eDpb *dpb, EncCpbStatus *cpb)
 {
-    h265e_dbg_func("enter\n");
     RK_S32 i = 0;
+
+    h265e_dbg_func("enter\n");
+
+    if (cpb->curr.is_non_ref) {
+        H265eDpbFrm *frm = h265e_find_cpb_frame(dpb->frame_list, MAX_REFS, &cpb->curr);
+        if (frm) {
+            h265e_dbg_dpb("free curr unreference buf poc %d", frm->slice->poc);
+            frm->is_long_term = 0;
+            frm->used_by_cur = 0;
+            frm->on_used = 0;
+            frm->slice->is_referenced = 0;
+        }
+    }
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         H265eDpbFrm *frm = &dpb->frame_list[i];
         if (!frm->on_used)
@@ -635,11 +663,91 @@ void h265e_dpb_free_unsed(H265eDpb *dpb, EncCpbStatus *cpb)
             frm->is_long_term = 0;
             frm->used_by_cur = 0;
             frm->on_used = 0;
-            frm->status.val = 0;
             frm->slice->is_referenced = 0;
         }
     }
+
     h265e_dbg_func("leave\n");
+}
+
+void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
+{
+    EncFrmStatus *curr = &cpb->curr;
+    RK_U32 index = 0, i = 0;
+    H265eDpbFrm *p = NULL;
+    RK_U32 need_rebuild = 0;
+    RK_S32 max_gop_id = 0, max_poc = 0;
+
+    if (!dpb || !cpb)
+        return;
+
+    if (curr->is_idr) {
+        for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
+            H265eDpbFrm *frame = &dpb->frame_list[index];
+            if (frame->inited) {
+                frame->slice->is_referenced = 0;
+                frame->is_long_term = 0;
+                frame->used_by_cur = 0;
+                frame->on_used = 0;
+                frame->status.val = 0;
+            }
+        }
+        return;
+    }
+
+    for (i = 0; i < MAX_CPB_REFS; i++) {
+        EncFrmStatus *frm = &cpb->init[i];
+
+        if (!frm->valid)
+            continue;
+
+        mpp_assert(!frm->is_non_ref);
+
+        h265e_dbg_dpb("idx %d frm %d valid %d is_non_ref %d lt_ref %d\n",
+                      i, frm->seq_idx, frm->valid, frm->is_non_ref, frm->is_lt_ref);
+
+        p = h265e_find_cpb_in_dpb(dpb->frame_list, MAX_REFS, frm);
+        if (!p->on_used) {
+            p->on_used = 1;
+            p->status.val = frm->val;
+            p->slice->is_referenced = 1;
+            need_rebuild = 1;
+        }
+    }
+
+    if (need_rebuild) {
+        h265e_dbg_dpb("cpb roll back found");
+        for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
+            H265eDpbFrm *frame = &dpb->frame_list[index];
+            if (frame->on_used) {
+                if (max_poc < frame->slice->poc) {
+                    max_poc = frame->slice->poc;
+                }
+                if (max_gop_id < frame->slice->gop_idx) {
+                    max_gop_id = frame->slice->gop_idx;
+                }
+            }
+        }
+        H265eDpbFrm *frame = dpb->curr;
+        if (frame->inited) {
+            frame->slice->is_referenced = 0;
+            frame->is_long_term = 0;
+            frame->used_by_cur = 0;
+            frame->on_used = 0;
+            frame->status.val = 0;
+        }
+        dpb->seq_idx = max_poc;
+        dpb->gop_idx = max_gop_id;
+    }
+
+    for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
+        H265eDpbFrm *frame = &dpb->frame_list[index];
+        if (frame->inited && !frame->on_used) {
+            h265e_dbg_dpb("reset index %d frame->inited %d rame->on_used %d",
+                          index, frame->inited, frame->on_used);
+            frame->status.val = 0;
+        }
+    }
 }
 
 void h265e_dpb_build_list(H265eDpb *dpb, EncCpbStatus *cpb)
@@ -650,15 +758,15 @@ void h265e_dpb_build_list(H265eDpb *dpb, EncCpbStatus *cpb)
     RK_S32 i;
 
     h265e_dbg_func("enter\n");
-    if (getNalUnitType(dpb, poc_cur) == NAL_IDR_W_RADL ||
-        getNalUnitType(dpb, poc_cur) == NAL_IDR_N_LP) {
+    if (get_nal_unit_type(dpb, poc_cur) == NAL_IDR_W_RADL ||
+        get_nal_unit_type(dpb, poc_cur) == NAL_IDR_N_LP) {
         dpb->last_idr = poc_cur;
     }
 
     slice->last_idr = dpb->last_idr;
     slice->m_temporalLayerNonReferenceFlag = !slice->is_referenced;
     // Set the nal unit type
-    slice->m_nalUnitType = getNalUnitType(dpb, poc_cur);
+    slice->m_nalUnitType = get_nal_unit_type(dpb, poc_cur);
 
     // If the slice is un-referenced, change from _R "referenced" to _N "non-referenced" NAL unit type
     if (slice->m_temporalLayerNonReferenceFlag) {
