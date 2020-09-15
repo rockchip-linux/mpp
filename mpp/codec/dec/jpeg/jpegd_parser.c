@@ -969,22 +969,6 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
     return ret;
 }
 
-static MPP_RET
-jpegd_handle_stream(RK_U8 *src, RK_U32 src_size,
-                    RK_U8 *dst, RK_U32 *dst_size)
-{
-    jpegd_dbg_func("enter\n");
-    MPP_RET ret = MPP_OK;
-    if (NULL == src || NULL == dst || src_size <= 0) {
-        mpp_err_f("NULL pointer or wrong src_size(%d)", src_size);
-        return MPP_ERR_NULL_PTR;
-    }
-    *dst_size = 0;  /* no need to copy */
-
-    jpegd_dbg_func("exit\n");
-    return ret;
-}
-
 static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
     jpegd_dbg_func("enter\n");
@@ -1032,8 +1016,6 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     if (JpegCtx->copy_flag)
         jpegd_split_frame(base, pkt_length, JpegCtx->recv_buffer, &copy_length);
-    else
-        jpegd_handle_stream(base, pkt_length, JpegCtx->recv_buffer, &copy_length);
 
     pos += pkt_length;
     mpp_packet_set_pos(pkt, pos);
@@ -1063,6 +1045,7 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_data(input_packet, JpegCtx->recv_buffer);
         mpp_packet_set_size(input_packet, pkt_length);
         mpp_packet_set_length(input_packet, pkt_length);
+        memcpy(base, JpegCtx->recv_buffer, pkt_length);
     }
 
     JpegCtx->streamLength = pkt_length;
