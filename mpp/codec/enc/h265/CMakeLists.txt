@@ -10,6 +10,7 @@ add_library(${CODEC_H265E} STATIC
     h265e_header_gen.c
     h265e_stream.c
     h265e_syntax.c
+    h265e_enctropy.c
     )
 
 target_link_libraries(${CODEC_H265E} mpp_base)

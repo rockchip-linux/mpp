@@ -54,6 +54,60 @@ H265levelspec levels[] = {
     { MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, MAX_UINT, 1, H265_LEVEL8_5, "8.5", 85 },
 };
 
+void init_zscan2raster(RK_S32 maxDepth, RK_S32 depth, RK_U32 startVal, RK_U32** curIdx)
+{
+    RK_S32 stride = 1 << (maxDepth - 1);
+    if (depth == maxDepth) {
+        (*curIdx)[0] = startVal;
+        (*curIdx)++;
+    } else {
+        RK_S32 step = stride >> depth;
+        init_zscan2raster(maxDepth, depth + 1, startVal,                        curIdx);
+        init_zscan2raster(maxDepth, depth + 1, startVal + step,                 curIdx);
+        init_zscan2raster(maxDepth, depth + 1, startVal + step * stride,        curIdx);
+        init_zscan2raster(maxDepth, depth + 1, startVal + step * stride + step, curIdx);
+    }
+}
+
+void init_raster2zscan(RK_U32 maxCUSize, RK_U32 maxDepth, RK_U32 *raster2zscan, RK_U32 *zscan2raster)
+{
+    RK_U32  unitSize = maxCUSize  >> (maxDepth - 1);
+    RK_U32  numPartInCUSize  = (RK_U32)maxCUSize / unitSize;
+    RK_U32  i;
+
+    for ( i = 0; i < numPartInCUSize * numPartInCUSize; i++) {
+        raster2zscan[zscan2raster[i]] = i;
+    }
+}
+
+void init_raster2pelxy(RK_U32 maxCUSize, RK_U32 maxDepth, RK_U32 *raster2pelx, RK_U32 *raster2pely)
+{
+    RK_U32 i;
+
+    RK_U32* tempx = &raster2pelx[0];
+    RK_U32* tempy = &raster2pely[0];
+
+    RK_U32  unitSize  = maxCUSize >> (maxDepth - 1);
+
+    RK_U32  numPartInCUSize = maxCUSize / unitSize;
+
+    tempx[0] = 0;
+    tempx++;
+    for (i = 1; i < numPartInCUSize; i++) {
+        tempx[0] = tempx[-1] + unitSize;
+        tempy++;
+    }
+
+    for (i = 1; i < numPartInCUSize; i++) {
+        memcpy(tempx, tempx - numPartInCUSize, sizeof(RK_U32) * numPartInCUSize);
+        tempx += numPartInCUSize;
+    }
+
+    for (i = 1; i < numPartInCUSize * numPartInCUSize; i++) {
+        tempy[i] = (i / numPartInCUSize) * unitSize;
+    }
+}
+
 MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
 {
     RK_S32 i;
@@ -121,6 +175,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     RK_S32 minCUSize, log2MinCUSize;
     RK_S32 tuQTMinLog2Size = 2, tuQTMaxLog2Size;
     MppEncCpbInfo *cpb_info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+    RK_U32 *tmp = &sps->zscan2raster[0];
 
     memset(convertToBit, -1, sizeof(convertToBit));
     c = 0;
@@ -142,6 +197,9 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 
     maxCUDepth += addCUDepth;
     addCUDepth++;
+    init_zscan2raster(maxCUDepth + 1, 1, 0, &tmp );
+    init_raster2zscan(codec->max_cu_size, maxCUDepth + 1, &sps->raster2zscan[0], &sps->zscan2raster[0]);
+    init_raster2pelxy(codec->max_cu_size, maxCUDepth + 1, &sps->raster2pelx[0], &sps->raster2pely[0]);
 
     if ((prep->width % minCUDepth) != 0) {
         RK_U32 padsize = 0;
@@ -177,6 +235,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_log2DiffMaxMinCodingBlockSize = 0 ;
     sps->m_maxCUSize = codec->max_cu_size;
     sps->m_maxCUDepth = maxCUDepth;
+    sps->m_addCUDepth = addCUDepth;
     sps->m_RPSList.m_numberOfReferencePictureSets = 0;
     sps->m_RPSList.m_referencePictureSets = NULL;
 
