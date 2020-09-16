@@ -317,10 +317,11 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
         }
     }
 
+    src->change = 0;
     return ret;
 }
 
-static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src, MppEncH264Cfg *h264)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = src->change;
@@ -393,6 +394,13 @@ static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                 ret = MPP_ERR_VALUE;
             }
         }
+        if (dst->drop_mode == MPP_ENC_RC_DROP_FRM_PSKIP &&
+            dst->drop_gap == 0 &&
+            h264->poc_type == 2) {
+            mpp_err("poc type 2 is ocnflict with successive non-reference pskip mode\n");
+            mpp_err("set drop gap to 1\n");
+            dst->drop_gap = 1;
+        }
 
         dst->change |= change;
 
@@ -406,6 +414,7 @@ static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         }
     }
 
+    src->change = 0;
     return ret;
 }
 
@@ -529,6 +538,7 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->change |= MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID;
     }
 
+    src->change = 0;
     return ret;
 }
 
@@ -546,6 +556,7 @@ static MPP_RET h264e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src
         dst->split_arg = src->split_arg;
 
     dst->change |= change;
+    src->change = 0;
 
     return ret;
 }
@@ -563,28 +574,23 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
         MppEncCfgSet *src = &impl->cfg;
 
-        if (src->prep.change) {
+        if (src->prep.change)
             ret |= h264e_proc_prep_cfg(&cfg->prep, &src->prep);
-            src->prep.change = 0;
-        }
-        if (src->rc.change) {
-            ret |= h264e_proc_rc_cfg(&cfg->rc, &src->rc);
-            src->rc.change = 0;
-        }
-        if (src->codec.h264.change) {
+
+        if (src->codec.h264.change)
             ret |= h264e_proc_h264_cfg(&cfg->codec.h264, &src->codec.h264);
-            src->codec.h264.change = 0;
-        }
-        if (src->split.change) {
+
+        if (src->rc.change)
+            ret |= h264e_proc_rc_cfg(&cfg->rc, &src->rc, &cfg->codec.h264);
+
+        if (src->split.change)
             ret |= h264e_proc_split_cfg(&cfg->split, &src->split);
-            src->split.change = 0;
-        }
     } break;
     case MPP_ENC_SET_PREP_CFG : {
         ret = h264e_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_RC_CFG : {
-        ret = h264e_proc_rc_cfg(&cfg->rc, param);
+        ret = h264e_proc_rc_cfg(&cfg->rc, param, &cfg->codec.h264);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
@@ -705,7 +711,7 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
     refr = dpb->refr;
 
     // update slice info
-    h264e_slice_update(&p->slice, p->cfg, &p->sps, dpb->curr);
+    h264e_slice_update(&p->slice, p->cfg, &p->sps, &p->pps, dpb->curr);
 
     // update frame usage
     frms->seq_idx = curr->seq_idx;
@@ -790,6 +796,45 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
+static MPP_RET h264e_sw_enc(void *ctx, HalEncTask *task)
+{
+    H264eCtx *p = (H264eCtx *)ctx;
+    MppEncH264Cfg *h264 = &p->cfg->codec.h264;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
+    MppPacket packet = task->packet;
+    void *pos = mpp_packet_get_pos(packet);
+    void *data = mpp_packet_get_data(packet);
+    size_t size = mpp_packet_get_size(packet);
+    size_t length = mpp_packet_get_length(packet);
+    void *base = pos + length;
+    RK_S32 buf_size = (data + size) - (pos + length);
+    RK_S32 slice_len = 0;
+    RK_S32 final_len = 0;
+
+    if (h264->prefix_mode || h264->max_tid) {
+        /* add prefix first */
+        RK_S32 prefix_bit = h264e_slice_write_prefix_nal_unit_svc(&p->prefix, base, buf_size);
+
+        prefix_bit = (prefix_bit + 7) / 8;
+
+        base += prefix_bit;
+        buf_size -= prefix_bit;
+        final_len += prefix_bit;
+    }
+
+    /* write slice header */
+    slice_len = h264e_slice_write_pskip(&p->slice, base, buf_size);
+    slice_len = (slice_len + 7) / 8;
+    final_len += slice_len;
+
+    task->length += final_len;
+
+    rc_info->bit_real = task->length;
+    rc_info->quality_real = rc_info->quality_target;
+
+    return MPP_OK;
+}
+
 MPP_RET h264e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
                       const void *data, RK_S32 size)
 {
@@ -816,5 +861,5 @@ const EncImplApi api_h264e = {
     h264e_proc_dpb,
     h264e_proc_hal,
     h264e_add_sei,
-    NULL,
+    h264e_sw_enc,
 };
