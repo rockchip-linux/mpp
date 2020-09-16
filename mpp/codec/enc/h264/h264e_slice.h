@@ -21,6 +21,7 @@
 
 #include "h264e_syntax.h"
 #include "h264e_sps.h"
+#include "h264e_pps.h"
 
 /*
  * For H.264 encoder slice header process.
@@ -87,11 +88,14 @@ typedef struct H264eMarkingInfo_t {
 
 typedef struct H264eSlice_t {
     /* Copy of sps/pps parameter */
+    RK_S32      mb_w;
+    RK_S32      mb_h;
     RK_U32      max_num_ref_frames;
     RK_U32      entropy_coding_mode;
     RK_S32      log2_max_frame_num;
     RK_S32      log2_max_poc_lsb;
     RK_S32      pic_order_cnt_type;
+    RK_S32      qp_init;
 
     /* Nal parameters */
     RK_S32      nal_reference_idc;
@@ -159,10 +163,12 @@ MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
 void h264e_slice_init(H264eSlice *slice, H264eReorderInfo *reorder,
                       H264eMarkingInfo *marking);
 RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
-                          H264eSps *sps, H264eDpbFrm *frm);
+                          H264eSps *sps, H264ePps *pps,
+                          H264eDpbFrm *frm);
 
 RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size);
 RK_S32 h264e_slice_write(H264eSlice *slice, void *p, RK_U32 size);
+RK_S32 h264e_slice_write_pskip(H264eSlice *slice, void *p, RK_U32 size);
 RK_S32 h264e_slice_move(RK_U8 *dst, RK_U8 *src, RK_S32 dst_bit, RK_S32 src_bit,
                         RK_S32 src_size);
 
