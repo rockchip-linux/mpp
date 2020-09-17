@@ -174,7 +174,7 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
         vui->fullrange = 1;
     }
 
-    if ((prep->colorprim <= AVCOL_PRI_JEDEC_P22 &&
+    if ((prep->colorprim <= MPP_FRAME_PRI_JEDEC_P22 &&
          prep->colorprim != MPP_FRAME_PRI_UNSPECIFIED) ||
         (prep->colortrc <= MPP_FRAME_TRC_ARIB_STD_B67 &&
          prep->colortrc != MPP_FRAME_TRC_UNSPECIFIED) ||

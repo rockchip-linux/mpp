@@ -263,7 +263,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
             sps->vui.m_videoSignalTypePresentFlag = 1;
         }
 
-        if ((prep->colorprim <= AVCOL_PRI_JEDEC_P22 &&
+        if ((prep->colorprim <= MPP_FRAME_PRI_JEDEC_P22 &&
              prep->colorprim != MPP_FRAME_PRI_UNSPECIFIED) ||
             (prep->colortrc <= MPP_FRAME_TRC_ARIB_STD_B67 &&
              prep->colortrc != MPP_FRAME_TRC_UNSPECIFIED) ||
