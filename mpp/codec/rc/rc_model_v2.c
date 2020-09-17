@@ -203,7 +203,7 @@ void bits_frm_init(RcModelV2Ctx *ctx)
     RK_U32 p_bit = 0;
     switch (ctx->usr_cfg.gop_mode) {
     case NORMAL_P: {
-        ctx->i_scale = 160;
+        ctx->i_scale = 480;
         ctx->p_scale = 16;
         if (gop_len <= 1)
             p_bit = ctx->gop_total_bits * 16;
@@ -258,7 +258,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     }
 
     if (ctx->usr_cfg.max_i_bit_prop <= 0) {
-        ctx->usr_cfg.max_i_bit_prop = 10;
+        ctx->usr_cfg.max_i_bit_prop = 30;
     } else if (ctx->usr_cfg.max_i_bit_prop > 100) {
         ctx->usr_cfg.max_i_bit_prop = 100;
     }
@@ -1284,6 +1284,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 }
             }
 
+            dealt_qp = mpp_clip(dealt_qp, 5, p->usr_cfg.i_quality_delta);
             if (p->usr_cfg.i_quality_delta) {
                 p->start_qp -= dealt_qp;
             }
