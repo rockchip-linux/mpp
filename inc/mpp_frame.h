@@ -85,7 +85,7 @@ typedef enum {
     MPP_FRAME_PRI_SMPTEST428_1  = 10,   ///< SMPTE ST 428-1 (CIE 1931 XYZ)
     MPP_FRAME_PRI_SMPTE431      = 11,   ///< SMPTE ST 431-2 (2011) / DCI P3
     MPP_FRAME_PRI_SMPTE432      = 12,   ///< SMPTE ST 432-1 (2010) / P3 D65 / Display P3
-    AVCOL_PRI_JEDEC_P22         = 22,   ///< JEDEC P22 phosphors
+    MPP_FRAME_PRI_JEDEC_P22     = 22,   ///< JEDEC P22 phosphors
     MPP_FRAME_PRI_NB,                   ///< Not part of ABI
 } MppFrameColorPrimaries;
 
