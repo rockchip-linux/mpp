@@ -106,7 +106,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
     h264->qp_max_i = 0;
     h264->qp_min_i = 0;
     h264->qp_max_step = 8;
-    h264->qp_delta_ip = 3;
+    h264->qp_delta_ip = 8;
 
     switch (dev_id) {
     case DEV_VEPU : {
