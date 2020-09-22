@@ -165,6 +165,9 @@ static const char *cfg_func_names[] = {
     ENTRY(rc,   drop_mode,      U32, MppEncRcDropFrmMode, MPP_ENC_RC_CFG_CHANGE_DROP_FRM,       rc, drop_mode) \
     ENTRY(rc,   drop_thd,       U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_DROP_FRM,         rc, drop_threshold) \
     ENTRY(rc,   drop_gap,       U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_DROP_FRM,         rc, drop_gap) \
+    ENTRY(rc,   max_i_prop,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP,       rc, max_i_prop) \
+    ENTRY(rc,   min_i_prop,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP,       rc, min_i_prop) \
+    ENTRY(rc,   init_ip_ratio,  S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO,    rc, init_ip_ratio) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
@@ -255,7 +258,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 74;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 62;
 
 class MppEncCfgService
 {
