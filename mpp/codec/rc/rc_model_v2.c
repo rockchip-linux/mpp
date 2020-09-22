@@ -17,19 +17,19 @@
 #define MODULE_TAG "rc_model_v2"
 
 #include <math.h>
+#include <string.h>
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
-#include "rc_base.h"
+
 #include "rc_debug.h"
+#include "rc_ctx.h"
 #include "rc_model_v2.h"
-#include "string.h"
 
 #define I_WINDOW_LEN 2
 #define P_WINDOW1_LEN 5
 #define P_WINDOW2_LEN 8
-#define UPSCALE 8000
 
 static const RK_S32 max_i_delta_qp[51] = {
     640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640, 640,
@@ -53,7 +53,7 @@ RK_S32 mean_qp2scale[16] = {
     14,  15,  16, 18, 20, 22, 25, 28,
     32,  36,  40, 44, 50, 56, 64, 72
 };
-static const RK_S8 max_ip_qp_dealt[8] = {
+const RK_S8 max_ip_qp_dealt[8] = {
     7, 7, 7, 7, 6, 4, 3, 2
 };
 RK_U32 bit2percent[100] = {
@@ -68,82 +68,6 @@ RK_U32 bit2percent[100] = {
     34, 33, 33, 33, 33, 33, 33, 33, 33, 33,
     32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
 };
-
-typedef struct RcModelV2Ctx_t {
-    RcCfg           usr_cfg;
-    EncRcTaskInfo   hal_cfg;
-
-    RK_U32          frame_type;
-    RK_U32          last_frame_type;
-    RK_S64          gop_total_bits;
-    RK_U32          bit_per_frame;
-    RK_U32          first_frm_flg;
-    RK_S64          avg_gbits;
-    RK_S64          real_gbits;
-
-    MppDataV2       *i_bit;
-    RK_U32          i_sumbits;
-    RK_U32          i_scale;
-
-    MppDataV2       *idr_bit;
-    RK_U32          idr_sumbits;
-    RK_U32          idr_scale;
-
-    MppDataV2       *vi_bit;
-    RK_U32          vi_sumbits;
-    RK_U32          vi_scale;
-    MppDataV2       *p_bit;
-    RK_U32          p_sumbits;
-    RK_U32          p_scale;
-
-    MppDataV2       *pre_p_bit;
-    MppDataV2       *pre_i_bit;
-    MppDataV2       *pre_i_mean_qp;
-    MppDataV2       *madi;
-    MppDataV2       *madp;
-
-    RK_S32          target_bps;
-    RK_S32          pre_target_bits;
-    RK_S32          pre_real_bits;
-    RK_S32          frm_bits_thr;
-    RK_S32          ins_bps;
-    RK_S32          last_inst_bps;
-
-    RK_U32          motion_sensitivity;
-    RK_U32          min_still_percent;
-    RK_U32          max_still_qp;
-    RK_S32          moving_ratio;
-    RK_U32          pre_mean_qp;
-    RK_U32          pre_i_scale;
-    /*super frame thr*/
-    RK_U32          super_ifrm_bits_thr;
-    RK_U32          super_pfrm_bits_thr;
-    MppDataV2       *stat_bits;
-    MppDataV2       *gop_bits;
-    MppDataV2       *stat_rate;
-    RK_S32          watl_thrd;
-    RK_S32          stat_watl;
-    RK_S32          watl_base;
-
-    RK_S32          next_i_ratio;      // scale 64
-    RK_S32          next_ratio;        // scale 64
-    RK_S32          pre_i_qp;
-    RK_S32          pre_p_qp;
-    RK_U32          scale_qp;          // scale 64
-    MppDataV2       *means_qp;
-    RK_U32          frm_num;
-
-    /*qp decision*/
-    RK_S32          cur_scale_qp;
-    RK_S32          start_qp;
-    RK_S32          prev_quality;
-    RK_S32          prev_md_prop;
-
-    RK_S32          reenc_cnt;
-    RK_U32          drop_cnt;
-    RK_S32          on_drop;
-    RK_S32          on_pskip;
-} RcModelV2Ctx;
 
 MPP_RET bits_model_deinit(RcModelV2Ctx *ctx)
 {
@@ -714,7 +638,6 @@ MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     return MPP_OK;
 }
 
-
 MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 bps_change = ctx->target_bps;
@@ -876,7 +799,6 @@ RK_S32 moving_ratio_calc(RcModelV2Ctx *ctx)
     rc_dbg_rc("percent %d mad_ratio %d hr_ratio %d, moving_ratio %d", percent, mad_ratio, mv_ratio, moving_ratio);
     return moving_ratio;
 }
-
 
 MPP_RET calc_avbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
 {
@@ -1430,190 +1352,3 @@ DONE:
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
-
-const RcImplApi default_h264e = {
-    "default",
-    MPP_VIDEO_CodingAVC,
-    sizeof(RcModelV2Ctx),
-    rc_model_v2_init,
-    rc_model_v2_deinit,
-    NULL,
-    rc_model_v2_check_reenc,
-    rc_model_v2_start,
-    rc_model_v2_end,
-    rc_model_v2_hal_start,
-    rc_model_v2_hal_end,
-};
-
-const RcImplApi default_h265e = {
-    "default",
-    MPP_VIDEO_CodingHEVC,
-    sizeof(RcModelV2Ctx),
-    rc_model_v2_init,
-    rc_model_v2_deinit,
-    NULL,
-    rc_model_v2_check_reenc,
-    rc_model_v2_start,
-    rc_model_v2_end,
-    rc_model_v2_hal_start,
-    rc_model_v2_hal_end,
-};
-
-const RcImplApi default_jpege = {
-    "default",
-    MPP_VIDEO_CodingMJPEG,
-    sizeof(RcModelV2Ctx),
-    rc_model_v2_init,
-    rc_model_v2_deinit,
-    NULL,
-    rc_model_v2_check_reenc,
-    rc_model_v2_start,
-    rc_model_v2_end,
-    rc_model_v2_hal_start,
-    rc_model_v2_hal_end,
-};
-
-static RK_S32 vp8_initial_qp(RK_S32 bits, RK_S32 pels)
-{
-    RK_S32 i = -1;
-    static const RK_S32 qp_tbl[2][12] = {
-        {47, 57, 73, 93, 122, 155, 214, 294, 373, 506, 781, 0x7FFFFFFF},
-        {120, 110, 100, 90, 80, 70, 60, 50, 40, 30, 20, 10}
-    };
-
-    if (bits > 1000000)
-        return 10;
-
-    pels >>= 8;
-    bits >>= 5;
-
-    bits *= pels + 250;
-    bits /= 350 + (3 * pels) / 4;
-    bits = axb_div_c(bits, UPSCALE, pels << 6);
-
-    while (qp_tbl[0][++i] < bits);
-
-    return qp_tbl[1][i];
-}
-
-MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
-{
-    RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
-    EncFrmStatus *frm = &task->frm;
-    EncRcTaskInfo *info = &task->info;
-    EncRcForceCfg *force = &task->force;
-    RK_S32 mb_w = MPP_ALIGN(p->usr_cfg.width, 16) / 16;
-    RK_S32 mb_h = MPP_ALIGN(p->usr_cfg.height, 16) / 16;
-    RK_S32 bit_min = info->bit_min;
-    RK_S32 bit_max = info->bit_max;
-    RK_S32 bit_target = info->bit_target;
-    RK_S32 quality_min = info->quality_min;
-    RK_S32 quality_max = info->quality_max;
-    RK_S32 quality_target = info->quality_target;
-
-    rc_dbg_func("enter p %p task %p\n", p, task);
-
-    rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
-
-    if (force->force_flag & ENC_RC_FORCE_QP) {
-        RK_S32 qp = force->force_qp;
-        info->quality_target = qp;
-        info->quality_max = qp;
-        info->quality_min = qp;
-        return MPP_OK;
-    }
-
-    if (p->usr_cfg.mode == RC_FIXQP)
-        return MPP_OK;
-
-    /* setup quality parameters */
-    if (p->first_frm_flg && frm->is_intra) {
-        if (info->quality_target < 0) {
-            if (info->bit_target) {
-                p->start_qp = vp8_initial_qp(info->bit_target, mb_w * mb_h * 16 * 16);
-                p->cur_scale_qp = (p->start_qp) << 6;
-            } else {
-                mpp_log("fix qp case but init qp no set");
-                info->quality_target = 40;
-                p->start_qp = 40;
-                p->cur_scale_qp = (p->start_qp) << 6;
-            }
-        } else {
-            p->start_qp = info->quality_target;
-            p->cur_scale_qp = (p->start_qp) << 6;
-        }
-
-        if (p->reenc_cnt > 0) {
-            p->cur_scale_qp += p->next_ratio;
-            p->start_qp = p->cur_scale_qp >> 6;
-            rc_dbg_rc("p->start_qp = %d, p->cur_scale_qp %d,p->next_ratio %d ", p->start_qp, p->cur_scale_qp, p->next_ratio);
-        } else {
-            p->start_qp -= p->usr_cfg.i_quality_delta;
-        }
-        p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
-        p->pre_i_qp = p->cur_scale_qp >> 6;
-        p->pre_p_qp = p->cur_scale_qp >> 6;
-    } else {
-        RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
-        RK_S32 start_qp = 0;
-        RK_S32 dealt_qp = 0;
-        if (frm->is_intra) {
-            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
-
-            start_qp = ((p->pre_i_qp + ((qp_scale + p->next_i_ratio) >> 6)) >> 1);
-
-            start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
-            p->pre_i_qp = start_qp;
-            p->start_qp = start_qp;
-            p->cur_scale_qp = qp_scale;
-
-            if (p->usr_cfg.i_quality_delta && !p->reenc_cnt) {
-                RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
-                index = mpp_clip(index, 0, 7);
-                dealt_qp = max_ip_qp_dealt[index];
-                if (dealt_qp > p->usr_cfg.i_quality_delta ) {
-                    dealt_qp = p->usr_cfg.i_quality_delta;
-                }
-            }
-
-            if (p->usr_cfg.i_quality_delta) {
-                p->start_qp -= dealt_qp;
-            }
-        } else {
-            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
-            p->cur_scale_qp = qp_scale;
-            p->start_qp = qp_scale >> 6;
-            if (frm->ref_mode == REF_TO_PREV_INTRA && p->usr_cfg.vi_quality_delta) {
-                p->start_qp -= p->usr_cfg.vi_quality_delta;
-            }
-        }
-        rc_dbg_rc("i_quality_delta %d, vi_quality_delta %d", dealt_qp, p->usr_cfg.vi_quality_delta);
-    }
-
-    p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);
-    info->quality_target = p->start_qp;
-
-    rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
-              bit_min, bit_target, bit_max,
-              info->bit_min, info->bit_target, info->bit_max);
-    rc_dbg_rc("quality [%d : %d : %d] -> [%d : %d : %d]\n",
-              quality_min, quality_target, quality_max,
-              info->quality_min, info->quality_target, info->quality_max);
-
-    rc_dbg_func("leave %p\n", p);
-    return MPP_OK;
-}
-
-const RcImplApi default_vp8e = {
-    "default",
-    MPP_VIDEO_CodingVP8,
-    sizeof(RcModelV2Ctx),
-    rc_model_v2_init,
-    rc_model_v2_deinit,
-    NULL,
-    rc_model_v2_check_reenc,
-    rc_model_v2_start,
-    rc_model_v2_end,
-    rc_model_v2_vp8_hal_start,
-    rc_model_v2_hal_end,
-};

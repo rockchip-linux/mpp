@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RC_MODEL_V2_H__
-#define __RC_MODEL_V2_H__
+#ifndef __JPEGE_RC_H__
+#define __JPEGE_RC_H__
 
 #include "mpp_rc_api.h"
 
@@ -22,19 +22,10 @@
 extern "C" {
 #endif
 
-MPP_RET rc_model_v2_init(void *ctx, RcCfg *cfg);
-MPP_RET rc_model_v2_deinit(void *ctx);
-
-MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task);
-
-MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task);
-MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task);
-
-MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task);
-MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task);
+extern const RcImplApi default_jpege;
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif /* __RC_MODEL_V2_H__ */
+#endif /* __JPEGE_RC_H__ */

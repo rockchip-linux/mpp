@@ -13,28 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RC_MODEL_V2_H__
-#define __RC_MODEL_V2_H__
 
-#include "mpp_rc_api.h"
+#define MODULE_TAG "h264e_rc"
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
+#include <math.h>
+#include <string.h>
 
-MPP_RET rc_model_v2_init(void *ctx, RcCfg *cfg);
-MPP_RET rc_model_v2_deinit(void *ctx);
+#include "mpp_env.h"
+#include "mpp_mem.h"
+#include "mpp_common.h"
 
-MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task);
+#include "rc_debug.h"
+#include "rc_ctx.h"
+#include "rc_model_v2.h"
 
-MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task);
-MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task);
-
-MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task);
-MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task);
-
-#ifdef  __cplusplus
-}
-#endif
-
-#endif /* __RC_MODEL_V2_H__ */
+const RcImplApi default_h264e = {
+    "default",
+    MPP_VIDEO_CodingAVC,
+    sizeof(RcModelV2Ctx),
+    rc_model_v2_init,
+    rc_model_v2_deinit,
+    NULL,
+    rc_model_v2_check_reenc,
+    rc_model_v2_start,
+    rc_model_v2_end,
+    rc_model_v2_hal_start,
+    rc_model_v2_hal_end,
+};
