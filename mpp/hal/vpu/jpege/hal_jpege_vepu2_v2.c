@@ -115,7 +115,7 @@ MPP_RET hal_jpege_vepu2_get_task_v2(void *hal, HalEncTask *task)
 
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
     /* Set rc paramters */
-    hal_jpege_dbg_input("rc_mode=%d\n", ctx->cfg->rc.rc_mode);
+    hal_jpege_dbg_input("rc_mode %d\n", ctx->cfg->rc.rc_mode);
     if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
         if (!ctx->hal_rc.q_factor) {
             task->rc_task->info.quality_target = syntax->q_factor ? (100 - syntax->q_factor) : 80;
@@ -128,6 +128,8 @@ MPP_RET hal_jpege_vepu2_get_task_v2(void *hal, HalEncTask *task)
             task->rc_task->info.quality_max = 100 - syntax->qf_min;
         }
     }
+
+    ctx->hal_start_pos = mpp_packet_get_length(task->packet);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
 
@@ -290,7 +292,6 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     // output address setup
     bitpos = jpege_bits_get_bitpos(bits);
     bytepos = (bitpos + 7) >> 3;
-    buf = jpege_bits_get_buf(bits);
     {
         RK_S32 left_byte = bytepos & 0x7;
         RK_U8 *tmp = buf + (bytepos & (~0x7));
@@ -505,8 +506,9 @@ MPP_RET hal_jpege_vepu2_wait_v2(void *hal, HalEncTask *task)
     // NOTE: hardware will return 64 bit access byte count
     feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
     task->length = feedback->stream_length;
-    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d\n",
-                         sw_bit, hw_bit, feedback->stream_length);
+    task->hw_length = task->length - ctx->hal_start_pos;
+    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d hw_length %d\n",
+                         sw_bit, hw_bit, feedback->stream_length, task->hw_length);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;

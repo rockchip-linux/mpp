@@ -114,6 +114,23 @@ static MPP_RET hal_jpege_vepu1_get_task_v2(void *hal, HalEncTask *task)
     JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
 
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
+    /* Set rc paramters */
+    hal_jpege_dbg_input("rc_mode %d\n", ctx->cfg->rc.rc_mode);
+    if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        if (!ctx->hal_rc.q_factor) {
+            task->rc_task->info.quality_target = syntax->q_factor ? (100 - syntax->q_factor) : 80;
+            task->rc_task->info.quality_min = 100 - syntax->qf_max;
+            task->rc_task->info.quality_max = 100 - syntax->qf_min;
+            task->rc_task->frm.is_intra = 1;
+        } else {
+            task->rc_task->info.quality_target = ctx->hal_rc.last_quality;
+            task->rc_task->info.quality_min = 100 - syntax->qf_max;
+            task->rc_task->info.quality_max = 100 - syntax->qf_min;
+        }
+    }
+
+    ctx->hal_start_pos = mpp_packet_get_length(task->packet);
+
     return MPP_OK;
 }
 
@@ -202,7 +219,6 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
 
     bitpos = jpege_bits_get_bitpos(bits);
     bytepos = (bitpos + 7) >> 3;
-    buf = jpege_bits_get_buf(bits);
 
     deflt_cfg =
         ((0  & (255)) << 24) |
@@ -426,8 +442,9 @@ static MPP_RET hal_jpege_vepu1_wait_v2(void *hal, HalEncTask *task)
     // NOTE: hardware will return 64 bit access byte count
     feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
     task->length = feedback->stream_length;
-    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d\n",
-                         sw_bit, hw_bit, feedback->stream_length);
+    task->hw_length = task->length - ctx->hal_start_pos;
+    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d hw_length %d\n",
+                         sw_bit, hw_bit, feedback->stream_length, task->hw_length);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;
