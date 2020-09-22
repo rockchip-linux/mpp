@@ -355,6 +355,15 @@ static MPP_RET h264e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
             dst->max_reenc_times = src->max_reenc_times;
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
+            dst->max_i_prop = src->max_i_prop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP)
+            dst->min_i_prop = src->min_i_prop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO)
+            dst->init_ip_ratio = src->init_ip_ratio;
+
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
             mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",

@@ -162,6 +162,9 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_SKIP_CNT      = (1 << 8),
     MPP_ENC_RC_CFG_CHANGE_MAX_REENC     = (1 << 9),
     MPP_ENC_RC_CFG_CHANGE_DROP_FRM      = (1 << 10),
+    MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP    = (1 << 11),
+    MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP    = (1 << 12),
+    MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO = (1 << 13),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -306,6 +309,10 @@ typedef struct MppEncRcCfg_t {
     MppEncRcDropFrmMode drop_mode;
     RK_U32  drop_threshold;
     RK_U32  drop_gap;
+
+    RK_S32  max_i_prop;
+    RK_S32  min_i_prop;
+    RK_S32  init_ip_ratio;
 } MppEncRcCfg;
 
 /*
