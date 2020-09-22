@@ -236,12 +236,16 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSyntax_new *syntax = NULL;
+    EncFrmStatus *frm = &task->rc_task->frm;
+    MppPacket packet = task->packet;
+    MppMeta meta = mpp_packet_get_meta(packet);
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
         return MPP_ERR_NULL_PTR;
     }
 
+    mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, frm->temporal_id);
     h265e_dbg_func("enter ctx %p \n", ctx);
     syntax = &p->syntax;
     h265e_syntax_fill(ctx);
