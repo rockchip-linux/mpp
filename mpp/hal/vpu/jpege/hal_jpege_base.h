@@ -45,8 +45,8 @@ typedef struct hal_jpege_ctx_s {
     JpegeSyntax         syntax;
     JpegeFeedback       feedback;
 
-    MppHalApi           hal_api;
     HalJpegeRc          hal_rc;
+    RK_S32              hal_start_pos;
 } HalJpegeCtx;
 
 #endif /* __HAL_JPEGE_BASE_H__ */
