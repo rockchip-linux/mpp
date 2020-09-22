@@ -1035,9 +1035,9 @@ typedef enum MppEncOSDPltType_e {
 /* OSD palette value define */
 typedef union MppEncOSDPltVal_u {
     struct {
-        RK_U32          y       : 8;
-        RK_U32          u       : 8;
         RK_U32          v       : 8;
+        RK_U32          u       : 8;
+        RK_U32          y       : 8;
         RK_U32          alpha   : 8;
     };
     RK_U32              val;
