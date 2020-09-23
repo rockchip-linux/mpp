@@ -41,7 +41,10 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
         stride = MPP_ALIGN(width, 16);
     } break;
     case MPP_FMT_YUV422P:
-    case MPP_FMT_YUV422SP:
+    case MPP_FMT_YUV422SP: {
+        /* NOTE: 422 need to align to 8 so chroma can align to 16 */
+        stride = MPP_ALIGN(width, 8);
+    } break;
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR565:
     case MPP_FMT_RGB555:
@@ -60,10 +63,12 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
         /* NOTE: for vepu limitation */
         stride = MPP_ALIGN(width, 8) * 3;
     } break;
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 :
     case MPP_FMT_ARGB8888 :
-    case MPP_FMT_ABGR8888:
-    case MPP_FMT_BGRA8888:
-    case MPP_FMT_RGBA8888: {
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 : {
         /* NOTE: for vepu limitation */
         stride = MPP_ALIGN(width, 8) * 4;
     } break;
