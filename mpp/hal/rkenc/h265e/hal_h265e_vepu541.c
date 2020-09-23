@@ -1195,7 +1195,9 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
     h265e_hal_dbg(H265E_DBG_DETAIL, "vpu client is sending %d regs", length);
 
 #ifdef H265EHW_EN
-    mpp_device_send_request(ctx->dev_ctx);
+    ret = mpp_device_send_request(ctx->dev_ctx);
+    if (ret)
+        ret = MPP_ERR_VPUHW;
 #endif
 
     h265e_hal_leave();
@@ -1302,7 +1304,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
 
 MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
 {
-    RK_S32 hw_ret = 0;
+    MPP_RET ret = MPP_OK;
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
     H265eV541IoctlOutput *reg_out = (H265eV541IoctlOutput *)ctx->ioctl_output;
     RK_S32 length = (sizeof(reg_out->frame_num)
@@ -1351,17 +1353,13 @@ MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
         req.cmd = MPP_CMD_POLL_HW_FINISH;
         mpp_device_add_request(ctx->dev_ctx, &req);
     }
-    mpp_device_send_request(ctx->dev_ctx);
+    ret = mpp_device_send_request(ctx->dev_ctx);
+    if (ret)
+        ret = MPP_ERR_VPUHW;
 #endif
 
-    h265e_hal_dbg(H265E_DBG_DETAIL, "mpp_device_wait_reg: ret %d\n", hw_ret);
-
-    if (hw_ret != MPP_OK) {
-        h265e_hal_err("hardware returns error:%d", hw_ret);
-        return MPP_ERR_VPUHW;
-    }
     h265e_hal_leave();
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
