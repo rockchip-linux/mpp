@@ -602,6 +602,9 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
     mbrc->qp_init = info->quality_target;
     mbrc->qp_min = info->quality_min;
     mbrc->qp_max = info->quality_max;
+    mbrc->mad_qp_change = 0;
+    mbrc->mad_threshold = 0;
+    mbrc->cp_distance_mbs = 0;
 
     if (!p->mb_bit_rc_enable)
         return MPP_OK;
@@ -669,8 +672,6 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
         mbrc->cp_error[i] = tmp;
     }
 
-    mbrc->mad_qp_change = 0;
-    mbrc->mad_threshold = 0;
     mbrc->cp_distance_mbs = p->check_point_distance;
 
     return MPP_OK;
