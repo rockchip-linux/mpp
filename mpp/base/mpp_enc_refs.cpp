@@ -231,10 +231,13 @@ MPP_RET mpp_enc_refs_set_cfg(MppEncRefs refs, MppEncRefCfg ref_cfg)
 
     p->ref_cfg = cfg;
     p->changed |= ENC_REFS_REF_CFG_CHANGED;
+    p->hdr_need_update = 0;
 
     /* clear cpb on setup new cfg */
-    if (!cfg->keep_cpb)
+    if (!cfg->keep_cpb) {
         memset(cpb, 0, sizeof(*cpb));
+        p->hdr_need_update = 1;
+    }
 
     if (cfg->lt_cfg_cnt) {
         RK_S32 i;
@@ -256,7 +259,9 @@ MPP_RET mpp_enc_refs_set_cfg(MppEncRefs refs, MppEncRefCfg ref_cfg)
     }
 
     MppEncCpbInfo *info = &cpb->info;
-    p->hdr_need_update = (info->dpb_size && info->dpb_size < cfg->cpb_info.dpb_size);
+
+    if (info->dpb_size && info->dpb_size < cfg->cpb_info.dpb_size)
+        p->hdr_need_update = 1;
 
     memcpy(info, &cfg->cpb_info, sizeof(cfg->cpb_info));
 
