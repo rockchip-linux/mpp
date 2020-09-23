@@ -1386,7 +1386,9 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.offset = VEPU541_REG_BASE_STATISTICS;
     mpp_device_add_request(ctx->dev_ctx, &req);
     /* send request to hardware */
-    mpp_device_send_request(ctx->dev_ctx);
+    ret = mpp_device_send_request(ctx->dev_ctx);
+    if (ret)
+        ret = MPP_ERR_VPUHW;
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -1430,6 +1432,7 @@ static MPP_RET hal_h264e_vepu541_status_check(void *hal)
 
 static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
 {
+    MPP_RET ret = MPP_OK;
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     MppDevReqV1 req;
 
@@ -1438,15 +1441,17 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
     memset(&req, 0, sizeof(req));
     req.cmd = MPP_CMD_POLL_HW_FINISH;
     mpp_device_add_request(ctx->dev_ctx, &req);
-    mpp_device_send_request(ctx->dev_ctx);
-
-    hal_h264e_vepu541_status_check(hal);
-
-    task->hw_length += ctx->regs_ret.st_bsl.bs_lgth;
+    ret = mpp_device_send_request(ctx->dev_ctx);
+    if (ret) {
+        ret = MPP_ERR_VPUHW;
+    } else {
+        hal_h264e_vepu541_status_check(hal);
+        task->hw_length += ctx->regs_ret.st_bsl.bs_lgth;
+    }
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
