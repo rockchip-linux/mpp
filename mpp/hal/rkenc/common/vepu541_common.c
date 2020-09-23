@@ -306,7 +306,8 @@ RK_S32 vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h)
     RK_S32 stride_v = MPP_ALIGN(h, 64) / 16;
     RK_S32 buf_size = stride_h * stride_v * sizeof(Vepu541RoiCfg);
 
-    return buf_size;
+    /* extra 32 byte for hardware access padding */
+    return buf_size + 32;
 }
 
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
