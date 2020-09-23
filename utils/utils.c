@@ -422,6 +422,146 @@ err:
     return ret;
 }
 
+static void fill_MPP_FMT_RGB565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((R >> 3) & 0x1f) | (((G >> 2) & 0x3f) << 5) | (((B >> 3) & 0x1f) << 11);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_BGR565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((B >> 3) & 0x1f) | (((G >> 2) & 0x3f) << 5) | (((R >> 3) & 0x1f) << 11);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_RGB555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((R >> 3) & 0x1f) | (((G >> 3) & 0x1f) << 5) | (((B >> 3) & 0x1f) << 10);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_BGR555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((B >> 3) & 0x1f) | (((G >> 3) & 0x1f) << 5) | (((R >> 3) & 0x1f) << 10);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_RGB444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((R >> 4) & 0xf) | (((G >> 4) & 0xf) << 4) | (((B >> 4) & 0xf) << 8);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_BGR444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U16 val = ((B >> 4) & 0xf) | (((G >> 4) & 0xf) << 4) | (((R >> 4) & 0xf) << 8);
+    p[0] = (val >> 8) & 0xff;
+    p[1] = (val >> 0) & 0xff;
+}
+
+static void fill_MPP_FMT_RGB101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U32 val = ((R * 4) & 0x3ff) | (((G * 4) & 0x3ff) << 10) | (((B * 4) & 0x3ff) << 20);
+    p[0] = (val >> 24) & 0xff;
+    p[1] = (val >> 16) & 0xff;
+    p[2] = (val >>  8) & 0xff;
+    p[3] = (val >>  0) & 0xff;
+}
+
+static void fill_MPP_FMT_BGR101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    RK_U32 val = ((B * 4) & 0x3ff) | (((G * 4) & 0x3ff) << 10) | (((R * 4) & 0x3ff) << 20);
+    p[0] = (val >> 24) & 0xff;
+    p[1] = (val >> 16) & 0xff;
+    p[2] = (val >>  8) & 0xff;
+    p[3] = (val >>  0) & 0xff;
+}
+
+static void fill_MPP_FMT_ARGB8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    p[0] = 0xff;
+    p[1] = R;
+    p[2] = G;
+    p[3] = B;
+}
+
+static void fill_MPP_FMT_ABGR8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    p[0] = 0xff;
+    p[1] = B;
+    p[2] = G;
+    p[3] = R;
+}
+
+static void fill_MPP_FMT_BGRA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    p[0] = B;
+    p[1] = G;
+    p[2] = R;
+    p[3] = 0xff;
+}
+
+static void fill_MPP_FMT_RGBA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+{
+    p[0] = R;
+    p[1] = G;
+    p[2] = B;
+    p[3] = 0xff;
+}
+
+typedef void (*FillRgbFunc)(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B);
+
+FillRgbFunc fill_rgb_funcs[] = {
+    fill_MPP_FMT_RGB565,
+    fill_MPP_FMT_BGR565,
+    fill_MPP_FMT_RGB555,
+    fill_MPP_FMT_BGR555,
+    fill_MPP_FMT_RGB444,
+    fill_MPP_FMT_BGR444,
+    NULL,
+    NULL,
+    fill_MPP_FMT_RGB101010,
+    fill_MPP_FMT_BGR101010,
+    fill_MPP_FMT_ARGB8888,
+    fill_MPP_FMT_ABGR8888,
+    fill_MPP_FMT_BGRA8888,
+    fill_MPP_FMT_RGBA8888,
+};
+
+static RK_S32 util_check_stride_by_pixel(RK_S32 workaround, RK_S32 width,
+                                         RK_S32 hor_stride, RK_S32 pixel_size)
+{
+    if (!workaround && hor_stride < width * pixel_size) {
+        mpp_log("warning: stride by bytes %d is smarller than width %d mutiple by pixel size %d\n",
+                hor_stride, width, pixel_size);
+        mpp_log("multiple stride %d by pixel size %d and set new byte stride to %d\n",
+                hor_stride, pixel_size, hor_stride * pixel_size);
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
+static RK_S32 util_check_8_pixel_aligned(RK_S32 workaround, RK_S32 hor_stride,
+                                         RK_S32 pixel_aign, RK_S32 pixel_size,
+                                         const char *fmt_name)
+{
+    if (!workaround && hor_stride != MPP_ALIGN(hor_stride, pixel_aign * pixel_size)) {
+        mpp_log("warning: vepu only support 8 aligned horizontal stride in pixel for %s with pixel size %d\n",
+                fmt_name, pixel_size);
+        mpp_log("set byte stride to %d to match the requirement\n",
+                MPP_ALIGN(hor_stride, pixel_aign * pixel_size));
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
 MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
                    RK_U32 hor_stride, RK_U32 ver_stride, MppFrameFormat fmt,
                    RK_U32 frame_count)
@@ -430,6 +570,8 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
     RK_U8 *buf_y = buf;
     RK_U8 *buf_c = buf + hor_stride * ver_stride;
     RK_U32 x, y, i;
+    static RK_S32 is_pixel_stride = 0;
+    static RK_S32 not_8_pixel = 0;
 
     switch (fmt) {
     case MPP_FMT_YUV420SP : {
@@ -484,50 +626,81 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
             }
         }
     } break;
-    case MPP_FMT_RGB888 :
-    case MPP_FMT_BGR888 : {
+    case MPP_FMT_RGB565 :
+    case MPP_FMT_BGR565 :
+    case MPP_FMT_RGB555 :
+    case MPP_FMT_BGR555 :
+    case MPP_FMT_RGB444 :
+    case MPP_FMT_BGR444 : {
         RK_U8 *p = buf_y;
-        RK_U32 pix_w = 3;
+        RK_U32 pix_w = 2;
+        FillRgbFunc fill = fill_rgb_funcs[fmt - MPP_FRAME_FMT_RGB];
 
-        if (hor_stride < width * pix_w) {
-            mpp_err_f("invalid %dbit color config: hor_stride %d is smaller then width %d multiply by 4\n",
-                      8 * pix_w, hor_stride, width, pix_w);
-            mpp_err_f("width  should be defined by pixel count\n");
-            mpp_err_f("stride should be defined by byte count\n");
+        if (util_check_stride_by_pixel(is_pixel_stride, width, hor_stride, pix_w)) {
+            hor_stride *= pix_w;
+            is_pixel_stride = 1;
+        }
 
-            hor_stride = width * pix_w;
+        if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
+                                       8, 2, "16bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 16);
+            not_8_pixel = 1;
         }
 
         for (y = 0; y < height; y++, p += hor_stride) {
-            for (x = 0, i = 0; x < width * pix_w; x += pix_w, i++) {
-                p[x + 0] = i + y + frame_count * 3;
-                p[x + 1] = 128 + i + frame_count * 2;
-                p[x + 2] = 64  + i + frame_count * 5;
+            for (x = 0, i = 0; x < width; x++, i += pix_w) {
+                RK_U8 Y = (0   +  x + y  + frame_count * 3);
+                RK_U8 U = (128 + (y / 2) + frame_count * 2);
+                RK_U8 V = (64  + (x / 2) + frame_count * 5);
+
+                RK_S32 R = Y + ((360 * (V - 128)) >> 8);
+                RK_S32 G = Y - (((88 * (U - 128) + 184 * (V - 128))) >> 8);
+                RK_S32 B = Y + ((455 * (U - 128)) >> 8);
+
+                R = MPP_CLIP3(0, 255, R);
+                G = MPP_CLIP3(0, 255, G);
+                B = MPP_CLIP3(0, 255, B);
+
+                fill(p + i, R, G, B);
             }
         }
     } break;
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 :
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
     case MPP_FMT_BGRA8888 :
     case MPP_FMT_RGBA8888 : {
         RK_U8 *p = buf_y;
         RK_U32 pix_w = 4;
+        FillRgbFunc fill = fill_rgb_funcs[fmt - MPP_FRAME_FMT_RGB];
 
-        if (hor_stride < width * pix_w) {
-            mpp_err_f("invalid %dbit color config: hor_stride %d is smaller then width %d multiply by 4\n",
-                      8 * pix_w, hor_stride, width, pix_w);
-            mpp_err_f("width  should be defined by pixel count\n");
-            mpp_err_f("stride should be defined by byte count\n");
+        if (util_check_stride_by_pixel(is_pixel_stride, width, hor_stride, pix_w)) {
+            hor_stride *= pix_w;
+            is_pixel_stride = 1;
+        }
 
-            hor_stride = width * pix_w;
+        if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
+                                       8, 4, "32bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 32);
+            not_8_pixel = 1;
         }
 
         for (y = 0; y < height; y++, p += hor_stride) {
-            for (x = 0, i = 0; x < width * pix_w; x += pix_w, i++) {
-                p[x + 0] = i + y + frame_count * 3;
-                p[x + 1] = 128 + i + frame_count * 2;
-                p[x + 2] = 64  + i + frame_count * 5;
-                p[x + 3] = i + y / 2 + frame_count * 3;
+            for (x = 0, i = 0; x < width; x++, i += pix_w) {
+                RK_U8 Y = (0   +  x + y  + frame_count * 3);
+                RK_U8 U = (128 + (y / 2) + frame_count * 2);
+                RK_U8 V = (64  + (x / 2) + frame_count * 5);
+
+                RK_S32 R = Y + ((360 * (V - 128)) >> 8);
+                RK_S32 G = Y - (((88 * (U - 128) + 184 * (V - 128))) >> 8);
+                RK_S32 B = Y + ((455 * (U - 128)) >> 8);
+
+                R = MPP_CLIP3(0, 255, R);
+                G = MPP_CLIP3(0, 255, G);
+                B = MPP_CLIP3(0, 255, B);
+
+                fill(p + i, R, G, B);
             }
         }
     } break;

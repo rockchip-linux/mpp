@@ -299,6 +299,35 @@ MppBuffer h264e_vepu_buf_get_frame_buffer(HalH264eVepuBufs *bufs, RK_S32 index)
     return buf;
 }
 
+static RK_S32 check_stride_by_pixel(RK_S32 workaround, RK_S32 width,
+                                    RK_S32 hor_stride, RK_S32 pixel_size)
+{
+    if (!workaround && hor_stride < width * pixel_size) {
+        mpp_log("warning: stride by bytes %d is smarller than width %d mutiple by pixel size %d\n",
+                hor_stride, width, pixel_size);
+        mpp_log("multiple stride %d by pixel size %d and set new byte stride to %d\n",
+                hor_stride, pixel_size, hor_stride * pixel_size);
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
+static RK_S32 check_8_pixel_aligned(RK_S32 workaround, RK_S32 hor_stride,
+                                    RK_S32 pixel_aign, RK_S32 pixel_size,
+                                    const char *fmt_name)
+{
+    if (!workaround && hor_stride != MPP_ALIGN(hor_stride, pixel_aign * pixel_size)) {
+        mpp_log("warning: vepu only support 8 aligned horizontal stride in pixel for %s with pixel size %d\n",
+                fmt_name, pixel_size);
+        mpp_log("set byte stride to %d to match the requirement\n",
+                MPP_ALIGN(hor_stride, pixel_aign * pixel_size));
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
 MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
@@ -383,47 +412,47 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
 
     prep->offset_cb = 0;
     prep->offset_cr = 0;
-    prep->hor_stride = hor_stride;
 
     switch (format & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
-        if (!prep->stride_workaround &&
-            hor_stride != MPP_ALIGN(hor_stride, 8)) {
-            mpp_log_f("vepu only support 8byte aligned YUV420SP horizontal stride %d vs width %d\n",
-                      hor_stride, cfg->width);
-            prep->stride_workaround = 1;
+        if (check_8_pixel_aligned(prep->not_8_pixel, hor_stride, 8, 1, "YUV420SP")) {
+            hor_stride = MPP_ALIGN(hor_stride, 8);
+            prep->not_8_pixel = 1;
         }
 
         prep->offset_cb = hor_stride * ver_stride;
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = hor_stride / 2 * MPP_ALIGN(prep->src_h / 2, 8);
+        prep->pixel_stride = hor_stride;
     } break;
     case MPP_FMT_YUV420P : {
-        if (!prep->stride_workaround &&
-            hor_stride != MPP_ALIGN(hor_stride, 16)) {
-            mpp_log_f("vepu only support 16byte aligned YUV420P horizontal stride %d vs width %d\n",
-                      hor_stride, cfg->width);
-            prep->stride_workaround = 1;
+        if (check_8_pixel_aligned(prep->not_8_pixel, hor_stride, 16, 1, "YUV420P")) {
+            hor_stride = MPP_ALIGN(hor_stride, 8);
+            prep->not_8_pixel = 1;
         }
 
         prep->offset_cb = hor_stride * ver_stride;
         prep->offset_cr = prep->offset_cb + ((hor_stride * ver_stride) / 4);
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = hor_stride / 2 * MPP_ALIGN(prep->src_h / 2, 8);
+        prep->pixel_stride = hor_stride;
     } break;
     case MPP_FMT_YUV422_YUYV :
     case MPP_FMT_YUV422_UYVY : {
-        if (!prep->stride_workaround &&
-            ((hor_stride != MPP_ALIGN(hor_stride, 8 * 2)) ||
-             (hor_stride < cfg->width * 2))) {
-            mpp_log_f("vepu only support 16bit pixel aligned YUV422 horizontal stride %d vs width %d\n",
-                      hor_stride, cfg->width);
-            prep->stride_workaround = 1;
+        if (check_stride_by_pixel(prep->is_pixel_stride, cfg->width,
+                                  hor_stride, 2)) {
+            hor_stride *= 2;
+            prep->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(prep->not_8_pixel, hor_stride, 8, 2, "YUV422_interleave")) {
+            hor_stride = MPP_ALIGN(hor_stride, 16);
+            prep->not_8_pixel = 1;
         }
 
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
-        prep->hor_stride = hor_stride / 2;
+        prep->pixel_stride = hor_stride / 2;
     } break;
     case MPP_FMT_RGB565 :
     case MPP_FMT_BGR565 :
@@ -431,17 +460,20 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     case MPP_FMT_BGR555 :
     case MPP_FMT_RGB444 :
     case MPP_FMT_BGR444 : {
-        if (!prep->stride_workaround &&
-            ((hor_stride != MPP_ALIGN(hor_stride, 8 * 2)) ||
-             (hor_stride < cfg->width * 2))) {
-            mpp_log_f("vepu only support matched 16bit pixel horizontal stride %d vs width %d\n",
-                      hor_stride, cfg->width);
-            prep->stride_workaround = 1;
+        if (check_stride_by_pixel(prep->is_pixel_stride, cfg->width,
+                                  hor_stride, 2)) {
+            hor_stride *= 2;
+            prep->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(prep->not_8_pixel, hor_stride, 8, 2, "32bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 16);
+            prep->not_8_pixel = 1;
         }
 
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
-        prep->hor_stride = hor_stride / 2;
+        prep->pixel_stride = hor_stride / 2;
     } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
@@ -449,17 +481,20 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     case MPP_FMT_BGRA8888 :
     case MPP_FMT_RGB101010 :
     case MPP_FMT_BGR101010 : {
-        if (!prep->stride_workaround &&
-            ((hor_stride == MPP_ALIGN(hor_stride, 8 * 4)) ||
-             (hor_stride < cfg->width * 4))) {
-            mpp_log_f("vepu only support matched 32bit pixel horizontal stride %d vs width %d\n",
-                      hor_stride, cfg->width);
-            prep->stride_workaround = 1;
+        if (check_stride_by_pixel(prep->is_pixel_stride, cfg->width,
+                                  hor_stride, 4)) {
+            hor_stride *= 4;
+            prep->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(prep->not_8_pixel, hor_stride, 8, 4, "16bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 32);
+            prep->not_8_pixel = 1;
         }
 
         prep->size_y = hor_stride * MPP_ALIGN(prep->src_h, 16);
         prep->size_c = 0;
-        prep->hor_stride = hor_stride / 4;
+        prep->pixel_stride = hor_stride / 4;
     } break;
     default: {
         mpp_err_f("invalid format %d", format);

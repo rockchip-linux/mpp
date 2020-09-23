@@ -363,7 +363,7 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     // When offset is zero row length should be total 16 aligned width
     val = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
           | VEPU_REG_IN_IMG_LUMA_OFFSET(0)
-          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(hw_prep->hor_stride);
+          | VEPU_REG_IN_IMG_CTRL_ROW_LEN(hw_prep->pixel_stride);
 
     H264E_HAL_SET_REG(reg, VEPU_REG_INPUT_LUMA_INFO, val);
 
