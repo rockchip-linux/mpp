@@ -609,25 +609,12 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
 }
 
-#define RUN_ENC_IMPL_FUNC(func, impl, task, mpp, ret)           \
-    ret = func(impl, task);                                     \
-    if (ret) {                                                  \
-        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
-        goto TASK_DONE;                                         \
-    }
-
-#define RUN_ENC_RC_FUNC(func, ctx, task, mpp, ret)              \
-    ret = func(ctx, task);                                      \
-    if (ret) {                                                  \
-        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
-        goto TASK_DONE;                                         \
-    }
-
-#define RUN_ENC_HAL_FUNC(func, hal, task, mpp, ret)             \
-    ret = func(hal, task);                                      \
-    if (ret) {                                                  \
-        mpp_err("mpp %p "#func" failed return %d", mpp, ret);   \
-        goto TASK_DONE;                                         \
+#define ENC_RUN_FUNC2(func, ctx, task, mpp, ret)        \
+    ret = func(ctx, task);                              \
+    if (ret) {                                          \
+        mpp_err("mpp %p "#func":%-4d failed return %d", \
+                mpp, __LINE__, ret);                    \
+        goto TASK_DONE;                                 \
     }
 
 static const char *name_of_rc_mode[] = {
@@ -777,7 +764,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     }
 }
 
-static void mpp_enc_normal(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
@@ -794,7 +781,7 @@ static void mpp_enc_normal(Mpp *mpp, EncTask *task)
     mpp_enc_refs_get_cpb(enc->refs, cpb);
 
     enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
-    RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
 
     enc_dbg_frm_status("frm %d compare\n", cpb->curr.seq_idx);
     enc_dbg_frm_status("seq_idx      %d vs %d\n", frm->seq_idx, cpb->curr.seq_idx);
@@ -807,7 +794,7 @@ static void mpp_enc_normal(Mpp *mpp, EncTask *task)
     enc_dbg_frm_status("frm %d done  ***********************************\n", cpb->curr.seq_idx);
 
     enc_dbg_detail("task %d rc frame start\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
 
     // 16. generate header before hardware stream
     if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
@@ -877,37 +864,37 @@ static void mpp_enc_normal(Mpp *mpp, EncTask *task)
     }
 
     enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
-    RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, impl, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(enc_impl_proc_hal, impl, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal get task\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc hal start\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_hal_start, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_hal_start, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d hal generate reg\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal start\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_start, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal wait\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc hal end\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc frame check reenc\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_frm_check_reenc, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_frm_check_reenc, enc->rc_ctx, rc_task, mpp, ret);
 
 TASK_DONE:
-    return ;
+    return ret;
 }
 
-static void mpp_enc_reenc_simple(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_simple(Mpp *mpp, EncTask *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MppEncHal hal = enc->enc_hal;
@@ -919,39 +906,40 @@ static void mpp_enc_reenc_simple(Mpp *mpp, EncTask *task)
     enc_dbg_func("enter\n");
 
     enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
-    RUN_ENC_IMPL_FUNC(enc_impl_proc_hal, enc->impl, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(enc_impl_proc_hal, enc->impl, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal get task\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc hal start\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_hal_start, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_hal_start, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d hal generate reg\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal start\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_start, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal wait\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc hal end\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
-    RUN_ENC_HAL_FUNC(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc frame check reenc\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_frm_check_reenc, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_frm_check_reenc, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d reenc %d times %d\n", frm->seq_idx, frm->reencode, frm->reencode_times);
     enc_dbg_func("leave\n");
+
 TASK_DONE:
-    return ;
+    return ret;
 }
 
-static void mpp_enc_reenc_drop(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncTask *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncRcTask *rc_task = &enc->rc_task;
@@ -967,14 +955,14 @@ static void mpp_enc_reenc_drop(Mpp *mpp, EncTask *task)
     info->quality_real = info->quality_target;
 
     enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
 TASK_DONE:
     enc_dbg_func("leave\n");
-    return ;
+    return ret;
 }
 
-static void mpp_enc_reenc_force_pskip(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncTask *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
@@ -999,17 +987,17 @@ static void mpp_enc_reenc_force_pskip(Mpp *mpp, EncTask *task)
     mpp_enc_refs_get_cpb(enc->refs, cpb);
 
     enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
-    RUN_ENC_IMPL_FUNC(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d enc sw enc start\n", frm->seq_idx);
-    RUN_ENC_IMPL_FUNC(enc_impl_sw_enc, impl, hal_task, mpp, ret);
+    ENC_RUN_FUNC2(enc_impl_sw_enc, impl, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
-    RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+    ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
 TASK_DONE:
     enc_dbg_func("leave\n");
-    return ;
+    return ret;
 }
 
 void *mpp_enc_thread(void *data)
@@ -1217,7 +1205,7 @@ void *mpp_enc_thread(void *data)
         }
 
         // 11. check frame drop by frame rate conversion
-        RUN_ENC_RC_FUNC(rc_frm_check_drop, enc->rc_ctx, rc_task, mpp, ret);
+        ENC_RUN_FUNC2(rc_frm_check_drop, enc->rc_ctx, rc_task, mpp, ret);
         task.status.rc_check_frm_drop = 1;
         enc_dbg_detail("task %d drop %d\n", frm->seq_idx, frm->drop);
 
@@ -1259,7 +1247,7 @@ void *mpp_enc_thread(void *data)
 
         /* 14. check frm_meta data force key in input frame and start one frame */
         enc_dbg_detail("task %d enc start\n", frm->seq_idx);
-        RUN_ENC_IMPL_FUNC(enc_impl_start, impl, hal_task, mpp, ret);
+        ENC_RUN_FUNC2(enc_impl_start, impl, hal_task, mpp, ret);
 
         // 14. setup user_cfg to dpb
         if (frm_cfg->force_flag)
@@ -1269,7 +1257,7 @@ void *mpp_enc_thread(void *data)
         mpp_enc_refs_stash(enc->refs);
         task.status.enc_backup = 1;
 
-        mpp_enc_normal(mpp, &task);
+        ENC_RUN_FUNC2(mpp_enc_normal, mpp, &task, mpp, ret);
 
         // reencode process
         while (frm->reencode && frm->reencode_times < rc_cfg->max_reenc_times) {
@@ -1291,7 +1279,7 @@ void *mpp_enc_thread(void *data)
             mpp_enc_reenc_simple(mpp, &task);
         }
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
-        RUN_ENC_RC_FUNC(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+        ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
         frm->reencode = 0;
         frm->reencode_times = 0;
