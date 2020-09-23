@@ -992,8 +992,16 @@ MPP_RET rc_model_v2_smt_check_reenc(void *ctx, EncRcTask *task)
 {
     RcModelV2SmtCtx *p = (RcModelV2SmtCtx *)ctx;
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
+    EncFrmStatus *frm = &task->frm;
+    RcCfg *usr_cfg = &p->usr_cfg;
 
     rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
+
+    frm->reencode = 0;
+
+    if ((usr_cfg->mode == RC_FIXQP) ||
+        (task->force.force_flag & ENC_RC_FORCE_QP))
+        return MPP_OK;
 
     if (check_re_enc_smt(p, cfg)) {
         if (p->usr_cfg.mode == RC_CBR) {
@@ -1001,8 +1009,11 @@ MPP_RET rc_model_v2_smt_check_reenc(void *ctx, EncRcTask *task)
         } else {
             reenc_calc_vbr_ratio_smt(p, cfg);
         }
+        if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
+            p->reenc_cnt++;
+            frm->reencode = 1;
+        }
     }
-
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
@@ -1011,9 +1022,6 @@ MPP_RET rc_model_v2_smt_end(void *ctx, EncRcTask *task)
 {
     RcModelV2SmtCtx *p = (RcModelV2SmtCtx *)ctx;
     EncRcTaskInfo *cfg = (EncRcTaskInfo *)&task->info;
-
-    rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
-
     MppFrame frame = task->frame;
     RK_S32 width = mpp_frame_get_width(frame);
     RK_S32 height = mpp_frame_get_height(frame);
@@ -1024,6 +1032,8 @@ MPP_RET rc_model_v2_smt_end(void *ctx, EncRcTask *task)
     RK_U32 qp_sum;
     double avg_qp = 0.0;
     RK_S32 avg_sse = 1;
+
+    rc_dbg_func("enter ctx %p cfg %p\n", ctx, cfg);
 
     if (p->codec_type == 1)
         qp_sum = cfg->quality_real / 64; // 265
