@@ -60,8 +60,9 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
     EncFrmStatus *frm = &task->frm;
     EncRcTaskInfo *info = &task->info;
     EncRcForceCfg *force = &task->force;
-    RK_S32 mb_w = MPP_ALIGN(p->usr_cfg.width, 16) / 16;
-    RK_S32 mb_h = MPP_ALIGN(p->usr_cfg.height, 16) / 16;
+    RcCfg *usr_cfg = &p->usr_cfg;
+    RK_S32 mb_w = MPP_ALIGN(usr_cfg->width, 16) / 16;
+    RK_S32 mb_h = MPP_ALIGN(usr_cfg->height, 16) / 16;
     RK_S32 bit_min = info->bit_min;
     RK_S32 bit_max = info->bit_max;
     RK_S32 bit_target = info->bit_target;
@@ -81,7 +82,7 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
         return MPP_OK;
     }
 
-    if (p->usr_cfg.mode == RC_FIXQP)
+    if (usr_cfg->mode == RC_FIXQP)
         return MPP_OK;
 
     /* setup quality parameters */
@@ -106,7 +107,7 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
             p->start_qp = p->cur_scale_qp >> 6;
             rc_dbg_rc("p->start_qp = %d, p->cur_scale_qp %d,p->next_ratio %d ", p->start_qp, p->cur_scale_qp, p->next_ratio);
         } else {
-            p->start_qp -= p->usr_cfg.i_quality_delta;
+            p->start_qp -= usr_cfg->i_quality_delta;
         }
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
         p->pre_i_qp = p->cur_scale_qp >> 6;
@@ -125,27 +126,27 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
             p->start_qp = start_qp;
             p->cur_scale_qp = qp_scale;
 
-            if (p->usr_cfg.i_quality_delta && !p->reenc_cnt) {
+            if (usr_cfg->i_quality_delta && !p->reenc_cnt) {
                 RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
                 index = mpp_clip(index, 0, 7);
                 dealt_qp = max_ip_qp_dealt[index];
-                if (dealt_qp > p->usr_cfg.i_quality_delta ) {
-                    dealt_qp = p->usr_cfg.i_quality_delta;
+                if (dealt_qp > usr_cfg->i_quality_delta ) {
+                    dealt_qp = usr_cfg->i_quality_delta;
                 }
             }
 
-            if (p->usr_cfg.i_quality_delta) {
+            if (usr_cfg->i_quality_delta) {
                 p->start_qp -= dealt_qp;
             }
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
             p->start_qp = qp_scale >> 6;
-            if (frm->ref_mode == REF_TO_PREV_INTRA && p->usr_cfg.vi_quality_delta) {
-                p->start_qp -= p->usr_cfg.vi_quality_delta;
+            if (frm->ref_mode == REF_TO_PREV_INTRA && usr_cfg->vi_quality_delta) {
+                p->start_qp -= usr_cfg->vi_quality_delta;
             }
         }
-        rc_dbg_rc("i_quality_delta %d, vi_quality_delta %d", dealt_qp, p->usr_cfg.vi_quality_delta);
+        rc_dbg_rc("i_quality_delta %d, vi_quality_delta %d", dealt_qp, usr_cfg->vi_quality_delta);
     }
 
     p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);
