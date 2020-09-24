@@ -544,6 +544,10 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
     }
 
     memset(rps->delta_poc, 0, MAX_REFS * sizeof(int));
+
+    if (cpb->curr.is_lt_ref)
+        mpp_assert(slice->m_sps->m_bLongTermRefsPresent);
+
     idx_rps = 0;
     for (i = 0; i < MAX_CPB_REFS; i++) {
         EncFrmStatus *frm = &cpb->init[i];

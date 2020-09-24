@@ -120,7 +120,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     RK_S32 pad[2] = {0};
     RK_S32 minCUSize, log2MinCUSize;
     RK_S32 tuQTMinLog2Size = 2, tuQTMaxLog2Size;
-    MppEncCpbInfo *cpb_info = NULL;
+    MppEncCpbInfo *cpb_info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
 
     memset(convertToBit, -1, sizeof(convertToBit));
     c = 0;
@@ -128,9 +128,6 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
         convertToBit[i] = c;
         c++;
     }
-
-    if (ref_cfg)
-        cpb_info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
 
     maxCUDepth = (uint32_t)convertToBit[codec->max_cu_size];
 
@@ -240,7 +237,8 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_bLongTermRefsPresent = 0;
     sps->m_TMVPFlagsPresent = codec->tmvp_enable;
     sps->m_useStrongIntraSmoothing = codec->cu_cfg.strong_intra_smoothing_enabled_flag;
-    if (cpb_info && cpb_info->max_lt_cnt) {
+
+    if (cpb_info->max_lt_cnt) {
         sps->m_numLongTermRefPicSPS = cpb_info->max_lt_cnt;
         sps->m_bLongTermRefsPresent = 1;
         sps->m_TMVPFlagsPresent = 0;

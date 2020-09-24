@@ -770,6 +770,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
     EncRcTask *rc_task = &enc->rc_task;
+    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
     HalEncTask *hal_task = &task->info.enc;
@@ -799,9 +800,9 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     // 16. generate header before hardware stream
     if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
         frm->is_intra &&
-        !enc->hdr_status.added_by_change &&
-        !enc->hdr_status.added_by_ctrl &&
-        !enc->hdr_status.added_by_mode) {
+        !hdr_status->added_by_change &&
+        !hdr_status->added_by_ctrl &&
+        !hdr_status->added_by_mode) {
         enc_dbg_detail("task %d IDR header length %d\n",
                        frm->seq_idx, enc->hdr_len);
 
@@ -809,7 +810,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
 
         hal_task->header_length = enc->hdr_len;
         hal_task->length += enc->hdr_len;
-        enc->hdr_status.added_by_mode = 1;
+        hdr_status->added_by_mode = 1;
     }
 
     // check for header adding
@@ -1012,6 +1013,7 @@ void *mpp_enc_thread(void *data)
     EncRcTask *rc_task = &enc->rc_task;
     EncFrmStatus *frm = &rc_task->frm;
     MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
+    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncTask task;
     HalTaskInfo *task_info = &task.info;
     HalEncTask *hal_task = &task_info->enc;
@@ -1220,11 +1222,11 @@ void *mpp_enc_thread(void *data)
         hal_task->valid = 1;
 
         // 12. generate header before hardware stream
-        if (!enc->hdr_status.ready) {
+        if (!hdr_status->ready) {
             /* config cpb before generating header */
             enc_impl_gen_hdr(impl, enc->hdr_pkt);
             enc->hdr_len = mpp_packet_get_length(enc->hdr_pkt);
-            enc->hdr_status.ready = 1;
+            hdr_status->ready = 1;
 
             enc_dbg_detail("task %d update header length %d\n",
                            frm->seq_idx, enc->hdr_len);
@@ -1232,7 +1234,7 @@ void *mpp_enc_thread(void *data)
             mpp_packet_append(packet, enc->hdr_pkt);
             hal_task->header_length = enc->hdr_len;
             hal_task->length += enc->hdr_len;
-            enc->hdr_status.added_by_change = 1;
+            hdr_status->added_by_change = 1;
         }
 
         mpp_assert(hal_task->length == mpp_packet_get_length(packet));
@@ -1328,8 +1330,8 @@ void *mpp_enc_thread(void *data)
         frame = NULL;
 
         task.status.val = 0;
-        enc->hdr_status.val = 0;
-        enc->hdr_status.ready = 1;
+        /* NOTE: clear add_by flags */
+        hdr_status->val = hdr_status->ready;
     }
 
     // clear remain task in output port
