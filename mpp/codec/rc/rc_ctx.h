@@ -93,6 +93,9 @@ typedef struct RcModelV2Ctx_t {
     RK_U32          drop_cnt;
     RK_S32          on_drop;
     RK_S32          on_pskip;
+
+    MPP_RET         (*calc_ratio)(void* ctx, EncRcTaskInfo *cfg);
+    MPP_RET         (*re_calc_ratio)(void* ctx, EncRcTaskInfo *cfg);
 } RcModelV2Ctx;
 
 
@@ -108,12 +111,6 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
 MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi);
 
 MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx);
-MPP_RET calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
-MPP_RET reenc_calc_cbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
-MPP_RET calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
-MPP_RET reenc_calc_vbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
-MPP_RET calc_avbr_ratio(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
-
 MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
 
 #ifdef  __cplusplus
