@@ -123,6 +123,7 @@ typedef struct RcCfg_s {
     /* max I frame bit ratio to P frame bit */
     RK_S32      max_i_bit_prop;
     RK_S32      min_i_bit_prop;
+    RK_S32      init_ip_ratio;
     /* layer bitrate proportion */
     RK_S32      layer_bit_prop[4];
 
