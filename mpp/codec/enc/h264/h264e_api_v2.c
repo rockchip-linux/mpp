@@ -165,6 +165,9 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
     rc_cfg->max_reenc_times = 1;
+    rc_cfg->max_i_prop = 30;
+    rc_cfg->min_i_prop = 10;
+    rc_cfg->init_ip_ratio = 480;
 }
 
 static void h264e_add_syntax(H264eCtx *ctx, H264eSyntaxType type, void *p)

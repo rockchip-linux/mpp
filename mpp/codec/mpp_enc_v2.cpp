@@ -680,6 +680,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->fps.fps_out_num    = rc->fps_out_num;
     cfg->fps.fps_out_denorm = rc->fps_out_denorm;
     cfg->igop               = rc->gop;
+    cfg->max_i_bit_prop     = rc->max_i_prop;
+    cfg->min_i_bit_prop     = rc->min_i_prop;
+    cfg->init_ip_ratio      = rc->init_ip_ratio;
 
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;

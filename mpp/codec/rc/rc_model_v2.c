@@ -210,7 +210,7 @@ void bits_frm_init(RcModelV2Ctx *ctx)
 
     switch (usr_cfg->gop_mode) {
     case NORMAL_P: {
-        ctx->i_scale = 480;
+        ctx->i_scale = ctx->usr_cfg.init_ip_ratio;
         ctx->p_scale = 16;
         if (gop_len <= 1)
             p_bit = ctx->gop_total_bits * 16;
@@ -858,17 +858,25 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         usr_cfg->stat_times = stat_times;
     }
 
-    if (usr_cfg->max_i_bit_prop <= 0) {
-        usr_cfg->max_i_bit_prop = 30;
-    } else if (usr_cfg->max_i_bit_prop > 100) {
-        usr_cfg->max_i_bit_prop = 100;
-    }
-    rc_dbg_rc("max_i_bit_prop  %d",  ctx->usr_cfg.max_i_bit_prop);
+    usr_cfg->min_i_bit_prop = mpp_clip(usr_cfg->min_i_bit_prop, 10, 100);
+    usr_cfg->max_i_bit_prop = mpp_clip(usr_cfg->max_i_bit_prop,
+                                       usr_cfg->min_i_bit_prop, 100);
+    usr_cfg->init_ip_ratio  = mpp_clip(usr_cfg->init_ip_ratio, 160, 640);
 
-    if (!gop_len || gop_len > 500) {
-        mpp_log("infinte gop, set default for rc bit calc\n");
+    rc_dbg_rc("min_i_bit_prop %d max_i_bit_prop %d, init_ip_ratio %d",
+              usr_cfg->min_i_bit_prop, usr_cfg->max_i_bit_prop, usr_cfg->init_ip_ratio);
+
+    if (!gop_len) {
+        rc_dbg_rc("infinte gop, set default for rc bit calc\n");
         usr_cfg->igop = gop_len = 500;
+    } else if (gop_len == 1) {
+        rc_dbg_rc("all intra gop \n");
+        usr_cfg->init_ip_ratio  = 16;
+        usr_cfg->igop = gop_len = 500;
+    } else {
+        usr_cfg->igop = gop_len = mpp_clip(usr_cfg->igop, usr_cfg->igop, 500);
     }
+
     if (!ctx->min_still_percent) {
         if (usr_cfg->bps_min && usr_cfg->bps_max) {
             ctx->min_still_percent = usr_cfg->bps_min * 100 / usr_cfg->bps_max;
