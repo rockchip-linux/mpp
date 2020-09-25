@@ -1139,21 +1139,21 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
     memset(regs, 0, sizeof(*regs));
 
     regs->iprd_tthdy4[0] = 1;
-    regs->iprd_tthdy4[1] = 2;
-    regs->iprd_tthdy4[2] = 4;
-    regs->iprd_tthdy4[3] = 16;
+    regs->iprd_tthdy4[1] = 4;
+    regs->iprd_tthdy4[2] = 9;
+    regs->iprd_tthdy4[3] = 36;
 
     regs->iprd_tthdc8[0] = 1;
-    regs->iprd_tthdc8[1] = 2;
-    regs->iprd_tthdc8[2] = 4;
-    regs->iprd_tthdc8[3] = 16;
+    regs->iprd_tthdc8[1] = 4;
+    regs->iprd_tthdc8[2] = 9;
+    regs->iprd_tthdc8[3] = 36;
 
     regs->iprd_tthdy8[0] = 1;
-    regs->iprd_tthdy8[1] = 2;
-    regs->iprd_tthdy8[2] = 4;
-    regs->iprd_tthdy8[3] = 16;
+    regs->iprd_tthdy8[1] = 4;
+    regs->iprd_tthdy8[2] = 9;
+    regs->iprd_tthdy8[3] = 36;
 
-    regs->iprd_tthd_ul = 0x24;
+    regs->iprd_tthd_ul = 0x0;
 
     regs->iprd_wgty8[0] = 0x30;
     regs->iprd_wgty8[1] = 0x3c;
@@ -1216,11 +1216,11 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
     regs->atf_tthd[2] = 576;
     regs->atf_tthd[3] = 2500;
 
-    regs->atf_sthd0_h264.atf_sthd_10 = 80;
-    regs->atf_sthd0_h264.atf_sthd_max = 300;
+    regs->atf_sthd0_h264.atf_sthd_10 = 64;
+    regs->atf_sthd0_h264.atf_sthd_max = 160;
 
-    regs->atf_sthd1_h264.atf_sthd_11 = 144;
-    regs->atf_sthd1_h264.atf_sthd_20 = 192;
+    regs->atf_sthd1_h264.atf_sthd_11 = 72;
+    regs->atf_sthd1_h264.atf_sthd_20 = 96;
 
     regs->atf_wgt0_h264.atf_wgt10 = 28;
     regs->atf_wgt0_h264.atf_wgt11 = 26;
