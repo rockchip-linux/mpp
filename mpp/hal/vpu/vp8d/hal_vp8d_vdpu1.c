@@ -626,7 +626,7 @@ MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
 
     FUN_T("FUN_IN");
 
-    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)&reg_out, VP8D_REG_NUM);
+    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)reg_out, VP8D_REG_NUM);
 
     (void)task;
     FUN_T("FUN_OUT");
