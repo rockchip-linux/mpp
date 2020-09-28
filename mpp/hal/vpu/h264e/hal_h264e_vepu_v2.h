@@ -18,7 +18,6 @@
 #define __HAL_H264E_VEPU_V2_H__
 
 #include "mpp_enc_cfg.h"
-#include "h264e_syntax.h"
 #include "mpp_rc.h"
 
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
