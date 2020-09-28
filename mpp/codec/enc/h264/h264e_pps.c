@@ -42,7 +42,7 @@ static void write_scaling_list(MppWriteCtx *bit, RK_S32 mode)
     }
 }
 
-MPP_RET h264e_pps_update(SynH264ePps *pps, MppEncCfgSet *cfg)
+MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
 {
     MppEncH264Cfg *codec = &cfg->codec.h264;
 
@@ -104,7 +104,7 @@ MPP_RET h264e_pps_update(SynH264ePps *pps, MppEncCfgSet *cfg)
     return MPP_OK;
 }
 
-RK_S32 h264e_pps_to_packet(SynH264ePps *pps, MppPacket packet, RK_S32 *len)
+RK_S32 h264e_pps_to_packet(H264ePps *pps, MppPacket packet, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *data = mpp_packet_get_data(packet);
@@ -192,7 +192,7 @@ RK_S32 h264e_pps_to_packet(SynH264ePps *pps, MppPacket packet, RK_S32 *len)
     return pps_size;
 }
 
-MPP_RET h264e_pps_dump(SynH264ePps *pps)
+MPP_RET h264e_pps_dump(H264ePps *pps)
 {
     (void) pps;
     return MPP_OK;

@@ -56,8 +56,8 @@ typedef struct HalH264eVepu2Ctx_t {
 
     /* syntax for input from enc_impl */
     RK_U32                  updated;
-    SynH264eSps             *sps;
-    SynH264ePps             *pps;
+    H264eSps                *sps;
+    H264ePps                *pps;
     H264eSlice              *slice;
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
@@ -279,8 +279,8 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     HalH264eVepuMbRc *hw_mbrc = &ctx->hw_mbrc;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     EncFrmStatus *frm = &task->rc_task->frm;
-    SynH264eSps *sps = ctx->sps;
-    SynH264ePps *pps = ctx->pps;
+    H264eSps *sps = ctx->sps;
+    H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
     RK_U32 *reg = ctx->regs_set.val;
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;

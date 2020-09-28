@@ -55,8 +55,8 @@ typedef struct HalH264eVepu541Ctx_t {
 
     /* syntax for input from enc_impl */
     RK_U32                  updated;
-    SynH264eSps             *sps;
-    SynH264ePps             *pps;
+    H264eSps                *sps;
+    H264ePps                *pps;
     H264eSlice              *slice;
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
@@ -448,8 +448,8 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     return ret;
 }
 
-static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
-                                SynH264ePps *pps, H264eSlice *slice)
+static void setup_vepu541_codec(Vepu541H264eRegSet *regs, H264eSps *sps,
+                                H264ePps *pps, H264eSlice *slice)
 {
     hal_h264e_dbg_func("enter\n");
 
@@ -664,8 +664,8 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, SynH264eSps *sps,
-                                   SynH264ePps *pps, H264eSlice *slice)
+static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
+                                   H264ePps *pps, H264eSlice *slice)
 {
     hal_h264e_dbg_func("enter\n");
 
@@ -697,7 +697,7 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, SynH264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, SynH264eSps *sps,
+static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
                                   EncRcTask *rc_task)
 {
     EncRcTaskInfo *rc_info = &rc_task->info;
@@ -965,7 +965,7 @@ static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_me(Vepu541H264eRegSet *regs, SynH264eSps *sps,
+static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
                              H264eSlice *slice)
 {
     RK_S32 level_idc = sps->level_idc;
@@ -1289,8 +1289,8 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     Vepu541H264eRegSet *regs = &ctx->regs_set;
     MppEncCfgSet *cfg = ctx->cfg;
-    SynH264eSps *sps = ctx->sps;
-    SynH264ePps *pps = ctx->pps;
+    H264eSps *sps = ctx->sps;
+    H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
 
     hal_h264e_dbg_func("enter %p\n", hal);

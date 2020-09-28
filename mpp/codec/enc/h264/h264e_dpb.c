@@ -102,7 +102,7 @@ MPP_RET h264e_dpb_init(H264eDpb *dpb, H264eReorderInfo *reorder, H264eMarkingInf
     return MPP_OK;
 }
 
-MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps)
+MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, H264eSps *sps)
 {
     MPP_RET ret = MPP_OK;
     MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(cfg->ref_cfg);
