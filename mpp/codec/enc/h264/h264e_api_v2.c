@@ -50,8 +50,8 @@ typedef struct {
     RK_U32              idr_request;
 
     /* H.264 high level syntax */
-    SynH264eSps         sps;
-    SynH264ePps         pps;
+    H264eSps            sps;
+    H264ePps            pps;
 
     /*
      * H.264 low level syntax

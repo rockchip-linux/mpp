@@ -58,9 +58,9 @@ H264eLevelInfo level_infos[] = {
     {   H264_LEVEL_6_2, 16711680,   139264,     696320,  800000, "6.2" },
 };
 
-MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
+MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
 {
-    SynH264eVui *vui = &sps->vui;
+    H264eVui *vui = &sps->vui;
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncH264Cfg *h264 = &cfg->codec.h264;
@@ -196,7 +196,7 @@ MPP_RET h264e_sps_update(SynH264eSps *sps, MppEncCfgSet *cfg)
     return MPP_OK;
 }
 
-MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
+MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *data = mpp_packet_get_data(packet);
@@ -295,7 +295,7 @@ MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
     /* vui_parameters_present_flag */
     mpp_writer_put_bits(bit, sps->vui.vui_present, 1);
     if (sps->vui.vui_present) {
-        SynH264eVui *vui = &sps->vui;
+        H264eVui *vui = &sps->vui;
 
         /* aspect_ratio_info_present_flag */
         mpp_writer_put_bits(bit, vui->aspect_ratio_info_present, 1);
@@ -398,7 +398,7 @@ MPP_RET h264e_sps_to_packet(SynH264eSps *sps, MppPacket packet, RK_S32 *len)
     return MPP_OK;
 }
 
-MPP_RET h264e_sps_dump(SynH264eSps *sps)
+MPP_RET h264e_sps_dump(H264eSps *sps)
 {
     (void) sps;
     return MPP_OK;

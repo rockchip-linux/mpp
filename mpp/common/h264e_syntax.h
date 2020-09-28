@@ -40,7 +40,7 @@ typedef struct H264eSyntaxDesc_t {
     void                *p;
 } H264eSyntaxDesc;
 
-typedef struct SynH264eVui_t {
+typedef struct H264eVui_t {
     RK_U32      vui_present;
 
     RK_S32      aspect_ratio_info_present;
@@ -96,9 +96,9 @@ typedef struct SynH264eVui_t {
     RK_S32      log2_max_mv_length_vertical;
     RK_S32      num_reorder_frames;
     RK_S32      max_dec_frame_buffering;
-} SynH264eVui;
+} H264eVui;
 
-typedef struct SynH264eSps_t {
+typedef struct H264eSps_t {
     RK_S32      profile_idc;
 
     RK_S32      constraint_set0;
@@ -136,10 +136,10 @@ typedef struct SynH264eSps_t {
         RK_S32  bottom;
     } crop;
 
-    SynH264eVui    vui;
-} SynH264eSps;
+    H264eVui    vui;
+} H264eSps;
 
-typedef struct SynH264ePps_t {
+typedef struct H264ePps_t {
     RK_S32      pps_id;
     RK_S32      sps_id;
 
@@ -170,7 +170,7 @@ typedef struct SynH264ePps_t {
     // Only support flat and default scaling list
     RK_S32      pic_scaling_matrix_present;
     RK_S32      use_default_scaling_matrix[H264_SCALING_MATRIX_TYPE_BUTT];
-} SynH264ePps;
+} H264ePps;
 
 typedef struct H264ePrefixNal_t {
     RK_S32      nal_ref_idc;

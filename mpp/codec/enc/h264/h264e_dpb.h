@@ -116,7 +116,7 @@ extern "C" {
 MPP_RET h264e_dpb_init(H264eDpb *dpb, H264eReorderInfo *reorder, H264eMarkingInfo *marking);
 MPP_RET h264e_dpb_deinit(H264eDpb *dpb);
 
-MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, SynH264eSps *sps);
+MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, H264eSps *sps);
 
 /*
  * Setup current frame config using flags
