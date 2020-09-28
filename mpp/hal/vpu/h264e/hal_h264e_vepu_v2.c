@@ -20,6 +20,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_buffer.h"
+#include "mpp_enc_ref.h"
 
 #include "vepu_common.h"
 

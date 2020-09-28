@@ -17,6 +17,7 @@
 #ifndef __H264E_DPB_H__
 #define __H264E_DPB_H__
 
+#include "h264e_syntax.h"
 #include "h264e_sps.h"
 #include "mpp_enc_ref.h"
 

@@ -177,4 +177,6 @@ typedef enum H264ScalingListType_e {
     H264_SCALING_MATRIX_TYPE_BUTT,
 } H264ScalingMatrixType;
 
+#define H264E_MAX_REFS_CNT          16
+
 #endif /*__H264_SYNTAX_H__*/

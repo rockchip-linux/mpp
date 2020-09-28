@@ -24,6 +24,7 @@
 
 #include "h264e_debug.h"
 #include "h264e_slice.h"
+#include "h264e_dpb.h"
 
 #define FP_FIFO_IS_FULL
 
