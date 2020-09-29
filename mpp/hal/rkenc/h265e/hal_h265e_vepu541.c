@@ -981,7 +981,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->int_en.brsp_ostd_en   = 1;
     regs->int_en.wbus_err_en    = 1;
     regs->int_en.rbus_err_en    = 1;
-    regs->int_en.wdg_en         = 1;
+    regs->int_en.wdg_en         = 0;
 
     regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
     regs->enc_rsl.pic_wfill     = (syn->pp.pic_width & 0x7)
@@ -998,8 +998,8 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 
     regs->enc_pic.rdo_wgt_sel   = (ctx->frame_type == INTRA_FRAME) ? 0 : 1;
 
-    regs->enc_wdg.vs_load_thd   = 0x1ffff;
-    regs->enc_wdg.rfp_load_thd  = 0xff;
+    regs->enc_wdg.vs_load_thd   = 0;
+    regs->enc_wdg.rfp_load_thd  = 0;
 
     regs->dtrns_cfg.cime_dspw_orsd  = (ctx->frame_type == INTER_P_FRAME);
 
