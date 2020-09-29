@@ -422,99 +422,287 @@ err:
     return ret;
 }
 
-static void fill_MPP_FMT_RGB565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void get_rgb_color(RK_U32 *R, RK_U32 *G, RK_U32 *B, RK_S32 x, RK_S32 y, RK_S32 frm_cnt)
 {
-    RK_U16 val = ((R >> 3) & 0x1f) | (((G >> 2) & 0x3f) << 5) | (((B >> 3) & 0x1f) << 11);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // frame 0 -> red
+    if (frm_cnt == 0) {
+        R[0] = 0xff;
+        G[0] = 0;
+        B[0] = 0;
+        return ;
+    }
+
+    // frame 1 -> green
+    if (frm_cnt == 1) {
+        R[0] = 0;
+        G[0] = 0xff;
+        B[0] = 0;
+        return ;
+    }
+
+    // frame 2 -> blue
+    if (frm_cnt == 2) {
+        R[0] = 0;
+        G[0] = 0;
+        B[0] = 0xff;
+        return ;
+    }
+
+    // moving color bar
+    RK_U8 Y = (0   +  x + y  + frm_cnt * 3);
+    RK_U8 U = (128 + (y / 2) + frm_cnt * 2);
+    RK_U8 V = (64  + (x / 2) + frm_cnt * 5);
+
+    RK_S32 _R = Y + ((360 * (V - 128)) >> 8);
+    RK_S32 _G = Y - (((88 * (U - 128) + 184 * (V - 128))) >> 8);
+    RK_S32 _B = Y + ((455 * (U - 128)) >> 8);
+
+    R[0] = MPP_CLIP3(0, 255, _R);
+    G[0] = MPP_CLIP3(0, 255, _G);
+    B[0] = MPP_CLIP3(0, 255, _B);
 }
 
-static void fill_MPP_FMT_BGR565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_RGB565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U16 val = ((B >> 3) & 0x1f) | (((G >> 2) & 0x3f) << 5) | (((R >> 3) & 0x1f) << 11);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // MPP_FMT_RGB565 = ffmpeg: rgb565be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (rrrr,rggg,gggb,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 3) & 0x1f) << 11) |
+                 (((G >> 2) & 0x3f) <<  5) |
+                 (((B >> 3) & 0x1f) <<  0);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_RGB555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_BGR565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U16 val = ((R >> 3) & 0x1f) | (((G >> 3) & 0x1f) << 5) | (((B >> 3) & 0x1f) << 10);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // MPP_FMT_BGR565 = ffmpeg: bgr565be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (bbbb,bggg,gggr,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 3) & 0x1f) <<  0) |
+                 (((G >> 2) & 0x3f) <<  5) |
+                 (((B >> 3) & 0x1f) << 11);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_BGR555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_RGB555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U16 val = ((B >> 3) & 0x1f) | (((G >> 3) & 0x1f) << 5) | (((R >> 3) & 0x1f) << 10);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // MPP_FMT_RGB555 = ffmpeg: rgb555be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (0rrr,rrgg,gggb,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 3) & 0x1f) << 10) |
+                 (((G >> 3) & 0x1f) <<  5) |
+                 (((B >> 3) & 0x1f) <<  0);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_RGB444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_BGR555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U16 val = ((R >> 4) & 0xf) | (((G >> 4) & 0xf) << 4) | (((B >> 4) & 0xf) << 8);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // MPP_FMT_BGR555 = ffmpeg: bgr555be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (0bbb,bbgg,gggr,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 3) & 0x1f) <<  0) |
+                 (((G >> 3) & 0x1f) <<  5) |
+                 (((B >> 3) & 0x1f) << 10);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_BGR444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_RGB444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U16 val = ((B >> 4) & 0xf) | (((G >> 4) & 0xf) << 4) | (((R >> 4) & 0xf) << 8);
-    p[0] = (val >> 8) & 0xff;
-    p[1] = (val >> 0) & 0xff;
+    // MPP_FMT_RGB444 = ffmpeg: rgb444be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (0000,rrrr,gggg,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 4) & 0xf) << 8) |
+                 (((G >> 4) & 0xf) << 4) |
+                 (((B >> 4) & 0xf) << 0);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_RGB101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_BGR444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U32 val = ((R * 4) & 0x3ff) | (((G * 4) & 0x3ff) << 10) | (((B * 4) & 0x3ff) << 20);
-    p[0] = (val >> 24) & 0xff;
-    p[1] = (val >> 16) & 0xff;
-    p[2] = (val >>  8) & 0xff;
-    p[3] = (val >>  0) & 0xff;
+    // MPP_FMT_BGR444 = ffmpeg: bgr444be
+    // 16 bit pixel     MSB  -------->  LSB
+    //                 (0000,bbbb,gggg,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |
+    // little endian   |  byte 1 |  byte 0 |
+    RK_U16 val = (((R >> 4) & 0xf) << 0) |
+                 (((G >> 4) & 0xf) << 4) |
+                 (((B >> 4) & 0xf) << 8);
+    if (be) {
+        p[0] = (val >> 8) & 0xff;
+        p[1] = (val >> 0) & 0xff;
+    } else {
+        p[0] = (val >> 0) & 0xff;
+        p[1] = (val >> 8) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_BGR101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_RGB101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    RK_U32 val = ((B * 4) & 0x3ff) | (((G * 4) & 0x3ff) << 10) | (((R * 4) & 0x3ff) << 20);
-    p[0] = (val >> 24) & 0xff;
-    p[1] = (val >> 16) & 0xff;
-    p[2] = (val >>  8) & 0xff;
-    p[3] = (val >>  0) & 0xff;
+    // MPP_FMT_RGB101010
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (00rr,rrrr,rrrr,gggg,gggg,ggbb,bbbb,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    RK_U32 val = (((R * 4) & 0x3ff) << 20) |
+                 (((G * 4) & 0x3ff) << 10) |
+                 (((B * 4) & 0x3ff) <<  0);
+    if (be) {
+        p[0] = (val >> 24) & 0xff;
+        p[1] = (val >> 16) & 0xff;
+        p[2] = (val >>  8) & 0xff;
+        p[3] = (val >>  0) & 0xff;
+    } else {
+        p[0] = (val >>  0) & 0xff;
+        p[1] = (val >>  8) & 0xff;
+        p[2] = (val >> 16) & 0xff;
+        p[3] = (val >> 24) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_ARGB8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_BGR101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    p[0] = 0xff;
-    p[1] = R;
-    p[2] = G;
-    p[3] = B;
+    // MPP_FMT_BGR101010
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (00bb,bbbb,bbbb,gggg,gggg,ggrr,rrrr,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    RK_U32 val = (((R * 4) & 0x3ff) <<  0) |
+                 (((G * 4) & 0x3ff) << 10) |
+                 (((B * 4) & 0x3ff) << 20);
+    if (be) {
+        p[0] = (val >> 24) & 0xff;
+        p[1] = (val >> 16) & 0xff;
+        p[2] = (val >>  8) & 0xff;
+        p[3] = (val >>  0) & 0xff;
+    } else {
+        p[0] = (val >>  0) & 0xff;
+        p[1] = (val >>  8) & 0xff;
+        p[2] = (val >> 16) & 0xff;
+        p[3] = (val >> 24) & 0xff;
+    }
 }
 
-static void fill_MPP_FMT_ABGR8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_ARGB8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    p[0] = 0xff;
-    p[1] = B;
-    p[2] = G;
-    p[3] = R;
+    // MPP_FMT_ARGB8888
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (XXXX,XXXX,rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = 0xff;
+        p[1] = R;
+        p[2] = G;
+        p[3] = B;
+    } else {
+        p[0] = B;
+        p[1] = G;
+        p[2] = R;
+        p[3] = 0xff;
+    }
 }
 
-static void fill_MPP_FMT_BGRA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_ABGR8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    p[0] = B;
-    p[1] = G;
-    p[2] = R;
-    p[3] = 0xff;
+    // MPP_FMT_ABGR8888
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (XXXX,XXXX,bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = 0xff;
+        p[1] = B;
+        p[2] = G;
+        p[3] = R;
+    } else {
+        p[0] = R;
+        p[1] = G;
+        p[2] = B;
+        p[3] = 0xff;
+    }
 }
 
-static void fill_MPP_FMT_RGBA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B)
+static void fill_MPP_FMT_BGRA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    p[0] = R;
-    p[1] = G;
-    p[2] = B;
-    p[3] = 0xff;
+    // MPP_FMT_BGRA8888
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (bbbb,bbbb,gggg,gggg,rrrr,rrrr,XXXX,XXXX)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = B;
+        p[1] = G;
+        p[2] = R;
+        p[3] = 0xff;
+    } else {
+        p[0] = 0xff;
+        p[1] = R;
+        p[2] = G;
+        p[3] = B;
+    }
 }
 
-typedef void (*FillRgbFunc)(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B);
+static void fill_MPP_FMT_RGBA8888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
+{
+    // MPP_FMT_RGBA8888
+    // 32 bit pixel     MSB  -------->  LSB
+    //                 (rrrr,rrrr,gggg,gggg,bbbb,bbbb,XXXX,XXXX)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |  byte 3 |
+    // little endian   |  byte 3 |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = R;
+        p[1] = G;
+        p[2] = B;
+        p[3] = 0xff;
+    } else {
+        p[0] = 0xff;
+        p[1] = B;
+        p[2] = G;
+        p[3] = R;
+    }
+}
+
+typedef void (*FillRgbFunc)(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be);
 
 FillRgbFunc fill_rgb_funcs[] = {
     fill_MPP_FMT_RGB565,
@@ -573,7 +761,7 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
     static RK_S32 is_pixel_stride = 0;
     static RK_S32 not_8_pixel = 0;
 
-    switch (fmt) {
+    switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
         RK_U8 *p = buf_y;
 
@@ -649,19 +837,10 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
 
         for (y = 0; y < height; y++, p += hor_stride) {
             for (x = 0, i = 0; x < width; x++, i += pix_w) {
-                RK_U8 Y = (0   +  x + y  + frame_count * 3);
-                RK_U8 U = (128 + (y / 2) + frame_count * 2);
-                RK_U8 V = (64  + (x / 2) + frame_count * 5);
+                RK_U32 R, G, B;
 
-                RK_S32 R = Y + ((360 * (V - 128)) >> 8);
-                RK_S32 G = Y - (((88 * (U - 128) + 184 * (V - 128))) >> 8);
-                RK_S32 B = Y + ((455 * (U - 128)) >> 8);
-
-                R = MPP_CLIP3(0, 255, R);
-                G = MPP_CLIP3(0, 255, G);
-                B = MPP_CLIP3(0, 255, B);
-
-                fill(p + i, R, G, B);
+                get_rgb_color(&R, &G, &B, x, y, frame_count);
+                fill(p + i, R, G, B, MPP_FRAME_FMT_IS_BE(fmt));
             }
         }
     } break;
@@ -688,19 +867,10 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
 
         for (y = 0; y < height; y++, p += hor_stride) {
             for (x = 0, i = 0; x < width; x++, i += pix_w) {
-                RK_U8 Y = (0   +  x + y  + frame_count * 3);
-                RK_U8 U = (128 + (y / 2) + frame_count * 2);
-                RK_U8 V = (64  + (x / 2) + frame_count * 5);
+                RK_U32 R, G, B;
 
-                RK_S32 R = Y + ((360 * (V - 128)) >> 8);
-                RK_S32 G = Y - (((88 * (U - 128) + 184 * (V - 128))) >> 8);
-                RK_S32 B = Y + ((455 * (U - 128)) >> 8);
-
-                R = MPP_CLIP3(0, 255, R);
-                G = MPP_CLIP3(0, 255, G);
-                B = MPP_CLIP3(0, 255, B);
-
-                fill(p + i, R, G, B);
+                get_rgb_color(&R, &G, &B, x, y, frame_count);
+                fill(p + i, R, G, B, MPP_FRAME_FMT_IS_BE(fmt));
             }
         }
     } break;
