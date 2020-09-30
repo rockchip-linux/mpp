@@ -190,42 +190,42 @@ typedef enum {
 
 /* mpp color format index definition */
 typedef enum {
-    MPP_FMT_YUV420SP        = MPP_FRAME_FMT_YUV,        /* YYYY... UV... (NV12)     */
+    MPP_FMT_YUV420SP        = (MPP_FRAME_FMT_YUV + 0),  /* YYYY... UV... (NV12)     */
     /*
      * A rockchip specific pixel format, without gap between pixel aganist
      * the P010_10LE/P010_10BE
      */
-    MPP_FMT_YUV420SP_10BIT,
-    MPP_FMT_YUV422SP,                                   /* YYYY... UVUV... (NV16)   */
-    MPP_FMT_YUV422SP_10BIT,                             ///< Not part of ABI
-    MPP_FMT_YUV420P,                                    /* YYYY... U...V...  (I420) */
-    MPP_FMT_YUV420SP_VU,                                /* YYYY... VUVUVU... (NV21) */
-    MPP_FMT_YUV422P,                                    /* YYYY... UU...VV...(422P) */
-    MPP_FMT_YUV422SP_VU,                                /* YYYY... VUVUVU... (NV61) */
-    MPP_FMT_YUV422_YUYV,                                /* YUYVYUYV... (YUY2)       */
-    MPP_FMT_YUV422_YVYU,                                /* YVYUYVYU... (YVY2)       */
-    MPP_FMT_YUV422_UYVY,                                /* UYVYUYVY... (UYVY)       */
-    MPP_FMT_YUV422_VYUY,                                /* VYUYVYUY... (VYUY)       */
-    MPP_FMT_YUV400,                                     /* YYYY...                  */
-    MPP_FMT_YUV440SP,                                   /* YYYY... UVUV...          */
-    MPP_FMT_YUV411SP,                                   /* YYYY... UV...            */
-    MPP_FMT_YUV444SP,                                   /* YYYY... UVUVUVUV...      */
+    MPP_FMT_YUV420SP_10BIT  = (MPP_FRAME_FMT_YUV + 1),
+    MPP_FMT_YUV422SP        = (MPP_FRAME_FMT_YUV + 2),  /* YYYY... UVUV... (NV16)   */
+    MPP_FMT_YUV422SP_10BIT  = (MPP_FRAME_FMT_YUV + 3),  ///< Not part of ABI
+    MPP_FMT_YUV420P         = (MPP_FRAME_FMT_YUV + 4),  /* YYYY... U...V...  (I420) */
+    MPP_FMT_YUV420SP_VU     = (MPP_FRAME_FMT_YUV + 5),  /* YYYY... VUVUVU... (NV21) */
+    MPP_FMT_YUV422P         = (MPP_FRAME_FMT_YUV + 6),  /* YYYY... UU...VV...(422P) */
+    MPP_FMT_YUV422SP_VU     = (MPP_FRAME_FMT_YUV + 7),  /* YYYY... VUVUVU... (NV61) */
+    MPP_FMT_YUV422_YUYV     = (MPP_FRAME_FMT_YUV + 8),  /* YUYVYUYV... (YUY2)       */
+    MPP_FMT_YUV422_YVYU     = (MPP_FRAME_FMT_YUV + 9),  /* YVYUYVYU... (YVY2)       */
+    MPP_FMT_YUV422_UYVY     = (MPP_FRAME_FMT_YUV + 10), /* UYVYUYVY... (UYVY)       */
+    MPP_FMT_YUV422_VYUY     = (MPP_FRAME_FMT_YUV + 11), /* VYUYVYUY... (VYUY)       */
+    MPP_FMT_YUV400          = (MPP_FRAME_FMT_YUV + 12), /* YYYY...                  */
+    MPP_FMT_YUV440SP        = (MPP_FRAME_FMT_YUV + 13), /* YYYY... UVUV...          */
+    MPP_FMT_YUV411SP        = (MPP_FRAME_FMT_YUV + 14), /* YYYY... UV...            */
+    MPP_FMT_YUV444SP        = (MPP_FRAME_FMT_YUV + 15), /* YYYY... UVUVUVUV...      */
     MPP_FMT_YUV_BUTT,
 
-    MPP_FMT_RGB565          = MPP_FRAME_FMT_RGB,        /* 16-bit RGB               */
-    MPP_FMT_BGR565,                                     /* 16-bit RGB               */
-    MPP_FMT_RGB555,                                     /* 15-bit RGB               */
-    MPP_FMT_BGR555,                                     /* 15-bit RGB               */
-    MPP_FMT_RGB444,                                     /* 12-bit RGB               */
-    MPP_FMT_BGR444,                                     /* 12-bit RGB               */
-    MPP_FMT_RGB888,                                     /* 24-bit RGB               */
-    MPP_FMT_BGR888,                                     /* 24-bit RGB               */
-    MPP_FMT_RGB101010,                                  /* 30-bit RGB               */
-    MPP_FMT_BGR101010,                                  /* 30-bit RGB               */
-    MPP_FMT_ARGB8888,                                   /* 32-bit RGB               */
-    MPP_FMT_ABGR8888,                                   /* 32-bit RGB               */
-    MPP_FMT_BGRA8888,                                   /* 32-bit RGB               */
-    MPP_FMT_RGBA8888,                                   /* 32-bit RGB               */
+    MPP_FMT_RGB565          = (MPP_FRAME_FMT_RGB + 0),  /* 16-bit RGB               */
+    MPP_FMT_BGR565          = (MPP_FRAME_FMT_RGB + 1),  /* 16-bit RGB               */
+    MPP_FMT_RGB555          = (MPP_FRAME_FMT_RGB + 2),  /* 15-bit RGB               */
+    MPP_FMT_BGR555          = (MPP_FRAME_FMT_RGB + 3),  /* 15-bit RGB               */
+    MPP_FMT_RGB444          = (MPP_FRAME_FMT_RGB + 4),  /* 12-bit RGB               */
+    MPP_FMT_BGR444          = (MPP_FRAME_FMT_RGB + 5),  /* 12-bit RGB               */
+    MPP_FMT_RGB888          = (MPP_FRAME_FMT_RGB + 6),  /* 24-bit RGB               */
+    MPP_FMT_BGR888          = (MPP_FRAME_FMT_RGB + 7),  /* 24-bit RGB               */
+    MPP_FMT_RGB101010       = (MPP_FRAME_FMT_RGB + 8),  /* 30-bit RGB               */
+    MPP_FMT_BGR101010       = (MPP_FRAME_FMT_RGB + 9),  /* 30-bit RGB               */
+    MPP_FMT_ARGB8888        = (MPP_FRAME_FMT_RGB + 10), /* 32-bit RGB               */
+    MPP_FMT_ABGR8888        = (MPP_FRAME_FMT_RGB + 11), /* 32-bit RGB               */
+    MPP_FMT_BGRA8888        = (MPP_FRAME_FMT_RGB + 12), /* 32-bit RGB               */
+    MPP_FMT_RGBA8888        = (MPP_FRAME_FMT_RGB + 13), /* 32-bit RGB               */
     MPP_FMT_RGB_BUTT,
 
     MPP_FMT_BUTT,
