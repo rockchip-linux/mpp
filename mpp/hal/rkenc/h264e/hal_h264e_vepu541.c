@@ -376,20 +376,6 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg017.src_range  = cfg.src_range;
 
     y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
-
-    switch (hw_fmt) {
-    case VEPU541_FMT_BGRA8888 : {
-        y_stride = y_stride * 4;
-    } break;
-    case VEPU541_FMT_BGR888 : {
-        y_stride = y_stride * 3;
-    } break;
-    case VEPU541_FMT_BGR565 :
-    case VEPU541_FMT_YUYV422 :
-    case VEPU541_FMT_UYVY422 : {
-        y_stride = y_stride * 2;
-    } break;
-    }
     c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
                y_stride : y_stride / 2;
 
@@ -814,17 +800,39 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, RegExtraInfo *info,
         off_in[0] = mpp_frame_get_fbc_offset(frm);;
         off_in[1] = 0;
     } else if (MPP_FRAME_FMT_IS_YUV(fmt)) {
-        if (fmt == MPP_FMT_YUV420SP || fmt == MPP_FMT_YUV422SP) {
+        VepuFmtCfg cfg;
+
+        vepu541_set_fmt(&cfg, fmt);
+        switch (cfg.format) {
+        case VEPU541_FMT_BGRA8888 :
+        case VEPU541_FMT_BGR888 :
+        case VEPU541_FMT_BGR565 : {
+            off_in[0] = 0;
+            off_in[1] = 0;
+        } break;
+        case VEPU541_FMT_YUV420SP :
+        case VEPU541_FMT_YUV422SP : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride;
-        } else if (fmt == MPP_FMT_YUV420P) {
-            off_in[0] = hor_stride * ver_stride;
-            off_in[1] = hor_stride * ver_stride * 5 / 4;
-        } else if (fmt == MPP_FMT_YUV422P) {
+        } break;
+        case VEPU541_FMT_YUV422P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 3 / 2;
-        } else {
-            mpp_err_f("unsupported yuv format %x\n", fmt);
+        } break;
+        case VEPU541_FMT_YUV420P : {
+            off_in[0] = hor_stride * ver_stride;
+            off_in[1] = hor_stride * ver_stride * 5 / 4;
+        } break;
+        case VEPU541_FMT_YUYV422 :
+        case VEPU541_FMT_UYVY422 : {
+            off_in[0] = 0;
+            off_in[1] = 0;
+        } break;
+        case VEPU541_FMT_NONE :
+        default : {
+            off_in[0] = 0;
+            off_in[1] = 0;
+        } break;
         }
     }
 
