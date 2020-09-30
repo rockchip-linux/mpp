@@ -77,26 +77,6 @@ typedef struct linear_model_s {
     RK_S32 weight_mode; /* different weight ratio*/
 } MppLinReg;
 
-/* Virtual buffer */
-typedef struct MppVirtualBuffer_s {
-    RK_S32 bufferSize;          /* size of the virtual buffer */
-    RK_S32 bitRate;             /* input bit rate per second */
-    RK_S32 bitPerPic;           /* average number of bits per picture */
-    RK_S32 picTimeInc;          /* timeInc since last coded picture */
-    RK_S32 timeScale;           /* input frame rate numerator */
-    RK_S32 unitsInTic;          /* input frame rate denominator */
-    RK_S32 virtualBitCnt;       /* virtual (channel) bit count */
-    RK_S32 realBitCnt;          /* real bit count */
-    RK_S32 bufferOccupancy;     /* number of bits in the buffer */
-    RK_S32 skipFrameTarget;     /* how many frames should be skipped in a row */
-    RK_S32 skippedFrames;       /* how many frames have been skipped in a row */
-    RK_S32 nonZeroTarget;
-    RK_S32 bucketFullness;      /* Leaky Bucket fullness */
-    RK_S32 gopRem;
-    RK_S32 windowRem;
-} MppVirtualBuffer;
-
-
 typedef enum ENC_FRAME_TYPE_E {
     INTER_P_FRAME   = 0,
     INTER_B_FRAME   = 1,
@@ -204,7 +184,6 @@ typedef struct MppRateControl_s {
     /*
      * Vbv buffer control
     */
-    MppVirtualBuffer vb;
     RK_S32           hrd;
 
     /*

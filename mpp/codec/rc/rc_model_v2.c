@@ -130,73 +130,67 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
     RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stat_times / fps->fps_out_denorm;
 
     bits_model_param_deinit(ctx);
-    mpp_data_init_v2(&ctx->i_bit, I_WINDOW_LEN);
+    mpp_data_init_v2(&ctx->i_bit, I_WINDOW_LEN, 0);
     if (ctx->i_bit == NULL) {
         mpp_err("i_bit init fail");
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_init_v2(&ctx->vi_bit, I_WINDOW_LEN);
+    mpp_data_init_v2(&ctx->vi_bit, I_WINDOW_LEN, 0);
     if (ctx->vi_bit == NULL) {
         mpp_err("vi_bit init fail");
         return MPP_ERR_MALLOC;
     }
-    mpp_data_init_v2(&ctx->p_bit, P_WINDOW1_LEN);
+    mpp_data_init_v2(&ctx->p_bit, P_WINDOW1_LEN, 0);
     if (ctx->p_bit == NULL) {
         mpp_err("p_bit init fail");
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_init_v2(&ctx->pre_p_bit, P_WINDOW2_LEN);
+    mpp_data_init_v2(&ctx->pre_p_bit, P_WINDOW2_LEN, 0);
     if (ctx->pre_p_bit == NULL) {
         mpp_err("pre_p_bit init fail");
         return MPP_ERR_MALLOC;
     }
-    mpp_data_init_v2(&ctx->pre_i_bit, I_WINDOW_LEN);
+
+    mpp_data_init_v2(&ctx->pre_i_bit, I_WINDOW_LEN, 0);
     if (ctx->pre_i_bit == NULL) {
         mpp_err("pre_i_bit init fail");
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_init_v2(&ctx->pre_i_mean_qp, I_WINDOW_LEN);
+    mpp_data_init_v2(&ctx->pre_i_mean_qp, I_WINDOW_LEN, -1);
     if (ctx->pre_i_mean_qp == NULL) {
         mpp_err("pre_i_mean_qp init fail");
         return MPP_ERR_MALLOC;
     }
-    mpp_data_reset_v2(ctx->pre_i_mean_qp, -1);
-    mpp_data_init_v2(&ctx->madi, P_WINDOW2_LEN);
+    mpp_data_init_v2(&ctx->madi, P_WINDOW2_LEN, 0);
     if (ctx->madi == NULL) {
         mpp_err("madi init fail");
         return MPP_ERR_MALLOC;
     }
-
-    mpp_data_init_v2(&ctx->madp, P_WINDOW2_LEN);
+    mpp_data_init_v2(&ctx->madp, P_WINDOW2_LEN, 0);
     if (ctx->madp == NULL) {
         mpp_err("madp init fail");
         return MPP_ERR_MALLOC;
     }
-
-    mpp_data_init_v2(&ctx->stat_rate, fps->fps_out_num);
+    mpp_data_init_v2(&ctx->stat_rate, fps->fps_out_num, 0);
     if (ctx->stat_rate == NULL) {
         mpp_err("stat_rate init fail fps_out_num %d", fps->fps_out_num);
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_init_v2(&ctx->stat_bits, stat_len);
+    mpp_data_init_v2(&ctx->stat_bits, stat_len, ctx->bit_per_frame);
     if (ctx->stat_bits == NULL) {
         mpp_err("stat_bits init fail stat_len %d", stat_len);
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_reset_v2(ctx->stat_rate, 0);
-
-    mpp_data_init_v2(&ctx->gop_bits, gop_len);
+    mpp_data_init_v2(&ctx->gop_bits, gop_len, 0);
     if (ctx->gop_bits == NULL) {
         mpp_err("gop_bits init fail gop_len %d", gop_len);
         return MPP_ERR_MALLOC;
     }
-    mpp_data_reset_v2(ctx->gop_bits, 0);
-    mpp_data_reset_v2(ctx->stat_bits, ctx->bit_per_frame);
     return MPP_OK;
 }
 
@@ -356,6 +350,7 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         case INTRA_FRAME: {
             i_scale = mpp_clip(i_scale, 16, 16000);
             total_bits = total_bits * i_scale;
+
         } break;
 
         case INTER_P_FRAME: {
@@ -511,7 +506,7 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RcCfg *usr_cfg = &p->usr_cfg;
     RK_S32 stat_time = usr_cfg->stat_times;
     RK_S32 pre_ins_bps = mpp_data_sum_v2(p->stat_bits) / stat_time;
-    RK_S32 ins_bps = (pre_ins_bps * stat_time - p->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (pre_ins_bps * stat_time - mpp_data_get_pre_val_v2(p->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 real_bit = cfg->bit_real;
     RK_S32 target_bit = cfg->bit_target;
     RK_S32 target_bps = p->target_bps;
@@ -646,7 +641,7 @@ MPP_RET reenc_calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RcCfg *usr_cfg = &p->usr_cfg;
     RK_S32 stat_time = usr_cfg->stat_times;
     RK_S32 pre_ins_bps = mpp_data_sum_v2(p->stat_bits) / stat_time;
-    RK_S32 ins_bps = (pre_ins_bps * stat_time - p->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (pre_ins_bps * stat_time - mpp_data_get_pre_val_v2(p->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 bps_change = p->target_bps;
     RK_S32 max_bps_target = usr_cfg->bps_max;
 
@@ -692,8 +687,8 @@ RK_S32 moving_ratio_calc(RcModelV2Ctx *ctx)
     RK_S32 percent = 0;
 
     for (i = 0; i < 2; i++) {
-        RK_S32 pre_I_bit = ctx->pre_i_bit->val[i];
-        RK_S32 pre_mean_qp = ctx->pre_i_mean_qp->val[i];
+        RK_S32 pre_I_bit = mpp_data_get_pre_val_v2(ctx->pre_i_bit, i);
+        RK_S32 pre_mean_qp = mpp_data_get_pre_val_v2(ctx->pre_i_mean_qp, i);
         if (pre_mean_qp == -1) {
             scale = 32;
         } else {
@@ -971,7 +966,7 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RK_S32 bit_thr = 0;
     RK_S32 stat_time = usr_cfg->stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps * stat_time - ctx->stat_bits->val[ctx->stat_bits->size - 1]
+    RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
                       + cfg->bit_real) / stat_time;
     RK_S32 target_bps;
     RK_S32 ret = MPP_OK;
@@ -1119,6 +1114,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         info->quality_max = usr_cfg->max_quality;
         info->quality_min = usr_cfg->min_quality;
     }
+
 
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
     rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
