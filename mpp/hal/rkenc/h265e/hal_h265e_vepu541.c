@@ -680,16 +680,18 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
     regs->src_fmt.src_range = fmt->src_range;
     regs->src_proc.src_rot = prep_cfg->rotation;
 
-    stridey = prep_cfg->hor_stride ? prep_cfg->hor_stride : prep_cfg->width;
-
-    if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
-        stridey = stridey * 4;
-    else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
-        stridey = stridey * 3;
-    else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
-             regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
-             regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
-        stridey = stridey * 2;
+    if (prep_cfg->hor_stride) {
+        stridey = prep_cfg->hor_stride;
+    } else {
+        if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
+            stridey = prep_cfg->width * 4;
+        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
+            stridey = prep_cfg->width * 3;
+        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
+                 regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
+                 regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
+            stridey = prep_cfg->width * 2;
+    }
 
     stridec = (regs->src_fmt.src_cfmt == VEPU541_FMT_YUV422SP ||
                regs->src_fmt.src_cfmt == VEPU541_FMT_YUV420SP) ?

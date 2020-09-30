@@ -32,7 +32,7 @@ static void fill_picture_parameters(const H265eCtx *h,
 
     pp->pic_width  = h->cfg->prep.width;
     pp->pic_height = h->cfg->prep.height;
-    pp->hor_stride  = h->cfg->prep.hor_stride;
+    pp->hor_stride = h->cfg->prep.hor_stride;
     pp->ver_stride = h->cfg->prep.ver_stride;
     pp->pps_id = h->slice->m_ppsId;
     pp->sps_id = pps->m_SPSId;
