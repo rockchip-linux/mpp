@@ -33,15 +33,10 @@ int main()
 
     mpp_log("mpp rc test start\n");
 
-    mpp_data_init_v2(&data_2, 2);
-    mpp_data_init_v2(&data_5, 5);
-    mpp_data_init_v2(&data_8, 8);
-    mpp_data_init_v2(&data_30, 30);
-
-    mpp_data_reset_v2(data_2, 0);
-    mpp_data_reset_v2(data_5, 0);
-    mpp_data_reset_v2(data_8, 0);
-    mpp_data_reset_v2(data_30, 0);
+    mpp_data_init_v2(&data_2, 2, 0);
+    mpp_data_init_v2(&data_5, 5, 0);
+    mpp_data_init_v2(&data_8, 8, 0);
+    mpp_data_init_v2(&data_30, 30, 0);
 
     for (i = 0; i < 50; i++) {
         val = i;

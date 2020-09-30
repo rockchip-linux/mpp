@@ -44,6 +44,7 @@ typedef struct MppDataV2_t {
     RK_S32  pos_w;
     RK_S32  pos_r;
     RK_S32  *val;
+    RK_S64  sum;
 } MppDataV2;
 
 /*
@@ -293,12 +294,13 @@ typedef struct RecordNodeV2_t {
 extern "C" {
 #endif
 
-MPP_RET mpp_data_init_v2(MppDataV2 **p, RK_S32 len);
+MPP_RET mpp_data_init_v2(MppDataV2 **p, RK_S32 len, RK_S32 value);
 void mpp_data_deinit_v2(MppDataV2 *p);
 void mpp_data_reset_v2(MppDataV2 *p, RK_S32 val);
 void mpp_data_update_v2(MppDataV2 *p, RK_S32 val);
 RK_S32 mpp_data_sum_v2(MppDataV2 *p);
 RK_S32 mpp_data_mean_v2(MppDataV2 *p);
+RK_S32 mpp_data_get_pre_val_v2(MppDataV2 *p, RK_S32 idx);
 RK_S32 mpp_data_sum_with_ratio_v2(MppDataV2 *p, RK_S32 len, RK_S32 num, RK_S32 denorm);
 
 void mpp_pid_reset_v2(MppPIDCtxV2 *p);

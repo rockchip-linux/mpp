@@ -418,7 +418,7 @@ MPP_RET reenc_calc_cbr_ratio_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 real_bit = cfg->bit_real;
     RK_S32 target_bit = cfg->bit_target;
     RK_S32 target_bps = ctx->target_bps;
@@ -499,7 +499,8 @@ MPP_RET reenc_calc_vbr_ratio_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
 {
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
+                      + cfg->bit_real) / stat_time;
     RK_S32 bps_change = ctx->target_bps;
     RK_S32 max_bps_target = ctx->usr_cfg.bps_max;
     RK_S32 real_bit = cfg->bit_real;
@@ -556,7 +557,8 @@ MPP_RET check_re_enc_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
     RK_S32 big_flag = 0;
     RK_S32 stat_time = ctx->usr_cfg.stat_times;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
-    RK_S32 ins_bps = (last_ins_bps - ctx->stat_bits->val[0] + cfg->bit_real) / stat_time;
+    RK_S32 ins_bps = (last_ins_bps * stat_time -  mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
+                      + cfg->bit_real) / stat_time;
     RK_S32 target_bps;
     RK_S32 flag1 = 0;
     RK_S32 flag2 = 0;
