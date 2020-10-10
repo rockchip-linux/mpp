@@ -981,7 +981,7 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
     RK_S32 pic_w = sps->pic_width_in_mbs * 16;
     RK_S32 pic_wd64 = (pic_w + 63) / 64;
     RK_S32 cime_w = 176;
-    RK_S32 cime_h = 122;
+    RK_S32 cime_h = 112;
     RK_S32 cime_blk_w_max = 44;
     RK_S32 cime_blk_h_max = 28;
 
@@ -1221,24 +1221,24 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
 
     regs->atr_thd1_h264.atr_qp = 45;
     regs->atf_tthd[0] = 0;
-    regs->atf_tthd[1] = 144;
-    regs->atf_tthd[2] = 576;
+    regs->atf_tthd[1] = 64;
+    regs->atf_tthd[2] = 144;
     regs->atf_tthd[3] = 2500;
 
-    regs->atf_sthd0_h264.atf_sthd_10 = 64;
-    regs->atf_sthd0_h264.atf_sthd_max = 160;
+    regs->atf_sthd0_h264.atf_sthd_10 = 80;
+    regs->atf_sthd0_h264.atf_sthd_max = 235;
 
-    regs->atf_sthd1_h264.atf_sthd_11 = 72;
-    regs->atf_sthd1_h264.atf_sthd_20 = 96;
+    regs->atf_sthd1_h264.atf_sthd_11 = 144;
+    regs->atf_sthd1_h264.atf_sthd_20 = 192;
 
-    regs->atf_wgt0_h264.atf_wgt10 = 28;
-    regs->atf_wgt0_h264.atf_wgt11 = 26;
+    regs->atf_wgt0_h264.atf_wgt10 = 26;
+    regs->atf_wgt0_h264.atf_wgt11 = 24;
 
-    regs->atf_wgt1_h264.atf_wgt12 = 21;
-    regs->atf_wgt1_h264.atf_wgt20 = 25;
+    regs->atf_wgt1_h264.atf_wgt12 = 19;
+    regs->atf_wgt1_h264.atf_wgt20 = 22;
 
-    regs->atf_wgt2_h264.atf_wgt21 = 23;
-    regs->atf_wgt2_h264.atf_wgt30 = 22;
+    regs->atf_wgt2_h264.atf_wgt21 = 19;
+    regs->atf_wgt2_h264.atf_wgt30 = 19;
 
     regs->atf_ofst0_h264.atf_ofst10 = 3500;
     regs->atf_ofst0_h264.atf_ofst11 = 3500;
