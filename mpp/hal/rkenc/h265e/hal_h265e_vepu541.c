@@ -1081,7 +1081,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     }
 
     regs->rdo_cfg.chrm_klut_en = 0;
-    regs->rdo_cfg.seq_scaling_matrix_present_flg = syn->pp.scaling_list_data_present_flag;
+    regs->rdo_cfg.seq_scaling_matrix_present_flg = syn->pp.scaling_list_enabled_flag;
     regs->rdo_cfg.atf_i_en = 0;
     regs->rdo_cfg.atf_p_en = 0;
     {
