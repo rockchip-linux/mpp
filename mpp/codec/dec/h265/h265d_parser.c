@@ -1114,12 +1114,12 @@ static RK_S32 hls_nal_unit(HEVCContext *s)
 
     s->temporal_id = s->temporal_id - 1;
 
-    if (s->temporal_id < 0)
-        return  MPP_ERR_STREAM;
-
     h265d_dbg(H265D_DBG_GLOBAL,
               "nal_unit_type: %d, nuh_layer_id: %d temporal_id: %d\n",
               s->nal_unit_type, s->nuh_layer_id, s->temporal_id);
+
+    if (s->temporal_id < 0)
+        return  MPP_ERR_STREAM;
 
     return (s->nuh_layer_id);
 __BITREAD_ERR:
@@ -1566,7 +1566,8 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
 
         mpp_set_bitread_ctx(&s->HEVClc->gb, (RK_U8 *)nal->data, nal->size);
         mpp_set_pre_detection(&s->HEVClc->gb);
-        hls_nal_unit(s);
+        if (hls_nal_unit(s) < 0)
+            s->nb_nals--;
 
         if (s->nal_unit_type < NAL_VPS) {
 
