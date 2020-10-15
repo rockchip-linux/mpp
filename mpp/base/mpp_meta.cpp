@@ -109,20 +109,21 @@ MppMetaService::MppMetaService()
 
 MppMetaService::~MppMetaService()
 {
-    mpp_assert(list_empty(&mlist_meta));
-    mpp_assert(list_empty(&mlist_node));
-
-    while (!list_empty(&mlist_meta)) {
+    if (!list_empty(&mlist_meta)) {
         MppMetaImpl *pos, *n;
+
+        mpp_log_f("cleaning leaked metadata\n");
+
         list_for_each_entry_safe(pos, n, &mlist_meta, MppMetaImpl, list_meta) {
             put_meta(pos);
         }
     }
 
-    mpp_assert(list_empty(&mlist_node));
-
-    while (!list_empty(&mlist_node)) {
+    if (!list_empty(&mlist_node)) {
         MppMetaNode *pos, *n;
+
+        mpp_log_f("cleaning leaked metadata key-value node\n");
+
         list_for_each_entry_safe(pos, n, &mlist_node, MppMetaNode, list_node) {
             put_node(pos);
         }
