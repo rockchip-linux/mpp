@@ -78,21 +78,13 @@ void mpp_data_reset_v2(MppDataV2 *p, RK_S32 val)
 {
     RK_S32 i;
     RK_S32 *data = p->val;
-    p->pos_r = 0;
-    p->pos_w = 0;
-    p->sum = 0;
-    for (i = 0; i < p->size; i++) {
-        if (p->pos_w < p->size) {
-            *data++ = val;
-            p->sum += val;
-            p->pos_r++;
-        }
-        p->pos_w++;
-    }
 
-    if (p->pos_w >= p->size) {
-        p->pos_w = 0;
-    }
+    p->pos_r = p->size;
+    p->pos_w = 0;
+    p->sum = val * p->size;
+
+    for (i = 0; i < p->size; i++)
+        *data++ = val;
 }
 
 void mpp_data_update_v2(MppDataV2 *p, RK_S32 val)
