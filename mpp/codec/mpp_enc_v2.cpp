@@ -723,7 +723,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     case MPP_VIDEO_CodingMJPEG : {
         MppEncJpegCfg *jpeg = &codec->jpeg;
 
-        cfg->init_quality = jpeg->quant;
+        cfg->init_quality = jpeg->q_factor;
         cfg->max_quality = jpeg->qf_max;
         cfg->min_quality = jpeg->qf_min;
         cfg->max_i_quality = jpeg->qf_max;
