@@ -69,6 +69,7 @@ private:
     RK_U32              meta_id;
     RK_U32              meta_count;
     RK_U32              node_count;
+    RK_U32              finished;
 
 public:
     static MppMetaService *get_instance() {
@@ -101,7 +102,8 @@ public:
 MppMetaService::MppMetaService()
     : meta_id(0),
       meta_count(0),
-      node_count(0)
+      node_count(0),
+      finished(0)
 {
     INIT_LIST_HEAD(&mlist_meta);
     INIT_LIST_HEAD(&mlist_node);
@@ -128,6 +130,7 @@ MppMetaService::~MppMetaService()
             put_node(pos);
         }
     }
+    finished = 1;
 }
 
 RK_S32 MppMetaService::get_index_of_key(MppMetaKey key, MppMetaType type)
@@ -166,6 +169,9 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
 
 void MppMetaService::put_meta(MppMetaImpl *meta)
 {
+    if (finished)
+        return ;
+
     mpp_assert(meta->ref_count);
     if (meta->ref_count)
         meta->ref_count--;

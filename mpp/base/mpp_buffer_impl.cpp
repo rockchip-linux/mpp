@@ -75,6 +75,7 @@ private:
     RK_U32              group_id;
     RK_U32              group_count;
     RK_U32              finalizing;
+    RK_U32              finished;
 
     // misc group for internal / externl buffer with different type
     MppBufferGroupImpl  *misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
@@ -604,6 +605,7 @@ MppBufferService::MppBufferService()
     : group_id(0),
       group_count(0),
       finalizing(0),
+      finished(0),
       misc_count(0)
 {
     RK_S32 i, j;
@@ -655,6 +657,7 @@ MppBufferService::~MppBufferService()
             deinit_buffer_no_lock(pos, __FUNCTION__);
         }
     }
+    finished = 1;
 }
 
 RK_U32 MppBufferService::get_group_id()
@@ -745,6 +748,9 @@ void MppBufferService::set_misc(MppBufferMode mode, MppBufferType type, MppBuffe
 
 void MppBufferService::put_group(MppBufferGroupImpl *p)
 {
+    if (finished)
+        return ;
+
     buffer_group_add_log(p, NULL, GRP_RELEASE, __FUNCTION__);
 
     // remove unused list
