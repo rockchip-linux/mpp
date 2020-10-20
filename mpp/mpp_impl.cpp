@@ -382,12 +382,12 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
-    if (NULL == p || NULL == frame || NULL == p->fp_out || NULL == p->fp_buf)
+    if (NULL == p || NULL == frame || NULL == p->fp_in || NULL == p->fp_buf)
         return MPP_OK;
 
     AutoMutex auto_lock(p->lock);
 
-    dump_frame(p->fp_out, frame, p->fp_buf, p->dump_width, p->dump_height);
+    dump_frame(p->fp_in, frame, p->fp_buf, p->dump_width, p->dump_height);
 
     if (p->debug & MPP_DBG_DUMP_LOG) {
         RK_S64 pts = mpp_frame_get_pts(frame);
