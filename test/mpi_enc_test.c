@@ -470,8 +470,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         }
     }
 
-    mpp_env_get_u32("osd_enable", &p->user_data_enable, 0);
     mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
+    mpp_env_get_u32("user_data_enable", &p->user_data_enable, 0);
 
 RET:
     return ret;
@@ -599,6 +599,27 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                     user_data.len = strlen(str) + 1;
                     mpp_meta_set_ptr(meta, KEY_USER_DATA, &user_data);
                 }
+                static RK_U8 uuid_debug_info[16] = {
+                    0x57, 0x68, 0x97, 0x80, 0xe7, 0x0c, 0x4b, 0x65,
+                    0xa9, 0x06, 0xae, 0x29, 0x94, 0x11, 0xcd, 0x9a
+                };
+
+                MppEncUserDataSet data_group;
+                MppEncUserDataFull datas[2];
+                char *str1 = "this is user data 1\n";
+                char *str2 = "this is user data 2\n";
+                data_group.count = 2;
+                datas[0].len = strlen(str1) + 1;
+                datas[0].pdata = str1;
+                datas[0].uuid = uuid_debug_info;
+
+                datas[1].len = strlen(str2) + 1;
+                datas[1].pdata = str2;
+                datas[1].uuid = uuid_debug_info;
+
+                data_group.datas = datas;
+
+                mpp_meta_set_ptr(meta, KEY_USER_DATAS, &data_group);
             }
 
             if (p->osd_enable) {

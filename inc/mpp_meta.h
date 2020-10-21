@@ -79,6 +79,7 @@ typedef enum MppMetaKey_e {
     KEY_ROI_DATA                = FOURCC_META('r', 'o', 'i', ' '),
     KEY_OSD_DATA                = FOURCC_META('o', 's', 'd', ' '),
     KEY_USER_DATA               = FOURCC_META('u', 's', 'r', 'd'),
+    KEY_USER_DATAS              = FOURCC_META('u', 'r', 'd', 's'),
 
     /* input motion list for smart p rate control */
     KEY_MV_LIST                 = FOURCC_META('m', 'v', 'l', 't'),
