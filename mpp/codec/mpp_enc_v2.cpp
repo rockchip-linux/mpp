@@ -61,10 +61,6 @@ typedef struct MppEncImpl_t {
     EncImpl             impl;
     MppEncHal           enc_hal;
 
-    /* cpb parameters */
-    MppEncRefs          refs;
-    MppEncRefFrmUsrCfg  frm_cfg;
-
     /*
      * Rate control plugin parameters
      */
@@ -88,16 +84,14 @@ typedef struct MppEncImpl_t {
     RK_U32              status_flag;
     RK_U32              notify_flag;
 
-    /* Encoder configure set */
-    MppEncCfgSet        cfg;
-
     /* control process */
     RK_U32              cmd_send;
     RK_U32              cmd_recv;
     MpiCmd              cmd;
     void                *param;
     MPP_RET             *cmd_ret;
-    sem_t               enc_ctrl;
+    sem_t               cmd_start;
+    sem_t               cmd_done;
 
     // legacy support for MPP_ENC_GET_EXTRA_INFO
     MppPacket           hdr_pkt;
@@ -114,6 +108,13 @@ typedef struct MppEncImpl_t {
     RK_S32              rc_cfg_pos;
     RK_S32              rc_cfg_length;
     RK_S32              rc_cfg_size;
+
+    /* cpb parameters */
+    MppEncRefs          refs;
+    MppEncRefFrmUsrCfg  frm_cfg;
+
+    /* Encoder configure set */
+    MppEncCfgSet        cfg;
 } MppEncImpl;
 
 typedef union EncTaskWait_u {
@@ -448,9 +449,11 @@ static RK_S32 check_rc_gop_update(MpiCmd cmd, MppEncCfgSet *cfg)
     return 0;
 }
 
-static void mpp_enc_proc_cfg(MppEncImpl *enc)
+MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
-    switch (enc->cmd) {
+    MPP_RET ret = MPP_OK;
+
+    switch (cmd) {
     case MPP_ENC_GET_HDR_SYNC :
     case MPP_ENC_GET_EXTRA_INFO : {
         /*
@@ -466,39 +469,39 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
             enc->hdr_status.ready = 1;
         }
 
-        if (enc->cmd == MPP_ENC_GET_EXTRA_INFO) {
+        if (cmd == MPP_ENC_GET_EXTRA_INFO) {
             mpp_err("Please use MPP_ENC_GET_HDR_SYNC instead of unsafe MPP_ENC_GET_EXTRA_INFO\n");
             mpp_err("NOTE: MPP_ENC_GET_HDR_SYNC needs MppPacket input\n");
 
-            *(MppPacket *)enc->param = enc->hdr_pkt;
+            *(MppPacket *)param = enc->hdr_pkt;
         } else {
-            mpp_packet_copy((MppPacket)enc->param, enc->hdr_pkt);
+            mpp_packet_copy((MppPacket)param, enc->hdr_pkt);
         }
 
         enc->hdr_status.added_by_ctrl = 1;
     } break;
     case MPP_ENC_GET_RC_API_ALL : {
-        RcApiQueryAll *query = (RcApiQueryAll *)enc->param;
+        RcApiQueryAll *query = (RcApiQueryAll *)param;
 
         rc_brief_get_all(query);
     } break;
     case MPP_ENC_GET_RC_API_BY_TYPE : {
-        RcApiQueryType *query = (RcApiQueryType *)enc->param;
+        RcApiQueryType *query = (RcApiQueryType *)param;
 
         rc_brief_get_by_type(query);
     } break;
     case MPP_ENC_SET_RC_API_CFG : {
-        const RcImplApi *api = (const RcImplApi *)enc->param;
+        const RcImplApi *api = (const RcImplApi *)param;
 
         rc_api_add(api);
     } break;
     case MPP_ENC_GET_RC_API_CURRENT : {
-        RcApiBrief *dst = (RcApiBrief *)enc->param;
+        RcApiBrief *dst = (RcApiBrief *)param;
 
         *dst = enc->rc_brief;
     } break;
     case MPP_ENC_SET_RC_API_CURRENT : {
-        RcApiBrief *src = (RcApiBrief *)enc->param;
+        RcApiBrief *src = (RcApiBrief *)param;
 
         mpp_assert(src->type == enc->coding);
         enc->rc_brief = *src;
@@ -506,40 +509,39 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         enc->rc_status.rc_api_updated = 1;
     } break;
     case MPP_ENC_SET_HEADER_MODE : {
-        if (enc->param) {
-            MppEncHeaderMode mode = *((MppEncHeaderMode *)enc->param);
+        if (param) {
+            MppEncHeaderMode mode = *((MppEncHeaderMode *)param);
 
             if (mode < MPP_ENC_HEADER_MODE_BUTT) {
                 enc->hdr_mode = mode;
                 enc_dbg_ctrl("header mode set to %d\n", mode);
             } else {
                 mpp_err_f("invalid header mode %d\n", mode);
-                *enc->cmd_ret = MPP_NOK;
+                ret = MPP_NOK;
             }
         } else {
             mpp_err_f("invalid NULL ptr on setting header mode\n");
-            *enc->cmd_ret = MPP_NOK;
+            ret = MPP_NOK;
         }
     } break;
     case MPP_ENC_SET_SEI_CFG : {
-        if (enc->param) {
-            MppEncSeiMode mode = *((MppEncSeiMode *)enc->param);
+        if (param) {
+            MppEncSeiMode mode = *((MppEncSeiMode *)param);
 
             if (mode <= MPP_ENC_SEI_MODE_ONE_FRAME) {
                 enc->sei_mode = mode;
                 enc_dbg_ctrl("sei mode set to %d\n", mode);
             } else {
                 mpp_err_f("invalid sei mode %d\n", mode);
-                *enc->cmd_ret = MPP_NOK;
+                ret = MPP_NOK;
             }
         } else {
             mpp_err_f("invalid NULL ptr on setting header mode\n");
-            *enc->cmd_ret = MPP_NOK;
+            ret = MPP_NOK;
         }
     } break;
     case MPP_ENC_SET_REF_CFG : {
-        MPP_RET ret = MPP_OK;
-        MppEncRefCfg src = (MppEncRefCfg)enc->param;
+        MppEncRefCfg src = (MppEncRefCfg)param;
         MppEncRefCfg dst = enc->cfg.ref_cfg;
 
         if (NULL == src)
@@ -553,20 +555,18 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         ret = mpp_enc_ref_cfg_copy(dst, src);
         if (ret) {
             mpp_err_f("failed to copy ref cfg ret %d\n", ret);
-            *enc->cmd_ret = ret;
         }
 
         ret = mpp_enc_refs_set_cfg(enc->refs, dst);
         if (ret) {
             mpp_err_f("failed to set ref cfg ret %d\n", ret);
-            *enc->cmd_ret = ret;
         }
 
         if (mpp_enc_refs_update_hdr(enc->refs))
             enc->hdr_status.val = 0;
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
-        MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)enc->param;
+        MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)param;
         MppEncOSDPltCfg *dst = &enc->cfg.plt_cfg;
         RK_U32 change = src->change;
 
@@ -595,18 +595,20 @@ static void mpp_enc_proc_cfg(MppEncImpl *enc)
         }
     } break;
     default : {
-        enc_impl_proc_cfg(enc->impl, enc->cmd, enc->param);
+        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
     } break;
     }
 
-    if (check_resend_hdr(enc->cmd, enc->param, &enc->cfg)) {
+    if (check_resend_hdr(cmd, param, &enc->cfg)) {
         enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->hdr_status.val = 0;
     }
-    if (check_rc_cfg_update(enc->cmd, &enc->cfg))
+    if (check_rc_cfg_update(cmd, &enc->cfg))
         enc->rc_status.rc_api_user_cfg = 1;
-    if (check_rc_gop_update(enc->cmd, &enc->cfg))
+    if (check_rc_gop_update(cmd, &enc->cfg))
         mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
+
+    return ret;
 }
 
 #define ENC_RUN_FUNC2(func, ctx, task, mpp, ret)        \
@@ -1043,11 +1045,17 @@ void *mpp_enc_thread(void *data)
         // 1. process user control
         if (enc->cmd_send != enc->cmd_recv) {
             enc_dbg_detail("ctrl proc %d cmd %08x\n", enc->cmd_recv, enc->cmd);
-            mpp_enc_proc_cfg(enc);
-            sem_post(&enc->enc_ctrl);
+            sem_wait(&enc->cmd_start);
+            ret = mpp_enc_proc_cfg(enc, enc->cmd, enc->param);
+            if (ret)
+                *enc->cmd_ret = ret;
             enc->cmd_recv++;
             enc_dbg_detail("ctrl proc %d done send %d\n", enc->cmd_recv,
                            enc->cmd_send);
+            mpp_assert(enc->cmd_send == enc->cmd_send);
+            enc->param = NULL;
+            enc->cmd = (MpiCmd)0;
+            sem_post(&enc->cmd_done);
             continue;
         }
 
@@ -1429,7 +1437,8 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     ret = mpp_enc_refs_set_cfg(p->refs, mpp_enc_ref_default());
 
     sem_init(&p->enc_reset, 0, 0);
-    sem_init(&p->enc_ctrl, 0, 0);
+    sem_init(&p->cmd_start, 0, 0);
+    sem_init(&p->cmd_done, 0, 0);
 
     *enc = p;
     return ret;
@@ -1482,7 +1491,8 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
     enc->rc_cfg_length = 0;
 
     sem_destroy(&enc->enc_reset);
-    sem_destroy(&enc->enc_ctrl);
+    sem_destroy(&enc->cmd_start);
+    sem_destroy(&enc->cmd_done);
 
     mpp_free(enc);
     return MPP_OK;
@@ -1634,10 +1644,14 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         enc->cmd = cmd;
         enc->param = param;
         enc->cmd_ret = &ret;
-
         enc->cmd_send++;
         mpp_enc_notify_v2(ctx, MPP_ENC_CONTROL);
-        sem_wait(&enc->enc_ctrl);
+        sem_post(&enc->cmd_start);
+        sem_wait(&enc->cmd_done);
+
+        /* check the command is processed */
+        mpp_assert(!enc->cmd);
+        mpp_assert(!enc->param);
     } break;
     }
 
