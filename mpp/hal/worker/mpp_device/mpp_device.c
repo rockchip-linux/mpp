@@ -89,6 +89,14 @@ typedef struct MppDevCtxImpl_t {
 
     RK_S32 req_cnt;
     MppReqV1 reqs[MAX_REQ_NUM];
+
+    /* support max cmd buttom  */
+    RK_U32 support_cmd_butt;
+    RK_U32 query_cmd_butt;
+    RK_U32 init_cmd_butt;
+    RK_U32 send_cmd_butt;
+    RK_U32 poll_cmd_butt;
+    RK_U32 control_cmd_butt;
 } MppDevCtxImpl;
 
 #define MPP_DEVICE_DBG_FUNC                 (0x00000001)
@@ -115,6 +123,70 @@ typedef struct MppDevCtxImpl_t {
 #endif
 
 static RK_U32 mpp_device_debug = 0;
+
+static MPP_RET mpp_probe_cmd_butt(RK_S32 dev, MppDevCtxImpl *p)
+{
+    MPP_RET ret = MPP_OK;
+
+    p->support_cmd_butt = access("/proc/mpp_service/support_cmd", F_OK) ? 0 : 1;
+    if (p->support_cmd_butt) {
+        MppReqV1 mpp_req;
+
+        memset(&mpp_req, 0, sizeof(mpp_req));
+        p->query_cmd_butt = MPP_CMD_QUERY_BASE;
+        mpp_req.cmd = MPP_CMD_QUERY_CMD_SUPPORT;
+        mpp_req.data_ptr = REQ_DATA_PTR(&p->query_cmd_butt);
+
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query cmd support error %s.\n", strerror(errno));
+
+        p->init_cmd_butt = MPP_CMD_INIT_BASE;
+        mpp_req.data_ptr = REQ_DATA_PTR(&p->init_cmd_butt);
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query INIT_CMD_BUTT error %s.\n", strerror(errno));
+
+        p->send_cmd_butt = MPP_CMD_SEND_BASE;
+        mpp_req.data_ptr = REQ_DATA_PTR(&p->send_cmd_butt);
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query SEND_CMD_BUTT error %s.\n", strerror(errno));
+
+        p->poll_cmd_butt = MPP_CMD_POLL_BASE;
+        mpp_req.data_ptr = REQ_DATA_PTR(&p->poll_cmd_butt);
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query POLL_CMD_BUTT error %s.\n", strerror(errno));
+
+        p->control_cmd_butt = MPP_CMD_CONTROL_BASE;
+        mpp_req.data_ptr = REQ_DATA_PTR(&p->control_cmd_butt);
+        ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query CONTROL_CMD_BUTT error %s.\n", strerror(errno));
+    }
+
+    return ret;
+}
+
+static MPP_RET mpp_check_cmd_valid(RK_U32 cmd, MppDevCtxImpl *p)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (p->support_cmd_butt > 0) {
+        RK_U32 found = 0;
+
+        found = (cmd < p->query_cmd_butt) ? 1 : 0;
+        found = (cmd >= MPP_CMD_INIT_BASE && cmd < p->init_cmd_butt) ? 1 : found;
+        found = (cmd >= MPP_CMD_SEND_BASE && cmd < p->send_cmd_butt) ? 1 : found;
+        found = (cmd >= MPP_CMD_POLL_BASE && cmd < p->poll_cmd_butt) ? 1 : found;
+        found = (cmd >= MPP_CMD_CONTROL_BASE && cmd < p->control_cmd_butt) ? 1 : found;
+
+        ret = found ? MPP_OK : MPP_NOK;
+    }
+
+    return ret;
+}
 
 static RK_U32 mpp_probe_hw_support(RK_S32 dev)
 {
@@ -278,8 +350,10 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
             RK_S32 ret;
 
             /* if ioctl_version is 1, query hw supprot*/
-            if (p->ioctl_version > 0)
+            if (p->ioctl_version > 0) {
+                mpp_probe_cmd_butt(dev, p);
                 mpp_probe_hw_support(dev);
+            }
 
             client_type = mpp_device_get_client_type(p, p->type, p->coding);
             ret = mpp_device_set_client_type(p, dev, client_type);
@@ -347,6 +421,11 @@ MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
 
     if (p->req_cnt >= MAX_REQ_NUM) {
         mpp_err_f("ctx %p request count %d overfow\n", ctx, p->req_cnt);
+        return MPP_ERR_VALUE;
+    }
+
+    if (mpp_check_cmd_valid(req->cmd, p)) {
+        mpp_err_f("ctx %p cmd 0x%08x not support\n", ctx, req->cmd);
         return MPP_ERR_VALUE;
     }
 
