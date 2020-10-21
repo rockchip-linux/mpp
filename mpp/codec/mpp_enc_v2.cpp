@@ -203,6 +203,11 @@ static RK_U8 uuid_usr_data[16] = {
     0x85, 0xd9, 0xb2, 0xa2, 0x4f, 0xa1, 0x19, 0x5b,
 };
 
+static RK_U8 uuid_debug_info[16] = {
+    0x57, 0x68, 0x97, 0x80, 0xe7, 0x0c, 0x4b, 0x65,
+    0xa9, 0x06, 0xae, 0x29, 0x94, 0x11, 0xcd, 0x9a
+};
+
 static void reset_hal_enc_task(HalEncTask *task)
 {
     memset(task, 0, sizeof(*task));
@@ -709,6 +714,47 @@ static void update_rc_cfg_log(MppEncImpl *impl, const char* fmt, ...)
     va_end(args);
 }
 
+static void update_user_datas(EncImpl impl, MppPacket packet, MppFrame frame, HalEncTask *hal_task)
+{
+    MppMeta frm_meta = mpp_frame_get_meta(frame);
+    MppEncUserData *user_data = NULL;
+    MppEncUserDataSet *user_datas = NULL;
+    RK_S32 length = 0;
+
+    mpp_meta_get_ptr(frm_meta, KEY_USER_DATA, (void**)&user_data);
+    if (user_data) {
+        if (user_data->pdata && user_data->len) {
+            enc_impl_add_prefix(impl, packet, &length, uuid_usr_data,
+                                user_data->pdata, user_data->len);
+
+            hal_task->sei_length += length;
+            hal_task->length += length;
+        } else
+            mpp_err_f("failed to insert user data %p len %d\n",
+                      user_data->pdata, user_data->len);
+    }
+
+    mpp_meta_get_ptr(frm_meta, KEY_USER_DATAS, (void**)&user_datas);
+    if (user_datas && user_datas->count) {
+        RK_U32 i = 0;
+
+        for (i = 0; i < user_datas->count; i++) {
+            MppEncUserDataFull *user_data_v2 = &user_datas->datas[i];
+            if (user_data_v2->pdata && user_data_v2->len) {
+                if (user_data_v2->uuid)
+                    enc_impl_add_prefix(impl, packet, &length, user_data_v2->uuid,
+                                        user_data_v2->pdata, user_data_v2->len);
+                else
+                    enc_impl_add_prefix(impl, packet, &length, uuid_debug_info,
+                                        user_data_v2->pdata, user_data_v2->len);
+
+                hal_task->sei_length += length;
+                hal_task->length += length;
+            }
+        }
+    }
+}
+
 static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 {
     MppEncRcCfg *rc = &cfg_set->rc;
@@ -906,24 +952,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     }
 
     if (mpp_frame_has_meta(frame)) {
-        MppMeta frm_meta = mpp_frame_get_meta(frame);
-        MppEncUserData *user_data = NULL;
-
-        mpp_meta_get_ptr(frm_meta, KEY_USER_DATA, (void**)&user_data);
-
-        if (user_data) {
-            if (user_data->pdata && user_data->len) {
-                RK_S32 length = 0;
-
-                enc_impl_add_prefix(impl, packet, &length, uuid_usr_data,
-                                    user_data->pdata, user_data->len);
-
-                hal_task->sei_length += length;
-                hal_task->length += length;
-            } else
-                mpp_err_f("failed to insert user data %p len %d\n",
-                          user_data->pdata, user_data->len);
-        }
+        update_user_datas(impl, packet, frame, hal_task);
     }
 
     // check for user data adding

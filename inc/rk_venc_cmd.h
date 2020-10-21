@@ -1097,8 +1097,19 @@ typedef struct MppEncOSDData_t {
 } MppEncOSDData;
 
 typedef struct MppEncUserData_t {
-    RK_U32 len;
-    void   *pdata;
+    RK_U32              len;
+    void                *pdata;
 } MppEncUserData;
+
+typedef struct MppEncUserDataFull_t {
+    RK_U32              len;
+    RK_U8               *uuid;
+    void                *pdata;
+} MppEncUserDataFull;
+
+typedef struct MppEncUserDataSet_t {
+    RK_U32              count;
+    MppEncUserDataFull  *datas;
+} MppEncUserDataSet;
 
 #endif /*__RK_VENC_CMD_H__*/
