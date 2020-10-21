@@ -538,8 +538,8 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_Inp->task_valid = 0;
 
     //!< check eos
-    if (p_Inp->pkt_eos) {
-        FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Cur->strm, p_Dec->dxva_ctx));
+    if (p_Inp->pkt_eos && !p_Inp->in_length) {
+        FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
         FUN_CHECK(ret = add_empty_nalu(p_strm));
         p_Dec->p_Inp->task_valid = 1;
         p_Dec->p_Inp->task_eos = 1;
@@ -551,6 +551,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_Dec->nalu_ret = HaveNoStream;
         goto __RETURN;
     }
+
     while (pkt_impl->length > 0) {
         p_strm->curdata = &p_Inp->in_buf[p_strm->nalu_offset++];
         pkt_impl->length--;
@@ -564,8 +565,8 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 || (p_strm->nalu_len == NALU_TYPE_EXT_LENGTH)) {
                 FUN_CHECK(ret = judge_is_new_frame(p_Cur, p_strm));
                 if (p_Cur->p_Dec->is_new_frame) {
-                    FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
-                    p_Cur->strm.head_offset = 0;
+                    FUN_CHECK(ret = add_empty_nalu(p_strm));
+                    p_strm->head_offset = 0;
                     p_Cur->p_Inp->task_valid = 1;
                     p_Cur->p_Dec->is_new_frame = 0;
                     break;
@@ -583,7 +584,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 }
             }
             p_Dec->nalu_ret = EndOfNalu;
-            FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
+            FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
             reset_nalu(p_strm);
             break;
         }
@@ -593,6 +594,13 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     if (!p_Inp->in_length) {
         p_strm->nalu_offset = 0;
         p_Dec->nalu_ret = HaveNoStream;
+    }
+
+    if (p_Inp->pkt_eos) {
+        FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
+        FUN_CHECK(ret = add_empty_nalu(p_strm));
+        p_Dec->p_Inp->task_valid = 1;
+        p_Dec->p_Inp->task_eos = 1;
     }
 
 __RETURN:
@@ -654,15 +662,15 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
                 p_strm->nalu_len--;
             }
             p_Dec->nalu_ret = EndOfNalu;
-            FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
+            FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
             reset_nalu(p_strm);
             break;
         }
     }
     if (p_Cur->p_Inp->task_valid) {
-        FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
-        FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
-        p_Cur->strm.head_offset = 0;
+        FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
+        FUN_CHECK(ret = add_empty_nalu(p_strm));
+        p_strm->head_offset = 0;
         p_Cur->last_dts = p_Cur->p_Inp->in_dts;
         p_Cur->last_pts = p_Cur->p_Inp->in_pts;
     }
@@ -671,7 +679,7 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     if (!p_Inp->in_length) {
         if (!p_Cur->p_Inp->task_valid) {
             p_Dec->nalu_ret = EndOfNalu;
-            FUN_CHECK(ret = store_cur_nalu(p_Cur, &p_Dec->p_Cur->strm, p_Dec->dxva_ctx));
+            FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
         } else {
             p_Dec->nalu_ret = HaveNoStream;
         }
@@ -833,9 +841,9 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     //!< one frame end
     if (p_Cur->p_Dec->is_new_frame) {
         //!< add an empty nalu to tell frame end
-        FUN_CHECK(ret = add_empty_nalu(&p_Cur->strm));
+        FUN_CHECK(ret = add_empty_nalu(p_strm));
         //!< reset curstream parameters
-        p_Cur->strm.head_offset = 0;
+        p_strm->head_offset = 0;
         p_Cur->p_Inp->task_valid = 1;
         p_Cur->p_Dec->is_new_frame = 0;
 
