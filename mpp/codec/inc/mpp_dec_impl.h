@@ -60,6 +60,7 @@ typedef struct MppDecImpl_t {
     RK_U32              parser_work_count;
     RK_U32              parser_wait_count;
     RK_U32              parser_status_flag;
+    RK_U32              parser_wait_flag;
     RK_U32              parser_notify_flag;
     RK_U32              hal_notify_flag;
 
@@ -95,6 +96,11 @@ typedef struct MppDecImpl_t {
     // statistics data
     RK_U32              statistics_en;
     MppClock            clocks[DEC_TIMING_BUTT];
+
+    // query data
+    RK_U32              dec_in_pkt_count;
+    RK_U32              dec_hw_run_count;
+    RK_U32              dec_out_frame_count;
 } MppDecImpl;
 
 #ifdef __cplusplus

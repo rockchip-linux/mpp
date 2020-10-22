@@ -145,7 +145,6 @@ static int decode_simple(MpiDecLoopData *data)
             read_size = fread(buf, 1, packet_size, data->fp_input);
 
         if (!packet_size || read_size != packet_size || feof(data->fp_input)) {
-            mpp_log("%p get error and check frame_num\n", ctx);
             if (data->frame_num < 0) {
                 clearerr(data->fp_input);
                 rewind(data->fp_input);
@@ -681,6 +680,25 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     }
 
     cmd->max_usage = data.max_usage;
+    {
+        MppDecQueryCfg query;
+
+        memset(&query, 0, sizeof(query));
+        query.query_flag = MPP_DEC_QUERY_ALL;
+        ret = mpi->control(ctx, MPP_DEC_QUERY, &query);
+        if (ret) {
+            mpp_err("%p mpi->control query failed\n", ctx);
+            goto MPP_TEST_OUT;
+        }
+
+        /*
+         * NOTE:
+         * 1. Output frame count included info change frame and empty eos frame.
+         * 2. Hardware run count is real decoded frame count.
+         */
+        mpp_log("%p input %d pkt output %d frm decode %d frames\n", ctx,
+                query.dec_in_pkt_cnt, query.dec_out_frm_cnt, query.dec_hw_run_cnt);
+    }
 
     ret = mpi->reset(ctx);
     if (MPP_OK != ret) {

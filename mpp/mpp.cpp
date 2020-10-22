@@ -816,7 +816,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     case MPP_DEC_SET_OUTPUT_FORMAT:
     case MPP_DEC_SET_DISABLE_ERROR:
     case MPP_DEC_SET_PRESENT_TIME_ORDER:
-    case MPP_DEC_SET_ENABLE_DEINTERLACE: {
+    case MPP_DEC_SET_ENABLE_DEINTERLACE:
+    case MPP_DEC_QUERY: {
         ret = mpp_dec_control(mDec, cmd, param);
     }
     default : {
