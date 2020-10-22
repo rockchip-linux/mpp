@@ -17,7 +17,8 @@
 #ifndef __MPP_ENC_HAL_H__
 #define __MPP_ENC_HAL_H__
 
-#include "mpp_hal.h"
+#include "hal_task.h"
+#include "mpp_enc_cfg.h"
 
 typedef struct MppEncHalCfg_t {
     // input for encoder
@@ -25,7 +26,6 @@ typedef struct MppEncHalCfg_t {
     MppEncCfgSet    *cfg;
 
     // output for enc_impl
-    HalWorkMode     work_mode;
     MppDeviceId     device_id;
 } MppEncHalCfg;
 

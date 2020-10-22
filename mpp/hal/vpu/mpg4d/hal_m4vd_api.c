@@ -48,7 +48,7 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
     MppHalApi *p_api = NULL;
-    VpuHardMode hard_mode = MODE_NULL;
+    VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
     if (NULL == p_hal)
@@ -61,11 +61,11 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
     mpp_assert(hw_flag & (HAVE_VDPU2 | HAVE_VDPU1));
 
     if (hw_flag & HAVE_VDPU2)
-        hard_mode = VDPU2_MODE;
+        hw_mode = VDPU2_MODE;
     if (hw_flag & HAVE_VDPU1)
-        hard_mode = VDPU1_MODE;
+        hw_mode = VDPU1_MODE;
 
-    switch (hard_mode) {
+    switch (hw_mode) {
     case VDPU2_MODE:
         p_api->init = vdpu2_mpg4d_init;
         p_api->deinit = vdpu2_mpg4d_deinit;
