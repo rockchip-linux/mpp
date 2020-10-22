@@ -86,7 +86,6 @@ typedef struct H265eV541HalContext_t {
     Vepu541OsdCfg       osd_cfg;
     MppEncROICfg        *roi_data;
     void                *roi_buf;
-    MppEncCfgSet        *set;
     MppEncCfgSet        *cfg;
 
     RK_U32              enc_mode;
@@ -374,7 +373,6 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->rc_hal_cfg     = mpp_calloc(EncRcTaskInfo, RKVE_LINKTABLE_FRAME_NUM);
     ctx->buffers        = mpp_calloc(h265e_v541_buffers, RKVE_LINKTABLE_FRAME_NUM);
     ctx->input_fmt      = mpp_calloc(VepuFmtCfg, 1);
-    ctx->set            = cfg->set;
     ctx->cfg            = cfg->cfg;
     hal_bufs_init(&ctx->dpb_bufs);
 

@@ -22,7 +22,6 @@
 typedef struct MppEncHalCfg_t {
     // input for encoder
     MppCodingType   coding;
-    MppEncCfgSet    *set;
     MppEncCfgSet    *cfg;
 
     // output for enc_impl

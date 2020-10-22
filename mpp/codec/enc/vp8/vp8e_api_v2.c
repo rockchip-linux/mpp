@@ -41,7 +41,6 @@ RK_U32 vp8e_debug = 0;
 typedef struct {
     /* config from mpp_enc */
     MppEncCfgSet    *cfg;
-    MppEncCfgSet    *set;
 
     /* internal rate control config*/
     Vp8eRc          *rc;
@@ -65,7 +64,6 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
     }
 
     p->cfg = ctrl_cfg->cfg;
-    p->set = ctrl_cfg->set;
 
     /*
      * default prep:

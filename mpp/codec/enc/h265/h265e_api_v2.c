@@ -52,7 +52,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 
     mpp_assert(ctrlCfg->coding == MPP_VIDEO_CodingHEVC);
     p->cfg = ctrlCfg->cfg;
-    p->set = ctrlCfg->set;
 
     memset(&p->syntax, 0, sizeof(p->syntax));
     ctrlCfg->task_count = 1;
