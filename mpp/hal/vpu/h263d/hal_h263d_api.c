@@ -82,7 +82,7 @@ static MPP_RET hal_h263d_init(void *hal, MppHalCfg *cfg)
 {
     MppHalApi *p_api = NULL;
     hal_h263_ctx *p_hal = (hal_h263_ctx *)hal;
-    VpuHardMode hard_mode = MODE_NULL;
+    VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
     mpp_env_get_u32("h263d_hal_debug", &h263d_hal_debug, 0);
@@ -95,11 +95,11 @@ static MPP_RET hal_h263d_init(void *hal, MppHalCfg *cfg)
 
     hw_flag = mpp_get_vcodec_type();
     if (hw_flag & HAVE_VDPU2)
-        hard_mode = VDPU2_MODE;
+        hw_mode = VDPU2_MODE;
     if (hw_flag & HAVE_VDPU1)
-        hard_mode = VDPU1_MODE;
+        hw_mode = VDPU1_MODE;
 
-    switch (hard_mode) {
+    switch (hw_mode) {
     case VDPU2_MODE : {
         mpp_log("the VDPU2_MODE is used currently!\n");
         p_api->init    = hal_vpu2_h263d_init;
@@ -123,7 +123,7 @@ static MPP_RET hal_h263d_init(void *hal, MppHalCfg *cfg)
         p_api->control = hal_vpu1_h263d_control;
     } break;
     default : {
-        mpp_err("unknow vpu type:%d.", hard_mode);
+        mpp_err("unknow vpu type:%d.", hw_mode);
         return MPP_ERR_INIT;
     } break;
     }

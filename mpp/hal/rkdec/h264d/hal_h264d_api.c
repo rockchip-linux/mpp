@@ -84,8 +84,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     MppHalApi *p_api = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    VpuHardMode hard_mode = MODE_NULL;
-    RK_U32 hard_platform = 0;
+    VpuHwMode hw_mode = MODE_NULL;
+    RK_U32 hw_plat = 0;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
@@ -103,19 +103,19 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         vcodec_type = mpp_get_vcodec_type();
         mpp_assert(vcodec_type & (HAVE_RKVDEC | HAVE_VDPU1 | HAVE_VDPU2));
         if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
-            hard_mode = RKVDEC_MODE;
-            hard_platform = HAVE_RKVDEC;
+            hw_mode = RKVDEC_MODE;
+            hw_plat = HAVE_RKVDEC;
         } else if (vcodec_type & HAVE_VDPU1) {
-            hard_mode = VDPU1_MODE;
-            hard_platform = HAVE_VDPU1;
+            hw_mode = VDPU1_MODE;
+            hw_plat = HAVE_VDPU1;
         } else if (vcodec_type & HAVE_VDPU2) {
-            hard_mode = VDPU2_MODE;
-            hard_platform = HAVE_VDPU2;
+            hw_mode = VDPU2_MODE;
+            hw_plat = HAVE_VDPU2;
         }
         H264D_DBG(H264D_DBG_HARD_MODE, "set_mode=%d, hw_spt=%08x, use_mode=%d\n",
-                  mode, vcodec_type, hard_mode);
+                  mode, vcodec_type, hw_mode);
     }
-    switch (hard_mode) {
+    switch (hw_mode) {
     case RKVDEC_MODE:
         p_api->init    = rkv_h264d_init;
         p_api->deinit  = rkv_h264d_deinit;
@@ -150,7 +150,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         cfg->device_id = DEV_VDPU;
         break;
     default:
-        mpp_err_f("hard mode error, value=%d\n", hard_mode);
+        mpp_err_f("hard mode error, value=%d\n", hw_mode);
         mpp_assert(0);
         break;
     }
@@ -163,7 +163,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     MppDevCfg dev_cfg = {
         .type = MPP_CTX_DEC,            /* type */
         .coding = MPP_VIDEO_CodingAVC,  /* coding */
-        .platform = hard_platform,      /* platform */
+        .platform = hw_plat,      /* platform */
         .pp_enable = 0,                 /* pp_enable */
     };
 

@@ -98,7 +98,7 @@ static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
     MppHalApi *p_api = NULL;
-    VpuHardMode hard_mode = MODE_NULL;
+    VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
     if (NULL == self)
@@ -109,11 +109,11 @@ static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
 
     hw_flag = mpp_get_vcodec_type();
     if (hw_flag & HAVE_VDPU1)
-        hard_mode = VDPU1_MODE;
+        hw_mode = VDPU1_MODE;
     if (hw_flag & HAVE_VDPU2)
-        hard_mode = VDPU2_MODE;
+        hw_mode = VDPU2_MODE;
 
-    switch (hard_mode) {
+    switch (hw_mode) {
     case VDPU2_MODE:
         p_api->init = hal_vp8d_vdpu2_init;
         p_api->deinit = hal_vp8d_vdpu2_deinit;

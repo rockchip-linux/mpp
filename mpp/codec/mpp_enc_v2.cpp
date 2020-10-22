@@ -1379,7 +1379,6 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     // create hal first
     enc_hal_cfg.coding = coding;
     enc_hal_cfg.cfg = &p->cfg;
-    enc_hal_cfg.work_mode = HAL_MODE_LIBVPU;
     enc_hal_cfg.device_id = DEV_VEPU;
 
     ctrl_cfg.coding = coding;

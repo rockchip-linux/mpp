@@ -25,28 +25,19 @@
 #include "hal_task.h"
 #include "mpp_enc_cfg.h"
 
-typedef enum MppHalType_e {
-    HAL_MODE_LIBVPU,
-    HAL_MODE_V4L2,
-    HAL_MODE_BUTT,
-} HalWorkMode;
-
-typedef enum vpu_hard_mode_e {
+typedef enum VpuHwMode_e {
     MODE_NULL   = 0,
     RKVDEC_MODE = 0x01,
     VDPU1_MODE  = 0x02,
     VDPU2_MODE  = 0x04,
     RKVENC_MODE = 0x05,
     MODE_BUTT,
-} VpuHardMode;
-
-typedef void*   MppHalCtx;
+} VpuHwMode;
 
 typedef struct MppHalCfg_t {
     // input
     MppCtxType      type;
     MppCodingType   coding;
-    HalWorkMode     work_mode;
     MppDeviceId     device_id;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
