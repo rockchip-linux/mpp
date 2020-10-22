@@ -44,7 +44,6 @@ RK_U32 h265e_debug = 0;
 
 typedef struct {
     MppEncCfgSet    *cfg;
-    MppEncCfgSet    *set;
 
     H265eSyntax     syntax;
 } H265eCtx;
@@ -60,7 +59,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 
     mpp_assert(ctrlCfg->coding = MPP_VIDEO_CodingHEVC);
     p->cfg = ctrlCfg->cfg;
-    p->set = ctrlCfg->set;
     mpp_env_get_u32("h265e_debug", &h265e_debug, 0);
     h265e_dbg_func("enter ctx %p\n", ctx);
 

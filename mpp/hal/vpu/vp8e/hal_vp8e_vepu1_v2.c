@@ -274,7 +274,6 @@ static MPP_RET hal_vp8e_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
     Vp8eHwCfg *hw_cfg = &ctx->hw_cfg;
 
     ctx->cfg = cfg->cfg;
-    ctx->set = cfg->set;
 
     //ctx->int_cb = cfg->hal_int_cb;
 

@@ -343,7 +343,6 @@ typedef struct hal_vp8e_ctx_s {
     RK_U32           reg_size;
 
     MppEncCfgSet     *cfg;
-    MppEncCfgSet     *set;
 
     MppHalApi        hal_api;
 

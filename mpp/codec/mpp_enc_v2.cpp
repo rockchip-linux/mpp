@@ -1378,7 +1378,6 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     // H.264 encoder use mpp_enc_hal path
     // create hal first
     enc_hal_cfg.coding = coding;
-    enc_hal_cfg.set = NULL;
     enc_hal_cfg.cfg = &p->cfg;
     enc_hal_cfg.work_mode = HAL_MODE_LIBVPU;
     enc_hal_cfg.device_id = DEV_VEPU;
@@ -1386,7 +1385,6 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     ctrl_cfg.coding = coding;
     ctrl_cfg.dev_id = DEV_VEPU;
     ctrl_cfg.cfg = &p->cfg;
-    ctrl_cfg.set = NULL;
     ctrl_cfg.refs = p->refs;
     ctrl_cfg.task_count = 2;
 
