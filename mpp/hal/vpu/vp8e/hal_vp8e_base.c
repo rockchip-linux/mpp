@@ -1589,19 +1589,22 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
     {
         HalEncTask *enc_task = task;
         RK_U8 *p_out = mpp_buffer_get_ptr(enc_task->output);
+        RK_S32 disable_ivf = ctx->cfg->codec.vp8.disable_ivf;
 
-        if (ctx->frame_cnt == 0) {
-            write_ivf_header(hal, p_out);
+        if (!disable_ivf) {
+            if (ctx->frame_cnt == 0) {
+                write_ivf_header(hal, p_out);
 
-            p_out += IVF_HDR_BYTES;
-            enc_task->length += IVF_HDR_BYTES;
-        }
+                p_out += IVF_HDR_BYTES;
+                enc_task->length += IVF_HDR_BYTES;
+            }
 
-        if (ctx->frame_size) {
-            write_ivf_frame(ctx, p_out);
+            if (ctx->frame_size) {
+                write_ivf_frame(ctx, p_out);
 
-            p_out += IVF_FRM_BYTES;
-            enc_task->length += IVF_FRM_BYTES;
+                p_out += IVF_FRM_BYTES;
+                enc_task->length += IVF_FRM_BYTES;
+            }
         }
 
         memcpy(p_out, ctx->p_out_buf[0], ctx->stream_size[0]);

@@ -100,7 +100,7 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
-    rc_cfg->max_reenc_times = 1;
+    rc_cfg->max_reenc_times = 0;
 
     p->rc = mpp_calloc(Vp8eRc, 1);
     memset(p->rc, 0, sizeof(Vp8eRc));
@@ -175,8 +175,8 @@ static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             dst->format = src->format;
         }
         dst->change |= src->change;
-        vp8e_dbg_cfg("width %d height %d ver_srtride %d format 0x%x\n",
-                     dst->width, dst->height, dst->ver_stride, dst->hor_stride, dst->format);
+        vp8e_dbg_cfg("width %d height %d hor_stride %d ver_srtride %d format 0x%x\n",
+                     dst->width, dst->height, dst->hor_stride, dst->ver_stride, dst->format);
     }
     return ret;
 }
@@ -284,8 +284,11 @@ static MPP_RET vp8e_proc_vp8_cfg(MppEncVp8Cfg *dst, MppEncVp8Cfg *src)
         dst->qp_max_i = src->qp_max_i;
         dst->qp_min_i = src->qp_min_i;
     }
-    vp8e_dbg_cfg("rc cfg qp_init %d qp_max %d qp_min %d qp_max_i %d qp_min_i %d\n",
-                 dst->qp_init, dst->qp_max, dst->qp_min, dst->qp_max_i, dst->qp_min_i);
+    if (change & MPP_ENC_VP8_CFG_CHANGE_DIS_IVF) {
+        dst->disable_ivf = src->disable_ivf;
+    }
+    vp8e_dbg_cfg("rc cfg qp_init %d qp_max %d qp_min %d qp_max_i %d qp_min_i %d, disable_ivf %d\n",
+                 dst->qp_init, dst->qp_max, dst->qp_min, dst->qp_max_i, dst->qp_min_i, dst->disable_ivf);
     dst->change |= src->change;
     return MPP_OK;
 }

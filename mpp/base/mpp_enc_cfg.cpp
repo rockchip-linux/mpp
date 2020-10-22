@@ -234,6 +234,7 @@ static const char *cfg_func_names[] = {
     ENTRY(vp8, qp_max_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_i) \
     ENTRY(vp8, qp_min_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_min_i) \
     ENTRY(vp8, qp_step,         S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_step) \
+    ENTRY(vp8, disable_ivf,     S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_DIS_IVF,         codec.vp8, disable_ivf) \
     /* jpeg config */ \
     ENTRY(jpeg, quant,          S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QP,             codec.jpeg, quant) \
     ENTRY(jpeg, qtable_y,       PTR, RK_U8*,            MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_y) \
@@ -258,7 +259,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 62;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 55;
 
 class MppEncCfgService
 {
