@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-#define  MODULE_TAG "mpp_enc"
+#define  MODULE_TAG "mpp_enc_impl"
+
+#include <string.h>
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
@@ -102,6 +104,7 @@ MPP_RET enc_impl_init(EncImpl *impl, EncImplCfg *cfg)
 
             p->api  = api;
             p->ctx  = ctx;
+            memcpy(&p->cfg, cfg, sizeof(p->cfg));
             *impl = p;
             return MPP_OK;
         }
