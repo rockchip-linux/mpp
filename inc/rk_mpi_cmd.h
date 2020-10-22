@@ -34,8 +34,14 @@
 #define CMD_CTX_ID_ENC                  (0x00020000)
 #define CMD_CTX_ID_ISP                  (0x00030000)
 
-/* separate encoder control command to different segment */
+/* separate encoder / decoder control command to different segment */
 #define CMD_CFG_ID_MASK                 (0x0000FF00)
+
+/* decoder control command */
+#define CMD_DEC_CFG_ALL                 (0x00000000)
+#define CMD_DEC_QUERY                   (0x00000100)
+
+/* encoder control command */
 #define CMD_ENC_CFG_ALL                 (0x00000000)
 #define CMD_ENC_CFG_RC_API              (0x00000100)
 
@@ -83,6 +89,11 @@ typedef enum {
     MPP_DEC_SET_DISABLE_ERROR,          /* When set it will disable sw/hw error (H.264 / H.265) */
     MPP_DEC_SET_IMMEDIATE_OUT,
     MPP_DEC_SET_ENABLE_DEINTERLACE,     /* MPP enable deinterlace by default. Vpuapi can disable it */
+
+    MPP_DEC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_QUERY,
+    /* query decoder runtime information for decode stage */
+    MPP_DEC_QUERY,                      /* set and get MppDecQueryCfg structure */
+
     MPP_DEC_CMD_END,
 
     MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
@@ -164,6 +175,7 @@ typedef enum {
     MPI_CMD_BUTT,
 } MpiCmd;
 
+#include "rk_vdec_cmd.h"
 #include "rk_venc_cmd.h"
 #include "rk_venc_cfg.h"
 #include "rk_venc_ref.h"

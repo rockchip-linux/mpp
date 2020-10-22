@@ -128,7 +128,7 @@ static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 notify = dec->parser_notify_flag;
-    RK_U32 last_wait = dec->parser_status_flag;
+    RK_U32 last_wait = dec->parser_wait_flag;
     RK_U32 curr_wait = task->wait.val;
     RK_U32 wait_chg  = last_wait & (~curr_wait);
 
@@ -147,7 +147,8 @@ static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
     dec_dbg_status("%p %08x -> %08x [%08x] notify %08x -> %s\n", dec,
                    last_wait, curr_wait, wait_chg, notify, (ret) ? ("wait") : ("work"));
 
-    dec->parser_status_flag = task->wait.val;
+    dec->parser_status_flag = task->status.val;
+    dec->parser_wait_flag = task->wait.val;
     dec->parser_notify_flag = 0;
 
     if (ret) {
@@ -247,6 +248,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
         task->status.task_parsed_rdy = 0;
         // IMPORTANT: clear flag in MppDec context
         dec->parser_status_flag = 0;
+        dec->parser_wait_flag = 0;
     }
 
     dec_task_init(task);
@@ -352,6 +354,8 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
                 mpp_frame_set_discard(frame, 1);
         }
     }
+
+    dec->dec_out_frame_count++;
 
     if (dec->vproc) {
         HalTaskGroup group = dec->vproc_tasks;
@@ -518,6 +522,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         task->wait.dec_pkt_in = 0;
         packets->del_at_head(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in));
         mpp->mPacketGetCount++;
+        dec->dec_in_pkt_count++;
 
         if (dec->use_preset_time_order) {
             MppPacket pkt_in = NULL;
@@ -984,6 +989,7 @@ void *mpp_dec_hal_thread(void *data)
             mpp_clock_start(dec->clocks[DEC_HW_WAIT]);
             mpp_hal_hw_wait(dec->hal, &task_info);
             mpp_clock_pause(dec->clocks[DEC_HW_WAIT]);
+            dec->dec_hw_run_count++;
 
             /*
              * when hardware decoding is done:
@@ -1506,6 +1512,10 @@ MPP_RET mpp_dec_reset(MppDec ctx)
         sem_wait(&dec->parser_reset);
     }
 
+    dec->dec_in_pkt_count = 0;
+    dec->dec_hw_run_count = 0;
+    dec->dec_out_frame_count = 0;
+
     dec_dbg_func("%p out\n", dec);
     return MPP_OK;
 }
@@ -1540,9 +1550,9 @@ MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag)
 
         dec->parser_notify_flag |= flag;
         if ((old_flag != dec->parser_notify_flag) &&
-            (dec->parser_notify_flag & dec->parser_status_flag)) {
+            (dec->parser_notify_flag & dec->parser_wait_flag)) {
             dec_dbg_notify("%p status %08x notify %08x signal\n", dec,
-                           dec->parser_status_flag, dec->parser_notify_flag);
+                           dec->parser_wait_flag, dec->parser_notify_flag);
             thd_dec->signal();
         }
     }
@@ -1596,6 +1606,33 @@ MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
     case MPP_DEC_SET_ENABLE_DEINTERLACE: {
         dec->enable_deinterlace = (param) ? (*((RK_U32 *)param)) : (1);
         dec_dbg_func("enable deinterlace %d\n", dec->enable_deinterlace);
+    } break;
+    case MPP_DEC_QUERY: {
+        MppDecQueryCfg *query = (MppDecQueryCfg *)param;
+        RK_U32 flag = query->query_flag;
+
+        dec_dbg_func("query %x\n", flag);
+
+        if (flag & MPP_DEC_QUERY_STATUS)
+            query->rt_status = dec->parser_status_flag;
+
+        if (flag & MPP_DEC_QUERY_WAIT)
+            query->rt_wait = dec->parser_wait_flag;
+
+        if (flag & MPP_DEC_QUERY_FPS)
+            query->rt_fps = 0;
+
+        if (flag & MPP_DEC_QUERY_BPS)
+            query->rt_bps = 0;
+
+        if (flag & MPP_DEC_QUERY_DEC_IN_PKT)
+            query->dec_in_pkt_cnt = dec->dec_in_pkt_count;
+
+        if (flag & MPP_DEC_QUERY_DEC_WORK)
+            query->dec_hw_run_cnt = dec->dec_hw_run_count;
+
+        if (flag & MPP_DEC_QUERY_DEC_OUT_FRM)
+            query->dec_out_frm_cnt = dec->dec_out_frame_count;
     } break;
     default : {
     } break;
