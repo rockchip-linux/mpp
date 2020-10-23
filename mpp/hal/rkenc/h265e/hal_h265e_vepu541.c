@@ -989,7 +989,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
                                   ? (8 - (syn->pp.pic_height & 0x7)) : 0;
 
     regs->enc_pic.enc_stnd      = 1; //H265
-    regs->enc_pic.cur_frm_ref   = 1; //current frame will be refered
+    regs->enc_pic.cur_frm_ref   = !syn->sp.non_reference_flag; //current frame will be refered
     regs->enc_pic.bs_scp        = 1;
     regs->enc_pic.node_int      = 0;
     regs->enc_pic.log2_ctu_num  = ceil(log2((double)pic_wd64 * pic_h64));
@@ -1030,17 +1030,18 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->adr_srcu_hevc     = regs->adr_srcy_hevc;
     regs->adr_srcv_hevc     = regs->adr_srcy_hevc;
 
-    recon_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.recon_pic.slot_idx);
-    ref_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
-
-    regs->rfpw_h_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[0]);
-    regs->rfpw_b_addr_hevc  = ((fbc_header_len << 10) | regs->rfpw_h_addr_hevc);
-    regs->dspw_addr_hevc = mpp_buffer_get_fd(recon_buf->buf[1]);
-    regs->cmvw_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[2]);
-    regs->rfpr_h_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[0]);
-    regs->rfpr_b_addr_hevc = (fbc_header_len << 10 | regs->rfpr_h_addr_hevc);
-    regs->dspr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[1]);
-    regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
+    if (!syn->sp.non_reference_flag) {
+        recon_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.recon_pic.slot_idx);
+        ref_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
+        regs->rfpw_h_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[0]);
+        regs->rfpw_b_addr_hevc  = ((fbc_header_len << 10) | regs->rfpw_h_addr_hevc);
+        regs->dspw_addr_hevc = mpp_buffer_get_fd(recon_buf->buf[1]);
+        regs->cmvw_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[2]);
+        regs->rfpr_h_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[0]);
+        regs->rfpr_b_addr_hevc = (fbc_header_len << 10 | regs->rfpr_h_addr_hevc);
+        regs->dspr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[1]);
+        regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
+    }
 
     if (mv_info_buf) {
         regs->enc_pic.mei_stor    = 1;
