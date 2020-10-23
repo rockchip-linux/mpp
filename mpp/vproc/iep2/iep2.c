@@ -34,14 +34,8 @@
 #include "iep2_roi.h"
 
 #include "iep2.h"
-
-typedef struct mppReqV1_t {
-    RK_U32 cmd;
-    RK_U32 flag;
-    RK_U32 size;
-    RK_U32 offset;
-    RK_U64 data_ptr;
-} MppReqV1;
+#include "mpp_service.h"
+#include "mpp_platform.h"
 
 #define IEP2_TILE_W_MAX     120
 #define IEP2_TILE_H_MAX     272
@@ -84,22 +78,12 @@ enum MPP_DEV_COMMAND_TYPE {
 #define MPP_FLAGS_LINK_MODE_UPDATE  (0x00000020)
 #define MPP_FLAGS_SECURE_MODE       (0x00010000)
 
-#define MPP_IOC_MAGIC       'v'
-#define MPP_IOC_CFG_V1      _IOW(MPP_IOC_MAGIC, 1, unsigned int)
-#define MPP_IEP_CLIENT_TYPE 28
-
-#if __SIZEOF_POINTER__ == 4
-#define REQ_DATA_PTR(ptr) ((RK_U32)ptr)
-#elif __SIZEOF_POINTER__ == 8
-#define REQ_DATA_PTR(ptr) ((RK_U64)ptr)
-#endif
-
 static MPP_RET iep2_init(IepCtx *ictx)
 {
     MPP_RET ret;
     struct iep2_api_ctx *ctx = *ictx;
     MppReqV1 mpp_req;
-    RK_U32 client_data = MPP_IEP_CLIENT_TYPE;
+    RK_U32 client_data = IEP_CLIENT_TYPE;
 
     ctx->fd = open("/dev/mpp_service", O_RDWR);
     if (ctx->fd < 0) {

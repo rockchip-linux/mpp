@@ -29,44 +29,13 @@
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
+#include "mpp_service.h"
+#include "vcodec_service.h"
+
 #define VPU_EXTRA_INFO_SIZE                 12
 #define VPU_EXTRA_INFO_MAGIC                (0x4C4A46)
 #define VPU_MPP_FLAGS_MULTI_MSG             (0x00000001)
 #define VPU_MPP_FLAGS_LAST_MSG              (0x00000002)
-
-#define VPU_IOC_MAGIC                       'l'
-
-#define VPU_IOC_SET_CLIENT_TYPE             _IOW(VPU_IOC_MAGIC, 1, unsigned long)
-#define VPU_IOC_GET_HW_FUSE_STATUS          _IOW(VPU_IOC_MAGIC, 2, unsigned long)
-#define VPU_IOC_SET_REG                     _IOW(VPU_IOC_MAGIC, 3, unsigned long)
-#define VPU_IOC_GET_REG                     _IOW(VPU_IOC_MAGIC, 4, unsigned long)
-
-#define VPU_IOC_SET_CLIENT_TYPE_U32         _IOW(VPU_IOC_MAGIC, 1, unsigned int)
-
-#define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
-
-/* Use 'v' as magic number */
-#define MPP_IOC_MAGIC                       'v'
-#define MPP_IOC_CFG_V1                      _IOW(MPP_IOC_MAGIC, 1, unsigned int)
-
-#if __SIZEOF_POINTER__ == 4
-#define REQ_DATA_PTR(ptr) ((RK_U32)ptr)
-#elif __SIZEOF_POINTER__ == 8
-#define REQ_DATA_PTR(ptr) ((RK_U64)ptr)
-#endif
-
-typedef struct VPUReq {
-    RK_U32 *req;
-    RK_U32  size;
-} VPUReq_t;
-
-typedef struct mppReqV1_t {
-    RK_U32 cmd;
-    RK_U32 flag;
-    RK_U32 size;
-    RK_U32 offset;
-    RK_U64 data_ptr;
-} MppReqV1;
 
 #define MPX_PATCH_NUM       16
 

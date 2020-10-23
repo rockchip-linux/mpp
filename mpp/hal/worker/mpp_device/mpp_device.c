@@ -33,36 +33,8 @@
 #include "mpp_platform.h"
 
 #include "vpu.h"
-
-#define EXTRA_INFO_MAGIC                    (0x4C4A46)
-
-#define VPU_IOC_MAGIC                       'l'
-
-#define VPU_IOC_SET_CLIENT_TYPE             _IOW(VPU_IOC_MAGIC, 1, unsigned long)
-#define VPU_IOC_SET_REG                     _IOW(VPU_IOC_MAGIC, 3, unsigned long)
-#define VPU_IOC_GET_REG                     _IOW(VPU_IOC_MAGIC, 4, unsigned long)
-
-#define VPU_IOC_SET_CLIENT_TYPE_U32         _IOW(VPU_IOC_MAGIC, 1, unsigned int)
-
-#define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
-
-/* Use 'v' as magic number */
-#define MPP_IOC_MAGIC                       'v'
-#define MPP_IOC_CFG_V1                      _IOW(MPP_IOC_MAGIC, 1, unsigned int)
-#define MAX_REQ_NUM                         16
-
-typedef struct MppReq_t {
-    RK_U32 *req;
-    RK_U32  size;
-} MppReq;
-
-typedef struct mppReqV1_t {
-    RK_U32 cmd;
-    RK_U32 flag;
-    RK_U32 size;
-    RK_U32 offset;
-    RK_U64 data_ptr;
-} MppReqV1;
+#include "mpp_service.h"
+#include "vcodec_service.h"
 
 #define MAX_TIME_RECORD                     4
 
@@ -115,12 +87,6 @@ typedef struct MppDevCtxImpl_t {
 
 #define mpp_dev_dbg_reg(fmt, ...)           mpp_dev_dbg(MPP_DEVICE_DBG_REG, fmt, ## __VA_ARGS__)
 #define mpp_dev_dbg_time(fmt, ...)          mpp_dev_dbg(MPP_DEVICE_DBG_TIME, fmt, ## __VA_ARGS__)
-
-#if __SIZEOF_POINTER__ == 4
-#define REQ_DATA_PTR(ptr) ((RK_U32)ptr)
-#elif __SIZEOF_POINTER__ == 8
-#define REQ_DATA_PTR(ptr) ((RK_U64)ptr)
-#endif
 
 static RK_U32 mpp_device_debug = 0;
 
