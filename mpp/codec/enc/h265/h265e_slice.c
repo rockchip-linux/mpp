@@ -245,7 +245,7 @@ void h265e_slice_init(void *ctx, EncFrmStatus curr)
 
     p->dpb->curr->status.val = curr.val;
 
-    if (slice->m_sliceType  != B_SLICE)
+    if (slice->m_sliceType  != B_SLICE && !curr.non_recn)
         slice->is_referenced = 1;
 
     if (slice->m_pps->m_deblockingFilterOverrideEnabledFlag) {

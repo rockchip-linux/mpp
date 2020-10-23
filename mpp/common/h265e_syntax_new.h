@@ -189,6 +189,7 @@ typedef struct H265eSlicParams_t {
     RK_U16 dlt_poc_msb_cycl2;
     RK_U32 sli_splt_byte;
     RK_U32 tot_poc_num;
+    RK_U32 non_reference_flag;
 } H265eSlicParams;
 /*
  * Split reference frame configure to two parts
