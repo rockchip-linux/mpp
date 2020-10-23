@@ -46,6 +46,9 @@ typedef enum {
     VPU_CLIENT_VEPU2        = 18,   /* 0x00040000 */
     VPU_CLIENT_VEPU2_LITE   = 19,   /* 0x00080000 */
     VPU_CLIENT_VEPU22       = 24,   /* 0x01000000 */
+
+    IEP_CLIENT_TYPE         = 28,   /* 0x10000000 */
+
     VPU_CLIENT_BUTT,
 } VPU_CLIENT2_TYPE;
 
@@ -65,12 +68,13 @@ typedef enum {
 #define HAVE_VEPU2_LITE     (1 << VPU_CLIENT_VEPU2_LITE)    /* 0x00080000 */
 /* External encoder */
 #define HAVE_VEPU22         (1 << VPU_CLIENT_VEPU22)        /* 0x01000000 */
+/* RK Image Enhance Processor for deinterlacing */
+#define HAVE_IEP            (1 << IEP_CLIENT_TYPE)          /* 0x10000000 */
 
 /* Platform image process hardware feature */
 #define HAVE_IPP            (0x00000001)
 #define HAVE_RGA            (0x00000002)
 #define HAVE_RGA2           (0x00000004)
-#define HAVE_IEP            (0x00000008)
 
 /* Hal device id */
 typedef enum MppDeviceId_e {
