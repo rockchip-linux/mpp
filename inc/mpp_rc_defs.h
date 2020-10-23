@@ -38,7 +38,12 @@ typedef union EncFrmStatus_u {
          */
         /* status flag */
         RK_U32          valid           : 1;
-        RK_U32          reserved0       : 3;
+        /*
+         * 0 - write the reconstructed frame pixel to memory
+         * 1 - do not write the reconstructed frame pixel to memory
+         */
+        RK_U32          non_recn        : 1;
+        RK_U32          reserved0       : 2;
 
         /* reference status flag */
         /*
