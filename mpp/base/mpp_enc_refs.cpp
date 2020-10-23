@@ -844,6 +844,8 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         usr_cfg->force_flag &= ~ENC_FORCE_PSKIP;
     }
 
+    frm->non_recn = frm->is_non_ref || (p->igop == 1);
+
     /* update st_cfg for st_cfg loop */
     cpb->st_cfg_repeat_pos++;
     if (cpb->st_cfg_repeat_pos > st_cfg->repeat) {
