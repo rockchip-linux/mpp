@@ -1366,14 +1366,14 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.flag = 0;
     req.offset = VEPU541_REG_BASE_L2;
     req.size = sizeof(Vepu541H264eRegL2Set);
-    req.data = &ctx->regs_l2_set;
+    req.data = REQ_DATA_PTR(&ctx->regs_l2_set);
     mpp_device_add_request(ctx->dev_ctx, &req);
 
     /* write L1 registers */
     req.cmd = MPP_CMD_SET_REG_WRITE;
     req.size = sizeof(Vepu541H264eRegSet);
     req.offset = 0;
-    req.data = &ctx->regs_set;
+    req.data = REQ_DATA_PTR(&ctx->regs_set);
     mpp_device_add_request(ctx->dev_ctx, &req);
 
     /* write extra info for address registers */
@@ -1383,7 +1383,7 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.flag = 0;
     req.cmd = MPP_CMD_SET_REG_READ;
     req.size = sizeof(RK_U32);
-    req.data = &ctx->regs_ret.hw_status;
+    req.data = REQ_DATA_PTR(&ctx->regs_ret.hw_status);
     req.offset = VEPU541_REG_BASE_HW_STATUS;
     mpp_device_add_request(ctx->dev_ctx, &req);
 
@@ -1391,7 +1391,7 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
     req.flag = 0;
     req.cmd = MPP_CMD_SET_REG_READ;
     req.size = sizeof(ctx->regs_ret) - 4;
-    req.data = &ctx->regs_ret.st_bsl;
+    req.data = REQ_DATA_PTR(&ctx->regs_ret.st_bsl);
     req.offset = VEPU541_REG_BASE_STATISTICS;
     mpp_device_add_request(ctx->dev_ctx, &req);
     /* send request to hardware */

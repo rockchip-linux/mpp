@@ -17,13 +17,14 @@
 #define __MPP_DEVICE_MSG_H__
 
 #include "rk_type.h"
+#include "mpp_service.h"
 
 typedef struct MppDevReqV1_t {
     RK_U32 cmd;
     RK_U32 flag;
     RK_U32 size;
     RK_U32 offset;
-    void   *data;
+    RK_U64 data;
 } MppDevReqV1;
 
 #ifdef __cplusplus
