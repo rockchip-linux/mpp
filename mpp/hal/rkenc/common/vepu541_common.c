@@ -507,7 +507,7 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
         req.flag = 0;
         req.offset = VEPU541_REG_BASE_OSD_PLT;
         req.size = sizeof(MppEncOSDPlt);
-        req.data = plt_cfg->plt;
+        req.data = REQ_DATA_PTR(plt_cfg->plt);
         mpp_device_add_request(dev, &req);
 
         regs->reg112.osd_plt_cks = 1;

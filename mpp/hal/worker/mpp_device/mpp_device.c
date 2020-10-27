@@ -518,7 +518,7 @@ MPP_RET mpp_device_send_extra_info(MppDevCtx ctx, RegExtraInfo *info)
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = info->count * sizeof(info->patchs[0]);
-        dev_req.data = (void *)&info->patchs[0];
+        dev_req.data = REQ_DATA_PTR(&info->patchs[0]);
         ret = mpp_device_add_request(ctx, &dev_req);
         if (ret)
             mpp_err_f("mpp_device_send_extra_info failed ret %d\n", ret);
@@ -565,7 +565,7 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = nregs * sizeof(RK_U32);
-        dev_req.data = (void*)regs;
+        dev_req.data = REQ_DATA_PTR(regs);
         mpp_device_add_request(ctx, &dev_req);
 
         memset(&dev_req, 0, sizeof(dev_req));
@@ -573,7 +573,7 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = nregs * sizeof(RK_U32);
-        dev_req.data = (void*)regs;
+        dev_req.data = REQ_DATA_PTR(regs);
         mpp_device_add_request(ctx, &dev_req);
 
         ret = mpp_device_send_request(ctx);
