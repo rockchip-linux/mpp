@@ -24,7 +24,6 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_device.h"
-#include "mpp_device_msg.h"
 #include "mpp_frame_impl.h"
 
 #include "h265e_syntax_new.h"
@@ -311,7 +310,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
 
 static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV541L2RegSet *regs)
 {
-    MppDevReqV1 req;
+    MppReqV1 req;
 
     memcpy(&regs->lvl32_intra_CST_THD0, lvl32_intra_cst_thd, sizeof(lvl32_intra_cst_thd));
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
@@ -351,7 +350,7 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV541L2RegSet
     req.flag = 0;
     req.offset = VEPU541_REG_BASE_L2;
     req.size = sizeof(H265eV541L2RegSet);
-    req.data = REQ_DATA_PTR(regs);
+    req.data_ptr = REQ_DATA_PTR(regs);
     mpp_device_add_request(ctx->dev_ctx, &req);
 #endif
     return;
@@ -1150,7 +1149,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
 
     for (k = 0; k < ioctl_info->frame_num; k++) {
         RK_U32 i;
-        MppDevReqV1 req;
+        MppReqV1 req;
         RK_U32 *regs = (RK_U32*)&reg_list[k];
         H265eV541IoctlExtraInfo *extra_info = NULL;
 
@@ -1169,7 +1168,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
         req.cmd = MPP_CMD_SET_REG_WRITE;
         req.size = sizeof(H265eV541RegSet);
         req.offset = 0;
-        req.data = REQ_DATA_PTR(&ioctl_info->reg_info[k].regs);
+        req.data_ptr = REQ_DATA_PTR(&ioctl_info->reg_info[k].regs);
         mpp_device_add_request(ctx->dev_ctx, &req);
 
         extra_info = &ioctl_info->reg_info[k].extra_info;
@@ -1177,7 +1176,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
         req.cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
         req.size = extra_info->cnt * sizeof(extra_info->elem[0]);
         req.offset = 0;
-        req.data = REQ_DATA_PTR(extra_info->elem);
+        req.data_ptr = REQ_DATA_PTR(extra_info->elem);
         mpp_device_add_request(ctx->dev_ctx, &req);
 
         /* set output request */
@@ -1185,7 +1184,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
         req.flag = 0;
         req.cmd = MPP_CMD_SET_REG_READ;
         req.size = sizeof(RK_U32);
-        req.data = REQ_DATA_PTR(&reg_out->elem[k].hw_status);
+        req.data_ptr = REQ_DATA_PTR(&reg_out->elem[k].hw_status);
         req.offset = VEPU541_REG_BASE_HW_STATUS;
         mpp_device_add_request(ctx->dev_ctx, &req);
 
@@ -1193,7 +1192,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
         req.flag = 0;
         req.cmd = MPP_CMD_SET_REG_READ;
         req.size = sizeof(H265eV541IoctlOutputElem) - 4;
-        req.data = REQ_DATA_PTR(&reg_out->elem[k].st_bsl);
+        req.data_ptr = REQ_DATA_PTR(&reg_out->elem[k].st_bsl);
         req.offset = VEPU541_REG_BASE_STATISTICS;
         mpp_device_add_request(ctx->dev_ctx, &req);
 #endif
@@ -1362,7 +1361,7 @@ MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
 
 #ifdef H265EHW_EN
     {
-        MppDevReqV1 req;
+        MppReqV1 req;
 
         memset(&req, 0, sizeof(req));
         req.cmd = MPP_CMD_POLL_HW_FINISH;

@@ -29,7 +29,6 @@
 #include "mpp_common.h"
 
 #include "mpp_device.h"
-#include "mpp_device_msg.h"
 #include "mpp_platform.h"
 
 #include "vpu.h"
@@ -320,7 +319,7 @@ MPP_RET mpp_device_deinit(MppDevCtx ctx)
     return MPP_OK;
 }
 
-MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
+MPP_RET mpp_device_add_request(MppDevCtx ctx, MppReqV1 *req)
 {
     MppDevCtxImpl *p = (MppDevCtxImpl *)ctx;
 
@@ -355,12 +354,12 @@ MPP_RET mpp_device_add_request(MppDevCtx ctx, MppDevReqV1 *req)
     mpp_req->flag = req->flag;
     mpp_req->size =  req->size;
     mpp_req->offset = req->offset;
-    mpp_req->data_ptr = REQ_DATA_PTR(req->data);
+    mpp_req->data_ptr = REQ_DATA_PTR(req->data_ptr);
     p->req_cnt++;
 
     mpp_dev_dbg_detail("enter %p cnt %d cmd %08x flag %x size %3x offset %08x data %p\n",
                        ctx, p->req_cnt, req->cmd, req->flag,
-                       req->size, req->offset, req->data);
+                       req->size, req->offset, req->data_ptr);
 
     mpp_dev_dbg_func("leave %p req %p\n", ctx, req);
     return MPP_OK;
@@ -411,7 +410,7 @@ MPP_RET mpp_device_send_request(MppDevCtx ctx)
     return ret;
 }
 
-MPP_RET mpp_device_send_single_request(MppDevCtx ctx, MppDevReqV1 *req)
+MPP_RET mpp_device_send_single_request(MppDevCtx ctx, MppReqV1 *req)
 {
     MPP_RET ret = MPP_OK;
 
@@ -462,14 +461,14 @@ MPP_RET mpp_device_send_extra_info(MppDevCtx ctx, RegExtraInfo *info)
         return ret;
 
     if (p->ioctl_version == IOCTL_MPP_SERVICE_V1) {
-        MppDevReqV1 dev_req;
+        MppReqV1 dev_req;
 
         memset(&dev_req, 0, sizeof(dev_req));
         dev_req.cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = info->count * sizeof(info->patchs[0]);
-        dev_req.data = REQ_DATA_PTR(&info->patchs[0]);
+        dev_req.data_ptr = REQ_DATA_PTR(&info->patchs[0]);
         ret = mpp_device_add_request(ctx, &dev_req);
         if (ret)
             mpp_err_f("mpp_device_send_extra_info failed ret %d\n", ret);
@@ -509,14 +508,14 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
     }
 
     if (p->ioctl_version > 0) {
-        MppDevReqV1 dev_req;
+        MppReqV1 dev_req;
 
         memset(&dev_req, 0, sizeof(dev_req));
         dev_req.cmd = MPP_CMD_SET_REG_WRITE;
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = nregs * sizeof(RK_U32);
-        dev_req.data = REQ_DATA_PTR(regs);
+        dev_req.data_ptr = REQ_DATA_PTR(regs);
         mpp_device_add_request(ctx, &dev_req);
 
         memset(&dev_req, 0, sizeof(dev_req));
@@ -524,7 +523,7 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
         dev_req.flag = 0;
         dev_req.offset = 0;
         dev_req.size = nregs * sizeof(RK_U32);
-        dev_req.data = REQ_DATA_PTR(regs);
+        dev_req.data_ptr = REQ_DATA_PTR(regs);
         mpp_device_add_request(ctx, &dev_req);
 
         ret = mpp_device_send_request(ctx);
@@ -562,7 +561,7 @@ MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs)
     p = (MppDevCtxImpl *)ctx;
 
     if (p->ioctl_version > 0) {
-        MppDevReqV1 dev_req;
+        MppReqV1 dev_req;
 
         memset(&dev_req, 0, sizeof(dev_req));
         dev_req.cmd = MPP_CMD_POLL_HW_FINISH;

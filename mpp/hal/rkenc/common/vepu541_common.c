@@ -23,7 +23,7 @@
 #include "mpp_common.h"
 
 #include "vepu541_common.h"
-#include "mpp_device_msg.h"
+#include "mpp_device.h"
 
 static const RK_S32 zeros[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -501,13 +501,13 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
     MppEncOSDData *osd = cfg->osd_data;
 
     if (plt_cfg->type == MPP_ENC_OSD_PLT_TYPE_USERDEF) {
-        MppDevReqV1 req;
+        MppReqV1 req;
 
         req.cmd = MPP_CMD_SET_REG_WRITE;
         req.flag = 0;
         req.offset = VEPU541_REG_BASE_OSD_PLT;
         req.size = sizeof(MppEncOSDPlt);
-        req.data = REQ_DATA_PTR(plt_cfg->plt);
+        req.data_ptr = REQ_DATA_PTR(plt_cfg->plt);
         mpp_device_add_request(dev, &req);
 
         regs->reg112.osd_plt_cks = 1;
