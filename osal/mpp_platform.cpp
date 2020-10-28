@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <sys/ioctl.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 
@@ -22,6 +24,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_platform.h"
+#include "mpp_service.h"
 
 #define MAX_SOC_NAME_LENGTH     128
 
@@ -140,6 +143,63 @@ static const char *_mpp_find_device(const char **dev, RK_U32 size)
     return NULL;
 }
 
+typedef struct MppServiceQueryCfg_t {
+    RK_U32      cmd_butt;
+    const char  *name;
+} MppServiceQueryCfg;
+
+static const MppServiceQueryCfg query_cfg[] = {
+    {   MPP_CMD_QUERY_BASE,     "query_cmd",    },
+    {   MPP_CMD_INIT_BASE,      "init_cmd",     },
+    {   MPP_CMD_SEND_BASE,      "query_cmd",    },
+    {   MPP_CMD_POLL_BASE,      "init_cmd",     },
+    {   MPP_CMD_CONTROL_BASE,   "control_cmd",  },
+};
+
+static const RK_U32 query_count = MPP_ARRAY_ELEMS(query_cfg);
+
+static void check_mpp_service_cap(MppServiceCmdCap *cap)
+{
+    const char *name = NULL;
+    MppReqV1 mpp_req;
+    RK_S32 fd = -1;
+    RK_S32 ret = 0;
+    RK_U32 *cmd_butt = &cap->query_cmd;;
+    RK_U32 i;
+
+    cap->support_cmd = access("/proc/mpp_service/support_cmd", F_OK) ? 0 : 1;
+    if (!cap->support_cmd)
+        return ;
+
+    name = mpp_find_device(mpp_service_dev);
+    mpp_assert(name);
+    fd = open(name, O_RDWR);
+    if (fd < 0) {
+        mpp_err("open mpp_service to check cmd capability failed\n");
+        memset(cap, 0, sizeof(*cap));
+        return ;
+    }
+
+    for (i = 0; i < query_count; i++, cmd_butt++) {
+        const MppServiceQueryCfg *cfg = &query_cfg[i];
+        RK_U32 val;
+
+        memset(&mpp_req, 0, sizeof(mpp_req));
+
+        val = cfg->cmd_butt;
+        mpp_req.cmd = MPP_CMD_QUERY_CMD_SUPPORT;
+        mpp_req.data_ptr = REQ_DATA_PTR(&val);
+
+        ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
+        if (ret)
+            mpp_err_f("query %s support error %s.\n", cfg->name, strerror(errno));
+        else
+            *cmd_butt = val;
+    }
+
+    close(fd);
+}
+
 class MppPlatformService
 {
 private:
@@ -149,11 +209,12 @@ private:
     MppPlatformService(const MppPlatformService &);
     MppPlatformService &operator=(const MppPlatformService &);
 
-    MppIoctlVersion ioctl_version;
-    char            *soc_name;
-    RockchipSocType soc_type;
-    RK_U32          vcodec_type;
-    RK_U32          vcodec_capability;
+    MppIoctlVersion     ioctl_version;
+    char                *soc_name;
+    RockchipSocType     soc_type;
+    RK_U32              vcodec_type;
+    RK_U32              vcodec_capability;
+    MppServiceCmdCap    mpp_service_cmd_cap;
 
 public:
     static MppPlatformService *get_instance() {
@@ -161,12 +222,13 @@ public:
         return &instance;
     }
 
-    MppIoctlVersion get_ioctl_version(void) { return ioctl_version; };
-    const char      *get_soc_name() { return soc_name; };
-    RockchipSocType get_soc_type() { return soc_type; };
-    RK_U32          get_vcodec_type() { return vcodec_type; };
-    void            set_vcodec_type(RK_U32 val) { vcodec_type = val; };
-    RK_U32          get_vcodec_capability() { return vcodec_capability; };
+    MppIoctlVersion     get_ioctl_version(void) { return ioctl_version; };
+    const char          *get_soc_name() { return soc_name; };
+    RockchipSocType     get_soc_type() { return soc_type; };
+    RK_U32              get_vcodec_type() { return vcodec_type; };
+    void                set_vcodec_type(RK_U32 val) { vcodec_type = val; };
+    RK_U32              get_vcodec_capability() { return vcodec_capability; };
+    MppServiceCmdCap    *get_mpp_service_cmd_cap() { return &mpp_service_cmd_cap; };
 };
 
 MppPlatformService::MppPlatformService()
@@ -176,7 +238,16 @@ MppPlatformService::MppPlatformService()
       vcodec_capability(0)
 {
     /* judge vdpu support version */
+    MppServiceCmdCap *cap = &mpp_service_cmd_cap;
     RK_S32 fd = -1;
+
+    /* default value */
+    cap->support_cmd = 0;
+    cap->query_cmd = MPP_CMD_QUERY_BASE + 1;
+    cap->init_cmd = MPP_CMD_INIT_BASE + 1;
+    cap->send_cmd = MPP_CMD_SEND_BASE + 1;
+    cap->poll_cmd = MPP_CMD_POLL_BASE + 1;
+    cap->ctrl_cmd = MPP_CMD_CONTROL_BASE + 0;
 
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
@@ -227,6 +298,7 @@ MppPlatformService::MppPlatformService()
     /* if /dev/mpp_service not double check */
     if (mpp_find_device(mpp_service_dev)) {
         ioctl_version = IOCTL_MPP_SERVICE_V1;
+        check_mpp_service_cap(cap);
         mpp_dbg(MPP_DBG_PLATFORM, "/dev/mpp_service not double check device\n");
         goto __return;
     }
@@ -536,4 +608,9 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
     }
 
     return dev;
+}
+
+const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void)
+{
+    return MppPlatformService::get_instance()->get_mpp_service_cmd_cap();
 }

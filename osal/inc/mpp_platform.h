@@ -18,6 +18,7 @@
 #define __MPP_PLATFORM__
 
 #include "rk_type.h"
+#include "mpp_service.h"
 
 /*
  * Platform flag detection is for rockchip hardware platform detection
@@ -96,6 +97,7 @@ RK_U32 mpp_get_2d_hw_flag(void);
 RK_U32 mpp_refresh_vcodec_type(RK_U32 vcodec_type);
 const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform);
 const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
+const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void);
 
 #ifdef __cplusplus
 }
