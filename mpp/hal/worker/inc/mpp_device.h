@@ -56,6 +56,9 @@ MPP_RET mpp_device_send_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_wait_reg(MppDevCtx ctx, RK_U32 *regs, RK_U32 nregs);
 MPP_RET mpp_device_send_reg_with_id(MppDevCtx ctx, RK_S32 id, void *param, RK_S32 size);
 
+MPP_RET mpp_device_add_request(MppDevCtx ctx, MppReqV1 *req);
+MPP_RET mpp_device_send_request(MppDevCtx ctx);
+
 #ifdef __cplusplus
 }
 #endif
