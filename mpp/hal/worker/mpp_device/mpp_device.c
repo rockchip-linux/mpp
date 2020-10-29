@@ -104,52 +104,6 @@ static MPP_RET mpp_check_cmd_valid(RK_U32 cmd, MppDevCtxImpl *p)
     return ret;
 }
 
-static RK_U32 mpp_probe_hw_support(RK_S32 dev)
-{
-    RK_S32 ret;
-    RK_U32 flag = 0;
-    MppReqV1 mpp_req;
-
-    mpp_req.cmd = MPP_CMD_PROBE_HW_SUPPORT;
-    mpp_req.flag = 0;
-    mpp_req.size = 0;
-    mpp_req.offset = 0;
-    mpp_req.data_ptr = REQ_DATA_PTR(&flag);
-
-    ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
-    if (ret) {
-        mpp_err_f("probe hw support error %s.\n", strerror(errno));
-        flag = 0;
-    } else {
-        mpp_refresh_vcodec_type(flag);
-        mpp_dev_dbg_hw_cap("vcodec_support %08x\n", flag);
-    }
-
-    return flag;
-}
-
-static RK_U32 mpp_get_hw_id(RK_S32 dev)
-{
-    RK_S32 ret;
-    RK_U32 flag = 0;
-    MppReqV1 mpp_req;
-
-    mpp_req.cmd = MPP_CMD_QUERY_HW_ID;
-    mpp_req.flag = 0;
-    mpp_req.size = 0;
-    mpp_req.offset = 0;
-    mpp_req.data_ptr = REQ_DATA_PTR(&flag);
-
-    ret = (RK_S32)ioctl(dev, MPP_IOC_CFG_V1, &mpp_req);
-    if (ret) {
-        mpp_err_f("get hw id error %s.\n", strerror(errno));
-        flag = 0;
-    }
-
-    mpp_dev_dbg_hw_cap("hardware version 0x%8x", flag);
-    return flag;
-}
-
 static RK_S32 mpp_device_set_client_type(MppDevCtx ctx, int dev, RK_S32 client_type)
 {
     RK_S32 ret;
@@ -266,10 +220,8 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
             RK_S32 ret;
 
             /* if ioctl_version is 1, query hw supprot*/
-            if (p->ioctl_version > 0) {
+            if (p->ioctl_version > 0)
                 p->cap = mpp_get_mpp_service_cmd_cap();
-                mpp_probe_hw_support(dev);
-            }
 
             client_type = mpp_device_get_client_type(p, p->type, p->coding);
             ret = mpp_device_set_client_type(p, dev, client_type);
@@ -287,7 +239,7 @@ MPP_RET mpp_device_init(MppDevCtx *ctx, MppDevCfg *cfg)
     *ctx = p;
     p->vpu_fd = dev;
     if (p->ioctl_version > 0)
-        cfg->hw_id = mpp_get_hw_id(dev);
+        cfg->hw_id = mpp_get_client_hw_id(p->client_type);
     else
         cfg->hw_id = 0;
 

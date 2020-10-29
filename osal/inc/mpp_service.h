@@ -56,7 +56,7 @@ typedef enum MppDevCmd_e {
     MPP_DEV_PROP_BUTT,
 } MppDevCmd;
 
-typedef enum MppDevCmdType_e {
+typedef enum MppServiceCmdType_e {
     MPP_CMD_QUERY_BASE              = 0,
     MPP_CMD_PROBE_HW_SUPPORT        = MPP_CMD_QUERY_BASE + 0,
     MPP_CMD_QUERY_HW_ID             = MPP_CMD_QUERY_BASE + 1,
@@ -87,7 +87,7 @@ typedef enum MppDevCmdType_e {
     MPP_CMD_CONTROL_BUTT,
 
     MPP_CMD_BUTT,
-} MppDevCmdType;
+} MppServiceCmdType;
 
 typedef struct MppReq_t {
     RK_U32 *req;
@@ -110,5 +110,15 @@ typedef struct MppServiceCmdCap_t {
     RK_U32 poll_cmd;
     RK_U32 ctrl_cmd;
 } MppServiceCmdCap;
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap *cap);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* __MPP_SERVICE_H__ */

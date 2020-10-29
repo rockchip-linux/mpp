@@ -194,7 +194,7 @@ private:
 
     MppIoctlVersion     ioctl_version;
     RK_U32              vcodec_type;
-    RK_U32              vcodec_capability;
+    RK_U32              hw_ids[32];
     MppServiceCmdCap    mpp_service_cmd_cap;
     char                soc_name[MAX_SOC_NAME_LENGTH];
     RockchipSocType     soc_type;
@@ -209,9 +209,8 @@ public:
     const char          *get_soc_name() { return soc_name; };
     RockchipSocType     get_soc_type() { return soc_type; };
     RK_U32              get_vcodec_type() { return vcodec_type; };
-    void                set_vcodec_type(RK_U32 val) { vcodec_type = val; };
-    RK_U32              get_vcodec_capability() { return vcodec_capability; };
     MppServiceCmdCap    *get_mpp_service_cmd_cap() { return &mpp_service_cmd_cap; };
+    RK_U32              get_hw_id(RK_S32 client_type);
 };
 
 MppPlatformService::MppPlatformService()
@@ -248,6 +247,7 @@ MppPlatformService::MppPlatformService()
     /* if /dev/mpp_service not double check */
     if (mpp_find_device(mpp_service_dev)) {
         ioctl_version = IOCTL_MPP_SERVICE_V1;
+        check_mpp_service_cap(&vcodec_type, hw_ids, cap);
         mpp_dbg(MPP_DBG_PLATFORM, "/dev/mpp_service not double check device\n");
         goto __return;
     }
@@ -301,6 +301,16 @@ __return:
     mpp_dbg(MPP_DBG_PLATFORM, "vcodec type %08x\n", vcodec_type);
 }
 
+RK_U32 MppPlatformService::get_hw_id(RK_S32 client_type)
+{
+    RK_U32 hw_id = 0;
+
+    if (vcodec_type & (1 << client_type))
+        hw_id = hw_ids[client_type];
+
+    return hw_id;
+}
+
 MppIoctlVersion mpp_get_ioctl_version(void)
 {
     return MppPlatformService::get_instance()->get_ioctl_version();
@@ -338,13 +348,6 @@ RK_U32 mpp_get_2d_hw_flag(void)
         flag |= HAVE_IEP;
 
     return flag;
-}
-
-RK_U32 mpp_refresh_vcodec_type(RK_U32 vcodec_type)
-{
-    MppPlatformService::get_instance()->set_vcodec_type(vcodec_type);
-
-    return 0;
 }
 
 const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform)
@@ -557,4 +560,9 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
 const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void)
 {
     return MppPlatformService::get_instance()->get_mpp_service_cmd_cap();
+}
+
+RK_U32 mpp_get_client_hw_id(RK_S32 client_type)
+{
+    return MppPlatformService::get_instance()->get_hw_id(client_type);
 }
