@@ -32,6 +32,18 @@
 
 #define VPU_IOC_WRITE(nr, size)             _IOC(_IOC_WRITE, VPU_IOC_MAGIC, (nr), (size))
 
+#define VDPU1_REGISTERS                     (101)
+#define VDPU2_REGISTERS                     (159)
+#define VDPU1_PP_REGISTERS                  (164)
+#define VDPU2_PP_REGISTERS                  (184)
+#define RKHEVC_REGISTERS                    (68)
+#define RKVDEC_REGISTERS                    (78)
+#define AVSD_REGISTERS                      (60)
+
+#define VEPU1_REGISTERS                     (164)
+#define VEPU2_REGISTERS                     (184)
+#define RKVENC_REGISTERS                    (140)
+
 typedef struct VPUReq {
     RK_U32 *req;
     RK_U32  size;

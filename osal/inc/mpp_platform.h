@@ -32,7 +32,7 @@ typedef enum MppIoctlVersion_e {
 /*
  * Platform video codec hardware feature
  */
-typedef enum {
+typedef enum MppClientType_e {
     VPU_CLIENT_VDPU1        = 0,    /* 0x00000001 */
     VPU_CLIENT_VDPU2        = 1,    /* 0x00000002 */
     VPU_CLIENT_VDPU1_PP     = 2,    /* 0x00000004 */
@@ -51,7 +51,7 @@ typedef enum {
     IEP_CLIENT_TYPE         = 28,   /* 0x10000000 */
 
     VPU_CLIENT_BUTT,
-} VPU_CLIENT2_TYPE;
+} MppClientType;
 
 /* RK combined codec */
 #define HAVE_VDPU1          (1 << VPU_CLIENT_VDPU1)         /* 0x00000001 */
@@ -94,14 +94,13 @@ MppIoctlVersion mpp_get_ioctl_version(void);
 const char *mpp_get_soc_name(void);
 RK_U32 mpp_get_vcodec_type(void);
 RK_U32 mpp_get_2d_hw_flag(void);
-RK_U32 mpp_refresh_vcodec_type(RK_U32 vcodec_type);
 const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform);
 const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
 const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void);
+RK_U32 mpp_get_client_hw_id(RK_S32 client_type);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /*__MPP_PLATFORM__*/
-

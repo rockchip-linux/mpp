@@ -25,6 +25,12 @@ set(MPP_ALLOCATOR
     ${DRM_FILES}
 )
 
+set(MPP_DRIVER
+    driver/mpp_device_v2.c
+    driver/mpp_service.c
+    driver/vcodec_service.c
+)
+
 add_library(osal STATIC
     mpp_platform.cpp
     mpp_runtime.cpp
@@ -53,6 +59,7 @@ add_library(osal STATIC
     windows/os_env.c
     windows/os_log.c
     ${MPP_ALLOCATOR}
+    ${MPP_DRIVER}
 )
 
 target_link_libraries(osal ${CMAKE_THREAD_LIBS_INIT})
