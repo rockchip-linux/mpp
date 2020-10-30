@@ -979,7 +979,7 @@ static MPP_RET set_parameter(void *hal)
 
     ctx->mb_per_frame = width / 16 * height / 16;
     ctx->mb_per_row = width / 16;
-    ctx->mb_per_col = width / 16;
+    ctx->mb_per_col = height / 16;
 
     sps->pic_width_in_pixel    = width;
     sps->pic_height_in_pixel   = height;
