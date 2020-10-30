@@ -107,7 +107,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     regs->sw53.strm_buf_limit =  hw_cfg->output_strm_size;
 
     regs->sw76.base_ref_lum2 =  hw_cfg->internal_img_lum_base_r[1];
-    regs->sw106.base_ref_chr2 =  hw_cfg->internal_img_lum_base_r[1];
+    regs->sw106.base_ref_chr2 =  hw_cfg->internal_img_chr_base_r[1];
 
     regs->sw100.y1_quant_dc =  hw_cfg->y1_quant_dc[0];
     regs->sw65.y1_quant_ac =  hw_cfg->y1_quant_ac[0];
@@ -164,7 +164,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
 
     regs->sw95.rgb_coeff_a =  hw_cfg->rgb_coeff_a;
     regs->sw95.rgb_coeff_b =  hw_cfg->rgb_coeff_b;
-    regs->sw96.rgb_coeff_c =  hw_cfg->rgb_coeff_a;
+    regs->sw96.rgb_coeff_c =  hw_cfg->rgb_coeff_c;
     regs->sw96.rgb_coeff_e =  hw_cfg->rgb_coeff_e;
     regs->sw97.rgb_coeff_f =  hw_cfg->rgb_coeff_f;
 
@@ -278,7 +278,8 @@ static MPP_RET hal_vp8e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
 
     ctx->cfg = cfg->cfg;
 
-    //ctx->int_cb = cfg->hal_int_cb;
+    memset(ctx, 0, sizeof(HalVp8eCtx));
+    memset(hw_cfg, 0, sizeof(Vp8eHwCfg));
 
     ctx->buffers = mpp_calloc(Vp8eVpuBuf, 1);
     if (ctx->buffers == NULL) {
