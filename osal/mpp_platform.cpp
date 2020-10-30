@@ -130,6 +130,8 @@ static const char *mpp_service_dev[] = {
     "/dev/mpp_service",
 };
 
+static const char *mpp_soc_name_path = "/proc/device-tree/compatible";
+
 #define mpp_find_device(dev) _mpp_find_device(dev, MPP_ARRAY_ELEMS(dev))
 
 static const char *_mpp_find_device(const char **dev, RK_U32 size)
@@ -143,61 +145,42 @@ static const char *_mpp_find_device(const char **dev, RK_U32 size)
     return NULL;
 }
 
-typedef struct MppServiceQueryCfg_t {
-    RK_U32      cmd_butt;
-    const char  *name;
-} MppServiceQueryCfg;
-
-static const MppServiceQueryCfg query_cfg[] = {
-    {   MPP_CMD_QUERY_BASE,     "query_cmd",    },
-    {   MPP_CMD_INIT_BASE,      "init_cmd",     },
-    {   MPP_CMD_SEND_BASE,      "query_cmd",    },
-    {   MPP_CMD_POLL_BASE,      "init_cmd",     },
-    {   MPP_CMD_CONTROL_BASE,   "control_cmd",  },
-};
-
-static const RK_U32 query_count = MPP_ARRAY_ELEMS(query_cfg);
-
-static void check_mpp_service_cap(MppServiceCmdCap *cap)
+static void read_soc_name(char *name, RK_S32 size)
 {
-    const char *name = NULL;
-    MppReqV1 mpp_req;
-    RK_S32 fd = -1;
-    RK_S32 ret = 0;
-    RK_U32 *cmd_butt = &cap->query_cmd;;
+    RK_S32 fd = open(mpp_soc_name_path, O_RDONLY);
+    if (fd < 0) {
+        mpp_err("open %s error\n", mpp_soc_name_path);
+    } else {
+        ssize_t soc_name_len = 0;
+
+        snprintf(name, size, "unknown");
+        soc_name_len = read(fd, name, size - 1);
+        if (soc_name_len > 0) {
+            name[soc_name_len] = '\0';
+            /* replacing the termination character to space */
+            for (char *ptr = name;; ptr = name) {
+                ptr += strnlen(name, size);
+                if (ptr >= name + soc_name_len - 1)
+                    break;
+                *ptr = ' ';
+            }
+
+            mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", name);
+        }
+
+        close(fd);
+    }
+}
+
+static const MppVpuType *check_vpu_type_by_soc_name(const char *soc_name)
+{
     RK_U32 i;
 
-    cap->support_cmd = access("/proc/mpp_service/support_cmd", F_OK) ? 0 : 1;
-    if (!cap->support_cmd)
-        return ;
+    for (i = 0; i < MPP_ARRAY_ELEMS(mpp_vpu_version); i++)
+        if (strstr(soc_name, mpp_vpu_version[i].compatible))
+            return &mpp_vpu_version[i];
 
-    name = mpp_find_device(mpp_service_dev);
-    mpp_assert(name);
-    fd = open(name, O_RDWR);
-    if (fd < 0) {
-        mpp_err("open mpp_service to check cmd capability failed\n");
-        memset(cap, 0, sizeof(*cap));
-        return ;
-    }
-
-    for (i = 0; i < query_count; i++, cmd_butt++) {
-        const MppServiceQueryCfg *cfg = &query_cfg[i];
-        RK_U32 val;
-
-        memset(&mpp_req, 0, sizeof(mpp_req));
-
-        val = cfg->cmd_butt;
-        mpp_req.cmd = MPP_CMD_QUERY_CMD_SUPPORT;
-        mpp_req.data_ptr = REQ_DATA_PTR(&val);
-
-        ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
-        if (ret)
-            mpp_err_f("query %s support error %s.\n", cfg->name, strerror(errno));
-        else
-            *cmd_butt = val;
-    }
-
-    close(fd);
+    return NULL;
 }
 
 class MppPlatformService
@@ -205,16 +188,16 @@ class MppPlatformService
 private:
     // avoid any unwanted function
     MppPlatformService();
-    ~MppPlatformService();
+    ~MppPlatformService() {};
     MppPlatformService(const MppPlatformService &);
     MppPlatformService &operator=(const MppPlatformService &);
 
     MppIoctlVersion     ioctl_version;
-    char                *soc_name;
-    RockchipSocType     soc_type;
     RK_U32              vcodec_type;
     RK_U32              vcodec_capability;
     MppServiceCmdCap    mpp_service_cmd_cap;
+    char                soc_name[MAX_SOC_NAME_LENGTH];
+    RockchipSocType     soc_type;
 
 public:
     static MppPlatformService *get_instance() {
@@ -233,13 +216,10 @@ public:
 
 MppPlatformService::MppPlatformService()
     : ioctl_version(IOCTL_VCODEC_SERVICE),
-      soc_name(NULL),
-      vcodec_type(0),
-      vcodec_capability(0)
+      vcodec_type(0)
 {
     /* judge vdpu support version */
     MppServiceCmdCap *cap = &mpp_service_cmd_cap;
-    RK_S32 fd = -1;
 
     /* default value */
     cap->support_cmd = 0;
@@ -251,54 +231,23 @@ MppPlatformService::MppPlatformService()
 
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
+    /* read soc name */
+    read_soc_name(soc_name, sizeof(soc_name));
+
     /* set vpu1 defalut for old chip without dts */
     vcodec_type = HAVE_VDPU1 | HAVE_VEPU1;
-    fd = open("/proc/device-tree/compatible", O_RDONLY);
-    if (fd < 0) {
-        mpp_err("open /proc/device-tree/compatible error.\n");
-    } else {
-        RK_U32 i = 0;
-        soc_name = mpp_malloc_size(char, MAX_SOC_NAME_LENGTH);
-        if (soc_name) {
-            RK_U32 found_match_soc_name = 0;
-            ssize_t soc_name_len = 0;
-
-            snprintf(soc_name, MAX_SOC_NAME_LENGTH, "unknown");
-            soc_name_len = read(fd, soc_name, MAX_SOC_NAME_LENGTH - 1);
-            if (soc_name_len > 0) {
-                soc_name[soc_name_len] = '\0';
-                /* replacing the termination character to space */
-                for (char *ptr = soc_name;; ptr = soc_name) {
-                    ptr += strnlen(soc_name, MAX_SOC_NAME_LENGTH);
-                    if (ptr >= soc_name + soc_name_len - 1)
-                        break;
-                    *ptr = ' ';
-                }
-
-                mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", soc_name);
-
-                for (i = 0; i < MPP_ARRAY_ELEMS(mpp_vpu_version); i++) {
-                    if (strstr(soc_name, mpp_vpu_version[i].compatible)) {
-                        vcodec_type = mpp_vpu_version[i].vcodec_type;
-                        soc_type = mpp_vpu_version[i].soc_type;
-                        found_match_soc_name = 1;
-                        break;
-                    }
-                }
-            }
-
-            if (!found_match_soc_name)
-                mpp_log("can not found match soc name: %s\n", soc_name);
-        } else {
-            mpp_err("failed to malloc soc name\n");
-        }
-        close(fd);
+    {
+        const MppVpuType *hw_info = check_vpu_type_by_soc_name(soc_name);
+        if (hw_info) {
+            vcodec_type = hw_info->vcodec_type;
+            soc_type = hw_info->soc_type;
+        } else
+            mpp_log("can not found match soc name: %s\n", soc_name);
     }
 
     /* if /dev/mpp_service not double check */
     if (mpp_find_device(mpp_service_dev)) {
         ioctl_version = IOCTL_MPP_SERVICE_V1;
-        check_mpp_service_cap(cap);
         mpp_dbg(MPP_DBG_PLATFORM, "/dev/mpp_service not double check device\n");
         goto __return;
     }
@@ -350,11 +299,6 @@ MppPlatformService::MppPlatformService()
         vcodec_type &= ~(HAVE_VDPU1 | HAVE_VEPU1 | HAVE_VDPU2 | HAVE_VEPU2);
 __return:
     mpp_dbg(MPP_DBG_PLATFORM, "vcodec type %08x\n", vcodec_type);
-}
-
-MppPlatformService::~MppPlatformService()
-{
-    MPP_FREE(soc_name);
 }
 
 MppIoctlVersion mpp_get_ioctl_version(void)
