@@ -17,14 +17,14 @@
 #ifndef __HAL_H263D_BASE_H__
 #define __HAL_H263D_BASE_H__
 
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 typedef struct h263d_reg_context {
     MppHalApi           hal_api;
     MppBufSlots         frm_slots;
     MppBufSlots         pkt_slots;
     IOInterruptCB       int_cb;
-    MppDevCtx           dev_ctx;
+    MppDev              dev;
 
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              vpu_fd;

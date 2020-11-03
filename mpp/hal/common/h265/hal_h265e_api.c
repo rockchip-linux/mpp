@@ -126,4 +126,3 @@ const MppHalApi hal_api_h265e = {
     hal_h265e_flush,
     hal_h265e_control,
 };
-

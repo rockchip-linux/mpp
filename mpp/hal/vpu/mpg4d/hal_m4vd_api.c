@@ -26,7 +26,6 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
-#include "mpp_device.h"
 #include "mpp_platform.h"
 
 #include "hal_mpg4d_api.h"
@@ -35,7 +34,7 @@
 #include "hal_m4vd_vdpu1.h"
 #include "hal_m4vd_vdpu2.h"
 
-RK_U32 mpg4d_hal_debug = 1;
+RK_U32 hal_mpg4d_debug = 1;
 
 /*!
 ***********************************************************************
@@ -44,7 +43,7 @@ RK_U32 mpg4d_hal_debug = 1;
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
     MppHalApi *p_api = NULL;
@@ -72,9 +71,9 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = vdpu2_mpg4d_gen_regs;
         p_api->start = vdpu2_mpg4d_start;
         p_api->wait = vdpu2_mpg4d_wait;
-        p_api->reset = vdpu2_mpg4d_reset;
-        p_api->flush = vdpu2_mpg4d_flush;
-        p_api->control = vdpu2_mpg4d_control;
+        p_api->reset = NULL;
+        p_api->flush = NULL;
+        p_api->control = NULL;
         break;
     case VDPU1_MODE:
         p_api->init = vdpu1_mpg4d_init;
@@ -82,9 +81,9 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = vdpu1_mpg4d_gen_regs;
         p_api->start = vdpu1_mpg4d_start;
         p_api->wait = vdpu1_mpg4d_wait;
-        p_api->reset = vdpu1_mpg4d_reset;
-        p_api->flush = vdpu1_mpg4d_flush;
-        p_api->control = vdpu1_mpg4d_control;
+        p_api->reset = NULL;
+        p_api->flush = NULL;
+        p_api->control = NULL;
         break;
     default:
         return MPP_ERR_INIT;
@@ -101,7 +100,7 @@ MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_deinit(void *hal)
+static MPP_RET hal_vpu_mpg4d_deinit(void *hal)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
@@ -115,7 +114,7 @@ MPP_RET hal_vpu_mpg4d_deinit(void *hal)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_gen_regs(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vpu_mpg4d_gen_regs(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
@@ -129,7 +128,7 @@ MPP_RET hal_vpu_mpg4d_gen_regs(void *hal, HalTaskInfo *task)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
@@ -143,53 +142,11 @@ MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
 ***********************************************************************
 */
 //extern "C"
-MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
     return p_hal->hal_api.wait(hal, task);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    reset
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_vpu_mpg4d_reset(void *hal)
-{
-    hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
-
-    return p_hal->hal_api.reset(hal);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    flush
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_vpu_mpg4d_flush(void *hal)
-{
-    hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
-
-    return p_hal->hal_api.flush(hal);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    control
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_vpu_mpg4d_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
-
-    return p_hal->hal_api.control(hal, cmd_type, param);
 }
 
 const MppHalApi hal_api_mpg4d = {
@@ -203,9 +160,7 @@ const MppHalApi hal_api_mpg4d = {
     .reg_gen = hal_vpu_mpg4d_gen_regs,
     .start = hal_vpu_mpg4d_start,
     .wait = hal_vpu_mpg4d_wait,
-    .reset = hal_vpu_mpg4d_reset,
-    .flush = hal_vpu_mpg4d_flush,
-    .control = hal_vpu_mpg4d_control,
+    .reset = NULL,
+    .flush = NULL,
+    .control = NULL,
 };
-
-

@@ -17,9 +17,10 @@
 #define MODULE_TAG "hal_m2vd_vdpu1"
 
 #include <string.h>
-#include "mpp_common.h"
-#include "mpp_device.h"
+
 #include "mpp_log.h"
+#include "mpp_common.h"
+
 #include "hal_m2vd_base.h"
 #include "hal_m2vd_vdpu1_reg.h"
 #include "hal_m2vd_vpu1.h"
@@ -39,16 +40,9 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
 
     ctx->reg_len = M2VD_VDPU1_REG_NUM;
 
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_DEC,             /* type */
-        .coding = MPP_VIDEO_CodingMPEG2, /* coding */
-        .platform = HAVE_VDPU1,          /* platform */
-        .pp_enable = 0,                  /* pp_enable */
-    };
-
-    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU1);
     if (ret) {
-        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         ret = MPP_ERR_UNKNOW;
         goto __ERR_RET;
     }
@@ -91,9 +85,9 @@ MPP_RET hal_m2vd_vdpu1_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *p = (M2vdHalCtx *)hal;
 
-    if (p->dev_ctx) {
-        mpp_device_deinit(p->dev_ctx);
-        p->dev_ctx = NULL;
+    if (p->dev) {
+        mpp_dev_deinit(p->dev);
+        p->dev = NULL;
     }
 
     if (p->qp_table) {
@@ -119,7 +113,6 @@ MPP_RET hal_m2vd_vdpu1_deinit(void *hal)
 
 static MPP_RET hal_m2vd_vdpu1_init_hwcfg(M2vdHalCtx *ctx)
 {
-
     M2vdVdpu1Reg_t *p_regs = (M2vdVdpu1Reg_t *)ctx->regs;
 
     memset(p_regs, 0, sizeof(M2vdVdpu1Reg_t));
@@ -152,6 +145,7 @@ static MPP_RET hal_m2vd_vdpu1_init_hwcfg(M2vdHalCtx *ctx)
 MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
+
     if (task->dec.valid) {
         void *q_table = NULL;
         MppBuffer streambuf = NULL;
@@ -263,13 +257,39 @@ MPP_RET hal_m2vd_vdpu1_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
-    RK_U32 *p_regs = (RK_U32 *)ctx->regs;
 
-    ret = mpp_device_send_reg(ctx->dev_ctx, p_regs, ctx->reg_len);
-    if (ret) {
-        mpp_err("mpp_device_send_reg failed.\n");
-        return MPP_ERR_VPUHW;
-    }
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+        RK_U32 *regs = (RK_U32 *)ctx->regs;
+        RK_U32 reg_size = sizeof(M2vdVdpu1Reg_t);
+
+        wr_cfg.reg = regs;
+        wr_cfg.size = reg_size;
+        wr_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = regs;
+        rd_cfg.size = reg_size;
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     (void)task;
     return ret;
@@ -281,39 +301,16 @@ MPP_RET hal_m2vd_vdpu1_wait(void *hal, HalTaskInfo *task)
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
     M2vdVdpu1Reg_t* reg_out = (M2vdVdpu1Reg_t * )ctx->regs;
 
-    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)ctx->regs, ctx->reg_len);
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    if (ret)
+        mpp_err_f("poll cmd failed %d\n", ret);
+
     if (reg_out->sw01.dec_error_int | reg_out->sw01.dec_buffer_int) {
         if (ctx->int_cb.callBack)
             ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
     }
 
-    if (ret)
-        mpp_log("mpp_device_wait_reg return error:%d", ret);
-
     (void)task;
 
-    return ret;
-}
-
-MPP_RET hal_m2vd_vdpu1_reset(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-    (void)hal;
-    return ret;
-}
-
-MPP_RET hal_m2vd_vdpu1_flush(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-    (void)hal;
-    return ret;
-}
-
-MPP_RET hal_m2vd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    MPP_RET ret = MPP_OK;
-    (void)hal;
-    (void)cmd_type;
-    (void)param;
     return ret;
 }

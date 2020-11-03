@@ -285,7 +285,7 @@ MPP_RET vcodec_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET vcodec_service_fd_trans(void *ctx, MppDevFdTransCfg *cfg)
+MPP_RET vcodec_service_fd_trans(void *ctx, MppDevRegOffsetCfg *cfg)
 {
     if (cfg->offset) {
         MppDevVcodecService *p = (MppDevVcodecService *)ctx;

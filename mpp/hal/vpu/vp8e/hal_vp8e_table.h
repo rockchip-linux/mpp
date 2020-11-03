@@ -17,8 +17,6 @@
 #ifndef __HAL_VP8E_TABLE_H__
 #define __HAL_VP8E_TABLE_H__
 
-#include "rk_type.h"
-
 #include "hal_vp8e_base.h"
 #include "hal_vp8e_putbit.h"
 

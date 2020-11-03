@@ -27,8 +27,6 @@
 #include "mpp_common.h"
 #include "mpp_bitput.h"
 
-#include "mpp_device.h"
-
 #include "hal_h264d_global.h"
 #include "hal_h264d_rkv_reg.h"
 
@@ -706,12 +704,37 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
 
     p_regs[1] |= 0x00000061;   // run hardware, enable buf_empty_en
 
-    ret = mpp_device_send_reg(p_hal->dev_ctx, (RK_U32 *)p_regs,
-                              DEC_RKV_REGISTERS);
-    if (ret) {
-        ret =  MPP_ERR_VPUHW;
-        H264D_ERR("H264 RKV FlushRegs fail. \n");
-    }
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+        RK_U32 reg_size = DEC_RKV_REGISTERS * sizeof(RK_U32);
+
+        wr_cfg.reg = p_regs;
+        wr_cfg.size = reg_size;
+        wr_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = p_regs;
+        rd_cfg.size = reg_size;
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     (void)task;
 __RETURN:
@@ -740,14 +763,9 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
         goto __SKIP_HARD;
     }
 
-    {
-        RK_S32 wait_ret = -1;
-        wait_ret = mpp_device_wait_reg(p_hal->dev_ctx, (RK_U32 *)p_regs, DEC_RKV_REGISTERS);
-        if (wait_ret) {
-            ret =  MPP_ERR_VPUHW;
-            H264D_ERR("H264 RKV FlushRegs fail. \n");
-        }
-    }
+    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
+    if (ret)
+        mpp_err_f("poll cmd failed %d\n", ret);
 
 __SKIP_HARD:
     if (p_hal->init_cb.callBack) {

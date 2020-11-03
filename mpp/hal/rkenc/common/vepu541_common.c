@@ -23,7 +23,6 @@
 #include "mpp_common.h"
 
 #include "vepu541_common.h"
-#include "mpp_device.h"
 
 static const RK_S32 zeros[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -496,19 +495,18 @@ typedef struct Vepu541OsdReg_t {
 MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
 {
     Vepu541OsdReg *regs = (Vepu541OsdReg *)(cfg->reg_base + (size_t)VEPU541_OSD_CFG_OFFSET);
-    MppDevCtx dev = cfg->dev;
+    MppDev dev = cfg->dev;
     MppEncOSDPltCfg *plt_cfg = cfg->plt_cfg;
     MppEncOSDData *osd = cfg->osd_data;
 
     if (plt_cfg->type == MPP_ENC_OSD_PLT_TYPE_USERDEF) {
-        MppReqV1 req;
+        MppDevRegWrCfg wr_cfg;
 
-        req.cmd = MPP_CMD_SET_REG_WRITE;
-        req.flag = 0;
-        req.offset = VEPU541_REG_BASE_OSD_PLT;
-        req.size = sizeof(MppEncOSDPlt);
-        req.data_ptr = REQ_DATA_PTR(plt_cfg->plt);
-        mpp_device_add_request(dev, &req);
+        wr_cfg.reg = plt_cfg->plt;
+        wr_cfg.size = sizeof(MppEncOSDPlt);
+        wr_cfg.offset = VEPU541_REG_BASE_OSD_PLT;
+
+        mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
 
         regs->reg112.osd_plt_cks = 1;
         regs->reg112.osd_plt_typ = VEPU541_OSD_PLT_TYPE_USERDEF;
@@ -543,8 +541,6 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
     MppEncOSDRegion *region = osd->region;
     MppEncOSDRegion *tmp = region;
 
-    mpp_device_patch_init(&cfg->extra);
-
     for (k = 0; k < num; k++, tmp++) {
         regs->reg112.osd_e      |= tmp->enable << k;
         regs->reg112.osd_inv_e  |= tmp->inverse << k;
@@ -559,9 +555,15 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
             pos->osd_rb_y = tmp->start_mb_y + tmp->num_mb_y - 1;
 
             regs->osd_addr[k] = fd;
-            mpp_device_patch_add(cfg->reg_base, &cfg->extra,
-                                 VEPU541_OSD_ADDR_IDX_BASE + k,
-                                 tmp->buf_offset);
+
+
+            if (tmp->buf_offset) {
+                MppDevRegOffsetCfg trans_cfg;
+
+                trans_cfg.reg_idx = VEPU541_OSD_ADDR_IDX_BASE + k;
+                trans_cfg.offset = tmp->buf_offset;
+                mpp_dev_ioctl(cfg->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            }
 
             /* There should be enough buffer and offset should be 16B aligned */
             if (buf_size < tmp->buf_offset + blk_len ||
@@ -572,8 +574,6 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
             }
         }
     }
-
-    mpp_device_send_extra_info(dev, &cfg->extra);
 
     if (region[0].inverse)
         regs->reg113.osd_ithd_r0 = ENC_DEFAULT_OSD_INV_THR;

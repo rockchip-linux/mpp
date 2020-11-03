@@ -227,21 +227,21 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     close(fd);
 }
 
-#define MAX_FD_TRANS        16
+#define MAX_REG_OFFSET          16
 
 typedef struct FdTransInfo_t {
     RK_U32          reg_idx;
     RK_U32          offset;
-} FdTransInfo;
+} RegOffsetInfo;
 
 typedef struct MppDevMppService_t {
     RK_S32          client_type;
     RK_S32          fd;
 
     RK_S32          req_cnt;
+    RK_S32          reg_offset_count;
     MppReqV1        reqs[MAX_REQ_NUM];
-    RK_S32          fd_trans_count;
-    FdTransInfo     fd_trans_info[MAX_FD_TRANS];
+    RegOffsetInfo   reg_offset_info[MAX_REG_OFFSET];
 
     /* support max cmd buttom  */
     const MppServiceCmdCap *cap;
@@ -314,14 +314,14 @@ MPP_RET mpp_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET mpp_service_fd_trans(void *ctx, MppDevFdTransCfg *cfg)
+MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
 
     if (!cfg->offset)
         return MPP_OK;
 
-    FdTransInfo *info = &p->fd_trans_info[p->fd_trans_count++];
+    RegOffsetInfo *info = &p->reg_offset_info[p->reg_offset_count++];
 
     info->reg_idx = cfg->reg_idx;
     info->offset = cfg->offset;
@@ -347,14 +347,14 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     }
 
     /* set fd trans info if needed */
-    if (p->fd_trans_count) {
+    if (p->reg_offset_count) {
         MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
 
         mpp_req->cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
         mpp_req->flag = 0;
-        mpp_req->size = p->fd_trans_count * sizeof(p->fd_trans_info[0]);
+        mpp_req->size = p->reg_offset_count * sizeof(p->reg_offset_info[0]);
         mpp_req->offset = 0;
-        mpp_req->data_ptr = REQ_DATA_PTR(&p->fd_trans_info[0]);
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[0]);
         p->req_cnt++;
     }
 
@@ -375,7 +375,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     }
 
     p->req_cnt = 0;
-    p->fd_trans_count = 0;
+    p->reg_offset_count = 0;
     return ret;
 }
 
@@ -405,7 +405,7 @@ const MppDevApi mpp_service_api = {
     mpp_service_deinit,
     mpp_service_reg_wr,
     mpp_service_reg_rd,
-    mpp_service_fd_trans,
+    mpp_service_reg_offset,
     mpp_service_set_info,
     mpp_service_cmd_send,
     mpp_service_cmd_poll,

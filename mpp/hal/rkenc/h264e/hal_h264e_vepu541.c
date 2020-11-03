@@ -22,8 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
-#include "mpp_device.h"
-#include "mpp_device_patch.h"
+#include "mpp_device_api.h"
 #include "mpp_frame_impl.h"
 #include "mpp_rc.h"
 
@@ -41,8 +40,7 @@
 typedef struct HalH264eVepu541Ctx_t {
     MppEncCfgSet            *cfg;
 
-    MppDevCtx               dev_ctx;
-    RegExtraInfo            dev_patch;
+    MppDev                  dev;
     RK_S32                  frame_cnt;
 
     /* buffers management */
@@ -109,9 +107,9 @@ static MPP_RET hal_h264e_vepu541_deinit(void *hal)
 
     hal_h264e_dbg_func("enter %p\n", p);
 
-    if (p->dev_ctx) {
-        mpp_device_deinit(p->dev_ctx);
-        p->dev_ctx = NULL;
+    if (p->dev) {
+        mpp_dev_deinit(p->dev);
+        p->dev = NULL;
     }
 
     if (p->roi_buf) {
@@ -138,20 +136,14 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
 {
     HalH264eVepu541Ctx *p = (HalH264eVepu541Ctx *)hal;
     MPP_RET ret = MPP_OK;
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_ENC,            /* type */
-        .coding = MPP_VIDEO_CodingAVC,  /* coding */
-        .platform = HAVE_RKVENC,        /* platform */
-        .pp_enable = 0,                 /* pp_enable */
-    };
 
     hal_h264e_dbg_func("enter %p\n", p);
 
     p->cfg = cfg->cfg;
 
-    ret = mpp_device_init(&p->dev_ctx, &dev_cfg);
+    ret = mpp_dev_init(&p->dev, VPU_CLIENT_RKVENC);
     if (ret) {
-        mpp_err_f("mpp_device_init failed ret: %d\n", ret);
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         goto DONE;
     }
 
@@ -162,7 +154,7 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
     }
 
     p->osd_cfg.reg_base = &p->regs_set;
-    p->osd_cfg.dev = p->dev_ctx;
+    p->osd_cfg.dev = p->dev;
     p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
     p->osd_cfg.osd_data = NULL;
 
@@ -768,7 +760,7 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, RegExtraInfo *info,
+static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, MppDev dev,
                                  HalEncTask *task)
 {
     MppFrame frm = task->frame;
@@ -835,10 +827,23 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, RegExtraInfo *info,
         }
     }
 
-    mpp_device_patch_add((RK_U32 *)regs, info, 71, off_in[0]);
-    mpp_device_patch_add((RK_U32 *)regs, info, 72, off_in[1]);
-    mpp_device_patch_add((RK_U32 *)regs, info, 83, siz_out);
-    mpp_device_patch_add((RK_U32 *)regs, info, 86, off_out);
+    MppDevRegOffsetCfg trans_cfg;
+
+    trans_cfg.reg_idx = 71;
+    trans_cfg.offset = off_in[0];
+    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+
+    trans_cfg.reg_idx = 72;
+    trans_cfg.offset = off_in[1];
+    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+
+    trans_cfg.reg_idx = 83;
+    trans_cfg.offset = siz_out;
+    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+
+    trans_cfg.reg_idx = 86;
+    trans_cfg.offset = off_out;
+    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1309,14 +1314,12 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     /* register setup */
     memset(regs, 0, sizeof(*regs));
 
-    mpp_device_patch_init(&ctx->dev_patch);
-
     setup_vepu541_normal(regs);
     setup_vepu541_prep(regs, &ctx->cfg->prep);
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
     setup_vepu541_rc_base(regs, sps, task->rc_task);
-    setup_vepu541_io_buf(regs, &ctx->dev_patch, task);
+    setup_vepu541_io_buf(regs, ctx->dev, task);
     setup_vepu541_roi(regs, ctx);
     setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,
                             ctx->pixel_buf_fbc_hdr_size);
@@ -1327,8 +1330,6 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_me(regs, sps, slice);
     vepu541_set_osd(&ctx->osd_cfg);
     setup_vepu541_l2(&ctx->regs_l2_set, slice);
-
-    mpp_device_send_extra_info(ctx->dev_ctx, &ctx->dev_patch);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
@@ -1354,51 +1355,65 @@ static MPP_RET hal_h264e_vepu541_start(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
-    MppReqV1 req;
-
-    memset(&req, 0, sizeof(req));
 
     (void) task;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    /* write L2 registers */
-    req.cmd = MPP_CMD_SET_REG_WRITE;
-    req.flag = 0;
-    req.offset = VEPU541_REG_BASE_L2;
-    req.size = sizeof(Vepu541H264eRegL2Set);
-    req.data_ptr = REQ_DATA_PTR(&ctx->regs_l2_set);
-    mpp_device_add_request(ctx->dev_ctx, &req);
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
 
-    /* write L1 registers */
-    req.cmd = MPP_CMD_SET_REG_WRITE;
-    req.size = sizeof(Vepu541H264eRegSet);
-    req.offset = 0;
-    req.data_ptr = REQ_DATA_PTR(&ctx->regs_set);
-    mpp_device_add_request(ctx->dev_ctx, &req);
+        /* write L2 registers */
+        wr_cfg.reg = &ctx->regs_l2_set;
+        wr_cfg.size = sizeof(Vepu541H264eRegL2Set);
+        wr_cfg.offset = VEPU541_REG_BASE_L2;
 
-    /* write extra info for address registers */
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
 
-    /* set output request */
-    memset(&req, 0, sizeof(req));
-    req.flag = 0;
-    req.cmd = MPP_CMD_SET_REG_READ;
-    req.size = sizeof(RK_U32);
-    req.data_ptr = REQ_DATA_PTR(&ctx->regs_ret.hw_status);
-    req.offset = VEPU541_REG_BASE_HW_STATUS;
-    mpp_device_add_request(ctx->dev_ctx, &req);
+        /* write L1 registers */
+        wr_cfg.reg = &ctx->regs_set;
+        wr_cfg.size = sizeof(Vepu541H264eRegSet);
+        wr_cfg.offset = 0;
 
-    memset(&req, 0, sizeof(req));
-    req.flag = 0;
-    req.cmd = MPP_CMD_SET_REG_READ;
-    req.size = sizeof(ctx->regs_ret) - 4;
-    req.data_ptr = REQ_DATA_PTR(&ctx->regs_ret.st_bsl);
-    req.offset = VEPU541_REG_BASE_STATISTICS;
-    mpp_device_add_request(ctx->dev_ctx, &req);
-    /* send request to hardware */
-    ret = mpp_device_send_request(ctx->dev_ctx);
-    if (ret)
-        ret = MPP_ERR_VPUHW;
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        /* set output request */
+        rd_cfg.reg = &ctx->regs_ret.hw_status;
+        rd_cfg.size = sizeof(RK_U32);
+        rd_cfg.offset = VEPU541_REG_BASE_HW_STATUS;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = &ctx->regs_ret.st_bsl;
+        rd_cfg.size = sizeof(ctx->regs_ret) - 4;
+        rd_cfg.offset = VEPU541_REG_BASE_STATISTICS;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        /* send request to hardware */
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -1444,15 +1459,12 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
-    MppReqV1 req;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    memset(&req, 0, sizeof(req));
-    req.cmd = MPP_CMD_POLL_HW_FINISH;
-    mpp_device_add_request(ctx->dev_ctx, &req);
-    ret = mpp_device_send_request(ctx->dev_ctx);
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret) {
+        mpp_err_f("poll cmd failed %d\n", ret);
         ret = MPP_ERR_VPUHW;
     } else {
         hal_h264e_vepu541_status_check(hal);

@@ -1162,21 +1162,9 @@ typedef struct H265eV541L2RegSet_t {
     } aq_qp_dlt3;
 } H265eV541L2RegSet;
 
-typedef struct H265eV541IoctlExtraInfoElem_t {
-    RK_U32 reg_idx;
-    RK_U32 offset;
-} H265eV541IoctlExtraInfoElem;
-
-typedef struct H265eV541IoctlExtraInfo_t {
-    RK_U32                          magic;
-    RK_U32                          cnt;
-    H265eV541IoctlExtraInfoElem     elem[20];
-} H265eV541IoctlExtraInfo;
-
 typedef struct H265eV541IoctlRegInfo_t {
     RK_U32                  reg_num;
     H265eV541RegSet         regs;
-    H265eV541IoctlExtraInfo extra_info;
 } H265eV541IoctlRegInfo;
 
 /*

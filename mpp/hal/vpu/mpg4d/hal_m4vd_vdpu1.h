@@ -28,9 +28,6 @@ MPP_RET vdpu1_mpg4d_deinit  (void *hal);
 MPP_RET vdpu1_mpg4d_gen_regs(void *hal, HalTaskInfo *task);
 MPP_RET vdpu1_mpg4d_start   (void *hal, HalTaskInfo *task);
 MPP_RET vdpu1_mpg4d_wait    (void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_mpg4d_reset   (void *hal);
-MPP_RET vdpu1_mpg4d_flush   (void *hal);
-MPP_RET vdpu1_mpg4d_control (void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }

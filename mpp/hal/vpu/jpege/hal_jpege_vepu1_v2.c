@@ -22,8 +22,8 @@
 #include "mpp_log.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
-#include "mpp_device.h"
 #include "mpp_platform.h"
+#include "mpp_device_patch.h"
 
 #include "mpp_enc_hal.h"
 
@@ -55,28 +55,20 @@ static MPP_RET hal_jpege_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_ENC,              /* type */
-        .coding = MPP_VIDEO_CodingMJPEG,  /* coding */
-        .platform = HAVE_VEPU1,           /* platform */
-        .pp_enable = 0,                   /* pp_enable */
-    };
-
-    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VEPU1);
     if (ret) {
-        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
 
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
 
-    memset(&(ctx->ioctl_info), 0, sizeof(ctx->ioctl_info));
     ctx->cfg = cfg->cfg;
-
-    ctx->ioctl_info.regs = mpp_calloc(RK_U32, VEPU_JPEGE_VEPU1_NUM_REGS);
-    if (!ctx->ioctl_info.regs) {
-        mpp_err_f("failed to malloc vdpu1 regs\n");
+    ctx->reg_size = sizeof(RK_U32) * VEPU_JPEGE_VEPU1_NUM_REGS;
+    ctx->regs = mpp_calloc_size(void, ctx->reg_size + sizeof(RegExtraInfo));
+    if (NULL == ctx->regs) {
+        mpp_err_f("failed to malloc vepu1 regs\n");
         return MPP_NOK;
     }
 
@@ -96,14 +88,12 @@ static MPP_RET hal_jpege_vepu1_deinit_v2(void *hal)
         ctx->bits = NULL;
     }
 
-    if (ctx->dev_ctx) {
-        ret = mpp_device_deinit(ctx->dev_ctx);
-        if (ret) {
-            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
-        }
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
     }
 
-    mpp_free(ctx->ioctl_info.regs);
+    MPP_FREE(ctx->regs);
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;
 }
@@ -135,28 +125,42 @@ static MPP_RET hal_jpege_vepu1_get_task_v2(void *hal, HalEncTask *task)
 }
 
 static MPP_RET hal_jpege_vepu1_set_extra_info(RK_U32 *regs,
-                                              RegExtraInfo *info,
+                                              MppDev dev,
                                               JpegeSyntax *syntax)
 {
-    if (info == NULL || syntax == NULL) {
-        mpp_err_f("invalid input parameter!");
-        return MPP_NOK;
-    }
-
     MppFrameFormat fmt  = syntax->format;
     RK_U32 hor_stride   = syntax->hor_stride;
     RK_U32 ver_stride   = syntax->ver_stride;
 
-    mpp_device_patch_init(info);
-
     switch (fmt) {
+    case MPP_FMT_YUV420SP :
     case MPP_FMT_YUV420P : {
-        mpp_device_patch_add(regs, info, 12, hor_stride * ver_stride);
-        mpp_device_patch_add(regs, info, 13, hor_stride * ver_stride * 5 / 4);
-    } break;
-    case MPP_FMT_YUV420SP : {
-        mpp_device_patch_add(regs, info, 12, hor_stride * ver_stride);
-        mpp_device_patch_add(regs, info, 13, hor_stride * ver_stride);
+        RK_U32 offset = hor_stride * ver_stride;
+
+        if (offset < SZ_4M)
+            regs[12] += offset << 10;
+        else {
+            MppDevRegOffsetCfg trans_cfg;
+
+            trans_cfg.reg_idx = 12;
+            trans_cfg.offset = offset;
+
+            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        }
+
+        if (fmt == MPP_FMT_YUV420P)
+            offset = hor_stride * ver_stride * 5 / 4;
+
+        if (offset < SZ_4M)
+            regs[13] += offset << 10;
+        else {
+            MppDevRegOffsetCfg trans_cfg;
+
+            trans_cfg.reg_idx = 13;
+            trans_cfg.offset = offset;
+
+            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        }
     } break;
     default : {
     } break;
@@ -178,8 +182,7 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 hor_stride   = 0;
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
-    RK_U32 *regs = ctx->ioctl_info.regs;
-    RegExtraInfo *extra_info = &(ctx->ioctl_info.extra_info);
+    RK_U32 *regs = (RK_U32 *)ctx->regs;
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
     size_t length = mpp_packet_get_length(task->packet);
@@ -217,7 +220,7 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     regs[11] = mpp_buffer_get_fd(input);
     regs[12] = mpp_buffer_get_fd(input);
     regs[13] = regs[12];
-    hal_jpege_vepu1_set_extra_info(regs, extra_info, syntax);
+    hal_jpege_vepu1_set_extra_info(regs, ctx->dev, syntax);
 
     bitpos = jpege_bits_get_bitpos(bits);
     bytepos = (bitpos + 7) >> 3;
@@ -373,46 +376,42 @@ static MPP_RET hal_jpege_vepu1_start_v2(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    RK_U32 reg_size = sizeof(jpege_vepu1_reg_set);
-    RK_U32 extra_size = (ctx->ioctl_info.extra_info.count) ?
-                        (sizeof(RegExtraInfo)) : (0);
-    RK_U32 reg_num = reg_size / sizeof(RK_U32);
-    RK_U32 extra_num = extra_size / sizeof(RK_U32);
-    RegExtraInfo *info = &ctx->ioctl_info.extra_info;
-    RK_U32 nregs = reg_num;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
-    if (mpp_get_ioctl_version()) {
-        ret = mpp_device_send_extra_info(ctx->dev_ctx, info);
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+        RK_U32 reg_size = ctx->reg_size;
 
-        if (ret)
-            return MPP_ERR_VPUHW;
+        wr_cfg.reg = ctx->regs;
+        wr_cfg.size = reg_size;
+        wr_cfg.offset = 0;
 
-        ret = mpp_device_send_reg(ctx->dev_ctx, ctx->ioctl_info.regs, nregs);
-    } else {
-        RK_U32 *cache = NULL;
-        if (mpp_device_patch_is_valid(info)) {
-            nregs += extra_num;
-            cache = mpp_malloc(RK_U32, reg_num + extra_num);
-
-            if (!cache) {
-                mpp_err_f("failed to malloc reg cache\n");
-                return MPP_NOK;
-            }
-
-            memcpy(cache, ctx->ioctl_info.regs, reg_size);
-            memcpy(cache + reg_num, &(ctx->ioctl_info.extra_info), extra_size);
-            ret = mpp_device_send_reg(ctx->dev_ctx, cache, nregs);
-            mpp_free(cache);
-        } else {
-            ret = mpp_device_send_reg(ctx->dev_ctx, ctx->ioctl_info.regs, nregs);
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
         }
-    }
 
+        rd_cfg.reg = ctx->regs;
+        rd_cfg.size = reg_size;;
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
-    (void)ctx;
     (void)task;
     return ret;
 }
@@ -422,7 +421,7 @@ static MPP_RET hal_jpege_vepu1_wait_v2(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeBits bits = ctx->bits;
-    RK_U32 *regs = ctx->ioctl_info.regs;
+    RK_U32 *regs = (RK_U32 *)ctx->regs;
     JpegeFeedback *feedback = &ctx->feedback;
     RK_U32 val;
     RK_U32 sw_bit;
@@ -430,8 +429,11 @@ static MPP_RET hal_jpege_vepu1_wait_v2(void *hal, HalEncTask *task)
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
-    if (ctx->dev_ctx)
-        ret = mpp_device_wait_reg(ctx->dev_ctx, regs, sizeof(jpege_vepu1_reg_set) / sizeof(RK_U32));
+    if (ctx->dev) {
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+        if (ret)
+            mpp_err_f("poll cmd failed %d\n", ret);
+    }
 
     val = regs[1];
     hal_jpege_dbg_output("hw_status %08x\n", val);

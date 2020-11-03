@@ -25,7 +25,7 @@ typedef enum MppDevIoctlCmd_e {
     /* hardware operation setup config */
     MPP_DEV_REG_WR,
     MPP_DEV_REG_RD,
-    MPP_DEV_FD_TRANS,
+    MPP_DEV_REG_OFFSET,
     MPP_DEV_SET_INFO,
 
     MPP_DEV_CMD_SEND,
@@ -48,11 +48,11 @@ typedef struct MppDevRegRdCfg_t {
     RK_U32  offset;
 } MppDevRegRdCfg;
 
-/* for MPP_DEV_FD_TRANS */
-typedef struct MppDevFdTransCfg_t {
+/* for MPP_DEV_REG_OFFSET */
+typedef struct MppDevRegOffsetCfg_t {
     RK_U32  reg_idx;
     RK_U32  offset;
-} MppDevFdTransCfg;
+} MppDevRegOffsetCfg;
 
 /* for MPP_DEV_SET_INFO */
 typedef struct MppDevSetInfoCfg_t {
@@ -70,7 +70,7 @@ typedef struct MppDevApi_t {
     /* config the cmd on preparing */
     MPP_RET     (*reg_wr)(void *ctx, MppDevRegWrCfg *cfg);
     MPP_RET     (*reg_rd)(void *ctx, MppDevRegRdCfg *cfg);
-    MPP_RET     (*fd_trans)(void *ctx, MppDevFdTransCfg *cfg);
+    MPP_RET     (*reg_offset)(void *ctx, MppDevRegOffsetCfg *cfg);
     MPP_RET     (*set_info)(void *ctx, MppDevSetInfoCfg *cfg);
 
     /* send cmd to hardware */

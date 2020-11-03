@@ -107,9 +107,9 @@ static MPP_RET hal_h263d_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_vpu2_h263d_gen_regs;
         p_api->start   = hal_vpu2_h263d_start;
         p_api->wait    = hal_vpu2_h263d_wait;
-        p_api->reset   = hal_vpu2_h263d_reset;
-        p_api->flush   = hal_vpu2_h263d_flush;
-        p_api->control = hal_vpu2_h263d_control;
+        p_api->reset   = NULL;
+        p_api->flush   = NULL;
+        p_api->control = NULL;
     } break;
     case VDPU1_MODE : {
         mpp_log("the VDPU1_MODE is used currently!\n");
@@ -118,9 +118,9 @@ static MPP_RET hal_h263d_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_vpu1_h263d_gen_regs;
         p_api->start   = hal_vpu1_h263d_start;
         p_api->wait    = hal_vpu1_h263d_wait;
-        p_api->reset   = hal_vpu1_h263d_reset;
-        p_api->flush   = hal_vpu1_h263d_flush;
-        p_api->control = hal_vpu1_h263d_control;
+        p_api->reset   = NULL;
+        p_api->flush   = NULL;
+        p_api->control = NULL;
     } break;
     default : {
         mpp_err("unknow vpu type:%d.", hw_mode);

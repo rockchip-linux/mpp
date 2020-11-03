@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "mpp_log.h"
 #include "hal_m4vd_com.h"
 
 RK_U8 default_intra_matrix[64] = {

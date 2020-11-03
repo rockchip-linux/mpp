@@ -16,11 +16,12 @@
 
 #ifndef __HAL_VP8D_BASE_H__
 #define __HAL_VP8D_BASE_H__
+
 #include <stdio.h>
 
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 #include "hal_task.h"
 
@@ -41,18 +42,18 @@
     } while (0)
 
 typedef struct VP8DHalContext {
-    MppBufSlots packet_slots;
-    MppBufSlots frame_slots;
-    MppDevCtx   dev_ctx;
-    void        *regs;
-    RK_U8       reg_size;
-    MppBufferGroup group;
-    MppBuffer probe_table;
-    MppBuffer seg_map;
-    RK_U32 dec_frame_cnt;
-    FILE *fp_reg_in;
-    FILE *fp_reg_out;
-    MppHalApi hal_api;
+    MppBufSlots     packet_slots;
+    MppBufSlots     frame_slots;
+    MppDev          dev;
+    void            *regs;
+    RK_U8           reg_size;
+    MppBufferGroup  group;
+    MppBuffer       probe_table;
+    MppBuffer       seg_map;
+    RK_U32          dec_frame_cnt;
+    FILE            *fp_reg_in;
+    FILE            *fp_reg_out;
+    MppHalApi       hal_api;
 } VP8DHalContext_t;
 
 #endif

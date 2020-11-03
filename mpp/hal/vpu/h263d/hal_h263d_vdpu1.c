@@ -133,15 +133,9 @@ MPP_RET hal_vpu1_h263d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_DEC,            /* type */
-        .coding = MPP_VIDEO_CodingH263, /* coding */
-        .platform = HAVE_VDPU1,         /* platform */
-        .pp_enable = 0,                 /* pp_enable */
-    };
-    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
-    if (ret != MPP_OK) {
-        mpp_err_f("mpp_device_init failed. ret: %d\n", ret);
+    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU1);
+    if (ret) {
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         ret = MPP_ERR_UNKNOW;
         goto ERR_RET;
     }
@@ -173,9 +167,10 @@ MPP_RET hal_vpu1_h263d_deinit(void *hal)
         ctx->regs = NULL;
     }
 
-    ret = mpp_device_deinit(ctx->dev_ctx);
-    if (ret)
-        mpp_err("mpp_device_deinit failed ret: %d\n", ret);
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
+    }
 
     return ret;
 }
@@ -237,18 +232,46 @@ MPP_RET hal_vpu1_h263d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    RK_U32 reg_count = (sizeof(*(Vpu1H263dRegSet_t*)ctx->regs) / sizeof(RK_U32));
-    RK_U32* regs = (RK_U32 *)ctx->regs;
+    RK_U32 *regs = (RK_U32 *)ctx->regs;
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_PUT) {
+        RK_U32 reg_count = (sizeof(Vpu1H263dRegSet_t) / sizeof(RK_U32));
         RK_U32 i = 0;
 
-        for (i = 0; i < reg_count; i++) {
+        for (i = 0; i < reg_count; i++)
             mpp_log("reg[%03d]: %08x\n", i, regs[i]);
-        }
     }
 
-    ret = mpp_device_send_reg(ctx->dev_ctx, regs, reg_count);
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+
+        wr_cfg.reg = regs;
+        wr_cfg.size = sizeof(Vpu1H263dRegSet_t);
+        wr_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = regs;
+        rd_cfg.size = sizeof(Vpu1H263dRegSet_t);
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     (void)task;
     return ret;
@@ -258,46 +281,20 @@ MPP_RET hal_vpu1_h263d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    Vpu1H263dRegSet_t *reg_out = (Vpu1H263dRegSet_t *)ctx->regs;
-    RK_U32* regs = (RK_U32 *)reg_out;
-    RK_U32 reg_count = (sizeof(*(Vpu1H263dRegSet_t*)ctx->regs) / sizeof(RK_U32));
 
-    ret = mpp_device_wait_reg(ctx->dev_ctx, regs, reg_count);
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    if (ret)
+        mpp_err_f("poll cmd failed %d\n", ret);
 
     if (h263d_hal_debug & H263D_HAL_DBG_REG_GET) {
+        RK_U32 *regs = (RK_U32 *)ctx->regs;
+        RK_U32 reg_count = (sizeof(Vpu1H263dRegSet_t) / sizeof(RK_U32));
         RK_U32 i = 0;
 
-        for (i = 0; i < reg_count; i++) {
+        for (i = 0; i < reg_count; i++)
             mpp_log("reg[%03d]: %08x\n", i, regs[i]);
-        }
     }
 
     (void)task;
-    return ret;
-}
-
-MPP_RET hal_vpu1_h263d_reset(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    return ret;
-}
-
-MPP_RET hal_vpu1_h263d_flush(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    return ret;
-}
-
-MPP_RET hal_vpu1_h263d_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    (void)cmd_type;
-    (void)param;
     return ret;
 }
