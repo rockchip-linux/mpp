@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 #include "mpp_mem.h"
 #include "m2vd_syntax.h"
 
@@ -59,18 +59,18 @@ typedef enum M2VDPicStruct_e {
 } M2VDPicStruct;
 
 typedef struct M2vdHalCtx_t {
-    MppHalApi        hal_api;
-    MppBufSlots      packet_slots;
-    MppBufSlots      frame_slots;
-    void             *regs;
-    MppBufferGroup   group;
-    MppBuffer        qp_table;
-    RK_U32           dec_frame_cnt;
-    IOInterruptCB    int_cb;
-    MppDevCtx        dev_ctx;
-    FILE             *fp_reg_in;
-    FILE             *fp_reg_out;
-    RK_U32           reg_len;
+    MppHalApi       hal_api;
+    MppBufSlots     packet_slots;
+    MppBufSlots     frame_slots;
+    void            *regs;
+    MppBufferGroup  group;
+    MppBuffer       qp_table;
+    RK_U32          dec_frame_cnt;
+    IOInterruptCB   int_cb;
+    MppDev          dev;
+    FILE            *fp_reg_in;
+    FILE            *fp_reg_out;
+    RK_U32          reg_len;
 } M2vdHalCtx;
 
 #endif // __HAL_M2VD_BASE_H__

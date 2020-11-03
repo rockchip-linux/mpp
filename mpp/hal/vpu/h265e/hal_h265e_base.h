@@ -20,9 +20,11 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 #include "mpp_hal.h"
 #include "rga_api.h"
+
+#include "hal_h265e_vepu22_def.h"
 
 extern RK_U32 hal_h265e_debug ;
 
@@ -39,10 +41,9 @@ extern RK_U32 hal_h265e_debug ;
 #define hal_h265e_dbg_input(fmt, ...)   hal_h265e_dbg(HAL_H265E_DBG_INPUT, fmt, ## __VA_ARGS__)
 #define hal_h265e_dbg_output(fmt, ...)  hal_h265e_dbg(HAL_H265E_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
-
 typedef struct hal_h265e_ctx {
     MppHalApi       hal_api;
-    MppDevCtx       dev_ctx;
+    MppDev          dev;
     MppBufferGroup  buf_grp;
 
     /*
@@ -78,6 +79,7 @@ typedef struct hal_h265e_ctx {
     RK_U32          option;
     RK_U32          user_cfg;
     void            *hw_cfg;
+    Vepu22H265eRet  result;
     IOInterruptCB   int_cb;
 
 
@@ -97,6 +99,5 @@ typedef struct hal_h265e_ctx {
      */
     FILE*           mOutFile;
 } HalH265eCtx;
-
 
 #endif

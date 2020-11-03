@@ -367,5 +367,7 @@ typedef struct {
         RK_U32 vp9_error_ctu1_en      : 1;
         RK_U32 reserve2               : 16;
     } swreg76_vp9_error_ctu1;
+
+    RK_U32 reg_not_use2;
 } VP9_REGS;
 #endif

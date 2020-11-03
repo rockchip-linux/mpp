@@ -17,15 +17,10 @@
 #ifndef __HAL_VP8E_BASE_H__
 #define __HAL_VP8E_BASE_H__
 
-#include "rk_type.h"
-
-#include "mpp_device.h"
-#include "mpp_hal.h"
 #include "mpp_mem.h"
 
-#include "vpu.h"
-
-#include "hal_task.h"
+#include "mpp_hal.h"
+#include "mpp_device_api.h"
 
 #include "vp8e_syntax.h"
 
@@ -336,7 +331,7 @@ typedef struct {
 typedef struct hal_vp8e_ctx_s {
     IOInterruptCB    int_cb;
     Vp8eFeedback     feedback;
-    MppDevCtx        dev_ctx;
+    MppDev           dev;
 
     void             *regs;
     void             *buffers;

@@ -17,7 +17,7 @@
 #define __VEPU541_COMMON_H__
 
 #include "rk_venc_cmd.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 #define VEPU541_REG_BASE_HW_STATUS  0x0000001C
 #define VEPU541_REG_BASE_STATISTICS 0x00000210
@@ -124,8 +124,7 @@ typedef struct Vepu541OsdPltColor_t {
 
 typedef struct Vepu541OsdCfg_t {
     void                *reg_base;
-    MppDevCtx           dev;
-    RegExtraInfo        extra;
+    MppDev              dev;
     MppEncOSDPltCfg     *plt_cfg;
     MppEncOSDData       *osd_data;
 } Vepu541OsdCfg;

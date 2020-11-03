@@ -18,12 +18,14 @@
 #define __HAL_M4VD_COM_H__
 
 #include "mpp_hal.h"
-#include "mpp_log.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 #include "mpg4d_syntax.h"
 
-extern RK_U32 mpg4d_hal_debug;
+#define MPG4D_HAL_DBG_REG_PUT       (0x00000001)
+#define MPG4D_HAL_DBG_REG_GET       (0x00000002)
+
+extern RK_U32 hal_mpg4d_debug;
 
 #define MPEG4_MAX_MV_BUF_SIZE       ((1920/16)*(1088/16)*4*sizeof(RK_U32))
 
@@ -32,7 +34,7 @@ typedef struct mpeg4d_reg_context {
     MppBufSlots         pkt_slots;
     MppBufferGroup      group;
     IOInterruptCB       int_cb;
-    MppDevCtx           dev_ctx;
+    MppDev              dev;
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              fd_curr;
     RK_S32              fd_ref0;

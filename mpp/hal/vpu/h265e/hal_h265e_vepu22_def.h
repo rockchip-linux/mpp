@@ -20,9 +20,7 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
-#include "mpp_device.h"
 #include "mpp_hal.h"
-
 
 typedef enum  {
     H265E_LITTLE_ENDIAN,
@@ -991,7 +989,7 @@ typedef struct hal_h265e_header {
     RK_U32         size;
 } H265E_STREAM_HEAD;
 
-typedef struct hal_h265e_vepu22_result {
+typedef struct Vepu22H265eRet_t {
     RK_U32 bs_size;
     RK_U32 enc_pic_cnt;
     RK_U32 pic_type;
@@ -1006,6 +1004,6 @@ typedef struct hal_h265e_vepu22_result {
     RK_U32 poc;
     RK_U32 src_idx;
     RK_U32 fail_reason;
-} H265eVepu22Result;
+} Vepu22H265eRet;
 
 #endif

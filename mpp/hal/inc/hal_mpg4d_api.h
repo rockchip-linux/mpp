@@ -28,33 +28,16 @@
 #ifndef __HAL_MPEG4D_API_H__
 #define __HAL_MPEG4D_API_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
 #include "mpp_hal.h"
-
-#define MPG4D_HAL_DBG_REG_PUT       (0x00000001)
-#define MPG4D_HAL_DBG_REG_GET       (0x00000002)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern RK_U32 mpg4d_hal_debug;
-
 extern const MppHalApi hal_api_mpg4d;
-
-MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg);
-MPP_RET hal_vpu_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn);
-MPP_RET hal_vpu_mpg4d_deinit(void *hal);
-MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task);
-MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_vpu_mpg4d_reset(void *hal);
-MPP_RET hal_vpu_mpg4d_flush(void *hal);
-MPP_RET hal_vpu_mpg4d_control(void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /*__HAL_MPEG4D_API_H__*/
-

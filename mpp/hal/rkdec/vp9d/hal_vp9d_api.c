@@ -28,7 +28,7 @@
 #include "mpp_common.h"
 #include "mpp_bitput.h"
 
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_reg.h"
 #include "vp9d_syntax.h"
@@ -83,24 +83,24 @@ typedef struct vp9d_reg_buf {
 typedef struct hal_vp9_context {
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
-    MppDevCtx       dev_ctx;
-    MppBufferGroup group;
-    vp9d_reg_buf_t g_buf[MAX_GEN_REG];
-    MppBuffer probe_base;
-    MppBuffer count_base;
-    MppBuffer segid_cur_base;
-    MppBuffer segid_last_base;
-    void*     hw_regs;
-    IOInterruptCB int_cb;
-    RK_S32 mv_base_addr;
-    RK_S32 pre_mv_base_addr;
+    MppDev          dev;
+    MppBufferGroup  group;
+    vp9d_reg_buf_t  g_buf[MAX_GEN_REG];
+    MppBuffer       probe_base;
+    MppBuffer       count_base;
+    MppBuffer       segid_cur_base;
+    MppBuffer       segid_last_base;
+    void*           hw_regs;
+    IOInterruptCB   int_cb;
+    RK_S32          mv_base_addr;
+    RK_S32          pre_mv_base_addr;
     vp9_dec_last_info_t ls_info;
     /*swap between segid_cur_base & segid_last_base
         0  used segid_cur_base as last
         1  used segid_last_base as
     */
-    RK_U32    last_segid_flag;
-    RK_U32    fast_mode;
+    RK_U32          last_segid_flag;
+    RK_U32          fast_mode;
 } hal_vp9_context_t;
 
 static RK_U32 vp9_ver_align(RK_U32 val)
@@ -259,45 +259,37 @@ static MPP_RET hal_vp9d_release_res(hal_vp9_context_t *reg_cxt)
 MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
-    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
+    hal_vp9_context_t *ctx = (hal_vp9_context_t *)hal;
 
-    if (NULL == reg_cxt) {
+    if (NULL == ctx) {
         mpp_err("hal instant no alloc");
         return MPP_ERR_UNKNOW;
     }
     mpp_log("hal_vp9d_init in");
-    reg_cxt->slots = cfg->frame_slots;
-    reg_cxt->int_cb = cfg->hal_int_cb;
-    reg_cxt->mv_base_addr = -1;
-    reg_cxt->pre_mv_base_addr = -1;
-    reg_cxt->fast_mode = cfg->fast_mode;
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
-    mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, vp9_ver_align);
-    reg_cxt->packet_slots = cfg->packet_slots;
+    ctx->slots = cfg->frame_slots;
+    ctx->int_cb = cfg->hal_int_cb;
+    ctx->mv_base_addr = -1;
+    ctx->pre_mv_base_addr = -1;
+    ctx->fast_mode = cfg->fast_mode;
+    mpp_slots_set_prop(ctx->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
+    mpp_slots_set_prop(ctx->slots, SLOTS_VER_ALIGN, vp9_ver_align);
+    ctx->packet_slots = cfg->packet_slots;
 
-    ///<- mpp_device_init
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_DEC,              /* type */
-        .coding = MPP_VIDEO_CodingVP9,    /* coding */
-        .platform = HAVE_RKVDEC,          /* platform */
-        .pp_enable = 0,                   /* pp_enable */
-    };
-
-    ret = mpp_device_init(&reg_cxt->dev_ctx, &dev_cfg);
+    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_RKVDEC);
     if (ret) {
-        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
 
-    if (reg_cxt->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&reg_cxt->group, MPP_BUFFER_TYPE_ION);
+    if (ctx->group == NULL) {
+        ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("vp9 mpp_buffer_group_get failed\n");
             return ret;
         }
     }
 
-    ret = hal_vp9d_alloc_res(reg_cxt);
+    ret = hal_vp9d_alloc_res(ctx);
     if (ret) {
         mpp_err("hal_vp9d_alloc_res failed\n");
         return ret;
@@ -305,7 +297,7 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
 
     mpp_env_get_u32("vp9h_debug", &vp9h_debug, 0);
 
-    reg_cxt->last_segid_flag = 1;
+    ctx->last_segid_flag = 1;
 #ifdef dump
     if (vp9_fp_yuv != NULL) {
         fclose(vp9_fp_yuv);
@@ -327,19 +319,17 @@ MPP_RET hal_vp9d_init(void *hal, MppHalCfg *cfg)
 MPP_RET hal_vp9d_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
-    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
+    hal_vp9_context_t *ctx = (hal_vp9_context_t *)hal;
 
-    if (reg_cxt->dev_ctx) {
-        ret = mpp_device_deinit(reg_cxt->dev_ctx);
-        if (ret) {
-            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
-        }
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
     }
 
-    hal_vp9d_release_res(reg_cxt);
+    hal_vp9d_release_res(ctx);
 
-    if (reg_cxt->group) {
-        ret = mpp_buffer_group_put(reg_cxt->group);
+    if (ctx->group) {
+        ret = mpp_buffer_group_put(ctx->group);
         if (ret) {
             mpp_err("vp9d group free buffer failed\n");
             return ret;
@@ -958,16 +948,15 @@ MPP_RET hal_vp9d_gen_regs(void *hal, HalTaskInfo *task)
 //extern "C"
 MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 {
-    RK_U32 i = 0;
     MPP_RET ret = MPP_OK;
-    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
-    VP9_REGS *hw_regs = ( VP9_REGS *)reg_cxt->hw_regs;
+    hal_vp9_context_t *ctx = (hal_vp9_context_t *)hal;
+    VP9_REGS *hw_regs = ( VP9_REGS *)ctx->hw_regs;
 
-    if (reg_cxt->fast_mode) {
+    if (ctx->fast_mode) {
         RK_S32 index =  task->dec.reg_index;
-        hw_regs = ( VP9_REGS *)reg_cxt->g_buf[index].hw_regs;
+        hw_regs = ( VP9_REGS *)ctx->g_buf[index].hw_regs;
     } else {
-        hw_regs = ( VP9_REGS *)reg_cxt->hw_regs;
+        hw_regs = ( VP9_REGS *)ctx->hw_regs;
     }
 
     if (hw_regs == NULL) {
@@ -975,18 +964,45 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
         return MPP_ERR_NULL_PTR;
     }
 
-    RK_U8 *p = (RK_U8*)reg_cxt->hw_regs;
-    for (i = 0; i < sizeof(VP9_REGS) / 4; i++) {
-        //vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
-        //mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
-        p += 4;
+    if (vp9h_debug & VP9H_DBG_REG) {
+        RK_U32 *p = (RK_U32 *)hw_regs;
+        RK_U32 i = 0;
+
+        for (i = 0; i < sizeof(VP9_REGS) / 4; i++)
+            mpp_log("set regs[%02d]: %08X\n", i, *p++);
     }
 
-    ret = mpp_device_send_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4); // 68 is the nb of uint32_t
-    if (ret) {
-        mpp_err("VP9H_DBG_REG: ERROR: mpp_device_send_reg Failed!!!\n");
-        return MPP_ERR_VPUHW;
-    }
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+        RK_U32 reg_size = sizeof(VP9_REGS);
+
+        wr_cfg.reg = ctx->hw_regs;
+        wr_cfg.size = reg_size;
+        wr_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = ctx->hw_regs;
+        rd_cfg.size = reg_size;
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     (void)task;
     return ret;
@@ -1001,41 +1017,42 @@ MPP_RET hal_vp9d_start(void *hal, HalTaskInfo *task)
 MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
-    RK_U32 i;
+    hal_vp9_context_t *ctx = (hal_vp9_context_t *)hal;
     VP9_REGS *hw_regs = NULL;
 
-    if (reg_cxt->fast_mode) {
-        hw_regs = (VP9_REGS *)reg_cxt->g_buf[task->dec.reg_index].hw_regs;
+    if (ctx->fast_mode) {
+        hw_regs = (VP9_REGS *)ctx->g_buf[task->dec.reg_index].hw_regs;
     } else {
-        hw_regs = (VP9_REGS *)reg_cxt->hw_regs;
+        hw_regs = (VP9_REGS *)ctx->hw_regs;
     }
 
-    ret = mpp_device_wait_reg(reg_cxt->dev_ctx, (RK_U32*)hw_regs, sizeof(VP9_REGS) / 4);
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    if (ret)
+        mpp_err_f("poll cmd failed %d\n", ret);
 
-    RK_U32 *p = (RK_U32*)hw_regs;
-    for (i = 0; i <  sizeof(VP9_REGS) / 4; i++) {
-        if (i == 1) {
-            vp9h_dbg(VP9H_DBG_REG, "RK_VP9_DEC: regs[%02d]=%08X\n", i, p[i]);
-            // mpp_log("RK_VP9_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
-        }
+    if (vp9h_debug & VP9H_DBG_REG) {
+        RK_U32 *p = (RK_U32 *)hw_regs;
+        RK_U32 i = 0;
+
+        for (i = 0; i < sizeof(VP9_REGS) / 4; i++)
+            mpp_log("get regs[%02d]: %08X\n", i, *p++);
     }
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
         !hw_regs->swreg1_int.sw_dec_rdy_sta) {
         MppFrame mframe = NULL;
-        mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(ctx->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_frame_set_errinfo(mframe, 1);
     }
 
-    if (reg_cxt->int_cb.callBack && task->dec.flags.wait_done) {
+    if (ctx->int_cb.callBack && task->dec.flags.wait_done) {
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
         hal_vp9d_update_counts(hal, task->dec.syntax.data);
-        reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, (void*)&pic_param->counts);
+        ctx->int_cb.callBack(ctx->int_cb.opaque, (void*)&pic_param->counts);
     }
-    if (reg_cxt->fast_mode) {
-        reg_cxt->g_buf[task->dec.reg_index].use_flag = 0;
+    if (ctx->fast_mode) {
+        ctx->g_buf[task->dec.reg_index].use_flag = 0;
     }
 
     (void)task;
@@ -1051,7 +1068,9 @@ MPP_RET hal_vp9d_wait(void *hal, HalTaskInfo *task)
 MPP_RET hal_vp9d_reset(void *hal)
 {
     hal_vp9_context_t *reg_cxt = (hal_vp9_context_t *)hal;
+
     mpp_log("hal_vp9d_reset in");
+
     memset(&reg_cxt->ls_info, 0, sizeof(reg_cxt->ls_info));
     reg_cxt->mv_base_addr = -1;
     reg_cxt->pre_mv_base_addr = -1;
@@ -1092,17 +1111,14 @@ MPP_RET hal_vp9d_control(void *hal, MpiCmd cmd_type, void *param)
 
         mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
         mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
-
-        break;
-    }
-    default:
-        break;
+    } break;
+    default: {
+    } break;
     }
     (void)hal;
 
     return MPP_OK;
 }
-
 
 const MppHalApi hal_api_vp9d = {
     .name = "vp9d_rkdec",
@@ -1119,4 +1135,3 @@ const MppHalApi hal_api_vp9d = {
     .flush = hal_vp9d_flush,
     .control = hal_vp9d_control,
 };
-

@@ -41,6 +41,7 @@
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)
 
 #define RKVDEC_HEVC_REGISTERS       (68)
+#define RKVDEC_V1_REGISTERS         (78)
 #define V345_HEVC_REGISTERS         (108)
 
 #define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)

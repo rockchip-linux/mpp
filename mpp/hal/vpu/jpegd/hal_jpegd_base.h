@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 #include "mpp_hal.h"
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 typedef struct PPInfo_t {
     /* PP parameters */
@@ -37,7 +37,7 @@ typedef struct PPInfo_t {
 typedef struct JpegdHalCtx {
     MppBufSlots            packet_slots;
     MppBufSlots            frame_slots;
-    MppDevCtx              dev_ctx;
+    MppDev                 dev;
     void                   *regs;
     MppBufferGroup         group;
     MppBuffer              frame_buf;

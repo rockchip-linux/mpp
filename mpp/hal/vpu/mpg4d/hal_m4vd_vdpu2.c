@@ -25,7 +25,6 @@
 #include "mpp_buffer.h"
 #include "mpp_common.h"
 
-#include "mpp_device.h"
 #include "mpg4d_syntax.h"
 #include "hal_mpg4d_api.h"
 #include "hal_m4vd_com.h"
@@ -255,16 +254,9 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    MppDevCfg dev_cfg = {
-        .type = MPP_CTX_DEC,              /* type */
-        .coding = MPP_VIDEO_CodingMPEG4,  /* coding */
-        .platform = HAVE_VDPU2,           /* platform */
-        .pp_enable = 0,                   /* pp_enable */
-    };
-
-    ret = mpp_device_init(&ctx->dev_ctx, &dev_cfg);
+    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU2);
     if (ret) {
-        mpp_err_f("mpp_device_init failed. ret: %d\n", ret);
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         goto ERR_RET;
     }
 
@@ -276,7 +268,7 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
     ctx->qp_table   = qp_table;
     ctx->regs       = regs;
 
-    mpp_env_get_u32("mpg4d_hal_debug", &mpg4d_hal_debug, 0);
+    mpp_env_get_u32("hal_mpg4d_debug", &hal_mpg4d_debug, 0);
 
     return ret;
 ERR_RET:
@@ -330,10 +322,9 @@ MPP_RET vdpu2_mpg4d_deinit(void *hal)
         ctx->group = NULL;
     }
 
-    if (ctx->dev_ctx) {
-        ret = mpp_device_deinit(ctx->dev_ctx);
-        if (ret)
-            mpp_err("mpp_device_deinit failed. ret: %d\n", ret);
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
     }
 
     return ret;
@@ -405,17 +396,48 @@ MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
-    RK_U32 reg_count = (sizeof(M4vdVdpu2Regs_t) / sizeof(RK_U32));
     RK_U32* regs = (RK_U32 *)ctx->regs;
 
-    if (mpg4d_hal_debug & MPG4D_HAL_DBG_REG_PUT) {
+    if (hal_mpg4d_debug & MPG4D_HAL_DBG_REG_PUT) {
+        RK_U32 reg_count = (sizeof(M4vdVdpu2Regs_t) / sizeof(RK_U32));
         RK_U32 i = 0;
+
         for (i = 0; i < reg_count; i++) {
             mpp_log("reg[%03d]: %08x\n", i, regs[i]);
         }
     }
 
-    ret = mpp_device_send_reg(ctx->dev_ctx, regs, reg_count);
+    do {
+        MppDevRegWrCfg wr_cfg;
+        MppDevRegRdCfg rd_cfg;
+        RK_U32 reg_size = sizeof(M4vdVdpu2Regs_t);
+
+        wr_cfg.reg = regs;
+        wr_cfg.size = reg_size;
+        wr_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = regs;
+        rd_cfg.size = reg_size;
+        rd_cfg.offset = 0;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        if (ret) {
+            mpp_err_f("send cmd failed %d\n", ret);
+            break;
+        }
+    } while (0);
 
     (void)task;
     return ret;
@@ -426,11 +448,13 @@ MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
     M4vdVdpu2Regs_t *regs = (M4vdVdpu2Regs_t *)ctx->regs;
-    RK_U32 reg_count = (sizeof(M4vdVdpu2Regs_t) / sizeof(RK_U32));
 
-    ret = mpp_device_wait_reg(ctx->dev_ctx, (RK_U32 *)ctx->regs, reg_count);
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    if (ret)
+        mpp_err_f("poll cmd failed %d\n", ret);
 
-    if (mpg4d_hal_debug & MPG4D_HAL_DBG_REG_GET) {
+    if (hal_mpg4d_debug & MPG4D_HAL_DBG_REG_GET) {
+        RK_U32 reg_count = (sizeof(M4vdVdpu2Regs_t) / sizeof(RK_U32));
         RK_U32 i = 0;
 
         for (i = 0; i < reg_count; i++) {
@@ -453,29 +477,4 @@ MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
 
     (void)task;
     return ret;
-}
-
-MPP_RET vdpu2_mpg4d_reset(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-    (void)hal;
-    return ret;
-}
-
-MPP_RET vdpu2_mpg4d_flush(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    return ret;
-}
-
-MPP_RET vdpu2_mpg4d_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    (void)cmd_type;
-    (void)param;
-    return  ret;
 }

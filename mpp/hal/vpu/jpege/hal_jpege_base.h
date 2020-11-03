@@ -17,14 +17,9 @@
 #ifndef __HAL_JPEGE_BASE_H__
 #define __HAL_JPEGE_BASE_H__
 
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 #include "mpp_hal.h"
 #include "jpege_syntax.h"
-
-typedef struct JpegeIocRegInfo_t {
-    RK_U32              *regs;
-    RegExtraInfo        extra_info;
-} JpegeIocRegInfo;
 
 typedef struct HalJpegeRc_t {
     /* For quantization table */
@@ -36,12 +31,13 @@ typedef struct HalJpegeRc_t {
 
 typedef struct hal_jpege_ctx_s {
     IOInterruptCB       int_cb;
-    MppDevCtx           dev_ctx;
+    MppDev              dev;
     JpegeBits           bits;
-    JpegeIocRegInfo     ioctl_info;
+    /* NOTE: regs should reserve space for extra_info */
+    void                *regs;
+    RK_U32              reg_size;
 
     MppEncCfgSet        *cfg;
-    MppEncCfgSet        *set;
     JpegeSyntax         syntax;
     JpegeFeedback       feedback;
 

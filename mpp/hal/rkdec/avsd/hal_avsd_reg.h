@@ -17,7 +17,7 @@
 #ifndef __HAL_AVSD_REG_H__
 #define __HAL_AVSD_REG_H__
 
-#include "mpp_device.h"
+#include "mpp_device_api.h"
 
 #include "parser_api.h"
 #include "hal_avsd_api.h"
@@ -44,7 +44,6 @@ do {\
     { mpp_log_f(fmt, ## __VA_ARGS__); }\
 } while (0)
 
-
 #define INP_CHECK(ret, val, ...)\
 do{\
     if ((val)) {    \
@@ -54,7 +53,6 @@ do{\
     }\
 } while (0)
 
-
 #define FUN_CHECK(val)\
 do{\
     if ((val) < 0) {\
@@ -62,7 +60,6 @@ do{\
         goto __FAILED; \
     }\
 } while (0)
-
 
 //!< memory malloc check
 #define MEM_CHECK(ret, val, ...)\
@@ -74,7 +71,6 @@ do{\
     }\
 } while (0)
 
-
 #define FIELDPICTURE    0
 #define FRAMEPICTURE    1
 
@@ -83,7 +79,6 @@ enum {
     PFRAME = 1,
     BFRAME = 2
 };
-
 
 typedef struct avsd_hal_picture_t {
     RK_U32 valid;
@@ -94,30 +89,28 @@ typedef struct avsd_hal_picture_t {
     RK_S32 slot_idx;
 } AvsdHalPic_t;
 
-
 typedef struct avsd_hal_ctx_t {
+    MppBufSlots     frame_slots;
+    MppBufSlots     packet_slots;
+    MppBufferGroup  buf_group;
+    IOInterruptCB   init_cb;
+    MppDev          dev;
+    AvsdSyntax_t    syn;
+    RK_U32          *p_regs;
+    MppBuffer       mv_buf;
 
-    MppBufSlots              frame_slots;
-    MppBufSlots              packet_slots;
-    MppBufferGroup           buf_group;
-    IOInterruptCB            init_cb;
-    MppDevCtx                dev_ctx;
-    AvsdSyntax_t             syn;
-    RK_U32                  *p_regs;
-    MppBuffer                mv_buf;
-
-    AvsdHalPic_t             pic[3];
+    AvsdHalPic_t    pic[3];
     //!< add for control
-    RK_U32                   first_field;
-    RK_U32                   prev_pic_structure;
-    RK_U32                   prev_pic_code_type;
-    RK_S32                   future2prev_past_dist;
-    RK_S32                   work0;
-    RK_S32                   work1;
-    RK_S32                   work_out;
-    RK_U32                   data_offset;
+    RK_U32          first_field;
+    RK_U32          prev_pic_structure;
+    RK_U32          prev_pic_code_type;
+    RK_S32          future2prev_past_dist;
+    RK_S32          work0;
+    RK_S32          work1;
+    RK_S32          work_out;
+    RK_U32          data_offset;
 
-    RK_U32                   frame_no;
+    RK_U32          frame_no;
 } AvsdHalCtx_t;
 
 #define AVSD_REGISTERS     60
