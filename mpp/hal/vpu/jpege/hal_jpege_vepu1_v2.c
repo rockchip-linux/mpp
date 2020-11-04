@@ -159,7 +159,6 @@ static MPP_RET hal_jpege_vepu1_set_extra_info(RK_U32 *regs,
         mpp_device_patch_add(regs, info, 13, hor_stride * ver_stride);
     } break;
     default : {
-        mpp_log_f("other format(%d)\n", fmt);
     } break;
     }
 
@@ -173,9 +172,10 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     MppBuffer output = task->output;
     JpegeSyntax *syntax = &ctx->syntax;
     RK_U32 width        = syntax->width;
+    RK_U32 width_align  = MPP_ALIGN(width, 16);
     RK_U32 height       = syntax->height;
     MppFrameFormat fmt  = syntax->format;
-    RK_U32 hor_stride   = MPP_ALIGN(width, 16);
+    RK_U32 hor_stride   = 0;
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
@@ -191,16 +191,18 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 x_fill = 0;
     VepuFormatCfg fmt_cfg;
 
+    hor_stride = get_vepu_pixel_stride(&ctx->stride_cfg, width,
+                                       syntax->hor_stride, fmt);
+
     //hor_stride must be align with 8, and ver_stride mus align with 2
-    if ((syntax->hor_stride & 0x7) || (syntax->ver_stride & 0x1)) {
+    if ((hor_stride & 0x7) || (ver_stride & 0x1) || (hor_stride >= (1 << 15))) {
         mpp_err_f("illegal resolution, hor_stride %d, ver_stride %d, width %d, height %d\n",
                   syntax->hor_stride, syntax->ver_stride,
                   syntax->width, syntax->height);
     }
 
-    x_fill = (hor_stride - width) / 4;
-    if (x_fill > 3)
-        mpp_err_f("right fill is illegal, hor_stride = %d, width = %d\n", hor_stride, width);
+    x_fill = (width_align - width) / 4;
+    mpp_assert(x_fill <= 3);
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
@@ -242,13 +244,13 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     regs[14] = (1 << 31) |
                (0 << 30) |
                (0 << 29) |
-               ((hor_stride >> 4) << 19) |
+               ((width_align >> 4) << 19) |
                ((ver_stride >> 4) << 10) |
                (1 << 3) | (2 << 1);
 
     regs[15] = (0 << 29) |
                (0 << 26) |
-               (MPP_ALIGN(width, 8) << 12) |
+               (hor_stride << 12) |
                (x_fill << 10) |
                ((ver_stride - height) << 6) |
                (fmt_cfg.format << 2) | (0);

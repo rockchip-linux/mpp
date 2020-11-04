@@ -47,6 +47,7 @@ typedef struct hal_jpege_ctx_s {
 
     HalJpegeRc          hal_rc;
     RK_S32              hal_start_pos;
+    VepuStrideCfg       stride_cfg;
 } HalJpegeCtx;
 
 #endif /* __HAL_JPEGE_BASE_H__ */
