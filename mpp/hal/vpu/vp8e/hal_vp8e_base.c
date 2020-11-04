@@ -1258,7 +1258,7 @@ static MPP_RET alloc_buffer(void *hal)
 
     //add 128 bytes to avoid kernel crash
     ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_luma_buf,
-                         mb_total * (16 * 16) + 128);
+                         MPP_ALIGN(mb_total * (16 * 16), SZ_4K) + SZ_4K);
     if (ret) {
         mpp_err("hw_luma_buf get failed ret %d\n", ret);
         goto __ERR_RET;
@@ -1268,7 +1268,7 @@ static MPP_RET alloc_buffer(void *hal)
         for (i = 0; i < 2; i++) {
             //add 128 bytes to avoid kernel crash
             ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_cbcr_buf[i],
-                                 mb_total * (2 * 8 * 8) + 128);
+                                 MPP_ALIGN(mb_total * (2 * 8 * 8), SZ_4K) + SZ_4K);
             if (ret) {
                 mpp_err("hw_cbcr_buf[%d] get failed ret %d\n", i, ret);
                 goto __ERR_RET;
