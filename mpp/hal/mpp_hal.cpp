@@ -167,8 +167,7 @@ MPP_RET mpp_hal_reg_gen(MppHal ctx, HalTaskInfo *task)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    MPP_RET ret = p->api->reg_gen(p->ctx, task);
-    return ret;
+    return p->api->reg_gen(p->ctx, task);
 }
 
 MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
@@ -179,8 +178,7 @@ MPP_RET mpp_hal_hw_start(MppHal ctx, HalTaskInfo *task)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    MPP_RET ret = p->api->start(p->ctx, task);
-    return ret;
+    return p->api->start(p->ctx, task);
 }
 
 MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
@@ -191,9 +189,7 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
-    MPP_RET ret = p->api->wait(p->ctx, task);
-
-    return ret;
+    return p->api->wait(p->ctx, task);
 }
 
 MPP_RET mpp_hal_reset(MppHal ctx)
@@ -204,6 +200,10 @@ MPP_RET mpp_hal_reset(MppHal ctx)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
+
+    if (NULL == p->api || NULL == p->api->reset)
+        return MPP_OK;
+
     return p->api->reset(p->ctx);
 }
 
@@ -215,6 +215,10 @@ MPP_RET mpp_hal_flush(MppHal ctx)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
+
+    if (NULL == p->api || NULL == p->api->flush)
+        return MPP_OK;
+
     return p->api->flush(p->ctx);
 }
 
@@ -226,6 +230,10 @@ MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param)
     }
 
     MppHalImpl *p = (MppHalImpl*)ctx;
+
+    if (NULL == p->api || NULL == p->api->control)
+        return MPP_OK;
+
     return p->api->control(p->ctx, cmd, param);
 }
 
