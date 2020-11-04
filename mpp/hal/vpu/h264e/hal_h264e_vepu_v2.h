@@ -19,6 +19,7 @@
 
 #include "mpp_enc_cfg.h"
 #include "mpp_rc.h"
+#include "vepu_common.h"
 
 #define H264E_HAL_SET_REG(reg, addr, val)                                    \
     do {                                                                     \
@@ -40,6 +41,8 @@ typedef struct HalH264eVepuInput_t {
     RK_S32          src_fmt;
     RK_S32          src_w;
     RK_S32          src_h;
+
+    VepuStrideCfg   stride_cfg;
     RK_S32          pixel_stride;
 
     size_t          size_y;
@@ -47,9 +50,6 @@ typedef struct HalH264eVepuInput_t {
 
     RK_U32          offset_cb;
     RK_U32          offset_cr;
-
-    RK_U8           not_8_pixel;
-    RK_U8           is_pixel_stride;
 
     RK_U8           r_mask_msb;
     RK_U8           g_mask_msb;

@@ -156,7 +156,6 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(RK_U32 *regs,
         mpp_device_patch_add(regs, info, 50, hor_stride * ver_stride);
     } break;
     default : {
-        mpp_log_f("other format(%d)\n", fmt);
     } break;
     }
 
@@ -237,9 +236,10 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     MppBuffer output = task->output;
     JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
     RK_U32 width        = syntax->width;
+    RK_U32 width_align  = MPP_ALIGN(width, 16);
     RK_U32 height       = syntax->height;
     MppFrameFormat fmt  = syntax->format;
-    RK_U32 hor_stride   = MPP_ALIGN(width, 16);
+    RK_U32 hor_stride   = 0;
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
     RK_U32 *regs = ctx->ioctl_info.regs;
@@ -254,16 +254,18 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 x_fill = 0;
     VepuFormatCfg fmt_cfg;
 
+    hor_stride = get_vepu_pixel_stride(&ctx->stride_cfg, width,
+                                       syntax->hor_stride, fmt);
+
     //hor_stride must be align with 8, and ver_stride mus align with 2
-    if ((syntax->hor_stride & 0x7) || (syntax->ver_stride & 0x1)) {
+    if ((hor_stride & 0x7) || (ver_stride & 0x1) || (hor_stride >= (1 << 15))) {
         mpp_err_f("illegal resolution, hor_stride %d, ver_stride %d, width %d, height %d\n",
                   syntax->hor_stride, syntax->ver_stride,
                   syntax->width, syntax->height);
     }
 
-    x_fill = (hor_stride - width) / 4;
-    if (x_fill > 3)
-        mpp_err_f("right fill is illegal, hor_stride = %d, width = %d\n", hor_stride, width);
+    x_fill = (width_align - width) / 4;
+    mpp_assert(x_fill <= 3);
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
@@ -329,7 +331,7 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     regs[60] = (((bytepos & 7) * 8) << 16) |
                (x_fill << 4) |
                (ver_stride - height);
-    regs[61] = syntax->hor_stride;
+    regs[61] = hor_stride;
 
     regs[77] = mpp_buffer_get_fd(output) + (bytepos << 10);
 
@@ -389,7 +391,7 @@ MPP_RET hal_jpege_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
         regs[97] = coeffF;
     }
 
-    regs[103] = (hor_stride >> 4) << 8  |
+    regs[103] = (width_align >> 4) << 8  |
                 (ver_stride >> 4) << 20 |
                 (1 << 6) |  /* intra coding  */
                 (2 << 4) |  /* format jpeg   */

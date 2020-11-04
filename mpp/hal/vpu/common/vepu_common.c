@@ -136,3 +136,128 @@ MPP_RET get_vepu_fmt(VepuFormatCfg *cfg, MppFrameFormat format)
 
     return ret;
 }
+
+static RK_S32 check_stride_by_pixel(RK_S32 workaround, RK_S32 width,
+                                    RK_S32 hor_stride, RK_S32 pixel_size)
+{
+    if (!workaround && hor_stride < width * pixel_size) {
+        mpp_log("warning: stride by bytes %d is smarller than width %d mutiple by pixel size %d\n",
+                hor_stride, width, pixel_size);
+        mpp_log("multiple stride %d by pixel size %d and set new byte stride to %d\n",
+                hor_stride, pixel_size, hor_stride * pixel_size);
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
+static RK_S32 check_8_pixel_aligned(RK_S32 workaround, RK_S32 hor_stride,
+                                    RK_S32 pixel_aign, RK_S32 pixel_size,
+                                    const char *fmt_name)
+{
+    if (!workaround && hor_stride != MPP_ALIGN(hor_stride, pixel_aign * pixel_size)) {
+        mpp_log("warning: vepu only support 8 aligned horizontal stride in pixel for %s with pixel size %d\n",
+                fmt_name, pixel_size);
+        mpp_log("set byte stride to %d to match the requirement\n",
+                MPP_ALIGN(hor_stride, pixel_aign * pixel_size));
+        workaround = 1;
+    }
+
+    return workaround;
+}
+
+RK_U32 get_vepu_pixel_stride(VepuStrideCfg *cfg, RK_U32 width, RK_U32 stride, MppFrameFormat fmt)
+{
+    RK_U32 hor_stride = stride;
+    RK_U32 pixel_size = 1;
+
+    if (cfg->fmt != fmt) {
+        memset(cfg, 0, sizeof(VepuStrideCfg));
+        cfg->fmt = fmt;
+    }
+
+    if (cfg->stride != stride || cfg->width != width) {
+        cfg->not_8_pixel = 0;
+        cfg->is_pixel_stride = 0;
+        cfg->stride = stride;
+        cfg->width = width;
+    }
+
+    switch (fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420SP : {
+        if (check_8_pixel_aligned(cfg->not_8_pixel, hor_stride, 8, 1, "YUV420SP")) {
+            hor_stride = MPP_ALIGN(hor_stride, 8);
+            cfg->not_8_pixel = 1;
+        }
+    } break;
+    case MPP_FMT_YUV420P : {
+        if (check_8_pixel_aligned(cfg->not_8_pixel, hor_stride, 16, 1, "YUV420P")) {
+            hor_stride = MPP_ALIGN(hor_stride, 8);
+            cfg->not_8_pixel = 1;
+        }
+    } break;
+    case MPP_FMT_YUV422_YUYV :
+    case MPP_FMT_YUV422_UYVY : {
+        if (check_stride_by_pixel(cfg->is_pixel_stride, cfg->width,
+                                  hor_stride, 2)) {
+            hor_stride *= 2;
+            cfg->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(cfg->not_8_pixel, hor_stride, 8, 2, "YUV422_interleave")) {
+            hor_stride = MPP_ALIGN(hor_stride, 16);
+            cfg->not_8_pixel = 1;
+        }
+
+        hor_stride /= 2;
+        pixel_size = 2;
+    } break;
+    case MPP_FMT_RGB565 :
+    case MPP_FMT_BGR565 :
+    case MPP_FMT_RGB555 :
+    case MPP_FMT_BGR555 :
+    case MPP_FMT_RGB444 :
+    case MPP_FMT_BGR444 : {
+        if (check_stride_by_pixel(cfg->is_pixel_stride, cfg->width,
+                                  hor_stride, 2)) {
+            hor_stride *= 2;
+            cfg->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(cfg->not_8_pixel, hor_stride, 8, 2, "32bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 16);
+            cfg->not_8_pixel = 1;
+        }
+
+        hor_stride /= 2;
+        pixel_size = 2;
+    } break;
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_RGBA8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 : {
+        if (check_stride_by_pixel(cfg->is_pixel_stride, cfg->width,
+                                  hor_stride, 4)) {
+            hor_stride *= 4;
+            cfg->is_pixel_stride = 1;
+        }
+
+        if (check_8_pixel_aligned(cfg->not_8_pixel, hor_stride, 8, 4, "16bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 32);
+            cfg->not_8_pixel = 1;
+        }
+
+        hor_stride /= 4;
+        pixel_size = 4;
+    } break;
+    default: {
+        mpp_err_f("invalid fmt %d", fmt);
+    }
+    }
+    cfg->pixel_stride = hor_stride;
+    cfg->pixel_size = pixel_size;
+
+    return hor_stride;
+}

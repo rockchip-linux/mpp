@@ -33,14 +33,28 @@ typedef enum VepuFormat_e {
 
 typedef struct VepuFormatCfg_t {
     VepuFmt format;
-    RK_U8 r_mask;
-    RK_U8 g_mask;
-    RK_U8 b_mask;
-    RK_U8 swap_8_in;
-    RK_U8 swap_16_in;
-    RK_U8 swap_32_in;
+    RK_U8   r_mask;
+    RK_U8   g_mask;
+    RK_U8   b_mask;
+    RK_U8   swap_8_in;
+    RK_U8   swap_16_in;
+    RK_U8   swap_32_in;
 } VepuFormatCfg;
 
+typedef struct VepuStrideCfg_t {
+    MppFrameFormat fmt;
+    RK_S32  not_8_pixel;
+    RK_S32  is_pixel_stride;
+
+    RK_U32  width;
+    RK_U32  stride;
+
+    RK_U32  pixel_stride;
+    RK_U32  pixel_size;
+} VepuStrideCfg;
+
 MPP_RET get_vepu_fmt(VepuFormatCfg *cfg, MppFrameFormat format);
+RK_U32 get_vepu_pixel_stride(VepuStrideCfg *cfg, RK_U32 width,
+                             RK_U32 stride, MppFrameFormat fmt);
 
 #endif
