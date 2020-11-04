@@ -142,6 +142,15 @@ static MPP_RET vp8e_start(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
+static MPP_RET vp8e_proc_dpb(void *ctx, HalEncTask *task)
+{
+    (void)ctx;
+    EncRcTask    *rc_task = task->rc_task;
+    EncCpbStatus *cpb = &task->rc_task->cpb;
+    rc_task->frm.val = cpb->curr.val;
+    return MPP_OK;
+}
+
 static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 {
     MPP_RET ret = MPP_OK;
@@ -364,7 +373,7 @@ const EncImplApi api_vp8e = {
     .proc_cfg   = vp8e_proc_cfg,
     .gen_hdr    = NULL,
     .start      = vp8e_start,
-    .proc_dpb   = NULL,
+    .proc_dpb   = vp8e_proc_dpb,
     .proc_hal   = vp8e_proc_hal,
     .add_prefix = NULL,
     .sw_enc     = NULL,

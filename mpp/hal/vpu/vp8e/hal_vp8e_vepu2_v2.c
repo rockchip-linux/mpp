@@ -445,12 +445,9 @@ static MPP_RET hal_vp8e_vepu2_wait_v2(void *hal, HalEncTask *task)
 
     hal_vp8e_update_buffers(ctx, task);
 
+    ctx->last_frm_intra = task->rc_task->frm.is_intra;
     ctx->frame_cnt++;
-    if (ctx->frame_cnt % ctx->cfg->rc.gop == 0) {
-        ctx->frame_type = VP8E_FRM_KEY;
-    } else {
-        ctx->frame_type = VP8E_FRM_P;
-    }
+
     task->rc_task->info.bit_real = ctx->frame_size << 3;
     task->hw_length = task->length;
     return ret;
@@ -472,12 +469,7 @@ static MPP_RET hal_vp8e_vepu2_get_task_v2(void *hal, HalEncTask *task)
         }
     }
 
-    if (task->rc_task->info.quality_target < 0) {
-        task->rc_task->frm.is_intra = 1;
-    } else {
-        task->rc_task->frm.is_intra = ctx->frame_type == VP8E_FRM_P ? 0 : 1;
-    }
-
+    ctx->frame_type = task->rc_task->frm.is_intra ? VP8E_FRM_KEY : VP8E_FRM_P;
     return MPP_OK;
 }
 
