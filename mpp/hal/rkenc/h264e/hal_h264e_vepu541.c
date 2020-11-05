@@ -659,7 +659,7 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
         regs->reg025.chrm_klut_ofst = 0;
         memcpy(&regs->reg026, h264e_klut_weight_i, sizeof(h264e_klut_weight_i));
     } else {
-        regs->reg025.chrm_klut_ofst = 6;
+        regs->reg025.chrm_klut_ofst = 3;
         memcpy(&regs->reg026, h264e_klut_weight_p, sizeof(h264e_klut_weight_p));
     }
 
@@ -677,7 +677,7 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
     regs->reg102.scl_lst_sel    = pps->pic_scaling_matrix_present;
     regs->reg102.atr_e          = 1;
     regs->reg102.atf_edg        = 0;
-    regs->reg102.atf_lvl_e      = 1;
+    regs->reg102.atf_lvl_e      = 0;
     regs->reg102.atf_intra_e    = 1;
 
     hal_h264e_dbg_func("leave\n");
@@ -1102,10 +1102,8 @@ static RK_U32 h264e_wgt_qp_grpa_default[52] = {
 };
 
 static RK_U32 h264e_wgt_qp_grpb_default[52] = {
-    0x00000000, 0x00000001, 0x00000002, 0x00000003,
-    0x00000004, 0x00000005, 0x00000006, 0x00000007,
-    0x00000008, 0x00000009, 0x0000000a, 0x0000000b,
-    0x0000000c, 0x0000000d, 0x0000000e, 0x00000012,
+    0x00000003, 0x00000005, 0x00000006, 0x00000007,
+    0x00000009, 0x0000000b, 0x0000000e, 0x00000012,
     0x00000016, 0x0000001c, 0x00000024, 0x0000002d,
     0x00000039, 0x00000048, 0x0000005b, 0x00000073,
     0x00000091, 0x000000b6, 0x000000e6, 0x00000122,
@@ -1114,7 +1112,11 @@ static RK_U32 h264e_wgt_qp_grpb_default[52] = {
     0x00000912, 0x00000b6d, 0x00000e66, 0x00001224,
     0x000016db, 0x00001ccc, 0x00002449, 0x00002db7,
     0x00003999, 0x00004892, 0x00005b6f, 0x00007333,
-    0x00009124, 0x0000b6de, 0x0000e666, 0x00012249
+    0x00009124, 0x0000b6de, 0x0000e666, 0x00012249,
+    0x00016dbc, 0x0001cccc, 0x00024492, 0x0002db79,
+    0x00039999, 0x00048924, 0x0005b6f2, 0x00073333,
+    /*  0x00091249, 0x000b6de5, 0x000e6666, 0x00122492,
+     *  0x0016dbcb, 0x001ccccc, */
 };
 
 static RK_U8 h264_aq_tthd_default[16] = {
@@ -1225,7 +1227,7 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
     regs->atf_tthd[3] = 2500;
 
     regs->atf_sthd0_h264.atf_sthd_10 = 80;
-    regs->atf_sthd0_h264.atf_sthd_max = 235;
+    regs->atf_sthd0_h264.atf_sthd_max = 280;
 
     regs->atf_sthd1_h264.atf_sthd_11 = 144;
     regs->atf_sthd1_h264.atf_sthd_20 = 192;
