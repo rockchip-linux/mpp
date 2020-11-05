@@ -18,8 +18,7 @@
 #define __VPU_H__
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include "rk_type.h"
@@ -108,32 +107,6 @@ typedef enum {
     VPU_CMD_BUTT                ,
 } VPU_CMD_TYPE;
 
-typedef enum {
-    MPP_DEV_CMD_QUERY_BASE              = 0,
-    MPP_DEV_CMD_PROBE_HW_SUPPORT        = MPP_DEV_CMD_QUERY_BASE + 0,
-    MPP_DEV_CMD_PROBE_IOMMU_STATUS      = MPP_DEV_CMD_QUERY_BASE + 1,
-
-    MPP_DEV_CMD_INIT_BASE = 0x100,
-    MPP_DEV_CMD_INIT_CLIENT_TYPE        = MPP_DEV_CMD_INIT_BASE + 0,
-    MPP_DEV_CMD_INIT_DRIVER_DATA        = MPP_DEV_CMD_INIT_BASE + 1,
-    MPP_DEV_CMD_INIT_TRANS_TABLE        = MPP_DEV_CMD_INIT_BASE + 2,
-
-    MPP_DEV_CMD_SEND_BASE               = 0x200,
-    MPP_DEV_CMD_SET_REG_WRITE           = MPP_DEV_CMD_SEND_BASE + 0,
-    MPP_DEV_CMD_SET_REG_READ            = MPP_DEV_CMD_SEND_BASE + 1,
-    MPP_DEV_CMD_SET_REG_ADDR_OFFSET     = MPP_DEV_CMD_SEND_BASE + 2,
-
-    MPP_DEV_CMD_POLL_BASE               = 0x300,
-    MPP_DEV_CMD_POLL_HW_FINISH          = MPP_DEV_CMD_POLL_BASE + 0,
-
-    MPP_DEV_CMD_CONTROL_BASE            = 0x400,
-    MPP_DEV_CMD_RESET_SESSION           = MPP_DEV_CMD_CONTROL_BASE + 0,
-    MPP_DEV_CMD_TRANS_FD_TO_IOVA        = MPP_DEV_CMD_CONTROL_BASE + 1,
-    MPP_DEV_CMD_RELEASE_FD              = MPP_DEV_CMD_CONTROL_BASE + 2,
-
-    MPP_DEV_CMD_BUTT,
-} MPP_DEV_CMD_TYPE;
-
 int VPUClientInit(VPU_CLIENT_TYPE type);
 RK_S32 VPUClientRelease(int socket);
 RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs);
@@ -145,9 +118,6 @@ RK_U32 VPUCheckSupportWidth();
 
 #ifdef __cplusplus
 }
-
 #endif
 
-#endif                       /* __VPU_H__ */
-
-
+#endif /* __VPU_H__ */

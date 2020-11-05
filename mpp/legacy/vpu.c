@@ -83,7 +83,7 @@ static RK_S32 vpu_api_set_client_type(int dev, RK_S32 client_type)
             break;
         }
 
-        mpp_req.cmd = MPP_DEV_CMD_INIT_CLIENT_TYPE;
+        mpp_req.cmd = MPP_CMD_INIT_CLIENT_TYPE;
         mpp_req.flag = 0;
         mpp_req.size = sizeof(client_data);
         mpp_req.offset = 0;
@@ -206,14 +206,14 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
 
         VpuExtraInfo *extra_info = (VpuExtraInfo*)(regs + (nregs - VPU_EXTRA_INFO_SIZE));
 
-        reqs[0].cmd = MPP_DEV_CMD_SET_REG_WRITE;
+        reqs[0].cmd = MPP_CMD_SET_REG_WRITE;
         reqs[0].flag = 0;
         reqs[0].offset = 0;
         reqs[0].size =  reg_size * sizeof(RK_U32);
         reqs[0].data_ptr = REQ_DATA_PTR((void*)regs);
         reqs[0].flag |= VPU_MPP_FLAGS_MULTI_MSG;
 
-        reqs[1].cmd = MPP_DEV_CMD_SET_REG_READ;
+        reqs[1].cmd = MPP_CMD_SET_REG_READ;
         reqs[1].flag = 0;
         reqs[1].offset = 0;
         reqs[1].size =  reg_size * sizeof(RK_U32);
@@ -221,7 +221,7 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
 
         if (extra_info && extra_info->magic == VPU_EXTRA_INFO_MAGIC) {
             reg_size = nregs - VPU_EXTRA_INFO_SIZE;
-            reqs[2].cmd = MPP_DEV_CMD_SET_REG_ADDR_OFFSET;
+            reqs[2].cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
             reqs[2].flag = 0;
             reqs[2].offset = 0;
             reqs[2].size = extra_info->count * sizeof(extra_info->patchs[0]);
@@ -286,7 +286,7 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
             reg_size -= VPU_EXTRA_INFO_SIZE;
         }
 
-        mpp_req.cmd = MPP_DEV_CMD_POLL_HW_FINISH;
+        mpp_req.cmd = MPP_CMD_POLL_HW_FINISH;
         mpp_req.flag = 0;
         mpp_req.offset = 0;
         mpp_req.size =  reg_size * sizeof(RK_U32);
