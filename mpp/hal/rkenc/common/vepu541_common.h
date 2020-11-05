@@ -17,7 +17,7 @@
 #define __VEPU541_COMMON_H__
 
 #include "rk_venc_cmd.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #define VEPU541_REG_BASE_HW_STATUS  0x0000001C
 #define VEPU541_REG_BASE_STATISTICS 0x00000210

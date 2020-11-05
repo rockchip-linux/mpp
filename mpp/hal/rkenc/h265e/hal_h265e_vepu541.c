@@ -23,7 +23,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_frame_impl.h"
 
 #include "h265e_syntax_new.h"

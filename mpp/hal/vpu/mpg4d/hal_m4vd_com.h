@@ -18,7 +18,7 @@
 #define __HAL_M4VD_COM_H__
 
 #include "mpp_hal.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #include "mpg4d_syntax.h"
 

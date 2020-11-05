@@ -23,9 +23,9 @@
 #include "mpp_common.h"
 #include "mpp_mem.h"
 #include "mpp_platform.h"
-#include "mpp_device_patch.h"
 
 #include "mpp_enc_hal.h"
+#include "vcodec_service.h"
 
 #include "vepu_common.h"
 
@@ -66,7 +66,7 @@ static MPP_RET hal_jpege_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
 
     ctx->cfg = cfg->cfg;
     ctx->reg_size = sizeof(RK_U32) * VEPU_JPEGE_VEPU1_NUM_REGS;
-    ctx->regs = mpp_calloc_size(void, ctx->reg_size + sizeof(RegExtraInfo));
+    ctx->regs = mpp_calloc_size(void, ctx->reg_size + EXTRA_INFO_SIZE);
     if (NULL == ctx->regs) {
         mpp_err_f("failed to malloc vepu1 regs\n");
         return MPP_NOK;

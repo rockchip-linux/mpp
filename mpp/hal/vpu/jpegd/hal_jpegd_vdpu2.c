@@ -924,7 +924,7 @@ MPP_RET hal_jpegd_vdpu2_start(void *hal, HalTaskInfo *task)
         MppDevRegRdCfg rd_cfg;
         RK_U32 reg_size = mpp_get_ioctl_version() ?
                           sizeof(((JpegdIocRegInfo *)0)->regs) :
-                          sizeof(JpegdIocRegInfo) - sizeof(RegExtraInfo);
+                          sizeof(JpegdIocRegInfo) - EXTRA_INFO_SIZE;
 
         wr_cfg.reg = regs;
         wr_cfg.size = reg_size;

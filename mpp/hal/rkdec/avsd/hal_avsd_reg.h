@@ -17,7 +17,7 @@
 #ifndef __HAL_AVSD_REG_H__
 #define __HAL_AVSD_REG_H__
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #include "parser_api.h"
 #include "hal_avsd_api.h"

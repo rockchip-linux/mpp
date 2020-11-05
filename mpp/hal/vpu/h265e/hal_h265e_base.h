@@ -20,7 +20,7 @@
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_hal.h"
 #include "rga_api.h"
 

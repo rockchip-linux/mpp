@@ -22,7 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_rc.h"
 
 #include "mpp_enc_hal.h"

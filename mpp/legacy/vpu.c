@@ -39,16 +39,21 @@
 
 #define MPX_PATCH_NUM       16
 
-typedef struct RegPatchSlotInfo_t {
+typedef struct VpuPatchInfo_t {
     RK_U32          reg_idx;
     RK_U32          offset;
-} RegPatchInfo;
+} VpuPatchInfo;
 
-typedef struct RegExtraInfo_t {
+typedef struct VpuExtraInfo_t {
     RK_U32          magic;      // Fix magic value 0x4C4A46
     RK_U32          count;      // valid patch info count
-    RegPatchInfo    patchs[MPX_PATCH_NUM];
-} RegExtraInfo;
+    VpuPatchInfo    patchs[MPX_PATCH_NUM];
+} VpuExtraInfo;
+
+typedef struct VPUReq {
+    RK_U32 *req;
+    RK_U32  size;
+} VPUReq_t;
 
 static RK_U32 vpu_debug = 0;
 
@@ -191,16 +196,15 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs)
     if (vpu_debug) {
         RK_U32 i;
 
-        for (i = 0; i < nregs; i++) {
+        for (i = 0; i < nregs; i++)
             mpp_log("set reg[%03d]: %08x\n", i, regs[i]);
-        }
     }
 
     if (ioctl_version > 0) {
         MppReqV1 reqs[3];
         RK_U32 reg_size = nregs;
 
-        RegExtraInfo *extra_info = (RegExtraInfo*)(regs + (nregs - 12));
+        VpuExtraInfo *extra_info = (VpuExtraInfo*)(regs + (nregs - VPU_EXTRA_INFO_SIZE));
 
         reqs[0].cmd = MPP_DEV_CMD_SET_REG_WRITE;
         reqs[0].flag = 0;
@@ -274,7 +278,7 @@ RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE 
     if (ioctl_version > 0) {
         MppReqV1 mpp_req;
         RK_U32 reg_size = nregs;
-        RegExtraInfo *extra_info = (RegExtraInfo*)(regs + (nregs - 12));
+        VpuExtraInfo *extra_info = (VpuExtraInfo*)(regs + (nregs - VPU_EXTRA_INFO_SIZE));
 
         if (extra_info && extra_info->magic == VPU_EXTRA_INFO_MAGIC) {
             reg_size -= 2;

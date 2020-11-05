@@ -20,7 +20,7 @@
 #include "mpp_mem.h"
 
 #include "mpp_hal.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #include "vp8e_syntax.h"
 

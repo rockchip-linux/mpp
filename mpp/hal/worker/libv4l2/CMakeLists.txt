@@ -1,1 +1,0 @@
-# vim: syntax=cmake
