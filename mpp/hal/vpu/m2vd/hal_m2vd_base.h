@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_mem.h"
 #include "m2vd_syntax.h"
 

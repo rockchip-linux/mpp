@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEVICE_API_H__
-#define __MPP_DEVICE_API_H__
+#ifndef __MPP_DEVICE_H__
+#define __MPP_DEVICE_H__
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -95,4 +95,4 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param);
 }
 #endif
 
-#endif /* __MPP_DEVICE_API_H__ */
+#endif /* __MPP_DEVICE_H__ */

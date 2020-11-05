@@ -44,9 +44,6 @@
 #define VEPU2_REGISTERS                     (184)
 #define RKVENC_REGISTERS                    (140)
 
-typedef struct VPUReq {
-    RK_U32 *req;
-    RK_U32  size;
-} VPUReq_t;
+#define EXTRA_INFO_SIZE                     (sizeof(RK_U32) * 34)
 
 #endif /* __VCODEC_SERVICE_H__ */

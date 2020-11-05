@@ -21,7 +21,7 @@
 
 #include "mpp_hal.h"
 #include "mpp_log.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"

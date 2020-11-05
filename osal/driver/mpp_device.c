@@ -22,7 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_platform.h"
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_service_api.h"
 #include "vcodec_service_api.h"
 

@@ -17,7 +17,7 @@
 #ifndef __MPP_SERVICE_API_H__
 #define __MPP_SERVICE_API_H__
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #ifdef  __cplusplus
 extern "C" {

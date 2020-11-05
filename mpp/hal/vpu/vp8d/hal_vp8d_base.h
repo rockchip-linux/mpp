@@ -21,7 +21,7 @@
 
 #include "mpp_hal.h"
 #include "mpp_buf_slot.h"
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 #include "hal_task.h"
 

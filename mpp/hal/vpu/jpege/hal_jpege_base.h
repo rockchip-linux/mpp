@@ -17,7 +17,7 @@
 #ifndef __HAL_JPEGE_BASE_H__
 #define __HAL_JPEGE_BASE_H__
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "mpp_hal.h"
 #include "jpege_syntax.h"
 

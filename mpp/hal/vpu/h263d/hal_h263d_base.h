@@ -17,7 +17,7 @@
 #ifndef __HAL_H263D_BASE_H__
 #define __HAL_H263D_BASE_H__
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 
 typedef struct h263d_reg_context {
     MppHalApi           hal_api;

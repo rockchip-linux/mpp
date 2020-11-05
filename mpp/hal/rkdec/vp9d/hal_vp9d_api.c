@@ -28,7 +28,7 @@
 #include "mpp_common.h"
 #include "mpp_bitput.h"
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_reg.h"
 #include "vp9d_syntax.h"

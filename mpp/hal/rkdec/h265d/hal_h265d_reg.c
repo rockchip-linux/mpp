@@ -36,7 +36,7 @@
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"
 
-#include "mpp_device_api.h"
+#include "mpp_device.h"
 #include "cabac.h"
 #include "hal_h265d_reg.h"
 #include "hal_h265d_api.h"
@@ -266,18 +266,10 @@ static RK_U32 hevc_ver_align(RK_U32 val)
     return MPP_ALIGN(val, 8);
 }
 
-#ifdef SOFIA_3GR_LINUX
-static RK_U32 hevc_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 64);
-}
-#else
 static RK_U32 hevc_hor_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 256) | 256;
 }
-#endif
-
 
 static MPP_RET hal_h265d_alloc_res(void *hal)
 {

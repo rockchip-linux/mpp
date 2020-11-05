@@ -241,7 +241,6 @@ MPP_RET vcodec_service_init(void *ctx, MppClientType type)
         }
     }
 
-
     return ret;
 }
 
