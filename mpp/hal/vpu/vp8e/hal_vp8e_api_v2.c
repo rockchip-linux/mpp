@@ -67,7 +67,7 @@ static MPP_RET hal_vp8e_init(void *hal, MppEncHalCfg *cfg)
     mpp_assert(p_api);
     mpp_assert(type != VPU_CLIENT_BUTT);
 
-    hw_ctx = mpp_malloc_size(void, p_api->ctx_size);
+    hw_ctx = mpp_calloc_size(void, p_api->ctx_size);
     if (NULL == hw_ctx)
         return MPP_ERR_MALLOC;
 
@@ -113,7 +113,7 @@ HAL_VP8E_TASK_FUNC(wait)
 HAL_VP8E_TASK_FUNC(ret_task)
 
 const MppEncHalApi hal_api_vp8e_v2 = {
-    .name       = "hal_h264e",
+    .name       = "hal_vp8e",
     .coding     = MPP_VIDEO_CodingVP8,
     .ctx_size   = sizeof(Halvp8eCtx),
     .flag       = 0,

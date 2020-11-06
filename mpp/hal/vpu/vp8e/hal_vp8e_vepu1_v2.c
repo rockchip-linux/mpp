@@ -160,7 +160,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
 
     regs->sw53.rgb_coeff_a = hw_cfg->rgb_coeff_a;
     regs->sw53.rgb_coeff_b = hw_cfg->rgb_coeff_b;
-    regs->sw54.rgb_coeff_c = hw_cfg->rgb_coeff_a;
+    regs->sw54.rgb_coeff_c = hw_cfg->rgb_coeff_c;
     regs->sw54.rgb_coeff_e = hw_cfg->rgb_coeff_e;
     regs->sw55.rgb_coeff_f = hw_cfg->rgb_coeff_f;
 
@@ -424,9 +424,9 @@ static void vp8e_update_hw_cfg(void *hal)
     hw_cfg->diff_mv_penalty[2] = -1;
     hw_cfg->skip_penalty = -1;
     hw_cfg->golden_penalty = -1;
-    hw_cfg->split_penalty[0] = -1;
-    hw_cfg->split_penalty[1] = -1;
-    hw_cfg->split_penalty[3] = -1;
+    hw_cfg->split_penalty[0] = 0;
+    hw_cfg->split_penalty[1] = 0;
+    hw_cfg->split_penalty[3] = 0;
 
 }
 
