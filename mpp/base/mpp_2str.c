@@ -16,6 +16,8 @@
  */
 
 #include "mpp_2str.h"
+#include "h264_syntax.h"
+#include "h265_syntax.h"
 
 const char *strof_ctx_type(MppCtxType type)
 {
@@ -57,6 +59,75 @@ const char *strof_coding_type(MppCodingType coding)
         return coding_type_str0[coding];
     else if (coding >= MPP_VIDEO_CodingVC1 && coding <= MPP_VIDEO_CodingAVS)
         return coding_type_str1[coding - MPP_VIDEO_CodingVC1];
+
+    return NULL;
+}
+
+const char *strof_rc_mode(MppEncRcMode rc_mode)
+{
+    static const char *rc_mode_str[] = {
+        "vbr",
+        "cbr",
+        "fixqp",
+        "avbr",
+    };
+
+    if (rc_mode >= MPP_ENC_RC_MODE_VBR && rc_mode < MPP_ENC_RC_MODE_BUTT)
+        return rc_mode_str[rc_mode];
+
+    return NULL;
+}
+
+const char *strof_profle(MppCodingType coding, RK_U32 profile)
+{
+    static const char *h264_profile_str[] = {
+        "baseline",
+        "main",
+        "high",
+        "high10",
+    };
+    static const char *h265_profile_str[] = {
+        "main",
+        "main10",
+    };
+    static const char *jpeg_profile_str[] = {
+        "base",
+    };
+    static const char *vp8_profile_str[] = {
+        "base",
+    };
+    static const char *unknown_str[] = {
+        "unknown",
+    };
+
+    switch (coding) {
+    case MPP_VIDEO_CodingAVC : {
+        if (profile == H264_PROFILE_BASELINE)
+            return h264_profile_str[0];
+        else if (profile == H264_PROFILE_MAIN)
+            return h264_profile_str[1];
+        else if (profile == H264_PROFILE_HIGH)
+            return h264_profile_str[2];
+        else if (profile == H264_PROFILE_HIGH10)
+            return h264_profile_str[3];
+        else
+            return unknown_str[0];
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        if (profile < 2)
+            return h265_profile_str[0];
+        else
+            return unknown_str[0];
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        return jpeg_profile_str[0];
+    } break;
+    case MPP_VIDEO_CodingVP8 : {
+        return vp8_profile_str[0];
+    } break;
+    default : {
+    } break;
+    }
 
     return NULL;
 }
