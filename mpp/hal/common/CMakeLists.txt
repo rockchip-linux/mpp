@@ -5,6 +5,7 @@ include_directories(.)
 # add hal common file
 # ----------------------------------------------------------------------------
 add_library(hal_common STATIC
+    hal_info.c
     hal_bufs.c
     )
 
