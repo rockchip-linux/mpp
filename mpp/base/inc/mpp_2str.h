@@ -19,6 +19,7 @@
 #define __MPP_2STR_H__
 
 #include "rk_type.h"
+#include "rk_venc_rc.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -26,6 +27,8 @@ extern "C" {
 
 const char *strof_ctx_type(MppCtxType type);
 const char *strof_coding_type(MppCodingType coding);
+const char *strof_rc_mode(MppEncRcMode rc_mode);
+const char *strof_profle(MppCodingType coding, RK_U32 profile);
 
 #ifdef  __cplusplus
 }
