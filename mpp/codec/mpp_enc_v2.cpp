@@ -23,6 +23,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_info.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 
 #include "mpp_packet_impl.h"
@@ -66,6 +67,10 @@ typedef struct MppEncImpl_t {
     /* device from hal */
     MppDev              dev;
     HalInfo             hal_info;
+    RK_S64              time_base;
+    RK_S64              time_end;
+    RK_S32              frame_count;
+    RK_S32              hal_info_updated;
 
     /*
      * Rate control plugin parameters
@@ -214,6 +219,9 @@ static void update_hal_info(MppEncImpl *enc)
     RK_S32 size = sizeof(data);
     RK_S32 i;
 
+    if (NULL == enc->hal_info || NULL == enc->dev)
+        return ;
+
     hal_info_from_enc_cfg(enc->hal_info, &enc->cfg);
     hal_info_get(enc->hal_info, data, &size);
 
@@ -222,6 +230,23 @@ static void update_hal_info(MppEncImpl *enc)
         for (i = 0; i < size; i++)
             mpp_dev_ioctl(enc->dev, MPP_DEV_SET_INFO, &data[i]);
     }
+}
+
+static void update_hal_info_fps(MppEncImpl *enc)
+{
+    MppDevInfoCfg cfg;
+
+    RK_S32 time_diff = ((RK_S32)(enc->time_end - enc->time_base) / 1000);
+    RK_U64 fps = hal_info_to_float(enc->frame_count * 1000, time_diff);
+
+    cfg.type = ENC_INFO_FPS_CALC;
+    cfg.flag = ENC_INFO_FLAG_STRING;
+    cfg.data = fps;
+
+    mpp_dev_ioctl(enc->dev, MPP_DEV_SET_INFO, &cfg);
+
+    enc->time_base = enc->time_end;
+    enc->frame_count = 0;
 }
 
 static MPP_RET release_task_in_port(MppPort port)
@@ -471,6 +496,19 @@ static RK_S32 check_rc_gop_update(MpiCmd cmd, MppEncCfgSet *cfg)
     return 0;
 }
 
+static RK_S32 check_hal_info_update(MpiCmd cmd)
+{
+    if (cmd == MPP_ENC_SET_CFG ||
+        cmd == MPP_ENC_SET_RC_CFG ||
+        cmd == MPP_ENC_SET_CODEC_CFG ||
+        cmd == MPP_ENC_SET_PREP_CFG ||
+        cmd == MPP_ENC_SET_REF_CFG) {
+        return 1;
+    }
+
+    return 0;
+}
+
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -624,15 +662,14 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     if (check_resend_hdr(cmd, param, &enc->cfg)) {
         enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->hdr_status.val = 0;
-
-        /* update hal_info */
-        if (enc->dev && enc->hal_info)
-            update_hal_info(enc);
     }
     if (check_rc_cfg_update(cmd, &enc->cfg))
         enc->rc_status.rc_api_user_cfg = 1;
     if (check_rc_gop_update(cmd, &enc->cfg))
         mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
+
+    if (check_hal_info_update(cmd))
+        enc->hal_info_updated = 0;
 
     return ret;
 }
@@ -1058,6 +1095,8 @@ void *mpp_enc_thread(void *data)
 
     memset(&task, 0, sizeof(task));
 
+    enc->time_base = mpp_time();
+
     while (1) {
         {
             AutoMutex autolock(thd_enc->mutex());
@@ -1255,6 +1294,11 @@ void *mpp_enc_thread(void *data)
             goto TASK_DONE;
         }
 
+        if (!enc->hal_info_updated) {
+            update_hal_info(enc);
+            enc->hal_info_updated = 1;
+        }
+
         // start encoder task process here
         hal_task->valid = 1;
 
@@ -1319,6 +1363,13 @@ void *mpp_enc_thread(void *data)
         }
         enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
         ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+
+        enc->time_end = mpp_time();
+        enc->frame_count++;
+
+        if (enc->dev && enc->time_base && enc->time_end &&
+            ((enc->time_end - enc->time_base) >= (RK_S64)(1000 * 1000)))
+            update_hal_info_fps(enc);
 
         frm->reencode = 0;
         frm->reencode_times = 0;
