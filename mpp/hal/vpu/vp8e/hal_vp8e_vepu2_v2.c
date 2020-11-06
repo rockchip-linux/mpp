@@ -429,9 +429,9 @@ static void vp8e_update_hw_cfg(void *hal)
     hw_cfg->diff_mv_penalty[2] = -1;
     hw_cfg->skip_penalty = -1;
     hw_cfg->golden_penalty = -1;
-    hw_cfg->split_penalty[0] = -1;
-    hw_cfg->split_penalty[1] = -1;
-    hw_cfg->split_penalty[3] = -1;
+    hw_cfg->split_penalty[0] = 0;
+    hw_cfg->split_penalty[1] = 0;
+    hw_cfg->split_penalty[3] = 0;
 }
 
 static MPP_RET hal_vp8e_vepu2_wait_v2(void *hal, HalEncTask *task)
