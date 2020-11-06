@@ -34,8 +34,10 @@
 #include "mpp_enc_hal.h"
 #include "mpp_enc_ref.h"
 #include "mpp_enc_refs.h"
+#include "mpp_device.h"
 
 #include "rc.h"
+#include "hal_info.h"
 
 RK_U32 mpp_enc_debug = 0;
 
@@ -60,6 +62,10 @@ typedef struct MppEncImpl_t {
     MppCodingType       coding;
     EncImpl             impl;
     MppEncHal           enc_hal;
+
+    /* device from hal */
+    MppDev              dev;
+    HalInfo             hal_info;
 
     /*
      * Rate control plugin parameters
@@ -200,6 +206,22 @@ static void reset_hal_enc_task(HalEncTask *task)
 static void reset_enc_rc_task(EncRcTask *task)
 {
     memset(task, 0, sizeof(*task));
+}
+
+static void update_hal_info(MppEncImpl *enc)
+{
+    MppDevInfoCfg data[32];
+    RK_S32 size = sizeof(data);
+    RK_S32 i;
+
+    hal_info_from_enc_cfg(enc->hal_info, &enc->cfg);
+    hal_info_get(enc->hal_info, data, &size);
+
+    if (size) {
+        size /= sizeof(data[0]);
+        for (i = 0; i < size; i++)
+            mpp_dev_ioctl(enc->dev, MPP_DEV_SET_INFO, &data[i]);
+    }
 }
 
 static MPP_RET release_task_in_port(MppPort port)
@@ -602,6 +624,10 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     if (check_resend_hdr(cmd, param, &enc->cfg)) {
         enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->hdr_status.val = 0;
+
+        /* update hal_info */
+        if (enc->dev && enc->hal_info)
+            update_hal_info(enc);
     }
     if (check_rc_cfg_update(cmd, &enc->cfg))
         enc->rc_status.rc_api_user_cfg = 1;
@@ -1387,10 +1413,11 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     // create hal first
     enc_hal_cfg.coding = coding;
     enc_hal_cfg.cfg = &p->cfg;
-    enc_hal_cfg.device_id = DEV_VEPU;
+    enc_hal_cfg.type = VPU_CLIENT_BUTT;
+    enc_hal_cfg.dev = NULL;
 
     ctrl_cfg.coding = coding;
-    ctrl_cfg.dev_id = DEV_VEPU;
+    ctrl_cfg.type = VPU_CLIENT_BUTT;
     ctrl_cfg.cfg = &p->cfg;
     ctrl_cfg.refs = p->refs;
     ctrl_cfg.task_count = 2;
@@ -1401,7 +1428,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         goto ERR_RET;
     }
 
-    ctrl_cfg.dev_id = enc_hal_cfg.device_id;
+    ctrl_cfg.type = enc_hal_cfg.type;
     ctrl_cfg.task_count = -1;
 
     ret = enc_impl_init(&impl, &ctrl_cfg);
@@ -1410,9 +1437,16 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         goto ERR_RET;
     }
 
+    ret = hal_info_init(&p->hal_info, MPP_CTX_ENC, coding);
+    if (ret) {
+        mpp_err_f("could not init hal info\n");
+        goto ERR_RET;
+    }
+
     p->coding   = coding;
     p->impl     = impl;
     p->enc_hal  = enc_hal;
+    p->dev      = enc_hal_cfg.dev;
     p->mpp      = cfg->mpp;
     p->sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
     p->version_info = get_mpp_version();
@@ -1454,6 +1488,11 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
     if (NULL == enc) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
+    }
+
+    if (enc->hal_info) {
+        hal_info_deinit(enc->hal_info);
+        enc->hal_info = NULL;
     }
 
     if (enc->impl) {

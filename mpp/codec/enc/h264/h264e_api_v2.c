@@ -44,7 +44,7 @@ RK_U32 h264e_debug = 0;
 
 typedef struct {
     /* config from mpp_enc */
-    MppDeviceId         dev_id;
+    MppClientType       type;
     MppEncCfgSet        *cfg;
     MppEncRefs          refs;
     RK_U32              idr_request;
@@ -84,7 +84,7 @@ typedef struct {
     H264eSyntaxDesc     syntax[H264E_SYN_BUTT];
 } H264eCtx;
 
-static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
+static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
 {
     MppEncRcCfg *rc_cfg = &cfg->rc;
     MppEncPrepCfg *prep = &cfg->prep;
@@ -108,13 +108,14 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppDeviceId dev_id)
     h264->qp_max_step = 8;
     h264->qp_delta_ip = 8;
 
-    switch (dev_id) {
-    case DEV_VEPU : {
+    switch (type) {
+    case VPU_CLIENT_VEPU1 :
+    case VPU_CLIENT_VEPU2 : {
         h264->poc_type = 2;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
     } break;
-    case DEV_RKVENC : {
+    case VPU_CLIENT_RKVENC : {
         h264->poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
@@ -186,7 +187,7 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
 
     h264e_dbg_func("enter\n");
 
-    p->dev_id = ctrl_cfg->dev_id;
+    p->type = ctrl_cfg->type;
     p->hdr_size = SZ_1K;
     p->hdr_buf = mpp_malloc_size(void, p->hdr_size);
     mpp_assert(p->hdr_buf);
@@ -203,7 +204,7 @@ static MPP_RET h264e_init(void *ctx, EncImplCfg *ctrl_cfg)
     h264e_dpb_init(&p->dpb, &p->reorder, &p->marking);
     h264e_slice_init(&p->slice, &p->reorder, &p->marking);
 
-    init_h264e_cfg_set(p->cfg, p->dev_id);
+    init_h264e_cfg_set(p->cfg, p->type);
 
     mpp_env_get_u32("h264e_debug", &h264e_debug, 0);
 

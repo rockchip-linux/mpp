@@ -19,14 +19,16 @@
 
 #include "hal_task.h"
 #include "mpp_enc_cfg.h"
+#include "mpp_device.h"
 
 typedef struct MppEncHalCfg_t {
     // input for encoder
     MppCodingType   coding;
     MppEncCfgSet    *cfg;
 
-    // output for enc_impl
-    MppDeviceId     device_id;
+    // output from enc_impl
+    MppClientType   type;
+    MppDev          dev;
 } MppEncHalCfg;
 
 typedef struct MppEncHalApi_t {
