@@ -20,9 +20,8 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
-#include "mpp_platform.h"
 
-#include "mpp_device.h"
+#include "mpp_device_debug.h"
 #include "mpp_service_api.h"
 #include "vcodec_service_api.h"
 
@@ -32,6 +31,8 @@ typedef struct MppDevImpl_t {
     void            *ctx;
     const MppDevApi *api;
 } MppDevImpl;
+
+RK_U32 mpp_device_debug = 0;
 
 MPP_RET mpp_dev_init(MppDev *ctx, MppClientType type)
 {

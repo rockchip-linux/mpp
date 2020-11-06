@@ -59,7 +59,7 @@ typedef struct MppDevSetInfoCfg_t {
     RK_U32  type;
     RK_U32  flag;
     RK_U64  data;
-} MppDevSetInfoCfg;
+} MppDevInfoCfg;
 
 typedef struct MppDevApi_t {
     const char  *name;
@@ -71,7 +71,7 @@ typedef struct MppDevApi_t {
     MPP_RET     (*reg_wr)(void *ctx, MppDevRegWrCfg *cfg);
     MPP_RET     (*reg_rd)(void *ctx, MppDevRegRdCfg *cfg);
     MPP_RET     (*reg_offset)(void *ctx, MppDevRegOffsetCfg *cfg);
-    MPP_RET     (*set_info)(void *ctx, MppDevSetInfoCfg *cfg);
+    MPP_RET     (*set_info)(void *ctx, MppDevInfoCfg *cfg);
 
     /* send cmd to hardware */
     MPP_RET     (*cmd_send)(void *ctx);

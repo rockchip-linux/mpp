@@ -21,23 +21,12 @@
 #include <errno.h>
 #include <string.h>
 
-#include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
 
+#include "mpp_device_debug.h"
 #include "mpp_service.h"
 #include "mpp_service_api.h"
-
-#define MPP_SERVICE_DBG_FUNC                (0x00000001)
-#define MPP_SERVICE_DBG_PROBE               (0x00000002)
-
-#define mpp_srv_dbg(flag, fmt, ...)         _mpp_dbg(mpp_service_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_srv_dbg_f(flag, fmt, ...)       _mpp_dbg_f(mpp_service_debug, flag, fmt, ## __VA_ARGS__)
-
-#define mpp_src_dbg_func(fmt, ...)          mpp_srv_dbg_f(MPP_SERVICE_DBG_FUNC, fmt, ## __VA_ARGS__)
-#define mpp_src_dbg_probe(fmt, ...)         mpp_srv_dbg(MPP_SERVICE_DBG_PROBE, fmt, ## __VA_ARGS__)
-
-static RK_U32 mpp_service_debug = 0;
 
 typedef struct MppServiceQueryCfg_t {
     RK_U32      cmd_butt;
@@ -119,6 +108,22 @@ static RK_S32 mpp_service_ioctl_request(RK_S32 fd, MppReqV1 *req)
     return (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, req);
 }
 
+static MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (cap->support_cmd > 0) {
+        RK_U32 found = 0;
+        found = (cmd < cap->query_cmd) ? 1 : 0;
+        found = (cmd >= MPP_CMD_INIT_BASE && cmd < cap->init_cmd) ? 1 : found;
+        found = (cmd >= MPP_CMD_SEND_BASE && cmd < cap->send_cmd) ? 1 : found;
+        found = (cmd >= MPP_CMD_POLL_BASE && cmd < cap->poll_cmd) ? 1 : found;
+        found = (cmd >= MPP_CMD_CONTROL_BASE && cmd < cap->ctrl_cmd) ? 1 : found;
+        ret = found ? MPP_OK : MPP_NOK;
+    }
+    return ret;
+}
+
 void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap *cap)
 {
     MppReqV1 mpp_req;
@@ -127,8 +132,6 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     RK_U32 *cmd_butt = &cap->query_cmd;;
     RK_U32 val;
     RK_U32 i;
-
-    mpp_env_get_u32("mpp_service_debug", &mpp_service_debug, 0);
 
     *codec_type = 0;
     memset(hw_ids, 0, sizeof(RK_U32) * 32);
@@ -143,7 +146,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     /* check hw_support flag for valid client type */
     ret = mpp_service_ioctl(fd, MPP_CMD_PROBE_HW_SUPPORT, 0, &val);
     if (!ret) {
-        mpp_src_dbg_probe("vcodec_support %08x\n", val);
+        mpp_dev_dbg_probe("vcodec_support %08x\n", val);
         *codec_type = val;
     }
 
@@ -169,7 +172,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
                     /* send client type and get hw_id */
                     ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
                     if (!ret) {
-                        mpp_src_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
+                        mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
                         hw_ids[i] = val;
                     } else
                         mpp_err("check valid client %-10s for hw_id failed\n",
@@ -192,7 +195,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
                     /* then get hw_id */
                     ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
                     if (!ret) {
-                        mpp_src_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
+                        mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
                         hw_ids[i] = val;
                     } else
                         mpp_err("check valid client %-10s for hw_id failed\n",
@@ -220,7 +223,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
             mpp_err_f("query %-11s support error %s.\n", cfg->name, strerror(errno));
         else {
             *cmd_butt = val;
-            mpp_src_dbg_probe("query %-11s support %04x\n", cfg->name, val);
+            mpp_dev_dbg_probe("query %-11s support %04x\n", cfg->name, val);
         }
     }
 
@@ -228,6 +231,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
 }
 
 #define MAX_REG_OFFSET          16
+#define MAX_INFO_COUNT          16
 
 typedef struct FdTransInfo_t {
     RK_U32          reg_idx;
@@ -243,8 +247,12 @@ typedef struct MppDevMppService_t {
     MppReqV1        reqs[MAX_REQ_NUM];
     RegOffsetInfo   reg_offset_info[MAX_REG_OFFSET];
 
+    RK_S32          info_count;
+    MppDevInfoCfg   info[MAX_INFO_COUNT];
+
     /* support max cmd buttom  */
     const MppServiceCmdCap *cap;
+    RK_U32          support_set_info;
 } MppDevMppService;
 
 MPP_RET mpp_service_init(void *ctx, MppClientType type)
@@ -263,6 +271,10 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     ret = mpp_service_ioctl(p->fd, MPP_CMD_INIT_CLIENT_TYPE, sizeof(type), &type);
     if (ret)
         mpp_err("set client type %d failed\n", type);
+
+    mpp_assert(p->cap);
+    if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SEND_CODEC_INFO, p->cap))
+        p->support_set_info = 1;
 
     return ret;
 }
@@ -329,10 +341,18 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET mpp_service_set_info(void *ctx, MppDevSetInfoCfg *cfg)
+MPP_RET mpp_service_set_info(void *ctx, MppDevInfoCfg *cfg)
 {
-    (void)ctx;
-    (void)cfg;
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    if (!p->support_set_info)
+        return MPP_OK;
+
+    if (!p->info_count)
+        memset(p->info, 0, sizeof(p->info));
+
+    memcpy(&p->info[p->info_count], cfg, sizeof(MppDevInfoCfg));
+    p->info_count++;
 
     return MPP_OK;
 }
@@ -372,6 +392,24 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
         ret = errno;
+    }
+
+    if (p->info_count) {
+        MppReqV1 req;
+
+        req.cmd = MPP_CMD_SEND_CODEC_INFO;
+        req.flag = 0;
+        req.size = p->info_count * sizeof(p->info[0]);
+        req.offset = 0;
+        req.data_ptr = REQ_DATA_PTR(p->info);
+
+        ret = mpp_service_ioctl_request(p->fd, &req);
+        if (ret) {
+            mpp_err_f("ioctl MPP_IOC_CFG_V1 set info failed ret %d errno %d %s\n",
+                      ret, errno, strerror(errno));
+            ret = errno;
+        }
+        p->info_count = 0;
     }
 
     p->req_cnt = 0;
