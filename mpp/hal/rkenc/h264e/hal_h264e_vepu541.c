@@ -141,11 +141,14 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
 
     p->cfg = cfg->cfg;
 
-    ret = mpp_dev_init(&p->dev, VPU_CLIENT_RKVENC);
+    /* update output to MppEnc */
+    cfg->type = VPU_CLIENT_RKVENC;
+    ret = mpp_dev_init(&cfg->dev, cfg->type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         goto DONE;
     }
+    p->dev = cfg->dev;
 
     ret = hal_bufs_init(&p->hw_recn);
     if (ret) {

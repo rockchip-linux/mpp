@@ -43,7 +43,7 @@ static MPP_RET hal_vp8e_init(void *hal, MppEncHalCfg *cfg)
 {
     const MppEncHalApi  *p_api = NULL;
     Halvp8eCtx *ctx = (Halvp8eCtx *)hal;
-    MppDeviceId dev = DEV_ID_BUTT;
+    MppClientType type = VPU_CLIENT_BUTT;
     void* hw_ctx = NULL;
 
     memset(ctx, 0, sizeof(Halvp8eCtx));
@@ -54,10 +54,10 @@ static MPP_RET hal_vp8e_init(void *hal, MppEncHalCfg *cfg)
         RK_U32 hw_flag = mpp_get_vcodec_type();
         if (hw_flag & HAVE_VEPU2) {
             p_api = &hal_vp8e_vepu2;
-            dev = DEV_VEPU;
+            type = VPU_CLIENT_VEPU2;
         } else if (hw_flag & HAVE_VEPU1) {
             p_api = &hal_vp8e_vepu1;
-            dev = DEV_VEPU;
+            type = VPU_CLIENT_VEPU1;
         } else {
             mpp_err_f("Failed to init due to unsupported hard mode, hw_flag = %d\n", hw_flag);
             return MPP_ERR_INIT;
@@ -65,7 +65,7 @@ static MPP_RET hal_vp8e_init(void *hal, MppEncHalCfg *cfg)
     }
 
     mpp_assert(p_api);
-    mpp_assert(dev != DEV_ID_BUTT);
+    mpp_assert(type != VPU_CLIENT_BUTT);
 
     hw_ctx = mpp_malloc_size(void, p_api->ctx_size);
     if (NULL == hw_ctx)
@@ -73,7 +73,7 @@ static MPP_RET hal_vp8e_init(void *hal, MppEncHalCfg *cfg)
 
     ctx->hw_ctx = hw_ctx;
     ctx->api = p_api;
-    cfg->device_id = dev;
+    cfg->type = type;
 
     return p_api->init(hw_ctx, cfg);
 }

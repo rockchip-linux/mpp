@@ -30,7 +30,7 @@
 typedef struct EncImplCfg_t {
     // input
     MppCodingType   coding;
-    MppDeviceId     dev_id;
+    MppClientType   type;
     MppEncCfgSet    *cfg;
     MppEncRefs      refs;
 

@@ -375,11 +375,13 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->num_frames_to_send = 1;
     ctx->enc_mode = RKV_ENC_MODE;
 
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_RKVENC);
+    cfg->type = VPU_CLIENT_RKVENC;
+    ret = mpp_dev_init(&cfg->dev, cfg->type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
+    ctx->dev = cfg->dev;
 
     buffers = (h265e_v541_buffers *)ctx->buffers;
     for (k = 0; k < H265E_V541_BUF_GRP_BUTT; k++) {

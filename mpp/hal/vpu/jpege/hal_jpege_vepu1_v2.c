@@ -55,11 +55,14 @@ static MPP_RET hal_jpege_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VEPU1);
+    /* update output to MppEnc */
+    cfg->type = VPU_CLIENT_VEPU1;
+    ret = mpp_dev_init(&cfg->dev, cfg->type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
+    ctx->dev = cfg->dev;
 
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);

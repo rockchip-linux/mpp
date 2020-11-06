@@ -278,8 +278,16 @@ static MPP_RET hal_vp8e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
 
     ctx->cfg = cfg->cfg;
 
-    memset(ctx, 0, sizeof(HalVp8eCtx));
-    memset(hw_cfg, 0, sizeof(Vp8eHwCfg));
+    /* update output to MppEnc */
+    cfg->type = VPU_CLIENT_VEPU2;
+    ret = mpp_dev_init(&cfg->dev, cfg->type);
+    if (ret) {
+        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
+        return ret;
+    }
+    ctx->dev = cfg->dev;
+
+    vp8e_hal_dbg(VP8E_DBG_HAL_FUNCTION, "mpp_dev_init success.\n");
 
     ctx->buffers = mpp_calloc(Vp8eVpuBuf, 1);
     if (ctx->buffers == NULL) {
@@ -305,12 +313,6 @@ static MPP_RET hal_vp8e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
     hw_cfg->input_cr_base   = 0;
 
     hal_vp8e_init_qp_table(hal);
-
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VEPU2);
-    if (ret)
-        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-    else
-        vp8e_hal_dbg(VP8E_DBG_HAL_FUNCTION, "mpp_dev_init success.\n");
 
     return ret;
 }
