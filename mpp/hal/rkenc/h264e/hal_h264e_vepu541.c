@@ -59,7 +59,6 @@ typedef struct HalH264eVepu541Ctx_t {
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
-    RcSyntax                *rc_syn;
     H264ePrefixNal          *prefix;
 
     /* syntax for output to enc_impl */
@@ -197,10 +196,6 @@ static RK_U32 update_vepu541_syntax(HalH264eVepu541Ctx *ctx, MppSyntax *syntax)
         case H264E_SYN_FRAME : {
             hal_h264e_dbg_detail("update frames");
             ctx->frms = desc->p;
-        } break;
-        case H264E_SYN_RC : {
-            hal_h264e_dbg_detail("update rc");
-            ctx->rc_syn = desc->p;
         } break;
         case H264E_SYN_PREFIX : {
             hal_h264e_dbg_detail("update prefix nal");

@@ -53,30 +53,6 @@ typedef struct {
     RK_S32  count;
 } MppPIDCtx;
 
-/*
- * 3. linear module
- */
-#define LINEAR_MODEL_STATISTIC_COUNT    15
-
-/*
- * Linear regression
- * C = a * x * r + b * x * x * r
- */
-typedef struct linear_model_s {
-    RK_S32 size;        /* elements max size */
-    RK_S32 n;           /* elements count */
-    RK_S32 i;           /* elements index for store */
-
-    double a;           /* coefficient */
-    double b;           /* coefficient */
-    double c;
-
-    RK_S32 *x;          /* x */
-    RK_S32 *r;          /* r */
-    RK_S64 *y;          /* y = x * x * r */
-    RK_S32 weight_mode; /* different weight ratio*/
-} MppLinReg;
-
 typedef enum ENC_FRAME_TYPE_E {
     INTER_P_FRAME   = 0,
     INTER_B_FRAME   = 1,
@@ -117,122 +93,8 @@ typedef enum RC_PARAM_OPS {
     RC_RECORD_SET_QP,
     RC_RECORD_REAL_QP,
     RC_RECORD_SSE_SUM,
-    RC_RECORD_LIN_REG,
     RC_RECORD_WIN_LEN
 } RC_PARAM_OPS;
-
-typedef struct MppRateControl_s {
-    /* control parameter from external config */
-    RK_S32 fps_num;
-    RK_S32 fps_denom;
-    RK_S32 fps_out;
-    RK_S32 gop;
-    RK_S32 bps_min;
-    RK_S32 bps_target;
-    RK_S32 bps_max;
-
-    /*
-     * derivation parameter
-     * bits_per_pic - average bit count in gop
-     * bits_per_intra   - target intra frame size
-     *                if not intra frame is encoded default set to a certain
-     *                times of inter frame according to gop
-     * bits_per_inter   - target inter frame size
-     */
-    MppEncGopMode gop_mode;
-    RK_S32 bits_per_pic;
-    RK_S32 bits_per_intra;
-    RK_S32 bits_per_inter;
-    RK_S32 mb_per_frame;
-
-    /* bitrate window which tries to match target */
-    RK_S32 window_len;
-    RK_S32 intra_to_inter_rate;
-
-    RK_S32 acc_intra_bits_in_fps;
-    RK_S32 acc_inter_bits_in_fps;
-    RK_S32 acc_total_bits;
-    RK_U32 time_in_second;
-
-    RK_S32 acc_intra_count;
-    RK_S32 acc_inter_count;
-    RK_S32 acc_total_count;
-    RK_S32 last_fps_bits;
-    float last_intra_percent;
-
-    RK_S32 prev_intra_target;
-    RK_S32 prev_inter_target;
-
-    /* runtime status parameter */
-    ENC_FRAME_TYPE cur_frmtype;
-    ENC_FRAME_TYPE pre_frmtype;
-
-    /*
-     * intra     - intra frame bits record
-     * inter     - inter frame bits record
-     * pid_intra - intra frame bits record
-     * pid_inter - inter frame bits record
-     * pid_gop   - serial frame bits record
-     */
-    MppData *intra;
-    MppData *inter;
-    MppData *gop_bits;
-    MppData *intra_percent;
-    MppPIDCtx pid_intra;
-    MppPIDCtx pid_inter;
-    MppPIDCtx pid_fps;
-    /*
-     * Vbv buffer control
-    */
-    RK_S32           hrd;
-
-    /*
-     * output target bits on current status
-     * 0        - do not do rate control
-     * non-zero - have rate control
-     */
-    RK_S32 bits_target;
-    RK_S32 pre_gop_left_bit;
-    float max_rate;
-    float min_rate;
-
-    /* start from ONE */
-    RK_U32 frm_cnt;
-    RK_S32 real_bps;
-    RK_S32 prev_aq_prop_offset;
-    RK_S32 quality;
-
-} MppRateControl;
-
-/*
- * Data structure from encoder to hal
- * type         - frame encode type
- * bit_target   - frame target size
- * bit_min      - frame minimum size
- * bit_max      - frame maximum size
- */
-typedef struct RcSyntax_s {
-    MppEncGopMode    gop_mode;
-    ENC_FRAME_TYPE   type;
-    RK_S32           bit_target;
-    RK_S32           bit_max;
-    RK_S32           bit_min;
-    RK_S32           aq_prop_offset;
-
-    /* head node of rc parameter list */
-    struct list_head *rc_head;
-} RcSyntax;
-
-/*
- * Data structure from hal to encoder
- * type         - frame encode type
- * bits         - frame actual byte size
- */
-typedef struct HalRcResult_s {
-    ENC_FRAME_TYPE  type;
-    RK_S32          time;
-    RK_S32          bits;
-} RcHalResult;
 
 typedef struct RecordNode_t {
     struct list_head list;
@@ -261,7 +123,6 @@ typedef struct RecordNode_t {
     RK_S32           qp_min;
     RK_S32           qp_max;
     RK_S32           real_qp;
-    MppLinReg        lin_reg;
     RK_S32           wlen;
 } RecordNode;
 
@@ -278,14 +139,6 @@ void mpp_pid_reset(MppPIDCtx *p);
 void mpp_pid_set_param(MppPIDCtx *p, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div, RK_S32 len);
 void mpp_pid_update(MppPIDCtx *p, RK_S32 val);
 RK_S32 mpp_pid_calc(MppPIDCtx *ctx);
-
-MPP_RET mpp_linreg_init(MppLinReg **ctx, RK_S32 size, RK_S32 weight_mode);
-MPP_RET mpp_linreg_deinit(MppLinReg *ctx);
-void mpp_save_regdata(MppLinReg *ctx, RK_S32 x, RK_S32 r);
-MPP_RET mpp_linreg_update(MppLinReg *ctx);
-MPP_RET mpp_quadreg_update(MppLinReg *ctx, RK_S32 wlen);
-RK_S32  mpp_linreg_calc(MppLinReg *ctx, RK_S32 r);
-RK_S64  mpp_quadreg_calc(MppLinReg *ctx, RK_S32 r);
 
 #ifdef __cplusplus
 }

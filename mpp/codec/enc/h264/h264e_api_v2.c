@@ -65,7 +65,6 @@ typedef struct {
     H264eMarkingInfo    marking;
     /* H.264 frame status syntax */
     H264eFrmInfo        frms;
-    RcSyntax            rc_syn;
     /* header generation */
     MppPacket           hdr_pkt;
     void                *hdr_buf;
@@ -745,7 +744,6 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     h264e_add_syntax(p, H264E_SYN_PPS, &p->pps);
     h264e_add_syntax(p, H264E_SYN_SLICE, &p->slice);
     h264e_add_syntax(p, H264E_SYN_FRAME, &p->frms);
-    h264e_add_syntax(p, H264E_SYN_RC, &p->rc_syn);
 
     /* check max temporal layer id */
     {

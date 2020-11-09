@@ -99,7 +99,6 @@ RK_U32 h265e_data_to_sei(void *dst, RK_U8 uuid[16], const void *payload, RK_S32 
 
 MPP_RET h265e_set_extra_info(H265eCtx *ctx);
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out);
-MPP_RET h265e_sei_encode(H265eCtx *ctx, RcSyntax *rc_syn);
 
 #ifdef __cplusplus
 }
