@@ -1072,11 +1072,11 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         if (frm->is_intra) {
             info->quality_max = usr_cfg->max_i_quality;
             info->quality_min = usr_cfg->min_i_quality;
-            info->quality_target = usr_cfg->min_i_quality;
+            info->quality_target = usr_cfg->init_quality;
         } else {
             info->quality_max = usr_cfg->max_quality;
             info->quality_min = usr_cfg->min_quality;
-            info->quality_target = usr_cfg->min_quality;
+            info->quality_target = usr_cfg->init_quality;
         }
 
         rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
