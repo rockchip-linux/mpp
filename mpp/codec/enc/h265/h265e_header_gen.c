@@ -167,28 +167,6 @@ static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 uuid[16], const RK_U8 *payl
     return MPP_OK;
 }
 
-#if 0
-MPP_RET h265e_sei_encode(H265eCtx *ctx, RcSyntax *rc_syn)
-{
-    H265eExtraInfo *info = (H265eExtraInfo *)ctx->extra_info;
-    char *str = (char *)info->sei_buf;
-    RK_S32 str_len = 0;
-
-    h265e_sei_pack2str(str + H265E_UUID_LENGTH, ctx, rc_syn);
-    str_len = strlen(str) + 1;
-    if (str_len > H265E_SEI_BUF_SIZE) {
-        h265e_hal_err("SEI actual string length %d exceed malloced size %d",
-                      str_len, H265E_SEI_BUF_SIZE);
-        return MPP_NOK;
-    } else {
-        ;// h265e_rkv_sei_write(&info->stream, (RK_U8 *)str, str_len,
-        //                    H264E_SEI_USER_DATA_UNREGISTERED);
-    }
-
-    return MPP_OK;
-}
-#endif
-
 void codeProfileTier(H265eStream *s, ProfileTierLevel* ptl)
 {
     RK_S32 j;
