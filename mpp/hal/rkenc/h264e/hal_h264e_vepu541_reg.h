@@ -392,26 +392,53 @@ typedef struct Vepu541H264eRegSet_t {
      * Address offset: 0x0040 Access type: read and write
      * (AXI bus) Data transaction configuration
      */
-    struct {
-        /*
-         * AXI write response channel check enable.
-         * [6]: Reconstructed picture write response check enable.
-         * [5]: ME information write response check enable.
-         * [4]: CTU information write response check enable.
-         * [3]: Down-sampled picture write response check enable.
-         * [2]: Bit stream write response check enable.
-         * [1]: Link table mode write reponse check enable.
-         * [0]: Reserved for video preprocess.
-         */
-        RK_U32  axi_brsp_cke            : 7;
-        /*
-         * Down sampled reference picture read outstanding enable.
-         * 1'h0: No outstanding
-         * 1'h1: Outstanding read, which improves data transaction efficiency,
-         * but core clock frequency should not lower than bus clock frequency.
-         */
-        RK_U32  dspr_otsd               : 1;
-        RK_U32  reserved                : 24;
+    union {
+        struct vepu541_t {
+            /*
+             * AXI write response channel check enable.
+             * [6]: Reconstructed picture write response check enable.
+             * [5]: ME information write response check enable.
+             * [4]: CTU information write response check enable.
+             * [3]: Down-sampled picture write response check enable.
+             * [2]: Bit stream write response check enable.
+             * [1]: Link table mode write reponse check enable.
+             * [0]: Reserved for video preprocess.
+             */
+            RK_U32  axi_brsp_cke            : 7;
+            /*
+             * Down sampled reference picture read outstanding enable.
+             * 1'h0: No outstanding
+             * 1'h1: Outstanding read, which improves data transaction efficiency,
+             * but core clock frequency should not lower than bus clock frequency.
+             */
+            RK_U32  dspr_otsd               : 1;
+            RK_U32  reserved                : 24;
+        } vepu541;
+
+        struct vepu540_t {
+            RK_U32  reserved0               : 7;
+            /*
+             * Down sampled reference picture read outstanding enable.
+             * 1'h0: No outstanding
+             * 1'h1: Outstanding read, which improves data transaction efficiency,
+             * but core clock frequency should not lower than bus clock frequency.
+             */
+            RK_U32  dspr_otsd               : 1;
+            RK_U32  reserved1               : 8;
+            /*
+             * AXI write response channel check enable.
+             * [7]: lpf write response check enable
+             * [6]: Reconstructed picture write response check enable.
+             * [5]: ME information write response check enable.
+             * [4]: CTU information write response check enable.
+             * [3]: Down-sampled picture write response check enable.
+             * [2]: Bit stream write response check enable.
+             * [1]: Link table mode write reponse check enable.
+             * [0]: Reserved for video preprocess.
+             */
+            RK_U32  axi_brsp_cke            : 8;
+            RK_U32  reserved2               : 8;
+        } vepu540;
     } reg016;
 
     /*
@@ -1452,8 +1479,44 @@ typedef struct Vepu541H264eRegSet_t {
         RK_U32  dlt_poc_msb_cycl2       : 16;
     } reg093;
 
-    /* reg gap 094~100 */
-    RK_U32 reg_094_100[7];
+    /*
+     * OSD_INV_CFG
+     * Address offset: 0x0178 Access type: read and write
+     * OSD color inverse  configuration
+     *
+     * Added in vepu540
+     */
+    struct {
+        /*
+         * OSD color inverse enable of chroma component,
+         * each bit controls corresponding region.
+         */
+        RK_U32  osd_ch_inv_en           : 8;
+        /*
+         * OSD color inverse expression type
+         * each bit controls corresponding region.
+         * 1'h0: AND;
+         * 1'h1: OR
+         */
+        RK_U32  osd_itype               : 8;
+        /*
+         * OSD color inverse expression switch for luma component
+         * each bit controls corresponding region.
+         * 1'h0: Expression need to determine the condition;
+         * 1'h1: Expression don't need to determine the condition;
+         */
+        RK_U32  osd_lu_inv_msk          : 8;
+        /*
+         * OSD color inverse expression switch for chroma component
+         * each bit controls corresponding region.
+         * 1'h0: Expression need to determine the condition;
+         * 1'h1: Expression don't need to determine the condition;
+         */
+        RK_U32  osd_ch_inv_msk          : 8;
+    } reg094;
+
+    /* reg gap 095~100 */
+    RK_U32 reg_095_100[6];
 
     /*
      * IPRD_CSTS
@@ -1512,7 +1575,21 @@ typedef struct Vepu541H264eRegSet_t {
         RK_U32  atf_lvl_e               : 1;
         /* Intra mode anti-flicker enable. */
         RK_U32  atf_intra_e             : 1;
-        RK_U32  reserved                : 12;
+        /*
+         * Scale list selection. (for vepu540)
+         * 2'h0: Flat scale list.
+         * 2'h1: Default scale list.
+         * 2'h2: User defined.
+         * 2'h3: Reserved.
+         */
+        RK_U32  scl_lst_sel_            : 2;
+        RK_U32  reserved                : 9;
+        /*
+         * Rdo cost caculation expression for intra by using sad or satd.
+         * 1'h0: SATD;
+         * 1'h1: SAD;
+         */
+        RK_U32  satd_byps_flg           : 1;
     } reg102;
 
     /*
