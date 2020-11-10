@@ -291,6 +291,8 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs)
     regs->reg001.lkt_num            = 0;
     regs->reg001.rkvenc_cmd         = 1;
     regs->reg001.clk_gate_en        = 1;
+    regs->reg001.resetn_hw_en       = 0;
+    regs->reg001.enc_done_tmvp_en   = 1;
 
     /* reg002 ENC_CLR */
     regs->reg002.safe_clr           = 0;
@@ -368,6 +370,7 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg017.alpha_swap = cfg.alpha_swap;
     regs->reg017.rbuv_swap  = cfg.rbuv_swap;
     regs->reg017.src_range  = cfg.src_range;
+    regs->reg017.out_fmt_cfg = 0;
 
     y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
     c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
@@ -420,6 +423,8 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg022.src_mirr       = prep->mirroring > 0;
     regs->reg022.src_rot        = prep->rotation;
     regs->reg022.txa_en         = 1;
+
+    regs->reg023.sli_crs_en     = 1;
 
     regs->reg068.pic_ofst_y     = 0;
     regs->reg068.pic_ofst_x     = 0;
@@ -1089,6 +1094,8 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
         regs->reg091.cach_l2_map = 0x3;
     else
         regs->reg091.cach_l2_map = 0x0;
+
+    regs->reg091.cme_linebuf_w = 0;
 
     hal_h264e_dbg_func("leave\n");
 }

@@ -86,7 +86,11 @@ typedef struct Vepu541H264eRegSet_t {
         RK_U32  reserved0               : 6;
         /* RKVENC encoder clock gating enable */
         RK_U32  clk_gate_en             : 1;
-        RK_U32  reserved1               : 15;
+        /* auto reset core clock domain when frame finished */
+        RK_U32  resetn_hw_en            : 1;
+        /* wait tmvp write done by dma */
+        RK_U32  enc_done_tmvp_en        : 1;
+        RK_U32  reserved1               : 13;
     } reg001;
 
     /*
@@ -319,7 +323,8 @@ typedef struct Vepu541H264eRegSet_t {
      * Data transaction mapping (endian and order)
      */
     struct {
-        RK_U32  reserved0               : 1;
+        /* swap the position of 64bits in 128bits for lpf write data between tiles */
+        RK_U32  lpfw_bus_ordr           : 1;
         /* Swap the position of 64 bits in 128 bits for co-located Mv(HEVC only). */
         RK_U32  cmvw_bus_ordr           : 1;
         /* Swap the position of 64 bits in 128 bits for down-sampled picture. */
@@ -448,7 +453,13 @@ typedef struct Vepu541H264eRegSet_t {
          * 1'h1: [0:255] for both luma and chroma.
          */
         RK_U32  src_range               : 1;
-        RK_U32  reserved                : 25;
+        /*
+         * Ourput reconstructed frame format
+         * 1'h0: yuv420
+         * 1'h1: yuv400
+         */
+        RK_U32  out_fmt_cfg             : 1;
+        RK_U32  reserved                : 24;
     } reg017;
 
     /*
@@ -535,8 +546,22 @@ typedef struct Vepu541H264eRegSet_t {
         RK_U32  reserved1               : 1;
     } reg022;
 
-    /* reg gap 023~024 */
-    RK_U32 reg_023_024[2];
+    /*
+     * SLI_CFG_H264
+     * Address offset: 0x005C Access type: read and write
+     * Slice cross lines configuration, h264 only.
+     */
+    struct {
+        RK_U32  reserved0               : 31;
+        /*
+         * Slice cut cross lines enable,
+         * using for breaking the resolution limit, h264 only.
+         */
+        RK_U32  sli_crs_en              : 1;
+    } reg023;
+
+    /* reg gap 024 */
+    RK_U32 reg_024;
 
     /*
      * KLUT_OFST
@@ -1398,7 +1423,9 @@ typedef struct Vepu541H264eRegSet_t {
          * 2'h3: 4x4096
          */
         RK_U32  cach_l2_map             : 2;
-        RK_U32  reserved                : 14;
+        /* The width of CIME down-sample recon data linebuf, based on 64 pixel. */
+        RK_U32  cme_linebuf_w           : 8;
+        RK_U32  reserved                : 6;
     } reg091;
 
     /*
