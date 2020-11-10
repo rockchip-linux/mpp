@@ -35,13 +35,16 @@ int main()
         mpp_log("found vpu2 codec\n");
 
     if (vcodec_type & HAVE_HEVC_DEC)
-        mpp_log("found RK hevc decoder\n");
+        mpp_log("found rk hevc decoder\n");
 
     if (vcodec_type & HAVE_RKVDEC)
         mpp_log("found rkvdec decoder\n");
 
     if (vcodec_type & HAVE_AVSDEC)
         mpp_log("found avs+ decoder\n");
+
+    if (vcodec_type & HAVE_JPEG_DEC)
+        mpp_log("found rk jpeg decoder\n");
 
     if (vcodec_type & HAVE_RKVENC)
         mpp_log("found rkvenc encoder\n");

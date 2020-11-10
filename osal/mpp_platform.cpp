@@ -50,6 +50,8 @@ typedef enum RockchipSocType_e {
     ROCKCHIP_SOC_RK3128H,
     ROCKCHIP_SOC_PX30,
     ROCKCHIP_SOC_RK1808,
+    ROCKCHIP_SOC_RK3566,
+    ROCKCHIP_SOC_RK3568,
     ROCKCHIP_SOC_BUTT,
 } RockchipSocType;
 
@@ -80,6 +82,8 @@ static const MppVpuType mpp_vpu_version[] = {
     { "rk3326",  ROCKCHIP_SOC_RK3326,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_HEVC_DEC, },
     { "px30",    ROCKCHIP_SOC_RK3326,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_HEVC_DEC, },
     { "rk1808",  ROCKCHIP_SOC_RK1808,   HAVE_VDPU2 | HAVE_VEPU2, },
+    { "rk3566",  ROCKCHIP_SOC_RK3566,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC, },
+    { "rk3568",  ROCKCHIP_SOC_RK3568,   HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC, },
 };
 
 /* For vpu1 / vpu2 */
@@ -123,6 +127,11 @@ static const char *mpp_vepu_dev[] = {
 /* For H.265 encoder */
 static const char *mpp_h265e_dev[] = {
     "/dev/h265e",
+    "/dev/mpp_service",
+};
+
+/* For jpeg decoder */
+static const char *mpp_jpegd_dev[] = {
     "/dev/mpp_service",
 };
 
@@ -294,6 +303,7 @@ MppPlatformService::MppPlatformService()
         vcodec_type &= ~HAVE_VEPU22;
     else
         vcodec_type |= HAVE_VEPU22;
+
     /* for all chip vpu decoder */
     if (!mpp_find_device(mpp_vpu_dev))
         vcodec_type &= ~(HAVE_VDPU1 | HAVE_VEPU1 | HAVE_VDPU2 | HAVE_VEPU2);
@@ -545,6 +555,35 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
                 dev = mpp_find_device(mpp_rkvdec_dev);
         } else if (coding == MPP_VIDEO_CodingMJPEG)
             dev = mpp_find_device(mpp_vpu_dev);
+    } break;
+    case ROCKCHIP_SOC_RK3566 :
+    case ROCKCHIP_SOC_RK3568 : {
+        /*
+         * rk3566/rk3568 has codec:
+         * 1 - vpu2 for jpeg/vp8 encoder and decoder
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - RK H.264/H.265 4K encoder
+         * 3 - RK jpeg decoder
+         */
+        if (type == MPP_CTX_DEC) {
+            if (coding == MPP_VIDEO_CodingAVC ||
+                coding == MPP_VIDEO_CodingHEVC ||
+                coding == MPP_VIDEO_CodingVP9)
+                dev = mpp_find_device(mpp_rkvdec_dev);
+            else if (coding == MPP_VIDEO_CodingMJPEG)
+                dev = mpp_find_device(mpp_jpegd_dev);
+            else
+                dev = mpp_find_device(mpp_vpu_dev);
+        } else if (type == MPP_CTX_ENC) {
+            if (coding == MPP_VIDEO_CodingAVC ||
+                coding == MPP_VIDEO_CodingHEVC)
+                dev = mpp_find_device(mpp_rkvenc_dev);
+            else if (coding == MPP_VIDEO_CodingMJPEG ||
+                     coding == MPP_VIDEO_CodingVP8)
+                dev = mpp_find_device(mpp_vpu_dev);
+            else
+                dev = NULL;
+        }
     } break;
     default : {
         /* default case for unknown compatible  */

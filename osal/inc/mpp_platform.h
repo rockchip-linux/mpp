@@ -41,6 +41,7 @@ typedef enum MppClientType_e {
     VPU_CLIENT_HEVC_DEC     = 8,    /* 0x00000100 */
     VPU_CLIENT_RKVDEC       = 9,    /* 0x00000200 */
     VPU_CLIENT_AVSPLUS_DEC  = 12,   /* 0x00001000 */
+    VPU_CLIENT_JPEG_DEC     = 13,   /* 0x00002000 */
 
     VPU_CLIENT_RKVENC       = 16,   /* 0x00010000 */
     VPU_CLIENT_VEPU1        = 17,   /* 0x00020000 */
@@ -62,6 +63,7 @@ typedef enum MppClientType_e {
 #define HAVE_HEVC_DEC       (1 << VPU_CLIENT_HEVC_DEC)      /* 0x00000100 */
 #define HAVE_RKVDEC         (1 << VPU_CLIENT_RKVDEC)        /* 0x00000200 */
 #define HAVE_AVSDEC         (1 << VPU_CLIENT_AVSPLUS_DEC)   /* 0x00001000 */
+#define HAVE_JPEG_DEC       (1 << VPU_CLIENT_JPEG_DEC)      /* 0x00002000 */
 /* RK standalone encoder */
 #define HAVE_RKVENC         (1 << VPU_CLIENT_RKVENC)        /* 0x00010000 */
 #define HAVE_VEPU1          (1 << VPU_CLIENT_VEPU1)         /* 0x00020000 */
