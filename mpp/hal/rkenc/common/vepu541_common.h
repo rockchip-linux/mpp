@@ -38,6 +38,10 @@ typedef enum Vepu541Fmt_e {
     VEPU541_FMT_YUYV422,    // 8
     VEPU541_FMT_UYVY422,    // 9
     VEPU541_FMT_BUTT,       // 10
+
+    /* vepu540 add YUV400 support */
+    VEPU540_FMT_YUV400      = VEPU541_FMT_BUTT,     // 10
+    VEPU540_FMT_BUTT,       // 11
 } Vepu541Fmt;
 
 typedef struct VepuFmtCfg_t {
@@ -148,6 +152,7 @@ RK_S32  vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h);
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h);
 
 MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg);
+MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg);
 
 #ifdef __cplusplus
 }
