@@ -1000,7 +1000,7 @@ static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
 }
 
 static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
-                             H264eSlice *slice)
+                             H264eSlice *slice, RK_U32 is_vepu540)
 {
     RK_S32 level_idc = sps->level_idc;
     RK_S32 pic_w = sps->pic_width_in_mbs * 16;
@@ -1063,53 +1063,70 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
     regs->reg090.mv_limit       = 2;
     regs->reg090.pmv_num        = 2;
 
-    if (pic_w > 3584) {
-        regs->reg091.cme_rama_h = 8;
-    } else if (pic_w > 3136) {
-        regs->reg091.cme_rama_h = 9;
-    } else if (pic_w > 2816) {
-        regs->reg091.cme_rama_h = 10;
-    } else if (pic_w > 2560) {
-        regs->reg091.cme_rama_h = 11;
-    } else if (pic_w > 2368) {
-        regs->reg091.cme_rama_h = 12;
-    } else if (pic_w > 2176) {
-        regs->reg091.cme_rama_h = 13;
-    } else if (pic_w > 2048) {
-        regs->reg091.cme_rama_h = 14;
-    } else if (pic_w > 1856) {
-        regs->reg091.cme_rama_h = 15;
-    } else if (pic_w > 1792) {
-        regs->reg091.cme_rama_h = 16;
-    } else {
-        regs->reg091.cme_rama_h = 17;
-    }
+    if (is_vepu540) {
+        RK_S32 w_temp = 1296;
+        RK_S32 h_temp = 4;
+        RK_S32 h_val_0 = 4;
+        RK_S32 h_val_1 = 24;
+        RK_S32 temp0, temp1;
+        RK_S32 cime_linebuf_w = pic_w / 64;
 
-    {
-        RK_S32 swin_all_4_ver = 2 * regs->reg089.cme_srch_v + 1;
-        RK_S32 swin_all_16_hor = (regs->reg089.cme_srch_h * 4 + 15) / 16 * 2 + 1;
+        regs->reg091.cme_linebuf_w = cime_linebuf_w;
 
-        if (swin_all_4_ver < regs->reg091.cme_rama_h)
-            regs->reg091.cme_rama_max = (swin_all_4_ver - 1) * pic_wd64 + swin_all_16_hor;
+        while ((w_temp > ((h_temp - h_val_0)*cime_linebuf_w * 4 + ((h_val_1 - h_temp) * 4 * 7)))
+               && (h_temp < 17)) {
+            h_temp = h_temp + h_val_0;
+        }
+        if (w_temp < ((h_temp - h_val_0)*cime_linebuf_w * 4 + ((h_val_1 - h_temp) * 4 * 7)))
+            h_temp = h_temp - h_val_0;
+
+        regs->reg091.cme_rama_h = h_temp;
+
+        RK_S32 swin_scope_wd16 = (regs->reg089.cme_srch_h + 3) / 4 * 2 + 1;
+
+        temp0 = 2 * regs->reg089.cme_srch_v + 1;
+        if (temp0 > regs->reg091.cme_rama_h)
+            temp0 = regs->reg091.cme_rama_h;
+
+        temp1 = 0;
+        if (pic_wd64 >= swin_scope_wd16)
+            temp1 = swin_scope_wd16;
         else
-            regs->reg091.cme_rama_max = (regs->reg091.cme_rama_h - 1) * pic_wd64 + swin_all_16_hor;
+            temp1 = pic_wd64 * 2;
+        regs->reg091.cme_rama_max = pic_wd64 * (temp0 - 1) + temp1;
+    } else {
+        if (pic_w > 3584) {
+            regs->reg091.cme_rama_h = 8;
+        } else if (pic_w > 3136) {
+            regs->reg091.cme_rama_h = 9;
+        } else if (pic_w > 2816) {
+            regs->reg091.cme_rama_h = 10;
+        } else if (pic_w > 2560) {
+            regs->reg091.cme_rama_h = 11;
+        } else if (pic_w > 2368) {
+            regs->reg091.cme_rama_h = 12;
+        } else if (pic_w > 2176) {
+            regs->reg091.cme_rama_h = 13;
+        } else if (pic_w > 2048) {
+            regs->reg091.cme_rama_h = 14;
+        } else if (pic_w > 1856) {
+            regs->reg091.cme_rama_h = 15;
+        } else if (pic_w > 1792) {
+            regs->reg091.cme_rama_h = 16;
+        } else {
+            regs->reg091.cme_rama_h = 17;
+        }
+
+        {
+            RK_S32 swin_all_4_ver = 2 * regs->reg089.cme_srch_v + 1;
+            RK_S32 swin_all_16_hor = (regs->reg089.cme_srch_h * 4 + 15) / 16 * 2 + 1;
+
+            if (swin_all_4_ver < regs->reg091.cme_rama_h)
+                regs->reg091.cme_rama_max = (swin_all_4_ver - 1) * pic_wd64 + swin_all_16_hor;
+            else
+                regs->reg091.cme_rama_max = (regs->reg091.cme_rama_h - 1) * pic_wd64 + swin_all_16_hor;
+        }
     }
-
-    pic_wd64 = pic_wd64 << 6;
-
-    if (pic_wd64 <= 512)
-        regs->reg091.cach_l2_map = 0x0;
-    else if (pic_wd64 <= 1024)
-        regs->reg091.cach_l2_map = 0x1;
-    else if (pic_wd64 <= 2048)
-        regs->reg091.cach_l2_map = 0x2;
-    else if (pic_wd64 <= 4096)
-        regs->reg091.cach_l2_map = 0x3;
-    else
-        regs->reg091.cach_l2_map = 0x0;
-
-    regs->reg091.cme_linebuf_w = 0;
-
     hal_h264e_dbg_func("leave\n");
 }
 
@@ -1350,7 +1367,8 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
 
     setup_vepu541_split(regs, &cfg->split);
-    setup_vepu541_me(regs, sps, slice);
+    setup_vepu541_me(regs, sps, slice, ctx->is_vepu540);
+
     if (ctx->is_vepu540)
         vepu540_set_osd(&ctx->osd_cfg);
     else
