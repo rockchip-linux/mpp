@@ -1,4 +1,5 @@
 # vim: syntax=cmake
+include_directories(inc)
 
 if( HAVE_AVSD )
     add_subdirectory(avsd)
