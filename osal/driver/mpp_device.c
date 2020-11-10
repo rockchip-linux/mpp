@@ -18,6 +18,7 @@
 
 #include <string.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_mem.h"
 
@@ -40,6 +41,8 @@ MPP_RET mpp_dev_init(MppDev *ctx, MppClientType type)
         mpp_err_f("found NULL input ctx\n");
         return MPP_ERR_NULL_PTR;
     }
+
+    mpp_env_get_u32("mpp_device_debug", &mpp_device_debug, 0);
 
     *ctx = NULL;
 
