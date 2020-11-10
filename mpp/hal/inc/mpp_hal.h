@@ -38,7 +38,6 @@ typedef struct MppHalCfg_t {
     // input
     MppCtxType      type;
     MppCodingType   coding;
-    MppDeviceId     device_id;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
     // for encoder

@@ -1321,7 +1321,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
         MppHalCfg hal_cfg = {
             MPP_CTX_DEC,
             coding,
-            DEV_RKVDEC,
             frame_slots,
             packet_slots,
             NULL,
