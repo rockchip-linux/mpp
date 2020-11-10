@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "mpp_log.h"
+#include "mpp_env.h"
 #include "mpp_common.h"
 
 #include "mpp_device_debug.h"
@@ -132,6 +133,9 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     RK_U32 *cmd_butt = &cap->query_cmd;;
     RK_U32 val;
     RK_U32 i;
+
+    /* for device check on startup */
+    mpp_env_get_u32("mpp_device_debug", &mpp_device_debug, 0);
 
     *codec_type = 0;
     memset(hw_ids, 0, sizeof(RK_U32) * 32);
