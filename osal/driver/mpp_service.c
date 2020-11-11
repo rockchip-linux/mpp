@@ -62,7 +62,7 @@ static const char *mpp_service_hw_name[] = {
     /* VPU_CLIENT_BUTT          */  NULL,
     /* 12 ~ 15 */
     /* VPU_CLIENT_AVSPLUS_DEC   */  "avsd",
-    /* VPU_CLIENT_BUTT          */  NULL,
+    /* VPU_CLIENT_JPEG_DEC      */  "rkjpegd",
     /* VPU_CLIENT_BUTT          */  NULL,
     /* VPU_CLIENT_BUTT          */  NULL,
     /* 16 ~ 19 */
