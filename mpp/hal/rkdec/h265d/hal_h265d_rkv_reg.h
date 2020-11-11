@@ -27,15 +27,9 @@
 
 #ifndef __HAL_H265D_REG_H__
 #define __HAL_H265D_REG_H__
+
 #include "rk_type.h"
 #include "mpp_log.h"
-
-#define H265H_DBG_FUNCTION          (0x00000001)
-#define H265H_DBG_RPS               (0x00000002)
-#define H265H_DBG_PPS               (0x00000004)
-#define H265H_DBG_REG               (0x00000008)
-#define H265H_DBG_FAST_ERR          (0x00000010)
-#define H265H_DBG_TASK_ERR          (0x00000020)
 
 #define HEVC_DECODER_REG_NUM        (48)
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)
@@ -43,10 +37,6 @@
 #define RKVDEC_HEVC_REGISTERS       (68)
 #define RKVDEC_V1_REGISTERS         (78)
 #define V345_HEVC_REGISTERS         (108)
-
-#define h265h_dbg(flag, fmt, ...) _mpp_dbg(h265h_debug, flag, fmt, ## __VA_ARGS__)
-
-extern RK_U32 h265h_debug;
 
 typedef struct RKV_HEVC_REG_END {
     RK_U32        performance_cycle; //65
