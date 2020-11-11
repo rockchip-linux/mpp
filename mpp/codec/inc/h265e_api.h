@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-extern const EncImplApi api_h265e_controller;
+extern const EncImplApi api_h265e;
 
 #ifdef  __cplusplus
 }

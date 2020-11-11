@@ -3,7 +3,6 @@ include_directories(.)
 
 add_library(${CODEC_H265E} STATIC
     h265e_api.c
-    h265e_api_v2.c
     h265e_dpb.c
     h265e_ps.c
     h265e_slice.c
