@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2015 Rockchip Electronics Co. LTD
+ * Copyright 2020 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +14,709 @@
  * limitations under the License.
  */
 
-/*
- * @file       cabac.h
- * @brief
- * @author      csy(csy@rock-chips.com)
+#define MODULE_TAG "hal_h265d_com"
 
- * @version     1.0.0
- * @history
- *   2015.7.15 : Create
- */
+#include <string.h>
 
+#include "mpp_log.h"
+#include "mpp_mem.h"
+#include "mpp_common.h"
+#include "mpp_bitread.h"
+#include "mpp_bitput.h"
 
-#ifndef CABAC_H
-#define CABAC_H
+#include "hal_h265d_debug.h"
+#include "hal_h265d_ctx.h"
+#include "hal_h265d_com.h"
+#include "h265d_syntax.h"
 
-static RK_U8 cabac_table[27456] = {
+RK_U8 hal_hevc_diag_scan4x4_x[16] = {
+    0, 0, 1, 0,
+    1, 2, 0, 1,
+    2, 3, 1, 2,
+    3, 2, 3, 3,
+};
+
+RK_U8 hal_hevc_diag_scan4x4_y[16] = {
+    0, 1, 0, 2,
+    1, 0, 3, 2,
+    1, 0, 3, 2,
+    1, 3, 2, 3,
+};
+
+RK_U8 hal_hevc_diag_scan8x8_x[64] = {
+    0, 0, 1, 0,
+    1, 2, 0, 1,
+    2, 3, 0, 1,
+    2, 3, 4, 0,
+    1, 2, 3, 4,
+    5, 0, 1, 2,
+    3, 4, 5, 6,
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    1, 2, 3, 4,
+    5, 6, 7, 2,
+    3, 4, 5, 6,
+    7, 3, 4, 5,
+    6, 7, 4, 5,
+    6, 7, 5, 6,
+    7, 6, 7, 7,
+};
+
+RK_U8 hal_hevc_diag_scan8x8_y[64] = {
+    0, 1, 0, 2,
+    1, 0, 3, 2,
+    1, 0, 4, 3,
+    2, 1, 0, 5,
+    4, 3, 2, 1,
+    0, 6, 5, 4,
+    3, 2, 1, 0,
+    7, 6, 5, 4,
+    3, 2, 1, 0,
+    7, 6, 5, 4,
+    3, 2, 1, 7,
+    6, 5, 4, 3,
+    2, 7, 6, 5,
+    4, 3, 7, 6,
+    5, 4, 7, 6,
+    5, 7, 6, 7,
+};
+
+RK_U32 hevc_ver_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 8);
+}
+
+RK_U32 hevc_hor_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
+
+void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
+{
+    RK_S32 i;
+    RK_U32 g_scalingListNum_model[SCALING_LIST_SIZE_NUM] = {6, 6, 6, 2}; // from C Model
+    RK_U32 nIndex = 0;
+    RK_U32 sizeId, matrixId, listId;
+    RK_U8 *p = pScalingFactor_out->scalingfactor0;
+    RK_U8 tmpBuf[8 * 8];
+
+    //output non-default scalingFactor Table (1248 BYTES)
+    for (sizeId = 0; sizeId < SCALING_LIST_SIZE_NUM; sizeId++) {
+        for (listId = 0; listId < g_scalingListNum_model[sizeId]; listId++) {
+            if (sizeId < 3) {
+                for (i = 0; i < (sizeId == 0 ? 16 : 64); i++) {
+                    pScalingFactor_out->scalingfactor0[nIndex++] = (RK_U8)pScalingList->sl[sizeId][listId][i];
+                }
+            } else {
+                for (i = 0; i < 64; i ++) {
+                    pScalingFactor_out->scalingfactor0[nIndex++] = (RK_U8)pScalingList->sl[sizeId][listId][i];
+                }
+                for (i = 0; i < 128; i ++) {
+                    pScalingFactor_out->scalingfactor0[nIndex++] = 0;
+                }
+            }
+        }
+    }
+    //output non-default scalingFactor Table Rotation(96 Bytes)
+    nIndex = 0;
+    for (listId = 0; listId < g_scalingListNum_model[0]; listId++) {
+        RK_U8 temp16[16] = {0};
+        for (i = 0; i < 16; i ++) {
+            temp16[i] = (RK_U8)pScalingList->sl[0][listId][i];
+        }
+        for (i = 0; i < 4; i ++) {
+            pScalingFactor_out->scalingfactor1[nIndex++] = temp16[i];
+            pScalingFactor_out->scalingfactor1[nIndex++] = temp16[i + 4];
+            pScalingFactor_out->scalingfactor1[nIndex++] = temp16[i + 8];
+            pScalingFactor_out->scalingfactor1[nIndex++] = temp16[i + 12];
+        }
+    }
+    //output non-default ScalingList_DC_Coeff (12 BYTES)
+    nIndex = 0;
+    for (listId = 0; listId < g_scalingListNum_model[2]; listId++) { //sizeId = 2
+        pScalingFactor_out->scalingdc[nIndex++] = (RK_U8)pScalingList->sl_dc[0][listId];// zrh warning: sl_dc differed from scalingList->getScalingListDC
+    }
+    for (listId = 0; listId < g_scalingListNum_model[3]; listId++) { //sizeId = 3
+        pScalingFactor_out->scalingdc[nIndex++] = (RK_U8)pScalingList->sl_dc[1][listId];// zrh warning: sl_dc differed from scalingList->getScalingListDC
+        pScalingFactor_out->scalingdc[nIndex++] = 0;
+        pScalingFactor_out->scalingdc[nIndex++] = 0;
+    }
+
+    //align 16X address
+    nIndex = 0;
+    for (i = 0; i < 4; i ++) {
+        pScalingFactor_out->reserverd[nIndex++] = 0;
+    }
+
+    //----------------------All above code show the normal store way in HM--------------------------
+    //--------from now on, the scalingfactor0 is rotated 90', the scalingfactor1 is also rotated 90'
+
+    //sizeId == 0
+    for (matrixId = 0; matrixId < 6; matrixId++) {
+        p = pScalingFactor_out->scalingfactor0 + matrixId * 16;
+
+        for (i = 0; i < 4; i++) {
+            tmpBuf[4 * 0 + i] = p[i * 4 + 0];
+            tmpBuf[4 * 1 + i] = p[i * 4 + 1];
+            tmpBuf[4 * 2 + i] = p[i * 4 + 2];
+            tmpBuf[4 * 3 + i] = p[i * 4 + 3];
+        }
+        memcpy(p, tmpBuf, 4 * 4 * sizeof(RK_U8));
+    }
+    //sizeId == 1
+    for (matrixId = 0; matrixId < 6; matrixId++) {
+        p = pScalingFactor_out->scalingfactor0 + 6 * 16 + matrixId * 64;
+
+        for (i = 0; i < 8; i++) {
+            tmpBuf[8 * 0 + i] = p[i * 8 + 0];
+            tmpBuf[8 * 1 + i] = p[i * 8 + 1];
+            tmpBuf[8 * 2 + i] = p[i * 8 + 2];
+            tmpBuf[8 * 3 + i] = p[i * 8 + 3];
+            tmpBuf[8 * 4 + i] = p[i * 8 + 4];
+            tmpBuf[8 * 5 + i] = p[i * 8 + 5];
+            tmpBuf[8 * 6 + i] = p[i * 8 + 6];
+            tmpBuf[8 * 7 + i] = p[i * 8 + 7];
+        }
+        memcpy(p, tmpBuf, 8 * 8 * sizeof(RK_U8));
+    }
+    //sizeId == 2
+    for (matrixId = 0; matrixId < 6; matrixId++) {
+        p = pScalingFactor_out->scalingfactor0 + 6 * 16 + 6 * 64 + matrixId * 64;
+
+        for (i = 0; i < 8; i++) {
+            tmpBuf[8 * 0 + i] = p[i * 8 + 0];
+            tmpBuf[8 * 1 + i] = p[i * 8 + 1];
+            tmpBuf[8 * 2 + i] = p[i * 8 + 2];
+            tmpBuf[8 * 3 + i] = p[i * 8 + 3];
+            tmpBuf[8 * 4 + i] = p[i * 8 + 4];
+            tmpBuf[8 * 5 + i] = p[i * 8 + 5];
+            tmpBuf[8 * 6 + i] = p[i * 8 + 6];
+            tmpBuf[8 * 7 + i] = p[i * 8 + 7];
+        }
+        memcpy(p, tmpBuf, 8 * 8 * sizeof(RK_U8));
+    }
+    //sizeId == 3
+    for (matrixId = 0; matrixId < 6; matrixId++) {
+        p = pScalingFactor_out->scalingfactor0 + 6 * 16 + 6 * 64 + 6 * 64 + matrixId * 64;
+
+        for (i = 0; i < 8; i++) {
+            tmpBuf[8 * 0 + i] = p[i * 8 + 0];
+            tmpBuf[8 * 1 + i] = p[i * 8 + 1];
+            tmpBuf[8 * 2 + i] = p[i * 8 + 2];
+            tmpBuf[8 * 3 + i] = p[i * 8 + 3];
+            tmpBuf[8 * 4 + i] = p[i * 8 + 4];
+            tmpBuf[8 * 5 + i] = p[i * 8 + 5];
+            tmpBuf[8 * 6 + i] = p[i * 8 + 6];
+            tmpBuf[8 * 7 + i] = p[i * 8 + 7];
+        }
+        memcpy(p, tmpBuf, 8 * 8 * sizeof(RK_U8));
+    }
+
+    //sizeId == 0
+    for (matrixId = 0; matrixId < 6; matrixId++) {
+        p = pScalingFactor_out->scalingfactor1 + matrixId * 16;
+
+        for (i = 0; i < 4; i++) {
+            tmpBuf[4 * 0 + i] = p[i * 4 + 0];
+            tmpBuf[4 * 1 + i] = p[i * 4 + 1];
+            tmpBuf[4 * 2 + i] = p[i * 4 + 2];
+            tmpBuf[4 * 3 + i] = p[i * 4 + 3];
+        }
+        memcpy(p, tmpBuf, 4 * 4 * sizeof(RK_U8));
+    }
+}
+
+int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *ref)
+{
+    RK_U8 nb_list = sh->slice_type == B_SLICE ? 2 : 1;
+    RK_U8 list_idx;
+    RK_U32 i, j;
+    RK_U8 bef_nb_refs = 0, aft_nb_refs = 0, lt_cur_nb_refs = 0;
+    h265d_dxva2_picture_context_t *dxva_cxt = NULL;
+    RK_S32 cand_lists[3];
+
+    memset(ref, 0, sizeof(RefPicListTab_t));
+    dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+
+    for (i = 0; i < 8; i++ ) {
+        if (dxva_cxt->pp.RefPicSetStCurrBefore[i] != 0xff) {
+            bef_nb_refs ++;
+        }
+
+        if (dxva_cxt->pp.RefPicSetStCurrAfter[i] != 0xff) {
+            aft_nb_refs ++;
+        }
+
+        if (dxva_cxt->pp.RefPicSetLtCurr[i] != 0xff) {
+            lt_cur_nb_refs ++;
+        }
+    }
+
+    if (!(bef_nb_refs + aft_nb_refs +
+          lt_cur_nb_refs)) {
+        mpp_err( "Zero refs in the frame RPS.\n");
+        return  MPP_ERR_STREAM;
+    }
+
+    for (list_idx = 0; list_idx < nb_list; list_idx++) {
+        RefPicList_t  rpl_tmp;
+        RefPicList_t *rpl     = &ref->refPicList[list_idx];
+        memset(&rpl_tmp, 0, sizeof(RefPicList_t));
+
+        /* The order of the elements is
+         * ST_CURR_BEF - ST_CURR_AFT - LT_CURR for the L0 and
+         * ST_CURR_AFT - ST_CURR_BEF - LT_CURR for the L1 */
+
+        cand_lists[0] = list_idx ? ST_CURR_AFT : ST_CURR_BEF;
+        cand_lists[1] = list_idx ? ST_CURR_BEF : ST_CURR_AFT;
+        cand_lists[2] = LT_CURR;
+        /* concatenate the candidate lists for the current frame */
+        while ((RK_U32)rpl_tmp.nb_refs < sh->nb_refs[list_idx]) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(cand_lists); i++) {
+                RK_U8 *rps = NULL;
+                RK_U32 nb_refs = 0;
+                if (cand_lists[i] == ST_CURR_BEF) {
+                    rps = &dxva_cxt->pp.RefPicSetStCurrBefore[0];
+                    nb_refs = bef_nb_refs;
+                } else if (cand_lists[i] == ST_CURR_AFT) {
+                    rps = &dxva_cxt->pp.RefPicSetStCurrAfter[0];
+                    nb_refs = aft_nb_refs;
+                } else {
+                    rps = &dxva_cxt->pp.RefPicSetLtCurr[0];
+                    nb_refs = lt_cur_nb_refs;
+                }
+                for (j = 0; j < nb_refs && rpl_tmp.nb_refs < MAX_REFS; j++) {
+                    rpl_tmp.dpb_index[rpl_tmp.nb_refs]       = rps[j];
+                    rpl_tmp.nb_refs++;
+                }
+            }
+        }
+
+        /* reorder the references if necessary */
+        if (sh->rpl_modification_flag[list_idx]) {
+            for (i = 0; i < sh->nb_refs[list_idx]; i++) {
+                int idx = sh->list_entry_lx[list_idx][i];
+                rpl->dpb_index[i]        = rpl_tmp.dpb_index[idx];
+                rpl->nb_refs++;
+            }
+        } else {
+            memcpy(rpl, &rpl_tmp, sizeof(*rpl));
+            rpl->nb_refs = MPP_MIN((RK_U32)rpl->nb_refs, sh->nb_refs[list_idx]);
+        }
+    }
+    return 0;
+}
+
+RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf)
+{
+    BitputCtx_t bp;
+    RK_S32 fifo_len = 400;
+    RK_S32 i = 0, j = 0;
+    h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    mpp_set_bitput_ctx(&bp, (RK_U64*)rps_buf, fifo_len);
+    for (i = 0; i < 32; i ++) {
+        mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].lt_ref_pic_poc_lsb, 16);
+        mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].used_by_curr_pic_lt_flag, 1);
+        mpp_put_bits(&bp, 0,     15);
+    }
+
+    for (i = 0; i < 64; i++) {
+        if (i < dxva_cxt->pp.num_short_term_ref_pic_sets) {
+
+            mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].num_negative_pics, 4);
+            mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].num_positive_pics, 4);
+            for ( j = 0; j <  dxva_cxt->pp.sps_st_rps[i].num_negative_pics; j++) {
+
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].delta_poc_s0[j], 16);
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].s0_used_flag[j], 1);
+            }
+
+            for (j = 0; j <  dxva_cxt->pp.sps_st_rps[i].num_positive_pics; j++) {
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].delta_poc_s1[j], 16);
+                mpp_put_bits(&bp, dxva_cxt->pp.sps_st_rps[i].s1_used_flag[j], 1);
+
+            }
+
+            for ( j = dxva_cxt->pp.sps_st_rps[i].num_negative_pics + dxva_cxt->pp.sps_st_rps[i].num_positive_pics; j < 15; j++) {
+                mpp_put_bits(&bp, 0, 16);
+                mpp_put_bits(&bp, 0, 1);
+            }
+
+        } else {
+            mpp_put_bits(&bp, 0, 4);
+            mpp_put_bits(&bp, 0, 4);
+            for ( j = 0; j < 15; j++) {
+                mpp_put_bits(&bp, 0, 16);
+                mpp_put_bits(&bp, 0, 1);
+            }
+        }
+        mpp_put_align(&bp, 64, 0);
+        mpp_put_bits(&bp,  0, 64);
+    }
+    RK_U32 *tmp = (RK_U32 *)rps_buf;
+    for (i = 0; i < 400 * 8 / 4; i++) {
+        h265h_dbg(H265H_DBG_RPS, "rps[%3d] = 0x%08x\n", i, tmp[i]);
+    }
+    return 0;
+}
+
+RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
+{
+    RK_U32 i, j, k;
+    RK_S32 value;
+    RK_U32 nal_type;
+    RK_S32 slice_idx = 0;
+    BitReadCtx_t gb_cxt, *gb;
+    SliceHeader_t sh;
+    RK_U8     rps_bit_offset[600];
+    RK_U8     rps_bit_offset_st[600];
+    RK_U8     slice_nb_rps_poc[600];
+    RK_U8     lowdelay_flag[600];
+    slice_ref_map_t rps_pic_info[600][2][15];
+    RK_U32    nb_refs = 0;
+    RK_S32    bit_begin;
+    h265d_dxva2_picture_context_t *dxva_cxt = NULL;
+
+    memset(&rps_pic_info,   0, sizeof(rps_pic_info));
+    memset(&slice_nb_rps_poc, 0, sizeof(slice_nb_rps_poc));
+    memset(&rps_bit_offset, 0, sizeof(rps_bit_offset));
+    memset(&rps_bit_offset_st, 0, sizeof(rps_bit_offset_st));
+    memset(&lowdelay_flag, 0, sizeof(lowdelay_flag));
+
+    dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    for (k = 0; k < dxva_cxt->slice_count; k++) {
+        RefPicListTab_t ref;
+        memset(&sh, 0, sizeof(SliceHeader_t));
+        // mpp_err("data[%d]= 0x%x,size[%d] = %d \n",
+        //   k,dxva_cxt->slice_short[k].BSNALunitDataLocation, k,dxva_cxt->slice_short[k].SliceBytesInBuffer);
+        mpp_set_bitread_ctx(&gb_cxt, (RK_U8*)(dxva_cxt->bitstream + dxva_cxt->slice_short[k].BSNALunitDataLocation),
+                            dxva_cxt->slice_short[k].SliceBytesInBuffer);
+
+        mpp_set_pre_detection(&gb_cxt);
+        gb = &gb_cxt;
+
+        READ_ONEBIT(gb, &value);
+
+        if ( value != 0)
+            return  MPP_ERR_STREAM;
+
+        READ_BITS(gb, 6, &nal_type);
+
+        if (nal_type > 23) {
+            continue;
+        }
+
+        SKIP_BITS(gb, 9);
+
+        READ_ONEBIT(gb, &sh.first_slice_in_pic_flag);
+
+        if (nal_type >= 16 && nal_type <= 23)
+            READ_ONEBIT(gb, &sh.no_output_of_prior_pics_flag);
+
+        READ_UE(gb, &sh.pps_id);
+
+        if (sh.pps_id >= 64 ) {
+            mpp_err( "PPS id out of range: %d\n", sh.pps_id);
+            return  MPP_ERR_STREAM;
+        }
+
+        sh.dependent_slice_segment_flag = 0;
+        if (!sh.first_slice_in_pic_flag) {
+            RK_S32 slice_address_length;
+            RK_S32 width, height, ctb_width, ctb_height;
+            RK_S32 log2_min_cb_size = dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3;
+            RK_S32 log2_ctb_size = log2_min_cb_size + dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size;
+
+            width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
+            height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
+
+            ctb_width  = (width  + (1 << log2_ctb_size) - 1) >> log2_ctb_size;
+            ctb_height = (height + (1 << log2_ctb_size) - 1) >> log2_ctb_size;
+
+            if (dxva_cxt->pp.dependent_slice_segments_enabled_flag)
+                READ_ONEBIT(gb, &sh.dependent_slice_segment_flag);
+
+            slice_address_length = mpp_ceil_log2(ctb_width * ctb_height);
+
+            READ_BITS(gb, slice_address_length, &sh.slice_segment_addr);
+
+            if (sh.slice_segment_addr >= (RK_U32)(ctb_width * ctb_height)) {
+                mpp_err(
+                    "Invalid slice segment address: %u.\n",
+                    sh.slice_segment_addr);
+                return  MPP_ERR_STREAM;
+            }
+
+            if (!sh.dependent_slice_segment_flag) {
+                sh.slice_addr = sh.slice_segment_addr;
+                slice_idx++;
+            }
+        } else {
+            sh.slice_segment_addr = sh.slice_addr = 0;
+            slice_idx           = 0;
+        }
+
+        if (!sh.dependent_slice_segment_flag) {
+            for (i = 0; i < dxva_cxt->pp.num_extra_slice_header_bits; i++)
+                SKIP_BITS(gb, 1);
+
+            READ_UE(gb, &sh.slice_type);
+            if (!(sh.slice_type == I_SLICE ||
+                  sh.slice_type == P_SLICE ||
+                  sh.slice_type == B_SLICE)) {
+                mpp_err( "Unknown slice type: %d.\n",
+                         sh.slice_type);
+                return  MPP_ERR_STREAM;
+            }
+            /*     if (!s->decoder_id && IS_IRAP(nal_type) && sh->slice_type != I_SLICE) {
+                     mpp_err( "Inter slices in an IRAP frame.\n");
+                     return  MPP_ERR_STREAM;
+                 }*/
+
+            if (dxva_cxt->pp.output_flag_present_flag)
+                READ_ONEBIT(gb, &sh.pic_output_flag);
+
+            if (dxva_cxt->pp.separate_colour_plane_flag)
+                READ_BITS(gb, 2, &sh.colour_plane_id );
+
+            if (!IS_IDR(nal_type)) {
+                int short_term_ref_pic_set_sps_flag;
+
+                READ_BITS(gb, (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4), &sh.pic_order_cnt_lsb);
+
+                READ_ONEBIT(gb, &short_term_ref_pic_set_sps_flag);
+
+                bit_begin = gb->used_bits;
+
+                if (!short_term_ref_pic_set_sps_flag) {
+                    SKIP_BITS(gb, dxva_cxt->pp.wNumBitsForShortTermRPSInSlice);
+                } else {
+                    RK_S32 numbits, rps_idx;
+                    if (!dxva_cxt->pp.num_short_term_ref_pic_sets) {
+                        mpp_err( "No ref lists in the SPS.\n");
+                        return  MPP_ERR_STREAM;
+                    }
+                    numbits = mpp_ceil_log2(dxva_cxt->pp.num_short_term_ref_pic_sets);
+                    rps_idx = 0;
+                    if (numbits > 0)
+                        READ_BITS(gb, numbits, &rps_idx);
+                }
+
+                rps_bit_offset_st[slice_idx] = gb->used_bits - bit_begin;
+                rps_bit_offset[slice_idx] = rps_bit_offset_st[slice_idx];
+                if (dxva_cxt->pp.long_term_ref_pics_present_flag) {
+
+//                    RK_S32 max_poc_lsb    = 1 << (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4);
+                    RK_U32 nb_sps = 0, nb_sh;
+
+                    bit_begin = gb->used_bits;
+                    if (dxva_cxt->pp.num_long_term_ref_pics_sps > 0)
+                        READ_UE(gb, &nb_sps);
+
+                    READ_UE(gb, &nb_sh);
+
+                    nb_refs = nb_sh + nb_sps;
+
+                    for (i = 0; i < nb_refs; i++) {
+                        RK_U8 delta_poc_msb_present;
+
+                        if ((RK_U32)i < nb_sps) {
+                            RK_U8 lt_idx_sps = 0;
+
+                            if (dxva_cxt->pp.num_long_term_ref_pics_sps > 1)
+                                READ_BITS(gb, mpp_ceil_log2(dxva_cxt->pp.num_long_term_ref_pics_sps), &lt_idx_sps);
+                        } else {
+                            SKIP_BITS(gb, (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4));
+                            SKIP_BITS(gb, 1);
+                        }
+
+                        READ_ONEBIT(gb, &delta_poc_msb_present);
+                        if (delta_poc_msb_present) {
+                            RK_S32 delta = 0;
+                            READ_UE(gb, &delta);
+                        }
+                    }
+                    rps_bit_offset[slice_idx] += (gb->used_bits - bit_begin);
+
+                }
+
+                if (dxva_cxt->pp.sps_temporal_mvp_enabled_flag)
+                    READ_ONEBIT(gb, &sh.slice_temporal_mvp_enabled_flag);
+                else
+                    sh.slice_temporal_mvp_enabled_flag = 0;
+            } else {
+                sh.short_term_rps = NULL;
+            }
+
+            if (dxva_cxt->pp.sample_adaptive_offset_enabled_flag) {
+                READ_ONEBIT(gb, &sh.slice_sample_adaptive_offset_flag[0]);
+                READ_ONEBIT(gb, &sh.slice_sample_adaptive_offset_flag[1]);
+                sh.slice_sample_adaptive_offset_flag[2] =
+                    sh.slice_sample_adaptive_offset_flag[1];
+            } else {
+                sh.slice_sample_adaptive_offset_flag[0] = 0;
+                sh.slice_sample_adaptive_offset_flag[1] = 0;
+                sh.slice_sample_adaptive_offset_flag[2] = 0;
+            }
+
+            sh.nb_refs[L0] = sh.nb_refs[L1] = 0;
+            if (sh.slice_type == P_SLICE || sh.slice_type == B_SLICE) {
+
+                sh.nb_refs[L0] = dxva_cxt->pp.num_ref_idx_l0_default_active_minus1 + 1;
+                if (sh.slice_type == B_SLICE)
+                    sh.nb_refs[L1] =  dxva_cxt->pp.num_ref_idx_l1_default_active_minus1 + 1;
+
+                READ_ONEBIT(gb, &value);
+
+                if (value) { // num_ref_idx_active_override_flag
+                    READ_UE(gb, &sh.nb_refs[L0]);
+                    sh.nb_refs[L0] += 1;
+                    if (sh.slice_type == B_SLICE) {
+                        READ_UE(gb, &sh.nb_refs[L1]);
+                        sh.nb_refs[L1] += 1;
+                    }
+                }
+                if (sh.nb_refs[L0] > MAX_REFS || sh.nb_refs[L1] > MAX_REFS) {
+                    mpp_err( "Too many refs: %d/%d.\n",
+                             sh.nb_refs[L0], sh.nb_refs[L1]);
+                    return  MPP_ERR_STREAM;
+                }
+
+                sh.rpl_modification_flag[0] = 0;
+                sh.rpl_modification_flag[1] = 0;
+                nb_refs = 0;
+                for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
+                    if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff) {
+                        h265h_dbg(H265H_DBG_RPS, "dxva_cxt->pp.RefPicList[i].bPicEntry = %d", dxva_cxt->pp.RefPicList[i].bPicEntry);
+                        nb_refs++;
+                    }
+                }
+
+                if (!nb_refs) {
+                    mpp_err( "Zero refs for a frame with P or B slices.\n");
+                    return  MPP_ERR_STREAM;
+                }
+
+                if (dxva_cxt->pp.lists_modification_present_flag && nb_refs > 1) {
+                    READ_ONEBIT(gb, &sh.rpl_modification_flag[0]);
+                    if (sh.rpl_modification_flag[0]) {
+                        for (i = 0; (RK_U32)i < sh.nb_refs[L0]; i++)
+                            READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh.list_entry_lx[0][i]);
+                    }
+
+                    if (sh.slice_type == B_SLICE) {
+                        READ_ONEBIT(gb, &sh.rpl_modification_flag[1]);
+                        if (sh.rpl_modification_flag[1] == 1)
+                            for (i = 0; (RK_U32)i < sh.nb_refs[L1]; i++)
+                                READ_BITS(gb, mpp_ceil_log2(nb_refs), &sh.list_entry_lx[1][i]);
+                    }
+                }
+            }
+        }
+
+        if (!sh.dependent_slice_segment_flag &&
+            sh.slice_type != I_SLICE) {
+            RK_U32 nb_list = I_SLICE - sh.slice_type;
+
+            hal_h265d_slice_rpl(dxva, &sh, &ref);
+            lowdelay_flag[slice_idx]  =  1;
+
+            for (j = 0; j < nb_list; j++) {
+                for (i = 0; i < ref.refPicList[j].nb_refs; i++) {
+                    RK_U8 index = 0;
+                    index = ref.refPicList[j].dpb_index[i];
+                    // mpp_err("slice_idx = %d index = %d,j = %d i = %d",slice_idx,index,j,i);
+                    if (index != 0xff) {
+                        rps_pic_info[slice_idx][j][i].dpb_index = index;
+                        rps_pic_info[slice_idx][j][i].is_long_term
+                            = dxva_cxt->pp.RefPicList[index].AssociatedFlag;
+                        if (dxva_cxt->pp.PicOrderCntValList[index] > dxva_cxt->pp.CurrPicOrderCntVal)
+                            lowdelay_flag[slice_idx] = 0;
+                    }
+                }
+            }
+
+            if (sh.slice_type == I_SLICE)
+                slice_nb_rps_poc[slice_idx] = 0;
+            else
+                slice_nb_rps_poc[slice_idx] = nb_refs;
+
+        }
+    }
+//out put for rk format
+    {
+        RK_S32  nb_slice = slice_idx + 1;
+        RK_S32  fifo_len   = nb_slice * 4 + 1;//size of rps_packet alloc more 1 64 bit invoid buffer no enought
+        RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
+        BitputCtx_t bp;
+        mpp_set_bitput_ctx(&bp, rps_packet, fifo_len);
+        for (k = 0; k < (RK_U32)nb_slice; k++) {
+            for (j = 0; j < 2; j++) {
+                for (i = 0; i < 15; i++) {
+                    mpp_put_bits(&bp, rps_pic_info[k][j][i].is_long_term, 1);
+                    if (j == 1 && i == 4) {
+                        mpp_put_align (&bp, 64, 0);
+                    }
+                    mpp_put_bits(&bp, rps_pic_info[k][j][i].dpb_index,    4);
+                }
+            }
+            mpp_put_bits(&bp, lowdelay_flag      [k], 1);
+            h265h_dbg(H265H_DBG_RPS, "lowdelay_flag = %d \n", lowdelay_flag[k]);
+            mpp_put_bits(&bp, rps_bit_offset     [k], 10);
+
+            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset = %d \n", rps_bit_offset[k]);
+            mpp_put_bits(&bp, rps_bit_offset_st  [k], 9);
+
+            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset_st = %d \n", rps_bit_offset_st[k]);
+            mpp_put_bits(&bp, slice_nb_rps_poc   [k], 4);
+
+            h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", slice_nb_rps_poc[k]);
+            mpp_put_align   (&bp, 64, 0);
+        }
+        if (rps_buf != NULL) {
+            memcpy(rps_buf, rps_packet, nb_slice * 32);
+        }
+        mpp_free(rps_packet);
+    }
+
+    return 0;
+__BITREAD_ERR:
+    return  MPP_ERR_STREAM;
+}
+
+void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
+{
+    scalingList_t sl;
+    RK_U32 i, j, pos;
+    h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    if (memcmp((void*)&dxva_cxt->qm, reg_cxt->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
+        memset(&sl, 0, sizeof(scalingList_t));
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 16; j++) {
+                pos = 4 * hal_hevc_diag_scan4x4_y[j] + hal_hevc_diag_scan4x4_x[j];
+                sl.sl[0][i][pos] = dxva_cxt->qm.ucScalingLists0[i][j];
+            }
+
+            for (j = 0; j < 64; j++) {
+                pos = 8 * hal_hevc_diag_scan8x8_y[j] + hal_hevc_diag_scan8x8_x[j];
+                sl.sl[1][i][pos] =  dxva_cxt->qm.ucScalingLists1[i][j];
+                sl.sl[2][i][pos] =  dxva_cxt->qm.ucScalingLists2[i][j];
+
+                if (i < 2)
+                    sl.sl[3][i][pos] =  dxva_cxt->qm.ucScalingLists3[i][j];
+            }
+
+            sl.sl_dc[0][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID2[i];
+            if (i < 2)
+                sl.sl_dc[1][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
+        }
+        hal_record_scaling_list((scalingFactor_t *)reg_cxt->scaling_rk, &sl);
+    }
+    memcpy(ptr, reg_cxt->scaling_rk, sizeof(scalingFactor_t));
+}
+
+RK_U8 cabac_table[27456] = {
     0x07, 0x0f, 0x48, 0x58, 0x58, 0x40, 0x40, 0x40, 0x40, 0x40, 0x0f, 0x40, 0x40, 0x40, 0x0f, 0x68,
     0x48, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x07, 0x40, 0x40, 0x68,
     0x58, 0x60, 0x40, 0x1f, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x48, 0x48, 0x60, 0x60, 0x50, 0x58,
@@ -1747,5 +2434,3 @@ static RK_U8 cabac_table[27456] = {
     0x47, 0x10, 0x10, 0x08, 0x40, 0x0f, 0x08, 0x00, 0x27, 0x08, 0x37, 0x27, 0x27, 0x08, 0x40, 0x40,
     0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
-///<- zrh add end
-#endif
