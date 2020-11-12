@@ -999,6 +999,26 @@ static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
     hal_h264e_dbg_func("leave\n");
 }
 
+static void setup_vepu540_force_slice_split(Vepu541H264eRegSet *regs, RK_S32 width)
+{
+    RK_S32 mb_w = MPP_ALIGN(width, 16) >> 4;
+
+    hal_h264e_dbg_func("enter\n");
+
+    regs->reg087.sli_splt = 1;
+    regs->reg087.sli_splt_mode = 1;
+    regs->reg087.sli_splt_cpst = 0;
+    regs->reg087.sli_max_num_m1 = 500;
+    regs->reg087.sli_flsh = 1;
+    regs->reg087.sli_splt_cnum_m1 = mb_w - 1;
+
+    regs->reg088.sli_splt_byte = 0;
+    regs->reg013.slen_fifo = 0;
+    regs->reg023.sli_crs_en = 0;
+
+    hal_h264e_dbg_func("leave\n");
+}
+
 static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
                              H264eSlice *slice, RK_U32 is_vepu540)
 {
@@ -1344,6 +1364,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     Vepu541H264eRegSet *regs = &ctx->regs_set;
     MppEncCfgSet *cfg = ctx->cfg;
+    MppEncPrepCfg *prep = &cfg->prep;
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
@@ -1367,6 +1388,9 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
 
     setup_vepu541_split(regs, &cfg->split);
+    if (ctx->is_vepu540 && prep->width > 1920)
+        setup_vepu540_force_slice_split(regs, prep->width);
+
     setup_vepu541_me(regs, sps, slice, ctx->is_vepu540);
 
     if (ctx->is_vepu540)
