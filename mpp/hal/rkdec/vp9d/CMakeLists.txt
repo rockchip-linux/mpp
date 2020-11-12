@@ -5,6 +5,7 @@ set(HAL_VP9D_SRC
     hal_vp9d_api.c
     hal_vp9d_com.c
     hal_vp9d_rkv.c
+    hal_vp9d_vdpu34x.c
     )
 
 add_library(hal_vp9d STATIC ${HAL_VP9D_SRC})

@@ -25,6 +25,7 @@
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_ctx.h"
 #include "hal_vp9d_rkv.h"
+#include "hal_vp9d_vdpu34x.h"
 
 RK_U32 hal_vp9d_debug = 0;
 
@@ -46,7 +47,10 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     p->dev = dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
-    p->api = &hal_vp9d_rkv;
+    if (hw_id == HWID_VDPU34X)
+        p->api = &hal_vp9d_vdpu34x;
+    else
+        p->api = &hal_vp9d_rkv;
 
     p->slots = cfg->frame_slots;
     p->int_cb = cfg->hal_int_cb;
