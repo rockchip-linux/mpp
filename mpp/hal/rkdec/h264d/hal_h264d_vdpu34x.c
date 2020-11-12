@@ -517,9 +517,9 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *p_regs, H
 
         for (i = 0; i < 15; i++) {
             p_regs->h264d_param.ref0_31_poc[i].ref_poc = (i & 1)
-                                                              ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
+                                                         ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
             p_regs->h264d_param.ref0_31_poc[15 + i].ref_poc = (i & 1)
-                                                                   ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
+                                                              ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
             SET_REF_INFO(p_regs->h264d_param, i, field, (pp->RefPicFiledFlags >> i) & 0x01);
             SET_REF_INFO(p_regs->h264d_param, i, topfield_used, (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01);
             SET_REF_INFO(p_regs->h264d_param, i, botfield_used, (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01);
