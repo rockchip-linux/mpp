@@ -19,6 +19,8 @@
 
 #include "mpp_device.h"
 #include "mpp_hal.h"
+#include "hal_bufs.h"
+#include "vdpu34x_com.h"
 
 #define MAX_GEN_REG 3
 
@@ -73,6 +75,15 @@ typedef struct HalVp9dCtx_t {
      */
     RK_U32          last_segid_flag;
     RK_U32          fast_mode;
+    RK_S32          width;
+    RK_S32          height;
+    RK_S32          rcb_buf_size;
+    RK_S32          rcb_size[RCB_BUF_COUNT];
+    RK_S32          rcb_offset[RCB_BUF_COUNT];
+    MppBuffer       rcb_buf;
+    HalBufs         cmv_bufs;
+    RK_S32          mv_size;
+    RK_S32          mv_count;
 } HalVp9dCtx;
 
 #endif /*__HAL_VP9D_CTX_H__*/
