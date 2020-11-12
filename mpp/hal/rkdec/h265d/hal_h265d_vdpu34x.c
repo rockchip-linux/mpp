@@ -1029,7 +1029,7 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->h265d_param_regs;
         wr_cfg.size = sizeof(hw_regs->h265d_param_regs);
-        wr_cfg.offset = OFFSET_H265D_PARAMS_REGS;
+        wr_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1049,7 +1049,7 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->h265d_addr_regs;
         wr_cfg.size = sizeof(hw_regs->h265d_addr_regs);
-        wr_cfg.offset = OFFSET_H265D_ADDR_REGS;
+        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
