@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP9D_API_H__
-#define __HAL_VP9D_API_H__
+#ifndef __HAL_VP9D_RKV_H__
+#define __HAL_VP9D_RKV_H__
 
 #include "mpp_hal.h"
 
@@ -23,10 +23,10 @@
 extern "C" {
 #endif
 
-extern const MppHalApi hal_api_vp9d;
+extern const MppHalApi hal_vp9d_rkv;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*__HAL_VP9D_API_H__*/
+#endif /*__HAL_VP9D_RKV_H__*/

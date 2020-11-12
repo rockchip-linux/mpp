@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2015 Rockchip Electronics Co. LTD
+ * Copyright 2020 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +14,10 @@
  * limitations under the License.
  */
 
-/*
- * @file       hal_vp9_reg.h
- * @brief
- * @author      csy(csy@rock-chips.com)
-
- * @version     1.0.0
- * @history
- *   2015.7.15 : Create
- */
-
 #ifndef __HAL_VP9D_REG_H__
 #define __HAL_VP9D_REG_H__
 
-#include "mpp_log.h"
-
-extern RK_U32 vp9h_debug;
-
-#define VP9H_DBG_FUNCTION          (0x00000001)
-#define VP9H_DBG_PAR               (0x00000002)
-#define VP9H_DBG_REG               (0x00000004)
-
-#define vp9h_dbg(flag, fmt, ...) _mpp_dbg(vp9h_debug, flag, fmt, ## __VA_ARGS__)
+#include "rk_type.h"
 
 typedef struct {
     struct {
@@ -370,4 +351,5 @@ typedef struct {
 
     RK_U32 reg_not_use2;
 } VP9_REGS;
+
 #endif
