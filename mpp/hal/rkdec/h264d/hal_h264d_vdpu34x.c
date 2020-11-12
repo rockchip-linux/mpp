@@ -804,7 +804,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->h264d_param;
         wr_cfg.size = sizeof(regs->h264d_param);
-        wr_cfg.offset = OFFSET_H264D_PARAMS_REGS;
+        wr_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -824,7 +824,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->h264d_addr;
         wr_cfg.size = sizeof(regs->h264d_addr);
-        wr_cfg.offset = OFFSET_H264D_ADDR_REGS;
+        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {

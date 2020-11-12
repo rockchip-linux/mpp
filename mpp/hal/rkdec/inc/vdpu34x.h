@@ -22,11 +22,9 @@
 #define HWID_VDPU34X                (0x032a3f03)
 
 #define OFFSET_COMMON_REGS          (8 * sizeof(RK_U32))
-#define OFFSET_H264D_PARAMS_REGS    (64 * sizeof(RK_U32))
-#define OFFSET_H265D_PARAMS_REGS    (64 * sizeof(RK_U32))
+#define OFFSET_CODEC_PARAMS_REGS    (64 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
-#define OFFSET_H264D_ADDR_REGS      (160 * sizeof(RK_U32))
-#define OFFSET_H265D_ADDR_REGS      (160 * sizeof(RK_U32))
+#define OFFSET_CODEC_ADDR_REGS      (160 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
 #define OFFSET_STATISTIC_REGS       (256 * sizeof(RK_U32))
 
