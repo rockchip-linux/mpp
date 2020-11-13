@@ -20,6 +20,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_buffer.h"
 
 #include "rk_mpi.h"
 #include "utils.h"
@@ -597,45 +598,109 @@ MPP_RET mpi_enc_gen_smart_gop_ref_cfg(MppEncRefCfg ref, RK_S32 gop_len, RK_S32 v
     return ret;
 }
 
-MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBuffer osd_buf, RK_U32 frame_cnt)
+MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 frame_cnt)
 {
-    RK_U32 k = 0;
-    RK_U32 buf_size = 0;
-    RK_U32 buf_offset = 0;
-    RK_U8 *buf = mpp_buffer_get_ptr(osd_buf);
+    /*
+     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
+     * for general use, 1/8 Y buffer is enough.
+     */
+    static RK_U32 plt_table[8] = {
+        MPP_ENC_OSD_PLT_RED,
+        MPP_ENC_OSD_PLT_YELLOW,
+        MPP_ENC_OSD_PLT_BLUE,
+        MPP_ENC_OSD_PLT_GREEN,
+        MPP_ENC_OSD_PLT_CYAN,
+        MPP_ENC_OSD_PLT_TRANS,
+        MPP_ENC_OSD_PLT_BLACK,
+        MPP_ENC_OSD_PLT_WHITE,
+    };
 
-    osd_data->num_region = 8;
-    osd_data->buf = osd_buf;
+    if (osd_plt) {
+        RK_U32 k = 0;
+        RK_U32 base = frame_cnt & 7;
 
-    for (k = 0; k < osd_data->num_region; k++) {
-        MppEncOSDRegion *region = &osd_data->region[k];
-        RK_U8 idx = k;
-
-        region->enable = 1;
-        region->inverse = frame_cnt & 1;
-        region->start_mb_x = k * 3;
-        region->start_mb_y = k * 2;
-        region->num_mb_x = 2;
-        region->num_mb_y = 2;
-
-        buf_size = region->num_mb_x * region->num_mb_y * 256;
-        buf_offset = k * buf_size;
-        osd_data->region[k].buf_offset = buf_offset;
-
-        memset(buf + buf_offset, idx, buf_size);
+        for (k = 0; k < 256; k++)
+            osd_plt->data[k].val = plt_table[(base + k) % 8];
     }
-
     return MPP_OK;
 }
 
-MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 *table)
-{
-    RK_U32 k = 0;
+#define STEP_X  3
+#define STEP_Y  2
+#define STEP_W  2
+#define STEP_H  2
 
-    if (osd_plt->data && table) {
-        for (k = 0; k < 256; k++)
-            osd_plt->data[k].val = table[k % 8];
+MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
+                             RK_U32 width, RK_U32 height, RK_U32 frame_cnt)
+{
+    MppEncOSDRegion *region = NULL;
+    RK_U32 k = 0;
+    RK_U32 num_region = 8;
+    RK_U32 buf_offset = 0;
+    RK_U32 buf_size = 0;
+    RK_U32 mb_w_max = MPP_ALIGN(width, 16) / 16;
+    RK_U32 mb_h_max = MPP_ALIGN(height, 16) / 16;
+    RK_U32 mb_x = (frame_cnt * STEP_X) % mb_w_max;
+    RK_U32 mb_y = (frame_cnt * STEP_Y) % mb_h_max;
+    RK_U32 mb_w = STEP_W;
+    RK_U32 mb_h = STEP_H;
+    MppBuffer buf = osd_data->buf;
+
+    if (buf)
+        buf_size = mpp_buffer_get_size(buf);
+
+    /* generate osd region info */
+    osd_data->num_region = num_region;
+
+    region = osd_data->region;
+
+    for (k = 0; k < num_region; k++, region++) {
+        // NOTE: offset must be 16 byte aligned
+        RK_U32 region_size = MPP_ALIGN(mb_w * mb_h * 256, 16);
+
+        region->inverse = 1;
+        region->start_mb_x = mb_x;
+        region->start_mb_y = mb_y;
+        region->num_mb_x = mb_w;
+        region->num_mb_y = mb_h;
+        region->buf_offset = buf_offset;
+        region->enable = (mb_w && mb_h);
+
+        buf_offset += region_size;
+
+        mb_x += STEP_X;
+        mb_y += STEP_Y;
+        if (mb_x >= mb_w_max)
+            mb_x -= mb_w_max;
+        if (mb_y >= mb_h_max)
+            mb_y -= mb_h_max;
     }
+
+    /* create buffer and write osd index data */
+    if (buf_size < buf_offset) {
+        if (buf)
+            mpp_buffer_put(buf);
+
+        mpp_buffer_get(group, &buf, buf_offset);
+        if (NULL == buf)
+            mpp_err_f("failed to create osd buffer size %d\n", buf_offset);
+    }
+
+    if (buf) {
+        void *ptr = mpp_buffer_get_ptr(buf);
+        region = osd_data->region;
+
+        for (k = 0; k < num_region; k++, region++) {
+            mb_w = region->num_mb_x;
+            mb_h = region->num_mb_y;
+            buf_offset = region->buf_offset;
+
+            memset(ptr + buf_offset, k, mb_w * mb_h * 256);
+        }
+    }
+
+    osd_data->buf = buf;
+
     return MPP_OK;
 }
 

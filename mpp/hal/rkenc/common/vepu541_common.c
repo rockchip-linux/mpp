@@ -413,8 +413,14 @@ DONE:
     return ret;
 }
 
-//TODO: open interface later
+/*
+ * Invert color threshold is for the absolute difference between background
+ * and foregroud color.
+ * If background color and foregroud color are close enough then trigger the
+ * invert color process.
+ */
 #define ENC_DEFAULT_OSD_INV_THR         15
+
 #define VEPU541_OSD_ADDR_IDX_BASE       124
 #define VEPU541_OSD_CFG_OFFSET          0x01C0
 #define VEPU541_OSD_PLT_OFFSET          0x0400
@@ -568,7 +574,7 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
             /* There should be enough buffer and offset should be 16B aligned */
             if (buf_size < tmp->buf_offset + blk_len ||
                 (tmp->buf_offset & 0xf)) {
-                mpp_err_f("invalid osd cfg: %d x:y:w:h:off %d:%d:%d:%x\n",
+                mpp_err_f("invalid osd cfg: %d x:y:w:h:off %d:%d:%d:%d:%x\n",
                           k, tmp->start_mb_x, tmp->start_mb_y,
                           tmp->num_mb_x, tmp->num_mb_y, tmp->buf_offset);
             }
@@ -726,6 +732,8 @@ MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg)
 
     regs->reg112.osd_e = 0;
     regs->reg112.osd_lu_inv_en = 0;
+    regs->reg094.osd_ch_inv_en = 0;
+    regs->reg094.osd_lu_inv_msk = 0;
 
     if (NULL == osd || osd->num_region == 0 || NULL == osd->buf)
         return MPP_OK;
@@ -751,7 +759,8 @@ MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg)
 
     for (k = 0; k < num; k++, tmp++) {
         regs->reg112.osd_e          |= tmp->enable << k;
-        regs->reg112.osd_lu_inv_en  |= tmp->inverse << k;
+        regs->reg112.osd_lu_inv_en  |= (tmp->inverse) ? (1 << k) : 0;
+        regs->reg094.osd_ch_inv_en  |= (tmp->inverse) ? (1 << k) : 0;
 
         if (tmp->enable && tmp->num_mb_x && tmp->num_mb_y) {
             Vepu541OsdPos *pos = &regs->osd_pos[k];
@@ -775,9 +784,9 @@ MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg)
             /* There should be enough buffer and offset should be 16B aligned */
             if (buf_size < tmp->buf_offset + blk_len ||
                 (tmp->buf_offset & 0xf)) {
-                mpp_err_f("invalid osd cfg: %d x:y:w:h:off %d:%d:%d:%x\n",
+                mpp_err_f("invalid osd cfg: %d x:y:w:h:off %d:%d:%d:%d:%x size %x\n",
                           k, tmp->start_mb_x, tmp->start_mb_y,
-                          tmp->num_mb_x, tmp->num_mb_y, tmp->buf_offset);
+                          tmp->num_mb_x, tmp->num_mb_y, tmp->buf_offset, buf_size);
             }
         }
     }
