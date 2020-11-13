@@ -64,7 +64,6 @@ typedef struct {
     MppBuffer pkt_buf;
     MppEncSeiMode sei_mode;
     MppEncHeaderMode header_mode;
-    MppBuffer osd_idx_buf;
 
     // paramter for resource malloc
     RK_U32 width;
@@ -82,12 +81,6 @@ typedef struct {
     size_t frame_size;
     /* NOTE: packet buffer may overflow */
     size_t packet_size;
-    /*
-     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
-     * for general use, 1/8 Y buffer is enough.
-     */
-    size_t osd_idx_size;
-    RK_U32 plt_table[8];
 
     RK_U32 osd_enable;
     RK_U32 osd_mode;
@@ -215,20 +208,6 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
         p->header_size = MPP_ALIGN(MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16, SZ_4K);
     else
         p->header_size = 0;
-
-    /*
-     * osd idx size range from 16x16 bytes(pixels) to hor_stride*ver_stride(bytes).
-     * for general use, 1/8 Y buffer is enough.
-     */
-    p->osd_idx_size  = p->hor_stride * p->ver_stride / 8;
-    p->plt_table[0] = MPP_ENC_OSD_PLT_RED;
-    p->plt_table[1] = MPP_ENC_OSD_PLT_YELLOW;
-    p->plt_table[2] = MPP_ENC_OSD_PLT_BLUE;
-    p->plt_table[3] = MPP_ENC_OSD_PLT_GREEN;
-    p->plt_table[4] = MPP_ENC_OSD_PLT_CYAN;
-    p->plt_table[5] = MPP_ENC_OSD_PLT_TRANS;
-    p->plt_table[6] = MPP_ENC_OSD_PLT_BLACK;
-    p->plt_table[7] = MPP_ENC_OSD_PLT_WHITE;
 
 RET:
     *data = p;
@@ -455,21 +434,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     /* setup test mode by env */
     mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
     mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
-
-    if (p->osd_enable) {
-        /* gen and cfg osd plt */
-        mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
-        p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
-        p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
-        p->osd_plt_cfg.plt = &p->osd_plt;
-
-        ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
-        if (ret) {
-            mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
-            goto RET;
-        }
-    }
-
     mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
     mpp_env_get_u32("user_data_enable", &p->user_data_enable, 0);
 
@@ -624,7 +588,21 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
 
             if (p->osd_enable) {
                 /* gen and cfg osd plt */
-                mpi_enc_gen_osd_data(&p->osd_data, p->osd_idx_buf, p->frame_count);
+                mpi_enc_gen_osd_plt(&p->osd_plt, p->frame_count);
+
+                p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
+                p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
+                p->osd_plt_cfg.plt = &p->osd_plt;
+
+                ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
+                if (ret) {
+                    mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
+                    goto RET;
+                }
+
+                /* gen and cfg osd plt */
+                mpi_enc_gen_osd_data(&p->osd_data, p->buf_grp, p->width,
+                                     p->height, p->frame_count);
                 mpp_meta_set_ptr(meta, KEY_OSD_DATA, (void*)&p->osd_data);
             }
 
@@ -772,12 +750,6 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = mpp_buffer_get(p->buf_grp, &p->osd_idx_buf, p->osd_idx_size);
-    if (ret) {
-        mpp_err_f("failed to get buffer for input osd index ret %d\n", ret);
-        goto MPP_TEST_OUT;
-    }
-
     // encoder demo
     ret = mpp_create(&p->ctx, &p->mpi);
     if (ret) {
@@ -852,9 +824,9 @@ MPP_TEST_OUT:
         p->pkt_buf = NULL;
     }
 
-    if (p->osd_idx_buf) {
-        mpp_buffer_put(p->osd_idx_buf);
-        p->osd_idx_buf = NULL;
+    if (p->osd_data.buf) {
+        mpp_buffer_put(p->osd_data.buf);
+        p->osd_data.buf = NULL;
     }
 
     if (p->buf_grp) {

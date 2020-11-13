@@ -40,8 +40,6 @@
 #define MAX_FILE_NAME_LENGTH        256
 
 #define MPI_ENC_TEST_SET_IDR_FRAME  0
-#define MPI_ENC_TEST_SET_OSD        1
-#define MPI_ENC_TEST_SET_ROI        1
 
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
@@ -85,17 +83,12 @@ typedef struct {
     // input / output
     MppBufferGroup  frm_grp;
     MppBufferGroup  pkt_grp;
+    MppBufferGroup  buf_grp;
     MppFrame        frame;
     MppPacket       packet;
     MppBuffer       frm_buf[MPI_ENC_IO_COUNT];
     MppBuffer       pkt_buf[MPI_ENC_IO_COUNT];
     MppBuffer       md_buf[MPI_ENC_IO_COUNT];
-    MppBuffer       osd_idx_buf[MPI_ENC_IO_COUNT];
-    MppEncOSDPltCfg osd_plt_cfg;
-    MppEncOSDPlt    osd_plt;
-    MppEncOSDData   osd_data;
-    MppEncROIRegion roi_region[3]; /* can be more regions */
-    MppEncROICfg    roi_cfg;
     MppEncSeiMode   sei_mode;
 
     // paramter for resource malloc
@@ -244,16 +237,16 @@ MPP_RET test_res_init(MpiEncTestData *p)
         goto RET;
     }
 
+    ret = mpp_buffer_group_get_internal(&p->buf_grp, MPP_BUFFER_TYPE_ION);
+    if (ret) {
+        mpp_err("failed to get buffer group for output packet ret %d\n", ret);
+        goto RET;
+    }
+
     for (i = 0; i < MPI_ENC_IO_COUNT; i++) {
         ret = mpp_buffer_get(p->frm_grp, &p->frm_buf[i], p->frame_size);
         if (ret) {
             mpp_err("failed to get buffer for input frame ret %d\n", ret);
-            goto RET;
-        }
-
-        ret = mpp_buffer_get(p->frm_grp, &p->osd_idx_buf[i], p->osd_idx_size);
-        if (ret) {
-            mpp_err("failed to get buffer for osd idx buf ret %d\n", ret);
             goto RET;
         }
 
@@ -294,11 +287,6 @@ MPP_RET test_res_deinit(MpiEncTestData *p)
             mpp_buffer_put(p->md_buf[i]);
             p->md_buf[i] = NULL;
         }
-
-        if (p->osd_idx_buf[i]) {
-            mpp_buffer_put(p->osd_idx_buf[i]);
-            p->osd_idx_buf[i] = NULL;
-        }
     }
 
     if (p->frm_grp) {
@@ -309,6 +297,11 @@ MPP_RET test_res_deinit(MpiEncTestData *p)
     if (p->pkt_grp) {
         mpp_buffer_group_put(p->pkt_grp);
         p->pkt_grp = NULL;
+    }
+
+    if (p->buf_grp) {
+        mpp_buffer_group_put(p->pkt_grp);
+        p->buf_grp = NULL;
     }
 
     return MPP_OK;
@@ -500,19 +493,6 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         goto RET;
     }
 
-    /* gen and cfg osd plt */
-    mpi_enc_gen_osd_plt(&p->osd_plt, p->plt_table);
-    p->osd_plt_cfg.change = MPP_ENC_OSD_PLT_CFG_CHANGE_ALL;
-    p->osd_plt_cfg.type = MPP_ENC_OSD_PLT_TYPE_USERDEF;
-    p->osd_plt_cfg.plt = &p->osd_plt;
-#if MPI_ENC_TEST_SET_OSD
-    ret = mpi->control(ctx, MPP_ENC_SET_OSD_PLT_CFG, &p->osd_plt_cfg);
-    if (ret) {
-        mpp_err("mpi control enc set osd plt failed ret %d\n", ret);
-        goto RET;
-    }
-#endif
-
 RET:
     return ret;
 }
@@ -587,8 +567,6 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         MppBuffer frm_buf_in  = p->frm_buf[index];
         MppBuffer pkt_buf_out = p->pkt_buf[index];
         MppBuffer md_info_buf = p->md_buf[index];
-        MppBuffer osd_data_buf = p->osd_idx_buf[index];
-        MppMeta meta = mpp_frame_get_meta(p->frame);
 
         void *buf = mpp_buffer_get_ptr(frm_buf_in);
 
@@ -640,43 +618,6 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 mpp_err("mpi control enc set idr frame failed\n");
                 goto RET;
             }
-        }
-#endif
-
-#if MPI_ENC_TEST_SET_OSD
-        /* gen and cfg osd plt */
-        mpi_enc_gen_osd_data(&p->osd_data, osd_data_buf, p->frame_count);
-        mpp_log("meta %p osd %p", meta, &p->osd_data);
-        mpp_meta_set_ptr(meta, KEY_OSD_DATA, (void*)&p->osd_data);
-#endif
-
-#if MPI_ENC_TEST_SET_ROI
-        if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
-            MppEncROIRegion *region = p->roi_region;
-
-            /* calculated in pixels */
-            region->x = region->y = 64;
-            region->w = region->h = 128; /* 16-pixel aligned is better */
-            region->intra = 0;   /* flag of forced intra macroblock */
-            region->quality = 20; /* qp of macroblock */
-            region->abs_qp_en = 1;
-            region->area_map_en = 0;
-            region->qp_area_idx = 0;
-
-            region++;
-            region->x = region->y = 256;
-            region->w = region->h = 128; /* 16-pixel aligned is better */
-            region->intra = 1;   /* flag of forced intra macroblock */
-            region->quality = 10; /* qp of macroblock */
-            region->abs_qp_en = 0;
-            region->area_map_en = 1;
-            region->qp_area_idx = 1;
-
-            p->roi_cfg.number = 2;
-            p->roi_cfg.regions = p->roi_region;
-
-            mpp_log("meta %p roi %p", meta, p->roi_region);
-            mpp_meta_set_ptr(meta, KEY_ROI_DATA, (void*)&p->roi_cfg); // new way for roi
         }
 #endif
 
