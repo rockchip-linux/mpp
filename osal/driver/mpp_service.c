@@ -234,7 +234,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     close(fd);
 }
 
-#define MAX_REG_OFFSET          16
+#define MAX_REG_OFFSET          32
 #define MAX_INFO_COUNT          16
 
 typedef struct FdTransInfo_t {
@@ -336,6 +336,11 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 
     if (!cfg->offset)
         return MPP_OK;
+
+    if (p->reg_offset_count >= MAX_REG_OFFSET) {
+        mpp_err_f("reach max offset definition\n", MAX_REG_OFFSET);
+        return MPP_NOK;
+    }
 
     RegOffsetInfo *info = &p->reg_offset_info[p->reg_offset_count++];
 
