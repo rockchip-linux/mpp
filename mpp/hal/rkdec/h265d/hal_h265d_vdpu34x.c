@@ -30,7 +30,7 @@
 #include "hal_h265d_ctx.h"
 #include "hal_h265d_com.h"
 #include "hal_h265d_vdpu34x.h"
-#include "hal_h265d_vdpu34x_reg.h"
+#include "vdpu34x_h265d.h"
 
 /* #define dump */
 #ifdef dump
@@ -70,7 +70,7 @@ static MPP_RET hal_h265d_alloc_res(void *hal)
     if (reg_cxt->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             reg_cxt->g_buf[i].hw_regs =
-                mpp_calloc_size(void, sizeof(H265d_REGS_V34x_t));
+                mpp_calloc_size(void, sizeof(Vdpu34xH265dRegSet));
             ret = mpp_buffer_get(reg_cxt->group,
                                  &reg_cxt->g_buf[i].scaling_list_data,
                                  SCALING_LIST_SIZE);
@@ -94,7 +94,7 @@ static MPP_RET hal_h265d_alloc_res(void *hal)
             }
         }
     } else {
-        reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_V34x_t));
+        reg_cxt->hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xH265dRegSet));
         ret = mpp_buffer_get(reg_cxt->group, &reg_cxt->scaling_list_data,
                              SCALING_LIST_SIZE);
         if (ret) {
@@ -280,7 +280,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
     RK_U32 log2_min_cb_size;
     RK_S32 width, height;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
-    H265d_REGS_V34x_t *hw_reg = (H265d_REGS_V34x_t*)(reg_cxt->hw_regs);
+    Vdpu34xH265dRegSet *hw_reg = (Vdpu34xH265dRegSet*)(reg_cxt->hw_regs);
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
     BitputCtx_t bp;
     RK_U64 *pps_packet = mpp_calloc(RK_U64, fifo_len + 1);
@@ -480,8 +480,8 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         addr = fd | (addr << 10);
 
         mpp_put_bits(&bp, addr, 32);
-        hw_reg->h265d_addr_regs.h26x_scanlist_base.scanlist_addr = addr;
-        hw_reg->common_regs.dec_sec_en.scanlist_addr_valid_en = 1;
+        hw_reg->h265d_addr.h26x_scanlist_base.scanlist_addr = addr;
+        hw_reg->common.dec_sec_en.scanlist_addr_valid_en = 1;
 
         mpp_put_bits(&bp, 0, 70);//yandong change
         mpp_put_align(&bp, 64, 0xf);//128
@@ -728,9 +728,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 log2_min_cb_size;
     RK_S32 width, height;
     RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
-
-
-    H265d_REGS_V34x_t *hw_regs;
+    Vdpu34xH265dRegSet *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
     MppBuffer streambuf = NULL;
     RK_S32 aglin_offset = 0;
@@ -781,8 +779,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     /* output pps */
-    hw_regs = (H265d_REGS_V34x_t*)reg_cxt->hw_regs;
-    memset(hw_regs, 0, sizeof(H265d_REGS_V34x_t));
+    hw_regs = (Vdpu34xH265dRegSet*)reg_cxt->hw_regs;
+    memset(hw_regs, 0, sizeof(Vdpu34xH265dRegSet));
 
     if (reg_cxt->is_v34x) {
         hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
@@ -810,29 +808,29 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     virstrid_y = hevc_ver_align(height) * stride_y;
     virstrid_yuv  = virstrid_y + stride_uv * hevc_ver_align(height) / 2;
 
-    hw_regs->common_regs.dec_slice_num.slice_num = dxva_cxt->slice_count;
-    hw_regs->common_regs.dec_y_hor_stride.y_hor_virstride = stride_y >> 4;
-    hw_regs->common_regs.dec_uv_hor_stride.uv_hor_virstride = stride_uv >> 4;
-    hw_regs->common_regs.dec_y_stride.y_virstride = virstrid_y >> 4;
+    hw_regs->common.dec_slice_num.slice_num = dxva_cxt->slice_count;
+    hw_regs->common.dec_y_hor_stride.y_hor_virstride = stride_y >> 4;
+    hw_regs->common.dec_uv_hor_stride.uv_hor_virstride = stride_uv >> 4;
+    hw_regs->common.dec_y_stride.y_virstride = virstrid_y >> 4;
     //hw_regs->sw_yuv_virstride = virstrid_yuv >> 4;
-    hw_regs->h265d_param_regs.h26x_set.h26x_rps_mode = 0;
-    hw_regs->h265d_param_regs.h26x_set.h26x_frame_orslice = 0;
-    hw_regs->h265d_param_regs.h26x_set.h26x_stream_mode = 0;
+    hw_regs->h265d_param.h26x_set.h26x_rps_mode = 0;
+    hw_regs->h265d_param.h26x_set.h26x_frame_orslice = 0;
+    hw_regs->h265d_param.h26x_set.h26x_stream_mode = 0;
 
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);
-    hw_regs->common_addr_regs.decout_base.decout_base  = mpp_buffer_get_fd(framebuf); //just index need map
+    hw_regs->common_addr.decout_base.decout_base  = mpp_buffer_get_fd(framebuf); //just index need map
     //add colmv base  offset(22bits) + addr(10bits)
-    hw_regs->common_addr_regs.colmv_cur_base.colmv_cur_base =
-        hw_regs->common_addr_regs.decout_base.decout_base + ((virstrid_yuv) << 10);
+    hw_regs->common_addr.colmv_cur_base.colmv_cur_base =
+        hw_regs->common_addr.decout_base.decout_base + ((virstrid_yuv) << 10);
     /*if out_base is equal to zero it means this frame may error
     we return directly add by csy*/
 
-    if (hw_regs->common_addr_regs.decout_base.decout_base == 0) {
+    if (hw_regs->common_addr.decout_base.decout_base == 0) {
         return 0;
     }
 
-    hw_regs->h265d_param_regs.cur_poc.cur_top_poc = dxva_cxt->pp.CurrPicOrderCntVal;
+    hw_regs->h265d_param.cur_poc.cur_top_poc = dxva_cxt->pp.CurrPicOrderCntVal;
 
     mpp_buf_slot_get_prop(reg_cxt->packet_slots, syn->dec.input, SLOT_BUFFER,
                           &streambuf);
@@ -841,8 +839,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     if (reg_cxt->is_v34x) {
 #ifdef HW_RPS
-        hw_regs->common_regs.dec_sec_en.wait_reset_en = 1;
-        hw_regs->h265d_param_regs.hevc_mvc0.ref_pic_layer_same_with_cur = 0xffff;
+        hw_regs->common.dec_sec_en.wait_reset_en = 1;
+        hw_regs->h265d_param.hevc_mvc0.ref_pic_layer_same_with_cur = 0xffff;
         hal_h265d_slice_hw_rps(syn->dec.syntax.data, rps_ptr);
 #else
         hw_regs->sw_sysctrl.sw_h26x_rps_mode = 1;
@@ -851,57 +849,57 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     } else {
         hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
     }
-    hw_regs->h265d_addr_regs.cabactbl_base.cabactbl_base  = mpp_buffer_get_fd(reg_cxt->cabac_table_data);
-    hw_regs->h265d_addr_regs.pps_base.pps_base            = mpp_buffer_get_fd(reg_cxt->pps_data);
-    hw_regs->h265d_addr_regs.rps_base.rps_base            = mpp_buffer_get_fd(reg_cxt->rps_data);
-    hw_regs->common_addr_regs.str_rlc_base.strm_rlc_base =  mpp_buffer_get_fd(streambuf);
-    hw_regs->common_addr_regs.rlcwrite_base.rlcwrite_base = mpp_buffer_get_fd(streambuf);
-    hw_regs->common_regs.dec_str_len.stream_len          = ((dxva_cxt->bitstream_size + 15)
+    hw_regs->h265d_addr.cabactbl_base.cabactbl_base  = mpp_buffer_get_fd(reg_cxt->cabac_table_data);
+    hw_regs->h265d_addr.pps_base.pps_base            = mpp_buffer_get_fd(reg_cxt->pps_data);
+    hw_regs->h265d_addr.rps_base.rps_base            = mpp_buffer_get_fd(reg_cxt->rps_data);
+    hw_regs->common_addr.str_rlc_base.strm_rlc_base =  mpp_buffer_get_fd(streambuf);
+    hw_regs->common_addr.rlcwrite_base.rlcwrite_base = mpp_buffer_get_fd(streambuf);
+    hw_regs->common.dec_str_len.stream_len          = ((dxva_cxt->bitstream_size + 15)
                                                             & (~15)) + 64;
-    aglin_offset =  hw_regs->common_regs.dec_str_len.stream_len - dxva_cxt->bitstream_size;
+    aglin_offset =  hw_regs->common.dec_str_len.stream_len - dxva_cxt->bitstream_size;
     if (aglin_offset > 0) {
         memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0,
                aglin_offset);
     }
-    hw_regs->common_regs.dec_en.dec_e               = 1;
-    hw_regs->common_regs.dec_imp_en.dec_timeout_e   = 1;
-    hw_regs->common_regs.dec_sec_en.wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag
+    hw_regs->common.dec_en.dec_e               = 1;
+    hw_regs->common.dec_imp_en.dec_timeout_e   = 1;
+    hw_regs->common.dec_sec_en.wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag
                                                       ? 0 : 1;
 
-    hw_regs->common_regs.dec_cabac_err_en_lowbits.cabac_err_en_lowbits = 0xffffdfff;
-    hw_regs->common_regs.dec_cabac_err_en_highbits.cabac_err_en_highbits = 0x3ffbf9ff;
+    hw_regs->common.dec_cabac_err_en_lowbits.cabac_err_en_lowbits = 0xffffdfff;
+    hw_regs->common.dec_cabac_err_en_highbits.cabac_err_en_highbits = 0x3ffbf9ff;
 
-    valid_ref = hw_regs->common_addr_regs.decout_base.decout_base;
-    hw_regs->common_addr_regs.error_ref_base.error_ref_base = valid_ref;
+    valid_ref = hw_regs->common_addr.decout_base.decout_base;
+    hw_regs->common_addr.error_ref_base.error_ref_base = valid_ref;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
-            hw_regs->h265d_param_regs.ref0_15_poc[i].ref_poc = dxva_cxt->pp.PicOrderCntValList[i];
+            hw_regs->h265d_param.ref0_15_poc[i].ref_poc = dxva_cxt->pp.PicOrderCntValList[i];
             mpp_buf_slot_get_prop(reg_cxt->slots,
                                   dxva_cxt->pp.RefPicList[i].Index7Bits,
                                   SLOT_BUFFER, &framebuf);
             if (framebuf != NULL) {
-                hw_regs->h265d_addr_regs.ref0_15_base[i].ref_base = mpp_buffer_get_fd(framebuf);
-                valid_ref = hw_regs->h265d_addr_regs.ref0_15_base[i].ref_base;
+                hw_regs->h265d_addr.ref0_15_base[i].ref_base = mpp_buffer_get_fd(framebuf);
+                valid_ref = hw_regs->h265d_addr.ref0_15_base[i].ref_base;
             } else {
-                hw_regs->h265d_addr_regs.ref0_15_base[i].ref_base = valid_ref;
+                hw_regs->h265d_addr.ref0_15_base[i].ref_base = valid_ref;
             }
-            hw_regs->h265d_addr_regs.ref0_15_colmv_base[i].colmv_base =
+            hw_regs->h265d_addr.ref0_15_colmv_base[i].colmv_base =
                 valid_ref + ((virstrid_yuv) << 10);
             sw_ref_valid          |=   (1 << i);
-            SET_REF_VALID(hw_regs->h265d_param_regs, i, 1);
+            SET_REF_VALID(hw_regs->h265d_param, i, 1);
         } else {
-            hw_regs->h265d_addr_regs.ref0_15_base[i].ref_base = hw_regs->common_addr_regs.decout_base.decout_base;
-            hw_regs->h265d_addr_regs.ref0_15_colmv_base[i].colmv_base =
-                hw_regs->common_addr_regs.decout_base.decout_base + ((virstrid_yuv) << 10);
+            hw_regs->h265d_addr.ref0_15_base[i].ref_base = hw_regs->common_addr.decout_base.decout_base;
+            hw_regs->h265d_addr.ref0_15_colmv_base[i].colmv_base =
+                hw_regs->common_addr.decout_base.decout_base + ((virstrid_yuv) << 10);
         }
     }
 
-    hw_regs->common_regs.dec_en_mode_set.colmv_error_mode = 1;
-    hw_regs->common_regs.dec_en_mode_set.timeout_mode = 1;
-    hw_regs->common_regs.dec_en_mode_set.cur_pic_is_idr = dxva_cxt->pp.IdrPicFlag;//p_hal->slice_long->idr_flag;
-    hw_regs->common_regs.dec_en_mode_set.h26x_error_mode = 1;
-    hw_regs->common_regs.dec_imp_en.buf_empty_en = 1;
+    hw_regs->common.dec_en_mode_set.colmv_error_mode = 1;
+    hw_regs->common.dec_en_mode_set.timeout_mode = 1;
+    hw_regs->common.dec_en_mode_set.cur_pic_is_idr = dxva_cxt->pp.IdrPicFlag;//p_hal->slice_long->idr_flag;
+    hw_regs->common.dec_en_mode_set.h26x_error_mode = 1;
+    hw_regs->common.dec_imp_en.buf_empty_en = 1;
 
     if (reg_cxt->rcb_buf == NULL) {
         RK_U32 rcb_buf_size =
@@ -964,16 +962,16 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
                               RCB_SAOR_COEF * width +
                               RCB_FBCR_COEF * width;
 
-        hw_regs->common_addr_regs.rcb_intra_base.rcb_intra_base = mpp_buffer_get_fd(reg_cxt->rcb_buf);
-        hw_regs->common_addr_regs.rcb_transd_row_base.rcb_transd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdr_offset << 10);
-        hw_regs->common_addr_regs.rcb_transd_col_base.rcb_transd_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdc_offset << 10);
-        hw_regs->common_addr_regs.rcb_streamd_row_base.rcb_streamd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (strmdr_offset << 10);
-        hw_regs->common_addr_regs.rcb_inter_row_base.rcb_inter_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interr_offset << 10);
-        hw_regs->common_addr_regs.rcb_inter_col_base.rcb_inter_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interc_offset << 10);
-        hw_regs->common_addr_regs.rcb_dblk_base.rcb_dblk_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (dblkr_offset << 10);
-        hw_regs->common_addr_regs.rcb_sao_base.rcb_sao_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (saor_offset << 10);
-        hw_regs->common_addr_regs.rcb_fbc_base.rcb_fbc_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (fbcr_offset << 10);
-        hw_regs->common_addr_regs.rcb_filterd_col_base.rcb_filterd_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (filtc_offset << 10);
+        hw_regs->common_addr.rcb_intra_base.rcb_intra_base = mpp_buffer_get_fd(reg_cxt->rcb_buf);
+        hw_regs->common_addr.rcb_transd_row_base.rcb_transd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdr_offset << 10);
+        hw_regs->common_addr.rcb_transd_col_base.rcb_transd_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdc_offset << 10);
+        hw_regs->common_addr.rcb_streamd_row_base.rcb_streamd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (strmdr_offset << 10);
+        hw_regs->common_addr.rcb_inter_row_base.rcb_inter_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interr_offset << 10);
+        hw_regs->common_addr.rcb_inter_col_base.rcb_inter_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interc_offset << 10);
+        hw_regs->common_addr.rcb_dblk_base.rcb_dblk_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (dblkr_offset << 10);
+        hw_regs->common_addr.rcb_sao_base.rcb_sao_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (saor_offset << 10);
+        hw_regs->common_addr.rcb_fbc_base.rcb_fbc_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (fbcr_offset << 10);
+        hw_regs->common_addr.rcb_filter_col_base.rcb_filter_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (filtc_offset << 10);
     }
     return ret;
 }
@@ -982,7 +980,7 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U8* p = NULL;
-    H265d_REGS_V34x_t *hw_regs = NULL;
+    Vdpu34xH265dRegSet *hw_regs = NULL;
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
     RK_S32 index =  task->dec.reg_index;
 
@@ -996,10 +994,10 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
 
     if (reg_cxt->fast_mode) {
         p = (RK_U8*)reg_cxt->g_buf[index].hw_regs;
-        hw_regs = ( H265d_REGS_V34x_t *)reg_cxt->g_buf[index].hw_regs;
+        hw_regs = ( Vdpu34xH265dRegSet *)reg_cxt->g_buf[index].hw_regs;
     } else {
         p = (RK_U8*)reg_cxt->hw_regs;
-        hw_regs = ( H265d_REGS_V34x_t *)reg_cxt->hw_regs;
+        hw_regs = ( Vdpu34xH265dRegSet *)reg_cxt->hw_regs;
     }
 
     if (hw_regs == NULL) {
@@ -1017,8 +1015,8 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
 
-        wr_cfg.reg = &hw_regs->common_regs;
-        wr_cfg.size = sizeof(hw_regs->common_regs);
+        wr_cfg.reg = &hw_regs->common;
+        wr_cfg.size = sizeof(hw_regs->common);
         wr_cfg.offset = OFFSET_COMMON_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
@@ -1027,8 +1025,8 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &hw_regs->h265d_param_regs;
-        wr_cfg.size = sizeof(hw_regs->h265d_param_regs);
+        wr_cfg.reg = &hw_regs->h265d_param;
+        wr_cfg.size = sizeof(hw_regs->h265d_param);
         wr_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
@@ -1037,8 +1035,8 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &hw_regs->common_addr_regs;
-        wr_cfg.size = sizeof(hw_regs->common_addr_regs);
+        wr_cfg.reg = &hw_regs->common_addr;
+        wr_cfg.size = sizeof(hw_regs->common_addr);
         wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
@@ -1047,8 +1045,8 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &hw_regs->h265d_addr_regs;
-        wr_cfg.size = sizeof(hw_regs->h265d_addr_regs);
+        wr_cfg.reg = &hw_regs->h265d_addr;
+        wr_cfg.size = sizeof(hw_regs->h265d_addr);
         wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
@@ -1057,8 +1055,8 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        rd_cfg.reg = &hw_regs->interrupt_regs;
-        rd_cfg.size = sizeof(hw_regs->interrupt_regs);
+        rd_cfg.reg = &hw_regs->irq_status;
+        rd_cfg.size = sizeof(hw_regs->irq_status);
         rd_cfg.offset = OFFSET_INTERRUPT_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_RD, &rd_cfg);
@@ -1084,7 +1082,7 @@ static MPP_RET hal_h265d_vdpu34x_wait(void *hal, HalTaskInfo *task)
     RK_S32 index =  task->dec.reg_index;
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
     RK_U8* p = NULL;
-    H265d_REGS_V34x_t *hw_regs = NULL;
+    Vdpu34xH265dRegSet *hw_regs = NULL;
     RK_S32 i;
 
     if (task->dec.flags.parse_err ||
@@ -1094,9 +1092,9 @@ static MPP_RET hal_h265d_vdpu34x_wait(void *hal, HalTaskInfo *task)
     }
 
     if (reg_cxt->fast_mode) {
-        hw_regs = ( H265d_REGS_V34x_t *)reg_cxt->g_buf[index].hw_regs;
+        hw_regs = ( Vdpu34xH265dRegSet *)reg_cxt->g_buf[index].hw_regs;
     } else {
-        hw_regs = ( H265d_REGS_V34x_t *)reg_cxt->hw_regs;
+        hw_regs = ( Vdpu34xH265dRegSet *)reg_cxt->hw_regs;
     }
 
     p = (RK_U8*)hw_regs;
@@ -1108,8 +1106,8 @@ static MPP_RET hal_h265d_vdpu34x_wait(void *hal, HalTaskInfo *task)
 ERR_PROC:
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
-        hw_regs->interrupt_regs.sta_int.dec_error_sta ||
-        hw_regs->interrupt_regs.sta_int.buf_empty_sta) {
+        hw_regs->irq_status.sta_int.dec_error_sta ||
+        hw_regs->irq_status.sta_int.buf_empty_sta) {
         if (!reg_cxt->fast_mode) {
             if (reg_cxt->int_cb.callBack)
                 reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, &task->dec);
