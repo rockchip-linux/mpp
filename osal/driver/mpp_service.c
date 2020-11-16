@@ -111,18 +111,23 @@ static RK_S32 mpp_service_ioctl_request(RK_S32 fd, MppReqV1 *req)
 
 static MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap)
 {
-    MPP_RET ret = MPP_OK;
+    RK_U32 found = 0;
 
     if (cap->support_cmd > 0) {
-        RK_U32 found = 0;
         found = (cmd < cap->query_cmd) ? 1 : 0;
-        found = (cmd >= MPP_CMD_INIT_BASE && cmd < cap->init_cmd) ? 1 : found;
-        found = (cmd >= MPP_CMD_SEND_BASE && cmd < cap->send_cmd) ? 1 : found;
-        found = (cmd >= MPP_CMD_POLL_BASE && cmd < cap->poll_cmd) ? 1 : found;
+        found = (cmd >= MPP_CMD_INIT_BASE && cmd < cap->init_cmd)    ? 1 : found;
+        found = (cmd >= MPP_CMD_SEND_BASE && cmd < cap->send_cmd)    ? 1 : found;
+        found = (cmd >= MPP_CMD_POLL_BASE && cmd < cap->poll_cmd)    ? 1 : found;
         found = (cmd >= MPP_CMD_CONTROL_BASE && cmd < cap->ctrl_cmd) ? 1 : found;
-        ret = found ? MPP_OK : MPP_NOK;
+    } else {
+        /* old kernel before support_cmd query is valid */
+        found = (cmd >= MPP_CMD_INIT_BASE && cmd <= MPP_CMD_INIT_TRANS_TABLE)    ? 1 : found;
+        found = (cmd >= MPP_CMD_SEND_BASE && cmd <= MPP_CMD_SET_REG_ADDR_OFFSET) ? 1 : found;
+        found = (cmd >= MPP_CMD_POLL_BASE && cmd <= MPP_CMD_POLL_HW_FINISH)      ? 1 : found;
+        found = (cmd >= MPP_CMD_CONTROL_BASE && cmd <= MPP_CMD_RELEASE_FD)       ? 1 : found;
     }
-    return ret;
+
+    return found ? MPP_OK : MPP_NOK;
 }
 
 void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap *cap)
