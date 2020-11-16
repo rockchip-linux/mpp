@@ -46,6 +46,7 @@ typedef struct H265e_v541_buffers_t {
 
     MppBuffer hw_mei_buf;
     MppBuffer hw_roi_buf;
+    MppBuffer hw_title_buf[2];
 } h265e_v541_buffers;
 
 /* OSD position */
@@ -63,6 +64,19 @@ typedef struct {
     RK_U32     v : 8;
     RK_U32     alpha : 8;
 } OsdPlt;
+typedef struct {
+    RK_U32    axi_brsp_cke : 7;
+    RK_U32    cime_dspw_orsd : 1;
+    RK_U32    reserve : 24;
+} v541_dtrns_cfg;
+
+typedef struct {
+    RK_U32    Reserve0 : 7;
+    RK_U32    cime_dspw_orsd : 1;
+    RK_U32    reserve1 : 8;
+    RK_U32    axi_brsp_cke : 8;
+    RK_U32    reserve2 : 8;
+} v540_dtrns_cfg;
 
 typedef struct H265eV541RegSet_t {
 
@@ -180,7 +194,7 @@ typedef struct H265eV541RegSet_t {
 
     /* 0x3c - DTRNS_MAP */
     struct {
-        RK_U32    src_bus_ordr  : 1; /* reserved bit */
+        RK_U32    lpfw_bus_ordr : 1; /* vepu540 used */
         RK_U32    cmvw_bus_ordr : 1;
         RK_U32    dspw_bus_ordr : 1;
         RK_U32    rfpw_bus_ordr : 1;
@@ -194,11 +208,10 @@ typedef struct H265eV541RegSet_t {
         RK_U32    reserved      : 4;
     } dtrns_map; //swreg12
 
-    struct {
-        RK_U32    axi_brsp_cke : 7;
-        RK_U32    cime_dspw_orsd : 1;
-        RK_U32    reserve : 24;
-    } dtrns_cfg; // swreg13, DTRNS_CFG
+    union {
+        v541_dtrns_cfg dtrns_cfg_541;
+        v540_dtrns_cfg dtrns_cfg_540;
+    };
 
     /* 0x44 - SRC_FMT */
     struct {
@@ -206,7 +219,8 @@ typedef struct H265eV541RegSet_t {
         RK_U32    rbuv_swap : 1;
         RK_U32    src_cfmt : 4;
         RK_U32    src_range : 1;
-        RK_U32    reserve : 25;
+        RK_U32    out_fmt_cfg : 1;  //vepu540
+        RK_U32    reserve : 24;
     } src_fmt;
 
     /* 0x48 - SRC_UDFY */
@@ -252,10 +266,21 @@ typedef struct H265eV541RegSet_t {
     } src_proc;
 
     /* 0x5c - MMU0_DTE_ADDR */
-    RK_U32 mmu0_dte_addr;
+    struct {
+        RK_U32    tile_width_m1  : 6;
+        RK_U32    reserved0      : 10;
+        RK_U32    tile_height_m1 : 6;
+        RK_U32    reserved1      : 9;
+        RK_U32    tile_en        : 1;
+    } tile_cfg;
 
     /* 0x60 - MMU1_DTE_ADDR */
-    RK_U32 mmu1_dte_addr;
+    struct {
+        RK_U32    tile_x    : 6;
+        RK_U32    reserved0 : 10;
+        RK_U32    tile_y    : 6;
+        RK_U32    reserved1 : 10;
+    } tile_pos;
 
     /* 0x64 - KLUT_OFST */
     struct {
@@ -602,7 +627,8 @@ typedef struct H265eV541RegSet_t {
         RK_U32    cime_rama_max : 11;
         RK_U32    cime_rama_h   : 5;
         RK_U32    cach_l2_tag   : 2;
-        RK_U32    reserved      : 14;
+        RK_U32    cime_linebuf_w: 8;  /*only used for 540*/
+        RK_U32    reserved      : 6;
     } me_ram;
 
     /*0x170 - SYNT_REF_MARK4*/
@@ -617,7 +643,15 @@ typedef struct H265eV541RegSet_t {
         RK_U32 dlt_poc_msb_cycl2 : 16;
     } synt_ref_mark5;
 
-    RK_U32 reserved_0x178_0x190[7];
+    struct {
+        RK_U32 osd_ch_inv_en : 8;
+        RK_U32 osd_itype : 8;
+        RK_U32 osd_lu_inv_msk : 8;
+        RK_U32 osd_ch_inv_msk : 8;
+    } osd_inv_cfg;
+    RK_U32 lpfw_addr_hevc;
+    RK_U32 lpfr_addr_hevc;
+    RK_U32 reserved_0x184_0x190[4];
 
     /* 0x194 - REG_THD, reserved */
     RK_U32 reg_thd;
@@ -633,10 +667,9 @@ typedef struct H265eV541RegSet_t {
         RK_U32    reserved1    : 9;
         RK_U32    cu_intra_en  : 4;
         RK_U32    chrm_klut_en : 1;
-        RK_U32    seq_scaling_matrix_present_flg : 1;
-        RK_U32    atf_p_en     : 1;
-        RK_U32    atf_i_en     : 1;
+        RK_U32    seq_scaling_matrix_present_flg : 2;
         RK_U32    reserved2    : 5;
+        RK_U32    stad_byps_flg : 1;  /*only for 540*/
     } rdo_cfg;
 
     /* 0x19c - swreg57, SYNT_NAL */
@@ -672,7 +705,8 @@ typedef struct H265eV541RegSet_t {
         RK_U32    lst_mdfy_prsnt_flg : 1;
         RK_U32    sli_seg_hdr_extn : 1;
         RK_U32    cu_qp_dlt_depth  : 2;
-        RK_U32    reserved : 11;
+        RK_U32    lpf_fltr_acrs_til : 1; /*only for 540*/
+        RK_U32    reserved : 10;
     } synt_pps;
 
     /* 0x1a8 - swreg60, SYNT_SLI0 */
@@ -880,287 +914,16 @@ typedef struct H265eV541RegSet_t {
 
 } H265eV541RegSet;
 
-typedef struct H265eV541L2RegSet_t {
-    /* L2 Register: 0x4 */
-    struct {
-        RK_U32 lvl32_intra_cst_thd0 : 12;
-        RK_U32 reserved0            : 4;
-        RK_U32 lvl32_intra_cst_thd1 : 12;
-        RK_U32 reserved1            : 4;
-    } lvl32_intra_CST_THD0;
+typedef struct H265eV541IoctlExtraInfoElem_t {
+    RK_U32 reg_idx;
+    RK_U32 offset;
+} H265eV541IoctlExtraInfoElem;
 
-    struct {
-        RK_U32 lvl32_intra_cst_thd2 : 12;
-        RK_U32 reserved0            : 4;
-        RK_U32 lvl32_intra_cst_thd3 : 12;
-        RK_U32 reserved1            : 4;
-    } lvl32_intra_CST_THD1;
-
-    struct {
-        RK_U32 lvl16_intra_cst_thd0 : 12;
-        RK_U32 reserved0            : 4;
-        RK_U32 lvl16_intra_cst_thd1 : 12;
-        RK_U32 reserved1            : 4;
-    } lvl16_intra_CST_THD0;
-
-    struct {
-        RK_U32 lvl16_intra_cst_thd2 : 12;
-        RK_U32 reserved0            : 4;
-        RK_U32 lvl16_intra_cst_thd3 : 12;
-        RK_U32 reserved1            : 4;
-    } lvl16_intra_CST_THD1;
-
-    /* 0x14-0x1c - reserved */
-    RK_U32 lvl8_intra_CST_THD0;
-    RK_U32 lvl8_intra_CST_THD1;
-    RK_U32 lvl16_intra_UL_CST_THD;
-
-    struct {
-        RK_U32 lvl32_intra_cst_wgt0 : 8;
-        RK_U32 lvl32_intra_cst_wgt1 : 8;
-        RK_U32 lvl32_intra_cst_wgt2 : 8;
-        RK_U32 lvl32_intra_cst_wgt3 : 8;
-    } lvl32_intra_CST_WGT0;
-
-    struct {
-        RK_U32 lvl32_intra_cst_wgt4 : 8;
-        RK_U32 lvl32_intra_cst_wgt5 : 8;
-        RK_U32 lvl32_intra_cst_wgt6 : 8;
-        RK_U32 reserved2            : 8;
-    } lvl32_intra_CST_WGT1;
-
-    struct {
-        RK_U32 lvl16_intra_cst_wgt0 : 8;
-        RK_U32 lvl16_intra_cst_wgt1 : 8;
-        RK_U32 lvl16_intra_cst_wgt2 : 8;
-        RK_U32 lvl16_intra_cst_wgt3 : 8;
-    } lvl16_intra_CST_WGT0;
-
-    struct {
-        RK_U32 lvl16_intra_cst_wgt4 : 8;
-        RK_U32 lvl16_intra_cst_wgt5 : 8;
-        RK_U32 lvl16_intra_cst_wgt6 : 8;
-        RK_U32 reserved2            : 8;
-    } lvl16_intra_CST_WGT1;
-
-    /* 0x30 - RDO_QUANT */
-    struct {
-        RK_U32 quant_f_bias_I       : 10;
-        RK_U32 quant_f_bias_P       : 10;
-        RK_U32 reserved             : 12;
-    } rdo_quant;
-
-    /* 0x34 - ATR_THD0, reserved */
-    struct {
-        RK_U32 atr_thd0         : 12;
-        RK_U32 reserved0        : 4;
-        RK_U32 atr_thd1         : 12;
-        RK_U32 reserved1        : 4;
-    } atr_thd0;
-
-    /* 0x38 - ATR_THD1, reserved */
-    struct {
-        RK_U32 atr_thd2         : 12;
-        RK_U32 reserved0        : 4;
-        RK_U32 atr_thdqp        : 6;
-        RK_U32 reserved1        : 10;
-    } atr_thd1;
-
-    /* 0x3c - Lvl16_ATR_WGT, reserved */
-    struct {
-        RK_U32 lvl16_atr_wgt0       : 8;
-        RK_U32 lvl16_atr_wgt1       : 8;
-        RK_U32 lvl16_atr_wgt2       : 8;
-        RK_U32 reserved             : 8;
-    } lvl16_atr_wgt;
-
-    /* 0x40 - Lvl8_ATR_WGT, reserved */
-    struct {
-        RK_U32 lvl8_atr_wgt0       : 8;
-        RK_U32 lvl8_atr_wgt1       : 8;
-        RK_U32 lvl8_atr_wgt2       : 8;
-        RK_U32 reserved            : 8;
-    } lvl8_atr_wgt;
-
-    /* 0x44 - Lvl4_ATR_WGT, reserved */
-    struct {
-        RK_U32 lvl4_atr_wgt0       : 8;
-        RK_U32 lvl4_atr_wgt1       : 8;
-        RK_U32 lvl4_atr_wgt2       : 8;
-        RK_U32 reserved            : 8;
-    } lvl4_atr_wgt;
-
-    /* 0x48 - ATF_THD0 */
-    struct {
-        RK_U32 atf_thd0_i32       : 6;
-        RK_U32 reserved0          : 10;
-        RK_U32 atf_thd1_i32       : 6;
-        RK_U32 reserved1          : 10;
-    } atf_thd0;
-
-    /* 0x4c - ATF_THD1 */
-    struct {
-        RK_U32 atf_thd0_i16       : 6;
-        RK_U32 reserved0          : 10;
-        RK_U32 atf_thd1_i16       : 6;
-        RK_U32 reserved1          : 10;
-    } atf_thd1;
-
-    /* 0x50 - ATF_SAD_THD0 */
-    struct {
-        RK_U32 atf_thd0_p64       : 6;
-        RK_U32 reserved0          : 10;
-        RK_U32 atf_thd1_p64       : 6;
-        RK_U32 reserved1          : 10;
-    } atf_sad_thd0;
-
-    /* 0x54 - ATF_SAD_THD1 */
-    struct {
-        RK_U32 atf_thd0_p32       : 6;
-        RK_U32 reserved0          : 10;
-        RK_U32 atf_thd1_p32       : 6;
-        RK_U32 reserved1          : 10;
-    } atf_sad_thd1;
-
-    /* 0x58 - ATF_SAD_WGT0 */
-    struct {
-        RK_U32 atf_thd0_p16       : 6;
-        RK_U32 reserved0          : 10;
-        RK_U32 atf_thd1_p16       : 6;
-        RK_U32 reserved1          : 10;
-    } atf_sad_wgt0;
-
-    /* 0x5c - ATF_SAD_WGT1 */
-    struct {
-        RK_U32 atf_wgt_i16       : 6;
-        RK_U32 reserved0         : 10;
-        RK_U32 atf_wgt_i32       : 6;
-        RK_U32 reserved1         : 10;
-    } atf_sad_wgt1;
-
-    /* 0x60 - ATF_SAD_WGT2 */
-    struct {
-        RK_U32 atf_wgt_p32       : 6;
-        RK_U32 reserved0         : 10;
-        RK_U32 atf_wgt_p64       : 6;
-        RK_U32 reserved1         : 10;
-    } atf_sad_wgt2;
-
-    /* 0x64 - ATF_SAD_OFST0 */
-    struct {
-        RK_U32 atf_wgt_p16         : 6;
-        RK_U32 reserved            : 26;
-    } atf_sad_ofst0;
-
-    /* 0x68 - ATF_SAD_OFST1, reserved */
-    struct {
-        RK_U32 atf_sad_ofst12       : 14;
-        RK_U32 reserved0            : 2;
-        RK_U32 atf_sad_ofst20       : 14;
-        RK_U32 reserved1            : 2;
-    } atf_sad_ofst1;
-
-    /* 0x6c - ATF_SAD_OFST2, reserved */
-    struct {
-        RK_U32 atf_sad_ofst21       : 14;
-        RK_U32 reserved0            : 2;
-        RK_U32 atf_sad_ofst30       : 14;
-        RK_U32 reserved1            : 2;
-    } atf_sad_ofst2;
-
-    /* 0x70-0x13c - LAMD_SATD_qp */
-    RK_U32 lamd_satd_qp[52];
-
-    /* 0x140-0x20c - LAMD_MOD_qp, combo for I and P */
-    RK_U32 lamd_moda_qp[52];
-    /* 0x210-0x2dc */
-    RK_U32 lamd_modb_qp[52];
-
-    /* 0x2e0 - MADI_CFG */
-    struct {
-        RK_U32 reserved      : 32;
-    } madi_cfg;
-
-    /* 0x2e4 - AQ_THD0 */
-    struct {
-        RK_U32 aq_thld0 : 8;
-        RK_U32 aq_thld1 : 8;
-        RK_U32 aq_thld2 : 8;
-        RK_U32 aq_thld3 : 8;
-    } aq_thd0;
-
-    /* 0x2e8 - AQ_THD1 */
-    struct {
-        RK_U32 aq_thld4 : 8;
-        RK_U32 aq_thld5 : 8;
-        RK_U32 aq_thld6 : 8;
-        RK_U32 aq_thld7 : 8;
-    } aq_thd1;
-
-    /* 0x2ec - AQ_THD2 */
-    struct {
-        RK_U32 aq_thld8  : 8;
-        RK_U32 aq_thld9  : 8;
-        RK_U32 aq_thld10 : 8;
-        RK_U32 aq_thld11 : 8;
-    } aq_thd2;
-
-    /* 0x2f0 - AQ_THD3 */
-    struct {
-        RK_U32 aq_thld12 : 8;
-        RK_U32 aq_thld13 : 8;
-        RK_U32 aq_thld14 : 8;
-        RK_U32 aq_thld15 : 8;
-    } aq_thd3;
-
-    /* 0x2f4 - AQ_QP_DLT0 */
-    struct {
-        RK_S32 qp_delta0 : 6;
-        RK_S32 reserved0 : 2;
-        RK_S32 qp_delta1 : 6;
-        RK_S32 reserved1 : 2;
-        RK_S32 qp_delta2 : 6;
-        RK_S32 reserved2 : 2;
-        RK_S32 qp_delta3 : 6;
-        RK_S32 reserved3 : 2;
-    } aq_qp_dlt0;
-
-    /* 0x2f8 - AQ_QP_DLT1 */
-    struct {
-        RK_S32 qp_delta4 : 6;
-        RK_S32 reserved0 : 2;
-        RK_S32 qp_delta5 : 6;
-        RK_S32 reserved1 : 2;
-        RK_S32 qp_delta6 : 6;
-        RK_S32 reserved2 : 2;
-        RK_S32 qp_delta7 : 6;
-        RK_S32 reserved3 : 2;
-    } aq_qp_dlt1;
-
-    /* 0x2fc - AQ_QP_DLT2 */
-    struct {
-        RK_S32 qp_delta8  : 6;
-        RK_S32 reserved0  : 2;
-        RK_S32 qp_delta9  : 6;
-        RK_S32 reserved1  : 2;
-        RK_S32 qp_delta10 : 6;
-        RK_S32 reserved2  : 2;
-        RK_S32 qp_delta11 : 6;
-        RK_S32 reserved3  : 2;
-    } aq_qp_dlt2;
-
-    /* 0x300 - AQ_QP_DLT3 */
-    struct {
-        RK_S32 qp_delta12 : 6;
-        RK_S32 reserved0  : 2;
-        RK_S32 qp_delta13 : 6;
-        RK_S32 reserved1  : 2;
-        RK_S32 qp_delta14 : 6;
-        RK_S32 reserved2  : 2;
-        RK_S32 qp_delta15 : 6;
-        RK_S32 reserved3  : 2;
-    } aq_qp_dlt3;
-} H265eV541L2RegSet;
+typedef struct H265eV541IoctlExtraInfo_t {
+    RK_U32                          magic;
+    RK_U32                          cnt;
+    H265eV541IoctlExtraInfoElem     elem[20];
+} H265eV541IoctlExtraInfo;
 
 typedef struct H265eV541IoctlRegInfo_t {
     RK_U32                  reg_num;

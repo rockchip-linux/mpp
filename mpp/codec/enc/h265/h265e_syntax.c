@@ -95,10 +95,10 @@ static void fill_picture_parameters(const H265eCtx *h,
                                               (pps->m_bUseWeightPred                              <<  4) |
                                               (pps->m_useWeightedBiPred                           <<  5) |
                                               (pps->m_transquantBypassEnableFlag                  <<  6) |
-                                              (0                                                  <<  7) |
+                                              (pps->m_tiles_enabled_flag                          <<  7) |
                                               (pps->m_entropyCodingSyncEnabledFlag                <<  8) |
-                                              (0                                                  <<  9) |
-                                              (0                                                  << 10) |
+                                              (pps->m_bTileUniformSpacing                         <<  9) |
+                                              (pps->m_loopFilterAcrossTilesEnabledFlag            << 10) |
                                               (pps->m_LFCrossSliceBoundaryFlag                    << 11) |
                                               (pps->m_deblockingFilterOverrideEnabledFlag         << 12) |
                                               (pps->m_picDisableDeblockingFilterFlag              << 13) |
@@ -111,6 +111,21 @@ static void fill_picture_parameters(const H265eCtx *h,
     pp->pps_beta_offset_div2             = pps->m_deblockingFilterBetaOffsetDiv2;
     pp->pps_tc_offset_div2               = pps->m_deblockingFilterTcOffsetDiv2;
     pp->log2_parallel_merge_level_minus2 = pps->m_log2ParallelMergeLevelMinus2 - 2;
+    if (pps->m_tiles_enabled_flag) {
+        RK_U8 i = 0;
+
+        mpp_assert(pps->m_nNumTileColumnsMinus1 <= 19);
+        mpp_assert(pps->m_nNumTileRowsMinus1 <= 21);
+
+        pp->num_tile_columns_minus1 = pps->m_nNumTileColumnsMinus1;
+        pp->num_tile_rows_minus1 = pps->m_nNumTileRowsMinus1;
+
+        for (i = 0; i < pp->num_tile_columns_minus1; i++)
+            pp->column_width_minus1[i] = pps->m_nTileColumnWidthArray[i];
+
+        for (i = 0; i < pp->num_tile_rows_minus1; i++)
+            pp->row_height_minus1[i] = pps->m_nTileRowHeightArray[i];
+    }
 }
 
 static void fill_slice_parameters( const H265eCtx *h,

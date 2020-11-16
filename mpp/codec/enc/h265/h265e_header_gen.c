@@ -484,6 +484,7 @@ static MPP_RET h265e_pps_write(H265ePps *pps, H265eSps *sps, H265eStream *s)
 {
     (void) sps;
     RK_S32 pps_byte_start = 0;
+    RK_S32 i;
     h265e_stream_realign(s);
     pps_byte_start = s->enc_stream.byte_cnt;
 
@@ -512,8 +513,23 @@ static MPP_RET h265e_pps_write(H265ePps *pps, H265eSps *sps, H265eStream *s)
     h265e_stream_write1_with_log(s, pps->m_bUseWeightPred ? 1 : 0,                    "weighted_pred_flag");  // Use of Weighting Prediction (P_SLICE)
     h265e_stream_write1_with_log(s, pps->m_useWeightedBiPred ? 1 : 0,                 "weighted_bipred_flag"); // Use of Weighting Bi-Prediction (B_SLICE)
     h265e_stream_write1_with_log(s, pps->m_transquantBypassEnableFlag ? 1 : 0, "transquant_bypass_enable_flag");
-    h265e_stream_write1_with_log(s, 0,                                          "tiles_enabled_flag");
+    h265e_stream_write1_with_log(s, pps->m_tiles_enabled_flag,                  "tiles_enabled_flag");
     h265e_stream_write1_with_log(s, pps->m_entropyCodingSyncEnabledFlag ? 1 : 0, "entropy_coding_sync_enabled_flag");
+    if (pps->m_tiles_enabled_flag) {
+        h265e_stream_write_ue_with_log(s, pps->m_nNumTileColumnsMinus1, "num_tile_columns_minus1");
+        h265e_stream_write_ue_with_log(s, pps->m_nNumTileRowsMinus1, "num_tile_rows_minus1");
+        h265e_stream_write1_with_log(s, pps->m_bTileUniformSpacing, "uniform_spacing_flag");
+        if (!pps->m_bTileUniformSpacing) {
+            for ( i = 0; i < pps->m_nNumTileColumnsMinus1; i++) {
+                h265e_stream_write_ue_with_log(s, pps->m_nTileColumnWidthArray[i + 1] - pps->m_nTileColumnWidthArray[i] - 1, "column_width_minus1");
+            }
+            for (i = 0; i < pps->m_nNumTileRowsMinus1; i++) {
+                h265e_stream_write_ue_with_log(s, pps->m_nTileRowHeightArray[i + 1] - pps->m_nTileRowHeightArray[i - 1], "row_height_minus1");
+            }
+        }
+        mpp_assert((pps->m_nNumTileColumnsMinus1 + pps->m_nNumTileRowsMinus1) != 0);
+        h265e_stream_write1_with_log(s, pps->m_loopFilterAcrossTilesEnabledFlag ? 1 : 0, "loop_filter_across_tiles_enabled_flag");
+    }
     h265e_stream_write1_with_log(s, pps->m_LFCrossSliceBoundaryFlag ? 1 : 0, "loop_filter_across_slices_enabled_flag");
 
     // TODO: Here have some time sequence problem, we set below field in initEncSlice(), but use them in getStreamHeaders() early

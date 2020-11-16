@@ -310,9 +310,15 @@ typedef struct H265ePps_e {
     RK_U32      m_useTransformSkip;
     RK_U32      m_entropyCodingSyncEnabledFlag; //!< Indicates the presence of wavefronts
 
-    RK_U32      m_loopFilterAcrossTilesEnabledFlag;
 
     RK_S32      m_signHideFlag;
+    RK_S32      m_tiles_enabled_flag;
+    RK_U32      m_bTileUniformSpacing;
+    RK_S32      m_nNumTileColumnsMinus1;
+    RK_S32      m_nTileColumnWidthArray[33];
+    RK_S32      m_nNumTileRowsMinus1;
+    RK_S32      m_nTileRowHeightArray[128];
+    RK_U32      m_loopFilterAcrossTilesEnabledFlag;
 
     RK_U32      m_cabacInitPresentFlag;
     RK_U32      m_encCABACTableIdx;         // Used to transmit table selection across slices
