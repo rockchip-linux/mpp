@@ -107,6 +107,10 @@ typedef struct H265ePicParams_t {
     };
     RK_S8  pps_cb_qp_offset;
     RK_S8  pps_cr_qp_offset;
+    RK_U8   num_tile_columns_minus1;
+    RK_U8   num_tile_rows_minus1;
+    RK_S32  column_width_minus1[19];
+    RK_S32  row_height_minus1[21];
     RK_U8  diff_cu_qp_delta_depth;
     RK_S8  pps_beta_offset_div2;
     RK_S8  pps_tc_offset_div2;
