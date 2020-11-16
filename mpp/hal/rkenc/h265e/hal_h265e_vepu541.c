@@ -27,6 +27,7 @@
 #include "mpp_frame_impl.h"
 
 #include "h265e_syntax_new.h"
+#include "hal_h265e_debug.h"
 #include "hal_h265e_api.h"
 #include "hal_h265e_vepu541.h"
 #include "vepu541_common.h"
@@ -35,11 +36,10 @@
 #include "hal_bufs.h"
 #include "mpp_enc_ref.h"
 
-#define H265E_DBG_SIMPLE            0x00000010
-#define H265E_DBG_REG               0x00000020
-#define H265E_DBG_DETAIL            0x00000040
-#define H265E_DBG_FLOW              0x00000100
-extern RK_U32 hal_h265e_debug;
+#define hal_h265e_err(fmt, ...) \
+    do {\
+        mpp_err_f(fmt, ## __VA_ARGS__);\
+    } while (0)
 
 typedef struct vepu541_h265_fbk_t {
     RK_U32 hw_status; /* 0:corret, 1:error */
@@ -99,42 +99,10 @@ typedef struct H265eV541HalContext_t {
     HalBufs             dpb_bufs;
 } H265eV541HalContext;
 
-
-//#define H265EHW_EN
-
-#define h265e_hal_err(fmt, ...) \
-    do {\
-        mpp_err_f(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h265e_hal_dbg(type, fmt, ...) \
-    do {\
-        if (hal_h265e_debug & type)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h265e_hal_dbg_f(type, fmt, ...) \
-    do {\
-        if (hal_h265e_debug & type)\
-            mpp_log_f(fmt, ## __VA_ARGS__);\
-    } while (0)
-
-#define h265e_hal_enter() \
-    do {\
-        if (hal_h265e_debug & H265E_DBG_FLOW)\
-            mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
-    } while (0)
-
-#define h265e_hal_leave() \
-    do {\
-        if (hal_h265e_debug & H265E_DBG_FLOW)\
-            mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
-    } while (0)
-
 RK_U32 klut_weight[24] = {
     0x50800080, 0x00330000, 0xA1000100, 0x00660000, 0x42000200, 0x00CC0001,
     0x84000400, 0x01980002, 0x08000800, 0x03300005, 0x10001000, 0x0660000A,
-    0x20002000, 0x0CC00014, 0x40004000 , 0x19800028, 0x80008000, 0x33000050,
+    0x20002000, 0x0CC00014, 0x40004000, 0x19800028, 0x80008000, 0x33000050,
     0x00010000, 0x660000A1, 0x00020000, 0xCC000142, 0xFF83FFFF, 0x000001FF
 };
 RK_U8 aq_thd_default[16] = {
@@ -198,12 +166,12 @@ static MPP_RET vepu541_h265_free_buffers(H265eV541HalContext *ctx)
 {
     RK_S32 k = 0;
     h265e_v541_buffers *buffers = (h265e_v541_buffers *)ctx->buffers;
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
         if (buffers->hw_mei_buf[k]) {
             if (MPP_OK != mpp_buffer_put(buffers->hw_mei_buf[k])) {
-                h265e_hal_err("hw_mei_buf[%d] put failed", k);
+                hal_h265e_err("hw_mei_buf[%d] put failed", k);
                 return MPP_NOK;
             }
         }
@@ -212,12 +180,12 @@ static MPP_RET vepu541_h265_free_buffers(H265eV541HalContext *ctx)
     for (k = 0; k < RKVE_LINKTABLE_FRAME_NUM; k++) {
         if (buffers->hw_roi_buf[k]) {
             if (MPP_OK != mpp_buffer_put(buffers->hw_roi_buf[k])) {
-                h265e_hal_err("hw_roi_buf[%d] put failed", k);
+                hal_h265e_err("hw_roi_buf[%d] put failed", k);
                 return MPP_NOK;
             }
         }
     }
-    h265e_hal_leave();
+    hal_h265e_leave();
     return MPP_OK;
 }
 
@@ -234,7 +202,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
     RK_S32 new_max_cnt = 2;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     mb_wd64 = (syn->pp.pic_width + 63) / 64;
     mb_h64 = (syn->pp.pic_height + 63) / 64;
@@ -261,7 +229,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         frame_size *= 4;
     } break;
     default: {
-        h265e_hal_err("invalid src color space: %d\n", input_fmt);
+        hal_h265e_err("invalid src color space: %d\n", input_fmt);
         return MPP_NOK;
     }
     }
@@ -286,8 +254,8 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256);
         new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
 
-        h265e_hal_dbg(H265E_DBG_DETAIL, "frame size %d -> %d max count %d -> %d\n",
-                      ctx->frame_size, frame_size, old_max_cnt, new_max_cnt);
+        hal_h265e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
+                             ctx->frame_size, frame_size, old_max_cnt, new_max_cnt);
 
         hal_bufs_setup(ctx->dpb_bufs, new_max_cnt, 3, size);
         if (1) {
@@ -295,7 +263,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
                 ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V541_BUF_GRP_ROI],
                                      &buffers->hw_roi_buf[k], vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
                 if (ret) {
-                    h265e_hal_err("hw_roi_buf[%d] get failed", k);
+                    hal_h265e_err("hw_roi_buf[%d] get failed", k);
                     return ret;
                 }
             }
@@ -304,7 +272,7 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         ctx->frame_size = frame_size;
         ctx->max_buf_cnt = new_max_cnt;
     }
-    h265e_hal_leave();
+    hal_h265e_leave();
     return ret;
 }
 
@@ -358,7 +326,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     h265e_v541_buffers *buffers = NULL;
 
     mpp_env_get_u32("hal_h265e_debug", &hal_h265e_debug, 0);
-    h265e_hal_enter();
+    hal_h265e_enter();
     ctx->ioctl_input    = mpp_calloc(H265eV541IoctlInput, 1);
     ctx->ioctl_output   = mpp_calloc(H265eV541IoctlOutput, 1);
     ctx->regs           = mpp_calloc(H265eV541RegSet, RKVE_LINKTABLE_FRAME_NUM);
@@ -386,7 +354,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     buffers = (h265e_v541_buffers *)ctx->buffers;
     for (k = 0; k < H265E_V541_BUF_GRP_BUTT; k++) {
         if (MPP_OK != mpp_buffer_group_get_internal(&buffers->hw_buf_grp[k], MPP_BUFFER_TYPE_ION)) {
-            h265e_hal_err("buf group[%d] get failed", k);
+            hal_h265e_err("buf group[%d] get failed", k);
             return MPP_ERR_MALLOC;
         }
     }
@@ -397,14 +365,14 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->osd_cfg.osd_data = NULL;
 
     ctx->frame_type = INTRA_FRAME;
-    h265e_hal_leave();
+    hal_h265e_leave();
     return ret;
 }
 
 MPP_RET hal_h265e_v541_deinit(void *hal)
 {
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
-    h265e_hal_enter();
+    hal_h265e_enter();
     MPP_FREE(ctx->regs);
     MPP_FREE(ctx->l2_regs);
     MPP_FREE(ctx->ioctl_input);
@@ -422,7 +390,7 @@ MPP_RET hal_h265e_v541_deinit(void *hal)
         for (k = 0; k < H265E_V541_BUF_GRP_BUTT; k++) {
             if (buffers->hw_buf_grp[k]) {
                 if (MPP_OK != mpp_buffer_group_put(buffers->hw_buf_grp[k])) {
-                    h265e_hal_err("buf group[%d] put failed", k);
+                    hal_h265e_err("buf group[%d] put failed", k);
                     return MPP_NOK;
                 }
             }
@@ -434,7 +402,7 @@ MPP_RET hal_h265e_v541_deinit(void *hal)
         mpp_dev_deinit(ctx->dev);
         ctx->dev = NULL;
     }
-    h265e_hal_leave();
+    hal_h265e_leave();
     return MPP_OK;
 }
 
@@ -478,7 +446,7 @@ vepu541_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_f
             v_offset = 0;
         } break;
         default: {
-            h265e_hal_err("unknown color space: %d\n", input_fmt);
+            hal_h265e_err("unknown color space: %d\n", input_fmt);
             u_offset = frame_size;
             v_offset = frame_size * 5 / 4;
         }
@@ -924,16 +892,15 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     RK_U32 offset = mpp_packet_get_length(task->packet);
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
     pic_width_align8 = (syn->pp.pic_width + 7) & (~7);
     pic_height_align8 = (syn->pp.pic_height + 7) & (~7);
     pic_wd64 = (syn->pp.pic_width + 63) / 64;
     pic_h64 = (syn->pp.pic_height + 63) / 64;
 
     fbc_header_len =  MPP_ALIGN(((pic_wd64 * pic_h64) << 6), SZ_8K);
-    h265e_hal_dbg(H265E_DBG_SIMPLE,
-                  "frame %d | type %d | start gen regs",
-                  ctx->frame_cnt, ctx->frame_type);
+    hal_h265e_dbg_simple("frame %d | type %d | start gen regs",
+                         ctx->frame_cnt, ctx->frame_type);
 
     if (ctx->enc_mode == 2 || ctx->enc_mode == 3) { //link table mode
         RK_U32 idx = ctx->frame_cnt_gen_ready;
@@ -1103,7 +1070,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 
     ctx->frame_num++;
 
-    h265e_hal_leave();
+    hal_h265e_leave();
 
     return MPP_OK;
 }
@@ -1118,23 +1085,21 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
     H265eV541IoctlOutput *reg_out = (H265eV541IoctlOutput *)ctx->ioctl_output;
     HalEncTask *enc_task = task;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
     if (enc_task->flags.err) {
-        h265e_hal_err("enc_task->flags.err %08x, return early",
+        hal_h265e_err("enc_task->flags.err %08x, return early",
                       enc_task->flags.err);
         return MPP_NOK;
     }
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        h265e_hal_dbg(H265E_DBG_DETAIL,
-                      "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
-                      ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
+        hal_h265e_dbg_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), start hardware later",
+                             ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     }
 
-    h265e_hal_dbg(H265E_DBG_DETAIL,
-                  "memcpy %d frames' regs from reg list to reg info",
-                  ioctl_info->frame_num);
+    hal_h265e_dbg_detail("memcpy %d frames' regs from reg list to reg info",
+                         ioctl_info->frame_num);
 
     for (k = 0; k < ioctl_info->frame_num; k++) {
         RK_U32 i;
@@ -1187,9 +1152,9 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
             }
         } while (0);
 
-        for (i = 0; i < sizeof(H265eV541RegSet) / 4; i++) {
-            h265e_hal_dbg(H265E_DBG_REG, "set reg[%04d]: 0%08x\n", i, regs[i]);
-        }
+        if (hal_h265e_debug & HAL_H265E_DBG_REGS)
+            for (i = 0; i < sizeof(H265eV541RegSet) / 4; i++)
+                mpp_log("set reg[%04d]: 0%08x\n", i, regs[i]);
     }
 
     // length = (sizeof(ioctl_info->enc_mode) + sizeof(ioctl_info->frame_num) +
@@ -1197,9 +1162,9 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
 
     ctx->frame_cnt_send_ready++;
 
-    h265e_hal_dbg(H265E_DBG_DETAIL, "vpu client is sending %d regs", length);
+    hal_h265e_dbg_detail("vpu client is sending %d regs", length);
 
-    h265e_hal_leave();
+    hal_h265e_leave();
     return ret;
 }
 
@@ -1216,7 +1181,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
     (void)enc_task;
     RK_U32 k = 0;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     for (k = 0; k < ctx->num_frames_to_send; k++) {
         H265eV541IoctlOutputElem *elem = &out->elem[k];
@@ -1229,33 +1194,33 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
                       ((RK_S64)(elem->st_sse_qp.sse_h8 & 0xff) << 32);
 
         fb->hw_status = hw_status;
-        h265e_hal_dbg(H265E_DBG_DETAIL, "hw_status: 0x%08x", hw_status);
+        hal_h265e_dbg_detail("hw_status: 0x%08x", hw_status);
         if (hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
-            h265e_hal_err("RKV_ENC_INT_LINKTABLE_FINISH");
+            hal_h265e_err("RKV_ENC_INT_LINKTABLE_FINISH");
 
         if (hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
-            h265e_hal_dbg(H265E_DBG_DETAIL, "RKV_ENC_INT_ONE_FRAME_FINISH");
+            hal_h265e_dbg_detail("RKV_ENC_INT_ONE_FRAME_FINISH");
 
         if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
-            h265e_hal_err("RKV_ENC_INT_ONE_SLICE_FINISH");
+            hal_h265e_err("RKV_ENC_INT_ONE_SLICE_FINISH");
 
         if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
-            h265e_hal_err("RKV_ENC_INT_SAFE_CLEAR_FINISH");
+            hal_h265e_err("RKV_ENC_INT_SAFE_CLEAR_FINISH");
 
         if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
-            h265e_hal_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
+            hal_h265e_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
 
         if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL)
-            h265e_hal_err("RKV_ENC_INT_BUS_WRITE_FULL");
+            hal_h265e_err("RKV_ENC_INT_BUS_WRITE_FULL");
 
         if (hw_status & RKV_ENC_INT_BUS_WRITE_ERROR)
-            h265e_hal_err("RKV_ENC_INT_BUS_WRITE_ERROR");
+            hal_h265e_err("RKV_ENC_INT_BUS_WRITE_ERROR");
 
         if (hw_status & RKV_ENC_INT_BUS_READ_ERROR)
-            h265e_hal_err("RKV_ENC_INT_BUS_READ_ERROR");
+            hal_h265e_err("RKV_ENC_INT_BUS_READ_ERROR");
 
         if (hw_status & RKV_ENC_INT_TIMEOUT_ERROR)
-            h265e_hal_err("RKV_ENC_INT_TIMEOUT_ERROR");
+            hal_h265e_err("RKV_ENC_INT_TIMEOUT_ERROR");
         if (elem->st_mb_num) {
             fb->st_madi = elem->st_madi / elem->st_mb_num;
         } else {
@@ -1295,7 +1260,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx,
         }
     }
 
-    h265e_hal_leave();
+    hal_h265e_leave();
 
     return MPP_OK;
 }
@@ -1312,28 +1277,26 @@ MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
 
     HalEncTask *enc_task = task;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     if (enc_task->flags.err) {
-        h265e_hal_err("enc_task->flags.err %08x, return early",
+        hal_h265e_err("enc_task->flags.err %08x, return early",
                       enc_task->flags.err);
         return MPP_NOK;
     }
 
     if (ctx->frame_cnt_gen_ready != ctx->num_frames_to_send) {
-        h265e_hal_dbg(H265E_DBG_DETAIL,
-                      "frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
-                      ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
+        hal_h265e_dbg_detail("frame_cnt_gen_ready(%d) != num_frames_to_send(%d), wait hardware later",
+                             ctx->frame_cnt_gen_ready, ctx->num_frames_to_send);
         return MPP_OK;
     } else {
         ctx->frame_cnt_gen_ready = 0;
         if (ctx->enc_mode == RKVENC_LINKTABLE_UPDATE) {
             /* TODO: remove later */
-            h265e_hal_dbg(H265E_DBG_DETAIL, "only for test enc_mode 3 ...");
+            hal_h265e_dbg_detail("only for test enc_mode 3 ...");
             if (ctx->frame_cnt_send_ready != RKVE_LINKTABLE_FRAME_NUM) {
-                h265e_hal_dbg(H265E_DBG_DETAIL,
-                              "frame_cnt_send_ready(%d) != RKV5_LINKTABLE_FRAME_NUM(%d), wait hardware later",
-                              ctx->frame_cnt_send_ready, RKVE_LINKTABLE_FRAME_NUM);
+                hal_h265e_dbg_detail("frame_cnt_send_ready(%d) != RKV5_LINKTABLE_FRAME_NUM(%d), wait hardware later",
+                                     ctx->frame_cnt_send_ready, RKVE_LINKTABLE_FRAME_NUM);
                 return MPP_OK;
             } else {
                 ctx->frame_cnt_send_ready = 0;
@@ -1341,14 +1304,13 @@ MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
         }
     }
 
-    h265e_hal_dbg(H265E_DBG_DETAIL, "mpp_device_wait_reg expect length %d\n",
-                  length);
+    hal_h265e_dbg_detail("mpp_device_wait_reg expect length %d\n", length);
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
-    h265e_hal_leave();
+    hal_h265e_leave();
     return ret;
 }
 
@@ -1359,10 +1321,10 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
     MppFrame frame = task->frame;
     EncFrmStatus  *frm_status = &task->rc_task->frm;
 
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     if (h265e_rkv_allocate_buffers(ctx, syn)) {
-        h265e_hal_err("h265e_rkv_allocate_buffers failed, free buffers and return\n");
+        hal_h265e_err("h265e_rkv_allocate_buffers failed, free buffers and return\n");
         task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
         vepu541_h265_free_buffers(ctx);
         return MPP_ERR_MALLOC;
@@ -1380,7 +1342,7 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
     }
 
-    h265e_hal_leave();
+    hal_h265e_leave();
     return MPP_OK;
 }
 
@@ -1390,7 +1352,7 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
     H265eV541IoctlOutput *reg_out = (H265eV541IoctlOutput *)ctx->ioctl_output;
     HalEncTask *enc_task = task;
     vepu541_h265_fbk *fb = &ctx->feedback;
-    h265e_hal_enter();
+    hal_h265e_enter();
 
     vepu541_h265_set_feedback(ctx, reg_out, enc_task);
 
@@ -1399,10 +1361,9 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
     enc_task->hal_ret.data = ctx->rc_hal_cfg;
     enc_task->hal_ret.number = ctx->num_frames_to_send;
 
-    h265e_hal_dbg(H265E_DBG_DETAIL, "output stream size %d\n",
-                  fb->out_strm_size);
+    hal_h265e_dbg_detail("output stream size %d\n", fb->out_strm_size);
 
-    h265e_hal_leave();
+    hal_h265e_leave();
     return MPP_OK;
 }
 
