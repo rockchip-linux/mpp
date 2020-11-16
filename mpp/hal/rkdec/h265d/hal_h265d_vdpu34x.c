@@ -855,7 +855,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common_addr.str_rlc_base.strm_rlc_base =  mpp_buffer_get_fd(streambuf);
     hw_regs->common_addr.rlcwrite_base.rlcwrite_base = mpp_buffer_get_fd(streambuf);
     hw_regs->common.dec_str_len.stream_len          = ((dxva_cxt->bitstream_size + 15)
-                                                            & (~15)) + 64;
+                                                       & (~15)) + 64;
     aglin_offset =  hw_regs->common.dec_str_len.stream_len - dxva_cxt->bitstream_size;
     if (aglin_offset > 0) {
         memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0,
@@ -864,7 +864,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.dec_en.dec_e               = 1;
     hw_regs->common.dec_imp_en.dec_timeout_e   = 1;
     hw_regs->common.dec_sec_en.wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag
-                                                      ? 0 : 1;
+                                                 ? 0 : 1;
 
     hw_regs->common.dec_cabac_err_en_lowbits.cabac_err_en_lowbits = 0xffffdfff;
     hw_regs->common.dec_cabac_err_en_highbits.cabac_err_en_highbits = 0x3ffbf9ff;
