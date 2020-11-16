@@ -23,10 +23,10 @@
 #include "mpp_common.h"
 #include "mpp_platform.h"
 
+#include "hal_h265e_debug.h"
 #include "hal_h265e_api.h"
 #include "hal_h265e_base.h"
 #include "hal_h265e_vepu22.h"
-
 
 RK_U32 hal_h265e_debug = 0;
 
