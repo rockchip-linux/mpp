@@ -44,8 +44,8 @@ typedef enum H265e_v541_buf_grp_t {
 typedef struct H265e_v541_buffers_t {
     MppBufferGroup hw_buf_grp[H265E_V541_BUF_GRP_BUTT];
 
-    MppBuffer hw_mei_buf[RKV_H265E_LINKTABLE_FRAME_NUM];
-    MppBuffer hw_roi_buf[RKV_H265E_LINKTABLE_FRAME_NUM];
+    MppBuffer hw_mei_buf;
+    MppBuffer hw_roi_buf;
 } h265e_v541_buffers;
 
 /* OSD position */
@@ -1271,10 +1271,4 @@ typedef struct H265eV541IoctlOutputElem_t {
     RK_U32 st_madi;
     RK_U32 st_mb_num; /* used for MADI calculation */
 } H265eV541IoctlOutputElem;
-
-typedef struct H265eV541IoctlOutput_t {
-    RK_U32                      frame_num;
-    H265eV541IoctlOutputElem    elem[RKV_H265E_LINKTABLE_MAX_SIZE];
-} H265eV541IoctlOutput;
-
 #endif
