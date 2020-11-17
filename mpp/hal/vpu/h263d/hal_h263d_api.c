@@ -54,24 +54,6 @@ static MPP_RET hal_h263d_wait(void *hal, HalTaskInfo *task)
     return ctx->hal_api.wait(hal, task);
 }
 
-static MPP_RET hal_h263d_reset(void *hal)
-{
-    hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    return ctx->hal_api.reset(hal);
-}
-
-static MPP_RET hal_h263d_flush(void *hal)
-{
-    hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    return ctx->hal_api.flush(hal);
-}
-
-static MPP_RET hal_h263d_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
-    return ctx->hal_api.control(hal, cmd_type, param);
-}
-
 static MPP_RET hal_h263d_deinit(void *hal)
 {
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
@@ -142,7 +124,7 @@ const MppHalApi hal_api_h263d = {
     hal_h263d_gen_regs,
     hal_h263d_start,
     hal_h263d_wait,
-    hal_h263d_reset,
-    hal_h263d_flush,
-    hal_h263d_control,
+    NULL,
+    NULL,
+    NULL,
 };
