@@ -450,7 +450,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
 {
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     Vdpu34xRegCommon *common = &regs->common;
-    RK_U32 yuv_virstride = 0;
+    HalBuf *mv_buf = NULL;
 
     memset(regs, 0, sizeof(Vdpu34xH264dRegSet));
 
@@ -487,13 +487,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         ver_virstride = mpp_frame_get_ver_stride(mframe);
         y_virstride = hor_virstride * ver_virstride;
 
-        if (pp->chroma_format_idc == 0) { //!< Y400
-            yuv_virstride = y_virstride;
-        } else if (pp->chroma_format_idc == 1) { //!< Y420
-            yuv_virstride = y_virstride + y_virstride / 2;
-        } else if (pp->chroma_format_idc == 2) { //!< Y422
-            yuv_virstride = 2 * y_virstride;
-        }
         common->dec_y_hor_stride.y_hor_virstride = hor_virstride / 16;
         common->dec_uv_hor_stride.uv_hor_virstride = hor_virstride / 16;
         common->dec_y_stride.y_virstride = y_virstride / 16;
@@ -502,7 +495,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
     {
         MppBuffer mbuffer = NULL;
         RK_S32 fd = -1;
-        MppDevRegOffsetCfg cfg;
 
         regs->h264d_param.cur_poc.cur_top_poc = pp->CurrFieldOrderCnt[0];
         regs->h264d_param.cur_poc1.cur_bot_poc = pp->CurrFieldOrderCnt[1];
@@ -510,13 +502,11 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         fd = mpp_buffer_get_fd(mbuffer);
         regs->common_addr.decout_base.decout_base = fd;
         //colmv_cur_base
-        regs->common_addr.colmv_cur_base.colmv_cur_base = fd;
+
+        mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, pp->CurrPic.Index7Bits);
+        regs->common_addr.colmv_cur_base.colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
         regs->common_addr.error_ref_base.error_ref_base = fd;
 
-        cfg.reg_idx = 131;
-        cfg.offset = MPP_ALIGN(yuv_virstride, 16);
-
-        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &cfg);
     }
     //!< set reference
     {
@@ -524,7 +514,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         RK_S32 ref_index = -1;
         RK_S32 near_index = -1;
         MppBuffer mbuffer = NULL;
-        MppDevRegOffsetCfg cfg;
 
         for (i = 0; i < 15; i++) {
             regs->h264d_param.ref0_31_poc[i].ref_poc = (i & 1)
@@ -545,12 +534,9 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
             mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
             RK_S32 fd = mpp_buffer_get_fd(mbuffer);
             regs->h264d_addr.ref_base[i] = fd;
-            regs->h264d_addr.colmv_base[i] = fd;
+            mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
+            regs->h264d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
-            cfg.reg_idx = 181 + i;
-            cfg.offset = MPP_ALIGN(yuv_virstride, 16);
-
-            mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &cfg);
         }
         regs->h264d_param.ref0_31_poc[30].ref_poc = pp->FieldOrderCntList[15][0];
         regs->h264d_param.ref0_31_poc[31].ref_poc = pp->FieldOrderCntList[15][1];
@@ -567,12 +553,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
         RK_S32 fd = mpp_buffer_get_fd(mbuffer);
         regs->h264d_addr.ref_base[15] = fd;
-        regs->h264d_addr.colmv_base[15] = fd;
-
-        cfg.reg_idx = 181 + 15;
-        cfg.offset = MPP_ALIGN(yuv_virstride, 16);
-
-        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &cfg);
+        mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
+        regs->h264d_addr.colmv_base[15] = mpp_buffer_get_fd(mv_buf->buf[0]);
     }
     {
         MppBuffer mbuffer = NULL;
@@ -665,6 +647,7 @@ MPP_RET vdpu34x_h264d_deinit(void *hal)
     mpp_buffer_put(reg_ctx->cabac_buf);
     mpp_buffer_put(reg_ctx->errinfo_buf);
     mpp_buffer_put(reg_ctx->rcb_buf);
+    hal_bufs_deinit(p_hal->cmv_bufs);
     MPP_FREE(p_hal->reg_ctx);
 
     return MPP_OK;
@@ -674,15 +657,36 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
+    RK_U32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
+    RK_U32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+    H264dRkvRegCtx_t *ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    Vdpu34xH264dRegSet *regs = ctx->regs;
+    RK_U32 mv_size = (width * height >> 1);
     INP_CHECK(ret, NULL == p_hal);
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
         goto __RETURN;
     }
-    H264dRkvRegCtx_t *ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
-    Vdpu34xH264dRegSet *regs = ctx->regs;
+
+    if (p_hal->cmv_bufs == NULL || p_hal->mv_size < mv_size) {
+        size_t size = mv_size;
+
+        if (p_hal->cmv_bufs) {
+            hal_bufs_deinit(p_hal->cmv_bufs);
+            p_hal->cmv_bufs = NULL;
+        }
+
+        hal_bufs_init(&p_hal->cmv_bufs);
+        if (p_hal->cmv_bufs == NULL) {
+            mpp_err_f("colmv bufs init fail");
+            goto __RETURN;
+        }
+        p_hal->mv_size = mv_size;
+        p_hal->mv_count = mpp_buf_slot_get_count(p_hal->frame_slots);
+        hal_bufs_setup(p_hal->cmv_bufs, p_hal->mv_count, 1, &size);
+    }
+
     if (p_hal->fast_mode) {
         RK_U32 i = 0;
         for (i = 0; i <  MPP_ARRAY_ELEMS(ctx->reg_buf); i++) {
@@ -719,9 +723,6 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
                      (void *)ctx->sclst, sizeof(ctx->sclst));
     regs->h264d_addr.scanlist_addr = mpp_buffer_get_fd(ctx->sclst_buf);
     regs->common.dec_sec_en.scanlist_addr_valid_en = 1;
-
-    RK_U32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
-    RK_U32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
 
     if (ctx->rcb_buf == NULL) {
         RK_U32 rcb_buf_size =
