@@ -19,6 +19,7 @@
 
 #include "mpp_device.h"
 #include "mpp_hal.h"
+#include "hal_bufs.h"
 
 #define MAX_GEN_REG 3
 
@@ -55,6 +56,10 @@ typedef struct HalH265dCtx_t {
     RK_U32          fast_mode_err_found;
     void            *scaling_rk;
     void            *scaling_qm;
+    HalBufs         cmv_bufs;
+    RK_U32          mv_size;
+    RK_S32          mv_count;
+
     RK_U32          is_v345;
     RK_U32          is_v34x;
 } HalH265dCtx;
