@@ -928,78 +928,25 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.dec_en_mode_set.h26x_error_mode = 1;
     hw_regs->common.dec_imp_en.buf_empty_en = 1;
 
-    if (reg_cxt->rcb_buf == NULL) {
-        RK_U32 rcb_buf_size =
-            RCB_INTRAR_COEF * width +
-            RCB_TRANSDR_COEF * width +
-            RCB_TRANSDC_COEF * height +
-            RCB_STRMDR_COEF * width +
-            RCB_INTERR_COEF * width +
-            RCB_INTERC_COEF * height +
-            RCB_DBLKR_COEF * width +
-            RCB_SAOR_COEF * width +
-            RCB_FBCR_COEF * width +
-            RCB_FILTC_COEF * height;
-        ret = mpp_buffer_get(reg_cxt->group,
-                             &reg_cxt->rcb_buf, rcb_buf_size);
-    }
-    if (reg_cxt->rcb_buf != NULL) {
-        RK_U32 transdr_offset = RCB_INTRAR_COEF * width;
-        RK_U32 transdc_offset = RCB_INTRAR_COEF * width + RCB_TRANSDR_COEF * width;
-        RK_U32 strmdr_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height;
-        RK_U32 interr_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height +
-                               RCB_STRMDR_COEF * width;
-        RK_U32 interc_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height +
-                               RCB_STRMDR_COEF * width +
-                               RCB_INTERR_COEF * width;
-        RK_U32 dblkr_offset = RCB_INTRAR_COEF * width +
-                              RCB_TRANSDR_COEF * width +
-                              RCB_TRANSDC_COEF * height +
-                              RCB_STRMDR_COEF * width +
-                              RCB_INTERR_COEF * width +
-                              RCB_INTERC_COEF * height;
-        RK_U32 saor_offset = RCB_INTRAR_COEF * width +
-                             RCB_TRANSDR_COEF * width +
-                             RCB_TRANSDC_COEF * height +
-                             RCB_STRMDR_COEF * width +
-                             RCB_INTERR_COEF * width +
-                             RCB_INTERC_COEF * height +
-                             RCB_DBLKR_COEF * width;
-        RK_U32 fbcr_offset = RCB_INTRAR_COEF * width +
-                             RCB_TRANSDR_COEF * width +
-                             RCB_TRANSDC_COEF * height +
-                             RCB_STRMDR_COEF * width +
-                             RCB_INTERR_COEF * width +
-                             RCB_INTERC_COEF * height +
-                             RCB_DBLKR_COEF * width +
-                             RCB_SAOR_COEF * width;
-        RK_U32 filtc_offset = RCB_INTRAR_COEF * width +
-                              RCB_TRANSDR_COEF * width +
-                              RCB_TRANSDC_COEF * height +
-                              RCB_STRMDR_COEF * width +
-                              RCB_INTERR_COEF * width +
-                              RCB_INTERC_COEF * height +
-                              RCB_DBLKR_COEF * width +
-                              RCB_SAOR_COEF * width +
-                              RCB_FBCR_COEF * width;
+    MppBuffer rcb_buf = reg_cxt->rcb_buf;
 
-        hw_regs->common_addr.rcb_intra_base.rcb_intra_base = mpp_buffer_get_fd(reg_cxt->rcb_buf);
-        hw_regs->common_addr.rcb_transd_row_base.rcb_transd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdr_offset << 10);
-        hw_regs->common_addr.rcb_transd_col_base.rcb_transd_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (transdc_offset << 10);
-        hw_regs->common_addr.rcb_streamd_row_base.rcb_streamd_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (strmdr_offset << 10);
-        hw_regs->common_addr.rcb_inter_row_base.rcb_inter_row_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interr_offset << 10);
-        hw_regs->common_addr.rcb_inter_col_base.rcb_inter_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (interc_offset << 10);
-        hw_regs->common_addr.rcb_dblk_base.rcb_dblk_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (dblkr_offset << 10);
-        hw_regs->common_addr.rcb_sao_base.rcb_sao_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (saor_offset << 10);
-        hw_regs->common_addr.rcb_fbc_base.rcb_fbc_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (fbcr_offset << 10);
-        hw_regs->common_addr.rcb_filter_col_base.rcb_filter_col_base = mpp_buffer_get_fd(reg_cxt->rcb_buf) + (filtc_offset << 10);
+    if (width != reg_cxt->width || height != reg_cxt->height) {
+        if (rcb_buf) {
+            mpp_buffer_put(rcb_buf);
+            rcb_buf = NULL;
+        }
+
+        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_size, reg_cxt->rcb_offset,
+                                                 width, height);
+
+        mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
+        reg_cxt->rcb_buf = rcb_buf;
+        reg_cxt->width = width;
+        reg_cxt->height = height;
     }
+
+    vdpu34x_setup_rcb(&hw_regs->common_addr, rcb_buf, reg_cxt->rcb_offset);
+
     return ret;
 }
 

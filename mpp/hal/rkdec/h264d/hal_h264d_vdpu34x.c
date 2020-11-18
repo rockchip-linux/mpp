@@ -71,7 +71,7 @@ typedef struct h264d_rkv_buf_t {
     Vdpu34xH264dRegSet  *regs;
 } H264dRkvBuf_t;
 
-typedef struct h264d_rkv_reg_ctx_t {
+typedef struct Vdpu34xH264dRegCtx_t {
     RK_U8               spspps[48];
     RK_U8               rps[RKV_RPS_SIZE];
     RK_U8               sclst[RKV_SCALING_LIST_SIZE];
@@ -83,9 +83,17 @@ typedef struct h264d_rkv_reg_ctx_t {
     MppBuffer           spspps_buf;
     MppBuffer           rps_buf;
     MppBuffer           sclst_buf;
+
+
+    RK_S32              width;
+    RK_S32              height;
+    RK_S32              rcb_buf_size;
+    RK_S32              rcb_size[RCB_BUF_COUNT];
+    RK_S32              rcb_offset[RCB_BUF_COUNT];
     MppBuffer           rcb_buf;
+
     Vdpu34xH264dRegSet  *regs;
-} H264dRkvRegCtx_t;
+} Vdpu34xH264dRegCtx;
 
 const RK_U32 rkv_cabac_table_v34x[928] = {
     0x3602f114, 0xf1144a03, 0x4a033602, 0x68e97fe4, 0x36ff35fa, 0x21173307,
@@ -501,12 +509,11 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &mbuffer);
         fd = mpp_buffer_get_fd(mbuffer);
         regs->common_addr.decout_base.decout_base = fd;
-        //colmv_cur_base
 
+        //colmv_cur_base
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, pp->CurrPic.Index7Bits);
         regs->common_addr.colmv_cur_base.colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
         regs->common_addr.error_ref_base.error_ref_base = fd;
-
     }
     //!< set reference
     {
@@ -558,7 +565,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
     }
     {
         MppBuffer mbuffer = NULL;
-        H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+        Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
         mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
         regs->common_addr.str_rlc_base.strm_rlc_base = mpp_buffer_get_fd(mbuffer);
         regs->h264d_addr.cabactbl_base = mpp_buffer_get_fd(reg_ctx->cabac_buf);
@@ -588,8 +595,8 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
 
     INP_CHECK(ret, NULL == p_hal);
 
-    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(H264dRkvRegCtx_t)));
-    H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(Vdpu34xH264dRegCtx)));
+    Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
     //!< malloc buffers
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group,
                                    &reg_ctx->cabac_buf, RKV_CABAC_TAB_SIZE));
@@ -634,7 +641,7 @@ __FAILED:
 MPP_RET vdpu34x_h264d_deinit(void *hal)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
 
     RK_U32 i = 0;
     RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
@@ -657,11 +664,11 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    RK_U32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
-    RK_U32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
-    H264dRkvRegCtx_t *ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
+    RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+    Vdpu34xH264dRegCtx *ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
     Vdpu34xH264dRegSet *regs = ctx->regs;
-    RK_U32 mv_size = (width * height >> 1);
+    RK_S32 mv_size = width * height / 2;
     INP_CHECK(ret, NULL == p_hal);
 
     if (task->dec.flags.parse_err ||
@@ -724,78 +731,24 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     regs->h264d_addr.scanlist_addr = mpp_buffer_get_fd(ctx->sclst_buf);
     regs->common.dec_sec_en.scanlist_addr_valid_en = 1;
 
-    if (ctx->rcb_buf == NULL) {
-        RK_U32 rcb_buf_size =
-            RCB_INTRAR_COEF * width +
-            RCB_TRANSDR_COEF * width +
-            RCB_TRANSDC_COEF * height +
-            RCB_STRMDR_COEF * width +
-            RCB_INTERR_COEF * width +
-            RCB_INTERC_COEF * height +
-            RCB_DBLKR_COEF * width +
-            RCB_SAOR_COEF * width +
-            RCB_FBCR_COEF * width +
-            RCB_FILTC_COEF * height;
-        ret = mpp_buffer_get(p_hal->buf_group,
-                             &ctx->rcb_buf, rcb_buf_size);
-    }
-    if (ctx->rcb_buf != NULL) {
-        RK_U32 transdr_offset = RCB_INTRAR_COEF * width;
-        RK_U32 transdc_offset = RCB_INTRAR_COEF * width + RCB_TRANSDR_COEF * width;
-        RK_U32 strmdr_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height;
-        RK_U32 interr_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height +
-                               RCB_STRMDR_COEF * width;
-        RK_U32 interc_offset = RCB_INTRAR_COEF * width +
-                               RCB_TRANSDR_COEF * width +
-                               RCB_TRANSDC_COEF * height +
-                               RCB_STRMDR_COEF * width +
-                               RCB_INTERR_COEF * width;
-        RK_U32 dblkr_offset = RCB_INTRAR_COEF * width +
-                              RCB_TRANSDR_COEF * width +
-                              RCB_TRANSDC_COEF * height +
-                              RCB_STRMDR_COEF * width +
-                              RCB_INTERR_COEF * width +
-                              RCB_INTERC_COEF * height;
-        RK_U32 saor_offset = RCB_INTRAR_COEF * width +
-                             RCB_TRANSDR_COEF * width +
-                             RCB_TRANSDC_COEF * height +
-                             RCB_STRMDR_COEF * width +
-                             RCB_INTERR_COEF * width +
-                             RCB_INTERC_COEF * height +
-                             RCB_DBLKR_COEF * width;
-        RK_U32 fbcr_offset = RCB_INTRAR_COEF * width +
-                             RCB_TRANSDR_COEF * width +
-                             RCB_TRANSDC_COEF * height +
-                             RCB_STRMDR_COEF * width +
-                             RCB_INTERR_COEF * width +
-                             RCB_INTERC_COEF * height +
-                             RCB_DBLKR_COEF * width +
-                             RCB_SAOR_COEF * width;
-        RK_U32 filtc_offset = RCB_INTRAR_COEF * width +
-                              RCB_TRANSDR_COEF * width +
-                              RCB_TRANSDC_COEF * height +
-                              RCB_STRMDR_COEF * width +
-                              RCB_INTERR_COEF * width +
-                              RCB_INTERC_COEF * height +
-                              RCB_DBLKR_COEF * width +
-                              RCB_SAOR_COEF * width +
-                              RCB_FBCR_COEF * width;
+    MppBuffer rcb_buf = ctx->rcb_buf;
 
-        regs->common_addr.rcb_intra_base.rcb_intra_base = mpp_buffer_get_fd(ctx->rcb_buf);
-        regs->common_addr.rcb_transd_row_base.rcb_transd_row_base = mpp_buffer_get_fd(ctx->rcb_buf) + (transdr_offset << 10);
-        regs->common_addr.rcb_transd_col_base.rcb_transd_col_base = mpp_buffer_get_fd(ctx->rcb_buf) + (transdc_offset << 10);
-        regs->common_addr.rcb_streamd_row_base.rcb_streamd_row_base = mpp_buffer_get_fd(ctx->rcb_buf) + (strmdr_offset << 10);
-        regs->common_addr.rcb_inter_row_base.rcb_inter_row_base = mpp_buffer_get_fd(ctx->rcb_buf) + (interr_offset << 10);
-        regs->common_addr.rcb_inter_col_base.rcb_inter_col_base = mpp_buffer_get_fd(ctx->rcb_buf) + (interc_offset << 10);
-        regs->common_addr.rcb_dblk_base.rcb_dblk_base = mpp_buffer_get_fd(ctx->rcb_buf) + (dblkr_offset << 10);
-        regs->common_addr.rcb_sao_base.rcb_sao_base = mpp_buffer_get_fd(ctx->rcb_buf) + (saor_offset << 10);
-        regs->common_addr.rcb_fbc_base.rcb_fbc_base = mpp_buffer_get_fd(ctx->rcb_buf) + (fbcr_offset << 10);
-        regs->common_addr.rcb_filter_col_base.rcb_filter_col_base = mpp_buffer_get_fd(ctx->rcb_buf) + (filtc_offset << 10);
+    if (width != ctx->width || height != ctx->height) {
+        if (rcb_buf) {
+            mpp_buffer_put(rcb_buf);
+            rcb_buf = NULL;
+        }
+
+        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_size, ctx->rcb_offset,
+                                             width, height);
+
+        mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
+        ctx->rcb_buf = rcb_buf;
+        ctx->width = width;
+        ctx->height = height;
     }
+
+    vdpu34x_setup_rcb(&regs->common_addr, rcb_buf, ctx->rcb_offset);
 
 __RETURN:
     return ret = MPP_OK;
@@ -812,7 +765,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
         goto __RETURN;
     }
 
-    H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
     Vdpu34xH264dRegSet *regs = reg_ctx->regs;
     MppDev dev = p_hal->dev;
 
@@ -888,7 +841,7 @@ MPP_RET vdpu34x_h264d_wait(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
+    Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
     Vdpu34xH264dRegSet *p_regs = p_hal->fast_mode ?
                                  reg_ctx->reg_buf[task->dec.reg_index].regs :
                                  reg_ctx->regs;
