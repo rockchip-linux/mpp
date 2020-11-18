@@ -34,7 +34,7 @@
 #define hal_bufs_enter()                hal_bufs_dbg_func("enter\n");
 #define hal_bufs_leave()                hal_bufs_dbg_func("leave\n");
 
-#define MAX_HAL_BUFS_CNT                32
+#define MAX_HAL_BUFS_CNT                40
 #define MAX_HAL_BUFS_SIZE_CNT           8
 
 typedef struct HalBufsImpl_t {
