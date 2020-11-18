@@ -171,7 +171,18 @@ typedef enum {
 
 #define MPP_FRAME_FBC_MASK          (0x00f00000)
 #define MPP_FRAME_FBC_NONE          (0x00000000)
+/*
+ * AFBC_V1 is for ISP output.
+ * It has default payload offset to be calculated * from width and height:
+ * Payload offset = MPP_ALIGN(MPP_ALIGN(width, 16) * MPP_ALIGN(height, 16) / 16, SZ_4K)
+ */
 #define MPP_FRAME_FBC_AFBC_V1       (0x00100000)
+/*
+ * AFBC_V2 is for video decoder output.
+ * It stores payload offset in first 32-bit in header address
+ * Payload offset is always set to zero.
+ */
+#define MPP_FRAME_FBC_AFBC_V2       (0x00200000)
 
 #define MPP_FRAME_FMT_LE_MASK       (0x01000000)
 

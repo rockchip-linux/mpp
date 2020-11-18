@@ -421,24 +421,18 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
         regs->reg021.csc_ofst_v     = cfg.offset[2];
     }
 
-    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-        regs->reg022.afbcd_en   = 1;
-        regs->reg069.src_strd0  = MPP_ALIGN(prep->width, 16);
-        regs->reg069.src_strd1  = MPP_ALIGN(prep->width, 16);
-    } else {
-        regs->reg022.afbcd_en   = 0;
-        regs->reg069.src_strd0  = y_stride;
-        regs->reg069.src_strd1  = c_stride;
-    }
+    regs->reg022.afbcd_en   = MPP_FRAME_FMT_IS_FBC(fmt) ? 1 : 0;
+    regs->reg069.src_strd0  = y_stride;
+    regs->reg069.src_strd1  = c_stride;
 
-    regs->reg022.src_mirr       = prep->mirroring > 0;
-    regs->reg022.src_rot        = prep->rotation;
-    regs->reg022.txa_en         = 1;
+    regs->reg022.src_mirr   = prep->mirroring > 0;
+    regs->reg022.src_rot    = prep->rotation;
+    regs->reg022.txa_en     = 1;
 
-    regs->reg023.sli_crs_en     = 1;
+    regs->reg023.sli_crs_en = 1;
 
-    regs->reg068.pic_ofst_y     = 0;
-    regs->reg068.pic_ofst_x     = 0;
+    regs->reg068.pic_ofst_y = 0;
+    regs->reg068.pic_ofst_x = 0;
 
     hal_h264e_dbg_func("leave\n");
 

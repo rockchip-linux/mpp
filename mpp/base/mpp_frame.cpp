@@ -202,9 +202,19 @@ RK_U32 mpp_frame_get_fbc_offset(MppFrame frame)
         return 0;
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
-    if (MPP_FRAME_FMT_IS_FBC(p->fmt) && !p->fbc_offset)
-        p->fbc_offset = MPP_ALIGN(MPP_ALIGN(p->width, 16) *
-                                  MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+
+    if (MPP_FRAME_FMT_IS_FBC(p->fmt)) {
+        RK_U32 fbc_version = p->fmt & MPP_FRAME_FBC_MASK;
+        RK_U32 fbc_offset = 0;
+
+        if (fbc_version == MPP_FRAME_FBC_AFBC_V1) {
+            fbc_offset = MPP_ALIGN(MPP_ALIGN(p->width, 16) *
+                                   MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+        } else if (fbc_version == MPP_FRAME_FBC_AFBC_V2) {
+            fbc_offset = 0;
+        }
+        p->fbc_offset = fbc_offset;
+    }
 
     return p->fbc_offset;
 }
