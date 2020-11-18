@@ -26,7 +26,9 @@
 #define OFFSET_CODEC_ADDR_REGS      (160 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
 
+#define RCB_BUF_COUNT               (10)
 #define RCB_ALLINE_SIZE             (64)
+
 #define RCB_INTRAR_COEF             (6)
 #define RCB_TRANSDR_COEF            (1)
 #define RCB_TRANSDC_COEF            (1)
@@ -347,5 +349,16 @@ typedef struct Vdpu34xRegIrqStatus_t {
 
     RK_U32  reserve_reg234_237[4];
 } Vdpu34xRegIrqStatus;
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+RK_S32 get_rcb_buf_size(RK_S32 *sizes, RK_S32 *offsets, RK_S32 width, RK_S32 height);
+void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offsets);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* __VDPU34X_COM_H__ */

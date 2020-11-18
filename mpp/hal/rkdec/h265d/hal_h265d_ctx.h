@@ -20,6 +20,7 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 #include "hal_bufs.h"
+#include "vdpu34x_com.h"
 
 #define MAX_GEN_REG 3
 
@@ -48,7 +49,14 @@ typedef struct HalH265dCtx_t {
     MppBuffer       scaling_list_data;
     MppBuffer       pps_data;
     MppBuffer       rps_data;
+
+    RK_S32          width;
+    RK_S32          height;
+    RK_S32          rcb_buf_size;
+    RK_S32          rcb_size[RCB_BUF_COUNT];
+    RK_S32          rcb_offset[RCB_BUF_COUNT];
     MppBuffer       rcb_buf;
+
     void*           hw_regs;
     H265dRegBuf     g_buf[MAX_GEN_REG];
     RK_U32          fast_mode;

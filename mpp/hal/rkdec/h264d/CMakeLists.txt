@@ -20,6 +20,6 @@ add_library(hal_h264d STATIC
             ${HAL_H264D_SRC}
             )
 
-target_link_libraries(hal_h264d mpp_base mpp_hal)
+target_link_libraries(hal_h264d vdpu34x_com mpp_base mpp_hal)
 set_target_properties(hal_h264d PROPERTIES FOLDER "mpp/hal")
 

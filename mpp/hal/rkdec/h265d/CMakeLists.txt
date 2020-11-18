@@ -11,4 +11,4 @@ set(HAL_H265D_SRC
 add_library(${HAL_H265D} STATIC ${HAL_H265D_SRC})
 
 set_target_properties(${HAL_H265D} PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(${HAL_H265D} mpp_base)
+target_link_libraries(${HAL_H265D} vdpu34x_com mpp_base)
