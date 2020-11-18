@@ -668,6 +668,18 @@ size_t mpp_buf_slot_get_size(MppBufSlots slots)
     return impl->buf_size;
 }
 
+RK_S32 mpp_buf_slot_get_count(MppBufSlots slots)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return -1;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    AutoMutex auto_lock(impl->lock);
+    return impl->buf_count;
+}
+
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
 {
     if (NULL == slots || NULL == index) {
