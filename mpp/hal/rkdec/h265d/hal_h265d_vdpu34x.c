@@ -869,6 +869,10 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.dec_cabac_err_en_lowbits.cabac_err_en_lowbits = 0xffffdfff;
     hw_regs->common.dec_cabac_err_en_highbits.cabac_err_en_highbits = 0x3ffbf9ff;
 
+    hw_regs->common.dec_block_gating_en.swreg_block_gating_e = 0xffff;
+    hw_regs->common.dec_block_gating_en.block_gating_en_l2 = 0xf;
+    hw_regs->common.dec_block_gating_en.reg_cfg_gating_en = 1;
+
     valid_ref = hw_regs->common_addr.decout_base.decout_base;
     hw_regs->common_addr.error_ref_base.error_ref_base = valid_ref;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
