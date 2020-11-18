@@ -735,7 +735,7 @@ vepu541_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_f
     MPP_RET ret = MPP_OK;
 
     if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(task->frame))) {
-        u_offset = mpp_frame_get_fbc_offset(task->frame);;
+        u_offset = mpp_frame_get_fbc_offset(task->frame);
         v_offset = 0;
     } else {
         switch (input_fmt) {
@@ -988,13 +988,8 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
         regs->src_udfo.ofst_v = 128;
     }
 
-    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
-        regs->src_strid.src_ystrid  = MPP_ALIGN(prep_cfg->width, 16);
-        regs->src_strid.src_cstrid  = MPP_ALIGN(prep_cfg->width, 16);
-    } else {
-        regs->src_strid.src_ystrid  = stridey;
-        regs->src_strid.src_cstrid  = stridec;
-    }
+    regs->src_strid.src_ystrid  = stridey;
+    regs->src_strid.src_cstrid  = stridec;
 
     return MPP_OK;
 }
