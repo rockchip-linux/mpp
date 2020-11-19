@@ -19,7 +19,13 @@
 
 #include "mpp_device.h"
 #include "mpp_hal.h"
+
+#include "vepu_common.h"
+
 #include "jpege_syntax.h"
+#include "hal_jpege_hdr.h"
+
+#define QUANTIZE_TABLE_SIZE 64
 
 typedef struct HalJpegeRc_t {
     /* For quantization table */
@@ -45,5 +51,19 @@ typedef struct hal_jpege_ctx_s {
     RK_S32              hal_start_pos;
     VepuStrideCfg       stride_cfg;
 } HalJpegeCtx;
+
+extern const RK_U32 qp_reorder_table[QUANTIZE_TABLE_SIZE];
+extern const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE];
+extern const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE];
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __HAL_JPEGE_BASE_H__ */

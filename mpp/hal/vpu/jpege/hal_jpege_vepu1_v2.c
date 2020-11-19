@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
 #include "mpp_platform.h"
@@ -27,11 +26,8 @@
 #include "mpp_enc_hal.h"
 #include "vcodec_service.h"
 
-#include "vepu_common.h"
-
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api_v2.h"
-#include "hal_jpege_hdr.h"
 #include "hal_jpege_base.h"
 
 #define VEPU_JPEGE_VEPU1_NUM_REGS 164
@@ -39,13 +35,6 @@
 typedef struct jpege_vepu1_reg_set_t {
     RK_U32  val[VEPU_JPEGE_VEPU1_NUM_REGS];
 } jpege_vepu1_reg_set;
-
-static const RK_U32 qp_reorder_table[64] = {
-    0,  8, 16, 24,  1,  9, 17, 25, 32, 40, 48, 56, 33, 41, 49, 57,
-    2, 10, 18, 26,  3, 11, 19, 27, 34, 42, 50, 58, 35, 43, 51, 59,
-    4, 12, 20, 28,  5, 13, 21, 29, 36, 44, 52, 60, 37, 45, 53, 61,
-    6, 14, 22, 30,  7, 15, 23, 31, 38, 46, 54, 62, 39, 47, 55, 63
-};
 
 static MPP_RET hal_jpege_vepu1_init_v2(void *hal, MppEncHalCfg *cfg)
 {
@@ -217,6 +206,14 @@ static MPP_RET hal_jpege_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     /* seek length bytes data */
     jpege_seek_bits(bits, length << 3);
     /* NOTE: write header will update qtable */
+    if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        hal_jpege_vepu_rc(ctx, task);
+        qtable[0] = ctx->hal_rc.qtable_y;
+        qtable[1] = ctx->hal_rc.qtable_c;
+    } else {
+        qtable[0] = NULL;
+        qtable[1] = NULL;
+    }
     write_jpeg_header(bits, syntax, qtable);
 
     memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU1_NUM_REGS);
@@ -461,6 +458,8 @@ static MPP_RET hal_jpege_vepu1_ret_task_v2(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
 
+    ctx->hal_rc.last_quality = task->rc_task->info.quality_target;
+    task->rc_task->info.bit_real = ctx->feedback.stream_length * 8;
     task->hal_ret.data = &ctx->feedback;
     task->hal_ret.number = 1;
 
