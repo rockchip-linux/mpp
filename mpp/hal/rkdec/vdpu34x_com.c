@@ -72,14 +72,14 @@ void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offset)
 {
     RK_S32 fd = mpp_buffer_get_fd(buf);
 
-    reg->rcb_intra_base.rcb_intra_base = fd + (offset[0] << 10);
-    reg->rcb_transd_row_base.rcb_transd_row_base = fd + (offset[1] << 10);
-    reg->rcb_transd_col_base.rcb_transd_col_base = fd + (offset[2] << 10);
-    reg->rcb_streamd_row_base.rcb_streamd_row_base = fd + (offset[3] << 10);
-    reg->rcb_inter_row_base.rcb_inter_row_base = fd + (offset[4] << 10);
-    reg->rcb_inter_col_base.rcb_inter_col_base = fd + (offset[5] << 10);
-    reg->rcb_dblk_base.rcb_dblk_base = fd + (offset[6] << 10);
-    reg->rcb_sao_base.rcb_sao_base = fd + (offset[7] << 10);
-    reg->rcb_fbc_base.rcb_fbc_base = fd + (offset[8] << 10);
-    reg->rcb_filter_col_base.rcb_filter_col_base = fd + (offset[9] << 10);
+    reg->reg133_rcb_intra_base          = fd + (offset[0] << 10);
+    reg->reg134_rcb_transd_row_base     = fd + (offset[1] << 10);
+    reg->reg135_rcb_transd_col_base     = fd + (offset[2] << 10);
+    reg->reg136_rcb_streamd_row_base    = fd + (offset[3] << 10);
+    reg->reg137_rcb_inter_row_base      = fd + (offset[4] << 10);
+    reg->reg138_rcb_inter_col_base      = fd + (offset[5] << 10);
+    reg->reg139_rcb_dblk_base           = fd + (offset[6] << 10);
+    reg->reg140_rcb_sao_base            = fd + (offset[7] << 10);
+    reg->reg141_rcb_fbc_base            = fd + (offset[8] << 10);
+    reg->reg142_rcb_filter_col_base     = fd + (offset[9] << 10);
 }

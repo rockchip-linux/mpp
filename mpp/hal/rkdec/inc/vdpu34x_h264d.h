@@ -28,19 +28,17 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      h26x_stream_lastpacket  : 1;
         RK_U32      h264_firstslice_flag    : 1;
         RK_U32      reserve                 : 27;
-    } h26x_set;
+    } reg64;
 
     struct SWREG65_CUR_POC {
         RK_U32      cur_top_poc : 32;
-    } cur_poc;
+    } reg65;
 
     struct SWREG66_H264_CUR_POC1 {
         RK_U32      cur_bot_poc : 32;
-    } cur_poc1;
+    } reg66;
 
-    struct SWREG67_98_H264_REF_POC {
-        RK_U32      ref_poc : 32;
-    } ref0_31_poc[32];
+    RK_U32  reg67_98_ref_poc[32];
 
     struct SWREG99_H264_REG0_3_INFO {
 
@@ -67,7 +65,7 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      ref3_botfield_used      : 1;
         RK_U32      ref3_colmv_use_flag     : 1;
         RK_U32      ref3_reserve            : 4;
-    } ref0_3_info;
+    } reg99;
 
     struct SWREG100_H264_REG4_7_INFO {
 
@@ -94,7 +92,7 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      ref7_botfield_used      : 1;
         RK_U32      ref7_colmv_use_flag     : 1;
         RK_U32      ref7_reserve            : 4;
-    } ref4_7_info;
+    } reg100;
 
     struct SWREG101_H264_REG8_11_INFO {
 
@@ -121,7 +119,7 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      ref11_botfield_used     : 1;
         RK_U32      ref11_colmv_use_flag    : 1;
         RK_U32      ref11_reserve           : 4;
-    } ref8_11_info;
+    } reg101;
 
     struct SWREG102_H264_REG12_15_INFO {
 
@@ -148,7 +146,7 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      ref15_botfield_used     : 1;
         RK_U32      ref15_colmv_use_flag    : 1;
         RK_U32      ref15_reserve           : 4;
-    } ref12_15_info;
+    } reg102;
 
     struct SWREG103_111_NO_USE_REGS {
         RK_U32  reserve;
@@ -160,7 +158,7 @@ typedef struct Vdpu34xRegH264dParam_t {
         RK_U32      ref_error_topfield_used     : 1;
         RK_U32      ref_error_botfield_used     : 1;
         RK_U32      reserve                     : 28;
-    } err_ref_info;
+    } reg112;
 } Vdpu34xRegH264dParam;
 
 /* base: OFFSET_CODEC_ADDR_REGS */
