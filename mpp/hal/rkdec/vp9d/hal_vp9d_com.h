@@ -61,6 +61,15 @@ typedef RK_U8 vp9_prob;
  */
 #define MAX_SEGMAP_SIZE                 73728
 
+//!< memory malloc check
+#define MEM_CHECK(ret, val, ...)\
+do{\
+    if (!(val)) {\
+        ret = MPP_ERR_MALLOC; \
+        mpp_err("malloc buffer error(%d).\n", __LINE__); \
+        mpp_assert(0); goto __FAILED; \
+}} while (0)
+
 
 extern const vp9_prob vp9_kf_y_mode_prob[INTRA_MODES][INTRA_MODES][INTRA_MODES - 1];
 extern const vp9_prob vp9_kf_uv_mode_prob[INTRA_MODES][INTRA_MODES - 1];

@@ -58,32 +58,9 @@ typedef struct HalVp9dCtx_t {
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
     MppBufferGroup  group;
-    Vp9dRegBuf      g_buf[MAX_GEN_REG];
-    MppBuffer       probe_base;
-    MppBuffer       count_base;
-    MppBuffer       segid_cur_base;
-    MppBuffer       segid_last_base;
-    void*           hw_regs;
     IOInterruptCB   int_cb;
-    RK_S32          mv_base_addr;
-    RK_S32          pre_mv_base_addr;
-    Vp9dLastInfo    ls_info;
-    /*
-     * swap between segid_cur_base & segid_last_base
-     * 0  used segid_cur_base as last
-     * 1  used segid_last_base as
-     */
-    RK_U32          last_segid_flag;
     RK_U32          fast_mode;
-    RK_S32          width;
-    RK_S32          height;
-    RK_S32          rcb_buf_size;
-    RK_S32          rcb_size[RCB_BUF_COUNT];
-    RK_S32          rcb_offset[RCB_BUF_COUNT];
-    MppBuffer       rcb_buf;
-    HalBufs         cmv_bufs;
-    RK_S32          mv_size;
-    RK_S32          mv_count;
+    void*           hw_ctx;
 } HalVp9dCtx;
 
 #endif /*__HAL_VP9D_CTX_H__*/
