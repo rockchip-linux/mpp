@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#define MODULE_TAG "vdpu34x_com"
+
+#include <string.h>
+
 #include "mpp_log.h"
 #include "mpp_buffer.h"
 #include "mpp_common.h"
@@ -82,4 +86,17 @@ void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offset)
     reg->reg140_rcb_sao_base            = fd + (offset[7] << 10);
     reg->reg141_rcb_fbc_base            = fd + (offset[8] << 10);
     reg->reg142_rcb_filter_col_base     = fd + (offset[9] << 10);
+}
+
+void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta)
+{
+    com->reg011.pix_range_detection_e = 1;
+
+    memset(sta, 0, sizeof(*sta));
+
+    sta->reg256.axi_perf_work_e = 1;
+    sta->reg256.axi_perf_clr_e = 1;
+    sta->reg256.axi_cnt_type = 1;
+
+    sta->reg257.addr_align_type = 1;
 }

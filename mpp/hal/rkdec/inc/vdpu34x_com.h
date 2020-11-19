@@ -25,6 +25,7 @@
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
 #define OFFSET_CODEC_ADDR_REGS      (160 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
+#define OFFSET_STATISTIC_REGS       (256 * sizeof(RK_U32))
 
 #define RCB_BUF_COUNT               (10)
 #define RCB_ALLINE_SIZE             (64)
@@ -80,7 +81,9 @@ typedef struct Vdpu34xRegCommon_t {
         RK_U32      reserve2                : 9;
         RK_U32      softrst_en_p            : 1;
         RK_U32      force_softreset_valid   : 1;
-        RK_U32      reserve3                : 10;
+        RK_U32      reserve3                : 2;
+        RK_U32      pix_range_detection_e   : 1;
+        RK_U32      reserve4                : 7;
     } reg011;
 
     struct SWREG12_SENCODARY_EN {
@@ -313,12 +316,104 @@ typedef struct Vdpu34xRegIrqStatus_t {
     RK_U32  reserve_reg234_237[4];
 } Vdpu34xRegIrqStatus;
 
+typedef struct Vdpu34xRegStatistic_t {
+    struct SWREG256_DEBUG_PERF_LATENCY_CTRL0 {
+        RK_U32      axi_perf_work_e     : 1;
+        RK_U32      axi_perf_clr_e      : 1;
+        RK_U32      reserve0            : 1;
+        RK_U32      axi_cnt_type        : 1;
+        RK_U32      rd_latency_id       : 4;
+        RK_U32      rd_latency_thr      : 12;
+        RK_U32      reserve1            : 12;
+    } reg256;
+
+    struct SWREG257_DEBUG_PERF_LATENCY_CTRL1 {
+        RK_U32      addr_align_type     : 2;
+        RK_U32      ar_cnt_id_type      : 1;
+        RK_U32      aw_cnt_id_type      : 1;
+        RK_U32      ar_count_id         : 4;
+        RK_U32      aw_count_id         : 4;
+        RK_U32      rd_band_width_mode  : 1;
+        RK_U32      reserve             : 19;
+    } reg257;
+
+    struct SWREG258_DEBUG_PERF_RD_MAX_LATENCY_NUM {
+        RK_U32      rd_max_latency_num  : 16;
+        RK_U32      reserve             : 16;
+    } reg258;
+
+    RK_U32          reg259_rd_latency_thr_num_ch0;
+    RK_U32          reg260_rd_latency_acc_sum;
+    RK_U32          reg261_perf_rd_axi_total_byte;
+    RK_U32          reg262_perf_wr_axi_total_byte;
+    RK_U32          reg263_perf_working_cnt;
+
+    RK_U32          reserve_reg264;
+
+    struct SWREG265_DEBUG_PERF_SEL {
+        RK_U32      perf_cnt0_sel               : 6;
+        RK_U32      reserve0                    : 2;
+        RK_U32      perf_cnt1_sel               : 6;
+        RK_U32      reserve1                    : 2;
+        RK_U32      perf_cnt2_sel               : 6;
+        RK_U32      reserve2                    : 10;
+    } reg265;
+
+    RK_U32          reg266_perf_cnt0;
+    RK_U32          reg267_perf_cnt1;
+    RK_U32          reg268_perf_cnt2;
+
+    RK_U32          reserve_reg269;
+
+    struct SWREG270_DEBUG_QOS_CTRL {
+        RK_U32      bus2mc_buffer_qos_level     : 8;
+        RK_U32      reserve0                    : 8;
+        RK_U32      axi_rd_hurry_level          : 2;
+        RK_U32      reserve1                    : 2;
+        RK_U32      axi_qr_qos                  : 2;
+        RK_U32      reserve2                    : 2;
+        RK_U32      axi_wr_hurry_level          : 2;
+        RK_U32      reserve3                    : 2;
+        RK_U32      axi_rd_qos                  : 2;
+        RK_U32      reserve4                    : 2;
+    } reg270;
+
+    RK_U32          reg271_wr_wait_cycle_qos;
+
+    struct SWREG272_DEBUG_INT {
+        RK_U32      bu_rw_clean                 : 1;
+        RK_U32      saowr_frame_rdy             : 1;
+        RK_U32      saobu_frame_rdy_valid       : 1;
+        RK_U32      colmvwr_frame_rdy_real      : 1;
+        RK_U32      cabu_rlcend_valid_real      : 1;
+        RK_U32      stream_rdburst_cnteq0_towr  : 1;
+        RK_U32      wr_tansfer_cnt              : 6;
+        RK_U32      reserve0                    : 4;
+        RK_U32      streamfifo_space2full       : 7;
+        RK_U32      reserve1                    : 9;
+    } reg272;
+
+    struct SWREG273 {
+        RK_U32      bus_status_flag             : 19;
+        RK_U32      reserve0                    : 12;
+        RK_U32      pps_no_ref_bframe_dec_r     : 1;
+    } reg273;
+
+    RK_U16          reg274_y_min_value;
+    RK_U16          reg274_y_max_value;
+    RK_U16          reg275_u_min_value;
+    RK_U16          reg275_u_max_value;
+    RK_U16          reg276_v_min_value;
+    RK_U16          reg276_v_max_value;
+} Vdpu34xRegStatistic;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 RK_S32 get_rcb_buf_size(RK_S32 *sizes, RK_S32 *offsets, RK_S32 width, RK_S32 height);
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offsets);
+void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
 
 #ifdef  __cplusplus
 }
