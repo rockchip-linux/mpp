@@ -194,6 +194,7 @@ typedef struct Vdpu34xH264dRegSet_t {
     Vdpu34xRegCommonAddr    common_addr;
     Vdpu34xRegH264dAddr     h264d_addr;
     Vdpu34xRegIrqStatus     irq_status;
+    Vdpu34xRegStatistic     statistic;
 } Vdpu34xH264dRegSet;
 
 #endif /* __VDPU34X_H264D_H__ */
