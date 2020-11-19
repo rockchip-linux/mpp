@@ -361,13 +361,13 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     hal_vp9d_output_probe(mpp_buffer_get_ptr(reg_ctx->probe_base), task->dec.syntax.data);
     stream_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);
     memset(reg_ctx->hw_regs, 0, sizeof(Vdpu34xVp9dRegSet));
-    vp9_hw_regs->common.dec_en_mode_set.cur_pic_is_idr = intraFlag;
-    vp9_hw_regs->common.dec_mode.dec_mode = 2; //set as vp9 dec
-    vp9_hw_regs->common.dec_str_len.stream_len = ((stream_len + 15) & (~15)) + 0x80;
+    vp9_hw_regs->common.reg013.cur_pic_is_idr = intraFlag;
+    vp9_hw_regs->common.reg009.dec_mode = 2; //set as vp9 dec
+    vp9_hw_regs->common.reg016_str_len = ((stream_len + 15) & (~15)) + 0x80;
 
     mpp_buf_slot_get_prop(reg_ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     bitstream = mpp_buffer_get_ptr(streambuf);
-    aglin_offset = vp9_hw_regs->common.dec_str_len.stream_len - stream_len;
+    aglin_offset = vp9_hw_regs->common.reg016_str_len - stream_len;
     if (aglin_offset > 0) {
         memset((void *)(bitstream + stream_len), 0, aglin_offset);
     }
@@ -382,9 +382,9 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     sw_uv_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
     sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
 
-    vp9_hw_regs->common.dec_y_hor_stride.y_hor_virstride = sw_y_hor_virstride;
-    vp9_hw_regs->common.dec_uv_hor_stride.uv_hor_virstride = sw_uv_hor_virstride;
-    vp9_hw_regs->common.dec_y_stride.y_virstride = sw_y_virstride;
+    vp9_hw_regs->common.reg018.y_hor_virstride = sw_y_hor_virstride;
+    vp9_hw_regs->common.reg019.uv_hor_virstride = sw_uv_hor_virstride;
+    vp9_hw_regs->common.reg020_y_virstride.y_virstride = sw_y_virstride;
 
     if (!pic_param->intra_only && pic_param->frame_type &&
         !pic_param->error_resilient_mode && reg_ctx->ls_info.last_show_frame) {
@@ -392,19 +392,19 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.output, SLOT_BUFFER, &framebuf);
-    vp9_hw_regs->common_addr.decout_base.decout_base =  mpp_buffer_get_fd(framebuf);
-    vp9_hw_regs->common_addr.str_rlc_base.strm_rlc_base = mpp_buffer_get_fd(streambuf);
-    vp9_hw_regs->common_addr.rlcwrite_base.rlcwrite_base = mpp_buffer_get_fd(streambuf);
+    vp9_hw_regs->common_addr.reg130_decout_base =  mpp_buffer_get_fd(framebuf);
+    vp9_hw_regs->common_addr.reg128_rlc_base = mpp_buffer_get_fd(streambuf);
+    vp9_hw_regs->common_addr.reg129_rlcwrite_base = mpp_buffer_get_fd(streambuf);
 
-    vp9_hw_regs->vp9d_addr.cabactbl_base.cabactbl_base = mpp_buffer_get_fd(reg_ctx->probe_base);
-    vp9_hw_regs->vp9d_addr.vp9_count_prob_base.count_prob_base  = mpp_buffer_get_fd(reg_ctx->count_base);
+    vp9_hw_regs->vp9d_addr.reg197_cabactbl_base = mpp_buffer_get_fd(reg_ctx->probe_base);
+    vp9_hw_regs->vp9d_addr.reg167_count_prob_base  = mpp_buffer_get_fd(reg_ctx->count_base);
 
     if (reg_ctx->last_segid_flag) {
-        vp9_hw_regs->vp9d_addr.vp9_segidlast_base.segidlast_base = mpp_buffer_get_fd(reg_ctx->segid_last_base);
-        vp9_hw_regs->vp9d_addr.vp9_segidcur_base.segidcur_base = mpp_buffer_get_fd(reg_ctx->segid_cur_base);
+        vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(reg_ctx->segid_last_base);
+        vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(reg_ctx->segid_cur_base);
     } else {
-        vp9_hw_regs->vp9d_addr.vp9_segidlast_base.segidlast_base = mpp_buffer_get_fd(reg_ctx->segid_cur_base);
-        vp9_hw_regs->vp9d_addr.vp9_segidcur_base.segidcur_base = mpp_buffer_get_fd(reg_ctx->segid_last_base);
+        vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(reg_ctx->segid_cur_base);
+        vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(reg_ctx->segid_last_base);
     }
 
     if (pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) {
@@ -412,16 +412,15 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     }
     //set cur colmv base
     mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, task->dec.output);
-    vp9_hw_regs->common_addr.colmv_cur_base.colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
-    reg_ctx->mv_base_addr = vp9_hw_regs->common_addr.colmv_cur_base.colmv_cur_base;
+    vp9_hw_regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
+    reg_ctx->mv_base_addr = vp9_hw_regs->common_addr.reg131_colmv_cur_base;
     if (reg_ctx->pre_mv_base_addr < 0) {
         reg_ctx->pre_mv_base_addr = reg_ctx->mv_base_addr;
     }
-    vp9_hw_regs->vp9d_addr.vp9_ref_colmv_base.refcolmv_base = reg_ctx->pre_mv_base_addr;
+    vp9_hw_regs->vp9d_addr.reg170_ref_colmv_base = reg_ctx->pre_mv_base_addr;
 
-    vp9_hw_regs->vp9d_param.vp9_set.cprheader_offset = 0;
-    reg_ref_base = (RK_U32*)&vp9_hw_regs->vp9d_addr.vp9_ref_last_base;
-    RK_U32 *colmv_base = (RK_U32*)&vp9_hw_regs->vp9d_addr.ref0_15_colmv_base;
+    vp9_hw_regs->vp9d_param.reg64.cprheader_offset = 0;
+    reg_ref_base = (RK_U32*)&vp9_hw_regs->vp9d_addr.reg164_ref_last_base;
     for (i = 0; i < 3; i++) {
         ref_idx = pic_param->frame_refs[i].Index7Bits;
         ref_frame_width_y = pic_param->ref_frame_coded_width[ref_idx];
@@ -439,25 +438,25 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
             switch (i) {
             case 0: {
-                vp9_hw_regs->vp9d_param.vp9_framewidth_last.framewidth_last = ref_frame_width_y;
-                vp9_hw_regs->vp9d_param.vp9_frameheight_last.frameheight_last = ref_frame_height_y;
-                vp9_hw_regs->vp9d_param.vp9_lastf_hor_virstride.lastfy_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_lastf_uv_hor_virstride.lastfuv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_lastf_y_virstride.lastfy_virstride = y_virstride;
+                vp9_hw_regs->vp9d_param.reg106.framewidth_last = ref_frame_width_y;
+                vp9_hw_regs->vp9d_param.reg107.frameheight_last = ref_frame_height_y;
+                vp9_hw_regs->vp9d_param.reg79.lastfy_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg80.lastfuv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg85.lastfy_virstride = y_virstride;
             } break;
             case 1: {
-                vp9_hw_regs->vp9d_param.vp9_framewidth_golden.framewidth_golden = ref_frame_width_y;
-                vp9_hw_regs->vp9d_param.vp9_frameheight_golden.frameheight_golden = ref_frame_height_y;
-                vp9_hw_regs->vp9d_param.vp9_goldenf_y_hor_virstride.goldenfy_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_goldenf_uv_hor_virstride.goldenfuv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_golden_y_virstride.goldeny_virstride = y_virstride;
+                vp9_hw_regs->vp9d_param.reg108.framewidth_golden = ref_frame_width_y;
+                vp9_hw_regs->vp9d_param.reg109.frameheight_golden = ref_frame_height_y;
+                vp9_hw_regs->vp9d_param.reg81.goldenfy_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg82.goldenfuv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg86.goldeny_virstride = y_virstride;
             } break;
             case 2: {
-                vp9_hw_regs->vp9d_param.vp9_framewidth_alfter.framewidth_alfter = ref_frame_width_y;
-                vp9_hw_regs->vp9d_param.vp9_frameheight_alfter.frameheight_alfter = ref_frame_height_y;
-                vp9_hw_regs->vp9d_param.vp9_altreff_y_hor_virstride.altreffy_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_altreff_uv_hor_virstride.altreffuv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_param.vp9_altref_y_virstride.altrefy_virstride = y_virstride;
+                vp9_hw_regs->vp9d_param.reg110.framewidth_alfter = ref_frame_width_y;
+                vp9_hw_regs->vp9d_param.reg111.frameheight_alfter = ref_frame_height_y;
+                vp9_hw_regs->vp9d_param.reg83.altreffy_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg84.altreffuv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->vp9d_param.reg87.altrefy_virstride = y_virstride;
             } break;
             default:
                 break;
@@ -470,62 +469,62 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
                 reg_ref_base[i] = mpp_buffer_get_fd(framebuf);
             } else {
                 mpp_log("ref buff address is no valid used out as base slot index 0x%x", pic_param->ref_frame_map[ref_idx].Index7Bits);
-                reg_ref_base[i] = vp9_hw_regs->common_addr.decout_base.decout_base;
+                reg_ref_base[i] = vp9_hw_regs->common_addr.reg130_decout_base;
             }
             mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, pic_param->ref_frame_map[ref_idx].Index7Bits);
-            colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+            vp9_hw_regs->vp9d_addr.reg181_196_ref_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
         } else {
-            reg_ref_base[i] = vp9_hw_regs->common_addr.decout_base.decout_base;
-            colmv_base[i] = vp9_hw_regs->common_addr.colmv_cur_base.colmv_cur_base;
+            reg_ref_base[i] = vp9_hw_regs->common_addr.reg130_decout_base;
+            vp9_hw_regs->vp9d_addr.reg181_196_ref_colmv_base[i] = vp9_hw_regs->common_addr.reg131_colmv_cur_base;
         }
     }
 
     for (i = 0; i < 8; i++) {
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_frame_qp_delta_en            = (reg_ctx->ls_info.feature_mask[i]) & 0x1;
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_frame_qp_delta               = reg_ctx->ls_info.feature_data[i][0];
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_frame_loopfitler_value_en    = (reg_ctx->ls_info.feature_mask[i] >> 1) & 0x1;
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_frame_loopfilter_value       = reg_ctx->ls_info.feature_data[i][1];
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_referinfo_en                 = (reg_ctx->ls_info.feature_mask[i] >> 2) & 0x1;
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_referinfo                    = reg_ctx->ls_info.feature_data[i][2];
-        vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[i].segid6_frame_skip_en                = (reg_ctx->ls_info.feature_mask[i] >> 3) & 0x1;
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_frame_qp_delta_en            = (reg_ctx->ls_info.feature_mask[i]) & 0x1;
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_frame_qp_delta               = reg_ctx->ls_info.feature_data[i][0];
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_frame_loopfitler_value_en    = (reg_ctx->ls_info.feature_mask[i] >> 1) & 0x1;
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_frame_loopfilter_value       = reg_ctx->ls_info.feature_data[i][1];
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_referinfo_en                 = (reg_ctx->ls_info.feature_mask[i] >> 2) & 0x1;
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_referinfo                    = reg_ctx->ls_info.feature_data[i][2];
+        vp9_hw_regs->vp9d_param.reg67_74[i].segid_frame_skip_en                = (reg_ctx->ls_info.feature_mask[i] >> 3) & 0x1;
     }
 
-    vp9_hw_regs->vp9d_param.vp9_segid_grp0_7[0].segid_abs_delta             = reg_ctx->ls_info.abs_delta_last;
-    vp9_hw_regs->vp9d_param.vp9_cprheader_cfg.tx_mode                       = pic_param->txmode;
-    vp9_hw_regs->vp9d_param.vp9_cprheader_cfg.frame_reference_mode          = pic_param->refmode;
-    vp9_hw_regs->vp9d_param.vp9_ref_deltas_lastframe.ref_deltas_lastframe   = 0;
+    vp9_hw_regs->vp9d_param.reg67_74[0].segid_abs_delta             = reg_ctx->ls_info.abs_delta_last;
+    vp9_hw_regs->vp9d_param.reg76.tx_mode                       = pic_param->txmode;
+    vp9_hw_regs->vp9d_param.reg76.frame_reference_mode          = pic_param->refmode;
+    vp9_hw_regs->vp9d_param.reg94.ref_deltas_lastframe   = 0;
 
     if (!intraFlag) {
         for (i = 0; i < 4; i++)
-            vp9_hw_regs->vp9d_param.vp9_ref_deltas_lastframe.ref_deltas_lastframe   |= (reg_ctx->ls_info.last_ref_deltas[i] & 0x7f) << (7 * i);
+            vp9_hw_regs->vp9d_param.reg94.ref_deltas_lastframe   |= (reg_ctx->ls_info.last_ref_deltas[i] & 0x7f) << (7 * i);
 
         for (i = 0; i < 2; i++)
-            vp9_hw_regs->vp9d_param.vp9_info_lastframe.mode_deltas_lastframe        |= (reg_ctx->ls_info.last_mode_deltas[i] & 0x7f) << (7 * i);
+            vp9_hw_regs->vp9d_param.reg75.mode_deltas_lastframe        |= (reg_ctx->ls_info.last_mode_deltas[i] & 0x7f) << (7 * i);
     } else {
         reg_ctx->ls_info.segmentation_enable_flag_last = 0;
         reg_ctx->ls_info.last_intra_only = 1;
     }
 
-    vp9_hw_regs->vp9d_param.vp9_info_lastframe.mode_deltas_lastframe            = 0;
-    vp9_hw_regs->vp9d_param.vp9_info_lastframe.segmentation_enable_lstframe     = reg_ctx->ls_info.segmentation_enable_flag_last;
-    vp9_hw_regs->vp9d_param.vp9_info_lastframe.last_show_frame                  = reg_ctx->ls_info.last_show_frame;
-    vp9_hw_regs->vp9d_param.vp9_info_lastframe.last_intra_only                  = reg_ctx->ls_info.last_intra_only;
-    vp9_hw_regs->vp9d_param.vp9_info_lastframe.last_widthheight_eqcur           = (pic_param->width == reg_ctx->ls_info.last_width) && (pic_param->height == reg_ctx->ls_info.last_height);
-    vp9_hw_regs->vp9d_param.vp9_lasttile_size.lasttile_size                     =  stream_len - pic_param->first_partition_size;
+    vp9_hw_regs->vp9d_param.reg75.mode_deltas_lastframe            = 0;
+    vp9_hw_regs->vp9d_param.reg75.segmentation_enable_lstframe     = reg_ctx->ls_info.segmentation_enable_flag_last;
+    vp9_hw_regs->vp9d_param.reg75.last_show_frame                  = reg_ctx->ls_info.last_show_frame;
+    vp9_hw_regs->vp9d_param.reg75.last_intra_only                  = reg_ctx->ls_info.last_intra_only;
+    vp9_hw_regs->vp9d_param.reg75.last_widthheight_eqcur           = (pic_param->width == reg_ctx->ls_info.last_width) && (pic_param->height == reg_ctx->ls_info.last_height);
+    vp9_hw_regs->vp9d_param.reg78.lasttile_size                     =  stream_len - pic_param->first_partition_size;
 
 
     if (!intraFlag) {
-        vp9_hw_regs->vp9d_param.vp9_lref_hor_scale.lref_hor_scale = pic_param->mvscale[0][0];
-        vp9_hw_regs->vp9d_param.vp9_lref_ver_scale.lref_ver_scale = pic_param->mvscale[0][1];
-        vp9_hw_regs->vp9d_param.vp9_gref_hor_scale.gref_hor_scale = pic_param->mvscale[1][0];
-        vp9_hw_regs->vp9d_param.vp9_gref_ver_scale.gref_ver_scale = pic_param->mvscale[1][1];
-        vp9_hw_regs->vp9d_param.vp9_aref_hor_scale.aref_hor_scale = pic_param->mvscale[2][0];
-        vp9_hw_regs->vp9d_param.vp9_aref_ver_scale.aref_ver_scale = pic_param->mvscale[2][1];
+        vp9_hw_regs->vp9d_param.reg88.lref_hor_scale = pic_param->mvscale[0][0];
+        vp9_hw_regs->vp9d_param.reg89.lref_ver_scale = pic_param->mvscale[0][1];
+        vp9_hw_regs->vp9d_param.reg90.gref_hor_scale = pic_param->mvscale[1][0];
+        vp9_hw_regs->vp9d_param.reg91.gref_ver_scale = pic_param->mvscale[1][1];
+        vp9_hw_regs->vp9d_param.reg92.aref_hor_scale = pic_param->mvscale[2][0];
+        vp9_hw_regs->vp9d_param.reg93.aref_ver_scale = pic_param->mvscale[2][1];
     }
 
-    vp9_hw_regs->common.dec_en.dec_e                = 1;
-    vp9_hw_regs->common.dec_imp_en.dec_timeout_e    = 1;
-    vp9_hw_regs->common.dec_imp_en.buf_empty_en     = 1;
+    vp9_hw_regs->common.reg010.dec_e                = 1;
+    vp9_hw_regs->common.reg011.dec_timeout_e    = 1;
+    vp9_hw_regs->common.reg011.buf_empty_en     = 1;
 
     //last info  update
     reg_ctx->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;
@@ -698,7 +697,7 @@ static MPP_RET hal_vp9d_vdpu34x_wait(void *hal, HalTaskInfo *task)
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
-        !hw_regs->irq_status.sta_int.dec_rdy_sta) {
+        !hw_regs->irq_status.reg224.dec_rdy_sta) {
         MppFrame mframe = NULL;
         mpp_buf_slot_get_prop(ctx->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_frame_set_errinfo(mframe, 1);
