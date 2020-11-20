@@ -97,6 +97,8 @@ Mpp::Mpp()
 
 MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 {
+    MPP_RET ret = MPP_NOK;
+
     if (mpp_check_support_format(type, coding)) {
         mpp_err("unable to create unsupported type %d coding %d\n", type, coding);
         return MPP_NOK;
@@ -145,9 +147,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             this,
         };
 
-        mpp_dec_init(&mDec, &cfg);
-        mpp_dec_start(mDec);
-
+        ret = mpp_dec_init(&mDec, &cfg);
+        if (ret)
+            break;
+        ret = mpp_dec_start(mDec);
+        if (ret)
+            break;
         mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
@@ -174,9 +179,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             this,
         };
 
-        mpp_enc_init_v2(&mEnc, &cfg);
-        mpp_enc_start_v2(mEnc);
-
+        ret = mpp_enc_init_v2(&mEnc, &cfg);
+        if (ret)
+            break;
+        ret = mpp_enc_start_v2(mEnc);
+        if (ret)
+            break;
         mInitDone = 1;
     } break;
     default : {
@@ -190,7 +198,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         clear();
     }
 
-    return MPP_OK;
+    return ret;
 }
 
 Mpp::~Mpp ()
