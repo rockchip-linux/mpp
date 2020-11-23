@@ -766,7 +766,9 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     Vdpu34xH264dRegCtx *reg_ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu34xH264dRegSet *regs = reg_ctx->regs;
+    Vdpu34xH264dRegSet *regs = p_hal->fast_mode ?
+                               reg_ctx->reg_buf[task->dec.reg_index].regs :
+                               reg_ctx->regs;
     MppDev dev = p_hal->dev;
 
     do {
