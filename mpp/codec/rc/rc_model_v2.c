@@ -87,9 +87,15 @@ MPP_RET bits_model_param_deinit(RcModelV2Ctx *ctx)
         mpp_data_deinit_v2(ctx->vi_bit);
         ctx->vi_bit = NULL;
     }
+
     if (ctx->pre_p_bit != NULL) {
         mpp_data_deinit_v2(ctx->pre_p_bit);
         ctx->pre_p_bit = NULL;
+    }
+
+    if (ctx->pre_i_bit != NULL) {
+        mpp_data_deinit_v2(ctx->pre_i_bit);
+        ctx->pre_i_bit = NULL;
     }
 
     if (ctx->pre_i_mean_qp != NULL) {
