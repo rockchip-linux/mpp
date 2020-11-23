@@ -56,6 +56,8 @@ static void fill_picture_parameters(const HEVCContext *h,
     const HEVCFrame *current_picture = h->ref;
     const HEVCPPS *pps = (HEVCPPS *)h->pps_list[h->sh.pps_id];
     const HEVCSPS *sps = (HEVCSPS *)h->sps_list[pps->sps_id];
+    const ShortTermRPS *src_rps = sps->st_rps;
+    Short_SPS_RPS_HEVC *dst_rps = pp->sps_st_rps;
 
     RK_U32 i, j;
     RK_U32 rps_used[16];
@@ -128,7 +130,7 @@ static void fill_picture_parameters(const HEVCContext *h,
                                               (pps->tiles_enabled_flag                            <<  7) |
                                               (pps->entropy_coding_sync_enabled_flag              <<  8) |
                                               (pps->uniform_spacing_flag                          <<  9) |
-                                              ((pps->tiles_enabled_flag ? pps->loop_filter_across_tiles_enabled_flag : 0) << 10) |
+                                              (pps->loop_filter_across_tiles_enabled_flag         << 10) |
                                               (pps->seq_loop_filter_across_slices_enabled_flag    << 11) |
                                               (pps->deblocking_filter_override_enabled_flag       << 12) |
                                               (pps->disable_dbf                                   << 13) |
@@ -166,15 +168,13 @@ static void fill_picture_parameters(const HEVCContext *h,
         pp->sps_lt_rps[i].used_by_curr_pic_lt_flag = sps->used_by_curr_pic_lt_sps_flag[i];
     }
 
-    for (i = 0; i < 64; i++) {
-        const ShortTermRPS *src_rps = sps->st_rps;
-        Short_SPS_RPS_HEVC *dst_rps = pp->sps_st_rps;
-        RK_U32 n_pics = src_rps->num_negative_pics;
 
+    for (i = 0; i < 64; i++) {
         if (i < sps->nb_st_rps) {
+
+            RK_U32 n_pics = src_rps[i].num_negative_pics;
             dst_rps[i].num_negative_pics = n_pics;
             dst_rps[i].num_positive_pics = src_rps[i].num_delta_pocs - n_pics;
-
             for (j = 0; j < dst_rps[i].num_negative_pics; j++) {
                 dst_rps[i].delta_poc_s0[j] = src_rps[i].delta_poc[j];
                 dst_rps[i].s0_used_flag[j] = src_rps[i].used[j];
