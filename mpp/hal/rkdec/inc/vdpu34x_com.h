@@ -35,9 +35,9 @@
 #define RCB_STRMDR_COEF             (6)
 #define RCB_INTERR_COEF             (6)
 #define RCB_INTERC_COEF             (3)
-#define RCB_DBLKR_COEF              (21)
-#define RCB_SAOR_COEF               (5)
-#define RCB_FBCR_COEF               (10)
+#define RCB_DBLKR_COEF              (22)
+#define RCB_SAOR_COEF               (6)
+#define RCB_FBCR_COEF               (11)
 #define RCB_FILTC_COEF              (67)
 
 /* base: OFFSET_COMMON_REGS */
