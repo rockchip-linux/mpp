@@ -165,6 +165,8 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP    = (1 << 11),
     MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP    = (1 << 12),
     MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO = (1 << 13),
+    MPP_ENC_RC_CFG_CHANGE_PRIORITY      = (1 << 14),
+    MPP_ENC_RC_CFG_CHANGE_SUPER_FRM     = (1 << 15),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -306,9 +308,15 @@ typedef struct MppEncRcCfg_t {
      * drop_gap
      * The max continuous frame drop number
      */
-    MppEncRcDropFrmMode drop_mode;
-    RK_U32  drop_threshold;
-    RK_U32  drop_gap;
+    MppEncRcDropFrmMode     drop_mode;
+    RK_U32                  drop_threshold;
+    RK_U32                  drop_gap;
+
+    MppEncRcSuperFrameMode  super_mode;
+    RK_U32                  super_i_thd;
+    RK_U32                  super_p_thd;
+
+    MppEncRcPriority        rc_priority;
 
     RK_S32  max_i_prop;
     RK_S32  min_i_prop;
