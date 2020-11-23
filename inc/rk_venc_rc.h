@@ -28,11 +28,24 @@ typedef enum MppEncRcMode_e {
     MPP_ENC_RC_MODE_BUTT
 } MppEncRcMode;
 
+typedef enum MppEncRcPriority_e {
+    MPP_ENC_RC_BY_BITRATE_FIRST,
+    MPP_ENC_RC_BY_FRM_SIZE_FIRST,
+    MPP_ENC_RC_PRIORITY_BUTT
+} MppEncRcPriority;
+
 typedef enum MppEncRcDropFrmMode_e {
     MPP_ENC_RC_DROP_FRM_DISABLED,
     MPP_ENC_RC_DROP_FRM_NORMAL,
     MPP_ENC_RC_DROP_FRM_PSKIP,
     MPP_ENC_RC_DROP_FRM_BUTT
 } MppEncRcDropFrmMode;
+
+typedef enum MppEncRcSuperFrameMode_t {
+    MPP_ENC_RC_SUPER_FRM_NONE,
+    MPP_ENC_RC_SUPER_FRM_DROP,
+    MPP_ENC_RC_SUPER_FRM_REENC,
+    MPP_ENC_RC_SUPER_FRM_BUTT
+} MppEncRcSuperFrameMode;
 
 #endif /*__RK_VENC_RC_H__*/
