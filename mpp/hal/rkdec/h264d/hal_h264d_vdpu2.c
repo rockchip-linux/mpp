@@ -28,7 +28,7 @@
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"
-#include "hal_h264d_common.h"
+#include "hal_h264d_vdpu_com.h"
 #include "hal_h264d_vdpu2.h"
 #include "hal_h264d_vdpu2_reg.h"
 
