@@ -312,6 +312,11 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
         mpp_data_update_v2(ctx->p_bit, real_bit);
         mpp_data_update_v2(ctx->madi,  madi);
         ctx->p_sumbits = mpp_data_sum_v2(ctx->p_bit);
+
+        /* Avoid div zero when P frame successive drop */
+        if (!ctx->p_sumbits)
+            ctx->p_sumbits = 1;
+
         ctx->p_scale = 16;
     } break;
 
@@ -337,6 +342,7 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
     RK_S32 i_scale = ctx->i_scale;
     RK_S32 vi_scale = ctx->vi_scale;
     RK_S32 alloc_bits = 0;
+    RK_S32 super_bit_thr = 0x7fffffff;
 
     ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
     i_scale = ctx->i_scale;
@@ -344,7 +350,9 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
     rc_dbg_func("enter %p\n", ctx);
     rc_dbg_rc("frame_type %d max_i_prop %d i_scale %d total_bits %lld\n",
               ctx->frame_type, max_i_prop, i_scale, total_bits);
-
+    if (usr_cfg->super_cfg.super_mode) {
+        super_bit_thr = usr_cfg->super_cfg.super_p_thd;
+    }
     if (usr_cfg->gop_mode == SMART_P) {
         RK_U32 vi_num = 0;
         mpp_assert(usr_cfg->vgop > 1);
@@ -356,7 +364,9 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         case INTRA_FRAME: {
             i_scale = mpp_clip(i_scale, 16, 16000);
             total_bits = total_bits * i_scale;
-
+            if (usr_cfg->super_cfg.super_mode) {
+                super_bit_thr = usr_cfg->super_cfg.super_i_thd;
+            }
         } break;
 
         case INTER_P_FRAME: {
@@ -376,6 +386,9 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         case INTRA_FRAME: {
             i_scale = mpp_clip(i_scale, 16, 16000);
             total_bits = total_bits * i_scale;
+            if (usr_cfg->super_cfg.super_mode) {
+                super_bit_thr = usr_cfg->super_cfg.super_i_thd;
+            }
         } break;
 
         case INTER_P_FRAME: {
@@ -392,6 +405,12 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         }
     }
     rc_dbg_rc("i_scale  %d, total_bits %lld", i_scale, total_bits);
+    if (alloc_bits > super_bit_thr &&
+        (usr_cfg->super_cfg.rc_priority == MPP_ENC_RC_BY_FRM_SIZE_FIRST)) {
+        alloc_bits = super_bit_thr - (super_bit_thr >> 4);
+        rc_dbg_rc("alloc bits max then super_bit_thr %d", super_bit_thr);
+    }
+    ctx->cur_super_thd = super_bit_thr;
     cfg->bit_target = alloc_bits;
 
     rc_dbg_func("leave %p\n", ctx);
@@ -506,6 +525,17 @@ MPP_RET calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     return MPP_OK;
 }
 
+MPP_RET reenc_calc_super_frm_ratio(void *ctx, EncRcTaskInfo *cfg)
+{
+    RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
+
+    rc_dbg_func("enter %p\n", p);
+    p->next_ratio = 160 * (4 * (cfg->bit_real - p->cur_super_thd) / cfg->bit_target);
+    p->next_ratio = mpp_clip(p->next_ratio, 128, 640);
+    rc_dbg_func("leave %p\n", p);
+    return MPP_OK;
+}
+
 MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
@@ -523,6 +553,11 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RK_S32 mb_h = MPP_ALIGN(usr_cfg->height, 16) / 16;
 
     rc_dbg_func("enter %p\n", p);
+
+    if (p->cur_super_thd <= cfg->bit_real &&
+        usr_cfg->super_cfg.rc_priority == MPP_ENC_RC_BY_FRM_SIZE_FIRST) {
+        return reenc_calc_super_frm_ratio(ctx, cfg);
+    }
 
     if (real_bit + p->stat_watl > p->watl_thrd)
         water_level = p->watl_thrd - p->bit_per_frame;
@@ -657,6 +692,11 @@ MPP_RET reenc_calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio;
 
     rc_dbg_func("enter %p\n", p);
+
+    if (p->cur_super_thd <= cfg->bit_real &&
+        usr_cfg->super_cfg.rc_priority == MPP_ENC_RC_BY_FRM_SIZE_FIRST) {
+        return reenc_calc_super_frm_ratio(ctx, cfg);
+    }
 
     if (target_bit <= real_bit)
         bit_diff_ratio = 32 * (real_bit - target_bit) / target_bit;
@@ -887,8 +927,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         rc_dbg_rc("min_still_percent  %d", ctx->min_still_percent);
     }
     ctx->max_still_qp = 35;
-    ctx->super_ifrm_bits_thr = -1;
-    ctx->super_pfrm_bits_thr = -1;
     ctx->motion_sensitivity = 90;
 
     ctx->first_frm_flg = 1;
@@ -954,14 +992,25 @@ MPP_RET check_super_frame(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     MPP_RET ret = MPP_OK;
     RK_S32 frame_type = ctx->frame_type;
     RK_U32 bits_thr = 0;
-    if (frame_type == INTRA_FRAME) {
-        bits_thr = ctx->super_ifrm_bits_thr;
-    } else {
-        bits_thr = ctx->super_pfrm_bits_thr;
+    RcCfg *usr_cfg = &ctx->usr_cfg;
+
+    rc_dbg_func("enter %p\n", ctx);
+    if (usr_cfg->super_cfg.super_mode) {
+        bits_thr = usr_cfg->super_cfg.super_p_thd;
+        if (frame_type == INTRA_FRAME) {
+            bits_thr = usr_cfg->super_cfg.super_i_thd;
+        }
+
+        if ((RK_U32)cfg->bit_real >= bits_thr) {
+            if (usr_cfg->super_cfg.super_mode == MPP_ENC_RC_SUPER_FRM_DROP) {
+                rc_dbg_rc("super frame drop current frame");
+                usr_cfg->drop_mode = MPP_ENC_RC_DROP_FRM_NORMAL;
+                usr_cfg->drop_gap  = 0;
+            }
+            ret = MPP_NOK;
+        }
     }
-    if ((RK_U32)cfg->bit_real >= bits_thr) {
-        ret = MPP_NOK;
-    }
+    rc_dbg_func("leave %p\n", ctx);
     return ret;
 }
 
@@ -984,8 +1033,11 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     if (ctx->reenc_cnt >= usr_cfg->max_reencode_times)
         return MPP_OK;
 
-    rc_dbg_drop("drop mode %d frame_type %d\n", usr_cfg->drop_mode, frame_type);
+    if (check_super_frame(ctx, cfg)) {
+        return MPP_NOK;
+    }
 
+    rc_dbg_drop("drop mode %d frame_type %d\n", usr_cfg->drop_mode, frame_type);
     if (usr_cfg->drop_mode && frame_type == INTER_P_FRAME) {
         bit_thr = (RK_S32)(usr_cfg->bps_max * (100 + usr_cfg->drop_thd) / (float)100);
         rc_dbg_drop("drop mode %d check max_bps %d bit_thr %d ins_bps %d",

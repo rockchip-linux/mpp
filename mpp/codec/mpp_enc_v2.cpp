@@ -855,6 +855,11 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->drop_thd = rc->drop_threshold;
     cfg->drop_gap = rc->drop_gap;
 
+    cfg->super_cfg.rc_priority = rc->rc_priority;
+    cfg->super_cfg.super_mode = rc->super_mode;
+    cfg->super_cfg.super_i_thd = rc->super_i_thd;
+    cfg->super_cfg.super_p_thd = rc->super_p_thd;
+
     if (info->st_gop) {
         cfg->vgop = info->st_gop;
         if (cfg->vgop >= rc->fps_out_num / rc->fps_out_denorm &&

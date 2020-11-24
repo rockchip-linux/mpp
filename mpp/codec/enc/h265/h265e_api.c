@@ -428,6 +428,26 @@ static MPP_RET h265e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             dst->drop_gap = src->drop_gap;
         }
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_PRIORITY) {
+            if (src->rc_priority >= MPP_ENC_RC_PRIORITY_BUTT) {
+                mpp_err("invalid rc_priority %d should be[%d, %d] \n",
+                        src->rc_priority, MPP_ENC_RC_BY_BITRATE_FIRST, MPP_ENC_RC_PRIORITY_BUTT);
+                ret = MPP_ERR_VALUE;
+            }
+            dst->rc_priority = src->rc_priority;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_SUPER_FRM) {
+            if (src->super_mode >= MPP_ENC_RC_SUPER_FRM_BUTT) {
+                mpp_err("invalid super_mode %d should be[%d, %d] \n",
+                        src->super_mode, MPP_ENC_RC_SUPER_FRM_NONE, MPP_ENC_RC_SUPER_FRM_BUTT);
+                ret = MPP_ERR_VALUE;
+            }
+            dst->super_mode = src->super_mode;
+            dst->super_i_thd = src->super_i_thd;
+            dst->super_p_thd = src->super_p_thd;
+        }
+
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
             dst->max_i_prop = src->max_i_prop;
 
