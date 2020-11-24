@@ -135,6 +135,10 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
         if (api->reg_offset)
             ret = api->reg_offset(impl_ctx, param);
     } break;
+    case MPP_DEV_RCB_INFO : {
+        if (api->rcb_info)
+            ret = api->rcb_info(impl_ctx, param);
+    } break;
     case MPP_DEV_SET_INFO : {
         if (api->set_info)
             ret = api->set_info(impl_ctx, param);
