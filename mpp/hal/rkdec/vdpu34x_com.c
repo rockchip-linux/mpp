@@ -35,34 +35,34 @@ RK_S32 get_rcb_buf_size(RK_S32 *sizes, RK_S32 *offsets, RK_S32 width, RK_S32 hei
 
     mpp_assert(sizes);
 
-    buf_size = MPP_ALIGN(width * RCB_INTRAR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_INTRA_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_TRANSDR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_TRANSD_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(height * RCB_TRANSDC_COEF, align);
+    buf_size = MPP_ALIGN(height * RCB_TRANSD_COL_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_STRMDR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_STRMD_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_INTERR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_INTER_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(height * RCB_INTERC_COEF, align);
+    buf_size = MPP_ALIGN(height * RCB_INTER_COL_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_DBLKR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_DBLK_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_SAOR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_SAO_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(width * RCB_FBCR_COEF, align);
+    buf_size = MPP_ALIGN(width * RCB_FBC_ROW_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
-    buf_size = MPP_ALIGN(height * RCB_FILTC_COEF, align);
+    buf_size = MPP_ALIGN(height * RCB_FILT_COL_COEF, align);
     UPDATE_SIZE_OFFSET(sizes, offsets, offset, buf_size);
 
     return offset;

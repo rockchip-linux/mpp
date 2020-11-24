@@ -29,16 +29,16 @@
 #define RCB_BUF_COUNT               (10)
 #define RCB_ALLINE_SIZE             (64)
 
-#define RCB_INTRAR_COEF             (6)
-#define RCB_TRANSDR_COEF            (1)
-#define RCB_TRANSDC_COEF            (1)
-#define RCB_STRMDR_COEF             (6)
-#define RCB_INTERR_COEF             (6)
-#define RCB_INTERC_COEF             (3)
-#define RCB_DBLKR_COEF              (22)
-#define RCB_SAOR_COEF               (6)
-#define RCB_FBCR_COEF               (11)
-#define RCB_FILTC_COEF              (67)
+#define RCB_INTRA_ROW_COEF          (6)
+#define RCB_TRANSD_ROW_COEF         (1)
+#define RCB_TRANSD_COL_COEF         (1)
+#define RCB_STRMD_ROW_COEF          (3)
+#define RCB_INTER_ROW_COEF          (6)
+#define RCB_INTER_COL_COEF          (3)
+#define RCB_DBLK_ROW_COEF           (22)
+#define RCB_SAO_ROW_COEF            (6)
+#define RCB_FBC_ROW_COEF            (11)
+#define RCB_FILT_COL_COEF           (67)
 
 /* base: OFFSET_COMMON_REGS */
 typedef struct Vdpu34xRegCommon_t {
