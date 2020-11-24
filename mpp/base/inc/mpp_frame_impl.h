@@ -31,6 +31,8 @@ struct MppFrameImpl_t {
     RK_U32  height;
     RK_U32  hor_stride;
     RK_U32  ver_stride;
+    RK_U32  offset_x;
+    RK_U32  offset_y;
 
     /*
      * interlaced related mode status
