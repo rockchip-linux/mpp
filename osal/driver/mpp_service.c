@@ -258,12 +258,18 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
 }
 
 #define MAX_REG_OFFSET          32
+#define MAX_RCB_OFFSET          32
 #define MAX_INFO_COUNT          16
 
 typedef struct FdTransInfo_t {
     RK_U32          reg_idx;
     RK_U32          offset;
 } RegOffsetInfo;
+
+typedef struct RcbInfo_t {
+    RK_U32          reg_idx;
+    RK_U32          size;
+} RcbInfo;
 
 typedef struct MppDevMppService_t {
     RK_S32          client_type;
@@ -273,6 +279,8 @@ typedef struct MppDevMppService_t {
     RK_S32          reg_offset_count;
     MppReqV1        reqs[MAX_REQ_NUM];
     RegOffsetInfo   reg_offset_info[MAX_REG_OFFSET];
+    RK_S32          rcb_count;
+    RcbInfo         rcb_info[MAX_RCB_OFFSET];
 
     RK_S32          info_count;
     MppDevInfoCfg   info[MAX_INFO_COUNT];
@@ -280,6 +288,7 @@ typedef struct MppDevMppService_t {
     /* support max cmd buttom  */
     const MppServiceCmdCap *cap;
     RK_U32          support_set_info;
+    RK_U32          support_set_rcb_info;
 } MppDevMppService;
 
 MPP_RET mpp_service_init(void *ctx, MppClientType type)
@@ -302,6 +311,8 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     mpp_assert(p->cap);
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SEND_CODEC_INFO, p->cap))
         p->support_set_info = 1;
+    if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SET_RCB_INFO, p->cap))
+        p->support_set_rcb_info = 1;
 
     return ret;
 }
@@ -373,6 +384,29 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
     return MPP_OK;
 }
 
+MPP_RET mpp_service_rcb_info(void *ctx, MppDevRcbInfoCfg *cfg)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    if (!p->support_set_rcb_info)
+        return MPP_OK;
+
+    if (!cfg->size)
+        return MPP_OK;
+
+    if (p->rcb_count >= MAX_RCB_OFFSET) {
+        mpp_err_f("reach max offset definition\n", MAX_RCB_OFFSET);
+        return MPP_NOK;
+    }
+
+    RcbInfo *info = &p->rcb_info[p->rcb_count++];
+
+    info->reg_idx = cfg->reg_idx;
+    info->size = cfg->size;
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_service_set_info(void *ctx, MppDevInfoCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
@@ -407,6 +441,18 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         mpp_req->size = p->reg_offset_count * sizeof(p->reg_offset_info[0]);
         mpp_req->offset = 0;
         mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[0]);
+        p->req_cnt++;
+    }
+
+    /* set rcb offst info if needed */
+    if (p->rcb_count) {
+        MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+
+        mpp_req->cmd = MPP_CMD_SET_RCB_INFO;
+        mpp_req->flag = 0;
+        mpp_req->size = p->rcb_count * sizeof(p->rcb_info[0]);
+        mpp_req->offset = 0;
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->rcb_info[0]);
         p->req_cnt++;
     }
 
@@ -446,6 +492,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
 
     p->req_cnt = 0;
     p->reg_offset_count = 0;
+    p->rcb_count = 0;
     return ret;
 }
 
@@ -476,6 +523,7 @@ const MppDevApi mpp_service_api = {
     mpp_service_reg_wr,
     mpp_service_reg_rd,
     mpp_service_reg_offset,
+    mpp_service_rcb_info,
     mpp_service_set_info,
     mpp_service_cmd_send,
     mpp_service_cmd_poll,
