@@ -65,9 +65,7 @@ typedef struct RcModelV2Ctx_t {
     RK_S32          moving_ratio;
     RK_U32          pre_mean_qp;
     RK_U32          pre_i_scale;
-    /*super frame thr*/
-    RK_U32          super_ifrm_bits_thr;
-    RK_U32          super_pfrm_bits_thr;
+    RK_S32          cur_super_thd;
     MppDataV2       *stat_bits;
     MppDataV2       *gop_bits;
     MppDataV2       *stat_rate;

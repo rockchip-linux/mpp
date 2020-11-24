@@ -93,6 +93,13 @@ typedef struct RcFpsCfg_t {
     RK_S32      fps_out_denorm;
 } RcFpsCfg;
 
+typedef struct RcSuperframeCfg_t {
+    MppEncRcSuperFrameMode  super_mode;
+    RK_U32                  super_i_thd;
+    RK_U32                  super_p_thd;
+    MppEncRcPriority        rc_priority;
+} RcSuperframeCfg;
+
 /*
  * Control parameter from external config
  *
@@ -157,6 +164,8 @@ typedef struct RcCfg_s {
     MppEncRcDropFrmMode drop_mode;
     RK_U32      drop_thd;
     RK_U32      drop_gap;
+
+    RcSuperframeCfg super_cfg;
 } RcCfg;
 
 /*
