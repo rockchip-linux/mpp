@@ -269,6 +269,30 @@ MppFrame mpp_frame_get_next(MppFrame frame);
 
 /*
  * normal parameter
+ *
+ *    offset_x
+ *   <-------->
+ *
+ *   <---------------+      hor_stride      +--------------->
+ *
+ *   +------------------------------------------------------+   ^   ^
+ *   |                                                      |   |   |
+ *   |                                                      |   |   | offset_y
+ *   |                                                      |   |   |
+ *   |        +--------------------------------+  ^         |   |   v
+ *   |        |                                |  |         |   |
+ *   |        |                                |  +         |   +
+ *   |        |                                |            |
+ *   |        |        valid data area         | height     | ver_stride
+ *   |        |                                |            |
+ *   |        |                                |  +         |   +
+ *   |        |                                |  |         |   |
+ *   |        +--------------------------------+  v         |   |
+ *   |                                                      |   |
+ *   |        <----------+   width   +--------->            |   |
+ *   |                                                      |   |
+ *   +------------------------------------------------------+   v
+ *
  */
 RK_U32  mpp_frame_get_width(const MppFrame frame);
 void    mpp_frame_set_width(MppFrame frame, RK_U32 width);
