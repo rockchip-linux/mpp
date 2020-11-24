@@ -583,6 +583,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         common->reg011.dec_clkgate_e = 1;
         common->reg011.dec_e_strmd_clkgate_dis = 0;
         common->reg011.dec_timeout_e = 1;
+        common->reg012.colmv_compress_en = (pp->frame_mbs_only_flag) ? 1 : 0;
         common->reg013.timeout_mode = 1;
     }
     return MPP_OK;
@@ -675,6 +676,10 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
         task->dec.flags.ref_err) {
         goto __RETURN;
     }
+
+    /* if is field mode is enabled enlarge colmv buffer and disable colmv compression */
+    if (!p_hal->pp->frame_mbs_only_flag)
+        mv_size *= 2;
 
     if (p_hal->cmv_bufs == NULL || p_hal->mv_size < mv_size) {
         size_t size = mv_size;
