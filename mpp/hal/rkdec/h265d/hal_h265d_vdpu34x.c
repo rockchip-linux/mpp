@@ -998,8 +998,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             rcb_buf = NULL;
         }
 
-        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_size, reg_cxt->rcb_offset,
-                                                 width, height);
+        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_reg, reg_cxt->rcb_size,
+                                                 reg_cxt->rcb_offset, width, height);
 
         mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
         reg_cxt->rcb_buf = rcb_buf;

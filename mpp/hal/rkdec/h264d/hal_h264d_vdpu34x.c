@@ -88,6 +88,7 @@ typedef struct Vdpu34xH264dRegCtx_t {
     RK_S32              width;
     RK_S32              height;
     RK_S32              rcb_buf_size;
+    RK_S32              rcb_reg[RCB_BUF_COUNT];
     RK_S32              rcb_size[RCB_BUF_COUNT];
     RK_S32              rcb_offset[RCB_BUF_COUNT];
     MppBuffer           rcb_buf;
@@ -786,8 +787,8 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
             rcb_buf = NULL;
         }
 
-        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_size, ctx->rcb_offset,
-                                             width, height);
+        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_reg, ctx->rcb_size,
+                                             ctx->rcb_offset, width, height);
 
         mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
         ctx->rcb_buf = rcb_buf;
