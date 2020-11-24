@@ -53,6 +53,7 @@ typedef struct HalH265dCtx_t {
     RK_S32          width;
     RK_S32          height;
     RK_S32          rcb_buf_size;
+    RK_S32          rcb_reg[RCB_BUF_COUNT];
     RK_S32          rcb_size[RCB_BUF_COUNT];
     RK_S32          rcb_offset[RCB_BUF_COUNT];
     MppBuffer       rcb_buf;

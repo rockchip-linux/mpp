@@ -27,19 +27,22 @@
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
 #define OFFSET_STATISTIC_REGS       (256 * sizeof(RK_U32))
 
-#define RCB_BUF_COUNT               (10)
 #define RCB_ALLINE_SIZE             (64)
 
-#define RCB_INTRA_ROW_COEF          (6)
-#define RCB_TRANSD_ROW_COEF         (1)
-#define RCB_TRANSD_COL_COEF         (1)
-#define RCB_STRMD_ROW_COEF          (3)
-#define RCB_INTER_ROW_COEF          (6)
-#define RCB_INTER_COL_COEF          (3)
-#define RCB_DBLK_ROW_COEF           (22)
-#define RCB_SAO_ROW_COEF            (6)
-#define RCB_FBC_ROW_COEF            (11)
-#define RCB_FILT_COL_COEF           (67)
+typedef enum Vdpu34x_RCB_TYPE_E {
+    RCB_DBLK_ROW,
+    RCB_INTRA_ROW,
+    RCB_TRANSD_ROW,
+    RCB_STRMD_ROW,
+    RCB_INTER_ROW,
+    RCB_SAO_ROW,
+    RCB_FBC_ROW,
+    RCB_TRANSD_COL,
+    RCB_INTER_COL,
+    RCB_FILT_COL,
+
+    RCB_BUF_COUNT,
+} Vdpu34xRcbType_e;
 
 /* base: OFFSET_COMMON_REGS */
 typedef struct Vdpu34xRegCommon_t {
@@ -411,7 +414,8 @@ typedef struct Vdpu34xRegStatistic_t {
 extern "C" {
 #endif
 
-RK_S32 get_rcb_buf_size(RK_S32 *sizes, RK_S32 *offsets, RK_S32 width, RK_S32 height);
+RK_S32 get_rcb_buf_size(RK_S32 *regs, RK_S32 *sizes,
+                        RK_S32 *offsets, RK_S32 width, RK_S32 height);
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offsets);
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
 

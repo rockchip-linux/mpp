@@ -58,6 +58,7 @@ typedef struct Vdpu34xVp9dCtx_t {
     RK_S32          height;
     /* rcb buffers info */
     RK_S32          rcb_buf_size;
+    RK_S32          rcb_reg[RCB_BUF_COUNT];
     RK_S32          rcb_size[RCB_BUF_COUNT];
     RK_S32          rcb_offset[RCB_BUF_COUNT];
     MppBuffer       rcb_buf;
@@ -686,8 +687,8 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
                 rcb_buf = NULL;
             }
 
-            hw_ctx->rcb_buf_size = get_rcb_buf_size(hw_ctx->rcb_size, hw_ctx->rcb_offset,
-                                                    width, height);
+            hw_ctx->rcb_buf_size = get_rcb_buf_size(hw_ctx->rcb_reg, hw_ctx->rcb_size,
+                                                    hw_ctx->rcb_offset, width, height);
 
             mpp_buffer_get(p_hal ->group, &rcb_buf, hw_ctx->rcb_buf_size);
             hw_ctx->rcb_buf = rcb_buf;
