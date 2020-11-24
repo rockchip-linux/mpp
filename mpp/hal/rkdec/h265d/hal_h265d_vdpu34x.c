@@ -800,7 +800,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
     height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
-    mv_size = (width * height >> 1);
+    mv_size = (MPP_ALIGN(width, 64) * MPP_ALIGN(height, 64)) >> 3;
     if (reg_cxt->cmv_bufs == NULL || reg_cxt->mv_size < mv_size) {
         size_t size = mv_size;
 
@@ -883,10 +883,11 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0,
                aglin_offset);
     }
-    hw_regs->common.reg010.dec_e               = 1;
-    hw_regs->common.reg011.dec_timeout_e   = 1;
-    hw_regs->common.reg012.wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag
-                                             ? 0 : 1;
+    hw_regs->common.reg010.dec_e                = 1;
+    hw_regs->common.reg011.dec_timeout_e        = 1;
+    hw_regs->common.reg012.wr_ddr_align_en      = dxva_cxt->pp.tiles_enabled_flag
+                                                  ? 0 : 1;
+    hw_regs->common.reg012.colmv_compress_en    = 1;
 
     hw_regs->common.reg024.cabac_err_en_lowbits = 0xffffdfff;
     hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;
