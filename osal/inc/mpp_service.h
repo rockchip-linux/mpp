@@ -116,6 +116,8 @@ extern "C" {
 #endif
 
 void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap *cap);
+const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void);
+const char *mpp_get_mpp_service_name(void);
 
 #ifdef  __cplusplus
 }

@@ -87,7 +87,24 @@ static const char *mpp_service_hw_name[] = {
     /* VPU_CLIENT_BUTT          */  NULL,
 };
 
-static const char *mpp_service_name = "/dev/mpp_service";
+const char *mpp_get_mpp_service_name(void)
+{
+    static const char *mpp_service_name = NULL;
+    static const char *mpp_service_dev[] = {
+        "/dev/mpp_service",
+        "/dev/mpp-service",
+    };
+
+    if (mpp_service_name)
+        return mpp_service_name;
+
+    if (!access(mpp_service_dev[0], F_OK | R_OK | W_OK)) {
+        mpp_service_name = mpp_service_dev[0];
+    } else if (!access(mpp_service_dev[1], F_OK | R_OK | W_OK))
+        mpp_service_name = mpp_service_dev[1];
+
+    return mpp_service_name;
+}
 
 static RK_S32 mpp_service_ioctl(RK_S32 fd, RK_U32 cmd, RK_U32 size, void *param)
 {
@@ -145,7 +162,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     *codec_type = 0;
     memset(hw_ids, 0, sizeof(RK_U32) * 32);
 
-    fd = open(mpp_service_name, O_RDWR);
+    fd = open(mpp_get_mpp_service_name(), O_RDWR);
     if (fd < 0) {
         mpp_err("open mpp_service to check cmd capability failed\n");
         memset(cap, 0, sizeof(*cap));
@@ -270,7 +287,7 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     MPP_RET ret = MPP_NOK;
 
     p->cap = mpp_get_mpp_service_cmd_cap();
-    p->fd = open(mpp_service_name, O_RDWR);
+    p->fd = open(mpp_get_mpp_service_name(), O_RDWR);
     if (p->fd < 0) {
         mpp_err("open mpp_service failed\n");
         return ret;
