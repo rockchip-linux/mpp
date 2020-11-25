@@ -96,8 +96,6 @@ MppIoctlVersion mpp_get_ioctl_version(void);
 const char *mpp_get_soc_name(void);
 RK_U32 mpp_get_vcodec_type(void);
 RK_U32 mpp_get_2d_hw_flag(void);
-const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_U32 platform);
-const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
 const MppServiceCmdCap *mpp_get_mpp_service_cmd_cap(void);
 RK_U32 mpp_get_client_hw_id(RK_S32 client_type);
 
