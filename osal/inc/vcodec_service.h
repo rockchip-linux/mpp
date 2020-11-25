@@ -46,4 +46,14 @@
 
 #define EXTRA_INFO_SIZE                     (sizeof(RK_U32) * 34)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __VCODEC_SERVICE_H__ */

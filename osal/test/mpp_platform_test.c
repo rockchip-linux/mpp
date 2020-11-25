@@ -18,6 +18,7 @@
 
 #include "mpp_log.h"
 #include "mpp_platform.h"
+#include "vcodec_service.h"
 
 int main()
 {
