@@ -19,9 +19,11 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_soc.h"
 #include "mpp_common.h"
 
 #include "h265e_ps.h"
+
 #define MAX_UINT        0xFFFFFFFFU
 
 typedef struct H265levelspec_t {

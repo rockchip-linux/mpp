@@ -20,6 +20,7 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_soc.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
 #include "mpp_device.h"

@@ -19,12 +19,12 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_soc.h"
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
 
 #include "jpegd_api.h"
 #include "jpegd_parser.h"
-#include "mpp_platform.h"
 
 RK_U32 jpegd_debug = 0x0;
 

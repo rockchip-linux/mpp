@@ -17,9 +17,8 @@
 #ifndef __MPP_DEVICE_H__
 #define __MPP_DEVICE_H__
 
-#include "rk_type.h"
 #include "mpp_err.h"
-#include "mpp_platform.h"
+#include "mpp_dev_defs.h"
 
 typedef enum MppDevIoctlCmd_e {
     /* hardware operation setup config */
