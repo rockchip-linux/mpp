@@ -32,6 +32,7 @@ set(MPP_DRIVER
 )
 
 add_library(osal STATIC
+    mpp_soc.cpp
     mpp_platform.cpp
     mpp_runtime.cpp
     mpp_allocator.cpp

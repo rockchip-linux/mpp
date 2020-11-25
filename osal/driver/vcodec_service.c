@@ -31,11 +31,17 @@
 
 #include "vpu.h"
 #include "mpp_soc.h"
+#include "mpp_platform.h"
 #include "vcodec_service.h"
 #include "vcodec_service_api.h"
 
 #define MAX_REGS_COUNT      3
 #define MPX_EXTRA_INFO_NUM  16
+
+typedef struct MppReq_t {
+    RK_U32 *req;
+    RK_U32  size;
+} MppReq;
 
 typedef struct VcodecExtraSlot_t {
     RK_U32              reg_idx;
@@ -151,10 +157,6 @@ const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_
     } else if ((platform & HAVE_VEPU22) && (type == MPP_CTX_ENC) &&
                (coding == MPP_VIDEO_CodingHEVC)) {
         dev = mpp_find_device(mpp_h265e_dev);
-    } else if ((platform & (HAVE_VEPU2_LITE)) && (type == MPP_CTX_ENC) &&
-               ((coding == MPP_VIDEO_CodingAVC ||
-                 coding == MPP_VIDEO_CodingMJPEG))) {
-        dev = mpp_find_device(mpp_vepu_dev);
     } else {
         if (type == MPP_CTX_ENC)
             dev = mpp_find_device(mpp_vepu_dev);
@@ -441,13 +443,6 @@ MPP_RET vcodec_service_init(void *ctx, MppClientType type)
     } break;
     case VPU_CLIENT_VEPU2 : {
         name = mpp_find_device(mpp_vpu_dev);
-        client_type = VPU_ENC;
-        reg_size = VEPU2_REGISTERS;
-    } break;
-    case VPU_CLIENT_VEPU2_LITE : {
-        name = mpp_find_device(mpp_vepu_dev);
-        if (name == NULL)
-            name = mpp_find_device(mpp_vpu_dev);
         client_type = VPU_ENC;
         reg_size = VEPU2_REGISTERS;
     } break;

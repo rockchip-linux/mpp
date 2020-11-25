@@ -24,6 +24,7 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
+#include "mpp_soc.h"
 #include "mpp_common.h"
 
 #include "hal_h264d_global.h"

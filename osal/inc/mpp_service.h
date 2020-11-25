@@ -89,11 +89,6 @@ typedef enum MppServiceCmdType_e {
     MPP_CMD_BUTT,
 } MppServiceCmdType;
 
-typedef struct MppReq_t {
-    RK_U32 *req;
-    RK_U32  size;
-} MppReq;
-
 typedef struct mppReqV1_t {
     RK_U32 cmd;
     RK_U32 flag;

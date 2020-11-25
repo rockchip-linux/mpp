@@ -23,6 +23,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 
+#include "mpp_platform.h"
 #include "mpp_device_debug.h"
 #include "mpp_service_api.h"
 #include "vcodec_service_api.h"

@@ -24,7 +24,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
-#include "mpp_platform.h"
+#include "mpp_soc.h"
 
 #include "vpu_api.h"
 #include "vpu_api_legacy.h"
