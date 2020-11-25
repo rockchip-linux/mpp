@@ -1304,6 +1304,8 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     regs->bsbt_addr_hevc    = regs->bsbb_addr_hevc;
     regs->bsbr_addr_hevc    = regs->bsbb_addr_hevc;
     regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc | (offset << 10);
+    regs->pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
+    regs->pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
 }
 MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)

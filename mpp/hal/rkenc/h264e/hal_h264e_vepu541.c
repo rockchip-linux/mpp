@@ -1387,6 +1387,9 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
 
     regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
 
+    regs->reg068.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
+    regs->reg068.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
+
     setup_vepu541_split(regs, &cfg->split);
     if (ctx->is_vepu540 && prep->width > 1920)
         setup_vepu540_force_slice_split(regs, prep->width);
