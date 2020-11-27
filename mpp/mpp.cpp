@@ -26,6 +26,7 @@
 #include "mpp_env.h"
 #include "mpp_time.h"
 #include "mpp_impl.h"
+#include "mpp_2str.h"
 
 #include "mpp.h"
 #include "mpp_hal.h"
@@ -98,8 +99,16 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 {
     MPP_RET ret = MPP_NOK;
 
+    if (!mpp_check_soc_cap(type, coding)) {
+        mpp_err("unable to create %s %s for soc %s unsupported\n",
+                strof_ctx_type(type), strof_coding_type(coding),
+                mpp_get_soc_info()->compatible);
+        return MPP_NOK;
+    }
+
     if (mpp_check_support_format(type, coding)) {
-        mpp_err("unable to create unsupported type %d coding %d\n", type, coding);
+        mpp_err("unable to create %s %s for mpp unsupported\n",
+                strof_ctx_type(type), strof_coding_type(coding));
         return MPP_NOK;
     }
 
