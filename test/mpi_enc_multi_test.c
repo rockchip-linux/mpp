@@ -463,8 +463,10 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.qp_init     = p->qp_init;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
-        codec_cfg->jpeg.change  = MPP_ENC_JPEG_CFG_CHANGE_QP;
-        codec_cfg->jpeg.quant   = p->qp_init;
+        codec_cfg->jpeg.change      = MPP_ENC_JPEG_CFG_CHANGE_QFACTOR;
+        codec_cfg->jpeg.q_factor    = 90;
+        codec_cfg->jpeg.qf_min      = 1;
+        codec_cfg->jpeg.qf_max      = 99;
     } break;
     case MPP_VIDEO_CodingHEVC : {
         codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE | MPP_ENC_H265_CFG_RC_QP_CHANGE;
