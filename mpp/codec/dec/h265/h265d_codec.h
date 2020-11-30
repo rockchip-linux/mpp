@@ -25,10 +25,11 @@
  *   2015.7.15 : Create
  */
 
-#ifndef __MPP_CODEC_H__
-#define __MPP_CODEC_H__
+#ifndef __H265D_CODEC_H__
+#define __H265D_CODEC_H__
 
 #include "mpp_frame.h"
+#include "mpp_dec_cfg.h"
 
 typedef struct MppRational {
     RK_S32 num; ///< numerator
@@ -137,8 +138,7 @@ typedef struct H265dContext {
 
     void *compare_info;
 
-    RK_U32 need_split;
-    RK_U32 disable_error;
+    MppDecCfgSet *cfg;
 } H265dContext_t;
 #ifdef  __cplusplus
 extern "C" {
@@ -151,4 +151,4 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index);
 }
 #endif
 
-#endif /* __MPP_CODEC_H__ */
+#endif /* __H265D_CODEC_H__ */

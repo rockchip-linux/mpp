@@ -197,7 +197,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->mExtraHeaderDecFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
-    ctx->need_split = cfg->need_split;
+    ctx->need_split = cfg->cfg->base.split_parse;
     ctx->left_length = 0;
     ctx->vop_header_found = 0;
 

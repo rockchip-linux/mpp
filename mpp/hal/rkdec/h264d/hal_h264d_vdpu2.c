@@ -681,7 +681,6 @@ MPP_RET vdpu2_h264d_init(void *hal, MppHalCfg *cfg)
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
     INP_CHECK(ret, NULL == hal);
 
-    p_hal->fast_mode = cfg->fast_mode;
     MEM_CHECK(ret, p_hal->priv = mpp_calloc_size(void,
                                                  sizeof(H264dVdpuPriv_t)));
     MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(H264dVdpuRegCtx_t)));
@@ -714,6 +713,7 @@ MPP_RET vdpu2_h264d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu_ver_align);
 
+    (void)cfg;
 __RETURN:
     return MPP_OK;
 __FAILED:

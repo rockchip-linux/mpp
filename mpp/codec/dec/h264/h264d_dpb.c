@@ -1261,7 +1261,7 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             p_Dpb->poc_interval = 1;
         }
 
-        if (p_Dpb->p_Vid->p_Dec->immediate_out ||
+        if (p_Dpb->p_Vid->p_Dec->cfg->base.fast_out ||
             (p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
             FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
         } else {

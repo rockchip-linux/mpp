@@ -1203,7 +1203,7 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
     if (ret < 0)
         goto fail;
 
-    if (!s->h265dctx->disable_error && s->miss_ref_flag) {
+    if (!s->h265dctx->cfg->base.disable_error && s->miss_ref_flag) {
         if (!IS_IRAP(s)) {
             mpp_frame_set_errinfo(s->frame, MPP_FRAME_ERR_UNKNOW);
             s->ref->error_flag = 1;
@@ -1336,7 +1336,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             s->poc <= s->max_ra) {
             s->is_decoded = 0;
             break;
-        } else if (!s->h265dctx->disable_error &&
+        } else if (!s->h265dctx->cfg->base.disable_error &&
                    (s->poc < s->max_ra) && !IS_IRAP(s)) { //when seek to I slice skip the stream small then I slic poc
             s->is_decoded = 0;
             break;
@@ -1741,8 +1741,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         }
     }
 
-    if (h265dctx->need_split && !s->is_nalff) {
-
+    if (h265dctx->cfg->base.split_parse && !s->is_nalff) {
         RK_S32 consume = 0;
         RK_U8 *split_out_buf = NULL;
         RK_S32 split_size = 0;
@@ -1952,9 +1951,9 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
         h265dctx->priv_data = s;
     }
 
-    h265dctx->need_split = parser_cfg->need_split;
+    h265dctx->cfg = parser_cfg->cfg;
 
-    if (sc == NULL && h265dctx->need_split) {
+    if (sc == NULL && h265dctx->cfg->base.split_parse) {
         h265d_split_init((void**)&sc);
         if (sc == NULL) {
             mpp_err("split contxt malloc fail");
@@ -2029,16 +2028,9 @@ MPP_RET h265d_reset(void *ctx)
 
 MPP_RET h265d_control(void *ctx, MpiCmd cmd, void *param)
 {
-    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
-
-    switch (cmd) {
-    case MPP_DEC_SET_DISABLE_ERROR: {
-        h265dctx->disable_error = *((RK_U32 *)param);
-    }
-    default : {
-    } break;
-    }
-
+    (void) ctx;
+    (void) cmd;
+    (void) param;
     return MPP_OK;
 }
 
@@ -2047,7 +2039,7 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HalDecTask *task_dec = (HalDecTask *)err_info;
 
-    if (!h265dctx->disable_error) {
+    if (!h265dctx->cfg->base.disable_error) {
         HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
         MppFrame frame = NULL;
         RK_U32 i = 0;

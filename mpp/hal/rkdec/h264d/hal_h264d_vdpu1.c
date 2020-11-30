@@ -713,7 +713,6 @@ MPP_RET vdpu1_h264d_init(void *hal, MppHalCfg *cfg)
     H264dHalCtx_t  *p_hal = (H264dHalCtx_t *)hal;
     INP_CHECK(ret, NULL == hal);
 
-    p_hal->fast_mode = cfg->fast_mode;
     //!< malloc init registers
     MEM_CHECK(ret, p_hal->priv =
                   mpp_calloc_size(void, sizeof(H264dVdpuPriv_t)));

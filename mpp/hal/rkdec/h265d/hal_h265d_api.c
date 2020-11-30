@@ -66,7 +66,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
 
     p->slots = cfg->frame_slots;
     p->int_cb = cfg->hal_int_cb;
-    p->fast_mode = cfg->fast_mode;
+    p->fast_mode = cfg->cfg->base.fast_parse;
     p->packet_slots = cfg->packet_slots;
 
     mpp_env_get_u32("hal_h265d_debug", &hal_h265d_debug, 0);

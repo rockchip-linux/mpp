@@ -32,7 +32,8 @@ typedef struct {
     // parameter interact with mpp_dec
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
-    RK_S32          task_count;
+    MppDecCfgSet    *cfg;
+
     RK_U8           *stream;
     size_t          stream_size;
     MppPacket       task_pkt;
@@ -42,7 +43,6 @@ typedef struct {
     // runtime parameter
     RK_U32          need_split;
     RK_U32          frame_count;
-    RK_U32          internal_pts;
 
     // parser context
     H263dParser     parser;
@@ -88,9 +88,8 @@ MPP_RET h263d_init(void *dec, ParserCfg *cfg)
     p = (H263dCtx *)dec;
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
-    p->task_count   = cfg->task_count = 2;
-    p->need_split   = cfg->need_split;
-    p->internal_pts = cfg->internal_pts;
+    p->cfg          = cfg->cfg;
+    p->need_split   = p->cfg->base.split_parse;
     p->stream       = stream;
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;

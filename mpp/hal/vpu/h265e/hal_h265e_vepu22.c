@@ -1787,8 +1787,8 @@ MPP_RET hal_h265e_vepu22_init(void *hal, MppHalCfg *cfg)
     ctx->pre_buf = NULL;
 
     /* pointer to cfg define in controller*/
-    ctx->cfg = cfg->cfg;
-    ctx->set = cfg->set;
+    ctx->cfg = NULL;    // NOTE: (MppEncCfgSet *) cfg->cfg;
+    ctx->set = NULL;    // NOTE: (MppEncCfgSet *) cfg->set;
     ctx->int_cb = cfg->hal_int_cb;
     ctx->option = H265E_SET_CFG_INIT;
     ctx->init = 0;

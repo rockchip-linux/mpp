@@ -89,9 +89,9 @@ static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p = (Mpg4dCtx *)dec;
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
-    p->task_count   = cfg->task_count = 2;
+    p->task_count   = 2;
     p->need_split   = 1;//cfg->need_split;
-    p->internal_pts = cfg->internal_pts;
+    p->internal_pts = cfg->cfg->base.internal_pts;
     p->stream       = stream;
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;
