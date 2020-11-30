@@ -39,3 +39,6 @@ add_mpp_base_test(mpp_enc_cfg)
 
 # mpp_enc_ref unit test
 add_mpp_base_test(mpp_enc_ref)
+
+# mpp_dec_cfg unit test
+add_mpp_base_test(mpp_dec_cfg)
