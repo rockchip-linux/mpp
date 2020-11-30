@@ -100,7 +100,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
-    p_hal->fast_mode = cfg->fast_mode;
+    p_hal->cfg = cfg->cfg;
+    p_hal->fast_mode = cfg->cfg->base.fast_parse;
 
     //!< choose hard mode
     {

@@ -20,6 +20,7 @@
 #include "rk_mpi_cmd.h"
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
+#include "mpp_dec_cfg.h"
 #include "hal_task.h"
 
 /*
@@ -29,16 +30,10 @@
  * the reset wait for extension
  */
 typedef struct DecParserInitCfg_t {
-    // input
     MppCodingType   coding;
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
-
-    // output
-    RK_S32          task_count;
-    RK_U32          need_split;
-    RK_U32          immediate_out;
-    RK_U32          internal_pts;
+    MppDecCfgSet    *cfg;
 } ParserCfg;
 
 

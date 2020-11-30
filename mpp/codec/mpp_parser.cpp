@@ -71,8 +71,6 @@ static const ParserApi *parsers[] = {
 };
 
 typedef struct ParserImpl_t {
-    ParserCfg           cfg;
-
     const ParserApi     *api;
     void                *ctx;
 } ParserImpl;
@@ -107,7 +105,6 @@ MPP_RET mpp_parser_init(Parser *prs, ParserCfg *cfg)
                 return ret;
             }
 
-            p->cfg  = *cfg;
             p->api  = api;
             p->ctx  = ctx;
             *prs = p;

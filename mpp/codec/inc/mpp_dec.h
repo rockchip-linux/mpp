@@ -20,23 +20,22 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 #include "rk_mpi_cmd.h"
+#include "mpp_dec_cfg.h"
 
 typedef void* MppDec;
 
 typedef struct {
     MppCodingType       coding;
-    RK_U32              fast_mode;
-    RK_U32              need_split;
-    RK_U32              internal_pts;
-    RK_U32              immedaite_out;
     void                *mpp;
-} MppDecCfg;
+
+    MppDecCfgSet        *cfg;
+} MppDecInitCfg;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_dec_init(MppDec *ctx, MppDecCfg *cfg);
+MPP_RET mpp_dec_init(MppDec *ctx, MppDecInitCfg *cfg);
 MPP_RET mpp_dec_deinit(MppDec ctx);
 
 MPP_RET mpp_dec_start(MppDec ctx);
@@ -46,6 +45,10 @@ MPP_RET mpp_dec_reset(MppDec ctx);
 MPP_RET mpp_dec_flush(MppDec ctx);
 MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag);
+
+/* update init cfg before init */
+MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param);
+MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src);
 
 #ifdef __cplusplus
 }

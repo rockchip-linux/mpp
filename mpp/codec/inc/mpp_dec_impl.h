@@ -20,6 +20,7 @@
 #include "mpp_time.h"
 
 #include "mpp.h"
+#include "mpp_dec_cfg.h"
 #include "mpp_parser.h"
 #include "mpp_hal.h"
 
@@ -56,6 +57,9 @@ typedef struct MppDecImpl_t {
     HalTaskGroup        tasks;
     HalTaskGroup        vproc_tasks;
 
+    // runtime configure set
+    MppDecCfgSet        cfg;
+
     // status flags
     RK_U32              parser_work_count;
     RK_U32              parser_wait_count;
@@ -81,11 +85,8 @@ typedef struct MppDecImpl_t {
     sem_t               hal_reset;
 
     // work mode flags
-    RK_U32              parser_need_split;
     RK_U32              parser_fast_mode;
-    RK_U32              parser_internal_pts;
     RK_U32              disable_error;
-    RK_U32              use_preset_time_order;
     RK_U32              enable_deinterlace;
 
     // dec parser thread runtime resource context

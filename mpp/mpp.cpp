@@ -17,6 +17,7 @@
 #define  MODULE_TAG "mpp"
 
 #include <errno.h>
+#include <string.h>
 
 #include "rk_mpi.h"
 
@@ -84,14 +85,12 @@ Mpp::Mpp()
       mInitDone(0),
       mMultiFrame(0),
       mStatus(0),
-      mParserFastMode(0),
-      mParserNeedSplit(0),
-      mParserInternalPts(0),
-      mImmediateOut(0),
       mExtraPacket(NULL),
       mDump(NULL)
 {
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+
+    memset(&mDecInitcfg, 0, sizeof(mDecInitcfg));
     mpp_dump_init(&mDump);
 }
 
@@ -138,13 +137,10 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
         mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
 
-        MppDecCfg cfg = {
+        MppDecInitCfg cfg = {
             coding,
-            mParserFastMode,
-            mParserNeedSplit,
-            mParserInternalPts,
-            mImmediateOut,
             this,
+            &mDecInitcfg,
         };
 
         ret = mpp_dec_init(&mDec, &cfg);
@@ -799,35 +795,34 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         ret = mpp_dec_control(mDec, cmd, param);
         notify(MPP_DEC_NOTIFY_INFO_CHG_DONE | MPP_DEC_NOTIFY_BUFFER_MATCH);
     } break;
-    case MPP_DEC_SET_PARSER_SPLIT_MODE: {
-        RK_U32 flag = *((RK_U32 *)param);
-        mParserNeedSplit = flag;
-        ret = MPP_OK;
-    } break;
-    case MPP_DEC_SET_PARSER_FAST_MODE: {
-        RK_U32 flag = *((RK_U32 *)param);
-        mParserFastMode = flag;
-        ret = MPP_OK;
+    case MPP_DEC_SET_PRESENT_TIME_ORDER :
+    case MPP_DEC_SET_PARSER_SPLIT_MODE :
+    case MPP_DEC_SET_PARSER_FAST_MODE :
+    case MPP_DEC_SET_IMMEDIATE_OUT :
+    case MPP_DEC_SET_DISABLE_ERROR :
+    case MPP_DEC_SET_ENABLE_DEINTERLACE : {
+        /*
+         * These control may be set before mpp_init
+         * When this case happen record the config and wait for decoder init
+         */
+        if (mDec) {
+            ret = mpp_dec_control(mDec, cmd, param);
+            return ret;
+        }
+
+        ret = mpp_dec_set_cfg_by_cmd(&mDecInitcfg, cmd, param);
     } break;
     case MPP_DEC_GET_STREAM_COUNT: {
         AutoMutex autoLock(mPackets->mutex());
         *((RK_S32 *)param) = mPackets->list_size();
         ret = MPP_OK;
     } break;
-    case MPP_DEC_SET_IMMEDIATE_OUT: {
-        mImmediateOut = *((RK_U32 *)param);
-        ret = MPP_OK;
-        if (mDec)
-            ret = mpp_dec_control(mDec, cmd, param);
-    } break;
-    case MPP_DEC_GET_VPUMEM_USED_COUNT:
-    case MPP_DEC_SET_OUTPUT_FORMAT:
-    case MPP_DEC_SET_DISABLE_ERROR:
-    case MPP_DEC_SET_PRESENT_TIME_ORDER:
-    case MPP_DEC_SET_ENABLE_DEINTERLACE:
-    case MPP_DEC_QUERY: {
+    case MPP_DEC_GET_VPUMEM_USED_COUNT :
+    case MPP_DEC_SET_OUTPUT_FORMAT :
+    case MPP_DEC_QUERY :
+    case MPP_DEC_SET_CFG : {
         ret = mpp_dec_control(mDec, cmd, param);
-    }
+    } break;
     default : {
     } break;
     }

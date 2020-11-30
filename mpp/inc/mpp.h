@@ -166,6 +166,7 @@ private:
     RK_U32          mStatus;
 
     /* decoder paramter before init */
+    MppDecCfgSet    mDecInitcfg;
     RK_U32          mParserFastMode;
     RK_U32          mParserNeedSplit;
     RK_U32          mParserInternalPts;     /* for MPEG2/MPEG4 */

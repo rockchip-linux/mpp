@@ -28,6 +28,7 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
 #include "mpp_frame_impl.h"
+#include "mpp_dec_cfg_impl.h"
 
 #include "mpp_dec_vproc.h"
 
@@ -234,7 +235,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
 
-        if (dec->use_preset_time_order) {
+        if (dec->cfg.base.sort_pts) {
             AutoMutex autoLock(mpp->mTimeStamps->mutex());
             mpp->mTimeStamps->flush();
         }
@@ -323,13 +324,13 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     mpp_assert(index >= 0);
     mpp_assert(frame);
 
-    if (dec->disable_error) {
+    if (dec->cfg.base.disable_error) {
         mpp_frame_set_errinfo(frame, 0);
         mpp_frame_set_discard(frame, 0);
     }
 
     if (!change) {
-        if (dec->use_preset_time_order) {
+        if (dec->cfg.base.sort_pts) {
             MppPacket pkt = NULL;
             mpp_list *ts = mpp->mTimeStamps;
 
@@ -524,7 +525,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp->mPacketGetCount++;
         dec->dec_in_pkt_count++;
 
-        if (dec->use_preset_time_order) {
+        if (dec->cfg.base.sort_pts) {
             MppPacket pkt_in = NULL;
             mpp_list *ts = mpp->mTimeStamps;
 
@@ -1254,7 +1255,59 @@ static const char *timing_str[DEC_TIMING_BUTT] = {
     "hw wait   ",
 };
 
-MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
+MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
+{
+    MppDecBaseCfg *src_base = &src->base;
+
+    if (src_base->change) {
+        MppDecBaseCfg *dst_base = &dst->base;
+        RK_U32 change = src_base->change;
+
+        if (change & MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT)
+            dst_base->out_fmt = src_base->out_fmt;
+
+        if (change & MPP_DEC_CFG_CHANGE_FAST_OUT)
+            dst_base->fast_out = src_base->fast_out;
+
+        if (change & MPP_DEC_CFG_CHANGE_FAST_PARSE)
+            dst_base->fast_parse = src_base->fast_parse;
+
+        if (change & MPP_DEC_CFG_CHANGE_SPLIT_PARSE)
+            dst_base->split_parse = src_base->split_parse;
+
+        if (change & MPP_DEC_CFG_CHANGE_INTERNAL_PTS)
+            dst_base->internal_pts = src_base->internal_pts;
+
+        if (change & MPP_DEC_CFG_CHANGE_SORT_PTS)
+            dst_base->sort_pts = src_base->sort_pts;
+
+        if (change & MPP_DEC_CFG_CHANGE_DISABLE_ERROR)
+            dst_base->disable_error = src_base->disable_error;
+
+        dst_base->change = change;
+        src_base->change = 0;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
+{
+    MppDecCfgSet *cfg = &p->cfg;
+    MppDecBaseCfg *base = &cfg->base;
+    MppDecStatusCfg *status = &cfg->status;
+
+    p->parser_fast_mode     = base->fast_parse;
+    p->enable_deinterlace   = base->enable_vproc;
+    p->disable_error        = base->disable_error;
+
+    status->hal_task_count  = (base->fast_parse) ? 3 : 2;
+    status->vproc_task_count = 0;
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
 {
     RK_S32 i;
     MPP_RET ret;
@@ -1263,9 +1316,9 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
     MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
-    RK_S32 hal_task_count = 0;
     MppDecImpl *p = NULL;
     IOInterruptCB cb = {NULL, NULL};
+    MppDecStatusCfg *status = NULL;
 
     mpp_env_get_u32("mpp_dec_debug", &mpp_dec_debug, 0);
     dec_dbg_func("in\n");
@@ -1283,8 +1336,14 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
+    p->mpp = cfg->mpp;
     coding = cfg->coding;
-    hal_task_count = (cfg->fast_mode) ? (3) : (2);
+
+    mpp_assert(cfg->cfg);
+    mpp_dec_set_cfg(&p->cfg, cfg->cfg);
+    mpp_dec_update_cfg(p);
+
+    status = &p->cfg.status;
 
     do {
         ret = mpp_buf_slot_init(&frame_slots);
@@ -1299,15 +1358,13 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
             break;
         }
 
-        mpp_buf_slot_setup(packet_slots, hal_task_count);
+        mpp_buf_slot_setup(packet_slots, status->hal_task_count);
+
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
             packet_slots,
-            hal_task_count,
-            cfg->need_split,
-            cfg->immedaite_out,
-            cfg->internal_pts,
+            &p->cfg,
         };
 
         ret = mpp_parser_init(&parser, &parser_cfg);
@@ -1323,11 +1380,8 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
             coding,
             frame_slots,
             packet_slots,
+            &p->cfg,
             NULL,
-            NULL,
-            NULL,
-            parser_cfg.task_count,
-            cfg->fast_mode,
             cb,
         };
 
@@ -1344,13 +1398,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecCfg *cfg)
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
 
-        p->mpp                  = cfg->mpp;
-        p->parser_need_split    = cfg->need_split;
-        p->parser_fast_mode     = cfg->fast_mode;
-        p->parser_internal_pts  = cfg->internal_pts;
-        p->enable_deinterlace   = 1;
-
-        p->statistics_en        = (mpp_dec_debug & MPP_DEC_DBG_TIMING) ? 1 : 0;
+        p->statistics_en = (mpp_dec_debug & MPP_DEC_DBG_TIMING) ? 1 : 0;
 
         for (i = 0; i < DEC_TIMING_BUTT; i++) {
             p->clocks[i] = mpp_clock_get(timing_str[i]);
@@ -1594,17 +1642,14 @@ MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
         *p = mpp_slots_get_used_count(dec->frame_slots);
         dec_dbg_func("used count %d\n", *p);
     } break;
-    case MPP_DEC_SET_DISABLE_ERROR: {
-        dec->disable_error = (param) ? (*((RK_U32 *)param)) : (1);
-        dec_dbg_func("disable error %d\n", dec->disable_error);
-    } break;
-    case MPP_DEC_SET_PRESENT_TIME_ORDER: {
-        dec->use_preset_time_order = (param) ? (*((RK_U32 *)param)) : (1);
-        dec_dbg_func("preset time order %d\n", dec->use_preset_time_order);
-    } break;
-    case MPP_DEC_SET_ENABLE_DEINTERLACE: {
-        dec->enable_deinterlace = (param) ? (*((RK_U32 *)param)) : (1);
-        dec_dbg_func("enable deinterlace %d\n", dec->enable_deinterlace);
+    case MPP_DEC_SET_PRESENT_TIME_ORDER :
+    case MPP_DEC_SET_PARSER_SPLIT_MODE :
+    case MPP_DEC_SET_PARSER_FAST_MODE :
+    case MPP_DEC_SET_IMMEDIATE_OUT :
+    case MPP_DEC_SET_DISABLE_ERROR :
+    case MPP_DEC_SET_ENABLE_DEINTERLACE : {
+        ret = mpp_dec_set_cfg_by_cmd(&dec->cfg, cmd, param);
+        dec->cfg.base.change = 0;
     } break;
     case MPP_DEC_QUERY: {
         MppDecQueryCfg *query = (MppDecQueryCfg *)param;
@@ -1633,6 +1678,16 @@ MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
         if (flag & MPP_DEC_QUERY_DEC_OUT_FRM)
             query->dec_out_frm_cnt = dec->dec_out_frame_count;
     } break;
+    case MPP_DEC_SET_CFG: {
+        MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+
+        if (dec_cfg) {
+            mpp_dec_set_cfg(&dec->cfg, &dec_cfg->cfg);
+            mpp_dec_update_cfg(dec);
+        }
+
+        dec_dbg_func("set dec cfg\n");
+    } break;
     default : {
     } break;
     }
@@ -1640,3 +1695,50 @@ MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
     dec_dbg_func("%p out\n", dec);
     return ret;
 }
+
+MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
+{
+    MppDecBaseCfg *cfg = &set->base;
+    MPP_RET ret = MPP_OK;
+
+    switch (cmd) {
+    case MPP_DEC_SET_PRESENT_TIME_ORDER : {
+        cfg->sort_pts = (param) ? (*((RK_U32 *)param)) : (1);
+        cfg->change |= MPP_DEC_CFG_CHANGE_SORT_PTS;
+        dec_dbg_func("sort time order %d\n", cfg->sort_pts);
+    } break;
+    case MPP_DEC_SET_PARSER_SPLIT_MODE : {
+        cfg->split_parse = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_SPLIT_PARSE;
+        dec_dbg_func("split parse mode %d\n", cfg->split_parse);
+    } break;
+    case MPP_DEC_SET_PARSER_FAST_MODE : {
+        cfg->fast_parse = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_FAST_PARSE;
+        dec_dbg_func("fast parse mode %d\n", cfg->fast_parse);
+    } break;
+    case MPP_DEC_SET_DISABLE_ERROR: {
+        cfg->disable_error = (param) ? (*((RK_U32 *)param)) : (1);
+        cfg->change |= MPP_DEC_CFG_CHANGE_DISABLE_ERROR;
+        dec_dbg_func("disable error %d\n", cfg->disable_error);
+    } break;
+    case MPP_DEC_SET_IMMEDIATE_OUT : {
+        cfg->fast_out = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_FAST_OUT;
+        dec_dbg_func("fast output mode %d\n", cfg->fast_out);
+    } break;
+    case MPP_DEC_SET_ENABLE_DEINTERLACE: {
+        cfg->enable_vproc = (param) ? (*((RK_U32 *)param)) : (1);
+        cfg->change |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
+        dec_dbg_func("enable dec_vproc %d\n", cfg->enable_vproc);
+    } break;
+    default : {
+        mpp_err_f("unsupported cfg update cmd %x\n", cmd);
+        ret = MPP_NOK;
+    } break;
+    }
+
+    return ret;
+}
+
+

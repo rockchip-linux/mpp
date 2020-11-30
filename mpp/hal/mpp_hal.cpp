@@ -78,16 +78,10 @@ static const MppHalApi *hw_apis[] = {
 };
 
 typedef struct MppHalImpl_t {
-    MppCtxType      type;
-    MppCodingType   coding;
-    MppBufSlots     frame_slots;
-    MppBufSlots     packet_slots;
-
     void            *ctx;
     const MppHalApi *api;
 
     HalTaskGroup    tasks;
-    RK_S32          task_count;
 } MppHalImpl;
 
 
@@ -109,14 +103,8 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
     for (i = 0; i < MPP_ARRAY_ELEMS(hw_apis); i++) {
         if (cfg->type   == hw_apis[i]->type &&
             cfg->coding == hw_apis[i]->coding) {
-            mpp_assert(cfg->task_count > 0);
-            p->type         = cfg->type;
-            p->coding       = cfg->coding;
-            p->frame_slots  = cfg->frame_slots;
-            p->packet_slots = cfg->packet_slots;
-            p->api          = hw_apis[i];
-            p->task_count   = cfg->task_count;
-            p->ctx          = mpp_calloc_size(void, p->api->ctx_size);
+            p->api  = hw_apis[i];
+            p->ctx  = mpp_calloc_size(void, p->api->ctx_size);
 
             MPP_RET ret = p->api->init(p->ctx, cfg);
             if (ret) {
@@ -124,7 +112,7 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
                 break;
             }
 
-            ret = hal_task_group_init(&p->tasks, p->task_count);
+            ret = hal_task_group_init(&p->tasks, cfg->cfg->status.hal_task_count);
             if (ret) {
                 mpp_err_f("hal_task_group_init failed ret %d\n", ret);
                 break;

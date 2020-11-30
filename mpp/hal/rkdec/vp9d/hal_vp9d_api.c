@@ -54,7 +54,7 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
 
     p->slots = cfg->frame_slots;
     p->int_cb = cfg->hal_int_cb;
-    p->fast_mode = cfg->fast_mode;
+    p->fast_mode = cfg->cfg->base.fast_parse;
     p->packet_slots = cfg->packet_slots;
 
     mpp_env_get_u32("hal_vp9d_debug", &hal_vp9d_debug, 0);

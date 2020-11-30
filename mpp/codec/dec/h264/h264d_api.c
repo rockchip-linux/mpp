@@ -51,7 +51,6 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 
     INP_CHECK(ret, !p_Inp && !init);
 
-    p_Inp->init = *init;
     mpp_env_get_u32("rkv_h264d_mvc_disable", &p_Inp->mvc_disable, 1);
     open_stream_file(p_Inp, "/sdcard");
     if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
@@ -315,6 +314,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     //!< get init frame_slots and packet_slots
     p_Dec->frame_slots  = init->frame_slots;
     p_Dec->packet_slots = init->packet_slots;
+    p_Dec->cfg = init->cfg;
     //!< malloc decoder buffer
     p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1);
     p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1);
@@ -335,7 +335,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
     FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
     FUN_CHECK(ret = init_dec_ctx(p_Dec));
-    p_Dec->immediate_out = init->immediate_out;
+    p_Dec->immediate_out = p_Dec->cfg->base.fast_out;
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -469,23 +469,10 @@ __FAILED:
 */
 MPP_RET  h264d_control(void *decoder, MpiCmd cmd_type, void *param)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264_DecCtx_t   *dec = (H264_DecCtx_t *)decoder;
-
-    INP_CHECK(ret, !decoder);
-    switch (cmd_type) {
-    case MPP_DEC_SET_DISABLE_ERROR: {
-        dec->disable_error = *((RK_U32 *)param);
-    } break;
-    case MPP_DEC_SET_IMMEDIATE_OUT: {
-        dec->immediate_out = *((RK_U32 *)param);
-    } break;
-    default : {
-    } break;
-    }
-
-__RETURN:
-    return ret = MPP_OK;
+    (void) decoder;
+    (void) cmd_type;
+    (void) param;
+    return MPP_OK;
 }
 
 
@@ -554,7 +541,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     } else  {
         fwrite_stream_to_file(p_Inp, p_Inp->in_buf, (RK_U32)p_Inp->in_length);
         do {
-            if (p_Inp->init.need_split) {
+            if (p_Dec->cfg->base.split_parse) {
                 ret = parse_prepare(p_Inp, p_Dec->p_Cur);
             } else {
                 ret = parse_prepare_fast(p_Inp, p_Dec->p_Cur);
@@ -621,7 +608,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
-        in_task->flags.ref_err |= (!p_Dec->disable_error
+        in_task->flags.ref_err |= (!p_Dec->cfg->base.disable_error
                                    && (p_err->dpb_err_flag | p_err->cur_err_flag)) ? 1 : 0;
     }
 
