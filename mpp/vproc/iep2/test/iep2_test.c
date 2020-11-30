@@ -173,21 +173,16 @@ static void iep2_test_set_img(iep_com_ctx *ctx, int w, int h,
     RK_S32 y_size = w * h;
     img->mem_addr = fd;
     img->uv_addr = fd + (y_size << 10);
-    img->v_addr = fd + ((y_size + y_size / 4) << 10);
-
-    MPP_RET ret = ctx->ops->control(ctx->priv, cmd, img);
-    if (ret)
-        mpp_log_f("control %08x failed %d\n", cmd, ret);
-}
-
-static void iep2_test_set_img_422(iep_com_ctx *ctx, int w, int h,
-                                  IepImg *img, RK_S32 fd, IepCmd cmd)
-{
-    RK_S32 y_size = w * h;
-    img->mem_addr = fd;
-    img->uv_addr = fd + (y_size << 10);
-    //img->v_addr = fd + ((y_size + y_size / 2) << 10);
-    img->v_addr = fd + ((y_size + y_size / 4) << 10);
+    switch (img->format) {
+    case IEP2_FMT_YUV422:
+        img->v_addr = fd + ((y_size + y_size / 2) << 10);
+        break;
+    case IEP2_FMT_YUV420:
+        img->v_addr = fd + ((y_size + y_size / 4) << 10);
+        break;
+    default:
+        break;
+    }
 
     MPP_RET ret = ctx->ops->control(ctx->priv, cmd, img);
     if (ret)
@@ -207,6 +202,7 @@ void iep2_test(iep2_test_cfg *cfg)
     RK_S32 fddst[2];
     int prev, curr, next;
     struct iep2_api_params params;
+    RK_U32 i;
     RK_S32 field_order = IEP2_FIELD_ORDER_TFF;
     RK_S32 out_order = field_order == IEP2_FIELD_ORDER_TFF ? 0 : 1;
 
@@ -278,8 +274,13 @@ void iep2_test(iep2_test_cfg *cfg)
     params.param.com.dswap = cfg->dst_swa;
     params.param.com.width = cfg->w;
     params.param.com.height = cfg->h;
-
     iep2->ops->control(iep2->priv, IEP_CMD_SET_DEI_CFG, &params);
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(imgsrc); i++)
+        imgsrc[i].format = cfg->src_fmt;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(imgdst); i++)
+        imgdst[i].format = cfg->dst_fmt;
 
     while (1) {
         prev = (curr - 1) % 3;
@@ -292,12 +293,12 @@ void iep2_test(iep2_test_cfg *cfg)
         }
 
         // notice the order of the input frames.
-        iep2_test_set_img_422(iep2, cfg->w, cfg->h,
-                              &imgsrc[curr], fdsrc[curr], IEP_CMD_SET_SRC);
-        iep2_test_set_img_422(iep2, cfg->w, cfg->h,
-                              &imgsrc[next], fdsrc[next], IEP_CMD_SET_DEI_SRC1);
-        iep2_test_set_img_422(iep2, cfg->w, cfg->h,
-                              &imgsrc[prev], fdsrc[prev], IEP_CMD_SET_DEI_SRC2);
+        iep2_test_set_img(iep2, cfg->w, cfg->h,
+                          &imgsrc[curr], fdsrc[curr], IEP_CMD_SET_SRC);
+        iep2_test_set_img(iep2, cfg->w, cfg->h,
+                          &imgsrc[next], fdsrc[next], IEP_CMD_SET_DEI_SRC1);
+        iep2_test_set_img(iep2, cfg->w, cfg->h,
+                          &imgsrc[prev], fdsrc[prev], IEP_CMD_SET_DEI_SRC2);
         iep2_test_set_img(iep2, cfg->w, cfg->h,
                           &imgdst[0], fddst[0], IEP_CMD_SET_DST);
         iep2_test_set_img(iep2, cfg->w, cfg->h,
