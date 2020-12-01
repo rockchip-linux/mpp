@@ -90,8 +90,10 @@ struct MppBufferGroupImpl_t {
 
     // buffer force clear mode flag
     RK_U32              clear_on_exit;
+    RK_U32              dump_on_exit;
     // is_orphan: 0 - normal group 1 - orphan group
     RK_U32              is_orphan;
+    RK_U32              is_finalizing;
 
     // buffer log function
     RK_U32              log_runtime_en;
