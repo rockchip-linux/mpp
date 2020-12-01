@@ -25,6 +25,9 @@ typedef enum MppDecCfgChange_e {
     MPP_DEC_CFG_CHANGE_FAST_PARSE       = (1 << 2),
     MPP_DEC_CFG_CHANGE_SPLIT_PARSE      = (1 << 3),
     MPP_DEC_CFG_CHANGE_INTERNAL_PTS     = (1 << 4),
+    MPP_DEC_CFG_CHANGE_SORT_PTS         = (1 << 5),
+    MPP_DEC_CFG_CHANGE_DISABLE_ERROR    = (1 << 6),
+    MPP_DEC_CFG_CHANGE_ENABLE_VPROC     = (1 << 7),
     MPP_DEC_CFG_CHANGE_ALL              = (0xFFFFFFFF),
 } MppDecCfgChange;
 
@@ -36,10 +39,19 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              fast_parse;
     RK_U32              split_parse;
     RK_U32              internal_pts;
+    RK_U32              sort_pts;
+    RK_U32              disable_error;
+    RK_U32              enable_vproc;
 } MppDecBaseCfg;
+
+typedef struct MppDecStatusCfg_t {
+    RK_U32              hal_task_count;
+    RK_U32              vproc_task_count;
+} MppDecStatusCfg;
 
 typedef struct MppDecCfgSet_t {
     MppDecBaseCfg       base;
+    MppDecStatusCfg     status;
 } MppDecCfgSet;
 
 /*
