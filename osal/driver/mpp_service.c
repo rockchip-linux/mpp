@@ -231,7 +231,8 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
         }
     }
 
-    cap->support_cmd = access("/proc/mpp_service/support_cmd", F_OK) ? 0 : 1;
+    cap->support_cmd = !access("/proc/mpp_service/supports-cmd", F_OK) ||
+                       !access("/proc/mpp_service/support_cmd", F_OK);
     if (!cap->support_cmd)
         return ;
 
