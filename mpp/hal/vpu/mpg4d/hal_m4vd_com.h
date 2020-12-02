@@ -33,7 +33,7 @@ typedef struct mpeg4d_reg_context {
     MppBufSlots         frm_slots;
     MppBufSlots         pkt_slots;
     MppBufferGroup      group;
-    IOInterruptCB       int_cb;
+    MppCbCtx            *dec_cb;
     MppDev              dev;
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              fd_curr;

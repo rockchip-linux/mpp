@@ -264,7 +264,7 @@ MPP_RET vdpu1_mpg4d_init(void *hal, MppHalCfg *cfg)
 
     ctx->frm_slots  = cfg->frame_slots;
     ctx->pkt_slots  = cfg->packet_slots;
-    ctx->int_cb     = cfg->hal_int_cb;
+    ctx->dec_cb     = cfg->dec_cb;
     ctx->group      = group;
     ctx->mv_buf     = mv_buf;
     ctx->qp_table   = qp_table;
@@ -463,17 +463,17 @@ MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
             mpp_log("reg[%03d]: %08x\n", i, ((RK_U32 *)regs)[i]);
         }
     }
-    if (ctx->int_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0 };
+    if (ctx->dec_cb) {
+        DecCbHalDone m_ctx = { 0 };
         m_ctx.device_id = DEV_VDPU;
 
-        if (!regs->SwReg01.sw_dec_rdy_int) {
+        if (!regs->SwReg01.sw_dec_rdy_int)
             m_ctx.hard_err = 1;
-        }
 
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)ctx->regs;
-        ctx->int_cb.callBack(ctx->int_cb.opaque, &m_ctx);
+
+        mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }
 
     memset(&regs->SwReg01, 0, sizeof(RK_U32));

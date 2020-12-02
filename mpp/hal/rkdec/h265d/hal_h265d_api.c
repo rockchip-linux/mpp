@@ -65,7 +65,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
         p->api = &hal_h265d_rkv;
 
     p->slots = cfg->frame_slots;
-    p->int_cb = cfg->hal_int_cb;
+    p->dec_cb = cfg->dec_cb;
     p->fast_mode = cfg->cfg->base.fast_parse;
     p->packet_slots = cfg->packet_slots;
 

@@ -23,7 +23,7 @@ typedef struct h263d_reg_context {
     MppHalApi           hal_api;
     MppBufSlots         frm_slots;
     MppBufSlots         pkt_slots;
-    IOInterruptCB       int_cb;
+    MppCbCtx            *dec_cb;
     MppDev              dev;
 
     // save fd for curr/ref0/ref1 for reg_gen

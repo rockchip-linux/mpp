@@ -65,7 +65,7 @@ typedef struct hal_h265e_ctx {
     RK_U32          user_cfg;
     void            *hw_cfg;
     Vepu22H265eRet  result;
-    IOInterruptCB   int_cb;
+    MppCbCtx        *enc_cb;
 
 
     MppEncCfgSet    *cfg;

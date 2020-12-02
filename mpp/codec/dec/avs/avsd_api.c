@@ -293,7 +293,7 @@ MPP_RET avsd_callback(void *decoder, void *info)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
-    IOCallbackCtx *ctx = (IOCallbackCtx *)info;
+    DecCbHalDone *ctx = (DecCbHalDone *)info;
 
     AVSD_PARSE_TRACE("In.");
     {

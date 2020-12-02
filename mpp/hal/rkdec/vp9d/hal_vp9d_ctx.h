@@ -58,7 +58,7 @@ typedef struct HalVp9dCtx_t {
     MppBufSlots     slots;
     MppBufSlots     packet_slots;
     MppBufferGroup  group;
-    IOInterruptCB   int_cb;
+    MppCbCtx        *dec_cb;
     RK_U32          fast_mode;
     void*           hw_ctx;
 } HalVp9dCtx;

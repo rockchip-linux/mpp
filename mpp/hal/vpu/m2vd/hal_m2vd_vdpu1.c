@@ -62,7 +62,7 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
 
     ctx->packet_slots = cfg->packet_slots;
     ctx->frame_slots = cfg->frame_slots;
-    ctx->int_cb = cfg->hal_int_cb;
+    ctx->dec_cb = cfg->dec_cb;
     ctx->regs = (void*)regs;
 
     return ret;
@@ -306,8 +306,8 @@ MPP_RET hal_m2vd_vdpu1_wait(void *hal, HalTaskInfo *task)
         mpp_err_f("poll cmd failed %d\n", ret);
 
     if (reg_out->sw01.dec_error_int | reg_out->sw01.dec_buffer_int) {
-        if (ctx->int_cb.callBack)
-            ctx->int_cb.callBack(ctx->int_cb.opaque, NULL);
+        if (ctx->dec_cb)
+            mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, NULL);
     }
 
     (void)task;

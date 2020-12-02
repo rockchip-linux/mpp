@@ -128,7 +128,7 @@ typedef struct h264d_hal_ctx_t {
     RK_S32                   mv_size;
     RK_S32                   mv_count;
 
-    IOInterruptCB            init_cb;
+    MppCbCtx                 *dec_cb;
     MppDev                   dev;
     void                     *reg_ctx;
     RK_U32                   fast_mode;

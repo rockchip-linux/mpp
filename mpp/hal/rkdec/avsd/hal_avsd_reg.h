@@ -93,7 +93,7 @@ typedef struct avsd_hal_ctx_t {
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
     MppBufferGroup  buf_group;
-    IOInterruptCB   init_cb;
+    MppCbCtx        *dec_cb;
     MppDev          dev;
     AvsdSyntax_t    syn;
     RK_U32          *p_regs;

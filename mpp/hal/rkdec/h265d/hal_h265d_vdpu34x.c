@@ -1084,8 +1084,8 @@ ERR_PROC:
         hw_regs->irq_status.reg224.dec_error_sta ||
         hw_regs->irq_status.reg224.buf_empty_sta) {
         if (!reg_cxt->fast_mode) {
-            if (reg_cxt->int_cb.callBack)
-                reg_cxt->int_cb.callBack(reg_cxt->int_cb.opaque, &task->dec);
+            if (reg_cxt->dec_cb)
+                mpp_callback(reg_cxt->dec_cb, DEC_PARSER_CALLBACK, &task->dec);
         } else {
             MppFrame mframe = NULL;
             mpp_buf_slot_get_prop(reg_cxt->slots, task->dec.output,

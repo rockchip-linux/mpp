@@ -1420,6 +1420,23 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
     return MPP_OK;
 }
 
+MPP_RET mpp_dec_callback(void *ctx, MppCbCmd cmd, void *param)
+{
+    MppDecImpl *p = (MppDecImpl *)ctx;
+    MPP_RET ret = MPP_OK;
+
+    switch (cmd) {
+    case DEC_PARSER_CALLBACK : {
+        if (p->parser)
+            ret = mpp_parser_callback(p->parser, param);
+    } break;
+    default : {
+    } break;
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
 {
     RK_S32 i;
@@ -1430,7 +1447,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     Parser parser = NULL;
     MppHal hal = NULL;
     MppDecImpl *p = NULL;
-    IOInterruptCB cb = {NULL, NULL};
     MppDecStatusCfg *status = NULL;
 
     mpp_env_get_u32("mpp_dec_debug", &mpp_dec_debug, 0);
@@ -1456,6 +1472,9 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     mpp_dec_set_cfg(&p->cfg, cfg->cfg);
     mpp_dec_update_cfg(p);
 
+    p->dec_cb.callBack = mpp_dec_callback;
+    p->dec_cb.ctx = p;
+
     status = &p->cfg.status;
 
     do {
@@ -1473,6 +1492,23 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
 
         mpp_buf_slot_setup(packet_slots, status->hal_task_count);
 
+        MppHalCfg hal_cfg = {
+            MPP_CTX_DEC,
+            coding,
+            frame_slots,
+            packet_slots,
+            &p->cfg,
+            &p->dec_cb,
+            NULL,
+            NULL,
+        };
+
+        ret = mpp_hal_init(&hal, &hal_cfg);
+        if (ret) {
+            mpp_err_f("could not init hal\n");
+            break;
+        }
+
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
@@ -1483,24 +1519,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         ret = mpp_parser_init(&parser, &parser_cfg);
         if (ret) {
             mpp_err_f("could not init parser\n");
-            break;
-        }
-        cb.callBack = mpp_hal_callback;
-        cb.opaque = parser;
-        // then init hal with task count from parser
-        MppHalCfg hal_cfg = {
-            MPP_CTX_DEC,
-            coding,
-            frame_slots,
-            packet_slots,
-            &p->cfg,
-            NULL,
-            cb,
-        };
-
-        ret = mpp_hal_init(&hal, &hal_cfg);
-        if (ret) {
-            mpp_err_f("could not init hal\n");
             break;
         }
 

@@ -603,10 +603,12 @@ MPP_RET hal_vp9d_rkv_wait(void *hal, HalTaskInfo *task)
         mpp_frame_set_errinfo(mframe, 1);
     }
 
-    if (p_hal->int_cb.callBack && task->dec.flags.wait_done) {
+    if (p_hal->dec_cb && task->dec.flags.wait_done) {
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
+
         hal_vp9d_update_counts(mpp_buffer_get_ptr(hw_ctx->count_base), task->dec.syntax.data);
-        p_hal->int_cb.callBack(p_hal->int_cb.opaque, (void*)&pic_param->counts);
+
+        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &pic_param->counts);
     }
     if (p_hal->fast_mode) {
         hw_ctx->g_buf[task->dec.reg_index].use_flag = 0;

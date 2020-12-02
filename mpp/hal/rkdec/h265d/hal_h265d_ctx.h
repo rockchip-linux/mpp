@@ -60,7 +60,7 @@ typedef struct HalH265dCtx_t {
     void*           hw_regs;
     H265dRegBuf     g_buf[MAX_GEN_REG];
     RK_U32          fast_mode;
-    IOInterruptCB   int_cb;
+    MppCbCtx        *dec_cb;
     RK_U32          fast_mode_err_found;
     void            *scaling_rk;
     void            *scaling_qm;
