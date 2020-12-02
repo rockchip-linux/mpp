@@ -60,6 +60,16 @@ typedef struct MppDecImpl_t {
     // runtime configure set
     MppDecCfgSet        cfg;
 
+    /* control process */
+    Mutex               *cmd_lock;
+    RK_U32              cmd_send;
+    RK_U32              cmd_recv;
+    MpiCmd              cmd;
+    void                *param;
+    MPP_RET             *cmd_ret;
+    sem_t               cmd_start;
+    sem_t               cmd_done;
+
     // status flags
     RK_U32              parser_work_count;
     RK_U32              parser_wait_count;
