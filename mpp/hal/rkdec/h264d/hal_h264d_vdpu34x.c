@@ -495,9 +495,21 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         ver_virstride = mpp_frame_get_ver_stride(mframe);
         y_virstride = hor_virstride * ver_virstride;
 
-        common->reg018.y_hor_virstride = hor_virstride / 16;
-        common->reg019.uv_hor_virstride = hor_virstride / 16;
-        common->reg020_y_virstride.y_virstride = y_virstride / 16;
+        if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
+            RK_U32 fbd_offset = MPP_ALIGN(hor_virstride * (ver_virstride + 16) / 16, SZ_4K);
+            if (pp->bit_depth_luma_minus8 > 0) {
+                RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+                common->reg018.y_hor_virstride = pixel_width / 16;
+                common->reg019.uv_hor_virstride = pixel_width / 16;
+            }
+            common->reg012.fbc_e = 1;
+            common->reg012.colmv_compress_en = 1;
+            common->reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
+        } else {
+            common->reg018.y_hor_virstride = hor_virstride / 16;
+            common->reg019.uv_hor_virstride = hor_virstride / 16;
+            common->reg020_y_virstride.y_virstride = y_virstride / 16;
+        }
     }
     //!< set current
     {
@@ -630,7 +642,22 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
-    (void)cfg;
+    {
+        // report hw_info to parser
+        const MppSocInfo *info = mpp_get_soc_info();
+        const void *hw_info = NULL;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
+            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
+                hw_info = info->dec_caps[i];
+                break;
+            }
+        }
+
+        mpp_assert(hw_info);
+        cfg->hw_info = hw_info;
+    }
+
 __RETURN:
     return MPP_OK;
 __FAILED:

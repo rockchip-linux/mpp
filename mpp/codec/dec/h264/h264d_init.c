@@ -381,6 +381,11 @@ static inline RK_U32 rkv_len_align_422(RK_U32 val)
     return ((5 * MPP_ALIGN(val, 16)) / 2);
 }
 
+static RK_U32 hor_align_64(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}
+
 static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -410,19 +415,34 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
         {
             MppFrame mframe = NULL;
             RK_U32 hor_stride, ver_stride;
+            MppFrameFormat fmt = MPP_FMT_YUV_BUTT;
+            MppFrameFormat out_fmt = p_Dec->cfg->base.out_fmt;
 
             mpp_frame_init(&mframe);
             if ((H264_CHROMA_420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-                mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
+                fmt = MPP_FMT_YUV420SP;
             } else if ((H264_CHROMA_420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-                mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP_10BIT);
+                fmt = MPP_FMT_YUV420SP_10BIT;
             } else if ((H264_CHROMA_422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
-                mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP);
+                fmt = MPP_FMT_YUV422SP;
                 mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             } else if ((H264_CHROMA_422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
-                mpp_frame_set_fmt(mframe, MPP_FMT_YUV422SP_10BIT);
+                fmt = MPP_FMT_YUV422SP_10BIT;
                 mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
             }
+
+            if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
+                /* field mode can not use FBC */
+                if (p_Vid->frame_mbs_only_flag) {
+                    mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, hor_align_64);
+                    mpp_frame_set_offset_x(mframe, 0);
+                    mpp_frame_set_offset_y(mframe, 4);
+                    fmt |= (out_fmt & MPP_FRAME_FBC_MASK);
+                }
+                p_Dec->cfg->base.out_fmt = fmt;
+            }
+            mpp_frame_set_fmt(mframe, fmt);
+
             hor_stride = MPP_ALIGN(p_Vid->width * p_Vid->bit_depth_luma, 8) / 8;
             ver_stride = p_Vid->height;
             /* Before cropping */

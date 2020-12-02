@@ -480,12 +480,13 @@ __BITREAD_ERR:
 static RK_S32 set_sps(HEVCContext *s, const HEVCSPS *sps)
 {
     RK_U32 num = 0, den = 0;
+    MppFrameFormat fmt = s->h265dctx->cfg->base.out_fmt & (~MPP_FRAME_FMT_MASK);
 
     s->h265dctx->coded_width         = sps->width;
     s->h265dctx->coded_height        = sps->height;
     s->h265dctx->width               = sps->output_width;
     s->h265dctx->height              = sps->output_height;
-    s->h265dctx->pix_fmt             = sps->pix_fmt;
+    s->h265dctx->pix_fmt             = fmt | sps->pix_fmt;
     s->h265dctx->nBitDepth           = sps->bit_depth;
     s->h265dctx->sample_aspect_ratio = sps->vui.sar;
 

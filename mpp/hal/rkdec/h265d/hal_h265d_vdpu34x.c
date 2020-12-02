@@ -232,6 +232,23 @@ static MPP_RET hal_h265d_vdpu34x_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
+    {
+        // report hw_info to parser
+        const MppSocInfo *info = mpp_get_soc_info();
+        const void *hw_info = NULL;
+        RK_U32 i;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
+            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
+                hw_info = info->dec_caps[i];
+                break;
+            }
+        }
+
+        mpp_assert(hw_info);
+        cfg->hw_info = hw_info;
+    }
+
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");
 #endif
@@ -820,23 +837,39 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         hal_bufs_setup(reg_cxt->cmv_bufs, reg_cxt->mv_count, 1, &size);
     }
 
-    stride_y = ((MPP_ALIGN(width, 64)
-                 * (dxva_cxt->pp.bit_depth_luma_minus8 + 8)) >> 3);
-    stride_uv = ((MPP_ALIGN(width, 64)
-                  * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8)) >> 3);
+    {
+        MppFrame mframe = NULL;
+        RK_U32 ver_virstride;
 
-    stride_y = hevc_hor_align(stride_y);
-    stride_uv = hevc_hor_align(stride_uv);
-    virstrid_y = hevc_ver_align(height) * stride_y;
+        mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
+                              SLOT_FRAME_PTR, &mframe);
+        stride_y = mpp_frame_get_hor_stride(mframe);
+        ver_virstride = mpp_frame_get_ver_stride(mframe);
+        stride_uv = stride_y;
+        virstrid_y = ver_virstride * stride_y;
 
-    hw_regs->common.reg017.slice_num = dxva_cxt->slice_count;
-    hw_regs->common.reg018.y_hor_virstride = stride_y >> 4;
-    hw_regs->common.reg019.uv_hor_virstride = stride_uv >> 4;
-    hw_regs->common.reg020_y_virstride.y_virstride = virstrid_y >> 4;
-    hw_regs->h265d_param.reg64.h26x_rps_mode = 0;
-    hw_regs->h265d_param.reg64.h26x_frame_orslice = 0;
-    hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
+        hw_regs->common.reg017.slice_num = dxva_cxt->slice_count;
+        hw_regs->common.reg018.y_hor_virstride = stride_y >> 4;
+        hw_regs->common.reg019.uv_hor_virstride = stride_uv >> 4;
+        hw_regs->common.reg020_y_virstride.y_virstride = virstrid_y >> 4;
+        hw_regs->h265d_param.reg64.h26x_rps_mode = 0;
+        hw_regs->h265d_param.reg64.h26x_frame_orslice = 0;
+        hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
 
+        if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
+            RK_U32 fbd_offset = MPP_ALIGN(stride_y * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
+                                          SZ_4K);
+
+            if (dxva_cxt->pp.bit_depth_luma_minus8) {
+                RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+                hw_regs->common.reg018.y_hor_virstride = pixel_width >> 4;
+                hw_regs->common.reg019.uv_hor_virstride = pixel_width >> 4;
+            }
+            hw_regs->common.reg012.fbc_e = 1;
+            hw_regs->common.reg012.colmv_compress_en = 1;
+            hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
+        }
+    }
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);
     hw_regs->common_addr.reg130_decout_base  = mpp_buffer_get_fd(framebuf); //just index need map

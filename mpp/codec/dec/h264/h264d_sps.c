@@ -384,6 +384,7 @@ static void update_video_pars(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps)
     p_Vid->PicWidthInMbs = (sps->pic_width_in_mbs_minus1 + 1);
     p_Vid->FrameHeightInMbs = (2 - sps->frame_mbs_only_flag) * (sps->pic_height_in_map_units_minus1 + 1);
     p_Vid->yuv_format = sps->chroma_format_idc;
+    p_Vid->frame_mbs_only_flag = sps->frame_mbs_only_flag;
 
     p_Vid->width = p_Vid->PicWidthInMbs * 16;
     p_Vid->height = p_Vid->FrameHeightInMbs * 16;
