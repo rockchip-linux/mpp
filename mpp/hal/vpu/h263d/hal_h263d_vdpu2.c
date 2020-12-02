@@ -142,7 +142,7 @@ MPP_RET hal_vpu2_h263d_init(void *hal, MppHalCfg *cfg)
 
     ctx->frm_slots  = cfg->frame_slots;
     ctx->pkt_slots  = cfg->packet_slots;
-    ctx->int_cb     = cfg->hal_int_cb;
+    ctx->dec_cb     = cfg->dec_cb;
     ctx->regs       = (void*)regs;
 
     return ret;

@@ -19,20 +19,9 @@
 #define __HAL_DEC_TASK__
 
 #include "hal_task_defs.h"
+#include "mpp_callback.h"
 
 #define MAX_DEC_REF_NUM     17
-
-typedef struct IOInterruptCB {
-    MPP_RET (*callBack)(void*, void*);
-    void   *opaque;
-} IOInterruptCB;
-
-typedef struct IOCallbackCtx_t {
-    RK_U32      device_id;
-    void        *task;
-    RK_U32      *regs;
-    RK_U32       hard_err;
-} IOCallbackCtx;
 
 typedef union HalDecTaskFlag_t {
     RK_U32          val;

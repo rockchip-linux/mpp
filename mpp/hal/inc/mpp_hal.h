@@ -42,10 +42,12 @@ typedef struct MppHalCfg_t {
     MppBufSlots     frame_slots;
     MppBufSlots     packet_slots;
     MppDecCfgSet    *cfg;
+    MppCbCtx        *dec_cb;
 
-    // output
+    // output from mpp_hal
     HalTaskGroup    tasks;
-    IOInterruptCB   hal_int_cb;
+    // output from hardware module
+    const void      *hw_info;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {

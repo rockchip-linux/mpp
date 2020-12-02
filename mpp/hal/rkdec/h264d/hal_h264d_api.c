@@ -170,7 +170,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     } break;
     }
     //!< callback function to parser module
-    p_hal->init_cb = cfg->hal_int_cb;
+    p_hal->dec_cb = cfg->dec_cb;
 
     mpp_env_get_u32("hal_h264d_debug", &hal_h264d_debug, 0);
 

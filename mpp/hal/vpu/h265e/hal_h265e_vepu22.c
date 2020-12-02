@@ -1789,7 +1789,7 @@ MPP_RET hal_h265e_vepu22_init(void *hal, MppHalCfg *cfg)
     /* pointer to cfg define in controller*/
     ctx->cfg = NULL;    // NOTE: (MppEncCfgSet *) cfg->cfg;
     ctx->set = NULL;    // NOTE: (MppEncCfgSet *) cfg->set;
-    ctx->int_cb = cfg->hal_int_cb;
+    ctx->enc_cb = cfg->dec_cb;
     ctx->option = H265E_SET_CFG_INIT;
     ctx->init = 0;
     ctx->rga_ctx = NULL;
@@ -2083,7 +2083,7 @@ MPP_RET hal_h265e_vepu22_wait(void *hal, HalTaskInfo *task)
         feedback.bs_size = 0;
     }
 
-    ctx->int_cb.callBack(ctx->int_cb.opaque, &feedback);
+    mpp_callback(ctx->enc_cb, ENC_CALLBACK_BASE, &feedback);
     task->enc.length = feedback.bs_size;
     hal_h265e_dbg_func("leave hal %p,status = %d,size = %d\n",
                        hal, feedback.status, feedback.bs_size);

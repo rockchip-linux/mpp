@@ -21,6 +21,8 @@
 
 #include "mpp.h"
 #include "mpp_dec_cfg.h"
+#include "mpp_callback.h"
+
 #include "mpp_parser.h"
 #include "mpp_hal.h"
 
@@ -54,6 +56,8 @@ typedef struct MppDecImpl_t {
     // common resource
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
+    MppCbCtx            dec_cb;
+
     HalTaskGroup        tasks;
     HalTaskGroup        vproc_tasks;
 

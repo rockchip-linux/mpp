@@ -262,7 +262,7 @@ MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
 
     ctx->frm_slots  = cfg->frame_slots;
     ctx->pkt_slots  = cfg->packet_slots;
-    ctx->int_cb     = cfg->hal_int_cb;
+    ctx->dec_cb     = cfg->dec_cb;
     ctx->group      = group;
     ctx->mv_buf     = mv_buf;
     ctx->qp_table   = qp_table;
@@ -462,17 +462,17 @@ MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
         }
     }
 
-    if (ctx->int_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0 };
+    if (ctx->dec_cb) {
+        DecCbHalDone m_ctx = { 0 };
         m_ctx.device_id = DEV_VDPU;
 
-        if (!regs->reg55_Interrupt.sw_dec_rdy_int) {
+        if (!regs->reg55_Interrupt.sw_dec_rdy_int)
             m_ctx.hard_err = 1;
-        }
 
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)ctx->regs;
-        ctx->int_cb.callBack(ctx->int_cb.opaque, &m_ctx);
+
+        mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }
 
     (void)task;

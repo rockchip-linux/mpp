@@ -111,7 +111,7 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
     p_hal->frame_slots = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
     //!< callback function to parser module
-    p_hal->init_cb = cfg->hal_int_cb;
+    p_hal->dec_cb = cfg->dec_cb;
     //!< mpp_device_init
 
     ret = mpp_dev_init(&p_hal->dev, VPU_CLIENT_AVSPLUS_DEC);
@@ -301,15 +301,16 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
         mpp_err_f("poll cmd failed %d\n", ret);
 
 __SKIP_HARD:
-    if (p_hal->init_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
+    if (p_hal->dec_cb) {
+        DecCbHalDone m_ctx = { 0, NULL, NULL, 0 };
         m_ctx.device_id = DEV_VDPU;
         if (!((AvsdRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int) {
             m_ctx.hard_err = 1;
         }
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)p_hal->p_regs;
-        p_hal->init_cb.callBack(p_hal->init_cb.opaque, &m_ctx);
+
+        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }
     update_parameters(p_hal);
     memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));

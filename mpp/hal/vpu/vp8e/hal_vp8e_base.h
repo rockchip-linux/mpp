@@ -329,7 +329,6 @@ typedef struct {
 } Vp8eHwCfg;
 
 typedef struct hal_vp8e_ctx_s {
-    IOInterruptCB    int_cb;
     Vp8eFeedback     feedback;
     MppDev           dev;
 

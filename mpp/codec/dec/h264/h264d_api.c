@@ -625,7 +625,7 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
-    IOCallbackCtx *ctx = (IOCallbackCtx *)errinfo;
+    DecCbHalDone *ctx = (DecCbHalDone *)errinfo;
 
     INP_CHECK(ret, !decoder);
 

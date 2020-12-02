@@ -768,8 +768,8 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
         mpp_err_f("poll cmd failed %d\n", ret);
 
 __SKIP_HARD:
-    if (p_hal->init_cb.callBack) {
-        IOCallbackCtx m_ctx = { 0, NULL, NULL, 0 };
+    if (p_hal->dec_cb) {
+        DecCbHalDone m_ctx = { 0, NULL, NULL, 0 };
         m_ctx.device_id = DEV_RKVDEC;
         if (p_regs->sw01.dec_error_sta
             || (!p_regs->sw01.dec_rdy_sta)
@@ -781,7 +781,8 @@ __SKIP_HARD:
         }
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)p_regs;
-        p_hal->init_cb.callBack(p_hal->init_cb.opaque, &m_ctx);
+
+        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }
     memset(&p_regs->sw01, 0, sizeof(RK_U32));
     if (p_hal->fast_mode) {

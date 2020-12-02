@@ -310,7 +310,7 @@ static MPP_RET mpg4d_parse(void *dec, HalDecTask *task)
 static MPP_RET mpg4d_callback(void *dec, void *err_info)
 {
     Mpg4dCtx *p_Dec = (Mpg4dCtx *)dec;
-    IOCallbackCtx *ctx = (IOCallbackCtx *)err_info;
+    DecCbHalDone *ctx = (DecCbHalDone *)err_info;
 
     if (NULL == dec || NULL == err_info) {
         mpp_err_f("found NULL input dec %p err_info %p\n", dec, err_info);

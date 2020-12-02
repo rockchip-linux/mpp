@@ -36,7 +36,6 @@ typedef struct HalJpegeRc_t {
 } HalJpegeRc;
 
 typedef struct hal_jpege_ctx_s {
-    IOInterruptCB       int_cb;
     MppDev              dev;
     JpegeBits           bits;
     /* NOTE: regs should reserve space for extra_info */
