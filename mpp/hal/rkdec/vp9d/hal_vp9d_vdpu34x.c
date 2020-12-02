@@ -245,7 +245,22 @@ static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
     }
 
     hw_ctx->last_segid_flag = 1;
-    (void) cfg;
+    {
+        // report hw_info to parser
+        const MppSocInfo *info = mpp_get_soc_info();
+        const void *hw_info = NULL;
+        RK_U32 i;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
+            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
+                hw_info = info->dec_caps[i];
+                break;
+            }
+        }
+
+        mpp_assert(hw_info);
+        cfg->hw_info = hw_info;
+    }
 
     return ret = MPP_OK;
 __FAILED:
@@ -362,6 +377,19 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common.reg019.uv_hor_virstride = sw_uv_hor_virstride;
     vp9_hw_regs->common.reg020_y_virstride.y_virstride = sw_y_virstride;
 
+    {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
+            RK_U32 h = mpp_frame_get_ver_stride(mframe);
+            RK_U32 w = mpp_frame_get_hor_stride(mframe);
+            RK_U32 fbd_offset = MPP_ALIGN(w * (h + 16) / 16, SZ_4K);
+            vp9_hw_regs->common.reg012.fbc_e = 1;
+            vp9_hw_regs->common.reg012.colmv_compress_en = 1;
+            vp9_hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
+        }
+    }
     if (!pic_param->intra_only && pic_param->frame_type &&
         !pic_param->error_resilient_mode && hw_ctx->ls_info.last_show_frame) {
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;

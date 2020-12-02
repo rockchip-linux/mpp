@@ -37,17 +37,17 @@ typedef enum VpuHwMode_e {
 
 typedef struct MppHalCfg_t {
     // input
-    MppCtxType      type;
-    MppCodingType   coding;
-    MppBufSlots     frame_slots;
-    MppBufSlots     packet_slots;
-    MppDecCfgSet    *cfg;
-    MppCbCtx        *dec_cb;
+    MppCtxType          type;
+    MppCodingType       coding;
+    MppBufSlots         frame_slots;
+    MppBufSlots         packet_slots;
+    MppDecCfgSet        *cfg;
+    MppCbCtx            *dec_cb;
 
     // output from mpp_hal
-    HalTaskGroup    tasks;
+    HalTaskGroup        tasks;
     // output from hardware module
-    const void      *hw_info;
+    const MppDecHwCap   *hw_info;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {

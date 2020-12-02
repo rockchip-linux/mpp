@@ -246,6 +246,7 @@ typedef struct VP9Context {
     RK_S32 first_partition_size;
     MppBufSlots slots;
     MppBufSlots packet_slots;
+    MppDecCfgSet *cfg;
     HalDecTask *task;
     RK_S32 eos;       ///< current packet contains an EOS/EOB NAL
     RK_S64 pts;

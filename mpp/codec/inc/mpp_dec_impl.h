@@ -57,6 +57,7 @@ typedef struct MppDecImpl_t {
     MppBufSlots         frame_slots;
     MppBufSlots         packet_slots;
     MppCbCtx            dec_cb;
+    const MppDecHwCap   *hw_info;
 
     HalTaskGroup        tasks;
     HalTaskGroup        vproc_tasks;

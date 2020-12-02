@@ -1007,6 +1007,7 @@ typedef struct h264d_video_ctx_t {
     RK_S32     active_sps_id[MAX_NUM_DPB_LAYERS];
     RK_U32     PicWidthInMbs;
     RK_U32     FrameHeightInMbs;
+    RK_S32     frame_mbs_only_flag;
     RK_S32     yuv_format;
     RK_U32     bit_depth_chroma;
     RK_U32     bit_depth_luma;

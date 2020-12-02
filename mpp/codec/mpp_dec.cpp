@@ -275,6 +275,23 @@ MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
     return MPP_OK;
 }
 
+MPP_RET mpp_dec_check_fbc_cap(MppDecImpl *p)
+{
+    MppDecBaseCfg *base = &p->cfg.base;
+
+    if (MPP_FRAME_FMT_IS_FBC(base->out_fmt)) {
+        RK_U32 fbc = (RK_U32)base->out_fmt & MPP_FRAME_FBC_MASK;
+        RK_U32 fmt = base->out_fmt - fbc;
+
+        if (p->hw_info && p->hw_info->cap_fbc)
+            fmt |= fbc;
+
+        base->out_fmt = (MppFrameFormat)fmt;
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -307,6 +324,7 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_PARSER_SPLIT_MODE :
     case MPP_DEC_SET_PARSER_FAST_MODE :
     case MPP_DEC_SET_IMMEDIATE_OUT :
+    case MPP_DEC_SET_OUTPUT_FORMAT :
     case MPP_DEC_SET_DISABLE_ERROR :
     case MPP_DEC_SET_ENABLE_DEINTERLACE : {
         ret = mpp_dec_set_cfg_by_cmd(&dec->cfg, cmd, param);
@@ -345,6 +363,7 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
         if (dec_cfg) {
             mpp_dec_set_cfg(&dec->cfg, &dec_cfg->cfg);
             mpp_dec_update_cfg(dec);
+            mpp_dec_check_fbc_cap(dec);
         }
 
         dec_dbg_func("set dec cfg\n");
@@ -1509,6 +1528,10 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             break;
         }
 
+        p->hw_info = hal_cfg.hw_info;
+        /* check fbc cap after hardware info is valid */
+        mpp_dec_check_fbc_cap(p);
+
         ParserCfg parser_cfg = {
             coding,
             frame_slots,
@@ -1796,6 +1819,10 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
         cfg->fast_parse = (param) ? (*((RK_U32 *)param)) : (0);
         cfg->change |= MPP_DEC_CFG_CHANGE_FAST_PARSE;
         dec_dbg_func("fast parse mode %d\n", cfg->fast_parse);
+    } break;
+    case MPP_DEC_SET_OUTPUT_FORMAT : {
+        cfg->out_fmt = (param) ? (*((MppFrameFormat *)param)) : (MPP_FMT_YUV420SP);
+        cfg->change |= MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT;
     } break;
     case MPP_DEC_SET_DISABLE_ERROR: {
         cfg->disable_error = (param) ? (*((RK_U32 *)param)) : (1);

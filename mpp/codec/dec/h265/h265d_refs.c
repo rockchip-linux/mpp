@@ -71,9 +71,13 @@ void mpp_hevc_flush_dpb(HEVCContext *s)
     }
 }
 
+static RK_U32 hor_align_64(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}
+
 static HEVCFrame *alloc_frame(HEVCContext *s)
 {
-
     RK_U32  i;
     MPP_RET ret = MPP_OK;
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
@@ -89,6 +93,13 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
                                  (MPP_ALIGN(s->h265dctx->coded_width, 64) * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
+
+        if (MPP_FRAME_FMT_IS_FBC(s->h265dctx->pix_fmt)) {
+            mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
+            mpp_frame_set_offset_x(frame->frame, 0);
+            mpp_frame_set_offset_y(frame->frame, 4);
+        }
+
         mpp_frame_set_errinfo(frame->frame, 0);
         mpp_frame_set_pts(frame->frame, s->pts);
         mpp_frame_set_poc(frame->frame, s->poc);
