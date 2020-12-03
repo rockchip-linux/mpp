@@ -464,7 +464,6 @@ MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
 
     if (ctx->dec_cb) {
         DecCbHalDone m_ctx = { 0 };
-        m_ctx.device_id = DEV_VDPU;
 
         if (!regs->reg55_Interrupt.sw_dec_rdy_int)
             m_ctx.hard_err = 1;

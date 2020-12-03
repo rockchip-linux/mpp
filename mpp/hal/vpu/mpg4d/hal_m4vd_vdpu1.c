@@ -464,14 +464,11 @@ MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
         }
     }
     if (ctx->dec_cb) {
-        DecCbHalDone m_ctx = { 0 };
-        m_ctx.device_id = DEV_VDPU;
-
-        if (!regs->SwReg01.sw_dec_rdy_int)
-            m_ctx.hard_err = 1;
+        DecCbHalDone m_ctx;
 
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)ctx->regs;
+        m_ctx.hard_err = !regs->SwReg01.sw_dec_rdy_int;
 
         mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }

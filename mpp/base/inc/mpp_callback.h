@@ -32,7 +32,6 @@ typedef enum MppCallBackCmd_e {
 
 /* DEC_CALLBACK_BASE */
 typedef struct DecCallBackParam_t {
-    RK_U32  device_id;
     void    *task;
     RK_U32  *regs;
     RK_U32  hard_err;

@@ -899,13 +899,11 @@ MPP_RET vdpu2_h264d_wait(void *hal, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->dec_cb) {
-        DecCbHalDone m_ctx = { 0, NULL, NULL, 0 };
-        m_ctx.device_id = DEV_VDPU;
-        if (!p_regs->sw55.dec_rdy_sts) {
-            m_ctx.hard_err = 1;
-        }
+        DecCbHalDone m_ctx;
+
         m_ctx.task = (void *)&task->dec;
         m_ctx.regs = (RK_U32 *)reg_ctx->regs;
+        m_ctx.hard_err = !p_regs->sw55.dec_rdy_sts;
 
         mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
     }

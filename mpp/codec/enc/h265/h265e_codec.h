@@ -62,7 +62,6 @@ extern RK_U32 h265e_debug;
 
 typedef struct H265eCtx_t {
     MppEncCfgSet        *cfg;
-    MppDeviceId         dev_id;
     RK_U32              rc_ready;
     RK_S32              idr_request;
 
