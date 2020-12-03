@@ -24,8 +24,6 @@
 
 /* parameters to set to hardware */
 typedef struct RcHalSet_t {
-    MppDeviceId         dev;
-
     /* unique sequential id */
     RK_S32              seq_id;
     RK_S32              target_bit;
@@ -38,8 +36,6 @@ typedef struct RcHalSet_t {
 
 /* parameters returned from hardware */
 typedef struct RcHalRet_t {
-    MppDeviceId         dev;
-
     /* unique sequential id */
     RK_S32              seq_id;
     RK_S32              stream_size;

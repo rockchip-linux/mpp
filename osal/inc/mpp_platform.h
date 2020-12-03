@@ -29,15 +29,6 @@ typedef enum MppIoctlVersion_e {
     IOCTL_VERSION_BUTT,
 } MppIoctlVersion;
 
-/* Hal device id */
-typedef enum MppDeviceId_e {
-    DEV_VDPU,                   //!< vpu combined decoder
-    DEV_VEPU,                   //!< vpu combined encoder
-    DEV_RKVDEC,                 //!< rockchip h264 h265 vp9 combined decoder
-    DEV_RKVENC,                 //!< rockchip h264 h265 combined encoder
-    DEV_ID_BUTT,
-} MppDeviceId;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

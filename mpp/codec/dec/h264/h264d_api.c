@@ -631,7 +631,6 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
 
     {
         MppFrame mframe = NULL;
-        RK_U32 *p_regs = ctx->regs;
         HalDecTask *task_dec = (HalDecTask *)ctx->task;
 
         if (task_dec->output >= 0)
@@ -649,12 +648,6 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
             H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
                       p_Dec->p_Vid->g_framecnt, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
                       mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
-
-            if (ctx->device_id == DEV_RKVDEC) {
-                H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] sw[01]=%08x, sw[45]=%08x, sw[76]=%08x\n", p_regs[1], p_regs[45], p_regs[76]);
-            } else if (ctx->device_id == DEV_VDPU) {
-
-            }
         }
     }
 
