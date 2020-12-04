@@ -678,7 +678,7 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
                                   !pps->entropy_coding_mode;
     regs->reg102.chrm_spcl      = 1;
     regs->reg102.rdo_mask       = 24;
-    regs->reg102.ccwa_e         = 0;
+    regs->reg102.ccwa_e         = 1;
     regs->reg102.scl_lst_sel    = pps->pic_scaling_matrix_present;
     regs->reg102.scl_lst_sel_   = pps->pic_scaling_matrix_present;
     regs->reg102.atr_e          = 1;
