@@ -91,6 +91,9 @@ MPP_RET mpp_dev_deinit(MppDev ctx);
 
 MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param);
 
+/* special helper function for large address offset config */
+MPP_RET mpp_dev_set_reg_offset(MppDev dev, RK_U32 *regs, RK_S32 index, RK_U32 offset);
+
 #ifdef __cplusplus
 }
 #endif
