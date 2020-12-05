@@ -25,8 +25,8 @@
 #define VDPU_POC_BUF_SIZE          (34*4)        /* bytes */
 #define VDPU_SCALING_LIST_SIZE     (6*16+2*64)   /* bytes */
 
-const RK_U32 vdpu_cabac_table[VDPU_CABAC_TAB_SIZE / 4];
-const RK_U32 vdpu_value_list[34];
+extern const RK_U32 vdpu_cabac_table[VDPU_CABAC_TAB_SIZE / 4];
+extern const RK_U32 vdpu_value_list[34];
 
 typedef struct h264d_vdpu_dpb_info_t {
     RK_U8     valid;
