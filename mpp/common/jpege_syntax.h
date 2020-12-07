@@ -24,6 +24,8 @@ typedef struct JpegeSyntax_t {
     RK_U32              height;
     RK_U32              hor_stride;
     RK_U32              ver_stride;
+    RK_U32              mcu_w;
+    RK_U32              mcu_h;
     MppFrameFormat      format;
     MppFrameColorSpace  color;
 
@@ -70,6 +72,9 @@ typedef struct JpegeSyntax_t {
     /* For comment header */
     RK_U32              comment_length;
     RK_U8               *comment_data;
+
+    /* For jpeg low delay slice encoding */
+    RK_U8               part_rows;
 } JpegeSyntax;
 
 typedef struct JpegeFeedback_t {

@@ -40,11 +40,23 @@ typedef struct hal_jpege_ctx_s {
     JpegeBits           bits;
     /* NOTE: regs should reserve space for extra_info */
     void                *regs;
+    void                *regs_out;
     RK_U32              reg_size;
 
     MppEncCfgSet        *cfg;
     JpegeSyntax         syntax;
     JpegeFeedback       feedback;
+
+    /* For part encode mode */
+    RK_U32              mcu_h;
+    RK_U32              mcu_y;
+    RK_U8               *base;
+    size_t              size;
+    RK_U32              sw_bit;
+    RK_U32              part_bytepos;
+    RK_U32              part_x_fill;
+    RK_U32              part_y_fill;
+    RK_U32              rst_marker_idx;
 
     HalJpegeRc          hal_rc;
     RK_S32              hal_start_pos;
@@ -54,12 +66,14 @@ typedef struct hal_jpege_ctx_s {
 extern const RK_U32 qp_reorder_table[QUANTIZE_TABLE_SIZE];
 extern const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE];
 extern const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE];
+extern const RK_U16 jpege_restart_marker[8];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task);
+void get_msb_lsb_at_pos(RK_U32 *msb, RK_U32 *lsb, RK_U8 *buf, RK_U32 bytepos);
 
 #ifdef __cplusplus
 }

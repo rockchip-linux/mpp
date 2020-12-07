@@ -56,6 +56,11 @@ const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE] = {
     99, 99, 99, 99, 99, 99, 99, 99
 };
 
+const RK_U16 jpege_restart_marker[8] = {
+    0xFFD0,  0xFFD1,  0xFFD2, 0xFFD3,
+    0xFFD4,  0xFFD5,  0xFFD6, 0xFFD7,
+};
+
 MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task)
 {
     HalJpegeRc *hal_rc = &ctx->hal_rc;
@@ -94,4 +99,35 @@ MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task)
     }
 
     return MPP_OK;
+}
+
+void get_msb_lsb_at_pos(RK_U32 *msb, RK_U32 *lsb, RK_U8 *buf, RK_U32 bytepos)
+{
+    RK_U32 val32;
+    RK_S32 left_byte = bytepos & 0x7;
+    RK_U8 *tmp = buf + (bytepos & (~0x7));
+
+    // clear the rest bytes in 64bit
+    if (left_byte) {
+        RK_U32 i;
+
+        for (i = left_byte; i < 8; i++)
+            tmp[i] = 0;
+    }
+
+    val32 = (tmp[0] << 24) |
+            (tmp[1] << 16) |
+            (tmp[2] <<  8) |
+            (tmp[3] <<  0);
+
+    *msb = val32;
+
+    if (left_byte > 4) {
+        val32 = (tmp[4] << 24) |
+                (tmp[5] << 16) |
+                (tmp[6] <<  8);
+    } else
+        val32 = 0;
+
+    *lsb = val32;
 }
