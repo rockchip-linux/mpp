@@ -134,6 +134,7 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stat_times / fps->fps_out_denorm;
+    stat_len = stat_len ? stat_len : 1;
 
     bits_model_param_deinit(ctx);
     mpp_data_init_v2(&ctx->i_bit, I_WINDOW_LEN, 0);
