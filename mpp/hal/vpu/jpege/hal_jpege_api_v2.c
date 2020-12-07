@@ -105,6 +105,8 @@ HAL_jpegE_TASK_FUNC(get_task)
 HAL_jpegE_TASK_FUNC(gen_regs)
 HAL_jpegE_TASK_FUNC(start)
 HAL_jpegE_TASK_FUNC(wait)
+HAL_jpegE_TASK_FUNC(part_start)
+HAL_jpegE_TASK_FUNC(part_wait)
 HAL_jpegE_TASK_FUNC(ret_task)
 
 const MppEncHalApi hal_api_jpege_v2 = {
@@ -118,7 +120,7 @@ const MppEncHalApi hal_api_jpege_v2 = {
     .gen_regs   = hal_jpege_gen_regs,
     .start      = hal_jpege_start,
     .wait       = hal_jpege_wait,
-    .part_start = NULL,
-    .part_wait  = NULL,
+    .part_start = hal_jpege_part_start,
+    .part_wait  = hal_jpege_part_wait,
     .ret_task   = hal_jpege_ret_task,
 };

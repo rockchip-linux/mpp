@@ -509,6 +509,7 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     MppEncCfgSet *cfg = p->cfg;
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncCodecCfg *codec = &cfg->codec;
+    MppEncSliceSplit *split = &cfg->split;
 
     jpege_dbg_func("enter ctx %p\n", ctx);
 
@@ -516,6 +517,8 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->height      = prep->height;
     syntax->hor_stride  = prep->hor_stride;
     syntax->ver_stride  = prep->ver_stride;
+    syntax->mcu_w       = MPP_ALIGN(prep->width, 16) / 16;
+    syntax->mcu_h       = MPP_ALIGN(prep->height, 16) / 16;
     syntax->format      = prep->format;
     syntax->color       = prep->color;
     syntax->quality     = codec->jpeg.quant;
@@ -524,6 +527,32 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->qf_max      = codec->jpeg.qf_max;
     syntax->qtable_y    = codec->jpeg.qtable_y;
     syntax->qtable_c    = codec->jpeg.qtable_u;
+    syntax->part_rows   = 0;
+
+    if (split->split_mode) {
+        RK_U32 mb_h = MPP_ALIGN(prep->height, 16) / 16;
+
+        if (split->split_mode == MPP_ENC_SPLIT_BY_CTU) {
+            RK_U32 part_mbs = split->split_arg;
+            RK_U32 mb_w = MPP_ALIGN(prep->width, 16) / 16;
+            RK_U32 mb_all = mb_w * mb_h;
+
+            if (part_mbs > 0 && part_mbs <= mb_all) {
+                syntax->part_rows = (part_mbs + mb_w - 1) / mb_w;
+                mpp_assert(syntax->part_rows > 0 && syntax->part_rows <= mb_h);
+            } else {
+                mpp_err_f("warning: invalid split arg %d > max %d\n",
+                          part_mbs, mb_all);
+            }
+        } else {
+            mpp_err_f("warning: only mcu split is supported\n");
+        }
+
+        if (!syntax->part_rows) {
+            mpp_err_f("disable partition encoding\n");
+            syntax->part_rows = mb_h;
+        }
+    }
 
     task->valid = 1;
     task->syntax.data = syntax;

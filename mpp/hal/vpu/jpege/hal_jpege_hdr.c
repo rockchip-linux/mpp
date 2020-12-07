@@ -16,6 +16,7 @@
 
 #include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
 
 #include "hal_jpege_hdr.h"
 
@@ -887,6 +888,18 @@ static void write_jpeg_sos_header(JpegeBits *bits)
     jpege_bits_put(bits, 0, 4);
 }
 
+
+void write_jpeg_RestartInterval(JpegeBits *bits, JpegeSyntax *syntax)
+{
+    RK_U32 restart_ri = syntax->mcu_w * syntax->part_rows;
+
+    if (restart_ri) {
+        jpege_bits_put(bits, 0xFFDD, 16);
+        jpege_bits_put(bits, 4, 16);
+        jpege_bits_put(bits, restart_ri, 16);
+    }
+}
+
 MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qtables[2])
 {
     /* Com header */
@@ -914,6 +927,7 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
     write_jpeg_SOFO_header(bits, syntax);
 
     /* Do NOT have Restart interval */
+    write_jpeg_RestartInterval(bits, syntax);
 
     /* Huffman header */
     write_jpeg_dht_header(bits);
