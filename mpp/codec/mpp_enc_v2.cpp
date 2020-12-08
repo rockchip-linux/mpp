@@ -519,6 +519,23 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     MPP_RET ret = MPP_OK;
 
     switch (cmd) {
+    case MPP_ENC_SET_CFG : {
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        MppEncCfgSet *src = &impl->cfg;
+        RK_U32 change = src->base.change;
+
+        /* get base cfg here */
+        if (change) {
+            MppEncCfgSet *dst = &enc->cfg;
+
+            if (change & MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY)
+                dst->base.low_delay = src->base.low_delay;
+
+            src->base.change = 0;
+        }
+
+        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
+    } break;
     case MPP_ENC_GET_HDR_SYNC :
     case MPP_ENC_GET_EXTRA_INFO : {
         /*
