@@ -149,6 +149,8 @@ static const char *cfg_func_names[] = {
     const_strlen( #base":"#name ) +
 
 #define ENTRY_TABLE(ENTRY)  \
+    /* base config */ \
+    ENTRY(base, low_delay,      S32, RK_S32,            MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY,      base, low_delay) \
     /* rc config */ \
     ENTRY(rc,   mode,           S32, MppEncRcMode,      MPP_ENC_RC_CFG_CHANGE_RC_MODE,          rc, rc_mode) \
     ENTRY(rc,   bps_target,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_target) \
@@ -263,7 +265,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 50;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 40;
 
 class MppEncCfgService
 {

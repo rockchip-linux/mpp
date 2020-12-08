@@ -150,6 +150,20 @@
  */
 
 /*
+ * base working mode parameter
+ */
+typedef enum MppEncBaseCfgChange_e {
+    MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY   = (1 << 0),
+    MPP_ENC_BASE_CFG_CHANGE_ALL         = (0xFFFFFFFF),
+} MppEncBaseCfgChange;
+
+typedef struct MppEncBaseCfg_t {
+    RK_U32  change;
+
+    RK_S32  low_delay;
+} MppEncBaseCfg;
+
+/*
  * Rate control parameter
  */
 typedef enum MppEncRcCfgChange_e {

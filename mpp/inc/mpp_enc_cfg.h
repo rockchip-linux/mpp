@@ -29,6 +29,8 @@
  * For normal user rc and prep config are enough.
  */
 typedef struct MppEncCfgSet_t {
+    MppEncBaseCfg       base;
+
     // esential config
     MppEncPrepCfg       prep;
     MppEncRcCfg         rc;
