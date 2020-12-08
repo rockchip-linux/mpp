@@ -474,5 +474,7 @@ const MppEncHalApi hal_jpege_vepu2 = {
     .gen_regs   = hal_jpege_vepu2_gen_regs_v2,
     .start      = hal_jpege_vepu2_start_v2,
     .wait       = hal_jpege_vepu2_wait_v2,
+    .part_start = NULL,
+    .part_wait  = NULL,
     .ret_task   = hal_jpege_vepu2_ret_task_v2,
 };

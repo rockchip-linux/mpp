@@ -47,6 +47,8 @@ typedef struct MppEncHalApi_t {
     // hw operation function
     MPP_RET (*start)(void *ctx, HalEncTask *task);
     MPP_RET (*wait)(void *ctx, HalEncTask *task);
+    MPP_RET (*part_start)(void *ctx, HalEncTask *task);
+    MPP_RET (*part_wait)(void *ctx, HalEncTask *task);
 
     // return function
     MPP_RET (*ret_task)(void *ctx, HalEncTask *task);
@@ -67,6 +69,8 @@ MPP_RET mpp_enc_hal_gen_regs(MppEncHal ctx, HalEncTask *task);
 // start / wait hardware
 MPP_RET mpp_enc_hal_start(MppEncHal ctx, HalEncTask *task);
 MPP_RET mpp_enc_hal_wait(MppEncHal ctx, HalEncTask *task);
+MPP_RET mpp_enc_hal_part_start(MppEncHal ctx, HalEncTask *task);
+MPP_RET mpp_enc_hal_part_wait(MppEncHal ctx, HalEncTask *task);
 
 MPP_RET mpp_enc_hal_ret_task(MppEncHal ctx, HalEncTask *task);
 
