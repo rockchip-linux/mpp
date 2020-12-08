@@ -109,6 +109,8 @@ HAL_H264E_TASK_FUNC(get_task)
 HAL_H264E_TASK_FUNC(gen_regs)
 HAL_H264E_TASK_FUNC(start)
 HAL_H264E_TASK_FUNC(wait)
+HAL_H264E_TASK_FUNC(part_start)
+HAL_H264E_TASK_FUNC(part_wait)
 HAL_H264E_TASK_FUNC(ret_task)
 
 const MppEncHalApi hal_api_h264e_v2 = {
@@ -122,5 +124,7 @@ const MppEncHalApi hal_api_h264e_v2 = {
     .gen_regs   = hal_h264e_gen_regs,
     .start      = hal_h264e_start,
     .wait       = hal_h264e_wait,
+    .part_start = hal_h264e_part_start,
+    .part_wait  = hal_h264e_part_wait,
     .ret_task   = hal_h264e_ret_task,
 };

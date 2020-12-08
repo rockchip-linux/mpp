@@ -1848,6 +1848,8 @@ const MppEncHalApi hal_api_h265e_v2 = {
     hal_h265e_v541_gen_regs,
     hal_h265e_v54x_start,
     hal_h265e_v541_wait,
+    NULL,
+    NULL,
     hal_h265e_v541_ret_task,
 };
 

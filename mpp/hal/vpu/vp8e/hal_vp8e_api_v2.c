@@ -123,5 +123,7 @@ const MppEncHalApi hal_api_vp8e_v2 = {
     .gen_regs   = hal_vp8e_gen_regs,
     .start      = hal_vp8e_start,
     .wait       = hal_vp8e_wait,
+    .part_start = NULL,
+    .part_wait  = NULL,
     .ret_task   = hal_vp8e_ret_task,
 };
