@@ -228,7 +228,7 @@ typedef struct Vdpu34xRegVp9dAddr_t {
 
     RK_U32  reg161_pps_base;
 
-    RK_U32  reg162_last_porb_base;
+    RK_U32  reg162_last_prob_base;
 
     RK_U32  reg163_rps_base;
 
@@ -249,7 +249,6 @@ typedef struct Vdpu34xRegVp9dAddr_t {
     RK_U32  reg171_intercmd_base;
 
     RK_U32  reg172_update_prob_wr_base;
-
 
     RK_U32  reg173_179_no_use[7];
 

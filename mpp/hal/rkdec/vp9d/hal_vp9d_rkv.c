@@ -61,7 +61,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
         for (i = 0; i < MAX_GEN_REG; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
             ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].probe_base, PROBE_SIZE);
+                                 &hw_ctx->g_buf[i].probe_base, PROB_SIZE);
             if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
@@ -87,7 +87,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
         }
     } else {
         hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, PROBE_SIZE);
+        ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, PROB_SIZE);
         if (ret) {
             mpp_err("vp9 probe_base get buffer failed\n");
             return ret;
