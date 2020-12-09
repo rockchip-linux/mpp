@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_IMPL_H__
-#define __MPP_ENC_IMPL_H__
+#ifndef __ENC_IMPL_H__
+#define __ENC_IMPL_H__
 
 #include "enc_impl_api.h"
 
