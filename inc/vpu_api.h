@@ -275,7 +275,7 @@ typedef enum VPU_FRAME_ERR {
 typedef struct EncParameter {
     RK_S32 width;
     RK_S32 height;
-    RK_S32 rc_mode;                 /* 0 - CQP mode; 1 - CBR mode; */
+    RK_S32 rc_mode;                 /* 0 - CQP mode; 1 - CBR mode; 2 - FIXQP mode*/
     RK_S32 bitRate;                 /* target bitrate */
     RK_S32 framerate;
     RK_S32 qp;
