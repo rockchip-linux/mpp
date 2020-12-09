@@ -2050,7 +2050,6 @@ MPP_RET hal_h265e_vepu22_wait(void *hal, HalTaskInfo *task)
         return MPP_ERR_VPUHW;
     }
 
-    info->is_intra = 0;
     feedback.status = result->fail_reason;
     if (feedback.status == 0) {
         void* buffer = NULL;
@@ -2064,13 +2063,6 @@ MPP_RET hal_h265e_vepu22_wait(void *hal, HalTaskInfo *task)
         feedback.src_idx = result->src_idx;
         feedback.enc_pic_cnt = result->enc_pic_cnt;
 
-        if (feedback.pic_type == H265E_PIC_TYPE_I ||
-            feedback.pic_type == H265E_PIC_TYPE_IDR ||
-            feedback.pic_type == H265E_PIC_TYPE_CRA) {
-            info->is_intra = 1;
-        } else {
-            info->is_intra = 0;
-        }
         buffer = mpp_buffer_get_ptr(info->output);
         size = result->bs_size;
         if (ctx->mOutFile != NULL && size > 0) {

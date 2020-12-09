@@ -526,7 +526,6 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->qtable_c    = codec->jpeg.qtable_u;
 
     task->valid = 1;
-    task->is_intra = 1;
     task->syntax.data = syntax;
     task->syntax.number = 1;
 

@@ -807,7 +807,6 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     task->valid = 1;
     task->syntax.data   = &p->syntax[0];
     task->syntax.number = p->syn_num;
-    task->is_intra = p->slice.idr_flag;
     h264->change = 0;
 
     h264e_dbg_func("leave\n");
