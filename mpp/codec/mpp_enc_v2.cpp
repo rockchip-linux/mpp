@@ -31,7 +31,7 @@
 #include "mpp.h"
 #include "mpp_enc_debug.h"
 #include "mpp_enc_cfg_impl.h"
-#include "mpp_enc_impl.h"
+#include "enc_impl.h"
 #include "mpp_enc_hal.h"
 #include "mpp_enc_ref.h"
 #include "mpp_enc_refs.h"

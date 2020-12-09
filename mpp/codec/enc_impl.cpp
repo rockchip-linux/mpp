@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define  MODULE_TAG "mpp_enc_impl"
+#define  MODULE_TAG "enc_impl"
 
 #include <string.h>
 
@@ -26,7 +26,7 @@
 #include "jpege_api_v2.h"
 #include "h265e_api.h"
 #include "vp8e_api_v2.h"
-#include "mpp_enc_impl.h"
+#include "enc_impl.h"
 
 /*
  * all encoder controller static register here
