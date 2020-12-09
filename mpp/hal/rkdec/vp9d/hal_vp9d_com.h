@@ -52,7 +52,7 @@ typedef RK_U8 vp9_prob;
 #define MV_OFFSET_BITS                  (MV_CLASSES + CLASS0_BITS - 2)
 #define MV_FP_SIZE                      4
 
-#define PROBE_SIZE                      4864
+#define PROB_SIZE                       4864
 #define COUNT_SIZE                      13208
 /*
  * nCtuX*nCtuY*8*8/2
@@ -60,6 +60,8 @@ typedef RK_U8 vp9_prob;
  * MaxnCtuY = 2304/64
  */
 #define MAX_SEGMAP_SIZE                 73728
+
+#define VP9_DUMP 0
 
 //!< memory malloc check
 #define MEM_CHECK(ret, val, ...)\
@@ -83,7 +85,9 @@ RK_U32 vp9_ver_align(RK_U32 val);
 RK_U32 vp9_hor_align(RK_U32 val);
 
 MPP_RET hal_vp9d_output_probe(void *buf, void *dxva);
+MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva);
 void hal_vp9d_update_counts(void *buf, void *dxva);
+MPP_RET hal_vp9d_prob_default(void *buf, void *dxva);
 
 #ifdef __cplusplus
 }

@@ -60,6 +60,33 @@ typedef struct _segmentation_VP9 {
     UCHAR feature_mask[8];
 } DXVA_segmentation_VP9;
 
+typedef struct {
+    RK_U8 y_mode[4][9];
+    RK_U8 uv_mode[10][9];
+    RK_U8 filter[4][2];
+    RK_U8 mv_mode[7][3];
+    RK_U8 intra[4];
+    RK_U8 comp[5];
+    RK_U8 single_ref[5][2];
+    RK_U8 comp_ref[5];
+    RK_U8 tx32p[2][3];
+    RK_U8 tx16p[2][2];
+    RK_U8 tx8p[2];
+    RK_U8 skip[3];
+    RK_U8 mv_joint[3];
+    struct {
+        RK_U8 sign;
+        RK_U8 classes[10];
+        RK_U8 class0;
+        RK_U8 bits[10];
+        RK_U8 class0_fp[2][3];
+        RK_U8 fp[3];
+        RK_U8 class0_hp;
+        RK_U8 hp;
+    } mv_comp[2];
+    RK_U8 partition[4][4][3];
+} DXVA_prob_vp9;
+
 typedef struct _DXVA_PicParams_VP9 {
     DXVA_PicEntry_VPx CurrPic;
     UCHAR profile;
@@ -142,7 +169,7 @@ typedef struct _DXVA_PicParams_VP9 {
             UCHAR hp;
         } mv_comp[2];
         UCHAR partition[4][4][3];
-        UCHAR coef[4][2][2][6][6][11];
+        UCHAR coef[4][2][2][6][6][3];
     } prob;
     struct {
         UINT partition[4][4][4];
@@ -170,6 +197,12 @@ typedef struct _DXVA_PicParams_VP9 {
         UINT coef[4][2][2][6][6][3];
         UINT eob[4][2][2][6][6][2];
     } counts;
+    struct {
+        DXVA_prob_vp9 p_flag;
+        DXVA_prob_vp9 p_delta;
+        RK_U8 coef_flag[4][2][2][6][6][3];
+        RK_U8 coef_delta[4][2][2][6][6][3];
+    } prob_flag_delta;
     USHORT mvscale[3][2];
     CHAR txmode;
     CHAR refmode;

@@ -22,6 +22,822 @@
 #include "vp9d_syntax.h"
 #include "hal_vp9d_com.h"
 
+typedef struct {
+    RK_U8 y_mode[4][9];
+    RK_U8 uv_mode[10][9];
+    RK_U8 filter[4][2];
+    RK_U8 mv_mode[7][3];
+    RK_U8 intra[4];
+    RK_U8 comp[5];
+    RK_U8 single_ref[5][2];
+    RK_U8 comp_ref[5];
+    RK_U8 tx32p[2][3];
+    RK_U8 tx16p[2][2];
+    RK_U8 tx8p[2];
+    RK_U8 skip[3];
+    RK_U8 mv_joint[3];
+    struct {
+        RK_U8 sign;
+        RK_U8 classes[10];
+        RK_U8 class0;
+        RK_U8 bits[10];
+        RK_U8 class0_fp[2][3];
+        RK_U8 fp[3];
+        RK_U8 class0_hp;
+        RK_U8 hp;
+    } mv_comp[2];
+    RK_U8 partition[4][4][3];
+} prob_context;
+
+static const prob_context vp9_default_probs = {
+    { /* y_mode */
+        {  65,  32,  18, 144, 162, 194,  41,  51,  98 } /* bsize < 8x8 */,
+        { 132,  68,  18, 165, 217, 196,  45,  40,  78 } /* bsize < 16x16 */,
+        { 173,  80,  19, 176, 240, 193,  64,  35,  46 } /* bsize < 32x32 */,
+        { 221, 135,  38, 194, 248, 121,  96,  85,  29 } /* bsize >= 32x32 */
+    }, { /* uv_mode */
+        {  48,  12, 154, 155, 139,  90,  34, 117, 119 } /* y = v */,
+        {  67,   6,  25, 204, 243, 158,  13,  21,  96 } /* y = h */,
+        { 120,   7,  76, 176, 208, 126,  28,  54, 103 } /* y = dc */,
+        {  97,   5,  44, 131, 176, 139,  48,  68,  97 } /* y = d45 */,
+        {  83,   5,  42, 156, 111, 152,  26,  49, 152 } /* y = d135 */,
+        {  80,   5,  58, 178,  74,  83,  33,  62, 145 } /* y = d117 */,
+        {  86,   5,  32, 154, 192, 168,  14,  22, 163 } /* y = d153 */,
+        {  77,   7,  64, 116, 132, 122,  37, 126, 120 } /* y = d63 */,
+        {  85,   5,  32, 156, 216, 148,  19,  29,  73 } /* y = d207 */,
+        { 101,  21, 107, 181, 192, 103,  19,  67, 125 } /* y = tm */
+    }, { /* filter */
+        { 235, 162, },
+        {  36, 255, },
+        {  34,   3, },
+        { 149, 144, },
+    }, { /* mv_mode */
+        {  2, 173,  34},  // 0 = both zero mv
+        {  7, 145,  85},  // 1 = one zero mv + one a predicted mv
+        {  7, 166,  63},  // 2 = two predicted mvs
+        {  7,  94,  66},  // 3 = one predicted/zero and one new mv
+        {  8,  64,  46},  // 4 = two new mvs
+        { 17,  81,  31},  // 5 = one intra neighbour + x
+        { 25,  29,  30},  // 6 = two intra neighbours
+    }, { /* intra */
+        9, 102, 187, 225
+    }, { /* comp */
+        239, 183, 119,  96,  41
+    }, { /* single_ref */
+        {  33,  16 },
+        {  77,  74 },
+        { 142, 142 },
+        { 172, 170 },
+        { 238, 247 }
+    }, { /* comp_ref */
+        50, 126, 123, 221, 226
+    }, { /* tx32p */
+        { 3, 136, 37, },
+        { 5,  52, 13, },
+    }, { /* tx16p */
+        { 20, 152, },
+        { 15, 101, },
+    }, { /* tx8p */
+        100, 66
+    }, { /* skip */
+        192, 128, 64
+    }, { /* mv_joint */
+        32, 64, 96
+    }, {
+        { /* mv vertical component */
+            128, /* sign */
+            { 224, 144, 192, 168, 192, 176, 192, 198, 198, 245 }, /* class */
+            216, /* class0 */
+            { 136, 140, 148, 160, 176, 192, 224, 234, 234, 240}, /* bits */
+            { /* class0_fp */
+                { 128, 128, 64 },
+                {  96, 112, 64 }
+            },
+            { 64, 96, 64 }, /* fp */
+            160, /* class0_hp bit */
+            128, /* hp */
+        }, { /* mv horizontal component */
+            128, /* sign */
+            { 216, 128, 176, 160, 176, 176, 192, 198, 198, 208 }, /* class */
+            208, /* class0 */
+            { 136, 140, 148, 160, 176, 192, 224, 234, 234, 240 }, /* bits */
+            { /* class0_fp */
+                { 128, 128, 64 },
+                {  96, 112, 64 }
+            },
+            { 64, 96, 64 }, /* fp */
+            160, /* class0_hp bit */
+            128, /* hp */
+        }
+    }, { /* partition */
+        { /* 64x64 -> 32x32 */
+            { 222,  34,  30 } /* a/l both not split */,
+            {  72,  16,  44 } /* a split, l not split */,
+            {  58,  32,  12 } /* l split, a not split */,
+            {  10,   7,   6 } /* a/l both split */,
+        }, { /* 32x32 -> 16x16 */
+            { 177,  58,  59 } /* a/l both not split */,
+            {  68,  26,  63 } /* a split, l not split */,
+            {  52,  79,  25 } /* l split, a not split */,
+            {  17,  14,  12 } /* a/l both split */,
+        }, { /* 16x16 -> 8x8 */
+            { 174,  73,  87 } /* a/l both not split */,
+            {  92,  41,  83 } /* a split, l not split */,
+            {  82,  99,  50 } /* l split, a not split */,
+            {  53,  39,  39 } /* a/l both split */,
+        }, { /* 8x8 -> 4x4 */
+            { 199, 122, 141 } /* a/l both not split */,
+            { 147,  63, 159 } /* a split, l not split */,
+            { 148, 133, 118 } /* l split, a not split */,
+            { 121, 104, 114 } /* a/l both split */,
+        }
+    },
+};
+
+static const RK_U8 vp9_default_coef_probs[4][2][2][6][6][3] = {
+    { /* tx = 4x4 */
+        { /* block Type 0 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 195,  29, 183 },
+                    {  84,  49, 136 },
+                    {   8,  42,  71 }
+                }, { /* Coeff Band 1 */
+                    {  31, 107, 169 },
+                    {  35,  99, 159 },
+                    {  17,  82, 140 },
+                    {   8,  66, 114 },
+                    {   2,  44,  76 },
+                    {   1,  19,  32 }
+                }, { /* Coeff Band 2 */
+                    {  40, 132, 201 },
+                    {  29, 114, 187 },
+                    {  13,  91, 157 },
+                    {   7,  75, 127 },
+                    {   3,  58,  95 },
+                    {   1,  28,  47 }
+                }, { /* Coeff Band 3 */
+                    {  69, 142, 221 },
+                    {  42, 122, 201 },
+                    {  15,  91, 159 },
+                    {   6,  67, 121 },
+                    {   1,  42,  77 },
+                    {   1,  17,  31 }
+                }, { /* Coeff Band 4 */
+                    { 102, 148, 228 },
+                    {  67, 117, 204 },
+                    {  17,  82, 154 },
+                    {   6,  59, 114 },
+                    {   2,  39,  75 },
+                    {   1,  15,  29 }
+                }, { /* Coeff Band 5 */
+                    { 156,  57, 233 },
+                    { 119,  57, 212 },
+                    {  58,  48, 163 },
+                    {  29,  40, 124 },
+                    {  12,  30,  81 },
+                    {   3,  12,  31 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 191, 107, 226 },
+                    { 124, 117, 204 },
+                    {  25,  99, 155 }
+                }, { /* Coeff Band 1 */
+                    {  29, 148, 210 },
+                    {  37, 126, 194 },
+                    {   8,  93, 157 },
+                    {   2,  68, 118 },
+                    {   1,  39,  69 },
+                    {   1,  17,  33 }
+                }, { /* Coeff Band 2 */
+                    {  41, 151, 213 },
+                    {  27, 123, 193 },
+                    {   3,  82, 144 },
+                    {   1,  58, 105 },
+                    {   1,  32,  60 },
+                    {   1,  13,  26 }
+                }, { /* Coeff Band 3 */
+                    {  59, 159, 220 },
+                    {  23, 126, 198 },
+                    {   4,  88, 151 },
+                    {   1,  66, 114 },
+                    {   1,  38,  71 },
+                    {   1,  18,  34 }
+                }, { /* Coeff Band 4 */
+                    { 114, 136, 232 },
+                    {  51, 114, 207 },
+                    {  11,  83, 155 },
+                    {   3,  56, 105 },
+                    {   1,  33,  65 },
+                    {   1,  17,  34 }
+                }, { /* Coeff Band 5 */
+                    { 149,  65, 234 },
+                    { 121,  57, 215 },
+                    {  61,  49, 166 },
+                    {  28,  36, 114 },
+                    {  12,  25,  76 },
+                    {   3,  16,  42 }
+                }
+            }
+        }, { /* block Type 1 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 214,  49, 220 },
+                    { 132,  63, 188 },
+                    {  42,  65, 137 }
+                }, { /* Coeff Band 1 */
+                    {  85, 137, 221 },
+                    { 104, 131, 216 },
+                    {  49, 111, 192 },
+                    {  21,  87, 155 },
+                    {   2,  49,  87 },
+                    {   1,  16,  28 }
+                }, { /* Coeff Band 2 */
+                    {  89, 163, 230 },
+                    {  90, 137, 220 },
+                    {  29, 100, 183 },
+                    {  10,  70, 135 },
+                    {   2,  42,  81 },
+                    {   1,  17,  33 }
+                }, { /* Coeff Band 3 */
+                    { 108, 167, 237 },
+                    {  55, 133, 222 },
+                    {  15,  97, 179 },
+                    {   4,  72, 135 },
+                    {   1,  45,  85 },
+                    {   1,  19,  38 }
+                }, { /* Coeff Band 4 */
+                    { 124, 146, 240 },
+                    {  66, 124, 224 },
+                    {  17,  88, 175 },
+                    {   4,  58, 122 },
+                    {   1,  36,  75 },
+                    {   1,  18,  37 }
+                }, { /* Coeff Band 5 */
+                    { 141,  79, 241 },
+                    { 126,  70, 227 },
+                    {  66,  58, 182 },
+                    {  30,  44, 136 },
+                    {  12,  34,  96 },
+                    {   2,  20,  47 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 229,  99, 249 },
+                    { 143, 111, 235 },
+                    {  46, 109, 192 }
+                }, { /* Coeff Band 1 */
+                    {  82, 158, 236 },
+                    {  94, 146, 224 },
+                    {  25, 117, 191 },
+                    {   9,  87, 149 },
+                    {   3,  56,  99 },
+                    {   1,  33,  57 }
+                }, { /* Coeff Band 2 */
+                    {  83, 167, 237 },
+                    {  68, 145, 222 },
+                    {  10, 103, 177 },
+                    {   2,  72, 131 },
+                    {   1,  41,  79 },
+                    {   1,  20,  39 }
+                }, { /* Coeff Band 3 */
+                    {  99, 167, 239 },
+                    {  47, 141, 224 },
+                    {  10, 104, 178 },
+                    {   2,  73, 133 },
+                    {   1,  44,  85 },
+                    {   1,  22,  47 }
+                }, { /* Coeff Band 4 */
+                    { 127, 145, 243 },
+                    {  71, 129, 228 },
+                    {  17,  93, 177 },
+                    {   3,  61, 124 },
+                    {   1,  41,  84 },
+                    {   1,  21,  52 }
+                }, { /* Coeff Band 5 */
+                    { 157,  78, 244 },
+                    { 140,  72, 231 },
+                    {  69,  58, 184 },
+                    {  31,  44, 137 },
+                    {  14,  38, 105 },
+                    {   8,  23,  61 }
+                }
+            }
+        }
+    }, { /* tx = 8x8 */
+        { /* block Type 0 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 125,  34, 187 },
+                    {  52,  41, 133 },
+                    {   6,  31,  56 }
+                }, { /* Coeff Band 1 */
+                    {  37, 109, 153 },
+                    {  51, 102, 147 },
+                    {  23,  87, 128 },
+                    {   8,  67, 101 },
+                    {   1,  41,  63 },
+                    {   1,  19,  29 }
+                }, { /* Coeff Band 2 */
+                    {  31, 154, 185 },
+                    {  17, 127, 175 },
+                    {   6,  96, 145 },
+                    {   2,  73, 114 },
+                    {   1,  51,  82 },
+                    {   1,  28,  45 }
+                }, { /* Coeff Band 3 */
+                    {  23, 163, 200 },
+                    {  10, 131, 185 },
+                    {   2,  93, 148 },
+                    {   1,  67, 111 },
+                    {   1,  41,  69 },
+                    {   1,  14,  24 }
+                }, { /* Coeff Band 4 */
+                    {  29, 176, 217 },
+                    {  12, 145, 201 },
+                    {   3, 101, 156 },
+                    {   1,  69, 111 },
+                    {   1,  39,  63 },
+                    {   1,  14,  23 }
+                }, { /* Coeff Band 5 */
+                    {  57, 192, 233 },
+                    {  25, 154, 215 },
+                    {   6, 109, 167 },
+                    {   3,  78, 118 },
+                    {   1,  48,  69 },
+                    {   1,  21,  29 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 202, 105, 245 },
+                    { 108, 106, 216 },
+                    {  18,  90, 144 }
+                }, { /* Coeff Band 1 */
+                    {  33, 172, 219 },
+                    {  64, 149, 206 },
+                    {  14, 117, 177 },
+                    {   5,  90, 141 },
+                    {   2,  61,  95 },
+                    {   1,  37,  57 }
+                }, { /* Coeff Band 2 */
+                    {  33, 179, 220 },
+                    {  11, 140, 198 },
+                    {   1,  89, 148 },
+                    {   1,  60, 104 },
+                    {   1,  33,  57 },
+                    {   1,  12,  21 }
+                }, { /* Coeff Band 3 */
+                    {  30, 181, 221 },
+                    {   8, 141, 198 },
+                    {   1,  87, 145 },
+                    {   1,  58, 100 },
+                    {   1,  31,  55 },
+                    {   1,  12,  20 }
+                }, { /* Coeff Band 4 */
+                    {  32, 186, 224 },
+                    {   7, 142, 198 },
+                    {   1,  86, 143 },
+                    {   1,  58, 100 },
+                    {   1,  31,  55 },
+                    {   1,  12,  22 }
+                }, { /* Coeff Band 5 */
+                    {  57, 192, 227 },
+                    {  20, 143, 204 },
+                    {   3,  96, 154 },
+                    {   1,  68, 112 },
+                    {   1,  42,  69 },
+                    {   1,  19,  32 }
+                }
+            }
+        }, { /* block Type 1 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 212,  35, 215 },
+                    { 113,  47, 169 },
+                    {  29,  48, 105 }
+                }, { /* Coeff Band 1 */
+                    {  74, 129, 203 },
+                    { 106, 120, 203 },
+                    {  49, 107, 178 },
+                    {  19,  84, 144 },
+                    {   4,  50,  84 },
+                    {   1,  15,  25 }
+                }, { /* Coeff Band 2 */
+                    {  71, 172, 217 },
+                    {  44, 141, 209 },
+                    {  15, 102, 173 },
+                    {   6,  76, 133 },
+                    {   2,  51,  89 },
+                    {   1,  24,  42 }
+                }, { /* Coeff Band 3 */
+                    {  64, 185, 231 },
+                    {  31, 148, 216 },
+                    {   8, 103, 175 },
+                    {   3,  74, 131 },
+                    {   1,  46,  81 },
+                    {   1,  18,  30 }
+                }, { /* Coeff Band 4 */
+                    {  65, 196, 235 },
+                    {  25, 157, 221 },
+                    {   5, 105, 174 },
+                    {   1,  67, 120 },
+                    {   1,  38,  69 },
+                    {   1,  15,  30 }
+                }, { /* Coeff Band 5 */
+                    {  65, 204, 238 },
+                    {  30, 156, 224 },
+                    {   7, 107, 177 },
+                    {   2,  70, 124 },
+                    {   1,  42,  73 },
+                    {   1,  18,  34 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 225,  86, 251 },
+                    { 144, 104, 235 },
+                    {  42,  99, 181 }
+                }, { /* Coeff Band 1 */
+                    {  85, 175, 239 },
+                    { 112, 165, 229 },
+                    {  29, 136, 200 },
+                    {  12, 103, 162 },
+                    {   6,  77, 123 },
+                    {   2,  53,  84 }
+                }, { /* Coeff Band 2 */
+                    {  75, 183, 239 },
+                    {  30, 155, 221 },
+                    {   3, 106, 171 },
+                    {   1,  74, 128 },
+                    {   1,  44,  76 },
+                    {   1,  17,  28 }
+                }, { /* Coeff Band 3 */
+                    {  73, 185, 240 },
+                    {  27, 159, 222 },
+                    {   2, 107, 172 },
+                    {   1,  75, 127 },
+                    {   1,  42,  73 },
+                    {   1,  17,  29 }
+                }, { /* Coeff Band 4 */
+                    {  62, 190, 238 },
+                    {  21, 159, 222 },
+                    {   2, 107, 172 },
+                    {   1,  72, 122 },
+                    {   1,  40,  71 },
+                    {   1,  18,  32 }
+                }, { /* Coeff Band 5 */
+                    {  61, 199, 240 },
+                    {  27, 161, 226 },
+                    {   4, 113, 180 },
+                    {   1,  76, 129 },
+                    {   1,  46,  80 },
+                    {   1,  23,  41 }
+                }
+            }
+        }
+    }, { /* tx = 16x16 */
+        { /* block Type 0 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    {   7,  27, 153 },
+                    {   5,  30,  95 },
+                    {   1,  16,  30 }
+                }, { /* Coeff Band 1 */
+                    {  50,  75, 127 },
+                    {  57,  75, 124 },
+                    {  27,  67, 108 },
+                    {  10,  54,  86 },
+                    {   1,  33,  52 },
+                    {   1,  12,  18 }
+                }, { /* Coeff Band 2 */
+                    {  43, 125, 151 },
+                    {  26, 108, 148 },
+                    {   7,  83, 122 },
+                    {   2,  59,  89 },
+                    {   1,  38,  60 },
+                    {   1,  17,  27 }
+                }, { /* Coeff Band 3 */
+                    {  23, 144, 163 },
+                    {  13, 112, 154 },
+                    {   2,  75, 117 },
+                    {   1,  50,  81 },
+                    {   1,  31,  51 },
+                    {   1,  14,  23 }
+                }, { /* Coeff Band 4 */
+                    {  18, 162, 185 },
+                    {   6, 123, 171 },
+                    {   1,  78, 125 },
+                    {   1,  51,  86 },
+                    {   1,  31,  54 },
+                    {   1,  14,  23 }
+                }, { /* Coeff Band 5 */
+                    {  15, 199, 227 },
+                    {   3, 150, 204 },
+                    {   1,  91, 146 },
+                    {   1,  55,  95 },
+                    {   1,  30,  53 },
+                    {   1,  11,  20 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    {  19,  55, 240 },
+                    {  19,  59, 196 },
+                    {   3,  52, 105 }
+                }, { /* Coeff Band 1 */
+                    {  41, 166, 207 },
+                    { 104, 153, 199 },
+                    {  31, 123, 181 },
+                    {  14, 101, 152 },
+                    {   5,  72, 106 },
+                    {   1,  36,  52 }
+                }, { /* Coeff Band 2 */
+                    {  35, 176, 211 },
+                    {  12, 131, 190 },
+                    {   2,  88, 144 },
+                    {   1,  60, 101 },
+                    {   1,  36,  60 },
+                    {   1,  16,  28 }
+                }, { /* Coeff Band 3 */
+                    {  28, 183, 213 },
+                    {   8, 134, 191 },
+                    {   1,  86, 142 },
+                    {   1,  56,  96 },
+                    {   1,  30,  53 },
+                    {   1,  12,  20 }
+                }, { /* Coeff Band 4 */
+                    {  20, 190, 215 },
+                    {   4, 135, 192 },
+                    {   1,  84, 139 },
+                    {   1,  53,  91 },
+                    {   1,  28,  49 },
+                    {   1,  11,  20 }
+                }, { /* Coeff Band 5 */
+                    {  13, 196, 216 },
+                    {   2, 137, 192 },
+                    {   1,  86, 143 },
+                    {   1,  57,  99 },
+                    {   1,  32,  56 },
+                    {   1,  13,  24 }
+                }
+            }
+        }, { /* block Type 1 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 211,  29, 217 },
+                    {  96,  47, 156 },
+                    {  22,  43,  87 }
+                }, { /* Coeff Band 1 */
+                    {  78, 120, 193 },
+                    { 111, 116, 186 },
+                    {  46, 102, 164 },
+                    {  15,  80, 128 },
+                    {   2,  49,  76 },
+                    {   1,  18,  28 }
+                }, { /* Coeff Band 2 */
+                    {  71, 161, 203 },
+                    {  42, 132, 192 },
+                    {  10,  98, 150 },
+                    {   3,  69, 109 },
+                    {   1,  44,  70 },
+                    {   1,  18,  29 }
+                }, { /* Coeff Band 3 */
+                    {  57, 186, 211 },
+                    {  30, 140, 196 },
+                    {   4,  93, 146 },
+                    {   1,  62, 102 },
+                    {   1,  38,  65 },
+                    {   1,  16,  27 }
+                }, { /* Coeff Band 4 */
+                    {  47, 199, 217 },
+                    {  14, 145, 196 },
+                    {   1,  88, 142 },
+                    {   1,  57,  98 },
+                    {   1,  36,  62 },
+                    {   1,  15,  26 }
+                }, { /* Coeff Band 5 */
+                    {  26, 219, 229 },
+                    {   5, 155, 207 },
+                    {   1,  94, 151 },
+                    {   1,  60, 104 },
+                    {   1,  36,  62 },
+                    {   1,  16,  28 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 233,  29, 248 },
+                    { 146,  47, 220 },
+                    {  43,  52, 140 }
+                }, { /* Coeff Band 1 */
+                    { 100, 163, 232 },
+                    { 179, 161, 222 },
+                    {  63, 142, 204 },
+                    {  37, 113, 174 },
+                    {  26,  89, 137 },
+                    {  18,  68,  97 }
+                }, { /* Coeff Band 2 */
+                    {  85, 181, 230 },
+                    {  32, 146, 209 },
+                    {   7, 100, 164 },
+                    {   3,  71, 121 },
+                    {   1,  45,  77 },
+                    {   1,  18,  30 }
+                }, { /* Coeff Band 3 */
+                    {  65, 187, 230 },
+                    {  20, 148, 207 },
+                    {   2,  97, 159 },
+                    {   1,  68, 116 },
+                    {   1,  40,  70 },
+                    {   1,  14,  29 }
+                }, { /* Coeff Band 4 */
+                    {  40, 194, 227 },
+                    {   8, 147, 204 },
+                    {   1,  94, 155 },
+                    {   1,  65, 112 },
+                    {   1,  39,  66 },
+                    {   1,  14,  26 }
+                }, { /* Coeff Band 5 */
+                    {  16, 208, 228 },
+                    {   3, 151, 207 },
+                    {   1,  98, 160 },
+                    {   1,  67, 117 },
+                    {   1,  41,  74 },
+                    {   1,  17,  31 }
+                }
+            }
+        }
+    }, { /* tx = 32x32 */
+        { /* block Type 0 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    {  17,  38, 140 },
+                    {   7,  34,  80 },
+                    {   1,  17,  29 }
+                }, { /* Coeff Band 1 */
+                    {  37,  75, 128 },
+                    {  41,  76, 128 },
+                    {  26,  66, 116 },
+                    {  12,  52,  94 },
+                    {   2,  32,  55 },
+                    {   1,  10,  16 }
+                }, { /* Coeff Band 2 */
+                    {  50, 127, 154 },
+                    {  37, 109, 152 },
+                    {  16,  82, 121 },
+                    {   5,  59,  85 },
+                    {   1,  35,  54 },
+                    {   1,  13,  20 }
+                }, { /* Coeff Band 3 */
+                    {  40, 142, 167 },
+                    {  17, 110, 157 },
+                    {   2,  71, 112 },
+                    {   1,  44,  72 },
+                    {   1,  27,  45 },
+                    {   1,  11,  17 }
+                }, { /* Coeff Band 4 */
+                    {  30, 175, 188 },
+                    {   9, 124, 169 },
+                    {   1,  74, 116 },
+                    {   1,  48,  78 },
+                    {   1,  30,  49 },
+                    {   1,  11,  18 }
+                }, { /* Coeff Band 5 */
+                    {  10, 222, 223 },
+                    {   2, 150, 194 },
+                    {   1,  83, 128 },
+                    {   1,  48,  79 },
+                    {   1,  27,  45 },
+                    {   1,  11,  17 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    {  36,  41, 235 },
+                    {  29,  36, 193 },
+                    {  10,  27, 111 }
+                }, { /* Coeff Band 1 */
+                    {  85, 165, 222 },
+                    { 177, 162, 215 },
+                    { 110, 135, 195 },
+                    {  57, 113, 168 },
+                    {  23,  83, 120 },
+                    {  10,  49,  61 }
+                }, { /* Coeff Band 2 */
+                    {  85, 190, 223 },
+                    {  36, 139, 200 },
+                    {   5,  90, 146 },
+                    {   1,  60, 103 },
+                    {   1,  38,  65 },
+                    {   1,  18,  30 }
+                }, { /* Coeff Band 3 */
+                    {  72, 202, 223 },
+                    {  23, 141, 199 },
+                    {   2,  86, 140 },
+                    {   1,  56,  97 },
+                    {   1,  36,  61 },
+                    {   1,  16,  27 }
+                }, { /* Coeff Band 4 */
+                    {  55, 218, 225 },
+                    {  13, 145, 200 },
+                    {   1,  86, 141 },
+                    {   1,  57,  99 },
+                    {   1,  35,  61 },
+                    {   1,  13,  22 }
+                }, { /* Coeff Band 5 */
+                    {  15, 235, 212 },
+                    {   1, 132, 184 },
+                    {   1,  84, 139 },
+                    {   1,  57,  97 },
+                    {   1,  34,  56 },
+                    {   1,  14,  23 }
+                }
+            }
+        }, { /* block Type 1 */
+            { /* Intra */
+                { /* Coeff Band 0 */
+                    { 181,  21, 201 },
+                    {  61,  37, 123 },
+                    {  10,  38,  71 }
+                }, { /* Coeff Band 1 */
+                    {  47, 106, 172 },
+                    {  95, 104, 173 },
+                    {  42,  93, 159 },
+                    {  18,  77, 131 },
+                    {   4,  50,  81 },
+                    {   1,  17,  23 }
+                }, { /* Coeff Band 2 */
+                    {  62, 147, 199 },
+                    {  44, 130, 189 },
+                    {  28, 102, 154 },
+                    {  18,  75, 115 },
+                    {   2,  44,  65 },
+                    {   1,  12,  19 }
+                }, { /* Coeff Band 3 */
+                    {  55, 153, 210 },
+                    {  24, 130, 194 },
+                    {   3,  93, 146 },
+                    {   1,  61,  97 },
+                    {   1,  31,  50 },
+                    {   1,  10,  16 }
+                }, { /* Coeff Band 4 */
+                    {  49, 186, 223 },
+                    {  17, 148, 204 },
+                    {   1,  96, 142 },
+                    {   1,  53,  83 },
+                    {   1,  26,  44 },
+                    {   1,  11,  17 }
+                }, { /* Coeff Band 5 */
+                    {  13, 217, 212 },
+                    {   2, 136, 180 },
+                    {   1,  78, 124 },
+                    {   1,  50,  83 },
+                    {   1,  29,  49 },
+                    {   1,  14,  23 }
+                }
+            }, { /* Inter */
+                { /* Coeff Band 0 */
+                    { 197,  13, 247 },
+                    {  82,  17, 222 },
+                    {  25,  17, 162 }
+                }, { /* Coeff Band 1 */
+                    { 126, 186, 247 },
+                    { 234, 191, 243 },
+                    { 176, 177, 234 },
+                    { 104, 158, 220 },
+                    {  66, 128, 186 },
+                    {  55,  90, 137 }
+                }, { /* Coeff Band 2 */
+                    { 111, 197, 242 },
+                    {  46, 158, 219 },
+                    {   9, 104, 171 },
+                    {   2,  65, 125 },
+                    {   1,  44,  80 },
+                    {   1,  17,  91 }
+                }, { /* Coeff Band 3 */
+                    { 104, 208, 245 },
+                    {  39, 168, 224 },
+                    {   3, 109, 162 },
+                    {   1,  79, 124 },
+                    {   1,  50, 102 },
+                    {   1,  43, 102 }
+                }, { /* Coeff Band 4 */
+                    {  84, 220, 246 },
+                    {  31, 177, 231 },
+                    {   2, 115, 180 },
+                    {   1,  79, 134 },
+                    {   1,  55,  77 },
+                    {   1,  60,  79 }
+                }, { /* Coeff Band 5 */
+                    {  43, 243, 240 },
+                    {   8, 180, 217 },
+                    {   1, 115, 166 },
+                    {   1,  84, 121 },
+                    {   1,  51,  67 },
+                    {   1,  16,   6 }
+                }
+            }
+        }
+    }
+};
+
 const vp9_prob vp9_kf_y_mode_prob[INTRA_MODES][INTRA_MODES][INTRA_MODES - 1] = {
     {
         // above = dc
@@ -423,7 +1239,684 @@ MPP_RET hal_vp9d_output_probe(void *buf, void *dxva)
     }
     fflush(vp9_fp);
 #endif
+    MPP_FREE(probe_packet);
 
+    return 0;
+}
+
+MPP_RET hal_vp9d_prob_default(void *buf, void *dxva)
+{
+    RK_S32 i, j, k, m, n;
+    RK_S32 fifo_len = PROB_SIZE >> 3;
+    RK_U64 *probe_packet = NULL;
+    BitputCtx_t bp;
+    DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)dxva;
+    RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
+    vp9_prob partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
+    memset(buf, 0, PROB_SIZE);
+
+    if (intraFlag) {
+        memcpy(&pic_param->prob.tx32p, &vp9_default_probs.tx32p, sizeof(vp9_default_probs.tx32p));
+        memcpy(&pic_param->prob.tx16p, &vp9_default_probs.tx16p, sizeof(vp9_default_probs.tx16p));
+        memcpy(&pic_param->prob.tx8p,  &vp9_default_probs.tx8p, sizeof(vp9_default_probs.tx8p));
+        memcpy(&pic_param->prob.skip,  &vp9_default_probs.skip, sizeof(vp9_default_probs.skip));
+        memcpy(&pic_param->prob.coef,  &vp9_default_coef_probs, sizeof(vp9_default_coef_probs));
+    }
+    memcpy(partition_probs, pic_param->prob.partition, sizeof(partition_probs));
+
+    probe_packet = mpp_calloc(RK_U64, fifo_len);
+    memset(probe_packet, 0, fifo_len);
+    mpp_set_bitput_ctx(&bp, probe_packet, fifo_len);
+
+    //sb info  5 x 128 bit
+    for (i = 0; i < 16; i++) //kf_partition_prob
+        for (j = 0; j < 3; j++)
+            mpp_put_bits(&bp, partition_probs[i][j], 8); //48
+
+    for (i = 0; i < PREDICTION_PROBS; i++) //Segment_id_pred_prob //3
+        mpp_put_bits(&bp, 0, 8);
+
+    for (i = 0; i < SEG_TREE_PROBS; i++) //Segment_id_probs
+        mpp_put_bits(&bp, 0, 8); //7
+
+    for (i = 0; i < SKIP_CONTEXTS; i++) //Skip_flag_probs //3
+        mpp_put_bits(&bp, pic_param->prob.skip[i], 8);
+
+    for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //6
+        for (j = 0; j < TX_SIZES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.tx32p[i][j], 8);
+
+    for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //4
+        for (j = 0; j < TX_SIZES - 2; j++)
+            mpp_put_bits(&bp, pic_param->prob.tx16p[i][j], 8);
+
+    for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //2
+        mpp_put_bits(&bp, pic_param->prob.tx8p[i], 8);
+
+    for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
+        mpp_put_bits(&bp, pic_param->prob.intra[i], 8);
+
+    mpp_put_align(&bp, 128, 0);
+
+    //intra_y_mode & inter_block info   6 x 128 bit
+    for (i = 0; i < BLOCK_SIZE_GROUPS; i++) //intra_y_mode
+        for (j = 0; j < INTRA_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.y_mode[i][j], 8);
+
+    for (i = 0; i < COMP_INTER_CONTEXTS; i++) //reference_mode prob
+        mpp_put_bits(&bp, pic_param->prob.comp[i], 8);
+
+    for (i = 0; i < REF_CONTEXTS; i++) //comp ref bit
+        mpp_put_bits(&bp, pic_param->prob.comp_ref[i], 8);
+
+    for (i = 0; i < REF_CONTEXTS; i++) //single ref bit
+        for (j = 0; j < 2; j++)
+            mpp_put_bits(&bp, pic_param->prob.single_ref[i][j], 8);
+
+    for (i = 0; i < INTER_MODE_CONTEXTS; i++) //mv mode bit
+        for (j = 0; j < INTER_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.mv_mode[i][j], 8);
+
+
+    for (i = 0; i < SWITCHABLE_FILTER_CONTEXTS; i++) //comp ref bit
+        for (j = 0; j < SWITCHABLE_FILTERS - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.filter[i][j], 8);
+
+    mpp_put_align(&bp, 128, 0);
+
+    //128 x 128bit
+    //coeff releated
+    for (i = 0; i < TX_SIZES; i++)
+        for (j = 0; j < PLANE_TYPES; j++) {
+            RK_S32 byte_count = 0;
+            for (k = 0; k < COEF_BANDS; k++) {
+                for (m = 0; m < COEFF_CONTEXTS; m++)
+                    for (n = 0; n < UNCONSTRAINED_NODES; n++) {
+                        mpp_put_bits(&bp, pic_param->prob.coef[i][j][0][k][m][n], 8);
+                        byte_count++;
+                        if (byte_count == 27) {
+                            mpp_put_align(&bp, 128, 0);
+                            byte_count = 0;
+                        }
+                    }
+            }
+            mpp_put_align(&bp, 128, 0);
+        }
+    for (i = 0; i < TX_SIZES; i++)
+        for (j = 0; j < PLANE_TYPES; j++) {
+            RK_S32 byte_count = 0;
+            for (k = 0; k < COEF_BANDS; k++) {
+                for (m = 0; m < COEFF_CONTEXTS; m++) {
+                    for (n = 0; n < UNCONSTRAINED_NODES; n++) {
+                        mpp_put_bits(&bp, pic_param->prob.coef[i][j][1][k][m][n], 8);
+                        byte_count++;
+                        if (byte_count == 27) {
+                            mpp_put_align(&bp, 128, 0);
+                            byte_count = 0;
+                        }
+                    }
+
+                }
+            }
+            mpp_put_align(&bp, 128, 0);
+        }
+
+    //intra uv mode 6 x 128
+    for (i = 0; i < 3; i++) //intra_uv_mode
+        for (j = 0; j < INTRA_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.uv_mode[i][j], 8);
+    mpp_put_align(&bp, 128, 0);
+
+    for (; i < 6; i++) //intra_uv_mode
+        for (j = 0; j < INTRA_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.uv_mode[i][j], 8);
+    mpp_put_align(&bp, 128, 0);
+
+    for (; i < 9; i++) //intra_uv_mode
+        for (j = 0; j < INTRA_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.uv_mode[i][j], 8);
+    mpp_put_align(&bp, 128, 0);
+    for (; i < INTRA_MODES; i++) //intra_uv_mode
+        for (j = 0; j < INTRA_MODES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.uv_mode[i][j], 8);
+
+    mpp_put_align(&bp, 128, 0);
+    mpp_put_bits(&bp, 0, 8);
+    mpp_put_align(&bp, 128, 0);
+
+    //mv releated 6 x 128
+    for (i = 0; i < MV_JOINTS - 1; i++) //mv_joint_type
+        mpp_put_bits(&bp, pic_param->prob.mv_joint[i], 8);
+
+    for (i = 0; i < 2; i++) { //sign bit
+        mpp_put_bits(&bp, pic_param->prob.mv_comp[i].sign, 8);
+    }
+    for (i = 0; i < 2; i++) { //classes bit
+        for (j = 0; j < MV_CLASSES - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.mv_comp[i].classes[j], 8);
+    }
+    for (i = 0; i < 2; i++) { //classe0 bit
+        mpp_put_bits(&bp, pic_param->prob.mv_comp[i].class0, 8);
+    }
+    for (i = 0; i < 2; i++) { // bits
+        for (j = 0; j < MV_OFFSET_BITS; j++)
+            mpp_put_bits(&bp, pic_param->prob.mv_comp[i].bits[j], 8);
+    }
+    for (i = 0; i < 2; i++) { //class0_fp bit
+        for (j = 0; j < CLASS0_SIZE; j++)
+            for (k = 0; k < MV_FP_SIZE - 1; k++)
+                mpp_put_bits(&bp, pic_param->prob.mv_comp[i].class0_fp[j][k], 8);
+    }
+    for (i = 0; i < 2; i++) { //comp ref bit
+        for (j = 0; j < MV_FP_SIZE - 1; j++)
+            mpp_put_bits(&bp, pic_param->prob.mv_comp[i].fp[j], 8);
+    }
+    for (i = 0; i < 2; i++) { //class0_hp bit
+
+        mpp_put_bits(&bp, pic_param->prob.mv_comp[i].class0_hp, 8);
+    }
+    for (i = 0; i < 2; i++) { //hp bit
+        mpp_put_bits(&bp, pic_param->prob.mv_comp[i].hp, 8);
+    }
+    mpp_put_align(&bp, 128, 0);
+    mpp_put_bits(&bp, 0, 8);
+    mpp_put_align(&bp, 128, 0);
+
+    memcpy(buf, probe_packet, fifo_len << 3);
+
+#if VP9_DUMP
+    {
+        static RK_U32 file_cnt = 0;
+        char file_name[128];
+        sprintf(file_name, "/data/vp9/prob_default_%d.txt", file_cnt);
+        FILE *vp9_fp = fopen(file_name, "wb");
+        RK_U32 *tmp = (RK_U32 *)buf;
+        for (i = 0; i < bp.index * 2; i += 2) {
+            fprintf(vp9_fp, "%08x%08x\n", tmp[i + 1], tmp[i]);
+        }
+        file_cnt++;
+        fflush(vp9_fp);
+        fclose(vp9_fp);
+    }
+#endif
+    MPP_FREE(probe_packet);
+
+    return 0;
+}
+
+
+MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
+{
+    RK_S32 i, j, k, m, n;
+    RK_S32 fifo_len = PROB_SIZE >> 3;
+    RK_U64 *probe_packet = NULL;
+    BitputCtx_t bp;
+    DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)dxva;
+    RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
+    vp9_prob partition_flag[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
+    vp9_prob partition_delta[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
+    vp9_prob partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
+    DXVA_prob_vp9 *prob_flag = &pic_param->prob_flag_delta.p_flag;
+    DXVA_prob_vp9 *prob_delta = &pic_param->prob_flag_delta.p_delta;
+
+    memset(buf, 0, PROB_SIZE);
+
+    if (intraFlag) {
+        memcpy(partition_probs, vp9_kf_partition_probs, sizeof(partition_probs));
+    } else {
+        memcpy(partition_flag, prob_flag->partition, sizeof(partition_flag));
+        memcpy(partition_delta, prob_delta->partition, sizeof(partition_delta));
+    }
+
+    probe_packet = mpp_calloc(RK_U64, fifo_len);
+    memset(probe_packet, 0, fifo_len);
+    mpp_set_bitput_ctx(&bp, probe_packet, fifo_len);
+
+    if (intraFlag) { //intra probs
+        //sb info  5 x 128 bit
+        for (i = 0; i < PARTITION_CONTEXTS; i++) //kf_partition_prob
+            for (j = 0; j < PARTITION_TYPES - 1; j++)
+                mpp_put_bits(&bp, 0, 1); //48
+
+        for (i = 0; i < PREDICTION_PROBS; i++) //Segment_id_pred_prob //3
+            mpp_put_bits(&bp, 0, 1);
+
+        for (i = 0; i < SEG_TREE_PROBS; i++) //Segment_id_probs
+            mpp_put_bits(&bp, 0, 1); //7
+
+        for (i = 0; i < SKIP_CONTEXTS; i++) //Skip_flag_probs //3
+            mpp_put_bits(&bp, prob_flag->skip[i], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //6
+            for (j = 0; j < TX_SIZES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->tx32p[i][j], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //4
+            for (j = 0; j < TX_SIZES - 2; j++)
+                mpp_put_bits(&bp, prob_flag->tx16p[i][j], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //2
+            mpp_put_bits(&bp, prob_flag->tx8p[i], 1);
+
+        for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
+            mpp_put_bits(&bp, 0, 1);
+
+        mpp_put_bits(&bp, 0, 3); //reserve
+        //intra coeff related prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                RK_U8 *pp = &pic_param->prob_flag_delta.coef_flag[i][j][0][0][0][0];
+                for (k = 0; k < 4; k++) {
+                    for (m = 0; m < 27; m++) {
+                        mpp_put_bits(&bp, pp[m + 27 * k], 1);// "coeff_intra_prob"
+                    }
+                    mpp_put_bits(&bp, 0, 5);//"reserve"
+                }
+            }
+        //inter coeff related prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                RK_U8 *pp = &pic_param->prob_flag_delta.coef_flag[i][j][1][0][0][0];
+                for (k = 0; k < 4; k++) {
+                    for (m = 0; m < 27; m++) {
+                        mpp_put_bits(&bp, pp[m + 27 * k], 1);// "coeff_intra_prob"
+                    }
+                    mpp_put_bits(&bp, 0, 5);//"reserve"
+                }
+            }
+        mpp_put_align(&bp, 128, 0);
+        /* ---------------- intra flag prob end -----------------  */
+        /* ---------------- intra delat prob start -----------------  */
+        for (i = 0; i < PARTITION_CONTEXTS; i++) //kf_partition_prob
+            for (j = 0; j < PARTITION_TYPES - 1; j++)
+                mpp_put_bits(&bp, partition_probs[i][j], 8); //48
+
+        for (i = 0; i < PREDICTION_PROBS; i++) //Segment_id_pred_prob //3
+            mpp_put_bits(&bp, pic_param->stVP9Segments.pred_probs[i], 8);
+
+        for (i = 0; i < SEG_TREE_PROBS; i++) //Segment_id_probs
+            mpp_put_bits(&bp, pic_param->stVP9Segments.tree_probs[i], 8); //7
+
+        for (i = 0; i < SKIP_CONTEXTS; i++) //Skip_flag_probs //3
+            mpp_put_bits(&bp, prob_delta->skip[i], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //6
+            for (j = 0; j < TX_SIZES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->tx32p[i][j], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //4
+            for (j = 0; j < TX_SIZES - 2; j++)
+                mpp_put_bits(&bp, prob_delta->tx16p[i][j], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //2
+            mpp_put_bits(&bp, prob_delta->tx8p[i], 8);
+
+        for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
+            mpp_put_bits(&bp, prob_delta->intra[i], 8);
+
+        mpp_put_align(&bp, 128, 0);
+        //coeff releated prob   64 x 128 bit
+        for (i = 0; i < TX_SIZES; i++)
+            for (j = 0; j < PLANE_TYPES; j++) {
+                RK_S32 byte_count = 0;
+                for (k = 0; k < COEF_BANDS; k++) {
+                    for (m = 0; m < COEFF_CONTEXTS; m++)
+                        for (n = 0; n < UNCONSTRAINED_NODES; n++) {
+                            mpp_put_bits(&bp, pic_param->prob_flag_delta.coef_delta[i][j][0][k][m][n], 8);
+
+                            byte_count++;
+                            if (byte_count == 27) {
+                                mpp_put_align(&bp, 128, 0);
+                                byte_count = 0;
+                            }
+                        }
+                }
+                mpp_put_align(&bp, 128, 0);
+            }
+
+        //intra mode prob  80 x 128 bit
+        for (i = 0; i < INTRA_MODES; i++) { //vp9_kf_y_mode_prob
+            RK_S32 byte_count = 0;
+            for (j = 0; j < INTRA_MODES; j++)
+                for (k = 0; k < INTRA_MODES - 1; k++) {
+                    mpp_put_bits(&bp, vp9_kf_y_mode_prob[i][j][k], 8);
+                    byte_count++;
+                    if (byte_count == 27) {
+                        byte_count = 0;
+                        mpp_put_align(&bp, 128, 0);
+                    }
+
+                }
+            if (i < 4) {
+                for (m = 0; m < (i < 3 ? 23 : 21); m++)
+                    mpp_put_bits(&bp, ((vp9_prob *)(&vp9_kf_uv_mode_prob[0][0]))[i * 23 + m], 8);
+                for (; m < 23; m++)
+                    mpp_put_bits(&bp, 0, 8);
+            } else {
+                for (m = 0; m < 23; m++)
+                    mpp_put_bits(&bp, 0, 8);
+            }
+            mpp_put_align(&bp, 128, 0);
+        }
+
+        //inter coeff releated prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                int32_t byte_count = 0; // 8 x128bit
+                for (k = 0; k < 6; k++)
+                    for (m = 0; m < 6; m++)
+                        for (n = 0; n < 3; n++) {
+                            mpp_put_bits(&bp, pic_param->prob_flag_delta.coef_delta[i][j][1][k][m][n], 8);
+                            byte_count++;
+                            if (byte_count == 27) {
+                                mpp_put_align(&bp, 128, 0);
+                                byte_count = 0;
+                            }
+                        }
+                mpp_put_align(&bp, 128, 0);
+            }
+    } else {
+        //inter probs
+        //151 x 128 bit ,aligned to 152 x 128 bit
+        //inter only
+        //sb info  5 x 128 bit
+        for (i = 0; i < PARTITION_CONTEXTS; i++) //kf_partition_prob
+            for (j = 0; j < PARTITION_TYPES - 1; j++)
+                mpp_put_bits(&bp, partition_flag[i][j], 1); //48
+
+        for (i = 0; i < PREDICTION_PROBS; i++) //Segment_id_pred_prob //3
+            mpp_put_bits(&bp, 0, 1);
+
+        for (i = 0; i < SEG_TREE_PROBS; i++) //Segment_id_probs
+            mpp_put_bits(&bp, 0, 1); //7
+
+        for (i = 0; i < SKIP_CONTEXTS; i++) //Skip_flag_probs //3
+            mpp_put_bits(&bp, prob_flag->skip[i], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //6
+            for (j = 0; j < TX_SIZES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->tx32p[i][j], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //4
+            for (j = 0; j < TX_SIZES - 2; j++)
+                mpp_put_bits(&bp, prob_flag->tx16p[i][j], 1);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //2
+            mpp_put_bits(&bp, prob_flag->tx8p[i], 1);
+
+        for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
+            mpp_put_bits(&bp, prob_flag->intra[i], 1);
+
+        mpp_put_bits(&bp, 0, 3); //reserve
+
+        //intra_y_mode & inter_block info   6 x 128 bit
+        for (i = 0; i < BLOCK_SIZE_GROUPS; i++) //intra_y_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->y_mode[i][j], 1);
+
+        for (i = 0; i < COMP_INTER_CONTEXTS; i++) //reference_mode prob
+            mpp_put_bits(&bp, prob_flag->comp[i], 1);
+
+        for (i = 0; i < REF_CONTEXTS; i++) //comp ref bit
+            mpp_put_bits(&bp, prob_flag->comp_ref[i], 1);
+
+        for (i = 0; i < REF_CONTEXTS; i++) //single ref bit
+            for (j = 0; j < 2; j++)
+                mpp_put_bits(&bp, prob_flag->single_ref[i][j], 1);
+
+        for (i = 0; i < INTER_MODE_CONTEXTS; i++) //mv mode bit
+            for (j = 0; j < INTER_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->mv_mode[i][j], 1);
+
+
+        for (i = 0; i < SWITCHABLE_FILTER_CONTEXTS; i++) //comp ref bit
+            for (j = 0; j < SWITCHABLE_FILTERS - 1; j++)
+                mpp_put_bits(&bp, prob_flag->filter[i][j], 1);
+
+        mpp_put_bits(&bp, 0, 11);//reserve
+
+        //intra coeff related prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                RK_U8 *pp = &pic_param->prob_flag_delta.coef_flag[i][j][0][0][0][0];
+                for (k = 0; k < 4; k++) {
+                    for (m = 0; m < 27; m++) {
+                        mpp_put_bits(&bp, pp[m + 27 * k], 1);// "coeff_intra_prob"
+                    }
+                    mpp_put_bits(&bp, 0, 5);//"reserve"
+                }
+            }
+        //inter coeff related prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                RK_U8 *pp = &pic_param->prob_flag_delta.coef_flag[i][j][1][0][0][0];
+                for (k = 0; k < 4; k++) {
+                    for (m = 0; m < 27; m++) {
+                        mpp_put_bits(&bp, pp[m + 27 * k], 1);// "coeff_intra_prob"
+                    }
+                    mpp_put_bits(&bp, 0, 5);//"reserve"
+                }
+            }
+
+        //intra uv mode 6 x 128
+        for (i = 0; i < 3; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->uv_mode[i][j], 1);
+        mpp_put_bits(&bp, 0, 5);//reserve
+        for (; i < 6; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->uv_mode[i][j], 1);
+        mpp_put_bits(&bp, 0, 5);//reserve
+
+        for (; i < 9; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->uv_mode[i][j], 1);
+        mpp_put_bits(&bp, 0, 5);//reserve
+        for (; i < INTRA_MODES; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->uv_mode[i][j], 1);
+        mpp_put_bits(&bp, 0, 23);//reserve
+
+        //mv releated 6 x 128
+        for (i = 0; i < MV_JOINTS - 1; i++) //mv_joint_type
+            mpp_put_bits(&bp, prob_flag->mv_joint[i], 1);
+
+        for (i = 0; i < 2; i++) { //sign bit
+            mpp_put_bits(&bp, prob_flag->mv_comp[i].sign, 1);
+        }
+        for (i = 0; i < 2; i++) { //classes bit
+            for (j = 0; j < MV_CLASSES - 1; j++)
+                mpp_put_bits(&bp, prob_flag->mv_comp[i].classes[j], 1);
+        }
+        for (i = 0; i < 2; i++) { //classe0 bit
+            mpp_put_bits(&bp, prob_flag->mv_comp[i].class0, 1);
+        }
+        for (i = 0; i < 2; i++) { // bits
+            for (j = 0; j < MV_OFFSET_BITS; j++)
+                mpp_put_bits(&bp, prob_flag->mv_comp[i].bits[j], 1);
+        }
+        for (i = 0; i < 2; i++) { //class0_fp bit
+            for (j = 0; j < CLASS0_SIZE; j++)
+                for (k = 0; k < MV_FP_SIZE - 1; k++)
+                    mpp_put_bits(&bp, prob_flag->mv_comp[i].class0_fp[j][k], 1);
+        }
+        for (i = 0; i < 2; i++) { //comp ref bit
+            for (j = 0; j < MV_FP_SIZE - 1; j++)
+                mpp_put_bits(&bp, prob_flag->mv_comp[i].fp[j], 1);
+        }
+        for (i = 0; i < 2; i++) { //class0_hp bit
+            mpp_put_bits(&bp, prob_flag->mv_comp[i].class0_hp, 1);
+        }
+        for (i = 0; i < 2; i++) { //hp bit
+            mpp_put_bits(&bp, prob_flag->mv_comp[i].hp, 1);
+        }
+        mpp_put_bits(&bp, 0, 11);//reserve
+
+        for (i = 0; i < 8; i++) {
+            mpp_put_bits(&bp, 0, 16);//reserve
+        }
+        //sb info  5 x 128 bit
+        for (i = 0; i < PARTITION_CONTEXTS; i++) //kf_partition_prob
+            for (j = 0; j < PARTITION_TYPES - 1; j++)
+                mpp_put_bits(&bp, partition_delta[i][j], 8); //48
+
+        for (i = 0; i < PREDICTION_PROBS; i++) //Segment_id_pred_prob //3
+            mpp_put_bits(&bp, pic_param->stVP9Segments.pred_probs[i], 8);
+
+        for (i = 0; i < SEG_TREE_PROBS; i++) //Segment_id_probs
+            mpp_put_bits(&bp, pic_param->stVP9Segments.tree_probs[i], 8); //7
+
+        for (i = 0; i < SKIP_CONTEXTS; i++) //Skip_flag_probs //3
+            mpp_put_bits(&bp, prob_delta->skip[i], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //6
+            for (j = 0; j < TX_SIZES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->tx32p[i][j], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //4
+            for (j = 0; j < TX_SIZES - 2; j++)
+                mpp_put_bits(&bp, prob_delta->tx16p[i][j], 8);
+
+        for (i = 0; i < TX_SIZE_CONTEXTS; i++) //Tx_size_probs //2
+            mpp_put_bits(&bp, prob_delta->tx8p[i], 8);
+
+        for (i = 0; i < INTRA_INTER_CONTEXTS; i++) //Tx_size_probs //4
+            mpp_put_bits(&bp, prob_delta->intra[i], 8);
+
+        mpp_put_bits(&bp, 0, 24); //reserve
+
+        //intra_y_mode & inter_block info   6 x 128 bit
+        for (i = 0; i < BLOCK_SIZE_GROUPS; i++) //intra_y_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->y_mode[i][j], 8);
+
+        for (i = 0; i < COMP_INTER_CONTEXTS; i++) //reference_mode prob
+            mpp_put_bits(&bp, prob_delta->comp[i], 8);
+
+        for (i = 0; i < REF_CONTEXTS; i++) //comp ref bit
+            mpp_put_bits(&bp, prob_delta->comp_ref[i], 8);
+
+        for (i = 0; i < REF_CONTEXTS; i++) //single ref bit
+            for (j = 0; j < 2; j++)
+                mpp_put_bits(&bp, prob_delta->single_ref[i][j], 8);
+
+        for (i = 0; i < INTER_MODE_CONTEXTS; i++) //mv mode bit
+            for (j = 0; j < INTER_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->mv_mode[i][j], 8);
+
+
+        for (i = 0; i < SWITCHABLE_FILTER_CONTEXTS; i++) //comp ref bit
+            for (j = 0; j < SWITCHABLE_FILTERS - 1; j++)
+                mpp_put_bits(&bp, prob_delta->filter[i][j], 8);
+        for (i = 0; i < 11; i++)
+            mpp_put_bits(&bp, 0, 8);//reserve
+
+        //intra coeff related prob   64 x 128 bit
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                RK_U32 byte_count = 0;
+                for (k = 0; k < 6; k++) {
+                    for (m = 0; m < 6; m++)
+                        for (n = 0; n < 3; n++) {
+                            mpp_put_bits(&bp, pic_param->prob_flag_delta.coef_delta[i][j][0][k][m][n], 8);
+                            byte_count++;
+                            if (byte_count == 27) {
+                                mpp_put_bits(&bp, 0, 40);//aline
+                                byte_count = 0;
+                            }
+                        }
+                }
+            }
+        for (i = 0; i < 4; i++)
+            for (j = 0; j < 2; j++) {
+                int32_t byte_count = 0;
+                for (k = 0; k < 6; k++) {
+                    for (m = 0; m < 6; m++)
+                        for (n = 0; n < 3; n++) {
+                            mpp_put_bits(&bp, pic_param->prob_flag_delta.coef_delta[i][j][1][k][m][n], 8);//"coeff_inter_prob"
+                            byte_count++;
+                            if (byte_count == 27) {
+                                mpp_put_bits(&bp, 0, 40);//aline
+                                byte_count = 0;
+                            }
+                        }
+                }
+            }
+
+        //intra uv mode 6 x 128
+        for (i = 0; i < 3; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->uv_mode[i][j], 8);
+        mpp_put_bits(&bp, 0, 40);//reserve
+        for (; i < 6; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->uv_mode[i][j], 8);
+        mpp_put_bits(&bp, 0, 40);//reserve
+
+        for (; i < 9; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->uv_mode[i][j], 8);
+        mpp_put_bits(&bp, 0, 40);//reserve
+        for (; i < INTRA_MODES; i++) //intra_uv_mode
+            for (j = 0; j < INTRA_MODES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->uv_mode[i][j], 8);
+        for (i = 0; i < 23; i++)
+            mpp_put_bits(&bp, 0xff, 8);//reserve
+
+        //mv releated 6 x 128
+        for (i = 0; i < MV_JOINTS - 1; i++) //mv_joint_type
+            mpp_put_bits(&bp, prob_delta->mv_joint[i], 8);
+
+        for (i = 0; i < 2; i++) { //sign bit
+            mpp_put_bits(&bp, prob_delta->mv_comp[i].sign, 8);
+        }
+        for (i = 0; i < 2; i++) { //classes bit
+            for (j = 0; j < MV_CLASSES - 1; j++)
+                mpp_put_bits(&bp, prob_delta->mv_comp[i].classes[j], 8);
+        }
+        for (i = 0; i < 2; i++) { //classe0 bit
+            mpp_put_bits(&bp, prob_delta->mv_comp[i].class0, 8);
+        }
+        for (i = 0; i < 2; i++) { // bits
+            for (j = 0; j < MV_OFFSET_BITS; j++)
+                mpp_put_bits(&bp, prob_delta->mv_comp[i].bits[j], 8);
+        }
+        for (i = 0; i < 2; i++) { //class0_fp bit
+            for (j = 0; j < CLASS0_SIZE; j++)
+                for (k = 0; k < MV_FP_SIZE - 1; k++)
+                    mpp_put_bits(&bp, prob_delta->mv_comp[i].class0_fp[j][k], 8);
+        }
+        for (i = 0; i < 2; i++) { //comp ref bit
+            for (j = 0; j < MV_FP_SIZE - 1; j++)
+                mpp_put_bits(&bp, prob_delta->mv_comp[i].fp[j], 8);
+        }
+        for (i = 0; i < 2; i++) { //class0_hp bit
+            mpp_put_bits(&bp, prob_delta->mv_comp[i].class0_hp, 8);
+        }
+        for (i = 0; i < 2; i++) { //hp bit
+            mpp_put_bits(&bp, prob_delta->mv_comp[i].hp, 8);
+        }
+        for (i = 0; i < 27; i++)
+            mpp_put_bits(&bp, 0, 8);//reserve
+
+    }
+    mpp_put_align(&bp, 128, 0);
+
+    memcpy(buf, probe_packet, fifo_len << 3);
+
+#if VP9_DUMP
+    static RK_U32 file_cnt = 0;
+    char file_name[128];
+    sprintf(file_name, "/data/vp9/prob_%d.txt", file_cnt);
+    FILE *vp9_fp = fopen(file_name, "wb");
+    RK_U32 *tmp = (RK_U32 *)buf;
+    for (i = 0; i < bp.index * 2; i += 2) {
+        fprintf(vp9_fp, "%08x%08x\n", tmp[i + 1], tmp[i]);
+    }
+    file_cnt++;
+    fflush(vp9_fp);
+    fclose(vp9_fp);
+#endif
     MPP_FREE(probe_packet);
 
     return 0;

@@ -454,7 +454,7 @@ static RK_S32 inv_recenter_nonneg(RK_S32 v, RK_S32 m)
 }
 
 // differential forward probability updates
-static RK_S32 update_prob(VpxRangeCoder *c, RK_S32 p)
+static RK_S32 update_prob(VpxRangeCoder *c, RK_S32 p, RK_U8 *delta)
 {
     static const RK_S32 inv_map_table[255] = {
         7,  20,  33,  46,  59,  72,  85,  98, 111, 124, 137, 150, 163, 176,
@@ -507,7 +507,7 @@ static RK_S32 update_prob(VpxRangeCoder *c, RK_S32 p)
         d += 64;
         //av_assert2(d < FF_ARRAY_ELEMS(inv_map_table));
     }
-
+    *delta = d;
     return p <= 128 ? 1 + inv_recenter_nonneg(inv_map_table[d], p - 1) :
            255 - inv_recenter_nonneg(inv_map_table[d], 255 - p);
 }
@@ -1069,6 +1069,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     // as explicit copies if the fw update is missing (and skip the copy upon
     // fw update)?
     s->prob.p = s->prob_ctx[c].p;
+    memset(&s->prob_flag_delta, 0, sizeof(s->prob_flag_delta));
     // txfm updates
     if (s->lossless) {
         s->txfmmode = TX_4X4;
@@ -1080,23 +1081,32 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
         if (s->txfmmode == TX_SWITCHABLE) {
             for (i = 0; i < 2; i++) {
 
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.tx8p[i] = update_prob(&s->c, s->prob.p.tx8p[i]);
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.tx8p[i] = 1;
+                    s->prob.p.tx8p[i] = update_prob(&s->c, s->prob.p.tx8p[i],
+                                                    &s->prob_flag_delta.p_delta.tx8p[i]);
+                }
+
             }
             for (i = 0; i < 2; i++)
                 for (j = 0; j < 2; j++) {
 
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.tx16p[i][j] = 1;
                         s->prob.p.tx16p[i][j] =
-                            update_prob(&s->c, s->prob.p.tx16p[i][j]);
+                            update_prob(&s->c, s->prob.p.tx16p[i][j],
+                                        &s->prob_flag_delta.p_delta.tx16p[i][j]);
+                    }
                 }
             for (i = 0; i < 2; i++)
                 for (j = 0; j < 3; j++) {
 
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.tx32p[i][j] = 1;
                         s->prob.p.tx32p[i][j] =
-                            update_prob(&s->c, s->prob.p.tx32p[i][j]);
-
+                            update_prob(&s->c, s->prob.p.tx32p[i][j],
+                                        &s->prob_flag_delta.p_delta.tx32p[i][j]);
+                    }
                 }
         }
     }
@@ -1110,17 +1120,20 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                     for (l = 0; l < 6; l++)
                         for (m = 0; m < 6; m++) {
                             RK_U8 *p = s->prob.coef[i][j][k][l][m];
+                            RK_U8 *p_flag = s->prob_flag_delta.coef_flag[i][j][k][l][m];
+                            RK_U8 *p_delta = s->prob_flag_delta.coef_delta[i][j][k][l][m];
                             RK_U8 *r = ref[j][k][l][m];
-                            if (m >= 3 && l == 0) // dc only has 3 pt
+                            if (l == 0 && m >= 3) // dc only has 3 pt
                                 break;
                             for (n = 0; n < 3; n++) {
                                 if (vpx_rac_get_prob_branchy(&s->c, 252)) {
-                                    p[n] = update_prob(&s->c, r[n]);
+                                    p_flag[n] = 1;
+                                    p[n] = update_prob(&s->c, r[n], &p_delta[n]);
                                 } else {
+                                    p_flag[n] = 0;
                                     p[n] = r[n];
                                 }
                             }
-                            p[3] = 0;
                         }
         } else {
             for (j = 0; j < 2; j++)
@@ -1129,10 +1142,9 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                         for (m = 0; m < 6; m++) {
                             RK_U8 *p = s->prob.coef[i][j][k][l][m];
                             RK_U8 *r = ref[j][k][l][m];
-                            if (m > 3 && l == 0) // dc only has 3 pt
+                            if (m >= 3 && l == 0) // dc only has 3 pt
                                 break;
                             memcpy(p, r, 3);
-                            p[3] = 0;
                         }
         }
         if (s->txfmmode == (RK_U32)i)
@@ -1142,28 +1154,42 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     // mode updates
     for (i = 0; i < 3; i++) {
 
-        if (vpx_rac_get_prob_branchy(&s->c, 252))
-            s->prob.p.skip[i] = update_prob(&s->c, s->prob.p.skip[i]);
+        if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+            s->prob_flag_delta.p_flag.skip[i] = 1;
+            s->prob.p.skip[i] = update_prob(&s->c, s->prob.p.skip[i],
+                                            &s->prob_flag_delta.p_delta.skip[i]);
+        }
     }
 
     if (!s->keyframe && !s->intraonly) {
         for (i = 0; i < 7; i++)
-            for (j = 0; j < 3; j++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
+            for (j = 0; j < 3; j++) {
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_mode[i][j] = 1;
                     s->prob.p.mv_mode[i][j] =
-                        update_prob(&s->c, s->prob.p.mv_mode[i][j]);
+                        update_prob(&s->c, s->prob.p.mv_mode[i][j],
+                                    &s->prob_flag_delta.p_delta.mv_mode[i][j]);
+                }
+            }
 
         if (s->filtermode == FILTER_SWITCHABLE)
             for (i = 0; i < 4; i++)
-                for (j = 0; j < 2; j++)
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
+                for (j = 0; j < 2; j++) {
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.filter[i][j] = 1;
                         s->prob.p.filter[i][j] =
-                            update_prob(&s->c, s->prob.p.filter[i][j]);
+                            update_prob(&s->c, s->prob.p.filter[i][j],
+                                        &s->prob_flag_delta.p_delta.filter[i][j]);
+                    }
+                }
 
         for (i = 0; i < 4; i++) {
 
-            if (vpx_rac_get_prob_branchy(&s->c, 252))
-                s->prob.p.intra[i] = update_prob(&s->c, s->prob.p.intra[i]);
+            if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                s->prob_flag_delta.p_flag.intra[i] = 1;
+                s->prob.p.intra[i] = update_prob(&s->c, s->prob.p.intra[i],
+                                                 &s->prob_flag_delta.p_delta.intra[i]);
+            }
 
         }
 
@@ -1172,90 +1198,135 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
             if (s->comppredmode)
                 s->comppredmode += vpx_rac_get(&s->c);
             if (s->comppredmode == PRED_SWITCHABLE)
-                for (i = 0; i < 5; i++)
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
+                for (i = 0; i < 5; i++) {
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.comp[i] = 1;
                         s->prob.p.comp[i] =
-                            update_prob(&s->c, s->prob.p.comp[i]);
+                            update_prob(&s->c, s->prob.p.comp[i],
+                                        &s->prob_flag_delta.p_delta.comp[i]);
+                    }
+                }
         } else {
             s->comppredmode = PRED_SINGLEREF;
         }
 
         if (s->comppredmode != PRED_COMPREF) {
             for (i = 0; i < 5; i++) {
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.single_ref[i][0] = 1;
                     s->prob.p.single_ref[i][0] =
-                        update_prob(&s->c, s->prob.p.single_ref[i][0]);
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
+                        update_prob(&s->c, s->prob.p.single_ref[i][0],
+                                    &s->prob_flag_delta.p_delta.single_ref[i][0]);
+                }
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.single_ref[i][1] = 1;
                     s->prob.p.single_ref[i][1] =
-                        update_prob(&s->c, s->prob.p.single_ref[i][1]);
+                        update_prob(&s->c, s->prob.p.single_ref[i][1],
+                                    &s->prob_flag_delta.p_delta.single_ref[i][1]);
+                }
             }
         }
 
         if (s->comppredmode != PRED_SINGLEREF) {
-            for (i = 0; i < 5; i++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
+            for (i = 0; i < 5; i++) {
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.comp_ref[i] = 1;
                     s->prob.p.comp_ref[i] =
-                        update_prob(&s->c, s->prob.p.comp_ref[i]);
+                        update_prob(&s->c, s->prob.p.comp_ref[i],
+                                    &s->prob_flag_delta.p_delta.comp_ref[i]);
+                }
+            }
         }
 
         for (i = 0; i < 4; i++)
-            for (j = 0; j < 9; j++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
+            for (j = 0; j < 9; j++) {
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.y_mode[i][j] = 1;
                     s->prob.p.y_mode[i][j] =
-                        update_prob(&s->c, s->prob.p.y_mode[i][j]);
-
+                        update_prob(&s->c, s->prob.p.y_mode[i][j],
+                                    &s->prob_flag_delta.p_delta.y_mode[i][j]);
+                }
+            }
 
         for (i = 0; i < 4; i++)
             for (j = 0; j < 4; j++)
-                for (k = 0; k < 3; k++)
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
+                for (k = 0; k < 3; k++) {
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.partition[3 - i][j][k] = 1;
                         s->prob.p.partition[3 - i][j][k] =
-                            update_prob(&s->c, s->prob.p.partition[3 - i][j][k]);
+                            update_prob(&s->c, s->prob.p.partition[3 - i][j][k],
+                                        &s->prob_flag_delta.p_delta.partition[3 - i][j][k]);
+                    }
+                }
+
         // mv fields don't use the update_prob subexp model for some reason
-        for (i = 0; i < 3; i++)
-            if (vpx_rac_get_prob_branchy(&s->c, 252))
-                s->prob.p.mv_joint[i] = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+        for (i = 0; i < 3; i++) {
+            if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                s->prob_flag_delta.p_flag.mv_joint[i]   = 1;
+                s->prob_flag_delta.p_delta.mv_joint[i]  =
+                    s->prob.p.mv_joint[i]   = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+            }
+        }
 
         for (i = 0; i < 2; i++) {
-            if (vpx_rac_get_prob_branchy(&s->c, 252))
-                s->prob.p.mv_comp[i].sign = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+            if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                s->prob_flag_delta.p_flag.mv_comp[i].sign   = 1;
+                s->prob_flag_delta.p_delta.mv_comp[i].sign  =
+                    s->prob.p.mv_comp[i].sign   = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+            }
 
             for (j = 0; j < 10; j++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.mv_comp[i].classes[j] =
-                        (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_comp[i].classes[j]  = 1;
+                    s->prob_flag_delta.p_delta.mv_comp[i].classes[j] =
+                        s->prob.p.mv_comp[i].classes[j]  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                }
 
-            if (vpx_rac_get_prob_branchy(&s->c, 252))
-                s->prob.p.mv_comp[i].class0 = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+            if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                s->prob_flag_delta.p_flag.mv_comp[i].class0  = 1;
+                s->prob_flag_delta.p_delta.mv_comp[i].class0 =
+                    s->prob.p.mv_comp[i].class0  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+            }
 
             for (j = 0; j < 10; j++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.mv_comp[i].bits[j] =
-                        (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_comp[i].bits[j]  = 1;
+                    s->prob_flag_delta.p_delta.mv_comp[i].bits[j] =
+                        s->prob.p.mv_comp[i].bits[j]  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                }
         }
 
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 2; j++)
                 for (k = 0; k < 3; k++)
-                    if (vpx_rac_get_prob_branchy(&s->c, 252))
-                        s->prob.p.mv_comp[i].class0_fp[j][k] =
-                            (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                    if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                        s->prob_flag_delta.p_flag.mv_comp[i].class0_fp[j][k]  = 1;
+                        s->prob_flag_delta.p_delta.mv_comp[i].class0_fp[j][k] =
+                            s->prob.p.mv_comp[i].class0_fp[j][k]  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                    }
 
             for (j = 0; j < 3; j++)
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.mv_comp[i].fp[j] =
-                        (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_comp[i].fp[j]  = 1;
+                    s->prob_flag_delta.p_delta.mv_comp[i].fp[j] =
+                        s->prob.p.mv_comp[i].fp[j]  =
+                            (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                }
         }
 
         if (s->highprecisionmvs) {
             for (i = 0; i < 2; i++) {
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.mv_comp[i].class0_hp =
-                        (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_comp[i].class0_hp  = 1;
+                    s->prob_flag_delta.p_delta.mv_comp[i].class0_hp =
+                        s->prob.p.mv_comp[i].class0_hp  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                }
 
-                if (vpx_rac_get_prob_branchy(&s->c, 252))
-                    s->prob.p.mv_comp[i].hp =
-                        (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                if (vpx_rac_get_prob_branchy(&s->c, 252)) {
+                    s->prob_flag_delta.p_flag.mv_comp[i].hp  = 1;
+                    s->prob_flag_delta.p_delta.mv_comp[i].hp =
+                        s->prob.p.mv_comp[i].hp  = (vpx_rac_get_uint(&s->c, 7) << 1) | 1;
+                }
             }
         }
     }

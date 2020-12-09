@@ -3,6 +3,29 @@
 #include "vp9d_parser.h"
 #include "vp9d_syntax.h"
 
+#define TRANS_TO_HW_STYLE(uv_mode)                          \
+do{                                                         \
+    RK_U8 *uv_ptr = NULL;                                   \
+    RK_U8 uv_mode_prob[10][9];                              \
+    for (i = 0; i < 10; i++) {                              \
+        if (i == 0) {                                       \
+            uv_ptr = uv_mode[2];                            \
+        } else if ( i == 1) {                               \
+            uv_ptr = uv_mode[0];                            \
+        }  else if ( i == 2) {                              \
+            uv_ptr = uv_mode[1];                            \
+        }  else if ( i == 7) {                              \
+            uv_ptr = uv_mode[8];                            \
+        } else if (i == 8) {                                \
+            uv_ptr = uv_mode[7];                            \
+        } else {                                            \
+            uv_ptr = uv_mode[i];                            \
+        }                                                   \
+        memcpy(&uv_mode_prob[i], uv_ptr, 9);                \
+    }                                                       \
+    memcpy(uv_mode, uv_mode_prob, sizeof(uv_mode_prob));    \
+}while(0)
+
 static int vp9d_fill_segmentation(VP9Context *s, DXVA_segmentation_VP9 *seg)
 {
     int i;
@@ -49,7 +72,10 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
 {
     VP9Context *s = ctx->priv_data;
     RK_U8 partition_probs[16][3];
-    RK_U8 uv_mode_prob[10][9];
+    RK_U8 partition_probs_flag[16][3];
+    RK_U8 partition_probs_delata[16][3];
+    DXVA_prob_vp9* prob_flag = &pic->prob_flag_delta.p_flag;
+    DXVA_prob_vp9* prob_delta = &pic->prob_flag_delta.p_delta;
     int i;
 
     pic->profile = ctx->profile;
@@ -105,10 +131,9 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
     pic->log2_tile_rows = s->tiling.log2_tile_rows;
     pic->first_partition_size = s->first_partition_size;
     memcpy(pic->mvscale, s->mvscale, sizeof(s->mvscale));
-    memcpy(&ctx->pic_params.prob, &s->prob, sizeof(ctx->pic_params.prob));
+    memcpy(&pic->prob, &s->prob, sizeof(pic->prob));
+    memcpy(&pic->prob_flag_delta, &s->prob_flag_delta, sizeof(pic->prob_flag_delta));
     {
-        RK_U8 *uv_ptr = NULL;
-        RK_U32 m = 0;
         /*change partition to hardware need style*/
         /*
               hardware            syntax
@@ -117,11 +142,20 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
           *+++++32x32+++*     *++++16x16++++*
           *+++++64x64+++*     *++++8x8++++++*
         */
-        m = 0;
-        for (i = 3; i >= 0; i--) {
-            memcpy(&partition_probs[m][0], &ctx->pic_params.prob.partition[i][0][0], 12);
-            m += 4;
+        RK_U32 m = 0;
+        RK_U32 len = sizeof(pic->prob.partition[0]);
+        RK_U32 step = len / sizeof(partition_probs[0]);
+
+        for (i = MPP_ARRAY_ELEMS(pic->prob.partition) - 1; i >= 0; i--) {
+            memcpy(&partition_probs[m][0], &pic->prob.partition[i][0][0], len);
+            memcpy(&partition_probs_flag[m][0], &prob_flag->partition[i][0][0], len);
+            memcpy(&partition_probs_delata[m][0], &prob_delta->partition[i][0][0], len);
+            m += step;
         }
+        memcpy(pic->prob.partition, partition_probs, sizeof(partition_probs));
+        memcpy(prob_flag->partition, partition_probs_flag, sizeof(partition_probs_flag));
+        memcpy(prob_delta->partition, partition_probs_delata, sizeof(partition_probs_delata));
+
         /*change uv_mode to hardware need style*/
         /*
             hardware              syntax
@@ -137,24 +171,9 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
          *+++++ tm  ++++*     *++++ tm  ++++*
         */
 
-        for (i = 0; i < 10; i++) {
-            if (i == 0) {
-                uv_ptr = ctx->pic_params.prob.uv_mode[2];//dc
-            } else if ( i == 1) {
-                uv_ptr =  ctx->pic_params.prob.uv_mode[0]; //h
-            }  else if ( i == 2) {
-                uv_ptr = ctx->pic_params.prob.uv_mode[1]; //h
-            }  else if ( i == 7) {
-                uv_ptr = ctx->pic_params.prob.uv_mode[8]; //d207
-            } else if (i == 8) {
-                uv_ptr = ctx->pic_params.prob.uv_mode[7]; //d63
-            } else {
-                uv_ptr = ctx->pic_params.prob.uv_mode[i];
-            }
-            memcpy(&uv_mode_prob[i], uv_ptr, 9);
-        }
-        memcpy(ctx->pic_params.prob.partition, partition_probs, sizeof(partition_probs));
-        memcpy(ctx->pic_params.prob.uv_mode, uv_mode_prob, sizeof(uv_mode_prob));
+        TRANS_TO_HW_STYLE(pic->prob.uv_mode);
+        TRANS_TO_HW_STYLE(prob_flag->uv_mode);
+        TRANS_TO_HW_STYLE(prob_delta->uv_mode);
     }
     return 0;
 }
