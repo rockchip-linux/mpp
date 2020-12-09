@@ -66,8 +66,25 @@ typedef struct MppEncImpl_t {
     RcCtx               rc_ctx;
     EncRcTask           rc_task;
 
+    /*
+     * thread input / output context
+     */
     MppThread           *thread_enc;
     void                *mpp;
+
+    MppPort             input;
+    MppPort             output;
+    MppTask             task_in;
+    MppTask             task_out;
+    MppFrame            frame;
+    MppPacket           packet;
+    RK_U32              low_delay_part_mode;
+
+    /* base task information */
+    RK_U32              task_idx;
+    RK_S64              task_pts;
+    MppBuffer           frm_buf;
+    MppBuffer           pkt_buf;
 
     // internal status and protection
     Mutex               lock;

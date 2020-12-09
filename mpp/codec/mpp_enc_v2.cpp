@@ -114,6 +114,12 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         mpp_packet_init(&p->hdr_pkt, p->hdr_buf, size);
         mpp_packet_set_length(p->hdr_pkt, 0);
     }
+    {
+        Mpp *mpp = (Mpp *)p->mpp;
+
+        p->input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
+        p->output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
+    }
 
     /* NOTE: setup configure coding for check */
     p->cfg.codec.coding = coding;

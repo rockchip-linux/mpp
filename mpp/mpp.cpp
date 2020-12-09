@@ -174,7 +174,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_buffer_group_get_internal(&mFrameGroup, MPP_BUFFER_TYPE_ION);
 
         mpp_task_queue_setup(mInputTaskQueue, 1);
-        mpp_task_queue_setup(mOutputTaskQueue, 1);
+        mpp_task_queue_setup(mOutputTaskQueue, 8);
 
         mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
         mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
