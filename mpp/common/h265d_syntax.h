@@ -173,6 +173,7 @@ typedef struct _DXVA_PicParams_HEVC {
     UINT32 vps_id;
     UINT32 pps_id;
     UINT32 sps_id;
+    INT    current_poc;
 
     Short_SPS_RPS_HEVC sps_st_rps[64];
     LT_SPS_RPS_HEVC    sps_lt_rps[32];

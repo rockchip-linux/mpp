@@ -483,6 +483,10 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
     common->reg013.cur_pic_is_idr = p_hal->slice_long->idr_flag;
     common->reg013.h26x_error_mode = 1;
     common->reg013.colmv_error_mode = 1;
+    common->reg013.h26x_streamd_error_mode = 1;
+    common->reg021.error_deb_en = 1;
+    common->reg021.inter_error_prc_mode = 0;
+    common->reg021.error_intra_mode = 1;
     //!< caculate the yuv_frame_size
     {
         MppFrame mframe = NULL;
@@ -532,6 +536,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         RK_S32 ref_index = -1;
         RK_S32 near_index = -1;
         MppBuffer mbuffer = NULL;
+        RK_U32 min_frame_num  = 0;
+        MppFrame mframe = NULL;
 
         for (i = 0; i < 15; i++) {
             regs->h264d_param.reg67_98_ref_poc[i] = (i & 1)
@@ -550,6 +556,16 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
                 ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
             }
             mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
+            mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_FRAME_PTR, &mframe);
+
+            if (pp->FrameNumList[i] < pp->frame_num &&
+                pp->FrameNumList[i] > min_frame_num &&
+                (!mpp_frame_get_errinfo(mframe))) {
+                min_frame_num = pp->FrameNumList[i];
+                regs->common_addr.reg132_error_ref_base =  mpp_buffer_get_fd(mbuffer);
+                common->reg021.error_intra_mode = 0;
+            }
+
             RK_S32 fd = mpp_buffer_get_fd(mbuffer);
             regs->h264d_addr.ref_base[i] = fd;
             mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
@@ -585,7 +601,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
 
     {
         common->reg024.cabac_err_en_lowbits = 0xffffdfff;
-        common->reg025.cabac_err_en_highbits = 0x3ffbf9ff;
+        common->reg025.cabac_err_en_highbits = 0x3ffbfbff;
 
         common->reg026.swreg_block_gating_e = 0xffff;
         common->reg026.block_gating_en_l2 = 0xf;
