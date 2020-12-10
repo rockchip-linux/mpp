@@ -70,6 +70,7 @@ typedef struct HalH265dCtx_t {
 
     RK_U32          is_v345;
     RK_U32          is_v34x;
+    RK_U8           error_index;
 } HalH265dCtx;
 
 typedef struct ScalingList {

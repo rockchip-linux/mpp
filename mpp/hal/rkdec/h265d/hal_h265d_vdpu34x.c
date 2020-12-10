@@ -765,6 +765,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     h265d_dxva2_picture_context_t *dxva_cxt =
         (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    RK_S32 max_poc =  dxva_cxt->pp.current_poc;
+    RK_S32 min_poc =  0;
 
     void *rps_ptr = NULL;
     if (reg_cxt ->fast_mode) {
@@ -847,6 +849,12 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         ver_virstride = mpp_frame_get_ver_stride(mframe);
         stride_uv = stride_y;
         virstrid_y = ver_virstride * stride_y;
+        hw_regs->common.reg013.h26x_error_mode = 1;
+        hw_regs->common.reg013.h26x_streamd_error_mode = 1;
+        hw_regs->common.reg013.colmv_error_mode = 1;
+        hw_regs->common.reg021.error_deb_en = 1;
+        hw_regs->common.reg021.inter_error_prc_mode = 0;
+        hw_regs->common.reg021.error_intra_mode = 1;
 
         hw_regs->common.reg017.slice_num = dxva_cxt->slice_count;
         hw_regs->h265d_param.reg64.h26x_rps_mode = 0;
@@ -929,17 +937,32 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg026.reg_cfg_gating_en = 1;
 
     valid_ref = hw_regs->common_addr.reg130_decout_base;
+    reg_cxt->error_index = dxva_cxt->pp.CurrPic.Index7Bits;
     hw_regs->common_addr.reg132_error_ref_base = valid_ref;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
+
+            MppFrame mframe = NULL;
             hw_regs->h265d_param.reg67_82_ref_poc[i] = dxva_cxt->pp.PicOrderCntValList[i];
             mpp_buf_slot_get_prop(reg_cxt->slots,
                                   dxva_cxt->pp.RefPicList[i].Index7Bits,
                                   SLOT_BUFFER, &framebuf);
+            mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits,
+                                  SLOT_FRAME_PTR, &mframe);
             if (framebuf != NULL) {
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 valid_ref = hw_regs->h265d_addr.reg164_179_ref_base[i];
+                if ((dxva_cxt->pp.PicOrderCntValList[i] <= max_poc) &&
+                    (dxva_cxt->pp.PicOrderCntValList[i] > min_poc)
+                    && (!mpp_frame_get_errinfo(mframe))) {
+
+                    min_poc = dxva_cxt->pp.PicOrderCntValList[i];
+                    hw_regs->common_addr.reg132_error_ref_base = hw_regs->h265d_addr.reg164_179_ref_base[i];
+                    reg_cxt->error_index = dxva_cxt->pp.RefPicList[i].Index7Bits;
+                    hw_regs->common.reg021.error_intra_mode = 0;
+
+                }
             } else {
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = valid_ref;
             }
@@ -949,16 +972,22 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
             sw_ref_valid          |=   (1 << i);
             SET_REF_VALID(hw_regs->h265d_param, i, 1);
+        }
+    }
+    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
+        if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
+            dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
+            ;
         } else {
-            mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, dxva_cxt->pp.CurrPic.Index7Bits);
-            hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg130_decout_base;
+            mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
+            hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
             hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
         }
     }
-    hw_regs->common.reg013.colmv_error_mode = 1;
+
     hw_regs->common.reg013.timeout_mode = 1;
     hw_regs->common.reg013.cur_pic_is_idr = dxva_cxt->pp.IdrPicFlag;//p_hal->slice_long->idr_flag;
-    hw_regs->common.reg013.h26x_error_mode = 1;
+
     hw_regs->common.reg011.buf_empty_en = 1;
 
     MppBuffer rcb_buf = reg_cxt->rcb_buf;
