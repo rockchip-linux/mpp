@@ -316,6 +316,47 @@ MppMeta mpp_packet_get_meta(const MppPacket packet)
     return p->meta;
 }
 
+MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status)
+{
+    if (check_is_mpp_packet(packet))
+        return MPP_ERR_UNKNOW;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    p->status.val = status.val;
+    return MPP_OK;
+}
+
+RK_U32 mpp_packet_is_partition(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return 0;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    return p->status.partition;
+}
+
+RK_U32 mpp_packet_is_soi(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return 0;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    return p->status.soi;
+}
+
+RK_U32 mpp_packet_is_eoi(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return 0;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    return p->status.eoi;
+}
+
 MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
 {
     if (check_is_mpp_packet(packet) || NULL == data) {
