@@ -849,25 +849,24 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         virstrid_y = ver_virstride * stride_y;
 
         hw_regs->common.reg017.slice_num = dxva_cxt->slice_count;
-        hw_regs->common.reg018.y_hor_virstride = stride_y >> 4;
-        hw_regs->common.reg019.uv_hor_virstride = stride_uv >> 4;
-        hw_regs->common.reg020_y_virstride.y_virstride = virstrid_y >> 4;
         hw_regs->h265d_param.reg64.h26x_rps_mode = 0;
         hw_regs->h265d_param.reg64.h26x_frame_orslice = 0;
         hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
 
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            RK_U32 fbd_offset = MPP_ALIGN(stride_y * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
+            RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+            RK_U32 fbd_offset = MPP_ALIGN(pixel_width * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
                                           SZ_4K);
 
-            if (dxva_cxt->pp.bit_depth_luma_minus8) {
-                RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
-                hw_regs->common.reg018.y_hor_virstride = pixel_width >> 4;
-                hw_regs->common.reg019.uv_hor_virstride = pixel_width >> 4;
-            }
             hw_regs->common.reg012.fbc_e = 1;
-            hw_regs->common.reg012.colmv_compress_en = 1;
+            hw_regs->common.reg018.y_hor_virstride = pixel_width >> 4;
+            hw_regs->common.reg019.uv_hor_virstride = pixel_width >> 4;
             hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
+        } else {
+            hw_regs->common.reg012.fbc_e = 0;
+            hw_regs->common.reg018.y_hor_virstride = stride_y >> 4;
+            hw_regs->common.reg019.uv_hor_virstride = stride_uv >> 4;
+            hw_regs->common.reg020_y_virstride.y_virstride = virstrid_y >> 4;
         }
     }
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
