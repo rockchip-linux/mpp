@@ -257,10 +257,27 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     hal_ver_stride = (force_default_align && codec_ver_stride) ? codec_ver_stride : hal_ver_stride;
 
     RK_U32 size = hal_hor_stride * hal_ver_stride;
-    size *= impl->numerator;
-    size /= impl->denominator;
-    size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
 
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        switch ((fmt & MPP_FRAME_FMT_MASK)) {
+        case MPP_FMT_YUV420SP_10BIT :
+        case MPP_FMT_YUV420SP : {
+            size = hal_hor_stride * hal_ver_stride * 3 / 2;
+        } break;
+        case MPP_FMT_YUV422SP_10BIT :
+        case MPP_FMT_YUV422SP : {
+            size = hal_hor_stride * hal_ver_stride * 2;
+        } break;
+        default : {
+            size = hal_hor_stride * hal_ver_stride * 3 / 2;
+            mpp_err("dec out fmt is no support");
+        } break;
+        }
+    } else {
+        size *= impl->numerator;
+        size /= impl->denominator;
+        size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
+    }
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
     mpp_frame_set_fmt(impl->info_set, fmt);

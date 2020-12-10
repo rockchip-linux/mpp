@@ -369,25 +369,29 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     pic_h[1] = vp9_ver_align(pic_param->height) / 2;
     pic_h[2] = pic_h[1];
 
-    sw_y_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
-    sw_uv_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
-    sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
-
-    vp9_hw_regs->common.reg018.y_hor_virstride = sw_y_hor_virstride;
-    vp9_hw_regs->common.reg019.uv_hor_virstride = sw_uv_hor_virstride;
-    vp9_hw_regs->common.reg020_y_virstride.y_virstride = sw_y_virstride;
-
     {
         MppFrame mframe = NULL;
 
         mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            RK_U32 h = mpp_frame_get_ver_stride(mframe);
-            RK_U32 w = mpp_frame_get_hor_stride(mframe);
+            RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+            RK_U32 h = mpp_frame_get_height(mframe);
             RK_U32 fbd_offset = MPP_ALIGN(w * (h + 16) / 16, SZ_4K);
+
             vp9_hw_regs->common.reg012.fbc_e = 1;
-            vp9_hw_regs->common.reg012.colmv_compress_en = 1;
+            vp9_hw_regs->common.reg018.y_hor_virstride = w >> 4;
+            vp9_hw_regs->common.reg019.uv_hor_virstride = w >> 4;
             vp9_hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
+        } else {
+            sw_y_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
+            sw_uv_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
+            sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
+
+            vp9_hw_regs->common.reg012.fbc_e = 0;
+            vp9_hw_regs->common.reg018.y_hor_virstride = sw_y_hor_virstride;
+            vp9_hw_regs->common.reg019.uv_hor_virstride = sw_uv_hor_virstride;
+            vp9_hw_regs->common.reg020_y_virstride.y_virstride = sw_y_virstride;
         }
     }
     if (!pic_param->intra_only && pic_param->frame_type &&
