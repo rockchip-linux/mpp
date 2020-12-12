@@ -74,6 +74,8 @@ MPP_RET mpp_enc_hal_part_wait(MppEncHal ctx, HalEncTask *task);
 
 MPP_RET mpp_enc_hal_ret_task(MppEncHal ctx, HalEncTask *task);
 
+MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx);
+
 #ifdef __cplusplus
 }
 #endif
