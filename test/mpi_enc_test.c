@@ -37,6 +37,7 @@ typedef struct {
     // global flow control flag
     RK_U32 frm_eos;
     RK_U32 pkt_eos;
+    RK_U32 frm_pkt_cnt;
     RK_S32 frame_count;
     RK_U64 stream_size;
 
@@ -489,6 +490,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         void *buf = mpp_buffer_get_ptr(p->frm_buf);
         RK_S32 cam_frm_idx = -1;
         MppBuffer cam_buf = NULL;
+        RK_U32 eoi = 1;
 
         if (p->fp_input) {
             ret = read_image(buf, p->fp_input, p->width, p->height,
@@ -651,57 +653,70 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         }
         mpp_frame_deinit(&frame);
 
-        ret = mpi->encode_get_packet(ctx, &packet);
-        if (ret) {
-            mpp_err("mpp encode get packet failed\n");
-            goto RET;
-        }
-
-        mpp_assert(packet);
-
-        if (packet) {
-            // write packet to file here
-            void *ptr   = mpp_packet_get_pos(packet);
-            size_t len  = mpp_packet_get_length(packet);
-            char log_buf[256];
-            RK_S32 log_size = sizeof(log_buf) - 1;
-            RK_S32 log_len = 0;
-
-            p->pkt_eos = mpp_packet_get_eos(packet);
-
-            if (p->fp_output)
-                fwrite(ptr, 1, len, p->fp_output);
-
-            log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                "encoded frame %-4d size %-7d",
-                                p->frame_count, len);
-
-            if (mpp_packet_has_meta(packet)) {
-                meta = mpp_packet_get_meta(packet);
-                RK_S32 temporal_id = 0;
-                RK_S32 lt_idx = -1;
-
-                if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
-                    log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                        " tid %d", temporal_id);
-
-                if (MPP_OK == mpp_meta_get_s32(meta, KEY_LONG_REF_IDX, &lt_idx))
-                    log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                        " lt %d", lt_idx);
+        do {
+            ret = mpi->encode_get_packet(ctx, &packet);
+            if (ret) {
+                mpp_err("mpp encode get packet failed\n");
+                goto RET;
             }
 
-            mpp_log("%p %s\n", ctx, log_buf);
+            mpp_assert(packet);
 
-            mpp_packet_deinit(&packet);
+            if (packet) {
+                // write packet to file here
+                void *ptr   = mpp_packet_get_pos(packet);
+                size_t len  = mpp_packet_get_length(packet);
+                char log_buf[256];
+                RK_S32 log_size = sizeof(log_buf) - 1;
+                RK_S32 log_len = 0;
 
-            p->stream_size += len;
-            p->frame_count++;
+                p->pkt_eos = mpp_packet_get_eos(packet);
 
-            if (p->pkt_eos) {
-                mpp_log("%p found last packet\n", ctx);
-                mpp_assert(p->frm_eos);
+                if (p->fp_output)
+                    fwrite(ptr, 1, len, p->fp_output);
+
+                log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                    "encoded frame %-4d", p->frame_count);
+
+                /* for low delay partition encoding */
+                if (mpp_packet_is_partition(packet)) {
+                    eoi = mpp_packet_is_eoi(packet);
+
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        " pkt %d", p->frm_pkt_cnt);
+                    p->frm_pkt_cnt = (eoi) ? (0) : (p->frm_pkt_cnt + 1);
+                }
+
+                log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                    " size %-7d", len);
+
+                if (mpp_packet_has_meta(packet)) {
+                    meta = mpp_packet_get_meta(packet);
+                    RK_S32 temporal_id = 0;
+                    RK_S32 lt_idx = -1;
+
+                    if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " tid %d", temporal_id);
+
+                    if (MPP_OK == mpp_meta_get_s32(meta, KEY_LONG_REF_IDX, &lt_idx))
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " lt %d", lt_idx);
+                }
+
+                mpp_log("%p %s\n", ctx, log_buf);
+
+                mpp_packet_deinit(&packet);
+
+                p->stream_size += len;
+                p->frame_count += eoi;
+
+                if (p->pkt_eos) {
+                    mpp_log("%p found last packet\n", ctx);
+                    mpp_assert(p->frm_eos);
+                }
             }
-        }
+        } while (!eoi);
 
         if (cam_frm_idx >= 0)
             camera_source_put_frame(p->cam_ctx, cam_frm_idx);
