@@ -20,6 +20,15 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
+#define IEP_DBG_FUNCTION            (0x00000001)
+#define IEP_DBG_TRACE               (0x00000002)
+#define IEP_DBG_IMAGE               (0x00000010)
+
+#define iep_dbg(flag, fmt, ...)     _mpp_dbg(iep_debug, flag, fmt, ## __VA_ARGS__)
+#define iep_dbg_f(flag, fmt, ...)   _mpp_dbg_f(iep_debug, flag, fmt, ## __VA_ARGS__)
+#define iep_dbg_func(fmt, ...)      iep_dbg(IEP_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define iep_dbg_trace(fmt, ...)     iep_dbg(IEP_DBG_TRACE, fmt, ## __VA_ARGS__)
+
 typedef enum IepCmd_e {
     IEP_CMD_INIT,                           // reset msg to all zero
     IEP_CMD_SET_SRC,                        // config source image info
@@ -116,6 +125,7 @@ struct dev_compatible {
 
 iep_com_ctx* get_iep_ctx();
 void put_iep_ctx(iep_com_ctx *ictx);
+extern RK_U32 iep_debug;
 
 #ifdef __cplusplus
 }

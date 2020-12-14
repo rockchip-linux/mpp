@@ -26,6 +26,7 @@
 
 #include "mpp_log.h"
 #include "mpp_buffer.h"
+#include "mpp_env.h"
 
 #include "iep2_ff.h"
 #include "iep2_pd.h"
@@ -39,6 +40,7 @@
 
 #define IEP2_TILE_W_MAX     120
 #define IEP2_TILE_H_MAX     272
+RK_U32 iep_debug = 0;
 
 static MPP_RET iep2_init(IepCtx *ictx)
 {
@@ -46,6 +48,8 @@ static MPP_RET iep2_init(IepCtx *ictx)
     struct iep2_api_ctx *ctx = *ictx;
     MppReqV1 mpp_req;
     RK_U32 client_data = IEP_CLIENT_TYPE;
+
+    mpp_env_get_u32("iep_debug", &iep_debug, 0);
 
     ctx->fd = open("/dev/mpp_service", O_RDWR);
     if (ctx->fd < 0) {
@@ -255,7 +259,7 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
         ctx->params.dst_y_stride /= 4;
         ctx->params.tile_cols = (param->com.width + 15) / 16;
         ctx->params.tile_rows = (param->com.height + 3) / 4;
-        mpp_log("set tile size (%d, %d)\n", param->com.width, param->com.height);
+        iep_dbg_trace("set tile size (%d, %d)\n", param->com.width, param->com.height);
         ctx->params.osd_pec_thr = (param->com.width * 26) >> 7;
         break;
     case IEP2_PARAM_TYPE_MODE:
@@ -322,7 +326,7 @@ static MPP_RET iep2_start(struct iep2_api_ctx *ctx)
     mpp_req[1].offset = 0;
     mpp_req[1].data_ptr = REQ_DATA_PTR(&ctx->output);
 
-    mpp_log("in\n");
+    iep_dbg_func("in\n");
 
     ret = (RK_S32)ioctl(ctx->fd, MPP_IOC_CFG_V1, &mpp_req[0]);
 

@@ -93,12 +93,12 @@ static int iep2_osd_check(int8_t *mv, int w, int sx, int ex, int sy, int ey,
     if (map[0] >= 1)
         domin += hist[map[0] - 1];
 
-    printf("total tiles in current osd: %d, non-zero %d\n",
-           total, non_zero);
+    iep_dbg_trace("total tiles in current osd: %d, non-zero %d\n",
+                  total, non_zero);
 
     if (domin * 4 < non_zero * 3) {
-        printf("main mv %d count %d not dominant\n",
-               map[0] - 28 * 4, domin);
+        iep_dbg_trace("main mv %d count %d not dominant\n",
+                      map[0] - 28 * 4, domin);
         return 0;
     }
 

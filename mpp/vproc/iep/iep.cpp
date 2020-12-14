@@ -43,16 +43,6 @@ static RK_S32 enh_alpha_table[][25] = {
     /*8*/  {0,  1,  2,  3,  4,  5,  6,  7,  8,  X,  9,  X, 10,  X, 11,  X, 12,  X, 13,  X, 14,  X,  15, X, 16 }
 };
 
-RK_U32 iep_debug = 0;
-
-#define IEP_DBG_FUNCTION            (0x00000001)
-#define IEP_DBG_IMAGE               (0x00000010)
-
-#define iep_dbg(flag, fmt, ...)     _mpp_dbg(iep_debug, flag, fmt, ## __VA_ARGS__)
-#define iep_dbg_f(flag, fmt, ...)   _mpp_dbg_f(iep_debug, flag, fmt, ## __VA_ARGS__)
-
-#define iep_dbg_func(fmt, ...)      iep_dbg(IEP_DBG_FUNCTION, fmt, ## __VA_ARGS__)
-
 static const char *iep_name = "/dev/iep";
 
 typedef struct IepCtxImpl_t {

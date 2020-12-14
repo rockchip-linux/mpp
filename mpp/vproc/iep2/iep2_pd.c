@@ -25,6 +25,8 @@
 
 #include "mpp_common.h"
 #include "mpp_log.h"
+#include "iep_common.h"
+
 #include "iep2.h"
 
 #define RKMIN(a, b)             (((a) < (b)) ? (a) : (b))
@@ -85,28 +87,28 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
     pd_inf->temporal[idx] = (tcnt < 32) | ((bcnt < 32) << 1);
     pd_inf->fcoeff[idx] = f * 100 / nz;
 
-    mpp_log("pd tcnt %d bcnt %d\n", tcnt, bcnt);
-    mpp_log("temporal(%d, %d) %d %d %d %d %d\n",
-            idx, pd_inf->step,
-            pd_inf->temporal[0],
-            pd_inf->temporal[1],
-            pd_inf->temporal[2],
-            pd_inf->temporal[3],
-            pd_inf->temporal[4]);
-    mpp_log("spatial(%d, %d) %d %d %d %d %d\n",
-            idx, pd_inf->step,
-            pd_inf->spatial[0],
-            pd_inf->spatial[1],
-            pd_inf->spatial[2],
-            pd_inf->spatial[3],
-            pd_inf->spatial[4]);
-    mpp_log("fcoeff(%d, %d) %d %d %d %d %d\n",
-            idx, pd_inf->step,
-            pd_inf->fcoeff[0],
-            pd_inf->fcoeff[1],
-            pd_inf->fcoeff[2],
-            pd_inf->fcoeff[3],
-            pd_inf->fcoeff[4]);
+    iep_dbg_trace("pd tcnt %d bcnt %d\n", tcnt, bcnt);
+    iep_dbg_trace("temporal(%d, %d) %d %d %d %d %d\n",
+                  idx, pd_inf->step,
+                  pd_inf->temporal[0],
+                  pd_inf->temporal[1],
+                  pd_inf->temporal[2],
+                  pd_inf->temporal[3],
+                  pd_inf->temporal[4]);
+    iep_dbg_trace("spatial(%d, %d) %d %d %d %d %d\n",
+                  idx, pd_inf->step,
+                  pd_inf->spatial[0],
+                  pd_inf->spatial[1],
+                  pd_inf->spatial[2],
+                  pd_inf->spatial[3],
+                  pd_inf->spatial[4]);
+    iep_dbg_trace("fcoeff(%d, %d) %d %d %d %d %d\n",
+                  idx, pd_inf->step,
+                  pd_inf->fcoeff[0],
+                  pd_inf->fcoeff[1],
+                  pd_inf->fcoeff[2],
+                  pd_inf->fcoeff[3],
+                  pd_inf->fcoeff[4]);
 
     if (pd_inf->pdtype != PD_TYPES_UNKNOWN && pd_inf->step != -1) {
         int n = (int)pd_inf->pdtype;
@@ -125,7 +127,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
         pd_inf->i++;
         return;
     } else {
-        mpp_log("pulldown recheck start:\n");
+        iep_dbg_trace("pulldown recheck start:\n");
     }
 
     for (i = 0; i < MPP_ARRAY_ELEMS(pd_table); ++i) {
@@ -141,7 +143,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
                 int fmax = 0x7fffffff;
                 int fmin = 0;
 
-                mpp_log("get pulldown type %s\n", pd_titles[i]);
+                iep_dbg_trace("get pulldown type %s\n", pd_titles[i]);
 
                 for (j = 0; j < MPP_ARRAY_ELEMS(sp_table[i]); ++j) {
                     if (sp_table[i][j] == 1) {
@@ -229,9 +231,9 @@ int iep2_pd_get_output(struct iep2_pd_info *pd_inf)
         return -1;
     }
 
-    mpp_log("-------------------------------------------------\n");
-    mpp_log("step %d, idx %d, flag %s\n",
-            pd_inf->step, pd_inf->i, PD_COMP_STRING[flag]);
+    iep_dbg_trace("-------------------------------------------------\n");
+    iep_dbg_trace("step %d, idx %d, flag %s\n",
+                  pd_inf->step, pd_inf->i, PD_COMP_STRING[flag]);
 
     return flag;
 }
