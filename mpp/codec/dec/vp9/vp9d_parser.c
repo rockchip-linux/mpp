@@ -377,7 +377,10 @@ MPP_RET vp9d_parser_deinit(Vp9CodecContext *vp9_ctx)
     return MPP_OK;
 }
 
-
+static RK_U32 hor_align_64(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}
 
 static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
 {
@@ -391,10 +394,12 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
 
-    if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt))
-        ctx->pix_fmt |= (s->cfg->base.out_fmt & (~MPP_FRAME_FBC_MASK));
+    if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
+        mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
+        mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK))));
+    } else
+        mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
-    mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
     mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
     mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_FRAME, frame->f);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
