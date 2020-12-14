@@ -81,22 +81,17 @@ typedef struct HalH264eVepu541Ctx_t {
     Vepu541H264eRegRet      regs_ret;
 } HalH264eVepu541Ctx;
 
-static RK_U32 h264e_klut_weight_i[24] = {
+#define CHROMA_KLUT_TAB_SIZE    (24 * sizeof(RK_U32))
+
+static RK_U32 h264e_klut_weight[30] = {
     0x0a000010, 0x00064000, 0x14000020, 0x000c8000,
     0x28000040, 0x00194000, 0x50800080, 0x0032c000,
     0xa1000100, 0x00658000, 0x42800200, 0x00cb0001,
     0x85000400, 0x01964002, 0x0a000800, 0x032c8005,
     0x14001000, 0x0659400a, 0x28802000, 0x0cb2c014,
-    0x51004000, 0x1965c028, 0xa2808000, 0x00000050,
-};
-
-static RK_U32 h264e_klut_weight_p[24] = {
-    0x28000040, 0x00194000, 0x50800080, 0x0032c000,
-    0xa1000100, 0x00658000, 0x42800200, 0x00cb0001,
-    0x85000400, 0x01964002, 0x0a000800, 0x032c8005,
-    0x14001000, 0x0659400a, 0x28802000, 0x0cb2c014,
     0x51004000, 0x1965c028, 0xa2808000, 0x32cbc050,
-    0x4500ffff, 0x659780a1, 0x8a81fffe, 0x00000142,
+    0x4500ffff, 0x659780a1, 0x8a81fffe, 0xCC000142,
+    0xFF83FFFF, 0x000001FF,
 };
 
 static RK_U32 dump_l1_reg = 0;
@@ -663,10 +658,10 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
 
     if (slice->slice_type == H264_I_SLICE) {
         regs->reg025.chrm_klut_ofst = 0;
-        memcpy(&regs->reg026, h264e_klut_weight_i, sizeof(h264e_klut_weight_i));
+        memcpy(&regs->reg026, &h264e_klut_weight[0], CHROMA_KLUT_TAB_SIZE);
     } else {
         regs->reg025.chrm_klut_ofst = 3;
-        memcpy(&regs->reg026, h264e_klut_weight_p, sizeof(h264e_klut_weight_p));
+        memcpy(&regs->reg026, &h264e_klut_weight[4], CHROMA_KLUT_TAB_SIZE);
     }
 
     regs->reg101.vthd_y         = 9;
