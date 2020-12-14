@@ -81,7 +81,7 @@ void iep2_update_gmv(struct iep2_api_ctx *ctx, struct mv_list *mv_ls)
     for (i = 0; i < lbin; ++i) {
         if (bin[i] == 0)
             continue;
-        mpp_log("mv(%d) %d\n", i - MVL, bin[i]);
+        iep_dbg_trace("mv(%d) %d\n", i - MVL, bin[i]);
     }
 
     bin[MVL] = 0; // disable 0 mv
@@ -89,8 +89,8 @@ void iep2_update_gmv(struct iep2_api_ctx *ctx, struct mv_list *mv_ls)
     // update motion vector candidates
     iep2_sort(bin, map, lbin);
 
-    mpp_log("sort map:\n");
-    if (1) {
+    iep_dbg_trace("sort map:\n");
+    if (0) {
         for (i = 0; i < lbin; ++i) {
             fprintf(stderr, "%d ", map[i]);
         }
@@ -120,7 +120,7 @@ void iep2_update_gmv(struct iep2_api_ctx *ctx, struct mv_list *mv_ls)
     }
 
     for (i = 0; i < 8; ++i)
-        mpp_log("new mv candidates list[%d] (%d,%d)\n",
-                i, ctx->params.mv_tru_list[i], 0);
+        iep_dbg_trace("new mv candidates list[%d] (%d,%d)\n",
+                      i, ctx->params.mv_tru_list[i], 0);
 }
 
