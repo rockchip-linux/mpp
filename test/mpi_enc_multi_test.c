@@ -459,7 +459,6 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
 
         codec_cfg->h264.qp_max      = p->qp_max;
         codec_cfg->h264.qp_min      = p->qp_min;
-        codec_cfg->h264.qp_max_step = p->qp_step;
         codec_cfg->h264.qp_init     = p->qp_init;
     } break;
     case MPP_VIDEO_CodingMJPEG : {

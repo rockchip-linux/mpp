@@ -508,18 +508,22 @@ typedef enum MppEncH264CfgChange_e {
     /* change on log2 max frame number minus 4 */
     MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM     = (1 << 12),
 
-    /* change on max_qp / min_qp / max_qp_step */
+    /* change on max_qp / min_qp */
     MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
+    /* change on max_qp_i / min_qp_i */
+    MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I      = (1 << 17),
+    /* change on qp_delta_ip */
+    MPP_ENC_H264_CFG_CHANGE_QP_DELTA        = (1 << 18),
     /* change on intra_refresh_mode / intra_refresh_arg */
-    MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH   = (1 << 17),
+    MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH   = (1 << 20),
     /* change on max long-term reference frame count */
-    MPP_ENC_H264_CFG_CHANGE_MAX_LTR         = (1 << 18),
+    MPP_ENC_H264_CFG_CHANGE_MAX_LTR         = (1 << 21),
     /* change on max temporal id */
-    MPP_ENC_H264_CFG_CHANGE_MAX_TID         = (1 << 19),
+    MPP_ENC_H264_CFG_CHANGE_MAX_TID         = (1 << 22),
     /* change on adding prefix nal */
-    MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX      = (1 << 20),
+    MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX      = (1 << 23),
     /* change on base layer priority id */
-    MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID  = (1 << 21),
+    MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID  = (1 << 24),
 
     /* change on vui */
     MPP_ENC_H264_CFG_CHANGE_VUI             = (1 << 28),

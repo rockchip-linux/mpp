@@ -591,8 +591,7 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
         /* constant QP mode qp is fixed */
         codec_cfg->h264.qp_max   = 26;
         codec_cfg->h264.qp_min   = 26;
-        codec_cfg->h264.qp_max_step  = 0;
-        codec_cfg->h264.qp_init      = 26;
+        codec_cfg->h264.qp_init  = 26;
         codec_cfg->h264.change |= MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
     }
 
