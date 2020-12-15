@@ -1140,23 +1140,9 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static RK_U32 h264e_wgt_qp_grpa_default[52] = {
-    0x0000000e, 0x00000012, 0x00000016, 0x0000001c,
-    0x00000024, 0x0000002d, 0x00000039, 0x00000048,
-    0x0000005b, 0x00000073, 0x00000091, 0x000000b6,
-    0x000000e6, 0x00000122, 0x0000016d, 0x000001cc,
-    0x00000244, 0x000002db, 0x00000399, 0x00000489,
-    0x000005b6, 0x00000733, 0x00000912, 0x00000b6d,
-    0x00000e66, 0x00001224, 0x000016db, 0x00001ccc,
-    0x00002449, 0x00002db7, 0x00003999, 0x00004892,
-    0x00005b6f, 0x00007333, 0x00009124, 0x0000b6de,
-    0x0000e666, 0x00012249, 0x00016dbc, 0x0001cccc,
-    0x00024492, 0x0002db79, 0x00039999, 0x00048924,
-    0x0005b6f2, 0x00073333, 0x00091249, 0x000b6de5,
-    0x000e6666, 0x00122492, 0x0016dbcb, 0x001ccccc,
-};
+#define H264E_LAMBDA_TAB_SIZE       (52 * sizeof(RK_U32))
 
-static RK_U32 h264e_wgt_qp_grpb_default[52] = {
+static RK_U32 h264e_lambda_default[58] = {
     0x00000003, 0x00000005, 0x00000006, 0x00000007,
     0x00000009, 0x0000000b, 0x0000000e, 0x00000012,
     0x00000016, 0x0000001c, 0x00000024, 0x0000002d,
@@ -1170,8 +1156,8 @@ static RK_U32 h264e_wgt_qp_grpb_default[52] = {
     0x00009124, 0x0000b6de, 0x0000e666, 0x00012249,
     0x00016dbc, 0x0001cccc, 0x00024492, 0x0002db79,
     0x00039999, 0x00048924, 0x0005b6f2, 0x00073333,
-    /*  0x00091249, 0x000b6de5, 0x000e6666, 0x00122492,
-     *  0x0016dbcb, 0x001ccccc, */
+    0x00091249, 0x000b6de5, 0x000e6666, 0x00122492,
+    0x0016dbcb, 0x001ccccc,
 };
 
 static RK_U8 h264_aq_tthd_default[16] = {
@@ -1309,8 +1295,8 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
     /* ~ */
     regs->iprd_wgt_qp[51] = 0;
 
-    memcpy(regs->wgt_qp_grpa, h264e_wgt_qp_grpa_default, sizeof(regs->wgt_qp_grpa));
-    memcpy(regs->wgt_qp_grpb, h264e_wgt_qp_grpb_default, sizeof(regs->wgt_qp_grpb));
+    memcpy(regs->wgt_qp_grpa, &h264e_lambda_default[6], H264E_LAMBDA_TAB_SIZE);
+    memcpy(regs->wgt_qp_grpb, &h264e_lambda_default[0], H264E_LAMBDA_TAB_SIZE);
 
     regs->madi_mode = 0;
 
