@@ -66,10 +66,10 @@ typedef struct MppDecVprocCtxImpl_t {
     IepCmdParamDeiCfg   dei_cfg;
 
     // slot index for previous frame and current frame
-    RK_S32              prev_idx;
-    MppFrame            prev_frm;
-    RK_S32              curr_idx;
-    MppFrame            curr_frm;
+    RK_S32              prev_idx0;
+    MppFrame            prev_frm0;
+    RK_S32              prev_idx1;
+    MppFrame            prev_frm1;
 } MppDecVprocCtxImpl;
 
 static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts)
@@ -100,25 +100,37 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
 static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
 {
     if (vproc_debug & VPROC_DBG_STATUS) {
-        if (ctx->prev_frm) {
-            MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm);
+        if (ctx->prev_frm0) {
+            MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm0);
             RK_S32 fd = (buf) ? (mpp_buffer_get_fd(buf)) : (-1);
-            mpp_log("clearing prev index %d frm %p fd %d\n", ctx->prev_idx,
-                    ctx->prev_frm, fd);
+            mpp_log("clearing prev index %d frm %p fd %d\n", ctx->prev_idx0,
+                    ctx->prev_frm0, fd);
         } else
             mpp_log("clearing nothing\n");
     }
 
-    if (ctx->prev_frm) {
-        MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm);
+    if (ctx->prev_frm0) {
+        MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm0);
         if (buf)
             mpp_buffer_put(buf);
     }
-    if (ctx->prev_idx >= 0)
-        mpp_buf_slot_clr_flag(ctx->slots, ctx->prev_idx, SLOT_QUEUE_USE);
+    if (ctx->prev_idx0 >= 0)
+        mpp_buf_slot_clr_flag(ctx->slots, ctx->prev_idx0, SLOT_QUEUE_USE);
 
-    ctx->prev_idx = -1;
-    ctx->prev_frm = NULL;
+
+    if (ctx->prev_frm1) {
+        MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm1);
+        if (buf)
+            mpp_buffer_put(buf);
+    }
+    if (ctx->prev_idx1 >= 0)
+        mpp_buf_slot_clr_flag(ctx->slots, ctx->prev_idx1, SLOT_QUEUE_USE);
+
+    ctx->prev_idx0 = -1;
+    ctx->prev_frm0 = NULL;
+
+    ctx->prev_idx1 = -1;
+    ctx->prev_frm1 = NULL;
 }
 
 static void dec_vproc_set_img_fmt(IepImg *img, MppFrame frm)
@@ -209,14 +221,14 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
     // setup destination IepImg with new buffer
     // NOTE: when deinterlace is enabled parser thread will reserve
     //       more buffer than normal case
-    if (ctx->prev_frm && cap && cap->i4_deinterlace_supported) {
+    if (ctx->prev_frm0 && cap && cap->i4_deinterlace_supported) {
         // 4 in 2 out case
         vproc_dbg_status("4 field in and 2 frame out\n");
-        RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm);
+        RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm0);
         RK_S64 curr_pts = mpp_frame_get_pts(frm);
         RK_S64 first_pts = (prev_pts + curr_pts) / 2;
 
-        buf = mpp_frame_get_buffer(ctx->prev_frm);
+        buf = mpp_frame_get_buffer(ctx->prev_frm0);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
 
@@ -292,17 +304,18 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
     // setup source IepImg
     dec_vproc_set_img_fmt(&img, frm);
 
-    if (ctx->prev_frm && ctx->curr_frm) {
+    if (ctx->prev_frm1 && ctx->prev_frm0) {
+
         struct iep2_api_params params;
 
         // 5 in 2 out case
         vproc_dbg_status("5 field in and 2 frame out\n");
-        RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm);
-        RK_S64 curr_pts = mpp_frame_get_pts(ctx->curr_frm);
+        RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm1);
+        RK_S64 curr_pts = mpp_frame_get_pts(ctx->prev_frm0);
         RK_S64 first_pts = (prev_pts + curr_pts) / 2;
 
         // setup source frames
-        buf = mpp_frame_get_buffer(ctx->curr_frm);
+        buf = mpp_frame_get_buffer(ctx->prev_frm0);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
 
@@ -310,7 +323,7 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC1);
 
-        buf = mpp_frame_get_buffer(ctx->prev_frm);
+        buf = mpp_frame_get_buffer(ctx->prev_frm1);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC2);
 
@@ -486,20 +499,21 @@ static void *dec_vproc_thread(void *data)
             dec_vproc_clr_prev(ctx);
 
             if (ctx->com_ctx->ver == 1) {
-                ctx->prev_idx = index;
-                ctx->prev_frm = frm;
+                ctx->prev_idx0 = index;
+                ctx->prev_frm0 = frm;
             } else {
-                ctx->prev_idx = ctx->curr_idx;
-                ctx->curr_idx = index;
-                ctx->prev_frm = ctx->curr_frm;
-                ctx->curr_frm = frm;
+                ctx->prev_idx1 = ctx->prev_idx0;
+                ctx->prev_idx0 = index;
+
+                ctx->prev_frm1 = ctx->prev_frm0;
+                ctx->prev_frm0 = frm;
             }
 
             if (eos) {
                 dec_vproc_clr_prev(ctx);
                 if (ctx->com_ctx->ver == 2) {
-                    ctx->prev_idx = ctx->curr_idx;
-                    ctx->curr_idx = index;
+                    ctx->prev_idx1 = ctx->prev_idx0;
+                    ctx->prev_idx0 = index;
                     dec_vproc_clr_prev(ctx);
                 }
             }
@@ -594,10 +608,10 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
         p->dei_cfg.dei_ei_sel = 0;
         p->dei_cfg.dei_ei_radius = 2;
 
-        p->prev_idx = -1;
-        p->prev_frm = NULL;
-        p->curr_idx = -1;
-        p->curr_frm = NULL;
+        p->prev_idx0 = -1;
+        p->prev_frm0 = NULL;
+        p->prev_idx1 = -1;
+        p->prev_frm1 = NULL;
     }
 
     *ctx = p;
