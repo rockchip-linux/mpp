@@ -87,7 +87,7 @@ MPP_RET vp8e_init_entropy(void *hal)
     }
 
     memcpy(entropy->old_coeff_prob, entropy->coeff_prob, sizeof(entropy->coeff_prob));
-    if (ctx->frame_cnt == 0 || ctx->last_frm_intra)
+    if (ctx->frame_cnt == 0 || !ctx->last_frm_intra)
         memcpy(entropy->old_mv_prob, entropy->mv_prob, sizeof(entropy->mv_prob));
 
     entropy->skip_false_prob = default_skip_false_prob_tbl[ctx->rc->qp_hdr];
