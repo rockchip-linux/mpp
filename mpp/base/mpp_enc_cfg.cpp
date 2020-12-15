@@ -209,10 +209,10 @@ static const char *cfg_func_names[] = {
     ENTRY(h264, qp_init,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_init) \
     ENTRY(h264, qp_max,         S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_max) \
     ENTRY(h264, qp_min,         S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_min) \
-    ENTRY(h264, qp_max_i,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_max_i) \
-    ENTRY(h264, qp_min_i,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_min_i) \
-    ENTRY(h264, qp_step,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_max_step) \
-    ENTRY(h264, qp_delta_ip,    S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT,       codec.h264, qp_delta_ip) \
+    ENTRY(h264, qp_max_i,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I,     codec.h264, qp_max_i) \
+    ENTRY(h264, qp_min_i,       S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I,     codec.h264, qp_min_i) \
+    ENTRY(h264, qp_step,        S32, RK_S32,            0,                                      codec.h264, qp_max_step) \
+    ENTRY(h264, qp_delta_ip,    S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_QP_DELTA,       codec.h264, qp_delta_ip) \
     ENTRY(h264, max_tid,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_MAX_TID,        codec.h264, max_tid) \
     ENTRY(h264, max_ltr,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_MAX_LTR,        codec.h264, max_ltr_frames) \
     ENTRY(h264, prefix_mode,    S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX,     codec.h264, prefix_mode) \
@@ -231,7 +231,7 @@ static const char *cfg_func_names[] = {
     ENTRY(h265, qp_min,         S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, min_qp) \
     ENTRY(h265, qp_max_i,       S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, max_i_qp) \
     ENTRY(h265, qp_min_i,       S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, min_i_qp) \
-    ENTRY(h265, qp_step,        S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, qp_max_step) \
+    ENTRY(h265, qp_step,        S32, RK_S32,            0,                                              codec.h265, qp_max_step) \
     ENTRY(h265, qp_delta_ip,    S32, RK_S32,            MPP_ENC_H265_CFG_RC_QP_CHANGE,                  codec.h265, ip_qp_delta) \
     /* vp8 config */ \
     ENTRY(vp8, qp_init,         S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_init) \
@@ -239,7 +239,7 @@ static const char *cfg_func_names[] = {
     ENTRY(vp8, qp_min,          S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_min) \
     ENTRY(vp8, qp_max_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_i) \
     ENTRY(vp8, qp_min_i,        S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_min_i) \
-    ENTRY(vp8, qp_step,         S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_QP,              codec.vp8, qp_max_step) \
+    ENTRY(vp8, qp_step,         S32, RK_S32,            0,                                      codec.vp8, qp_max_step) \
     ENTRY(vp8, disable_ivf,     S32, RK_S32,            MPP_ENC_VP8_CFG_CHANGE_DIS_IVF,         codec.vp8, disable_ivf) \
     /* jpeg config */ \
     ENTRY(jpeg, quant,          S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QP,             codec.jpeg, quant) \

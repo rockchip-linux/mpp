@@ -348,9 +348,10 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
             mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 26);
             mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 51);
             mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 10);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 46);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 24);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 51);
+            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 10);
         }
+        mpp_enc_cfg_set_s32(cfg, "h264:qp_delta_ip", 4);
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", 80);
