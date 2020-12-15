@@ -361,16 +361,28 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         buf = mpp_frame_get_buffer(frm);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
+        dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC1);
+        dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC2);
 
         // setup dst 0
         dst0 = dec_vproc_get_buffer(group, buf_size);
         mpp_assert(dst0);
         fd = mpp_buffer_get_fd(dst0);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DST);
+        dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_DST1);
 
         params.ptype = IEP2_PARAM_TYPE_MODE;
         params.param.mode.dil_mode = IEP2_DIL_MODE_I1O1T;
         params.param.mode.out_mode = IEP2_OUT_MODE_LINE;
+        ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
+
+        params.ptype = IEP2_PARAM_TYPE_COM;
+        params.param.com.sfmt = IEP2_FMT_YUV420;
+        params.param.com.dfmt = IEP2_FMT_YUV420;
+        params.param.com.sswap = IEP2_YUV_SWAP_SP_UV;
+        params.param.com.dswap = IEP2_YUV_SWAP_SP_UV;
+        params.param.com.width = img.act_w;
+        params.param.com.height = img.act_h;
         ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
 
         // start hardware
