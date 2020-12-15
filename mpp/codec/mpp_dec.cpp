@@ -1432,6 +1432,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         if (change & MPP_DEC_CFG_CHANGE_DISABLE_ERROR)
             dst_base->disable_error = src_base->disable_error;
 
+        if (change & MPP_DEC_CFG_CHANGE_ENABLE_VPROC)
+            dst_base->enable_vproc = src_base->enable_vproc;
+
         dst_base->change = change;
         src_base->change = 0;
     }

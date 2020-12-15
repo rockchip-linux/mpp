@@ -92,6 +92,9 @@ Mpp::Mpp()
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
     memset(&mDecInitcfg, 0, sizeof(mDecInitcfg));
+    mDecInitcfg.base.enable_vproc = 1;
+    mDecInitcfg.base.change  |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
+
     mpp_dump_init(&mDump);
 }
 
