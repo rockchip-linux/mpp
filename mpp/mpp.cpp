@@ -482,8 +482,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     mpp_assert(*packet);
 
-    if (mpp_debug & MPP_DBG_PTS)
-        mpp_log_f("pts %lld\n", mpp_packet_get_pts(*packet));
+    mpp_dbg_pts("pts %lld\n", mpp_packet_get_pts(*packet));
 
     // dump output
     mpp_ops_enc_get_pkt(mDump, *packet);
@@ -775,8 +774,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         if (param) {
             mExternalFrameGroup = 1;
 
-            if (mpp_debug & MPP_DBG_INFO)
-                mpp_log("using external buffer group %p\n", mFrameGroup);
+            mpp_dbg_info("using external buffer group %p\n", mFrameGroup);
 
             if (mInitDone) {
                 ret = mpp_buffer_group_set_callback((MppBufferGroupImpl *)param,
@@ -801,8 +799,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
-        if (mpp_debug & MPP_DBG_INFO)
-            mpp_log("set info change ready\n");
+        mpp_dbg_info("set info change ready\n");
 
         ret = mpp_dec_control(mDec, cmd, param);
         notify(MPP_DEC_NOTIFY_INFO_CHG_DONE | MPP_DEC_NOTIFY_BUFFER_MATCH);

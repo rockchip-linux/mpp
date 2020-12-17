@@ -64,6 +64,10 @@
 #define MPP_DBG_DUMP_OUT                (0x00000400)
 #define MPP_DBG_DUMP_CFG                (0x00000800)
 
+#define mpp_dbg_pts(fmt, ...)           mpp_dbg(MPP_DBG_PTS, fmt, ## __VA_ARGS__)
+#define mpp_dbg_info(fmt, ...)          mpp_dbg(MPP_DBG_INFO, fmt, ## __VA_ARGS__)
+#define mpp_dbg_platform(fmt, ...)      mpp_dbg(MPP_DBG_PLATFORM, fmt, ## __VA_ARGS__)
+
 #define MPP_ABORT                       (0x10000000)
 
 /*
