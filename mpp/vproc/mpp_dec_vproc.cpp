@@ -89,8 +89,7 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
     list->lock();
     list->add_at_tail(&out, sizeof(out));
 
-    if (mpp_debug & MPP_DBG_PTS)
-        mpp_log("output frame pts %lld\n", mpp_frame_get_pts(out));
+    mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(out));
 
     mpp->mFramePutCount++;
     list->signal();
@@ -417,7 +416,7 @@ static void *dec_vproc_thread(void *data)
     HalTaskInfo task_info;
     HalDecVprocTask *task_vproc = &task_info.dec_vproc;
 
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_post_proc_thread started\n");
+    mpp_dbg_info("mpp_dec_post_proc_thread started\n");
 
     while (1) {
         MPP_RET ret = MPP_OK;
@@ -521,7 +520,7 @@ static void *dec_vproc_thread(void *data)
             hal_task_hnd_set_status(task, TASK_IDLE);
         }
     }
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_post_proc_thread exited\n");
+    mpp_dbg_info("mpp_dec_post_proc_thread exited\n");
 
     return NULL;
 }

@@ -632,7 +632,7 @@ static void read_soc_name(char *name, RK_S32 size)
                 *ptr = ' ';
             }
 
-            mpp_dbg(MPP_DBG_PLATFORM, "chip name: %s\n", name);
+            mpp_dbg_platform("chip name: %s\n", name);
         }
 
         close(fd);
@@ -648,7 +648,7 @@ static const MppSocInfo *check_soc_info(const char *soc_name)
         const char *compatible = mpp_soc_infos[i].compatible;
 
         if (strstr(soc_name, compatible)) {
-            mpp_dbg(MPP_DBG_PLATFORM, "match chip name: %s\n", compatible);
+            mpp_dbg_platform("match chip name: %s\n", compatible);
             return &mpp_soc_infos[i];
         }
     }
@@ -693,7 +693,7 @@ MppSocService::MppSocService()
     read_soc_name(soc_name, sizeof(soc_name));
     soc_info = check_soc_info(soc_name);
     if (NULL == soc_info) {
-        mpp_dbg(MPP_DBG_PLATFORM, "use default chip info\n");
+        mpp_dbg_platform("use default chip info\n");
         soc_info = &mpp_soc_default;
     }
 
@@ -715,9 +715,9 @@ MppSocService::MppSocService()
         }
     }
 
-    mpp_dbg(MPP_DBG_PLATFORM, "coding caps: dec %08x enc %08x\n",
-            dec_coding_cap, enc_coding_cap);
-    mpp_dbg(MPP_DBG_PLATFORM, "vcodec type: %08x\n", soc_info->vcodec_type);
+    mpp_dbg_platform("coding caps: dec %08x enc %08x\n",
+                     dec_coding_cap, enc_coding_cap);
+    mpp_dbg_platform("vcodec type: %08x\n", soc_info->vcodec_type);
     mpp_assert(soc_info->vcodec_type == vcodec_type);
 }
 

@@ -861,16 +861,14 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             impl->info_changed = 1;
 
             if (old->width || old->height) {
-                mpp_dbg(MPP_DBG_INFO, "info change found\n");
-                mpp_dbg(MPP_DBG_INFO,
-                        "old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
-                        old->width, old->height, old->hor_stride,
-                        old->ver_stride, old->fmt);
+                mpp_dbg_info("info change found\n");
+                mpp_dbg_info("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                             old->width, old->height, old->hor_stride,
+                             old->ver_stride, old->fmt);
             }
-            mpp_dbg(MPP_DBG_INFO,
-                    "new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride,
-                    dst->fmt);
+            mpp_dbg_info("new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                         dst->width, dst->height, dst->hor_stride, dst->ver_stride,
+                         dst->fmt);
             // info change found here
         }
     } break;

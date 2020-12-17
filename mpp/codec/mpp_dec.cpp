@@ -511,8 +511,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_frame_init(&out);
         mpp_frame_copy(out, frame);
 
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log("output frame pts %lld\n", mpp_frame_get_pts(out));
+        mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(out));
 
         list->lock();
         list->add_at_tail(&out, sizeof(out));
@@ -681,9 +680,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.curr_task_rdy) {
-        if (mpp_debug & MPP_DBG_PTS)
-            mpp_log("input packet pts %lld\n",
-                    mpp_packet_get_pts(dec->mpp_pkt_in));
+        mpp_dbg_pts("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
 
         mpp_clock_start(dec->clocks[DEC_PRS_PREPARE]);
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
@@ -1019,14 +1016,14 @@ void *mpp_dec_parser_thread(void *data)
 
     mpp_clock_pause(dec->clocks[DEC_PRS_TOTAL]);
 
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread is going to exit\n");
+    mpp_dbg_info("mpp_dec_parser_thread is going to exit\n");
     if (task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_parser_thread exited\n");
+    mpp_dbg_info("mpp_dec_parser_thread exited\n");
     return NULL;
 }
 
@@ -1164,7 +1161,7 @@ void *mpp_dec_hal_thread(void *data)
     mpp_clock_pause(dec->clocks[DEC_HAL_TOTAL]);
 
     mpp_assert(mpp->mTaskPutCount == mpp->mTaskGetCount);
-    mpp_dbg(MPP_DBG_INFO, "mpp_dec_hal_thread exited\n");
+    mpp_dbg_info("mpp_dec_hal_thread exited\n");
     return NULL;
 }
 
