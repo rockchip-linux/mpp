@@ -338,6 +338,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 intraFlag = 0;
     MppBuffer framebuf = NULL;
     HalBuf *mv_buf = NULL;
+    RK_U32 fbc_en = 0;
 
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
@@ -478,8 +479,9 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         MppFrame mframe = NULL;
 
         mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        fbc_en = MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe));
 
-        if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
+        if (fbc_en) {
             RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
             RK_U32 h = mpp_frame_get_height(mframe);
             RK_U32 fbd_offset = MPP_ALIGN(w * (h + 16) / 16, SZ_4K);
@@ -540,8 +542,11 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
         pic_h[0] = vp9_ver_align(ref_frame_height_y);
         pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
-        y_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
-        uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
+        if (fbc_en) {
+            y_hor_virstride = uv_hor_virstride = MPP_ALIGN(ref_frame_width_y, 64) >> 4;
+        } else {
+            y_hor_virstride = uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
+        }
         y_virstride = y_hor_virstride * pic_h[0];
 
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
