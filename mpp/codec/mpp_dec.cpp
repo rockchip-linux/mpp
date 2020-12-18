@@ -137,6 +137,10 @@ static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
         if (dec->reset_flag)
             break;
 
+        // NOTE: User control should always be processed
+        if (notify & MPP_DEC_CONTROL)
+            break;
+
         // NOTE: When condition is not fulfilled check nofify flag again
         if (!curr_wait || (curr_wait & notify))
             break;
