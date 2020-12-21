@@ -270,6 +270,15 @@ MPP_RET get_max_dec_frame_buf_size(H264_SPS_t *sps)
     case 52:
         size = 70778880;
         break;
+    case 60:
+        size = 267386880;
+        break;
+    case 61:
+        size = 267386880;
+        break;
+    case 62:
+        size = 267386880;
+        break;
     default:
         ASSERT(0);  // undefined level
         return ret = MPP_NOK;
