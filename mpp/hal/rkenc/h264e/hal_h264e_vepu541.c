@@ -366,6 +366,10 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
 
     hal_h264e_dbg_func("enter\n");
 
+    /* do nothing when color format is not supported */
+    if (ret)
+        return ret;
+
     /* reg012 ENC_RSL */
     regs->reg012.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
     regs->reg012.pic_wfill  = prep->width & 0xf;
@@ -1344,6 +1348,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
+    MPP_RET ret = MPP_OK;
 
     hal_h264e_dbg_func("enter %p\n", hal);
     hal_h264e_dbg_detail("frame %d generate regs now", ctx->frms->seq_idx);
@@ -1352,7 +1357,10 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(*regs));
 
     setup_vepu541_normal(regs, ctx->is_vepu540);
-    setup_vepu541_prep(regs, &ctx->cfg->prep);
+    ret = setup_vepu541_prep(regs, &ctx->cfg->prep);
+    if (ret)
+        return ret;
+
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
     setup_vepu541_rc_base(regs, sps, task->rc_task);
