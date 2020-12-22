@@ -34,7 +34,8 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
     RK_S32 stride = 0;
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
-    case MPP_FMT_YUV420SP : {
+    case MPP_FMT_YUV420SP :
+    case MPP_FMT_YUV420SP_VU : {
         stride = MPP_ALIGN(width, 8);
     } break;
     case MPP_FMT_YUV420P : {

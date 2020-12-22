@@ -422,6 +422,54 @@ err:
     return ret;
 }
 
+static void fill_MPP_FMT_YUV420SP(RK_U8 *buf, RK_U32 width, RK_U32 height,
+                                  RK_U32 hor_stride, RK_U32 ver_stride,
+                                  RK_U32 frame_count)
+{
+    // MPP_FMT_YUV420SP = ffmpeg: nv12
+    // https://www.fourcc.org/pixel-format/yuv-nv12/
+    RK_U8 *p = buf;
+    RK_U32 x, y;
+
+    for (y = 0; y < height; y++, p += hor_stride) {
+        for (x = 0; x < width; x++) {
+            p[x] = x + y + frame_count * 3;
+        }
+    }
+
+    p = buf + hor_stride * ver_stride;
+    for (y = 0; y < height / 2; y++, p += hor_stride) {
+        for (x = 0; x < width / 2; x++) {
+            p[x * 2 + 0] = 128 + y + frame_count * 2;
+            p[x * 2 + 1] = 64  + x + frame_count * 5;
+        }
+    }
+}
+
+static void fill_MPP_FMT_YUV422SP(RK_U8 *buf, RK_U32 width, RK_U32 height,
+                                  RK_U32 hor_stride, RK_U32 ver_stride,
+                                  RK_U32 frame_count)
+{
+    // MPP_FMT_YUV422SP = ffmpeg: nv16
+    // not valid in www.fourcc.org
+    RK_U8 *p = buf;
+    RK_U32 x, y;
+
+    for (y = 0; y < height; y++, p += hor_stride) {
+        for (x = 0; x < width; x++) {
+            p[x] = x + y + frame_count * 3;
+        }
+    }
+
+    p = buf + hor_stride * ver_stride;
+    for (y = 0; y < height; y++, p += hor_stride) {
+        for (x = 0; x < width / 2; x++) {
+            p[x * 2 + 0] = 128 + y / 2 + frame_count * 2;
+            p[x * 2 + 1] = 64  + x + frame_count * 5;
+        }
+    }
+}
+
 static void get_rgb_color(RK_U32 *R, RK_U32 *G, RK_U32 *B, RK_S32 x, RK_S32 y, RK_S32 frm_cnt)
 {
     // frame 0 -> red
@@ -576,6 +624,42 @@ static void fill_MPP_FMT_BGR444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
     }
 }
 
+static void fill_MPP_FMT_RGB888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
+{
+    // MPP_FMT_RGB888
+    // 24 bit pixel     MSB  -------->  LSB
+    //                 (rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |
+    // little endian   |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = R;
+        p[1] = G;
+        p[2] = B;
+    } else {
+        p[0] = B;
+        p[1] = G;
+        p[2] = R;
+    }
+}
+
+static void fill_MPP_FMT_BGR888(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
+{
+    // MPP_FMT_BGR888
+    // 24 bit pixel     MSB  -------->  LSB
+    //                 (bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    // big    endian   |  byte 0 |  byte 1 |  byte 2 |
+    // little endian   |  byte 2 |  byte 1 |  byte 0 |
+    if (be) {
+        p[0] = B;
+        p[1] = G;
+        p[2] = R;
+    } else {
+        p[0] = R;
+        p[1] = G;
+        p[2] = B;
+    }
+}
+
 static void fill_MPP_FMT_RGB101010(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
     // MPP_FMT_RGB101010
@@ -711,8 +795,8 @@ FillRgbFunc fill_rgb_funcs[] = {
     fill_MPP_FMT_BGR555,
     fill_MPP_FMT_RGB444,
     fill_MPP_FMT_BGR444,
-    NULL,
-    NULL,
+    fill_MPP_FMT_RGB888,
+    fill_MPP_FMT_BGR888,
     fill_MPP_FMT_RGB101010,
     fill_MPP_FMT_BGR101010,
     fill_MPP_FMT_ARGB8888,
@@ -763,21 +847,10 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP : {
-        RK_U8 *p = buf_y;
-
-        for (y = 0; y < height; y++, p += hor_stride) {
-            for (x = 0; x < width; x++) {
-                p[x] = x + y + frame_count * 3;
-            }
-        }
-
-        p = buf_c;
-        for (y = 0; y < height / 2; y++, p += hor_stride) {
-            for (x = 0; x < width / 2; x++) {
-                p[x * 2 + 0] = 128 + y + frame_count * 2;
-                p[x * 2 + 1] = 64  + x + frame_count * 5;
-            }
-        }
+        fill_MPP_FMT_YUV420SP(buf, width, height, hor_stride, ver_stride, frame_count);
+    } break;
+    case MPP_FMT_YUV422SP : {
+        fill_MPP_FMT_YUV422SP(buf, width, height, hor_stride, ver_stride, frame_count);
     } break;
     case MPP_FMT_YUV420P : {
         RK_U8 *p = buf_y;
@@ -802,6 +875,87 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
             }
         }
     } break;
+    case MPP_FMT_YUV420SP_VU : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
+            }
+        }
+
+        p = buf_c;
+        for (y = 0; y < height / 2; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 2 + 1] = 128 + y + frame_count * 2;
+                p[x * 2 + 0] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422P : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
+            }
+        }
+
+        p = buf_c;
+        for (y = 0; y < height; y++, p += hor_stride / 2) {
+            for (x = 0; x < width / 2; x++) {
+                p[x] = 128 + y / 2 + frame_count * 2;
+            }
+        }
+
+        p = buf_c + hor_stride * ver_stride / 2;
+        for (y = 0; y < height; y++, p += hor_stride / 2) {
+            for (x = 0; x < width / 2; x++) {
+                p[x] = 64 + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422SP_VU : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
+            }
+        }
+
+        p = buf_c;
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 2 + 1] = 128 + y / 2 + frame_count * 2;
+                p[x * 2 + 0] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422_YUYV : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 4 + 0] = x * 2 + 0 + y + frame_count * 3;
+                p[x * 4 + 2] = x * 2 + 1 + y + frame_count * 3;
+                p[x * 4 + 1] = 128 + y / 2 + frame_count * 2;
+                p[x * 4 + 3] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422_YVYU : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 4 + 0] = x * 2 + 0 + y + frame_count * 3;
+                p[x * 4 + 2] = x * 2 + 1 + y + frame_count * 3;
+                p[x * 4 + 3] = 128 + y / 2 + frame_count * 2;
+                p[x * 4 + 1] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
     case MPP_FMT_YUV422_UYVY : {
         RK_U8 *p = buf_y;
 
@@ -809,8 +963,29 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
             for (x = 0; x < width / 2; x++) {
                 p[x * 4 + 1] = x * 2 + 0 + y + frame_count * 3;
                 p[x * 4 + 3] = x * 2 + 1 + y + frame_count * 3;
-                p[x * 4 + 0] = 128 + y + frame_count * 2;
+                p[x * 4 + 0] = 128 + y / 2 + frame_count * 2;
                 p[x * 4 + 2] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV422_VYUY : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width / 2; x++) {
+                p[x * 4 + 1] = x * 2 + 0 + y + frame_count * 3;
+                p[x * 4 + 3] = x * 2 + 1 + y + frame_count * 3;
+                p[x * 4 + 2] = 128 + y / 2 + frame_count * 2;
+                p[x * 4 + 0] = 64  + x + frame_count * 5;
+            }
+        }
+    } break;
+    case MPP_FMT_YUV400 : {
+        RK_U8 *p = buf_y;
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0; x < width; x++) {
+                p[x] = x + y + frame_count * 3;
             }
         }
     } break;
@@ -830,7 +1005,7 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
         }
 
         if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
-                                       8, 2, "16bit RGB")) {
+                                       8, pix_w, "16bit RGB")) {
             hor_stride = MPP_ALIGN(hor_stride, 16);
             not_8_pixel = 1;
         }
@@ -860,8 +1035,34 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
         }
 
         if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
-                                       8, 4, "32bit RGB")) {
+                                       8, pix_w, "32bit RGB")) {
             hor_stride = MPP_ALIGN(hor_stride, 32);
+            not_8_pixel = 1;
+        }
+
+        for (y = 0; y < height; y++, p += hor_stride) {
+            for (x = 0, i = 0; x < width; x++, i += pix_w) {
+                RK_U32 R, G, B;
+
+                get_rgb_color(&R, &G, &B, x, y, frame_count);
+                fill(p + i, R, G, B, MPP_FRAME_FMT_IS_BE(fmt));
+            }
+        }
+    } break;
+    case MPP_FMT_BGR888 :
+    case MPP_FMT_RGB888 : {
+        RK_U8 *p = buf_y;
+        RK_U32 pix_w = 3;
+        FillRgbFunc fill = fill_rgb_funcs[fmt - MPP_FRAME_FMT_RGB];
+
+        if (util_check_stride_by_pixel(is_pixel_stride, width, hor_stride, pix_w)) {
+            hor_stride *= pix_w;
+            is_pixel_stride = 1;
+        }
+
+        if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
+                                       8, pix_w, "24bit RGB")) {
+            hor_stride = MPP_ALIGN(hor_stride, 24);
             not_8_pixel = 1;
         }
 
