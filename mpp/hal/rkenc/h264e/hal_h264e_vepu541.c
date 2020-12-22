@@ -376,6 +376,9 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg012.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
     regs->reg012.pic_hfill  = prep->height & 0xf;
 
+    /* reg015 DTRNS_MAP */
+    regs->reg015.src_bus_edin = cfg.src_endian;
+
     /* reg022 SRC_PROC */
     regs->reg017.src_cfmt   = hw_fmt;
     regs->reg017.alpha_swap = cfg.alpha_swap;
