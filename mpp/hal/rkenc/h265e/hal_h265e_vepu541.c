@@ -948,6 +948,8 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
 {
     RK_S32 stridey = 0;
     RK_S32 stridec = 0;
+
+    regs->dtrns_map.src_bus_edin = fmt->src_endian;
     regs->src_fmt.src_cfmt = fmt->format;
     regs->src_fmt.alpha_swap = fmt->alpha_swap;
     regs->src_fmt.rbuv_swap = fmt->rbuv_swap;

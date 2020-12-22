@@ -49,6 +49,7 @@ typedef struct VepuFmtCfg_t {
     RK_U32          alpha_swap;
     RK_U32          rbuv_swap;
     RK_U32          src_range;
+    RK_U32          src_endian;
     const RK_S32    *weight;
     const RK_S32    *offset;
 } VepuFmtCfg;
