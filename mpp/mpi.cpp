@@ -574,6 +574,8 @@ static MppFrameFormatInfo color_list[] = {
 
     { MPP_FMT_ARGB8888,         "ARGB8888"              },
     { MPP_FMT_ABGR8888,         "ABGR8888"              },
+    { MPP_FMT_BGRA8888,         "BGRA8888"              },
+    { MPP_FMT_RGBA8888,         "RGBA8888"              },
 };
 
 void mpp_show_color_format()
