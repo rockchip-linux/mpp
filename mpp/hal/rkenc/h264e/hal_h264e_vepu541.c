@@ -173,9 +173,70 @@ DONE:
     return ret;
 }
 
+static void setup_hal_bufs(HalH264eVepu541Ctx *ctx)
+{
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncPrepCfg *prep = &cfg->prep;
+    RK_S32 alignment = 64;
+    RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment);
+    RK_S32 aligned_h = MPP_ALIGN(prep->height, alignment);
+    RK_S32 pixel_buf_fbc_hdr_size = MPP_ALIGN(aligned_w * aligned_h / 64, SZ_8K);
+    RK_S32 pixel_buf_fbc_bdy_size = aligned_w * aligned_h * 3 / 2;
+    RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
+    RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
+    RK_S32 old_max_cnt = ctx->max_buf_cnt;
+    RK_S32 new_max_cnt = 2;
+    MppEncRefCfg ref_cfg = cfg->ref_cfg;
+    if (ref_cfg) {
+        MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+        if (new_max_cnt < MPP_MAX(new_max_cnt, info->dpb_size + 1))
+            new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
+    }
+
+    if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
+        (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
+        (ctx->pixel_buf_size != pixel_buf_size) ||
+        (ctx->thumb_buf_size != thumb_buf_size) ||
+        (new_max_cnt > old_max_cnt)) {
+        size_t sizes[2];
+
+        hal_h264e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
+                             ctx->pixel_buf_size, pixel_buf_size,
+                             old_max_cnt, new_max_cnt);
+
+        /* pixel buffer */
+        sizes[0] = pixel_buf_size;
+        /* thumb buffer */
+        sizes[1] = thumb_buf_size;
+        new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
+
+        hal_bufs_setup(ctx->hw_recn, new_max_cnt, 2, sizes);
+
+        ctx->pixel_buf_fbc_hdr_size = pixel_buf_fbc_hdr_size;
+        ctx->pixel_buf_fbc_bdy_size = pixel_buf_fbc_bdy_size;
+        ctx->pixel_buf_size = pixel_buf_size;
+        ctx->thumb_buf_size = thumb_buf_size;
+        ctx->max_buf_cnt = new_max_cnt;
+    }
+}
+
 static MPP_RET hal_h264e_vepu541_prepare(void *hal)
 {
+    HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+
     hal_h264e_dbg_func("enter %p\n", hal);
+
+    if (prep->change & (MPP_ENC_PREP_CFG_CHANGE_INPUT | MPP_ENC_PREP_CFG_CHANGE_FORMAT)) {
+        RK_S32 i;
+
+        // pre-alloc required buffers to reduce first frame delay
+        setup_hal_bufs(ctx);
+        for (i = 0; i < ctx->max_buf_cnt; i++)
+            hal_bufs_get_buf(ctx->hw_recn, i);
+
+        prep->change = 0;
+    }
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -230,55 +291,12 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
     RK_U32 updated = update_vepu541_syntax(ctx, &task->syntax);
-    MppEncCfgSet *cfg = ctx->cfg;
-    MppEncPrepCfg *prep = &cfg->prep;
-    EncFrmStatus  *frm_status = &task->rc_task->frm;
+    EncFrmStatus *frm_status = &task->rc_task->frm;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG)) {
-        RK_S32 alignment = 64;
-        RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment);
-        RK_S32 aligned_h = MPP_ALIGN(prep->height, alignment);
-        RK_S32 pixel_buf_fbc_hdr_size = MPP_ALIGN(aligned_w * aligned_h / 64, SZ_8K);
-        RK_S32 pixel_buf_fbc_bdy_size = aligned_w * aligned_h * 3 / 2;
-        RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
-        RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
-        RK_S32 old_max_cnt = ctx->max_buf_cnt;
-        RK_S32 new_max_cnt = 2;
-        MppEncRefCfg ref_cfg = cfg->ref_cfg;
-        if (ref_cfg) {
-            MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
-            if (new_max_cnt < MPP_MAX(new_max_cnt, info->dpb_size + 1))
-                new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
-        }
-
-        if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
-            (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
-            (ctx->pixel_buf_size != pixel_buf_size) ||
-            (ctx->thumb_buf_size != thumb_buf_size) ||
-            (new_max_cnt > old_max_cnt)) {
-            size_t sizes[2];
-
-            hal_h264e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
-                                 ctx->pixel_buf_size, pixel_buf_size,
-                                 old_max_cnt, new_max_cnt);
-
-            /* pixel buffer */
-            sizes[0] = pixel_buf_size;
-            /* thumb buffer */
-            sizes[1] = thumb_buf_size;
-            new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
-
-            hal_bufs_setup(ctx->hw_recn, new_max_cnt, 2, sizes);
-
-            ctx->pixel_buf_fbc_hdr_size = pixel_buf_fbc_hdr_size;
-            ctx->pixel_buf_fbc_bdy_size = pixel_buf_fbc_bdy_size;
-            ctx->pixel_buf_size = pixel_buf_size;
-            ctx->thumb_buf_size = thumb_buf_size;
-            ctx->max_buf_cnt = new_max_cnt;
-        }
-    }
+    if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG))
+        setup_hal_bufs(ctx);
 
     if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
         MppMeta meta = mpp_frame_get_meta(task->frame);

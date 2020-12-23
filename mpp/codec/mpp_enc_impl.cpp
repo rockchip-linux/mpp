@@ -1039,11 +1039,14 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     enc_dbg_detail("task %d hal generate reg\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
 
+    mpp_stopwatch_record(hal_task->stopwatch, "encode hal start");
     enc_dbg_detail("task %d hal start\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d hal wait\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+
+    mpp_stopwatch_record(hal_task->stopwatch, "encode hal finish");
 
     enc_dbg_detail("task %d rc hal end\n", frm->seq_idx);
     ENC_RUN_FUNC2(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
