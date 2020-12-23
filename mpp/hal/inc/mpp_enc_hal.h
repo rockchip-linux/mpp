@@ -40,6 +40,9 @@ typedef struct MppEncHalApi_t {
     MPP_RET (*init)(void *ctx, MppEncHalCfg *cfg);
     MPP_RET (*deinit)(void *ctx);
 
+    // prepare function after encoder config is set
+    MPP_RET (*prepare)(void *ctx);
+
     // configure function
     MPP_RET (*get_task)(void *ctx, HalEncTask *task);
     MPP_RET (*gen_regs)(void *ctx, HalEncTask *task);
@@ -62,6 +65,9 @@ extern "C" {
 
 MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg);
 MPP_RET mpp_enc_hal_deinit(MppEncHal ctx);
+
+/* prepare after cfg */
+MPP_RET mpp_enc_hal_prepare(MppEncHal ctx);
 
 MPP_RET mpp_enc_hal_get_task(MppEncHal ctx, HalEncTask *task);
 MPP_RET mpp_enc_hal_gen_regs(MppEncHal ctx, HalEncTask *task);

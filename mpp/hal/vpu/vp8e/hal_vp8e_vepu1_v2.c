@@ -500,6 +500,7 @@ const MppEncHalApi hal_vp8e_vepu1 = {
     .flag       = 0,
     .init       = hal_vp8e_vepu1_init_v2,
     .deinit     = hal_vp8e_vepu1_deinit_v2,
+    .prepare    = NULL,
     .get_task   = hal_vp8e_vepu1_get_task_v2,
     .gen_regs   = hal_vp8e_vepu1_gen_regs_v2,
     .start      = hal_vp8e_vepu1_start_v2,

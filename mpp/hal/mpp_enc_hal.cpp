@@ -115,6 +115,20 @@ MPP_RET mpp_enc_hal_deinit(MppEncHal ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_enc_hal_prepare(void *hal)
+{
+    if (NULL == hal) {
+        mpp_err_f("found NULL input ctx %p\n", hal);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppEncHalImpl *p = (MppEncHalImpl*)hal;
+    if (!p->api || !p->api->prepare)
+        return MPP_OK;
+
+    return p->api->prepare(p->ctx);
+}
+
 MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx)
 {
     MppEncHalImpl *p = (MppEncHalImpl*)ctx;
