@@ -96,7 +96,7 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
     list->unlock();
 }
 
-static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
+static void dec_vproc_clr_prev0(MppDecVprocCtxImpl *ctx)
 {
     if (vproc_debug & VPROC_DBG_STATUS) {
         if (ctx->prev_frm0) {
@@ -116,7 +116,21 @@ static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
     if (ctx->prev_idx0 >= 0)
         mpp_buf_slot_clr_flag(ctx->slots, ctx->prev_idx0, SLOT_QUEUE_USE);
 
+    ctx->prev_idx0 = -1;
+    ctx->prev_frm0 = NULL;
+}
 
+static void dec_vproc_clr_prev1(MppDecVprocCtxImpl *ctx)
+{
+    if (vproc_debug & VPROC_DBG_STATUS) {
+        if (ctx->prev_frm1) {
+            MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm1);
+            RK_S32 fd = (buf) ? (mpp_buffer_get_fd(buf)) : (-1);
+            mpp_log("clearing prev index %d frm %p fd %d\n", ctx->prev_idx1,
+                    ctx->prev_frm1, fd);
+        } else
+            mpp_log("clearing nothing\n");
+    }
     if (ctx->prev_frm1) {
         MppBuffer buf = mpp_frame_get_buffer(ctx->prev_frm1);
         if (buf)
@@ -125,11 +139,14 @@ static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
     if (ctx->prev_idx1 >= 0)
         mpp_buf_slot_clr_flag(ctx->slots, ctx->prev_idx1, SLOT_QUEUE_USE);
 
-    ctx->prev_idx0 = -1;
-    ctx->prev_frm0 = NULL;
-
     ctx->prev_idx1 = -1;
     ctx->prev_frm1 = NULL;
+}
+
+static void dec_vproc_clr_prev(MppDecVprocCtxImpl *ctx)
+{
+    dec_vproc_clr_prev0(ctx);
+    dec_vproc_clr_prev1(ctx);
 }
 
 static void dec_vproc_set_img_fmt(IepImg *img, MppFrame frm)
@@ -495,12 +512,13 @@ static void *dec_vproc_thread(void *data)
                 }
             }
 
-            dec_vproc_clr_prev(ctx);
 
             if (ctx->com_ctx->ver == 1) {
+                dec_vproc_clr_prev0(ctx);
                 ctx->prev_idx0 = index;
                 ctx->prev_frm0 = frm;
             } else {
+                dec_vproc_clr_prev1(ctx);
                 ctx->prev_idx1 = ctx->prev_idx0;
                 ctx->prev_idx0 = index;
 
