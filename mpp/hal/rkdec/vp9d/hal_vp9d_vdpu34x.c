@@ -35,6 +35,7 @@
 #include "vp9d_syntax.h"
 
 #define HW_PROB 1
+#define VP9_CONTEXT 4
 
 typedef struct Vdpu34xVp9dCtx_t {
     Vp9dRegBuf      g_buf[MAX_GEN_REG];
@@ -64,8 +65,8 @@ typedef struct Vdpu34xVp9dCtx_t {
     HalBufs         cmv_bufs;
     RK_S32          mv_size;
     RK_S32          mv_count;
-    RK_U32          prob_ctx_valid[4];
-    MppBuffer       prob_loop_base[4];
+    RK_U32          prob_ctx_valid[VP9_CONTEXT];
+    MppBuffer       prob_loop_base[VP9_CONTEXT];
 } Vdpu34xVp9dCtx;
 
 static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
@@ -75,6 +76,20 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
 
+    /* alloc common buffer */
+    for (i = 0; i < VP9_CONTEXT; i++) {
+        ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_loop_base[i], PROB_SIZE);
+        if (ret) {
+            mpp_err("vp9 probe_loop_base get buffer failed\n");
+            return ret;
+        }
+    }
+    ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_default_base, PROB_SIZE);
+    if (ret) {
+        mpp_err("vp9 probe_default_base get buffer failed\n");
+        return ret;
+    }
+    /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xVp9dRegSet));
@@ -110,18 +125,6 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
             mpp_err("vp9 probe_base get buffer failed\n");
             return ret;
         }
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_default_base, PROB_SIZE);
-        if (ret) {
-            mpp_err("vp9 probe_default_base get buffer failed\n");
-            return ret;
-        }
-        for (i = 0; i < 4; i++) {
-            ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_loop_base[i], PROB_SIZE);
-            if (ret) {
-                mpp_err("vp9 probe_loop_base get buffer failed\n");
-                return ret;
-            }
-        }
 
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->count_base, COUNT_SIZE);
         if (ret) {
@@ -149,6 +152,22 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
 
+    if (hw_ctx->prob_default_base) {
+        ret = mpp_buffer_put(hw_ctx->prob_default_base);
+        if (ret) {
+            mpp_err("vp9 probe_wr_base get buffer failed\n");
+            return ret;
+        }
+    }
+    for (i = 0; i < VP9_CONTEXT; i++) {
+        if (hw_ctx->prob_loop_base[i]) {
+            ret = mpp_buffer_put(hw_ctx->prob_loop_base[i]);
+            if (ret) {
+                mpp_err("vp9 probe_base put buffer failed\n");
+                return ret;
+            }
+        }
+    }
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             if (hw_ctx->g_buf[i].probe_base) {
@@ -190,22 +209,6 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
             if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
-            }
-        }
-        if (hw_ctx->prob_default_base) {
-            ret = mpp_buffer_put(hw_ctx->prob_default_base);
-            if (ret) {
-                mpp_err("vp9 probe_wr_base get buffer failed\n");
-                return ret;
-            }
-        }
-        for (i = 0; i < 4; i++) {
-            if (hw_ctx->prob_loop_base[i]) {
-                ret = mpp_buffer_put(hw_ctx->prob_loop_base[i]);
-                if (ret) {
-                    mpp_err("vp9 probe_base put buffer failed\n");
-                    return ret;
-                }
             }
         }
         if (hw_ctx->count_base) {
@@ -252,6 +255,24 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
     return MPP_OK;
 }
 
+static MPP_RET hal_vp9d_vdpu34x_deinit(void *hal)
+{
+    MPP_RET ret = MPP_OK;
+    HalVp9dCtx *p_hal = (HalVp9dCtx *)hal;
+
+    hal_vp9d_release_res(p_hal);
+
+    if (p_hal->group) {
+        ret = mpp_buffer_group_put(p_hal->group);
+        if (ret) {
+            mpp_err("vp9d group free buffer failed\n");
+            return ret;
+        }
+    }
+    MPP_FREE(p_hal->hw_ctx);
+    return ret = MPP_OK;
+}
+
 static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
@@ -268,14 +289,14 @@ static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
         ret = mpp_buffer_group_get_internal(&p_hal->group, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("vp9 mpp_buffer_group_get failed\n");
-            return ret;
+            goto __FAILED;
         }
     }
 
     ret = hal_vp9d_alloc_res(p_hal);
     if (ret) {
         mpp_err("hal_vp9d_alloc_res failed\n");
-        return ret;
+        goto __FAILED;
     }
 
     hw_ctx->last_segid_flag = 1;
@@ -296,27 +317,10 @@ static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
         cfg->hw_info = hw_info;
     }
 
-    return ret = MPP_OK;
+    return ret;
 __FAILED:
-    return MPP_NOK;
-}
-
-static MPP_RET hal_vp9d_vdpu34x_deinit(void *hal)
-{
-    MPP_RET ret = MPP_OK;
-    HalVp9dCtx *p_hal = (HalVp9dCtx *)hal;
-
-    hal_vp9d_release_res(p_hal);
-
-    if (p_hal->group) {
-        ret = mpp_buffer_group_put(p_hal->group);
-        if (ret) {
-            mpp_err("vp9d group free buffer failed\n");
-            return ret;
-        }
-    }
-    MPP_FREE(p_hal->hw_ctx);
-    return ret = MPP_OK;
+    hal_vp9d_vdpu34x_deinit(hal);
+    return ret;
 }
 
 static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
