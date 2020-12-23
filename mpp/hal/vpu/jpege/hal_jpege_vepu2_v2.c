@@ -606,6 +606,7 @@ const MppEncHalApi hal_jpege_vepu2 = {
     .flag       = 0,
     .init       = hal_jpege_vepu2_init,
     .deinit     = hal_jpege_vepu2_deinit,
+    .prepare    = NULL,
     .get_task   = hal_jpege_vepu2_get_task,
     .gen_regs   = hal_jpege_vepu2_gen_regs,
     .start      = hal_jpege_vepu2_start,

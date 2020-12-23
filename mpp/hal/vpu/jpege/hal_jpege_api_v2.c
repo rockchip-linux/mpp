@@ -88,7 +88,20 @@ static MPP_RET hal_jpege_deinit(void *hal)
     return ret;
 }
 
-#define HAL_jpegE_TASK_FUNC(func) \
+#define HAL_JPEGE_FUNC(func) \
+    static MPP_RET hal_jpege_##func(void *hal)                      \
+    {                                                               \
+        HaljpegeCtx *ctx = (HaljpegeCtx *)hal;                      \
+        const MppEncHalApi *api = ctx->api;                         \
+        void *hw_ctx = ctx->hw_ctx;                                 \
+                                                                    \
+        if (!hw_ctx || !api || !api->func)                          \
+            return MPP_OK;                                          \
+                                                                    \
+        return api->func(hw_ctx);                                   \
+    }
+
+#define HAL_JPEGE_TASK_FUNC(func) \
     static MPP_RET hal_jpege_##func(void *hal, HalEncTask *task)    \
     {                                                               \
         HaljpegeCtx *ctx = (HaljpegeCtx *)hal;                      \
@@ -101,13 +114,14 @@ static MPP_RET hal_jpege_deinit(void *hal)
         return api->func(hw_ctx, task);                             \
     }
 
-HAL_jpegE_TASK_FUNC(get_task)
-HAL_jpegE_TASK_FUNC(gen_regs)
-HAL_jpegE_TASK_FUNC(start)
-HAL_jpegE_TASK_FUNC(wait)
-HAL_jpegE_TASK_FUNC(part_start)
-HAL_jpegE_TASK_FUNC(part_wait)
-HAL_jpegE_TASK_FUNC(ret_task)
+HAL_JPEGE_FUNC(prepare)
+HAL_JPEGE_TASK_FUNC(get_task)
+HAL_JPEGE_TASK_FUNC(gen_regs)
+HAL_JPEGE_TASK_FUNC(start)
+HAL_JPEGE_TASK_FUNC(wait)
+HAL_JPEGE_TASK_FUNC(part_start)
+HAL_JPEGE_TASK_FUNC(part_wait)
+HAL_JPEGE_TASK_FUNC(ret_task)
 
 const MppEncHalApi hal_api_jpege_v2 = {
     .name       = "hal_jpege",
@@ -116,6 +130,7 @@ const MppEncHalApi hal_api_jpege_v2 = {
     .flag       = 0,
     .init       = hal_jpege_init,
     .deinit     = hal_jpege_deinit,
+    .prepare    = hal_jpege_prepare,
     .get_task   = hal_jpege_get_task,
     .gen_regs   = hal_jpege_gen_regs,
     .start      = hal_jpege_start,

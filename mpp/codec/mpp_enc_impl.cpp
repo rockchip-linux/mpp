@@ -1438,6 +1438,10 @@ void *mpp_enc_thread(void *data)
             enc->param = NULL;
             enc->cmd = (MpiCmd)0;
             sem_post(&enc->cmd_done);
+
+            // async cfg update process for hal
+            // mainly for buffer prepare
+            mpp_enc_hal_prepare(enc->enc_hal);
             continue;
         }
 

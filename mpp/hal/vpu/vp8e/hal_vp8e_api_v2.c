@@ -93,8 +93,21 @@ static MPP_RET hal_vp8e_deinit(void *hal)
     return ret;
 }
 
+#define HAL_VP8E_FUNC(func) \
+    static MPP_RET hal_vp8e_##func(void *hal)                       \
+    {                                                               \
+        Halvp8eCtx *ctx = (Halvp8eCtx *)hal;                        \
+        const MppEncHalApi *api = ctx->api;                         \
+        void *hw_ctx = ctx->hw_ctx;                                 \
+                                                                    \
+        if (!hw_ctx || !api || !api->func)                          \
+            return MPP_OK;                                          \
+                                                                    \
+        return api->func(hw_ctx);                                   \
+    }
+
 #define HAL_VP8E_TASK_FUNC(func) \
-    static MPP_RET hal_vp8e_##func(void *hal, HalEncTask *task)    \
+    static MPP_RET hal_vp8e_##func(void *hal, HalEncTask *task)     \
     {                                                               \
         Halvp8eCtx *ctx = (Halvp8eCtx *)hal;                        \
         const MppEncHalApi *api = ctx->api;                         \
@@ -106,6 +119,7 @@ static MPP_RET hal_vp8e_deinit(void *hal)
         return api->func(hw_ctx, task);                             \
     }
 
+HAL_VP8E_FUNC(prepare)
 HAL_VP8E_TASK_FUNC(get_task)
 HAL_VP8E_TASK_FUNC(gen_regs)
 HAL_VP8E_TASK_FUNC(start)
@@ -119,6 +133,7 @@ const MppEncHalApi hal_api_vp8e_v2 = {
     .flag       = 0,
     .init       = hal_vp8e_init,
     .deinit     = hal_vp8e_deinit,
+    .prepare    = hal_vp8e_prepare,
     .get_task   = hal_vp8e_get_task,
     .gen_regs   = hal_vp8e_gen_regs,
     .start      = hal_vp8e_start,

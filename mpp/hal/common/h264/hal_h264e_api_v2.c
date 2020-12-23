@@ -92,6 +92,19 @@ static MPP_RET hal_h264e_deinit(void *hal)
     return ret;
 }
 
+#define HAL_H264E_FUNC(func) \
+    static MPP_RET hal_h264e_##func(void *hal)                      \
+    {                                                               \
+        HalH264eCtx *ctx = (HalH264eCtx *)hal;                      \
+        const MppEncHalApi *api = ctx->api;                         \
+        void *hw_ctx = ctx->hw_ctx;                                 \
+                                                                    \
+        if (!hw_ctx || !api || !api->func)                          \
+            return MPP_OK;                                          \
+                                                                    \
+        return api->func(hw_ctx);                                   \
+    }
+
 #define HAL_H264E_TASK_FUNC(func) \
     static MPP_RET hal_h264e_##func(void *hal, HalEncTask *task)    \
     {                                                               \
@@ -105,6 +118,7 @@ static MPP_RET hal_h264e_deinit(void *hal)
         return api->func(hw_ctx, task);                             \
     }
 
+HAL_H264E_FUNC(prepare)
 HAL_H264E_TASK_FUNC(get_task)
 HAL_H264E_TASK_FUNC(gen_regs)
 HAL_H264E_TASK_FUNC(start)
@@ -120,6 +134,7 @@ const MppEncHalApi hal_api_h264e_v2 = {
     .flag       = 0,
     .init       = hal_h264e_init,
     .deinit     = hal_h264e_deinit,
+    .prepare    = hal_h264e_prepare,
     .get_task   = hal_h264e_get_task,
     .gen_regs   = hal_h264e_gen_regs,
     .start      = hal_h264e_start,

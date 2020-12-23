@@ -173,6 +173,15 @@ DONE:
     return ret;
 }
 
+static MPP_RET hal_h264e_vepu541_prepare(void *hal)
+{
+    hal_h264e_dbg_func("enter %p\n", hal);
+
+    hal_h264e_dbg_func("leave %p\n", hal);
+
+    return MPP_OK;
+}
+
 static RK_U32 update_vepu541_syntax(HalH264eVepu541Ctx *ctx, MppSyntax *syntax)
 {
     H264eSyntaxDesc *desc = syntax->data;
@@ -1574,6 +1583,7 @@ const MppEncHalApi hal_h264e_vepu541 = {
     .flag       = 0,
     .init       = hal_h264e_vepu541_init,
     .deinit     = hal_h264e_vepu541_deinit,
+    .prepare    = hal_h264e_vepu541_prepare,
     .get_task   = hal_h264e_vepu541_get_task,
     .gen_regs   = hal_h264e_vepu541_gen_regs,
     .start      = hal_h264e_vepu541_start,

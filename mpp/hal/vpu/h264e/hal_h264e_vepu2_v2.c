@@ -707,6 +707,7 @@ const MppEncHalApi hal_h264e_vepu2 = {
     .flag       = 0,
     .init       = hal_h264e_vepu2_init_v2,
     .deinit     = hal_h264e_vepu2_deinit_v2,
+    .prepare    = NULL,
     .get_task   = hal_h264e_vepu2_get_task_v2,
     .gen_regs   = hal_h264e_vepu2_gen_regs_v2,
     .start      = hal_h264e_vepu2_start_v2,
