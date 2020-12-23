@@ -411,10 +411,14 @@ static int decode_advanced(MpiDecLoopData *data)
     size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
 
     if (read_size != data->packet_size || feof(data->fp_input)) {
-        mpp_log("%p found last packet\n", ctx);
-
-        // setup eos flag
-        data->eos = pkt_eos = 1;
+        if (data->frame_num < 0) {
+            clearerr(data->fp_input);
+            rewind(data->fp_input);
+        } else {
+            mpp_log("%p found last packet\n", ctx);
+            // setup eos flag
+            data->eos = pkt_eos = 1;
+        }
     }
 
     // reset pos
@@ -478,7 +482,13 @@ static int decode_advanced(MpiDecLoopData *data)
             if (mpp_frame_get_eos(frame_out))
                 mpp_log("%p found eos frame\n", ctx);
         }
-
+        if (data->frame_num > 0 && data->frame_count < data->frame_num) {
+            data->eos = 0;
+            clearerr(data->fp_input);
+            rewind(data->fp_input);
+        } else {
+            data->eos = 1;
+        }
         /* output queue */
         ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
         if (ret)
