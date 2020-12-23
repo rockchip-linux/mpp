@@ -442,7 +442,9 @@ MPP_RET vcodec_service_init(void *ctx, MppClientType type)
         reg_size = VEPU1_REGISTERS;
     } break;
     case VPU_CLIENT_VEPU2 : {
-        name = mpp_find_device(mpp_vpu_dev);
+        name = mpp_find_device(mpp_vepu_dev);
+        if (NULL == name)
+            name = mpp_find_device(mpp_vpu_dev);
         client_type = VPU_ENC;
         reg_size = VEPU2_REGISTERS;
     } break;
