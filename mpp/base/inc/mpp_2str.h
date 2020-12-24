@@ -29,6 +29,7 @@ const char *strof_ctx_type(MppCtxType type);
 const char *strof_coding_type(MppCodingType coding);
 const char *strof_rc_mode(MppEncRcMode rc_mode);
 const char *strof_profle(MppCodingType coding, RK_U32 profile);
+const char *strof_gop_mode(MppEncRcGopMode gop_mode);
 
 #ifdef  __cplusplus
 }

@@ -77,6 +77,18 @@ const char *strof_rc_mode(MppEncRcMode rc_mode)
 
     return NULL;
 }
+const char *strof_gop_mode(MppEncRcGopMode gop_mode)
+{
+    static const char *gop_mode_str[] = {
+        "normalp",
+        "smartp",
+    };
+
+    if (gop_mode >= MPP_ENC_RC_NORMAL_P && gop_mode < MPP_ENC_RC_GOP_MODE_BUTT)
+        return gop_mode_str[gop_mode];
+
+    return NULL;
+}
 
 const char *strof_profle(MppCodingType coding, RK_U32 profile)
 {
