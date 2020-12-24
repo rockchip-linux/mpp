@@ -74,6 +74,9 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     if (p->meta)
         mpp_meta_put(p->meta);
 
+    if (p->stopwatch)
+        mpp_stopwatch_put(p->stopwatch);
+
     mpp_free(*frame);
     *frame = NULL;
     return MPP_OK;
@@ -158,6 +161,34 @@ void mpp_frame_set_meta(MppFrame frame, MppMeta meta)
     }
 
     p->meta = meta;
+}
+
+void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable)
+{
+    if (check_is_mpp_frame(frame))
+        return ;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    if (enable && NULL == p->stopwatch) {
+        char name[32];
+
+        snprintf(name, sizeof(name) - 1, "frm %8llx", p->pts);
+        p->stopwatch = mpp_stopwatch_get(name);
+        if (p->stopwatch)
+            mpp_stopwatch_set_show_on_exit(p->stopwatch, 1);
+    } else if (!enable && p->stopwatch) {
+        mpp_stopwatch_put(p->stopwatch);
+        p->stopwatch = NULL;
+    }
+}
+
+MppStopwatch mpp_frame_get_stopwatch(const MppFrame frame)
+{
+    if (check_is_mpp_frame(frame))
+        return NULL;
+
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+    return p->stopwatch;
 }
 
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)

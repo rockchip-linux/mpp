@@ -17,6 +17,7 @@
 #ifndef __MPP_FRAME_IMPL_H__
 #define __MPP_FRAME_IMPL_H__
 
+#include "mpp_time.h"
 #include "mpp_frame.h"
 
 typedef struct MppFrameImpl_t MppFrameImpl;
@@ -105,6 +106,7 @@ struct MppFrameImpl_t {
      * meta data information
      */
     MppMeta         meta;
+    MppStopwatch    stopwatch;
 
     /*
      * frame buffer compression (FBC) information
@@ -136,6 +138,12 @@ MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
 RK_U32  mpp_frame_get_fbc_offset(MppFrame frame);
 RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);
+
+/*
+ * Debug for frame process timing
+ */
+void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable);
+MppStopwatch mpp_frame_get_stopwatch(const MppFrame frame);
 
 MPP_RET check_is_mpp_frame(void *pointer);
 
