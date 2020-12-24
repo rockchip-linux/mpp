@@ -48,4 +48,10 @@ typedef enum MppEncRcSuperFrameMode_t {
     MPP_ENC_RC_SUPER_FRM_BUTT
 } MppEncRcSuperFrameMode;
 
+typedef enum MppEncRcGopMode_e {
+    MPP_ENC_RC_NORMAL_P,
+    MPP_ENC_RC_SMART_P,
+    MPP_ENC_RC_GOP_MODE_BUTT,
+} MppEncRcGopMode;
+
 #endif /*__RK_VENC_RC_H__*/
