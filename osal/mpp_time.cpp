@@ -504,8 +504,12 @@ void mpp_stopwatch_set_show_on_exit(MppStopwatch stopwatch, RK_S32 show_on_exit)
 
 void mpp_stopwatch_record(MppStopwatch stopwatch, const char *event)
 {
-    if (NULL == stopwatch || check_is_mpp_stopwatch(stopwatch)) {
-        mpp_err_f("invalid stopwatch %p\n", stopwatch);
+    /* do not print noisy log */
+    if (NULL == stopwatch)
+        return ;
+
+    if (check_is_mpp_stopwatch(stopwatch)) {
+        mpp_err_f("invalid stopwatch %p on %s\n", stopwatch, event);
         return ;
     }
 
