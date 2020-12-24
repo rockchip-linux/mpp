@@ -164,6 +164,7 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
     p->osd_cfg.dev = p->dev;
     p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
     p->osd_cfg.osd_data = NULL;
+    p->osd_cfg.osd_data2 = NULL;
 
 DONE:
     if (ret)
@@ -303,6 +304,7 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
 
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
+        mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
     }
     hal_h264e_dbg_func("leave %p\n", hal);
 

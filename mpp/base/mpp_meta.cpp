@@ -45,6 +45,7 @@ static MppMetaDef meta_defs[] = {
 
     {   KEY_ROI_DATA,           TYPE_PTR,       },
     {   KEY_OSD_DATA,           TYPE_PTR,       },
+    {   KEY_OSD_DATA2,          TYPE_PTR,       },
     {   KEY_USER_DATA,          TYPE_PTR,       },
     {   KEY_USER_DATAS,         TYPE_PTR,       },
     {   KEY_MV_LIST,            TYPE_PTR,       },
