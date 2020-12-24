@@ -22,6 +22,7 @@
 #include "mpp_time.h"
 #include "mpp_common.h"
 
+#include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
@@ -1403,6 +1404,7 @@ void *mpp_enc_thread(void *data)
     EncTaskWait *wait = &task.wait;
     HalEncTask *hal_task = &task.info.enc;
     MPP_RET ret = MPP_OK;
+    MppStopwatch stopwatch = NULL;
 
     memset(&task, 0, sizeof(task));
 
@@ -1527,7 +1529,11 @@ void *mpp_enc_thread(void *data)
 
             enc_dbg_detail("task dequeue done frm %p pkt %p\n", enc->frame, enc->packet);
 
+            stopwatch = mpp_frame_get_stopwatch(enc->frame);
+            mpp_stopwatch_record(stopwatch, "encode task start");
+
             if (mpp_enc_check_frm_pkt(enc)) {
+                mpp_stopwatch_record(stopwatch, "invalid on chekc frm pkt");
                 status->val = 0;
                 continue;
             }
@@ -1573,6 +1579,7 @@ void *mpp_enc_thread(void *data)
             hal_task->input     = enc->frm_buf;
             hal_task->packet    = enc->packet;
             hal_task->output    = enc->pkt_buf;
+            hal_task->stopwatch = stopwatch;
 
             frm->seq_idx = task.seq_idx++;
             rc_task->frame = enc->frame;
@@ -1701,6 +1708,8 @@ void *mpp_enc_thread(void *data)
         frm_cfg->force_flag = 0;
 
     TASK_DONE:
+        mpp_stopwatch_record(stopwatch, "encode task done");
+
         /* setup output packet and meta data */
         mpp_packet_set_length(enc->packet, hal_task->length);
 

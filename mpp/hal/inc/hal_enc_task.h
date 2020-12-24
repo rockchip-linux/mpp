@@ -18,6 +18,8 @@
 #ifndef __HAL_ENC_TASK__
 #define __HAL_ENC_TASK__
 
+#include "mpp_time.h"
+
 #include "hal_task_defs.h"
 #include "mpp_rc_defs.h"
 #include "mpp_enc_refs.h"
@@ -73,7 +75,10 @@ typedef struct HalEncTask_t {
     MppFrame        frame;
     MppBuffer       input;
 
-    // current mv info output buffer
+    // task stopwatch for timing
+    MppStopwatch    stopwatch;
+
+    // current mv info output buffer (not used)
     MppBuffer       mv_info;
 
     // low delay mode part output information
