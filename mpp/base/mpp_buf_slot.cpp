@@ -246,6 +246,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                     (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP_10BIT) ? 10 : 8;
     RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
     RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
+
     RK_U32 hal_hor_stride = (codec_hor_stride) ?
                             (impl->hal_hor_align(codec_hor_stride)) :
                             (impl->hal_hor_align(width * depth >> 3));
@@ -259,6 +260,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     RK_U32 size = hal_hor_stride * hal_ver_stride;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        /*fbc stride default 64 align*/
+        hal_hor_stride = MPP_ALIGN(width, 64) * depth >> 3;
         switch ((fmt & MPP_FRAME_FMT_MASK)) {
         case MPP_FMT_YUV420SP_10BIT :
         case MPP_FMT_YUV420SP : {
