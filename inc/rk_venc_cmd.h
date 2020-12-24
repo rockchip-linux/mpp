@@ -1122,6 +1122,22 @@ typedef struct MppEncOSDData_t {
     MppEncOSDRegion     region[8];
 } MppEncOSDData;
 
+typedef struct MppEncOSDRegion2_t {
+    RK_U32              enable;
+    RK_U32              inverse;
+    RK_U32              start_mb_x;
+    RK_U32              start_mb_y;
+    RK_U32              num_mb_x;
+    RK_U32              num_mb_y;
+    RK_U32              buf_offset;
+    MppBuffer           buf;
+} MppEncOSDRegion2;
+
+typedef struct MppEncOSDData2_t {
+    RK_U32              num_region;
+    MppEncOSDRegion2    region[8];
+} MppEncOSDData2;
+
 typedef struct MppEncUserData_t {
     RK_U32              len;
     void                *pdata;

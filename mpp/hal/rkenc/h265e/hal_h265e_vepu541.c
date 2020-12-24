@@ -630,6 +630,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->osd_cfg.dev = ctx->dev;
     ctx->osd_cfg.plt_cfg = &ctx->cfg->plt_cfg;
     ctx->osd_cfg.osd_data = NULL;
+    ctx->osd_cfg.osd_data2 = NULL;
 
     ctx->frame_type = INTRA_FRAME;
     hal_h265e_leave();
@@ -1826,6 +1827,7 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         MppMeta meta = mpp_frame_get_meta(frame);
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
+        mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
     }
     memset(&ctx->feedback, 0, sizeof(vepu541_h265_fbk));
 

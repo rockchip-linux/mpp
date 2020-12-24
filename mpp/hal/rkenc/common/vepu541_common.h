@@ -132,6 +132,7 @@ typedef struct Vepu541OsdCfg_t {
     MppDev              dev;
     MppEncOSDPltCfg     *plt_cfg;
     MppEncOSDData       *osd_data;
+    MppEncOSDData2      *osd_data2;
 } Vepu541OsdCfg;
 
 #ifdef __cplusplus
