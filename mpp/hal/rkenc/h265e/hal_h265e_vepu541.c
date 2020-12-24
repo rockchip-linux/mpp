@@ -1477,9 +1477,9 @@ void hal_h265e_v540_set_uniform_tile(H265eV541RegSet *regs, H265eSyntax_new *syn
             regs->lpfw_addr_hevc = tmp;
         }
 
-        //  hal_h265e_dbg_detail
-        mpp_log("tile_x %d, rc_ctu_num %d, tile_width_m1 %d",
-                regs->tile_pos.tile_x, regs->rc_cfg.rc_ctu_num, regs->tile_cfg.tile_width_m1);
+        hal_h265e_dbg_detail("tile_x %d, rc_ctu_num %d, tile_width_m1 %d",
+                             regs->tile_pos.tile_x, regs->rc_cfg.rc_ctu_num,
+                             regs->tile_cfg.tile_width_m1);
     }
 }
 
