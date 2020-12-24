@@ -379,8 +379,18 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         return MPP_ERR_INIT;
 
     MPP_RET ret = MPP_NOK;
+    MppStopwatch stopwatch = NULL;
+
+    if (mpp_debug & MPP_DBG_TIMING) {
+        mpp_frame_set_stopwatch_enable(frame, 1);
+        stopwatch = mpp_frame_get_stopwatch(frame);
+    }
+
+    mpp_stopwatch_record(stopwatch, NULL);
+    mpp_stopwatch_record(stopwatch, "put frame start");
 
     if (mInputTask == NULL) {
+        mpp_stopwatch_record(stopwatch, "input port user poll");
         /* poll input port for valid task */
         ret = poll(MPP_PORT_INPUT, mInputTimeout);
         if (ret) {
@@ -389,6 +399,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         }
 
         /* dequeue task for setup */
+        mpp_stopwatch_record(stopwatch, "input port user dequeue");
         ret = dequeue(MPP_PORT_INPUT, &mInputTask);
         if (ret || NULL == mInputTask) {
             mpp_log_f("dequeue on set ret %d task %p\n", ret, mInputTask);
@@ -423,6 +434,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     mpp_ops_enc_put_frm(mDump, frame);
 
     /* enqueue valid task to encoder */
+    mpp_stopwatch_record(stopwatch, "input port user enqueue");
     ret = enqueue(MPP_PORT_INPUT, mInputTask);
     if (ret) {
         mpp_log_f("enqueue ret %d\n", ret);
@@ -431,6 +443,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
     mInputTask = NULL;
     /* wait enqueued task finished */
+    mpp_stopwatch_record(stopwatch, "input port user poll");
     ret = poll(MPP_PORT_INPUT, mInputTimeout);
     if (ret) {
         mpp_log_f("poll on get timeout %d ret %d\n", mInputTimeout, ret);
@@ -438,6 +451,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     }
 
     /* get previous enqueued task back */
+    mpp_stopwatch_record(stopwatch, "input port user dequeue");
     ret = dequeue(MPP_PORT_INPUT, &mInputTask);
     if (ret) {
         mpp_log_f("dequeue on get ret %d\n", ret);
@@ -447,6 +461,8 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     mpp_assert(mInputTask);
 
 RET:
+    mpp_stopwatch_record(stopwatch, "put_frame finish");
+    mpp_frame_set_stopwatch_enable(frame, 0);
     return ret;
 }
 
