@@ -276,6 +276,7 @@ RK_U32 mpp_frame_get_fbc_stride(MppFrame frame)
 
 MPP_FRAME_ACCESSORS(RK_U32, width)
 MPP_FRAME_ACCESSORS(RK_U32, height)
+MPP_FRAME_ACCESSORS(RK_U32, hor_stride_pixel)
 MPP_FRAME_ACCESSORS(RK_U32, hor_stride)
 MPP_FRAME_ACCESSORS(RK_U32, ver_stride)
 MPP_FRAME_ACCESSORS(RK_U32, offset_x)
