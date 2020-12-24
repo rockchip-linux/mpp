@@ -254,6 +254,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                             (impl->hal_ver_align(codec_ver_stride)) :
                             (impl->hal_ver_align(height));
 
+    RK_U32 hor_stride_pixel = width;
+
     hal_hor_stride = (force_default_align && codec_hor_stride) ? codec_hor_stride : hal_hor_stride;
     hal_ver_stride = (force_default_align && codec_ver_stride) ? codec_ver_stride : hal_ver_stride;
 
@@ -262,6 +264,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         /*fbc stride default 64 align*/
         hal_hor_stride = MPP_ALIGN(width, 64) * depth >> 3;
+        hor_stride_pixel = MPP_ALIGN(hor_stride_pixel,  64);
+
         switch ((fmt & MPP_FRAME_FMT_MASK)) {
         case MPP_FMT_YUV420SP_10BIT :
         case MPP_FMT_YUV420SP : {
@@ -286,6 +290,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_fmt(impl->info_set, fmt);
     mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
     mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
+    mpp_frame_set_hor_stride_pixel(impl->info_set, hor_stride_pixel);
     mpp_frame_set_buf_size(impl->info_set, size);
     mpp_frame_set_buf_size(frame, size);
     impl->buf_size = size;
