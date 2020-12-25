@@ -85,6 +85,9 @@ typedef struct H265eV541HalContext_t {
     Vepu541OsdCfg       osd_cfg;
     MppEncROICfg        *roi_data;
     void                *roi_buf;
+    MppBufferGroup      roi_grp;
+    MppBuffer           roi_hw_buf;
+    RK_U32              roi_buf_size;
     MppEncCfgSet        *cfg;
 
     RK_U32              enc_mode;
@@ -176,13 +179,6 @@ static MPP_RET vepu541_h265_free_buffers(H265eV541HalContext *ctx)
         }
     }
 
-    if (buffers->hw_roi_buf) {
-        if (MPP_OK != mpp_buffer_put(buffers->hw_roi_buf)) {
-            hal_h265e_err("hw_roi_buf put failed");
-            return MPP_NOK;
-        }
-    }
-
     for (i = 0; i < 2; i++) {
         if (buffers->hw_title_buf[i]) {
             if (MPP_OK != mpp_buffer_put(buffers->hw_title_buf[i])) {
@@ -195,7 +191,7 @@ static MPP_RET vepu541_h265_free_buffers(H265eV541HalContext *ctx)
     return MPP_OK;
 }
 
-static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_new *syn)
+static MPP_RET vepu541_h265_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_new *syn)
 {
     MPP_RET ret = MPP_OK;
     h265e_v541_buffers *buffers = (h265e_v541_buffers *)ctx->buffers;
@@ -250,7 +246,6 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
         RK_U32 i = 0;
 
         vepu541_h265_free_buffers(ctx);
-        MPP_FREE(ctx->roi_buf);
         hal_bufs_deinit(ctx->dpb_bufs);
         hal_bufs_init(&ctx->dpb_bufs);
 
@@ -265,22 +260,15 @@ static MPP_RET h265e_rkv_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_
 
         hal_bufs_setup(ctx->dpb_bufs, new_max_cnt, 3, size);
 
-        ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V541_BUF_GRP_ROI],
-                             &buffers->hw_roi_buf, vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
-        if (ret) {
-            hal_h265e_err("hw_roi_buf get failed");
-            return ret;
-        }
-
         for (i = 0; i < 2; i++) {
-            ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V541_BUF_GRP_ROI],
+            ret = mpp_buffer_get(buffers->hw_buf_grp[H265E_V540_BUF_GRP_TITLE],
                                  &buffers->hw_title_buf[i],  MPP_ALIGN(128 * 1024, 256));
             if (ret) {
                 hal_h265e_err("title get failed");
                 return ret;
             }
         }
-        ctx->roi_buf = mpp_malloc(RK_U8, vepu541_get_roi_buf_size(syn->pp.pic_width, syn->pp.pic_height));
+
         ctx->frame_size = frame_size;
         ctx->max_buf_cnt = new_max_cnt;
     }
@@ -700,6 +688,16 @@ MPP_RET hal_h265e_v541_deinit(void *hal)
     MPP_FREE(ctx->roi_buf);
     hal_bufs_deinit(ctx->dpb_bufs);
 
+    if (ctx->roi_hw_buf) {
+        mpp_buffer_put(ctx->roi_hw_buf);
+        ctx->roi_hw_buf = NULL;
+    }
+
+    if (ctx->roi_grp) {
+        mpp_buffer_group_put(ctx->roi_grp);
+        ctx->roi_grp = NULL;
+    }
+
     if (ctx->buffers) {
         RK_U32 k = 0;
         h265e_v541_buffers *buffers = (h265e_v541_buffers *)ctx->buffers;
@@ -831,19 +829,40 @@ static MPP_RET
 vepu541_h265_set_roi_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs)
 {
     MppEncROICfg *cfg = (MppEncROICfg*)ctx->roi_data;
-    h265e_v541_buffers *bufs = (h265e_v541_buffers *)ctx->buffers;
     RK_U32 h =  ctx->cfg->prep.height;
     RK_U32 w = ctx->cfg->prep.width;
     RK_U8 *roi_base;
 
-    if (!cfg) {
+    if (!cfg)
         return MPP_OK;
-    }
 
     if (cfg->number && cfg->regions) {
+        RK_U32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
+
+        if (!ctx->roi_hw_buf || roi_buf_size != ctx->roi_buf_size) {
+            if (NULL == ctx->roi_grp)
+                mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
+            else if (roi_buf_size != ctx->roi_buf_size) {
+                if (ctx->roi_hw_buf) {
+                    mpp_buffer_put(ctx->roi_hw_buf);
+                    ctx->roi_hw_buf = NULL;
+                }
+                MPP_FREE(ctx->roi_buf);
+                mpp_buffer_group_clear(ctx->roi_grp);
+            }
+            mpp_assert(ctx->roi_grp);
+            if (NULL == ctx->roi_hw_buf)
+                mpp_buffer_get(ctx->roi_grp, &ctx->roi_hw_buf, roi_buf_size);
+
+            if (ctx->roi_buf == NULL)
+                ctx->roi_buf = mpp_malloc(RK_U8, roi_buf_size);
+
+            ctx->roi_buf_size = roi_buf_size;
+        }
+
         regs->enc_pic.roi_en = 1;
-        regs->roi_addr_hevc = mpp_buffer_get_fd(bufs->hw_roi_buf);
-        roi_base = (RK_U8 *)mpp_buffer_get_ptr(bufs->hw_roi_buf);
+        regs->roi_addr_hevc = mpp_buffer_get_fd(ctx->roi_hw_buf);
+        roi_base = (RK_U8 *)mpp_buffer_get_ptr(ctx->roi_hw_buf);
         vepu541_set_roi(ctx->roi_buf, cfg, w, h);
         vepu541_h265_set_roi(roi_base, ctx->roi_buf, w, h);
     }
@@ -1285,6 +1304,7 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
         regs->dspr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[1]);
         regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
     }
+
     regs->lpfw_addr_hevc  = mpp_buffer_get_fd(bufs->hw_title_buf[0]);
     regs->lpfr_addr_hevc = mpp_buffer_get_fd(bufs->hw_title_buf[1]);
 
@@ -1797,8 +1817,8 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
 
     hal_h265e_enter();
 
-    if (h265e_rkv_allocate_buffers(ctx, syn)) {
-        hal_h265e_err("h265e_rkv_allocate_buffers failed, free buffers and return\n");
+    if (vepu541_h265_allocate_buffers(ctx, syn)) {
+        hal_h265e_err("vepu541_h265_allocate_buffers failed, free buffers and return\n");
         task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
         vepu541_h265_free_buffers(ctx);
         return MPP_ERR_MALLOC;
