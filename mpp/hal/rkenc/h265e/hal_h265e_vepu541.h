@@ -37,7 +37,7 @@
 
 typedef enum H265e_v541_buf_grp_t {
     H265E_V541_BUF_GRP_MEI,
-    H265E_V541_BUF_GRP_ROI,
+    H265E_V540_BUF_GRP_TITLE,
     H265E_V541_BUF_GRP_BUTT
 } H265e_v541_buf_grp;
 
