@@ -170,7 +170,7 @@ RK_U32 lamd_modb_qp[52] = {
     0x00700000, 0x00890000, 0x00b00000, 0x00e00000
 };
 
-static MPP_RET vepu541_h265_allocate_buffers(H265eV541HalContext *ctx, H265eSyntax_new *syn)
+static MPP_RET vepu54x_h265_setup_hal_bufs(H265eV541HalContext *ctx)
 {
     MPP_RET ret = MPP_OK;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
@@ -178,15 +178,16 @@ static MPP_RET vepu541_h265_allocate_buffers(H265eV541HalContext *ctx, H265eSynt
     Vepu541Fmt input_fmt = VEPU541_FMT_YUV420P;
     RK_S32 mb_wd64, mb_h64;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
     RK_S32 new_max_cnt = 2;
 
     hal_h265e_enter();
 
-    mb_wd64 = (syn->pp.pic_width + 63) / 64;
-    mb_h64 = (syn->pp.pic_height + 63) / 64;
+    mb_wd64 = (prep->width + 63) / 64;
+    mb_h64 = (prep->height + 63) / 64;
 
-    frame_size = MPP_ALIGN(syn->pp.pic_width, 16) * MPP_ALIGN(syn->pp.pic_height, 16);
+    frame_size = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16);
     vepu541_set_fmt(fmt, ctx->cfg->prep.format);
     input_fmt = (Vepu541Fmt)fmt->format;
     switch (input_fmt) {
@@ -675,6 +676,29 @@ MPP_RET hal_h265e_v541_deinit(void *hal)
         ctx->dev = NULL;
     }
     hal_h265e_leave();
+    return MPP_OK;
+}
+
+static MPP_RET hal_h265e_vepu54x_prepare(void *hal)
+{
+    H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+
+    hal_h265e_dbg_func("enter %p\n", hal);
+
+    if (prep->change & (MPP_ENC_PREP_CFG_CHANGE_INPUT | MPP_ENC_PREP_CFG_CHANGE_FORMAT)) {
+        RK_S32 i;
+
+        // pre-alloc required buffers to reduce first frame delay
+        vepu54x_h265_setup_hal_bufs(ctx);
+        for (i = 0; i < ctx->max_buf_cnt; i++)
+            hal_bufs_get_buf(ctx->dpb_bufs, i);
+
+        prep->change = 0;
+    }
+
+    hal_h265e_dbg_func("leave %p\n", hal);
+
     return MPP_OK;
 }
 
@@ -1781,13 +1805,12 @@ MPP_RET hal_h265e_v541_wait(void *hal, HalEncTask *task)
 MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
 {
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
-    H265eSyntax_new *syn = (H265eSyntax_new *)task->syntax.data;
     MppFrame frame = task->frame;
     EncFrmStatus  *frm_status = &task->rc_task->frm;
 
     hal_h265e_enter();
 
-    if (vepu541_h265_allocate_buffers(ctx, syn)) {
+    if (vepu54x_h265_setup_hal_bufs(ctx)) {
         hal_h265e_err("vepu541_h265_allocate_buffers failed, free buffers and return\n");
         task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
         return MPP_ERR_MALLOC;
@@ -1835,7 +1858,7 @@ const MppEncHalApi hal_api_h265e_v2 = {
     0,
     hal_h265e_v541_init,
     hal_h265e_v541_deinit,
-    NULL,
+    hal_h265e_vepu54x_prepare,
     hal_h265e_v541_get_task,
     hal_h265e_v541_gen_regs,
     hal_h265e_v54x_start,
