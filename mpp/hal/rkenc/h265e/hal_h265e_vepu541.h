@@ -35,20 +35,6 @@
 #define RKV_H265E_LINKTABLE_MAX_SIZE        256
 #define RKV_H265E_ADD_RESERVE_REGS          1
 
-typedef enum H265e_v541_buf_grp_t {
-    H265E_V541_BUF_GRP_MEI,
-    H265E_V540_BUF_GRP_TITLE,
-    H265E_V541_BUF_GRP_BUTT
-} H265e_v541_buf_grp;
-
-typedef struct H265e_v541_buffers_t {
-    MppBufferGroup hw_buf_grp[H265E_V541_BUF_GRP_BUTT];
-
-    MppBuffer hw_mei_buf;
-    MppBuffer hw_roi_buf;
-    MppBuffer hw_title_buf[2];
-} h265e_v541_buffers;
-
 /* OSD position */
 typedef struct {
     RK_U32    lt_pos_x : 8; /* left-top */
