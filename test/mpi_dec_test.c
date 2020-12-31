@@ -54,6 +54,7 @@ typedef struct {
     RK_S32          frame_count;
     RK_S32          frame_num;
     size_t          max_usage;
+    FileReader      reader;
 } MpiDecLoopData;
 
 static int decode_simple(MpiDecLoopData *data)
@@ -68,6 +69,7 @@ static int decode_simple(MpiDecLoopData *data)
     MppFrame  frame  = NULL;
     size_t read_size = 0;
     size_t packet_size = data->packet_size;
+    FileReader reader = data->reader;
 
     do {
         if (data->fp_config) {
@@ -101,31 +103,30 @@ static int decode_simple(MpiDecLoopData *data)
         }
 
         // when packet size is valid read the input binary file
-        if (packet_size)
-            read_size = fread(buf, 1, packet_size, data->fp_input);
+        if (packet_size) {
 
-        if (!packet_size || read_size != packet_size || feof(data->fp_input)) {
-            if (data->frame_num < 0) {
-                clearerr(data->fp_input);
-                rewind(data->fp_input);
-                if (data->fp_config) {
-                    clearerr(data->fp_config);
-                    rewind(data->fp_config);
+            data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
+
+            if (pkt_eos) {
+                if (data->frame_num < 0) {
+                    mpp_log("%p loop again\n", ctx);
+                    reader_rewind(reader);
+                    if (data->fp_config) {
+                        clearerr(data->fp_config);
+                        rewind(data->fp_config);
+                    }
+                    data->eos = pkt_eos = 0;
+                } else {
+                    mpp_log("%p found last packet\n", ctx);
+                    break;
                 }
-                data->eos = pkt_eos = 0;
-                mpp_log("%p loop again\n", ctx);
-            } else {
-                // setup eos flag
-                data->eos = pkt_eos = 1;
-                mpp_log("%p found last packet\n", ctx);
-                break;
             }
         }
     } while (!read_size);
 
-    // write data to packet
-    mpp_packet_write(packet, 0, buf, read_size);
-    // reset pos and set valid length
+    mpp_packet_set_data(packet, buf);
+    if (read_size > mpp_packet_get_size(packet))
+        mpp_packet_set_size(packet, read_size);
     mpp_packet_set_pos(packet, buf);
     mpp_packet_set_length(packet, read_size);
     // setup eos flag
@@ -486,7 +487,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     size_t packet_size  = cmd->pkt_size;
     MppBuffer pkt_buf   = NULL;
     MppBuffer frm_buf   = NULL;
-
+    FileReader reader   = NULL;
     MpiDecLoopData data;
 
     mpp_log("mpi_dec_test start\n");
@@ -522,13 +523,8 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     }
 
     if (cmd->simple) {
-        buf = mpp_malloc(char, packet_size);
-        if (NULL == buf) {
-            mpp_err("mpi_dec_test malloc input stream buffer failed\n");
-            goto MPP_TEST_OUT;
-        }
-
-        ret = mpp_packet_init(&packet, buf, packet_size);
+        reader_init(&reader, cmd->file_input, data.fp_input);
+        ret = mpp_packet_init(&packet, NULL, 0);
         if (ret) {
             mpp_err("mpp_packet_init failed\n");
             goto MPP_TEST_OUT;
@@ -624,7 +620,6 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
         mpp_err("%p mpp_init failed\n", ctx);
         goto MPP_TEST_OUT;
     }
-
     data.ctx            = ctx;
     data.mpi            = mpi;
     data.eos            = 0;
@@ -634,6 +629,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     data.frame          = frame;
     data.frame_count    = 0;
     data.frame_num      = cmd->frame_num;
+    data.reader         = reader;
 
     if (cmd->simple) {
         while (!data.eos) {
@@ -677,9 +673,9 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     }
 
 MPP_TEST_OUT:
-    if (packet) {
-        mpp_packet_deinit(&packet);
-        packet = NULL;
+    if (data.packet) {
+        mpp_packet_deinit(&data.packet);
+        data.packet = NULL;
     }
 
     if (frame) {
@@ -693,10 +689,7 @@ MPP_TEST_OUT:
     }
 
     if (cmd->simple) {
-        if (buf) {
-            mpp_free(buf);
-            buf = NULL;
-        }
+        reader_deinit(&reader);
     } else {
         if (pkt_buf) {
             mpp_buffer_put(pkt_buf);

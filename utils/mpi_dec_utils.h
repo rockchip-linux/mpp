@@ -24,6 +24,8 @@
 #define MPI_DEC_STREAM_SIZE         (SZ_4K)
 #define MPI_DEC_LOOP_COUNT          4
 
+typedef void* FileReader;
+
 /* For overall configure setup */
 typedef struct {
     char            file_input[MAX_FILE_NAME_LENGTH];
@@ -54,5 +56,10 @@ extern OptionInfo mpi_dec_cmd[];
 RK_S32  mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd);
 void    mpi_dec_test_show_options(MpiDecTestCmd* cmd);
 void    mpi_dec_test_help();
+
+void    reader_init(FileReader* file_reader, char* file_in, FILE* fp_in);
+void    reader_deinit(FileReader *file_reader);
+RK_U32  reader_read(FileReader file_reader, char** buf, size_t *size);
+void    reader_rewind(FileReader file_reader);
 
 #endif
