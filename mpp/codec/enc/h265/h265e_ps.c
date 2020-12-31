@@ -382,10 +382,9 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_useDQP = 0;
     if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
         pps->m_useDQP = 1;
-        pps->m_maxCuDQPDepth = 0;
+        pps->m_maxCuDQPDepth = 2;
         pps->m_minCuDQPSize = (sps->m_maxCUSize >> pps->m_maxCuDQPDepth);
     }
-
 
     pps->m_bSliceChromaQpFlag = (!!codec->trans_cfg.cb_qp_offset) || (!!codec->trans_cfg.cr_qp_offset);
 
