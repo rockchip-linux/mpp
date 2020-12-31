@@ -4,6 +4,7 @@
 # ----------------------------------------------------------------------------
 add_library(utils STATIC
     mpi_enc_utils.c
+    mpi_dec_utils.c
     utils.c
     iniparser.c
     dictionary.c
