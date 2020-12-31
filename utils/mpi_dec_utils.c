@@ -20,12 +20,27 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
-#include "mpp_buffer.h"
-
 #include "rk_mpi.h"
 #include "utils.h"
 #include "mpp_common.h"
 #include "mpi_dec_utils.h"
+
+#define IVF_HEADER_LENGTH           32
+#define IVF_FRAME_HEADER_LENGTH     12
+
+typedef enum {
+    FILE_NORMAL_TYPE,
+    FILE_IVF_TYPE,
+    FILE_BUTT,
+} FileType;
+
+typedef struct FileReader_t {
+    char        *buf;
+    FILE        *fp_input;
+    size_t      buf_size;
+    size_t      read_size;
+    FileType    file_type;
+} FileReaderImpl;
 
 OptionInfo mpi_dec_cmd[] = {
     {"i",               "input_file",           "input bitstream file"},
@@ -41,6 +56,133 @@ OptionInfo mpi_dec_cmd[] = {
     {"s",               "instance_nb",          "number of instances"},
     {NULL},
 };
+
+static RK_U32 read_ivf_file(FileReader data)
+{
+    FileReaderImpl *reader = (FileReaderImpl*)data;
+    char   *buf = reader->buf;
+    size_t data_size = 0;
+    size_t buf_size = reader->buf_size;
+    RK_U32 eos = 0;
+    RK_U8 ivf_data[IVF_FRAME_HEADER_LENGTH] = {0};
+
+    fread(ivf_data, 1, IVF_FRAME_HEADER_LENGTH, reader->fp_input);
+    data_size = ivf_data[0] |
+                (ivf_data[1] << 8) |
+                (ivf_data[2] << 16) |
+                (ivf_data[3] << 24);
+    /* buffer size not enough, realloc */
+    if (data_size > buf_size) {
+        size_t realloc_size = MPP_ALIGN(data_size, SZ_4K);
+        mpp_log("buf size not enough realloc size %d\n", realloc_size);
+        buf = mpp_realloc(buf, char, realloc_size);
+        if (NULL == buf) {
+            mpp_err("mpi_dec_test realloc input stream buffer failed\n");
+        }
+        reader->buf = buf;
+        reader->buf_size = realloc_size;
+    }
+
+    reader->read_size = fread(buf, 1, data_size, reader->fp_input);
+    /* check reach eos whether or not */
+    if (!data_size || reader->read_size != data_size || feof(reader->fp_input)) {
+        eos = 1;
+    }
+    return eos;
+}
+
+static RK_U32 read_normal_file(FileReader data)
+{
+    FileReaderImpl *reader = (FileReaderImpl*)data;
+    char   *buf = reader->buf;
+    size_t buf_size = reader->buf_size;
+    RK_U32 eos = 0;
+
+    reader->read_size = fread(buf, 1, buf_size, reader->fp_input);
+    /* check reach eos whether or not */
+    if (!buf_size || reader->read_size != buf_size || feof(reader->fp_input))
+        eos = 1;
+
+    return eos;
+}
+
+static void check_file_type(FileReader data, char *file_in)
+{
+    FileReaderImpl *reader = (FileReaderImpl*)data;
+
+    if (strstr(file_in, ".ivf")) {
+        reader->file_type = FILE_IVF_TYPE;
+        reader->buf_size = SZ_2M;
+    } else {
+        reader->file_type = FILE_NORMAL_TYPE;
+        reader->buf_size = SZ_4K;
+    }
+}
+
+RK_U32 reader_read(FileReader file_reader, char** buf, size_t *size)
+{
+    FileReaderImpl *reader = file_reader;
+    FileType type = reader->file_type;
+    RK_U32  eos = 0;
+
+    switch (type) {
+    case FILE_NORMAL_TYPE : {
+        eos = read_normal_file(reader);
+    } break;
+    case FILE_IVF_TYPE : {
+        eos = read_ivf_file(reader);
+    } break;
+    default : {
+    } break;
+    }
+
+    *buf  = reader->buf;
+    *size = reader->read_size;
+    return eos;
+}
+
+void reader_rewind(FileReader file_reader)
+{
+    FileReaderImpl *reader = (FileReaderImpl*)file_reader;
+    FileType type = reader->file_type;
+
+    clearerr(reader->fp_input);
+
+    switch (type) {
+    case FILE_NORMAL_TYPE : {
+        rewind(reader->fp_input);
+    } break;
+    case FILE_IVF_TYPE : {
+        fseek(reader->fp_input, IVF_HEADER_LENGTH, SEEK_SET);
+    } break;
+    default : {
+    } break;
+    }
+}
+
+void reader_init(FileReader* file_reader, char* file_in, FILE* fp_in)
+{
+    FileReaderImpl *reader = mpp_malloc(FileReaderImpl, 1);
+
+    check_file_type(reader, file_in);
+
+    reader->buf      = mpp_malloc(char, reader->buf_size);
+    reader->fp_input = fp_in;
+
+    if (reader->file_type == FILE_IVF_TYPE)
+        fseek(reader->fp_input, IVF_HEADER_LENGTH, SEEK_SET);
+
+    *file_reader = reader;
+}
+
+void reader_deinit(FileReader *file_reader)
+{
+    FileReaderImpl *reader = (FileReaderImpl*)(*file_reader);
+
+    MPP_FREE(reader->buf);
+    MPP_FREE(reader);
+    *file_reader = NULL;
+}
 
 void mpi_dec_test_help()
 {
@@ -80,7 +222,7 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
             opt++;
 
             switch (*opt) {
-            case 'i':
+            case 'i' : {
                 if (next) {
                     strncpy(cmd->file_input, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_input = 1;
@@ -89,8 +231,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("input file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'o':
+            } break;
+            case 'o' : {
                 if (next) {
                     strncpy(cmd->file_output, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_output = 1;
@@ -98,8 +240,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_log("output file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'c':
+            } break;
+            case 'c' : {
                 if (next) {
                     strncpy(cmd->file_config, next, MAX_FILE_NAME_LENGTH - 1);
                     cmd->have_config = 1;
@@ -110,24 +252,24 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_log("output file is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'd':
+            } break;
+            case 'd' : {
                 if (next) {
                     cmd->debug = atoi(next);;
                 } else {
                     mpp_err("invalid debug flag\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'w':
+            } break;
+            case 'w' : {
                 if (next) {
                     cmd->width = atoi(next);
                 } else {
                     mpp_err("invalid input width\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'h':
+            } break;
+            case 'h' : {
                 if ((*(opt + 1) != '\0') && !strncmp(opt, "help", 4)) {
                     mpi_dec_test_help();
                     err = 1;
@@ -138,8 +280,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_log("input height is invalid\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 't':
+            } break;
+            case 't' : {
                 if (next) {
                     cmd->type = (MppCodingType)atoi(next);
                     err = mpp_check_support_format(MPP_CTX_DEC, cmd->type);
@@ -149,8 +291,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("invalid input coding type\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'f':
+            } break;
+            case 'f' : {
                 if (next) {
                     cmd->format = (MppFrameFormat)atoi(next);
                 }
@@ -159,8 +301,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("invalid input coding type\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'x':
+            } break;
+            case 'x' : {
                 if (next) {
                     cmd->timeout = atoi(next);
                 }
@@ -169,8 +311,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("invalid output timeout interval\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 'n':
+            } break;
+            case 'n' : {
                 if (next) {
                     cmd->frame_num = atoi(next);
                     if (cmd->frame_num < 0)
@@ -179,8 +321,8 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("invalid frame number\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            case 's':
+            } break;
+            case 's' : {
                 if (next) {
                     cmd->nthreads = atoi(next);
                 }
@@ -188,10 +330,10 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     mpp_err("invalid nthreads\n");
                     goto PARSE_OPINIONS_OUT;
                 }
-                break;
-            default:
+            } break;
+            default : {
                 mpp_err("skip invalid opt %c\n", *opt);
-                break;
+            } break;
             }
 
             optindex++;
