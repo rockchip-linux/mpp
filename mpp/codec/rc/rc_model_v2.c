@@ -1310,21 +1310,25 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
                 index = mpp_clip(index, 0, 7);
                 dealt_qp = max_ip_qp_dealt[index];
+                rc_dbg_rc("madi %d delta qp %d\n", index, dealt_qp);
                 if (dealt_qp > usr_cfg->i_quality_delta ) {
                     dealt_qp = usr_cfg->i_quality_delta;
                 }
             }
 
+            rc_dbg_rc("qp %d - %d -> %d reenc %d\n", p->start_qp, dealt_qp,
+                      p->start_qp - dealt_qp, p->reenc_cnt);
             p->start_qp -= dealt_qp;
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
+            rc_dbg_rc("qp %d -> %d\n", p->start_qp, qp_scale >> 6);
             p->start_qp = qp_scale >> 6;
             if (frm->ref_mode == REF_TO_PREV_INTRA && usr_cfg->vi_quality_delta) {
+                rc_dbg_rc("qp %d -> %d (vi)\n", p->start_qp, p->start_qp - usr_cfg->vi_quality_delta);
                 p->start_qp -= usr_cfg->vi_quality_delta;
             }
         }
-        rc_dbg_rc("i_quality_delta %d, vi_quality_delta %d", dealt_qp, usr_cfg->vi_quality_delta);
     }
 
     p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);

@@ -524,6 +524,11 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->qp_min_i = src->qp_min_i ? src->qp_min_i : src->qp_min;
         dst->change |= MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I;
     }
+    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_QP_STEP) &&
+        (dst->qp_max_step != src->qp_max_step)) {
+        dst->qp_max_step = src->qp_max_step;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_QP_STEP;
+    }
     if ((change & MPP_ENC_H264_CFG_CHANGE_QP_DELTA) &&
         (dst->qp_delta_ip != src->qp_delta_ip)) {
         dst->qp_delta_ip = src->qp_delta_ip;

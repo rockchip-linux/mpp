@@ -369,12 +369,19 @@ static RK_S32 check_codec_to_rc_cfg_update(MppEncCodecCfg *codec)
     switch (coding) {
     case MPP_VIDEO_CodingAVC : {
         MppEncH264Cfg *h264 = &codec->h264;
-        if (h264->change | MPP_ENC_H264_CFG_CHANGE_QP_LIMIT)
+        if (h264->change &
+            (MPP_ENC_H264_CFG_CHANGE_QP_LIMIT |
+             MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I |
+             MPP_ENC_H264_CFG_CHANGE_QP_DELTA))
             return 1;
     } break;
     case MPP_VIDEO_CodingHEVC : {
         MppEncH265Cfg *h265 = &codec->h265;
-        if (h265->change | MPP_ENC_H265_CFG_RC_QP_CHANGE)
+        if (h265->change &
+            (MPP_ENC_H265_CFG_RC_QP_CHANGE |
+             MPP_ENC_H265_CFG_RC_I_QP_CHANGE |
+             MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE |
+             MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE))
             return 1;
     } break;
     case MPP_VIDEO_CodingVP8 : {
