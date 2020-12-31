@@ -71,7 +71,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->max_i_qp = 51;
     h265->min_i_qp = 10;
     h265->qpmap_mode = 1;
-    h265->ip_qp_delta = 3;
+    h265->ip_qp_delta = 5;
     h265->raw_dealt_qp = 4;
     h265->max_delta_qp = 10;
     h265->const_intra_pred = 0;
@@ -543,10 +543,18 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         dst->qp_init = src->qp_init;
         dst->max_qp = src->max_qp;
         dst->min_qp = src->min_qp;
+    }
+
+    if (change & MPP_ENC_H265_CFG_RC_I_QP_CHANGE) {
         dst->max_i_qp = src->max_i_qp;
         dst->min_i_qp = src->min_i_qp;
-        dst->ip_qp_delta = src->ip_qp_delta;
     }
+
+    if (change & MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE)
+        dst->max_delta_qp = src->max_delta_qp;
+
+    if (change & MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE)
+        dst->ip_qp_delta = src->ip_qp_delta;
 
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
