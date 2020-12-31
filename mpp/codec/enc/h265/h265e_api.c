@@ -115,6 +115,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     prep->hor_stride = 1280;
     prep->ver_stride = 720;
     prep->format = MPP_FMT_YUV420SP;
+    prep->color = MPP_FRAME_SPC_UNSPECIFIED;
+    prep->colorprim = MPP_FRAME_PRI_UNSPECIFIED;
+    prep->colortrc = MPP_FRAME_TRC_UNSPECIFIED;
+    prep->range = MPP_FRAME_RANGE_UNSPECIFIED;
     prep->rotation = MPP_ENC_ROT_0;
     prep->mirroring = 0;
     prep->denoise = 0;
