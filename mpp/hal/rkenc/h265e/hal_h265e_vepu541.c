@@ -537,7 +537,7 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
 {
     memcpy(&regs->lvl32_intra_CST_THD0, lvl32_intra_cst_thd, sizeof(lvl32_intra_cst_thd));
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
-    memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
+    memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl32_intra_cst_wgt));
     memcpy(&regs->lvl16_intra_CST_WGT0, lvl16_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
     regs->rdo_quant.quant_f_bias_I = 171;
     regs->rdo_quant.quant_f_bias_P = 171;
@@ -867,11 +867,11 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
     RK_S32 negative_bits_thd, positive_bits_thd;
 
     if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-        regs->enc_pic.pic_qp      = rc_cfg->quality_target;
-        regs->synt_sli1.sli_qp    = rc_cfg->quality_target;
+        regs->enc_pic.pic_qp    = rc_cfg->quality_target;
+        regs->synt_sli1.sli_qp  = rc_cfg->quality_target;
 
-        regs->rc_qp.rc_max_qp     = rc_cfg->quality_target;
-        regs->rc_qp.rc_min_qp     = rc_cfg->quality_target;
+        regs->rc_qp.rc_max_qp   = rc_cfg->quality_target;
+        regs->rc_qp.rc_min_qp   = rc_cfg->quality_target;
     } else {
         if (ctu_target_bits_mul_16 >= 0x100000) {
             ctu_target_bits_mul_16 = 0x50000;
@@ -880,33 +880,28 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         negative_bits_thd = 0 - ctu_target_bits / 5;
         positive_bits_thd = ctu_target_bits / 4;
 
-        regs->enc_pic.pic_qp      = rc_cfg->quality_target;
-        regs->synt_sli1.sli_qp    = rc_cfg->quality_target;
-        regs->rc_cfg.rc_en        = 1;
-        regs->rc_cfg.aqmode_en    = 1;
-        regs->rc_cfg.qp_mode      = 1;
+        regs->enc_pic.pic_qp    = rc_cfg->quality_target;
+        regs->synt_sli1.sli_qp  = rc_cfg->quality_target;
+        regs->rc_cfg.rc_en      = 1;
+        regs->rc_cfg.aqmode_en  = 1;
+        regs->rc_cfg.qp_mode    = 1;
 
-        regs->rc_cfg.rc_ctu_num   = mb_wd64;
+        regs->rc_cfg.rc_ctu_num = mb_wd64;
 
-        if (ctx->frame_type == INTRA_FRAME) {
-            regs->rc_qp.rc_qp_range = 2;
-        } else {
-            regs->rc_qp.rc_qp_range = h265->raw_dealt_qp;
-        }
+        regs->rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ? 0 : 2;
+        regs->rc_qp.rc_max_qp   = rc_cfg->quality_max;
+        regs->rc_qp.rc_min_qp   = rc_cfg->quality_min;
+        regs->rc_tgt.ctu_ebits  = ctu_target_bits_mul_16;
 
-        regs->rc_qp.rc_max_qp     = rc_cfg->quality_max;
-        regs->rc_qp.rc_min_qp     = rc_cfg->quality_min;
-        regs->rc_tgt.ctu_ebits    = ctu_target_bits_mul_16;
-
-        regs->rc_erp0.bits_thd0    = negative_bits_thd;
-        regs->rc_erp1.bits_thd1    = positive_bits_thd;
-        regs->rc_erp2.bits_thd2    = positive_bits_thd;
-        regs->rc_erp3.bits_thd3    = positive_bits_thd;
-        regs->rc_erp4.bits_thd4    = positive_bits_thd;
-        regs->rc_erp5.bits_thd5    = positive_bits_thd;
-        regs->rc_erp6.bits_thd6    = positive_bits_thd;
-        regs->rc_erp7.bits_thd7    = positive_bits_thd;
-        regs->rc_erp8.bits_thd8    = positive_bits_thd;
+        regs->rc_erp0.bits_thd0 = negative_bits_thd;
+        regs->rc_erp1.bits_thd1 = positive_bits_thd;
+        regs->rc_erp2.bits_thd2 = positive_bits_thd;
+        regs->rc_erp3.bits_thd3 = positive_bits_thd;
+        regs->rc_erp4.bits_thd4 = positive_bits_thd;
+        regs->rc_erp5.bits_thd5 = positive_bits_thd;
+        regs->rc_erp6.bits_thd6 = positive_bits_thd;
+        regs->rc_erp7.bits_thd7 = positive_bits_thd;
+        regs->rc_erp8.bits_thd8 = positive_bits_thd;
 
         regs->rc_adj0.qp_adjust0    = -1;
         regs->rc_adj0.qp_adjust1    = 0;
@@ -1404,7 +1399,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     if (!ctx->is_vepu540)
         vepu541_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, task);
 
-    regs->klut_ofst.chrm_kult_ofst = 0;
+    regs->klut_ofst.chrm_kult_ofst = (ctx->frame_type == INTRA_FRAME) ? 0 : 3;
     memcpy(&regs->klut_wgt0, &klut_weight[0], sizeof(klut_weight));
 
     regs->adr_srcy_hevc     = mpp_buffer_get_fd(enc_task->input);
@@ -1433,7 +1428,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         regs->rdo_cfg.ltm_idx0l0 = 0;
     }
 
-    regs->rdo_cfg.chrm_klut_en = 0;
+    regs->rdo_cfg.chrm_klut_en = 1;
     regs->rdo_cfg.seq_scaling_matrix_present_flg = syn->pp.scaling_list_enabled_flag;
     {
         RK_U32 i_nal_type = 0;
