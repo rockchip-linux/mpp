@@ -114,13 +114,17 @@ RK_U32 klut_weight[24] = {
     0x00010000, 0x660000A1, 0x00020000, 0xCC000142, 0xFF83FFFF, 0x000001FF
 };
 RK_U8 aq_thd_default[16] = {
-    0, 0, 0, 0,  3,  3,  5,  5,
-    8, 8, 8, 15, 15, 20, 25, 35
+    0,  0,  0,  0,
+    3,  3,  5,  5,
+    8,  8,  8,  15,
+    15, 20, 25, 35
 };
 
 RK_S8 aq_qp_dealt_default[16] = {
-    -8, -7, -6, -5, -4, -3, -2, -1,
-    0,  1,  2,  3,  4,  5,  6,  8,
+    -8, -7, -6, -5,
+    -4, -3, -2, -1,
+    0,  1,  2,  2,
+    3,  3,  4,  4,
 };
 
 RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
@@ -539,8 +543,8 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
     memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl32_intra_cst_wgt));
     memcpy(&regs->lvl16_intra_CST_WGT0, lvl16_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
-    regs->rdo_quant.quant_f_bias_I = 171;
-    regs->rdo_quant.quant_f_bias_P = 171;
+    regs->rdo_quant.quant_f_bias_I = 0;
+    regs->rdo_quant.quant_f_bias_P = 0;
     memcpy(&regs->atr_thd0, atr_thd, sizeof(atr_thd));
     memcpy(&regs->lvl16_atr_wgt, lvl16_4_atr_wgt, sizeof(lvl16_4_atr_wgt));
     if (!ctx->is_vepu540) {
