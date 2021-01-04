@@ -167,8 +167,8 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->sli_tmprl_mvp_en    = slice->m_enableTMVPFlag;
 
     sp->pic_out_flg         = slice->m_picOutputFlag;
-    sp->slice_type            = slice->m_sliceType;
-    sp->slice_rsrv_flg        = 0;
+    sp->slice_type          = slice->m_sliceType;
+    sp->slice_rsrv_flg      = 0;
     sp->dpdnt_sli_seg_flg   = 0;
     sp->sli_pps_id          = slice->m_pps->m_PPSId;
     sp->no_out_pri_pic      = slice->no_output_of_prior_pics_flag;
