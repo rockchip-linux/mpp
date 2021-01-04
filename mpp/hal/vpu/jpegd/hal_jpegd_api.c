@@ -24,6 +24,7 @@
 #include "hal_jpegd_base.h"
 #include "hal_jpegd_vdpu2.h"
 #include "hal_jpegd_vdpu1.h"
+#include "hal_jpegd_rkv.h"
 
 static MPP_RET hal_jpegd_reg_gen (void *hal, HalTaskInfo *task)
 {
@@ -85,6 +86,8 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
         hw_mode = VDPU2_MODE;
     if (hw_flag & HAVE_VDPU1)
         hw_mode = VDPU1_MODE;
+    if (hw_flag & HAVE_JPEG_DEC)
+        hw_mode = RKVDEC_MODE;
 
     switch (hw_mode) {
     case VDPU2_MODE:
@@ -106,6 +109,16 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
         p_api->reset = hal_jpegd_vdpu1_reset;
         p_api->flush = hal_jpegd_vdpu1_flush;
         p_api->control = hal_jpegd_vdpu1_control;
+        break;
+    case RKVDEC_MODE:
+        p_api->init = hal_jpegd_rkv_init;
+        p_api->deinit = hal_jpegd_rkv_deinit;
+        p_api->reg_gen = hal_jpegd_rkv_gen_regs;
+        p_api->start = hal_jpegd_rkv_start;
+        p_api->wait = hal_jpegd_rkv_wait;
+        p_api->reset = NULL;
+        p_api->flush = NULL;
+        p_api->control = hal_jpegd_rkv_control;
         break;
     default:
         return MPP_ERR_INIT;

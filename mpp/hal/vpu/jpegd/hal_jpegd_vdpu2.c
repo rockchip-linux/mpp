@@ -871,6 +871,11 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer streambuf = NULL;
     MppBuffer outputBuf = NULL;
 
+    ret = jpeg_image_check_size(syntax->hor_stride, syntax->ver_stride);
+
+    if (ret != MPP_OK)
+        return ret;
+
     if (syn->dec.valid) {
         syn->dec.valid = 0;
         jpegd_setup_output_fmt(JpegHalCtx, syntax, syn->dec.output);

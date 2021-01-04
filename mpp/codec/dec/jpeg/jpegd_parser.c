@@ -59,21 +59,6 @@ found:
     return val;
 }
 
-static
-MPP_RET jpeg_image_check_size(RK_U32 hor_stride, RK_U32 ver_stride)
-{
-    MPP_RET ret = MPP_OK;
-
-    if (hor_stride > MAX_WIDTH || ver_stride > MAX_HEIGHT ||
-        hor_stride < MIN_WIDTH || ver_stride < MIN_HEIGHT ||
-        hor_stride * ver_stride > MAX_STREAM_LENGTH) {
-        mpp_err_f("unsupported resolution: %dx%d\n", hor_stride, ver_stride);
-        ret = MPP_NOK;
-    }
-
-    return ret;
-}
-
 static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
 {
     MPP_RET ret = MPP_OK;
@@ -337,6 +322,9 @@ static MPP_RET jpegd_decode_dqt(JpegdCtx *ctx)
             READ_BITS(gb, pr ? 16 : 8, &value);
             syntax->quant_matrixes[index][i] = value;
         }
+        syntax->qtbl_entry++;
+        if (syntax->qtbl_entry > MAX_COMPONENTS)
+            mpp_err_f("%d entries qtbl is not supported\n", syntax->qtbl_entry);
 
         if (jpegd_debug & JPEGD_DBG_TABLE) {
             /* debug code */
@@ -430,6 +418,7 @@ static MPP_RET jpegd_decode_sof(JpegdCtx *ctx)
         mpp_err_f("bits %d is invalid\n", bits);
         return MPP_ERR_STREAM;
     }
+    syntax->sample_precision = bits;
 
     READ_BITS(gb, 16, &height);
     READ_BITS(gb, 16, &width);
@@ -440,10 +429,6 @@ static MPP_RET jpegd_decode_sof(JpegdCtx *ctx)
 
     jpegd_dbg_marker("sof0: picture: %dx%d, stride: %dx%d\n", width, height,
                      syntax->hor_stride, syntax->ver_stride);
-    if (jpeg_image_check_size(syntax->hor_stride, syntax->ver_stride)) {
-        mpp_err_f("check size failed\n");
-        return MPP_ERR_STREAM;
-    }
 
     READ_BITS(gb, 8 , &nb_components);
     if ((nb_components != 1) && (nb_components != MAX_COMPONENTS)) {
@@ -823,6 +808,11 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
         case SOF0:
             if ((ret = jpegd_decode_sof(ctx)) != MPP_OK) {
                 mpp_err_f("sof0 decode error\n");
+                goto fail;
+            }
+            if (ctx->syntax->sample_precision != 8) {
+                mpp_err_f("Illegal sample precision %d.\n\
+                    For baseline, it should be 8\n", ctx->syntax->sample_precision);
                 goto fail;
             }
             break;
@@ -1214,7 +1204,7 @@ static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 
     const char* soc_name = NULL;
     soc_name = mpp_get_soc_name();
-    if (soc_name && strstr(soc_name, "1108")) {
+    if (soc_name && (strstr(soc_name, "1108") || strstr(soc_name, "3566"))) {
         /* rv1108: no need to copy stream when decoding jpeg;
          *         just scan parts of markers to reduce CPU's occupancy
          */

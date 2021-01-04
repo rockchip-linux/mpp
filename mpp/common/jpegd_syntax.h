@@ -34,11 +34,6 @@
 #define MAX_AC_HUFFMAN_TABLE_LENGTH       (162)     /* for baseline */
 #define MAX_DC_HUFFMAN_TABLE_LENGTH       (12)      /* for baseline */
 #define MAX_HUFFMAN_CODE_BIT_LENGTH       (16)      /* The longest code word is 16 bits */
-#define MIN_WIDTH                         (48)      /* 48 Bytes */
-#define MIN_HEIGHT                        (48)      /* 48 Bytes */
-#define MAX_WIDTH                         (8*1024)  /* 4K Bytes */
-#define MAX_HEIGHT                        (8*1024)  /* 4K Bytes */
-#define MAX_STREAM_LENGTH                 (MAX_WIDTH * MAX_HEIGHT) /* 16M Bytes */
 #define ZERO_PADDING_LENGTH               (4)       /* 4 Bytes */
 #define JPEGD_BASELINE_TABLE_SIZE         (QUANTIZE_TABLE_LENGTH * 3 \
                                            + MAX_AC_HUFFMAN_TABLE_LENGTH * 2 \
@@ -186,6 +181,10 @@ typedef struct JpegdSyntax {
     RK_U32         quant_index[MAX_COMPONENTS];
 
     RK_U32         restart_interval;
+
+    RK_U8          sample_precision;
+    RK_U8          qtbl_entry;
+    RK_U8          htbl_entry;
 } JpegdSyntax;
 
 #endif /*__JPEGD_SYNTAX__*/
