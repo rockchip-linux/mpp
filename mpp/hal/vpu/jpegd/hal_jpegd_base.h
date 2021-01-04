@@ -49,14 +49,12 @@ typedef struct JpegdHalCtx {
     RK_U32                 hal_debug_enable;
     RK_U32                 frame_count;
     RK_U32                 output_yuv_count;
+    RK_U8                  scale;
 
     RK_S32                 pkt_fd;    /* input stream's physical address(fd) */
     RK_S32                 frame_fd;  /* output picture's physical address(fd) */
 
     PPInfo                 pp_info;
-
-    FILE                   *fp_reg_in;
-    FILE                   *fp_reg_out;
 } JpegdHalCtx;
 
 #endif /* __HAL_JPEGD_COMMON_H__ */
