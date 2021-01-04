@@ -53,6 +53,7 @@
 #define JPEGD_DBG_PARSER_INFO             (0x00000020) /* parser information */
 #define JPEGD_DBG_SYNTAX_ERR              (0x00000040) /* syntax error */
 #define JPEGD_DBG_HAL_INFO                (0x00000080) /* hal information */
+#define JPEGD_DBG_HAL_TBL                 (0x00000100) /* hal information */
 
 extern RK_U32 jpegd_debug;
 
