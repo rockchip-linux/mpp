@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_JPEGD_VDPU1_REG_TABLE_H__
-#define __HAL_JPEGD_VDPU1_REG_TABLE_H__
+#ifndef __HAL_JPEGD_VDPU1_REG_H__
+#define __HAL_JPEGD_VDPU1_REG_H__
 
 #include "vcodec_service.h"
 
@@ -28,7 +28,6 @@
 #define DEC_VDPU1_SCMD_DISABLE              (0)
 #define DEC_VDPU1_LATENCY_COMPENSATION      (0)
 #define DEC_VDPU1_DATA_DISCARD_ENABLE       (0)
-
 
 typedef struct {
     struct {

@@ -37,6 +37,12 @@
 #define PP_OUT_FORMAT_YUV422INTERLAVE               3
 #define PP_OUT_FORMAT_YUV420INTERLAVE               5
 
+#define MIN_WIDTH                         (48)      /* 48 Bytes */
+#define MIN_HEIGHT                        (48)      /* 48 Bytes */
+#define MAX_WIDTH                         (8*1024)  /* 4K Bytes */
+#define MAX_HEIGHT                        (8*1024)  /* 4K Bytes */
+#define MAX_STREAM_LENGTH                 (MAX_WIDTH * MAX_HEIGHT) /* 16M Bytes */
+
 static const RK_U8 zzOrder[64] = {
     0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
     12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28,
@@ -51,5 +57,7 @@ void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
 
 void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax,
                             RK_S32 output);
+
+MPP_RET jpeg_image_check_size(RK_U32 hor_stride, RK_U32 ver_stride);
 
 #endif /* __HAL_JPEGD_COMMON_H__ */

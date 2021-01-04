@@ -287,3 +287,16 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
     return;
 }
 
+MPP_RET jpeg_image_check_size(RK_U32 hor_stride, RK_U32 ver_stride)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (hor_stride > MAX_WIDTH || ver_stride > MAX_HEIGHT ||
+        hor_stride < MIN_WIDTH || ver_stride < MIN_HEIGHT ||
+        hor_stride * ver_stride > MAX_STREAM_LENGTH) {
+        mpp_err_f("unsupported resolution: %dx%d\n", hor_stride, ver_stride);
+        ret = MPP_NOK;
+    }
+
+    return ret;
+}
