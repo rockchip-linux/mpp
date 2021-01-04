@@ -375,27 +375,23 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     regs->reg3_pic_size.pic_width_m1 = s->width - 1;
     regs->reg3_pic_size.pic_height_m1 = s->height - 1;
 
-    //TODO: Get these value from parser
-    /*
-     * a. only support 8 bit precision currently
-     * b. quantization/huffman table should be parsed from parser when decoding
-     * markes, syntax->qtable_cnt is not correct match qtable_sel
-     */
+    if (s->sample_precision != DCT_SAMPLE_PRECISION_8 || s->htbl_entry > TBL_ENTRY_3
+        || s->qtbl_entry > TBL_ENTRY_3)
+        return MPP_NOK;
+
     regs->reg4_pic_fmt.pixel_depth = BIT_DEPTH_8;
     if (s->nb_components == 1) {
         regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_1;
-        regs->reg4_pic_fmt.qtables_sel = TBL_ENTRY_1;
-    } else {
-        regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_2;
-        regs->reg4_pic_fmt.qtables_sel = TBL_ENTRY_2;
     }
+
+    regs->reg4_pic_fmt.htables_sel = s->htbl_entry;
+    regs->reg4_pic_fmt.qtables_sel = s->qtbl_entry;
 
     if (s->restart_interval) {
         regs->reg4_pic_fmt.dri_e = RST_ENABLE;
         regs->reg4_pic_fmt.dri_mcu_num_m1 = s->restart_interval - 1;
     }
 
-    //TODO: map format together with vdpu1 and vdpu2 at parser layer
     switch (s->yuv_mode) {
     case JPEGDEC_YUV400:
     case JPEGDEC_YUV420:
