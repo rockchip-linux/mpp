@@ -27,6 +27,8 @@
 #define JPEGDEC_YUV440                    (5)
 #define JPEGDEC_YUV411                    (6)
 
+#define DCT_SAMPLE_PRECISION_8            (8)
+
 #define JPEGD_STREAM_BUFF_SIZE            (512*1024)
 #define MAX_COMPONENTS                    (3)       /* for JFIF: YCbCr */
 #define DRI_MARKER_LENGTH                 (4)       /* must be 4 bytes */

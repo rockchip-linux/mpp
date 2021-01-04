@@ -254,6 +254,8 @@ static MPP_RET jpegd_decode_dht(JpegdCtx *ctx)
         if (table_type == HUFFMAN_TABLE_TYPE_DC) {
             DcTable *ptr = &(syntax->dc_table[table_id]);
 
+            syntax->htbl_entry++;
+
             for (i = 0; i < num; i++) {
                 READ_BITS(gb, 8, &value);
                 ptr->vals[i] = value;
@@ -262,6 +264,8 @@ static MPP_RET jpegd_decode_dht(JpegdCtx *ctx)
             }
         } else {
             AcTable *ptr = &(syntax->ac_table[table_id]);
+
+            syntax->htbl_entry++;
 
             for (i = 0; i < num; i++) {
                 READ_BITS(gb, 8, &value);
@@ -897,6 +901,9 @@ done:
     if (!syntax->dht_found) {
         jpegd_dbg_marker("sorry, DHT is not found!\n");
         jpegd_setup_default_dht(ctx);
+        syntax->htbl_entry = syntax->nb_components;
+    } else {
+        syntax->htbl_entry /= 2;
     }
     if (!syntax->eoi_found) {
         // recheck again, maybe we done wrong
