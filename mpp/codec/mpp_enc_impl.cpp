@@ -471,6 +471,36 @@ static RK_S32 check_low_delay_part_mode(MppEncImpl *enc)
     return 1;
 }
 
+MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        if (change & MPP_ENC_HW_CFG_CHANGE_QP_ROW)
+            dst->qp_delta_row = src->qp_delta_row;
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_QP_ROW_I)
+            dst->qp_delta_row_i = src->qp_delta_row_i;
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_THRD_I)
+            memcpy(dst->aq_thrd_i, src->aq_thrd_i, sizeof(dst->aq_thrd_i));
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P)
+            memcpy(dst->aq_thrd_p, src->aq_thrd_p, sizeof(dst->aq_thrd_p));
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I)
+            memcpy(dst->aq_step_i, src->aq_step_i, sizeof(dst->aq_step_i));
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P)
+            memcpy(dst->aq_step_p, src->aq_step_p, sizeof(dst->aq_step_p));
+
+        dst->change |= change;
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -489,6 +519,12 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
                 dst->base.low_delay = src->base.low_delay;
 
             src->base.change = 0;
+        }
+
+        /* process hardware cfg at mpp_enc module */
+        if (src->hw.change) {
+            ret = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
+            src->hw.change = 0;
         }
 
         ret = enc_impl_proc_cfg(enc->impl, cmd, param);
