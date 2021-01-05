@@ -14,5 +14,6 @@ add_library(${CODEC_JPEGD} STATIC
 
 set_target_properties(${CODEC_JPEGD} PROPERTIES FOLDER "mpp/codec")
 target_link_libraries(${CODEC_JPEGD} mpp_base)
+add_definitions(-D_GNU_SOURCE)
 
 #add_subdirectory(test)

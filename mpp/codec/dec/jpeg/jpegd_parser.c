@@ -17,6 +17,8 @@
 
 #define MODULE_TAG "jpegd_parser"
 
+#include <string.h>
+
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_soc.h"
@@ -30,33 +32,40 @@ RK_U32 jpegd_debug = 0x0;
 
 /* return the 8 bit start code value and update the search
    state. Return -1 if no start code found */
-static RK_S32 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
+static RK_U8 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
 {
-    const RK_U8 *buf_ptr;
-    unsigned int v, v2;
-    int val;
-    int skipped = 0;
+    const RK_U8 *buf_ptr = NULL;
+    RK_U8 val = 0;
+    RK_U8 start_code = 0xff;
+    RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
 
-    buf_ptr = *pbuf_ptr;
-    while (buf_end - buf_ptr > 1) {
-        v  = *buf_ptr++;
-        v2 = *buf_ptr;
-        if ((v == 0xff) && (v2 >= 0xc0) && (v2 <= 0xfe) && buf_ptr < buf_end) {
-            val = *buf_ptr++;
-            goto found;
-        } else if ((v == 0x89) && (v2 == 0x50)) {
-            // many usb camera go here, log if set jpegd debug
-            jpegd_dbg_marker("input img maybe png format,check it\n");
-        }
-        skipped++;
+    buf_ptr = memchr(*pbuf_ptr, start_code, buf_size);
+    if (buf_ptr && (buf_end > buf_ptr) && *(buf_ptr + 1) >= 0xc0 && *(buf_ptr + 1) <= 0xfe) {
+        val = *(buf_ptr + 1);
+        jpegd_dbg_marker("find_marker skipped %d bytes\n", buf_ptr - *pbuf_ptr);
+        goto found;
+    } else {
+        buf_ptr = buf_end;
     }
-    buf_ptr = buf_end;
-    val = -1;
 
 found:
-    jpegd_dbg_marker("find_marker skipped %d bytes\n", skipped);
-    *pbuf_ptr = buf_ptr;
+    *pbuf_ptr = buf_ptr + 2;
     return val;
+}
+
+static MPP_RET jpegd_find_eoi(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
+{
+    const RK_U8 *buf_ptr = NULL;
+    RK_S32 eoi = 0xffd9;
+    RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
+
+    buf_ptr = memrchr(*pbuf_ptr, eoi, buf_size);
+
+    if (buf_ptr && (buf_end > buf_ptr)) {
+        return MPP_OK;
+    }
+
+    return MPP_NOK;
 }
 
 static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
@@ -764,7 +773,6 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     }
 
     while (buf_ptr < buf_end) {
-        int section_finish = 1;
         /* find start marker */
         start_code = jpegd_find_marker(&buf_ptr, buf_end);
         if (start_code < 0) {
@@ -863,37 +871,17 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
                 goto fail;
             }
             break;
-        case SOF2:
-        case SOF3:
-        case SOF5:
-        case SOF6:
-        case SOF7:
-        case SOF9:
-        case SOF10:
-        case SOF11:
-        case SOF13:
-        case SOF14:
-        case SOF15:
-        case SOF48:
-        case LSE:
-        case JPG:
-            section_finish = 0;
-            mpp_log("jpeg: unsupported coding type (0x%x)\n", start_code);
-            break;
         default:
-            section_finish = 0;
             jpegd_dbg_marker("unhandled coding type(0x%x) in switch..case..\n",
                              start_code);
-            break;
-        }
-
-        if (!section_finish) {
             if ((ret = jpegd_skip_section(ctx)) != MPP_OK) {
                 jpegd_dbg_marker("Fail to skip section 0xFF%02x!\n",
                                  start_code);
                 goto fail;
             }
+            break;
         }
+
         buf_ptr = ctx->bit_ctx->data_;
     }
 
@@ -906,11 +894,7 @@ done:
         syntax->htbl_entry /= 2;
     }
     if (!syntax->eoi_found) {
-        // recheck again, maybe we done wrong
-        const RK_U8 *buf_end_ = buf_end;
-        while (*(--buf_end_) == 0)
-            buf_size--;
-        if (buf_size < 2 || *(buf_end_ - 1) != 0xFF || *buf_end_ != EOI) {
+        if (MPP_OK != jpegd_find_eoi(&buf_ptr, buf_end)) {
             mpp_err_f("EOI marker not found!\n");
             ret = MPP_ERR_STREAM;
         }
