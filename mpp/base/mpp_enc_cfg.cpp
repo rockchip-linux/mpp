@@ -137,6 +137,14 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(rc,   super_mode,     U32, MppEncRcSuperFrameMode, MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,   rc, super_mode) \
     ENTRY(rc,   super_i_thd,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,        rc, super_i_thd) \
     ENTRY(rc,   super_p_thd,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,        rc, super_p_thd) \
+    ENTRY(rc,   qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
+    ENTRY(rc,   qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
+    ENTRY(rc,   qp_max,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_max) \
+    ENTRY(rc,   qp_min_i,       S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_min_i) \
+    ENTRY(rc,   qp_max_i,       S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_max_i) \
+    ENTRY(rc,   qp_step,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
+    ENTRY(rc,   qp_ip,          S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
+    ENTRY(rc,   qp_vi,          S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_VI,            rc, qp_delta_vi) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
@@ -214,7 +222,14 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(jpeg, qf_min,         S32, RK_S32,            MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, qf_min) \
     /* split config */ \
     ENTRY(split, mode,          U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
-    ENTRY(split, arg,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg)
+    ENTRY(split, arg,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg) \
+    /* hardware detail config */ \
+    ENTRY(hw,   qp_row,         S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QP_ROW,           hw, qp_delta_row) \
+    ENTRY(hw,   qp_row_i,       S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QP_ROW_I,         hw, qp_delta_row_i) \
+    ENTRY(hw,   aq_thrd_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_THRD_I,        hw, aq_thrd_i) \
+    ENTRY(hw,   aq_thrd_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P,        hw, aq_thrd_p) \
+    ENTRY(hw,   aq_step_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I,        hw, aq_step_i) \
+    ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p)
 
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
@@ -228,7 +243,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 40;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 89;
 
 class MppEncCfgService
 {

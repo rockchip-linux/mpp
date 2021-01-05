@@ -43,6 +43,19 @@ int main()
 
     RK_S32 rc_mode = 1;
     RK_S32 bps_target = 400000;
+    RK_S32 aq_thrd_i[16] = {
+        0,  0,  0,  0,
+        3,  3,  5,  5,
+        8,  8,  8,  15,
+        15, 20, 25, 35
+    };
+
+    RK_S32 aq_thrd_i_ret[16] = {
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+    };
 
     MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg;
 
@@ -67,8 +80,22 @@ int main()
 
     ret = mpp_enc_cfg_get_s32(cfg, "rc:mode", &rc_mode);
     ret = mpp_enc_cfg_get_s32(cfg, "rc:bps_target", &bps_target);
-
     mpp_log("after  get: rc mode %d bps_target %d\n", rc_mode, bps_target);
+
+    mpp_log("before set: rc aq_thrd_i: %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            aq_thrd_i_ret[0], aq_thrd_i_ret[1], aq_thrd_i_ret[2], aq_thrd_i_ret[3],
+            aq_thrd_i_ret[4], aq_thrd_i_ret[5], aq_thrd_i_ret[6], aq_thrd_i_ret[7],
+            aq_thrd_i_ret[8], aq_thrd_i_ret[9], aq_thrd_i_ret[10], aq_thrd_i_ret[11],
+            aq_thrd_i_ret[12], aq_thrd_i_ret[13], aq_thrd_i_ret[14], aq_thrd_i_ret[15]);
+
+    ret = mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_thrd_i);
+    ret = mpp_enc_cfg_get_st(cfg, "hw:aq_step_i", aq_thrd_i_ret);
+
+    mpp_log("after  get: rc aq_thrd_i: %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            aq_thrd_i_ret[0], aq_thrd_i_ret[1], aq_thrd_i_ret[2], aq_thrd_i_ret[3],
+            aq_thrd_i_ret[4], aq_thrd_i_ret[5], aq_thrd_i_ret[6], aq_thrd_i_ret[7],
+            aq_thrd_i_ret[8], aq_thrd_i_ret[9], aq_thrd_i_ret[10], aq_thrd_i_ret[11],
+            aq_thrd_i_ret[12], aq_thrd_i_ret[13], aq_thrd_i_ret[14], aq_thrd_i_ret[15]);
 
     ret = mpp_enc_cfg_deinit(cfg);
     if (ret) {

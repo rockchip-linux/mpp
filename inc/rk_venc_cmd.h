@@ -181,6 +181,17 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO = (1 << 13),
     MPP_ENC_RC_CFG_CHANGE_PRIORITY      = (1 << 14),
     MPP_ENC_RC_CFG_CHANGE_SUPER_FRM     = (1 << 15),
+    /* qp related change flag */
+    MPP_ENC_RC_CFG_CHANGE_QP_INIT       = (1 << 16),
+    MPP_ENC_RC_CFG_CHANGE_QP_RANGE      = (1 << 17),
+    MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I    = (1 << 18),
+    MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP   = (1 << 19),
+    MPP_ENC_RC_CFG_CHANGE_QP_IP         = (1 << 20),
+    MPP_ENC_RC_CFG_CHANGE_QP_VI         = (1 << 21),
+    MPP_ENC_RC_CFG_CHANGE_QP_ROW        = (1 << 22),
+    MPP_ENC_RC_CFG_CHANGE_QP_ROW_I      = (1 << 23),
+    MPP_ENC_RC_CFG_CHANGE_AQ_THRD_I     = (1 << 24),
+    MPP_ENC_RC_CFG_CHANGE_AQ_THRD_P     = (1 << 25),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -332,10 +343,50 @@ typedef struct MppEncRcCfg_t {
 
     MppEncRcPriority        rc_priority;
 
-    RK_S32  max_i_prop;
-    RK_S32  min_i_prop;
-    RK_S32  init_ip_ratio;
+    RK_S32                  max_i_prop;
+    RK_S32                  min_i_prop;
+    RK_S32                  init_ip_ratio;
+
+    /* general qp control */
+    RK_S32                  qp_init;
+    RK_S32                  qp_max;
+    RK_S32                  qp_max_i;
+    RK_S32                  qp_min;
+    RK_S32                  qp_min_i;
+    RK_S32                  qp_max_step;                /* delta qp between each two P frame */
+    RK_S32                  qp_delta_ip;                /* delta qp between I and P */
+    RK_S32                  qp_delta_vi;                /* delta qp between vi and P */
 } MppEncRcCfg;
+
+
+typedef enum MppEncHwCfgChange_e {
+    /* qp related hardware config flag */
+    MPP_ENC_HW_CFG_CHANGE_QP_ROW        = (1 << 0),
+    MPP_ENC_HW_CFG_CHANGE_QP_ROW_I      = (1 << 1),
+    MPP_ENC_HW_CFG_CHANGE_AQ_THRD_I     = (1 << 2),
+    MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P     = (1 << 3),
+    MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I     = (1 << 4),
+    MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P     = (1 << 5),
+    MPP_ENC_HW_CFG_CHANGE_ALL           = (0xFFFFFFFF),
+} MppEncHwCfgChange;
+
+/*
+ * Hardware related rate control config
+ *
+ * This config will open some detail feature to external user to control
+ * hardware behavior directly.
+ */
+typedef struct MppEncHwCfg_t {
+    RK_U32                  change;
+
+    /* vepu541/vepu540 */
+    RK_S32                  qp_delta_row;               /* delta qp between two row in P frame */
+    RK_S32                  qp_delta_row_i;             /* delta qp between two row in I frame */
+    RK_U32                  aq_thrd_i[16];
+    RK_U32                  aq_thrd_p[16];
+    RK_S32                  aq_step_i[16];
+    RK_S32                  aq_step_p[16];
+} MppEncHwCfg;
 
 /*
  * Mpp preprocess parameter

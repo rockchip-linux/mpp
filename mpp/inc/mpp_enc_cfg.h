@@ -35,6 +35,9 @@ typedef struct MppEncCfgSet_t {
     MppEncPrepCfg       prep;
     MppEncRcCfg         rc;
 
+    // hardware related config
+    MppEncHwCfg         hw;
+
     // codec detail config
     MppEncCodecCfg      codec;
 
