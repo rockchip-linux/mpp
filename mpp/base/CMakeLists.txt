@@ -21,6 +21,7 @@ add_library(mpp_base STATIC
     mpp_bitwrite.c
     mpp_bitread.c
     mpp_bitput.c
+    mpp_cfg.cpp
     mpp_2str.c
     )
 

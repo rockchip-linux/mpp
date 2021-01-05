@@ -45,15 +45,4 @@ typedef struct MppEncCfgSet_t {
     MppEncOSDPlt        plt_data;
 } MppEncCfgSet;
 
-/*
- * MppEncCfgApi is the function set for configure MppEncCfgSet by name
- */
-typedef struct MppEncCfgApi_t {
-    const char          *name;
-    RK_S32              type_set;
-    RK_S32              type_get;
-    void                *api_set;
-    void                *api_get;
-} MppEncCfgApi;
-
 #endif /*__MPP_ENC_CFG_H__*/
