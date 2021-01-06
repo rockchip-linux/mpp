@@ -1368,12 +1368,6 @@ static MPP_RET vepu22_check_code_cfg_change(HalH265eCtx* ctx, MppEncH265Cfg* set
             cfg->intra_qp = set->intra_qp;
         }
 
-        if (set->change & MPP_ENC_H265_CFG_RC_QP_CHANGE) {
-            cfg->max_qp = set->max_qp;
-            cfg->min_qp = set->min_qp;
-            cfg->max_delta_qp = set->max_delta_qp;
-        }
-
         if (set->change & MPP_ENC_H265_CFG_INTRA_REFRESH_CHANGE) {
             cfg->intra_refresh_mode = set->intra_refresh_mode;
             cfg->intra_refresh_arg = set->intra_refresh_arg;

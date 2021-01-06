@@ -558,6 +558,12 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     rc_cfg->fps_out_flex = 0;
     rc_cfg->gop = 60;
     rc_cfg->max_reenc_times = 1;
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        /* constant QP mode qp is fixed */
+        rc_cfg->qp_max   = 26;
+        rc_cfg->qp_min   = 26;
+        rc_cfg->qp_init  = 26;
+    }
 
     ret = enc_mpi->control(*enc_ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
     if (ret) {
@@ -586,14 +592,6 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     codec_cfg->h264.level    = 40;
     codec_cfg->h264.entropy_coding_mode  = 1;
     codec_cfg->h264.cabac_init_idc  = 0;
-
-    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-        /* constant QP mode qp is fixed */
-        codec_cfg->h264.qp_max   = 26;
-        codec_cfg->h264.qp_min   = 26;
-        codec_cfg->h264.qp_init  = 26;
-        codec_cfg->h264.change |= MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
-    }
 
     ret = enc_mpi->control(*enc_ctx, MPP_ENC_SET_CODEC_CFG, codec_cfg);
     if (ret) {

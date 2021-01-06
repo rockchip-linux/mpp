@@ -403,6 +403,34 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     rc_cfg->gop              = p->gop;
     rc_cfg->max_reenc_times  = 1;
 
+    if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        /* constant QP mode qp is fixed */
+        p->qp_max   = p->qp_init;
+        p->qp_min   = p->qp_init;
+        p->qp_step  = 0;
+    } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
+        /* constant bitrate do not limit qp range */
+        p->qp_max   = 48;
+        p->qp_min   = 4;
+        p->qp_step  = 16;
+        p->qp_init  = 0;
+    } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
+        /* variable bitrate has qp min limit */
+        p->qp_max   = 40;
+        p->qp_min   = 12;
+        p->qp_step  = 8;
+        p->qp_init  = 0;
+    }
+
+    rc_cfg->qp_max          = p->qp_max;
+    rc_cfg->qp_min          = p->qp_min;
+    rc_cfg->qp_max_i        = p->qp_max;
+    rc_cfg->qp_min_i        = p->qp_min;
+    rc_cfg->qp_init         = p->qp_init;
+    rc_cfg->qp_max_step     = p->qp_step;
+    rc_cfg->qp_delta_ip     = 4;
+    rc_cfg->qp_delta_vi     = 2;
+
     mpp_log("mpi_enc_test bps %d fps %d gop %d\n",
             rc_cfg->bps_target, rc_cfg->fps_out_num, rc_cfg->gop);
     ret = mpi->control(ctx, MPP_ENC_SET_RC_CFG, rc_cfg);
@@ -416,8 +444,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
     case MPP_VIDEO_CodingAVC : {
         codec_cfg->h264.change = MPP_ENC_H264_CFG_CHANGE_PROFILE |
                                  MPP_ENC_H264_CFG_CHANGE_ENTROPY |
-                                 MPP_ENC_H264_CFG_CHANGE_TRANS_8x8 |
-                                 MPP_ENC_H264_CFG_CHANGE_QP_LIMIT;
+                                 MPP_ENC_H264_CFG_CHANGE_TRANS_8x8;
         /*
          * H.264 profile_idc parameter
          * 66  - Baseline profile
@@ -437,29 +464,6 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->h264.entropy_coding_mode  = 1;
         codec_cfg->h264.cabac_init_idc  = 0;
         codec_cfg->h264.transform8x8_mode = 1;
-
-        if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-            /* constant QP mode qp is fixed */
-            p->qp_max   = p->qp_init;
-            p->qp_min   = p->qp_init;
-            p->qp_step  = 0;
-        } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_CBR) {
-            /* constant bitrate do not limit qp range */
-            p->qp_max   = 48;
-            p->qp_min   = 4;
-            p->qp_step  = 16;
-            p->qp_init  = 0;
-        } else if (rc_cfg->rc_mode == MPP_ENC_RC_MODE_VBR) {
-            /* variable bitrate has qp min limit */
-            p->qp_max   = 40;
-            p->qp_min   = 12;
-            p->qp_step  = 8;
-            p->qp_init  = 0;
-        }
-
-        codec_cfg->h264.qp_max      = p->qp_max;
-        codec_cfg->h264.qp_min      = p->qp_min;
-        codec_cfg->h264.qp_init     = p->qp_init;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         codec_cfg->jpeg.change      = MPP_ENC_JPEG_CFG_CHANGE_QFACTOR;
@@ -467,14 +471,7 @@ MPP_RET test_mpp_setup(MpiEncTestData *p)
         codec_cfg->jpeg.qf_min      = 1;
         codec_cfg->jpeg.qf_max      = 99;
     } break;
-    case MPP_VIDEO_CodingHEVC : {
-        codec_cfg->h265.change = MPP_ENC_H265_CFG_INTRA_QP_CHANGE | MPP_ENC_H265_CFG_RC_QP_CHANGE;
-        codec_cfg->h265.qp_init = -1;
-        codec_cfg->h265.max_i_qp = 46;
-        codec_cfg->h265.min_i_qp = 24;
-        codec_cfg->h265.max_qp = 51;
-        codec_cfg->h265.min_qp = 10;
-    } break;
+    case MPP_VIDEO_CodingHEVC :
     case MPP_VIDEO_CodingVP8 :
     default : {
         mpp_err_f("support encoder coding type %d\n", codec_cfg->coding);

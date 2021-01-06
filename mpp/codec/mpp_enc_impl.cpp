@@ -264,28 +264,17 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
 
 static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
 {
-    MppCodingType coding = codec->coding;
-    RK_U32 skip_flag = 0;
-
-    switch (coding) {
+    switch (codec->coding) {
     case MPP_VIDEO_CodingAVC : {
-        MppEncH264Cfg *h264 = &codec->h264;
-
-        skip_flag = MPP_ENC_H264_CFG_CHANGE_QP_LIMIT | MPP_ENC_H264_CFG_CHANGE_MAX_TID;
-
-        if (h264->change & (~skip_flag))
+        if (codec->h264.change)
             return 1;
     } break;
     case MPP_VIDEO_CodingHEVC : {
-        MppEncH265Cfg *h265 = &codec->h265;
-        if (h265->change & (~MPP_ENC_H265_CFG_RC_QP_CHANGE))
+        if (codec->h265.change)
             return 1;
-    }
-    break;
-    case MPP_VIDEO_CodingVP8 : {
     } break;
-    case MPP_VIDEO_CodingMJPEG : {
-    } break;
+    case MPP_VIDEO_CodingVP8 :
+    case MPP_VIDEO_CodingMJPEG :
     default : {
     } break;
     }
@@ -362,50 +351,12 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
     return resend;
 }
 
-static RK_S32 check_codec_to_rc_cfg_update(MppEncCodecCfg *codec)
-{
-    MppCodingType coding = codec->coding;
-
-    switch (coding) {
-    case MPP_VIDEO_CodingAVC : {
-        MppEncH264Cfg *h264 = &codec->h264;
-        if (h264->change &
-            (MPP_ENC_H264_CFG_CHANGE_QP_LIMIT |
-             MPP_ENC_H264_CFG_CHANGE_QP_LIMIT_I |
-             MPP_ENC_H264_CFG_CHANGE_QP_DELTA))
-            return 1;
-    } break;
-    case MPP_VIDEO_CodingHEVC : {
-        MppEncH265Cfg *h265 = &codec->h265;
-        if (h265->change &
-            (MPP_ENC_H265_CFG_RC_QP_CHANGE |
-             MPP_ENC_H265_CFG_RC_I_QP_CHANGE |
-             MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE |
-             MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE))
-            return 1;
-    } break;
-    case MPP_VIDEO_CodingVP8 : {
-    } break;
-    case MPP_VIDEO_CodingMJPEG : {
-    } break;
-    default : {
-    } break;
-    }
-
-    return 0;
-}
-
 static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
 {
     if (cmd == MPP_ENC_SET_RC_CFG ||
         cmd == MPP_ENC_SET_PREP_CFG ||
         cmd == MPP_ENC_SET_REF_CFG) {
         return 1;
-    }
-
-    if (cmd == MPP_ENC_SET_CODEC_CFG) {
-        if (check_codec_to_rc_cfg_update(&cfg->codec))
-            return 1;
     }
 
     if (cmd == MPP_ENC_SET_CFG) {
@@ -417,16 +368,12 @@ static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
             return 1;
 
         change = cfg->rc.change;
-        check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                     MPP_ENC_RC_CFG_CHANGE_BPS |
-                     MPP_ENC_RC_CFG_CHANGE_FPS_IN |
-                     MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
-                     MPP_ENC_RC_CFG_CHANGE_GOP;
+        check_flag = MPP_ENC_RC_CFG_CHANGE_ALL &
+                     (~MPP_ENC_RC_CFG_CHANGE_QUALITY |
+                      MPP_ENC_RC_CFG_CHANGE_AQ_THRD_I |
+                      MPP_ENC_RC_CFG_CHANGE_AQ_THRD_P);
 
         if (change & check_flag)
-            return 1;
-
-        if (check_codec_to_rc_cfg_update(&cfg->codec))
             return 1;
     }
 
@@ -469,6 +416,137 @@ static RK_S32 check_low_delay_part_mode(MppEncImpl *enc)
         return 0;
 
     return 1;
+}
+
+MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncRcCfg bak = *dst;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
+            dst->rc_mode = src->rc_mode;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
+            dst->quality = src->quality;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
+            dst->bps_target = src->bps_target;
+            dst->bps_max = src->bps_max;
+            dst->bps_min = src->bps_min;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
+            dst->fps_in_flex = src->fps_in_flex;
+            dst->fps_in_num = src->fps_in_num;
+            dst->fps_in_denorm = src->fps_in_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
+            dst->fps_out_flex = src->fps_out_flex;
+            dst->fps_out_num = src->fps_out_num;
+            dst->fps_out_denorm = src->fps_out_denorm;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
+            dst->gop = src->gop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
+            dst->max_reenc_times = src->max_reenc_times;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_DROP_FRM) {
+            dst->drop_mode = src->drop_mode;
+            dst->drop_threshold = src->drop_threshold;
+            dst->drop_gap = src->drop_gap;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_PRIORITY) {
+            if (src->rc_priority >= MPP_ENC_RC_PRIORITY_BUTT) {
+                mpp_err("invalid rc_priority %d should be[%d, %d] \n",
+                        src->rc_priority, MPP_ENC_RC_BY_BITRATE_FIRST, MPP_ENC_RC_PRIORITY_BUTT);
+                ret = MPP_ERR_VALUE;
+            }
+            dst->rc_priority = src->rc_priority;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_SUPER_FRM) {
+            if (src->super_mode >= MPP_ENC_RC_SUPER_FRM_BUTT) {
+                mpp_err("invalid super_mode %d should be[%d, %d] \n",
+                        src->super_mode, MPP_ENC_RC_SUPER_FRM_NONE, MPP_ENC_RC_SUPER_FRM_BUTT);
+                ret = MPP_ERR_VALUE;
+            }
+            dst->super_mode = src->super_mode;
+            dst->super_i_thd = src->super_i_thd;
+            dst->super_p_thd = src->super_p_thd;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
+            dst->max_i_prop = src->max_i_prop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP)
+            dst->min_i_prop = src->min_i_prop;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO)
+            dst->init_ip_ratio = src->init_ip_ratio;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_INIT)
+            dst->qp_init = src->qp_init;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_RANGE) {
+            dst->qp_min = src->qp_min;
+            dst->qp_max = src->qp_max;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I) {
+            dst->qp_min_i = src->qp_min_i;
+            dst->qp_max_i = src->qp_max_i;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP)
+            dst->qp_max_step = src->qp_max_step;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_IP)
+            dst->qp_delta_ip = src->qp_delta_ip;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_QP_VI)
+            dst->qp_delta_vi = src->qp_delta_vi;
+
+        // parameter checking
+        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
+                    src->rc_mode);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
+                    dst->quality);
+            ret = MPP_ERR_VALUE;
+        }
+        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
+                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
+                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
+                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
+                        dst->bps_target, dst->bps_min, dst->bps_max);
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
+        dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new rc config\n");
+            *dst = bak;
+        } else {
+            mpp_log("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
+                    dst->bps_target, dst->bps_min, dst->bps_max,
+                    dst->fps_in_num, dst->fps_out_num, dst->gop);
+        }
+    }
+
+    return ret;
 }
 
 MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
@@ -521,13 +599,25 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
             src->base.change = 0;
         }
 
+        /* process rc cfg at mpp_enc module */
+        if (src->rc.change) {
+            ret = mpp_enc_proc_rc_cfg(&enc->cfg.rc, &src->rc);
+            src->rc.change = 0;
+        }
+
         /* process hardware cfg at mpp_enc module */
         if (src->hw.change) {
             ret = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
             src->hw.change = 0;
         }
 
+        /* Then process the rest config */
         ret = enc_impl_proc_cfg(enc->impl, cmd, param);
+    } break;
+    case MPP_ENC_SET_RC_CFG : {
+        MppEncRcCfg *src = (MppEncRcCfg *)param;
+        if (src)
+            ret = mpp_enc_proc_rc_cfg(&enc->cfg.rc, src);
     } break;
     case MPP_ENC_GET_HDR_SYNC :
     case MPP_ENC_GET_EXTRA_INFO : {
@@ -814,34 +904,16 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 
     /* quality configure */
     switch (codec->coding) {
-    case MPP_VIDEO_CodingAVC : {
-        MppEncH264Cfg *h264 = &codec->h264;
-
-        cfg->init_quality = h264->qp_init;
-        cfg->max_quality = h264->qp_max;
-        cfg->min_quality = h264->qp_min;
-        cfg->max_i_quality = h264->qp_max_i ? h264->qp_max_i : h264->qp_max;
-        cfg->min_i_quality = h264->qp_min_i ? h264->qp_min_i : h264->qp_min;
-        cfg->i_quality_delta = h264->qp_delta_ip;
-    } break;
-    case MPP_VIDEO_CodingHEVC : {
-        MppEncH265Cfg *h265 = &codec->h265;
-
-        cfg->init_quality = h265->qp_init;
-        cfg->max_quality = h265->max_qp;
-        cfg->min_quality = h265->min_qp;
-        cfg->max_i_quality = h265->max_i_qp;
-        cfg->min_i_quality = h265->min_i_qp;
-        cfg->i_quality_delta = h265->ip_qp_delta;
-    } break;
+    case MPP_VIDEO_CodingAVC :
+    case MPP_VIDEO_CodingHEVC :
     case MPP_VIDEO_CodingVP8 : {
-        MppEncVp8Cfg *vp8 = &codec->vp8;
-
-        cfg->init_quality   = vp8->qp_init;
-        cfg->max_quality    = vp8->qp_max;
-        cfg->min_quality    = vp8->qp_min;
-        cfg->max_i_quality  = vp8->qp_max_i ? vp8->qp_max_i : vp8->qp_max;
-        cfg->min_i_quality  = vp8->qp_min_i ? vp8->qp_min_i : vp8->qp_min;
+        cfg->init_quality = rc->qp_init;
+        cfg->max_quality = rc->qp_max;
+        cfg->min_quality = rc->qp_min;
+        cfg->max_i_quality = rc->qp_max_i ? rc->qp_max_i : rc->qp_max;
+        cfg->min_i_quality = rc->qp_min_i ? rc->qp_min_i : rc->qp_min;
+        cfg->i_quality_delta = rc->qp_delta_ip;
+        cfg->vi_quality_delta = rc->qp_delta_vi;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         MppEncJpegCfg *jpeg = &codec->jpeg;
