@@ -208,80 +208,6 @@ static MPP_RET vp8e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
     return ret;
 }
 
-static MPP_RET vp8e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-    vp8e_dbg_cfg("set rc cfg change %d\n", change);
-    if (change) {
-        MppEncRcCfg bak = *dst;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-            dst->rc_mode = src->rc_mode;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-            dst->quality = src->quality;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-            dst->bps_target = src->bps_target;
-            dst->bps_max = src->bps_max;
-            dst->bps_min = src->bps_min;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-            dst->fps_in_flex = src->fps_in_flex;
-            dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denorm = src->fps_in_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-            dst->fps_out_flex = src->fps_out_flex;
-            dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denorm = src->fps_out_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-            dst->gop = src->gop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
-            dst->max_reenc_times = src->max_reenc_times;
-
-        // parameter checking
-        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                    src->rc_mode);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                    dst->quality);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                        dst->bps_target, dst->bps_min, dst->bps_max);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new rc config\n");
-            *dst = bak;
-        } else {
-            vp8e_dbg_cfg("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                         dst->bps_target, dst->bps_min, dst->bps_max,
-                         dst->fps_in_num, dst->fps_out_num, dst->gop);
-        }
-    }
-
-    return ret;
-}
-
 static MPP_RET vp8e_proc_vp8_cfg(MppEncVp8Cfg *dst, MppEncVp8Cfg *src)
 {
     RK_U32 change = src->change;
@@ -317,10 +243,6 @@ static MPP_RET vp8e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= vp8e_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
         }
-        if (src->rc.change) {
-            ret |= vp8e_proc_rc_cfg(&cfg->rc, &src->rc);
-            src->rc.change = 0;
-        }
         if (src->codec.vp8.change) {
             ret |= vp8e_proc_vp8_cfg(&cfg->codec.vp8, &src->codec.vp8);
             src->codec.vp8.change = 0;
@@ -329,10 +251,6 @@ static MPP_RET vp8e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= vp8e_proc_split_cfg(&cfg->split, &src->split);
             src->split.change = 0;
         }
-    } break;
-    case MPP_ENC_SET_RC_CFG : {
-        vp8e_dbg_cfg("update vp8e rc config");
-        ret |= vp8e_proc_rc_cfg(&cfg->rc, &src->rc);
     } break;
     default: {
         mpp_err("No correspond cmd found, and can not config!");

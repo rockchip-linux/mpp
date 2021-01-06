@@ -74,7 +74,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->ip_qp_delta = 5;
     h265->raw_dealt_qp = 4;
     h265->max_delta_qp = 10;
-    h265->const_intra_pred = 0;
     h265->gop_delta_qp = 0;
     h265->intra_refresh_mode = 0;
     h265->intra_refresh_arg = 0;
@@ -146,6 +145,13 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->max_i_prop = 30;
     rc_cfg->min_i_prop = 10;
     rc_cfg->init_ip_ratio = 480;
+    rc_cfg->qp_init = 26;
+    rc_cfg->qp_max = 51;
+    rc_cfg->qp_min = 10;
+    rc_cfg->qp_max_i = 51;
+    rc_cfg->qp_min_i = 15;
+    rc_cfg->qp_delta_ip = 4;
+    rc_cfg->qp_delta_vi = 2;
 
     INIT_LIST_HEAD(&p->rc_list);
 
@@ -388,121 +394,6 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     return MPP_OK;
 }
 
-static MPP_RET h265e_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    if (change) {
-        MppEncRcCfg bak = *dst;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-            dst->rc_mode = src->rc_mode;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-            dst->quality = src->quality;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-            dst->bps_target = src->bps_target;
-            dst->bps_max = src->bps_max;
-            dst->bps_min = src->bps_min;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-            dst->fps_in_flex = src->fps_in_flex;
-            dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denorm = src->fps_in_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-            dst->fps_out_flex = src->fps_out_flex;
-            dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denorm = src->fps_out_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
-            dst->gop = src->gop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
-            dst->max_reenc_times = src->max_reenc_times;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_DROP_FRM) {
-            dst->drop_mode = src->drop_mode;
-            dst->drop_threshold = src->drop_threshold;
-            dst->drop_gap = src->drop_gap;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_PRIORITY) {
-            if (src->rc_priority >= MPP_ENC_RC_PRIORITY_BUTT) {
-                mpp_err("invalid rc_priority %d should be[%d, %d] \n",
-                        src->rc_priority, MPP_ENC_RC_BY_BITRATE_FIRST, MPP_ENC_RC_PRIORITY_BUTT);
-                ret = MPP_ERR_VALUE;
-            }
-            dst->rc_priority = src->rc_priority;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_SUPER_FRM) {
-            if (src->super_mode >= MPP_ENC_RC_SUPER_FRM_BUTT) {
-                mpp_err("invalid super_mode %d should be[%d, %d] \n",
-                        src->super_mode, MPP_ENC_RC_SUPER_FRM_NONE, MPP_ENC_RC_SUPER_FRM_BUTT);
-                ret = MPP_ERR_VALUE;
-            }
-            dst->super_mode = src->super_mode;
-            dst->super_i_thd = src->super_i_thd;
-            dst->super_p_thd = src->super_p_thd;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
-            dst->max_i_prop = src->max_i_prop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP)
-            dst->min_i_prop = src->min_i_prop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO)
-            dst->init_ip_ratio = src->init_ip_ratio;
-
-        // parameter checking
-        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                    src->rc_mode);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                    dst->quality);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                        dst->bps_target, dst->bps_min, dst->bps_max);
-                ret = MPP_ERR_VALUE;
-            }
-
-            if ((dst->bps_target > dst->bps_max || dst->bps_target < dst->bps_min) ||
-                (dst->bps_max    < dst->bps_min)) {
-                mpp_err("invalid bit rate config %d [%d:%d] for size relationship\n",
-                        dst->bps_target, dst->bps_min, dst->bps_max);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new rc config\n");
-            *dst = bak;
-        } else {
-            mpp_log_f("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                      dst->bps_target, dst->bps_min, dst->bps_max,
-                      dst->fps_in_num, dst->fps_out_num, dst->gop);
-        }
-    }
-
-    return ret;
-}
 
 static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
 {
@@ -542,23 +433,6 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
     if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
         memcpy(&dst->vui, &src->vui, sizeof(src->vui));
     }
-
-    if (change & MPP_ENC_H265_CFG_RC_QP_CHANGE) {
-        dst->qp_init = src->qp_init;
-        dst->max_qp = src->max_qp;
-        dst->min_qp = src->min_qp;
-    }
-
-    if (change & MPP_ENC_H265_CFG_RC_I_QP_CHANGE) {
-        dst->max_i_qp = src->max_i_qp;
-        dst->min_i_qp = src->min_i_qp;
-    }
-
-    if (change & MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE)
-        dst->max_delta_qp = src->max_delta_qp;
-
-    if (change & MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE)
-        dst->ip_qp_delta = src->ip_qp_delta;
 
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
@@ -601,10 +475,7 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= h265e_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
         }
-        if (src->rc.change) {
-            ret |= h265e_proc_rc_cfg(&cfg->rc, &src->rc);
-            src->rc.change = 0;
-        }
+
         if (src->codec.h265.change) {
             ret |= h265e_proc_h265_cfg(&cfg->codec.h265, &src->codec.h265);
             src->codec.h265.change = 0;
@@ -624,12 +495,9 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_CODEC_CFG: {
         MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-
         ret = h265e_proc_h265_cfg(&cfg->codec.h265, &codec->h265);
     } break;
-    case MPP_ENC_SET_RC_CFG : {
-        ret = h265e_proc_rc_cfg(&cfg->rc, param);
-    } break;
+
     case MPP_ENC_SET_SEI_CFG: {
     } break;
     case MPP_ENC_SET_SPLIT : {

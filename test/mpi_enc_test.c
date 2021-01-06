@@ -270,7 +270,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
-
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
     mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
@@ -278,27 +277,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
 
     mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
-
-    switch (p->rc_mode) {
-    case MPP_ENC_RC_MODE_FIXQP : {
-        /* do not set bps on fix qp mode */
-    } break;
-    case MPP_ENC_RC_MODE_CBR : {
-        /* CBR mode has narrow bound */
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
-    } break;
-    case MPP_ENC_RC_MODE_VBR : {
-        /* CBR mode has wide bound */
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 1 / 16);
-    } break;
-    default : {
-        mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
-    } break;
-    }
 
     /* fix input / output frame rate */
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", p->fps_in_flex);
@@ -313,6 +291,77 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_enc_cfg_set_u32(cfg, "rc:drop_mode", MPP_ENC_RC_DROP_FRM_DISABLED);
     mpp_enc_cfg_set_u32(cfg, "rc:drop_thd", 20);        /* 20% of max bps */
     mpp_enc_cfg_set_u32(cfg, "rc:drop_gap", 1);         /* Do not continuous drop frame */
+
+    /* setup bitrate for different rc_mode */
+    mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
+    switch (p->rc_mode) {
+    case MPP_ENC_RC_MODE_FIXQP : {
+        /* do not setup bitrate on FIXQP mode */
+    } break;
+    case MPP_ENC_RC_MODE_CBR : {
+        /* CBR mode has narrow bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
+    } break;
+    case MPP_ENC_RC_MODE_VBR :
+    case MPP_ENC_RC_MODE_AVBR : {
+        /* VBR mode has wide bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 1 / 16);
+    } break;
+    default : {
+        /* default use CBR mode */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
+    } break;
+    }
+
+    /* setup qp for different codec and rc_mode */
+    switch (p->type) {
+    case MPP_VIDEO_CodingAVC :
+    case MPP_VIDEO_CodingHEVC : {
+        switch (p->rc_mode) {
+        case MPP_ENC_RC_MODE_FIXQP : {
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", 20);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", 20);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 20);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 20);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 20);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 4);
+        } break;
+        case MPP_ENC_RC_MODE_CBR :
+        case MPP_ENC_RC_MODE_VBR :
+        case MPP_ENC_RC_MODE_AVBR : {
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", 26);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 4);
+        } break;
+        default : {
+            mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
+        } break;
+        }
+    } break;
+    case MPP_VIDEO_CodingVP8 : {
+        /* vp8 only setup base qp range */
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_init", 40);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max",  127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min",  0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 6);
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        /* jpeg use special codec config to control qtable */
+        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", 80);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", 99);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", 1);
+    } break;
+    default : {
+    } break;
+    }
 
     /* setup codec  */
     mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
@@ -337,40 +386,10 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_en", 1);
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
-
-        if (p->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 20);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 16);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 16);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 20);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 20);
-        } else {
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_init", 26);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_max", 51);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_min", 10);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_max_i", 51);
-            mpp_enc_cfg_set_s32(cfg, "h264:qp_min_i", 10);
-        }
-        mpp_enc_cfg_set_s32(cfg, "h264:qp_delta_ip", 4);
     } break;
-    case MPP_VIDEO_CodingMJPEG : {
-        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", 80);
-        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", 99);
-        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", 1);
-    } break;
+    case MPP_VIDEO_CodingHEVC :
+    case MPP_VIDEO_CodingMJPEG :
     case MPP_VIDEO_CodingVP8 : {
-        mpp_enc_cfg_set_s32(cfg, "vp8:qp_init", 40);
-        mpp_enc_cfg_set_s32(cfg, "vp8:qp_max",  127);
-        mpp_enc_cfg_set_s32(cfg, "vp8:qp_min",  0);
-        mpp_enc_cfg_set_s32(cfg, "vp8:qp_max_i", 127);
-        mpp_enc_cfg_set_s32(cfg, "vp8:qp_min_i", 0);
-    } break;
-    case MPP_VIDEO_CodingHEVC : {
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_init", p->rc_mode == MPP_ENC_RC_MODE_FIXQP ? -1 : 26);
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_max", 51);
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_min", 10);
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_max_i", 46);
-        mpp_enc_cfg_set_s32(cfg, "h265:qp_min_i", 24);
     } break;
     default : {
         mpp_err_f("unsupport encoder coding type %d\n", p->type);
@@ -689,7 +708,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 }
 
                 log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                    " size %-7d", len);
+                                    " size %-7u", len);
 
                 if (mpp_packet_has_meta(packet)) {
                     meta = mpp_packet_get_meta(packet);
