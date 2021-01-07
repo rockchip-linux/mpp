@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BUILD_TYPE="Release"
-ANDROID_ABI="armeabi-v7a"
+ANDROID_ABI="armeabi-v7a with NEON"
 
 #Specify Android NDK path if needed
 #ANDROID_NDK=
