@@ -150,16 +150,21 @@ else
         NATIVE_API_LEVEL="android-21"
     fi
 
-    #################################################
-    # Set platform tools
-    #################################################
-    if [ "${ANDROID_ABI}" = "armeabi-v7a" ]; then
-        TOOLCHAIN_NAME="arm-linux-androideabi-4.9"
-        ANDROID_ABI="armeabi-v7a with NEON"
-        PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm
-    elif [ "${ANDROID_ABI}" = "arm64-v8a" ]; then
-        TOOLCHAIN_NAME="aarch64-linux-android-4.9"
-        PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm64
+    if [ $NDK_VERSION -lt 18 ]; then
+        #################################################
+        # Set platform tools
+        #################################################
+        if [ "${ANDROID_ABI}" = "armeabi-v7a" ] || [ "${ANDROID_ABI}" = "armeabi-v7a with NEON" ]; then
+            TOOLCHAIN_NAME="arm-linux-androideabi-4.9"
+            PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm
+        elif [ "${ANDROID_ABI}" = "arm64-v8a" ]; then
+            TOOLCHAIN_NAME="aarch64-linux-android-4.9"
+            PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm64
+        fi
+    else
+        # From NDK 18, GCC is deprecated
+        TOOLCHAIN_NAME=""
+        PLATFORM=""
     fi
 fi
 
