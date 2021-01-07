@@ -113,14 +113,15 @@ RK_U32 klut_weight[24] = {
     0x20002000, 0x0CC00014, 0x40004000, 0x19800028, 0x80008000, 0x33000050,
     0x00010000, 0x660000A1, 0x00020000, 0xCC000142, 0xFF83FFFF, 0x000001FF
 };
-RK_U8 aq_thd_default[16] = {
+
+RK_U32 aq_thd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
     8,  8,  8,  15,
     15, 20, 25, 35
 };
 
-RK_S8 aq_qp_dealt_default[16] = {
+RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
     0,  1,  2,  2,
@@ -539,6 +540,9 @@ static void vepu540_h265_set_l2_regs(H265eV54xL2RegSet *reg)
 }
 static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet *regs)
 {
+    MppEncHwCfg *hw = &ctx->cfg->hw;
+    RK_U32 i;
+
     memcpy(&regs->lvl32_intra_CST_THD0, lvl32_intra_cst_thd, sizeof(lvl32_intra_cst_thd));
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
     memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl32_intra_cst_wgt));
@@ -584,8 +588,23 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
     memcpy(&regs->lamd_moda_qp[0], lamd_moda_qp, sizeof(lamd_moda_qp));
     memcpy(&regs->lamd_modb_qp[0], lamd_modb_qp, sizeof(lamd_modb_qp));
 
-    memcpy(&regs->aq_thd0, aq_thd_default, sizeof(aq_thd_default));
-    memcpy(&regs->aq_qp_dlt0, aq_qp_dealt_default, sizeof(aq_qp_dealt_default));
+    if (ctx->frame_type == INTRA_FRAME) {
+        RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
+        RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
+            thd[i]  = hw->aq_thrd_i[i];
+            step[i] = hw->aq_step_i[i] & 0x3f;
+        }
+    } else {
+        RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
+        RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
+            thd[i]  = hw->aq_thrd_p[i];
+            step[i] = hw->aq_step_p[i] & 0x3f;
+        }
+    }
 
     MppDevRegWrCfg cfg;
     cfg.reg = regs;
@@ -637,6 +656,19 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
     ctx->osd_cfg.osd_data2 = NULL;
 
     ctx->frame_type = INTRA_FRAME;
+
+    {   /* setup default hardware config */
+        MppEncHwCfg *hw = &cfg->cfg->hw;
+
+        hw->qp_delta_row_i  = 0;
+        hw->qp_delta_row    = 2;
+
+        memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
+        memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
+        memcpy(hw->aq_step_i, aq_qp_dealt_default, sizeof(hw->aq_step_i));
+        memcpy(hw->aq_step_p, aq_qp_dealt_default, sizeof(hw->aq_step_p));
+    }
+
     hal_h265e_leave();
     return ret;
 }
@@ -860,6 +892,7 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
     EncRcTaskInfo *rc_cfg = &task->rc_task->info;
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncRcCfg *rc = &cfg->rc;
+    MppEncHwCfg *hw = &cfg->hw;
     MppEncCodecCfg *codec = &cfg->codec;
     MppEncH265Cfg *h265 = &codec->h265;
     RK_S32 mb_wd64, mb_h64;
@@ -892,7 +925,8 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
 
         regs->rc_cfg.rc_ctu_num = mb_wd64;
 
-        regs->rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ? 0 : 2;
+        regs->rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ?
+                                  hw->qp_delta_row_i : hw->qp_delta_row;
         regs->rc_qp.rc_max_qp   = rc_cfg->quality_max;
         regs->rc_qp.rc_min_qp   = rc_cfg->quality_min;
         regs->rc_tgt.ctu_ebits  = ctu_target_bits_mul_16;

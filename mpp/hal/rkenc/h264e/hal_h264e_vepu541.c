@@ -97,6 +97,27 @@ static RK_U32 h264e_klut_weight[30] = {
 static RK_U32 dump_l1_reg = 0;
 static RK_U32 dump_l2_reg = 0;
 
+static RK_S32 h264_aq_tthd_default[16] = {
+    0,  0,  0,  2,
+    3,  4,  5,  6,
+    7,  8,  10, 12,
+    15, 20, 25, 35,
+};
+
+static RK_S32 h264_P_aq_step_default[16] = {
+    -8, -7, -6, -5,
+    -4, -3, -2, -1,
+    0,  1,  2,  3,
+    4,  5,  7,  8,
+};
+
+static RK_S32 h264_I_aq_step_default[16] = {
+    -8, -7, -6, -5,
+    -4, -3, -2, -1,
+    0,  1,  2,  3,
+    4,  5,  6,  7,
+};
+
 static MPP_RET hal_h264e_vepu541_deinit(void *hal)
 {
     HalH264eVepu541Ctx *p = (HalH264eVepu541Ctx *)hal;
@@ -165,6 +186,18 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
     p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
     p->osd_cfg.osd_data = NULL;
     p->osd_cfg.osd_data2 = NULL;
+
+    {   /* setup default hardware config */
+        MppEncHwCfg *hw = &cfg->cfg->hw;
+
+        hw->qp_delta_row_i  = 2;
+        hw->qp_delta_row    = 2;
+
+        memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
+        memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
+        memcpy(hw->aq_step_i, h264_I_aq_step_default, sizeof(hw->aq_step_i));
+        memcpy(hw->aq_step_p, h264_P_aq_step_default, sizeof(hw->aq_step_p));
+    }
 
 DONE:
     if (ret)
@@ -723,6 +756,7 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
 }
 
 static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
+                                  H264eSlice *slice, MppEncHwCfg *hw,
                                   EncRcTask *rc_task)
 {
     EncRcTaskInfo *rc_info = &rc_task->info;
@@ -757,7 +791,8 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
     regs->reg050.aq_mode        = 0;
     regs->reg050.rc_ctu_num     = mb_w;
 
-    regs->reg051.rc_qp_range    = 2;
+    regs->reg051.rc_qp_range    = (slice->slice_type == H264_I_SLICE) ?
+                                  hw->qp_delta_row_i : hw->qp_delta_row;
     regs->reg051.rc_max_qp      = qp_max;
     regs->reg051.rc_min_qp      = qp_min;
 
@@ -1196,28 +1231,7 @@ static RK_U32 h264e_lambda_default[58] = {
     0x0016dbcb, 0x001ccccc,
 };
 
-static RK_U8 h264_aq_tthd_default[16] = {
-    0,  0,  0,  2,
-    3,  4,  5,  6,
-    7,  8,  10, 12,
-    15, 20, 25, 35,
-};
-
-static RK_S8 h264_P_aq_step_default[16] = {
-    -8, -7, -6, -5,
-    -4, -3, -2, -1,
-    0,  1,  2,  3,
-    4,  5,  7, 8,
-};
-
-static RK_S8 h264_I_aq_step_default[16] = {
-    -8, -7, -6, -5,
-    -4, -3, -2, -1,
-    0,  1,  2,  3,
-    4,  5,  6, 7,
-};
-
-static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
+static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppEncHwCfg *hw)
 {
     RK_U32 i;
 
@@ -1339,11 +1353,15 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice)
     memcpy(regs->aq_tthd, h264_aq_tthd_default, sizeof(regs->aq_tthd));
 
     if (slice->slice_type == H264_I_SLICE) {
-        for (i = 0; i < MPP_ARRAY_ELEMS(regs->aq_step); i++)
-            regs->aq_step[i] = h264_I_aq_step_default[i] & 0x3f;
+        for (i = 0; i < MPP_ARRAY_ELEMS(regs->aq_step); i++) {
+            regs->aq_tthd[i] = hw->aq_thrd_i[i];
+            regs->aq_step[i] = hw->aq_step_i[i] & 0x3f;
+        }
     } else {
-        for (i = 0; i < MPP_ARRAY_ELEMS(regs->aq_step); i++)
-            regs->aq_step[i] = h264_P_aq_step_default[i] & 0x3f;
+        for (i = 0; i < MPP_ARRAY_ELEMS(regs->aq_step); i++) {
+            regs->aq_tthd[i] = hw->aq_thrd_p[i];
+            regs->aq_step[i] = hw->aq_step_p[i] & 0x3f;
+        }
     }
 
     regs->rme_mvd_penalty.mvd_pnlt_e    = 1;
@@ -1395,7 +1413,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
 
     setup_vepu541_codec(regs, sps, pps, slice);
     setup_vepu541_rdo_pred(regs, sps, pps, slice);
-    setup_vepu541_rc_base(regs, sps, task->rc_task);
+    setup_vepu541_rc_base(regs, sps, slice, &cfg->hw, task->rc_task);
     setup_vepu541_io_buf(regs, ctx->dev, task);
     setup_vepu541_roi(regs, ctx);
     setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,
@@ -1417,7 +1435,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     else
         vepu541_set_osd(&ctx->osd_cfg);
 
-    setup_vepu541_l2(&ctx->regs_l2_set, slice);
+    setup_vepu541_l2(&ctx->regs_l2_set, slice, &cfg->hw);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
