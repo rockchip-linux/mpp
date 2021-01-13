@@ -81,7 +81,7 @@ typedef struct RcModelV2Ctx_t {
     MppDataV2       *means_qp;
     RK_U32          frm_num;
 
-    /*qp decision*/
+    /* qp decision */
     RK_S32          cur_scale_qp;
     RK_S32          start_qp;
     RK_S32          prev_quality;
