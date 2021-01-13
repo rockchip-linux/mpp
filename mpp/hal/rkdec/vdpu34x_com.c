@@ -37,51 +37,63 @@ static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
     [RCB_FILT_COL] = 67,    /* RCB_FILT_COL_COEF */
 };
 
-#define UPDATE_SIZE_OFFSET(regs, reg, sizes, offsets, offset, len, idx) \
-    do { \
-        RK_S32 buf_size = MPP_ALIGN(len * rcb_coeff[idx], RCB_ALLINE_SIZE);\
-        regs[idx] = reg; \
-        offsets[idx] = offset; \
-        sizes[idx] = buf_size; \
-        offset += buf_size; \
-    } while (0)
+static RK_S32 update_size_offset(Vdpu34xRcbInfo *info, RK_U32 reg,
+                                 RK_S32 offset, RK_S32 len, RK_S32 idx)
+{
+    RK_S32 buf_size = 0;
 
-RK_S32 get_rcb_buf_size(RK_S32 *regs, RK_S32 *sizes,
-                        RK_S32 *offsets, RK_S32 width, RK_S32 height)
+    buf_size = MPP_ALIGN(len * rcb_coeff[idx], RCB_ALLINE_SIZE);
+    info[idx].reg = reg;
+    info[idx].offset = offset;
+    info[idx].size = buf_size;
+
+    return buf_size;
+}
+
+RK_S32 get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height)
 {
     RK_S32 offset = 0;
 
-    mpp_assert(sizes);
-
-    UPDATE_SIZE_OFFSET(regs, 139, sizes, offsets, offset, width, RCB_DBLK_ROW);
-    UPDATE_SIZE_OFFSET(regs, 133, sizes, offsets, offset, width, RCB_INTRA_ROW);
-    UPDATE_SIZE_OFFSET(regs, 134, sizes, offsets, offset, width, RCB_TRANSD_ROW);
-    UPDATE_SIZE_OFFSET(regs, 136, sizes, offsets, offset, width, RCB_STRMD_ROW);
-    UPDATE_SIZE_OFFSET(regs, 137, sizes, offsets, offset, width, RCB_INTER_ROW);
-    UPDATE_SIZE_OFFSET(regs, 140, sizes, offsets, offset, width, RCB_SAO_ROW);
-    UPDATE_SIZE_OFFSET(regs, 141, sizes, offsets, offset, width, RCB_FBC_ROW);
+    offset += update_size_offset(info, 139, offset, width, RCB_DBLK_ROW);
+    offset += update_size_offset(info, 133, offset, width, RCB_INTRA_ROW);
+    offset += update_size_offset(info, 134, offset, width, RCB_TRANSD_ROW);
+    offset += update_size_offset(info, 136, offset, width, RCB_STRMD_ROW);
+    offset += update_size_offset(info, 137, offset, width, RCB_INTER_ROW);
+    offset += update_size_offset(info, 140, offset, width, RCB_SAO_ROW);
+    offset += update_size_offset(info, 141, offset, width, RCB_FBC_ROW);
     /* col rcb */
-    UPDATE_SIZE_OFFSET(regs, 135, sizes, offsets, offset, height, RCB_TRANSD_COL);
-    UPDATE_SIZE_OFFSET(regs, 138, sizes, offsets, offset, height, RCB_INTER_COL);
-    UPDATE_SIZE_OFFSET(regs, 142, sizes, offsets, offset, height, RCB_FILT_COL);
+    offset += update_size_offset(info, 135, offset, height, RCB_TRANSD_COL);
+    offset += update_size_offset(info, 138, offset, height, RCB_INTER_COL);
+    offset += update_size_offset(info, 142, offset, height, RCB_FILT_COL);
 
     return offset;
 }
 
-void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offset)
+void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, Vdpu34xRcbInfo *info)
 {
     RK_S32 fd = mpp_buffer_get_fd(buf);
 
-    reg->reg139_rcb_dblk_base           = fd + (offset[RCB_DBLK_ROW] << 10);
-    reg->reg133_rcb_intra_base          = fd + (offset[RCB_INTRA_ROW] << 10);
-    reg->reg134_rcb_transd_row_base     = fd + (offset[RCB_TRANSD_ROW] << 10);
-    reg->reg136_rcb_streamd_row_base    = fd + (offset[RCB_STRMD_ROW] << 10);
-    reg->reg137_rcb_inter_row_base      = fd + (offset[RCB_INTER_ROW] << 10);
-    reg->reg140_rcb_sao_base            = fd + (offset[RCB_SAO_ROW] << 10);
-    reg->reg141_rcb_fbc_base            = fd + (offset[RCB_FBC_ROW] << 10);
-    reg->reg135_rcb_transd_col_base     = fd + (offset[RCB_TRANSD_COL] << 10);
-    reg->reg138_rcb_inter_col_base      = fd + (offset[RCB_INTER_COL] << 10);
-    reg->reg142_rcb_filter_col_base     = fd + (offset[RCB_FILT_COL] << 10);
+    reg->reg139_rcb_dblk_base           = fd + (info[RCB_DBLK_ROW].offset << 10);
+    reg->reg133_rcb_intra_base          = fd + (info[RCB_INTRA_ROW].offset << 10);
+    reg->reg134_rcb_transd_row_base     = fd + (info[RCB_TRANSD_ROW].offset << 10);
+    reg->reg136_rcb_streamd_row_base    = fd + (info[RCB_STRMD_ROW].offset << 10);
+    reg->reg137_rcb_inter_row_base      = fd + (info[RCB_INTER_ROW].offset << 10);
+    reg->reg140_rcb_sao_base            = fd + (info[RCB_SAO_ROW].offset << 10);
+    reg->reg141_rcb_fbc_base            = fd + (info[RCB_FBC_ROW].offset << 10);
+    reg->reg135_rcb_transd_col_base     = fd + (info[RCB_TRANSD_COL].offset << 10);
+    reg->reg138_rcb_inter_col_base      = fd + (info[RCB_INTER_COL].offset << 10);
+    reg->reg142_rcb_filter_col_base     = fd + (info[RCB_FILT_COL].offset << 10);
+}
+
+RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b)
+{
+    RK_S32 val = 0;
+    Vdpu34xRcbInfo *p0 = (Vdpu34xRcbInfo *)a;
+    Vdpu34xRcbInfo *p1 = (Vdpu34xRcbInfo *)b;
+
+    val = (p0->size > p1->size) ? -1 : 1;
+
+    return val;
 }
 
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta)

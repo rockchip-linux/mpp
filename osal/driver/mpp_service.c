@@ -387,6 +387,11 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 MPP_RET mpp_service_rcb_info(void *ctx, MppDevRcbInfoCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
+    RK_U32 rcb_info_disable = 0;
+
+    mpp_env_get_u32("disable_rcb_info", &rcb_info_disable, 0);
+    if (rcb_info_disable)
+        return MPP_OK;
 
     if (!p->support_set_rcb_info)
         return MPP_OK;
