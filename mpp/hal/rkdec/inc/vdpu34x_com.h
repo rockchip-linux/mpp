@@ -410,13 +410,19 @@ typedef struct Vdpu34xRegStatistic_t {
     RK_U16          reg276_v_max_value;
 } Vdpu34xRegStatistic;
 
+typedef struct vdpu34x_rcb_info_t {
+    RK_S32              reg;
+    RK_S32              size;
+    RK_S32              offset;
+} Vdpu34xRcbInfo;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-RK_S32 get_rcb_buf_size(RK_S32 *regs, RK_S32 *sizes,
-                        RK_S32 *offsets, RK_S32 width, RK_S32 height);
-void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, RK_S32 *offsets);
+RK_S32 get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height);
+void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppBuffer buf, Vdpu34xRcbInfo *info);
+RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b);
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
 
 #ifdef  __cplusplus

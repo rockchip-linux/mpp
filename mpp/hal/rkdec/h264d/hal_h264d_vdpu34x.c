@@ -88,9 +88,7 @@ typedef struct Vdpu34xH264dRegCtx_t {
     RK_S32              width;
     RK_S32              height;
     RK_S32              rcb_buf_size;
-    RK_S32              rcb_reg[RCB_BUF_COUNT];
-    RK_S32              rcb_size[RCB_BUF_COUNT];
-    RK_S32              rcb_offset[RCB_BUF_COUNT];
+    Vdpu34xRcbInfo      rcb_info[RCB_BUF_COUNT];
     MppBuffer           rcb_buf;
 
     Vdpu34xH264dRegSet  *regs;
@@ -787,8 +785,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
             rcb_buf = NULL;
         }
 
-        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_reg, ctx->rcb_size,
-                                             ctx->rcb_offset, width, height);
+        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
 
         mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
         ctx->rcb_buf = rcb_buf;
@@ -796,7 +793,10 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
         ctx->height = height;
     }
 
-    vdpu34x_setup_rcb(&regs->common_addr, rcb_buf, ctx->rcb_offset);
+    vdpu34x_setup_rcb(&regs->common_addr, rcb_buf, ctx->rcb_info);
+    /* sort by dec*/
+    qsort(ctx->rcb_info, MPP_ARRAY_ELEMS(ctx->rcb_info),
+          sizeof(ctx->rcb_info[0]), vdpu34x_compare_rcb_size);
 
 __RETURN:
     return ret = MPP_OK;
@@ -872,7 +872,18 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
+        /* rcb info for sram */
+        {
+            RK_U32 i = 0;
+            MppDevRcbInfoCfg rcb_cfg;
 
+            for (i = 0; i < MPP_ARRAY_ELEMS(reg_ctx->rcb_info); i++) {
+                rcb_cfg.reg_idx = reg_ctx->rcb_info[i].reg;
+                rcb_cfg.size = reg_ctx->rcb_info[i].size;
+                if (rcb_cfg.size > 0)
+                    mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+            }
+        }
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {

@@ -998,8 +998,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             rcb_buf = NULL;
         }
 
-        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_reg, reg_cxt->rcb_size,
-                                                 reg_cxt->rcb_offset, width, height);
+        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
 
         mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
         reg_cxt->rcb_buf = rcb_buf;
@@ -1007,7 +1006,10 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         reg_cxt->height = height;
     }
 
-    vdpu34x_setup_rcb(&hw_regs->common_addr, rcb_buf, reg_cxt->rcb_offset);
+    vdpu34x_setup_rcb(&hw_regs->common_addr, rcb_buf, reg_cxt->rcb_info);
+    /* sort by dec */
+    qsort(reg_cxt->rcb_info, MPP_ARRAY_ELEMS(reg_cxt->rcb_info),
+          sizeof(reg_cxt->rcb_info[0]), vdpu34x_compare_rcb_size);
 
     return ret;
 }
@@ -1020,7 +1022,7 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
     RK_S32 index =  task->dec.reg_index;
 
-    RK_S32 i;
+    RK_U32 i;
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
@@ -1100,7 +1102,17 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
+        /* rcb info for sram */
+        {
+            MppDevRcbInfoCfg rcb_cfg;
 
+            for (i = 0; i < MPP_ARRAY_ELEMS(reg_cxt->rcb_info); i++) {
+                rcb_cfg.reg_idx = reg_cxt->rcb_info[i].reg;
+                rcb_cfg.size = reg_cxt->rcb_info[i].size;
+                if (rcb_cfg.size > 0)
+                    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+            }
+        }
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
