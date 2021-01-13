@@ -57,6 +57,8 @@ typedef struct {
 
     RK_S64          first_pkt;
     RK_S64          first_frm;
+    RK_S32          frame_num;
+    FileReader      reader;
 } MpiDecCtx;
 
 /* For each instance thread return value */
@@ -85,18 +87,23 @@ static int decode_simple(MpiDecCtx *data)
     char   *buf = data->buf;
     MppPacket packet = data->packet;
     MppFrame  frame  = NULL;
-    size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
+    FileReader reader = data->reader;
+    size_t read_size = 0;
 
-    if (read_size != data->packet_size || feof(data->fp_input)) {
-        // mpp_log("found last packet\n");
-
-        // setup eos flag
-        data->eos = pkt_eos = 1;
+    data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
+    if (pkt_eos) {
+        if (data->frame_num < 0) {
+            mpp_log("%p loop again\n", ctx);
+            reader_rewind(reader);
+            data->eos = pkt_eos = 0;
+        } else {
+            mpp_log("%p found last packet\n", ctx);
+        }
     }
 
-    // write data to packet
-    mpp_packet_write(packet, 0, buf, read_size);
-    // reset pos and set valid length
+    mpp_packet_set_data(packet, buf);
+    if (read_size > mpp_packet_get_size(packet))
+        mpp_packet_set_size(packet, read_size);
     mpp_packet_set_pos(packet, buf);
     mpp_packet_set_length(packet, read_size);
     // setup eos flag
@@ -195,7 +202,7 @@ static int decode_simple(MpiDecCtx *data)
                         mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
                                 mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
                     }
-                    //mpp_log("decode_get_frame get frame %d\n", data->frame_count);
+                    mpp_log("decode_get_frame get frame %d\n", data->frame_count);
                     data->frame_count++;
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
@@ -214,6 +221,10 @@ static int decode_simple(MpiDecCtx *data)
 
             if (frm_eos) {
                 // mpp_log("found last frame\n");
+                break;
+            }
+            if (data->frame_num > 0 && data->frame_count >= (RK_U32)data->frame_num) {
+                data->eos = 1;
                 break;
             }
 
@@ -367,6 +378,7 @@ void* mpi_dec_test_decode(void *cmd_ctx)
     size_t packet_size  = MPI_DEC_STREAM_SIZE;
     MppBuffer pkt_buf   = NULL;
     MppBuffer frm_buf   = NULL;
+    FileReader reader   = NULL;
 
     // mpp_log("mpi_dec_test start\n");
 
@@ -392,13 +404,9 @@ void* mpi_dec_test_decode(void *cmd_ctx)
     }
 
     if (cmd->simple) {
-        buf = mpp_malloc(char, packet_size);
-        if (NULL == buf) {
-            mpp_err("mpi_dec_test malloc input stream buffer failed\n");
-            goto MPP_TEST_OUT;
-        }
+        reader_init(&reader, cmd->file_input, dec_ctx->fp_input);
 
-        ret = mpp_packet_init(&packet, buf, packet_size);
+        ret = mpp_packet_init(&packet, NULL, 0);
         if (ret) {
             mpp_err("mpp_packet_init failed\n");
             goto MPP_TEST_OUT;
@@ -500,6 +508,8 @@ void* mpi_dec_test_decode(void *cmd_ctx)
     dec_ctx->packet_size    = packet_size;
     dec_ctx->frame          = frame;
     dec_ctx->frame_count    = 0;
+    dec_ctx->frame_num      = cmd->frame_num;
+    dec_ctx->reader         = reader;
 
     RK_S64 t_s, t_e;
 
@@ -543,10 +553,7 @@ MPP_TEST_OUT:
     }
 
     if (cmd->simple) {
-        if (buf) {
-            mpp_free(buf);
-            buf = NULL;
-        }
+        reader_deinit(&reader);
     } else {
         if (pkt_buf) {
             mpp_buffer_put(pkt_buf);
