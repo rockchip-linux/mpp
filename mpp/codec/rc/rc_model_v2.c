@@ -1264,33 +1264,27 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         if (info->quality_target < 0) {
             if (info->bit_target) {
                 p->start_qp = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
-                p->cur_scale_qp = (p->start_qp) << 6;
+                p->cur_scale_qp = p->start_qp << 6;
             } else {
-                mpp_log("fix qp case but init qp no set");
+                mpp_log("init qp not set on fix qp mode, use default qp\n");
                 info->quality_target = 26;
                 p->start_qp = 26;
-                p->cur_scale_qp = (p->start_qp) << 6;
+                p->cur_scale_qp = 26 << 6;
             }
         } else {
-            p->start_qp = info->quality_target;
-            p->cur_scale_qp = (p->start_qp) << 6;
-        }
+            p->cur_scale_qp = info->quality_target << 6;
+            if (p->reenc_cnt)
+                p->cur_scale_qp += p->next_ratio;
 
-        if (p->reenc_cnt > 0) {
-            p->cur_scale_qp += p->next_ratio;
             p->start_qp = p->cur_scale_qp >> 6;
-        } else {
-            p->start_qp -= usr_cfg->i_quality_delta;
         }
 
-        rc_dbg_rc("qp: start %2d cur_scale %d next_ratio %d i_delta %d reenc %d\n",
-                  p->start_qp, p->cur_scale_qp, p->next_ratio,
-                  usr_cfg->i_quality_delta, p->reenc_cnt);
+        rc_dbg_rc("qp: start %2d cur_scale %d next_ratio %d reenc %d\n",
+                  p->start_qp, p->cur_scale_qp, p->next_ratio, p->reenc_cnt);
 
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
-        p->pre_i_qp = p->cur_scale_qp >> 6;
-        p->pre_p_qp = p->cur_scale_qp >> 6;
     } else {
+        RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
         RK_S32 dealt_qp = 0;
@@ -1300,25 +1294,26 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
             start_qp = ((p->pre_i_qp + ((qp_scale + p->next_i_ratio) >> 6)) >> 1);
 
-            start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
-            p->pre_i_qp = start_qp;
-            p->start_qp = start_qp;
-            p->cur_scale_qp = qp_scale;
-
-            if (usr_cfg->i_quality_delta && !p->reenc_cnt) {
+            if (i_quality_delta) {
                 RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
 
                 index = mpp_clip(index, 0, 7);
                 dealt_qp = max_ip_qp_dealt[index];
                 rc_dbg_rc("madi %d delta qp %d\n", index, dealt_qp);
-                if (dealt_qp > usr_cfg->i_quality_delta ) {
-                    dealt_qp = usr_cfg->i_quality_delta;
+                if (dealt_qp > i_quality_delta ) {
+                    dealt_qp = i_quality_delta;
                 }
+
+                rc_dbg_rc("qp prev %d:%d curr %d - %d -> %d reenc %d\n",
+                          p->pre_i_qp, qp_scale >> 6, start_qp, dealt_qp,
+                          start_qp - dealt_qp, p->reenc_cnt);
+
+                start_qp -= dealt_qp;
             }
 
-            rc_dbg_rc("qp %d - %d -> %d reenc %d\n", p->start_qp, dealt_qp,
-                      p->start_qp - dealt_qp, p->reenc_cnt);
-            p->start_qp -= dealt_qp;
+            start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
+            p->start_qp = start_qp;
+            p->cur_scale_qp = qp_scale;
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
@@ -1346,7 +1341,16 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
 MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task)
 {
+    RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
+    EncFrmStatus *frm = &task->frm;
+
     rc_dbg_func("enter ctx %p task %p\n", ctx, task);
+
+    if (frm->is_intra)
+        p->pre_i_qp = p->start_qp;
+    else
+        p->pre_p_qp = p->cur_scale_qp >> 6;
+
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 }
