@@ -150,7 +150,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->qp_min = 10;
     rc_cfg->qp_max_i = 51;
     rc_cfg->qp_min_i = 15;
-    rc_cfg->qp_delta_ip = 4;
+    rc_cfg->qp_delta_ip = 6;
     rc_cfg->qp_delta_vi = 2;
 
     INIT_LIST_HEAD(&p->rc_list);

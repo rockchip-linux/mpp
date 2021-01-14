@@ -1277,7 +1277,7 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
     regs->iprd_wgtc8[3] = 0x20;
 
     /* 000556ab */
-    regs->qnt_bias_comb.qnt_bias_i = 341;
+    regs->qnt_bias_comb.qnt_bias_i = 683;
     regs->qnt_bias_comb.qnt_bias_p = 171;
 
     regs->atr_thd0_h264.atr_thd0 = 1;
