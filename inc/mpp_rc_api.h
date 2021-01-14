@@ -100,6 +100,11 @@ typedef struct RcSuperframeCfg_t {
     MppEncRcPriority        rc_priority;
 } RcSuperframeCfg;
 
+typedef struct RcDebreathCfg_t {
+    RK_U32      enable;
+    RK_U32      strength;
+} RcDebreathCfg;
+
 /*
  * Control parameter from external config
  *
@@ -166,6 +171,7 @@ typedef struct RcCfg_s {
     RK_U32      drop_gap;
 
     RcSuperframeCfg super_cfg;
+    RcDebreathCfg   debreath_cfg;
 } RcCfg;
 
 /*

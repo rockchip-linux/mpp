@@ -137,6 +137,8 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(rc,   super_mode,     U32, MppEncRcSuperFrameMode, MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,   rc, super_mode) \
     ENTRY(rc,   super_i_thd,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,        rc, super_i_thd) \
     ENTRY(rc,   super_p_thd,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_SUPER_FRM,        rc, super_p_thd) \
+    ENTRY(rc,   debreath_en,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_DEBREATH,         rc, debreath_en) \
+    ENTRY(rc,   debreath_strength,  U32, RK_U32,        MPP_ENC_RC_CFG_CHANGE_DEBREATH,         rc, debre_strength) \
     ENTRY(rc,   qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(rc,   qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
     ENTRY(rc,   qp_max,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_max) \
@@ -244,7 +246,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 89;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 87;
 
 class MppEncCfgService
 {
