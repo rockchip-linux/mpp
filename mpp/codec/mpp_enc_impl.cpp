@@ -369,9 +369,7 @@ static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
 
         change = cfg->rc.change;
         check_flag = MPP_ENC_RC_CFG_CHANGE_ALL &
-                     (~MPP_ENC_RC_CFG_CHANGE_QUALITY |
-                      MPP_ENC_RC_CFG_CHANGE_AQ_THRD_I |
-                      MPP_ENC_RC_CFG_CHANGE_AQ_THRD_P);
+                     (~MPP_ENC_RC_CFG_CHANGE_QUALITY);
 
         if (change & check_flag)
             return 1;
@@ -480,6 +478,15 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             dst->super_mode = src->super_mode;
             dst->super_i_thd = src->super_i_thd;
             dst->super_p_thd = src->super_p_thd;
+        }
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_DEBREATH) {
+            dst->debreath_en    = src->debreath_en;
+            dst->debre_strength = src->debre_strength;
+            if (dst->debreath_en && dst->debre_strength > 35) {
+                mpp_err("invalid debre_strength should be[%d, %d] \n", 0, 35);
+                ret = MPP_ERR_VALUE;
+            }
         }
 
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
@@ -946,6 +953,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->super_cfg.super_mode = rc->super_mode;
     cfg->super_cfg.super_i_thd = rc->super_i_thd;
     cfg->super_cfg.super_p_thd = rc->super_p_thd;
+
+    cfg->debreath_cfg.enable   = rc->debreath_en;
+    cfg->debreath_cfg.strength = rc->debre_strength;
 
     if (info->st_gop) {
         cfg->vgop = info->st_gop;

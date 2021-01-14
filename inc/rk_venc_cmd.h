@@ -190,8 +190,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_QP_VI         = (1 << 21),
     MPP_ENC_RC_CFG_CHANGE_QP_ROW        = (1 << 22),
     MPP_ENC_RC_CFG_CHANGE_QP_ROW_I      = (1 << 23),
-    MPP_ENC_RC_CFG_CHANGE_AQ_THRD_I     = (1 << 24),
-    MPP_ENC_RC_CFG_CHANGE_AQ_THRD_P     = (1 << 25),
+    MPP_ENC_RC_CFG_CHANGE_DEBREATH      = (1 << 26),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -343,6 +342,8 @@ typedef struct MppEncRcCfg_t {
 
     MppEncRcPriority        rc_priority;
 
+    RK_U32                  debreath_en;
+    RK_U32                  debre_strength;
     RK_S32                  max_i_prop;
     RK_S32                  min_i_prop;
     RK_S32                  init_ip_ratio;
