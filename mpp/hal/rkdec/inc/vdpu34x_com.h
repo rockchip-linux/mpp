@@ -29,6 +29,8 @@
 
 #define RCB_ALLINE_SIZE             (64)
 
+#define MPP_RCB_BYTES(bits)  (bits ? MPP_ALIGN((bits + 7) / 8, RCB_ALLINE_SIZE) : 0)
+
 typedef enum Vdpu34x_RCB_TYPE_E {
     RCB_DBLK_ROW,
     RCB_INTRA_ROW,
