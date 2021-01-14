@@ -900,7 +900,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
-    cfg->stat_times = 3;
+    mpp_assert(rc->fps_out_num);
+    cfg->stat_times = rc->gop * rc->fps_out_denorm / rc->fps_out_num;
+    if (cfg->stat_times < 2)
+        cfg->stat_times = 2;
 
     /* quality configure */
     switch (codec->coding) {
