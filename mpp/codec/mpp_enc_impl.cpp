@@ -1842,6 +1842,8 @@ void *mpp_enc_thread(void *data)
                 mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->mv_info);
 
             mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
+            if (rc_task->info.quality_real)
+                mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP, rc_task->info.quality_real);
         }
 
         /*

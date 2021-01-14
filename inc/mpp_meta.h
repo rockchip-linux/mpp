@@ -76,6 +76,7 @@ typedef enum MppMetaKey_e {
     /* mpp_frame / mpp_packet meta data info key */
     KEY_TEMPORAL_ID             = FOURCC_META('t', 'l', 'i', 'd'),
     KEY_LONG_REF_IDX            = FOURCC_META('l', 't', 'i', 'd'),
+    KEY_ENC_AVERAGE_QP          = FOURCC_META('a', 'v', 'g', 'q'),
     KEY_ROI_DATA                = FOURCC_META('r', 'o', 'i', ' '),
     KEY_OSD_DATA                = FOURCC_META('o', 's', 'd', ' '),
     KEY_OSD_DATA2               = FOURCC_META('o', 's', 'd', '2'),
