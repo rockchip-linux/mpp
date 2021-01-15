@@ -349,6 +349,11 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->log2_max_frame_num = src->log2_max_frame_num;
         dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM;
     }
+    if ((change & MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM) &&
+        (dst->gaps_not_allowed != src->gaps_not_allowed)) {
+        dst->gaps_not_allowed = src->gaps_not_allowed;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM;
+    }
     if ((change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) &&
         ((dst->entropy_coding_mode != src->entropy_coding_mode) ||
          (dst->cabac_init_idc != src->cabac_init_idc))) {

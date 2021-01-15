@@ -559,6 +559,8 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB     = (1 << 11),
     /* change on log2 max frame number minus 4 */
     MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM     = (1 << 12),
+    /* change on gaps_in_frame_num_value_allowed_flag */
+    MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM = (1 << 13),
 
     /* change on max_qp / min_qp */
     MPP_ENC_H264_CFG_CHANGE_QP_LIMIT        = (1 << 16),
@@ -607,6 +609,7 @@ typedef struct MppEncH264Cfg_t {
     RK_U8               poc_type;
     RK_U8               log2_max_poc_lsb;
     RK_U8               log2_max_frame_num;
+    RK_U32              gaps_not_allowed;
 
     /*
      * H.264 profile_idc parameter
