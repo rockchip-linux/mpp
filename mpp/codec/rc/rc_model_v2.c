@@ -1357,10 +1357,12 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             }
             start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
             p->start_qp = start_qp;
-            p->cur_scale_qp = qp_scale;
 
-            if (!p->reenc_cnt && p->usr_cfg.debreath_cfg.enable)
-                calc_debreath_qp(ctx);
+            if (!p->reenc_cnt) {
+                p->cur_scale_qp = qp_scale;
+                if (p->usr_cfg.debreath_cfg.enable)
+                    calc_debreath_qp(ctx);
+            }
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
