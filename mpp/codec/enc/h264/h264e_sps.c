@@ -141,7 +141,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     // max one reference frame
     sps->num_ref_frames = info->dpb_size;
 
-    sps->gaps_in_frame_num_value_allowed = 0;
+    sps->gaps_in_frame_num_value_allowed = !h264->gaps_not_allowed;
 
     // default 720p without cropping
     sps->pic_width_in_mbs = aligned_w >> 4;
