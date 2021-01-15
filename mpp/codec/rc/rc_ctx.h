@@ -86,6 +86,9 @@ typedef struct RcModelV2Ctx_t {
     RK_S32          start_qp;
     RK_S32          prev_quality;
     RK_S32          prev_md_prop;
+    RK_S32          gop_qp_sum;
+    RK_S32          gop_frm_cnt;
+    RK_S32          pre_iblk4_prop;
 
     RK_S32          reenc_cnt;
     RK_U32          drop_cnt;

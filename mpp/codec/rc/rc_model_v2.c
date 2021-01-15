@@ -69,6 +69,10 @@ RK_U32 bit2percent[100] = {
     32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
 };
 
+RK_S8 intra_qp_map[8] = {
+    0, 0, 1, 1, 2, 2, 2, 2,
+};
+
 MPP_RET bits_model_param_deinit(RcModelV2Ctx *ctx)
 {
     rc_dbg_func("enter %p\n", ctx);
@@ -302,6 +306,8 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
     ctx->stat_watl = water_level;
     switch (ctx->frame_type) {
     case INTRA_FRAME: {
+        ctx->gop_frm_cnt = 0;
+        ctx->gop_qp_sum = 0;
         mpp_data_update_v2(ctx->i_bit, real_bit);
         ctx->i_sumbits = mpp_data_sum_v2(ctx->i_bit);
         ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
@@ -451,6 +457,38 @@ MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx)
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
 
+}
+
+MPP_RET calc_debreath_qp(RcModelV2Ctx *ctx)
+{
+    rc_dbg_func("enter %p\n", ctx);
+    RK_S32 qp_start_sum = 0;
+    RK_U8 idx2 = ctx->pre_iblk4_prop >> 5;
+    RK_S32 new_start_qp = 0;
+    RcDebreathCfg *debreath_cfg = &ctx->usr_cfg.debreath_cfg;
+
+    static RK_S8 strength_map[36] = {
+        0, 1, 1, 2,  2,  2,  3,  3,  3,  4,  4,  4,
+        5, 5, 5, 6,  6,  6,  7,  7,  7,  8,  8,  8,
+        9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12
+    };
+
+    qp_start_sum = ctx->gop_qp_sum / ctx->gop_frm_cnt;
+
+    rc_dbg_qp("i start_qp %d, qp_start_sum = %d, intra_lv4_prop %d",
+              ctx->start_qp, qp_start_sum, ctx->pre_iblk4_prop);
+
+    RK_S32 dealt_qp = strength_map[debreath_cfg->strength] - intra_qp_map[idx2];
+    if (qp_start_sum > dealt_qp)
+        new_start_qp = qp_start_sum - dealt_qp;
+    else
+        new_start_qp = qp_start_sum;
+
+    ctx->start_qp =  new_start_qp;
+    ctx->start_qp = mpp_clip(ctx->start_qp, 20, 51);
+
+    rc_dbg_func("leave %p\n", ctx);
+    return MPP_OK;
 }
 
 MPP_RET calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
@@ -914,6 +952,11 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     } else if (gop_len == 1) {
         rc_dbg_rc("all intra gop \n");
         usr_cfg->init_ip_ratio  = 16;
+
+        /* disable debreath on all intra case */
+        if (usr_cfg->debreath_cfg.enable)
+            usr_cfg->debreath_cfg.enable = 0;
+
         usr_cfg->igop = gop_len = 500;
     } else {
         usr_cfg->igop = gop_len = mpp_clip(usr_cfg->igop, usr_cfg->igop, 500);
@@ -1034,9 +1077,11 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     if (ctx->reenc_cnt >= usr_cfg->max_reencode_times)
         return MPP_OK;
 
-    if (check_super_frame(ctx, cfg)) {
+    if (check_super_frame(ctx, cfg))
         return MPP_NOK;
-    }
+
+    if (usr_cfg->debreath_cfg.enable && !ctx->first_frm_flg)
+        return MPP_OK;
 
     rc_dbg_drop("drop mode %d frame_type %d\n", usr_cfg->drop_mode, frame_type);
     if (usr_cfg->drop_mode && frame_type == INTER_P_FRAME) {
@@ -1310,10 +1355,12 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
                 start_qp -= dealt_qp;
             }
-
             start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
             p->start_qp = start_qp;
             p->cur_scale_qp = qp_scale;
+
+            if (!p->reenc_cnt && p->usr_cfg.debreath_cfg.enable)
+                calc_debreath_qp(ctx);
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;
@@ -1328,6 +1375,9 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
     p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);
     info->quality_target = p->start_qp;
+
+    p->gop_frm_cnt++;
+    p->gop_qp_sum += p->start_qp;
 
     rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
               bit_min, bit_target, bit_max,
@@ -1438,6 +1488,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
 
     p->last_frame_type = p->frame_type;
     p->pre_mean_qp = cfg->quality_real;
+    p->pre_iblk4_prop = cfg->iblk4_prop;
     p->scale_qp = p->cur_scale_qp;
     p->prev_md_prop = 0;
     p->pre_target_bits = cfg->bit_target;
