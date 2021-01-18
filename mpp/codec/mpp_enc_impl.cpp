@@ -299,7 +299,8 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 
     do {
         if (cmd == MPP_ENC_SET_CODEC_CFG ||
-            cmd == MPP_ENC_SET_PREP_CFG) {
+            cmd == MPP_ENC_SET_PREP_CFG ||
+            cmd == MPP_ENC_SET_IDR_FRAME) {
             resend = 1;
             break;
         }
@@ -625,6 +626,9 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         MppEncRcCfg *src = (MppEncRcCfg *)param;
         if (src)
             ret = mpp_enc_proc_rc_cfg(&enc->cfg.rc, src);
+    } break;
+    case MPP_ENC_SET_IDR_FRAME : {
+        enc->frm_cfg.force_idr++;
     } break;
     case MPP_ENC_GET_HDR_SYNC :
     case MPP_ENC_GET_EXTRA_INFO : {
