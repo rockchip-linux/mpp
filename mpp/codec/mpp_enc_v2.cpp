@@ -323,11 +323,6 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         enc_dbg_ctrl("get codec config\n");
         memcpy(param, &enc->cfg.codec, sizeof(enc->cfg.codec));
     } break;
-    case MPP_ENC_SET_IDR_FRAME : {
-        enc_dbg_ctrl("set idr frame\n");
-        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
-        enc->frm_cfg.force_idr++;
-    } break;
     case MPP_ENC_GET_HEADER_MODE : {
         enc_dbg_ctrl("get header mode\n");
         memcpy(param, &enc->hdr_mode, sizeof(enc->hdr_mode));
