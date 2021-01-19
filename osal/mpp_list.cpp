@@ -294,48 +294,13 @@ RK_S32 mpp_list::flush()
             count--;
         }
     }
-    mCondition.signal();
+    signal();
     return 0;
-}
-
-void mpp_list::lock()
-{
-    mMutex.lock();
-}
-
-void mpp_list::unlock()
-{
-    mMutex.unlock();
-}
-
-RK_S32 mpp_list::trylock()
-{
-    return mMutex.trylock();
-}
-
-Mutex *mpp_list::mutex()
-{
-    return &mMutex;
 }
 
 RK_U32 mpp_list::get_key()
 {
     return keys++;
-}
-
-void mpp_list::wait()
-{
-    mCondition.wait(mMutex);
-}
-
-RK_S32 mpp_list::wait(RK_S64 timeout)
-{
-    return mCondition.timedwait(mMutex, timeout);
-}
-
-void mpp_list::signal()
-{
-    mCondition.signal();
 }
 
 mpp_list::mpp_list(node_destructor func)
