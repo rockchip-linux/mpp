@@ -31,7 +31,8 @@
 typedef void *(*node_destructor)(void *);
 
 struct mpp_list_node;
-class mpp_list
+
+class mpp_list : public MppMutexCond
 {
 public:
     mpp_list(node_destructor func = NULL);
@@ -63,22 +64,7 @@ public:
 
     RK_S32 flush();
 
-    // open lock function for external combination usage
-    void   lock();
-    void   unlock();
-    RK_S32 trylock();
-
-    // open lock function for external auto lock
-    Mutex *mutex();
-
-    void wait();
-    RK_S32 wait(RK_S64 timeout);
-    void signal();
-
 private:
-    Mutex                   mMutex;
-    Condition               mCondition;
-
     node_destructor         destroy;
     struct mpp_list_node    *head;
     RK_S32                  count;

@@ -194,11 +194,13 @@ public:
     MppMutexCond() {};
     ~MppMutexCond() {};
 
-    void lock()     { mLock.lock(); }
-    void unlock()   { mLock.unlock(); }
-    void wait()     { mCondition.wait(mLock); }
-    void signal()   { mCondition.signal(); }
-    Mutex *mutex()  { return &mLock; }
+    void    lock()      { mLock.lock(); }
+    void    unlock()    { mLock.unlock(); }
+    void    trylock()   { mLock.trylock(); }
+    void    wait()      { mCondition.wait(mLock); }
+    RK_S32  wait(RK_S64 timeout) { return mCondition.timedwait(mLock, timeout); }
+    void    signal()    { mCondition.signal(); }
+    Mutex   *mutex()    { return &mLock; }
 
 private:
     Mutex           mLock;
