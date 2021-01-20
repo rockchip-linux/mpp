@@ -329,6 +329,9 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
             else if (ctx->output_fmt == MPP_FMT_YUV422_YVYU) {
                 regs->reg2_sys.out_cbcr_swap = 1;
                 regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_YUYV;
+            } else if (ctx->output_fmt == MPP_FMT_YUV420SP_VU) {
+                regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_NV12;
+                regs->reg2_sys.out_cbcr_swap = 1;
             }
         } else if (MPP_FRAME_FMT_IS_RGB(ctx->output_fmt)) {
             if (ctx->output_fmt == MPP_FMT_RGB888) {
