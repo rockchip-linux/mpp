@@ -766,6 +766,9 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     const RK_U8 *buf_ptr = buf;
     const RK_U8 *const buf_end = buf + buf_size;
 
+    syntax->htbl_entry = 0;
+    syntax->qtbl_entry = 0;
+
     if (buf_size < 4 || *buf_ptr != 0xFF || *(buf_ptr + 1) != SOI) {
         // not jpeg
         ret = MPP_ERR_STREAM;
