@@ -656,6 +656,10 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 
         enc->hdr_status.added_by_ctrl = 1;
     } break;
+    case MPP_ENC_PRE_ALLOC_BUFF : {
+        /* deprecated control */
+        mpp_log("deprecated MPP_ENC_PRE_ALLOC_BUFF control\n");
+    } break;
     case MPP_ENC_GET_RC_API_ALL : {
         RcApiQueryAll *query = (RcApiQueryAll *)param;
 
