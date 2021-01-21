@@ -25,16 +25,16 @@
 #include "vdpu34x_com.h"
 
 static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
-    [RCB_INTRA_ROW] = 6,    /* RCB_INTRA_ROW_COEF */
-    [RCB_TRANSD_ROW] = 1,   /* RCB_TRANSD_ROW_COEF */
-    [RCB_TRANSD_COL] = 1,   /* RCB_TRANSD_COL_COEF */
-    [RCB_STRMD_ROW] = 3,    /* RCB_STRMD_ROW_COEF */
-    [RCB_INTER_ROW] = 6,    /* RCB_INTER_ROW_COEF */
-    [RCB_INTER_COL] = 3,    /* RCB_INTER_COL_COEF */
-    [RCB_DBLK_ROW] = 22,    /* RCB_DBLK_ROW_COEF */
-    [RCB_SAO_ROW] = 6,      /* RCB_SAO_ROW_COEF */
-    [RCB_FBC_ROW] = 11,     /* RCB_FBC_ROW_COEF */
-    [RCB_FILT_COL] = 67,    /* RCB_FILT_COL_COEF */
+    [RCB_INTRA_ROW]     = 6,   /* RCB_INTRA_ROW_COEF */
+    [RCB_TRANSD_ROW]    = 1,   /* RCB_TRANSD_ROW_COEF */
+    [RCB_TRANSD_COL]    = 1,   /* RCB_TRANSD_COL_COEF */
+    [RCB_STRMD_ROW]     = 3,   /* RCB_STRMD_ROW_COEF */
+    [RCB_INTER_ROW]     = 6,   /* RCB_INTER_ROW_COEF */
+    [RCB_INTER_COL]     = 3,   /* RCB_INTER_COL_COEF */
+    [RCB_DBLK_ROW]      = 22,  /* RCB_DBLK_ROW_COEF */
+    [RCB_SAO_ROW]       = 6,   /* RCB_SAO_ROW_COEF */
+    [RCB_FBC_ROW]       = 11,  /* RCB_FBC_ROW_COEF */
+    [RCB_FILT_COL]      = 67,  /* RCB_FILT_COL_COEF */
 };
 
 static RK_S32 update_size_offset(Vdpu34xRcbInfo *info, RK_U32 reg,

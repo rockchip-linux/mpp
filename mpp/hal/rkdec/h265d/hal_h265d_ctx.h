@@ -69,6 +69,11 @@ typedef struct HalH265dCtx_t {
 
     RK_U32          is_v345;
     RK_U32          is_v34x;
+    /* rcb info */
+    RK_U32          chroma_fmt_idc;
+    RK_U8           ctu_size;
+    RK_U8           num_row_tiles;
+    RK_U8           bit_depth;
     RK_U8           error_index;
 } HalH265dCtx;
 

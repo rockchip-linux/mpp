@@ -87,6 +87,10 @@ typedef struct Vdpu34xH264dRegCtx_t {
 
     RK_S32              width;
     RK_S32              height;
+    /* rcb buffers info */
+    RK_U32              bit_depth;
+    RK_U32              mbaff;
+    RK_U32              chroma_format_idc;
     RK_S32              rcb_buf_size;
     Vdpu34xRcbInfo      rcb_info[RCB_BUF_COUNT];
     MppBuffer           rcb_buf;
@@ -739,7 +743,7 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info
     rcb_bits = width * 44;
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_DBLK_ROW */
-    rcb_bits = width * (mbaff ? 14 : 8) * bit_depth;
+    rcb_bits = width * (2 + (mbaff ? 12 : 6) * bit_depth);
     rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_SAO_ROW */
     rcb_info[RCB_SAO_ROW].size = 0;
@@ -751,6 +755,42 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info
     rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_FILT_COL */
     rcb_info[RCB_FILT_COL].size = 0;
+}
+
+static void hal_h264d_rcb_info_update(void *hal)
+{
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t*)hal;
+    RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
+    RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
+    RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
+    Vdpu34xH264dRegCtx *ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
+    RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
+    RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+
+    if ( ctx->bit_depth != bit_depth ||
+         ctx->chroma_format_idc != chroma_format_idc ||
+         ctx->mbaff != mbaff ||
+         ctx->width != width ||
+         ctx->height != height) {
+        MppBuffer rcb_buf = ctx->rcb_buf;
+
+        if (rcb_buf) {
+            mpp_buffer_put(rcb_buf);
+            rcb_buf = NULL;
+        }
+
+        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
+        h264d_refine_rcb_size(hal, ctx->rcb_info, width, height);
+
+        mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
+
+        ctx->rcb_buf        = rcb_buf;
+        ctx->bit_depth      = bit_depth;
+        ctx->width          = width;
+        ctx->height         = height;
+        ctx->mbaff          = mbaff;
+        ctx->chroma_format_idc = chroma_format_idc;
+    }
 }
 
 MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
@@ -828,27 +868,8 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     regs->h264d_addr.scanlist_addr = mpp_buffer_get_fd(ctx->sclst_buf);
     regs->common.reg012.scanlist_addr_valid_en = 1;
 
-    MppBuffer rcb_buf = ctx->rcb_buf;
-
-    if (width != ctx->width || height != ctx->height) {
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            rcb_buf = NULL;
-        }
-
-        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
-
-        mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
-        ctx->rcb_buf = rcb_buf;
-        ctx->width = width;
-        ctx->height = height;
-    }
-
-    vdpu34x_setup_rcb(&regs->common_addr, rcb_buf, ctx->rcb_info);
-    h264d_refine_rcb_size(p_hal, ctx->rcb_info, width, height);
-    /* sort by dec*/
-    qsort(ctx->rcb_info, MPP_ARRAY_ELEMS(ctx->rcb_info),
-          sizeof(ctx->rcb_info[0]), vdpu34x_compare_rcb_size);
+    hal_h264d_rcb_info_update(p_hal);
+    vdpu34x_setup_rcb(&regs->common_addr, ctx->rcb_buf, ctx->rcb_info);
 
 __RETURN:
     return ret = MPP_OK;
@@ -928,12 +949,19 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
         {
             RK_U32 i = 0;
             MppDevRcbInfoCfg rcb_cfg;
+            Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
 
-            for (i = 0; i < MPP_ARRAY_ELEMS(reg_ctx->rcb_info); i++) {
-                rcb_cfg.reg_idx = reg_ctx->rcb_info[i].reg;
-                rcb_cfg.size = reg_ctx->rcb_info[i].size;
-                if (rcb_cfg.size > 0)
+            memcpy(rcb_info, reg_ctx->rcb_info, sizeof(rcb_info));
+            qsort(rcb_info, MPP_ARRAY_ELEMS(rcb_info),
+                  sizeof(rcb_info[0]), vdpu34x_compare_rcb_size);
+
+            for (i = 0; i < MPP_ARRAY_ELEMS(rcb_info); i++) {
+                rcb_cfg.reg_idx = rcb_info[i].reg;
+                rcb_cfg.size = rcb_info[i].size;
+                if (rcb_cfg.size > 0) {
                     mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+                } else
+                    break;
             }
         }
         /* send request to hardware */

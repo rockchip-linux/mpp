@@ -61,6 +61,27 @@ static FILE *fp = NULL;
         default: break;}\
     }while(0)
 
+#define FMT 4
+#define CTU 3
+
+typedef struct {
+    RK_U32 a;
+    RK_U32 b;
+} FilterdColBufRatio;
+
+static const FilterdColBufRatio filterd_fbc_on[CTU][FMT] = {
+    /* 400    420      422       444 */
+    {{0, 0}, {27, 15}, {36, 15}, {52, 15}}, //ctu 16
+    {{0, 0}, {27, 8},  {36, 8},  {52, 8}}, //ctu 32
+    {{0, 0}, {27, 5},  {36, 5},  {52, 5}}  //ctu 64
+};
+
+static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
+    /* 400    420      422       444 */
+    {{0, 0}, {9, 31}, {12, 39}, {12, 39}}, //ctu 16
+    {{0, 0}, {9, 25}, {12, 33}, {12, 33}}, //ctu 32
+    {{0, 0}, {9, 21}, {12, 29}, {12, 29}}  //ctu 64
+};
 
 static MPP_RET hal_h265d_alloc_res(void *hal)
 {
@@ -739,6 +760,132 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     return 0;
 }
 
+static void h265d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
+                                  RK_S32 width, RK_S32 height, void *dxva)
+{
+    RK_U32 rcb_bits = 0;
+
+    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    Vdpu34xH265dRegSet *hw_regs = (Vdpu34xH265dRegSet*)reg_cxt->hw_regs;
+    h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    DXVA_PicParams_HEVC *pp = &dxva_cxt->pp;
+    RK_U32 chroma_fmt_idc = pp->chroma_format_idc;//0 400,1 4202 ,422,3 444
+    RK_U8 bit_depth = MPP_MAX(pp->bit_depth_luma_minus8, pp->bit_depth_chroma_minus8) + 8;
+    RK_U8 ctu_size = 1 << (pp->log2_diff_max_min_luma_coding_block_size + pp->log2_min_luma_coding_block_size_minus3 + 3);
+    RK_U32 num_tiles = pp->num_tile_rows_minus1 + 1;
+
+    /* RCB_STRMD_ROW */
+    if (width > 8192) {
+        RK_U32 factor = ctu_size / 16;
+        rcb_bits = (MPP_ALIGN(width, ctu_size) + factor - 1) * factor * 24;
+    } else
+        rcb_bits = 0;
+    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_TRANSD_ROW */
+    if (width > 8192)
+        rcb_bits = MPP_ALIGN(width - 8192, 4) << 1;
+    else
+        rcb_bits = 0;
+    rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_TRANSD_COL */
+    if (height > 8192)
+        rcb_bits = MPP_ALIGN(height - 8192, 4) << 1;
+    else
+        rcb_bits = 0;
+    rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTER_ROW */
+    rcb_bits = width * 22;
+    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTER_COL */
+    rcb_bits = width * 22;
+    rcb_info[RCB_INTER_COL].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTRA_ROW */
+    rcb_bits = width * 48;
+    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_DBLK_ROW */
+    if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
+        if (ctu_size == 32)
+            rcb_bits = width * ( 4 + 6 * bit_depth);
+        else
+            rcb_bits = width * ( 2 + 6 * bit_depth);
+    } else {
+        if (ctu_size == 32)
+            rcb_bits = width * ( 4 + 8 * bit_depth);
+        else
+            rcb_bits = width * ( 2 + 8 * bit_depth);
+    }
+    rcb_bits += (num_tiles * (bit_depth == 8 ? 256 : 192));
+    rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_SAO_ROW */
+    if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
+        rcb_bits = width * (128 / ctu_size + 2 * bit_depth);
+    } else {
+        rcb_bits = width * (128 / ctu_size + 3 * bit_depth);
+    }
+    rcb_bits += (num_tiles * (bit_depth == 8 ? 160 : 128));
+    rcb_info[RCB_SAO_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_FBC_ROW */
+    if (hw_regs->common.reg012.fbc_e) {
+        rcb_bits = (chroma_fmt_idc - 1) * ctu_size * 2 * bit_depth;
+        rcb_bits += (num_tiles * (bit_depth == 8 ? 128 : 64));
+    } else
+        rcb_bits = 0;
+    rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_FILT_COL */
+    if (hw_regs->common.reg012.fbc_e) {
+        RK_U32 ctu_idx = ctu_size >> 5;
+        RK_U32 a = filterd_fbc_on[chroma_fmt_idc][ctu_idx].a;
+        RK_U32 b = filterd_fbc_on[chroma_fmt_idc][ctu_idx].b;
+
+        rcb_bits = height * (a * bit_depth + b);
+    } else {
+        RK_U32 ctu_idx = ctu_size >> 5;
+        RK_U32 a = filterd_fbc_off[chroma_fmt_idc][ctu_idx].a;
+        RK_U32 b = filterd_fbc_off[chroma_fmt_idc][ctu_idx].b;
+
+        rcb_bits = height * (a * bit_depth + b + (bit_depth == 10 ? 192 * ctu_size >> 4 : 0));
+    }
+    rcb_info[RCB_FILT_COL].size = MPP_RCB_BYTES(rcb_bits);
+}
+
+static void hal_h265d_rcb_info_update(void *hal,  void *dxva, RK_S32 width, RK_S32 height)
+{
+    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    DXVA_PicParams_HEVC *pp = &dxva_cxt->pp;
+    RK_U32 chroma_fmt_idc = pp->chroma_format_idc;//0 400,1 4202 ,422,3 444
+    RK_U8 bit_depth = MPP_MAX(pp->bit_depth_luma_minus8, pp->bit_depth_chroma_minus8) + 8;
+    RK_U8 ctu_size = 1 << (pp->log2_diff_max_min_luma_coding_block_size + pp->log2_min_luma_coding_block_size_minus3 + 3);
+    RK_U32 num_tiles = pp->num_tile_rows_minus1 + 1;
+
+    if (reg_cxt->num_row_tiles != num_tiles ||
+        reg_cxt->bit_depth != bit_depth ||
+        reg_cxt->chroma_fmt_idc != chroma_fmt_idc ||
+        reg_cxt->ctu_size !=  ctu_size ||
+        reg_cxt->width != width ||
+        reg_cxt->height != height) {
+        MppBuffer rcb_buf = reg_cxt->rcb_buf;
+
+        if (rcb_buf) {
+            mpp_buffer_put(rcb_buf);
+            rcb_buf = NULL;
+        }
+
+        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
+        h265d_refine_rcb_size(hal, reg_cxt->rcb_info, width, height, dxva_cxt);
+
+        mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
+
+        reg_cxt->rcb_buf        = rcb_buf;
+        reg_cxt->num_row_tiles  = num_tiles;
+        reg_cxt->bit_depth      = bit_depth;
+        reg_cxt->chroma_fmt_idc = chroma_fmt_idc;
+        reg_cxt->ctu_size       = ctu_size;
+        reg_cxt->width          = width;
+        reg_cxt->height         = height;
+    }
+}
+
 static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     RK_S32 i = 0;
@@ -990,26 +1137,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hw_regs->common.reg011.buf_empty_en = 1;
 
-    MppBuffer rcb_buf = reg_cxt->rcb_buf;
-
-    if (width != reg_cxt->width || height != reg_cxt->height) {
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            rcb_buf = NULL;
-        }
-
-        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
-
-        mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
-        reg_cxt->rcb_buf = rcb_buf;
-        reg_cxt->width = width;
-        reg_cxt->height = height;
-    }
-
-    vdpu34x_setup_rcb(&hw_regs->common_addr, rcb_buf, reg_cxt->rcb_info);
-    /* sort by dec */
-    qsort(reg_cxt->rcb_info, MPP_ARRAY_ELEMS(reg_cxt->rcb_info),
-          sizeof(reg_cxt->rcb_info[0]), vdpu34x_compare_rcb_size);
+    hal_h265d_rcb_info_update(hal, dxva_cxt, width, height);
+    vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->rcb_buf, reg_cxt->rcb_info);
 
     return ret;
 }
@@ -1105,12 +1234,19 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
         /* rcb info for sram */
         {
             MppDevRcbInfoCfg rcb_cfg;
+            Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
 
-            for (i = 0; i < MPP_ARRAY_ELEMS(reg_cxt->rcb_info); i++) {
-                rcb_cfg.reg_idx = reg_cxt->rcb_info[i].reg;
-                rcb_cfg.size = reg_cxt->rcb_info[i].size;
+            memcpy(rcb_info, reg_cxt->rcb_info, sizeof(rcb_info));
+            qsort(rcb_info, MPP_ARRAY_ELEMS(rcb_info),
+                  sizeof(rcb_info[0]), vdpu34x_compare_rcb_size);
+
+            for (i = 0; i < MPP_ARRAY_ELEMS(rcb_info); i++) {
+                rcb_cfg.reg_idx = rcb_info[i].reg;
+                rcb_cfg.size = rcb_info[i].size;
                 if (rcb_cfg.size > 0)
                     mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+                else
+                    break;
             }
         }
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_CMD_SEND, NULL);
