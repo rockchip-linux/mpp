@@ -541,6 +541,39 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                 ret = MPP_ERR_VALUE;
             }
         }
+        if (dst->qp_min < 0 || dst->qp_max < 0 || dst->qp_min > dst->qp_max ||
+            dst->qp_min_i < 0 || dst->qp_max_i < 0 ||
+            dst->qp_min_i > dst->qp_max_i ||
+            dst->qp_init > dst->qp_max_i || dst->qp_init < dst->qp_min_i) {
+            mpp_err("invalid qp range: init %d i [%d:%d] p [%d:%d]\n",
+                    dst->qp_init, dst->qp_min_i, dst->qp_max_i,
+                    dst->qp_min, dst->qp_max);
+
+            dst->qp_init  = bak.qp_init;
+            dst->qp_min_i = bak.qp_min_i;
+            dst->qp_max_i = bak.qp_max_i;
+            dst->qp_min   = bak.qp_min;
+            dst->qp_max   = bak.qp_max;
+
+            mpp_err("restore qp range: init %d i [%d:%d] p [%d:%d]\n",
+                    dst->qp_init, dst->qp_min_i, dst->qp_max_i,
+                    dst->qp_min, dst->qp_max);
+        }
+        if (dst->qp_delta_ip < 0) {
+            mpp_err("invalid qp delta ip %d restore to %d\n",
+                    dst->qp_delta_ip, bak.qp_delta_ip);
+            dst->qp_delta_ip = bak.qp_delta_ip;
+        }
+        if (dst->qp_delta_vi < 0) {
+            mpp_err("invalid qp delta vi %d restore to %d\n",
+                    dst->qp_delta_vi, bak.qp_delta_vi);
+            dst->qp_delta_vi = bak.qp_delta_vi;
+        }
+        if (dst->qp_max_step < 0) {
+            mpp_err("invalid qp max step %d restore to %d\n",
+                    dst->qp_max_step, bak.qp_max_step);
+            dst->qp_max_step = bak.qp_max_step;
+        }
 
         dst->change |= change;
 
@@ -563,6 +596,8 @@ MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
     RK_U32 change = src->change;
 
     if (change) {
+        MppEncHwCfg bak = *dst;
+
         if (change & MPP_ENC_HW_CFG_CHANGE_QP_ROW)
             dst->qp_delta_row = src->qp_delta_row;
 
@@ -581,7 +616,18 @@ MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
         if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P)
             memcpy(dst->aq_step_p, src->aq_step_p, sizeof(dst->aq_step_p));
 
+        if (dst->qp_delta_row < 0 || dst->qp_delta_row_i < 0) {
+            mpp_err("invalid hw qp delta row [%d:%d]\n",
+                    dst->qp_delta_row_i, dst->qp_delta_row);
+            ret = MPP_ERR_VALUE;
+        }
+
         dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new hw config\n");
+            *dst = bak;
+        }
     }
 
     return ret;
