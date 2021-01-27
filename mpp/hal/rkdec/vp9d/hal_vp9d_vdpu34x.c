@@ -324,51 +324,50 @@ __FAILED:
     return ret;
 }
 
-static void vp9d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
+static void vp9d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
+                                 Vdpu34xVp9dRegSet *vp9_hw_regs,
                                  RK_S32 width, RK_S32 height, void* data)
 {
     RK_U32 rcb_bits = 0;
-    HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
-    Vdpu34xVp9dRegSet *vp9_hw_regs = (Vdpu34xVp9dRegSet*)hw_ctx->hw_regs;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)data;
     RK_U32 num_tiles = pic_param->log2_tile_rows;
     RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
+    RK_U32 ext_align_size = num_tiles * 64 * 8;
 
     /* RCB_STRMD_ROW */
     if (width > 4096)
-        rcb_bits = MPP_ALIGN(width, 64) * 232;
+        rcb_bits = MPP_ALIGN(width, 64) * 232 + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_TRANSD_ROW */
     if (width > 8192)
-        rcb_bits = MPP_ALIGN(width - 8192, 4) << 1;
+        rcb_bits = (MPP_ALIGN(width - 8192, 4) << 1) + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_TRANSD_COL */
     if (height > 8192)
-        rcb_bits = MPP_ALIGN(height - 8192, 4) << 1;
+        rcb_bits = (MPP_ALIGN(height - 8192, 4) << 1) + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTER_ROW */
-    rcb_bits = width * 36;
+    rcb_bits = width * 36 + ext_align_size;
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTER_COL */
     rcb_info[RCB_INTER_COL].size = 0;
     /* RCB_INTRA_ROW */
-    rcb_bits = width * 48;
+    rcb_bits = width * 48 + ext_align_size;
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_DBLK_ROW */
-    rcb_bits = width * (1 + 16 * bit_depth) + num_tiles * 192 * bit_depth;
+    rcb_bits = width * (1 + 16 * bit_depth) + num_tiles * 192 * bit_depth + ext_align_size;
     rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_SAO_ROW */
     rcb_info[RCB_SAO_ROW].size = 0;
     /* RCB_FBC_ROW */
     if (vp9_hw_regs->common.reg012.fbc_e) {
-        rcb_bits = 8 * width * bit_depth;
+        rcb_bits = 8 * width * bit_depth + ext_align_size;
     } else
         rcb_bits = 0;
     rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
@@ -377,10 +376,11 @@ static void vp9d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
         rcb_bits = height * (4 + 24 *  bit_depth);
     } else
         rcb_bits = height * (4 + 16 *  bit_depth);
+    rcb_bits += ext_align_size;
     rcb_info[RCB_FILT_COL].size = MPP_RCB_BYTES(rcb_bits);
 }
 
-static void hal_vp9d_rcb_info_update(void *hal,  void *data)
+static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, void *data)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
@@ -402,7 +402,7 @@ static void hal_vp9d_rcb_info_update(void *hal,  void *data)
         }
 
         hw_ctx->rcb_buf_size = get_rcb_buf_size(hw_ctx->rcb_info, width, height);
-        vp9d_refine_rcb_size(hal, hw_ctx->rcb_info, width, height, pic_param);
+        vp9d_refine_rcb_size(hw_ctx->rcb_info, hw_regs, width, height, pic_param);
 
         mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
 
@@ -767,7 +767,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
                      pic_param->width, pic_param->height,
                      hw_ctx->ls_info.last_intra_only);
 
-    hal_vp9d_rcb_info_update(hal, pic_param);
+    hal_vp9d_rcb_info_update(hal, vp9_hw_regs, pic_param);
     vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, hw_ctx->rcb_buf, hw_ctx->rcb_info);
 
     // whether need update counts
