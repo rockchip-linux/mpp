@@ -247,7 +247,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 87;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 77;
 
 class MppEncCfgService
 {
