@@ -584,7 +584,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3566",
         ROCKCHIP_SOC_RK3566,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
-        {   &vdpu34x, &rkjpegd, &vdpu2, NULL, },
+        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
         {   &vepu540, &vepu2, NULL, NULL, },
     },
     {   /*
@@ -596,8 +596,8 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rk3568",
         ROCKCHIP_SOC_RK3568,
-        HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
-        {   &vdpu34x, &rkjpegd, &vdpu2, NULL, },
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
+        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
         {   &vepu540, &vepu2, NULL, NULL, },
     },
 };
