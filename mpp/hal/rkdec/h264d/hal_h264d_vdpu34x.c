@@ -707,14 +707,13 @@ MPP_RET vdpu34x_h264d_deinit(void *hal)
 }
 
 static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info,
+                                  Vdpu34xH264dRegSet *regs,
                                   RK_S32 width, RK_S32 height)
 {
     RK_U32 rcb_bits = 0;
     RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
     RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
     RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
-
-    Vdpu34xH264dRegCtx *ctx = (Vdpu34xH264dRegCtx *)p_hal->reg_ctx;
 
     /* RCB_STRMD_ROW */
     if (width > 4096)
@@ -748,7 +747,7 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info
     /* RCB_SAO_ROW */
     rcb_info[RCB_SAO_ROW].size = 0;
     /* RCB_FBC_ROW */
-    if (ctx->regs->common.reg012.fbc_e) {
+    if (regs->common.reg012.fbc_e) {
         rcb_bits = (chroma_format_idc > 1) ? (2 * width * bit_depth) : 0;
     } else
         rcb_bits = 0;
@@ -757,7 +756,7 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info
     rcb_info[RCB_FILT_COL].size = 0;
 }
 
-static void hal_h264d_rcb_info_update(void *hal)
+static void hal_h264d_rcb_info_update(void *hal, Vdpu34xH264dRegSet *regs)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t*)hal;
     RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
@@ -780,7 +779,7 @@ static void hal_h264d_rcb_info_update(void *hal)
         }
 
         ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
-        h264d_refine_rcb_size(hal, ctx->rcb_info, width, height);
+        h264d_refine_rcb_size(hal, ctx->rcb_info, regs, width, height);
 
         mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
 
@@ -867,8 +866,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
                      (void *)ctx->sclst, sizeof(ctx->sclst));
     regs->h264d_addr.scanlist_addr = mpp_buffer_get_fd(ctx->sclst_buf);
     regs->common.reg012.scanlist_addr_valid_en = 1;
-
-    hal_h264d_rcb_info_update(p_hal);
+    hal_h264d_rcb_info_update(p_hal, regs);
     vdpu34x_setup_rcb(&regs->common_addr, ctx->rcb_buf, ctx->rcb_info);
 
 __RETURN:

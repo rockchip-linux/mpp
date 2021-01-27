@@ -760,47 +760,46 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     return 0;
 }
 
-static void h265d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
+static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
+                                  Vdpu34xH265dRegSet *hw_regs,
                                   RK_S32 width, RK_S32 height, void *dxva)
 {
     RK_U32 rcb_bits = 0;
-
-    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
-    Vdpu34xH265dRegSet *hw_regs = (Vdpu34xH265dRegSet*)reg_cxt->hw_regs;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
     DXVA_PicParams_HEVC *pp = &dxva_cxt->pp;
     RK_U32 chroma_fmt_idc = pp->chroma_format_idc;//0 400,1 4202 ,422,3 444
     RK_U8 bit_depth = MPP_MAX(pp->bit_depth_luma_minus8, pp->bit_depth_chroma_minus8) + 8;
     RK_U8 ctu_size = 1 << (pp->log2_diff_max_min_luma_coding_block_size + pp->log2_min_luma_coding_block_size_minus3 + 3);
     RK_U32 num_tiles = pp->num_tile_rows_minus1 + 1;
+    RK_U32 ext_align_size = num_tiles * 64 * 8;
 
     /* RCB_STRMD_ROW */
     if (width > 8192) {
         RK_U32 factor = ctu_size / 16;
-        rcb_bits = (MPP_ALIGN(width, ctu_size) + factor - 1) * factor * 24;
+        rcb_bits = (MPP_ALIGN(width, ctu_size) + factor - 1) * factor * 24 + ext_align_size;
     } else
         rcb_bits = 0;
     rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_TRANSD_ROW */
     if (width > 8192)
-        rcb_bits = MPP_ALIGN(width - 8192, 4) << 1;
+        rcb_bits = (MPP_ALIGN(width - 8192, 4) << 1) + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_TRANSD_COL */
     if (height > 8192)
-        rcb_bits = MPP_ALIGN(height - 8192, 4) << 1;
+        rcb_bits = (MPP_ALIGN(height - 8192, 4) << 1) + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTER_ROW */
-    rcb_bits = width * 22;
+    rcb_bits = width * 22 + ext_align_size;
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTER_COL */
-    rcb_bits = width * 22;
+    rcb_bits = width * 22 + ext_align_size;
     rcb_info[RCB_INTER_COL].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTRA_ROW */
-    rcb_bits = width * 48;
+    rcb_bits = width * 48 + ext_align_size;
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_DBLK_ROW */
     if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
@@ -814,7 +813,7 @@ static void h265d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
         else
             rcb_bits = width * ( 2 + 8 * bit_depth);
     }
-    rcb_bits += (num_tiles * (bit_depth == 8 ? 256 : 192));
+    rcb_bits += (num_tiles * (bit_depth == 8 ? 256 : 192)) + ext_align_size;
     rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_SAO_ROW */
     if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
@@ -822,12 +821,12 @@ static void h265d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
     } else {
         rcb_bits = width * (128 / ctu_size + 3 * bit_depth);
     }
-    rcb_bits += (num_tiles * (bit_depth == 8 ? 160 : 128));
+    rcb_bits += (num_tiles * (bit_depth == 8 ? 160 : 128)) + ext_align_size;
     rcb_info[RCB_SAO_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_FBC_ROW */
     if (hw_regs->common.reg012.fbc_e) {
-        rcb_bits = (chroma_fmt_idc - 1) * ctu_size * 2 * bit_depth;
-        rcb_bits += (num_tiles * (bit_depth == 8 ? 128 : 64));
+        rcb_bits = width * (chroma_fmt_idc - 1) * 2 * bit_depth;
+        rcb_bits += (num_tiles * (bit_depth == 8 ? 128 : 64)) + ext_align_size;
     } else
         rcb_bits = 0;
     rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
@@ -845,10 +844,13 @@ static void h265d_refine_rcb_size(void *hal, Vdpu34xRcbInfo *rcb_info,
 
         rcb_bits = height * (a * bit_depth + b + (bit_depth == 10 ? 192 * ctu_size >> 4 : 0));
     }
+    rcb_bits += ext_align_size;
     rcb_info[RCB_FILT_COL].size = MPP_RCB_BYTES(rcb_bits);
 }
 
-static void hal_h265d_rcb_info_update(void *hal,  void *dxva, RK_S32 width, RK_S32 height)
+static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
+                                      Vdpu34xH265dRegSet *hw_regs,
+                                      RK_S32 width, RK_S32 height)
 {
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
@@ -872,7 +874,7 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva, RK_S32 width, RK_S
         }
 
         reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
-        h265d_refine_rcb_size(hal, reg_cxt->rcb_info, width, height, dxva_cxt);
+        h265d_refine_rcb_size(reg_cxt->rcb_info, hw_regs, width, height, dxva_cxt);
 
         mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
 
@@ -1137,7 +1139,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hw_regs->common.reg011.buf_empty_en = 1;
 
-    hal_h265d_rcb_info_update(hal, dxva_cxt, width, height);
+    hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
     vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->rcb_buf, reg_cxt->rcb_info);
 
     return ret;
