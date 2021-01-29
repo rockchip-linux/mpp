@@ -98,10 +98,10 @@ static RK_U32 dump_l1_reg = 0;
 static RK_U32 dump_l2_reg = 0;
 
 static RK_S32 h264_aq_tthd_default[16] = {
-    0,  0,  0,  2,
-    3,  4,  5,  6,
-    7,  8,  10, 12,
-    15, 20, 25, 35,
+    0,  0,  0,  0,
+    3,  3,  5,  5,
+    8,  8,  8,  15,
+    15, 20, 25, 25,
 };
 
 static RK_S32 h264_P_aq_step_default[16] = {
@@ -114,8 +114,8 @@ static RK_S32 h264_P_aq_step_default[16] = {
 static RK_S32 h264_I_aq_step_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
-    0,  1,  2,  3,
-    4,  5,  6,  7,
+    0,  1,  3,  3,
+    4,  5,  8,  8,
 };
 
 static MPP_RET hal_h264e_vepu541_deinit(void *hal)
