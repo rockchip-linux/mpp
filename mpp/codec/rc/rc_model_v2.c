@@ -1210,7 +1210,8 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
 
     /* quality determination */
     if (p->first_frm_flg)
-        info->quality_target = -1;
+        info->quality_target = (usr_cfg->init_quality <= 0) ? -1 : usr_cfg->init_quality;
+
     if (frm->is_intra) {
         info->quality_max = usr_cfg->max_i_quality;
         info->quality_min = usr_cfg->min_i_quality;
