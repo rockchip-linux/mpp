@@ -76,14 +76,21 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
     mpp_assert(cfg->coding = MPP_VIDEO_CodingMJPEG);
     cfg->task_count = 1;
 
-    /* init default fps config */
-    MppEncRcCfg *rc = &p->cfg->rc;
-    rc->fps_in_flex = 0;
-    rc->fps_in_num = 30;
-    rc->fps_in_denorm = 1;
-    rc->fps_out_flex = 0;
-    rc->fps_out_num = 30;
-    rc->fps_out_denorm = 1;
+    {
+        /* init default rc config */
+        MppEncRcCfg *rc = &p->cfg->rc;
+        MppEncJpegCfg *jpeg_cfg = &p->cfg->codec.jpeg;
+
+        rc->fps_in_flex = 0;
+        rc->fps_in_num = 30;
+        rc->fps_in_denorm = 1;
+        rc->fps_out_flex = 0;
+        rc->fps_out_num = 30;
+        rc->fps_out_denorm = 1;
+        rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+        /* init default quant */
+        jpeg_cfg->quant = 10;
+    }
 
     jpege_dbg_func("leave ctx %p\n", ctx);
     return MPP_OK;
