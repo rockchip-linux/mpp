@@ -53,8 +53,39 @@ typedef struct VepuStrideCfg_t {
     RK_U32  pixel_size;
 } VepuStrideCfg;
 
+typedef struct VepuOffsetCfg_t {
+    /* input parameter */
+    MppFrameFormat fmt;
+    /* width / height by pixel */
+    RK_U32  width;
+    RK_U32  height;
+    /* stride by byte */
+    RK_U32  hor_stride;
+    RK_U32  ver_stride;
+    /* offset by pixel */
+    RK_U32  offset_x;
+    RK_U32  offset_y;
+
+    /* output parameter */
+    /* offset by byte */
+    RK_U32  offset_byte[3];
+
+    /* offset by pixel */
+    RK_U32  offset_pixel[3];
+} VepuOffsetCfg;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 MPP_RET get_vepu_fmt(VepuFormatCfg *cfg, MppFrameFormat format);
 RK_U32 get_vepu_pixel_stride(VepuStrideCfg *cfg, RK_U32 width,
                              RK_U32 stride, MppFrameFormat fmt);
+
+MPP_RET get_vepu_offset_cfg(VepuOffsetCfg *cfg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

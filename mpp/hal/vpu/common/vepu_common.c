@@ -24,7 +24,6 @@
 
 #include "vepu_common.h"
 
-
 static VepuFormatCfg vepu_yuv_cfg[MPP_FMT_YUV_BUTT] = {
     //MPP_FMT_YUV420SP
     { .format = VEPU_FMT_YUV420SEMIPLANAR, .r_mask = 0, .g_mask = 0, .b_mask = 0, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
@@ -260,4 +259,73 @@ RK_U32 get_vepu_pixel_stride(VepuStrideCfg *cfg, RK_U32 width, RK_U32 stride, Mp
     cfg->pixel_size = pixel_size;
 
     return hor_stride;
+}
+
+MPP_RET get_vepu_offset_cfg(VepuOffsetCfg *cfg)
+{
+    MPP_RET ret = MPP_OK;
+    MppFrameFormat fmt  = cfg->fmt;
+    RK_U32 hor_stride   = cfg->hor_stride;
+    RK_U32 ver_stride   = cfg->ver_stride;
+    RK_U32 offset_x     = cfg->offset_x;
+    RK_U32 offset_y     = cfg->offset_y;
+    RK_U32 offset_c     = hor_stride * ver_stride;
+
+    memset(cfg->offset_byte, 0, sizeof(cfg->offset_byte));
+    memset(cfg->offset_pixel, 0, sizeof(cfg->offset_pixel));
+
+    if (offset_x || offset_y) {
+        switch (fmt) {
+        case MPP_FMT_YUV420SP : {
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x;
+            cfg->offset_byte[1] = offset_y / 2 * hor_stride + offset_x / 2 + offset_c;
+        } break;
+        case MPP_FMT_YUV420P : {
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x;
+            cfg->offset_byte[1] = (offset_y / 2) * (hor_stride / 2) + (offset_x / 2) + offset_c;
+            cfg->offset_byte[2] = (offset_y / 2) * (hor_stride / 2) + (offset_x / 2) + offset_c * 5 / 4;
+        } break;
+        case MPP_FMT_YUV422_YUYV :
+        case MPP_FMT_YUV422_UYVY : {
+            mpp_assert((offset_x & 1) == 0);
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x * 4;
+        } break;
+        case MPP_FMT_RGB565 :
+        case MPP_FMT_BGR565 :
+        case MPP_FMT_RGB555 :
+        case MPP_FMT_BGR555 :
+        case MPP_FMT_RGB444 :
+        case MPP_FMT_BGR444 : {
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x * 2;
+        } break;
+        case MPP_FMT_RGB101010 :
+        case MPP_FMT_BGR101010 :
+        case MPP_FMT_ARGB8888 :
+        case MPP_FMT_ABGR8888 :
+        case MPP_FMT_BGRA8888 :
+        case MPP_FMT_RGBA8888 : {
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x * 4;
+        } break;
+        default : {
+        } break;
+        }
+    } else {
+        switch (fmt) {
+        case MPP_FMT_YUV420SP :
+        case MPP_FMT_YUV420P : {
+            RK_U32 offset = hor_stride * ver_stride;
+
+            cfg->offset_byte[1] = offset;
+
+            if (fmt == MPP_FMT_YUV420P)
+                offset = hor_stride * ver_stride * 5 / 4;
+
+            cfg->offset_byte[2] = offset;
+        } break;
+        default : {
+        } break;
+        }
+    }
+
+    return ret;
 }
