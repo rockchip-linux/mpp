@@ -541,6 +541,11 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                 ret = MPP_ERR_VALUE;
             }
         }
+        // if I frame min/max is not set use normal case
+        if (dst->qp_min_i <= 0)
+            dst->qp_min_i = dst->qp_min;
+        if (dst->qp_max_i <= 0)
+            dst->qp_max_i = dst->qp_max;
         if (dst->qp_min < 0 || dst->qp_max < 0 || dst->qp_min > dst->qp_max ||
             dst->qp_min_i < 0 || dst->qp_max_i < 0 ||
             dst->qp_min_i > dst->qp_max_i ||
