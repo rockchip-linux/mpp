@@ -18,7 +18,8 @@
 
 #include <string.h>
 
-#include "rk_type.h"
+#include "mpp_env.h"
+
 #include "mpp_hal.h"
 #include "mpp_platform.h"
 #include "hal_jpegd_base.h"
@@ -88,6 +89,8 @@ static MPP_RET hal_jpegd_init (void *hal, MppHalCfg *cfg)
         hw_mode = VDPU1_MODE;
     if (hw_flag & HAVE_JPEG_DEC)
         hw_mode = RKVDEC_MODE;
+
+    mpp_env_get_u32("jpegd_mode", &hw_mode, hw_mode);
 
     switch (hw_mode) {
     case VDPU2_MODE:
