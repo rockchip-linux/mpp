@@ -298,14 +298,14 @@ typedef struct MppEncRcCfg_t {
      * skip_cnt - max continuous frame skip count
      * 0 - frame skip is not allow
      */
-    RK_S16  skip_cnt;
+    RK_S32  skip_cnt;
 
     /*
      * max_reenc_times - max reencode time for one frame
      * 0 - reencode is not allowed
      * 1~3 max reencode time is limited to 3
      */
-    RK_U16  max_reenc_times;
+    RK_U32  max_reenc_times;
 
     /*
      * stat_times   - the time of bitrate statistics
