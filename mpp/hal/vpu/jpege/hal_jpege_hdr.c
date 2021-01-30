@@ -891,12 +891,10 @@ static void write_jpeg_sos_header(JpegeBits *bits)
 
 void write_jpeg_RestartInterval(JpegeBits *bits, JpegeSyntax *syntax)
 {
-    RK_U32 restart_ri = syntax->mcu_w * syntax->part_rows;
-
-    if (restart_ri) {
+    if (syntax->restart_ri) {
         jpege_bits_put(bits, 0xFFDD, 16);
         jpege_bits_put(bits, 4, 16);
-        jpege_bits_put(bits, restart_ri, 16);
+        jpege_bits_put(bits, syntax->restart_ri, 16);
     }
 }
 

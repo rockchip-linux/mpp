@@ -31,6 +31,9 @@
 #include "hal_jpege_base.h"
 
 #define VEPU_JPEGE_VEPU2_NUM_REGS   184
+#define VEPU2_REG_INPUT_Y           48
+#define VEPU2_REG_INPUT_U           49
+#define VEPU2_REG_INPUT_V           50
 
 typedef struct jpege_vepu2_reg_set_t {
     RK_U32  val[VEPU_JPEGE_VEPU2_NUM_REGS];
@@ -127,6 +130,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
     ctx->part_bytepos = 0;
     ctx->part_x_fill = 0;
     ctx->part_y_fill = 0;
+    ctx->rst_marker_idx = 0;
     task->part_first = 1;
     task->part_last = 0;
 
@@ -138,47 +142,38 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 static MPP_RET hal_jpege_vepu2_set_extra_info(MppDev dev, JpegeSyntax *syntax,
                                               RK_U32 start_mbrow)
 {
-    MppFrameFormat fmt  = syntax->format;
-    RK_U32 hor_stride   = syntax->hor_stride;
-    RK_U32 ver_stride   = syntax->ver_stride;
-    RK_U32 offset = 0;
+    VepuOffsetCfg cfg;
     MppDevRegOffsetCfg trans_cfg;
 
-    switch (fmt) {
-    case MPP_FMT_YUV420SP :
-    case MPP_FMT_YUV420P : {
-        if (start_mbrow) {
-            offset = 16 * start_mbrow * hor_stride;
+    cfg.fmt = syntax->format;
+    cfg.width = syntax->width;
+    cfg.height = syntax->height;
+    cfg.hor_stride = syntax->hor_stride;
+    cfg.ver_stride = syntax->ver_stride;
+    cfg.offset_x = syntax->offset_x;
+    cfg.offset_y = syntax->offset_y + start_mbrow * 16;
 
-            trans_cfg.reg_idx = 48;
-            trans_cfg.offset = offset;
-            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-        }
+    get_vepu_offset_cfg(&cfg);
 
-        offset = hor_stride * ver_stride + hor_stride * start_mbrow * 16 / 2;
-        if (fmt == MPP_FMT_YUV420P)
-            offset = hor_stride * start_mbrow * 16 / 4 + hor_stride * ver_stride;
+    if (cfg.offset_byte[0]) {
+        trans_cfg.reg_idx = VEPU2_REG_INPUT_Y;
+        trans_cfg.offset = cfg.offset_byte[0];
 
-        trans_cfg.reg_idx = 49;
-        trans_cfg.offset = offset;
         mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    }
 
-        if (fmt == MPP_FMT_YUV420P)
-            offset = hor_stride * start_mbrow * 16 / 4 + hor_stride * ver_stride * 5 / 4;
+    if (cfg.offset_byte[1]) {
+        trans_cfg.reg_idx = VEPU2_REG_INPUT_U;
+        trans_cfg.offset = cfg.offset_byte[1];
 
-        trans_cfg.reg_idx = 50;
-        trans_cfg.offset = offset;
         mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    } break;
-    default : {
-        if (start_mbrow) {
-            offset = start_mbrow * hor_stride;
+    }
 
-            trans_cfg.reg_idx = 48;
-            trans_cfg.offset = offset;
-            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-        }
-    } break;
+    if (cfg.offset_byte[2]) {
+        trans_cfg.reg_idx = VEPU2_REG_INPUT_V;
+        trans_cfg.offset = cfg.offset_byte[2];
+
+        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
     return MPP_OK;
@@ -255,9 +250,9 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
 
     memset(regs, 0, sizeof(RK_U32) * VEPU_JPEGE_VEPU2_NUM_REGS);
     // input address setup
-    regs[48] = mpp_buffer_get_fd(input);
-    regs[49] = mpp_buffer_get_fd(input);
-    regs[50] = regs[49];
+    regs[VEPU2_REG_INPUT_Y] = mpp_buffer_get_fd(input);
+    regs[VEPU2_REG_INPUT_U] = regs[VEPU2_REG_INPUT_Y];
+    regs[VEPU2_REG_INPUT_V] = regs[VEPU2_REG_INPUT_Y];
 
     // output address setup
     bitpos = jpege_bits_get_bitpos(bits);
@@ -356,9 +351,19 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
                     (fmt_cfg.swap_8_in & 1) << 31;
     }
 
+    regs[107] = ((syntax->part_rows & 0xff) << 16) |
+                jpege_restart_marker[ctx->rst_marker_idx & 7];
+
     /* encoder interrupt */
     regs[109] = 1 << 12 |   /* clock gating */
                 1 << 10;    /* enable timeout interrupt */
+
+    if (syntax->low_delay) {
+        /* slice encode end by RST */
+        regs[107] |= (1 << 24);
+        /* slice interrupt enable */
+        regs[109] |= (1 << 16);
+    }
 
     /* 0 ~ 31 quantization tables */
     {
