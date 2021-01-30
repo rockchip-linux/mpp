@@ -520,6 +520,7 @@ static MPP_RET jpege_start(void *ctx, HalEncTask *task)
 static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
+    MppFrame frame = task->frame;
     JpegeSyntax *syntax = &p->syntax;
     MppEncCfgSet *cfg = p->cfg;
     MppEncPrepCfg *prep = &cfg->prep;
@@ -537,6 +538,8 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->format      = prep->format;
     syntax->color       = prep->color;
     syntax->rotation    = prep->rotation;
+    syntax->offset_x    = mpp_frame_get_offset_x(frame);
+    syntax->offset_y    = mpp_frame_get_offset_y(frame);
     syntax->quality     = codec->jpeg.quant;
     syntax->q_factor    = codec->jpeg.q_factor;
     syntax->qf_min      = codec->jpeg.qf_min;
@@ -544,9 +547,12 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->qtable_y    = codec->jpeg.qtable_y;
     syntax->qtable_c    = codec->jpeg.qtable_u;
     syntax->part_rows   = 0;
+    syntax->restart_ri  = 0;
+    syntax->low_delay   = 0;
 
     if (split->split_mode) {
         RK_U32 mb_h = MPP_ALIGN(prep->height, 16) / 16;
+        RK_U32 part_rows = 0;
 
         if (split->split_mode == MPP_ENC_SPLIT_BY_CTU) {
             RK_U32 part_mbs = split->split_arg;
@@ -554,8 +560,9 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
             RK_U32 mb_all = mb_w * mb_h;
 
             if (part_mbs > 0 && part_mbs <= mb_all) {
-                syntax->part_rows = (part_mbs + mb_w - 1) / mb_w;
-                mpp_assert(syntax->part_rows > 0 && syntax->part_rows <= mb_h);
+                part_rows = (part_mbs + mb_w - 1) / mb_w;
+                if (part_rows >= mb_h)
+                    part_rows = 0;
             } else {
                 mpp_err_f("warning: invalid split arg %d > max %d\n",
                           part_mbs, mb_all);
@@ -564,9 +571,10 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
             mpp_err_f("warning: only mcu split is supported\n");
         }
 
-        if (!syntax->part_rows) {
-            mpp_err_f("disable partition encoding\n");
-            syntax->part_rows = mb_h;
+        if (part_rows) {
+            syntax->part_rows   = part_rows;
+            syntax->restart_ri  = syntax->mcu_w * part_rows;
+            syntax->low_delay   = cfg->base.low_delay && part_rows;
         }
     }
 

@@ -30,6 +30,8 @@ typedef struct JpegeSyntax_t {
     MppFrameFormat      format;
     MppFrameColorSpace  color;
     MppEncRotationCfg   rotation;
+    RK_U32              offset_x;
+    RK_U32              offset_y;
 
     /* For quantization table */
     RK_U32              quality;
@@ -76,7 +78,9 @@ typedef struct JpegeSyntax_t {
     RK_U8               *comment_data;
 
     /* For jpeg low delay slice encoding */
-    RK_U8               part_rows;
+    RK_U32              low_delay;
+    RK_U32              part_rows;
+    RK_U32              restart_ri;
 } JpegeSyntax;
 
 typedef struct JpegeFeedback_t {
