@@ -1622,18 +1622,17 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
             //mpp_err("Requested reference %d not available\n", ref);
             return -1;//AVERROR_INVALIDDATA;
         }
+        {
+            MppFrame frame = NULL;
 
-        mpp_buf_slot_set_flag(s->slots, s->refs[ref].slot_index, SLOT_QUEUE_USE);
-        mpp_buf_slot_enqueue(s->slots, s->refs[ref].slot_index, QUEUE_DISPLAY);
-        mpp_log("repeat frame");
-        //    if ((res = vp9_ref_frame(frame, s->refs[ref].f)) < 0)
-        // return res;
-#if 0
-        ((AVFrame *)frame)->pkt_pts = 0;//pkt->pts;
-        ((AVFrame *)frame)->pkt_dts = 0;//pkt->dts;
-#endif
+            mpp_buf_slot_get_prop(s->slots, s->refs[ref].slot_index, SLOT_FRAME_PTR, &frame);
+            mpp_frame_set_pts(frame, s->pts);
+            mpp_buf_slot_set_flag(s->slots, s->refs[ref].slot_index, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(s->slots, s->refs[ref].slot_index, QUEUE_DISPLAY);
+        }
+
         mpp_log("out repeat num %d", s->outframe_num++);
-        return size;//pkt->size;
+        return size;
     }
     data += res;
     size -= res;
