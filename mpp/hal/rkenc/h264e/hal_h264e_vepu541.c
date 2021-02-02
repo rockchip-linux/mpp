@@ -191,7 +191,7 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
         MppEncHwCfg *hw = &cfg->cfg->hw;
 
         hw->qp_delta_row_i  = 0;
-        hw->qp_delta_row    = 2;
+        hw->qp_delta_row    = 1;
 
         memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
