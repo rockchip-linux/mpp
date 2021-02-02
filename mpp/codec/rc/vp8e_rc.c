@@ -29,8 +29,6 @@
 
 #define UPSCALE 8000
 
-extern const RK_S8 max_ip_qp_dealt[8];
-
 static RK_S32 vp8_initial_qp(RK_S32 bits, RK_S32 pels)
 {
     RK_S32 i = -1;
@@ -116,6 +114,7 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
         RK_S32 dealt_qp = 0;
+
         if (frm->is_intra) {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
 
@@ -126,18 +125,8 @@ MPP_RET rc_model_v2_vp8_hal_start(void *ctx, EncRcTask *task)
             p->start_qp = start_qp;
             p->cur_scale_qp = qp_scale;
 
-            if (usr_cfg->i_quality_delta && !p->reenc_cnt) {
-                RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
-                index = mpp_clip(index, 0, 7);
-                dealt_qp = max_ip_qp_dealt[index];
-                if (dealt_qp > usr_cfg->i_quality_delta ) {
-                    dealt_qp = usr_cfg->i_quality_delta;
-                }
-            }
-
-            if (usr_cfg->i_quality_delta) {
+            if (usr_cfg->i_quality_delta && !p->reenc_cnt)
                 p->start_qp -= dealt_qp;
-            }
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;

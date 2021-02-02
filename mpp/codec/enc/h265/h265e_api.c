@@ -144,7 +144,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->max_reenc_times = 1;
     rc_cfg->max_i_prop = 30;
     rc_cfg->min_i_prop = 10;
-    rc_cfg->init_ip_ratio = 480;
+    rc_cfg->init_ip_ratio = 160;
     rc_cfg->qp_init = 26;
     rc_cfg->qp_max = 51;
     rc_cfg->qp_min = 10;

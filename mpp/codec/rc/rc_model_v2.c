@@ -1330,31 +1330,28 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
         p->cur_scale_qp = mpp_clip(p->cur_scale_qp, (info->quality_min << 6), (info->quality_max << 6));
     } else {
-        RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
-        RK_S32 dealt_qp = 0;
 
         if (frm->is_intra) {
-            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
+            RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
 
+            qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             start_qp = ((p->pre_i_qp + ((qp_scale + p->next_i_ratio) >> 6)) >> 1);
 
             if (i_quality_delta) {
-                RK_U8 index = mpp_data_mean_v2(p->madi) / 4;
+                RK_U32 index = mpp_clip(mpp_data_mean_v2(p->madi) / 4, 0, 7);
+                RK_S32 max_ip_delta = max_ip_qp_dealt[index];
 
-                index = mpp_clip(index, 0, 7);
-                dealt_qp = max_ip_qp_dealt[index];
-                rc_dbg_rc("madi %d delta qp %d\n", index, dealt_qp);
-                if (dealt_qp > i_quality_delta ) {
-                    dealt_qp = i_quality_delta;
-                }
+                if (i_quality_delta > max_ip_delta)
+                    i_quality_delta = max_ip_delta;
 
-                rc_dbg_rc("qp prev %d:%d curr %d - %d -> %d reenc %d\n",
-                          p->pre_i_qp, qp_scale >> 6, start_qp, dealt_qp,
-                          start_qp - dealt_qp, p->reenc_cnt);
+                rc_dbg_rc("qp prev %d:%d curr %d - %d (max %d) -> %d reenc %d\n",
+                          p->pre_i_qp, qp_scale >> 6, start_qp,
+                          usr_cfg->i_quality_delta, max_ip_delta,
+                          start_qp - i_quality_delta, p->reenc_cnt);
 
-                start_qp -= dealt_qp;
+                start_qp -= i_quality_delta;
             }
             start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
             p->start_qp = start_qp;

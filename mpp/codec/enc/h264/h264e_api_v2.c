@@ -159,7 +159,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     rc_cfg->max_reenc_times = 1;
     rc_cfg->max_i_prop = 30;
     rc_cfg->min_i_prop = 10;
-    rc_cfg->init_ip_ratio = 480;
+    rc_cfg->init_ip_ratio = 160;
     rc_cfg->qp_init = 26;
     rc_cfg->qp_max = 48;
     rc_cfg->qp_min = 8;
