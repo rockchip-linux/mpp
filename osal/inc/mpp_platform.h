@@ -29,11 +29,20 @@ typedef enum MppIoctlVersion_e {
     IOCTL_VERSION_BUTT,
 } MppIoctlVersion;
 
+typedef enum MppKernelVersion_e {
+    KERNEL_UNKNOWN,
+    KERNEL_3_10,
+    KERNEL_4_4,
+    KERNEL_4_19,
+    KERNEL_VERSION_BUTT,
+} MppKernelVersion;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 MppIoctlVersion mpp_get_ioctl_version(void);
+MppKernelVersion mpp_get_kernel_version(void);
 RK_U32 mpp_get_2d_hw_flag(void);
 RK_U32 mpp_get_client_hw_id(RK_S32 client_type);
 
