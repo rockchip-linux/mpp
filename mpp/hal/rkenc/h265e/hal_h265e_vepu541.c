@@ -661,7 +661,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
         MppEncHwCfg *hw = &cfg->cfg->hw;
 
         hw->qp_delta_row_i  = 0;
-        hw->qp_delta_row    = 2;
+        hw->qp_delta_row    = 1;
 
         memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
