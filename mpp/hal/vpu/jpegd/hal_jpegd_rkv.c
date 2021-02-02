@@ -387,8 +387,13 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_1;
     }
 
-    regs->reg4_pic_fmt.htables_sel = s->htbl_entry;
-    regs->reg4_pic_fmt.qtables_sel = s->qtbl_entry;
+    if (s->nb_components > 1) {
+        regs->reg4_pic_fmt.qtables_sel = (s->qtbl_entry > 1) ? s->qtbl_entry : TBL_ENTRY_2;
+        regs->reg4_pic_fmt.htables_sel = (s->htbl_entry > 1) ? s->htbl_entry : TBL_ENTRY_2;
+    } else {
+        regs->reg4_pic_fmt.qtables_sel = TBL_ENTRY_1;
+        regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_1;
+    }
 
     if (s->restart_interval) {
         regs->reg4_pic_fmt.dri_e = RST_ENABLE;
