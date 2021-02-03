@@ -1589,7 +1589,6 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
     RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
     RK_U32 mbs = mb_w * mb_h;
-    RK_U32 mb4_num = (mbs << 4);
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
@@ -1603,12 +1602,13 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
                     ctx->regs_ret.st_madi /  ctx->regs_ret.st_mb_num;
     rc_info->madp = (!ctx->regs_ret.st_ctu_num) ? 0 :
                     ctx->regs_ret.st_madi / ctx->regs_ret.st_ctu_num;
-    ctx->hal_rc_cfg.iblk4_prop = (((ctx->regs_ret.st_lvl4_intra_num +
-                                    ctx->regs_ret.st_lvl8_intra_num) << 2) +
-                                  (ctx->regs_ret.st_lvl16_intra_num << 4)) * 256 / mb4_num;
+    rc_info->iblk4_prop = (ctx->regs_ret.st_lvl4_intra_num +
+                           ctx->regs_ret.st_lvl8_intra_num +
+                           ctx->regs_ret.st_lvl16_intra_num) * 256 / mbs;
 
     ctx->hal_rc_cfg.bit_real = rc_info->bit_real;
     ctx->hal_rc_cfg.quality_real = rc_info->quality_real;
+    ctx->hal_rc_cfg.iblk4_prop = rc_info->iblk4_prop;
 
     task->hal_ret.data   = &ctx->hal_rc_cfg;
     task->hal_ret.number = 1;
