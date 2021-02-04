@@ -18,6 +18,7 @@
 #define __JPEGE_SYNTAX_H__
 
 #include "mpp_frame.h"
+#include "rk_venc_cmd.h"
 
 typedef struct JpegeSyntax_t {
     RK_U32              width;
@@ -28,6 +29,7 @@ typedef struct JpegeSyntax_t {
     RK_U32              mcu_h;
     MppFrameFormat      format;
     MppFrameColorSpace  color;
+    MppEncRotationCfg   rotation;
 
     /* For quantization table */
     RK_U32              quality;

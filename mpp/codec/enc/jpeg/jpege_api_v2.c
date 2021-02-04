@@ -166,10 +166,18 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
         dst->change |= change;
 
         // parameter checking
-        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-            ret = MPP_ERR_VALUE;
+        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+            if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
+        } else {
+            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
         }
 
         if (ret) {
@@ -528,6 +536,7 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->mcu_h       = MPP_ALIGN(prep->height, 16) / 16;
     syntax->format      = prep->format;
     syntax->color       = prep->color;
+    syntax->rotation    = prep->rotation;
     syntax->quality     = codec->jpeg.quant;
     syntax->q_factor    = codec->jpeg.q_factor;
     syntax->qf_min      = codec->jpeg.qf_min;
