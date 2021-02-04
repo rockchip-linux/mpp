@@ -207,8 +207,20 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
     RK_U32 x_fill = 0;
     RK_U32 y_fill = 0;
     VepuFormatCfg fmt_cfg;
+    RK_U32 rotation = 0;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
+
+    if (syntax->rotation == MPP_ENC_ROT_90)
+        rotation = 1;
+    else if (syntax->rotation == MPP_ENC_ROT_270)
+        rotation = 2;
+    else if (syntax->rotation != MPP_ENC_ROT_0)
+        mpp_err_f("Warning: only support 90 or 270 degree rotate, request rotate %d", syntax->rotation);
+    if (rotation) {
+        MPP_SWAP(RK_U32, width, height);
+        MPP_SWAP(RK_U32, width_align, ver_stride);
+    }
 
     hor_stride = get_vepu_pixel_stride(&ctx->stride_cfg, width,
                                        syntax->hor_stride, fmt);
@@ -286,7 +298,7 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
                (hor_stride << 12) |
                (x_fill << 10) |
                (y_fill << 6) |
-               (fmt_cfg.format << 2) | (0);
+               (fmt_cfg.format << 2) | rotation;
 
     regs[24] = size - bytepos;
 
