@@ -1307,22 +1307,23 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
     /* setup quality parameters */
     if (p->first_frm_flg && frm->is_intra) {
+        RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
+
         if (info->quality_target < 0) {
             if (info->bit_target) {
-                p->start_qp = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
-                p->cur_scale_qp = p->start_qp << 6;
+                info->quality_target = cal_first_i_start_qp(info->bit_target, mb_w * mb_h);
             } else {
                 mpp_log("init qp not set on fix qp mode, use default qp\n");
                 info->quality_target = 26;
-                p->start_qp = 26;
-                p->cur_scale_qp = 26 << 6;
             }
-        } else {
-            p->cur_scale_qp = info->quality_target << 6;
-            if (p->reenc_cnt)
-                p->cur_scale_qp += p->next_ratio;
+        }
 
-            p->start_qp = p->cur_scale_qp >> 6;
+        if (p->reenc_cnt) {
+            p->cur_scale_qp += p->next_ratio;
+            p->start_qp = (p->cur_scale_qp >> 6) - i_quality_delta;
+        } else {
+            p->start_qp = info->quality_target;
+            p->cur_scale_qp = (info->quality_target + i_quality_delta) << 6;
         }
 
         rc_dbg_rc("qp: start %2d cur_scale %d next_ratio %d reenc %d\n",
