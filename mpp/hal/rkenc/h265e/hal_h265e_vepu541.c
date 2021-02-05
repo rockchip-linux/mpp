@@ -1293,7 +1293,6 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     HalBuf *recon_buf, *ref_buf;
     MppBuffer mv_info_buf = enc_task->mv_info;
     RK_S32 pic_wd64, pic_h64, fbc_header_len;
-    RK_U32 offset = mpp_packet_get_length(task->packet);
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
 
     hal_h265e_enter();
@@ -1357,10 +1356,17 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     /* TODO: stream size relative with syntax */
     regs->bsbt_addr_hevc    = regs->bsbb_addr_hevc;
     regs->bsbr_addr_hevc    = regs->bsbb_addr_hevc;
-    regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc | (offset << 10);
+    regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc;
+    {
+        MppDevRegOffsetCfg cfg_fd;
+
+        cfg_fd.reg_idx = 86;
+        cfg_fd.offset = mpp_packet_get_length(task->packet);
+
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+    }
     regs->pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
-
 }
 MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 {
@@ -1572,12 +1578,16 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
         vepu541_h265_set_l2_regs(ctx, (H265eV54xL2RegSet*)ctx->l2_regs);
         vepu541_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
         if (title_num > 1) {
+            MppDevRegOffsetCfg cfg_fd;
             RK_U32 offset = mpp_packet_get_length(enc_task->packet);
+
             hal_h265e_v540_set_uniform_tile(hw_regs, syn, k);
             offset += stream_len;
             hw_regs->bsbb_addr_hevc    = mpp_buffer_get_fd(enc_task->output);
-            hw_regs->bsbw_addr_hevc    = hw_regs->bsbb_addr_hevc | (offset << 10);
-
+            hw_regs->bsbw_addr_hevc    = hw_regs->bsbb_addr_hevc;
+            cfg_fd.reg_idx = 86;
+            cfg_fd.offset = offset;
+            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
         }
 
         cfg.reg = ctx->regs;
