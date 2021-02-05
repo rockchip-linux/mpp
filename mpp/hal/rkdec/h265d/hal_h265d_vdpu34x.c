@@ -1140,7 +1140,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg011.buf_empty_en = 1;
 
     hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
-    vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->rcb_buf, reg_cxt->rcb_info);
+    vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->rcb_buf, reg_cxt->rcb_info);
 
     return ret;
 }

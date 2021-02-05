@@ -768,7 +768,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
                      hw_ctx->ls_info.last_intra_only);
 
     hal_vp9d_rcb_info_update(hal, vp9_hw_regs, pic_param);
-    vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, hw_ctx->rcb_buf, hw_ctx->rcb_info);
+    vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, hw_ctx->rcb_buf, hw_ctx->rcb_info);
 
     // whether need update counts
     if (pic_param->refresh_frame_context && !pic_param->parallelmode) {
