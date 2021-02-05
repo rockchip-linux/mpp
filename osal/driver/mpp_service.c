@@ -153,6 +153,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     RK_S32 fd = -1;
     RK_S32 ret = 0;
     RK_U32 *cmd_butt = &cap->query_cmd;;
+    RK_U32 hw_support = 0;
     RK_U32 val;
     RK_U32 i;
 
@@ -162,99 +163,69 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     *codec_type = 0;
     memset(hw_ids, 0, sizeof(RK_U32) * 32);
 
+    /* check hw_support flag for valid client type */
     fd = open(mpp_get_mpp_service_name(), O_RDWR);
     if (fd < 0) {
         mpp_err("open mpp_service to check cmd capability failed\n");
         memset(cap, 0, sizeof(*cap));
         return ;
     }
-
-    /* check hw_support flag for valid client type */
-    ret = mpp_service_ioctl(fd, MPP_CMD_PROBE_HW_SUPPORT, 0, &val);
+    ret = mpp_service_ioctl(fd, MPP_CMD_PROBE_HW_SUPPORT, 0, &hw_support);
     if (!ret) {
-        mpp_dev_dbg_probe("vcodec_support %08x\n", val);
-        *codec_type = val;
+        mpp_dev_dbg_probe("vcodec_support %08x\n", hw_support);
+        *codec_type = hw_support;
     }
-
-    /* check each valid client type for hw_id */
-    {
-        RK_U32 hw_support = val;
-
-        /* find first valid client type */
-        for (i = 0; i < 32; i++)
-            if (hw_support & (1 << i)) {
-                val = i;
-                break;
-            }
-
-        /* for compatible check hw_id read mode first */
-        ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
-        if (!ret) {
-            /* kernel support hw_id check by input client type */
-            for (i = 0; i < 32; i++) {
-                if (hw_support & (1 << i)) {
-                    val = i;
-
-                    /* send client type and get hw_id */
-                    ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
-                    if (!ret) {
-                        mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
-                        hw_ids[i] = val;
-                    } else
-                        mpp_err("check valid client %-10s for hw_id failed\n",
-                                mpp_service_hw_name[i]);
-                }
-            }
-        } else {
-            /* kernel need to set client type then get hw_id */
-            for (i = 0; i < 32; i++) {
-                if (hw_support & (1 << i)) {
-                    val = i;
-
-                    /* set client type first */
-                    ret = mpp_service_ioctl(fd, MPP_CMD_INIT_CLIENT_TYPE, sizeof(val), &val);
-                    if (ret) {
-                        mpp_err("check valid client type %d failed\n", i);
-                        continue;
-                    }
-
-                    /* then get hw_id */
-                    ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
-                    if (!ret) {
-                        mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
-                        hw_ids[i] = val;
-                    } else
-                        mpp_err("check valid client %-10s for hw_id failed\n",
-                                mpp_service_hw_name[i]);
-                }
-            }
-        }
-    }
-
     cap->support_cmd = !access("/proc/mpp_service/supports-cmd", F_OK) ||
                        !access("/proc/mpp_service/support_cmd", F_OK);
-    if (!cap->support_cmd)
-        return ;
+    if (cap->support_cmd) {
+        for (i = 0; i < query_count; i++, cmd_butt++) {
+            const MppServiceQueryCfg *cfg = &query_cfg[i];
 
-    for (i = 0; i < query_count; i++, cmd_butt++) {
-        const MppServiceQueryCfg *cfg = &query_cfg[i];
+            memset(&mpp_req, 0, sizeof(mpp_req));
 
-        memset(&mpp_req, 0, sizeof(mpp_req));
+            val = cfg->cmd_butt;
+            mpp_req.cmd = MPP_CMD_QUERY_CMD_SUPPORT;
+            mpp_req.data_ptr = REQ_DATA_PTR(&val);
 
-        val = cfg->cmd_butt;
-        mpp_req.cmd = MPP_CMD_QUERY_CMD_SUPPORT;
-        mpp_req.data_ptr = REQ_DATA_PTR(&val);
-
-        ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
-        if (ret)
-            mpp_err_f("query %-11s support error %s.\n", cfg->name, strerror(errno));
-        else {
-            *cmd_butt = val;
-            mpp_dev_dbg_probe("query %-11s support %04x\n", cfg->name, val);
+            ret = (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
+            if (ret)
+                mpp_err_f("query %-11s support error %s.\n", cfg->name, strerror(errno));
+            else {
+                *cmd_butt = val;
+                mpp_dev_dbg_probe("query %-11s support %04x\n", cfg->name, val);
+            }
         }
     }
-
     close(fd);
+
+    /* check each valid client type for hw_id */
+    /* kernel need to set client type then get hw_id */
+    for (i = 0; i < 32; i++) {
+        if (hw_support & (1 << i)) {
+            val = i;
+
+            fd = open(mpp_get_mpp_service_name(), O_RDWR);
+            if (fd < 0) {
+                mpp_err("open mpp_service to check cmd capability failed\n");
+                break;
+            }
+            /* set client type first */
+            ret = mpp_service_ioctl(fd, MPP_CMD_INIT_CLIENT_TYPE, sizeof(val), &val);
+            if (ret) {
+                mpp_err("check valid client type %d failed\n", i);
+            } else {
+                /* then get hw_id */
+                ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
+                if (!ret) {
+                    mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
+                    hw_ids[i] = val;
+                } else
+                    mpp_err("check valid client %-10s for hw_id failed\n",
+                            mpp_service_hw_name[i]);
+            }
+            close(fd);
+        }
+    }
 }
 
 #define MAX_REG_OFFSET          32
