@@ -1305,17 +1305,26 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     regs->adr_srcu_hevc     = regs->adr_srcy_hevc;
     regs->adr_srcv_hevc     = regs->adr_srcy_hevc;
     if (!syn->sp.non_reference_flag) {
+        MppDevRegOffsetCfg cfg_fd;
+
         recon_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.recon_pic.slot_idx);
         ref_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
 
         regs->rfpw_h_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[0]);
-        regs->rfpw_b_addr_hevc  = ((fbc_header_len << 10) | regs->rfpw_h_addr_hevc);
+        regs->rfpw_b_addr_hevc  = regs->rfpw_h_addr_hevc;
         regs->dspw_addr_hevc = mpp_buffer_get_fd(recon_buf->buf[1]);
         regs->cmvw_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[2]);
         regs->rfpr_h_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[0]);
-        regs->rfpr_b_addr_hevc = (fbc_header_len << 10 | regs->rfpr_h_addr_hevc);
+        regs->rfpr_b_addr_hevc = regs->rfpr_h_addr_hevc;
         regs->dspr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[1]);
         regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
+
+        cfg_fd.reg_idx = 75;
+        cfg_fd.offset = fbc_header_len;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        cfg_fd.reg_idx = 77;
+        cfg_fd.offset = fbc_header_len;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
     }
 
     if (syn->pp.tiles_enabled_flag) {
