@@ -977,36 +977,48 @@ static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, H264eFrmInfo *frms,
-                                    HalBufs bufs, RK_S32 fbc_hdr_size)
+static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, MppDev dev,
+                                    H264eFrmInfo *frms, HalBufs bufs,
+                                    RK_S32 fbc_hdr_size)
 {
     HalBuf *curr = hal_bufs_get_buf(bufs, frms->curr_idx);
     HalBuf *refr = hal_bufs_get_buf(bufs, frms->refr_idx);
+    MppDevRegOffsetCfg trans_cfg;
 
     hal_h264e_dbg_func("enter\n");
 
     if (curr && curr->cnt) {
         MppBuffer buf_pixel = curr->buf[0];
         MppBuffer buf_thumb = curr->buf[1];
+        RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
         mpp_assert(buf_thumb);
 
-        regs->reg074.rfpw_h_addr = mpp_buffer_get_fd(buf_pixel);
-        regs->reg075.rfpw_b_addr = regs->reg074.rfpw_h_addr + (fbc_hdr_size << 10);
+        regs->reg074.rfpw_h_addr = fd;
+        regs->reg075.rfpw_b_addr = fd;
         regs->reg080.dspw_addr = mpp_buffer_get_fd(buf_thumb);
+
+        trans_cfg.reg_idx = 75;
+        trans_cfg.offset = fbc_hdr_size;
+        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
     if (refr && refr->cnt) {
         MppBuffer buf_pixel = refr->buf[0];
         MppBuffer buf_thumb = refr->buf[1];
+        RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
         mpp_assert(buf_thumb);
 
-        regs->reg076.rfpr_h_addr = mpp_buffer_get_fd(buf_pixel);
-        regs->reg077.rfpr_b_addr = regs->reg076.rfpr_h_addr + (fbc_hdr_size << 10);
+        regs->reg076.rfpr_h_addr = fd;
+        regs->reg077.rfpr_b_addr = fd;
         regs->reg081.dspr_addr = mpp_buffer_get_fd(buf_thumb);
+
+        trans_cfg.reg_idx = 77;
+        trans_cfg.offset = fbc_hdr_size;
+        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
     hal_h264e_dbg_func("leave\n");
@@ -1416,7 +1428,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_rc_base(regs, sps, slice, &cfg->hw, task->rc_task);
     setup_vepu541_io_buf(regs, ctx->dev, task);
     setup_vepu541_roi(regs, ctx);
-    setup_vepu541_recn_refr(regs, ctx->frms, ctx->hw_recn,
+    setup_vepu541_recn_refr(regs, ctx->dev, ctx->frms, ctx->hw_recn,
                             ctx->pixel_buf_fbc_hdr_size);
 
     regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
