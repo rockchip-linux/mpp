@@ -867,7 +867,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     regs->h264d_addr.scanlist_addr = mpp_buffer_get_fd(ctx->sclst_buf);
     regs->common.reg012.scanlist_addr_valid_en = 1;
     hal_h264d_rcb_info_update(p_hal, regs);
-    vdpu34x_setup_rcb(&regs->common_addr, ctx->rcb_buf, ctx->rcb_info);
+    vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, ctx->rcb_buf, ctx->rcb_info);
 
 __RETURN:
     return ret = MPP_OK;
