@@ -1310,18 +1310,18 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
         regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
     } else {
         regs->qnt_bias_comb.qnt_bias_i = 583;
-        regs->atr_thd1_h264.atr_thd2 = 49;
-        regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
-        regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
-        regs->atr_wgt16_h264.atr_lv16_wgt2 = 16;
+        regs->atr_thd1_h264.atr_thd2 = 81;
+        regs->atr_wgt16_h264.atr_lv16_wgt0 = 28;
+        regs->atr_wgt16_h264.atr_lv16_wgt1 = 27;
+        regs->atr_wgt16_h264.atr_lv16_wgt2 = 23;
 
-        regs->atr_wgt8_h264.atr_lv8_wgt0 = 16;
-        regs->atr_wgt8_h264.atr_lv8_wgt1 = 16;
-        regs->atr_wgt8_h264.atr_lv8_wgt2 = 16;
+        regs->atr_wgt8_h264.atr_lv8_wgt0 = 32;
+        regs->atr_wgt8_h264.atr_lv8_wgt1 = 32;
+        regs->atr_wgt8_h264.atr_lv8_wgt2 = 32;
 
-        regs->atr_wgt4_h264.atr_lv4_wgt0 = 16;
-        regs->atr_wgt4_h264.atr_lv4_wgt1 = 16;
-        regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
+        regs->atr_wgt4_h264.atr_lv4_wgt0 = 28;
+        regs->atr_wgt4_h264.atr_lv4_wgt1 = 27;
+        regs->atr_wgt4_h264.atr_lv4_wgt2 = 23;
     }
 
     regs->atr_thd1_h264.atr_qp = 45;
