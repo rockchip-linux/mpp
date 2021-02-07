@@ -1222,9 +1222,11 @@ static MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
             M2VDFrameHead *tmpHD = NULL;
             p->ref_frame_cnt++;
             if (p->frame_ref0->slot_index < 0x7f) {
-                mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
-                mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
-                p->frame_ref0->flags = 0;
+                if (p->frame_ref0->flags) {
+                    mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
+                    mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
+                    p->frame_ref0->flags = 0;
+                }
             }
             if (p->frame_ref1->slot_index < 0x7f) {
                 mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_CODEC_USE);
