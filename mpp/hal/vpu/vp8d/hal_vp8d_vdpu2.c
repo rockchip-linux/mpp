@@ -243,7 +243,13 @@ static MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx,
     mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     fd =  mpp_buffer_get_fd(streambuf);
     regs->reg145_bitpl_ctrl_base = fd;
-    regs->reg145_bitpl_ctrl_base |= (pic_param->stream_start_offset << 10);
+    if (pic_param->stream_start_offset) {
+        MppDevRegOffsetCfg trans_cfg;
+
+        trans_cfg.reg_idx = 145;
+        trans_cfg.offset = pic_param->stream_start_offset;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    }
 
     regs->reg122.sw_strm1_start_bit = pic_param->stream_start_bit;
 
@@ -265,16 +271,33 @@ static MPP_RET hal_vp8d_dct_partition_cfg(VP8DHalContext_t *ctx,
     regs->reg124.sw_coeffs_part_am =
         (1 << pic_param->log2_nbr_of_dct_partitions) - 1;
     for (i = 0; i < (RK_U32)(1 << pic_param->log2_nbr_of_dct_partitions); i++) {
+        MppDevRegOffsetCfg trans_cfg;
+
         addr = extraBytesPacked + pic_param->dctPartitionOffsets[i];
         byte_offset = addr & 0x7;
         addr = addr & 0xFFFFFFF8;
 
         if (i == 0) {
-            regs->reg64_input_stream_base = fd | (addr << 10);
+            regs->reg64_input_stream_base = fd;
+            if (addr) {
+                trans_cfg.reg_idx = 64;
+                trans_cfg.offset = addr;
+                mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            }
         } else if (i <= 5) {
-            regs->reg_dct_strm_base[i - 1] = fd | (addr << 10);
+            regs->reg_dct_strm_base[i - 1] = fd;
+            if (addr) {
+                trans_cfg.reg_idx = 139 + i;
+                trans_cfg.offset = addr;
+                mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            }
         } else {
-            regs->reg_dct_strm1_base[i - 6] = fd | (addr << 10);
+            regs->reg_dct_strm1_base[i - 6] = fd;
+            if (addr) {
+                trans_cfg.reg_idx = 140 + i;
+                trans_cfg.offset = addr;
+                mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            }
         }
 
         switch (i) {
@@ -415,6 +438,7 @@ MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
     MppBuffer framebuf = NULL;
     RK_U8 *segmap_ptr = NULL;
     RK_U8 *probe_ptr = NULL;
+    MppDevRegOffsetCfg trans_cfg;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
     DXVA_PicParams_VP8 *pic_param = (DXVA_PicParams_VP8 *)task->dec.syntax.data;
@@ -444,10 +468,12 @@ MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(ctx->frame_slots, pic_param->CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
     regs->reg63_cur_pic_base = mpp_buffer_get_fd(framebuf);
     if (!pic_param->frame_type) { //key frame
-        if ((mb_width * mb_height) << 8 > 0x400000) {
-            mpp_log("mb_width*mb_height is big then 0x400000,iommu err");
-        }
-        regs->reg131_ref0_base = regs->reg63_cur_pic_base | ((mb_width * mb_height) << 18);
+
+        regs->reg131_ref0_base = regs->reg63_cur_pic_base;
+
+        trans_cfg.reg_idx = 131;
+        trans_cfg.offset = mb_width * mb_height;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     } else if (pic_param->lst_fb_idx.Index7Bits < 0x7f) { //config ref0 base
         mpp_buf_slot_get_prop(ctx->frame_slots, pic_param->lst_fb_idx.Index7Bits, SLOT_BUFFER, &framebuf);
         regs->reg131_ref0_base = mpp_buffer_get_fd(framebuf);
@@ -463,7 +489,12 @@ MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
         regs->reg136_golden_ref_base = regs->reg63_cur_pic_base;
     }
 
-    regs->reg136_golden_ref_base = regs->reg136_golden_ref_base | (pic_param->ref_frame_sign_bias_golden << 10);
+    regs->reg136_golden_ref_base = regs->reg136_golden_ref_base;
+    if (pic_param->ref_frame_sign_bias_golden) {
+        trans_cfg.reg_idx = 136;
+        trans_cfg.offset = pic_param->ref_frame_sign_bias_golden;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    }
 
     /* alternate reference */
     if (pic_param->alt_fb_idx.Index7Bits < 0x7f) {
@@ -473,11 +504,19 @@ MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
         regs->reg137.alternate_ref_base = regs->reg63_cur_pic_base;
     }
 
-    regs->reg137.alternate_ref_base = regs->reg137.alternate_ref_base | (pic_param->ref_frame_sign_bias_altref << 10);
+    regs->reg137.alternate_ref_base = regs->reg137.alternate_ref_base;
+    if (pic_param->ref_frame_sign_bias_altref) {
+        trans_cfg.reg_idx = 137;
+        trans_cfg.offset = pic_param->ref_frame_sign_bias_altref;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    }
 
-    regs->reg149_segment_map_base = regs->reg149_segment_map_base |
-                                    ((pic_param->stVP8Segments.segmentation_enabled +
-                                      (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) << 10);
+    regs->reg149_segment_map_base = regs->reg149_segment_map_base;
+    if (pic_param->stVP8Segments.segmentation_enabled + (pic_param->stVP8Segments.update_mb_segmentation_map << 1)) {
+        trans_cfg.reg_idx = 149;
+        trans_cfg.offset = pic_param->stVP8Segments.segmentation_enabled + (pic_param->stVP8Segments.update_mb_segmentation_map << 1);
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    }
 
     regs->reg57_enable_ctrl.sw_pic_inter_e = pic_param->frame_type;
     regs->reg50_dec_ctrl.sw_skip_mode = !pic_param->mb_no_coeff_skip;
