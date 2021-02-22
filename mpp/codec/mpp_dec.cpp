@@ -1524,6 +1524,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             &p->dec_cb,
             NULL,
             NULL,
+            NULL,
         };
 
         ret = mpp_hal_init(&hal, &hal_cfg);
@@ -1533,6 +1534,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         }
 
         p->hw_info = hal_cfg.hw_info;
+        p->dev = hal_cfg.dev;
         /* check fbc cap after hardware info is valid */
         mpp_dec_check_fbc_cap(p);
 
@@ -1726,6 +1728,7 @@ MPP_RET mpp_dec_reset(MppDec ctx)
     dec->dec_in_pkt_count = 0;
     dec->dec_hw_run_count = 0;
     dec->dec_out_frame_count = 0;
+    dec->info_updated = 0;
 
     dec_dbg_func("%p out\n", dec);
     return MPP_OK;

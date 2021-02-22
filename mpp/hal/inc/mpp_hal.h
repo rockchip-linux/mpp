@@ -25,6 +25,7 @@
 #include "hal_task.h"
 #include "mpp_enc_cfg.h"
 #include "mpp_dec_cfg.h"
+#include "mpp_device.h"
 
 typedef enum VpuHwMode_e {
     MODE_NULL   = 0,
@@ -48,6 +49,8 @@ typedef struct MppHalCfg_t {
     HalTaskGroup        tasks;
     // output from hardware module
     const MppDecHwCap   *hw_info;
+    // codec dev
+    MppDev              dev;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {

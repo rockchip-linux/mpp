@@ -174,11 +174,12 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 
     mpp_env_get_u32("hal_h264d_debug", &hal_h264d_debug, 0);
 
-    ret = mpp_dev_init(&p_hal->dev, type);
+    ret = mpp_dev_init(&cfg->dev, type);
     if (ret) {
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         goto __FAILED;
     }
+    p_hal->dev = cfg->dev;
 
     //< get buffer group
     if (p_hal->buf_group == NULL) {

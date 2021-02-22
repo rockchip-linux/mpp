@@ -35,16 +35,15 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     HalVp9dCtx *p = (HalVp9dCtx *)ctx;
     MppClientType client_type = VPU_CLIENT_RKVDEC;
     RK_U32 hw_id = 0;
-    MppDev dev = NULL;
 
-    ret = mpp_dev_init(&dev, client_type);
+    ret = mpp_dev_init(&cfg->dev, client_type);
     if (ret) {
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         return ret;
     }
 
     hw_id = mpp_get_client_hw_id(client_type);
-    p->dev = dev;
+    p->dev = cfg->dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
     if (hw_id == HWID_VDPU34X)
