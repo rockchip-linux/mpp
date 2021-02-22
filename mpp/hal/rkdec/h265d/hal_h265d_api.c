@@ -37,7 +37,6 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
     MppClientType client_type = VPU_CLIENT_BUTT;
     RK_U32 vcodec_type = mpp_get_vcodec_type();
     RK_U32 hw_id = 0;
-    MppDev dev = NULL;
 
     if (!(vcodec_type & (HAVE_RKVDEC | HAVE_HEVC_DEC))) {
         mpp_err_f("Can not found valid H.265 decoder hardware on platform %08x\n", vcodec_type);
@@ -47,14 +46,14 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
     client_type = (vcodec_type & HAVE_HEVC_DEC) ?
                   VPU_CLIENT_HEVC_DEC : VPU_CLIENT_RKVDEC;
 
-    ret = mpp_dev_init(&dev, client_type);
+    ret = mpp_dev_init(&cfg->dev, client_type);
     if (ret) {
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         return ret;
     }
 
     hw_id = mpp_get_client_hw_id(client_type);
-    p->dev = dev;
+    p->dev = cfg->dev;
     p->is_v345 = (hw_id == HWID_VDPU345);
     p->is_v34x = (hw_id == HWID_VDPU34X);
     p->client_type = client_type;

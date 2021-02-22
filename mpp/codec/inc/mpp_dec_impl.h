@@ -58,6 +58,8 @@ typedef struct MppDecImpl_t {
     MppBufSlots         packet_slots;
     MppCbCtx            dec_cb;
     const MppDecHwCap   *hw_info;
+    MppDev              dev;
+    RK_U32              info_updated;
 
     HalTaskGroup        tasks;
     HalTaskGroup        vproc_tasks;
