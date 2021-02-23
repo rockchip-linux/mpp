@@ -24,6 +24,7 @@
 #include "mpp_time.h"
 
 #include "mpp.h"
+
 #include "mpp_dec_impl.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_packet_impl.h"
@@ -602,6 +603,34 @@ static void reset_hal_thread(Mpp *mpp)
     dec->thread_hal->unlock(THREAD_OUTPUT);
 }
 
+static MPP_RET update_dec_hal_info(MppDecImpl *dec, MppFrame frame)
+{
+    HalInfo hal_info = dec->hal_info;
+    MppDevInfoCfg data[DEC_INFO_BUTT];
+    RK_S32 size = sizeof(data);
+    RK_U64 val = 0;
+    RK_S32 i;
+
+    hal_info_set(hal_info, DEC_INFO_WIDTH, CODEC_INFO_FLAG_NUMBER,
+                 mpp_frame_get_width(frame));
+
+    hal_info_set(hal_info, DEC_INFO_HEIGHT, CODEC_INFO_FLAG_NUMBER,
+                 mpp_frame_get_height(frame));
+
+    val = hal_info_to_string(hal_info, DEC_INFO_FORMAT, &dec->coding);
+    hal_info_set(hal_info, DEC_INFO_FORMAT, CODEC_INFO_FLAG_STRING, val);
+
+    hal_info_get(hal_info, data, &size);
+
+    if (size) {
+        size /= sizeof(data[0]);
+        for (i = 0; i < size; i++)
+            mpp_dev_ioctl(dec->dev, MPP_DEV_SET_INFO, &data[i]);
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
@@ -864,6 +893,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             task->status.info_task_gen_rdy = 1;
             return MPP_ERR_STREAM;
         }
+        dec->info_updated = 0;
     }
 
     task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
@@ -916,6 +946,15 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     }
 
     dec_dbg_detail("detail: check output buffer %p\n", hal_buf_out);
+
+    // update codec info
+    if (!dec->info_updated && dec->dev) {
+        MppFrame frame = NULL;
+
+        mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &frame);
+        update_dec_hal_info(dec, frame);
+    }
+    dec->info_updated = 1;
 
     task->hal_frm_buf_out = hal_buf_out;
     task->wait.dec_pic_match = (NULL == hal_buf_out);
@@ -1551,6 +1590,12 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             break;
         }
 
+        ret = hal_info_init(&p->hal_info, MPP_CTX_DEC, coding);
+        if (ret) {
+            mpp_err_f("could not init hal info\n");
+            break;
+        }
+
         p->coding = coding;
         p->parser = parser;
         p->hal    = hal;
@@ -1612,6 +1657,11 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
     for (i = 0; i < DEC_TIMING_BUTT; i++) {
         mpp_clock_put(dec->clocks[i]);
         dec->clocks[i] = NULL;
+    }
+
+    if (dec->hal_info) {
+        hal_info_deinit(dec->hal_info);
+        dec->hal_info = NULL;
     }
 
     if (dec->parser) {
