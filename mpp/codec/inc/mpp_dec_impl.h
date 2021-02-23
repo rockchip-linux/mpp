@@ -18,6 +18,7 @@
 #define __MPP_DEC_IMPL_H__
 
 #include "mpp_time.h"
+#include "hal_info.h"
 
 #include "mpp.h"
 #include "mpp_dec_cfg.h"
@@ -59,6 +60,7 @@ typedef struct MppDecImpl_t {
     MppCbCtx            dec_cb;
     const MppDecHwCap   *hw_info;
     MppDev              dev;
+    HalInfo             hal_info;
     RK_U32              info_updated;
 
     HalTaskGroup        tasks;

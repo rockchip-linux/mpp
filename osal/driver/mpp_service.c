@@ -449,19 +449,20 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     }
 
     if (p->info_count) {
-        MppReqV1 req;
+        if (p->support_set_info) {
+            MppReqV1 req;
 
-        req.cmd = MPP_CMD_SEND_CODEC_INFO;
-        req.flag = 0;
-        req.size = p->info_count * sizeof(p->info[0]);
-        req.offset = 0;
-        req.data_ptr = REQ_DATA_PTR(p->info);
+            req.cmd = MPP_CMD_SEND_CODEC_INFO;
+            req.flag = 0;
+            req.size = p->info_count * sizeof(p->info[0]);
+            req.offset = 0;
+            req.data_ptr = REQ_DATA_PTR(p->info);
 
-        ret = mpp_service_ioctl_request(p->fd, &req);
-        if (ret) {
-            mpp_err_f("ioctl MPP_IOC_CFG_V1 set info failed ret %d errno %d %s\n",
-                      ret, errno, strerror(errno));
-            ret = errno;
+            ret = mpp_service_ioctl_request(p->fd, &req);
+            if (ret) {
+                p->support_set_info = 0;
+                ret = MPP_OK;
+            }
         }
         p->info_count = 0;
     }
