@@ -36,8 +36,7 @@
 #define MPP_FLAGS_LAST_MSG          (0x00000002)
 #define MPP_FLAGS_REG_FD_NO_TRANS   (0x00000004)
 #define MPP_FLAGS_SCL_FD_NO_TRANS   (0x00000008)
-#define MPP_FLAGS_LINK_MODE_FIX     (0x00000010)
-#define MPP_FLAGS_LINK_MODE_UPDATE  (0x00000020)
+#define MPP_FLAGS_REG_OFFSET_ALONE  (0x00000010)
 #define MPP_FLAGS_SECURE_MODE       (0x00010000)
 
 /* mpp service capability description */

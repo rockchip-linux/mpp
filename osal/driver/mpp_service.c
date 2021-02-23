@@ -413,7 +413,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
 
         mpp_req->cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
-        mpp_req->flag = 0;
+        mpp_req->flag = MPP_FLAGS_REG_OFFSET_ALONE;
         mpp_req->size = p->reg_offset_count * sizeof(p->reg_offset_info[0]);
         mpp_req->offset = 0;
         mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[0]);
