@@ -20,26 +20,36 @@
 #include "mpp_enc_cfg.h"
 #include "mpp_device.h"
 
-typedef enum EncInfoType_e {
+typedef enum CodecInfoType_e {
+    /* ENC info */
     ENC_INFO_BASE           = 0,
-    ENC_INFO_WIDTH          = 1,
-    ENC_INFO_HEIGHT         = 2,
-    ENC_INFO_FORMAT         = 3,
-    ENC_INFO_FPS_IN         = 4,
-    ENC_INFO_FPS_OUT        = 5,
-    ENC_INFO_RC_MODE        = 6,
-    ENC_INFO_BITRATE        = 7,
-    ENC_INFO_GOP_SIZE       = 8,
-    ENC_INFO_FPS_CALC       = 9,
-    ENC_INFO_PROFILE        = 10,
+    ENC_INFO_WIDTH          = (ENC_INFO_BASE + 1),
+    ENC_INFO_HEIGHT         = (ENC_INFO_BASE + 2),
+    ENC_INFO_FORMAT         = (ENC_INFO_BASE + 3),
+    ENC_INFO_FPS_IN         = (ENC_INFO_BASE + 4),
+    ENC_INFO_FPS_OUT        = (ENC_INFO_BASE + 5),
+    ENC_INFO_RC_MODE        = (ENC_INFO_BASE + 6),
+    ENC_INFO_BITRATE        = (ENC_INFO_BASE + 7),
+    ENC_INFO_GOP_SIZE       = (ENC_INFO_BASE + 8),
+    ENC_INFO_FPS_CALC       = (ENC_INFO_BASE + 9),
+    ENC_INFO_PROFILE        = (ENC_INFO_BASE + 10),
     ENC_INFO_BUTT,
-} EncInfoType;
 
-enum ENC_INFO_FLAGS {
-    ENC_INFO_FLAG_NULL      = 0,
-    ENC_INFO_FLAG_NUMBER    = 1,
-    ENC_INFO_FLAG_STRING    = 2,
-    ENC_INFO_FLAG_BUTT,
+    /* DEC info */
+    DEC_INFO_BASE           = 16,
+    DEC_INFO_WIDTH          = (DEC_INFO_BASE + 1),
+    DEC_INFO_HEIGHT         = (DEC_INFO_BASE + 2),
+    DEC_INFO_FORMAT         = (DEC_INFO_BASE + 3),
+    DEC_INFO_BITDEPTH       = (DEC_INFO_BASE + 4),
+    DEC_INFO_FPS            = (DEC_INFO_BASE + 5),
+    DEC_INFO_BUTT,
+} CodecInfoType;
+
+enum CODEC_INFO_FLAGS {
+    CODEC_INFO_FLAG_NULL      = 0,
+    CODEC_INFO_FLAG_NUMBER    = 1,
+    CODEC_INFO_FLAG_STRING    = 2,
+    CODEC_INFO_FLAG_BUTT,
 };
 
 typedef void* HalInfo;

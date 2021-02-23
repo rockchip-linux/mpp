@@ -142,7 +142,7 @@ static void reset_enc_task(MppEncImpl *enc)
     enc->hdr_status.val = enc->hdr_status.ready;
 }
 
-static void update_hal_info(MppEncImpl *enc)
+static void update_enc_hal_info(MppEncImpl *enc)
 {
     MppDevInfoCfg data[32];
     RK_S32 size = sizeof(data);
@@ -169,7 +169,7 @@ static void update_hal_info_fps(MppEncImpl *enc)
     RK_U64 fps = hal_info_to_float(enc->frame_count * 1000, time_diff);
 
     cfg.type = ENC_INFO_FPS_CALC;
-    cfg.flag = ENC_INFO_FLAG_STRING;
+    cfg.flag = CODEC_INFO_FLAG_STRING;
     cfg.data = fps;
 
     mpp_dev_ioctl(enc->dev, MPP_DEV_SET_INFO, &cfg);
@@ -1535,7 +1535,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
 
     // 11. check hal info update
     if (!enc->hal_info_updated) {
-        update_hal_info(enc);
+        update_enc_hal_info(enc);
         enc->hal_info_updated = 1;
     }
 
