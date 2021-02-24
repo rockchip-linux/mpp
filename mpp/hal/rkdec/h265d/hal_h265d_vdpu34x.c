@@ -773,6 +773,8 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     RK_U32 num_tiles = pp->num_tile_rows_minus1 + 1;
     RK_U32 ext_align_size = num_tiles * 64 * 8;
 
+    width = MPP_ALIGN(width, ctu_size);
+    height = MPP_ALIGN(height, ctu_size);
     /* RCB_STRMD_ROW */
     if (width > 8192) {
         RK_U32 factor = ctu_size / 16;
@@ -796,7 +798,7 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     rcb_bits = width * 22 + ext_align_size;
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTER_COL */
-    rcb_bits = width * 22 + ext_align_size;
+    rcb_bits = height * 22 + ext_align_size;
     rcb_info[RCB_INTER_COL].size = MPP_RCB_BYTES(rcb_bits);
     /* RCB_INTRA_ROW */
     rcb_bits = width * 48 + ext_align_size;
