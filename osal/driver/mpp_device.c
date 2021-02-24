@@ -159,18 +159,14 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
     return ret;
 }
 
-MPP_RET mpp_dev_set_reg_offset(MppDev dev, RK_U32 *regs, RK_S32 index, RK_U32 offset)
+MPP_RET mpp_dev_set_reg_offset(MppDev dev, RK_S32 index, RK_U32 offset)
 {
-    if (offset < SZ_4M)
-        regs[index] += offset << 10;
-    else {
-        MppDevRegOffsetCfg trans_cfg;
+    MppDevRegOffsetCfg trans_cfg;
 
-        trans_cfg.reg_idx = index;
-        trans_cfg.offset = offset;
+    trans_cfg.reg_idx = index;
+    trans_cfg.offset = offset;
 
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
+    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
     return MPP_OK;
 }

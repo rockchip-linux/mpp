@@ -40,7 +40,9 @@ typedef struct Vp9dRkvCtx_t {
     MppBuffer       segid_last_base;
     void*           hw_regs;
     RK_S32          mv_base_addr;
+    RK_U32          mv_base_offset;
     RK_S32          pre_mv_base_addr;
+    RK_U32          pre_mv_base_offset;
     Vp9dLastInfo    ls_info;
     /*
      * swap between segid_cur_base & segid_last_base
@@ -321,6 +323,7 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     if (!pic_param->intra_only && pic_param->frame_type &&
         !pic_param->error_resilient_mode && hw_ctx->ls_info.last_show_frame) {
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;
+        hw_ctx->pre_mv_base_offset = hw_ctx->mv_base_offset;
     }
 
 
@@ -343,11 +346,14 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
         hw_ctx->last_segid_flag = !hw_ctx->last_segid_flag;
     }
 
-    hw_ctx->mv_base_addr = vp9_hw_regs->swreg7_decout_base | ((sw_yuv_virstride << 4) << 6);
+    hw_ctx->mv_base_addr = vp9_hw_regs->swreg7_decout_base;
+    hw_ctx->mv_base_offset = sw_yuv_virstride;
     if (hw_ctx->pre_mv_base_addr < 0) {
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;
+        hw_ctx->pre_mv_base_offset = hw_ctx->mv_base_offset;
     }
     vp9_hw_regs->swreg52_vp9_refcolmv_base = hw_ctx->pre_mv_base_addr;
+    mpp_dev_set_reg_offset(p_hal->dev, 52, hw_ctx->pre_mv_base_offset);
 
     vp9_hw_regs->swreg10_vp9_cprheader_offset.sw_vp9_cprheader_offset = 0; //no use now.
     reg_ref_base = &vp9_hw_regs->swreg11_vp9_referlast_base;

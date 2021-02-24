@@ -82,7 +82,9 @@ static void vpu2_h263d_setup_regs_by_syntax(hal_h263_ctx *ctx, MppSyntax syntax)
         RK_U32 start_bit_offset = stream_used & 0x3F;
         RK_U32 left_bytes = stream_length - consumed_bytes_align;
 
-        val += (consumed_bytes_align << 10);
+        if (consumed_bytes_align) {
+            mpp_dev_set_reg_offset(ctx->dev, 64, consumed_bytes_align);
+        }
         regs->reg64_input_stream_base = val;
         regs->reg122.sw_stream_start_word = start_bit_offset;
         regs->reg51_stream_info.sw_stream_len = left_bytes;
