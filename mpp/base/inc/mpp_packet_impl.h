@@ -29,6 +29,8 @@ typedef union MppPacketStatus_t {
         RK_U32  eos         : 1;
         RK_U32  extra_data  : 1;
         RK_U32  internal    : 1;
+        /* packet is inputed on reset mark as discard */
+        RK_U32  discard     : 1;
 
         /* for slice input output */
         RK_U32  partition   : 1;
@@ -75,6 +77,7 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src);
 MPP_RET mpp_packet_append(MppPacket dst, MppPacket src);
 MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status);
+MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);

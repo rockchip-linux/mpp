@@ -327,6 +327,19 @@ MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status)
     return MPP_OK;
 }
 
+MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status)
+{
+    if (check_is_mpp_packet(packet)) {
+        status->val = 0;
+        return MPP_ERR_UNKNOW;
+    }
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    status->val = p->status.val;
+    return MPP_OK;
+}
+
 RK_U32 mpp_packet_is_partition(const MppPacket packet)
 {
     if (check_is_mpp_packet(packet))
