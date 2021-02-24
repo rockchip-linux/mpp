@@ -250,7 +250,6 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
 {
     RK_S32 fifo_len = 12;
     RK_S32 i, j;
-    RK_U32 addr;
     RK_U32 log2_min_cb_size;
     RK_S32 width, height;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
@@ -439,22 +438,10 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
 
     {
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->scaling_list_data);
-        if (dxva_cxt->pp.scaling_list_data_present_flag) {
-            addr = (dxva_cxt->pp.pps_id + 16) * 1360;
-        } else if (dxva_cxt->pp.scaling_list_enabled_flag) {
-            addr = dxva_cxt->pp.sps_id * 1360;
-        } else {
-            addr = 80 * 1360;
-        }
-
-        hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
-
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
-        /* need to config addr */
 
-        addr = fd | (addr << 10);
-
-        mpp_put_bits(&bp, addr, 32);
+        hal_h265d_output_scalinglist_packet(hal, ptr_scaling, dxva);
+        mpp_put_bits(&bp, fd, 32);
         mpp_put_bits(&bp, 0, 60);
         mpp_put_align(&bp, 128, 0xf);
     }
@@ -477,7 +464,6 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 {
     RK_S32 fifo_len = 10;
     RK_S32 i, j;
-    RK_U32 addr;
     RK_U32 log2_min_cb_size;
     RK_S32 width, height;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
@@ -665,21 +651,10 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
     {
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->scaling_list_data);
-        if (dxva_cxt->pp.scaling_list_data_present_flag) {
-            addr = (dxva_cxt->pp.pps_id + 16) * 1360;
-        } else if (dxva_cxt->pp.scaling_list_enabled_flag) {
-            addr = dxva_cxt->pp.sps_id * 1360;
-        } else {
-            addr = 80 * 1360;
-        }
-
-        hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
-
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
-        /* need to config addr */
-        addr = fd | (addr << 10);
 
-        mpp_put_bits(&bp, addr, 32);
+        hal_h265d_output_scalinglist_packet(hal, ptr_scaling, dxva);
+        mpp_put_bits(&bp, fd, 32);
         mpp_put_align(&bp, 64, 0xf);
     }
 
@@ -910,10 +885,12 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
 
-    hw_regs->sw_refer_base[0] |= ((sw_ref_valid & 0xf) << 10);
-    hw_regs->sw_refer_base[1] |= (((sw_ref_valid >> 4) & 0xf) << 10);
-    hw_regs->sw_refer_base[2] |= (((sw_ref_valid >> 8) & 0xf) << 10);
-    hw_regs->sw_refer_base[3] |= (((sw_ref_valid >> 12) & 0x7) << 10);
+    if (sw_ref_valid) {
+        mpp_dev_set_reg_offset(reg_cxt->dev, 10, sw_ref_valid & 0xf);
+        mpp_dev_set_reg_offset(reg_cxt->dev, 11, ((sw_ref_valid >> 4) & 0xf));
+        mpp_dev_set_reg_offset(reg_cxt->dev, 12, ((sw_ref_valid >> 8) & 0xf));
+        mpp_dev_set_reg_offset(reg_cxt->dev, 13, ((sw_ref_valid >> 12) & 0xf));
+    }
 
     return ret;
 }

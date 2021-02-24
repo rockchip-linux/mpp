@@ -1016,8 +1016,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
         mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &frame);
         update_dec_hal_info(dec, frame);
+        dec->info_updated = 1;
     }
-    dec->info_updated = 1;
 
     task->hal_frm_buf_out = hal_buf_out;
     task->wait.dec_pic_match = (NULL == hal_buf_out);
@@ -1399,7 +1399,14 @@ void *mpp_dec_advanced_thread(void *data)
             }
 
             mpp_buf_slot_set_prop(frame_slots, task_dec->output, SLOT_BUFFER, output_buffer);
+            // update codec info
+            if (!dec->info_updated && dec->dev) {
+                MppFrame tmp = NULL;
 
+                mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME_PTR, &tmp);
+                update_dec_hal_info(dec, tmp);
+                dec->info_updated = 1;
+            }
             // register genertation
             mpp_hal_reg_gen(dec->hal, &pTask->info);
             mpp_hal_hw_start(dec->hal, &pTask->info);

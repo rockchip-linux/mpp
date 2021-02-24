@@ -46,7 +46,6 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
         ret = MPP_ERR_UNKNOW;
         goto __ERR_RET;
     }
-
     if (ctx->group == NULL) {
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
         if (ret) {
@@ -60,10 +59,11 @@ MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
         goto __ERR_RET;
     }
 
-    ctx->packet_slots = cfg->packet_slots;
-    ctx->frame_slots = cfg->frame_slots;
-    ctx->dec_cb = cfg->dec_cb;
-    ctx->regs = (void*)regs;
+    ctx->packet_slots   = cfg->packet_slots;
+    ctx->frame_slots    = cfg->frame_slots;
+    ctx->dec_cb         = cfg->dec_cb;
+    ctx->regs           = (void*)regs;
+    cfg->dev            = ctx->dev;
 
     return ret;
 
@@ -213,7 +213,9 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
 
         mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
         p_regs->sw12.rlc_vlc_base = mpp_buffer_get_fd(streambuf);
-        p_regs->sw12.rlc_vlc_base |= (dx->bitstream_offset << 10);
+        if (dx->bitstream_offset) {
+            mpp_dev_set_reg_offset(ctx->dev, 12, dx->bitstream_offset);
+        }
 
         mpp_buf_slot_get_prop(ctx->frame_slots, dx->CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
 
@@ -221,7 +223,8 @@ MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
             (dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_FRAME)) {
             p_regs->sw13.dec_out_base = mpp_buffer_get_fd(framebuf);
         } else {
-            p_regs->sw13.dec_out_base = mpp_buffer_get_fd(framebuf) | (MPP_ALIGN(dx->seq.decode_width, 16) << 10);
+            p_regs->sw13.dec_out_base = mpp_buffer_get_fd(framebuf);
+            mpp_dev_set_reg_offset(ctx->dev, 13, MPP_ALIGN(dx->seq.decode_width, 16));
         }
 
         mpp_buf_slot_get_prop(ctx->frame_slots, dx->frame_refs[0].Index7Bits, SLOT_BUFFER, &framebuf);

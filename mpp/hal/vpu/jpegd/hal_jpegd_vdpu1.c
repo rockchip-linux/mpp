@@ -167,7 +167,10 @@ jpegd_set_stream_offset(JpegdHalCtx *ctx, JpegdSyntax *syntax)
      * the offset must be 8-byte aligned.
      */
     offset = (s->strm_offset & (~7));
-    reg->reg12_input_stream_base = ctx->pkt_fd | (offset << 10);
+    reg->reg12_input_stream_base = ctx->pkt_fd;
+    if (offset) {
+        mpp_dev_set_reg_offset(ctx->dev, 12, offset);
+    }
 
     /* calculate and set stream start bit to hardware
      * change current pos to bus address style
@@ -588,16 +591,8 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         post->reg66_pp_out_lu_base = ctx->frame_fd;
         post->reg67_pp_out_ch_base = ctx->frame_fd;
 
-        if (uv_offset < SZ_4M) {
-            post->reg67_pp_out_ch_base += (uv_offset << 10);
-        } else {
-            MppDevRegOffsetCfg trans_cfg;
-
-            trans_cfg.reg_idx = 67;
-            trans_cfg.offset = uv_offset;
-
-            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-        }
+        if (uv_offset)
+            mpp_dev_set_reg_offset(ctx->dev, 67, uv_offset);
 
         jpegd_dbg_hal("output_frame_fd:%x, reg67:%x", ctx->frame_fd,
                       post->reg67_pp_out_ch_base);
@@ -612,16 +607,8 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         regs->reg13_cur_pic_base = ctx->frame_fd;
         regs->reg14_sw_jpg_ch_out_base = ctx->frame_fd;
 
-        if (uv_offset < SZ_4M) {
-            regs->reg14_sw_jpg_ch_out_base += (uv_offset << 10);
-        } else {
-            MppDevRegOffsetCfg trans_cfg;
-
-            trans_cfg.reg_idx = 14;
-            trans_cfg.offset = uv_offset;
-
-            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-        }
+        if (uv_offset)
+            mpp_dev_set_reg_offset(ctx->dev, 14, uv_offset);
 
         jpegd_dbg_hal("output_frame_fd:%x, reg14:%x", ctx->frame_fd,
                       regs->reg14_sw_jpg_ch_out_base);
@@ -765,6 +752,7 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
+    cfg->dev = JpegHalCtx->dev;
 
     /* allocate regs buffer */
     if (JpegHalCtx->regs == NULL) {

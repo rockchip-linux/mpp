@@ -579,8 +579,10 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             top_closer = (cur_poc < ref_poc) ? 0x1 : 0;
         }
         val = top_closer | field_flag;
-        val = mpp_buffer_get_fd(frame_buf) | (val << 10);
-        set_refer_pic_base_addr(p_regs, i, val);
+
+        if (val)
+            mpp_dev_set_reg_offset(p_hal->dev, 84 + i, val);
+        set_refer_pic_base_addr(p_regs, i, mpp_buffer_get_fd(frame_buf));
     }
     /* inter-view reference picture */
     {
@@ -601,7 +603,7 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
                           SLOT_BUFFER, &frame_buf); //!< current out phy addr
     outPhyAddr = mpp_buffer_get_fd(frame_buf);
     if (pp->field_pic_flag && pp->CurrPic.AssociatedFlag) {
-        outPhyAddr |= ((pp->wFrameWidthInMbsMinus1 + 1) * 16) << 10;
+        mpp_dev_set_reg_offset(p_hal->dev, 63, ((pp->wFrameWidthInMbsMinus1 + 1) * 16));
     }
     p_regs->sw63.dec_out_st_adr = outPhyAddr; //!< outPhyAddr, pp->CurrPic.Index7Bits
     p_regs->sw110.flt_offset_cb_qp = pp->chroma_qp_index_offset;
@@ -618,7 +620,11 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
                       * ((p_hal->pp->chroma_format_idc == 0) ? 256 : 384);
         dirMvOffset += (pp->field_pic_flag && pp->CurrPic.AssociatedFlag)
                        ? (picSizeInMbs * 32) : 0;
-        p_regs->sw62.dmmv_st_adr = (mpp_buffer_get_fd(frame_buf) | (dirMvOffset << 6));
+        if (dirMvOffset) {
+            RK_U32 offset = mpp_get_ioctl_version() ? dirMvOffset : dirMvOffset >> 4;
+            mpp_dev_set_reg_offset(p_hal->dev, 62, offset);
+        }
+        p_regs->sw62.dmmv_st_adr = mpp_buffer_get_fd(frame_buf);
     }
     p_regs->sw57.dmmv_wr_en = (p_long->nal_ref_idc != 0) ? 1 : 0; //!< defalut set 1
     p_regs->sw115.dlmv_method_en = pp->direct_8x8_inference_flag;

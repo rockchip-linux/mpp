@@ -37,6 +37,8 @@
 
 #define MAX_REGS_COUNT      3
 #define MPX_EXTRA_INFO_NUM  16
+#define MAX_INFO_COUNT      16
+#define INFO_FORMAT_TYPE    3
 
 typedef struct MppReq_t {
     RK_U32 *req;
@@ -64,6 +66,7 @@ typedef struct VcodecRegCfg_t {
 
 typedef struct MppDevVcodecService_t {
     RK_S32              client_type;
+    RK_U64              fmt;
     RK_S32              fd;
     RK_S32              max_regs;
     RK_U32              reg_size;
@@ -72,6 +75,9 @@ typedef struct MppDevVcodecService_t {
     RK_S32              reg_poll_idx;
 
     VcodecRegCfg        regs[MAX_REGS_COUNT];
+
+    RK_S32              info_count;
+    MppDevInfoCfg       info[MAX_INFO_COUNT];
 } MppDevVcodecService;
 
 /* For vpu1 / vpu2 */
@@ -383,6 +389,33 @@ static void extra_info_init(VcodecExtraInfo *info)
     info->count = 0;
 }
 
+static void update_extra_info(VcodecExtraInfo *info, char* fmt, VcodecRegCfg* send_cfg)
+{
+    void *reg_set = send_cfg->reg_set;
+    RK_U32 reg_size = send_cfg->reg_size;
+
+    if (info->count) {
+        if (!strstr(fmt, "mjpeg")) {
+            RK_U32 *reg = (RK_U32*)reg_set;
+            RK_U32 i = 0;
+
+            for (i = 0; i < info->count; i++) {
+                VcodecExtraSlot *slot = &info->slots[i];
+
+                reg[slot->reg_idx] |= (slot->offset << 10);
+            }
+            info->count = 0;
+        } else {
+            void *extra_data = reg_set + reg_size;
+            RK_S32 extra_size = sizeof(send_cfg->extra_info);
+
+            memcpy(extra_data, info, extra_size);
+            send_cfg->reg_size += extra_size;
+            extra_info_init(info);
+        }
+    }
+}
+
 MPP_RET vcodec_service_init(void *ctx, MppClientType type)
 {
     MppDevVcodecService *p = (MppDevVcodecService *)ctx;
@@ -556,20 +589,12 @@ MPP_RET vcodec_service_cmd_send(void *ctx)
     VcodecRegCfg *send_cfg = &p->regs[p->reg_send_idx];
     VcodecExtraInfo *extra = &send_cfg->extra_info;
     void *reg_set = send_cfg->reg_set;
-    RK_U32 reg_size = send_cfg->reg_size;
+    char *fmt = (char*)&p->fmt;
 
-    if (extra->count) {
-        void *extra_data = reg_set + reg_size;
-        RK_S32 extra_size = sizeof(send_cfg->extra_info);
-
-        memcpy(extra_data, extra, extra_size);
-        reg_size += extra_size;
-
-        extra_info_init(extra);
-    }
+    update_extra_info(extra, fmt, send_cfg);
 
     MPP_RET ret = vcodec_service_ioctl(p->fd, VPU_IOC_SET_REG,
-                                       reg_set, reg_size);
+                                       reg_set, send_cfg->reg_size);
     if (ret) {
         mpp_err_f("ioctl VPU_IOC_SET_REG failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
@@ -604,6 +629,22 @@ MPP_RET vcodec_service_cmd_poll(void *ctx)
     return ret;
 }
 
+MPP_RET vcodec_service_set_info(void *ctx, MppDevInfoCfg *cfg)
+{
+    MppDevVcodecService *p = (MppDevVcodecService *)ctx;
+
+    if (!p->info_count)
+        memset(p->info, 0, sizeof(p->info));
+
+    memcpy(&p->info[p->info_count], cfg, sizeof(MppDevInfoCfg));
+    p->info_count++;
+
+    if (cfg->type == INFO_FORMAT_TYPE) {
+        p->fmt = cfg->data;
+    }
+    return MPP_OK;
+}
+
 const MppDevApi vcodec_service_api = {
     "vcodec_service",
     sizeof(MppDevVcodecService),
@@ -613,7 +654,7 @@ const MppDevApi vcodec_service_api = {
     vcodec_service_reg_rd,
     vcodec_service_fd_trans,
     NULL,
-    NULL,
+    vcodec_service_set_info,
     vcodec_service_cmd_send,
     vcodec_service_cmd_poll,
 };

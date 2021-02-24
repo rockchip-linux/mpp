@@ -119,8 +119,9 @@ static void vdpu1_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax
         RK_U32 start_bit_offset = stream_used & 0x3F;
         RK_U32 left_bytes = stream_length - consumed_bytes_align;
 
-        val += (consumed_bytes_align << 10);
         regs->SwReg12.sw_rlc_vlc_base = val;
+        if (consumed_bytes_align)
+            mpp_dev_set_reg_offset(ctx->dev, 12, consumed_bytes_align);
         regs->SwReg05.sw_strm_start_bit = start_bit_offset;
         regs->SwReg06.sw_stream_len = left_bytes;
     }
@@ -269,6 +270,7 @@ MPP_RET vdpu1_mpg4d_init(void *hal, MppHalCfg *cfg)
     ctx->mv_buf     = mv_buf;
     ctx->qp_table   = qp_table;
     ctx->regs       = regs;
+    cfg->dev        = ctx->dev;
 
     mpp_env_get_u32("hal_mpg4d_debug", &hal_mpg4d_debug, 0);
 

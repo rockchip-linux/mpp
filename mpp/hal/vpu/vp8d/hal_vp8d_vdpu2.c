@@ -45,25 +45,21 @@ MPP_RET hal_vp8d_vdpu2_init(void *hal, MppHalCfg *cfg)
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 
     FUN_T("FUN_IN");
-    //configure
-    ctx->packet_slots = cfg->packet_slots;
-    ctx->frame_slots = cfg->frame_slots;
 
     mpp_env_get_u32("vp8h_debug", &vp8h_debug, 0);
 
     ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU2);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-        return ret;
+        goto ERR_RET;
     }
 
     if (NULL == ctx->regs) {
         ctx->regs = mpp_calloc_size(void, sizeof(VP8DRegSet_t));
         if (NULL == ctx->regs) {
             mpp_err("hal_vp8 reg alloc failed\n");
-
-            FUN_T("FUN_OUT");
-            return MPP_ERR_NOMEM;
+            ret = MPP_ERR_NOMEM;
+            goto ERR_RET;
         }
     }
 
@@ -71,25 +67,55 @@ MPP_RET hal_vp8d_vdpu2_init(void *hal, MppHalCfg *cfg)
         ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("hal_vp8 mpp_buffer_group_get failed\n");
-            FUN_T("FUN_OUT");
-            return ret;
+            goto ERR_RET;
         }
     }
 
     ret = mpp_buffer_get(ctx->group, &ctx->probe_table, VP8D_PROB_TABLE_SIZE);
     if (ret) {
         mpp_err("hal_vp8 probe_table get buffer failed\n");
-        FUN_T("FUN_OUT");
-        return ret;
+        goto ERR_RET;
     }
 
     ret = mpp_buffer_get(ctx->group, &ctx->seg_map, VP8D_MAX_SEGMAP_SIZE);
     if (ret) {
         mpp_err("hal_vp8 seg_map get buffer failed\n");
-        FUN_T("FUN_OUT");
-        return ret;
+        goto ERR_RET;
     }
 
+    //configure
+    ctx->packet_slots   = cfg->packet_slots;
+    ctx->frame_slots    = cfg->frame_slots;
+    cfg->dev            = ctx->dev;
+
+    FUN_T("FUN_OUT");
+    return ret;
+ERR_RET:
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
+    }
+
+    if (ctx->regs) {
+        mpp_free(ctx->regs);
+        ctx->regs = NULL;
+    }
+
+    if (ctx->probe_table) {
+        mpp_buffer_put(ctx->probe_table);
+        ctx->probe_table = NULL;
+    }
+
+    if (ctx->seg_map) {
+        mpp_buffer_group_put(ctx->seg_map);
+        ctx->seg_map = NULL;
+    }
+
+    if (ctx->group) {
+        mpp_buffer_put(ctx->group);
+        ctx->group = NULL;
+    }
+    FUN_T("FUN_OUT");
     return ret;
 }
 
