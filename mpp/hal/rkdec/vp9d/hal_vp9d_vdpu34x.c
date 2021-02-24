@@ -36,6 +36,7 @@
 
 #define HW_PROB 1
 #define VP9_CONTEXT 4
+#define VP9_CTU_SIZE 64
 
 typedef struct Vdpu34xVp9dCtx_t {
     Vp9dRegBuf      g_buf[MAX_GEN_REG];
@@ -334,6 +335,8 @@ static void vp9d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
     RK_U32 ext_align_size = num_tiles * 64 * 8;
 
+    width = MPP_ALIGN(width, VP9_CTU_SIZE);
+    height = MPP_ALIGN(height, VP9_CTU_SIZE);
     /* RCB_STRMD_ROW */
     if (width > 4096)
         rcb_bits = MPP_ALIGN(width, 64) * 232 + ext_align_size;

@@ -40,6 +40,7 @@
 #define RKV_RPS_SIZE              (128 + 128 + 128)   /* bytes */
 #define RKV_SCALING_LIST_SIZE     (6*16+2*64 + 128)   /* bytes */
 #define RKV_ERROR_INFO_SIZE       (256*144*4)         /* bytes */
+#define H264_CTU_SIZE             16
 
 #define SET_REF_INFO(regs, index, field, value)\
     do{ \
@@ -715,6 +716,8 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info
     RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
     RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
 
+    width = MPP_ALIGN(width, H264_CTU_SIZE);
+    height = MPP_ALIGN(height, H264_CTU_SIZE);
     /* RCB_STRMD_ROW */
     if (width > 4096)
         rcb_bits = ((width + 15) / 16) * 154 * (mbaff ? 2 : 1);
