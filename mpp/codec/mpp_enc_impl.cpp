@@ -186,10 +186,12 @@ static MPP_RET release_task_in_port(MppPort port)
     MppTask mpp_task;
 
     do {
-        ret = mpp_port_dequeue(port, &mpp_task);
+        ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
         if (ret)
             break;
 
+        mpp_port_dequeue(port, &mpp_task);
+        mpp_assert(mpp_task);
         if (mpp_task) {
             packet = NULL;
             frame = NULL;
