@@ -139,9 +139,24 @@ public:
     /*
      * Mpp task queue for advance task mode
      */
-    MppPort         mInputPort;
-    MppPort         mOutputPort;
-
+    /*
+     * Task data flow:
+     *                  |
+     *     user         |          mpp
+     *           mInputTaskQueue
+     * mUsrInPort  ->   |   -> mMppInPort
+     *                  |          |
+     *                  |          v
+     *                  |       process
+     *                  |          |
+     *                  |          v
+     * mUsrOutPort <-   |   <- mMppOutPort
+     *           mOutputTaskQueue
+     */
+    MppPort         mUsrInPort;
+    MppPort         mUsrOutPort;
+    MppPort         mMppInPort;
+    MppPort         mMppOutPort;
     MppTaskQueue    mInputTaskQueue;
     MppTaskQueue    mOutputTaskQueue;
 

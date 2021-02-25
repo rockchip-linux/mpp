@@ -71,8 +71,10 @@ Mpp::Mpp()
       mPacketGroup(NULL),
       mFrameGroup(NULL),
       mExternalFrameGroup(0),
-      mInputPort(NULL),
-      mOutputPort(NULL),
+      mUsrInPort(NULL),
+      mUsrOutPort(NULL),
+      mMppInPort(NULL),
+      mMppOutPort(NULL),
       mInputTaskQueue(NULL),
       mOutputTaskQueue(NULL),
       mInputTimeout(MPP_POLL_BUTT),
@@ -146,8 +148,10 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             mpp_task_queue_setup(mOutputTaskQueue, 1);
         }
 
-        mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
-        mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
+        mUsrInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
+        mUsrOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
+        mMppInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_OUTPUT);
+        mMppOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
 
         MppDecInitCfg cfg = {
             coding,
@@ -179,8 +183,10 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mpp_task_queue_setup(mInputTaskQueue, 1);
         mpp_task_queue_setup(mOutputTaskQueue, 8);
 
-        mInputPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
-        mOutputPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
+        mUsrInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
+        mUsrOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
+        mMppInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_OUTPUT);
+        mMppOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
 
         MppEncInitCfg cfg = {
             coding,
@@ -244,8 +250,10 @@ void Mpp::clear()
         mOutputTaskQueue = NULL;
     }
 
-    mInputPort = NULL;
-    mOutputPort = NULL;
+    mUsrInPort  = NULL;
+    mUsrOutPort = NULL;
+    mMppInPort  = NULL;
+    mMppOutPort = NULL;
 
     if (mExtraPacket) {
         mpp_packet_deinit(&mExtraPacket);
@@ -527,10 +535,10 @@ MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
 
     switch (type) {
     case MPP_PORT_INPUT : {
-        port = mInputPort;
+        port = mUsrInPort;
     } break;
     case MPP_PORT_OUTPUT : {
-        port = mOutputPort;
+        port = mUsrOutPort;
     } break;
     default : {
     } break;
@@ -553,11 +561,11 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 
     switch (type) {
     case MPP_PORT_INPUT : {
-        port = mInputPort;
+        port = mUsrInPort;
         notify_flag = MPP_INPUT_DEQUEUE;
     } break;
     case MPP_PORT_OUTPUT : {
-        port = mOutputPort;
+        port = mUsrOutPort;
         notify_flag = MPP_OUTPUT_DEQUEUE;
     } break;
     default : {
@@ -584,11 +592,11 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
 
     switch (type) {
     case MPP_PORT_INPUT : {
-        port = mInputPort;
+        port = mUsrInPort;
         notify_flag = MPP_INPUT_ENQUEUE;
     } break;
     case MPP_PORT_OUTPUT : {
-        port = mOutputPort;
+        port = mUsrOutPort;
         notify_flag = MPP_OUTPUT_ENQUEUE;
     } break;
     default : {
