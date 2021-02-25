@@ -1216,6 +1216,10 @@ static MPP_RET dec_release_task_in_port(MppPort port)
     MppTask mpp_task;
 
     do {
+        ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
+        if (ret)
+            break;
+
         ret = mpp_port_dequeue(port, &mpp_task);
         if (ret || mpp_task == NULL)
             break;
@@ -1228,7 +1232,7 @@ static MPP_RET dec_release_task_in_port(MppPort port)
             frame = NULL;
         }
         ret = mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
-        if (packet) {
+        if (packet && NULL == mpp_packet_get_buffer(packet)) {
             mpp_packet_deinit(&packet);
             packet = NULL;
         }
