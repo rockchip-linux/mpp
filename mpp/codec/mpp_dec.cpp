@@ -1255,9 +1255,8 @@ void *mpp_dec_advanced_thread(void *data)
     DecTask *pTask = &task;
     dec_task_init(pTask);
     HalDecTask  *task_dec = &pTask->info.dec;
-
-    MppPort input  = mpp_task_queue_get_port(mpp->mInputTaskQueue,  MPP_PORT_OUTPUT);
-    MppPort output = mpp_task_queue_get_port(mpp->mOutputTaskQueue, MPP_PORT_INPUT);
+    MppPort input  = mpp->mMppInPort;
+    MppPort output = mpp->mMppOutPort;
     MppTask mpp_task = NULL;
     MPP_RET ret = MPP_OK;
     MppFrame frame = NULL;
@@ -1427,7 +1426,7 @@ void *mpp_dec_advanced_thread(void *data)
 
     // clear remain task in output port
     dec_release_task_in_port(input);
-    dec_release_task_in_port(mpp->mOutputPort);
+    dec_release_task_in_port(mpp->mUsrOutPort);
 
     return NULL;
 }

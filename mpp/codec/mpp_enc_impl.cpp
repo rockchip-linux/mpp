@@ -1979,7 +1979,7 @@ void *mpp_enc_thread(void *data)
 
     // clear remain task in enc->output port
     release_task_in_port(enc->input);
-    release_task_in_port(mpp->mOutputPort);
+    release_task_in_port(mpp->mUsrOutPort);
 
     return NULL;
 }
