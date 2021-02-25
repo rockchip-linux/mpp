@@ -459,6 +459,12 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     }
 
     mpp_assert(mInputTask);
+    if (mInputTask) {
+        MppFrame frm_out = NULL;
+
+        mpp_task_meta_get_frame(mInputTask, KEY_INPUT_FRAME, &frm_out);
+        mpp_assert(frm_out == frame);
+    }
 
 RET:
     mpp_stopwatch_record(stopwatch, "put_frame finish");
