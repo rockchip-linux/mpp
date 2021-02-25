@@ -88,6 +88,7 @@ Mpp::Mpp()
       mInitDone(0),
       mMultiFrame(0),
       mStatus(0),
+      mDecResTaskCnt(1),
       mExtraPacket(NULL),
       mDump(NULL)
 {
@@ -289,32 +290,90 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    AutoMutex autoLock(mPackets->mutex());
-    if (mExtraPacket) {
-        mPackets->add_at_tail(&mExtraPacket, sizeof(mExtraPacket));
-        mExtraPacket = NULL;
-        mPacketPutCount++;
-    }
-
+    MPP_RET ret = MPP_NOK;
     RK_U32 eos = mpp_packet_get_eos(packet);
-    if (mPackets->list_size() < 4 || eos) {
-        MppPacket pkt;
-        if (MPP_OK != mpp_packet_copy_init(&pkt, packet))
-            return MPP_NOK;
+    MppPollType timeout = mInputTimeout;
+    MppTask task_dequeue = NULL;
 
-        mPackets->add_at_tail(&pkt, sizeof(pkt));
-        mPacketPutCount++;
-        // dump input packet
-        mpp_ops_dec_put_pkt(mDump, packet);
+    if (mExtraPacket) {
+        MppPacket extra = mExtraPacket;
 
-        // when packet has been send clear the length
-        mpp_packet_set_length(packet, 0);
-
-        notify(MPP_INPUT_ENQUEUE);
-        return MPP_OK;
+        mExtraPacket = NULL;
+        put_packet(extra);
     }
 
-    return MPP_ERR_BUFFER_FULL;
+    /* handle eos packet on non-block mode */
+    /* Use reserved task to send eos packet */
+    if (mInputTask) {
+        task_dequeue = mInputTask;
+        mInputTask = NULL;
+    }
+
+    if (NULL == task_dequeue) {
+        ret = poll(MPP_PORT_INPUT, timeout);
+        if (ret < 0)
+            goto RET;
+
+        /* non-eos packet should reserve one task for eos case */
+        if (!eos && ret <= mDecResTaskCnt)
+            goto RET;
+
+        /* do not pull here to avoid block wait */
+        dequeue(MPP_PORT_INPUT, &task_dequeue);
+        if (NULL == task_dequeue) {
+            mpp_err_f("fail to get task on poll ret %d\n", ret);
+            ret = MPP_NOK;
+            goto RET;
+        }
+    }
+
+    if (NULL == mpp_packet_get_buffer(packet)) {
+        /* packet copy path */
+        MppPacket pkt_in = NULL;
+
+        mpp_packet_copy_init(&pkt_in, packet);
+        mpp_packet_set_length(packet, 0);
+        packet = pkt_in;
+        ret = MPP_OK;
+    } else {
+        /* packet zero copy path */
+        mpp_log_f("not support zero copy path\n");
+        timeout = MPP_POLL_BLOCK;
+    }
+
+    /* setup task */
+    ret = mpp_task_meta_set_packet(task_dequeue, KEY_INPUT_PACKET, packet);
+    if (ret) {
+        mpp_err_f("set input frame to task ret %d\n", ret);
+        /* keep current task for next */
+        mInputTask = task_dequeue;
+        goto RET;
+    }
+
+    /* enqueue valid task to decoder */
+    ret = enqueue(MPP_PORT_INPUT, task_dequeue);
+    if (ret) {
+        mpp_err_f("enqueue ret %d\n", ret);
+        goto RET;
+    }
+
+    mPacketPutCount++;
+
+    if (timeout)
+        ret = poll(MPP_PORT_INPUT, timeout);
+
+RET:
+    /* wait enqueued task finished */
+    if (NULL == mInputTask) {
+        MPP_RET cnt = poll(MPP_PORT_INPUT, mInputTimeout);
+        /* reserve one task for eos block mode */
+        if (cnt > mDecResTaskCnt) {
+            dequeue(MPP_PORT_INPUT, &mInputTask);
+            mpp_assert(mInputTask);
+        }
+    }
+
+    return ret;
 }
 
 MPP_RET Mpp::get_frame(MppFrame *frame)

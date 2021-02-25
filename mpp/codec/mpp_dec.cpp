@@ -166,6 +166,42 @@ static MPP_RET check_task_wait(MppDecImpl *dec, DecTask *task)
     return ret;
 }
 
+static MPP_RET dec_release_task_in_port(MppPort port)
+{
+    MPP_RET ret = MPP_OK;
+    MppPacket packet = NULL;
+    MppFrame frame = NULL;
+    MppTask mpp_task;
+
+    do {
+        ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
+        if (ret < 0)
+            break;
+
+        ret = mpp_port_dequeue(port, &mpp_task);
+        if (ret || mpp_task == NULL)
+            break;
+
+        packet = NULL;
+        frame = NULL;
+        ret = mpp_task_meta_get_frame(mpp_task, KEY_OUTPUT_FRAME,  &frame);
+        if (frame) {
+            mpp_frame_deinit(&frame);
+            frame = NULL;
+        }
+        ret = mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
+        if (packet && NULL == mpp_packet_get_buffer(packet)) {
+            mpp_packet_deinit(&packet);
+            packet = NULL;
+        }
+
+        mpp_port_enqueue(port, mpp_task);
+        mpp_task = NULL;
+    } while (1);
+
+    return ret;
+}
+
 static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 {
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
@@ -177,6 +213,8 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 
     dec_dbg_reset("reset: parser reset start\n");
     dec_dbg_reset("reset: parser wait hal proc reset start\n");
+
+    dec_release_task_in_port(mpp->mMppInPort);
 
     hal->lock();
     dec->hal_reset_post++;
@@ -631,6 +669,39 @@ static MPP_RET update_dec_hal_info(MppDecImpl *dec, MppFrame frame)
     return MPP_OK;
 }
 
+static MPP_RET try_get_input_packet(Mpp *mpp, DecTask *task)
+{
+    MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
+    MppPort input = mpp->mMppInPort;
+    MppTask mpp_task = NULL;
+    MppPacket packet = NULL;
+    MPP_RET ret = MPP_OK;
+
+    ret = mpp_port_poll(input, MPP_POLL_NON_BLOCK);
+    if (ret < 0) {
+        task->wait.dec_pkt_in = 1;
+        return MPP_NOK;
+    }
+
+    ret = mpp_port_dequeue(input, &mpp_task);
+    mpp_assert(ret == MPP_OK && mpp_task);
+    mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
+    mpp_assert(packet);
+
+    /* when it is copy buffer return packet right here */
+    if (NULL == mpp_packet_get_buffer(packet))
+        mpp_port_enqueue(input, mpp_task);
+
+    dec->mpp_pkt_in = packet;
+    mpp->mPacketGetCount++;
+    dec->dec_in_pkt_count++;
+
+    task->status.mpp_pkt_in_rdy = 1;
+    task->wait.dec_pkt_in = 0;
+
+    return MPP_OK;
+}
+
 static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 {
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
@@ -660,18 +731,10 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 2. get packet for parser preparing
      */
     if (!dec->mpp_pkt_in && !task->status.curr_task_rdy) {
-        mpp_list *packets = mpp->mPackets;
-        AutoMutex autolock(packets->mutex());
-
-        if (!packets->list_size()) {
-            task->wait.dec_pkt_in = 1;
+        if (try_get_input_packet(mpp, task))
             return MPP_NOK;
-        }
 
-        task->wait.dec_pkt_in = 0;
-        packets->del_at_head(&dec->mpp_pkt_in, sizeof(dec->mpp_pkt_in));
-        mpp->mPacketGetCount++;
-        dec->dec_in_pkt_count++;
+        mpp_assert(dec->mpp_pkt_in);
 
         if (dec->cfg.base.sort_pts) {
             MppPacket pkt_in = NULL;
@@ -1066,6 +1129,7 @@ void *mpp_dec_parser_thread(void *data)
         mpp_buf_slot_clr_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
+    dec_release_task_in_port(mpp->mMppInPort);
     mpp_dbg_info("mpp_dec_parser_thread exited\n");
     return NULL;
 }
@@ -1206,42 +1270,6 @@ void *mpp_dec_hal_thread(void *data)
     mpp_assert(mpp->mTaskPutCount == mpp->mTaskGetCount);
     mpp_dbg_info("mpp_dec_hal_thread exited\n");
     return NULL;
-}
-
-static MPP_RET dec_release_task_in_port(MppPort port)
-{
-    MPP_RET ret = MPP_OK;
-    MppPacket packet = NULL;
-    MppFrame frame = NULL;
-    MppTask mpp_task;
-
-    do {
-        ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
-        if (ret < 0)
-            break;
-
-        ret = mpp_port_dequeue(port, &mpp_task);
-        if (ret || mpp_task == NULL)
-            break;
-
-        packet = NULL;
-        frame = NULL;
-        ret = mpp_task_meta_get_frame(mpp_task, KEY_OUTPUT_FRAME,  &frame);
-        if (frame) {
-            mpp_frame_deinit(&frame);
-            frame = NULL;
-        }
-        ret = mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
-        if (packet && NULL == mpp_packet_get_buffer(packet)) {
-            mpp_packet_deinit(&packet);
-            packet = NULL;
-        }
-
-        mpp_port_enqueue(port, mpp_task);
-        mpp_task = NULL;
-    } while (1);
-
-    return ret;
 }
 
 void *mpp_dec_advanced_thread(void *data)
@@ -1426,6 +1454,7 @@ void *mpp_dec_advanced_thread(void *data)
 
     // clear remain task in output port
     dec_release_task_in_port(input);
+    dec_release_task_in_port(mpp->mUsrInPort);
     dec_release_task_in_port(mpp->mUsrOutPort);
 
     return NULL;
@@ -1511,6 +1540,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     MppBufSlots packet_slots = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
+    Mpp *mpp = (Mpp *)cfg->mpp;
     MppDecImpl *p = NULL;
     MppDecStatusCfg *status = NULL;
 
@@ -1530,7 +1560,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    p->mpp = cfg->mpp;
+    p->mpp = mpp;
     coding = cfg->coding;
 
     mpp_assert(cfg->cfg);

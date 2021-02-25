@@ -462,12 +462,10 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
     p->info[MPP_OUTPUT_PORT].cond->signal();
     if (p->tasks) {
         for (RK_S32 i = 0; i < p->task_count; i++) {
-            MppTaskStatus status = p->tasks[i].status;
+            MppMeta meta = p->tasks[i].meta;
 
             /* we must ensure that all task return to init status */
-            if (status == MPP_OUTPUT_PORT || status == MPP_OUTPUT_HOLD) {
-                MppMeta meta = p->tasks[i].meta;
-
+            if (mpp_meta_size(meta)) {
                 mpp_err_f("idx %d task %p status %d meta size %d\n", i,
                           &p->tasks[i], p->tasks[i].status,
                           mpp_meta_size(meta));
@@ -481,9 +479,6 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
                     MPP_FREE(node);
                 }
             }
-
-            mpp_assert(p->tasks[i].status == MPP_INPUT_PORT ||
-                       p->tasks[i].status == MPP_INPUT_HOLD);
             mpp_meta_put(p->tasks[i].meta);
         }
         mpp_free(p->tasks);
