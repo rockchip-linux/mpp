@@ -105,6 +105,7 @@ typedef struct H265eV541HalContext_t {
     RK_U32              frame_num;
     HalBufs             dpb_bufs;
     RK_U32              is_vepu540;
+    RK_S32              fbc_header_len;
 } H265eV541HalContext;
 
 RK_U32 klut_weight[24] = {
@@ -226,13 +227,12 @@ static MPP_RET vepu54x_h265_setup_hal_bufs(H265eV541HalContext *ctx)
 
     if (frame_size > ctx->frame_size || new_max_cnt > old_max_cnt) {
         size_t size[3] = {0};
-        RK_S32 fbc_header_len;
 
         hal_bufs_deinit(ctx->dpb_bufs);
         hal_bufs_init(&ctx->dpb_bufs);
 
-        fbc_header_len = MPP_ALIGN(((mb_wd64 * mb_h64) << 6), SZ_8K);
-        size[0] = fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 3 / 2; //fbc_h + fbc_b
+        ctx->fbc_header_len = MPP_ALIGN(((mb_wd64 * mb_h64) << 6), SZ_8K);
+        size[0] = ctx->fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 3 / 2; //fbc_h + fbc_b
         size[1] = (mb_wd64 * mb_h64 << 8);
         size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256);
         new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
@@ -1292,14 +1292,10 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     HalEncTask *enc_task = task;
     HalBuf *recon_buf, *ref_buf;
     MppBuffer mv_info_buf = enc_task->mv_info;
-    RK_S32 pic_wd64, pic_h64, fbc_header_len;
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
 
     hal_h265e_enter();
-    pic_wd64 = (syn->pp.pic_width + 63) / 64;
-    pic_h64 = (syn->pp.pic_height + 63) / 64;
 
-    fbc_header_len =  MPP_ALIGN(((pic_wd64 * pic_h64) << 6), SZ_8K);
     regs->adr_srcy_hevc     = mpp_buffer_get_fd(enc_task->input);
     regs->adr_srcu_hevc     = regs->adr_srcy_hevc;
     regs->adr_srcv_hevc     = regs->adr_srcy_hevc;
@@ -1319,10 +1315,10 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
         regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
 
         cfg_fd.reg_idx = 75;
-        cfg_fd.offset = fbc_header_len;
+        cfg_fd.offset = ctx->fbc_header_len;
         mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
         cfg_fd.reg_idx = 77;
-        cfg_fd.offset = fbc_header_len;
+        cfg_fd.offset = ctx->fbc_header_len;
         mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
     }
 
@@ -1587,6 +1583,14 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
             hw_regs->bsbw_addr_hevc    = hw_regs->bsbb_addr_hevc;
             cfg_fd.reg_idx = 86;
             cfg_fd.offset = offset;
+            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+
+            cfg_fd.reg_idx = 75;
+            cfg_fd.offset = ctx->fbc_header_len;
+            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+
+            cfg_fd.reg_idx = 77;
+            cfg_fd.offset = ctx->fbc_header_len;
             mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
         }
 
