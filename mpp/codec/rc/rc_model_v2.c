@@ -1398,7 +1398,7 @@ MPP_RET rc_model_v2_hal_end(void *ctx, EncRcTask *task)
     rc_dbg_func("enter ctx %p task %p\n", ctx, task);
 
     if (frm->is_intra)
-        p->pre_i_qp = p->start_qp;
+        p->pre_i_qp = p->cur_scale_qp >> 6;
     else
         p->pre_p_qp = p->cur_scale_qp >> 6;
 

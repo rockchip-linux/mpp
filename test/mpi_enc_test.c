@@ -327,7 +327,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 20);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 20);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 4);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
         } break;
         case MPP_ENC_RC_MODE_CBR :
         case MPP_ENC_RC_MODE_VBR :
@@ -337,7 +337,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 10);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 51);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 4);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
         } break;
         default : {
             mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
