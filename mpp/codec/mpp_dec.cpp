@@ -1217,7 +1217,7 @@ static MPP_RET dec_release_task_in_port(MppPort port)
 
     do {
         ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
-        if (ret)
+        if (ret < 0)
             break;
 
         ret = mpp_port_dequeue(port, &mpp_task);
@@ -1293,7 +1293,7 @@ void *mpp_dec_advanced_thread(void *data)
         dec_dbg_detail("mpp_pkt_in_rdy %d\n", task.status.mpp_pkt_in_rdy);
         if (!task.status.mpp_pkt_in_rdy) {
             ret = mpp_port_poll(input, MPP_POLL_NON_BLOCK);
-            if (ret) {
+            if (ret < 0) {
                 task.wait.dec_pkt_in = 1;
                 continue;
             }
