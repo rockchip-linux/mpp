@@ -22,7 +22,7 @@ void *task_input(void *arg)
 
     for (i = 0; i < MAX_TASK_LOOP; i++) {
         ret = mpp_port_poll(port, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port, &task);
         mpp_assert(!ret);
@@ -50,7 +50,7 @@ void *task_output(void *arg)
 
     for (i = 0; i < MAX_TASK_LOOP; i++) {
         ret = mpp_port_poll(port, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port, &task);
         mpp_assert(!ret);
@@ -76,7 +76,7 @@ void *task_in_and_out(void *arg)
 
     for (i = 0; i < MAX_TASK_LOOP; i++) {
         ret = mpp_port_poll(port_input, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_input, &task);
         mpp_assert(!ret);
@@ -87,7 +87,7 @@ void *task_in_and_out(void *arg)
 
 
         ret = mpp_port_poll(port_output, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_output, &task);
         mpp_assert(!ret);
@@ -111,7 +111,7 @@ void *task_worker(void *arg)
 
     for (i = 0; i < MAX_TASK_LOOP; i++) {
         ret = mpp_port_poll(port_src, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_src, &task);
         mpp_assert(!ret);
@@ -121,7 +121,7 @@ void *task_worker(void *arg)
         mpp_assert(!ret);
 
         ret = mpp_port_poll(port_dst, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_dst, &task);
         mpp_assert(!ret);
@@ -147,7 +147,7 @@ void serial_task(void)
 
     for (i = 0; i < MAX_TASK_LOOP; i++) {
         ret = mpp_port_poll(port_ii, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_ii, &task);
         mpp_assert(!ret);
@@ -158,7 +158,7 @@ void serial_task(void)
 
 
         ret = mpp_port_poll(port_io, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_io, &task);
         mpp_assert(!ret);
@@ -169,7 +169,7 @@ void serial_task(void)
 
 
         ret = mpp_port_poll(port_oi, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_oi, &task);
         mpp_assert(!ret);
@@ -180,7 +180,7 @@ void serial_task(void)
 
 
         ret = mpp_port_poll(port_oo, MPP_POLL_BLOCK);
-        mpp_assert(!ret);
+        mpp_assert(ret >= 0);
 
         ret = mpp_port_dequeue(port_oo, &task);
         mpp_assert(!ret);

@@ -393,7 +393,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
         mpp_stopwatch_record(stopwatch, "input port user poll");
         /* poll input port for valid task */
         ret = poll(MPP_PORT_INPUT, mInputTimeout);
-        if (ret) {
+        if (ret < 0) {
             mpp_log_f("poll on set timeout %d ret %d\n", mInputTimeout, ret);
             goto RET;
         }
@@ -445,7 +445,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     /* wait enqueued task finished */
     mpp_stopwatch_record(stopwatch, "input port user poll");
     ret = poll(MPP_PORT_INPUT, mInputTimeout);
-    if (ret) {
+    if (ret < 0) {
         mpp_log_f("poll on get timeout %d ret %d\n", mInputTimeout, ret);
         goto RET;
     }
@@ -481,7 +481,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     MppTask task = NULL;
 
     ret = poll(MPP_PORT_OUTPUT, mOutputTimeout);
-    if (ret) {
+    if (ret < 0) {
         // NOTE: Do not treat poll failure as error. Just clear output
         ret = MPP_OK;
         *packet = NULL;

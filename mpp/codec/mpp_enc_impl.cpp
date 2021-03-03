@@ -187,7 +187,7 @@ static MPP_RET release_task_in_port(MppPort port)
 
     do {
         ret = mpp_port_poll(port, MPP_POLL_NON_BLOCK);
-        if (ret)
+        if (ret < 0)
             break;
 
         mpp_port_dequeue(port, &mpp_task);
@@ -1429,7 +1429,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
 
     if (!status->task_in_rdy) {
         ret = mpp_port_poll(enc->input, MPP_POLL_NON_BLOCK);
-        if (ret) {
+        if (ret < 0) {
             wait->enc_frm_in = 1;
             return ret;
         }
@@ -1442,7 +1442,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
     // 5. check output task
     if (!status->task_out_rdy) {
         ret = mpp_port_poll(enc->output, MPP_POLL_NON_BLOCK);
-        if (ret) {
+        if (ret < 0) {
             wait->enc_pkt_out = 1;
             return ret;
         }
@@ -1697,7 +1697,7 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncTask *task)
         if (NULL == enc->task_out) {
             enc_dbg_detail("task %d poll new task for part output\n", frm->seq_idx);
             ret = mpp_port_poll(enc->output, MPP_POLL_NON_BLOCK);
-            if (ret) {
+            if (ret < 0) {
                 wait->enc_pkt_out = 1;
                 status->low_delay_again = 1;
                 return MPP_NOK;

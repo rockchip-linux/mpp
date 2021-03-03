@@ -158,7 +158,7 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
     curr = &queue->info[port_impl->status_curr];
     if (curr->count) {
         mpp_assert(!list_empty(&curr->list));
-        ret = MPP_OK;
+        ret = (MPP_RET)curr->count;
         mpp_task_dbg_flow("mpp %p %s from %s poll %s port timeout %d count %d\n",
                           queue->mpp, queue->name, caller,
                           port_type_str[port_impl->type],
@@ -189,7 +189,7 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
 
             if (curr->count) {
                 mpp_assert(!list_empty(&curr->list));
-                ret = MPP_OK;
+                ret = (MPP_RET)curr->count;
             }
         }
 
