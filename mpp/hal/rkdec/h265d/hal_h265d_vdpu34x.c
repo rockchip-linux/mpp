@@ -514,14 +514,19 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
 
         RK_U32 fd = mpp_buffer_get_fd(reg_cxt->scaling_list_data);
         /* need to config addr */
+        if (addr) {
+            MppDevRegOffsetCfg trans_cfg;
 
-        addr = fd | (addr << 10);
+            trans_cfg.reg_idx = 180;
+            trans_cfg.offset = addr;
+            mpp_dev_ioctl(reg_cxt, MPP_DEV_REG_OFFSET, &trans_cfg);
+        }
 
-        mpp_put_bits(&bp, addr, 32);
-        hw_reg->h265d_addr.reg180_scanlist_addr = addr;
+        mpp_put_bits(&bp, 0, 32);
+        hw_reg->h265d_addr.reg180_scanlist_addr = fd;
         hw_reg->common.reg012.scanlist_addr_valid_en = 1;
 
-        mpp_put_bits(&bp, 0, 70);//yandong change
+        mpp_put_bits(&bp, 0, 70);
         mpp_put_align(&bp, 64, 0xf);//128
     }
 
