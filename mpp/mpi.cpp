@@ -314,6 +314,8 @@ static MPP_RET mpi_poll(MppCtx ctx, MppPortType type, MppPollType timeout)
         }
 
         ret = p->ctx->poll(type, timeout);
+        if (ret > 0)
+            ret = MPP_OK;
     } while (0);
 
     mpi_dbg_func("leave ret %d\n", ret);
