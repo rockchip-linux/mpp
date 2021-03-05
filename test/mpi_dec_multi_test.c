@@ -76,7 +76,7 @@ typedef struct {
     MpiDecCtxRet    ret;            // return of decoder
 } MpiDecCtxInfo;
 
-static int decode_simple(MpiDecCtx *data)
+static int multi_dec_simple(MpiDecCtx *data)
 {
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
@@ -249,7 +249,7 @@ static int decode_simple(MpiDecCtx *data)
     return ret;
 }
 
-static int decode_advanced(MpiDecCtx *data)
+static int multi_dec_advanced(MpiDecCtx *data)
 {
     RK_U32 pkt_eos  = 0;
     MPP_RET ret = MPP_OK;
@@ -346,7 +346,7 @@ static int decode_advanced(MpiDecCtx *data)
     return ret;
 }
 
-void* mpi_dec_test_decode(void *cmd_ctx)
+void* multi_dec_decode(void *cmd_ctx)
 {
     MpiDecCtxInfo *info = (MpiDecCtxInfo *)cmd_ctx;
     MpiDecTestCmd *cmd  = info->cmd;
@@ -516,11 +516,11 @@ void* mpi_dec_test_decode(void *cmd_ctx)
     t_s = mpp_time();
     if (cmd->simple) {
         while (!dec_ctx->eos) {
-            decode_simple(dec_ctx);
+            multi_dec_simple(dec_ctx);
         }
     } else {
         while (!dec_ctx->eos) {
-            decode_advanced(dec_ctx);
+            multi_dec_advanced(dec_ctx);
         }
     }
     t_e = mpp_time();
@@ -625,7 +625,7 @@ int main(int argc, char **argv)
     for (i = 0; i < cmd->nthreads; i++) {
         ctxs[i].cmd = cmd;
 
-        ret = pthread_create(&ctxs[i].thd, NULL, mpi_dec_test_decode, &ctxs[i]);
+        ret = pthread_create(&ctxs[i].thd, NULL, multi_dec_decode, &ctxs[i]);
         if (ret) {
             mpp_log("failed to create thread %d\n", i);
             return ret;

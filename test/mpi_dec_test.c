@@ -57,7 +57,7 @@ typedef struct {
     FileReader      reader;
 } MpiDecLoopData;
 
-static int decode_simple(MpiDecLoopData *data)
+static int dec_simple(MpiDecLoopData *data)
 {
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
@@ -359,7 +359,7 @@ static int decode_simple(MpiDecLoopData *data)
     return ret;
 }
 
-static int decode_advanced(MpiDecLoopData *data)
+static int dec_advanced(MpiDecLoopData *data)
 {
     RK_U32 pkt_eos  = 0;
     MPP_RET ret = MPP_OK;
@@ -459,7 +459,7 @@ static int decode_advanced(MpiDecLoopData *data)
     return ret;
 }
 
-int mpi_dec_test_decode(MpiDecTestCmd *cmd)
+int dec_decode(MpiDecTestCmd *cmd)
 {
     MPP_RET ret         = MPP_OK;
     size_t file_size    = 0;
@@ -633,7 +633,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
 
     if (cmd->simple) {
         while (!data.eos) {
-            decode_simple(&data);
+            dec_simple(&data);
         }
     } else {
         /* NOTE: change output format before jpeg decoding */
@@ -641,7 +641,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
 
         while (!data.eos) {
-            decode_advanced(&data);
+            dec_advanced(&data);
         }
     }
 
@@ -752,7 +752,7 @@ int main(int argc, char **argv)
 
     cmd->simple = (cmd->type != MPP_VIDEO_CodingMJPEG) ? (1) : (0);
 
-    ret = mpi_dec_test_decode(cmd);
+    ret = dec_decode(cmd);
     if (MPP_OK == ret)
         mpp_log("test success max memory %.2f MB\n", cmd->max_usage / (float)(1 << 20));
     else
