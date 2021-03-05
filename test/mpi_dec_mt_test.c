@@ -242,7 +242,7 @@ void *thread_output(void *arg)
     return NULL;
 }
 
-int mpi_dec_test_decode(MpiDecTestCmd *cmd)
+int mt_dec_decode(MpiDecTestCmd *cmd)
 {
     MPP_RET ret         = MPP_OK;
     size_t file_size    = 0;
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
 
     mpp_env_set_u32("mpi_debug", cmd->debug);
 
-    ret = mpi_dec_test_decode(cmd);
+    ret = mt_dec_decode(cmd);
     if (MPP_OK == ret)
         mpp_log("test success\n");
     else
