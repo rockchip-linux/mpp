@@ -55,6 +55,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
         regs->sw2.val = 0x900e;
 
     regs->sw5.base_stream = hw_cfg->output_strm_base;
+    mpp_dev_set_reg_offset(ctx->dev, 5, hw_cfg->output_strm_offset);
 
     regs->sw6.base_control = hw_cfg->size_tbl_base;
     regs->sw14.nal_size_write = (hw_cfg->size_tbl_base != 0);
@@ -67,7 +68,9 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
 
     regs->sw11.base_in_lum = hw_cfg->input_lum_base;
     regs->sw12.base_in_cb = hw_cfg->input_cb_base;
+    mpp_dev_set_reg_offset(ctx->dev, 12, hw_cfg->input_cb_offset);
     regs->sw13.base_in_cr = hw_cfg->input_cr_base;
+    mpp_dev_set_reg_offset(ctx->dev, 13, hw_cfg->input_cr_offset);
 
     regs->sw14.int_timeout = 1;
     regs->sw14.int_slice_ready = hw_cfg->int_slice_ready;
@@ -186,7 +189,9 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     regs->sw61.roi2_bottom = hw_cfg->roi2_bottom;
 
     regs->sw58.base_partition1 = hw_cfg->partition_Base[0];
+    mpp_dev_set_reg_offset(ctx->dev, 58, hw_cfg->partition_offset[0]);
     regs->sw59.base_partition2 = hw_cfg->partition_Base[1];
+    mpp_dev_set_reg_offset(ctx->dev, 59, hw_cfg->partition_offset[1]);
     regs->sw26.base_prob_count = hw_cfg->prob_count_base;
 
     regs->sw64.mode0_penalty = hw_cfg->intra_mode_penalty[0];

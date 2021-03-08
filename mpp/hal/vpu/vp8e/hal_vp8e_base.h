@@ -223,6 +223,7 @@ typedef struct {
     RK_U32 input_format;
     RK_U32 input_rotation;
     RK_U32 output_strm_base;
+    RK_U32 output_strm_offset;
     RK_U32 output_strm_size;
     RK_U32 first_free_bit;
     RK_U32 strm_start_msb;
@@ -237,7 +238,9 @@ typedef struct {
     RK_U32 internal_img_chr_base_r[2];
     RK_U32 input_lum_base;
     RK_U32 input_cb_base;
+    RK_U32 input_cb_offset;
     RK_U32 input_cr_base;
+    RK_U32 input_cr_offset;
     RK_U32 cp_distance_mbs; //TODO maybe useless
     RK_U32 rlc_count;    //TODO read from reg
     RK_U32 qp_sum;   //TODO read from reg
@@ -285,6 +288,7 @@ typedef struct {
     RK_U8  g_mask_msb;
     RK_U8  b_mask_msb;
     RK_U32 partition_Base[8];
+    RK_U32 partition_offset[8];
     RK_U16 y1_quant_dc[4];
     RK_U16 y1_quant_ac[4];
     RK_U16 y2_quant_dc[4];
