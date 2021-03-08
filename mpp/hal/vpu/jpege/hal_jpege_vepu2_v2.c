@@ -279,7 +279,9 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
                (y_fill);
     regs[61] = hor_stride;
 
-    regs[77] = mpp_buffer_get_fd(output) + (bytepos << 10);
+    regs[77] = mpp_buffer_get_fd(output);
+    if (bytepos)
+        mpp_dev_set_reg_offset(ctx->dev, 77, bytepos);
 
     /* 95 - 97 color conversion parameter */
     {
@@ -510,7 +512,9 @@ MPP_RET hal_jpege_vepu2_part_start(void *hal, HalEncTask *task)
                (ctx->part_x_fill << 4) |
                (part_y_fill);
 
-    regs[77] = mpp_buffer_get_fd(task->output) + (ctx->part_bytepos << 10);
+    regs[77] = mpp_buffer_get_fd(task->output);
+    if (ctx->part_bytepos)
+        mpp_dev_set_reg_offset(ctx->dev, 77, ctx->part_bytepos);
 
     regs[103] = mcu_w << 8  |
                 (part_enc_mcu_h) << 20 |

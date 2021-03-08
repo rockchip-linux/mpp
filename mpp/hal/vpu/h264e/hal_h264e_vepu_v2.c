@@ -444,8 +444,8 @@ MPP_RET h264e_vepu_prep_get_addr(HalH264eVepuPrep *prep, MppBuffer buffer,
     hal_h264e_dbg_buffer("enter\n");
 
     (*addr)[0] = fd;
-    (*addr)[1] = fd + (prep->offset_cb << 10);
-    (*addr)[2] = fd + (prep->offset_cr << 10);
+    (*addr)[1] = fd;
+    (*addr)[2] = fd;
 
     if (size < prep->size_y)
         mpp_err("warnning: input buffer size 0x%x is smaller than required size 0x%x",

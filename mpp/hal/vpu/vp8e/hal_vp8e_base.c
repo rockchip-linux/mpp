@@ -440,12 +440,8 @@ static MPP_RET set_new_frame(void *hal)
     hw_cfg->output_strm_size &= (~0x07);
 
     {
-        RK_S32 offset = hw_cfg->output_strm_base >> 10;
-        RK_S32 fd = hw_cfg->output_strm_base & 0x3ff;
-
-        offset += ctx->bitbuf[1].byte_cnt;
-        hw_cfg->output_strm_base = fd | ((offset & (~7)) << 10);
-        hw_cfg->first_free_bit = (offset & 0x07) * 8;
+        hw_cfg->output_strm_offset += ctx->bitbuf[1].byte_cnt;
+        hw_cfg->first_free_bit = (hw_cfg->output_strm_offset & 0x07) * 8;
     }
 
     if (hw_cfg->first_free_bit != 0) {
@@ -1412,8 +1408,10 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
         RK_U32 offset_uv  = hor_stride * ver_stride;
 
         hw_cfg->input_lum_base = mpp_buffer_get_fd(enc_task->input);
-        hw_cfg->input_cb_base  = hw_cfg->input_lum_base + (offset_uv << 10);
-        hw_cfg->input_cr_base  = hw_cfg->input_cb_base + (offset_uv << 8);
+        hw_cfg->input_cb_base  = hw_cfg->input_lum_base;
+        hw_cfg->input_cb_offset = offset_uv;
+        hw_cfg->input_cr_base  = hw_cfg->input_cb_base;
+        hw_cfg->input_cr_offset  = offset_uv * 5 / 4;
     }
 
     // split memory for vp8 partition
@@ -1431,7 +1429,8 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
         vp8e_set_buffer(&ctx->bitbuf[0], p_start, p_end - p_start);
 
         offset = p_end - p_start;
-        hw_cfg->output_strm_base = bus_addr + (offset << 10);
+        hw_cfg->output_strm_base = bus_addr;
+        hw_cfg->output_strm_offset = offset;
 
         p_start = p_end;
         p_end = p_start + buf_size / 10;
@@ -1439,7 +1438,8 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
         vp8e_set_buffer(&ctx->bitbuf[1], p_start, p_end - p_start);
 
         offset += p_end - p_start;
-        hw_cfg->partition_Base[0] = bus_addr | (offset << 10);
+        hw_cfg->partition_Base[0] = bus_addr;
+        hw_cfg->partition_offset[0] = offset;
 
         p_start = p_end;
         p_end = mpp_buffer_get_ptr(buffers->hw_out_buf) + buf_size;
@@ -1447,7 +1447,8 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
         vp8e_set_buffer(&ctx->bitbuf[2], p_start, p_end - p_start);
 
         offset += p_end - p_start;
-        hw_cfg->partition_Base[1] = bus_addr | (offset << 10);
+        hw_cfg->partition_Base[1] = bus_addr;
+        hw_cfg->partition_offset[1] = offset;
         hw_cfg->output_strm_size = p_end - p_start;
 
         p_start = p_end;

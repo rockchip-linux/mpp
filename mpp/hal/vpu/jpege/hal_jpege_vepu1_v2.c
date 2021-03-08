@@ -284,7 +284,9 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
                   (fmt_cfg.swap_16_in & 1) << 14;
     }
 
-    regs[5] = mpp_buffer_get_fd(output) + (bytepos << 10);
+    regs[5] = mpp_buffer_get_fd(output);
+    if (bytepos)
+        mpp_dev_set_reg_offset(ctx->dev, 5, bytepos);
 
     regs[14] = (1 << 31) |
                (0 << 30) |
@@ -513,7 +515,9 @@ static MPP_RET hal_jpege_vepu1_part_start(void *hal, HalEncTask *task)
 
     regs[37] = ((ctx->part_bytepos & 7) * 8) << 23;
 
-    regs[5] = mpp_buffer_get_fd(task->output) + (ctx->part_bytepos << 10);
+    regs[5] = mpp_buffer_get_fd(task->output);
+    if (ctx->part_bytepos)
+        mpp_dev_set_reg_offset(ctx->dev, 5, ctx->part_bytepos);
 
     regs[14] = (1 << 31) |
                (0 << 30) |
