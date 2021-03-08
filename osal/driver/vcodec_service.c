@@ -573,8 +573,21 @@ MPP_RET vcodec_service_fd_trans(void *ctx, MppDevRegOffsetCfg *cfg)
         MppDevVcodecService *p = (MppDevVcodecService *)ctx;
         VcodecRegCfg *send_cfg = &p->regs[p->reg_send_idx];
         VcodecExtraInfo *extra = &send_cfg->extra_info;
-        VcodecExtraSlot *slot = &extra->slots[extra->count];
+        VcodecExtraSlot *slot;
+        RK_U32 i;
 
+        for (i = 0; i < extra->count; i++) {
+            slot = &extra->slots[i];
+
+            if (slot->reg_idx == cfg->reg_idx) {
+                mpp_err_f("reg[%d] offset has been set, cover old %d -> %d\n",
+                          slot->reg_idx, slot->offset, cfg->offset);
+                slot->offset = cfg->offset;
+                return MPP_OK;
+            }
+        }
+
+        slot = &extra->slots[extra->count];
         slot->reg_idx = cfg->reg_idx;
         slot->offset = cfg->offset;
         extra->count++;
