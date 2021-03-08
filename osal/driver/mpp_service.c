@@ -338,6 +338,8 @@ MPP_RET mpp_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
 MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
+    RK_S32 i;
+    RegOffsetInfo *info;
 
     if (!cfg->offset)
         return MPP_OK;
@@ -347,7 +349,18 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
         return MPP_NOK;
     }
 
-    RegOffsetInfo *info = &p->reg_offset_info[p->reg_offset_count++];
+    for (i = 0; i < p->reg_offset_count; i++) {
+        info = &p->reg_offset_info[i];
+
+        if (info->reg_idx == cfg->reg_idx) {
+            mpp_err_f("reg[%d] offset has been set, cover old %d -> %d\n",
+                      info->reg_idx, info->offset, cfg->offset);
+            info->offset = cfg->offset;
+            return MPP_OK;
+        }
+    }
+
+    info = &p->reg_offset_info[p->reg_offset_count++];
 
     info->reg_idx = cfg->reg_idx;
     info->offset = cfg->offset;
