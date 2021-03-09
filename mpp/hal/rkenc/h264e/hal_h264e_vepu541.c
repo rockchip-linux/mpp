@@ -191,7 +191,7 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
         MppEncHwCfg *hw = &cfg->cfg->hw;
 
         hw->qp_delta_row_i  = 0;
-        hw->qp_delta_row    = 1;
+        hw->qp_delta_row    = 2;
 
         memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
@@ -1289,13 +1289,13 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
     regs->iprd_wgtc8[3] = 0x20;
 
     /* 000556ab */
-    regs->qnt_bias_comb.qnt_bias_i = 683;
     regs->qnt_bias_comb.qnt_bias_p = 171;
 
     regs->atr_thd0_h264.atr_thd0 = 1;
     regs->atr_thd0_h264.atr_thd1 = 4;
 
     if (slice->slice_type == H264_I_SLICE) {
+        regs->qnt_bias_comb.qnt_bias_i = 683;
         regs->atr_thd1_h264.atr_thd2 = 36;
         regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
         regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
@@ -1309,6 +1309,7 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
         regs->atr_wgt4_h264.atr_lv4_wgt1 = 18;
         regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
     } else {
+        regs->qnt_bias_comb.qnt_bias_i = 583;
         regs->atr_thd1_h264.atr_thd2 = 49;
         regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
         regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
@@ -1358,7 +1359,7 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
     regs->iprd_wgt_qp[51] = 0;
 
     memcpy(regs->wgt_qp_grpa, &h264e_lambda_default[6], H264E_LAMBDA_TAB_SIZE);
-    memcpy(regs->wgt_qp_grpb, &h264e_lambda_default[0], H264E_LAMBDA_TAB_SIZE);
+    memcpy(regs->wgt_qp_grpb, &h264e_lambda_default[5], H264E_LAMBDA_TAB_SIZE);
 
     regs->madi_mode = 0;
 
