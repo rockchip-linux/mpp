@@ -110,6 +110,8 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
         h264->poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
+        h264->chroma_cb_qp_offset = -6;
+        h264->chroma_cr_qp_offset = -6;
     } break;
     default : {
         h264->poc_type = 0;
