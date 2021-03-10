@@ -42,6 +42,7 @@ typedef struct H264ePps_t {
     RK_S32      pic_init_qs;
 
     RK_S32      chroma_qp_index_offset;
+    RK_S32      second_chroma_qp_index_offset_present;
     RK_S32      second_chroma_qp_index_offset;
 
     RK_S32      deblocking_filter_control;
