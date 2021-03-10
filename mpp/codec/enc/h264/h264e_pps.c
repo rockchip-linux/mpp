@@ -63,6 +63,7 @@ MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
     pps->pic_init_qs = pps->pic_init_qp;
 
     pps->chroma_qp_index_offset = codec->chroma_cb_qp_offset;
+    pps->second_chroma_qp_index_offset = codec->chroma_cb_qp_offset;
     pps->deblocking_filter_control = 1;
     pps->constrained_intra_pred = codec->constrained_intra_pred_mode;
     pps->redundant_pic_cnt = 0;
@@ -82,20 +83,19 @@ MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
         pps->use_default_scaling_matrix[H264_INTRA_8x8_Y] = 1;
         pps->use_default_scaling_matrix[H264_INTER_8x8_Y] = 1;
     }
-    pps->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
 
     if (codec->profile < H264_PROFILE_HIGH) {
+        pps->second_chroma_qp_index_offset_present = 0;
         if (pps->transform_8x8_mode) {
             pps->transform_8x8_mode = 0;
             mpp_log_f("warning: for profile %d transform_8x8_mode should be 0\n",
                       codec->profile);
         }
-        if (pps->second_chroma_qp_index_offset) {
-            pps->second_chroma_qp_index_offset = 0;
-            mpp_log_f("warning: for profile %d second_chroma_qp_index_offset should be 0\n",
-                      codec->profile);
-        }
+    } else {
+        pps->second_chroma_qp_index_offset_present = 1;
+        pps->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
     }
+
     if (codec->profile == H264_PROFILE_BASELINE && pps->entropy_coding_mode) {
         mpp_log_f("warning: for baseline profile entropy_coding_mode should be 0\n");
         pps->entropy_coding_mode = 0;
@@ -160,7 +160,7 @@ RK_S32 h264e_pps_to_packet(H264ePps *pps, MppPacket packet, RK_S32 *len)
     mpp_writer_put_bits(bit, pps->redundant_pic_cnt, 1);
 
     if (pps->transform_8x8_mode ||
-        pps->second_chroma_qp_index_offset ||
+        pps->second_chroma_qp_index_offset_present ||
         pps->pic_scaling_matrix_present) {
         /* transform_8x8_mode_flag */
         mpp_writer_put_bits(bit, pps->transform_8x8_mode, 1);
