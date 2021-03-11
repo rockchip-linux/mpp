@@ -13,6 +13,7 @@ set(HAL_H264E_HDR
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
     hal_h264e_vepu541.c
+    hal_h264e_vepu580.c
     )
 
 add_library(hal_h264e_rkv STATIC
