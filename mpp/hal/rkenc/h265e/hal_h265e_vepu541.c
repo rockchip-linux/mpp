@@ -1570,14 +1570,14 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
         vepu540_h265_set_me_ram(syn, hw_regs, k);
 
         /* set input info */
-
         vepu541_h265_set_l2_regs(ctx, (H265eV54xL2RegSet*)ctx->l2_regs);
         vepu541_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
-        if (title_num > 1) {
+        if (title_num > 1)
+            hal_h265e_v540_set_uniform_tile(hw_regs, syn, k);
+        if (k > 0) {
             MppDevRegOffsetCfg cfg_fd;
             RK_U32 offset = mpp_packet_get_length(enc_task->packet);
 
-            hal_h265e_v540_set_uniform_tile(hw_regs, syn, k);
             offset += stream_len;
             hw_regs->bsbb_addr_hevc    = mpp_buffer_get_fd(enc_task->output);
             hw_regs->bsbw_addr_hevc    = hw_regs->bsbb_addr_hevc;
