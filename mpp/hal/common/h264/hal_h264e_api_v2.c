@@ -24,14 +24,13 @@
 #include "mpp_mem.h"
 #include "mpp_platform.h"
 
-#include "mpp_enc_hal.h"
-
 #include "hal_h264e_debug.h"
 #include "h264e_syntax.h"
 #include "hal_h264e_api_v2.h"
 #include "hal_h264e_vepu1_v2.h"
 #include "hal_h264e_vepu2_v2.h"
 #include "hal_h264e_vepu541.h"
+#include "hal_h264e_vepu580.h"
 
 typedef struct HalH264eCtx_t {
     const MppEncHalApi  *api;
@@ -51,7 +50,16 @@ static MPP_RET hal_h264e_init(void *hal, MppEncHalCfg *cfg)
     mpp_env_get_u32("hal_h264e_debug", &hal_h264e_debug, 0);
 
     if (vcodec_type & HAVE_RKVENC) {
-        api = &hal_h264e_vepu541;
+        RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVENC);
+
+        switch (hw_id) {
+        case HWID_VEPU580 : {
+            api = &hal_h264e_vepu580;
+        } break;
+        default : {
+            api = &hal_h264e_vepu541;
+        } break;
+        }
     } else if (vcodec_type & HAVE_VEPU2) {
         api = &hal_h264e_vepu2;
     } else if (vcodec_type & HAVE_VEPU1) {
