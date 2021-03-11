@@ -608,9 +608,9 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     }
 
     if (target_bit > real_bit)
-        bit_diff_ratio = 32 * (real_bit - target_bit) / target_bit;
+        bit_diff_ratio = 32 * (real_bit - target_bit) / real_bit;
     else
-        bit_diff_ratio = 48 * (real_bit - target_bit) / real_bit;
+        bit_diff_ratio = 32 * (real_bit - target_bit) / target_bit;
 
     idx1 = ins_bps / (target_bps >> 5);
     idx2 = pre_ins_bps / (target_bps >> 5);
