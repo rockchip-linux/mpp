@@ -516,6 +516,10 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     }
 
     dec->dec_out_frame_count++;
+    dec_dbg_detail("detail: %p put frm pts %llu fd %d\n", dec,
+                   mpp_frame_get_pts(frame),
+                   (NULL == mpp_frame_get_buffer(frame)) ? (-1) :
+                   mpp_buffer_get_fd(mpp_frame_get_buffer(frame)));
 
     if (dec->vproc) {
         HalTaskGroup group = dec->vproc_tasks;
@@ -736,6 +740,10 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
         mpp_assert(dec->mpp_pkt_in);
 
+        dec_dbg_detail("detail: %p get pkt pts %llu len %d\n", dec,
+                       mpp_packet_get_pts(dec->mpp_pkt_in),
+                       mpp_packet_get_length(dec->mpp_pkt_in));
+
         if (dec->cfg.base.sort_pts) {
             MppPacket pkt_in = NULL;
             mpp_list *ts = mpp->mTimeStamps;
@@ -877,7 +885,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
             return MPP_NOK;
     }
 
-    dec_dbg_detail("detail: check prev task pass\n");
+    dec_dbg_detail("detail: %p check prev task pass\n", dec);
 
     /* too many frame delay in dispaly queue */
     if (mpp->mFrames) {
@@ -885,7 +893,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (task->wait.dis_que_full)
             return MPP_ERR_DISPLAY_FULL;
     }
-    dec_dbg_detail("detail: check mframes pass\n");
+    dec_dbg_detail("detail: %p check mframes pass\n", dec);
 
     /* 7.3 wait for a unused slot index for decoder parse operation */
     task->wait.dec_slot_idx = (mpp_slots_get_unused_count(frame_slots)) ? (0) : (1);
@@ -936,7 +944,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         hal_task_info_init(&task->info, MPP_CTX_DEC);
         return MPP_NOK;
     }
-    dec_dbg_detail("detail: check output index pass\n");
+    dec_dbg_detail("detail: %p check output index pass\n", dec);
 
     /*
      * 9. parse local task and slot to check whether new buffer or info change is needed.
@@ -984,7 +992,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         if (task->wait.dec_pic_unusd)
             return MPP_ERR_BUFFER_FULL;
     }
-    dec_dbg_detail("detail: check frame group count pass\n");
+    dec_dbg_detail("detail: %p check frame group count pass\n", dec);
 
     /*
      * 11. do buffer operation according to usage information
@@ -1008,7 +1016,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
                                   hal_buf_out);
     }
 
-    dec_dbg_detail("detail: check output buffer %p\n", hal_buf_out);
+    dec_dbg_detail("detail: %p check output buffer %p\n", hal_buf_out, dec);
 
     // update codec info
     if (!dec->info_updated && dec->dev) {
@@ -1049,7 +1057,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     task->status.prev_task_rdy   = 0;
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 
-    dec_dbg_detail("detail: one task ready\n");
+    dec_dbg_detail("detail: %p one task ready\n", dec);
 
     return MPP_OK;
 }
@@ -1888,9 +1896,11 @@ MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
     dec->param = param;
     dec->cmd_ret = &ret;
     dec->cmd_send++;
+    dec_dbg_detail("detail: %p control cmd %08x param %p start\n", dec, cmd, param);
     mpp_dec_notify(ctx, MPP_DEC_CONTROL);
     sem_post(&dec->cmd_start);
     sem_wait(&dec->cmd_done);
+    dec_dbg_detail("detail: %p control cmd %08x param %p finish\n", dec, cmd, param);
 
     dec_dbg_func("%p out\n", dec);
     return ret;
