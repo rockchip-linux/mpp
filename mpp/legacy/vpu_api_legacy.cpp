@@ -308,6 +308,10 @@ static RK_S32 init_frame_info(VpuCodecContext *ctx,
 {
     RK_S32 ret = -1;
     MppFrame frame = NULL;
+    RK_U32 fbcOutFmt = 0;
+
+    if (ctx->private_data)
+        fbcOutFmt = *(RK_U32 *)ctx->private_data;
 
     if (ctx->extra_cfg.bit_depth
         || ctx->extra_cfg.yuv_format) {
@@ -335,7 +339,7 @@ static RK_S32 init_frame_info(VpuCodecContext *ctx,
 
     mpp_frame_set_width(frame, p->ImgWidth);
     mpp_frame_set_height(frame, p->ImgHeight);
-    mpp_frame_set_fmt(frame, (MppFrameFormat)p->CodecType);
+    mpp_frame_set_fmt(frame, (MppFrameFormat)(p->CodecType | fbcOutFmt));
 
     ret = mpi->control(mpp_ctx, MPP_DEC_SET_FRAME_INFO, (MppParam)frame);
     /* output the parameters used */
@@ -521,7 +525,7 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     vframe->ErrorInfo = mpp_frame_get_errinfo(mframe) | mpp_frame_get_discard(mframe);
     vframe->ShowTime.TimeHigh = (RK_U32)(pts >> 32);
     vframe->ShowTime.TimeLow = (RK_U32)pts;
-    switch (mpp_frame_get_fmt(mframe)) {
+    switch (mpp_frame_get_fmt(mframe) & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP: {
         vframe->ColorType = VPU_OUTPUT_FORMAT_YUV420_SEMIPLANAR;
         vframe->OutputWidth = 0x20;
@@ -1451,6 +1455,9 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_GET_FRAME_INFO: {
         *((VPU_GENERIC *)param) = vpug;
         mpicmd = MPI_CMD_BUTT;
+    } break;
+    case VPU_API_SET_OUTPUT_MODE: {
+        mpicmd = MPP_DEC_SET_OUTPUT_FORMAT;
     } break;
     case VPU_API_SET_IMMEDIATE_OUT: {
         mpicmd = MPP_DEC_SET_IMMEDIATE_OUT;
