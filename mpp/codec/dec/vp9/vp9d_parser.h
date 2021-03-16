@@ -89,6 +89,7 @@ typedef struct RefInfo {
     RK_S32 ref_count;
     RK_U32 invisible;
     RK_U32 segMapIndex;
+    RK_U32 is_output;
 } RefInfo;
 
 typedef struct VP9Frame {

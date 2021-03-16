@@ -278,14 +278,14 @@ static void vp9_unref_frame( VP9Context *s, VP9Frame *f)
     f->ref->ref_count--;
     if (!f->ref->ref_count) {
         if (f->slot_index <= 0x7f) {
-            MppBuffer framebuf = NULL;
-            if (f->ref->invisible) {
+            if (f->ref->invisible && !f->ref->is_output) {
+                MppBuffer framebuf = NULL;
+
                 mpp_buf_slot_get_prop(s->slots, f->slot_index, SLOT_BUFFER, &framebuf);
                 mpp_buffer_put(framebuf);
                 f->ref->invisible = 0;
             }
             mpp_buf_slot_clr_flag(s->slots, f->slot_index, SLOT_CODEC_USE);
-
         }
         mpp_free(f->ref);
         f->slot_index = 0xff;
@@ -407,6 +407,7 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     frame->ref = mpp_calloc(RefInfo, 1);
     frame->ref->ref_count++;
     frame->ref->invisible = s->invisible;
+    frame->ref->is_output = 0;
 
     return 0;
 }
@@ -1629,6 +1630,7 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
             mpp_frame_set_pts(frame, s->pts);
             mpp_buf_slot_set_flag(s->slots, s->refs[ref].slot_index, SLOT_QUEUE_USE);
             mpp_buf_slot_enqueue(s->slots, s->refs[ref].slot_index, QUEUE_DISPLAY);
+            s->refs[ref].ref->is_output = 1;
         }
 
         mpp_log("out repeat num %d", s->outframe_num++);
