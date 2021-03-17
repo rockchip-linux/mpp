@@ -449,12 +449,17 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
             } else {
                 pps->m_nNumTileColumnsMinus1 = 2;
             }
-
-            if (pps->m_nNumTileColumnsMinus1) {
-                pps->m_tiles_enabled_flag = 1;
-                pps->m_bTileUniformSpacing = 1;
-                pps->m_loopFilterAcrossTilesEnabledFlag = 1;
+        } else if (strstr(soc_name, "rk3588")) {
+            if (sps->m_picWidthInLumaSamples > 4096) {
+                pps->m_nNumTileColumnsMinus1 = 1;
+            } else if (sps->m_picWidthInLumaSamples > 4096 * 2) {
+                pps->m_nNumTileColumnsMinus1 = 2;
             }
+        }
+        if (pps->m_nNumTileColumnsMinus1) {
+            pps->m_tiles_enabled_flag = 1;
+            pps->m_bTileUniformSpacing = 1;
+            pps->m_loopFilterAcrossTilesEnabledFlag = 1;
         }
     }
 

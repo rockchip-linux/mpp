@@ -6,11 +6,13 @@ include_directories(../common/)
 # hal h265 header
 set(HAL_H265E_HDR
     hal_h265e_vepu541_reg.h
+    hal_h265e_vepu580_reg.h
     )
 
 # hal h265 encoder sourse
 set(HAL_H265E_SRC
     hal_h265e_vepu541.c
+    hal_h265e_vepu580.c
     )
 
 add_library(hal_h265e_vepu541 STATIC
