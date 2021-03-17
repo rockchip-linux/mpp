@@ -30,7 +30,7 @@
 #include "h265e_syntax_new.h"
 #include "hal_h265e_debug.h"
 #include "hal_h265e_api.h"
-#include "hal_h265e_vepu541.h"
+#include "hal_h265e_vepu541_reg.h"
 #include "hal_h265e_vepu54x_reg_l2.h"
 #include "vepu541_common.h"
 #include "rkv_enc_def.h"
@@ -1911,7 +1911,7 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 
-const MppEncHalApi hal_api_h265e_v2 = {
+const MppEncHalApi hal_h265e_vepu541 = {
     "h265e_v541_v2",
     MPP_VIDEO_CodingHEVC,
     sizeof(H265eV541HalContext),
