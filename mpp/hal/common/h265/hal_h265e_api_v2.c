@@ -23,10 +23,12 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
+
 #include "mpp_platform.h"
-#include "mpp_enc_hal.h"
+#include "vepu5xx.h"
 #include "hal_h265e_api_v2.h"
 #include "hal_h265e_vepu541.h"
+#include "hal_h265e_vepu580.h"
 
 typedef struct HalH265eV2Ctx_t {
     const MppEncHalApi  *api;
@@ -44,7 +46,16 @@ static MPP_RET hal_h265ev2_init(void *hal, MppEncHalCfg *cfg)
     RK_U32 vcodec_type = mpp_get_vcodec_type();
 
     if (vcodec_type & HAVE_RKVENC) {
-        api = &hal_h265e_vepu541;
+        RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVENC);
+
+        switch (hw_id) {
+        case HWID_VEPU58X : {
+            api = &hal_h265e_vepu580;
+        } break;
+        default : {
+            api = &hal_h265e_vepu541;
+        } break;
+        }
     } else {
         mpp_err("vcodec type %08x can not find H.265 encoder device\n",
                 vcodec_type);

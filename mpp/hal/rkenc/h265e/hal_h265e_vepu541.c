@@ -109,45 +109,45 @@ typedef struct H265eV541HalContext_t {
     RK_S32              fbc_header_len;
 } H265eV541HalContext;
 
-RK_U32 klut_weight[24] = {
+static RK_U32 klut_weight[24] = {
     0x50800080, 0x00330000, 0xA1000100, 0x00660000, 0x42000200, 0x00CC0001,
     0x84000400, 0x01980002, 0x08000800, 0x03300005, 0x10001000, 0x0660000A,
     0x20002000, 0x0CC00014, 0x40004000, 0x19800028, 0x80008000, 0x33000050,
     0x00010000, 0x660000A1, 0x00020000, 0xCC000142, 0xFF83FFFF, 0x000001FF
 };
 
-RK_U32 aq_thd_default[16] = {
+static RK_U32 aq_thd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
     8,  8,  8,  15,
     15, 20, 25, 35
 };
 
-RK_S32 aq_qp_dealt_default[16] = {
+static RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
     0,  1,  2,  2,
     3,  3,  4,  4,
 };
 
-RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
+static RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
 
-RK_U16 lvl16_intra_cst_thd[4] = {2, 6, 16, 36};
+static RK_U16 lvl16_intra_cst_thd[4] = {2, 6, 16, 36};
 
-RK_U8 lvl32_intra_cst_wgt[8] = {23, 22, 21, 20, 22, 24, 26};
+static RK_U8 lvl32_intra_cst_wgt[8] = {23, 22, 21, 20, 22, 24, 26};
 
-RK_U8 lvl16_intra_cst_wgt[8] = {17, 17, 17, 18, 17, 18, 18};
+static RK_U8 lvl16_intra_cst_wgt[8] = {17, 17, 17, 18, 17, 18, 18};
 
-RK_U16 atr_thd[4] = {0, 0, 0, 0};
+static RK_U16 atr_thd[4] = {0, 0, 0, 0};
 
-RK_U8 lvl16_4_atr_wgt[12] = {0};
+static RK_U8 lvl16_4_atr_wgt[12] = {0};
 
 //RK_U16 atf_thd[14] =  {0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 16, 16, 16, 16}; /*thd 4, sad 4, wgt 6*/
-RK_U16 atf_thd[14] =  {4, 36, 4, 36, 4, 36, 4, 36, 0, 4, 22, 22, 22, 22}; /*thd 4, sad 4, wgt 6*/
+static RK_U16 atf_thd[14] =  {4, 36, 4, 36, 4, 36, 4, 36, 0, 4, 22, 22, 22, 22}; /*thd 4, sad 4, wgt 6*/
 
-RK_U16 atf_sad_ofst[4] = {0, 0, 0, 0};
+static RK_U16 atf_sad_ofst[4] = {0, 0, 0, 0};
 
-RK_U32 lamd_satd_qp[52] = {
+static RK_U32 lamd_satd_qp[52] = {
     0x00000183, 0x000001b2, 0x000001e7, 0x00000223, 0x00000266, 0x000002b1, 0x00000305, 0x00000364,
     0x000003ce, 0x00000445, 0x000004cb, 0x00000562, 0x0000060a, 0x000006c8, 0x0000079c, 0x0000088b,
     0x00000996, 0x00000ac3, 0x00000c14, 0x00000d8f, 0x00000f38, 0x00001115, 0x0000132d, 0x00001586,
@@ -157,7 +157,7 @@ RK_U32 lamd_satd_qp[52] = {
     0x0001828d, 0x0001b1e4, 0x0001e706, 0x000222ab
 };
 
-RK_U32 lamd_moda_qp[52] = {
+static RK_U32 lamd_moda_qp[52] = {
     0x00000049, 0x0000005c, 0x00000074, 0x00000092, 0x000000b8, 0x000000e8, 0x00000124, 0x00000170,
     0x000001cf, 0x00000248, 0x000002df, 0x0000039f, 0x0000048f, 0x000005bf, 0x0000073d, 0x0000091f,
     0x00000b7e, 0x00000e7a, 0x0000123d, 0x000016fb, 0x00001cf4, 0x0000247b, 0x00002df6, 0x000039e9,
@@ -167,7 +167,7 @@ RK_U32 lamd_moda_qp[52] = {
     0x0048f5c3, 0x005bec81, 0x0073d119, 0x0091eb85
 };
 
-RK_U32 lamd_modb_qp[52] = {
+static RK_U32 lamd_modb_qp[52] = {
     0x00000070, 0x00000089, 0x000000b0, 0x000000e0, 0x00000112, 0x00000160, 0x000001c0, 0x00000224,
     0x000002c0, 0x00000380, 0x00000448, 0x00000580, 0x00000700, 0x00000890, 0x00000b00, 0x00000e00,
     0x00001120, 0x00001600, 0x00001c00, 0x00002240, 0x00002c00, 0x00003800, 0x00004480, 0x00005800,
