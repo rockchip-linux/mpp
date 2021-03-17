@@ -1791,7 +1791,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx, HalEncTask *e
         hal_h265e_err("RKV_ENC_INT_TIMEOUT_ERROR");
 
     fb->st_madi += elem->st_madi;
-    fb->st_madp += elem->st_madi;
+    fb->st_madp += elem->st_madp;
     fb->st_mb_num += elem->st_mb_num;
     fb->st_ctu_num += elem->st_ctu_num;
 
@@ -1801,7 +1801,7 @@ static MPP_RET vepu541_h265_set_feedback(H265eV541HalContext *ctx, HalEncTask *e
         fb->st_madi = 0;
     }
     if (fb->st_ctu_num) {
-        fb->st_madp = fb->st_madi / fb->st_ctu_num;
+        fb->st_madp = fb->st_madp / fb->st_ctu_num;
     } else {
         fb->st_madp = 0;
     }
