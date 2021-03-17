@@ -157,7 +157,7 @@ static int dec_simple(MpiDecLoopData *data)
                 }
                 mpp_err("%p decode_get_frame failed too much time\n", ctx);
             }
-            if (MPP_OK != ret) {
+            if (ret) {
                 mpp_err("%p decode_get_frame failed ret %d\n", ret, ctx);
                 break;
             }
@@ -482,6 +482,9 @@ int dec_decode(MpiDecTestCmd *cmd)
     RK_U32 height       = cmd->height;
     MppCodingType type  = cmd->type;
 
+    // config for runtime mode
+    MppDecCfg cfg       = NULL;
+
     // resources
     char *buf           = NULL;
     size_t packet_size  = cmd->pkt_size;
@@ -546,7 +549,7 @@ int dec_decode(MpiDecTestCmd *cmd)
         }
 
         ret = mpp_frame_init(&frame); /* output frame */
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("mpp_frame_init failed\n");
             goto MPP_TEST_OUT;
         }
@@ -580,11 +583,10 @@ int dec_decode(MpiDecTestCmd *cmd)
         mpp_frame_set_buffer(frame, frm_buf);
     }
 
-
     // decoder demo
     ret = mpp_create(&ctx, &mpi);
 
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("mpp_create failed\n");
         goto MPP_TEST_OUT;
     }
@@ -608,7 +610,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     if (timeout) {
         param = &timeout;
         ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("%p failed to set output timeout %d ret %d\n",
                     ctx, timeout, ret);
             goto MPP_TEST_OUT;
@@ -616,10 +618,29 @@ int dec_decode(MpiDecTestCmd *cmd)
     }
 
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("%p mpp_init failed\n", ctx);
         goto MPP_TEST_OUT;
     }
+
+    mpp_dec_cfg_init(&cfg);
+
+    /*
+     * split_parse is to enable mpp internal frame spliter when the input
+     * packet is not aplited into frames.
+     */
+    ret = mpp_dec_cfg_set_u32(cfg, "base:split_parse", need_split);
+    if (ret) {
+        mpp_err("%p failed to set split_parse ret %d\n", ctx, ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpi->control(ctx, MPP_DEC_SET_CFG, cfg);
+    if (ret) {
+        mpp_err("%p failed to set cfg %p ret %d\n", ctx, cfg, ret);
+        goto MPP_TEST_OUT;
+    }
+
     data.ctx            = ctx;
     data.mpi            = mpi;
     data.eos            = 0;
@@ -667,7 +688,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     }
 
     ret = mpi->reset(ctx);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("%p mpi->reset failed\n", ctx);
         goto MPP_TEST_OUT;
     }
@@ -720,6 +741,11 @@ MPP_TEST_OUT:
     if (data.fp_input) {
         fclose(data.fp_input);
         data.fp_input = NULL;
+    }
+
+    if (cfg) {
+        mpp_dec_cfg_deinit(cfg);
+        cfg = NULL;
     }
 
     return ret;
