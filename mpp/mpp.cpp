@@ -315,8 +315,10 @@ MPP_RET Mpp::put_packet(MppPacket packet)
             goto RET;
 
         /* non-eos packet should reserve one task for eos case */
-        if (!eos && ret <= mDecResTaskCnt)
+        if (!eos && ret <= mDecResTaskCnt) {
+            ret = MPP_ERR_BUFFER_FULL;
             goto RET;
+        }
 
         /* do not pull here to avoid block wait */
         dequeue(MPP_PORT_INPUT, &task_dequeue);
