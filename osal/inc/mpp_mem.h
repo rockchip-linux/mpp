@@ -56,6 +56,8 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size);
 void mpp_osal_free(const char *caller, void *ptr);
 
 void mpp_show_mem_status();
+RK_U32 mpp_mem_total_now();
+RK_U32 mpp_mem_total_max();
 
 /*
  * mpp memory usage snapshot tool
