@@ -1467,7 +1467,10 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
             RK_S32 pps_refs = currSlice->active_pps->num_ref_idx_l0_default_active_minus1 + 1;
             RK_S32 over_flag = currSlice->num_ref_idx_override_flag;
             RK_S32 active_l0 = over_flag ? currSlice->num_ref_idx_active[LIST_0] : pps_refs;
-            p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_p, active_l0) ? 1 : 0;
+            if (currSlice->slice_type % 5 == H264_B_SLICE)
+                p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0], active_l0) ? 1 : 0;
+            else
+                p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_p, active_l0) ? 1 : 0;
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list0 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l0=%d\n",
                       p_err->cur_err_flag, pps_refs, over_flag, active_l0);
         }
