@@ -77,6 +77,9 @@ private:
     RK_U32              finalizing;
     RK_U32              finished;
 
+    RK_U32              total_size;
+    RK_U32              total_max;
+
     // misc group for internal / externl buffer with different type
     MppBufferGroupImpl  *misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
     RK_U32              misc_count;
@@ -105,6 +108,10 @@ public:
     MppBufferGroupImpl  *get_group_by_id(RK_U32 id);
     void                dump_misc_group();
     RK_U32              is_finalizing();
+    void                inc_total(RK_U32 size);
+    void                dec_total(RK_U32 size);
+    RK_U32              get_total_now() { return total_size; };
+    RK_U32              get_total_max() { return total_max; };
 };
 
 static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
@@ -211,6 +218,9 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
         group->usage -= buffer->info.size;
         group->buffer_count--;
 
+        if (group->mode == MPP_BUFFER_INTERNAL)
+            MppBufferService::get_instance()->dec_total(buffer->info.size);
+
         buffer_group_add_log(group, buffer, BUF_DESTROY, caller);
 
         if (group->is_orphan && !group->usage && !group->is_finalizing) {
@@ -301,6 +311,8 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         ret = MPP_ERR_MALLOC;
         goto RET;
     }
+    if (group->mode == MPP_BUFFER_INTERNAL)
+        MppBufferService::get_instance()->inc_total(info->size);
 
     p->info = *info;
     p->mode = group->mode;
@@ -581,6 +593,30 @@ void mpp_buffer_service_dump()
     MppBufferService::get_instance()->dump_misc_group();
 }
 
+void MppBufferService::inc_total(RK_U32 size)
+{
+    total_size += size;
+    if (total_size > total_max)
+        total_max = total_size;
+}
+
+void MppBufferService::dec_total(RK_U32 size)
+{
+    total_size -= size;
+}
+
+RK_U32 mpp_buffer_total_now()
+{
+    AutoMutex auto_lock(MppBufferService::get_lock());
+    return MppBufferService::get_instance()->get_total_now();
+}
+
+RK_U32 mpp_buffer_total_max()
+{
+    AutoMutex auto_lock(MppBufferService::get_lock());
+    return MppBufferService::get_instance()->get_total_max();
+}
+
 MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
@@ -606,6 +642,8 @@ MppBufferService::MppBufferService()
       group_count(0),
       finalizing(0),
       finished(0),
+      total_size(0),
+      total_max(0),
       misc_count(0)
 {
     RK_S32 i, j;
