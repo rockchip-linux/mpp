@@ -315,8 +315,6 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
           | VEPU_REG_INTRA_AREA_LEFT(mb_w)
           | VEPU_REG_INTRA_AREA_RIGHT(mb_w);
     H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_AREA_CTRL, val); //FIXED
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_MSB, 0);
-    H264E_HAL_SET_REG(reg, VEPU_REG_STR_HDR_REM_LSB, 0);
 
     val = VEPU_REG_AXI_CTRL_WRITE_ID(0)
           | VEPU_REG_AXI_CTRL_READ_ID(0)
