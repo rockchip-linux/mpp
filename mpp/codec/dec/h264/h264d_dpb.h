@@ -44,7 +44,7 @@ MPP_RET output_dpb  (H264_DecCtx_t *p_Dec, H264_DpbBuf_t *p_Dpb);
 void    free_dpb    (H264_DpbBuf_t   *p_Dpb);
 MPP_RET exit_picture(H264dVideoCtx_t *p_Vid, H264_StorePic_t **dec_pic);
 
-RK_U32  get_filed_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p);
+RK_U32  get_field_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p);
 H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure);
 
 #ifdef  __cplusplus

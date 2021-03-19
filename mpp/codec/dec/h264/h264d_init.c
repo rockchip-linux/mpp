@@ -655,7 +655,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->height = p_Vid->height;
     dec_pic->width_after_crop = p_Vid->width_after_crop;
     dec_pic->height_after_crop = p_Vid->height_after_crop;
-    dec_pic->combine_flag = get_filed_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
+    dec_pic->combine_flag = get_field_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
     /* malloc dpb_memory */
     FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic));
     FUN_CHECK(ret = check_dpb_discontinuous(p_Vid->last_pic, dec_pic, currSlice));
