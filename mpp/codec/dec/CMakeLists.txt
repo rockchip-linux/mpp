@@ -37,3 +37,7 @@ endif()
 if( HAVE_JPEGD )
     add_subdirectory(jpeg)
 endif()
+
+if( HAVE_AV1D )
+    add_subdirectory(av1)
+endif()

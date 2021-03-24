@@ -32,6 +32,7 @@ target_link_libraries(mpp_codec
                       ${CODEC_VP8D}
                       ${CODEC_VP9D}
                       ${CODEC_JPEGD}
+                      ${CODEC_AV1D}
                       ${CODEC_H264E}
                       ${CODEC_JPEGE}
                       ${CODEC_H265E}
