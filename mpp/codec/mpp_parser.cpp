@@ -33,6 +33,8 @@
 #include "mpg4d_api.h"
 #include "vp8d_api.h"
 #include "jpegd_api.h"
+#include "av1d_api.h"
+
 // for test and demo
 #include "dummy_dec_api.h"
 
@@ -68,6 +70,9 @@ static const ParserApi *parsers[] = {
     &api_jpegd_parser,
 #endif
     &dummy_dec_parser,
+#if HAVE_AV1D
+    &api_av1d_parser,
+#endif
 };
 
 typedef struct ParserImpl_t {

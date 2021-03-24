@@ -100,6 +100,7 @@ typedef enum {
     MPP_VIDEO_CodingAVSPLUS,            /**< AVS+ */
     MPP_VIDEO_CodingAVS,                /**< AVS profile=0x20 */
     MPP_VIDEO_CodingAVS2,               /**< AVS2 */
+    MPP_VIDEO_CodingAV1,                /**< av1 */
     MPP_VIDEO_CodingKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
     MPP_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
     MPP_VIDEO_CodingMax = 0x7FFFFFFF

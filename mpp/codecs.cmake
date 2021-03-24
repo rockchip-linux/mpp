@@ -82,6 +82,15 @@ if( ENABLE_JPEGD )
     add_definitions(-DHAVE_JPEGD)
 endif()
 
+# AV1 decoder
+option(ENABLE_AV1D   "Enable av1 decoder" ON)
+if( ENABLE_AV1D )
+    set(HAVE_AV1D true)
+    set(CODEC_AV1D codec_av1d)
+    set(HAL_AV1D hal_av1d)
+    add_definitions(-DHAVE_AV1D)
+endif()
+
 # H.264 encoder
 option(ENABLE_H264E  "Enable h.264 encoder" ON)
 if( ENABLE_H264E )
