@@ -898,7 +898,6 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    RK_U8* p = NULL;
     H265d_REGS_t *hw_regs = NULL;
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
     RK_S32 index =  task->dec.reg_index;
@@ -912,22 +911,14 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     }
 
     if (reg_cxt->fast_mode) {
-        p = (RK_U8*)reg_cxt->g_buf[index].hw_regs;
         hw_regs = ( H265d_REGS_t *)reg_cxt->g_buf[index].hw_regs;
     } else {
-        p = (RK_U8*)reg_cxt->hw_regs;
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
 
     if (hw_regs == NULL) {
         mpp_err("hal_h265d_start hw_regs is NULL");
         return MPP_ERR_NULL_PTR;
-    }
-    for (i = 0; i < 68; i++) {
-        h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n",
-                  i, *((RK_U32*)p));
-        //mpp_log("RK_HEVC_DEC: regs[%02d]=%08X\n", i, *((RK_U32*)p));
-        p += 4;
     }
 
     do {
@@ -942,6 +933,11 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = hw_regs;
         wr_cfg.size = reg_size;
         wr_cfg.offset = 0;
+
+        if (hal_h265d_debug & H265H_DBG_REG) {
+            for (i = 0; i < reg_size / sizeof(RK_U32); i++)
+                h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n", i, ((RK_U32 *)hw_regs)[i]);
+        }
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -974,7 +970,6 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     RK_S32 index =  task->dec.reg_index;
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
-    RK_U8* p = NULL;
     H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
 
@@ -990,8 +985,6 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
         hw_regs = ( H265d_REGS_t *)reg_cxt->hw_regs;
     }
 
-    p = (RK_U8*)hw_regs;
-
     ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
@@ -1000,6 +993,7 @@ ERR_PROC:
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
         hw_regs->sw_interrupt.sw_dec_error_sta ||
+        hw_regs->sw_interrupt.sw_dec_timeout_sta ||
         hw_regs->sw_interrupt.sw_dec_empty_sta) {
         if (!reg_cxt->fast_mode) {
             if (reg_cxt->dec_cb)
@@ -1035,17 +1029,8 @@ ERR_PROC:
         }
     }
 
-    for (i = 0; i < 68; i++) {
-        if (i == 1) {
-            h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n",
-                      i, *((RK_U32*)p));
-        }
-
-        if (i == 45) {
-            h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n",
-                      i, *((RK_U32*)p));
-        }
-        p += 4;
+    if (hal_h265d_debug & H265H_DBG_REG) {
+        h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[1]=0x%08X, regs[45]=0x%08x\n", ((RK_U32 *)hw_regs)[1], ((RK_U32 *)hw_regs)[45]);
     }
 
     if (reg_cxt->fast_mode) {
