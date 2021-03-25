@@ -59,7 +59,7 @@ static MPP_RET jpegd_find_eoi(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
     RK_S32 eoi = 0xffd9;
     RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
 
-    buf_ptr = memrchr(*pbuf_ptr, eoi, buf_size);
+    buf_ptr = memchr(*pbuf_ptr, eoi, buf_size);
 
     if (buf_ptr && (buf_end > buf_ptr)) {
         return MPP_OK;
