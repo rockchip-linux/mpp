@@ -22,6 +22,10 @@ if( HAVE_JPEGD )
     add_subdirectory(jpegd)
 endif()
 
+if( HAVE_AV1D )
+    add_subdirectory(av1d)
+endif()
+
 if( HAVE_JPEGE )
     add_subdirectory(jpege)
 endif()

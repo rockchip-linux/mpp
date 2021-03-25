@@ -32,6 +32,7 @@ target_link_libraries(mpp_hal
                       ${HAL_VP8D}
                       ${HAL_VP9D}
                       ${HAL_JPEGD}
+                      ${HAL_AV1D}
                       ${HAL_H264E}
                       ${HAL_JPEGE}
                       ${HAL_H265E}

@@ -47,10 +47,12 @@
 #define HAVE_AVSP   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVSPLUS))))
 #define HAVE_AVS    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS))))
 #define HAVE_AVS2   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
+#define HAVE_AV1    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAV1))))
 
 #define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_JPEGD_PP     (HAVE_MJPEG)
 #define CAP_CODING_AVSD         (HAVE_AVS)
+#define CAP_CODING_AV1D         (HAVE_AV1)
 #define CAP_CODING_HEVC         (HAVE_HEVC)
 #define CAP_CODING_VDPU341      (HAVE_AVC|HAVE_HEVC|HAVE_VP9)
 #define CAP_CODING_VDPU341_LITE (HAVE_AVC|HAVE_HEVC)
@@ -286,6 +288,20 @@ static const MppDecHwCap rkjpegd = {
     .reserved           = 0,
 };
 
+static const MppDecHwCap av1d = {
+    .cap_coding         = CAP_CODING_AV1D,
+    .type               = VPU_CLIENT_AV1DEC,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 0,
+    .cap_colmv_buf      = 0,
+    .cap_hw_h265_rps    = 0,
+    .cap_hw_vp9_prob    = 0,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 0,
+    .reserved           = 0,
+};
+
 static const MppEncHwCap vepu1 = {
     .cap_coding         = CAP_CODING_VEPU1,
     .type               = VPU_CLIENT_VEPU1,
@@ -402,21 +418,21 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3036",
         ROCKCHIP_SOC_RK3036,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, },
+        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
         {   NULL, NULL, NULL, NULL, },
     },
     {   /* rk3066 has vpu1 only */
         "rk3066",
         ROCKCHIP_SOC_RK3066,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1,
-        {   &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
+        {   &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /* rk3188 has vpu1 only */
         "rk3188",
         ROCKCHIP_SOC_RK3188,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1,
-        {   &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
+        {   &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
@@ -427,7 +443,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3288",
         ROCKCHIP_SOC_RK3288,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc, &vdpu1_2160p, &vdpu1_jpeg_pp, NULL, },
+        {   &rk_hevc, &vdpu1_2160p, &vdpu1_jpeg_pp, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
@@ -438,7 +454,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3126",
         ROCKCHIP_SOC_RK312X,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, },
+        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
@@ -450,7 +466,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3128h",
         ROCKCHIP_SOC_RK3128H,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
-        {   &vdpu341_lite_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &vdpu341_lite_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2_no_jpeg, NULL, NULL, NULL, },
     },
     {   /*
@@ -461,7 +477,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3128",
         ROCKCHIP_SOC_RK312X,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, },
+        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
@@ -472,7 +488,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3368",
         ROCKCHIP_SOC_RK3368,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc, &vdpu1, &vdpu1_jpeg_pp, NULL, },
+        {   &rk_hevc, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
@@ -483,7 +499,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3399",
         ROCKCHIP_SOC_RK3399,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
-        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
@@ -497,7 +513,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3228h",
         ROCKCHIP_SOC_RK3228H,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_VEPU22,
-        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avsd, },
+        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avsd, NULL, },
         {   &vepu2_no_jpeg, &vepu22, NULL, NULL, },
     },
     {   /*
@@ -509,7 +525,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3328",
         ROCKCHIP_SOC_RK3328,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_VEPU22,
-        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2, &vepu22, NULL, NULL, },
     },
     {   /*
@@ -521,7 +537,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3228",
         ROCKCHIP_SOC_RK3228,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
-        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2_no_jpeg, NULL, NULL, NULL, },
     },
     {   /*
@@ -532,7 +548,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3229",
         ROCKCHIP_SOC_RK3229,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
-        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &vdpu341, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
@@ -544,7 +560,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rv1108",
         ROCKCHIP_SOC_RV1108,
         HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
-        {   &vdpu2_jpeg, &vdpu341_h264, NULL, NULL, },
+        {   &vdpu2_jpeg, &vdpu341_h264, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu540p, NULL, NULL, },
     },
     {   /*
@@ -556,7 +572,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rv1109",
         ROCKCHIP_SOC_RV1109,
         HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
-        {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, },
+        {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
     {   /*
@@ -568,7 +584,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rv1126",
         ROCKCHIP_SOC_RV1126,
         HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
-        {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, },
+        {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
     {   /*
@@ -579,7 +595,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3326",
         ROCKCHIP_SOC_RK3326,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &rk_hevc_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
@@ -590,7 +606,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "px30",
         ROCKCHIP_SOC_RK3326,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, },
+        {   &rk_hevc_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
@@ -599,7 +615,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk1808",
         ROCKCHIP_SOC_RK1808,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2,
-        {   &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, },
+        {   &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
@@ -612,7 +628,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3566",
         ROCKCHIP_SOC_RK3566,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
-        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
+        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, NULL, },
         {   &vepu540, &vepu2, NULL, NULL, },
     },
     {   /*
@@ -625,7 +641,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3568",
         ROCKCHIP_SOC_RK3568,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
-        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
+        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, NULL, },
         {   &vepu540, &vepu2, NULL, NULL, },
     },
     {   /*
@@ -637,8 +653,8 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rk3588",
         ROCKCHIP_SOC_RK3588,
-        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
-        {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_AV1DEC,
+        {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, &av1d},
         {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
     },
 };
