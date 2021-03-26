@@ -851,12 +851,10 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 }
 
 static const char *name_of_rc_mode[] = {
-    "cbr",
     "vbr",
-    "avbr",
-    "cvbr",
-    "qvbr",
+    "cbr",
     "fixqp",
+    "avbr",
 };
 
 static void update_rc_cfg_log(MppEncImpl *impl, const char* fmt, ...)
