@@ -519,7 +519,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
 
             trans_cfg.reg_idx = 180;
             trans_cfg.offset = addr;
-            mpp_dev_ioctl(reg_cxt, MPP_DEV_REG_OFFSET, &trans_cfg);
+            mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
         }
 
         mpp_put_bits(&bp, 0, 32);
