@@ -902,7 +902,7 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
     RK_S32 index =  task->dec.reg_index;
 
-    RK_S32 i;
+    RK_U32 i;
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
