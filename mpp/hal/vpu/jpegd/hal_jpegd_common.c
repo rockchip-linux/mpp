@@ -45,11 +45,6 @@ RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length)
                 length--;
                 continue;
             }
-            if (end[-1] == 0x00 && end [-2] == 0xFF) {
-                end -= 2;
-                length -= 2;
-                continue;
-            }
             break;
         } while (1);
 
