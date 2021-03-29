@@ -90,7 +90,11 @@ static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
     p->task_count   = 2;
+#ifdef __ANDROID__
     p->need_split   = 1;//cfg->need_split;
+#else
+    p->need_split   = cfg->cfg->base.split_parse;
+#endif
     p->internal_pts = cfg->cfg->base.internal_pts;
     p->stream       = stream;
     p->stream_size  = stream_size;
