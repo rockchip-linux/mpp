@@ -278,7 +278,7 @@ MPP_RET get_vepu_offset_cfg(VepuOffsetCfg *cfg)
         switch (fmt) {
         case MPP_FMT_YUV420SP : {
             cfg->offset_byte[0] = offset_y * hor_stride + offset_x;
-            cfg->offset_byte[1] = offset_y / 2 * hor_stride + offset_x / 2 + offset_c;
+            cfg->offset_byte[1] = offset_y / 2 * hor_stride + offset_x + offset_c;
         } break;
         case MPP_FMT_YUV420P : {
             cfg->offset_byte[0] = offset_y * hor_stride + offset_x;
