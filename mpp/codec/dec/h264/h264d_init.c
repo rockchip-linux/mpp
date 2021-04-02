@@ -1997,8 +1997,8 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
         goto __FAILED;
     }
     FUN_CHECK(ret = alloc_decpic(currSlice));
-    if ((p_err->i_slice_no < 2)
-        && (!currSlice->layer_id) && (H264_I_SLICE == currSlice->slice_type)) {
+    if (((p_err->i_slice_no < 2) && (!currSlice->layer_id) && (H264_I_SLICE == currSlice->slice_type)) ||
+        currSlice->idr_flag) {
         p_err->first_iframe_poc = p_Vid->dec_pic->poc; //!< recoder first i frame poc
     }
     //!< idr_memory_management MVC_layer, idr_flag==1
