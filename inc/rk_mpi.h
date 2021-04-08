@@ -88,8 +88,8 @@ typedef struct MppApi_t {
      *                by mpp_init().
      * @param[in] packet The input video stream, its usage can refer mpp_packet.h.
      * @param[out] frame The output picture, its usage can refer mpp_frame.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*decode)(MppCtx ctx, MppPacket packet, MppFrame *frame);
     /**
@@ -97,8 +97,8 @@ typedef struct MppApi_t {
      * @param[in] ctx The context of mpp, created by mpp_create() and initiated
      *                by mpp_init().
      * @param[in] packet The input video stream, its usage can refer mpp_packet.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*decode_put_packet)(MppCtx ctx, MppPacket packet);
     /**
@@ -106,8 +106,8 @@ typedef struct MppApi_t {
      * @param[in] ctx The context of mpp, created by mpp_create() and initiated
      *                by mpp_init().
      * @param[out] frame The output picture, its usage can refer mpp_frame.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*decode_get_frame)(MppCtx ctx, MppFrame *frame);
     /**
@@ -117,8 +117,8 @@ typedef struct MppApi_t {
      *                by mpp_init().
      * @param[in] frame The input video data, its usage can refer mpp_frame.h.
      * @param[out] packet The output compressed data, its usage can refer mpp_packet.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*encode)(MppCtx ctx, MppFrame frame, MppPacket *packet);
     /**
@@ -126,8 +126,8 @@ typedef struct MppApi_t {
      * @param[in] ctx The context of mpp, created by mpp_create() and initiated
      *                by mpp_init().
      * @param[in] frame The input video data, its usage can refer mpp_frame.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*encode_put_frame)(MppCtx ctx, MppFrame frame);
     /**
@@ -135,8 +135,8 @@ typedef struct MppApi_t {
      * @param[in] ctx The context of mpp, created by mpp_create() and initiated
      *                by mpp_init().
      * @param[out] packet The output compressed data, its usage can refer mpp_packet.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*encode_get_packet)(MppCtx ctx, MppPacket *packet);
 
@@ -160,8 +160,8 @@ typedef struct MppApi_t {
      *                by mpp_init().
      * @param[in] type input port or output port which are both for data transaction
      * @param[in] timeout mpp poll type, its usage can refer mpp_task.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*poll)(MppCtx ctx, MppPortType type, MppPollType timeout);
     /**
@@ -170,8 +170,8 @@ typedef struct MppApi_t {
      *                by mpp_init().
      * @param[in] type input port or output port which are both for data transaction
      * @param[out] task MppTask popped from mpp task queue, its usage can refer mpp_task.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*dequeue)(MppCtx ctx, MppPortType type, MppTask *task);
     /**
@@ -180,8 +180,8 @@ typedef struct MppApi_t {
      *                by mpp_init().
      * @param[in] type input port or output port which are both for data transaction
      * @param[in] task MppTask which is sent to mpp for process, its usage can refer mpp_task.h.
-     * @return 0 for success, others for failure. The return value is an
-     *         error code. For details, please refer mpp_err.h.
+     * @return 0 and positive for success, negative for failure. The return
+     *         value is an error code. For details, please refer mpp_err.h.
      */
     MPP_RET (*enqueue)(MppCtx ctx, MppPortType type, MppTask task);
 
