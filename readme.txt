@@ -27,7 +27,9 @@ NOTE:
    RK29XX/RK30XX/RK31XX
    RK3288/RK3368/RK3399
    RK3228/RK3229/RK3228H/RK3328
+   RK3566/RK3568
    RV1108/RV1107
+   RV1109/RV1126
 3. Mpp support all format hardware can support except VC1.
 4. you can get demo about mpp applied to linux and android.
      Liunx : https://github.com/WainDing/mpp_linux_cpp
