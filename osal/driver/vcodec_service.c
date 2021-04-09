@@ -617,6 +617,7 @@ MPP_RET vcodec_service_cmd_send(void *ctx)
     p->reg_send_idx++;
     if (p->reg_send_idx >= p->max_regs)
         p->reg_send_idx = 0;
+    p->info_count = 0;
 
     return ret;
 }
@@ -648,6 +649,11 @@ MPP_RET vcodec_service_set_info(void *ctx, MppDevInfoCfg *cfg)
 
     if (!p->info_count)
         memset(p->info, 0, sizeof(p->info));
+
+    if (p->info_count >= MAX_INFO_COUNT) {
+        mpp_err("info count reach max\n");
+        return MPP_NOK;
+    }
 
     memcpy(&p->info[p->info_count], cfg, sizeof(MppDevInfoCfg));
     p->info_count++;
