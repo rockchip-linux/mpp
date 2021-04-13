@@ -1417,7 +1417,7 @@ RK_S32 mpp_hevc_extract_rbsp(HEVCContext *s, const RK_U8 *src, int length,
     s->skipped_bytes = 0;
 
 #define STARTCODE_TEST                                              \
-    if (i + 2 < length && src[i + 1] == 0 && src[i + 2] < 3) {      \
+    if (i + 2 < length && src[i + 1] == 0 && src[i + 2] < 2) {      \
             /* startcode, so we must be past the end */             \
         length = i;                                                 \
         break;                                                      \
@@ -1515,9 +1515,14 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
                     buf += i;
                     continue;
                 }
-                mpp_err( "No start code is found.\n");
-                ret =  MPP_ERR_STREAM;
-                goto fail;
+
+                if (s->nb_nals) {
+                    return MPP_OK;
+                } else {
+                    mpp_err( "No start code is found.\n");
+                    ret =  MPP_ERR_STREAM;
+                    goto fail;
+                }
             }
 
             buf           += 3;
