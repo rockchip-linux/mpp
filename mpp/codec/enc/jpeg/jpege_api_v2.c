@@ -599,10 +599,22 @@ static MPP_RET jpege_add_Prefix(MppPacket pkt, RK_S32 *len, RK_U8 uuid[16],
     RK_S32 i = 0, app_size = 0;
 
     mpp_writer_init(bits, ptr + length, buf_size - length);
-    /* add user data to APP7 */
-    mpp_writer_put_raw_bits(bits, 0xFFE7, 16);
-    /* length */
-    mpp_writer_put_raw_bits(bits, size + 2, 16);
+
+    if ((size > 8) && user_data[0] == 0xFF && user_data[1] == 0xE1 &&
+        user_data[4] == 0x45 && user_data[5] == 0x78 &&
+        user_data[6] == 0x69 && user_data[7] == 0x66) {
+        jpege_dbg_func("write EXIF data, total length %d\n", size);
+    } else if ((size > 8) && user_data[0] == 0xFF && user_data[1] == 0xE2 &&
+               user_data[4] == 0x4D && user_data[5] == 0x50 &&
+               user_data[6] == 0x46 && user_data[7] == 0x00) {
+        jpege_dbg_func("write MPF data, total length %d\n", size);
+    } else {
+        /* add user data to APP7 */
+        mpp_writer_put_raw_bits(bits, 0xFFE7, 16);
+        /* length */
+        mpp_writer_put_raw_bits(bits, size + 2, 16);
+    }
+
     /* data */
     for (i = 0; i < size; i++)
         mpp_writer_put_raw_bits(bits, user_data[i], 8);
