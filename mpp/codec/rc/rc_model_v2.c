@@ -331,6 +331,8 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
         mpp_data_update_v2(ctx->vi_bit, real_bit);
         ctx->vi_sumbits = mpp_data_sum_v2(ctx->vi_bit);
         ctx->vi_scale = 80 * ctx->vi_sumbits / (2 * ctx->p_sumbits);
+        /* NOTE: vi_scale may be set to zero. So we should limit the range */
+        ctx->vi_scale = mpp_clip(ctx->vi_scale, 16, 320);
     } break;
 
     default:
@@ -387,7 +389,16 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         default:
             break;
         }
+
         alloc_bits = total_bits / (i_scale + 16 * (gop_len - vi_num) + vi_num * vi_scale);
+
+        if (!alloc_bits) {
+            mpp_log_f("found zero alloc bits\n");
+            mpp_log_f("total_bits %lld, i_scale %d, gop_len %d, vi_num %d, vi_scale %d",
+                      total_bits, i_scale, gop_len, vi_num, vi_scale);
+            mpp_log_f("gop_total_bits %lld, i_sumbits %d, p_sumbits %d, vgop %d igop %d",
+                      ctx->gop_total_bits, ctx->i_sumbits, ctx->p_sumbits, usr_cfg->vgop, usr_cfg->igop);
+        }
     } else {
         switch (ctx->frame_type) {
         case INTRA_FRAME: {
@@ -417,8 +428,11 @@ MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bit
         alloc_bits = super_bit_thr - (super_bit_thr >> 4);
         rc_dbg_rc("alloc bits max then super_bit_thr %d", super_bit_thr);
     }
+
     ctx->cur_super_thd = super_bit_thr;
     cfg->bit_target = alloc_bits;
+
+    mpp_assert(alloc_bits);
 
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
@@ -841,23 +855,27 @@ MPP_RET calc_avbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RK_S32 gop_bits = 0, gop_kbits = 0;
     RK_S32 i_ratio, max_bps;
     RK_S32 qratio, final_qratio;
+
     rc_dbg_func("enter %p\n", p);
+
     moving_ratio = moving_ratio_calc(p);
-    if (p->moving_ratio - 2 >= moving_ratio) {
+    if (p->moving_ratio - 2 >= moving_ratio)
         moving_ratio = p->moving_ratio - 2;
-    }
 
     if (p->moving_ratio > moving_ratio && (p->max_still_qp << 6) <= p->scale_qp) {
-        p->moving_ratio = mpp_clip(p->moving_ratio + 1, 0, 255);
+        p->moving_ratio = mpp_clip(p->moving_ratio + 1, 1, 255);
     } else {
         p->moving_ratio = moving_ratio;
     }
     rc_dbg_rc("final moving_ratio = %d", moving_ratio);
+
+    if (moving_ratio <= 0)
+        moving_ratio = 1;
+
     gop_bits = moving_ratio * p->gop_total_bits >> 8;
     gop_kbits = gop_bits >> 10;
-    if (gop_kbits < 1) {
+    if (gop_kbits < 1)
         gop_kbits = 1;
-    }
 
     bits_model_alloc(p, cfg, gop_bits);
     bps_change = moving_ratio * bps_change >> 8;
