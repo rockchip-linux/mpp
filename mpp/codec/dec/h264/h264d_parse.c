@@ -855,7 +855,7 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 __FAILED:
     //p_strm->nalu_len = 0;
     p_Cur->last_dts  = p_Inp->in_dts;
-    p_Cur->last_dts  = p_Inp->in_pts;
+    p_Cur->last_pts  = p_Inp->in_pts;
     p_Inp->p_Dec->nalu_ret = HaveNoStream;
 
     return ret;
