@@ -631,8 +631,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
     }
 
     {
-        common->reg024.cabac_err_en_lowbits = 0xffffdfff;
-        common->reg025.cabac_err_en_highbits = 0x3ffbfbff;
+        common->reg024.cabac_err_en_lowbits = 0xffffffff;
+        common->reg025.cabac_err_en_highbits = 0x3ff3ffff;
 
         common->reg026.swreg_block_gating_e = 0xffff;
         common->reg026.block_gating_en_l2 = 0xf;
