@@ -355,7 +355,11 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
 
     jpegd_dbg_hal("convert format %d to format %d\n", s->output_fmt, ctx->output_fmt);
 
-    regs->reg2_sys.fill_down_e = s->fill_bottom;
+    if ((s->yuv_mode == YUV_MODE_420 && regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_NO_TRANS) ||
+        (regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_2_NV12))
+        regs->reg2_sys.fill_down_e = 1;
+    else
+        regs->reg2_sys.fill_down_e = s->fill_bottom;
     regs->reg2_sys.fill_right_e = s->fill_right;
 
     mpp_frame_set_fmt(frm, ctx->output_fmt);
