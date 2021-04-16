@@ -581,7 +581,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
 
         if (fbc_en) {
             RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
-            RK_U32 h = mpp_frame_get_height(mframe);
+            RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
             RK_U32 fbd_offset = MPP_ALIGN(w * (h + 16) / 16, SZ_4K);
 
             vp9_hw_regs->common.reg012.fbc_e = 1;
