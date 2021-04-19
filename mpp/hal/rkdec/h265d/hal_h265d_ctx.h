@@ -75,6 +75,16 @@ typedef struct HalH265dCtx_t {
     RK_U8           num_row_tiles;
     RK_U8           bit_depth;
     RK_U8           error_index;
+    /* for vdpu34x */
+    MppBuffer       bufs;
+    RK_S32          bufs_fd;
+    RK_U32          offset_cabac;
+    RK_U32          offset_spspps[MAX_GEN_REG];
+    RK_U32          offset_rps[MAX_GEN_REG];
+    RK_U32          offset_sclst[MAX_GEN_REG];
+    RK_U32          spspps_offset;
+    RK_U32          rps_offset;
+    RK_U32          sclst_offset;
 } HalH265dCtx;
 
 typedef struct ScalingList {
