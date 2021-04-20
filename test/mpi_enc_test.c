@@ -708,7 +708,7 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 }
 
                 log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                    " size %-7u", len);
+                                    " size %-7zu", len);
 
                 if (mpp_packet_has_meta(packet)) {
                     meta = mpp_packet_get_meta(packet);
