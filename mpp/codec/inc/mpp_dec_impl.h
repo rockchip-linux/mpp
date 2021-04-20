@@ -46,8 +46,29 @@ typedef enum MppDecTimingType_e {
     DEC_TIMING_BUTT,
 } MppDecTimingType;
 
-typedef struct MppDecImpl_t {
+
+typedef enum MppDecMode_e {
+    MPP_DEC_MODE_DEFAULT,
+    MPP_DEC_MODE_NO_THREAD,
+
+    MPP_DEC_MODE_BUTT,
+} MppDecMode;
+
+typedef struct MppDecImpl_t MppDecImpl;
+
+typedef struct MppDecModeApi_t {
+    MPP_RET (*start)(MppDecImpl *dec);
+    MPP_RET (*stop)(MppDecImpl *dec);
+    MPP_RET (*reset)(MppDecImpl *dec);
+    MPP_RET (*notify)(MppDecImpl *dec, RK_U32 flag);
+    MPP_RET (*control)(MppDecImpl *dec, MpiCmd cmd, void *param);
+} MppDecModeApi;
+
+struct MppDecImpl_t {
     MppCodingType       coding;
+
+    MppDecMode          mode;
+    MppDecModeApi       *api;
 
     Parser              parser;
     MppHal              hal;
@@ -72,7 +93,7 @@ typedef struct MppDecImpl_t {
     MppDecCfgSet        cfg;
 
     /* control process */
-    Mutex               *cmd_lock;
+    MppMutexCond        *cmd_lock;
     RK_U32              cmd_send;
     RK_U32              cmd_recv;
     MpiCmd              cmd;
@@ -127,12 +148,98 @@ typedef struct MppDecImpl_t {
     MppMemPool          ts_pool;
     struct list_head    ts_link;
     spinlock_t          ts_lock;
-} MppDecImpl;
+    void                *task_single;
+};
+
+/* external wait state */
+#define MPP_DEC_WAIT_PKT_IN             (0x00000001)    /* input packet not ready */
+#define MPP_DEC_WAIT_FRM_OUT            (0x00000002)    /* frame output queue full */
+
+#define MPP_DEC_WAIT_INFO_CHG           (0x00000020)    /* wait info change ready */
+#define MPP_DEC_WAIT_BUF_RDY            (0x00000040)    /* wait valid frame buffer */
+#define MPP_DEC_WAIT_TSK_ALL_DONE       (0x00000080)    /* wait all task done */
+
+#define MPP_DEC_WAIT_TSK_HND_RDY        (0x00000100)    /* wait task handle ready */
+#define MPP_DEC_WAIT_TSK_PREV_DONE      (0x00000200)    /* wait previous task done */
+#define MPP_DEC_WAIT_BUF_GRP_RDY        (0x00000200)    /* wait buffer group change ready */
+
+/* internal wait state */
+#define MPP_DEC_WAIT_BUF_SLOT_RDY       (0x00001000)    /* wait buffer slot ready */
+#define MPP_DEC_WAIT_PKT_BUF_RDY        (0x00002000)    /* wait packet buffer ready */
+#define MPP_DEC_WAIT_BUF_SLOT_KEEP      (0x00004000)    /* wait buffer slot reservation */
+
+typedef union PaserTaskWait_u {
+    RK_U32          val;
+    struct {
+        RK_U32      dec_pkt_in      : 1;   // 0x0001 MPP_DEC_NOTIFY_PACKET_ENQUEUE
+        RK_U32      dis_que_full    : 1;   // 0x0002 MPP_DEC_NOTIFY_FRAME_DEQUEUE
+        RK_U32      reserv0004      : 1;   // 0x0004
+        RK_U32      reserv0008      : 1;   // 0x0008
+
+        RK_U32      ext_buf_grp     : 1;   // 0x0010 MPP_DEC_NOTIFY_EXT_BUF_GRP_READY
+        RK_U32      info_change     : 1;   // 0x0020 MPP_DEC_NOTIFY_INFO_CHG_DONE
+        RK_U32      dec_pic_unusd   : 1;   // 0x0040 MPP_DEC_NOTIFY_BUFFER_VALID
+        RK_U32      dec_all_done    : 1;   // 0x0080 MPP_DEC_NOTIFY_TASK_ALL_DONE
+
+        RK_U32      task_hnd        : 1;   // 0x0100 MPP_DEC_NOTIFY_TASK_HND_VALID
+        RK_U32      prev_task       : 1;   // 0x0200 MPP_DEC_NOTIFY_TASK_PREV_DONE
+        RK_U32      dec_pic_match   : 1;   // 0x0400 MPP_DEC_NOTIFY_BUFFER_MATCH
+        RK_U32      reserv0800      : 1;   // 0x0800
+
+        RK_U32      dec_pkt_idx     : 1;   // 0x1000
+        RK_U32      dec_pkt_buf     : 1;   // 0x2000
+        RK_U32      dec_slot_idx    : 1;   // 0x4000
+    };
+} PaserTaskWait;
+
+typedef union DecTaskStatus_u {
+    RK_U32          val;
+    struct {
+        RK_U32      task_hnd_rdy      : 1;
+        RK_U32      mpp_pkt_in_rdy    : 1;
+        RK_U32      dec_pkt_idx_rdy   : 1;
+        RK_U32      dec_pkt_buf_rdy   : 1;
+        RK_U32      task_valid_rdy    : 1;
+        RK_U32      dec_pkt_copy_rdy  : 1;
+        RK_U32      prev_task_rdy     : 1;
+        RK_U32      info_task_gen_rdy : 1;
+        RK_U32      curr_task_rdy     : 1;
+        RK_U32      task_parsed_rdy   : 1;
+    };
+} DecTaskStatus;
+
+typedef struct MppPktTimestamp_t {
+    struct list_head link;
+    RK_S64  pts;
+    RK_S64  dts;
+} MppPktTs;
+
+typedef struct DecTask_t {
+    HalTaskHnd      hnd;
+
+    DecTaskStatus   status;
+    PaserTaskWait   wait;
+
+    HalTaskInfo     info;
+    MppPktTs        ts_cur;
+
+    MppBuffer       hal_pkt_buf_in;
+    RK_S32          hal_pkt_idx_in;
+    MppBuffer       hal_frm_buf_out;
+} DecTask;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+MPP_RET dec_task_info_init(HalTaskInfo *task);
+void dec_task_init(DecTask *task);
+
+MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param);
+
+MPP_RET update_dec_hal_info(MppDecImpl *dec, MppFrame frame);
+void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags);
+void mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags);
 
 #ifdef __cplusplus
 }

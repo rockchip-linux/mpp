@@ -103,46 +103,22 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
     MpiImpl *p = (MpiImpl *)ctx;
 
     mpi_dbg_func("enter ctx %p packet %p frame %p\n", ctx, packet, frame);
+
     do {
-        RK_U32 packet_done = 0;
-        Mpp *mpp = p->ctx;
         ret = check_mpp_ctx(p);
         if (ret)
             break;
 
-        if (NULL == frame || NULL == packet) {
-            mpp_err_f("found NULL input packet %p frame %p\n", packet, frame);
-            ret = MPP_ERR_NULL_PTR;
-            break;
-        }
+        /*
+         * NOTE: packet and frame could be NULL
+         * If packet is NULL then it is equal to get_frame
+         * If frame is NULL then it is equal to put_packet
+         */
+        if (frame)
+            *frame = NULL;
 
-        *frame = NULL;
-
-        do {
-            /*
-             * If there is frame to return get the frame first
-             * But if the output mode is block then we need to send packet first
-             */
-            if (!mpp->mOutputTimeout || packet_done) {
-                ret = mpp->get_frame(frame);
-                if (ret || *frame)
-                    break;
-            }
-
-            /* when packet is send do one more get frame here */
-            if (packet_done)
-                break;
-
-            /*
-             * then send input stream with timeout mode
-             */
-            ret = mpp->put_packet(packet);
-            if (MPP_OK == ret)
-                packet_done = 1;
-        } while (1);
+        ret = p->ctx->decode(packet, frame);
     } while (0);
-
-    mpp_assert(0 == mpp_packet_get_length(packet));
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;

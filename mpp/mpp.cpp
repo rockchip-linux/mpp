@@ -41,8 +41,6 @@
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
-typedef MPP_RET (*QueueFunc)(Mpp* mpp, MppPortType type, MppTask *task);
-
 static void mpp_notify_by_buffer_group(void *arg, void *group)
 {
     Mpp *mpp = (Mpp *)arg;
@@ -103,6 +101,7 @@ Mpp::Mpp(MppCtx ctx)
       mEncAyncIo(0),
       mEncAyncProc(0),
       mIoMode(MPP_IO_MODE_DEFAULT),
+      mDisableThread(0),
       mDump(NULL),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
@@ -171,6 +170,9 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mUsrOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
         mMppInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_OUTPUT);
         mMppOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
+
+        mDecInitcfg.base.disable_thread = mDisableThread;
+        mDecInitcfg.base.change |= MPP_DEC_CFG_CHANGE_DISABLE_THREAD;
 
         MppDecInitCfg cfg = {
             coding,
@@ -316,6 +318,7 @@ void Mpp::clear()
         mpp_buffer_group_put(mPacketGroup);
         mPacketGroup = NULL;
     }
+
     if (mFrameGroup && !mExternalFrameGroup) {
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
@@ -353,6 +356,11 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     MppPollType timeout = mInputTimeout;
     MppTask task_dequeue = NULL;
     RK_U32 pkt_copy = 0;
+
+    if (mDisableThread) {
+        mpp_err_f("no thread decoding case MUST use mpi_decode interface\n");
+        return ret;
+    }
 
     if (mExtraPacket) {
         MppPacket extra = mExtraPacket;
@@ -502,6 +510,61 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     mpp_ops_dec_get_frm(mDump, frm);
 
     return MPP_OK;
+}
+
+MPP_RET Mpp::get_frame_noblock(MppFrame *frame)
+{
+    MppFrame first = NULL;
+
+    if (!mInitDone)
+        return MPP_ERR_INIT;
+
+    mFrmOut->lock();
+    if (mFrmOut->list_size()) {
+        mFrmOut->del_at_head(&first, sizeof(frame));
+        mFrameGetCount++;
+    }
+    mFrmOut->unlock();
+    *frame = first;
+
+    return MPP_OK;
+}
+
+MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
+{
+    RK_U32 packet_done = 0;
+    MPP_RET ret = MPP_NOK;
+
+    if (!mDec)
+        return MPP_NOK;
+
+    do {
+        /*
+         * If there is frame to return get the frame first
+         * But if the output mode is block then we need to send packet first
+         */
+        if (!mOutputTimeout || packet_done) {
+            ret = get_frame_noblock(frame);
+            if (ret || *frame)
+                break;
+        }
+
+        /* when packet is send do one more get frame here */
+        if (packet_done)
+            break;
+
+        ret = mpp_dec_decode(mDec, packet, frame);
+        if (!ret)
+            packet_done = 1;
+
+        if (!mOutputTimeout || packet_done) {
+            ret = get_frame_noblock(frame);
+            if (ret || *frame)
+                break;
+        }
+    } while (1);
+
+    return ret;
 }
 
 MPP_RET Mpp::put_frame(MppFrame frame)
@@ -977,6 +1040,10 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
             mOutputTimeout = block;
 
         mpp_log("deprecated block control, use timeout control instead\n");
+    } break;
+
+    case MPP_SET_DISABLE_THREAD: {
+        mDisableThread = 1;
     } break;
 
     case MPP_SET_INPUT_TIMEOUT:

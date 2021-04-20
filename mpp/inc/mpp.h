@@ -115,6 +115,7 @@ public:
 
     MPP_RET put_packet(MppPacket packet);
     MPP_RET get_frame(MppFrame *frame);
+    MPP_RET get_frame_noblock(MppFrame *frame);
 
     MPP_RET put_frame(MppFrame frame);
     MPP_RET get_packet(MppPacket *packet);
@@ -122,6 +123,8 @@ public:
     MPP_RET poll(MppPortType type, MppPollType timeout);
     MPP_RET dequeue(MppPortType type, MppTask *task);
     MPP_RET enqueue(MppPortType type, MppTask task);
+
+    MPP_RET decode(MppPacket packet, MppFrame *frame);
 
     MPP_RET reset();
     MPP_RET control(MpiCmd cmd, MppParam param);
@@ -188,6 +191,7 @@ public:
     RK_U32          mEncAyncIo;
     RK_U32          mEncAyncProc;
     MppIoMode       mIoMode;
+    RK_U32          mDisableThread;
 
     /* dump info for debug */
     MppDump         mDump;
