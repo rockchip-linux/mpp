@@ -18,6 +18,7 @@
 #define __MPP_BUFFER_IMPL_H__
 
 #include "mpp_list.h"
+#include "mpp_hash.h"
 #include "mpp_common.h"
 #include "mpp_allocator.h"
 
@@ -91,6 +92,8 @@ struct MppBufferGroupImpl_t {
     // buffer force clear mode flag
     RK_U32              clear_on_exit;
     RK_U32              dump_on_exit;
+    // is_misc: 0 - normal group 1 - misc group
+    RK_U32              is_misc;
     // is_orphan: 0 - normal group 1 - orphan group
     RK_U32              is_orphan;
     RK_U32              is_finalizing;
@@ -103,6 +106,7 @@ struct MppBufferGroupImpl_t {
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
+    struct hlist_node   hlist;
 
     // link to list_status in MppBufferImpl
     struct list_head    list_used;
@@ -155,7 +159,7 @@ MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
                                       MppBufCallback callback, void *arg);
 // mpp_buffer_group helper function
 void mpp_buffer_group_dump(MppBufferGroupImpl *p);
-void mpp_buffer_service_dump();
+void mpp_buffer_service_dump(const char *info);
 MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type);
 
 #ifdef __cplusplus

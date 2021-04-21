@@ -21,9 +21,12 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_hash.h"
 
 #include "mpp_buffer_impl.h"
 
+#define MAX_GROUP_BIT                   8
+#define MAX_MISC_GROUP_BIT              3
 #define BUFFER_OPS_MAX_COUNT            1024
 
 #define SEARCH_GROUP_BY_ID(id)  ((MppBufferService::get_instance())->get_group_by_id(id))
@@ -81,10 +84,11 @@ private:
     RK_U32              total_max;
 
     // misc group for internal / externl buffer with different type
-    MppBufferGroupImpl  *misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
+    RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
     RK_U32              misc_count;
 
     struct list_head    mListGroup;
+    DECLARE_HASHTABLE(mHashGroup, MAX_GROUP_BIT);
 
     // list for used buffer which do not have group
     struct list_head    mListOrphan;
@@ -102,11 +106,10 @@ public:
     MppBufferGroupImpl  *get_group(const char *tag, const char *caller,
                                    MppBufferMode mode, MppBufferType type,
                                    RK_U32 is_misc);
-    MppBufferGroupImpl  *get_misc(MppBufferMode mode, MppBufferType type);
-    void                set_misc(MppBufferMode mode, MppBufferType type, MppBufferGroupImpl *val);
+    RK_U32              get_misc(MppBufferMode mode, MppBufferType type);
     void                put_group(MppBufferGroupImpl *group);
     MppBufferGroupImpl  *get_group_by_id(RK_U32 id);
-    void                dump_misc_group();
+    void                dump(const char *info);
     RK_U32              is_finalizing();
     void                inc_total(RK_U32 size);
     void                dec_total(RK_U32 size);
@@ -197,6 +200,7 @@ static void buffer_group_dump_log(MppBufferGroupImpl *group)
                         ops2str[log->ops]);
             }
             mpp_free(log);
+            group->log_count--;
         }
     }
 }
@@ -402,7 +406,7 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
         if (0 == buffer->ref_count) {
             buffer->used = 0;
             list_del_init(&buffer->list_status);
-            if (group == MppBufferService::get_instance()->get_misc(group->mode, group->type)) {
+            if (group->is_misc) {
                 deinit_buffer_no_lock(buffer, caller);
             } else {
                 if (buffer->discard) {
@@ -587,10 +591,11 @@ void mpp_buffer_group_dump(MppBufferGroupImpl *group, const char *caller)
     buffer_group_dump_log(group);
 }
 
-void mpp_buffer_service_dump()
+void mpp_buffer_service_dump(const char *info)
 {
     AutoMutex auto_lock(MppBufferService::get_lock());
-    MppBufferService::get_instance()->dump_misc_group();
+
+    MppBufferService::get_instance()->dump(info);
 }
 
 void MppBufferService::inc_total(RK_U32 size)
@@ -619,9 +624,20 @@ RK_U32 mpp_buffer_total_max()
 
 MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType type)
 {
+    MppBufferGroupImpl *misc;
+    RK_U32 id;
+
+    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
+    if (type == MPP_BUFFER_TYPE_NORMAL)
+        return NULL;
+
+    mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
+    mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
+
     AutoMutex auto_lock(MppBufferService::get_lock());
-    MppBufferGroupImpl *misc = MppBufferService::get_instance()->get_misc(mode, type);
-    if (NULL == misc) {
+
+    id = MppBufferService::get_instance()->get_misc(mode, type);
+    if (!id) {
         char tag[32];
         RK_S32 offset = 0;
 
@@ -633,12 +649,14 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
                            mode == MPP_BUFFER_INTERNAL ? "int" : "ext");
 
         misc = MppBufferService::get_instance()->get_group(tag, __FUNCTION__, mode, type, 1);
-    }
+    } else
+        misc = MppBufferService::get_instance()->get_group_by_id(id);
+
     return misc;
 }
 
 MppBufferService::MppBufferService()
-    : group_id(0),
+    : group_id(1),
       group_count(0),
       finalizing(0),
       finished(0),
@@ -654,7 +672,10 @@ MppBufferService::MppBufferService()
     // NOTE: Do not create misc group at beginning. Only create on when needed.
     for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
         for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++)
-            misc[i][j] = NULL;
+            misc[i][j] = 0;
+
+    for (i = 0; i < (RK_S32)HASH_SIZE(mHashGroup); i++)
+        INIT_HLIST_HEAD(&mHashGroup[i]);
 }
 
 MppBufferService::~MppBufferService()
@@ -668,10 +689,11 @@ MppBufferService::~MppBufferService()
         mpp_log_f("cleaning misc group\n");
         for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
             for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++) {
-                MppBufferGroupImpl *pos = misc[i][j];
-                if (pos) {
-                    put_group(pos);
-                    misc[i][j] = NULL;
+                RK_U32 id = misc[i][j];
+
+                if (id) {
+                    put_group(get_group_by_id(id));
+                    misc[i][j] = 0;
                 }
             }
     }
@@ -703,12 +725,29 @@ MppBufferService::~MppBufferService()
 
 RK_U32 MppBufferService::get_group_id()
 {
-    // avoid group_id reuse
-    RK_U32 id = group_id++;
-    while (get_group_by_id(group_id)) {
+    RK_U32 id;
+    static RK_U32 overflowed = 0;
+
+    /* avoid 0 group id */
+    if (!group_id)
         group_id++;
+
+    id = group_id++;
+    /* check overflow */
+    if (!id) {
+        overflowed = 1;
+        id = group_id++;
     }
+
+    // avoid group_id reuse
+    if (overflowed) {
+        /* when it is overflow avoid the used id */
+        while (get_group_by_id(id))
+            id = group_id++;
+    }
+
     group_count++;
+
     return id;
 }
 
@@ -729,12 +768,11 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     INIT_LIST_HEAD(&p->list_group);
     INIT_LIST_HEAD(&p->list_used);
     INIT_LIST_HEAD(&p->list_unused);
+    INIT_HLIST_NODE(&p->hlist);
 
     mpp_env_get_u32("mpp_buffer_debug", &mpp_buffer_debug, 0);
     p->log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
     p->log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
-
-    list_add_tail(&p->list_group, &mListGroup);
 
     if (tag) {
         snprintf(p->tag, sizeof(p->tag), "%s_%d", tag, id);
@@ -749,6 +787,9 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     p->clear_on_exit = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
     p->dump_on_exit  = (mpp_buffer_debug & MPP_BUF_DBG_DUMP_ON_EXIT) ? (1) : (0);
 
+    list_add_tail(&p->list_group, &mListGroup);
+    hash_add(mHashGroup, &p->hlist, hash_32(p->group_id, MAX_GROUP_BIT));
+
     mpp_allocator_get(&p->allocator, &p->alloc_api, type);
 
     buffer_group_add_log(p, NULL, GRP_CREATE, __FUNCTION__);
@@ -757,35 +798,24 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     mpp_assert(buffer_type < MPP_BUFFER_TYPE_BUTT);
 
     if (is_misc) {
-        misc[mode][buffer_type] = p;
+        misc[mode][buffer_type] = id;
+        p->is_misc = 1;
         misc_count++;
     }
 
     return p;
 }
 
-MppBufferGroupImpl *MppBufferService::get_misc(MppBufferMode mode, MppBufferType type)
+RK_U32 MppBufferService::get_misc(MppBufferMode mode, MppBufferType type)
 {
     type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     if (type == MPP_BUFFER_TYPE_NORMAL)
-        return NULL;
+        return 0;
 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
     mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
 
     return misc[mode][type];
-}
-
-void MppBufferService::set_misc(MppBufferMode mode, MppBufferType type, MppBufferGroupImpl *val)
-{
-    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
-    if (type == MPP_BUFFER_TYPE_NORMAL)
-        return ;
-
-    mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
-    mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
-
-    misc[mode][type] = val;
 }
 
 void MppBufferService::put_group(MppBufferGroupImpl *p)
@@ -846,6 +876,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
 {
     MppBufferMode mode = group->mode;
     MppBufferType type = group->type;
+    RK_U32 id = group->group_id;
 
     mpp_assert(group->count_used == 0);
     mpp_assert(group->count_unused == 0);
@@ -872,46 +903,47 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
     mpp_assert(group->allocator);
     mpp_allocator_put(&group->allocator);
     list_del_init(&group->list_group);
+    hash_del(&group->hlist);
     mpp_free(group);
     group_count--;
 
-    if (group == misc[mode][type]) {
-        misc[mode][type] = NULL;
+    if (id == misc[mode][type]) {
+        misc[mode][type] = 0;
         misc_count--;
     }
 }
 
 MppBufferGroupImpl *MppBufferService::get_group_by_id(RK_U32 id)
 {
-    MppBufferGroupImpl *pos, *n;
-    list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
-        if (pos->group_id == id) {
-            return pos;
-        }
+    MppBufferGroupImpl *impl = NULL;
+    RK_U32 key = hash_32(id, MAX_GROUP_BIT);
+
+    hash_for_each_possible(mHashGroup, impl, hlist, key) {
+        if (impl->group_id == id)
+            break;
     }
 
-    list_for_each_entry_safe(pos, n, &mListOrphan, MppBufferGroupImpl, list_group) {
-        if (pos->group_id == id) {
-            return pos;
-        }
-    }
-
-    return NULL;
+    return impl;
 }
 
-void MppBufferService::dump_misc_group()
+void MppBufferService::dump(const char *info)
 {
-    RK_S32 i, j;
+    MppBufferGroupImpl *group;
+    struct hlist_node *n;
+    RK_U32 key;
 
-    for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
-        for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++) {
-            if (misc[i][j])
-                mpp_buffer_group_dump(misc[i][j], __FUNCTION__);
+    mpp_log("dumping all buffer groups for %s\n", info);
+
+    if (hash_empty(mHashGroup)) {
+        mpp_log("no buffer group can be dumped\n");
+    } else {
+        hash_for_each_safe(mHashGroup, key, n, group, hlist) {
+            mpp_buffer_group_dump(group, __FUNCTION__);
         }
+    }
 }
 
 RK_U32 MppBufferService::is_finalizing()
 {
     return finalizing;
 }
-
