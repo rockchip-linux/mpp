@@ -642,7 +642,6 @@ void MppMemService::dump(const char *caller)
 
 void *mpp_osal_malloc(const char *caller, size_t size)
 {
-    AutoMutex auto_lock(&service.lock);
     RK_U32 debug = service.debug;
     size_t size_align = MEM_ALIGNED(size);
     size_t size_real = (debug & MEM_EXT_ROOM) ? (size_align + 2 * MEM_ALIGN) :
@@ -652,6 +651,7 @@ void *mpp_osal_malloc(const char *caller, size_t size)
     os_malloc(&ptr, MEM_ALIGN, size_real);
 
     if (debug) {
+        AutoMutex auto_lock(&service.lock);
         service.add_log(MEM_MALLOC, caller, NULL, ptr, size, size_real);
 
         if (ptr) {
@@ -677,7 +677,6 @@ void *mpp_osal_calloc(const char *caller, size_t size)
 
 void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
 {
-    AutoMutex auto_lock(&service.lock);
     RK_U32 debug = service.debug;
     void *ret;
 
@@ -700,6 +699,8 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
         // if realloc fail the original buffer will be kept the same.
         mpp_err("mpp_realloc ptr %p to size %d failed\n", ptr, size);
     } else {
+        AutoMutex auto_lock(&service.lock);
+
         // if realloc success reset the node and record
         if (debug) {
             void *ret_ptr = (debug & MEM_EXT_ROOM) ?
@@ -716,7 +717,6 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
 
 void mpp_osal_free(const char *caller, void *ptr)
 {
-    AutoMutex auto_lock(&service.lock);
     RK_U32 debug = service.debug;
     if (NULL == ptr)
         return;
@@ -728,6 +728,7 @@ void mpp_osal_free(const char *caller, void *ptr)
 
     size_t size = 0;
 
+    AutoMutex auto_lock(&service.lock);
     if (debug & MEM_POISON) {
         // NODE: keep this node and  delete delay node
         void *ret = service.delay_del_node(caller, ptr, &size);
