@@ -413,12 +413,11 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
         cur_mark->out_flag = 1;
         {
-            MppFrame mframe = NULL;
+            MppFrame mframe = p_Dec->curframe;
             RK_U32 hor_stride, ver_stride;
             MppFrameFormat fmt = MPP_FMT_YUV_BUTT;
             MppFrameFormat out_fmt = p_Dec->cfg->base.out_fmt;
 
-            mpp_frame_init(&mframe);
             if ((H264_CHROMA_420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV420SP;
             } else if ((H264_CHROMA_420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
@@ -515,7 +514,6 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 }
             }
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
-            mpp_frame_deinit(&mframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
         }
 

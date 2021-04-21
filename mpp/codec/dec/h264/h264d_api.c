@@ -315,6 +315,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     p_Dec->frame_slots  = init->frame_slots;
     p_Dec->packet_slots = init->packet_slots;
     p_Dec->cfg = init->cfg;
+    mpp_frame_init(&p_Dec->curframe);
     //!< malloc decoder buffer
     p_Dec->p_Inp = mpp_calloc(H264dInputCtx_t, 1);
     p_Dec->p_Cur = mpp_calloc(H264dCurCtx_t, 1);
@@ -356,6 +357,7 @@ MPP_RET h264d_deinit(void *decoder)
 
     INP_CHECK(ret, !decoder);
 
+    mpp_frame_deinit(&p_Dec->curframe);
     free_input_ctx(p_Dec->p_Inp);
     MPP_FREE(p_Dec->p_Inp);
     free_cur_ctx(p_Dec->p_Cur);
