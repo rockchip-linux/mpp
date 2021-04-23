@@ -126,7 +126,6 @@ MPP_RET iep_deinit(IepCtx ctx)
         impl->fd = -1;
     }
 
-    mpp_free(impl);
     return MPP_OK;
 }
 
