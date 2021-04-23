@@ -63,6 +63,10 @@ struct MppBufferImpl_t {
     RK_U32              internal;
     RK_S32              ref_count;
     struct list_head    list_status;
+
+    /* allocator */
+    MppAllocator        allocator;
+    MppAllocatorApi     *alloc_api;
 };
 
 struct MppBufferGroupImpl_t {
