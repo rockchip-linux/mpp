@@ -86,6 +86,9 @@ private:
     // misc group for internal / externl buffer with different type
     RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
     RK_U32              misc_count;
+    /* preset allocator apis */
+    MppAllocator        mAllocator[MPP_BUFFER_TYPE_BUTT];
+    MppAllocatorApi     *mAllocatorApi[MPP_BUFFER_TYPE_BUTT];
 
     struct list_head    mListGroup;
     DECLARE_HASHTABLE(mHashGroup, MAX_GROUP_BIT);
@@ -213,12 +216,16 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
     }
 
     list_del_init(&buffer->list_status);
+
+    BufferOp func = (buffer->mode == MPP_BUFFER_INTERNAL) ?
+                    (buffer->alloc_api->free) :
+                    (buffer->alloc_api->release);
+
+    func(buffer->allocator, &buffer->info);
+
     MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+
     if (group) {
-        BufferOp func = (group->mode == MPP_BUFFER_INTERNAL) ?
-                        (group->alloc_api->free) :
-                        (group->alloc_api->release);
-        func(group->allocator, &buffer->info);
         group->usage -= buffer->info.size;
         group->buffer_count--;
 
@@ -320,6 +327,8 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
 
     p->info = *info;
     p->mode = group->mode;
+    p->allocator = group->allocator;
+    p->alloc_api = group->alloc_api;
 
     if (NULL == tag)
         tag = group->tag;
@@ -354,17 +363,17 @@ RET:
 
 MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
     MPP_RET ret = MPP_NOK;
+
+    ret = buffer->alloc_api->mmap(buffer->allocator, &buffer->info);
+
+    AutoMutex auto_lock(MppBufferService::get_lock());
     MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
 
-    if (group && group->alloc_api && group->alloc_api->mmap) {
-        ret = group->alloc_api->mmap(group->allocator, &buffer->info);
-
+    if (group)
         buffer_group_add_log(group, buffer, BUF_MMAP, caller);
-    }
 
     if (ret)
         mpp_err_f("buffer %p group %p fd %d map failed caller %s\n",
@@ -676,6 +685,9 @@ MppBufferService::MppBufferService()
 
     for (i = 0; i < (RK_S32)HASH_SIZE(mHashGroup); i++)
         INIT_HLIST_HEAD(&mHashGroup[i]);
+
+    for (i = 0; i < MPP_BUFFER_TYPE_BUTT; i++)
+        mpp_allocator_get(&mAllocator[i], &mAllocatorApi[i], (MppBufferType)i);
 }
 
 MppBufferService::~MppBufferService()
@@ -721,6 +733,9 @@ MppBufferService::~MppBufferService()
         }
     }
     finished = 1;
+
+    for (i = 0; i < MPP_BUFFER_TYPE_BUTT; i++)
+        mpp_allocator_put(&mAllocator[i]);
 }
 
 RK_U32 MppBufferService::get_group_id()
@@ -790,7 +805,11 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     list_add_tail(&p->list_group, &mListGroup);
     hash_add(mHashGroup, &p->hlist, hash_32(p->group_id, MAX_GROUP_BIT));
 
-    mpp_allocator_get(&p->allocator, &p->alloc_api, type);
+    p->allocator = mAllocator[type];
+    p->alloc_api = mAllocatorApi[type];
+
+    mpp_assert(p->allocator);
+    mpp_assert(p->alloc_api);
 
     buffer_group_add_log(p, NULL, GRP_CREATE, __FUNCTION__);
 
@@ -900,8 +919,6 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
         mpp_assert(group->log_count == 0);
     }
 
-    mpp_assert(group->allocator);
-    mpp_allocator_put(&group->allocator);
     list_del_init(&group->list_group);
     hash_del(&group->hlist);
     mpp_free(group);
