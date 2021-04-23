@@ -66,7 +66,8 @@ static RK_U32 read_ivf_file(FileReader data)
     RK_U32 eos = 0;
     RK_U8 ivf_data[IVF_FRAME_HEADER_LENGTH] = {0};
 
-    fread(ivf_data, 1, IVF_FRAME_HEADER_LENGTH, reader->fp_input);
+    if (fread(ivf_data, 1, IVF_FRAME_HEADER_LENGTH, reader->fp_input) != IVF_FRAME_HEADER_LENGTH)
+        return -1;
     data_size = ivf_data[0] |
                 (ivf_data[1] << 8) |
                 (ivf_data[2] << 16) |
