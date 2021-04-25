@@ -31,7 +31,7 @@
 RK_U32 jpegd_debug = 0x0;
 
 /* return the 8 bit start code value and update the search
-   state. Return -1 if no start code found */
+   state. Return 0 if no start code found */
 static RK_U8 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
 {
     const RK_U8 *buf_ptr = NULL;
@@ -39,18 +39,25 @@ static RK_U8 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
     RK_U8 start_code = 0xff;
     RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
 
-    buf_ptr = memchr(*pbuf_ptr, start_code, buf_size);
-    if (buf_ptr && (buf_end > buf_ptr) && *(buf_ptr + 1) >= 0xc0 && *(buf_ptr + 1) <= 0xfe) {
-        val = *(buf_ptr + 1);
-        jpegd_dbg_marker("find_marker skipped %d bytes\n", buf_ptr - *pbuf_ptr);
-        goto found;
-    } else {
-        buf_ptr = buf_end;
-    }
+    while (*pbuf_ptr < buf_end) {
+        buf_ptr = memchr(*pbuf_ptr, start_code, buf_size);
 
-found:
-    *pbuf_ptr = buf_ptr + 2;
-    return val;
+        if (!buf_ptr) {
+            mpp_err("Start codec not found!\n");
+            return 0;
+        }
+
+        RK_U8 marker = *(buf_ptr + 1);
+        if (marker >= 0xc0 && marker <= 0xfe) {
+            val = *(buf_ptr + 1);
+            jpegd_dbg_marker("find_marker skipped %d bytes\n", buf_ptr - *pbuf_ptr);
+            return val;
+        } else {
+            jpegd_dbg_marker("0x%x is not a marker\n", marker);
+            (*pbuf_ptr)++;
+        }
+    }
+    return 0;
 }
 
 static MPP_RET jpegd_find_eoi(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
@@ -778,9 +785,11 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     while (buf_ptr < buf_end) {
         /* find start marker */
         start_code = jpegd_find_marker(&buf_ptr, buf_end);
-        if (start_code < 0) {
+        if (start_code <= 0) {
             jpegd_dbg_marker("start code not found\n");
             break;
+        } else {
+            buf_ptr += 2;
         }
 
         jpegd_dbg_marker("marker = 0x%x, avail_size_in_buf = %d\n",
