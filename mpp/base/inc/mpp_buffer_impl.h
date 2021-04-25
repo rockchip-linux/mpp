@@ -80,6 +80,7 @@ typedef void (*MppBufCallback)(void *, void *);
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
+    pthread_mutex_t     lock;
     /* parameter store from MppBufferGroup */
     MppAllocator        allocator;
     MppAllocatorApi     *alloc_api;
