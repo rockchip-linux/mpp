@@ -37,6 +37,41 @@
 #define MPP_BUF_FUNCTION_LEAVE_OK()     mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "success\n")
 #define MPP_BUF_FUNCTION_LEAVE_FAIL()   mpp_buf_dbg_f(MPP_BUF_DBG_FUNCTION, "failed\n")
 
+typedef enum MppBufOps_e {
+    GRP_CREATE,
+    GRP_RELEASE,
+    GRP_RESET,
+    GRP_ORPHAN,
+    GRP_DESTROY,
+
+    GRP_OPS_BUTT    = GRP_DESTROY,
+    BUF_COMMIT,
+    BUF_CREATE,
+    BUF_MMAP,
+    BUF_REF_INC,
+    BUF_REF_DEC,
+    BUF_DISCARD,
+    BUF_DESTROY,
+    BUF_OPS_BUTT,
+} MppBufOps;
+
+typedef struct MppBufLog_t {
+    RK_U32              group_id;
+    RK_S32              buffer_id;
+    MppBufOps           ops;
+    RK_S32              ref_count;
+    const char          *caller;
+} MppBufLog;
+
+typedef struct MppBufLogs_t {
+    pthread_mutex_t     lock;
+    RK_U16              max_count;
+    RK_U16              log_count;
+    RK_U16              log_write;
+    RK_U16              log_read;
+    MppBufLog           *logs;
+} MppBufLogs;
+
 typedef struct MppBufferImpl_t          MppBufferImpl;
 typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
 typedef void (*MppBufCallback)(void *, void *);
@@ -45,54 +80,48 @@ typedef void (*MppBufCallback)(void *, void *);
 struct MppBufferImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
+    /* parameter store from MppBufferGroup */
+    MppAllocator        allocator;
+    MppAllocatorApi     *alloc_api;
+    RK_U32              log_runtime_en;
+    RK_U32              log_history_en;
     RK_U32              group_id;
     RK_S32              buffer_id;
     MppBufferMode       mode;
+    MppBufferType       type;
+    MppBufLogs          *logs;
 
     MppBufferInfo       info;
     size_t              offset;
+    size_t              length;
 
-    /* used for buf on group reset mode
-       set disard value to 1 when frame refcount no zero ,
-       we will delay relesase buffer after refcount to zero,
-       not put this buf to unused list
+    /*
+     * discard:
+     * used for buf on group reset mode
+     * set disard value to 1 when frame refcount no zero ,
+     * we will delay relesase buffer after refcount to zero,
+     * not put this buf to unused list
      */
     RK_S32              discard;
     // used flag is for used/unused list detection
     RK_U32              used;
-    RK_U32              internal;
     RK_S32              ref_count;
     struct list_head    list_status;
-
-    /* allocator */
-    MppAllocator        allocator;
-    MppAllocatorApi     *alloc_api;
 };
 
 struct MppBufferGroupImpl_t {
     char                tag[MPP_TAG_SIZE];
     const char          *caller;
+    /* parameter store for MppBuffer */
+    MppAllocator        allocator;
+    MppAllocatorApi     *alloc_api;
+    RK_U32              log_runtime_en;
+    RK_U32              log_history_en;
     RK_U32              group_id;
     MppBufferMode       mode;
     MppBufferType       type;
-    // used in limit mode only
-    size_t              limit_size;
-    RK_S32              limit_count;
-    // status record
-    size_t              limit;
-    size_t              usage;
-    RK_S32              buffer_id;
-    RK_S32              buffer_count;
-    RK_S32              count_used;
-    RK_S32              count_unused;
 
-    MppAllocator        allocator;
-    MppAllocatorApi     *alloc_api;
-
-    // thread that will be signal on buffer return
-    MppBufCallback      callback;
-    void                *arg;
-
+    /* group status flag */
     // buffer force clear mode flag
     RK_U32              clear_on_exit;
     RK_U32              dump_on_exit;
@@ -101,20 +130,32 @@ struct MppBufferGroupImpl_t {
     // is_orphan: 0 - normal group 1 - orphan group
     RK_U32              is_orphan;
     RK_U32              is_finalizing;
+    // used in limit mode only
+    size_t              limit_size;
+    RK_S32              limit_count;
+    // status record
+    size_t              limit;
+    size_t              usage;
+    RK_S32              buffer_id;
+    RK_S32              buffer_count;
+
+    // thread that will be signal on buffer return
+    MppBufCallback      callback;
+    void                *arg;
+
+    // link to list_status in MppBufferImpl
+    pthread_mutex_t     buf_lock;
+    struct hlist_node   hlist;
+    struct list_head    list_used;
+    struct list_head    list_unused;
+    RK_S32              count_used;
+    RK_S32              count_unused;
 
     // buffer log function
-    RK_U32              log_runtime_en;
-    RK_U32              log_history_en;
-    RK_U32              log_count;
-    struct list_head    list_logs;
+    MppBufLogs          *logs;
 
     // link to the other MppBufferGroupImpl
     struct list_head    list_group;
-    struct hlist_node   hlist;
-
-    // link to list_status in MppBufferImpl
-    struct list_head    list_used;
-    struct list_head    list_unused;
 };
 
 #ifdef __cplusplus
