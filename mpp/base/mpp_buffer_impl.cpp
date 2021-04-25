@@ -197,8 +197,12 @@ static void buf_logs_dump(MppBufLogs *logs)
         else
             mpp_log("group %3d ops %s\n", log->group_id, ops2str[log->ops]);
 
+        logs->log_read++;
+        if (logs->log_read >= logs->max_count)
+            logs->log_read = 0;
         logs->log_count--;
     }
+    mpp_assert(logs->log_read == logs->log_write);
 }
 
 static void buf_add_log(MppBufferImpl *buffer, MppBufOps ops, const char* caller)
@@ -225,6 +229,8 @@ static void buf_grp_add_log(MppBufferGroupImpl *group, MppBufOps ops, const char
 
 static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
 {
+    MppBufferGroupImpl *group = NULL;
+
     if (!MppBufferService::get_instance()->is_finalizing()) {
         mpp_assert(buffer->ref_count == 0);
         mpp_assert(buffer->used == 0);
@@ -238,9 +244,13 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
 
     func(buffer->allocator, &buffer->info);
 
-    MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
-
+    {
+        AutoMutex auto_lock(MppBufferService::get_lock());
+        group = SEARCH_GROUP_BY_ID(buffer->group_id);
+    }
     if (group) {
+        RK_U32 destroy = 0;
+
         group->usage -= buffer->info.size;
         group->buffer_count--;
 
@@ -249,9 +259,11 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
 
         buf_add_log(buffer, BUF_DESTROY, caller);
 
-        if (group->is_orphan && !group->usage && !group->is_finalizing) {
+        if (group->is_orphan && !group->usage && !group->is_finalizing)
+            destroy = 1;
+
+        if (destroy)
             MppBufferService::get_instance()->put_group(caller, group);
-        }
     } else {
         mpp_assert(MppBufferService::get_instance()->is_finalizing());
     }
@@ -261,28 +273,36 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
     return MPP_OK;
 }
 
-static MPP_RET inc_buffer_ref_no_lock(MppBufferImpl *buffer, const char *caller)
+static MPP_RET inc_buffer_ref(MppBufferImpl *buffer, const char *caller)
 {
     MPP_RET ret = MPP_OK;
 
+    pthread_mutex_lock(&buffer->lock);
+    buffer->ref_count++;
+    buf_add_log(buffer, BUF_REF_INC, caller);
     if (!buffer->used) {
-        MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+        MppBufferGroupImpl *group = NULL;
+
+        {
+            AutoMutex auto_lock(MppBufferService::get_lock());
+            group = SEARCH_GROUP_BY_ID(buffer->group_id);
+        }
         // NOTE: when increasing ref_count the unused buffer must be under certain group
         mpp_assert(group);
         buffer->used = 1;
         if (group) {
+            pthread_mutex_lock(&group->buf_lock);
             list_del_init(&buffer->list_status);
             list_add_tail(&buffer->list_status, &group->list_used);
             group->count_used++;
             group->count_unused--;
+            pthread_mutex_unlock(&group->buf_lock);
         } else {
             mpp_err_f("unused buffer without group\n");
             ret = MPP_NOK;
         }
     }
-
-    buf_add_log(buffer, BUF_REF_INC, caller);
-    buffer->ref_count++;
+    pthread_mutex_unlock(&buffer->lock);
     return ret;
 }
 
@@ -332,7 +352,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     func = (group->mode == MPP_BUFFER_INTERNAL) ?
            (group->alloc_api->alloc) : (group->alloc_api->import);
     ret = func(group->allocator, info);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err_f("failed to create buffer with size %d\n", info->size);
         mpp_free(p);
         ret = MPP_ERR_MALLOC;
@@ -344,6 +364,11 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
 
     strncpy(p->tag, tag, sizeof(p->tag));
     p->caller = caller;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&p->lock, &attr);
+    pthread_mutexattr_destroy(&attr);
     p->allocator = group->allocator;
     p->alloc_api = group->alloc_api;
     p->log_runtime_en = group->log_runtime_en;
@@ -352,7 +377,6 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     p->mode = group->mode;
     p->type = group->type;
     p->logs = group->logs;
-
     p->info = *info;
 
     pthread_mutex_lock(&group->buf_lock);
@@ -371,7 +395,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         MppBufferService::get_instance()->inc_total(info->size);
 
     if (buffer) {
-        inc_buffer_ref_no_lock(p, caller);
+        inc_buffer_ref(p, caller);
         *buffer = p;
     }
 
@@ -399,10 +423,9 @@ MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller)
 
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer, const char* caller)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
-    MPP_RET ret = inc_buffer_ref_no_lock(buffer, caller);
+    MPP_RET ret = inc_buffer_ref(buffer, caller);
 
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
@@ -411,10 +434,11 @@ MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer, const char* caller)
 
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
+    MPP_RET ret = MPP_OK;
+
     MPP_BUF_FUNCTION_ENTER();
 
-    MPP_RET ret = MPP_OK;
+    pthread_mutex_lock(&buffer->lock);
 
     buf_add_log(buffer, BUF_REF_DEC, caller);
 
@@ -423,40 +447,44 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
                   buffer->ref_count, buffer->caller);
         mpp_abort();
         ret = MPP_NOK;
-    } else {
-        buffer->ref_count--;
-        if (0 == buffer->ref_count) {
-            MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
-
-            buffer->used = 0;
-            list_del_init(&buffer->list_status);
-            if (group->is_misc) {
-                deinit_buffer_no_lock(buffer, caller);
-            } else {
-                if (buffer->discard) {
-                    deinit_buffer_no_lock(buffer, caller);
-                } else {
-                    list_add_tail(&buffer->list_status, &group->list_unused);
-                    group->count_unused++;
-                }
-            }
-            group->count_used--;
-            if (group->callback)
-                group->callback(group->arg, group);
-        }
+        goto done;
     }
 
+    buffer->ref_count--;
+    if (0 == buffer->ref_count) {
+        MppBufferGroupImpl *group = SEARCH_GROUP_BY_ID(buffer->group_id);
+
+        pthread_mutex_lock(&group->buf_lock);
+        buffer->used = 0;
+        list_del_init(&buffer->list_status);
+        if (group->is_misc) {
+            deinit_buffer_no_lock(buffer, caller);
+        } else {
+            if (buffer->discard) {
+                deinit_buffer_no_lock(buffer, caller);
+            } else {
+                list_add_tail(&buffer->list_status, &group->list_unused);
+                group->count_unused++;
+            }
+        }
+        group->count_used--;
+        if (group->callback)
+            group->callback(group->arg, group);
+        pthread_mutex_unlock(&group->buf_lock);
+    }
+done:
+    pthread_mutex_unlock(&buffer->lock);
     MPP_BUF_FUNCTION_LEAVE();
     return ret;
 }
 
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     MPP_BUF_FUNCTION_ENTER();
 
     MppBufferImpl *buffer = NULL;
 
+    pthread_mutex_lock(&p->buf_lock);
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
         RK_S32 found = 0;
@@ -467,7 +495,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
                         size, pos->buffer_id, pos->info.size);
             if (pos->info.size >= size) {
                 buffer = pos;
-                inc_buffer_ref_no_lock(buffer, __FUNCTION__);
+                inc_buffer_ref(buffer, __FUNCTION__);
                 found = 1;
                 break;
             } else {
@@ -482,6 +510,7 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
         if (!found && search_count)
             mpp_err_f("can not found match buffer with size larger than %d\n", size);
     }
+    pthread_mutex_unlock(&p->buf_lock);
 
     MPP_BUF_FUNCTION_LEAVE();
     return buffer;
@@ -514,10 +543,8 @@ RK_U32 mpp_buffer_to_addr(MppBuffer buffer, size_t offset)
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller,
                               MppBufferMode mode, MppBufferType type)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
-
-    mpp_assert(caller);
     MPP_BUF_FUNCTION_ENTER();
+    mpp_assert(caller);
 
     *group = MppBufferService::get_instance()->get_group(tag, caller, mode, type, 0);
 
@@ -527,7 +554,6 @@ MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const
 
 MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
@@ -543,7 +569,6 @@ MPP_RET mpp_buffer_group_deinit(MppBufferGroupImpl *p)
 
 MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
@@ -551,6 +576,9 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 
     MPP_BUF_FUNCTION_ENTER();
 
+    pthread_mutex_lock(&p->buf_lock);
+
+    AutoMutex auto_lock(MppBufferService::get_lock());
     buf_grp_add_log(p, GRP_RESET, NULL);
 
     if (!list_empty(&p->list_used)) {
@@ -571,6 +599,8 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
         }
     }
 
+    pthread_mutex_unlock(&p->buf_lock);
+
     MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
 }
@@ -578,7 +608,6 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
                                       MppBufCallback callback, void *arg)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
     if (NULL == p) {
         mpp_err_f("found NULL pointer\n");
         return MPP_ERR_NULL_PTR;
@@ -796,6 +825,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
         return NULL;
     }
 
+    AutoMutex auto_lock(get_lock());
     RK_U32 id = get_group_id();
 
     INIT_LIST_HEAD(&p->list_group);
@@ -869,6 +899,7 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
     if (finished)
         return ;
 
+    AutoMutex auto_lock(get_lock());
     buf_grp_add_log(p, GRP_RELEASE, caller);
 
     // remove unused list
