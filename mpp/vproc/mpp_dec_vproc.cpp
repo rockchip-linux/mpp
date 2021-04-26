@@ -380,8 +380,13 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         dec_vproc_start_dei(ctx, mode);
 
         // NOTE: we need to process pts here
-        dec_vproc_put_frame(mpp, frm, dst0, first_pts);
-        dec_vproc_put_frame(mpp, frm, dst1, curr_pts);
+        if (mode & MPP_FRAME_FLAG_TOP_FIRST) {
+            dec_vproc_put_frame(mpp, frm, dst0, first_pts);
+            dec_vproc_put_frame(mpp, frm, dst1, curr_pts);
+        } else {
+            dec_vproc_put_frame(mpp, frm, dst1, first_pts);
+            dec_vproc_put_frame(mpp, frm, dst0, curr_pts);
+        }
     } else {
         struct iep2_api_params params;
 

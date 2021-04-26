@@ -28,6 +28,7 @@
 #include "iep_common.h"
 
 #include "iep2.h"
+#include "iep2_api.h"
 
 #define RKMIN(a, b)             (((a) < (b)) ? (a) : (b))
 #define RKMAX(a, b)             (((a) > (b)) ? (a) : (b))

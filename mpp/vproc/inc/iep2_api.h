@@ -18,6 +18,7 @@
 #define __IEP2_API_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "iep_common.h"
 
@@ -69,6 +70,21 @@ enum IEP2_PARAM_TYPE {
     IEP2_PARAM_TYPE_ROI
 };
 
+enum PD_COMP_FLAG {
+    PD_COMP_FLAG_CC,
+    PD_COMP_FLAG_CN,
+    PD_COMP_FLAG_NC,
+    PD_COMP_FLAG_NON
+};
+
+enum PD_TYPES {
+    PD_TYPES_3_2_3_2,
+    PD_TYPES_2_3_2_3,
+    PD_TYPES_2_3_3_2,
+    PD_TYPES_3_2_2_3,
+    PD_TYPES_UNKNOWN
+};
+
 union iep2_api_content {
     struct {
         enum IEP2_FMT sfmt;
@@ -101,10 +117,11 @@ struct iep2_api_params {
     union iep2_api_content param;
 };
 
-union iep2_api_info {
-    struct {
-        enum IEP2_FIELD_ORDER dil_order;
-    } com;
+struct iep2_api_info {
+    enum IEP2_FIELD_ORDER dil_order;
+    bool frm_mode;
+    enum PD_TYPES pd_types;
+    enum PD_COMP_FLAG pd_flag;
 };
 
 struct mv_list {

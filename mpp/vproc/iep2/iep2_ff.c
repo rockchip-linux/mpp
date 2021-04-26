@@ -59,12 +59,15 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
         }
     }
 
+    ctx->ff_inf.tff_score += ctx->ff_inf.tff_offset;
+    ctx->ff_inf.bff_score += ctx->ff_inf.bff_offset;
+
     if (RKABS(ctx->ff_inf.tff_score - ctx->ff_inf.bff_score) > 5) {
         if (ctx->ff_inf.tff_score > ctx->ff_inf.bff_score) {
-            iep_dbg_trace("field order tff\n");
+            iep_dbg_trace("deinterlace field order tff\n");
             ctx->params.dil_field_order = 0;
         } else {
-            iep_dbg_trace("field order bff\n");
+            iep_dbg_trace("deinterlace field order bff\n");
             ctx->params.dil_field_order = 1;
         }
         ctx->ff_inf.fo_detected = 1;
@@ -72,7 +75,8 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
         ctx->ff_inf.fo_detected = 1;
     }
 
-    if (ffi * 2 < ffx) {
+    iep_dbg_trace("deinterlace ffi %u ffx %u\n", ffi, ffx);
+    if (ffi > ffx * 2) {
         ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score + 1, 0, 10);
         ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score - 1, 0, 10);
     } else {
@@ -82,9 +86,11 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
 
     if (RKABS(ctx->ff_inf.frm_score - ctx->ff_inf.fie_score) > 5) {
         if (ctx->ff_inf.frm_score > ctx->ff_inf.fie_score) {
-            ;
+            ctx->ff_inf.is_frm = 1;
+            mpp_log("deinterlace frame mode\n");
         } else {
-            ;
+            ctx->ff_inf.is_frm = 0;
+            mpp_log("deinterlace field mode\n");
         }
     }
 }

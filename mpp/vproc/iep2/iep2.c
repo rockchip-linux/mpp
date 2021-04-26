@@ -136,8 +136,6 @@ static MPP_RET iep2_init(IepCtx *ictx)
     ctx->params.tile_rows = 480 / 4;
 
     memset(&ctx->ff_inf, 0, sizeof(ctx->ff_inf));
-    ctx->ff_inf.frm_score = 0;
-    ctx->ff_inf.fie_score = 10;
 
     memset(&ctx->pd_inf, 0, sizeof(ctx->pd_inf));
     ctx->pd_inf.pdtype = PD_TYPES_UNKNOWN;
@@ -225,8 +223,10 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
     }
 
     if (ctx->params.dil_mode == IEP2_DIL_MODE_DECT ||
-        ctx->params.dil_mode == IEP2_DIL_MODE_PD)
+        ctx->params.dil_mode == IEP2_DIL_MODE_PD) {
+        iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
+    }
 
     if (ctx->pd_inf.pdtype != PD_TYPES_UNKNOWN) {
         ctx->params.dil_mode = IEP2_DIL_MODE_PD;
@@ -267,14 +267,14 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
         ctx->params.dil_out_mode = param->mode.out_mode;
         if (!ctx->ff_inf.fo_detected) {
             ctx->params.dil_field_order = param->mode.dil_order;
+        }
 
-            if (param->mode.dil_order == 0) {
-                ctx->ff_inf.tff_score = 10;
-                ctx->ff_inf.bff_score = 0;
-            } else {
-                ctx->ff_inf.tff_score = 0;
-                ctx->ff_inf.bff_score = 10;
-            }
+        if (param->mode.dil_order == 0) {
+            ctx->ff_inf.tff_offset = 5;
+            ctx->ff_inf.bff_offset = 0;
+        } else {
+            ctx->ff_inf.tff_offset = 0;
+            ctx->ff_inf.bff_offset = 5;
         }
         break;
     case IEP2_PARAM_TYPE_MD:
@@ -388,14 +388,24 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
     case IEP_CMD_SET_DEI_DST1:
         set_addr(&ctx->params.dst[1], (IepImg *)iparam);
         break;
-    case IEP_CMD_RUN_SYNC:
+    case IEP_CMD_RUN_SYNC: {
+        struct iep2_api_info *inf = (struct iep2_api_info*)iparam;
+
         if (0 > iep2_param_check(ctx))
             break;
         if (0 > iep2_start(ctx))
             return MPP_NOK;
         iep2_wait(ctx);
+        if (inf)
+            inf->pd_flag = ctx->params.pd_mode;
         iep2_done(ctx);
-        break;
+        if (inf) {
+            inf->dil_order = ctx->params.dil_field_order;
+            inf->frm_mode = ctx->ff_inf.is_frm;
+            inf->pd_types = ctx->pd_inf.pdtype;
+        }
+    }
+    break;
     default:
         ;
     }
