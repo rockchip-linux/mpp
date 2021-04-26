@@ -59,6 +59,9 @@ typedef struct {
     RK_S64          first_frm;
     RK_S32          frame_num;
     FileReader      reader;
+
+    /* runtime flag */
+    RK_U32          quiet;
 } MpiDecCtx;
 
 /* For each instance thread return value */
@@ -93,7 +96,8 @@ static int multi_dec_simple(MpiDecCtx *data)
     data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
     if (pkt_eos) {
         if (data->frame_num < 0) {
-            mpp_log("%p loop again\n", ctx);
+            if (!data->quiet)
+                mpp_log("%p loop again\n", ctx);
             reader_rewind(reader);
             data->eos = pkt_eos = 0;
         } else {
@@ -197,12 +201,18 @@ static int multi_dec_simple(MpiDecCtx *data)
                     if (!data->first_frm)
                         data->first_frm = mpp_time();
 
-                    err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
-                    if (err_info) {
-                        mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
-                                mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
+                    if (!data->quiet) {
+                        err_info = mpp_frame_get_errinfo(frame) |
+                                   mpp_frame_get_discard(frame);
+                        if (err_info) {
+                            mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
+                                    mpp_frame_get_errinfo(frame),
+                                    mpp_frame_get_discard(frame));
+                        }
+                        mpp_log("decode_get_frame get frame %d\n",
+                                data->frame_count);
                     }
-                    mpp_log("decode_get_frame get frame %d\n", data->frame_count);
+
                     data->frame_count++;
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
@@ -510,6 +520,7 @@ void* multi_dec_decode(void *cmd_ctx)
     dec_ctx->frame_count    = 0;
     dec_ctx->frame_num      = cmd->frame_num;
     dec_ctx->reader         = reader;
+    dec_ctx->quiet          = cmd->quiet;
 
     RK_S64 t_s, t_e;
 
