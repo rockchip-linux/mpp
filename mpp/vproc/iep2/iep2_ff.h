@@ -17,15 +17,26 @@
 #ifndef __IEP2_FF_H__
 #define __IEP2_FF_H__
 
+#include "rk_type.h"
+
 struct iep2_ff_info {
-    int tff_score;
-    int bff_score;
-    int frm_score;
-    int fie_score;
+    RK_S32 tff_score;
+    RK_S32 bff_score;
+    RK_S32 frm_score;
+    RK_S32 fie_score;
+    RK_S32 fo_detected;
 };
 
 struct iep2_api_ctx;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void iep2_check_ffo(struct iep2_api_ctx *ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -114,8 +114,7 @@ struct mv_list {
 };
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 iep_com_ctx* rockchip_iep2_api_alloc_ctx(void);
