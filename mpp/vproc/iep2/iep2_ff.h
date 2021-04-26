@@ -20,11 +20,16 @@
 #include "rk_type.h"
 
 struct iep2_ff_info {
+    RK_S32 tff_offset;
+    RK_S32 bff_offset;
     RK_S32 tff_score;
     RK_S32 bff_score;
+    RK_S32 frm_offset;
+    RK_S32 fie_offset;
     RK_S32 frm_score;
     RK_S32 fie_score;
     RK_S32 fo_detected;
+    RK_S32 is_frm;
 };
 
 struct iep2_api_ctx;

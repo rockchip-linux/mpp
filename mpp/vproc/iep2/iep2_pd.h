@@ -26,21 +26,6 @@ struct iep2_pd_info {
     int step;
 };
 
-enum PD_COMP_FLAG {
-    PD_COMP_FLAG_CC,
-    PD_COMP_FLAG_CN,
-    PD_COMP_FLAG_NC,
-    PD_COMP_FLAG_NON
-};
-
-enum PD_TYPES {
-    PD_TYPES_3_2_3_2,
-    PD_TYPES_2_3_2_3,
-    PD_TYPES_2_3_3_2,
-    PD_TYPES_3_2_2_3,
-    PD_TYPES_UNKNOWN
-};
-
 struct iep2_api_ctx;
 
 void iep2_check_pd(struct iep2_api_ctx *ctx);
