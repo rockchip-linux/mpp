@@ -171,31 +171,33 @@ MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout)
          * negtive  - block
          * positive - timeout value
          */
-        if (timeout != MPP_POLL_NON_BLOCK) {
+        if (timeout) {
             mpp_assert(curr->cond);
             Condition *cond = curr->cond;
 
-            if (timeout == MPP_POLL_BLOCK) {
+            if (timeout < 0) {
                 mpp_task_dbg_flow("mpp %p %s from %s poll %s port block wait start\n",
                                   queue->mpp, queue->name, caller,
                                   port_type_str[port_impl->type]);
-                cond->wait(queue->lock);
+
+                ret = (MPP_RET)cond->wait(queue->lock);
             } else {
                 mpp_task_dbg_flow("mpp %p %s from %s poll %s port %d timeout wait start\n",
                                   queue->mpp, queue->name, caller,
                                   port_type_str[port_impl->type], timeout);
-                cond->timedwait(queue->lock, timeout);
+                ret = (MPP_RET)cond->timedwait(queue->lock, timeout);
             }
 
             if (curr->count) {
                 mpp_assert(!list_empty(&curr->list));
                 ret = (MPP_RET)curr->count;
-            }
+            } else if (ret > 0)
+                ret = MPP_NOK;
         }
 
         mpp_task_dbg_flow("mpp %p %s from %s poll %s port timeout %d ret %d\n",
                           queue->mpp, queue->name, caller,
-                          port_type_str[port_impl->type], ret);
+                          port_type_str[port_impl->type], timeout, ret);
     }
 RET:
     mpp_task_dbg_func("leave\n");
