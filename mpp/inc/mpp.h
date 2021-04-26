@@ -164,6 +164,7 @@ public:
     MppPollType     mOutputTimeout;
 
     MppTask         mInputTask;
+    MppTask         mEosTask;
 
     MppDec          mDec;
     MppEnc          mEnc;
@@ -180,7 +181,6 @@ private:
     RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
-    RK_S32          mDecResTaskCnt;
 
     /* decoder paramter before init */
     MppDecCfgSet    mDecInitcfg;
