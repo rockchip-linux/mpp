@@ -36,6 +36,7 @@ typedef struct {
     RK_U32          width;
     RK_U32          height;
     RK_U32          debug;
+    RK_U32          quiet;
 
     RK_U32          have_input;
     RK_U32          have_output;
