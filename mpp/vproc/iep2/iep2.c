@@ -265,14 +265,16 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
     case IEP2_PARAM_TYPE_MODE:
         ctx->params.dil_mode = param->mode.dil_mode;
         ctx->params.dil_out_mode = param->mode.out_mode;
-        ctx->params.dil_field_order = param->mode.dil_order;
+        if (!ctx->ff_inf.fo_detected) {
+            ctx->params.dil_field_order = param->mode.dil_order;
 
-        if (param->mode.dil_order == 0) {
-            ctx->ff_inf.tff_score = 10;
-            ctx->ff_inf.bff_score = 0;
-        } else {
-            ctx->ff_inf.tff_score = 0;
-            ctx->ff_inf.bff_score = 10;
+            if (param->mode.dil_order == 0) {
+                ctx->ff_inf.tff_score = 10;
+                ctx->ff_inf.bff_score = 0;
+            } else {
+                ctx->ff_inf.tff_score = 0;
+                ctx->ff_inf.bff_score = 10;
+            }
         }
         break;
     case IEP2_PARAM_TYPE_MD:
