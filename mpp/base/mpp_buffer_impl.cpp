@@ -762,6 +762,9 @@ MppBufferService::~MppBufferService()
     if (!list_empty(&mListGroup)) {
         MppBufferGroupImpl *pos, *n;
 
+        if (mpp_buffer_debug & MPP_BUF_DBG_DUMP_ON_EXIT)
+            dump("leaked group found");
+
         mpp_log_f("cleaning leaked group\n");
         list_for_each_entry_safe(pos, n, &mListGroup, MppBufferGroupImpl, list_group) {
             put_group(__FUNCTION__, pos);
