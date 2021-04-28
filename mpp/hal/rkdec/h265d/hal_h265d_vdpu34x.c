@@ -203,6 +203,9 @@ static MPP_RET hal_h265d_vdpu34x_deinit(void *hal)
         mpp_free(reg_cxt->scaling_rk);
     }
 
+    if (reg_cxt->rcb_buf)
+        mpp_buffer_put(reg_cxt->rcb_buf);
+
     if (reg_cxt->group) {
         ret = mpp_buffer_group_put(reg_cxt->group);
         if (ret) {
