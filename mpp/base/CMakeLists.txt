@@ -18,6 +18,7 @@ add_library(mpp_base STATIC
     mpp_task.cpp
     mpp_meta.cpp
     mpp_trie.cpp
+    mpp_mem_pool.cpp
     mpp_bitwrite.c
     mpp_bitread.c
     mpp_bitput.c
