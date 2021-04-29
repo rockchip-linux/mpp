@@ -23,8 +23,10 @@
 #include "mpp_common.h"
 #include "mpp_frame_impl.h"
 #include "mpp_meta_impl.h"
+#include "mpp_mem_pool.h"
 
 static const char *module_name = MODULE_TAG;
+static MppMemPool mpp_frame_pool = mpp_mem_pool_init(sizeof(MppFrameImpl));
 
 static void setup_mpp_frame_name(MppFrameImpl *frame)
 {
@@ -48,7 +50,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppFrameImpl *p = mpp_calloc(MppFrameImpl, 1);
+    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get(mpp_frame_pool);
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
@@ -77,7 +79,7 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     if (p->stopwatch)
         mpp_stopwatch_put(p->stopwatch);
 
-    mpp_free(*frame);
+    mpp_mem_pool_put(mpp_frame_pool, *frame);
     *frame = NULL;
     return MPP_OK;
 }
