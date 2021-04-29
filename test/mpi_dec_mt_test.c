@@ -25,7 +25,6 @@
 
 #include "rk_mpi.h"
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
@@ -54,6 +53,9 @@ typedef struct {
     RK_U64          frame_count;
     RK_S32          frame_num;
     FileReader      reader;
+
+    /* runtime flag */
+    RK_U32          quiet;
 } MpiDecLoopData;
 
 void *thread_input(void *arg)
@@ -112,6 +114,7 @@ void *thread_output(void *arg)
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     MppFrame  frame  = NULL;
+    RK_U32 quiet = data->quiet;
 
     mpp_log("get frame thread start\n");
 
@@ -144,9 +147,9 @@ void *thread_output(void *arg)
                 RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                 RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
-                mpp_log("decode_get_frame get info changed found\n");
-                mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d] size %d\n",
-                        width, height, hor_stride, ver_stride, buf_size);
+                mpp_log_q(quiet, "decode_get_frame get info changed found\n");
+                mpp_log_q(quiet, "decoder require buffer w:h [%d:%d] stride [%d:%d] size %d\n",
+                          width, height, hor_stride, ver_stride, buf_size);
 
                 if (NULL == data->frm_grp) {
                     /* If buffer group is not set create one and limit it */
@@ -187,8 +190,8 @@ void *thread_output(void *arg)
                 // found normal output frame
                 RK_U32 err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
                 if (err_info)
-                    mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
-                            mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
+                    mpp_log_q(quiet, "decoder_get_frame get err info:%d discard:%d.\n",
+                              mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
 
                 if (data->fp_output && !err_info)
                     dump_mpp_frame_to_file(frame, data->fp_output);
@@ -220,7 +223,7 @@ void *thread_output(void *arg)
             }
 
             if (mpp_frame_get_eos(frame)) {
-                mpp_log("found last frame loop again\n");
+                mpp_log_q(quiet, "found last frame loop again\n");
                 // when get a eos status mpp need a reset to restart decoding
                 ret = mpi->reset(ctx);
                 if (MPP_OK != ret)
@@ -352,6 +355,7 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     data.frame_count    = 0;
     data.frame_num      = cmd->frame_num;
     data.reader         = reader;
+    data.quiet          = cmd->quiet;
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);

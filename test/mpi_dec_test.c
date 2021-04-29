@@ -23,7 +23,6 @@
 #include <string.h>
 #include "rk_mpi.h"
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
@@ -34,6 +33,7 @@
 typedef struct {
     MppCtx          ctx;
     MppApi          *mpi;
+    RK_U32          quiet;
 
     /* end of stream flag when set quit the loop */
     RK_U32          eos;
@@ -70,6 +70,7 @@ static int dec_simple(MpiDecLoopData *data)
     size_t read_size = 0;
     size_t packet_size = data->packet_size;
     FileReader reader = data->reader;
+    RK_U32 quiet = data->quiet;
 
     do {
         if (data->fp_config) {
@@ -109,7 +110,7 @@ static int dec_simple(MpiDecLoopData *data)
 
             if (pkt_eos) {
                 if (data->frame_num < 0) {
-                    mpp_log("%p loop again\n", ctx);
+                    mpp_log_q(quiet, "%p loop again\n", ctx);
                     reader_rewind(reader);
                     if (data->fp_config) {
                         clearerr(data->fp_config);
@@ -117,7 +118,7 @@ static int dec_simple(MpiDecLoopData *data)
                     }
                     data->eos = pkt_eos = 0;
                 } else {
-                    mpp_log("%p found last packet\n", ctx);
+                    mpp_log_q(quiet, "%p found last packet\n", ctx);
                     break;
                 }
             }
@@ -170,9 +171,9 @@ static int dec_simple(MpiDecLoopData *data)
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                     RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
-                    mpp_log("%p decode_get_frame get info changed found\n", ctx);
-                    mpp_log("%p decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
-                            ctx, width, height, hor_stride, ver_stride, buf_size);
+                    mpp_log_q(quiet, "%p decode_get_frame get info changed found\n", ctx);
+                    mpp_log_q(quiet, "%p decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
+                              ctx, width, height, hor_stride, ver_stride, buf_size);
 
                     /*
                      * NOTE: We can choose decoder's buffer mode here.
@@ -297,7 +298,7 @@ static int dec_simple(MpiDecLoopData *data)
                         log_len += snprintf(log_buf + log_len, log_size - log_len,
                                             " err %x discard %x", err_info, discard);
                     }
-                    mpp_log("%p %s\n", ctx, log_buf);
+                    mpp_log_q(quiet, "%p %s\n", ctx, log_buf);
 
                     data->frame_count++;
                     if (data->fp_output && !err_info)
@@ -323,7 +324,7 @@ static int dec_simple(MpiDecLoopData *data)
             }
 
             if (frm_eos) {
-                mpp_log("%p found last packet\n", ctx);
+                mpp_log_q(quiet, "%p found last packet\n", ctx);
                 break;
             }
 
@@ -339,7 +340,7 @@ static int dec_simple(MpiDecLoopData *data)
 
         if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
             data->eos = 1;
-            mpp_log("%p reach max frame number %d\n", ctx, data->frame_count);
+            mpp_log_q(quiet, "%p reach max frame number %d\n", ctx, data->frame_count);
             break;
         }
 
@@ -370,13 +371,14 @@ static int dec_advanced(MpiDecLoopData *data)
     MppFrame  frame  = data->frame;
     MppTask task = NULL;
     size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
+    RK_U32 quiet = data->quiet;
 
     if (read_size != data->packet_size || feof(data->fp_input)) {
         if (data->frame_num < 0) {
             clearerr(data->fp_input);
             rewind(data->fp_input);
         } else {
-            mpp_log("%p found last packet\n", ctx);
+            mpp_log_q(quiet, "%p found last packet\n", ctx);
             // setup eos flag
             data->eos = pkt_eos = 1;
         }
@@ -437,11 +439,12 @@ static int dec_advanced(MpiDecLoopData *data)
             if (data->fp_output)
                 dump_mpp_frame_to_file(frame, data->fp_output);
 
-            mpp_log("%p decoded frame %d\n", ctx, data->frame_count);
+            mpp_log_q(quiet, "%p decoded frame %d\n", ctx, data->frame_count);
             data->frame_count++;
 
-            if (mpp_frame_get_eos(frame_out))
-                mpp_log("%p found eos frame\n", ctx);
+            if (mpp_frame_get_eos(frame_out)) {
+                mpp_log_q(quiet, "%p found eos frame\n", ctx);
+            }
         }
         if (data->frame_num > 0 && data->frame_count < data->frame_num) {
             data->eos = 0;
@@ -651,6 +654,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     data.frame_count    = 0;
     data.frame_num      = cmd->frame_num;
     data.reader         = reader;
+    data.quiet          = cmd->quiet;
 
     if (cmd->simple) {
         while (!data.eos) {
