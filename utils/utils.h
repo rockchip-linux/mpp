@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 
+#include "mpp_log.h"
 #include "mpp_frame.h"
 
 typedef struct OptionInfo_t {
@@ -38,10 +39,14 @@ typedef struct frame_crc_t {
     DataCrc         chroma;
 } FrmCrc;
 
-
 #define show_options(opt) \
     do { \
         _show_options(sizeof(opt)/sizeof(OptionInfo), opt); \
+    } while (0)
+
+#define mpp_log_q(quiet, fmt, ...) \
+    do { \
+        if (!quiet) mpp_log(fmt, ## __VA_ARGS__); \
     } while (0)
 
 #ifdef __cplusplus

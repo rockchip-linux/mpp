@@ -23,7 +23,6 @@
 #include <string.h>
 #include "rk_mpi.h"
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
@@ -92,16 +91,16 @@ static int multi_dec_simple(MpiDecCtx *data)
     MppFrame  frame  = NULL;
     FileReader reader = data->reader;
     size_t read_size = 0;
+    RK_U32 quiet = data->quiet;
 
     data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
     if (pkt_eos) {
         if (data->frame_num < 0) {
-            if (!data->quiet)
-                mpp_log("%p loop again\n", ctx);
+            mpp_log_q(quiet, "%p loop again\n", ctx);
             reader_rewind(reader);
             data->eos = pkt_eos = 0;
         } else {
-            mpp_log("%p found last packet\n", ctx);
+            mpp_log_q(quiet, "%p found last packet\n", ctx);
         }
     }
 
@@ -154,9 +153,9 @@ static int multi_dec_simple(MpiDecCtx *data)
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                     RK_U32 buf_size = mpp_frame_get_buf_size(frame);
 
-                    mpp_log("decode_get_frame get info changed found\n");
-                    mpp_log("decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
-                            width, height, hor_stride, ver_stride, buf_size);
+                    mpp_log_q(quiet, "decode_get_frame get info changed found\n");
+                    mpp_log_q(quiet, "decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
+                              width, height, hor_stride, ver_stride, buf_size);
 
                     if (NULL == data->frm_grp) {
                         /* If buffer group is not set create one and limit it */
@@ -201,17 +200,15 @@ static int multi_dec_simple(MpiDecCtx *data)
                     if (!data->first_frm)
                         data->first_frm = mpp_time();
 
-                    if (!data->quiet) {
-                        err_info = mpp_frame_get_errinfo(frame) |
-                                   mpp_frame_get_discard(frame);
-                        if (err_info) {
-                            mpp_log("decoder_get_frame get err info:%d discard:%d.\n",
-                                    mpp_frame_get_errinfo(frame),
-                                    mpp_frame_get_discard(frame));
-                        }
-                        mpp_log("decode_get_frame get frame %d\n",
-                                data->frame_count);
+                    err_info = mpp_frame_get_errinfo(frame) |
+                               mpp_frame_get_discard(frame);
+                    if (err_info) {
+                        mpp_log_q(quiet, "decoder_get_frame get err info:%d discard:%d.\n",
+                                  mpp_frame_get_errinfo(frame),
+                                  mpp_frame_get_discard(frame));
                     }
+                    mpp_log_q(quiet, "decode_get_frame get frame %d\n",
+                              data->frame_count);
 
                     data->frame_count++;
                     if (data->fp_output && !err_info)
