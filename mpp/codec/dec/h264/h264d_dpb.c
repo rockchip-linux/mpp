@@ -1683,7 +1683,7 @@ RK_U32 get_field_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p)
 
     if ((p->structure == TOP_FIELD) || (p->structure == BOTTOM_FIELD)) {
         // check for frame store with same pic_number
-        if (p_last && (p_last->structure == TOP_FIELD || p_last->structure == BOTTOM_FIELD)) {
+        if (p_last) {
             if ((RK_S32)p_last->frame_num == p->pic_num) {
                 if (((p->structure == TOP_FIELD) && (p_last->is_used == 2))
                     || ((p->structure == BOTTOM_FIELD) && (p_last->is_used == 1))) {
