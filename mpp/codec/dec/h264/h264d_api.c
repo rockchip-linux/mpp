@@ -20,7 +20,6 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_mem.h"
 #include "mpp_platform.h"
 #include "mpp_packet_impl.h"
 
@@ -133,6 +132,10 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     }
     free_storable_picture(p_Vid->p_Dec, p_Vid->dec_pic);
     //free_frame_store(p_Dec, &p_Vid->out_buffer);
+    if (p_Vid->pic_st) {
+        mpp_mem_pool_deinit(p_Vid->pic_st);
+        p_Vid->pic_st = NULL;
+    }
 
 __RETURN:
     return ret = MPP_OK;
@@ -172,6 +175,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->subspsSet[i].num_views_minus1 = -1;
         p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
     }
+    p_Vid->pic_st = mpp_mem_pool_init(sizeof(H264_StorePic_t));
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
