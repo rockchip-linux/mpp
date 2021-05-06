@@ -177,6 +177,15 @@ typedef struct MppBufSlotLog_t {
     SlotStatus          status_out;
 } MppBufSlotLog;
 
+typedef struct MppBufSlotLogs_t {
+    pthread_mutex_t     lock;
+    RK_U16              max_count;
+    RK_U16              log_count;
+    RK_U16              log_write;
+    RK_U16              log_read;
+    MppBufSlotLog       *logs;
+} MppBufSlotLogs;
+
 struct MppBufSlotEntry_t {
     MppBufSlotsImpl     *slots;
     struct list_head    list;
@@ -227,7 +236,7 @@ struct MppBufSlotsImpl_t {
     struct list_head    queue[QUEUE_BUTT];
 
     // list for log
-    mpp_list            *logs;
+    MppBufSlotLogs      *logs;
 
     MppBufSlotEntry     *slots;
 };
@@ -306,6 +315,79 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
 
 #define dump_slots(...) _dump_slots(__FUNCTION__, ## __VA_ARGS__)
 
+static void buf_slot_logs_reset(MppBufSlotLogs *logs)
+{
+    logs->log_count = 0;
+    logs->log_write = 0;
+    logs->log_read = 0;
+}
+
+static MppBufSlotLogs *buf_slot_logs_init(RK_U32 max_count)
+{
+    MppBufSlotLogs *logs = NULL;
+
+    if (!max_count)
+        return NULL;
+
+    logs = mpp_malloc_size(MppBufSlotLogs, sizeof(MppBufSlotLogs) +
+                           max_count * sizeof(MppBufSlotLog));
+    if (!logs) {
+        mpp_err_f("failed to create %d buf slot logs\n", max_count);
+        return NULL;
+    }
+
+    logs->max_count = max_count;
+    logs->logs = (MppBufSlotLog *)(logs + 1);
+    buf_slot_logs_reset(logs);
+
+    return logs;
+}
+
+static void buf_slot_logs_deinit(MppBufSlotLogs *logs)
+{
+    MPP_FREE(logs);
+}
+
+static void buf_slot_logs_write(MppBufSlotLogs *logs, RK_S32 index, MppBufSlotOps op,
+                                SlotStatus before, SlotStatus after)
+{
+    MppBufSlotLog *log = NULL;
+
+    log = &logs->logs[logs->log_write];
+    log->index      = index;
+    log->ops        = op;
+    log->status_in  = before;
+    log->status_out = after;
+
+    logs->log_write++;
+    if (logs->log_write >= logs->max_count)
+        logs->log_write = 0;
+
+    if (logs->log_count < logs->max_count)
+        logs->log_count++;
+    else {
+        logs->log_read++;
+        if (logs->log_read >= logs->max_count)
+            logs->log_read = 0;
+    }
+}
+
+static void buf_slot_logs_dump(MppBufSlotLogs *logs)
+{
+    while (logs->log_count) {
+        MppBufSlotLog *log = &logs->logs[logs->log_read];
+
+        mpp_log("index %2d op: %s status in %08x out %08x",
+                log->index, op_string[log->ops], log->status_in.val, log->status_out.val);
+
+        logs->log_read++;
+        if (logs->log_read >= logs->max_count)
+            logs->log_read = 0;
+        logs->log_count--;
+    }
+    mpp_assert(logs->log_read == logs->log_write);
+}
+
 static void _dump_slots(const char *caller, MppBufSlotsImpl *impl)
 {
     RK_S32 i;
@@ -325,34 +407,12 @@ static void _dump_slots(const char *caller, MppBufSlotsImpl *impl)
 
     mpp_log("\nslot operation history:\n\n");
 
-    mpp_list *logs = impl->logs;
-    if (logs) {
-        while (logs->list_size()) {
-            MppBufSlotLog log;
-            logs->del_at_head(&log, sizeof(log));
-            mpp_log("index %2d op: %s status in %08x out %08x",
-                    log.index, op_string[log.ops], log.status_in.val, log.status_out.val);
-        }
-    }
+    if (impl->logs)
+        buf_slot_logs_dump(impl->logs);
 
     mpp_assert(0);
 
     return;
-}
-
-static void add_slot_log(mpp_list *logs, RK_S32 index, MppBufSlotOps op, SlotStatus before, SlotStatus after)
-{
-    if (logs) {
-        MppBufSlotLog log = {
-            index,
-            op,
-            before,
-            after,
-        };
-        if (logs->list_size() >= SLOT_OPS_MAX_COUNT)
-            logs->del_at_head(NULL, sizeof(log));
-        logs->add_at_tail(&log, sizeof(log));
-    }
 }
 
 static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppBufSlotOps op, void *arg)
@@ -455,7 +515,8 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
     slot->status = status;
     buf_slot_dbg(BUF_SLOT_DBG_OPS_RUNTIME, "slot %3d index %2d op: %s arg %010p status in %08x out %08x",
                  impl->slots_idx, index, op_string[op], arg, before.val, status.val);
-    add_slot_log(impl->logs, index, op, before, status);
+    if (impl->logs)
+        buf_slot_logs_write(impl->logs, index, op, before, status);
     if (error)
         dump_slots(impl);
 }
@@ -531,8 +592,10 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
     if (impl->info_set)
         mpp_frame_deinit(&impl->info_set);
 
-    if (impl->logs)
-        delete impl->logs;
+    if (impl->logs) {
+        buf_slot_logs_deinit(impl->logs);
+        impl->logs = NULL;
+    }
 
     if (impl->lock)
         delete impl->lock;
@@ -565,7 +628,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         }
 
         if (buf_slot_debug & BUF_SLOT_DBG_OPS_HISTORY) {
-            impl->logs = new mpp_list(NULL);
+            impl->logs = buf_slot_logs_init(SLOT_OPS_MAX_COUNT);
             if (NULL == impl->logs)
                 break;
         }
@@ -672,11 +735,9 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     mpp_frame_copy(impl->info, impl->info_set);
     impl->buf_size = mpp_frame_get_buf_size(impl->info);
 
-    if (impl->logs) {
-        mpp_list *logs = impl->logs;
-        while (logs->list_size())
-            logs->del_at_head(NULL, sizeof(MppBufSlotLog));
-    }
+    if (impl->logs)
+        buf_slot_logs_reset(impl->logs);
+
     impl->info_changed  = 0;
     return MPP_OK;
 }
