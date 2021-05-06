@@ -19,10 +19,9 @@
 #include <string.h>
 
 #include "mpp_log.h"
-#include "mpp_mem.h"
+#include "mpp_mem_pool.h"
 #include "mpp_packet_impl.h"
 #include "mpp_meta_impl.h"
-#include "mpp_mem_pool.h"
 
 static const char *module_name = MODULE_TAG;
 static MppMemPool mpp_packet_pool = mpp_mem_pool_init(sizeof(MppPacketImpl));

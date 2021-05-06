@@ -19,9 +19,9 @@
 #include <string.h>
 
 #include "mpp_log.h"
-#include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_hash.h"
+#include "mpp_mem_pool.h"
 
 #include "mpp_buffer_impl.h"
 
@@ -119,6 +119,9 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "buf discard",
     "buf destroy",
 };
+
+static MppMemPool mpp_buffer_pool = mpp_mem_pool_init(sizeof(MppBufferImpl));
+static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init(sizeof(MppBufferGroupImpl));
 
 RK_U32 mpp_buffer_debug = 0;
 
@@ -268,7 +271,7 @@ static MPP_RET deinit_buffer_no_lock(MppBufferImpl *buffer, const char *caller)
         mpp_assert(MppBufferService::get_instance()->is_finalizing());
     }
 
-    mpp_free(buffer);
+    mpp_mem_pool_put(mpp_buffer_pool, buffer);
 
     return MPP_OK;
 }
@@ -342,7 +345,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         goto RET;
     }
 
-    p = mpp_calloc(MppBufferImpl, 1);
+    p = (MppBufferImpl *)mpp_mem_pool_get(mpp_buffer_pool);
     if (NULL == p) {
         mpp_err_f("failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
@@ -354,7 +357,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     ret = func(group->allocator, info);
     if (ret) {
         mpp_err_f("failed to create buffer with size %d\n", info->size);
-        mpp_free(p);
+        mpp_mem_pool_put(mpp_buffer_pool, p);
         ret = MPP_ERR_MALLOC;
         goto RET;
     }
@@ -822,7 +825,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
                                                 RK_U32 is_misc)
 {
     MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
-    MppBufferGroupImpl *p = mpp_calloc(MppBufferGroupImpl, 1);
+    MppBufferGroupImpl *p = (MppBufferGroupImpl *)mpp_mem_pool_get(mpp_buf_grp_pool);
     if (NULL == p) {
         mpp_err("MppBufferService failed to allocate group context\n");
         return NULL;
@@ -976,7 +979,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
         buf_logs_deinit(group->logs);
         group->logs = NULL;
     }
-    mpp_free(group);
+    mpp_mem_pool_put(mpp_buf_grp_pool, group);
     group_count--;
 
     if (id == misc[mode][type]) {
