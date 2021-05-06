@@ -53,6 +53,7 @@ public:
         return &pool_service;
     }
     MppMemPoolImpl *get_pool(size_t size);
+    void put_pool(MppMemPoolImpl *impl);
 
 private:
     MppMemPoolService();
@@ -72,28 +73,9 @@ MppMemPoolService::~MppMemPoolService()
 {
     if (!list_empty(&mLink)) {
         MppMemPoolImpl *pos, *n;
-        MppMemPoolNode *node, *m;
 
         list_for_each_entry_safe(pos, n, &mLink, MppMemPoolImpl, service_link) {
-            if (!list_empty(&pos->unused)) {
-                list_for_each_entry_safe(node, m, &pos->unused, MppMemPoolNode, list) {
-                    MPP_FREE(node);
-                    pos->unused_count--;
-                }
-            }
-
-            if (!list_empty(&pos->used)) {
-                mpp_err_f("found %d used buffer size %d\n",
-                          pos->used_count, pos->size);
-
-                list_for_each_entry_safe(node, m, &pos->used, MppMemPoolNode, list) {
-                    MPP_FREE(pos);
-                    pos->used_count--;
-                }
-            }
-
-            mpp_assert(!pos->used_count);
-            mpp_assert(!pos->unused_count);
+            put_pool(pos);
         }
     }
 }
@@ -124,9 +106,51 @@ MppMemPoolImpl *MppMemPoolService::get_pool(size_t size)
     return pool;
 }
 
+void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
+{
+    MppMemPoolNode *node, *m;
+
+    if (impl != impl->check) {
+        mpp_err_f("invalid mem impl %p check %p\n", impl, impl->check);
+        return ;
+    }
+
+    if (!list_empty(&impl->unused)) {
+        list_for_each_entry_safe(node, m, &impl->unused, MppMemPoolNode, list) {
+            MPP_FREE(node);
+            impl->unused_count--;
+        }
+    }
+
+    if (!list_empty(&impl->used)) {
+        mpp_err_f("found %d used buffer size %d\n",
+                  impl->used_count, impl->size);
+
+        list_for_each_entry_safe(node, m, &impl->used, MppMemPoolNode, list) {
+            MPP_FREE(impl);
+            impl->used_count--;
+        }
+    }
+
+    mpp_assert(!impl->used_count);
+    mpp_assert(!impl->unused_count);
+
+    {
+        AutoMutex auto_lock(mLock);
+        list_del_init(&impl->service_link);
+    }
+
+    mpp_free(impl);
+}
+
 MppMemPool mpp_mem_pool_init(size_t size)
 {
     return (MppMemPool)MppMemPoolService::getInstance()->get_pool(size);
+}
+
+void mpp_mem_pool_deinit(MppMemPool pool)
+{
+    MppMemPoolService::getInstance()->put_pool((MppMemPoolImpl *)pool);
 }
 
 void *mpp_mem_pool_get(MppMemPool pool)

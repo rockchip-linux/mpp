@@ -28,6 +28,8 @@ extern "C" {
 #endif
 
 MppMemPool mpp_mem_pool_init(size_t size);
+void mpp_mem_pool_deinit(MppMemPool pool);
+
 void *mpp_mem_pool_get(MppMemPool pool);
 void mpp_mem_pool_put(MppMemPool pool, void *p);
 
