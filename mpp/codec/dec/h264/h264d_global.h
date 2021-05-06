@@ -23,6 +23,7 @@
 
 #include "mpp_log.h"
 #include "mpp_bitread.h"
+#include "mpp_mem_pool.h"
 
 #include "h264d_syntax.h"
 #include "h264d_api.h"
@@ -1042,6 +1043,7 @@ typedef struct h264d_video_ctx_t {
     RK_U32     g_framecnt;
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
 
+    MppMemPool pic_st;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {

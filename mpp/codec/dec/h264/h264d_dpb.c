@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_buf_slot.h"
 
@@ -1643,7 +1642,7 @@ void free_storable_picture(H264_DecCtx_t *p_Dec, H264_StorePic_t *p)
         if (p->mem_malloc_type == Mem_BotOnly) {
             free_dpb_mark(p_Dec, p->mem_mark, BOTTOM_FIELD);
         }
-        MPP_FREE(p);
+        mpp_mem_pool_put(p_Dec->p_Vid->pic_st, p);
     }
 }
 
@@ -1657,7 +1656,7 @@ void free_storable_picture(H264_DecCtx_t *p_Dec, H264_StorePic_t *p)
 H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264_StorePic_t *s = mpp_calloc(H264_StorePic_t, 1);
+    H264_StorePic_t *s = mpp_mem_pool_get(p_Vid->pic_st);
 
     MEM_CHECK(ret, s);
     s->view_id = -1;
@@ -1854,4 +1853,3 @@ __RETURN:
 __FAILED:
     return ret;
 }
-
