@@ -1160,7 +1160,7 @@ static MPP_RET jpegd_deinit(void *ctx)
     }
 
     if (JpegCtx->output_frame) {
-        mpp_free(JpegCtx->output_frame);
+        mpp_frame_deinit(&JpegCtx->output_frame);
     }
 
     if (JpegCtx->copy_flag) {
