@@ -48,10 +48,15 @@ class MppMemPoolService
 {
 public:
     static MppMemPoolService* getInstance() {
-        AutoMutex auto_lock(mLock);
+        AutoMutex auto_lock(get_lock());
         static MppMemPoolService pool_service;
         return &pool_service;
     }
+    static Mutex *get_lock() {
+        static Mutex lock;
+        return &lock;
+    }
+
     MppMemPoolImpl *get_pool(size_t size);
     void put_pool(MppMemPoolImpl *impl);
 
@@ -59,10 +64,7 @@ private:
     MppMemPoolService();
     ~MppMemPoolService();
     struct list_head    mLink;
-    static Mutex        mLock;
 };
-
-Mutex MppMemPoolService::mLock;
 
 MppMemPoolService::MppMemPoolService()
 {
@@ -100,7 +102,7 @@ MppMemPoolImpl *MppMemPoolService::get_pool(size_t size)
     INIT_LIST_HEAD(&pool->used);
     INIT_LIST_HEAD(&pool->unused);
     INIT_LIST_HEAD(&pool->service_link);
-    AutoMutex auto_lock(mLock);
+    AutoMutex auto_lock(get_lock());
     list_add_tail(&pool->service_link, &mLink);
 
     return pool;
@@ -136,7 +138,7 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
     mpp_assert(!impl->unused_count);
 
     {
-        AutoMutex auto_lock(mLock);
+        AutoMutex auto_lock(get_lock());
         list_del_init(&impl->service_link);
     }
 
