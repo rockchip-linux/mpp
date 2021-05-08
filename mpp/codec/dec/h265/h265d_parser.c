@@ -734,6 +734,10 @@ static RK_S32 hls_slice_header(HEVCContext *s)
         return  MPP_ERR_STREAM;
     } else {
         sh->pps_id = pps_id;
+        if (pps_id != s->pre_pps_id) {
+            s->ps_need_upate = 1;
+            s->pre_pps_id = pps_id;
+        }
     }
 
     if (!sh->first_slice_in_pic_flag &&
@@ -746,6 +750,8 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     if (s->sps != (HEVCSPS*)s->sps_list[s->pps->sps_id]) {
         s->sps = (HEVCSPS*)s->sps_list[s->pps->sps_id];
         mpp_hevc_clear_refs(s);
+
+        s->ps_need_upate = 1;
         ret = set_sps(s, s->sps);
         if (ret < 0)
             return ret;
@@ -1836,6 +1842,7 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     h265d_dbg(H265D_DBG_GLOBAL, "decode poc = %d", s->poc);
     if (s->ref) {
         h265d_parser2_syntax(h265dctx);
+        s->ps_need_upate     = 0;
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
@@ -2002,6 +2009,9 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
         return MPP_ERR_NOMEM;
     }
     mpp_buf_slot_setup(s->slots, 25);
+
+    s->pre_pps_id = -1;
+
 #ifdef dump
     fp = fopen("/data/dump1.bin", "wb+");
 #endif

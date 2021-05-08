@@ -1149,6 +1149,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
             mpp_free(s->vps_list[vps_id]);
         }
         s->vps_list[vps_id] = vps_buf;
+        s->ps_need_upate = 1;
     }
 
     return 0;
@@ -1826,6 +1827,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         if (s->sps_list[sps_id] != NULL)
             mpp_free(s->sps_list[sps_id]);
         s->sps_list[sps_id] = sps_buf;
+        s->ps_need_upate = 1;
     }
 
     if (s->sps_list[sps_id])
@@ -2107,11 +2109,16 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         }
     }
 
-    if (s->pps_list[pps_id] != NULL) {
-        mpp_hevc_pps_free(s->pps_list[pps_id]);
-        s->pps_list[pps_id] = NULL;
+    if (s->pps_list[pps_id] && !memcmp(s->vps_list[pps_id], pps_buf, sizeof(HEVCPPS))) {
+        mpp_hevc_pps_free(pps_buf);
+    } else {
+        if (s->pps_list[pps_id]) {
+            mpp_hevc_pps_free(s->pps_list[pps_id]);
+            s->pps_list[pps_id] = NULL;
+        }
+        s->pps_list[pps_id] = pps_buf;
+        s->ps_need_upate = 1;
     }
-    s->pps_list[pps_id] = pps_buf;
 
     if (s->pps_list[pps_id])
         s->pps_list_of_updated[pps_id] = 1;

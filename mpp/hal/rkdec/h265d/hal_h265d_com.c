@@ -307,13 +307,17 @@ int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *ref)
     return 0;
 }
 
-RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf)
+RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf, void* sw_rps_buf, RK_U32 fast_mode)
 {
     BitputCtx_t bp;
     RK_S32 fifo_len = 400;
     RK_S32 i = 0, j = 0;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
-    mpp_set_bitput_ctx(&bp, (RK_U64*)rps_buf, fifo_len);
+    if (!dxva_cxt->pp.ps_update_flag && fast_mode) {
+        memcpy(rps_buf, sw_rps_buf, fifo_len * sizeof(RK_U64));
+        return 0;
+    }
+    mpp_set_bitput_ctx(&bp, (RK_U64*)sw_rps_buf, fifo_len);
     for (i = 0; i < 32; i ++) {
         mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].lt_ref_pic_poc_lsb, 16);
         mpp_put_bits(&bp, dxva_cxt->pp.sps_lt_rps[i].used_by_curr_pic_lt_flag, 1);
@@ -353,7 +357,8 @@ RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf)
         mpp_put_align(&bp, 64, 0);
         mpp_put_bits(&bp,  0, 64);
     }
-    RK_U32 *tmp = (RK_U32 *)rps_buf;
+    RK_U32 *tmp = (RK_U32 *)sw_rps_buf;
+    memcpy(rps_buf, sw_rps_buf, fifo_len * sizeof(RK_U64));
     for (i = 0; i < 400 * 8 / 4; i++) {
         h265h_dbg(H265H_DBG_RPS, "rps[%3d] = 0x%08x\n", i, tmp[i]);
     }
