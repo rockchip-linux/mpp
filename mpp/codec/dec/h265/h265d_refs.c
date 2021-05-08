@@ -196,6 +196,9 @@ static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
     if (!frame)
         return NULL;
     frame->poc      = poc;
+
+    mpp_frame_set_errinfo(frame->frame, 1);
+    mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_FRAME, frame->frame);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_READY);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
     h265d_dbg(H265D_DBG_REF, "generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
