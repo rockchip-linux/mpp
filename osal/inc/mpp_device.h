@@ -21,6 +21,10 @@
 #include "mpp_dev_defs.h"
 
 typedef enum MppDevIoctlCmd_e {
+    /* device batch mode config */
+    MPP_DEV_BATCH_ON,
+    MPP_DEV_BATCH_OFF,
+
     /* hardware operation setup config */
     MPP_DEV_REG_WR,
     MPP_DEV_REG_RD,
@@ -72,6 +76,10 @@ typedef struct MppDevApi_t {
     RK_U32      ctx_size;
     MPP_RET     (*init)(void *ctx, MppClientType type);
     MPP_RET     (*deinit)(void *ctx);
+
+    /* bat mode function */
+    MPP_RET     (*attach)(void *ctx);
+    MPP_RET     (*detach)(void *ctx);
 
     /* config the cmd on preparing */
     MPP_RET     (*reg_wr)(void *ctx, MppDevRegWrCfg *cfg);

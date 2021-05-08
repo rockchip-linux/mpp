@@ -29,6 +29,7 @@
 #include "mpp_device_debug.h"
 #include "mpp_service_api.h"
 #include "mpp_service_impl.h"
+#include "mpp_server.h"
 
 typedef struct MppServiceQueryCfg_t {
     RK_U32      cmd_butt;
@@ -64,7 +65,7 @@ const char *mpp_get_mpp_service_name(void)
     return mpp_service_name;
 }
 
-static RK_S32 mpp_service_ioctl(RK_S32 fd, RK_U32 cmd, RK_U32 size, void *param)
+RK_S32 mpp_service_ioctl(RK_S32 fd, RK_U32 cmd, RK_U32 size, void *param)
 {
     MppReqV1 mpp_req;
 
@@ -79,12 +80,12 @@ static RK_S32 mpp_service_ioctl(RK_S32 fd, RK_U32 cmd, RK_U32 size, void *param)
     return (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, &mpp_req);
 }
 
-static RK_S32 mpp_service_ioctl_request(RK_S32 fd, MppReqV1 *req)
+RK_S32 mpp_service_ioctl_request(RK_S32 fd, MppReqV1 *req)
 {
     return (RK_S32)ioctl(fd, MPP_IOC_CFG_V1, req);
 }
 
-static MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap)
+MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap)
 {
     RK_U32 found = 0;
 
@@ -193,14 +194,14 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     MPP_RET ret = MPP_NOK;
 
     p->cap = mpp_get_mpp_service_cmd_cap();
-    p->fd = open(mpp_get_mpp_service_name(), O_RDWR);
-    if (p->fd < 0) {
+    p->client = open(mpp_get_mpp_service_name(), O_RDWR);
+    if (p->client < 0) {
         mpp_err("open mpp_service failed\n");
         return ret;
     }
 
     /* set client type first */
-    ret = mpp_service_ioctl(p->fd, MPP_CMD_INIT_CLIENT_TYPE, sizeof(type), &type);
+    ret = mpp_service_ioctl(p->client, MPP_CMD_INIT_CLIENT_TYPE, sizeof(type), &type);
     if (ret)
         mpp_err("set client type %d failed\n", type);
 
@@ -210,14 +211,53 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SET_RCB_INFO, p->cap))
         p->support_set_rcb_info = 1;
 
+    /* default server fd is the opened client fd */
+    p->server = p->client;
+    p->batch_io = 0;
+    p->serv_ctx = NULL;
+
     return ret;
 }
 
 MPP_RET mpp_service_deinit(void *ctx)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
-    if (p->fd)
-        close(p->fd);
+
+    if (p->batch_io)
+        mpp_server_detach(p);
+
+    if (p->client)
+        close(p->client);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_service_attach(void *ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    if (p->req_cnt) {
+        mpp_err_f("can not switch on bat mode when service working\n");
+        return MPP_NOK;
+    }
+
+    if (!p->batch_io)
+        mpp_server_attach(p);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_service_detach(void *ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    if (p->req_cnt) {
+        mpp_err_f("can not switch off bat mode when service working\n");
+        return MPP_NOK;
+    }
+
+    if (p->batch_io)
+        mpp_server_detach(p);
 
     return MPP_OK;
 }
@@ -339,6 +379,7 @@ MPP_RET mpp_service_set_info(void *ctx, MppDevInfoCfg *cfg)
 
 MPP_RET mpp_service_cmd_send(void *ctx)
 {
+    MPP_RET ret = MPP_OK;
     MppDevMppService *p = (MppDevMppService *)ctx;
 
     if (p->req_cnt <= 0 || p->req_cnt > MAX_REQ_NUM) {
@@ -379,11 +420,17 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     }
     p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG;
 
-    MPP_RET ret = mpp_service_ioctl_request(p->fd, &p->reqs[0]);
-    if (ret) {
-        mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
-                  ret, errno, strerror(errno));
-        ret = errno;
+    if (p->batch_io) {
+        ret = mpp_server_send_task(ctx);
+        if (ret)
+            mpp_err_f("send task to server ret %d\n", ret);
+    } else {
+        ret = mpp_service_ioctl_request(p->server, &p->reqs[0]);
+        if (ret) {
+            mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
+                      ret, errno, strerror(errno));
+            ret = errno;
+        }
     }
 
     if (p->info_count) {
@@ -396,7 +443,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
             req.offset = 0;
             req.data_ptr = REQ_DATA_PTR(p->info);
 
-            ret = mpp_service_ioctl_request(p->fd, &req);
+            ret = mpp_service_ioctl_request(p->client, &req);
             if (ret) {
                 p->support_set_info = 0;
                 ret = MPP_OK;
@@ -415,16 +462,21 @@ MPP_RET mpp_service_cmd_poll(void *ctx)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
     MppReqV1 dev_req;
+    MPP_RET ret = MPP_OK;
 
-    memset(&dev_req, 0, sizeof(dev_req));
-    dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
-    dev_req.flag |= MPP_FLAGS_LAST_MSG;
+    if (p->batch_io) {
+        ret = mpp_server_wait_task(ctx, 0);
+    } else {
+        memset(&dev_req, 0, sizeof(dev_req));
+        dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
+        dev_req.flag |= MPP_FLAGS_LAST_MSG;
 
-    MPP_RET ret = mpp_service_ioctl_request(p->fd, &dev_req);
-    if (ret) {
-        mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
-                  ret, errno, strerror(errno));
-        ret = errno;
+        ret = mpp_service_ioctl_request(p->server, &dev_req);
+        if (ret) {
+            mpp_err_f("ioctl MPP_IOC_CFG_V1 failed ret %d errno %d %s\n",
+                      ret, errno, strerror(errno));
+            ret = errno;
+        }
     }
 
     return ret;
@@ -435,6 +487,8 @@ const MppDevApi mpp_service_api = {
     sizeof(MppDevMppService),
     mpp_service_init,
     mpp_service_deinit,
+    mpp_service_attach,
+    mpp_service_detach,
     mpp_service_reg_wr,
     mpp_service_reg_rd,
     mpp_service_reg_offset,

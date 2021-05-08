@@ -669,6 +669,8 @@ const MppDevApi vcodec_service_api = {
     sizeof(MppDevVcodecService),
     vcodec_service_init,
     vcodec_service_deinit,
+    NULL,
+    NULL,
     vcodec_service_reg_wr,
     vcodec_service_reg_rd,
     vcodec_service_fd_trans,

@@ -119,10 +119,18 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
     void *impl_ctx = p->ctx;
     MPP_RET ret = MPP_OK;
 
-    if (NULL == ctx || NULL == api)
+    if (NULL == impl_ctx || NULL == api)
         return ret;
 
     switch (cmd) {
+    case MPP_DEV_BATCH_ON : {
+        if (api->attach)
+            ret = api->attach(impl_ctx);
+    } break;
+    case MPP_DEV_BATCH_OFF : {
+        if (api->detach)
+            ret = api->detach(impl_ctx);
+    } break;
     case MPP_DEV_REG_WR : {
         if (api->reg_wr)
             ret = api->reg_wr(impl_ctx, param);

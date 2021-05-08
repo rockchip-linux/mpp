@@ -37,6 +37,7 @@
 #define MPP_FLAGS_REG_FD_NO_TRANS   (0x00000004)
 #define MPP_FLAGS_SCL_FD_NO_TRANS   (0x00000008)
 #define MPP_FLAGS_REG_OFFSET_ALONE  (0x00000010)
+#define MPP_FLAGS_POLL_NON_BLOCK    (0x00000020)
 #define MPP_FLAGS_SECURE_MODE       (0x00010000)
 
 /* mpp service capability description */
@@ -73,6 +74,8 @@ typedef enum MppServiceCmdType_e {
     MPP_CMD_SET_REG_READ            = MPP_CMD_SEND_BASE + 1,
     MPP_CMD_SET_REG_ADDR_OFFSET     = MPP_CMD_SEND_BASE + 2,
     MPP_CMD_SET_RCB_INFO            = MPP_CMD_SEND_BASE + 3,
+    /* for batch process start a task of one session */
+    MPP_CMD_SET_SESSION_FD          = MPP_CMD_SEND_BASE + 4,
     MPP_CMD_SEND_BUTT,
 
     MPP_CMD_POLL_BASE               = 0x300,
@@ -84,6 +87,7 @@ typedef enum MppServiceCmdType_e {
     MPP_CMD_TRANS_FD_TO_IOVA        = MPP_CMD_CONTROL_BASE + 1,
     MPP_CMD_RELEASE_FD              = MPP_CMD_CONTROL_BASE + 2,
     MPP_CMD_SEND_CODEC_INFO         = MPP_CMD_CONTROL_BASE + 3,
+    MPP_CMD_BAT_CMD                 = MPP_CMD_CONTROL_BASE + 4,
     MPP_CMD_CONTROL_BUTT,
 
     MPP_CMD_BUTT,
