@@ -17,6 +17,7 @@
 #ifndef __MPP_SERVICE_IMPL_H__
 #define __MPP_SERVICE_IMPL_H__
 
+#include "mpp_device.h"
 #include "mpp_service.h"
 
 #define MAX_REG_OFFSET          32
@@ -35,7 +36,10 @@ typedef struct RcbInfo_t {
 
 typedef struct MppDevMppService_t {
     RK_S32          client_type;
-    RK_S32          fd;
+    RK_S32          client;
+    RK_S32          server;
+    void            *serv_ctx;
+    RK_S32          batch_io;
 
     RK_S32          req_cnt;
     RK_S32          reg_offset_count;
@@ -52,5 +56,17 @@ typedef struct MppDevMppService_t {
     RK_U32          support_set_info;
     RK_U32          support_set_rcb_info;
 } MppDevMppService;
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+RK_S32 mpp_service_ioctl(RK_S32 fd, RK_U32 cmd, RK_U32 size, void *param);
+RK_S32 mpp_service_ioctl_request(RK_S32 fd, MppReqV1 *req);
+MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* __MPP_SERVICE_IMPL_H__ */

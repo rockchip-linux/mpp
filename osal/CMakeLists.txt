@@ -26,6 +26,7 @@ set(MPP_ALLOCATOR
 )
 
 set(MPP_DRIVER
+    driver/mpp_server.cpp
     driver/mpp_device.c
     driver/mpp_service.c
     driver/vcodec_service.c
