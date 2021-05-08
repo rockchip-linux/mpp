@@ -346,6 +346,13 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
     FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));
 
+    if (p_Vid->last_sps_id != cur_sps->seq_parameter_set_id ||
+        p_Vid->last_pps_id != cur_pps->pic_parameter_set_id) {
+        p_Vid->last_sps_id = cur_sps->seq_parameter_set_id;
+        p_Vid->last_pps_id = cur_pps->pic_parameter_set_id;
+        p_Vid->spspps_update = 1;
+    }
+
     /* NOTE: the SVC is not supported by hardware, so it is dropped.
      * Or svc_extension_flag doesn't equal to -1, it should apply the
      * subset_seq_parameter_set_rbsp().
