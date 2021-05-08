@@ -414,6 +414,9 @@ typedef struct _DXVA_PicParams_H264_MVC {
     RK_U8   scaleing_list_enable_flag;
     RK_U16  UsedForInTerviewflags;
 
+    //!< extensive
+    RK_U32  spspps_update;
+
     ////!< for fpga test
     //USHORT seq_parameter_set_id;
     //USHORT pps_seq_parameter_set_id;

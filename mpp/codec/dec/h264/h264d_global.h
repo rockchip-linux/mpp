@@ -1024,6 +1024,8 @@ typedef struct h264d_video_ctx_t {
     RK_S32     last_pic_height_in_map_units_minus1[2];
     RK_S32     last_profile_idc[2];
     RK_S32     last_level_idc[2];
+    RK_S32     last_sps_id;
+    RK_S32     last_pps_id;
     RK_S32     PrevPicOrderCntMsb;
     RK_S32     PrevPicOrderCntLsb;
     RK_U32     PreviousFrameNum;
@@ -1044,6 +1046,8 @@ typedef struct h264d_video_ctx_t {
     RK_U32     dpb_size[MAX_NUM_DPB_LAYERS];
 
     MppMemPool pic_st;
+    //!< spspps data update
+    RK_U32     spspps_update;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {

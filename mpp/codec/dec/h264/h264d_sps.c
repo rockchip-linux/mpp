@@ -568,6 +568,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
             update_last_video_pars(p_Vid, p_Vid->active_sps, 1);
             //!< init frame slots, store frame buffer size
             p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
+            p_Vid->spspps_update = 1;
         }
         VAL_CHECK(ret, p_Vid->dpb_size[1] > 0);
     } else { //!< layer_id == 0
@@ -584,6 +585,7 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
             update_last_video_pars(p_Vid, p_Vid->active_sps, 0);
             //!< init frame slots, store frame buffer size
             p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
+            p_Vid->spspps_update = 1;
         }
         VAL_CHECK(ret, p_Vid->dpb_size[0] > 0);
     }
