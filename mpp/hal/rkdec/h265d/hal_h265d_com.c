@@ -695,6 +695,9 @@ void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
     RK_U32 i, j, pos;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    if (!dxva_cxt->pp.scaling_list_enabled_flag) {
+        return;
+    }
     if (memcmp((void*)&dxva_cxt->qm, reg_cxt->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
         memset(&sl, 0, sizeof(scalingList_t));
         for (i = 0; i < 6; i++) {
