@@ -171,6 +171,8 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(reg_cxt->slots, SLOTS_VER_ALIGN, hevc_ver_align);
 
     reg_cxt->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
+    reg_cxt->sw_rps_buf = mpp_calloc(RK_U64, 400);
+
     if (reg_cxt->scaling_qm == NULL) {
         mpp_err("scaling_org alloc fail");
         return MPP_ERR_MALLOC;
@@ -228,6 +230,10 @@ MPP_RET hal_h265d_rkv_deinit(void *hal)
 
     if (reg_cxt->scaling_qm) {
         mpp_free(reg_cxt->scaling_qm);
+    }
+
+    if (reg_cxt->sw_rps_buf) {
+        mpp_free(reg_cxt->sw_rps_buf);
     }
 
     if (reg_cxt->scaling_rk) {
@@ -832,7 +838,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 #ifdef HW_RPS
         hw_regs->sw_sysctrl.sw_wait_reset_en = 1;
         hw_regs->v345_reg_ends.reg064_mvc0.refp_layer_same_with_cur = 0xffff;
-        hal_h265d_slice_hw_rps(syn->dec.syntax.data, rps_ptr);
+        hal_h265d_slice_hw_rps(syn->dec.syntax.data, rps_ptr, reg_cxt->sw_rps_buf, reg_cxt->fast_mode);
 #else
         hw_regs->sw_sysctrl.sw_h26x_rps_mode = 1;
         hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);

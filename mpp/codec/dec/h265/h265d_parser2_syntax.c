@@ -162,6 +162,7 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->log2_parallel_merge_level_minus2 = pps->log2_parallel_merge_level - 2;
     pp->slice_segment_header_extension_present_flag = pps->slice_header_extension_present_flag;
     pp->CurrPicOrderCntVal               = h->poc;
+    pp->ps_update_flag                   = h->ps_need_upate;
 
     for (i = 0; i < 32; i++) {
         pp->sps_lt_rps[i].lt_ref_pic_poc_lsb = sps->lt_ref_pic_poc_lsb_sps[i];
