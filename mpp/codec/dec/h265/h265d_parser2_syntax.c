@@ -164,26 +164,28 @@ static void fill_picture_parameters(const HEVCContext *h,
     pp->CurrPicOrderCntVal               = h->poc;
     pp->ps_update_flag                   = h->ps_need_upate;
 
-    for (i = 0; i < 32; i++) {
-        pp->sps_lt_rps[i].lt_ref_pic_poc_lsb = sps->lt_ref_pic_poc_lsb_sps[i];
-        pp->sps_lt_rps[i].used_by_curr_pic_lt_flag = sps->used_by_curr_pic_lt_sps_flag[i];
-    }
+    if (pp->ps_update_flag) {
+        for (i = 0; i < 32; i++) {
+            pp->sps_lt_rps[i].lt_ref_pic_poc_lsb = sps->lt_ref_pic_poc_lsb_sps[i];
+            pp->sps_lt_rps[i].used_by_curr_pic_lt_flag = sps->used_by_curr_pic_lt_sps_flag[i];
+        }
 
 
-    for (i = 0; i < 64; i++) {
-        if (i < sps->nb_st_rps) {
+        for (i = 0; i < 64; i++) {
+            if (i < sps->nb_st_rps) {
 
-            RK_U32 n_pics = src_rps[i].num_negative_pics;
-            dst_rps[i].num_negative_pics = n_pics;
-            dst_rps[i].num_positive_pics = src_rps[i].num_delta_pocs - n_pics;
-            for (j = 0; j < dst_rps[i].num_negative_pics; j++) {
-                dst_rps[i].delta_poc_s0[j] = src_rps[i].delta_poc[j];
-                dst_rps[i].s0_used_flag[j] = src_rps[i].used[j];
-            }
+                RK_U32 n_pics = src_rps[i].num_negative_pics;
+                dst_rps[i].num_negative_pics = n_pics;
+                dst_rps[i].num_positive_pics = src_rps[i].num_delta_pocs - n_pics;
+                for (j = 0; j < dst_rps[i].num_negative_pics; j++) {
+                    dst_rps[i].delta_poc_s0[j] = src_rps[i].delta_poc[j];
+                    dst_rps[i].s0_used_flag[j] = src_rps[i].used[j];
+                }
 
-            for ( j = 0; j < dst_rps[i].num_positive_pics; j++) {
-                dst_rps[i].delta_poc_s1[j] = src_rps[i].delta_poc[j + n_pics];
-                dst_rps[i].s1_used_flag[j] = src_rps[i].used[j + n_pics];
+                for ( j = 0; j < dst_rps[i].num_positive_pics; j++) {
+                    dst_rps[i].delta_poc_s1[j] = src_rps[i].delta_poc[j + n_pics];
+                    dst_rps[i].s1_used_flag[j] = src_rps[i].used[j + n_pics];
+                }
             }
         }
     }
@@ -260,7 +262,9 @@ static void fill_scaling_lists(const HEVCContext *h, DXVA_Qmatrix_HEVC *qm)
     const HEVCSPS *sps = (HEVCSPS *)h->sps_list[pps->sps_id];
     const ScalingList *sl = pps->scaling_list_data_present_flag ?
                             &pps->scaling_list : &sps->scaling_list;
-
+    if (!sps->scaling_list_enable_flag) {
+        return;
+    }
     memset(qm, 0, sizeof(DXVA_Qmatrix_HEVC));
     for (i = 0; i < 6; i++) {
         for (j = 0; j < 16; j++) {
